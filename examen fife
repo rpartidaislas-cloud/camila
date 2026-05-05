@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Examen · Fuentes e Instrumentos de Financiamiento</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --panel: #ffffff;
+    --primary: #1f4e79;
+    --primary-soft: #2e75b6;
+    --accent: #c00000;
+    --ok: #1e7e34;
+    --warn: #b8860b;
+    --text: #1a1a1a;
+    --muted: #5b6470;
+    --border: #d8dde6;
+    --shadow: 0 4px 18px rgba(31,78,121,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, system-ui, Arial, sans-serif; background: var(--bg); color: var(--text); }
+  button { font: inherit; cursor: pointer; }
+  input, select, textarea { font: inherit; }
+  .hidden { display: none !important; }
+
+  /* ===== Top bar ===== */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px; background: var(--primary); color: white;
+    box-shadow: var(--shadow);
+  }
+  .topbar .brand { font-weight: 700; font-size: 16px; letter-spacing: .3px; }
+  .topbar .right { display: flex; align-items: center; gap: 14px; }
+  .timer {
+    background: rgba(255,255,255,.12);
+    padding: 8px 14px; border-radius: 8px; font-weight: 700;
+    font-variant-numeric: tabular-nums; letter-spacing: .8px;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  .timer.warn { background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .badge {
+    background: rgba(255,255,255,.15); padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* ===== Layout ===== */
+  .container { max-width: 1080px; margin: 24px auto; padding: 0 16px; }
+  .card { background: var(--panel); border-radius: 12px; padding: 24px 28px; box-shadow: var(--shadow); margin-bottom: 18px; }
+  h1, h2, h3 { color: var(--primary); margin-top: 0; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 18px; border-bottom: 2px solid var(--primary-soft); padding-bottom: 6px; margin-bottom: 16px; }
+  h3 { font-size: 16px; }
+  label { display: block; font-weight: 600; margin: 12px 0 6px; }
+  input[type=text], input[type=number], input[type=password], textarea, select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: white; outline: none; transition: border .2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--primary-soft); }
+  textarea { min-height: 110px; resize: vertical; font-family: 'Consolas', 'Courier New', monospace; }
+
+  .btn { display: inline-block; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 600; text-decoration: none; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-soft); }
+  .btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-ghost:hover { background: var(--primary); color: white; }
+  .btn-danger { background: var(--accent); color: white; }
+  .btn-ok { background: var(--ok); color: white; }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+  /* ===== Progress bar ===== */
+  .progress-wrap { background: #e6ebf2; height: 8px; border-radius: 6px; overflow: hidden; margin: 8px 0 16px; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-soft)); transition: width .35s; }
+
+  /* ===== Sections nav ===== */
+  .section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .section-nav button {
+    background: white; border: 1px solid var(--border); padding: 8px 14px; border-radius: 999px;
+    color: var(--muted); font-weight: 600; font-size: 13px;
+  }
+  .section-nav button.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .section-nav button.done { border-color: var(--ok); color: var(--ok); }
+
+  /* ===== Question card ===== */
+  .question { padding: 18px 0; border-bottom: 1px dashed var(--border); }
+  .question:last-child { border-bottom: none; }
+  .q-header { font-weight: 600; margin-bottom: 8px; }
+  .q-points { color: var(--accent); font-weight: 700; margin-left: 6px; font-size: 13px; }
+  .q-text { margin: 0 0 12px; line-height: 1.55; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option {
+    display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .option:hover { border-color: var(--primary-soft); background: #f7faff; }
+  .option input { margin-top: 3px; }
+  .option.selected { border-color: var(--primary); background: #eaf2fb; }
+
+  /* ===== Calculator ===== */
+  #calculator {
+    position: fixed; bottom: 20px; right: 20px; z-index: 60;
+    width: 280px; background: white; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,.18);
+    overflow: hidden; user-select: none;
+    transition: transform .25s, opacity .25s;
+  }
+  #calculator.minimized { transform: translateY(calc(100% - 38px)); }
+  .calc-header {
+    background: var(--primary); color: white; padding: 8px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: move; font-weight: 700; font-size: 13px;
+  }
+  .calc-header button { background: transparent; border: none; color: white; font-size: 14px; }
+  .calc-display {
+    padding: 14px; font-size: 22px; text-align: right; background: #f8fafc;
+    font-variant-numeric: tabular-nums; min-height: 56px; word-break: break-all;
+    border-bottom: 1px solid var(--border);
+  }
+  .calc-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); }
+  .calc-pad button {
+    border: none; background: white; padding: 14px 0; font-size: 16px; cursor: pointer;
+    transition: background .12s;
+  }
+  .calc-pad button:hover { background: #eef3f9; }
+  .calc-pad .op { background: #f4eee2; color: #8a6d1a; font-weight: 700; }
+  .calc-pad .eq { background: var(--primary); color: white; font-weight: 700; }
+  .calc-pad .clear { background: #fdecec; color: var(--accent); font-weight: 700; }
+  .calc-fab {
+    position: fixed; bottom: 20px; right: 20px; z-index: 59;
+    width: 54px; height: 54px; border-radius: 50%; background: var(--primary); color: white;
+    border: none; box-shadow: 0 10px 26px rgba(31,78,121,.35); font-size: 22px;
+  }
+
+  /* ===== Modals ===== */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(20,30,50,.55); display: flex;
+    align-items: center; justify-content: center; z-index: 100; padding: 16px;
+  }
+  .modal {
+    background: white; border-radius: 14px; max-width: 460px; width: 100%;
+    padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  .modal h2 { margin-top: 0; }
+  .modal .icon { font-size: 38px; }
+
+  /* ===== Tables ===== */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  th { background: var(--primary); color: white; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfd; }
+
+  .alert-list { max-height: 280px; overflow-y: auto; }
+  .alert-row { padding: 10px 12px; border-left: 3px solid var(--accent); background: #fff5f5; margin: 6px 0; border-radius: 0 8px 8px 0; }
+  .alert-row.warn { border-left-color: var(--warn); background: #fffaee; }
+  .alert-row.info { border-left-color: var(--primary-soft); background: #f0f6fc; }
+  .alert-time { color: var(--muted); font-size: 12px; }
+
+  .answer-box { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; min-height: 90px; font-family: 'Consolas', monospace; }
+  .footer-actions { display: flex; justify-content: space-between; margin-top: 18px; gap: 10px; }
+  .save-indicator { color: var(--ok); font-size: 13px; }
+  .center { text-align: center; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+
+  /* ===== Spreadsheet (lateral panel, no longer covers the question) ===== */
+  #sheetFab {
+    position: fixed; bottom: 84px; right: 20px; z-index: 59;
+    height: 54px; padding: 0 18px; border-radius: 27px; background: #1e7e34; color: white;
+    border: none; box-shadow: 0 10px 26px rgba(30,126,52,.35); font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #sheetFab .ic { font-size: 20px; }
+  /* Side panel: docks to the right side. The question stays visible on the left. */
+  .sheet-modal {
+    position: fixed; top: 64px; right: 0; bottom: 0;
+    width: min(58%, 780px);
+    z-index: 60;
+    background: transparent;
+    padding: 10px 10px 10px 0;
+    pointer-events: none;  /* clicks pass through outside .sheet-window */
+  }
+  .sheet-modal:not(.hidden) .sheet-window { pointer-events: auto; }
+  .sheet-window {
+    background: white; border-radius: 14px; width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    box-shadow: -10px 4px 32px rgba(0,0,0,.18);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  /* When sheet is open, shrink the main container so question stays visible */
+  body.sheet-open .container { padding-right: calc(min(58%, 780px) + 16px); transition: padding .25s; }
+  body.sheet-open .topbar { padding-right: 24px; }
+  /* On narrow screens, fall back to bottom-docked panel */
+  @media (max-width: 900px) {
+    .sheet-modal { width: 100%; top: auto; right: 0; left: 0; bottom: 0; height: 60vh; padding: 0; }
+    body.sheet-open .container { padding-right: 16px; padding-bottom: calc(60vh + 16px); }
+  }
+  .sheet-header {
+    background: #1e7e34; color: white; padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sheet-header .left { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  .sheet-header button { background: transparent; color: white; border: 1px solid rgba(255,255,255,.5); padding: 6px 12px; border-radius: 6px; }
+  .sheet-toolbar {
+    background: #f4f6fa; padding: 8px 12px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .sheet-toolbar .name-box {
+    background: white; border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px;
+    font-weight: 700; min-width: 56px; text-align: center; color: var(--primary);
+  }
+  .sheet-toolbar .formula-bar {
+    flex: 1; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+    font-family: 'Consolas', 'Courier New', monospace; outline: none; background: white;
+  }
+  .sheet-toolbar .formula-bar:focus { border-color: var(--ok); }
+  .sheet-grid-wrap { flex: 1; overflow: auto; background: #fafbfd; position: relative; }
+  .sheet-grid { border-collapse: collapse; font-size: 13px; }
+  .sheet-grid th, .sheet-grid td {
+    border: 1px solid #c8cfdb; padding: 0; min-width: 92px; height: 26px;
+    background: white;
+  }
+  .sheet-grid thead th, .sheet-grid tbody th {
+    background: #eef3f9; color: #4a5666; font-weight: 700; text-align: center;
+    min-width: 36px; padding: 4px 6px; position: sticky;
+  }
+  .sheet-grid thead th { top: 0; z-index: 2; }
+  .sheet-grid tbody th { left: 0; z-index: 1; }
+  .sheet-grid thead th.corner { left: 0; z-index: 3; }
+  .sheet-cell {
+    width: 100%; height: 100%; min-height: 26px; padding: 4px 8px; border: none; outline: none;
+    background: transparent; font-size: 13px; font-family: inherit;
+    text-align: right; font-variant-numeric: tabular-nums;
+    cursor: cell;
+  }
+  .sheet-cell.text { text-align: left; }
+  .sheet-cell.error { color: var(--accent); }
+  .sheet-cell.editing { background: #fff8d6; text-align: left; font-family: 'Consolas', monospace; cursor: text; }
+  .sheet-cell.selected-display { background: #eaf2fb; box-shadow: inset 0 0 0 2px var(--primary); }
+  .sheet-cell.range-selected { background: rgba(46,117,182,.15); }
+  .sheet-cell.fill-target { background: rgba(31,126,52,.12); border: 1px dashed #1e7e34 !important; }
+
+  /* Fill handle (manija de relleno como Excel) */
+  .sheet-fill-handle {
+    position: absolute; width: 9px; height: 9px;
+    background: var(--primary); border: 1px solid white;
+    cursor: crosshair; z-index: 10; display: none;
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .sheet-fill-handle:hover { background: #c00000; box-shadow: 0 0 0 1px #c00000; }
+  .sheet-help {
+    background: #fff8e1; padding: 8px 12px; border-top: 1px solid #f0e2a8;
+    font-size: 12px; color: #6b5d1f;
+  }
+  .sheet-help b { color: #4d4310; }
+
+  /* ===== Sheet toolbar (operators + functions) ===== */
+  .sheet-tools {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px;
+    background: #f8fafc; border-bottom: 1px solid var(--border);
+  }
+  .tool-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px; margin-right: 4px;
+  }
+  .tool-group { display: inline-flex; gap: 3px; }
+  .tool-sep { width: 1px; height: 24px; background: #c8cfdb; margin: 0 6px; }
+  .op-btn, .fn-btn {
+    border: 1px solid #c8cfdb; background: white; padding: 6px 12px;
+    border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer;
+    min-width: 38px; transition: background .12s, border-color .12s, transform .08s;
+    line-height: 1; user-select: none;
+  }
+  .op-btn { color: var(--primary); font-family: 'Consolas', monospace; font-size: 16px; }
+  .fn-btn { color: var(--ok); font-size: 12px; min-width: 50px; }
+  .op-btn:hover, .fn-btn:hover { background: #eef3f9; border-color: var(--primary-soft); }
+  .op-btn:active, .fn-btn:active { background: #d8e4f0; transform: scale(0.95); }
+  .op-btn.eq { background: #fff8e1; color: #b8860b; border-color: #f0e2a8; }
+  .op-btn.eq:hover { background: #fef0c2; }
+  /* Format buttons */
+  .fmt-btn {
+    border: 1px solid #c8cfdb; background: white; padding: 6px 10px;
+    border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;
+    transition: background .12s, border-color .12s, transform .08s;
+    line-height: 1; user-select: none; min-width: 50px;
+  }
+  .fmt-btn:hover { background: #eef3f9; border-color: var(--primary-soft); }
+  .fmt-btn:active { transform: scale(0.95); }
+  .fmt-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .fmt-btn.currency { color: #1e7e34; }
+  .fmt-btn.currency.active { background: #1e7e34; color: white; border-color: #1e7e34; }
+  .fmt-btn.percent { color: #b8860b; }
+  .fmt-btn.percent.active { background: #b8860b; color: white; border-color: #b8860b; }
+  /* Cells with format */
+  .sheet-cell.fmt-currency { color: #1e7e34; font-weight: 600; }
+  .sheet-cell.fmt-percent { color: #b8860b; font-weight: 600; }
+  /* Indicador de fórmula viva (esquinita verde) */
+  .sheet-grid td { position: relative; }
+  .sheet-cell.has-formula::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 6px 0 0;
+    border-color: #1e7e34 transparent transparent transparent;
+    pointer-events: none;
+  }
+  /* Estilo del indicador "fx" en la barra de fórmulas */
+  .formula-prefix {
+    background: #1e7e34; color: white; padding: 4px 8px; border-radius: 4px;
+    font-style: italic; font-weight: 700; font-size: 12px; margin-right: 6px;
+  }
+
+  /* ===== Login tabs ===== */
+  .login-tab {
+    background: transparent; border: none; padding: 10px 18px;
+    font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent;
+    margin-bottom: -1px; font-size: 14px;
+  }
+  .login-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* ===== Admin students table ===== */
+  .student-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e6ebf2; }
+  .student-row .name { flex: 1; }
+  .student-row .code { font-family: 'Consolas', monospace; background: #fff8e1; padding: 4px 10px; border-radius: 4px; font-weight: 700; color: #8a6d1a; }
+  .student-row.taken .code { background: #e2efda; color: #385723; }
+
+  /* ===== Visual question editor ===== */
+  .qe-section {
+    border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; background: #fafbfd;
+  }
+  .qe-section h3 {
+    margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--primary-soft);
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .qe-section h3 input { flex: 1; min-width: 200px; max-width: 380px; font-weight: 700; font-size: 15px; }
+  .qe-question {
+    background: white; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin: 10px 0;
+  }
+  .qe-question .qe-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; font-size: 13px; }
+  .qe-question .qe-meta input, .qe-question .qe-meta select { padding: 4px 8px; font-size: 13px; }
+  .qe-question .qe-meta .pts-input { width: 80px; }
+  .qe-question .qe-meta .points-tag { background: var(--primary); color: white; padding: 2px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+  .qe-options { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .qe-option { display: flex; gap: 6px; align-items: center; }
+  .qe-option input[type=text] { flex: 1; }
+  .qe-option .correct-radio { transform: scale(1.2); margin: 0 6px; }
+  .qe-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* ===== Match (drag-and-drop) question ===== */
+  .match-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+  .match-col { background: #fafbfd; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .match-col h4 { margin: 0 0 10px; color: var(--primary); font-size: 14px; }
+  .match-item {
+    background: white; border: 2px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 8px; display: flex; gap: 10px; align-items: center; min-height: 44px;
+    transition: background .15s, border-color .15s;
+  }
+  .match-item .label { flex: 1; font-weight: 600; }
+  .match-item .slot {
+    flex: 1; min-height: 30px; border: 2px dashed #c8cfdb; border-radius: 6px;
+    padding: 6px 10px; background: #f4f6fa; color: var(--muted); font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .match-item .slot.dragover { background: #fff8e1; border-color: #f0c000; color: #8a6d1a; }
+  .match-item .slot .placed { color: var(--text); font-weight: 600; flex: 1; }
+  .match-item .slot .placed-remove {
+    background: var(--accent); color: white; border: none; border-radius: 50%;
+    width: 22px; height: 22px; cursor: pointer; font-size: 12px; line-height: 1;
+  }
+  .match-pool .draggable {
+    background: #eaf2fb; border: 2px solid var(--primary-soft); cursor: grab;
+    padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; font-weight: 600;
+    user-select: none;
+  }
+  .match-pool .draggable:active { cursor: grabbing; }
+  .match-pool .draggable.dragging { opacity: .5; }
+  .match-pool .draggable.placed { display: none; }
+
+  /* ===== File input button styling ===== */
+  .file-input-wrap { position: relative; display: inline-block; }
+  .file-input-wrap input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="screenLogin" class="container">
+  <div class="card" style="max-width: 480px; margin: 60px auto;">
+    <h1 class="center">Sistema de Examen</h1>
+    <p class="muted center">Fuentes e Instrumentos de Financiamiento para las Empresas</p>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:8px;margin:16px 0;border-bottom:1px solid var(--border)">
+      <button id="tabStudent" class="login-tab active" onclick="switchLoginTab('student')">👨‍🎓 Soy alumno</button>
+      <button id="tabAdmin" class="login-tab" onclick="switchLoginTab('admin')">⚙️ Soy administrador</button>
+    </div>
+
+    <!-- Student form: just code -->
+    <div id="studentLogin">
+      <label>Código de alumno</label>
+      <input id="loginCode" type="text" placeholder="Ej. ABC123" autocomplete="off" onkeydown="if(event.key==='Enter')loginStudent()">
+      <p class="muted" style="margin-top:8px">Pide tu código al docente. No necesitas contraseña.</p>
+      <div style="text-align:right;margin-top:14px">
+        <button class="btn btn-primary" onclick="loginStudent()">Ingresar al examen</button>
+      </div>
+    </div>
+
+    <!-- Admin form: user + password -->
+    <div id="adminLogin" class="hidden">
+      <label>Usuario</label>
+      <input id="loginUser" type="text" placeholder="admin" autocomplete="off">
+      <label>Contraseña</label>
+      <input id="loginPass" type="password" placeholder="contraseña" onkeydown="if(event.key==='Enter')loginAdmin()">
+      <p class="muted" style="margin-top:8px">Demo: <b>admin</b> / <b>admin123</b></p>
+      <div style="text-align:right;margin-top:14px">
+        <button class="btn btn-primary" onclick="loginAdmin()">Ingresar al panel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PRE-EXAM WARNING ================= -->
+<div id="screenWarning" class="hidden container">
+  <div class="card" style="max-width: 720px; margin: 40px auto;">
+    <div style="text-align:center;font-size:48px">⚠️</div>
+    <h1 class="center">Antes de iniciar tu examen</h1>
+    <p class="muted center" id="warnStudentName"></p>
+
+    <div style="background:#fff8e1;border-left:4px solid #f0e2a8;padding:16px 20px;border-radius:8px;margin:18px 0">
+      <h3 style="margin-top:0;color:#8a6d1a">⏱️ Tiempo</h3>
+      <p style="margin:6px 0">Tendrás <b id="warnMinutes">120</b> minutos para resolver todo el examen. El temporizador inicia al hacer click en "Comenzar examen" y <b>no se detiene</b>.</p>
+      <p style="margin:6px 0">Cuando se acabe el tiempo, el examen se entregará automáticamente con tus respuestas actuales.</p>
+    </div>
+
+    <div style="background:#fdecec;border-left:4px solid #c00000;padding:16px 20px;border-radius:8px;margin:18px 0">
+      <h3 style="margin-top:0;color:#c00000">🚫 Reglas anti-trampa</h3>
+      <p style="margin:6px 0">El sistema detecta automáticamente:</p>
+      <ul style="margin:6px 0 6px 20px;padding:0">
+        <li>Cambio de pestaña o ventana (Alt+Tab, minimizar)</li>
+        <li>Pérdida de foco del navegador</li>
+        <li>Atajos de copiar, pegar, imprimir o abrir DevTools</li>
+        <li>Inactividad por más de <b id="warnIdle">10</b> segundos</li>
+      </ul>
+      <p style="margin:10px 0 0;font-weight:700;color:#c00000">Tienes <b id="warnMaxAlerts">3</b> alertas como máximo. Después de la <b id="warnMaxAlerts2">3ª</b> alerta, el examen se enviará automáticamente.</p>
+    </div>
+
+    <div style="background:#e8f4ff;border-left:4px solid #2e75b6;padding:16px 20px;border-radius:8px;margin:18px 0">
+      <h3 style="margin-top:0;color:#1f4e79">🛠️ Herramientas disponibles</h3>
+      <ul style="margin:6px 0 6px 20px;padding:0">
+        <li>📊 Hoja de cálculo con fórmulas (=A1*B1, SUM, AVERAGE, POWER, etc.) — una por pregunta de cálculo</li>
+        <li>🧮 Calculadora científica básica</li>
+        <li>💾 Auto-guardado: si se cierra el navegador, podrás continuar donde te quedaste</li>
+      </ul>
+    </div>
+
+    <div style="margin:18px 0;padding:14px;background:#f4f6fa;border-radius:8px">
+      <label style="display:flex;align-items:center;cursor:pointer;font-weight:600">
+        <input type="checkbox" id="warnAccept" style="width:auto;margin-right:10px;transform:scale(1.3)">
+        He leído y acepto las condiciones del examen.
+      </label>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;gap:10px">
+      <button class="btn btn-ghost" onclick="logout()">Cancelar</button>
+      <button id="warnStartBtn" class="btn btn-primary" onclick="startExamFromWarning()" disabled>🚀 Comenzar examen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ADMIN PANEL ================= -->
+<div id="screenAdmin" class="hidden">
+  <div class="topbar">
+    <div class="brand">⚙️ Panel del Administrador</div>
+    <div class="right">
+      <span class="badge" id="adminUserBadge"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" style="color:white;border-color:rgba(255,255,255,.5)">Salir</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>📋 Configuración del examen</h2>
+      <div class="grid-2">
+        <div>
+          <label>Tiempo total (minutos)</label>
+          <input id="cfgMinutes" type="number" min="1" value="120">
+        </div>
+        <div>
+          <label>Inactividad antes de advertir (segundos)</label>
+          <input id="cfgIdle" type="number" min="3" value="10">
+        </div>
+        <div>
+          <label>Máximo de alertas antes de auto-envío</label>
+          <input id="cfgMaxAlerts" type="number" min="1" value="3">
+        </div>
+        <div>
+          <label>Calificación mínima aprobatoria</label>
+          <input id="cfgPass" type="number" min="0" max="100" value="70">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top: 14px;" onclick="saveConfig()">💾 Guardar configuración</button>
+      <span id="cfgSaved" class="save-indicator hidden"> ✓ Guardado</span>
+    </div>
+
+    <div class="card">
+      <h2>👥 Alumnos registrados</h2>
+      <p class="muted">Cada alumno ingresa al examen únicamente con su código. Sólo puede tomar el examen UNA VEZ.</p>
+      <div class="grid-2" style="align-items:end">
+        <div>
+          <label>Nombre del alumno</label>
+          <input id="newStudentName" type="text" placeholder="Ej. Juan Pérez García">
+        </div>
+        <div style="display:flex;gap:8px;align-items:end">
+          <div style="flex:1">
+            <label>Código (déjalo vacío para auto-generar)</label>
+            <input id="newStudentCode" type="text" placeholder="Ej. ALUM01" style="font-family:monospace;text-transform:uppercase">
+          </div>
+          <button class="btn btn-primary" onclick="addStudent()">➕ Agregar</button>
+        </div>
+      </div>
+
+      <div style="margin:14px 0;display:flex;gap:8px;flex-wrap:wrap">
+        <div class="file-input-wrap">
+          <button class="btn btn-ghost btn-sm">📤 Importar lista (CSV / Excel)</button>
+          <input type="file" accept=".csv,.txt,.xlsx,.xls" onchange="importStudents(event)">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportStudents()">📥 Exportar lista (CSV)</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportStudents('codes')">🖨️ Exportar códigos para repartir</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearStudents()" style="color:var(--accent);border-color:var(--accent)">🗑️ Borrar todos</button>
+      </div>
+      <p class="muted" style="font-size:12px">Formato CSV: una línea por alumno, separado por comas: <code>Nombre, Código</code> (o sólo nombre y se generará el código). Excel: columna A = Nombre, columna B = Código (opcional). El sistema ignora la fila de encabezado automáticamente.</p>
+      <div id="studentsList"></div>
+    </div>
+
+    <div class="card">
+      <h2>📝 Banco de preguntas</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="file-input-wrap">
+          <button class="btn btn-primary btn-sm">📤 Importar examen (JSON)</button>
+          <input type="file" accept=".json" onchange="importBank(event)">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportBank()">📥 Exportar examen (JSON)</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetBank()">🔄 Restaurar default</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleBankEditor()">⚙️ Modo avanzado (JSON)</button>
+      </div>
+
+      <!-- Visual editor -->
+      <div id="bankVisual"></div>
+
+      <!-- JSON editor (advanced mode) -->
+      <div id="bankAdvanced" class="hidden">
+        <p class="muted">Edita directamente el JSON con la estructura del examen.</p>
+        <textarea id="bankEditor" style="min-height: 320px;"></textarea>
+        <div class="footer-actions">
+          <button class="btn btn-ghost" onclick="loadBankFromStorage()">↺ Recargar</button>
+          <button class="btn btn-ok" onclick="saveBank()">💾 Guardar JSON</button>
+        </div>
+        <p id="bankMsg" class="muted"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Resultados de alumnos</h2>
+      <div id="resultsBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>🚨 Alertas de intentos de trampa</h2>
+      <div id="alertsBox" class="alert-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= STUDENT EXAM ================= -->
+<div id="screenStudent" class="hidden">
+  <div class="topbar">
+    <div class="brand">📘 Examen Final · Financiamiento Empresarial</div>
+    <div class="right">
+      <span class="badge" id="studentBadge"></span>
+      <span id="timerDisplay" class="timer">00:00</span>
+      <button class="btn btn-danger btn-sm" onclick="confirmSubmit()">Entregar</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="progress-wrap"><div id="progressBar" class="progress-bar" style="width:0%"></div></div>
+      <p class="muted" id="progressLabel">0 / 0 reactivos respondidos · <span id="autosaveLabel" class="save-indicator">Auto-guardado activo</span></p>
+      <div id="sectionNav" class="section-nav"></div>
+    </div>
+
+    <div id="questionsArea" class="card"></div>
+
+    <div class="footer-actions">
+      <button class="btn btn-ghost" onclick="prevSection()">← Sección anterior</button>
+      <button class="btn btn-primary" onclick="nextSection()">Siguiente sección →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SPREADSHEET (Excel-like) ================= -->
+<button id="sheetFab" class="hidden" onclick="openSheet()" title="Abrir hoja de cálculo">
+  <span class="ic">📊</span><span>Hoja de cálculo</span>
+</button>
+<div id="sheetModal" class="sheet-modal hidden">
+  <div class="sheet-window">
+    <div class="sheet-header">
+      <div class="left">
+        <span>📊 Hoja de cálculo</span>
+        <span style="font-size:12px;font-weight:400;opacity:.85" id="sheetCtx"></span>
+      </div>
+      <div>
+        <button onclick="sheetApplyToQuestion()" style="background:white;color:#1e7e34;font-weight:700;margin-right:6px">📌 Aplicar a la respuesta</button>
+        <button onclick="sheetClear()" style="margin-right:6px">🗑️ Limpiar</button>
+        <button onclick="closeSheet()">Cerrar ✕</button>
+      </div>
+    </div>
+    <div class="sheet-toolbar">
+      <div class="name-box" id="sheetNameBox">A1</div>
+      <span class="formula-prefix" title="Barra de fórmulas (fx)">ƒx</span>
+      <input class="formula-bar" id="sheetFormulaBar" placeholder="Escribe un valor o fórmula. Ej: =A1*B1, =SUM(A1:A5), =POWER(1.12,5)">
+    </div>
+    <div class="sheet-tools">
+      <span class="tool-group">
+        <button class="op-btn" onclick="sheetUndo()" title="Deshacer (Ctrl+Z)" style="color:#5b6470">↶</button>
+        <button class="op-btn" onclick="sheetRedo()" title="Rehacer (Ctrl+Y)" style="color:#5b6470">↷</button>
+      </span>
+      <span class="tool-sep"></span>
+      <span class="tool-label">Operadores:</span>
+      <span class="tool-group">
+        <button class="op-btn eq" onclick="sheetInsertText('=')" title="Iniciar fórmula (=)">=</button>
+        <button class="op-btn" onclick="sheetInsertText('+')" title="Sumar (+)">+</button>
+        <button class="op-btn" onclick="sheetInsertText('-')" title="Restar (−)">−</button>
+        <button class="op-btn" onclick="sheetInsertText('*')" title="Multiplicar (×)">×</button>
+        <button class="op-btn" onclick="sheetInsertText('/')" title="Dividir (÷)">÷</button>
+        <button class="op-btn" onclick="sheetInsertText('^')" title="Potencia (xʸ)">x<sup>y</sup></button>
+      </span>
+      <span class="tool-sep"></span>
+      <span class="tool-group">
+        <button class="op-btn" onclick="sheetInsertText('(')" title="Paréntesis abrir">(</button>
+        <button class="op-btn" onclick="sheetInsertText(')')" title="Paréntesis cerrar">)</button>
+        <button class="op-btn" onclick="sheetInsertText(',')" title="Separador de argumentos">,</button>
+        <button class="op-btn" onclick="sheetInsertText(':')" title="Rango de celdas (:)">:</button>
+        <button class="op-btn" onclick="sheetInsertText('.')" title="Punto decimal">.</button>
+      </span>
+      <span class="tool-sep"></span>
+      <span class="tool-label">Formato:</span>
+      <span class="tool-group">
+        <button id="fmt-currency-btn" class="fmt-btn currency" onclick="sheetFormatCell('currency')" title="Formato moneda — muestra como $1,234.56">$ Moneda</button>
+        <button id="fmt-percent-btn" class="fmt-btn percent" onclick="sheetFormatCell('percent')" title="Formato porcentaje — multiplica por 100 y agrega %">% Porcentaje</button>
+        <button id="fmt-num2-btn" class="fmt-btn" onclick="sheetFormatCell('number2')" title="Número con 2 decimales y separador de miles">.00</button>
+        <button class="fmt-btn" onclick="sheetFormatCell(null)" title="Quitar todos los formatos">⌧ Sin formato</button>
+      </span>
+      <span class="tool-sep"></span>
+      <span class="tool-label">Funciones:</span>
+      <span class="tool-group">
+        <button class="fn-btn" onclick="sheetInsertText('SUM(')" title="Suma de un rango: =SUM(A1:A5)">Σ SUM</button>
+        <button class="fn-btn" onclick="sheetInsertText('AVERAGE(')" title="Promedio: =AVERAGE(A1:A5)">x̄ AVG</button>
+        <button class="fn-btn" onclick="sheetInsertText('POWER(')" title="Potencia: =POWER(base,exp)">POWER</button>
+        <button class="fn-btn" onclick="sheetInsertText('ROUND(')" title="Redondear: =ROUND(num,dec)">ROUND</button>
+        <button class="fn-btn" onclick="sheetInsertText('ABS(')" title="Valor absoluto: =ABS(num)">|x| ABS</button>
+        <button class="fn-btn" onclick="sheetInsertText('IF(')" title="Condicional: =IF(cond,v1,v2)">IF</button>
+      </span>
+      <span class="tool-sep"></span>
+      <button class="op-btn" onclick="sheetCommitCurrent()" style="background:#1e7e34;color:white;border-color:#1e7e34" title="Confirmar valor de la celda (Enter)">✓ Confirmar</button>
+    </div>
+    <div class="sheet-grid-wrap">
+      <table class="sheet-grid" id="sheetTable"></table>
+      <div id="sheetFillHandle" class="sheet-fill-handle" onmousedown="sheetFillHandleDown(event)" title="Arrastra para copiar/extender el contenido"></div>
+    </div>
+    <div class="sheet-help">
+      <b>📌 Fórmulas vivas:</b> las celdas con fórmula muestran un <span style="display:inline-block;width:0;height:0;border-style:solid;border-width:6px 6px 0 0;border-color:#1e7e34 transparent transparent transparent"></span> verde en la esquina. Su valor se actualiza automáticamente cuando cambian las celdas referenciadas. 
+      <b>Para ver la fórmula:</b> click en la celda y mira la barra <b style="background:#1e7e34;color:white;padding:1px 5px;border-radius:3px">ƒx</b> de arriba. 
+      <b>Para editar:</b> doble click o F2.
+    </div>
+  </div>
+</div>
+
+<!-- ================= CALCULATOR ================= -->
+<button id="calcFab" class="calc-fab hidden" onclick="toggleCalc(true)" title="Abrir calculadora">🧮</button>
+<div id="calculator" class="hidden">
+  <div class="calc-header" id="calcHeader">
+    <span>Calculadora</span>
+    <div>
+      <button onclick="toggleCalc(false)" title="Ocultar">━</button>
+    </div>
+  </div>
+  <div id="calcDisplay" class="calc-display">0</div>
+  <div class="calc-pad">
+    <button class="clear" onclick="calcClear()">C</button>
+    <button onclick="calcDel()">⌫</button>
+    <button class="op" onclick="calcAppend('(')">(</button>
+    <button class="op" onclick="calcAppend(')')">)</button>
+    <button onclick="calcAppend('7')">7</button>
+    <button onclick="calcAppend('8')">8</button>
+    <button onclick="calcAppend('9')">9</button>
+    <button class="op" onclick="calcAppend('/')">÷</button>
+    <button onclick="calcAppend('4')">4</button>
+    <button onclick="calcAppend('5')">5</button>
+    <button onclick="calcAppend('6')">6</button>
+    <button class="op" onclick="calcAppend('*')">×</button>
+    <button onclick="calcAppend('1')">1</button>
+    <button onclick="calcAppend('2')">2</button>
+    <button onclick="calcAppend('3')">3</button>
+    <button class="op" onclick="calcAppend('-')">−</button>
+    <button onclick="calcAppend('0')">0</button>
+    <button onclick="calcAppend('.')">.</button>
+    <button class="op" onclick="calcAppend('**')">x^y</button>
+    <button class="op" onclick="calcAppend('+')">+</button>
+    <button class="eq" style="grid-column: span 4;" onclick="calcEval()">=</button>
+  </div>
+</div>
+
+<!-- ================= WARNING MODAL ================= -->
+<div id="warnModal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="center icon">⚠️</div>
+    <h2 class="center" id="warnTitle">Advertencia</h2>
+    <p id="warnMessage"></p>
+    <p class="muted">Alertas registradas: <span id="warnCount">0</span> / <span id="warnLimit">3</span></p>
+    <div class="center"><button class="btn btn-primary" onclick="dismissWarn()">Entendido</button></div>
+  </div>
+</div>
+
+<!-- ================= CONFIRM SUBMIT ================= -->
+<div id="confirmModal" class="modal-bg hidden">
+  <div class="modal">
+    <h2>¿Entregar examen?</h2>
+    <p>Una vez entregado no podrás modificar tus respuestas. Tienes <b id="answeredCount">0</b> reactivos respondidos.</p>
+    <div class="footer-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-danger" onclick="submitExam('manual')">Sí, entregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESULT ================= -->
+<div id="resultModal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="center icon">✅</div>
+    <h2 class="center">Examen entregado</h2>
+    <p class="center"><span class="muted">Calificación preliminar (sólo opción múltiple):</span></p>
+    <p class="center" style="font-size: 36px; font-weight: 700; color: var(--primary);" id="finalScore">--</p>
+    <p class="muted center">Las preguntas abiertas serán revisadas por el docente.</p>
+    <div class="center"><button class="btn btn-primary" onclick="logout()">Salir</button></div>
+  </div>
+</div>
+
+
+<script>
+/* =========================================================================
+   BANCO DE PREGUNTAS (default). El admin puede editarlo desde el panel.
+   ========================================================================= */
+const DEFAULT_BANK = {
+  title: "Examen Final · Fuentes e Instrumentos de Financiamiento",
+  sections: [
+    {
+      id: "I", name: "Función de la banca (activo y pasivo)", weight: 10,
+      questions: [
+        { id: "q1", type: "mc", points: 3,
+          text: "Una empresa industrial mantiene un depósito a plazo fijo en su banco por $8,000,000. Desde la perspectiva del banco, esta operación se clasifica como…",
+          options: [
+            "Operación activa, porque el banco genera ingresos de intereses sobre ese depósito.",
+            "Operación pasiva, porque representa un pasivo del banco frente al cliente y constituye una fuente de fondeo.",
+            "Operación neutral, porque sólo refleja un movimiento contable interno.",
+            "Operación activa, porque el banco utiliza esos recursos para colocar créditos."
+          ],
+          correct: 1
+        },
+        { id: "q2", type: "mc", points: 3,
+          text: "¿Cuál de las siguientes operaciones forma parte del balance ACTIVO de la banca comercial?",
+          options: [
+            "Captación de cuentas de cheques de personas físicas.",
+            "Emisión de pagarés bancarios con rendimiento liquidable al vencimiento.",
+            "Otorgamiento de créditos comerciales a empresas industriales.",
+            "Recepción de depósitos a plazo de inversionistas institucionales."
+          ],
+          correct: 2
+        },
+        { id: "q3", type: "calc", points: 4,
+          text: "Una empresa decide invertir $250,000 hoy en un fondo bancario que paga 8.5% anual con capitalización MENSUAL durante 4 años. ¿Cuál es el valor FUTURO de esta inversión al final del plazo? Usa la fórmula VF = VP × (1 + i/m)^(m·n).",
+          options: ["$337,920.45", "$350,816.19", "$365,213.78", "$382,650.12"],
+          correct: 1
+        }
+      ]
+    },
+    {
+      id: "II", name: "Tipos de crédito", weight: 10,
+      questions: [
+        { id: "q4", type: "mc", points: 3,
+          text: "Una cadena de supermercados necesita financiar la compra de inventario de temporada (mercancía perecedera) que se rotará en 90 días. ¿Qué crédito bancario es el MÁS adecuado por su naturaleza?",
+          options: [
+            "Crédito refaccionario.",
+            "Crédito hipotecario industrial.",
+            "Crédito de habilitación o avío.",
+            "Crédito sindicado a 7 años."
+          ],
+          correct: 2
+        },
+        { id: "q5", type: "mc", points: 3,
+          text: "El crédito refaccionario se distingue del de habilitación o avío principalmente porque…",
+          options: [
+            "Sólo lo otorga la banca de desarrollo, no la banca múltiple.",
+            "Se destina a la adquisición de activos fijos productivos (maquinaria, instalaciones) y normalmente es de mayor plazo.",
+            "Es revolvente y se renueva automáticamente cada año.",
+            "Se garantiza con el inventario y las cuentas por cobrar de corto plazo."
+          ],
+          correct: 1
+        },
+        { id: "q6", type: "calc", points: 4,
+          text: "Una PyME contrata un crédito simple por $1,800,000 a 4 años con tasa fija del 18% anual y pagos MENSUALES nivelados (sistema francés). ¿Cuál es el monto APROXIMADO del pago mensual?",
+          options: ["$48,612", "$52,876", "$55,580", "$60,150"],
+          correct: 1
+        }
+      ]
+    },
+    {
+      id: "III", name: "Banca múltiple vs. banca de desarrollo", weight: 10,
+      questions: [
+        { id: "q7", type: "mc", points: 3,
+          text: "Una empresa exportadora mexicana de autopartes busca un crédito de largo plazo en condiciones preferenciales para abrir un nuevo mercado en Asia. ¿A qué institución resulta más pertinente acudir como primera opción?",
+          options: [
+            "Banco Santander México (banca múltiple).",
+            "Bancomext (banca de desarrollo orientada al comercio exterior).",
+            "Banco del Bienestar (banca social).",
+            "Una casa de bolsa privada."
+          ],
+          correct: 1
+        },
+        { id: "q8", type: "mc", points: 3,
+          text: "¿Cuál de las siguientes afirmaciones describe MEJOR la diferencia esencial entre banca múltiple y banca de desarrollo?",
+          options: [
+            "La banca de desarrollo es siempre privada y la banca múltiple es siempre pública.",
+            "La banca múltiple opera con criterios estrictamente comerciales y de utilidad; la banca de desarrollo financia sectores prioritarios y suele ofrecer condiciones preferenciales.",
+            "Sólo la banca múltiple puede otorgar créditos garantizados con activos fijos.",
+            "La banca de desarrollo no está regulada por la CNBV."
+          ],
+          correct: 1
+        },
+        { id: "q9", type: "mc", points: 4,
+          text: "Una constructora de vivienda de interés social necesita fondeo de largo plazo para un desarrollo habitacional. ¿Cuál es la combinación de instituciones MÁS coherente con su perfil?",
+          options: [
+            "BBVA (banca múltiple) + Bolsa Institucional de Valores (BIVA).",
+            "Sociedad Hipotecaria Federal (banca de desarrollo) + banca múltiple para crédito puente.",
+            "Banco del Bienestar + casa de empeño.",
+            "Bancomext + fondos de capital privado internacional únicamente."
+          ],
+          correct: 1
+        }
+      ]
+    },
+    {
+      id: "IV", name: "Mercado de dinero", weight: 15,
+      questions: [
+        { id: "q10", type: "mc", points: 5,
+          text: "El mercado de dinero se caracteriza, frente al mercado de capitales, por…",
+          options: [
+            "Operar con instrumentos de alta liquidez, bajo riesgo relativo y plazos generalmente menores o iguales a un año.",
+            "Operar exclusivamente con acciones comunes y preferentes.",
+            "No estar regulado por las autoridades financieras.",
+            "Negociar instrumentos cuyo plazo mínimo es de 5 años."
+          ],
+          correct: 0
+        },
+        { id: "q11", type: "mc", points: 5,
+          text: "¿Cuál de los siguientes instrumentos NO es propio del mercado de dinero mexicano?",
+          options: [
+            "CETES (Certificados de la Tesorería).",
+            "Pagaré con rendimiento liquidable al vencimiento (PRLV).",
+            "Acciones serie 'B' de una emisora del IPC.",
+            "Aceptaciones bancarias."
+          ],
+          correct: 2
+        },
+        { id: "q12", type: "calc", points: 5,
+          text: "Un CETE a 91 días se subasta con valor nominal de $10.00 y tasa de descuento anualizada del 10.80% (base 360 días). ¿Cuál es el precio aproximado de adjudicación?",
+          options: ["$9.7270", "$9.7900", "$9.8920", "$9.9340"],
+          correct: 0
+        }
+      ]
+    },
+    {
+      id: "V", name: "Bonos con cupón y sin cupón", weight: 15,
+      questions: [
+        { id: "q13", type: "mc", points: 5,
+          text: "Un bono CUPÓN CERO se distingue de uno con cupón porque…",
+          options: [
+            "Paga cupones trimestralmente y devuelve el principal al final.",
+            "No realiza pagos periódicos: el rendimiento del inversionista proviene del descuento entre el precio de compra y el valor nominal recibido al vencimiento.",
+            "Tiene tasa cupón variable referenciada a TIIE.",
+            "Está libre de riesgo de tasa de interés."
+          ],
+          correct: 1
+        },
+        { id: "q14", type: "mc", points: 5,
+          text: "Una emisora colocó hace 12 meses un bono a 5 años con tasa cupón fija del 9% anual y valor nominal de $1,000. Hoy las tasas de mercado para emisoras comparables son del 12%. ¿Qué se espera del precio del bono y del rendimiento al vencimiento (yield) en el mercado secundario?",
+          options: [
+            "El precio sube por encima del nominal y el yield baja.",
+            "El precio se mantiene en valor nominal porque la tasa cupón es fija.",
+            "El precio cae por debajo del nominal y el yield se eleva hacia 12%.",
+            "El precio sube y el yield sube simultáneamente."
+          ],
+          correct: 2
+        },
+        { id: "q15", type: "calc", points: 5,
+          text: "Una empresa emite un bono CUPÓN CERO con valor nominal de $1,000 a un plazo de 4 años. El rendimiento exigido por el mercado es del 11% anual con capitalización ANUAL. ¿Cuál es el precio teórico de emisión?",
+          options: ["$610.50", "$640.16", "$658.73", "$734.66"],
+          correct: 2
+        }
+      ]
+    },
+    {
+      id: "VI", name: "Relación de columnas (arrastrar)", weight: 10,
+      questions: [
+        { id: "q16", type: "match", points: 5,
+          text: "Relaciona cada instrumento financiero con el mercado al que pertenece. Arrastra los recuadros de la derecha al cuadro correspondiente.",
+          pairs: [
+            { left: "CETES",                  right: "Mercado de dinero" },
+            { left: "Acciones serie B",       right: "Mercado de capitales" },
+            { left: "Bono cupón cero a 4 años", right: "Mercado de deuda corporativa" },
+            { left: "Aceptación bancaria",    right: "Mercado de dinero (banca)" }
+          ]
+        },
+        { id: "q17", type: "match", points: 5,
+          text: "Relaciona cada producto/institución con su función principal en el sistema financiero mexicano.",
+          pairs: [
+            { left: "Crédito refaccionario",        right: "Adquisición de activos fijos" },
+            { left: "Crédito de habilitación o avío", right: "Capital de trabajo / inventarios" },
+            { left: "Bancomext",                    right: "Financiamiento a comercio exterior" },
+            { left: "Sociedad Hipotecaria Federal", right: "Fondeo a vivienda" },
+            { left: "Nacional Financiera (NAFIN)",  right: "Apoyo a la PyME industrial" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "VII", name: "Pregunta abierta · WACC", weight: 15,
+      questions: [
+        { id: "q18", type: "open", points: 15,
+          text: "CASO INTEGRADOR. Industrias del Norte, S.A. de C.V. presenta la siguiente estructura financiera: (1) Crédito BBVA por $30,000,000 al 12.5% anual; (2) Cebures por $20,000,000 al 10.8% anual; (3) Capital contable a valor de mercado $50,000,000. Beta = 1.25; tasa libre de riesgo (Bonos M 10 años) = 9.5%; rendimiento esperado del mercado = 16%; ISR = 30%. Calcula: a) Costo después de impuestos de cada deuda y costo ponderado de la deuda. b) Costo de capital con CAPM. c) WACC final mostrando pesos D/V y E/V. d) Interpreta brevemente el resultado.",
+          rubric: [
+            { criterio: "Costo de deuda después de impuestos (cada crédito y ponderado)", pts: 4 },
+            { criterio: "Costo de capital (CAPM): Ke = Rf + β(Rm − Rf)", pts: 4 },
+            { criterio: "WACC con pesos D/V y E/V correctos", pts: 5 },
+            { criterio: "Interpretación financiera del resultado", pts: 2 }
+          ]
+        }
+      ]
+    },
+    {
+      id: "VIII", name: "Pregunta abierta · Tablas de amortización", weight: 15,
+      questions: [
+        { id: "q19", type: "open", points: 15,
+          text: "Crédito de $1,000,000 a 5 años con tasa anual del 12%. Construye en el espacio de respuesta: (1) la tabla de amortización por sistema FRANCÉS (cuotas iguales — calcula primero el PMT) y (2) la tabla por sistema ALEMÁN (amortización constante de $200,000). Para cada período indica: saldo inicial, interés, amortización, pago y saldo final. Al final, compara los intereses totales pagados en ambos sistemas y explica brevemente por qué difieren.",
+          rubric: [
+            { criterio: "PMT francés correcto (~$277,410)", pts: 2 },
+            { criterio: "Tabla francés: 5 períodos coherentes y saldo final = 0", pts: 5 },
+            { criterio: "Amortización constante alemán = $200,000", pts: 1 },
+            { criterio: "Tabla alemán: pago decreciente y saldo final = 0", pts: 5 },
+            { criterio: "Comparación de intereses totales explicada", pts: 2 }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+/* =========================================================================
+   ESTADO GLOBAL
+   ========================================================================= */
+const STORE_KEYS = {
+  config: "exam_config_v1",
+  bank: "exam_bank_v1",
+  results: "exam_results_v1",
+  alerts: "exam_alerts_v1",
+  current: "exam_current_session_v1",
+  students: "exam_students_v1"
+};
+
+let state = {
+  config: { minutes: 120, idle: 10, maxAlerts: 3, pass: 70 },
+  bank: null,
+  user: null,
+  role: null,            // 'admin' | 'student'
+  session: null,         // { studentName, startedAt, answers, alerts, finished, currentSection }
+  timerId: null,
+  endsAt: null,
+  idleTimer: null,
+  warnCount: 0,
+  autosaveTimer: null,
+  // calculator
+  calcExpr: ""
+};
+
+/* =========================================================================
+   STORAGE helpers
+   ========================================================================= */
+function loadStore(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  catch (e) { return fallback; }
+}
+function saveStore(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function init() {
+  state.config = loadStore(STORE_KEYS.config, state.config);
+  state.bank = loadStore(STORE_KEYS.bank, DEFAULT_BANK);
+  // restore in-progress session if exists and not finished
+  const sess = loadStore(STORE_KEYS.current, null);
+  if (sess && !sess.finished && sess.role) {
+    state.user = sess.user;
+    state.role = sess.role;
+    state.session = sess.session;
+    if (state.role === 'admin') showAdmin();
+    else resumeStudentSession();
+  }
+}
+
+/* =========================================================================
+   AUTH
+   ========================================================================= */
+function switchLoginTab(which) {
+  document.getElementById('tabStudent').classList.toggle('active', which === 'student');
+  document.getElementById('tabAdmin').classList.toggle('active', which === 'admin');
+  document.getElementById('studentLogin').classList.toggle('hidden', which !== 'student');
+  document.getElementById('adminLogin').classList.toggle('hidden', which !== 'admin');
+}
+
+function loginAdmin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if (u === "admin" && p === "admin123") {
+    state.user = "admin"; state.role = "admin";
+    saveStore(STORE_KEYS.current, { role: "admin", user: "admin", session: null });
+    showAdmin();
+  } else {
+    alert("Credenciales inválidas. (Demo: admin / admin123)");
+  }
+}
+
+function loginStudent() {
+  const code = document.getElementById('loginCode').value.trim().toUpperCase();
+  if (!code) return alert("Ingresa tu código de alumno");
+
+  const students = loadStore(STORE_KEYS.students, []);
+  const student = students.find(s => s.code.toUpperCase() === code);
+
+  if (!student) {
+    alert("Código no reconocido. Verifica con tu docente.");
+    return;
+  }
+  // Verificar que no haya tomado el examen ya, salvo que el docente haya autorizado reintento
+  const results = loadStore(STORE_KEYS.results, []);
+  const taken = results.find(r => r.studentCode === code);
+  if (taken && !student.allowsRetake) {
+    alert("Este código ya fue usado para tomar el examen el " +
+      new Date(taken.finishedAt).toLocaleString() + ".\nPara permitir un reintento, pide al docente que lo autorice.");
+    return;
+  }
+
+  state.user = student.name;
+  state.role = "student";
+  state.studentCode = code;
+  showWarningScreen();
+}
+
+function logout() {
+  if (state.timerId) clearInterval(state.timerId);
+  if (state.idleTimer) clearTimeout(state.idleTimer);
+  if (state.autosaveTimer) clearInterval(state.autosaveTimer);
+  state.user = null; state.role = null; state.session = null; state.studentCode = null;
+  localStorage.removeItem(STORE_KEYS.current);
+  document.getElementById('screenLogin').classList.remove('hidden');
+  document.getElementById('screenWarning').classList.add('hidden');
+  document.getElementById('screenAdmin').classList.add('hidden');
+  document.getElementById('screenStudent').classList.add('hidden');
+  document.getElementById('calcFab').classList.add('hidden');
+  document.getElementById('calculator').classList.add('hidden');
+  document.getElementById('sheetFab').classList.add('hidden');
+  document.getElementById('sheetModal').classList.add('hidden');
+  document.body.classList.remove('sheet-open');
+  document.getElementById('resultModal').classList.add('hidden');
+  removeAntiCheat();
+}
+
+/* =========================================================================
+   PRE-EXAM WARNING SCREEN
+   ========================================================================= */
+function showWarningScreen() {
+  document.getElementById('screenLogin').classList.add('hidden');
+  document.getElementById('screenWarning').classList.remove('hidden');
+  document.getElementById('warnStudentName').textContent = '👤 ' + state.user + ' · Código: ' + state.studentCode;
+  document.getElementById('warnMinutes').textContent = state.config.minutes;
+  document.getElementById('warnIdle').textContent = state.config.idle;
+  document.getElementById('warnMaxAlerts').textContent = state.config.maxAlerts;
+  document.getElementById('warnMaxAlerts2').textContent = state.config.maxAlerts + 'ª';
+
+  const cb = document.getElementById('warnAccept');
+  const btn = document.getElementById('warnStartBtn');
+  cb.checked = false; btn.disabled = true;
+  cb.onchange = () => { btn.disabled = !cb.checked; };
+}
+
+function startExamFromWarning() {
+  document.getElementById('screenWarning').classList.add('hidden');
+  startStudentSession(state.user);
+}
+
+/* =========================================================================
+   ADMIN: STUDENTS MANAGEMENT
+   ========================================================================= */
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function getStudents() { return loadStore(STORE_KEYS.students, []); }
+function setStudents(list) { saveStore(STORE_KEYS.students, list); renderStudents(); }
+
+function addStudent() {
+  const name = document.getElementById('newStudentName').value.trim();
+  let code = document.getElementById('newStudentCode').value.trim().toUpperCase();
+  if (!name) return alert("Ingresa el nombre del alumno");
+  const list = getStudents();
+  if (!code) {
+    do { code = genCode(); } while (list.find(s => s.code === code));
+  } else {
+    if (list.find(s => s.code.toUpperCase() === code)) return alert("Ya existe un alumno con ese código.");
+  }
+  list.push({ name, code });
+  setStudents(list);
+  document.getElementById('newStudentName').value = '';
+  document.getElementById('newStudentCode').value = '';
+}
+
+function removeStudent(code) {
+  if (!confirm("¿Eliminar este alumno?")) return;
+  setStudents(getStudents().filter(s => s.code !== code));
+}
+
+function clearStudents() {
+  if (!confirm("¿Borrar TODOS los alumnos registrados?")) return;
+  setStudents([]);
+}
+
+function importStudents(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const isExcel = /\.xlsx?$/i.test(file.name);
+
+  if (isExcel) {
+    ensureXLSX().then(() => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const wb = window.XLSX.read(e.target.result, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+          processStudentRows(rows);
+        } catch (err) {
+          alert('Error al leer Excel: ' + err.message);
+        }
+        ev.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }).catch(() => {
+      alert('No se pudo cargar el lector de Excel. Verifica tu conexión a internet, o guarda el archivo como CSV desde Excel y vuelve a intentar.');
+      ev.target.value = '';
+    });
+    return;
+  }
+
+  // CSV / TXT
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#')).map(l => l.split(',').map(s => s.trim()));
+    processStudentRows(rows);
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function processStudentRows(rows) {
+  const list = getStudents();
+  let added = 0, skipped = 0;
+  for (const row of rows) {
+    if (!row || !row.length) continue;
+    const name = String(row[0] || '').trim();
+    if (!name) continue;
+    // Saltar fila de encabezado común
+    if (/^(nombre|name|alumno|estudiante)$/i.test(name)) continue;
+    let code = String(row[1] || '').trim().toUpperCase();
+    if (!code) {
+      do { code = genCode(); } while (list.find(s => s.code === code));
+    } else if (list.find(s => s.code.toUpperCase() === code)) {
+      skipped++; continue;
+    }
+    list.push({ name, code });
+    added++;
+  }
+  setStudents(list);
+  alert(`✓ Se agregaron ${added} alumnos.${skipped > 0 ? ' (' + skipped + ' duplicados omitidos)' : ''}`);
+}
+
+// Carga diferida de SheetJS (xlsx) sólo cuando se necesita
+function ensureXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  if (window._xlsxLoadPromise) return window._xlsxLoadPromise;
+  window._xlsxLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar SheetJS'));
+    document.head.appendChild(script);
+  });
+  return window._xlsxLoadPromise;
+}
+
+/* Permitir reintento: el docente activa la posibilidad de re-tomar el examen
+   para un alumno específico. Tras el reenvío, el flag se quita automáticamente. */
+function toggleRetake(code) {
+  const list = getStudents();
+  const s = list.find(st => st.code === code);
+  if (!s) return;
+  s.allowsRetake = !s.allowsRetake;
+  setStudents(list);
+  showToast(s.allowsRetake
+    ? `🔓 ${s.name} podrá volver a tomar el examen una vez más.`
+    : `🔒 Reintento revocado para ${s.name}.`);
+}
+
+function exportStudents(mode) {
+  const list = getStudents();
+  if (!list.length) return alert("No hay alumnos para exportar.");
+  let content;
+  if (mode === 'codes') {
+    content = "ALUMNO,CÓDIGO DE ACCESO\n" + list.map(s => `${s.name},${s.code}`).join("\n");
+  } else {
+    content = list.map(s => `${s.name},${s.code}`).join("\n");
+  }
+  downloadFile('alumnos_codigos.csv', content, 'text/csv');
+}
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type: type || 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderStudents() {
+  const list = getStudents();
+  const results = loadStore(STORE_KEYS.results, []);
+  const box = document.getElementById('studentsList');
+  if (!list.length) { box.innerHTML = "<p class='muted'>Aún no hay alumnos registrados.</p>"; return; }
+  box.innerHTML = list.map(s => {
+    const taken = results.filter(r => r.studentCode === s.code);
+    const tookExam = taken.length > 0;
+    let actionBtn;
+    if (!tookExam) {
+      actionBtn = `<button class="btn btn-sm btn-ghost" onclick="removeStudent('${s.code}')" style="color:var(--accent);border-color:var(--accent)" title="Eliminar alumno">🗑️</button>`;
+    } else if (s.allowsRetake) {
+      actionBtn = `<button class="btn btn-sm" onclick="toggleRetake('${s.code}')" style="background:#1e7e34;color:white;border:1px solid #1e7e34" title="Click para revocar el permiso">🔓 Reintento permitido</button>`;
+    } else {
+      actionBtn = `<button class="btn btn-sm" onclick="toggleRetake('${s.code}')" style="background:transparent;color:#1e7e34;border:1px solid #1e7e34" title="Click para autorizar un nuevo intento">🔓 Permitir reintento</button>`;
+    }
+    return `<div class="student-row ${tookExam ? 'taken' : ''}">
+      <span class="name">${escapeHTML(s.name)}${taken.length > 1 ? ' <span class="muted" style="font-size:11px">('+ taken.length +' intentos)</span>' : ''}</span>
+      <span class="code">${s.code}</span>
+      ${actionBtn}
+    </div>`;
+  }).join("");
+}
+
+/* =========================================================================
+   ADMIN: VISUAL QUESTION EDITOR + IMPORT/EXPORT
+   ========================================================================= */
+function toggleBankEditor() {
+  const adv = document.getElementById('bankAdvanced');
+  const vis = document.getElementById('bankVisual');
+  const isAdvOpen = !adv.classList.contains('hidden');
+  if (isAdvOpen) {
+    adv.classList.add('hidden');
+    vis.classList.remove('hidden');
+    renderBankVisual();
+  } else {
+    adv.classList.remove('hidden');
+    vis.classList.add('hidden');
+    document.getElementById('bankEditor').value = JSON.stringify(state.bank, null, 2);
+  }
+}
+
+function renderBankVisual() {
+  const box = document.getElementById('bankVisual');
+  if (!state.bank || !state.bank.sections) state.bank = JSON.parse(JSON.stringify(DEFAULT_BANK));
+  let html = '';
+  state.bank.sections.forEach((sec, si) => {
+    html += `<div class="qe-section" data-si="${si}">
+      <h3>
+        <span style="background:var(--primary);color:white;padding:4px 10px;border-radius:6px;font-size:14px">Sección ${escapeHTML(sec.id)}</span>
+        <input type="text" value="${escapeHTML(sec.name)}" onchange="editSectionName(${si}, this.value)" placeholder="Nombre de la sección">
+        <span class="muted">Peso:</span>
+        <input type="number" value="${sec.weight}" min="0" style="width:70px" onchange="editSectionWeight(${si}, this.value)">
+        <span class="muted">pts</span>
+        <button class="btn btn-sm btn-ghost" onclick="moveSection(${si}, -1)" title="Subir">⬆</button>
+        <button class="btn btn-sm btn-ghost" onclick="moveSection(${si}, 1)" title="Bajar">⬇</button>
+        <button class="btn btn-sm btn-ghost" onclick="deleteSection(${si})" style="color:var(--accent);border-color:var(--accent)" title="Eliminar">🗑️</button>
+      </h3>`;
+    sec.questions.forEach((q, qi) => {
+      html += `<div class="qe-question" data-qi="${qi}">
+        <div class="qe-meta">
+          <span class="points-tag">${q.points} pts</span>
+          <select onchange="editQuestionType(${si},${qi},this.value)">
+            <option value="mc"${q.type==='mc'?' selected':''}>Opción múltiple</option>
+            <option value="calc"${q.type==='calc'?' selected':''}>Cálculo</option>
+            <option value="open"${q.type==='open'?' selected':''}>Abierta</option>
+            <option value="match"${q.type==='match'?' selected':''}>Relacionar columnas</option>
+          </select>
+          <span class="muted">Puntos:</span>
+          <input type="number" class="pts-input" value="${q.points}" min="0" onchange="editQuestionPoints(${si},${qi},this.value)">
+          <span style="margin-left:auto">
+            <button class="btn btn-sm btn-ghost" onclick="moveQuestion(${si},${qi},-1)">⬆</button>
+            <button class="btn btn-sm btn-ghost" onclick="moveQuestion(${si},${qi},1)">⬇</button>
+            <button class="btn btn-sm btn-ghost" onclick="deleteQuestion(${si},${qi})" style="color:var(--accent);border-color:var(--accent)">🗑️</button>
+          </span>
+        </div>
+        <textarea style="min-height:60px;width:100%" onchange="editQuestionText(${si},${qi},this.value)" placeholder="Enunciado de la pregunta">${escapeHTML(q.text || '')}</textarea>
+        ${renderQuestionEditorBody(q, si, qi)}
+      </div>`;
+    });
+    html += `<button class="btn btn-sm btn-primary" onclick="addQuestion(${si})">➕ Agregar pregunta a esta sección</button>
+    </div>`;
+  });
+  html += `<button class="btn btn-primary" onclick="addSection()">➕ Agregar nueva sección</button>
+    <button class="btn btn-ok" onclick="saveBankVisual()" style="margin-left:8px">💾 Guardar todos los cambios</button>`;
+  box.innerHTML = html;
+}
+
+function renderQuestionEditorBody(q, si, qi) {
+  if (q.type === 'mc' || q.type === 'calc') {
+    let h = `<div class="qe-options">`;
+    h += `<p class="muted" style="font-size:12px;margin:4px 0">Marca la opción correcta con el círculo de la izquierda:</p>`;
+    (q.options || []).forEach((opt, oi) => {
+      h += `<div class="qe-option">
+        <input type="radio" class="correct-radio" name="q-${si}-${qi}-correct" ${q.correct === oi ? 'checked' : ''} onchange="editQuestionCorrect(${si},${qi},${oi})">
+        <span style="font-weight:700;width:20px">${String.fromCharCode(97 + oi)})</span>
+        <input type="text" value="${escapeHTML(opt)}" onchange="editQuestionOption(${si},${qi},${oi},this.value)" placeholder="Opción ${oi+1}">
+        <button class="btn btn-sm btn-ghost" onclick="deleteQuestionOption(${si},${qi},${oi})" style="color:var(--accent)">✕</button>
+      </div>`;
+    });
+    h += `<button class="btn btn-sm btn-ghost" onclick="addQuestionOption(${si},${qi})">➕ Agregar opción</button>`;
+    h += `</div>`;
+    return h;
+  } else if (q.type === 'match') {
+    let h = `<p class="muted" style="font-size:12px;margin:6px 0">Define los pares correctos. El alumno arrastrará los elementos de la columna B hacia la columna A.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <b style="font-size:13px">Columna A (fija)</b>
+        ${(q.pairs || []).map((p, pi) => `
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input type="text" value="${escapeHTML(p.left || '')}" placeholder="Elemento ${pi+1}" onchange="editMatchLeft(${si},${qi},${pi},this.value)">
+            <button class="btn btn-sm btn-ghost" onclick="deleteMatchPair(${si},${qi},${pi})" style="color:var(--accent)">✕</button>
+          </div>`).join('')}
+      </div>
+      <div>
+        <b style="font-size:13px">Columna B (respuesta correcta)</b>
+        ${(q.pairs || []).map((p, pi) => `
+          <div style="margin-top:6px">
+            <input type="text" value="${escapeHTML(p.right || '')}" placeholder="Match para ${escapeHTML(p.left || '...')}" onchange="editMatchRight(${si},${qi},${pi},this.value)">
+          </div>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-sm btn-ghost" onclick="addMatchPair(${si},${qi})" style="margin-top:8px">➕ Agregar par</button>`;
+    return h;
+  } else if (q.type === 'open') {
+    return `<p class="muted" style="font-size:12px;margin:6px 0">Las preguntas abiertas se califican manualmente. El alumno verá un cuadro de respuesta amplio.</p>
+    <label style="font-size:12px">Rúbrica (opcional · JSON):</label>
+    <textarea style="min-height:60px;width:100%;font-family:monospace;font-size:12px" onchange="editQuestionRubric(${si},${qi},this.value)" placeholder='[{"criterio":"...","pts":5}]'>${escapeHTML(JSON.stringify(q.rubric || [], null, 2))}</textarea>`;
+  }
+  return '';
+}
+
+// Editor mutations
+function _bank() { return state.bank; }
+function editSectionName(si, val) { _bank().sections[si].name = val; }
+function editSectionWeight(si, val) { _bank().sections[si].weight = Number(val) || 0; }
+function moveSection(si, dir) {
+  const arr = _bank().sections, newI = si + dir;
+  if (newI < 0 || newI >= arr.length) return;
+  [arr[si], arr[newI]] = [arr[newI], arr[si]];
+  renderBankVisual();
+}
+function deleteSection(si) {
+  if (!confirm("¿Eliminar esta sección y todas sus preguntas?")) return;
+  _bank().sections.splice(si, 1);
+  renderBankVisual();
+}
+function addSection() {
+  const id = String.fromCharCode(65 + _bank().sections.length); // A, B, C...
+  _bank().sections.push({ id, name: 'Nueva sección', weight: 10, questions: [] });
+  renderBankVisual();
+}
+function addQuestion(si) {
+  const sec = _bank().sections[si];
+  const next = sec.questions.length + 1;
+  const newId = 'q_' + Date.now();
+  sec.questions.push({ id: newId, type: 'mc', points: 3, text: 'Nueva pregunta', options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'], correct: 0 });
+  renderBankVisual();
+}
+function editQuestionText(si, qi, val) { _bank().sections[si].questions[qi].text = val; }
+function editQuestionPoints(si, qi, val) { _bank().sections[si].questions[qi].points = Number(val) || 0; renderBankVisual(); }
+function editQuestionType(si, qi, val) {
+  const q = _bank().sections[si].questions[qi];
+  q.type = val;
+  if ((val === 'mc' || val === 'calc') && !q.options) { q.options = ['Opción A', 'Opción B', 'Opción C', 'Opción D']; q.correct = 0; }
+  if (val === 'match' && !q.pairs) q.pairs = [{ left: 'A', right: '1' }, { left: 'B', right: '2' }];
+  if (val === 'open' && !q.rubric) q.rubric = [];
+  renderBankVisual();
+}
+function editQuestionCorrect(si, qi, oi) { _bank().sections[si].questions[qi].correct = oi; }
+function editQuestionOption(si, qi, oi, val) { _bank().sections[si].questions[qi].options[oi] = val; }
+function addQuestionOption(si, qi) {
+  const q = _bank().sections[si].questions[qi];
+  if (!q.options) q.options = [];
+  q.options.push('Nueva opción');
+  renderBankVisual();
+}
+function deleteQuestionOption(si, qi, oi) {
+  const q = _bank().sections[si].questions[qi];
+  q.options.splice(oi, 1);
+  if (q.correct >= q.options.length) q.correct = 0;
+  renderBankVisual();
+}
+function moveQuestion(si, qi, dir) {
+  const arr = _bank().sections[si].questions, newI = qi + dir;
+  if (newI < 0 || newI >= arr.length) return;
+  [arr[qi], arr[newI]] = [arr[newI], arr[qi]];
+  renderBankVisual();
+}
+function deleteQuestion(si, qi) {
+  if (!confirm("¿Eliminar esta pregunta?")) return;
+  _bank().sections[si].questions.splice(qi, 1);
+  renderBankVisual();
+}
+function editQuestionRubric(si, qi, val) {
+  try { _bank().sections[si].questions[qi].rubric = JSON.parse(val); }
+  catch (e) { alert("JSON de rúbrica inválido: " + e.message); }
+}
+function editMatchLeft(si, qi, pi, val) { _bank().sections[si].questions[qi].pairs[pi].left = val; }
+function editMatchRight(si, qi, pi, val) { _bank().sections[si].questions[qi].pairs[pi].right = val; }
+function addMatchPair(si, qi) {
+  const q = _bank().sections[si].questions[qi];
+  if (!q.pairs) q.pairs = [];
+  q.pairs.push({ left: '', right: '' });
+  renderBankVisual();
+}
+function deleteMatchPair(si, qi, pi) {
+  _bank().sections[si].questions[qi].pairs.splice(pi, 1);
+  renderBankVisual();
+}
+
+function saveBankVisual() {
+  saveStore(STORE_KEYS.bank, state.bank);
+  showToast("✓ Banco de preguntas guardado");
+  renderBankVisual();
+}
+
+function exportBank() {
+  const content = JSON.stringify(state.bank, null, 2);
+  downloadFile('examen_banco.json', content, 'application/json');
+}
+
+function importBank(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.sections || !Array.isArray(parsed.sections)) throw new Error("Falta el array sections[]");
+      state.bank = parsed;
+      saveStore(STORE_KEYS.bank, parsed);
+      renderBankVisual();
+      alert(`✓ Examen importado: ${parsed.sections.length} secciones, ${parsed.sections.reduce((a,s)=>a+s.questions.length,0)} preguntas.`);
+    } catch (err) {
+      alert("❌ Error al importar: " + err.message);
+    }
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================================
+   ADMIN
+   ========================================================================= */
+function showAdmin() {
+  document.getElementById('screenLogin').classList.add('hidden');
+  document.getElementById('screenWarning').classList.add('hidden');
+  document.getElementById('screenAdmin').classList.remove('hidden');
+  document.getElementById('adminUserBadge').textContent = "👤 " + state.user;
+  document.getElementById('cfgMinutes').value = state.config.minutes;
+  document.getElementById('cfgIdle').value = state.config.idle;
+  document.getElementById('cfgMaxAlerts').value = state.config.maxAlerts;
+  document.getElementById('cfgPass').value = state.config.pass;
+  state.bank = loadStore(STORE_KEYS.bank, DEFAULT_BANK);
+  renderBankVisual();
+  renderStudents();
+  renderResults();
+  renderAlerts();
+}
+
+function saveConfig() {
+  state.config = {
+    minutes: parseInt(document.getElementById('cfgMinutes').value) || 120,
+    idle: parseInt(document.getElementById('cfgIdle').value) || 10,
+    maxAlerts: parseInt(document.getElementById('cfgMaxAlerts').value) || 3,
+    pass: parseInt(document.getElementById('cfgPass').value) || 70
+  };
+  saveStore(STORE_KEYS.config, state.config);
+  const el = document.getElementById('cfgSaved');
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 1500);
+}
+
+function loadBankFromStorage() {
+  state.bank = loadStore(STORE_KEYS.bank, DEFAULT_BANK);
+  document.getElementById('bankEditor').value = JSON.stringify(state.bank, null, 2);
+  document.getElementById('bankMsg').textContent = "Banco cargado · " + state.bank.sections.length + " secciones · " +
+    state.bank.sections.reduce((a, s) => a + s.questions.length, 0) + " preguntas.";
+}
+function saveBank() {
+  try {
+    const parsed = JSON.parse(document.getElementById('bankEditor').value);
+    if (!parsed.sections || !Array.isArray(parsed.sections)) throw new Error("Estructura inválida: falta sections[]");
+    state.bank = parsed;
+    saveStore(STORE_KEYS.bank, parsed);
+    document.getElementById('bankMsg').textContent = "✅ Banco guardado correctamente.";
+    renderBankVisual();
+  } catch (e) {
+    document.getElementById('bankMsg').textContent = "❌ Error: " + e.message;
+  }
+}
+function resetBank() {
+  if (!confirm("¿Restaurar el banco de preguntas por defecto? Esto sobreescribe el actual.")) return;
+  state.bank = JSON.parse(JSON.stringify(DEFAULT_BANK));
+  saveStore(STORE_KEYS.bank, state.bank);
+  document.getElementById('bankEditor').value = JSON.stringify(state.bank, null, 2);
+  renderBankVisual();
+  showToast("✓ Banco restaurado al default");
+}
+
+function renderResults() {
+  const results = loadStore(STORE_KEYS.results, []);
+  const box = document.getElementById('resultsBox');
+  if (results.length === 0) { box.innerHTML = "<p class='muted'>Aún no hay resultados.</p>"; return; }
+  let html = "<table><thead><tr><th>Alumno</th><th>Inicio</th><th>Fin</th><th>Razón</th><th>Pts MC</th><th>Pts Abiertas</th><th>Total</th><th>Estado</th></tr></thead><tbody>";
+  for (const r of results) {
+    const status = r.scoreTotal >= state.config.pass ? "✅ Aprobado" : "❌ Reprobado";
+    html += `<tr>
+      <td>${r.student}</td>
+      <td>${new Date(r.startedAt).toLocaleString()}</td>
+      <td>${new Date(r.finishedAt).toLocaleString()}</td>
+      <td>${r.reason}</td>
+      <td>${r.scoreMC}</td>
+      <td><i>pendiente</i></td>
+      <td><b>${r.scoreTotal}</b></td>
+      <td>${status}</td>
+    </tr>`;
+  }
+  html += "</tbody></table>";
+  box.innerHTML = html;
+}
+function renderAlerts() {
+  const alerts = loadStore(STORE_KEYS.alerts, []);
+  const box = document.getElementById('alertsBox');
+  if (alerts.length === 0) { box.innerHTML = "<p class='muted'>No hay alertas registradas.</p>"; return; }
+  box.innerHTML = alerts.slice().reverse().map(a =>
+    `<div class="alert-row ${a.level || ''}">
+      <b>${a.student}</b> · ${a.event}
+      <div class="alert-time">${new Date(a.at).toLocaleString()}${a.detail ? ' · ' + a.detail : ''}</div>
+    </div>`).join("");
+}
+
+/* =========================================================================
+   STUDENT EXAM SESSION
+   ========================================================================= */
+function startStudentSession(name) {
+  state.session = {
+    student: name,
+    startedAt: Date.now(),
+    answers: {},
+    alerts: [],
+    finished: false,
+    currentSection: 0,
+    durationMin: state.config.minutes
+  };
+  state.warnCount = 0;
+  saveCurrentSession();
+  renderStudent();
+}
+
+function resumeStudentSession() {
+  state.warnCount = (state.session.alerts || []).length;
+  renderStudent();
+}
+
+function saveCurrentSession() {
+  saveStore(STORE_KEYS.current, { role: state.role, user: state.user, session: state.session });
+}
+
+function renderStudent() {
+  document.getElementById('screenLogin').classList.add('hidden');
+  document.getElementById('screenStudent').classList.remove('hidden');
+  document.getElementById('calcFab').classList.remove('hidden');
+  document.getElementById('studentBadge').textContent = "👤 " + state.session.student;
+
+  // Sections nav
+  const nav = document.getElementById('sectionNav');
+  nav.innerHTML = state.bank.sections.map((s, i) =>
+    `<button class="${i === state.session.currentSection ? 'active' : ''} ${isSectionDone(i) ? 'done' : ''}" onclick="goSection(${i})">${s.id}. ${s.name}</button>`
+  ).join("");
+
+  renderQuestions();
+  startTimer();
+  startAutoSave();
+  installAntiCheat();
+  updateSheetButton();
+}
+
+function isSectionDone(idx) {
+  const sec = state.bank.sections[idx];
+  return sec.questions.every(q => {
+    const a = state.session.answers[q.id];
+    if (q.type === 'match') {
+      if (!a || typeof a !== 'object') return false;
+      return (q.pairs || []).every(p => a[p.left]);
+    }
+    return a !== undefined && a !== "";
+  });
+}
+
+function goSection(i) {
+  state.session.currentSection = i;
+  renderQuestions();
+  document.querySelectorAll('#sectionNav button').forEach((b, idx) => {
+    b.classList.toggle('active', idx === i);
+    b.classList.toggle('done', isSectionDone(idx));
+  });
+  saveCurrentSession();
+  updateSheetButton();
+}
+function nextSection() {
+  if (state.session.currentSection < state.bank.sections.length - 1)
+    goSection(state.session.currentSection + 1);
+}
+function prevSection() {
+  if (state.session.currentSection > 0)
+    goSection(state.session.currentSection - 1);
+}
+
+function renderQuestions() {
+  const sec = state.bank.sections[state.session.currentSection];
+  let html = `<h2>Sección ${sec.id} · ${sec.name} <span class="q-points">(${sec.weight} pts)</span></h2>`;
+  sec.questions.forEach((q, idx) => {
+    html += `<div class="question"><div class="q-header">Pregunta ${idx + 1}<span class="q-points">(${q.points} pts)</span></div>`;
+    html += `<p class="q-text">${escapeHTML(q.text)}</p>`;
+    if (q.type === 'mc' || q.type === 'calc') {
+      html += `<div class="options">`;
+      q.options.forEach((opt, i) => {
+        const sel = state.session.answers[q.id] === i;
+        html += `<label class="option ${sel ? 'selected' : ''}">
+          <input type="radio" name="${q.id}" value="${i}" ${sel ? 'checked' : ''} onchange="answerQ('${q.id}', ${i})">
+          <span><b>${String.fromCharCode(97 + i)})</b> ${escapeHTML(opt)}</span>
+        </label>`;
+      });
+      html += `</div>`;
+      if (q.type === 'calc') {
+        const cellsCount = sheetCountCells(q.id);
+        const applied = !!state.session.answers[q.id + '_sheet_applied_at'];
+        html += `<div style="margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px;background:#f0fbf4;border:1px solid #c8e6d3;border-radius:8px;">
+          <button class="btn btn-ok btn-sm" onclick="openSheet('${q.id}')" type="button">📊 Abrir hoja de cálculo para esta pregunta</button>
+          ${cellsCount > 0 ? `<span style="font-size:13px;color:#1e7e34;font-weight:600">📋 ${cellsCount} celda(s) con datos</span>` : '<span style="font-size:13px;color:#5b6470">Tu hoja para esta pregunta está vacía</span>'}
+          ${applied ? '<span style="font-size:13px;color:#1e7e34;font-weight:700">✓ Hoja aplicada como respuesta</span>' : ''}
+        </div>`;
+        html += `<label style="margin-top:10px">📝 Procedimiento (obligatorio para puntaje completo)</label>
+          <textarea class="answer-box" onchange="answerProc('${q.id}', this.value)">${escapeHTML(state.session.answers[q.id + '_proc'] || '')}</textarea>`;
+      }
+    } else if (q.type === 'open') {
+      const cellsCount = sheetCountCells(q.id);
+      const applied = !!state.session.answers[q.id + '_sheet_applied_at'];
+      html += `<div style="margin-top:8px;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px;background:#f0fbf4;border:1px solid #c8e6d3;border-radius:8px;">
+        <button class="btn btn-ok btn-sm" onclick="openSheet('${q.id}')" type="button">📊 Abrir hoja de cálculo para esta pregunta</button>
+        ${cellsCount > 0 ? `<span style="font-size:13px;color:#1e7e34;font-weight:600">📋 ${cellsCount} celda(s) con datos</span>` : '<span style="font-size:13px;color:#5b6470">Tu hoja para esta pregunta está vacía</span>'}
+        ${applied ? '<span style="font-size:13px;color:#1e7e34;font-weight:700">✓ Hoja aplicada</span>' : ''}
+      </div>`;
+      html += `<label>Espacio de respuesta</label>
+        <textarea class="answer-box" style="min-height:240px" onchange="answerOpen('${q.id}', this.value)">${escapeHTML(state.session.answers[q.id] || '')}</textarea>`;
+    } else if (q.type === 'match') {
+      html += renderMatchQuestion(q);
+    }
+    html += `</div>`;
+  });
+  document.getElementById('questionsArea').innerHTML = html;
+  updateProgress();
+  initMatchDragDrop();
+}
+
+/* =========================================================================
+   MATCH QUESTION (drag-and-drop)
+   ========================================================================= */
+function renderMatchQuestion(q) {
+  const ans = state.session.answers[q.id] || {};
+  // Build the right-side pool with shuffled values (deterministic by qid)
+  const rightValues = (q.pairs || []).map(p => p.right);
+  // Use a stable shuffle based on qid hash
+  const shuffled = stableShuffle(rightValues, q.id);
+
+  let html = `<p class="muted" style="font-size:13px">📌 Arrastra cada elemento de la derecha hacia el cuadro de la izquierda al que corresponde.</p>`;
+  html += `<div class="match-wrapper" data-qid="${q.id}">`;
+  // Left column with slots
+  html += `<div class="match-col"><h4>📋 Elementos</h4>`;
+  (q.pairs || []).forEach((p, pi) => {
+    const placed = ans[p.left];
+    html += `<div class="match-item" data-left="${escapeHTML(p.left)}">
+      <span class="label">${escapeHTML(p.left)}</span>
+      <div class="slot ${placed ? 'filled' : ''}" data-qid="${q.id}" data-left="${escapeHTML(p.left)}"
+           ondragover="matchDragOver(event)" ondragleave="matchDragLeave(event)" ondrop="matchDrop(event)">
+        ${placed ? `<span class="placed">${escapeHTML(placed)}</span>
+          <button class="placed-remove" onclick="matchRemove('${q.id}', '${escapeHTML(p.left)}')" title="Quitar">✕</button>` : '<span>Suelta aquí…</span>'}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  // Right column: pool of draggables
+  html += `<div class="match-col match-pool" data-qid="${q.id}"><h4>🔘 Opciones (arrastra)</h4>`;
+  const usedRights = new Set(Object.values(ans));
+  shuffled.forEach((val, i) => {
+    const placed = usedRights.has(val);
+    html += `<div class="draggable ${placed ? 'placed' : ''}" draggable="true" data-value="${escapeHTML(val)}"
+                  ondragstart="matchDragStart(event)" ondragend="matchDragEnd(event)">${escapeHTML(val)}</div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+
+// deterministic shuffle: avoids reshuffling on each render
+function stableShuffle(arr, seedStr) {
+  let h = 0;
+  for (const c of seedStr) h = ((h << 5) - h) + c.charCodeAt(0);
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    h = (h * 9301 + 49297) % 233280;
+    const j = Math.abs(h) % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function initMatchDragDrop() {
+  // listeners ya están en los atributos onX, no hace falta nada extra aquí
+  // (placeholder para futuras necesidades como touch events)
+}
+
+function matchDragStart(ev) {
+  ev.dataTransfer.setData('text/plain', ev.target.dataset.value);
+  ev.target.classList.add('dragging');
+}
+function matchDragEnd(ev) {
+  ev.target.classList.remove('dragging');
+}
+function matchDragOver(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.add('dragover');
+}
+function matchDragLeave(ev) {
+  ev.currentTarget.classList.remove('dragover');
+}
+function matchDrop(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('dragover');
+  const value = ev.dataTransfer.getData('text/plain');
+  const qid = ev.currentTarget.dataset.qid;
+  const left = ev.currentTarget.dataset.left;
+  if (!state.session.answers[qid]) state.session.answers[qid] = {};
+  // Si este 'value' ya estaba asignado a otra fila, quitarlo de allí
+  for (const k of Object.keys(state.session.answers[qid])) {
+    if (state.session.answers[qid][k] === value) delete state.session.answers[qid][k];
+  }
+  state.session.answers[qid][left] = value;
+  saveCurrentSession();
+  renderQuestions();
+}
+function matchRemove(qid, left) {
+  if (state.session.answers[qid]) delete state.session.answers[qid][left];
+  saveCurrentSession();
+  renderQuestions();
+}
+
+function answerQ(qid, idx) {
+  state.session.answers[qid] = idx;
+  saveCurrentSession();
+  updateProgress();
+  goSection(state.session.currentSection); // refresh section nav done indicator
+}
+function answerProc(qid, val) {
+  state.session.answers[qid + '_proc'] = val;
+  saveCurrentSession();
+}
+function answerOpen(qid, val) {
+  state.session.answers[qid] = val;
+  saveCurrentSession();
+  updateProgress();
+}
+
+function updateProgress() {
+  const all = state.bank.sections.flatMap(s => s.questions);
+  const answered = all.filter(q => {
+    const a = state.session.answers[q.id];
+    if (q.type === 'match') {
+      // Considerar respondida si todos los pares tienen valor
+      if (!a || typeof a !== 'object') return false;
+      return (q.pairs || []).every(p => a[p.left]);
+    }
+    return a !== undefined && a !== "" && a !== null;
+  }).length;
+  const pct = (answered / all.length) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').innerHTML =
+    `${answered} / ${all.length} reactivos respondidos · <span id="autosaveLabel" class="save-indicator">✓ Auto-guardado activo</span>`;
+}
+
+function escapeHTML(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* =========================================================================
+   TIMER
+   ========================================================================= */
+function startTimer() {
+  // Use sessionDuration on first start; if resuming, recompute from startedAt
+  const totalMs = state.session.durationMin * 60 * 1000;
+  state.endsAt = state.session.startedAt + totalMs;
+  if (state.timerId) clearInterval(state.timerId);
+  tick();
+  state.timerId = setInterval(tick, 500);
+}
+function tick() {
+  const remaining = state.endsAt - Date.now();
+  const el = document.getElementById('timerDisplay');
+  if (remaining <= 0) {
+    el.textContent = "00:00";
+    submitExam('timeout');
+    return;
+  }
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  const hrs = Math.floor(mins / 60);
+  const mm = (mins % 60).toString().padStart(2, '0');
+  const ss = secs.toString().padStart(2, '0');
+  el.textContent = hrs > 0 ? `${hrs}:${mm}:${ss}` : `${mm}:${ss}`;
+  el.classList.toggle('warn', remaining < 60000); // last minute
+}
+
+/* =========================================================================
+   AUTO-SAVE (cada 5s)
+   ========================================================================= */
+function startAutoSave() {
+  if (state.autosaveTimer) clearInterval(state.autosaveTimer);
+  state.autosaveTimer = setInterval(() => {
+    saveCurrentSession();
+  }, 5000);
+}
+
+/* =========================================================================
+   ANTI-TRAMPA
+   ========================================================================= */
+function installAntiCheat() {
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.addEventListener('blur', onBlur);
+  window.addEventListener('focus', onFocus);
+  document.addEventListener('contextmenu', preventContextMenu);
+  document.addEventListener('copy', onCopyAttempt);
+  document.addEventListener('paste', onPasteAttempt);
+  document.addEventListener('keydown', onKeyDown);
+  ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, resetIdleTimer, { passive: true }));
+  resetIdleTimer();
+}
+
+function removeAntiCheat() {
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  window.removeEventListener('blur', onBlur);
+  window.removeEventListener('focus', onFocus);
+  document.removeEventListener('contextmenu', preventContextMenu);
+  document.removeEventListener('copy', onCopyAttempt);
+  document.removeEventListener('paste', onPasteAttempt);
+  document.removeEventListener('keydown', onKeyDown);
+  if (state.idleTimer) clearTimeout(state.idleTimer);
+}
+
+function isInsideSheet(e) {
+  const modal = document.getElementById('sheetModal');
+  if (!modal || modal.classList.contains('hidden')) return false;
+  return modal.contains(e.target);
+}
+
+function onVisibilityChange() {
+  if (document.hidden) raiseAlert("Cambio de pestaña / ventana oculta", "warn",
+    "El usuario cambió de pestaña o minimizó la ventana");
+}
+function onBlur() {
+  raiseAlert("Pérdida de foco de la ventana", "warn",
+    "Posible Alt+Tab, cambio de aplicación o minimización");
+}
+function onFocus() {
+  // info-level
+  logEvent("Ventana retomó foco", "info", "");
+}
+function preventContextMenu(e) {
+  if (isInsideSheet(e)) return; // permitir menú dentro de la hoja
+  e.preventDefault();
+  raiseAlert("Intento de menú contextual", "info", "Click derecho bloqueado");
+}
+function onCopyAttempt(e) {
+  if (isInsideSheet(e)) return; // permitir copiar dentro de la hoja
+  e.preventDefault();
+  raiseAlert("Intento de copiar contenido", "warn", "Copy bloqueado");
+}
+function onPasteAttempt(e) {
+  if (isInsideSheet(e)) return; // permitir pegar dentro de la hoja (números/fórmulas)
+  e.preventDefault();
+  raiseAlert("Intento de pegar contenido", "warn", "Paste bloqueado");
+}
+function onKeyDown(e) {
+  // Allow typing/editing freely inside the spreadsheet modal
+  if (isInsideSheet(e)) {
+    // Still block DevTools/print even inside sheet
+    const k = e.key.toLowerCase();
+    if (k === 'f12' || (e.ctrlKey && e.shiftKey && k === 'i') || (e.ctrlKey && k === 'p')) {
+      e.preventDefault();
+      raiseAlert("Atajo bloqueado dentro de hoja: " + k.toUpperCase(), "warn", "");
+    }
+    return;
+  }
+  // Block common shortcuts: Ctrl+C, Ctrl+V, Ctrl+P, Ctrl+S, F12, Ctrl+Shift+I
+  const k = e.key.toLowerCase();
+  if (e.ctrlKey && ['c', 'v', 'p', 's', 'u'].includes(k)) {
+    e.preventDefault();
+    raiseAlert("Atajo bloqueado: Ctrl+" + k.toUpperCase(), "warn", "");
+  }
+  if (k === 'f12' || (e.ctrlKey && e.shiftKey && k === 'i')) {
+    e.preventDefault();
+    raiseAlert("Intento de abrir DevTools", "warn", "");
+  }
+}
+function resetIdleTimer() {
+  if (state.idleTimer) clearTimeout(state.idleTimer);
+  state.idleTimer = setTimeout(() => {
+    raiseAlert("Inactividad detectada", "info",
+      `No hubo actividad por ${state.config.idle} segundos`);
+  }, state.config.idle * 1000);
+}
+
+function logEvent(event, level, detail) {
+  const all = loadStore(STORE_KEYS.alerts, []);
+  all.push({ student: state.session.student, event, level, detail, at: Date.now() });
+  saveStore(STORE_KEYS.alerts, all);
+  if (!state.session.alerts) state.session.alerts = [];
+  state.session.alerts.push({ event, level, detail, at: Date.now() });
+  saveCurrentSession();
+}
+
+function raiseAlert(event, level, detail) {
+  if (state.session.finished) return;
+  logEvent(event, level, detail);
+  state.warnCount++;
+  showWarn(event, detail);
+  if (state.warnCount >= state.config.maxAlerts) {
+    setTimeout(() => submitExam('auto-by-alerts'), 1200);
+  }
+}
+
+function showWarn(title, msg) {
+  document.getElementById('warnTitle').textContent = "⚠️ " + title;
+  document.getElementById('warnMessage').textContent = (msg || '') +
+    " · Continuar realizando esta acción puede causar el envío automático del examen.";
+  document.getElementById('warnCount').textContent = state.warnCount;
+  document.getElementById('warnLimit').textContent = state.config.maxAlerts;
+  document.getElementById('warnModal').classList.remove('hidden');
+}
+function dismissWarn() {
+  document.getElementById('warnModal').classList.add('hidden');
+}
+
+/* =========================================================================
+   SUBMIT
+   ========================================================================= */
+function confirmSubmit() {
+  const all = state.bank.sections.flatMap(s => s.questions);
+  const answered = all.filter(q => state.session.answers[q.id] !== undefined && state.session.answers[q.id] !== "").length;
+  document.getElementById('answeredCount').textContent = `${answered} de ${all.length}`;
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+function closeConfirm() { document.getElementById('confirmModal').classList.add('hidden'); }
+
+function submitExam(reason) {
+  if (state.session.finished) return;
+  state.session.finished = true;
+  if (state.timerId) clearInterval(state.timerId);
+  if (state.autosaveTimer) clearInterval(state.autosaveTimer);
+  if (state.idleTimer) clearTimeout(state.idleTimer);
+  removeAntiCheat();
+
+  // Auto-grade MC and match
+  let scoreMC = 0, maxMC = 0;
+  state.bank.sections.forEach(sec => sec.questions.forEach(q => {
+    if (q.type === 'mc' || q.type === 'calc') {
+      maxMC += q.points;
+      if (state.session.answers[q.id] === q.correct) scoreMC += q.points;
+    } else if (q.type === 'match') {
+      maxMC += q.points;
+      const ans = state.session.answers[q.id] || {};
+      // Score per pair, partial credit
+      const totalPairs = (q.pairs || []).length;
+      if (totalPairs > 0) {
+        let correct = 0;
+        for (const p of q.pairs) {
+          if (ans[p.left] === p.right) correct++;
+        }
+        scoreMC += Math.round(q.points * (correct / totalPairs));
+      }
+    }
+  }));
+
+  const result = {
+    student: state.session.student,
+    studentCode: state.studentCode || null,
+    startedAt: state.session.startedAt,
+    finishedAt: Date.now(),
+    reason: reason,
+    answers: state.session.answers,
+    alerts: state.session.alerts || [],
+    scoreMC,
+    maxMC,
+    scoreTotal: scoreMC // open questions pending review
+  };
+  const all = loadStore(STORE_KEYS.results, []);
+  all.push(result);
+  saveStore(STORE_KEYS.results, all);
+
+  // Si el alumno tenía permitido un reintento, lo consumimos automáticamente
+  if (state.studentCode) {
+    const list = loadStore(STORE_KEYS.students, []);
+    const s = list.find(st => st.code === state.studentCode);
+    if (s && s.allowsRetake) {
+      s.allowsRetake = false;
+      saveStore(STORE_KEYS.students, list);
+    }
+  }
+
+  localStorage.removeItem(STORE_KEYS.current);
+
+  closeConfirm();
+  document.getElementById('warnModal').classList.add('hidden');
+  document.getElementById('finalScore').textContent = `${scoreMC} / ${maxMC} pts (auto-calificado)`;
+  document.getElementById('resultModal').classList.remove('hidden');
+}
+
+/* =========================================================================
+   CALCULATOR
+   ========================================================================= */
+function toggleCalc(open) {
+  document.getElementById('calculator').classList.toggle('hidden', !open);
+  document.getElementById('calcFab').classList.toggle('hidden', open);
+  if (!open) {
+    state.calcExpr = "";
+    document.getElementById('calcDisplay').textContent = "0";
+  }
+}
+function calcAppend(t) {
+  state.calcExpr += t;
+  document.getElementById('calcDisplay').textContent = state.calcExpr || "0";
+}
+function calcDel() {
+  state.calcExpr = state.calcExpr.slice(0, -1);
+  document.getElementById('calcDisplay').textContent = state.calcExpr || "0";
+}
+function calcClear() {
+  state.calcExpr = "";
+  document.getElementById('calcDisplay').textContent = "0";
+}
+function calcEval() {
+  if (!state.calcExpr) return;
+  // Whitelist only digits, ops, parens, dot, **, and space
+  if (!/^[0-9+\-*/().\s*]+$/.test(state.calcExpr)) {
+    document.getElementById('calcDisplay').textContent = "Error";
+    return;
+  }
+  try {
+    // eslint-disable-next-line no-new-func
+    const res = Function('"use strict"; return (' + state.calcExpr + ')')();
+    if (typeof res !== 'number' || !isFinite(res)) throw new Error("inv");
+    state.calcExpr = String(Number(res.toFixed(8)));
+    document.getElementById('calcDisplay').textContent = state.calcExpr;
+  } catch (e) {
+    document.getElementById('calcDisplay').textContent = "Error";
+  }
+}
+
+/* Drag the calculator */
+(function makeDraggable() {
+  let dragging = false, offX = 0, offY = 0;
+  const calc = document.getElementById('calculator');
+  const header = document.getElementById('calcHeader');
+  header.addEventListener('mousedown', (e) => {
+    dragging = true;
+    const r = calc.getBoundingClientRect();
+    offX = e.clientX - r.left; offY = e.clientY - r.top;
+    document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mouseup', () => { dragging = false; document.body.style.userSelect = ''; });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    calc.style.left = (e.clientX - offX) + 'px';
+    calc.style.top = (e.clientY - offY) + 'px';
+    calc.style.right = 'auto';
+    calc.style.bottom = 'auto';
+  });
+})();
+
+/* =========================================================================
+   SPREADSHEET ENGINE  (mini Excel) — UNA HOJA POR PREGUNTA
+   ========================================================================= */
+const SHEET = {
+  rows: 20,
+  cols: 8,        // A..H
+  cells: {},      // { 'A1': { raw: '5', val: 5 } }  (de la pregunta activa)
+  selected: 'A1',
+  activeQid: null, // pregunta a la que pertenece la hoja actualmente abierta
+  storeKey: () => 'exam_sheets_' + (state.session ? state.session.student : 'anon'),
+  visibleQTypes: ['calc', 'open']
+};
+
+function colName(i) { return String.fromCharCode(65 + i); }
+
+function findQuestion(qid) {
+  for (const sec of state.bank.sections) {
+    const q = sec.questions.find(qq => qq.id === qid);
+    if (q) return { q, sec };
+  }
+  return null;
+}
+
+function getActiveCalcQid() {
+  if (!state.session) return null;
+  const sec = state.bank.sections[state.session.currentSection];
+  const q = sec.questions.find(q => SHEET.visibleQTypes.includes(q.type));
+  return q ? q.id : null;
+}
+
+function sheetLoadForQuestion(qid) {
+  const all = loadStore(SHEET.storeKey(), {});
+  const data = all[qid] || { cells: {}, selected: 'A1' };
+  SHEET.cells = data.cells || {};
+  SHEET.selected = data.selected || 'A1';
+  SHEET.activeQid = qid;
+}
+
+function sheetSave() {
+  if (!SHEET.activeQid) return;
+  const all = loadStore(SHEET.storeKey(), {});
+  all[SHEET.activeQid] = { cells: SHEET.cells, selected: SHEET.selected };
+  saveStore(SHEET.storeKey(), all);
+}
+
+function sheetCountCells(qid) {
+  const all = loadStore(SHEET.storeKey(), {});
+  const data = all[qid];
+  if (!data || !data.cells) return 0;
+  return Object.keys(data.cells).filter(a => data.cells[a] && data.cells[a].raw !== '' && data.cells[a].raw != null).length;
+}
+
+/* Build grid once */
+function sheetBuild() {
+  const tbl = document.getElementById('sheetTable');
+  let html = '<thead><tr><th class="corner"></th>';
+  for (let c = 0; c < SHEET.cols; c++) html += `<th>${colName(c)}</th>`;
+  html += '</tr></thead><tbody>';
+  for (let r = 1; r <= SHEET.rows; r++) {
+    html += `<tr><th>${r}</th>`;
+    for (let c = 0; c < SHEET.cols; c++) {
+      const addr = colName(c) + r;
+      html += `<td><div class="sheet-cell" id="cell-${addr}" data-addr="${addr}" tabindex="0" contenteditable="false"></div></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  tbl.innerHTML = html;
+
+  // Attach listeners (sólo mouse; el teclado se maneja de forma global más abajo)
+  tbl.querySelectorAll('.sheet-cell').forEach(div => {
+    div.addEventListener('mousedown', (e) => sheetCellMouseDown(div.dataset.addr, e));
+    div.addEventListener('mouseenter', () => sheetCellMouseEnter(div.dataset.addr));
+    div.addEventListener('dblclick', () => sheetEditCell(div.dataset.addr));
+    // Sincronizar lo que el alumno teclea en la celda con la barra de fórmulas
+    div.addEventListener('input', () => {
+      if (div.classList.contains('editing')) {
+        document.getElementById('sheetFormulaBar').value = div.textContent;
+      }
+    });
+  });
+
+  // Listener GLOBAL de teclado: maneja flechas, Delete, Ctrl+Z, Ctrl+Y, etc.
+  // Esto resuelve el problema de que las flechas sólo funcionaban si la celda tenía foco.
+  if (!window._sheetKeyHandlerInstalled) {
+    window.addEventListener('keydown', sheetGlobalKeyHandler);
+    window._sheetKeyHandlerInstalled = true;
+  }
+
+  // Global mouseup ends any drag
+  if (!window._sheetMouseUpInstalled) {
+    window.addEventListener('mouseup', sheetGlobalMouseUp);
+    window._sheetMouseUpInstalled = true;
+  }
+  // Reposicionar fill handle al hacer scroll dentro del grid
+  const wrap = document.querySelector('.sheet-grid-wrap');
+  if (wrap && !wrap._scrollHooked) {
+    wrap.addEventListener('scroll', positionFillHandle);
+    wrap._scrollHooked = true;
+  }
+
+  // Formula bar listeners
+  const fb = document.getElementById('sheetFormulaBar');
+  fb.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Asegurar que cualquier celda en edición termine antes
+      sheetCommitEditingCell();
+      sheetSet(SHEET.selected, fb.value);
+      sheetMove(0, 1);
+    } else if (e.key === 'Escape') {
+      fb.value = (SHEET.cells[SHEET.selected] || {}).raw || '';
+      sheetRender();
+      document.getElementById('cell-' + SHEET.selected).focus();
+    }
+  });
+  // Si el usuario hace blur de la barra (click fuera), también hacer commit
+  fb.addEventListener('blur', () => {
+    const currentRaw = (SHEET.cells[SHEET.selected] || {}).raw || '';
+    if (fb.value !== currentRaw) {
+      sheetSet(SHEET.selected, fb.value);
+    }
+  });
+}
+
+/* =========================================================================
+   GLOBAL KEYBOARD HANDLER de la hoja
+   Funciona aún cuando ninguna celda específica tenga focus.
+   Sólo actúa cuando el modal de la hoja está abierto.
+   ========================================================================= */
+function sheetGlobalKeyHandler(e) {
+  // Sólo si la hoja está visible
+  const modal = document.getElementById('sheetModal');
+  if (!modal || modal.classList.contains('hidden')) return;
+
+  // Si el foco está en un input/textarea/contentEditable activo (formula bar o celda editando), no interceptar
+  const ae = document.activeElement;
+  if (ae) {
+    const tag = (ae.tagName || '').toLowerCase();
+    const isCellEditing = ae.classList && ae.classList.contains('editing');
+    const isFormulaBar = ae.id === 'sheetFormulaBar';
+    if (isCellEditing) return;
+    if (isFormulaBar && !['Escape'].includes(e.key)) return;
+    if ((tag === 'input' || tag === 'textarea') && !isFormulaBar) return;
+  }
+
+  const k = e.key;
+  // Ctrl/Cmd + Z: undo
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && k.toLowerCase() === 'z') {
+    e.preventDefault(); sheetUndo(); return;
+  }
+  // Ctrl/Cmd + Y o Ctrl+Shift+Z: redo
+  if (((e.ctrlKey || e.metaKey) && k.toLowerCase() === 'y') ||
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && k.toLowerCase() === 'z')) {
+    e.preventDefault(); sheetRedo(); return;
+  }
+  // Navegación con flechas
+  if (k === 'ArrowDown') { e.preventDefault(); sheetMove(0, 1); return; }
+  if (k === 'ArrowUp')   { e.preventDefault(); sheetMove(0, -1); return; }
+  if (k === 'ArrowLeft') { e.preventDefault(); sheetMove(-1, 0); return; }
+  if (k === 'ArrowRight'){ e.preventDefault(); sheetMove(1, 0); return; }
+  if (k === 'Tab')       { e.preventDefault(); sheetMove(e.shiftKey ? -1 : 1, 0); return; }
+  // Enter / F2: editar
+  if (k === 'Enter' || k === 'F2') { e.preventDefault(); sheetEditCell(SHEET.selected); return; }
+  // Delete / Backspace: borrar selección o celda activa
+  if (k === 'Delete' || k === 'Backspace') {
+    e.preventDefault();
+    sheetDeleteSelection();
+    return;
+  }
+  // Caracter imprimible: empezar a editar la celda activa
+  if (k.length === 1 && !(e.ctrlKey && !e.altKey) && !e.metaKey) {
+    e.preventDefault();
+    sheetEditCell(SHEET.selected, k);
+  }
+}
+
+/* =========================================================================
+   UNDO / REDO
+   ========================================================================= */
+function sheetSnapshot() {
+  // Hace snapshot del estado actual de las celdas para historial
+  return JSON.stringify(SHEET.cells);
+}
+function sheetRecordHistory() {
+  if (!SHEET.history) SHEET.history = { stack: [], redo: [] };
+  // Guardar el estado actual ANTES de modificar
+  SHEET.history.stack.push(sheetSnapshot());
+  if (SHEET.history.stack.length > 50) SHEET.history.stack.shift();
+  // Cualquier acción nueva borra el historial de redo
+  SHEET.history.redo = [];
+}
+function sheetUndo() {
+  if (!SHEET.history || !SHEET.history.stack.length) {
+    showToast('Nada para deshacer'); return;
+  }
+  // Empujar estado actual al redo
+  SHEET.history.redo.push(sheetSnapshot());
+  // Restaurar último estado
+  const prev = SHEET.history.stack.pop();
+  SHEET.cells = JSON.parse(prev);
+  sheetRecalc(); sheetRender(); sheetSave();
+  showToast('↶ Deshacer');
+}
+function sheetRedo() {
+  if (!SHEET.history || !SHEET.history.redo.length) {
+    showToast('Nada para rehacer'); return;
+  }
+  SHEET.history.stack.push(sheetSnapshot());
+  const next = SHEET.history.redo.pop();
+  SHEET.cells = JSON.parse(next);
+  sheetRecalc(); sheetRender(); sheetSave();
+  showToast('↷ Rehacer');
+}
+
+/* =========================================================================
+   DELETE: borra todas las celdas seleccionadas (rango o celda activa)
+   ========================================================================= */
+function sheetDeleteSelection() {
+  const targets = [];
+  if (SHEET.range) {
+    forEachCellInRange(SHEET.range.start, SHEET.range.end, addr => targets.push(addr));
+  } else {
+    targets.push(SHEET.selected);
+  }
+  // Sólo registrar historial si efectivamente hay algo que borrar
+  const willDelete = targets.some(a => SHEET.cells[a]);
+  if (!willDelete) return;
+  sheetRecordHistory();
+  for (const addr of targets) {
+    delete SHEET.cells[addr];
+  }
+  sheetRecalc();
+  sheetRender();
+  sheetSave();
+}
+
+/* =========================================================================
+   DRAG: selección de rango y range-picker durante edición de fórmula
+   ========================================================================= */
+function findEditingAddr() {
+  const editing = document.querySelector('.sheet-cell.editing');
+  return editing ? editing.dataset.addr : null;
+}
+
+function isEditingFormula(addr) {
+  const div = document.getElementById('cell-' + addr);
+  if (!div || !div.classList.contains('editing')) return false;
+  const txt = (div.textContent || '').trim();
+  return txt.startsWith('=');
+}
+
+function makeRangeStr(start, end) {
+  if (start === end) return start;
+  // Ordenar de modo que la celda superior-izquierda vaya primero
+  const ms = start.match(/([A-Z]+)([0-9]+)/);
+  const me = end.match(/([A-Z]+)([0-9]+)/);
+  const c1 = ms[1].charCodeAt(0), r1 = parseInt(ms[2]);
+  const c2 = me[1].charCodeAt(0), r2 = parseInt(me[2]);
+  const cMin = String.fromCharCode(Math.min(c1, c2));
+  const cMax = String.fromCharCode(Math.max(c1, c2));
+  const rMin = Math.min(r1, r2), rMax = Math.max(r1, r2);
+  return cMin + rMin + ':' + cMax + rMax;
+}
+
+function sheetCellMouseDown(addr, e) {
+  // Click derecho o con modificador ctrl: ignorar (deja que pase contextmenu)
+  if (e.button === 2) return;
+
+  const editingAddr = findEditingAddr();
+  if (editingAddr && editingAddr !== addr && isEditingFormula(editingAddr)) {
+    // Modo: range-picker durante edición de fórmula
+    e.preventDefault();
+    const div = document.getElementById('cell-' + editingAddr);
+    SHEET.dragState = {
+      mode: 'range-pick',
+      start: addr,
+      current: addr,
+      editingCell: editingAddr,
+      textBefore: (div.textContent || '')
+    };
+    div.textContent = SHEET.dragState.textBefore + addr;
+    document.getElementById('sheetFormulaBar').value = div.textContent;
+    return;
+  }
+
+  if (editingAddr) return; // Si está editando ESTA celda, no hacer nada raro
+  // Modo: selección normal o multi-select arrastrado
+  SHEET.dragState = { mode: 'select', start: addr, current: addr };
+  SHEET.range = null;
+  sheetSelect(addr);
+}
+
+function sheetCellMouseEnter(addr) {
+  const ds = SHEET.dragState;
+  if (!ds) return;
+  ds.current = addr;
+  if (ds.mode === 'range-pick') {
+    const div = document.getElementById('cell-' + ds.editingCell);
+    const rangeStr = makeRangeStr(ds.start, ds.current);
+    div.textContent = ds.textBefore + rangeStr;
+    document.getElementById('sheetFormulaBar').value = div.textContent;
+  } else if (ds.mode === 'select') {
+    SHEET.range = (ds.start !== ds.current) ? { start: ds.start, end: ds.current } : null;
+    highlightSheetRange();
+  } else if (ds.mode === 'fill') {
+    // Resaltar zona de relleno
+    SHEET.fillRange = { start: ds.start, end: ds.current };
+    highlightSheetRange();
+  }
+}
+
+function sheetGlobalMouseUp() {
+  const ds = SHEET.dragState;
+  if (!ds) return;
+  if (ds.mode === 'range-pick') {
+    // Restaurar foco a la celda en edición, cursor al final
+    setTimeout(() => {
+      const div = document.getElementById('cell-' + ds.editingCell);
+      if (!div) return;
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      div.focus();
+    }, 10);
+  } else if (ds.mode === 'fill') {
+    sheetApplyFill(ds.start, ds.current);
+    SHEET.fillRange = null;
+    highlightSheetRange();
+  }
+  SHEET.dragState = null;
+}
+
+/* Resalta visualmente el rango seleccionado o de relleno */
+function highlightSheetRange() {
+  // Limpiar
+  document.querySelectorAll('.sheet-cell.range-selected, .sheet-cell.fill-target')
+    .forEach(c => c.classList.remove('range-selected', 'fill-target'));
+  const r = SHEET.range;
+  const f = SHEET.fillRange;
+  if (r) {
+    forEachCellInRange(r.start, r.end, addr => {
+      const c = document.getElementById('cell-' + addr);
+      if (c) c.classList.add('range-selected');
+    });
+  }
+  if (f) {
+    forEachCellInRange(f.start, f.end, addr => {
+      if (addr === f.start) return;
+      const c = document.getElementById('cell-' + addr);
+      if (c) c.classList.add('fill-target');
+    });
+  }
+}
+
+function forEachCellInRange(a, b, fn) {
+  const ma = a.match(/([A-Z]+)([0-9]+)/);
+  const mb = b.match(/([A-Z]+)([0-9]+)/);
+  if (!ma || !mb) return;
+  const c1 = ma[1].charCodeAt(0), r1 = parseInt(ma[2]);
+  const c2 = mb[1].charCodeAt(0), r2 = parseInt(mb[2]);
+  for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+    for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+      fn(String.fromCharCode(c) + r);
+    }
+  }
+}
+
+/* Manija de relleno: copia/extiende celda hacia el rango arrastrado.
+   Para fórmulas: ajusta referencias relativas. */
+function sheetApplyFill(srcAddr, endAddr) {
+  const src = SHEET.cells[srcAddr];
+  if (!src || src.raw === '' || src.raw == null) return;
+  sheetRecordHistory();
+  const ms = srcAddr.match(/([A-Z]+)([0-9]+)/);
+  const me = endAddr.match(/([A-Z]+)([0-9]+)/);
+  const sc = ms[1].charCodeAt(0), sr = parseInt(ms[2]);
+  const ec = me[1].charCodeAt(0), er = parseInt(me[2]);
+  forEachCellInRange(srcAddr, endAddr, addr => {
+    if (addr === srcAddr) return;
+    const m = addr.match(/([A-Z]+)([0-9]+)/);
+    const dCol = m[1].charCodeAt(0) - sc;
+    const dRow = parseInt(m[2]) - sr;
+    let raw = src.raw;
+    if (typeof raw === 'string' && raw.startsWith('=')) {
+      raw = shiftFormulaRefs(raw, dRow, dCol);
+    }
+    SHEET.cells[addr] = { raw, val: null, fmt: src.fmt };
+  });
+  sheetRecalc();
+  sheetRender();
+  sheetSave();
+}
+
+function shiftFormulaRefs(formula, dRow, dCol) {
+  return formula.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (m, dol1, col, dol2, row) => {
+    const newCol = dol1 ? col : shiftCol(col, dCol);
+    const newRow = dol2 ? row : (parseInt(row) + dRow);
+    return dol1 + newCol + dol2 + newRow;
+  });
+}
+
+function shiftCol(col, delta) {
+  let n = 0;
+  for (const c of col) n = n * 26 + (c.charCodeAt(0) - 64);
+  n += delta;
+  if (n < 1) n = 1;
+  let res = '';
+  while (n > 0) {
+    res = String.fromCharCode(((n - 1) % 26) + 65) + res;
+    n = Math.floor((n - 1) / 26);
+  }
+  return res;
+}
+
+function sheetMove(dx, dy) {
+  const m = SHEET.selected.match(/([A-Z]+)([0-9]+)/);
+  let c = m[1].charCodeAt(0) - 65 + dx;
+  let r = parseInt(m[2]) + dy;
+  c = Math.max(0, Math.min(SHEET.cols - 1, c));
+  r = Math.max(1, Math.min(SHEET.rows, r));
+  sheetSelect(colName(c) + r);
+  document.getElementById('cell-' + SHEET.selected).focus();
+}
+
+function sheetSelect(addr) {
+  // CRÍTICO: si hay una celda en edición distinta a la nueva, hacer commit ANTES de cambiar
+  // Sin esto, el contenido raw queda visible "huérfano" y la fórmula se pierde.
+  const editingAddr = findEditingAddr();
+  if (editingAddr && editingAddr !== addr) {
+    sheetCommitEditingCell();
+  }
+
+  // remove previous selection styling
+  document.querySelectorAll('.sheet-cell.selected-display')
+    .forEach(el => el.classList.remove('selected-display'));
+  SHEET.selected = addr;
+  // Si no estamos en medio de un drag, limpiar el rango
+  if (!SHEET.dragState) {
+    SHEET.range = null;
+    document.querySelectorAll('.sheet-cell.range-selected').forEach(c => c.classList.remove('range-selected'));
+  }
+  const div = document.getElementById('cell-' + addr);
+  if (div) div.classList.add('selected-display');
+  document.getElementById('sheetNameBox').textContent = addr +
+    (SHEET.range ? ':' + (SHEET.range.start === addr ? SHEET.range.end : SHEET.range.start) : '');
+  // FÓRMULA VIVA: mostrar siempre el raw (fórmula) en la barra de fórmulas
+  document.getElementById('sheetFormulaBar').value = (SHEET.cells[addr] || {}).raw || '';
+  // Posicionar la manija de relleno
+  positionFillHandle();
+  sheetSave();
+}
+
+/* Hace commit del contenido de la celda en edición (si la hay) sin disparar blur. */
+function sheetCommitEditingCell() {
+  const div = document.querySelector('.sheet-cell.editing');
+  if (!div) return;
+  const addr = div.dataset.addr;
+  const raw = div.textContent;
+  div.contentEditable = 'false';
+  div.classList.remove('editing');
+  // Marcamos la bandera para que onBlur no haga doble commit
+  div._committed = true;
+  sheetSet(addr, raw);
+}
+
+function positionFillHandle() {
+  const handle = document.getElementById('sheetFillHandle');
+  if (!handle) return;
+  // El target visual es la última celda del rango si existe, si no la celda seleccionada
+  const targetAddr = SHEET.range
+    ? makeRangeStr(SHEET.range.start, SHEET.range.end).split(':')[1]
+    : SHEET.selected;
+  const targetDiv = document.getElementById('cell-' + targetAddr);
+  if (!targetDiv || !targetDiv.offsetParent) {
+    handle.style.display = 'none';
+    return;
+  }
+  const td = targetDiv.parentElement;
+  const wrap = document.querySelector('.sheet-grid-wrap');
+  if (!wrap || !td) { handle.style.display = 'none'; return; }
+  const wrapRect = wrap.getBoundingClientRect();
+  const tdRect = td.getBoundingClientRect();
+  // Posición relativa al contenedor con scroll
+  const left = tdRect.right - wrapRect.left + wrap.scrollLeft - 4;
+  const top = tdRect.bottom - wrapRect.top + wrap.scrollTop - 4;
+  handle.style.left = left + 'px';
+  handle.style.top = top + 'px';
+  handle.style.display = 'block';
+}
+
+function sheetEditCell(addr, initial) {
+  // Si hay otra celda en edición, hacer commit primero
+  const otherEditing = findEditingAddr();
+  if (otherEditing && otherEditing !== addr) sheetCommitEditingCell();
+
+  sheetSelect(addr);
+  const div = document.getElementById('cell-' + addr);
+  // Quitar formato visual mientras se edita (para que no aparezca con $/%)
+  div.classList.remove('fmt-currency', 'fmt-percent', 'text', 'error');
+  div.classList.add('editing');
+  div.contentEditable = 'true';
+  div._committed = false; // resetear bandera
+  // CLAVE: limpiar el div antes de asignar el contenido raw (evita que se muestre el valor formateado)
+  div.innerHTML = '';
+  const current = (SHEET.cells[addr] || {}).raw || '';
+  const startContent = initial != null ? initial : current;
+  div.textContent = startContent;
+  // Sincronizar barra de fórmulas
+  document.getElementById('sheetFormulaBar').value = startContent;
+  // place caret at end
+  const range = document.createRange();
+  range.selectNodeContents(div);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges(); sel.addRange(range);
+  div.focus();
+
+  const finish = (commit, moveDir) => {
+    if (div._committed) {
+      // Ya se hizo commit por sheetCommitEditingCell, sólo movemos si aplica
+      if (moveDir) sheetMove(moveDir.dx, moveDir.dy);
+      div.removeEventListener('blur', onBlur);
+      div.removeEventListener('keydown', onKey);
+      return;
+    }
+    const raw = div.textContent;
+    div.contentEditable = 'false';
+    div.classList.remove('editing');
+    div._committed = true;
+    if (commit) sheetSet(addr, raw);
+    else sheetRender();
+    if (moveDir) sheetMove(moveDir.dx, moveDir.dy);
+    div.removeEventListener('blur', onBlur);
+    div.removeEventListener('keydown', onKey);
+  };
+  const onBlur = () => {
+    // No hacer finish si lo que hicimos fue arrastrar para range-picking
+    if (SHEET.dragState && SHEET.dragState.mode === 'range-pick') return;
+    // Pequeño delay para dejar que mousedown en otra celda haga su commit primero
+    setTimeout(() => { if (!div._committed) finish(true); }, 0);
+  };
+  const onKey = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true, { dx: 0, dy: 1 }); }
+    else if (e.key === 'Tab') { e.preventDefault(); finish(true, { dx: e.shiftKey ? -1 : 1, dy: 0 }); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  };
+  div.addEventListener('blur', onBlur);
+  div.addEventListener('keydown', onKey);
+}
+
+function sheetSet(addr, raw) {
+  // Registrar historial sólo si hay un cambio real
+  const before = SHEET.cells[addr] ? SHEET.cells[addr].raw : '';
+  if (String(before) !== String(raw)) sheetRecordHistory();
+  if (raw === '' || raw == null) {
+    delete SHEET.cells[addr];
+  } else {
+    // Conservar formato si la celda ya existía
+    const existingFmt = SHEET.cells[addr] ? SHEET.cells[addr].fmt : undefined;
+    SHEET.cells[addr] = { raw, val: null, fmt: existingFmt };
+  }
+  sheetRecalc();
+  sheetRender();
+  sheetSave();
+}
+
+function sheetClear() {
+  if (!confirm("¿Borrar todo el contenido de la hoja?")) return;
+  SHEET.cells = {};
+  sheetRecalc(); sheetRender(); sheetSave();
+}
+
+/* Evaluate one raw value */
+function sheetEvalRaw(raw, stack) {
+  if (raw == null || raw === '') return '';
+  if (typeof raw === 'number') return raw;
+  const trimmed = String(raw).trim();
+  if (!trimmed.startsWith('=')) {
+    // Valor directo: detectar moneda, porcentaje o número plano
+    // Moneda: "$1,000.50" o "1,000.50" → 1000.50
+    if (/^-?\$?[\d,]+(\.\d+)?$/.test(trimmed)) {
+      const cleaned = trimmed.replace(/[$,]/g, '');
+      const n = parseFloat(cleaned);
+      return isNaN(n) ? trimmed : n;
+    }
+    // Porcentaje: "15.5%" → 0.155
+    if (/^-?\d+(\.\d+)?%$/.test(trimmed)) {
+      const n = parseFloat(trimmed.slice(0, -1));
+      return isNaN(n) ? trimmed : n / 100;
+    }
+    // Número plano
+    const n = parseFloat(trimmed);
+    return isNaN(n) ? trimmed : n;
+  }
+  let expr = trimmed.slice(1);
+
+  // Recursion guard
+  stack = stack || new Set();
+
+  // Convertir porcentajes literales en fórmulas: "15%" → "(15/100)"
+  // Word boundary \b para no afectar referencias de celda como A15
+  expr = expr.replace(/\b(\d+(?:\.\d+)?)%/g, '($1/100)');
+
+  // Functions (apply repeatedly to handle nested)
+  for (let i = 0; i < 5; i++) {
+    const before = expr;
+    expr = expr.replace(/SUM\(([^()]+)\)/gi, (_, args) => {
+      const cells = sheetExpandArgs(args);
+      const vals = cells.map(c => Number(sheetGetVal(c, stack)) || 0);
+      return '(' + (vals.reduce((a, b) => a + b, 0)) + ')';
+    });
+    expr = expr.replace(/AVERAGE\(([^()]+)\)/gi, (_, args) => {
+      const cells = sheetExpandArgs(args);
+      const vals = cells.map(c => Number(sheetGetVal(c, stack)) || 0);
+      const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+      return '(' + avg + ')';
+    });
+    expr = expr.replace(/POWER\(([^,()]+),([^()]+)\)/gi, (_, a, b) =>
+      `((${sheetReplaceRefs(a, stack)})**(${sheetReplaceRefs(b, stack)}))`);
+    expr = expr.replace(/ROUND\(([^,()]+),([^()]+)\)/gi, (_, a, b) =>
+      `(Math.round((${sheetReplaceRefs(a, stack)})*Math.pow(10,${sheetReplaceRefs(b, stack)}))/Math.pow(10,${sheetReplaceRefs(b, stack)}))`);
+    expr = expr.replace(/ABS\(([^()]+)\)/gi, (_, a) => `Math.abs(${sheetReplaceRefs(a, stack)})`);
+    expr = expr.replace(/IF\(([^,()]+),([^,()]+),([^()]+)\)/gi, (_, c, a, b) =>
+      `((${sheetReplaceRefs(c, stack)}) ? (${sheetReplaceRefs(a, stack)}) : (${sheetReplaceRefs(b, stack)}))`);
+    if (expr === before) break;
+  }
+
+  // Replace cell refs (outside functions)
+  expr = sheetReplaceRefs(expr, stack);
+
+  // Replace ^ with **
+  expr = expr.replace(/\^/g, '**');
+
+  // Whitelist
+  if (!/^[0-9+\-*/().\s*<>=!&|?:]+$/.test(expr.replace(/Math\.\w+/g, ''))) {
+    return '#ERR';
+  }
+  try {
+    const result = Function('"use strict"; return (' + expr + ')')();
+    if (typeof result !== 'number' || !isFinite(result)) return '#ERR';
+    return result;
+  } catch (e) {
+    return '#ERR';
+  }
+}
+
+function sheetReplaceRefs(expr, stack) {
+  return String(expr).replace(/\$?([A-Z]+)\$?([0-9]+)/g, (m, c, r) => {
+    const addr = c + r;
+    const v = sheetGetVal(addr, stack);
+    return '(' + (typeof v === 'number' ? v : 0) + ')';
+  });
+}
+
+function sheetGetVal(addr, stack) {
+  stack = stack || new Set();
+  if (stack.has(addr)) return 0; // circular
+  const cell = SHEET.cells[addr];
+  if (!cell) return 0;
+  stack.add(addr);
+  const v = sheetEvalRaw(cell.raw, stack);
+  stack.delete(addr);
+  return v;
+}
+
+function sheetExpandArgs(args) {
+  const cells = [];
+  for (const part of args.split(',')) {
+    const p = part.trim();
+    if (p.includes(':')) {
+      const [a, b] = p.split(':').map(s => s.replace(/\$/g, '').trim());
+      const ma = a.match(/([A-Z]+)([0-9]+)/);
+      const mb = b.match(/([A-Z]+)([0-9]+)/);
+      if (ma && mb) {
+        const c1 = ma[1].charCodeAt(0), c2 = mb[1].charCodeAt(0);
+        const r1 = parseInt(ma[2]), r2 = parseInt(mb[2]);
+        for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+          for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+            cells.push(String.fromCharCode(c) + r);
+          }
+        }
+      }
+    } else if (p) {
+      cells.push(p.replace(/\$/g, ''));
+    }
+  }
+  return cells;
+}
+
+function sheetRecalc() {
+  for (const addr of Object.keys(SHEET.cells)) {
+    SHEET.cells[addr].val = sheetEvalRaw(SHEET.cells[addr].raw);
+  }
+}
+
+function sheetFormatValue(v, fmt, decimals) {
+  if (typeof v !== 'number' || !isFinite(v)) return v == null ? '' : String(v);
+  const dec = decimals != null ? decimals : 2;
+  if (fmt === 'currency') {
+    const sign = v < 0 ? '-' : '';
+    return sign + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (fmt === 'percent') {
+    return (v * 100).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + '%';
+  }
+  if (fmt === 'number2') {
+    return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (fmt === 'integer') {
+    return Math.round(v).toLocaleString('en-US');
+  }
+  // Default: 4 decimals max, with thousand separators if big
+  return Math.abs(v) >= 1000
+    ? v.toLocaleString('en-US', { maximumFractionDigits: 4 })
+    : Number(v.toFixed(6)).toString();
+}
+
+function sheetRender() {
+  for (let r = 1; r <= SHEET.rows; r++) {
+    for (let c = 0; c < SHEET.cols; c++) {
+      const addr = colName(c) + r;
+      const div = document.getElementById('cell-' + addr);
+      if (!div || div.classList.contains('editing')) continue;
+      const cell = SHEET.cells[addr];
+      div.classList.remove('text', 'error', 'fmt-currency', 'fmt-percent', 'has-formula');
+      if (!cell) { div.textContent = ''; continue; }
+      const v = cell.val;
+      const isFormula = typeof cell.raw === 'string' && cell.raw.startsWith('=');
+      if (isFormula) div.classList.add('has-formula');
+      if (v === '#ERR') { div.textContent = '#ERR'; div.classList.add('error'); }
+      else if (typeof v === 'number') {
+        div.textContent = sheetFormatValue(v, cell.fmt);
+        if (cell.fmt === 'currency') div.classList.add('fmt-currency');
+        if (cell.fmt === 'percent') div.classList.add('fmt-percent');
+      } else {
+        div.textContent = v == null ? '' : String(v);
+        div.classList.add('text');
+      }
+    }
+  }
+  // re-apply selection
+  const sel = document.getElementById('cell-' + SHEET.selected);
+  if (sel) sel.classList.add('selected-display');
+  // Update format indicator in name box
+  updateSheetFormatIndicator();
+  // Refrescar barra de fórmulas con el raw de la celda activa (fórmula viva)
+  const fb = document.getElementById('sheetFormulaBar');
+  if (fb && document.activeElement !== fb) {
+    fb.value = (SHEET.cells[SHEET.selected] || {}).raw || '';
+  }
+  // Reposicionar manija de relleno
+  positionFillHandle();
+}
+
+function updateSheetFormatIndicator() {
+  const cell = SHEET.cells[SHEET.selected];
+  const fmt = cell && cell.fmt;
+  const buttons = {
+    'fmt-currency-btn': 'currency',
+    'fmt-percent-btn': 'percent',
+    'fmt-num2-btn': 'number2'
+  };
+  for (const id of Object.keys(buttons)) {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('active', fmt === buttons[id]);
+  }
+}
+
+function sheetFormatCell(fmt) {
+  // Determinar el conjunto de celdas a las que aplicar el formato
+  const targets = [];
+  if (SHEET.range) {
+    forEachCellInRange(SHEET.range.start, SHEET.range.end, addr => targets.push(addr));
+  } else {
+    targets.push(SHEET.selected);
+  }
+  sheetRecordHistory();
+
+  // Si todas ya tienen ese mismo formato, lo quitamos (toggle).
+  // En caso contrario, aplicamos el formato a todas.
+  const allHave = targets.every(a => SHEET.cells[a] && SHEET.cells[a].fmt === fmt);
+
+  for (const addr of targets) {
+    if (!SHEET.cells[addr]) {
+      SHEET.cells[addr] = { raw: '', val: '' };
+    }
+    if (allHave || fmt === null) {
+      delete SHEET.cells[addr].fmt;
+    } else {
+      SHEET.cells[addr].fmt = fmt;
+    }
+    if (!SHEET.cells[addr].raw && !SHEET.cells[addr].fmt) {
+      delete SHEET.cells[addr];
+    }
+  }
+  sheetSave();
+  sheetRender();
+}
+
+function openSheet(qid) {
+  const targetQid = qid || getActiveCalcQid();
+  if (!targetQid) {
+    alert('No hay un reactivo de cálculo en esta sección.');
+    return;
+  }
+  sheetLoadForQuestion(targetQid);
+  // Reiniciar historial al cambiar de pregunta
+  SHEET.history = { stack: [], redo: [] };
+  document.getElementById('sheetModal').classList.remove('hidden');
+  document.body.classList.add('sheet-open'); // encoger contenedor de preguntas
+  if (!document.getElementById('sheetTable').children.length) sheetBuild();
+  sheetRecalc();
+  sheetRender();
+  sheetSelect(SHEET.selected);
+
+  const ref = findQuestion(targetQid);
+  if (ref) {
+    const cellsCount = Object.keys(SHEET.cells).filter(a => SHEET.cells[a].raw !== '' && SHEET.cells[a].raw != null).length;
+    document.getElementById('sheetCtx').textContent =
+      `Pregunta ${targetQid.toUpperCase()} · Sección ${ref.sec.id} · ${cellsCount} celdas con datos`;
+  }
+  setTimeout(() => {
+    const focusCell = document.getElementById('cell-' + SHEET.selected);
+    if (focusCell) focusCell.focus();
+  }, 50);
+}
+function closeSheet() {
+  document.getElementById('sheetModal').classList.add('hidden');
+  document.body.classList.remove('sheet-open');
+}
+
+/* =========================================================================
+   APLICAR HOJA A LA RESPUESTA
+   ========================================================================= */
+function sheetApplyToQuestion() {
+  if (!SHEET.activeQid) { alert('No hay pregunta activa.'); return; }
+  const ref = findQuestion(SHEET.activeQid);
+  if (!ref) return;
+  const text = sheetSerialize();
+  if (!text) { alert('La hoja está vacía. Llena al menos una celda antes de aplicar.'); return; }
+
+  const qid = SHEET.activeQid;
+  // Guardar snapshot de los datos para que el docente vea la hoja exacta
+  state.session.answers[qid + '_sheet_data'] = JSON.stringify(SHEET.cells);
+  state.session.answers[qid + '_sheet_applied_at'] = Date.now();
+
+  if (ref.q.type === 'calc') {
+    // En cálculo: la hoja reemplaza el procedimiento (el alumno puede agregar texto después)
+    state.session.answers[qid + '_proc'] = text;
+  } else if (ref.q.type === 'open') {
+    // En abiertas: si ya había una hoja aplicada, reemplazar ese bloque; si no, anexar
+    const existing = state.session.answers[qid] || '';
+    const cleaned = existing.replace(/\[Hoja de cálculo aplicada[\s\S]*?(?=\n\n|$)/g, '').trim();
+    state.session.answers[qid] = cleaned ? (cleaned + '\n\n' + text) : text;
+  }
+
+  saveCurrentSession();
+  // Re-renderizar la pregunta para mostrar el contenido en el textarea
+  renderQuestions();
+  showToast('✓ Hoja aplicada como respuesta de la pregunta ' + qid.toUpperCase());
+}
+
+function sheetSerialize() {
+  const addrs = Object.keys(SHEET.cells).filter(a => {
+    const c = SHEET.cells[a];
+    return c && c.raw !== '' && c.raw != null;
+  }).sort((a, b) => {
+    const ma = a.match(/([A-Z]+)([0-9]+)/), mb = b.match(/([A-Z]+)([0-9]+)/);
+    const ra = parseInt(ma[2]), rb = parseInt(mb[2]);
+    if (ra !== rb) return ra - rb;
+    return ma[1].localeCompare(mb[1]);
+  });
+  if (!addrs.length) return '';
+  const lines = [];
+  lines.push('[Hoja de cálculo aplicada · ' + new Date().toLocaleString() + ']');
+  lines.push('Celda  | Fórmula / valor                  | Resultado');
+  lines.push('-------+----------------------------------+------------------');
+  for (const a of addrs) {
+    const cell = SHEET.cells[a];
+    const valStr = (typeof cell.val === 'number')
+      ? cell.val.toLocaleString('en-US', { maximumFractionDigits: 4 })
+      : (cell.val == null ? '' : String(cell.val));
+    lines.push(a.padEnd(6) + ' | ' + String(cell.raw).padEnd(32).slice(0, 32) + ' | ' + valStr);
+  }
+  return lines.join('\n');
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('toastMsg');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toastMsg';
+    toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1e7e34;color:white;padding:14px 28px;border-radius:10px;font-weight:700;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .35s;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.style.display = 'none', 350); }, 2400);
+}
+
+/* =========================================================================
+   BOTONES DE LA BARRA DE HERRAMIENTAS
+   Insertan operadores/funciones en la celda activa o continúan editándola.
+   Auto-prefijan "=" cuando se inserta un operador o función y la celda
+   todavía no es una fórmula. Así el alumno puede simplemente apretar
+   "POWER" en una celda vacía y obtener "=POWER(".
+   ========================================================================= */
+function sheetInsertText(text) {
+  const addr = SHEET.selected || 'A1';
+  const div = document.getElementById('cell-' + addr);
+  if (!div) return;
+
+  // ¿Este texto convierte la celda en fórmula? (operadores y nombres de función)
+  const isFormulaTrigger = /^[+\-*/^]$/.test(text) || /^[A-Z]+\($/.test(text);
+
+  // Tomar contenido actual (de edición en vivo, o del valor guardado)
+  let content = div.classList.contains('editing')
+    ? (div.textContent || '')
+    : ((SHEET.cells[addr] || {}).raw || '');
+
+  if (text === '=') {
+    // Botón "=" : asegurar que la celda inicie con "=" pero sin duplicar
+    if (!content.startsWith('=')) content = '=' + content;
+  } else if (isFormulaTrigger && !content.startsWith('=')) {
+    // Operador o función en celda que no es fórmula → prefijar "="
+    content = '=' + content + text;
+  } else {
+    // Inserción simple al final (paréntesis, coma, dos puntos, punto decimal,
+    // o cualquier inserción cuando la celda ya es fórmula)
+    content = content + text;
+  }
+
+  if (div.classList.contains('editing')) {
+    div.textContent = content;
+    document.getElementById('sheetFormulaBar').value = content;
+    // mover cursor al final
+    const range = document.createRange();
+    range.selectNodeContents(div);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    div.focus();
+  } else {
+    // Entrar en edición con el contenido nuevo
+    sheetEditCell(addr, content);
+  }
+}
+
+function sheetFillHandleDown(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  // El origen del relleno es la celda actualmente seleccionada o la del último rango
+  const startAddr = SHEET.range
+    ? makeRangeStr(SHEET.range.start, SHEET.range.end).split(':')[1]
+    : SHEET.selected;
+  SHEET.dragState = { mode: 'fill', start: startAddr, current: startAddr };
+}
+
+function sheetCommitCurrent() {
+  const addr = SHEET.selected || 'A1';
+  const div = document.getElementById('cell-' + addr);
+  if (!div) return;
+  if (div.classList.contains('editing')) {
+    // Disparar blur para que se confirme via finish(true)
+    div.blur();
+  } else {
+    // Si está la barra de fórmulas con valor, aplicarlo
+    const fb = document.getElementById('sheetFormulaBar');
+    if (fb && fb.value !== ((SHEET.cells[addr] || {}).raw || '')) {
+      sheetSet(addr, fb.value);
+    }
+  }
+  // Mover a la siguiente fila
+  setTimeout(() => sheetMove(0, 1), 50);
+}
+
+/* Show/hide the sheet button depending on current section's question types */
+function updateSheetButton() {
+  if (!state.session || state.role !== 'student') {
+    document.getElementById('sheetFab').classList.add('hidden');
+    return;
+  }
+  const sec = state.bank.sections[state.session.currentSection];
+  const hasCalc = sec.questions.some(q => SHEET.visibleQTypes.includes(q.type));
+  document.getElementById('sheetFab').classList.toggle('hidden', !hasCalc);
+  // Update context label
+  const ctx = sec.questions.filter(q => SHEET.visibleQTypes.includes(q.type)).length;
+  document.getElementById('sheetCtx').textContent =
+    `Sección ${sec.id} · ${ctx} reactivo(s) requieren cálculo`;
+}
+
+// Init
+init();
+</script>
+</body>
+</html>
