@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CAMILA · Admin</title>
+<title>CAMILA Â· Admin</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -91,18 +91,18 @@ tr:hover td{background:var(--negro-4)}
 <div class="layout">
   <div class="sidebar">
     <div class="sb-logo">
-      <h1>🦷 CAMILA</h1>
+      <h1>ðŸ¦· CAMILA</h1>
       <span>Panel de control</span>
       <div class="admin-badge">ADMIN</div>
     </div>
     <div class="nav-items">
-      <div class="nav-item activo" onclick="ir('dashboard')">📊 Dashboard</div>
-      <div class="nav-item" onclick="ir('dentistas')">👨‍⚕️ Dentistas</div>
-      <div class="nav-item" onclick="ir('agregar')">➕ Agregar dentista</div>
-      <div class="nav-item" onclick="ir('config')">⚙️ Configuración</div>
+      <div class="nav-item activo" onclick="ir('dashboard')">ðŸ“Š Dashboard</div>
+      <div class="nav-item" onclick="ir('dentistas')">ðŸ‘¨â€âš•ï¸ Dentistas</div>
+      <div class="nav-item" onclick="ir('agregar')">âž• Agregar dentista</div>
+      <div class="nav-item" onclick="ir('config')">âš™ï¸ ConfiguraciÃ³n</div>
     </div>
     <div class="sb-foot">
-      <button class="btn-cerrar" onclick="cerrarSesion()">↩ Cerrar sesión</button>
+      <button class="btn-cerrar" onclick="cerrarSesion()">â†© Cerrar sesiÃ³n</button>
     </div>
   </div>
 
@@ -118,7 +118,7 @@ tr:hover td{background:var(--negro-4)}
         <div class="stats-grid">
           <div class="stat verde"><div class="stat-num" id="st-activos">0</div><div class="stat-lbl">Dentistas activos</div></div>
           <div class="stat"><div class="stat-num" id="st-total">0</div><div class="stat-lbl">Total registrados</div></div>
-          <div class="stat"><div class="stat-num" id="st-diag">0</div><div class="stat-lbl">Diagnósticos este mes</div></div>
+          <div class="stat"><div class="stat-num" id="st-diag">0</div><div class="stat-lbl">DiagnÃ³sticos este mes</div></div>
           <div class="stat gold"><div class="stat-num" id="st-ingresos">$0</div><div class="stat-lbl">Ingresos MXN/mes</div></div>
         </div>
         <div class="card">
@@ -130,7 +130,7 @@ tr:hover td{background:var(--negro-4)}
       <!-- DENTISTAS -->
       <div class="pantalla" id="p-dentistas">
         <div class="card">
-          <div class="card-title">👨‍⚕️ Dentistas registrados</div>
+          <div class="card-title">ðŸ‘¨â€âš•ï¸ Dentistas registrados</div>
           <div style="overflow-x:auto">
             <table>
               <thead><tr><th>Nombre</th><th>Correo</th><th>Plan</th><th>Uso</th><th>Estado</th><th>Vence</th><th>Acciones</th></tr></thead>
@@ -143,21 +143,21 @@ tr:hover td{background:var(--negro-4)}
       <!-- AGREGAR -->
       <div class="pantalla" id="p-agregar">
         <div class="card">
-          <div class="card-title">➕ Agregar dentista</div>
-          <div class="msg-ok" id="ag-ok">✓ Dentista agregado exitosamente</div>
+          <div class="card-title">âž• Agregar dentista</div>
+          <div class="msg-ok" id="ag-ok">âœ“ Dentista agregado exitosamente</div>
           <div class="msg-err" id="ag-err"></div>
           <div class="form-grid">
             <div class="fg"><label>Nombre completo</label><input type="text" id="ag-nombre" placeholder="Dr. / Dra. ..."></div>
             <div class="fg"><label>Correo</label><input type="email" id="ag-email" placeholder="doctor@correo.com"></div>
-            <div class="fg"><label>Contraseña temporal</label><input type="text" id="ag-pass" placeholder="Ej: Camila2025"></div>
+            <div class="fg"><label>ContraseÃ±a temporal</label><input type="text" id="ag-pass" placeholder="Ej: Camila2025"></div>
             <div class="fg"><label>Plan</label>
               <select id="ag-plan">
-                <option value="esencial:15:399">Esencial — $399/mes · 15 diagnósticos</option>
-                <option value="profesional:40:799" selected>Profesional — $799/mes · 40 diagnósticos</option>
-                <option value="premium:100:1499">Premium — $1,499/mes · 100 diagnósticos</option>
+                <option value="esencial:15:399">Esencial â€” $399/mes Â· 15 diagnÃ³sticos</option>
+                <option value="profesional:40:799" selected>Profesional â€” $799/mes Â· 40 diagnÃ³sticos</option>
+                <option value="premium:100:1499">Premium â€” $1,499/mes Â· 100 diagnÃ³sticos</option>
               </select>
             </div>
-            <div class="fg"><label>Meses de suscripción</label>
+            <div class="fg"><label>Meses de suscripciÃ³n</label>
               <select id="ag-meses">
                 <option value="1">1 mes</option>
                 <option value="3">3 meses</option>
@@ -166,23 +166,23 @@ tr:hover td{background:var(--negro-4)}
               </select>
             </div>
           </div>
-          <button class="btn-gold" onclick="agregarDentista()">➕ Agregar dentista</button>
+          <button class="btn-gold" onclick="agregarDentista()">âž• Agregar dentista</button>
         </div>
       </div>
 
       <!-- CONFIG -->
       <div class="pantalla" id="p-config">
         <div class="card">
-          <div class="card-title">⚙️ Configuración</div>
-          <div class="config-item"><div class="config-lbl"><h4>Código de acceso del curso</h4><p>Los dentistas lo ingresan al registrarse</p></div><div class="config-val">CAMILA2025</div></div>
-          <div class="config-item"><div class="config-lbl"><h4>Plan Esencial</h4><p>15 diagnósticos al mes</p></div><div class="config-val">$399 MXN</div></div>
-          <div class="config-item"><div class="config-lbl"><h4>Plan Profesional</h4><p>40 diagnósticos al mes</p></div><div class="config-val">$799 MXN</div></div>
-          <div class="config-item"><div class="config-lbl"><h4>Plan Premium</h4><p>100 diagnósticos al mes</p></div><div class="config-val">$1,499 MXN</div></div>
+          <div class="card-title">âš™ï¸ ConfiguraciÃ³n</div>
+          <div class="config-item"><div class="config-lbl"><h4>CÃ³digo de acceso del curso</h4><p>Los dentistas lo ingresan al registrarse</p></div><div class="config-val">CAMILA2025</div></div>
+          <div class="config-item"><div class="config-lbl"><h4>Plan Esencial</h4><p>15 diagnÃ³sticos al mes</p></div><div class="config-val">$399 MXN</div></div>
+          <div class="config-item"><div class="config-lbl"><h4>Plan Profesional</h4><p>40 diagnÃ³sticos al mes</p></div><div class="config-val">$799 MXN</div></div>
+          <div class="config-item"><div class="config-lbl"><h4>Plan Premium</h4><p>100 diagnÃ³sticos al mes</p></div><div class="config-val">$1,499 MXN</div></div>
         </div>
         <div class="card">
-          <div class="card-title">🔄 Reseteo mensual</div>
-          <p style="font-size:13px;color:var(--gris);margin-bottom:14px;line-height:1.6">Resetea el contador de diagnósticos de todos los dentistas activos al inicio de cada mes.</p>
-          <button class="btn-gold" onclick="resetearTodos()" style="background:var(--verde);color:#000">🔄 Resetear todos los contadores</button>
+          <div class="card-title">ðŸ”„ Reseteo mensual</div>
+          <p style="font-size:13px;color:var(--gris);margin-bottom:14px;line-height:1.6">Resetea el contador de diagnÃ³sticos de todos los dentistas activos al inicio de cada mes.</p>
+          <button class="btn-gold" onclick="resetearTodos()" style="background:var(--verde);color:#000">ðŸ”„ Resetear todos los contadores</button>
         </div>
       </div>
 
@@ -193,7 +193,7 @@ tr:hover td{background:var(--negro-4)}
 <!-- MODAL EDITAR -->
 <div class="overlay" id="overlay-edit" onclick="cerrarFuera(event)">
   <div class="modal">
-    <button class="modal-close" onclick="cerrarEdit()">✕</button>
+    <button class="modal-close" onclick="cerrarEdit()">âœ•</button>
     <h3>Editar dentista</h3>
     <p id="edit-sub">...</p>
     <div class="fg"><label>Meses a agregar</label>
@@ -201,13 +201,13 @@ tr:hover td{background:var(--negro-4)}
     </div>
     <div class="fg"><label>Cambiar plan</label>
       <select id="edit-plan">
-        <option value="esencial:15:399">Esencial — $399/mes · 15</option>
-        <option value="profesional:40:799">Profesional — $799/mes · 40</option>
-        <option value="premium:100:1499">Premium — $1,499/mes · 100</option>
+        <option value="esencial:15:399">Esencial â€” $399/mes Â· 15</option>
+        <option value="profesional:40:799">Profesional â€” $799/mes Â· 40</option>
+        <option value="premium:100:1499">Premium â€” $1,499/mes Â· 100</option>
       </select>
     </div>
-    <div class="fg"><label>Nueva contraseña (opcional)</label><input type="text" id="edit-pass" placeholder="Dejar vacío para no cambiar"></div>
-    <button class="btn-gold" style="width:100%" onclick="guardarEdit()">💾 Guardar</button>
+    <div class="fg"><label>Nueva contraseÃ±a (opcional)</label><input type="text" id="edit-pass" placeholder="Dejar vacÃ­o para no cambiar"></div>
+    <button class="btn-gold" style="width:100%" onclick="guardarEdit()">ðŸ’¾ Guardar</button>
   </div>
 </div>
 
@@ -225,7 +225,7 @@ function cerrarSesion(){ localStorage.removeItem('camila_session'); window.locat
   cargarDashboard(); cargarTabla();
 })();
 
-var titulos={dashboard:'Dashboard Admin',dentistas:'Dentistas',agregar:'Agregar Dentista',config:'Configuración'};
+var titulos={dashboard:'Dashboard Admin',dentistas:'Dentistas',agregar:'Agregar Dentista',config:'ConfiguraciÃ³n'};
 function ir(p){
   document.querySelectorAll('.pantalla').forEach(function(el){ el.classList.remove('activa'); });
   document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('activo'); });
@@ -246,8 +246,8 @@ function cargarDashboard(){
   document.getElementById('st-diag').textContent=diags;
   document.getElementById('st-ingresos').textContent='$'+ingresos.toLocaleString();
   document.getElementById('resumen').innerHTML=!lista.length
-    ? '<span style="color:var(--gris-2)">Sin dentistas aún. <a href="#" onclick="ir(\'agregar\')" style="color:var(--dorado)">Agregar el primero →</a></span>'
-    : '• <strong style="color:var(--blanco)">'+activos.length+'</strong> dentistas activos de <strong style="color:var(--blanco)">'+lista.length+'</strong> registrados<br>• <strong style="color:var(--blanco)">'+diags+'</strong> diagnósticos generados este mes<br>• Ingreso mensual estimado: <strong style="color:var(--dorado)">$'+ingresos.toLocaleString()+' MXN</strong>';
+    ? '<span style="color:var(--gris-2)">Sin dentistas aÃºn. <a href="#" onclick="ir(\'agregar\')" style="color:var(--dorado)">Agregar el primero â†’</a></span>'
+    : 'â€¢ <strong style="color:var(--blanco)">'+activos.length+'</strong> dentistas activos de <strong style="color:var(--blanco)">'+lista.length+'</strong> registrados<br>â€¢ <strong style="color:var(--blanco)">'+diags+'</strong> diagnÃ³sticos generados este mes<br>â€¢ Ingreso mensual estimado: <strong style="color:var(--dorado)">$'+ingresos.toLocaleString()+' MXN</strong>';
 }
 
 function cargarTabla(){
@@ -268,21 +268,21 @@ function cargarTabla(){
       '<td>'+badge+'</td>'+
       '<td style="font-size:12px">'+vence.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'</td>'+
       '<td><div style="display:flex;gap:4px;flex-wrap:wrap">'+
-      '<button class="btn-a btn-edit" onclick="abrirEdit(\''+u.email+'\')">✏️</button>'+
+      '<button class="btn-a btn-edit" onclick="abrirEdit(\''+u.email+'\')">âœï¸</button>'+
       (u.activo?'<button class="btn-a btn-des" onclick="toggle(\''+u.email+'\',false)">Pausar</button>':'<button class="btn-a btn-act" onclick="toggle(\''+u.email+'\',true)">Activar</button>')+
-      '<button class="btn-a btn-rst" onclick="resetearUno(\''+u.email+'\')">↺</button>'+
-      '<button class="btn-a btn-del" onclick="eliminar(\''+u.email+'\')">🗑</button>'+
+      '<button class="btn-a btn-rst" onclick="resetearUno(\''+u.email+'\')">â†º</button>'+
+      '<button class="btn-a btn-del" onclick="eliminar(\''+u.email+'\')">ðŸ—‘</button>'+
       '</div></td></tr>';
   }).join('');
 }
 
 function toggle(email,estado){ var us=getUsuarios(); if(us[email]){ us[email].activo=estado; saveUsuarios(us); cargarTabla(); cargarDashboard(); } }
-function resetearUno(email){ if(!confirm('¿Resetear diagnósticos de este dentista?')) return; var us=getUsuarios(); if(us[email]){ us[email].usados=0; saveUsuarios(us); cargarTabla(); } }
-function eliminar(email){ if(!confirm('¿Eliminar permanentemente a '+email+'?')) return; var us=getUsuarios(); delete us[email]; saveUsuarios(us); cargarTabla(); cargarDashboard(); }
+function resetearUno(email){ if(!confirm('Â¿Resetear diagnÃ³sticos de este dentista?')) return; var us=getUsuarios(); if(us[email]){ us[email].usados=0; saveUsuarios(us); cargarTabla(); } }
+function eliminar(email){ if(!confirm('Â¿Eliminar permanentemente a '+email+'?')) return; var us=getUsuarios(); delete us[email]; saveUsuarios(us); cargarTabla(); cargarDashboard(); }
 
 function abrirEdit(email){
   editandoEmail=email; var us=getUsuarios(); var u=us[email];
-  document.getElementById('edit-sub').textContent=u.nombre+' · '+email;
+  document.getElementById('edit-sub').textContent=u.nombre+' Â· '+email;
   document.getElementById('edit-pass').value='';
   document.getElementById('edit-plan').value=u.plan+':'+(u.limite||40)+':'+(u.precio||799);
   document.getElementById('overlay-edit').classList.add('visible');
@@ -324,11 +324,13 @@ function agregarDentista(){
 }
 
 function resetearTodos(){
-  if(!confirm('¿Resetear diagnósticos de TODOS los dentistas activos?')) return;
+  if(!confirm('Â¿Resetear diagnÃ³sticos de TODOS los dentistas activos?')) return;
   var us=getUsuarios();
   Object.keys(us).forEach(function(e){ us[e].usados=0; });
   saveUsuarios(us); cargarDashboard(); alert('Contadores reseteados.');
 }
 </script>
+<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&#169; 2025 Dr. Hern&#225;n Partida Islas &middot; Propiedad Intelectual</div>
 </body>
 </html>
+
