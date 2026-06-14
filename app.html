@@ -16,8 +16,6 @@
   --naranja:#F59E0B;--naranja-suave:rgba(245,158,11,.1);
 }
 body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);min-height:100vh}
-
-/* LAYOUT */
 .layout{display:flex;min-height:100vh}
 .sidebar{width:230px;background:var(--negro-2);border-right:0.5px solid var(--borde);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
 .sb-logo{padding:22px 20px 18px;border-bottom:0.5px solid var(--borde)}
@@ -33,34 +31,22 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--gris);font-size:13px;font-weight:500;transition:all .2s;margin-bottom:1px}
 .nav-item:hover{background:var(--negro-4);color:var(--blanco)}
 .nav-item.activo{background:var(--dorado-suave);color:var(--dorado);border:0.5px solid var(--dorado-borde)}
-.nav-icon{font-size:15px;width:18px;text-align:center}
 .sb-foot{padding:14px 20px;border-top:0.5px solid var(--borde)}
 .btn-cerrar{width:100%;padding:9px;background:none;color:var(--gris-2);border:0.5px solid var(--borde);border-radius:7px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-cerrar:hover{color:var(--blanco);border-color:var(--gris)}
-
-/* MAIN */
 .main{flex:1;overflow-y:auto}
 .topbar{background:var(--negro-2);border-bottom:0.5px solid var(--borde);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
 .topbar-title{font-size:15px;font-weight:600;color:var(--blanco)}
 .topbar-sub{font-size:12px;color:var(--gris-2)}
 .contenido{padding:24px 28px;max-width:920px}
-
-/* PANTALLAS */
 .pantalla{display:none}.pantalla.activa{display:block}
-
-/* CARDS */
 .card{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:14px;padding:22px;margin-bottom:16px}
-.card-gold{border-color:var(--dorado-borde);background:var(--negro-3)}
 .card-title{font-size:11px;font-weight:600;color:var(--dorado);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
-
-/* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
 .stat{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:12px;padding:16px}
 .stat-num{font-size:30px;font-weight:800;color:var(--blanco)}
 .stat-lbl{font-size:11px;color:var(--gris-2);margin-top:3px}
 .stat.gold .stat-num{color:var(--dorado)}
-
-/* UPLOAD */
 .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .upload-slot{border:1px dashed var(--borde);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .upload-slot:hover,.upload-slot.drag{border-color:var(--dorado);background:var(--dorado-suave)}
@@ -72,8 +58,6 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .upload-slot.tiene-img{border-color:var(--dorado-borde);background:var(--dorado-suave)}
 .slot-check{position:absolute;top:8px;right:8px;width:20px;height:20px;background:var(--dorado);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:11px;color:var(--negro)}
 .upload-slot.tiene-img .slot-check{display:flex}
-
-/* FORM */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fg{display:flex;flex-direction:column;gap:5px}
 .fg.full{grid-column:1/-1}
@@ -83,24 +67,16 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .fg input::placeholder,.fg textarea::placeholder{color:var(--gris-2)}
 .fg select option{background:var(--negro-4)}
 .fg textarea{resize:vertical;min-height:70px}
-
-/* BOTONES */
 .btn-gold{padding:13px 24px;background:var(--dorado);color:var(--negro);border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
 .btn-gold:hover{background:var(--dorado-claro);transform:translateY(-1px)}
 .btn-gold:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-ghost{padding:11px 20px;background:none;color:var(--gris);border:0.5px solid var(--borde);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-ghost:hover{border-color:var(--dorado);color:var(--dorado)}
 .btn-full{width:100%;margin-top:10px}
-
-/* LOADING */
 .loading{display:none;flex-direction:column;align-items:center;gap:16px;padding:60px;text-align:center}
 .loading.visible{display:flex}
 .spinner{width:44px;height:44px;border:2px solid var(--borde);border-top:2px solid var(--dorado);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-title{font-size:16px;font-weight:500;color:var(--blanco)}
-.loading-sub{font-size:13px;color:var(--gris-2)}
-
-/* REPORTE */
 .reporte{display:none}.reporte.visible{display:block}
 .rep-header{background:var(--negro-4);border:0.5px solid var(--dorado-borde);border-radius:14px;padding:22px 26px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
 .rep-header-info h2{font-family:'Playfair Display',serif;font-size:20px;color:var(--blanco);margin-bottom:3px}
@@ -119,10 +95,6 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .dot-gold{background:var(--dorado)}
 .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin:2px}
 .tag-gold{background:var(--dorado-suave);color:var(--dorado);border:0.5px solid var(--dorado-borde)}
-.tag-ok{background:var(--verde-suave);color:var(--verde)}
-.tag-warn{background:var(--naranja-suave);color:var(--naranja)}
-
-/* COTIZACI&Oacute;N */
 .cot-header{background:var(--negro-4);border:0.5px solid var(--dorado-borde);border-radius:14px;padding:20px 24px;margin-bottom:14px}
 .cot-paciente{font-size:16px;font-weight:600;color:var(--blanco);margin-bottom:4px}
 .cot-fecha{font-size:12px;color:var(--gris-2)}
@@ -140,22 +112,15 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .acc-row{display:flex;gap:10px;flex-wrap:wrap}
 .btn-acc{flex:1;min-width:120px;padding:11px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:'Inter',sans-serif}
 .btn-nuevo-caso{background:var(--negro-4);color:var(--gris);border:0.5px solid var(--borde)}
-.btn-nuevo-caso:hover{color:var(--blanco)}
 .btn-imprimir{background:var(--dorado);color:var(--negro)}
-.btn-imprimir:hover{background:var(--dorado-claro)}
 .btn-copiar{background:var(--verde-suave);color:var(--verde);border:0.5px solid rgba(34,197,94,.2)}
-
-/* PRECIOS CONFIG */
 .precio-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--borde)}
 .precio-item:last-child{border:none}
 .precio-lbl{font-size:13px;color:var(--blanco);font-weight:500}
 .precio-desc{font-size:11px;color:var(--gris-2);margin-top:2px}
-.precio-input{background:var(--negro-4);border:0.5px solid var(--borde);border-radius:7px;padding:8px 12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--dorado);outline:none;width:120px;text-align:right;transition:border .2s}
+.precio-input{background:var(--negro-4);border:0.5px solid var(--borde);border-radius:7px;padding:8px 12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--dorado);outline:none;width:120px;text-align:right}
 .precio-input:focus{border-color:var(--dorado)}
-
-/* HISTORIAL */
-.hist-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--negro-4);border:0.5px solid var(--borde);border-radius:10px;margin-bottom:8px;transition:border-color .2s;cursor:pointer}
-.hist-item:hover{border-color:var(--dorado-borde)}
+.hist-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--negro-4);border:0.5px solid var(--borde);border-radius:10px;margin-bottom:8px}
 .hist-info h4{font-size:13px;font-weight:600;color:var(--blanco)}
 .hist-info p{font-size:11px;color:var(--gris-2);margin-top:2px}
 .hist-total{font-size:14px;font-weight:700;color:var(--dorado)}
@@ -163,12 +128,9 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .alerta.visible{display:flex}
 .alerta-warn{background:var(--naranja-suave);border:0.5px solid rgba(245,158,11,.2);color:var(--naranja)}
 .empty{text-align:center;padding:50px 20px;color:var(--gris-2);font-size:14px}
-.empty .empty-icon{font-size:40px;margin-bottom:12px}
-
-/* CHAT */
 .chat-wrap{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:460px}
 .chat-head{background:var(--negro-4);border-bottom:0.5px solid var(--borde);padding:14px 18px;display:flex;align-items:center;gap:10px}
-.chat-av{width:34px;height:34px;border:1.5px solid var(--dorado);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--dorado);font-family:'Playfair Display',serif;font-weight:700}
+.chat-av{width:34px;height:34px;border:1.5px solid var(--dorado);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dorado);font-family:'Playfair Display',serif;font-weight:700}
 .chat-head h3{color:var(--blanco);font-size:13px;font-weight:600}
 .chat-head p{color:var(--gris-2);font-size:11px}
 .chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
@@ -182,25 +144,14 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .chat-inp{flex:1;background:var(--negro-3);border:0.5px solid var(--borde);border-radius:20px;padding:9px 16px;font-size:13px;font-family:'Inter',sans-serif;color:var(--blanco);outline:none}
 .chat-inp:focus{border-color:var(--dorado)}
 .chat-inp::placeholder{color:var(--gris-2)}
-.chat-send{width:36px;height:36px;background:var(--dorado);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--negro);flex-shrink:0;transition:background .2s}
+.chat-send{width:36px;height:36px;background:var(--dorado);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--negro);flex-shrink:0}
 .chat-send:hover{background:var(--dorado-claro)}
-
-@media(max-width:700px){
-  .sidebar{display:none}
-  .stats-grid,.rep-grid,.form-grid,.upload-grid{grid-template-columns:1fr}
-  .contenido{padding:16px}
-}
-@media print{
-  .sidebar,.topbar,.acc-row,.alerta,.chat-wrap{display:none!important}
-  .pantalla{display:block!important}
-  body{background:#fff;color:#000}
-  .card,.rep-sec,.cot-header,.cot-total,.texto-px{background:#fff!important;color:#000!important;border-color:#ccc!important}
-}
+@media(max-width:700px){.sidebar{display:none}.stats-grid,.rep-grid,.form-grid,.upload-grid{grid-template-columns:1fr}.contenido{padding:16px}}
+@media print{.sidebar,.topbar,.acc-row,.alerta,.chat-wrap{display:none!important}.pantalla{display:block!important}body{background:#fff;color:#000}}
 </style>
 </head>
 <body>
 <div class="layout">
-
   <div class="sidebar">
     <div class="sb-logo">
       <h1>&#129463; CAMILA</h1>
@@ -213,33 +164,30 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
       <div class="uso-txt" id="uso-txt">0 / 40 diagn&oacute;sticos</div>
     </div>
     <div class="nav-items">
-      <div class="nav-item activo" onclick="ir('dashboard')"><span class="nav-icon">&#128202;</span> Dashboard</div>
-      <div class="nav-item" onclick="ir('diagnostico')"><span class="nav-icon">&#128300;</span> Nuevo diagn&oacute;stico</div>
-      <div class="nav-item" onclick="ir('historial')"><span class="nav-icon">&#128450;</span> Historial</div>
-      <div class="nav-item" onclick="ir('chat')"><span class="nav-icon">&#128172;</span> Chat paciente</div>
-      <div class="nav-item" onclick="ir('precios')"><span class="nav-icon">&#128176;</span> Mis precios</div>
+      <div class="nav-item activo" onclick="ir('dashboard')">&#128202; Dashboard</div>
+      <div class="nav-item" onclick="ir('diagnostico')">&#128300; Nuevo diagn&oacute;stico</div>
+      <div class="nav-item" onclick="ir('historial')">&#128450; Historial</div>
+      <div class="nav-item" onclick="ir('chat')">&#128172; Chat paciente</div>
+      <div class="nav-item" onclick="ir('precios')">&#128176; Mis precios</div>
     </div>
     <div class="sb-foot">
       <button class="btn-cerrar" onclick="cerrarSesion()">&#8617; Cerrar sesi&oacute;n</button>
     </div>
   </div>
-
   <div class="main">
     <div class="topbar">
       <div><div class="topbar-title" id="topbar-title">Dashboard</div></div>
       <div class="topbar-sub" id="topbar-fecha"></div>
     </div>
-
     <div class="contenido">
 
-      <!-- DASHBOARD -->
       <div class="pantalla activa" id="p-dashboard">
         <div class="stats-grid">
-          <div class="stat gold"><div class="stat-num" id="st-disp">&mdash;</div><div class="stat-lbl">Diagn&oacute;sticos disponibles</div></div>
+          <div class="stat gold"><div class="stat-num" id="st-disp">-</div><div class="stat-lbl">Diagn&oacute;sticos disponibles</div></div>
           <div class="stat"><div class="stat-num" id="st-usados">0</div><div class="stat-lbl">Usados este mes</div></div>
           <div class="stat"><div class="stat-num" id="st-casos">0</div><div class="stat-lbl">Casos en historial</div></div>
         </div>
-        <div class="card card-gold">
+        <div class="card" style="border-color:var(--dorado-borde)">
           <div class="card-title">Accesos r&aacute;pidos</div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn-gold" onclick="ir('diagnostico')">&#128300; Nuevo diagn&oacute;stico</button>
@@ -253,18 +201,16 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
         </div>
       </div>
 
-      <!-- DIAGN&Oacute;STICO -->
       <div class="pantalla" id="p-diagnostico">
-        <div class="alerta alerta-warn" id="alerta-limite">?#9888; Alcanzaste tu l&iacute;mite de diagn&oacute;sticos este mes. Contacta al administrador para renovar.</div>
-
+        <div class="alerta alerta-warn" id="alerta-limite">&#9888; Alcanzaste tu l&iacute;mite de diagn&oacute;sticos este mes.</div>
         <div id="form-area">
           <div class="card">
             <div class="card-title">&#128248; Fotograf&iacute;as cl&iacute;nicas</div>
-            <p style="font-size:12px;color:var(--gris-2);margin-bottom:14px">Sube hasta 4 im&aacute;genes. M&aacute;s fotos = diagn&oacute;stico m&aacute;s preciso y cotizaci&oacute;n m&aacute;s fiel.</p>
+            <p style="font-size:12px;color:var(--gris-2);margin-bottom:14px">Sube hasta 4 im&aacute;genes. M&aacute;s fotos = diagn&oacute;stico m&aacute;s preciso.</p>
             <div class="upload-grid">
               <div class="upload-slot" id="slot-0" ondragover="dragSobre(event,0)" ondragleave="dragFuera(0)" ondrop="dropImg(event,0)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,0)">
-                <div class="slot-check">&#10003;#10003;</div>
+                <div class="slot-check">&#10003;</div>
                 <div class="slot-icon">&#128513;</div>
                 <h4>Sonrisa frontal</h4>
                 <p>Con retractores, fondo blanco</p>
@@ -272,7 +218,7 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
               </div>
               <div class="upload-slot" id="slot-1" ondragover="dragSobre(event,1)" ondragleave="dragFuera(1)" ondrop="dropImg(event,1)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,1)">
-                <div class="slot-check">&#10003;#10003;</div>
+                <div class="slot-check">&#10003;</div>
                 <div class="slot-icon">&#128528;</div>
                 <h4>Perfil lateral</h4>
                 <p>Derecho o izquierdo</p>
@@ -280,7 +226,7 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
               </div>
               <div class="upload-slot" id="slot-2" ondragover="dragSobre(event,2)" ondragleave="dragFuera(2)" ondrop="dropImg(event,2)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,2)">
-                <div class="slot-check">&#10003;#10003;</div>
+                <div class="slot-check">&#10003;</div>
                 <div class="slot-icon">&#129463;</div>
                 <h4>Intraoral frontal</h4>
                 <p>Oclusi&oacute;n, piezas, enc&iacute;a</p>
@@ -288,7 +234,7 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
               </div>
               <div class="upload-slot" id="slot-3" ondragover="dragSobre(event,3)" ondragleave="dragFuera(3)" ondrop="dropImg(event,3)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,3)">
-                <div class="slot-check">&#10003;#10003;</div>
+                <div class="slot-check">&#10003;</div>
                 <div class="slot-icon">&#129659;</div>
                 <h4>Radiograf&iacute;a panor&aacute;mica</h4>
                 <p>Opcional pero recomendada</p>
@@ -296,7 +242,6 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
               </div>
             </div>
           </div>
-
           <div class="card">
             <div class="card-title">&#128450; Datos del paciente</div>
             <div class="form-grid">
@@ -310,42 +255,32 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
                   <option>Diastemas</option>
                   <option>Dientes fracturados</option>
                   <option>Cambio est&eacute;tico general</option>
-                  <option>Preparaci&oacute;n para evento</option>
                 </select>
               </div>
               <div class="fg"><label>Material preferido</label>
                 <select id="f-material">
-                  <option value="sin definir">Sin definir a&uacute;n</option>
-                  <option value="porcelana feldesp&aacute;tica">Porcelana feldesp&aacute;tica</option>
+                  <option value="sin definir">Sin definir</option>
+                  <option value="porcelana feldespat&#237;ca">Porcelana feldespat&iacute;ca</option>
                   <option value="disilicato de litio (e.max)">Disilicato de litio (e.max)</option>
                   <option value="composite de resina">Composite de resina</option>
                   <option value="zirconia">Zirconia</option>
                 </select>
               </div>
-              <div class="fg full"><label>Observaciones cl&iacute;nicas</label><textarea id="f-obs" placeholder="Bruxismo, sensibilidad, oclusi&oacute;n, historial m&eacute;dico relevante..."></textarea></div>
+              <div class="fg full"><label>Observaciones cl&iacute;nicas</label><textarea id="f-obs" placeholder="Bruxismo, sensibilidad, oclusi&oacute;n..."></textarea></div>
             </div>
-            <button class="btn-gold btn-full" id="btn-analizar" onclick="analizarCaso()">&#10022;#10022; Generar Diagn&oacute;stico + Cotizaci&oacute;n</button>
+            <button class="btn-gold btn-full" onclick="analizarCaso()">&#10022; Generar Diagn&oacute;stico + Cotizaci&oacute;n</button>
           </div>
         </div>
-
         <div class="loading" id="loading-area">
           <div class="spinner"></div>
-          <div class="loading-title">Analizando caso cl&iacute;nico...</div>
-          <div class="loading-sub">La IA est&aacute; evaluando im&aacute;genes, hallazgos y generando la cotizaci&oacute;n</div>
+          <div style="font-size:16px;font-weight:500;color:var(--blanco)">Analizando caso cl&iacute;nico...</div>
+          <div style="font-size:13px;color:var(--gris-2)">La IA est&aacute; evaluando im&aacute;genes y generando la cotizaci&oacute;n</div>
         </div>
-
         <div class="reporte" id="reporte-area">
           <div class="rep-header">
-            <div class="rep-header-info">
-              <h2 id="r-nombre">Diagn&oacute;stico 360&deg;</h2>
-              <p id="r-fecha">&mdash;</p>
-            </div>
-            <div class="score-box">
-              <div class="score-num" id="r-score">&mdash;</div>
-              <div class="score-lbl">Potencial est&eacute;tico</div>
-            </div>
+            <div class="rep-header-info"><h2 id="r-nombre">Diagn&oacute;stico 360&deg;</h2><p id="r-fecha">-</p></div>
+            <div class="score-box"><div class="score-num" id="r-score">-</div><div class="score-lbl">Potencial est&eacute;tico</div></div>
           </div>
-
           <div class="card">
             <div class="card-title">&#128300; Diagn&oacute;stico cl&iacute;nico</div>
             <div class="rep-grid">
@@ -355,13 +290,9 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
               <div class="rep-sec"><h4>Plan sugerido</h4><div id="r-plan"></div></div>
             </div>
           </div>
-
           <div class="card">
             <div class="card-title">&#128176; Cotizaci&oacute;n</div>
-            <div class="cot-header">
-              <div class="cot-paciente" id="cot-paciente">&mdash;</div>
-              <div class="cot-fecha" id="cot-fecha">&mdash;</div>
-            </div>
+            <div class="cot-header"><div class="cot-paciente" id="cot-paciente">-</div><div class="cot-fecha" id="cot-fecha">-</div></div>
             <table class="cot-tabla">
               <thead><tr><th>Procedimiento</th><th>Piezas</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead>
               <tbody id="cot-tabla-body"></tbody>
@@ -371,33 +302,23 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
               <div class="cot-total-num" id="cot-total">$0 MXN</div>
             </div>
           </div>
-
-          <div class="texto-px">
-            <h4>&#128172; Explicaci&oacute;n para el paciente</h4>
-            <p id="r-texto-px"></p>
-          </div>
-
+          <div class="texto-px"><h4>&#128172; Explicaci&oacute;n para el paciente</h4><p id="r-texto-px"></p></div>
           <div class="acc-row">
             <button class="btn-acc btn-nuevo-caso" onclick="nuevoCaso()">&#8617; Nuevo caso</button>
-            <button class="btn-acc btn-imprimir" onclick="window.print()">&#128424; Imprimir</button>
+            <button class="btn-acc btn-imprimir" onclick="window.print()">Imprimir</button>
             <button class="btn-acc btn-copiar" onclick="copiarTexto()">&#128203; Copiar texto</button>
           </div>
         </div>
       </div>
 
-      <!-- HISTORIAL -->
       <div class="pantalla" id="p-historial">
-        <div class="card">
-          <div class="card-title">&#128450; Casos analizados</div>
-          <div id="historial-lista"></div>
-        </div>
+        <div class="card"><div class="card-title">&#128450; Casos analizados</div><div id="historial-lista"></div></div>
       </div>
 
-      <!-- CHAT -->
       <div class="pantalla" id="p-chat">
         <div class="card" style="margin-bottom:14px">
           <div class="card-title">&#128172; Chatbot para pacientes</div>
-          <p style="font-size:13px;color:var(--gris);line-height:1.6">Comparte este chat con tus pacientes. Responde sus dudas sobre carillas con IA, disponible 24 horas.</p>
+          <p style="font-size:13px;color:var(--gris);line-height:1.6">Comparte este chat con tus pacientes para resolver dudas sobre carillas las 24 horas.</p>
         </div>
         <div class="chat-wrap">
           <div class="chat-head">
@@ -405,14 +326,14 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
             <div><h3>CAMILA &mdash; Asistente Dental</h3><p>Especialista en carillas &middot; En l&iacute;nea</p></div>
           </div>
           <div class="chat-msgs" id="chat-msgs">
-            <div class="msg msg-ia">Hola, soy CAMILA, tu asistente de est&eacute;tica dental. Estoy aqu&iacute; para resolver todas tus dudas sobre <strong>carillas dentales</strong>. &iquest;En qu&eacute; te puedo ayudar?</div>
+            <div class="msg msg-ia">Hola, soy CAMILA, tu asistente de est&eacute;tica dental. Estoy aqu&iacute; para resolver tus dudas sobre carillas dentales. &iquest;En qu&eacute; te puedo ayudar?</div>
           </div>
           <div class="chat-rapidas">
-            <div class="chip-r" onclick="pregRapida('&iquest;Cu&aacute;nto duran las carillas de porcelana?')">&iquest;Cu&aacute;nto duran?</div>
-            <div class="chip-r" onclick="pregRapida('&iquest;Duele el procedimiento de carillas?')">&iquest;Duele?</div>
-            <div class="chip-r" onclick="pregRapida('&iquest;Puedo tomar caf&eacute; con carillas?')">&iquest;Caf&eacute;?</div>
-            <div class="chip-r" onclick="pregRapida('&iquest;Cu&aacute;ntas citas necesito para las carillas?')">&iquest;Citas?</div>
-            <div class="chip-r" onclick="pregRapida('&iquest;C&oacute;mo cuido mis carillas?')">Cuidados</div>
+            <div class="chip-r" onclick="pregRapida('Cuanto duran las carillas de porcelana?')">Duraci&oacute;n</div>
+            <div class="chip-r" onclick="pregRapida('Duele el procedimiento de carillas?')">Duele?</div>
+            <div class="chip-r" onclick="pregRapida('Puedo tomar cafe con carillas?')">Caf&eacute;?</div>
+            <div class="chip-r" onclick="pregRapida('Cuantas citas necesito para carillas?')">Citas</div>
+            <div class="chip-r" onclick="pregRapida('Como cuido mis carillas?')">Cuidados</div>
           </div>
           <div class="chat-inp-row">
             <input class="chat-inp" id="chat-inp" type="text" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')enviarChat()">
@@ -421,13 +342,12 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
         </div>
       </div>
 
-      <!-- PRECIOS -->
       <div class="pantalla" id="p-precios">
         <div class="card">
           <div class="card-title">&#128176; Mis precios por procedimiento</div>
           <p style="font-size:12px;color:var(--gris-2);margin-bottom:16px">Configura el precio de cada servicio. La IA usar&aacute; estos valores para generar cotizaciones autom&aacute;ticas.</p>
           <div id="precios-lista"></div>
-          <button class="btn-gold" style="margin-top:16px" onclick="guardarPrecios()">&#128190; Guardar precios</button>
+          <button class="btn-gold" style="margin-top:16px" onclick="guardarPrecios()">Guardar precios</button>
         </div>
         <div class="card">
           <div class="card-title">&#9881; Informaci&oacute;n del consultorio</div>
@@ -436,92 +356,79 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
             <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Cl&iacute;nica Est&eacute;tica Dental"></div>
             <div class="fg full"><label>Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
           </div>
-          <button class="btn-gold" style="margin-top:12px" onclick="guardarConfig()">&#128190; Guardar informaci&oacute;n</button>
+          <button class="btn-gold" style="margin-top:12px" onclick="guardarConfig()">Guardar informaci&oacute;n</button>
         </div>
       </div>
 
     </div>
   </div>
 </div>
-
 <script>
-var API_KEY = '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';
-
+var API_KEY =  + NEW_KEY + ;
 var PRECIOS_DEFAULT = [
-  {id:'carilla_porcelana', nombre:'Carilla de porcelana feldesp&aacute;tica', unidad:'por pieza', precio:8000},
-  {id:'carilla_emax', nombre:'Carilla de disilicato de litio (e.max)', unidad:'por pieza', precio:10000},
-  {id:'carilla_composite', nombre:'Carilla de composite de resina', unidad:'por pieza', precio:4500},
-  {id:'blanqueamiento', nombre:'Blanqueamiento dental previo', unidad:'tratamiento completo', precio:3500},
-  {id:'gingivectomia', nombre:'Gingivectom&iacute;a est&eacute;tica', unidad:'por pieza', precio:1200},
-  {id:'encerado', nombre:'Encerado diagn&oacute;stico / mock-up', unidad:'caso completo', precio:2000},
-  {id:'consulta', nombre:'Consulta de diagn&oacute;stico est&eacute;tico', unidad:'por consulta', precio:800},
+  {id:'carilla_porcelana',nombre:'Carilla de porcelana feldespat&#237;ca',unidad:'por pieza',precio:8000},
+  {id:'carilla_emax',nombre:'Carilla de disilicato de litio (e.max)',unidad:'por pieza',precio:10000},
+  {id:'carilla_composite',nombre:'Carilla de composite de resina',unidad:'por pieza',precio:4500},
+  {id:'blanqueamiento',nombre:'Blanqueamiento dental previo',unidad:'tratamiento completo',precio:3500},
+  {id:'gingivectomia',nombre:'Gingivectomia estetica',unidad:'por pieza',precio:1200},
+  {id:'encerado',nombre:'Encerado diagnostico / mock-up',unidad:'caso completo',precio:2000},
+  {id:'consulta',nombre:'Consulta de diagnostico estetico',unidad:'por consulta',precio:800},
 ];
-
-var imagenes = [null,null,null,null];
-var chatHistorial = [];
-var cargandoChat = false;
-var usuario = null;
-var usuarioEmail = null;
-
-function getSession(){ try{ return JSON.parse(localStorage.getItem('camila_session')||'null'); }catch(e){ return null; } }
-function getUsuarios(){ try{ return JSON.parse(localStorage.getItem('camila_usuarios')||'{}'); }catch(e){ return {}; } }
-function saveUsuarios(u){ localStorage.setItem('camila_usuarios', JSON.stringify(u)); }
-function cerrarSesion(){ localStorage.removeItem('camila_session'); window.location.href='index.html'; }
-
+var imagenes=[null,null,null,null];
+var chatHistorial=[];
+var cargandoChat=false;
+var usuario=null;
+var usuarioEmail=null;
+function getSession(){try{return JSON.parse(localStorage.getItem('camila_session')||'null')}catch(e){return null}}
+function getUsuarios(){try{return JSON.parse(localStorage.getItem('camila_usuarios')||'{}')}catch(e){return{}}}
+function saveUsuarios(u){localStorage.setItem('camila_usuarios',JSON.stringify(u))}
+function cerrarSesion(){localStorage.removeItem('camila_session');window.location.href='index.html'}
 (function(){
-  var s = getSession();
-  if(!s || s.isAdmin){ window.location.href='index.html'; return; }
-  var us = getUsuarios();
-  usuarioEmail = s.email;
-  usuario = us[s.email];
-  if(!usuario){ cerrarSesion(); return; }
-  if(new Date(usuario.vence)<new Date()){ alert('Tu suscripci&oacute;n venci&oacute;. Contacta al administrador.'); cerrarSesion(); return; }
-  document.getElementById('sb-nombre').textContent = usuario.nombre;
-  document.getElementById('sb-plan').textContent = usuario.plan;
-  document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-  actualizarUso();
-  cargarDashboard();
-  renderPrecios();
-  cargarConfig();
+  var s=getSession();
+  if(!s||s.isAdmin){window.location.href='index.html';return}
+  var us=getUsuarios();
+  usuarioEmail=s.email;usuario=us[s.email];
+  if(!usuario){cerrarSesion();return}
+  if(new Date(usuario.vence)<new Date()){alert('Tu suscripcion vencio. Contacta al administrador.');cerrarSesion();return}
+  document.getElementById('sb-nombre').textContent=usuario.nombre;
+  document.getElementById('sb-plan').textContent=usuario.plan;
+  document.getElementById('topbar-fecha').textContent=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  actualizarUso();cargarDashboard();renderPrecios();cargarConfig();
 })();
-
 function actualizarUso(){
-  var u=usuario.usados||0; var l=usuario.limite||40;
+  var u=usuario.usados||0;var l=usuario.limite||40;
   var pct=Math.min(100,Math.round(u/l*100));
   document.getElementById('uso-fill').style.width=pct+'%';
-  document.getElementById('uso-txt').textContent=u+' / '+l+' diagn&oacute;sticos';
+  document.getElementById('uso-txt').textContent=u+' / '+l+' diagnosticos';
   document.getElementById('st-disp').textContent=Math.max(0,l-u);
   document.getElementById('st-usados').textContent=u;
 }
-
 function cargarDashboard(){
   var cots=usuario.cotizaciones||[];
   document.getElementById('st-casos').textContent=cots.length;
   var vence=new Date(usuario.vence);
   document.getElementById('info-suscripcion').innerHTML=
-    '<strong style="color:var(--blanco)">Plan:</strong> <span style="color:var(--dorado);text-transform:capitalize">'+usuario.plan+'</span> &middot; $'+usuario.precio+' MXN/mes<br>'+
-    '<strong style="color:var(--blanco)">Renovaci&oacute;n:</strong> '+vence.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+'<br>'+
-    '<strong style="color:var(--blanco)">Diagn&oacute;sticos:</strong> '+(usuario.usados||0)+' de '+(usuario.limite||40)+' usados este mes';
+    '<strong style="color:var(--blanco)">Plan:</strong> <span style="color:var(--dorado);text-transform:capitalize">'+usuario.plan+'</span> - $'+usuario.precio+' MXN/mes<br>'+
+    '<strong style="color:var(--blanco)">Renovacion:</strong> '+vence.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+'<br>'+
+    '<strong style="color:var(--blanco)">Diagnosticos:</strong> '+(usuario.usados||0)+' de '+(usuario.limite||40)+' usados este mes';
 }
-
-var titulos={dashboard:'Dashboard',diagnostico:'Nuevo Diagn&oacute;stico &middot; 360&deg;',historial:'Historial de Casos',chat:'Chat para Pacientes',precios:'Mis Precios'};
+var titulos={dashboard:'Dashboard',diagnostico:'Nuevo Diagnostico 360',historial:'Historial de Casos',chat:'Chat para Pacientes',precios:'Mis Precios'};
 function ir(p){
-  document.querySelectorAll('.pantalla').forEach(function(el){ el.classList.remove('activa'); });
-  document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('activo'); });
+  document.querySelectorAll('.pantalla').forEach(function(el){el.classList.remove('activa')});
+  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('activo')});
   document.getElementById('p-'+p).classList.add('activa');
-  document.querySelectorAll('.nav-item').forEach(function(el){ if(el.getAttribute('onclick').includes("'"+p+"'")) el.classList.add('activo'); });
+  document.querySelectorAll('.nav-item').forEach(function(el){if(el.getAttribute('onclick').includes("'"+p+"'"))el.classList.add('activo')});
   document.getElementById('topbar-title').textContent=titulos[p]||p;
-  if(p==='historial') cargarHistorial();
-  if(p==='dashboard') cargarDashboard();
+  if(p==='historial')cargarHistorial();
+  if(p==='dashboard')cargarDashboard();
 }
-
 function cargarImg(input,idx){
-  if(!input.files[0]) return;
+  if(!input.files[0])return;
   var r=new FileReader();
   r.onload=function(e){
     imagenes[idx]=e.target.result.split(',')[1];
     var prev=document.getElementById('prev-'+idx);
-    prev.src=e.target.result; prev.style.display='block';
+    prev.src=e.target.result;prev.style.display='block';
     document.getElementById('slot-'+idx).classList.add('tiene-img');
     document.querySelector('#slot-'+idx+' .slot-icon').style.display='none';
     document.querySelector('#slot-'+idx+' h4').style.display='none';
@@ -529,66 +436,40 @@ function cargarImg(input,idx){
   };
   r.readAsDataURL(input.files[0]);
 }
-function dragSobre(e,idx){ e.preventDefault(); document.getElementById('slot-'+idx).classList.add('drag'); }
-function dragFuera(idx){ document.getElementById('slot-'+idx).classList.remove('drag'); }
-function dropImg(e,idx){ e.preventDefault(); dragFuera(idx); var f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('image/')) cargarImg({files:[f]},idx); }
-
+function dragSobre(e,idx){e.preventDefault();document.getElementById('slot-'+idx).classList.add('drag')}
+function dragFuera(idx){document.getElementById('slot-'+idx).classList.remove('drag')}
+function dropImg(e,idx){e.preventDefault();dragFuera(idx);var f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))cargarImg({files:[f]},idx)}
 function getPrecios(){
   var guardados=usuario.precios||{};
-  return PRECIOS_DEFAULT.map(function(p){ return Object.assign({},p,{precio:guardados[p.id]||p.precio}); });
+  return PRECIOS_DEFAULT.map(function(p){return Object.assign({},p,{precio:guardados[p.id]||p.precio})});
 }
-
 async function analizarCaso(){
-  if((usuario.usados||0)>=(usuario.limite||40)){ document.getElementById('alerta-limite').classList.add('visible'); return; }
+  if((usuario.usados||0)>=(usuario.limite||40)){document.getElementById('alerta-limite').classList.add('visible');return}
   var nombre=document.getElementById('f-nombre').value.trim();
   var edad=document.getElementById('f-edad').value;
   var motivo=document.getElementById('f-motivo').value;
   var material=document.getElementById('f-material').value;
   var obs=document.getElementById('f-obs').value.trim();
-  if(!nombre) return alert('Ingresa el nombre del paciente');
-  if(!motivo) return alert('Selecciona el motivo de consulta');
-
-  var tieneImg=imagenes.some(function(i){ return i!==null; });
-  if(!tieneImg) return alert('Sube al menos una fotograf&iacute;a para el an&aacute;lisis');
-
+  if(!nombre)return alert('Ingresa el nombre del paciente');
+  if(!motivo)return alert('Selecciona el motivo de consulta');
+  var tieneImg=imagenes.some(function(i){return i!==null});
+  if(!tieneImg)return alert('Sube al menos una fotografia para el analisis');
   var precios=getPrecios();
-  var preciosTexto=precios.map(function(p){ return p.nombre+': $'+p.precio.toLocaleString()+' MXN ('+p.unidad+')'; }).join('\n');
+  var preciosTexto=precios.map(function(p){return p.nombre+': $'+p.precio.toLocaleString()+' MXN ('+p.unidad+')'}).join('\n');
   var config=usuario.config||{};
-
   var prompt=[
-    'Eres un especialista en odontolog&iacute;a est&eacute;tica con expertise en carillas dentales.',
-    'Analiza el siguiente caso cl&iacute;nico con las fotograf&iacute;as adjuntas.',
-    '',
-    'DATOS DEL PACIENTE:',
-    'Nombre: '+nombre+(edad?', '+edad+' a&ntilde;os':''),
-    'Motivo: '+motivo,
-    'Material preferido: '+material,
-    'Observaciones: '+(obs||'Ninguna'),
-    '',
-    'TABLA DE PRECIOS DEL CONSULTORIO:',
-    preciosTexto,
-    '',
-    'Genera el an&aacute;lisis completo en formato JSON puro (sin markdown):',
-    '{',
-    '  "score": <1-10 potencial est&eacute;tico>,',
-    '  "hallazgos": ["hallazgo1","hallazgo2","hallazgo3"],',
-    '  "dientes": ["pieza - descripci&oacute;n"],',
-    '  "consideraciones": ["consideraci&oacute;n1","consideraci&oacute;n2"],',
-    '  "plan": ["paso1","paso2","paso3"],',
-    '  "cotizacion": [',
-    '    {"procedimiento":"nombre","piezas":<n&uacute;mero>,"precio_unit":<precio de tu tabla>,"subtotal":<total>},',
-    '    ...',
-    '  ],',
-    '  "texto_paciente": "<3-4 oraciones amigables para explicarle al paciente su situaci&oacute;n y el valor del tratamiento>"',
-    '}'
+    'Eres un especialista en odontologia estetica con expertise en carillas dentales.',
+    'Analiza el caso clinico con las fotografias adjuntas.',
+    'Paciente: '+nombre+(edad?', '+edad+' anios':''),
+    'Motivo: '+motivo,'Material: '+material,'Observaciones: '+(obs||'Ninguna'),
+    'PRECIOS DEL CONSULTORIO:',preciosTexto,
+    'Responde SOLO con JSON puro sin markdown:',
+    '{"score":<1-10>,"hallazgos":["..."],"dientes":["pieza - descripcion"],"consideraciones":["..."],"plan":["..."],"cotizacion":[{"procedimiento":"nombre","piezas":<num>,"precio_unit":<precio>,"subtotal":<total>}],"texto_paciente":"<3-4 oraciones para el paciente>"}'
   ].join('\n');
-
-  var contentArr=imagenes.filter(function(i){ return i!==null; }).map(function(b64){ return {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}}; });
+  var contentArr=imagenes.filter(function(i){return i!==null}).map(function(b64){return{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}}});
   contentArr.push({type:'text',text:prompt});
-
   document.getElementById('form-area').style.display='none';
   document.getElementById('loading-area').classList.add('visible');
-
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -596,56 +477,44 @@ async function analizarCaso(){
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:contentArr}]})
     });
     var data=await resp.json();
-    var texto=data.content.map(function(i){ return i.text||''; }).join('');
+    var texto=data.content.map(function(i){return i.text||''}).join('');
     var limpio=texto.replace(/```json|```/g,'').trim();
     var r=JSON.parse(limpio);
     mostrarReporte(r,nombre,config);
     registrarUso(nombre,motivo,r);
   }catch(e){
     console.error(e);
-    alert('Error al conectar con la IA. Verifica la API Key.');
+    alert('Error al conectar con la IA. Verifica tu conexion.');
     document.getElementById('form-area').style.display='block';
     document.getElementById('loading-area').classList.remove('visible');
   }
 }
-
 function mostrarReporte(r,nombre,config){
   document.getElementById('loading-area').classList.remove('visible');
-  document.getElementById('r-nombre').textContent='Diagn&oacute;stico 360&deg; &middot; '+nombre;
-  document.getElementById('r-fecha').textContent=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+(config.consultorio?' &middot; '+config.consultorio:'');
-  document.getElementById('r-score').textContent=(r.score||'&mdash;')+'/10';
+  document.getElementById('r-nombre').textContent='Diagnostico 360 - '+nombre;
+  document.getElementById('r-fecha').textContent=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+(config.consultorio?' - '+config.consultorio:'');
+  document.getElementById('r-score').textContent=(r.score||'-')+'/10';
   document.getElementById('cot-paciente').textContent=nombre;
-  document.getElementById('cot-fecha').textContent='Cotizaci&oacute;n &middot; '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
-
-  function items(arr,dotClass){ return (arr||[]).map(function(h){ return '<div class="rep-item"><span class="rep-dot '+dotClass+'"></span><span>'+h+'</span></div>'; }).join(''); }
+  document.getElementById('cot-fecha').textContent='Cotizacion - '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  function items(arr,dc){return(arr||[]).map(function(h){return'<div class="rep-item"><span class="rep-dot '+dc+'"></span><span>'+h+'</span></div>'}).join('')}
   document.getElementById('r-hallazgos').innerHTML=items(r.hallazgos,'dot-warn');
-  document.getElementById('r-dientes').innerHTML=(r.dientes||[]).map(function(d){ return '<span class="tag tag-gold">&#129463; '+d+'</span>'; }).join('');
+  document.getElementById('r-dientes').innerHTML=(r.dientes||[]).map(function(d){return'<span class="tag tag-gold">'+d+'</span>'}).join('');
   document.getElementById('r-consideraciones').innerHTML=items(r.consideraciones,'dot-gold');
   document.getElementById('r-plan').innerHTML=items(r.plan,'dot-ok');
-
-  var cots=r.cotizacion||[];
-  var total=0;
-  document.getElementById('cot-tabla-body').innerHTML=cots.map(function(c){
-    total+=c.subtotal||0;
-    return '<tr><td>'+c.procedimiento+'</td><td style="color:var(--gris-2)">'+c.piezas+'</td><td class="td-num">$'+((c.precio_unit||0).toLocaleString())+'</td><td class="td-num">$'+((c.subtotal||0).toLocaleString())+'</td></tr>';
-  }).join('');
+  var cots=r.cotizacion||[];var total=0;
+  document.getElementById('cot-tabla-body').innerHTML=cots.map(function(c){total+=c.subtotal||0;return'<tr><td>'+c.procedimiento+'</td><td style="color:var(--gris-2)">'+c.piezas+'</td><td class="td-num">$'+((c.precio_unit||0).toLocaleString())+'</td><td class="td-num">$'+((c.subtotal||0).toLocaleString())+'</td></tr>'}).join('');
   document.getElementById('cot-total').textContent='$'+total.toLocaleString()+' MXN';
   document.getElementById('r-texto-px').textContent=r.texto_paciente||'';
   document.getElementById('reporte-area').classList.add('visible');
 }
-
 function registrarUso(nombre,motivo,r){
-  var us=getUsuarios();
-  var u=us[usuarioEmail];
+  var us=getUsuarios();var u=us[usuarioEmail];
   u.usados=(u.usados||0)+1;
   var cots=u.cotizaciones||[];
-  var total=(r.cotizacion||[]).reduce(function(a,c){ return a+(c.subtotal||0); },0);
+  var total=(r.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0)},0);
   cots.push({nombre:nombre,motivo:motivo,fecha:new Date().toLocaleDateString('es-MX'),score:r.score,total:total});
-  u.cotizaciones=cots;
-  us[usuarioEmail]=u; saveUsuarios(us);
-  usuario=u; actualizarUso();
+  u.cotizaciones=cots;us[usuarioEmail]=u;saveUsuarios(us);usuario=u;actualizarUso();
 }
-
 function nuevoCaso(){
   document.getElementById('reporte-area').classList.remove('visible');
   document.getElementById('form-area').style.display='block';
@@ -653,91 +522,69 @@ function nuevoCaso(){
   [0,1,2,3].forEach(function(i){
     var slot=document.getElementById('slot-'+i);
     slot.classList.remove('tiene-img');
-    var prev=document.getElementById('prev-'+i);
-    prev.style.display='none'; prev.src='';
+    document.getElementById('prev-'+i).style.display='none';
     slot.querySelector('.slot-icon').style.display='block';
     slot.querySelector('h4').style.display='block';
     slot.querySelector('p').style.display='block';
   });
-  document.getElementById('f-nombre').value='';
-  document.getElementById('f-edad').value='';
+  ['f-nombre','f-edad','f-obs'].forEach(function(id){document.getElementById(id).value=''});
   document.getElementById('f-motivo').value='';
-  document.getElementById('f-obs').value='';
 }
-
-function copiarTexto(){ navigator.clipboard.writeText(document.getElementById('r-texto-px').textContent).then(function(){ alert('Texto copiado'); }); }
-
+function copiarTexto(){navigator.clipboard.writeText(document.getElementById('r-texto-px').textContent).then(function(){alert('Texto copiado')})}
 function cargarHistorial(){
   var cots=usuario.cotizaciones||[];
   var el=document.getElementById('historial-lista');
-  if(!cots.length){ el.innerHTML='<div class="empty"><div class="empty-icon">&#128450;</div><p>A&uacute;n no tienes casos analizados</p></div>'; return; }
-  el.innerHTML=cots.slice().reverse().map(function(c){
-    return '<div class="hist-item"><div class="hist-info"><h4>'+c.nombre+'</h4><p>'+c.fecha+' &middot; '+c.motivo+' &middot; Score: '+c.score+'/10</p></div><div class="hist-total">$'+c.total.toLocaleString()+' MXN</div></div>';
-  }).join('');
+  if(!cots.length){el.innerHTML='<div class="empty"><p>Sin casos analizados aun</p></div>';return}
+  el.innerHTML=cots.slice().reverse().map(function(c){return'<div class="hist-item"><div class="hist-info"><h4>'+c.nombre+'</h4><p>'+c.fecha+' - '+c.motivo+' - Score: '+c.score+'/10</p></div><div class="hist-total">$'+c.total.toLocaleString()+' MXN</div></div>'}).join('');
 }
-
 function renderPrecios(){
   var precios=getPrecios();
-  document.getElementById('precios-lista').innerHTML=precios.map(function(p){
-    return '<div class="precio-item">'+
-      '<div><div class="precio-lbl">'+p.nombre+'</div><div class="precio-desc">'+p.unidad+'</div></div>'+
-      '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:var(--gris-2)">$</span><input class="precio-input" type="number" id="precio-'+p.id+'" value="'+p.precio+'"> <span style="font-size:11px;color:var(--gris-2)">MXN</span></div>'+
-      '</div>';
-  }).join('');
+  document.getElementById('precios-lista').innerHTML=precios.map(function(p){return'<div class="precio-item"><div><div class="precio-lbl">'+p.nombre+'</div><div class="precio-desc">'+p.unidad+'</div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:var(--gris-2)">$</span><input class="precio-input" type="number" id="precio-'+p.id+'" value="'+p.precio+'"> <span style="font-size:11px;color:var(--gris-2)">MXN</span></div></div>'}).join('');
 }
-
 function guardarPrecios(){
-  var us=getUsuarios();
-  var u=us[usuarioEmail];
+  var us=getUsuarios();var u=us[usuarioEmail];
   u.precios=u.precios||{};
-  PRECIOS_DEFAULT.forEach(function(p){
-    var inp=document.getElementById('precio-'+p.id);
-    if(inp) u.precios[p.id]=parseInt(inp.value)||p.precio;
-  });
-  us[usuarioEmail]=u; saveUsuarios(us); usuario=u;
-  alert('Precios guardados. Se usar&aacute;n en tus pr&oacute;ximas cotizaciones.');
+  PRECIOS_DEFAULT.forEach(function(p){var inp=document.getElementById('precio-'+p.id);if(inp)u.precios[p.id]=parseInt(inp.value)||p.precio});
+  us[usuarioEmail]=u;saveUsuarios(us);usuario=u;
+  alert('Precios guardados correctamente.');
 }
-
 function cargarConfig(){
   var config=usuario.config||{};
-  if(config.doctor) document.getElementById('conf-doctor').value=config.doctor;
-  if(config.consultorio) document.getElementById('conf-consultorio').value=config.consultorio;
-  if(config.ciudad) document.getElementById('conf-ciudad').value=config.ciudad;
+  if(config.doctor)document.getElementById('conf-doctor').value=config.doctor;
+  if(config.consultorio)document.getElementById('conf-consultorio').value=config.consultorio;
+  if(config.ciudad)document.getElementById('conf-ciudad').value=config.ciudad;
 }
-
 function guardarConfig(){
-  var us=getUsuarios(); var u=us[usuarioEmail];
-  u.config={ doctor:document.getElementById('conf-doctor').value.trim(), consultorio:document.getElementById('conf-consultorio').value.trim(), ciudad:document.getElementById('conf-ciudad').value.trim() };
-  us[usuarioEmail]=u; saveUsuarios(us); usuario=u;
-  alert('Informaci&oacute;n guardada.');
+  var us=getUsuarios();var u=us[usuarioEmail];
+  u.config={doctor:document.getElementById('conf-doctor').value.trim(),consultorio:document.getElementById('conf-consultorio').value.trim(),ciudad:document.getElementById('conf-ciudad').value.trim()};
+  us[usuarioEmail]=u;saveUsuarios(us);usuario=u;alert('Informacion guardada.');
 }
-
 async function enviarChat(){
-  if(cargandoChat) return;
+  if(cargandoChat)return;
   var inp=document.getElementById('chat-inp');
-  var msg=inp.value.trim(); if(!msg) return;
+  var msg=inp.value.trim();if(!msg)return;
   inp.value='';
-  agregarMsg(msg,'user'); chatHistorial.push({role:'user',content:msg}); cargandoChat=true;
-  var t=document.createElement('div'); t.className='msg msg-ia'; t.id='typing'; t.textContent='...';
-  document.getElementById('chat-msgs').appendChild(t); scrollChat();
+  agregarMsg(msg,'user');chatHistorial.push({role:'user',content:msg});cargandoChat=true;
+  var t=document.createElement('div');t.className='msg msg-ia';t.id='typing';t.textContent='...';
+  document.getElementById('chat-msgs').appendChild(t);scrollChat();
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Eres CAMILA, asistente virtual especializada en carillas y est&eacute;tica dental. Responde en espa&ntilde;ol, de forma amigable, c&aacute;lida y profesional. Solo responde sobre carillas, cuidados dentales y est&eacute;tica bucal. Nunca des diagn&oacute;sticos definitivos &mdash; invita al paciente a consultar con el dentista. M&aacute;ximo 3-4 oraciones por respuesta.',messages:chatHistorial})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Eres CAMILA, asistente virtual especializada en carillas y estetica dental. Responde en espanol, de forma amigable y profesional. Solo responde sobre carillas, cuidados dentales y estetica bucal. Nunca des diagnosticos definitivos. Maximo 3-4 oraciones.',messages:chatHistorial})
     });
     var data=await resp.json();
-    var respuesta=data.content.map(function(i){ return i.text||''; }).join('');
+    var respuesta=data.content.map(function(i){return i.text||''}).join('');
     document.getElementById('typing').remove();
     chatHistorial.push({role:'assistant',content:respuesta});
     agregarMsg(respuesta,'ia');
-  }catch(e){ document.getElementById('typing').remove(); agregarMsg('Hubo un error. Intenta de nuevo.','ia'); }
+  }catch(e){document.getElementById('typing').remove();agregarMsg('Error de conexion. Intenta de nuevo.','ia')}
   cargandoChat=false;
 }
-function pregRapida(t){ document.getElementById('chat-inp').value=t; enviarChat(); }
-function agregarMsg(t,tipo){ var d=document.createElement('div'); d.className='msg msg-'+tipo; d.textContent=t; document.getElementById('chat-msgs').appendChild(d); scrollChat(); }
-function scrollChat(){ var c=document.getElementById('chat-msgs'); c.scrollTop=c.scrollHeight; }
+function pregRapida(t){document.getElementById('chat-inp').value=t;enviarChat()}
+function agregarMsg(t,tipo){var d=document.createElement('div');d.className='msg msg-'+tipo;d.textContent=t;document.getElementById('chat-msgs').appendChild(d);scrollChat()}
+function scrollChat(){var c=document.getElementById('chat-msgs');c.scrollTop=c.scrollHeight}
 </script>
-<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none"></body>copy; 2025 Dr. Hern</body>aacute;n Partida Islas </body>middot; Propiedad Intelectual</div>
+<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&copy; 2025 Dr. Hern&aacute;n Partida Islas &middot; Propiedad Intelectual</div>
 </body>
 </html>

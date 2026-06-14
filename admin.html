@@ -25,12 +25,11 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .nav-item:hover{background:var(--negro-4);color:var(--blanco)}
 .nav-item.activo{background:var(--dorado-suave);color:var(--dorado);border:0.5px solid var(--dorado-borde)}
 .sb-foot{padding:14px 20px;border-top:0.5px solid var(--borde)}
-.btn-cerrar{width:100%;padding:9px;background:none;color:var(--gris-2);border:0.5px solid var(--borde);border-radius:7px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.btn-cerrar{width:100%;padding:9px;background:none;color:var(--gris-2);border:0.5px solid var(--borde);border-radius:7px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif}
 .btn-cerrar:hover{color:var(--blanco)}
 .main{flex:1;overflow-y:auto}
 .topbar{background:var(--negro-2);border-bottom:0.5px solid var(--borde);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
 .topbar-title{font-size:15px;font-weight:600;color:var(--blanco)}
-.topbar-sub{font-size:12px;color:var(--gris-2)}
 .contenido{padding:24px 28px;max-width:960px}
 .pantalla{display:none}.pantalla.activa{display:block}
 .card{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:14px;padding:22px;margin-bottom:16px}
@@ -97,7 +96,7 @@ tr:hover td{background:var(--negro-4)}
     </div>
     <div class="nav-items">
       <div class="nav-item activo" onclick="ir('dashboard')">&#128202; Dashboard</div>
-      <div class="nav-item" onclick="ir('dentistas')">&#128104;&#9877; Dentistas</div>
+      <div class="nav-item" onclick="ir('dentistas')">Dentistas</div>
       <div class="nav-item" onclick="ir('agregar')">&#10133; Agregar dentista</div>
       <div class="nav-item" onclick="ir('config')">&#9881; Configuraci&oacute;n</div>
     </div>
@@ -105,15 +104,13 @@ tr:hover td{background:var(--negro-4)}
       <button class="btn-cerrar" onclick="cerrarSesion()">&#8617; Cerrar sesi&oacute;n</button>
     </div>
   </div>
-
   <div class="main">
     <div class="topbar">
       <div class="topbar-title" id="topbar-title">Dashboard Admin</div>
-      <div class="topbar-sub" id="topbar-fecha"></div>
+      <div style="font-size:12px;color:var(--gris-2)" id="topbar-fecha"></div>
     </div>
     <div class="contenido">
 
-      <!-- DASHBOARD -->
       <div class="pantalla activa" id="p-dashboard">
         <div class="stats-grid">
           <div class="stat verde"><div class="stat-num" id="st-activos">0</div><div class="stat-lbl">Dentistas activos</div></div>
@@ -127,10 +124,9 @@ tr:hover td{background:var(--negro-4)}
         </div>
       </div>
 
-      <!-- DENTISTAS -->
       <div class="pantalla" id="p-dentistas">
         <div class="card">
-          <div class="card-title">&#128104;&#9877; Dentistas registrados</div>
+          <div class="card-title">Dentistas registrados</div>
           <div style="overflow-x:auto">
             <table>
               <thead><tr><th>Nombre</th><th>Correo</th><th>Plan</th><th>Uso</th><th>Estado</th><th>Vence</th><th>Acciones</th></tr></thead>
@@ -140,11 +136,10 @@ tr:hover td{background:var(--negro-4)}
         </div>
       </div>
 
-      <!-- AGREGAR -->
       <div class="pantalla" id="p-agregar">
         <div class="card">
           <div class="card-title">&#10133; Agregar dentista</div>
-          <div class="msg-ok" id="ag-ok">&#10003;#10003; Dentista agregado exitosamente</div>
+          <div class="msg-ok" id="ag-ok">&#10003; Dentista agregado exitosamente</div>
           <div class="msg-err" id="ag-err"></div>
           <div class="form-grid">
             <div class="fg"><label>Nombre completo</label><input type="text" id="ag-nombre" placeholder="Dr. / Dra. ..."></div>
@@ -170,7 +165,6 @@ tr:hover td{background:var(--negro-4)}
         </div>
       </div>
 
-      <!-- CONFIG -->
       <div class="pantalla" id="p-config">
         <div class="card">
           <div class="card-title">&#9881; Configuraci&oacute;n</div>
@@ -180,9 +174,9 @@ tr:hover td{background:var(--negro-4)}
           <div class="config-item"><div class="config-lbl"><h4>Plan Premium</h4><p>100 diagn&oacute;sticos al mes</p></div><div class="config-val">$1,499 MXN</div></div>
         </div>
         <div class="card">
-          <div class="card-title">&#128260; Reseteo mensual</div>
+          <div class="card-title">Reseteo mensual</div>
           <p style="font-size:13px;color:var(--gris);margin-bottom:14px;line-height:1.6">Resetea el contador de diagn&oacute;sticos de todos los dentistas activos al inicio de cada mes.</p>
-          <button class="btn-gold" onclick="resetearTodos()" style="background:var(--verde);color:#000">&#128260; Resetear todos los contadores</button>
+          <button class="btn-gold" onclick="resetearTodos()" style="background:var(--verde);color:#000">Resetear todos los contadores</button>
         </div>
       </div>
 
@@ -190,7 +184,6 @@ tr:hover td{background:var(--negro-4)}
   </div>
 </div>
 
-<!-- MODAL EDITAR -->
 <div class="overlay" id="overlay-edit" onclick="cerrarFuera(event)">
   <div class="modal">
     <button class="modal-close" onclick="cerrarEdit()">&#10005;</button>
@@ -201,66 +194,62 @@ tr:hover td{background:var(--negro-4)}
     </div>
     <div class="fg"><label>Cambiar plan</label>
       <select id="edit-plan">
-        <option value="esencial:15:399">Esencial &mdash; $399/mes &middot; 15</option>
-        <option value="profesional:40:799">Profesional &mdash; $799/mes &middot; 40</option>
-        <option value="premium:100:1499">Premium &mdash; $1,499/mes &middot; 100</option>
+        <option value="esencial:15:399">Esencial &mdash; $399/mes</option>
+        <option value="profesional:40:799">Profesional &mdash; $799/mes</option>
+        <option value="premium:100:1499">Premium &mdash; $1,499/mes</option>
       </select>
     </div>
     <div class="fg"><label>Nueva contrase&ntilde;a (opcional)</label><input type="text" id="edit-pass" placeholder="Dejar vac&iacute;o para no cambiar"></div>
-    <button class="btn-gold" style="width:100%" onclick="guardarEdit()">&#128190; Guardar</button>
+    <button class="btn-gold" style="width:100%" onclick="guardarEdit()">Guardar</button>
   </div>
 </div>
 
 <script>
 var editandoEmail=null;
-function getSession(){ try{ return JSON.parse(localStorage.getItem('camila_session')||'null'); }catch(e){ return null; } }
-function getUsuarios(){ try{ return JSON.parse(localStorage.getItem('camila_usuarios')||'{}'); }catch(e){ return {}; } }
-function saveUsuarios(u){ localStorage.setItem('camila_usuarios', JSON.stringify(u)); }
-function cerrarSesion(){ localStorage.removeItem('camila_session'); window.location.href='index.html'; }
-
+function getSession(){try{return JSON.parse(localStorage.getItem('camila_session')||'null')}catch(e){return null}}
+function getUsuarios(){try{return JSON.parse(localStorage.getItem('camila_usuarios')||'{}')}catch(e){return{}}}
+function saveUsuarios(u){localStorage.setItem('camila_usuarios',JSON.stringify(u))}
+function cerrarSesion(){localStorage.removeItem('camila_session');window.location.href='index.html'}
 (function(){
   var s=getSession();
-  if(!s||!s.isAdmin){ window.location.href='index.html'; return; }
+  if(!s||!s.isAdmin){window.location.href='index.html';return}
   document.getElementById('topbar-fecha').textContent=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  cargarDashboard(); cargarTabla();
+  cargarDashboard();cargarTabla();
 })();
-
-var titulos={dashboard:'Dashboard Admin',dentistas:'Dentistas',agregar:'Agregar Dentista',config:'Configuraci&oacute;n'};
+var titulos={dashboard:'Dashboard Admin',dentistas:'Dentistas',agregar:'Agregar Dentista',config:'Configuracion'};
 function ir(p){
-  document.querySelectorAll('.pantalla').forEach(function(el){ el.classList.remove('activa'); });
-  document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('activo'); });
+  document.querySelectorAll('.pantalla').forEach(function(el){el.classList.remove('activa')});
+  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('activo')});
   document.getElementById('p-'+p).classList.add('activa');
-  document.querySelectorAll('.nav-item').forEach(function(el){ if(el.getAttribute('onclick').includes("'"+p+"'")) el.classList.add('activo'); });
+  document.querySelectorAll('.nav-item').forEach(function(el){if(el.getAttribute('onclick').includes("'"+p+"'"))el.classList.add('activo')});
   document.getElementById('topbar-title').textContent=titulos[p]||p;
-  if(p==='dentistas') cargarTabla();
-  if(p==='dashboard') cargarDashboard();
+  if(p==='dentistas')cargarTabla();
+  if(p==='dashboard')cargarDashboard();
 }
-
 function cargarDashboard(){
-  var us=getUsuarios(); var lista=Object.values(us);
-  var activos=lista.filter(function(u){ return u.activo; });
-  var diags=lista.reduce(function(a,u){ return a+(u.usados||0); },0);
-  var ingresos=activos.reduce(function(a,u){ return a+(u.precio||0); },0);
+  var us=getUsuarios();var lista=Object.values(us);
+  var activos=lista.filter(function(u){return u.activo});
+  var diags=lista.reduce(function(a,u){return a+(u.usados||0)},0);
+  var ingresos=activos.reduce(function(a,u){return a+(u.precio||0)},0);
   document.getElementById('st-activos').textContent=activos.length;
   document.getElementById('st-total').textContent=lista.length;
   document.getElementById('st-diag').textContent=diags;
   document.getElementById('st-ingresos').textContent='$'+ingresos.toLocaleString();
   document.getElementById('resumen').innerHTML=!lista.length
-    ? '<span style="color:var(--gris-2)">Sin dentistas a&uacute;n. <a href="#" onclick="ir(\'agregar\')" style="color:var(--dorado)">Agregar el primero &rarr;</a></span>'
-    : '&bull; <strong style="color:var(--blanco)">'+activos.length+'</strong> dentistas activos de <strong style="color:var(--blanco)">'+lista.length+'</strong> registrados<br>&bull; <strong style="color:var(--blanco)">'+diags+'</strong> diagn&oacute;sticos generados este mes<br>&bull; Ingreso mensual estimado: <strong style="color:var(--dorado)">$'+ingresos.toLocaleString()+' MXN</strong>';
+    ?'<span style="color:var(--gris-2)">Sin dentistas aun. <a href="#" onclick="ir('agregar')" style="color:var(--dorado)">Agregar el primero</a></span>'
+    :'Dentistas activos: <strong style="color:var(--blanco)">'+activos.length+'</strong> de <strong style="color:var(--blanco)">'+lista.length+'</strong> registrados<br>Diagnosticos este mes: <strong style="color:var(--blanco)">'+diags+'</strong><br>Ingreso mensual estimado: <strong style="color:var(--dorado)">$'+ingresos.toLocaleString()+' MXN</strong>';
 }
-
 function cargarTabla(){
-  var us=getUsuarios(); var lista=Object.values(us);
+  var us=getUsuarios();var lista=Object.values(us);
   var tbody=document.getElementById('tabla-dentistas');
-  if(!lista.length){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--gris-2)">Sin dentistas registrados</td></tr>'; return; }
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--gris-2)">Sin dentistas registrados</td></tr>';return}
   tbody.innerHTML=lista.map(function(u){
-    var usado=u.usados||0; var limite=u.limite||40;
+    var usado=u.usados||0;var limite=u.limite||40;
     var pct=Math.min(100,Math.round(usado/limite*100));
     var fc=pct>=100?'lleno':pct>=75?'alto':'';
-    var vence=new Date(u.vence); var dias=Math.ceil((vence-new Date())/86400000);
+    var vence=new Date(u.vence);var dias=Math.ceil((vence-new Date())/86400000);
     var badge=!u.activo?'<span class="badge b-inactivo">Inactivo</span>':dias<=7?'<span class="badge b-vence">Vence en '+dias+'d</span>':'<span class="badge b-activo">Activo</span>';
-    return '<tr>'+
+    return'<tr>'+
       '<td style="color:var(--blanco);font-weight:500">'+u.nombre+'</td>'+
       '<td>'+u.email+'</td>'+
       '<td><span class="badge b-plan" style="text-transform:capitalize">'+u.plan+'</span></td>'+
@@ -268,68 +257,62 @@ function cargarTabla(){
       '<td>'+badge+'</td>'+
       '<td style="font-size:12px">'+vence.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'</td>'+
       '<td><div style="display:flex;gap:4px;flex-wrap:wrap">'+
-      '<button class="btn-a btn-edit" onclick="abrirEdit(\''+u.email+'\')">&#9999;</button>'+
-      (u.activo?'<button class="btn-a btn-des" onclick="toggle(\''+u.email+'\',false)">Pausar</button>':'<button class="btn-a btn-act" onclick="toggle(\''+u.email+'\',true)">Activar</button>')+
-      '<button class="btn-a btn-rst" onclick="resetearUno(\''+u.email+'\')">&#8634;</button>'+
-      '<button class="btn-a btn-del" onclick="eliminar(\''+u.email+'\')">&#128465;</button>'+
+      '<button class="btn-a btn-edit" onclick="abrirEdit(''+u.email+'')">Editar</button>'+
+      (u.activo?'<button class="btn-a btn-des" onclick="toggle(''+u.email+'',false)">Pausar</button>':'<button class="btn-a btn-act" onclick="toggle(''+u.email+'',true)">Activar</button>')+
+      '<button class="btn-a btn-rst" onclick="resetearUno(''+u.email+'')">Reset</button>'+
+      '<button class="btn-a btn-del" onclick="eliminar(''+u.email+'')">Del</button>'+
       '</div></td></tr>';
   }).join('');
 }
-
-function toggle(email,estado){ var us=getUsuarios(); if(us[email]){ us[email].activo=estado; saveUsuarios(us); cargarTabla(); cargarDashboard(); } }
-function resetearUno(email){ if(!confirm('&iquest;Resetear diagn&oacute;sticos de este dentista?')) return; var us=getUsuarios(); if(us[email]){ us[email].usados=0; saveUsuarios(us); cargarTabla(); } }
-function eliminar(email){ if(!confirm('&iquest;Eliminar permanentemente a '+email+'?')) return; var us=getUsuarios(); delete us[email]; saveUsuarios(us); cargarTabla(); cargarDashboard(); }
-
+function toggle(email,estado){var us=getUsuarios();if(us[email]){us[email].activo=estado;saveUsuarios(us);cargarTabla();cargarDashboard()}}
+function resetearUno(email){if(!confirm('Resetear diagnosticos de este dentista?'))return;var us=getUsuarios();if(us[email]){us[email].usados=0;saveUsuarios(us);cargarTabla()}}
+function eliminar(email){if(!confirm('Eliminar permanentemente a '+email+'?'))return;var us=getUsuarios();delete us[email];saveUsuarios(us);cargarTabla();cargarDashboard()}
 function abrirEdit(email){
-  editandoEmail=email; var us=getUsuarios(); var u=us[email];
-  document.getElementById('edit-sub').textContent=u.nombre+' &middot; '+email;
+  editandoEmail=email;var us=getUsuarios();var u=us[email];
+  document.getElementById('edit-sub').textContent=u.nombre+' - '+email;
   document.getElementById('edit-pass').value='';
   document.getElementById('edit-plan').value=u.plan+':'+(u.limite||40)+':'+(u.precio||799);
   document.getElementById('overlay-edit').classList.add('visible');
 }
-function cerrarEdit(){ document.getElementById('overlay-edit').classList.remove('visible'); }
-function cerrarFuera(e){ if(e.target===document.getElementById('overlay-edit')) cerrarEdit(); }
-
+function cerrarEdit(){document.getElementById('overlay-edit').classList.remove('visible')}
+function cerrarFuera(e){if(e.target===document.getElementById('overlay-edit'))cerrarEdit()}
 function guardarEdit(){
-  var us=getUsuarios(); var u=us[editandoEmail]; if(!u) return;
+  var us=getUsuarios();var u=us[editandoEmail];if(!u)return;
   var meses=parseInt(document.getElementById('edit-meses').value);
   var planVal=document.getElementById('edit-plan').value.split(':');
   var pass=document.getElementById('edit-pass').value.trim();
-  var vence=new Date(u.vence); vence.setMonth(vence.getMonth()+meses);
-  u.vence=vence.toISOString(); u.activo=true;
-  u.plan=planVal[0]; u.limite=parseInt(planVal[1]); u.precio=parseInt(planVal[2]);
-  if(pass) u.pass=pass;
-  us[editandoEmail]=u; saveUsuarios(us); cerrarEdit(); cargarTabla(); cargarDashboard();
+  var vence=new Date(u.vence);vence.setMonth(vence.getMonth()+meses);
+  u.vence=vence.toISOString();u.activo=true;
+  u.plan=planVal[0];u.limite=parseInt(planVal[1]);u.precio=parseInt(planVal[2]);
+  if(pass)u.pass=pass;
+  us[editandoEmail]=u;saveUsuarios(us);cerrarEdit();cargarTabla();cargarDashboard();
   alert('Cambios guardados.');
 }
-
 function agregarDentista(){
   var nombre=document.getElementById('ag-nombre').value.trim();
   var email=document.getElementById('ag-email').value.trim().toLowerCase();
   var pass=document.getElementById('ag-pass').value.trim();
   var planVal=document.getElementById('ag-plan').value.split(':');
   var meses=parseInt(document.getElementById('ag-meses').value);
-  var ok=document.getElementById('ag-ok'); var err=document.getElementById('ag-err');
-  ok.classList.remove('visible'); err.classList.remove('visible');
-  if(!nombre||!email||!pass){ err.textContent='Completa todos los campos'; err.classList.add('visible'); return; }
+  var ok=document.getElementById('ag-ok');var err=document.getElementById('ag-err');
+  ok.classList.remove('visible');err.classList.remove('visible');
+  if(!nombre||!email||!pass){err.textContent='Completa todos los campos';err.classList.add('visible');return}
   var us=getUsuarios();
-  if(us[email]){ err.textContent='Ya existe una cuenta con ese correo'; err.classList.add('visible'); return; }
-  var hoy=new Date(); var vence=new Date(hoy); vence.setMonth(vence.getMonth()+meses);
-  us[email]={ nombre:nombre,email:email,pass:pass,plan:planVal[0],limite:parseInt(planVal[1]),precio:parseInt(planVal[2]),usados:0,activo:true,inicio:hoy.toISOString(),vence:vence.toISOString(),cotizaciones:[],precios:{} };
+  if(us[email]){err.textContent='Ya existe una cuenta con ese correo';err.classList.add('visible');return}
+  var hoy=new Date();var vence=new Date(hoy);vence.setMonth(vence.getMonth()+meses);
+  us[email]={nombre:nombre,email:email,pass:pass,plan:planVal[0],limite:parseInt(planVal[1]),precio:parseInt(planVal[2]),usados:0,activo:true,inicio:hoy.toISOString(),vence:vence.toISOString(),cotizaciones:[],precios:{}};
   saveUsuarios(us);
   ok.classList.add('visible');
-  ['ag-nombre','ag-email','ag-pass'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['ag-nombre','ag-email','ag-pass'].forEach(function(id){document.getElementById(id).value=''});
   cargarDashboard();
-  setTimeout(function(){ ok.classList.remove('visible'); },3000);
+  setTimeout(function(){ok.classList.remove('visible')},3000);
 }
-
 function resetearTodos(){
-  if(!confirm('&iquest;Resetear diagn&oacute;sticos de TODOS los dentistas activos?')) return;
-  var us=getUsuarios();
-  Object.keys(us).forEach(function(e){ us[e].usados=0; });
-  saveUsuarios(us); cargarDashboard(); alert('Contadores reseteados.');
+  if(!confirm('Resetear diagnosticos de TODOS los dentistas activos?'))return;
+  var us=getUsuarios();Object.keys(us).forEach(function(e){us[e].usados=0});
+  saveUsuarios(us);cargarDashboard();alert('Contadores reseteados.');
 }
 </script>
-<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none"></body>copy; 2025 Dr. Hern</body>aacute;n Partida Islas </body>middot; Propiedad Intelectual</div>
+<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&copy; 2025 Dr. Hern&aacute;n Partida Islas &middot; Propiedad Intelectual</div>
 </body>
 </html>
