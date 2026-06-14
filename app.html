@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+?<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CAMILA Â· Mi Consultorio</title>
+<title>CAMILA ?? Mi Consultorio</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -122,7 +122,7 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 .tag-ok{background:var(--verde-suave);color:var(--verde)}
 .tag-warn{background:var(--naranja-suave);color:var(--naranja)}
 
-/* COTIZACIÃ“N */
+/* COTIZACI??N */
 .cot-header{background:var(--negro-4);border:0.5px solid var(--dorado-borde);border-radius:14px;padding:20px 24px;margin-bottom:14px}
 .cot-paciente{font-size:16px;font-weight:600;color:var(--blanco);margin-bottom:4px}
 .cot-fecha{font-size:12px;color:var(--gris-2)}
@@ -203,24 +203,24 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 
   <div class="sidebar">
     <div class="sb-logo">
-      <h1>ðŸ¦· CAMILA</h1>
-      <span>EstÃ©tica dental Â· IA</span>
+      <h1>???? CAMILA</h1>
+      <span>Est??tica dental ?? IA</span>
     </div>
     <div class="sb-user">
       <div class="nombre" id="sb-nombre">Dr. ...</div>
       <div class="plan-badge" id="sb-plan">Profesional</div>
       <div class="uso-bar"><div class="uso-fill" id="uso-fill" style="width:0%"></div></div>
-      <div class="uso-txt" id="uso-txt">0 / 40 diagnÃ³sticos</div>
+      <div class="uso-txt" id="uso-txt">0 / 40 diagn??sticos</div>
     </div>
     <div class="nav-items">
-      <div class="nav-item activo" onclick="ir('dashboard')"><span class="nav-icon">ðŸ“Š</span> Dashboard</div>
-      <div class="nav-item" onclick="ir('diagnostico')"><span class="nav-icon">ðŸ”¬</span> Nuevo diagnÃ³stico</div>
-      <div class="nav-item" onclick="ir('historial')"><span class="nav-icon">ðŸ—‚ï¸</span> Historial</div>
-      <div class="nav-item" onclick="ir('chat')"><span class="nav-icon">ðŸ’¬</span> Chat paciente</div>
-      <div class="nav-item" onclick="ir('precios')"><span class="nav-icon">ðŸ’°</span> Mis precios</div>
+      <div class="nav-item activo" onclick="ir('dashboard')"><span class="nav-icon">????</span> Dashboard</div>
+      <div class="nav-item" onclick="ir('diagnostico')"><span class="nav-icon">????</span> Nuevo diagn??stico</div>
+      <div class="nav-item" onclick="ir('historial')"><span class="nav-icon">???????</span> Historial</div>
+      <div class="nav-item" onclick="ir('chat')"><span class="nav-icon">????</span> Chat paciente</div>
+      <div class="nav-item" onclick="ir('precios')"><span class="nav-icon">????</span> Mis precios</div>
     </div>
     <div class="sb-foot">
-      <button class="btn-cerrar" onclick="cerrarSesion()">â†© Cerrar sesiÃ³n</button>
+      <button class="btn-cerrar" onclick="cerrarSesion()">??? Cerrar sesi??n</button>
     </div>
   </div>
 
@@ -235,62 +235,62 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
       <!-- DASHBOARD -->
       <div class="pantalla activa" id="p-dashboard">
         <div class="stats-grid">
-          <div class="stat gold"><div class="stat-num" id="st-disp">â€”</div><div class="stat-lbl">DiagnÃ³sticos disponibles</div></div>
+          <div class="stat gold"><div class="stat-num" id="st-disp">???</div><div class="stat-lbl">Diagn??sticos disponibles</div></div>
           <div class="stat"><div class="stat-num" id="st-usados">0</div><div class="stat-lbl">Usados este mes</div></div>
           <div class="stat"><div class="stat-num" id="st-casos">0</div><div class="stat-lbl">Casos en historial</div></div>
         </div>
         <div class="card card-gold">
-          <div class="card-title">Accesos rÃ¡pidos</div>
+          <div class="card-title">Accesos r??pidos</div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn-gold" onclick="ir('diagnostico')">ðŸ”¬ Nuevo diagnÃ³stico</button>
-            <button class="btn-ghost" onclick="ir('precios')">ðŸ’° Configurar precios</button>
-            <button class="btn-ghost" onclick="ir('historial')">ðŸ—‚ï¸ Ver historial</button>
+            <button class="btn-gold" onclick="ir('diagnostico')">???? Nuevo diagn??stico</button>
+            <button class="btn-ghost" onclick="ir('precios')">???? Configurar precios</button>
+            <button class="btn-ghost" onclick="ir('historial')">??????? Ver historial</button>
           </div>
         </div>
         <div class="card">
-          <div class="card-title">SuscripciÃ³n activa</div>
+          <div class="card-title">Suscripci??n activa</div>
           <div id="info-suscripcion" style="font-size:13px;color:var(--gris);line-height:1.8"></div>
         </div>
       </div>
 
-      <!-- DIAGNÃ“STICO -->
+      <!-- DIAGN??STICO -->
       <div class="pantalla" id="p-diagnostico">
-        <div class="alerta alerta-warn" id="alerta-limite">âš ï¸ Alcanzaste tu lÃ­mite de diagnÃ³sticos este mes. Contacta al administrador para renovar.</div>
+        <div class="alerta alerta-warn" id="alerta-limite">?????? Alcanzaste tu l??mite de diagn??sticos este mes. Contacta al administrador para renovar.</div>
 
         <div id="form-area">
           <div class="card">
-            <div class="card-title">ðŸ“¸ FotografÃ­as clÃ­nicas</div>
-            <p style="font-size:12px;color:var(--gris-2);margin-bottom:14px">Sube hasta 4 imÃ¡genes. MÃ¡s fotos = diagnÃ³stico mÃ¡s preciso y cotizaciÃ³n mÃ¡s fiel.</p>
+            <div class="card-title">???? Fotograf??as cl??nicas</div>
+            <p style="font-size:12px;color:var(--gris-2);margin-bottom:14px">Sube hasta 4 im??genes. M??s fotos = diagn??stico m??s preciso y cotizaci??n m??s fiel.</p>
             <div class="upload-grid">
               <div class="upload-slot" id="slot-0" ondragover="dragSobre(event,0)" ondragleave="dragFuera(0)" ondrop="dropImg(event,0)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,0)">
-                <div class="slot-check">âœ“</div>
-                <div class="slot-icon">ðŸ˜</div>
+                <div class="slot-check">???</div>
+                <div class="slot-icon">????</div>
                 <h4>Sonrisa frontal</h4>
                 <p>Con retractores, fondo blanco</p>
                 <img class="slot-preview" id="prev-0" style="display:none">
               </div>
               <div class="upload-slot" id="slot-1" ondragover="dragSobre(event,1)" ondragleave="dragFuera(1)" ondrop="dropImg(event,1)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,1)">
-                <div class="slot-check">âœ“</div>
-                <div class="slot-icon">ðŸ˜</div>
+                <div class="slot-check">???</div>
+                <div class="slot-icon">????</div>
                 <h4>Perfil lateral</h4>
                 <p>Derecho o izquierdo</p>
                 <img class="slot-preview" id="prev-1" style="display:none">
               </div>
               <div class="upload-slot" id="slot-2" ondragover="dragSobre(event,2)" ondragleave="dragFuera(2)" ondrop="dropImg(event,2)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,2)">
-                <div class="slot-check">âœ“</div>
-                <div class="slot-icon">ðŸ¦·</div>
+                <div class="slot-check">???</div>
+                <div class="slot-icon">????</div>
                 <h4>Intraoral frontal</h4>
-                <p>OclusiÃ³n, piezas, encÃ­a</p>
+                <p>Oclusi??n, piezas, enc??a</p>
                 <img class="slot-preview" id="prev-2" style="display:none">
               </div>
               <div class="upload-slot" id="slot-3" ondragover="dragSobre(event,3)" ondragleave="dragFuera(3)" ondrop="dropImg(event,3)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,3)">
-                <div class="slot-check">âœ“</div>
-                <div class="slot-icon">ðŸ©»</div>
-                <h4>RadiografÃ­a panorÃ¡mica</h4>
+                <div class="slot-check">???</div>
+                <div class="slot-icon">????</div>
+                <h4>Radiograf??a panor??mica</h4>
                 <p>Opcional pero recomendada</p>
                 <img class="slot-preview" id="prev-3" style="display:none">
               </div>
@@ -298,56 +298,56 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
           </div>
 
           <div class="card">
-            <div class="card-title">ðŸ—‚ï¸ Datos del paciente</div>
+            <div class="card-title">??????? Datos del paciente</div>
             <div class="form-grid">
               <div class="fg"><label>Nombre del paciente</label><input type="text" id="f-nombre" placeholder="Nombre completo"></div>
               <div class="fg"><label>Edad</label><input type="number" id="f-edad" placeholder="Ej. 32" min="10" max="90"></div>
               <div class="fg"><label>Motivo de consulta</label>
                 <select id="f-motivo">
                   <option value="">Seleccionar...</option>
-                  <option>Manchas / discromÃ­a</option>
+                  <option>Manchas / discrom??a</option>
                   <option>Forma irregular o desgaste</option>
                   <option>Diastemas</option>
                   <option>Dientes fracturados</option>
-                  <option>Cambio estÃ©tico general</option>
-                  <option>PreparaciÃ³n para evento</option>
+                  <option>Cambio est??tico general</option>
+                  <option>Preparaci??n para evento</option>
                 </select>
               </div>
               <div class="fg"><label>Material preferido</label>
                 <select id="f-material">
-                  <option value="sin definir">Sin definir aÃºn</option>
-                  <option value="porcelana feldespÃ¡tica">Porcelana feldespÃ¡tica</option>
+                  <option value="sin definir">Sin definir a??n</option>
+                  <option value="porcelana feldesp??tica">Porcelana feldesp??tica</option>
                   <option value="disilicato de litio (e.max)">Disilicato de litio (e.max)</option>
                   <option value="composite de resina">Composite de resina</option>
                   <option value="zirconia">Zirconia</option>
                 </select>
               </div>
-              <div class="fg full"><label>Observaciones clÃ­nicas</label><textarea id="f-obs" placeholder="Bruxismo, sensibilidad, oclusiÃ³n, historial mÃ©dico relevante..."></textarea></div>
+              <div class="fg full"><label>Observaciones cl??nicas</label><textarea id="f-obs" placeholder="Bruxismo, sensibilidad, oclusi??n, historial m??dico relevante..."></textarea></div>
             </div>
-            <button class="btn-gold btn-full" id="btn-analizar" onclick="analizarCaso()">âœ¦ Generar DiagnÃ³stico + CotizaciÃ³n</button>
+            <button class="btn-gold btn-full" id="btn-analizar" onclick="analizarCaso()">??? Generar Diagn??stico + Cotizaci??n</button>
           </div>
         </div>
 
         <div class="loading" id="loading-area">
           <div class="spinner"></div>
-          <div class="loading-title">Analizando caso clÃ­nico...</div>
-          <div class="loading-sub">La IA estÃ¡ evaluando imÃ¡genes, hallazgos y generando la cotizaciÃ³n</div>
+          <div class="loading-title">Analizando caso cl??nico...</div>
+          <div class="loading-sub">La IA est?? evaluando im??genes, hallazgos y generando la cotizaci??n</div>
         </div>
 
         <div class="reporte" id="reporte-area">
           <div class="rep-header">
             <div class="rep-header-info">
-              <h2 id="r-nombre">DiagnÃ³stico 360Â°</h2>
-              <p id="r-fecha">â€”</p>
+              <h2 id="r-nombre">Diagn??stico 360??</h2>
+              <p id="r-fecha">???</p>
             </div>
             <div class="score-box">
-              <div class="score-num" id="r-score">â€”</div>
-              <div class="score-lbl">Potencial estÃ©tico</div>
+              <div class="score-num" id="r-score">???</div>
+              <div class="score-lbl">Potencial est??tico</div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-title">ðŸ”¬ DiagnÃ³stico clÃ­nico</div>
+            <div class="card-title">???? Diagn??stico cl??nico</div>
             <div class="rep-grid">
               <div class="rep-sec"><h4>Hallazgos</h4><div id="r-hallazgos"></div></div>
               <div class="rep-sec"><h4>Piezas a tratar</h4><div id="r-dientes"></div></div>
@@ -357,10 +357,10 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
           </div>
 
           <div class="card">
-            <div class="card-title">ðŸ’° CotizaciÃ³n</div>
+            <div class="card-title">???? Cotizaci??n</div>
             <div class="cot-header">
-              <div class="cot-paciente" id="cot-paciente">â€”</div>
-              <div class="cot-fecha" id="cot-fecha">â€”</div>
+              <div class="cot-paciente" id="cot-paciente">???</div>
+              <div class="cot-fecha" id="cot-fecha">???</div>
             </div>
             <table class="cot-tabla">
               <thead><tr><th>Procedimiento</th><th>Piezas</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead>
@@ -373,14 +373,14 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
           </div>
 
           <div class="texto-px">
-            <h4>ðŸ’¬ ExplicaciÃ³n para el paciente</h4>
+            <h4>???? Explicaci??n para el paciente</h4>
             <p id="r-texto-px"></p>
           </div>
 
           <div class="acc-row">
-            <button class="btn-acc btn-nuevo-caso" onclick="nuevoCaso()">â†© Nuevo caso</button>
-            <button class="btn-acc btn-imprimir" onclick="window.print()">ðŸ–¨ï¸ Imprimir</button>
-            <button class="btn-acc btn-copiar" onclick="copiarTexto()">ðŸ“‹ Copiar texto</button>
+            <button class="btn-acc btn-nuevo-caso" onclick="nuevoCaso()">??? Nuevo caso</button>
+            <button class="btn-acc btn-imprimir" onclick="window.print()">??????? Imprimir</button>
+            <button class="btn-acc btn-copiar" onclick="copiarTexto()">???? Copiar texto</button>
           </div>
         </div>
       </div>
@@ -388,7 +388,7 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
       <!-- HISTORIAL -->
       <div class="pantalla" id="p-historial">
         <div class="card">
-          <div class="card-title">ðŸ—‚ï¸ Casos analizados</div>
+          <div class="card-title">??????? Casos analizados</div>
           <div id="historial-lista"></div>
         </div>
       </div>
@@ -396,27 +396,27 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
       <!-- CHAT -->
       <div class="pantalla" id="p-chat">
         <div class="card" style="margin-bottom:14px">
-          <div class="card-title">ðŸ’¬ Chatbot para pacientes</div>
+          <div class="card-title">???? Chatbot para pacientes</div>
           <p style="font-size:13px;color:var(--gris);line-height:1.6">Comparte este chat con tus pacientes. Responde sus dudas sobre carillas con IA, disponible 24 horas.</p>
         </div>
         <div class="chat-wrap">
           <div class="chat-head">
             <div class="chat-av">C</div>
-            <div><h3>CAMILA â€” Asistente Dental</h3><p>Especialista en carillas Â· En lÃ­nea</p></div>
+            <div><h3>CAMILA ??? Asistente Dental</h3><p>Especialista en carillas ?? En l??nea</p></div>
           </div>
           <div class="chat-msgs" id="chat-msgs">
-            <div class="msg msg-ia">Hola, soy CAMILA, tu asistente de estÃ©tica dental. Estoy aquÃ­ para resolver todas tus dudas sobre <strong>carillas dentales</strong>. Â¿En quÃ© te puedo ayudar?</div>
+            <div class="msg msg-ia">Hola, soy CAMILA, tu asistente de est??tica dental. Estoy aqu?? para resolver todas tus dudas sobre <strong>carillas dentales</strong>. ??En qu?? te puedo ayudar?</div>
           </div>
           <div class="chat-rapidas">
-            <div class="chip-r" onclick="pregRapida('Â¿CuÃ¡nto duran las carillas de porcelana?')">Â¿CuÃ¡nto duran?</div>
-            <div class="chip-r" onclick="pregRapida('Â¿Duele el procedimiento de carillas?')">Â¿Duele?</div>
-            <div class="chip-r" onclick="pregRapida('Â¿Puedo tomar cafÃ© con carillas?')">Â¿CafÃ©?</div>
-            <div class="chip-r" onclick="pregRapida('Â¿CuÃ¡ntas citas necesito para las carillas?')">Â¿Citas?</div>
-            <div class="chip-r" onclick="pregRapida('Â¿CÃ³mo cuido mis carillas?')">Cuidados</div>
+            <div class="chip-r" onclick="pregRapida('??Cu??nto duran las carillas de porcelana?')">??Cu??nto duran?</div>
+            <div class="chip-r" onclick="pregRapida('??Duele el procedimiento de carillas?')">??Duele?</div>
+            <div class="chip-r" onclick="pregRapida('??Puedo tomar caf?? con carillas?')">??Caf???</div>
+            <div class="chip-r" onclick="pregRapida('??Cu??ntas citas necesito para las carillas?')">??Citas?</div>
+            <div class="chip-r" onclick="pregRapida('??C??mo cuido mis carillas?')">Cuidados</div>
           </div>
           <div class="chat-inp-row">
             <input class="chat-inp" id="chat-inp" type="text" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')enviarChat()">
-            <button class="chat-send" onclick="enviarChat()">âž¤</button>
+            <button class="chat-send" onclick="enviarChat()">???</button>
           </div>
         </div>
       </div>
@@ -424,19 +424,19 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
       <!-- PRECIOS -->
       <div class="pantalla" id="p-precios">
         <div class="card">
-          <div class="card-title">ðŸ’° Mis precios por procedimiento</div>
-          <p style="font-size:12px;color:var(--gris-2);margin-bottom:16px">Configura el precio de cada servicio. La IA usarÃ¡ estos valores para generar cotizaciones automÃ¡ticas.</p>
+          <div class="card-title">???? Mis precios por procedimiento</div>
+          <p style="font-size:12px;color:var(--gris-2);margin-bottom:16px">Configura el precio de cada servicio. La IA usar?? estos valores para generar cotizaciones autom??ticas.</p>
           <div id="precios-lista"></div>
-          <button class="btn-gold" style="margin-top:16px" onclick="guardarPrecios()">ðŸ’¾ Guardar precios</button>
+          <button class="btn-gold" style="margin-top:16px" onclick="guardarPrecios()">???? Guardar precios</button>
         </div>
         <div class="card">
-          <div class="card-title">âš™ï¸ InformaciÃ³n del consultorio</div>
+          <div class="card-title">?????? Informaci??n del consultorio</div>
           <div class="form-grid">
             <div class="fg"><label>Nombre del doctor</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
-            <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. ClÃ­nica EstÃ©tica Dental"></div>
+            <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Cl??nica Est??tica Dental"></div>
             <div class="fg full"><label>Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
           </div>
-          <button class="btn-gold" style="margin-top:12px" onclick="guardarConfig()">ðŸ’¾ Guardar informaciÃ³n</button>
+          <button class="btn-gold" style="margin-top:12px" onclick="guardarConfig()">???? Guardar informaci??n</button>
         </div>
       </div>
 
@@ -448,13 +448,13 @@ body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);
 var API_KEY = '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';
 
 var PRECIOS_DEFAULT = [
-  {id:'carilla_porcelana', nombre:'Carilla de porcelana feldespÃ¡tica', unidad:'por pieza', precio:8000},
+  {id:'carilla_porcelana', nombre:'Carilla de porcelana feldesp??tica', unidad:'por pieza', precio:8000},
   {id:'carilla_emax', nombre:'Carilla de disilicato de litio (e.max)', unidad:'por pieza', precio:10000},
   {id:'carilla_composite', nombre:'Carilla de composite de resina', unidad:'por pieza', precio:4500},
   {id:'blanqueamiento', nombre:'Blanqueamiento dental previo', unidad:'tratamiento completo', precio:3500},
-  {id:'gingivectomia', nombre:'GingivectomÃ­a estÃ©tica', unidad:'por pieza', precio:1200},
-  {id:'encerado', nombre:'Encerado diagnÃ³stico / mock-up', unidad:'caso completo', precio:2000},
-  {id:'consulta', nombre:'Consulta de diagnÃ³stico estÃ©tico', unidad:'por consulta', precio:800},
+  {id:'gingivectomia', nombre:'Gingivectom??a est??tica', unidad:'por pieza', precio:1200},
+  {id:'encerado', nombre:'Encerado diagn??stico / mock-up', unidad:'caso completo', precio:2000},
+  {id:'consulta', nombre:'Consulta de diagn??stico est??tico', unidad:'por consulta', precio:800},
 ];
 
 var imagenes = [null,null,null,null];
@@ -475,7 +475,7 @@ function cerrarSesion(){ localStorage.removeItem('camila_session'); window.locat
   usuarioEmail = s.email;
   usuario = us[s.email];
   if(!usuario){ cerrarSesion(); return; }
-  if(new Date(usuario.vence)<new Date()){ alert('Tu suscripciÃ³n venciÃ³. Contacta al administrador.'); cerrarSesion(); return; }
+  if(new Date(usuario.vence)<new Date()){ alert('Tu suscripci??n venci??. Contacta al administrador.'); cerrarSesion(); return; }
   document.getElementById('sb-nombre').textContent = usuario.nombre;
   document.getElementById('sb-plan').textContent = usuario.plan;
   document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
@@ -489,7 +489,7 @@ function actualizarUso(){
   var u=usuario.usados||0; var l=usuario.limite||40;
   var pct=Math.min(100,Math.round(u/l*100));
   document.getElementById('uso-fill').style.width=pct+'%';
-  document.getElementById('uso-txt').textContent=u+' / '+l+' diagnÃ³sticos';
+  document.getElementById('uso-txt').textContent=u+' / '+l+' diagn??sticos';
   document.getElementById('st-disp').textContent=Math.max(0,l-u);
   document.getElementById('st-usados').textContent=u;
 }
@@ -499,12 +499,12 @@ function cargarDashboard(){
   document.getElementById('st-casos').textContent=cots.length;
   var vence=new Date(usuario.vence);
   document.getElementById('info-suscripcion').innerHTML=
-    '<strong style="color:var(--blanco)">Plan:</strong> <span style="color:var(--dorado);text-transform:capitalize">'+usuario.plan+'</span> Â· $'+usuario.precio+' MXN/mes<br>'+
-    '<strong style="color:var(--blanco)">RenovaciÃ³n:</strong> '+vence.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+'<br>'+
-    '<strong style="color:var(--blanco)">DiagnÃ³sticos:</strong> '+(usuario.usados||0)+' de '+(usuario.limite||40)+' usados este mes';
+    '<strong style="color:var(--blanco)">Plan:</strong> <span style="color:var(--dorado);text-transform:capitalize">'+usuario.plan+'</span> ?? $'+usuario.precio+' MXN/mes<br>'+
+    '<strong style="color:var(--blanco)">Renovaci??n:</strong> '+vence.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+'<br>'+
+    '<strong style="color:var(--blanco)">Diagn??sticos:</strong> '+(usuario.usados||0)+' de '+(usuario.limite||40)+' usados este mes';
 }
 
-var titulos={dashboard:'Dashboard',diagnostico:'Nuevo DiagnÃ³stico Â· 360Â°',historial:'Historial de Casos',chat:'Chat para Pacientes',precios:'Mis Precios'};
+var titulos={dashboard:'Dashboard',diagnostico:'Nuevo Diagn??stico ?? 360??',historial:'Historial de Casos',chat:'Chat para Pacientes',precios:'Mis Precios'};
 function ir(p){
   document.querySelectorAll('.pantalla').forEach(function(el){ el.classList.remove('activa'); });
   document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('activo'); });
@@ -549,18 +549,18 @@ async function analizarCaso(){
   if(!motivo) return alert('Selecciona el motivo de consulta');
 
   var tieneImg=imagenes.some(function(i){ return i!==null; });
-  if(!tieneImg) return alert('Sube al menos una fotografÃ­a para el anÃ¡lisis');
+  if(!tieneImg) return alert('Sube al menos una fotograf??a para el an??lisis');
 
   var precios=getPrecios();
   var preciosTexto=precios.map(function(p){ return p.nombre+': $'+p.precio.toLocaleString()+' MXN ('+p.unidad+')'; }).join('\n');
   var config=usuario.config||{};
 
   var prompt=[
-    'Eres un especialista en odontologÃ­a estÃ©tica con expertise en carillas dentales.',
-    'Analiza el siguiente caso clÃ­nico con las fotografÃ­as adjuntas.',
+    'Eres un especialista en odontolog??a est??tica con expertise en carillas dentales.',
+    'Analiza el siguiente caso cl??nico con las fotograf??as adjuntas.',
     '',
     'DATOS DEL PACIENTE:',
-    'Nombre: '+nombre+(edad?', '+edad+' aÃ±os':''),
+    'Nombre: '+nombre+(edad?', '+edad+' a??os':''),
     'Motivo: '+motivo,
     'Material preferido: '+material,
     'Observaciones: '+(obs||'Ninguna'),
@@ -568,18 +568,18 @@ async function analizarCaso(){
     'TABLA DE PRECIOS DEL CONSULTORIO:',
     preciosTexto,
     '',
-    'Genera el anÃ¡lisis completo en formato JSON puro (sin markdown):',
+    'Genera el an??lisis completo en formato JSON puro (sin markdown):',
     '{',
-    '  "score": <1-10 potencial estÃ©tico>,',
+    '  "score": <1-10 potencial est??tico>,',
     '  "hallazgos": ["hallazgo1","hallazgo2","hallazgo3"],',
-    '  "dientes": ["pieza - descripciÃ³n"],',
-    '  "consideraciones": ["consideraciÃ³n1","consideraciÃ³n2"],',
+    '  "dientes": ["pieza - descripci??n"],',
+    '  "consideraciones": ["consideraci??n1","consideraci??n2"],',
     '  "plan": ["paso1","paso2","paso3"],',
     '  "cotizacion": [',
-    '    {"procedimiento":"nombre","piezas":<nÃºmero>,"precio_unit":<precio de tu tabla>,"subtotal":<total>},',
+    '    {"procedimiento":"nombre","piezas":<n??mero>,"precio_unit":<precio de tu tabla>,"subtotal":<total>},',
     '    ...',
     '  ],',
-    '  "texto_paciente": "<3-4 oraciones amigables para explicarle al paciente su situaciÃ³n y el valor del tratamiento>"',
+    '  "texto_paciente": "<3-4 oraciones amigables para explicarle al paciente su situaci??n y el valor del tratamiento>"',
     '}'
   ].join('\n');
 
@@ -611,15 +611,15 @@ async function analizarCaso(){
 
 function mostrarReporte(r,nombre,config){
   document.getElementById('loading-area').classList.remove('visible');
-  document.getElementById('r-nombre').textContent='DiagnÃ³stico 360Â° Â· '+nombre;
-  document.getElementById('r-fecha').textContent=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+(config.consultorio?' Â· '+config.consultorio:'');
-  document.getElementById('r-score').textContent=(r.score||'â€”')+'/10';
+  document.getElementById('r-nombre').textContent='Diagn??stico 360?? ?? '+nombre;
+  document.getElementById('r-fecha').textContent=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+(config.consultorio?' ?? '+config.consultorio:'');
+  document.getElementById('r-score').textContent=(r.score||'???')+'/10';
   document.getElementById('cot-paciente').textContent=nombre;
-  document.getElementById('cot-fecha').textContent='CotizaciÃ³n Â· '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('cot-fecha').textContent='Cotizaci??n ?? '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
 
   function items(arr,dotClass){ return (arr||[]).map(function(h){ return '<div class="rep-item"><span class="rep-dot '+dotClass+'"></span><span>'+h+'</span></div>'; }).join(''); }
   document.getElementById('r-hallazgos').innerHTML=items(r.hallazgos,'dot-warn');
-  document.getElementById('r-dientes').innerHTML=(r.dientes||[]).map(function(d){ return '<span class="tag tag-gold">ðŸ¦· '+d+'</span>'; }).join('');
+  document.getElementById('r-dientes').innerHTML=(r.dientes||[]).map(function(d){ return '<span class="tag tag-gold">???? '+d+'</span>'; }).join('');
   document.getElementById('r-consideraciones').innerHTML=items(r.consideraciones,'dot-gold');
   document.getElementById('r-plan').innerHTML=items(r.plan,'dot-ok');
 
@@ -670,9 +670,9 @@ function copiarTexto(){ navigator.clipboard.writeText(document.getElementById('r
 function cargarHistorial(){
   var cots=usuario.cotizaciones||[];
   var el=document.getElementById('historial-lista');
-  if(!cots.length){ el.innerHTML='<div class="empty"><div class="empty-icon">ðŸ—‚ï¸</div><p>AÃºn no tienes casos analizados</p></div>'; return; }
+  if(!cots.length){ el.innerHTML='<div class="empty"><div class="empty-icon">???????</div><p>A??n no tienes casos analizados</p></div>'; return; }
   el.innerHTML=cots.slice().reverse().map(function(c){
-    return '<div class="hist-item"><div class="hist-info"><h4>'+c.nombre+'</h4><p>'+c.fecha+' Â· '+c.motivo+' Â· Score: '+c.score+'/10</p></div><div class="hist-total">$'+c.total.toLocaleString()+' MXN</div></div>';
+    return '<div class="hist-item"><div class="hist-info"><h4>'+c.nombre+'</h4><p>'+c.fecha+' ?? '+c.motivo+' ?? Score: '+c.score+'/10</p></div><div class="hist-total">$'+c.total.toLocaleString()+' MXN</div></div>';
   }).join('');
 }
 
@@ -695,7 +695,7 @@ function guardarPrecios(){
     if(inp) u.precios[p.id]=parseInt(inp.value)||p.precio;
   });
   us[usuarioEmail]=u; saveUsuarios(us); usuario=u;
-  alert('Precios guardados. Se usarÃ¡n en tus prÃ³ximas cotizaciones.');
+  alert('Precios guardados. Se usar??n en tus pr??ximas cotizaciones.');
 }
 
 function cargarConfig(){
@@ -709,7 +709,7 @@ function guardarConfig(){
   var us=getUsuarios(); var u=us[usuarioEmail];
   u.config={ doctor:document.getElementById('conf-doctor').value.trim(), consultorio:document.getElementById('conf-consultorio').value.trim(), ciudad:document.getElementById('conf-ciudad').value.trim() };
   us[usuarioEmail]=u; saveUsuarios(us); usuario=u;
-  alert('InformaciÃ³n guardada.');
+  alert('Informaci??n guardada.');
 }
 
 async function enviarChat(){
@@ -724,7 +724,7 @@ async function enviarChat(){
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Eres CAMILA, asistente virtual especializada en carillas y estÃ©tica dental. Responde en espaÃ±ol, de forma amigable, cÃ¡lida y profesional. Solo responde sobre carillas, cuidados dentales y estÃ©tica bucal. Nunca des diagnÃ³sticos definitivos â€” invita al paciente a consultar con el dentista. MÃ¡ximo 3-4 oraciones por respuesta.',messages:chatHistorial})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Eres CAMILA, asistente virtual especializada en carillas y est??tica dental. Responde en espa??ol, de forma amigable, c??lida y profesional. Solo responde sobre carillas, cuidados dentales y est??tica bucal. Nunca des diagn??sticos definitivos ??? invita al paciente a consultar con el dentista. M??ximo 3-4 oraciones por respuesta.',messages:chatHistorial})
     });
     var data=await resp.json();
     var respuesta=data.content.map(function(i){ return i.text||''; }).join('');
