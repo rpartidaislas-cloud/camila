@@ -1789,10 +1789,13 @@ async function generarBeforeAfter() {
       }
     };
 
-    var resp = await fetch(GEMINI_IMG_URL, {
+    var resp = await fetch(EDGE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPA_KEY
+      },
+      body: JSON.stringify({ provider: 'gemini', payload: payload })
     });
 
     var data = await resp.json();
