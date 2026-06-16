@@ -1734,7 +1734,7 @@ async function generarBeforeAfter() {
   document.getElementById('ba-after-wrap').innerHTML =
     '<div class="ba-loading">' +
     '<div class="spinner-ring" style="border-color:rgba(124,58,237,.2);border-top-color:var(--violeta)"></div>' +
-    '<div class="ba-loading-txt">Gemini está diseñando tu nueva sonrisa...</div>' +
+    '<div class="ba-loading-txt">OpenAI está diseñando tu nueva sonrisa...</div>' +
     '<div style="font-size:11px;color:var(--texto3)">Esto toma ~20 segundos</div>' +
     '</div>';
 
@@ -1814,7 +1814,7 @@ async function generarBeforeAfter() {
     throw new Error('No se generó imagen. Respuesta: ' + JSON.stringify(data).substring(0, 200));
 
   } catch(e) {
-    console.error('Gemini error:', e);
+    console.error('OpenAI image error:', e);
     document.getElementById('ba-after-wrap').innerHTML =
       '<div class="ba-placeholder"><span style="font-size:28px">⚠️</span>' +
       '<span style="color:var(--rojo)">Error: ' + e.message + '</span>' +
