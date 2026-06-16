@@ -316,6 +316,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 .modal-close:hover{border-color:var(--rojo);color:var(--rojo);background:var(--rojo-s)}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 
+/* ── BEFORE/AFTER SONRISA ── */
+.ba-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.ba-card{border-radius:var(--radius);overflow:hidden;border:1px solid var(--borde);background:var(--bg3)}
+.ba-label{padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px}
+.ba-label-before{background:var(--bg3);color:var(--texto3);border-bottom:1px solid var(--borde)}
+.ba-label-after{background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));color:var(--violeta);border-bottom:1px solid var(--violeta-b)}
+.ba-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.ba-placeholder{width:100%;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--texto3);font-size:13px;background:var(--bg3)}
+.ba-loading{width:100%;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,var(--violeta-s),var(--azul-s))}
+.ba-loading-txt{font-size:12px;color:var(--violeta);font-weight:500}
+.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:600;background:var(--violeta-s);color:var(--violeta);border:1px solid var(--violeta-b);margin-bottom:12px}
+.btn-generar-ba{width:100%;padding:14px;background:linear-gradient(135deg,var(--violeta),var(--azul));color:#fff;border:none;border-radius:var(--radius-s);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(124,58,237,.3);margin-bottom:16px}
+.btn-generar-ba:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.4)}
+.btn-generar-ba:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .sidebar{display:none}
@@ -727,6 +742,34 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
                 <div class="score-lbl">Potencial</div>
               </div>
             </div>
+
+            <!-- BEFORE / AFTER -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">✨ Simulación de Sonrisa</div>
+                <span class="fal-badge">⚡ Powered by fal.ai</span>
+              </div>
+              <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Visualización generada por IA con la fotografía real del paciente.</p>
+              <div class="ba-wrap" id="ba-wrap">
+                <div class="ba-card">
+                  <div class="ba-label ba-label-before">📷 Antes</div>
+                  <div id="ba-before-wrap">
+                    <div class="ba-placeholder"><span style="font-size:28px">😐</span><span>Foto original</span></div>
+                  </div>
+                </div>
+                <div class="ba-card">
+                  <div class="ba-label ba-label-after">✨ Después — Diseño IA</div>
+                  <div id="ba-after-wrap">
+                    <div class="ba-placeholder"><span style="font-size:28px">✨</span><span>Genera la simulación</span></div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn-generar-ba" id="btn-ba" onclick="generarBeforeAfter()">
+                ✨ Generar simulación de sonrisa con IA
+              </button>
+              <p style="font-size:11px;color:var(--texto3);text-align:center;margin-top:-8px">La IA transformará la foto frontal del paciente con la nueva sonrisa diseñada</p>
+            </div>
+
             <div class="card">
               <div class="card-title">💰 Cotización del Tratamiento</div>
               <table class="cot-tabla">
@@ -888,6 +931,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
 var EDGE_URL = SUPA_URL + '/functions/v1/claude';
+var FAL_KEY = 'dac07072-2aff-4b9d-b5ed-99e3ef2bd4ec:7ca18aabd81e0730faf5db366301fca2';
+var FAL_URL = 'https://fal.run/fal-ai/flux/dev/image-to-image';
 
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
@@ -1331,12 +1376,26 @@ async function irAPaso4() {
   mostrarPaso(4);
   var pres = document.getElementById('reporte-area');
   pres.classList.add('visible');
+
+  // Pre-cargar foto Before
+  if (imagenes[0]) {
+    var dataUrl = 'data:image/jpeg;base64,' + imagenes[0];
+    document.getElementById('ba-before-wrap').innerHTML =
+      '<img class="ba-img" src="' + dataUrl + '" alt="Foto original">';
+  }
+
+  // Reset After
+  imagenAfterUrl = null;
+  document.getElementById('ba-after-wrap').innerHTML =
+    '<div class="ba-placeholder"><span style="font-size:28px">✨</span><span>Presiona "Generar simulación"</span></div>';
+  var btnBa = document.getElementById('btn-ba');
+  if (btnBa) { btnBa.disabled = false; btnBa.innerHTML = '✨ Generar simulación de sonrisa con IA'; }
+
   if (analisisResultado) {
     var nombre = document.getElementById('f-caso-nombre').value.trim();
     document.getElementById('pres-nombre').textContent = 'Diseño de Sonrisa — ' + nombre;
     document.getElementById('pres-fecha').textContent = new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
     document.getElementById('pres-score').textContent = (analisisResultado.score || '-') + '/10';
-    // cotizacion ya renderizada en paso 2, copiar al paso 4
     var cotBody = document.getElementById('cot-tabla-body');
     var cots = analisisResultado.cotizacion || [];
     var total = 0;
@@ -1637,7 +1696,121 @@ function marcarTodasLeidas() {
 }
 
 // ══════════════════════════════════════════
-// MI CUENTA
+// FAL.AI — BEFORE / AFTER SONRISA
+// ══════════════════════════════════════════
+var imagenAfterUrl = null;
+
+async function generarBeforeAfter() {
+  // Necesitamos la foto frontal (slot 0)
+  var fotoBase64 = imagenes[0];
+  if (!fotoBase64) {
+    alert('Se necesita la fotografía de sonrisa frontal (foto 1) para generar la simulación.');
+    return;
+  }
+
+  var btn = document.getElementById('btn-ba');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner-ring" style="width:20px;height:20px;border-width:2px"></div> Generando simulación...';
+
+  // Mostrar loading en el "Después"
+  document.getElementById('ba-after-wrap').innerHTML =
+    '<div class="ba-loading">' +
+    '<div class="spinner-ring" style="border-color:rgba(124,58,237,.2);border-top-color:var(--violeta)"></div>' +
+    '<div class="ba-loading-txt">La IA está diseñando tu nueva sonrisa...</div>' +
+    '<div style="font-size:11px;color:var(--texto3)">Esto toma ~15 segundos</div>' +
+    '</div>';
+
+  // Mostrar foto original en el "Antes"
+  var dataUrl = 'data:image/jpeg;base64,' + fotoBase64;
+  document.getElementById('ba-before-wrap').innerHTML =
+    '<img class="ba-img" src="' + dataUrl + '" alt="Foto original">';
+
+  // Construir prompt basado en el análisis IA
+  var tipoDiseno = document.getElementById('f-caso-tipo').value || 'estetica';
+  var forma = document.getElementById('aj-forma').value || 'natural oval';
+  var tono = document.getElementById('aj-tono').value || 'A1 natural white';
+  var instrucciones = document.getElementById('aj-instrucciones').value || '';
+
+  var promptTexto = 'Professional dental smile makeover photo. The same person with a beautiful new smile design. ' +
+    'Perfect white teeth, ' + (tono || 'natural white A1 shade') + ' color. ' +
+    (forma ? forma + ' tooth shape. ' : '') +
+    'Dental veneers, symmetrical smile, professional dental photography. ' +
+    (tipoDiseno === 'ortodoncia' ? 'Perfectly aligned straight teeth after orthodontic treatment. ' : '') +
+    (tipoDiseno === 'implantes' ? 'Complete smile with dental implants, natural looking. ' : '') +
+    (instrucciones ? instrucciones + '. ' : '') +
+    'High quality, realistic, same face and background, only teeth improved. Photorealistic.';
+
+  try {
+    // Convertir base64 a data URL para fal.ai
+    var imageUrl = 'data:image/jpeg;base64,' + fotoBase64;
+
+    var payload = {
+      image_url: imageUrl,
+      prompt: promptTexto,
+      strength: 0.55,
+      num_inference_steps: 28,
+      guidance_scale: 3.5,
+      num_images: 1,
+      enable_safety_checker: false,
+    };
+
+    var resp = await fetch(FAL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Key ' + FAL_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    var data = await resp.json();
+
+    if (data.images && data.images.length > 0) {
+      imagenAfterUrl = data.images[0].url;
+      document.getElementById('ba-after-wrap').innerHTML =
+        '<img class="ba-img" src="' + imagenAfterUrl + '" alt="Simulación de sonrisa" ' +
+        'style="cursor:pointer" onclick="verImagenCompleta(\'' + imagenAfterUrl + '\')">';
+      btn.innerHTML = '🔄 Regenerar simulación';
+      btn.disabled = false;
+
+      // Agregar botón descargar
+      var accRow = document.querySelector('.acc-row');
+      if (accRow && !document.getElementById('btn-descargar-ba')) {
+        var btnDesc = document.createElement('button');
+        btnDesc.id = 'btn-descargar-ba';
+        btnDesc.className = 'btn btn-secondary';
+        btnDesc.innerHTML = '⬇️ Descargar simulación';
+        btnDesc.onclick = function() { descargarImagen(imagenAfterUrl, 'simulacion-sonrisa.jpg'); };
+        accRow.appendChild(btnDesc);
+      }
+    } else {
+      throw new Error(JSON.stringify(data));
+    }
+
+  } catch(e) {
+    console.error('fal.ai error:', e);
+    document.getElementById('ba-after-wrap').innerHTML =
+      '<div class="ba-placeholder"><span style="font-size:28px">⚠️</span><span style="color:var(--rojo)">Error al generar</span><span style="font-size:11px">Intenta de nuevo</span></div>';
+    btn.innerHTML = '🔄 Reintentar';
+    btn.disabled = false;
+  }
+}
+
+function verImagenCompleta(url) {
+  var win = window.open('', '_blank');
+  win.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh">' +
+    '<img src="' + url + '" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>');
+}
+
+function descargarImagen(url, nombre) {
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = nombre || 'simulacion.jpg';
+  a.target = '_blank';
+  a.click();
+}
+
+// ══════════════════════════════════════════
 // ══════════════════════════════════════════
 function renderMiCuenta() {
   var plan = tenantData.plan || 'profesional';
