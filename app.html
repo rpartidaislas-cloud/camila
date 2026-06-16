@@ -316,6 +316,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 .modal-close:hover{border-color:var(--rojo);color:var(--rojo);background:var(--rojo-s)}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 
+/* ── SIMULACIÓN MEJORADA ── */
+.sim-tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--bg3);padding:4px;border-radius:var(--radius-s)}
+.sim-tab{flex:1;padding:8px;border:none;background:none;border-radius:6px;font-size:12px;font-weight:500;color:var(--texto3);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.sim-tab.activo{background:var(--bg2);color:var(--violeta);font-weight:700;box-shadow:var(--shadow)}
+.sim-disclaimer{background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--radius-s);padding:8px 12px;font-size:11px;color:#92400E;margin-top:8px;line-height:1.5}
+.sim-fidelidad{background:var(--bg3);border-radius:var(--radius-s);padding:12px 14px;margin-bottom:12px}
+.sim-notas{background:var(--azul-s);border:1px solid var(--azul-b);border-radius:var(--radius-s);padding:14px;margin-bottom:14px}
+.sim-notas-title{font-size:11px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.sim-nota-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--texto2);margin-bottom:6px;line-height:1.5}
+.sim-nota-dot{width:6px;height:6px;border-radius:50%;background:var(--azul);flex-shrink:0;margin-top:4px}
+
+/* Slider interactivo */
+.img-slider-container{position:relative;width:100%;height:300px;overflow:hidden;border-radius:var(--radius);cursor:col-resize;user-select:none;border:1px solid var(--borde)}
+.img-slider-before,.img-slider-after{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center}
+.img-slider-after{clip-path:inset(0 50% 0 0)}
+.img-slider-divider{position:absolute;top:0;left:50%;width:3px;height:100%;background:var(--violeta);cursor:col-resize;transform:translateX(-50%)}
+.slider-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;background:var(--violeta);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 2px 8px rgba(124,58,237,.4)}
+
 /* ── PROMPT CHIPS ── */
 .prompt-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid var(--borde);border-radius:var(--radius-s);cursor:pointer;transition:all .15s;background:var(--bg)}
 .prompt-chip:hover{border-color:var(--violeta);background:var(--violeta-s)}
@@ -841,31 +859,79 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
               </div>
             </div>
 
-            <!-- BEFORE / AFTER -->
-            <div class="card">
+            <!-- BEFORE / AFTER — SIMULACIÓN MEJORADA -->
+            <div class="card" id="card-simulacion">
               <div class="card-header">
                 <div class="card-title">✨ Simulación de Sonrisa</div>
-                <span class="fal-badge">⚡ Powered by fal.ai</span>
+                <span class="fal-badge">⚡ Powered by OpenAI</span>
               </div>
               <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Visualización generada por IA con la fotografía real del paciente.</p>
-              <div class="ba-wrap" id="ba-wrap">
-                <div class="ba-card">
-                  <div class="ba-label ba-label-before">📷 Antes</div>
-                  <div id="ba-before-wrap">
-                    <div class="ba-placeholder"><span style="font-size:28px">😐</span><span>Foto original</span></div>
+
+              <!-- TABS DE NIVEL -->
+              <div class="sim-tabs" id="sim-tabs" style="display:none">
+                <button class="sim-tab activo" onclick="verNivel('conservador',this)">🌿 Conservador</button>
+                <button class="sim-tab" onclick="verNivel('moderado',this)">⚖️ Moderado</button>
+                <button class="sim-tab" onclick="verNivel('completo',this)">🏆 Completo</button>
+              </div>
+
+              <!-- SLIDER COMPARADOR -->
+              <div class="sim-slider-wrap" id="sim-slider-wrap">
+                <!-- Estado inicial: lado a lado -->
+                <div class="ba-wrap" id="ba-wrap">
+                  <div class="ba-card">
+                    <div class="ba-label ba-label-before">📷 Antes</div>
+                    <div id="ba-before-wrap">
+                      <div class="ba-placeholder"><span style="font-size:28px">😐</span><span>Foto original</span></div>
+                    </div>
+                  </div>
+                  <div class="ba-card">
+                    <div class="ba-label ba-label-after">✨ Después — Diseño IA</div>
+                    <div id="ba-after-wrap">
+                      <div class="ba-placeholder"><span style="font-size:28px">✨</span><span>Genera la simulación</span></div>
+                    </div>
+                    <!-- Disclaimer bajo imagen después -->
+                    <div class="sim-disclaimer" id="sim-disclaimer" style="display:none">
+                      ⚠️ Simulación orientativa. El resultado real depende del plan de tratamiento y anatomía del paciente.
+                    </div>
                   </div>
                 </div>
-                <div class="ba-card">
-                  <div class="ba-label ba-label-after">✨ Después — Diseño IA</div>
-                  <div id="ba-after-wrap">
-                    <div class="ba-placeholder"><span style="font-size:28px">✨</span><span>Genera la simulación</span></div>
+
+                <!-- Slider interactivo (aparece tras generar) -->
+                <div class="img-slider-container" id="img-slider-container" style="display:none">
+                  <div class="img-slider-before" id="slider-before"></div>
+                  <div class="img-slider-after" id="slider-after"></div>
+                  <div class="img-slider-divider" id="slider-divider">
+                    <div class="slider-handle">↔</div>
                   </div>
                 </div>
               </div>
+
+              <!-- FIDELIDAD ESTIMADA -->
+              <div class="sim-fidelidad" id="sim-fidelidad" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                  <span style="font-size:12px;font-weight:600;color:var(--texto2)">Fidelidad estimada de la simulación</span>
+                  <span style="font-size:13px;font-weight:700;color:var(--violeta)" id="fidelidad-pct">65%</span>
+                </div>
+                <div style="background:var(--bg3);border-radius:99px;height:6px;overflow:hidden">
+                  <div id="fidelidad-bar" style="background:linear-gradient(90deg,var(--violeta),var(--azul));height:100%;border-radius:99px;width:65%;transition:width .6s"></div>
+                </div>
+                <div style="font-size:10px;color:var(--texto3);margin-top:4px">La fidelidad varía según calidad de foto, complejidad del caso y tipo de tratamiento</div>
+              </div>
+
+              <!-- NOTAS CLÍNICAS -->
+              <div class="sim-notas" id="sim-notas" style="display:none">
+                <div class="sim-notas-title">🔬 ¿Qué cambiaría en este diseño?</div>
+                <div id="sim-notas-lista"></div>
+              </div>
+
+              <!-- CONTROLES -->
               <button class="btn-generar-ba" id="btn-ba" onclick="generarBeforeAfter()">
                 ✨ Generar simulación de sonrisa con IA
               </button>
-              <p style="font-size:11px;color:var(--texto3);text-align:center;margin-top:-8px">La IA transformará la foto frontal del paciente con la nueva sonrisa diseñada</p>
+              <div style="display:flex;gap:8px;justify-content:center;margin-top:8px" id="sim-controles-extra" style="display:none">
+                <button class="btn btn-secondary btn-sm" id="btn-toggle-slider" onclick="toggleSlider()" style="display:none">🔀 Vista slider</button>
+              </div>
+              <p style="font-size:11px;color:var(--texto3);text-align:center;margin-top:8px">La IA transformará la foto frontal del paciente con la nueva sonrisa diseñada</p>
             </div>
 
             <div class="card">
@@ -1963,6 +2029,102 @@ function generarPDF() {
 
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// SIMULACIÓN MEJORADA — SLIDER + NIVELES
+// ══════════════════════════════════════════
+var nivelesGenerados = {};
+var nivelActual = 'moderado';
+var sliderActivo = false;
+var sliderDragging = false;
+
+function verNivel(nivel, btn) {
+  nivelActual = nivel;
+  document.querySelectorAll('.sim-tab').forEach(function(t) { t.classList.remove('activo'); });
+  btn.classList.add('activo');
+  if (nivelesGenerados[nivel]) {
+    mostrarImagenAfter(nivelesGenerados[nivel]);
+  } else {
+    generarBeforeAfter();
+  }
+}
+
+function initSlider(beforeSrc, afterSrc) {
+  var container = document.getElementById('img-slider-container');
+  var beforeEl = document.getElementById('slider-before');
+  var afterEl = document.getElementById('slider-after');
+  var divider = document.getElementById('slider-divider');
+  beforeEl.style.backgroundImage = 'url(' + beforeSrc + ')';
+  afterEl.style.backgroundImage = 'url(' + afterSrc + ')';
+  function mover(x) {
+    var rect = container.getBoundingClientRect();
+    var pct = Math.max(5, Math.min(95, ((x - rect.left) / rect.width) * 100));
+    afterEl.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+    divider.style.left = pct + '%';
+  }
+  container.addEventListener('mousedown', function(e) { sliderDragging = true; mover(e.clientX); });
+  container.addEventListener('mousemove', function(e) { if (sliderDragging) mover(e.clientX); });
+  container.addEventListener('mouseup', function() { sliderDragging = false; });
+  container.addEventListener('mouseleave', function() { sliderDragging = false; });
+  container.addEventListener('touchstart', function(e) { sliderDragging = true; mover(e.touches[0].clientX); });
+  container.addEventListener('touchmove', function(e) { e.preventDefault(); mover(e.touches[0].clientX); }, {passive:false});
+  container.addEventListener('touchend', function() { sliderDragging = false; });
+}
+
+function toggleSlider() {
+  sliderActivo = !sliderActivo;
+  var baWrap = document.getElementById('ba-wrap');
+  var sliderContainer = document.getElementById('img-slider-container');
+  var btn = document.getElementById('btn-toggle-slider');
+  if (sliderActivo) {
+    baWrap.style.display = 'none';
+    sliderContainer.style.display = 'block';
+    btn.innerHTML = '⬜ Vista lado a lado';
+    var beforeSrc = imagenes[0] ? 'data:image/jpeg;base64,' + imagenes[0] : '';
+    if (beforeSrc && imagenAfterUrl) initSlider(beforeSrc, imagenAfterUrl);
+  } else {
+    baWrap.style.display = 'grid';
+    sliderContainer.style.display = 'none';
+    btn.innerHTML = '🔀 Vista slider';
+  }
+}
+
+function mostrarImagenAfter(url) {
+  imagenAfterUrl = url;
+  nivelesGenerados[nivelActual] = url;
+  document.getElementById('ba-after-wrap').innerHTML =
+    '<img class="ba-img" src="' + url + '" alt="Simulación" style="cursor:pointer" title="Clic para vista slider" onclick="toggleSlider()">';
+  document.getElementById('sim-disclaimer').style.display = 'block';
+  document.getElementById('sim-fidelidad').style.display = 'block';
+  document.getElementById('sim-tabs').style.display = 'flex';
+  document.getElementById('btn-toggle-slider').style.display = 'inline-flex';
+  document.getElementById('sim-controles-extra').removeAttribute('style');
+  calcularFidelidad();
+  mostrarNotasClinicas();
+}
+
+function calcularFidelidad() {
+  var fotos = imagenes.filter(function(i) { return i !== null; }).length;
+  var base = 50 + fotos * 8;
+  if (analisisResultado && analisisResultado.score) base += Math.min(15, analisisResultado.score);
+  var inst = document.getElementById('aj-instrucciones').value;
+  if (inst && inst.length > 20) base += 5;
+  base = Math.min(85, base);
+  document.getElementById('fidelidad-pct').textContent = base + '%';
+  document.getElementById('fidelidad-bar').style.width = base + '%';
+}
+
+function mostrarNotasClinicas() {
+  var r = analisisResultado || {};
+  var notas = [];
+  if (r.hallazgos) r.hallazgos.slice(0, 3).forEach(function(h) { notas.push(h); });
+  if (r.plan) r.plan.slice(0, 2).forEach(function(p) { notas.push(p); });
+  if (!notas.length) return;
+  document.getElementById('sim-notas-lista').innerHTML = notas.map(function(n) {
+    return '<div class="sim-nota-item"><span class="sim-nota-dot"></span><span>' + n + '</span></div>';
+  }).join('');
+  document.getElementById('sim-notas').style.display = 'block';
+}
+
 var imagenAfterUrl = null;
 
 async function generarBeforeAfter() {
@@ -2043,10 +2205,7 @@ async function generarBeforeAfter() {
     }
 
     if (finalUrl) {
-      imagenAfterUrl = finalUrl;
-      document.getElementById('ba-after-wrap').innerHTML =
-        '<img class="ba-img" src="' + finalUrl + '" alt="Simulación de sonrisa" ' +
-        'style="cursor:pointer" onclick="verImagenCompleta(\'' + finalUrl + '\')">';
+      mostrarImagenAfter(finalUrl);
       btn.innerHTML = '🔄 Regenerar simulación';
       btn.disabled = false;
       var accRow = document.querySelector('.acc-row');
