@@ -933,6 +933,8 @@ var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 var EDGE_URL = SUPA_URL + '/functions/v1/claude';
 var FAL_KEY = 'dac07072-2aff-4b9d-b5ed-99e3ef2bd4ec:7ca18aabd81e0730faf5db366301fca2';
 var FAL_URL = 'https://fal.run/fal-ai/flux/dev/image-to-image';
+var GEMINI_KEY = 'AQ.Ab8RN6KpPgBnCi6TKh9qaXM0leyCFM1sDViT6A2FkcLTJm_j0A';
+var GEMINI_IMG_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + GEMINI_KEY;
 
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
@@ -1717,12 +1719,11 @@ function marcarTodasLeidas() {
 }
 
 // ══════════════════════════════════════════
-// FAL.AI — BEFORE / AFTER SONRISA
+// GEMINI — SIMULACIÓN DE SONRISA
 // ══════════════════════════════════════════
 var imagenAfterUrl = null;
 
 async function generarBeforeAfter() {
-  // Necesitamos la foto frontal (slot 0)
   var fotoBase64 = imagenes[0];
   if (!fotoBase64) {
     alert('Se necesita la fotografía de sonrisa frontal (foto 1) para generar la simulación.');
@@ -1733,85 +1734,112 @@ async function generarBeforeAfter() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-ring" style="width:20px;height:20px;border-width:2px"></div> Generando simulación...';
 
-  // Mostrar loading en el "Después"
+  // Mostrar loading
   document.getElementById('ba-after-wrap').innerHTML =
     '<div class="ba-loading">' +
     '<div class="spinner-ring" style="border-color:rgba(124,58,237,.2);border-top-color:var(--violeta)"></div>' +
-    '<div class="ba-loading-txt">La IA está diseñando tu nueva sonrisa...</div>' +
-    '<div style="font-size:11px;color:var(--texto3)">Esto toma ~15 segundos</div>' +
+    '<div class="ba-loading-txt">Gemini está diseñando tu nueva sonrisa...</div>' +
+    '<div style="font-size:11px;color:var(--texto3)">Esto toma ~20 segundos</div>' +
     '</div>';
 
-  // Mostrar foto original en el "Antes"
+  // Foto original en Before
   var dataUrl = 'data:image/jpeg;base64,' + fotoBase64;
   document.getElementById('ba-before-wrap').innerHTML =
     '<img class="ba-img" src="' + dataUrl + '" alt="Foto original">';
 
-  // Construir prompt basado en el análisis IA
-  var tipoDiseno = document.getElementById('f-caso-tipo').value || 'estetica';
-  var forma = document.getElementById('aj-forma').value || 'natural oval';
-  var tono = document.getElementById('aj-tono').value || 'A1 natural white';
+  var tono = document.getElementById('aj-tono').value || '';
+  var forma = document.getElementById('aj-forma').value || '';
   var instrucciones = document.getElementById('aj-instrucciones').value || '';
+  var tipoDiseno = document.getElementById('f-caso-tipo').value || 'estetica';
 
-  var promptTexto = 'Professional dental smile makeover photo. The same person with a beautiful new smile design. ' +
-    'Perfect white teeth, ' + (tono || 'natural white A1 shade') + ' color. ' +
-    (forma ? forma + ' tooth shape. ' : '') +
-    'Dental veneers, symmetrical smile, professional dental photography. ' +
-    (tipoDiseno === 'ortodoncia' ? 'Perfectly aligned straight teeth after orthodontic treatment. ' : '') +
-    (tipoDiseno === 'implantes' ? 'Complete smile with dental implants, natural looking. ' : '') +
+  var prompt = 'Edit this dental photo. Keep the exact same person, face, skin, lips, background and lighting. ' +
+    'Only modify the teeth: apply perfect porcelain dental veneers. ' +
+    (tono === 'Hollywood White' ? 'Ultra bright Hollywood white color. ' :
+     tono === 'B1' ? 'B1 shade bright white veneers. ' :
+     tono === 'A2' ? 'A2 shade natural white veneers. ' : 'A1 shade natural white veneers. ') +
+    (forma === 'oval' ? 'Oval shaped teeth, soft rounded feminine edges. ' :
+     forma === 'cuadrado' ? 'Square shaped teeth, strong masculine look. ' :
+     forma === 'rectangular' ? 'Rectangular classic veneer shape. ' :
+     forma === 'triangular' ? 'Triangular youthful tooth shape. ' :
+     'Natural oval shaped veneers. ') +
+    (tipoDiseno === 'ortodoncia' ? 'Perfectly straight aligned teeth. ' : '') +
+    (tipoDiseno === 'implantes' ? 'Complete smile with implants, natural looking. ' : '') +
+    'Perfect gum line, no gaps, no stains, natural translucency. ' +
+    'Photorealistic result. Do NOT change anything except the teeth. ' +
     (instrucciones ? instrucciones + '. ' : '') +
-    'High quality, realistic, same face and background, only teeth improved. Photorealistic.';
+    'This is for a professional dental clinic smile design preview.';
 
   try {
-    // Convertir base64 a data URL para fal.ai
-    var imageUrl = 'data:image/jpeg;base64,' + fotoBase64;
-
     var payload = {
-      image_url: imageUrl,
-      prompt: promptTexto,
-      strength: 0.55,
-      num_inference_steps: 28,
-      guidance_scale: 3.5,
-      num_images: 1,
-      enable_safety_checker: false,
+      contents: [{
+        parts: [
+          {
+            inline_data: {
+              mime_type: 'image/jpeg',
+              data: fotoBase64
+            }
+          },
+          { text: prompt }
+        ]
+      }],
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE'],
+        temperature: 1,
+        topP: 0.95,
+      }
     };
 
-    var resp = await fetch(FAL_URL, {
+    var resp = await fetch(GEMINI_IMG_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Key ' + FAL_KEY,
-      },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
     var data = await resp.json();
 
-    if (data.images && data.images.length > 0) {
-      imagenAfterUrl = data.images[0].url;
-      document.getElementById('ba-after-wrap').innerHTML =
-        '<img class="ba-img" src="' + imagenAfterUrl + '" alt="Simulación de sonrisa" ' +
-        'style="cursor:pointer" onclick="verImagenCompleta(\'' + imagenAfterUrl + '\')">';
-      btn.innerHTML = '🔄 Regenerar simulación';
-      btn.disabled = false;
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
 
-      // Agregar botón descargar
-      var accRow = document.querySelector('.acc-row');
-      if (accRow && !document.getElementById('btn-descargar-ba')) {
-        var btnDesc = document.createElement('button');
-        btnDesc.id = 'btn-descargar-ba';
-        btnDesc.className = 'btn btn-secondary';
-        btnDesc.innerHTML = '⬇️ Descargar simulación';
-        btnDesc.onclick = function() { descargarImagen(imagenAfterUrl, 'simulacion-sonrisa.jpg'); };
-        accRow.appendChild(btnDesc);
+    // Buscar imagen en la respuesta
+    var imgData = null;
+    var parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].inlineData && parts[i].inlineData.data) {
+        imgData = parts[i].inlineData.data;
+        break;
       }
-    } else {
-      throw new Error(JSON.stringify(data));
+    }
+
+    if (!imgData) {
+      throw new Error('Gemini no devolvió imagen. Respuesta: ' + JSON.stringify(data).substring(0, 200));
+    }
+
+    imagenAfterUrl = 'data:image/png;base64,' + imgData;
+    document.getElementById('ba-after-wrap').innerHTML =
+      '<img class="ba-img" src="' + imagenAfterUrl + '" alt="Simulación de sonrisa" ' +
+      'style="cursor:pointer" onclick="verImagenCompleta(\'' + imagenAfterUrl + '\')">';
+
+    btn.innerHTML = '🔄 Regenerar simulación';
+    btn.disabled = false;
+
+    // Botón descargar
+    var accRow = document.querySelector('.acc-row');
+    if (accRow && !document.getElementById('btn-descargar-ba')) {
+      var btnDesc = document.createElement('button');
+      btnDesc.id = 'btn-descargar-ba';
+      btnDesc.className = 'btn btn-secondary';
+      btnDesc.innerHTML = '⬇️ Descargar simulación';
+      btnDesc.onclick = function() { descargarImagen(imagenAfterUrl, 'simulacion-sonrisa.png'); };
+      accRow.appendChild(btnDesc);
     }
 
   } catch(e) {
-    console.error('fal.ai error:', e);
+    console.error('Gemini error:', e);
     document.getElementById('ba-after-wrap').innerHTML =
-      '<div class="ba-placeholder"><span style="font-size:28px">⚠️</span><span style="color:var(--rojo)">Error al generar</span><span style="font-size:11px">Intenta de nuevo</span></div>';
+      '<div class="ba-placeholder"><span style="font-size:28px">⚠️</span>' +
+      '<span style="color:var(--rojo)">Error: ' + e.message + '</span>' +
+      '<span style="font-size:11px">Intenta de nuevo</span></div>';
     btn.innerHTML = '🔄 Reintentar';
     btn.disabled = false;
   }
@@ -1826,8 +1854,7 @@ function verImagenCompleta(url) {
 function descargarImagen(url, nombre) {
   var a = document.createElement('a');
   a.href = url;
-  a.download = nombre || 'simulacion.jpg';
-  a.target = '_blank';
+  a.download = nombre || 'simulacion.png';
   a.click();
 }
 
