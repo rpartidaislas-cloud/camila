@@ -931,11 +931,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
 var EDGE_URL = SUPA_URL + '/functions/v1/claude';
-var FAL_KEY = 'dac07072-2aff-4b9d-b5ed-99e3ef2bd4ec:7ca18aabd81e0730faf5db366301fca2';
-var FAL_URL = 'https://fal.run/fal-ai/flux/dev/image-to-image';
-var GEMINI_KEY = 'AIzaSyAXZGbAMmpSrNyScZjV69p9DrOH0Z3_X9g';
-var GEMINI_IMG_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=' + GEMINI_KEY;
-
+var USE_EDGE = true;
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
 var USE_EDGE = true;
@@ -1773,12 +1769,7 @@ async function generarBeforeAfter() {
     var payload = {
       contents: [{
         parts: [
-          {
-            inline_data: {
-              mime_type: 'image/jpeg',
-              data: fotoBase64
-            }
-          },
+          { inline_data: { mime_type: 'image/jpeg', data: fotoBase64 } },
           { text: prompt }
         ]
       }],
@@ -1795,47 +1786,38 @@ async function generarBeforeAfter() {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + SUPA_KEY
       },
-      body: JSON.stringify({ provider: 'gemini', payload: payload })
+      body: JSON.stringify({ action: 'generate_image', payload: payload })
     });
 
     var data = await resp.json();
 
     if (data.error) {
-      throw new Error(data.error.message || JSON.stringify(data.error));
+      throw new Error(data.error);
     }
 
-    // Buscar imagen en la respuesta
-    var imgData = null;
-    var parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-    for (var i = 0; i < parts.length; i++) {
-      if (parts[i].inlineData && parts[i].inlineData.data) {
-        imgData = parts[i].inlineData.data;
-        break;
+    // Respuesta con imageBase64 directo
+    if (data.imageBase64) {
+      var mimeType = data.mimeType || 'image/png';
+      imagenAfterUrl = 'data:' + mimeType + ';base64,' + data.imageBase64;
+      document.getElementById('ba-after-wrap').innerHTML =
+        '<img class="ba-img" src="' + imagenAfterUrl + '" alt="Simulación de sonrisa" ' +
+        'style="cursor:pointer" onclick="verImagenCompleta(\'' + imagenAfterUrl + '\')">';
+      btn.innerHTML = '🔄 Regenerar simulación';
+      btn.disabled = false;
+      // Botón descargar
+      var accRow = document.querySelector('.acc-row');
+      if (accRow && !document.getElementById('btn-descargar-ba')) {
+        var btnDesc = document.createElement('button');
+        btnDesc.id = 'btn-descargar-ba';
+        btnDesc.className = 'btn btn-secondary';
+        btnDesc.innerHTML = '⬇️ Descargar simulación';
+        btnDesc.onclick = function() { descargarImagen(imagenAfterUrl, 'simulacion-sonrisa.png'); };
+        accRow.appendChild(btnDesc);
       }
+      return;
     }
 
-    if (!imgData) {
-      throw new Error('Gemini no devolvió imagen. Respuesta: ' + JSON.stringify(data).substring(0, 200));
-    }
-
-    imagenAfterUrl = 'data:image/png;base64,' + imgData;
-    document.getElementById('ba-after-wrap').innerHTML =
-      '<img class="ba-img" src="' + imagenAfterUrl + '" alt="Simulación de sonrisa" ' +
-      'style="cursor:pointer" onclick="verImagenCompleta(\'' + imagenAfterUrl + '\')">';
-
-    btn.innerHTML = '🔄 Regenerar simulación';
-    btn.disabled = false;
-
-    // Botón descargar
-    var accRow = document.querySelector('.acc-row');
-    if (accRow && !document.getElementById('btn-descargar-ba')) {
-      var btnDesc = document.createElement('button');
-      btnDesc.id = 'btn-descargar-ba';
-      btnDesc.className = 'btn btn-secondary';
-      btnDesc.innerHTML = '⬇️ Descargar simulación';
-      btnDesc.onclick = function() { descargarImagen(imagenAfterUrl, 'simulacion-sonrisa.png'); };
-      accRow.appendChild(btnDesc);
-    }
+    throw new Error('No se generó imagen. Respuesta: ' + JSON.stringify(data).substring(0, 200));
 
   } catch(e) {
     console.error('Gemini error:', e);
