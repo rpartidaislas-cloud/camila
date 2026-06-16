@@ -1748,9 +1748,9 @@ async function generarBeforeAfter() {
   var instrucciones = document.getElementById('aj-instrucciones').value || '';
   var tipoDiseno = document.getElementById('f-caso-tipo').value || 'estetica';
 
-  var prompt = 'Edit this dental photo. Keep the exact same person, face, skin, lips, background and lighting. ' +
-    'Only modify the teeth: apply perfect porcelain dental veneers. ' +
-    (tono === 'Hollywood White' ? 'Ultra bright Hollywood white color. ' :
+  var prompt = 'This is a dental smile makeover simulation. Keep the exact same person, face, skin tone, lips, hair and background. ' +
+    'Only modify the teeth to look like perfect porcelain dental veneers. ' +
+    (tono === 'Hollywood White' ? 'Ultra bright Hollywood white veneers. ' :
      tono === 'B1' ? 'B1 shade bright white veneers. ' :
      tono === 'A2' ? 'A2 shade natural white veneers. ' : 'A1 shade natural white veneers. ') +
     (forma === 'oval' ? 'Oval shaped teeth, soft rounded feminine edges. ' :
@@ -1760,10 +1760,9 @@ async function generarBeforeAfter() {
      'Natural oval shaped veneers. ') +
     (tipoDiseno === 'ortodoncia' ? 'Perfectly straight aligned teeth. ' : '') +
     (tipoDiseno === 'implantes' ? 'Complete smile with implants, natural looking. ' : '') +
-    'Perfect gum line, no gaps, no stains, natural translucency. ' +
-    'Photorealistic result. Do NOT change anything except the teeth. ' +
+    'Perfect gum line, no gaps, no stains, natural translucency. Photorealistic dental photography. ' +
     (instrucciones ? instrucciones + '. ' : '') +
-    'This is for a professional dental clinic smile design preview.';
+    'Professional dental clinic smile design preview. Do NOT change anything except the teeth.';
 
   try {
     var resp = await fetch(EDGE_URL, {
@@ -1786,16 +1785,20 @@ async function generarBeforeAfter() {
       throw new Error(data.error);
     }
 
-    // Respuesta con imageBase64 directo
+    var finalUrl = null;
     if (data.imageBase64) {
-      var mimeType = data.mimeType || 'image/png';
-      imagenAfterUrl = 'data:' + mimeType + ';base64,' + data.imageBase64;
+      finalUrl = 'data:' + (data.mimeType || 'image/png') + ';base64,' + data.imageBase64;
+    } else if (data.imageUrl) {
+      finalUrl = data.imageUrl;
+    }
+
+    if (finalUrl) {
+      imagenAfterUrl = finalUrl;
       document.getElementById('ba-after-wrap').innerHTML =
-        '<img class="ba-img" src="' + imagenAfterUrl + '" alt="Simulación de sonrisa" ' +
-        'style="cursor:pointer" onclick="verImagenCompleta(\'' + imagenAfterUrl + '\')">';
+        '<img class="ba-img" src="' + finalUrl + '" alt="Simulación de sonrisa" ' +
+        'style="cursor:pointer" onclick="verImagenCompleta(\'' + finalUrl + '\')">';
       btn.innerHTML = '🔄 Regenerar simulación';
       btn.disabled = false;
-      // Botón descargar
       var accRow = document.querySelector('.acc-row');
       if (accRow && !document.getElementById('btn-descargar-ba')) {
         var btnDesc = document.createElement('button');
