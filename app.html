@@ -936,7 +936,7 @@ var FAL_URL = 'https://fal.run/fal-ai/flux/dev/image-to-image';
 
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
-var USE_EDGE = false; // cambiar a true cuando esté creada la Edge Function
+var USE_EDGE = true;
 
 var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
