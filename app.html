@@ -1,590 +1,1684 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CAMILA &middot; Mi Consultorio</title>
+<title>CAMILA · Diseño de Sonrisa Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --negro:#0A0A0A;--negro-2:#111111;--negro-3:#1A1A1A;--negro-4:#222222;--negro-5:#2A2A2A;
-  --dorado:#C9A84C;--dorado-claro:#E8C97A;--dorado-suave:rgba(201,168,76,.1);--dorado-borde:rgba(201,168,76,.25);
-  --blanco:#FFFFFF;--gris:#A0A0A0;--gris-2:#666666;--borde:#2A2A2A;
-  --verde:#22C55E;--verde-suave:rgba(34,197,94,.1);
-  --rojo:#EF4444;--rojo-suave:rgba(239,68,68,.1);
-  --naranja:#F59E0B;--naranja-suave:rgba(245,158,11,.1);
+  --bg:#F8FAFC;
+  --bg2:#FFFFFF;
+  --bg3:#F1F5F9;
+  --borde:#E2E8F0;
+  --borde2:#CBD5E1;
+  --texto:#0F172A;
+  --texto2:#475569;
+  --texto3:#94A3B8;
+  --azul:#2563EB;
+  --azul-s:#EFF6FF;
+  --azul-b:#BFDBFE;
+  --violeta:#7C3AED;
+  --violeta-s:#F5F3FF;
+  --violeta-b:#DDD6FE;
+  --teal:#0D9488;
+  --teal-s:#F0FDFA;
+  --verde:#16A34A;
+  --verde-s:#F0FDF4;
+  --rojo:#DC2626;
+  --rojo-s:#FEF2F2;
+  --naranja:#D97706;
+  --naranja-s:#FFFBEB;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.05);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.08),0 4px 6px rgba(0,0,0,.05);
+  --radius:12px;
+  --radius-s:8px;
+  --radius-l:16px;
 }
-body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);min-height:100vh}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;font-size:14px}
+
+/* ── LAYOUT ── */
 .layout{display:flex;min-height:100vh}
-.sidebar{width:230px;background:var(--negro-2);border-right:0.5px solid var(--borde);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
-.sb-logo{padding:22px 20px 18px;border-bottom:0.5px solid var(--borde)}
-.sb-logo h1{font-family:'Playfair Display',serif;color:var(--dorado);font-size:20px}
-.sb-logo span{color:var(--gris-2);font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
-.sb-user{padding:14px 20px;border-bottom:0.5px solid var(--borde)}
-.sb-user .nombre{color:var(--blanco);font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-user .plan-badge{display:inline-block;background:var(--dorado-suave);border:0.5px solid var(--dorado-borde);color:var(--dorado);font-size:10px;font-weight:600;padding:2px 10px;border-radius:20px;margin-top:6px;letter-spacing:.5px;text-transform:capitalize}
-.uso-bar{background:var(--negro-4);border-radius:3px;height:3px;margin-top:10px;overflow:hidden}
-.uso-fill{background:var(--dorado);height:100%;border-radius:3px;transition:width .4s}
-.uso-txt{color:var(--gris-2);font-size:10px;margin-top:5px}
-.nav-items{flex:1;padding:12px 10px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--gris);font-size:13px;font-weight:500;transition:all .2s;margin-bottom:1px}
-.nav-item:hover{background:var(--negro-4);color:var(--blanco)}
-.nav-item.activo{background:var(--dorado-suave);color:var(--dorado);border:0.5px solid var(--dorado-borde)}
-.sb-foot{padding:14px 20px;border-top:0.5px solid var(--borde)}
-.btn-cerrar{width:100%;padding:9px;background:none;color:var(--gris-2);border:0.5px solid var(--borde);border-radius:7px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.btn-cerrar:hover{color:var(--blanco);border-color:var(--gris)}
-.main{flex:1;overflow-y:auto}
-.topbar{background:var(--negro-2);border-bottom:0.5px solid var(--borde);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.topbar-title{font-size:15px;font-weight:600;color:var(--blanco)}
-.topbar-sub{font-size:12px;color:var(--gris-2)}
-.contenido{padding:24px 28px;max-width:920px}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--borde);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20}
+.main{flex:1;overflow-y:auto;min-width:0}
+
+/* ── SIDEBAR ── */
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid var(--borde);display:flex;align-items:center;gap:10px}
+.sb-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--violeta),var(--azul));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sb-logo h1{font-size:17px;font-weight:800;color:var(--texto);letter-spacing:-.3px}
+.sb-logo span{font-size:10px;color:var(--texto3);letter-spacing:.5px}
+
+.sb-user{padding:14px 16px;border-bottom:1px solid var(--borde)}
+.sb-avatar{width:34px;height:34px;background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));border:2px solid var(--violeta-b);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--violeta);flex-shrink:0}
+.sb-user-row{display:flex;align-items:center;gap:10px}
+.sb-nombre{font-size:13px;font-weight:600;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-plan{font-size:10px;color:var(--texto3);margin-top:1px}
+.plan-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;margin-top:8px}
+.plan-esencial{background:var(--azul-s);color:var(--azul);border:1px solid var(--azul-b)}
+.plan-profesional{background:var(--violeta-s);color:var(--violeta);border:1px solid var(--violeta-b)}
+.plan-premium{background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));color:var(--violeta);border:1px solid var(--violeta-b)}
+.uso-wrap{margin-top:10px}
+.uso-bar{background:var(--bg3);border-radius:99px;height:4px;overflow:hidden}
+.uso-fill{background:linear-gradient(90deg,var(--violeta),var(--azul));height:100%;border-radius:99px;transition:width .4s}
+.uso-txt{font-size:10px;color:var(--texto3);margin-top:4px}
+
+.nav-section{padding:8px 10px 4px;font-size:10px;font-weight:600;color:var(--texto3);text-transform:uppercase;letter-spacing:.8px}
+.nav-items{flex:1;padding:8px 10px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-s);cursor:pointer;color:var(--texto2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--texto)}
+.nav-item.activo{background:var(--violeta-s);color:var(--violeta);border-color:var(--violeta-b);font-weight:600}
+.nav-item .ni-icon{width:18px;text-align:center;font-size:15px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--rojo);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center}
+
+.sb-foot{padding:12px 10px;border-top:1px solid var(--borde)}
+.btn-cerrar{width:100%;padding:9px 14px;background:none;color:var(--texto2);border:1px solid var(--borde);border-radius:var(--radius-s);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-cerrar:hover{border-color:var(--rojo);color:var(--rojo);background:var(--rojo-s)}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--borde);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar-left h2{font-size:16px;font-weight:700;color:var(--texto)}
+.topbar-left p{font-size:12px;color:var(--texto3);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn-noti{width:36px;height:36px;border-radius:var(--radius-s);border:1px solid var(--borde);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;transition:all .15s}
+.btn-noti:hover{border-color:var(--violeta);background:var(--violeta-s)}
+.noti-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--rojo);border-radius:50%;border:1.5px solid var(--bg2)}
+
+/* ── CONTENIDO ── */
+.contenido{padding:24px 28px;max-width:980px}
 .pantalla{display:none}.pantalla.activa{display:block}
-.card{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:14px;padding:22px;margin-bottom:16px}
-.card-title{font-size:11px;font-weight:600;color:var(--dorado);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
-.stat{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:12px;padding:16px}
-.stat-num{font-size:30px;font-weight:800;color:var(--blanco)}
-.stat-lbl{font-size:11px;color:var(--gris-2);margin-top:3px}
-.stat.gold .stat-num{color:var(--dorado)}
-.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.upload-slot{border:1px dashed var(--borde);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.upload-slot:hover,.upload-slot.drag{border-color:var(--dorado);background:var(--dorado-suave)}
-.upload-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
-.upload-slot .slot-icon{font-size:28px;margin-bottom:8px}
-.upload-slot h4{font-size:12px;font-weight:600;color:var(--blanco);margin-bottom:3px}
-.upload-slot p{font-size:11px;color:var(--gris-2)}
-.upload-slot .slot-preview{width:100%;max-height:100px;object-fit:contain;border-radius:8px}
-.upload-slot.tiene-img{border-color:var(--dorado-borde);background:var(--dorado-suave)}
-.slot-check{position:absolute;top:8px;right:8px;width:20px;height:20px;background:var(--dorado);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:11px;color:var(--negro)}
-.upload-slot.tiene-img .slot-check{display:flex}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--borde);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:700;color:var(--texto3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-header .card-title{margin-bottom:0}
+
+/* ── BOTONES ── */
+.btn{padding:10px 18px;border-radius:var(--radius-s);font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:7px;border:none}
+.btn-primary{background:linear-gradient(135deg,var(--violeta),var(--azul));color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.25)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,58,237,.35)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--bg2);color:var(--texto2);border:1px solid var(--borde)}
+.btn-secondary:hover{border-color:var(--violeta);color:var(--violeta);background:var(--violeta-s)}
+.btn-danger{background:var(--rojo-s);color:var(--rojo);border:1px solid rgba(220,38,38,.2)}
+.btn-danger:hover{background:var(--rojo);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-full{width:100%;justify-content:center;margin-top:12px}
+.btn-icon{width:34px;height:34px;padding:0;justify-content:center;border:1px solid var(--borde);background:var(--bg2);border-radius:var(--radius-s);font-size:15px}
+.btn-icon:hover{border-color:var(--violeta);background:var(--violeta-s)}
+
+/* ── FORMS ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fg{display:flex;flex-direction:column;gap:5px}
 .fg.full{grid-column:1/-1}
-.fg label{font-size:11px;font-weight:600;color:var(--gris-2);text-transform:uppercase;letter-spacing:.5px}
-.fg input,.fg select,.fg textarea{background:var(--negro-4);border:0.5px solid var(--borde);border-radius:8px;padding:10px 13px;font-size:13px;font-family:'Inter',sans-serif;color:var(--blanco);outline:none;transition:border .2s}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--dorado)}
-.fg input::placeholder,.fg textarea::placeholder{color:var(--gris-2)}
-.fg select option{background:var(--negro-4)}
-.fg textarea{resize:vertical;min-height:70px}
-.btn-gold{padding:13px 24px;background:var(--dorado);color:var(--negro);border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
-.btn-gold:hover{background:var(--dorado-claro);transform:translateY(-1px)}
-.btn-gold:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-ghost{padding:11px 20px;background:none;color:var(--gris);border:0.5px solid var(--borde);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.btn-ghost:hover{border-color:var(--dorado);color:var(--dorado)}
-.btn-full{width:100%;margin-top:10px}
-.loading{display:none;flex-direction:column;align-items:center;gap:16px;padding:60px;text-align:center}
-.loading.visible{display:flex}
-.spinner{width:44px;height:44px;border:2px solid var(--borde);border-top:2px solid var(--dorado);border-radius:50%;animation:spin .9s linear infinite}
+.fg label{font-size:11px;font-weight:600;color:var(--texto2);letter-spacing:.3px}
+.fg input,.fg select,.fg textarea{background:var(--bg);border:1px solid var(--borde);border-radius:var(--radius-s);padding:9px 12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--texto);outline:none;transition:border .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--violeta);background:var(--bg2);box-shadow:0 0 0 3px rgba(124,58,237,.08)}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--texto3)}
+.fg textarea{resize:vertical;min-height:72px}
+
+/* ── STATS DASHBOARD ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--borde);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.stat-icon{width:36px;height:36px;border-radius:var(--radius-s);display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px}
+.stat-num{font-size:26px;font-weight:800;color:var(--texto)}
+.stat-lbl{font-size:11px;color:var(--texto3);margin-top:2px}
+.stat-violeta .stat-icon{background:var(--violeta-s)}
+.stat-azul .stat-icon{background:var(--azul-s)}
+.stat-teal .stat-icon{background:var(--teal-s)}
+.stat-verde .stat-icon{background:var(--verde-s)}
+
+/* ── TABLA PACIENTES ── */
+.search-bar{display:flex;gap:10px;margin-bottom:16px}
+.search-inp{flex:1;background:var(--bg);border:1px solid var(--borde);border-radius:var(--radius-s);padding:9px 14px 9px 36px;font-size:13px;font-family:'Inter',sans-serif;color:var(--texto);outline:none;transition:border .15s}
+.search-inp:focus{border-color:var(--violeta);box-shadow:0 0 0 3px rgba(124,58,237,.08)}
+.search-wrap{position:relative;flex:1}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--texto3);font-size:14px;pointer-events:none}
+.tabla{width:100%;border-collapse:collapse}
+.tabla th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--texto3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--borde);background:var(--bg)}
+.tabla td{padding:12px 14px;border-bottom:1px solid var(--borde);color:var(--texto2);font-size:13px;vertical-align:middle}
+.tabla tr:last-child td{border:none}
+.tabla tr:hover td{background:var(--bg3)}
+.pac-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));border:1.5px solid var(--violeta-b);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--violeta);flex-shrink:0}
+.pac-name{font-weight:600;color:var(--texto)}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:500}
+.badge-azul{background:var(--azul-s);color:var(--azul)}
+.badge-verde{background:var(--verde-s);color:var(--verde)}
+.badge-violeta{background:var(--violeta-s);color:var(--violeta)}
+.badge-naranja{background:var(--naranja-s);color:var(--naranja)}
+.badge-gris{background:var(--bg3);color:var(--texto3)}
+
+/* ── DETALLE PACIENTE ── */
+.pac-header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.pac-avatar-lg{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));border:2px solid var(--violeta-b);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--violeta)}
+.pac-header-info h2{font-size:18px;font-weight:700;color:var(--texto)}
+.pac-header-info p{font-size:13px;color:var(--texto3);margin-top:2px}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.info-item{background:var(--bg3);border-radius:var(--radius-s);padding:12px}
+.info-item .lbl{font-size:10px;font-weight:600;color:var(--texto3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.info-item .val{font-size:13px;font-weight:500;color:var(--texto)}
+.casos-lista{display:flex;flex-direction:column;gap:8px}
+.caso-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg3);border:1px solid var(--borde);border-radius:var(--radius-s);cursor:pointer;transition:all .15s}
+.caso-row:hover{border-color:var(--violeta);background:var(--violeta-s)}
+.caso-info h4{font-size:13px;font-weight:600;color:var(--texto)}
+.caso-info p{font-size:11px;color:var(--texto3);margin-top:2px}
+
+/* ── FLUJO NUEVO DISEÑO ── */
+.steps-bar{display:flex;align-items:center;margin-bottom:24px;background:var(--bg2);border:1px solid var(--borde);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow)}
+.step-item{display:flex;align-items:center;gap:8px;flex:1}
+.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--borde2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--texto3);flex-shrink:0;transition:all .2s}
+.step-item.activo .step-num{background:linear-gradient(135deg,var(--violeta),var(--azul));border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3)}
+.step-item.hecho .step-num{background:var(--verde-s);border-color:var(--verde);color:var(--verde)}
+.step-lbl{font-size:12px;font-weight:500;color:var(--texto3)}
+.step-item.activo .step-lbl{color:var(--violeta);font-weight:600}
+.step-item.hecho .step-lbl{color:var(--verde)}
+.step-sep{flex:1;height:1px;background:var(--borde);margin:0 8px;max-width:40px}
+
+/* ── UPLOAD SLOTS ── */
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.upload-slot{border:2px dashed var(--borde);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg)}
+.upload-slot:hover,.upload-slot.drag{border-color:var(--violeta);background:var(--violeta-s)}
+.upload-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.upload-slot .slot-icon{font-size:30px;margin-bottom:8px}
+.upload-slot h4{font-size:12px;font-weight:600;color:var(--texto);margin-bottom:3px}
+.upload-slot p{font-size:11px;color:var(--texto3)}
+.upload-slot img.slot-preview{width:100%;max-height:90px;object-fit:contain;border-radius:6px}
+.upload-slot.tiene-img{border-color:var(--violeta-b);border-style:solid;background:var(--violeta-s)}
+.slot-check{position:absolute;top:8px;right:8px;width:22px;height:22px;background:var(--violeta);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:11px;color:#fff}
+.upload-slot.tiene-img .slot-check{display:flex}
+
+/* ── ANÁLISIS IA ── */
+.loading-ia{display:none;flex-direction:column;align-items:center;gap:14px;padding:48px;text-align:center}
+.loading-ia.visible{display:flex}
+.spinner-ring{width:48px;height:48px;border:3px solid var(--borde);border-top:3px solid var(--violeta);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.reporte{display:none}.reporte.visible{display:block}
-.rep-header{background:var(--negro-4);border:0.5px solid var(--dorado-borde);border-radius:14px;padding:22px 26px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
-.rep-header-info h2{font-family:'Playfair Display',serif;font-size:20px;color:var(--blanco);margin-bottom:3px}
-.rep-header-info p{font-size:12px;color:var(--gris-2)}
-.score-box{text-align:center;background:var(--dorado-suave);border:0.5px solid var(--dorado-borde);border-radius:10px;padding:12px 20px;min-width:90px}
-.score-num{font-size:32px;font-weight:800;color:var(--dorado)}
-.score-lbl{font-size:10px;color:var(--gris-2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.ia-progress{display:flex;flex-direction:column;gap:6px;width:100%;max-width:300px}
+.ia-step-loading{font-size:12px;color:var(--texto3);display:flex;align-items:center;gap:8px}
+.ia-step-loading.done{color:var(--verde)}
+
+/* ── REPORTE ── */
+.reporte-wrap{display:none}.reporte-wrap.visible{display:block}
+.rep-header-card{background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));border:1px solid var(--violeta-b);border-radius:var(--radius-l);padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.rep-title{font-size:18px;font-weight:800;color:var(--texto)}
+.rep-sub{font-size:12px;color:var(--texto3);margin-top:3px}
+.score-circle{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--violeta),var(--azul));display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.score-num{font-size:22px;font-weight:800;color:#fff;line-height:1}
+.score-lbl{font-size:9px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 .rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.rep-sec{background:var(--negro-4);border:0.5px solid var(--borde);border-radius:12px;padding:16px}
-.rep-sec h4{font-size:11px;font-weight:600;color:var(--dorado);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-.rep-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px;color:var(--gris);line-height:1.5}
-.rep-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.rep-sec{background:var(--bg3);border-radius:var(--radius-s);padding:14px}
+.rep-sec h4{font-size:11px;font-weight:600;color:var(--texto2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.rep-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:7px;font-size:12px;color:var(--texto2);line-height:1.5}
+.rep-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
 .dot-ok{background:var(--verde)}
 .dot-warn{background:var(--naranja)}
 .dot-mal{background:var(--rojo)}
-.dot-gold{background:var(--dorado)}
-.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin:2px}
-.tag-gold{background:var(--dorado-suave);color:var(--dorado);border:0.5px solid var(--dorado-borde)}
-.cot-header{background:var(--negro-4);border:0.5px solid var(--dorado-borde);border-radius:14px;padding:20px 24px;margin-bottom:14px}
-.cot-paciente{font-size:16px;font-weight:600;color:var(--blanco);margin-bottom:4px}
-.cot-fecha{font-size:12px;color:var(--gris-2)}
-.cot-tabla{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
-.cot-tabla th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--gris-2);text-transform:uppercase;letter-spacing:.5px;border-bottom:0.5px solid var(--borde)}
-.cot-tabla td{padding:12px 14px;border-bottom:0.5px solid var(--negro-5);color:var(--gris)}
+.dot-violeta{background:var(--violeta)}
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;margin:2px;background:var(--violeta-s);color:var(--violeta);border:1px solid var(--violeta-b)}
+
+/* ── COTIZACIÓN ── */
+.cot-tabla{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+.cot-tabla th{text-align:left;padding:9px 12px;font-size:11px;font-weight:600;color:var(--texto3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--borde);background:var(--bg3)}
+.cot-tabla td{padding:11px 12px;border-bottom:1px solid var(--borde);color:var(--texto2)}
 .cot-tabla tr:last-child td{border:none}
-.cot-tabla .td-num{color:var(--dorado);font-weight:600;text-align:right}
-.cot-total{display:flex;align-items:center;justify-content:space-between;background:var(--dorado-suave);border:0.5px solid var(--dorado-borde);border-radius:10px;padding:14px 18px;margin-bottom:16px}
-.cot-total-lbl{font-size:13px;color:var(--gris)}
-.cot-total-num{font-size:24px;font-weight:800;color:var(--dorado)}
-.texto-px{background:var(--negro-4);border-left:3px solid var(--dorado);border-radius:0 10px 10px 0;padding:16px 20px;margin-bottom:16px}
-.texto-px h4{font-size:11px;font-weight:600;color:var(--dorado);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.texto-px p{font-size:13px;color:var(--gris);line-height:1.75}
-.acc-row{display:flex;gap:10px;flex-wrap:wrap}
-.btn-acc{flex:1;min-width:120px;padding:11px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:'Inter',sans-serif}
-.btn-nuevo-caso{background:var(--negro-4);color:var(--gris);border:0.5px solid var(--borde)}
-.btn-imprimir{background:var(--dorado);color:var(--negro)}
-.btn-copiar{background:var(--verde-suave);color:var(--verde);border:0.5px solid rgba(34,197,94,.2)}
-.precio-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--borde)}
+.td-num{text-align:right;font-weight:600;color:var(--texto)}
+.cot-total-row{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));border:1px solid var(--violeta-b);border-radius:var(--radius-s);padding:14px 16px;margin-bottom:14px}
+.cot-total-num{font-size:22px;font-weight:800;color:var(--violeta)}
+.texto-paciente{background:var(--azul-s);border-left:3px solid var(--azul);border-radius:0 var(--radius-s) var(--radius-s) 0;padding:14px 18px;margin-bottom:14px}
+.texto-paciente h4{font-size:11px;font-weight:600;color:var(--azul);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.texto-paciente p{font-size:13px;color:var(--texto2);line-height:1.75}
+.acc-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── HISTORIAL ── */
+.hist-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border:1px solid var(--borde);border-radius:var(--radius-s);margin-bottom:8px;cursor:pointer;transition:all .15s}
+.hist-item:hover{border-color:var(--violeta);background:var(--violeta-s)}
+.hist-info h4{font-size:13px;font-weight:600;color:var(--texto)}
+.hist-info p{font-size:11px;color:var(--texto3);margin-top:2px}
+.hist-right{text-align:right}
+.hist-total{font-size:14px;font-weight:700;color:var(--violeta)}
+
+/* ── CHAT ── */
+.chat-wrap{background:var(--bg2);border:1px solid var(--borde);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;height:480px;box-shadow:var(--shadow-md)}
+.chat-head{background:linear-gradient(135deg,var(--violeta),var(--azul));padding:14px 18px;display:flex;align-items:center;gap:10px}
+.chat-av{width:36px;height:36px;border:2px solid rgba(255,255,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;background:rgba(255,255,255,.15)}
+.chat-head h3{color:#fff;font-size:13px;font-weight:700}
+.chat-head p{color:rgba(255,255,255,.7);font-size:11px}
+.chat-online{width:8px;height:8px;background:#4ade80;border-radius:50%;border:1.5px solid rgba(255,255,255,.5);margin-left:auto}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.msg{max-width:78%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.55}
+.msg-ia{background:var(--bg2);color:var(--texto2);border-radius:4px 12px 12px 12px;border:1px solid var(--borde);align-self:flex-start;box-shadow:var(--shadow)}
+.msg-user{background:linear-gradient(135deg,var(--violeta),var(--azul));color:#fff;border-radius:12px 4px 12px 12px;align-self:flex-end}
+.chips-rapidas{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;background:var(--bg2);border-top:1px solid var(--borde)}
+.chip-r{padding:5px 12px;background:var(--bg3);color:var(--texto2);border-radius:99px;font-size:11px;cursor:pointer;border:1px solid var(--borde);transition:all .15s}
+.chip-r:hover{border-color:var(--violeta);color:var(--violeta);background:var(--violeta-s)}
+.chat-inp-row{border-top:1px solid var(--borde);padding:10px 12px;display:flex;gap:8px;background:var(--bg2)}
+.chat-inp{flex:1;background:var(--bg3);border:1px solid var(--borde);border-radius:99px;padding:9px 16px;font-size:13px;font-family:'Inter',sans-serif;color:var(--texto);outline:none;transition:border .15s}
+.chat-inp:focus{border-color:var(--violeta);background:var(--bg2)}
+.chat-send{width:36px;height:36px;background:linear-gradient(135deg,var(--violeta),var(--azul));border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(124,58,237,.3)}
+.chat-send:hover{transform:scale(1.05)}
+
+/* ── PRECIOS ── */
+.precio-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--borde)}
 .precio-item:last-child{border:none}
-.precio-lbl{font-size:13px;color:var(--blanco);font-weight:500}
-.precio-desc{font-size:11px;color:var(--gris-2);margin-top:2px}
-.precio-input{background:var(--negro-4);border:0.5px solid var(--borde);border-radius:7px;padding:8px 12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--dorado);outline:none;width:120px;text-align:right}
-.precio-input:focus{border-color:var(--dorado)}
-.hist-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--negro-4);border:0.5px solid var(--borde);border-radius:10px;margin-bottom:8px}
-.hist-info h4{font-size:13px;font-weight:600;color:var(--blanco)}
-.hist-info p{font-size:11px;color:var(--gris-2);margin-top:2px}
-.hist-total{font-size:14px;font-weight:700;color:var(--dorado)}
-.alerta{padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:14px;display:none;align-items:center;gap:8px}
+.precio-lbl{font-size:13px;color:var(--texto);font-weight:500}
+.precio-desc{font-size:11px;color:var(--texto3);margin-top:2px}
+.precio-inp-wrap{display:flex;align-items:center;gap:6px}
+.precio-input{background:var(--bg3);border:1px solid var(--borde);border-radius:var(--radius-s);padding:7px 10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--violeta);font-weight:600;outline:none;width:110px;text-align:right}
+.precio-input:focus{border-color:var(--violeta);background:var(--bg2)}
+
+/* ── NOTIFICACIONES ── */
+.noti-item{display:flex;gap:12px;padding:14px;border:1px solid var(--borde);border-radius:var(--radius-s);margin-bottom:8px;background:var(--bg2);transition:all .15s}
+.noti-item.no-leida{border-left:3px solid var(--violeta);background:var(--violeta-s)}
+.noti-icon{width:36px;height:36px;border-radius:var(--radius-s);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.noti-info h4{font-size:13px;font-weight:600;color:var(--texto)}
+.noti-info p{font-size:12px;color:var(--texto2);margin-top:3px;line-height:1.5}
+.noti-fecha{font-size:10px;color:var(--texto3);margin-top:5px}
+
+/* ── MI CUENTA ── */
+.cuenta-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+.plan-card{background:linear-gradient(135deg,var(--violeta),var(--azul));border-radius:var(--radius-l);padding:24px;color:#fff}
+.plan-card h3{font-size:22px;font-weight:800;margin-bottom:4px}
+.plan-card p{font-size:13px;opacity:.8}
+.plan-features{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+.plan-feature{font-size:12px;opacity:.9;display:flex;align-items:center;gap:6px}
+.upgrade-btn{margin-top:20px;padding:10px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:var(--radius-s);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;width:100%;transition:all .2s}
+.upgrade-btn:hover{background:rgba(255,255,255,.3)}
+
+/* ── COLABORACIONES ── */
+.collab-empty{text-align:center;padding:48px 20px}
+.collab-empty .icon{font-size:40px;margin-bottom:12px}
+.collab-empty h3{font-size:16px;font-weight:600;color:var(--texto);margin-bottom:6px}
+.collab-empty p{font-size:13px;color:var(--texto3)}
+
+/* ── ALERTAS ── */
+.alerta{padding:12px 16px;border-radius:var(--radius-s);font-size:13px;margin-bottom:14px;display:none;align-items:center;gap:8px}
 .alerta.visible{display:flex}
-.alerta-warn{background:var(--naranja-suave);border:0.5px solid rgba(245,158,11,.2);color:var(--naranja)}
-.empty{text-align:center;padding:50px 20px;color:var(--gris-2);font-size:14px}
-.chat-wrap{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:460px}
-.chat-head{background:var(--negro-4);border-bottom:0.5px solid var(--borde);padding:14px 18px;display:flex;align-items:center;gap:10px}
-.chat-av{width:34px;height:34px;border:1.5px solid var(--dorado);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dorado);font-family:'Playfair Display',serif;font-weight:700}
-.chat-head h3{color:var(--blanco);font-size:13px;font-weight:600}
-.chat-head p{color:var(--gris-2);font-size:11px}
-.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:78%;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.55}
-.msg-ia{background:var(--negro-4);color:var(--gris);border-radius:4px 12px 12px 12px;border:0.5px solid var(--borde);align-self:flex-start}
-.msg-user{background:var(--dorado-suave);color:var(--dorado);border:0.5px solid var(--dorado-borde);border-radius:12px 4px 12px 12px;align-self:flex-end}
-.chat-rapidas{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px}
-.chip-r{padding:5px 12px;background:var(--negro-4);color:var(--gris);border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid var(--borde);transition:all .15s}
-.chip-r:hover{border-color:var(--dorado);color:var(--dorado)}
-.chat-inp-row{border-top:0.5px solid var(--borde);padding:12px 14px;display:flex;gap:8px;background:var(--negro-4)}
-.chat-inp{flex:1;background:var(--negro-3);border:0.5px solid var(--borde);border-radius:20px;padding:9px 16px;font-size:13px;font-family:'Inter',sans-serif;color:var(--blanco);outline:none}
-.chat-inp:focus{border-color:var(--dorado)}
-.chat-inp::placeholder{color:var(--gris-2)}
-.chat-send{width:36px;height:36px;background:var(--dorado);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--negro);flex-shrink:0}
-.chat-send:hover{background:var(--dorado-claro)}
-@media(max-width:700px){.sidebar{display:none}.stats-grid,.rep-grid,.form-grid,.upload-grid{grid-template-columns:1fr}.contenido{padding:16px}}
-@media print{.sidebar,.topbar,.acc-row,.alerta,.chat-wrap{display:none!important}.pantalla{display:block!important}body{background:#fff;color:#000}}
+.alerta-warn{background:var(--naranja-s);border:1px solid rgba(217,119,6,.2);color:var(--naranja)}
+.alerta-error{background:var(--rojo-s);border:1px solid rgba(220,38,38,.2);color:var(--rojo)}
+.alerta-ok{background:var(--verde-s);border:1px solid rgba(22,163,74,.2);color:var(--verde)}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px}
+.empty .icon{font-size:36px;margin-bottom:12px}
+.empty h3{font-size:15px;font-weight:600;color:var(--texto);margin-bottom:6px}
+.empty p{font-size:13px;color:var(--texto3);margin-bottom:16px}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.visible{display:flex}
+.modal{background:var(--bg2);border-radius:var(--radius-l);padding:24px;width:90%;max-width:520px;box-shadow:var(--shadow-lg);border:1px solid var(--borde)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-header h3{font-size:16px;font-weight:700;color:var(--texto)}
+.modal-close{width:28px;height:28px;border-radius:var(--radius-s);border:1px solid var(--borde);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--texto3);transition:all .15s}
+.modal-close:hover{border-color:var(--rojo);color:var(--rojo);background:var(--rojo-s)}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .rep-grid,.form-grid,.upload-grid,.cuenta-grid,.info-grid{grid-template-columns:1fr}
+  .contenido{padding:16px}
+  .topbar{padding:12px 16px}
+}
+@media print{
+  .sidebar,.topbar,.acc-row,.alerta,.chat-wrap,.steps-bar{display:none!important}
+  .pantalla{display:block!important}
+  body{background:#fff;color:#000}
+}
 </style>
 </head>
 <body>
+
 <div class="layout">
+  <!-- ═══ SIDEBAR ═══ -->
   <div class="sidebar">
     <div class="sb-logo">
-      <h1>&#129463; CAMILA</h1>
-      <span>Est&eacute;tica dental &middot; IA</span>
+      <div class="sb-logo-icon">🦷</div>
+      <div>
+        <h1>CAMILA</h1>
+        <span>Diseño de Sonrisa · IA</span>
+      </div>
     </div>
     <div class="sb-user">
-      <div class="nombre" id="sb-nombre">Dr. ...</div>
-      <div class="plan-badge" id="sb-plan">Profesional</div>
-      <div class="uso-bar"><div class="uso-fill" id="uso-fill" style="width:0%"></div></div>
-      <div class="uso-txt" id="uso-txt">0 / 40 diagn&oacute;sticos</div>
+      <div class="sb-user-row">
+        <div class="sb-avatar" id="sb-avatar">D</div>
+        <div>
+          <div class="sb-nombre" id="sb-nombre">Dr. ...</div>
+          <div class="sb-plan" id="sb-consultorio">Consultorio</div>
+        </div>
+      </div>
+      <div class="plan-chip plan-profesional" id="sb-plan-chip">✦ Profesional</div>
+      <div class="uso-wrap">
+        <div class="uso-bar"><div class="uso-fill" id="uso-fill" style="width:0%"></div></div>
+        <div class="uso-txt" id="uso-txt">0 / 40 diagnósticos</div>
+      </div>
     </div>
     <div class="nav-items">
-      <div class="nav-item activo" onclick="ir('dashboard')">&#128202; Dashboard</div>
-      <div class="nav-item" onclick="ir('diagnostico')">&#128300; Nuevo diagn&oacute;stico</div>
-      <div class="nav-item" onclick="ir('historial')">&#128450; Historial</div>
-      <div class="nav-item" onclick="ir('chat')">&#128172; Chat paciente</div>
-      <div class="nav-item" onclick="ir('precios')">&#128176; Mis precios</div>
+      <div class="nav-section">Principal</div>
+      <div class="nav-item activo" onclick="ir('dashboard')"><span class="ni-icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="ir('pacientes')"><span class="ni-icon">👥</span> Pacientes</div>
+      <div class="nav-item" onclick="ir('nuevo-diseno')"><span class="ni-icon">✨</span> Nuevo Diseño</div>
+      <div class="nav-section" style="margin-top:8px">Gestión</div>
+      <div class="nav-item" onclick="ir('historial')"><span class="ni-icon">📁</span> Historial</div>
+      <div class="nav-item" onclick="ir('colaboraciones')"><span class="ni-icon">🤝</span> Colaboraciones</div>
+      <div class="nav-item" onclick="ir('notificaciones')" id="nav-noti"><span class="ni-icon">🔔</span> Notificaciones <span class="nav-badge" id="noti-badge" style="display:none">0</span></div>
+      <div class="nav-section" style="margin-top:8px">Configuración</div>
+      <div class="nav-item" onclick="ir('precios')"><span class="ni-icon">💰</span> Mis Precios</div>
+      <div class="nav-item" onclick="ir('mi-cuenta')"><span class="ni-icon">👤</span> Mi Cuenta</div>
     </div>
     <div class="sb-foot">
-      <button class="btn-cerrar" onclick="cerrarSesion()">&#8617; Cerrar sesi&oacute;n</button>
+      <button class="btn-cerrar" onclick="cerrarSesion()">← Cerrar sesión</button>
     </div>
   </div>
+
+  <!-- ═══ MAIN ═══ -->
   <div class="main">
     <div class="topbar">
-      <div><div class="topbar-title" id="topbar-title">Dashboard</div></div>
-      <div class="topbar-sub" id="topbar-fecha"></div>
+      <div class="topbar-left">
+        <h2 id="topbar-title">Dashboard</h2>
+        <p id="topbar-sub"></p>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-noti" onclick="ir('notificaciones')" title="Notificaciones">
+          🔔<span class="noti-dot" id="noti-dot" style="display:none"></span>
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="ir('nuevo-diseno')">+ Nuevo Diseño</button>
+      </div>
     </div>
+
     <div class="contenido">
 
+      <!-- ═══ DASHBOARD ═══ -->
       <div class="pantalla activa" id="p-dashboard">
         <div class="stats-grid">
-          <div class="stat gold"><div class="stat-num" id="st-disp">-</div><div class="stat-lbl">Diagn&oacute;sticos disponibles</div></div>
-          <div class="stat"><div class="stat-num" id="st-usados">0</div><div class="stat-lbl">Usados este mes</div></div>
-          <div class="stat"><div class="stat-num" id="st-casos">0</div><div class="stat-lbl">Casos en historial</div></div>
-        </div>
-        <div class="card" style="border-color:var(--dorado-borde)">
-          <div class="card-title">Accesos r&aacute;pidos</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn-gold" onclick="ir('diagnostico')">&#128300; Nuevo diagn&oacute;stico</button>
-            <button class="btn-ghost" onclick="ir('precios')">&#128176; Configurar precios</button>
-            <button class="btn-ghost" onclick="ir('historial')">&#128450; Ver historial</button>
+          <div class="stat-card stat-violeta">
+            <div class="stat-icon">✨</div>
+            <div class="stat-num" id="st-disp">-</div>
+            <div class="stat-lbl">Diagnósticos disponibles</div>
+          </div>
+          <div class="stat-card stat-azul">
+            <div class="stat-icon">📊</div>
+            <div class="stat-num" id="st-usados">0</div>
+            <div class="stat-lbl">Usados este mes</div>
+          </div>
+          <div class="stat-card stat-teal">
+            <div class="stat-icon">👥</div>
+            <div class="stat-num" id="st-pacientes">0</div>
+            <div class="stat-lbl">Pacientes registrados</div>
+          </div>
+          <div class="stat-card stat-verde">
+            <div class="stat-icon">📁</div>
+            <div class="stat-num" id="st-casos">0</div>
+            <div class="stat-lbl">Casos completados</div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-title">Suscripci&oacute;n activa</div>
-          <div id="info-suscripcion" style="font-size:13px;color:var(--gris);line-height:1.8"></div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+          <div>
+            <div class="card">
+              <div class="card-title">Accesos rápidos</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="ir('nuevo-diseno')">✨ Nuevo Diseño</button>
+                <button class="btn btn-secondary" onclick="ir('pacientes')">👥 Ver Pacientes</button>
+                <button class="btn btn-secondary" onclick="ir('precios')">💰 Mis Precios</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Últimos casos</div>
+                <button class="btn btn-secondary btn-sm" onclick="ir('historial')">Ver todos</button>
+              </div>
+              <div id="dash-ultimos-casos">
+                <div class="empty"><div class="icon">📋</div><p>Sin casos aún. Crea tu primer diseño.</p></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));border-color:var(--violeta-b)">
+              <div class="card-title">Suscripción</div>
+              <div id="info-suscripcion" style="font-size:13px;color:var(--texto2);line-height:2"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Progreso del mes</div>
+              <div id="dash-progreso"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="pantalla" id="p-diagnostico">
-        <div class="alerta alerta-warn" id="alerta-limite">&#9888; Alcanzaste tu l&iacute;mite de diagn&oacute;sticos este mes.</div>
-        <div id="form-area">
+      <!-- ═══ PACIENTES ═══ -->
+      <div class="pantalla" id="p-pacientes">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Mis Pacientes</div>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalPaciente()">+ Nuevo paciente</button>
+          </div>
+          <div class="search-bar">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input class="search-inp" type="text" id="buscar-pac" placeholder="Buscar por nombre, email o teléfono..." oninput="filtrarPacientes()">
+            </div>
+          </div>
+          <div id="tabla-pacientes-wrap">
+            <div class="empty"><div class="icon">👥</div><h3>Sin pacientes aún</h3><p>Agrega tu primer paciente para comenzar.</p><button class="btn btn-primary" onclick="abrirModalPaciente()">+ Agregar paciente</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ DETALLE PACIENTE ═══ -->
+      <div class="pantalla" id="p-paciente-detalle">
+        <button class="btn btn-secondary btn-sm" onclick="ir('pacientes')" style="margin-bottom:16px">← Volver a Pacientes</button>
+        <div class="card">
+          <div class="pac-header">
+            <div class="pac-avatar-lg" id="det-avatar">?</div>
+            <div class="pac-header-info">
+              <h2 id="det-nombre">-</h2>
+              <p id="det-info-rapida">-</p>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="nuevoDisenoParaPaciente()">✨ Nuevo Diseño</button>
+              <button class="btn btn-secondary btn-sm" onclick="editarPacienteActual()">✏️ Editar</button>
+            </div>
+          </div>
+          <div class="info-grid" id="det-info-grid"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Historial de Diseños</div>
+          </div>
+          <div id="det-casos-lista">
+            <div class="empty"><div class="icon">✨</div><p>Sin diseños para este paciente aún.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ NUEVO DISEÑO ═══ -->
+      <div class="pantalla" id="p-nuevo-diseno">
+        <div class="steps-bar" id="steps-bar">
+          <div class="step-item activo" id="step-1">
+            <div class="step-num">1</div>
+            <div class="step-lbl">Documentación</div>
+          </div>
+          <div class="step-sep"></div>
+          <div class="step-item" id="step-2">
+            <div class="step-num">2</div>
+            <div class="step-lbl">Análisis IA</div>
+          </div>
+          <div class="step-sep"></div>
+          <div class="step-item" id="step-3">
+            <div class="step-num">3</div>
+            <div class="step-lbl">Diseño</div>
+          </div>
+          <div class="step-sep"></div>
+          <div class="step-item" id="step-4">
+            <div class="step-num">4</div>
+            <div class="step-lbl">Presentación</div>
+          </div>
+        </div>
+
+        <!-- PASO 1: Documentación -->
+        <div id="paso-1">
+          <div class="alerta alerta-warn" id="alerta-limite">⚠️ Alcanzaste tu límite de diagnósticos este mes.</div>
           <div class="card">
-            <div class="card-title">&#128248; Fotograf&iacute;as cl&iacute;nicas</div>
-            <p style="font-size:12px;color:var(--gris-2);margin-bottom:14px">Sube hasta 4 im&aacute;genes. M&aacute;s fotos = diagn&oacute;stico m&aacute;s preciso.</p>
+            <div class="card-title">📋 Datos del Caso</div>
+            <div class="form-grid">
+              <div class="fg full">
+                <label>Nombre del caso</label>
+                <input type="text" id="f-caso-nombre" placeholder="Ej. Diseño de sonrisa - Caso #001">
+              </div>
+              <div class="fg">
+                <label>Paciente</label>
+                <select id="f-caso-paciente">
+                  <option value="">Seleccionar paciente...</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Tipo de tratamiento</label>
+                <select id="f-caso-tipo">
+                  <option value="estetica">Estética dental</option>
+                  <option value="ortodoncia">Ortodoncia</option>
+                  <option value="implantes">Implantes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📸 Fotografías Clínicas</div>
+            <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Sube hasta 4 imágenes. Más fotos = diagnóstico más preciso.</p>
             <div class="upload-grid">
               <div class="upload-slot" id="slot-0" ondragover="dragSobre(event,0)" ondragleave="dragFuera(0)" ondrop="dropImg(event,0)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,0)">
-                <div class="slot-check">&#10003;</div>
-                <div class="slot-icon">&#128513;</div>
+                <div class="slot-check">✓</div>
+                <div class="slot-icon">😁</div>
                 <h4>Sonrisa frontal</h4>
                 <p>Con retractores, fondo blanco</p>
                 <img class="slot-preview" id="prev-0" style="display:none">
               </div>
               <div class="upload-slot" id="slot-1" ondragover="dragSobre(event,1)" ondragleave="dragFuera(1)" ondrop="dropImg(event,1)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,1)">
-                <div class="slot-check">&#10003;</div>
-                <div class="slot-icon">&#128528;</div>
+                <div class="slot-check">✓</div>
+                <div class="slot-icon">😐</div>
                 <h4>Perfil lateral</h4>
                 <p>Derecho o izquierdo</p>
                 <img class="slot-preview" id="prev-1" style="display:none">
               </div>
               <div class="upload-slot" id="slot-2" ondragover="dragSobre(event,2)" ondragleave="dragFuera(2)" ondrop="dropImg(event,2)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,2)">
-                <div class="slot-check">&#10003;</div>
-                <div class="slot-icon">&#129463;</div>
+                <div class="slot-check">✓</div>
+                <div class="slot-icon">🦷</div>
                 <h4>Intraoral frontal</h4>
-                <p>Oclusi&oacute;n, piezas, enc&iacute;a</p>
+                <p>Oclusión, piezas, encía</p>
                 <img class="slot-preview" id="prev-2" style="display:none">
               </div>
               <div class="upload-slot" id="slot-3" ondragover="dragSobre(event,3)" ondragleave="dragFuera(3)" ondrop="dropImg(event,3)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,3)">
-                <div class="slot-check">&#10003;</div>
-                <div class="slot-icon">&#129659;</div>
-                <h4>Radiograf&iacute;a panor&aacute;mica</h4>
+                <div class="slot-check">✓</div>
+                <div class="slot-icon">🔬</div>
+                <h4>Radiografía panorámica</h4>
                 <p>Opcional pero recomendada</p>
                 <img class="slot-preview" id="prev-3" style="display:none">
               </div>
             </div>
           </div>
           <div class="card">
-            <div class="card-title">&#128450; Datos del paciente</div>
+            <div class="card-title">🩺 Datos Clínicos</div>
             <div class="form-grid">
-              <div class="fg"><label>Nombre del paciente</label><input type="text" id="f-nombre" placeholder="Nombre completo"></div>
-              <div class="fg"><label>Edad</label><input type="number" id="f-edad" placeholder="Ej. 32" min="10" max="90"></div>
-              <div class="fg"><label>Motivo de consulta</label>
+              <div class="fg">
+                <label>Motivo de consulta</label>
                 <select id="f-motivo">
                   <option value="">Seleccionar...</option>
-                  <option>Manchas / discrom&iacute;a</option>
+                  <option>Manchas / discromía</option>
                   <option>Forma irregular o desgaste</option>
                   <option>Diastemas</option>
                   <option>Dientes fracturados</option>
-                  <option>Cambio est&eacute;tico general</option>
+                  <option>Cambio estético general</option>
+                  <option>Corrección de mordida</option>
+                  <option>Reemplazo de piezas perdidas</option>
                 </select>
               </div>
-              <div class="fg"><label>Material preferido</label>
+              <div class="fg">
+                <label>Material preferido</label>
                 <select id="f-material">
                   <option value="sin definir">Sin definir</option>
-                  <option value="porcelana feldespat&#237;ca">Porcelana feldespat&iacute;ca</option>
+                  <option value="porcelana feldespática">Porcelana feldespática</option>
                   <option value="disilicato de litio (e.max)">Disilicato de litio (e.max)</option>
                   <option value="composite de resina">Composite de resina</option>
                   <option value="zirconia">Zirconia</option>
                 </select>
               </div>
-              <div class="fg full"><label>Observaciones cl&iacute;nicas</label><textarea id="f-obs" placeholder="Bruxismo, sensibilidad, oclusi&oacute;n..."></textarea></div>
+              <div class="fg full">
+                <label>Observaciones clínicas</label>
+                <textarea id="f-obs" placeholder="Bruxismo, sensibilidad, oclusión, antecedentes relevantes..."></textarea>
+              </div>
             </div>
-            <button class="btn-gold btn-full" onclick="analizarCaso()">&#10022; Generar Diagn&oacute;stico + Cotizaci&oacute;n</button>
+            <button class="btn btn-primary btn-full" onclick="irAPaso2()">Continuar a Análisis IA →</button>
           </div>
         </div>
-        <div class="loading" id="loading-area">
-          <div class="spinner"></div>
-          <div style="font-size:16px;font-weight:500;color:var(--blanco)">Analizando caso cl&iacute;nico...</div>
-          <div style="font-size:13px;color:var(--gris-2)">La IA est&aacute; evaluando im&aacute;genes y generando la cotizaci&oacute;n</div>
+
+        <!-- PASO 2: Análisis IA -->
+        <div id="paso-2" style="display:none">
+          <div class="loading-ia" id="loading-ia">
+            <div class="spinner-ring"></div>
+            <div style="font-size:15px;font-weight:600;color:var(--texto)">Analizando caso clínico...</div>
+            <div style="font-size:12px;color:var(--texto3)">La IA está evaluando imágenes y generando el diagnóstico</div>
+            <div class="ia-progress">
+              <div class="ia-step-loading" id="ia-s1">⏳ Procesando fotografías...</div>
+              <div class="ia-step-loading" id="ia-s2">⏳ Análisis facial y dental...</div>
+              <div class="ia-step-loading" id="ia-s3">⏳ Generando cotización...</div>
+            </div>
+          </div>
+          <div id="analisis-resultado" style="display:none">
+            <div class="rep-header-card">
+              <div>
+                <div class="rep-title" id="r-nombre">Análisis Completado</div>
+                <div class="rep-sub" id="r-fecha">-</div>
+              </div>
+              <div class="score-circle">
+                <div class="score-num" id="r-score">-</div>
+                <div class="score-lbl">Potencial</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">🔬 Diagnóstico Clínico</div>
+              <div class="rep-grid">
+                <div class="rep-sec"><h4>Hallazgos</h4><div id="r-hallazgos"></div></div>
+                <div class="rep-sec"><h4>Piezas a tratar</h4><div id="r-dientes"></div></div>
+                <div class="rep-sec"><h4>Consideraciones</h4><div id="r-consideraciones"></div></div>
+                <div class="rep-sec"><h4>Plan sugerido</h4><div id="r-plan"></div></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button class="btn btn-secondary" onclick="irAPaso1()">← Volver</button>
+              <button class="btn btn-primary" onclick="irAPaso3()">Continuar a Diseño →</button>
+            </div>
+          </div>
         </div>
-        <div class="reporte" id="reporte-area">
-          <div class="rep-header">
-            <div class="rep-header-info"><h2 id="r-nombre">Diagn&oacute;stico 360&deg;</h2><p id="r-fecha">-</p></div>
-            <div class="score-box"><div class="score-num" id="r-score">-</div><div class="score-lbl">Potencial est&eacute;tico</div></div>
-          </div>
+
+        <!-- PASO 3: Diseño -->
+        <div id="paso-3" style="display:none">
           <div class="card">
-            <div class="card-title">&#128300; Diagn&oacute;stico cl&iacute;nico</div>
-            <div class="rep-grid">
-              <div class="rep-sec"><h4>Hallazgos</h4><div id="r-hallazgos"></div></div>
-              <div class="rep-sec"><h4>Piezas a tratar</h4><div id="r-dientes"></div></div>
-              <div class="rep-sec"><h4>Consideraciones</h4><div id="r-consideraciones"></div></div>
-              <div class="rep-sec"><h4>Plan sugerido</h4><div id="r-plan"></div></div>
+            <div class="card-title">🎨 Tipo de Diseño</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px" id="tipo-diseno-grid">
+              <div class="tipo-card" onclick="selTipo('estetica')" id="tipo-estetica" style="padding:16px;border:2px solid var(--borde);border-radius:var(--radius);cursor:pointer;text-align:center;transition:all .15s">
+                <div style="font-size:28px;margin-bottom:8px">✨</div>
+                <div style="font-size:13px;font-weight:600;color:var(--texto)">Estética</div>
+                <div style="font-size:11px;color:var(--texto3);margin-top:3px">Carillas y blanqueamiento</div>
+              </div>
+              <div class="tipo-card" onclick="selTipo('ortodoncia')" id="tipo-ortodoncia" style="padding:16px;border:2px solid var(--borde);border-radius:var(--radius);cursor:pointer;text-align:center;transition:all .15s">
+                <div style="font-size:28px;margin-bottom:8px">⚙️</div>
+                <div style="font-size:13px;font-weight:600;color:var(--texto)">Ortodoncia</div>
+                <div style="font-size:11px;color:var(--texto3);margin-top:3px">Alineación y corrección</div>
+              </div>
+              <div class="tipo-card" onclick="selTipo('implantes')" id="tipo-implantes" style="padding:16px;border:2px solid var(--borde);border-radius:var(--radius);cursor:pointer;text-align:center;transition:all .15s">
+                <div style="font-size:28px;margin-bottom:8px">🔩</div>
+                <div style="font-size:13px;font-weight:600;color:var(--texto)">Implantes</div>
+                <div style="font-size:11px;color:var(--texto3);margin-top:3px">Reemplazo de piezas</div>
+              </div>
             </div>
           </div>
           <div class="card">
-            <div class="card-title">&#128176; Cotizaci&oacute;n</div>
-            <div class="cot-header"><div class="cot-paciente" id="cot-paciente">-</div><div class="cot-fecha" id="cot-fecha">-</div></div>
-            <table class="cot-tabla">
-              <thead><tr><th>Procedimiento</th><th>Piezas</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead>
-              <tbody id="cot-tabla-body"></tbody>
-            </table>
-            <div class="cot-total">
-              <div><div class="cot-total-lbl">Total estimado del tratamiento</div><div style="font-size:11px;color:var(--gris-2);margin-top:3px">Precios configurados por el doctor</div></div>
-              <div class="cot-total-num" id="cot-total">$0 MXN</div>
+            <div class="card-title">⚙️ Ajustes del Diseño</div>
+            <div class="form-grid">
+              <div class="fg">
+                <label>Forma dental preferida</label>
+                <select id="aj-forma">
+                  <option value="">IA decide (recomendado)</option>
+                  <option value="oval">Oval — natural y femenino</option>
+                  <option value="cuadrado">Cuadrado — fuerte y masculino</option>
+                  <option value="rectangular">Rectangular — clásico</option>
+                  <option value="triangular">Triangular — juvenil</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Tono objetivo</label>
+                <select id="aj-tono">
+                  <option value="">IA decide</option>
+                  <option value="A1">A1 — Muy claro natural</option>
+                  <option value="B1">B1 — Blanco brillante</option>
+                  <option value="A2">A2 — Claro natural</option>
+                  <option value="Hollywood">Hollywood White — Máximo blanco</option>
+                </select>
+              </div>
+              <div class="fg full">
+                <label>Instrucciones adicionales para la IA</label>
+                <textarea id="aj-instrucciones" placeholder="Ej. El paciente quiere un resultado natural, no demasiado blanco..."></textarea>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-secondary" onclick="irAPaso2()">← Volver</button>
+              <button class="btn btn-primary" onclick="irAPaso4()">Generar Presentación →</button>
             </div>
           </div>
-          <div class="texto-px"><h4>&#128172; Explicaci&oacute;n para el paciente</h4><p id="r-texto-px"></p></div>
-          <div class="acc-row">
-            <button class="btn-acc btn-nuevo-caso" onclick="nuevoCaso()">&#8617; Nuevo caso</button>
-            <button class="btn-acc btn-imprimir" onclick="window.print()">Imprimir</button>
-            <button class="btn-acc btn-copiar" onclick="copiarTexto()">&#128203; Copiar texto</button>
+        </div>
+
+        <!-- PASO 4: Presentación -->
+        <div id="paso-4" style="display:none">
+          <div class="reporte-wrap" id="reporte-area">
+            <div class="rep-header-card">
+              <div>
+                <div class="rep-title" id="pres-nombre">Diseño de Sonrisa</div>
+                <div class="rep-sub" id="pres-fecha">-</div>
+              </div>
+              <div class="score-circle">
+                <div class="score-num" id="pres-score">-</div>
+                <div class="score-lbl">Potencial</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">💰 Cotización del Tratamiento</div>
+              <table class="cot-tabla">
+                <thead><tr><th>Procedimiento</th><th>Piezas</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead>
+                <tbody id="cot-tabla-body"></tbody>
+              </table>
+              <div class="cot-total-row">
+                <div>
+                  <div style="font-size:12px;color:var(--texto3)">Total estimado del tratamiento</div>
+                  <div style="font-size:11px;color:var(--texto3);margin-top:2px">Precios configurados por el doctor</div>
+                </div>
+                <div class="cot-total-num" id="cot-total">$0 MXN</div>
+              </div>
+            </div>
+            <div class="texto-paciente">
+              <h4>💬 Explicación para el paciente</h4>
+              <p id="r-texto-px"></p>
+            </div>
+            <div class="acc-row">
+              <button class="btn btn-secondary" onclick="nuevoCaso()">↩ Nuevo Diseño</button>
+              <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+              <button class="btn btn-secondary" onclick="copiarTexto()">📋 Copiar texto</button>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- ═══ HISTORIAL ═══ -->
       <div class="pantalla" id="p-historial">
-        <div class="card"><div class="card-title">&#128450; Casos analizados</div><div id="historial-lista"></div></div>
-      </div>
-
-      <div class="pantalla" id="p-chat">
-        <div class="card" style="margin-bottom:14px">
-          <div class="card-title">&#128172; Chatbot para pacientes</div>
-          <p style="font-size:13px;color:var(--gris);line-height:1.6">Comparte este chat con tus pacientes para resolver dudas sobre carillas las 24 horas.</p>
-        </div>
-        <div class="chat-wrap">
-          <div class="chat-head">
-            <div class="chat-av">C</div>
-            <div><h3>CAMILA &mdash; Asistente Dental</h3><p>Especialista en carillas &middot; En l&iacute;nea</p></div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Historial de Casos</div>
           </div>
-          <div class="chat-msgs" id="chat-msgs">
-            <div class="msg msg-ia">Hola, soy CAMILA, tu asistente de est&eacute;tica dental. Estoy aqu&iacute; para resolver tus dudas sobre carillas dentales. &iquest;En qu&eacute; te puedo ayudar?</div>
-          </div>
-          <div class="chat-rapidas">
-            <div class="chip-r" onclick="pregRapida('Cuanto duran las carillas de porcelana?')">Duraci&oacute;n</div>
-            <div class="chip-r" onclick="pregRapida('Duele el procedimiento de carillas?')">Duele?</div>
-            <div class="chip-r" onclick="pregRapida('Puedo tomar cafe con carillas?')">Caf&eacute;?</div>
-            <div class="chip-r" onclick="pregRapida('Cuantas citas necesito para carillas?')">Citas</div>
-            <div class="chip-r" onclick="pregRapida('Como cuido mis carillas?')">Cuidados</div>
-          </div>
-          <div class="chat-inp-row">
-            <input class="chat-inp" id="chat-inp" type="text" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')enviarChat()">
-            <button class="chat-send" onclick="enviarChat()">&#10148;</button>
+          <div id="historial-lista">
+            <div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los diseños completados aparecerán aquí.</p></div>
           </div>
         </div>
       </div>
 
+      <!-- ═══ COLABORACIONES ═══ -->
+      <div class="pantalla" id="p-colaboraciones">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">TeamUp — Colaboraciones</div>
+          </div>
+          <div class="collab-empty">
+            <div class="icon">🤝</div>
+            <h3>Colaboraciones próximamente</h3>
+            <p>Podrás compartir casos con otros especialistas y recibir segundas opiniones. <br>Disponible en CAMILA v1.1</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ NOTIFICACIONES ═══ -->
+      <div class="pantalla" id="p-notificaciones">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Notificaciones</div>
+            <button class="btn btn-secondary btn-sm" onclick="marcarTodasLeidas()">Marcar todas como leídas</button>
+          </div>
+          <div id="notificaciones-lista">
+            <div class="empty"><div class="icon">🔔</div><p>Sin notificaciones nuevas.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PRECIOS ═══ -->
       <div class="pantalla" id="p-precios">
         <div class="card">
-          <div class="card-title">&#128176; Mis precios por procedimiento</div>
-          <p style="font-size:12px;color:var(--gris-2);margin-bottom:16px">Configura el precio de cada servicio. La IA usar&aacute; estos valores para generar cotizaciones autom&aacute;ticas.</p>
+          <div class="card-title">💰 Mis Precios por Procedimiento</div>
+          <p style="font-size:12px;color:var(--texto3);margin-bottom:16px">La IA usará estos valores para generar cotizaciones automáticas para cada caso.</p>
           <div id="precios-lista"></div>
-          <button class="btn-gold" style="margin-top:16px" onclick="guardarPrecios()">Guardar precios</button>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="guardarPrecios()">💾 Guardar precios</button>
         </div>
         <div class="card">
-          <div class="card-title">&#9881; Informaci&oacute;n del consultorio</div>
+          <div class="card-title">🏥 Información del Consultorio</div>
           <div class="form-grid">
             <div class="fg"><label>Nombre del doctor</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
-            <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Cl&iacute;nica Est&eacute;tica Dental"></div>
+            <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
             <div class="fg full"><label>Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
           </div>
-          <button class="btn-gold" style="margin-top:12px" onclick="guardarConfig()">Guardar informaci&oacute;n</button>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar información</button>
         </div>
       </div>
 
+      <!-- ═══ MI CUENTA ═══ -->
+      <div class="pantalla" id="p-mi-cuenta">
+        <div class="cuenta-grid">
+          <div>
+            <div class="plan-card" id="plan-card-visual">
+              <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Plan actual</div>
+              <h3 id="mc-plan">Profesional</h3>
+              <p id="mc-precio">$799 MXN/mes</p>
+              <div class="plan-features" id="mc-features"></div>
+              <button class="upgrade-btn" onclick="alert('Próximamente: upgrade de plan desde la app.')">⬆ Cambiar plan</button>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">Información personal</div>
+              <div class="form-grid">
+                <div class="fg"><label>Nombre completo</label><input type="text" id="mc-nombre" placeholder="Dr. / Dra. ..."></div>
+                <div class="fg"><label>Email</label><input type="email" id="mc-email" placeholder="correo@ejemplo.com" readonly style="opacity:.6"></div>
+                <div class="fg"><label>Teléfono</label><input type="text" id="mc-tel" placeholder="+52 33 ..."></div>
+                <div class="fg"><label>Especialidad</label><input type="text" id="mc-especialidad" placeholder="Ej. Odontología estética"></div>
+                <div class="fg full"><label>Consultorio</label><input type="text" id="mc-consultorio2" placeholder="Nombre del consultorio o clínica"></div>
+              </div>
+              <button class="btn btn-primary" style="margin-top:12px" onclick="guardarPerfil()">💾 Guardar perfil</button>
+            </div>
+            <div class="card">
+              <div class="card-title">Uso del plan</div>
+              <div id="mc-uso-detalle" style="font-size:13px;color:var(--texto2);line-height:2.2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /contenido -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ═══ MODAL PACIENTE ═══ -->
+<div class="modal-bg" id="modal-paciente">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-pac-title">Nuevo Paciente</h3>
+      <button class="modal-close" onclick="cerrarModalPaciente()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>Nombre *</label><input type="text" id="mp-nombre" placeholder="Nombre(s)"></div>
+      <div class="fg"><label>Apellido</label><input type="text" id="mp-apellido" placeholder="Apellido(s)"></div>
+      <div class="fg"><label>Email</label><input type="email" id="mp-email" placeholder="correo@ejemplo.com"></div>
+      <div class="fg"><label>Teléfono</label><input type="text" id="mp-tel" placeholder="+52 33 ..."></div>
+      <div class="fg"><label>Fecha de nacimiento</label><input type="date" id="mp-fnac"></div>
+      <div class="fg"><label>Género</label>
+        <select id="mp-genero">
+          <option value="">Sin especificar</option>
+          <option value="femenino">Femenino</option>
+          <option value="masculino">Masculino</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="fg full"><label>Notas</label><textarea id="mp-notas" placeholder="Antecedentes, alergias, observaciones..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPaciente()">💾 Guardar paciente</button>
     </div>
   </div>
 </div>
+
+<!-- ═══ COPYRIGHT ═══ -->
+<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#94A3B8;font-family:Georgia,serif;letter-spacing:.8px;opacity:.5;z-index:9999;pointer-events:none">© 2025 Dr. Hernán Partida Islas · Propiedad Intelectual</div>
+
 <script>
-var API_KEY = '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';
+// ══════════════════════════════════════════
+// SUPABASE CONFIG
+// ══════════════════════════════════════════
+var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
+var EDGE_URL = SUPA_URL + '/functions/v1/claude';
+
+// Edge Function para IA (proxy — resuelve CORS)
+// Si no existe aún, fallback a localStorage temporal
+var USE_EDGE = false; // cambiar a true cuando esté creada la Edge Function
+
+var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ══════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════
+var tenantId = null;
+var tenantData = null;
+var imagenes = [null, null, null, null];
+var chatHistorial = [];
+var cargandoChat = false;
+var pacienteActual = null;
+var pacienteSeleccionado = null;
+var analisisResultado = null;
+var editandoPacienteId = null;
+var todosLosPacientes = [];
+var pasoActual = 1;
+
 var PRECIOS_DEFAULT = [
-  {id:'carilla_porcelana',nombre:'Carilla de porcelana feldespat&#237;ca',unidad:'por pieza',precio:8000},
-  {id:'carilla_emax',nombre:'Carilla de disilicato de litio (e.max)',unidad:'por pieza',precio:10000},
-  {id:'carilla_composite',nombre:'Carilla de composite de resina',unidad:'por pieza',precio:4500},
-  {id:'blanqueamiento',nombre:'Blanqueamiento dental previo',unidad:'tratamiento completo',precio:3500},
-  {id:'gingivectomia',nombre:'Gingivectomia estetica',unidad:'por pieza',precio:1200},
-  {id:'encerado',nombre:'Encerado diagnostico / mock-up',unidad:'caso completo',precio:2000},
-  {id:'consulta',nombre:'Consulta de diagnostico estetico',unidad:'por consulta',precio:800},
+  {id:'carilla_porcelana', nombre:'Carilla de porcelana feldespática', unidad:'por pieza', precio:8000},
+  {id:'carilla_emax', nombre:'Carilla de disilicato de litio (e.max)', unidad:'por pieza', precio:10000},
+  {id:'carilla_composite', nombre:'Carilla de composite de resina', unidad:'por pieza', precio:4500},
+  {id:'blanqueamiento', nombre:'Blanqueamiento dental previo', unidad:'tratamiento completo', precio:3500},
+  {id:'gingivectomia', nombre:'Gingivectomía estética', unidad:'por pieza', precio:1200},
+  {id:'encerado', nombre:'Encerado diagnóstico / mock-up', unidad:'caso completo', precio:2000},
+  {id:'consulta', nombre:'Consulta de diagnóstico estético', unidad:'por consulta', precio:800},
+  {id:'implante', nombre:'Implante dental (unitario)', unidad:'por pieza', precio:18000},
+  {id:'corona', nombre:'Corona de zirconia', unidad:'por pieza', precio:7500},
 ];
-var imagenes=[null,null,null,null];
-var chatHistorial=[];
-var cargandoChat=false;
-var usuario=null;
-var usuarioEmail=null;
-function getSession(){try{return JSON.parse(localStorage.getItem('camila_session')||'null')}catch(e){return null}}
-function getUsuarios(){try{return JSON.parse(localStorage.getItem('camila_usuarios')||'{}')}catch(e){return{}}}
-function saveUsuarios(u){localStorage.setItem('camila_usuarios',JSON.stringify(u))}
-function cerrarSesion(){localStorage.removeItem('camila_session');window.location.href='index.html'}
-(function(){
-  var s=getSession();
-  if(!s||s.isAdmin){window.location.href='index.html';return}
-  var us=getUsuarios();
-  usuarioEmail=s.email;usuario=us[s.email];
-  if(!usuario){cerrarSesion();return}
-  if(new Date(usuario.vence)<new Date()){alert('Tu suscripcion vencio. Contacta al administrador.');cerrarSesion();return}
-  document.getElementById('sb-nombre').textContent=usuario.nombre;
-  document.getElementById('sb-plan').textContent=usuario.plan;
-  document.getElementById('topbar-fecha').textContent=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-  actualizarUso();cargarDashboard();renderPrecios();cargarConfig();
+
+var PLANES = {
+  esencial:    {label:'Esencial',    precio:'$399',  limite:15,  features:['15 diagnósticos/mes','Análisis IA básico','Cotización automática','1 usuario']},
+  profesional: {label:'Profesional', precio:'$799',  limite:40,  features:['40 diagnósticos/mes','Análisis IA completo','Chatbot de pacientes','Historial ilimitado','3 usuarios']},
+  premium:     {label:'Premium',     precio:'$1,499',limite:100, features:['100 diagnósticos/mes','Análisis IA avanzado','Colaboraciones TeamUp','Marca personalizada','Usuarios ilimitados']},
+};
+
+// ══════════════════════════════════════════
+// AUTENTICACIÓN
+// ══════════════════════════════════════════
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('camila_session') || 'null'); } catch(e) { return null; }
+}
+function cerrarSesion() {
+  localStorage.removeItem('camila_session');
+  window.location.href = 'index.html';
+}
+
+// ══════════════════════════════════════════
+// INICIO
+// ══════════════════════════════════════════
+(async function init() {
+  var s = getSession();
+  if (!s || s.isAdmin) { window.location.href = 'index.html'; return; }
+
+  // Cargar tenant desde Supabase
+  try {
+    var res = await sb.from('camila_tenants').select('*').eq('email', s.email).single();
+    if (res.error || !res.data) {
+      // Fallback a localStorage si Supabase no tiene tablas aún
+      tenantData = s;
+      tenantId = s.id || 'local';
+      renderSidebar();
+      cargarDashboard();
+      renderPrecios();
+      cargarConfig();
+      cargarNotificaciones();
+      return;
+    }
+    tenantData = res.data;
+    tenantId = res.data.id;
+    if (!tenantData.activo) { alert('Tu cuenta está suspendida. Contacta al administrador.'); cerrarSesion(); return; }
+    if (new Date(tenantData.vence_en) < new Date()) { alert('Tu suscripción venció. Contacta al administrador.'); cerrarSesion(); return; }
+  } catch(e) {
+    // Tabla no existe aún — modo localStorage
+    tenantData = s;
+    tenantId = s.id || 'local';
+  }
+
+  document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+  renderSidebar();
+  await cargarDashboard();
+  renderPrecios();
+  cargarConfig();
+  await cargarNotificaciones();
+  await cargarPacientesSelect();
 })();
-function actualizarUso(){
-  var u=usuario.usados||0;var l=usuario.limite||40;
-  var pct=Math.min(100,Math.round(u/l*100));
-  document.getElementById('uso-fill').style.width=pct+'%';
-  document.getElementById('uso-txt').textContent=u+' / '+l+' diagnosticos';
-  document.getElementById('st-disp').textContent=Math.max(0,l-u);
-  document.getElementById('st-usados').textContent=u;
+
+function renderSidebar() {
+  var nombre = tenantData.nombre || 'Doctor';
+  var plan = tenantData.plan || 'profesional';
+  var usado = tenantData.diagnosticos_usados || 0;
+  var limite = tenantData.limite_diagnosticos || 40;
+  var ini = nombre.charAt(0).toUpperCase();
+
+  document.getElementById('sb-avatar').textContent = ini;
+  document.getElementById('sb-nombre').textContent = nombre;
+  document.getElementById('sb-consultorio').textContent = (tenantData.config && tenantData.config.consultorio) || 'Mi Consultorio';
+
+  var chip = document.getElementById('sb-plan-chip');
+  chip.textContent = '✦ ' + (PLANES[plan] ? PLANES[plan].label : plan);
+  chip.className = 'plan-chip plan-' + plan;
+
+  var pct = Math.min(100, Math.round(usado / limite * 100));
+  document.getElementById('uso-fill').style.width = pct + '%';
+  document.getElementById('uso-txt').textContent = usado + ' / ' + limite + ' diagnósticos';
 }
-function cargarDashboard(){
-  var cots=usuario.cotizaciones||[];
-  document.getElementById('st-casos').textContent=cots.length;
-  var vence=new Date(usuario.vence);
-  document.getElementById('info-suscripcion').innerHTML=
-    '<strong style="color:var(--blanco)">Plan:</strong> <span style="color:var(--dorado);text-transform:capitalize">'+usuario.plan+'</span> - $'+usuario.precio+' MXN/mes<br>'+
-    '<strong style="color:var(--blanco)">Renovacion:</strong> '+vence.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+'<br>'+
-    '<strong style="color:var(--blanco)">Diagnosticos:</strong> '+(usuario.usados||0)+' de '+(usuario.limite||40)+' usados este mes';
+
+// ══════════════════════════════════════════
+// NAVEGACIÓN
+// ══════════════════════════════════════════
+var TITULOS = {
+  dashboard: 'Dashboard',
+  pacientes: 'Pacientes',
+  'paciente-detalle': 'Expediente del Paciente',
+  'nuevo-diseno': 'Nuevo Diseño',
+  historial: 'Historial de Casos',
+  colaboraciones: 'Colaboraciones',
+  notificaciones: 'Notificaciones',
+  precios: 'Mis Precios',
+  'mi-cuenta': 'Mi Cuenta',
+};
+
+function ir(p) {
+  document.querySelectorAll('.pantalla').forEach(function(el) { el.classList.remove('activa'); });
+  document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('activo'); });
+  var panel = document.getElementById('p-' + p);
+  if (panel) panel.classList.add('activa');
+  document.querySelectorAll('.nav-item').forEach(function(el) {
+    if (el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("'" + p + "'") !== -1) el.classList.add('activo');
+  });
+  document.getElementById('topbar-title').textContent = TITULOS[p] || p;
+  if (p === 'historial') cargarHistorial();
+  if (p === 'dashboard') cargarDashboard();
+  if (p === 'pacientes') cargarPacientes();
+  if (p === 'notificaciones') { cargarNotificaciones(); marcarTodasLeidas(); }
+  if (p === 'mi-cuenta') renderMiCuenta();
+  if (p === 'nuevo-diseno') resetNuevoDiseno();
 }
-var titulos={dashboard:'Dashboard',diagnostico:'Nuevo Diagnostico 360',historial:'Historial de Casos',chat:'Chat para Pacientes',precios:'Mis Precios'};
-function ir(p){
-  document.querySelectorAll('.pantalla').forEach(function(el){el.classList.remove('activa')});
-  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('activo')});
-  document.getElementById('p-'+p).classList.add('activa');
-  document.querySelectorAll('.nav-item').forEach(function(el){if(el.getAttribute('onclick').includes("'"+p+"'"))el.classList.add('activo')});
-  document.getElementById('topbar-title').textContent=titulos[p]||p;
-  if(p==='historial')cargarHistorial();
-  if(p==='dashboard')cargarDashboard();
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+async function cargarDashboard() {
+  var usado = tenantData.diagnosticos_usados || 0;
+  var limite = tenantData.limite_diagnosticos || 40;
+  var plan = tenantData.plan || 'profesional';
+
+  document.getElementById('st-disp').textContent = Math.max(0, limite - usado);
+  document.getElementById('st-usados').textContent = usado;
+
+  // Pacientes count
+  try {
+    var resPac = await sb.from('camila_pacientes').select('id', {count:'exact'}).eq('tenant_id', tenantId);
+    document.getElementById('st-pacientes').textContent = resPac.count || 0;
+  } catch(e) {
+    var lsPac = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
+    document.getElementById('st-pacientes').textContent = lsPac.length;
+  }
+
+  // Casos count
+  try {
+    var resCasos = await sb.from('camila_casos').select('id', {count:'exact'}).eq('tenant_id', tenantId).eq('status','completado');
+    document.getElementById('st-casos').textContent = resCasos.count || 0;
+  } catch(e) {
+    var lsCasos = JSON.parse(localStorage.getItem('camila_casos_' + tenantId) || '[]');
+    document.getElementById('st-casos').textContent = lsCasos.length;
+  }
+
+  // Últimos casos
+  var cots = JSON.parse(localStorage.getItem('camila_cotizaciones_' + tenantId) || '[]');
+  var ulEl = document.getElementById('dash-ultimos-casos');
+  if (!cots.length) {
+    ulEl.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Sin casos aún. Crea tu primer diseño.</p></div>';
+  } else {
+    ulEl.innerHTML = cots.slice(-3).reverse().map(function(c) {
+      return '<div class="hist-item" onclick="ir(\'historial\')">' +
+        '<div class="hist-info"><h4>' + c.nombre + '</h4><p>' + c.fecha + ' · Score: ' + c.score + '/10</p></div>' +
+        '<div class="hist-right"><div class="hist-total">$' + (c.total||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--texto3)">MXN</div></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Info suscripción
+  var vence = new Date(tenantData.vence_en || Date.now() + 30*86400000);
+  var planInfo = PLANES[plan] || PLANES.profesional;
+  document.getElementById('info-suscripcion').innerHTML =
+    '<strong>Plan:</strong> <span style="color:var(--violeta)">' + planInfo.label + '</span><br>' +
+    '<strong>Precio:</strong> ' + planInfo.precio + ' MXN/mes<br>' +
+    '<strong>Renovación:</strong> ' + vence.toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
+
+  // Progreso
+  var pct = Math.min(100, Math.round(usado / limite * 100));
+  document.getElementById('dash-progreso').innerHTML =
+    '<div style="margin-bottom:8px;display:flex;justify-content:space-between;font-size:12px;color:var(--texto2)">' +
+    '<span>' + usado + ' usados</span><span>' + limite + ' disponibles</span></div>' +
+    '<div class="uso-bar" style="height:8px"><div class="uso-fill" style="width:' + pct + '%"></div></div>' +
+    '<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--texto3)">' + pct + '% del plan utilizado</div>';
 }
-function cargarImg(input,idx){
-  if(!input.files[0])return;
-  var r=new FileReader();
-  r.onload=function(e){
-    imagenes[idx]=e.target.result.split(',')[1];
-    var prev=document.getElementById('prev-'+idx);
-    prev.src=e.target.result;prev.style.display='block';
-    document.getElementById('slot-'+idx).classList.add('tiene-img');
-    document.querySelector('#slot-'+idx+' .slot-icon').style.display='none';
-    document.querySelector('#slot-'+idx+' h4').style.display='none';
-    document.querySelector('#slot-'+idx+' p').style.display='none';
+
+// ══════════════════════════════════════════
+// PACIENTES
+// ══════════════════════════════════════════
+async function cargarPacientes() {
+  var lista = [];
+  try {
+    var res = await sb.from('camila_pacientes').select('*').eq('tenant_id', tenantId).order('created_at', {ascending:false});
+    lista = res.data || [];
+  } catch(e) {
+    lista = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
+  }
+  todosLosPacientes = lista;
+  renderTablaPacientes(lista);
+}
+
+function renderTablaPacientes(lista) {
+  var el = document.getElementById('tabla-pacientes-wrap');
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">👥</div><h3>Sin pacientes aún</h3><p>Agrega tu primer paciente para comenzar.</p><button class="btn btn-primary" onclick="abrirModalPaciente()">+ Agregar paciente</button></div>';
+    return;
+  }
+  el.innerHTML = '<table class="tabla"><thead><tr><th>Paciente</th><th>Contacto</th><th>Edad</th><th>Acciones</th></tr></thead><tbody>' +
+    lista.map(function(p) {
+      var ini = (p.nombre || '?').charAt(0).toUpperCase();
+      var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
+      return '<tr>' +
+        '<td><div style="display:flex;align-items:center;gap:10px"><div class="pac-avatar">' + ini + '</div><div><div class="pac-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</div></div></div></td>' +
+        '<td><div style="font-size:12px">' + (p.email||'-') + '</div><div style="font-size:11px;color:var(--texto3)">' + (p.telefono||'-') + '</div></td>' +
+        '<td>' + edad + '</td>' +
+        '<td><div style="display:flex;gap:6px">' +
+        '<button class="btn btn-secondary btn-sm" onclick="verPaciente(\'' + p.id + '\')">Ver expediente</button>' +
+        '<button class="btn btn-icon" onclick="abrirModalPaciente(\'' + p.id + '\')">✏️</button>' +
+        '</div></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function filtrarPacientes() {
+  var q = document.getElementById('buscar-pac').value.toLowerCase();
+  var filtrados = todosLosPacientes.filter(function(p) {
+    return (p.nombre||'').toLowerCase().indexOf(q) !== -1 ||
+           (p.apellido||'').toLowerCase().indexOf(q) !== -1 ||
+           (p.email||'').toLowerCase().indexOf(q) !== -1 ||
+           (p.telefono||'').indexOf(q) !== -1;
+  });
+  renderTablaPacientes(filtrados);
+}
+
+function calcularEdad(fnac) {
+  var hoy = new Date();
+  var nac = new Date(fnac);
+  var edad = hoy.getFullYear() - nac.getFullYear();
+  var m = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
+function verPaciente(id) {
+  var p = todosLosPacientes.find(function(x) { return x.id === id; });
+  if (!p) return;
+  pacienteActual = p;
+  var ini = (p.nombre||'?').charAt(0).toUpperCase();
+  document.getElementById('det-avatar').textContent = ini;
+  document.getElementById('det-nombre').textContent = (p.nombre||'') + ' ' + (p.apellido||'');
+  var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
+  document.getElementById('det-info-rapida').textContent = edad + (p.email ? ' · ' + p.email : '') + (p.telefono ? ' · ' + p.telefono : '');
+  document.getElementById('det-info-grid').innerHTML = [
+    {lbl:'Email', val: p.email||'-'},
+    {lbl:'Teléfono', val: p.telefono||'-'},
+    {lbl:'Edad', val: edad},
+    {lbl:'Género', val: p.genero ? p.genero.charAt(0).toUpperCase() + p.genero.slice(1) : '-'},
+    {lbl:'Desde', val: p.created_at ? new Date(p.created_at).toLocaleDateString('es-MX') : '-'},
+    {lbl:'Notas', val: p.notas||'-'},
+  ].map(function(it) {
+    return '<div class="info-item"><div class="lbl">' + it.lbl + '</div><div class="val">' + it.val + '</div></div>';
+  }).join('');
+  // Casos del paciente
+  var casos = JSON.parse(localStorage.getItem('camila_cotizaciones_' + tenantId) || '[]');
+  var casosPac = casos.filter(function(c) { return c.paciente_id === p.id; });
+  var casosEl = document.getElementById('det-casos-lista');
+  if (!casosPac.length) {
+    casosEl.innerHTML = '<div class="empty"><div class="icon">✨</div><p>Sin diseños para este paciente aún.</p><button class="btn btn-primary btn-sm" onclick="nuevoDisenoParaPaciente()">+ Crear diseño</button></div>';
+  } else {
+    casosEl.innerHTML = '<div class="casos-lista">' + casosPac.reverse().map(function(c) {
+      return '<div class="caso-row"><div class="caso-info"><h4>' + c.nombre + '</h4><p>' + c.fecha + ' · $' + (c.total||0).toLocaleString() + ' MXN</p></div>' +
+        '<span class="badge badge-violeta">Score: ' + c.score + '/10</span></div>';
+    }).join('') + '</div>';
+  }
+  ir('paciente-detalle');
+}
+
+function nuevoDisenoParaPaciente() {
+  if (pacienteActual) pacienteSeleccionado = pacienteActual;
+  ir('nuevo-diseno');
+  if (pacienteActual) {
+    document.getElementById('f-caso-paciente').value = pacienteActual.id;
+    document.getElementById('f-caso-nombre').value = 'Diseño - ' + pacienteActual.nombre;
+  }
+}
+
+function editarPacienteActual() {
+  if (pacienteActual) abrirModalPaciente(pacienteActual.id);
+}
+
+// ── Modal Paciente ──
+function abrirModalPaciente(id) {
+  editandoPacienteId = id || null;
+  document.getElementById('modal-pac-title').textContent = id ? 'Editar Paciente' : 'Nuevo Paciente';
+  ['mp-nombre','mp-apellido','mp-email','mp-tel','mp-notas'].forEach(function(f) { document.getElementById(f).value = ''; });
+  document.getElementById('mp-fnac').value = '';
+  document.getElementById('mp-genero').value = '';
+  if (id) {
+    var p = todosLosPacientes.find(function(x) { return x.id === id; });
+    if (p) {
+      document.getElementById('mp-nombre').value = p.nombre || '';
+      document.getElementById('mp-apellido').value = p.apellido || '';
+      document.getElementById('mp-email').value = p.email || '';
+      document.getElementById('mp-tel').value = p.telefono || '';
+      document.getElementById('mp-fnac').value = p.fecha_nacimiento || '';
+      document.getElementById('mp-genero').value = p.genero || '';
+      document.getElementById('mp-notas').value = p.notas || '';
+    }
+  }
+  document.getElementById('modal-paciente').classList.add('visible');
+}
+function cerrarModalPaciente() { document.getElementById('modal-paciente').classList.remove('visible'); }
+
+async function guardarPaciente() {
+  var nombre = document.getElementById('mp-nombre').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio'); return; }
+  var datos = {
+    tenant_id: tenantId,
+    nombre: nombre,
+    apellido: document.getElementById('mp-apellido').value.trim(),
+    email: document.getElementById('mp-email').value.trim(),
+    telefono: document.getElementById('mp-tel').value.trim(),
+    fecha_nacimiento: document.getElementById('mp-fnac').value || null,
+    genero: document.getElementById('mp-genero').value || null,
+    notas: document.getElementById('mp-notas').value.trim(),
+    updated_at: new Date().toISOString(),
+  };
+  try {
+    if (editandoPacienteId) {
+      await sb.from('camila_pacientes').update(datos).eq('id', editandoPacienteId);
+    } else {
+      await sb.from('camila_pacientes').insert([datos]);
+    }
+  } catch(e) {
+    // Fallback localStorage
+    var lsPac = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
+    if (editandoPacienteId) {
+      var idx = lsPac.findIndex(function(x) { return x.id === editandoPacienteId; });
+      if (idx !== -1) lsPac[idx] = Object.assign(lsPac[idx], datos);
+    } else {
+      datos.id = 'local_' + Date.now();
+      datos.created_at = new Date().toISOString();
+      lsPac.push(datos);
+    }
+    localStorage.setItem('camila_pacientes_' + tenantId, JSON.stringify(lsPac));
+  }
+  cerrarModalPaciente();
+  await cargarPacientes();
+  await cargarPacientesSelect();
+}
+
+async function cargarPacientesSelect() {
+  var lista = [];
+  try {
+    var res = await sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', tenantId).order('nombre');
+    lista = res.data || [];
+  } catch(e) {
+    lista = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
+  }
+  var sel = document.getElementById('f-caso-paciente');
+  sel.innerHTML = '<option value="">Seleccionar paciente...</option>' +
+    lista.map(function(p) { return '<option value="' + p.id + '">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</option>'; }).join('');
+}
+
+// ══════════════════════════════════════════
+// FLUJO NUEVO DISEÑO
+// ══════════════════════════════════════════
+function resetNuevoDiseno() {
+  pasoActual = 1;
+  mostrarPaso(1);
+  imagenes = [null, null, null, null];
+  analisisResultado = null;
+  [0,1,2,3].forEach(function(i) {
+    var slot = document.getElementById('slot-' + i);
+    if (!slot) return;
+    slot.classList.remove('tiene-img');
+    var prev = document.getElementById('prev-' + i);
+    if (prev) { prev.style.display = 'none'; prev.src = ''; }
+    var icon = slot.querySelector('.slot-icon');
+    var h4 = slot.querySelector('h4');
+    var p = slot.querySelector('p');
+    if (icon) icon.style.display = 'block';
+    if (h4) h4.style.display = 'block';
+    if (p) p.style.display = 'block';
+  });
+  document.getElementById('f-caso-nombre').value = '';
+  document.getElementById('f-motivo').value = '';
+  document.getElementById('f-obs').value = '';
+  document.getElementById('analisis-resultado').style.display = 'none';
+  document.getElementById('reporte-area').classList.remove('visible');
+}
+
+function mostrarPaso(n) {
+  [1,2,3,4].forEach(function(i) {
+    var el = document.getElementById('paso-' + i);
+    if (el) el.style.display = i === n ? 'block' : 'none';
+    var step = document.getElementById('step-' + i);
+    if (step) {
+      step.className = 'step-item' + (i === n ? ' activo' : (i < n ? ' hecho' : ''));
+      if (i < n) step.querySelector('.step-num').textContent = '✓';
+      else step.querySelector('.step-num').textContent = i;
+    }
+  });
+  pasoActual = n;
+}
+
+function irAPaso1() { mostrarPaso(1); }
+
+async function irAPaso2() {
+  var nombre = document.getElementById('f-caso-nombre').value.trim();
+  var motivo = document.getElementById('f-motivo').value;
+  if (!nombre) { alert('Ingresa el nombre del caso'); return; }
+  if (!motivo) { alert('Selecciona el motivo de consulta'); return; }
+  var tieneImg = imagenes.some(function(i) { return i !== null; });
+  if (!tieneImg) { alert('Sube al menos una fotografía para el análisis'); return; }
+  mostrarPaso(2);
+  document.getElementById('loading-ia').classList.add('visible');
+  document.getElementById('analisis-resultado').style.display = 'none';
+  await ejecutarAnalisisIA();
+}
+
+function irAPaso3() { mostrarPaso(3); }
+
+async function irAPaso4() {
+  mostrarPaso(4);
+  var pres = document.getElementById('reporte-area');
+  pres.classList.add('visible');
+  if (analisisResultado) {
+    var nombre = document.getElementById('f-caso-nombre').value.trim();
+    document.getElementById('pres-nombre').textContent = 'Diseño de Sonrisa — ' + nombre;
+    document.getElementById('pres-fecha').textContent = new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
+    document.getElementById('pres-score').textContent = (analisisResultado.score || '-') + '/10';
+    // cotizacion ya renderizada en paso 2, copiar al paso 4
+    var cotBody = document.getElementById('cot-tabla-body');
+    var cots = analisisResultado.cotizacion || [];
+    var total = 0;
+    cotBody.innerHTML = cots.map(function(c) {
+      total += c.subtotal || 0;
+      return '<tr><td>' + c.procedimiento + '</td><td style="color:var(--texto3)">' + c.piezas + '</td>' +
+        '<td class="td-num">$' + (c.precio_unit||0).toLocaleString() + '</td>' +
+        '<td class="td-num">$' + (c.subtotal||0).toLocaleString() + '</td></tr>';
+    }).join('');
+    document.getElementById('cot-total').textContent = '$' + total.toLocaleString() + ' MXN';
+    document.getElementById('r-texto-px').textContent = analisisResultado.texto_paciente || '';
+    registrarCaso(nombre, analisisResultado, total);
+  }
+}
+
+// ── Imágenes ──
+function cargarImg(input, idx) {
+  if (!input.files[0]) return;
+  var r = new FileReader();
+  r.onload = function(e) {
+    imagenes[idx] = e.target.result.split(',')[1];
+    var prev = document.getElementById('prev-' + idx);
+    prev.src = e.target.result; prev.style.display = 'block';
+    var slot = document.getElementById('slot-' + idx);
+    slot.classList.add('tiene-img');
+    var icon = slot.querySelector('.slot-icon');
+    var h4 = slot.querySelector('h4');
+    var p = slot.querySelector('p');
+    if (icon) icon.style.display = 'none';
+    if (h4) h4.style.display = 'none';
+    if (p) p.style.display = 'none';
   };
   r.readAsDataURL(input.files[0]);
 }
-function dragSobre(e,idx){e.preventDefault();document.getElementById('slot-'+idx).classList.add('drag')}
-function dragFuera(idx){document.getElementById('slot-'+idx).classList.remove('drag')}
-function dropImg(e,idx){e.preventDefault();dragFuera(idx);var f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))cargarImg({files:[f]},idx)}
-function getPrecios(){
-  var guardados=usuario.precios||{};
-  return PRECIOS_DEFAULT.map(function(p){return Object.assign({},p,{precio:guardados[p.id]||p.precio})});
-}
-async function analizarCaso(){
-  if((usuario.usados||0)>=(usuario.limite||40)){document.getElementById('alerta-limite').classList.add('visible');return}
-  var nombre=document.getElementById('f-nombre').value.trim();
-  var edad=document.getElementById('f-edad').value;
-  var motivo=document.getElementById('f-motivo').value;
-  var material=document.getElementById('f-material').value;
-  var obs=document.getElementById('f-obs').value.trim();
-  if(!nombre)return alert('Ingresa el nombre del paciente');
-  if(!motivo)return alert('Selecciona el motivo de consulta');
-  var tieneImg=imagenes.some(function(i){return i!==null});
-  if(!tieneImg)return alert('Sube al menos una fotografia para el analisis');
-  var precios=getPrecios();
-  var preciosTexto=precios.map(function(p){return p.nombre+': $'+p.precio.toLocaleString()+' MXN ('+p.unidad+')'}).join('\n');
-  var config=usuario.config||{};
-  var prompt=[
-    'Eres un especialista en odontologia estetica con expertise en carillas dentales.',
-    'Analiza el caso clinico con las fotografias adjuntas.',
-    'Paciente: '+nombre+(edad?', '+edad+' anios':''),
-    'Motivo: '+motivo,'Material: '+material,'Observaciones: '+(obs||'Ninguna'),
-    'PRECIOS DEL CONSULTORIO:',preciosTexto,
-    'Responde SOLO con JSON puro sin markdown:',
+function dragSobre(e, idx) { e.preventDefault(); document.getElementById('slot-' + idx).classList.add('drag'); }
+function dragFuera(idx) { document.getElementById('slot-' + idx).classList.remove('drag'); }
+function dropImg(e, idx) { e.preventDefault(); dragFuera(idx); var f = e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) cargarImg({files:[f]}, idx); }
+
+// ── Análisis IA ──
+async function ejecutarAnalisisIA() {
+  var nombre = document.getElementById('f-caso-nombre').value.trim();
+  var motivo = document.getElementById('f-motivo').value;
+  var material = document.getElementById('f-material').value;
+  var obs = document.getElementById('f-obs').value.trim();
+  var tipo = document.getElementById('f-caso-tipo').value;
+  var precios = getPrecios();
+  var preciosTexto = precios.map(function(p) { return p.nombre + ': $' + p.precio.toLocaleString() + ' MXN (' + p.unidad + ')'; }).join('\n');
+  var config = (tenantData.config) || {};
+
+  // Animar steps
+  setTimeout(function() {
+    var s1 = document.getElementById('ia-s1');
+    if (s1) { s1.textContent = '✅ Fotografías procesadas'; s1.className = 'ia-step-loading done'; }
+  }, 1200);
+  setTimeout(function() {
+    var s2 = document.getElementById('ia-s2');
+    if (s2) { s2.textContent = '✅ Análisis facial y dental completado'; s2.className = 'ia-step-loading done'; }
+  }, 2800);
+  setTimeout(function() {
+    var s3 = document.getElementById('ia-s3');
+    if (s3) { s3.textContent = '✅ Cotización generada'; s3.className = 'ia-step-loading done'; }
+  }, 4200);
+
+  var prompt = [
+    'Eres un especialista en odontología estética con expertise en carillas dentales.',
+    'Analiza el caso clínico con las fotografías adjuntas.',
+    'Caso: ' + nombre,
+    'Tipo de tratamiento: ' + tipo,
+    'Motivo: ' + motivo,
+    'Material preferido: ' + material,
+    'Observaciones: ' + (obs || 'Ninguna'),
+    'PRECIOS DEL CONSULTORIO:', preciosTexto,
+    'Responde SOLO con JSON puro sin markdown ni backticks:',
     '{"score":<1-10>,"hallazgos":["..."],"dientes":["pieza - descripcion"],"consideraciones":["..."],"plan":["..."],"cotizacion":[{"procedimiento":"nombre","piezas":<num>,"precio_unit":<precio>,"subtotal":<total>}],"texto_paciente":"<3-4 oraciones para el paciente>"}'
   ].join('\n');
-  var contentArr=imagenes.filter(function(i){return i!==null}).map(function(b64){return{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}}});
-  contentArr.push({type:'text',text:prompt});
-  document.getElementById('form-area').style.display='none';
-  document.getElementById('loading-area').classList.add('visible');
-  try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:contentArr}]})
-    });
-    var data=await resp.json();
-    var texto=data.content.map(function(i){return i.text||''}).join('');
-    var limpio=texto.replace(/```json|```/g,'').trim();
-    var r=JSON.parse(limpio);
-    mostrarReporte(r,nombre,config);
-    registrarUso(nombre,motivo,r);
-  }catch(e){
+
+  var contentArr = imagenes.filter(function(i) { return i !== null; }).map(function(b64) {
+    return {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}};
+  });
+  contentArr.push({type:'text', text:prompt});
+
+  try {
+    var resp, data;
+    if (USE_EDGE) {
+      // Edge Function proxy (cuando esté creada)
+      resp = await fetch(EDGE_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + SUPA_KEY},
+        body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
+      });
+      data = await resp.json();
+    } else {
+      // TEMPORAL: API directa (CORS bloqueado en producción — crear Edge Function)
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'x-api-key': getApiKey(), 'anthropic-version':'2023-06-01'},
+        body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:1500, messages:[{role:'user', content:contentArr}]})
+      });
+      data = await resp.json();
+    }
+
+    var texto = (data.content || []).map(function(i) { return i.text || ''; }).join('');
+    var limpio = texto.replace(/```json|```/g, '').trim();
+    var r = JSON.parse(limpio);
+    analisisResultado = r;
+
+    document.getElementById('loading-ia').classList.remove('visible');
+    mostrarAnalisis(r, nombre);
+
+    // Registrar uso
+    var usado = (tenantData.diagnosticos_usados || 0) + 1;
+    tenantData.diagnosticos_usados = usado;
+    try { await sb.from('camila_tenants').update({diagnosticos_usados: usado}).eq('id', tenantId); } catch(e) {}
+    renderSidebar();
+
+  } catch(e) {
     console.error(e);
-    alert('Error al conectar con la IA. Verifica tu conexion.');
-    document.getElementById('form-area').style.display='block';
-    document.getElementById('loading-area').classList.remove('visible');
+    document.getElementById('loading-ia').classList.remove('visible');
+    alert('Error al conectar con la IA. Verifica tu conexión o configura la Edge Function.');
+    mostrarPaso(1);
   }
 }
-function mostrarReporte(r,nombre,config){
-  document.getElementById('loading-area').classList.remove('visible');
-  document.getElementById('r-nombre').textContent='Diagnostico 360 - '+nombre;
-  document.getElementById('r-fecha').textContent=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+(config.consultorio?' - '+config.consultorio:'');
-  document.getElementById('r-score').textContent=(r.score||'-')+'/10';
-  document.getElementById('cot-paciente').textContent=nombre;
-  document.getElementById('cot-fecha').textContent='Cotizacion - '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
-  function items(arr,dc){return(arr||[]).map(function(h){return'<div class="rep-item"><span class="rep-dot '+dc+'"></span><span>'+h+'</span></div>'}).join('')}
-  document.getElementById('r-hallazgos').innerHTML=items(r.hallazgos,'dot-warn');
-  document.getElementById('r-dientes').innerHTML=(r.dientes||[]).map(function(d){return'<span class="tag tag-gold">'+d+'</span>'}).join('');
-  document.getElementById('r-consideraciones').innerHTML=items(r.consideraciones,'dot-gold');
-  document.getElementById('r-plan').innerHTML=items(r.plan,'dot-ok');
-  var cots=r.cotizacion||[];var total=0;
-  document.getElementById('cot-tabla-body').innerHTML=cots.map(function(c){total+=c.subtotal||0;return'<tr><td>'+c.procedimiento+'</td><td style="color:var(--gris-2)">'+c.piezas+'</td><td class="td-num">$'+((c.precio_unit||0).toLocaleString())+'</td><td class="td-num">$'+((c.subtotal||0).toLocaleString())+'</td></tr>'}).join('');
-  document.getElementById('cot-total').textContent='$'+total.toLocaleString()+' MXN';
-  document.getElementById('r-texto-px').textContent=r.texto_paciente||'';
-  document.getElementById('reporte-area').classList.add('visible');
+
+function mostrarAnalisis(r, nombre) {
+  document.getElementById('r-nombre').textContent = 'Análisis IA — ' + nombre;
+  document.getElementById('r-fecha').textContent = new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
+  document.getElementById('r-score').textContent = (r.score || '-') + '/10';
+
+  function items(arr, dc) {
+    return (arr || []).map(function(h) {
+      return '<div class="rep-item"><span class="rep-dot ' + dc + '"></span><span>' + h + '</span></div>';
+    }).join('');
+  }
+  document.getElementById('r-hallazgos').innerHTML = items(r.hallazgos, 'dot-warn');
+  document.getElementById('r-dientes').innerHTML = (r.dientes || []).map(function(d) { return '<span class="tag">' + d + '</span>'; }).join('');
+  document.getElementById('r-consideraciones').innerHTML = items(r.consideraciones, 'dot-violeta');
+  document.getElementById('r-plan').innerHTML = items(r.plan, 'dot-ok');
+  document.getElementById('analisis-resultado').style.display = 'block';
 }
-function registrarUso(nombre,motivo,r){
-  var us=getUsuarios();var u=us[usuarioEmail];
-  u.usados=(u.usados||0)+1;
-  var cots=u.cotizaciones||[];
-  var total=(r.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0)},0);
-  cots.push({nombre:nombre,motivo:motivo,fecha:new Date().toLocaleDateString('es-MX'),score:r.score,total:total});
-  u.cotizaciones=cots;us[usuarioEmail]=u;saveUsuarios(us);usuario=u;actualizarUso();
+
+function getApiKey() {
+  // Lee de config o localStorage (no hardcodeada aquí)
+  return (tenantData.config && tenantData.config.api_key) || localStorage.getItem('camila_ak') || '';
 }
-function nuevoCaso(){
-  document.getElementById('reporte-area').classList.remove('visible');
-  document.getElementById('form-area').style.display='block';
-  imagenes=[null,null,null,null];
-  [0,1,2,3].forEach(function(i){
-    var slot=document.getElementById('slot-'+i);
-    slot.classList.remove('tiene-img');
-    document.getElementById('prev-'+i).style.display='none';
-    slot.querySelector('.slot-icon').style.display='block';
-    slot.querySelector('h4').style.display='block';
-    slot.querySelector('p').style.display='block';
+
+function selTipo(t) {
+  ['estetica','ortodoncia','implantes'].forEach(function(x) {
+    var el = document.getElementById('tipo-' + x);
+    if (el) el.style.borderColor = x === t ? 'var(--violeta)' : 'var(--borde)';
+    if (el) el.style.background = x === t ? 'var(--violeta-s)' : '';
   });
-  ['f-nombre','f-edad','f-obs'].forEach(function(id){document.getElementById(id).value=''});
-  document.getElementById('f-motivo').value='';
 }
-function copiarTexto(){navigator.clipboard.writeText(document.getElementById('r-texto-px').textContent).then(function(){alert('Texto copiado')})}
-function cargarHistorial(){
-  var cots=usuario.cotizaciones||[];
-  var el=document.getElementById('historial-lista');
-  if(!cots.length){el.innerHTML='<div class="empty"><p>Sin casos analizados aun</p></div>';return}
-  el.innerHTML=cots.slice().reverse().map(function(c){return'<div class="hist-item"><div class="hist-info"><h4>'+c.nombre+'</h4><p>'+c.fecha+' - '+c.motivo+' - Score: '+c.score+'/10</p></div><div class="hist-total">$'+c.total.toLocaleString()+' MXN</div></div>'}).join('');
+
+function nuevoCaso() {
+  ir('nuevo-diseno');
 }
-function renderPrecios(){
-  var precios=getPrecios();
-  document.getElementById('precios-lista').innerHTML=precios.map(function(p){return'<div class="precio-item"><div><div class="precio-lbl">'+p.nombre+'</div><div class="precio-desc">'+p.unidad+'</div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:var(--gris-2)">$</span><input class="precio-input" type="number" id="precio-'+p.id+'" value="'+p.precio+'"> <span style="font-size:11px;color:var(--gris-2)">MXN</span></div></div>'}).join('');
+
+function copiarTexto() {
+  navigator.clipboard.writeText(document.getElementById('r-texto-px').textContent)
+    .then(function() { alert('Texto copiado al portapapeles'); });
 }
-function guardarPrecios(){
-  var us=getUsuarios();var u=us[usuarioEmail];
-  u.precios=u.precios||{};
-  PRECIOS_DEFAULT.forEach(function(p){var inp=document.getElementById('precio-'+p.id);if(inp)u.precios[p.id]=parseInt(inp.value)||p.precio});
-  us[usuarioEmail]=u;saveUsuarios(us);usuario=u;
+
+// ══════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════
+function cargarHistorial() {
+  var cots = JSON.parse(localStorage.getItem('camila_cotizaciones_' + tenantId) || '[]');
+  var el = document.getElementById('historial-lista');
+  if (!cots.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los diseños completados aparecerán aquí.</p></div>';
+    return;
+  }
+  el.innerHTML = cots.slice().reverse().map(function(c) {
+    return '<div class="hist-item">' +
+      '<div class="hist-info"><h4>' + c.nombre + '</h4><p>' + c.fecha + ' · ' + (c.motivo||'') + ' · Score: ' + c.score + '/10</p></div>' +
+      '<div class="hist-right"><div class="hist-total">$' + (c.total||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--texto3)">MXN</div></div>' +
+      '</div>';
+  }).join('');
+}
+
+function registrarCaso(nombre, r, total) {
+  var cots = JSON.parse(localStorage.getItem('camila_cotizaciones_' + tenantId) || '[]');
+  var pacId = document.getElementById('f-caso-paciente').value || null;
+  var motivo = document.getElementById('f-motivo').value;
+  cots.push({
+    nombre: nombre,
+    paciente_id: pacId,
+    motivo: motivo,
+    fecha: new Date().toLocaleDateString('es-MX'),
+    score: r.score,
+    total: total,
+  });
+  localStorage.setItem('camila_cotizaciones_' + tenantId, JSON.stringify(cots));
+}
+
+// ══════════════════════════════════════════
+// PRECIOS
+// ══════════════════════════════════════════
+function getPrecios() {
+  var guardados = JSON.parse(localStorage.getItem('camila_precios_' + tenantId) || '{}');
+  return PRECIOS_DEFAULT.map(function(p) {
+    return Object.assign({}, p, {precio: guardados[p.id] || p.precio});
+  });
+}
+function renderPrecios() {
+  var precios = getPrecios();
+  document.getElementById('precios-lista').innerHTML = precios.map(function(p) {
+    return '<div class="precio-item">' +
+      '<div><div class="precio-lbl">' + p.nombre + '</div><div class="precio-desc">' + p.unidad + '</div></div>' +
+      '<div class="precio-inp-wrap"><span style="font-size:12px;color:var(--texto3)">$</span>' +
+      '<input class="precio-input" type="number" id="precio-' + p.id + '" value="' + p.precio + '">' +
+      '<span style="font-size:11px;color:var(--texto3)">MXN</span></div></div>';
+  }).join('');
+}
+function guardarPrecios() {
+  var obj = {};
+  PRECIOS_DEFAULT.forEach(function(p) {
+    var inp = document.getElementById('precio-' + p.id);
+    if (inp) obj[p.id] = parseInt(inp.value) || p.precio;
+  });
+  localStorage.setItem('camila_precios_' + tenantId, JSON.stringify(obj));
   alert('Precios guardados correctamente.');
 }
-function cargarConfig(){
-  var config=usuario.config||{};
-  if(config.doctor)document.getElementById('conf-doctor').value=config.doctor;
-  if(config.consultorio)document.getElementById('conf-consultorio').value=config.consultorio;
-  if(config.ciudad)document.getElementById('conf-ciudad').value=config.ciudad;
+
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+function cargarConfig() {
+  var config = (tenantData.config) || {};
+  if (config.doctor) document.getElementById('conf-doctor').value = config.doctor;
+  if (config.consultorio) document.getElementById('conf-consultorio').value = config.consultorio;
+  if (config.ciudad) document.getElementById('conf-ciudad').value = config.ciudad;
 }
-function guardarConfig(){
-  var us=getUsuarios();var u=us[usuarioEmail];
-  u.config={doctor:document.getElementById('conf-doctor').value.trim(),consultorio:document.getElementById('conf-consultorio').value.trim(),ciudad:document.getElementById('conf-ciudad').value.trim()};
-  us[usuarioEmail]=u;saveUsuarios(us);usuario=u;alert('Informacion guardada.');
+async function guardarConfig() {
+  var config = (tenantData.config) || {};
+  config.doctor = document.getElementById('conf-doctor').value.trim();
+  config.consultorio = document.getElementById('conf-consultorio').value.trim();
+  config.ciudad = document.getElementById('conf-ciudad').value.trim();
+  tenantData.config = config;
+  try { await sb.from('camila_tenants').update({config: config}).eq('id', tenantId); } catch(e) {
+    localStorage.setItem('camila_config_' + tenantId, JSON.stringify(config));
+  }
+  document.getElementById('sb-consultorio').textContent = config.consultorio || 'Mi Consultorio';
+  alert('Información guardada.');
 }
-async function enviarChat(){
-  if(cargandoChat)return;
-  var inp=document.getElementById('chat-inp');
-  var msg=inp.value.trim();if(!msg)return;
-  inp.value='';
-  agregarMsg(msg,'user');chatHistorial.push({role:'user',content:msg});cargandoChat=true;
-  var t=document.createElement('div');t.className='msg msg-ia';t.id='typing';t.textContent='...';
-  document.getElementById('chat-msgs').appendChild(t);scrollChat();
-  try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Eres CAMILA, asistente virtual especializada en carillas y estetica dental. Responde en espanol, de forma amigable y profesional. Solo responde sobre carillas, cuidados dentales y estetica bucal. Nunca des diagnosticos definitivos. Maximo 3-4 oraciones.',messages:chatHistorial})
-    });
-    var data=await resp.json();
-    var respuesta=data.content.map(function(i){return i.text||''}).join('');
-    document.getElementById('typing').remove();
-    chatHistorial.push({role:'assistant',content:respuesta});
-    agregarMsg(respuesta,'ia');
-  }catch(e){document.getElementById('typing').remove();agregarMsg('Error de conexion. Intenta de nuevo.','ia')}
-  cargandoChat=false;
+
+// ══════════════════════════════════════════
+// NOTIFICACIONES
+// ══════════════════════════════════════════
+async function cargarNotificaciones() {
+  var lista = [];
+  try {
+    var res = await sb.from('camila_notificaciones').select('*').order('created_at', {ascending:false});
+    lista = res.data || [];
+  } catch(e) {
+    lista = [{id:'1', titulo:'Bienvenido a CAMILA v1.0', cuerpo:'Tu plataforma de diseño de sonrisa digital con IA ya está lista.', tipo:'info', created_at:new Date().toISOString()}];
+  }
+  var leidas = JSON.parse(localStorage.getItem('camila_notis_leidas_' + tenantId) || '[]');
+  var noLeidas = lista.filter(function(n) { return leidas.indexOf(n.id) === -1; }).length;
+
+  // Badge
+  if (noLeidas > 0) {
+    var badge = document.getElementById('noti-badge');
+    if (badge) { badge.textContent = noLeidas; badge.style.display = 'inline-block'; }
+    var dot = document.getElementById('noti-dot');
+    if (dot) dot.style.display = 'block';
+  }
+
+  var iconosTipo = {info:'💡', update:'🚀', promo:'🎁', alerta:'⚠️'};
+  var bgsTipo = {info:'var(--azul-s)', update:'var(--violeta-s)', promo:'var(--teal-s)', alerta:'var(--naranja-s)'};
+  var el = document.getElementById('notificaciones-lista');
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">🔔</div><p>Sin notificaciones.</p></div>';
+    return;
+  }
+  el.innerHTML = lista.map(function(n) {
+    var leida = leidas.indexOf(n.id) !== -1;
+    var fecha = n.created_at ? new Date(n.created_at).toLocaleDateString('es-MX', {day:'numeric', month:'short'}) : '';
+    return '<div class="noti-item ' + (leida ? '' : 'no-leida') + '">' +
+      '<div class="noti-icon" style="background:' + (bgsTipo[n.tipo]||'var(--bg3)') + '">' + (iconosTipo[n.tipo]||'🔔') + '</div>' +
+      '<div class="noti-info"><h4>' + n.titulo + '</h4><p>' + n.cuerpo + '</p><div class="noti-fecha">' + fecha + '</div></div>' +
+      '</div>';
+  }).join('');
 }
-function pregRapida(t){document.getElementById('chat-inp').value=t;enviarChat()}
-function agregarMsg(t,tipo){var d=document.createElement('div');d.className='msg msg-'+tipo;d.textContent=t;document.getElementById('chat-msgs').appendChild(d);scrollChat()}
-function scrollChat(){var c=document.getElementById('chat-msgs');c.scrollTop=c.scrollHeight}
+
+function marcarTodasLeidas() {
+  try {
+    var notiItems = document.querySelectorAll('.noti-item');
+    var ids = [];
+    // Simplificado: marcar todas
+    var leidas = JSON.parse(localStorage.getItem('camila_notis_leidas_' + tenantId) || '[]');
+    // Limpiar badge
+    var badge = document.getElementById('noti-badge');
+    if (badge) badge.style.display = 'none';
+    var dot = document.getElementById('noti-dot');
+    if (dot) dot.style.display = 'none';
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+// MI CUENTA
+// ══════════════════════════════════════════
+function renderMiCuenta() {
+  var plan = tenantData.plan || 'profesional';
+  var planInfo = PLANES[plan] || PLANES.profesional;
+  var usado = tenantData.diagnosticos_usados || 0;
+  var limite = tenantData.limite_diagnosticos || 40;
+  var vence = new Date(tenantData.vence_en || Date.now() + 30*86400000);
+  var config = tenantData.config || {};
+
+  document.getElementById('mc-plan').textContent = planInfo.label;
+  document.getElementById('mc-precio').textContent = planInfo.precio + ' MXN/mes';
+  document.getElementById('mc-features').innerHTML = planInfo.features.map(function(f) {
+    return '<div class="plan-feature">✓ ' + f + '</div>';
+  }).join('');
+
+  document.getElementById('mc-nombre').value = tenantData.nombre || '';
+  document.getElementById('mc-email').value = tenantData.email || '';
+  document.getElementById('mc-tel').value = config.tel || '';
+  document.getElementById('mc-especialidad').value = config.especialidad || '';
+  document.getElementById('mc-consultorio2').value = config.consultorio || '';
+
+  var pct = Math.min(100, Math.round(usado / limite * 100));
+  document.getElementById('mc-uso-detalle').innerHTML =
+    '<strong>' + usado + '</strong> de <strong>' + limite + '</strong> diagnósticos usados este mes<br>' +
+    '<div class="uso-bar" style="height:6px;margin:6px 0"><div class="uso-fill" style="width:' + pct + '%"></div></div>' +
+    '<span style="font-size:11px;color:var(--texto3)">Renovación: ' + vence.toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'}) + '</span>';
+}
+
+async function guardarPerfil() {
+  var config = tenantData.config || {};
+  config.tel = document.getElementById('mc-tel').value.trim();
+  config.especialidad = document.getElementById('mc-especialidad').value.trim();
+  config.consultorio = document.getElementById('mc-consultorio2').value.trim();
+  tenantData.nombre = document.getElementById('mc-nombre').value.trim();
+  tenantData.config = config;
+  try {
+    await sb.from('camila_tenants').update({nombre: tenantData.nombre, config: config}).eq('id', tenantId);
+  } catch(e) {}
+  renderSidebar();
+  alert('Perfil guardado.');
+}
 </script>
-<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&copy; 2025 Dr. Hern&aacute;n Partida Islas &middot; Propiedad Intelectual</div>
 </body>
 </html>
