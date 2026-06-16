@@ -1766,27 +1766,18 @@ async function generarBeforeAfter() {
     'This is for a professional dental clinic smile design preview.';
 
   try {
-    var payload = {
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: 'image/jpeg', data: fotoBase64 } },
-          { text: prompt }
-        ]
-      }],
-      generationConfig: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        temperature: 1,
-        topP: 0.95,
-      }
-    };
-
     var resp = await fetch(EDGE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + SUPA_KEY
       },
-      body: JSON.stringify({ action: 'generate_image', payload: payload })
+      body: JSON.stringify({
+        action: 'generate_image',
+        imageBase64: fotoBase64,
+        mimeType: 'image/jpeg',
+        prompt: prompt
+      })
     });
 
     var data = await resp.json();
