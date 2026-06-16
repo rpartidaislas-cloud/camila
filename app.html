@@ -316,6 +316,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 .modal-close:hover{border-color:var(--rojo);color:var(--rojo);background:var(--rojo-s)}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 
+/* ── PROMPT CHIPS ── */
+.prompt-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid var(--borde);border-radius:var(--radius-s);cursor:pointer;transition:all .15s;background:var(--bg)}
+.prompt-chip:hover{border-color:var(--violeta);background:var(--violeta-s)}
+.prompt-chip.seleccionado{border-color:var(--violeta);background:var(--violeta-s);box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.prompt-chip-icon{font-size:22px;flex-shrink:0}
+.prompt-chip-title{font-size:12px;font-weight:600;color:var(--texto)}
+.prompt-chip-desc{font-size:11px;color:var(--texto3);margin-top:2px}
+
 /* ── BEFORE/AFTER SONRISA ── */
 .ba-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .ba-card{border-radius:var(--radius);overflow:hidden;border:1px solid var(--borde);background:var(--bg3)}
@@ -717,11 +725,101 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
                   <option value="Hollywood">Hollywood White — Máximo blanco</option>
                 </select>
               </div>
-              <div class="fg full">
-                <label>Instrucciones adicionales para la IA</label>
-                <textarea id="aj-instrucciones" placeholder="Ej. El paciente quiere un resultado natural, no demasiado blanco..."></textarea>
+            </div>
+
+            <!-- PROMPTS PRECARGADOS -->
+            <div style="margin-top:16px;margin-bottom:8px">
+              <label style="font-size:11px;font-weight:600;color:var(--texto2);letter-spacing:.3px;display:block;margin-bottom:10px">PROMPTS PRECARGADOS</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="prompts-grid">
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Realistic dental veneer simulation. Natural result, subtle whitening, close gaps, keep same person face and lips. Clinical photo style, not rendered.')">
+                  <div class="prompt-chip-icon">🦷</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Natural Clínico</div>
+                    <div class="prompt-chip-desc">Resultado sutil y realista, estilo foto de consultorio</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Hollywood smile makeover. Ultra white bright teeth, perfect symmetry, oval shape, glamorous result. Celebrity smile transformation.')">
+                  <div class="prompt-chip-icon">⭐</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Hollywood Smile</div>
+                    <div class="prompt-chip-desc">Sonrisa de celebridad, blanco máximo, glamour</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Natural porcelain veneers, A1 shade, close diastema gap between front teeth, keep natural gum color, realistic dental clinic result.')">
+                  <div class="prompt-chip-icon">🔬</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Cierre de Diastema</div>
+                    <div class="prompt-chip-desc">Cierra espacios entre dientes, tono natural</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Teeth whitening simulation only. Same shape and alignment, just whiter and brighter teeth. No veneers, just bleaching effect. Very natural.')">
+                  <div class="prompt-chip-icon">✨</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Solo Blanqueamiento</div>
+                    <div class="prompt-chip-desc">Misma forma, solo más blancos y brillantes</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Fix broken and chipped teeth with natural composite or porcelain restoration. Realistic clinical result. Keep same color as adjacent teeth.')">
+                  <div class="prompt-chip-icon">🔧</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Restauración</div>
+                    <div class="prompt-chip-desc">Repara piezas fracturadas o desgastadas</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Gum contouring and smile design. Even gum line, fix gummy smile, natural teeth proportions. Subtle and elegant result.')">
+                  <div class="prompt-chip-icon">📐</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Diseño de Encía</div>
+                    <div class="prompt-chip-desc">Nivela encías, corrige sonrisa gingival</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Orthodontic simulation. Straighten and align crooked teeth naturally. Keep same color and shape, just perfectly aligned. Realistic result.')">
+                  <div class="prompt-chip-icon">⚙️</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Simulación Ortodoncia</div>
+                    <div class="prompt-chip-desc">Alinea y endereza dientes naturalmente</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Full mouth rehabilitation. Combine veneers, whitening and gum contouring for a complete smile makeover. Natural elegant result, B1 shade.')">
+                  <div class="prompt-chip-icon">🏆</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Rehabilitación Total</div>
+                    <div class="prompt-chip-desc">Carillas + blanqueamiento + diseño de encía</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Replace missing tooth with natural dental implant crown. Match color with adjacent teeth. Realistic clinical photography result.')">
+                  <div class="prompt-chip-icon">🔩</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Implante Dental</div>
+                    <div class="prompt-chip-desc">Reemplaza pieza perdida con implante natural</div>
+                  </div>
+                </div>
+
+                <div class="prompt-chip" onclick="selPrompt(this, 'Minimal invasive veneers, ultra-thin porcelain, keep natural tooth color with slight improvement. Very conservative and natural result.')">
+                  <div class="prompt-chip-icon">🌿</div>
+                  <div class="prompt-chip-info">
+                    <div class="prompt-chip-title">Carillas Mínimas</div>
+                    <div class="prompt-chip-desc">Ultra delgadas, cambio mínimo e invasivo</div>
+                  </div>
+                </div>
+
               </div>
             </div>
+
+            <div class="fg" style="margin-top:12px">
+              <label>Instrucciones adicionales / prompt personalizado</label>
+              <textarea id="aj-instrucciones" rows="3" placeholder="Escribe aquí instrucciones adicionales o modifica el prompt seleccionado..."></textarea>
+            </div>
+
             <div style="display:flex;gap:8px;margin-top:12px">
               <button class="btn btn-secondary" onclick="irAPaso2()">← Volver</button>
               <button class="btn btn-primary" onclick="irAPaso4()">Generar Presentación →</button>
@@ -1368,6 +1466,12 @@ async function irAPaso2() {
   await ejecutarAnalisisIA();
 }
 
+function selPrompt(el, texto) {
+  document.querySelectorAll('.prompt-chip').forEach(function(c) { c.classList.remove('seleccionado'); });
+  el.classList.add('seleccionado');
+  document.getElementById('aj-instrucciones').value = texto;
+}
+
 function irAPaso3() { mostrarPaso(3); }
 
 async function irAPaso4() {
@@ -1890,21 +1994,25 @@ async function generarBeforeAfter() {
   var instrucciones = document.getElementById('aj-instrucciones').value || '';
   var tipoDiseno = document.getElementById('f-caso-tipo').value || 'estetica';
 
-  var prompt = 'This is a dental smile makeover simulation. Keep the exact same person, face, skin tone, lips, hair and background. ' +
-    'Only modify the teeth to look like perfect porcelain dental veneers. ' +
-    (tono === 'Hollywood White' ? 'Ultra bright Hollywood white veneers. ' :
-     tono === 'B1' ? 'B1 shade bright white veneers. ' :
-     tono === 'A2' ? 'A2 shade natural white veneers. ' : 'A1 shade natural white veneers. ') +
-    (forma === 'oval' ? 'Oval shaped teeth, soft rounded feminine edges. ' :
-     forma === 'cuadrado' ? 'Square shaped teeth, strong masculine look. ' :
-     forma === 'rectangular' ? 'Rectangular classic veneer shape. ' :
-     forma === 'triangular' ? 'Triangular youthful tooth shape. ' :
-     'Natural oval shaped veneers. ') +
-    (tipoDiseno === 'ortodoncia' ? 'Perfectly straight aligned teeth. ' : '') +
-    (tipoDiseno === 'implantes' ? 'Complete smile with implants, natural looking. ' : '') +
-    'Perfect gum line, no gaps, no stains, natural translucency. Photorealistic dental photography. ' +
-    (instrucciones ? instrucciones + '. ' : '') +
-    'Professional dental clinic smile design preview. Do NOT change anything except the teeth.';
+  var prompt = 'Dental smile makeover simulation for a real patient. ' +
+    'IMPORTANT: Keep the EXACT same person - same face, lips, skin tone, gum color, facial features. ' +
+    'Only improve the teeth naturally and realistically. ' +
+    'Apply dental veneers that look NATURAL, not perfect movie-star teeth. ' +
+    (tono === 'Hollywood White' ? 'Whiten teeth to a bright white, but keep natural translucency. ' :
+     tono === 'B1' ? 'Whiten teeth to B1 shade, natural looking. ' :
+     tono === 'A2' ? 'Natural A2 shade, subtle whitening. ' : 'Natural A1 shade, subtle improvement. ') +
+    (forma === 'oval' ? 'Soft oval shape, feminine. ' :
+     forma === 'cuadrado' ? 'Square shape, masculine. ' :
+     forma === 'rectangular' ? 'Rectangular classic shape. ' :
+     forma === 'triangular' ? 'Triangular youthful shape. ' :
+     'Natural tooth shape. ') +
+    (tipoDiseno === 'ortodoncia' ? 'Straighten and align teeth naturally. ' : '') +
+    (tipoDiseno === 'implantes' ? 'Replace missing teeth naturally. ' : '') +
+    'Close gaps if any. Maintain natural gum color and texture. ' +
+    'Result should look like a REAL dental clinic photo, NOT a computer render. ' +
+    'Subtle realistic improvement, not exaggerated perfection. ' +
+    'The after photo should look like it was taken in the same dental clinic setting. ' +
+    (instrucciones ? instrucciones + '. ' : '');
 
   try {
     var resp = await fetch(EDGE_URL, {
