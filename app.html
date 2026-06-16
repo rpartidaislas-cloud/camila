@@ -790,7 +790,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
             </div>
             <div class="acc-row">
               <button class="btn btn-secondary" onclick="nuevoCaso()">↩ Nuevo Diseño</button>
-              <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+              <button class="btn btn-primary" onclick="generarPDF()">📄 Descargar PDF</button>
               <button class="btn btn-secondary" onclick="copiarTexto()">📋 Copiar texto</button>
             </div>
           </div>
@@ -1715,7 +1715,149 @@ function marcarTodasLeidas() {
 }
 
 // ══════════════════════════════════════════
-// GEMINI — SIMULACIÓN DE SONRISA
+// GENERAR PDF PROFESIONAL
+// ══════════════════════════════════════════
+function generarPDF() {
+  var r = analisisResultado || {};
+  var config = (tenantData && tenantData.config) || {};
+  var nombreCaso = document.getElementById('f-caso-nombre').value.trim() || 'Diseño de Sonrisa';
+  var fecha = new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
+  var doctor = config.doctor || tenantData.nombre || 'Doctor';
+  var consultorio = config.consultorio || 'Consultorio Dental';
+  var ciudad = config.ciudad || '';
+  var score = r.score || '-';
+  var textoPx = r.texto_paciente || '';
+
+  // Fotos clínicas
+  var fotosHTML = '';
+  var nombresSlots = ['Sonrisa frontal', 'Perfil lateral', 'Intraoral frontal', 'Radiografía'];
+  var fotosDisponibles = imagenes.filter(function(i) { return i !== null; });
+  if (fotosDisponibles.length > 0) {
+    fotosHTML = '<div class="seccion"><div class="sec-titulo">📸 Fotografías Clínicas</div><div class="fotos-grid">';
+    imagenes.forEach(function(img, idx) {
+      if (img) {
+        fotosHTML += '<div class="foto-item"><img src="data:image/jpeg;base64,' + img + '" alt="' + nombresSlots[idx] + '"><div class="foto-lbl">' + nombresSlots[idx] + '</div></div>';
+      }
+    });
+    fotosHTML += '</div></div>';
+  }
+
+  // Before / After
+  var baHTML = '';
+  var beforeSrc = imagenes[0] ? 'data:image/jpeg;base64,' + imagenes[0] : null;
+  if (beforeSrc || imagenAfterUrl) {
+    baHTML = '<div class="seccion"><div class="sec-titulo">✨ Simulación de Sonrisa</div><div class="ba-pdf-grid">';
+    if (beforeSrc) baHTML += '<div class="ba-pdf-item"><img src="' + beforeSrc + '" alt="Antes"><div class="ba-pdf-lbl before-lbl">ANTES</div></div>';
+    if (imagenAfterUrl) baHTML += '<div class="ba-pdf-item"><img src="' + imagenAfterUrl + '" alt="Después"><div class="ba-pdf-lbl after-lbl">DESPUÉS — Diseño IA</div></div>';
+    baHTML += '</div></div>';
+  }
+
+  // Diagnóstico
+  var diagHTML = '';
+  if (r.hallazgos || r.dientes || r.plan) {
+    diagHTML = '<div class="seccion"><div class="sec-titulo">🔬 Diagnóstico Clínico</div><div class="diag-grid">';
+    if (r.hallazgos && r.hallazgos.length) {
+      diagHTML += '<div class="diag-col"><div class="diag-sub">Hallazgos</div>' + r.hallazgos.map(function(h) { return '<div class="diag-item warn">• ' + h + '</div>'; }).join('') + '</div>';
+    }
+    if (r.dientes && r.dientes.length) {
+      diagHTML += '<div class="diag-col"><div class="diag-sub">Piezas a tratar</div>' + r.dientes.map(function(d) { return '<div class="diag-item violeta">• ' + d + '</div>'; }).join('') + '</div>';
+    }
+    if (r.consideraciones && r.consideraciones.length) {
+      diagHTML += '<div class="diag-col"><div class="diag-sub">Consideraciones</div>' + r.consideraciones.map(function(c) { return '<div class="diag-item gold">• ' + c + '</div>'; }).join('') + '</div>';
+    }
+    if (r.plan && r.plan.length) {
+      diagHTML += '<div class="diag-col"><div class="diag-sub">Plan sugerido</div>' + r.plan.map(function(p) { return '<div class="diag-item ok">• ' + p + '</div>'; }).join('') + '</div>';
+    }
+    diagHTML += '</div></div>';
+  }
+
+  // Cotización
+  var cots = r.cotizacion || [];
+  var total = cots.reduce(function(a, c) { return a + (c.subtotal || 0); }, 0);
+  var cotHTML = '';
+  if (cots.length) {
+    cotHTML = '<div class="seccion"><div class="sec-titulo">💰 Cotización del Tratamiento</div>' +
+      '<table class="cot-pdf"><thead><tr><th>Procedimiento</th><th>Piezas</th><th>Precio unit.</th><th>Subtotal</th></tr></thead><tbody>' +
+      cots.map(function(c) {
+        return '<tr><td>' + c.procedimiento + '</td><td style="text-align:center">' + c.piezas + '</td><td style="text-align:right">$' + (c.precio_unit||0).toLocaleString() + '</td><td style="text-align:right;font-weight:700">$' + (c.subtotal||0).toLocaleString() + '</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<div class="total-pdf"><span>Total estimado del tratamiento</span><span class="total-num">$' + total.toLocaleString() + ' MXN</span></div></div>';
+  }
+
+  // Texto paciente
+  var txPxHTML = textoPx ? '<div class="seccion texto-px-pdf"><div class="sec-titulo">💬 Explicación para el Paciente</div><p>' + textoPx + '</p></div>' : '';
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>CAMILA — ' + nombreCaso + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;margin:0;padding:0;color:#1a1a2e;background:#fff;font-size:13px}' +
+    '.header{background:linear-gradient(135deg,#7C3AED,#2563EB);color:#fff;padding:28px 36px;display:flex;justify-content:space-between;align-items:center}' +
+    '.header-left h1{font-size:26px;font-weight:800;margin:0 0 4px}' +
+    '.header-left p{font-size:11px;opacity:.8;margin:0}' +
+    '.header-right{text-align:right}' +
+    '.header-right .score-big{font-size:44px;font-weight:900;line-height:1}' +
+    '.header-right .score-lbl{font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:1px}' +
+    '.info-bar{background:#F8FAFC;border-bottom:2px solid #E2E8F0;padding:14px 36px;display:flex;gap:40px}' +
+    '.info-bar .item label{font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;display:block}' +
+    '.info-bar .item span{font-size:13px;font-weight:600;color:#1a1a2e}' +
+    '.contenido{padding:24px 36px}' +
+    '.seccion{margin-bottom:24px}' +
+    '.sec-titulo{font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #EDE9FE}' +
+    '.fotos-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}' +
+    '.foto-item img{width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid #E2E8F0}' +
+    '.foto-lbl{text-align:center;font-size:10px;color:#64748B;margin-top:4px}' +
+    '.ba-pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}' +
+    '.ba-pdf-item img{width:100%;height:220px;object-fit:cover;border-radius:10px;border:2px solid #E2E8F0}' +
+    '.ba-pdf-lbl{text-align:center;font-size:11px;font-weight:700;margin-top:6px;padding:4px 12px;border-radius:99px;display:inline-block}' +
+    '.before-lbl{background:#F1F5F9;color:#64748B}' +
+    '.after-lbl{background:linear-gradient(135deg,#EDE9FE,#DBEAFE);color:#7C3AED}' +
+    '.ba-pdf-item{text-align:center}' +
+    '.diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
+    '.diag-col{background:#F8FAFC;border-radius:8px;padding:12px}' +
+    '.diag-sub{font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}' +
+    '.diag-item{font-size:12px;margin-bottom:5px;padding-left:4px}' +
+    '.warn{color:#D97706}.ok{color:#16A34A}.violeta{color:#7C3AED}.gold{color:#B45309}' +
+    '.cot-pdf{width:100%;border-collapse:collapse;font-size:12px}' +
+    '.cot-pdf th{background:#7C3AED;color:#fff;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px}' +
+    '.cot-pdf td{padding:9px 12px;border-bottom:1px solid #E2E8F0}' +
+    '.cot-pdf tr:last-child td{border:none}' +
+    '.total-pdf{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#EDE9FE,#DBEAFE);border-radius:8px;padding:14px 16px;margin-top:10px}' +
+    '.total-pdf span{font-size:13px;color:#475569}' +
+    '.total-num{font-size:22px;font-weight:900;color:#7C3AED}' +
+    '.texto-px-pdf{background:#EFF6FF;border-left:4px solid #2563EB;border-radius:0 8px 8px 0;padding:14px 18px}' +
+    '.texto-px-pdf p{font-size:13px;color:#1E40AF;line-height:1.75;margin:0}' +
+    '.footer{background:#1a1a2e;color:#94A3B8;padding:14px 36px;display:flex;justify-content:space-between;align-items:center;font-size:10px;margin-top:24px}' +
+    '.footer strong{color:#fff}' +
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}}' +
+    '</style></head><body>' +
+    '<div class="header">' +
+    '<div class="header-left"><h1>🦷 CAMILA</h1><p>Diseño de Sonrisa Digital · IA</p>' +
+    '<div style="margin-top:12px;font-size:13px;opacity:.9"><strong>' + nombreCaso + '</strong><br>' +
+    doctor + ' · ' + consultorio + (ciudad ? ' · ' + ciudad : '') + '<br>' +
+    'Fecha: ' + fecha + '</div></div>' +
+    '<div class="header-right"><div class="score-big">' + score + '/10</div><div class="score-lbl">Potencial estético</div></div>' +
+    '</div>' +
+    '<div class="contenido">' +
+    fotosHTML +
+    baHTML +
+    diagHTML +
+    cotHTML +
+    txPxHTML +
+    '</div>' +
+    '<div class="footer">' +
+    '<span>Generado con <strong>CAMILA</strong> — Cotización y Análisis Médico Inteligente para La Estética dental</span>' +
+    '<span>© 2025 <strong>Dr. Hernán Partida Islas</strong> · Propiedad Intelectual</span>' +
+    '</div>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(function() { win.print(); }, 800);
+}
+
+// ══════════════════════════════════════════
 // ══════════════════════════════════════════
 var imagenAfterUrl = null;
 
