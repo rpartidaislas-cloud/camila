@@ -1480,28 +1480,49 @@ async function ejecutarAnalisisIA() {
   try {
     var resp, data;
     if (USE_EDGE) {
-      // Edge Function proxy (cuando esté creada)
       resp = await fetch(EDGE_URL, {
         method: 'POST',
-        headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + SUPA_KEY},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + SUPA_KEY
+        },
         body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
       });
       data = await resp.json();
     } else {
-      // TEMPORAL: API directa (CORS bloqueado en producción — crear Edge Function)
       resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {'Content-Type':'application/json', 'x-api-key': getApiKey(), 'anthropic-version':'2023-06-01'},
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': getApiKey(),
+          'anthropic-version': '2023-06-01'
+        },
         body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:1500, messages:[{role:'user', content:contentArr}]})
       });
       data = await resp.json();
     }
 
+    // Verificar error de la Edge Function o Anthropic
+    if (data.error) {
+      throw new Error('API error: ' + (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)));
+    }
+
     var texto = (data.content || []).map(function(i) { return i.text || ''; }).join('');
     var limpio = texto.replace(/```json|```/g, '').trim();
-    var r = JSON.parse(limpio);
-    analisisResultado = r;
 
+    if (!limpio) {
+      throw new Error('Respuesta vacía de la IA. Respuesta completa: ' + JSON.stringify(data));
+    }
+
+    var r;
+    try {
+      r = JSON.parse(limpio);
+    } catch(parseErr) {
+      console.error('JSON parse error. Texto recibido:', limpio);
+      throw new Error('Error al interpretar la respuesta de la IA.');
+    }
+
+    analisisResultado = r;
     document.getElementById('loading-ia').classList.remove('visible');
     mostrarAnalisis(r, nombre);
 
@@ -1512,9 +1533,9 @@ async function ejecutarAnalisisIA() {
     renderSidebar();
 
   } catch(e) {
-    console.error(e);
+    console.error('ejecutarAnalisisIA error:', e);
     document.getElementById('loading-ia').classList.remove('visible');
-    alert('Error al conectar con la IA. Verifica tu conexión o configura la Edge Function.');
+    alert('Error: ' + e.message);
     mostrarPaso(1);
   }
 }
