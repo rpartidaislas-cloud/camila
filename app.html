@@ -368,72 +368,51 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
-  /* Layout base */
   .sidebar{display:none}
-  .contenido{padding:12px}
-  .topbar{padding:10px 14px}
-  .topbar-left h2{font-size:14px}
-
-  /* Grids a 1 columna */
+  .main{padding:0;margin:0}
+  .contenido{padding:8px;padding-bottom:80px}
+  .topbar{padding:8px 12px;position:sticky;top:0;z-index:30;background:var(--bg2);border-bottom:1px solid var(--borde)}
+  .topbar-left h2{font-size:15px}
   .stats-grid{grid-template-columns:1fr 1fr;gap:8px}
   .rep-grid,.form-grid,.upload-grid,.cuenta-grid,.info-grid{grid-template-columns:1fr}
   .acc-row{flex-direction:column}
   .acc-row .btn{width:100%;justify-content:center}
-
-  /* Stats más compactos */
-  .stat-card{padding:12px}
+  .stat-card{padding:10px}
   .stat-num{font-size:22px}
   .stat-icon{width:30px;height:30px;font-size:15px}
-
-  /* Cards */
-  .card{padding:14px;margin-bottom:12px}
-
-  /* Steps bar en móvil: solo iconos */
-  .steps-bar{padding:10px 12px;gap:4px}
+  .card{padding:12px;margin-bottom:10px;border-radius:12px}
+  .steps-bar{padding:8px 10px;gap:4px;position:sticky;top:57px;z-index:20;background:var(--bg2);border-bottom:1px solid var(--borde)}
   .step-lbl{display:none}
   .step-sep{max-width:20px}
-  .step-num{width:32px;height:32px;font-size:13px}
-
-  /* Upload slots */
-  .upload-slot{min-height:90px;padding:12px}
-  .upload-slot .slot-icon{font-size:22px;margin-bottom:4px}
+  .step-num{width:30px;height:30px;font-size:13px}
+  .upload-slot{min-height:80px;padding:10px}
+  .upload-slot .slot-icon{font-size:20px;margin-bottom:3px}
   .upload-slot h4{font-size:11px}
   .upload-slot p{font-size:10px}
-
-  /* Simulación slider */
-  .img-slider-container{height:220px}
-  .ba-wrap{grid-template-columns:1fr 1fr;gap:8px}
-  .ba-img{max-height:160px}
-
-  /* Tabla pacientes */
+  .img-slider-container{height:260px}
+  .ba-wrap{grid-template-columns:1fr 1fr;gap:6px}
+  .ba-img{height:180px;object-fit:contain;background:#111}
+  .ba-placeholder{height:180px}
+  .ba-loading{height:180px}
   .tabla th:nth-child(2),.tabla td:nth-child(2){display:none}
   .tabla th,.tabla td{padding:8px 10px;font-size:12px}
-
-  /* Prompt chips */
   #prompts-grid{grid-template-columns:1fr}
   .prompt-chip{padding:8px 10px}
-
-  /* Topbar botón */
   .topbar-right .btn{padding:7px 12px;font-size:12px}
   .topbar-right .btn span{display:none}
-
-  /* Dashboard grid */
-  #p-dashboard > div:last-child{grid-template-columns:1fr}
-
-  /* Cotización tabla */
+  #p-dashboard>div:last-child{grid-template-columns:1fr}
   .cot-tabla th:nth-child(3),.cot-tabla td:nth-child(3){display:none}
   .cot-tabla{font-size:12px}
-
-  /* Rep grid */
   .rep-header-card{flex-direction:column;gap:12px;text-align:center}
   .score-circle{margin:0 auto}
-
-  /* Mi cuenta */
   .cuenta-grid{grid-template-columns:1fr}
-
-  /* Modal */
   .modal{width:95%;padding:16px}
   .form-grid{grid-template-columns:1fr}
+  .btn-hamburger{display:flex}
+  .acc-row{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--borde);padding:10px 12px;z-index:40;display:flex;gap:8px}
+  .acc-row .btn{flex:1}
+  #tipo-diseno-grid{grid-template-columns:1fr!important}
+  .tipo-card{display:flex;flex-direction:row;align-items:center;gap:12px;padding:12px 14px}
 }
 
 /* ── MOBILE NAV ── */
@@ -442,9 +421,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 .mobile-nav-overlay.visible{display:block}
 .mobile-nav-drawer{position:fixed;top:0;left:-260px;width:240px;height:100vh;background:var(--bg2);border-right:1px solid var(--borde);z-index:51;transition:left .25s ease;display:flex;flex-direction:column;overflow-y:auto}
 .mobile-nav-drawer.visible{left:0}
-@media(max-width:768px){
-  .btn-hamburger{display:flex}
-}
+
 @media print{
   .sidebar,.topbar,.acc-row,.alerta,.chat-wrap,.steps-bar,.btn-hamburger{display:none!important}
   .pantalla{display:block!important}
@@ -768,10 +745,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
             <div class="card">
               <div class="card-title">🔬 Diagnóstico Clínico</div>
               <div class="rep-grid">
-                <div class="rep-sec"><h4>Hallazgos</h4><div id="r-hallazgos"></div></div>
-                <div class="rep-sec"><h4>Piezas a tratar</h4><div id="r-dientes"></div></div>
-                <div class="rep-sec"><h4>Consideraciones</h4><div id="r-consideraciones"></div></div>
-                <div class="rep-sec"><h4>Plan sugerido</h4><div id="r-plan"></div></div>
+                <div class="rep-sec"><h4>🔍 Lo que encontramos</h4><div id="r-hallazgos"></div></div>
+                <div class="rep-sec"><h4>🦷 Dientes afectados</h4><div id="r-dientes"></div></div>
+                <div class="rep-sec"><h4>⚠️ Ten en cuenta</h4><div id="r-consideraciones"></div></div>
+                <div class="rep-sec"><h4>📋 Pasos a seguir</h4><div id="r-plan"></div></div>
               </div>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -1237,6 +1214,7 @@ var tenantData = null;
 var imagenes = [null, null, null, null];
 var chatHistorial = [];
 var cargandoChat = false;
+var cropData = { x:0, y:0, scale:1, imgW:0, imgH:0, contW:0, contH:0 };
 var pacienteActual = null;
 var pacienteSeleccionado = null;
 var analisisResultado = null;
@@ -1704,11 +1682,10 @@ async function irAPaso4() {
   var pres = document.getElementById('reporte-area');
   pres.classList.add('visible');
 
-  // Pre-cargar foto Before
+  // Pre-cargar foto Before con encuadre ajustable
   if (imagenes[0]) {
     var dataUrl = 'data:image/jpeg;base64,' + imagenes[0];
-    document.getElementById('ba-before-wrap').innerHTML =
-      '<img class="ba-img" src="' + dataUrl + '" alt="Foto original">';
+    mostrarBeforeAjustable(dataUrl);
   }
 
   // Reset simulación
@@ -1873,20 +1850,78 @@ async function ejecutarAnalisisIA() {
 }
 
 function mostrarAnalisis(r, nombre) {
-  document.getElementById('r-nombre').textContent = 'Análisis IA — ' + nombre;
-  document.getElementById('r-fecha').textContent = new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
-  document.getElementById('r-score').textContent = (r.score || '-') + '/10';
+  document.getElementById('r-nombre').textContent = 'Tu Diagnóstico — ' + nombre;
+  document.getElementById('r-fecha').textContent = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('r-score').textContent = (r.score||0) + '/10';
 
-  function items(arr, dc) {
-    return (arr || []).map(function(h) {
-      return '<div class="rep-item"><span class="rep-dot ' + dc + '"></span><span>' + h + '</span></div>';
+  function traducir(texto) {
+    return texto
+      .replace(/diastema interincisal/gi,'espacio entre los dientes frontales')
+      .replace(/diastema/gi,'separación entre dientes')
+      .replace(/discromía dental/gi,'coloración desigual de los dientes')
+      .replace(/discromía/gi,'manchas o color irregular')
+      .replace(/tonalidades amarillentas/gi,'tono amarillento')
+      .replace(/irregularidad en la forma/gi,'forma irregular')
+      .replace(/incisivos centrales/gi,'dientes del centro')
+      .replace(/incisivos laterales/gi,'dientes laterales frontales')
+      .replace(/incisivos/gi,'dientes frontales')
+      .replace(/bordes incisales/gi,'bordes de los dientes')
+      .replace(/gingivectomía/gi,'ajuste de encías')
+      .replace(/gingivoplastia/gi,'remodelado de encías')
+      .replace(/encerado diagnóstico/gi,'prueba visual del diseño')
+      .replace(/mock-up/gi,'prueba en boca')
+      .replace(/carillas de composite/gi,'carillas de resina')
+      .replace(/carillas de porcelana/gi,'carillas de porcelana (cerámica)')
+      .replace(/carillas/gi,'carillas dentales')
+      .replace(/facetas/gi,'carillas dentales')
+      .replace(/blanqueamiento/gi,'blanqueamiento dental')
+      .replace(/rehabilitación oral/gi,'restauración completa de la sonrisa')
+      .replace(/maloclusión/gi,'mordida desalineada')
+      .replace(/clase II/gi,'dientes superiores adelantados')
+      .replace(/clase III/gi,'dientes inferiores adelantados')
+      .replace(/apiñamiento/gi,'dientes apilados o encimados')
+      .replace(/extrusión/gi,'diente que sobresale')
+      .replace(/intrusión/gi,'diente hundido')
+      .replace(/abfracción/gi,'desgaste en la base del diente')
+      .replace(/abrasión/gi,'desgaste del esmalte')
+      .replace(/erosión dental/gi,'desgaste ácido del esmalte')
+      .replace(/recesión gingival/gi,'encía retraída')
+      .replace(/pérdida ósea/gi,'debilitamiento del hueso dental')
+      .replace(/implante oseointegrado/gi,'implante dental')
+      .replace(/corona dental/gi,'funda dental (corona)')
+      .replace(/endodoncia/gi,'tratamiento de conducto (nervio)')
+      .replace(/oclusión/gi,'mordida')
+      .replace(/parafunción/gi,'hábito que daña los dientes')
+      .replace(/bruxismo/gi,'apriete o rechinar de dientes')
+      .replace(/pieza/gi,'diente');
+  }
+
+  function items(arr, colorClass) {
+    return (arr||[]).map(function(h){
+      return '<div class="rep-item"><span class="rep-dot '+colorClass+'"></span><span>'+traducir(h)+'</span></div>';
     }).join('');
   }
-  document.getElementById('r-hallazgos').innerHTML = items(r.hallazgos, 'dot-warn');
-  document.getElementById('r-dientes').innerHTML = (r.dientes || []).map(function(d) { return '<span class="tag">' + d + '</span>'; }).join('');
-  document.getElementById('r-consideraciones').innerHTML = items(r.consideraciones, 'dot-violeta');
-  document.getElementById('r-plan').innerHTML = items(r.plan, 'dot-ok');
-  document.getElementById('analisis-resultado').style.display = 'block';
+
+  var hallazgosEl = document.getElementById('r-hallazgos');
+  if (hallazgosEl) hallazgosEl.innerHTML = items(r.hallazgos,'dot-warn');
+
+  var dientesEl = document.getElementById('r-dientes');
+  if (dientesEl) {
+    dientesEl.innerHTML = (r.dientes||[]).map(function(d){
+      var parts = d.split(' - ');
+      return '<div class="rep-item"><span class="rep-dot dot-violeta"></span><span>'+(parts[0]?'<strong>'+traducir(parts[0])+'</strong>: ':'')+traducir(parts[1]||d)+'</span></div>';
+    }).join('');
+  }
+
+  var consEl = document.getElementById('r-consideraciones');
+  if (consEl) consEl.innerHTML = items(r.consideraciones,'dot-violeta');
+
+  var planEl = document.getElementById('r-plan');
+  if (planEl) planEl.innerHTML = (r.plan||[]).map(function(p,i){
+    return '<div class="rep-item"><span class="rep-dot dot-ok"></span><span><strong>'+(i+1)+'.</strong> '+traducir(p)+'</span></div>';
+  }).join('');
+
+  document.getElementById('analisis-resultado').style.display='block';
 }
 
 function getApiKey() {
@@ -2274,20 +2309,20 @@ function initIntensidadSlider() {
 }
 
 function regenerarConIntensidad() {
-  var instrBase = document.getElementById('aj-instrucciones').value || '';
-  var intensMod = '';
-  if (intensidadActual < 25) {
-    intensMod = 'Very subtle minimal change. Almost imperceptible improvement. Keep 90% of original appearance.';
-  } else if (intensidadActual < 50) {
-    intensMod = 'Conservative natural result. Small improvement, very realistic. Keep natural imperfections.';
-  } else if (intensidadActual < 75) {
-    intensMod = 'Moderate improvement. Natural looking veneers, noticeable but realistic change.';
-  } else if (intensidadActual < 90) {
-    intensMod = 'Pronounced improvement. Beautiful veneers, significant whitening, very polished result.';
+  var base = document.getElementById('aj-instrucciones').value || '';
+  var mod = '';
+  if (intensidadActual < 20) {
+    mod = 'INTENSITY: MINIMAL. Only slight whitening, keep almost everything identical. 95% same as original.';
+  } else if (intensidadActual < 40) {
+    mod = 'INTENSITY: CONSERVATIVE. Small natural improvement, minor whitening, close small gaps. Very realistic.';
+  } else if (intensidadActual < 60) {
+    mod = 'INTENSITY: MODERATE. Clear improvement visible, natural veneers, noticeable but not dramatic.';
+  } else if (intensidadActual < 80) {
+    mod = 'INTENSITY: SIGNIFICANT. Beautiful polished smile, prominent veneers, strong whitening, professional result.';
   } else {
-    intensMod = 'Maximum transformation. Perfect Hollywood smile, ultra white, completely transformed.';
+    mod = 'INTENSITY: MAXIMUM TRANSFORMATION. Full Hollywood makeover, ultra white, perfect symmetry, complete redesign.';
   }
-  document.getElementById('aj-instrucciones').value = intensMod + (instrBase ? ' ' + instrBase : '');
+  document.getElementById('aj-instrucciones').value = mod + (base ? ' ' + base : '');
   generarBeforeAfter();
 }
 
@@ -2328,6 +2363,104 @@ function mostrarNotasClinicas() {
   document.getElementById('sim-notas').style.display = 'block';
 }
 
+// ══════════════════════════════════════════
+// CROP / ENCUADRE DE FOTO
+// ══════════════════════════════════════════
+function mostrarBeforeAjustable(dataUrl) {
+  var wrap = document.getElementById('ba-before-wrap');
+  wrap.innerHTML =
+    '<div id="crop-container" style="width:100%;height:300px;overflow:hidden;position:relative;background:#111;cursor:grab;touch-action:none;border-radius:var(--radius-s)">' +
+    '<img id="crop-img" src="'+dataUrl+'" style="position:absolute;transform-origin:0 0;user-select:none;pointer-events:none;max-width:none" draggable="false">' +
+    '<div style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 7px;border-radius:99px">↕↔ Arrastra · Scroll para zoom</div>' +
+    '</div>';
+  var container = document.getElementById('crop-container');
+  var img = document.getElementById('crop-img');
+  img.onload = function() {
+    cropData.imgW = img.naturalWidth;
+    cropData.imgH = img.naturalHeight;
+    cropData.contW = container.offsetWidth;
+    cropData.contH = container.offsetHeight || 300;
+    var scaleX = cropData.contW / cropData.imgW;
+    var scaleY = cropData.contH / cropData.imgH;
+    cropData.scale = Math.max(scaleX, scaleY);
+    cropData.x = (cropData.contW - cropData.imgW * cropData.scale) / 2;
+    cropData.y = (cropData.contH - cropData.imgH * cropData.scale) / 2;
+    aplicarCrop();
+    initCropDrag(container);
+    container.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      cropData.scale = Math.max(0.3, Math.min(5, cropData.scale * (e.deltaY < 0 ? 1.1 : 0.9)));
+      aplicarCrop();
+    }, {passive:false});
+  };
+}
+
+function aplicarCrop() {
+  var img = document.getElementById('crop-img');
+  if (!img) return;
+  img.style.transform = 'translate('+cropData.x+'px,'+cropData.y+'px) scale('+cropData.scale+')';
+}
+
+function initCropDrag(container) {
+  var dragging = false, startX, startY, startCropX, startCropY, t0;
+  container.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    startCropX = cropData.x; startCropY = cropData.y;
+    container.style.cursor = 'grabbing'; e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    cropData.x = startCropX + (e.clientX - startX);
+    cropData.y = startCropY + (e.clientY - startY);
+    aplicarCrop();
+  });
+  document.addEventListener('mouseup', function() { dragging = false; container.style.cursor = 'grab'; });
+  container.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      dragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      startCropX = cropData.x; startCropY = cropData.y;
+    } else if (e.touches.length === 2) {
+      dragging = false;
+      t0 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    }
+    e.preventDefault();
+  }, {passive:false});
+  container.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 1 && dragging) {
+      cropData.x = startCropX + (e.touches[0].clientX - startX);
+      cropData.y = startCropY + (e.touches[0].clientY - startY);
+      aplicarCrop();
+    } else if (e.touches.length === 2) {
+      var d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      cropData.scale = Math.max(0.3, Math.min(5, cropData.scale * (d/t0)));
+      t0 = d; aplicarCrop();
+    }
+    e.preventDefault();
+  }, {passive:false});
+  container.addEventListener('touchend', function() { dragging = false; });
+}
+
+function generarCanvasCrop() {
+  return new Promise(function(resolve) {
+    var container = document.getElementById('crop-container');
+    if (!container) { resolve(null); return; }
+    var contW = container.offsetWidth;
+    var contH = container.offsetHeight || 300;
+    var canvas = document.createElement('canvas');
+    canvas.width = contW; canvas.height = contH;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, contW, contH);
+    var img = new Image();
+    img.onload = function() {
+      ctx.drawImage(img, cropData.x, cropData.y, img.naturalWidth * cropData.scale, img.naturalHeight * cropData.scale);
+      resolve(canvas.toDataURL('image/jpeg', 0.92));
+    };
+    var cropImg = document.getElementById('crop-img');
+    img.src = cropImg ? cropImg.src : '';
+  });
+}
+
 var imagenAfterUrl = null;
 
 async function generarBeforeAfter() {
@@ -2349,35 +2482,47 @@ async function generarBeforeAfter() {
     '<div style="font-size:11px;color:var(--texto3)">Esto toma ~20 segundos</div>' +
     '</div>';
 
-  // Foto original en Before
-  var dataUrl = 'data:image/jpeg;base64,' + fotoBase64;
+  // Usar encuadre ajustado por el usuario si existe
+  var croppedDataUrl = await generarCanvasCrop();
+  var dataUrl = croppedDataUrl || ('data:image/jpeg;base64,' + fotoBase64);
   document.getElementById('ba-before-wrap').innerHTML =
-    '<img class="ba-img" src="' + dataUrl + '" alt="Foto original">';
+    '<img class="ba-img" src="' + dataUrl + '" style="height:300px;object-fit:contain;background:#111">';
+
+  // Enviar crop a la IA, no la foto completa
+  var fotoParaIA = croppedDataUrl ? croppedDataUrl.split(',')[1] : fotoBase64;
 
   var tono = document.getElementById('aj-tono').value || '';
   var forma = document.getElementById('aj-forma').value || '';
   var instrucciones = document.getElementById('aj-instrucciones').value || '';
   var tipoDiseno = document.getElementById('f-caso-tipo').value || 'estetica';
 
-  var prompt = 'Dental smile makeover simulation for a real patient. ' +
-    'IMPORTANT: Keep the EXACT same person - same face, lips, skin tone, gum color, facial features. ' +
-    'Only improve the teeth naturally and realistically. ' +
-    'Apply dental veneers that look NATURAL, not perfect movie-star teeth. ' +
-    (tono === 'Hollywood White' ? 'Whiten teeth to a bright white, but keep natural translucency. ' :
-     tono === 'B1' ? 'Whiten teeth to B1 shade, natural looking. ' :
-     tono === 'A2' ? 'Natural A2 shade, subtle whitening. ' : 'Natural A1 shade, subtle improvement. ') +
-    (forma === 'oval' ? 'Soft oval shape, feminine. ' :
-     forma === 'cuadrado' ? 'Square shape, masculine. ' :
-     forma === 'rectangular' ? 'Rectangular classic shape. ' :
-     forma === 'triangular' ? 'Triangular youthful shape. ' :
-     'Natural tooth shape. ') +
-    (tipoDiseno === 'ortodoncia' ? 'Straighten and align teeth naturally. ' : '') +
-    (tipoDiseno === 'implantes' ? 'Replace missing teeth naturally. ' : '') +
-    'Close gaps if any. Maintain natural gum color and texture. ' +
-    'Result should look like a REAL dental clinic photo, NOT a computer render. ' +
-    'Subtle realistic improvement, not exaggerated perfection. ' +
-    'The after photo should look like it was taken in the same dental clinic setting. ' +
-    (instrucciones ? instrucciones + '. ' : '');
+  var prompt =
+    'You are doing a DENTAL SMILE SIMULATION for a dental clinic. ' +
+    'CRITICAL RULE #1 — IDENTITY PRESERVATION: The person in the result must be IDENTICAL to the input photo. ' +
+    'Copy EXACTLY: face shape, lips width and height, lip color, gum color, gum shape, cheek structure, ' +
+    'jaw line, skin tone, all facial features. The ONLY thing that changes is the teeth themselves. ' +
+    'CRITICAL RULE #2 — TEETH ALIGNMENT: The new teeth must fit PERFECTLY inside the existing mouth opening. ' +
+    'Same width, same height as the original teeth space. Do NOT make the mouth wider or taller. ' +
+    'Same smile line, same commissure angles. ' +
+    'CRITICAL RULE #3 — PHOTO REALISM: The output must look like a REAL clinical dental photo, not a render. ' +
+    'Same lighting, same camera angle, same depth of field, same background. ' +
+    'CRITICAL RULE #4 — NO FACIAL CHANGES: Do NOT change: lips, gums (unless gum design), cheeks, ' +
+    'jaw, face proportions, head tilt, expression, or any feature outside the teeth. ' +
+    (tono === 'Hollywood White' ? 'TOOTH COLOR: Ultra bright white, Hollywood smile. ' :
+     tono === 'B1' ? 'TOOTH COLOR: B1 shade, bright natural white. ' :
+     tono === 'A2' ? 'TOOTH COLOR: A2 shade, natural off-white. ' :
+     tono === 'A1' ? 'TOOTH COLOR: A1 shade, very light natural. ' :
+     'TOOTH COLOR: Choose the most natural and flattering shade for this patient. ') +
+    (forma === 'oval' ? 'TOOTH SHAPE: Soft oval feminine shape. ' :
+     forma === 'cuadrado' ? 'TOOTH SHAPE: Square masculine shape. ' :
+     forma === 'rectangular' ? 'TOOTH SHAPE: Classic rectangular shape. ' :
+     forma === 'triangular' ? 'TOOTH SHAPE: Youthful triangular shape. ' :
+     'TOOTH SHAPE: Keep the most natural shape suitable for this patient. ') +
+    (tipoDiseno === 'ortodoncia' ? 'TREATMENT: Align and straighten teeth only, no color change. ' : '') +
+    (tipoDiseno === 'implantes' ? 'TREATMENT: Replace missing tooth/teeth with natural implant crowns. ' : '') +
+    'TREATMENT DETAILS: ' + (instrucciones || 'Natural smile design with dental veneers, close gaps, even color.') + '. ' +
+    'OUTPUT: A single dental clinic photo showing the improved smile. Same exact framing as input. ' +
+    'Photorealistic, clinical photography style.';
 
   try {
     var resp = await fetch(EDGE_URL, {
@@ -2388,7 +2533,7 @@ async function generarBeforeAfter() {
       },
       body: JSON.stringify({
         action: 'generate_image',
-        imageBase64: fotoBase64,
+        imageBase64: fotoParaIA,
         mimeType: 'image/jpeg',
         prompt: prompt
       })
