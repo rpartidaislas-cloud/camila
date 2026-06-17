@@ -317,9 +317,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
 .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 
 /* ── SIMULACIÓN MEJORADA ── */
-.sim-tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--bg3);padding:4px;border-radius:var(--radius-s)}
-.sim-tab{flex:1;padding:8px;border:none;background:none;border-radius:6px;font-size:12px;font-weight:500;color:var(--texto3);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
-.sim-tab.activo{background:var(--bg2);color:var(--violeta);font-weight:700;box-shadow:var(--shadow)}
+.sim-tabs{display:none} /* eliminado — reemplazado por slider de intensidad */
+.sim-tab{display:none}
+.sim-intensidad{margin-bottom:14px;background:var(--bg3);border-radius:var(--radius-s);padding:14px}
+.sim-intensidad-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sim-intensidad-lbl{font-size:12px;font-weight:600;color:var(--texto2)}
+.sim-intensidad-val{font-size:13px;font-weight:700;color:var(--violeta)}
+.sim-intensidad-track{position:relative;height:6px;background:var(--borde);border-radius:99px;margin-bottom:10px;cursor:pointer}
+.sim-intensidad-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--violeta),var(--azul));border-radius:99px;transition:width .1s}
+.sim-intensidad-thumb{position:absolute;top:50%;width:18px;height:18px;background:var(--violeta);border-radius:50%;transform:translate(-50%,-50%);cursor:grab;box-shadow:0 2px 6px rgba(124,58,237,.4);border:2px solid #fff}
+.sim-intensidad-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--texto3)}
+.sim-regen-btn{width:100%;padding:9px;background:var(--violeta-s);color:var(--violeta);border:1px solid var(--violeta-b);border-radius:var(--radius-s);font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;display:none}
+.sim-regen-btn:hover{background:var(--violeta);color:#fff}
 .sim-disclaimer{background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--radius-s);padding:8px 12px;font-size:11px;color:#92400E;margin-top:8px;line-height:1.5}
 .sim-fidelidad{background:var(--bg3);border-radius:var(--radius-s);padding:12px 14px;margin-bottom:12px}
 .sim-notas{background:var(--azul-s);border:1px solid var(--azul-b);border-radius:var(--radius-s);padding:14px;margin-bottom:14px}
@@ -364,7 +373,122 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
   .rep-grid,.form-grid,.upload-grid,.cuenta-grid,.info-grid{grid-template-columns:1fr}
   .contenido{padding:16px}
   .topbar{padding:12px 16px}
+  /* En móvil ocultamos el layout desktop y mostramos el chat */
+  .layout{display:none!important}
+  #mobile-chat-app{display:flex!important}
 }
+
+/* ── MOBILE CHAT APP ── */
+#mobile-chat-app{
+  display:none;
+  flex-direction:column;
+  height:100vh;
+  height:100dvh;
+  background:var(--bg);
+  font-family:'Inter',sans-serif;
+}
+.mc-header{
+  background:linear-gradient(135deg,var(--violeta),var(--azul));
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-shrink:0;
+}
+.mc-header-avatar{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  border:2px solid rgba(255,255,255,.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.mc-header-info h3{color:#fff;font-size:14px;font-weight:700;margin:0}
+.mc-header-info p{color:rgba(255,255,255,.7);font-size:11px;margin:0}
+.mc-online{width:8px;height:8px;background:#4ade80;border-radius:50%;margin-left:auto;flex-shrink:0}
+.mc-msgs{
+  flex:1;overflow-y:auto;
+  padding:16px 12px;
+  display:flex;flex-direction:column;gap:10px;
+  background:var(--bg);
+}
+.mc-msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.55}
+.mc-msg-ia{
+  background:var(--bg2);color:var(--texto2);
+  border-radius:4px 16px 16px 16px;
+  border:1px solid var(--borde);
+  align-self:flex-start;
+  box-shadow:var(--shadow);
+}
+.mc-msg-user{
+  background:linear-gradient(135deg,var(--violeta),var(--azul));
+  color:#fff;
+  border-radius:16px 4px 16px 16px;
+  align-self:flex-end;
+}
+.mc-msg-img{align-self:flex-start;max-width:85%}
+.mc-msg-img img{width:100%;border-radius:12px;border:1px solid var(--borde)}
+.mc-msg-img .mc-img-label{font-size:10px;color:var(--texto3);margin-top:4px;text-align:center}
+.mc-chips{display:flex;gap:6px;flex-wrap:wrap;padding:6px 12px;background:var(--bg2);border-top:1px solid var(--borde)}
+.mc-chip{padding:7px 14px;background:var(--violeta-s);color:var(--violeta);border:1px solid var(--violeta-b);border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s}
+.mc-chip:hover{background:var(--violeta);color:#fff}
+.mc-inp-row{
+  padding:10px 12px;
+  display:flex;gap:8px;
+  background:var(--bg2);
+  border-top:1px solid var(--borde);
+  flex-shrink:0;
+  align-items:flex-end;
+}
+.mc-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--borde);
+  border-radius:20px;padding:10px 16px;
+  font-size:13px;font-family:'Inter',sans-serif;color:var(--texto);
+  outline:none;resize:none;max-height:100px;
+  transition:border .15s;
+}
+.mc-inp:focus{border-color:var(--violeta);background:var(--bg2)}
+.mc-send{
+  width:40px;height:40px;background:linear-gradient(135deg,var(--violeta),var(--azul));
+  border:none;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:#fff;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(124,58,237,.3);
+}
+.mc-upload-btn{
+  padding:7px 14px;background:var(--bg3);color:var(--texto2);
+  border:1px solid var(--borde);border-radius:99px;
+  font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.mc-upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.mc-upload-btn:hover{border-color:var(--violeta);color:var(--violeta)}
+.mc-typing{display:flex;gap:4px;align-items:center;padding:12px 16px}
+.mc-typing span{width:7px;height:7px;background:var(--texto3);border-radius:50%;animation:mcbounce .9s infinite}
+.mc-typing span:nth-child(2){animation-delay:.15s}
+.mc-typing span:nth-child(3){animation-delay:.3s}
+@keyframes mcbounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.mc-result-card{
+  background:linear-gradient(135deg,var(--violeta-s),var(--azul-s));
+  border:1px solid var(--violeta-b);border-radius:14px;
+  padding:14px;align-self:flex-start;max-width:90%;
+}
+.mc-result-card h4{font-size:13px;font-weight:700;color:var(--violeta);margin-bottom:8px}
+.mc-result-card .mc-result-item{font-size:12px;color:var(--texto2);margin-bottom:4px;display:flex;gap:6px}
+.mc-score{font-size:28px;font-weight:900;color:var(--violeta);text-align:center;margin-bottom:4px}
+.mc-score-lbl{font-size:10px;color:var(--texto3);text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.mc-ba-wrap{align-self:flex-start;max-width:90%;width:90%}
+.mc-ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.mc-ba-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid var(--violeta-b)}
+.mc-ba-lbl{font-size:10px;text-align:center;margin-top:4px;font-weight:600}
+.mc-btn-accion{
+  width:100%;padding:12px;margin-top:6px;
+  background:linear-gradient(135deg,var(--violeta),var(--azul));
+  color:#fff;border:none;border-radius:10px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Inter',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.mc-spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top:2px solid #fff;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
 @media print{
   .sidebar,.topbar,.acc-row,.alerta,.chat-wrap,.steps-bar{display:none!important}
   .pantalla{display:block!important}
@@ -867,11 +991,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
               </div>
               <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Visualización generada por IA con la fotografía real del paciente.</p>
 
-              <!-- TABS DE NIVEL -->
-              <div class="sim-tabs" id="sim-tabs" style="display:none">
-                <button class="sim-tab activo" onclick="verNivel('conservador',this)">🌿 Conservador</button>
-                <button class="sim-tab" onclick="verNivel('moderado',this)">⚖️ Moderado</button>
-                <button class="sim-tab" onclick="verNivel('completo',this)">🏆 Completo</button>
+              <!-- SLIDER DE INTENSIDAD -->
+              <div class="sim-intensidad" id="sim-intensidad" style="display:none">
+                <div class="sim-intensidad-header">
+                  <span class="sim-intensidad-lbl">🎚 Intensidad del cambio</span>
+                  <span class="sim-intensidad-val" id="intensidad-val">50% — Moderado</span>
+                </div>
+                <div class="sim-intensidad-track" id="intensidad-track">
+                  <div class="sim-intensidad-fill" id="intensidad-fill" style="width:50%"></div>
+                  <div class="sim-intensidad-thumb" id="intensidad-thumb" style="left:50%"></div>
+                </div>
+                <div class="sim-intensidad-labels">
+                  <span>🌿 Mínimo</span>
+                  <span>⚖️ Moderado</span>
+                  <span>🏆 Completo</span>
+                </div>
+                <button class="sim-regen-btn" id="sim-regen-btn" onclick="regenerarConIntensidad()">🔄 Regenerar con esta intensidad</button>
               </div>
 
               <!-- SLIDER COMPARADOR -->
@@ -1082,6 +1217,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--texto);min-
       <button class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarPaciente()">💾 Guardar paciente</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MOBILE CHAT APP ═══ -->
+<div id="mobile-chat-app">
+  <div class="mc-header">
+    <div class="mc-header-avatar">🦷</div>
+    <div class="mc-header-info">
+      <h3>CAMILA</h3>
+      <p>Asistente de Diseño de Sonrisa · IA</p>
+    </div>
+    <div class="mc-online"></div>
+  </div>
+  <div class="mc-msgs" id="mc-msgs"></div>
+  <div class="mc-chips" id="mc-chips" style="display:none"></div>
+  <div class="mc-inp-row">
+    <textarea class="mc-inp" id="mc-inp" rows="1" placeholder="Escribe aquí..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();mcEnviar()}"></textarea>
+    <button class="mc-send" onclick="mcEnviar()">➤</button>
   </div>
 </div>
 
@@ -1532,7 +1685,400 @@ async function irAPaso2() {
   await ejecutarAnalisisIA();
 }
 
-function selPrompt(el, texto) {
+// ══════════════════════════════════════════
+// MOBILE CHAT APP
+// ══════════════════════════════════════════
+var mcEstado = 'inicio'; // inicio, nombre, fotos, motivo, material, obs, analizando, diseno, generando, listo
+var mcDatos = { nombre:'', motivo:'', material:'sin definir', obs:'', imagenes:[null,null,null,null] };
+var mcImagenesContador = 0;
+var mcAnalisisResultado = null;
+var mcImagenAfter = null;
+
+function mcScroll() {
+  var el = document.getElementById('mc-msgs');
+  el.scrollTop = el.scrollHeight;
+}
+
+function mcAgregar(texto, tipo, extra) {
+  var msgs = document.getElementById('mc-msgs');
+  var div = document.createElement('div');
+  tipo = tipo || 'ia';
+
+  if (tipo === 'ia') {
+    div.className = 'mc-msg mc-msg-ia';
+    div.innerHTML = texto;
+  } else if (tipo === 'user') {
+    div.className = 'mc-msg mc-msg-user';
+    div.textContent = texto;
+  } else if (tipo === 'img') {
+    div.className = 'mc-msg-img';
+    div.innerHTML = '<img src="' + extra + '" alt="foto"><div class="mc-img-label">' + texto + '</div>';
+  } else if (tipo === 'typing') {
+    div.className = 'mc-msg mc-msg-ia';
+    div.id = 'mc-typing';
+    div.innerHTML = '<div class="mc-typing"><span></span><span></span><span></span></div>';
+  } else if (tipo === 'resultado') {
+    div.className = 'mc-result-card';
+    div.innerHTML = texto;
+  } else if (tipo === 'ba') {
+    div.className = 'mc-ba-wrap';
+    div.innerHTML = texto;
+  }
+
+  msgs.appendChild(div);
+  mcScroll();
+  return div;
+}
+
+function mcChips(opciones) {
+  var el = document.getElementById('mc-chips');
+  if (!opciones || !opciones.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = opciones.map(function(op) {
+    return '<div class="mc-chip" onclick="mcSelChip(\'' + op.replace(/'/g,"\'") + '\')">' + op + '</div>';
+  }).join('');
+}
+
+function mcSelChip(texto) {
+  mcChips([]);
+  mcAgregar(texto, 'user');
+  mcProcesar(texto);
+}
+
+function mcEnviar() {
+  var inp = document.getElementById('mc-inp');
+  var texto = inp.value.trim();
+  if (!texto) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  mcAgregar(texto, 'user');
+  mcChips([]);
+  mcProcesar(texto);
+}
+
+function mcTyping() {
+  return mcAgregar('', 'typing');
+}
+
+function mcRemoveTyping() {
+  var t = document.getElementById('mc-typing');
+  if (t) t.remove();
+}
+
+function mcDelay(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+async function mcProcesar(input) {
+  if (mcEstado === 'inicio' || mcEstado === 'nombre') {
+    mcDatos.nombre = input;
+    mcEstado = 'fotos';
+    await mcDelay(400);
+    mcAgregar('Perfecto, <strong>' + input + '</strong> 👋<br><br>Ahora necesito las fotografías clínicas. Sube la <strong>foto de sonrisa frontal</strong> del paciente — es la más importante para el análisis.', 'ia');
+    mcMostrarUpload(0, '📸 Sonrisa frontal');
+    return;
+  }
+
+  if (mcEstado === 'motivo') {
+    mcDatos.motivo = input;
+    mcEstado = 'material';
+    await mcDelay(300);
+    mcAgregar('¿Cuál es el <strong>material preferido</strong> para el tratamiento?', 'ia');
+    mcChips(['Sin definir', 'Porcelana feldespática', 'Disilicato de litio (e.max)', 'Composite de resina', 'Zirconia']);
+    return;
+  }
+
+  if (mcEstado === 'material') {
+    mcDatos.material = input;
+    mcEstado = 'obs';
+    await mcDelay(300);
+    mcAgregar('¿Hay alguna <strong>observación clínica</strong> importante? (bruxismo, sensibilidad, oclusión especial, etc.)<br><br>Si no hay, escribe <em>"ninguna"</em>.', 'ia');
+    return;
+  }
+
+  if (mcEstado === 'obs') {
+    mcDatos.obs = input === 'ninguna' ? '' : input;
+    mcEstado = 'analizando';
+    await mcDelay(300);
+    mcAgregar('Todo listo. Voy a analizar el caso de <strong>' + mcDatos.nombre + '</strong> ahora...', 'ia');
+    await mcDelay(600);
+    await mcAnalizarCaso();
+    return;
+  }
+
+  if (mcEstado === 'diseno') {
+    mcDatos.promptDiseno = input;
+    mcEstado = 'generando';
+    await mcDelay(300);
+    mcAgregar('Generando la simulación de sonrisa... ✨ Esto toma unos segundos.', 'ia');
+    await mcGenerarSimulacion();
+    return;
+  }
+}
+
+function mcMostrarUpload(idx, label) {
+  var msgs = document.getElementById('mc-msgs');
+  var div = document.createElement('div');
+  div.className = 'mc-msg mc-msg-ia';
+  div.style.width = '90%';
+
+  var inputId = 'mc-file-' + idx;
+  div.innerHTML = '<label class="mc-upload-btn" for="' + inputId + '">📎 ' + label + '<input type="file" id="' + inputId + '" accept="image/*"></label>';
+  msgs.appendChild(div);
+  mcScroll();
+
+  document.getElementById(inputId).addEventListener('change', function(e) {
+    if (!e.target.files[0]) return;
+    var r = new FileReader();
+    r.onload = function(ev) {
+      var b64 = ev.target.result.split(',')[1];
+      mcDatos.imagenes[idx] = b64;
+      mcImagenesContador++;
+      mcAgregar('✅ ' + label, 'user');
+      mcAgregar('', 'img', ev.target.result);
+      mcSiguienteFoto(idx);
+    };
+    r.readAsDataURL(e.target.files[0]);
+  });
+}
+
+async function mcSiguienteFoto(idx) {
+  await mcDelay(400);
+  if (idx === 0) {
+    mcAgregar('Excelente. ¿Tienes foto de <strong>perfil lateral</strong>? (Opcional — escribe "no" para omitir)', 'ia');
+    mcChips(['No, continuar']);
+    mcMostrarUpload(1, '😐 Perfil lateral');
+  } else if (idx === 1) {
+    mcAgregar('¿Tienes foto <strong>intraoral frontal</strong>? (Opcional)', 'ia');
+    mcChips(['No, continuar']);
+    mcMostrarUpload(2, '🦷 Intraoral frontal');
+  } else if (idx === 2) {
+    mcAgregar('¿Tienes <strong>radiografía panorámica</strong>? (Opcional)', 'ia');
+    mcChips(['No, continuar']);
+    mcMostrarUpload(3, '🔬 Radiografía');
+  } else {
+    await mcPedirMotivo();
+  }
+
+  // Si escribe "no" o selecciona chip "No, continuar"
+  if (idx >= 1) {
+    var oldProcesar = window.mcProcesarTexto;
+    document.getElementById('mc-inp').setAttribute('data-skip-idx', idx);
+  }
+}
+
+// Override para manejar "no" en fotos opcionales
+var mcOrigProcesar = mcProcesar;
+mcProcesar = async function(input) {
+  var skipIdx = parseInt(document.getElementById('mc-inp').getAttribute('data-skip-idx') || '-1');
+  if (skipIdx >= 1 && mcEstado === 'fotos' && (input.toLowerCase() === 'no' || input.toLowerCase().includes('continuar'))) {
+    document.getElementById('mc-inp').removeAttribute('data-skip-idx');
+    if (skipIdx === 1) {
+      mcAgregar('¿Tienes foto <strong>intraoral frontal</strong>? (Opcional)', 'ia');
+      mcChips(['No, continuar']);
+      mcMostrarUpload(2, '🦷 Intraoral frontal');
+      document.getElementById('mc-inp').setAttribute('data-skip-idx', '2');
+    } else if (skipIdx === 2) {
+      mcAgregar('¿Tienes <strong>radiografía panorámica</strong>? (Opcional)', 'ia');
+      mcChips(['No, continuar']);
+      mcMostrarUpload(3, '🔬 Radiografía');
+      document.getElementById('mc-inp').setAttribute('data-skip-idx', '3');
+    } else if (skipIdx === 3) {
+      document.getElementById('mc-inp').removeAttribute('data-skip-idx');
+      await mcPedirMotivo();
+    }
+    return;
+  }
+  await mcOrigProcesar(input);
+};
+
+async function mcPedirMotivo() {
+  mcEstado = 'motivo';
+  await mcDelay(300);
+  mcAgregar('Fotos recibidas ✅<br><br>¿Cuál es el <strong>motivo principal de consulta</strong>?', 'ia');
+  mcChips(['Manchas / discromía', 'Forma irregular o desgaste', 'Diastemas', 'Dientes fracturados', 'Cambio estético general', 'Corrección de mordida']);
+}
+
+async function mcAnalizarCaso() {
+  var t = mcTyping();
+  var precios = getPrecios();
+  var preciosTexto = precios.map(function(p) { return p.nombre + ': $' + p.precio.toLocaleString() + ' MXN'; }).join('\n');
+  var prompt = [
+    'Eres especialista en odontología estética. Analiza el caso clínico.',
+    'Paciente: ' + mcDatos.nombre,
+    'Motivo: ' + mcDatos.motivo,
+    'Material: ' + mcDatos.material,
+    'Observaciones: ' + (mcDatos.obs || 'Ninguna'),
+    'PRECIOS:', preciosTexto,
+    'Responde SOLO con JSON puro sin markdown:',
+    '{"score":<1-10>,"hallazgos":["..."],"dientes":["pieza - descripcion"],"consideraciones":["..."],"plan":["..."],"cotizacion":[{"procedimiento":"nombre","piezas":<num>,"precio_unit":<precio>,"subtotal":<total>}],"texto_paciente":"<2-3 oraciones>"}'
+  ].join('\n');
+
+  var contentArr = mcDatos.imagenes.filter(function(i) { return i !== null; }).map(function(b64) {
+    return {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}};
+  });
+  contentArr.push({type:'text', text:prompt});
+
+  try {
+    var resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + SUPA_KEY},
+      body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
+    });
+    var data = await resp.json();
+    var texto = (data.content || []).map(function(i) { return i.text || ''; }).join('');
+    var r = JSON.parse(texto.replace(/```json|```/g,'').trim());
+    mcAnalisisResultado = r;
+    mcRemoveTyping();
+
+    // Mostrar resultado
+    var total = (r.cotizacion || []).reduce(function(a,c) { return a + (c.subtotal||0); }, 0);
+    var hallazgosHtml = (r.hallazgos || []).slice(0,3).map(function(h) {
+      return '<div class="mc-result-item">⚠️ <span>' + h + '</span></div>';
+    }).join('');
+    var planHtml = (r.plan || []).slice(0,2).map(function(p) {
+      return '<div class="mc-result-item">✅ <span>' + p + '</span></div>';
+    }).join('');
+
+    mcAgregar(
+      '<div class="mc-score">' + r.score + '/10</div>' +
+      '<div class="mc-score-lbl">Potencial estético</div>' +
+      '<h4 style="margin-top:12px">🔬 Diagnóstico</h4>' +
+      hallazgosHtml + planHtml +
+      '<h4 style="margin-top:10px">💰 Total estimado</h4>' +
+      '<div style="font-size:20px;font-weight:900;color:var(--violeta)">$' + total.toLocaleString() + ' MXN</div>' +
+      '<div style="font-size:11px;color:var(--texto3);margin-top:2px">' + (r.cotizacion||[]).length + ' procedimientos</div>',
+      'resultado'
+    );
+
+    await mcDelay(600);
+    mcAgregar(r.texto_paciente || '', 'ia');
+    await mcDelay(800);
+    mcEstado = 'diseno';
+    mcAgregar('¿Quieres que genere la <strong>simulación visual</strong> de la sonrisa? Puedes decirme cómo quieres el resultado o simplemente di <em>"sí"</em>.', 'ia');
+    mcChips(['✨ Sí, generar simulación', '🌿 Natural y sutil', '⭐ Hollywood smile', '🦷 Cerrar espacios', '⬛ No por ahora']);
+
+  } catch(e) {
+    mcRemoveTyping();
+    mcAgregar('Hubo un error al analizar el caso. Intenta de nuevo.', 'ia');
+    mcEstado = 'obs';
+    console.error(e);
+  }
+}
+
+async function mcGenerarSimulacion() {
+  var foto = mcDatos.imagenes[0];
+  if (!foto) {
+    mcAgregar('No tengo foto frontal para generar la simulación. Necesito al menos la foto de sonrisa frontal.', 'ia');
+    mcEstado = 'listo';
+    mcMostrarBotonesFinal();
+    return;
+  }
+
+  var t = mcTyping();
+  var promptBase = mcDatos.promptDiseno && mcDatos.promptDiseno.toLowerCase() !== 'sí' && mcDatos.promptDiseno !== '✨ Sí, generar simulación'
+    ? mcDatos.promptDiseno
+    : 'Realistic dental veneer simulation. Natural result, subtle whitening, close gaps, keep same person face and lips. Clinical photo style.';
+
+  try {
+    var resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + SUPA_KEY},
+      body: JSON.stringify({action:'generate_image', imageBase64:foto, mimeType:'image/jpeg', prompt:promptBase})
+    });
+    var data = await resp.json();
+    mcRemoveTyping();
+
+    if (data.error) throw new Error(data.error);
+
+    var afterUrl = data.imageBase64
+      ? 'data:' + (data.mimeType||'image/png') + ';base64,' + data.imageBase64
+      : data.imageUrl;
+
+    if (!afterUrl) throw new Error('No se generó imagen');
+
+    mcImagenAfter = afterUrl;
+    var beforeUrl = 'data:image/jpeg;base64,' + foto;
+
+    mcAgregar(
+      '<div style="font-size:12px;font-weight:600;color:var(--violeta);margin-bottom:8px">✨ Simulación generada</div>' +
+      '<div class="mc-ba-grid">' +
+      '<div><img class="mc-ba-img" src="' + beforeUrl + '"><div class="mc-ba-lbl" style="color:var(--texto3)">ANTES</div></div>' +
+      '<div><img class="mc-ba-img" src="' + afterUrl + '"><div class="mc-ba-lbl" style="color:var(--violeta)">DESPUÉS</div></div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--naranja);margin-top:8px;padding:6px 8px;background:var(--naranja-s);border-radius:6px">⚠️ Simulación orientativa. El resultado real depende del plan de tratamiento.</div>',
+      'ba'
+    );
+
+    await mcDelay(600);
+    mcEstado = 'listo';
+    mcAgregar('La simulación está lista. ¿Qué deseas hacer ahora?', 'ia');
+    mcMostrarBotonesFinal();
+
+  } catch(e) {
+    mcRemoveTyping();
+    mcAgregar('No pude generar la simulación. ' + e.message, 'ia');
+    mcEstado = 'listo';
+    mcMostrarBotonesFinal();
+  }
+}
+
+function mcMostrarBotonesFinal() {
+  var msgs = document.getElementById('mc-msgs');
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;flex-direction:column;gap:8px;align-self:stretch;margin-top:4px';
+  div.innerHTML =
+    '<button class="mc-btn-accion" onclick="mcGenerarPDF()">📄 Descargar PDF del caso</button>' +
+    '<button class="mc-btn-accion" style="background:var(--bg3);color:var(--violeta);border:1px solid var(--violeta-b)" onclick="mcNuevoCaso()">↩ Nuevo caso</button>';
+  msgs.appendChild(div);
+  mcScroll();
+  mcChips([]);
+}
+
+function mcGenerarPDF() {
+  // Sincronizar datos al sistema principal para usar generarPDF()
+  analisisResultado = mcAnalisisResultado;
+  imagenes = mcDatos.imagenes;
+  imagenAfterUrl = mcImagenAfter;
+  tenantData = tenantData || {};
+  document.getElementById('f-caso-nombre').value = 'Caso ' + mcDatos.nombre;
+  generarPDF();
+}
+
+function mcNuevoCaso() {
+  mcEstado = 'inicio';
+  mcDatos = {nombre:'', motivo:'', material:'sin definir', obs:'', imagenes:[null,null,null,null]};
+  mcImagenesContador = 0;
+  mcAnalisisResultado = null;
+  mcImagenAfter = null;
+  document.getElementById('mc-msgs').innerHTML = '';
+  document.getElementById('mc-inp').removeAttribute('data-skip-idx');
+  mcChips([]);
+  mcIniciar();
+}
+
+async function mcIniciar() {
+  await mcDelay(300);
+  var nombre = tenantData ? (tenantData.nombre || 'Doctor') : 'Doctor';
+  mcAgregar('¡Hola, <strong>' + nombre + '</strong>! 👋 Soy <strong>CAMILA</strong>, tu asistente de diseño de sonrisa.<br><br>¿Con qué paciente vamos a trabajar hoy? Dime el <strong>nombre completo del paciente</strong>.', 'ia');
+  mcEstado = 'nombre';
+}
+
+// Auto-resize textarea
+document.getElementById('mc-inp').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Iniciar chat móvil si es móvil
+if (window.innerWidth <= 768) {
+  mcIniciar();
+}
+window.addEventListener('resize', function() {
+  if (window.innerWidth <= 768 && mcEstado === 'inicio') {
+    mcIniciar();
+  }
+});
   document.querySelectorAll('.prompt-chip').forEach(function(c) { c.classList.remove('seleccionado'); });
   el.classList.add('seleccionado');
   document.getElementById('aj-instrucciones').value = texto;
@@ -1552,10 +2098,15 @@ async function irAPaso4() {
       '<img class="ba-img" src="' + dataUrl + '" alt="Foto original">';
   }
 
-  // Reset After
+  // Reset simulación
   imagenAfterUrl = null;
+  intensidadActual = 50;
   document.getElementById('ba-after-wrap').innerHTML =
     '<div class="ba-placeholder"><span style="font-size:28px">✨</span><span>Presiona "Generar simulación"</span></div>';
+  document.getElementById('sim-disclaimer').style.display = 'none';
+  document.getElementById('sim-fidelidad').style.display = 'none';
+  document.getElementById('sim-intensidad').style.display = 'none';
+  document.getElementById('sim-notas').style.display = 'none';
   var btnBa = document.getElementById('btn-ba');
   if (btnBa) { btnBa.disabled = false; btnBa.innerHTML = '✨ Generar simulación de sonrisa con IA'; }
 
@@ -2030,44 +2581,40 @@ function generarPDF() {
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
-// SIMULACIÓN MEJORADA — SLIDER + NIVELES
+// SIMULACIÓN MEJORADA — SLIDER + INTENSIDAD
 // ══════════════════════════════════════════
-var nivelesGenerados = {};
-var nivelActual = 'moderado';
 var sliderActivo = false;
 var sliderDragging = false;
+var intensidadActual = 50;
+var intensidadDragging = false;
 
-function verNivel(nivel, btn) {
-  nivelActual = nivel;
-  document.querySelectorAll('.sim-tab').forEach(function(t) { t.classList.remove('activo'); });
-  btn.classList.add('activo');
-  if (nivelesGenerados[nivel]) {
-    mostrarImagenAfter(nivelesGenerados[nivel]);
-  } else {
-    generarBeforeAfter();
-  }
-}
-
+// ── Slider comparador Before/After ──
 function initSlider(beforeSrc, afterSrc) {
   var container = document.getElementById('img-slider-container');
   var beforeEl = document.getElementById('slider-before');
   var afterEl = document.getElementById('slider-after');
   var divider = document.getElementById('slider-divider');
+
   beforeEl.style.backgroundImage = 'url(' + beforeSrc + ')';
   afterEl.style.backgroundImage = 'url(' + afterSrc + ')';
+
+  // Arrancar exactamente al 50%
+  afterEl.style.clipPath = 'inset(0 50% 0 0)';
+  divider.style.left = '50%';
+
   function mover(x) {
     var rect = container.getBoundingClientRect();
-    var pct = Math.max(5, Math.min(95, ((x - rect.left) / rect.width) * 100));
+    var pct = Math.max(2, Math.min(98, ((x - rect.left) / rect.width) * 100));
     afterEl.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
     divider.style.left = pct + '%';
   }
-  container.addEventListener('mousedown', function(e) { sliderDragging = true; mover(e.clientX); });
-  container.addEventListener('mousemove', function(e) { if (sliderDragging) mover(e.clientX); });
-  container.addEventListener('mouseup', function() { sliderDragging = false; });
-  container.addEventListener('mouseleave', function() { sliderDragging = false; });
-  container.addEventListener('touchstart', function(e) { sliderDragging = true; mover(e.touches[0].clientX); });
-  container.addEventListener('touchmove', function(e) { e.preventDefault(); mover(e.touches[0].clientX); }, {passive:false});
-  container.addEventListener('touchend', function() { sliderDragging = false; });
+
+  container.onmousedown = function(e) { sliderDragging = true; mover(e.clientX); };
+  document.onmousemove = function(e) { if (sliderDragging) mover(e.clientX); };
+  document.onmouseup = function() { sliderDragging = false; };
+  container.ontouchstart = function(e) { sliderDragging = true; mover(e.touches[0].clientX); };
+  container.ontouchmove = function(e) { e.preventDefault(); mover(e.touches[0].clientX); };
+  container.ontouchend = function() { sliderDragging = false; };
 }
 
 function toggleSlider() {
@@ -2078,28 +2625,71 @@ function toggleSlider() {
   if (sliderActivo) {
     baWrap.style.display = 'none';
     sliderContainer.style.display = 'block';
-    btn.innerHTML = '⬜ Vista lado a lado';
+    if (btn) btn.innerHTML = '⬜ Vista lado a lado';
     var beforeSrc = imagenes[0] ? 'data:image/jpeg;base64,' + imagenes[0] : '';
     if (beforeSrc && imagenAfterUrl) initSlider(beforeSrc, imagenAfterUrl);
   } else {
     baWrap.style.display = 'grid';
     sliderContainer.style.display = 'none';
-    btn.innerHTML = '🔀 Vista slider';
+    if (btn) btn.innerHTML = '🔀 Vista slider';
   }
+}
+
+// ── Slider de intensidad ──
+function initIntensidadSlider() {
+  var track = document.getElementById('intensidad-track');
+  var thumb = document.getElementById('intensidad-thumb');
+  if (!track) return;
+
+  function moverIntensidad(x) {
+    var rect = track.getBoundingClientRect();
+    var pct = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
+    intensidadActual = Math.round(pct);
+    document.getElementById('intensidad-fill').style.width = pct + '%';
+    thumb.style.left = pct + '%';
+    var lbl = pct < 30 ? '🌿 Mínimo' : pct < 65 ? '⚖️ Moderado' : pct < 85 ? '✨ Pronunciado' : '🏆 Completo';
+    document.getElementById('intensidad-val').textContent = Math.round(pct) + '% — ' + lbl;
+    document.getElementById('sim-regen-btn').style.display = 'block';
+  }
+
+  track.addEventListener('mousedown', function(e) { intensidadDragging = true; moverIntensidad(e.clientX); });
+  document.addEventListener('mousemove', function(e) { if (intensidadDragging) moverIntensidad(e.clientX); });
+  document.addEventListener('mouseup', function() { intensidadDragging = false; });
+  track.addEventListener('touchstart', function(e) { intensidadDragging = true; moverIntensidad(e.touches[0].clientX); });
+  track.addEventListener('touchmove', function(e) { e.preventDefault(); moverIntensidad(e.touches[0].clientX); }, {passive:false});
+  track.addEventListener('touchend', function() { intensidadDragging = false; });
+}
+
+function regenerarConIntensidad() {
+  var instrBase = document.getElementById('aj-instrucciones').value || '';
+  var intensMod = '';
+  if (intensidadActual < 25) {
+    intensMod = 'Very subtle minimal change. Almost imperceptible improvement. Keep 90% of original appearance.';
+  } else if (intensidadActual < 50) {
+    intensMod = 'Conservative natural result. Small improvement, very realistic. Keep natural imperfections.';
+  } else if (intensidadActual < 75) {
+    intensMod = 'Moderate improvement. Natural looking veneers, noticeable but realistic change.';
+  } else if (intensidadActual < 90) {
+    intensMod = 'Pronounced improvement. Beautiful veneers, significant whitening, very polished result.';
+  } else {
+    intensMod = 'Maximum transformation. Perfect Hollywood smile, ultra white, completely transformed.';
+  }
+  document.getElementById('aj-instrucciones').value = intensMod + (instrBase ? ' ' + instrBase : '');
+  generarBeforeAfter();
 }
 
 function mostrarImagenAfter(url) {
   imagenAfterUrl = url;
-  nivelesGenerados[nivelActual] = url;
   document.getElementById('ba-after-wrap').innerHTML =
     '<img class="ba-img" src="' + url + '" alt="Simulación" style="cursor:pointer" title="Clic para vista slider" onclick="toggleSlider()">';
   document.getElementById('sim-disclaimer').style.display = 'block';
   document.getElementById('sim-fidelidad').style.display = 'block';
-  document.getElementById('sim-tabs').style.display = 'flex';
+  document.getElementById('sim-intensidad').style.display = 'block';
   document.getElementById('btn-toggle-slider').style.display = 'inline-flex';
   document.getElementById('sim-controles-extra').removeAttribute('style');
   calcularFidelidad();
   mostrarNotasClinicas();
+  initIntensidadSlider();
 }
 
 function calcularFidelidad() {
