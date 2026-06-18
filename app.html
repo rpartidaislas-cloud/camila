@@ -2012,6 +2012,7 @@ function mostrarPaso(n) {
     }
   });
   pasoActual = n;
+  setTimeout(aplicarIconosSVG, 50);
 }
 
 function irAPaso1() { mostrarPaso(1); }
@@ -3148,6 +3149,77 @@ document.addEventListener('touchmove', function(e) {
   if (e.scale && e.scale !== 1) e.preventDefault();
 }, {passive:false});
 
+// ── Sistema de iconos SVG profesionales ──
+var SLOT_ICONS = [
+  // Sonrisa frontal
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5B47E0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="7"/><path d="M9 14.5c.7 1 1.7 1.5 3 1.5s2.3-.5 3-1.5"/><circle cx="10" cy="9.5" r=".6" fill="#5B47E0" stroke="none"/><circle cx="14" cy="9.5" r=".6" fill="#5B47E0" stroke="none"/></svg>',
+  // Perfil lateral
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2C6BED" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3c1.8 1 3 2.8 3 5 0 2-.9 3.8-2.3 5"/><path d="M9 3C7.2 4 6 5.8 6 8c0 2 .9 3.8 2.3 5"/><path d="M9 3h6"/><path d="M8 13h8l-1 5H9l-1-5z"/><line x1="10" y1="18" x2="14" y2="18"/></svg>',
+  // Intraoral frontal
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
+  // Radiografía
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6E6E7C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="17" y2="7"/><line x1="7" y1="10" x2="17" y2="10"/><path d="M7 14h2a1 1 0 0 1 1 1v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h2"/></svg>',
+];
+
+var SVG_CAMARA = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+var SVG_FORM = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>';
+var SVG_PULSO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+var SVG_LUPA = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
+
+var H4_ICONS = {
+  hallazgos:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  piezas:       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/><line x1="2" y1="12" x2="22" y2="12"/></svg>',
+  consideraciones: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  plan:         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+};
+
+function aplicarIconosSVG() {
+  // Upload slots
+  var slots = document.querySelectorAll('.upload-slot');
+  slots.forEach(function(slot, i) {
+    var iconDiv = slot.querySelector('.slot-icon');
+    if (iconDiv && SLOT_ICONS[i]) iconDiv.innerHTML = SLOT_ICONS[i];
+  });
+
+  // Card titles paso-1
+  var p1Cards = document.querySelectorAll('#paso-1 .card-title');
+  var p1Defs = [
+    {svg: SVG_FORM,   text: 'Datos del Caso'},
+    {svg: SVG_CAMARA, text: 'Fotografías Clínicas'},
+    {svg: SVG_PULSO,  text: 'Datos Clínicos'},
+  ];
+  p1Cards.forEach(function(el, i) {
+    if (p1Defs[i]) el.innerHTML = p1Defs[i].svg + ' ' + p1Defs[i].text;
+  });
+
+  // Diagnóstico card title
+  document.querySelectorAll('.card-title').forEach(function(el) {
+    if (el.textContent.includes('Diagnóstico Clínico') || el.textContent.includes('🔬'))
+      el.innerHTML = SVG_LUPA + ' Diagnóstico Clínico';
+  });
+
+  // Rep-sec h4 headings
+  var h4Map = [
+    {kw:'encontramos', svg: H4_ICONS.hallazgos,        text: 'Lo que encontramos'},
+    {kw:'afectados',   svg: H4_ICONS.piezas,           text: 'Dientes afectados'},
+    {kw:'cuenta',      svg: H4_ICONS.consideraciones,  text: 'Ten en cuenta'},
+    {kw:'seguir',      svg: H4_ICONS.plan,             text: 'Pasos a seguir'},
+    // fallback
+    {kw:'hallazgo',    svg: H4_ICONS.hallazgos,        text: 'Hallazgos'},
+    {kw:'pieza',       svg: H4_ICONS.piezas,           text: 'Piezas afectadas'},
+    {kw:'consider',    svg: H4_ICONS.consideraciones,  text: 'Consideraciones'},
+    {kw:'plan',        svg: H4_ICONS.plan,             text: 'Plan de tratamiento'},
+  ];
+  document.querySelectorAll('.rep-sec h4').forEach(function(el) {
+    var txt = el.textContent.toLowerCase();
+    var match = h4Map.find(function(m) { return txt.includes(m.kw); });
+    if (match) el.innerHTML = match.svg + ' ' + match.text;
+  });
+}
+
+// Aplicar al cargar y cuando cambia el DOM del diagnóstico
+aplicarIconosSVG();
+
 // ── Badges de severidad en dientes ──
 function aplicarBadgesSeveridad() {
   var items = document.querySelectorAll('#r-dientes .rep-item');
@@ -3185,6 +3257,7 @@ function aplicarNumeracionPlan() {
 var _diagObs = new MutationObserver(function() {
   aplicarBadgesSeveridad();
   aplicarNumeracionPlan();
+  aplicarIconosSVG();
 });
 var _diagTarget = document.getElementById('analisis-resultado');
 if (_diagTarget) _diagObs.observe(_diagTarget, {childList:true, subtree:true});
