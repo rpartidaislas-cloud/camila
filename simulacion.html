@@ -74,10 +74,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 .redo-btn:active{background:rgba(255,255,255,.15)}
 
 /* BA slider */
-.ba-wrap{position:relative;width:100%;background:#000;overflow:hidden;flex-shrink:0}
-.ba-img-base,.ba-img-over{position:absolute;inset:0}
-.ba-img-base img,.ba-img-over img{width:100%;height:100%;object-fit:contain;display:block;background:#000}
-.ba-img-over{clip-path:inset(0 50% 0 0)}
+.ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0}
+.ba-img-base{position:relative;width:100%}
+.ba-img-base img{width:100%;height:auto;display:block}
+.ba-img-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 50% 0 0)}
+.ba-img-over img{width:100%;height:100%;object-fit:cover;display:block}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
 .ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(0,0,0,.5)}
 .ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
@@ -191,8 +192,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
       Nueva foto
     </button>
   </div>
-  <div class="ba-wrap" id="ba-wrap" style="height:100vw;min-height:320px;max-height:520px">
-    <div class="ba-img-base"><img id="img-b" alt="Antes"></div>
+  <div class="ba-wrap" id="ba-wrap">
+    <div class="ba-img-base"><img id="img-b" alt="Antes" onload="onBeforeLoad()"></div>
     <div class="ba-img-over" id="ba-over"><img id="img-a" alt="Después"></div>
     <div class="ba-line" id="ba-line"><div class="ba-knob">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B47E0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6" transform="translate(6)"/></svg>
@@ -466,17 +467,12 @@ function showResult(){
 function initSlider(){
   var wrap=document.getElementById('ba-wrap'),over=document.getElementById('ba-over'),line=document.getElementById('ba-line');
   var drag=false;
-  // Fix height after image loads
-  var img=document.getElementById('img-b');
-  function fixH(){
-    var r=img.naturalHeight/img.naturalWidth;
-    var w=wrap.offsetWidth;
-    // Use actual image ratio, cap at 90% of viewport height
-    var h=Math.min(window.innerHeight*0.9, Math.max(320, w*r));
-    wrap.style.height=h+'px';
+  function mv(x){
+    var r=wrap.getBoundingClientRect();
+    var p=Math.max(5,Math.min(95,(x-r.left)/r.width*100));
+    over.style.clipPath='inset(0 '+(100-p)+'% 0 0)';
+    line.style.left=p+'%';
   }
-  if(img.complete)fixH();else img.onload=fixH;
-  function mv(x){var r=wrap.getBoundingClientRect();var p=Math.max(5,Math.min(95,(x-r.left)/r.width*100));over.style.clipPath='inset(0 '+(100-p)+'% 0 0)';line.style.left=p+'%'}
   wrap.addEventListener('mousedown',function(e){drag=true;mv(e.clientX)});
   document.addEventListener('mousemove',function(e){if(drag)mv(e.clientX)});
   document.addEventListener('mouseup',function(){drag=false});
@@ -485,6 +481,14 @@ function initSlider(){
   wrap.addEventListener('touchend',function(){drag=false},{passive:true});
   // Reveal animation
   var p=100,id=setInterval(function(){p-=3;over.style.clipPath='inset(0 '+Math.max(50,p)+'% 0 0)';line.style.left=Math.min(50,100-p)+'%';if(p<=50)clearInterval(id)},14);
+}
+
+function onBeforeLoad(){
+  // Sync after-image to same dimensions as before-image
+  var imgB=document.getElementById('img-b');
+  var imgA=document.getElementById('img-a');
+  imgA.style.width=imgB.offsetWidth+'px';
+  imgA.style.height=imgB.offsetHeight+'px';
 }
 
 // ══ LEAD ══
