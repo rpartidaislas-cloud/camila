@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAMILA · Biblioteca Dental Profesional</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#5B47E0;--p2:#2C6BED;--ps:#F0EEFF;--pb:#DDD6FE;
+  --bg:#F7F7F8;--s:#fff;--sr:#F7F7F8;
+  --bd:#E8E8EC;--bdh:#C8C8D0;
+  --t1:#0F0F13;--t2:#6E6E7C;--t3:#A0A0AE;
+  --ok:#16A34A;--warn:#D97706;--err:#DC2626;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased}
+.app{display:grid;grid-template-columns:280px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+
+/* Header */
+.header{grid-column:1/-1;background:var(--s);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.h-logo{font-size:15px;font-weight:700;color:var(--t1)}
+.h-logo span{color:var(--p)}
+.h-actions{display:flex;gap:8px}
+.btn{height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 150ms}
+.btn-primary{background:var(--p);color:#fff}
+.btn-primary:hover{background:#4A38CC}
+.btn-secondary{background:var(--s);color:var(--t2);border:1px solid var(--bd)}
+.btn-secondary:hover{border-color:var(--bdh);color:var(--t1)}
+.btn-sm{height:28px;padding:0 10px;font-size:12px}
+
+/* Sidebar */
+.sidebar{background:var(--s);border-right:1px solid var(--bd);overflow-y:auto;padding:16px}
+.sb-section{margin-bottom:20px}
+.sb-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:8px}
+.filter-btn{width:100%;text-align:left;padding:7px 10px;border-radius:7px;border:none;background:none;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;font-family:'Inter',sans-serif;transition:all 120ms;display:flex;align-items:center;justify-content:space-between}
+.filter-btn:hover{background:var(--sr);color:var(--t1)}
+.filter-btn.active{background:var(--ps);color:var(--p)}
+.filter-count{font-size:11px;font-weight:600;background:var(--bd);border-radius:99px;padding:1px 7px;color:var(--t3)}
+.filter-btn.active .filter-count{background:var(--pb);color:var(--p)}
+
+/* Params */
+.param-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.param-lbl{font-size:11px;color:var(--t2);width:100px;flex-shrink:0}
+.param-val{font-size:11px;font-weight:600;color:var(--t1);width:30px;text-align:right;flex-shrink:0;font-family:monospace}
+input[type=range]{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:var(--bd);border-radius:99px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--p);cursor:grab}
+
+/* Main */
+.main{overflow:hidden;display:flex;flex-direction:column}
+.main-toolbar{padding:12px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)}
+.tooth-type-tabs{display:flex;gap:4px}
+.tt-tab{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--bd);background:var(--sr);color:var(--t2);transition:all 150ms}
+.tt-tab.active{background:var(--p);color:#fff;border-color:var(--p)}
+.search-box{flex:1;height:34px;border:1px solid var(--bd);border-radius:8px;padding:0 12px;font-size:13px;font-family:'Inter',sans-serif;outline:none;color:var(--t1);background:var(--sr)}
+.search-box:focus{border-color:var(--p)}
+
+/* Grid */
+.grid-area{flex:1;overflow-y:auto;padding:20px}
+.tooth-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.tooth-card{background:var(--s);border:2px solid var(--bd);border-radius:12px;padding:12px;cursor:pointer;transition:all 150ms;display:flex;flex-direction:column;align-items:center;gap:8px}
+.tooth-card:hover{border-color:var(--p);box-shadow:0 0 0 3px var(--ps)}
+.tooth-card.selected{border-color:var(--p);background:var(--ps)}
+.tooth-card svg{display:block}
+.tc-name{font-size:11px;font-weight:600;color:var(--t2);text-align:center}
+.tc-cat{font-size:10px;color:var(--t3);text-align:center}
+.tc-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:.5px}
+.tc-badge.oval{background:#EFF6FF;color:#2563EB}
+.tc-badge.square{background:#FEF3C7;color:#D97706}
+.tc-badge.tapered{background:#F0FDF4;color:#16A34A}
+.tc-badge.youthful{background:#FDF4FF;color:#9333EA}
+.tc-badge.mature{background:#FFF7ED;color:#EA580C}
+.tc-badge.feminine{background:#FFF1F2;color:#E11D48}
+.tc-badge.masculine{background:#F0F9FF;color:#0284C7}
+
+/* Detail panel */
+.detail-panel{position:fixed;right:0;top:56px;bottom:0;width:320px;background:var(--s);border-left:1px solid var(--bd);display:none;flex-direction:column;z-index:50;box-shadow:-4px 0 20px rgba(0,0,0,.06)}
+.detail-panel.open{display:flex}
+.dp-header{padding:16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.dp-title{font-size:14px;font-weight:600;color:var(--t1)}
+.dp-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--bd);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2)}
+.dp-preview{padding:20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.dp-body{flex:1;overflow-y:auto;padding:16px}
+.dp-section{margin-bottom:16px}
+.dp-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:10px}
+
+/* Smile composer */
+.smile-composer{background:var(--s);border-top:1px solid var(--bd);padding:16px 20px;flex-shrink:0}
+.sc-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:10px}
+.sc-canvas-wrap{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:#f0f0f0;display:flex;align-items:center;justify-content:center}
+
+/* Export modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--s);border-radius:16px;padding:24px;width:520px;max-height:80vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:16px}
+.code-box{background:#0F0F13;color:#a8ff78;font-family:monospace;font-size:11px;border-radius:8px;padding:14px;overflow-x:auto;white-space:pre;margin-bottom:12px;max-height:300px;overflow-y:auto}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<div class="header">
+  <div class="h-logo">🦷 CAMILA · <span>Biblioteca Dental</span></div>
+  <div class="h-actions">
+    <button class="btn btn-secondary btn-sm" onclick="showSmileComposer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="10"/></svg>
+      Composición
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="exportLibrary()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar JSON
+    </button>
+    <button class="btn btn-primary btn-sm" onclick="applyToEditor()">
+      ← Aplicar al Editor
+    </button>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sb-section">
+    <div class="sb-label">Tipo de Diente</div>
+    <button class="filter-btn active" id="ft-all" onclick="filterType('all',this)">Todos <span class="filter-count">70</span></button>
+    <button class="filter-btn" id="ft-central" onclick="filterType('central',this)">Incisivo Central <span class="filter-count">30</span></button>
+    <button class="filter-btn" id="ft-lateral" onclick="filterType('lateral',this)">Incisivo Lateral <span class="filter-count">20</span></button>
+    <button class="filter-btn" id="ft-canine" onclick="filterType('canine',this)">Canino <span class="filter-count">20</span></button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Categoría de Forma</div>
+    <button class="filter-btn" id="fc-oval" onclick="filterCat('oval',this)">Oval</button>
+    <button class="filter-btn" id="fc-ovoid" onclick="filterCat('ovoid',this)">Ovoid</button>
+    <button class="filter-btn" id="fc-tapered" onclick="filterCat('tapered',this)">Tapered</button>
+    <button class="filter-btn" id="fc-tapered-oval" onclick="filterCat('tapered-oval',this)">Tapered Oval</button>
+    <button class="filter-btn" id="fc-square" onclick="filterCat('square',this)">Square</button>
+    <button class="filter-btn" id="fc-soft-square" onclick="filterCat('soft-square',this)">Soft Square</button>
+    <button class="filter-btn" id="fc-aggressive-square" onclick="filterCat('aggressive-square',this)">Aggressive Square</button>
+    <button class="filter-btn" id="fc-youthful" onclick="filterCat('youthful',this)">Youthful</button>
+    <button class="filter-btn" id="fc-mature" onclick="filterCat('mature',this)">Mature</button>
+    <button class="filter-btn" id="fc-feminine" onclick="filterCat('feminine',this)">Feminine</button>
+    <button class="filter-btn" id="fc-masculine" onclick="filterCat('masculine',this)">Masculine</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Parámetros Globales</div>
+    <div class="param-row">
+      <span class="param-lbl">Ancho central</span>
+      <input type="range" min="60" max="140" value="100" id="gp-width" oninput="updateGlobalParam('width',this)">
+      <span class="param-val" id="gpv-width">100</span>
+    </div>
+    <div class="param-row">
+      <span class="param-lbl">Alto central</span>
+      <input type="range" min="60" max="140" value="100" id="gp-height" oninput="updateGlobalParam('height',this)">
+      <span class="param-val" id="gpv-height">100</span>
+    </div>
+    <div class="param-row">
+      <span class="param-lbl">Dominancia</span>
+      <input type="range" min="60" max="140" value="100" id="gp-dom" oninput="updateGlobalParam('dominance',this)">
+      <span class="param-val" id="gpv-dom">100</span>
+    </div>
+    <div class="param-row">
+      <span class="param-lbl">Proporción áurea</span>
+      <input type="range" min="0" max="100" value="50" id="gp-golden" oninput="updateGlobalParam('golden',this)">
+      <span class="param-val" id="gpv-golden">50</span>
+    </div>
+    <div class="param-row">
+      <span class="param-lbl">Línea incisal</span>
+      <input type="range" min="-20" max="20" value="0" id="gp-incisal" oninput="updateGlobalParam('incisal',this)">
+      <span class="param-val" id="gpv-incisal">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="main-toolbar">
+    <div class="tooth-type-tabs">
+      <div class="tt-tab active" onclick="filterType('all',null)">Todos</div>
+      <div class="tt-tab" onclick="filterType('central',null)">Central</div>
+      <div class="tt-tab" onclick="filterType('lateral',null)">Lateral</div>
+      <div class="tt-tab" onclick="filterType('canine',null)">Canino</div>
+    </div>
+    <input class="search-box" type="text" placeholder="Buscar por nombre o categoría..." oninput="searchTeeth(this.value)">
+    <span id="count-label" style="font-size:12px;color:var(--t3);white-space:nowrap">70 dientes</span>
+  </div>
+  <div class="grid-area">
+    <div class="tooth-grid" id="tooth-grid"></div>
+  </div>
+
+  <!-- Smile Composer (hidden by default) -->
+  <div class="smile-composer" id="smile-composer" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="sc-title">Composición de Sonrisa — 6 Dientes</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="generateSmileComposition()">Regenerar</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('smile-composer').style.display='none'">✕</button>
+      </div>
+    </div>
+    <div class="sc-canvas-wrap">
+      <canvas id="smile-canvas" width="600" height="120"></canvas>
+    </div>
+    <div id="smile-params" style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-panel" id="detail-panel">
+  <div class="dp-header">
+    <div class="dp-title" id="dp-title">Diente</div>
+    <button class="dp-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="dp-preview" id="dp-preview"></div>
+  <div class="dp-body">
+    <div class="dp-section">
+      <div class="dp-section-title">Parámetros</div>
+      <div id="dp-params"></div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-section-title">SVG Path</div>
+      <div id="dp-path" style="background:var(--bg);border-radius:6px;padding:10px;font-family:monospace;font-size:10px;color:var(--t2);word-break:break-all;max-height:120px;overflow-y:auto"></div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-section-title">Ajustes individuales</div>
+      <div id="dp-sliders"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="applySelectedToEditor()">Aplicar al editor</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportSingleTooth()">SVG</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-bg" id="export-modal">
+  <div class="modal">
+    <h3>Exportar Biblioteca JSON</h3>
+    <div id="export-content" class="code-box"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="copyExport()">Copiar</button>
+      <button class="btn btn-secondary" onclick="downloadExport()">Descargar .json</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('export-modal').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// CAMILA DENTAL LIBRARY — Professional Anatomical Tooth Generator
+// Normalized coordinates 0-100. Origin: top-left of bounding box.
+// ══════════════════════════════════════════════════════════════════════
+
+// Global params
+var GP = { width:100, height:100, dominance:100, golden:50, incisal:0 };
+var selectedTooth = null;
+var currentTypeFilter = 'all';
+var currentCatFilter = null;
+var currentSearch = '';
+
+// ── CORE PARAMETRIC ENGINE ──────────────────────────────────────────
+
+/**
+ * Generate anatomical SVG path for a tooth
+ * All coordinates normalized 0-100 (width x height bounding box)
+ *
+ * @param {object} p - parameters
+ * p.width, p.height: bounding box (always 100x100 normalized, scaled externally)
+ * p.mesial_radius: radius of mesio-incisal angle (0-30)
+ * p.distal_radius: radius of disto-incisal angle (0-30)
+ * p.cervical_curve: cervical convexity (0-1, 0=flat, 1=very curved)
+ * p.incisal_curve: incisal convexity (0-1)
+ * p.line_angle_position: position of labial line angle (30-70, % of width)
+ * p.embrasure_mesial: mesial embrasure depth (0-15)
+ * p.embrasure_distal: distal embrasure depth (0-15)
+ * p.cervical_constriction: how much narrower at cervical (0-30)
+ * p.incisal_flattening: how flat the incisal edge is (0-1)
+ * p.taper: mesio-distal taper (0=parallel sides, 1=strong taper toward cervical)
+ */
+function generateToothPath(p) {
+  var W = 100, H = 100;
+  var cc = p.cervical_constriction || 0; // cervical narrowing
+  var tap = (p.taper || 0) * 15; // taper in units
+
+  // Key x-coordinates
+  var xML = 0; // mesial at incisal
+  var xDL = W; // distal at incisal
+  var xMC = cc * 0.5; // mesial at cervical (narrower)
+  var xDC = W - cc * 0.5; // distal at cervical
+
+  // Embrasures (notches at cervical corners)
+  var emM = p.embrasure_mesial || 5;
+  var emD = p.embrasure_distal || 4;
+
+  // Incisal angles radii
+  var rMI = p.mesial_radius || 8;
+  var rDI = p.distal_radius || 6;
+
+  // Control point offsets
+  var cervCurve = (p.cervical_curve || 0.5) * 18;
+  var incCurve = (p.incisal_curve || 0.4) * 10;
+  var lineAngle = p.line_angle_position || 45; // x position of labial line angle
+  var incFlat = (p.incisal_flattening || 0.5) * 8;
+
+  // Build path using cubic Bezier curves
+  // Start: mesio-incisal corner
+  var path = '';
+
+  // Point A: mesio-incisal (top-left area, after mesial embrasure)
+  var Ax = xML + emM;
+  var Ay = rMI;
+
+  // Point B: disto-incisal (top-right area, after distal embrasure)
+  var Bx = xDL - emD;
+  var By = rDI;
+
+  // Point C: distal mid (right side, mid-height)
+  var Cx = W - (W - xDC) * 0.3;
+  var Cy = H * 0.5;
+
+  // Point D: disto-cervical
+  var Dx = xDC;
+  var Dy = H - 8;
+
+  // Point E: mesio-cervical
+  var Ex = xMC;
+  var Ey = H - 8;
+
+  // Point F: mesial mid (left side, mid-height)
+  var Fx = xMC + (xML - xMC) * 0.3 + 1;
+  var Fy = H * 0.5;
+
+  // Path:
+  // 1. Start at mesio-incisal
+  path += 'M ' + Ax.toFixed(2) + ' ' + Ay.toFixed(2) + ' ';
+
+  // 2. Mesio-incisal rounded corner
+  path += 'Q ' + xML.toFixed(2) + ' 0 ';
+  path += (xML + rMI * 0.7).toFixed(2) + ' 0 ';
+
+  // 3. Incisal edge (mesial to line angle) — slight curve
+  path += 'C ';
+  path += (lineAngle * 0.4).toFixed(2) + ' ' + (-incCurve).toFixed(2) + ' ';
+  path += (lineAngle - 5).toFixed(2) + ' ' + (-incCurve * 0.5).toFixed(2) + ' ';
+  path += lineAngle.toFixed(2) + ' 0 ';
+
+  // 4. Incisal edge (line angle to disto-incisal)
+  path += 'C ';
+  path += (lineAngle + 8).toFixed(2) + ' ' + (incFlat * 0.3).toFixed(2) + ' ';
+  path += (Bx - rDI * 0.5).toFixed(2) + ' ' + (By * 0.5).toFixed(2) + ' ';
+  path += Bx.toFixed(2) + ' ' + By.toFixed(2) + ' ';
+
+  // 5. Disto-incisal rounded corner
+  path += 'Q ' + xDL.toFixed(2) + ' ' + '0 ';
+  path += xDL.toFixed(2) + ' ' + (rDI).toFixed(2) + ' ';
+
+  // 6. Distal surface (incisal to cervical)
+  path += 'C ';
+  path += (xDL + 2).toFixed(2) + ' ' + (H * 0.3).toFixed(2) + ' ';
+  path += (Dx + 3).toFixed(2) + ' ' + (H * 0.6).toFixed(2) + ' ';
+  path += Dx.toFixed(2) + ' ' + Dy.toFixed(2) + ' ';
+
+  // 7. Distal cervical to cervical line
+  path += 'C ';
+  path += (Dx - 2).toFixed(2) + ' ' + (H - 2).toFixed(2) + ' ';
+  path += ((xDC + xMC) / 2 + cervCurve * 0.3).toFixed(2) + ' ' + H.toFixed(2) + ' ';
+  path += ((xDC + xMC) / 2).toFixed(2) + ' ' + H.toFixed(2) + ' ';
+
+  // 8. Cervical line center to mesio-cervical
+  path += 'C ';
+  path += ((xDC + xMC) / 2 - cervCurve * 0.3).toFixed(2) + ' ' + H.toFixed(2) + ' ';
+  path += (Ex + 2).toFixed(2) + ' ' + (H - 2).toFixed(2) + ' ';
+  path += Ex.toFixed(2) + ' ' + Ey.toFixed(2) + ' ';
+
+  // 9. Mesial surface (cervical to incisal)
+  path += 'C ';
+  path += (xMC - 2).toFixed(2) + ' ' + (H * 0.6).toFixed(2) + ' ';
+  path += (xML - 2).toFixed(2) + ' ' + (H * 0.3).toFixed(2) + ' ';
+  path += xML.toFixed(2) + ' ' + Ay.toFixed(2) + ' ';
+
+  path += 'Z';
+  return path;
+}
+
+/**
+ * Generate complete tooth definition
+ */
+function generateTooth(type, style, overrides) {
+  var base = BASE_PARAMS[type] ? JSON.parse(JSON.stringify(BASE_PARAMS[type])) : {};
+  var styleP = STYLE_PARAMS[style] ? JSON.parse(JSON.stringify(STYLE_PARAMS[style])) : {};
+  var params = Object.assign({}, base, styleP, overrides || {});
+  var path = generateToothPath(params);
+  return {
+    name: capitalize(type) + '_' + capitalize(style),
+    category: style,
+    tooth: TOOTH_NAMES[type] || type,
+    type: type,
+    parameters: params,
+    svg_path: path,
+  };
+}
+
+// ── BASE PARAMETERS PER TOOTH TYPE ──────────────────────────────────
+
+var BASE_PARAMS = {
+  central: {
+    width: 8.5, height: 10.5,
+    mesial_radius: 10, distal_radius: 7,
+    cervical_curve: 0.55, incisal_curve: 0.35,
+    line_angle_position: 42, embrasure_mesial: 3,
+    embrasure_distal: 5, cervical_constriction: 8,
+    incisal_flattening: 0.4, taper: 0.1,
+  },
+  lateral: {
+    width: 6.5, height: 9.0,
+    mesial_radius: 12, distal_radius: 9,
+    cervical_curve: 0.60, incisal_curve: 0.45,
+    line_angle_position: 44, embrasure_mesial: 5,
+    embrasure_distal: 7, cervical_constriction: 10,
+    incisal_flattening: 0.55, taper: 0.15,
+  },
+  canine: {
+    width: 7.5, height: 11.0,
+    mesial_radius: 8, distal_radius: 14,
+    cervical_curve: 0.65, incisal_curve: 0.20,
+    line_angle_position: 38, embrasure_mesial: 4,
+    embrasure_distal: 8, cervical_constriction: 12,
+    incisal_flattening: 0.1, taper: 0.20,
+  },
+};
+
+// ── STYLE MODIFIERS ──────────────────────────────────────────────────
+
+var STYLE_PARAMS = {
+  'oval': {
+    mesial_radius: 12, distal_radius: 10,
+    cervical_curve: 0.65, incisal_curve: 0.50,
+    cervical_constriction: 12, incisal_flattening: 0.6,
+    line_angle_position: 44, taper: 0.15,
+  },
+  'ovoid': {
+    mesial_radius: 15, distal_radius: 13,
+    cervical_curve: 0.75, incisal_curve: 0.60,
+    cervical_constriction: 16, incisal_flattening: 0.7,
+    line_angle_position: 46, taper: 0.20,
+  },
+  'tapered': {
+    mesial_radius: 7, distal_radius: 5,
+    cervical_curve: 0.45, incisal_curve: 0.25,
+    cervical_constriction: 20, incisal_flattening: 0.3,
+    line_angle_position: 38, taper: 0.35,
+  },
+  'tapered-oval': {
+    mesial_radius: 10, distal_radius: 8,
+    cervical_curve: 0.55, incisal_curve: 0.40,
+    cervical_constriction: 16, incisal_flattening: 0.45,
+    line_angle_position: 41, taper: 0.25,
+  },
+  'square': {
+    mesial_radius: 5, distal_radius: 4,
+    cervical_curve: 0.35, incisal_curve: 0.15,
+    cervical_constriction: 4, incisal_flattening: 0.15,
+    line_angle_position: 38, taper: 0.03,
+  },
+  'soft-square': {
+    mesial_radius: 9, distal_radius: 7,
+    cervical_curve: 0.42, incisal_curve: 0.22,
+    cervical_constriction: 6, incisal_flattening: 0.25,
+    line_angle_position: 40, taper: 0.06,
+  },
+  'aggressive-square': {
+    mesial_radius: 3, distal_radius: 2,
+    cervical_curve: 0.25, incisal_curve: 0.08,
+    cervical_constriction: 2, incisal_flattening: 0.05,
+    line_angle_position: 36, taper: 0.01,
+  },
+  'youthful': {
+    mesial_radius: 14, distal_radius: 11,
+    cervical_curve: 0.70, incisal_curve: 0.55,
+    cervical_constriction: 14, incisal_flattening: 0.65,
+    line_angle_position: 45, taper: 0.18,
+    embrasure_mesial: 2, embrasure_distal: 4,
+  },
+  'mature': {
+    mesial_radius: 4, distal_radius: 3,
+    cervical_curve: 0.30, incisal_curve: 0.10,
+    cervical_constriction: 6, incisal_flattening: 0.08,
+    line_angle_position: 37, taper: 0.08,
+    embrasure_mesial: 6, embrasure_distal: 8,
+  },
+  'feminine': {
+    mesial_radius: 13, distal_radius: 10,
+    cervical_curve: 0.70, incisal_curve: 0.52,
+    cervical_constriction: 14, incisal_flattening: 0.62,
+    line_angle_position: 46, taper: 0.16,
+  },
+  'masculine': {
+    mesial_radius: 5, distal_radius: 4,
+    cervical_curve: 0.38, incisal_curve: 0.18,
+    cervical_constriction: 5, incisal_flattening: 0.18,
+    line_angle_position: 38, taper: 0.04,
+  },
+};
+
+var TOOTH_NAMES = {
+  central: 'Incisivo Central Superior',
+  lateral: 'Incisivo Lateral Superior',
+  canine: 'Canino Superior',
+};
+
+var STYLES = ['oval','ovoid','tapered','tapered-oval','square','soft-square','aggressive-square','youthful','mature','feminine','masculine'];
+var STYLE_LABELS = {
+  'oval':'Oval','ovoid':'Ovoid','tapered':'Tapered','tapered-oval':'Tapered Oval',
+  'square':'Square','soft-square':'Soft Square','aggressive-square':'Aggr. Square',
+  'youthful':'Youthful','mature':'Mature','feminine':'Feminine','masculine':'Masculine',
+};
+
+// ── BUILD LIBRARY (70 teeth) ─────────────────────────────────────────
+
+var LIBRARY = [];
+
+function buildLibrary() {
+  LIBRARY = [];
+  var id = 1;
+
+  // 30 centrals (all 11 styles + 19 variants)
+  STYLES.forEach(function(style) {
+    LIBRARY.push(Object.assign({id: id++}, generateTooth('central', style)));
+  });
+  // Extra central variants
+  var centralExtras = [
+    {cervical_constriction:6, mesial_radius:11, distal_radius:8},
+    {cervical_constriction:14, mesial_radius:13, distal_radius:11},
+    {line_angle_position:40, incisal_flattening:0.3},
+    {line_angle_position:48, incisal_flattening:0.7},
+    {embrasure_mesial:2, embrasure_distal:3},
+    {embrasure_mesial:8, embrasure_distal:10},
+    {taper:0.05, mesial_radius:9},
+    {taper:0.25, mesial_radius:7},
+    {cervical_curve:0.8, incisal_curve:0.6},
+    {cervical_curve:0.3, incisal_curve:0.15},
+    {mesial_radius:6, distal_radius:11, line_angle_position:43},
+    {mesial_radius:16, distal_radius:5, line_angle_position:40},
+    {cervical_constriction:10, taper:0.12, mesial_radius:10},
+    {cervical_constriction:18, taper:0.22, mesial_radius:14},
+    {incisal_flattening:0.1, embrasure_mesial:2},
+    {incisal_flattening:0.85, embrasure_mesial:7},
+    {line_angle_position:35, taper:0.08, mesial_radius:8},
+    {line_angle_position:50, taper:0.18, mesial_radius:12},
+    {mesial_radius:9, distal_radius:9, cervical_curve:0.5},
+  ];
+  centralExtras.forEach(function(ov, i) {
+    var baseStyle = STYLES[i % STYLES.length];
+    var t = generateTooth('central', baseStyle, ov);
+    t.name = 'Central_V' + (i+1).toString().padStart(2,'0');
+    LIBRARY.push(Object.assign({id: id++}, t));
+  });
+
+  // 20 laterals (all 11 styles + 9 variants)
+  STYLES.forEach(function(style) {
+    LIBRARY.push(Object.assign({id: id++}, generateTooth('lateral', style)));
+  });
+  var lateralExtras = [
+    {cervical_constriction:14, mesial_radius:14},
+    {cervical_constriction:6, mesial_radius:10},
+    {line_angle_position:42, incisal_flattening:0.65},
+    {line_angle_position:48, incisal_flattening:0.5},
+    {embrasure_mesial:3, embrasure_distal:5},
+    {taper:0.28, mesial_radius:8},
+    {taper:0.10, mesial_radius:13},
+    {cervical_curve:0.85, incisal_curve:0.65},
+    {cervical_curve:0.35, incisal_curve:0.20},
+  ];
+  lateralExtras.forEach(function(ov, i) {
+    var baseStyle = STYLES[i % STYLES.length];
+    var t = generateTooth('lateral', baseStyle, ov);
+    t.name = 'Lateral_V' + (i+1).toString().padStart(2,'0');
+    LIBRARY.push(Object.assign({id: id++}, t));
+  });
+
+  // 20 canines (all 11 styles + 9 variants)
+  STYLES.forEach(function(style) {
+    LIBRARY.push(Object.assign({id: id++}, generateTooth('canine', style)));
+  });
+  var canineExtras = [
+    {distal_radius:18, mesial_radius:7, line_angle_position:35},
+    {distal_radius:10, mesial_radius:9, line_angle_position:42},
+    {cervical_constriction:16, taper:0.28},
+    {cervical_constriction:8, taper:0.12},
+    {incisal_flattening:0.05, embrasure_distal:12},
+    {incisal_flattening:0.25, embrasure_distal:6},
+    {cervical_curve:0.75, incisal_curve:0.30},
+    {cervical_curve:0.50, incisal_curve:0.10},
+    {mesial_radius:12, distal_radius:16, line_angle_position:38},
+  ];
+  canineExtras.forEach(function(ov, i) {
+    var baseStyle = STYLES[i % STYLES.length];
+    var t = generateTooth('canine', baseStyle, ov);
+    t.name = 'Canine_V' + (i+1).toString().padStart(2,'0');
+    LIBRARY.push(Object.assign({id: id++}, t));
+  });
+}
+
+// ── SVG RENDERING ────────────────────────────────────────────────────
+
+function toothToSVG(tooth, w, h, fillColor, strokeColor, strokeWidth) {
+  w = w || 60; h = h || 70;
+  fillColor = fillColor || '#F0EEFF';
+  strokeColor = strokeColor || '#5B47E0';
+  strokeWidth = strokeWidth || 1.5;
+  var path = tooth.svg_path;
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs><linearGradient id="lg' + tooth.id + '" x1="0" y1="0" x2="1" y2="0">' +
+    '<stop offset="0%" stop-color="rgba(255,255,255,0)"/>' +
+    '<stop offset="30%" stop-color="rgba(255,255,255,0.4)"/>' +
+    '<stop offset="50%" stop-color="rgba(255,255,255,0.15)"/>' +
+    '<stop offset="100%" stop-color="rgba(255,255,255,0)"/>' +
+    '</linearGradient></defs>' +
+    '<path d="' + path + '" fill="' + fillColor + '" stroke="' + strokeColor + '" stroke-width="' + strokeWidth + '" stroke-linejoin="round"/>' +
+    '<path d="' + path + '" fill="url(#lg' + tooth.id + ')" stroke="none"/>' +
+    '</svg>';
+}
+
+function getCatColor(cat) {
+  var map = {
+    'oval':'#EFF6FF','ovoid':'#F0F9FF','tapered':'#F0FDF4','tapered-oval':'#ECFDF5',
+    'square':'#FEF3C7','soft-square':'#FFFBEB','aggressive-square':'#FFF7ED',
+    'youthful':'#FDF4FF','mature':'#FFF7ED','feminine':'#FFF1F2','masculine':'#F0F9FF',
+  };
+  return map[cat] || '#F0EEFF';
+}
+function getCatStroke(cat) {
+  var map = {
+    'oval':'#2563EB','ovoid':'#0284C7','tapered':'#16A34A','tapered-oval':'#059669',
+    'square':'#D97706','soft-square':'#CA8A04','aggressive-square':'#EA580C',
+    'youthful':'#9333EA','mature':'#EA580C','feminine':'#E11D48','masculine':'#0284C7',
+  };
+  return map[cat] || '#5B47E0';
+}
+
+// ── RENDER GRID ───────────────────────────────────────────────────────
+
+function getFilteredTeeth() {
+  return LIBRARY.filter(function(t) {
+    if (currentTypeFilter !== 'all' && t.type !== currentTypeFilter) return false;
+    if (currentCatFilter && t.category !== currentCatFilter) return false;
+    if (currentSearch) {
+      var q = currentSearch.toLowerCase();
+      if (t.name.toLowerCase().indexOf(q) < 0 && t.category.toLowerCase().indexOf(q) < 0 && t.tooth.toLowerCase().indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+}
+
+function renderGrid() {
+  var teeth = getFilteredTeeth();
+  document.getElementById('count-label').textContent = teeth.length + ' dientes';
+  var grid = document.getElementById('tooth-grid');
+  grid.innerHTML = '';
+  teeth.forEach(function(t) {
+    var card = document.createElement('div');
+    card.className = 'tooth-card' + (selectedTooth && selectedTooth.id === t.id ? ' selected' : '');
+    card.onclick = function() { selectTooth(t); };
+    var fillC = getCatColor(t.category);
+    var strokeC = getCatStroke(t.category);
+    card.innerHTML =
+      toothToSVG(t, 60, 70, fillC, strokeC, 1.8) +
+      '<div class="tc-name">' + t.name.replace(/_/g,' ') + '</div>' +
+      '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center">' +
+      '<span class="tc-badge ' + t.category + '">' + (STYLE_LABELS[t.category] || t.category) + '</span>' +
+      '<span class="tc-cat">' + t.type + '</span>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+}
+
+// ── SELECT & DETAIL ───────────────────────────────────────────────────
+
+function selectTooth(t) {
+  selectedTooth = t;
+  renderGrid();
+  openDetail(t);
+}
+
+function openDetail(t) {
+  var panel = document.getElementById('detail-panel');
+  panel.classList.add('open');
+  document.getElementById('dp-title').textContent = t.name.replace(/_/g,' ');
+
+  // Preview — large SVG
+  document.getElementById('dp-preview').innerHTML = toothToSVG(t, 100, 120, getCatColor(t.category), getCatStroke(t.category), 2);
+
+  // Params
+  var p = t.parameters;
+  var paramsHtml = '';
+  var paramKeys = ['mesial_radius','distal_radius','cervical_curve','incisal_curve','line_angle_position','embrasure_mesial','embrasure_distal','cervical_constriction','incisal_flattening','taper'];
+  paramKeys.forEach(function(k) {
+    paramsHtml += '<div class="param-row">' +
+      '<span class="param-lbl">' + k.replace(/_/g,' ') + '</span>' +
+      '<span class="param-val" style="width:auto;color:var(--p);font-weight:700">' + (typeof p[k] === 'number' ? p[k].toFixed(2) : p[k]) + '</span>' +
+      '</div>';
+  });
+  document.getElementById('dp-params').innerHTML = paramsHtml;
+
+  // Path
+  document.getElementById('dp-path').textContent = t.svg_path;
+
+  // Individual sliders
+  var slidersHtml = '';
+  var editableParams = [
+    {k:'mesial_radius', min:1, max:25, step:0.5, label:'Radio mesial'},
+    {k:'distal_radius', min:1, max:25, step:0.5, label:'Radio distal'},
+    {k:'cervical_curve', min:0, max:1, step:0.05, label:'Curva cervical'},
+    {k:'incisal_curve', min:0, max:1, step:0.05, label:'Curva incisal'},
+    {k:'line_angle_position', min:25, max:60, step:1, label:'Línea angular'},
+    {k:'cervical_constriction', min:0, max:25, step:0.5, label:'Constricción cerv.'},
+    {k:'incisal_flattening', min:0, max:1, step:0.05, label:'Aplanamiento incisal'},
+    {k:'taper', min:0, max:0.5, step:0.01, label:'Taper'},
+    {k:'embrasure_mesial', min:0, max:15, step:0.5, label:'Tronera mesial'},
+    {k:'embrasure_distal', min:0, max:15, step:0.5, label:'Tronera distal'},
+  ];
+  editableParams.forEach(function(ep) {
+    var val = p[ep.k] !== undefined ? p[ep.k] : 0;
+    slidersHtml += '<div class="param-row">' +
+      '<span class="param-lbl">' + ep.label + '</span>' +
+      '<input type="range" min="' + ep.min + '" max="' + ep.max + '" step="' + ep.step + '" value="' + val + '" oninput="updateDetailParam(\'' + ep.k + '\',this.value)">' +
+      '<span class="param-val" id="dpv-' + ep.k + '">' + val + '</span>' +
+      '</div>';
+  });
+  document.getElementById('dp-sliders').innerHTML = slidersHtml;
+}
+
+function updateDetailParam(key, val) {
+  if (!selectedTooth) return;
+  var numVal = parseFloat(val);
+  selectedTooth.parameters[key] = numVal;
+  selectedTooth.svg_path = generateToothPath(selectedTooth.parameters);
+  document.getElementById('dpv-' + key).textContent = numVal;
+  // Update preview
+  document.getElementById('dp-preview').innerHTML = toothToSVG(selectedTooth, 100, 120, getCatColor(selectedTooth.category), getCatStroke(selectedTooth.category), 2);
+  document.getElementById('dp-path').textContent = selectedTooth.svg_path;
+  renderGrid();
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+// ── FILTERS ──────────────────────────────────────────────────────────
+
+function filterType(type, btn) {
+  currentTypeFilter = type;
+  document.querySelectorAll('[id^="ft-"]').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tt-tab').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var ftBtn = document.getElementById('ft-' + type);
+  if (ftBtn) ftBtn.classList.add('active');
+  renderGrid();
+}
+
+function filterCat(cat, btn) {
+  currentCatFilter = currentCatFilter === cat ? null : cat;
+  document.querySelectorAll('[id^="fc-"]').forEach(function(b) { b.classList.remove('active'); });
+  if (currentCatFilter && btn) btn.classList.add('active');
+  renderGrid();
+}
+
+function searchTeeth(q) {
+  currentSearch = q;
+  renderGrid();
+}
+
+// ── GLOBAL PARAMS ─────────────────────────────────────────────────────
+
+function updateGlobalParam(key, el) {
+  GP[key] = parseFloat(el.value);
+  document.getElementById('gpv-' + key.replace('_','-').split('-')[0]).textContent = el.value;
+  // Rebuild library with global scale applied
+  buildLibrary();
+  // Apply global modifiers
+  LIBRARY.forEach(function(t) {
+    if (key === 'width' && t.type === 'central') {
+      t.parameters.width = BASE_PARAMS.central.width * GP.width / 100;
+    }
+    // Regenerate paths
+    t.svg_path = generateToothPath(t.parameters);
+  });
+  renderGrid();
+  if (selectedTooth) {
+    var updated = LIBRARY.find(function(t) { return t.id === selectedTooth.id; });
+    if (updated) { selectedTooth = updated; openDetail(updated); }
+  }
+}
+
+// ── SMILE COMPOSER ────────────────────────────────────────────────────
+
+function showSmileComposer() {
+  document.getElementById('smile-composer').style.display = 'block';
+  generateSmileComposition();
+}
+
+function generateSmileComposition() {
+  var canvas = document.getElementById('smile-canvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f8f8f8';
+  ctx.fillRect(0, 0, W, H);
+
+  // Pick best matching teeth for smile
+  var style = selectedTooth ? selectedTooth.category : 'oval';
+  var centrals = LIBRARY.filter(function(t) { return t.type === 'central' && t.category === style; });
+  var laterals = LIBRARY.filter(function(t) { return t.type === 'lateral' && t.category === style; });
+  var canines = LIBRARY.filter(function(t) { return t.type === 'canine' && t.category === style; });
+
+  if (!centrals.length) centrals = LIBRARY.filter(function(t) { return t.type === 'central'; });
+  if (!laterals.length) laterals = LIBRARY.filter(function(t) { return t.type === 'lateral'; });
+  if (!canines.length) canines = LIBRARY.filter(function(t) { return t.type === 'canine'; });
+
+  var central = centrals[0];
+  var lateral = laterals[0];
+  var canine = canines[0];
+
+  if (!central || !lateral || !canine) return;
+
+  // Smile composition: canine-lateral-central-central-lateral-canine
+  // Proportions: canine=75%, lateral=65%, central=100%
+  var totalW = W - 20;
+  var unitW = totalW / (0.75 + 0.65 + 1.0 + 1.0 + 0.65 + 0.75);
+  var heights = { central: H - 16, lateral: (H-16)*0.88, canine: (H-16)*0.92 };
+
+  var composition = [
+    {tooth: canine,  w: unitW*0.75, h: heights.canine},
+    {tooth: lateral, w: unitW*0.65, h: heights.lateral},
+    {tooth: central, w: unitW*1.0,  h: heights.central},
+    {tooth: central, w: unitW*1.0,  h: heights.central},
+    {tooth: lateral, w: unitW*0.65, h: heights.lateral},
+    {tooth: canine,  w: unitW*0.75, h: heights.canine},
+  ];
+
+  var x = 10;
+  composition.forEach(function(item) {
+    var y = H - item.h - 4;
+    drawToothOnCanvas(ctx, item.tooth, x, y, item.w, item.h);
+    x += item.w + 1;
+  });
+}
+
+function drawToothOnCanvas(ctx, tooth, x, y, w, h) {
+  var path2D = new Path2D(scalePath(tooth.svg_path, w/100, h/100, x, y));
+  ctx.fillStyle = '#F0EEFF';
+  ctx.strokeStyle = '#5B47E0';
+  ctx.lineWidth = 1.5;
+  ctx.fill(path2D);
+  ctx.stroke(path2D);
+
+  // Highlight
+  var grad = ctx.createLinearGradient(x, y, x+w, y);
+  grad.addColorStop(0, 'rgba(255,255,255,0)');
+  grad.addColorStop(0.3, 'rgba(255,255,255,0.35)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fill(path2D);
+}
+
+function scalePath(pathStr, sx, sy, tx, ty) {
+  return pathStr.replace(/([MLCQZ])\s*/gi, function(m, cmd) {
+    return cmd + ' ';
+  }).replace(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g, function(m, px, py) {
+    return (parseFloat(px)*sx + tx).toFixed(2) + ' ' + (parseFloat(py)*sy + ty).toFixed(2);
+  });
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────
+
+function exportLibrary() {
+  var exportData = {
+    version: '1.0',
+    generated: new Date().toISOString(),
+    total: LIBRARY.length,
+    api: {
+      generateTooth: 'generateTooth(type, style, overrides)',
+      generateSmile: 'generateSmileComposition()',
+      updateNode: 'updateDetailParam(key, value)',
+      exportSVG: 'toothToSVG(tooth, w, h, fillColor, strokeColor)',
+    },
+    library: LIBRARY.map(function(t) {
+      return {
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        tooth: t.tooth,
+        type: t.type,
+        parameters: t.parameters,
+        svg_path: t.svg_path,
+      };
+    }),
+  };
+  var json = JSON.stringify(exportData, null, 2);
+  document.getElementById('export-content').textContent = json.substring(0, 3000) + '\n...(truncado para display)';
+  document.getElementById('export-modal').classList.add('open');
+  window._exportData = json;
+}
+
+function copyExport() {
+  navigator.clipboard.writeText(window._exportData || '').then(function() {
+    alert('✅ Copiado al portapapeles');
+  });
+}
+
+function downloadExport() {
+  var blob = new Blob([window._exportData || ''], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'camila_dental_library.json';
+  a.click();
+}
+
+function exportSingleTooth() {
+  if (!selectedTooth) return;
+  var svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<svg width="85" height="105" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">\n' +
+    '  <!-- ' + selectedTooth.name + ' · CAMILA Dental Library -->\n' +
+    '  <!-- Category: ' + selectedTooth.category + ' · Type: ' + selectedTooth.tooth + ' -->\n' +
+    '  <path d="' + selectedTooth.svg_path + '"\n' +
+    '    fill="#F0EEFF" stroke="#5B47E0" stroke-width="1.5" stroke-linejoin="round"/>\n' +
+    '</svg>';
+  var blob = new Blob([svg], {type:'image/svg+xml'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = selectedTooth.name + '.svg';
+  a.click();
+}
+
+function applyToEditor() {
+  if (window.opener && window.opener.applyLibraryTemplate) {
+    window.opener.applyLibraryTemplate(selectedTooth);
+    window.close();
+  } else {
+    localStorage.setItem('camila_selected_tooth', JSON.stringify(selectedTooth));
+    alert('✅ Diente guardado. Vuelve al editor y recarga para aplicarlo.');
+  }
+}
+
+function applySelectedToEditor() { applyToEditor(); }
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+buildLibrary();
+renderGrid();
+</script>
+</body>
+</html>
