@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Simula tu Sonrisa · CAMILA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--p:#5B47E0;--p2:#2C6BED;--ok:#16A34A;--err:#DC2626;--warn:#D97706}
+html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center}
+.screen.active{display:flex}
+
+/* ══ INTRO ══ */
+#s-intro{background:linear-gradient(160deg,#0d0820,#0a1628);padding:32px 24px;text-align:center;gap:0;overflow-y:auto;justify-content:flex-start;padding-top:calc(env(safe-area-inset-top,0px)+40px)}
+.intro-logo{font-family:'Playfair Display',serif;font-size:24px;color:#fff;font-weight:700;margin-bottom:2px}
+.intro-tagline{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:32px}
+.intro-icon{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 50px rgba(91,71,224,.45)}
+.intro-title{font-size:24px;font-weight:800;line-height:1.25;margin-bottom:10px;max-width:290px}
+.intro-sub{font-size:14px;color:rgba(255,255,255,.55);line-height:1.65;margin-bottom:28px;max-width:280px}
+.intro-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:6px 12px;font-size:12px;color:rgba(255,255,255,.7)}
+.pill svg{opacity:.7}
+.btn-start{width:100%;max-width:300px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 8px 28px rgba(91,71,224,.4);display:flex;align-items:center;justify-content:center;gap:10px;transition:all 150ms;margin:0 auto}
+.btn-start:active{transform:scale(.97)}
+.intro-note{font-size:11px;color:rgba(255,255,255,.25);margin-top:14px;max-width:260px;text-align:center;line-height:1.5}
+
+/* ══ CÁMARA ══ */
+#s-camera{background:#000;padding:0;justify-content:flex-start}
+.cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-video.mirror{transform:scaleX(-1)}
+.cam-canvas-el{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cam-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.65),transparent)}
+.cam-logo{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);transition:all 150ms}
+.icon-btn:active{background:rgba(255,255,255,.25)}
+.cam-status-bar{position:absolute;z-index:10;left:0;right:0;text-align:center;pointer-events:none}
+.guide-text{font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.9);display:block;margin-bottom:4px;transition:all 250ms}
+.guide-sub{font-size:12px;color:rgba(255,255,255,.7);text-shadow:0 1px 8px rgba(0,0,0,.8);display:block}
+.countdown-el{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:88px;font-weight:900;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.7);z-index:20;display:none;line-height:1;letter-spacing:-4px}
+.cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:16px 32px calc(env(safe-area-inset-bottom,0px)+24px);display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.7),transparent)}
+.shutter{width:70px;height:70px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.35);cursor:pointer;position:relative;transition:all 150ms;display:flex;align-items:center;justify-content:center}
+.shutter::after{content:'';width:54px;height:54px;border-radius:50%;background:#fff;border:2px solid #ddd;position:absolute}
+.shutter:active{transform:scale(.92)}
+.shutter.ready{border-color:var(--ok);box-shadow:0 0 0 5px rgba(22,163,74,.25)}
+.shutter.ready::after{background:var(--ok)}
+.cam-gallery-btn{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;backdrop-filter:blur(8px)}
+.cam-gallery-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+
+/* ══ PROCESANDO ══ */
+#s-processing{background:linear-gradient(160deg,#0d0820,#0a1628);gap:18px;padding:32px 24px;text-align:center}
+.proc-ring-wrap{width:110px;height:110px;position:relative;margin:0 auto}
+.pr1{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.08);border-top:3px solid var(--p);animation:spin .85s linear infinite}
+.pr2{position:absolute;inset:10px;border-radius:50%;border:2px solid rgba(255,255,255,.05);border-bottom:2px solid var(--p2);animation:spin 1.3s linear infinite reverse}
+.proc-face{position:absolute;inset:18px;border-radius:50%;overflow:hidden;background:#111}
+.proc-face img{width:100%;height:100%;object-fit:cover}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-title{font-size:21px;font-weight:800;color:#fff;max-width:260px}
+.proc-sub{font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;max-width:240px}
+.proc-list{display:flex;flex-direction:column;gap:9px;width:100%;max-width:270px}
+.pstep{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.35);transition:all 300ms}
+.pstep.active{color:#fff}
+.pstep.done{color:var(--ok)}
+.pstep-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);flex-shrink:0;transition:all 300ms}
+.pstep.active .pstep-dot{background:var(--p);box-shadow:0 0 8px rgba(91,71,224,.7)}
+.pstep.done .pstep-dot{background:var(--ok)}
+
+/* ══ RESULTADO ══ */
+#s-result{background:#0A0A0F;padding:0;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.res-header{padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10}
+.res-logo{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700}
+.redo-btn{height:34px;padding:0 13px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.75);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;transition:all 150ms}
+.redo-btn:active{background:rgba(255,255,255,.15)}
+
+/* BA slider */
+.ba-wrap{position:relative;width:100%;background:#000;overflow:hidden;flex-shrink:0}
+.ba-img-base,.ba-img-over{position:absolute;inset:0}
+.ba-img-base img,.ba-img-over img{width:100%;height:100%;object-fit:cover;display:block}
+.ba-img-over{clip-path:inset(0 50% 0 0)}
+.ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
+.ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(0,0,0,.5)}
+.ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
+.ba-tag.l{left:10px;background:rgba(0,0,0,.65);color:#fff}
+.ba-tag.r{right:10px;background:var(--p);color:#fff}
+.ba-tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.55);padding:4px 12px;border-radius:99px;z-index:6;backdrop-filter:blur(4px);white-space:nowrap;transition:opacity .4s}
+
+/* Content */
+.res-body{padding:20px}
+.res-wow{text-align:center;margin-bottom:20px}
+.res-wow h2{font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:#fff;margin-bottom:5px}
+.res-wow p{font-size:13px;color:rgba(255,255,255,.45);line-height:1.55}
+.disclaimer{font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-bottom:20px;line-height:1.4;padding:0 8px}
+
+/* CTA */
+.cta-box{background:linear-gradient(135deg,rgba(91,71,224,.18),rgba(44,107,237,.18));border:1px solid rgba(91,71,224,.28);border-radius:20px;padding:20px;margin-bottom:20px}
+.cta-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:5px}
+.cta-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:18px}
+.fg{margin-bottom:11px}
+.fg label{display:block;font-size:10px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.fg input{width:100%;height:48px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:0 14px;font-size:15px;font-family:'Inter',sans-serif;color:#fff;outline:none;transition:border 150ms;-webkit-appearance:none;appearance:none}
+.fg input:focus{border-color:var(--p);background:rgba(91,71,224,.1)}
+.fg input::placeholder{color:rgba(255,255,255,.25)}
+.btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;border-radius:14px;background:#25D366;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 20px rgba(37,211,102,.3);margin-bottom:10px;transition:all 150ms}
+.btn-wa:active{transform:scale(.97)}
+.btn-dl{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 150ms;margin-bottom:16px}
+.btn-dl:active{background:rgba(255,255,255,.12)}
+.res-foot{text-align:center;padding:4px 0 calc(env(safe-area-inset-bottom,0px)+20px)}
+.res-foot-logo{font-family:'Playfair Display',serif;font-size:13px;color:rgba(255,255,255,.25)}
+.res-foot-sub{font-size:10px;color:rgba(255,255,255,.15);margin-top:2px}
+
+/* Flash */
+#flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 70ms}
+#flash.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+
+<!-- ══ INTRO ══ -->
+<div class="screen active" id="s-intro">
+  <div class="intro-logo">🦷 CAMILA</div>
+  <div class="intro-tagline">Diseño de Sonrisa · IA</div>
+  <div class="intro-icon">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="7"/><path d="M9 14.5c.7 1 1.7 1.5 3 1.5s2.3-.5 3-1.5"/><circle cx="10" cy="9.5" r=".6" fill="#fff" stroke="none"/><circle cx="14" cy="9.5" r=".6" fill="#fff" stroke="none"/></svg>
+  </div>
+  <div class="intro-title">¿Cómo luciría tu sonrisa perfecta?</div>
+  <div class="intro-sub">Tómate una selfie y nuestra IA diseñará tus carillas dentales en segundos. Sin costo, sin registro.</div>
+  <div class="intro-pills">
+    <div class="pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gratis</div>
+    <div class="pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ~20 seg</div>
+    <div class="pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Sin registro</div>
+  </div>
+  <button class="btn-start" onclick="startCamera()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Simular mi sonrisa
+  </button>
+  <div class="intro-note">Al continuar acepto que mi foto sea procesada por IA para generar una simulación. No se almacena sin consentimiento.</div>
+</div>
+
+<!-- ══ CÁMARA ══ -->
+<div class="screen" id="s-camera">
+  <video class="cam-video mirror" id="vid" autoplay muted playsinline></video>
+  <canvas class="cam-canvas-el" id="cv"></canvas>
+  <div class="cam-top">
+    <div class="cam-logo">🦷 CAMILA</div>
+    <button class="icon-btn" onclick="stopCam()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <!-- Status centrado sobre el óvalo -->
+  <div class="cam-status-bar" id="cam-status-bar" style="top:14%">
+    <span class="guide-text" id="gtxt">Centra tu cara en el óvalo</span>
+    <span class="guide-sub" id="gsub">Sonríe mostrando los dientes 😁</span>
+  </div>
+  <div class="countdown-el" id="cdown"></div>
+  <div class="cam-bottom">
+    <button class="icon-btn" onclick="flipCam()" style="width:48px;height:48px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+    </button>
+    <button class="shutter" id="shutter" onclick="snap()"></button>
+    <label class="cam-gallery-btn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <input type="file" accept="image/*" onchange="fromGallery(this)">
+    </label>
+  </div>
+</div>
+
+<!-- ══ PROCESANDO ══ -->
+<div class="screen" id="s-proc">
+  <div class="proc-ring-wrap">
+    <div class="pr1"></div><div class="pr2"></div>
+    <div class="proc-face"><img id="proc-img" alt=""></div>
+  </div>
+  <div class="proc-title">Diseñando tu sonrisa...</div>
+  <div class="proc-sub">La IA está creando tu simulación personalizada</div>
+  <div class="proc-list">
+    <div class="pstep active" id="p1"><div class="pstep-dot"></div>Analizando tu foto</div>
+    <div class="pstep" id="p2"><div class="pstep-dot"></div>Detectando estructura dental</div>
+    <div class="pstep" id="p3"><div class="pstep-dot"></div>Aplicando diseño de carillas</div>
+    <div class="pstep" id="p4"><div class="pstep-dot"></div>Generando simulación fotorrealista</div>
+  </div>
+</div>
+
+<!-- ══ RESULTADO ══ -->
+<div class="screen" id="s-res">
+  <div class="res-header">
+    <div class="res-logo">🦷 CAMILA</div>
+    <button class="redo-btn" onclick="redo()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Nueva foto
+    </button>
+  </div>
+  <div class="ba-wrap" id="ba-wrap" style="height:56vw;min-height:220px;max-height:380px">
+    <div class="ba-img-base"><img id="img-b" alt="Antes"></div>
+    <div class="ba-img-over" id="ba-over"><img id="img-a" alt="Después"></div>
+    <div class="ba-line" id="ba-line"><div class="ba-knob">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B47E0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6" transform="translate(6)"/></svg>
+    </div></div>
+    <div class="ba-tag l">ANTES</div>
+    <div class="ba-tag r">✨ DESPUÉS</div>
+    <div class="ba-tip" id="ba-tip">← Arrastra para comparar →</div>
+  </div>
+  <div class="res-body">
+    <div class="res-wow">
+      <h2>¡Así lucirías con carillas!</h2>
+      <p>Simulación generada con IA basada en tu selfie</p>
+    </div>
+    <div class="disclaimer">⚠️ Simulación orientativa. El resultado real depende del plan de tratamiento y tu anatomía dental.</div>
+    <div class="cta-box">
+      <div class="cta-title">¿Te gustó tu nueva sonrisa? 😍</div>
+      <div class="cta-sub">Déjanos tus datos y el Dr. te contactará para una consulta de diseño — sin costo.</div>
+      <div class="fg"><label>Tu nombre *</label><input type="text" id="fn" placeholder="¿Cómo te llamas?" autocomplete="name"></div>
+      <div class="fg"><label>WhatsApp *</label><input type="tel" id="ft" placeholder="+52 33 ..." autocomplete="tel" inputmode="tel"></div>
+      <div class="fg"><label>Email (opcional)</label><input type="email" id="fe" placeholder="tu@email.com" autocomplete="email" inputmode="email"></div>
+      <button class="btn-wa" onclick="enviar()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+        Quiero mi consulta gratis
+      </button>
+      <button class="btn-dl" onclick="dl()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar mi simulación
+      </button>
+    </div>
+    <div class="res-foot">
+      <div class="res-foot-logo">🦷 CAMILA</div>
+      <div class="res-foot-sub">Diseño de Sonrisa Digital con IA</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ CONFIG ══
+var CFG = {
+  waNum: '523312345678',       // ← cambiar al número real del Dr.
+  waMsg: '¡Hola! Acabo de ver mi simulación de sonrisa en CAMILA y me gustaría agendar una consulta 😊',
+  edgeUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/claude',
+  supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
+};
+
+// ══ STATE ══
+var S = {stream:null, facing:'user', b64:null, result:null, timer:null, faceOk:false,
+         oval:{x:0,y:0,w:0,h:0}, detector:null};
+
+// ══ SCREENS ══
+function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});document.getElementById(id).classList.add('active')}
+
+// ══ CAMERA ══
+async function startCamera(){
+  show('s-camera');
+  await initCam();
+  setupOval();
+  tryFaceDetect();
+}
+
+async function initCam(){
+  try{
+    if(S.stream) S.stream.getTracks().forEach(function(t){t.stop()});
+    S.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing,width:{ideal:1280},height:{ideal:1280}},audio:false});
+    var v=document.getElementById('vid');
+    v.srcObject=S.stream;
+    v.className='cam-video'+(S.facing==='user'?' mirror':'');
+    await v.play();
+  }catch(e){alert('No se pudo acceder a la cámara. Verifica los permisos.');show('s-intro')}
+}
+
+function stopCam(){if(S.stream)S.stream.getTracks().forEach(function(t){t.stop()});clearTimer();show('s-intro')}
+function flipCam(){S.facing=S.facing==='user'?'environment':'user';initCam()}
+
+// ══ OVAL GUIDE ══
+function setupOval(){
+  var cv=document.getElementById('cv');
+  var sc=document.getElementById('s-camera');
+  function resize(){
+    cv.width=sc.clientWidth;cv.height=sc.clientHeight;
+    var W=cv.width,H=cv.height;
+    S.oval.w=W*0.70; S.oval.h=S.oval.w*1.32;
+    S.oval.x=W/2; S.oval.y=H*0.47;
+    // Position status bar above oval top
+    var topPct = (S.oval.y - S.oval.h/2) / H;
+    document.getElementById('cam-status-bar').style.top = Math.max(14, topPct*100 - 10) + '%';
+    paintOval(false,false);
+  }
+  resize();
+  window.addEventListener('resize',resize);
+}
+
+function paintOval(detected, close){
+  var cv=document.getElementById('cv');if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  var ox=S.oval.x,oy=S.oval.y,ow=S.oval.w/2,oh=S.oval.h/2;
+  ctx.clearRect(0,0,W,H);
+
+  // Dark mask outside oval
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.42)';
+  ctx.beginPath();ctx.rect(0,0,W,H);
+  ctx.ellipse(ox,oy,ow,oh,0,0,Math.PI*2);
+  ctx.fill('evenodd');
+  ctx.restore();
+
+  // Oval border
+  var color = detected ? (close?'#D97706':'#16A34A') : 'rgba(255,255,255,0.85)';
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=detected?3:2;
+  if(detected&&!close){ctx.shadowColor='#16A34A';ctx.shadowBlur=14}
+  ctx.beginPath();ctx.ellipse(ox,oy,ow,oh,0,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+
+  // Corner marks
+  var corners=[
+    {px:ox-ow*0.65,py:oy-oh},{px:ox+ow*0.65,py:oy-oh},
+    {px:ox-ow*0.65,py:oy+oh},{px:ox+ow*0.65,py:oy+oh}
+  ];
+  var L=20;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=detected?3:2.5;ctx.lineCap='round';
+  corners.forEach(function(c,i){
+    var sx=i%2===0?1:-1, sy=i<2?1:-1;
+    ctx.beginPath();ctx.moveTo(c.px,c.py);ctx.lineTo(c.px+sx*L,c.py);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(c.px,c.py);ctx.lineTo(c.px,c.py+sy*L);ctx.stroke();
+  });
+  ctx.restore();
+}
+
+// ══ FACE DETECTION ══
+function tryFaceDetect(){
+  if('FaceDetector' in window){
+    try{S.detector=new FaceDetector({fastMode:true,maxDetectedFaces:1});detectLoop();return}catch(e){}
+  }
+  setGuide('Sonríe y presiona el botón','Muestra bien los dientes 😁',false);
+}
+
+async function detectLoop(){
+  var v=document.getElementById('vid');
+  if(!v||!S.detector||document.getElementById('s-camera').className.indexOf('active')<0)return;
+  try{
+    var faces=await S.detector.detect(v);
+    if(faces.length){
+      var f=faces[0],vW=v.videoWidth||v.clientWidth,vH=v.videoHeight||v.clientHeight;
+      var cW=document.getElementById('cv').width,cH=document.getElementById('cv').height;
+      var sx=cW/vW,sy=cH/vH;
+      var fx=(S.facing==='user'?vW-f.boundingBox.x-f.boundingBox.width:f.boundingBox.x)*sx;
+      var fy=f.boundingBox.y*sy,fw=f.boundingBox.width*sx,fh=f.boundingBox.height*sy;
+      var fcx=fx+fw/2,fcy=fy+fh/2;
+      var dx=(fcx-S.oval.x)/(S.oval.w/2),dy=(fcy-S.oval.y)/(S.oval.h/2);
+      var inOval=dx*dx+dy*dy<0.85;
+      var goodSz=fw>S.oval.w*0.42&&fw<S.oval.w*0.96;
+      if(inOval&&goodSz){
+        paintOval(true,false);
+        setGuide('¡Perfecto! Mantén la sonrisa','Foto automática en...',true);
+        if(!S.timer)startCountdown();S.faceOk=true;
+      } else if(fw>S.oval.w){
+        paintOval(true,true);setGuide('Aléjate un poco','Estás muy cerca de la cámara',false);stopCD();S.faceOk=false;
+      } else if(fw<S.oval.w*0.3){
+        paintOval(false,false);setGuide('Acércate más','Tu cara debe llenar el óvalo',false);stopCD();S.faceOk=false;
+      } else {
+        paintOval(false,false);setGuide('Centra tu cara en el óvalo','Mira directo a la cámara 👀',false);stopCD();S.faceOk=false;
+      }
+    } else {
+      paintOval(false,false);setGuide('Centra tu cara en el óvalo','Sonríe mostrando los dientes 😁',false);stopCD();S.faceOk=false;
+    }
+  }catch(e){}
+  setTimeout(detectLoop,140);
+}
+
+function setGuide(txt,sub,ok){
+  document.getElementById('gtxt').textContent=txt;
+  document.getElementById('gsub').textContent=sub;
+  var sh=document.getElementById('shutter');
+  sh.className='shutter'+(ok?' ready':'');
+}
+
+// ══ COUNTDOWN ══
+function startCountdown(){
+  var n=3,el=document.getElementById('cdown');
+  el.style.display='block';el.textContent=n;
+  S.timer=setInterval(function(){
+    n--;
+    if(n>0){el.textContent=n}
+    else{el.style.display='none';clearTimer();if(S.faceOk)snap()}
+  },1000);
+}
+function stopCD(){if(S.timer){clearTimer();document.getElementById('cdown').style.display='none'}}
+function clearTimer(){if(S.timer){clearInterval(S.timer);S.timer=null}}
+
+// ══ SNAP ══
+function snap(){
+  stopCD();
+  var v=document.getElementById('vid');
+  // Flash
+  var fl=document.getElementById('flash');fl.classList.add('on');setTimeout(function(){fl.classList.remove('on')},160);
+  // Capture square crop
+  var size=Math.min(v.videoWidth,v.videoHeight);
+  var c=document.createElement('canvas');c.width=size;c.height=size;
+  var ctx=c.getContext('2d');
+  var sx=(v.videoWidth-size)/2,sy=(v.videoHeight-size)/2;
+  ctx.save();
+  if(S.facing==='user'){ctx.translate(size,0);ctx.scale(-1,1)}
+  ctx.drawImage(v,sx,sy,size,size,0,0,size,size);
+  ctx.restore();
+  S.b64=c.toDataURL('image/jpeg',0.92).split(',')[1];
+  stopCam2();
+  process();
+}
+
+function stopCam2(){if(S.stream)S.stream.getTracks().forEach(function(t){t.stop()})}
+
+function fromGallery(inp){
+  if(!inp.files[0])return;
+  var r=new FileReader();
+  r.onload=function(e){S.b64=e.target.result.split(',')[1];stopCam2();process()};
+  r.readAsDataURL(inp.files[0]);
+}
+
+// ══ PROCESS ══
+async function process(){
+  show('s-proc');
+  document.getElementById('proc-img').src='data:image/jpeg;base64,'+S.b64;
+  // animate steps
+  var ps=['p1','p2','p3','p4'],ds=[0,2200,4400,6600];
+  ds.forEach(function(d,i){
+    setTimeout(function(){
+      ps.forEach(function(p,j){
+        document.getElementById(p).className='pstep'+(j<i?' done':j===i?' active':'');
+      });
+    },d);
+  });
+
+  var prompt=
+    'DENTAL SMILE SIMULATION. This is a selfie photo. '+
+    'RULES: 1) Keep EXACT same person — same face, skin, eyes, hair, expression, background. '+
+    '2) ONLY change the teeth: apply natural beautiful porcelain veneers, A1 natural white shade, oval shape. '+
+    '3) New teeth must fit perfectly inside existing mouth opening. Same smile line. Same lip position. '+
+    '4) Photorealistic result, like a real dental clinic before/after photo. '+
+    '5) Do NOT change anything outside the teeth area. '+
+    'INTENSITY: MODERATE — natural improvement, not exaggerated. Keep it believable.';
+
+  try{
+    var resp=await fetch(CFG.edgeUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.supaKey},
+      body:JSON.stringify({action:'generate_image',imageBase64:S.b64,mimeType:'image/jpeg',prompt:prompt})
+    });
+    var data=await resp.json();
+    if(data.error)throw new Error(data.error);
+    S.result=data.imageBase64?'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64:data.imageUrl;
+    if(!S.result)throw new Error('Sin imagen');
+    showResult();
+  }catch(e){
+    alert('Error al generar: '+e.message);show('s-intro');
+  }
+}
+
+function showResult(){
+  var bSrc='data:image/jpeg;base64,'+S.b64;
+  document.getElementById('img-b').src=bSrc;
+  document.getElementById('img-a').src=S.result;
+  show('s-res');
+  initSlider();
+  setTimeout(function(){var t=document.getElementById('ba-tip');if(t)t.style.opacity='0';},3200);
+}
+
+// ══ BA SLIDER ══
+function initSlider(){
+  var wrap=document.getElementById('ba-wrap'),over=document.getElementById('ba-over'),line=document.getElementById('ba-line');
+  var drag=false;
+  // Fix height after image loads
+  var img=document.getElementById('img-b');
+  function fixH(){var r=img.naturalHeight/img.naturalWidth;var h=Math.min(380,Math.max(220,wrap.offsetWidth*r));wrap.style.height=h+'px'}
+  if(img.complete)fixH();else img.onload=fixH;
+  function mv(x){var r=wrap.getBoundingClientRect();var p=Math.max(5,Math.min(95,(x-r.left)/r.width*100));over.style.clipPath='inset(0 '+(100-p)+'% 0 0)';line.style.left=p+'%'}
+  wrap.addEventListener('mousedown',function(e){drag=true;mv(e.clientX)});
+  document.addEventListener('mousemove',function(e){if(drag)mv(e.clientX)});
+  document.addEventListener('mouseup',function(){drag=false});
+  wrap.addEventListener('touchstart',function(e){drag=true;mv(e.touches[0].clientX)},{passive:true});
+  wrap.addEventListener('touchmove',function(e){if(drag)mv(e.touches[0].clientX)},{passive:true});
+  wrap.addEventListener('touchend',function(){drag=false},{passive:true});
+  // Reveal animation
+  var p=100,id=setInterval(function(){p-=3;over.style.clipPath='inset(0 '+Math.max(50,p)+'% 0 0)';line.style.left=Math.min(50,100-p)+'%';if(p<=50)clearInterval(id)},14);
+}
+
+// ══ LEAD ══
+async function enviar(){
+  var n=document.getElementById('fn').value.trim();
+  var t=document.getElementById('ft').value.trim();
+  var e=document.getElementById('fe').value.trim();
+  if(!n){document.getElementById('fn').focus();return}
+  if(!t){document.getElementById('ft').focus();return}
+  // Send to Supabase (silent)
+  fetch('https://gfogifozhhbzxhcbecgf.supabase.co/rest/v1/camila_leads',{
+    method:'POST',
+    headers:{'apikey':CFG.supaKey,'Authorization':'Bearer '+CFG.supaKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({nombre:n,telefono:t,email:e||null,tiene_simulacion:!!S.result,created_at:new Date().toISOString()})
+  }).catch(function(){});
+  // WhatsApp
+  var msg='¡Hola! 😊 Soy *'+n+'* y acabo de ver mi simulación de sonrisa en CAMILA. Me gustaría agendar una consulta. Mi número es '+t;
+  window.open('https://wa.me/'+CFG.waNum+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+function dl(){
+  if(!S.result)return;
+  var a=document.createElement('a');a.href=S.result;a.download='mi-sonrisa-camila.png';a.click();
+}
+
+function redo(){S.b64=null;S.result=null;show('s-intro')}
+</script>
+</body>
+</html>
