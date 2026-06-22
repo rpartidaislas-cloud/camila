@@ -67,7 +67,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 .pstep.done .pstep-dot{background:var(--ok)}
 
 /* ══ RESULTADO ══ */
-#s-result{background:#0A0A0F;padding:0;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#s-result,#s-res{background:#0A0A0F;padding:0;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .res-header{padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10}
 .res-logo{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700}
 .redo-btn{height:34px;padding:0 13px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.75);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;transition:all 150ms}
@@ -76,7 +76,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 /* BA slider */
 .ba-wrap{position:relative;width:100%;background:#000;overflow:hidden;flex-shrink:0}
 .ba-img-base,.ba-img-over{position:absolute;inset:0}
-.ba-img-base img,.ba-img-over img{width:100%;height:100%;object-fit:cover;display:block}
+.ba-img-base img,.ba-img-over img{width:100%;height:100%;object-fit:contain;display:block;background:#000}
 .ba-img-over{clip-path:inset(0 50% 0 0)}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
 .ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(0,0,0,.5)}
@@ -191,7 +191,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
       Nueva foto
     </button>
   </div>
-  <div class="ba-wrap" id="ba-wrap" style="height:56vw;min-height:220px;max-height:380px">
+  <div class="ba-wrap" id="ba-wrap" style="height:100vw;min-height:320px;max-height:520px">
     <div class="ba-img-base"><img id="img-b" alt="Antes"></div>
     <div class="ba-img-over" id="ba-over"><img id="img-a" alt="Después"></div>
     <div class="ba-line" id="ba-line"><div class="ba-knob">
@@ -468,7 +468,13 @@ function initSlider(){
   var drag=false;
   // Fix height after image loads
   var img=document.getElementById('img-b');
-  function fixH(){var r=img.naturalHeight/img.naturalWidth;var h=Math.min(380,Math.max(220,wrap.offsetWidth*r));wrap.style.height=h+'px'}
+  function fixH(){
+    var r=img.naturalHeight/img.naturalWidth;
+    var w=wrap.offsetWidth;
+    // Use actual image ratio, cap at 90% of viewport height
+    var h=Math.min(window.innerHeight*0.9, Math.max(320, w*r));
+    wrap.style.height=h+'px';
+  }
   if(img.complete)fixH();else img.onload=fixH;
   function mv(x){var r=wrap.getBoundingClientRect();var p=Math.max(5,Math.min(95,(x-r.left)/r.width*100));over.style.clipPath='inset(0 '+(100-p)+'% 0 0)';line.style.left=p+'%'}
   wrap.addEventListener('mousedown',function(e){drag=true;mv(e.clientX)});
