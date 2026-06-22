@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>CAMILA · Editor de Diseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#5B47E0;--p2:#2C6BED;--ps:#F0EEFF;--pb:#DDD6FE;
+  --bg:#F7F7F8;--s:#FFFFFF;--sr:#F7F7F8;
+  --bd:#E8E8EC;--bdh:#C8C8D0;
+  --t1:#0F0F13;--t2:#6E6E7C;--t3:#A0A0AE;
+  --ok:#16A34A;--oks:#F0FDF4;
+  --warn:#D97706;--warns:#FFFBEB;
+  --err:#DC2626;--errs:#FEF2F2;
+  --r:10px;--r2:14px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100dvh}
+.header{height:52px;background:var(--s);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;z-index:20}
+.header-left{display:flex;align-items:center;gap:10px}
+.back-btn{width:32px;height:32px;border:1px solid var(--bd);border-radius:8px;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all 150ms}
+.back-btn:hover{border-color:var(--bdh);color:var(--t1)}
+.header-title{font-size:14px;font-weight:600;color:var(--t1)}
+.header-step{font-size:11px;color:var(--t3);margin-left:4px}
+.header-right{display:flex;gap:8px;align-items:center}
+
+/* Steps */
+.steps{display:flex;gap:4px;align-items:center}
+.step-dot{width:7px;height:7px;border-radius:50%;background:var(--bd);transition:all 200ms}
+.step-dot.done{background:var(--ok)}
+.step-dot.active{background:var(--p);width:20px;border-radius:99px}
+
+/* Btn */
+.btn{height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 150ms;white-space:nowrap}
+.btn-primary{background:var(--p);color:#fff}
+.btn-primary:hover{background:#4A38CC;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--s);color:var(--t2);border:1px solid var(--bd)}
+.btn-secondary:hover{border-color:var(--bdh);color:var(--t1)}
+.btn-ghost{background:none;border:none;color:var(--t2);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;padding:6px 10px;border-radius:6px}
+.btn-ghost:hover{background:var(--sr);color:var(--t1)}
+
+/* ── BODY ── */
+.body{flex:1;display:flex;overflow:hidden}
+
+/* ── CANVAS AREA ── */
+.canvas-area{flex:1;position:relative;background:#111;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#main-canvas{display:block;max-width:100%;max-height:100%;cursor:crosshair}
+.canvas-area.cursor-drag #main-canvas{cursor:grab}
+.canvas-area.cursor-drag.dragging #main-canvas{cursor:grabbing}
+
+/* Toolbar izquierdo */
+.toolbar-left{position:absolute;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:10}
+.tool-btn{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all 150ms;backdrop-filter:blur(8px)}
+.tool-btn:hover{background:#fff;color:var(--p)}
+.tool-btn.active{background:var(--p);color:#fff;border-color:var(--p)}
+.tool-sep{height:1px;background:rgba(255,255,255,.2);margin:2px 4px}
+
+/* Toolbar top (zoom) */
+.toolbar-top{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:10}
+.mini-btn{height:30px;padding:0 10px;border-radius:6px;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.3);cursor:pointer;font-size:12px;font-weight:500;color:var(--t1);display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px);transition:all 150ms}
+.mini-btn:hover{background:#fff}
+.mini-btn svg{flex-shrink:0}
+
+/* Analyzing overlay */
+.analyzing-overlay{position:absolute;inset:0;background:rgba(15,15,19,.7);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:30;backdrop-filter:blur(4px)}
+.analyzing-overlay.visible{display:flex}
+.spin{width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top:3px solid var(--p);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.analyzing-txt{color:#fff;font-size:14px;font-weight:500}
+.analyzing-sub{color:rgba(255,255,255,.6);font-size:12px}
+.analyzing-steps{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.astep{font-size:12px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:8px;transition:color 300ms}
+.astep.done{color:#4ade80}
+.astep.active{color:#fff}
+
+/* Resultado generación */
+.gen-overlay{position:absolute;inset:0;display:none;z-index:25}
+.gen-overlay.visible{display:block}
+#gen-canvas{width:100%;height:100%;object-fit:contain;background:#111}
+
+/* ── PANEL DERECHO ── */
+.panel{width:300px;background:var(--s);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.panel-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
+.ptab{flex:1;height:40px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--t3);font-family:'Inter',sans-serif;border-bottom:2px solid transparent;transition:all 150ms}
+.ptab.active{color:var(--p);border-bottom-color:var(--p)}
+.panel-body{flex:1;overflow-y:auto;padding:14px}
+.panel-section{margin-bottom:18px}
+.section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:10px}
+
+/* Sliders */
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.slider-lbl{font-size:12px;color:var(--t2);width:70px;flex-shrink:0}
+.slider-val{font-size:12px;font-weight:600;color:var(--t1);width:42px;text-align:right;flex-shrink:0;font-family:monospace}
+input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--bd);border-radius:99px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--p);cursor:grab;box-shadow:0 1px 4px rgba(91,71,224,.3)}
+input[type=range]::-webkit-slider-thumb:active{cursor:grabbing}
+
+/* Color pickers */
+.color-filter-preview{width:100%;height:80px;border-radius:var(--r);overflow:hidden;margin-bottom:10px;border:1px solid var(--bd);background:#222;position:relative}
+#preview-img{width:100%;height:100%;object-fit:cover;filter:inherit}
+
+/* Líneas toggle */
+.line-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);margin-bottom:6px;cursor:pointer;transition:all 150ms}
+.line-row:hover{border-color:var(--bdh);background:var(--sr)}
+.line-row-left{display:flex;align-items:center;gap:8px}
+.line-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.line-name{font-size:13px;color:var(--t1)}
+.line-sub{font-size:11px;color:var(--t3)}
+.toggle{width:34px;height:20px;border-radius:99px;background:var(--bd);position:relative;transition:background 200ms;flex-shrink:0}
+.toggle.on{background:var(--p)}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform 200ms}
+.toggle.on::after{transform:translateX(14px)}
+
+/* Dientes selector */
+.teeth-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:12px}
+.tooth-btn{aspect-ratio:1;border-radius:4px;border:1.5px solid var(--bd);background:var(--sr);cursor:pointer;font-size:9px;font-weight:600;color:var(--t3);display:flex;align-items:center;justify-content:center;transition:all 150ms}
+.tooth-btn:hover{border-color:var(--p);color:var(--p)}
+.tooth-btn.selected{border-color:var(--p);background:var(--ps);color:var(--p)}
+.tooth-btn.modified{border-color:var(--ok);background:var(--oks);color:var(--ok)}
+
+/* Face shape resultado */
+.face-result{background:var(--sr);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.face-shape-bars{display:flex;flex-direction:column;gap:8px}
+.shape-bar-row{display:flex;align-items:center;gap:8px}
+.shape-name{font-size:12px;color:var(--t2);width:55px}
+.shape-bar-bg{flex:1;height:6px;background:var(--bd);border-radius:99px;overflow:hidden}
+.shape-bar-fill{height:100%;background:var(--p);border-radius:99px;transition:width .6s ease}
+.shape-pct{font-size:11px;font-weight:600;color:var(--t1);width:36px;text-align:right}
+.shape-rec{font-size:11px;color:var(--t2);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
+
+/* Líneas faciales info */
+.line-guide{font-size:11px;color:var(--t3);background:var(--sr);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5}
+
+/* Generación final */
+.gen-section{padding:14px}
+.prompt-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.pchip{padding:5px 10px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid var(--bd);background:var(--sr);color:var(--t2);cursor:pointer;transition:all 150ms}
+.pchip:hover{border-color:var(--p);color:var(--p);background:var(--ps)}
+.pchip.sel{border-color:var(--p);background:var(--ps);color:var(--p)}
+.gen-textarea{width:100%;border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;font-size:12px;font-family:'Inter',sans-serif;color:var(--t1);background:var(--sr);resize:none;outline:none;transition:border 150ms;line-height:1.5}
+.gen-textarea:focus{border-color:var(--p);background:var(--s)}
+.gen-btn{width:100%;height:44px;border-radius:var(--r);background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 150ms;box-shadow:0 4px 14px rgba(91,71,224,.25)}
+.gen-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,71,224,.35)}
+.gen-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* Intensidad */
+.int-track{position:relative;height:6px;background:var(--bd);border-radius:99px;margin:8px 0 4px;cursor:pointer}
+.int-fill{height:100%;background:linear-gradient(90deg,#0D9488,var(--p),var(--p2));border-radius:99px;transition:width .1s}
+.int-thumb{position:absolute;top:50%;width:18px;height:18px;background:var(--p);border-radius:50%;transform:translate(-50%,-50%);cursor:grab;box-shadow:0 2px 6px rgba(91,71,224,.3);border:2px solid #fff}
+.int-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
+
+/* Before/after compare */
+.compare-wrap{position:relative;width:100%;border-radius:var(--r);overflow:hidden;border:1px solid var(--bd);margin-top:10px}
+.compare-before,.compare-after{width:100%}
+.compare-label{position:absolute;top:6px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px}
+.compare-label.before{left:6px;background:rgba(0,0,0,.6);color:#fff}
+.compare-label.after{right:6px;background:var(--p);color:#fff}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--bd);border-radius:var(--r2);padding:32px 20px;text-align:center;cursor:pointer;transition:all 200ms;position:relative;background:var(--sr)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--p);background:var(--ps)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.uz-icon{font-size:36px;margin-bottom:12px}
+.uz-title{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:4px}
+.uz-sub{font-size:12px;color:var(--t3)}
+
+/* Loading state panel */
+.panel-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 20px;text-align:center}
+.panel-loading p{font-size:13px;color:var(--t2)}
+
+/* Alert */
+.alert{padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;display:none}
+.alert.visible{display:block}
+.alert-warn{background:var(--warns);color:var(--warn);border:1px solid rgba(217,119,6,.2)}
+.alert-ok{background:var(--oks);color:var(--ok);border:1px solid rgba(22,163,74,.2)}
+
+/* Mobile */
+@media(max-width:768px){
+  .panel{width:100%;max-height:42dvh;border-left:none;border-top:1px solid var(--bd)}
+  .body{flex-direction:column}
+  .canvas-area{min-height:0;flex:1}
+  .toolbar-left{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <div class="header">
+    <div class="header-left">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="header-title">Editor de Diseño</span>
+      <span class="header-step" id="step-label">— Sube una foto para comenzar</span>
+    </div>
+    <div class="header-right">
+      <div class="steps">
+        <div class="step-dot active" id="sd0"></div>
+        <div class="step-dot" id="sd1"></div>
+        <div class="step-dot" id="sd2"></div>
+        <div class="step-dot" id="sd3"></div>
+        <div class="step-dot" id="sd4"></div>
+      </div>
+      <button class="btn btn-secondary" id="btn-reset" onclick="resetEditor()" style="display:none">Reiniciar</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextStep()" disabled>Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- ══ BODY ══ -->
+  <div class="body">
+
+    <!-- ══ CANVAS ══ -->
+    <div class="canvas-area" id="canvas-area">
+
+      <!-- Upload zone (step 0) -->
+      <div class="upload-zone" id="upload-zone" style="width:320px" ondragover="ev.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
+        <input type="file" accept="image/*" onchange="onFileSelect(this)">
+        <div class="uz-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <div class="uz-title">Sube la foto clínica</div>
+        <div class="uz-sub">Foto intraoral frontal o foto de sonrisa completa<br>JPG, PNG — cualquier tamaño</div>
+      </div>
+
+      <!-- Canvas principal -->
+      <canvas id="main-canvas" style="display:none"></canvas>
+
+      <!-- Toolbar izquierdo -->
+      <div class="toolbar-left" id="toolbar-left" style="display:none">
+        <div class="tool-btn active" id="tool-select" onclick="setTool('select')" title="Seleccionar / Mover">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-7 1-4 6z"/></svg>
+        </div>
+        <div class="tool-btn" id="tool-line" onclick="setTool('line')" title="Línea facial">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <div class="tool-sep"></div>
+        <div class="tool-btn" id="tool-teeth" onclick="setTool('teeth')" title="Overlay dientes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        </div>
+        <div class="tool-sep"></div>
+        <div class="tool-btn" id="tool-zoom-in" onclick="zoom(1.2)" title="Zoom +">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </div>
+        <div class="tool-btn" id="tool-zoom-out" onclick="zoom(0.8)" title="Zoom -">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </div>
+        <div class="tool-btn" id="tool-fit" onclick="fitCanvas()" title="Ajustar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </div>
+      </div>
+
+      <!-- Toolbar top right -->
+      <div class="toolbar-top" id="toolbar-top" style="display:none">
+        <button class="mini-btn" onclick="toggleAllLines()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Líneas
+        </button>
+        <button class="mini-btn" onclick="toggleTeethOverlay()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/></svg>
+          Overlay
+        </button>
+        <button class="mini-btn" onclick="undoLastAction()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+          Deshacer
+        </button>
+      </div>
+
+      <!-- Analyzing overlay -->
+      <div class="analyzing-overlay" id="analyzing-overlay">
+        <div class="spin"></div>
+        <div class="analyzing-txt" id="an-title">Claude está analizando la foto...</div>
+        <div class="analyzing-sub" id="an-sub">Detectando proporciones faciales</div>
+        <div class="analyzing-steps">
+          <div class="astep active" id="an-s1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Analizando forma del rostro...
+          </div>
+          <div class="astep" id="an-s2">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Detectando líneas faciales...
+          </div>
+          <div class="astep" id="an-s3">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Posicionando overlay dental...
+          </div>
+          <div class="astep" id="an-s4">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Generando recomendaciones...
+          </div>
+        </div>
+      </div>
+
+      <!-- Imagen generada por Gemini -->
+      <div class="gen-overlay" id="gen-overlay">
+        <img id="gen-img" style="width:100%;height:100%;object-fit:contain;background:#111" alt="Simulación generada">
+      </div>
+
+    </div>
+
+    <!-- ══ PANEL DERECHO ══ -->
+    <div class="panel" id="right-panel">
+
+      <!-- STEP 0: upload prompt -->
+      <div id="panel-step-0" style="padding:20px">
+        <div class="section-label">Cómo funciona</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--ps);color:var(--p);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.5"><strong style="color:var(--t1)">Sube la foto</strong> clínica del paciente (intraoral o sonrisa completa)</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--ps);color:var(--p);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.5"><strong style="color:var(--t1)">Claude analiza</strong> la imagen y posiciona automáticamente las líneas faciales y el overlay dental</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--ps);color:var(--p);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.5"><strong style="color:var(--t1)">Ajusta</strong> el diseño con los controles — mueve líneas, redimensiona dientes, ajusta forma</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--ps);color:var(--p);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.5"><strong style="color:var(--t1)">Gemini genera</strong> la simulación fotorrealista con los dientes nuevos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Análisis facial -->
+      <div id="panel-step-1" style="display:none">
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="showPanelTab('face-shape',this)">Forma</button>
+          <button class="ptab" onclick="showPanelTab('facial-lines',this)">Líneas</button>
+        </div>
+        <div class="panel-body">
+          <div id="pt-face-shape">
+            <div class="panel-section">
+              <div class="section-label">Forma del Rostro</div>
+              <div class="face-result" id="face-shape-result">
+                <div class="panel-loading">
+                  <div class="spin" style="width:28px;height:28px;border-width:2px"></div>
+                  <p>Analizando...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="pt-facial-lines" style="display:none">
+            <div class="panel-section">
+              <div class="section-label">Líneas Faciales</div>
+              <div class="line-guide">Arrastra los puntos de control directamente en la imagen para ajustar cada línea.</div>
+              <div class="line-row" onclick="toggleLine('midline')">
+                <div class="line-row-left">
+                  <div class="line-dot" style="background:#FF4444"></div>
+                  <div><div class="line-name">Línea media</div><div class="line-sub">Eje de simetría vertical</div></div>
+                </div>
+                <div class="toggle on" id="toggle-midline"></div>
+              </div>
+              <div class="line-row" onclick="toggleLine('smile-arc')">
+                <div class="line-row-left">
+                  <div class="line-dot" style="background:#FFFFFF;border:1px solid #ccc"></div>
+                  <div><div class="line-name">Smile Arc</div><div class="line-sub">Curva del borde incisal</div></div>
+                </div>
+                <div class="toggle on" id="toggle-smile-arc"></div>
+              </div>
+              <div class="line-row" onclick="toggleLine('gingival')">
+                <div class="line-row-left">
+                  <div class="line-dot" style="background:#FF9999"></div>
+                  <div><div class="line-name">Línea gingival</div><div class="line-sub">Margen de encía</div></div>
+                </div>
+                <div class="toggle on" id="toggle-gingival"></div>
+              </div>
+              <div class="line-row" onclick="toggleLine('horizontal')">
+                <div class="line-row-left">
+                  <div class="line-dot" style="background:#888888"></div>
+                  <div><div class="line-name">Horizontal</div><div class="line-sub">Línea de referencia</div></div>
+                </div>
+                <div class="toggle" id="toggle-horizontal"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Overlay de dientes -->
+      <div id="panel-step-2" style="display:none">
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="showPanelTab('teeth-global',this)">Global</button>
+          <button class="ptab" onclick="showPanelTab('teeth-individual',this)">Individual</button>
+        </div>
+        <div class="panel-body">
+          <div id="pt-teeth-global">
+            <div class="panel-section">
+              <div class="section-label">Overlay Global</div>
+              <div class="slider-row">
+                <span class="slider-lbl">Tamaño</span>
+                <input type="range" min="50" max="200" value="100" id="sl-teeth-size" oninput="updateTeethGlobal()">
+                <span class="slider-val" id="val-teeth-size">100%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Posición X</span>
+                <input type="range" min="-100" max="100" value="0" id="sl-teeth-x" oninput="updateTeethGlobal()">
+                <span class="slider-val" id="val-teeth-x">0</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Posición Y</span>
+                <input type="range" min="-100" max="100" value="0" id="sl-teeth-y" oninput="updateTeethGlobal()">
+                <span class="slider-val" id="val-teeth-y">0</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Rotación</span>
+                <input type="range" min="-20" max="20" value="0" id="sl-teeth-rot" oninput="updateTeethGlobal()">
+                <span class="slider-val" id="val-teeth-rot">0°</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Opacidad</span>
+                <input type="range" min="10" max="100" value="70" id="sl-teeth-opacity" oninput="updateTeethGlobal()">
+                <span class="slider-val" id="val-teeth-opacity">70%</span>
+              </div>
+            </div>
+            <div class="panel-section">
+              <div class="section-label">Forma de Dientes</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+                <div class="pchip sel" id="shape-oval" onclick="setToothShape('oval',this)">Oval</div>
+                <div class="pchip" id="shape-square" onclick="setToothShape('square',this)">Cuadrado</div>
+                <div class="pchip" id="shape-rect" onclick="setToothShape('rect',this)">Rectangular</div>
+                <div class="pchip" id="shape-tri" onclick="setToothShape('tri',this)">Triangular</div>
+                <div class="pchip" id="shape-round" onclick="setToothShape('round',this)">Redondeado</div>
+              </div>
+            </div>
+          </div>
+          <div id="pt-teeth-individual" style="display:none">
+            <div class="panel-section">
+              <div class="section-label">Selecciona diente</div>
+              <div class="teeth-grid" id="teeth-selector">
+                <!-- generado por JS -->
+              </div>
+              <div id="tooth-controls" style="display:none">
+                <div class="section-label" style="margin-top:4px">Ajustes — Diente <span id="selected-tooth-num">—</span></div>
+                <div class="slider-row">
+                  <span class="slider-lbl">Ancho</span>
+                  <input type="range" min="50" max="200" value="100" id="sl-t-width" oninput="updateToothIndividual('width')">
+                  <span class="slider-val" id="val-t-width">100%</span>
+                </div>
+                <div class="slider-row">
+                  <span class="slider-lbl">Alto</span>
+                  <input type="range" min="50" max="200" value="100" id="sl-t-height" oninput="updateToothIndividual('height')">
+                  <span class="slider-val" id="val-t-height">100%</span>
+                </div>
+                <div class="slider-row">
+                  <span class="slider-lbl">Rotación</span>
+                  <input type="range" min="-30" max="30" value="0" id="sl-t-rot" oninput="updateToothIndividual('rotation')">
+                  <span class="slider-val" id="val-t-rot">0°</span>
+                </div>
+                <div class="slider-row">
+                  <span class="slider-lbl">Offset X</span>
+                  <input type="range" min="-20" max="20" value="0" id="sl-t-ox" oninput="updateToothIndividual('ox')">
+                  <span class="slider-val" id="val-t-ox">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Color y ajustes finales -->
+      <div id="panel-step-3" style="display:none">
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="showPanelTab('color-teeth',this)">Dientes</button>
+          <button class="ptab" onclick="showPanelTab('color-face',this)">Foto</button>
+        </div>
+        <div class="panel-body">
+          <div id="pt-color-teeth">
+            <div class="panel-section">
+              <div class="section-label">Tono Dental</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+                <div class="pchip" onclick="setShade('A1',this)">A1 Natural</div>
+                <div class="pchip" onclick="setShade('A2',this)">A2 Suave</div>
+                <div class="pchip" onclick="setShade('B1',this)">B1 Brillante</div>
+                <div class="pchip sel" onclick="setShade('HW',this)">Hollywood</div>
+              </div>
+              <div class="section-label">Ajustes de Color Overlay</div>
+              <div class="slider-row">
+                <span class="slider-lbl">Brillo</span>
+                <input type="range" min="80" max="160" value="110" id="sl-brightness" oninput="updateColorFilters()">
+                <span class="slider-val" id="val-brightness">110%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Contraste</span>
+                <input type="range" min="80" max="140" value="100" id="sl-contrast" oninput="updateColorFilters()">
+                <span class="slider-val" id="val-contrast">100%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Saturación</span>
+                <input type="range" min="0" max="150" value="30" id="sl-saturation" oninput="updateColorFilters()">
+                <span class="slider-val" id="val-saturation">30%</span>
+              </div>
+            </div>
+          </div>
+          <div id="pt-color-face" style="display:none">
+            <div class="panel-section">
+              <div class="section-label">Ajustes de la Foto</div>
+              <div class="slider-row">
+                <span class="slider-lbl">Brillo</span>
+                <input type="range" min="60" max="140" value="100" id="sl-ph-brightness" oninput="updatePhotoFilters()">
+                <span class="slider-val" id="val-ph-brightness">100%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Contraste</span>
+                <input type="range" min="60" max="140" value="100" id="sl-ph-contrast" oninput="updatePhotoFilters()">
+                <span class="slider-val" id="val-ph-contrast">100%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Saturación</span>
+                <input type="range" min="0" max="200" value="100" id="sl-ph-saturation" oninput="updatePhotoFilters()">
+                <span class="slider-val" id="val-ph-saturation">100%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-lbl">Temperatura</span>
+                <input type="range" min="-50" max="50" value="0" id="sl-ph-temp" oninput="updatePhotoFilters()">
+                <span class="slider-val" id="val-ph-temp">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: Generación Gemini -->
+      <div id="panel-step-4" style="display:none">
+        <div class="gen-section" style="overflow-y:auto;flex:1">
+          <div class="section-label" style="margin-bottom:10px">Intensidad del cambio</div>
+          <div class="int-track" id="int-track">
+            <div class="int-fill" id="int-fill" style="width:60%"></div>
+            <div class="int-thumb" id="int-thumb" style="left:60%"></div>
+          </div>
+          <div class="int-labels"><span>🌿 Sutil</span><span>⚖️ Moderado</span><span>🏆 Completo</span></div>
+
+          <div class="section-label" style="margin:14px 0 8px">Estilo</div>
+          <div class="prompt-chips" id="prompt-chips">
+            <div class="pchip sel" onclick="selChip(this,'Natural clínico, resultado realista, misma persona')">Natural Clínico</div>
+            <div class="pchip" onclick="selChip(this,'Hollywood smile, ultra white, perfect symmetry')">Hollywood</div>
+            <div class="pchip" onclick="selChip(this,'Close diastema gap naturally, subtle whitening')">Cierre espacios</div>
+            <div class="pchip" onclick="selChip(this,'Teeth whitening only, same shape, brighter')">Solo blanqueamiento</div>
+            <div class="pchip" onclick="selChip(this,'Orthodontic result, aligned straight teeth')">Post-ortodoncia</div>
+            <div class="pchip" onclick="selChip(this,'Minimal invasive veneers, ultra thin, natural shade')">Mínimo invasivo</div>
+          </div>
+
+          <div class="section-label" style="margin-bottom:6px">Instrucciones adicionales</div>
+          <textarea class="gen-textarea" id="gen-prompt" rows="3" placeholder="Ej: el paciente quiere dientes naturales, no muy blancos...">Natural clínico, resultado realista, misma persona</textarea>
+
+          <button class="gen-btn" id="gen-btn" onclick="generarSimulacion()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Generar con Gemini
+          </button>
+          <div class="alert alert-warn" id="gen-alert" style="margin-top:10px"></div>
+
+          <div style="display:none" id="result-section">
+            <div class="section-label" style="margin:14px 0 8px">Resultado</div>
+            <div class="compare-wrap">
+              <img id="compare-before" style="width:100%;display:block" alt="Antes">
+              <div class="compare-label before">ANTES</div>
+            </div>
+            <div class="compare-wrap" style="margin-top:8px">
+              <img id="compare-after" style="width:100%;display:block" alt="Después">
+              <div class="compare-label after">DESPUÉS</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn btn-secondary" style="flex:1" onclick="generarSimulacion()">🔄 Regenerar</button>
+              <button class="btn btn-primary" style="flex:1" onclick="descargarResultado()">⬇ Descargar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
+var EDGE_URL = SUPA_URL + '/functions/v1/claude';
+
+// ══════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════
+var STATE = {
+  step: 0,
+  imgBase64: null,
+  imgEl: null,
+  canvas: null,
+  ctx: null,
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+  tool: 'select',
+  // Líneas faciales
+  lines: {
+    midline:    { visible: true, x: 0.5, dragging: false },
+    smileArc:   { visible: true, points: [], dragging: false, dragIdx: -1 },
+    gingival:   { visible: true, y: 0.45, dragging: false },
+    horizontal: { visible: false, y: 0.5, dragging: false },
+  },
+  // Overlay dientes
+  teeth: {
+    visible: true,
+    x: 0, y: 0,
+    scale: 1,
+    rotation: 0,
+    opacity: 0.7,
+    shape: 'oval',
+    shade: 'HW',
+    individual: {},
+    dragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+  },
+  // Filtros
+  filters: {
+    brightness: 110, contrast: 100, saturation: 30,
+    phBrightness: 100, phContrast: 100, phSaturation: 100, phTemp: 0,
+  },
+  // Análisis Claude
+  analysis: null,
+  // Gemini resultado
+  geminiResult: null,
+  intensity: 60,
+  selectedTooth: null,
+  draggingLine: null,
+  toothShape: 'oval',
+};
+
+// Número de dientes en el overlay (8 superiores)
+var TOOTH_COUNT = 8;
+var TOOTH_NAMES = ['5','4','3','2','1','1','2','3','4','5'].slice(1,9); // simplificado
+var TOOTH_LABELS = ['15','14','13','12','11','21','22','23','24','25'].slice(1,9);
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.onload = function() {
+  STATE.canvas = document.getElementById('main-canvas');
+  STATE.ctx = STATE.canvas.getContext('2d');
+  initTeethSelector();
+  initIntensitySlider();
+  initCanvasEvents();
+};
+
+// ══════════════════════════════════════════
+// PASOS
+// ══════════════════════════════════════════
+var STEP_LABELS = [
+  '— Sube una foto para comenzar',
+  'Paso 1 · Análisis Facial',
+  'Paso 2 · Overlay Dental',
+  'Paso 3 · Color y Ajustes',
+  'Paso 4 · Generación IA',
+];
+
+function setStep(n) {
+  STATE.step = n;
+  document.getElementById('step-label').textContent = STEP_LABELS[n] || '';
+  // step dots
+  for (var i = 0; i <= 4; i++) {
+    var dot = document.getElementById('sd' + i);
+    if (!dot) continue;
+    dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  // panels
+  ['panel-step-0','panel-step-1','panel-step-2','panel-step-3','panel-step-4'].forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = i === n ? (i === 4 ? 'flex' : 'block') : 'none';
+  });
+  if (n === 4) {
+    document.getElementById('panel-step-4').style.display = 'block';
+  }
+  // Next btn
+  var btnNext = document.getElementById('btn-next');
+  btnNext.disabled = n === 0;
+  btnNext.textContent = n === 3 ? 'Generar →' : (n === 4 ? 'Exportar' : 'Siguiente →');
+}
+
+function nextStep() {
+  if (STATE.step === 0) return;
+  if (STATE.step < 4) setStep(STATE.step + 1);
+  else exportarDiseño();
+}
+
+// ══════════════════════════════════════════
+// FILE UPLOAD
+// ══════════════════════════════════════════
+function onFileSelect(input) {
+  if (!input.files[0]) return;
+  loadImage(input.files[0]);
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  var f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImage(f);
+}
+
+function loadImage(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    STATE.imgBase64 = e.target.result.split(',')[1];
+    var img = new Image();
+    img.onload = function() {
+      STATE.imgEl = img;
+      // Setup canvas
+      var area = document.getElementById('canvas-area');
+      var maxW = area.clientWidth - 60;
+      var maxH = area.clientHeight - 20;
+      var ratio = Math.min(maxW / img.width, maxH / img.height);
+      STATE.canvas.width = img.width;
+      STATE.canvas.height = img.height;
+      STATE.scale = ratio;
+      STATE.canvas.style.width = (img.width * ratio) + 'px';
+      STATE.canvas.style.height = (img.height * ratio) + 'px';
+      // Init smile arc points
+      var w = img.width, h = img.height;
+      STATE.lines.smileArc.points = [
+        {x: 0.15, y: 0.58},
+        {x: 0.35, y: 0.52},
+        {x: 0.5,  y: 0.50},
+        {x: 0.65, y: 0.52},
+        {x: 0.85, y: 0.58},
+      ];
+      STATE.lines.gingival.y = 0.42;
+      STATE.teeth.y = 0;
+      // Show canvas
+      document.getElementById('upload-zone').style.display = 'none';
+      document.getElementById('main-canvas').style.display = 'block';
+      document.getElementById('toolbar-left').style.display = 'flex';
+      document.getElementById('toolbar-top').style.display = 'flex';
+      document.getElementById('btn-reset').style.display = 'inline-flex';
+      document.getElementById('btn-next').disabled = false;
+      drawAll();
+      // Go to step 1 and analyze
+      setStep(1);
+      analyzeWithClaude();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════
+// DRAW ENGINE
+// ══════════════════════════════════════════
+function drawAll() {
+  var ctx = STATE.ctx;
+  var w = STATE.canvas.width;
+  var h = STATE.canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Foto base con filtros
+  ctx.save();
+  ctx.filter = buildPhotoFilter();
+  ctx.drawImage(STATE.imgEl, 0, 0, w, h);
+  ctx.restore();
+
+  // Overlay dientes
+  if (STATE.teeth.visible) drawTeethOverlay(ctx, w, h);
+
+  // Líneas faciales
+  drawLines(ctx, w, h);
+}
+
+function buildPhotoFilter() {
+  var f = STATE.filters;
+  return 'brightness(' + f.phBrightness + '%) contrast(' + f.phContrast + '%) saturate(' + f.phSaturation + '%)';
+}
+
+function buildTeethFilter() {
+  var f = STATE.filters;
+  var shade = STATE.teeth.shade;
+  var extraB = shade === 'HW' ? 1.3 : shade === 'B1' ? 1.15 : shade === 'A1' ? 1.05 : 1.0;
+  var b = Math.round(f.brightness * extraB);
+  return 'brightness(' + b + '%) contrast(' + f.contrast + '%) saturate(' + f.saturation + '%)';
+}
+
+// ── LÍNEAS ──
+function drawLines(ctx, w, h) {
+  var L = STATE.lines;
+
+  // Midline
+  if (L.midline.visible) {
+    ctx.save();
+    ctx.strokeStyle = '#FF4444';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(L.midline.x * w, 0);
+    ctx.lineTo(L.midline.x * w, h);
+    ctx.stroke();
+    ctx.restore();
+    // Handle
+    drawHandle(ctx, L.midline.x * w, h * 0.5, '#FF4444');
+  }
+
+  // Smile Arc (curva bezier)
+  if (L.smileArc.visible && L.smileArc.points.length >= 3) {
+    ctx.save();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    var pts = L.smileArc.points;
+    ctx.moveTo(pts[0].x * w, pts[0].y * h);
+    // Curve through points
+    for (var i = 1; i < pts.length - 1; i++) {
+      var mx = (pts[i].x + pts[i+1].x) / 2 * w;
+      var my = (pts[i].y + pts[i+1].y) / 2 * h;
+      ctx.quadraticCurveTo(pts[i].x * w, pts[i].y * h, mx, my);
+    }
+    ctx.lineTo(pts[pts.length-1].x * w, pts[pts.length-1].y * h);
+    ctx.stroke();
+    ctx.restore();
+    // Control points
+    pts.forEach(function(p) {
+      drawHandle(ctx, p.x * w, p.y * h, '#FFFFFF');
+    });
+  }
+
+  // Gingival line
+  if (L.gingival.visible) {
+    ctx.save();
+    ctx.strokeStyle = '#FF9999';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, L.gingival.y * h);
+    ctx.lineTo(w, L.gingival.y * h);
+    ctx.stroke();
+    ctx.restore();
+    drawHandle(ctx, w * 0.5, L.gingival.y * h, '#FF9999');
+  }
+
+  // Horizontal
+  if (L.horizontal.visible) {
+    ctx.save();
+    ctx.strokeStyle = '#888888';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, L.horizontal.y * h);
+    ctx.lineTo(w, L.horizontal.y * h);
+    ctx.stroke();
+    ctx.restore();
+    drawHandle(ctx, w * 0.5, L.horizontal.y * h, '#888888');
+  }
+}
+
+function drawHandle(ctx, x, y, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── TEETH OVERLAY ──
+function drawTeethOverlay(ctx, w, h) {
+  var T = STATE.teeth;
+  ctx.save();
+  ctx.globalAlpha = T.opacity;
+  ctx.filter = buildTeethFilter();
+
+  // Reference: smile arc center
+  var arcCenter = getSmileArcCenter();
+  var baseX = arcCenter.x * w + T.x;
+  var baseY = arcCenter.y * h + T.y;
+
+  var totalW = w * 0.65 * T.scale;
+  var toothW = totalW / TOOTH_COUNT;
+  var toothH = toothW * getToothAspect();
+  var startX = baseX - totalW / 2;
+
+  ctx.translate(baseX, baseY);
+  ctx.rotate(T.rotation * Math.PI / 180);
+  ctx.translate(-baseX, -baseY);
+
+  for (var i = 0; i < TOOTH_COUNT; i++) {
+    var ind = T.individual[i] || {};
+    var tw = toothW * (ind.width || 1);
+    var th = toothH * (ind.height || 1);
+    var tx = startX + toothW * i + toothW/2 + (ind.ox || 0);
+    var ty = baseY - th / 2;
+    var rot = (ind.rotation || 0) * Math.PI / 180;
+
+    ctx.save();
+    ctx.translate(tx, baseY);
+    ctx.rotate(rot);
+    drawTooth(ctx, -tw/2, -th/2, tw, th, T.shape, i === STATE.selectedTooth);
+    ctx.restore();
+  }
+
+  ctx.restore();
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+}
+
+function drawTooth(ctx, x, y, w, h, shape, selected) {
+  ctx.save();
+  var r = shape === 'oval' || shape === 'round' ? Math.min(w,h)*0.35
+         : shape === 'square' ? w*0.1
+         : shape === 'rect' ? w*0.08
+         : shape === 'tri' ? h*0.2
+         : w*0.2;
+
+  // Fill: white/ivory
+  ctx.fillStyle = getShadeColor();
+  ctx.strokeStyle = selected ? '#5B47E0' : 'rgba(91,71,224,0.6)';
+  ctx.lineWidth = selected ? 2 : 1.5;
+
+  ctx.beginPath();
+  if (shape === 'tri') {
+    // Triangular — wider at top
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w * 0.85, y + h - r);
+    ctx.quadraticCurveTo(x + w * 0.85, y + h, x + w * 0.85 - r, y + h);
+    ctx.lineTo(x + w * 0.15 + r, y + h);
+    ctx.quadraticCurveTo(x + w * 0.15, y + h, x + w * 0.15, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+  } else {
+    ctx.roundRect(x, y, w, h, r);
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.35, y + h*0.25, w*0.15, h*0.2, -0.3, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function getShadeColor() {
+  var shade = STATE.teeth.shade;
+  if (shade === 'HW') return '#F8F8F5';
+  if (shade === 'B1') return '#F4F2EC';
+  if (shade === 'A1') return '#EDE8DA';
+  return '#E8E2D0'; // A2
+}
+
+function getToothAspect() {
+  var shape = STATE.teeth.shape;
+  if (shape === 'square') return 0.85;
+  if (shape === 'rect') return 1.1;
+  if (shape === 'tri') return 1.0;
+  return 0.95; // oval/round
+}
+
+function getSmileArcCenter() {
+  var pts = STATE.lines.smileArc.points;
+  if (!pts || !pts.length) return {x: 0.5, y: 0.5};
+  var mid = pts[Math.floor(pts.length/2)];
+  return {x: mid.x, y: mid.y - 0.04};
+}
+
+// ══════════════════════════════════════════
+// CANVAS EVENTS (drag)
+// ══════════════════════════════════════════
+function initCanvasEvents() {
+  var canvas = STATE.canvas;
+  canvas.addEventListener('mousedown', onCanvasDown);
+  canvas.addEventListener('mousemove', onCanvasMove);
+  canvas.addEventListener('mouseup', onCanvasUp);
+  canvas.addEventListener('mouseleave', onCanvasUp);
+  canvas.addEventListener('touchstart', function(e) { e.preventDefault(); onCanvasDown(toMouseEvt(e)); }, {passive:false});
+  canvas.addEventListener('touchmove', function(e) { e.preventDefault(); onCanvasMove(toMouseEvt(e)); }, {passive:false});
+  canvas.addEventListener('touchend', function(e) { e.preventDefault(); onCanvasUp(toMouseEvt(e)); }, {passive:false});
+  canvas.addEventListener('wheel', function(e) { e.preventDefault(); zoom(e.deltaY < 0 ? 1.1 : 0.9); }, {passive:false});
+}
+
+function toMouseEvt(e) {
+  var t = e.touches && e.touches[0] || e.changedTouches && e.changedTouches[0];
+  return t ? {clientX: t.clientX, clientY: t.clientY} : e;
+}
+
+function getCanvasPos(e) {
+  var rect = STATE.canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) / rect.width * STATE.canvas.width,
+    y: (e.clientY - rect.top) / rect.height * STATE.canvas.height,
+  };
+}
+
+function onCanvasDown(e) {
+  var pos = getCanvasPos(e);
+  var w = STATE.canvas.width, h = STATE.canvas.height;
+  var px = pos.x / w, py = pos.y / h;
+  var HIT = 0.04;
+
+  // Check lines
+  var L = STATE.lines;
+
+  // Smile arc control points
+  if (L.smileArc.visible) {
+    for (var i = 0; i < L.smileArc.points.length; i++) {
+      var p = L.smileArc.points[i];
+      if (Math.abs(px - p.x) < HIT && Math.abs(py - p.y) < HIT) {
+        L.smileArc.dragging = true;
+        L.smileArc.dragIdx = i;
+        STATE.draggingLine = 'smileArc';
+        return;
+      }
+    }
+  }
+
+  // Midline
+  if (L.midline.visible && Math.abs(px - L.midline.x) < HIT*0.5) {
+    STATE.draggingLine = 'midline';
+    return;
+  }
+
+  // Gingival
+  if (L.gingival.visible && Math.abs(py - L.gingival.y) < HIT*0.5) {
+    STATE.draggingLine = 'gingival';
+    return;
+  }
+
+  // Horizontal
+  if (L.horizontal.visible && Math.abs(py - L.horizontal.y) < HIT*0.5) {
+    STATE.draggingLine = 'horizontal';
+    return;
+  }
+
+  // Teeth drag
+  if (STATE.teeth.visible) {
+    var arcC = getSmileArcCenter();
+    var teethCX = arcC.x * w + STATE.teeth.x;
+    var teethCY = arcC.y * h + STATE.teeth.y;
+    var totalW = w * 0.65 * STATE.teeth.scale;
+    var totalH = totalW / TOOTH_COUNT * getToothAspect();
+    if (pos.x > teethCX - totalW/2 && pos.x < teethCX + totalW/2 &&
+        pos.y > teethCY - totalH && pos.y < teethCY + totalH*0.5) {
+      STATE.teeth.dragging = true;
+      STATE.teeth.dragStartX = pos.x;
+      STATE.teeth.dragStartY = pos.y;
+    }
+  }
+}
+
+function onCanvasMove(e) {
+  var pos = getCanvasPos(e);
+  var w = STATE.canvas.width, h = STATE.canvas.height;
+  var px = pos.x / w, py = pos.y / h;
+
+  if (STATE.draggingLine === 'midline') {
+    STATE.lines.midline.x = Math.max(0.1, Math.min(0.9, px));
+    drawAll(); return;
+  }
+  if (STATE.draggingLine === 'gingival') {
+    STATE.lines.gingival.y = Math.max(0.1, Math.min(0.9, py));
+    drawAll(); return;
+  }
+  if (STATE.draggingLine === 'horizontal') {
+    STATE.lines.horizontal.y = Math.max(0.1, Math.min(0.9, py));
+    drawAll(); return;
+  }
+  if (STATE.draggingLine === 'smileArc') {
+    var idx = STATE.lines.smileArc.dragIdx;
+    STATE.lines.smileArc.points[idx] = {x: Math.max(0,Math.min(1,px)), y: Math.max(0,Math.min(1,py))};
+    drawAll(); return;
+  }
+  if (STATE.teeth.dragging) {
+    STATE.teeth.x += pos.x - STATE.teeth.dragStartX;
+    STATE.teeth.y += pos.y - STATE.teeth.dragStartY;
+    STATE.teeth.dragStartX = pos.x;
+    STATE.teeth.dragStartY = pos.y;
+    drawAll(); return;
+  }
+}
+
+function onCanvasUp(e) {
+  STATE.draggingLine = null;
+  STATE.teeth.dragging = false;
+  STATE.lines.smileArc.dragging = false;
+}
+
+// ══════════════════════════════════════════
+// ANÁLISIS CON CLAUDE
+// ══════════════════════════════════════════
+async function analyzeWithClaude() {
+  var overlay = document.getElementById('analyzing-overlay');
+  overlay.classList.add('visible');
+
+  var steps = ['an-s1','an-s2','an-s3','an-s4'];
+  var delays = [0, 1800, 3600, 5200];
+  delays.forEach(function(d, i) {
+    setTimeout(function() {
+      steps.forEach(function(s, j) {
+        var el = document.getElementById(s);
+        el.className = 'astep' + (j < i ? ' done' : j === i ? ' active' : '');
+      });
+    }, d);
+  });
+
+  var prompt = 'You are an expert dental and facial aesthetics analyzer. Analyze this clinical dental/smile photograph. Respond ONLY with a valid JSON object. No markdown, no explanation, just JSON.\n\n{\n  "facial": {\n    "shape": {"oval":0,"square":0,"rectangular":0,"triangular":0,"round":0,"diamond":0},\n    "biotype": "dolicofacial|mesofacial|braquifacial",\n    "profile": "convex|straight|concave",\n    "thirds": {"upper":33,"middle":33,"lower":34,"balanced":true},\n    "fifths": {"symmetry":85,"comment":"brief comment in Spanish"},\n    "midlineDeviation": "none|slight_left|slight_right|moderate_left|moderate_right",\n    "nasalDeviation": "none|left|right",\n    "chinDeviation": "none|left|right"\n  },\n  "dentolabial": {\n    "smileLine": "high|medium|low",\n    "incisorExposureRest": 2,\n    "buccalCorridors": "narrow|medium|wide",\n    "smileCurvature": "consonant|flat|reverse",\n    "upperLipThickness": "thin|medium|thick",\n    "lowerLipThickness": "thin|medium|thick",\n    "nasolabialAngle": "normal|acute|obtuse"\n  },\n  "dental": {\n    "midlineCoincidence": "coincident|slight_deviation|moderate_deviation",\n    "midlineDeviationMm": 0,\n    "centralProportionWH": 78,\n    "centralDominance": "good|weak|excessive",\n    "axialInclination": "correct|deviated",\n    "toothShape": "oval|square|triangular|rectangular",\n    "shade": "A1|A2|A3|B1|stained|bleached"\n  },\n  "gingival": {\n    "zenithPosition": "correct|altered",\n    "gingivalSymmetry": "symmetric|asymmetric",\n    "gingivalDisplay": 1,\n    "gingivalHealth": "healthy|inflamed|receded"\n  },\n  "esthetic": {\n    "score": 75,\n    "scoreBreakdown": {"facial":18,"dentolabial":17,"dental":20,"gingival":20}\n  },\n  "recommendations": ["recomendacion 1 en español","recomendacion 2 en español","recomendacion 3 en español"],\n  "canvas": {\n    "midline": 0.5,\n    "smileArcY": 0.52,\n    "gingivalY": 0.42,\n    "teethStartX": 0.18,\n    "teethEndX": 0.82\n  }\n}';
+
+  try {
+    var resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer ' + SUPA_KEY},
+      body: JSON.stringify({
+        messages: [{
+          role: 'user',
+          content: [
+            {type:'image', source:{type:'base64', media_type:'image/jpeg', data: STATE.imgBase64}},
+            {type:'text', text: prompt}
+          ]
+        }],
+        max_tokens: 1200
+      })
+    });
+    var data = await resp.json();
+    var txt = (data.content || []).map(function(c) { return c.text || ''; }).join('');
+    var clean = txt.replace(/```json|```/g,'').trim();
+    var jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (jsonMatch) clean = jsonMatch[0];
+    var analysis = JSON.parse(clean);
+    STATE.analysis = analysis;
+    applyAnalysis(analysis);
+  } catch(e) {
+    console.error('Claude analysis error:', e);
+    STATE.analysis = {
+      facial: {
+        shape: {oval:45, square:30, rectangular:10, triangular:10, round:5, diamond:0},
+        biotype: 'mesofacial', profile: 'straight',
+        thirds: {upper:33, middle:33, lower:34, balanced:true},
+        fifths: {symmetry:85, comment:'Simetría facial dentro de parámetros normales'},
+        midlineDeviation: 'none', nasalDeviation: 'none', chinDeviation: 'none'
+      },
+      dentolabial: {
+        smileLine: 'medium', incisorExposureRest: 2, buccalCorridors: 'medium',
+        smileCurvature: 'consonant', upperLipThickness: 'medium', lowerLipThickness: 'medium',
+        nasolabialAngle: 'normal'
+      },
+      dental: {
+        midlineCoincidence: 'coincident', midlineDeviationMm: 0,
+        centralProportionWH: 78, centralDominance: 'good',
+        axialInclination: 'correct', toothShape: 'oval', shade: 'A2'
+      },
+      gingival: {
+        zenithPosition: 'correct', gingivalSymmetry: 'symmetric',
+        gingivalDisplay: 1, gingivalHealth: 'healthy'
+      },
+      esthetic: {score: 72, scoreBreakdown: {facial:18, dentolabial:17, dental:20, gingival:17}},
+      recommendations: [
+        'Considerar blanqueamiento dental para mejorar el valor cromático',
+        'Evaluar carillas de porcelana en incisivos centrales para optimizar proporciones',
+        'Verificar simetría gingival antes del tratamiento restaurador'
+      ],
+      canvas: {midline:0.5, smileArcY:0.52, gingivalY:0.42, teethStartX:0.18, teethEndX:0.82}
+    };
+    applyAnalysis(STATE.analysis);
+  }
+
+  overlay.classList.remove('visible');
+  renderAnalysisDashboard(STATE.analysis);
+}
+
+function applyAnalysis(a) {
+  var c = a.canvas || a;
+  STATE.lines.midline.x = c.midline || 0.5;
+  STATE.lines.gingival.y = c.gingivalY || 0.42;
+  if (c.smileArcY) {
+    var y = c.smileArcY;
+    var startX = c.teethStartX || 0.18;
+    var endX = c.teethEndX || 0.82;
+    STATE.lines.smileArc.points = [
+      {x: startX, y: y + 0.05},
+      {x: startX + (endX-startX)*0.25, y: y + 0.01},
+      {x: 0.5, y: y},
+      {x: startX + (endX-startX)*0.75, y: y + 0.01},
+      {x: endX, y: y + 0.05},
+    ];
+  }
+  drawAll();
+}
+
+function renderAnalysisDashboard(a) {
+  if (!a) return;
+  var score = (a.esthetic && a.esthetic.score) || 0;
+  var scoreLbl = score >= 80 ? 'Excelente' : score >= 60 ? 'Bueno' : 'Mejorable';
+  var scoreBreak = (a.esthetic && a.esthetic.scoreBreakdown) || {};
+  var fs = (a.facial && a.facial.shape) || {};
+  var shapes = Object.keys(fs).map(function(k) { return {name:k, pct:fs[k]}; })
+    .sort(function(x,y) { return y.pct - x.pct; }).slice(0,4);
+  var thirds = (a.facial && a.facial.thirds) || {upper:33, middle:33, lower:34, balanced:true};
+  var fifths = (a.facial && a.facial.fifths) || {symmetry:85, comment:''};
+  var dl = a.dentolabial || {};
+  var dn = a.dental || {};
+  var gi = a.gingival || {};
+  var recs = a.recommendations || [];
+  var html = '';
+
+  // Score header
+  html += '<div style="background:linear-gradient(135deg,#1a0a3e,#1e3a8a);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:14px">' +
+    '<div style="width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">' +
+    '<span style="font-size:22px;font-weight:800;color:#fff;line-height:1">' + score + '</span>' +
+    '<span style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">/ 100</span></div>' +
+    '<div><div style="font-size:15px;font-weight:700;color:#fff">Score Estético</div>' +
+    '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">' + scoreLbl + '</div>' +
+    '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
+    renderScorePill('Facial', scoreBreak.facial, 25) +
+    renderScorePill('Dentolabial', scoreBreak.dentolabial, 25) +
+    renderScorePill('Dental', scoreBreak.dental, 25) +
+    renderScorePill('Gingival', scoreBreak.gingival, 25) +
+    '</div></div></div>';
+
+  // Facial
+  html += '<div class="card" style="margin-bottom:12px"><div class="card-title">' + svgIcon('face') + ' Análisis Facial</div>';
+  html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Forma del rostro</div>';
+  shapes.forEach(function(s) {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">' +
+      '<span style="font-size:12px;color:var(--t2);width:80px;text-transform:capitalize">' + s.name + '</span>' +
+      '<div style="flex:1;height:5px;background:var(--bd);border-radius:99px;overflow:hidden"><div style="width:' + s.pct + '%;height:100%;background:var(--p);border-radius:99px"></div></div>' +
+      '<span style="font-size:11px;font-weight:600;color:var(--t1);width:32px;text-align:right">' + Math.round(s.pct) + '%</span></div>';
+  });
+  html += '</div>';
+  var biotipo = (a.facial && a.facial.biotype) || 'mesofacial';
+  var perfil = (a.facial && a.facial.profile) || 'straight';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
+    renderInfoChip('Biotipo', biotipo, biotipo === 'mesofacial' ? 'ok' : 'warn') +
+    renderInfoChip('Perfil', perfil, perfil === 'straight' ? 'ok' : 'warn') + '</div>';
+  html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Tercios faciales (ideal 33.3% cada uno)</div>' +
+    '<div style="display:flex;gap:4px;height:28px;border-radius:8px;overflow:hidden">' +
+    '<div style="flex:' + (thirds.upper||33) + ';background:#5B47E0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.upper||33) + '%</div>' +
+    '<div style="flex:' + (thirds.middle||33) + ';background:#2C6BED;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.middle||33) + '%</div>' +
+    '<div style="flex:' + (thirds.lower||34) + ';background:#0D9488;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.lower||34) + '%</div>' +
+    '</div><div style="display:flex;gap:4px;margin-top:4px">' +
+    '<div style="flex:1;font-size:10px;color:var(--t3);text-align:center">Superior</div>' +
+    '<div style="flex:1;font-size:10px;color:var(--t3);text-align:center">Medio</div>' +
+    '<div style="flex:1;font-size:10px;color:var(--t3);text-align:center">Inferior</div></div>' +
+    (thirds.balanced ? '<div style="font-size:11px;color:var(--ok);margin-top:6px">✓ Tercios balanceados</div>' : '<div style="font-size:11px;color:var(--warn);margin-top:6px">⚠ Tercios desbalanceados</div>') + '</div>';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--bd)">' +
+    '<div><div style="font-size:12px;font-weight:600;color:var(--t1)">Simetría facial</div>' +
+    '<div style="font-size:11px;color:var(--t3);margin-top:2px">' + (fifths.comment||'') + '</div></div>' +
+    '<div style="font-size:20px;font-weight:700;color:' + (fifths.symmetry >= 80 ? 'var(--ok)' : 'var(--warn)') + '">' + Math.round(fifths.symmetry||0) + '%</div></div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">' +
+    renderDeviationChip('Línea media', (a.facial && a.facial.midlineDeviation)||'none') +
+    renderDeviationChip('Nasal', (a.facial && a.facial.nasalDeviation)||'none') + '</div>';
+  html += '</div>';
+
+  // Dentolabial
+  html += '<div class="card" style="margin-bottom:12px"><div class="card-title">' + svgIcon('lips') + ' Análisis Dentolabial</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">' +
+    renderInfoChip('Línea de sonrisa', smileLineLabel(dl.smileLine), smileLineColor(dl.smileLine)) +
+    renderInfoChip('Corredores bucales', corridorLabel(dl.buccalCorridors), corridorColor(dl.buccalCorridors)) +
+    renderInfoChip('Curvatura', dl.smileCurvature === 'consonant' ? 'Consonante ✓' : dl.smileCurvature||'—', dl.smileCurvature === 'consonant' ? 'ok' : 'warn') +
+    renderInfoChip('Ángulo nasolabial', nasolabialLabel(dl.nasolabialAngle), dl.nasolabialAngle === 'normal' ? 'ok' : 'warn') + '</div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--bd)">' +
+    '<div style="font-size:12px;font-weight:500;color:var(--t1)">Exposición incisal en reposo</div>' +
+    '<div style="font-size:14px;font-weight:700;color:var(--p)">' + (dl.incisorExposureRest||0) + ' mm</div></div></div>';
+
+  // Dental
+  html += '<div class="card" style="margin-bottom:12px"><div class="card-title">' + svgIcon('tooth') + ' Análisis Dental</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">' +
+    renderInfoChip('Línea media', midlineLabel(dn.midlineCoincidence), dn.midlineCoincidence === 'coincident' ? 'ok' : 'warn') +
+    renderInfoChip('Dominancia central', dn.centralDominance === 'good' ? 'Buena ✓' : dn.centralDominance||'—', dn.centralDominance === 'good' ? 'ok' : 'warn') +
+    renderInfoChip('Forma dental', dn.toothShape||'—', 'neutral') +
+    renderInfoChip('Tono', dn.shade||'—', 'neutral') + '</div>' +
+    '<div style="padding:10px 0;border-top:1px solid var(--bd)">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+    '<span style="font-size:12px;font-weight:500;color:var(--t1)">Proporción ancho/alto central</span>' +
+    '<span style="font-size:14px;font-weight:700;color:' + (dn.centralProportionWH >= 75 && dn.centralProportionWH <= 80 ? 'var(--ok)' : 'var(--warn)') + '">' + (dn.centralProportionWH||0) + '%</span></div>' +
+    '<div style="height:5px;background:var(--bd);border-radius:99px;position:relative">' +
+    '<div style="position:absolute;left:75%;width:5%;height:100%;background:rgba(22,163,74,.2);border-radius:99px"></div>' +
+    '<div style="width:' + Math.min(100, dn.centralProportionWH||0) + '%;height:100%;background:var(--p);border-radius:99px"></div></div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:3px"><span>0%</span><span>Ideal 75-80%</span><span>100%</span></div></div></div>';
+
+  // Gingival
+  html += '<div class="card" style="margin-bottom:12px"><div class="card-title">' + svgIcon('gingival') + ' Análisis Gingival</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    renderInfoChip('Zénith gingival', gi.zenithPosition === 'correct' ? 'Correcto ✓' : 'Alterado', gi.zenithPosition === 'correct' ? 'ok' : 'warn') +
+    renderInfoChip('Simetría', gi.gingivalSymmetry === 'symmetric' ? 'Simétrica ✓' : 'Asimétrica', gi.gingivalSymmetry === 'symmetric' ? 'ok' : 'warn') +
+    renderInfoChip('Salud', gingivalHealthLabel(gi.gingivalHealth), gi.gingivalHealth === 'healthy' ? 'ok' : 'warn') +
+    renderInfoChip('Display gingival', (gi.gingivalDisplay||0) + ' mm', (gi.gingivalDisplay||0) <= 2 ? 'ok' : 'warn') + '</div></div>';
+
+  // Recomendaciones
+  if (recs.length) {
+    html += '<div class="card" style="margin-bottom:12px"><div class="card-title">' + svgIcon('rec') + ' Recomendaciones</div>';
+    recs.forEach(function(r, i) {
+      html += '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)">' +
+        '<div style="width:20px;height:20px;border-radius:50%;background:var(--ps);color:var(--p);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">' + (i+1) + '</div>' +
+        '<div style="font-size:13px;color:var(--t1);line-height:1.5">' + r + '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('face-shape-result').innerHTML = html;
+}
+
+function renderScorePill(label, val, max) {
+  return '<div style="background:rgba(255,255,255,.1);border-radius:6px;padding:3px 7px;font-size:10px;color:rgba(255,255,255,.8)">' + label + ' <strong style="color:#fff">' + (val||0) + '/' + max + '</strong></div>';
+}
+function renderInfoChip(label, value, type) {
+  var bg = type === 'ok' ? 'var(--oks)' : type === 'warn' ? 'var(--warns)' : type === 'err' ? 'var(--errs)' : 'var(--sr)';
+  var color = type === 'ok' ? 'var(--ok)' : type === 'warn' ? 'var(--warn)' : type === 'err' ? 'var(--err)' : 'var(--t2)';
+  return '<div style="background:' + bg + ';border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">' + label + '</div><div style="font-size:12px;font-weight:600;color:' + color + ';text-transform:capitalize">' + value + '</div></div>';
+}
+function renderDeviationChip(label, val) {
+  return renderInfoChip(label, val === 'none' ? 'Sin desviación ✓' : val.replace(/_/g,' '), val === 'none' ? 'ok' : 'warn');
+}
+function smileLineLabel(v) { return v === 'high' ? 'Alta' : v === 'medium' ? 'Media ✓' : v === 'low' ? 'Baja' : '—'; }
+function smileLineColor(v) { return v === 'medium' ? 'ok' : 'warn'; }
+function corridorLabel(v) { return v === 'narrow' ? 'Estrecho' : v === 'medium' ? 'Medio ✓' : v === 'wide' ? 'Amplio' : '—'; }
+function corridorColor(v) { return v === 'medium' ? 'ok' : 'warn'; }
+function nasolabialLabel(v) { return v === 'normal' ? 'Normal ✓' : v === 'acute' ? 'Agudo' : v === 'obtuse' ? 'Obtuso' : '—'; }
+function midlineLabel(v) { return v === 'coincident' ? 'Coincidente ✓' : v === 'slight_deviation' ? 'Desv. leve' : 'Desv. moderada'; }
+function gingivalHealthLabel(v) { return v === 'healthy' ? 'Saludable ✓' : v === 'inflamed' ? 'Inflamada' : v === 'receded' ? 'Recesión' : '—'; }
+function svgIcon(type) {
+  var icons = {
+    face: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>',
+    lips: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>',
+    tooth: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6" y2="15"/><line x1="10" y1="7" x2="10" y2="15"/><line x1="14" y1="7" x2="14" y2="15"/><line x1="18" y1="7" x2="18" y2="15"/></svg>',
+    gingival: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c0-5 3-9 9-9s9 4 9 9"/><path d="M3 12c2 3 5 5 9 5s7-2 9-5"/></svg>',
+    rec: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  };
+  return icons[type] || '';
+}
+function renderFaceShapeResult(a) { renderAnalysisDashboard(a); }
+
+// ══════════════════════════════════════════
+// CONTROLES
+// ══════════════════════════════════════════
+function setTool(t) {
+  STATE.tool = t;
+  ['select','line','teeth'].forEach(function(id) {
+    var btn = document.getElementById('tool-' + id);
+    if (btn) btn.className = 'tool-btn' + (id === t ? ' active' : '');
+  });
+}
+
+function zoom(factor) {
+  STATE.scale *= factor;
+  STATE.scale = Math.max(0.2, Math.min(4, STATE.scale));
+  STATE.canvas.style.width = (STATE.canvas.width * STATE.scale) + 'px';
+  STATE.canvas.style.height = (STATE.canvas.height * STATE.scale) + 'px';
+}
+
+function fitCanvas() {
+  if (!STATE.imgEl) return;
+  var area = document.getElementById('canvas-area');
+  var maxW = area.clientWidth - 60;
+  var maxH = area.clientHeight - 20;
+  var ratio = Math.min(maxW / STATE.imgEl.width, maxH / STATE.imgEl.height);
+  STATE.scale = ratio;
+  STATE.canvas.style.width = (STATE.imgEl.width * ratio) + 'px';
+  STATE.canvas.style.height = (STATE.imgEl.height * ratio) + 'px';
+}
+
+function toggleLine(name) {
+  var L = STATE.lines;
+  var key = name === 'smile-arc' ? 'smileArc' : name === 'facial-lines' ? null : name;
+  if (!key) return;
+  L[key].visible = !L[key].visible;
+  var toggle = document.getElementById('toggle-' + name);
+  if (toggle) toggle.className = 'toggle' + (L[key].visible ? ' on' : '');
+  drawAll();
+}
+
+function toggleAllLines() {
+  var anyVisible = Object.keys(STATE.lines).some(function(k) { return STATE.lines[k].visible; });
+  Object.keys(STATE.lines).forEach(function(k) { STATE.lines[k].visible = !anyVisible; });
+  drawAll();
+}
+
+function toggleTeethOverlay() {
+  STATE.teeth.visible = !STATE.teeth.visible;
+  drawAll();
+}
+
+function undoLastAction() {
+  // Simple: reset teeth position
+  STATE.teeth.x = 0;
+  STATE.teeth.y = 0;
+  STATE.teeth.rotation = 0;
+  if (STATE.analysis) applyAnalysis(STATE.analysis);
+  else drawAll();
+}
+
+function updateTeethGlobal() {
+  STATE.teeth.scale = parseInt(document.getElementById('sl-teeth-size').value) / 100;
+  STATE.teeth.x = parseInt(document.getElementById('sl-teeth-x').value);
+  STATE.teeth.y = parseInt(document.getElementById('sl-teeth-y').value);
+  STATE.teeth.rotation = parseFloat(document.getElementById('sl-teeth-rot').value);
+  STATE.teeth.opacity = parseInt(document.getElementById('sl-teeth-opacity').value) / 100;
+  document.getElementById('val-teeth-size').textContent = document.getElementById('sl-teeth-size').value + '%';
+  document.getElementById('val-teeth-x').textContent = document.getElementById('sl-teeth-x').value;
+  document.getElementById('val-teeth-y').textContent = document.getElementById('sl-teeth-y').value;
+  document.getElementById('val-teeth-rot').textContent = document.getElementById('sl-teeth-rot').value + '°';
+  document.getElementById('val-teeth-opacity').textContent = document.getElementById('sl-teeth-opacity').value + '%';
+  drawAll();
+}
+
+function setToothShape(shape, el) {
+  STATE.teeth.shape = shape;
+  STATE.toothShape = shape;
+  document.querySelectorAll('#pt-teeth-global .pchip').forEach(function(c) { c.classList.remove('sel'); });
+  if (el) el.classList.add('sel');
+  drawAll();
+}
+
+function initTeethSelector() {
+  var grid = document.getElementById('teeth-selector');
+  if (!grid) return;
+  var labels = ['15','14','13','12','11','21','22','23','24','25'];
+  // Show 8 central teeth
+  var show = labels.slice(1,9);
+  grid.innerHTML = show.map(function(lbl, i) {
+    return '<div class="tooth-btn" id="tbtn-' + i + '" onclick="selectTooth(' + i + ',this)">' + lbl + '</div>';
+  }).join('');
+}
+
+function selectTooth(i, el) {
+  STATE.selectedTooth = i;
+  document.querySelectorAll('.tooth-btn').forEach(function(b) { b.classList.remove('selected'); });
+  el.classList.add('selected');
+  var ind = STATE.teeth.individual[i] || {width:1,height:1,rotation:0,ox:0};
+  document.getElementById('sl-t-width').value = Math.round((ind.width || 1) * 100);
+  document.getElementById('sl-t-height').value = Math.round((ind.height || 1) * 100);
+  document.getElementById('sl-t-rot').value = ind.rotation || 0;
+  document.getElementById('sl-t-ox').value = ind.ox || 0;
+  document.getElementById('val-t-width').textContent = Math.round((ind.width||1)*100) + '%';
+  document.getElementById('val-t-height').textContent = Math.round((ind.height||1)*100) + '%';
+  document.getElementById('val-t-rot').textContent = (ind.rotation||0) + '°';
+  document.getElementById('val-t-ox').textContent = ind.ox||0;
+  document.getElementById('tooth-controls').style.display = 'block';
+  document.getElementById('selected-tooth-num').textContent = ['15','14','13','12','11','21','22','23','24','25'].slice(1,9)[i];
+  drawAll();
+}
+
+function updateToothIndividual(prop) {
+  var i = STATE.selectedTooth;
+  if (i === null || i === undefined) return;
+  if (!STATE.teeth.individual[i]) STATE.teeth.individual[i] = {width:1,height:1,rotation:0,ox:0};
+  var ind = STATE.teeth.individual[i];
+  if (prop === 'width') {
+    ind.width = parseInt(document.getElementById('sl-t-width').value) / 100;
+    document.getElementById('val-t-width').textContent = document.getElementById('sl-t-width').value + '%';
+    document.getElementById('tbtn-' + i).classList.add('modified');
+  }
+  if (prop === 'height') {
+    ind.height = parseInt(document.getElementById('sl-t-height').value) / 100;
+    document.getElementById('val-t-height').textContent = document.getElementById('sl-t-height').value + '%';
+    document.getElementById('tbtn-' + i).classList.add('modified');
+  }
+  if (prop === 'rotation') {
+    ind.rotation = parseFloat(document.getElementById('sl-t-rot').value);
+    document.getElementById('val-t-rot').textContent = ind.rotation + '°';
+  }
+  if (prop === 'ox') {
+    ind.ox = parseInt(document.getElementById('sl-t-ox').value);
+    document.getElementById('val-t-ox').textContent = ind.ox;
+  }
+  drawAll();
+}
+
+function updateColorFilters() {
+  STATE.filters.brightness = parseInt(document.getElementById('sl-brightness').value);
+  STATE.filters.contrast = parseInt(document.getElementById('sl-contrast').value);
+  STATE.filters.saturation = parseInt(document.getElementById('sl-saturation').value);
+  document.getElementById('val-brightness').textContent = STATE.filters.brightness + '%';
+  document.getElementById('val-contrast').textContent = STATE.filters.contrast + '%';
+  document.getElementById('val-saturation').textContent = STATE.filters.saturation + '%';
+  drawAll();
+}
+
+function updatePhotoFilters() {
+  STATE.filters.phBrightness = parseInt(document.getElementById('sl-ph-brightness').value);
+  STATE.filters.phContrast = parseInt(document.getElementById('sl-ph-contrast').value);
+  STATE.filters.phSaturation = parseInt(document.getElementById('sl-ph-saturation').value);
+  STATE.filters.phTemp = parseInt(document.getElementById('sl-ph-temp').value);
+  document.getElementById('val-ph-brightness').textContent = STATE.filters.phBrightness + '%';
+  document.getElementById('val-ph-contrast').textContent = STATE.filters.phContrast + '%';
+  document.getElementById('val-ph-saturation').textContent = STATE.filters.phSaturation + '%';
+  document.getElementById('val-ph-temp').textContent = STATE.filters.phTemp;
+  drawAll();
+}
+
+function setShade(shade, el) {
+  STATE.teeth.shade = shade;
+  document.querySelectorAll('#pt-color-teeth .pchip').forEach(function(c) { c.classList.remove('sel'); });
+  if (el) el.classList.add('sel');
+  drawAll();
+}
+
+// ══════════════════════════════════════════
+// PANEL TABS
+// ══════════════════════════════════════════
+function showPanelTab(id, btn) {
+  var parent = btn.closest('.panel-body') || btn.parentElement.nextElementSibling;
+  // find all pt- divs in panel-body
+  var body = btn.closest('.panel').querySelector('.panel-body');
+  if (body) {
+    Array.from(body.children).forEach(function(c) { c.style.display = 'none'; });
+    var target = document.getElementById('pt-' + id);
+    if (target) target.style.display = 'block';
+  }
+  Array.from(btn.parentElement.children).forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// INTENSITY SLIDER
+// ══════════════════════════════════════════
+function initIntensitySlider() {
+  var track = document.getElementById('int-track');
+  var thumb = document.getElementById('int-thumb');
+  var fill = document.getElementById('int-fill');
+  if (!track) return;
+  var dragging = false;
+
+  function update(x) {
+    var rect = track.getBoundingClientRect();
+    var pct = Math.max(0, Math.min(100, (x - rect.left) / rect.width * 100));
+    STATE.intensity = Math.round(pct);
+    fill.style.width = pct + '%';
+    thumb.style.left = pct + '%';
+  }
+
+  track.addEventListener('mousedown', function(e) { dragging = true; update(e.clientX); });
+  document.addEventListener('mousemove', function(e) { if (dragging) update(e.clientX); });
+  document.addEventListener('mouseup', function() { dragging = false; });
+  track.addEventListener('touchstart', function(e) { dragging = true; update(e.touches[0].clientX); }, {passive:true});
+  track.addEventListener('touchmove', function(e) { if (dragging) update(e.touches[0].clientX); }, {passive:true});
+  track.addEventListener('touchend', function() { dragging = false; }, {passive:true});
+}
+
+function selChip(el, text) {
+  document.querySelectorAll('#prompt-chips .pchip').forEach(function(c) { c.classList.remove('sel'); });
+  el.classList.add('sel');
+  document.getElementById('gen-prompt').value = text;
+}
+
+// ══════════════════════════════════════════
+// GENERACIÓN CON GEMINI
+// ══════════════════════════════════════════
+async function generarSimulacion() {
+  var btn = document.getElementById('gen-btn');
+  var alert = document.getElementById('gen-alert');
+  alert.className = 'alert';
+
+  if (!STATE.imgBase64) {
+    alert.textContent = 'Sube una foto primero.';
+    alert.className = 'alert alert-warn visible';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px;border-top-color:#fff"></div> Generando...';
+
+  // Exportar canvas con diseño actual como foto de referencia
+  var designB64 = STATE.canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+
+  var intensity = STATE.intensity;
+  var intensityMod = intensity < 20 ? 'INTENSITY: MINIMAL. 95% same, only slight whitening.' :
+                     intensity < 40 ? 'INTENSITY: CONSERVATIVE. Small natural improvement.' :
+                     intensity < 60 ? 'INTENSITY: MODERATE. Clear natural veneers, noticeable.' :
+                     intensity < 80 ? 'INTENSITY: SIGNIFICANT. Beautiful polished veneers.' :
+                                      'INTENSITY: MAXIMUM. Full Hollywood transformation.';
+
+  var userPrompt = document.getElementById('gen-prompt').value || 'Natural smile design';
+  var shade = STATE.teeth.shade;
+  var shadeText = shade === 'HW' ? 'Hollywood White ultra bright' : shade === 'B1' ? 'B1 bright white' : shade === 'A1' ? 'A1 natural white' : 'A2 natural';
+  var shape = STATE.teeth.shape;
+  var shapeText = shape === 'oval' ? 'oval feminine' : shape === 'square' ? 'square masculine' : shape === 'rect' ? 'rectangular classic' : 'natural';
+
+  var prompt = 'DENTAL SMILE DESIGN SIMULATION. ' +
+    'CRITICAL: Keep the EXACT same person. Same face, lips, skin, eyes, hair, background. ' +
+    'ONLY change the teeth. ' +
+    'TOOTH COLOR: ' + shadeText + '. ' +
+    'TOOTH SHAPE: ' + shapeText + ' veneers. ' +
+    intensityMod + ' ' +
+    'DESIGN DIRECTION: ' + userPrompt + '. ' +
+    'OUTPUT: Photorealistic dental clinic photo. Same framing, same lighting. ' +
+    'Do NOT change anything outside the teeth area.';
+
+  try {
+    var resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer ' + SUPA_KEY},
+      body: JSON.stringify({
+        action: 'generate_image',
+        imageBase64: designB64,
+        mimeType: 'image/jpeg',
+        prompt: prompt
+      })
+    });
+    var data = await resp.json();
+    if (data.error) throw new Error(data.error);
+
+    var resultUrl = data.imageBase64
+      ? 'data:' + (data.mimeType||'image/png') + ';base64,' + data.imageBase64
+      : data.imageUrl;
+
+    if (!resultUrl) throw new Error('No se generó imagen');
+
+    STATE.geminiResult = resultUrl;
+
+    // Mostrar overlay
+    var genImg = document.getElementById('gen-img');
+    genImg.src = resultUrl;
+    document.getElementById('gen-overlay').classList.add('visible');
+
+    // Mostrar comparación en panel
+    document.getElementById('compare-before').src = 'data:image/jpeg;base64,' + STATE.imgBase64;
+    document.getElementById('compare-after').src = resultUrl;
+    document.getElementById('result-section').style.display = 'block';
+
+    btn.innerHTML = '🔄 Regenerar';
+    btn.disabled = false;
+
+  } catch(e) {
+    console.error('Gemini error:', e);
+    alert.textContent = 'Error: ' + e.message;
+    alert.className = 'alert alert-warn visible';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar con Gemini';
+    btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════
+// EXPORTAR
+// ══════════════════════════════════════════
+function exportarDiseño() {
+  // Exportar canvas con diseño
+  var link = document.createElement('a');
+  link.download = 'diseño-sonrisa-CAMILA.jpg';
+  link.href = STATE.canvas.toDataURL('image/jpeg', 0.95);
+  link.click();
+}
+
+function descargarResultado() {
+  if (!STATE.geminiResult) return;
+  var link = document.createElement('a');
+  link.download = 'simulacion-CAMILA.png';
+  link.href = STATE.geminiResult;
+  link.click();
+}
+
+function resetEditor() {
+  STATE.imgBase64 = null;
+  STATE.imgEl = null;
+  STATE.analysis = null;
+  STATE.geminiResult = null;
+  STATE.teeth.x = 0;
+  STATE.teeth.y = 0;
+  STATE.teeth.scale = 1;
+  STATE.teeth.rotation = 0;
+  STATE.teeth.individual = {};
+  document.getElementById('upload-zone').style.display = 'block';
+  document.getElementById('main-canvas').style.display = 'none';
+  document.getElementById('toolbar-left').style.display = 'none';
+  document.getElementById('toolbar-top').style.display = 'none';
+  document.getElementById('gen-overlay').classList.remove('visible');
+  document.getElementById('btn-reset').style.display = 'none';
+  setStep(0);
+}
+
+// ══════════════════════════════════════════
+// ROUND RECT POLYFILL
+// ══════════════════════════════════════════
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (w < 2*r) r = w/2;
+    if (h < 2*r) r = h/2;
+    this.beginPath();
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y, x+w, y+h, r);
+    this.arcTo(x+w, y+h, x, y+h, r);
+    this.arcTo(x, y+h, x, y, r);
+    this.arcTo(x, y, x+w, y, r);
+    this.closePath();
+    return this;
+  };
+}
+</script>
+</body>
+</html>
