@@ -741,60 +741,44 @@ async function startCam() {
     return;
   }
 
-  show('s-cam');
+  // initCam will show('s-cam') after stream is ready
   await initCam();
 }
 
 async function initCam() {
   try {
     if (S.stream) S.stream.getTracks().forEach(function(t){t.stop();});
+
+    // Get stream FIRST before showing screen
     S.stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: S.facing,
-        width: {ideal: 1280},
-        height: {ideal: 1280}
-      },
+      video: { facingMode: S.facing },
       audio: false
     });
+
     var v = document.getElementById('vid');
     v.srcObject = S.stream;
     v.className = 'cam-video' + (S.facing === 'user' ? ' mirror' : '');
 
-    // Wait for video to actually have dimensions before setting up canvas
-    v.onloadedmetadata = function() {
-      v.play().then(function() {
-        // Small delay to ensure video frame is rendered
-        setTimeout(function() {
-          setupOval();
-          updatePhotoUI();
-          tryFaceDetect();
-        }, 300);
-      }).catch(function(e) {
-        console.error('Video play error:', e);
-        alert('No se pudo iniciar la cámara. Verifica los permisos en Ajustes.');
-        show('s-intro');
-      });
-    };
+    // Show camera screen NOW (stream already assigned)
+    show('s-cam');
 
-    // iOS fallback — sometimes onloadedmetadata fires late
+    // iOS needs a tick after display:flex before play()
+    await new Promise(function(r) { setTimeout(r, 100); });
+
+    await v.play();
+
+    // Setup overlay after video is playing
     setTimeout(function() {
-      if (v.videoWidth > 0 && !S._ovalReady) {
-        setupOval();
-        updatePhotoUI();
-        tryFaceDetect();
-      }
-    }, 1500);
+      setupOval();
+      updatePhotoUI();
+      tryFaceDetect();
+    }, 200);
 
   } catch(e) {
-    console.error('Camera error:', e);
     var msg = 'No se pudo acceder a la cámara.\n\n';
-    if (e.name === 'NotAllowedError') {
-      msg += 'Ve a Ajustes → Safari → Cámara → Permitir';
-    } else if (e.name === 'NotFoundError') {
-      msg += 'No se encontró ninguna cámara en este dispositivo.';
-    } else {
-      msg += e.message;
-    }
+    if (e.name === 'NotAllowedError') msg += 'Ve a Ajustes → Privacidad → Cámara → Safari → Activar';
+    else if (e.name === 'NotFoundError') msg += 'No se encontró ninguna cámara.';
+    else msg += e.name + ': ' + e.message;
     alert(msg);
     show('s-intro');
   }
