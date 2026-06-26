@@ -593,6 +593,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 </div>
 
 <script>
+window.onerror = function(msg, src, line, col, err) {
+  alert('JS Error:\n' + msg + '\nLine: ' + line + '\n' + (err ? err.stack : ''));
+  return false;
+};
+
 // ══ CONFIG ══
 var CFG = {
   waNum: '523312345678',
@@ -769,10 +774,13 @@ function getPrecio(id) {
 
 // ══ CAMERA ══
 function goToQuestionnaire() {
-  // Load precios in background — don't block navigation
-  loadPrecios().catch(function(){});
-  show('s-q');
-  showQStep(0);
+  try {
+    loadPrecios().catch(function(){});
+    show('s-q');
+    showQStep(0);
+  } catch(e) {
+    alert('Error: ' + e.message + '\n' + e.stack);
+  }
 }
 
 async function startCam() {
