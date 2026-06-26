@@ -234,6 +234,22 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     Comenzar simulación
   </button>
+
+  <!-- Browser warning — shown only if not Safari on iOS -->
+  <div id="browser-warn" style="display:none;margin-top:16px;background:rgba(217,119,6,.15);border:1px solid rgba(217,119,6,.4);border-radius:12px;padding:14px 16px;max-width:300px;width:100%;text-align:left">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:20px;flex-shrink:0">⚠️</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">Abre en Safari para la cámara</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.5;margin-bottom:10px">Estás usando <strong id="browser-name" style="color:#fff"></strong>. La cámara solo funciona correctamente en <strong style="color:#fff">Safari</strong> en iPhone.</div>
+        <button onclick="openInSafari()" style="width:100%;height:38px;border-radius:8px;background:#fff;color:#0A0A0F;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Abrir en Safari
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="intro-note">Al continuar acepto que mis fotos sean procesadas por IA para generar una simulación dental orientativa.</div>
 </div>
 
@@ -735,6 +751,7 @@ function stopCam() {
 
 function flipCam() {
   S.facing = S.facing === 'user' ? 'environment' : 'user';
+  S._ovalReady = false;
   initCam();
 }
 
@@ -1313,6 +1330,48 @@ function dl() {
 function redo() {
   S.photos = []; S.currentPhoto = 0; S.result = null; S.diagnosis = null;
   show('s-intro');
+}
+
+// ══ BROWSER DETECTION ══
+(function detectBrowser() {
+  var ua = navigator.userAgent;
+  var isIOS = /iPhone|iPad|iPod/.test(ua);
+  if (!isIOS) return; // Only warn on iOS
+
+  var isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  var isChrome = /CriOS/.test(ua);
+  var isFirefox = /FxiOS/.test(ua);
+  var isEdge = /EdgiOS/.test(ua);
+  var isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|Line|WhatsApp/.test(ua);
+
+  if (isSafari && !isInAppBrowser) return; // Safari — all good
+
+  var warn = document.getElementById('browser-warn');
+  var nameEl = document.getElementById('browser-name');
+  if (!warn || !nameEl) return;
+
+  var browserName = isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' :
+    isInAppBrowser ? (ua.indexOf('Instagram') > -1 ? 'Instagram' : ua.indexOf('WhatsApp') > -1 ? 'WhatsApp' : 'una app') :
+    'este navegador';
+
+  nameEl.textContent = browserName;
+  warn.style.display = 'block';
+})();
+
+function openInSafari() {
+  // Copy current URL to clipboard and instruct user
+  var url = window.location.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function() {
+      alert('✅ Link copiado.\n\nAbre Safari y pégalo en la barra de direcciones.');
+    });
+  } else {
+    // Fallback — try to open directly
+    window.location = 'x-web-search://?q=' + encodeURIComponent(url);
+    setTimeout(function() {
+      alert('Copia este link y ábrelo en Safari:\n\n' + url);
+    }, 500);
+  }
 }
 </script>
 </body>
