@@ -728,9 +728,20 @@ async function goToQuestionnaire() {
 }
 
 async function startCam() {
-  show('s-cam');
   S.photos = [];
   S.currentPhoto = 0;
+  S._ovalReady = false;
+
+  // iOS PWA: getUserMedia doesn't work — use native camera input
+  var isIOSPWA = isIOS() && (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches);
+
+  if (isIOSPWA) {
+    show('s-cam-native');
+    updateNativeCameraUI();
+    return;
+  }
+
+  show('s-cam');
   await initCam();
 }
 
@@ -1373,6 +1384,86 @@ function dl() {
   a.click();
 }
 
+function onNativePhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    var view = VIEWS[S.currentPhoto] || VIEWS[0];
+    S.photos.push({b64: b64, view: view.id});
+
+    // Show preview
+    var preview = document.getElementById('native-preview');
+    var previewImg = document.getElementById('native-preview-img');
+    if (preview && previewImg) {
+      previewImg.src = e.target.result;
+      preview.style.display = 'block';
+      document.getElementById('native-cam-icon').style.display = 'none';
+    }
+
+    S.currentPhoto++;
+
+    if (S.currentPhoto < 3) {
+      // Next photo
+      setTimeout(function() {
+        updateNativeCameraUI();
+        updateNativeCameraTips();
+        // Hide preview for next photo
+        var p = document.getElementById('native-preview');
+        if (p) p.style.display = 'none';
+        var ic = document.getElementById('native-cam-icon');
+        if (ic) ic.style.display = 'flex';
+      }, 800);
+    } else {
+      // All photos taken — process
+      processPhotos();
+    }
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function updateNativeCameraUI() {
+  var view = VIEWS[S.currentPhoto] || VIEWS[0];
+  var titles = ['Vista Frontal — Sonrisa', 'Perfil Derecho', 'Perfil Izquierdo'];
+  var badges = ['Foto 1 de 3', 'Foto 2 de 3', 'Foto 3 de 3'];
+  var btnTexts = ['Tomar foto frontal', 'Tomar perfil derecho', 'Tomar perfil izquierdo'];
+  var captures = ['user', 'user', 'user'];
+
+  var el = document.getElementById('native-cam-title');
+  if (el) el.textContent = titles[S.currentPhoto] || 'Foto';
+  var badge = document.getElementById('native-step-badge');
+  if (badge) badge.textContent = badges[S.currentPhoto] || '';
+  var btn = document.getElementById('native-btn-txt');
+  if (btn) btn.textContent = btnTexts[S.currentPhoto] || 'Tomar foto';
+  var sub = document.getElementById('native-cam-sub');
+  if (sub) sub.textContent = view.hint;
+
+  // Update capture attribute
+  var inp = document.getElementById('native-input');
+  if (inp) inp.setAttribute('capture', captures[S.currentPhoto] || 'user');
+
+  // Progress
+  for (var i = 0; i < 3; i++) {
+    var dot = document.getElementById('ncpi-' + i);
+    if (dot) dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
+  }
+
+  updateNativeCameraTips();
+}
+
+function updateNativeCameraTips() {
+  var tipsByView = [
+    ['😁 Sonríe mostrando bien los dientes', '💡 Busca buena iluminación', '📱 Sostén el teléfono frente a tu cara'],
+    ['➡ Gira tu cabeza hacia la derecha', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
+    ['⬅ Gira tu cabeza hacia la izquierda', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
+  ];
+  var tips = tipsByView[S.currentPhoto] || tipsByView[0];
+  var el = document.getElementById('native-tips');
+  if (el) el.innerHTML = tips.map(function(t) {
+    return '<div style="display:flex;align-items:center;gap:6px">' + t + '</div>';
+  }).join('');
+}
+
 function showInstallInstructions() {
   if (isIOS()) {
     document.getElementById('ios-install').classList.add('show');
@@ -1389,6 +1480,7 @@ window.addEventListener('load', function() {
     var hint = document.getElementById('intro-install-hint');
     if (hint) hint.style.display = 'block';
   }
+  updateNativeCameraTips();
 });
 
 // ══ BROWSER DETECTION ══
@@ -1433,6 +1525,62 @@ function openInSafari() {
   }
 }
 </script>
+
+<!-- ══ CÁMARA NATIVA (iOS PWA fallback) ══ -->
+<div class="screen" id="s-cam-native" style="background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:center;gap:0;padding:0">
+
+  <!-- Header -->
+  <div style="position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);z-index:10">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;color:#fff;font-weight:700">🦷 CAMILA</div>
+    <button onclick="show('s-intro')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px">✕</button>
+  </div>
+
+  <!-- Progress -->
+  <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+62px);left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:10">
+    <div class="cpi active" id="ncpi-0"></div>
+    <div class="cpi" id="ncpi-1"></div>
+    <div class="cpi" id="ncpi-2"></div>
+  </div>
+
+  <!-- Content -->
+  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:80px 32px 32px;gap:16px;flex:1;justify-content:center">
+
+    <!-- Foto preview (shows after each capture) -->
+    <div id="native-preview" style="display:none;width:160px;height:180px;border-radius:16px;overflow:hidden;border:2px solid rgba(91,71,224,.5);margin-bottom:8px">
+      <img id="native-preview-img" style="width:100%;height:100%;object-fit:cover" alt="">
+    </div>
+
+    <!-- Icon -->
+    <div id="native-cam-icon" style="width:100px;height:100px;border-radius:50%;background:rgba(91,71,224,.2);border:2px dashed rgba(91,71,224,.5);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--p)" id="native-step-badge">Foto 1 de 3</div>
+    <div style="font-size:20px;font-weight:700;color:#fff;line-height:1.3" id="native-cam-title">Vista Frontal</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.5;max-width:260px" id="native-cam-sub">Sonríe mostrando los dientes y centra tu cara</div>
+
+    <!-- Tips -->
+    <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;width:100%;max-width:280px;text-align:left">
+      <div id="native-tips" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:rgba(255,255,255,.6)"></div>
+    </div>
+
+    <!-- Camera button -->
+    <label style="width:100%;max-width:280px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(91,71,224,.4);margin-top:8px" id="native-cam-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <span id="native-btn-txt">Tomar foto frontal</span>
+      <input type="file" accept="image/*" capture="user" id="native-input" style="position:absolute;opacity:0;pointer-events:none" onchange="onNativePhoto(this)">
+    </label>
+
+    <!-- Galería alternativa -->
+    <label style="color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      O seleccionar de galería
+      <input type="file" accept="image/*" style="position:absolute;opacity:0;pointer-events:none" onchange="onNativePhoto(this)">
+    </label>
+
+  </div>
+</div>
+
 <!-- ══ PWA INSTALL BANNER (Android/Desktop) ══ -->
 <div class="install-banner" id="install-banner">
   <div class="ib-icon">🦷</div>
