@@ -7,111 +7,183 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{--p:#5B47E0;--p2:#2C6BED;--ok:#16A34A;--err:#DC2626;--warn:#D97706}
-html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-serif;background:#0A0A0F;color:#fff}
-.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center}
+:root{--p:#5B47E0;--p2:#2C6BED;--ok:#16A34A;--err:#DC2626;--warn:#D97706;--bg:#0A0A0F;--s:#fff}
+html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-serif;background:var(--bg);color:#fff;-webkit-font-smoothing:antialiased}
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
 .screen.active{display:flex}
 
 /* ══ INTRO ══ */
-#s-intro{background:linear-gradient(160deg,#0d0820,#0a1628);padding:32px 24px;text-align:center;gap:0;overflow-y:auto;justify-content:flex-start;padding-top:calc(env(safe-area-inset-top,0px)+40px)}
-.intro-logo{font-family:'Playfair Display',serif;font-size:24px;color:#fff;font-weight:700;margin-bottom:2px}
-.intro-tagline{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:32px}
-.intro-icon{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 50px rgba(91,71,224,.45)}
-.intro-title{font-size:24px;font-weight:800;line-height:1.25;margin-bottom:10px;max-width:290px}
-.intro-sub{font-size:14px;color:rgba(255,255,255,.55);line-height:1.65;margin-bottom:28px;max-width:280px}
-.intro-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
-.pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:6px 12px;font-size:12px;color:rgba(255,255,255,.7)}
-.pill svg{opacity:.7}
-.btn-start{width:100%;max-width:300px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 8px 28px rgba(91,71,224,.4);display:flex;align-items:center;justify-content:center;gap:10px;transition:all 150ms;margin:0 auto}
+#s-intro{background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:flex-start;padding:calc(env(safe-area-inset-top,0px)+40px) 24px 32px;overflow-y:auto;gap:0}
+.intro-logo{font-family:'Playfair Display',serif;font-size:22px;color:#fff;font-weight:700;margin-bottom:2px;text-align:center}
+.intro-tag{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;text-align:center}
+.intro-icon{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 40px rgba(91,71,224,.4)}
+.intro-title{font-size:22px;font-weight:800;line-height:1.25;margin-bottom:10px;text-align:center;max-width:300px;margin-left:auto;margin-right:auto}
+.intro-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.65;margin-bottom:24px;text-align:center;max-width:280px;margin-left:auto;margin-right:auto}
+
+/* 3 fotos preview */
+.photo-steps{display:flex;gap:10px;justify-content:center;margin-bottom:24px;width:100%;max-width:320px;margin-left:auto;margin-right:auto}
+.ps-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ps-icon{width:64px;height:72px;border-radius:12px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;position:relative}
+.ps-num{position:absolute;top:-8px;left:-8px;width:20px;height:20px;border-radius:50%;background:var(--p);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ps-lbl{font-size:10px;color:rgba(255,255,255,.5);text-align:center;line-height:1.3}
+
+.intro-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:5px 12px;font-size:11px;color:rgba(255,255,255,.7)}
+.btn-start{width:100%;max-width:300px;height:54px;border-radius:14px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 8px 24px rgba(91,71,224,.4);display:flex;align-items:center;justify-content:center;gap:10px;transition:all 150ms;margin:0 auto}
 .btn-start:active{transform:scale(.97)}
-.intro-note{font-size:11px;color:rgba(255,255,255,.25);margin-top:14px;max-width:260px;text-align:center;line-height:1.5}
+.intro-note{font-size:10px;color:rgba(255,255,255,.2);margin-top:12px;text-align:center;line-height:1.5;max-width:260px;margin-left:auto;margin-right:auto}
 
 /* ══ CÁMARA ══ */
-#s-camera{background:#000;padding:0;justify-content:flex-start}
+#s-cam{background:#000;padding:0;justify-content:flex-start;position:relative}
 .cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cam-video.mirror{transform:scaleX(-1)}
-.cam-canvas-el{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.cam-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.65),transparent)}
-.cam-logo{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700}
-.icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);transition:all 150ms}
-.icon-btn:active{background:rgba(255,255,255,.25)}
-.cam-status-bar{position:absolute;z-index:10;left:0;right:0;text-align:center;pointer-events:none}
-.guide-text{font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.9);display:block;margin-bottom:4px;transition:all 250ms}
-.guide-sub{font-size:12px;color:rgba(255,255,255,.7);text-shadow:0 1px 8px rgba(0,0,0,.8);display:block}
-.countdown-el{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:88px;font-weight:900;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.7);z-index:20;display:none;line-height:1;letter-spacing:-4px}
+.cam-canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* Top bar */
+.cam-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
+.cam-logo{font-family:'Playfair Display',serif;font-size:16px;color:#fff;font-weight:700}
+.cam-close-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+
+/* Photo indicator */
+.cam-photo-ind{position:absolute;top:calc(env(safe-area-inset-top,0px)+56px);left:0;right:0;z-index:10;display:flex;justify-content:center;gap:8px}
+.cpi{width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);transition:all 300ms}
+.cpi.done{background:var(--ok)}
+.cpi.active{background:#fff;width:40px}
+
+/* Guide text */
+.cam-guide{position:absolute;z-index:10;left:0;right:0;text-align:center;pointer-events:none}
+.guide-main{font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.9);display:block;margin-bottom:4px;transition:all 250ms}
+.guide-hint{font-size:12px;color:rgba(255,255,255,.75);text-shadow:0 1px 8px rgba(0,0,0,.8);display:block}
+
+/* Indicators */
+.cam-indicators{position:absolute;z-index:10;left:0;right:0;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 16px}
+.ind-badge{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;backdrop-filter:blur(8px);transition:all 250ms}
+.ind-red{background:rgba(220,38,38,.75);color:#fff}
+.ind-yellow{background:rgba(217,119,6,.75);color:#fff}
+.ind-green{background:rgba(22,163,74,.75);color:#fff}
+
+/* Countdown */
+.countdown{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:96px;font-weight:900;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6);z-index:20;display:none;line-height:1;letter-spacing:-4px}
+
+/* Bottom */
 .cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:16px 32px calc(env(safe-area-inset-bottom,0px)+24px);display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.7),transparent)}
-.shutter{width:70px;height:70px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.35);cursor:pointer;position:relative;transition:all 150ms;display:flex;align-items:center;justify-content:center}
-.shutter::after{content:'';width:54px;height:54px;border-radius:50%;background:#fff;border:2px solid #ddd;position:absolute}
+.shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.3);cursor:pointer;position:relative;transition:all 150ms;display:flex;align-items:center;justify-content:center}
+.shutter::after{content:'';width:52px;height:52px;border-radius:50%;background:#fff;border:2px solid #e0e0e0;position:absolute}
 .shutter:active{transform:scale(.92)}
 .shutter.ready{border-color:var(--ok);box-shadow:0 0 0 5px rgba(22,163,74,.25)}
 .shutter.ready::after{background:var(--ok)}
-.cam-gallery-btn{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;backdrop-filter:blur(8px)}
-.cam-gallery-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.cam-side-btn{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.cam-gallery{width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;backdrop-filter:blur(8px)}
+.cam-gallery input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+
+/* Photo saved flash */
+.photo-saved{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(22,163,74,.9);color:#fff;font-size:16px;font-weight:700;padding:12px 24px;border-radius:12px;z-index:25;display:none;backdrop-filter:blur(8px);white-space:nowrap}
 
 /* ══ PROCESANDO ══ */
-#s-processing{background:linear-gradient(160deg,#0d0820,#0a1628);gap:18px;padding:32px 24px;text-align:center}
-.proc-ring-wrap{width:110px;height:110px;position:relative;margin:0 auto}
-.pr1{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.08);border-top:3px solid var(--p);animation:spin .85s linear infinite}
-.pr2{position:absolute;inset:10px;border-radius:50%;border:2px solid rgba(255,255,255,.05);border-bottom:2px solid var(--p2);animation:spin 1.3s linear infinite reverse}
-.proc-face{position:absolute;inset:18px;border-radius:50%;overflow:hidden;background:#111}
-.proc-face img{width:100%;height:100%;object-fit:cover}
+#s-proc{background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
+.proc-photos{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
+.proc-photo{width:56px;height:64px;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,.2)}
+.proc-photo img{width:100%;height:100%;object-fit:cover}
+.proc-ring-wrap{width:100px;height:100px;position:relative}
+.pr1{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.08);border-top:3px solid var(--p);animation:spin .8s linear infinite}
+.pr2{position:absolute;inset:10px;border-radius:50%;border:2px solid rgba(255,255,255,.05);border-bottom:2px solid var(--p2);animation:spin 1.2s linear infinite reverse}
 @keyframes spin{to{transform:rotate(360deg)}}
-.proc-title{font-size:21px;font-weight:800;color:#fff;max-width:260px}
+.proc-title{font-size:20px;font-weight:800;color:#fff;max-width:260px}
 .proc-sub{font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;max-width:240px}
-.proc-list{display:flex;flex-direction:column;gap:9px;width:100%;max-width:270px}
-.pstep{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.35);transition:all 300ms}
+.proc-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:270px}
+.pstep{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.3);transition:all 300ms}
 .pstep.active{color:#fff}
 .pstep.done{color:var(--ok)}
-.pstep-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);flex-shrink:0;transition:all 300ms}
+.pstep-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15);flex-shrink:0;transition:all 300ms}
 .pstep.active .pstep-dot{background:var(--p);box-shadow:0 0 8px rgba(91,71,224,.7)}
 .pstep.done .pstep-dot{background:var(--ok)}
 
 /* ══ RESULTADO ══ */
-#s-result,#s-res{background:#0A0A0F;padding:0;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.res-header{padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10}
-.res-logo{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700}
-.redo-btn{height:34px;padding:0 13px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.75);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;transition:all 150ms}
-.redo-btn:active{background:rgba(255,255,255,.15)}
+#s-res{background:#0A0A0F;padding:0;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start}
+.res-header{padding:calc(env(safe-area-inset-top,0px)+12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10}
+.res-logo{font-family:'Playfair Display',serif;font-size:16px;color:#fff;font-weight:700}
+.redo-btn{height:32px;padding:0 12px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px}
 
-/* BA slider */
+/* BA Slider */
 .ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0}
-.ba-img-base{position:relative;width:100%}
-.ba-img-base img{width:100%;height:auto;display:block}
-.ba-img-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 50% 0 0)}
-.ba-img-over img{width:100%;height:100%;object-fit:cover;display:block}
+.ba-base{position:relative;width:100%}
+.ba-base img{width:100%;height:auto;display:block}
+.ba-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 50% 0 0)}
+.ba-over img{width:100%;height:100%;object-fit:cover;display:block}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
-.ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(0,0,0,.5)}
+.ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
 .ba-tag.l{left:10px;background:rgba(0,0,0,.65);color:#fff}
 .ba-tag.r{right:10px;background:var(--p);color:#fff}
-.ba-tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.55);padding:4px 12px;border-radius:99px;z-index:6;backdrop-filter:blur(4px);white-space:nowrap;transition:opacity .4s}
+.ba-tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.55);padding:3px 10px;border-radius:99px;z-index:6;backdrop-filter:blur(4px);white-space:nowrap;transition:opacity .4s}
+
+/* 3 foto thumbs */
+.res-photos{display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.07)}
+.res-thumb{flex:1;aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,.1)}
+.res-thumb img{width:100%;height:100%;object-fit:cover}
+.res-thumb-lbl{font-size:9px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;display:block}
 
 /* Content */
-.res-body{padding:20px}
-.res-wow{text-align:center;margin-bottom:20px}
-.res-wow h2{font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:#fff;margin-bottom:5px}
-.res-wow p{font-size:13px;color:rgba(255,255,255,.45);line-height:1.55}
-.disclaimer{font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-bottom:20px;line-height:1.4;padding:0 8px}
+.res-body{padding:16px}
+
+/* Score */
+.score-banner{background:linear-gradient(135deg,#1a0a3e,#1e3a8a);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px}
+.score-circle{width:58px;height:58px;border-radius:50%;border:2.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.score-num{font-size:20px;font-weight:800;color:#fff;line-height:1}
+.score-lbl{font-size:8px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.score-info h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
+.score-info p{font-size:12px;color:rgba(255,255,255,.55);line-height:1.4}
+
+/* Sections */
+.res-section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin-bottom:12px}
+.res-sec-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.hallazgo-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.hallazgo-item:last-child{border-bottom:none;padding-bottom:0}
+.h-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.h-txt{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5}
+
+/* Plan */
+.plan-step{display:flex;gap:12px;padding:8px 0;position:relative}
+.plan-step:not(:last-child)::after{content:'';position:absolute;left:14px;top:32px;bottom:0;width:1px;background:rgba(255,255,255,.1)}
+.plan-circle{width:28px;height:28px;border-radius:50%;background:var(--p);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1}
+.plan-txt{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5;padding-top:5px}
+
+/* Cotización */
+.cot-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.cot-item:last-child{border-bottom:none}
+.cot-name{font-size:13px;color:rgba(255,255,255,.8)}
+.cot-detail{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+.cot-price{font-size:13px;font-weight:700;color:#fff;text-align:right;flex-shrink:0;font-family:monospace}
+.cot-total-box{background:linear-gradient(135deg,rgba(91,71,224,.2),rgba(44,107,237,.2));border:1px solid rgba(91,71,224,.3);border-radius:12px;padding:14px;text-align:center;margin-top:12px}
+.cot-total-lbl{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px}
+.cot-total-num{font-size:28px;font-weight:800;color:#fff;font-family:monospace;letter-spacing:-1px}
+.cot-total-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
 
 /* CTA */
-.cta-box{background:linear-gradient(135deg,rgba(91,71,224,.18),rgba(44,107,237,.18));border:1px solid rgba(91,71,224,.28);border-radius:20px;padding:20px;margin-bottom:20px}
-.cta-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:5px}
-.cta-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:18px}
-.fg{margin-bottom:11px}
+.cta-box{background:linear-gradient(135deg,rgba(91,71,224,.18),rgba(44,107,237,.18));border:1px solid rgba(91,71,224,.28);border-radius:16px;padding:16px;margin-bottom:16px}
+.cta-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+.cta-sub{font-size:12px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:14px}
+.fg{margin-bottom:10px}
 .fg label{display:block;font-size:10px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
-.fg input{width:100%;height:48px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:0 14px;font-size:15px;font-family:'Inter',sans-serif;color:#fff;outline:none;transition:border 150ms;-webkit-appearance:none;appearance:none}
-.fg input:focus{border-color:var(--p);background:rgba(91,71,224,.1)}
-.fg input::placeholder{color:rgba(255,255,255,.25)}
-.btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;border-radius:14px;background:#25D366;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 20px rgba(37,211,102,.3);margin-bottom:10px;transition:all 150ms}
+.fg input{width:100%;height:46px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:0 14px;font-size:15px;font-family:'Inter',sans-serif;color:#fff;outline:none;transition:border 150ms;-webkit-appearance:none}
+.fg input:focus{border-color:var(--p)}
+.fg input::placeholder{color:rgba(255,255,255,.2)}
+.btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;border-radius:13px;background:#25D366;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 18px rgba(37,211,102,.3);margin-bottom:10px;transition:all 150ms}
 .btn-wa:active{transform:scale(.97)}
-.btn-dl{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 150ms;margin-bottom:16px}
-.btn-dl:active{background:rgba(255,255,255,.12)}
+.btn-dl{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:42px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:14px}
+
 .res-foot{text-align:center;padding:4px 0 calc(env(safe-area-inset-bottom,0px)+20px)}
-.res-foot-logo{font-family:'Playfair Display',serif;font-size:13px;color:rgba(255,255,255,.25)}
-.res-foot-sub{font-size:10px;color:rgba(255,255,255,.15);margin-top:2px}
+.res-foot-logo{font-family:'Playfair Display',serif;font-size:13px;color:rgba(255,255,255,.2)}
+
+/* ── QUESTIONNAIRE ── */
+.q-option{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:all 150ms;color:rgba(255,255,255,.8);font-size:14px;font-weight:500}
+.q-option input{width:18px;height:18px;cursor:pointer;accent-color:var(--p);flex-shrink:0}
+.q-option:has(input:checked){background:rgba(91,71,224,.2);border-color:var(--p);color:#fff}
+.q-option-single{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:all 150ms}
+.q-option-single.selected{background:rgba(91,71,224,.25);border-color:var(--p)}
 
 /* Flash */
-#flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 70ms}
+#flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 60ms}
 #flash.on{opacity:1}
 </style>
 </head>
@@ -121,46 +193,181 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
   <div class="intro-logo">🦷 CAMILA</div>
-  <div class="intro-tagline">Diseño de Sonrisa · IA</div>
+  <div class="intro-tag">Diseño de Sonrisa · IA</div>
   <div class="intro-icon">
-    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="7"/><path d="M9 14.5c.7 1 1.7 1.5 3 1.5s2.3-.5 3-1.5"/><circle cx="10" cy="9.5" r=".6" fill="#fff" stroke="none"/><circle cx="14" cy="9.5" r=".6" fill="#fff" stroke="none"/></svg>
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="7"/><path d="M9 14.5c.7 1 1.7 1.5 3 1.5s2.3-.5 3-1.5"/><circle cx="10" cy="9.5" r=".6" fill="#fff" stroke="none"/><circle cx="14" cy="9.5" r=".6" fill="#fff" stroke="none"/></svg>
   </div>
-  <div class="intro-title">¿Cómo luciría tu sonrisa perfecta?</div>
-  <div class="intro-sub">Tómate una selfie y nuestra IA diseñará tus carillas dentales en segundos. Sin costo, sin registro.</div>
+  <div class="intro-title">Descubre tu sonrisa perfecta en 60 segundos</div>
+  <div class="intro-sub">Tomaremos 3 fotos guiadas. La IA analizará tus dientes y generará una simulación + diagnóstico + cotización.</div>
+
+  <!-- 3 fotos preview -->
+  <div class="photo-steps">
+    <div class="ps-item">
+      <div class="ps-icon">
+        <div class="ps-num">1</div>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+      </div>
+      <span class="ps-lbl">Frontal<br>Sonrisa</span>
+    </div>
+    <div class="ps-item">
+      <div class="ps-icon">
+        <div class="ps-num">2</div>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="16" y1="11" x2="21" y2="11"/></svg>
+      </div>
+      <span class="ps-lbl">Perfil<br>Derecho</span>
+    </div>
+    <div class="ps-item">
+      <div class="ps-icon">
+        <div class="ps-num">3</div>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="8" y1="11" x2="3" y2="11"/></svg>
+      </div>
+      <span class="ps-lbl">Perfil<br>Izquierdo</span>
+    </div>
+  </div>
+
   <div class="intro-pills">
-    <div class="pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gratis</div>
-    <div class="pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ~20 seg</div>
-    <div class="pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Sin registro</div>
+    <div class="pill">✓ Gratis</div>
+    <div class="pill">⏱ 60 segundos</div>
+    <div class="pill">🔒 Sin registro</div>
   </div>
-  <button class="btn-start" onclick="startCamera()">
+  <button class="btn-start" onclick="goToQuestionnaire()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    Simular mi sonrisa
+    Comenzar simulación
   </button>
-  <div class="intro-note">Al continuar acepto que mi foto sea procesada por IA para generar una simulación. No se almacena sin consentimiento.</div>
+  <div class="intro-note">Al continuar acepto que mis fotos sean procesadas por IA para generar una simulación dental orientativa.</div>
+</div>
+
+
+<!-- ══ CUESTIONARIO ══ -->
+<div class="screen" id="s-q">
+  <div style="background:linear-gradient(160deg,#0d0820,#0a1628);flex:1;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px)+20px) 20px calc(env(safe-area-inset-bottom,0px)+20px)">
+    <div style="font-family:'Playfair Display',serif;font-size:18px;color:#fff;font-weight:700;margin-bottom:4px">🦷 CAMILA</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:24px">Cuestionario previo</div>
+
+    <!-- Progress -->
+    <div style="display:flex;gap:4px;margin-bottom:24px" id="q-progress">
+      <div style="flex:1;height:3px;border-radius:99px;background:var(--p)" id="qp-0"></div>
+      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-1"></div>
+      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-2"></div>
+      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-3"></div>
+      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-4"></div>
+    </div>
+
+    <!-- Q1: Quejas -->
+    <div id="q-step-0">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué te molesta de tu sonrisa?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Puedes seleccionar varias opciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px" id="q1-list">
+        <label class="q-option"><input type="checkbox" name="q1" value="Color amarillo o manchado"> <span>😬 Color amarillo o manchado</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Espacios entre dientes"> <span>↔ Espacios entre dientes</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Dientes pequeños o cortos"> <span>📏 Dientes pequeños o cortos</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Dientes chuecos o desalineados"> <span>↕ Dientes chuecos o desalineados</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Forma irregular o asimétrica"> <span>⚡ Forma irregular o asimétrica</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Encías muy visibles al sonreír"> <span>😅 Encías muy visibles al sonreír</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Dientes desgastados"> <span>🔻 Dientes desgastados</span></label>
+        <label class="q-option"><input type="checkbox" name="q1" value="Fractura o astilla"> <span>💔 Fractura o astilla</span></label>
+      </div>
+    </div>
+
+    <!-- Q2: Resultado -->
+    <div id="q-step-1" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué resultado buscas?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Elige el que más te identifica</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="q-option-single" data-q="resultado" data-val="Natural — que nadie note que son carillas"><span style="font-size:18px">🌿</span><div><div style="font-weight:600;color:#fff">Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Que nadie note que son carillas</div></div></label>
+        <label class="q-option-single" data-q="resultado" data-val="Blanqueado natural — más blanco pero realista"><span style="font-size:18px">✨</span><div><div style="font-weight:600;color:#fff">Blanqueado Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Más blanco pero realista</div></div></label>
+        <label class="q-option-single" data-q="resultado" data-val="Hollywood smile — ultra blanco y perfecto"><span style="font-size:18px">⭐</span><div><div style="font-weight:600;color:#fff">Hollywood Smile</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Ultra blanco y perfecto</div></div></label>
+        <label class="q-option-single" data-q="resultado" data-val="Solo corregir el problema sin cambios de color"><span style="font-size:18px">🎯</span><div><div style="font-weight:600;color:#fff">Solo corregir</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Sin cambios de color, solo la forma</div></div></label>
+      </div>
+    </div>
+
+    <!-- Q3: Piezas -->
+    <div id="q-step-2" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Cuántos dientes quieres mejorar?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Esto ayuda a calcular la cotización</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="q-option-single" data-q="piezas" data-val="2 dientes centrales superiores"><span style="font-size:18px">2️⃣</span><div><div style="font-weight:600;color:#fff">Solo los 2 centrales</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Los 2 dientes del centro</div></div></label>
+        <label class="q-option-single" data-q="piezas" data-val="4 dientes frontales superiores"><span style="font-size:18px">4️⃣</span><div><div style="font-weight:600;color:#fff">Los 4 frontales</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Centrales y laterales</div></div></label>
+        <label class="q-option-single" data-q="piezas" data-val="6 dientes superiores (canino a canino)"><span style="font-size:18px">6️⃣</span><div><div style="font-weight:600;color:#fff">Los 6 superiores</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Sonrisa visible completa</div></div></label>
+        <label class="q-option-single" data-q="piezas" data-val="8 dientes superiores (sonrisa completa)"><span style="font-size:18px">8️⃣</span><div><div style="font-weight:600;color:#fff">Los 8 superiores</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Sonrisa completa con premolares</div></div></label>
+        <label class="q-option-single" data-q="piezas" data-val="Que el doctor recomiende"><span style="font-size:18px">👨‍⚕️</span><div><div style="font-weight:600;color:#fff">Que el doctor recomiende</div><div style="font-size:12px;color:rgba(255,255,255,.5)">No estoy seguro/a</div></div></label>
+      </div>
+    </div>
+
+    <!-- Q4: Tono -->
+    <div id="q-step-3" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué tono prefieres?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — del más natural al más blanco</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="q-option-single" data-q="tono" data-val="A2 — tono natural, igual a dientes sanos"><div style="width:36px;height:36px;border-radius:8px;background:#E9E0C5;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A2 — Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Como dientes sanos naturales</div></div></label>
+        <label class="q-option-single" data-q="tono" data-val="A1 — ligeramente más blanco que natural"><div style="width:36px;height:36px;border-radius:8px;background:#EDE8DA;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A1 — Suave</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Ligeramente más blanco</div></div></label>
+        <label class="q-option-single" data-q="tono" data-val="B1 — blanco notablemente brillante"><div style="width:36px;height:36px;border-radius:8px;background:#F4F0E2;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">B1 — Brillante</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Notablemente más blanco</div></div></label>
+        <label class="q-option-single" data-q="tono" data-val="Hollywood White — el blanco más intenso"><div style="width:36px;height:36px;border-radius:8px;background:#F9F9F6;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">Hollywood White</div><div style="font-size:12px;color:rgba(255,255,255,.5)">El más blanco — sonrisa de celebridad</div></div></label>
+      </div>
+    </div>
+
+    <!-- Q5: Historial -->
+    <div id="q-step-4" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Has tenido tratamientos dentales antes?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Esto ayuda al doctor a planear mejor</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="q-option-single" data-q="historial" data-val="Sin tratamientos previos"><span style="font-size:18px">✨</span><div><div style="font-weight:600;color:#fff">Sin tratamientos previos</div></div></label>
+        <label class="q-option-single" data-q="historial" data-val="Blanqueamiento dental previo"><span style="font-size:18px">⬜</span><div><div style="font-weight:600;color:#fff">Blanqueamiento</div></div></label>
+        <label class="q-option-single" data-q="historial" data-val="Brackets u ortodoncia previa"><span style="font-size:18px">🦷</span><div><div style="font-weight:600;color:#fff">Brackets / Ortodoncia</div></div></label>
+        <label class="q-option-single" data-q="historial" data-val="Carillas anteriores (a reemplazar)"><span style="font-size:18px">💎</span><div><div style="font-weight:600;color:#fff">Carillas anteriores</div></div></label>
+        <label class="q-option-single" data-q="historial" data-val="Restauraciones o empastes"><span style="font-size:18px">🔧</span><div><div style="font-weight:600;color:#fff">Empastes o restauraciones</div></div></label>
+      </div>
+    </div>
+
+    <!-- Nav buttons -->
+    <div style="display:flex;gap:10px;margin-top:24px">
+      <button id="q-back-btn" onclick="qBack()" style="height:48px;padding:0 20px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:none">← Atrás</button>
+      <button id="q-next-btn" onclick="qNext()" style="flex:1;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 16px rgba(91,71,224,.3)">Siguiente →</button>
+    </div>
+    <div style="height:20px"></div>
+  </div>
 </div>
 
 <!-- ══ CÁMARA ══ -->
-<div class="screen" id="s-camera">
+<div class="screen" id="s-cam">
   <video class="cam-video mirror" id="vid" autoplay muted playsinline></video>
-  <canvas class="cam-canvas-el" id="cv"></canvas>
+  <canvas class="cam-canvas" id="cv"></canvas>
+
   <div class="cam-top">
     <div class="cam-logo">🦷 CAMILA</div>
-    <button class="icon-btn" onclick="stopCam()">
+    <button class="cam-close-btn" onclick="stopCam()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
-  <!-- Status centrado sobre el óvalo -->
-  <div class="cam-status-bar" id="cam-status-bar" style="top:14%">
-    <span class="guide-text" id="gtxt">Centra tu cara en el óvalo</span>
-    <span class="guide-sub" id="gsub">Sonríe mostrando los dientes 😁</span>
+
+  <!-- Photo progress dots -->
+  <div class="cam-photo-ind">
+    <div class="cpi active" id="cpi-0"></div>
+    <div class="cpi" id="cpi-1"></div>
+    <div class="cpi" id="cpi-2"></div>
   </div>
-  <div class="countdown-el" id="cdown"></div>
+
+  <!-- Guide text — positioned above oval -->
+  <div class="cam-guide" id="cam-guide" style="top:22%">
+    <span class="guide-main" id="g-main">Centra tu cara</span>
+    <span class="guide-hint" id="g-hint">Foto 1 de 3 — Vista frontal</span>
+  </div>
+
+  <!-- Indicator badges — positioned below oval -->
+  <div class="cam-indicators" id="cam-inds" style="position:absolute;z-index:10;left:0;right:0;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 16px"></div>
+
+  <!-- Countdown -->
+  <div class="countdown" id="cdown"></div>
+
+  <!-- Photo saved confirmation -->
+  <div class="photo-saved" id="photo-saved">✓ Foto guardada</div>
+
   <div class="cam-bottom">
-    <button class="icon-btn" onclick="flipCam()" style="width:48px;height:48px">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+    <button class="cam-side-btn" onclick="flipCam()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
     </button>
     <button class="shutter" id="shutter" onclick="snap()"></button>
-    <label class="cam-gallery-btn">
+    <label class="cam-gallery">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       <input type="file" accept="image/*" onchange="fromGallery(this)">
     </label>
@@ -169,17 +376,18 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 
 <!-- ══ PROCESANDO ══ -->
 <div class="screen" id="s-proc">
+  <div class="proc-photos" id="proc-photos"></div>
   <div class="proc-ring-wrap">
     <div class="pr1"></div><div class="pr2"></div>
-    <div class="proc-face"><img id="proc-img" alt=""></div>
   </div>
-  <div class="proc-title">Diseñando tu sonrisa...</div>
-  <div class="proc-sub">La IA está creando tu simulación personalizada</div>
+  <div class="proc-title">Analizando tu sonrisa...</div>
+  <div class="proc-sub">Claude y Gemini están trabajando en tu simulación personalizada</div>
   <div class="proc-list">
-    <div class="pstep active" id="p1"><div class="pstep-dot"></div>Analizando tu foto</div>
-    <div class="pstep" id="p2"><div class="pstep-dot"></div>Detectando estructura dental</div>
-    <div class="pstep" id="p3"><div class="pstep-dot"></div>Aplicando diseño de carillas</div>
-    <div class="pstep" id="p4"><div class="pstep-dot"></div>Generando simulación fotorrealista</div>
+    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando las 3 fotografías</div>
+    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Detectando estructura dental</div>
+    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Generando diagnóstico clínico</div>
+    <div class="pstep" id="ps4"><div class="pstep-dot"></div>Calculando cotización</div>
+    <div class="pstep" id="ps5"><div class="pstep-dot"></div>Creando simulación fotorrealista</div>
   </div>
 </div>
 
@@ -188,29 +396,76 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
   <div class="res-header">
     <div class="res-logo">🦷 CAMILA</div>
     <button class="redo-btn" onclick="redo()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Nueva foto
     </button>
   </div>
+
+  <!-- BA Slider -->
   <div class="ba-wrap" id="ba-wrap">
-    <div class="ba-img-base"><img id="img-b" alt="Antes" onload="onBeforeLoad()"></div>
-    <div class="ba-img-over" id="ba-over"><img id="img-a" alt="Después"></div>
+    <div class="ba-base"><img id="img-b" alt="Antes"></div>
+    <div class="ba-over" id="ba-over"><img id="img-a" alt="Después"></div>
     <div class="ba-line" id="ba-line"><div class="ba-knob">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B47E0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6" transform="translate(6)"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B47E0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6" transform="translate(6)"/></svg>
     </div></div>
     <div class="ba-tag l">ANTES</div>
     <div class="ba-tag r">✨ DESPUÉS</div>
     <div class="ba-tip" id="ba-tip">← Arrastra para comparar →</div>
   </div>
+
+  <!-- 3 foto thumbs -->
+  <div class="res-photos" id="res-photos"></div>
+
   <div class="res-body">
-    <div class="res-wow">
-      <h2>¡Así lucirías con carillas!</h2>
-      <p>Simulación generada con IA basada en tu selfie</p>
+
+    <!-- Score -->
+    <div class="score-banner" id="score-banner">
+      <div class="score-circle">
+        <div class="score-num" id="r-score">—</div>
+        <div class="score-lbl">/100</div>
+      </div>
+      <div class="score-info">
+        <h3 id="r-score-lbl">Score Estético</h3>
+        <p id="r-score-sub">Analizando...</p>
+      </div>
     </div>
-    <div class="disclaimer">⚠️ Simulación orientativa. El resultado real depende del plan de tratamiento y tu anatomía dental.</div>
+
+    <!-- Hallazgos -->
+    <div class="res-section">
+      <div class="res-sec-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Lo que encontramos
+      </div>
+      <div id="r-hallazgos"></div>
+    </div>
+
+    <!-- Plan -->
+    <div class="res-section">
+      <div class="res-sec-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Tu plan de tratamiento
+      </div>
+      <div id="r-plan"></div>
+    </div>
+
+    <!-- Cotización -->
+    <div class="res-section">
+      <div class="res-sec-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Tu cotización estimada
+      </div>
+      <div id="r-cot"></div>
+      <div class="cot-total-box">
+        <div class="cot-total-lbl">Tu inversión estimada</div>
+        <div class="cot-total-num" id="r-total">$0 <span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">MXN</span></div>
+        <div class="cot-total-sub">Precios del consultorio · Válido 30 días</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
     <div class="cta-box">
       <div class="cta-title">¿Te gustó tu nueva sonrisa? 😍</div>
-      <div class="cta-sub">Déjanos tus datos y el Dr. te contactará para una consulta de diseño — sin costo.</div>
+      <div class="cta-sub">Agenda tu consulta de diseño gratuita con el Dr. Hernán</div>
       <div class="fg"><label>Tu nombre *</label><input type="text" id="fn" placeholder="¿Cómo te llamas?" autocomplete="name"></div>
       <div class="fg"><label>WhatsApp *</label><input type="tel" id="ft" placeholder="+52 33 ..." autocomplete="tel" inputmode="tel"></div>
       <div class="fg"><label>Email (opcional)</label><input type="email" id="fe" placeholder="tu@email.com" autocomplete="email" inputmode="email"></div>
@@ -219,302 +474,793 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
         Quiero mi consulta gratis
       </button>
       <button class="btn-dl" onclick="dl()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Descargar mi simulación
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar simulación
       </button>
     </div>
-    <div class="res-foot">
-      <div class="res-foot-logo">🦷 CAMILA</div>
-      <div class="res-foot-sub">Diseño de Sonrisa Digital con IA</div>
-    </div>
+
+    <div class="res-foot"><div class="res-foot-logo">🦷 CAMILA · Diseño de Sonrisa Digital con IA</div></div>
   </div>
 </div>
 
 <script>
 // ══ CONFIG ══
 var CFG = {
-  waNum: '523312345678',       // ← cambiar al número real del Dr.
-  waMsg: '¡Hola! Acabo de ver mi simulación de sonrisa en CAMILA y me gustaría agendar una consulta 😊',
+  waNum: '523312345678',
   edgeUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/claude',
   supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
+  supaUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co',
+  tenantId: null,
+  tenantConfig: null,
 };
 
+// Load tenant config from URL param
+(function loadTenantConfig() {
+  var params = new URLSearchParams(window.location.search);
+  var tid = params.get('tenant');
+  if (!tid) return;
+  CFG.tenantId = tid;
+  // Try localStorage first (fast)
+  var stored = localStorage.getItem('camila_sim_config_' + tid);
+  if (stored) {
+    try {
+      CFG.tenantConfig = JSON.parse(stored);
+      applyTenantBranding(CFG.tenantConfig);
+    } catch(e) {}
+  }
+  // Also try Supabase
+  fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email', {
+    headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey}
+  }).then(function(r){return r.json();}).then(function(data) {
+    if (data && data[0] && data[0].config && data[0].config.sim) {
+      CFG.tenantConfig = data[0].config.sim;
+      localStorage.setItem('camila_sim_config_' + tid, JSON.stringify(CFG.tenantConfig));
+      applyTenantBranding(CFG.tenantConfig);
+    }
+  }).catch(function(){});
+})();
+
+function applyTenantBranding(cfg) {
+  if (!cfg) return;
+  if (cfg.waNum || cfg.whatsapp) CFG.waNum = cfg.waNum || cfg.whatsapp;
+  if (cfg.color) {
+    document.documentElement.style.setProperty('--p', cfg.color);
+  }
+  // Update intro text
+  if (cfg.nombre) {
+    var logo = document.querySelector('.intro-logo');
+    if (logo) logo.textContent = '🦷 ' + cfg.nombre;
+  }
+  if (cfg.especialidad) {
+    var tag = document.querySelector('.intro-tag');
+    if (tag) tag.textContent = cfg.especialidad;
+  }
+  if (cfg.bienvenida) {
+    var sub = document.querySelector('.intro-sub');
+    if (sub) sub.textContent = cfg.bienvenida;
+  }
+  if (cfg.protoCount) {
+    VIEWS_COUNT = parseInt(cfg.protoCount) || 3;
+  }
+}
+
+var VIEWS_COUNT = 3;
+
+// Default prices (fallback if not configured in panel)
+var PRECIOS_DEFAULT = [
+  {id:'carilla_porcelana', nombre:'Carilla de porcelana feldespática', unidad:'por pieza', precio:8000},
+  {id:'carilla_emax', nombre:'Carilla disilicato de litio (e.max)', unidad:'por pieza', precio:10000},
+  {id:'carilla_composite', nombre:'Carilla de composite', unidad:'por pieza', precio:4500},
+  {id:'blanqueamiento', nombre:'Blanqueamiento dental', unidad:'tratamiento completo', precio:3500},
+  {id:'gingivectomia', nombre:'Gingivectomía estética', unidad:'por pieza', precio:1200},
+  {id:'encerado', nombre:'Encerado diagnóstico / mock-up', unidad:'caso completo', precio:2000},
+  {id:'consulta', nombre:'Consulta de diagnóstico estético', unidad:'por consulta', precio:800},
+];
+
 // ══ STATE ══
-var S = {stream:null, facing:'user', b64:null, result:null, timer:null, faceOk:false,
-         oval:{x:0,y:0,w:0,h:0}, detector:null};
+var S = {
+  stream: null,
+  facing: 'user',
+  photos: [], // [{b64, view:'frontal'|'right'|'left'}]
+  currentPhoto: 0,
+  result: null,
+  diagnosis: null,
+  timer: null,
+  faceOk: false,
+  oval: {x:0,y:0,w:0,h:0},
+  detector: null,
+  precios: null,
+};
+
+var VIEWS = [
+  {id:'frontal', label:'Vista Frontal — Sonrisa completa', hint:'Muestra los dientes y centra tu cara', mirror: true, oval: 'face'},
+  {id:'right',   label:'Perfil Derecho — Gira a tu derecha', hint:'Nariz apuntando hacia la izquierda de la pantalla', mirror: true, oval: 'profile'},
+  {id:'left',    label:'Perfil Izquierdo — Gira a tu izquierda', hint:'Nariz apuntando hacia la derecha de la pantalla', mirror: true, oval: 'profile'},
+];
 
 // ══ SCREENS ══
-function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});document.getElementById(id).classList.add('active')}
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+// ══ QUESTIONNAIRE ══
+var Q_STEP = 0;
+var Q_ANSWERS = {};
+
+function showQStep(n) {
+  Q_STEP = n;
+  for (var i = 0; i < 5; i++) {
+    var step = document.getElementById('q-step-' + i);
+    if (step) step.style.display = i === n ? 'block' : 'none';
+    var bar = document.getElementById('qp-' + i);
+    if (bar) bar.style.background = i <= n ? 'var(--p)' : 'rgba(255,255,255,.15)';
+  }
+  var backBtn = document.getElementById('q-back-btn');
+  var nextBtn = document.getElementById('q-next-btn');
+  if (backBtn) backBtn.style.display = n > 0 ? 'block' : 'none';
+  if (nextBtn) nextBtn.textContent = n === 4 ? '¡Tomar fotos! 📸' : 'Siguiente →';
+}
+
+function qNext() {
+  // Collect current step answers
+  if (Q_STEP === 0) {
+    var checked = document.querySelectorAll('#q-step-0 input[type=checkbox]:checked');
+    Q_ANSWERS.quejas = Array.from(checked).map(function(c){return c.value;});
+  }
+  if (Q_STEP === 4) {
+    // Last step — start camera
+    S.questionnaire = Q_ANSWERS;
+    showQStep(0); // reset for next time
+    Q_ANSWERS = {};
+    startCam();
+    return;
+  }
+  showQStep(Q_STEP + 1);
+}
+
+function qBack() {
+  if (Q_STEP > 0) showQStep(Q_STEP - 1);
+}
+
+// Single-select options
+document.addEventListener('click', function(e) {
+  var opt = e.target.closest('.q-option-single');
+  if (!opt) return;
+  var q = opt.getAttribute('data-q');
+  var val = opt.getAttribute('data-val');
+  if (!q || !val) return;
+  // Deselect others in same group
+  document.querySelectorAll('.q-option-single[data-q="' + q + '"]').forEach(function(el) {
+    el.classList.remove('selected');
+  });
+  opt.classList.add('selected');
+  Q_ANSWERS[q] = val;
+});
+
+// ══ PRECIOS ══
+async function loadPrecios() {
+  try {
+    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_precios?select=*&limit=50', {
+      headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey}
+    });
+    var data = await resp.json();
+    if (data && data.length) {
+      S.precios = data;
+      return;
+    }
+  } catch(e) {}
+  S.precios = PRECIOS_DEFAULT;
+}
+
+function getPrecio(id) {
+  if (!S.precios) return PRECIOS_DEFAULT.find(function(p){return p.id===id;}) || {precio:0};
+  return S.precios.find(function(p){return p.id===id;}) || PRECIOS_DEFAULT.find(function(p){return p.id===id;}) || {precio:0};
+}
 
 // ══ CAMERA ══
-async function startCamera(){
-  show('s-camera');
+async function goToQuestionnaire() {
+  await loadPrecios();
+  show('s-q');
+  showQStep(0);
+}
+
+async function startCam() {
+  show('s-cam');
+  S.photos = [];
+  S.currentPhoto = 0;
   await initCam();
   setupOval();
+  updatePhotoUI();
   tryFaceDetect();
 }
 
-async function initCam(){
-  try{
-    if(S.stream) S.stream.getTracks().forEach(function(t){t.stop()});
-    S.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing,width:{ideal:1280},height:{ideal:1280}},audio:false});
-    var v=document.getElementById('vid');
-    v.srcObject=S.stream;
-    v.className='cam-video'+(S.facing==='user'?' mirror':'');
+async function initCam() {
+  try {
+    if (S.stream) S.stream.getTracks().forEach(function(t){t.stop();});
+    var view = VIEWS[S.currentPhoto] || VIEWS[0];
+    S.stream = await navigator.mediaDevices.getUserMedia({
+      video: {facingMode: S.facing, width:{ideal:1280}, height:{ideal:1280}},
+      audio: false
+    });
+    var v = document.getElementById('vid');
+    v.srcObject = S.stream;
+    v.className = 'cam-video' + (S.facing === 'user' ? ' mirror' : '');
     await v.play();
-  }catch(e){alert('No se pudo acceder a la cámara. Verifica los permisos.');show('s-intro')}
+  } catch(e) {
+    alert('No se pudo acceder a la cámara.');
+    show('s-intro');
+  }
 }
 
-function stopCam(){if(S.stream)S.stream.getTracks().forEach(function(t){t.stop()});clearTimer();show('s-intro')}
-function flipCam(){S.facing=S.facing==='user'?'environment':'user';initCam()}
+function stopCam() {
+  if (S.stream) S.stream.getTracks().forEach(function(t){t.stop();});
+  clearTimer();
+  show('s-intro');
+}
+
+function flipCam() {
+  S.facing = S.facing === 'user' ? 'environment' : 'user';
+  initCam();
+}
+
+function updatePhotoUI() {
+  var view = VIEWS[S.currentPhoto] || VIEWS[0];
+  // Progress dots
+  for (var i = 0; i < 3; i++) {
+    var dot = document.getElementById('cpi-' + i);
+    if (!dot) continue;
+    dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
+  }
+  setGuide(view.label, view.hint, false);
+  setupOval();
+}
 
 // ══ OVAL GUIDE ══
-function setupOval(){
-  var cv=document.getElementById('cv');
-  var sc=document.getElementById('s-camera');
-  function resize(){
-    cv.width=sc.clientWidth;cv.height=sc.clientHeight;
-    var W=cv.width,H=cv.height;
-    S.oval.w=W*0.70; S.oval.h=S.oval.w*1.32;
-    S.oval.x=W/2; S.oval.y=H*0.47;
-    // Position status bar above oval top
+function setupOval() {
+  var cv = document.getElementById('cv');
+  var sc = document.getElementById('s-cam');
+  function resize() {
+    cv.width = sc.clientWidth;
+    cv.height = sc.clientHeight;
+    var W = cv.width, H = cv.height;
+    var view = VIEWS[S.currentPhoto] || VIEWS[0];
+    if (view.oval === 'profile') {
+      // Narrower oval for profile
+      S.oval.w = W * 0.52;
+      S.oval.h = S.oval.w * 1.55;
+    } else {
+      // Face oval — large to force close-up
+      S.oval.w = W * 0.78;
+      S.oval.h = S.oval.w * 1.28;
+    }
+    S.oval.x = W / 2;
+    S.oval.y = H * 0.46;
+    // Position guide text above oval
     var topPct = (S.oval.y - S.oval.h/2) / H;
-    document.getElementById('cam-status-bar').style.top = Math.max(14, topPct*100 - 10) + '%';
-    paintOval(false,false);
+    var guide = document.getElementById('cam-guide');
+    if (guide) guide.style.top = Math.max(18, topPct * 100 - 9) + '%';
+    // Position indicators below oval
+    var botPct = (S.oval.y + S.oval.h/2) / H;
+    var inds = document.getElementById('cam-inds');
+    if (inds) inds.style.top = Math.min(85, botPct * 100 + 1) + '%';
+    paintOval('none');
   }
   resize();
-  window.addEventListener('resize',resize);
+  window.addEventListener('resize', resize);
 }
 
-function paintOval(detected, close){
-  var cv=document.getElementById('cv');if(!cv)return;
-  var ctx=cv.getContext('2d');
-  var W=cv.width,H=cv.height;
-  var ox=S.oval.x,oy=S.oval.y,ow=S.oval.w/2,oh=S.oval.h/2;
-  ctx.clearRect(0,0,W,H);
+function paintOval(state) {
+  var cv = document.getElementById('cv');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var ox = S.oval.x, oy = S.oval.y, ow = S.oval.w/2, oh = S.oval.h/2;
+  ctx.clearRect(0, 0, W, H);
 
   // Dark mask outside oval
   ctx.save();
-  ctx.fillStyle='rgba(0,0,0,0.42)';
-  ctx.beginPath();ctx.rect(0,0,W,H);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.rect(0,0,W,H);
   ctx.ellipse(ox,oy,ow,oh,0,0,Math.PI*2);
   ctx.fill('evenodd');
   ctx.restore();
 
-  // Oval border
-  var color = detected ? (close?'#D97706':'#16A34A') : 'rgba(255,255,255,0.85)';
+  // Oval border with color based on state
+  var color = state === 'green' ? '#16A34A' : state === 'yellow' ? '#F59E0B' : state === 'red' ? '#EF4444' : 'rgba(255,255,255,0.7)';
+  var glow = state === 'green' ? '#16A34A' : state === 'yellow' ? '#F59E0B' : null;
   ctx.save();
-  ctx.strokeStyle=color;
-  ctx.lineWidth=detected?3:2;
-  if(detected&&!close){ctx.shadowColor='#16A34A';ctx.shadowBlur=14}
-  ctx.beginPath();ctx.ellipse(ox,oy,ow,oh,0,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = state !== 'none' ? 3 : 2;
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 16; }
+  ctx.beginPath(); ctx.ellipse(ox,oy,ow,oh,0,0,Math.PI*2); ctx.stroke();
   ctx.restore();
 
   // Corner marks
-  var corners=[
+  var corners = [
     {px:ox-ow*0.65,py:oy-oh},{px:ox+ow*0.65,py:oy-oh},
     {px:ox-ow*0.65,py:oy+oh},{px:ox+ow*0.65,py:oy+oh}
   ];
-  var L=20;
-  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=detected?3:2.5;ctx.lineCap='round';
-  corners.forEach(function(c,i){
-    var sx=i%2===0?1:-1, sy=i<2?1:-1;
-    ctx.beginPath();ctx.moveTo(c.px,c.py);ctx.lineTo(c.px+sx*L,c.py);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(c.px,c.py);ctx.lineTo(c.px,c.py+sy*L);ctx.stroke();
+  var L = 18;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = state !== 'none' ? 3 : 2.5; ctx.lineCap = 'round';
+  corners.forEach(function(c, i) {
+    var sx = i%2===0 ? 1 : -1, sy = i<2 ? 1 : -1;
+    ctx.beginPath(); ctx.moveTo(c.px,c.py); ctx.lineTo(c.px+sx*L,c.py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(c.px,c.py); ctx.lineTo(c.px,c.py+sy*L); ctx.stroke();
   });
   ctx.restore();
+}
+
+// ══ INDICATORS ══
+function setIndicators(msgs) {
+  var wrap = document.getElementById('cam-inds');
+  if (!wrap) return;
+  wrap.innerHTML = msgs.map(function(m) {
+    return '<div class="ind-badge ind-' + m.color + '">' + m.text + '</div>';
+  }).join('');
+}
+
+function setGuide(main, hint, ok) {
+  document.getElementById('g-main').textContent = main;
+  document.getElementById('g-hint').textContent = hint;
+  var sh = document.getElementById('shutter');
+  sh.className = 'shutter' + (ok ? ' ready' : '');
 }
 
 // ══ FACE DETECTION ══
-function tryFaceDetect(){
-  if('FaceDetector' in window){
-    try{S.detector=new FaceDetector({fastMode:true,maxDetectedFaces:1});detectLoop();return}catch(e){}
+function tryFaceDetect() {
+  if ('FaceDetector' in window) {
+    try {
+      S.detector = new FaceDetector({fastMode:true, maxDetectedFaces:1});
+      detectLoop();
+      return;
+    } catch(e) {}
   }
-  setGuide('Sonríe y presiona el botón','Muestra bien los dientes 😁',false);
+  // Fallback
+  setGuide(VIEWS[S.currentPhoto].label, 'Presiona el botón cuando estés listo', false);
+  setIndicators([{color:'yellow', text:'Detección automática no disponible — usa el botón'}]);
+  paintOval('yellow');
 }
 
-async function detectLoop(){
-  var v=document.getElementById('vid');
-  if(!v||!S.detector||document.getElementById('s-camera').className.indexOf('active')<0)return;
-  try{
-    var faces=await S.detector.detect(v);
-    if(faces.length){
-      var f=faces[0],vW=v.videoWidth||v.clientWidth,vH=v.videoHeight||v.clientHeight;
-      var cW=document.getElementById('cv').width,cH=document.getElementById('cv').height;
-      var sx=cW/vW,sy=cH/vH;
-      var fx=(S.facing==='user'?vW-f.boundingBox.x-f.boundingBox.width:f.boundingBox.x)*sx;
-      var fy=f.boundingBox.y*sy,fw=f.boundingBox.width*sx,fh=f.boundingBox.height*sy;
-      var fcx=fx+fw/2,fcy=fy+fh/2;
-      var dx=(fcx-S.oval.x)/(S.oval.w/2),dy=(fcy-S.oval.y)/(S.oval.h/2);
-      var inOval=dx*dx+dy*dy<0.85;
-      var goodSz=fw>S.oval.w*0.42&&fw<S.oval.w*0.96;
-      if(inOval&&goodSz){
-        paintOval(true,false);
-        setGuide('¡Perfecto! Mantén la sonrisa','Foto automática en...',true);
-        if(!S.timer)startCountdown();S.faceOk=true;
-      } else if(fw>S.oval.w){
-        paintOval(true,true);setGuide('Aléjate un poco','Estás muy cerca de la cámara',false);stopCD();S.faceOk=false;
-      } else if(fw<S.oval.w*0.3){
-        paintOval(false,false);setGuide('Acércate más','Tu cara debe llenar el óvalo',false);stopCD();S.faceOk=false;
-      } else {
-        paintOval(false,false);setGuide('Centra tu cara en el óvalo','Mira directo a la cámara 👀',false);stopCD();S.faceOk=false;
-      }
-    } else {
-      paintOval(false,false);setGuide('Centra tu cara en el óvalo','Sonríe mostrando los dientes 😁',false);stopCD();S.faceOk=false;
+async function detectLoop() {
+  var v = document.getElementById('vid');
+  if (!v || !S.detector || document.getElementById('s-cam').className.indexOf('active') < 0) return;
+
+  try {
+    var faces = await S.detector.detect(v);
+    var view = VIEWS[S.currentPhoto] || VIEWS[0];
+    var W = v.videoWidth || v.clientWidth;
+    var H = v.videoHeight || v.clientHeight;
+    var cW = document.getElementById('cv').width;
+    var cH = document.getElementById('cv').height;
+    var scaleX = cW/W, scaleY = cH/H;
+
+    if (!faces.length) {
+      paintOval('red');
+      setGuide('Centra tu cara en el óvalo', VIEWS[S.currentPhoto].hint, false);
+      setIndicators([{color:'red', text:'❌ No se detecta cara'}]);
+      clearTimer(); S.faceOk = false;
+      setTimeout(detectLoop, 150); return;
     }
-  }catch(e){}
-  setTimeout(detectLoop,140);
-}
 
-function setGuide(txt,sub,ok){
-  document.getElementById('gtxt').textContent=txt;
-  document.getElementById('gsub').textContent=sub;
-  var sh=document.getElementById('shutter');
-  sh.className='shutter'+(ok?' ready':'');
+    var f = faces[0];
+    var fx = (S.facing==='user' ? W-f.boundingBox.x-f.boundingBox.width : f.boundingBox.x) * scaleX;
+    var fy = f.boundingBox.y * scaleY;
+    var fw = f.boundingBox.width * scaleX;
+    var fh = f.boundingBox.height * scaleY;
+    var fcx = fx + fw/2, fcy = fy + fh/2;
+
+    // Check position relative to oval
+    var dx = (fcx - S.oval.x) / (S.oval.w/2);
+    var dy = (fcy - S.oval.y) / (S.oval.h/2);
+    var inOval = dx*dx + dy*dy < 0.85;
+    var msgs = [];
+    var isGood = false;
+
+    // Size checks
+    var minSize = view.oval === 'profile' ? S.oval.w * 0.35 : S.oval.w * 0.55;
+    var maxSize = view.oval === 'profile' ? S.oval.w * 1.1 : S.oval.w * 1.05;
+
+    if (fw > maxSize) {
+      msgs.push({color:'red', text:'⬆ Aléjate un poco'});
+      paintOval('red'); clearTimer(); S.faceOk = false;
+    } else if (fw < minSize) {
+      msgs.push({color:'red', text:'⬇ Acércate más'});
+      paintOval('red'); clearTimer(); S.faceOk = false;
+    } else if (!inOval) {
+      if (fcx < S.oval.x - S.oval.w*0.15) msgs.push({color:'yellow', text:'← Mueve a la derecha'});
+      else if (fcx > S.oval.x + S.oval.w*0.15) msgs.push({color:'yellow', text:'→ Mueve a la izquierda'});
+      if (fcy < S.oval.y - S.oval.h*0.12) msgs.push({color:'yellow', text:'↓ Baja la cabeza'});
+      else if (fcy > S.oval.y + S.oval.h*0.12) msgs.push({color:'yellow', text:'↑ Levanta la cabeza'});
+      paintOval('yellow'); clearTimer(); S.faceOk = false;
+    } else {
+      isGood = true;
+      if (view.id === 'frontal') msgs.push({color:'green', text:'✓ ¡Perfecto! Sonríe'});
+      else msgs.push({color:'green', text:'✓ Buena posición'});
+      paintOval('green');
+      setGuide('¡Perfecto! Mantén la posición', 'Foto automática en...', true);
+      if (!S.timer) startCountdown();
+      S.faceOk = true;
+    }
+
+    if (!isGood) {
+      setGuide(VIEWS[S.currentPhoto].label, VIEWS[S.currentPhoto].hint, false);
+    }
+    setIndicators(msgs);
+
+  } catch(e) {}
+
+  setTimeout(detectLoop, 140);
 }
 
 // ══ COUNTDOWN ══
-function startCountdown(){
-  var n=3,el=document.getElementById('cdown');
-  el.style.display='block';el.textContent=n;
-  S.timer=setInterval(function(){
+function startCountdown() {
+  var n = 3;
+  var el = document.getElementById('cdown');
+  el.style.display = 'block';
+  el.textContent = n;
+  S.timer = setInterval(function() {
     n--;
-    if(n>0){el.textContent=n}
-    else{el.style.display='none';clearTimer();if(S.faceOk)snap()}
-  },1000);
+    if (n > 0) { el.textContent = n; }
+    else {
+      el.style.display = 'none';
+      clearTimer();
+      if (S.faceOk) snap();
+    }
+  }, 1000);
 }
-function stopCD(){if(S.timer){clearTimer();document.getElementById('cdown').style.display='none'}}
-function clearTimer(){if(S.timer){clearInterval(S.timer);S.timer=null}}
+
+function clearTimer() {
+  if (S.timer) { clearInterval(S.timer); S.timer = null; }
+  var el = document.getElementById('cdown');
+  if (el) el.style.display = 'none';
+}
 
 // ══ SNAP ══
-function snap(){
-  stopCD();
-  var v=document.getElementById('vid');
+function snap() {
+  clearTimer();
+  var v = document.getElementById('vid');
   // Flash
-  var fl=document.getElementById('flash');fl.classList.add('on');setTimeout(function(){fl.classList.remove('on')},160);
-  // Capture square crop
-  var size=Math.min(v.videoWidth,v.videoHeight);
-  var c=document.createElement('canvas');c.width=size;c.height=size;
-  var ctx=c.getContext('2d');
-  var sx=(v.videoWidth-size)/2,sy=(v.videoHeight-size)/2;
+  var fl = document.getElementById('flash');
+  fl.classList.add('on');
+  setTimeout(function(){fl.classList.remove('on');}, 150);
+
+  // Crop to face area — square crop centered on oval
+  var vW = v.videoWidth, vH = v.videoHeight;
+  var cW = document.getElementById('cv').width;
+  var cH = document.getElementById('cv').height;
+
+  // Calculate crop: use oval area + 15% padding
+  var padX = S.oval.w * 0.15;
+  var padY = S.oval.h * 0.12;
+  var cropX = Math.max(0, (S.oval.x - S.oval.w/2 - padX) / cW * vW);
+  var cropY = Math.max(0, (S.oval.y - S.oval.h/2 - padY) / cH * vH);
+  var cropW = Math.min(vW - cropX, (S.oval.w + padX*2) / cW * vW);
+  var cropH = Math.min(vH - cropY, (S.oval.h + padY*2) / cH * vH);
+
+  var size = Math.min(cropW, cropH);
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+
   ctx.save();
-  if(S.facing==='user'){ctx.translate(size,0);ctx.scale(-1,1)}
-  ctx.drawImage(v,sx,sy,size,size,0,0,size,size);
+  if (S.facing === 'user') { ctx.translate(size,0); ctx.scale(-1,1); }
+  ctx.drawImage(v, cropX, cropY, size, size, 0, 0, size, size);
   ctx.restore();
-  S.b64=c.toDataURL('image/jpeg',0.92).split(',')[1];
-  stopCam2();
-  process();
+
+  var b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+  S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
+
+  // Show saved confirmation
+  var saved = document.getElementById('photo-saved');
+  saved.style.display = 'block';
+  setTimeout(function(){saved.style.display='none';}, 1000);
+
+  // Next photo or process
+  S.currentPhoto++;
+  if (S.currentPhoto < 3) {
+    S.faceOk = false;
+    clearTimer();
+    updatePhotoUI();
+    setTimeout(tryFaceDetect, 500);
+  } else {
+    stopStream();
+    processPhotos();
+  }
 }
 
-function stopCam2(){if(S.stream)S.stream.getTracks().forEach(function(t){t.stop()})}
+function stopStream() {
+  if (S.stream) S.stream.getTracks().forEach(function(t){t.stop();});
+}
 
-function fromGallery(inp){
-  if(!inp.files[0])return;
-  var r=new FileReader();
-  r.onload=function(e){S.b64=e.target.result.split(',')[1];stopCam2();process()};
-  r.readAsDataURL(inp.files[0]);
+function fromGallery(inp) {
+  if (!inp.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
+    S.currentPhoto++;
+    if (S.currentPhoto < 3) {
+      updatePhotoUI();
+      setTimeout(tryFaceDetect, 300);
+    } else {
+      stopStream();
+      processPhotos();
+    }
+  };
+  reader.readAsDataURL(inp.files[0]);
 }
 
 // ══ PROCESS ══
-async function process(){
+async function processPhotos() {
   show('s-proc');
-  document.getElementById('proc-img').src='data:image/jpeg;base64,'+S.b64;
-  // animate steps
-  var ps=['p1','p2','p3','p4'],ds=[0,2200,4400,6600];
-  ds.forEach(function(d,i){
-    setTimeout(function(){
-      ps.forEach(function(p,j){
-        document.getElementById(p).className='pstep'+(j<i?' done':j===i?' active':'');
+
+  // Show photo thumbs
+  var photosEl = document.getElementById('proc-photos');
+  photosEl.innerHTML = S.photos.map(function(p) {
+    return '<div class="proc-photo"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>';
+  }).join('');
+
+  // Animate steps
+  var steps = ['ps1','ps2','ps3','ps4','ps5'];
+  var delays = [0, 3000, 6000, 9000, 12000];
+  delays.forEach(function(d, i) {
+    setTimeout(function() {
+      steps.forEach(function(s, j) {
+        document.getElementById(s).className = 'pstep' + (j < i ? ' done' : j === i ? ' active' : '');
       });
-    },d);
+    }, d);
   });
 
-  var prompt=
-    'DENTAL SMILE SIMULATION. This is a selfie photo. '+
-    'RULES: 1) Keep EXACT same person — same face, skin, eyes, hair, expression, background. '+
-    '2) ONLY change the teeth: apply natural beautiful porcelain veneers, A1 natural white shade, oval shape. '+
-    '3) New teeth must fit perfectly inside existing mouth opening. Same smile line. Same lip position. '+
-    '4) Photorealistic result, like a real dental clinic before/after photo. '+
-    '5) Do NOT change anything outside the teeth area. '+
-    'INTENSITY: MODERATE — natural improvement, not exaggerated. Keep it believable.';
+  try {
+    // Step 1: Claude analyzes all 3 photos + generates diagnosis + quotation
+    var claudeResult = await analyzeWithClaude();
 
-  try{
-    var resp=await fetch(CFG.edgeUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.supaKey},
-      body:JSON.stringify({action:'generate_image',imageBase64:S.b64,mimeType:'image/jpeg',prompt:prompt})
-    });
-    var data=await resp.json();
-    if(data.error)throw new Error(data.error);
-    S.result=data.imageBase64?'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64:data.imageUrl;
-    if(!S.result)throw new Error('Sin imagen');
+    // Step 2: Gemini generates simulation from frontal photo
+    var geminiResult = await generateSimulation();
+
+    S.diagnosis = claudeResult;
+    S.result = geminiResult;
     showResult();
-  }catch(e){
-    alert('Error al generar: '+e.message);show('s-intro');
+
+  } catch(e) {
+    console.error(e);
+    alert('Error al procesar: ' + e.message);
+    show('s-intro');
   }
 }
 
-function showResult(){
-  var bSrc='data:image/jpeg;base64,'+S.b64;
-  document.getElementById('img-b').src=bSrc;
-  document.getElementById('img-a').src=S.result;
+async function analyzeWithClaude() {
+  var precios = S.precios || PRECIOS_DEFAULT;
+  var preciosTexto = precios.map(function(p) {
+    return '- ' + p.nombre + ': $' + p.precio.toLocaleString() + ' MXN (' + p.unidad + ')';
+  }).join('\n');
+
+  var tc = CFG.tenantConfig || {};
+  var baseRole = tc.claudePrompt || 'Eres un experto en estética dental y carillas de porcelana con 15 años de experiencia. Hablas en español de México con un tono profesional pero accesible para el paciente.';
+  var questionnaireCtx = '';
+  if (S.questionnaire) {
+    var q = S.questionnaire;
+    questionnaireCtx = '\nCONTEXTO DEL PACIENTE:\n' +
+      '- Quejas principales: ' + (q.quejas||[]).join(', ') + '\n' +
+      '- Resultado deseado: ' + (q.resultado||'') + '\n' +
+      '- Tono deseado: ' + (q.tono||'') + '\n' +
+      '- Dientes a tratar: ' + (q.piezas||'') + '\n' +
+      '- Historial: ' + (q.historial||'Sin tratamiento previo') + '\n';
+  }
+  if (tc.materiales) questionnaireCtx += '- Materiales del consultorio: ' + tc.materiales + '\n';
+  var prompt = baseRole + '\n\nAnaliza estas ' + S.photos.length + ' fotografías clínicas. ' +
+    'Responde ÚNICAMENTE con JSON válido, sin markdown.\n' +
+    questionnaireCtx + '\n' +
+    'PRECIOS DEL CONSULTORIO:\n' + preciosTexto + '\n\n' +
+    '{\n' +
+    '  "score": 0-100,\n' +
+    '  "scoreLbl": "Excelente|Bueno|Regular|Necesita atención",\n' +
+    '  "hallazgos": [\n' +
+    '    {"texto": "hallazgo en lenguaje paciente (no clínico)", "color": "#5B47E0|#E0473B|#D97706|#16A34A"}\n' +
+    '  ],\n' +
+    '  "plan": ["paso 1 en lenguaje simple", "paso 2", "paso 3"],\n' +
+    '  "cotizacion": [\n' +
+    '    {"procedimiento": "nombre del procedimiento", "precioId": "id_del_precio", "piezas": 1, "precio_unit": 8000, "subtotal": 8000}\n' +
+    '  ],\n' +
+    '  "resumen": "2-3 líneas de resumen para el paciente en español casual"\n' +
+    '}';
+
+  // Send all photos to Claude
+  var content = S.photos.map(function(p, i) {
+    return {type:'image', source:{type:'base64', media_type:'image/jpeg', data: p.b64}};
+  });
+  content.push({type:'text', text: prompt});
+
+  var resp = await fetch(CFG.edgeUrl, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    body: JSON.stringify({
+      messages: [{role:'user', content: content}],
+      max_tokens: 1200
+    })
+  });
+  var data = await resp.json();
+  var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+  var clean = txt.replace(/```json|```/g,'').trim();
+  var match = clean.match(/\{[\s\S]*\}/);
+  if (match) clean = match[0];
+  return JSON.parse(clean);
+}
+
+async function generateSimulation() {
+  var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+  var tc = CFG.tenantConfig || {};
+  var basePrompt = 'DENTAL SMILE SIMULATION. Keep the EXACT same person — same face, skin, eyes, hair, background. ONLY change the teeth. Fit perfectly inside existing mouth opening. Same lips. Photorealistic dental result. Do NOT change anything outside teeth area.';
+  var stylePrompt = '';
+  if (S.questionnaire) {
+    var q = S.questionnaire;
+    stylePrompt = ' TOOTH COLOR: ' + (q.tono || 'A1 natural white') + '.';
+    stylePrompt += ' DESIRED RESULT: ' + (q.resultado || 'natural beautiful').toLowerCase() + '.';
+    stylePrompt += ' TREAT: ' + (q.piezas || '6 upper teeth') + '.';
+    if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
+  }
+  var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
+  var prompt = basePrompt + stylePrompt + customPrompt;
+
+  var resp = await fetch(CFG.edgeUrl, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
+  });
+  var data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
+  if (!url) throw new Error('Sin imagen');
+  return url;
+}
+
+// ══ RESULT ══
+function showResult() {
+  var d = S.diagnosis || {};
+  var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+
+  // BA slider
+  document.getElementById('img-b').src = 'data:image/jpeg;base64,' + frontal.b64;
+  document.getElementById('img-a').src = S.result;
+
+  // Score
+  document.getElementById('r-score').textContent = d.score || '—';
+  document.getElementById('r-score-lbl').textContent = 'Score Estético · ' + (d.scoreLbl || '');
+  document.getElementById('r-score-sub').textContent = d.resumen || '';
+
+  // 3 photo thumbs
+  document.getElementById('res-photos').innerHTML = S.photos.map(function(p, i) {
+    var labels = ['Frontal','Perfil Der.','Perfil Izq.'];
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+      '<div class="res-thumb"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
+      '<span class="res-thumb-lbl">' + (labels[i]||'Foto '+(i+1)) + '</span></div>';
+  }).join('');
+
+  // Hallazgos
+  var hals = d.hallazgos || [];
+  document.getElementById('r-hallazgos').innerHTML = hals.length ?
+    hals.map(function(h) {
+      return '<div class="hallazgo-item">' +
+        '<div class="h-dot" style="background:' + (h.color||'#5B47E0') + '"></div>' +
+        '<div class="h-txt">' + h.texto + '</div></div>';
+    }).join('') : '<div class="h-txt" style="color:rgba(255,255,255,.4)">Sin hallazgos detectados.</div>';
+
+  // Plan
+  var plan = d.plan || [];
+  document.getElementById('r-plan').innerHTML = plan.length ?
+    plan.map(function(p, i) {
+      return '<div class="plan-step">' +
+        '<div class="plan-circle">' + (i+1) + '</div>' +
+        '<div class="plan-txt">' + p + '</div></div>';
+    }).join('') : '';
+
+  // Cotización
+  var cots = d.cotizacion || [];
+  var total = cots.reduce(function(a,c){return a+(c.subtotal||0);},0);
+  document.getElementById('r-cot').innerHTML = cots.map(function(c) {
+    return '<div class="cot-item">' +
+      '<div><div class="cot-name">' + c.procedimiento + '</div>' +
+      '<div class="cot-detail">' + (c.piezas||1) + ' pieza' + ((c.piezas||1)>1?'s':'') + ' · $' + (c.precio_unit||0).toLocaleString() + ' c/u</div></div>' +
+      '<div class="cot-price">$' + (c.subtotal||0).toLocaleString() + '</div></div>';
+  }).join('');
+  document.getElementById('r-total').innerHTML = '$' + total.toLocaleString() + ' <span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">MXN</span>';
+
   show('s-res');
-  initSlider();
-  setTimeout(function(){var t=document.getElementById('ba-tip');if(t)t.style.opacity='0';},3200);
+  initBASlider();
+  setTimeout(function(){
+    var tip = document.getElementById('ba-tip');
+    if (tip) tip.style.opacity = '0';
+  }, 3500);
 }
 
 // ══ BA SLIDER ══
-function initSlider(){
-  var wrap=document.getElementById('ba-wrap'),over=document.getElementById('ba-over'),line=document.getElementById('ba-line');
-  var drag=false;
-  function mv(x){
-    var r=wrap.getBoundingClientRect();
-    var p=Math.max(5,Math.min(95,(x-r.left)/r.width*100));
-    over.style.clipPath='inset(0 '+(100-p)+'% 0 0)';
-    line.style.left=p+'%';
+function initBASlider() {
+  var wrap = document.getElementById('ba-wrap');
+  var over = document.getElementById('ba-over');
+  var line = document.getElementById('ba-line');
+  var drag = false;
+
+  var imgB = document.getElementById('img-b');
+  function fixH() {
+    if (!imgB.naturalHeight) return;
+    var r = imgB.naturalHeight / imgB.naturalWidth;
+    wrap.style.height = Math.min(window.innerHeight*0.55, wrap.offsetWidth*r) + 'px';
   }
-  wrap.addEventListener('mousedown',function(e){drag=true;mv(e.clientX)});
-  document.addEventListener('mousemove',function(e){if(drag)mv(e.clientX)});
-  document.addEventListener('mouseup',function(){drag=false});
-  wrap.addEventListener('touchstart',function(e){drag=true;mv(e.touches[0].clientX)},{passive:true});
-  wrap.addEventListener('touchmove',function(e){if(drag)mv(e.touches[0].clientX)},{passive:true});
-  wrap.addEventListener('touchend',function(){drag=false},{passive:true});
+  if (imgB.complete) fixH(); else imgB.onload = fixH;
+
+  function mv(x) {
+    var r = wrap.getBoundingClientRect();
+    var p = Math.max(5, Math.min(95, (x-r.left)/r.width*100));
+    over.style.clipPath = 'inset(0 '+(100-p)+'% 0 0)';
+    line.style.left = p + '%';
+  }
+  wrap.addEventListener('mousedown', function(e){drag=true;mv(e.clientX);});
+  document.addEventListener('mousemove', function(e){if(drag)mv(e.clientX);});
+  document.addEventListener('mouseup', function(){drag=false;});
+  wrap.addEventListener('touchstart', function(e){drag=true;mv(e.touches[0].clientX);},{passive:true});
+  wrap.addEventListener('touchmove', function(e){if(drag)mv(e.touches[0].clientX);},{passive:true});
+  wrap.addEventListener('touchend', function(){drag=false;},{passive:true});
+
   // Reveal animation
-  var p=100,id=setInterval(function(){p-=3;over.style.clipPath='inset(0 '+Math.max(50,p)+'% 0 0)';line.style.left=Math.min(50,100-p)+'%';if(p<=50)clearInterval(id)},14);
+  var p = 100;
+  var anim = setInterval(function(){
+    p -= 3;
+    over.style.clipPath = 'inset(0 '+Math.max(50,p)+'% 0 0)';
+    line.style.left = Math.min(50,100-p)+'%';
+    if (p <= 50) clearInterval(anim);
+  }, 14);
 }
 
-function onBeforeLoad(){
-  // Sync after-image to same dimensions as before-image
-  var imgB=document.getElementById('img-b');
-  var imgA=document.getElementById('img-a');
-  imgA.style.width=imgB.offsetWidth+'px';
-  imgA.style.height=imgB.offsetHeight+'px';
+// ══ LEAD + WHATSAPP ══
+async function enviar() {
+  var nombre = document.getElementById('fn').value.trim();
+  var tel = document.getElementById('ft').value.trim();
+  var email = document.getElementById('fe').value.trim();
+  if (!nombre) { document.getElementById('fn').focus(); return; }
+  if (!tel) { document.getElementById('ft').focus(); return; }
+
+  var d = S.diagnosis || {};
+  var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
+
+  // Save lead to Supabase
+  try {
+    await fetch(CFG.supaUrl + '/rest/v1/camila_leads', {
+      method: 'POST',
+      headers: {'apikey':CFG.supaKey,'Authorization':'Bearer '+CFG.supaKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({
+        nombre: nombre, telefono: tel, email: email||null,
+        score: d.score||0, total_cotizacion: total,
+        tiene_simulacion: !!S.result,
+        fotos_count: S.photos.length,
+        created_at: new Date().toISOString()
+      })
+    });
+  } catch(e) {}
+
+  // Build WhatsApp message
+  var hallazgos = (d.hallazgos||[]).map(function(h){return '• '+h.texto;}).join('\n');
+  var msg = '¡Hola! 😊 Soy *' + nombre + '* y acabo de ver mi simulación de sonrisa en CAMILA.\n\n' +
+    '*Score estético:* ' + (d.score||'—') + '/100\n\n' +
+    '*Lo que encontraron:*\n' + hallazgos + '\n\n' +
+    '*Cotización estimada:* $' + total.toLocaleString() + ' MXN\n\n' +
+    'Me gustaría agendar una consulta de diseño. Mi número es ' + tel;
+
+  window.open('https://wa.me/' + CFG.waNum + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
-// ══ LEAD ══
-async function enviar(){
-  var n=document.getElementById('fn').value.trim();
-  var t=document.getElementById('ft').value.trim();
-  var e=document.getElementById('fe').value.trim();
-  if(!n){document.getElementById('fn').focus();return}
-  if(!t){document.getElementById('ft').focus();return}
-  // Send to Supabase (silent)
-  fetch('https://gfogifozhhbzxhcbecgf.supabase.co/rest/v1/camila_leads',{
-    method:'POST',
-    headers:{'apikey':CFG.supaKey,'Authorization':'Bearer '+CFG.supaKey,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({nombre:n,telefono:t,email:e||null,tiene_simulacion:!!S.result,created_at:new Date().toISOString()})
-  }).catch(function(){});
-  // WhatsApp
-  var msg='¡Hola! 😊 Soy *'+n+'* y acabo de ver mi simulación de sonrisa en CAMILA. Me gustaría agendar una consulta. Mi número es '+t;
-  window.open('https://wa.me/'+CFG.waNum+'?text='+encodeURIComponent(msg),'_blank');
+function dl() {
+  if (!S.result) return;
+  var a = document.createElement('a');
+  a.href = S.result;
+  a.download = 'mi-sonrisa-camila.png';
+  a.click();
 }
 
-function dl(){
-  if(!S.result)return;
-  var a=document.createElement('a');a.href=S.result;a.download='mi-sonrisa-camila.png';a.click();
+function redo() {
+  S.photos = []; S.currentPhoto = 0; S.result = null; S.diagnosis = null;
+  show('s-intro');
 }
-
-function redo(){S.b64=null;S.result=null;show('s-intro')}
 </script>
 </body>
 </html>

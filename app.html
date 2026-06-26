@@ -584,7 +584,14 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .pam-logout{width:100%;height:48px;border-radius:12px;background:var(--color-surface-raised);border:1px solid var(--color-border);font-size:14px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 150ms ease}
 .pam-logout:active{background:var(--color-border)}
 
-/* ── SHIMMER SKELETON ── */
+/* ── SIM CONFIG ── */
+.proto-opt{flex:1;border:2px solid var(--color-border);border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:all 150ms;background:var(--color-surface-raised)}
+.proto-opt:hover{border-color:var(--color-primary)}
+.proto-opt.active{border-color:var(--color-primary);background:var(--color-primary-subtle)}
+.q-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;font-size:12px;font-weight:500;border:1px solid var(--color-border);background:var(--color-surface);cursor:pointer;transition:all 150ms;color:var(--color-text-secondary)}
+.q-tag input{width:12px;height:12px;cursor:pointer;accent-color:var(--color-primary)}
+.q-tag:has(input:checked){border-color:var(--color-primary);background:var(--color-primary-subtle);color:var(--color-primary)}
+
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 .skeleton{background:linear-gradient(90deg,var(--color-surface-raised) 25%,var(--color-border) 50%,var(--color-surface-raised) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}
 
@@ -713,6 +720,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="nav-item" onclick="ir('precios')">
         <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
         Mis Precios
+      </div>
+      <div class="nav-item" onclick="ir('sim-config')">
+        <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+        Simulación
       </div>
       <div class="nav-item" onclick="ir('mi-cuenta')">
         <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
@@ -1304,8 +1315,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             </div>
             <div class="acc-row">
               <button class="btn btn-secondary" onclick="nuevoCaso()">↩ Nuevo Diseño</button>
-              <button class="btn btn-primary" onclick="generarPDF()">📄 Descargar PDF</button>
-              <button class="btn btn-secondary" onclick="copiarTexto()">📋 Copiar texto</button>
+              <button class="btn btn-primary" onclick="compartirConPaciente()">📤 Compartir con paciente</button>
+              <button class="btn btn-secondary" onclick="generarPDF()">📄 PDF</button>
+              <button class="btn btn-secondary" onclick="copiarTexto()">📋 Copiar</button>
             </div>
           </div>
         </div>
@@ -1368,6 +1380,130 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <button class="btn btn-primary" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar información</button>
         </div>
       </div>
+
+      <!-- ═══ CONFIGURACIÓN SIMULACIÓN ═══ -->
+      <div class="pantalla" id="p-sim-config">
+
+        <!-- Link del paciente -->
+        <div class="card">
+          <div class="card-title">🔗 Link de Simulación para Pacientes</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Comparte este link con tus pacientes. Se abrirá con el branding y configuración de tu consultorio.</p>
+          <div style="display:flex;gap:8px;align-items:center;background:var(--color-surface-raised);border-radius:10px;padding:10px 14px;border:1px solid var(--color-border)">
+            <span style="font-size:12px;color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sim-link-txt">Guardando configuración primero...</span>
+            <button class="btn btn-secondary btn-sm" onclick="copiarLinkSim()">Copiar</button>
+          </div>
+          <button class="btn btn-primary" style="margin-top:10px;width:100%;justify-content:center" onclick="compartirLinkSim()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Compartir por WhatsApp
+          </button>
+        </div>
+
+        <!-- Branding -->
+        <div class="card">
+          <div class="card-title">🎨 Branding del Consultorio</div>
+          <div class="form-grid">
+            <div class="fg"><label>Nombre que ven los pacientes</label><input type="text" id="sc-nombre" placeholder="Ej. Dr. Hernán Partida"></div>
+            <div class="fg"><label>Especialidad (subtítulo)</label><input type="text" id="sc-especialidad" placeholder="Ej. Especialista en Estética Dental"></div>
+            <div class="fg"><label>WhatsApp para leads</label><input type="tel" id="sc-whatsapp" placeholder="523312345678"></div>
+            <div class="fg"><label>Color principal (hex)</label><input type="text" id="sc-color" placeholder="#5B47E0" maxlength="7"></div>
+            <div class="fg full"><label>Mensaje de bienvenida para el paciente</label><textarea id="sc-bienvenida" rows="2" placeholder="Ej. Descubre cómo luciría tu sonrisa con carillas de porcelana..."></textarea></div>
+          </div>
+        </div>
+
+        <!-- Protocolo de fotos -->
+        <div class="card">
+          <div class="card-title">📸 Protocolo de Fotografía</div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--color-text-secondary);margin-bottom:8px">¿Cuántas fotos pides al paciente?</div>
+            <div style="display:flex;gap:8px">
+              <div class="proto-opt" id="proto-1" onclick="setProto(1,this)">
+                <div style="font-size:18px;margin-bottom:4px">1️⃣</div>
+                <div style="font-size:11px;font-weight:600">Solo frontal</div>
+                <div style="font-size:10px;color:var(--color-text-tertiary)">Rápido</div>
+              </div>
+              <div class="proto-opt active" id="proto-3" onclick="setProto(3,this)">
+                <div style="font-size:18px;margin-bottom:4px">3️⃣</div>
+                <div style="font-size:11px;font-weight:600">3 vistas</div>
+                <div style="font-size:10px;color:var(--color-text-tertiary)">Recomendado</div>
+              </div>
+              <div class="proto-opt" id="proto-5" onclick="setProto(5,this)">
+                <div style="font-size:18px;margin-bottom:4px">5️⃣</div>
+                <div style="font-size:11px;font-weight:600">5 vistas</div>
+                <div style="font-size:10px;color:var(--color-text-tertiary)">Completo</div>
+              </div>
+            </div>
+          </div>
+          <div class="fg">
+            <label>Instrucciones adicionales para el paciente (opcional)</label>
+            <textarea id="sc-instrucciones" rows="2" placeholder="Ej. Retira labial antes de tomar las fotos. Busca buena iluminación..."></textarea>
+          </div>
+        </div>
+
+        <!-- Cuestionario -->
+        <div class="card">
+          <div class="card-title">📋 Cuestionario Pre-Simulación</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">El paciente responde esto antes de tomar las fotos. Personaliza las opciones según tus tratamientos.</p>
+
+          <div style="margin-bottom:14px">
+            <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:8px">Pregunta 1 — ¿Qué te molesta de tu sonrisa?</div>
+            <div id="q1-opts" style="display:flex;flex-wrap:wrap;gap:6px">
+              <label class="q-tag"><input type="checkbox" checked> Color amarillo</label>
+              <label class="q-tag"><input type="checkbox" checked> Espacios entre dientes</label>
+              <label class="q-tag"><input type="checkbox" checked> Dientes cortos</label>
+              <label class="q-tag"><input type="checkbox" checked> Dientes chuecos</label>
+              <label class="q-tag"><input type="checkbox" checked> Forma irregular</label>
+              <label class="q-tag"><input type="checkbox" checked> Encías muy visibles</label>
+              <label class="q-tag"><input type="checkbox" checked> Dientes desgastados</label>
+              <label class="q-tag"><input type="checkbox"> Fractura o astilla</label>
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:8px">Pregunta 2 — Resultado deseado</div>
+            <div id="q2-opts" style="display:flex;flex-wrap:wrap;gap:6px">
+              <label class="q-tag"><input type="checkbox" checked> Natural</label>
+              <label class="q-tag"><input type="checkbox" checked> Blanqueado natural</label>
+              <label class="q-tag"><input type="checkbox" checked> Hollywood</label>
+              <label class="q-tag"><input type="checkbox" checked> Solo corregir</label>
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:8px">Tonos disponibles en tu consultorio</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <label class="q-tag"><input type="checkbox" checked> A1</label>
+              <label class="q-tag"><input type="checkbox" checked> A2</label>
+              <label class="q-tag"><input type="checkbox"> A3</label>
+              <label class="q-tag"><input type="checkbox" checked> B1</label>
+              <label class="q-tag"><input type="checkbox"> B2</label>
+              <label class="q-tag"><input type="checkbox" checked> Hollywood White</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instrucciones IA -->
+        <div class="card">
+          <div class="card-title">🤖 Instrucciones para la IA</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza cómo la IA genera el diagnóstico y la simulación para tus pacientes.</p>
+
+          <div class="fg">
+            <label>Instrucción para Gemini (simulación visual)</label>
+            <textarea id="sc-gemini-prompt" rows="3" placeholder="Ej. Genera carillas de porcelana e.max ultra-realistas. Mantén exactamente la misma persona, solo cambia los dientes. Resultado natural, no exagerado..."></textarea>
+          </div>
+          <div class="fg">
+            <label>Instrucción para Claude (diagnóstico y cotización)</label>
+            <textarea id="sc-claude-prompt" rows="3" placeholder="Ej. Eres un experto en estética dental con 15 años de experiencia en carillas. Genera un diagnóstico detallado pero en lenguaje accesible para el paciente..."></textarea>
+          </div>
+          <div class="fg">
+            <label>Materiales que usas (para la cotización)</label>
+            <textarea id="sc-materiales" rows="2" placeholder="Ej. Carillas e.max IPS Ivoclar, Blanqueamiento Zoom, Composite Filtek 3M..."></textarea>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="guardarSimConfig()">💾 Guardar configuración de simulación</button>
+        <div style="height:20px"></div>
+      </div>
+
 
       <!-- ═══ MI CUENTA ═══ -->
       <div class="pantalla" id="p-mi-cuenta">
@@ -1692,6 +1828,7 @@ var TITULOS = {
   notificaciones: 'Notificaciones',
   precios: 'Mis Precios',
   'mi-cuenta': 'Mi Cuenta',
+  'sim-config': 'Configuración de Simulación',
 };
 
 function ir(p) {
@@ -1709,6 +1846,7 @@ function ir(p) {
   if (p === 'notificaciones') { cargarNotificaciones(); marcarTodasLeidas(); }
   if (p === 'mi-cuenta') renderMiCuenta();
   if (p === 'nuevo-diseno') resetNuevoDiseno();
+  if (p === 'sim-config') { cargarSimConfig(); updateSimLink(); }
 }
 
 // ══════════════════════════════════════════
@@ -2031,7 +2169,97 @@ async function irAPaso2() {
 }
 
 // ══════════════════════════════════════════
-// MOBILE NAV SYSTEM
+// CONFIGURACIÓN DE SIMULACIÓN
+// ══════════════════════════════════════════
+var simProtoCount = 3;
+
+function setProto(n, el) {
+  simProtoCount = n;
+  document.querySelectorAll('.proto-opt').forEach(function(b) { b.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+function getSimConfig() {
+  return JSON.parse(localStorage.getItem('camila_sim_config_' + tenantId) || '{}');
+}
+
+function cargarSimConfig() {
+  var cfg = getSimConfig();
+  if (cfg.nombre) document.getElementById('sc-nombre').value = cfg.nombre;
+  if (cfg.especialidad) document.getElementById('sc-especialidad').value = cfg.especialidad;
+  if (cfg.whatsapp) document.getElementById('sc-whatsapp').value = cfg.whatsapp;
+  if (cfg.color) document.getElementById('sc-color').value = cfg.color;
+  if (cfg.bienvenida) document.getElementById('sc-bienvenida').value = cfg.bienvenida;
+  if (cfg.instrucciones) document.getElementById('sc-instrucciones').value = cfg.instrucciones;
+  if (cfg.geminiPrompt) document.getElementById('sc-gemini-prompt').value = cfg.geminiPrompt;
+  if (cfg.claudePrompt) document.getElementById('sc-claude-prompt').value = cfg.claudePrompt;
+  if (cfg.materiales) document.getElementById('sc-materiales').value = cfg.materiales;
+  if (cfg.protoCount) {
+    simProtoCount = cfg.protoCount;
+    document.querySelectorAll('.proto-opt').forEach(function(b) { b.classList.remove('active'); });
+    var btn = document.getElementById('proto-' + cfg.protoCount);
+    if (btn) btn.classList.add('active');
+  }
+  // Update link
+  updateSimLink();
+}
+
+function updateSimLink() {
+  var base = window.location.origin + window.location.pathname.replace('app.html','');
+  var link = base + 'simulacion.html?tenant=' + tenantId;
+  var el = document.getElementById('sim-link-txt');
+  if (el) el.textContent = link;
+  window._simLink = link;
+}
+
+async function guardarSimConfig() {
+  var cfg = {
+    nombre: document.getElementById('sc-nombre').value.trim(),
+    especialidad: document.getElementById('sc-especialidad').value.trim(),
+    whatsapp: document.getElementById('sc-whatsapp').value.trim(),
+    color: document.getElementById('sc-color').value.trim(),
+    bienvenida: document.getElementById('sc-bienvenida').value.trim(),
+    instrucciones: document.getElementById('sc-instrucciones').value.trim(),
+    geminiPrompt: document.getElementById('sc-gemini-prompt').value.trim(),
+    claudePrompt: document.getElementById('sc-claude-prompt').value.trim(),
+    materiales: document.getElementById('sc-materiales').value.trim(),
+    protoCount: simProtoCount,
+  };
+  localStorage.setItem('camila_sim_config_' + tenantId, JSON.stringify(cfg));
+
+  // Also save to Supabase if available
+  try {
+    var config = (tenantData.config) || {};
+    config.sim = cfg;
+    await sb.from('camila_tenants').update({config: config}).eq('id', tenantId);
+  } catch(e) {}
+
+  updateSimLink();
+  alert('✅ Configuración guardada. Comparte el link con tus pacientes.');
+}
+
+function copiarLinkSim() {
+  var link = window._simLink || '';
+  navigator.clipboard.writeText(link).then(function() {
+    alert('✅ Link copiado al portapapeles');
+  });
+}
+
+function compartirLinkSim() {
+  var link = window._simLink || '';
+  var cfg = getSimConfig();
+  var msg = '😊 Hola! Te comparto el simulador de sonrisa de ' + (cfg.nombre || 'mi consultorio') + '.\n\n' +
+    'En menos de 60 segundos podrás ver cómo luciría tu sonrisa con carillas de porcelana, además de recibir un diagnóstico y cotización personalizada.\n\n' +
+    '👇 Ábrelo aquí:\n' + link;
+  if (navigator.share) {
+    navigator.share({title: 'Simula tu sonrisa', text: msg, url: link}).catch(function(){});
+  } else {
+    var waUrl = 'https://wa.me/?text=' + encodeURIComponent(msg);
+    window.open(waUrl, '_blank');
+  }
+}
+
+// ══════════════════════════════════════════
 // ══════════════════════════════════════════
 var fabOpen = false;
 var pamOpen = false;
@@ -2587,7 +2815,72 @@ function marcarTodasLeidas() {
 }
 
 // ══════════════════════════════════════════
-// GENERAR PDF PROFESIONAL
+// COMPARTIR CON PACIENTE
+// ══════════════════════════════════════════
+function compartirConPaciente() {
+  if (!analisisResultado) { alert('Genera el diagnóstico primero.'); return; }
+
+  var config = (tenantData && tenantData.config) || {};
+  var nombreCaso = document.getElementById('f-caso-nombre').value.trim() || 'Diseño de Sonrisa';
+  var pacienteId = document.getElementById('f-caso-paciente').value;
+
+  // Buscar nombre del paciente
+  var nomPaciente = nombreCaso;
+  if (pacienteId) {
+    var pac = todosLosPacientes && todosLosPacientes.find(function(p) { return p.id === pacienteId; });
+    if (pac) nomPaciente = (pac.nombre || '') + ' ' + (pac.apellido || '');
+  }
+
+  var r = analisisResultado;
+  var cots = r.cotizacion || [];
+  var total = cots.reduce(function(a,c) { return a + (c.subtotal||0); }, 0);
+
+  // Construir objeto del caso
+  var caso = {
+    nombre_paciente: nomPaciente.trim(),
+    score: r.score,
+    hallazgos: r.hallazgos || [],
+    plan: r.plan || [],
+    cotizacion: cots,
+    total: total,
+    texto_paciente: r.texto_paciente || '',
+    doctor_nombre: config.doctor || tenantData.nombre || 'Dr.',
+    doctor_especialidad: config.especialidad || 'Especialista en Estética Dental',
+    consultorio: config.consultorio || '',
+    whatsapp: config.whatsapp || config.tel || '',
+    telefono: config.tel || '',
+    fecha: new Date().toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'}),
+    foto_antes: imagenes[0] || null,
+    foto_despues: imagenAfterUrl ? (imagenAfterUrl.startsWith('data:') ? imagenAfterUrl : imagenAfterUrl) : null,
+  };
+
+  // Guardar en localStorage para preview
+  localStorage.setItem('camila_caso_preview', JSON.stringify(caso));
+
+  // Abrir la página del paciente
+  var url = window.location.origin + window.location.pathname.replace('app.html','') + 'caso.html';
+  var win = window.open(url, '_blank');
+
+  // Mostrar modal con opciones de compartir
+  setTimeout(function() {
+    var waMsg = '¡Hola ' + nomPaciente.trim() + '! 😊 Aquí está tu Diseño de Sonrisa Digital personalizado.\n\nPuedes ver:\n✅ Cómo quedarían tus dientes\n✅ El plan de tratamiento\n✅ Tu cotización\n\n👇 Ábrelo aquí:\n' + url;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Tu Diseño de Sonrisa · CAMILA',
+        text: waMsg,
+        url: url,
+      }).catch(function() {});
+    } else {
+      navigator.clipboard.writeText(waMsg).then(function() {
+        alert('✅ Enlace y mensaje copiados al portapapeles. Pégalos en WhatsApp.');
+      }).catch(function() {
+        alert('Abre este link con el paciente:\n\n' + url);
+      });
+    }
+  }, 500);
+}
+
+// ══════════════════════════════════════════
 // ══════════════════════════════════════════
 function generarPDF() {
   var r = analisisResultado || {};
