@@ -1326,11 +1326,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <!-- ═══ HISTORIAL ═══ -->
       <div class="pantalla" id="p-historial">
         <div class="card">
-          <div class="card-header">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
             <div class="card-title">Historial de Casos</div>
+            <button onclick="window.open('simulacion.html','_blank')" style="height:32px;padding:0 12px;border-radius:8px;background:var(--color-primary);color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo caso
+            </button>
           </div>
           <div id="historial-lista">
-            <div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los diseños completados aparecerán aquí.</p></div>
+            <div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los casos guardados desde la simulación aparecerán aquí.</p></div>
           </div>
         </div>
       </div>
@@ -2680,19 +2684,199 @@ function copiarTexto() {
 // ══════════════════════════════════════════
 // HISTORIAL
 // ══════════════════════════════════════════
-function cargarHistorial() {
-  var cots = JSON.parse(localStorage.getItem('camila_cotizaciones_' + tenantId) || '[]');
+async function cargarHistorial() {
   var el = document.getElementById('historial-lista');
-  if (!cots.length) {
-    el.innerHTML = '<div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los diseños completados aparecerán aquí.</p></div>';
+  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--color-text-tertiary);font-size:13px">Cargando casos...</div>';
+
+  var casos = [];
+
+  // Try Supabase first
+  try {
+    var res = await sb.from('camila_casos')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', {ascending: false})
+      .limit(50);
+    if (res.data && res.data.length) casos = res.data;
+  } catch(e) {}
+
+  // Fallback to localStorage
+  if (!casos.length) {
+    casos = JSON.parse(localStorage.getItem('camila_casos_' + tenantId) || '[]');
+  }
+
+  // Also merge legacy cotizaciones
+  var legacyCots = JSON.parse(localStorage.getItem('camila_cotizaciones_' + tenantId) || '[]');
+  legacyCots.forEach(function(c) {
+    if (!casos.find(function(x){return x.nombre_paciente === c.nombre;})) {
+      casos.push({
+        nombre_paciente: c.nombre,
+        created_at: c.fecha,
+        score: c.score,
+        total_cotizacion: c.total,
+        _legacy: true,
+      });
+    }
+  });
+
+  if (!casos.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los casos guardados desde la simulación aparecerán aquí.</p></div>';
     return;
   }
-  el.innerHTML = cots.slice().reverse().map(function(c) {
-    return '<div class="hist-item">' +
-      '<div class="hist-info"><h4>' + c.nombre + '</h4><p>' + c.fecha + ' · ' + (c.motivo||'') + ' · Score: ' + c.score + '/10</p></div>' +
-      '<div class="hist-right"><div class="hist-total">$' + (c.total||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--texto3)">MXN</div></div>' +
+
+  el.innerHTML = casos.map(function(c, i) {
+    var diag = {};
+    try { diag = typeof c.diagnostico === 'string' ? JSON.parse(c.diagnostico) : (c.diagnostico || {}); } catch(e) {}
+    var fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    var score = c.score || 0;
+    var total = c.total_cotizacion || 0;
+    var scoreColor = score >= 80 ? '#16A34A' : score >= 60 ? '#D97706' : '#DC2626';
+    var hasSim = !!c.simulacion_url;
+    var hasFoto = !!c.foto_frontal;
+
+    return '<div class="hist-item" onclick="verCaso(' + i + ')" style="cursor:pointer" id="caso-item-' + i + '">' +
+      '<div style="display:flex;gap:12px;align-items:flex-start">' +
+
+      // Avatar / foto thumb
+      (hasFoto ?
+        '<div style="width:48px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--color-surface-raised)">' +
+        '<img src="data:image/jpeg;base64,' + c.foto_frontal + '" style="width:100%;height:100%;object-fit:cover">' +
+        '</div>' :
+        '<div style="width:48px;height:56px;border-radius:8px;background:var(--color-surface-raised);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">👤</div>'
+      ) +
+
+      '<div style="flex:1;min-width:0">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">' +
+      '<div style="font-size:14px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.nombre_paciente || 'Sin nombre') + '</div>' +
+      (hasSim ? '<span style="font-size:9px;font-weight:700;background:rgba(91,71,224,.12);color:var(--color-primary);border-radius:99px;padding:2px 6px">✨ SIM</span>' : '') +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">' + fecha + '</div>' +
+      '<div style="display:flex;gap:8px;align-items:center">' +
+      '<div style="font-size:11px;font-weight:700;color:' + scoreColor + '">' + score + '/100</div>' +
+      '<div style="font-size:11px;color:var(--color-text-tertiary)">·</div>' +
+      '<div style="font-size:11px;font-weight:600;color:var(--color-text-secondary)">$' + total.toLocaleString() + ' MXN</div>' +
+      (c.telefono ? '<div style="font-size:11px;color:var(--color-text-tertiary)">· ' + c.telefono + '</div>' : '') +
+      '</div>' +
+      '</div>' +
+
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:4px"><polyline points="9 18 15 12 9 6"/></svg>' +
+      '</div>' +
       '</div>';
   }).join('');
+
+  // Store for detail view
+  window._historialCasos = casos;
+}
+
+function verCaso(i) {
+  var casos = window._historialCasos || [];
+  var c = casos[i];
+  if (!c) return;
+
+  var diag = {};
+  try { diag = typeof c.diagnostico === 'string' ? JSON.parse(c.diagnostico) : (c.diagnostico || {}); } catch(e) {}
+
+  var fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  var total = c.total_cotizacion || 0;
+  var hallazgos = (diag.hallazgos || c.hallazgos || []);
+  var plan = (diag.plan || c.plan || []);
+  var cot = (diag.cotizacion || c.cotizacion || []);
+
+  var modal = document.getElementById('modal-caso-detalle');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-caso-detalle';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center';
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = '<div style="background:var(--color-surface);border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:20px">' +
+
+    // Header
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
+    '<div>' +
+    '<div style="font-size:17px;font-weight:700;color:var(--color-text-primary)">' + (c.nombre_paciente||'Sin nombre') + '</div>' +
+    '<div style="font-size:12px;color:var(--color-text-tertiary)">' + fecha + '</div>' +
+    '</div>' +
+    '<button onclick="document.getElementById(\'modal-caso-detalle\').remove()" style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-raised);border:1px solid var(--color-border);cursor:pointer;font-size:16px;color:var(--color-text-secondary)">✕</button>' +
+    '</div>' +
+
+    // Fotos
+    (c.foto_frontal ? '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+    ['foto_frontal','foto_perfil_der','foto_perfil_izq'].map(function(k,i){
+      var lbl = ['Frontal','Perfil Der.','Perfil Izq.'][i];
+      return c[k] ? '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+        '<div style="width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--color-border)">' +
+        '<img src="data:image/jpeg;base64,' + c[k] + '" style="width:100%;height:100%;object-fit:cover"></div>' +
+        '<span style="font-size:10px;color:var(--color-text-tertiary)">' + lbl + '</span></div>' : '';
+    }).join('') + '</div>' : '') +
+
+    // Simulación
+    (c.simulacion_url ? '<div style="margin-bottom:14px;border-radius:12px;overflow:hidden;border:1px solid var(--color-border)">' +
+    '<img src="' + c.simulacion_url + '" style="width:100%;display:block" alt="Simulación">' +
+    '<div style="padding:8px 12px;background:var(--color-surface-raised);font-size:11px;font-weight:600;color:var(--color-primary)">✨ Simulación generada con IA</div>' +
+    '</div>' : '') +
+
+    // Score
+    '<div style="background:linear-gradient(135deg,rgba(91,71,224,.12),rgba(44,107,237,.12));border:1px solid rgba(91,71,224,.2);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">' +
+    '<div style="width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:rgba(91,71,224,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">' +
+    '<div style="font-size:18px;font-weight:800;color:var(--color-text-primary);line-height:1">' + (c.score||0) + '</div>' +
+    '<div style="font-size:8px;color:var(--color-text-tertiary)">/100</div>' +
+    '</div>' +
+    '<div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary);margin-bottom:2px">Score Estético · ' + (diag.scoreLbl||c.score_lbl||'') + '</div>' +
+    '<div style="font-size:12px;color:var(--color-text-secondary);line-height:1.4">' + (diag.resumen||c.resumen||'') + '</div></div>' +
+    '</div>' +
+
+    // Hallazgos
+    (hallazgos.length ? '<div style="background:var(--color-surface-raised);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
+    '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--color-text-tertiary);margin-bottom:10px">Lo que encontramos</div>' +
+    hallazgos.map(function(h){
+      return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)">' +
+        '<div style="width:7px;height:7px;border-radius:50%;background:' + (h.color||'var(--color-primary)') + ';flex-shrink:0;margin-top:5px"></div>' +
+        '<div style="font-size:13px;color:var(--color-text-secondary);line-height:1.4">' + h.texto + '</div></div>';
+    }).join('') + '</div>' : '') +
+
+    // Cotización
+    (cot.length ? '<div style="background:var(--color-surface-raised);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
+    '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--color-text-tertiary);margin-bottom:10px">Cotización</div>' +
+    cot.map(function(item){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)">' +
+        '<div><div style="font-size:13px;color:var(--color-text-primary)">' + item.procedimiento + '</div>' +
+        '<div style="font-size:11px;color:var(--color-text-tertiary)">' + (item.piezas||1) + ' pza · $' + (item.precio_unit||0).toLocaleString() + '</div></div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--color-text-primary);font-family:monospace">$' + (item.subtotal||0).toLocaleString() + '</div>' +
+        '</div>';
+    }).join('') +
+    '<div style="background:rgba(91,71,224,.1);border-radius:8px;padding:10px;text-align:center;margin-top:10px">' +
+    '<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:2px">Total estimado</div>' +
+    '<div style="font-size:22px;font-weight:800;color:var(--color-text-primary);font-family:monospace">$' + total.toLocaleString() + ' <span style="font-size:12px;font-weight:400">MXN</span></div>' +
+    '</div></div>' : '') +
+
+    // Actions
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">' +
+    (c.telefono ? '<button onclick="compartirCasoWA(' + i + ')" style="height:44px;border-radius:10px;background:#25D366;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:\'Inter\',sans-serif">WhatsApp al paciente</button>' :
+    '<button disabled style="height:44px;border-radius:10px;background:var(--color-surface-raised);color:var(--color-text-tertiary);border:1px solid var(--color-border);font-size:13px;font-weight:500;font-family:\'Inter\',sans-serif">Sin teléfono</button>') +
+    '<button onclick="document.getElementById(\'modal-caso-detalle\').remove()" style="height:44px;border-radius:10px;background:var(--color-surface-raised);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:13px;font-weight:500;cursor:pointer;font-family:\'Inter\',sans-serif">Cerrar</button>' +
+    '</div>' +
+
+    '</div>';
+}
+
+function compartirCasoWA(i) {
+  var casos = window._historialCasos || [];
+  var c = casos[i];
+  if (!c || !c.telefono) return;
+  var diag = {};
+  try { diag = typeof c.diagnostico === 'string' ? JSON.parse(c.diagnostico) : (c.diagnostico||{}); } catch(e){}
+  var total = c.total_cotizacion || 0;
+  var hallazgos = (diag.hallazgos||c.hallazgos||[]).map(function(h){return '• '+h.texto;}).join('\n');
+  var waNum = c.telefono.replace(/[^0-9]/g,'');
+  var msg = '😊 Hola *' + c.nombre_paciente + '*, aquí tienes tu análisis de sonrisa:\n\n' +
+    '⭐ *Score:* ' + (c.score||0) + '/100\n\n' +
+    '🔍 *Hallazgos:*\n' + hallazgos + '\n\n' +
+    '💰 *Inversión estimada:* $' + total.toLocaleString() + ' MXN\n\n' +
+    '¿Agendamos tu consulta? 😊';
+  window.open('https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 function registrarCaso(nombre, r, total) {
