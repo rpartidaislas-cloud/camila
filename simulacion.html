@@ -3,7 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Simula tu Sonrisa · CAMILA</title>
+<title>CAMILA · Simula tu Sonrisa</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5B47E0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CAMILA">
+<link rel="apple-touch-icon" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+<!-- Splash screens iOS -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- SEO / Share -->
+<meta name="description" content="Simula tu nueva sonrisa con carillas de porcelana usando Inteligencia Artificial. Gratis, en 60 segundos.">
+<meta property="og:title" content="CAMILA · Simula tu Sonrisa">
+<meta property="og:description" content="Descubre cómo luciría tu sonrisa perfecta con carillas. IA generativa en segundos.">
+<meta property="og:image" content="icons/icon-512.png">
+<meta property="og:type" content="website">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -175,7 +196,25 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
 .res-foot{text-align:center;padding:4px 0 calc(env(safe-area-inset-bottom,0px)+20px)}
 .res-foot-logo{font-family:'Playfair Display',serif;font-size:13px;color:rgba(255,255,255,.2)}
 
-/* ── QUESTIONNAIRE ── */
+/* ── PWA INSTALL PROMPT ── */
+.install-banner{position:fixed;bottom:0;left:0;right:0;z-index:200;padding:12px 16px calc(env(safe-area-inset-bottom,0px)+12px);background:rgba(15,10,30,.96);border-top:1px solid rgba(91,71,224,.3);backdrop-filter:blur(20px);display:none;align-items:center;gap:12px;animation:slideUp .3s ease}
+.install-banner.show{display:flex}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ib-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#5B47E0,#2C6BED);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
+.ib-text{flex:1;min-width:0}
+.ib-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:1px}
+.ib-sub{font-size:11px;color:rgba(255,255,255,.5)}
+.ib-btn{height:36px;padding:0 14px;border-radius:99px;background:var(--p);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;flex-shrink:0}
+.ib-close{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+/* iOS install instructions */
+.ios-install{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(15,10,30,.97);border-top:1px solid rgba(91,71,224,.3);padding:20px 20px calc(env(safe-area-inset-bottom,0px)+20px);backdrop-filter:blur(20px);display:none;flex-direction:column;gap:12px;animation:slideUp .3s ease}
+.ios-install.show{display:flex}
+.ios-install h4{font-size:15px;font-weight:700;color:#fff}
+.ios-step{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.75)}
+.ios-step-num{width:24px;height:24px;border-radius:50%;background:var(--p);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ios-close-btn{width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
+
 .q-option{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:all 150ms;color:rgba(255,255,255,.8);font-size:14px;font-weight:500}
 .q-option input{width:18px;height:18px;cursor:pointer;accent-color:var(--p);flex-shrink:0}
 .q-option:has(input:checked){background:rgba(91,71,224,.2);border-color:var(--p);color:#fff}
@@ -251,6 +290,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:'Inter',sans-ser
   </div>
 
   <div class="intro-note">Al continuar acepto que mis fotos sean procesadas por IA para generar una simulación dental orientativa.</div>
+
+  <!-- Install hint — only shown when not standalone -->
+  <div id="intro-install-hint" style="margin-top:14px;display:none">
+    <button onclick="showInstallInstructions()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:99px;color:rgba(255,255,255,.5);font-size:11px;padding:6px 14px;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;margin:0 auto">
+      <span>📲</span> Instalar como app
+    </button>
+  </div>
 </div>
 
 
@@ -1327,10 +1373,23 @@ function dl() {
   a.click();
 }
 
-function redo() {
-  S.photos = []; S.currentPhoto = 0; S.result = null; S.diagnosis = null;
-  show('s-intro');
+function showInstallInstructions() {
+  if (isIOS()) {
+    document.getElementById('ios-install').classList.add('show');
+  } else if (deferredPrompt) {
+    installPWA();
+  } else {
+    alert('Para instalar CAMILA:\n\n• iPhone: Toca ⬆ Compartir → "Agregar a pantalla de inicio"\n• Android: Menú (⋮) → "Instalar aplicación"');
+  }
 }
+
+// Show install hint on intro if not standalone
+window.addEventListener('load', function() {
+  if (!isInStandaloneMode()) {
+    var hint = document.getElementById('intro-install-hint');
+    if (hint) hint.style.display = 'block';
+  }
+});
 
 // ══ BROWSER DETECTION ══
 (function detectBrowser() {
@@ -1373,6 +1432,109 @@ function openInSafari() {
     }, 500);
   }
 }
+</script>
+<!-- ══ PWA INSTALL BANNER (Android/Desktop) ══ -->
+<div class="install-banner" id="install-banner">
+  <div class="ib-icon">🦷</div>
+  <div class="ib-text">
+    <div class="ib-title">Instalar CAMILA</div>
+    <div class="ib-sub">Úsala como app desde tu pantalla de inicio</div>
+  </div>
+  <button class="ib-btn" onclick="installPWA()">Instalar</button>
+  <button class="ib-close" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- ══ iOS INSTALL INSTRUCTIONS ══ -->
+<div class="ios-install" id="ios-install">
+  <h4>📲 Instala CAMILA en tu iPhone</h4>
+  <div class="ios-step">
+    <div class="ios-step-num">1</div>
+    <span>Toca el botón <strong style="color:#fff">Compartir</strong> en Safari <span style="font-size:16px">⬆</span></span>
+  </div>
+  <div class="ios-step">
+    <div class="ios-step-num">2</div>
+    <span>Selecciona <strong style="color:#fff">"Agregar a pantalla de inicio"</strong></span>
+  </div>
+  <div class="ios-step">
+    <div class="ios-step-num">3</div>
+    <span>Toca <strong style="color:#fff">"Agregar"</strong> — ¡listo! Tendrás el ícono en tu pantalla</span>
+  </div>
+  <button class="ios-close-btn" onclick="document.getElementById('ios-install').classList.remove('show')">Entendido</button>
+</div>
+
+<script>
+// ══ SERVICE WORKER ══
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      console.log('[CAMILA PWA] SW registered:', reg.scope);
+    }).catch(function(err) {
+      console.warn('[CAMILA PWA] SW failed:', err);
+    });
+  });
+}
+
+// ══ INSTALL PROMPT ══
+var deferredPrompt = null;
+var installDismissed = localStorage.getItem('camila_install_dismissed');
+
+// Android / Desktop — capture beforeinstallprompt
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!installDismissed && !isInStandaloneMode()) {
+    setTimeout(function() {
+      document.getElementById('install-banner').classList.add('show');
+    }, 3000);
+  }
+});
+
+function installPWA() {
+  var banner = document.getElementById('install-banner');
+  banner.classList.remove('show');
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(result) {
+      if (result.outcome === 'accepted') {
+        console.log('[CAMILA PWA] Installed!');
+      }
+      deferredPrompt = null;
+    });
+  }
+}
+
+function dismissInstall() {
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem('camila_install_dismissed', '1');
+}
+
+// iOS — show manual instructions after 4 seconds
+function isIOS() {
+  return /iPhone|iPad|iPod/.test(navigator.userAgent);
+}
+
+function isInStandaloneMode() {
+  return window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+}
+
+if (isIOS() && !isInStandaloneMode() && !installDismissed) {
+  setTimeout(function() {
+    document.getElementById('ios-install').classList.add('show');
+  }, 5000);
+}
+
+// Hide install UI if already in standalone
+if (isInStandaloneMode()) {
+  localStorage.setItem('camila_install_dismissed', '1');
+}
+
+// ══ APP INSTALLED EVENT ══
+window.addEventListener('appinstalled', function() {
+  console.log('[CAMILA PWA] App installed successfully');
+  document.getElementById('install-banner').classList.remove('show');
+  document.getElementById('ios-install').classList.remove('show');
+});
 </script>
 </body>
 </html>
