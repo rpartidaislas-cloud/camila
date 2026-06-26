@@ -768,8 +768,9 @@ function getPrecio(id) {
 }
 
 // ══ CAMERA ══
-async function goToQuestionnaire() {
-  await loadPrecios();
+function goToQuestionnaire() {
+  // Load precios in background — don't block navigation
+  loadPrecios().catch(function(){});
   show('s-q');
   showQStep(0);
 }
