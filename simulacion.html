@@ -128,9 +128,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 /* BA Slider */
 .ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0}
 .ba-base{position:relative;width:100%}
-.ba-base img{width:100%;height:auto;display:block}
+.ba-base{position:relative;width:100%;overflow:hidden}
+.ba-base img{width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
 .ba-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 50% 0 0)}
-.ba-over img{width:100%;height:100%;object-fit:cover;display:block}
+.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
 .ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
@@ -445,11 +446,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   <div class="proc-title">Analizando tu sonrisa...</div>
   <div class="proc-sub">Claude y Gemini están trabajando en tu simulación personalizada</div>
   <div class="proc-list">
-    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando las 3 fotografías</div>
+    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando las 3 fotografías con IA</div>
     <div class="pstep" id="ps2"><div class="pstep-dot"></div>Detectando estructura dental</div>
     <div class="pstep" id="ps3"><div class="pstep-dot"></div>Generando diagnóstico clínico</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Calculando cotización</div>
-    <div class="pstep" id="ps5"><div class="pstep-dot"></div>Creando simulación fotorrealista</div>
+    <div class="pstep" id="ps5"><div class="pstep-dot"></div>Generando simulación fotorrealista ✨</div>
   </div>
 </div>
 
@@ -470,8 +471,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <div class="ba-line" id="ba-line"><div class="ba-knob">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B47E0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/><polyline points="9 18 3 12 9 6" transform="translate(6)"/></svg>
     </div></div>
-    <div class="ba-tag l">ANTES</div>
-    <div class="ba-tag r">✨ DESPUÉS</div>
+    <div class="ba-tag l">📷 ANTES</div>
+    <div class="ba-tag r">✨ CON CARILLAS</div>
     <div class="ba-tip" id="ba-tip">← Arrastra para comparar →</div>
   </div>
 
@@ -1105,14 +1106,16 @@ function snap() {
   var cropW = Math.min(vW - cropX, (S.oval.w + padX*2) / cW * vW);
   var cropH = Math.min(vH - cropY, (S.oval.h + padY*2) / cH * vH);
 
-  var size = Math.min(cropW, cropH);
+  // Square crop centered on face — 1024x1024 for Gemini
+  var size = 1024;
   var canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
   var ctx = canvas.getContext('2d');
 
   ctx.save();
   if (S.facing === 'user') { ctx.translate(size,0); ctx.scale(-1,1); }
-  ctx.drawImage(v, cropX, cropY, size, size, 0, 0, size, size);
+  // Draw crop area scaled to 1024x1024
+  ctx.drawImage(v, cropX, cropY, Math.min(cropW,cropH), Math.min(cropW,cropH), 0, 0, size, size);
   ctx.restore();
 
   var b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
@@ -1258,7 +1261,7 @@ async function analyzeWithClaude() {
 async function generateSimulation() {
   var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var tc = CFG.tenantConfig || {};
-  var basePrompt = 'DENTAL SMILE SIMULATION. Keep the EXACT same person — same face, skin, eyes, hair, background. ONLY change the teeth. Fit perfectly inside existing mouth opening. Same lips. Photorealistic dental result. Do NOT change anything outside teeth area.';
+  var basePrompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
   var stylePrompt = '';
   if (S.questionnaire) {
     var q = S.questionnaire;
@@ -1349,12 +1352,20 @@ function initBASlider() {
   var drag = false;
 
   var imgB = document.getElementById('img-b');
+  var imgA = document.getElementById('img-a');
   function fixH() {
     if (!imgB.naturalHeight) return;
     var r = imgB.naturalHeight / imgB.naturalWidth;
-    wrap.style.height = Math.min(window.innerHeight*0.55, wrap.offsetWidth*r) + 'px';
+    var h = Math.min(window.innerHeight * 0.58, wrap.offsetWidth * r);
+    wrap.style.height = h + 'px';
+    // Force both images to same fixed height so they align perfectly
+    imgB.style.height = h + 'px';
+    imgA.style.height = h + 'px';
+    imgB.style.width = '100%';
+    imgA.style.width = '100%';
   }
   if (imgB.complete) fixH(); else imgB.onload = fixH;
+  imgA.onload = fixH;
 
   function mv(x) {
     var r = wrap.getBoundingClientRect();
