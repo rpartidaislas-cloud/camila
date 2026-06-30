@@ -609,6 +609,27 @@ var CFG = {
   tenantConfig: null,
 };
 
+// ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
+var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design) con amplia experiencia clínica. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros faciodentales objetivos que servirán para guiar un diseño de carillas.\n\n' +
+  'Evalúa exclusivamente lo que es visible en la fotografía. No inventes datos que no puedas observar; si algo no es valorable con certeza, repórtalo como "no_valorable".\n\n' +
+  'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin explicaciones y sin backticks de markdown, con exactamente esta estructura y estos valores posibles:\n\n' +
+  '{\n' +
+  '  "linea_media_dental": "centrada" | "desviada_derecha" | "desviada_izquierda",\n' +
+  '  "linea_media_facial_referencia": "descripción breve de qué referencia facial usaste (ej. filtrum/glabela-pogonion)",\n' +
+  '  "tipo_facial": "braquifacial" | "mesofacial_pasivo" | "mesofacial_activo" | "dolicofacial",\n' +
+  '  "simetria_vertical": "buena" | "asimetria_leve" | "asimetria_marcada",\n' +
+  '  "canteo_oclusal": "ausente" | "leve_derecha" | "leve_izquierda" | "marcado_derecha" | "marcado_izquierda",\n' +
+  '  "inclinacion_incisivos": "normal" | "proinclinacion" | "retroinclinacion_excesiva",\n' +
+  '  "exposicion_incisal_reposo_mm": "estimación en mm como texto, ej. 2mm",\n' +
+  '  "sexo_aparente_para_referencia": "femenino" | "masculino",\n' +
+  '  "arco_incisivo_cuspideo": "simetrico" | "asimetrico",\n' +
+  '  "clase_oclusal_aparente": "Clase I aparente" | "Clase II aparente" | "Clase III aparente" | "no_valorable",\n' +
+  '  "troneras": "naturales" | "cerradas" | "abiertas" | "irregulares",\n' +
+  '  "zenits_gingivales": "regulares" | "irregulares",\n' +
+  '  "contraindicaciones_visibles": ["lista de hallazgos visibles que limiten el diseño, ej. recesión gingival marcada, asimetría facial severa — array vacío [] si no hay"],\n' +
+  '  "recomendacion_diseño": "1-2 líneas con la recomendación de diseño de sonrisa para este paciente, en español"\n' +
+  '}';
+
 // Load tenant config from URL param
 (function loadTenantConfig() {
   var params = new URLSearchParams(window.location.search);
@@ -680,6 +701,8 @@ var S = {
   currentPhoto: 0,
   result: null,
   diagnosis: null,
+  diagnosticoFacial: null,
+  promptGeminiUsado: null,
   timer: null,
   faceOk: false,
   oval: {x:0,y:0,w:0,h:0},
@@ -1186,8 +1209,21 @@ async function processPhotos() {
     // Step 1: Claude analyzes all 3 photos + generates diagnosis + quotation
     var claudeResult = await analyzeWithClaude();
 
+    // Step 1.5: Claude analyzes the frontal photo for facial/dental proportions
+    var frontalForAnalysis = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+    var procSub = document.getElementById('proc-sub');
+    if (procSub) procSub.textContent = 'Analizando proporciones faciales...';
+    var diagnosticoFacial = null;
+    try {
+      diagnosticoFacial = await analizarConClaude(frontalForAnalysis.b64);
+    } catch (e) { diagnosticoFacial = null; }
+    S.diagnosticoFacial = diagnosticoFacial;
+    var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
+    S.promptGeminiUsado = clinicalPrompt || null;
+
     // Step 2: Gemini generates simulation from frontal photo
-    var geminiResult = await generateSimulation();
+    if (procSub) procSub.textContent = 'Generando tu simulación...';
+    var geminiResult = await generateSimulation(clinicalPrompt);
 
     S.diagnosis = claudeResult;
     S.result = geminiResult;
@@ -1258,7 +1294,88 @@ async function analyzeWithClaude() {
   return JSON.parse(clean);
 }
 
-async function generateSimulation() {
+async function analizarConClaude(fotoFrontalBase64) {
+  var content = [
+    {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
+    {type:'text', text: CLAUDE_ANALISIS_SYSTEM_PROMPT}
+  ];
+
+  var resp = await fetch(CFG.edgeUrl, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    body: JSON.stringify({
+      messages: [{role:'user', content: content}],
+      max_tokens: 800
+    })
+  });
+  var data = await resp.json();
+  var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+  var clean = txt.replace(/```json|```/g,'').trim();
+  var match = clean.match(/\{[\s\S]*\}/);
+  if (match) clean = match[0];
+  return JSON.parse(clean);
+}
+
+function construirPromptGemini(diagnostico) {
+  var d = diagnostico || {};
+  var partes = [];
+
+  if (d['linea_media_dental'] && d['linea_media_dental'] !== 'centrada') {
+    partes.push('Corrige la línea media dental para alinearla con el filtrum (línea media facial).');
+  }
+
+  var proporciones = {
+    braquifacial: 'corona cuadrada y ancha',
+    mesofacial_pasivo: 'proporción equilibrada clásica',
+    mesofacial_activo: 'proporción equilibrada ovalada',
+    dolicofacial: 'corona alargada y estrecha'
+  };
+  if (proporciones[d['tipo_facial']]) {
+    partes.push('Usa una proporción de corona ' + proporciones[d['tipo_facial']] + ', acorde al tipo facial del paciente.');
+  }
+
+  if (d['canteo_oclusal'] && d['canteo_oclusal'] !== 'ausente') {
+    partes.push('Corrige el canteo del plano oclusal para nivelarlo.');
+  }
+
+  if (d['inclinacion_incisivos'] === 'proinclinacion') {
+    partes.push('Aplica una retroinclinación leve de 1 a 3 grados en los incisivos.');
+  } else if (d['inclinacion_incisivos'] === 'retroinclinacion_excesiva') {
+    partes.push('Corrige la inclinación de los incisivos hacia el rango ideal de 1 a 3 grados de retroinclinación.');
+  }
+
+  if (d['sexo_aparente_para_referencia'] === 'femenino') {
+    partes.push('Ajusta la exposición incisal en reposo a 2.5-3mm, acorde a una referencia femenina.');
+  } else if (d['sexo_aparente_para_referencia'] === 'masculino') {
+    partes.push('Ajusta la exposición incisal en reposo a 1.5-2mm, acorde a una referencia masculina.');
+  }
+
+  if (d['simetria_vertical'] && d['simetria_vertical'] !== 'buena') {
+    partes.push('Corrige la simetría vertical de los dientes anteriores.');
+  }
+
+  if (d['arco_incisivo_cuspideo'] === 'asimetrico') {
+    partes.push('Equilibra el arco incisivo-cuspídeo para que sea simétrico.');
+  }
+
+  if (d['troneras'] && d['troneras'] !== 'naturales') {
+    partes.push('Ajusta las troneras para que luzcan naturales.');
+  }
+
+  if (d['zenits_gingivales'] === 'irregulares') {
+    partes.push('Armoniza los zenits gingivales.');
+  }
+
+  if (d['recomendacion_diseño']) {
+    partes.push(d['recomendacion_diseño']);
+  }
+
+  partes.push('El resultado debe verse natural, fotorrealista, manteniendo la identidad facial del paciente, sin alterar labios, piel ni iluminación original.');
+
+  return partes.join(' ');
+}
+
+async function generateSimulation(clinicalPrompt) {
   var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
@@ -1270,8 +1387,9 @@ async function generateSimulation() {
     stylePrompt += ' TREAT: ' + (q.piezas || '6 upper teeth') + '.';
     if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
   }
+  var clinicalBlock = clinicalPrompt ? ' ' + clinicalPrompt : '';
   var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
-  var prompt = basePrompt + stylePrompt + customPrompt;
+  var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt;
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
@@ -1430,6 +1548,8 @@ async function guardarCaso() {
     foto_perfil_izq: (S.photos.find(function(p){return p.view==='left';})||{}).b64 || null,
     cuestionario: S.questionnaire || {},
     fotos_count: S.photos.length,
+    diagnostico_claude: S.diagnosticoFacial || null,
+    prompt_gemini_usado: S.promptGeminiUsado || null,
     created_at: new Date().toISOString(),
   };
 
@@ -1471,6 +1591,8 @@ async function guardarCaso() {
         simulacion_url: S.result || null,
         cuestionario: JSON.stringify(S.questionnaire || {}),
         fotos_count: S.photos.length,
+        diagnostico_claude: S.diagnosticoFacial || null,
+        prompt_gemini_usado: S.promptGeminiUsado || null,
         created_at: casoData.created_at,
       })
     });
@@ -1540,6 +1662,7 @@ function compartirConPaciente() {
 function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
+  S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   show('s-intro');
 }
 
