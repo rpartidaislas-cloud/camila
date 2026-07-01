@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v13 — iOS siempre cámara nativa (sin MediaPipe)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v14 — MediaPipe en CPU (antes GPU)</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -819,13 +819,13 @@ async function startCam() {
   S.currentPhoto = 0;
   S._ovalReady = false;
 
-  // iOS (Safari normal o PWA instalada): la cámara personalizada con óvalo y
-  // MediaPipe deja la pantalla en negro sin ningún error -probablemente el
-  // WebView de iOS se queda sin memoria o falla al crear el contexto WebGL
-  // que pide MediaPipe- así que en iOS usamos siempre la cámara nativa del
-  // sistema (sin óvalo/líneas). Pendiente investigar más a fondo por qué
-  // falla, para poder tener el óvalo también en iOS más adelante.
+  // iOS: se prueba de nuevo la cámara personalizada, esta vez con MediaPipe
+  // en modo CPU (antes GPU) — sospecha de que el crash en negro es por el
+  // contexto WebGL que pide el modo GPU. Si sigue fallando, cae a la cámara
+  // nativa del sistema como respaldo.
   if (isIOS()) {
+    var ok = await initCam(true);
+    if (ok) return;
     show('s-cam-native');
     updateNativeCameraUI();
     return;
@@ -1052,7 +1052,7 @@ function _loadLandmarker() {
       return vision.FaceLandmarker.createFromOptions(filesetResolver, {
         baseOptions: {
           modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-          delegate: 'GPU'
+          delegate: 'CPU'
         },
         runningMode: 'VIDEO',
         numFaces: 1
