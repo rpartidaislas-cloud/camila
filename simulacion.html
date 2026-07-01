@@ -1574,7 +1574,6 @@ async function guardarCaso() {
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify({
-        id: casoId,
         tenant_id: CFG.tenantId || null,
         nombre_paciente: casoData.nombre_paciente,
         telefono: casoData.telefono,
