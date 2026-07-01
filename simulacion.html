@@ -988,26 +988,40 @@ function setGuide(main, hint, ok) {
 }
 
 // ══ FACE LANDMARKS (MediaPipe) — interpupilar/comisural en vivo ══
+var _landmarkerPromise = null;
+function _loadLandmarker() {
+  if (!_landmarkerPromise) {
+    _landmarkerPromise = (async function() {
+      var vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35');
+      var filesetResolver = await vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm'
+      );
+      return vision.FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+          delegate: 'GPU'
+        },
+        runningMode: 'VIDEO',
+        numFaces: 1
+      });
+    })();
+    _landmarkerPromise.then(function(lm) { S.landmarker = lm; }).catch(function() { S.landmarkerFailed = true; });
+  }
+  return _landmarkerPromise;
+}
+
+// No deja que una descarga lenta/colgada del modelo bloquee la cámara —
+// si no responde en 6s, cae al fallback pero la carga sigue en segundo
+// plano por si sirve para la siguiente foto del mismo caso
 async function initFaceLandmarker() {
   if (S.landmarker) return true;
   if (S.landmarkerFailed) return false;
   try {
-    var vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35');
-    var filesetResolver = await vision.FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm'
-    );
-    S.landmarker = await vision.FaceLandmarker.createFromOptions(filesetResolver, {
-      baseOptions: {
-        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-        delegate: 'GPU'
-      },
-      runningMode: 'VIDEO',
-      numFaces: 1
-    });
-    return true;
+    var timeout = new Promise(function(resolve) { setTimeout(function(){ resolve(null); }, 6000); });
+    var result = await Promise.race([_loadLandmarker().catch(function(){ return null; }), timeout]);
+    return !!result && !!S.landmarker;
   } catch (e) {
     S.landmarkerFailed = true;
-    S.landmarker = null;
     return false;
   }
 }
