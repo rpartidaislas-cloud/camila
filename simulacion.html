@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v9 — intenta cámara web en PWA</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v10 — revert cámara nativa en PWA iOS</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -815,15 +815,12 @@ async function startCam() {
   S.currentPhoto = 0;
   S._ovalReady = false;
 
-  // iOS PWA: en versiones viejas de iOS getUserMedia no funcionaba dentro de
-  // una PWA instalada, así que se usaba la cámara nativa del sistema (sin
-  // óvalo/líneas guía). Ahora intentamos primero la cámara web y solo caemos
-  // a la nativa si de verdad falla — en iOS más reciente puede que sí sirva.
+  // iOS PWA: getUserMedia da acceso a la cámara pero la pantalla de captura
+  // no se pinta (bug pendiente de investigar) — se usa la cámara nativa del
+  // sistema aquí, sin óvalo/líneas guía, hasta resolverlo.
   var isIOSPWA = isIOS() && (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches);
 
   if (isIOSPWA) {
-    var ok = await initCam(true);
-    if (ok) return;
     show('s-cam-native');
     updateNativeCameraUI();
     return;
