@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v8 — timeout MediaPipe</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v9 — intenta cámara web en PWA</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -815,10 +815,15 @@ async function startCam() {
   S.currentPhoto = 0;
   S._ovalReady = false;
 
-  // iOS PWA: getUserMedia doesn't work — use native camera input
+  // iOS PWA: en versiones viejas de iOS getUserMedia no funcionaba dentro de
+  // una PWA instalada, así que se usaba la cámara nativa del sistema (sin
+  // óvalo/líneas guía). Ahora intentamos primero la cámara web y solo caemos
+  // a la nativa si de verdad falla — en iOS más reciente puede que sí sirva.
   var isIOSPWA = isIOS() && (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches);
 
   if (isIOSPWA) {
+    var ok = await initCam(true);
+    if (ok) return;
     show('s-cam-native');
     updateNativeCameraUI();
     return;
@@ -828,15 +833,20 @@ async function startCam() {
   await initCam();
 }
 
-async function initCam() {
+async function initCam(silentFallback) {
   try {
     if (S.stream) S.stream.getTracks().forEach(function(t){t.stop();});
 
-    // Get stream FIRST before showing screen
-    S.stream = await navigator.mediaDevices.getUserMedia({
+    // Get stream FIRST before showing screen — con timeout para no quedarse
+    // colgado indefinidamente si el permiso nunca se resuelve
+    var mediaPromise = navigator.mediaDevices.getUserMedia({
       video: { facingMode: S.facing },
       audio: false
     });
+    var timeoutPromise = new Promise(function(_, reject) {
+      setTimeout(function(){ reject(new Error('timeout')); }, 8000);
+    });
+    S.stream = await Promise.race([mediaPromise, timeoutPromise]);
 
     var v = document.getElementById('vid');
     v.srcObject = S.stream;
@@ -857,13 +867,18 @@ async function initCam() {
       tryFaceDetect();
     }, 200);
 
+    return true;
+
   } catch(e) {
+    if (silentFallback) return false;
     var msg = 'No se pudo acceder a la cámara.\n\n';
-    if (e.name === 'NotAllowedError') msg += 'Ve a Ajustes → Privacidad → Cámara → Safari → Activar';
+    if (e.message === 'timeout') msg += 'La cámara tardó demasiado en responder. Intenta de nuevo.';
+    else if (e.name === 'NotAllowedError') msg += 'Ve a Ajustes → Privacidad → Cámara → Safari → Activar';
     else if (e.name === 'NotFoundError') msg += 'No se encontró ninguna cámara.';
     else msg += e.name + ': ' + e.message;
     alert(msg);
     show('s-intro');
+    return false;
   }
 }
 
