@@ -56,7 +56,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 /* ══ CÁMARA ══ */
 #s-cam{background:#000;padding:0;justify-content:flex-start;position:relative;overflow:hidden}
-.cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cam-video.mirror{-webkit-transform:scaleX(-1) translateZ(0);transform:scaleX(-1) translateZ(0)}
 .cam-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v11 — video dibujado en canvas + alerta de errores</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v12 — quita opacity:0 del video + diagnóstico</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -955,9 +955,25 @@ function setupOval() {
 // de iOS standalone/PWA el <video> con transform de espejo puede salir en
 // negro; dibujar el frame en canvas evita depender de eso). Cover-fit igual
 // que object-fit:cover en CSS, y aplica el espejo si la cámara es frontal.
+var _videoFrameFails = 0;
 function drawVideoFrame(ctx, W, H) {
   var v = document.getElementById('vid');
-  if (!v || v.readyState < 2 || !v.videoWidth) return false;
+  if (!v || v.readyState < 2 || !v.videoWidth) {
+    _videoFrameFails++;
+    if (_videoFrameFails === 15) {
+      var tr = (S.stream && S.stream.getVideoTracks()[0]) || null;
+      alert('DIAG cámara:\n' +
+        'video existe: ' + !!v + '\n' +
+        'readyState: ' + (v ? v.readyState : 'n/a') + '\n' +
+        'videoWidth: ' + (v ? v.videoWidth : 'n/a') + '\n' +
+        'paused: ' + (v ? v.paused : 'n/a') + '\n' +
+        'stream activo: ' + (S.stream ? S.stream.active : 'n/a') + '\n' +
+        'track state: ' + (tr ? tr.readyState : 'n/a') + '\n' +
+        'track enabled: ' + (tr ? tr.enabled : 'n/a'));
+    }
+    return false;
+  }
+  _videoFrameFails = 0;
   var vw = v.videoWidth, vh = v.videoHeight;
   var vRatio = vw/vh, cRatio = W/H, sx, sy, sw, sh;
   if (vRatio > cRatio) { sh = vh; sw = vh*cRatio; sx = (vw-sw)/2; sy = 0; }
