@@ -1389,7 +1389,8 @@ async function generateSimulation(clinicalPrompt) {
   }
   var clinicalBlock = clinicalPrompt ? ' ' + clinicalPrompt : '';
   var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
-  var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt;
+  var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change.';
+  var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
