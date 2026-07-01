@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v12 — quita opacity:0 del video + diagnóstico</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v13 — iOS siempre cámara nativa (sin MediaPipe)</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -819,15 +819,13 @@ async function startCam() {
   S.currentPhoto = 0;
   S._ovalReady = false;
 
-  // iOS PWA: se intenta la cámara web (con óvalo/líneas) primero — el frame
-  // ahora se dibuja directo en canvas en vez de depender del <video>, que es
-  // donde sospechamos estaba el problema. Si de todos modos falla, cae a la
-  // cámara nativa del sistema como hasta ahora.
-  var isIOSPWA = isIOS() && (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches);
-
-  if (isIOSPWA) {
-    var ok = await initCam(true);
-    if (ok) return;
+  // iOS (Safari normal o PWA instalada): la cámara personalizada con óvalo y
+  // MediaPipe deja la pantalla en negro sin ningún error -probablemente el
+  // WebView de iOS se queda sin memoria o falla al crear el contexto WebGL
+  // que pide MediaPipe- así que en iOS usamos siempre la cámara nativa del
+  // sistema (sin óvalo/líneas). Pendiente investigar más a fondo por qué
+  // falla, para poder tener el óvalo también en iOS más adelante.
+  if (isIOS()) {
     show('s-cam-native');
     updateNativeCameraUI();
     return;
