@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v12 — quita opacity:0 del video + diagnóstico</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v14 — MediaPipe en CPU (antes GPU)</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -819,13 +819,11 @@ async function startCam() {
   S.currentPhoto = 0;
   S._ovalReady = false;
 
-  // iOS PWA: se intenta la cámara web (con óvalo/líneas) primero — el frame
-  // ahora se dibuja directo en canvas en vez de depender del <video>, que es
-  // donde sospechamos estaba el problema. Si de todos modos falla, cae a la
-  // cámara nativa del sistema como hasta ahora.
-  var isIOSPWA = isIOS() && (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches);
-
-  if (isIOSPWA) {
+  // iOS: se prueba de nuevo la cámara personalizada, esta vez con MediaPipe
+  // en modo CPU (antes GPU) — sospecha de que el crash en negro es por el
+  // contexto WebGL que pide el modo GPU. Si sigue fallando, cae a la cámara
+  // nativa del sistema como respaldo.
+  if (isIOS()) {
     var ok = await initCam(true);
     if (ok) return;
     show('s-cam-native');
@@ -1054,7 +1052,7 @@ function _loadLandmarker() {
       return vision.FaceLandmarker.createFromOptions(filesetResolver, {
         baseOptions: {
           modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-          delegate: 'GPU'
+          delegate: 'CPU'
         },
         runningMode: 'VIDEO',
         numFaces: 1
