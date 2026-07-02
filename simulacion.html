@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v19 — líneas DSD (interpupilar/comisural/incisal)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v20 — editor DSD arrastrable + medidas</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -455,6 +455,27 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   </div>
 </div>
 
+<!-- ══ EDITOR DSD (ajuste manual de líneas de referencia) ══ -->
+<div class="screen" id="s-dsd-editor" style="background:#000;padding:0">
+  <div style="position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent)">
+    <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:2px">Ajusta las líneas de referencia</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6)">Arrastra los puntos si no coinciden exactamente con tu foto</div>
+  </div>
+
+  <div id="dsd-editor-wrap" style="position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden">
+    <img id="dsd-editor-img" style="width:100%;display:block" alt="">
+    <svg id="dsd-editor-svg" style="position:absolute;top:0;left:0;touch-action:none"></svg>
+  </div>
+
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:14px 20px calc(env(safe-area-inset-bottom,0px)+16px);z-index:10;background:linear-gradient(to top,rgba(0,0,0,.88),transparent)">
+    <div id="dsd-editor-readout" style="display:flex;justify-content:center;font-size:13px;color:rgba(255,255,255,.75);margin-bottom:12px;min-height:18px"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="resetDsdEditor()" style="flex:0 0 auto;height:50px;padding:0 18px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Reiniciar</button>
+      <button onclick="confirmarDsdEditor()" style="flex:1;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Confirmar medición</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ RESULTADO ══ -->
 <div class="screen" id="s-res">
   <div class="res-header">
@@ -512,11 +533,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
       <div style="border-radius:12px;overflow:hidden;margin-bottom:8px">
         <img id="r-dsd-img" style="width:100%;display:block" alt="Análisis DSD">
       </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:rgba(255,255,255,.6)">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:rgba(255,255,255,.6);margin-bottom:10px">
         <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;background:#00E5FF;display:inline-block"></span>Interpupilar</span>
         <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;background:#FFD600;display:inline-block"></span>Comisural</span>
         <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;background:#FF4081;display:inline-block"></span>Incisal</span>
       </div>
+      <div id="r-dsd-medidas" style="display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.05);border-radius:10px;padding:10px 12px;font-size:12px;color:rgba(255,255,255,.8)"></div>
     </div>
 
     <!-- Plan -->
@@ -1462,6 +1484,18 @@ async function processPhotos() {
       diagnosticoFacial = await analizarConClaude(frontalForAnalysis.b64);
     } catch (e) { diagnosticoFacial = null; }
     S.diagnosticoFacial = diagnosticoFacial;
+
+    // Step 1.6: si Claude pudo estimar las líneas DSD, el dentista las
+    // corrige a mano antes de seguir — la corrección reemplaza la
+    // estimación de Claude para todo lo que sigue (prompt, imagen, guardado)
+    if (diagnosticoFacial && diagnosticoFacial.lineas_referencia) {
+      try {
+        var lineasCorregidas = await mostrarEditorDSD(frontalForAnalysis.b64, diagnosticoFacial.lineas_referencia);
+        diagnosticoFacial.lineas_referencia = lineasCorregidas;
+      } catch (e) {}
+      show('s-proc');
+    }
+
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
     S.promptGeminiUsado = clinicalPrompt || null;
 
@@ -1616,27 +1650,58 @@ function dibujarLineasReferencia(fotoB64, lineas) {
         if (!pts || pts.length < 2 || !pts[0] || !pts[1]) return;
         var p1x = pts[0].x * img.width, p1y = pts[0].y * img.height;
         var p2x = pts[1].x * img.width, p2y = pts[1].y * img.height;
+
+        // Línea sólida con sombra sutil, se ve bien sobre cualquier tono de piel
         ctx.save();
         ctx.strokeStyle = color;
-        ctx.lineWidth = Math.max(2, img.width * 0.0035);
-        ctx.setLineDash([img.width*0.012, img.width*0.007]);
+        ctx.lineWidth = Math.max(2, img.width * 0.003);
+        ctx.lineCap = 'round';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = img.width * 0.006;
         ctx.beginPath();
         ctx.moveTo(p1x, p1y);
         ctx.lineTo(p2x, p2y);
         ctx.stroke();
         ctx.restore();
 
-        // Etiqueta pequeña junto al extremo izquierdo de la línea
+        // Pequeñas manijas en los extremos, igual que en el editor
+        [{x:p1x,y:p1y}, {x:p2x,y:p2y}].forEach(function(p) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, Math.max(3, img.width*0.006), 0, Math.PI*2);
+          ctx.fillStyle = color;
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = Math.max(1.5, img.width*0.0015);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // Etiqueta en pastilla, junto al extremo izquierdo
         ctx.save();
-        ctx.font = 'bold ' + Math.max(11, Math.round(img.width*0.02)) + 'px Arial';
+        var fontSize = Math.max(11, Math.round(img.width*0.019));
+        ctx.font = 'bold ' + fontSize + 'px Arial';
+        var padX = fontSize * 0.6, padY = fontSize * 0.45;
+        var textW = ctx.measureText(label).width;
+        var pillW = textW + padX*2, pillH = fontSize + padY*2;
+        var lx = Math.min(p1x, p2x) - pillW - 10;
+        var ly = (p1y + p2y)/2 - pillH/2;
+        var r = pillH/2;
+        ctx.beginPath();
+        ctx.moveTo(lx + r, ly);
+        ctx.arcTo(lx + pillW, ly, lx + pillW, ly + pillH, r);
+        ctx.arcTo(lx + pillW, ly + pillH, lx, ly + pillH, r);
+        ctx.arcTo(lx, ly + pillH, lx, ly, r);
+        ctx.arcTo(lx, ly, lx + pillW, ly, r);
+        ctx.closePath();
         ctx.fillStyle = color;
-        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-        ctx.lineWidth = 3;
-        var lx = Math.min(p1x, p2x) - 6;
-        var ly = (p1y + p2y) / 2 - 6;
-        ctx.textAlign = 'right';
-        ctx.strokeText(label, lx, ly);
-        ctx.fillText(label, lx, ly);
+        ctx.globalAlpha = 0.92;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx + padX, ly + pillH/2 + 1);
         ctx.restore();
       }
 
@@ -1661,6 +1726,123 @@ function calcularAnguloEntreLineas(lineaA, lineaB) {
   while (diff > 90) diff -= 180;
   while (diff < -90) diff += 180;
   return diff;
+}
+
+// ══ EDITOR DSD — el dentista corrige a mano la estimación de Claude ══
+var DSD_LINE_DEFS = [
+  {key:'interpupilar', color:'#00E5FF', label:'Interpupilar'},
+  {key:'comisural', color:'#FFD600', label:'Comisural'},
+  {key:'incisal', color:'#FF4081', label:'Incisal'}
+];
+var _dsdEditorState = null;
+
+// Muestra la pantalla del editor con las líneas iniciales de Claude; se
+// resuelve con las líneas ya corregidas por el dentista al confirmar.
+function mostrarEditorDSD(fotoB64, lineasIniciales) {
+  return new Promise(function(resolve) {
+    _dsdEditorState = {
+      original: JSON.parse(JSON.stringify(lineasIniciales)),
+      lineas: JSON.parse(JSON.stringify(lineasIniciales)),
+      resolve: resolve,
+      dragging: null
+    };
+    var img = document.getElementById('dsd-editor-img');
+    img.onload = function() { setupDsdSvg(); renderDsdEditor(); };
+    img.src = 'data:image/jpeg;base64,' + fotoB64;
+    show('s-dsd-editor');
+  });
+}
+
+function setupDsdSvg() {
+  var img = document.getElementById('dsd-editor-img');
+  var svg = document.getElementById('dsd-editor-svg');
+  var W = img.clientWidth, H = img.clientHeight;
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  if (_dsdEditorState) { _dsdEditorState.W = W; _dsdEditorState.H = H; }
+}
+
+function renderDsdEditor() {
+  var st = _dsdEditorState;
+  if (!st || !st.W) return;
+  var svg = document.getElementById('dsd-editor-svg');
+  var W = st.W, H = st.H;
+  var html = '';
+  DSD_LINE_DEFS.forEach(function(def) {
+    var pts = st.lineas[def.key];
+    if (!pts || pts.length < 2 || !pts[0] || !pts[1]) return;
+    var x1 = pts[0].x*W, y1 = pts[0].y*H, x2 = pts[1].x*W, y2 = pts[1].y*H;
+    html += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+def.color+'" stroke-width="2.5" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(0,0,0,.8))"/>';
+
+    var lx = Math.min(x1,x2), ly = (y1+y2)/2;
+    var pillW = def.label.length * 6.5 + 18;
+    html += '<g transform="translate('+(lx-pillW-10)+','+(ly-11)+')">' +
+      '<rect width="'+pillW+'" height="22" rx="11" fill="'+def.color+'" opacity="0.92"/>' +
+      '<text x="'+(pillW/2)+'" y="15" font-size="11" font-weight="700" text-anchor="middle" fill="#000" font-family="Arial">'+def.label+'</text>' +
+      '</g>';
+
+    [{p:pts[0],idx:0,x:x1,y:y1},{p:pts[1],idx:1,x:x2,y:y2}].forEach(function(h) {
+      html += '<circle data-line="'+def.key+'" data-idx="'+h.idx+'" cx="'+h.x+'" cy="'+h.y+'" r="15" fill="'+def.color+'" stroke="#fff" stroke-width="2.5" style="cursor:grab;filter:drop-shadow(0 1px 4px rgba(0,0,0,.6))"/>';
+    });
+  });
+  svg.innerHTML = html;
+
+  Array.prototype.forEach.call(svg.querySelectorAll('circle'), function(c) {
+    c.addEventListener('pointerdown', onDsdHandleDown);
+  });
+
+  renderDsdReadout();
+}
+
+function renderDsdReadout() {
+  var st = _dsdEditorState;
+  var el = document.getElementById('dsd-editor-readout');
+  if (!st || !el) return;
+  var angulo = calcularAnguloEntreLineas(st.lineas.interpupilar, st.lineas.incisal);
+  el.innerHTML = angulo !== null
+    ? 'Canteo oclusal: <b style="color:#fff;margin-left:4px">' + Math.abs(angulo).toFixed(1) + '°</b>'
+    : '';
+}
+
+function onDsdHandleDown(e) {
+  e.preventDefault();
+  var el = e.currentTarget;
+  if (!_dsdEditorState) return;
+  _dsdEditorState.dragging = {line: el.getAttribute('data-line'), idx: parseInt(el.getAttribute('data-idx'), 10)};
+  document.addEventListener('pointermove', onDsdHandleMove);
+  document.addEventListener('pointerup', onDsdHandleUp);
+}
+
+function onDsdHandleMove(e) {
+  var st = _dsdEditorState;
+  if (!st || !st.dragging) return;
+  var svg = document.getElementById('dsd-editor-svg');
+  var rect = svg.getBoundingClientRect();
+  var x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+  var y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+  st.lineas[st.dragging.line][st.dragging.idx] = {x: x/st.W, y: y/st.H};
+  renderDsdEditor();
+}
+
+function onDsdHandleUp() {
+  if (_dsdEditorState) _dsdEditorState.dragging = null;
+  document.removeEventListener('pointermove', onDsdHandleMove);
+  document.removeEventListener('pointerup', onDsdHandleUp);
+}
+
+function resetDsdEditor() {
+  if (!_dsdEditorState) return;
+  _dsdEditorState.lineas = JSON.parse(JSON.stringify(_dsdEditorState.original));
+  renderDsdEditor();
+}
+
+function confirmarDsdEditor() {
+  if (!_dsdEditorState) return;
+  var lineas = _dsdEditorState.lineas;
+  var resolve = _dsdEditorState.resolve;
+  _dsdEditorState = null;
+  resolve(lineas);
 }
 
 function construirPromptGemini(diagnostico) {
@@ -1782,8 +1964,16 @@ function showResult() {
   // Análisis DSD (líneas de referencia) — solo si Claude pudo estimarlas
   var dsdSection = document.getElementById('r-dsd-section');
   if (dsdSection) {
-    if (S.imagenLineasReferencia) {
+    var lr = (S.diagnosticoFacial || {}).lineas_referencia;
+    if (S.imagenLineasReferencia && lr) {
       document.getElementById('r-dsd-img').src = S.imagenLineasReferencia;
+      var medidas = [];
+      var canteo = calcularAnguloEntreLineas(lr.interpupilar, lr.incisal);
+      if (canteo !== null) medidas.push('Canteo oclusal (interpupilar vs. incisal): <b style="color:#fff">' + Math.abs(canteo).toFixed(1) + '°</b>');
+      var comisuralVsIncisal = calcularAnguloEntreLineas(lr.comisural, lr.incisal);
+      if (comisuralVsIncisal !== null) medidas.push('Línea comisural vs. incisal: <b style="color:#fff">' + Math.abs(comisuralVsIncisal).toFixed(1) + '°</b>');
+      var medidasEl = document.getElementById('r-dsd-medidas');
+      if (medidasEl) medidasEl.innerHTML = medidas.map(function(m){return '<div>' + m + '</div>';}).join('');
       dsdSection.style.display = 'block';
     } else {
       dsdSection.style.display = 'none';
