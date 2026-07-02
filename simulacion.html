@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v25 — lead gate + regenerar + timeout Gemini</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v26 — Gemini también procesa los perfiles</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -751,6 +751,9 @@ var S = {
   baScale: 1,
   baAlignMode: false,
   leadNombre: null,
+  resultRight: null,
+  resultLeft: null,
+  baVistaActual: 'frontal',
   timer: null,
   faceOk: false,
   oval: {x:0,y:0,w:0,h:0},
@@ -1484,12 +1487,24 @@ async function processPhotos() {
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
     S.promptGeminiUsado = clinicalPrompt || null;
 
-    // Step 2: Gemini generates simulation from frontal photo
-    if (procSub) procSub.textContent = 'Generando tu simulación...';
-    var geminiResult = await generateSimulation(clinicalPrompt);
+    // Step 2: Gemini generates simulations for las 3 vistas (frontal + 2
+    // perfiles), en paralelo — la frontal es obligatoria (si falla, se
+    // aborta todo como antes); los perfiles son "best effort", si uno
+    // falla no rompe el flujo, simplemente no hay comparación para esa vista
+    if (procSub) procSub.textContent = 'Generando tus simulaciones...';
+    var rightPhoto = S.photos.find(function(p){return p.view==='right';});
+    var leftPhoto = S.photos.find(function(p){return p.view==='left';});
+    var resultados = await Promise.all([
+      generateSimulation(clinicalPrompt, frontalForAnalysis),
+      rightPhoto ? generateSimulation(clinicalPrompt, rightPhoto).catch(function(){return null;}) : Promise.resolve(null),
+      leftPhoto ? generateSimulation(clinicalPrompt, leftPhoto).catch(function(){return null;}) : Promise.resolve(null)
+    ]);
 
     S.diagnosis = claudeResult;
-    S.result = geminiResult;
+    S.result = resultados[0];
+    S.resultRight = resultados[1];
+    S.resultLeft = resultados[2];
+    S.baVistaActual = 'frontal';
     showResult();
 
   } catch(e) {
@@ -1667,8 +1682,8 @@ function construirPromptGemini(diagnostico) {
   return partes.join(' ');
 }
 
-async function generateSimulation(clinicalPrompt) {
-  var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+async function generateSimulation(clinicalPrompt, foto) {
+  var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
   var stylePrompt = '';
@@ -1708,10 +1723,14 @@ async function regenerarSimulacion() {
   var btn = document.getElementById('btn-regenerar');
   if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; btn.innerHTML = 'Generando...'; }
   try {
-    var nuevoResultado = await generateSimulation(S.promptGeminiUsado);
-    S.result = nuevoResultado;
+    var view = S.baVistaActual || 'frontal';
+    var photo = S.photos.find(function(p){return p.view === view;});
+    var nuevoResultado = await generateSimulation(S.promptGeminiUsado, photo);
+    if (view === 'frontal') S.result = nuevoResultado;
+    else if (view === 'right') S.resultRight = nuevoResultado;
+    else if (view === 'left') S.resultLeft = nuevoResultado;
     var imgA = document.getElementById('img-a');
-    if (imgA) imgA.src = S.result;
+    if (imgA) imgA.src = nuevoResultado;
     initBASlider();
   } catch (e) {
     alert('No se pudo generar de nuevo: ' + e.message);
@@ -1722,6 +1741,34 @@ async function regenerarSimulacion() {
       btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Generar de nuevo';
     }
   }
+}
+
+// Etiquetas/miniaturas de las 3 fotos — resaltada la vista activa del
+// comparador antes/después; tocar una la cambia
+function renderResPhotos() {
+  var wrap = document.getElementById('res-photos');
+  if (!wrap) return;
+  var labels = {frontal:'Frontal', right:'Perfil Der.', left:'Perfil Izq.'};
+  wrap.innerHTML = S.photos.map(function(p) {
+    var activo = (S.baVistaActual || 'frontal') === p.view;
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
+      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
+      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + '</span></div>';
+  }).join('');
+}
+
+// Cambia qué foto/simulación muestra el slider antes/después
+function cambiarVistaBA(view) {
+  var photo = S.photos.find(function(p){return p.view === view;});
+  if (!photo) return;
+  var resultMap = {frontal: S.result, right: S.resultRight, left: S.resultLeft};
+  var resultado = resultMap[view];
+  if (!resultado) { alert('No se generó una simulación para esta vista. Puedes intentar "Generar de nuevo".'); return; }
+  S.baVistaActual = view;
+  document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
+  document.getElementById('img-a').src = resultado;
+  initBASlider();
+  renderResPhotos();
 }
 
 // ══ RESULT ══
@@ -1738,13 +1785,8 @@ function showResult() {
   document.getElementById('r-score-lbl').textContent = 'Score Estético · ' + (d.scoreLbl || '');
   document.getElementById('r-score-sub').textContent = d.resumen || '';
 
-  // 3 photo thumbs
-  document.getElementById('res-photos').innerHTML = S.photos.map(function(p, i) {
-    var labels = ['Frontal','Perfil Der.','Perfil Izq.'];
-    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
-      '<div class="res-thumb"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl">' + (labels[i]||'Foto '+(i+1)) + '</span></div>';
-  }).join('');
+  // 3 photo thumbs — tocar una cambia la vista del comparador antes/después
+  renderResPhotos();
 
   // Hallazgos
   var hals = d.hallazgos || [];
@@ -2082,6 +2124,7 @@ function nuevoCaso() {
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   S.baOffsetX = 0; S.baOffsetY = 0; S.baScale = 1; S.baAlignMode = false;
   S.leadNombre = null;
+  S.resultRight = null; S.resultLeft = null; S.baVistaActual = 'frontal';
   show('s-intro');
 }
 
