@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v15 — iOS de vuelta a cámara nativa</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v16 — validación de encuadre post-foto en iOS</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -1536,6 +1536,35 @@ async function analizarConClaude(fotoFrontalBase64) {
   return JSON.parse(clean);
 }
 
+// Validación rápida de encuadre DESPUÉS de tomar la foto frontal — usada en
+// dispositivos donde no hay guía en vivo (cámara nativa de iOS). Es un check
+// ligero (no el análisis clínico completo) para detectar cabeza ladeada o
+// muy descentrada y ofrecer repetir la foto.
+async function validarEncuadreFrontal(fotoFrontalBase64) {
+  var prompt = 'Analiza esta foto frontal de un paciente para diseño de sonrisa dental. ' +
+    'Responde ÚNICAMENTE con JSON, sin markdown: {"centrada": true o false, "razon": "breve explicación en español si no está centrada, vacío si sí"}. ' +
+    'Marca centrada:false SOLO si la cabeza está claramente ladeada (los ojos notoriamente no están a la misma altura) o la cara está muy descentrada/cortada del encuadre. ' +
+    'Si se ve razonablemente bien, marca centrada:true aunque no sea perfecta.';
+
+  var resp = await fetch(CFG.edgeUrl, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    body: JSON.stringify({
+      messages: [{role:'user', content: [
+        {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
+        {type:'text', text: prompt}
+      ]}],
+      max_tokens: 150
+    })
+  });
+  var data = await resp.json();
+  var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+  var clean = txt.replace(/```json|```/g,'').trim();
+  var match = clean.match(/\{[\s\S]*\}/);
+  if (match) clean = match[0];
+  return JSON.parse(clean);
+}
+
 function construirPromptGemini(diagnostico) {
   var d = diagnostico || {};
   var partes = [];
@@ -1897,7 +1926,7 @@ function dl() {
 function onNativePhoto(input) {
   if (!input.files || !input.files[0]) return;
   var reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     var b64 = e.target.result.split(',')[1];
     var view = VIEWS[S.currentPhoto] || VIEWS[0];
     S.photos.push({b64: b64, view: view.id});
@@ -1909,6 +1938,31 @@ function onNativePhoto(input) {
       previewImg.src = e.target.result;
       preview.style.display = 'block';
       document.getElementById('native-cam-icon').style.display = 'none';
+    }
+
+    // Validación de encuadre solo para la foto frontal — es donde importa
+    // que la cabeza esté nivelada/centrada para el análisis clínico
+    if (view.id === 'frontal') {
+      var sub = document.getElementById('native-cam-sub');
+      var subOriginal = sub ? sub.textContent : '';
+      if (sub) sub.textContent = 'Verificando encuadre...';
+      try {
+        var check = await validarEncuadreFrontal(b64);
+        if (sub) sub.textContent = subOriginal;
+        if (check && check.centrada === false) {
+          var repetir = confirm('Tu foto frontal salió algo ladeada o descentrada' + (check.razon ? ' (' + check.razon + ')' : '') + '.\n\n¿Quieres repetirla para un mejor resultado?');
+          if (repetir) {
+            S.photos.pop();
+            if (preview) preview.style.display = 'none';
+            var icon = document.getElementById('native-cam-icon');
+            if (icon) icon.style.display = 'flex';
+            input.value = '';
+            return;
+          }
+        }
+      } catch (err) {
+        if (sub) sub.textContent = subOriginal;
+      }
     }
 
     S.currentPhoto++;
