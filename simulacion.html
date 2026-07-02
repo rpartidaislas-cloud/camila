@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v21 — tu corrección sí manda en el prompt</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v22 — pantalla de carga bloqueante al verificar</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -2250,14 +2250,16 @@ function onNativePhoto(input) {
     }
 
     // Validación de encuadre solo para la foto frontal — es donde importa
-    // que la cabeza esté nivelada/centrada para el análisis clínico
+    // que la cabeza esté nivelada/centrada para el análisis clínico.
+    // Se bloquea la interfaz con un overlay para que no se pueda tomar otra
+    // foto mientras se revisa (antes solo cambiaba un texto chiquito y
+    // el botón seguía tocable, lo cual era confuso).
     if (view.id === 'frontal') {
-      var sub = document.getElementById('native-cam-sub');
-      var subOriginal = sub ? sub.textContent : '';
-      if (sub) sub.textContent = 'Verificando encuadre...';
+      var overlay = document.getElementById('native-verificando-overlay');
+      if (overlay) overlay.style.display = 'flex';
       try {
         var check = await validarEncuadreFrontal(b64);
-        if (sub) sub.textContent = subOriginal;
+        if (overlay) overlay.style.display = 'none';
         if (check && check.centrada === false) {
           var repetir = confirm('Tu foto frontal salió algo ladeada o descentrada' + (check.razon ? ' (' + check.razon + ')' : '') + '.\n\n¿Quieres repetirla para un mejor resultado?');
           if (repetir) {
@@ -2270,7 +2272,7 @@ function onNativePhoto(input) {
           }
         }
       } catch (err) {
-        if (sub) sub.textContent = subOriginal;
+        if (overlay) overlay.style.display = 'none';
       }
     }
 
@@ -2451,6 +2453,13 @@ function openInSafari() {
       <input type="file" accept="image/*" style="position:absolute;opacity:0;pointer-events:none" onchange="onNativePhoto(this)">
     </label>
 
+  </div>
+
+  <!-- Overlay bloqueante mientras se verifica el encuadre de la foto frontal -->
+  <div id="native-verificando-overlay" style="display:none;position:absolute;inset:0;background:rgba(10,8,20,.92);backdrop-filter:blur(4px);z-index:20;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+    <div class="proc-ring-wrap"><div class="pr1"></div><div class="pr2"></div></div>
+    <div style="font-size:15px;font-weight:700;color:#fff">Verificando encuadre...</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.5)">Un momento, por favor</div>
   </div>
 </div>
 
