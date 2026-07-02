@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v18 — validación de encuadre confirmada funcionando</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v19 — líneas DSD (interpupilar/comisural/incisal)</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -503,6 +503,22 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
       <div id="r-hallazgos"></div>
     </div>
 
+    <!-- Análisis DSD (líneas de referencia) — solo para el dentista -->
+    <div class="res-section" id="r-dsd-section" style="display:none">
+      <div class="res-sec-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-2.8-2.8L3 18"/></svg>
+        Análisis DSD (referencia clínica)
+      </div>
+      <div style="border-radius:12px;overflow:hidden;margin-bottom:8px">
+        <img id="r-dsd-img" style="width:100%;display:block" alt="Análisis DSD">
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:rgba(255,255,255,.6)">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;background:#00E5FF;display:inline-block"></span>Interpupilar</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;background:#FFD600;display:inline-block"></span>Comisural</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;background:#FF4081;display:inline-block"></span>Incisal</span>
+      </div>
+    </div>
+
     <!-- Plan -->
     <div class="res-section">
       <div class="res-sec-title">
@@ -632,8 +648,15 @@ var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa 
   '  "troneras": "naturales" | "cerradas" | "abiertas" | "irregulares",\n' +
   '  "zenits_gingivales": "regulares" | "irregulares",\n' +
   '  "contraindicaciones_visibles": ["lista de hallazgos visibles que limiten el diseño, ej. recesión gingival marcada, asimetría facial severa — array vacío [] si no hay"],\n' +
-  '  "recomendacion_diseño": "1-2 líneas con la recomendación de diseño de sonrisa para este paciente, en español"\n' +
-  '}';
+  '  "recomendacion_diseño": "1-2 líneas con la recomendación de diseño de sonrisa para este paciente, en español",\n' +
+  '  "lineas_referencia": {\n' +
+  '    "interpupilar": [{"x": 0.0-1.0, "y": 0.0-1.0}, {"x": 0.0-1.0, "y": 0.0-1.0}],\n' +
+  '    "comisural": [{"x": 0.0-1.0, "y": 0.0-1.0}, {"x": 0.0-1.0, "y": 0.0-1.0}],\n' +
+  '    "incisal": [{"x": 0.0-1.0, "y": 0.0-1.0}, {"x": 0.0-1.0, "y": 0.0-1.0}]\n' +
+  '  }\n' +
+  '}\n\n' +
+  'Para "lineas_referencia": cada línea son 2 puntos (inicio y fin) en coordenadas normalizadas respecto a la imagen completa (0,0 = esquina superior izquierda, 1,1 = esquina inferior derecha, X es horizontal, Y es vertical). ' +
+  '"interpupilar" conecta el centro de ambas pupilas. "comisural" conecta ambas comisuras labiales (donde se juntan los labios en las orillas de la boca). "incisal" sigue el borde libre de los incisivos centrales superiores (extiende la línea un poco más allá de los incisivos centrales para que cruce visualmente toda la sonrisa). Estima las coordenadas con la mayor precisión posible observando la imagen.';
 
 // Load tenant config from URL param
 (function loadTenantConfig() {
@@ -708,6 +731,7 @@ var S = {
   diagnosis: null,
   diagnosticoFacial: null,
   promptGeminiUsado: null,
+  imagenLineasReferencia: null,
   timer: null,
   faceOk: false,
   oval: {x:0,y:0,w:0,h:0},
@@ -1441,6 +1465,14 @@ async function processPhotos() {
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
     S.promptGeminiUsado = clinicalPrompt || null;
 
+    // Dibuja las líneas de referencia DSD (interpupilar/comisural/incisal)
+    // sobre la foto frontal para mostrárselas al dentista en el resultado
+    try {
+      S.imagenLineasReferencia = diagnosticoFacial
+        ? await dibujarLineasReferencia(frontalForAnalysis.b64, diagnosticoFacial.lineas_referencia)
+        : null;
+    } catch (e) { S.imagenLineasReferencia = null; }
+
     // Step 2: Gemini generates simulation from frontal photo
     if (procSub) procSub.textContent = 'Generando tu simulación...';
     var geminiResult = await generateSimulation(clinicalPrompt);
@@ -1565,6 +1597,72 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
   return JSON.parse(clean);
 }
 
+// Dibuja las 3 líneas de referencia DSD (interpupilar, comisural, incisal)
+// sobre la foto frontal, usando las coordenadas normalizadas que estimó
+// Claude. Devuelve un data URL con la imagen anotada, o null si no hay
+// líneas válidas / la imagen no carga.
+function dibujarLineasReferencia(fotoB64, lineas) {
+  return new Promise(function(resolve) {
+    if (!lineas) { resolve(null); return; }
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      function drawLine(pts, color, label) {
+        if (!pts || pts.length < 2 || !pts[0] || !pts[1]) return;
+        var p1x = pts[0].x * img.width, p1y = pts[0].y * img.height;
+        var p2x = pts[1].x * img.width, p2y = pts[1].y * img.height;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(2, img.width * 0.0035);
+        ctx.setLineDash([img.width*0.012, img.width*0.007]);
+        ctx.beginPath();
+        ctx.moveTo(p1x, p1y);
+        ctx.lineTo(p2x, p2y);
+        ctx.stroke();
+        ctx.restore();
+
+        // Etiqueta pequeña junto al extremo izquierdo de la línea
+        ctx.save();
+        ctx.font = 'bold ' + Math.max(11, Math.round(img.width*0.02)) + 'px Arial';
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        ctx.lineWidth = 3;
+        var lx = Math.min(p1x, p2x) - 6;
+        var ly = (p1y + p2y) / 2 - 6;
+        ctx.textAlign = 'right';
+        ctx.strokeText(label, lx, ly);
+        ctx.fillText(label, lx, ly);
+        ctx.restore();
+      }
+
+      drawLine(lineas.interpupilar, '#00E5FF', 'Interpupilar');
+      drawLine(lineas.comisural, '#FFD600', 'Comisural');
+      drawLine(lineas.incisal, '#FF4081', 'Incisal');
+
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = function() { resolve(null); };
+    img.src = 'data:image/jpeg;base64,' + fotoB64;
+  });
+}
+
+// Ángulo (en grados) entre 2 líneas de referencia, cada una definida por 2
+// puntos normalizados {x,y}. Positivo/negativo según hacia qué lado se
+// inclina una respecto a la otra.
+function calcularAnguloEntreLineas(lineaA, lineaB) {
+  if (!lineaA || !lineaB || lineaA.length < 2 || lineaB.length < 2) return null;
+  function angulo(l) { return Math.atan2(l[1].y - l[0].y, l[1].x - l[0].x) * 180 / Math.PI; }
+  var diff = angulo(lineaB) - angulo(lineaA);
+  while (diff > 90) diff -= 180;
+  while (diff < -90) diff += 180;
+  return diff;
+}
+
 function construirPromptGemini(diagnostico) {
   var d = diagnostico || {};
   var partes = [];
@@ -1584,7 +1682,13 @@ function construirPromptGemini(diagnostico) {
   }
 
   if (d['canteo_oclusal'] && d['canteo_oclusal'] !== 'ausente') {
-    partes.push('Corrige el canteo del plano oclusal para nivelarlo.');
+    var lr = d['lineas_referencia'];
+    var angulo = lr ? calcularAnguloEntreLineas(lr.interpupilar, lr.incisal) : null;
+    if (angulo !== null && Math.abs(angulo) >= 1) {
+      partes.push('Corrige el canteo del plano oclusal: actualmente tiene aproximadamente ' + Math.abs(angulo).toFixed(1) + ' grados de inclinación respecto al plano interpupilar; nivélalo para que quede paralelo a la línea interpupilar.');
+    } else {
+      partes.push('Corrige el canteo del plano oclusal para nivelarlo.');
+    }
   }
 
   if (d['inclinacion_incisivos'] === 'proinclinacion') {
@@ -1674,6 +1778,17 @@ function showResult() {
       '<div class="res-thumb"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
       '<span class="res-thumb-lbl">' + (labels[i]||'Foto '+(i+1)) + '</span></div>';
   }).join('');
+
+  // Análisis DSD (líneas de referencia) — solo si Claude pudo estimarlas
+  var dsdSection = document.getElementById('r-dsd-section');
+  if (dsdSection) {
+    if (S.imagenLineasReferencia) {
+      document.getElementById('r-dsd-img').src = S.imagenLineasReferencia;
+      dsdSection.style.display = 'block';
+    } else {
+      dsdSection.style.display = 'none';
+    }
+  }
 
   // Hallazgos
   var hals = d.hallazgos || [];
@@ -1911,7 +2026,7 @@ function compartirConPaciente() {
 function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
-  S.diagnosticoFacial = null; S.promptGeminiUsado = null;
+  S.diagnosticoFacial = null; S.promptGeminiUsado = null; S.imagenLineasReferencia = null;
   show('s-intro');
 }
 
