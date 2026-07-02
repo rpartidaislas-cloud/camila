@@ -661,7 +661,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v1 — manejo de errores</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v2 — historial más ligero</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -2700,10 +2700,13 @@ async function cargarHistorial() {
 
   var casos = [];
 
-  // Try Supabase first
+  // Try Supabase first — solo columnas ligeras para la lista (nada de fotos
+  // de perfil ni simulaciones extra, eso se trae aparte al abrir un caso).
+  // Traer las 6 fotos/simulaciones completas de hasta 50 casos de golpe
+  // podía ser decenas de MB y trababa el navegador.
   try {
     var res = await sb.from('camila_casos')
-      .select('*')
+      .select('id,tenant_id,nombre_paciente,telefono,email,score,score_lbl,resumen,diagnostico,total_cotizacion,simulacion_url,foto_frontal,fotos_count,created_at')
       .eq('tenant_id', tenantId)
       .order('created_at', {ascending: false})
       .limit(50);
@@ -2778,10 +2781,30 @@ async function cargarHistorial() {
   window._historialCasos = casos;
 }
 
-function verCaso(i) {
+async function verCaso(i) {
   var casos = window._historialCasos || [];
   var c = casos[i];
   if (!c) return;
+
+  // La lista solo trae columnas ligeras — si el caso viene de Supabase (no
+  // es un registro legacy de localStorage), traer el resto de los datos
+  // (fotos de perfil, simulaciones extra, análisis clínico) solo ahora
+  // que sí se va a mostrar el detalle.
+  if (c.id && !c._legacy) {
+    var modalLoading = document.getElementById('modal-caso-detalle');
+    if (!modalLoading) {
+      modalLoading = document.createElement('div');
+      modalLoading.id = 'modal-caso-detalle';
+      modalLoading.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center';
+      modalLoading.onclick = function(e) { if (e.target === modalLoading) modalLoading.remove(); };
+      document.body.appendChild(modalLoading);
+    }
+    modalLoading.innerHTML = '<div style="color:#fff;font-size:13px">Cargando caso...</div>';
+    try {
+      var full = await sb.from('camila_casos').select('*').eq('id', c.id).single();
+      if (full.data) c = Object.assign({}, c, full.data);
+    } catch (e) {}
+  }
 
   var diag = {};
   try { diag = typeof c.diagnostico === 'string' ? JSON.parse(c.diagnostico) : (c.diagnostico || {}); } catch(e) {}
@@ -2798,10 +2821,10 @@ function verCaso(i) {
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'modal-caso-detalle';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center';
-    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
     document.body.appendChild(modal);
   }
+  modal.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 
   modal.innerHTML = '<div style="background:var(--color-surface);border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:20px">' +
 
