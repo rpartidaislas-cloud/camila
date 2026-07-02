@@ -661,6 +661,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v1 — manejo de errores</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -1701,6 +1702,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#94A3B8;font-family:Georgia,serif;letter-spacing:.8px;opacity:.5;z-index:9999;pointer-events:none">© 2025 Dr. Hernán Partida Islas · Propiedad Intelectual</div>
 
 <script>
+window.onerror = function(msg, src, line, col, err) {
+  alert('JS Error:\n' + msg + '\nLine: ' + line + '\n' + (err ? err.stack : ''));
+  return false;
+};
+window.addEventListener('unhandledrejection', function(ev) {
+  var r = ev.reason;
+  alert('Promise Error:\n' + (r && r.message ? r.message : r) + (r && r.stack ? '\n' + r.stack : ''));
+});
+
 // ══════════════════════════════════════════
 // SUPABASE CONFIG
 // ══════════════════════════════════════════
