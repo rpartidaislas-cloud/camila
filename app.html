@@ -2775,6 +2775,8 @@ function verCaso(i) {
 
   var diag = {};
   try { diag = typeof c.diagnostico === 'string' ? JSON.parse(c.diagnostico) : (c.diagnostico || {}); } catch(e) {}
+  var df = null;
+  try { df = typeof c.diagnostico_claude === 'string' ? JSON.parse(c.diagnostico_claude) : (c.diagnostico_claude || null); } catch(e) { df = null; }
 
   var fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
   var total = c.total_cotizacion || 0;
@@ -2812,10 +2814,18 @@ function verCaso(i) {
         '<span style="font-size:10px;color:var(--color-text-tertiary)">' + lbl + '</span></div>' : '';
     }).join('') + '</div>' : '') +
 
-    // Simulación
+    // Simulación (frontal + perfiles, si existen)
     (c.simulacion_url ? '<div style="margin-bottom:14px;border-radius:12px;overflow:hidden;border:1px solid var(--color-border)">' +
-    '<img src="' + c.simulacion_url + '" style="width:100%;display:block" alt="Simulación">' +
-    '<div style="padding:8px 12px;background:var(--color-surface-raised);font-size:11px;font-weight:600;color:var(--color-primary)">✨ Simulación generada con IA</div>' +
+    '<img src="' + c.simulacion_url + '" style="width:100%;display:block" alt="Simulación frontal">' +
+    '<div style="padding:8px 12px;background:var(--color-surface-raised);font-size:11px;font-weight:600;color:var(--color-primary)">✨ Simulación frontal generada con IA</div>' +
+    '</div>' : '') +
+    ((c.simulacion_url_der || c.simulacion_url_izq) ? '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+    (c.simulacion_url_der ? '<div style="flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--color-border)">' +
+      '<img src="' + c.simulacion_url_der + '" style="width:100%;display:block" alt="Simulación perfil derecho">' +
+      '<div style="padding:6px 8px;background:var(--color-surface-raised);font-size:10px;font-weight:600;color:var(--color-primary)">Perfil derecho</div></div>' : '') +
+    (c.simulacion_url_izq ? '<div style="flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--color-border)">' +
+      '<img src="' + c.simulacion_url_izq + '" style="width:100%;display:block" alt="Simulación perfil izquierdo">' +
+      '<div style="padding:6px 8px;background:var(--color-surface-raised);font-size:10px;font-weight:600;color:var(--color-primary)">Perfil izquierdo</div></div>' : '') +
     '</div>' : '') +
 
     // Score
@@ -2836,6 +2846,33 @@ function verCaso(i) {
         '<div style="width:7px;height:7px;border-radius:50%;background:' + (h.color||'var(--color-primary)') + ';flex-shrink:0;margin-top:5px"></div>' +
         '<div style="font-size:13px;color:var(--color-text-secondary);line-height:1.4">' + h.texto + '</div></div>';
     }).join('') + '</div>' : '') +
+
+    // Análisis facial/dental (Claude) — proporciones para diseño de sonrisa
+    (df ? '<div style="background:var(--color-surface-raised);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
+    '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--color-text-tertiary);margin-bottom:10px">Análisis facial y dental</div>' +
+    [
+      ['Línea media dental', df.linea_media_dental],
+      ['Tipo facial', df.tipo_facial],
+      ['Simetría vertical', df.simetria_vertical],
+      ['Canteo oclusal', df.canteo_oclusal],
+      ['Inclinación de incisivos', df.inclinacion_incisivos],
+      ['Exposición incisal en reposo', df.exposicion_incisal_reposo_mm],
+      ['Arco incisivo-cuspídeo', df.arco_incisivo_cuspideo],
+      ['Clase oclusal aparente', df.clase_oclusal_aparente],
+      ['Troneras', df.troneras],
+      ['Zenits gingivales', df.zenits_gingivales]
+    ].filter(function(row){ return row[1]; }).map(function(row){
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--color-border);font-size:12px">' +
+        '<span style="color:var(--color-text-tertiary)">' + row[0] + '</span>' +
+        '<span style="color:var(--color-text-primary);font-weight:600;text-align:right">' + row[1] + '</span></div>';
+    }).join('') +
+    ((df.contraindicaciones_visibles && df.contraindicaciones_visibles.length) ?
+      '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-border)">' +
+      '<div style="font-size:11px;font-weight:600;color:#DC2626;margin-bottom:4px">⚠ Contraindicaciones visibles</div>' +
+      df.contraindicaciones_visibles.map(function(x){ return '<div style="font-size:12px;color:var(--color-text-secondary)">• ' + x + '</div>'; }).join('') +
+      '</div>' : '') +
+    (df['recomendacion_diseño'] ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-border);font-size:12px;color:var(--color-text-secondary);line-height:1.4"><b style="color:var(--color-text-primary)">Recomendación de diseño:</b> ' + df['recomendacion_diseño'] + '</div>' : '') +
+    '</div>' : '') +
 
     // Cotización
     (cot.length ? '<div style="background:var(--color-surface-raised);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
