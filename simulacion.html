@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v22 — pantalla de carga bloqueante al verificar</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v23 — alinear manualmente antes/después</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -496,6 +496,26 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <div class="ba-tag l">📷 ANTES</div>
     <div class="ba-tag r">✨ CON CARILLAS</div>
     <div class="ba-tip" id="ba-tip">← Arrastra para comparar →</div>
+
+    <!-- Botón para entrar al modo de alineación manual -->
+    <button id="ba-align-btn" onclick="toggleBaAlign()" style="position:absolute;bottom:10px;right:10px;z-index:8;height:34px;padding:0 12px;border-radius:99px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;font-family:Inter,sans-serif">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      Ajustar alineación
+    </button>
+
+    <!-- Panel de controles del modo alineación (oculto por default) -->
+    <div id="ba-align-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:9;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4));padding:10px 12px calc(env(safe-area-inset-bottom,0px)+10px);gap:8px;flex-direction:column">
+      <div style="font-size:11px;color:rgba(255,255,255,.7);text-align:center">Arrastra la foto "con carillas" para alinearla con la de "antes"</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+        <button onclick="ajustarBaZoom(-0.05)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:18px;font-weight:700;cursor:pointer">−</button>
+        <span style="font-size:11px;color:rgba(255,255,255,.6);width:60px;text-align:center">Zoom</span>
+        <button onclick="ajustarBaZoom(0.05)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:18px;font-weight:700;cursor:pointer">+</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="resetBaAlign()" style="flex:0 0 auto;height:42px;padding:0 16px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Restablecer</button>
+        <button onclick="toggleBaAlign()" style="flex:1;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Listo</button>
+      </div>
+    </div>
   </div>
 
   <!-- 3 foto thumbs -->
@@ -754,6 +774,10 @@ var S = {
   diagnosticoFacial: null,
   promptGeminiUsado: null,
   imagenLineasReferencia: null,
+  baOffsetX: 0,
+  baOffsetY: 0,
+  baScale: 1,
+  baAlignMode: false,
   timer: null,
   faceOk: false,
   oval: {x:0,y:0,w:0,h:0},
@@ -2028,6 +2052,14 @@ function initBASlider() {
   var line = document.getElementById('ba-line');
   var drag = false;
 
+  // Estado limpio del modo alineación cada vez que se muestra un resultado
+  S.baOffsetX = 0; S.baOffsetY = 0; S.baScale = 1; S.baAlignMode = false;
+  var alignPanel = document.getElementById('ba-align-panel');
+  var alignBtn = document.getElementById('ba-align-btn');
+  if (alignPanel) alignPanel.style.display = 'none';
+  if (alignBtn) alignBtn.style.display = 'flex';
+  aplicarBaTransform();
+
   var imgB = document.getElementById('img-b');
   var imgA = document.getElementById('img-a');
   function fixH() {
@@ -2045,17 +2077,38 @@ function initBASlider() {
   imgA.onload = fixH;
 
   function mv(x) {
+    if (S.baAlignMode) return;
     var r = wrap.getBoundingClientRect();
     var p = Math.max(5, Math.min(95, (x-r.left)/r.width*100));
     over.style.clipPath = 'inset(0 '+(100-p)+'% 0 0)';
     line.style.left = p + '%';
   }
-  wrap.addEventListener('mousedown', function(e){drag=true;mv(e.clientX);});
+  wrap.addEventListener('mousedown', function(e){ if(S.baAlignMode) return; drag=true;mv(e.clientX);});
   document.addEventListener('mousemove', function(e){if(drag)mv(e.clientX);});
   document.addEventListener('mouseup', function(){drag=false;});
-  wrap.addEventListener('touchstart', function(e){drag=true;mv(e.touches[0].clientX);},{passive:true});
+  wrap.addEventListener('touchstart', function(e){ if(S.baAlignMode) return; drag=true;mv(e.touches[0].clientX);},{passive:true});
   wrap.addEventListener('touchmove', function(e){if(drag)mv(e.touches[0].clientX);},{passive:true});
   wrap.addEventListener('touchend', function(){drag=false;},{passive:true});
+
+  // Arrastre para mover la foto "después" en modo alineación
+  var alignDrag = null;
+  function alignStart(x, y) {
+    if (!S.baAlignMode) return;
+    alignDrag = {x: x, y: y, ox: S.baOffsetX, oy: S.baOffsetY};
+  }
+  function alignMove(x, y) {
+    if (!alignDrag) return;
+    S.baOffsetX = alignDrag.ox + (x - alignDrag.x);
+    S.baOffsetY = alignDrag.oy + (y - alignDrag.y);
+    aplicarBaTransform();
+  }
+  function alignEnd() { alignDrag = null; }
+  wrap.addEventListener('mousedown', function(e){ alignStart(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', function(e){ alignMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', alignEnd);
+  wrap.addEventListener('touchstart', function(e){ alignStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  wrap.addEventListener('touchmove', function(e){ if (S.baAlignMode) alignMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  wrap.addEventListener('touchend', alignEnd, {passive:true});
 
   // Reveal animation
   var p = 100;
@@ -2065,6 +2118,47 @@ function initBASlider() {
     line.style.left = Math.min(50,100-p)+'%';
     if (p <= 50) clearInterval(anim);
   }, 14);
+}
+
+function aplicarBaTransform() {
+  var imgA = document.getElementById('img-a');
+  if (!imgA) return;
+  imgA.style.transform = 'translate(' + S.baOffsetX + 'px,' + S.baOffsetY + 'px) scale(' + S.baScale + ')';
+}
+
+function toggleBaAlign() {
+  S.baAlignMode = !S.baAlignMode;
+  var panel = document.getElementById('ba-align-panel');
+  var btn = document.getElementById('ba-align-btn');
+  var line = document.getElementById('ba-line');
+  var tip = document.getElementById('ba-tip');
+  if (panel) panel.style.display = S.baAlignMode ? 'flex' : 'none';
+  if (btn) btn.style.display = S.baAlignMode ? 'none' : 'flex';
+  if (line) line.style.display = S.baAlignMode ? 'none' : 'block';
+  if (tip) tip.style.display = S.baAlignMode ? 'none' : 'block';
+  // En modo alineación se ve completa la foto "después" para poder ajustarla;
+  // al salir, regresa el clip al punto donde esté la línea del slider
+  var over = document.getElementById('ba-over');
+  if (over) {
+    if (S.baAlignMode) {
+      over.style.clipPath = 'inset(0 0 0 0)';
+    } else {
+      var p = line ? (parseFloat(line.style.left) || 50) : 50;
+      over.style.clipPath = 'inset(0 ' + (100-p) + '% 0 0)';
+    }
+  }
+}
+
+function ajustarBaZoom(delta) {
+  S.baScale = Math.max(0.5, Math.min(2.5, S.baScale + delta));
+  aplicarBaTransform();
+}
+
+function resetBaAlign() {
+  S.baOffsetX = 0;
+  S.baOffsetY = 0;
+  S.baScale = 1;
+  aplicarBaTransform();
 }
 
 // ══ LEAD + WHATSAPP ══
@@ -2221,6 +2315,7 @@ function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null; S.imagenLineasReferencia = null;
+  S.baOffsetX = 0; S.baOffsetY = 0; S.baScale = 1; S.baAlignMode = false;
   show('s-intro');
 }
 
