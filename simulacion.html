@@ -229,7 +229,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v26 — Gemini también procesa los perfiles</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v27 — fotos y análisis conectados al panel</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -2003,6 +2003,8 @@ async function guardarCaso() {
     cotizacion: d.cotizacion || [],
     total_cotizacion: total,
     simulacion_url: S.result || null,
+    simulacion_url_der: S.resultRight || null,
+    simulacion_url_izq: S.resultLeft || null,
     foto_frontal: (S.photos.find(function(p){return p.view==='frontal';})||{}).b64 || null,
     foto_perfil_der: (S.photos.find(function(p){return p.view==='right';})||{}).b64 || null,
     foto_perfil_izq: (S.photos.find(function(p){return p.view==='left';})||{}).b64 || null,
@@ -2048,6 +2050,11 @@ async function guardarCaso() {
         }),
         total_cotizacion: total,
         simulacion_url: S.result || null,
+        simulacion_url_der: S.resultRight || null,
+        simulacion_url_izq: S.resultLeft || null,
+        foto_frontal: casoData.foto_frontal,
+        foto_perfil_der: casoData.foto_perfil_der,
+        foto_perfil_izq: casoData.foto_perfil_izq,
         cuestionario: JSON.stringify(S.questionnaire || {}),
         fotos_count: S.photos.length,
         diagnostico_claude: S.diagnosticoFacial || null,
