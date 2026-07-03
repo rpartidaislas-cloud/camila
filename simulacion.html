@@ -137,8 +137,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 /* Modo alineación en pantalla completa — antes el área de la foto quedaba
    limitada a 58% del alto de pantalla y el resto de las secciones (score,
    hallazgos, plan) seguían ocupando espacio debajo, aunque no se vieran */
-.ba-wrap.ba-fullscreen{position:fixed;inset:0;z-index:60;height:100dvh!important;width:100vw}
-.ba-wrap.ba-fullscreen .ba-base,.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important}
+.ba-wrap.ba-fullscreen{position:fixed;inset:0;z-index:60;height:100dvh!important;width:100vw;background:#000;display:flex;align-items:center;justify-content:center}
+.ba-wrap.ba-fullscreen .ba-base{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+/* object-fit:cover (el normal) hace zoom agresivo cuando la foto no tiene
+   la misma proporción que la pantalla completa — con "contain" se ve la
+   foto entera, necesario para poder alinearla con precisión */
+.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:contain!important}
 .ba-base{position:relative;width:100%}
 .ba-base{position:relative;width:100%;overflow:hidden}
 .ba-base img{width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
@@ -241,7 +245,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v31 — recuperar avance, horizontal en 2 fotos, ajuste pantalla completa</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v32 — orden de fotos, ajuste por vista, arregla recorte y avance viejo</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -792,9 +796,7 @@ var S = {
   diagnosis: null,
   diagnosticoFacial: null,
   promptGeminiUsado: null,
-  baOffsetX: 0,
-  baOffsetY: 0,
-  baScale: 1,
+  baAlign: {}, // por vista: {x: fracción del ancho, y: fracción del alto, scale}
   baAlignMode: false,
   leadNombre: null,
   results: {},
@@ -815,9 +817,9 @@ var VIEWS = [
   {id:'frontal',    label:'Vista Frontal — Sonrisa completa', hint:'Muestra los dientes y centra tu cara', facing:'user', svg:'frontal'},
   {id:'right',      label:'Perfil Derecho — Gira a tu derecha', hint:'Nariz apuntando hacia la izquierda de la pantalla', facing:'user', svg:'perfil-der'},
   {id:'left',       label:'Perfil Izquierdo — Gira a tu izquierda', hint:'Nariz apuntando hacia la derecha de la pantalla', facing:'user', svg:'perfil-izq'},
+  {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa', hint:'Gira ligeramente la cabeza mostrando la sonrisa de perfil', facing:'environment', svg:'tres-cuartos'},
   {id:'extraoral',  label:'Fotografía Extraoral — Rostro completo', hint:'Aléjate para que se vea toda tu cara y hombros', facing:'environment', svg:'extraoral', orientation:'landscape'},
   {id:'intraoral',  label:'Fotografía Intraoral — Dientes de cerca', hint:'Acércate y enfoca directo a los dientes con la boca abierta', facing:'environment', svg:'intraoral', orientation:'landscape'},
-  {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa', hint:'Gira ligeramente la cabeza mostrando la sonrisa de perfil', facing:'environment', svg:'tres-cuartos'},
 ];
 
 // ══ SCREENS ══
@@ -839,29 +841,46 @@ function progressKey() {
   return 'camila_progreso_' + (CFG.tenantId || 'local');
 }
 
+function trySaveSnapshot(snapshot) {
+  try {
+    localStorage.setItem(progressKey(), JSON.stringify(snapshot));
+    return true;
+  } catch (e) {
+    return false; // cuota de localStorage llena
+  }
+}
+
 function saveProgress(screenId) {
   if (!screenId || screenId === 's-intro') { clearProgress(); return; }
-  try {
-    var snapshot = {
-      screen: screenId,
-      ts: Date.now(),
-      qStep: Q_STEP,
-      qAnswers: Q_ANSWERS,
-      photos: S.photos,
-      currentPhoto: S.currentPhoto,
-      questionnaire: S.questionnaire,
-      diagnosis: S.diagnosis,
-      diagnosticoFacial: S.diagnosticoFacial,
-      promptGeminiUsado: S.promptGeminiUsado,
-      results: S.results,
-      result: S.result,
-      baVistaActual: S.baVistaActual,
-    };
-    localStorage.setItem(progressKey(), JSON.stringify(snapshot));
-  } catch (e) {
-    // Cuota de localStorage llena (muchas fotos acumuladas) — no es
-    // crítico, simplemente no habrá nada que recuperar esta vez.
-  }
+  var base = {
+    screen: screenId,
+    ts: Date.now(),
+    qStep: Q_STEP,
+    qAnswers: Q_ANSWERS,
+    photos: S.photos,
+    currentPhoto: S.currentPhoto,
+    questionnaire: S.questionnaire,
+    diagnosis: S.diagnosis,
+    diagnosticoFacial: S.diagnosticoFacial,
+    promptGeminiUsado: S.promptGeminiUsado,
+    results: S.results,
+    result: S.result,
+    baVistaActual: S.baVistaActual,
+    baAlign: S.baAlign,
+  };
+  if (trySaveSnapshot(base)) return;
+  // Las 6 fotos + hasta 6 simulaciones generadas por Gemini pueden pesar
+  // varios MB juntas y superar la cuota de localStorage — antes esto
+  // fallaba en silencio y dejaba pegado el ÚLTIMO snapshot que sí cupo
+  // (uno viejo, de cuando iban solo 2 fotos), por eso el recuperar avance
+  // mostraba info vieja aunque ya se hubiera terminado todo. Reintenta sin
+  // las simulaciones generadas — si hace falta, al continuar se vuelven a
+  // generar en vez de perderse el progreso por completo.
+  var lite = Object.assign({}, base, {results: {}, result: null});
+  if (trySaveSnapshot(lite)) return;
+  // Ni así cupo (fotos muy pesadas) — no hay snapshot confiable que dejar,
+  // mejor borrar cualquier progreso viejo a que quede uno truncado/erróneo.
+  clearProgress();
 }
 
 function clearProgress() {
@@ -887,11 +906,16 @@ function checkResumePrompt() {
   var detail = document.getElementById('resume-detail');
   if (detail) {
     var nFotos = (SAVED_PROGRESS.photos || []).length;
+    // Si la cuota de localStorage no alcanzó para guardar la simulación
+    // generada (ver saveProgress), 's-res' se guarda sin 'result' — en ese
+    // caso hay que avisar que se va a regenerar, no que "ya está lista".
     var labels = {
       's-q': 'Estabas llenando el cuestionario inicial.',
       's-cam-native': 'Ya tomaste ' + nFotos + ' de ' + VIEWS.length + ' fotos.',
       's-proc': 'Ya tomaste tus ' + nFotos + ' fotos, falta generar la simulación.',
-      's-res': 'Ya tienes una simulación generada, solo falta guardarla.',
+      's-res': SAVED_PROGRESS.result ?
+        'Ya tienes una simulación generada, solo falta guardarla.' :
+        'Ya tomaste tus ' + nFotos + ' fotos, vamos a generar la simulación de nuevo.',
     };
     detail.textContent = labels[SAVED_PROGRESS.screen] || 'Puedes continuar donde te quedaste.';
   }
@@ -923,6 +947,7 @@ function continuarProgreso() {
   S.results = snap.results || {};
   S.result = snap.result || null;
   S.baVistaActual = snap.baVistaActual || 'frontal';
+  S.baAlign = snap.baAlign || {};
 
   if (snap.screen === 's-q') {
     show('s-q');
@@ -2011,8 +2036,11 @@ function initBASlider() {
   var line = document.getElementById('ba-line');
   var drag = false;
 
-  // Estado limpio del modo alineación cada vez que se muestra un resultado
-  S.baOffsetX = 0; S.baOffsetY = 0; S.baScale = 1; S.baAlignMode = false;
+  // Al mostrar un resultado se sale del modo alineación, pero el ajuste ya
+  // hecho en cada vista (S.baAlign, por id de vista) NO se borra — antes se
+  // reseteaba aquí cada vez, así que cambiar de foto o volver a esta
+  // función perdía el ajuste ya hecho.
+  S.baAlignMode = false;
   var alignPanel = document.getElementById('ba-align-panel');
   var alignBtn = document.getElementById('ba-align-btn');
   if (alignPanel) alignPanel.style.display = 'none';
@@ -2052,16 +2080,21 @@ function initBASlider() {
   wrap.addEventListener('touchmove', function(e){if(drag)mv(e.touches[0].clientX);},{passive:true});
   wrap.addEventListener('touchend', function(){drag=false;},{passive:true});
 
-  // Arrastre para mover la foto "después" en modo alineación
+  // Arrastre para mover la foto "después" en modo alineación — se guarda
+  // como fracción del tamaño de la foto en pantalla (no en píxeles fijos)
+  // para que el ajuste se vea igual sin importar si se hizo en pantalla
+  // completa o en la vista normal, que tienen tamaños distintos.
   var alignDrag = null;
   function alignStart(x, y) {
     if (!S.baAlignMode) return;
-    alignDrag = {x: x, y: y, ox: S.baOffsetX, oy: S.baOffsetY};
+    var a = getAlignFor(S.baVistaActual);
+    alignDrag = {x: x, y: y, ox: a.x, oy: a.y, w: wrap.offsetWidth || 1, h: wrap.offsetHeight || 1};
   }
   function alignMove(x, y) {
     if (!alignDrag) return;
-    S.baOffsetX = alignDrag.ox + (x - alignDrag.x);
-    S.baOffsetY = alignDrag.oy + (y - alignDrag.y);
+    var a = getAlignFor(S.baVistaActual);
+    a.x = alignDrag.ox + (x - alignDrag.x) / alignDrag.w;
+    a.y = alignDrag.oy + (y - alignDrag.y) / alignDrag.h;
     aplicarBaTransform();
   }
   function alignEnd() { alignDrag = null; }
@@ -2082,10 +2115,22 @@ function initBASlider() {
   }, 14);
 }
 
+// Ajuste de alineación por vista — S.baAlign[viewId] = {x, y, scale}, con
+// x/y como fracción del tamaño de la foto (no píxeles), para que se vea
+// igual en pantalla completa (modo ajuste) y en la vista normal reducida.
+function getAlignFor(view) {
+  if (!S.baAlign[view]) S.baAlign[view] = {x: 0, y: 0, scale: 1};
+  return S.baAlign[view];
+}
+
 function aplicarBaTransform() {
   var imgA = document.getElementById('img-a');
-  if (!imgA) return;
-  imgA.style.transform = 'translate(' + S.baOffsetX + 'px,' + S.baOffsetY + 'px) scale(' + S.baScale + ')';
+  var wrap = document.getElementById('ba-wrap');
+  if (!imgA || !wrap) return;
+  var a = S.baAlign[S.baVistaActual] || {x: 0, y: 0, scale: 1};
+  var px = a.x * wrap.offsetWidth;
+  var py = a.y * wrap.offsetHeight;
+  imgA.style.transform = 'translate(' + px + 'px,' + py + 'px) scale(' + (a.scale || 1) + ')';
 }
 
 function toggleBaAlign() {
@@ -2114,6 +2159,11 @@ function toggleBaAlign() {
     }
   }
   setBaFullscreen(S.baAlignMode);
+  // El ajuste se guarda como fracción del tamaño de la foto, así que hay
+  // que recalcular los píxeles del transform apenas cambie el tamaño del
+  // contenedor (pantalla completa <-> vista normal) — si no, se ve como
+  // si el ajuste "no se hubiera guardado" al salir del modo alineación.
+  aplicarBaTransform();
 }
 
 // Al ajustar la alineación, la foto ocupa toda la pantalla en vez de quedar
@@ -2150,14 +2200,13 @@ function setBaFullscreen(activo) {
 }
 
 function ajustarBaZoom(delta) {
-  S.baScale = Math.max(0.5, Math.min(2.5, S.baScale + delta));
+  var a = getAlignFor(S.baVistaActual);
+  a.scale = Math.max(0.5, Math.min(2.5, (a.scale || 1) + delta));
   aplicarBaTransform();
 }
 
 function resetBaAlign() {
-  S.baOffsetX = 0;
-  S.baOffsetY = 0;
-  S.baScale = 1;
+  S.baAlign[S.baVistaActual] = {x: 0, y: 0, scale: 1};
   aplicarBaTransform();
 }
 
@@ -2351,7 +2400,7 @@ function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
-  S.baOffsetX = 0; S.baOffsetY = 0; S.baScale = 1; S.baAlignMode = false;
+  S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
   show('s-intro');
