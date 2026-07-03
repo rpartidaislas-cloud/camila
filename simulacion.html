@@ -78,6 +78,48 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 /* Ícono de "gira tu teléfono" */
 @keyframes rotateHint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-90deg)}}
 
+/* ══ Pantalla de captura (cámara nativa) — rediseño ══ */
+.native-cam-screen{
+  background:
+    radial-gradient(circle at 50% 34%, rgba(91,71,224,.16), transparent 55%),
+    linear-gradient(165deg,#0c0818,#080611 60%,#0a0e1c);
+}
+.native-cam-topbar{position:relative;z-index:10;padding:calc(env(safe-area-inset-top,0px)+14px) 16px 12px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(rgba(10,8,20,.55),transparent)}
+.native-cam-header{display:flex;align-items:center;justify-content:space-between}
+.native-progress-dots{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.native-cam-content{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 28px 28px;gap:14px;flex:1;justify-content:center;min-height:0}
+.native-preview-wrap{display:none;width:148px;height:168px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 32px rgba(0,0,0,.45);margin-bottom:6px}
+.native-guide-icon{
+  width:100px;height:100px;border-radius:22px;margin-bottom:6px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,rgba(91,71,224,.22),rgba(44,107,237,.08));
+  border:1px solid rgba(148,124,255,.28);
+  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset, 0 14px 30px -10px rgba(91,71,224,.5);
+}
+.native-badge{
+  font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:#C9BFFF;
+  background:rgba(91,71,224,.18);border:1px solid rgba(148,124,255,.3);
+  padding:4px 11px;border-radius:99px;
+}
+.native-title{font-size:21px;font-weight:700;color:#fff;line-height:1.25;letter-spacing:-.2px}
+.native-sub{font-size:13.5px;color:rgba(255,255,255,.5);line-height:1.5;max-width:270px}
+.native-tips-card{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;
+  padding:13px 16px;width:100%;max-width:280px;text-align:left;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset;
+}
+.native-tips-list{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.4}
+.native-cam-btn{
+  width:100%;max-width:280px;height:54px;border-radius:15px;margin-top:6px;
+  background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:14.5px;font-weight:700;cursor:pointer;position:relative;
+  box-shadow:0 10px 24px -6px rgba(91,71,224,.55), 0 0 0 1px rgba(255,255,255,.06) inset;
+  transition:transform 120ms ease, box-shadow 120ms ease;
+}
+.native-cam-btn:active{transform:scale(.97);box-shadow:0 6px 16px -6px rgba(91,71,224,.5)}
+.native-gallery-link{color:rgba(255,255,255,.38);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;position:relative;padding:4px}
+
 /* Guide text */
 .cam-guide{position:absolute;z-index:10;left:0;right:0;text-align:center;pointer-events:none}
 .guide-main{font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.9);display:block;margin-bottom:4px;transition:all 250ms}
@@ -232,11 +274,19 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ios-step-num{width:24px;height:24px;border-radius:50%;background:var(--p);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ios-close-btn{width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:14px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;margin-top:4px}
 
-.q-option{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:all 150ms;color:rgba(255,255,255,.8);font-size:14px;font-weight:500}
+.q-option{display:flex;align-items:center;gap:12px;padding:13px 14px;background:rgba(255,255,255,.045);border:1.5px solid rgba(255,255,255,.09);border-radius:13px;cursor:pointer;transition:background 150ms,border-color 150ms,transform 100ms;color:rgba(255,255,255,.8);font-size:14px;font-weight:500}
+.q-option:active{transform:scale(.985)}
 .q-option input{width:18px;height:18px;cursor:pointer;accent-color:var(--p);flex-shrink:0}
-.q-option:has(input:checked){background:rgba(91,71,224,.2);border-color:var(--p);color:#fff}
-.q-option-single{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:all 150ms}
-.q-option-single.selected{background:rgba(91,71,224,.25);border-color:var(--p)}
+.q-option:has(input:checked){background:rgba(91,71,224,.16);border-color:rgba(91,71,224,.55);color:#fff;box-shadow:0 0 0 1px rgba(91,71,224,.15) inset}
+.q-option-single{display:flex;align-items:center;gap:12px;padding:13px 14px;background:rgba(255,255,255,.045);border:1.5px solid rgba(255,255,255,.09);border-radius:13px;cursor:pointer;transition:background 150ms,border-color 150ms,transform 100ms;position:relative}
+.q-option-single:active{transform:scale(.985)}
+.q-option-single.selected{background:rgba(91,71,224,.16);border-color:rgba(91,71,224,.55);box-shadow:0 0 0 1px rgba(91,71,224,.15) inset}
+.q-option-single.selected::after{content:'';position:absolute;top:50%;right:14px;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--p);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-size:11px;background-repeat:no-repeat;background-position:center}
+
+/* Chips de molestias agregadas a mano — se pueden quitar con la × */
+.q-chip-custom{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;background:rgba(91,71,224,.16);border:1.5px solid rgba(91,71,224,.4);border-radius:99px;color:#fff;font-size:12.5px;font-weight:500}
+.q-chip-custom button{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+.q-chip-custom button:hover{background:rgba(255,255,255,.28)}
 
 /* Flash */
 #flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 60ms}
@@ -245,7 +295,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v32 — orden de fotos, ajuste por vista, arregla recorte y avance viejo</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v33 — cuestionario clínico, restricción arriba/abajo, rediseño de captura</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -352,11 +402,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </div>
 
 
-<!-- ══ CUESTIONARIO ══ -->
+<!-- ══ CUESTIONARIO ══ (lo llena el dentista o su asistente durante la consulta) -->
 <div class="screen" id="s-q">
   <div style="background:linear-gradient(160deg,#0d0820,#0a1628);flex:1;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px)+20px) 20px calc(env(safe-area-inset-bottom,0px)+20px)">
     <div style="font-family:'Playfair Display',serif;font-size:18px;color:#fff;font-weight:700;margin-bottom:4px">🦷 CAMILA</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:24px">Cuestionario previo</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:24px;display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--p);display:inline-block"></span>Valoración clínica · la llena el dentista</div>
 
     <!-- Progress -->
     <div style="display:flex;gap:4px;margin-bottom:24px" id="q-progress">
@@ -364,13 +414,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
       <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-1"></div>
       <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-2"></div>
       <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-3"></div>
-      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-4"></div>
     </div>
 
     <!-- Q1: Quejas -->
     <div id="q-step-0">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué te molesta de tu sonrisa?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Puedes seleccionar varias opciones</div>
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué le molesta al paciente de su sonrisa?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Selecciona las que apliquen o agrega otra abajo</div>
       <div style="display:flex;flex-direction:column;gap:8px" id="q1-list">
         <label class="q-option"><input type="checkbox" name="q1" value="Color amarillo o manchado"> <span>😬 Color amarillo o manchado</span></label>
         <label class="q-option"><input type="checkbox" name="q1" value="Espacios entre dientes"> <span>↔ Espacios entre dientes</span></label>
@@ -381,36 +430,29 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
         <label class="q-option"><input type="checkbox" name="q1" value="Dientes desgastados"> <span>🔻 Dientes desgastados</span></label>
         <label class="q-option"><input type="checkbox" name="q1" value="Fractura o astilla"> <span>💔 Fractura o astilla</span></label>
       </div>
+
+      <!-- Molestias agregadas a mano -->
+      <div id="q-custom-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input type="text" id="q-custom-input" placeholder="Otra molestia..." onkeydown="onQCustomKeydown(event)" style="flex:1;height:42px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);color:#fff;font-size:13px;padding:0 12px;font-family:Inter,sans-serif">
+        <button type="button" onclick="agregarQuejaCustom()" style="width:42px;height:42px;border-radius:10px;background:rgba(91,71,224,.2);border:1.5px solid rgba(91,71,224,.4);color:#fff;font-size:18px;font-weight:600;cursor:pointer;flex-shrink:0">+</button>
+      </div>
     </div>
 
-    <!-- Q2: Resultado -->
+    <!-- Q2: Zona a tratar (decide el dentista — restringe el prompt de Gemini) -->
     <div id="q-step-1" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué resultado buscas?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Elige el que más te identifica</div>
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué zona necesita carillas?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Tu valoración clínica — la simulación solo se genera en la zona elegida</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="q-option-single" data-q="resultado" data-val="Natural — que nadie note que son carillas"><span style="font-size:18px">🌿</span><div><div style="font-weight:600;color:#fff">Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Que nadie note que son carillas</div></div></label>
-        <label class="q-option-single" data-q="resultado" data-val="Blanqueado natural — más blanco pero realista"><span style="font-size:18px">✨</span><div><div style="font-weight:600;color:#fff">Blanqueado Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Más blanco pero realista</div></div></label>
-        <label class="q-option-single" data-q="resultado" data-val="Hollywood smile — ultra blanco y perfecto"><span style="font-size:18px">⭐</span><div><div style="font-weight:600;color:#fff">Hollywood Smile</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Ultra blanco y perfecto</div></div></label>
-        <label class="q-option-single" data-q="resultado" data-val="Solo corregir el problema sin cambios de color"><span style="font-size:18px">🎯</span><div><div style="font-weight:600;color:#fff">Solo corregir</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Sin cambios de color, solo la forma</div></div></label>
+        <label class="q-option-single" data-q="zona" data-val="arriba"><span style="font-size:18px">⬆️</span><div><div style="font-weight:600;color:#fff">Solo arriba</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Únicamente dientes superiores</div></div></label>
+        <label class="q-option-single" data-q="zona" data-val="abajo"><span style="font-size:18px">⬇️</span><div><div style="font-weight:600;color:#fff">Solo abajo</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Únicamente dientes inferiores</div></div></label>
+        <label class="q-option-single" data-q="zona" data-val="ambos"><span style="font-size:18px">↕️</span><div><div style="font-weight:600;color:#fff">Ambos</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Arriba y abajo</div></div></label>
       </div>
     </div>
 
-    <!-- Q3: Piezas -->
+    <!-- Q3: Tono -->
     <div id="q-step-2" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Cuántos dientes quieres mejorar?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Esto ayuda a calcular la cotización</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="q-option-single" data-q="piezas" data-val="2 dientes centrales superiores"><span style="font-size:18px">2️⃣</span><div><div style="font-weight:600;color:#fff">Solo los 2 centrales</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Los 2 dientes del centro</div></div></label>
-        <label class="q-option-single" data-q="piezas" data-val="4 dientes frontales superiores"><span style="font-size:18px">4️⃣</span><div><div style="font-weight:600;color:#fff">Los 4 frontales</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Centrales y laterales</div></div></label>
-        <label class="q-option-single" data-q="piezas" data-val="6 dientes superiores (canino a canino)"><span style="font-size:18px">6️⃣</span><div><div style="font-weight:600;color:#fff">Los 6 superiores</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Sonrisa visible completa</div></div></label>
-        <label class="q-option-single" data-q="piezas" data-val="8 dientes superiores (sonrisa completa)"><span style="font-size:18px">8️⃣</span><div><div style="font-weight:600;color:#fff">Los 8 superiores</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Sonrisa completa con premolares</div></div></label>
-        <label class="q-option-single" data-q="piezas" data-val="Que el doctor recomiende"><span style="font-size:18px">👨‍⚕️</span><div><div style="font-weight:600;color:#fff">Que el doctor recomiende</div><div style="font-size:12px;color:rgba(255,255,255,.5)">No estoy seguro/a</div></div></label>
-      </div>
-    </div>
-
-    <!-- Q4: Tono -->
-    <div id="q-step-3" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué tono prefieres?</div>
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué tono de carillas recomiendas?</div>
       <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — del más natural al más blanco</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <label class="q-option-single" data-q="tono" data-val="A2 — tono natural, igual a dientes sanos"><div style="width:36px;height:36px;border-radius:8px;background:#E9E0C5;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A2 — Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Como dientes sanos naturales</div></div></label>
@@ -420,10 +462,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
       </div>
     </div>
 
-    <!-- Q5: Historial -->
-    <div id="q-step-4" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Has tenido tratamientos dentales antes?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Esto ayuda al doctor a planear mejor</div>
+    <!-- Q4: Historial -->
+    <div id="q-step-3" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿El paciente ha tenido tratamientos dentales antes?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Esto ayuda a planear mejor el caso</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <label class="q-option-single" data-q="historial" data-val="Sin tratamientos previos"><span style="font-size:18px">✨</span><div><div style="font-weight:600;color:#fff">Sin tratamientos previos</div></div></label>
         <label class="q-option-single" data-q="historial" data-val="Blanqueamiento dental previo"><span style="font-size:18px">⬜</span><div><div style="font-weight:600;color:#fff">Blanqueamiento</div></div></label>
@@ -857,6 +899,7 @@ function saveProgress(screenId) {
     ts: Date.now(),
     qStep: Q_STEP,
     qAnswers: Q_ANSWERS,
+    qQuejasCustom: Q_QUEJAS_CUSTOM,
     photos: S.photos,
     currentPhoto: S.currentPhoto,
     questionnaire: S.questionnaire,
@@ -938,6 +981,7 @@ function continuarProgreso() {
 
   Q_STEP = snap.qStep || 0;
   Q_ANSWERS = snap.qAnswers || {};
+  Q_QUEJAS_CUSTOM = snap.qQuejasCustom || [];
   S.photos = snap.photos || [];
   S.currentPhoto = snap.currentPhoto || 0;
   S.questionnaire = snap.questionnaire || null;
@@ -952,6 +996,7 @@ function continuarProgreso() {
   if (snap.screen === 's-q') {
     show('s-q');
     showQStep(Q_STEP);
+    renderQuejasCustom();
   } else if (snap.screen === 's-res' && S.result) {
     show('s-res');
     showResult();
@@ -965,12 +1010,24 @@ function continuarProgreso() {
 }
 
 // ══ QUESTIONNAIRE ══
+// Este cuestionario lo llena el dentista o su asistente durante la
+// consulta, no el paciente — por eso las preguntas están redactadas sobre
+// el paciente en vez de dirigidas a él, y se quitaron las de preferencia
+// estética (qué resultado busca, cuántos dientes) que no le corresponde
+// decidir al paciente sino al criterio clínico del dentista.
 var Q_STEP = 0;
 var Q_ANSWERS = {};
+var Q_QUEJAS_CUSTOM = []; // molestias agregadas a mano, además de las sugeridas
+
+function zonaTexto(zona) {
+  if (zona === 'arriba') return 'Solo dientes superiores';
+  if (zona === 'abajo') return 'Solo dientes inferiores';
+  return 'Ambas arcadas (arriba y abajo)';
+}
 
 function showQStep(n) {
   Q_STEP = n;
-  for (var i = 0; i < 5; i++) {
+  for (var i = 0; i < 4; i++) {
     var step = document.getElementById('q-step-' + i);
     if (step) step.style.display = i === n ? 'block' : 'none';
     var bar = document.getElementById('qp-' + i);
@@ -979,7 +1036,7 @@ function showQStep(n) {
   var backBtn = document.getElementById('q-back-btn');
   var nextBtn = document.getElementById('q-next-btn');
   if (backBtn) backBtn.style.display = n > 0 ? 'block' : 'none';
-  if (nextBtn) nextBtn.textContent = n === 4 ? '¡Tomar fotos! 📸' : 'Siguiente →';
+  if (nextBtn) nextBtn.textContent = n === 3 ? '¡Tomar fotos! 📸' : 'Siguiente →';
   saveProgress('s-q');
 }
 
@@ -987,13 +1044,16 @@ function qNext() {
   // Collect current step answers
   if (Q_STEP === 0) {
     var checked = document.querySelectorAll('#q-step-0 input[type=checkbox]:checked');
-    Q_ANSWERS.quejas = Array.from(checked).map(function(c){return c.value;});
+    var presets = Array.from(checked).map(function(c){return c.value;});
+    Q_ANSWERS.quejas = presets.concat(Q_QUEJAS_CUSTOM);
   }
-  if (Q_STEP === 4) {
+  if (Q_STEP === 3) {
     // Last step — start camera
     S.questionnaire = Q_ANSWERS;
     showQStep(0); // reset for next time
     Q_ANSWERS = {};
+    Q_QUEJAS_CUSTOM = [];
+    renderQuejasCustom();
     startCam();
     return;
   }
@@ -1002,6 +1062,36 @@ function qNext() {
 
 function qBack() {
   if (Q_STEP > 0) showQStep(Q_STEP - 1);
+}
+
+// Molestia personalizada — además de las sugeridas, el dentista puede
+// escribir cualquier otra y quitar tanto las agregadas como las sugeridas
+function agregarQuejaCustom() {
+  var input = document.getElementById('q-custom-input');
+  if (!input) return;
+  var val = input.value.trim();
+  if (!val) return;
+  if (Q_QUEJAS_CUSTOM.indexOf(val) === -1) Q_QUEJAS_CUSTOM.push(val);
+  input.value = '';
+  renderQuejasCustom();
+}
+
+function quitarQuejaCustom(val) {
+  Q_QUEJAS_CUSTOM = Q_QUEJAS_CUSTOM.filter(function(v){ return v !== val; });
+  renderQuejasCustom();
+}
+
+function renderQuejasCustom() {
+  var wrap = document.getElementById('q-custom-chips');
+  if (!wrap) return;
+  wrap.innerHTML = Q_QUEJAS_CUSTOM.map(function(v) {
+    return '<div class="q-chip-custom">' + v +
+      '<button type="button" onclick="quitarQuejaCustom(\'' + v.replace(/'/g,"\\'") + '\')" aria-label="Quitar">×</button></div>';
+  }).join('');
+}
+
+function onQCustomKeydown(e) {
+  if (e.key === 'Enter') { e.preventDefault(); agregarQuejaCustom(); }
 }
 
 // Single-select options
@@ -1710,11 +1800,10 @@ async function analyzeWithClaude() {
   var questionnaireCtx = '';
   if (S.questionnaire) {
     var q = S.questionnaire;
-    questionnaireCtx = '\nCONTEXTO DEL PACIENTE:\n' +
-      '- Quejas principales: ' + (q.quejas||[]).join(', ') + '\n' +
-      '- Resultado deseado: ' + (q.resultado||'') + '\n' +
+    questionnaireCtx = '\nCONTEXTO DEL PACIENTE (registrado por el dentista):\n' +
+      '- Molestias del paciente: ' + (q.quejas||[]).join(', ') + '\n' +
+      '- Zona a tratar: ' + zonaTexto(q.zona) + '\n' +
       '- Tono deseado: ' + (q.tono||'') + '\n' +
-      '- Dientes a tratar: ' + (q.piezas||'') + '\n' +
       '- Historial: ' + (q.historial||'Sin tratamiento previo') + '\n';
   }
   if (tc.materiales) questionnaireCtx += '- Materiales del consultorio: ' + tc.materiales + '\n';
@@ -1875,8 +1964,17 @@ async function generateSimulation(clinicalPrompt, foto) {
   if (S.questionnaire) {
     var q = S.questionnaire;
     stylePrompt = ' TOOTH COLOR: ' + (q.tono || 'A1 natural white') + '.';
-    stylePrompt += ' DESIRED RESULT: ' + (q.resultado || 'natural beautiful').toLowerCase() + '.';
-    stylePrompt += ' TREAT: ' + (q.piezas || '6 upper teeth') + '.';
+    // Restricción de zona — decidida por el dentista, no por el paciente.
+    // Es una instrucción explícita para Gemini, no una garantía absoluta
+    // de que la IA la respete al 100%, pero es lo más directo que se
+    // puede pedir en el prompt.
+    if (q.zona === 'arriba') {
+      stylePrompt += ' APPLY PORCELAIN VENEERS ONLY TO THE UPPER TEETH (maxillary arch). Do NOT modify, whiten, or reshape the lower teeth (mandibular arch) — leave the lower teeth exactly as they appear in the original photo.';
+    } else if (q.zona === 'abajo') {
+      stylePrompt += ' APPLY PORCELAIN VENEERS ONLY TO THE LOWER TEETH (mandibular arch). Do NOT modify, whiten, or reshape the upper teeth (maxillary arch) — leave the upper teeth exactly as they appear in the original photo.';
+    } else {
+      stylePrompt += ' APPLY PORCELAIN VENEERS TO BOTH THE UPPER AND LOWER TEETH (maxillary and mandibular arches).';
+    }
     if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
   }
   var clinicalBlock = clinicalPrompt ? ' ' + clinicalPrompt : '';
@@ -2403,6 +2501,7 @@ function nuevoCaso() {
   S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
+  Q_STEP = 0; Q_ANSWERS = {}; Q_QUEJAS_CUSTOM = [];
   show('s-intro');
 }
 
@@ -2728,51 +2827,53 @@ function openInSafari() {
 </script>
 
 <!-- ══ CÁMARA NATIVA (iOS PWA fallback) ══ -->
-<div class="screen" id="s-cam-native" style="background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:center;gap:0;padding:0">
+<div class="screen native-cam-screen" id="s-cam-native" style="padding:0">
 
-  <!-- Header -->
-  <div style="position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);z-index:10">
-    <div style="font-family:'Playfair Display',serif;font-size:16px;color:#fff;font-weight:700">🦷 CAMILA</div>
-    <button onclick="show('s-intro')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px">✕</button>
-  </div>
-
-  <!-- Progress -->
-  <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+62px);left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:10" id="native-progress-dots">
-    <div class="cpi active" id="ncpi-0"></div>
+  <!-- Header + progreso — en el flujo normal, no flotando encima del
+       contenido (antes se sobreponían con el texto de abajo en pantallas
+       donde el contenido centrado quedaba más arriba) -->
+  <div class="native-cam-topbar">
+    <div class="native-cam-header">
+      <div style="font-family:'Playfair Display',serif;font-size:15px;color:#fff;font-weight:700;letter-spacing:.2px">🦷 CAMILA</div>
+      <button onclick="show('s-intro')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.85);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px">✕</button>
+    </div>
+    <div class="native-progress-dots" id="native-progress-dots">
+      <div class="cpi active" id="ncpi-0"></div>
+    </div>
   </div>
 
   <!-- Content -->
-  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:80px 32px 32px;gap:16px;flex:1;justify-content:center">
+  <div class="native-cam-content">
 
     <!-- Foto preview (shows after each capture) -->
-    <div id="native-preview" style="display:none;width:160px;height:180px;border-radius:16px;overflow:hidden;border:2px solid rgba(91,71,224,.5);margin-bottom:8px">
+    <div id="native-preview" class="native-preview-wrap">
       <img id="native-preview-img" style="width:100%;height:100%;object-fit:cover" alt="">
     </div>
 
     <!-- Guía de encuadre (SVG estático, se actualiza por vista) -->
-    <div id="native-cam-icon" style="width:104px;height:104px;border-radius:16px;background:rgba(91,71,224,.12);border:1px solid rgba(91,71,224,.35);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+    <div id="native-cam-icon" class="native-guide-icon">
       <div id="native-guide-svg"></div>
     </div>
 
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--p)" id="native-step-badge">Foto 1 de 3</div>
-    <div style="font-size:20px;font-weight:700;color:#fff;line-height:1.3" id="native-cam-title">Vista Frontal</div>
-    <div style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.5;max-width:260px" id="native-cam-sub">Sonríe mostrando los dientes y centra tu cara</div>
+    <div class="native-badge" id="native-step-badge">Foto 1 de 3</div>
+    <div class="native-title" id="native-cam-title">Vista Frontal</div>
+    <div class="native-sub" id="native-cam-sub">Sonríe mostrando los dientes y centra tu cara</div>
 
     <!-- Tips -->
-    <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;width:100%;max-width:280px;text-align:left">
-      <div id="native-tips" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:rgba(255,255,255,.6)"></div>
+    <div class="native-tips-card">
+      <div id="native-tips" class="native-tips-list"></div>
     </div>
 
     <!-- Camera button -->
-    <label style="width:100%;max-width:280px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(91,71,224,.4);margin-top:8px" id="native-cam-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <label class="native-cam-btn" id="native-cam-btn">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       <span id="native-btn-txt">Tomar foto frontal</span>
       <input type="file" accept="image/*" capture="user" id="native-input" style="position:absolute;opacity:0;pointer-events:none" onchange="onNativePhoto(this)">
     </label>
 
     <!-- Galería alternativa -->
-    <label style="color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <label class="native-gallery-link">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       O seleccionar de galería
       <input type="file" accept="image/*" style="position:absolute;opacity:0;pointer-events:none" onchange="onNativePhoto(this)">
     </label>
