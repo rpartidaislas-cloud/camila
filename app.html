@@ -661,7 +661,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v5 — timeouts en Supabase, ya no se queda trabado</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v6 — log de errores al consultar el historial</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -2780,8 +2780,14 @@ async function cargarHistorial() {
       .eq('tenant_id', tenantId)
       .order('created_at', {ascending: false})
       .limit(50));
+    // Si Supabase rechaza la consulta (p.ej. porque alguna columna del
+    // select no existe en la tabla) esto fallaba en silencio y el
+    // historial se veía "vacío" sin ninguna pista de por qué.
+    if (res.error) console.error('[CAMILA] Historial: Supabase rechazó la consulta:', res.error);
     if (res.data && res.data.length) casos = res.data;
-  } catch(e) {}
+  } catch(e) {
+    console.error('[CAMILA] Historial: error de red/timeout consultando Supabase:', e);
+  }
 
   // Fallback to localStorage
   if (!casos.length) {

@@ -233,7 +233,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v28 — 6 vistas, cámara nativa en todos los dispositivos</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v30 — guarda score_lbl/resumen, log de errores al guardar</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -776,8 +776,7 @@ var S = {
   baScale: 1,
   baAlignMode: false,
   leadNombre: null,
-  resultRight: null,
-  resultLeft: null,
+  results: {},
   baVistaActual: 'frontal',
   timer: null,
   faceOk: false,
@@ -1517,18 +1516,19 @@ async function processPhotos() {
     // aborta todo como antes); los perfiles son "best effort", si uno
     // falla no rompe el flujo, simplemente no hay comparación para esa vista
     if (procSub) procSub.textContent = 'Generando tus simulaciones...';
-    var rightPhoto = S.photos.find(function(p){return p.view==='right';});
-    var leftPhoto = S.photos.find(function(p){return p.view==='left';});
-    var resultados = await Promise.all([
-      generateSimulation(clinicalPrompt, frontalForAnalysis),
-      rightPhoto ? generateSimulation(clinicalPrompt, rightPhoto).catch(function(){return null;}) : Promise.resolve(null),
-      leftPhoto ? generateSimulation(clinicalPrompt, leftPhoto).catch(function(){return null;}) : Promise.resolve(null)
-    ]);
+    // Gemini genera simulación para las 6 vistas, en paralelo — la frontal
+    // es obligatoria (si falla, se aborta todo como antes); el resto son
+    // "best effort", si una falla no rompe el flujo, esa vista simplemente
+    // no tendrá comparación antes/después
+    var resultados = await Promise.all(S.photos.map(function(photo) {
+      if (photo.view === 'frontal') return generateSimulation(clinicalPrompt, photo);
+      return generateSimulation(clinicalPrompt, photo).catch(function(){return null;});
+    }));
 
     S.diagnosis = claudeResult;
-    S.result = resultados[0];
-    S.resultRight = resultados[1];
-    S.resultLeft = resultados[2];
+    S.results = {};
+    S.photos.forEach(function(photo, i) { S.results[photo.view] = resultados[i]; });
+    S.result = S.results.frontal;
     S.baVistaActual = 'frontal';
     showResult();
 
@@ -1751,9 +1751,8 @@ async function regenerarSimulacion() {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
     var nuevoResultado = await generateSimulation(S.promptGeminiUsado, photo);
+    S.results[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
-    else if (view === 'right') S.resultRight = nuevoResultado;
-    else if (view === 'left') S.resultLeft = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
     initBASlider();
@@ -1768,12 +1767,12 @@ async function regenerarSimulacion() {
   }
 }
 
-// Etiquetas/miniaturas de las 3 fotos — resaltada la vista activa del
+// Etiquetas/miniaturas de las 6 fotos — resaltada la vista activa del
 // comparador antes/después; tocar una la cambia
 function renderResPhotos() {
   var wrap = document.getElementById('res-photos');
   if (!wrap) return;
-  var labels = {frontal:'Frontal', right:'Perfil Der.', left:'Perfil Izq.'};
+  var labels = {frontal:'Frontal', right:'Perfil Der.', left:'Perfil Izq.', extraoral:'Extraoral', intraoral:'Intraoral', tresCuartos:'Vista 3/4'};
   wrap.innerHTML = S.photos.map(function(p) {
     var activo = (S.baVistaActual || 'frontal') === p.view;
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
@@ -1786,8 +1785,7 @@ function renderResPhotos() {
 function cambiarVistaBA(view) {
   var photo = S.photos.find(function(p){return p.view === view;});
   if (!photo) return;
-  var resultMap = {frontal: S.result, right: S.resultRight, left: S.resultLeft};
-  var resultado = resultMap[view];
+  var resultado = (S.results || {})[view];
   if (!resultado) { alert('No se generó una simulación para esta vista. Puedes intentar "Generar de nuevo".'); return; }
   S.baVistaActual = view;
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
@@ -2027,9 +2025,12 @@ async function guardarCaso() {
     plan: d.plan || [],
     cotizacion: d.cotizacion || [],
     total_cotizacion: total,
-    simulacion_url: S.result || null,
-    simulacion_url_der: S.resultRight || null,
-    simulacion_url_izq: S.resultLeft || null,
+    simulacion_url: (S.results||{}).frontal || null,
+    simulacion_url_der: (S.results||{}).right || null,
+    simulacion_url_izq: (S.results||{}).left || null,
+    simulacion_url_extraoral: (S.results||{}).extraoral || null,
+    simulacion_url_intraoral: (S.results||{}).intraoral || null,
+    simulacion_url_tres_cuartos: (S.results||{}).tresCuartos || null,
     foto_frontal: (S.photos.find(function(p){return p.view==='frontal';})||{}).b64 || null,
     foto_perfil_der: (S.photos.find(function(p){return p.view==='right';})||{}).b64 || null,
     foto_perfil_izq: (S.photos.find(function(p){return p.view==='left';})||{}).b64 || null,
@@ -2069,6 +2070,8 @@ async function guardarCaso() {
         email: casoData.email,
         notas_doctor: casoData.notas_doctor,
         score: casoData.score,
+        score_lbl: casoData.score_lbl,
+        resumen: casoData.resumen,
         diagnostico: JSON.stringify({
           scoreLbl: d.scoreLbl,
           resumen: d.resumen,
@@ -2077,9 +2080,12 @@ async function guardarCaso() {
           cotizacion: d.cotizacion,
         }),
         total_cotizacion: total,
-        simulacion_url: S.result || null,
-        simulacion_url_der: S.resultRight || null,
-        simulacion_url_izq: S.resultLeft || null,
+        simulacion_url: casoData.simulacion_url,
+        simulacion_url_der: casoData.simulacion_url_der,
+        simulacion_url_izq: casoData.simulacion_url_izq,
+        simulacion_url_extraoral: casoData.simulacion_url_extraoral,
+        simulacion_url_intraoral: casoData.simulacion_url_intraoral,
+        simulacion_url_tres_cuartos: casoData.simulacion_url_tres_cuartos,
         foto_frontal: casoData.foto_frontal,
         foto_perfil_der: casoData.foto_perfil_der,
         foto_perfil_izq: casoData.foto_perfil_izq,
@@ -2093,8 +2099,19 @@ async function guardarCaso() {
         created_at: casoData.created_at,
       })
     });
-    if (resp.ok || resp.status === 201) savedToCloud = true;
-  } catch(e) {}
+    if (resp.ok || resp.status === 201) {
+      savedToCloud = true;
+    } else {
+      // Antes esto fallaba en silencio — si Supabase rechaza el insert
+      // (columna que no existe, RLS, etc.) no había forma de saber por
+      // qué el caso nunca llegaba al panel. Se deja el detalle en consola
+      // para poder diagnosticarlo.
+      var errBody = await resp.text().catch(function(){return '';});
+      console.error('[CAMILA] Supabase rechazó el guardado del caso (status ' + resp.status + '):', errBody);
+    }
+  } catch(e) {
+    console.error('[CAMILA] Error de red guardando el caso en Supabase:', e);
+  }
 
   // Show success screen
   showCasoGuardado(casoData, savedToCloud);
@@ -2162,7 +2179,7 @@ function nuevoCaso() {
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   S.baOffsetX = 0; S.baOffsetY = 0; S.baScale = 1; S.baAlignMode = false;
   S.leadNombre = null;
-  S.resultRight = null; S.resultLeft = null; S.baVistaActual = 'frontal';
+  S.results = {}; S.baVistaActual = 'frontal';
   show('s-intro');
 }
 
