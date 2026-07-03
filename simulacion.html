@@ -120,6 +120,30 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .native-cam-btn:active{transform:scale(.97);box-shadow:0 6px 16px -6px rgba(91,71,224,.5)}
 .native-gallery-link{color:rgba(255,255,255,.38);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;position:relative;padding:4px}
 
+/* Colapsa el contenido en vez de recortarlo si no cabe entero — pasaba en
+   celulares reales en horizontal (~390px de alto), donde el ícono de guía
+   quedaba empujado fuera de la pantalla y se encimaba con la barra de
+   progreso */
+.native-cam-content{overflow-y:auto}
+
+/* Modo compacto — pantallas bajas (celular en horizontal). Se reducen
+   tamaños y espacios para que todo entre sin recortarse ni encimarse. */
+@media (max-height:480px){
+  .native-cam-topbar{padding-top:calc(env(safe-area-inset-top,0px)+8px);padding-bottom:6px;gap:6px}
+  .native-progress-dots .cpi{height:3px}
+  .native-cam-content{padding:6px 28px 14px;gap:6px}
+  .native-preview-wrap{width:84px;height:94px;margin-bottom:0}
+  .native-guide-icon{width:60px;height:60px;border-radius:14px;margin-bottom:0;overflow:hidden}
+  .native-guide-icon svg{transform:scale(.62)}
+  .native-badge{font-size:9px;padding:3px 9px;letter-spacing:.8px}
+  .native-title{font-size:16px}
+  .native-sub{font-size:12px;max-width:380px}
+  .native-tips-card{padding:8px 14px;max-width:380px}
+  .native-tips-list{font-size:11px;gap:3px}
+  .native-cam-btn{height:42px;max-width:320px;margin-top:2px;font-size:13px}
+  .native-gallery-link{font-size:11px;padding:0}
+}
+
 /* Guide text */
 .cam-guide{position:absolute;z-index:10;left:0;right:0;text-align:center;pointer-events:none}
 .guide-main{font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.9);display:block;margin-bottom:4px;transition:all 250ms}
@@ -295,7 +319,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v34 — reintento automático y ya no se pierden las fotos si falla</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v35 — arregla encimado en pantalla horizontal de celular</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
