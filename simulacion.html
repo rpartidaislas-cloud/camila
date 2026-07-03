@@ -233,7 +233,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v29 — Gemini genera simulación para las 6 vistas</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v30 — guarda score_lbl/resumen, log de errores al guardar</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -2070,6 +2070,8 @@ async function guardarCaso() {
         email: casoData.email,
         notas_doctor: casoData.notas_doctor,
         score: casoData.score,
+        score_lbl: casoData.score_lbl,
+        resumen: casoData.resumen,
         diagnostico: JSON.stringify({
           scoreLbl: d.scoreLbl,
           resumen: d.resumen,
@@ -2097,8 +2099,19 @@ async function guardarCaso() {
         created_at: casoData.created_at,
       })
     });
-    if (resp.ok || resp.status === 201) savedToCloud = true;
-  } catch(e) {}
+    if (resp.ok || resp.status === 201) {
+      savedToCloud = true;
+    } else {
+      // Antes esto fallaba en silencio — si Supabase rechaza el insert
+      // (columna que no existe, RLS, etc.) no había forma de saber por
+      // qué el caso nunca llegaba al panel. Se deja el detalle en consola
+      // para poder diagnosticarlo.
+      var errBody = await resp.text().catch(function(){return '';});
+      console.error('[CAMILA] Supabase rechazó el guardado del caso (status ' + resp.status + '):', errBody);
+    }
+  } catch(e) {
+    console.error('[CAMILA] Error de red guardando el caso en Supabase:', e);
+  }
 
   // Show success screen
   showCasoGuardado(casoData, savedToCloud);
