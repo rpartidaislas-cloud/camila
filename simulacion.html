@@ -42,9 +42,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .intro-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.65;margin-bottom:24px;text-align:center;max-width:280px;margin-left:auto;margin-right:auto}
 
 /* 3 fotos preview */
-.photo-steps{display:flex;gap:10px;justify-content:center;margin-bottom:24px;width:100%;max-width:320px;margin-left:auto;margin-right:auto}
-.ps-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
-.ps-icon{width:64px;height:72px;border-radius:12px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;position:relative}
+.photo-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;margin-bottom:24px;width:100%;max-width:320px;margin-left:auto;margin-right:auto}
+.ps-item{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ps-icon{width:64px;height:64px;border-radius:12px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;position:relative}
 .ps-num{position:absolute;top:-8px;left:-8px;width:20px;height:20px;border-radius:50%;background:var(--p);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .ps-lbl{font-size:10px;color:rgba(255,255,255,.5);text-align:center;line-height:1.3}
 
@@ -70,6 +70,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .cpi{width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);transition:all 300ms}
 .cpi.done{background:var(--ok)}
 .cpi.active{background:#fff;width:40px}
+
+/* Guía de encuadre SVG — animación sutil, no reactiva a la cámara */
+.guide-pulse{animation:guidePulse 1.8s ease-in-out infinite}
+@keyframes guidePulse{0%,100%{opacity:.55}50%{opacity:1}}
 
 /* Guide text */
 .cam-guide{position:absolute;z-index:10;left:0;right:0;text-align:center;pointer-events:none}
@@ -229,7 +233,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v27 — fotos y análisis conectados al panel</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v28 — 6 vistas, cámara nativa en todos los dispositivos</div>
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
@@ -239,30 +243,51 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="7"/><path d="M9 14.5c.7 1 1.7 1.5 3 1.5s2.3-.5 3-1.5"/><circle cx="10" cy="9.5" r=".6" fill="#fff" stroke="none"/><circle cx="14" cy="9.5" r=".6" fill="#fff" stroke="none"/></svg>
   </div>
   <div class="intro-title">Descubre tu sonrisa perfecta en 60 segundos</div>
-  <div class="intro-sub">Tomaremos 3 fotos guiadas. La IA analizará tus dientes y generará una simulación + diagnóstico + cotización.</div>
+  <div class="intro-sub">Tomaremos 6 fotos guiadas. La IA analizará tus dientes y generará una simulación + diagnóstico + cotización.</div>
 
-  <!-- 3 fotos preview -->
+  <!-- 6 fotos preview -->
   <div class="photo-steps">
     <div class="ps-item">
       <div class="ps-icon">
         <div class="ps-num">1</div>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
       </div>
       <span class="ps-lbl">Frontal<br>Sonrisa</span>
     </div>
     <div class="ps-item">
       <div class="ps-icon">
         <div class="ps-num">2</div>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="16" y1="11" x2="21" y2="11"/></svg>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="16" y1="11" x2="21" y2="11"/></svg>
       </div>
       <span class="ps-lbl">Perfil<br>Derecho</span>
     </div>
     <div class="ps-item">
       <div class="ps-icon">
         <div class="ps-num">3</div>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="8" y1="11" x2="3" y2="11"/></svg>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="8" y1="11" x2="3" y2="11"/></svg>
       </div>
       <span class="ps-lbl">Perfil<br>Izquierdo</span>
+    </div>
+    <div class="ps-item">
+      <div class="ps-icon">
+        <div class="ps-num">4</div>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M4 22c1-5 4-8 8-8s7 3 8 8"/></svg>
+      </div>
+      <span class="ps-lbl">Extraoral<br>Rostro</span>
+    </div>
+    <div class="ps-item">
+      <div class="ps-icon">
+        <div class="ps-num">5</div>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="5"/><line x1="8" y1="9" x2="8" y2="15"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="16" y1="9" x2="16" y2="15"/></svg>
+      </div>
+      <span class="ps-lbl">Intraoral<br>Dientes</span>
+    </div>
+    <div class="ps-item">
+      <div class="ps-icon">
+        <div class="ps-num">6</div>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="8" r="5" transform="rotate(18 13 8)"/><path d="M21 21a8 8 0 1 0-16 0"/></svg>
+      </div>
+      <span class="ps-lbl">Vista<br>3/4</span>
     </div>
   </div>
 
@@ -447,7 +472,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   <div class="proc-title">Analizando tu sonrisa...</div>
   <div class="proc-sub">Claude y Gemini están trabajando en tu simulación personalizada</div>
   <div class="proc-list">
-    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando las 3 fotografías con IA</div>
+    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tus fotografías con IA</div>
     <div class="pstep" id="ps2"><div class="pstep-dot"></div>Detectando estructura dental</div>
     <div class="pstep" id="ps3"><div class="pstep-dot"></div>Generando diagnóstico clínico</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Calculando cotización</div>
@@ -763,10 +788,16 @@ var S = {
   precios: null,
 };
 
+// facing: cámara por default para esa foto — 'user' (frontal) para las 3
+// vistas originales, 'environment' (trasera) para las 3 nuevas de
+// documentación clínica, que en la práctica siempre se toman con la trasera.
 var VIEWS = [
-  {id:'frontal', label:'Vista Frontal — Sonrisa completa', hint:'Muestra los dientes y centra tu cara', mirror: true, oval: 'face'},
-  {id:'right',   label:'Perfil Derecho — Gira a tu derecha', hint:'Nariz apuntando hacia la izquierda de la pantalla', mirror: true, oval: 'profile'},
-  {id:'left',    label:'Perfil Izquierdo — Gira a tu izquierda', hint:'Nariz apuntando hacia la derecha de la pantalla', mirror: true, oval: 'profile'},
+  {id:'frontal',    label:'Vista Frontal — Sonrisa completa', hint:'Muestra los dientes y centra tu cara', facing:'user', svg:'frontal'},
+  {id:'right',      label:'Perfil Derecho — Gira a tu derecha', hint:'Nariz apuntando hacia la izquierda de la pantalla', facing:'user', svg:'perfil-der'},
+  {id:'left',       label:'Perfil Izquierdo — Gira a tu izquierda', hint:'Nariz apuntando hacia la derecha de la pantalla', facing:'user', svg:'perfil-izq'},
+  {id:'extraoral',  label:'Fotografía Extraoral — Rostro completo', hint:'Aléjate para que se vea toda tu cara y hombros', facing:'environment', svg:'extraoral'},
+  {id:'intraoral',  label:'Fotografía Intraoral — Dientes de cerca', hint:'Acércate y enfoca directo a los dientes con la boca abierta', facing:'environment', svg:'intraoral'},
+  {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa', hint:'Gira ligeramente la cabeza mostrando la sonrisa de perfil', facing:'environment', svg:'tres-cuartos'},
 ];
 
 // ══ SCREENS ══
@@ -865,19 +896,13 @@ async function startCam() {
   S.currentPhoto = 0;
   S._ovalReady = false;
 
-  // iOS: la cámara personalizada con MediaPipe deja la pantalla en negro sin
-  // ningún error, tanto en modo GPU como CPU — se probaron varias hipótesis
-  // (video/canvas, timeouts, delegate) sin éxito. Se usa la cámara nativa del
-  // sistema en iOS por ahora; queda pendiente investigar la causa raíz o
-  // cambiar de librería (ver conversación con el usuario).
-  if (isIOS()) {
-    show('s-cam-native');
-    updateNativeCameraUI();
-    return;
-  }
-
-  // initCam will show('s-cam') after stream is ready
-  await initCam();
+  // La cámara personalizada con MediaPipe deja la pantalla en negro sin
+  // ningún error en iOS (GPU y CPU delegate) y se confirmó el mismo
+  // síntoma en Android — nunca funcionó de forma confiable en ningún
+  // dispositivo real. Se usa la cámara nativa del sistema para todas las
+  // fotos, en todos los dispositivos.
+  show('s-cam-native');
+  updateNativeCameraUI();
 }
 
 async function initCam(silentFallback) {
@@ -2008,6 +2033,9 @@ async function guardarCaso() {
     foto_frontal: (S.photos.find(function(p){return p.view==='frontal';})||{}).b64 || null,
     foto_perfil_der: (S.photos.find(function(p){return p.view==='right';})||{}).b64 || null,
     foto_perfil_izq: (S.photos.find(function(p){return p.view==='left';})||{}).b64 || null,
+    foto_extraoral: (S.photos.find(function(p){return p.view==='extraoral';})||{}).b64 || null,
+    foto_intraoral: (S.photos.find(function(p){return p.view==='intraoral';})||{}).b64 || null,
+    foto_tres_cuartos: (S.photos.find(function(p){return p.view==='tresCuartos';})||{}).b64 || null,
     cuestionario: S.questionnaire || {},
     fotos_count: S.photos.length,
     diagnostico_claude: S.diagnosticoFacial || null,
@@ -2055,6 +2083,9 @@ async function guardarCaso() {
         foto_frontal: casoData.foto_frontal,
         foto_perfil_der: casoData.foto_perfil_der,
         foto_perfil_izq: casoData.foto_perfil_izq,
+        foto_extraoral: casoData.foto_extraoral,
+        foto_intraoral: casoData.foto_intraoral,
+        foto_tres_cuartos: casoData.foto_tres_cuartos,
         cuestionario: JSON.stringify(S.questionnaire || {}),
         fotos_count: S.photos.length,
         diagnostico_claude: S.diagnosticoFacial || null,
@@ -2189,11 +2220,10 @@ function onNativePhoto(input) {
 
     S.currentPhoto++;
 
-    if (S.currentPhoto < 3) {
+    if (S.currentPhoto < VIEWS.length) {
       // Next photo
       setTimeout(function() {
         updateNativeCameraUI();
-        updateNativeCameraTips();
         // Hide preview for next photo
         var p = document.getElementById('native-preview');
         if (p) p.style.display = 'none';
@@ -2208,28 +2238,47 @@ function onNativePhoto(input) {
   reader.readAsDataURL(input.files[0]);
 }
 
+function buildNativeProgressDots() {
+  var wrap = document.getElementById('native-progress-dots');
+  if (!wrap) return;
+  wrap.innerHTML = VIEWS.map(function(v, i) {
+    return '<div class="cpi" id="ncpi-' + i + '"></div>';
+  }).join('');
+}
+
+var NATIVE_TIPS_BY_ID = {
+  frontal:    ['😁 Sonríe mostrando bien los dientes', '💡 Busca buena iluminación', '📱 Sostén el teléfono frente a tu cara'],
+  right:      ['➡ Gira tu cabeza hacia la derecha', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
+  left:       ['⬅ Gira tu cabeza hacia la izquierda', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
+  extraoral:  ['📏 Aléjate unos 50 cm, de hombros hacia arriba', '💡 Busca buena iluminación de frente', '📱 Cámara trasera para mejor calidad'],
+  intraoral:  ['👄 Abre bien la boca mostrando los dientes', '📏 Acércate, a unos 10-15 cm', '📱 Usa la cámara trasera y enfoca antes de tomar'],
+  tresCuartos:['↗ Gira la cabeza a un ángulo de 45°', '😁 Mantén la sonrisa natural', '📱 Cámara trasera, misma distancia que la frontal'],
+};
+
 function updateNativeCameraUI() {
   var view = VIEWS[S.currentPhoto] || VIEWS[0];
-  var titles = ['Vista Frontal — Sonrisa', 'Perfil Derecho', 'Perfil Izquierdo'];
-  var badges = ['Foto 1 de 3', 'Foto 2 de 3', 'Foto 3 de 3'];
-  var btnTexts = ['Tomar foto frontal', 'Tomar perfil derecho', 'Tomar perfil izquierdo'];
-  var captures = ['user', 'user', 'user'];
 
   var el = document.getElementById('native-cam-title');
-  if (el) el.textContent = titles[S.currentPhoto] || 'Foto';
+  if (el) el.textContent = view.label.split('—')[0].trim();
   var badge = document.getElementById('native-step-badge');
-  if (badge) badge.textContent = badges[S.currentPhoto] || '';
+  if (badge) badge.textContent = 'Foto ' + (S.currentPhoto + 1) + ' de ' + VIEWS.length;
   var btn = document.getElementById('native-btn-txt');
-  if (btn) btn.textContent = btnTexts[S.currentPhoto] || 'Tomar foto';
+  if (btn) btn.textContent = 'Tomar foto';
   var sub = document.getElementById('native-cam-sub');
   if (sub) sub.textContent = view.hint;
 
-  // Update capture attribute
+  // Update capture attribute — front para las 3 vistas originales, trasera
+  // para las 3 nuevas de documentación clínica
   var inp = document.getElementById('native-input');
-  if (inp) inp.setAttribute('capture', captures[S.currentPhoto] || 'user');
+  if (inp) inp.setAttribute('capture', view.facing || 'user');
+
+  // Guía SVG de encuadre/distancia para esta vista
+  var guideWrap = document.getElementById('native-guide-svg');
+  if (guideWrap) guideWrap.innerHTML = viewGuideSVG(view.svg);
 
   // Progress
-  for (var i = 0; i < 3; i++) {
+  buildNativeProgressDots();
+  for (var i = 0; i < VIEWS.length; i++) {
     var dot = document.getElementById('ncpi-' + i);
     if (dot) dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
   }
@@ -2238,16 +2287,81 @@ function updateNativeCameraUI() {
 }
 
 function updateNativeCameraTips() {
-  var tipsByView = [
-    ['😁 Sonríe mostrando bien los dientes', '💡 Busca buena iluminación', '📱 Sostén el teléfono frente a tu cara'],
-    ['➡ Gira tu cabeza hacia la derecha', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
-    ['⬅ Gira tu cabeza hacia la izquierda', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
-  ];
-  var tips = tipsByView[S.currentPhoto] || tipsByView[0];
+  var view = VIEWS[S.currentPhoto] || VIEWS[0];
+  var tips = NATIVE_TIPS_BY_ID[view.id] || NATIVE_TIPS_BY_ID.frontal;
   var el = document.getElementById('native-tips');
   if (el) el.innerHTML = tips.map(function(t) {
     return '<div style="display:flex;align-items:center;gap:6px">' + t + '</div>';
   }).join('');
+}
+
+// ══ GUÍAS SVG DE ENCUADRE (estáticas, no reactivas a la cámara) ══
+// Ilustran a qué distancia y con qué encuadre debe tomarse cada foto.
+// Explícitamente NO leen el video en vivo — solo son referencia visual,
+// ya que la detección en vivo con MediaPipe falló de forma irrecuperable.
+function viewGuideSVG(key) {
+  var p = 'var(--p)';
+  var faint = 'rgba(255,255,255,.35)';
+  var mid = 'rgba(255,255,255,.55)';
+  var phoneIcon = function(cx, cy, s) {
+    return '<g transform="translate(' + cx + ',' + cy + ')">' +
+      '<rect x="' + (-9*s) + '" y="0" width="' + (18*s) + '" height="' + (13*s) + '" rx="3" stroke="' + mid + '" stroke-width="1.5"/>' +
+      '<circle cx="0" cy="' + (6.5*s) + '" r="' + (2.6*s) + '" stroke="' + mid + '" stroke-width="1.3"/>' +
+    '</g>';
+  };
+  var dashLine = function(x1,y1,x2,y2) {
+    return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+faint+'" stroke-width="1.4" stroke-dasharray="3 4" class="guide-pulse"/>';
+  };
+  var label = function(txt) {
+    return '<text x="60" y="122" text-anchor="middle" font-size="10" fill="' + mid + '" font-family="inherit">' + txt + '</text>';
+  };
+
+  if (key === 'frontal') {
+    return '<svg viewBox="0 0 120 130" width="92" height="92" fill="none">' +
+      '<ellipse cx="60" cy="44" rx="25" ry="31" stroke="' + mid + '" stroke-width="2"/>' +
+      '<rect x="30" y="8" width="60" height="72" rx="10" stroke="' + p + '" stroke-width="2" stroke-dasharray="4 4" class="guide-pulse"/>' +
+      dashLine(60,80,60,96) + phoneIcon(60,96,1) + label('≈30 cm · de frente') +
+      '</svg>';
+  }
+  if (key === 'perfil-der' || key === 'perfil-izq') {
+    var flip = key === 'perfil-izq' ? ' transform="scale(-1,1) translate(-120,0)"' : '';
+    return '<svg viewBox="0 0 120 130" width="92" height="92" fill="none">' +
+      '<g' + flip + '>' +
+      '<path d="M50 14c16 0 26 12 26 28 0 8-3 13-2 18 1 4 6 5 6 9 0 5-6 6-11 6-2 6-8 9-15 9-14 0-24-14-24-32 0-20 8-38 20-38z" stroke="' + mid + '" stroke-width="2"/>' +
+      '<rect x="20" y="8" width="66" height="76" rx="10" stroke="' + p + '" stroke-width="2" stroke-dasharray="4 4" class="guide-pulse"/>' +
+      '</g>' +
+      dashLine(60,84,60,96) + phoneIcon(60,96,1) + label('≈30 cm · perfil') +
+      '</svg>';
+  }
+  if (key === 'extraoral') {
+    return '<svg viewBox="0 0 120 130" width="92" height="92" fill="none">' +
+      '<ellipse cx="60" cy="34" rx="19" ry="23" stroke="' + mid + '" stroke-width="2"/>' +
+      '<path d="M28 92c2-18 14-28 32-28s30 10 32 28" stroke="' + mid + '" stroke-width="2"/>' +
+      '<rect x="14" y="6" width="92" height="90" rx="10" stroke="' + p + '" stroke-width="2" stroke-dasharray="4 4" class="guide-pulse"/>' +
+      dashLine(60,98,60,108) + phoneIcon(60,108,0.9) + label('≈50 cm · hombros y cara') +
+      '</svg>';
+  }
+  if (key === 'intraoral') {
+    return '<svg viewBox="0 0 120 130" width="92" height="92" fill="none">' +
+      '<ellipse cx="60" cy="44" rx="34" ry="20" stroke="' + mid + '" stroke-width="2"/>' +
+      '<rect x="34" y="34" width="52" height="20" rx="4" stroke="' + p + '" stroke-width="2"/>' +
+      '<line x1="44" y1="34" x2="44" y2="54" stroke="'+faint+'" stroke-width="1.2"/>' +
+      '<line x1="54" y1="34" x2="54" y2="54" stroke="'+faint+'" stroke-width="1.2"/>' +
+      '<line x1="66" y1="34" x2="66" y2="54" stroke="'+faint+'" stroke-width="1.2"/>' +
+      '<line x1="76" y1="34" x2="76" y2="54" stroke="'+faint+'" stroke-width="1.2"/>' +
+      '<rect x="10" y="10" width="100" height="80" rx="10" stroke="' + p + '" stroke-width="2" stroke-dasharray="4 4" class="guide-pulse"/>' +
+      dashLine(60,90,60,102) + phoneIcon(60,102,0.85) + label('≈10-15 cm · boca abierta') +
+      '</svg>';
+  }
+  if (key === 'tres-cuartos') {
+    return '<svg viewBox="0 0 120 130" width="92" height="92" fill="none">' +
+      '<ellipse cx="64" cy="44" rx="24" ry="31" stroke="' + mid + '" stroke-width="2" transform="rotate(18 64 44)"/>' +
+      '<path d="M30 30a34 34 0 0 1 0 28" stroke="' + faint + '" stroke-width="1.6" stroke-dasharray="2 3"/>' +
+      '<rect x="26" y="8" width="66" height="74" rx="10" stroke="' + p + '" stroke-width="2" stroke-dasharray="4 4" class="guide-pulse"/>' +
+      dashLine(60,82,60,96) + phoneIcon(60,96,1) + label('≈30 cm · ángulo 45°') +
+      '</svg>';
+  }
+  return '';
 }
 
 function showInstallInstructions() {
@@ -2322,10 +2436,8 @@ function openInSafari() {
   </div>
 
   <!-- Progress -->
-  <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+62px);left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:10">
+  <div style="position:absolute;top:calc(env(safe-area-inset-top,0px)+62px);left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:10" id="native-progress-dots">
     <div class="cpi active" id="ncpi-0"></div>
-    <div class="cpi" id="ncpi-1"></div>
-    <div class="cpi" id="ncpi-2"></div>
   </div>
 
   <!-- Content -->
@@ -2336,9 +2448,9 @@ function openInSafari() {
       <img id="native-preview-img" style="width:100%;height:100%;object-fit:cover" alt="">
     </div>
 
-    <!-- Icon -->
-    <div id="native-cam-icon" style="width:100px;height:100px;border-radius:50%;background:rgba(91,71,224,.2);border:2px dashed rgba(91,71,224,.5);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <!-- Guía de encuadre (SVG estático, se actualiza por vista) -->
+    <div id="native-cam-icon" style="width:104px;height:104px;border-radius:16px;background:rgba(91,71,224,.12);border:1px solid rgba(91,71,224,.35);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+      <div id="native-guide-svg"></div>
     </div>
 
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--p)" id="native-step-badge">Foto 1 de 3</div>
