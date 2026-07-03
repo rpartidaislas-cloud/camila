@@ -295,7 +295,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v33 — cuestionario clínico, restricción arriba/abajo, rediseño de captura</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v34 — reintento automático y ya no se pierden las fotos si falla</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -533,17 +533,33 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 <!-- ══ PROCESANDO ══ -->
 <div class="screen" id="s-proc">
   <div class="proc-photos" id="proc-photos"></div>
-  <div class="proc-ring-wrap">
+  <div class="proc-ring-wrap" id="proc-ring-wrap">
     <div class="pr1"></div><div class="pr2"></div>
   </div>
-  <div class="proc-title">Analizando tu sonrisa...</div>
-  <div class="proc-sub">Claude y Gemini están trabajando en tu simulación personalizada</div>
-  <div class="proc-list">
+  <div class="proc-title" id="proc-title">Analizando tu sonrisa...</div>
+  <div class="proc-sub" id="proc-sub-main">Claude y Gemini están trabajando en tu simulación personalizada</div>
+  <div class="proc-list" id="proc-list">
     <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tus fotografías con IA</div>
     <div class="pstep" id="ps2"><div class="pstep-dot"></div>Detectando estructura dental</div>
     <div class="pstep" id="ps3"><div class="pstep-dot"></div>Generando diagnóstico clínico</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Calculando cotización</div>
     <div class="pstep" id="ps5"><div class="pstep-dot"></div>Generando simulación fotorrealista ✨</div>
+  </div>
+
+  <!-- Antes esto era un alert() que mandaba de vuelta a la pantalla de
+       inicio y borraba las fotos ya tomadas — si la generación fallaba
+       (común con "Load failed" en conexiones inestables) había que
+       repetir las 6 fotos desde cero. Ahora las fotos se quedan guardadas
+       y solo hay que reintentar. -->
+  <div id="proc-error" style="display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:0 28px;margin-top:4px">
+    <div style="width:48px;height:48px;border-radius:50%;background:rgba(220,38,38,.15);border:1.5px solid rgba(220,38,38,.35);display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16.5" x2="12.01" y2="16.5"/><circle cx="12" cy="12" r="9.5"/></svg>
+    </div>
+    <div style="font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55;max-width:280px" id="proc-error-detail">Hubo un problema de conexión.</div>
+    <div style="display:flex;gap:10px;width:100%;max-width:280px;margin-top:4px">
+      <button onclick="show('s-intro')" style="flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Cancelar</button>
+      <button onclick="processPhotos()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
+    </div>
   </div>
 </div>
 
@@ -1725,8 +1741,42 @@ function fromGallery(inp) {
 }
 
 // ══ PROCESS ══
+function esperar(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+// Reintenta una función async hasta 2 veces con una pausa entre intentos —
+// "Load failed" (el error genérico de Safari/WebKit para fallos de red) es
+// casi siempre transitorio: la pantalla se bloqueó un instante, cambió de
+// wifi a datos, etc. Un segundo intento resuelve la mayoría de los casos.
+async function conReintento(fn, intentos) {
+  intentos = intentos || 2;
+  var ultimoError;
+  for (var i = 0; i < intentos; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      ultimoError = e;
+      if (i < intentos - 1) await esperar(1500);
+    }
+  }
+  throw ultimoError;
+}
+
 async function processPhotos() {
   show('s-proc');
+
+  // Por si se está reintentando después de un error — regresar la
+  // pantalla a su estado normal (antes se perdían las fotos por completo
+  // si algo fallaba; ahora solo hay que volver a intentar)
+  var errBox = document.getElementById('proc-error');
+  if (errBox) errBox.style.display = 'none';
+  var ring = document.getElementById('proc-ring-wrap');
+  var list = document.getElementById('proc-list');
+  var title = document.getElementById('proc-title');
+  var subMain = document.getElementById('proc-sub-main');
+  if (ring) ring.style.display = 'flex';
+  if (list) list.style.display = 'flex';
+  if (title) title.textContent = 'Analizando tu sonrisa...';
+  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Claude y Gemini están trabajando en tu simulación personalizada'; }
 
   // Show photo thumbs
   var photosEl = document.getElementById('proc-photos');
@@ -1747,15 +1797,15 @@ async function processPhotos() {
 
   try {
     // Step 1: Claude analyzes all 3 photos + generates diagnosis + quotation
-    var claudeResult = await analyzeWithClaude();
+    var claudeResult = await conReintento(function(){ return analyzeWithClaude(); });
 
     // Step 1.5: Claude analyzes the frontal photo for facial/dental proportions
     var frontalForAnalysis = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
-    var procSub = document.getElementById('proc-sub');
+    var procSub = document.getElementById('proc-sub-main');
     if (procSub) procSub.textContent = 'Analizando proporciones faciales...';
     var diagnosticoFacial = null;
     try {
-      diagnosticoFacial = await analizarConClaude(frontalForAnalysis.b64);
+      diagnosticoFacial = await conReintento(function(){ return analizarConClaude(frontalForAnalysis.b64); });
     } catch (e) { diagnosticoFacial = null; }
     S.diagnosticoFacial = diagnosticoFacial;
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
@@ -1767,12 +1817,13 @@ async function processPhotos() {
     // falla no rompe el flujo, simplemente no hay comparación para esa vista
     if (procSub) procSub.textContent = 'Generando tus simulaciones...';
     // Gemini genera simulación para las 6 vistas, en paralelo — la frontal
-    // es obligatoria (si falla, se aborta todo como antes); el resto son
-    // "best effort", si una falla no rompe el flujo, esa vista simplemente
-    // no tendrá comparación antes/después
+    // es obligatoria (si falla, se aborta todo como antes, con reintento);
+    // el resto son "best effort" con su propio reintento, si aun así fallan
+    // no rompen el flujo, esa vista simplemente no tendrá comparación
     var resultados = await Promise.all(S.photos.map(function(photo) {
-      if (photo.view === 'frontal') return generateSimulation(clinicalPrompt, photo);
-      return generateSimulation(clinicalPrompt, photo).catch(function(){return null;});
+      var intentarGenerar = function(){ return generateSimulation(clinicalPrompt, photo); };
+      if (photo.view === 'frontal') return conReintento(intentarGenerar);
+      return conReintento(intentarGenerar).catch(function(){return null;});
     }));
 
     S.diagnosis = claudeResult;
@@ -1784,9 +1835,36 @@ async function processPhotos() {
 
   } catch(e) {
     console.error(e);
-    alert('Error al procesar: ' + e.message);
-    show('s-intro');
+    mostrarErrorProceso(e);
   }
+}
+
+// Antes un fallo aquí mandaba alert() + de vuelta a la pantalla de inicio,
+// lo que además borraba el progreso guardado (show('s-intro') limpia el
+// avance) — la doctora perdía las 6 fotos y tenía que repetirlas. Ahora se
+// queda en la misma pantalla, con las fotos intactas, y solo hay que
+// tocar "Reintentar".
+function mostrarErrorProceso(e) {
+  var msg = 'Hubo un problema de conexión generando tu simulación. Tus fotos siguen guardadas — no hace falta repetirlas, solo reintenta.';
+  if (e && e.message === 'Load failed') {
+    msg = 'Se perdió la conexión mientras se generaba tu simulación — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Tus fotos siguen guardadas, solo dale reintentar.';
+  } else if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
+    msg = 'La generación tardó demasiado y se canceló. Puede pasar con conexiones lentas. Tus fotos siguen guardadas, solo dale reintentar.';
+  }
+  var detail = document.getElementById('proc-error-detail');
+  if (detail) detail.textContent = msg;
+
+  var ring = document.getElementById('proc-ring-wrap');
+  var list = document.getElementById('proc-list');
+  var title = document.getElementById('proc-title');
+  var subMain = document.getElementById('proc-sub-main');
+  if (ring) ring.style.display = 'none';
+  if (list) list.style.display = 'none';
+  if (title) title.textContent = 'No se pudo generar tu simulación';
+  if (subMain) subMain.style.display = 'none';
+
+  var errBox = document.getElementById('proc-error');
+  if (errBox) errBox.style.display = 'flex';
 }
 
 async function analyzeWithClaude() {
