@@ -319,7 +319,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v35 — arregla encimado en pantalla horizontal de celular</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v36 — pide girar el teléfono al ajustar fotos horizontales</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -601,6 +601,18 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
         Nueva foto
       </button>
     </div>
+  </div>
+
+  <!-- Aviso para girar el teléfono al ajustar una foto tomada en horizontal
+       (extraoral/intraoral) — si no, la pantalla completa queda vertical y
+       la foto horizontal se ve como una tira angosta con franjas negras -->
+  <div id="ba-rotate-overlay" style="display:none;position:fixed;inset:0;z-index:70;background:rgba(10,8,20,.97);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center">
+    <button onclick="document.getElementById('ba-rotate-overlay').style.display='none'" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+16px);right:16px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px;cursor:pointer">✕</button>
+    <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;animation:rotateHint 1.6s ease-in-out infinite">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+    </div>
+    <div style="font-size:16px;font-weight:700;color:#fff">Gira tu teléfono a horizontal</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);max-width:260px">Esta foto se tomó en horizontal — gírala para ajustarla sin franjas negras</div>
   </div>
 
   <!-- BA Slider -->
@@ -2247,6 +2259,8 @@ function initBASlider() {
   if (alignBtn) alignBtn.style.display = 'flex';
   var imgAReset = document.getElementById('img-a');
   if (imgAReset) imgAReset.style.opacity = '1';
+  var rotateOverlay = document.getElementById('ba-rotate-overlay');
+  if (rotateOverlay) rotateOverlay.style.display = 'none';
   setBaFullscreen(false);
   aplicarBaTransform();
 
@@ -2333,7 +2347,26 @@ function aplicarBaTransform() {
   imgA.style.transform = 'translate(' + px + 'px,' + py + 'px) scale(' + (a.scale || 1) + ')';
 }
 
+function viewNeedsLandscape(viewId) {
+  var v = VIEWS.find(function(x){ return x.id === viewId; });
+  return !!(v && v.orientation === 'landscape');
+}
+
 function toggleBaAlign() {
+  // Si la foto se tomó en horizontal (extraoral/intraoral) y el teléfono
+  // sigue en vertical, el contenedor de pantalla completa también queda
+  // vertical — la foto horizontal termina como una tira angosta arriba con
+  // una franja negra enorme abajo. Se pide girar el teléfono antes de
+  // entrar al modo ajuste, igual que se pide al tomar esas fotos.
+  if (!S.baAlignMode && viewNeedsLandscape(S.baVistaActual) && isPortrait()) {
+    var rotateOverlay = document.getElementById('ba-rotate-overlay');
+    if (rotateOverlay) rotateOverlay.style.display = 'flex';
+    return;
+  }
+  aplicarToggleBaAlign();
+}
+
+function aplicarToggleBaAlign() {
   S.baAlignMode = !S.baAlignMode;
   var panel = document.getElementById('ba-align-panel');
   var btn = document.getElementById('ba-align-btn');
@@ -2779,6 +2812,14 @@ function checkOrientationGate() {
 window.addEventListener('resize', function() {
   var camScreen = document.getElementById('s-cam-native');
   if (camScreen && camScreen.classList.contains('active')) checkOrientationGate();
+
+  // Si estaban esperando a que giraran el teléfono para ajustar una foto
+  // horizontal, en cuanto detecta el giro entra directo al modo ajuste
+  var rotateOverlay = document.getElementById('ba-rotate-overlay');
+  if (rotateOverlay && rotateOverlay.style.display === 'flex' && !isPortrait()) {
+    rotateOverlay.style.display = 'none';
+    aplicarToggleBaAlign();
+  }
 });
 
 function updateNativeCameraTips() {
