@@ -661,7 +661,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v4 — simulación de las 6 vistas en el panel</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v5 — timeouts en Supabase, ya no se queda trabado</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -1722,7 +1722,36 @@ var USE_EDGE = true;
 // Si no existe aún, fallback a localStorage temporal
 var USE_EDGE = true;
 
-var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+// Si el SDK de Supabase no cargó (CDN bloqueado, sin internet en ese
+// momento, etc.) esto tiraba un ReferenceError que mataba TODO el script
+// — ninguna función posterior (ir(), cargarDashboard(), TITULOS, etc.) se
+// definía, y cualquier botón del panel quedaba "muerto" sin ningún aviso,
+// dando la sensación de que la app se trabó. Con el try/catch, el resto
+// del script sigue cargando y cada función cae a su fallback de
+// localStorage ya existente.
+var sb;
+try {
+  sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+} catch (e) {
+  console.error('[CAMILA] No se pudo inicializar Supabase (¿sin internet o CDN bloqueado?):', e);
+  window.addEventListener('DOMContentLoaded', function() {
+    var banner = document.createElement('div');
+    banner.textContent = '⚠ Sin conexión con el servidor — trabajando en modo local, algunos datos no se sincronizarán.';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:#B45309;color:#fff;font-size:12px;text-align:center;padding:8px 12px';
+    document.body.appendChild(banner);
+  });
+}
+
+// Toda llamada a Supabase pasa por aquí — si la red se cae a medio camino
+// (típico en datos móviles) el await ya no se queda esperando para
+// siempre: a los 10s se rechaza y el try/catch de cada función cae a su
+// fallback de localStorage, en vez de dejar la pantalla "congelada".
+function sbTimeout(promise, ms) {
+  var timeoutPromise = new Promise(function(_, reject) {
+    setTimeout(function(){ reject(new Error('timeout')); }, ms || 10000);
+  });
+  return Promise.race([promise, timeoutPromise]);
+}
 
 // ══════════════════════════════════════════
 // ESTADO GLOBAL
@@ -1778,7 +1807,7 @@ function cerrarSesion() {
 
   // Cargar tenant desde Supabase
   try {
-    var res = await sb.from('camila_tenants').select('*').eq('email', s.email).single();
+    var res = await sbTimeout(sb.from('camila_tenants').select('*').eq('email', s.email).single());
     if (res.error || !res.data) {
       // Fallback a localStorage si Supabase no tiene tablas aún
       tenantData = s;
@@ -1845,6 +1874,31 @@ var TITULOS = {
   'sim-config': 'Configuración de Simulación',
 };
 
+// Barra fina de carga arriba de la pantalla — antes, al cambiar de sección
+// (Dashboard, Historial, etc.) no había NINGÚN indicador mientras las
+// llamadas a Supabase estaban en curso; si la red iba lenta (típico en
+// datos móviles) la pantalla se quedaba tal cual estaba, sin avisar que
+// algo seguía cargando — eso es lo que se percibe como "se trabó".
+function showNavLoading() {
+  var bar = document.getElementById('nav-loading-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'nav-loading-bar';
+    bar.style.cssText = 'position:fixed;top:0;left:0;height:3px;width:0;background:var(--color-primary,#7C3AED);z-index:99997;transition:width 400ms ease,opacity 300ms ease';
+    document.body.appendChild(bar);
+  }
+  bar.style.opacity = '1';
+  bar.style.width = '0%';
+  requestAnimationFrame(function() { bar.style.width = '70%'; });
+}
+function hideNavLoading() {
+  var bar = document.getElementById('nav-loading-bar');
+  if (!bar) return;
+  bar.style.width = '100%';
+  setTimeout(function() { bar.style.opacity = '0'; }, 200);
+  setTimeout(function() { bar.remove(); }, 600);
+}
+
 function ir(p) {
   document.querySelectorAll('.pantalla').forEach(function(el) { el.classList.remove('activa'); });
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('activo'); });
@@ -1854,13 +1908,24 @@ function ir(p) {
     if (el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("'" + p + "'") !== -1) el.classList.add('activo');
   });
   document.getElementById('topbar-title').textContent = TITULOS[p] || p;
-  if (p === 'historial') cargarHistorial();
-  if (p === 'dashboard') cargarDashboard();
-  if (p === 'pacientes') cargarPacientes();
-  if (p === 'notificaciones') { cargarNotificaciones(); marcarTodasLeidas(); }
-  if (p === 'mi-cuenta') renderMiCuenta();
-  if (p === 'nuevo-diseno') resetNuevoDiseno();
-  if (p === 'sim-config') { cargarSimConfig(); updateSimLink(); }
+
+  var loaders = {
+    historial: cargarHistorial,
+    dashboard: cargarDashboard,
+    pacientes: cargarPacientes,
+    notificaciones: function() { marcarTodasLeidas(); return cargarNotificaciones(); },
+    'mi-cuenta': renderMiCuenta,
+    'nuevo-diseno': resetNuevoDiseno,
+    'sim-config': function() { updateSimLink(); return cargarSimConfig(); },
+  };
+  var loader = loaders[p];
+  if (loader) {
+    var maybePromise = loader();
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      showNavLoading();
+      maybePromise.then(hideNavLoading, hideNavLoading);
+    }
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1876,16 +1941,21 @@ async function cargarDashboard() {
 
   // Pacientes count
   try {
-    var resPac = await sb.from('camila_pacientes').select('id', {count:'exact'}).eq('tenant_id', tenantId);
+    var resPac = await sbTimeout(sb.from('camila_pacientes').select('id', {count:'exact'}).eq('tenant_id', tenantId));
     document.getElementById('st-pacientes').textContent = resPac.count || 0;
   } catch(e) {
     var lsPac = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
     document.getElementById('st-pacientes').textContent = lsPac.length;
   }
 
-  // Casos count
+  // Casos count — la tabla camila_casos no tiene columna "status" (cada
+  // fila ya es un caso guardado/completado), el filtro .eq('status',...)
+  // hacía que Supabase regresara error siempre y el conteo cayera al
+  // fallback de localStorage, que en el navegador del doctor casi
+  // siempre está vacío porque los casos se guardan desde el celular del
+  // paciente, no desde el panel del doctor.
   try {
-    var resCasos = await sb.from('camila_casos').select('id', {count:'exact'}).eq('tenant_id', tenantId).eq('status','completado');
+    var resCasos = await sbTimeout(sb.from('camila_casos').select('id', {count:'exact'}).eq('tenant_id', tenantId));
     document.getElementById('st-casos').textContent = resCasos.count || 0;
   } catch(e) {
     var lsCasos = JSON.parse(localStorage.getItem('camila_casos_' + tenantId) || '[]');
@@ -1953,7 +2023,7 @@ async function cargarDashboard() {
 async function cargarPacientes() {
   var lista = [];
   try {
-    var res = await sb.from('camila_pacientes').select('*').eq('tenant_id', tenantId).order('created_at', {ascending:false});
+    var res = await sbTimeout(sb.from('camila_pacientes').select('*').eq('tenant_id', tenantId).order('created_at', {ascending:false}));
     lista = res.data || [];
   } catch(e) {
     lista = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
@@ -2089,9 +2159,9 @@ async function guardarPaciente() {
   };
   try {
     if (editandoPacienteId) {
-      await sb.from('camila_pacientes').update(datos).eq('id', editandoPacienteId);
+      await sbTimeout(sb.from('camila_pacientes').update(datos).eq('id', editandoPacienteId));
     } else {
-      await sb.from('camila_pacientes').insert([datos]);
+      await sbTimeout(sb.from('camila_pacientes').insert([datos]));
     }
   } catch(e) {
     // Fallback localStorage
@@ -2114,7 +2184,7 @@ async function guardarPaciente() {
 async function cargarPacientesSelect() {
   var lista = [];
   try {
-    var res = await sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', tenantId).order('nombre');
+    var res = await sbTimeout(sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', tenantId).order('nombre'));
     lista = res.data || [];
   } catch(e) {
     lista = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
@@ -2245,7 +2315,7 @@ async function guardarSimConfig() {
   try {
     var config = (tenantData.config) || {};
     config.sim = cfg;
-    await sb.from('camila_tenants').update({config: config}).eq('id', tenantId);
+    await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId));
   } catch(e) {}
 
   updateSimLink();
@@ -2583,7 +2653,7 @@ async function ejecutarAnalisisIA() {
     // Registrar uso
     var usado = (tenantData.diagnosticos_usados || 0) + 1;
     tenantData.diagnosticos_usados = usado;
-    try { await sb.from('camila_tenants').update({diagnosticos_usados: usado}).eq('id', tenantId); } catch(e) {}
+    try { await sbTimeout(sb.from('camila_tenants').update({diagnosticos_usados: usado}).eq('id', tenantId)); } catch(e) {}
     renderSidebar();
 
   } catch(e) {
@@ -2705,11 +2775,11 @@ async function cargarHistorial() {
   // Traer las 6 fotos/simulaciones completas de hasta 50 casos de golpe
   // podía ser decenas de MB y trababa el navegador.
   try {
-    var res = await sb.from('camila_casos')
+    var res = await sbTimeout(sb.from('camila_casos')
       .select('id,tenant_id,nombre_paciente,telefono,email,score,score_lbl,resumen,diagnostico,total_cotizacion,simulacion_url,foto_frontal,fotos_count,created_at')
       .eq('tenant_id', tenantId)
       .order('created_at', {ascending: false})
-      .limit(50);
+      .limit(50));
     if (res.data && res.data.length) casos = res.data;
   } catch(e) {}
 
@@ -2801,7 +2871,7 @@ async function verCaso(i) {
     }
     modalLoading.innerHTML = '<div style="color:#fff;font-size:13px">Cargando caso...</div>';
     try {
-      var full = await sb.from('camila_casos').select('*').eq('id', c.id).single();
+      var full = await sbTimeout(sb.from('camila_casos').select('*').eq('id', c.id).single(), 20000);
       if (full.data) c = Object.assign({}, c, full.data);
     } catch (e) {}
   }
@@ -3026,7 +3096,7 @@ async function guardarConfig() {
   config.consultorio = document.getElementById('conf-consultorio').value.trim();
   config.ciudad = document.getElementById('conf-ciudad').value.trim();
   tenantData.config = config;
-  try { await sb.from('camila_tenants').update({config: config}).eq('id', tenantId); } catch(e) {
+  try { await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId)); } catch(e) {
     localStorage.setItem('camila_config_' + tenantId, JSON.stringify(config));
   }
   document.getElementById('sb-consultorio').textContent = config.consultorio || 'Mi Consultorio';
@@ -3039,7 +3109,7 @@ async function guardarConfig() {
 async function cargarNotificaciones() {
   var lista = [];
   try {
-    var res = await sb.from('camila_notificaciones').select('*').order('created_at', {ascending:false});
+    var res = await sbTimeout(sb.from('camila_notificaciones').select('*').order('created_at', {ascending:false}));
     lista = res.data || [];
   } catch(e) {
     lista = [{id:'1', titulo:'Bienvenido a CAMILA v1.0', cuerpo:'Tu plataforma de diseño de sonrisa digital con IA ya está lista.', tipo:'info', created_at:new Date().toISOString()}];
@@ -3699,7 +3769,7 @@ async function guardarPerfil() {
   tenantData.nombre = document.getElementById('mc-nombre').value.trim();
   tenantData.config = config;
   try {
-    await sb.from('camila_tenants').update({nombre: tenantData.nombre, config: config}).eq('id', tenantId);
+    await sbTimeout(sb.from('camila_tenants').update({nombre: tenantData.nombre, config: config}).eq('id', tenantId));
   } catch(e) {}
   renderSidebar();
   alert('Perfil guardado.');
