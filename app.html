@@ -661,7 +661,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v3 — 3 fotos de documentación clínica adicionales</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v4 — simulación de las 6 vistas en el panel</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -2870,6 +2870,14 @@ async function verCaso(i) {
       '<img src="' + c.simulacion_url_izq + '" style="width:100%;display:block" alt="Simulación perfil izquierdo">' +
       '<div style="padding:6px 8px;background:var(--color-surface-raised);font-size:10px;font-weight:600;color:var(--color-primary)">Perfil izquierdo</div></div>' : '') +
     '</div>' : '') +
+
+    ((c.simulacion_url_extraoral || c.simulacion_url_intraoral || c.simulacion_url_tres_cuartos) ? '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+    ['simulacion_url_extraoral','simulacion_url_intraoral','simulacion_url_tres_cuartos'].map(function(k,i){
+      var lbl = ['Extraoral','Intraoral','Vista 3/4'][i];
+      return c[k] ? '<div style="flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--color-border)">' +
+        '<img src="' + c[k] + '" style="width:100%;display:block" alt="Simulación ' + lbl + '">' +
+        '<div style="padding:6px 8px;background:var(--color-surface-raised);font-size:10px;font-weight:600;color:var(--color-primary)">' + lbl + '</div></div>' : '';
+    }).join('') + '</div>' : '') +
 
     // Score
     '<div style="background:linear-gradient(135deg,rgba(91,71,224,.12),rgba(44,107,237,.12));border:1px solid rgba(91,71,224,.2);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">' +
