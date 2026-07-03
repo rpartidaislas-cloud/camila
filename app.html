@@ -661,7 +661,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v2 — historial más ligero</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v3 — 3 fotos de documentación clínica adicionales</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -2838,9 +2838,19 @@ async function verCaso(i) {
     '</div>' +
 
     // Fotos
-    (c.foto_frontal ? '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+    (c.foto_frontal ? '<div style="display:flex;gap:8px;margin-bottom:8px">' +
     ['foto_frontal','foto_perfil_der','foto_perfil_izq'].map(function(k,i){
       var lbl = ['Frontal','Perfil Der.','Perfil Izq.'][i];
+      return c[k] ? '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+        '<div style="width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--color-border)">' +
+        '<img src="data:image/jpeg;base64,' + c[k] + '" style="width:100%;height:100%;object-fit:cover"></div>' +
+        '<span style="font-size:10px;color:var(--color-text-tertiary)">' + lbl + '</span></div>' : '';
+    }).join('') + '</div>' : '') +
+
+    // Fotos de documentación clínica adicionales (extraoral/intraoral/3-4)
+    ((c.foto_extraoral || c.foto_intraoral || c.foto_tres_cuartos) ? '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+    ['foto_extraoral','foto_intraoral','foto_tres_cuartos'].map(function(k,i){
+      var lbl = ['Extraoral','Intraoral','Vista 3/4'][i];
       return c[k] ? '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
         '<div style="width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--color-border)">' +
         '<img src="data:image/jpeg;base64,' + c[k] + '" style="width:100%;height:100%;object-fit:cover"></div>' +
