@@ -35,10 +35,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .screen.active{display:flex}
 
 /* ══ INTRO ══ */
-#s-intro{background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:flex-start;padding:calc(env(safe-area-inset-top,0px)+40px) 24px 32px;overflow-y:auto;gap:0}
+#s-intro{background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:flex-start;padding:max(56px,calc(env(safe-area-inset-top) + 40px)) 24px 32px;overflow-y:auto;gap:0}
 .intro-logo{font-family:'Playfair Display',serif;font-size:22px;color:#fff;font-weight:700;margin-bottom:2px;text-align:center}
 .intro-tag{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;text-align:center}
-.intro-icon{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 40px rgba(91,71,224,.4)}
 .intro-title{font-size:22px;font-weight:800;line-height:1.25;margin-bottom:10px;text-align:center;max-width:300px;margin-left:auto;margin-right:auto}
 .intro-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.65;margin-bottom:24px;text-align:center;max-width:280px;margin-left:auto;margin-right:auto}
 
@@ -62,12 +61,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .cam-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
 /* Top bar */
-.cam-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px)+12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
+.cam-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
 .cam-logo{font-family:'Playfair Display',serif;font-size:16px;color:#fff;font-weight:700}
 .cam-close-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 
 /* Photo indicator */
-.cam-photo-ind{position:absolute;top:calc(env(safe-area-inset-top,0px)+56px);left:0;right:0;z-index:10;display:flex;justify-content:center;gap:8px}
+.cam-photo-ind{position:absolute;top:calc(env(safe-area-inset-top,0px) + 56px);left:0;right:0;z-index:10;display:flex;justify-content:center;gap:8px}
 .cpi{width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);transition:all 300ms}
 .cpi.done{background:var(--ok)}
 .cpi.active{background:#fff;width:40px}
@@ -85,7 +84,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     radial-gradient(circle at 50% 34%, rgba(91,71,224,.16), transparent 55%),
     linear-gradient(165deg,#0c0818,#080611 60%,#0a0e1c);
 }
-.native-cam-topbar{position:relative;z-index:10;padding:calc(env(safe-area-inset-top,0px)+14px) 16px 12px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(rgba(10,8,20,.55),transparent)}
+.native-cam-topbar{position:relative;z-index:10;padding-top:max(56px,calc(env(safe-area-inset-top) + 14px));padding-left:16px;padding-right:16px;padding-bottom:12px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(rgba(10,8,20,.55),transparent)}
 .native-cam-header{display:flex;align-items:center;justify-content:space-between}
 .native-progress-dots{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
 .native-cam-content{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 28px 28px;gap:14px;flex:1;justify-content:center;min-height:0}
@@ -130,7 +129,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 /* Modo compacto — pantallas bajas (celular en horizontal). Se reducen
    tamaños y espacios para que todo entre sin recortarse ni encimarse. */
 @media (max-height:480px){
-  .native-cam-topbar{padding-top:calc(env(safe-area-inset-top,0px)+8px);padding-bottom:6px;gap:6px}
+  .native-cam-topbar{padding-top:calc(env(safe-area-inset-top,0px) + 8px);padding-bottom:6px;gap:6px}
   .native-progress-dots .cpi{height:3px}
   .native-cam-content{padding:6px 28px 14px;gap:6px}
   .native-preview-wrap{width:84px;height:94px;margin-bottom:0}
@@ -161,7 +160,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .countdown{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:96px;font-weight:900;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6);z-index:20;display:none;line-height:1;letter-spacing:-4px}
 
 /* Bottom */
-.cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:16px 32px calc(env(safe-area-inset-bottom,0px)+24px);display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.7),transparent)}
+.cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:16px 32px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.7),transparent)}
 .shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.3);cursor:pointer;position:relative;transition:all 150ms;display:flex;align-items:center;justify-content:center}
 .shutter::after{content:'';width:52px;height:52px;border-radius:50%;background:#fff;border:2px solid #e0e0e0;position:absolute}
 .shutter:active{transform:scale(.92)}
@@ -195,7 +194,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 /* ══ RESULTADO ══ */
 #s-res{background:#0A0A0F;padding:0;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start}
-.res-header{padding:calc(env(safe-area-inset-top,0px)+12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10}
+.res-header{padding-top:max(56px,calc(env(safe-area-inset-top) + 12px));padding-left:16px;padding-right:16px;padding-bottom:12px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:10}
 .res-logo{font-family:'Playfair Display',serif;font-size:16px;color:#fff;font-weight:700}
 .redo-btn{height:32px;padding:0 12px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:5px}
 
@@ -277,11 +276,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .btn-wa:active{transform:scale(.97)}
 .btn-dl{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:42px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:14px}
 
-.res-foot{text-align:center;padding:4px 0 calc(env(safe-area-inset-bottom,0px)+20px)}
+.res-foot{text-align:center;padding:4px 0 calc(env(safe-area-inset-bottom,0px) + 20px)}
 .res-foot-logo{font-family:'Playfair Display',serif;font-size:13px;color:rgba(255,255,255,.2)}
 
 /* ── PWA INSTALL PROMPT ── */
-.install-banner{position:fixed;bottom:0;left:0;right:0;z-index:200;padding:12px 16px calc(env(safe-area-inset-bottom,0px)+12px);background:rgba(15,10,30,.96);border-top:1px solid rgba(91,71,224,.3);backdrop-filter:blur(20px);display:none;align-items:center;gap:12px;animation:slideUp .3s ease}
+.install-banner{position:fixed;bottom:0;left:0;right:0;z-index:200;padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 12px);background:rgba(15,10,30,.96);border-top:1px solid rgba(91,71,224,.3);backdrop-filter:blur(20px);display:none;align-items:center;gap:12px;animation:slideUp .3s ease}
 .install-banner.show{display:flex}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .ib-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#5B47E0,#2C6BED);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
@@ -292,7 +291,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ib-close{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 
 /* iOS install instructions */
-.ios-install{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(15,10,30,.97);border-top:1px solid rgba(91,71,224,.3);padding:20px 20px calc(env(safe-area-inset-bottom,0px)+20px);backdrop-filter:blur(20px);display:none;flex-direction:column;gap:12px;animation:slideUp .3s ease}
+.ios-install{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(15,10,30,.97);border-top:1px solid rgba(91,71,224,.3);padding:20px 20px calc(env(safe-area-inset-bottom,0px) + 20px);backdrop-filter:blur(20px);display:none;flex-direction:column;gap:12px;animation:slideUp .3s ease}
 .ios-install.show{display:flex}
 .ios-install h4{font-size:15px;font-weight:700;color:#fff}
 .ios-step{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.75)}
@@ -320,7 +319,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v38 — logo SMYLE integrado (icono + logotipo)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v39 — arregla encimado real (bug de calc() sin espacios)</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -337,11 +336,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 <!-- ══ INTRO ══ -->
 <div class="screen active" id="s-intro">
-  <div class="intro-logo"><img src="icons/smyl_logo.png" alt="SMYLE" style="height:30px;width:auto;display:block;margin:0 auto"></div>
+  <div class="intro-logo"><img src="icons/smyl_logo.png" alt="SMYLE" style="height:42px;width:auto;display:block;margin:0 auto"></div>
   <div class="intro-tag">Diseño de Sonrisa · IA</div>
-  <div class="intro-icon">
-    <img src="icons/smyl_pwa.png" alt="SMYLE" style="width:56px;height:56px;object-fit:contain;border-radius:50%">
-  </div>
   <div class="intro-title">Descubre tu sonrisa perfecta en 60 segundos</div>
   <div class="intro-sub">Tomaremos 6 fotos guiadas. La IA analizará tus dientes y generará una simulación + diagnóstico + cotización.</div>
 
@@ -429,7 +425,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 <!-- ══ CUESTIONARIO ══ (lo llena el dentista o su asistente durante la consulta) -->
 <div class="screen" id="s-q">
-  <div style="background:linear-gradient(160deg,#0d0820,#0a1628);flex:1;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px)+20px) 20px calc(env(safe-area-inset-bottom,0px)+20px)">
+  <div style="background:linear-gradient(160deg,#0d0820,#0a1628);flex:1;overflow-y:auto;padding-top:max(56px,calc(env(safe-area-inset-top) + 20px));padding-left:20px;padding-right:20px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)">
     <img src="icons/smyl_logo.png" alt="SMYLE" style="height:22px;width:auto;display:block;margin-bottom:4px">
     <div style="font-size:11px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:24px;display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--p);display:inline-block"></span>Valoración clínica · la llena el dentista</div>
 
@@ -608,7 +604,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
        (extraoral/intraoral) — si no, la pantalla completa queda vertical y
        la foto horizontal se ve como una tira angosta con franjas negras -->
   <div id="ba-rotate-overlay" style="display:none;position:fixed;inset:0;z-index:70;background:rgba(10,8,20,.97);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center">
-    <button onclick="document.getElementById('ba-rotate-overlay').style.display='none'" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+16px);right:16px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px;cursor:pointer">✕</button>
+    <button onclick="document.getElementById('ba-rotate-overlay').style.display='none'" style="position:absolute;top:max(56px,calc(env(safe-area-inset-top) + 16px));right:16px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px;cursor:pointer">✕</button>
     <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;animation:rotateHint 1.6s ease-in-out infinite">
       <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
     </div>
@@ -634,7 +630,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     </button>
 
     <!-- Panel de controles del modo alineación (oculto por default) -->
-    <div id="ba-align-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:9;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4));padding:10px 12px calc(env(safe-area-inset-bottom,0px)+10px);gap:8px;flex-direction:column">
+    <div id="ba-align-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:9;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4));padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);gap:8px;flex-direction:column">
       <div style="font-size:11px;color:rgba(255,255,255,.7);text-align:center">Arrastra la foto "con carillas" para alinearla con la de "antes"</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:10px">
         <button onclick="ajustarBaZoom(-0.05)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:18px;font-weight:700;cursor:pointer">−</button>
