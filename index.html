@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CAMILA &middot; Est&eacute;tica Dental con IA</title>
+<title>SMYLE &middot; Est&eacute;tica Dental con IA</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -93,7 +93,7 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
   <div class="logo">
     <div class="logo-mark">&#129463;</div>
     <div class="logo-text">
-      <h1>CAMILA</h1>
+      <h1>SMYLE</h1>
       <span>Est&eacute;tica dental &middot; IA</span>
     </div>
   </div>
@@ -106,7 +106,7 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
 <div class="hero">
   <div class="hero-eyebrow">Cotizaci&oacute;n y An&aacute;lisis M&eacute;dico Inteligente para La Est&eacute;tica dental</div>
   <h2>El diagn&oacute;stico que<br>cierra m&aacute;s <em>casos</em></h2>
-  <p>Sube las fotos de tu paciente. CAMILA analiza, diagnostica y genera la cotizaci&oacute;n de carillas en segundos &mdash; con precisi&oacute;n cl&iacute;nica e imagen premium.</p>
+  <p>Sube las fotos de tu paciente. SMYLE analiza, diagnostica y genera la cotizaci&oacute;n de carillas en segundos &mdash; con precisi&oacute;n cl&iacute;nica e imagen premium.</p>
   <div class="hero-cta">
     <button class="btn-primary" onclick="abrirModal('registro')">Empezar ahora &rarr;</button>
     <button class="btn-ghost" onclick="abrirModal('login')">Ya tengo cuenta</button>
@@ -116,7 +116,7 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
 <div class="divider-line"></div>
 
 <div class="features-section" style="margin-top:70px">
-  <div class="section-label">Qu&eacute; hace CAMILA</div>
+  <div class="section-label">Qu&eacute; hace SMYLE</div>
   <div class="section-title">Todo en un diagn&oacute;stico</div>
   <div class="features-grid">
     <div class="feat"><div class="feat-icon">&#128248;</div><h4>An&aacute;lisis de 4 im&aacute;genes</h4><p>Foto frontal, perfil, intraoral y radiograf&iacute;a. La IA eval&uacute;a cada una y cruza los hallazgos.</p></div>
@@ -183,7 +183,7 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
 </div>
 
 <footer>
-  <div class="footer-logo">CAMILA</div>
+  <div class="footer-logo">SMYLE</div>
   <p>Cotizaci&oacute;n y An&aacute;lisis M&eacute;dico Inteligente para La Est&eacute;tica dental &copy; 2025</p>
   <p style="color:#333">Hecho con &hearts; en M&eacute;xico</p>
 </footer>
@@ -191,7 +191,7 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
 <div class="overlay" id="overlay" onclick="cerrarFuera(event)">
   <div class="modal">
     <button class="modal-close" onclick="cerrarModal()">&#10005;</button>
-    <div class="modal-logo">&#129463; CAMILA</div>
+    <div class="modal-logo">&#129463; SMYLE</div>
     <div class="modal-sub" id="modal-sub">Accede a tu cuenta</div>
     <div class="tabs-auth">
       <div class="tab-auth activo" id="tab-login" onclick="switchTab('login')">Iniciar sesi&oacute;n</div>
@@ -268,7 +268,7 @@ function hacerRegistro(){
   var hoy=new Date();var vence=new Date(hoy);vence.setMonth(vence.getMonth()+1);
   us[email]={nombre:nombre,email:email,pass:pass,plan:partes[0],limite:parseInt(partes[1]),precio:parseInt(partes[2]),usados:0,activo:true,inicio:hoy.toISOString(),vence:vence.toISOString(),cotizaciones:[],precios:{}};
   saveUsuarios(us);saveSession({email:email,nombre:nombre});
-  showOk('reg-ok','Bienvenido a CAMILA! Redirigiendo...');
+  showOk('reg-ok','Bienvenido a SMYLE! Redirigiendo...');
   setTimeout(function(){window.location.href='app.html'},1200);
 }
 function hacerLogin(){
