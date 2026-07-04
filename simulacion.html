@@ -316,10 +316,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 #flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 60ms}
 #flash.on{opacity:1}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v39 — arregla encimado real (bug de calc() sin espacios)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v40 — login de dentista con Supabase Auth (misma cuenta que el panel)</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -419,6 +420,29 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <button onclick="showInstallInstructions()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:99px;color:rgba(255,255,255,.5);font-size:11px;padding:6px 14px;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:6px;margin:0 auto">
       <span>📲</span> Instalar como app
     </button>
+  </div>
+
+  <!-- Acceso del dentista — abre su propia simulación con su marca, sin necesitar el link con ?tenant= -->
+  <div id="intro-dentist-link" style="margin-top:10px">
+    <button onclick="abrirLoginDentista()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:11.5px;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif;text-decoration:underline;text-underline-offset:2px">
+      Soy dentista, iniciar sesión
+    </button>
+  </div>
+</div>
+
+<!-- ══ LOGIN DENTISTA ══ -->
+<div id="dentist-login-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px">
+    <button onclick="cerrarLoginDentista()" style="position:absolute;top:max(20px,calc(env(safe-area-inset-top) + 12px));right:24px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:14px;cursor:pointer">✕</button>
+    <img src="icons/smyl_logo.png" alt="SMYLE" style="height:26px;width:auto;display:block;margin-bottom:18px">
+    <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Iniciar sesión</div>
+    <div style="font-size:12.5px;color:rgba(255,255,255,.5);margin-bottom:18px">Con el mismo correo y contraseña de tu panel</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input id="dl-email" type="email" placeholder="Correo electrónico" style="height:46px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:14px;padding:0 14px;font-family:Inter,sans-serif">
+      <input id="dl-pass" type="password" placeholder="Contraseña" style="height:46px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:14px;padding:0 14px;font-family:Inter,sans-serif">
+    </div>
+    <div id="dl-err" style="display:none;color:#F87171;font-size:12px;margin-top:10px"></div>
+    <button id="dl-submit" onclick="hacerLoginDentista()" style="width:100%;height:46px;border-radius:11px;background:var(--p,#5B47E0);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:16px">Entrar →</button>
   </div>
 </div>
 
@@ -814,11 +838,7 @@ var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa 
   '  "recomendacion_diseño": "1-2 líneas con la recomendación de diseño de sonrisa para este paciente, en español"\n' +
   '}';
 
-// Load tenant config from URL param
-(function loadTenantConfig() {
-  var params = new URLSearchParams(window.location.search);
-  var tid = params.get('tenant');
-  if (!tid) return;
+function cargarTenantConfig(tid) {
   CFG.tenantId = tid;
   // Try localStorage first (fast)
   var stored = localStorage.getItem('camila_sim_config_' + tid);
@@ -829,7 +849,7 @@ var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa 
     } catch(e) {}
   }
   // Also try Supabase
-  fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email', {
+  return fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email', {
     headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey}
   }).then(function(r){return r.json();}).then(function(data) {
     if (data && data[0] && data[0].config && data[0].config.sim) {
@@ -837,8 +857,62 @@ var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa 
       localStorage.setItem('camila_sim_config_' + tid, JSON.stringify(CFG.tenantConfig));
       applyTenantBranding(CFG.tenantConfig);
     }
+    return data && data[0];
+  }).catch(function(){});
+}
+
+// ══ LOGIN DENTISTA — mismo Supabase Auth que app.html ══
+// Si el paciente entra por el link con ?tenant=id, esa es su fuente. Si no
+// hay tenant en la URL, el dentista puede iniciar sesión aquí mismo con su
+// correo/contraseña para ver/probar SU propia simulación sin copiar el link.
+var sbAuth;
+try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
+
+(function loadTenantConfig() {
+  var params = new URLSearchParams(window.location.search);
+  var tid = params.get('tenant');
+  if (tid) { cargarTenantConfig(tid); return; }
+  // Sin ?tenant= en la URL — revisar si el dentista ya tiene sesión iniciada
+  if (!sbAuth) return;
+  sbAuth.auth.getSession().then(function(res) {
+    var user = res.data && res.data.session && res.data.session.user;
+    if (user) cargarTenantConfig(user.id);
   }).catch(function(){});
 })();
+
+function abrirLoginDentista() {
+  document.getElementById('dentist-login-overlay').style.display = 'flex';
+}
+function cerrarLoginDentista() {
+  document.getElementById('dentist-login-overlay').style.display = 'none';
+  document.getElementById('dl-err').style.display = 'none';
+}
+async function hacerLoginDentista() {
+  var email = document.getElementById('dl-email').value.trim().toLowerCase();
+  var pass = document.getElementById('dl-pass').value;
+  var errEl = document.getElementById('dl-err');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Ingresa tu correo y contraseña'; errEl.style.display = 'block'; return; }
+  if (!sbAuth) { errEl.textContent = 'No se pudo conectar con el servidor'; errEl.style.display = 'block'; return; }
+
+  var btn = document.getElementById('dl-submit');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    var res = await sbAuth.auth.signInWithPassword({ email: email, password: pass });
+    if (res.error) {
+      errEl.textContent = res.error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : res.error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    await cargarTenantConfig(res.data.user.id);
+    cerrarLoginDentista();
+  } catch (e) {
+    errEl.textContent = 'Error de red: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar →';
+  }
+}
 
 function applyTenantBranding(cfg) {
   if (!cfg) return;
