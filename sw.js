@@ -1,6 +1,6 @@
-// CAMILA PWA Service Worker
+// SMYLE PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'camila-v1';
+const CACHE_VERSION = 'smyle-v2';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -8,8 +8,7 @@ const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 const STATIC_FILES = [
   '/camila/simulacion.html',
   '/camila/manifest.json',
-  '/camila/icons/icon-192.png',
-  '/camila/icons/icon-512.png',
+  '/camila/icons/smyl_pwa.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap',
 ];
 
@@ -101,10 +100,10 @@ self.addEventListener('fetch', function(e) {
 self.addEventListener('push', function(e) {
   if (!e.data) return;
   var data = e.data.json();
-  self.registration.showNotification(data.title || 'CAMILA', {
+  self.registration.showNotification(data.title || 'SMYLE', {
     body: data.body || 'Tienes una nueva simulación lista',
-    icon: '/camila/icons/icon-192.png',
-    badge: '/camila/icons/icon-96.png',
+    icon: '/camila/icons/smyl_pwa.png',
+    badge: '/camila/icons/smyl_pwa.png',
     data: { url: data.url || '/camila/simulacion.html' }
   });
 });
