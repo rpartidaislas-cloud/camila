@@ -670,7 +670,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v9 — logo SMYLE integrado (icono + logotipo)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v10 — Supabase Auth + pantalla de bienvenida</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -765,6 +765,43 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
     </div>
 
     <div class="contenido">
+
+      <!-- ═══ BIENVENIDA (solo se muestra justo después de registrarse) ═══ -->
+      <div class="pantalla" id="p-bienvenida">
+        <div class="card" style="text-align:center;padding:32px 24px;margin-bottom:20px">
+          <div style="font-size:32px;margin-bottom:8px">🎉</div>
+          <h2 style="font-size:20px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px" id="bienvenida-nombre">¡Bienvenido a SMYLE!</h2>
+          <p style="font-size:13px;color:var(--color-text-secondary);max-width:420px;margin:0 auto">Tu cuenta ya está lista. Aquí tienes lo esencial antes de tu primer caso.</p>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Tu link para pacientes</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Comparte este link con tus pacientes — desde ahí toman sus fotos y reciben su simulación con IA.</p>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+            <span style="font-size:12px;color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="bienvenida-link-txt">Cargando...</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary" onclick="copiarLinkSim()">Copiar link</button>
+            <button class="btn btn-primary" onclick="compartirLinkSim()">Compartir por WhatsApp</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Antes de tu primer caso</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">Configura tus precios</div><div style="font-size:11.5px;color:var(--color-text-tertiary)">Para que las cotizaciones automáticas salgan correctas</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="ir('precios')">Ir →</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">Personaliza tu marca</div><div style="font-size:11.5px;color:var(--color-text-tertiary)">Nombre de tu consultorio, tono, WhatsApp</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="ir('sim-config')">Ir →</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="ir('dashboard')" style="max-width:280px;margin:0 auto;display:flex">Ir a mi Dashboard →</button>
+      </div>
 
       <!-- ═══ DASHBOARD ═══ -->
       <div class="pantalla activa" id="p-dashboard">
@@ -1794,13 +1831,12 @@ var PLANES = {
 };
 
 // ══════════════════════════════════════════
-// AUTENTICACIÓN
+// AUTENTICACIÓN — Supabase Auth (antes era un login simulado en
+// localStorage; ahora la sesión real la maneja Supabase, y el id del
+// tenant en camila_tenants es el mismo id del usuario de Supabase Auth)
 // ══════════════════════════════════════════
-function getSession() {
-  try { return JSON.parse(localStorage.getItem('camila_session') || 'null'); } catch(e) { return null; }
-}
 function cerrarSesion() {
-  localStorage.removeItem('camila_session');
+  if (sb && sb.auth) sb.auth.signOut().catch(function(){});
   window.location.href = 'index.html';
 }
 
@@ -1808,16 +1844,21 @@ function cerrarSesion() {
 // INICIO
 // ══════════════════════════════════════════
 (async function init() {
-  var s = getSession();
-  if (!s || s.isAdmin) { window.location.href = 'index.html'; return; }
+  var authUser = null;
+  try {
+    var authRes = await sb.auth.getSession();
+    authUser = authRes.data && authRes.data.session && authRes.data.session.user;
+  } catch (e) {}
+  if (!authUser) { window.location.href = 'index.html'; return; }
 
   // Cargar tenant desde Supabase
   try {
-    var res = await sbTimeout(sb.from('camila_tenants').select('*').eq('email', s.email).single());
+    var res = await sbTimeout(sb.from('camila_tenants').select('*').eq('id', authUser.id).single());
     if (res.error || !res.data) {
-      // Fallback a localStorage si Supabase no tiene tablas aún
-      tenantData = s;
-      tenantId = s.id || 'local';
+      // Se autenticó bien pero aún no tiene fila en camila_tenants
+      // (no debería pasar tras el registro, pero por si acaso)
+      tenantData = { nombre: authUser.email, email: authUser.email };
+      tenantId = authUser.id;
       renderSidebar();
       cargarDashboard();
       renderPrecios();
@@ -1830,13 +1871,18 @@ function cerrarSesion() {
     if (!tenantData.activo) { alert('Tu cuenta está suspendida. Contacta al administrador.'); cerrarSesion(); return; }
     if (new Date(tenantData.vence_en) < new Date()) { alert('Tu suscripción venció. Contacta al administrador.'); cerrarSesion(); return; }
   } catch(e) {
-    // Tabla no existe aún — modo localStorage
-    tenantData = s;
-    tenantId = s.id || 'local';
+    tenantData = { nombre: authUser.email, email: authUser.email };
+    tenantId = authUser.id;
   }
 
   document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
   renderSidebar();
+  // Justo después de registrarse, index.html manda aquí con ?bienvenida=1
+  // — se muestra la pantalla de bienvenida en vez del Dashboard directo
+  if (new URLSearchParams(location.search).get('bienvenida') === '1') {
+    ir('bienvenida');
+    history.replaceState(null, '', location.pathname); // que un refresh no la vuelva a mostrar
+  }
   await cargarDashboard();
   renderPrecios();
   cargarConfig();
@@ -1868,6 +1914,7 @@ function renderSidebar() {
 // NAVEGACIÓN
 // ══════════════════════════════════════════
 var TITULOS = {
+  bienvenida: 'Bienvenida',
   dashboard: 'Dashboard',
   pacientes: 'Pacientes',
   'paciente-detalle': 'Expediente del Paciente',
@@ -1923,6 +1970,7 @@ function ir(p) {
     'mi-cuenta': renderMiCuenta,
     'nuevo-diseno': resetNuevoDiseno,
     'sim-config': function() { updateSimLink(); return cargarSimConfig(); },
+    bienvenida: function() { updateSimLink(); renderBienvenida(); },
   };
   var loader = loaders[p];
   if (loader) {
@@ -2294,11 +2342,18 @@ function cargarSimConfig() {
   updateSimLink();
 }
 
+function renderBienvenida() {
+  var el = document.getElementById('bienvenida-nombre');
+  if (el) el.textContent = '¡Bienvenido a SMYLE, ' + (tenantData.nombre || 'Doctor') + '! 🎉';
+}
+
 function updateSimLink() {
   var base = window.location.origin + window.location.pathname.replace('app.html','');
   var link = base + 'simulacion.html?tenant=' + tenantId;
   var el = document.getElementById('sim-link-txt');
   if (el) el.textContent = link;
+  var el2 = document.getElementById('bienvenida-link-txt');
+  if (el2) el2.textContent = link;
   window._simLink = link;
 }
 

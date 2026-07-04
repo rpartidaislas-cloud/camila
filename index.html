@@ -6,6 +6,7 @@
 <title>SMYLE &middot; Est&eacute;tica Dental con IA</title>
 <link rel="icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" href="icons/smyl_pwa.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -204,7 +205,7 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
       <div class="msg-ok" id="login-ok"></div>
       <div class="fg"><label>Correo</label><input type="email" id="l-email" placeholder="tu@correo.com"></div>
       <div class="fg"><label>Contrase&ntilde;a</label><input type="password" id="l-pass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
-      <button class="btn-modal" onclick="hacerLogin()">Entrar &rarr;</button>
+      <button class="btn-modal" id="btn-login-submit" onclick="hacerLogin()">Entrar &rarr;</button>
     </div>
     <div id="panel-registro" style="display:none">
       <div class="msg-err" id="reg-err"></div>
@@ -221,20 +222,32 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
           <option value="premium:100:1499">Premium &mdash; $1,499/mes &middot; 100 diagn&oacute;sticos</option>
         </select>
       </div>
-      <button class="btn-modal" onclick="hacerRegistro()">Crear mi cuenta &rarr;</button>
+      <button class="btn-modal" id="btn-registro-submit" onclick="hacerRegistro()">Crear mi cuenta &rarr;</button>
     </div>
   </div>
 </div>
 
 <script>
 var CODIGO_ACCESO='CAMILA2025';
-var ADMIN_PASS='camiladmin2025';
 var planSeleccionado=null;
-function getUsuarios(){try{return JSON.parse(localStorage.getItem('camila_usuarios')||'{}')}catch(e){return{}}}
-function saveUsuarios(u){localStorage.setItem('camila_usuarios',JSON.stringify(u))}
-function getSession(){try{return JSON.parse(localStorage.getItem('camila_session')||'null')}catch(e){return null}}
-function saveSession(s){localStorage.setItem('camila_session',JSON.stringify(s))}
-(function(){var s=getSession();if(s){window.location.href=s.isAdmin?'admin.html':'app.html'}})();
+
+// ══ Supabase Auth — el registro/login antes vivía solo en localStorage
+// (contraseña en texto plano, sin conexión a la nube). Ahora usa el
+// sistema de autenticación real de Supabase: contraseñas cifradas,
+// sesión persistente y válida desde cualquier dispositivo.
+var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
+var sb;
+try { sb = supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { console.error('[SMYLE] No se pudo inicializar Supabase:', e); }
+
+(async function () {
+  if (!sb) return;
+  try {
+    var res = await sb.auth.getSession();
+    if (res.data && res.data.session) window.location.href = 'app.html';
+  } catch (e) {}
+})();
+
 function abrirModal(tab){document.getElementById('overlay').classList.add('visible');switchTab(tab)}
 function cerrarModal(){document.getElementById('overlay').classList.remove('visible')}
 function cerrarFuera(e){if(e.target===document.getElementById('overlay'))cerrarModal()}
@@ -255,35 +268,79 @@ function seleccionarPlan(nombre,precio){
 }
 function showErr(id,msg){var e=document.getElementById(id);e.textContent=msg;e.classList.add('visible');setTimeout(function(){e.classList.remove('visible')},4000)}
 function showOk(id,msg){var e=document.getElementById(id);e.textContent=msg;e.classList.add('visible')}
-function hacerRegistro(){
+
+async function hacerRegistro(){
   var nombre=document.getElementById('r-nombre').value.trim();
   var email=document.getElementById('r-email').value.trim().toLowerCase();
   var pass=document.getElementById('r-pass').value;
   var codigo=document.getElementById('r-codigo').value.trim().toUpperCase();
   var planVal=document.getElementById('r-plan').value;
   if(!nombre||!email||!pass)return showErr('reg-err','Completa todos los campos');
-  if(pass.length<6)return showErr('reg-err','La contrasena debe tener al menos 6 caracteres');
-  if(codigo&&codigo!==CODIGO_ACCESO)return showErr('reg-err','Codigo de acceso incorrecto');
-  var us=getUsuarios();
-  if(us[email])return showErr('reg-err','Ya existe una cuenta con ese correo');
+  if(pass.length<6)return showErr('reg-err','La contraseña debe tener al menos 6 caracteres');
+  if(codigo&&codigo!==CODIGO_ACCESO)return showErr('reg-err','Código de acceso incorrecto');
+  if(!sb)return showErr('reg-err','No se pudo conectar con el servidor. Intenta de nuevo.');
+
   var partes=planVal.split(':');
-  var hoy=new Date();var vence=new Date(hoy);vence.setMonth(vence.getMonth()+1);
-  us[email]={nombre:nombre,email:email,pass:pass,plan:partes[0],limite:parseInt(partes[1]),precio:parseInt(partes[2]),usados:0,activo:true,inicio:hoy.toISOString(),vence:vence.toISOString(),cotizaciones:[],precios:{}};
-  saveUsuarios(us);saveSession({email:email,nombre:nombre});
-  showOk('reg-ok','Bienvenido a SMYLE! Redirigiendo...');
-  setTimeout(function(){window.location.href='app.html'},1200);
+  var btn=document.getElementById('btn-registro-submit');
+  if(btn){btn.disabled=true;btn.textContent='Creando cuenta...'}
+
+  try {
+    var signUpRes = await sb.auth.signUp({ email: email, password: pass });
+    if (signUpRes.error) { showErr('reg-err', signUpRes.error.message || 'No se pudo crear la cuenta'); return; }
+    var user = signUpRes.data && signUpRes.data.user;
+    if (!user) { showErr('reg-err','No se pudo crear la cuenta'); return; }
+
+    var hoy=new Date();var vence=new Date(hoy);vence.setMonth(vence.getMonth()+1);
+    var insertRes = await sb.from('camila_tenants').insert([{
+      id: user.id,
+      nombre: nombre,
+      email: email,
+      plan: partes[0],
+      limite_diagnosticos: parseInt(partes[1]),
+      diagnosticos_usados: 0,
+      activo: true,
+      vence_en: vence.toISOString(),
+      config: {},
+    }]);
+    if (insertRes.error) {
+      showErr('reg-err','Tu cuenta se creó pero hubo un problema guardando tu perfil: '+insertRes.error.message);
+      return;
+    }
+
+    if (signUpRes.data.session) {
+      showOk('reg-ok','¡Bienvenido a SMYLE! Redirigiendo...');
+      setTimeout(function(){window.location.href='app.html?bienvenida=1'},1200);
+    } else {
+      // El proyecto de Supabase tiene activada la confirmación por correo
+      showOk('reg-ok','Cuenta creada — revisa tu correo para confirmarla antes de entrar.');
+    }
+  } catch (e) {
+    showErr('reg-err','Error de red: '+e.message);
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='Crear mi cuenta →'; }
+  }
 }
-function hacerLogin(){
+
+async function hacerLogin(){
   var email=document.getElementById('l-email').value.trim().toLowerCase();
   var pass=document.getElementById('l-pass').value;
-  if(!email||!pass)return showErr('login-err','Ingresa tu correo y contrasena');
-  if(email==='admin'&&pass===ADMIN_PASS){saveSession({email:'admin',nombre:'Administrador',isAdmin:true});window.location.href='admin.html';return}
-  var us=getUsuarios();var u=us[email];
-  if(!u)return showErr('login-err','No encontramos esa cuenta');
-  if(u.pass!==pass)return showErr('login-err','Contrasena incorrecta');
-  if(!u.activo)return showErr('login-err','Tu cuenta esta pausada. Contacta al administrador.');
-  saveSession({email:email,nombre:u.nombre});
-  window.location.href='app.html';
+  if(!email||!pass)return showErr('login-err','Ingresa tu correo y contraseña');
+  if(!sb)return showErr('login-err','No se pudo conectar con el servidor. Intenta de nuevo.');
+
+  var btn=document.getElementById('btn-login-submit');
+  if(btn){btn.disabled=true;btn.textContent='Entrando...'}
+  try {
+    var res = await sb.auth.signInWithPassword({ email: email, password: pass });
+    if (res.error) {
+      showErr('login-err', res.error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : res.error.message);
+      return;
+    }
+    window.location.href='app.html';
+  } catch (e) {
+    showErr('login-err','Error de red: '+e.message);
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='Entrar →'; }
+  }
 }
 </script>
 <div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&copy; 2025 Dr. Hern&aacute;n Partida Islas &middot; Propiedad Intelectual</div>
