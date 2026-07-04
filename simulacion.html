@@ -320,7 +320,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v40 — login de dentista con Supabase Auth (misma cuenta que el panel)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v41 — quita alert de diagnóstico interno de cámara</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1400,17 +1400,6 @@ function drawVideoFrame(ctx, W, H) {
   var v = document.getElementById('vid');
   if (!v || v.readyState < 2 || !v.videoWidth) {
     _videoFrameFails++;
-    if (_videoFrameFails === 15) {
-      var tr = (S.stream && S.stream.getVideoTracks()[0]) || null;
-      alert('DIAG cámara:\n' +
-        'video existe: ' + !!v + '\n' +
-        'readyState: ' + (v ? v.readyState : 'n/a') + '\n' +
-        'videoWidth: ' + (v ? v.videoWidth : 'n/a') + '\n' +
-        'paused: ' + (v ? v.paused : 'n/a') + '\n' +
-        'stream activo: ' + (S.stream ? S.stream.active : 'n/a') + '\n' +
-        'track state: ' + (tr ? tr.readyState : 'n/a') + '\n' +
-        'track enabled: ' + (tr ? tr.enabled : 'n/a'));
-    }
     return false;
   }
   _videoFrameFails = 0;
