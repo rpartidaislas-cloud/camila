@@ -679,7 +679,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v11 — PWA instalable + fix ciclo infinito en diagnóstico</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v12 — quita el link público de simulación (ahora requiere login)</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -784,15 +784,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         </div>
 
         <div class="card" style="margin-bottom:16px">
-          <div class="card-title">Tu link para pacientes</div>
-          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Comparte este link con tus pacientes — desde ahí toman sus fotos y reciben su simulación con IA.</p>
-          <div style="display:flex;align-items:center;gap:8px;background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:10px;padding:10px 12px;margin-bottom:12px">
-            <span style="font-size:12px;color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="bienvenida-link-txt">Cargando...</span>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-secondary" onclick="copiarLinkSim()">Copiar link</button>
-            <button class="btn btn-primary" onclick="compartirLinkSim()">Compartir por WhatsApp</button>
-          </div>
+          <div class="card-title">Cómo usar la simulación</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Entras a la simulación con tu paciente sentado enfrente — inicias sesión con esta misma cuenta (correo y contraseña) y tomas sus fotos ahí mismo, en consulta.</p>
+          <a href="simulacion.html" target="_blank" class="btn btn-primary" style="width:100%;justify-content:center">Abrir simulación →</a>
         </div>
 
         <div class="card" style="margin-bottom:16px">
@@ -1441,18 +1435,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <!-- ═══ CONFIGURACIÓN SIMULACIÓN ═══ -->
       <div class="pantalla" id="p-sim-config">
 
-        <!-- Link del paciente -->
+        <!-- Acceso a la simulación -->
         <div class="card">
-          <div class="card-title">🔗 Link de Simulación para Pacientes</div>
-          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Comparte este link con tus pacientes. Se abrirá con el branding y configuración de tu consultorio.</p>
-          <div style="display:flex;gap:8px;align-items:center;background:var(--color-surface-raised);border-radius:10px;padding:10px 14px;border:1px solid var(--color-border)">
-            <span style="font-size:12px;color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sim-link-txt">Guardando configuración primero...</span>
-            <button class="btn btn-secondary btn-sm" onclick="copiarLinkSim()">Copiar</button>
-          </div>
-          <button class="btn btn-primary" style="margin-top:10px;width:100%;justify-content:center" onclick="compartirLinkSim()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            Compartir por WhatsApp
-          </button>
+          <div class="card-title">🔗 Simulación</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">La simulación se usa en consulta: inicias sesión ahí con esta misma cuenta y tomas las fotos junto con tu paciente. Se abre con el branding que configures abajo.</p>
+          <a href="simulacion.html" target="_blank" class="btn btn-primary" style="width:100%;justify-content:center">Abrir simulación →</a>
         </div>
 
         <!-- Branding -->
@@ -2124,8 +2111,8 @@ function ir(p) {
     notificaciones: function() { marcarTodasLeidas(); return cargarNotificaciones(); },
     'mi-cuenta': renderMiCuenta,
     'nuevo-diseno': resetNuevoDiseno,
-    'sim-config': function() { updateSimLink(); return cargarSimConfig(); },
-    bienvenida: function() { updateSimLink(); renderBienvenida(); },
+    'sim-config': cargarSimConfig,
+    bienvenida: renderBienvenida,
   };
   var loader = loaders[p];
   if (loader) {
@@ -2493,23 +2480,11 @@ function cargarSimConfig() {
     var btn = document.getElementById('proto-' + cfg.protoCount);
     if (btn) btn.classList.add('active');
   }
-  // Update link
-  updateSimLink();
 }
 
 function renderBienvenida() {
   var el = document.getElementById('bienvenida-nombre');
   if (el) el.textContent = '¡Bienvenido a SMYLE, ' + (tenantData.nombre || 'Doctor') + '! 🎉';
-}
-
-function updateSimLink() {
-  var base = window.location.origin + window.location.pathname.replace('app.html','');
-  var link = base + 'simulacion.html?tenant=' + tenantId;
-  var el = document.getElementById('sim-link-txt');
-  if (el) el.textContent = link;
-  var el2 = document.getElementById('bienvenida-link-txt');
-  if (el2) el2.textContent = link;
-  window._simLink = link;
 }
 
 async function guardarSimConfig() {
@@ -2534,29 +2509,7 @@ async function guardarSimConfig() {
     await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId));
   } catch(e) {}
 
-  updateSimLink();
-  alert('✅ Configuración guardada. Comparte el link con tus pacientes.');
-}
-
-function copiarLinkSim() {
-  var link = window._simLink || '';
-  navigator.clipboard.writeText(link).then(function() {
-    alert('✅ Link copiado al portapapeles');
-  });
-}
-
-function compartirLinkSim() {
-  var link = window._simLink || '';
-  var cfg = getSimConfig();
-  var msg = '😊 Hola! Te comparto el simulador de sonrisa de ' + (cfg.nombre || 'mi consultorio') + '.\n\n' +
-    'En menos de 60 segundos podrás ver cómo luciría tu sonrisa con carillas de porcelana, además de recibir un diagnóstico y cotización personalizada.\n\n' +
-    '👇 Ábrelo aquí:\n' + link;
-  if (navigator.share) {
-    navigator.share({title: 'Simula tu sonrisa', text: msg, url: link}).catch(function(){});
-  } else {
-    var waUrl = 'https://wa.me/?text=' + encodeURIComponent(msg);
-    window.open(waUrl, '_blank');
-  }
+  alert('✅ Configuración guardada.');
 }
 
 // ══════════════════════════════════════════
