@@ -154,6 +154,10 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .btn-icon{width:34px;height:34px;padding:0;justify-content:center;border:1px solid var(--color-border);background:var(--color-surface);border-radius:8px;color:var(--color-text-secondary)}
 .btn-icon:hover{border-color:var(--color-border-hover);background:var(--color-surface-raised);color:var(--color-text-primary)}
 
+/* ── AUTH GATE TABS ── */
+.ag-tab{flex:1;text-align:center;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--color-text-secondary);transition:background 150ms,color 150ms,box-shadow 150ms}
+.ag-tab.activo{background:var(--color-surface);color:var(--color-text-primary);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+
 /* ── FORMS ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fg{display:flex;flex-direction:column;gap:5px}
@@ -679,7 +683,43 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v12 — quita el link público de simulación (ahora requiere login)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v13 — login/registro directo (sin pasar por index.html)</div>
+
+<!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
+<div id="auth-gate-overlay" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:400px;background:var(--color-surface);border-radius:22px;padding:28px 24px;box-shadow:0 24px 60px rgba(15,23,42,.18)">
+    <div style="font-size:19px;font-weight:800;color:var(--color-text-primary);margin-bottom:2px">SMYLE</div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:18px">Accede a tu cuenta</div>
+    <div style="display:flex;background:var(--color-surface-raised);border-radius:13px;padding:4px;margin-bottom:18px">
+      <div id="ag-tab-login" class="ag-tab activo" onclick="switchAuthGateTab('login')">Iniciar sesión</div>
+      <div id="ag-tab-registro" class="ag-tab" onclick="switchAuthGateTab('registro')">Registrarme</div>
+    </div>
+
+    <div id="ag-panel-login">
+      <div id="ag-login-err" style="display:none;background:var(--color-error-subtle);border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Correo</label><input type="email" id="ag-l-email" placeholder="tu@correo.com"></div>
+      <div class="fg" style="margin-bottom:16px"><label>Contraseña</label><input type="password" id="ag-l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLoginAppGate()"></div>
+      <button class="btn btn-primary btn-full" id="ag-btn-login" onclick="hacerLoginAppGate()" style="width:100%;justify-content:center;height:44px">Entrar →</button>
+    </div>
+
+    <div id="ag-panel-registro" style="display:none">
+      <div id="ag-reg-err" style="display:none;background:var(--color-error-subtle);border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
+      <div id="ag-reg-ok" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Nombre completo</label><input type="text" id="ag-r-nombre" placeholder="Dr. / Dra. ..."></div>
+      <div class="fg" style="margin-bottom:13px"><label>Correo</label><input type="email" id="ag-r-email" placeholder="tu@correo.com"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Código de acceso</label><input type="text" id="ag-r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
+      <div class="fg" style="margin-bottom:16px"><label>Plan</label>
+        <select id="ag-r-plan">
+          <option value="esencial:15:399">Esencial — $399/mes · 15 diagnósticos</option>
+          <option value="profesional:40:799" selected>Profesional — $799/mes · 40 diagnósticos</option>
+          <option value="premium:100:1499">Premium — $1,499/mes · 100 diagnósticos</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-full" id="ag-btn-registro" onclick="hacerRegistroAppGate()" style="width:100%;justify-content:center;height:44px">Crear mi cuenta →</button>
+    </div>
+  </div>
+</div>
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
@@ -1974,19 +2014,14 @@ var PLANES = {
 // ══════════════════════════════════════════
 function cerrarSesion() {
   if (sb && sb.auth) sb.auth.signOut().catch(function(){});
-  window.location.href = 'index.html';
+  location.reload();
 }
 
 // ══════════════════════════════════════════
 // INICIO
 // ══════════════════════════════════════════
-(async function init() {
-  var authUser = null;
-  try {
-    var authRes = await sb.auth.getSession();
-    authUser = authRes.data && authRes.data.session && authRes.data.session.user;
-  } catch (e) {}
-  if (!authUser) { window.location.href = 'index.html'; return; }
+async function continuarConUsuario(authUser) {
+  document.getElementById('auth-gate-overlay').style.display = 'none';
 
   // Cargar tenant desde Supabase
   try {
@@ -2014,10 +2049,11 @@ function cerrarSesion() {
 
   document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
   renderSidebar();
-  // Justo después de registrarse, index.html manda aquí con ?bienvenida=1
-  // — se muestra la pantalla de bienvenida en vez del Dashboard directo
+  // Justo después de registrarse, se muestra la pantalla de bienvenida en
+  // vez del Dashboard directo (antes venía de index.html con ?bienvenida=1;
+  // ahora también puede pasar aquí mismo tras registrarse en este archivo)
   var qp = new URLSearchParams(location.search);
-  if (qp.get('bienvenida') === '1') {
+  if (qp.get('bienvenida') === '1' || window._recienRegistrado) {
     ir('bienvenida');
     history.replaceState(null, '', location.pathname); // que un refresh no la vuelva a mostrar
   } else if (qp.get('ir')) {
@@ -2030,6 +2066,111 @@ function cerrarSesion() {
   cargarConfig();
   await cargarNotificaciones();
   await cargarPacientesSelect();
+}
+
+// ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══
+// Antes, sin sesión, se mandaba a index.html. Ahora se puede iniciar sesión
+// o crear una cuenta nueva aquí mismo (mismo Supabase Auth que index.html
+// y simulacion.html — una sola cuenta sirve para las tres).
+var CODIGO_ACCESO_APP = 'CAMILA2025';
+
+function switchAuthGateTab(tab) {
+  document.getElementById('ag-panel-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('ag-panel-registro').style.display = tab === 'registro' ? 'block' : 'none';
+  document.getElementById('ag-tab-login').classList.toggle('activo', tab === 'login');
+  document.getElementById('ag-tab-registro').classList.toggle('activo', tab === 'registro');
+}
+
+async function hacerLoginAppGate() {
+  var email = document.getElementById('ag-l-email').value.trim().toLowerCase();
+  var pass = document.getElementById('ag-l-pass').value;
+  var errEl = document.getElementById('ag-login-err');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Ingresa tu correo y contraseña'; errEl.style.display = 'block'; return; }
+
+  var btn = document.getElementById('ag-btn-login');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    var res = await sb.auth.signInWithPassword({ email: email, password: pass });
+    if (res.error) {
+      errEl.textContent = res.error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : res.error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    continuarConUsuario(res.data.user);
+  } catch (e) {
+    errEl.textContent = 'Error de red: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar →';
+  }
+}
+
+async function hacerRegistroAppGate() {
+  var nombre = document.getElementById('ag-r-nombre').value.trim();
+  var email = document.getElementById('ag-r-email').value.trim().toLowerCase();
+  var pass = document.getElementById('ag-r-pass').value;
+  var codigo = document.getElementById('ag-r-codigo').value.trim().toUpperCase();
+  var planVal = document.getElementById('ag-r-plan').value;
+  var errEl = document.getElementById('ag-reg-err');
+  errEl.style.display = 'none';
+  if (!nombre || !email || !pass) { errEl.textContent = 'Completa todos los campos'; errEl.style.display = 'block'; return; }
+  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (codigo && codigo !== CODIGO_ACCESO_APP) { errEl.textContent = 'Código de acceso incorrecto'; errEl.style.display = 'block'; return; }
+
+  var partes = planVal.split(':');
+  var btn = document.getElementById('ag-btn-registro');
+  btn.disabled = true; btn.textContent = 'Creando cuenta...';
+
+  try {
+    var signUpRes = await sb.auth.signUp({ email: email, password: pass });
+    if (signUpRes.error) { errEl.textContent = signUpRes.error.message || 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
+    var user = signUpRes.data && signUpRes.data.user;
+    if (!user) { errEl.textContent = 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
+
+    var hoy = new Date(); var vence = new Date(hoy); vence.setMonth(vence.getMonth() + 1);
+    var insertRes = await sb.from('camila_tenants').insert([{
+      id: user.id,
+      nombre: nombre,
+      email: email,
+      plan: partes[0],
+      limite_diagnosticos: parseInt(partes[1]),
+      diagnosticos_usados: 0,
+      activo: true,
+      vence_en: vence.toISOString(),
+      config: {},
+    }]);
+    if (insertRes.error) {
+      errEl.textContent = 'Tu cuenta se creó pero hubo un problema guardando tu perfil: ' + insertRes.error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (signUpRes.data.session) {
+      window._recienRegistrado = true;
+      continuarConUsuario(user);
+    } else {
+      // El proyecto de Supabase tiene activada la confirmación por correo
+      var okEl = document.getElementById('ag-reg-ok');
+      okEl.textContent = 'Cuenta creada — revisa tu correo para confirmarla antes de entrar.';
+      okEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Error de red: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Crear mi cuenta →';
+  }
+}
+
+(async function init() {
+  var authUser = null;
+  try {
+    var authRes = await sb.auth.getSession();
+    authUser = authRes.data && authRes.data.session && authRes.data.session.user;
+  } catch (e) {}
+  if (!authUser) return; // el overlay de login/registro ya está visible por defecto
+  continuarConUsuario(authUser);
 })();
 
 function renderSidebar() {
