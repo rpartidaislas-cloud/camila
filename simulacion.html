@@ -324,7 +324,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v46 — fix aviso de progreso + accesibilidad de teclado</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v47 — fix link de confirmación de correo (emailRedirectTo)</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -974,9 +974,10 @@ async function hacerRegistroDentista() {
   btn.disabled = true; btn.textContent = 'Creando cuenta...';
 
   try {
-    var signUpRes = await sbAuth.auth.signUp({ email: email, password: pass, options: { data: {
-      nombre: nombre, plan: partes[0], limite_diagnosticos: parseInt(partes[1])
-    } } });
+    var signUpRes = await sbAuth.auth.signUp({ email: email, password: pass, options: {
+      emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'index.html'),
+      data: { nombre: nombre, plan: partes[0], limite_diagnosticos: parseInt(partes[1]) }
+    } });
     if (signUpRes.error) { errEl.textContent = signUpRes.error.message || 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
     var user = signUpRes.data && signUpRes.data.user;
     if (!user) { errEl.textContent = 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
