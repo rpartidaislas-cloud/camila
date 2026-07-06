@@ -987,9 +987,10 @@ async function hacerRegistro(){
     // política de seguridad lo rechaza), el primer login puede recrear la
     // fila del consultorio usando estos datos en vez de perderlos.
     var partesTmp=planVal.split(':');
-    var signUpRes = await sb.auth.signUp({ email: email, password: pass, options: { data: {
-      nombre: nombre, plan: partesTmp[0], limite_diagnosticos: parseInt(partesTmp[1])
-    } } });
+    var signUpRes = await sb.auth.signUp({ email: email, password: pass, options: {
+      emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'index.html'),
+      data: { nombre: nombre, plan: partesTmp[0], limite_diagnosticos: parseInt(partesTmp[1]) }
+    } });
     if (signUpRes.error) { showErr('reg-err', signUpRes.error.message || 'No se pudo crear la cuenta'); return; }
     var user = signUpRes.data && signUpRes.data.user;
     if (!user) { showErr('reg-err','No se pudo crear la cuenta'); return; }

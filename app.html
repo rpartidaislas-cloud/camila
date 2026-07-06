@@ -683,7 +683,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v14 — fixes de notificaciones, tenant-scoping y accesibilidad</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v15 — fix link de confirmación de correo (emailRedirectTo)</div>
 
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <div id="auth-gate-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
@@ -2145,9 +2145,10 @@ async function hacerRegistroAppGate() {
   btn.disabled = true; btn.textContent = 'Creando cuenta...';
 
   try {
-    var signUpRes = await sb.auth.signUp({ email: email, password: pass, options: { data: {
-      nombre: nombre, plan: partes[0], limite_diagnosticos: parseInt(partes[1])
-    } } });
+    var signUpRes = await sb.auth.signUp({ email: email, password: pass, options: {
+      emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'index.html'),
+      data: { nombre: nombre, plan: partes[0], limite_diagnosticos: parseInt(partes[1]) }
+    } });
     if (signUpRes.error) { errEl.textContent = signUpRes.error.message || 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
     var user = signUpRes.data && signUpRes.data.user;
     if (!user) { errEl.textContent = 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
