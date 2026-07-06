@@ -869,7 +869,7 @@ footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--s
 </footer>
 
 <!-- ═══════════════════ MODAL AUTH ═══════════════════ -->
-<div class="overlay" id="overlay" onclick="cerrarFuera(event)">
+<div class="overlay" id="overlay">
   <div class="modal">
     <button class="modal-close" onclick="cerrarModal()" aria-label="Cerrar">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -930,7 +930,6 @@ try { sb = supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { console.erro
 
 function abrirModal(tab){document.getElementById('overlay').classList.add('visible');switchTab(tab)}
 function cerrarModal(){document.getElementById('overlay').classList.remove('visible')}
-function cerrarFuera(e){if(e.target===document.getElementById('overlay'))cerrarModal()}
 function switchTab(tab){
   document.getElementById('panel-login').style.display=tab==='login'?'block':'none';
   document.getElementById('panel-registro').style.display=tab==='registro'?'block':'none';
