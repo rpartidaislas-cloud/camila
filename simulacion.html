@@ -324,7 +324,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v45 — registro directo (sin pasar por index.html)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v46 — fix aviso de progreso + accesibilidad de teclado</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -430,15 +430,15 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <!-- checkLogin() la oculta solo si confirma una sesión válida (misma cuenta que app.html) -->
-<div id="dentist-login-overlay" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
+<div id="dentist-login-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
   <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;margin:auto 0">
     <img src="icons/smyl_logo.png" alt="SMYLE" style="height:26px;width:auto;display:block;margin-bottom:18px">
     <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Accede a tu cuenta</div>
     <div style="font-size:12.5px;color:rgba(255,255,255,.5);margin-bottom:18px">Con el mismo correo y contraseña de tu panel</div>
 
     <div style="display:flex;background:rgba(255,255,255,.06);border-radius:12px;padding:4px;margin-bottom:18px">
-      <div id="dl-tab-login" class="dl-tab dl-tab-activo" onclick="switchDlTab('login')" style="flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer">Iniciar sesión</div>
-      <div id="dl-tab-registro" class="dl-tab" onclick="switchDlTab('registro')" style="flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer">Registrarme</div>
+      <div id="dl-tab-login" class="dl-tab dl-tab-activo" role="tab" tabindex="0" onclick="switchDlTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchDlTab('login')}" style="flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer">Iniciar sesión</div>
+      <div id="dl-tab-registro" class="dl-tab" role="tab" tabindex="0" onclick="switchDlTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchDlTab('registro')}" style="flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer">Registrarme</div>
     </div>
 
     <div id="dl-panel-login">
@@ -896,6 +896,13 @@ try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 function entrarConSesion(uid) {
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
+  // checkResumePrompt() DEBE correr antes de show('s-intro'): show() llama
+  // saveProgress('s-intro'), que borra cualquier avance guardado. Si se
+  // llamara después, nunca se alcanzaría a mostrar el aviso de "caso sin
+  // terminar" — y antes de este fix corría al cargar la página, con
+  // CFG.tenantId todavía en null, así que revisaba la llave equivocada
+  // ('camila_progreso_local') y jamás encontraba el avance real.
+  checkResumePrompt();
   show('s-intro');
 }
 
@@ -967,10 +974,23 @@ async function hacerRegistroDentista() {
   btn.disabled = true; btn.textContent = 'Creando cuenta...';
 
   try {
-    var signUpRes = await sbAuth.auth.signUp({ email: email, password: pass });
+    var signUpRes = await sbAuth.auth.signUp({ email: email, password: pass, options: { data: {
+      nombre: nombre, plan: partes[0], limite_diagnosticos: parseInt(partes[1])
+    } } });
     if (signUpRes.error) { errEl.textContent = signUpRes.error.message || 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
     var user = signUpRes.data && signUpRes.data.user;
     if (!user) { errEl.textContent = 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
+
+    // Sin sesión (confirmación de correo activada), el insert correría como
+    // anónimo y la política de seguridad lo rechazaría — se deja para
+    // cuando el dentista entre a app.html, que recrea la fila faltante
+    // usando lo guardado arriba en user_metadata.
+    if (!signUpRes.data.session) {
+      var okEl = document.getElementById('dr-ok');
+      okEl.textContent = 'Cuenta creada — revisa tu correo para confirmarla antes de entrar.';
+      okEl.style.display = 'block';
+      return;
+    }
 
     var hoy = new Date(); var vence = new Date(hoy); vence.setMonth(vence.getMonth() + 1);
     var insertRes = await sbAuth.from('camila_tenants').insert([{
@@ -990,13 +1010,7 @@ async function hacerRegistroDentista() {
       return;
     }
 
-    if (signUpRes.data.session) {
-      entrarConSesion(user.id);
-    } else {
-      var okEl = document.getElementById('dr-ok');
-      okEl.textContent = 'Cuenta creada — revisa tu correo para confirmarla antes de entrar.';
-      okEl.style.display = 'block';
-    }
+    entrarConSesion(user.id);
   } catch (e) {
     errEl.textContent = 'Error de red: ' + e.message;
     errEl.style.display = 'block';
@@ -1321,6 +1335,21 @@ document.addEventListener('click', function(e) {
   });
   opt.classList.add('selected');
   Q_ANSWERS[q] = val;
+});
+
+// Son <label> sin un <input> real adentro, así que por defecto no se pueden
+// seleccionar con teclado (solo con click/touch) — se agrega tabindex +
+// activación con Enter/Espacio, igual que cualquier control real.
+document.querySelectorAll('.q-option-single').forEach(function(el) {
+  el.setAttribute('tabindex', '0');
+  el.setAttribute('role', 'radio');
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var opt = e.target.closest && e.target.closest('.q-option-single');
+  if (!opt) return;
+  e.preventDefault();
+  opt.click();
 });
 
 // ══ PRECIOS ══
@@ -3070,12 +3099,8 @@ window.addEventListener('load', function() {
   updateNativeCameraTips();
 });
 
-// ¿Hay un caso sin terminar? Preguntar antes de que el usuario toque nada
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', checkResumePrompt);
-} else {
-  checkResumePrompt();
-}
+// El aviso de "caso sin terminar" ahora se dispara desde entrarConSesion(),
+// una vez que CFG.tenantId ya es real (ver esa función para el porqué).
 
 // ══ BROWSER DETECTION ══
 (function detectBrowser() {

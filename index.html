@@ -20,13 +20,15 @@
   --grad-2:#3F8CFF;
   --grad-3:#7A4DFF;
   --gradient: linear-gradient(135deg, var(--grad-1), var(--grad-2) 55%, var(--grad-3));
+  --text-link:#2560D9; /* variante de --grad-2 con suficiente contraste (AA) para texto pequeño sobre fondos claros */
+  --gradient-text: linear-gradient(135deg, #0E93A3, var(--grad-2) 55%, var(--grad-3)); /* el cian original (#27D7E7) da solo 1.68:1 de contraste como texto — aquí se oscurece solo ese extremo para pasar el mínimo de 3:1 en texto grande */
   --bg: #F8FAFC;
   --surface: #FFFFFF;
   --dark: #08111F;
   --dark-2: #0E1A2E;
   --text-1: #0F172A;
   --text-2: #64748B;
-  --text-3: #94A3B8;
+  --text-3: #5B6B80; /* antes #94A3B8 — solo 2.45:1 de contraste en fondo claro, falla WCAG AA */
   --border: #E2E8F0;
   --on-dark-1: #F1F5F9;
   --on-dark-2: #94A3B8;
@@ -86,7 +88,7 @@ section{padding:var(--sp-12) var(--sp-3)}
 /* ── Utility: eyebrow / section head ── */
 .eyebrow{
   display:inline-flex;align-items:center;gap:8px;
-  font-size:var(--fs-xs);font-weight:600;letter-spacing:.4px;color:var(--grad-2);
+  font-size:var(--fs-xs);font-weight:600;letter-spacing:.4px;color:var(--text-link);
   background:rgba(63,140,255,.08);border:1px solid rgba(63,140,255,.16);
   padding:6px 14px;border-radius:var(--r-pill);margin-bottom:var(--sp-3);
 }
@@ -94,7 +96,7 @@ section{padding:var(--sp-12) var(--sp-3)}
 .sec-head{text-align:center;max-width:640px;margin:0 auto var(--sp-8)}
 .sec-head h2{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.01em;margin-bottom:var(--sp-2);text-wrap:balance}
 .sec-head p{font-size:var(--fs-md);color:var(--text-2);text-wrap:balance}
-.grad-text{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+.grad-text{background:var(--gradient-text);-webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* ── Buttons ── */
 .btn{
@@ -105,7 +107,7 @@ section{padding:var(--sp-12) var(--sp-3)}
   white-space:nowrap;
 }
 .btn svg{flex-shrink:0}
-.btn-primary{background:var(--gradient);color:#fff;box-shadow:var(--shadow-btn)}
+.btn-primary{background:var(--gradient);color:#fff;box-shadow:var(--shadow-btn);text-shadow:0 1px 2px rgba(8,17,31,.35)}
 .btn-primary:hover{filter:brightness(1.08);transform:translateY(-2px)}
 .btn-primary:active{transform:translateY(0)}
 .btn-secondary{background:#fff;color:var(--text-1);border:1.5px solid var(--border)}
@@ -245,7 +247,7 @@ section{padding:var(--sp-12) var(--sp-3)}
 .software-inner{background:var(--surface);border-radius:20px;overflow:hidden}
 .sw-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
 .sw-topbar b{font-size:14px}
-.sw-topbar .tag{font-size:11px;background:rgba(63,140,255,.1);color:var(--grad-2);padding:4px 10px;border-radius:var(--r-pill);font-weight:600}
+.sw-topbar .tag{font-size:11px;background:rgba(63,140,255,.1);color:var(--text-link);padding:4px 10px;border-radius:var(--r-pill);font-weight:600}
 .sw-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
 .sw-col{padding:24px}
 .sw-col+.sw-col{border-left:1px solid var(--border)}
@@ -270,7 +272,7 @@ section{padding:var(--sp-12) var(--sp-3)}
 .compare-after{background:linear-gradient(160deg,#E9F4FF,#EFEAFF)}
 .compare-after-wrap{position:absolute;inset:0;overflow:hidden}
 .compare-label{position:absolute;top:14px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 12px;border-radius:var(--r-pill);background:rgba(255,255,255,.85);color:var(--text-1)}
-.compare-before .compare-label, .compare-before-label{left:14px}
+.compare-before-label{left:14px}
 .compare-after-label{right:14px}
 .compare-handle{
   position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);
@@ -300,7 +302,7 @@ section{padding:var(--sp-12) var(--sp-3)}
 .case-info h3{font-size:var(--fs-md);font-weight:700;margin-bottom:8px}
 .case-info p{font-size:var(--fs-sm);color:var(--text-2);margin-bottom:16px}
 .case-tags{display:flex;gap:8px;flex-wrap:wrap}
-.case-tag{font-size:11px;font-weight:600;color:var(--grad-2);background:rgba(63,140,255,.08);padding:4px 10px;border-radius:var(--r-pill)}
+.case-tag{font-size:11px;font-weight:600;color:var(--text-link);background:rgba(63,140,255,.08);padding:4px 10px;border-radius:var(--r-pill)}
 @media (max-width:700px){ .case-card{grid-template-columns:1fr} }
 
 /* ═══════════════════════════════════════════════════════════
@@ -370,7 +372,7 @@ footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--s
    ═══════════════════════════════════════════════════════════ */
 .overlay{position:fixed;inset:0;background:rgba(8,17,31,.55);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
 .overlay.visible{display:flex}
-.modal{background:#fff;border-radius:28px;padding:var(--sp-4) var(--sp-4) var(--sp-4);max-width:420px;width:100%;position:relative;box-shadow:var(--shadow-lg)}
+.modal{background:#fff;border-radius:28px;padding:var(--sp-4) var(--sp-4) var(--sp-4);max-width:420px;width:100%;position:relative;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto}
 .modal-close{position:absolute;top:18px;right:18px;background:var(--bg);border:none;width:32px;height:32px;border-radius:50%;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .modal-close:hover{background:var(--border)}
 .modal-logo{font-size:18px;font-weight:800;margin-bottom:2px}
@@ -389,11 +391,11 @@ footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--s
 .msg-err{background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
 .msg-ok{background:#F0FDF4;border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
 .msg-err.visible,.msg-ok.visible{display:block}
-.plan-sel{background:rgba(63,140,255,.08);border:1px solid rgba(63,140,255,.25);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--grad-2);margin-bottom:16px;display:none;font-weight:600}
+.plan-sel{background:rgba(63,140,255,.08);border:1px solid rgba(63,140,255,.25);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text-link);margin-bottom:16px;display:none;font-weight:600}
 .plan-sel.visible{display:block}
 
 /* Mobile nav sheet */
-.mobile-sheet{position:fixed;inset:0;background:#fff;z-index:400;display:none;flex-direction:column;padding:20px}
+.mobile-sheet{position:fixed;inset:0;background:#fff;z-index:400;display:none;flex-direction:column;padding:20px;overflow-y:auto}
 .mobile-sheet.visible{display:flex}
 .mobile-sheet .msheet-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-4)}
 .mobile-sheet a, .mobile-sheet .nav-login{font-size:18px;font-weight:600;padding:14px 4px;border-bottom:1px solid var(--border)}
@@ -500,7 +502,7 @@ footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--s
 </div>
 
 <div class="trust-strip">
-  <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Datos cifrados de punta a punta</div>
+  <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Datos protegidos en tránsito y en reposo</div>
   <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 12.5l2 2 3.5-4.5"/></svg>Diseñado con dentistas especialistas en DSD</div>
   <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>Diagnóstico y cotización en menos de un minuto</div>
 </div>
@@ -623,14 +625,18 @@ footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--s
       <div class="compare" id="compare">
         <div class="compare-panel compare-before">
           <svg width="120" height="90" viewBox="0 0 120 90" fill="none" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round"><path d="M20 45c15 20 30 25 40 25s25-5 40-25" stroke-dasharray="4 5"/><line x1="35" y1="40" x2="35" y2="52"/><line x1="50" y1="42" x2="50" y2="56"/><line x1="70" y1="42" x2="65" y2="56"/><line x1="85" y1="40" x2="82" y2="52"/></svg>
-          <span class="compare-label compare-before-label">Antes</span>
         </div>
         <div class="compare-after-wrap" id="compare-after-wrap">
           <div class="compare-panel compare-after">
             <svg width="120" height="90" viewBox="0 0 120 90" fill="none" stroke="var(--grad-2)" stroke-width="2.5" stroke-linecap="round"><path d="M20 42c15 22 30 28 40 28s25-6 40-28"/><line x1="32" y1="38" x2="32" y2="54"/><line x1="46" y1="36" x2="46" y2="58"/><line x1="60" y1="35" x2="60" y2="59"/><line x1="74" y1="36" x2="74" y2="58"/><line x1="88" y1="38" x2="88" y2="54"/></svg>
-            <span class="compare-label compare-after-label">Después</span>
           </div>
         </div>
+        <!-- Las etiquetas viven fuera de las capas recortadas por el clip-path
+             para que siempre se vean las dos, sin importar en qué posición
+             esté el slider (antes vivían dentro de cada panel y "Después"
+             quedaba recortado/invisible salvo casi al final del arrastre). -->
+        <span class="compare-label compare-before-label">Antes</span>
+        <span class="compare-label compare-after-label">Después</span>
         <div class="compare-handle" id="compare-handle">
           <div class="compare-grip">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 3 12 9 6"/><polyline points="15 6 21 12 15 18"/></svg>
@@ -877,8 +883,8 @@ footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--s
     <div class="modal-logo">SMYLE</div>
     <div class="modal-sub" id="modal-sub">Accede a tu cuenta</div>
     <div class="tabs-auth">
-      <div class="tab-auth activo" id="tab-login" onclick="switchTab('login')">Iniciar sesión</div>
-      <div class="tab-auth" id="tab-registro" onclick="switchTab('registro')">Registrarme</div>
+      <div class="tab-auth activo" id="tab-login" role="tab" tabindex="0" onclick="switchTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('login')}">Iniciar sesión</div>
+      <div class="tab-auth" id="tab-registro" role="tab" tabindex="0" onclick="switchTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('registro')}">Registrarme</div>
     </div>
     <div id="panel-login">
       <div class="msg-err" id="login-err"></div>
@@ -928,13 +934,24 @@ try { sb = supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { console.erro
   } catch (e) {}
 })();
 
-function abrirModal(tab){document.getElementById('overlay').classList.add('visible');switchTab(tab)}
+function abrirModal(tab){
+  document.getElementById('overlay').classList.add('visible');
+  // Limpia mensajes/banners de una apertura anterior — si no, un error de
+  // login que ya quedó resuelto, o el plan de una selección previa, se
+  // quedaban pegados visualmente en la siguiente vez que se abre el modal.
+  ['login-err','login-ok','reg-err','reg-ok'].forEach(function(id){
+    var e=document.getElementById(id); e.classList.remove('visible');
+  });
+  document.getElementById('plan-sel-info').classList.remove('visible');
+  switchTab(tab);
+}
 function cerrarModal(){document.getElementById('overlay').classList.remove('visible')}
 function switchTab(tab){
   document.getElementById('panel-login').style.display=tab==='login'?'block':'none';
   document.getElementById('panel-registro').style.display=tab==='registro'?'block':'none';
   document.getElementById('tab-login').classList.toggle('activo',tab==='login');
   document.getElementById('tab-registro').classList.toggle('activo',tab==='registro');
+  document.getElementById('modal-sub').textContent = tab==='registro' ? 'Crea tu cuenta' : 'Accede a tu cuenta';
 }
 function seleccionarPlan(nombre,precio){
   planSeleccionado=nombre.toLowerCase();
@@ -962,12 +979,30 @@ async function hacerRegistro(){
   var partes=planVal.split(':');
   var btn=document.getElementById('btn-registro-submit');
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...'}
+  var redirigiendo=false; // evita reactivar el botón mientras espera para redirigir (doble-submit)
 
   try {
-    var signUpRes = await sb.auth.signUp({ email: email, password: pass });
+    // partes/plan también se guardan en user_metadata — si el insert de abajo
+    // falla porque el proyecto requiere confirmar el correo (sin sesión, la
+    // política de seguridad lo rechaza), el primer login puede recrear la
+    // fila del consultorio usando estos datos en vez de perderlos.
+    var partesTmp=planVal.split(':');
+    var signUpRes = await sb.auth.signUp({ email: email, password: pass, options: { data: {
+      nombre: nombre, plan: partesTmp[0], limite_diagnosticos: parseInt(partesTmp[1])
+    } } });
     if (signUpRes.error) { showErr('reg-err', signUpRes.error.message || 'No se pudo crear la cuenta'); return; }
     var user = signUpRes.data && signUpRes.data.user;
     if (!user) { showErr('reg-err','No se pudo crear la cuenta'); return; }
+
+    // Si el proyecto de Supabase tiene activada la confirmación por correo,
+    // signUp() no da sesión — y sin sesión, este insert corre como usuario
+    // anónimo y la política de seguridad (RLS) lo rechaza. En ese caso NO
+    // se intenta guardar el perfil todavía; se hace en el primer login,
+    // una vez que sí existe una sesión real (ver hacerLogin()).
+    if (!signUpRes.data.session) {
+      showOk('reg-ok','Cuenta creada — revisa tu correo para confirmarla. Tu perfil se termina de crear en cuanto inicies sesión.');
+      return;
+    }
 
     var hoy=new Date();var vence=new Date(hoy);vence.setMonth(vence.getMonth()+1);
     var insertRes = await sb.from('camila_tenants').insert([{
@@ -986,17 +1021,14 @@ async function hacerRegistro(){
       return;
     }
 
-    if (signUpRes.data.session) {
-      showOk('reg-ok','¡Bienvenido a SMYLE! Redirigiendo...');
-      setTimeout(function(){window.location.href='app.html?bienvenida=1'},1200);
-    } else {
-      // El proyecto de Supabase tiene activada la confirmación por correo
-      showOk('reg-ok','Cuenta creada — revisa tu correo para confirmarla antes de entrar.');
-    }
+    redirigiendo=true;
+    showOk('reg-ok','¡Bienvenido a SMYLE! Redirigiendo...');
+    if(btn){btn.textContent='Redirigiendo...'}
+    setTimeout(function(){window.location.href='app.html?bienvenida=1'},1200);
   } catch (e) {
     showErr('reg-err','Error de red: '+e.message);
   } finally {
-    if (btn) { btn.disabled=false; btn.textContent='Crear mi cuenta →'; }
+    if (btn && !redirigiendo) { btn.disabled=false; btn.textContent='Crear mi cuenta →'; }
   }
 }
 
@@ -1051,6 +1083,7 @@ function toggleMobileNav(open){
     pct = Math.max(0, Math.min(100, pct));
     afterWrap.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
     handle.style.left = pct + '%';
+    wrap.setAttribute('aria-valuenow', Math.round(pct));
   }
   function fromClientX(x) {
     var rect = wrap.getBoundingClientRect();
@@ -1069,6 +1102,8 @@ function toggleMobileNav(open){
   wrap.setAttribute('tabindex', '0');
   wrap.setAttribute('role', 'slider');
   wrap.setAttribute('aria-label', 'Comparar antes y después');
+  wrap.setAttribute('aria-valuemin', '0');
+  wrap.setAttribute('aria-valuemax', '100');
 })();
 </script>
 <div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&copy; 2025 Dr. Hern&aacute;n Partida Islas &middot; Propiedad Intelectual</div>

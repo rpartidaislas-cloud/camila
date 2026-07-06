@@ -683,16 +683,16 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v13 — login/registro directo (sin pasar por index.html)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v14 — fixes de notificaciones, tenant-scoping y accesibilidad</div>
 
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
-<div id="auth-gate-overlay" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
+<div id="auth-gate-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
   <div style="width:100%;max-width:400px;background:var(--color-surface);border-radius:22px;padding:28px 24px;box-shadow:0 24px 60px rgba(15,23,42,.18)">
     <div style="font-size:19px;font-weight:800;color:var(--color-text-primary);margin-bottom:2px">SMYLE</div>
     <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:18px">Accede a tu cuenta</div>
     <div style="display:flex;background:var(--color-surface-raised);border-radius:13px;padding:4px;margin-bottom:18px">
-      <div id="ag-tab-login" class="ag-tab activo" onclick="switchAuthGateTab('login')">Iniciar sesión</div>
-      <div id="ag-tab-registro" class="ag-tab" onclick="switchAuthGateTab('registro')">Registrarme</div>
+      <div id="ag-tab-login" class="ag-tab activo" role="tab" tabindex="0" onclick="switchAuthGateTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('login')}">Iniciar sesión</div>
+      <div id="ag-tab-registro" class="ag-tab" role="tab" tabindex="0" onclick="switchAuthGateTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('registro')}">Registrarme</div>
     </div>
 
     <div id="ag-panel-login">
@@ -2027,10 +2027,32 @@ async function continuarConUsuario(authUser) {
   try {
     var res = await sbTimeout(sb.from('camila_tenants').select('*').eq('id', authUser.id).single());
     if (res.error || !res.data) {
-      // Se autenticó bien pero aún no tiene fila en camila_tenants
-      // (no debería pasar tras el registro, pero por si acaso)
-      tenantData = { nombre: authUser.email, email: authUser.email };
-      tenantId = authUser.id;
+      // Se autenticó bien pero aún no tiene fila en camila_tenants — pasa
+      // cuando el registro se hizo con confirmación de correo activada
+      // (signUp() no da sesión, y sin sesión la política de seguridad
+      // rechaza el insert). Ahora sí hay sesión real, así que se recrea la
+      // fila con lo que se guardó en user_metadata al registrarse.
+      var meta = authUser.user_metadata || {};
+      var hoy = new Date(); var vence = new Date(hoy); vence.setMonth(vence.getMonth() + 1);
+      var nuevaFila = {
+        id: authUser.id,
+        nombre: meta.nombre || authUser.email,
+        email: authUser.email,
+        plan: meta.plan || 'profesional',
+        limite_diagnosticos: meta.limite_diagnosticos || 40,
+        diagnosticos_usados: 0,
+        activo: true,
+        vence_en: vence.toISOString(),
+        config: {},
+      };
+      try {
+        var insertRes = await sb.from('camila_tenants').insert([nuevaFila]);
+        if (!insertRes.error) { tenantData = nuevaFila; tenantId = authUser.id; }
+        else { tenantData = { nombre: authUser.email, email: authUser.email }; tenantId = authUser.id; }
+      } catch(e2) {
+        tenantData = { nombre: authUser.email, email: authUser.email };
+        tenantId = authUser.id;
+      }
       renderSidebar();
       cargarDashboard();
       renderPrecios();
@@ -2123,10 +2145,23 @@ async function hacerRegistroAppGate() {
   btn.disabled = true; btn.textContent = 'Creando cuenta...';
 
   try {
-    var signUpRes = await sb.auth.signUp({ email: email, password: pass });
+    var signUpRes = await sb.auth.signUp({ email: email, password: pass, options: { data: {
+      nombre: nombre, plan: partes[0], limite_diagnosticos: parseInt(partes[1])
+    } } });
     if (signUpRes.error) { errEl.textContent = signUpRes.error.message || 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
     var user = signUpRes.data && signUpRes.data.user;
     if (!user) { errEl.textContent = 'No se pudo crear la cuenta'; errEl.style.display = 'block'; return; }
+
+    // Sin sesión (confirmación de correo activada), el insert correría como
+    // anónimo y la política de seguridad lo rechazaría — se deja para
+    // cuando continuarConUsuario() detecte la fila faltante en el próximo
+    // login, usando lo guardado arriba en user_metadata.
+    if (!signUpRes.data.session) {
+      var okEl = document.getElementById('ag-reg-ok');
+      okEl.textContent = 'Cuenta creada — revisa tu correo para confirmarla antes de entrar.';
+      okEl.style.display = 'block';
+      return;
+    }
 
     var hoy = new Date(); var vence = new Date(hoy); vence.setMonth(vence.getMonth() + 1);
     var insertRes = await sb.from('camila_tenants').insert([{
@@ -2146,15 +2181,8 @@ async function hacerRegistroAppGate() {
       return;
     }
 
-    if (signUpRes.data.session) {
-      window._recienRegistrado = true;
-      continuarConUsuario(user);
-    } else {
-      // El proyecto de Supabase tiene activada la confirmación por correo
-      var okEl = document.getElementById('ag-reg-ok');
-      okEl.textContent = 'Cuenta creada — revisa tu correo para confirmarla antes de entrar.';
-      okEl.style.display = 'block';
-    }
+    window._recienRegistrado = true;
+    continuarConUsuario(user);
   } catch (e) {
     errEl.textContent = 'Error de red: ' + e.message;
     errEl.style.display = 'block';
@@ -2496,7 +2524,7 @@ async function guardarPaciente() {
   };
   try {
     if (editandoPacienteId) {
-      await sbTimeout(sb.from('camila_pacientes').update(datos).eq('id', editandoPacienteId));
+      await sbTimeout(sb.from('camila_pacientes').update(datos).eq('id', editandoPacienteId).eq('tenant_id', tenantId));
     } else {
       await sbTimeout(sb.from('camila_pacientes').insert([datos]));
     }
@@ -2719,12 +2747,15 @@ function openPanelAdmin() {
   // Sync user data
   var sbAvatar = document.getElementById('sb-avatar');
   var sbNombre = document.getElementById('sb-nombre');
-  var sbPlan = document.getElementById('sb-plan');
   var usoFill = document.getElementById('uso-fill');
   var usoTxt = document.getElementById('uso-txt');
   if (sbAvatar) document.getElementById('pam-avatar').textContent = sbAvatar.textContent;
   if (sbNombre) document.getElementById('pam-nombre').textContent = sbNombre.textContent;
-  if (sbPlan) document.getElementById('pam-plan').textContent = sbPlan.textContent || 'Profesional';
+  // Antes leía un #sb-plan que no existe en el DOM (el id real es
+  // #sb-plan-chip) — el panel móvil siempre mostraba "Profesional" fijo
+  // sin importar el plan real del tenant.
+  var planActual = (tenantData && tenantData.plan) || 'profesional';
+  document.getElementById('pam-plan').textContent = PLANES[planActual] ? PLANES[planActual].label : planActual;
   if (usoFill) document.getElementById('pam-uso-fill').style.width = usoFill.style.width;
   if (usoTxt) {
     var nums = usoTxt.textContent.match(/(\d+)\s*\/\s*(\d+)/);
@@ -3187,7 +3218,7 @@ async function verCaso(i) {
     }
     modalLoading.innerHTML = '<div style="color:#fff;font-size:13px">Cargando caso...</div>';
     try {
-      var full = await sbTimeout(sb.from('camila_casos').select('*').eq('id', c.id).single(), 20000);
+      var full = await sbTimeout(sb.from('camila_casos').select('*').eq('id', c.id).eq('tenant_id', tenantId).single(), 20000);
       if (full.data) c = Object.assign({}, c, full.data);
     } catch (e) {}
   }
@@ -3451,20 +3482,25 @@ async function cargarNotificaciones() {
   el.innerHTML = lista.map(function(n) {
     var leida = leidas.indexOf(n.id) !== -1;
     var fecha = n.created_at ? new Date(n.created_at).toLocaleDateString('es-MX', {day:'numeric', month:'short'}) : '';
-    return '<div class="noti-item ' + (leida ? '' : 'no-leida') + '">' +
+    return '<div class="noti-item ' + (leida ? '' : 'no-leida') + '" data-id="' + n.id + '">' +
       '<div class="noti-icon" style="background:' + (bgsTipo[n.tipo]||'var(--bg3)') + '">' + (iconosTipo[n.tipo]||'🔔') + '</div>' +
       '<div class="noti-info"><h4>' + n.titulo + '</h4><p>' + n.cuerpo + '</p><div class="noti-fecha">' + fecha + '</div></div>' +
       '</div>';
   }).join('');
+  window._ultimasNotificaciones = lista;
 }
 
 function marcarTodasLeidas() {
   try {
-    var notiItems = document.querySelectorAll('.noti-item');
-    var ids = [];
-    // Simplificado: marcar todas
+    // Antes esta función no guardaba nada: leía 'leidas' pero nunca la
+    // actualizaba ni la volvía a escribir, así que el badge reaparecía en
+    // la siguiente carga de cargarNotificaciones() con la misma lista vieja.
+    var ids = (window._ultimasNotificaciones || []).map(function(n) { return n.id; });
     var leidas = JSON.parse(localStorage.getItem('camila_notis_leidas_' + tenantId) || '[]');
-    // Limpiar badge
+    ids.forEach(function(id) { if (leidas.indexOf(id) === -1) leidas.push(id); });
+    localStorage.setItem('camila_notis_leidas_' + tenantId, JSON.stringify(leidas));
+
+    document.querySelectorAll('.noti-item').forEach(function(item) { item.classList.remove('no-leida'); });
     var badge = document.getElementById('noti-badge');
     if (badge) badge.style.display = 'none';
     var dot = document.getElementById('noti-dot');
