@@ -683,7 +683,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v15 — fix link de confirmación de correo (emailRedirectTo)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v16 — hace valer el límite de diagnósticos por plan</div>
 
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <div id="auth-gate-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
@@ -2612,6 +2612,16 @@ async function irAPaso2() {
   if (!motivo) { alert('Selecciona el motivo de consulta'); return; }
   var tieneImg = imagenes.some(function(i) { return i !== null; });
   if (!tieneImg) { alert('Sube al menos una fotografía para el análisis'); return; }
+
+  // Límite del plan — antes esta barra solo era informativa, cualquiera podía
+  // seguir generando diagnósticos sin tope real sin importar su plan.
+  var usadoActual = tenantData.diagnosticos_usados || 0;
+  var limiteActual = tenantData.limite_diagnosticos || 40;
+  if (usadoActual >= limiteActual) {
+    alert('Ya usaste tus ' + limiteActual + ' diagnósticos de este mes (plan ' + (PLANES[tenantData.plan] ? PLANES[tenantData.plan].label : tenantData.plan) + ').\n\nSube de plan en "Mi Cuenta" para seguir generando diagnósticos este mes.');
+    return;
+  }
+
   mostrarPaso(2);
   document.getElementById('loading-ia').classList.add('visible');
   document.getElementById('analisis-resultado').style.display = 'none';
