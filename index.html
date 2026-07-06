@@ -3,209 +3,889 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMYLE &middot; Est&eacute;tica Dental con IA</title>
+<title>SMYLE · Diseño de Sonrisa con Inteligencia Artificial</title>
+<meta name="description" content="SMYLE analiza, diagnostica y cotiza carillas dentales en segundos con Inteligencia Artificial — precisión clínica, presentación premium.">
 <link rel="icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" href="icons/smyl_pwa.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════════════════════ */
 :root{
-  --negro:#0A0A0A;--negro-2:#111111;--negro-3:#1A1A1A;--negro-4:#222222;
-  --dorado:#C9A84C;--dorado-claro:#E8C97A;--dorado-suave:#2A2210;
-  --blanco:#FFFFFF;--gris:#A0A0A0;--gris-2:#666666;--borde:#2A2A2A;
+  /* Color */
+  --grad-1:#27D7E7;
+  --grad-2:#3F8CFF;
+  --grad-3:#7A4DFF;
+  --gradient: linear-gradient(135deg, var(--grad-1), var(--grad-2) 55%, var(--grad-3));
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --dark: #08111F;
+  --dark-2: #0E1A2E;
+  --text-1: #0F172A;
+  --text-2: #64748B;
+  --text-3: #94A3B8;
+  --border: #E2E8F0;
+  --on-dark-1: #F1F5F9;
+  --on-dark-2: #94A3B8;
+  --on-dark-border: rgba(255,255,255,.12);
+  --success: #16A34A;
+
+  /* Type scale */
+  --fs-xs: 12px;
+  --fs-sm: 13.5px;
+  --fs-base: 15px;
+  --fs-md: 17px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --fs-2xl: 38px;
+  --fs-3xl: 52px;
+
+  /* 8px spacing system */
+  --sp-1: 8px;  --sp-2: 16px; --sp-3: 24px; --sp-4: 32px;
+  --sp-5: 40px; --sp-6: 48px; --sp-8: 64px; --sp-10: 80px; --sp-12: 96px; --sp-16: 128px;
+
+  /* Radii */
+  --r-btn: 18px;
+  --r-card: 24px;
+  --r-sm: 12px;
+  --r-pill: 999px;
+
+  /* Shadow — muy ligera, tipo Linear */
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md: 0 8px 24px rgba(15,23,42,.06);
+  --shadow-lg: 0 16px 48px rgba(15,23,42,.10);
+  --shadow-btn: 0 8px 20px rgba(63,140,255,.28);
+
+  --ease: cubic-bezier(.16,1,.3,1);
 }
-body{font-family:'Inter',sans-serif;background:var(--negro);color:var(--blanco);min-height:100vh}
-nav{padding:20px 48px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--borde)}
-.logo{display:flex;align-items:center;gap:14px}
-.logo-mark{width:40px;height:40px;border:1.5px solid var(--dorado);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.logo-text h1{font-family:'Playfair Display',serif;color:var(--blanco);font-size:20px;letter-spacing:.5px}
-.logo-text span{color:var(--dorado);font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase}
-.nav-right{display:flex;align-items:center;gap:16px}
-.nav-link{color:var(--gris);font-size:13px;font-weight:500;cursor:pointer;transition:color .2s}
-.nav-link:hover{color:var(--blanco)}
-.btn-nav{padding:10px 24px;border:1.5px solid var(--dorado);color:var(--dorado);background:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
-.btn-nav:hover{background:var(--dorado);color:var(--negro)}
-.hero{max-width:860px;margin:0 auto;padding:90px 24px 60px;text-align:center}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;border:0.5px solid var(--borde);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:500;color:var(--dorado);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
-.hero h2{font-family:'Playfair Display',serif;font-size:54px;line-height:1.1;margin-bottom:22px;color:var(--blanco)}
-.hero h2 em{color:var(--dorado);font-style:italic}
-.hero p{font-size:16px;color:var(--gris);line-height:1.75;max-width:560px;margin:0 auto 40px}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-primary{padding:15px 36px;background:var(--dorado);color:var(--negro);border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
-.btn-primary:hover{background:var(--dorado-claro);transform:translateY(-1px)}
-.btn-ghost{padding:15px 36px;background:none;color:var(--blanco);border:0.5px solid var(--borde);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
-.btn-ghost:hover{border-color:var(--dorado);color:var(--dorado)}
-.divider-line{height:0.5px;background:var(--borde);max-width:900px;margin:0 auto}
-.planes-section{max-width:900px;margin:70px auto;padding:0 24px}
-.section-label{text-align:center;font-size:11px;font-weight:600;color:var(--dorado);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
-.section-title{text-align:center;font-family:'Playfair Display',serif;font-size:32px;color:var(--blanco);margin-bottom:48px}
-.planes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.plan-card{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:16px;padding:28px;position:relative;transition:border-color .2s}
-.plan-card.featured{border:1.5px solid var(--dorado)}
-.plan-featured-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--dorado);color:var(--negro);font-size:10px;font-weight:700;padding:4px 16px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
-.plan-name{font-size:12px;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px}
-.plan-precio{font-size:40px;font-weight:800;color:var(--blanco);line-height:1}
-.plan-precio span{font-size:16px;font-weight:400;color:var(--gris)}
-.plan-periodo{font-size:12px;color:var(--gris-2);margin-bottom:24px;margin-top:4px}
-.plan-features{list-style:none;margin-bottom:28px}
-.plan-features li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--borde);font-size:13px;color:var(--gris)}
-.plan-features li:last-child{border:none}
-.plan-features li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--dorado);flex-shrink:0}
-.btn-plan{width:100%;padding:13px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.btn-plan-ghost{background:none;border:0.5px solid var(--borde);color:var(--blanco)}
-.btn-plan-ghost:hover{border-color:var(--dorado);color:var(--dorado)}
-.btn-plan-gold{background:var(--dorado);border:none;color:var(--negro)}
-.btn-plan-gold:hover{background:var(--dorado-claro)}
-.features-section{max-width:900px;margin:0 auto 80px;padding:0 24px}
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.feat{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:14px;padding:22px}
-.feat-icon{font-size:24px;margin-bottom:12px}
-.feat h4{font-size:14px;font-weight:600;color:var(--blanco);margin-bottom:6px}
-.feat p{font-size:13px;color:var(--gris);line-height:1.6}
-footer{border-top:0.5px solid var(--borde);padding:24px 48px;display:flex;align-items:center;justify-content:space-between}
-footer p{font-size:12px;color:var(--gris-2)}
-footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);font-size:16px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important} }
+
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text-1);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+section{padding:var(--sp-12) var(--sp-3)}
+.wrap{max-width:1120px;margin:0 auto}
+.narrow{max-width:720px;margin:0 auto}
+
+:focus-visible{outline:2px solid var(--grad-2);outline-offset:3px;border-radius:6px}
+
+/* ── Utility: eyebrow / section head ── */
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:var(--fs-xs);font-weight:600;letter-spacing:.4px;color:var(--grad-2);
+  background:rgba(63,140,255,.08);border:1px solid rgba(63,140,255,.16);
+  padding:6px 14px;border-radius:var(--r-pill);margin-bottom:var(--sp-3);
+}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--gradient)}
+.sec-head{text-align:center;max-width:640px;margin:0 auto var(--sp-8)}
+.sec-head h2{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.01em;margin-bottom:var(--sp-2);text-wrap:balance}
+.sec-head p{font-size:var(--fs-md);color:var(--text-2);text-wrap:balance}
+.grad-text{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:52px;padding:0 28px;border-radius:var(--r-btn);
+  font-size:var(--fs-base);font-weight:600;cursor:pointer;border:none;
+  transition:transform .2s var(--ease), filter .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
+  white-space:nowrap;
+}
+.btn svg{flex-shrink:0}
+.btn-primary{background:var(--gradient);color:#fff;box-shadow:var(--shadow-btn)}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-2px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:#fff;color:var(--text-1);border:1.5px solid var(--border)}
+.btn-secondary:hover{background:var(--bg);border-color:#CBD5E1}
+.btn-dark{background:#fff;color:var(--dark)}
+.btn-dark:hover{filter:brightness(.96);transform:translateY(-2px)}
+.btn-ghost-dark{background:transparent;color:var(--on-dark-1);border:1.5px solid var(--on-dark-border)}
+.btn-ghost-dark:hover{background:rgba(255,255,255,.06)}
+.btn-sm{height:40px;padding:0 18px;font-size:var(--fs-sm);border-radius:14px}
+.btn-block{width:100%}
+
+/* ── Cards ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);
+  padding:var(--sp-4);box-shadow:var(--shadow-sm);
+  transition:transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
+}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:#D8E0EC}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVBAR
+   ═══════════════════════════════════════════════════════════ */
+.navbar{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px var(--sp-3);
+  background:rgba(248,250,252,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo img{height:26px;width:auto}
+.nav-links{display:flex;align-items:center;gap:var(--sp-4);list-style:none}
+.nav-links a{font-size:var(--fs-sm);font-weight:500;color:var(--text-2);transition:color .18s}
+.nav-links a:hover{color:var(--text-1)}
+.nav-right{display:flex;align-items:center;gap:var(--sp-3)}
+.nav-login{font-size:var(--fs-sm);font-weight:600;color:var(--text-1);cursor:pointer}
+.nav-burger{display:none;background:none;border:none;cursor:pointer;padding:6px}
+@media (max-width:860px){
+  .nav-links{display:none}
+  .nav-login{display:none}
+  .nav-burger{display:flex}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════════════════════════ */
+.hero{
+  padding:var(--sp-10) var(--sp-3) var(--sp-6);
+  display:grid;grid-template-columns:1fr;gap:var(--sp-8);
+  max-width:1120px;margin:0 auto;text-align:center;
+}
+.hero-copy{max-width:720px;margin:0 auto}
+.hero h1{font-size:var(--fs-3xl);line-height:1.08;letter-spacing:-.02em;font-weight:700;margin-bottom:var(--sp-3);text-wrap:balance}
+.hero p.sub{font-size:var(--fs-lg);color:var(--text-2);max-width:560px;margin:0 auto var(--sp-4);text-wrap:balance}
+.hero-cta{display:flex;gap:var(--sp-2);justify-content:center;flex-wrap:wrap;margin-bottom:var(--sp-3)}
+.hero-note{font-size:var(--fs-xs);color:var(--text-3)}
+
+/* ── Mockup del software (hero) ── */
+.mockup-stage{position:relative;padding:var(--sp-4) 0}
+.browser-mock{
+  max-width:880px;margin:0 auto;background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;text-align:left;
+}
+.browser-bar{display:flex;align-items:center;gap:6px;padding:12px 16px;border-bottom:1px solid var(--border);background:#FBFCFE}
+.browser-bar span{width:9px;height:9px;border-radius:50%;background:#E2E8F0}
+.browser-body{display:grid;grid-template-columns:180px 1fr;min-height:340px}
+.mock-side{background:var(--dark);padding:20px 14px;display:flex;flex-direction:column;gap:6px}
+.mock-side .mock-brand{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:13px;margin-bottom:16px}
+.mock-side .dot-grad{width:18px;height:18px;border-radius:6px;background:var(--gradient)}
+.mock-nav-item{font-size:12px;color:var(--on-dark-2);padding:8px 10px;border-radius:8px}
+.mock-nav-item.active{background:var(--gradient);color:#fff;font-weight:600}
+.mock-main{padding:22px 24px;background:var(--bg)}
+.mock-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.mock-stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.mock-stat b{display:block;font-size:20px;font-weight:800}
+.mock-stat span{font-size:11px;color:var(--text-2)}
+.mock-report{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px;display:flex;gap:16px;align-items:center}
+.mock-score{width:56px;height:56px;border-radius:50%;background:var(--gradient);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
+.mock-bars span{display:block;height:8px;border-radius:6px;background:#EDF1F7;margin-bottom:8px;overflow:hidden}
+.mock-bars span::after{content:'';display:block;height:100%;background:var(--gradient);border-radius:6px}
+.mock-bars span:nth-child(1)::after{width:86%}
+.mock-bars span:nth-child(2)::after{width:64%}
+.mock-bars span:nth-child(3)::after{width:92%}
+
+/* Floating AI chips */
+.float-chip{
+  position:absolute;background:#fff;border:1px solid var(--border);border-radius:16px;
+  padding:10px 14px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:8px;
+  font-size:12.5px;font-weight:600;animation:floaty 5s var(--ease) infinite;
+}
+.float-chip svg{color:var(--grad-2)}
+.chip-1{top:8%;left:2%;animation-delay:0s}
+.chip-2{top:62%;right:0%;animation-delay:1.2s}
+.chip-3{bottom:4%;left:8%;animation-delay:2.4s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@media (max-width:760px){ .float-chip{display:none} .browser-body{grid-template-columns:1fr} .mock-side{display:none} }
+
+/* ── Trust strip ── */
+.trust-strip{display:flex;justify-content:center;gap:var(--sp-6);flex-wrap:wrap;padding:var(--sp-4) var(--sp-3);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.trust-item{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--text-2);font-weight:500}
+.trust-item svg{color:var(--grad-2);flex-shrink:0}
+
+/* ═══════════════════════════════════════════════════════════
+   BENEFICIOS
+   ═══════════════════════════════════════════════════════════ */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-3)}
+.feat-card{display:flex;flex-direction:column;gap:var(--sp-2)}
+.feat-icon{
+  width:44px;height:44px;border-radius:14px;background:rgba(63,140,255,.08);
+  display:flex;align-items:center;justify-content:center;color:var(--grad-2);
+}
+.feat-card h3{font-size:var(--fs-md);font-weight:700}
+.feat-card p{font-size:var(--fs-sm);color:var(--text-2)}
+@media (max-width:900px){ .grid-3{grid-template-columns:1fr 1fr} }
+@media (max-width:600px){ .grid-3{grid-template-columns:1fr} }
+
+/* ═══════════════════════════════════════════════════════════
+   CÓMO FUNCIONA — timeline horizontal
+   ═══════════════════════════════════════════════════════════ */
+.timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-3);position:relative}
+.timeline::before{content:'';position:absolute;top:23px;left:12%;right:12%;height:1px;background:var(--border);z-index:0}
+.tl-step{position:relative;z-index:1;text-align:center;opacity:0;transform:translateY(16px);transition:opacity .6s var(--ease), transform .6s var(--ease)}
+.tl-step.in{opacity:1;transform:translateY(0)}
+.tl-num{
+  width:46px;height:46px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;margin:0 auto var(--sp-2);color:var(--grad-2);
+}
+.tl-step.in .tl-num{background:var(--gradient);border-color:transparent;color:#fff}
+.tl-step h4{font-size:var(--fs-base);font-weight:700;margin-bottom:4px}
+.tl-step p{font-size:var(--fs-sm);color:var(--text-2)}
+@media (max-width:760px){ .timeline{grid-template-columns:1fr} .timeline::before{display:none} }
+
+/* ═══════════════════════════════════════════════════════════
+   VISTA DEL SOFTWARE — mockup grande del reporte
+   ═══════════════════════════════════════════════════════════ */
+.software-frame{max-width:960px;margin:0 auto;background:var(--dark);border-radius:28px;padding:var(--sp-2);box-shadow:var(--shadow-lg)}
+.software-inner{background:var(--surface);border-radius:20px;overflow:hidden}
+.sw-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+.sw-topbar b{font-size:14px}
+.sw-topbar .tag{font-size:11px;background:rgba(63,140,255,.1);color:var(--grad-2);padding:4px 10px;border-radius:var(--r-pill);font-weight:600}
+.sw-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.sw-col{padding:24px}
+.sw-col+.sw-col{border-left:1px solid var(--border)}
+.sw-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #F1F5F9}
+.sw-row:last-child{border:none}
+.sw-row .sw-dot{width:6px;height:6px;border-radius:50%;background:var(--grad-2);margin-top:7px;flex-shrink:0}
+.sw-row span{font-size:13px;color:var(--text-2)}
+.sw-row span b{color:var(--text-1)}
+.sw-quote{background:rgba(63,140,255,.06);border-radius:14px;padding:14px;font-size:12.5px;color:var(--text-2);margin-top:12px;font-style:italic}
+@media (max-width:760px){ .sw-body{grid-template-columns:1fr} .sw-col+.sw-col{border-left:none;border-top:1px solid var(--border)} }
+
+/* ═══════════════════════════════════════════════════════════
+   COMPARADOR ANTES/DESPUÉS
+   ═══════════════════════════════════════════════════════════ */
+.compare-wrap{max-width:640px;margin:0 auto}
+.compare{
+  position:relative;aspect-ratio:4/3;border-radius:var(--r-card);overflow:hidden;
+  box-shadow:var(--shadow-lg);cursor:ew-resize;user-select:none;border:1px solid var(--border);
+}
+.compare-panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.compare-before{background:linear-gradient(160deg,#EEF2F8,#E4EAF3)}
+.compare-after{background:linear-gradient(160deg,#E9F4FF,#EFEAFF)}
+.compare-after-wrap{position:absolute;inset:0;overflow:hidden}
+.compare-label{position:absolute;top:14px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 12px;border-radius:var(--r-pill);background:rgba(255,255,255,.85);color:var(--text-1)}
+.compare-before .compare-label, .compare-before-label{left:14px}
+.compare-after-label{right:14px}
+.compare-handle{
+  position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06);
+  left:50%;transform:translateX(-50%);
+}
+.compare-grip{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:40px;height:40px;border-radius:50%;background:#fff;box-shadow:var(--shadow-md);
+  display:flex;align-items:center;justify-content:center;color:var(--grad-2);
+}
+.compare-caption{text-align:center;font-size:var(--fs-xs);color:var(--text-3);margin-top:var(--sp-2)}
+
+/* ═══════════════════════════════════════════════════════════
+   IA — 4 tarjetas
+   ═══════════════════════════════════════════════════════════ */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-3)}
+@media (max-width:960px){ .grid-4{grid-template-columns:1fr 1fr} }
+@media (max-width:560px){ .grid-4{grid-template-columns:1fr} }
+
+/* ═══════════════════════════════════════════════════════════
+   CASO ILUSTRATIVO
+   ═══════════════════════════════════════════════════════════ */
+.case-card{max-width:820px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden}
+.case-visual{background:linear-gradient(160deg,#0d1424,#141d33);min-height:280px;display:flex;align-items:center;justify-content:center;position:relative}
+.case-visual .mock-score{width:88px;height:88px;font-size:22px}
+.case-info{padding:var(--sp-4)}
+.case-info h3{font-size:var(--fs-md);font-weight:700;margin-bottom:8px}
+.case-info p{font-size:var(--fs-sm);color:var(--text-2);margin-bottom:16px}
+.case-tags{display:flex;gap:8px;flex-wrap:wrap}
+.case-tag{font-size:11px;font-weight:600;color:var(--grad-2);background:rgba(63,140,255,.08);padding:4px 10px;border-radius:var(--r-pill)}
+@media (max-width:700px){ .case-card{grid-template-columns:1fr} }
+
+/* ═══════════════════════════════════════════════════════════
+   TESTIMONIOS
+   ═══════════════════════════════════════════════════════════ */
+.testi-card{display:flex;flex-direction:column;gap:var(--sp-3)}
+.testi-stars{color:var(--grad-2);display:flex;gap:2px}
+.testi-card p{font-size:var(--fs-base);color:var(--text-1);text-wrap:balance}
+.testi-author{display:flex;align-items:center;gap:10px;margin-top:auto}
+.testi-avatar{width:38px;height:38px;border-radius:50%;background:var(--gradient);flex-shrink:0}
+.testi-author b{font-size:13px;display:block}
+.testi-author span{font-size:12px;color:var(--text-2)}
+.testi-flag{font-size:10.5px;color:var(--text-3);border-top:1px dashed var(--border);padding-top:8px;margin-top:4px}
+
+/* ═══════════════════════════════════════════════════════════
+   PLANES
+   ═══════════════════════════════════════════════════════════ */
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-3);align-items:stretch}
+.plan-card{display:flex;flex-direction:column;position:relative}
+.plan-card.featured{border:1.5px solid transparent;background:linear-gradient(#fff,#fff) padding-box, var(--gradient) border-box;box-shadow:var(--shadow-lg)}
+.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--gradient);color:#fff;font-size:11px;font-weight:700;padding:5px 16px;border-radius:var(--r-pill);white-space:nowrap}
+.plan-name{font-size:var(--fs-sm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);margin-bottom:var(--sp-2)}
+.plan-price{font-size:36px;font-weight:800;line-height:1}
+.plan-price span{font-size:14px;font-weight:500;color:var(--text-2)}
+.plan-period{font-size:var(--fs-xs);color:var(--text-3);margin:4px 0 var(--sp-3)}
+.plan-list{list-style:none;margin-bottom:var(--sp-3);flex:1}
+.plan-list li{display:flex;align-items:flex-start;gap:8px;padding:7px 0;font-size:var(--fs-sm);color:var(--text-2)}
+.plan-list li svg{color:var(--success);flex-shrink:0;margin-top:2px}
+@media (max-width:860px){ .plans-grid{grid-template-columns:1fr} }
+
+/* ═══════════════════════════════════════════════════════════
+   FAQ
+   ═══════════════════════════════════════════════════════════ */
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item summary{
+  list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:20px 4px;cursor:pointer;font-weight:600;font-size:var(--fs-base);
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary svg{flex-shrink:0;transition:transform .25s var(--ease);color:var(--text-2)}
+.faq-item[open] summary svg{transform:rotate(180deg)}
+.faq-item p{padding:0 4px var(--sp-3);font-size:var(--fs-sm);color:var(--text-2);max-width:640px}
+
+/* ═══════════════════════════════════════════════════════════
+   CTA FINAL (dark)
+   ═══════════════════════════════════════════════════════════ */
+.cta-final{background:var(--dark);color:var(--on-dark-1);text-align:center;border-radius:32px;max-width:1000px;margin:0 auto;padding:var(--sp-10) var(--sp-4);position:relative;overflow:hidden}
+.cta-final::before{content:'';position:absolute;inset:-40%;background:radial-gradient(circle at 30% 20%, rgba(63,140,255,.25), transparent 60%);pointer-events:none}
+.cta-final h2{font-size:var(--fs-2xl);font-weight:700;margin-bottom:var(--sp-2);letter-spacing:-.01em;position:relative}
+.cta-final p{color:var(--on-dark-2);font-size:var(--fs-md);max-width:480px;margin:0 auto var(--sp-4);position:relative}
+.cta-final .hero-cta{position:relative}
+
+/* ═══════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════ */
+footer{background:var(--dark);color:var(--on-dark-2);padding:var(--sp-6) var(--sp-3) var(--sp-8)}
+.foot-wrap{max-width:1120px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp-4);flex-wrap:wrap}
+.foot-brand{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.foot-brand img{height:22px;filter:brightness(0) invert(1)}
+.foot-col h5{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--on-dark-1);margin-bottom:12px}
+.foot-col a, .foot-col p{display:block;font-size:13px;color:var(--on-dark-2);margin-bottom:8px}
+.foot-col a:hover{color:#fff}
+.foot-bottom{max-width:1120px;margin:var(--sp-6) auto 0;padding-top:var(--sp-3);border-top:1px solid var(--on-dark-border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text-3)}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL — auth (login / registro)
+   ═══════════════════════════════════════════════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(8,17,31,.55);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
 .overlay.visible{display:flex}
-.modal{background:var(--negro-3);border:0.5px solid var(--borde);border-radius:20px;padding:36px;max-width:420px;width:100%;position:relative}
-.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--gris);font-size:20px;cursor:pointer}
-.modal-logo{font-family:'Playfair Display',serif;color:var(--dorado);font-size:22px;margin-bottom:4px}
-.modal-sub{font-size:13px;color:var(--gris);margin-bottom:24px}
-.tabs-auth{display:flex;background:var(--negro-4);border-radius:10px;padding:3px;margin-bottom:24px}
-.tab-auth{flex:1;padding:9px;text-align:center;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--gris);transition:all .2s}
-.tab-auth.activo{background:var(--negro-3);color:var(--dorado);border:0.5px solid var(--borde)}
+.modal{background:#fff;border-radius:28px;padding:var(--sp-4) var(--sp-4) var(--sp-4);max-width:420px;width:100%;position:relative;box-shadow:var(--shadow-lg)}
+.modal-close{position:absolute;top:18px;right:18px;background:var(--bg);border:none;width:32px;height:32px;border-radius:50%;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--border)}
+.modal-logo{font-size:18px;font-weight:800;margin-bottom:2px}
+.modal-sub{font-size:var(--fs-sm);color:var(--text-2);margin-bottom:var(--sp-3)}
+.tabs-auth{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:var(--sp-3)}
+.tab-auth{flex:1;padding:9px;text-align:center;border-radius:11px;font-size:var(--fs-sm);font-weight:600;cursor:pointer;color:var(--text-2);transition:all .2s}
+.tab-auth.activo{background:#fff;color:var(--text-1);box-shadow:var(--shadow-sm)}
 .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
-.fg label{font-size:11px;font-weight:600;color:var(--gris-2);text-transform:uppercase;letter-spacing:.5px}
-.fg input,.fg select{background:var(--negro-4);border:0.5px solid var(--borde);border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--blanco);outline:none;transition:border .2s}
-.fg input:focus,.fg select:focus{border-color:var(--dorado)}
-.fg input::placeholder{color:var(--gris-2)}
-.fg select option{background:var(--negro-4)}
-.btn-modal{width:100%;padding:14px;background:var(--dorado);color:var(--negro);border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px}
-.btn-modal:hover{background:var(--dorado-claro)}
-.msg-err{background:rgba(220,38,38,.12);border:0.5px solid rgba(220,38,38,.3);color:#FCA5A5;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
-.msg-ok{background:rgba(201,168,76,.12);border:0.5px solid rgba(201,168,76,.3);color:var(--dorado-claro);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+.fg label{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px}
+.fg input,.fg select{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;
+  font-size:14px;font-family:inherit;color:var(--text-1);outline:none;transition:border-color .18s, box-shadow .18s;
+}
+.fg input:focus,.fg select:focus{border-color:var(--grad-2);box-shadow:0 0 0 3px rgba(63,140,255,.12)}
+.fg input::placeholder{color:var(--text-3)}
+.msg-err{background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
+.msg-ok{background:#F0FDF4;border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
 .msg-err.visible,.msg-ok.visible{display:block}
-.plan-sel{background:var(--dorado-suave);border:0.5px solid var(--dorado);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--dorado);margin-bottom:16px;display:none}
+.plan-sel{background:rgba(63,140,255,.08);border:1px solid rgba(63,140,255,.25);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--grad-2);margin-bottom:16px;display:none;font-weight:600}
 .plan-sel.visible{display:block}
-@media(max-width:680px){.hero h2{font-size:32px}.planes-grid,.features-grid{grid-template-columns:1fr}nav{padding:16px 20px}footer{flex-direction:column;gap:8px;text-align:center}}
+
+/* Mobile nav sheet */
+.mobile-sheet{position:fixed;inset:0;background:#fff;z-index:400;display:none;flex-direction:column;padding:20px}
+.mobile-sheet.visible{display:flex}
+.mobile-sheet .msheet-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-4)}
+.mobile-sheet a, .mobile-sheet .nav-login{font-size:18px;font-weight:600;padding:14px 4px;border-bottom:1px solid var(--border)}
+
+/* Section rhythm — anillo/onda de fondo sutil */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease), transform .6s var(--ease)}
+.reveal.in{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
-<nav>
-  <div class="logo">
-    <div class="logo-mark"><img src="icons/smyl_pwa.png" alt="SMYLE" style="width:24px;height:24px;display:block;border-radius:5px"></div>
-    <div class="logo-text">
-      <h1>SMYLE</h1>
-      <span>Est&eacute;tica dental &middot; IA</span>
-    </div>
-  </div>
+
+<!-- ═══════════════════ NAVBAR ═══════════════════ -->
+<nav class="navbar">
+  <a href="#" class="nav-logo">
+    <img src="icons/smyl_logo.png" alt="SMYLE">
+  </a>
+  <ul class="nav-links">
+    <li><a href="#beneficios">Features</a></li>
+    <li><a href="#ia">IA</a></li>
+    <li><a href="#caso">Casos</a></li>
+    <li><a href="#planes">Precios</a></li>
+    <li><a href="#faq">Contacto</a></li>
+  </ul>
   <div class="nav-right">
-    <span class="nav-link" onclick="abrirModal('login')">Iniciar sesi&oacute;n</span>
-    <button class="btn-nav" onclick="abrirModal('registro')">Comenzar &rarr;</button>
+    <span class="nav-login" onclick="abrirModal('login')">Iniciar sesión</span>
+    <button class="btn btn-primary btn-sm" onclick="abrirModal('registro')">Comenzar</button>
+    <button class="nav-burger" onclick="toggleMobileNav(true)" aria-label="Abrir menú">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
   </div>
 </nav>
 
-<div class="hero">
-  <div class="hero-eyebrow">Cotizaci&oacute;n y An&aacute;lisis M&eacute;dico Inteligente para La Est&eacute;tica dental</div>
-  <h2>El diagn&oacute;stico que<br>cierra m&aacute;s <em>casos</em></h2>
-  <p>Sube las fotos de tu paciente. SMYLE analiza, diagnostica y genera la cotizaci&oacute;n de carillas en segundos &mdash; con precisi&oacute;n cl&iacute;nica e imagen premium.</p>
-  <div class="hero-cta">
-    <button class="btn-primary" onclick="abrirModal('registro')">Empezar ahora &rarr;</button>
-    <button class="btn-ghost" onclick="abrirModal('login')">Ya tengo cuenta</button>
+<div class="mobile-sheet" id="mobile-sheet">
+  <div class="msheet-top">
+    <img src="icons/smyl_logo.png" alt="SMYLE" style="height:22px">
+    <button class="modal-close" onclick="toggleMobileNav(false)" aria-label="Cerrar menú">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
+  <a href="#beneficios" onclick="toggleMobileNav(false)">Features</a>
+  <a href="#ia" onclick="toggleMobileNav(false)">IA</a>
+  <a href="#caso" onclick="toggleMobileNav(false)">Casos</a>
+  <a href="#planes" onclick="toggleMobileNav(false)">Precios</a>
+  <a href="#faq" onclick="toggleMobileNav(false)">Contacto</a>
+  <span class="nav-login" onclick="toggleMobileNav(false);abrirModal('login')">Iniciar sesión</span>
 </div>
 
-<div class="divider-line"></div>
-
-<div class="features-section" style="margin-top:70px">
-  <div class="section-label">Qu&eacute; hace SMYLE</div>
-  <div class="section-title">Todo en un diagn&oacute;stico</div>
-  <div class="features-grid">
-    <div class="feat"><div class="feat-icon">&#128248;</div><h4>An&aacute;lisis de 4 im&aacute;genes</h4><p>Foto frontal, perfil, intraoral y radiograf&iacute;a. La IA eval&uacute;a cada una y cruza los hallazgos.</p></div>
-    <div class="feat"><div class="feat-icon">&#128300;</div><h4>Diagn&oacute;stico profundo</h4><p>Color, forma, simetr&iacute;a, oclusi&oacute;n, tejidos blandos y estructura &oacute;sea &mdash; todo en un reporte.</p></div>
-    <div class="feat"><div class="feat-icon">&#128176;</div><h4>Cotizaci&oacute;n autom&aacute;tica</h4><p>Con tus precios configurados, genera la propuesta econ&oacute;mica lista para presentar al paciente.</p></div>
-    <div class="feat"><div class="feat-icon">&#128196;</div><h4>PDF profesional</h4><p>Reporte cl&iacute;nico + cotizaci&oacute;n en un documento elegante con tu nombre y consultorio.</p></div>
-    <div class="feat"><div class="feat-icon">&#128450;</div><h4>Expediente del paciente</h4><p>Historial completo de casos, fotos y cotizaciones por paciente en un solo lugar.</p></div>
-    <div class="feat"><div class="feat-icon">&#128172;</div><h4>Texto para el paciente</h4><p>La IA redacta la explicaci&oacute;n del diagn&oacute;stico en lenguaje simple y persuasivo.</p></div>
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<header class="hero">
+  <div class="hero-copy">
+    <div class="eyebrow"><span class="dot"></span>Diseño de sonrisa · Inteligencia Artificial</div>
+    <h1>El diagnóstico que <span class="grad-text">cierra más casos</span></h1>
+    <p class="sub">Sube las fotos de tu paciente. SMYLE analiza, diagnostica y genera la cotización de carillas en segundos — con precisión clínica y una presentación que tus pacientes van a recordar.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" onclick="abrirModal('registro')">
+        Empezar ahora
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <button class="btn btn-secondary" onclick="abrirModal('login')">Ya tengo cuenta</button>
+    </div>
+    <div class="hero-note">Sin instalar nada · funciona desde tu celular</div>
   </div>
-</div>
+</header>
 
-<div class="divider-line"></div>
+<div class="mockup-stage wrap">
+  <div class="float-chip chip-1">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+    Analizando fotos…
+  </div>
+  <div class="float-chip chip-2">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+    Score 94/100
+  </div>
+  <div class="float-chip chip-3">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Cotización lista
+  </div>
 
-<div class="planes-section">
-  <div class="section-label">Planes</div>
-  <div class="section-title">Elige tu plan</div>
-  <div class="planes-grid">
-    <div class="plan-card">
-      <div class="plan-name">Esencial</div>
-      <div class="plan-precio">$399<span> MXN</span></div>
-      <div class="plan-periodo">por mes</div>
-      <ul class="plan-features">
-        <li>15 diagn&oacute;sticos al mes</li>
-        <li>An&aacute;lisis de hasta 4 fotos por caso</li>
-        <li>Cotizaci&oacute;n autom&aacute;tica</li>
-        <li>Expediente de pacientes</li>
-        <li>Texto para el paciente</li>
-      </ul>
-      <button class="btn-plan btn-plan-ghost" onclick="seleccionarPlan('Esencial','$399 MXN/mes')">Empezar &rarr;</button>
-    </div>
-    <div class="plan-card featured">
-      <div class="plan-featured-badge">M&aacute;s popular</div>
-      <div class="plan-name">Profesional</div>
-      <div class="plan-precio">$799<span> MXN</span></div>
-      <div class="plan-periodo">por mes</div>
-      <ul class="plan-features">
-        <li>40 diagn&oacute;sticos al mes</li>
-        <li>An&aacute;lisis de hasta 4 fotos por caso</li>
-        <li>Cotizaci&oacute;n autom&aacute;tica</li>
-        <li>PDF profesional con tu logo</li>
-        <li>Expediente de pacientes</li>
-        <li>Texto para el paciente</li>
-        <li>Historial de casos</li>
-      </ul>
-      <button class="btn-plan btn-plan-gold" onclick="seleccionarPlan('Profesional','$799 MXN/mes')">Empezar &rarr;</button>
-    </div>
-    <div class="plan-card">
-      <div class="plan-name">Premium</div>
-      <div class="plan-precio">$1,499<span> MXN</span></div>
-      <div class="plan-periodo">por mes</div>
-      <ul class="plan-features">
-        <li>100 diagn&oacute;sticos al mes</li>
-        <li>An&aacute;lisis de hasta 4 fotos por caso</li>
-        <li>Cotizaci&oacute;n autom&aacute;tica</li>
-        <li>PDF profesional con tu logo</li>
-        <li>Expediente de pacientes</li>
-        <li>Texto para el paciente</li>
-        <li>Historial de casos</li>
-        <li>Soporte prioritario</li>
-      </ul>
-      <button class="btn-plan btn-plan-ghost" onclick="seleccionarPlan('Premium','$1,499 MXN/mes')">Empezar &rarr;</button>
+  <div class="browser-mock">
+    <div class="browser-bar"><span></span><span></span><span></span></div>
+    <div class="browser-body">
+      <div class="mock-side">
+        <div class="mock-brand"><span class="dot-grad"></span>SMYLE</div>
+        <div class="mock-nav-item active">Dashboard</div>
+        <div class="mock-nav-item">Pacientes</div>
+        <div class="mock-nav-item">Nuevo Diseño</div>
+        <div class="mock-nav-item">Historial</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-stat-row">
+          <div class="mock-stat"><b>28</b><span>Casos este mes</span></div>
+          <div class="mock-stat"><b>94%</b><span>Precisión IA</span></div>
+          <div class="mock-stat"><b>$184k</b><span>Cotizado</span></div>
+        </div>
+        <div class="mock-report">
+          <div class="mock-score">94</div>
+          <div class="mock-bars" style="flex:1">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
+<div class="trust-strip">
+  <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Datos cifrados de punta a punta</div>
+  <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 12.5l2 2 3.5-4.5"/></svg>Diseñado con dentistas especialistas en DSD</div>
+  <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>Diagnóstico y cotización en menos de un minuto</div>
+</div>
+
+<!-- ═══════════════════ BENEFICIOS ═══════════════════ -->
+<section id="beneficios">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Qué hace SMYLE</div>
+      <h2>Todo lo que necesitas en un diagnóstico</h2>
+      <p>Cada caso reúne análisis clínico, cotización y presentación — listo para mostrarle a tu paciente en la misma consulta.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <h3>Análisis de varias fotos</h3>
+        <p>Frontal, perfil, intraoral y radiografía — la IA evalúa cada una y cruza los hallazgos entre sí.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+        <h3>Diagnóstico profundo</h3>
+        <p>Color, forma, simetría, oclusión, tejidos blandos y proporción facial — todo en un solo reporte.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <h3>Cotización automática</h3>
+        <p>Con tus precios configurados, genera la propuesta económica lista para presentar al paciente.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="13" y2="11"/></svg></div>
+        <h3>Reporte profesional</h3>
+        <p>Diagnóstico y cotización en un documento elegante con tu nombre y el de tu consultorio.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <h3>Expediente del paciente</h3>
+        <p>Historial completo de casos, fotos y cotizaciones por paciente, todo en un solo lugar.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3>Texto para el paciente</h3>
+        <p>La IA redacta la explicación del diagnóstico en lenguaje simple, cálido y persuasivo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CÓMO FUNCIONA ═══════════════════ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Cómo funciona</div>
+      <h2>De la foto a la cotización, en 4 pasos</h2>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="tl-step">
+        <div class="tl-num"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/><polyline points="3 15 8.5 9.5 12 13 21 4"/></svg></div>
+        <h4>Sube las fotos</h4>
+        <p>Tú o tu paciente capturan las vistas guiadas directo desde el celular.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg></div>
+        <h4>La IA analiza</h4>
+        <p>Proporciones faciales, línea media, color y estructura dental, en segundos.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <h4>Diagnóstico + cotización</h4>
+        <p>Reporte clínico completo con propuesta económica lista para presentar.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+        <h4>Comparte con tu paciente</h4>
+        <p>Envíalo por WhatsApp o muéstralo en pantalla en la misma cita.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ VISTA DEL SOFTWARE ═══════════════════ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>El software</div>
+      <h2>Un reporte que se ve tan bien como se siente</h2>
+      <p>Cada diagnóstico se organiza igual: hallazgos, piezas afectadas, consideraciones y plan de tratamiento.</p>
+    </div>
+    <div class="software-frame reveal">
+      <div class="software-inner">
+        <div class="sw-topbar">
+          <b>Análisis Completado</b>
+          <span class="tag">Score 94 · Potencial alto</span>
+        </div>
+        <div class="sw-body">
+          <div class="sw-col">
+            <div class="sw-row"><span class="sw-dot"></span><span><b>Color:</b> tono A2, candidato ideal para blanqueamiento previo</span></div>
+            <div class="sw-row"><span class="sw-dot"></span><span><b>Simetría:</b> línea media dental centrada</span></div>
+            <div class="sw-row"><span class="sw-dot"></span><span><b>Troneras:</b> naturales, sin espacios que corregir</span></div>
+          </div>
+          <div class="sw-col">
+            <div class="sw-row"><span class="sw-dot"></span><span><b>Plan sugerido:</b> 8 carillas de porcelana, tercio superior</span></div>
+            <div class="sw-row"><span class="sw-dot"></span><span><b>Duración estimada:</b> 2 citas clínicas</span></div>
+            <div class="sw-quote">"Con las carillas propuestas, tu sonrisa se vería más uniforme y luminosa manteniendo un resultado natural."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ DISEÑO DE SONRISA — comparador ═══════════════════ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Diseño de sonrisa</div>
+      <h2>Así se ve el antes y después</h2>
+      <p>Arrastra para comparar — la simulación real se genera con las fotos de cada paciente.</p>
+    </div>
+    <div class="compare-wrap reveal">
+      <div class="compare" id="compare">
+        <div class="compare-panel compare-before">
+          <svg width="120" height="90" viewBox="0 0 120 90" fill="none" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round"><path d="M20 45c15 20 30 25 40 25s25-5 40-25" stroke-dasharray="4 5"/><line x1="35" y1="40" x2="35" y2="52"/><line x1="50" y1="42" x2="50" y2="56"/><line x1="70" y1="42" x2="65" y2="56"/><line x1="85" y1="40" x2="82" y2="52"/></svg>
+          <span class="compare-label compare-before-label">Antes</span>
+        </div>
+        <div class="compare-after-wrap" id="compare-after-wrap">
+          <div class="compare-panel compare-after">
+            <svg width="120" height="90" viewBox="0 0 120 90" fill="none" stroke="var(--grad-2)" stroke-width="2.5" stroke-linecap="round"><path d="M20 42c15 22 30 28 40 28s25-6 40-28"/><line x1="32" y1="38" x2="32" y2="54"/><line x1="46" y1="36" x2="46" y2="58"/><line x1="60" y1="35" x2="60" y2="59"/><line x1="74" y1="36" x2="74" y2="58"/><line x1="88" y1="38" x2="88" y2="54"/></svg>
+            <span class="compare-label compare-after-label">Después</span>
+          </div>
+        </div>
+        <div class="compare-handle" id="compare-handle">
+          <div class="compare-grip">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 3 12 9 6"/><polyline points="15 6 21 12 15 18"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="compare-caption">Ilustración de referencia — no es la foto de un paciente real</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ INTELIGENCIA ARTIFICIAL ═══════════════════ -->
+<section id="ia">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Motor de IA</div>
+      <h2>Inteligencia artificial entrenada para sonrisas</h2>
+    </div>
+    <div class="grid-4">
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+        <h3>Predicción</h3>
+        <p>Estima cómo se vería la sonrisa final antes de tocar un diente.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+        <h3>Análisis</h3>
+        <p>Evalúa proporciones faciales, línea media, canteo y tipo facial.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.5 1 2.5h6c0-1 .4-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></div>
+        <h3>Recomendaciones</h3>
+        <p>Sugiere el tipo y número de carillas según cada caso clínico.</p>
+      </div>
+      <div class="card feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <h3>Automatización</h3>
+        <p>Cotización, reporte y mensaje al paciente, generados sin trabajo extra.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CASO ILUSTRATIVO ═══════════════════ -->
+<section id="caso">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Ejemplo</div>
+      <h2>Así se ve un caso real dentro de SMYLE</h2>
+    </div>
+    <div class="card case-card reveal" style="padding:0">
+      <div class="case-visual">
+        <div class="mock-score">94</div>
+      </div>
+      <div class="case-info">
+        <h3>Caso: estética anterior superior</h3>
+        <p>Diagnóstico generado en 40 segundos a partir de 4 fotografías clínicas. Incluye hallazgos, plan de tratamiento sugerido y cotización con los precios del consultorio.</p>
+        <div class="case-tags">
+          <span class="case-tag">8 carillas</span>
+          <span class="case-tag">Tono A2 → BL2</span>
+          <span class="case-tag">Cotizado en $46,000 MXN</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ TESTIMONIOS ═══════════════════ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Testimonios</div>
+      <h2>Lo que dicen quienes ya lo usan</h2>
+    </div>
+    <div class="grid-3">
+      <div class="card testi-card reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p>"Antes me tomaba media hora armar una cotización a mano. Ahora se la muestro al paciente en la misma cita."</p>
+        <div class="testi-author">
+          <div class="testi-avatar"></div>
+          <div><b>Dra. [Nombre]</b><span>Odontología estética</span></div>
+        </div>
+        <div class="testi-flag">Testimonio de ejemplo — reemplázalo antes de publicar</div>
+      </div>
+      <div class="card testi-card reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p>"Mis pacientes se sienten más seguros de aceptar el tratamiento cuando ven el reporte."</p>
+        <div class="testi-author">
+          <div class="testi-avatar"></div>
+          <div><b>Dr. [Nombre]</b><span>Rehabilitación oral</span></div>
+        </div>
+        <div class="testi-flag">Testimonio de ejemplo — reemplázalo antes de publicar</div>
+      </div>
+      <div class="card testi-card reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p>"El diagnóstico se siente clínico de verdad, no como una app genérica de belleza."</p>
+        <div class="testi-author">
+          <div class="testi-avatar"></div>
+          <div><b>Dra. [Nombre]</b><span>Diseño de sonrisa</span></div>
+        </div>
+        <div class="testi-flag">Testimonio de ejemplo — reemplázalo antes de publicar</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ PLANES ═══════════════════ -->
+<section id="planes">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Planes</div>
+      <h2>Elige tu plan</h2>
+      <p>Cancela cuando quieras. Sin contratos forzosos.</p>
+    </div>
+    <div class="plans-grid">
+      <div class="card plan-card reveal">
+        <div class="plan-name">Esencial</div>
+        <div class="plan-price">$399<span> MXN</span></div>
+        <div class="plan-period">por mes</div>
+        <ul class="plan-list">
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>15 diagnósticos al mes</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Análisis de hasta 4 fotos por caso</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Cotización automática</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Expediente de pacientes</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Texto para el paciente</li>
+        </ul>
+        <button class="btn btn-secondary btn-block" onclick="seleccionarPlan('Esencial','$399 MXN/mes')">Empezar</button>
+      </div>
+      <div class="card plan-card featured reveal">
+        <div class="plan-badge">Más popular</div>
+        <div class="plan-name">Profesional</div>
+        <div class="plan-price">$799<span> MXN</span></div>
+        <div class="plan-period">por mes</div>
+        <ul class="plan-list">
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>40 diagnósticos al mes</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Análisis de hasta 4 fotos por caso</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Cotización automática</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Reporte profesional con tu logo</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Expediente de pacientes</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Historial de casos</li>
+        </ul>
+        <button class="btn btn-primary btn-block" onclick="seleccionarPlan('Profesional','$799 MXN/mes')">Empezar</button>
+      </div>
+      <div class="card plan-card reveal">
+        <div class="plan-name">Premium</div>
+        <div class="plan-price">$1,499<span> MXN</span></div>
+        <div class="plan-period">por mes</div>
+        <ul class="plan-list">
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>100 diagnósticos al mes</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Análisis de hasta 4 fotos por caso</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Cotización automática</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Reporte profesional con tu logo</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Historial de casos</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Soporte prioritario</li>
+        </ul>
+        <button class="btn btn-secondary btn-block" onclick="seleccionarPlan('Premium','$1,499 MXN/mes')">Empezar</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FAQ ═══════════════════ -->
+<section id="faq">
+  <div class="narrow">
+    <div class="sec-head reveal">
+      <div class="eyebrow" style="margin-inline:auto"><span class="dot"></span>Preguntas frecuentes</div>
+      <h2>Todo lo que quieras saber</h2>
+    </div>
+    <div class="reveal">
+      <details class="faq-item">
+        <summary>¿SMYLE reemplaza mi valoración clínica?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <p>No. El diagnóstico y la simulación son orientativos — están pensados para apoyar tu valoración presencial y ayudarte a explicarle el tratamiento al paciente, no para sustituir tu criterio clínico.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué pasa con las fotos de mis pacientes?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <p>Se procesan de forma cifrada para generar el diagnóstico y la simulación, y puedes solicitar que se eliminen en cualquier momento.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Puedo cambiar de plan más adelante?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <p>Sí, puedes subir o bajar de plan cuando quieras desde tu panel — no hay contratos forzosos ni permanencia mínima.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Necesito instalar algo?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <p>No. SMYLE funciona directo desde el navegador de tu celular o computadora, y también se puede agregar a tu pantalla de inicio como si fuera una app.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cómo configuro mis precios?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <p>Desde tu panel, en "Mis Precios" — una vez configurados, cada cotización se genera automáticamente con tus propios costos.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CTA FINAL ═══════════════════ -->
+<section>
+  <div class="cta-final reveal">
+    <h2>Tu primer diagnóstico con IA, hoy mismo</h2>
+    <p>Crea tu cuenta y ten tu consultorio listo para tu próximo paciente.</p>
+    <div class="hero-cta">
+      <button class="btn btn-dark" onclick="abrirModal('registro')">
+        Crear mi cuenta
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <button class="btn btn-ghost-dark" onclick="abrirModal('login')">Iniciar sesión</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
 <footer>
-  <div class="footer-logo">SMYLE</div>
-  <p>Cotizaci&oacute;n y An&aacute;lisis M&eacute;dico Inteligente para La Est&eacute;tica dental &copy; 2025</p>
-  <p style="color:#333">Hecho con &hearts; en M&eacute;xico</p>
+  <div class="foot-wrap">
+    <div>
+      <div class="foot-brand"><img src="icons/smyl_logo.png" alt="SMYLE"></div>
+      <p style="max-width:220px;font-size:13px">Diseño de sonrisa con Inteligencia Artificial para odontólogos.</p>
+    </div>
+    <div class="foot-col">
+      <h5>Producto</h5>
+      <a href="#beneficios">Features</a>
+      <a href="#ia">Inteligencia Artificial</a>
+      <a href="#planes">Precios</a>
+    </div>
+    <div class="foot-col">
+      <h5>Cuenta</h5>
+      <a href="javascript:void(0)" onclick="abrirModal('login')">Iniciar sesión</a>
+      <a href="javascript:void(0)" onclick="abrirModal('registro')">Crear cuenta</a>
+    </div>
+    <div class="foot-col">
+      <h5>Contacto</h5>
+      <p>hola@smyle.mx</p>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2025 SMYLE — Hecho en México</span>
+    <span>Diagnóstico orientativo. No sustituye una valoración clínica presencial.</span>
+  </div>
 </footer>
 
+<!-- ═══════════════════ MODAL AUTH ═══════════════════ -->
 <div class="overlay" id="overlay" onclick="cerrarFuera(event)">
   <div class="modal">
-    <button class="modal-close" onclick="cerrarModal()">&#10005;</button>
+    <button class="modal-close" onclick="cerrarModal()" aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
     <div class="modal-logo">SMYLE</div>
     <div class="modal-sub" id="modal-sub">Accede a tu cuenta</div>
     <div class="tabs-auth">
-      <div class="tab-auth activo" id="tab-login" onclick="switchTab('login')">Iniciar sesi&oacute;n</div>
+      <div class="tab-auth activo" id="tab-login" onclick="switchTab('login')">Iniciar sesión</div>
       <div class="tab-auth" id="tab-registro" onclick="switchTab('registro')">Registrarme</div>
     </div>
     <div id="panel-login">
       <div class="msg-err" id="login-err"></div>
       <div class="msg-ok" id="login-ok"></div>
       <div class="fg"><label>Correo</label><input type="email" id="l-email" placeholder="tu@correo.com"></div>
-      <div class="fg"><label>Contrase&ntilde;a</label><input type="password" id="l-pass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
-      <button class="btn-modal" id="btn-login-submit" onclick="hacerLogin()">Entrar &rarr;</button>
+      <div class="fg"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
+      <button class="btn btn-primary btn-block" id="btn-login-submit" onclick="hacerLogin()">Entrar →</button>
     </div>
     <div id="panel-registro" style="display:none">
       <div class="msg-err" id="reg-err"></div>
@@ -213,16 +893,16 @@ footer .footer-logo{font-family:'Playfair Display',serif;color:var(--dorado);fon
       <div class="plan-sel" id="plan-sel-info"></div>
       <div class="fg"><label>Nombre completo</label><input type="text" id="r-nombre" placeholder="Dr. / Dra. ..."></div>
       <div class="fg"><label>Correo</label><input type="email" id="r-email" placeholder="tu@correo.com"></div>
-      <div class="fg"><label>Contrase&ntilde;a</label><input type="password" id="r-pass" placeholder="M&iacute;nimo 6 caracteres"></div>
-      <div class="fg"><label>C&oacute;digo de acceso</label><input type="text" id="r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Contraseña</label><input type="password" id="r-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg"><label>Código de acceso</label><input type="text" id="r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
       <div class="fg"><label>Plan</label>
         <select id="r-plan">
-          <option value="esencial:15:399">Esencial &mdash; $399/mes &middot; 15 diagn&oacute;sticos</option>
-          <option value="profesional:40:799" selected>Profesional &mdash; $799/mes &middot; 40 diagn&oacute;sticos</option>
-          <option value="premium:100:1499">Premium &mdash; $1,499/mes &middot; 100 diagn&oacute;sticos</option>
+          <option value="esencial:15:399">Esencial — $399/mes · 15 diagnósticos</option>
+          <option value="profesional:40:799" selected>Profesional — $799/mes · 40 diagnósticos</option>
+          <option value="premium:100:1499">Premium — $1,499/mes · 100 diagnósticos</option>
         </select>
       </div>
-      <button class="btn-modal" id="btn-registro-submit" onclick="hacerRegistro()">Crear mi cuenta &rarr;</button>
+      <button class="btn btn-primary btn-block" id="btn-registro-submit" onclick="hacerRegistro()">Crear mi cuenta →</button>
     </div>
   </div>
 </div>
@@ -342,6 +1022,55 @@ async function hacerLogin(){
     if (btn) { btn.disabled=false; btn.textContent='Entrar →'; }
   }
 }
+
+// ══ Mobile nav sheet ══
+function toggleMobileNav(open){
+  document.getElementById('mobile-sheet').classList.toggle('visible', open);
+}
+
+// ══ Scroll reveal — IntersectionObserver, liviano, sin dependencias ══
+(function () {
+  var els = document.querySelectorAll('.reveal, .tl-step');
+  if (!('IntersectionObserver' in window)) { els.forEach(function(el){ el.classList.add('in'); }); return; }
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) { entry.target.classList.add('in'); obs.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15 });
+  els.forEach(function (el) { obs.observe(el); });
+})();
+
+// ══ Comparador antes/después — arrastrar para revelar ══
+(function () {
+  var wrap = document.getElementById('compare');
+  var afterWrap = document.getElementById('compare-after-wrap');
+  var handle = document.getElementById('compare-handle');
+  if (!wrap) return;
+  var dragging = false;
+
+  function setPos(pct) {
+    pct = Math.max(0, Math.min(100, pct));
+    afterWrap.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+    handle.style.left = pct + '%';
+  }
+  function fromClientX(x) {
+    var rect = wrap.getBoundingClientRect();
+    return ((x - rect.left) / rect.width) * 100;
+  }
+  setPos(50);
+
+  wrap.addEventListener('pointerdown', function (e) { dragging = true; setPos(fromClientX(e.clientX)); });
+  window.addEventListener('pointermove', function (e) { if (dragging) setPos(fromClientX(e.clientX)); });
+  window.addEventListener('pointerup', function () { dragging = false; });
+  wrap.addEventListener('keydown', function (e) {
+    var cur = parseFloat(handle.style.left) || 50;
+    if (e.key === 'ArrowLeft') setPos(cur - 5);
+    if (e.key === 'ArrowRight') setPos(cur + 5);
+  });
+  wrap.setAttribute('tabindex', '0');
+  wrap.setAttribute('role', 'slider');
+  wrap.setAttribute('aria-label', 'Comparar antes y después');
+})();
 </script>
 <div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#888;font-family:Georgia,serif;letter-spacing:.8px;opacity:.4;z-index:9999;pointer-events:none">&copy; 2025 Dr. Hern&aacute;n Partida Islas &middot; Propiedad Intelectual</div>
 </body>
