@@ -323,7 +323,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v48 — quita el numerito duplicado sobre tus iconos de pasos</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v49 — nuevos iconos de pasos + orden real intraoral/extraoral</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -367,9 +367,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     </div>
     <div class="ps-item">
       <div class="ps-icon">
-        <img src="icons/step-4-extraoral.png" alt="Extraoral rostro" onerror="this.style.display='none'">
+        <img src="icons/step-4-vista34.png" alt="Vista 3/4" onerror="this.style.display='none'">
       </div>
-      <span class="ps-lbl">Extraoral<br>Rostro</span>
+      <span class="ps-lbl">Vista<br>3/4</span>
     </div>
     <div class="ps-item">
       <div class="ps-icon">
@@ -379,9 +379,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     </div>
     <div class="ps-item">
       <div class="ps-icon">
-        <img src="icons/step-6-vista34.png" alt="Vista 3/4" onerror="this.style.display='none'">
+        <img src="icons/step-6-extraoral.png" alt="Extraoral rostro" onerror="this.style.display='none'">
       </div>
-      <span class="ps-lbl">Vista<br>3/4</span>
+      <span class="ps-lbl">Extraoral<br>Rostro</span>
     </div>
   </div>
 
@@ -1082,8 +1082,8 @@ var VIEWS = [
   {id:'right',      label:'Perfil Derecho — Gira a tu derecha', hint:'Nariz apuntando hacia la izquierda de la pantalla', facing:'user', svg:'perfil-der'},
   {id:'left',       label:'Perfil Izquierdo — Gira a tu izquierda', hint:'Nariz apuntando hacia la derecha de la pantalla', facing:'user', svg:'perfil-izq'},
   {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa', hint:'Gira ligeramente la cabeza mostrando la sonrisa de perfil', facing:'environment', svg:'tres-cuartos'},
-  {id:'extraoral',  label:'Fotografía Extraoral — Rostro completo', hint:'Aléjate para que se vea toda tu cara y hombros', facing:'environment', svg:'extraoral', orientation:'landscape'},
   {id:'intraoral',  label:'Fotografía Intraoral — Dientes de cerca', hint:'Acércate y enfoca directo a los dientes con la boca abierta', facing:'environment', svg:'intraoral', orientation:'landscape'},
+  {id:'extraoral',  label:'Fotografía Extraoral — Rostro completo', hint:'Aléjate para que se vea toda tu cara y hombros', facing:'environment', svg:'extraoral', orientation:'landscape'},
 ];
 
 // ══ SCREENS ══
