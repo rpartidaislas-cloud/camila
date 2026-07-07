@@ -310,18 +310,48 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .q-option-single.selected{background:rgba(91,71,224,.16);border-color:rgba(91,71,224,.55);box-shadow:0 0 0 1px rgba(91,71,224,.15) inset}
 .q-option-single.selected::after{content:'';position:absolute;top:50%;right:14px;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--p);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-size:11px;background-repeat:no-repeat;background-position:center}
 
-/* Panel "Ajustar diseño" — post-simulación */
-.aj-row{margin-bottom:16px}
-.aj-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:8px}
-.aj-btns{display:flex;gap:6px}
-.aj-btn{flex:1;height:38px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all 150ms}
-.aj-btn.aj-active{background:rgba(91,71,224,.2);border-color:var(--p);color:#fff}
-.aj-select{width:100%;height:42px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:13px;font-family:Inter,sans-serif;padding:0 12px}
-.aj-slider-row{margin-bottom:16px}
-.aj-slider-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
-.aj-slider-head span:first-child{font-weight:600;color:rgba(255,255,255,.6)}
-.aj-slider-head span:last-child{font-weight:700;color:var(--p)}
-.aj-range{width:100%;accent-color:var(--p)}
+/* ══ EDITOR DE DISEÑO — pantalla completa con canvas ══
+   Layout base: móvil, apilado verticalmente (canvas arriba, guías,
+   secciones tipo tab, panel de sliders abajo). A ≥820px (tablet/desktop,
+   uso típico en consultorio) cambia a 3 columnas: secciones a la
+   izquierda, canvas al centro, sliders a la derecha — como se pidió. */
+.ed-screen{position:fixed;inset:0;z-index:90;background:#09090f;display:none;flex-direction:column}
+.ed-screen.active{display:flex}
+.ed-topbar{padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;justify-content:space-between;background:rgba(15,13,25,.95);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.ed-topbar-inner{display:flex;align-items:center;justify-content:space-between;width:100%;height:52px;padding:0 14px}
+.ed-title{font-size:14px;font-weight:700;color:#fff}
+.ed-btn-icon{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ed-btn-aplicar{height:36px;padding:0 14px;border-radius:10px;background:linear-gradient(135deg,#7c6af7,#5B47E0);border:none;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:6px}
+.ed-body{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.ed-center{flex:1;display:flex;flex-direction:column;min-height:0;order:1}
+.ed-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative;overflow:hidden;min-height:0}
+.ed-canvas-wrap canvas{max-width:100%;max-height:100%;display:block}
+.ed-guides-row{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:rgba(15,13,25,.9);border-top:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.ed-guide-chip{flex-shrink:0;height:32px;padding:0 12px;border-radius:99px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:11.5px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.ed-guide-chip.ed-active{background:rgba(124,106,247,.22);border-color:#7c6af7;color:#fff}
+.ed-sections-row{display:flex;background:rgba(15,13,25,.95);border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;order:2}
+.ed-section-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;cursor:pointer;color:rgba(255,255,255,.45);font-size:10.5px;font-weight:600;background:none;border:none;font-family:Inter,sans-serif}
+.ed-section-tab.ed-active{color:#7c6af7}
+.ed-panel{max-height:38vh;overflow-y:auto;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 14px);background:rgba(15,13,25,.98);order:3}
+.ed-panel-group{display:none}
+.ed-panel-group.ed-active{display:block}
+.ed-slider-row{margin-bottom:16px}
+.ed-slider-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
+.ed-slider-head span:first-child{font-weight:600;color:rgba(255,255,255,.6)}
+.ed-slider-head span:last-child{font-weight:700;color:#7c6af7}
+.ed-range{width:100%;accent-color:#7c6af7}
+.ed-chip-row{display:flex;gap:6px;margin-bottom:16px}
+.ed-chip{flex:1;height:36px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11.5px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif}
+.ed-chip.ed-active{background:rgba(124,106,247,.22);border-color:#7c6af7;color:#fff}
+.ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
+@media(min-width:820px){
+  .ed-body{flex-direction:row}
+  .ed-sections-row{flex-direction:column;width:96px;border-top:none;border-right:1px solid rgba(255,255,255,.08);order:1;padding-top:10px}
+  .ed-section-tab{padding:14px 4px}
+  .ed-center{order:2}
+  .ed-panel{width:320px;max-height:none;border-left:1px solid rgba(255,255,255,.08);order:3;flex-shrink:0}
+}
 
 /* Chips de molestias agregadas a mano — se pueden quitar con la × */
 .q-chip-custom{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;background:rgba(91,71,224,.16);border:1.5px solid rgba(91,71,224,.4);border-radius:99px;color:#fff;font-size:12.5px;font-weight:500}
@@ -336,7 +366,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v50 — panel de ajuste de diseño post-simulación (línea media, forma, color VITA)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v51 — editor de diseño con canvas post-simulación (textura, anatomía, diseño, encía)</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -702,72 +732,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
   <div class="res-body">
 
-    <!-- Ajustar diseño -->
-    <div class="res-section">
-      <div class="res-sec-title" style="cursor:pointer;justify-content:space-between" onclick="toggleAjustesPanel()">
-        <span style="display:flex;align-items:center;gap:8px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          Ajustar diseño
-        </span>
-        <svg id="aj-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 200ms"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div id="aj-panel" style="display:none">
-        <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px">Afina el diseño de la vista actual. Al aplicar, se vuelve a generar la simulación (~15-20 s) — no repite el análisis ni las fotos.</div>
-
-        <div class="aj-row">
-          <div class="aj-label">Línea media</div>
-          <div class="aj-btns">
-            <button type="button" class="aj-btn" data-aj="lineaMedia" data-val="izq" onclick="setAjuste('lineaMedia','izq',this)">◀ Izquierda</button>
-            <button type="button" class="aj-btn aj-active" data-aj="lineaMedia" data-val="" onclick="setAjuste('lineaMedia','',this)">Centrada</button>
-            <button type="button" class="aj-btn" data-aj="lineaMedia" data-val="der" onclick="setAjuste('lineaMedia','der',this)">Derecha ▶</button>
-          </div>
-        </div>
-
-        <div class="aj-row">
-          <div class="aj-label">Forma general</div>
-          <select id="aj-forma" class="aj-select">
-            <option value="">IA decide (recomendado)</option>
-            <option value="oval">Ovalada — natural y femenina</option>
-            <option value="cuadrada">Cuadrada — fuerte y masculina</option>
-            <option value="rectangular">Rectangular — clásica</option>
-            <option value="triangular">Triangular — juvenil</option>
-          </select>
-        </div>
-
-        <div class="aj-row">
-          <div class="aj-label">Escala de color (VITA)</div>
-          <select id="aj-vita" class="aj-select">
-            <option value="">Como en la simulación actual</option>
-            <option value="A1">A1 — natural claro</option>
-            <option value="A2">A2 — natural</option>
-            <option value="A3">A3 — natural cálido</option>
-            <option value="B1">B1 — blanco brillante</option>
-            <option value="B2">B2 — blanco suave</option>
-            <option value="Hollywood White">Hollywood White — máximo blanco</option>
-          </select>
-        </div>
-
-        <div class="aj-slider-row">
-          <div class="aj-slider-head"><span>Valor (brillo del diente)</span><span id="aj-valor-lbl">Natural</span></div>
-          <input type="range" min="-2" max="2" step="1" value="0" id="aj-valor" class="aj-range" oninput="ajusteSliderCambio('valor', this.value, 'aj-valor-lbl', ['Mucho más oscuro','Más oscuro','Natural','Más claro','Mucho más claro'])">
-        </div>
-
-        <div class="aj-slider-row">
-          <div class="aj-slider-head"><span>Croma (saturación del color)</span><span id="aj-croma-lbl">Natural</span></div>
-          <input type="range" min="-2" max="2" step="1" value="0" id="aj-croma" class="aj-range" oninput="ajusteSliderCambio('croma', this.value, 'aj-croma-lbl', ['Mucho menos saturado','Menos saturado','Natural','Más saturado','Mucho más saturado'])">
-        </div>
-
-        <div class="aj-slider-row">
-          <div class="aj-slider-head"><span>Transparencia incisal</span><span id="aj-opacidad-lbl">Natural</span></div>
-          <input type="range" min="-2" max="2" step="1" value="0" id="aj-opacidad" class="aj-range" oninput="ajusteSliderCambio('opacidad', this.value, 'aj-opacidad-lbl', ['Mucho más opaco','Más opaco','Natural','Más translúcido','Mucho más translúcido'])">
-        </div>
-
-        <button id="btn-aplicar-ajustes" onclick="aplicarAjustesDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:6px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-          Aplicar cambios y regenerar
-        </button>
-      </div>
-    </div>
+    <!-- Editor de diseño -->
+    <button onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(124,106,247,.14);border:1.5px solid rgba(124,106,247,.4);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Editar diseño
+    </button>
 
     <!-- Score -->
     <div class="score-banner" id="score-banner">
@@ -890,6 +859,188 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:24px;max-width:280px">Ingresa tu nombre para ver el resultado de tu nueva sonrisa</div>
     <input type="text" id="lead-gate-nombre" placeholder="Tu nombre completo" autocomplete="off" onkeydown="if(event.key==='Enter')revelarResultado()" style="width:100%;max-width:300px;height:52px;border-radius:13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);padding:0 16px;font-size:15px;color:#fff;font-family:Inter,sans-serif;outline:none;margin-bottom:12px;text-align:center">
     <button onclick="revelarResultado()" style="width:100%;max-width:300px;height:52px;border-radius:13px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;box-shadow:0 4px 18px rgba(91,71,224,.35)">Ver mi resultado ✨</button>
+  </div>
+</div>
+
+<!-- ═══ EDITOR DE DISEÑO — canvas post-simulación ═══ -->
+<div class="ed-screen" id="s-editor">
+  <div class="ed-topbar">
+    <div class="ed-topbar-inner">
+      <button class="ed-btn-icon" onclick="edCerrar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="ed-title">Editor de diseño</div>
+      <div style="display:flex;gap:8px">
+        <button class="ed-btn-icon" onclick="edRestablecer()" title="Restablecer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+        </button>
+        <button class="ed-btn-aplicar" onclick="edAplicarDiseno()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Aplicar diseño
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ed-body">
+    <div class="ed-center">
+      <div class="ed-guides-row">
+        <button class="ed-guide-chip" data-guia="lineaMedia" onclick="edGuiaToggle('lineaMedia',this)">| Línea media</button>
+        <button class="ed-guide-chip" data-guia="lineaIncisal" onclick="edGuiaToggle('lineaIncisal',this)">╱ Línea incisal</button>
+        <button class="ed-guide-chip" data-guia="curvaSonrisa" onclick="edGuiaToggle('curvaSonrisa',this)">⌣ Curva de sonrisa</button>
+        <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">‖ Proporción áurea</button>
+      </div>
+      <div class="ed-canvas-wrap">
+        <canvas id="ed-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="ed-sections-row">
+      <button class="ed-section-tab ed-active" data-seccion="textura" onclick="edSetSeccion('textura')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18"/></svg>
+        Textura
+      </button>
+      <button class="ed-section-tab" data-seccion="anatomia" onclick="edSetSeccion('anatomia')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/></svg>
+        Anatomía
+      </button>
+      <button class="ed-section-tab" data-seccion="diseno" onclick="edSetSeccion('diseno')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Diseño
+      </button>
+      <button class="ed-section-tab" data-seccion="encia" onclick="edSetSeccion('encia')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c2-5 6-7 10-7s8 2 10 7c-2 5-6 7-10 7s-8-2-10-7z"/></svg>
+        Encía
+      </button>
+    </div>
+
+    <div class="ed-panel">
+      <!-- Textura -->
+      <div class="ed-panel-group ed-active" data-seccion="textura">
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Brillo</span><span id="ed-brillo-lbl">65%</span></div>
+          <input type="range" id="ed-brillo" class="ed-range" min="0" max="100" value="65" data-group="textura" data-key="brillo" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Rugosidad superficial</span><span id="ed-rugosidad-lbl">40%</span></div>
+          <input type="range" id="ed-rugosidad" class="ed-range" min="0" max="100" value="40" data-group="textura" data-key="rugosidad" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Mamelones</span><span id="ed-mamelones-lbl">50%</span></div>
+          <input type="range" id="ed-mamelones" class="ed-range" min="0" max="100" value="50" data-group="textura" data-key="mamelones" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Opalescencia</span><span id="ed-opalescencia-lbl">55%</span></div>
+          <input type="range" id="ed-opalescencia" class="ed-range" min="0" max="100" value="55" data-group="textura" data-key="opalescencia" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Transparencia incisal</span><span id="ed-transparenciaIncisal-lbl">60%</span></div>
+          <input type="range" id="ed-transparenciaIncisal" class="ed-range" min="0" max="100" value="60" data-group="textura" data-key="transparenciaIncisal" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Fluorescencia</span><span id="ed-fluorescencia-lbl">50%</span></div>
+          <input type="range" id="ed-fluorescencia" class="ed-range" min="0" max="100" value="50" data-group="textura" data-key="fluorescencia" oninput="edSliderInput(this)">
+        </div>
+      </div>
+
+      <!-- Anatomía -->
+      <div class="ed-panel-group" data-seccion="anatomia">
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Troneras incisales — profundidad</span><span id="ed-troneraIncisalProf-lbl">65%</span></div>
+          <input type="range" id="ed-troneraIncisalProf" class="ed-range" min="0" max="100" value="65" data-group="anatomia" data-key="troneraIncisalProf" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Troneras incisales — extensión</span><span id="ed-troneraIncisalExt-lbl">70%</span></div>
+          <input type="range" id="ed-troneraIncisalExt" class="ed-range" min="0" max="100" value="70" data-group="anatomia" data-key="troneraIncisalExt" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Troneras gingivales</span><span id="ed-troneraGingivalProf-lbl">40%</span></div>
+          <input type="range" id="ed-troneraGingivalProf" class="ed-range" min="0" max="100" value="40" data-group="anatomia" data-key="troneraGingivalProf" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Puntos de contacto — altura</span><span id="ed-contactoAltura-lbl">55%</span></div>
+          <input type="range" id="ed-contactoAltura" class="ed-range" min="0" max="100" value="55" data-group="anatomia" data-key="contactoAltura" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Puntos de contacto — intensidad</span><span id="ed-contactoIntensidad-lbl">60%</span></div>
+          <input type="range" id="ed-contactoIntensidad" class="ed-range" min="0" max="100" value="60" data-group="anatomia" data-key="contactoIntensidad" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Líneas de transición</span><span id="ed-lineasTransicion-lbl">70%</span></div>
+          <input type="range" id="ed-lineasTransicion" class="ed-range" min="0" max="100" value="70" data-group="anatomia" data-key="lineasTransicion" oninput="edSliderInput(this)">
+        </div>
+      </div>
+
+      <!-- Diseño de sonrisa -->
+      <div class="ed-panel-group" data-seccion="diseno">
+        <div class="ed-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px">Línea media</div>
+        <div class="ed-chip-row">
+          <button class="ed-chip" data-group="diseno" data-key="lineaMedia" data-val="izq" onclick="edChipClick('diseno','lineaMedia','izq',this)">◀ Izquierda</button>
+          <button class="ed-chip ed-active" data-group="diseno" data-key="lineaMedia" data-val="centrada" onclick="edChipClick('diseno','lineaMedia','centrada',this)">Centrada</button>
+          <button class="ed-chip" data-group="diseno" data-key="lineaMedia" data-val="der" onclick="edChipClick('diseno','lineaMedia','der',this)">Derecha ▶</button>
+        </div>
+
+        <div class="ed-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px">Línea incisal</div>
+        <div class="ed-chip-row">
+          <button class="ed-chip" data-group="diseno" data-key="lineaIncisal" data-val="inclIzq" onclick="edChipClick('diseno','lineaIncisal','inclIzq',this)">Inclinada izq.</button>
+          <button class="ed-chip ed-active" data-group="diseno" data-key="lineaIncisal" data-val="paralela" onclick="edChipClick('diseno','lineaIncisal','paralela',this)">Paralela</button>
+          <button class="ed-chip" data-group="diseno" data-key="lineaIncisal" data-val="inclDer" onclick="edChipClick('diseno','lineaIncisal','inclDer',this)">Inclinada der.</button>
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Inclinación</span><span id="ed-lineaIncisalInclinacion-lbl">0.5°</span></div>
+          <input type="range" id="ed-lineaIncisalInclinacion" class="ed-range" min="0" max="5" step="0.1" value="0.5" data-group="diseno" data-key="lineaIncisalInclinacion" oninput="edSliderInput(this)">
+        </div>
+
+        <div class="ed-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px">Arco de la sonrisa</div>
+        <div class="ed-chip-row">
+          <button class="ed-chip" data-group="diseno" data-key="arcoSonrisa" data-val="recto" onclick="edChipClick('diseno','arcoSonrisa','recto',this)">Recto</button>
+          <button class="ed-chip ed-active" data-group="diseno" data-key="arcoSonrisa" data-val="suave" onclick="edChipClick('diseno','arcoSonrisa','suave',this)">Suave</button>
+          <button class="ed-chip" data-group="diseno" data-key="arcoSonrisa" data-val="amplio" onclick="edChipClick('diseno','arcoSonrisa','amplio',this)">Amplio</button>
+        </div>
+
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Exposición en reposo</span><span id="ed-exposicionReposo-lbl">1.5mm</span></div>
+          <input type="range" id="ed-exposicionReposo" class="ed-range" min="0" max="4" step="0.1" value="1.5" data-group="diseno" data-key="exposicionReposo" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Exposición al sonreír</span><span id="ed-exposicionSonreir-lbl">9.0mm</span></div>
+          <input type="range" id="ed-exposicionSonreir" class="ed-range" min="0" max="12" step="0.1" value="9" data-group="diseno" data-key="exposicionSonreir" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Simetría</span><span id="ed-simetria-lbl">80%</span></div>
+          <input type="range" id="ed-simetria" class="ed-range" min="0" max="100" value="80" data-group="diseno" data-key="simetria" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Proporción áurea</span><span id="ed-proporcionAurea-lbl">80%</span></div>
+          <input type="range" id="ed-proporcionAurea" class="ed-range" min="0" max="100" value="80" data-group="diseno" data-key="proporcionAurea" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Relación ancho/alto</span><span id="ed-relacionAnchoAlto-lbl">75%</span></div>
+          <input type="range" id="ed-relacionAnchoAlto" class="ed-range" min="0" max="100" value="75" data-group="diseno" data-key="relacionAnchoAlto" oninput="edSliderInput(this)">
+        </div>
+      </div>
+
+      <!-- Encía -->
+      <div class="ed-panel-group" data-seccion="encia">
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Nivel gingival</span><span id="ed-nivel-lbl">0.0mm</span></div>
+          <input type="range" id="ed-nivel" class="ed-range" min="-3" max="3" step="0.1" value="0" data-group="encia" data-key="nivel" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-slider-row">
+          <div class="ed-slider-head"><span>Contorno</span><span id="ed-contorno-lbl">50%</span></div>
+          <input type="range" id="ed-contorno" class="ed-range" min="0" max="100" value="50" data-group="encia" data-key="contorno" oninput="edSliderInput(this)">
+        </div>
+        <div class="ed-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px">Color de encía</div>
+        <div class="ed-color-row">
+          <div class="ed-color-swatch" id="ed-color-swatch" style="background:rgb(200,120,120)"></div>
+          <div style="flex:1">
+            <input type="range" id="ed-colorR" min="0" max="255" value="200" oninput="edColorInput()" style="width:100%;accent-color:#e0473b">
+            <input type="range" id="ed-colorG" min="0" max="255" value="120" oninput="edColorInput()" style="width:100%;accent-color:#16a34a">
+            <input type="range" id="ed-colorB" min="0" max="255" value="120" oninput="edColorInput()" style="width:100%;accent-color:#3F8CFF">
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1152,7 +1303,7 @@ var S = {
   landmarker: null,
   landmarkerFailed: false,
   precios: null,
-  ajustes: {lineaMedia:'', forma:'', vita:'', valor:0, croma:0, opacidad:0},
+  editorParams: null,
 };
 
 // facing: cámara por default para esa foto — 'user' (frontal) para las 3
@@ -2369,92 +2520,313 @@ async function generateSimulation(clinicalPrompt, foto) {
   return url;
 }
 
-// ══ AJUSTAR DISEÑO — panel post-simulación ══
-function toggleAjustesPanel() {
-  var panel = document.getElementById('aj-panel');
-  var chevron = document.getElementById('aj-chevron');
-  if (!panel) return;
-  var abierto = panel.style.display !== 'none';
-  panel.style.display = abierto ? 'none' : 'block';
-  if (chevron) chevron.style.transform = abierto ? '' : 'rotate(180deg)';
+// ══ EDITOR DE DISEÑO — canvas overlay post-simulación ══
+// Todo lo de esta sección dibuja SOBRE la imagen ya generada por Gemini —
+// no vuelve a llamar a la IA. Los efectos de "Textura" (brillo, opalescencia,
+// transparencia incisal, mamelones, rugosidad, fluorescencia) se aplican de
+// verdad con composite operations sobre una "zona de sonrisa" aproximada
+// (no hay detección real de dientes por pieza, así que es una caja fija
+// centrada en la foto, no una máscara exacta). Las guías (línea media,
+// línea incisal, curva de sonrisa, proporción áurea) son overlays de líneas
+// de referencia, exactos. Los controles de "Anatomía" y la mayoría de
+// "Diseño de sonrisa" (troneras, puntos de contacto, simetría, etc.) no
+// tienen forma de deformar geométricamente los dientes reales de la foto
+// sin un mapa de landmarks dentales — se guardan como parámetros (para
+// Supabase y para referencia clínica) pero no producen un efecto visual
+// propio en el canvas más allá de las guías.
+var EDITOR_PARAMS_DEFAULT = {
+  textura: {brillo:65, rugosidad:40, mamelones:50, opalescencia:55, transparenciaIncisal:60, fluorescencia:50},
+  anatomia: {troneraIncisalProf:65, troneraIncisalExt:70, troneraGingivalProf:40, contactoAltura:55, contactoIntensidad:60, lineasTransicion:70},
+  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', exposicionReposo:1.5, exposicionSonreir:9, simetria:80, proporcionAurea:80, relacionAnchoAlto:75},
+  encia: {nivel:0, contorno:50, colorR:200, colorG:120, colorB:120},
+  guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
+};
+var EDITOR_PARAMS = null;
+var edBaseImg = null;
+
+function abrirEditorDiseno() {
+  var view = S.baVistaActual || 'frontal';
+  var url = (S.results || {})[view] || S.result;
+  if (!url) { alert('Genera la simulación primero.'); return; }
+
+  EDITOR_PARAMS = S.editorParams ? JSON.parse(JSON.stringify(S.editorParams)) : JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
+  edSyncControles();
+  edSetSeccion('textura');
+
+  edBaseImg = new Image();
+  edBaseImg.onload = function() {
+    var canvas = document.getElementById('ed-canvas');
+    canvas.width = edBaseImg.naturalWidth;
+    canvas.height = edBaseImg.naturalHeight;
+    redrawEditor();
+  };
+  edBaseImg.src = url;
+
+  show('s-editor');
 }
 
-function setAjuste(campo, valor, btn) {
-  S.ajustes[campo] = valor;
-  document.querySelectorAll('.aj-btn[data-aj="' + campo + '"]').forEach(function(b) {
-    b.classList.remove('aj-active');
+function edCerrar() { show('s-res'); }
+
+function edRestablecer() {
+  EDITOR_PARAMS = JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
+  edSyncControles();
+  redrawEditor();
+}
+
+// "Aplicar diseño" no regenera con Gemini — el canvas ya muestra el
+// resultado en vivo. Solo guarda los parámetros en S para que
+// guardarCaso() los mande a Supabase (columna editor_params) junto al
+// resto del caso.
+function edAplicarDiseno() {
+  S.editorParams = JSON.parse(JSON.stringify(EDITOR_PARAMS));
+  show('s-res');
+}
+
+function edFormatLabel(group, key, val) {
+  if (key === 'exposicionReposo' || key === 'exposicionSonreir' || key === 'nivel') return val.toFixed(1) + 'mm';
+  if (key === 'lineaIncisalInclinacion') return val.toFixed(1) + '°';
+  return Math.round(val) + '%';
+}
+
+function edSliderInput(el) {
+  var group = el.dataset.group, key = el.dataset.key;
+  var val = parseFloat(el.value);
+  EDITOR_PARAMS[group][key] = val;
+  var lbl = document.getElementById(el.id + '-lbl');
+  if (lbl) lbl.textContent = edFormatLabel(group, key, val);
+  redrawEditor();
+}
+
+function edChipClick(group, key, val, btn) {
+  EDITOR_PARAMS[group][key] = val;
+  document.querySelectorAll('.ed-chip[data-group="' + group + '"][data-key="' + key + '"]').forEach(function(b) {
+    b.classList.remove('ed-active');
   });
-  if (btn) btn.classList.add('aj-active');
+  btn.classList.add('ed-active');
+  redrawEditor();
 }
 
-function ajusteSliderCambio(campo, valor, lblId, etiquetas) {
-  valor = parseInt(valor, 10);
-  S.ajustes[campo] = valor;
-  var lbl = document.getElementById(lblId);
-  if (lbl) lbl.textContent = etiquetas[valor + 2];
+function edGuiaToggle(nombre, btn) {
+  EDITOR_PARAMS.guias[nombre] = !EDITOR_PARAMS.guias[nombre];
+  btn.classList.toggle('ed-active', EDITOR_PARAMS.guias[nombre]);
+  redrawEditor();
 }
 
-// Traduce el estado actual del panel de ajustes a instrucciones en inglés
-// para Gemini — se reconstruye completo cada vez (no es acumulativo), así
-// lo que se ve en el panel siempre coincide con lo que se va a generar.
-function construirPromptAjustes() {
-  var a = S.ajustes;
-  var partes = [];
-
-  if (a.lineaMedia === 'izq') partes.push('Shift the dental midline slightly to the left compared to the current simulation.');
-  else if (a.lineaMedia === 'der') partes.push('Shift the dental midline slightly to the right compared to the current simulation.');
-
-  var formas = {oval:'a soft oval shape', cuadrada:'a square, strong shape', rectangular:'a classic rectangular shape', triangular:'a youthful triangular shape'};
-  if (formas[a.forma]) partes.push('Adjust the tooth shape to ' + formas[a.forma] + '.');
-
-  if (a.vita) partes.push('Adjust the tooth shade to VITA ' + a.vita + '.');
-
-  if (a.valor === 2) partes.push('Make the teeth noticeably brighter/lighter in value.');
-  else if (a.valor === 1) partes.push('Make the teeth slightly brighter in value.');
-  else if (a.valor === -1) partes.push('Make the teeth slightly darker, more natural in value.');
-  else if (a.valor === -2) partes.push('Make the teeth noticeably darker, very natural in value.');
-
-  if (a.croma === 2) partes.push('Increase the chroma/saturation of the tooth shade noticeably.');
-  else if (a.croma === 1) partes.push('Increase the chroma/saturation of the tooth shade slightly.');
-  else if (a.croma === -1) partes.push('Reduce the chroma/saturation slightly, flatter and whiter looking.');
-  else if (a.croma === -2) partes.push('Reduce the chroma/saturation noticeably, very flat and uniformly white.');
-
-  if (a.opacidad === 2) partes.push('Increase incisal translucency noticeably, more natural light transmission at the edges.');
-  else if (a.opacidad === 1) partes.push('Increase incisal translucency slightly at the tooth edges.');
-  else if (a.opacidad === -1) partes.push('Reduce incisal translucency slightly, more opaque tooth edges.');
-  else if (a.opacidad === -2) partes.push('Reduce incisal translucency noticeably, solid opaque tooth edges.');
-
-  return partes.join(' ');
+function edColorInput() {
+  var r = document.getElementById('ed-colorR').value;
+  var g = document.getElementById('ed-colorG').value;
+  var b = document.getElementById('ed-colorB').value;
+  EDITOR_PARAMS.encia.colorR = parseInt(r, 10);
+  EDITOR_PARAMS.encia.colorG = parseInt(g, 10);
+  EDITOR_PARAMS.encia.colorB = parseInt(b, 10);
+  var swatch = document.getElementById('ed-color-swatch');
+  if (swatch) swatch.style.background = 'rgb(' + r + ',' + g + ',' + b + ')';
+  redrawEditor();
 }
 
-async function aplicarAjustesDiseno() {
-  var btn = document.getElementById('btn-aplicar-ajustes');
-  var forma = document.getElementById('aj-forma');
-  var vita = document.getElementById('aj-vita');
-  S.ajustes.forma = forma ? forma.value : '';
-  S.ajustes.vita = vita ? vita.value : '';
+function edSetSeccion(nombre) {
+  document.querySelectorAll('.ed-section-tab').forEach(function(t) {
+    t.classList.toggle('ed-active', t.dataset.seccion === nombre);
+  });
+  document.querySelectorAll('.ed-panel-group').forEach(function(p) {
+    p.classList.toggle('ed-active', p.dataset.seccion === nombre);
+  });
+}
 
-  var ajustePrompt = construirPromptAjustes();
-  if (!ajustePrompt) { alert('Mueve al menos un control para aplicar un ajuste.'); return; }
+// Sincroniza todos los inputs/chips del panel con EDITOR_PARAMS — se usa
+// al abrir el editor y al restablecer, para que los controles reflejen el
+// estado guardado (o los defaults) en vez de quedarse en lo último que
+// haya dejado el usuario en el DOM.
+function edSyncControles() {
+  var p = EDITOR_PARAMS;
+  document.querySelectorAll('.ed-range[data-group]').forEach(function(el) {
+    var group = el.dataset.group, key = el.dataset.key;
+    var val = p[group][key];
+    el.value = val;
+    var lbl = document.getElementById(el.id + '-lbl');
+    if (lbl) lbl.textContent = edFormatLabel(group, key, val);
+  });
+  document.querySelectorAll('.ed-chip[data-group]').forEach(function(el) {
+    var group = el.dataset.group, key = el.dataset.key, val = el.dataset.val;
+    el.classList.toggle('ed-active', p[group][key] === val);
+  });
+  document.querySelectorAll('.ed-guide-chip').forEach(function(el) {
+    el.classList.toggle('ed-active', !!p.guias[el.dataset.guia]);
+  });
+  var r = document.getElementById('ed-colorR'); if (r) r.value = p.encia.colorR;
+  var g = document.getElementById('ed-colorG'); if (g) g.value = p.encia.colorG;
+  var b = document.getElementById('ed-colorB'); if (b) b.value = p.encia.colorB;
+  var swatch = document.getElementById('ed-color-swatch');
+  if (swatch) swatch.style.background = 'rgb(' + p.encia.colorR + ',' + p.encia.colorG + ',' + p.encia.colorB + ')';
+}
 
-  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; btn.innerHTML = 'Generando...'; }
-  try {
-    var view = S.baVistaActual || 'frontal';
-    var photo = S.photos.find(function(p){return p.view === view;});
-    var promptCombinado = (S.promptGeminiUsado || '') + ' ' + ajustePrompt;
-    var nuevoResultado = await generateSimulation(promptCombinado, photo);
-    S.results[view] = nuevoResultado;
-    if (view === 'frontal') S.result = nuevoResultado;
-    var imgA = document.getElementById('img-a');
-    if (imgA) imgA.src = nuevoResultado;
-    initBASlider();
-  } catch (e) {
-    alert('No se pudo aplicar el ajuste: ' + e.message);
-  } finally {
-    if (btn) {
-      btn.disabled = false; btn.style.opacity = '1';
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Aplicar cambios y regenerar';
+function redrawEditor() {
+  var canvas = document.getElementById('ed-canvas');
+  if (!canvas || !edBaseImg || !edBaseImg.complete) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.drawImage(edBaseImg, 0, 0, w, h);
+
+  // Zona aproximada de la sonrisa — sin detección real de dientes, se
+  // asume que la foto ya viene centrada/recortada (el prompt de Gemini en
+  // generateSimulation() ya pide "same exact crop, same face position").
+  var zone = {x: w * 0.32, y: h * 0.38, w: w * 0.36, h: h * 0.22};
+
+  edEfectosTextura(ctx, zone);
+  edDibujarGuias(ctx, w, h, zone);
+}
+
+function edEfectosTextura(ctx, zone) {
+  var t = EDITOR_PARAMS.textura;
+  var incisalY = zone.y + zone.h * 0.66;
+  var incisalH = zone.h * 0.34;
+
+  // Brillo — overlay blanco/amarillo
+  if (t.brillo > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = (t.brillo / 100) * 0.4;
+    ctx.fillStyle = 'rgba(255,250,230,1)';
+    ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+    ctx.restore();
+  }
+
+  // Opalescencia — screen azul-blanco en el tercio incisal
+  if (t.opalescencia > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = (t.opalescencia / 100) * 0.35;
+    var gradOp = ctx.createLinearGradient(0, incisalY, 0, incisalY + incisalH);
+    gradOp.addColorStop(0, 'rgba(180,210,255,0)');
+    gradOp.addColorStop(1, 'rgba(190,220,255,1)');
+    ctx.fillStyle = gradOp;
+    ctx.fillRect(zone.x, incisalY, zone.w, incisalH);
+    ctx.restore();
+  }
+
+  // Fluorescencia — glow violeta-blanco tenue sobre toda la zona
+  if (t.fluorescencia > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighten';
+    ctx.globalAlpha = (t.fluorescencia / 100) * 0.18;
+    ctx.fillStyle = 'rgba(210,200,255,1)';
+    ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+    ctx.restore();
+  }
+
+  // Rugosidad superficial — ruido sutil
+  if (t.rugosidad > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = (t.rugosidad / 100) * 0.5;
+    var dots = Math.round((t.rugosidad / 100) * 120);
+    for (var i = 0; i < dots; i++) {
+      var dx = zone.x + Math.random() * zone.w;
+      var dy = zone.y + Math.random() * zone.h;
+      var shade = Math.random() > 0.5 ? 255 : 0;
+      ctx.fillStyle = 'rgba(' + shade + ',' + shade + ',' + shade + ',.5)';
+      ctx.fillRect(dx, dy, 1.2, 1.2);
     }
+    ctx.restore();
+  }
+
+  // Mamelones — líneas verticales semitransparentes en el tercio incisal
+  if (t.mamelones > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = (t.mamelones / 100) * 0.3;
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.lineWidth = Math.max(1, zone.w * 0.006);
+    var nLineas = 8;
+    for (var j = 1; j < nLineas; j++) {
+      var lx = zone.x + (zone.w / nLineas) * j;
+      ctx.beginPath();
+      ctx.moveTo(lx, incisalY);
+      ctx.lineTo(lx, incisalY + incisalH * 0.8);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Transparencia incisal — destination-out en el borde inferior
+  if (t.transparenciaIncisal > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalAlpha = (t.transparenciaIncisal / 100) * 0.25;
+    var edgeGrad = ctx.createLinearGradient(0, incisalY + incisalH * 0.7, 0, incisalY + incisalH);
+    edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    edgeGrad.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = edgeGrad;
+    ctx.fillRect(zone.x, incisalY + incisalH * 0.7, zone.w, incisalH * 0.3);
+    ctx.restore();
+  }
+}
+
+function edDibujarGuias(ctx, w, h, zone) {
+  var g = EDITOR_PARAMS.guias;
+  var midX = zone.x + zone.w / 2;
+
+  if (g.lineaMedia) {
+    ctx.save();
+    ctx.strokeStyle = '#3F8CFF';
+    ctx.lineWidth = Math.max(1, w * 0.002);
+    ctx.setLineDash([w * 0.01, w * 0.008]);
+    ctx.beginPath();
+    ctx.moveTo(midX, zone.y - zone.h * 0.3);
+    ctx.lineTo(midX, zone.y + zone.h * 1.3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (g.lineaIncisal) {
+    ctx.save();
+    ctx.strokeStyle = '#7c6af7';
+    ctx.lineWidth = Math.max(1, w * 0.002);
+    ctx.setLineDash([w * 0.01, w * 0.008]);
+    var signo = EDITOR_PARAMS.diseno.lineaIncisal === 'inclIzq' ? -1 : EDITOR_PARAMS.diseno.lineaIncisal === 'inclDer' ? 1 : 0;
+    var incl = signo * (EDITOR_PARAMS.diseno.lineaIncisalInclinacion || 0) * (Math.PI / 180);
+    var y0 = zone.y + zone.h * 0.62;
+    var dx = zone.w * 0.55;
+    var dy = Math.tan(incl) * dx;
+    ctx.beginPath();
+    ctx.moveTo(midX - dx, y0 - dy);
+    ctx.lineTo(midX + dx, y0 + dy);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (g.curvaSonrisa) {
+    ctx.save();
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = Math.max(1.5, w * 0.0025);
+    var curvasProf = {recto: 0.02, suave: 0.08, amplio: 0.16};
+    var prof = curvasProf[EDITOR_PARAMS.diseno.arcoSonrisa] || 0.08;
+    var y0c = zone.y + zone.h * 0.15;
+    var yMid = y0c + zone.h * prof * 4;
+    ctx.beginPath();
+    ctx.moveTo(zone.x, y0c);
+    ctx.quadraticCurveTo(midX, yMid, zone.x + zone.w, y0c);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (g.proporcionAurea) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(250,204,21,.8)';
+    ctx.lineWidth = Math.max(1, w * 0.0015);
+    var phi = 1.618;
+    var d1 = zone.w / 2 / phi;
+    var d2 = d1 / phi;
+    [midX - d1 - d2, midX - d1, midX, midX + d1, midX + d1 + d2].forEach(function(x) {
+      ctx.beginPath();
+      ctx.moveTo(x, zone.y);
+      ctx.lineTo(x, zone.y + zone.h);
+      ctx.stroke();
+    });
+    ctx.restore();
   }
 }
 
@@ -2837,6 +3209,7 @@ async function guardarCaso() {
     fotos_count: S.photos.length,
     diagnostico_claude: S.diagnosticoFacial || null,
     prompt_gemini_usado: S.promptGeminiUsado || null,
+    editor_params: S.editorParams || null,
     created_at: new Date().toISOString(),
   };
 
@@ -2892,6 +3265,7 @@ async function guardarCaso() {
         fotos_count: S.photos.length,
         diagnostico_claude: S.diagnosticoFacial || null,
         prompt_gemini_usado: S.promptGeminiUsado || null,
+        editor_params: S.editorParams || null,
         created_at: casoData.created_at,
       })
     });
@@ -2980,7 +3354,7 @@ function nuevoCaso() {
   S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
-  S.ajustes = {lineaMedia:'', forma:'', vita:'', valor:0, croma:0, opacidad:0};
+  S.editorParams = null;
   Q_STEP = 0; Q_ANSWERS = {}; Q_QUEJAS_CUSTOM = [];
   show('s-intro');
 }
