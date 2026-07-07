@@ -368,7 +368,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v52 — editor de diseño: guías arrastrables/zoom + regenerar con Gemini</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v53 — pantalla no se bloquea mientras Claude/Gemini procesan (Wake Lock)</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -2145,8 +2145,41 @@ async function conReintento(fn, intentos) {
   throw ultimoError;
 }
 
+// ══ WAKE LOCK — evita que la pantalla se bloquee mientras Claude/Gemini
+// procesan las fotos (puede tardar 30-60s con las 6 vistas). Sin esto, si
+// el celular se bloquea a medio proceso el usuario tiene que desbloquear
+// para ver si ya terminó. Silencioso si el navegador no lo soporta
+// (Safari viejo, etc.) — no rompe el flujo.
+var _wakeLock = null;
+var _wakeLockDeseado = false; // true mientras haya una espera de IA en curso
+
+async function solicitarWakeLock() {
+  _wakeLockDeseado = true;
+  if (!('wakeLock' in navigator)) return;
+  try {
+    _wakeLock = await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release', function() { _wakeLock = null; });
+  } catch (e) { _wakeLock = null; }
+}
+
+function liberarWakeLock() {
+  _wakeLockDeseado = false;
+  if (_wakeLock) {
+    _wakeLock.release().catch(function(){});
+    _wakeLock = null;
+  }
+}
+
+// El sistema libera el wake lock solo si la app pasa a segundo plano (se
+// apaga la pantalla, se cambia de app, etc.) — si el usuario vuelve
+// mientras la espera de IA sigue en curso, se vuelve a pedir.
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && _wakeLockDeseado && !_wakeLock) solicitarWakeLock();
+});
+
 async function processPhotos() {
   show('s-proc');
+  solicitarWakeLock();
 
   // Por si se está reintentando después de un error — regresar la
   // pantalla a su estado normal (antes se perdían las fotos por completo
@@ -2220,6 +2253,8 @@ async function processPhotos() {
   } catch(e) {
     console.error(e);
     mostrarErrorProceso(e);
+  } finally {
+    liberarWakeLock();
   }
 }
 
@@ -2708,6 +2743,7 @@ async function edAplicarDiseno() {
   if (!promptEditor) { show('s-res'); return; }
 
   if (btn) { btn.disabled = true; btn.innerHTML = 'Generando...'; }
+  solicitarWakeLock();
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
@@ -2722,6 +2758,7 @@ async function edAplicarDiseno() {
   } catch (e) {
     alert('No se pudo regenerar: ' + e.message);
   } finally {
+    liberarWakeLock();
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Regenerar simulación con estos cambios';
@@ -2799,6 +2836,7 @@ function edDibujarGuias(ctx, w, h, zone) {
 async function regenerarSimulacion() {
   var btn = document.getElementById('btn-regenerar');
   if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; btn.innerHTML = 'Generando...'; }
+  solicitarWakeLock();
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
@@ -2811,6 +2849,7 @@ async function regenerarSimulacion() {
   } catch (e) {
     alert('No se pudo generar de nuevo: ' + e.message);
   } finally {
+    liberarWakeLock();
     if (btn) {
       btn.style.opacity = '1';
       btn.style.pointerEvents = 'auto';
