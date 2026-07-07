@@ -368,7 +368,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v53 — pantalla no se bloquea mientras Claude/Gemini procesan (Wake Lock)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v54 — corrige 3 bugs del editor de diseño (auditoría)</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -2544,7 +2544,16 @@ function abrirEditorDiseno() {
   show('s-editor');
 }
 
-function edCerrar() { show('s-res'); }
+// Antes esto cerraba el editor sin avisar — si el usuario había movido
+// sliders/chips sin dar "Regenerar", se perdían en silencio y no había
+// forma de recuperarlos al reabrir (quedaba lo último guardado en
+// S.editorParams, o los defaults si nunca se había guardado nada).
+function edCerrar() {
+  var actual = JSON.stringify(EDITOR_PARAMS);
+  var guardado = JSON.stringify(S.editorParams || EDITOR_PARAMS_DEFAULT);
+  if (actual !== guardado && !confirm('Tienes cambios sin regenerar. ¿Salir de todas formas?')) return;
+  show('s-res');
+}
 
 function edRestablecer() {
   EDITOR_PARAMS = JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
@@ -2577,7 +2586,20 @@ function edChipClick(group, key, val, btn) {
     b.classList.remove('ed-active');
   });
   btn.classList.add('ed-active');
+  if (group === 'diseno' && key === 'lineaIncisal') edActualizarInclinacionDisabled();
   redrawEditor();
+}
+
+// El slider de inclinación solo tiene efecto si la línea incisal está
+// marcada como inclinada (izq/der) — con "Paralela" la guía siempre se
+// dibuja plana sin importar el valor del slider. Antes se podía mover
+// igual, dando la impresión de que no hacía nada.
+function edActualizarInclinacionDisabled() {
+  var el = document.getElementById('ed-lineaIncisalInclinacion');
+  if (!el) return;
+  var activo = EDITOR_PARAMS.diseno.lineaIncisal !== 'paralela';
+  el.disabled = !activo;
+  el.style.opacity = activo ? '1' : '.35';
 }
 
 function edGuiaToggle(nombre, btn) {
@@ -2625,6 +2647,7 @@ function edSyncControles() {
   var b = document.getElementById('ed-colorB'); if (b) b.value = p.encia.colorB;
   var swatch = document.getElementById('ed-color-swatch');
   if (swatch) swatch.style.background = 'rgb(' + p.encia.colorR + ',' + p.encia.colorG + ',' + p.encia.colorB + ')';
+  edActualizarInclinacionDisabled();
 }
 
 // Arrastrar sobre el canvas mueve la zona de guías (traducción); los
@@ -2740,7 +2763,13 @@ async function edAplicarDiseno() {
   var promptEditor = construirPromptEditor();
   S.editorParams = JSON.parse(JSON.stringify(EDITOR_PARAMS));
 
-  if (!promptEditor) { show('s-res'); return; }
+  // Antes esto regresaba en silencio si solo se habían tocado guías (que
+  // no generan instrucciones para Gemini) — el botón "Regenerar" parecía
+  // no hacer nada. Las guías ya quedaron guardadas arriba de todas formas.
+  if (!promptEditor) {
+    alert('No hay cambios de forma/color/línea para regenerar — solo ajustaste las guías de referencia, que ya se guardaron. Si quieres cambiar algo en la simulación, mueve algún control de "Diseño de sonrisa" o "Encía".');
+    return;
+  }
 
   if (btn) { btn.disabled = true; btn.innerHTML = 'Generando...'; }
   solicitarWakeLock();
