@@ -683,7 +683,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v15 — fix link de confirmación de correo (emailRedirectTo)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v17 — checkout y portal de facturación Stripe</div>
 
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <div id="auth-gate-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
@@ -1598,7 +1598,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <h3 id="mc-plan">Profesional</h3>
               <p id="mc-precio">$799 MXN/mes</p>
               <div class="plan-features" id="mc-features"></div>
-              <button class="upgrade-btn" onclick="alert('Próximamente: upgrade de plan desde la app.')">⬆ Cambiar plan</button>
+              <button class="upgrade-btn" onclick="abrirModalPlanes()">⬆ Cambiar plan</button>
+              <button class="upgrade-btn" style="margin-top:8px" onclick="abrirPortalStripe()">💳 Gestionar suscripción</button>
             </div>
           </div>
           <div>
@@ -1652,6 +1653,17 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <button class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarPaciente()">💾 Guardar paciente</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CAMBIAR DE PLAN ═══ -->
+<div class="modal-bg" id="modal-planes">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h3>Cambiar de plan</h3>
+      <button class="modal-close" onclick="cerrarModalPlanes()">✕</button>
+    </div>
+    <div id="mp-planes-grid" style="display:flex;gap:14px;flex-wrap:wrap"></div>
   </div>
 </div>
 
@@ -1938,6 +1950,16 @@ var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
 var EDGE_URL = SUPA_URL + '/functions/v1/claude';
 var USE_EDGE = true;
+
+// ══════════════════════════════════════════
+// STRIPE — suscripciones
+// ══════════════════════════════════════════
+// TODO: pegar aquí los 3 Price ID de Stripe (Dashboard → Product catalog →
+// cada plan → Price ID, empiezan con "price_"). Sin esto, los botones de
+// suscripción avisan que falta configuración en vez de fallar en silencio.
+var STRIPE_PRICE_IDS = { esencial: '', profesional: '', premium: '' };
+var STRIPE_CHECKOUT_URL = SUPA_URL + '/functions/v1/stripe-checkout';
+var STRIPE_PORTAL_URL = SUPA_URL + '/functions/v1/stripe-portal';
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
 var USE_EDGE = true;
@@ -2006,6 +2028,67 @@ var PLANES = {
   profesional: {label:'Profesional', precio:'$799',  limite:40,  features:['40 diagnósticos/mes','Análisis IA completo','Chatbot de pacientes','Historial ilimitado','3 usuarios']},
   premium:     {label:'Premium',     precio:'$1,499',limite:100, features:['100 diagnósticos/mes','Análisis IA avanzado','Colaboraciones TeamUp','Marca personalizada','Usuarios ilimitados']},
 };
+
+// ══════════════════════════════════════════
+// STRIPE — checkout y portal de facturación
+// ══════════════════════════════════════════
+function abrirModalPlanes() {
+  var planActual = (tenantData && tenantData.plan) || 'profesional';
+  var html = Object.keys(PLANES).map(function(key) {
+    var p = PLANES[key];
+    var esActual = key === planActual;
+    return '<div class="card" style="flex:1;min-width:180px">' +
+      '<div class="card-title">' + p.label + (esActual ? ' <span style="font-size:11px;color:var(--exito)">· plan actual</span>' : '') + '</div>' +
+      '<div style="font-size:20px;font-weight:800;margin:4px 0">' + p.precio + '<span style="font-size:12px;font-weight:400;color:var(--texto2)">/mes</span></div>' +
+      '<div class="plan-features" style="margin-top:10px">' + p.features.map(function(f){return '<div style="font-size:12px;color:var(--texto2)">✓ ' + f + '</div>';}).join('') + '</div>' +
+      (esActual ? '' : '<button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="suscribirsePlan(\'' + key + '\', this)">Suscribirme</button>') +
+      '</div>';
+  }).join('');
+  document.getElementById('mp-planes-grid').innerHTML = html;
+  document.getElementById('modal-planes').classList.add('visible');
+}
+function cerrarModalPlanes() {
+  document.getElementById('modal-planes').classList.remove('visible');
+}
+
+async function suscribirsePlan(planKey, btn) {
+  var priceId = STRIPE_PRICE_IDS[planKey];
+  if (!priceId) { alert('Falta terminar de configurar el cobro para este plan. Contacta a soporte.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirigiendo a pago...'; }
+  try {
+    var sess = await sb.auth.getSession();
+    var token = sess.data.session ? sess.data.session.access_token : null;
+    if (!token) { alert('Tu sesión expiró, vuelve a iniciar sesión.'); return; }
+    var resp = await fetch(STRIPE_CHECKOUT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ priceId: priceId, planKey: planKey })
+    });
+    var data = await resp.json();
+    if (data.url) { window.location.href = data.url; return; }
+    alert('No se pudo iniciar el pago: ' + (data.error || 'error desconocido'));
+  } catch (e) {
+    alert('No se pudo conectar con el servidor de pagos. Intenta de nuevo en unos minutos.');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Suscribirme'; }
+}
+
+async function abrirPortalStripe() {
+  try {
+    var sess = await sb.auth.getSession();
+    var token = sess.data.session ? sess.data.session.access_token : null;
+    if (!token) { alert('Tu sesión expiró, vuelve a iniciar sesión.'); return; }
+    var resp = await fetch(STRIPE_PORTAL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+    });
+    var data = await resp.json();
+    if (data.url) { window.location.href = data.url; return; }
+    alert(data.error || 'No se pudo abrir el portal de facturación.');
+  } catch (e) {
+    alert('No se pudo conectar con el servidor de pagos.');
+  }
+}
 
 // ══════════════════════════════════════════
 // AUTENTICACIÓN — Supabase Auth (antes era un login simulado en
@@ -2612,6 +2695,16 @@ async function irAPaso2() {
   if (!motivo) { alert('Selecciona el motivo de consulta'); return; }
   var tieneImg = imagenes.some(function(i) { return i !== null; });
   if (!tieneImg) { alert('Sube al menos una fotografía para el análisis'); return; }
+
+  // Límite del plan — antes esta barra solo era informativa, cualquiera podía
+  // seguir generando diagnósticos sin tope real sin importar su plan.
+  var usadoActual = tenantData.diagnosticos_usados || 0;
+  var limiteActual = tenantData.limite_diagnosticos || 40;
+  if (usadoActual >= limiteActual) {
+    alert('Ya usaste tus ' + limiteActual + ' diagnósticos de este mes (plan ' + (PLANES[tenantData.plan] ? PLANES[tenantData.plan].label : tenantData.plan) + ').\n\nSube de plan en "Mi Cuenta" para seguir generando diagnósticos este mes.');
+    return;
+  }
+
   mostrarPaso(2);
   document.getElementById('loading-ia').classList.add('visible');
   document.getElementById('analisis-resultado').style.display = 'none';
