@@ -368,7 +368,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v54 — corrige 3 bugs del editor de diseño (auditoría)</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v55 — reintento automático al regenerar (editor + "Generar de nuevo")</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -2263,6 +2263,21 @@ async function processPhotos() {
 // avance) — la doctora perdía las 6 fotos y tenía que repetirlas. Ahora se
 // queda en la misma pantalla, con las fotos intactas, y solo hay que
 // tocar "Reintentar".
+// Mensaje amigable compartido por los 3 puntos que pueden fallar al
+// generar con Gemini (proceso inicial, "Generar de nuevo", editor de
+// diseño) — "Load failed" es el error típico de iOS cuando se pierde la
+// conexión a medio fetch (pantalla bloqueada, cambio de wifi a datos,
+// señal débil).
+function mensajeErrorRegenerar(e) {
+  if (e && e.message === 'Load failed') {
+    return 'Se perdió la conexión mientras se generaba — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Ya reintentó automáticamente 2 veces; puedes darle otra vez.';
+  }
+  if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
+    return 'La generación tardó demasiado y se canceló. Puede pasar con conexiones lentas. Puedes intentar de nuevo.';
+  }
+  return 'No se pudo regenerar: ' + (e && e.message ? e.message : 'error desconocido') + '. Puedes intentar de nuevo.';
+}
+
 function mostrarErrorProceso(e) {
   var msg = 'Hubo un problema de conexión generando tu simulación. Tus fotos siguen guardadas — no hace falta repetirlas, solo reintenta.';
   if (e && e.message === 'Load failed') {
@@ -2777,7 +2792,10 @@ async function edAplicarDiseno() {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
     var promptCombinado = (S.promptGeminiUsado || '') + ' ' + promptEditor;
-    var nuevoResultado = await generateSimulation(promptCombinado, photo);
+    // Sin reintento, un solo parpadeo de red durante los ~15-20s de espera
+    // de Gemini ("Load failed" es el error típico de eso en iOS) tumbaba
+    // todo el intento — igual que ya se maneja en processPhotos().
+    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo); });
     S.results[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
     show('s-res');
@@ -2785,7 +2803,7 @@ async function edAplicarDiseno() {
     if (imgA) imgA.src = nuevoResultado;
     initBASlider();
   } catch (e) {
-    alert('No se pudo regenerar: ' + e.message);
+    alert(mensajeErrorRegenerar(e));
   } finally {
     liberarWakeLock();
     if (btn) {
@@ -2869,14 +2887,14 @@ async function regenerarSimulacion() {
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
-    var nuevoResultado = await generateSimulation(S.promptGeminiUsado, photo);
+    var nuevoResultado = await conReintento(function(){ return generateSimulation(S.promptGeminiUsado, photo); });
     S.results[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
     initBASlider();
   } catch (e) {
-    alert('No se pudo generar de nuevo: ' + e.message);
+    alert(mensajeErrorRegenerar(e));
   } finally {
     liberarWakeLock();
     if (btn) {
