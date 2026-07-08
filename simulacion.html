@@ -310,6 +310,28 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .q-option-single.selected{background:rgba(91,71,224,.16);border-color:rgba(91,71,224,.55);box-shadow:0 0 0 1px rgba(91,71,224,.15) inset}
 .q-option-single.selected::after{content:'';position:absolute;top:50%;right:14px;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--p);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-size:11px;background-repeat:no-repeat;background-position:center}
 
+/* Carrusel de tonos VITA — fotos reales de las muestras físicas */
+.vita-carousel{display:flex;gap:12px;overflow-x:auto;padding:8px 4px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.vita-carousel::-webkit-scrollbar{display:none}
+.vita-card{flex:0 0 92px;scroll-snap-align:center;flex-direction:column;align-items:center;gap:8px;padding:14px 8px 12px;position:relative;transition:transform 320ms cubic-bezier(.34,1.56,.64,1),box-shadow 320ms ease,border-color 320ms ease,background 320ms ease}
+.vita-card.selected::after{display:none} /* el checkmark del q-option-single normal no aplica aquí — el brillo ya indica selección */
+.vita-card-img{width:56px;height:84px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));transition:filter 320ms ease}
+.vita-card-lbl{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.3px;transition:color 320ms ease}
+@keyframes vitaGlowPulse{
+  0%{box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 0 rgba(124,106,247,0)}
+  45%{box-shadow:0 0 0 1px rgba(124,106,247,.65),0 8px 26px rgba(124,106,247,.6),0 0 46px rgba(124,106,247,.55)}
+  100%{box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 28px rgba(124,106,247,.35)}
+}
+.vita-card.selected{
+  transform:scale(1.1) translateY(-5px);
+  background:radial-gradient(circle at 50% 28%,rgba(124,106,247,.35),rgba(91,71,224,.1));
+  border-color:#7c6af7;
+  animation:vitaGlowPulse 550ms ease-out;
+  box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 28px rgba(124,106,247,.35);
+}
+.vita-card.selected .vita-card-img{filter:drop-shadow(0 4px 16px rgba(124,106,247,.75)) brightness(1.15) saturate(1.1)}
+.vita-card.selected .vita-card-lbl{color:#fff}
+
 /* ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
    Solo guías de referencia (línea media/incisal, curva de sonrisa,
    proporción áurea) sobre la imagen ya generada — el usuario las
@@ -368,7 +390,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v55 — reintento automático al regenerar (editor + "Generar de nuevo")</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v56 — carrusel de tonos VITA con fotos reales</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -559,12 +581,36 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <!-- Q3: Tono -->
     <div id="q-step-2" style="display:none">
       <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué tono de carillas recomiendas?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — del más natural al más blanco</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="q-option-single" data-q="tono" data-val="A2 — tono natural, igual a dientes sanos"><div style="width:36px;height:36px;border-radius:8px;background:#E9E0C5;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A2 — Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Como dientes sanos naturales</div></div></label>
-        <label class="q-option-single" data-q="tono" data-val="A1 — ligeramente más blanco que natural"><div style="width:36px;height:36px;border-radius:8px;background:#EDE8DA;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A1 — Suave</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Ligeramente más blanco</div></div></label>
-        <label class="q-option-single" data-q="tono" data-val="B1 — blanco notablemente brillante"><div style="width:36px;height:36px;border-radius:8px;background:#F4F0E2;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">B1 — Brillante</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Notablemente más blanco</div></div></label>
-        <label class="q-option-single" data-q="tono" data-val="Hollywood White — el blanco más intenso"><div style="width:36px;height:36px;border-radius:8px;background:#F9F9F6;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">Hollywood White</div><div style="font-size:12px;color:rgba(255,255,255,.5)">El más blanco — sonrisa de celebridad</div></div></label>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — desliza para ver las 7 opciones</div>
+      <div class="vita-carousel" id="vita-carousel">
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A1 shade — very light natural ivory white with a subtle warm undertone" tabindex="0" role="radio">
+          <img src="icons/vita-a1.png" alt="VITA A1" class="vita-card-img">
+          <span class="vita-card-lbl">A1</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A2 shade — natural healthy-looking light warm white, the most common natural tooth shade" tabindex="0" role="radio">
+          <img src="icons/vita-a2.png" alt="VITA A2" class="vita-card-img">
+          <span class="vita-card-lbl">A2</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A3 shade — natural warm white with slightly more yellow saturation than A2" tabindex="0" role="radio">
+          <img src="icons/vita-a3.png" alt="VITA A3" class="vita-card-img">
+          <span class="vita-card-lbl">A3</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL1 shade — bleached white, the lightest and most subtle bright white bleach shade" tabindex="0" role="radio">
+          <img src="icons/vita-bl1.png" alt="VITA BL1" class="vita-card-img">
+          <span class="vita-card-lbl">BL1</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL2 shade — bleached white, noticeably whiter than natural shades" tabindex="0" role="radio">
+          <img src="icons/vita-bl2.png" alt="VITA BL2" class="vita-card-img">
+          <span class="vita-card-lbl">BL2</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL3 shade — bleached white, very bright, a popular polished cosmetic whitening look" tabindex="0" role="radio">
+          <img src="icons/vita-bl3.png" alt="VITA BL3" class="vita-card-img">
+          <span class="vita-card-lbl">BL3</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL4 shade — the brightest bleached white available, maximum Hollywood-style whitening" tabindex="0" role="radio">
+          <img src="icons/vita-bl4.png" alt="VITA BL4" class="vita-card-img">
+          <span class="vita-card-lbl">BL4</span>
+        </label>
       </div>
     </div>
 
@@ -1503,6 +1549,13 @@ document.addEventListener('click', function(e) {
   });
   opt.classList.add('selected');
   Q_ANSWERS[q] = val;
+
+  // Carrusel de tonos VITA — al elegir uno, el carrusel se desliza solo
+  // para centrarlo (la sensación de "movimiento" además del brillo/escala
+  // que ya hace el CSS con .vita-card.selected)
+  if (opt.classList.contains('vita-card')) {
+    opt.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  }
 });
 
 // Son <label> sin un <input> real adentro, así que por defecto no se pueden
