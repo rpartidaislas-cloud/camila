@@ -311,7 +311,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .q-option-single.selected::after{content:'';position:absolute;top:50%;right:14px;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--p);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-size:11px;background-repeat:no-repeat;background-position:center}
 
 /* Carrusel de tonos VITA — fotos reales de las muestras físicas */
-.vita-carousel{display:flex;gap:12px;overflow-x:auto;padding:8px 4px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.vita-carousel{display:flex;gap:12px;overflow-x:auto;padding:8px calc(50% - 46px) 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .vita-carousel::-webkit-scrollbar{display:none}
 .vita-card{flex:0 0 92px;scroll-snap-align:center;flex-direction:column;align-items:center;gap:8px;padding:14px 8px 12px;position:relative;transition:transform 320ms cubic-bezier(.34,1.56,.64,1),box-shadow 320ms ease,border-color 320ms ease,background 320ms ease}
 .vita-card.selected::after{display:none} /* el checkmark del q-option-single normal no aplica aquí — el brillo ya indica selección */
@@ -390,7 +390,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v56 — carrusel de tonos VITA con fotos reales</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v57 — carrusel de tonos VITA: selección por arrastre, el del centro resalta</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1480,6 +1480,45 @@ function showQStep(n) {
   if (backBtn) backBtn.style.display = n > 0 ? 'block' : 'none';
   if (nextBtn) nextBtn.textContent = n === 3 ? '¡Tomar fotos! 📸' : 'Siguiente →';
   saveProgress('s-q');
+
+  // El carrusel de tonos recién se puede medir (getBoundingClientRect)
+  // una vez que el paso deja de estar display:none — se espera un frame.
+  // La primera vez que se entra (nada seleccionado todavía) se centra
+  // A2 como tono por default; si ya había una selección previa (se
+  // volvió a este paso con "← Atrás"), se respeta la posición de scroll
+  // que ya tenía.
+  if (n === 2) {
+    requestAnimationFrame(function() {
+      if (!document.querySelector('.vita-card.selected')) {
+        var a2 = document.querySelector('.vita-card[data-val*="VITA A2"]');
+        if (a2) a2.scrollIntoView({behavior:'auto', inline:'center', block:'nearest'});
+      }
+      actualizarVitaCentrado();
+    });
+  }
+}
+
+// Carrusel de tonos VITA — se selecciona por posición, no por click: el
+// que queda más cerca del centro del carrusel es el elegido, como una
+// rueda. Se recalcula cada vez que el usuario arrastra/desliza.
+var _vitaScrollTimer = null;
+function actualizarVitaCentrado() {
+  var carrusel = document.getElementById('vita-carousel');
+  if (!carrusel) return;
+  var rectCarrusel = carrusel.getBoundingClientRect();
+  if (!rectCarrusel.width) return; // oculto (display:none) — nada que medir
+  var centroCarrusel = rectCarrusel.left + rectCarrusel.width / 2;
+  var masCercana = null, menorDist = Infinity;
+  document.querySelectorAll('.vita-card').forEach(function(card) {
+    var r = card.getBoundingClientRect();
+    var centroCard = r.left + r.width / 2;
+    var dist = Math.abs(centroCard - centroCarrusel);
+    if (dist < menorDist) { menorDist = dist; masCercana = card; }
+  });
+  if (!masCercana) return;
+  document.querySelectorAll('.vita-card').forEach(function(c) { c.classList.remove('selected'); });
+  masCercana.classList.add('selected');
+  Q_ANSWERS.tono = masCercana.getAttribute('data-val');
 }
 
 function qNext() {
@@ -1543,20 +1582,32 @@ document.addEventListener('click', function(e) {
   var q = opt.getAttribute('data-q');
   var val = opt.getAttribute('data-val');
   if (!q || !val) return;
+
+  // El carrusel de tonos VITA no se selecciona por click directo — se
+  // selecciona el que queda al centro al arrastrar. Tocar una tarjeta es
+  // solo un atajo para deslizarla al centro; actualizarVitaCentrado()
+  // (enganchada al scroll) es quien realmente la marca como elegida,
+  // igual que si el usuario la hubiera llevado ahí con el dedo.
+  if (opt.classList.contains('vita-card')) {
+    opt.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    return;
+  }
+
   // Deselect others in same group
   document.querySelectorAll('.q-option-single[data-q="' + q + '"]').forEach(function(el) {
     el.classList.remove('selected');
   });
   opt.classList.add('selected');
   Q_ANSWERS[q] = val;
-
-  // Carrusel de tonos VITA — al elegir uno, el carrusel se desliza solo
-  // para centrarlo (la sensación de "movimiento" además del brillo/escala
-  // que ya hace el CSS con .vita-card.selected)
-  if (opt.classList.contains('vita-card')) {
-    opt.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-  }
 });
+
+var vitaCarruselEl = document.getElementById('vita-carousel');
+if (vitaCarruselEl) {
+  vitaCarruselEl.addEventListener('scroll', function() {
+    clearTimeout(_vitaScrollTimer);
+    _vitaScrollTimer = setTimeout(actualizarVitaCentrado, 120);
+  }, {passive:true});
+}
 
 // Son <label> sin un <input> real adentro, así que por defecto no se pueden
 // seleccionar con teclado (solo con click/touch) — se agrega tabindex +
