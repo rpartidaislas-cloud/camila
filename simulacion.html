@@ -1000,11 +1000,49 @@ window.addEventListener('unhandledrejection', function(ev) {
 var CFG = {
   waNum: '523312345678',
   edgeUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/claude',
+  segmentUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/segment-teeth',
   supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
   supaUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co',
   tenantId: null,
   tenantConfig: null,
 };
+
+// Rangos FDI por arcada -- usados para filtrar qué dientes quedan
+// "en alcance" según la zona de tratamiento elegida por el dentista.
+var FDI_SUPERIOR = ['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28'];
+var FDI_INFERIOR = ['31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48'];
+
+// Segmenta la foto frontal para saber la posición real de cada diente.
+// No se usa para influir en el prompt de Gemini (ver nota en el chat) --
+// su propósito es alimentar al editor final para bloquear/desbloquear
+// dientes según la zona de tratamiento (S.questionnaire.zona).
+// NOTA SIN PROBAR: la función espera imageUrl, aquí se le manda un data URI
+// base64 ('data:image/jpeg;base64,...'). Replicate normalmente acepta esto,
+// pero hay que confirmarlo con una corrida real antes de confiar en esto.
+async function segmentarDientesFrontal(fotoB64, zona) {
+  try {
+    var dataUri = 'data:image/jpeg;base64,' + fotoB64;
+    var resp = await fetch(CFG.segmentUrl, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+      body: JSON.stringify({ imageUrl: dataUri, casoId: null, tenantId: CFG.tenantId || null })
+    });
+    var data = await resp.json();
+    if (!resp.ok) { console.warn('Segmentación falló:', data.error); return null; }
+
+    var rango = zona === 'arriba' ? FDI_SUPERIOR : zona === 'abajo' ? FDI_INFERIOR : FDI_SUPERIOR.concat(FDI_INFERIOR);
+    var masksEnAlcance = (data.masks || []).filter(function(m){ return m.fdi && rango.indexOf(m.fdi) !== -1; });
+
+    return {
+      masks: data.masks,
+      fdiEditable: masksEnAlcance.map(function(m){ return m.fdi; }),
+      zona: zona,
+    };
+  } catch(e) {
+    console.warn('Segmentación excepción (no bloquea el flujo):', e.message);
+    return null;
+  }
+}
 
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
 var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design) con amplia experiencia clínica. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros faciodentales objetivos que servirán para guiar un diseño de carillas.\n\n' +
@@ -2221,12 +2259,18 @@ async function processPhotos() {
     var procSub = document.getElementById('proc-sub-main');
     if (procSub) procSub.textContent = 'Analizando proporciones faciales...';
     var diagnosticoFacial = null;
+    var zonaTratamiento = (S.questionnaire && S.questionnaire.zona) || 'ambos';
+    // Segmentación corre en paralelo al análisis de Claude -- no es
+    // bloqueante: si falla, el flujo sigue igual que hoy (segmentacionDental
+    // simplemente queda null y el editor no bloquea dientes por zona).
+    var segmentacionPromise = segmentarDientesFrontal(frontalForAnalysis.b64, zonaTratamiento);
     try {
       diagnosticoFacial = await conReintento(function(){ return analizarConClaude(frontalForAnalysis.b64); });
     } catch (e) { diagnosticoFacial = null; }
     S.diagnosticoFacial = diagnosticoFacial;
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
     S.promptGeminiUsado = clinicalPrompt || null;
+    S.segmentacionDental = await segmentacionPromise;
 
     // Step 2: Gemini generates simulations for las 3 vistas (frontal + 2
     // perfiles), en paralelo — la frontal es obligatoria (si falla, se
@@ -3260,6 +3304,8 @@ async function guardarCaso() {
     diagnostico_claude: S.diagnosticoFacial || null,
     prompt_gemini_usado: S.promptGeminiUsado || null,
     editor_params: S.editorParams || null,
+    segmentacion: (S.segmentacionDental && S.segmentacionDental.masks) || null,
+    fdi_editable: (S.segmentacionDental && S.segmentacionDental.fdiEditable) || null,
     created_at: new Date().toISOString(),
   };
 
@@ -3316,6 +3362,8 @@ async function guardarCaso() {
         diagnostico_claude: S.diagnosticoFacial || null,
         prompt_gemini_usado: S.promptGeminiUsado || null,
         editor_params: S.editorParams || null,
+        segmentacion: (S.segmentacionDental && S.segmentacionDental.masks) || null,
+        fdi_editable: (S.segmentacionDental && S.segmentacionDental.fdiEditable) || null,
         created_at: casoData.created_at,
       })
     });
