@@ -1066,7 +1066,10 @@ async function guardarCasoCompleto(){
     imagen_url: imageUrl,
     segmentacion: { masks, generatedAt: new Date().toISOString() },
     segmentacion_encia: { masks: gumMasks, generatedAt: new Date().toISOString() },
-    editor_params: { formaState, gumFormaState, carillasPegadas, calibracionPxPorMm },
+    // Columna propia, distinta de "editor_params" -- esa la usa el editor de
+    // líneas guía de simulacion.html con una forma de datos totalmente
+    // distinta; compartir columna hacía que uno le borrara los datos al otro.
+    editor_params_clinico: { formaState, gumFormaState, carillasPegadas, calibracionPxPorMm },
   };
 
   statusEl.textContent = 'Guardando...';
@@ -1119,10 +1122,10 @@ async function cargarCasoCompleto(){
 
     masks = (caso.segmentacion && caso.segmentacion.masks) || [];
     gumMasks = (caso.segmentacion_encia && caso.segmentacion_encia.masks) || [];
-    formaState = (caso.editor_params && caso.editor_params.formaState) || {};
-    gumFormaState = (caso.editor_params && caso.editor_params.gumFormaState) || {};
-    carillasPegadas = (caso.editor_params && caso.editor_params.carillasPegadas) || [];
-    calibracionPxPorMm = (caso.editor_params && caso.editor_params.calibracionPxPorMm) || null;
+    formaState = (caso.editor_params_clinico && caso.editor_params_clinico.formaState) || {};
+    gumFormaState = (caso.editor_params_clinico && caso.editor_params_clinico.gumFormaState) || {};
+    carillasPegadas = (caso.editor_params_clinico && caso.editor_params_clinico.carillasPegadas) || [];
+    calibracionPxPorMm = (caso.editor_params_clinico && caso.editor_params_clinico.calibracionPxPorMm) || null;
     document.getElementById('calibracionStatus').textContent = calibracionPxPorMm
       ? `✓ Calibrado (${calibracionPxPorMm.toFixed(1)} px = 1mm) -- vuelve a calibrar si cambias de foto.`
       : 'Sin calibrar -- las medidas se muestran en píxeles.';
