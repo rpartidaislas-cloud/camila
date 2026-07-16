@@ -780,10 +780,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
   <div class="res-body">
 
-    <!-- Editor de diseño -->
-    <button onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(124,106,247,.14);border:1.5px solid rgba(124,106,247,.4);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
+    <!-- Editor de diseño (líneas guía + regenerar con Gemini -- ajustes rápidos) -->
+    <button onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(124,106,247,.14);border:1.5px solid rgba(124,106,247,.4);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       Editar diseño
+    </button>
+
+    <!-- Revisión clínica avanzada (segmentación real por diente, tonos VITA, medidas) -->
+    <button id="btn-revision-clinica" onclick="abrirRevisionClinica()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Revisión clínica avanzada
     </button>
 
     <!-- Score -->
@@ -1292,6 +1298,7 @@ var S = {
   landmarkerFailed: false,
   precios: null,
   editorParams: null,
+  casoId: null, // id compartido entre localStorage y Supabase -- se fija en el primer guardado y se reutiliza (ver guardarCaso/abrirRevisionClinica) para no crear filas duplicadas
 };
 
 // facing: cámara por default para esa foto — 'user' (frontal) para las 3
@@ -2663,6 +2670,72 @@ function abrirEditorDiseno() {
   show('s-editor');
 }
 
+// ══ REVISIÓN CLÍNICA AVANZADA — abre revision-clinica.html con segmentación
+// real por diente sobre la simulación ya generada por Gemini ══
+var FOTOS_BUCKET = 'camila-fotos';
+
+// La simulación de Gemini normalmente llega como data:image/...;base64,...
+// (nunca se sube a Storage) -- el editor de revisión necesita una URL
+// pública real para poder mandarla a segmentar. La sube solo si hace falta;
+// si ya es una URL http(s) (por ejemplo si algún día Gemini regresa
+// imageUrl en vez de imageBase64), la reutiliza tal cual.
+async function subirResultadoAStorage(dataUrlOFoto, casoId) {
+  if (/^https?:\/\//.test(dataUrlOFoto)) return dataUrlOFoto;
+  const blob = await (await fetch(dataUrlOFoto)).blob();
+  const ext = (blob.type.split('/')[1] || 'png').replace(/[^a-z0-9]/g, '') || 'png';
+  const path = casoId + '/simulacion_' + Date.now() + '.' + ext;
+  const resp = await fetch(CFG.supaUrl + '/storage/v1/object/' + FOTOS_BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey, 'Content-Type': blob.type },
+    body: blob,
+  });
+  if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
+  return CFG.supaUrl + '/storage/v1/object/public/' + FOTOS_BUCKET + '/' + path;
+}
+
+async function abrirRevisionClinica() {
+  var view = S.baVistaActual || 'frontal';
+  var url = (S.results || {})[view] || S.result;
+  if (!url) { alert('Genera la simulación primero.'); return; }
+
+  var btn = document.getElementById('btn-revision-clinica');
+  var textoOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparando...'; }
+
+  try {
+    // Mismo id que usa guardarCaso() -- si el caso ya se guardó, reutiliza
+    // esa fila en vez de crear una duplicada.
+    if (!S.casoId) S.casoId = 'caso_' + Date.now();
+    var casoId = S.casoId;
+    var imagenUrl = await subirResultadoAStorage(url, casoId);
+
+    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos?on_conflict=id', {
+      method: 'POST',
+      headers: {
+        'apikey': CFG.supaKey,
+        'Authorization': 'Bearer ' + CFG.supaKey,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify({
+        id: casoId,
+        tenant_id: CFG.tenantId || 'local',
+        imagen_url: imagenUrl,
+        diagnostico_claude: S.diagnosticoFacial || null,
+        prompt_gemini_usado: S.promptGeminiUsado || null,
+      }),
+    });
+    if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
+
+    window.open('revision-clinica.html?caso=' + encodeURIComponent(casoId) + '&tenant=' + encodeURIComponent(CFG.tenantId || 'local'), '_blank');
+  } catch (e) {
+    console.error('[SMYLE] Error abriendo revisión clínica:', e);
+    alert('No se pudo preparar la revisión clínica: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
+  }
+}
+
 // Antes esto cerraba el editor sin avisar — si el usuario había movido
 // sliders/chips sin dar "Regenerar", se perdían en silencio y no había
 // forma de recuperarlos al reabrir (quedaba lo último guardado en
@@ -3331,7 +3404,11 @@ async function guardarCaso() {
 
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
-  var casoId = 'caso_' + Date.now();
+  // Reutiliza el mismo id si el caso ya se guardó antes (p.ej. desde
+  // "Revisión clínica avanzada") -- si no, cada guardado creaba una fila
+  // nueva en vez de actualizar la existente.
+  if (!S.casoId) S.casoId = 'caso_' + Date.now();
+  var casoId = S.casoId;
 
   var casoData = {
     id: casoId,
@@ -3378,15 +3455,16 @@ async function guardarCaso() {
   // Save to Supabase
   var savedToCloud = false;
   try {
-    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos', {
+    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos?on_conflict=id', {
       method: 'POST',
       headers: {
         'apikey': CFG.supaKey,
         'Authorization': 'Bearer ' + CFG.supaKey,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
       body: JSON.stringify({
+        id: casoId,
         tenant_id: CFG.tenantId || null,
         nombre_paciente: casoData.nombre_paciente,
         telefono: casoData.telefono,
