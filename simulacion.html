@@ -2674,6 +2674,16 @@ function abrirEditorDiseno() {
 // real por diente sobre la simulación ya generada por Gemini ══
 var FOTOS_BUCKET = 'camila-fotos';
 
+// La columna "id" de camila_casos es tipo uuid en Postgres -- un id tipo
+// "caso_" + timestamp truena con "invalid input syntax for type uuid".
+function generarUuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // La simulación de Gemini normalmente llega como data:image/...;base64,...
 // (nunca se sube a Storage) -- el editor de revisión necesita una URL
 // pública real para poder mandarla a segmentar. La sube solo si hace falta;
@@ -2705,7 +2715,7 @@ async function abrirRevisionClinica() {
   try {
     // Mismo id que usa guardarCaso() -- si el caso ya se guardó, reutiliza
     // esa fila en vez de crear una duplicada.
-    if (!S.casoId) S.casoId = 'caso_' + Date.now();
+    if (!S.casoId) S.casoId = generarUuid();
     var casoId = S.casoId;
     var imagenUrl = await subirResultadoAStorage(url, casoId);
 
@@ -3407,7 +3417,7 @@ async function guardarCaso() {
   // Reutiliza el mismo id si el caso ya se guardó antes (p.ej. desde
   // "Revisión clínica avanzada") -- si no, cada guardado creaba una fila
   // nueva en vez de actualizar la existente.
-  if (!S.casoId) S.casoId = 'caso_' + Date.now();
+  if (!S.casoId) S.casoId = generarUuid();
   var casoId = S.casoId;
 
   var casoData = {
