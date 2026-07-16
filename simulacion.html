@@ -310,6 +310,28 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .q-option-single.selected{background:rgba(91,71,224,.16);border-color:rgba(91,71,224,.55);box-shadow:0 0 0 1px rgba(91,71,224,.15) inset}
 .q-option-single.selected::after{content:'';position:absolute;top:50%;right:14px;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--p);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-size:11px;background-repeat:no-repeat;background-position:center}
 
+/* Carrusel de tonos VITA — fotos reales de las muestras físicas */
+.vita-carousel{display:flex;gap:12px;overflow-x:auto;padding:8px calc(50% - 46px) 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.vita-carousel::-webkit-scrollbar{display:none}
+.vita-card{flex:0 0 92px;scroll-snap-align:center;flex-direction:column;align-items:center;gap:8px;padding:14px 8px 12px;position:relative;transition:transform 320ms cubic-bezier(.34,1.56,.64,1),box-shadow 320ms ease,border-color 320ms ease,background 320ms ease}
+.vita-card.selected::after{display:none} /* el checkmark del q-option-single normal no aplica aquí — el brillo ya indica selección */
+.vita-card-img{width:56px;height:84px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));transition:filter 320ms ease}
+.vita-card-lbl{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.3px;transition:color 320ms ease}
+@keyframes vitaGlowPulse{
+  0%{box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 0 rgba(124,106,247,0)}
+  45%{box-shadow:0 0 0 1px rgba(124,106,247,.65),0 8px 26px rgba(124,106,247,.6),0 0 46px rgba(124,106,247,.55)}
+  100%{box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 28px rgba(124,106,247,.35)}
+}
+.vita-card.selected{
+  transform:scale(1.1) translateY(-5px);
+  background:radial-gradient(circle at 50% 28%,rgba(124,106,247,.35),rgba(91,71,224,.1));
+  border-color:#7c6af7;
+  animation:vitaGlowPulse 550ms ease-out;
+  box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 28px rgba(124,106,247,.35);
+}
+.vita-card.selected .vita-card-img{filter:drop-shadow(0 4px 16px rgba(124,106,247,.75)) brightness(1.15) saturate(1.1)}
+.vita-card.selected .vita-card-lbl{color:#fff}
+
 /* ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
    Solo guías de referencia (línea media/incisal, curva de sonrisa,
    proporción áurea) sobre la imagen ya generada — el usuario las
@@ -368,7 +390,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v56 — segmentación dental (Replicate/SAM) integrada al flujo</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v57 — carrusel de tonos VITA: selección por arrastre, el del centro resalta</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -559,12 +581,36 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     <!-- Q3: Tono -->
     <div id="q-step-2" style="display:none">
       <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué tono de carillas recomiendas?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — del más natural al más blanco</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="q-option-single" data-q="tono" data-val="A2 — tono natural, igual a dientes sanos"><div style="width:36px;height:36px;border-radius:8px;background:#E9E0C5;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A2 — Natural</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Como dientes sanos naturales</div></div></label>
-        <label class="q-option-single" data-q="tono" data-val="A1 — ligeramente más blanco que natural"><div style="width:36px;height:36px;border-radius:8px;background:#EDE8DA;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">A1 — Suave</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Ligeramente más blanco</div></div></label>
-        <label class="q-option-single" data-q="tono" data-val="B1 — blanco notablemente brillante"><div style="width:36px;height:36px;border-radius:8px;background:#F4F0E2;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">B1 — Brillante</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Notablemente más blanco</div></div></label>
-        <label class="q-option-single" data-q="tono" data-val="Hollywood White — el blanco más intenso"><div style="width:36px;height:36px;border-radius:8px;background:#F9F9F6;border:2px solid rgba(255,255,255,.2);flex-shrink:0"></div><div><div style="font-weight:600;color:#fff">Hollywood White</div><div style="font-size:12px;color:rgba(255,255,255,.5)">El más blanco — sonrisa de celebridad</div></div></label>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — desliza para ver las 7 opciones</div>
+      <div class="vita-carousel" id="vita-carousel">
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A1 shade — very light natural ivory white with a subtle warm undertone" tabindex="0" role="radio">
+          <img src="icons/vita-a1.png" alt="VITA A1" class="vita-card-img">
+          <span class="vita-card-lbl">A1</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A2 shade — natural healthy-looking light warm white, the most common natural tooth shade" tabindex="0" role="radio">
+          <img src="icons/vita-a2.png" alt="VITA A2" class="vita-card-img">
+          <span class="vita-card-lbl">A2</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A3 shade — natural warm white with slightly more yellow saturation than A2" tabindex="0" role="radio">
+          <img src="icons/vita-a3.png" alt="VITA A3" class="vita-card-img">
+          <span class="vita-card-lbl">A3</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL1 shade — bleached white, the lightest and most subtle bright white bleach shade" tabindex="0" role="radio">
+          <img src="icons/vita-bl1.png" alt="VITA BL1" class="vita-card-img">
+          <span class="vita-card-lbl">BL1</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL2 shade — bleached white, noticeably whiter than natural shades" tabindex="0" role="radio">
+          <img src="icons/vita-bl2.png" alt="VITA BL2" class="vita-card-img">
+          <span class="vita-card-lbl">BL2</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL3 shade — bleached white, very bright, a popular polished cosmetic whitening look" tabindex="0" role="radio">
+          <img src="icons/vita-bl3.png" alt="VITA BL3" class="vita-card-img">
+          <span class="vita-card-lbl">BL3</span>
+        </label>
+        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL4 shade — the brightest bleached white available, maximum Hollywood-style whitening" tabindex="0" role="radio">
+          <img src="icons/vita-bl4.png" alt="VITA BL4" class="vita-card-img">
+          <span class="vita-card-lbl">BL4</span>
+        </label>
       </div>
     </div>
 
@@ -734,10 +780,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
   <div class="res-body">
 
-    <!-- Editor de diseño -->
-    <button onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(124,106,247,.14);border:1.5px solid rgba(124,106,247,.4);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
+    <!-- Editor de diseño (líneas guía + regenerar con Gemini -- ajustes rápidos) -->
+    <button onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(124,106,247,.14);border:1.5px solid rgba(124,106,247,.4);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       Editar diseño
+    </button>
+
+    <!-- Revisión clínica avanzada (segmentación real por diente, tonos VITA, medidas) -->
+    <button id="btn-revision-clinica" onclick="abrirRevisionClinica()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Revisión clínica avanzada
     </button>
 
     <!-- Score -->
@@ -1000,49 +1052,11 @@ window.addEventListener('unhandledrejection', function(ev) {
 var CFG = {
   waNum: '523312345678',
   edgeUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/claude',
-  segmentUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/segment-teeth',
   supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
   supaUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co',
   tenantId: null,
   tenantConfig: null,
 };
-
-// Rangos FDI por arcada -- usados para filtrar qué dientes quedan
-// "en alcance" según la zona de tratamiento elegida por el dentista.
-var FDI_SUPERIOR = ['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28'];
-var FDI_INFERIOR = ['31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48'];
-
-// Segmenta la foto frontal para saber la posición real de cada diente.
-// No se usa para influir en el prompt de Gemini (ver nota en el chat) --
-// su propósito es alimentar al editor final para bloquear/desbloquear
-// dientes según la zona de tratamiento (S.questionnaire.zona).
-// NOTA SIN PROBAR: la función espera imageUrl, aquí se le manda un data URI
-// base64 ('data:image/jpeg;base64,...'). Replicate normalmente acepta esto,
-// pero hay que confirmarlo con una corrida real antes de confiar en esto.
-async function segmentarDientesFrontal(fotoB64, zona) {
-  try {
-    var dataUri = 'data:image/jpeg;base64,' + fotoB64;
-    var resp = await fetch(CFG.segmentUrl, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
-      body: JSON.stringify({ imageUrl: dataUri, casoId: null, tenantId: CFG.tenantId || null })
-    });
-    var data = await resp.json();
-    if (!resp.ok) { console.warn('Segmentación falló:', data.error); return null; }
-
-    var rango = zona === 'arriba' ? FDI_SUPERIOR : zona === 'abajo' ? FDI_INFERIOR : FDI_SUPERIOR.concat(FDI_INFERIOR);
-    var masksEnAlcance = (data.masks || []).filter(function(m){ return m.fdi && rango.indexOf(m.fdi) !== -1; });
-
-    return {
-      masks: data.masks,
-      fdiEditable: masksEnAlcance.map(function(m){ return m.fdi; }),
-      zona: zona,
-    };
-  } catch(e) {
-    console.warn('Segmentación excepción (no bloquea el flujo):', e.message);
-    return null;
-  }
-}
 
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
 var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design) con amplia experiencia clínica. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros faciodentales objetivos que servirán para guiar un diseño de carillas.\n\n' +
@@ -1284,6 +1298,7 @@ var S = {
   landmarkerFailed: false,
   precios: null,
   editorParams: null,
+  casoId: null, // id compartido entre localStorage y Supabase -- se fija en el primer guardado y se reutiliza (ver guardarCaso/abrirRevisionClinica) para no crear filas duplicadas
 };
 
 // facing: cámara por default para esa foto — 'user' (frontal) para las 3
@@ -1472,6 +1487,45 @@ function showQStep(n) {
   if (backBtn) backBtn.style.display = n > 0 ? 'block' : 'none';
   if (nextBtn) nextBtn.textContent = n === 3 ? '¡Tomar fotos! 📸' : 'Siguiente →';
   saveProgress('s-q');
+
+  // El carrusel de tonos recién se puede medir (getBoundingClientRect)
+  // una vez que el paso deja de estar display:none — se espera un frame.
+  // La primera vez que se entra (nada seleccionado todavía) se centra
+  // A2 como tono por default; si ya había una selección previa (se
+  // volvió a este paso con "← Atrás"), se respeta la posición de scroll
+  // que ya tenía.
+  if (n === 2) {
+    requestAnimationFrame(function() {
+      if (!document.querySelector('.vita-card.selected')) {
+        var a2 = document.querySelector('.vita-card[data-val*="VITA A2"]');
+        if (a2) a2.scrollIntoView({behavior:'auto', inline:'center', block:'nearest'});
+      }
+      actualizarVitaCentrado();
+    });
+  }
+}
+
+// Carrusel de tonos VITA — se selecciona por posición, no por click: el
+// que queda más cerca del centro del carrusel es el elegido, como una
+// rueda. Se recalcula cada vez que el usuario arrastra/desliza.
+var _vitaScrollTimer = null;
+function actualizarVitaCentrado() {
+  var carrusel = document.getElementById('vita-carousel');
+  if (!carrusel) return;
+  var rectCarrusel = carrusel.getBoundingClientRect();
+  if (!rectCarrusel.width) return; // oculto (display:none) — nada que medir
+  var centroCarrusel = rectCarrusel.left + rectCarrusel.width / 2;
+  var masCercana = null, menorDist = Infinity;
+  document.querySelectorAll('.vita-card').forEach(function(card) {
+    var r = card.getBoundingClientRect();
+    var centroCard = r.left + r.width / 2;
+    var dist = Math.abs(centroCard - centroCarrusel);
+    if (dist < menorDist) { menorDist = dist; masCercana = card; }
+  });
+  if (!masCercana) return;
+  document.querySelectorAll('.vita-card').forEach(function(c) { c.classList.remove('selected'); });
+  masCercana.classList.add('selected');
+  Q_ANSWERS.tono = masCercana.getAttribute('data-val');
 }
 
 function qNext() {
@@ -1535,6 +1589,17 @@ document.addEventListener('click', function(e) {
   var q = opt.getAttribute('data-q');
   var val = opt.getAttribute('data-val');
   if (!q || !val) return;
+
+  // El carrusel de tonos VITA no se selecciona por click directo — se
+  // selecciona el que queda al centro al arrastrar. Tocar una tarjeta es
+  // solo un atajo para deslizarla al centro; actualizarVitaCentrado()
+  // (enganchada al scroll) es quien realmente la marca como elegida,
+  // igual que si el usuario la hubiera llevado ahí con el dedo.
+  if (opt.classList.contains('vita-card')) {
+    opt.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    return;
+  }
+
   // Deselect others in same group
   document.querySelectorAll('.q-option-single[data-q="' + q + '"]').forEach(function(el) {
     el.classList.remove('selected');
@@ -1542,6 +1607,14 @@ document.addEventListener('click', function(e) {
   opt.classList.add('selected');
   Q_ANSWERS[q] = val;
 });
+
+var vitaCarruselEl = document.getElementById('vita-carousel');
+if (vitaCarruselEl) {
+  vitaCarruselEl.addEventListener('scroll', function() {
+    clearTimeout(_vitaScrollTimer);
+    _vitaScrollTimer = setTimeout(actualizarVitaCentrado, 120);
+  }, {passive:true});
+}
 
 // Son <label> sin un <input> real adentro, así que por defecto no se pueden
 // seleccionar con teclado (solo con click/touch) — se agrega tabindex +
@@ -2259,18 +2332,12 @@ async function processPhotos() {
     var procSub = document.getElementById('proc-sub-main');
     if (procSub) procSub.textContent = 'Analizando proporciones faciales...';
     var diagnosticoFacial = null;
-    var zonaTratamiento = (S.questionnaire && S.questionnaire.zona) || 'ambos';
-    // Segmentación corre en paralelo al análisis de Claude -- no es
-    // bloqueante: si falla, el flujo sigue igual que hoy (segmentacionDental
-    // simplemente queda null y el editor no bloquea dientes por zona).
-    var segmentacionPromise = segmentarDientesFrontal(frontalForAnalysis.b64, zonaTratamiento);
     try {
       diagnosticoFacial = await conReintento(function(){ return analizarConClaude(frontalForAnalysis.b64); });
     } catch (e) { diagnosticoFacial = null; }
     S.diagnosticoFacial = diagnosticoFacial;
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
     S.promptGeminiUsado = clinicalPrompt || null;
-    S.segmentacionDental = await segmentacionPromise;
 
     // Step 2: Gemini generates simulations for las 3 vistas (frontal + 2
     // perfiles), en paralelo — la frontal es obligatoria (si falla, se
@@ -2601,6 +2668,72 @@ function abrirEditorDiseno() {
   edBaseImg.src = url;
 
   show('s-editor');
+}
+
+// ══ REVISIÓN CLÍNICA AVANZADA — abre revision-clinica.html con segmentación
+// real por diente sobre la simulación ya generada por Gemini ══
+var FOTOS_BUCKET = 'camila-fotos';
+
+// La simulación de Gemini normalmente llega como data:image/...;base64,...
+// (nunca se sube a Storage) -- el editor de revisión necesita una URL
+// pública real para poder mandarla a segmentar. La sube solo si hace falta;
+// si ya es una URL http(s) (por ejemplo si algún día Gemini regresa
+// imageUrl en vez de imageBase64), la reutiliza tal cual.
+async function subirResultadoAStorage(dataUrlOFoto, casoId) {
+  if (/^https?:\/\//.test(dataUrlOFoto)) return dataUrlOFoto;
+  const blob = await (await fetch(dataUrlOFoto)).blob();
+  const ext = (blob.type.split('/')[1] || 'png').replace(/[^a-z0-9]/g, '') || 'png';
+  const path = casoId + '/simulacion_' + Date.now() + '.' + ext;
+  const resp = await fetch(CFG.supaUrl + '/storage/v1/object/' + FOTOS_BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey, 'Content-Type': blob.type },
+    body: blob,
+  });
+  if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
+  return CFG.supaUrl + '/storage/v1/object/public/' + FOTOS_BUCKET + '/' + path;
+}
+
+async function abrirRevisionClinica() {
+  var view = S.baVistaActual || 'frontal';
+  var url = (S.results || {})[view] || S.result;
+  if (!url) { alert('Genera la simulación primero.'); return; }
+
+  var btn = document.getElementById('btn-revision-clinica');
+  var textoOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparando...'; }
+
+  try {
+    // Mismo id que usa guardarCaso() -- si el caso ya se guardó, reutiliza
+    // esa fila en vez de crear una duplicada.
+    if (!S.casoId) S.casoId = 'caso_' + Date.now();
+    var casoId = S.casoId;
+    var imagenUrl = await subirResultadoAStorage(url, casoId);
+
+    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos?on_conflict=id', {
+      method: 'POST',
+      headers: {
+        'apikey': CFG.supaKey,
+        'Authorization': 'Bearer ' + CFG.supaKey,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify({
+        id: casoId,
+        tenant_id: CFG.tenantId || 'local',
+        imagen_url: imagenUrl,
+        diagnostico_claude: S.diagnosticoFacial || null,
+        prompt_gemini_usado: S.promptGeminiUsado || null,
+      }),
+    });
+    if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
+
+    window.open('revision-clinica.html?caso=' + encodeURIComponent(casoId) + '&tenant=' + encodeURIComponent(CFG.tenantId || 'local'), '_blank');
+  } catch (e) {
+    console.error('[SMYLE] Error abriendo revisión clínica:', e);
+    alert('No se pudo preparar la revisión clínica: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
+  }
 }
 
 // Antes esto cerraba el editor sin avisar — si el usuario había movido
@@ -3271,7 +3404,11 @@ async function guardarCaso() {
 
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
-  var casoId = 'caso_' + Date.now();
+  // Reutiliza el mismo id si el caso ya se guardó antes (p.ej. desde
+  // "Revisión clínica avanzada") -- si no, cada guardado creaba una fila
+  // nueva en vez de actualizar la existente.
+  if (!S.casoId) S.casoId = 'caso_' + Date.now();
+  var casoId = S.casoId;
 
   var casoData = {
     id: casoId,
@@ -3304,8 +3441,6 @@ async function guardarCaso() {
     diagnostico_claude: S.diagnosticoFacial || null,
     prompt_gemini_usado: S.promptGeminiUsado || null,
     editor_params: S.editorParams || null,
-    segmentacion: (S.segmentacionDental && S.segmentacionDental.masks) || null,
-    fdi_editable: (S.segmentacionDental && S.segmentacionDental.fdiEditable) || null,
     created_at: new Date().toISOString(),
   };
 
@@ -3320,15 +3455,16 @@ async function guardarCaso() {
   // Save to Supabase
   var savedToCloud = false;
   try {
-    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos', {
+    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos?on_conflict=id', {
       method: 'POST',
       headers: {
         'apikey': CFG.supaKey,
         'Authorization': 'Bearer ' + CFG.supaKey,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
       body: JSON.stringify({
+        id: casoId,
         tenant_id: CFG.tenantId || null,
         nombre_paciente: casoData.nombre_paciente,
         telefono: casoData.telefono,
@@ -3362,8 +3498,6 @@ async function guardarCaso() {
         diagnostico_claude: S.diagnosticoFacial || null,
         prompt_gemini_usado: S.promptGeminiUsado || null,
         editor_params: S.editorParams || null,
-        segmentacion: (S.segmentacionDental && S.segmentacionDental.masks) || null,
-        fdi_editable: (S.segmentacionDental && S.segmentacionDental.fdiEditable) || null,
         created_at: casoData.created_at,
       })
     });
