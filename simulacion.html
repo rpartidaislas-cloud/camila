@@ -452,7 +452,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     </div>
   </div>
 
-  <button class="btn-start" onclick="goToQuestionnaire()">
+  <button class="btn-start" onclick="startCam()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     Comenzar simulación
   </button>
@@ -529,112 +529,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   </div>
 </div>
 
-
-<!-- ══ CUESTIONARIO ══ (lo llena el dentista o su asistente durante la consulta) -->
-<div class="screen" id="s-q">
-  <div style="background:linear-gradient(160deg,#0d0820,#0a1628);flex:1;overflow-y:auto;padding-top:max(56px,calc(env(safe-area-inset-top) + 20px));padding-left:20px;padding-right:20px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)">
-    <img src="icons/smyl_logo.png" alt="SMYLE" style="height:22px;width:auto;display:block;margin-bottom:4px">
-    <div style="font-size:11px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:24px;display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:var(--p);display:inline-block"></span>Valoración clínica · la llena el dentista</div>
-
-    <!-- Progress -->
-    <div style="display:flex;gap:4px;margin-bottom:24px" id="q-progress">
-      <div style="flex:1;height:3px;border-radius:99px;background:var(--p)" id="qp-0"></div>
-      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-1"></div>
-      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-2"></div>
-      <div style="flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.15)" id="qp-3"></div>
-    </div>
-
-    <!-- Q1: Quejas -->
-    <div id="q-step-0">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué le molesta al paciente de su sonrisa?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Selecciona las que apliquen o agrega otra abajo</div>
-      <div style="display:flex;flex-direction:column;gap:8px" id="q1-list">
-        <label class="q-option"><input type="checkbox" name="q1" value="Color amarillo o manchado"> <span>😬 Color amarillo o manchado</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Espacios entre dientes"> <span>↔ Espacios entre dientes</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Dientes pequeños o cortos"> <span>📏 Dientes pequeños o cortos</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Dientes chuecos o desalineados"> <span>↕ Dientes chuecos o desalineados</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Forma irregular o asimétrica"> <span>⚡ Forma irregular o asimétrica</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Encías muy visibles al sonreír"> <span>😅 Encías muy visibles al sonreír</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Dientes desgastados"> <span>🔻 Dientes desgastados</span></label>
-        <label class="q-option"><input type="checkbox" name="q1" value="Fractura o astilla"> <span>💔 Fractura o astilla</span></label>
-      </div>
-
-      <!-- Molestias agregadas a mano -->
-      <div id="q-custom-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px"></div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <input type="text" id="q-custom-input" placeholder="Otra molestia..." onkeydown="onQCustomKeydown(event)" style="flex:1;height:42px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);color:#fff;font-size:13px;padding:0 12px;font-family:Inter,sans-serif">
-        <button type="button" onclick="agregarQuejaCustom()" style="width:42px;height:42px;border-radius:10px;background:rgba(91,71,224,.2);border:1.5px solid rgba(91,71,224,.4);color:#fff;font-size:18px;font-weight:600;cursor:pointer;flex-shrink:0">+</button>
-      </div>
-    </div>
-
-    <!-- Q2: Zona a tratar (decide el dentista — restringe el prompt de Gemini) -->
-    <div id="q-step-1" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué zona necesita carillas?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Tu valoración clínica — la simulación solo se genera en la zona elegida</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="q-option-single" data-q="zona" data-val="arriba"><span style="font-size:18px">⬆️</span><div><div style="font-weight:600;color:#fff">Solo arriba</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Únicamente dientes superiores</div></div></label>
-        <label class="q-option-single" data-q="zona" data-val="abajo"><span style="font-size:18px">⬇️</span><div><div style="font-weight:600;color:#fff">Solo abajo</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Únicamente dientes inferiores</div></div></label>
-        <label class="q-option-single" data-q="zona" data-val="ambos"><span style="font-size:18px">↕️</span><div><div style="font-weight:600;color:#fff">Ambos</div><div style="font-size:12px;color:rgba(255,255,255,.5)">Arriba y abajo</div></div></label>
-      </div>
-    </div>
-
-    <!-- Q3: Tono -->
-    <div id="q-step-2" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿Qué tono de carillas recomiendas?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Escala VITA — desliza para ver las 7 opciones</div>
-      <div class="vita-carousel" id="vita-carousel">
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A1 shade — very light natural ivory white with a subtle warm undertone" tabindex="0" role="radio">
-          <img src="icons/vita-a1.png" alt="VITA A1" class="vita-card-img">
-          <span class="vita-card-lbl">A1</span>
-        </label>
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A2 shade — natural healthy-looking light warm white, the most common natural tooth shade" tabindex="0" role="radio">
-          <img src="icons/vita-a2.png" alt="VITA A2" class="vita-card-img">
-          <span class="vita-card-lbl">A2</span>
-        </label>
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA A3 shade — natural warm white with slightly more yellow saturation than A2" tabindex="0" role="radio">
-          <img src="icons/vita-a3.png" alt="VITA A3" class="vita-card-img">
-          <span class="vita-card-lbl">A3</span>
-        </label>
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL1 shade — bleached white, the lightest and most subtle bright white bleach shade" tabindex="0" role="radio">
-          <img src="icons/vita-bl1.png" alt="VITA BL1" class="vita-card-img">
-          <span class="vita-card-lbl">BL1</span>
-        </label>
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL2 shade — bleached white, noticeably whiter than natural shades" tabindex="0" role="radio">
-          <img src="icons/vita-bl2.png" alt="VITA BL2" class="vita-card-img">
-          <span class="vita-card-lbl">BL2</span>
-        </label>
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL3 shade — bleached white, very bright, a popular polished cosmetic whitening look" tabindex="0" role="radio">
-          <img src="icons/vita-bl3.png" alt="VITA BL3" class="vita-card-img">
-          <span class="vita-card-lbl">BL3</span>
-        </label>
-        <label class="q-option-single vita-card" data-q="tono" data-val="VITA BL4 shade — the brightest bleached white available, maximum Hollywood-style whitening" tabindex="0" role="radio">
-          <img src="icons/vita-bl4.png" alt="VITA BL4" class="vita-card-img">
-          <span class="vita-card-lbl">BL4</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Q4: Historial -->
-    <div id="q-step-3" style="display:none">
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">¿El paciente ha tenido tratamientos dentales antes?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">Esto ayuda a planear mejor el caso</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="q-option-single" data-q="historial" data-val="Sin tratamientos previos"><span style="font-size:18px">✨</span><div><div style="font-weight:600;color:#fff">Sin tratamientos previos</div></div></label>
-        <label class="q-option-single" data-q="historial" data-val="Blanqueamiento dental previo"><span style="font-size:18px">⬜</span><div><div style="font-weight:600;color:#fff">Blanqueamiento</div></div></label>
-        <label class="q-option-single" data-q="historial" data-val="Brackets u ortodoncia previa"><span style="font-size:18px">🦷</span><div><div style="font-weight:600;color:#fff">Brackets / Ortodoncia</div></div></label>
-        <label class="q-option-single" data-q="historial" data-val="Carillas anteriores (a reemplazar)"><span style="font-size:18px">💎</span><div><div style="font-weight:600;color:#fff">Carillas anteriores</div></div></label>
-        <label class="q-option-single" data-q="historial" data-val="Restauraciones o empastes"><span style="font-size:18px">🔧</span><div><div style="font-weight:600;color:#fff">Empastes o restauraciones</div></div></label>
-      </div>
-    </div>
-
-    <!-- Nav buttons -->
-    <div style="display:flex;gap:10px;margin-top:24px">
-      <button id="q-back-btn" onclick="qBack()" style="height:48px;padding:0 20px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:14px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;display:none">← Atrás</button>
-      <button id="q-next-btn" onclick="qNext()" style="flex:1;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;box-shadow:0 4px 16px rgba(91,71,224,.3)">Siguiente →</button>
-    </div>
-    <div style="height:20px"></div>
-  </div>
-</div>
 
 <!-- ══ CÁMARA ══ -->
 <div class="screen" id="s-cam">
@@ -1346,9 +1240,6 @@ function saveProgress(screenId) {
   var base = {
     screen: screenId,
     ts: Date.now(),
-    qStep: Q_STEP,
-    qAnswers: Q_ANSWERS,
-    qQuejasCustom: Q_QUEJAS_CUSTOM,
     photos: S.photos,
     currentPhoto: S.currentPhoto,
     questionnaire: S.questionnaire,
@@ -1402,7 +1293,7 @@ function checkResumePrompt() {
     // generada (ver saveProgress), 's-res' se guarda sin 'result' — en ese
     // caso hay que avisar que se va a regenerar, no que "ya está lista".
     var labels = {
-      's-q': 'Estabas llenando el cuestionario inicial.',
+      's-q': 'Vamos a continuar con las fotos.', // pantalla vieja, ya no existe -- se resuelve a la cámara
       's-cam-native': 'Ya tomaste ' + nFotos + ' de ' + VIEWS.length + ' fotos.',
       's-proc': 'Ya tomaste tus ' + nFotos + ' fotos, falta generar la simulación.',
       's-res': SAVED_PROGRESS.result ?
@@ -1428,9 +1319,6 @@ function continuarProgreso() {
   if (overlay) overlay.style.display = 'none';
   if (!snap) return;
 
-  Q_STEP = snap.qStep || 0;
-  Q_ANSWERS = snap.qAnswers || {};
-  Q_QUEJAS_CUSTOM = snap.qQuejasCustom || [];
   S.photos = snap.photos || [];
   S.currentPhoto = snap.currentPhoto || 0;
   S.questionnaire = snap.questionnaire || null;
@@ -1443,9 +1331,9 @@ function continuarProgreso() {
   S.baAlign = snap.baAlign || {};
 
   if (snap.screen === 's-q') {
-    show('s-q');
-    showQStep(Q_STEP);
-    renderQuejasCustom();
+    // Pantalla vieja (de antes de quitar el cuestionario) -- ya no existe,
+    // lo más parecido es retomar directo en la cámara.
+    startCam();
   } else if (snap.screen === 's-res' && S.result) {
     show('s-res');
     showResult();
@@ -1458,178 +1346,17 @@ function continuarProgreso() {
   }
 }
 
-// ══ QUESTIONNAIRE ══
-// Este cuestionario lo llena el dentista o su asistente durante la
-// consulta, no el paciente — por eso las preguntas están redactadas sobre
-// el paciente en vez de dirigidas a él, y se quitaron las de preferencia
-// estética (qué resultado busca, cuántos dientes) que no le corresponde
-// decidir al paciente sino al criterio clínico del dentista.
-var Q_STEP = 0;
-var Q_ANSWERS = {};
-var Q_QUEJAS_CUSTOM = []; // molestias agregadas a mano, además de las sugeridas
-
+// El cuestionario de 4 preguntas (quejas/zona/tono/historial) que vivía
+// aquí se quitó del flujo inicial -- esa valoración clínica ahora se hace
+// en la Revisión clínica avanzada (revision-clinica.html), después de ver
+// la simulación. zonaTexto() se conserva porque generateSimulation() la
+// sigue usando si S.questionnaire llega a existir (p.ej. datos de un caso
+// viejo, restaurados desde localStorage).
 function zonaTexto(zona) {
   if (zona === 'arriba') return 'Solo dientes superiores';
   if (zona === 'abajo') return 'Solo dientes inferiores';
   return 'Ambas arcadas (arriba y abajo)';
 }
-
-function showQStep(n) {
-  Q_STEP = n;
-  for (var i = 0; i < 4; i++) {
-    var step = document.getElementById('q-step-' + i);
-    if (step) step.style.display = i === n ? 'block' : 'none';
-    var bar = document.getElementById('qp-' + i);
-    if (bar) bar.style.background = i <= n ? 'var(--p)' : 'rgba(255,255,255,.15)';
-  }
-  var backBtn = document.getElementById('q-back-btn');
-  var nextBtn = document.getElementById('q-next-btn');
-  if (backBtn) backBtn.style.display = n > 0 ? 'block' : 'none';
-  if (nextBtn) nextBtn.textContent = n === 3 ? '¡Tomar fotos! 📸' : 'Siguiente →';
-  saveProgress('s-q');
-
-  // El carrusel de tonos recién se puede medir (getBoundingClientRect)
-  // una vez que el paso deja de estar display:none — se espera un frame.
-  // La primera vez que se entra (nada seleccionado todavía) se centra
-  // A2 como tono por default; si ya había una selección previa (se
-  // volvió a este paso con "← Atrás"), se respeta la posición de scroll
-  // que ya tenía.
-  if (n === 2) {
-    requestAnimationFrame(function() {
-      if (!document.querySelector('.vita-card.selected')) {
-        var a2 = document.querySelector('.vita-card[data-val*="VITA A2"]');
-        if (a2) a2.scrollIntoView({behavior:'auto', inline:'center', block:'nearest'});
-      }
-      actualizarVitaCentrado();
-    });
-  }
-}
-
-// Carrusel de tonos VITA — se selecciona por posición, no por click: el
-// que queda más cerca del centro del carrusel es el elegido, como una
-// rueda. Se recalcula cada vez que el usuario arrastra/desliza.
-var _vitaScrollTimer = null;
-function actualizarVitaCentrado() {
-  var carrusel = document.getElementById('vita-carousel');
-  if (!carrusel) return;
-  var rectCarrusel = carrusel.getBoundingClientRect();
-  if (!rectCarrusel.width) return; // oculto (display:none) — nada que medir
-  var centroCarrusel = rectCarrusel.left + rectCarrusel.width / 2;
-  var masCercana = null, menorDist = Infinity;
-  document.querySelectorAll('.vita-card').forEach(function(card) {
-    var r = card.getBoundingClientRect();
-    var centroCard = r.left + r.width / 2;
-    var dist = Math.abs(centroCard - centroCarrusel);
-    if (dist < menorDist) { menorDist = dist; masCercana = card; }
-  });
-  if (!masCercana) return;
-  document.querySelectorAll('.vita-card').forEach(function(c) { c.classList.remove('selected'); });
-  masCercana.classList.add('selected');
-  Q_ANSWERS.tono = masCercana.getAttribute('data-val');
-}
-
-function qNext() {
-  // Collect current step answers
-  if (Q_STEP === 0) {
-    var checked = document.querySelectorAll('#q-step-0 input[type=checkbox]:checked');
-    var presets = Array.from(checked).map(function(c){return c.value;});
-    Q_ANSWERS.quejas = presets.concat(Q_QUEJAS_CUSTOM);
-  }
-  if (Q_STEP === 3) {
-    // Last step — start camera
-    S.questionnaire = Q_ANSWERS;
-    showQStep(0); // reset for next time
-    Q_ANSWERS = {};
-    Q_QUEJAS_CUSTOM = [];
-    renderQuejasCustom();
-    startCam();
-    return;
-  }
-  showQStep(Q_STEP + 1);
-}
-
-function qBack() {
-  if (Q_STEP > 0) showQStep(Q_STEP - 1);
-}
-
-// Molestia personalizada — además de las sugeridas, el dentista puede
-// escribir cualquier otra y quitar tanto las agregadas como las sugeridas
-function agregarQuejaCustom() {
-  var input = document.getElementById('q-custom-input');
-  if (!input) return;
-  var val = input.value.trim();
-  if (!val) return;
-  if (Q_QUEJAS_CUSTOM.indexOf(val) === -1) Q_QUEJAS_CUSTOM.push(val);
-  input.value = '';
-  renderQuejasCustom();
-}
-
-function quitarQuejaCustom(val) {
-  Q_QUEJAS_CUSTOM = Q_QUEJAS_CUSTOM.filter(function(v){ return v !== val; });
-  renderQuejasCustom();
-}
-
-function renderQuejasCustom() {
-  var wrap = document.getElementById('q-custom-chips');
-  if (!wrap) return;
-  wrap.innerHTML = Q_QUEJAS_CUSTOM.map(function(v) {
-    return '<div class="q-chip-custom">' + v +
-      '<button type="button" onclick="quitarQuejaCustom(\'' + v.replace(/'/g,"\\'") + '\')" aria-label="Quitar">×</button></div>';
-  }).join('');
-}
-
-function onQCustomKeydown(e) {
-  if (e.key === 'Enter') { e.preventDefault(); agregarQuejaCustom(); }
-}
-
-// Single-select options
-document.addEventListener('click', function(e) {
-  var opt = e.target.closest('.q-option-single');
-  if (!opt) return;
-  var q = opt.getAttribute('data-q');
-  var val = opt.getAttribute('data-val');
-  if (!q || !val) return;
-
-  // El carrusel de tonos VITA no se selecciona por click directo — se
-  // selecciona el que queda al centro al arrastrar. Tocar una tarjeta es
-  // solo un atajo para deslizarla al centro; actualizarVitaCentrado()
-  // (enganchada al scroll) es quien realmente la marca como elegida,
-  // igual que si el usuario la hubiera llevado ahí con el dedo.
-  if (opt.classList.contains('vita-card')) {
-    opt.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-    return;
-  }
-
-  // Deselect others in same group
-  document.querySelectorAll('.q-option-single[data-q="' + q + '"]').forEach(function(el) {
-    el.classList.remove('selected');
-  });
-  opt.classList.add('selected');
-  Q_ANSWERS[q] = val;
-});
-
-var vitaCarruselEl = document.getElementById('vita-carousel');
-if (vitaCarruselEl) {
-  vitaCarruselEl.addEventListener('scroll', function() {
-    clearTimeout(_vitaScrollTimer);
-    _vitaScrollTimer = setTimeout(actualizarVitaCentrado, 120);
-  }, {passive:true});
-}
-
-// Son <label> sin un <input> real adentro, así que por defecto no se pueden
-// seleccionar con teclado (solo con click/touch) — se agrega tabindex +
-// activación con Enter/Espacio, igual que cualquier control real.
-document.querySelectorAll('.q-option-single').forEach(function(el) {
-  el.setAttribute('tabindex', '0');
-  el.setAttribute('role', 'radio');
-});
-document.addEventListener('keydown', function(e) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  var opt = e.target.closest && e.target.closest('.q-option-single');
-  if (!opt) return;
-  e.preventDefault();
-  opt.click();
-});
 
 // ══ PRECIOS ══
 async function loadPrecios() {
@@ -1652,20 +1379,11 @@ function getPrecio(id) {
 }
 
 // ══ CAMERA ══
-function goToQuestionnaire() {
-  try {
-    loadPrecios().catch(function(){});
-    show('s-q');
-    showQStep(0);
-  } catch(e) {
-    alert('Error: ' + e.message + '\n' + e.stack);
-  }
-}
-
 async function startCam() {
   S.photos = [];
   S.currentPhoto = 0;
   S._ovalReady = false;
+  loadPrecios().catch(function(){}); // se necesita más adelante en la cotización -- se dispara ya para que esté lista a tiempo
 
   // La cámara personalizada con MediaPipe deja la pantalla en negro sin
   // ningún error en iOS (GPU y CPU delegate) y se confirmó el mismo
@@ -3597,7 +3315,7 @@ function nuevoCaso() {
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
   S.editorParams = null;
-  Q_STEP = 0; Q_ANSWERS = {}; Q_QUEJAS_CUSTOM = [];
+  S.casoId = null; // si no, el siguiente guardado actualizaría el caso del paciente anterior en vez de crear uno nuevo
   show('s-intro');
 }
 
