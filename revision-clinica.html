@@ -154,10 +154,10 @@
   <div class="config-overlay" id="configOverlay">
     <div class="config-modal">
       <h3>Configuración técnica</h3>
-      <p class="hint-top">Estos valores identifican tu proyecto de Supabase y el caso que estás editando. En la versión final esto se toma solo de tu sesión, sin que tengas que escribirlo aquí.</p>
-      <label>Supabase Function URL</label>
+      <p class="hint-top">Estos valores son solo para la segmentación por IA (Replicate) -- viven en un proyecto de Supabase aparte del de la base de datos/fotos, que ya está integrado en el código. El caso que estás editando (Caso ID / Tenant ID) sí se toma de la URL cuando llegas desde "Revisión clínica avanzada".</p>
+      <label>Supabase Function URL (segmentación)</label>
       <input id="fnUrl" value="https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/segment-teeth">
-      <label>Publishable key</label>
+      <label>Publishable key (segmentación)</label>
       <input id="anonKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8">
       <label>Caso ID</label>
       <input id="casoId" value="">
@@ -1039,9 +1039,7 @@ document.addEventListener('keydown', (e) => {
 // Reutiliza la URL base de Supabase que ya tienes en el campo fnUrl,
 // solo le cambia la ruta de la función por la de la tabla REST.
 function obtenerRestUrl(){
-  const fnUrl = document.getElementById('fnUrl').value.trim();
-  const base = fnUrl.split('/functions/')[0];
-  return base + '/rest/v1/camila_casos';
+  return DB_URL + '/rest/v1/camila_casos';
 }
 
 async function guardarCasoCompleto(){
@@ -1050,9 +1048,7 @@ async function guardarCasoCompleto(){
 
   let casoId = document.getElementById('casoId').value.trim();
   const tenantId = document.getElementById('tenantId').value.trim();
-  const anonKey = document.getElementById('anonKey').value.trim();
   const imageUrl = document.getElementById('imageUrl').value.trim();
-  if (!anonKey) { statusEl.textContent = 'Falta la Publishable key (arriba) -- sin eso Supabase responde "No API key found".'; return; }
   if (!imageUrl) { statusEl.textContent = 'La foto todavía no terminó de subirse (o falló) -- espera a ver "✓ Foto subida" antes de guardar.'; return; }
 
   if (!casoId) {
@@ -1078,8 +1074,8 @@ async function guardarCasoCompleto(){
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': anonKey,
-        'Authorization': 'Bearer ' + anonKey,
+        'apikey': DB_KEY,
+        'Authorization': 'Bearer ' + DB_KEY,
         'Prefer': 'resolution=merge-duplicates,return=representation',
       },
       body: JSON.stringify(payload),
@@ -1098,16 +1094,14 @@ async function guardarCasoCompleto(){
 async function cargarCasoCompleto(){
   const statusEl = document.getElementById('statusGuardado');
   const casoId = document.getElementById('casoId').value.trim();
-  const anonKey = document.getElementById('anonKey').value.trim();
 
   if (!casoId) { statusEl.textContent = 'Pon el Caso ID que quieres cargar'; return; }
-  if (!anonKey) { statusEl.textContent = 'Falta la Publishable key (arriba) -- sin eso Supabase responde "No API key found".'; return; }
 
   statusEl.textContent = 'Cargando caso...';
   try {
     const url = `${obtenerRestUrl()}?id=eq.${casoId}&select=*`;
     const res = await fetch(url, {
-      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey },
+      headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + DB_KEY },
     });
     if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
     const filas = await res.json();
@@ -1485,21 +1479,23 @@ function setStatus(msg, type){
 // solo que ahora la generamos nosotros en vez de pedirte que la copies.
 const FOTOS_BUCKET = 'camila-fotos';
 
+// La base de datos (camila_casos) y el storage de fotos viven en un
+// proyecto de Supabase DISTINTO al que corre la Edge Function
+// "segment-teeth" (esa se quedó en el proyecto viejo, ver el campo
+// "Supabase Function URL" en Configuración) -- por eso estos dos van
+// aparte, en vez de derivarse de fnUrl/anonKey como antes.
+const DB_URL = 'https://rpxshsiwoxdbuevjjpfw.supabase.co';
+const DB_KEY = 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
+
 function obtenerStorageBaseUrl(){
-  const fnUrl = document.getElementById('fnUrl').value.trim();
-  return fnUrl.split('/functions/')[0];
+  return DB_URL;
 }
 
 async function subirFotoLocal(file){
   const statusEl = document.getElementById('fotoStatus');
-  const anonKey = document.getElementById('anonKey').value.trim();
 
   if (!file || !file.type.startsWith('image/')) {
     statusEl.textContent = 'Elige un archivo de imagen (jpg/png).';
-    return;
-  }
-  if (!anonKey) {
-    statusEl.textContent = 'Pon primero la Publishable key de arriba.';
     return;
   }
 
@@ -1552,8 +1548,8 @@ async function subirFotoLocal(file){
     const res = await fetch(`${base}/storage/v1/object/${FOTOS_BUCKET}/${path}`, {
       method: 'POST',
       headers: {
-        'apikey': anonKey,
-        'Authorization': 'Bearer ' + anonKey,
+        'apikey': DB_KEY,
+        'Authorization': 'Bearer ' + DB_KEY,
         'Content-Type': file.type,
       },
       body: file,
