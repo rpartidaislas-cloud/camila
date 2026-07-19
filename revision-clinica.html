@@ -461,6 +461,23 @@
       <label class="field-label">Notas</label>
       <textarea id="notasPaciente" class="field-input" placeholder="Notas clínicas, opcional"></textarea>
 
+      <!-- Diagnóstico de Claude (generado en simulacion.html) -- de solo
+           lectura aquí, es contexto para la revisión, no se edita en este
+           editor. Solo aparece si el caso lo trae. -->
+      <div id="panelDiagnostico" style="display:none;margin-top:16px">
+        <div class="sec-lbl">Diagnóstico (simulación inicial)</div>
+        <div style="background:var(--field);border:1px solid var(--card-b);border-radius:12px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <span id="diagScore" style="font-size:20px;font-weight:700;color:#fff">—</span>
+            <span id="diagScoreLbl" style="font-size:12px;color:var(--text-dim)"></span>
+          </div>
+          <p id="diagResumen" class="hint" style="margin:0"></p>
+        </div>
+        <div id="diagHallazgos" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px"></div>
+        <div id="diagPlan" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px"></div>
+        <div id="diagCotizacion" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+
       <button class="btn-pill" style="width:100%;justify-content:center;margin:14px 0 10px" onclick="document.getElementById('fotoArchivo').click()">📷 Subir foto del paciente</button>
       <input type="file" id="fotoArchivo" accept="image/*" style="display:none">
       <input type="hidden" id="imageUrl" value="">
@@ -1185,6 +1202,7 @@ async function cargarCasoCompleto(){
     document.getElementById('nombrePaciente').value = caso.nombre_paciente || '';
     document.getElementById('telefonoPaciente').value = caso.telefono || '';
     document.getElementById('notasPaciente').value = caso.notas_doctor || '';
+    renderDiagnosticoCaso(caso);
 
     masks = (caso.segmentacion && caso.segmentacion.masks) || [];
     gumMasks = (caso.segmentacion_encia && caso.segmentacion_encia.masks) || [];
@@ -1217,6 +1235,63 @@ async function cargarCasoCompleto(){
   } catch (err) {
     statusEl.textContent = 'Error al cargar: ' + err.message;
     console.error('Error cargando caso:', err);
+  }
+}
+
+// Muestra el diagnóstico que generó Claude en simulacion.html (score,
+// hallazgos, plan, cotización) -- de solo lectura, es contexto para la
+// revisión clínica, no algo que se edite desde aquí. "diagnostico" llega
+// como STRING (se guardó con JSON.stringify extra desde simulacion.html),
+// no como objeto -- por eso el JSON.parse.
+function renderDiagnosticoCaso(caso){
+  const panel = document.getElementById('panelDiagnostico');
+  let d = null;
+  if (caso.diagnostico) {
+    try { d = typeof caso.diagnostico === 'string' ? JSON.parse(caso.diagnostico) : caso.diagnostico; } catch (e) { d = null; }
+  }
+  if (!d) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  document.getElementById('diagScore').textContent = (caso.score ?? '—') + '/100';
+  document.getElementById('diagScoreLbl').textContent = d.scoreLbl || '';
+  document.getElementById('diagResumen').textContent = d.resumen || '';
+
+  const hallazgosEl = document.getElementById('diagHallazgos');
+  hallazgosEl.innerHTML = '';
+  (d.hallazgos || []).forEach(h => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim)';
+    row.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:' + (h.color || '#5B47E0') + '"></span><span></span>';
+    row.lastElementChild.textContent = h.texto || '';
+    hallazgosEl.appendChild(row);
+  });
+
+  const planEl = document.getElementById('diagPlan');
+  planEl.innerHTML = '';
+  (d.plan || []).forEach((paso, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'font-size:12.5px;color:var(--text-dim)';
+    row.textContent = (i + 1) + '. ' + paso;
+    planEl.appendChild(row);
+  });
+
+  const cotEl = document.getElementById('diagCotizacion');
+  cotEl.innerHTML = '';
+  const cot = d.cotizacion || [];
+  cot.forEach(c => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-dim)';
+    row.innerHTML = '<span></span><span style="color:#fff;font-weight:600"></span>';
+    row.firstElementChild.textContent = c.procedimiento || '';
+    row.lastElementChild.textContent = '$' + (c.subtotal || 0).toLocaleString();
+    cotEl.appendChild(row);
+  });
+  if (cot.length) {
+    const total = cot.reduce((a, c) => a + (c.subtotal || 0), 0);
+    const totalRow = document.createElement('div');
+    totalRow.style.cssText = 'display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#fff;padding-top:6px;margin-top:2px;border-top:1px solid var(--card-b)';
+    totalRow.innerHTML = '<span>Total</span><span>$' + total.toLocaleString() + '</span>';
+    cotEl.appendChild(totalRow);
   }
 }
 
@@ -3096,6 +3171,7 @@ function nuevoCasoClinica(){
   document.getElementById('nombrePaciente').value = '';
   document.getElementById('telefonoPaciente').value = '';
   document.getElementById('notasPaciente').value = '';
+  document.getElementById('panelDiagnostico').style.display = 'none';
   masks = []; maskBitmaps = {}; formaState = {}; selectedIndices = new Set();
   gumMasks = []; gumMaskBitmaps = {}; gumFormaState = {}; selectedGumIndices = new Set();
   carillasPegadas = []; carillaSeleccionada = null;
