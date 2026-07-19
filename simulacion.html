@@ -943,13 +943,22 @@ window.addEventListener('unhandledrejection', function(ev) {
 });
 
 // ══ CONFIG ══
+// supaUrl/supaKey (base de datos, storage de fotos, login de dentistas) ya
+// apuntan al proyecto NUEVO de Supabase. edgeUrl/edgeKey (Claude) se
+// quedaron aparte, en el proyecto VIEJO -- esa Edge Function no se ha
+// redesplegado todavía, así que sigue viviendo ahí hasta que se migre.
 var CFG = {
   waNum: '523312345678',
   edgeUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/claude',
-  supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
-  supaUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co',
+  edgeKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
+  supaKey: 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo',
+  supaUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co',
   tenantId: null,
   tenantConfig: null,
+  // El JWT de la SESIÓN del dentista logueado (no el anon key) -- las RLS
+  // de camila_casos ahora exigen auth.uid(), así que las llamadas a esa
+  // tabla/storage deben mandar este token en vez de CFG.supaKey.
+  userToken: null,
 };
 
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
@@ -1005,6 +1014,16 @@ function cargarTenantConfig(tid) {
 var sbAuth;
 try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 
+// Mantiene CFG.userToken sincronizado con la sesión real -- se dispara en
+// login, logout, y cuando el SDK renueva el token solo (los access_token
+// duran ~1h). Sin esto, después de una hora las llamadas a camila_casos
+// empezarían a fallar con 401 aunque la sesión siga "activa" a simple vista.
+if (sbAuth && sbAuth.auth) {
+  sbAuth.auth.onAuthStateChange(function(event, session) {
+    CFG.userToken = (session && session.access_token) || null;
+  });
+}
+
 function entrarConSesion(uid) {
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
@@ -1026,8 +1045,12 @@ function cerrarSesionSim() {
 (function checkLogin() {
   if (!sbAuth) return;
   sbAuth.auth.getSession().then(function(res) {
-    var user = res.data && res.data.session && res.data.session.user;
-    if (user) entrarConSesion(user.id);
+    var session = res.data && res.data.session;
+    var user = session && session.user;
+    if (user) {
+      CFG.userToken = session.access_token;
+      entrarConSesion(user.id);
+    }
     // si no hay sesión, el overlay de login ya está visible por defecto
   }).catch(function(){});
 })();
@@ -1049,6 +1072,10 @@ async function hacerLoginDentista() {
       errEl.style.display = 'block';
       return;
     }
+    // Se fija aquí también (no solo en onAuthStateChange) para que esté
+    // listo YA para la primera llamada que dispara entrarConSesion, sin
+    // esperar al evento asíncrono del SDK.
+    CFG.userToken = res.data.session.access_token;
     entrarConSesion(res.data.user.id);
   } catch (e) {
     errEl.textContent = 'Error de red: ' + e.message;
@@ -2173,7 +2200,7 @@ async function analyzeWithClaude() {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
     body: JSON.stringify({
       messages: [{role:'user', content: content}],
       max_tokens: 1200
@@ -2195,7 +2222,7 @@ async function analizarConClaude(fotoFrontalBase64) {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
     body: JSON.stringify({
       messages: [{role:'user', content: content}],
       max_tokens: 800
@@ -2221,7 +2248,7 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
     body: JSON.stringify({
       messages: [{role:'user', content: [
         {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
@@ -2327,7 +2354,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   // sin explicación indefinidamente
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
   var timeoutPromise = new Promise(function(_, reject) {
@@ -2414,7 +2441,7 @@ async function subirResultadoAStorage(dataUrlOFoto, casoId) {
   const path = casoId + '/simulacion_' + Date.now() + '.' + ext;
   const resp = await fetch(CFG.supaUrl + '/storage/v1/object/' + FOTOS_BUCKET + '/' + path, {
     method: 'POST',
-    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey, 'Content-Type': blob.type },
+    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey), 'Content-Type': blob.type },
     body: blob,
   });
   if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
@@ -2441,7 +2468,7 @@ async function abrirRevisionClinica() {
       method: 'POST',
       headers: {
         'apikey': CFG.supaKey,
-        'Authorization': 'Bearer ' + CFG.supaKey,
+        'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal',
       },
@@ -3187,7 +3214,7 @@ async function guardarCaso() {
       method: 'POST',
       headers: {
         'apikey': CFG.supaKey,
-        'Authorization': 'Bearer ' + CFG.supaKey,
+        'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
