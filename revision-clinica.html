@@ -49,6 +49,11 @@
   .config-modal input:focus{outline:none;border-color:var(--p)}
   .config-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
 
+  .field-label{font-size:10.5px;color:var(--text-faint);display:block;margin-bottom:5px;margin-top:12px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .field-input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:#fff;font-size:13px;font-family:Inter,sans-serif}
+  .field-input:focus{outline:none;border-color:var(--p)}
+  textarea.field-input{resize:vertical;min-height:52px}
+
   .caso-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--card-b);background:var(--field);cursor:pointer;text-align:left;transition:background 150ms,border-color 150ms}
   .caso-card:hover{background:rgba(255,255,255,.08);border-color:rgba(91,71,224,.4)}
   .caso-card-thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;background:rgba(255,255,255,.06);flex-shrink:0}
@@ -447,7 +452,16 @@
 
       <div class="tab-content" id="tab-foto" style="display:none">
       <h4 class="panel-title">Foto del paciente</h4>
-      <button class="btn-pill" style="width:100%;justify-content:center;margin:10px 0" onclick="document.getElementById('fotoArchivo').click()">📷 Subir foto del paciente</button>
+
+      <div class="sec-lbl">Datos del paciente</div>
+      <label class="field-label" style="margin-top:0">Nombre</label>
+      <input id="nombrePaciente" class="field-input" placeholder="Nombre del paciente">
+      <label class="field-label">Teléfono</label>
+      <input id="telefonoPaciente" class="field-input" placeholder="Opcional">
+      <label class="field-label">Notas</label>
+      <textarea id="notasPaciente" class="field-input" placeholder="Notas clínicas, opcional"></textarea>
+
+      <button class="btn-pill" style="width:100%;justify-content:center;margin:14px 0 10px" onclick="document.getElementById('fotoArchivo').click()">📷 Subir foto del paciente</button>
       <input type="file" id="fotoArchivo" accept="image/*" style="display:none">
       <input type="hidden" id="imageUrl" value="">
       <div class="sec-lbl">Segmentación</div>
@@ -1110,6 +1124,9 @@ async function guardarCasoCompleto(){
     id: casoId,
     tenant_id: tenantId || null,
     imagen_url: imageUrl,
+    nombre_paciente: document.getElementById('nombrePaciente').value.trim() || null,
+    telefono: document.getElementById('telefonoPaciente').value.trim() || null,
+    notas_doctor: document.getElementById('notasPaciente').value.trim() || null,
     segmentacion: { masks, generatedAt: new Date().toISOString() },
     segmentacion_encia: { masks: gumMasks, generatedAt: new Date().toISOString() },
     // Columna propia, distinta de "editor_params" -- esa la usa el editor de
@@ -1163,6 +1180,11 @@ async function cargarCasoCompleto(){
     document.getElementById('imageUrl').value = caso.imagen_url;
     document.getElementById('tenantId').value = caso.tenant_id || '';
     document.getElementById('fotoStatus').textContent = '✓ Foto del caso cargada.';
+    // Se rellenan aquí para que un guardado posterior (upsert) no borre
+    // estos datos si el caso los trae de simulacion.html y no se tocan.
+    document.getElementById('nombrePaciente').value = caso.nombre_paciente || '';
+    document.getElementById('telefonoPaciente').value = caso.telefono || '';
+    document.getElementById('notasPaciente').value = caso.notas_doctor || '';
 
     masks = (caso.segmentacion && caso.segmentacion.masks) || [];
     gumMasks = (caso.segmentacion_encia && caso.segmentacion_encia.masks) || [];
@@ -3071,6 +3093,9 @@ function nuevoCasoClinica(){
   // tendría si nunca se hubiera cargado ningún caso.
   document.getElementById('casoId').value = '';
   document.getElementById('imageUrl').value = '';
+  document.getElementById('nombrePaciente').value = '';
+  document.getElementById('telefonoPaciente').value = '';
+  document.getElementById('notasPaciente').value = '';
   masks = []; maskBitmaps = {}; formaState = {}; selectedIndices = new Set();
   gumMasks = []; gumMaskBitmaps = {}; gumFormaState = {}; selectedGumIndices = new Set();
   carillasPegadas = []; carillaSeleccionada = null;
