@@ -206,11 +206,11 @@
   <div class="config-overlay" id="configOverlay">
     <div class="config-modal">
       <h3>Configuración técnica</h3>
-      <p class="hint-top">Estos valores son solo para la segmentación por IA (Replicate) -- viven en un proyecto de Supabase aparte del de la base de datos/fotos, que ya está integrado en el código. El caso que estás editando (Caso ID / Tenant ID) sí se toma de la URL cuando llegas desde "Revisión clínica avanzada".</p>
+      <p class="hint-top">Estos valores son solo para la segmentación por IA (Replicate). Ya apuntan al mismo proyecto de Supabase que la base de datos y las fotos -- normalmente no hay que tocarlos. El caso que estás editando (Caso ID / Tenant ID) sí se toma de la URL cuando llegas desde "Revisión clínica avanzada".</p>
       <label>Supabase Function URL (segmentación)</label>
-      <input id="fnUrl" value="https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/segment-teeth">
+      <input id="fnUrl" value="https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/segment-teeth">
       <label>Publishable key (segmentación)</label>
-      <input id="anonKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8">
+      <input id="anonKey" value="sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo">
       <label>Caso ID</label>
       <input id="casoId" value="">
       <label>Tenant ID (tu usuario -- de solo lectura)</label>
@@ -583,6 +583,26 @@
   if (guardado) el.value = guardado;
   el.addEventListener('change', () => localStorage.setItem('camila_editor_' + id, el.value.trim()));
 });
+
+// La segmentación vivía en un proyecto de Supabase aparte (gfogifozhhbzxhcbecgf)
+// y ya se movió al mismo del resto. Como fnUrl/anonKey se recuerdan en
+// localStorage, a quien ya usó el editor le seguiría ganando el valor viejo
+// aunque el default del HTML cambie -- y esa función vieja sigue abierta sin
+// autenticación. Así que si detectamos el proyecto viejo guardado, lo pisamos
+// con el default nuevo del HTML.
+(function migrarProyectoViejo(){
+  const VIEJO = 'gfogifozhhbzxhcbecgf';
+  [['fnUrl', 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/segment-teeth'],
+   ['anonKey', 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo']].forEach(([id, nuevo]) => {
+    const el = document.getElementById(id);
+    // El anon key viejo es un JWT que lleva el ref del proyecto codificado en
+    // el payload, así que basta con buscar el ref en el texto del valor.
+    if (el.value.includes(VIEJO) || (id === 'anonKey' && el.value.startsWith('eyJ'))) {
+      el.value = nuevo;
+      localStorage.setItem('camila_editor_' + id, nuevo);
+    }
+  });
+})();
 
 // El Caso ID de ejemplo en el HTML es el MISMO texto para cualquiera que
 // abra este archivo -- si nadie lo cambia, "Guardar caso" (que hace un
@@ -1812,7 +1832,7 @@ async function segmentar(){
   try {
     const res = await fetch(fnUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + anonKey },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (userToken || anonKey) },
       body: JSON.stringify({ imageUrl, casoId, tenantId })
     });
     const data = await res.json();
@@ -1948,7 +1968,7 @@ async function segmentarEncia(){
   try {
     const res = await fetch(fnUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + anonKey },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (userToken || anonKey) },
       body: JSON.stringify({ imageUrl, casoId, tenantId, target: 'gum' })
     });
     const data = await res.json();
