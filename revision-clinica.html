@@ -151,6 +151,27 @@
 </style>
 </head>
 <body>
+  <!-- ══ LOGIN OBLIGATORIO — mismo Supabase Auth que simulacion.html/app.html ══
+       Visible por defecto; checkLoginClinica() lo oculta solo si confirma una
+       sesión válida. Sin esto, cualquiera con la URL podía abrir y editar
+       cualquier caso -- las políticas RLS de camila_casos ahora también
+       exigen un usuario autenticado, así que sin login ninguna llamada real
+       a la base de datos funcionaría de todas formas. -->
+  <div class="config-overlay" id="loginOverlay" style="display:flex;z-index:300">
+    <div class="config-modal" style="max-width:360px">
+      <h3>Iniciar sesión</h3>
+      <p class="hint-top">Con el mismo correo y contraseña de tu panel SMYLE.</p>
+      <label>Correo electrónico</label>
+      <input id="loginEmail" type="email" placeholder="tu@correo.com">
+      <label>Contraseña</label>
+      <input id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') iniciarSesionClinica()">
+      <div id="loginErr" style="display:none;color:#F87171;font-size:12px;margin-top:10px"></div>
+      <div class="config-modal-footer">
+        <button class="btn-pill primary" id="loginSubmitBtn" style="width:100%;justify-content:center" onclick="iniciarSesionClinica()">Entrar →</button>
+      </div>
+    </div>
+  </div>
+
   <div class="config-overlay" id="configOverlay">
     <div class="config-modal">
       <h3>Configuración técnica</h3>
@@ -161,8 +182,8 @@
       <input id="anonKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8">
       <label>Caso ID</label>
       <input id="casoId" value="">
-      <label>Tenant ID</label>
-      <input id="tenantId" value="">
+      <label>Tenant ID (tu usuario -- de solo lectura)</label>
+      <input id="tenantId" value="" readonly style="opacity:.6;cursor:not-allowed">
       <div class="config-modal-footer">
         <button class="btn-pill primary" onclick="cerrarConfig()">Listo</button>
       </div>
@@ -194,6 +215,7 @@
         </div>
         <div class="header-side header-actions">
           <span id="fotoStatus" style="font-size:11px;color:var(--text-faint);align-self:center;margin-right:6px">Sube una foto para empezar</span>
+          <button class="link-btn" onclick="cerrarSesionClinica()" title="Cerrar sesión">⏻</button>
           <button class="link-btn" onclick="abrirConfig()" title="Configuración técnica">⚙</button>
         </div>
       </header>
@@ -492,6 +514,7 @@
     </main>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // Recuerda fnUrl/anonKey/tenantId entre recargas de la página (localStorage) --
 // antes había que retipear la Publishable key cada vez, y si se te olvidaba
@@ -1075,7 +1098,7 @@ async function guardarCasoCompleto(){
       headers: {
         'Content-Type': 'application/json',
         'apikey': DB_KEY,
-        'Authorization': 'Bearer ' + DB_KEY,
+        'Authorization': 'Bearer ' + (userToken || DB_KEY),
         'Prefer': 'resolution=merge-duplicates,return=representation',
       },
       body: JSON.stringify(payload),
@@ -1101,7 +1124,7 @@ async function cargarCasoCompleto(){
   try {
     const url = `${obtenerRestUrl()}?id=eq.${casoId}&select=*`;
     const res = await fetch(url, {
-      headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + DB_KEY },
+      headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (userToken || DB_KEY) },
     });
     if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
     const filas = await res.json();
@@ -1491,6 +1514,70 @@ function obtenerStorageBaseUrl(){
   return DB_URL;
 }
 
+// ══ AUTENTICACIÓN — mismo Supabase Auth que simulacion.html/app.html ══
+// Las políticas RLS de camila_casos exigen auth.uid() (rol "authenticated"),
+// no basta el anon key -- por eso todas las llamadas a camila_casos/storage
+// de aquí en adelante mandan userToken (el JWT de la sesión), no DB_KEY.
+let userToken = null;
+let tenantIdSesion = null; // = auth.uid() del dentista logueado -- ya no se confía en el input de texto para decidir a qué caso se puede acceder
+let sbAuth;
+try { sbAuth = supabase.createClient(DB_URL, DB_KEY); } catch (e) {}
+
+if (sbAuth && sbAuth.auth) {
+  sbAuth.auth.onAuthStateChange((event, session) => {
+    userToken = (session && session.access_token) || null;
+  });
+}
+
+function cerrarSesionClinica(){
+  if (sbAuth && sbAuth.auth) sbAuth.auth.signOut().catch(() => {});
+  location.reload();
+}
+
+function _entrarSesionClinica(user, session){
+  userToken = session.access_token;
+  tenantIdSesion = user.id;
+  document.getElementById('tenantId').value = user.id;
+  document.getElementById('loginOverlay').style.display = 'none';
+  autoCargarCasoDesdeUrl();
+}
+
+async function iniciarSesionClinica(){
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Ingresa tu correo y contraseña'; errEl.style.display = 'block'; return; }
+  if (!sbAuth) { errEl.textContent = 'No se pudo conectar con el servidor'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('loginSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const res = await sbAuth.auth.signInWithPassword({ email, password: pass });
+    if (res.error) {
+      errEl.textContent = res.error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : res.error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    _entrarSesionClinica(res.data.user, res.data.session);
+  } catch (e) {
+    errEl.textContent = 'Error de red: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar →';
+  }
+}
+
+(function checkLoginClinica(){
+  if (!sbAuth) return;
+  sbAuth.auth.getSession().then(res => {
+    const session = res.data && res.data.session;
+    const user = session && session.user;
+    if (user) _entrarSesionClinica(user, session);
+    // si no hay sesión, el overlay de login ya está visible por defecto
+  }).catch(() => {});
+})();
+
 async function subirFotoLocal(file){
   const statusEl = document.getElementById('fotoStatus');
 
@@ -1549,7 +1636,7 @@ async function subirFotoLocal(file){
       method: 'POST',
       headers: {
         'apikey': DB_KEY,
-        'Authorization': 'Bearer ' + DB_KEY,
+        'Authorization': 'Bearer ' + (userToken || DB_KEY),
         'Content-Type': file.type,
       },
       body: file,
@@ -2927,17 +3014,19 @@ renderFilaVita();
 mostrarTab('color'); // estado inicial de la nav lateral, coincide con lo que ya está en el HTML
 
 // Llega aquí desde simulacion.html ("Revisión clínica avanzada") con
-// ?caso=<id>&tenant=<tenantId> en la URL -- si vienen, carga ese caso solo,
-// sin que el dentista tenga que abrir Configuración y escribir nada.
-(function autoCargarCasoDesdeUrl(){
+// ?caso=<id> en la URL -- si viene, carga ese caso solo, sin que el
+// dentista tenga que abrir Configuración y escribir nada. Se llama DESPUÉS
+// de iniciar sesión (ver _entrarSesionClinica) porque cargarCasoCompleto()
+// ya necesita el token de la sesión, no solo el anon key. El tenant ya NO
+// se toma de la URL -- siempre es el del usuario logueado (tenantIdSesion);
+// si el caso pertenece a otro dentista, RLS simplemente no lo va a regresar.
+function autoCargarCasoDesdeUrl(){
   const params = new URLSearchParams(location.search);
   const caso = params.get('caso');
-  const tenant = params.get('tenant');
   if (!caso) return;
   document.getElementById('casoId').value = caso;
-  if (tenant) document.getElementById('tenantId').value = tenant;
   cargarCasoCompleto();
-})();
+}
 </script>
 </body>
 </html>

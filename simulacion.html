@@ -955,6 +955,10 @@ var CFG = {
   supaUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co',
   tenantId: null,
   tenantConfig: null,
+  // El JWT de la SESIÓN del dentista logueado (no el anon key) -- las RLS
+  // de camila_casos ahora exigen auth.uid(), así que las llamadas a esa
+  // tabla/storage deben mandar este token en vez de CFG.supaKey.
+  userToken: null,
 };
 
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
@@ -1010,6 +1014,16 @@ function cargarTenantConfig(tid) {
 var sbAuth;
 try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 
+// Mantiene CFG.userToken sincronizado con la sesión real -- se dispara en
+// login, logout, y cuando el SDK renueva el token solo (los access_token
+// duran ~1h). Sin esto, después de una hora las llamadas a camila_casos
+// empezarían a fallar con 401 aunque la sesión siga "activa" a simple vista.
+if (sbAuth && sbAuth.auth) {
+  sbAuth.auth.onAuthStateChange(function(event, session) {
+    CFG.userToken = (session && session.access_token) || null;
+  });
+}
+
 function entrarConSesion(uid) {
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
@@ -1031,8 +1045,12 @@ function cerrarSesionSim() {
 (function checkLogin() {
   if (!sbAuth) return;
   sbAuth.auth.getSession().then(function(res) {
-    var user = res.data && res.data.session && res.data.session.user;
-    if (user) entrarConSesion(user.id);
+    var session = res.data && res.data.session;
+    var user = session && session.user;
+    if (user) {
+      CFG.userToken = session.access_token;
+      entrarConSesion(user.id);
+    }
     // si no hay sesión, el overlay de login ya está visible por defecto
   }).catch(function(){});
 })();
@@ -1054,6 +1072,10 @@ async function hacerLoginDentista() {
       errEl.style.display = 'block';
       return;
     }
+    // Se fija aquí también (no solo en onAuthStateChange) para que esté
+    // listo YA para la primera llamada que dispara entrarConSesion, sin
+    // esperar al evento asíncrono del SDK.
+    CFG.userToken = res.data.session.access_token;
     entrarConSesion(res.data.user.id);
   } catch (e) {
     errEl.textContent = 'Error de red: ' + e.message;
@@ -2419,7 +2441,7 @@ async function subirResultadoAStorage(dataUrlOFoto, casoId) {
   const path = casoId + '/simulacion_' + Date.now() + '.' + ext;
   const resp = await fetch(CFG.supaUrl + '/storage/v1/object/' + FOTOS_BUCKET + '/' + path, {
     method: 'POST',
-    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey, 'Content-Type': blob.type },
+    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey), 'Content-Type': blob.type },
     body: blob,
   });
   if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
@@ -2446,7 +2468,7 @@ async function abrirRevisionClinica() {
       method: 'POST',
       headers: {
         'apikey': CFG.supaKey,
-        'Authorization': 'Bearer ' + CFG.supaKey,
+        'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal',
       },
@@ -3192,7 +3214,7 @@ async function guardarCaso() {
       method: 'POST',
       headers: {
         'apikey': CFG.supaKey,
-        'Authorization': 'Bearer ' + CFG.supaKey,
+        'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
