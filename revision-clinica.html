@@ -90,15 +90,21 @@
   details.acc .acc-body{padding:2px 14px 14px}
 
   /* --- Fila de tonos VITA (guía de color) --- */
-  .vita-swatch-row-wrap{position:relative}
-  .vita-swatch-row-wrap::after{content:'';position:absolute;top:0;right:0;bottom:10px;width:28px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--bg) 85%)}
-  .vita-swatch-row{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
-  .vita-swatch{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;opacity:.55;transition:opacity 150ms,transform 150ms;cursor:pointer}
-  .vita-swatch:hover{opacity:.85}
-  .vita-swatch-color{width:34px;height:44px;border-radius:8px 8px 10px 10px;border:2px solid var(--card-b);box-shadow:0 2px 8px rgba(0,0,0,.3)}
-  .vita-swatch span{font-size:9.5px;font-weight:600;color:var(--text-dim)}
-  .vita-swatch.selected{opacity:1;transform:translateY(-3px)}
-  .vita-swatch.selected .vita-swatch-color{border-color:var(--p);box-shadow:0 0 0 2px rgba(91,71,224,.35),0 4px 12px rgba(91,71,224,.4)}
+  .vita-swatch-row-wrap{position:relative;margin:2px -4px 4px}
+  .vita-swatch-row-wrap::after{content:'';position:absolute;top:0;right:0;bottom:10px;width:32px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--card) 88%)}
+  .vita-swatch-row{display:flex;gap:8px;overflow-x:auto;padding:10px 8px 14px;scrollbar-width:thin;scroll-snap-type:x proximity}
+  .vita-swatch{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 48px;opacity:.76;transition:opacity 150ms,transform 150ms;cursor:pointer;scroll-snap-align:start;padding:7px 3px 6px;border:1px solid transparent;border-radius:12px}
+  .vita-swatch:hover{opacity:1;background:rgba(255,255,255,.025)}
+  .vita-swatch-color{
+    position:relative;width:42px;height:58px;border:0;background:none;
+    filter:drop-shadow(0 7px 6px rgba(0,0,0,.46));
+  }
+  .vita-swatch-color svg{display:block;width:100%;height:100%;overflow:visible}
+  .vita-swatch span{font-size:10px;font-weight:600;color:var(--text-dim)}
+  .vita-swatch.selected{opacity:1;transform:translateY(-3px);border-color:rgba(186,177,255,.78);background:linear-gradient(180deg,rgba(126,104,244,.13),rgba(126,104,244,.04));box-shadow:0 0 0 1px rgba(112,91,239,.12),0 8px 22px rgba(0,0,0,.22)}
+  .vita-swatch.selected::before{content:'';position:absolute;z-index:0;top:-14px;left:50%;width:58px;height:58px;transform:translateX(-50%);pointer-events:none;background:radial-gradient(ellipse at 50% 0,rgba(255,255,255,.72),rgba(190,208,255,.25) 31%,rgba(137,119,255,.1) 52%,transparent 72%);filter:blur(5px)}
+  .vita-swatch.selected .vita-swatch-color{z-index:1;filter:brightness(1.14) drop-shadow(0 -3px 5px rgba(255,255,255,.72)) drop-shadow(0 0 8px rgba(158,145,255,.8)) drop-shadow(0 9px 7px rgba(0,0,0,.48))}
+  .vita-swatch.selected span{position:relative;z-index:1;text-shadow:0 0 10px rgba(190,180,255,.55)}
   .vita-swatch.selected span{color:#fff}
 
   /* --- Matiz: pista con degradado arcoíris, igual que un selector de Hue --- */
@@ -148,6 +154,285 @@
   .placeholder-tab .ph-icon{font-size:26px;margin-bottom:10px;display:block}
 
   .bottom-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-top:1px solid var(--card-b);flex-shrink:0;background:rgba(255,255,255,.015)}
+
+  /* --- Refinamiento visual 2026: interfaz clínica premium --- */
+  :root{
+    --p:#8b7cf6;
+    --p2:#4da8ff;
+    --grad:linear-gradient(135deg,#9b8cff 0%,#6f7df4 48%,#3fa9f5 100%);
+    --bg:#07080d;
+    --card:#11131b;
+    --card-hover:#171a25;
+    --card-b:rgba(255,255,255,.085);
+    --field:rgba(255,255,255,.045);
+    --text:#f7f8fc;
+    --text-dim:rgba(237,240,249,.68);
+    --text-faint:rgba(226,230,241,.43);
+    --shadow:0 24px 70px rgba(0,0,0,.38);
+  }
+  body{
+    background:
+      radial-gradient(circle at 68% -10%,rgba(86,104,232,.14),transparent 32%),
+      radial-gradient(circle at 0 100%,rgba(43,130,181,.08),transparent 28%),
+      var(--bg);
+  }
+  button,input{font:inherit}
+  button:focus-visible,input:focus-visible,summary:focus-visible{
+    outline:2px solid rgba(139,124,246,.9);
+    outline-offset:2px;
+  }
+
+  .sidenav{
+    width:232px;
+    padding:22px 14px 16px;
+    background:linear-gradient(180deg,rgba(17,18,28,.98),rgba(10,11,17,.98));
+    border-right-color:rgba(255,255,255,.07);
+    box-shadow:18px 0 55px rgba(0,0,0,.16);
+  }
+  .sidenav-logo{
+    min-height:54px;
+    display:flex;
+    align-items:center;
+    padding:2px 12px 22px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    margin-bottom:16px;
+  }
+  .logo-smyl-img{height:28px;filter:drop-shadow(0 5px 16px rgba(115,104,232,.25))}
+  .sidenav-items{gap:5px}
+  .nav-item{
+    position:relative;
+    min-height:44px;
+    padding:11px 13px;
+    border-radius:12px;
+    font-size:12.5px;
+    letter-spacing:.01em;
+  }
+  .nav-item .nav-icon{
+    width:24px;height:24px;display:grid;place-items:center;
+    border-radius:8px;background:rgba(255,255,255,.045);
+    font-size:13px;filter:grayscale(.25);
+  }
+  .nav-item.active{
+    background:linear-gradient(105deg,rgba(139,124,246,.2),rgba(75,151,240,.09));
+    box-shadow:inset 0 0 0 1px rgba(139,124,246,.28),0 8px 22px rgba(0,0,0,.13);
+  }
+  .nav-item.active::before{
+    content:'';position:absolute;left:-1px;top:12px;bottom:12px;width:3px;
+    border-radius:0 4px 4px 0;background:var(--grad);box-shadow:0 0 14px rgba(139,124,246,.65);
+  }
+  .nav-item.active .nav-icon{background:rgba(139,124,246,.2);color:#fff}
+  .nav-item.disabled{opacity:.3}
+  .nav-item.nav-bottom{border-top:1px solid rgba(255,255,255,.06);border-radius:0;padding-top:17px;margin-top:10px}
+
+  .app-header{
+    min-height:82px;padding:17px 30px 13px;
+    border-bottom:1px solid rgba(255,255,255,.055);
+    background:rgba(7,8,13,.46);backdrop-filter:blur(18px);
+  }
+  .header-center h2{font-size:20px;letter-spacing:-.025em}
+  .header-center p{margin-top:5px;font-size:11.5px;letter-spacing:.01em}
+  .link-btn{width:38px;height:38px;padding:0;justify-content:center;border:1px solid var(--card-b);background:var(--field);font-size:15px}
+  #statusGuardado:empty,#status:empty{display:none}
+  #statusGuardado{margin:0!important;padding:5px 30px 0!important}
+  #status{margin:0!important;padding:5px 30px 0!important}
+
+  .workspace2{gap:22px;padding:20px 30px 0}
+  .canvas-col2{flex:1.55;gap:14px;padding-right:2px}
+  .panel-col2{
+    min-width:320px;max-width:390px;padding:18px;
+    border:1px solid var(--card-b);border-radius:20px 20px 0 0;
+    background:linear-gradient(180deg,rgba(19,21,30,.96),rgba(13,15,22,.96));
+    box-shadow:var(--shadow);
+  }
+  .canvas-wrap{
+    min-height:360px;display:grid;place-items:center;
+    border-radius:20px;border-color:rgba(255,255,255,.1);
+    background:
+      linear-gradient(45deg,rgba(255,255,255,.015) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.015) 75%),
+      #050609;
+    background-size:22px 22px;
+    box-shadow:0 28px 80px rgba(0,0,0,.46),inset 0 0 0 1px rgba(255,255,255,.025);
+  }
+  canvas{border-radius:14px}
+  #toothSelectorBlock,#panelObjetos{
+    background:linear-gradient(145deg,rgba(20,23,33,.96),rgba(14,16,24,.96))!important;
+    border-color:var(--card-b)!important;border-radius:16px!important;
+    box-shadow:0 14px 35px rgba(0,0,0,.17);
+  }
+  .tab-content h4.panel-title{font-size:10px;letter-spacing:1.4px;margin-bottom:10px}
+  .sec-lbl{letter-spacing:1.25px}
+
+  .btn-pill,.btn-icon,.float-pill,.float-icon,.chip,.tooth-chip,.seg-tab,
+  button[style*="background:var(--field)"],button[style*="background:var(--card)"]{
+    transition:transform 150ms ease,background 150ms ease,border-color 150ms ease,color 150ms ease,box-shadow 150ms ease;
+  }
+  .btn-pill:hover:not(:disabled),.chip:hover,.tooth-chip:hover,.seg-tab:hover,
+  button[style*="background:var(--field)"]:hover,button[style*="background:var(--card)"]:hover{
+    transform:translateY(-1px);border-color:rgba(139,124,246,.38)!important;color:#fff!important;
+  }
+  .btn-pill.primary{
+    background:var(--grad);box-shadow:0 10px 30px rgba(91,92,218,.3),inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .btn-pill.primary:hover{box-shadow:0 13px 36px rgba(91,92,218,.4);transform:translateY(-1px)}
+  .seg-tabs{padding:4px;border:1px solid rgba(255,255,255,.055);background:rgba(0,0,0,.18)}
+  .seg-tab.active{box-shadow:0 7px 18px rgba(73,79,194,.25)}
+  .tooth-chip.selected,.chip.active{box-shadow:0 7px 20px rgba(78,79,202,.3)}
+  details.acc{background:rgba(255,255,255,.018);border-color:rgba(255,255,255,.075)}
+  details.acc[open]{background:rgba(255,255,255,.027);border-color:rgba(139,124,246,.18)}
+  details.acc summary{padding:13px 14px}
+  .slider-row{margin-bottom:17px}
+  .slider-row label{font-size:12px}
+  input[type=range]{height:5px;cursor:pointer}
+  .vita-swatch.selected .vita-swatch-color{border-color:transparent}
+
+  .float-group{background:rgba(12,14,22,.78);border-color:rgba(255,255,255,.11);box-shadow:0 8px 24px rgba(0,0,0,.28)}
+  .bottom-bar{
+    min-height:70px;padding:12px 30px;
+    border-top-color:rgba(255,255,255,.07);
+    background:rgba(10,11,17,.86);backdrop-filter:blur(20px);
+    box-shadow:0 -16px 40px rgba(0,0,0,.16);
+  }
+  .config-overlay{background:rgba(2,3,8,.78);backdrop-filter:blur(12px)}
+  .config-modal{border-radius:22px;background:linear-gradient(145deg,#171925,#10121a);box-shadow:0 35px 100px rgba(0,0,0,.65)}
+
+  /* --- Dirección visual de referencia: estudio clínico oscuro y sobrio --- */
+  :root{
+    --bg:#070909;
+    --card:#101213;
+    --card-hover:#151718;
+    --field:#0c0e0f;
+    --card-b:rgba(255,255,255,.07);
+    --text:#f2f3f4;
+    --text-dim:rgba(242,243,244,.68);
+    --text-faint:rgba(242,243,244,.4);
+  }
+  body{background:var(--bg);font-weight:400;letter-spacing:-.005em}
+  .app-shell{background:#080a0a}
+  .sidenav{
+    width:202px;padding:25px 16px 18px;
+    background:#080a0a;border-right:1px solid rgba(255,255,255,.045);
+    box-shadow:none;
+  }
+  .sidenav-logo{min-height:62px;padding:0 15px 25px;margin-bottom:17px;border-bottom:0}
+  .logo-smyl-img{height:31px;filter:none}
+  .sidenav-items{gap:7px}
+  .nav-item{
+    min-height:48px;padding:11px 14px;border-radius:10px;
+    color:rgba(244,245,246,.67);font-size:13px;font-weight:500;
+  }
+  .nav-item .nav-icon{width:24px;height:24px;background:transparent;color:#c8cbce;font-size:15px;filter:grayscale(1)}
+  .nav-item:hover:not(.active):not(.disabled){background:#101212;color:#fff}
+  .nav-item.active{
+    color:#fff;background:linear-gradient(90deg,rgba(31,106,229,.28),rgba(116,42,220,.16));
+    box-shadow:inset 0 0 0 1px rgba(93,83,227,.28);
+  }
+  .nav-item.active::before{left:auto;right:0;top:9px;bottom:9px;width:2px;background:linear-gradient(#4d8bff,#b322ff);box-shadow:0 0 10px rgba(104,77,255,.55)}
+  .nav-item.active .nav-icon{background:transparent}
+  .nav-item.disabled{opacity:.48}
+  .nav-item.nav-bottom{border-top:0;border:1px solid var(--card-b);border-radius:9px;padding:11px 13px;margin:12px 4px 0}
+
+  .app-header{
+    min-height:98px;padding:24px 30px 17px;border-bottom:0;
+    background:#080a0a;backdrop-filter:none;
+  }
+  .header-center h2{font-size:19px;font-weight:500;letter-spacing:-.02em}
+  .header-center p{margin-top:7px;font-size:11px;color:rgba(242,243,244,.5)}
+  .header-actions{gap:13px}
+  .link-btn{border:0;background:transparent;width:36px;height:36px;color:#e5e7e9}
+  .link-btn:hover{background:#121415}
+  #fotoStatus{font-size:10px!important}
+  #statusGuardado,#status{font-size:10px!important;padding-inline:30px!important}
+
+  .workspace2{gap:18px;padding:0 30px 15px;background:#080a0a}
+  .canvas-col2{flex:1.65;gap:10px}
+  .panel-col2{
+    flex:.86;max-width:400px;min-width:330px;padding:16px;
+    border:1px solid rgba(255,255,255,.055);border-radius:12px;
+    background:#101213;box-shadow:none;
+  }
+  .canvas-wrap{
+    min-height:390px;border-radius:11px;border:1px solid rgba(255,255,255,.065);
+    background:#020303;background-image:none;
+    box-shadow:none;
+  }
+  canvas{border-radius:10px}
+  #toothSelectorBlock,#panelObjetos{
+    border-radius:10px!important;background:#101213!important;
+    border-color:rgba(255,255,255,.055)!important;box-shadow:none!important;
+  }
+  #panelObjetos{max-height:180px!important}
+  .tab-content h4.panel-title,.sec-lbl{
+    color:rgba(242,243,244,.67);font-size:9.5px;letter-spacing:.75px;font-weight:600;
+  }
+  .tab-content h4.panel-title{padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.055)}
+  .hint{font-size:10px;line-height:1.55}
+
+  details.acc{border:0;border-top:1px solid rgba(255,255,255,.055);border-radius:0;background:transparent;margin-bottom:0}
+  details.acc[open]{border-color:rgba(255,255,255,.055);background:transparent}
+  details.acc summary{padding:14px 2px;font-size:11.5px;font-weight:500}
+  details.acc summary:hover{background:transparent;color:#cfcaff}
+  details.acc .acc-body{padding:2px 2px 15px}
+  .slider-row{margin-bottom:18px}
+  .slider-row label{font-size:11px;color:rgba(242,243,244,.72)}
+  .slider-row label span:last-child{color:#fff;font-variant-numeric:tabular-nums}
+  input[type=range]{height:3px;accent-color:#5f73ff}
+  .seg-tabs{height:34px;border-radius:6px;padding:2px;background:#0b0d0e;border-color:rgba(255,255,255,.06)}
+  .seg-tab{padding:6px;border-radius:5px;font-size:10px;font-weight:500}
+  .seg-tab.active{background:linear-gradient(90deg,rgba(41,99,232,.3),rgba(100,40,220,.24));box-shadow:inset 0 0 0 1px rgba(94,78,222,.28)}
+  .chips4,.chips3{gap:7px}
+  .chip,.tooth-chip{border-radius:8px;background:#0c0e0f;border-color:rgba(255,255,255,.06);font-weight:500}
+  .chip.active,.tooth-chip.selected{background:#111626;border:1px solid rgba(92,83,226,.65);box-shadow:none}
+  .vita-swatch-row-wrap::after{background:linear-gradient(90deg,transparent,#101213 88%)}
+  #tonoVitaResultado{background:#0c0e0f!important;border-color:rgba(255,255,255,.07)!important;border-radius:8px!important}
+
+  .float-group{padding:3px;border-radius:7px;background:rgba(8,10,10,.86);border-color:rgba(255,255,255,.08);box-shadow:none}
+  .float-pill{border-radius:5px;font-weight:500}
+  .float-pill.active{background:linear-gradient(90deg,rgba(39,105,230,.42),rgba(108,43,220,.34))}
+  .float-icon{background:rgba(8,10,10,.78);border-color:rgba(255,255,255,.08)}
+  .btn-pill{border-radius:7px;background:#101213;border-color:rgba(255,255,255,.08);font-weight:500}
+  .btn-pill.primary{
+    border-radius:7px;background:linear-gradient(100deg,#2576f3,#8427ed);
+    box-shadow:0 6px 20px rgba(66,52,220,.22),inset 0 1px 0 rgba(255,255,255,.16);
+  }
+  .btn-pill.ok{background:#101714}
+  .bottom-bar{
+    min-height:72px;padding:11px 30px;border-top:1px solid rgba(255,255,255,.06);
+    background:#090b0b;backdrop-filter:none;box-shadow:none;
+  }
+  .bottom-bar #selectorVista{min-width:330px;justify-content:center;background:transparent;border:0;gap:6px}
+  .bottom-bar #selectorVista .float-pill{min-width:92px;border:1px solid rgba(255,255,255,.06);background:#0d0f10}
+  .bottom-bar #selectorVista .float-pill.active{border-color:rgba(74,92,224,.65);background:#101525}
+  .bottom-bar .btn-pill.primary{min-width:205px;justify-content:center}
+  .config-modal{background:#101213;border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+  #carillaListaVacia,#carillaSelect,.carilla-legado,
+  button[onclick="quitarCarillaPegada()"],
+  .slider-row:has(#s_carilla_tamano),.slider-row:has(#s_carilla_ancho),.slider-row:has(#s_carilla_angulo){display:none!important}
+
+  @media(max-width:1050px){
+    .sidenav{width:82px;padding-inline:10px}
+    .sidenav-logo{justify-content:center;padding-inline:4px}
+    .logo-smyl-img{max-width:52px;height:auto}
+    .nav-item{justify-content:center;padding-inline:8px}
+    .nav-item span:last-child{display:none}
+    .nav-item .nav-icon{width:28px;height:28px}
+    .workspace2{padding-inline:20px}.app-header{padding-inline:20px}.bottom-bar{padding-inline:20px}
+  }
+  @media(max-width:780px){
+    body{overflow:auto}.app-shell{display:block;height:auto}.app-main{height:auto;overflow:visible;padding-bottom:72px}
+    .sidenav{position:fixed;z-index:100;left:0;right:0;bottom:0;width:100%;height:68px;padding:7px 10px;background:rgba(12,13,20,.94);backdrop-filter:blur(20px);border:0;border-top:1px solid var(--card-b)}
+    .sidenav-logo,.nav-item.nav-bottom{display:none}.sidenav-items{flex-direction:row;overflow-x:auto;gap:4px}
+    .nav-item{flex:1;min-width:58px;min-height:52px;flex-direction:column;gap:3px;padding:5px 4px;font-size:9px}
+    .nav-item span:last-child{display:block;white-space:nowrap;max-width:76px;overflow:hidden;text-overflow:ellipsis}.nav-item .nav-icon{width:22px;height:22px;font-size:11px}
+    .nav-item.active::before{left:25%;right:25%;top:-7px;bottom:auto;width:auto;height:3px;border-radius:0 0 4px 4px}
+    .app-header{position:sticky;top:0;z-index:50;grid-template-columns:1fr auto;min-height:72px;padding:12px 16px}.app-header .header-side:first-child{display:none}.header-center{text-align:left}.header-center h2{font-size:17px}.header-center p{max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .workspace2{display:block;padding:14px 14px 0;overflow:visible}.canvas-col2,.panel-col2{overflow:visible}.canvas-wrap{min-height:240px}.panel-col2{max-width:none;min-width:0;margin-top:14px;border-radius:18px;padding:15px}
+    .bottom-bar{position:sticky;bottom:68px;z-index:45;gap:8px;padding:9px 14px;min-height:62px}.bottom-bar .btn-pill.primary{height:42px!important;padding-inline:14px!important;font-size:11px!important}.bottom-bar .float-pill{padding-inline:8px;font-size:9px}
+    #fotoStatus{display:none}
+  }
+  @media(max-width:480px){
+    .header-center p{max-width:200px}.bottom-bar{align-items:stretch}.bottom-bar #selectorVista{flex:1}.bottom-bar .float-pill{flex:1;padding-inline:4px}.bottom-bar .btn-pill.primary{max-width:142px;line-height:1.15}
+    .chips4{grid-template-columns:repeat(2,1fr)}
+  }
 </style>
 </head>
 <body>
@@ -303,9 +588,9 @@
       </details>
 
       <details class="acc" open>
-      <summary>Forma, tamaño y carillas</summary>
+      <summary>Forma y tamaño del diente</summary>
       <div class="acc-body">
-      <div class="sec-lbl" style="margin-top:0">Carillas pegadas (clic para seleccionar)</div>
+      <div class="sec-lbl carilla-legado" style="margin-top:0">Carillas pegadas (clic para seleccionar)</div>
       <div id="carillaListaVacia" style="font-size:11px;color:var(--text-faint);margin-bottom:10px">Todavía no has pegado ninguna carilla.</div>
       <div class="tooth-select" id="carillaSelect" style="margin-bottom:16px"></div>
 
@@ -328,7 +613,7 @@
           Rectangular
         </div>
       </div>
-      <p style="font-size:10px;color:var(--text-faint);margin:-8px 0 14px;line-height:1.5">Al hacer clic, se PEGA la imagen real de esa carilla sobre el diente (sin recortar a su silueta). Ajusta tamaño/proporción/ángulo/posición para acomodarla, igual que con cualquier diente.</p>
+      <p style="font-size:10px;color:var(--text-faint);margin:-8px 0 14px;line-height:1.5">Selecciona una anatomía para deformar el diente real conservando su textura. Ancho/alto y Tamaño total parten siempre del 100% original segmentado.</p>
       <button onclick="quitarCarillaPegada()" style="width:100%;padding:7px;margin-bottom:10px;border-radius:8px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer">✕ Quitar carilla pegada</button>
       <div class="slider-row">
         <label><span>Tamaño de la carilla</span><span id="v_carilla_tamano">100%</span></label>
@@ -342,8 +627,8 @@
         <label><span>Ángulo de la carilla</span><span id="v_carilla_angulo">0°</span></label>
         <input type="range" id="s_carilla_angulo" min="-45" max="45" value="0">
       </div>
-      <div class="sec-lbl" style="margin-top:6px">POSICIÓN DE LA CARILLA (por si está encima de un diente)</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:140px;margin-bottom:10px">
+      <div class="sec-lbl carilla-legado" style="margin-top:6px">POSICIÓN DE LA CARILLA (por si está encima de un diente)</div>
+      <div class="carilla-legado" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:140px;margin-bottom:10px">
         <div></div>
         <button onclick="nudgeCarilla(0,-1)" style="padding:6px;border-radius:6px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);cursor:pointer">↑</button>
         <div></div>
@@ -607,6 +892,19 @@ const VITA_SHADES = {
 // Orden de la guía real VITA Classical (por valor, de más claro a más oscuro)
 const VITA_ORDEN = ['B1','A1','B2','D2','A2','C1','C2','D4','A3','D3','B3','A3.5','B4','C3','A4','C4'];
 
+// Adaptación perceptual para pantalla (fondo oscuro / RGB). Los valores Lab
+// de referencia no deben mostrarse como pintura opaca directa: una tablilla
+// dental iluminada transmite y refleja más luz. Esta curva conserva el orden
+// y la separación entre tonos, pero lleva el rango visual de L* aprox. 64–82
+// a un rango de presentación 78–91, y modera el amarillo para evitar marrón.
+function vitaLabPantalla(ref){
+  return {
+    L: Math.max(0, Math.min(100, 82 + (ref.L - 69.3) * 0.75)),
+    a: ref.a * 0.86,
+    b: ref.b * 0.78,
+  };
+}
+
 function labARgb(L, a, b){
   const fy = (L + 16) / 116;
   const fx = fy + a / 500;
@@ -624,8 +922,10 @@ function renderFilaVita(){
   const cont = document.getElementById('vitaSwatchRow');
   if (!cont) return;
   cont.innerHTML = '';
+  // Una sola anatomía garantiza exactamente la misma medida en toda la guía.
+  const anatomiaVita = 'M18 3C25 1 39 1 46 3c8 3 10 13 11 24l4 34c1 10-7 18-16 20-8 2-18 2-26 0C10 79 2 71 3 61l4-34C8 16 10 6 18 3Z';
   VITA_ORDEN.forEach(nombre => {
-    const ref = VITA_SHADES[nombre];
+    const ref = vitaLabPantalla(VITA_SHADES[nombre]);
     const rgb = labARgb(ref.L, ref.a, ref.b);
     const item = document.createElement('div');
     item.className = 'vita-swatch';
@@ -634,7 +934,82 @@ function renderFilaVita(){
     item.onclick = () => aplicarTonoVita(nombre);
     const chip = document.createElement('div');
     chip.className = 'vita-swatch-color';
-    chip.style.background = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+    const claro = {
+      r: Math.min(255, rgb.r + 24),
+      g: Math.min(255, rgb.g + 22),
+      b: Math.min(255, rgb.b + 18)
+    };
+    const oscuro = {
+      r: Math.max(0, rgb.r - 25),
+      g: Math.max(0, rgb.g - 23),
+      b: Math.max(0, rgb.b - 20)
+    };
+    chip.style.setProperty('--vita-color', `rgb(${rgb.r},${rgb.g},${rgb.b})`);
+    chip.style.setProperty('--vita-light', `rgb(${claro.r},${claro.g},${claro.b})`);
+    chip.style.setProperty('--vita-dark', `rgb(${oscuro.r},${oscuro.g},${oscuro.b})`);
+    const gid = 'vita' + nombre.replace(/[^a-z0-9]/gi, '');
+    const anatomia = anatomiaVita;
+    chip.innerHTML = `
+      <svg viewBox="0 0 64 84" aria-hidden="true">
+        <defs>
+          <linearGradient id="${gid}base" x1="0" y1="0" x2="1" y2=".78">
+            <stop offset="0" stop-color="rgb(${claro.r},${claro.g},${claro.b})"/>
+            <stop offset=".43" stop-color="rgb(${rgb.r},${rgb.g},${rgb.b})"/>
+            <stop offset="1" stop-color="rgb(${oscuro.r},${oscuro.g},${oscuro.b})"/>
+          </linearGradient>
+          <linearGradient id="${gid}edge" x1="0" x2="1">
+            <stop offset="0" stop-color="#7b624a" stop-opacity=".16"/>
+            <stop offset=".18" stop-color="#fff" stop-opacity=".08"/>
+            <stop offset=".52" stop-color="#fff" stop-opacity=".24"/>
+            <stop offset=".82" stop-color="#fff" stop-opacity=".04"/>
+            <stop offset="1" stop-color="#745a43" stop-opacity=".15"/>
+          </linearGradient>
+          <linearGradient id="${gid}incisal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#eefbff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#eefbff" stop-opacity=".52"/>
+          </linearGradient>
+          <radialGradient id="${gid}shine" cx="32%" cy="22%" r="48%">
+            <stop offset="0" stop-color="#fff" stop-opacity=".92"/>
+            <stop offset=".14" stop-color="#fff" stop-opacity=".36"/>
+            <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="${gid}specular" x1="0" y1="0" x2="1" y2=".25">
+            <stop offset="0" stop-color="#fff" stop-opacity=".08"/>
+            <stop offset=".24" stop-color="#fff" stop-opacity=".82"/>
+            <stop offset=".52" stop-color="#fff" stop-opacity=".38"/>
+            <stop offset="1" stop-color="#fff" stop-opacity=".06"/>
+          </linearGradient>
+          <radialGradient id="${gid}dentina" cx="50%" cy="42%" r="48%">
+            <stop offset="0" stop-color="#fff8e5" stop-opacity=".16"/>
+            <stop offset=".68" stop-color="#e7c18a" stop-opacity=".06"/>
+            <stop offset="1" stop-color="#c58c47" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="${gid}cervical" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#c99a68" stop-opacity=".12"/>
+            <stop offset=".55" stop-color="#ead0a5" stop-opacity=".04"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="${gid}glow" x="-30%" y="-50%" width="160%" height="200%">
+            <feGaussianBlur stdDeviation="1.7"/>
+          </filter>
+          <clipPath id="${gid}clip"><path d="${anatomia}"/></clipPath>
+        </defs>
+        <path d="${anatomia}" fill="url(#${gid}base)" stroke="#fff" stroke-opacity=".42" stroke-width="1.2"/>
+        <path d="${anatomia}" fill="url(#${gid}edge)"/>
+        <ellipse cx="32" cy="39" rx="19" ry="29" fill="url(#${gid}dentina)" clip-path="url(#${gid}clip)"/>
+        <ellipse cx="32" cy="8" rx="24" ry="17" fill="url(#${gid}cervical)" clip-path="url(#${gid}clip)"/>
+        <path d="M9 62c7 4 39 4 46 0 1 8-5 14-12 16-7 2-15 2-22 0C14 76 8 70 9 62Z" fill="url(#${gid}incisal)"/>
+        <path d="M18 8c4-3 17-5 25-1 7 4 8 13 8 20" fill="none" stroke="#fff" stroke-opacity=".26" stroke-width="2" stroke-linecap="round"/>
+        <path d="M22 13c-5 14-5 35-2 51M42 12c5 14 5 36 2 52" fill="none" stroke="#79552f" stroke-opacity=".10" stroke-width="1.3"/>
+        <path d="M32 8c-2 16-2 39 0 58" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="3" stroke-linecap="round"/>
+        <path d="M25 58c-2 5-3 10-2 15M32 57v17M39 58c2 5 3 10 2 15" fill="none" stroke="#dff5f8" stroke-opacity=".17" stroke-width="1.25" stroke-linecap="round"/>
+        <ellipse cx="24" cy="20" rx="17" ry="18" fill="url(#${gid}shine)"/>
+        <path d="M14 28c6-7 12-10 18-10s12 3 18 10" fill="none" stroke="#fff" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" filter="url(#${gid}glow)"/>
+        <path d="M14 27c6-7 12-9 18-9s12 2 18 9" fill="none" stroke="url(#${gid}specular)" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M18 19c1-4 4-7 8-9" fill="none" stroke="#fff" stroke-opacity=".72" stroke-width="1.8" stroke-linecap="round"/>
+        <ellipse cx="20" cy="15" rx="2.3" ry="4.8" fill="#fff" opacity=".28" transform="rotate(31 20 15)"/>
+        <path d="M13 67c9 5 29 5 38 0" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>`;
     const lbl = document.createElement('span');
     lbl.textContent = nombre;
     item.appendChild(chip);
@@ -769,6 +1144,43 @@ function buscarSlidersParaTono(rgbBase, targetLab){
   return mejor;
 }
 
+// Aplica un tono VITA en CIELAB directamente sobre los píxeles del diente.
+// El objetivo cromático (a/b) sí coincide con la guía; la luminosidad local
+// conserva parte de la diferencia respecto al promedio original para no
+// perder textura, reflejos, fisuras ni volumen fotográfico.
+function tonalizarCanvasVita(canvasDiente, index, targetLab){
+  const cctx = canvasDiente.getContext('2d', { willReadFrequently: true });
+  let img;
+  try { img = cctx.getImageData(0, 0, canvasDiente.width, canvasDiente.height); }
+  catch(e) { return canvasDiente; }
+
+  const baseRgb = colorBaseDienteSeleccionado(index);
+  if (!baseRgb) return canvasDiente;
+  const baseLab = rgbALab(baseRgb.r, baseRgb.g, baseRgb.b);
+  const data = img.data;
+
+  for (let p = 0; p < data.length; p += 4) {
+    if (data[p + 3] === 0) continue;
+    const srcLab = rgbALab(data[p], data[p + 1], data[p + 2]);
+
+    // Conserva el modelado de luz de la foto, con límites para que una sombra
+    // intensa no cambie visualmente la familia del tono elegido.
+    const deltaL = Math.max(-18, Math.min(18, srcLab.L - baseLab.L));
+    const L = Math.max(0, Math.min(100, targetLab.L + deltaL * 0.38));
+
+    // Una fracción mínima de variación cromática original evita un aspecto
+    // pintado/plano, pero el 92% del color proviene del patrón VITA objetivo.
+    const a = targetLab.a + (srcLab.a - baseLab.a) * 0.03;
+    const b = targetLab.b + (srcLab.b - baseLab.b) * 0.03;
+    const out = labARgb(L, a, b);
+    data[p] = out.r;
+    data[p + 1] = out.g;
+    data[p + 2] = out.b;
+  }
+  cctx.putImageData(img, 0, 0);
+  return canvasDiente;
+}
+
 // Clic en un swatch de la guía VITA: mueve Valor/Croma/Matiz del diente
 // seleccionado a los valores que mejor reproducen ese tono a partir de SU
 // color real en la foto (no pinta un color plano -- respeta la textura y
@@ -778,24 +1190,40 @@ function aplicarTonoVita(nombreTono){
     setStatus('Selecciona un diente primero para aplicarle un tono VITA.', '');
     return;
   }
-  const target = VITA_SHADES[nombreTono];
-  if (!target) return;
-  const ultimo = [...selectedIndices].pop();
-  const base = colorBaseDienteSeleccionado(ultimo);
-  if (!base) return;
+  const ref = VITA_SHADES[nombreTono];
+  if (!ref) return;
+  const target = vitaLabPantalla(ref);
   guardarEstadoHistorial();
-  const resultado = buscarSlidersParaTono(base, target);
-  document.getElementById('s_brillo').value = resultado.brillo;
-  document.getElementById('s_croma').value = resultado.croma;
-  document.getElementById('s_tono').value = resultado.tono;
+
+  // El modo VITA exacto ya no depende de encontrar una aproximación mediante
+  // filtros CSS. Los sliders solo representan el objetivo y permiten salir
+  // después al modo libre si el usuario los mueve.
+  const cromaLab = Math.sqrt(target.a * target.a + target.b * target.b);
+  const anguloLab = Math.atan2(target.b, target.a);
+  const brilloUI = Math.round(Math.max(0, Math.min(100, target.L)));
+  const cromaUI = Math.round(Math.max(0, Math.min(100, cromaLab * 5.5)));
+  const tonoUI = Math.round(Math.max(0, Math.min(100, ((anguloLab + Math.PI) / (2 * Math.PI)) * 100)));
+  document.getElementById('s_brillo').value = brilloUI;
+  document.getElementById('s_croma').value = cromaUI;
+  document.getElementById('s_tono').value = tonoUI;
   sincronizarFormaDesdeSliders();
+  // Todos los dientes seleccionados reciben el MISMO objetivo VITA, aunque
+  // cada uno conserve sus propias luces y sombras de la fotografía.
+  selectedIndices.forEach(index => {
+    if (!formaState[index]) return;
+    formaState[index].vitaTono = nombreTono;
+  });
   sincronizarAvanzadoDesdeBasico();
+  setStatus(`✓ Tono VITA ${nombreTono} aplicado a ${selectedIndices.size} diente${selectedIndices.size === 1 ? '' : 's'}`, 'ok');
   render();
 }
 
 function tonosVitaCercanos(lab, top){
   return Object.entries(VITA_SHADES)
-    .map(([nombre, ref]) => ({ nombre, deltaE: Math.sqrt((lab.L-ref.L)**2 + (lab.a-ref.a)**2 + (lab.b-ref.b)**2) }))
+    .map(([nombre, refCrudo]) => {
+      const ref = vitaLabPantalla(refCrudo);
+      return { nombre, deltaE: Math.sqrt((lab.L-ref.L)**2 + (lab.a-ref.a)**2 + (lab.b-ref.b)**2) };
+    })
     .sort((a, b) => a.deltaE - b.deltaE)
     .slice(0, top || 3);
 }
@@ -812,8 +1240,18 @@ function actualizarTonoVita(){
   }
 
   const lab = rgbALab(color.r, color.g, color.b);
-  const cercanos = tonosVitaCercanos(lab, 3);
-  const mejor = cercanos[0];
+  let cercanos = tonosVitaCercanos(lab, 3);
+  let mejor = cercanos[0];
+  const ultimoIndex = [...selectedIndices].pop();
+  const tonoAplicado = ultimoIndex !== undefined ? formaState[ultimoIndex]?.vitaTono : null;
+  if (tonoAplicado && VITA_SHADES[tonoAplicado]) {
+    const objetivo = vitaLabPantalla(VITA_SHADES[tonoAplicado]);
+    mejor = {
+      nombre: tonoAplicado,
+      deltaE: Math.sqrt((lab.L-objetivo.L)**2 + (lab.a-objetivo.a)**2 + (lab.b-objetivo.b)**2)
+    };
+    cercanos = [mejor, ...tonosVitaCercanos(lab, 5).filter(c => c.nombre !== tonoAplicado)].slice(0, 3);
+  }
 
   // ΔE clínico: <1 imperceptible, 1-3.7 aceptable, >3.7 se nota a simple vista
   // (umbral de perceptibilidad clínica citado en literatura dental).
@@ -824,7 +1262,7 @@ function actualizarTonoVita(){
   filaMejor.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px';
   const nombreMejor = document.createElement('span');
   nombreMejor.style.cssText = 'font-size:15px;font-weight:700;color:#fff';
-  nombreMejor.textContent = 'Tono más cercano: ' + mejor.nombre;
+  nombreMejor.textContent = (tonoAplicado ? 'Tono aplicado: ' : 'Tono más cercano: ') + mejor.nombre;
   const deMejor = document.createElement('span');
   deMejor.style.cssText = 'font-size:11px;font-weight:600;color:' + color_de;
   deMejor.textContent = 'ΔE ' + mejor.deltaE.toFixed(1);
@@ -1379,10 +1817,10 @@ function dibujarLineasVerdes(){
     // (se veían cuñas/triángulos rellenos en vez de líneas).
     const [, , bw, bh] = m.bbox;
     const dimensionMenor = Math.min(bw, bh);
-    const grosorFino = Math.max(0.8, Math.min(3, dimensionMenor * 0.045));
-    const grosorHalo = grosorFino * 3.5;
+    const grosorFino = Math.max(0.65, Math.min(1.35, dimensionMenor * 0.018));
+    const grosorHalo = Math.max(1.4, grosorFino * 2.25);
 
-    const opacidadBase = esSeleccionado ? 1 : 0.5;
+    const opacidadBase = esSeleccionado ? 1 : 0.72;
 
     const construirAnillo = (grosor) => construirContornoTransformado(maskBitmap, m.bbox, fs, canvas.width, canvas.height, grosor);
 
@@ -1391,7 +1829,7 @@ function dibujarLineasVerdes(){
     const teñidoHalo = document.createElement('canvas');
     teñidoHalo.width = canvas.width; teñidoHalo.height = canvas.height;
     const thctx = teñidoHalo.getContext('2d');
-    thctx.fillStyle = `rgba(57,255,120,${opacidadBase * 0.28})`;
+    thctx.fillStyle = `rgba(20,255,105,${opacidadBase * 0.18})`;
     thctx.fillRect(0, 0, canvas.width, canvas.height);
     thctx.globalCompositeOperation = 'destination-in';
     thctx.drawImage(anilloHalo, 0, 0);
@@ -1402,7 +1840,7 @@ function dibujarLineasVerdes(){
     const teñidoFino = document.createElement('canvas');
     teñidoFino.width = canvas.width; teñidoFino.height = canvas.height;
     const tfctx = teñidoFino.getContext('2d');
-    tfctx.fillStyle = `rgba(90,255,150,${opacidadBase})`;
+    tfctx.fillStyle = `rgba(42,255,118,${opacidadBase})`;
     tfctx.fillRect(0, 0, canvas.width, canvas.height);
     tfctx.globalCompositeOperation = 'destination-in';
     tfctx.drawImage(anilloFino, 0, 0);
@@ -2022,7 +2460,9 @@ function resetForma(){
     const brilloActual = formaState[i]?.brillo ?? 50;
     const blancuraActual = formaState[i]?.blancura ?? 0;
     const tonoActual = formaState[i]?.tono ?? 50;
-    formaState[i] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: dxActual, dy: dyActual, brillo: brilloActual, blancura: blancuraActual, tono: tonoActual };
+    const vitaActual = formaState[i]?.vitaTono || null;
+    const formaPresetActual = formaState[i]?.formaPreset || null;
+    formaState[i] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: dxActual, dy: dyActual, brillo: brilloActual, blancura: blancuraActual, tono: tonoActual, vitaTono: vitaActual, formaPreset: null };
   });
   document.getElementById('s_proporcion').value = 100;
   document.getElementById('s_tamano').value = 100;
@@ -2036,15 +2476,14 @@ function resetForma(){
   render();
 }
 
-// Presets SIMPLES -- ajustan proporción/redondez directamente, sin
-// generar nodos/vectores. El diente queda totalmente libre para seguir
-// editándose con los sliders normales, sin ningún punto oculto que
-// interfiera o "atore" el ajuste fino.
+// Presets de silueta. "proporcion" y "tamano" se mantienen en 100 para
+// que los sliders sigan tomando como referencia el tamaño ORIGINAL de la
+// segmentación, independientemente de la anatomía elegida.
 const PRESETS_FORMA_SIMPLES = {
-  ovalado:     { proporcion: 100, redondez: 55 },
-  cuadrado:    { proporcion: 112, redondez: 8 },
-  triangular:  { proporcion: 88,  redondez: 65 },
-  rectangular: { proporcion: 85,  redondez: 12 },
+  ovalado:     { redondez: 64 },
+  cuadrado:    { redondez: 8 },
+  triangular:  { redondez: 28 },
+  rectangular: { redondez: 14 },
 };
 
 // Precarga cada imagen de carilla UNA sola vez como Image lista para dibujar
@@ -2059,46 +2498,35 @@ function precargarImagenCarilla(nombre){
   });
 }
 
-async function aplicarPresetForma(nombre){
-  let img;
-  try {
-    img = await precargarImagenCarilla(nombre);
-  } catch(e) {
-    alert(e.message);
+function aplicarPresetForma(nombre){
+  if (selectedIndices.size === 0) {
+    setStatus('Selecciona uno o varios dientes antes de aplicar una forma.', '');
     return;
   }
+  const preset = PRESETS_FORMA_SIMPLES[nombre];
+  if (!preset) return;
   guardarEstadoHistorial();
-
-  // Tamaño real de la carilla (según proporción de la imagen), no atado
-  // al tamaño de ningún diente. Un ancho de referencia razonable, y el
-  // alto se calcula según la proporción real de la imagen.
-  const anchoBase = Math.max(40, canvas.width * 0.09);
-  const altoBase = anchoBase * (img.naturalHeight / img.naturalWidth);
-
-  const nuevaCarilla = {
-    tipo: nombre,
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    w: anchoBase, h: altoBase,
-    wBase: anchoBase, hBase: altoBase, // tamaño de referencia para el slider (100%)
-    factorAncho: 1, // multiplicador independiente de ancho (Ancho de la carilla)
-    angulo: 0,
-  };
-  carillasPegadas.push(nuevaCarilla);
-  if (selectedIndices.size > 0) {
-    selectedIndices = new Set();
-    actualizarUISeleccion();
-  }
-  carillaSeleccionada = carillasPegadas.length - 1;
-
-  document.getElementById('s_carilla_tamano').value = 100;
-  document.getElementById('v_carilla_tamano').textContent = '100%';
-  document.getElementById('s_carilla_ancho').value = 100;
-  document.getElementById('v_carilla_ancho').textContent = '100%';
-  document.getElementById('s_carilla_angulo').value = 0;
-  document.getElementById('v_carilla_angulo').textContent = '0°';
-
-  renderCarillaChips();
+  selectedIndices.forEach(index => {
+    const anterior = formaState[index] || {};
+    formaState[index] = {
+      proporcion: 100, tamano: 100, angulo: anterior.angulo || 0,
+      redondez: preset.redondez, dx: anterior.dx || 0, dy: anterior.dy || 0,
+      brillo: anterior.brillo ?? 50, blancura: anterior.blancura ?? 0,
+      tono: anterior.tono ?? 50, vitaTono: anterior.vitaTono || null,
+      carillaPegada: anterior.carillaPegada || null, formaPreset: nombre,
+    };
+  });
+  document.getElementById('s_proporcion').value = 100;
+  document.getElementById('s_tamano').value = 100;
+  document.getElementById('s_redondez').value = preset.redondez;
+  document.getElementById('v_proporcion').textContent = '100%';
+  document.getElementById('v_tamano').textContent = '100%';
+  document.getElementById('v_redondez').textContent = preset.redondez + '%';
+  document.querySelectorAll('.forma-chip').forEach(c => {
+    const activa = c.dataset.forma === nombre;
+    c.style.borderColor = activa ? 'var(--p)' : 'var(--card-b)';
+    c.style.background = activa ? 'rgba(91,71,224,.12)' : '';
+  });
   render();
 }
 
@@ -2264,10 +2692,77 @@ function construirMascaraConRedondez(maskBitmap, bbox, fdi, redondezPct, w, h){
   return c;
 }
 
+// Reduce la franja excesiva de píxeles semitransparentes que aparece al
+// ampliar una máscara raster. Conserva una transición corta (antialiasing),
+// por lo que el borde queda definido sin volverse dentado o pixelado.
+function definirBordeMascara(maskCanvas, bbox){
+  const mctx = maskCanvas.getContext('2d', { willReadFrequently: true });
+  const margen = 3;
+  const x = Math.max(0, Math.floor(bbox[0] - margen));
+  const y = Math.max(0, Math.floor(bbox[1] - margen));
+  const w = Math.min(maskCanvas.width - x, Math.ceil(bbox[2] + margen * 2));
+  const h = Math.min(maskCanvas.height - y, Math.ceil(bbox[3] + margen * 2));
+  if (w <= 0 || h <= 0) return maskCanvas;
+  let img;
+  try { img = mctx.getImageData(x, y, w, h); }
+  catch(e) { return maskCanvas; }
+  const d = img.data;
+  const inicio = 58;
+  const fin = 198;
+  for (let p = 3; p < d.length; p += 4) {
+    const alfa = d[p];
+    if (alfa <= inicio) d[p] = 0;
+    else if (alfa >= fin) d[p] = 255;
+    else {
+      const t = (alfa - inicio) / (fin - inicio);
+      // smoothstep: transición limpia, continua y más corta que la original.
+      d[p] = Math.round((t * t * (3 - 2 * t)) * 255);
+    }
+  }
+  mctx.putImageData(img, x, y);
+  return maskCanvas;
+}
+
+// Deforma horizontalmente cada fila del diente dentro de su bbox. Así la
+// textura fotográfica acompaña la nueva anatomía en lugar de pegar una imagen
+// artificial encima. El eje cervical/incisal se invierte en dientes inferiores.
+function deformarDientePorForma(origen, bbox, fdi, forma){
+  if (!forma) return origen;
+  const salida = document.createElement('canvas');
+  salida.width = origen.width; salida.height = origen.height;
+  const sctx = salida.getContext('2d');
+  sctx.imageSmoothingEnabled = true;
+  sctx.imageSmoothingQuality = 'high';
+
+  const [bx, by, bw, bh] = bbox;
+  const superior = !fdi || fdi[0] === '1' || fdi[0] === '2';
+  const cx = bx + bw / 2;
+  const filas = Math.max(1, Math.ceil(bh));
+
+  for (let fila = 0; fila < filas; fila++) {
+    const y = by + fila;
+    let t = fila / Math.max(1, filas - 1); // 0 cervical, 1 incisal (superior)
+    if (!superior) t = 1 - t;
+    let factor = 1;
+    if (forma === 'ovalado') {
+      factor = 0.88 + Math.sin(Math.PI * t) * 0.13 + t * 0.03;
+    } else if (forma === 'cuadrado') {
+      factor = 0.98 + Math.sin(Math.PI * t) * 0.025;
+    } else if (forma === 'triangular') {
+      factor = 0.70 + t * 0.34;
+    } else if (forma === 'rectangular') {
+      factor = 0.88 + t * 0.035;
+    }
+    const ancho = bw * factor;
+    sctx.drawImage(origen, bx, y, bw, 1.25, cx - ancho / 2, y, ancho, 1.25);
+  }
+  return salida;
+}
+
 // Lee los sliders de forma y actualiza formaState ANTES de dibujar --
 // así ambas vistas (foto y líneas) siempre parten del mismo estado
 // actualizado, sin importar cuál esté activa en ese momento.
-function sincronizarFormaDesdeSliders(){
+function sincronizarFormaDesdeSliders(borrarTonoVita = true){
   if (selectedIndices.size === 0) return;
   const proporcion = parseInt(document.getElementById('s_proporcion').value);
   const tamano = parseInt(document.getElementById('s_tamano').value);
@@ -2287,7 +2782,10 @@ function sincronizarFormaDesdeSliders(){
     const dxActual = formaState[i]?.dx || 0;
     const dyActual = formaState[i]?.dy || 0;
     const carillaActual = formaState[i]?.carillaPegada || null; // no se pierde al sincronizar sliders
-    formaState[i] = { proporcion, tamano, angulo, redondez, dx: dxActual, dy: dyActual, brillo, blancura, tono, carillaPegada: carillaActual };
+    const vitaActual = formaState[i]?.vitaTono || null;
+    // Solo un ajuste de COLOR abandona el modo VITA exacto. Cambiar forma,
+    // tamaño o posición debe conservar el tono clínico seleccionado.
+    formaState[i] = { proporcion, tamano, angulo, redondez, dx: dxActual, dy: dyActual, brillo, blancura, tono, carillaPegada: carillaActual, vitaTono: borrarTonoVita ? null : vitaActual, formaPreset: formaPresetActual };
   });
 }
 
@@ -2574,7 +3072,10 @@ function aplicarEfectos(){
     const saturateVal = 1 - (blancura / 100) * 0.5;
     const hueVal = Math.round((tono - 50) * 0.6);
 
-    const maskRedondeada = construirMascaraConRedondez(maskBitmap, m.bbox, m.fdi, redondez, canvas.width, canvas.height);
+    const maskRedondeada = definirBordeMascara(
+      construirMascaraConRedondez(maskBitmap, m.bbox, m.fdi, redondez, canvas.width, canvas.height),
+      m.bbox
+    );
 
     // Extrae el diente (con SU color) siempre desde la foto ORIGINAL
     const temp = document.createElement('canvas');
@@ -2588,16 +3089,23 @@ function aplicarEfectos(){
     const temp2 = document.createElement('canvas');
     temp2.width = canvas.width; temp2.height = canvas.height;
     const t2ctx = temp2.getContext('2d');
-    t2ctx.filter = `brightness(${brightnessVal}) saturate(${saturateVal}) hue-rotate(${hueVal}deg)`;
-    t2ctx.drawImage(temp, 0, 0);
+    if (fs.vitaTono && VITA_SHADES[fs.vitaTono]) {
+      tonalizarCanvasVita(temp, index, vitaLabPantalla(VITA_SHADES[fs.vitaTono]));
+      t2ctx.drawImage(temp, 0, 0);
+    } else {
+      t2ctx.filter = `brightness(${brightnessVal}) saturate(${saturateVal}) hue-rotate(${hueVal}deg)`;
+      t2ctx.drawImage(temp, 0, 0);
+    }
+    const dienteConForma = deformarDientePorForma(temp2, m.bbox, m.fdi, fs.formaPreset);
 
-    // redondez arranca en 30 (mismo valor por defecto que el slider s_redondez), no en 0 --
-    // si no se compara contra 30 aquí, esta ruta rápida nunca se activa para ningún diente.
-    const sinCambios = proporcion === 100 && tamano === 100 && angulo === 0 && redondez === 30 && dx === 0 && dy === 0
-      && brillo === 50 && blancura === 0 && tono === 50;
+    // Si la GEOMETRÍA no cambió, se compone directamente sobre la foto.
+    // No se borra antes la máscara: borrar y redibujar multiplicaba el alfa
+    // suavizado del borde y dejaba un halo negro al cambiar de selección.
+    const geometriaSinCambios = proporcion === 100 && tamano === 100 && angulo === 0
+      && redondez === 30 && dx === 0 && dy === 0 && !fs.formaPreset;
 
-    if (sinCambios) {
-      resultado.getContext('2d').drawImage(temp2, 0, 0);
+    if (geometriaSinCambios) {
+      resultado.getContext('2d').drawImage(dienteConForma, 0, 0);
     } else {
       const [bx, by, bw, bh] = m.bbox;
       const cx = bx + bw / 2;
@@ -2618,11 +3126,13 @@ function aplicarEfectos(){
 
       const rctx2 = resultado.getContext('2d');
       rctx2.save();
+      rctx2.imageSmoothingEnabled = true;
+      rctx2.imageSmoothingQuality = 'high';
       rctx2.translate(cx + dx, cy + dy);
       rctx2.rotate(anguloRad);
       rctx2.scale(scaleX, scaleY);
       rctx2.translate(-cx, -cy);
-      rctx2.drawImage(temp2, 0, 0);
+      rctx2.drawImage(dienteConForma, 0, 0);
       rctx2.restore();
     }
   });
@@ -2852,7 +3362,12 @@ canvas.addEventListener('pointerup', (e) => {
 ['s_brillo','s_croma','s_tono','s_proporcion','s_tamano','s_angulo','s_redondez'].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener('pointerdown', guardarEstadoHistorial);
-  el.addEventListener('input', () => { sincronizarFormaDesdeSliders(); sincronizarAvanzadoDesdeBasico(); render(); });
+  el.addEventListener('input', () => {
+    const esControlColor = id === 's_brillo' || id === 's_croma' || id === 's_tono';
+    sincronizarFormaDesdeSliders(esControlColor);
+    sincronizarAvanzadoDesdeBasico();
+    render();
+  });
 });
 
 ['n_brillo','n_croma','n_tono'].forEach(id => {
