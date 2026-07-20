@@ -169,7 +169,7 @@
        cualquier caso -- las políticas RLS de camila_casos ahora también
        exigen un usuario autenticado, así que sin login ninguna llamada real
        a la base de datos funcionaría de todas formas. -->
-  <div class="config-overlay" id="loginOverlay" style="display:flex;z-index:300">
+  <div class="config-overlay" id="loginOverlay" style="z-index:300">
     <div class="config-modal" style="max-width:360px">
       <h3>Iniciar sesión</h3>
       <p class="hint-top">Con el mismo correo y contraseña de tu panel SMYLE.</p>
@@ -1692,14 +1692,19 @@ async function iniciarSesionClinica(){
   }
 }
 
+// El login quedó opcional por ahora (se quitó el bloqueo obligatorio) --
+// si hay una sesión ya iniciada, se aprovecha (userToken/tenantId quedan
+// listos); si no, la app arranca igual usando el anon key (DB_KEY) directo,
+// como antes de agregar el login. Los botones de Configuración > Iniciar
+// sesión siguen ahí por si se quiere volver a exigirlo más adelante.
 (function checkLoginClinica(){
-  if (!sbAuth) return;
+  if (!sbAuth) { autoCargarCasoDesdeUrl(); return; }
   sbAuth.auth.getSession().then(res => {
     const session = res.data && res.data.session;
     const user = session && session.user;
     if (user) _entrarSesionClinica(user, session);
-    // si no hay sesión, el overlay de login ya está visible por defecto
-  }).catch(() => {});
+    else autoCargarCasoDesdeUrl();
+  }).catch(() => { autoCargarCasoDesdeUrl(); });
 })();
 
 async function subirFotoLocal(file){
