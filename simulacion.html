@@ -382,6 +382,24 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .q-chip-custom button{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
 .q-chip-custom button:hover{background:rgba(255,255,255,.28)}
 
+/* ══ GUÍA VITA PREVIA A LA SIMULACIÓN ══ */
+.vita-screen{background:#080a0b;overflow-y:auto;padding:0 18px 32px}
+.vita-shell{width:min(960px,100%);margin:auto;min-height:100%;display:flex;flex-direction:column}
+.vita-head{position:relative;padding:28px 0 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,.07)}.vita-head img{position:absolute;left:0;top:28px;width:78px;height:auto}
+.vita-head h2{margin:0;color:#fff;font-size:24px;font-weight:600;letter-spacing:-.03em}
+.vita-head p{margin:7px 0 0;color:rgba(255,255,255,.48);font-size:13px}
+.vita-guide-card{margin:24px 0 16px;padding:22px 18px 18px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:linear-gradient(145deg,#121516,#0c0e0f);box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.vita-tabs-sim{display:flex;gap:8px;margin-bottom:22px}.vita-tab-sim{padding:9px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:#0a0c0d;color:rgba(255,255,255,.48);font-size:11px}.vita-tab-sim.active{border-color:rgba(104,78,240,.7);background:rgba(75,42,192,.18);color:#fff}
+.vita-shades-sim{display:flex;gap:12px;overflow-x:auto;padding:10px 6px 18px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.vita-stick{position:relative;flex:0 0 64px;display:flex;flex-direction:column;align-items:center;cursor:pointer;scroll-snap-align:start;padding:8px 5px;border:1px solid transparent;border-radius:14px;background:transparent;color:inherit;font-family:Inter,sans-serif;transition:transform .16s,border-color .16s,background .16s}
+.vita-stick:hover{transform:translateY(-3px);background:rgba(255,255,255,.025)}.vita-stick.selected{transform:translateY(-5px);border-color:rgba(82,111,255,.85);background:linear-gradient(180deg,rgba(41,102,234,.12),rgba(114,38,222,.08));box-shadow:0 0 24px rgba(73,81,238,.16)}
+.vita-crown{position:relative;z-index:2;width:48px;height:66px;clip-path:polygon(17% 0,83% 0,95% 12%,100% 72%,89% 94%,68% 100%,32% 100%,11% 94%,0 72%,5% 12%);background:radial-gradient(ellipse at 29% 20%,rgba(255,255,255,.92) 0 3%,rgba(255,255,255,.26) 12%,transparent 28%),linear-gradient(90deg,rgba(100,70,35,.12),transparent 20%,rgba(255,255,255,.18) 49%,transparent 78%,rgba(90,55,25,.16)),linear-gradient(180deg,var(--shade-hi),var(--shade) 68%,var(--shade-lo));border-radius:42% 42% 28% 28%;filter:drop-shadow(0 7px 7px rgba(0,0,0,.42));box-shadow:inset 0 1px 2px rgba(255,255,255,.55)}
+.vita-crown::after{content:'';position:absolute;left:14%;right:14%;bottom:6%;height:7px;border-bottom:1px solid rgba(230,248,255,.5);background:linear-gradient(transparent,rgba(226,244,248,.25));border-radius:50%}
+.vita-stem{width:10px;height:35px;margin-top:-1px;background:linear-gradient(90deg,#707477,#e7e8e8 46%,#85898c);clip-path:polygon(30% 0,70% 0,100% 100%,0 100%)}
+.vita-handle{width:38px;height:38px;margin-top:-2px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#303338,#080a0b 62%);border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 15px rgba(0,0,0,.48);font-size:8px;font-weight:700}.vita-handle b{background:linear-gradient(90deg,#12c6f3,#9228ee);background-clip:text;-webkit-background-clip:text;color:transparent}.vita-stick>strong{margin-top:7px;color:rgba(255,255,255,.62);font-size:11px;font-weight:600}.vita-stick.selected>strong{color:#fff;text-shadow:0 0 12px #7c6af7}
+.vita-selected-card{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-selected-swatch{position:relative;flex:0 0 42px;height:54px;clip-path:polygon(17% 0,83% 0,95% 12%,100% 72%,88% 94%,68% 100%,32% 100%,12% 94%,0 72%,5% 12%);background:radial-gradient(ellipse at 28% 20%,rgba(255,255,255,.9),transparent 25%),linear-gradient(180deg,var(--shade-hi),var(--shade) 68%,var(--shade-lo));filter:drop-shadow(0 4px 7px rgba(0,0,0,.5))}.vita-selected-info{display:flex;flex:1;min-width:0;flex-direction:column}.vita-selected-code{font-size:22px;color:#fff;font-weight:650}.vita-selected-copy{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}.vita-confirm{height:52px;min-width:210px;padding:0 24px;border:0;border-radius:11px;background:linear-gradient(100deg,#2576f3,#8427ed);color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 25px rgba(76,53,220,.28)}.vita-note{text-align:center;color:rgba(255,255,255,.34);font-size:10.5px;line-height:1.5;margin:12px 10px 0}
+@media(max-width:620px){.vita-head h2{font-size:20px}.vita-guide-card{padding-inline:10px}.vita-stick{flex-basis:58px}.vita-crown{width:43px;height:59px}.vita-selected-card{align-items:stretch;flex-direction:column}.vita-confirm{width:100%}}
+
 /* Flash */
 #flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 60ms}
 #flash.on{opacity:1}
@@ -573,6 +591,36 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       <input type="file" accept="image/*" onchange="fromGallery(this)">
     </label>
+  </div>
+</div>
+
+<!-- ══ GUÍA DE COLOR VITA ══ -->
+<div class="screen vita-screen" id="s-vita">
+  <div class="vita-shell">
+    <div class="vita-head">
+      <img src="icons/smyl_logo.png" alt="SMYL">
+      <div>
+        <h2>Guía de color VITA</h2>
+        <p>Elige el tono que usará la IA antes de generar la simulación</p>
+      </div>
+    </div>
+    <div class="vita-guide-card">
+      <div class="vita-tabs-sim" aria-label="Sistema de color">
+        <span class="vita-tab-sim active">VITA Classical</span>
+        <span class="vita-tab-sim">VITA 3D-Master</span>
+        <span class="vita-tab-sim">Bleachedguide 3D</span>
+      </div>
+      <div class="vita-shades-sim" id="vita-shades-sim" aria-label="Tonos VITA Classical"></div>
+    </div>
+    <div class="vita-selected-card">
+      <div class="vita-selected-swatch" id="vita-selected-swatch"><span></span></div>
+      <div class="vita-selected-info">
+        <strong class="vita-selected-code" id="vita-selected-code">VITA A1</strong>
+        <span class="vita-selected-copy" id="vita-selected-copy">Marfil claro, natural y ligeramente cálido</span>
+      </div>
+      <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Usar este tono y generar</button>
+    </div>
+    <p class="vita-note">La IA recibirá el código VITA y sus características ópticas. El resultado conserva translucidez, brillo de esmalte y variaciones naturales.</p>
   </div>
 </div>
 
@@ -1206,6 +1254,7 @@ var S = {
   diagnosis: null,
   diagnosticoFacial: null,
   promptGeminiUsado: null,
+  vitaTone: 'A1',
   baAlign: {}, // por vista: {x: fracción del ancho, y: fracción del alto, scale}
   baAlignMode: false,
   leadNombre: null,
@@ -1273,6 +1322,7 @@ function saveProgress(screenId) {
     diagnosis: S.diagnosis,
     diagnosticoFacial: S.diagnosticoFacial,
     promptGeminiUsado: S.promptGeminiUsado,
+    vitaTone: S.vitaTone,
     results: S.results,
     result: S.result,
     baVistaActual: S.baVistaActual,
@@ -1352,6 +1402,7 @@ function continuarProgreso() {
   S.diagnosis = snap.diagnosis || null;
   S.diagnosticoFacial = snap.diagnosticoFacial || null;
   S.promptGeminiUsado = snap.promptGeminiUsado || null;
+  S.vitaTone = snap.vitaTone || 'A1';
   S.results = snap.results || {};
   S.result = snap.result || null;
   S.baVistaActual = snap.baVistaActual || 'frontal';
@@ -1366,7 +1417,7 @@ function continuarProgreso() {
     showResult();
   } else if (S.photos.length >= VIEWS.length) {
     // Ya tenía todas las fotos pero se salió antes de terminar de generar
-    processPhotos();
+    abrirGuiaVita();
   } else {
     show('s-cam-native');
     updateNativeCameraUI();
@@ -1954,7 +2005,7 @@ function snap() {
     setTimeout(tryFaceDetect, 500);
   } else {
     stopStream();
-    processPhotos();
+    abrirGuiaVita();
   }
 }
 
@@ -1974,10 +2025,86 @@ function fromGallery(inp) {
       setTimeout(tryFaceDetect, 300);
     } else {
       stopStream();
-      processPhotos();
+      abrirGuiaVita();
     }
   };
   reader.readAsDataURL(inp.files[0]);
+}
+
+// ══ GUÍA VITA CLASSICAL ══
+// Ordenado por luminosidad clínica para que la comparación visual sea más
+// intuitiva. Los colores son una representación de pantalla; el código VITA
+// exacto también se envía al modelo para dirigir la simulación.
+var VITA_CLASSICAL = [
+  {code:'B1', color:'#F5EBD7', hi:'#FFFDF3', lo:'#D8C6A6', copy:'El tono natural más luminoso, marfil neutro'},
+  {code:'A1', color:'#F0E2C9', hi:'#FFF9EA', lo:'#D4BC96', copy:'Marfil claro, natural y ligeramente cálido'},
+  {code:'B2', color:'#EAD9B9', hi:'#FFF5DD', lo:'#CDB386', copy:'Claro con calidez amarilla suave'},
+  {code:'D2', color:'#E5D8C4', hi:'#FBF3E7', lo:'#C6B399', copy:'Claro con matiz cálido rojizo muy sutil'},
+  {code:'A2', color:'#DFCBAA', hi:'#F8EBD4', lo:'#C2A67A', copy:'Marfil medio-claro de apariencia natural'},
+  {code:'C1', color:'#DCD5C5', hi:'#F5F1E8', lo:'#BDB39F', copy:'Claro, neutro y ligeramente grisáceo'},
+  {code:'C2', color:'#D1C7B4', hi:'#ECE5D8', lo:'#B1A48E', copy:'Neutro medio con baja saturación'},
+  {code:'D4', color:'#D3BE9F', hi:'#EFE0C9', lo:'#B19570', copy:'Marfil medio con matiz rojizo discreto'},
+  {code:'A3', color:'#D2B88F', hi:'#EDDBBE', lo:'#B18D60', copy:'Tono cálido medio de dentina natural'},
+  {code:'D3', color:'#C9B59A', hi:'#E7D8C3', lo:'#A68E70', copy:'Medio cálido rojizo y moderado'},
+  {code:'B3', color:'#CBAA78', hi:'#E9CC9E', lo:'#A7814C', copy:'Medio cálido con componente amarillo'},
+  {code:'A3.5', color:'#C5A274', hi:'#E5C79B', lo:'#9F7847', copy:'Cálido medio-profundo con mayor croma'},
+  {code:'B4', color:'#BE9969', hi:'#DDBB8D', lo:'#98713F', copy:'Cálido profundo con matiz amarillo'},
+  {code:'C3', color:'#B5A58D', hi:'#D5C8B4', lo:'#8F7E67', copy:'Profundo, neutro y suavemente gris'},
+  {code:'A4', color:'#B48C5E', hi:'#D6AE80', lo:'#8D6638', copy:'El tono A de mayor calidez y croma'},
+  {code:'C4', color:'#A59479', hi:'#C7B8A1', lo:'#7F6D55', copy:'El tono neutro más profundo de la guía'}
+];
+
+function renderGuiaVita() {
+  var wrap = document.getElementById('vita-shades-sim');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  VITA_CLASSICAL.forEach(function(shade) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'vita-stick' + (shade.code === S.vitaTone ? ' selected' : '');
+    btn.setAttribute('aria-label', 'Seleccionar tono VITA ' + shade.code);
+    btn.setAttribute('aria-pressed', shade.code === S.vitaTone ? 'true' : 'false');
+    btn.style.setProperty('--shade', shade.color);
+    btn.style.setProperty('--shade-hi', shade.hi);
+    btn.style.setProperty('--shade-lo', shade.lo);
+    btn.innerHTML = '<span class="vita-crown"><i></i></span><span class="vita-stem"></span><span class="vita-handle"><b>smyl</b></span><strong>' + shade.code + '</strong>';
+    btn.onclick = function() { seleccionarTonoVita(shade.code); };
+    wrap.appendChild(btn);
+  });
+  actualizarResumenVita();
+}
+
+function seleccionarTonoVita(code) {
+  S.vitaTone = code;
+  renderGuiaVita();
+  saveProgress('s-vita');
+  var selected = document.querySelector('.vita-stick.selected');
+  if (selected) selected.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+}
+
+function actualizarResumenVita() {
+  var shade = VITA_CLASSICAL.find(function(item) { return item.code === S.vitaTone; }) || VITA_CLASSICAL[1];
+  var code = document.getElementById('vita-selected-code');
+  var copy = document.getElementById('vita-selected-copy');
+  var swatch = document.getElementById('vita-selected-swatch');
+  if (code) code.textContent = 'VITA ' + shade.code;
+  if (copy) copy.textContent = shade.copy;
+  if (swatch) {
+    swatch.style.setProperty('--shade', shade.color);
+    swatch.style.setProperty('--shade-hi', shade.hi);
+    swatch.style.setProperty('--shade-lo', shade.lo);
+  }
+}
+
+function abrirGuiaVita() {
+  if (!S.vitaTone) S.vitaTone = 'A1';
+  renderGuiaVita();
+  show('s-vita');
+}
+
+function confirmarTonoVita() {
+  saveProgress('s-vita');
+  processPhotos();
 }
 
 // ══ PROCESS ══
@@ -2328,10 +2455,11 @@ async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
-  var stylePrompt = '';
+  var vitaCode = S.vitaTone || (S.questionnaire && S.questionnaire.tono) || 'A1';
+  var vitaShade = VITA_CLASSICAL.find(function(item) { return item.code === vitaCode; }) || VITA_CLASSICAL[1];
+  var stylePrompt = ' TARGET SHADE: VITA Classical ' + vitaShade.code + ' (' + vitaShade.copy + '). Match this specific VITA shade faithfully across every restored tooth. Preserve realistic enamel optics: a smooth even base color, subtle cervical warmth, gentle incisal translucency, natural internal depth and controlled vertical specular highlights. Keep neighboring veneers consistent while retaining tiny natural variations. Do not produce flat paint, gray teeth, excessive yellow, blown-out pure white, horizontal color bands, or artificial neon brightness.';
   if (S.questionnaire) {
     var q = S.questionnaire;
-    stylePrompt = ' TOOTH COLOR: ' + (q.tono || 'A1 natural white') + '.';
     // Restricción de zona — decidida por el dentista, no por el paciente.
     // Es una instrucción explícita para Gemini, no una garantía absoluta
     // de que la IA la respete al 100%, pero es lo más directo que se
@@ -3338,6 +3466,7 @@ function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
+  S.vitaTone = 'A1';
   S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
@@ -3432,8 +3561,8 @@ function onNativePhoto(input) {
         if (ic) ic.style.display = 'flex';
       }, 800);
     } else {
-      // All photos taken — process
-      processPhotos();
+      // All photos taken — choose the VITA shade before generating
+      abrirGuiaVita();
     }
   };
   reader.readAsDataURL(input.files[0]);
