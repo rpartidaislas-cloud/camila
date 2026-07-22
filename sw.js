@@ -1,6 +1,6 @@
 // SMYLE PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyle-v3';
+const CACHE_VERSION = 'smyle-v4';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 

@@ -61,10 +61,40 @@
   .float-icon{width:32px;height:32px;border-radius:99px;border:1px solid rgba(255,255,255,.09);background:rgba(10,9,16,.72);backdrop-filter:blur(10px);color:var(--text-dim);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
   .float-icon:hover{color:#fff;background:rgba(255,255,255,.1)}
 
+  /* Procesamiento visual de segmentación */
+  .seg-processing{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:inherit;background:rgba(3,7,14,.78);backdrop-filter:blur(8px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 220ms ease,visibility 220ms ease}
+  .seg-processing.active{opacity:1;visibility:visible;pointer-events:auto}
+  .seg-processing::before{content:'';position:absolute;inset:-35%;background:conic-gradient(from 20deg,transparent 0 23%,rgba(20,214,232,.15) 31%,transparent 39% 58%,rgba(122,83,255,.18) 67%,transparent 76%);animation:segAura 5s linear infinite}
+  .seg-processing::after{content:'';position:absolute;left:8%;right:8%;height:2px;top:18%;border-radius:99px;background:linear-gradient(90deg,transparent,#14d6e8 24%,#477cff 52%,#9e4dff 78%,transparent);box-shadow:0 0 18px #36a8ff,0 0 34px rgba(151,68,255,.55);animation:segScan 2.1s cubic-bezier(.45,0,.55,1) infinite alternate}
+  .seg-processing-card{position:relative;z-index:2;width:min(260px,78%);display:flex;flex-direction:column;align-items:center;text-align:center;padding:25px 24px 22px;border:1px solid rgba(117,132,255,.28);border-radius:24px;background:linear-gradient(155deg,rgba(12,20,34,.88),rgba(19,10,39,.84));box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 50px rgba(62,124,255,.13),inset 0 1px rgba(255,255,255,.08);animation:segCardFloat 3.2s ease-in-out infinite}
+  .seg-orbit{position:relative;width:92px;height:92px;display:grid;place-items:center;margin-bottom:14px}
+  .seg-orbit::before,.seg-orbit::after{content:'';position:absolute;inset:2px;border-radius:50%;border:1px solid rgba(40,211,231,.28);border-top-color:#20d7e8;border-right-color:#7770ff;box-shadow:0 0 19px rgba(50,180,255,.2);animation:segSpin 1.55s linear infinite}
+  .seg-orbit::after{inset:12px;border-color:rgba(147,75,255,.2);border-bottom-color:#a052ff;border-left-color:#437cff;animation-direction:reverse;animation-duration:1.05s}
+  .seg-tooth{width:45px;height:55px;filter:drop-shadow(0 0 10px rgba(59,211,255,.48));animation:segPulse 1.5s ease-in-out infinite}
+  .seg-tooth-path{stroke-dasharray:145;stroke-dashoffset:145;animation:segDraw 2.25s cubic-bezier(.65,0,.35,1) infinite}
+  .seg-tooth-highlight{stroke-dasharray:28 90;animation:segTrace 1.45s linear infinite}
+  .seg-edit-node{fill:#0c1728;stroke:#55dcff;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:segNode 1.2s ease-in-out infinite}
+  .seg-edit-node:nth-of-type(2){animation-delay:.2s;stroke:#7185ff}.seg-edit-node:nth-of-type(3){animation-delay:.4s;stroke:#a45cff}.seg-edit-node:nth-of-type(4){animation-delay:.6s;stroke:#7185ff}
+  .seg-processing-title{font-size:15px;font-weight:750;color:#fff;margin-bottom:5px}
+  .seg-processing-copy{font-size:11px;line-height:1.5;color:rgba(220,228,255,.62)}
+  .seg-processing-dots{display:flex;gap:5px;margin-top:13px}
+  .seg-processing-dots i{width:5px;height:5px;border-radius:50%;background:#24d5e8;box-shadow:0 0 8px currentColor;animation:segDot 1.15s ease-in-out infinite}
+  .seg-processing-dots i:nth-child(2){background:#4e8cff;animation-delay:.16s}.seg-processing-dots i:nth-child(3){background:#9c4eff;animation-delay:.32s}
+  @keyframes segAura{to{transform:rotate(360deg)}}
+  @keyframes segScan{from{top:17%;opacity:.45}to{top:83%;opacity:1}}
+  @keyframes segSpin{to{transform:rotate(360deg)}}
+  @keyframes segPulse{50%{transform:scale(1.06);filter:drop-shadow(0 0 17px rgba(126,91,255,.75))}}
+  @keyframes segDraw{0%{stroke-dashoffset:145;opacity:.35}48%,72%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:-145;opacity:.35}}
+  @keyframes segTrace{to{stroke-dashoffset:-118}}
+  @keyframes segNode{0%,100%{transform:scale(.72);opacity:.45}50%{transform:scale(1.35);opacity:1;filter:drop-shadow(0 0 4px currentColor)}}
+  @keyframes segCardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes segDot{0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-4px);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.seg-processing::before,.seg-processing::after,.seg-processing-card,.seg-orbit::before,.seg-orbit::after,.seg-tooth,.seg-tooth-path,.seg-tooth-highlight,.seg-edit-node,.seg-processing-dots i{animation:none}}
+
   .controls{background:var(--card);border:1px solid var(--card-b);border-radius:20px;padding:18px;min-width:280px;flex:1;box-shadow:0 24px 70px rgba(0,0,0,.3)}
   .controls h3{font-size:13px;margin-bottom:10px;color:#fff;font-weight:700;letter-spacing:.1px}
   .tooth-select{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-  .tooth-chip{padding:7px 10px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer;font-weight:600;transition:background 120ms,color 120ms,box-shadow 120ms}
+  .tooth-chip{padding:7px 10px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer;font-weight:600;transition:background 120ms,color 120ms,box-shadow 120ms;display:inline-flex;align-items:center;gap:6px}
   .tooth-chip:hover:not(.selected){background:rgba(255,255,255,.1);color:#fff}
   .chip{padding:8px 4px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer;text-align:center;font-weight:600;transition:background 120ms,color 120ms}
   .chip.active{border-color:transparent;color:#fff;background:var(--grad)}
@@ -72,6 +102,13 @@
   .chips3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
   .sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint);padding-bottom:5px;border-bottom:1px solid var(--card-b);margin-bottom:8px}
   .tooth-chip.selected{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(91,71,224,.35)}
+  .tooth-chip-remove{display:none;width:22px;height:22px;flex:0 0 22px;align-items:center;justify-content:center;margin:-4px -5px -4px 0;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font:700 16px/1 Inter,sans-serif;cursor:pointer;touch-action:manipulation;transition:background 120ms,transform 120ms}
+  .tooth-chip.selected .tooth-chip-remove{display:inline-flex}
+  .tooth-chip-remove:hover{background:rgba(255,255,255,.3);transform:scale(1.08)}
+  .tooth-chip-remove:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .tooth-chip-layer{display:none;width:20px;height:20px;flex:0 0 20px;align-items:center;justify-content:center;padding:0;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(5,9,20,.3);color:#fff;font:700 11px/1 Inter,sans-serif;cursor:pointer;touch-action:manipulation}
+  .tooth-chip.selected .tooth-chip-layer{display:inline-flex}
+  .tooth-chip-layer:hover{background:rgba(255,255,255,.22)}
   .tooth-chip.fragment{opacity:.38;font-style:normal}
 
   .slider-row{margin-bottom:14px}
@@ -259,6 +296,11 @@
     border-color:var(--card-b)!important;border-radius:16px!important;
     box-shadow:0 14px 35px rgba(0,0,0,.17);
   }
+  #toothSelectorBlock{flex:0 0 auto}
+  #panelObjetos{flex:0 0 180px;min-height:150px;max-height:220px!important;overflow:hidden!important;display:flex;flex-direction:column}
+  #panelObjetos>.panel-title{flex:0 0 auto;margin-bottom:8px!important}
+  #objetosListaVacia{flex:0 0 auto}
+  #objetosLista{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:5px;scrollbar-gutter:stable}
   .tab-content h4.panel-title{font-size:10px;letter-spacing:1.4px;margin-bottom:10px}
   .sec-lbl{letter-spacing:1.25px}
 
@@ -360,7 +402,7 @@
     border-radius:10px!important;background:#101213!important;
     border-color:rgba(255,255,255,.055)!important;box-shadow:none!important;
   }
-  #panelObjetos{max-height:180px!important}
+  #panelObjetos{height:180px;min-height:150px;max-height:180px!important}
   .tab-content h4.panel-title,.sec-lbl{
     color:rgba(242,243,244,.67);font-size:9.5px;letter-spacing:.75px;font-weight:600;
   }
@@ -426,6 +468,7 @@
     .nav-item.active::before{left:25%;right:25%;top:-7px;bottom:auto;width:auto;height:3px;border-radius:0 0 4px 4px}
     .app-header{position:sticky;top:0;z-index:50;grid-template-columns:1fr auto;min-height:72px;padding:12px 16px}.app-header .header-side:first-child{display:none}.header-center{text-align:left}.header-center h2{font-size:17px}.header-center p{max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .workspace2{display:block;padding:14px 14px 0;overflow:visible}.canvas-col2,.panel-col2{overflow:visible}.canvas-wrap{min-height:240px}.panel-col2{max-width:none;min-width:0;margin-top:14px;border-radius:18px;padding:15px}
+    #panelObjetos{height:190px;min-height:160px;max-height:190px!important}
     .bottom-bar{position:sticky;bottom:68px;z-index:45;gap:8px;padding:9px 14px;min-height:62px}.bottom-bar .btn-pill.primary{height:42px!important;padding-inline:14px!important;font-size:11px!important}.bottom-bar .float-pill{padding-inline:8px;font-size:9px}
     #fotoStatus{display:none}
   }
@@ -489,6 +532,22 @@
     <div class="canvas-col2">
     <div class="canvas-wrap">
       <canvas id="canvas" width="560" height="385"></canvas>
+      <div id="segProcessing" class="seg-processing" role="status" aria-live="polite" aria-hidden="true">
+        <div class="seg-processing-card">
+          <div class="seg-orbit" aria-hidden="true">
+            <svg class="seg-tooth" viewBox="0 0 48 58" fill="none">
+              <path class="seg-tooth-path" d="M24 5C16 1 7 5 5 14c-2 9 3 16 5 24 2 8 3 15 7 15 5 0 3-14 7-14s2 14 7 14c4 0 5-7 7-15 2-8 7-15 5-24C41 5 32 1 24 5Z" stroke="url(#segToothGradient)" stroke-width="2.3" stroke-linejoin="round"/>
+              <path class="seg-tooth-highlight" d="M24 5C16 1 7 5 5 14c-2 9 3 16 5 24 2 8 3 15 7 15 5 0 3-14 7-14s2 14 7 14c4 0 5-7 7-15 2-8 7-15 5-24C41 5 32 1 24 5Z" stroke="rgba(255,255,255,.72)" stroke-width="1" stroke-linejoin="round"/>
+              <path d="M13 13c5-4 16-4 22 0" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <circle class="seg-edit-node" cx="9" cy="11" r="2.2"/><circle class="seg-edit-node" cx="39" cy="11" r="2.2"/><circle class="seg-edit-node" cx="17" cy="51" r="2.2"/><circle class="seg-edit-node" cx="31" cy="51" r="2.2"/>
+              <defs><linearGradient id="segToothGradient" x1="5" y1="5" x2="43" y2="53"><stop stop-color="#20D9E9"/><stop offset=".52" stop-color="#4786FF"/><stop offset="1" stop-color="#A34CFF"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div id="segProcessingTitle" class="seg-processing-title">Analizando sonrisa</div>
+          <div id="segProcessingCopy" class="seg-processing-copy">La IA está identificando cada contorno dental.</div>
+          <div class="seg-processing-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+      </div>
       <button id="btnGuiasFloat" class="float-icon guias-toggle-btn" onclick="toggleGuiasProporcion()" style="position:absolute;top:10px;right:10px;width:auto;padding:0 12px;border-radius:99px;font-size:11px;font-weight:600;gap:5px;z-index:10">📐 Guías</button>
       <div class="float-group" style="bottom:10px;right:10px">
         <button class="float-pill" onclick="zoomImagen(-1)" title="Alejar" style="font-size:14px;font-weight:700">−</button>
@@ -677,8 +736,8 @@
         <div id="calibracionStatus" style="font-size:10px;color:var(--text-faint);margin-bottom:6px">Sin calibrar -- las medidas se muestran en píxeles.</div>
         <div id="medidasPanel"><span style="font-size:11px;color:var(--text-faint)">Selecciona un diente para ver sus medidas.</span></div>
       </div>
-      <button id="btnGuias" class="guias-toggle-btn" onclick="toggleGuiasProporcion()" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:12.5px;font-weight:600;cursor:pointer">📐 Mostrar guías de proporción (línea media / plano incisal)</button>
-      <p class="hint">Activa las guías y selecciona dientes para ver su ancho/alto en vivo sobre la foto (líneas punteadas), con la proporción ancho:alto comparada contra rangos de referencia DSD.</p>
+      <button id="btnGuias" class="guias-toggle-btn" onclick="toggleGuiasProporcion()" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:12.5px;font-weight:600;cursor:pointer">📐 Mostrar guías (línea media / curva incisal)</button>
+      <p class="hint">La curva incisal sigue los bordes de 13–23 y muestra una referencia paralela. Las cotas permanecen visibles y cambian con el diente hasta quitar su pastilla con × o pulsar “Ninguno”.</p>
       </div>
 
       <div class="tab-content" id="tab-foto" style="display:none">
@@ -826,6 +885,17 @@ let baseImage = null;
 let selectedIndices = new Set(); // ahora soporta selección múltiple
 let maskBitmaps = {};
 let formaState = {};
+let ordenCapaDientes = 0;
+
+// Supabase/Replicate puede devolver `index` como texto. Toda la edición usa
+// índices numéricos; normalizarlos al entrar evita que el slider actualice el
+// estado pero el render no encuentre después la máscara correspondiente.
+function normalizarIndicesMascaras(lista){
+  return (lista || []).map(m => {
+    const indiceNumerico = Number(m.index);
+    return { ...m, index: Number.isFinite(indiceNumerico) ? indiceNumerico : m.index };
+  });
+}
 
 // --- Medidas reales: sin una referencia conocida en la foto, el bbox
 // solo da píxeles. Calibrando 2 clics contra una distancia real en mm
@@ -1335,8 +1405,8 @@ function actualizarMedidas(){
     const etiqueta = m.fdi ? `Diente ${m.fdi}` : `Frag.→${m.parentFdi || '?'}`;
 
     const medidaTxt = calibracionPxPorMm
-      ? `${(anchoPx / calibracionPxPorMm).toFixed(1)} × ${(altoPx / calibracionPxPorMm).toFixed(1)} mm`
-      : `${Math.round(anchoPx)} × ${Math.round(altoPx)} px`;
+      ? `${(anchoPx / calibracionPxPorMm).toFixed(2)} × ${(altoPx / calibracionPxPorMm).toFixed(2)} mm`
+      : `${anchoPx.toFixed(2)} × ${altoPx.toFixed(2)} px`;
 
     const fila = document.createElement('div');
     fila.style.cssText = 'display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;border-bottom:1px solid var(--card-b)';
@@ -1382,10 +1452,9 @@ function toggleGuiasProporcion(){
   render();
 }
 
-// Dibuja la línea media (vertical, entre los centrales 11/21 reales si
-// se detectaron) y el plano incisal (horizontal, en el borde de esos
-// mismos dientes) -- referencias básicas de diseño de sonrisa, para dar
-// un punto de comparación real en vez de ajustar todo "a ojo".
+// Dibuja la línea media y una curva incisal dinámica usando los puntos
+// incisales transformados de 13–23. La segunda curva es una referencia
+// geométrica paralela; no pretende detectar el labio sin segmentarlo.
 function dibujarGuiasProporcion(){
   if (!mostrarGuias || !baseImage) return;
 
@@ -1393,8 +1462,6 @@ function dibujarGuiasProporcion(){
   const d21 = masks.find(m => m.fdi === '21');
 
   let midX = canvas.width / 2;
-  let incisalY = null;
-
   if (d11 && d21) {
     const fs11 = formaState[d11.index] || { dx: 0, dy: 0 };
     const fs21 = formaState[d21.index] || { dx: 0, dy: 0 };
@@ -1402,9 +1469,33 @@ function dibujarGuiasProporcion(){
     const xBordeIzq21 = d21.bbox[0] + (fs21.dx || 0);
     midX = (xBordeDer11 + xBordeIzq21) / 2;
 
-    const yIncisal11 = d11.bbox[1] + d11.bbox[3] + (fs11.dy || 0);
-    const yIncisal21 = d21.bbox[1] + d21.bbox[3] + (fs21.dy || 0);
-    incisalY = (yIncisal11 + yIncisal21) / 2;
+  }
+
+  const fdisAnteriores = new Set(['13','12','11','21','22','23']);
+  const puntosIncisales = masks.filter(m => fdisAnteriores.has(String(m.fdi))).map(m => {
+    const fs = formaState[m.index] || { tamano:100, proporcion:100, angulo:0, dx:0, dy:0 };
+    const [bx, by, bw, bh] = m.bbox;
+    const escala = (fs.tamano || 100) / 100;
+    const scaleX = escala * ((fs.proporcion || 100) / 100);
+    const scaleY = escala;
+    const cx = bx + bw / 2 + (fs.dx || 0);
+    const cy = by + bh / 2 + (fs.dy || 0);
+    return { ...puntoLocalAPantalla(0, bh / 2, cx, cy, ((fs.angulo || 0) * Math.PI) / 180, scaleX, scaleY), alto: bh * scaleY };
+  }).sort((a,b) => a.x - b.x);
+
+  function trazarCurvaSuave(puntos, offsetY = 0){
+    if (puntos.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(puntos[0].x, puntos[0].y + offsetY);
+    for (let i = 1; i < puntos.length - 1; i++) {
+      const siguiente = puntos[i + 1];
+      const medioX = (puntos[i].x + siguiente.x) / 2;
+      const medioY = (puntos[i].y + siguiente.y) / 2 + offsetY;
+      ctx.quadraticCurveTo(puntos[i].x, puntos[i].y + offsetY, medioX, medioY);
+    }
+    const ultimo = puntos[puntos.length - 1];
+    ctx.lineTo(ultimo.x, ultimo.y + offsetY);
+    ctx.stroke();
   }
 
   ctx.save();
@@ -1417,18 +1508,27 @@ function dibujarGuiasProporcion(){
   ctx.lineTo(midX, canvas.height);
   ctx.stroke();
 
-  if (incisalY !== null) {
-    ctx.beginPath();
-    ctx.moveTo(0, incisalY);
-    ctx.lineTo(canvas.width, incisalY);
-    ctx.stroke();
+  if (puntosIncisales.length >= 3) {
+    const separacion = Math.max(8, puntosIncisales.reduce((s,p) => s + p.alto, 0) / puntosIncisales.length * 0.16);
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(35,164,255,.95)';
+    ctx.lineWidth = 2;
+    trazarCurvaSuave(puntosIncisales);
+    ctx.setLineDash([5,4]);
+    ctx.strokeStyle = 'rgba(153,91,255,.9)';
+    ctx.lineWidth = 1.4;
+    trazarCurvaSuave(puntosIncisales, separacion);
   }
 
   ctx.setLineDash([]);
   ctx.fillStyle = 'rgba(255,200,0,0.95)';
   ctx.font = '10px sans-serif';
   ctx.fillText('Línea media', midX + 4, 12);
-  if (incisalY !== null) ctx.fillText('Plano incisal', 4, Math.max(12, incisalY - 4));
+  if (puntosIncisales.length >= 3) {
+    const centro = puntosIncisales[Math.floor(puntosIncisales.length / 2)];
+    ctx.fillStyle = 'rgba(90,190,255,.98)';
+    ctx.fillText('Curva incisal', centro.x + 8, centro.y - 8);
+  }
   if (!d11 || !d21) ctx.fillText('(usando centro del canvas -- no se detectaron 11/21)', 4, canvas.height - 6);
   ctx.restore();
 }
@@ -1555,9 +1655,10 @@ async function cargarCasoCompleto(){
     document.getElementById('tenantId').value = caso.tenant_id || '';
     document.getElementById('fotoStatus').textContent = '✓ Foto del caso cargada.';
 
-    masks = (caso.segmentacion && caso.segmentacion.masks) || [];
-    gumMasks = (caso.segmentacion_encia && caso.segmentacion_encia.masks) || [];
+    masks = normalizarIndicesMascaras((caso.segmentacion && caso.segmentacion.masks) || []);
+    gumMasks = normalizarIndicesMascaras((caso.segmentacion_encia && caso.segmentacion_encia.masks) || []);
     formaState = (caso.editor_params && caso.editor_params.formaState) || {};
+    ordenCapaDientes = Math.max(0, ...Object.values(formaState).map(s => Number(s?.z) || 0));
     gumFormaState = (caso.editor_params && caso.editor_params.gumFormaState) || {};
     carillasPegadas = (caso.editor_params && caso.editor_params.carillasPegadas) || [];
     calibracionPxPorMm = (caso.editor_params && caso.editor_params.calibracionPxPorMm) || null;
@@ -1800,7 +1901,12 @@ function construirContornoTransformado(maskBitmap, bbox, fs, w, h, grosorPx){
 // limpia ni pone fondo, así sirve tanto para la vista "solo líneas"
 // (sobre fondo oscuro) como para "dientes + líneas" (sobre la foto).
 function dibujarLineasVerdes(){
-  masks.forEach(m => {
+  // Respeta el orden de capas: el último diente seleccionado/movido se
+  // dibuja al final y puede superponerse visualmente sobre sus vecinos.
+  const masksOrdenadas = [...masks].sort((a, b) =>
+    (formaState[a.index]?.z || 0) - (formaState[b.index]?.z || 0)
+  );
+  masksOrdenadas.forEach(m => {
     const maskBitmap = maskBitmaps[m.index];
     if (!maskBitmap) return;
 
@@ -1817,19 +1923,25 @@ function dibujarLineasVerdes(){
     // (se veían cuñas/triángulos rellenos en vez de líneas).
     const [, , bw, bh] = m.bbox;
     const dimensionMenor = Math.min(bw, bh);
-    const grosorFino = Math.max(0.65, Math.min(1.35, dimensionMenor * 0.018));
-    const grosorHalo = Math.max(1.4, grosorFino * 2.25);
+    const grosorFino = Math.max(0.32, Math.min(0.72, dimensionMenor * 0.009));
+    const grosorHalo = Math.max(0.72, grosorFino * 1.55);
 
     const opacidadBase = esSeleccionado ? 1 : 0.72;
 
-    const construirAnillo = (grosor) => construirContornoTransformado(maskBitmap, m.bbox, fs, canvas.width, canvas.height, grosor);
+    // La vista de líneas debe representar la misma geometría que la foto:
+    // redondez y preset primero; escala, proporción, giro y posición después.
+    const mascaraRedondeada = construirMascaraConRedondez(
+      maskBitmap, m.bbox, m.fdi, fs.redondez ?? 30, canvas.width, canvas.height
+    );
+    const mascaraConForma = deformarDientePorForma(mascaraRedondeada, m.bbox, m.fdi, fs.formaPreset);
+    const construirAnillo = (grosor) => construirContornoTransformado(mascaraConForma, m.bbox, fs, canvas.width, canvas.height, grosor);
 
     // 1. Halo ancho y muy transparente (da el efecto de "brillo neón")
     const anilloHalo = construirAnillo(grosorHalo);
     const teñidoHalo = document.createElement('canvas');
     teñidoHalo.width = canvas.width; teñidoHalo.height = canvas.height;
     const thctx = teñidoHalo.getContext('2d');
-    thctx.fillStyle = `rgba(20,255,105,${opacidadBase * 0.18})`;
+    thctx.fillStyle = `rgba(20,255,105,${opacidadBase * 0.09})`;
     thctx.fillRect(0, 0, canvas.width, canvas.height);
     thctx.globalCompositeOperation = 'destination-in';
     thctx.drawImage(anilloHalo, 0, 0);
@@ -1840,7 +1952,7 @@ function dibujarLineasVerdes(){
     const teñidoFino = document.createElement('canvas');
     teñidoFino.width = canvas.width; teñidoFino.height = canvas.height;
     const tfctx = teñidoFino.getContext('2d');
-    tfctx.fillStyle = `rgba(42,255,118,${opacidadBase})`;
+    tfctx.fillStyle = `rgba(55,255,128,${opacidadBase * 0.94})`;
     tfctx.fillRect(0, 0, canvas.width, canvas.height);
     tfctx.globalCompositeOperation = 'destination-in';
     tfctx.drawImage(anilloFino, 0, 0);
@@ -1910,6 +2022,30 @@ function setStatus(msg, type){
   el.className = 'status' + (type ? ' ' + type : '');
 }
 
+function mostrarAnimacionSegmentacion(tipo = 'dientes'){
+  const overlay = document.getElementById('segProcessing');
+  if (!overlay) return;
+  const esEncia = tipo === 'encia';
+  document.getElementById('segProcessingTitle').textContent = esEncia ? 'Analizando encías' : 'Analizando sonrisa';
+  document.getElementById('segProcessingCopy').textContent = esEncia
+    ? 'La IA está trazando el contorno gingival con precisión.'
+    : 'La IA está identificando y separando cada diente.';
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
+function actualizarAnimacionSegmentacion(mensaje){
+  const copy = document.getElementById('segProcessingCopy');
+  if (copy) copy.textContent = mensaje;
+}
+
+function ocultarAnimacionSegmentacion(){
+  const overlay = document.getElementById('segProcessing');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+}
+
 // --- SUBIDA DIRECTA DE FOTO (reemplaza el pegar un link de Replicate) ---
 // Sube el archivo a Supabase Storage para conseguir una URL pública
 // ESTABLE (a diferencia de los links temporales de replicate.delivery,
@@ -1952,6 +2088,7 @@ async function subirFotoLocal(file){
     masks = [];
     maskBitmaps = {};
     formaState = {};
+    ordenCapaDientes = 0;
     selectedIndices = new Set();
     gumMasks = [];
     gumMaskBitmaps = {};
@@ -2029,6 +2166,7 @@ async function segmentar(){
   // que se mandó a segmentar (la llamada ya va en camino con esta URL).
   document.getElementById('fotoArchivo').disabled = true;
   setStatus('Segmentando... esto puede tardar 20-60 segundos', '');
+  mostrarAnimacionSegmentacion('dientes');
   if (typeof zoomImagen === 'function') zoomImagen(0); // resetea el zoom con cada foto nueva
 
   const fnUrl = document.getElementById('fnUrl').value.trim();
@@ -2048,7 +2186,7 @@ async function segmentar(){
 
     // Descarta regiones sin un bbox válido -- si no, el primer clic sobre
     // ese diente revienta más adelante (todo el código asume bbox=[x,y,w,h]).
-    masks = (data.masks || []).filter(m => Array.isArray(m.bbox) && m.bbox.length === 4);
+    masks = normalizarIndicesMascaras((data.masks || []).filter(m => Array.isArray(m.bbox) && m.bbox.length === 4));
     if (masks.length < (data.masks || []).length) {
       console.warn(`${(data.masks || []).length - masks.length} región(es) descartadas por bbox inválido`);
     }
@@ -2056,6 +2194,7 @@ async function segmentar(){
     // tamaño/posición de una foto vieja se aplican por accidente a los
     // dientes de la foto nueva (los índices se reciclan entre sesiones).
     formaState = {};
+    ordenCapaDientes = 0;
     selectedIndices = new Set();
     maskBitmaps = {};
     // El historial de deshacer guarda snapshots por ÍNDICE de diente -- como
@@ -2068,6 +2207,7 @@ async function segmentar(){
     document.getElementById('calibracionStatus').textContent = 'Sin calibrar -- las medidas se muestran en píxeles.';
 
     setStatus(`✓ ${masks.length} regiones detectadas. Cargando imagen y máscaras...`, 'ok');
+    actualizarAnimacionSegmentacion(`${masks.length} regiones detectadas. Preparando los contornos...`);
 
     await cargarImagenBase(imageUrl);
     await precargarMascaras();
@@ -2079,6 +2219,7 @@ async function segmentar(){
     setStatus('Error: ' + err.message, 'err');
     console.error(err);
   } finally {
+    ocultarAnimacionSegmentacion();
     btn.disabled = false;
     document.getElementById('fotoArchivo').disabled = false;
   }
@@ -2166,6 +2307,7 @@ async function segmentarEncia(){
   btn.disabled = true;
   document.getElementById('fotoArchivo').disabled = true;
   document.getElementById('gumStatus').textContent = 'Segmentando encía... 20-60s';
+  mostrarAnimacionSegmentacion('encia');
 
   const fnUrl = document.getElementById('fnUrl').value.trim();
   const anonKey = document.getElementById('anonKey').value.trim();
@@ -2182,7 +2324,8 @@ async function segmentarEncia(){
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error desconocido');
 
-    gumMasks = (data.masks || []).filter(m => Array.isArray(m.bbox) && m.bbox.length === 4);
+    gumMasks = normalizarIndicesMascaras((data.masks || []).filter(m => Array.isArray(m.bbox) && m.bbox.length === 4));
+    actualizarAnimacionSegmentacion(`${gumMasks.length} regiones detectadas. Refinando la línea gingival...`);
     // Mismo reseteo que en dientes -- evita arrastrar ajustes de una foto vieja
     gumFormaState = {};
     selectedGumIndices = new Set();
@@ -2199,6 +2342,7 @@ async function segmentarEncia(){
     document.getElementById('gumStatus').textContent = 'Error: ' + err.message;
     console.error(err);
   } finally {
+    ocultarAnimacionSegmentacion();
     btn.disabled = false;
     document.getElementById('fotoArchivo').disabled = false;
   }
@@ -2320,6 +2464,29 @@ function marcarBiotipo(el){
 
 function renderToothChips(){
   const wrap = document.getElementById('toothSelect');
+  // La eliminación se escucha en captura para impedir que el mismo gesto
+  // llegue después al chip padre y vuelva a seleccionar el diente.
+  if (!wrap.dataset.removeHandlerReady) {
+    wrap.addEventListener('click', (e) => {
+      const layerButton = e.target.closest('.tooth-chip-layer');
+      if (layerButton) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        const chip = layerButton.closest('.tooth-chip');
+        if (chip) moverDienteCapa(chip.dataset.index, layerButton.dataset.layerAction);
+        return;
+      }
+      const remove = e.target.closest('.tooth-chip-remove');
+      if (!remove) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      const chip = remove.closest('.tooth-chip');
+      if (chip) quitarDienteSeleccion(chip.dataset.index);
+    }, true);
+    wrap.dataset.removeHandlerReady = '1';
+  }
   wrap.innerHTML = '';
   // Ordenar: principales primero (por fdi), luego fragmentos
   const sorted = [...masks].sort((a,b) => {
@@ -2331,11 +2498,56 @@ function renderToothChips(){
   sorted.forEach(m => {
     const chip = document.createElement('div');
     chip.className = 'tooth-chip' + (m.fdi ? '' : ' fragment');
-    chip.textContent = m.fdi ? `Diente ${m.fdi}` : `frag→${m.parentFdi || '?'}`;
-    chip.onclick = (e) => seleccionarDiente(m.index, e.ctrlKey || e.metaKey);
+    chip.setAttribute('role', 'button');
+    chip.setAttribute('tabindex', '0');
+    chip.setAttribute('aria-pressed', 'false');
+    const label = document.createElement('span');
+    label.textContent = m.fdi ? `Diente ${m.fdi}` : `frag→${m.parentFdi || '?'}`;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'tooth-chip-remove';
+    remove.textContent = '×';
+    remove.title = 'Quitar de la selección';
+    remove.setAttribute('aria-label', `Quitar ${label.textContent} de la selección`);
+    const atras = document.createElement('button');
+    atras.type = 'button';
+    atras.className = 'tooth-chip-layer';
+    atras.dataset.layerAction = 'back';
+    atras.textContent = '↓';
+    atras.title = 'Enviar detrás';
+    atras.setAttribute('aria-label', `Enviar ${label.textContent} detrás`);
+    const frente = document.createElement('button');
+    frente.type = 'button';
+    frente.className = 'tooth-chip-layer';
+    frente.dataset.layerAction = 'front';
+    frente.textContent = '↑';
+    frente.title = 'Traer al frente';
+    frente.setAttribute('aria-label', `Traer ${label.textContent} al frente`);
+    chip.append(label, atras, frente, remove);
+    // Selección acumulativa: las cotas permanecen hasta quitar la pastilla.
+    chip.onclick = () => seleccionarDiente(m.index, true);
+    chip.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        seleccionarDiente(m.index, true);
+      }
+    };
     chip.dataset.index = m.index;
     wrap.appendChild(chip);
   });
+}
+
+function quitarDienteSeleccion(index){
+  // El dataset llega como texto, mientras algunas segmentaciones conservan
+  // el índice como número. Recuperamos el valor original para ambos casos.
+  const mascara = masks.find(m => String(m.index) === String(index));
+  const indiceReal = mascara ? mascara.index : index;
+  selectedIndices.delete(indiceReal);
+  selectedIndices.delete(Number(index));
+  selectedIndices.delete(String(index));
+  actualizarUISeleccion();
+  renderPanelObjetos();
+  render();
 }
 
 function seleccionarDiente(index, agregar){
@@ -2357,7 +2569,6 @@ function seleccionarDiente(index, agregar){
 
   // Cada diente recuerda su propia forma editada si ya la tocaste antes
   if (!formaState[index]) formaState[index] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: 0, dy: 0, brillo: 50, blancura: 0, tono: 50 };
-
   actualizarUISeleccion();
   renderPanelObjetos();
   render();
@@ -2392,7 +2603,10 @@ function seleccionarGrupo(tipo){
 
 function actualizarUISeleccion(){
   document.querySelectorAll('.tooth-chip').forEach(c => {
-    c.classList.toggle('selected', selectedIndices.has(parseInt(c.dataset.index)));
+    const seleccionado = selectedIndices.has(parseInt(c.dataset.index));
+    c.classList.toggle('selected', seleccionado);
+    c.setAttribute('aria-pressed', seleccionado ? 'true' : 'false');
+    c.title = seleccionado ? 'Seleccionado · usa × para quitar' : 'Seleccionar diente';
   });
 
   // Los sliders muestran los valores del ÚLTIMO diente tocado en la
@@ -2514,6 +2728,7 @@ function aplicarPresetForma(nombre){
       brillo: anterior.brillo ?? 50, blancura: anterior.blancura ?? 0,
       tono: anterior.tono ?? 50, vitaTono: anterior.vitaTono || null,
       carillaPegada: anterior.carillaPegada || null, formaPreset: nombre,
+      z: anterior.z || 0,
     };
   });
   document.getElementById('s_proporcion').value = 100;
@@ -2527,6 +2742,30 @@ function aplicarPresetForma(nombre){
     c.style.borderColor = activa ? 'var(--p)' : 'var(--card-b)';
     c.style.background = activa ? 'rgba(91,71,224,.12)' : '';
   });
+  render();
+}
+
+function traerDientesAlFrente(indices){
+  Array.from(indices || []).forEach(index => {
+    if (!formaState[index]) formaState[index] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: 0, dy: 0, brillo: 50, blancura: 0, tono: 50 };
+    formaState[index].z = ++ordenCapaDientes;
+  });
+}
+
+function moverDienteCapa(index, accion){
+  const mascara = masks.find(m => String(m.index) === String(index));
+  const indiceReal = mascara ? mascara.index : Number(index);
+  if (!formaState[indiceReal]) formaState[indiceReal] = { proporcion:100, tamano:100, angulo:0, redondez:30, dx:0, dy:0, brillo:50, blancura:0, tono:50 };
+  guardarEstadoHistorial();
+  if (accion === 'front') {
+    formaState[indiceReal].z = ++ordenCapaDientes;
+    setStatus(`✓ Diente ${mascara?.fdi || indiceReal} en primer plano`, 'ok');
+  } else {
+    const capas = Object.values(formaState).map(s => Number(s?.z) || 0);
+    formaState[indiceReal].z = Math.min(0, ...capas) - 1;
+    setStatus(`✓ Diente ${mascara?.fdi || indiceReal} enviado atrás`, 'ok');
+  }
+  renderPanelObjetos();
   render();
 }
 
@@ -2561,12 +2800,15 @@ function renderPanelObjetos(){
   if (!lista) return;
 
   const etiquetas = { ovalado: 'Ovalado', cuadrado: 'Cuadrado', triangular: 'Triangular', rectangular: 'Rectangular' };
-  const dientesEditados = Object.keys(formaState).map(Number);
+  // Primer elemento = primer plano; último = fondo.
+  const dientesEditados = Object.keys(formaState).map(Number).sort((a,b) =>
+    (formaState[b]?.z || 0) - (formaState[a]?.z || 0)
+  );
 
   lista.innerHTML = '';
   listaVacia.style.display = (dientesEditados.length === 0 && carillasPegadas.length === 0) ? 'block' : 'none';
 
-  dientesEditados.forEach(index => {
+  dientesEditados.forEach((index, posicionCapa) => {
     const m = masks.find(mm => mm.index === index);
     const etiqueta = m && m.fdi ? `Diente ${m.fdi}` : (m ? `Fragmento →${m.parentFdi || '?'}` : `Diente #${index}`);
     const activo = selectedIndices.has(index);
@@ -2582,8 +2824,12 @@ function renderPanelObjetos(){
     iconoT.textContent = '🦷';
     const textoT = document.createElement('span');
     textoT.textContent = etiqueta;
+    const capaT = document.createElement('span');
+    capaT.style.cssText = 'margin-left:auto;font-size:9.5px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.6px';
+    capaT.textContent = posicionCapa === 0 ? 'Primer plano' : `Capa ${posicionCapa + 1}`;
     fila.appendChild(iconoT);
     fila.appendChild(textoT);
+    fila.appendChild(capaT);
     lista.appendChild(fila);
   });
 
@@ -2654,19 +2900,10 @@ function dibujarCanvasBase(){
   ctx.drawImage(baseImage, 0, 0);
 }
 
-// Recorta un cuarto de círculo en un punto exacto -- usado para redondear
-// las esquinas incisales de la máscara de un diente.
-function recortarEsquina(ctx2d, cx, cy, radius){
-  if (radius <= 0) return;
-  ctx2d.beginPath();
-  ctx2d.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx2d.fill();
-}
-
-// Construye una versión de la máscara con las esquinas incisales
-// redondeadas según el slider. Determina qué esquinas son "incisales"
-// usando la notación FDI: dientes superiores (11-28) tienen el borde
-// incisal hacia ABAJO del bbox; inferiores (31-48) hacia ARRIBA.
+// Construye una envolvente convexa y continua. La implementación anterior
+// restaba círculos completos en las esquinas y producía dos "mordidas"
+// cóncavas laterales. Esta versión recorta con una sola curva cerrada:
+// radio suave en cervical y mayor en incisal, sin entrantes en los costados.
 function construirMascaraConRedondez(maskBitmap, bbox, fdi, redondezPct, w, h){
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -2677,17 +2914,28 @@ function construirMascaraConRedondez(maskBitmap, bbox, fdi, redondezPct, w, h){
 
   const [bx, by, bw, bh] = bbox;
   const esSuperior = fdi[0] === '1' || fdi[0] === '2';
-  const radioMax = Math.min(bw, bh) * 0.45;
-  const radio = (redondezPct / 100) * radioMax;
+  const intensidad = Math.max(0, Math.min(100, redondezPct)) / 100;
+  const radio = Math.min(bw * 0.28, bh * 0.22) * intensidad;
+  const radioIncisal = radio;
+  const radioCervical = radio * 0.42;
+  const radioTop = esSuperior ? radioCervical : radioIncisal;
+  const radioBottom = esSuperior ? radioIncisal : radioCervical;
+  const x1 = bx, x2 = bx + bw, y1 = by, y2 = by + bh;
 
-  cctx.globalCompositeOperation = 'destination-out';
-  if (esSuperior) {
-    recortarEsquina(cctx, bx, by + bh, radio);
-    recortarEsquina(cctx, bx + bw, by + bh, radio);
-  } else {
-    recortarEsquina(cctx, bx, by, radio);
-    recortarEsquina(cctx, bx + bw, by, radio);
-  }
+  cctx.globalCompositeOperation = 'destination-in';
+  cctx.beginPath();
+  cctx.moveTo(x1 + radioTop, y1);
+  cctx.lineTo(x2 - radioTop, y1);
+  cctx.quadraticCurveTo(x2, y1, x2, y1 + radioTop);
+  cctx.lineTo(x2, y2 - radioBottom);
+  cctx.quadraticCurveTo(x2, y2, x2 - radioBottom, y2);
+  cctx.lineTo(x1 + radioBottom, y2);
+  cctx.quadraticCurveTo(x1, y2, x1, y2 - radioBottom);
+  cctx.lineTo(x1, y1 + radioTop);
+  cctx.quadraticCurveTo(x1, y1, x1 + radioTop, y1);
+  cctx.closePath();
+  cctx.fillStyle = '#fff';
+  cctx.fill();
   cctx.globalCompositeOperation = 'source-over';
   return c;
 }
@@ -2783,9 +3031,11 @@ function sincronizarFormaDesdeSliders(borrarTonoVita = true){
     const dyActual = formaState[i]?.dy || 0;
     const carillaActual = formaState[i]?.carillaPegada || null; // no se pierde al sincronizar sliders
     const vitaActual = formaState[i]?.vitaTono || null;
+    const formaPresetActual = formaState[i]?.formaPreset || null;
+    const zActual = formaState[i]?.z || 0;
     // Solo un ajuste de COLOR abandona el modo VITA exacto. Cambiar forma,
     // tamaño o posición debe conservar el tono clínico seleccionado.
-    formaState[i] = { proporcion, tamano, angulo, redondez, dx: dxActual, dy: dyActual, brillo, blancura, tono, carillaPegada: carillaActual, vitaTono: borrarTonoVita ? null : vitaActual, formaPreset: formaPresetActual };
+    formaState[i] = { proporcion, tamano, angulo, redondez, dx: dxActual, dy: dyActual, brillo, blancura, tono, carillaPegada: carillaActual, vitaTono: borrarTonoVita ? null : vitaActual, formaPreset: formaPresetActual, z: zActual };
   });
 }
 
@@ -2975,8 +3225,8 @@ function dibujarLineasMedida(){
     const desplazar = (p, dir, dist) => ({ x: p.x + dir.x * dist, y: p.y + dir.y * dist });
 
     const { anchoPx, altoPx } = medidasDiente(m, fs);
-    const anchoTxt = calibracionPxPorMm ? `${(anchoPx / calibracionPxPorMm).toFixed(1)} mm` : `${Math.round(anchoPx)} px`;
-    const altoTxt = calibracionPxPorMm ? `${(altoPx / calibracionPxPorMm).toFixed(1)} mm` : `${Math.round(altoPx)} px`;
+    const anchoTxt = calibracionPxPorMm ? `${(anchoPx / calibracionPxPorMm).toFixed(2)} mm` : `${anchoPx.toFixed(2)} px`;
+    const altoTxt = calibracionPxPorMm ? `${(altoPx / calibracionPxPorMm).toFixed(2)} mm` : `${altoPx.toFixed(2)} px`;
 
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
@@ -3047,7 +3297,9 @@ function aplicarEfectos(){
   // formaState) se vuelven a dibujar con SU PROPIO color/forma guardados
   // -- no solo los que están seleccionados ahorita. Así los cambios ya
   // no "desaparecen" al cambiar de selección.
-  const indicesAProcesar = Object.keys(formaState).map(Number);
+  const indicesAProcesar = Object.keys(formaState).map(Number).sort((a, b) =>
+    (formaState[a]?.z || 0) - (formaState[b]?.z || 0)
+  );
 
   if (indicesAProcesar.length === 0) {
     aplicarEfectosEncia();
@@ -3337,6 +3589,7 @@ canvas.addEventListener('pointermove', (e) => {
       const fs = formaState[arrastre.tocado.index] || { dx: 0, dy: 0 };
       arrastre.posicionesIniciales[arrastre.tocado.index] = { dx: fs.dx || 0, dy: fs.dy || 0 };
     }
+    traerDientesAlFrente(selectedIndices);
   }
   if (!arrastre.isDragging) return;
 
@@ -3354,7 +3607,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (!arrastre) return;
   if (!arrastre.isDragging) {
     // No hubo arrastre real -> se trata como clic normal de selección
-    if (arrastre.tocado) seleccionarDiente(arrastre.tocado.index, e.ctrlKey || e.metaKey);
+    if (arrastre.tocado) seleccionarDiente(arrastre.tocado.index, true);
   }
   arrastre = null;
 });
@@ -3366,6 +3619,9 @@ canvas.addEventListener('pointerup', (e) => {
     const esControlColor = id === 's_brillo' || id === 's_croma' || id === 's_tono';
     sincronizarFormaDesdeSliders(esControlColor);
     sincronizarAvanzadoDesdeBasico();
+    const salida = document.getElementById(id.replace('s_', 'v_'));
+    if (salida) salida.textContent = el.value + (id === 's_angulo' ? '°' : '%');
+    renderPanelObjetos();
     render();
   });
 });
