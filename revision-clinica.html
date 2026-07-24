@@ -650,8 +650,37 @@ let baseImage = null;
 let selectedIndices = new Set(); // ahora soporta selección múltiple
 let maskBitmaps = {};
 let formaState = {};
-let ordenCapaDientes = 0;
+// Orden de apilado (z-order) de los dientes editados, de ADELANTE hacia
+// ATRÁS -- ordenCapaDientes[0] es el que se dibuja al final (encima de
+// todos). Se reordena arrastrando las filas en el panel "Objetos". Los
+// dientes que entran a formaState por primera vez se agregan al frente.
+let ordenCapaDientes = [];
 let papeleraMascaras = [];
+
+// Mantiene ordenCapaDientes sincronizado con formaState sin tener que tocar
+// cada sitio donde se crea/borra una entrada: agrega al frente los índices
+// nuevos y descarta los que ya no están editados (borrados/recién segmentados).
+function dientesEnCapaOrdenados(){
+  const editados = new Set(Object.keys(formaState).map(Number));
+  editados.forEach(i => { if (!ordenCapaDientes.includes(i)) ordenCapaDientes.unshift(i); });
+  ordenCapaDientes = ordenCapaDientes.filter(i => editados.has(i));
+  return ordenCapaDientes;
+}
+
+// Mueve `origen` a la posición donde estaba `destino` (arrastrar y soltar
+// en el panel "Objetos"). Ambos son índices de diente, no posiciones --
+// se recalcula la posición actual de cada uno dentro del arreglo.
+function moverDienteEnCapa(origen, destino){
+  if (origen === destino) return;
+  const orden = dientesEnCapaOrdenados();
+  const iOrigen = orden.indexOf(origen);
+  const iDestino = orden.indexOf(destino);
+  if (iOrigen === -1 || iDestino === -1) return;
+  orden.splice(iOrigen, 1);
+  orden.splice(iDestino, 0, origen);
+  renderPanelObjetos();
+  render();
+}
 
 // Un diente parcialmente oculto puede llegar dividido en una región principal
 // y una o más piezas asociadas mediante `parentFdi`.
@@ -1980,7 +2009,7 @@ async function subirFotoLocal(file){
     maskBitmaps = {};
     formaState = {};
     papeleraMascaras = [];
-    ordenCapaDientes = 0;
+    ordenCapaDientes = [];
     selectedIndices = new Set();
     gumMasks = [];
     gumMaskBitmaps = {};
@@ -2088,6 +2117,7 @@ async function segmentar(){
     selectedIndices = new Set();
     maskBitmaps = {};
     papeleraMascaras = [];
+    ordenCapaDientes = [];
     // El historial de deshacer guarda snapshots por ÍNDICE de diente -- como
     // los índices se reasignan con cada segmentación, un deshacer después de
     // este punto reaplicaría ajustes viejos a dientes que ya no son los mismos.
@@ -2480,21 +2510,13 @@ function renderToothChips(){
     remove.textContent = '×';
     remove.title = 'Quitar de la selección';
     remove.setAttribute('aria-label', `Quitar ${label.textContent} de la selección`);
-    const atras = document.createElement('button');
-    atras.type = 'button';
-    atras.className = 'tooth-chip-layer';
-    atras.dataset.layerAction = 'back';
-    atras.textContent = '↓';
-    atras.title = 'Enviar detrás';
-    atras.setAttribute('aria-label', `Enviar ${label.textContent} detrás`);
-    const frente = document.createElement('button');
-    frente.type = 'button';
-    frente.className = 'tooth-chip-layer';
-    frente.dataset.layerAction = 'front';
-    frente.textContent = '↑';
-    frente.title = 'Traer al frente';
-    frente.setAttribute('aria-label', `Traer ${label.textContent} al frente`);
-    chip.append(label, atras, frente, remove);
+    remove.onclick = (e) => {
+      e.stopPropagation();
+      if (selectedIndices.has(m.index)) { selectedIndices.delete(m.index); actualizarUISeleccion(); renderPanelObjetos(); render(); renderToothChips(); }
+    };
+    // El orden de capas (antes botones ↓/↑ aquí) se controla arrastrando
+    // las filas en el panel "Objetos", debajo del canvas.
+    chip.append(label, remove);
     // Selección acumulativa: las cotas permanecen hasta quitar la pastilla.
     chip.onclick = () => seleccionarDiente(m.index, true);
     chip.onkeydown = (e) => {
@@ -2820,29 +2842,59 @@ function renderPanelObjetos(){
   actualizarBotonesPapelera();
 
   const etiquetas = { ovalado: 'Ovalado', cuadrado: 'Cuadrado', triangular: 'Triangular', rectangular: 'Rectangular' };
-  const dientesEditados = Object.keys(formaState).map(Number);
+  const dientesEditados = dientesEnCapaOrdenados();
 
   lista.innerHTML = '';
   listaVacia.style.display = (dientesEditados.length === 0 && carillasPegadas.length === 0) ? 'block' : 'none';
 
+  // Arrastrar una fila la reordena dentro de ordenCapaDientes -- la posición
+  // en la lista ES el orden de capas (primero = encima), no hace falta
+  // ningún botón de "traer al frente/enviar detrás".
   dientesEditados.forEach(index => {
     const m = masks.find(mm => mm.index === index);
     const etiqueta = m && m.fdi ? `Diente ${m.fdi}` : (m ? `Fragmento →${m.parentFdi || '?'}` : `Diente #${index}`);
     const activo = selectedIndices.has(index);
 
     const fila = document.createElement('div');
+    fila.draggable = true;
+    fila.dataset.dienteIndex = index;
     fila.onclick = () => seleccionarDiente(index, false);
-    fila.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:11.5px;
+    fila.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:grab;font-size:11.5px;
       background:${activo ? 'var(--p)' : 'var(--field)'};color:${activo ? '#fff' : 'var(--text-dim)'};border:1px solid ${activo ? 'var(--p)' : 'var(--card-b)'}`;
     // etiqueta puede venir de un fdi/parentFdi del backend -- textContent
     // (no innerHTML) para no ejecutar HTML si algún día llega manipulado.
+    const iconoArrastre = document.createElement('span');
+    iconoArrastre.style.cssText = 'font-size:12px;opacity:.5;cursor:grab';
+    iconoArrastre.textContent = '⠿';
+    iconoArrastre.title = 'Arrastra para reordenar (capas)';
     const iconoT = document.createElement('span');
     iconoT.style.fontSize = '14px';
     iconoT.textContent = '🦷';
     const textoT = document.createElement('span');
     textoT.textContent = etiqueta;
+    fila.appendChild(iconoArrastre);
     fila.appendChild(iconoT);
     fila.appendChild(textoT);
+
+    fila.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(index));
+      fila.style.opacity = '.4';
+    });
+    fila.addEventListener('dragend', () => { fila.style.opacity = '1'; });
+    fila.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      fila.style.borderTop = '2px solid var(--p)';
+    });
+    fila.addEventListener('dragleave', () => { fila.style.borderTop = ''; });
+    fila.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fila.style.borderTop = '';
+      const origen = Number(e.dataTransfer.getData('text/plain'));
+      moverDienteEnCapa(origen, index);
+    });
+
     lista.appendChild(fila);
   });
 
@@ -3236,8 +3288,10 @@ function aplicarEfectos(){
   // TODOS los dientes que alguna vez se tocaron (tienen entrada en
   // formaState) se vuelven a dibujar con SU PROPIO color/forma guardados
   // -- no solo los que están seleccionados ahorita. Así los cambios ya
-  // no "desaparecen" al cambiar de selección.
-  const indicesAProcesar = Object.keys(formaState).map(Number);
+  // no "desaparecen" al cambiar de selección. Se dibujan del FONDO hacia
+  // el FRENTE (por eso .reverse()) para que el orden de capas que se ve
+  // en el panel "Objetos" (primero = encima) quede igual en el canvas.
+  const indicesAProcesar = [...dientesEnCapaOrdenados()].reverse();
 
   if (indicesAProcesar.length === 0) {
     aplicarEfectosEncia();
