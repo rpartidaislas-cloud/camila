@@ -943,14 +943,18 @@ window.addEventListener('unhandledrejection', function(ev) {
 });
 
 // ══ CONFIG ══
-// supaUrl/supaKey (base de datos, storage de fotos, login de dentistas) ya
-// apuntan al proyecto NUEVO de Supabase. edgeUrl/edgeKey (Claude) se
-// quedaron aparte, en el proyecto VIEJO -- esa Edge Function no se ha
-// redesplegado todavía, así que sigue viviendo ahí hasta que se migre.
+// Todo apunta ya al proyecto NUEVO de Supabase: base de datos, storage,
+// login y también las Edge Functions (`claude` y `segment-teeth` ya están
+// desplegadas ahí, así que el proyecto viejo gfogifozhhbzxhcbecgf quedó
+// fuera del circuito por completo).
+//
+// edgeKey queda solo como fallback: la Edge Function `claude` ahora exige el
+// JWT de la sesión (CFG.userToken) porque antes cualquiera podía llamarla sin
+// credenciales y gastar la cuenta de Anthropic/Gemini del proyecto.
 var CFG = {
   waNum: '523312345678',
-  edgeUrl: 'https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/claude',
-  edgeKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8',
+  edgeUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/claude',
+  edgeKey: 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo',
   supaKey: 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo',
   supaUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co',
   tenantId: null,
@@ -2200,7 +2204,7 @@ async function analyzeWithClaude() {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
       messages: [{role:'user', content: content}],
       max_tokens: 1200
@@ -2222,7 +2226,7 @@ async function analizarConClaude(fotoFrontalBase64) {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
       messages: [{role:'user', content: content}],
       max_tokens: 800
@@ -2248,7 +2252,7 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
       messages: [{role:'user', content: [
         {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
@@ -2354,7 +2358,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   // sin explicación indefinidamente
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.edgeKey},
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
   var timeoutPromise = new Promise(function(_, reject) {
