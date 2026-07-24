@@ -281,7 +281,11 @@
     </div>
 
     <div id="panelObjetos" style="background:var(--card);border:1px solid var(--card-b);border-radius:16px;padding:14px;max-height:220px;overflow-y:auto">
-      <h4 class="panel-title" style="margin-bottom:8px">📋 Objetos</h4>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+        <h4 class="panel-title" style="margin:0;margin-right:auto">📋 Objetos</h4>
+        <button id="btnBorrarObjetos" class="btn-pill" style="padding:6px 9px;font-size:10px" onclick="borrarObjetosSeleccionados()" disabled>Eliminar</button>
+        <button id="btnRestaurarObjetos" class="btn-pill" style="padding:6px 9px;font-size:10px" onclick="restaurarUltimosObjetos()" disabled>Restaurar último</button>
+      </div>
       <div id="objetosListaVacia" style="font-size:11px;color:var(--text-faint)">Todavía no hay carillas pegadas.</div>
       <div id="objetosLista" style="display:flex;flex-direction:column;gap:4px"></div>
     </div>
@@ -483,6 +487,15 @@
       <input type="hidden" id="imageUrl" value="">
       <div class="sec-lbl">Segmentación</div>
       <button id="btnSegment" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:8px" onclick="segmentar()">🦷 Segmentar dientes</button>
+      <button id="btnCorregirDiente" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:8px" onclick="iniciarCorreccionDiente()">＋ Corregir diente faltante</button>
+      <button id="btnLimpiarMascara" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:8px" onclick="limpiarImperfeccionesSeleccionadas()">✦ Limpiar imperfecciones</button>
+      <div class="hint" style="margin:-2px 0 10px">Selecciona una o varias pastillas. Se rellenan poros y motas internas sin cambiar el contorno exterior.</div>
+      <div id="accionesCorreccionDiente" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <button id="btnCerrarCorreccion" class="btn-pill ok" style="justify-content:center" onclick="finalizarCorreccionDiente()">Cerrar (0)</button>
+        <button class="btn-pill" style="justify-content:center" onclick="deshacerPuntoCorreccion()">Deshacer</button>
+        <button class="btn-pill" style="justify-content:center" onclick="cancelarCorreccionDiente()">Cancelar</button>
+      </div>
+      <div id="ayudaCorreccionDiente" class="hint" style="display:none;margin:-2px 0 10px;color:#7ef7b3"></div>
       <button id="btnSegmentEncia" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:14px" onclick="segmentarEncia()">〰 Segmentar encía</button>
       <div class="sec-lbl">Caso</div>
       <button class="btn-pill ok" style="width:100%;justify-content:center;margin-bottom:8px" onclick="guardarCasoCompleto()">💾 Guardar caso</button>
@@ -577,32 +590,25 @@
 // Recuerda fnUrl/anonKey/tenantId entre recargas de la página (localStorage) --
 // antes había que retipear la Publishable key cada vez, y si se te olvidaba
 // Supabase respondía 401 "No API key found in request".
+const SUPABASE_EDITOR_URL = 'https://rpxshsiwoxdbuevjjpfw.supabase.co';
+const SUPABASE_EDITOR_KEY = 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
+
 ['fnUrl', 'anonKey', 'tenantId'].forEach(id => {
   const el = document.getElementById(id);
-  const guardado = localStorage.getItem('camila_editor_' + id);
+  let guardado = localStorage.getItem('camila_editor_' + id);
+  // Migra la configuración persistida del proyecto anterior. Sin esto,
+  // localStorage reponía la URL vieja aunque el HTML ya estuviera corregido.
+  if (id === 'fnUrl' && guardado && guardado.includes('gfogifozhhbzxhcbecgf')) {
+    guardado = SUPABASE_EDITOR_URL + '/functions/v1/segment-teeth';
+    localStorage.setItem('camila_editor_' + id, guardado);
+  }
+  if (id === 'anonKey' && guardado && guardado !== SUPABASE_EDITOR_KEY) {
+    guardado = SUPABASE_EDITOR_KEY;
+    localStorage.setItem('camila_editor_' + id, guardado);
+  }
   if (guardado) el.value = guardado;
   el.addEventListener('change', () => localStorage.setItem('camila_editor_' + id, el.value.trim()));
 });
-
-// La segmentación vivía en un proyecto de Supabase aparte (gfogifozhhbzxhcbecgf)
-// y ya se movió al mismo del resto. Como fnUrl/anonKey se recuerdan en
-// localStorage, a quien ya usó el editor le seguiría ganando el valor viejo
-// aunque el default del HTML cambie -- y esa función vieja sigue abierta sin
-// autenticación. Así que si detectamos el proyecto viejo guardado, lo pisamos
-// con el default nuevo del HTML.
-(function migrarProyectoViejo(){
-  const VIEJO = 'gfogifozhhbzxhcbecgf';
-  [['fnUrl', 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/segment-teeth'],
-   ['anonKey', 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo']].forEach(([id, nuevo]) => {
-    const el = document.getElementById(id);
-    // El anon key viejo es un JWT que lleva el ref del proyecto codificado en
-    // el payload, así que basta con buscar el ref en el texto del valor.
-    if (el.value.includes(VIEJO) || (id === 'anonKey' && el.value.startsWith('eyJ'))) {
-      el.value = nuevo;
-      localStorage.setItem('camila_editor_' + id, nuevo);
-    }
-  });
-})();
 
 // El Caso ID de ejemplo en el HTML es el MISMO texto para cualquiera que
 // abra este archivo -- si nadie lo cambia, "Guardar caso" (que hace un
@@ -642,6 +648,208 @@ let baseImage = null;
 let selectedIndices = new Set(); // ahora soporta selección múltiple
 let maskBitmaps = {};
 let formaState = {};
+let ordenCapaDientes = 0;
+let papeleraMascaras = [];
+
+// Un diente parcialmente oculto puede llegar dividido en una región principal
+// y una o más piezas asociadas mediante `parentFdi`.
+function fdiEfectivoMascara(m){
+  return String(m?.fdi || m?.parentFdi || '');
+}
+
+function mascaraPerteneceArcada(m, arcada){
+  const fdi = fdiEfectivoMascara(m);
+  if (!fdi) return false;
+  return arcada === 'arriba'
+    ? (fdi[0] === '1' || fdi[0] === '2')
+    : (fdi[0] === '3' || fdi[0] === '4');
+}
+
+let correccionDiente = null; // { fdi, puntos:[{x,y}], esperandoCentro }
+
+function iniciarCorreccionDiente(){
+  if (!baseImage) { alert('Sube y segmenta una fotografía antes de corregir un diente.'); return; }
+  correccionDiente = { fdi: null, puntos: [], esperandoCentro: true, centro: null };
+  setVista('foto');
+  canvas.style.cursor = 'crosshair';
+  document.getElementById('accionesCorreccionDiente').style.display = 'grid';
+  document.getElementById('ayudaCorreccionDiente').style.display = 'block';
+  document.getElementById('btnCorregirDiente').disabled = true;
+  actualizarAyudaCorreccion();
+  render();
+}
+
+function actualizarAyudaCorreccion(){
+  if (!correccionDiente) return;
+  const total = correccionDiente.puntos.length;
+  document.getElementById('btnCerrarCorreccion').textContent = `Cerrar (${total})`;
+  if (correccionDiente.esperandoCentro) {
+    document.getElementById('ayudaCorreccionDiente').textContent =
+      'Haz un clic en el CENTRO del diente faltante. Smyl calculará su FDI automáticamente.';
+    setStatus('Corrección: haz clic en el centro del diente faltante.', '');
+    return;
+  }
+  document.getElementById('ayudaCorreccionDiente').textContent =
+    `FDI ${correccionDiente.fdi} · ${total} punto${total === 1 ? '' : 's'}. ` +
+    (total < 3 ? 'Haz clic siguiendo el borde del diente (mínimo 3).' : 'Continúa bordeando o pulsa Cerrar.');
+  setStatus(`Corrección FDI ${correccionDiente.fdi}: ${total} punto${total === 1 ? '' : 's'} marcado${total === 1 ? '' : 's'}.`, '');
+}
+
+function centroMascara(m){
+  return { x: m.bbox[0] + m.bbox[2] / 2, y: m.bbox[1] + m.bbox[3] / 2 };
+}
+
+function inferirFDIEnPunto(x, y){
+  const principales = masks.filter(m => m.fdi && !m.parentFdi);
+  const superiores = principales.filter(m => ['1','2'].includes(String(m.fdi)[0]));
+  const inferiores = principales.filter(m => ['3','4'].includes(String(m.fdi)[0]));
+  const promedioY = (fila, respaldo) => fila.length
+    ? fila.reduce((s, m) => s + centroMascara(m).y, 0) / fila.length
+    : respaldo;
+  const esSuperior = Math.abs(y - promedioY(superiores, canvas.height * .42)) <=
+    Math.abs(y - promedioY(inferiores, canvas.height * .62));
+  const fila = esSuperior ? superiores : inferiores;
+  const midlineX = canvas.width / 2;
+  const izquierda = x < midlineX;
+  const cuadrante = esSuperior ? (izquierda ? '1' : '2') : (izquierda ? '4' : '3');
+  const distanciaNueva = Math.abs(x - midlineX);
+  const distancias = fila.map(m => centroMascara(m))
+    .filter(p => (p.x < midlineX) === izquierda)
+    .map(p => Math.abs(p.x - midlineX));
+  const posicion = 1 + distancias.filter(d => d < distanciaNueva).length;
+  return `${cuadrante}${Math.min(8, Math.max(1, posicion))}`;
+}
+
+function renumerarFDIPorPosicion(){
+  const principales = masks.filter(m => m.fdi && !m.parentFdi);
+  const midlineX = canvas.width / 2;
+  [
+    { q:'1', fila:['1','2'], izquierda:true },
+    { q:'2', fila:['1','2'], izquierda:false },
+    { q:'4', fila:['3','4'], izquierda:true },
+    { q:'3', fila:['3','4'], izquierda:false },
+  ].forEach(({q, fila, izquierda}) => {
+    principales
+      .filter(m => fila.includes(String(m.fdi)[0]) && ((centroMascara(m).x < midlineX) === izquierda))
+      .sort((a,b) => Math.abs(centroMascara(a).x-midlineX) - Math.abs(centroMascara(b).x-midlineX))
+      .slice(0,8)
+      .forEach((m,i) => { m.fdi = `${q}${i+1}`; });
+  });
+  masks.filter(m => m.parentFdi).forEach(fragmento => {
+    const fc = centroMascara(fragmento);
+    let vecino = null, distancia = Infinity;
+    principales.forEach(p => {
+      const pc = centroMascara(p), d = Math.hypot(fc.x-pc.x, fc.y-pc.y);
+      if (d < distancia) { distancia = d; vecino = p; }
+    });
+    fragmento.parentFdi = vecino?.fdi || null;
+  });
+}
+
+function deshacerPuntoCorreccion(){
+  if (!correccionDiente?.puntos.length) return;
+  correccionDiente.puntos.pop();
+  actualizarAyudaCorreccion();
+  render();
+}
+
+function cancelarCorreccionDiente(mensaje = 'Corrección manual cancelada.'){
+  correccionDiente = null;
+  canvas.style.cursor = '';
+  document.getElementById('accionesCorreccionDiente').style.display = 'none';
+  document.getElementById('ayudaCorreccionDiente').style.display = 'none';
+  document.getElementById('btnCorregirDiente').disabled = false;
+  setStatus(mensaje, '');
+  render();
+}
+
+async function finalizarCorreccionDiente(){
+  if (!correccionDiente || correccionDiente.puntos.length < 3) {
+    setStatus('Marca al menos 3 puntos para cerrar el contorno del diente.', 'err');
+    return;
+  }
+  const { fdi, puntos } = correccionDiente;
+  const xs = puntos.map(p => p.x), ys = puntos.map(p => p.y);
+  const margen = 2;
+  const bx = Math.max(0, Math.floor(Math.min(...xs) - margen));
+  const by = Math.max(0, Math.floor(Math.min(...ys) - margen));
+  const ex = Math.min(canvas.width, Math.ceil(Math.max(...xs) + margen));
+  const ey = Math.min(canvas.height, Math.ceil(Math.max(...ys) + margen));
+  const maskCanvas = document.createElement('canvas');
+  maskCanvas.width = canvas.width; maskCanvas.height = canvas.height;
+  const mctx = maskCanvas.getContext('2d');
+  mctx.fillStyle = '#000'; mctx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+  mctx.beginPath(); mctx.moveTo(puntos[0].x, puntos[0].y);
+  puntos.slice(1).forEach(p => mctx.lineTo(p.x, p.y));
+  mctx.closePath(); mctx.fillStyle = '#fff'; mctx.fill();
+
+  const rawBitmap = await createImageBitmap(maskCanvas);
+  const bitmap = await convertirMascaraATransparencia(rawBitmap);
+  const siguiente = masks.reduce((max, m) => Math.max(max, Number(m.index) || 0), -1) + 1;
+  const nueva = { index: siguiente, fdi, parentFdi: null, bbox: [bx, by, Math.max(1, ex - bx), Math.max(1, ey - by)], maskUrl: maskCanvas.toDataURL('image/png'), manual: true };
+  masks.push(nueva);
+  renumerarFDIPorPosicion();
+  maskBitmaps[siguiente] = bitmap;
+  selectedIndices = new Set([siguiente]);
+  formaState[siguiente] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: 0, dy: 0, brillo: 50, blancura: 0, tono: 50 };
+  correccionDiente = null;
+  canvas.style.cursor = '';
+  document.getElementById('accionesCorreccionDiente').style.display = 'none';
+  document.getElementById('ayudaCorreccionDiente').style.display = 'none';
+  document.getElementById('btnCorregirDiente').disabled = false;
+  renderToothChips(); actualizarUISeleccion(); renderPanelObjetos(); render();
+  setStatus(`✓ Diente ${fdi} añadido manualmente y listo para editar.`, 'ok');
+}
+
+function dibujarCorreccionDiente(){
+  if (!correccionDiente) return;
+  if (correccionDiente.centro) {
+    const c = correccionDiente.centro;
+    ctx.save();
+    ctx.fillStyle = 'rgba(5,12,11,.9)';
+    ctx.strokeStyle = '#20f58a';
+    ctx.lineWidth = Math.max(1.5, canvas.width * .002);
+    ctx.beginPath(); ctx.arc(c.x, c.y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#20f58a'; ctx.font = `700 ${Math.max(13, canvas.width * .014)}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`FDI ${correccionDiente.fdi}`, c.x, c.y - 16);
+    ctx.restore();
+  }
+  if (!correccionDiente.puntos.length) return;
+  const pts = correccionDiente.puntos;
+  ctx.save();
+  ctx.strokeStyle = '#20f58a'; ctx.fillStyle = '#20f58a'; ctx.lineWidth = Math.max(.8, canvas.width * .0014);
+  ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  if (pts.length >= 3) ctx.closePath();
+  ctx.stroke(); ctx.setLineDash([]);
+  pts.forEach((p, i) => { ctx.beginPath(); ctx.arc(p.x, p.y, i ? 3 : 5, 0, Math.PI * 2); ctx.fill(); });
+  ctx.restore();
+}
+
+function mostrarAnimacionSegmentacion(tipo = 'dientes'){
+  const overlay = document.getElementById('segProcessing');
+  if (!overlay) return;
+  const esEncia = tipo === 'encia';
+  document.getElementById('segProcessingTitle').textContent = esEncia ? 'Analizando encías' : 'Analizando sonrisa';
+  document.getElementById('segProcessingCopy').textContent = esEncia
+    ? 'La IA está trazando el contorno gingival con precisión.'
+    : 'La IA está identificando y separando cada diente.';
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
+function actualizarAnimacionSegmentacion(mensaje){
+  const copy = document.getElementById('segProcessingCopy');
+  if (copy) copy.textContent = mensaje;
+}
+
+function ocultarAnimacionSegmentacion(){
+  const overlay = document.getElementById('segProcessing');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+}
 
 // --- Medidas reales: sin una referencia conocida en la foto, el bbox
 // solo da píxeles. Calibrando 2 clics contra una distancia real en mm
@@ -1128,11 +1336,17 @@ function deshacer(){
 }
 
 document.addEventListener('keydown', (e) => {
+  const tag = document.activeElement?.tagName;
+  const escribiendo = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-    const tag = document.activeElement?.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return; // deja que el campo maneje su propio deshacer
+    if (escribiendo) return; // deja que el campo maneje su propio deshacer
     e.preventDefault();
     deshacer();
+    return;
+  }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !escribiendo && selectedIndices.size > 0) {
+    e.preventDefault();
+    borrarObjetosSeleccionados();
   }
 });
 
@@ -1532,7 +1746,10 @@ function dibujarLineasVerdes(){
 
     const esSeleccionado = selectedIndices.has(m.index);
     const esPrincipal = !!m.fdi;
-    if (!esPrincipal && !esSeleccionado) return; // fragmentos no seleccionados: no estorban
+    const esParteAsociada = !esPrincipal && !!m.parentFdi;
+    // Completa dientes parcialmente ocultos, pero mantiene fuera los falsos
+    // positivos que el backend no pudo asociar a ningún número FDI.
+    if (!esPrincipal && !esParteAsociada && !esSeleccionado) return;
 
     const fs = formaState[m.index] || { proporcion: 100, tamano: 100, angulo: 0, redondez: 0, dx: 0, dy: 0 };
 
@@ -1744,6 +1961,8 @@ async function subirFotoLocal(file){
     masks = [];
     maskBitmaps = {};
     formaState = {};
+    papeleraMascaras = [];
+    ordenCapaDientes = 0;
     selectedIndices = new Set();
     gumMasks = [];
     gumMaskBitmaps = {};
@@ -1850,6 +2069,7 @@ async function segmentar(){
     formaState = {};
     selectedIndices = new Set();
     maskBitmaps = {};
+    papeleraMascaras = [];
     // El historial de deshacer guarda snapshots por ÍNDICE de diente -- como
     // los índices se reasignan con cada segmentación, un deshacer después de
     // este punto reaplicaría ajustes viejos a dientes que ya no son los mismos.
@@ -1866,7 +2086,15 @@ async function segmentar(){
     renderToothChips();
     dibujarCanvasBase();
 
-    setStatus(`✓ Listo. ${masks.filter(m=>m.fdi).length} dientes principales, ${masks.filter(m=>!m.fdi).length} fragmentos.`, 'ok');
+    const principales = masks.filter(m => m.fdi).length;
+    const asociados = masks.filter(m => !m.fdi && m.parentFdi).length;
+    const huerfanos = masks.filter(m => !m.fdi && !m.parentFdi).length;
+    const recuperados = masks.filter(m => m.recoveredFromFragment || m.recoveredFromSecondPass).length;
+    setStatus(`✓ Listo. ${principales} dientes principales${recuperados ? ` (${recuperados} recuperado${recuperados === 1 ? '' : 's'} automáticamente)` : ''}, ${asociados} partes asociadas${huerfanos ? `, ${huerfanos} regiones por revisar` : ''}.`, 'ok');
+    // La encía forma parte del mismo análisis clínico. Se captura al terminar
+    // los dientes para que el usuario no tenga que recordar un segundo paso;
+    // el botón independiente se conserva para poder repetirla si hace falta.
+    await segmentarEncia({ automatico: true });
   } catch(err) {
     setStatus('Error: ' + err.message, 'err');
     console.error(err);
@@ -1920,6 +2148,103 @@ async function convertirMascaraATransparencia(bitmap){
   return createImageBitmap(suavizado);
 }
 
+// Rellena únicamente huecos cerrados dentro del diente. El fondo conectado
+// con el borde del recorte se conserva, por lo que la silueta exterior no se
+// ensancha ni se redibuja. También elimina islotes minúsculos desconectados.
+async function limpiarBitmapMascara(bitmap, bbox){
+  const fuente = document.createElement('canvas');
+  fuente.width = bitmap.width; fuente.height = bitmap.height;
+  const fctx = fuente.getContext('2d', { willReadFrequently: true });
+  fctx.drawImage(bitmap, 0, 0);
+
+  const margen = 3;
+  const x0 = Math.max(0, Math.floor(bbox[0]) - margen);
+  const y0 = Math.max(0, Math.floor(bbox[1]) - margen);
+  const x1 = Math.min(fuente.width, Math.ceil(bbox[0] + bbox[2]) + margen);
+  const y1 = Math.min(fuente.height, Math.ceil(bbox[1] + bbox[3]) + margen);
+  const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
+  const recorte = fctx.getImageData(x0, y0, w, h);
+  const bin = new Uint8Array(w * h);
+  for (let p = 0; p < bin.length; p++) bin[p] = recorte.data[p * 4 + 3] >= 72 ? 1 : 0;
+
+  const vecinos = [[1,0],[-1,0],[0,1],[0,-1]];
+  const visitado = new Uint8Array(bin.length);
+  const cola = [];
+  const agregarFondo = (x, y) => {
+    const i = y * w + x;
+    if (!bin[i] && !visitado[i]) { visitado[i] = 1; cola.push(i); }
+  };
+  for (let x = 0; x < w; x++) { agregarFondo(x, 0); agregarFondo(x, h - 1); }
+  for (let y = 0; y < h; y++) { agregarFondo(0, y); agregarFondo(w - 1, y); }
+  for (let q = 0; q < cola.length; q++) {
+    const i = cola[q], x = i % w, y = Math.floor(i / w);
+    for (const [dx, dy] of vecinos) {
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < w && ny >= 0 && ny < h) agregarFondo(nx, ny);
+    }
+  }
+  // Todo fondo no alcanzable desde afuera es un poro interno.
+  for (let i = 0; i < bin.length; i++) if (!bin[i] && !visitado[i]) bin[i] = 1;
+
+  // Conserva el componente dental mayor y descarta motas aisladas.
+  const vistoDiente = new Uint8Array(bin.length);
+  let componenteMayor = [];
+  for (let inicio = 0; inicio < bin.length; inicio++) {
+    if (!bin[inicio] || vistoDiente[inicio]) continue;
+    const componente = [], pendientes = [inicio]; vistoDiente[inicio] = 1;
+    for (let q = 0; q < pendientes.length; q++) {
+      const i = pendientes[q], x = i % w, y = Math.floor(i / w); componente.push(i);
+      for (const [dx, dy] of vecinos) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+        const ni = ny * w + nx;
+        if (bin[ni] && !vistoDiente[ni]) { vistoDiente[ni] = 1; pendientes.push(ni); }
+      }
+    }
+    if (componente.length > componenteMayor.length) componenteMayor = componente;
+  }
+
+  const limpio = document.createElement('canvas');
+  limpio.width = bitmap.width; limpio.height = bitmap.height;
+  const lctx = limpio.getContext('2d');
+  const salida = lctx.createImageData(w, h);
+  for (const i of componenteMayor) {
+    const p = i * 4; salida.data[p] = salida.data[p + 1] = salida.data[p + 2] = 255; salida.data[p + 3] = 255;
+  }
+  const recorteCanvas = document.createElement('canvas');
+  recorteCanvas.width = w; recorteCanvas.height = h;
+  recorteCanvas.getContext('2d').putImageData(salida, 0, 0);
+  lctx.filter = 'blur(0.65px)';
+  lctx.drawImage(recorteCanvas, x0, y0);
+  return { bitmap: await createImageBitmap(limpio), dataUrl: limpio.toDataURL('image/png') };
+}
+
+async function limpiarImperfeccionesSeleccionadas(){
+  const indices = [...selectedIndices].filter(index => maskBitmaps[index] && masks.some(m => m.index === index));
+  if (!indices.length) {
+    setStatus('Selecciona primero la pastilla del diente que deseas limpiar.', 'warn');
+    return;
+  }
+  const boton = document.getElementById('btnLimpiarMascara');
+  boton.disabled = true; boton.textContent = 'Limpiando…';
+  try {
+    for (const index of indices) {
+      const m = masks.find(mm => mm.index === index);
+      const resultado = await limpiarBitmapMascara(maskBitmaps[index], m.bbox);
+      maskBitmaps[index] = resultado.bitmap;
+      m.maskUrl = resultado.dataUrl;
+      m.limpiezaManual = true;
+    }
+    render();
+    setStatus(`✓ ${indices.length === 1 ? 'Diente limpiado' : indices.length + ' dientes limpiados'}: se eliminaron poros e islotes internos.`, 'ok');
+  } catch (error) {
+    console.error('No se pudo limpiar la máscara:', error);
+    setStatus('No se pudo limpiar la máscara seleccionada.', 'error');
+  } finally {
+    boton.disabled = false; boton.textContent = '✦ Limpiar imperfecciones';
+  }
+}
+
 async function precargarMascaras(){
   maskBitmaps = {};
   // En paralelo -- son fetches independientes, uno por uno sumaba su
@@ -1939,7 +2264,7 @@ async function precargarMascaras(){
 }
 
 // --- ENCÍA: mismo patrón que dientes, target:'gum' ---
-async function segmentarEncia(){
+async function segmentarEncia({ automatico = false } = {}){
   if (!document.getElementById('imageUrl').value.trim()) {
     document.getElementById('gumStatus').textContent = 'Sube una foto primero (botón "Foto del paciente" arriba).';
     return;
@@ -1949,7 +2274,7 @@ async function segmentarEncia(){
     return;
   }
 
-  if (Object.keys(gumFormaState).length > 0) {
+  if (!automatico && Object.keys(gumFormaState).length > 0) {
     const ok = confirm('Ya hiciste cambios en la encía de esta segmentación. Volver a segmentarla los va a borrar. ¿Continuar?');
     if (!ok) return;
   }
@@ -1957,7 +2282,10 @@ async function segmentarEncia(){
   const btn = document.getElementById('btnSegmentEncia');
   btn.disabled = true;
   document.getElementById('fotoArchivo').disabled = true;
-  document.getElementById('gumStatus').textContent = 'Segmentando encía... 20-60s';
+  document.getElementById('gumStatus').textContent = automatico
+    ? 'Capturando encía automáticamente después de los dientes...'
+    : 'Segmentando encía... 20-60s';
+  mostrarAnimacionSegmentacion('encia');
 
   const fnUrl = document.getElementById('fnUrl').value.trim();
   const anonKey = document.getElementById('anonKey').value.trim();
@@ -2122,9 +2450,41 @@ function renderToothChips(){
   });
   sorted.forEach(m => {
     const chip = document.createElement('div');
-    chip.className = 'tooth-chip' + (m.fdi ? '' : ' fragment');
-    chip.textContent = m.fdi ? `Diente ${m.fdi}` : `frag→${m.parentFdi || '?'}`;
-    chip.onclick = (e) => seleccionarDiente(m.index, e.ctrlKey || e.metaKey);
+    chip.className = 'tooth-chip' + (m.fdi ? '' : ' fragment' + (m.parentFdi ? ' associated' : ''));
+    chip.setAttribute('role', 'button');
+    chip.setAttribute('tabindex', '0');
+    chip.setAttribute('aria-pressed', 'false');
+    const label = document.createElement('span');
+    label.textContent = m.fdi ? `Diente ${m.fdi}` : (m.parentFdi ? `Parte de ${m.parentFdi}` : 'Región por revisar');
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'tooth-chip-remove';
+    remove.textContent = '×';
+    remove.title = 'Quitar de la selección';
+    remove.setAttribute('aria-label', `Quitar ${label.textContent} de la selección`);
+    const atras = document.createElement('button');
+    atras.type = 'button';
+    atras.className = 'tooth-chip-layer';
+    atras.dataset.layerAction = 'back';
+    atras.textContent = '↓';
+    atras.title = 'Enviar detrás';
+    atras.setAttribute('aria-label', `Enviar ${label.textContent} detrás`);
+    const frente = document.createElement('button');
+    frente.type = 'button';
+    frente.className = 'tooth-chip-layer';
+    frente.dataset.layerAction = 'front';
+    frente.textContent = '↑';
+    frente.title = 'Traer al frente';
+    frente.setAttribute('aria-label', `Traer ${label.textContent} al frente`);
+    chip.append(label, atras, frente, remove);
+    // Selección acumulativa: las cotas permanecen hasta quitar la pastilla.
+    chip.onclick = () => seleccionarDiente(m.index, true);
+    chip.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        seleccionarDiente(m.index, true);
+      }
+    };
     chip.dataset.index = m.index;
     wrap.appendChild(chip);
   });
@@ -2138,21 +2498,49 @@ function seleccionarDiente(index, agregar){
     renderCarillaChips();
   }
 
+  const mascaraActiva = masks.find(m => String(m.index) === String(index));
+  const fdiGrupo = fdiEfectivoMascara(mascaraActiva);
+  const indicesGrupo = fdiGrupo
+    ? masks.filter(m => fdiEfectivoMascara(m) === fdiGrupo).map(m => m.index)
+    : [mascaraActiva?.index ?? index];
+
   if (agregar) {
-    // Ctrl/Cmd+clic: agrega o quita del grupo actual
-    if (selectedIndices.has(index)) selectedIndices.delete(index);
-    else selectedIndices.add(index);
+    // Ctrl/Cmd+clic: agrega o quita el grupo del diente completo
+    const grupoCompletoSeleccionado = indicesGrupo.every(i => selectedIndices.has(i));
+    indicesGrupo.forEach(i => grupoCompletoSeleccionado ? selectedIndices.delete(i) : selectedIndices.add(i));
   } else {
-    // Clic normal: selecciona solo este
-    selectedIndices = new Set([index]);
+    // Clic normal: selecciona solo el grupo de este diente
+    selectedIndices = new Set(indicesGrupo);
   }
 
   // Cada diente recuerda su propia forma editada si ya la tocaste antes
-  if (!formaState[index]) formaState[index] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: 0, dy: 0, brillo: 50, blancura: 0, tono: 50 };
+  indicesGrupo.forEach(i => {
+    if (!formaState[i]) formaState[i] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: 0, dy: 0, brillo: 50, blancura: 0, tono: 50 };
+  });
 
   actualizarUISeleccion();
   renderPanelObjetos();
   render();
+}
+
+// Selección quirúrgica desde la fotografía: NO expande al grupo FDI. Es la
+// vía para escoger una mota/fragmento superpuesto sin seleccionar también el
+// diente al que el backend lo asoció. Las pastillas siguen usando la selección
+// agrupada de seleccionarDiente(), que resulta más cómoda para editar piezas.
+function seleccionarObjetoExacto(index){
+  const mascara = masks.find(m => String(m.index) === String(index));
+  if (!mascara) return;
+  selectedIndices = new Set([mascara.index]);
+  if (!formaState[mascara.index]) {
+    formaState[mascara.index] = { proporcion: 100, tamano: 100, angulo: 0, redondez: 30, dx: 0, dy: 0, brillo: 50, blancura: 0, tono: 50 };
+  }
+  actualizarUISeleccion();
+  renderPanelObjetos();
+  render();
+  const nombre = mascara.fdi
+    ? `Diente ${mascara.fdi}`
+    : (mascara.parentFdi ? `Área asociada a ${mascara.parentFdi}` : 'Área sin identificar');
+  setStatus(`✓ ${nombre} seleccionada individualmente. Pulsa Delete/Supr o Eliminar para borrarla.`, 'ok');
 }
 
 function seleccionarGrupo(tipo){
@@ -2166,11 +2554,11 @@ function seleccionarGrupo(tipo){
   if (tipo === 'ninguno') {
     selectedIndices = new Set();
   } else if (tipo === 'todos') {
-    selectedIndices = new Set(masks.filter(m => m.fdi).map(m => m.index));
+    selectedIndices = new Set(masks.filter(m => m.fdi || m.parentFdi).map(m => m.index));
   } else if (tipo === 'arriba') {
-    selectedIndices = new Set(masks.filter(m => m.fdi && (m.fdi[0]==='1'||m.fdi[0]==='2')).map(m => m.index));
+    selectedIndices = new Set(masks.filter(m => mascaraPerteneceArcada(m, 'arriba')).map(m => m.index));
   } else if (tipo === 'abajo') {
-    selectedIndices = new Set(masks.filter(m => m.fdi && (m.fdi[0]==='3'||m.fdi[0]==='4')).map(m => m.index));
+    selectedIndices = new Set(masks.filter(m => mascaraPerteneceArcada(m, 'abajo')).map(m => m.index));
   }
 
   selectedIndices.forEach(i => {
@@ -2354,6 +2742,56 @@ function renderCarillaChips(){
   renderPanelObjetos();
 }
 
+function actualizarBotonesPapelera(){
+  const borrar = document.getElementById('btnBorrarObjetos');
+  const restaurar = document.getElementById('btnRestaurarObjetos');
+  if (borrar) borrar.disabled = selectedIndices.size === 0;
+  if (restaurar) restaurar.disabled = papeleraMascaras.length === 0;
+}
+
+function borrarObjetosSeleccionados(){
+  const indices = [...selectedIndices].filter(index => masks.some(m => m.index === index));
+  if (!indices.length) {
+    setStatus('Selecciona primero el diente, fragmento o imperfección que deseas eliminar.', 'warn');
+    return;
+  }
+  const conjunto = new Set(indices);
+  const lote = indices.map(index => ({
+    mask: masks.find(m => m.index === index),
+    bitmap: maskBitmaps[index],
+    forma: formaState[index] ? { ...formaState[index] } : null,
+  })).filter(item => item.mask);
+  papeleraMascaras.push(lote);
+  masks = masks.filter(m => !conjunto.has(m.index));
+  indices.forEach(index => { delete maskBitmaps[index]; delete formaState[index]; });
+  selectedIndices = new Set();
+  renderToothChips();
+  actualizarUISeleccion();
+  renderPanelObjetos();
+  render();
+  setStatus(`✓ ${lote.length} objeto${lote.length === 1 ? '' : 's'} enviado${lote.length === 1 ? '' : 's'} a la papelera. Puedes restaurar el último borrado.`, 'ok');
+}
+
+function restaurarUltimosObjetos(){
+  const lote = papeleraMascaras.pop();
+  if (!lote?.length) return;
+  const restaurados = [];
+  lote.forEach(({ mask, bitmap, forma }) => {
+    if (!mask || masks.some(m => m.index === mask.index)) return;
+    masks.push(mask);
+    if (bitmap) maskBitmaps[mask.index] = bitmap;
+    if (forma) formaState[mask.index] = forma;
+    restaurados.push(mask.index);
+  });
+  masks.sort((a, b) => Number(a.index) - Number(b.index));
+  selectedIndices = new Set(restaurados);
+  renderToothChips();
+  actualizarUISeleccion();
+  renderPanelObjetos();
+  render();
+  setStatus(`↩ ${restaurados.length} objeto${restaurados.length === 1 ? '' : 's'} restaurado${restaurados.length === 1 ? '' : 's'}.`, 'ok');
+}
+
 // Panel "Objetos" tipo Corel, debajo del canvas -- lista TODOS los
 // elementos de la composición: dientes que ya tocaste (tienen entrada en
 // formaState) + las carillas pegadas. Clic en cualquiera lo selecciona.
@@ -2361,6 +2799,7 @@ function renderPanelObjetos(){
   const lista = document.getElementById('objetosLista');
   const listaVacia = document.getElementById('objetosListaVacia');
   if (!lista) return;
+  actualizarBotonesPapelera();
 
   const etiquetas = { ovalado: 'Ovalado', cuadrado: 'Cuadrado', triangular: 'Triangular', rectangular: 'Rectangular' };
   const dientesEditados = Object.keys(formaState).map(Number);
@@ -2641,6 +3080,7 @@ function render(){
   if (modoVista === 'foto' && tabActual === 'diseno') dibujarLineasMedida();
   dibujarCarillasPegadas();
   dibujarGuiasProporcion();
+  dibujarCorreccionDiente();
   actualizarMedidas();
 }
 
@@ -2953,6 +3393,21 @@ let arrastre = null; // { startX, startY, posicionesIniciales: {index: {dx,dy}},
 canvas.addEventListener('pointerdown', (e) => {
   const { x, y } = coordCanvas(e);
 
+  if (correccionDiente) {
+    if (correccionDiente.esperandoCentro) {
+      correccionDiente.fdi = inferirFDIEnPunto(x, y);
+      correccionDiente.centro = { x, y };
+      correccionDiente.esperandoCentro = false;
+      actualizarAyudaCorreccion();
+      render();
+      return;
+    }
+    correccionDiente.puntos.push({ x, y });
+    actualizarAyudaCorreccion();
+    render();
+    return;
+  }
+
   if (calibrando) {
     calibracionPuntos.push({ x, y });
     if (calibracionPuntos.length === 1) {
@@ -3073,8 +3528,9 @@ canvas.addEventListener('pointerup', (e) => {
   if (arrastreCarilla) { arrastreCarilla = null; return; }
   if (!arrastre) return;
   if (!arrastre.isDragging) {
-    // No hubo arrastre real -> se trata como clic normal de selección
-    if (arrastre.tocado) seleccionarDiente(arrastre.tocado.index, e.ctrlKey || e.metaKey);
+    // Clic sobre la foto = máscara exacta. No incluye automáticamente su
+    // diente padre, lo que permite borrar imperfecciones superpuestas.
+    if (arrastre.tocado) seleccionarObjetoExacto(arrastre.tocado.index);
   }
   arrastre = null;
 });
