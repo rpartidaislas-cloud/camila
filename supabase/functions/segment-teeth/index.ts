@@ -319,14 +319,15 @@ serve(async (req) => {
   if (authError) return authError;
 
   try {
-    const { imageUrl, casoId, target: targetRaw } = await req.json();
+    const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = await req.json();
     const target: Target = targetRaw === "gum" ? "gum" : "tooth";
 
-    // El tenant_id sale de la sesión, NO del body. Antes venía en el JSON y se
-    // usaba tal cual en el .eq("tenant_id", ...) de abajo: como el cliente es
-    // service role y no respeta RLS, mandar el tenantId de otro dentista
-    // sobrescribía la segmentación de SU caso.
-    const tenantId = user!.id;
+    // El tenant_id sale de la sesión cuando hay una real. Sin login (acceso
+    // anónimo permitido por pedido explícito), no hay sesión de la que
+    // sacarlo, así que se toma del body -- con el riesgo ya conocido de que
+    // el cliente puede mandar cualquier tenantId (el service role no
+    // respeta RLS). Sin login no hay forma de evitar esto del todo.
+    const tenantId = user?.id || tenantIdBody || null;
 
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "imageUrl es requerido" }), {

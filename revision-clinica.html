@@ -163,13 +163,14 @@
 </style>
 </head>
 <body>
-  <!-- ══ LOGIN OBLIGATORIO — mismo Supabase Auth que simulacion.html/app.html ══
-       Visible por defecto; checkLoginClinica() lo oculta solo si confirma una
-       sesión válida. Sin esto, cualquiera con la URL podía abrir y editar
-       cualquier caso -- las políticas RLS de camila_casos ahora también
-       exigen un usuario autenticado, así que sin login ninguna llamada real
-       a la base de datos funcionaría de todas formas. -->
-  <div class="config-overlay" id="loginOverlay" style="display:flex;z-index:300">
+  <!-- ══ LOGIN OPCIONAL — mismo Supabase Auth que simulacion.html/app.html ══
+       Por pedido explícito, el login YA NO es obligatorio: si no inicias
+       sesión, la app funciona igual con acceso anónimo (RLS abierta con
+       `using(true)` y las Edge Functions aceptando la publishable key sin
+       sesión). Cualquiera con esta URL puede leer/escribir cualquier caso.
+       Los botones de "Iniciar sesión" se conservan por si quieres volver a
+       identificarte como un dentista específico. -->
+  <div class="config-overlay" id="loginOverlay" style="z-index:300">
     <div class="config-modal" style="max-width:360px">
       <h3>Iniciar sesión</h3>
       <p class="hint-top">Con el mismo correo y contraseña de tu panel SMYLE.</p>
@@ -248,6 +249,7 @@
         <div class="header-side header-actions">
           <span id="fotoStatus" style="font-size:11px;color:var(--text-faint);align-self:center;margin-right:6px">Sube una foto para empezar</span>
           <button class="link-btn" onclick="cerrarSesionClinica()" title="Cerrar sesión">⏻</button>
+          <button class="link-btn" id="btnAbrirLogin" onclick="abrirLoginOverlay()" title="Iniciar sesión">👤</button>
           <button class="link-btn" onclick="abrirConfig()" title="Configuración técnica">⚙</button>
         </div>
       </header>
@@ -1895,11 +1897,23 @@ function cerrarSesionClinica(){
   location.reload();
 }
 
+function abrirLoginOverlay(){
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+function cerrarLoginOverlay(){
+  document.getElementById('loginOverlay').style.display = 'none';
+}
+document.getElementById('loginOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'loginOverlay') cerrarLoginOverlay(); // clic fuera de la tarjeta = cerrar
+});
+
 function _entrarSesionClinica(user, session){
   userToken = session.access_token;
   tenantIdSesion = user.id;
   document.getElementById('tenantId').value = user.id;
-  document.getElementById('loginOverlay').style.display = 'none';
+  cerrarLoginOverlay();
+  const btnLogin = document.getElementById('btnAbrirLogin');
+  if (btnLogin) btnLogin.title = 'Sesión iniciada: ' + user.email;
   autoCargarCasoDesdeUrl();
 }
 
@@ -1929,14 +1943,18 @@ async function iniciarSesionClinica(){
   }
 }
 
+// El login quedó opcional (se quitó el bloqueo obligatorio): si hay una
+// sesión ya iniciada, se aprovecha (userToken/tenantId quedan listos); si
+// no, la app arranca igual usando la publishable key directo (DB_KEY /
+// anonKey), como antes de agregar el login.
 (function checkLoginClinica(){
-  if (!sbAuth) return;
+  if (!sbAuth) { autoCargarCasoDesdeUrl(); return; }
   sbAuth.auth.getSession().then(res => {
     const session = res.data && res.data.session;
     const user = session && session.user;
     if (user) _entrarSesionClinica(user, session);
-    // si no hay sesión, el overlay de login ya está visible por defecto
-  }).catch(() => {});
+    else autoCargarCasoDesdeUrl();
+  }).catch(() => { autoCargarCasoDesdeUrl(); });
 })();
 
 async function subirFotoLocal(file){

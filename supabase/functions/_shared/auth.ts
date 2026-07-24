@@ -1,15 +1,13 @@
 // Verificación de sesión para las Edge Functions que gastan dinero real
 // (Anthropic, Gemini, Replicate).
 //
-// Antes de esto, `claude` y `segment-teeth` respondían a cualquier POST sin
-// ningún header: un `curl` a pelo contra la URL --- que está publicada en un
-// repo público --- ejecutaba prompts arbitrarios de Opus contra la cuenta de
-// Anthropic del proyecto. Lo mismo con Gemini y con Replicate.
-//
-// La regla ahora es: hay que mandar el JWT de una sesión real de Supabase Auth
-// (el `access_token` que devuelve signInWithPassword), NO la publishable key.
-// La publishable key es pública por diseño --- vive en el HTML del cliente ---
-// así que aceptarla como credencial equivale a no pedir nada.
+// Preferentemente hay que mandar el JWT de una sesión real de Supabase Auth
+// (el `access_token` que devuelve signInWithPassword). Por pedido explícito
+// se volvió a aceptar también la publishable key sin sesión -- ACEPTAR ESTO
+// SIGNIFICA QUE CUALQUIERA CON LA URL PUBLICADA PUEDE GASTAR LOS CRÉDITOS DE
+// ANTHROPIC/GEMINI/REPLICATE DE ESTE PROYECTO, sin pasar por el login del
+// cliente (un `curl` a pelo funciona igual). Si se quiere volver a cerrar,
+// basta con quitar el bloque "acepta la publishable key" de abajo.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -38,17 +36,15 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   });
 
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  if (!jwt) return deny('No autenticado: falta el header Authorization con el token de sesión.');
+  if (!jwt) return deny('No autenticado: falta el header Authorization.');
 
-  // Las publishable/anon keys no son JWTs de usuario. Las nuevas (sb_publishable_...)
-  // ni siquiera tienen forma de JWT; las viejas sí, pero traen role=anon. Rechazamos
-  // ambas explícitamente para que el error diga qué hacer en vez de un 401 opaco.
-  if (jwt.startsWith('sb_publishable_') || jwt.startsWith('sb_secret_')) {
-    return deny('No autenticado: mandaste la publishable key, no el token de sesión. Usa session.access_token.');
-  }
+  // Intenta resolver una sesión real. Si el token no es una sesión válida
+  // (p. ej. es la publishable key, o una key de otro proyecto), YA NO se
+  // rechaza la llamada -- se deja pasar como acceso anónimo (user: null).
+  // El caller debe manejar ese caso (p. ej. tomar tenantId del body en vez
+  // de la sesión, como hace segment-teeth).
+  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: null }));
+  if (data?.user) return { user: { id: data.user.id, email: data.user.email }, response: null };
 
-  const { data, error } = await admin.auth.getUser(jwt);
-  if (error || !data?.user) return deny('Sesión inválida o expirada. Vuelve a iniciar sesión.');
-
-  return { user: { id: data.user.id, email: data.user.email }, response: null };
+  return { user: null, response: null };
 }

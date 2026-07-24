@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    console.log("Llamada de:", user!.id);
+    console.log("Llamada de:", user?.id || "(sin sesión / acceso anónimo)");
     console.log("Body keys:", Object.keys(body).join(", "));
 
     // ── GENERAR IMAGEN CON GEMINI ──────────────────────────────────────────
