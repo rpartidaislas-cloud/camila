@@ -3358,6 +3358,30 @@ function dl() {
   a.click();
 }
 
+// Salta la vista actual sin tomar foto -- no todas las vistas son
+// obligatorias para el paciente (perfil, 3/4, intraoral, extraoral son
+// opcionales; el resto del código ya tolera que falten, ver processPhotos/
+// analyzeWithClaude/guardarCaso, que iteran sobre S.photos en vez de asumir
+// una posición fija). La frontal SÍ es obligatoria: S.result/S.baVistaActual
+// dependen directamente de S.results.frontal para mostrar el resultado final.
+function saltarFoto() {
+  var view = VIEWS[S.currentPhoto];
+  if (!view || view.id === 'frontal') return; // el botón debería estar oculto en este paso, por si acaso
+
+  S.currentPhoto++;
+  saveProgress('s-cam-native');
+
+  if (S.currentPhoto < VIEWS.length) {
+    updateNativeCameraUI();
+    var p = document.getElementById('native-preview');
+    if (p) p.style.display = 'none';
+    var ic = document.getElementById('native-cam-icon');
+    if (ic) ic.style.display = 'flex';
+  } else {
+    processPhotos();
+  }
+}
+
 function onNativePhoto(input) {
   if (!input.files || !input.files[0]) return;
   var reader = new FileReader();
@@ -3489,6 +3513,11 @@ function updateNativeCameraUI() {
   // Guía SVG de encuadre/distancia para esta vista
   var guideWrap = document.getElementById('native-guide-svg');
   if (guideWrap) guideWrap.innerHTML = viewGuideSVG(view.svg);
+
+  // "Saltar esta foto" no aplica a la frontal -- el resto del flujo la
+  // necesita sí o sí (análisis facial + simulación final mostrada).
+  var skipBtn = document.getElementById('native-skip-btn');
+  if (skipBtn) skipBtn.style.display = view.id === 'frontal' ? 'none' : '';
 
   // Progress
   buildNativeProgressDots();
@@ -3726,6 +3755,14 @@ function openInSafari() {
       O seleccionar de galería
       <input type="file" accept="image/*" style="position:absolute;opacity:0;pointer-events:none" onchange="onNativePhoto(this)">
     </label>
+
+    <!-- Saltar esta foto -- la frontal no se puede saltar (el resto del
+         flujo depende de que exista: el análisis facial y la simulación
+         final que se muestra usan S.results.frontal directamente). -->
+    <button type="button" class="native-gallery-link" id="native-skip-btn" onclick="saltarFoto()" style="background:none;border:none;cursor:pointer">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      Saltar esta foto
+    </button>
 
   </div>
 
