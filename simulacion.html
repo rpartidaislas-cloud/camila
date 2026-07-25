@@ -385,6 +385,64 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 /* Flash */
 #flash{position:fixed;inset:0;background:#fff;z-index:200;pointer-events:none;opacity:0;transition:opacity 60ms}
 #flash.on{opacity:1}
+
+/* Carrusel de tonos VITA — fotos reales de las muestras físicas */
+.vita-carousel{display:flex;gap:12px;overflow-x:auto;padding:8px calc(50% - 46px) 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.vita-carousel::-webkit-scrollbar{display:none}
+.vita-card{flex:0 0 92px;scroll-snap-align:center;flex-direction:column;align-items:center;gap:8px;padding:14px 8px 12px;position:relative;transition:transform 320ms cubic-bezier(.34,1.56,.64,1),box-shadow 320ms ease,border-color 320ms ease,background 320ms ease}
+.vita-card.selected::after{display:none} /* el checkmark del q-option-single normal no aplica aquí — el brillo ya indica selección */
+.vita-card-img{width:56px;height:84px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));transition:filter 320ms ease}
+.vita-card-lbl{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.3px;transition:color 320ms ease}
+@keyframes vitaGlowPulse{
+  0%{box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 0 rgba(124,106,247,0)}
+  45%{box-shadow:0 0 0 1px rgba(124,106,247,.65),0 8px 26px rgba(124,106,247,.6),0 0 46px rgba(124,106,247,.55)}
+  100%{box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 28px rgba(124,106,247,.35)}
+}
+.vita-card.selected{
+  transform:scale(1.1) translateY(-5px);
+  background:radial-gradient(circle at 50% 28%,rgba(124,106,247,.35),rgba(91,71,224,.1));
+  border-color:#7c6af7;
+  animation:vitaGlowPulse 550ms ease-out;
+  box-shadow:0 0 0 1px rgba(124,106,247,.4),0 8px 24px rgba(124,106,247,.4),0 0 28px rgba(124,106,247,.35);
+}
+.vita-card.selected .vita-card-img{filter:drop-shadow(0 4px 16px rgba(124,106,247,.75)) brightness(1.15) saturate(1.1)}
+.vita-card.selected .vita-card-lbl{color:#fff}
+
+/* ══ GUÍA VITA PREVIA A LA SIMULACIÓN ══ */
+.vita-screen{background:#080a0b;overflow-y:auto;padding:0 18px 32px}
+.vita-shell{width:min(960px,100%);margin:auto;min-height:100%;display:flex;flex-direction:column}
+.vita-head{position:relative;padding:28px 0 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,.07)}.vita-head img{position:absolute;left:0;top:28px;width:78px;height:auto}
+.vita-head h2{margin:0;color:#fff;font-size:24px;font-weight:600;letter-spacing:-.03em}
+.vita-head p{margin:7px 0 0;color:rgba(255,255,255,.48);font-size:13px}
+.vita-guide-card{margin:24px 0 16px;padding:22px 18px 18px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:linear-gradient(145deg,#121516,#0c0e0f);box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.vita-tabs-sim{display:flex;gap:8px;margin-bottom:22px}.vita-tab-sim{padding:9px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:#0a0c0d;color:rgba(255,255,255,.48);font-size:11px}.vita-tab-sim.active{border-color:rgba(104,78,240,.7);background:rgba(75,42,192,.18);color:#fff}
+.vita-shades-sim{display:flex;gap:14px;overflow-x:auto;padding:18px 8px 22px;scroll-snap-type:x proximity;scrollbar-width:thin;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.vita-stick{position:relative;flex:0 0 108px;display:flex;flex-direction:column;align-items:center;cursor:pointer;scroll-snap-align:center;padding:10px 5px;border:1px solid transparent;border-radius:18px;background:transparent;color:inherit;font-family:Inter,sans-serif;transition:transform .22s ease,border-color .22s ease,background .22s ease,opacity .22s ease}
+.vita-stick:hover{transform:translateY(-2px);background:rgba(255,255,255,.022)}.vita-stick.selected{transform:translateY(-4px) scale(1.06);border-color:rgba(95,111,255,.85);background:linear-gradient(180deg,rgba(68,95,230,.14),rgba(91,44,190,.06));box-shadow:0 0 30px rgba(82,89,240,.18)}
+.vita-stick.selected::before{content:'';position:absolute;z-index:0;left:9px;right:9px;top:-21px;height:72px;background:radial-gradient(ellipse at 50% 0,rgba(255,252,221,.58),rgba(151,170,255,.16) 38%,transparent 72%);filter:blur(5px);pointer-events:none}
+.vita-crown{position:relative;z-index:2;width:52px;height:72px;overflow:hidden;clip-path:polygon(31% 0,69% 0,83% 3%,91% 10%,95% 25%,97% 65%,91% 84%,79% 95%,63% 100%,37% 100%,21% 95%,9% 84%,3% 65%,5% 25%,9% 10%,17% 3%);clip-path:path('M16 0 C10 1 6 7 5 18 C3 34 2 49 6 59 C10 68 17 72 26 72 C35 72 42 68 46 59 C50 49 49 34 47 18 C46 7 42 1 36 0 Z');background:radial-gradient(ellipse at 30% 15%,rgba(255,255,255,.97) 0 2%,rgba(255,255,255,.54) 5%,rgba(255,255,255,.09) 18%,transparent 29%),radial-gradient(ellipse at 51% 43%,rgba(255,255,255,.17),transparent 56%),linear-gradient(90deg,rgba(74,45,20,.13),transparent 17%,rgba(255,255,255,.1) 35%,rgba(255,255,255,.23) 51%,rgba(255,255,255,.07) 66%,transparent 82%,rgba(65,39,18,.15)),linear-gradient(180deg,var(--shade-hi) 0%,var(--shade) 58%,var(--shade) 80%,var(--shade-lo) 100%);border-radius:48% 48% 38% 38%/22% 22% 25% 25%;filter:drop-shadow(0 9px 8px rgba(0,0,0,.48));box-shadow:inset 0 1px 1px rgba(255,255,255,.72),inset 4px 0 7px rgba(255,255,255,.08),inset -4px 0 7px rgba(58,34,16,.08)}
+.vita-crown::before{content:'';position:absolute;z-index:2;top:7%;left:22%;width:10%;height:58%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,.16) 65%,transparent);filter:blur(.5px);transform:rotate(2deg);opacity:.82}
+.vita-crown::after{content:'';position:absolute;z-index:1;left:7%;right:7%;bottom:0;height:17%;border-top:1px solid rgba(255,255,255,.15);background:linear-gradient(180deg,rgba(222,238,240,.03),rgba(227,243,244,.27));border-radius:50% 50% 28% 28%;box-shadow:inset 0 -1px 2px rgba(255,255,255,.14)}
+.vita-crown i{position:absolute;z-index:1;inset:8% 12% 15%;display:block;border-radius:48%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06) 45%,rgba(255,255,255,.11) 52%,transparent 70%);box-shadow:inset 1px 0 rgba(255,255,255,.06),inset -1px 0 rgba(65,39,18,.05)}
+.vita-stick.selected .vita-crown{filter:brightness(1.08) drop-shadow(0 -7px 11px rgba(255,251,218,.55)) drop-shadow(0 10px 9px rgba(0,0,0,.5));box-shadow:inset 0 2px 3px rgba(255,255,255,.92),inset 5px 0 9px rgba(255,255,255,.13),inset -5px 0 9px rgba(55,32,15,.07)}
+.vita-stick.selected .vita-crown::before{opacity:1;background:linear-gradient(180deg,rgba(255,255,255,1),rgba(255,255,255,.31) 58%,transparent);box-shadow:0 0 8px rgba(255,248,211,.3)}
+.vita-photo{position:relative;z-index:2;display:block;width:98px;height:196px;filter:drop-shadow(0 9px 9px rgba(0,0,0,.5));transition:filter .2s ease,transform .2s ease}
+.vita-photo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;pointer-events:none;user-select:none}
+.vita-stick.selected .vita-photo{filter:brightness(1.12) drop-shadow(0 -9px 13px rgba(255,251,221,.66)) drop-shadow(0 10px 10px rgba(0,0,0,.55))}
+.vita-stick.selected .vita-photo::after{content:'';position:absolute;inset:-3px;border-radius:24px;box-shadow:inset 0 0 14px rgba(255,255,255,.34);pointer-events:none}
+.vita-stem{width:10px;height:35px;margin-top:-1px;background:linear-gradient(90deg,#707477,#e7e8e8 46%,#85898c);clip-path:polygon(30% 0,70% 0,100% 100%,0 100%)}
+.vita-handle{width:38px;height:38px;margin-top:-2px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#303338,#080a0b 62%);border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 15px rgba(0,0,0,.48);font-size:8px;font-weight:700}.vita-handle b{background:linear-gradient(90deg,#12c6f3,#9228ee);background-clip:text;-webkit-background-clip:text;color:transparent}.vita-stick>strong{position:relative;z-index:4;display:flex;align-items:center;justify-content:center;min-width:34px;height:23px;margin-top:8px;padding:0 7px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:#080a0b;color:rgba(255,255,255,.78);font-size:11px;font-weight:750;line-height:1;letter-spacing:.2px;box-shadow:0 4px 10px rgba(0,0,0,.28)}.vita-stick.selected>strong{border-color:rgba(102,114,255,.72);background:linear-gradient(135deg,rgba(43,106,227,.28),rgba(116,43,219,.25));color:#fff;text-shadow:0 0 10px rgba(255,255,255,.45);box-shadow:0 0 13px rgba(89,88,239,.35)}
+.vita-selected-card{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-selected-swatch{position:relative;flex:0 0 44px;height:56px;overflow:hidden;clip-path:polygon(26% 1%,74% 1%,88% 6%,95% 18%,98% 67%,91% 88%,76% 97%,61% 100%,39% 100%,24% 97%,9% 88%,2% 67%,5% 18%,12% 6%);clip-path:path('M13 0 C8 1 5 6 4 14 C2 27 2 38 5 46 C8 53 14 56 22 56 C30 56 36 53 39 46 C42 38 42 27 40 14 C39 6 36 1 31 0 Z');background:radial-gradient(ellipse at 31% 17%,rgba(255,255,255,.98) 0 4%,rgba(255,255,255,.44) 7%,transparent 27%),linear-gradient(90deg,rgba(80,50,25,.13),transparent 20%,rgba(255,255,255,.22) 50%,transparent 80%,rgba(70,42,20,.15)),linear-gradient(180deg,var(--shade-hi),var(--shade) 64%,var(--shade-lo));border-radius:48% 48% 38% 38%/22% 22% 25% 25%;filter:drop-shadow(0 5px 7px rgba(0,0,0,.5))}.vita-selected-swatch::after{content:'';position:absolute;left:9%;right:9%;bottom:0;height:17%;border-top:1px solid rgba(255,255,255,.22);background:linear-gradient(transparent,rgba(225,243,245,.3));border-radius:50%}.vita-selected-info{display:flex;flex:1;min-width:0;flex-direction:column}.vita-selected-code{font-size:22px;color:#fff;font-weight:650}.vita-selected-copy{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}.vita-confirm{height:52px;min-width:210px;padding:0 24px;border:0;border-radius:11px;background:linear-gradient(100deg,#2576f3,#8427ed);color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 25px rgba(76,53,220,.28)}.vita-note{text-align:center;color:rgba(255,255,255,.34);font-size:10.5px;line-height:1.5;margin:12px 10px 0}
+.vita-current-btn{width:100%;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0a0c0d;color:rgba(255,255,255,.7);font:600 12px Inter,sans-serif;cursor:pointer;margin-bottom:14px}.vita-current-btn.active{border-color:#5b7cff;background:rgba(63,85,220,.15);color:#fff;box-shadow:0 0 18px rgba(69,84,224,.14)}
+.vita-compare{display:flex;align-items:center;gap:7px;margin-top:7px;color:rgba(255,255,255,.42);font-size:10px}.vita-mini{width:14px;height:18px;border-radius:6px 6px 5px 5px;border:1px solid rgba(255,255,255,.16)}
+.vita-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}.vita-option-card{padding:14px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-option-card label{display:block;margin-bottom:9px;color:rgba(255,255,255,.55);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}.vita-segments{display:flex;gap:5px}.vita-segment{flex:1;min-height:34px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:#090b0c;color:rgba(255,255,255,.5);font:600 10px Inter,sans-serif;cursor:pointer}.vita-segment.active{border-color:#6472ef;background:rgba(71,67,200,.18);color:#fff}
+.vita-lighting{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-bottom:16px;border-radius:12px;background:rgba(31,105,175,.09);border:1px solid rgba(74,155,229,.18);color:rgba(255,255,255,.55);font-size:11px;line-height:1.5}.vita-lighting b{color:#dbeafe}.vita-status{display:block;margin-top:7px;color:#8ee6b4;font-size:10px;font-weight:600}.res-vita-btn{height:32px;padding:0 10px;border-radius:9px;border:1px solid rgba(114,101,240,.35);background:rgba(83,61,209,.12);color:#d9d3ff;font:600 10.5px Inter,sans-serif;cursor:pointer}
+.vita-preview{display:grid;grid-template-columns:170px 1fr;align-items:center;gap:22px;margin-bottom:16px;padding:18px;border-radius:15px;background:radial-gradient(circle at 20% 0,rgba(91,89,214,.12),transparent 38%),#101314;border:1px solid rgba(255,255,255,.08)}.vita-preview-stage{position:relative;height:150px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:radial-gradient(ellipse at 50% 15%,rgba(255,255,255,.12),transparent 48%),#090b0c;overflow:hidden}.vita-preview-stage::before{content:'';position:absolute;top:-35px;width:110px;height:105px;background:radial-gradient(ellipse at 50% 0,rgba(255,253,226,.45),rgba(143,160,255,.12) 42%,transparent 72%);filter:blur(7px)}.vita-preview-tooth{position:relative;width:76px;height:106px;overflow:hidden;clip-path:path('M23 0 C14 1 8 10 7 26 C4 50 3 72 9 87 C15 100 25 106 38 106 C51 106 61 100 67 87 C73 72 72 50 69 26 C68 10 62 1 53 0 Z');border-radius:48% 48% 38% 38%/22% 22% 25% 25%;background:radial-gradient(ellipse at 29% 14%,rgba(255,255,255,.95) 0 3%,rgba(255,255,255,.43) 7%,transparent 27%),linear-gradient(90deg,rgba(66,38,16,.12),transparent 18%,rgba(255,255,255,.2) 49%,transparent 82%,rgba(58,32,14,.15)),linear-gradient(180deg,var(--shade-hi),var(--shade) 64%,var(--shade-lo));filter:drop-shadow(0 12px 12px rgba(0,0,0,.52));transition:filter .2s ease,background .2s ease}.vita-preview-tooth::before{content:'';position:absolute;top:8%;left:21%;width:11%;height:60%;border-radius:50%;background:linear-gradient(rgba(255,255,255,.92),rgba(255,255,255,.15),transparent);filter:blur(.6px)}.vita-preview-tooth::after{content:'';position:absolute;left:6%;right:6%;bottom:0;height:19%;background:linear-gradient(transparent,rgba(220,241,245,.28));border-top:1px solid rgba(255,255,255,.17);border-radius:50%}.vita-preview[data-finish="translucent"] .vita-preview-tooth::after{height:28%;background:linear-gradient(transparent,rgba(207,237,244,.48));box-shadow:inset 0 -5px 10px rgba(185,224,235,.16)}.vita-preview[data-finish="luminous"] .vita-preview-tooth{filter:brightness(1.12) drop-shadow(0 -7px 12px rgba(255,252,222,.5)) drop-shadow(0 12px 12px rgba(0,0,0,.5))}.vita-preview[data-finish="luminous"] .vita-preview-tooth::before{width:15%;background:linear-gradient(#fff,rgba(255,255,255,.3),transparent);box-shadow:0 0 10px rgba(255,250,220,.28)}.vita-preview[data-intensity="subtle"] .vita-preview-tooth{opacity:.86;filter:saturate(.82) brightness(.97) drop-shadow(0 10px 10px rgba(0,0,0,.5))}.vita-preview[data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.1) contrast(1.04) brightness(1.07) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview[data-finish="luminous"][data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.08) brightness(1.16) drop-shadow(0 -7px 13px rgba(255,252,222,.55)) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview-info h3{margin:0 0 5px;color:#fff;font-size:15px}.vita-preview-info p{margin:0;color:rgba(255,255,255,.48);font-size:11px;line-height:1.5}.vita-preview-tags{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}.vita-preview-tag{padding:5px 8px;border-radius:99px;background:rgba(96,85,220,.12);border:1px solid rgba(111,99,235,.2);color:#cfc9ff;font-size:9.5px;font-weight:600}.vita-preview-warning{color:rgba(255,255,255,.3)!important;font-size:9.5px!important}
+@media(max-width:1024px){.vita-guide-card{overflow:hidden}.vita-shades-sim{gap:18px;margin-inline:-18px;padding:28px calc(50% - 54px) 28px;scroll-snap-type:x mandatory;scrollbar-width:none}.vita-shades-sim::-webkit-scrollbar{display:none}.vita-stick{flex-basis:108px;opacity:.48}.vita-stick.selected{opacity:1;transform:scale(1.07)}.vita-stick.selected::after{content:'';position:absolute;left:19px;right:19px;bottom:-8px;height:2px;border-radius:2px;background:linear-gradient(90deg,#16bdf5,#7d36f2);box-shadow:0 0 9px #5078fa}}
+@media(max-width:620px){.vita-head{padding-top:22px}.vita-head img{position:static;width:68px;margin:0 auto 14px}.vita-head h2{font-size:20px}.vita-guide-card{padding-inline:10px}.vita-selected-card{align-items:stretch;flex-direction:column}.vita-selected-swatch{position:absolute}.vita-selected-info{padding-left:58px;min-height:56px;justify-content:center}.vita-confirm{width:100%}.vita-options{grid-template-columns:1fr}.vita-preview{grid-template-columns:125px 1fr;gap:14px;padding:12px}.vita-preview-stage{height:130px}.vita-preview-tooth{transform:scale(.82)}.res-vita-btn{height:30px;padding-inline:8px}}
+@media(max-width:620px){#s-res .res-header{gap:7px;padding-inline:10px}#s-res .res-header>div:last-child{gap:5px!important;min-width:0;overflow-x:auto;scrollbar-width:none}.redo-btn{height:30px;padding:0 8px;font-size:10px;white-space:nowrap}.res-logo{flex:0 0 auto}}
+@media(orientation:landscape) and (max-height:700px){#s-vita{overflow-y:auto}.vita-head{padding-top:10px}.vita-head img{width:72px}.vita-head h2{font-size:19px}.vita-guide-card{margin-top:12px;padding-top:12px}.vita-shades-sim{padding-top:14px;padding-bottom:14px}.vita-photo{width:86px;height:172px}.vita-stick{flex-basis:96px}.vita-options{margin-bottom:10px}.vita-preview{grid-template-columns:120px 1fr;margin-bottom:10px;padding:10px}.vita-preview-stage{height:112px}.vita-preview-tooth{transform:scale(.72)}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -452,7 +510,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
     </div>
   </div>
 
-  <button class="btn-start" onclick="startCam()">
+  <button class="btn-start" onclick="comenzarFlujoSimulacion()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     Comenzar simulación
   </button>
@@ -534,6 +592,68 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   </div>
 </div>
 
+
+<div class="screen vita-screen" id="s-vita">
+  <div class="vita-shell">
+    <div class="vita-head">
+      <img src="icons/smyl_logo.png" alt="SMYL">
+      <div>
+        <h2>Guía de color VITA</h2>
+        <p>Elige el tono que usará la IA antes de generar la simulación</p>
+      </div>
+    </div>
+    <div class="vita-guide-card">
+      <div class="vita-tabs-sim" aria-label="Sistema de color">
+        <span class="vita-tab-sim active">VITA Classical</span>
+      </div>
+      <button class="vita-current-btn" id="vita-current-btn" type="button" onclick="seleccionarTonoActual()">Igualar el tono actual de mis dientes</button>
+      <div class="vita-shades-sim" id="vita-shades-sim" aria-label="Tonos VITA Classical"></div>
+    </div>
+    <div class="vita-options">
+      <div class="vita-option-card">
+        <label>Acabado del esmalte</label>
+        <div class="vita-segments" id="vita-finish-options">
+          <button class="vita-segment active" type="button" data-value="natural" onclick="setVitaOption('finish','natural',this)">Natural</button>
+          <button class="vita-segment" type="button" data-value="translucent" onclick="setVitaOption('finish','translucent',this)">Translúcido</button>
+          <button class="vita-segment" type="button" data-value="luminous" onclick="setVitaOption('finish','luminous',this)">Luminoso</button>
+        </div>
+      </div>
+      <div class="vita-option-card">
+        <label>Intensidad del cambio</label>
+        <div class="vita-segments" id="vita-intensity-options">
+          <button class="vita-segment" type="button" data-value="subtle" onclick="setVitaOption('intensity','subtle',this)">Sutil</button>
+          <button class="vita-segment active" type="button" data-value="balanced" onclick="setVitaOption('intensity','balanced',this)">Equilibrado</button>
+          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Notable</button>
+        </div>
+      </div>
+    </div>
+    <div class="vita-preview" id="vita-live-preview" data-finish="natural" data-intensity="balanced">
+      <div class="vita-preview-stage"><div class="vita-preview-tooth" id="vita-preview-tooth"></div></div>
+      <div class="vita-preview-info">
+        <h3>Vista previa ilustrativa</h3>
+        <p id="vita-preview-title">VITA A1 con acabado natural</p>
+        <div class="vita-preview-tags">
+          <span class="vita-preview-tag" id="vita-preview-finish">Natural</span>
+          <span class="vita-preview-tag" id="vita-preview-intensity">Cambio equilibrado</span>
+          <span class="vita-preview-tag" id="vita-preview-lightness">Claro</span>
+        </div>
+        <p class="vita-preview-warning">Representa color y material. El resultado sobre el paciente dependerá de su fotografía e iluminación.</p>
+      </div>
+    </div>
+    <div class="vita-lighting"><span>💡</span><div><b>Para comparar mejor el tono:</b> usa luz blanca frontal, evita filtros y no apuntes el flash directamente a los dientes.</div></div>
+    <div class="vita-selected-card">
+      <div class="vita-selected-swatch" id="vita-selected-swatch"><span></span></div>
+      <div class="vita-selected-info">
+        <strong class="vita-selected-code" id="vita-selected-code">VITA A1</strong>
+        <span class="vita-selected-copy" id="vita-selected-copy">Marfil claro, natural y ligeramente cálido</span>
+        <span class="vita-compare" id="vita-compare"></span>
+        <span class="vita-status" id="vita-status">Simulación configurada en VITA A1</span>
+      </div>
+      <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Usar este tono y tomar fotos</button>
+    </div>
+    <p class="vita-note">La IA recibirá el código VITA y sus características ópticas. El resultado conserva translucidez, brillo de esmalte y variaciones naturales.</p>
+  </div>
+</div>
 
 <!-- ══ CÁMARA ══ -->
 <div class="screen" id="s-cam">
@@ -619,6 +739,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   <div class="res-header">
     <div class="res-logo"><img src="icons/smyl_logo.png" alt="SMYLE" style="height:18px;width:auto;display:block"></div>
     <div style="display:flex;gap:8px">
+      <button class="res-vita-btn" id="res-vita-btn" onclick="abrirGuiaVitaDesdeResultado()">Tono VITA A1 · Cambiar</button>
       <button class="redo-btn" id="btn-regenerar" onclick="regenerarSimulacion()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
         Generar de nuevo
@@ -1262,6 +1383,13 @@ var S = {
   precios: null,
   editorParams: null,
   casoId: null, // id compartido entre localStorage y Supabase -- se fija en el primer guardado y se reutiliza (ver guardarCaso/abrirRevisionClinica) para no crear filas duplicadas
+  // Guía VITA: tono elegido antes de tomar las fotos (o cambiado después
+  // desde el resultado) -- se usa para armar el prompt de Gemini.
+  vitaTone: null,
+  vitaMode: 'vita', // 'vita' (tono de la guía) | 'current' (igual al tono real del paciente)
+  vitaFinish: 'natural',
+  vitaIntensity: 'balanced',
+  vitaReturnToResult: false,
 };
 
 // facing: cámara por default para esa foto — 'user' (frontal) para las 3
@@ -1448,6 +1576,270 @@ function getPrecio(id) {
 }
 
 // ══ CAMERA ══
+// ══ GUÍA VITA CLASSICAL ══
+// Ordenado por luminosidad clínica para que la comparación visual sea más
+// intuitiva. Los colores son una representación de pantalla; el código VITA
+// exacto también se envía al modelo para dirigir la simulación.
+var VITA_CLASSICAL = [
+  {code:'B1',L:81.8,a:0.5,b:16.0,asset:'icons/vita/vita-b1-photo.png',copy:'El tono natural más luminoso, marfil neutro'},
+  {code:'A1',L:80.1,a:1.5,b:18.0,asset:'icons/vita/vita-a1-photo.png',copy:'Marfil claro, natural y ligeramente cálido'},
+  {code:'B2',L:79.2,a:1.0,b:19.0,asset:'icons/vita/vita-b2-photo.png',copy:'Claro con calidez amarilla suave'},
+  {code:'D2',L:78.4,a:1.2,b:15.5,asset:'icons/vita/vita-d2-photo.png',copy:'Claro con matiz cálido rojizo muy sutil'},
+  {code:'A2',L:77.6,a:2.0,b:20.5,asset:'icons/vita/vita-a2-photo.png',copy:'Marfil medio-claro de apariencia natural'},
+  {code:'C1',L:76.6,a:0.0,b:11.5,asset:'icons/vita/vita-c1-photo.png',copy:'Claro, neutro y ligeramente grisáceo'},
+  {code:'C2',L:75.6,a:0.3,b:13.5,asset:'icons/vita/vita-c2-photo.png',copy:'Neutro medio con baja saturación'},
+  {code:'D4',L:74.7,a:2.0,b:20.5,asset:'icons/vita/vita-d4-photo.png',copy:'Marfil medio con matiz rojizo discreto'},
+  {code:'A3',L:73.9,a:2.5,b:23.0,asset:'icons/vita/vita-a3-photo.png',copy:'Tono cálido medio de dentina natural'},
+  {code:'D3',L:72.3,a:1.6,b:18.0,asset:'icons/vita/vita-d3-photo.png',copy:'Medio cálido rojizo y moderado'},
+  {code:'B3',L:70.8,a:1.5,b:22.5,asset:'icons/vita/vita-b3-photo.png',copy:'Medio cálido con componente amarillo'},
+  {code:'B4',L:68.0,a:2.0,b:25.5,asset:'icons/vita/vita-b4-photo.png',copy:'Cálido profundo con matiz amarillo'},
+  {code:'C3',L:67.0,a:0.7,b:16.0,asset:'icons/vita/vita-c3-photo.png',copy:'Profundo, neutro y suavemente gris'},
+  {code:'A4',L:66.4,a:3.0,b:26.5,asset:'icons/vita/vita-a4-photo.png',copy:'El tono A de mayor calidez y croma'}
+];
+
+function vitaLabPantallaSim(ref) {
+  return {L:Math.max(0,Math.min(100,82+(ref.L-69.3)*0.75)),a:ref.a*0.86,b:ref.b*0.78};
+}
+
+function labARgbSim(L,a,b) {
+  var fy=(L+16)/116,fx=fy+a/500,fz=fy-b/200;
+  function finv(t){return t*t*t>0.008856?t*t*t:(t-16/116)/7.787;}
+  var xn=finv(fx)*0.95047,yn=finv(fy),zn=finv(fz)*1.08883;
+  var r=xn*3.2404542+yn*-1.5371385+zn*-0.4985314;
+  var g=xn*-0.969266+yn*1.8760108+zn*0.041556;
+  var bl=xn*0.0556434+yn*-0.2040259+zn*1.0572252;
+  function srgb(c){c=c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055;return Math.max(0,Math.min(255,Math.round(c*255)));}
+  return {r:srgb(r),g:srgb(g),b:srgb(bl)};
+}
+
+VITA_CLASSICAL.forEach(function(shade) {
+  var ref=vitaLabPantallaSim(shade),rgb=labARgbSim(ref.L,ref.a,ref.b);
+  var hi={r:Math.min(255,rgb.r+24),g:Math.min(255,rgb.g+22),b:Math.min(255,rgb.b+18)};
+  var lo={r:Math.max(0,rgb.r-25),g:Math.max(0,rgb.g-23),b:Math.max(0,rgb.b-20)};
+  shade.color='rgb('+rgb.r+','+rgb.g+','+rgb.b+')';
+  shade.hi='rgb('+hi.r+','+hi.g+','+hi.b+')';
+  shade.lo='rgb('+lo.r+','+lo.g+','+lo.b+')';
+});
+
+function renderGuiaVita() {
+  var wrap = document.getElementById('vita-shades-sim');
+  if (!wrap) return;
+  if (S.vitaMode !== 'current' && !VITA_CLASSICAL.some(function(shade) { return shade.code === S.vitaTone; })) {
+    S.vitaTone = 'A1';
+  }
+  wrap.innerHTML = '';
+  VITA_CLASSICAL.forEach(function(shade) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    var isSelected = S.vitaMode !== 'current' && shade.code === S.vitaTone;
+    btn.className = 'vita-stick' + (isSelected ? ' selected' : '');
+    btn.dataset.vitaCode = shade.code;
+    btn.setAttribute('aria-label', 'Seleccionar tono VITA ' + shade.code);
+    btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    btn.style.setProperty('--shade', shade.color);
+    btn.style.setProperty('--shade-hi', shade.hi);
+    btn.style.setProperty('--shade-lo', shade.lo);
+    btn.innerHTML = '<span class="vita-photo"><img src="' + shade.asset + '" alt="Muestra VITA ' + shade.code + '" draggable="false"></span>';
+    btn.onclick = function() { seleccionarTonoVita(shade.code, true, true); };
+    wrap.appendChild(btn);
+  });
+  actualizarResumenVita();
+}
+
+function seleccionarTonoVita(code, centrar, guardar) {
+  S.vitaTone = code;
+  S.vitaMode = 'vita';
+  var currentBtn = document.getElementById('vita-current-btn');
+  if (currentBtn) currentBtn.classList.remove('active');
+  document.querySelectorAll('#vita-shades-sim .vita-stick').forEach(function(btn) {
+    var active = btn.dataset.vitaCode === code;
+    btn.classList.toggle('selected', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  actualizarResumenVita();
+  if (guardar !== false) saveProgress('s-vita');
+  if (centrar) centrarTonoVita(true);
+}
+
+function seleccionarTonoActual() {
+  S.vitaMode = 'current';
+  document.querySelectorAll('#vita-shades-sim .vita-stick').forEach(function(btn) {
+    btn.classList.remove('selected');
+    btn.setAttribute('aria-pressed','false');
+  });
+  var currentBtn = document.getElementById('vita-current-btn');
+  if (currentBtn) currentBtn.classList.add('active');
+  actualizarResumenVita();
+  saveProgress('s-vita');
+}
+
+function setVitaOption(type, value, button) {
+  if (type === 'finish') S.vitaFinish = value;
+  if (type === 'intensity') S.vitaIntensity = value;
+  var wrap = button && button.parentElement;
+  if (wrap) wrap.querySelectorAll('.vita-segment').forEach(function(el) { el.classList.toggle('active', el === button); });
+  actualizarResumenVita();
+  saveProgress('s-vita');
+}
+
+function actualizarVistaPreviaVita() {
+  var preview = document.getElementById('vita-live-preview');
+  var tooth = document.getElementById('vita-preview-tooth');
+  if (!preview || !tooth) return;
+  var shade = VITA_CLASSICAL.find(function(item) { return item.code === S.vitaTone; }) || VITA_CLASSICAL[1];
+  var props = propiedadesVita(shade);
+  preview.dataset.finish = S.vitaFinish || 'natural';
+  preview.dataset.intensity = S.vitaIntensity || 'balanced';
+  tooth.style.setProperty('--shade', S.vitaMode === 'current' ? '#DDD5C6' : shade.color);
+  tooth.style.setProperty('--shade-hi', S.vitaMode === 'current' ? '#F7F2E8' : shade.hi);
+  tooth.style.setProperty('--shade-lo', S.vitaMode === 'current' ? '#BBAE98' : shade.lo);
+  var finishLabels = {natural:'Natural',translucent:'Translúcido',luminous:'Luminoso'};
+  var intensityLabels = {subtle:'Cambio sutil',balanced:'Cambio equilibrado',notable:'Cambio notable'};
+  var title = document.getElementById('vita-preview-title');
+  var finish = document.getElementById('vita-preview-finish');
+  var intensity = document.getElementById('vita-preview-intensity');
+  var lightness = document.getElementById('vita-preview-lightness');
+  if (title) title.textContent = (S.vitaMode === 'current' ? 'Tono actual estimado' : 'VITA ' + shade.code) + ' con acabado ' + (finishLabels[S.vitaFinish] || 'Natural').toLowerCase();
+  if (finish) finish.textContent = finishLabels[S.vitaFinish] || 'Natural';
+  if (intensity) intensity.textContent = intensityLabels[S.vitaIntensity] || 'Cambio equilibrado';
+  if (lightness) lightness.textContent = S.vitaMode === 'current' ? 'Según fotografía' : props.lightness.charAt(0).toUpperCase() + props.lightness.slice(1);
+}
+
+function sincronizarOpcionesVita() {
+  [['vita-finish-options',S.vitaFinish],['vita-intensity-options',S.vitaIntensity]].forEach(function(pair) {
+    var wrap = document.getElementById(pair[0]);
+    if (wrap) wrap.querySelectorAll('.vita-segment').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.value === pair[1]); });
+  });
+  var currentBtn = document.getElementById('vita-current-btn');
+  if (currentBtn) currentBtn.classList.toggle('active', S.vitaMode === 'current');
+}
+
+function propiedadesVita(shade) {
+  var index = VITA_CLASSICAL.indexOf(shade);
+  var family = shade.code.charAt(0);
+  var hue = {A:'cálido rojizo-marrón',B:'cálido amarillo',C:'neutro grisáceo',D:'cálido rojizo-gris'}[family] || 'neutro';
+  var lightness = index <= 2 ? 'muy claro' : index <= 6 ? 'claro' : index <= 11 ? 'medio' : 'profundo';
+  var numeric = parseFloat(shade.code.replace(/[^0-9.]/g,'')) || 1;
+  var chroma = numeric <= 1 ? 'bajo' : numeric <= 2 ? 'moderado-bajo' : numeric <= 3 ? 'moderado' : 'alto';
+  return {hue:hue, lightness:lightness, chroma:chroma};
+}
+
+function centrarTonoVita(animado) {
+  var wrap = document.getElementById('vita-shades-sim');
+  var selected = wrap && wrap.querySelector('.vita-stick.selected');
+  if (!wrap || !selected) return;
+  var destino = selected.offsetLeft - (wrap.clientWidth - selected.offsetWidth) / 2;
+  wrap.scrollTo({left: destino, behavior: animado ? 'smooth' : 'auto'});
+}
+
+function activarCarruselVita() {
+  var wrap = document.getElementById('vita-shades-sim');
+  if (!wrap || wrap.dataset.carouselReady === '1') return;
+  wrap.dataset.carouselReady = '1';
+  var timer;
+  var framePendiente = false;
+  function actualizarTonoCentral() {
+    framePendiente = false;
+    var centro = wrap.getBoundingClientRect().left + wrap.clientWidth / 2;
+    var cercano = null;
+    var distancia = Infinity;
+    wrap.querySelectorAll('.vita-stick').forEach(function(btn) {
+      var rect = btn.getBoundingClientRect();
+      var d = Math.abs((rect.left + rect.width / 2) - centro);
+      if (d < distancia) { distancia = d; cercano = btn; }
+    });
+    if (cercano && cercano.dataset.vitaCode !== S.vitaTone) {
+      // Cambia la luz durante el arrastre, no después de que se detenga.
+      seleccionarTonoVita(cercano.dataset.vitaCode, false, false);
+    }
+  }
+  wrap.addEventListener('scroll', function() {
+    if (window.innerWidth > 1024) return;
+    if (!framePendiente) {
+      framePendiente = true;
+      requestAnimationFrame(actualizarTonoCentral);
+    }
+    clearTimeout(timer);
+    timer = setTimeout(function() {
+      actualizarTonoCentral();
+      saveProgress('s-vita');
+    }, 70);
+  }, {passive:true});
+}
+
+function actualizarResumenVita() {
+  var shade = VITA_CLASSICAL.find(function(item) { return item.code === S.vitaTone; }) || VITA_CLASSICAL[1];
+  var code = document.getElementById('vita-selected-code');
+  var copy = document.getElementById('vita-selected-copy');
+  var swatch = document.getElementById('vita-selected-swatch');
+  var compare = document.getElementById('vita-compare');
+  var status = document.getElementById('vita-status');
+  var props = propiedadesVita(shade);
+  if (S.vitaMode === 'current') {
+    if (code) code.textContent = 'Igualar tono actual';
+    if (copy) copy.textContent = 'Conservar el color natural observado en la fotografía';
+    if (compare) compare.innerHTML = 'La IA no aplicará un código VITA más blanco';
+    if (status) status.textContent = 'Simulación configurada para conservar el tono actual';
+  } else {
+    if (code) code.textContent = 'VITA ' + shade.code;
+    if (copy) copy.textContent = shade.copy + ' · ' + props.lightness;
+    var index = VITA_CLASSICAL.indexOf(shade);
+    var neighbor = VITA_CLASSICAL[index < VITA_CLASSICAL.length - 1 ? index + 1 : index - 1];
+    if (compare && neighbor) compare.innerHTML = '<span class="vita-mini" style="background:'+shade.color+'"></span>'+shade.code+' <span>vs.</span> <span class="vita-mini" style="background:'+neighbor.color+'"></span>'+neighbor.code;
+    if (status) status.textContent = 'Simulación configurada en VITA ' + shade.code;
+  }
+  if (swatch) {
+    swatch.style.setProperty('--shade', shade.color);
+    swatch.style.setProperty('--shade-hi', shade.hi);
+    swatch.style.setProperty('--shade-lo', shade.lo);
+  }
+  actualizarVistaPreviaVita();
+}
+
+function abrirGuiaVita() {
+  if (!S.vitaTone) S.vitaTone = 'A1';
+  renderGuiaVita();
+  sincronizarOpcionesVita();
+  show('s-vita');
+  activarCarruselVita();
+  var confirmBtn = document.querySelector('#s-vita .vita-confirm');
+  if (confirmBtn) confirmBtn.textContent = S.vitaReturnToResult ? 'Aplicar tono a la vista actual' : 'Usar configuración y tomar fotos';
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() { centrarTonoVita(false); });
+  });
+}
+
+function comenzarFlujoSimulacion() {
+  // El tono se decide antes de capturar cualquier fotografía. startCam()
+  // limpiará las fotos únicamente después de que el usuario lo confirme.
+  S.vitaReturnToResult = false;
+  abrirGuiaVita();
+}
+
+async function confirmarTonoVita() {
+  saveProgress('s-vita');
+  if (S.vitaReturnToResult && S.photos.length) {
+    S.vitaReturnToResult = false;
+    show('s-res');
+    await regenerarSimulacion();
+    actualizarBotonVitaResultado();
+    return;
+  }
+  startCam();
+}
+
+function abrirGuiaVitaDesdeResultado() {
+  S.vitaReturnToResult = true;
+  abrirGuiaVita();
+}
+
+function actualizarBotonVitaResultado() {
+  var btn = document.getElementById('res-vita-btn');
+  if (!btn) return;
+  btn.textContent = (S.vitaMode === 'current' ? 'Tono actual' : 'VITA ' + S.vitaTone) + ' · Cambiar';
+}
+
+
 async function startCam() {
   S.photos = [];
   S.currentPhoto = 0;
@@ -2370,20 +2762,37 @@ async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
-  var stylePrompt = '';
+
+  // Tono elegido en la guía VITA (o "igual al actual" si S.vitaMode==='current').
+  // Es el reemplazo del tono que antes venía del cuestionario (ya removido).
+  var vitaCode = S.vitaTone || 'A1';
+  var vitaShade = VITA_CLASSICAL.find(function(item) { return item.code === vitaCode; }) || VITA_CLASSICAL[1];
+  var vitaProps = propiedadesVita(vitaShade);
+  var finishPrompt = {
+    natural:'balanced natural enamel translucency and restrained gloss',
+    translucent:'enhanced but realistic incisal translucency and internal enamel depth',
+    luminous:'clean luminous enamel with controlled highlights, never pure white or overexposed'
+  }[S.vitaFinish] || 'balanced natural enamel translucency and restrained gloss';
+  var intensityPrompt = {
+    subtle:'SUBTLE change: stay close to the patient original appearance and avoid dramatic whitening',
+    balanced:'BALANCED change: visibly improve the smile while retaining a believable natural result',
+    notable:'NOTICEABLE change: make the selected shade clearly visible while remaining clinically believable'
+  }[S.vitaIntensity] || 'BALANCED change: visibly improve the smile while retaining a believable natural result';
+  var stylePrompt = S.vitaMode === 'current' ?
+    ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
+    ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
+  stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
+  stylePrompt += ' APPLY PORCELAIN VENEERS TO BOTH THE UPPER AND LOWER TEETH (maxillary and mandibular arches).';
+
+  // Compatibilidad con casos viejos guardados antes de quitar el
+  // cuestionario de 4 preguntas -- si un caso resumido todavía trae
+  // S.questionnaire, se respeta la zona/quejas que el paciente eligió ahí.
   if (S.questionnaire) {
     var q = S.questionnaire;
-    stylePrompt = ' TOOTH COLOR: ' + (q.tono || 'A1 natural white') + '.';
-    // Restricción de zona — decidida por el dentista, no por el paciente.
-    // Es una instrucción explícita para Gemini, no una garantía absoluta
-    // de que la IA la respete al 100%, pero es lo más directo que se
-    // puede pedir en el prompt.
     if (q.zona === 'arriba') {
       stylePrompt += ' APPLY PORCELAIN VENEERS ONLY TO THE UPPER TEETH (maxillary arch). Do NOT modify, whiten, or reshape the lower teeth (mandibular arch) — leave the lower teeth exactly as they appear in the original photo.';
     } else if (q.zona === 'abajo') {
       stylePrompt += ' APPLY PORCELAIN VENEERS ONLY TO THE LOWER TEETH (mandibular arch). Do NOT modify, whiten, or reshape the upper teeth (maxillary arch) — leave the upper teeth exactly as they appear in the original photo.';
-    } else {
-      stylePrompt += ' APPLY PORCELAIN VENEERS TO BOTH THE UPPER AND LOWER TEETH (maxillary and mandibular arches).';
     }
     if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
   }
@@ -3380,6 +3789,8 @@ function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
+  S.vitaTone = null;
+  S.vitaMode = 'vita'; S.vitaFinish = 'natural'; S.vitaIntensity = 'balanced'; S.vitaReturnToResult = false;
   S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
