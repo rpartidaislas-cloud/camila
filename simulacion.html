@@ -482,16 +482,21 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   </div>
 
   <div style="margin-top:14px">
-    <button onclick="cerrarSesionSim()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:11px;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif;text-decoration:underline;text-underline-offset:2px">
+    <button id="sim-login-toggle-btn" onclick="cerrarSesionSim()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:11px;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif;text-decoration:underline;text-underline-offset:2px">
       Cerrar sesión
     </button>
   </div>
 </div>
 
-<!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
-<!-- checkLogin() la oculta solo si confirma una sesión válida (misma cuenta que app.html) -->
-<div id="dentist-login-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
-  <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;margin:auto 0">
+<!-- ══ LOGIN / REGISTRO — ya no bloquea el acceso (por pedido explícito) ══
+     Oculto por defecto; solo checkLogin()/abrirLoginSim() lo muestran. Sin
+     sesión, la simulación funciona igual con acceso anónimo (mismo cambio
+     que revision-clinica.html: RLS abierta + Edge Functions aceptando la
+     publishable key sin sesión). CFG.tenantId se queda en null -- no hay
+     branding/precios personalizados de un dentista sin identificarse. -->
+<div id="dentist-login-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
+  <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;margin:auto 0;position:relative">
+    <button type="button" onclick="cerrarLoginSim()" aria-label="Cerrar" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;line-height:1;cursor:pointer;padding:4px">×</button>
     <img src="icons/smyl_logo.png" alt="SMYLE" style="height:26px;width:auto;display:block;margin-bottom:18px">
     <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Accede a tu cuenta</div>
     <div style="font-size:12.5px;color:rgba(255,255,255,.5);margin-bottom:18px">Con el mismo correo y contraseña de tu panel</div>
@@ -1031,6 +1036,7 @@ if (sbAuth && sbAuth.auth) {
 function entrarConSesion(uid) {
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
+  actualizarBotonLoginSim();
   // checkResumePrompt() DEBE correr antes de show('s-intro'): show() llama
   // saveProgress('s-intro'), que borra cualquier avance guardado. Si se
   // llamara después, nunca se alcanzaría a mostrar el aviso de "caso sin
@@ -1041,22 +1047,54 @@ function entrarConSesion(uid) {
   show('s-intro');
 }
 
+// El login quedó opcional (por pedido explícito) -- sin sesión, la app
+// arranca igual, con CFG.tenantId en null (sin branding/precios de un
+// dentista en particular) y usando la publishable key directo para hablar
+// con Supabase/las Edge Functions (que ya la aceptan sin sesión).
+function entrarSinSesion() {
+  document.getElementById('dentist-login-overlay').style.display = 'none';
+  actualizarBotonLoginSim();
+  checkResumePrompt();
+  show('s-intro');
+}
+
+function abrirLoginSim() {
+  document.getElementById('dentist-login-overlay').style.display = 'flex';
+}
+
+function cerrarLoginSim() {
+  document.getElementById('dentist-login-overlay').style.display = 'none';
+}
+
+function actualizarBotonLoginSim() {
+  var btn = document.getElementById('sim-login-toggle-btn');
+  if (!btn) return;
+  if (CFG.userToken) {
+    btn.textContent = 'Cerrar sesión';
+    btn.onclick = cerrarSesionSim;
+  } else {
+    btn.textContent = 'Iniciar sesión';
+    btn.onclick = abrirLoginSim;
+  }
+}
+
 function cerrarSesionSim() {
   if (sbAuth && sbAuth.auth) sbAuth.auth.signOut().catch(function(){});
   location.reload();
 }
 
 (function checkLogin() {
-  if (!sbAuth) return;
+  if (!sbAuth) { entrarSinSesion(); return; }
   sbAuth.auth.getSession().then(function(res) {
     var session = res.data && res.data.session;
     var user = session && session.user;
     if (user) {
       CFG.userToken = session.access_token;
       entrarConSesion(user.id);
+    } else {
+      entrarSinSesion();
     }
-    // si no hay sesión, el overlay de login ya está visible por defecto
-  }).catch(function(){});
+  }).catch(function(){ entrarSinSesion(); });
 })();
 
 async function hacerLoginDentista() {
