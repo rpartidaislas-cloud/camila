@@ -261,6 +261,7 @@
     <div class="canvas-wrap">
       <canvas id="canvas" width="560" height="385"></canvas>
       <button id="btnGuiasFloat" class="float-icon guias-toggle-btn" onclick="toggleGuiasProporcion()" style="position:absolute;top:10px;right:10px;width:auto;padding:0 12px;border-radius:99px;font-size:11px;font-weight:600;gap:5px;z-index:10">📐 Guías</button>
+      <button id="btnNumerosFloat" class="float-icon numeros-toggle-btn" onclick="toggleNumerosDientes()" title="Muestra el número FDI de cada diente sobre la foto" style="position:absolute;top:10px;left:10px;width:auto;padding:0 12px;border-radius:99px;font-size:11px;font-weight:600;gap:5px;z-index:10">🔢 Números</button>
       <div class="float-group" style="bottom:10px;right:10px">
         <button class="float-pill" onclick="zoomImagen(-1)" title="Alejar" style="font-size:14px;font-weight:700">−</button>
         <span id="zoomLabel" style="padding:7px 8px;color:var(--text-dim);font-size:11px;min-width:34px;text-align:center;font-weight:600">100%</span>
@@ -1271,6 +1272,53 @@ let gumBiotipoChip = null;
 let carillasPegadas = [];
 let carillaSeleccionada = null; // índice en carillasPegadas
 let arrastreCarilla = null;
+
+// --- NÚMEROS FDI sobre la foto -- de referencia visual, para saber cuál
+// pastilla/diente corresponde a cuál pieza sin tener que adivinar. ---
+let mostrarNumerosDientes = false;
+
+function toggleNumerosDientes(){
+  mostrarNumerosDientes = !mostrarNumerosDientes;
+  document.querySelectorAll('.numeros-toggle-btn').forEach(btn => {
+    btn.style.background = mostrarNumerosDientes ? 'var(--grad)' : '';
+    btn.style.color = mostrarNumerosDientes ? '#fff' : '';
+  });
+  render();
+}
+
+function dibujarNumerosDientes(){
+  if (!mostrarNumerosDientes || !baseImage) return;
+
+  masks.forEach(m => {
+    if (!m.fdi) return; // solo dientes principales -- los fragmentos no tienen número propio
+    const [bx, by, bw, bh] = m.bbox;
+    const fs = formaState[m.index] || { dx: 0, dy: 0 };
+    const cx = bx + bw / 2 + (fs.dx || 0);
+    const cy = by + bh / 2 + (fs.dy || 0);
+
+    const tamFuente = Math.max(13, canvas.width * .017);
+    ctx.save();
+    ctx.font = `700 ${tamFuente}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Pastilla de fondo oscuro para que el número se lea igual sobre
+    // esmalte claro que sobre encía o sombras.
+    const anchoTexto = ctx.measureText(m.fdi).width;
+    const padX = tamFuente * .45, padY = tamFuente * .32;
+    ctx.fillStyle = 'rgba(5,12,11,.82)';
+    ctx.strokeStyle = 'rgba(90,255,150,.9)';
+    ctx.lineWidth = 1;
+    const rx = cx - anchoTexto / 2 - padX, ry = cy - tamFuente / 2 - padY;
+    const rw = anchoTexto + padX * 2, rh = tamFuente + padY * 2;
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rh / 2); ctx.fill(); ctx.stroke(); }
+    else { ctx.fillRect(rx, ry, rw, rh); ctx.strokeRect(rx, ry, rw, rh); }
+
+    ctx.fillStyle = '#eafff2';
+    ctx.fillText(m.fdi, cx, cy + 1);
+    ctx.restore();
+  });
+}
 
 // --- GUÍAS DE PROPORCIÓN CLÍNICAS (línea media / plano incisal) ---
 let mostrarGuias = false;
@@ -3150,6 +3198,7 @@ function render(){
   if (modoVista === 'foto' && tabActual === 'diseno') dibujarLineasMedida();
   dibujarCarillasPegadas();
   dibujarGuiasProporcion();
+  dibujarNumerosDientes();
   dibujarCorreccionDiente();
   actualizarMedidas();
 }
