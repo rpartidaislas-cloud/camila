@@ -488,6 +488,17 @@
       <button class="btn-pill" style="width:100%;justify-content:center;margin:14px 0 10px" onclick="document.getElementById('fotoArchivo').click()">📷 Subir foto del paciente</button>
       <input type="file" id="fotoArchivo" accept="image/*" style="display:none">
       <input type="hidden" id="imageUrl" value="">
+
+      <div id="panelReferenciaGemini" style="display:none;background:var(--card);border:1px solid var(--card-b);border-radius:16px;padding:14px;margin-bottom:14px">
+        <div class="sec-lbl" style="margin:0 0 8px">Comparar con simulación</div>
+        <p class="hint" style="margin:-4px 0 10px">Este caso trae una simulación con carillas generada en la app del paciente. Actívala como referencia encima de la foto original -- el encuadre puede no coincidir exacto, ajústalo abajo si hace falta.</p>
+        <button id="btnToggleReferenciaGemini" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:10px" onclick="toggleReferenciaGemini()">🪞 Mostrar simulación encima</button>
+        <label>Opacidad</label>
+        <input type="range" id="s_opacidadReferencia" min="0" max="100" value="55" oninput="ajustarOpacidadReferencia(this.value)">
+        <button id="btnAjustarReferencia" class="btn-pill" style="width:100%;justify-content:center;margin:10px 0 8px" onclick="toggleAjusteReferencia()">🎯 Arrastrar para alinear</button>
+        <button class="btn-pill" style="width:100%;justify-content:center" onclick="restablecerReferenciaGemini()">↺ Restablecer posición</button>
+      </div>
+
       <div class="sec-lbl">Segmentación</div>
       <button id="btnSegment" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:8px" onclick="segmentar()">🦷 Segmentar dientes</button>
       <button id="btnCorregirDiente" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:8px" onclick="iniciarCorreccionDiente()">＋ Corregir diente faltante</button>
@@ -648,6 +659,78 @@ const IMAGENES_CARILLA = {
 
 let masks = [];
 let baseImage = null;
+
+// --- Referencia de Gemini (simulación con carillas de simulacion.html) ---
+// Se dibuja como una capa flotante ENCIMA de la foto original, solo de
+// referencia visual -- no participa en la segmentación ni en el guardado
+// de máscaras. El encuadre de Gemini no siempre coincide con el de la foto
+// original, así que se permite un ajuste manual de posición (arrastrando).
+let imagenReferenciaGemini = null;
+let mostrarReferenciaGemini = false;
+let opacidadReferenciaGemini = 55;
+let refGemOffset = { x: 0, y: 0 };
+let ajustandoReferencia = false; // true = arrastrar en el canvas mueve la referencia, no los dientes
+let arrastreReferencia = null;
+
+async function cargarImagenReferenciaGemini(dataUrlOUrl){
+  try {
+    const resp = await fetch(dataUrlOUrl);
+    const blob = await resp.blob();
+    imagenReferenciaGemini = await createImageBitmap(blob);
+  } catch (e) {
+    console.warn('No se pudo cargar la imagen de referencia de Gemini:', e);
+    imagenReferenciaGemini = null;
+  }
+  const panel = document.getElementById('panelReferenciaGemini');
+  if (panel) panel.style.display = imagenReferenciaGemini ? 'block' : 'none';
+}
+
+function toggleReferenciaGemini(){
+  if (!imagenReferenciaGemini) return;
+  mostrarReferenciaGemini = !mostrarReferenciaGemini;
+  const btn = document.getElementById('btnToggleReferenciaGemini');
+  if (btn) {
+    btn.style.background = mostrarReferenciaGemini ? 'var(--grad)' : '';
+    btn.style.color = mostrarReferenciaGemini ? '#fff' : '';
+  }
+  if (!mostrarReferenciaGemini) { ajustandoReferencia = false; actualizarBotonAjusteReferencia(); }
+  render();
+}
+
+function ajustarOpacidadReferencia(valor){
+  opacidadReferenciaGemini = Number(valor);
+  render();
+}
+
+function toggleAjusteReferencia(){
+  if (!mostrarReferenciaGemini) { alert('Primero activa "Mostrar simulación encima".'); return; }
+  ajustandoReferencia = !ajustandoReferencia;
+  actualizarBotonAjusteReferencia();
+}
+
+function actualizarBotonAjusteReferencia(){
+  const btn = document.getElementById('btnAjustarReferencia');
+  if (!btn) return;
+  btn.style.background = ajustandoReferencia ? 'var(--grad)' : '';
+  btn.style.color = ajustandoReferencia ? '#fff' : '';
+  canvas.style.cursor = ajustandoReferencia ? 'move' : '';
+}
+
+function restablecerReferenciaGemini(){
+  refGemOffset = { x: 0, y: 0 };
+  render();
+}
+
+function dibujarReferenciaGemini(){
+  if (!mostrarReferenciaGemini || !imagenReferenciaGemini || !baseImage) return;
+  ctx.save();
+  ctx.globalAlpha = opacidadReferenciaGemini / 100;
+  // Mismo tamaño que la foto base -- Gemini normalmente respeta el encuadre,
+  // el offset manual es solo para corregir el desfase cuando no lo hace.
+  ctx.drawImage(imagenReferenciaGemini, refGemOffset.x, refGemOffset.y, canvas.width, canvas.height);
+  ctx.restore();
+}
+
 let selectedIndices = new Set(); // ahora soporta selección múltiple
 let maskBitmaps = {};
 let formaState = {};
@@ -1505,11 +1588,30 @@ async function cargarCasoCompleto(){
     if (!filas.length) { statusEl.textContent = 'No se encontró ese Caso ID'; return; }
 
     const caso = filas[0];
-    if (!caso.imagen_url) { statusEl.textContent = 'Ese caso no tiene foto guardada'; return; }
+    // Un caso guardado solo desde simulacion.html (sin pasar por "Revisión
+    // clínica avanzada") no trae imagen_url -- trae foto_frontal en base64
+    // directo. Se usa como respaldo para poder al menos VERLA aquí; pero
+    // como no es una URL pública real, no se puede mandar a segmentar()
+    // (Replicate necesita poder descargarla desde su servidor).
+    const fotoRespaldoBase64 = !caso.imagen_url && caso.foto_frontal ? `data:image/jpeg;base64,${caso.foto_frontal}` : null;
+    const fotoParaMostrar = caso.imagen_url || fotoRespaldoBase64;
+    if (!fotoParaMostrar) { statusEl.textContent = 'Ese caso no tiene foto guardada'; return; }
 
-    document.getElementById('imageUrl').value = caso.imagen_url;
+    document.getElementById('imageUrl').value = caso.imagen_url || '';
     document.getElementById('tenantId').value = caso.tenant_id || '';
-    document.getElementById('fotoStatus').textContent = '✓ Foto del caso cargada.';
+    document.getElementById('fotoStatus').textContent = caso.imagen_url
+      ? '✓ Foto del caso cargada.'
+      : '✓ Foto del caso cargada (solo para ver -- sube una foto nueva si necesitas volver a segmentar).';
+
+    // Referencia opcional: la simulación con carillas que generó Gemini en
+    // simulacion.html, para compararla encima de la foto original.
+    imagenReferenciaGemini = null;
+    mostrarReferenciaGemini = false;
+    refGemOffset = { x: 0, y: 0 };
+    ajustandoReferencia = false;
+    const panelRef = document.getElementById('panelReferenciaGemini');
+    if (panelRef) panelRef.style.display = 'none';
+    if (caso.simulacion_url) await cargarImagenReferenciaGemini(caso.simulacion_url);
     // Se rellenan aquí para que un guardado posterior (upsert) no borre
     // estos datos si el caso los trae de simulacion.html y no se tocan.
     document.getElementById('nombrePaciente').value = caso.nombre_paciente || '';
@@ -1531,7 +1633,7 @@ async function cargarCasoCompleto(){
     carillaSeleccionada = null;
     historialEstados = []; // un caso cargado es una sesión nueva -- no se puede deshacer hacia el caso anterior
 
-    await cargarImagenBase(caso.imagen_url);
+    await cargarImagenBase(fotoParaMostrar);
     zoomImagen(0); // resetea el zoom -- si no, una foto de otra resolución puede verse estirada
     await precargarMascaras();
     await precargarMascarasEncia();
@@ -2058,6 +2160,15 @@ async function subirFotoLocal(file){
     formaState = {};
     papeleraMascaras = [];
     ordenCapaDientes = [];
+    // Una foto nueva ya no corresponde a la simulación de Gemini del caso
+    // anterior (si había una referencia cargada) -- se quita para no
+    // comparar contra la foto equivocada.
+    imagenReferenciaGemini = null;
+    mostrarReferenciaGemini = false;
+    refGemOffset = { x: 0, y: 0 };
+    ajustandoReferencia = false;
+    const panelRefFoto = document.getElementById('panelReferenciaGemini');
+    if (panelRefFoto) panelRefFoto.style.display = 'none';
     selectedIndices = new Set();
     gumMasks = [];
     gumMaskBitmaps = {};
@@ -3187,6 +3298,8 @@ function render(){
   else if (modoVista === 'lineas_foto') dibujarLineasConFoto();
   else aplicarEfectos();
 
+  if (modoVista === 'foto') dibujarReferenciaGemini();
+
   // Lee el color del diente ANTES de dibujar carillas/guías encima -- si no,
   // una carilla pegada o una línea de guía sobre el punto de muestreo
   // contaminaría la lectura de color.
@@ -3514,6 +3627,11 @@ let arrastre = null; // { startX, startY, posicionesIniciales: {index: {dx,dy}},
 canvas.addEventListener('pointerdown', (e) => {
   const { x, y } = coordCanvas(e);
 
+  if (ajustandoReferencia && mostrarReferenciaGemini) {
+    arrastreReferencia = { startX: x, startY: y, offsetInicial: { ...refGemOffset } };
+    return;
+  }
+
   if (correccionDiente) {
     if (correccionDiente.esperandoCentro) {
       correccionDiente.fdi = inferirFDIEnPunto(x, y);
@@ -3609,6 +3727,16 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 
 canvas.addEventListener('pointermove', (e) => {
+  if (arrastreReferencia) {
+    const { x, y } = coordCanvas(e);
+    refGemOffset = {
+      x: arrastreReferencia.offsetInicial.x + (x - arrastreReferencia.startX),
+      y: arrastreReferencia.offsetInicial.y + (y - arrastreReferencia.startY),
+    };
+    render();
+    return;
+  }
+
   if (arrastreCarilla) {
     const { x, y } = coordCanvas(e);
     const c = carillasPegadas[carillaSeleccionada];
@@ -3646,6 +3774,7 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 canvas.addEventListener('pointerup', (e) => {
+  if (arrastreReferencia) { arrastreReferencia = null; return; }
   if (arrastreCarilla) { arrastreCarilla = null; return; }
   if (!arrastre) return;
   if (!arrastre.isDragging) {
@@ -3772,8 +3901,11 @@ function nuevoCasoClinica(){
   masks = []; maskBitmaps = {}; formaState = {}; selectedIndices = new Set();
   gumMasks = []; gumMaskBitmaps = {}; gumFormaState = {}; selectedGumIndices = new Set();
   carillasPegadas = []; carillaSeleccionada = null;
+  papeleraMascaras = []; ordenCapaDientes = [];
   calibracionPxPorMm = null;
   baseImage = null;
+  imagenReferenciaGemini = null; mostrarReferenciaGemini = false; refGemOffset = { x: 0, y: 0 }; ajustandoReferencia = false;
+  document.getElementById('panelReferenciaGemini').style.display = 'none';
   historialEstados = [];
   document.getElementById('calibracionStatus').textContent = 'Sin calibrar -- las medidas se muestran en píxeles.';
   document.getElementById('fotoStatus').textContent = 'Sube una foto para empezar';
