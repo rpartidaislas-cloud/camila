@@ -710,6 +710,14 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   </div>
   <div class="proc-title" id="proc-title">Analizando tu sonrisa...</div>
   <div class="proc-sub" id="proc-sub-main">Claude y Gemini están trabajando en tu simulación personalizada</div>
+  <!-- El Wake Lock (evitar que la pantalla se bloquee) no funciona de forma
+       confiable dentro de una PWA instalada en iOS -- si la pantalla se
+       bloquea a medio proceso, iOS corta la conexión y la generación falla
+       con "Load failed". Aviso preventivo, ya que el código no lo puede
+       garantizar solo en ese contexto. -->
+  <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:10px;color:rgba(255,255,255,.4);font-size:11px">
+    <span>📱</span> No bloquees la pantalla mientras esperas
+  </div>
   <div class="proc-list" id="proc-list">
     <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tus fotografías con IA</div>
     <div class="pstep" id="ps2"><div class="pstep-dot"></div>Detectando estructura dental</div>
