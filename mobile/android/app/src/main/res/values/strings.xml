@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SMYLE</string>
+    <string name="title_activity_main">SMYLE</string>
+    <string name="package_name">com.smyle.app</string>
+    <string name="custom_url_scheme">com.smyle.app</string>
+</resources>

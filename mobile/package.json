@@ -1,0 +1,20 @@
+{
+  "name": "smyle-mobile",
+  "version": "1.0.0",
+  "description": "App nativa (Android/iOS) de SMYLE, empaquetando simulacion.html y revision-clinica.html con Capacitor",
+  "private": true,
+  "scripts": {
+    "sync:web": "node scripts/sync-web.js",
+    "cap:sync": "npm run sync:web && npx cap sync",
+    "android:open": "npm run cap:sync && npx cap open android",
+    "ios:open": "npm run cap:sync && npx cap open ios"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2"
+  }
+}
