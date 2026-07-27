@@ -10,7 +10,7 @@ sola app nativa para Android e iOS, usando [Capacitor](https://capacitorjs.com/)
 - `www/simulacion.html`, `www/revision-clinica.html`, `www/icons/` — copias sincronizadas
   desde la raíz del repo (ver `npm run sync:web`). **No edites estos archivos aquí
   directamente** — edítalos en la raíz del repo y vuelve a sincronizar.
-- `capacitor.config.json` — `appId: com.smyle.app`, `appName: SMYL`, `webDir: www`.
+- `capacitor.config.json` — `appId: com.smyl.app`, `appName: SMYL`, `webDir: www`.
 - `android/` — proyecto nativo de Android ya generado (`npx cap add android`).
 - `ios/` — **todavía no generado** (ver abajo, requiere Mac).
 

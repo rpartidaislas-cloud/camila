@@ -1,4 +1,4 @@
-package com.smyle.app;
+package com.smyl.app;
 
 import com.getcapacitor.BridgeActivity;
 
