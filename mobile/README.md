@@ -12,7 +12,8 @@ sola app nativa para Android e iOS, usando [Capacitor](https://capacitorjs.com/)
   directamente** — edítalos en la raíz del repo y vuelve a sincronizar.
 - `capacitor.config.json` — `appId: com.smyl.app`, `appName: SMYL`, `webDir: www`.
 - `android/` — proyecto nativo de Android ya generado (`npx cap add android`).
-- `ios/` — **todavía no generado** (ver abajo, requiere Mac).
+- `ios/` — proyecto nativo de iOS ya generado (`npx cap add ios`) — resultó que este paso
+  **no requiere macOS**, solo Node/npm, así que ya quedó listo en el repo.
 
 ## Flujo de trabajo
 
@@ -41,17 +42,32 @@ Bundle` para subirlo a Play Store).
 
 ## Compilar para iOS
 
-Generar y compilar el proyecto de iOS **requiere macOS con Xcode instalado** — no es posible
-desde Linux ni desde este sandbox. Opciones:
+El proyecto (`ios/`) ya está generado y en el repo — lo único que falta es **compilarlo**, y
+eso sí requiere un entorno con Xcode (macOS). Como no hay Mac disponible, la opción es un
+servicio de build en la nube:
 
-1. **Mac propia o rentada** (ej. MacStadium, un Mac Mini en la nube): ahí correr
-   `npx cap add ios`, abrir en Xcode, compilar y subir a App Store Connect.
-2. **Servicio de build en la nube** (sin necesitar Mac propia): [Codemagic](https://codemagic.io/)
-   o [Expo EAS Build](https://expo.dev/eas) pueden compilar proyectos de Capacitor para iOS
-   sin que tengas una Mac — subes el repo y ellos compilan usando sus Macs en la nube.
+**Codemagic** (recomendado, tiene plan gratis con minutos limitados y detecta proyectos
+Capacitor automáticamente):
 
-En cualquiera de los dos casos, el `capacitor.config.json` y el `www/` ya están listos; solo
-falta correr `npx cap add ios` en un entorno con Xcode disponible.
+1. Crea cuenta en https://codemagic.io/ y conecta el repo de GitHub
+   (`rpartidaislas-cloud/camila`).
+2. Al agregar la app, Codemagic detecta que es un proyecto Capacitor/Xcode. Configura el
+   workflow apuntando a `mobile/ios/App/App.xcodeproj` (o el `.xcworkspace` si usa Cocoapods)
+   como el proyecto a compilar, y agrega un paso de build previo:
+   ```bash
+   cd mobile && npm install && npx cap sync ios
+   ```
+   (esto regenera `capacitor-cordova-ios-plugins/` y copia `www/` a `ios/App/App/public`,
+   que están en `.gitignore` a propósito — ver nota abajo).
+3. **Firma**: para compilar sin dispositivo real (solo simulador) no hace falta cuenta de
+   pagada. Para instalar en un iPhone real o subir a TestFlight/App Store sí necesitas una
+   cuenta de **Apple Developer** ($99 USD/año) — Codemagic tiene "automatic code signing"
+   si conectas esa cuenta directo en su plataforma, no hace falta generar certificados a mano.
+4. Cada vez que hagas push a la rama, Codemagic puede compilar el `.ipa` automáticamente y
+   subirlo a TestFlight.
+
+Alternativa: [Expo EAS Build](https://expo.dev/eas) también compila proyectos Capacitor en
+la nube, con un flujo parecido.
 
 ## Notas
 
