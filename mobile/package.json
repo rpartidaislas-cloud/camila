@@ -1,7 +1,7 @@
 {
   "name": "smyle-mobile",
   "version": "1.0.0",
-  "description": "App nativa (Android/iOS) de SMYLE, empaquetando simulacion.html y revision-clinica.html con Capacitor",
+  "description": "App nativa (Android/iOS) de SMYL, empaquetando simulacion.html y revision-clinica.html con Capacitor",
   "private": true,
   "scripts": {
     "sync:web": "node scripts/sync-web.js",

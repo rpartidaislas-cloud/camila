@@ -1,6 +1,6 @@
 {
-  "name": "SMYLE · Diseño de Sonrisa",
-  "short_name": "SMYLE",
+  "name": "SMYL · Diseño de Sonrisa",
+  "short_name": "SMYL",
   "description": "Simula tu nueva sonrisa con Inteligencia Artificial en segundos",
   "start_url": "/camila/simulacion.html",
   "display": "standalone",
@@ -25,7 +25,7 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Pantalla de inicio de SMYLE"
+      "label": "Pantalla de inicio de SMYL"
     }
   ],
   "shortcuts": [

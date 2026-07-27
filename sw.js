@@ -1,4 +1,4 @@
-// SMYLE PWA Service Worker
+// SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
 const CACHE_VERSION = 'smyle-v5';
 const STATIC_CACHE = CACHE_VERSION + '-static';
@@ -103,7 +103,7 @@ self.addEventListener('fetch', function(e) {
 self.addEventListener('push', function(e) {
   if (!e.data) return;
   var data = e.data.json();
-  self.registration.showNotification(data.title || 'SMYLE', {
+  self.registration.showNotification(data.title || 'SMYL', {
     body: data.body || 'Tienes una nueva simulación lista',
     icon: '/camila/icons/smyl_pwa.png',
     badge: '/camila/icons/smyl_pwa.png',

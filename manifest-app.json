@@ -1,6 +1,6 @@
 {
-  "name": "SMYLE · Panel del Doctor",
-  "short_name": "SMYLE Panel",
+  "name": "SMYL · Panel del Doctor",
+  "short_name": "SMYL Panel",
   "description": "Administra tus casos, pacientes, precios y simulaciones de diseño de sonrisa",
   "start_url": "/camila/app.html",
   "scope": "/camila/",

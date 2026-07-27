@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>SMYLE · Simula tu Sonrisa</title>
+<title>SMYL · Simula tu Sonrisa</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SMYLE">
+<meta name="apple-mobile-web-app-title" content="SMYL">
 <link rel="icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" sizes="152x152" href="icons/smyl_pwa.png">
@@ -22,7 +22,7 @@
 
 <!-- SEO / Share -->
 <meta name="description" content="Simula tu nueva sonrisa con carillas de porcelana usando Inteligencia Artificial. Gratis, en 60 segundos.">
-<meta property="og:title" content="SMYLE · Simula tu Sonrisa">
+<meta property="og:title" content="SMYL · Simula tu Sonrisa">
 <meta property="og:description" content="Descubre cómo luciría tu sonrisa perfecta con carillas. IA generativa en segundos.">
 <meta property="og:image" content="icons/smyl_pwa.png">
 <meta property="og:type" content="website">
@@ -466,7 +466,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 <!-- ══ INTRO ══ -->
 <div class="screen" id="s-intro">
-  <div class="intro-logo"><img src="icons/smyl_logo.png" alt="SMYLE" style="height:42px;width:auto;display:block;margin:0 auto"></div>
+  <div class="intro-logo"><img src="icons/smyl_logo.png" alt="SMYL" style="height:42px;width:auto;display:block;margin:0 auto"></div>
   <div class="intro-tag">Diseño de Sonrisa · IA</div>
   <div class="intro-title">Descubre tu sonrisa perfecta en 60 segundos</div>
   <div class="intro-sub">Tomaremos 6 fotos guiadas. La IA analizará tus dientes y generará una simulación + diagnóstico + cotización.</div>
@@ -556,7 +556,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 <div id="dentist-login-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
   <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;margin:auto 0;position:relative">
     <button type="button" onclick="cerrarLoginSim()" aria-label="Cerrar" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;line-height:1;cursor:pointer;padding:4px">×</button>
-    <img src="icons/smyl_logo.png" alt="SMYLE" style="height:26px;width:auto;display:block;margin-bottom:18px">
+    <img src="icons/smyl_logo.png" alt="SMYL" style="height:26px;width:auto;display:block;margin-bottom:18px">
     <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Accede a tu cuenta</div>
     <div style="font-size:12.5px;color:rgba(255,255,255,.5);margin-bottom:18px">Con el mismo correo y contraseña de tu panel</div>
 
@@ -662,7 +662,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   <canvas class="cam-canvas" id="cv"></canvas>
 
   <div class="cam-top">
-    <div class="cam-logo"><img src="icons/smyl_logo.png" alt="SMYLE" style="height:18px;width:auto;display:block"></div>
+    <div class="cam-logo"><img src="icons/smyl_logo.png" alt="SMYL" style="height:18px;width:auto;display:block"></div>
     <button class="cam-close-btn" onclick="stopCam()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
@@ -746,7 +746,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 <!-- ══ RESULTADO ══ -->
 <div class="screen" id="s-res">
   <div class="res-header">
-    <div class="res-logo"><img src="icons/smyl_logo.png" alt="SMYLE" style="height:18px;width:auto;display:block"></div>
+    <div class="res-logo"><img src="icons/smyl_logo.png" alt="SMYL" style="height:18px;width:auto;display:block"></div>
     <div style="display:flex;gap:8px">
       <button class="res-vita-btn" id="res-vita-btn" onclick="abrirGuiaVitaDesdeResultado()">Tono VITA A1 · Cambiar</button>
       <button class="redo-btn" id="btn-regenerar" onclick="regenerarSimulacion()">
@@ -930,7 +930,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
       </div>
     </div>
 
-    <div class="res-foot"><div class="res-foot-logo">SMYLE · Diseño de Sonrisa Digital con IA</div></div>
+    <div class="res-foot"><div class="res-foot-logo">SMYL · Diseño de Sonrisa Digital con IA</div></div>
   </div>
 
   <!-- Gate de captura de lead — se muestra antes de revelar el resultado -->
@@ -2944,7 +2944,7 @@ async function abrirRevisionClinica() {
 
     window.open('revision-clinica.html?caso=' + encodeURIComponent(casoId) + '&tenant=' + encodeURIComponent(CFG.tenantId || 'local'), '_blank');
   } catch (e) {
-    console.error('[SMYLE] Error abriendo revisión clínica:', e);
+    console.error('[SMYL] Error abriendo revisión clínica:', e);
     alert('No se pudo preparar la revisión clínica: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
@@ -3724,10 +3724,10 @@ async function guardarCaso() {
       // qué el caso nunca llegaba al panel. Se deja el detalle en consola
       // para poder diagnosticarlo.
       var errBody = await resp.text().catch(function(){return '';});
-      console.error('[SMYLE] Supabase rechazó el guardado del caso (status ' + resp.status + '):', errBody);
+      console.error('[SMYL] Supabase rechazó el guardado del caso (status ' + resp.status + '):', errBody);
     }
   } catch(e) {
-    console.error('[SMYLE] Error de red guardando el caso en Supabase:', e);
+    console.error('[SMYL] Error de red guardando el caso en Supabase:', e);
   }
 
   // El caso ya quedó guardado (localStorage y/o Supabase) — ya no hace
@@ -4103,7 +4103,7 @@ function showInstallInstructions() {
   } else if (deferredPrompt) {
     installPWA();
   } else {
-    alert('Para instalar SMYLE:\n\n• iPhone: Toca ⬆ Compartir → "Agregar a pantalla de inicio"\n• Android: Menú (⋮) → "Instalar aplicación"');
+    alert('Para instalar SMYL:\n\n• iPhone: Toca ⬆ Compartir → "Agregar a pantalla de inicio"\n• Android: Menú (⋮) → "Instalar aplicación"');
   }
 }
 
@@ -4170,7 +4170,7 @@ function openInSafari() {
        donde el contenido centrado quedaba más arriba) -->
   <div class="native-cam-topbar">
     <div class="native-cam-header">
-      <img src="icons/smyl_logo.png" alt="SMYLE" style="height:18px;width:auto;display:block">
+      <img src="icons/smyl_logo.png" alt="SMYL" style="height:18px;width:auto;display:block">
       <button onclick="show('s-intro')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.85);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px">✕</button>
     </div>
     <div class="native-progress-dots" id="native-progress-dots">
@@ -4248,7 +4248,7 @@ function openInSafari() {
 <div class="install-banner" id="install-banner">
   <div class="ib-icon">🦷</div>
   <div class="ib-text">
-    <div class="ib-title">Instalar SMYLE</div>
+    <div class="ib-title">Instalar SMYL</div>
     <div class="ib-sub">Úsala como app desde tu pantalla de inicio</div>
   </div>
   <button class="ib-btn" onclick="installPWA()">Instalar</button>
@@ -4257,7 +4257,7 @@ function openInSafari() {
 
 <!-- ══ iOS INSTALL INSTRUCTIONS ══ -->
 <div class="ios-install" id="ios-install">
-  <h4>📲 Instala SMYLE en tu iPhone</h4>
+  <h4>📲 Instala SMYL en tu iPhone</h4>
   <div class="ios-step">
     <div class="ios-step-num">1</div>
     <span>Toca el botón <strong style="color:#fff">Compartir</strong> en Safari <span style="font-size:16px">⬆</span></span>
@@ -4278,9 +4278,9 @@ function openInSafari() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
-      console.log('[SMYLE PWA] SW registered:', reg.scope);
+      console.log('[SMYL PWA] SW registered:', reg.scope);
     }).catch(function(err) {
-      console.warn('[SMYLE PWA] SW failed:', err);
+      console.warn('[SMYL PWA] SW failed:', err);
     });
   });
 }
@@ -4307,7 +4307,7 @@ function installPWA() {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then(function(result) {
       if (result.outcome === 'accepted') {
-        console.log('[SMYLE PWA] Installed!');
+        console.log('[SMYL PWA] Installed!');
       }
       deferredPrompt = null;
     });
@@ -4342,7 +4342,7 @@ if (isInStandaloneMode()) {
 
 // ══ APP INSTALLED EVENT ══
 window.addEventListener('appinstalled', function() {
-  console.log('[SMYLE PWA] App installed successfully');
+  console.log('[SMYL PWA] App installed successfully');
   document.getElementById('install-banner').classList.remove('show');
   document.getElementById('ios-install').classList.remove('show');
 });
