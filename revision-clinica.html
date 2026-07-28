@@ -112,6 +112,8 @@
   .vita-swatch.selected{opacity:1;transform:translateY(-3px)}
   .vita-swatch.selected .vita-swatch-color{border-color:var(--p);box-shadow:0 0 0 2px rgba(91,71,224,.35),0 4px 12px rgba(91,71,224,.4)}
   .vita-swatch.selected span{color:#fff}
+  .vita-swatch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+  .vita-swatch-grid .vita-swatch{opacity:1}
 
   /* --- Matiz: pista con degradado arcoíris, igual que un selector de Hue --- */
   input.hue-slider{accent-color:transparent;background:linear-gradient(90deg,#ff3b3b,#ffd23b,#3bff5c,#3bd4ff,#5c3bff,#ff3bd4,#ff3b3b);border-radius:99px;height:6px}
@@ -232,6 +234,32 @@
       <input id="tenantId" value="" readonly style="opacity:.6;cursor:not-allowed">
       <div class="config-modal-footer">
         <button class="btn-pill primary" onclick="cerrarConfig()">Listo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-overlay" id="genSimOverlay">
+    <div class="config-modal">
+      <h3>Generar simulación con IA</h3>
+      <p class="hint-top">Usa la foto del paciente que ya está cargada. Elige el tono VITA objetivo para las carillas -- la IA respeta el encuadre original y solo modifica los dientes.</p>
+      <label>Tono VITA</label>
+      <div class="vita-swatch-grid" id="genSimVitaGrid"></div>
+      <label>Acabado del esmalte</label>
+      <div class="chips3" id="genSimAcabado">
+        <div class="chip active" data-val="natural" onclick="elegirAcabadoSim(this,'natural')">Natural</div>
+        <div class="chip" data-val="translucent" onclick="elegirAcabadoSim(this,'translucent')">Translúcido</div>
+        <div class="chip" data-val="luminous" onclick="elegirAcabadoSim(this,'luminous')">Luminoso</div>
+      </div>
+      <label>Intensidad del cambio</label>
+      <div class="chips3" id="genSimIntensidad">
+        <div class="chip" data-val="subtle" onclick="elegirIntensidadSim(this,'subtle')">Sutil</div>
+        <div class="chip active" data-val="balanced" onclick="elegirIntensidadSim(this,'balanced')">Equilibrado</div>
+        <div class="chip" data-val="notable" onclick="elegirIntensidadSim(this,'notable')">Notable</div>
+      </div>
+      <div id="genSimStatus" class="status" style="margin-top:14px"></div>
+      <div class="config-modal-footer">
+        <button class="btn-pill" onclick="cerrarModalGenerarSimulacion()">Cancelar</button>
+        <button class="btn-pill primary" id="btnConfirmarGenSim" onclick="generarSimulacionIA()">✨ Generar simulación</button>
       </div>
     </div>
   </div>
@@ -503,6 +531,8 @@
       <input type="file" id="fotoArchivo" accept="image/*" style="display:none">
       <input type="hidden" id="imageUrl" value="">
 
+      <button class="btn-pill primary" id="btnAbrirGenSim" style="width:100%;justify-content:center;margin-bottom:10px" onclick="abrirModalGenerarSimulacion()" disabled>✨ Generar simulación con IA</button>
+
       <div id="panelReferenciaGemini" style="display:none;background:var(--card);border:1px solid var(--card-b);border-radius:16px;padding:14px;margin-bottom:14px">
         <div class="sec-lbl" style="margin:0 0 8px">Capa de carillas (IA)</div>
         <p class="hint" style="margin:-4px 0 10px">La foto original queda de fondo y la simulación con carillas generada en la app del paciente se muestra encima -- el encuadre o tamaño puede no coincidir exacto, ajústalo abajo si hace falta.</p>
@@ -763,6 +793,12 @@ let refGemOffset = { x: 0, y: 0 };
 let ajustandoReferencia = false; // true = arrastrar en el canvas mueve la referencia, no los dientes
 let arrastreReferencia = null;
 
+// --- Generar simulación con IA directo desde revisión clínica ---
+let simTonoElegido = 'A1';
+let simAcabado = 'natural';
+let simIntensidad = 'balanced';
+let simulacionGeneradaUrl = null; // se sube a Storage al generar, para que se guarde con el caso
+
 async function cargarImagenReferenciaGemini(dataUrlOUrl){
   try {
     const resp = await fetch(dataUrlOUrl);
@@ -781,6 +817,137 @@ async function cargarImagenReferenciaGemini(dataUrlOUrl){
     const btn = document.getElementById('btnToggleReferenciaGemini');
     if (btn) { btn.style.background = 'var(--grad)'; btn.style.color = '#fff'; }
     render();
+  }
+}
+
+function renderGenSimVitaGrid(){
+  const cont = document.getElementById('genSimVitaGrid');
+  if (!cont) return;
+  cont.innerHTML = '';
+  VITA_ORDEN.forEach(nombre => {
+    const ref = VITA_SHADES[nombre];
+    const rgb = labARgb(ref.L, ref.a, ref.b);
+    const item = document.createElement('div');
+    item.className = 'vita-swatch' + (nombre === simTonoElegido ? ' selected' : '');
+    item.dataset.tono = nombre;
+    item.title = 'Tono ' + nombre;
+    item.onclick = () => { simTonoElegido = nombre; renderGenSimVitaGrid(); };
+    const chip = document.createElement('div');
+    chip.className = 'vita-swatch-color';
+    chip.style.background = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+    const lbl = document.createElement('span');
+    lbl.textContent = nombre;
+    item.appendChild(chip);
+    item.appendChild(lbl);
+    cont.appendChild(item);
+  });
+}
+
+function elegirAcabadoSim(btn, val){
+  simAcabado = val;
+  btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === btn));
+}
+
+function elegirIntensidadSim(btn, val){
+  simIntensidad = val;
+  btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === btn));
+}
+
+function abrirModalGenerarSimulacion(){
+  const imageUrl = document.getElementById('imageUrl').value.trim();
+  if (!imageUrl) { alert('Sube una foto del paciente primero.'); return; }
+  renderGenSimVitaGrid();
+  const statusEl = document.getElementById('genSimStatus');
+  statusEl.className = 'status';
+  statusEl.textContent = '';
+  document.getElementById('genSimOverlay').classList.add('open');
+}
+
+function cerrarModalGenerarSimulacion(){
+  document.getElementById('genSimOverlay').classList.remove('open');
+}
+
+async function blobUrlABase64(url){
+  const resp = await fetch(url);
+  const blob = await resp.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function construirPromptCarillasIA(){
+  const ref = VITA_SHADES[simTonoElegido];
+  const finishPrompt = {
+    natural: 'balanced natural enamel translucency and restrained gloss',
+    translucent: 'enhanced but realistic incisal translucency and internal enamel depth',
+    luminous: 'clean luminous enamel with controlled highlights, never pure white or overexposed'
+  }[simAcabado];
+  const intensityPrompt = {
+    subtle: 'SUBTLE change: stay close to the patient original appearance and avoid dramatic whitening',
+    balanced: 'BALANCED change: visibly improve the smile while retaining a believable natural result',
+    notable: 'NOTICEABLE change: make the selected shade clearly visible while remaining clinically believable'
+  }[simIntensidad];
+  let prompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
+  prompt += ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + simTonoElegido + '. CIELAB REFERENCE: L* ' + ref.L.toFixed(1) + ', a* ' + ref.a.toFixed(1) + ', b* ' + ref.b.toFixed(1) + '. Match this VITA reference consistently across every restored tooth.';
+  prompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
+  prompt += ' APPLY PORCELAIN VENEERS TO BOTH THE UPPER AND LOWER TEETH (maxillary and mandibular arches).';
+  prompt += ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change.';
+  return prompt;
+}
+
+async function generarSimulacionIA(){
+  const imageUrl = document.getElementById('imageUrl').value.trim();
+  if (!imageUrl) return;
+  const anonKey = document.getElementById('anonKey').value.trim();
+  const btn = document.getElementById('btnConfirmarGenSim');
+  const statusEl = document.getElementById('genSimStatus');
+  btn.disabled = true;
+  statusEl.className = 'status';
+  statusEl.textContent = 'Generando simulación con IA... esto puede tardar 15-30 segundos';
+  try {
+    const imageBase64 = await blobUrlABase64(imageUrl);
+    const prompt = construirPromptCarillasIA();
+    const claudeUrl = SUPABASE_EDITOR_URL + '/functions/v1/claude';
+    const resp = await fetch(claudeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (userToken || anonKey) },
+      body: JSON.stringify({ action: 'generate_image', imageBase64, mimeType: 'image/jpeg', prompt })
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Error generando la simulación');
+
+    const dataUrl = 'data:' + (data.mimeType || 'image/png') + ';base64,' + data.imageBase64;
+    await cargarImagenReferenciaGemini(dataUrl);
+
+    // Sube el resultado a Storage para que se guarde con el caso -- si no,
+    // solo vive en memoria y se pierde al recargar la página.
+    try {
+      let casoId = document.getElementById('casoId').value.trim();
+      if (!casoId) { casoId = crypto.randomUUID(); document.getElementById('casoId').value = casoId; }
+      const bytes = Uint8Array.from(atob(data.imageBase64), c => c.charCodeAt(0));
+      const path = `${casoId}/simulacion_${Date.now()}.png`;
+      const base = obtenerStorageBaseUrl();
+      const up = await fetch(`${base}/storage/v1/object/${FOTOS_BUCKET}/${path}`, {
+        method: 'POST',
+        headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (userToken || DB_KEY), 'Content-Type': data.mimeType || 'image/png' },
+        body: bytes,
+      });
+      if (up.ok) simulacionGeneradaUrl = `${base}/storage/v1/object/public/${FOTOS_BUCKET}/${path}`;
+    } catch (eUp) {
+      console.warn('No se pudo subir la simulación generada a Storage (se ve en pantalla pero no se guardará si recargas):', eUp);
+    }
+
+    statusEl.className = 'status ok';
+    statusEl.textContent = '✓ Simulación generada';
+    setTimeout(cerrarModalGenerarSimulacion, 700);
+  } catch (err) {
+    statusEl.className = 'status err';
+    statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1659,6 +1826,9 @@ async function guardarCasoCompleto(){
     // líneas guía de simulacion.html con una forma de datos totalmente
     // distinta; compartir columna hacía que uno le borrara los datos al otro.
     editor_params_clinico: { formaState, gumFormaState, carillasPegadas, calibracionPxPorMm },
+    // Solo se manda si se generó una simulación nueva en esta sesión --
+    // si no, el upsert-merge deja intacto lo que ya tenía el caso.
+    ...(simulacionGeneradaUrl ? { simulacion_url: simulacionGeneradaUrl } : {}),
   };
 
   statusEl.textContent = 'Guardando...';
@@ -1723,9 +1893,11 @@ async function cargarCasoCompleto(){
     refGemOffset = { x: 0, y: 0 };
     escalaReferenciaGemini = 100;
     ajustandoReferencia = false;
+    simulacionGeneradaUrl = null;
     const panelRef = document.getElementById('panelReferenciaGemini');
     if (panelRef) panelRef.style.display = 'none';
     if (caso.simulacion_url) await cargarImagenReferenciaGemini(caso.simulacion_url);
+    document.getElementById('btnAbrirGenSim').disabled = !caso.imagen_url;
     // Se rellenan aquí para que un guardado posterior (upsert) no borre
     // estos datos si el caso los trae de simulacion.html y no se tocan.
     document.getElementById('nombrePaciente').value = caso.nombre_paciente || '';
@@ -2282,6 +2454,8 @@ async function subirFotoLocal(file){
     refGemOffset = { x: 0, y: 0 };
     escalaReferenciaGemini = 100;
     ajustandoReferencia = false;
+    simulacionGeneradaUrl = null;
+    document.getElementById('btnAbrirGenSim').disabled = true; // se rehabilita cuando la foto nueva termine de subir
     const panelRefFoto = document.getElementById('panelReferenciaGemini');
     if (panelRefFoto) panelRefFoto.style.display = 'none';
     selectedIndices = new Set();
@@ -2330,6 +2504,7 @@ async function subirFotoLocal(file){
     const publicUrl = `${base}/storage/v1/object/public/${FOTOS_BUCKET}/${path}`;
     document.getElementById('imageUrl').value = publicUrl;
     statusEl.textContent = '✓ Foto subida. Ya puedes segmentar.';
+    document.getElementById('btnAbrirGenSim').disabled = false;
   } catch(err) {
     statusEl.textContent = 'Error al subir la foto: ' + err.message + ' (¿existe el bucket "camila-fotos" en Supabase Storage, marcado como público?)';
     console.error('Error subiendo foto:', err);
@@ -4020,6 +4195,8 @@ function nuevoCasoClinica(){
   calibracionPxPorMm = null;
   baseImage = null;
   imagenReferenciaGemini = null; mostrarReferenciaGemini = false; refGemOffset = { x: 0, y: 0 }; escalaReferenciaGemini = 100; ajustandoReferencia = false;
+  simulacionGeneradaUrl = null;
+  document.getElementById('btnAbrirGenSim').disabled = true;
   document.getElementById('panelReferenciaGemini').style.display = 'none';
   historialEstados = [];
   document.getElementById('calibracionStatus').textContent = 'Sin calibrar -- las medidas se muestran en píxeles.';
