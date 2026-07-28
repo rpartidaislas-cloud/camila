@@ -504,13 +504,15 @@
       <input type="hidden" id="imageUrl" value="">
 
       <div id="panelReferenciaGemini" style="display:none;background:var(--card);border:1px solid var(--card-b);border-radius:16px;padding:14px;margin-bottom:14px">
-        <div class="sec-lbl" style="margin:0 0 8px">Comparar con simulación</div>
-        <p class="hint" style="margin:-4px 0 10px">Este caso trae una simulación con carillas generada en la app del paciente. Actívala como referencia encima de la foto original -- el encuadre puede no coincidir exacto, ajústalo abajo si hace falta.</p>
-        <button id="btnToggleReferenciaGemini" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:10px" onclick="toggleReferenciaGemini()">🪞 Mostrar simulación encima</button>
+        <div class="sec-lbl" style="margin:0 0 8px">Capa de carillas (IA)</div>
+        <p class="hint" style="margin:-4px 0 10px">La foto original queda de fondo y la simulación con carillas generada en la app del paciente se muestra encima -- el encuadre o tamaño puede no coincidir exacto, ajústalo abajo si hace falta.</p>
+        <button id="btnToggleReferenciaGemini" class="btn-pill" style="width:100%;justify-content:center;margin-bottom:10px" onclick="toggleReferenciaGemini()">🪞 Mostrar carillas encima</button>
         <label>Opacidad</label>
         <input type="range" id="s_opacidadReferencia" min="0" max="100" value="55" oninput="ajustarOpacidadReferencia(this.value)">
+        <label style="margin-top:8px;display:block">Escala</label>
+        <input type="range" id="s_escalaReferencia" min="50" max="150" value="100" oninput="ajustarEscalaReferencia(this.value)">
         <button id="btnAjustarReferencia" class="btn-pill" style="width:100%;justify-content:center;margin:10px 0 8px" onclick="toggleAjusteReferencia()">🎯 Arrastrar para alinear</button>
-        <button class="btn-pill" style="width:100%;justify-content:center" onclick="restablecerReferenciaGemini()">↺ Restablecer posición</button>
+        <button class="btn-pill" style="width:100%;justify-content:center" onclick="restablecerReferenciaGemini()">↺ Restablecer posición y escala</button>
       </div>
 
       <div class="sec-lbl">Segmentación</div>
@@ -756,6 +758,7 @@ let baseImage = null;
 let imagenReferenciaGemini = null;
 let mostrarReferenciaGemini = false;
 let opacidadReferenciaGemini = 55;
+let escalaReferenciaGemini = 100;
 let refGemOffset = { x: 0, y: 0 };
 let ajustandoReferencia = false; // true = arrastrar en el canvas mueve la referencia, no los dientes
 let arrastreReferencia = null;
@@ -771,6 +774,14 @@ async function cargarImagenReferenciaGemini(dataUrlOUrl){
   }
   const panel = document.getElementById('panelReferenciaGemini');
   if (panel) panel.style.display = imagenReferenciaGemini ? 'block' : 'none';
+  // La capa de carillas se muestra de entrada -- no hay que buscar un
+  // botón para ver la foto original + la simulación juntas.
+  if (imagenReferenciaGemini) {
+    mostrarReferenciaGemini = true;
+    const btn = document.getElementById('btnToggleReferenciaGemini');
+    if (btn) { btn.style.background = 'var(--grad)'; btn.style.color = '#fff'; }
+    render();
+  }
 }
 
 function toggleReferenciaGemini(){
@@ -790,6 +801,11 @@ function ajustarOpacidadReferencia(valor){
   render();
 }
 
+function ajustarEscalaReferencia(valor){
+  escalaReferenciaGemini = Number(valor);
+  render();
+}
+
 function toggleAjusteReferencia(){
   if (!mostrarReferenciaGemini) { alert('Primero activa "Mostrar simulación encima".'); return; }
   ajustandoReferencia = !ajustandoReferencia;
@@ -806,6 +822,9 @@ function actualizarBotonAjusteReferencia(){
 
 function restablecerReferenciaGemini(){
   refGemOffset = { x: 0, y: 0 };
+  escalaReferenciaGemini = 100;
+  const sEscala = document.getElementById('s_escalaReferencia');
+  if (sEscala) sEscala.value = 100;
   render();
 }
 
@@ -813,9 +832,15 @@ function dibujarReferenciaGemini(){
   if (!mostrarReferenciaGemini || !imagenReferenciaGemini || !baseImage) return;
   ctx.save();
   ctx.globalAlpha = opacidadReferenciaGemini / 100;
-  // Mismo tamaño que la foto base -- Gemini normalmente respeta el encuadre,
-  // el offset manual es solo para corregir el desfase cuando no lo hace.
-  ctx.drawImage(imagenReferenciaGemini, refGemOffset.x, refGemOffset.y, canvas.width, canvas.height);
+  // La IA no siempre devuelve la imagen con el mismo encuadre/tamaño que la
+  // foto original (sobre todo con ChatGPT) -- la escala permite compensarlo,
+  // centrada, además del offset manual para el desfase de posición.
+  const escala = escalaReferenciaGemini / 100;
+  const w = canvas.width * escala;
+  const h = canvas.height * escala;
+  const dx = refGemOffset.x + (canvas.width - w) / 2;
+  const dy = refGemOffset.y + (canvas.height - h) / 2;
+  ctx.drawImage(imagenReferenciaGemini, dx, dy, w, h);
   ctx.restore();
 }
 
@@ -1696,6 +1721,7 @@ async function cargarCasoCompleto(){
     imagenReferenciaGemini = null;
     mostrarReferenciaGemini = false;
     refGemOffset = { x: 0, y: 0 };
+    escalaReferenciaGemini = 100;
     ajustandoReferencia = false;
     const panelRef = document.getElementById('panelReferenciaGemini');
     if (panelRef) panelRef.style.display = 'none';
@@ -2254,6 +2280,7 @@ async function subirFotoLocal(file){
     imagenReferenciaGemini = null;
     mostrarReferenciaGemini = false;
     refGemOffset = { x: 0, y: 0 };
+    escalaReferenciaGemini = 100;
     ajustandoReferencia = false;
     const panelRefFoto = document.getElementById('panelReferenciaGemini');
     if (panelRefFoto) panelRefFoto.style.display = 'none';
@@ -3992,7 +4019,7 @@ function nuevoCasoClinica(){
   papeleraMascaras = []; ordenCapaDientes = [];
   calibracionPxPorMm = null;
   baseImage = null;
-  imagenReferenciaGemini = null; mostrarReferenciaGemini = false; refGemOffset = { x: 0, y: 0 }; ajustandoReferencia = false;
+  imagenReferenciaGemini = null; mostrarReferenciaGemini = false; refGemOffset = { x: 0, y: 0 }; escalaReferenciaGemini = 100; ajustandoReferencia = false;
   document.getElementById('panelReferenciaGemini').style.display = 'none';
   historialEstados = [];
   document.getElementById('calibracionStatus').textContent = 'Sin calibrar -- las medidas se muestran en píxeles.';
