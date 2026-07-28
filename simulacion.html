@@ -91,28 +91,33 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .native-cam-topbar{position:relative;z-index:10;padding-top:max(56px,calc(env(safe-area-inset-top) + 14px));padding-left:16px;padding-right:16px;padding-bottom:12px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(rgba(10,8,20,.55),transparent)}
 .native-cam-header{display:flex;align-items:center;justify-content:space-between}
 .native-progress-dots{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
-.native-cam-content{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 28px 28px;gap:14px;flex:1;justify-content:center;min-height:0}
+.native-cam-content{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 28px 28px;gap:11px;flex:1;justify-content:center;min-height:0}
 .native-preview-wrap{display:none;width:148px;height:168px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 32px rgba(0,0,0,.45);margin-bottom:6px}
 .native-guide-icon{
-  width:100px;height:100px;border-radius:22px;margin-bottom:6px;
+  position:relative;width:116px;height:108px;border-radius:20px;margin-bottom:5px;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(160deg,rgba(91,71,224,.22),rgba(44,107,237,.08));
-  border:1px solid rgba(148,124,255,.28);
-  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset, 0 14px 30px -10px rgba(91,71,224,.5);
+  background:#090b17;
+  border:1px solid rgba(148,124,255,.32);
+  box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 15px 30px -12px rgba(91,71,224,.55);
 }
+.native-guide-icon::after{content:'';position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 22px rgba(6,5,18,.4)}
+.native-guide-image{position:absolute;z-index:2;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 47%;transform:scale(1.16)}
+.native-guide-fallback{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:linear-gradient(160deg,rgba(91,71,224,.22),rgba(44,107,237,.08))}
 .native-badge{
   font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:#C9BFFF;
   background:rgba(91,71,224,.18);border:1px solid rgba(148,124,255,.3);
   padding:4px 11px;border-radius:99px;
 }
 .native-title{font-size:21px;font-weight:700;color:#fff;line-height:1.25;letter-spacing:-.2px}
-.native-sub{font-size:13.5px;color:rgba(255,255,255,.5);line-height:1.5;max-width:270px}
+.native-sub{font-size:13.5px;color:rgba(255,255,255,.56);line-height:1.45;max-width:310px}
 .native-tips-card{
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;
-  padding:13px 16px;width:100%;max-width:280px;text-align:left;
-  box-shadow:0 1px 0 rgba(255,255,255,.04) inset;
+  background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border:1px solid rgba(151,132,255,.16);border-radius:16px;
+  padding:12px 14px;width:100%;max-width:320px;text-align:left;
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 12px 28px -24px rgba(91,71,224,.8);
 }
-.native-tips-list{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.4}
+.native-tips-heading{display:flex;align-items:center;gap:7px;margin-bottom:9px;color:#d8d2ff;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.75px}.native-tips-heading span{width:20px;height:20px;border-radius:7px;display:grid;place-items:center;background:rgba(94,78,222,.2);border:1px solid rgba(139,122,255,.22);font-size:11px}
+.native-tips-list{display:flex;flex-direction:column;gap:8px}
+.native-tip{display:grid;grid-template-columns:31px minmax(0,1fr);align-items:center;gap:9px}.native-tip-emoji{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:rgba(105,91,226,.11);border:1px solid rgba(135,119,242,.13);font-size:16px;line-height:1}.native-tip-copy{display:flex;min-width:0;flex-direction:column;gap:1px}.native-tip-copy strong{color:rgba(255,255,255,.88);font-size:11.5px;font-weight:700;line-height:1.25}.native-tip-copy span{color:rgba(255,255,255,.48);font-size:10.5px;line-height:1.3}
 .native-cam-btn{
   width:100%;max-width:280px;height:54px;border-radius:15px;margin-top:6px;
   background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;
@@ -137,13 +142,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
   .native-progress-dots .cpi{height:3px}
   .native-cam-content{padding:6px 28px 14px;gap:6px}
   .native-preview-wrap{width:84px;height:94px;margin-bottom:0}
-  .native-guide-icon{width:60px;height:60px;border-radius:14px;margin-bottom:0;overflow:hidden}
-  .native-guide-icon svg{transform:scale(.62)}
+  .native-guide-icon{width:68px;height:62px;border-radius:13px;margin-bottom:0}
+  .native-guide-icon svg{transform:scale(.62)}.native-guide-image{transform:scale(1.18)}
   .native-badge{font-size:9px;padding:3px 9px;letter-spacing:.8px}
   .native-title{font-size:16px}
   .native-sub{font-size:12px;max-width:380px}
-  .native-tips-card{padding:8px 14px;max-width:380px}
-  .native-tips-list{font-size:11px;gap:3px}
+  .native-tips-card{padding:7px 10px;max-width:380px}.native-tips-heading{margin-bottom:5px;font-size:8.5px}.native-tips-heading span{width:17px;height:17px;font-size:9px}
+  .native-tips-list{gap:4px}.native-tip{grid-template-columns:24px minmax(0,1fr);gap:7px}.native-tip-emoji{width:24px;height:24px;border-radius:8px;font-size:13px}.native-tip-copy strong{font-size:10.5px}.native-tip-copy span{font-size:9.5px}
   .native-cam-btn{height:42px;max-width:320px;margin-top:2px;font-size:13px}
   .native-gallery-link{font-size:11px;padding:0}
 }
@@ -441,29 +446,43 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .vita-crown i{position:absolute;z-index:1;inset:8% 12% 15%;display:block;border-radius:48%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06) 45%,rgba(255,255,255,.11) 52%,transparent 70%);box-shadow:inset 1px 0 rgba(255,255,255,.06),inset -1px 0 rgba(65,39,18,.05)}
 .vita-stick.selected .vita-crown{filter:brightness(1.08) drop-shadow(0 -7px 11px rgba(255,251,218,.55)) drop-shadow(0 10px 9px rgba(0,0,0,.5));box-shadow:inset 0 2px 3px rgba(255,255,255,.92),inset 5px 0 9px rgba(255,255,255,.13),inset -5px 0 9px rgba(55,32,15,.07)}
 .vita-stick.selected .vita-crown::before{opacity:1;background:linear-gradient(180deg,rgba(255,255,255,1),rgba(255,255,255,.31) 58%,transparent);box-shadow:0 0 8px rgba(255,248,211,.3)}
-.vita-photo{position:relative;z-index:2;display:block;width:98px;height:196px;filter:drop-shadow(0 9px 9px rgba(0,0,0,.5));transition:filter .2s ease,transform .2s ease}
-.vita-photo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;pointer-events:none;user-select:none}
-.vita-stick.selected .vita-photo{filter:brightness(1.12) drop-shadow(0 -9px 13px rgba(255,251,221,.66)) drop-shadow(0 10px 10px rgba(0,0,0,.55))}
-.vita-stick.selected .vita-photo::after{content:'';position:absolute;inset:-3px;border-radius:24px;box-shadow:inset 0 0 14px rgba(255,255,255,.34);pointer-events:none}
+.vita-photo{position:relative;z-index:2;display:block;width:72px;height:202px;--vita-crown-clip:polygon(40.63% 0%,30.21% 1.51%,24.31% 3.38%,19.44% 6.60%,15.63% 12.23%,11.11% 26.98%,5.56% 52.72%,3.13% 72.29%,3.13% 82.75%,4.86% 91.06%,9.72% 96.15%,17.71% 99.10%,33.33% 100%,66.67% 100%,79.51% 99.10%,87.50% 96.69%,92.01% 93.47%,94.44% 89.18%,95.49% 68%,93.06% 44.41%,88.19% 21.08%,83.68% 9.01%,75.69% 2.85%,64.24% 0%);filter:drop-shadow(0 9px 9px rgba(0,0,0,.5));transition:filter .2s ease,transform .2s ease}
+.vita-photo-base{position:absolute;inset:0;z-index:0;display:block;background:url('icons/vita/vita-master-photo.webp') center/100% 100% no-repeat;clip-path:polygon(42.50% 4.76%,34.17% 5.36%,29.44% 6.05%,25.56% 7.24%,22.50% 9.33%,18.89% 14.78%,14.44% 24.31%,12.50% 31.55%,12.50% 35.42%,13.89% 38.49%,17.78% 40.38%,24.17% 41.47%,36.67% 42.26%,35.83% 47.32%,32.50% 51.98%,28.06% 55.36%,18.61% 60.12%,15.56% 63.19%,14.44% 75.60%,17.22% 79.07%,26.11% 83.53%,27.50% 85.52%,28.06% 88.79%,30.56% 91.37%,36.39% 93.75%,44.72% 95.24%,55.28% 95.24%,63.89% 93.45%,68.89% 91.17%,71.39% 88.59%,71.67% 85.71%,73.33% 83.43%,81.94% 79.07%,84.44% 76.09%,84.44% 65.48%,83.33% 62.50%,80.00% 59.62%,69.44% 53.97%,65.56% 50.10%,63.33% 44.94%,63.33% 42.06%,73.61% 41.47%,80.00% 40.58%,83.61% 39.38%,85.56% 37.80%,86.39% 29.96%,84.44% 21.23%,80.56% 12.60%,76.94% 8.13%,70.56% 5.85%,61.39% 4.76%);pointer-events:none;user-select:none}
+.vita-photo-tone{position:absolute;z-index:1;top:4.8%;left:10%;width:80%;height:37%;display:block;clip-path:var(--vita-crown-clip);pointer-events:none}
+.vita-photo-tint{background:var(--shade);mix-blend-mode:color;opacity:var(--vita-tint-opacity,.78)}
+.vita-photo-depth{background:var(--shade-lo);mix-blend-mode:multiply;opacity:var(--shade-depth,.08)}
+.vita-photo::before{content:"";position:absolute;z-index:2;top:4.8%;left:10%;width:80%;height:37%;display:block;clip-path:var(--vita-crown-clip);background:radial-gradient(ellipse 27% 92% at 15% 36%,var(--shade) 0,transparent 100%),radial-gradient(ellipse 27% 92% at 85% 36%,var(--shade) 0,transparent 100%);opacity:.88;pointer-events:none}
+.vita-photo-brand{position:absolute;z-index:3;top:58%;left:23%;right:23%;height:22%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;pointer-events:none;text-align:center}
+.vita-photo-brand img{display:block;width:30px;height:auto;max-height:16px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+.vita-photo-brand b{display:block;color:#fff;font-size:5.5px;font-weight:700;line-height:1;letter-spacing:.12px;text-shadow:0 1px 2px #000,0 0 3px #000;white-space:nowrap}
+.vita-stick.selected .vita-photo{filter:brightness(1.08) drop-shadow(0 -9px 13px rgba(255,251,221,.66)) drop-shadow(0 10px 10px rgba(0,0,0,.55))}
 .vita-stem{width:10px;height:35px;margin-top:-1px;background:linear-gradient(90deg,#707477,#e7e8e8 46%,#85898c);clip-path:polygon(30% 0,70% 0,100% 100%,0 100%)}
 .vita-handle{width:38px;height:38px;margin-top:-2px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#303338,#080a0b 62%);border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 15px rgba(0,0,0,.48);font-size:8px;font-weight:700}.vita-handle b{background:linear-gradient(90deg,#12c6f3,#9228ee);background-clip:text;-webkit-background-clip:text;color:transparent}.vita-stick>strong{position:relative;z-index:4;display:flex;align-items:center;justify-content:center;min-width:34px;height:23px;margin-top:8px;padding:0 7px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:#080a0b;color:rgba(255,255,255,.78);font-size:11px;font-weight:750;line-height:1;letter-spacing:.2px;box-shadow:0 4px 10px rgba(0,0,0,.28)}.vita-stick.selected>strong{border-color:rgba(102,114,255,.72);background:linear-gradient(135deg,rgba(43,106,227,.28),rgba(116,43,219,.25));color:#fff;text-shadow:0 0 10px rgba(255,255,255,.45);box-shadow:0 0 13px rgba(89,88,239,.35)}
-.vita-selected-card{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-selected-swatch{position:relative;flex:0 0 44px;height:56px;overflow:hidden;clip-path:polygon(26% 1%,74% 1%,88% 6%,95% 18%,98% 67%,91% 88%,76% 97%,61% 100%,39% 100%,24% 97%,9% 88%,2% 67%,5% 18%,12% 6%);clip-path:path('M13 0 C8 1 5 6 4 14 C2 27 2 38 5 46 C8 53 14 56 22 56 C30 56 36 53 39 46 C42 38 42 27 40 14 C39 6 36 1 31 0 Z');background:radial-gradient(ellipse at 31% 17%,rgba(255,255,255,.98) 0 4%,rgba(255,255,255,.44) 7%,transparent 27%),linear-gradient(90deg,rgba(80,50,25,.13),transparent 20%,rgba(255,255,255,.22) 50%,transparent 80%,rgba(70,42,20,.15)),linear-gradient(180deg,var(--shade-hi),var(--shade) 64%,var(--shade-lo));border-radius:48% 48% 38% 38%/22% 22% 25% 25%;filter:drop-shadow(0 5px 7px rgba(0,0,0,.5))}.vita-selected-swatch::after{content:'';position:absolute;left:9%;right:9%;bottom:0;height:17%;border-top:1px solid rgba(255,255,255,.22);background:linear-gradient(transparent,rgba(225,243,245,.3));border-radius:50%}.vita-selected-info{display:flex;flex:1;min-width:0;flex-direction:column}.vita-selected-code{font-size:22px;color:#fff;font-weight:650}.vita-selected-copy{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}.vita-confirm{height:52px;min-width:210px;padding:0 24px;border:0;border-radius:11px;background:linear-gradient(100deg,#2576f3,#8427ed);color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 25px rgba(76,53,220,.28)}.vita-note{text-align:center;color:rgba(255,255,255,.34);font-size:10.5px;line-height:1.5;margin:12px 10px 0}
+.vita-selected-card{display:grid;grid-template-columns:minmax(270px,340px) minmax(170px,1fr) auto;align-items:center;gap:20px;padding:16px 18px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-selected-info{display:flex;min-width:0;flex-direction:column}.vita-selected-code{font-size:22px;color:#fff;font-weight:650}.vita-selected-copy{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}.vita-confirm{height:52px;min-width:210px;padding:0 24px;border:0;border-radius:11px;background:linear-gradient(100deg,#2576f3,#8427ed);color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 25px rgba(76,53,220,.28)}.vita-note{text-align:center;color:rgba(255,255,255,.34);font-size:10.5px;line-height:1.5;margin:12px 10px 0}
+.vita-comparison{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:9px;padding:12px;border-radius:12px;background:#090b0c;border:1px solid rgba(255,255,255,.07)}.vita-compare-sample{display:flex;min-width:0;flex-direction:column;align-items:center;gap:6px}.vita-compare-kicker{color:rgba(255,255,255,.48);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.65px}.vita-compare-code{min-height:27px;display:flex;align-items:center;color:#fff;font-size:10.5px;font-weight:700}.vita-compare-vs{align-self:center;color:rgba(255,255,255,.32);font-size:9px;font-weight:800;letter-spacing:.8px}.vita-photo-compare{width:54px;height:152px;--vita-tint-opacity:.72}.vita-photo-compare .vita-photo-brand img{width:24px;max-height:13px}.vita-photo-compare .vita-photo-brand b{font-size:4.5px}.vita-compare-select{width:100%;height:27px;padding:0 23px 0 8px;border-radius:7px;border:1px solid rgba(106,109,238,.42);background:#141526;color:#fff;font:650 10px Inter,sans-serif;cursor:pointer;color-scheme:dark}
 .vita-current-btn{width:100%;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0a0c0d;color:rgba(255,255,255,.7);font:600 12px Inter,sans-serif;cursor:pointer;margin-bottom:14px}.vita-current-btn.active{border-color:#5b7cff;background:rgba(63,85,220,.15);color:#fff;box-shadow:0 0 18px rgba(69,84,224,.14)}
 .vita-compare{display:flex;align-items:center;gap:7px;margin-top:7px;color:rgba(255,255,255,.42);font-size:10px}.vita-mini{width:14px;height:18px;border-radius:6px 6px 5px 5px;border:1px solid rgba(255,255,255,.16)}
 .vita-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}.vita-option-card{padding:14px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-option-card label{display:block;margin-bottom:9px;color:rgba(255,255,255,.55);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}.vita-segments{display:flex;gap:5px}.vita-segment{flex:1;min-height:34px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:#090b0c;color:rgba(255,255,255,.5);font:600 10px Inter,sans-serif;cursor:pointer}.vita-segment.active{border-color:#6472ef;background:rgba(71,67,200,.18);color:#fff}
 .vita-lighting{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-bottom:16px;border-radius:12px;background:rgba(31,105,175,.09);border:1px solid rgba(74,155,229,.18);color:rgba(255,255,255,.55);font-size:11px;line-height:1.5}.vita-lighting b{color:#dbeafe}.vita-status{display:block;margin-top:7px;color:#8ee6b4;font-size:10px;font-weight:600}.res-vita-btn{height:32px;padding:0 10px;border-radius:9px;border:1px solid rgba(114,101,240,.35);background:rgba(83,61,209,.12);color:#d9d3ff;font:600 10.5px Inter,sans-serif;cursor:pointer}
-.vita-preview{display:grid;grid-template-columns:170px 1fr;align-items:center;gap:22px;margin-bottom:16px;padding:18px;border-radius:15px;background:radial-gradient(circle at 20% 0,rgba(91,89,214,.12),transparent 38%),#101314;border:1px solid rgba(255,255,255,.08)}.vita-preview-stage{position:relative;height:150px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:radial-gradient(ellipse at 50% 15%,rgba(255,255,255,.12),transparent 48%),#090b0c;overflow:hidden}.vita-preview-stage::before{content:'';position:absolute;top:-35px;width:110px;height:105px;background:radial-gradient(ellipse at 50% 0,rgba(255,253,226,.45),rgba(143,160,255,.12) 42%,transparent 72%);filter:blur(7px)}.vita-preview-tooth{position:relative;width:76px;height:106px;overflow:hidden;clip-path:path('M23 0 C14 1 8 10 7 26 C4 50 3 72 9 87 C15 100 25 106 38 106 C51 106 61 100 67 87 C73 72 72 50 69 26 C68 10 62 1 53 0 Z');border-radius:48% 48% 38% 38%/22% 22% 25% 25%;background:radial-gradient(ellipse at 29% 14%,rgba(255,255,255,.95) 0 3%,rgba(255,255,255,.43) 7%,transparent 27%),linear-gradient(90deg,rgba(66,38,16,.12),transparent 18%,rgba(255,255,255,.2) 49%,transparent 82%,rgba(58,32,14,.15)),linear-gradient(180deg,var(--shade-hi),var(--shade) 64%,var(--shade-lo));filter:drop-shadow(0 12px 12px rgba(0,0,0,.52));transition:filter .2s ease,background .2s ease}.vita-preview-tooth::before{content:'';position:absolute;top:8%;left:21%;width:11%;height:60%;border-radius:50%;background:linear-gradient(rgba(255,255,255,.92),rgba(255,255,255,.15),transparent);filter:blur(.6px)}.vita-preview-tooth::after{content:'';position:absolute;left:6%;right:6%;bottom:0;height:19%;background:linear-gradient(transparent,rgba(220,241,245,.28));border-top:1px solid rgba(255,255,255,.17);border-radius:50%}.vita-preview[data-finish="translucent"] .vita-preview-tooth::after{height:28%;background:linear-gradient(transparent,rgba(207,237,244,.48));box-shadow:inset 0 -5px 10px rgba(185,224,235,.16)}.vita-preview[data-finish="luminous"] .vita-preview-tooth{filter:brightness(1.12) drop-shadow(0 -7px 12px rgba(255,252,222,.5)) drop-shadow(0 12px 12px rgba(0,0,0,.5))}.vita-preview[data-finish="luminous"] .vita-preview-tooth::before{width:15%;background:linear-gradient(#fff,rgba(255,255,255,.3),transparent);box-shadow:0 0 10px rgba(255,250,220,.28)}.vita-preview[data-intensity="subtle"] .vita-preview-tooth{opacity:.86;filter:saturate(.82) brightness(.97) drop-shadow(0 10px 10px rgba(0,0,0,.5))}.vita-preview[data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.1) contrast(1.04) brightness(1.07) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview[data-finish="luminous"][data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.08) brightness(1.16) drop-shadow(0 -7px 13px rgba(255,252,222,.55)) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview-info h3{margin:0 0 5px;color:#fff;font-size:15px}.vita-preview-info p{margin:0;color:rgba(255,255,255,.48);font-size:11px;line-height:1.5}.vita-preview-tags{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}.vita-preview-tag{padding:5px 8px;border-radius:99px;background:rgba(96,85,220,.12);border:1px solid rgba(111,99,235,.2);color:#cfc9ff;font-size:9.5px;font-weight:600}.vita-preview-warning{color:rgba(255,255,255,.3)!important;font-size:9.5px!important}
+.vita-preview{display:grid;grid-template-columns:220px 1fr;align-items:center;gap:22px;margin-bottom:16px;padding:18px;border-radius:15px;background:#101314;border:1px solid rgba(255,255,255,.08);transition:grid-template-columns .24s ease}.vita-preview-stage{position:relative;height:200px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#090b0c;overflow:hidden;transition:height .24s ease}.vita-preview-stage::before{display:none}.vita-preview-tooth{position:relative;width:76px;height:106px;overflow:hidden;clip-path:path('M23 0 C14 1 8 10 7 26 C4 50 3 72 9 87 C15 100 25 106 38 106 C51 106 61 100 67 87 C73 72 72 50 69 26 C68 10 62 1 53 0 Z');border-radius:48% 48% 38% 38%/22% 22% 25% 25%;background:radial-gradient(ellipse at 29% 14%,rgba(255,255,255,.95) 0 3%,rgba(255,255,255,.43) 7%,transparent 27%),linear-gradient(90deg,rgba(66,38,16,.12),transparent 18%,rgba(255,255,255,.2) 49%,transparent 82%,rgba(58,32,14,.15)),linear-gradient(180deg,var(--shade-hi),var(--shade) 64%,var(--shade-lo));filter:drop-shadow(0 12px 12px rgba(0,0,0,.52));transition:filter .2s ease,background .2s ease}.vita-preview-tooth::before{content:'';position:absolute;top:8%;left:21%;width:11%;height:60%;border-radius:50%;background:linear-gradient(rgba(255,255,255,.92),rgba(255,255,255,.15),transparent);filter:blur(.6px)}.vita-preview-tooth::after{content:'';position:absolute;left:6%;right:6%;bottom:0;height:19%;background:linear-gradient(transparent,rgba(220,241,245,.28));border-top:1px solid rgba(255,255,255,.17);border-radius:50%}.vita-preview[data-finish="translucent"] .vita-preview-tooth::after{height:28%;background:linear-gradient(transparent,rgba(207,237,244,.48));box-shadow:inset 0 -5px 10px rgba(185,224,235,.16)}.vita-preview[data-finish="luminous"] .vita-preview-tooth{filter:brightness(1.12) drop-shadow(0 -7px 12px rgba(255,252,222,.5)) drop-shadow(0 12px 12px rgba(0,0,0,.5))}.vita-preview[data-finish="luminous"] .vita-preview-tooth::before{width:15%;background:linear-gradient(#fff,rgba(255,255,255,.3),transparent);box-shadow:0 0 10px rgba(255,250,220,.28)}.vita-preview[data-intensity="subtle"] .vita-preview-tooth{opacity:.86;filter:saturate(.82) brightness(.97) drop-shadow(0 10px 10px rgba(0,0,0,.5))}.vita-preview[data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.1) contrast(1.04) brightness(1.07) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview[data-finish="luminous"][data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.08) brightness(1.16) drop-shadow(0 -7px 13px rgba(255,252,222,.55)) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview-info h3{margin:0;color:#fff;font-size:15px}.vita-preview-info p{margin:0;color:rgba(255,255,255,.48);font-size:11px;line-height:1.5}.vita-preview-titlebar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}.vita-preview-zoom{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(107,104,239,.38);background:rgba(80,69,209,.12);color:#d8d4ff;font:650 10px Inter,sans-serif;cursor:pointer}.vita-preview-tags{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}.vita-preview-tag{padding:5px 8px;border-radius:99px;background:rgba(96,85,220,.12);border:1px solid rgba(111,99,235,.2);color:#cfc9ff;font-size:9.5px;font-weight:600}.vita-preview-warning{color:rgba(255,255,255,.3)!important;font-size:9.5px!important}
+.vita-photo-preview{width:60px;height:168px;--vita-tint-opacity:.68;transition:width .24s ease,height .24s ease}.vita-preview.expanded{grid-template-columns:310px 1fr}.vita-preview.expanded .vita-preview-stage{height:286px}.vita-preview.expanded .vita-photo-preview{width:96px;height:269px}
+.vita-preview[data-intensity="subtle"] .vita-photo-tint{opacity:.42}.vita-preview[data-intensity="balanced"] .vita-photo-tint{opacity:.68}.vita-preview[data-intensity="notable"] .vita-photo-tint{opacity:.86}
+.vita-preview[data-intensity="subtle"] .vita-photo-depth{opacity:calc(var(--shade-depth,.08)*.55)}.vita-preview[data-intensity="balanced"] .vita-photo-depth{opacity:var(--shade-depth,.08)}.vita-preview[data-intensity="notable"] .vita-photo-depth{opacity:calc(var(--shade-depth,.08)*1.28)}
+.vita-preview[data-finish="translucent"] .vita-photo-base{filter:brightness(1.04) saturate(.86);opacity:.92}.vita-preview[data-finish="translucent"] .vita-photo-tint{mix-blend-mode:soft-light}
+.vita-preview[data-finish="luminous"] .vita-photo{filter:brightness(1.06) drop-shadow(0 9px 9px rgba(0,0,0,.5))}
+
 @media(max-width:1024px){.vita-guide-card{overflow:hidden}.vita-shades-sim{gap:18px;margin-inline:-18px;padding:28px calc(50% - 54px) 28px;scroll-snap-type:x mandatory;scrollbar-width:none}.vita-shades-sim::-webkit-scrollbar{display:none}.vita-stick{flex-basis:108px;opacity:.48}.vita-stick.selected{opacity:1;transform:scale(1.07)}.vita-stick.selected::after{content:'';position:absolute;left:19px;right:19px;bottom:-8px;height:2px;border-radius:2px;background:linear-gradient(90deg,#16bdf5,#7d36f2);box-shadow:0 0 9px #5078fa}}
-@media(max-width:620px){.vita-head{padding-top:22px}.vita-head img{position:static;width:68px;margin:0 auto 14px}.vita-head h2{font-size:20px}.vita-guide-card{padding-inline:10px}.vita-selected-card{align-items:stretch;flex-direction:column}.vita-selected-swatch{position:absolute}.vita-selected-info{padding-left:58px;min-height:56px;justify-content:center}.vita-confirm{width:100%}.vita-options{grid-template-columns:1fr}.vita-preview{grid-template-columns:125px 1fr;gap:14px;padding:12px}.vita-preview-stage{height:130px}.vita-preview-tooth{transform:scale(.82)}.res-vita-btn{height:30px;padding-inline:8px}}
+@media(max-width:760px){.vita-selected-card{grid-template-columns:1fr}.vita-comparison{width:100%}.vita-selected-info{padding-left:0;min-height:0}.vita-confirm{width:100%}}
+@media(max-width:620px){.vita-head{padding-top:22px}.vita-head img{position:static;width:68px;margin:0 auto 14px}.vita-head h2{font-size:20px}.vita-guide-card{padding-inline:10px}.vita-options{grid-template-columns:1fr}.vita-preview{grid-template-columns:125px 1fr;gap:14px;padding:12px}.vita-preview-stage{height:130px}.vita-preview .vita-photo-preview{width:46px;height:129px}.vita-preview.expanded{grid-template-columns:1fr}.vita-preview.expanded .vita-preview-stage{height:230px}.vita-preview.expanded .vita-photo-preview{width:78px;height:219px}.vita-preview-titlebar{align-items:flex-start}.vita-preview-zoom{flex:0 0 auto}.res-vita-btn{height:30px;padding-inline:8px}}
 @media(max-width:620px){#s-res .res-header{gap:7px;padding-inline:10px}#s-res .res-header>div:last-child{gap:5px!important;min-width:0;overflow-x:auto;scrollbar-width:none}.redo-btn{height:30px;padding:0 8px;font-size:10px;white-space:nowrap}.res-logo{flex:0 0 auto}}
-@media(orientation:landscape) and (max-height:700px){#s-vita{overflow-y:auto}.vita-head{padding-top:10px}.vita-head img{width:72px}.vita-head h2{font-size:19px}.vita-guide-card{margin-top:12px;padding-top:12px}.vita-shades-sim{padding-top:14px;padding-bottom:14px}.vita-photo{width:86px;height:172px}.vita-stick{flex-basis:96px}.vita-options{margin-bottom:10px}.vita-preview{grid-template-columns:120px 1fr;margin-bottom:10px;padding:10px}.vita-preview-stage{height:112px}.vita-preview-tooth{transform:scale(.72)}}
+@media(orientation:landscape) and (max-height:700px){#s-vita{overflow-y:auto}.vita-head{padding-top:10px}.vita-head img{width:72px}.vita-head h2{font-size:19px}.vita-guide-card{margin-top:12px;padding-top:12px}.vita-shades-sim{padding-top:14px;padding-bottom:14px}.vita-stick .vita-photo{width:62px;height:174px}.vita-stick{flex-basis:96px}.vita-options{margin-bottom:10px}.vita-preview{grid-template-columns:120px 1fr;margin-bottom:10px;padding:10px}.vita-preview-stage{height:112px}.vita-preview .vita-photo-preview{width:40px;height:112px}.vita-preview.expanded{grid-template-columns:220px 1fr}.vita-preview.expanded .vita-preview-stage{height:210px}.vita-preview.expanded .vita-photo-preview{width:70px;height:196px}}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v57 — carrusel de tonos VITA: selección por arrastre, el del centro resalta</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v68 — recursos maestros VITA completos</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -643,9 +662,19 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       </div>
     </div>
     <div class="vita-preview" id="vita-live-preview" data-finish="natural" data-intensity="balanced">
-      <div class="vita-preview-stage"><div class="vita-preview-tooth" id="vita-preview-tooth"></div></div>
+      <div class="vita-preview-stage">
+        <div class="vita-photo vita-photo-preview" id="vita-preview-tooth">
+          <span class="vita-photo-base"></span>
+          <span class="vita-photo-tone vita-photo-tint"></span>
+          <span class="vita-photo-tone vita-photo-depth"></span>
+          <span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b id="vita-preview-code">VITA A1</b></span>
+        </div>
+      </div>
       <div class="vita-preview-info">
-        <h3>Vista previa ilustrativa</h3>
+        <div class="vita-preview-titlebar">
+          <h3>Vista previa ilustrativa</h3>
+          <button class="vita-preview-zoom" id="vita-preview-zoom" type="button" aria-expanded="false" onclick="toggleVistaPreviaVita()">Ampliar</button>
+        </div>
         <p id="vita-preview-title">VITA A1 con acabado natural</p>
         <div class="vita-preview-tags">
           <span class="vita-preview-tag" id="vita-preview-finish">Natural</span>
@@ -657,11 +686,32 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     </div>
     <div class="vita-lighting"><span>💡</span><div><b>Para comparar mejor el tono:</b> usa luz blanca frontal, evita filtros y no apuntes el flash directamente a los dientes.</div></div>
     <div class="vita-selected-card">
-      <div class="vita-selected-swatch" id="vita-selected-swatch"><span></span></div>
+      <div class="vita-comparison" aria-label="Comparación de carillas VITA">
+        <div class="vita-compare-sample">
+          <span class="vita-compare-kicker">Seleccionada</span>
+          <div class="vita-photo vita-photo-compare" id="vita-compare-selected-photo" aria-hidden="true">
+            <span class="vita-photo-base"></span>
+            <span class="vita-photo-tone vita-photo-tint"></span>
+            <span class="vita-photo-tone vita-photo-depth"></span>
+            <span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b id="vita-compare-selected-brand">VITA A1</b></span>
+          </div>
+          <strong class="vita-compare-code" id="vita-compare-selected-code">VITA A1</strong>
+        </div>
+        <span class="vita-compare-vs">VS</span>
+        <div class="vita-compare-sample">
+          <label class="vita-compare-kicker" for="vita-compare-select">Comparar con</label>
+          <div class="vita-photo vita-photo-compare" id="vita-compare-alt-photo" aria-hidden="true">
+            <span class="vita-photo-base"></span>
+            <span class="vita-photo-tone vita-photo-tint"></span>
+            <span class="vita-photo-tone vita-photo-depth"></span>
+            <span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b id="vita-compare-alt-brand">VITA C1</b></span>
+          </div>
+          <select class="vita-compare-select" id="vita-compare-select" aria-label="Elegir tono VITA para comparar" onchange="seleccionarComparacionVita(this.value)"></select>
+        </div>
+      </div>
       <div class="vita-selected-info">
         <strong class="vita-selected-code" id="vita-selected-code">VITA A1</strong>
         <span class="vita-selected-copy" id="vita-selected-copy">Marfil claro, natural y ligeramente cálido</span>
-        <span class="vita-compare" id="vita-compare"></span>
         <span class="vita-status" id="vita-status">Simulación configurada en VITA A1</span>
       </div>
       <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Usar este tono y tomar fotos</button>
@@ -1409,6 +1459,7 @@ var S = {
   // Guía VITA: tono elegido antes de tomar las fotos (o cambiado después
   // desde el resultado) -- se usa para armar el prompt de Gemini.
   vitaTone: null,
+  vitaCompareTone: 'C1',
   vitaMode: 'vita', // 'vita' (tono de la guía) | 'current' (igual al tono real del paciente)
   vitaFinish: 'natural',
   vitaIntensity: 'balanced',
@@ -1419,12 +1470,12 @@ var S = {
 // vistas originales, 'environment' (trasera) para las 3 nuevas de
 // documentación clínica, que en la práctica siempre se toman con la trasera.
 var VIEWS = [
-  {id:'frontal',    label:'Vista Frontal — Sonrisa completa', hint:'Muestra los dientes y centra tu cara', facing:'user', svg:'frontal'},
-  {id:'right',      label:'Perfil Derecho — Gira a tu derecha', hint:'Nariz apuntando hacia la izquierda de la pantalla', facing:'user', svg:'perfil-der'},
-  {id:'left',       label:'Perfil Izquierdo — Gira a tu izquierda', hint:'Nariz apuntando hacia la derecha de la pantalla', facing:'user', svg:'perfil-izq'},
-  {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa', hint:'Gira ligeramente la cabeza mostrando la sonrisa de perfil', facing:'environment', svg:'tres-cuartos'},
-  {id:'intraoral',  label:'Fotografía Intraoral — Dientes de cerca', hint:'Acércate y enfoca directo a los dientes con la boca abierta', facing:'environment', svg:'intraoral', orientation:'landscape'},
-  {id:'extraoral',  label:'Fotografía Extraoral — Rostro completo', hint:'Aléjate para que se vea toda tu cara y hombros', facing:'environment', svg:'extraoral', orientation:'landscape'},
+  {id:'frontal',label:'Vista Frontal — Sonrisa completa',hint:'Mira al frente, centra tu rostro y muestra todos los dientes.',facing:'user',svg:'frontal',asset:'icons/capture-frontal-v2.webp',imageAlt:'Ejemplo de fotografía frontal sonriendo'},
+  {id:'right',label:'Perfil Derecho — Gira a tu derecha',hint:'Gira la cabeza hacia tu derecha sin inclinarla.',facing:'user',svg:'perfil-der',asset:'icons/capture-right-v2.webp',imageAlt:'Ejemplo de perfil derecho sonriendo'},
+  {id:'left',label:'Perfil Izquierdo — Gira a tu izquierda',hint:'Gira la cabeza hacia tu izquierda sin inclinarla.',facing:'user',svg:'perfil-izq',asset:'icons/capture-left-v2.webp',imageAlt:'Ejemplo de perfil izquierdo sonriendo'},
+  {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa',hint:'Coloca el rostro a 45° y conserva una sonrisa natural.',facing:'environment',svg:'tres-cuartos',asset:'icons/capture-three-quarter-v2.webp',imageAlt:'Ejemplo de vista de tres cuartos sonriendo'},
+  {id:'intraoral',label:'Fotografía Intraoral — Dientes de cerca',hint:'Acerca la cámara y encuadra dientes y encías con nitidez.',facing:'environment',svg:'intraoral',asset:'icons/capture-intraoral-v3.webp',imageAlt:'Ejemplo de fotografía intraoral',orientation:'landscape'},
+  {id:'extraoral',label:'Fotografía Extraoral — Rostro completo',hint:'Aléjate y encuadra el rostro completo con luz frontal.',facing:'environment',svg:'extraoral',asset:'icons/capture-extraoral-v3.webp',imageAlt:'Ejemplo de fotografía extraoral',orientation:'landscape'},
 ];
 
 // ══ SCREENS ══
@@ -1642,6 +1693,7 @@ VITA_CLASSICAL.forEach(function(shade) {
   shade.color='rgb('+rgb.r+','+rgb.g+','+rgb.b+')';
   shade.hi='rgb('+hi.r+','+hi.g+','+hi.b+')';
   shade.lo='rgb('+lo.r+','+lo.g+','+lo.b+')';
+  shade.depth=Math.max(.025,Math.min(.22,.025+(82-shade.L)*.012));
 });
 
 function renderGuiaVita() {
@@ -1662,7 +1714,8 @@ function renderGuiaVita() {
     btn.style.setProperty('--shade', shade.color);
     btn.style.setProperty('--shade-hi', shade.hi);
     btn.style.setProperty('--shade-lo', shade.lo);
-    btn.innerHTML = '<span class="vita-photo"><img src="' + shade.asset + '" alt="Muestra VITA ' + shade.code + '" draggable="false"></span>';
+    btn.style.setProperty('--shade-depth', shade.depth.toFixed(3));
+    btn.innerHTML = '<span class="vita-photo" aria-hidden="true"><span class="vita-photo-base"></span><span class="vita-photo-tone vita-photo-tint"></span><span class="vita-photo-tone vita-photo-depth"></span><span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b>VITA ' + shade.code + '</b></span></span>';
     btn.onclick = function() { seleccionarTonoVita(shade.code, true, true); };
     wrap.appendChild(btn);
   });
@@ -1731,16 +1784,30 @@ function actualizarVistaPreviaVita() {
   tooth.style.setProperty('--shade', S.vitaMode === 'current' ? '#DDD5C6' : shade.color);
   tooth.style.setProperty('--shade-hi', S.vitaMode === 'current' ? '#F7F2E8' : shade.hi);
   tooth.style.setProperty('--shade-lo', S.vitaMode === 'current' ? '#BBAE98' : shade.lo);
+  tooth.style.setProperty('--shade-depth', S.vitaMode === 'current' ? '.055' : shade.depth.toFixed(3));
   var finishLabels = {natural:'Natural',translucent:'Translúcido',luminous:'Luminoso'};
   var intensityLabels = {subtle:'Cambio sutil',balanced:'Cambio equilibrado',notable:'Cambio notable'};
   var title = document.getElementById('vita-preview-title');
   var finish = document.getElementById('vita-preview-finish');
   var intensity = document.getElementById('vita-preview-intensity');
   var lightness = document.getElementById('vita-preview-lightness');
+  var previewCode = document.getElementById('vita-preview-code');
+  if (previewCode) previewCode.textContent = S.vitaMode === 'current' ? 'TONO ACTUAL' : 'VITA ' + shade.code;
   if (title) title.textContent = (S.vitaMode === 'current' ? 'Tono actual estimado' : 'VITA ' + shade.code) + ' con acabado ' + (finishLabels[S.vitaFinish] || 'Natural').toLowerCase();
   if (finish) finish.textContent = finishLabels[S.vitaFinish] || 'Natural';
   if (intensity) intensity.textContent = intensityLabels[S.vitaIntensity] || 'Cambio equilibrado';
   if (lightness) lightness.textContent = S.vitaMode === 'current' ? 'Según fotografía' : props.lightness.charAt(0).toUpperCase() + props.lightness.slice(1);
+}
+
+function toggleVistaPreviaVita() {
+  var preview = document.getElementById('vita-live-preview');
+  var button = document.getElementById('vita-preview-zoom');
+  if (!preview) return;
+  var expanded = preview.classList.toggle('expanded');
+  if (button) {
+    button.textContent = expanded ? 'Reducir' : 'Ampliar';
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
 }
 
 function sincronizarOpcionesVita() {
@@ -1805,32 +1872,80 @@ function activarCarruselVita() {
   }, {passive:true});
 }
 
+function aplicarCarillaVita(element, shade) {
+  if (!element || !shade) return;
+  element.style.setProperty('--shade', shade.color);
+  element.style.setProperty('--shade-hi', shade.hi);
+  element.style.setProperty('--shade-lo', shade.lo);
+  element.style.setProperty('--shade-depth', Number(shade.depth || .055).toFixed(3));
+}
+
+function obtenerTonoComparacionVita(shade) {
+  var comparison = VITA_CLASSICAL.find(function(item) { return item.code === S.vitaCompareTone; });
+  if (!comparison || (S.vitaMode === 'vita' && comparison.code === shade.code)) {
+    var index = VITA_CLASSICAL.indexOf(shade);
+    comparison = VITA_CLASSICAL[index < VITA_CLASSICAL.length - 1 ? index + 1 : Math.max(0,index - 1)];
+    S.vitaCompareTone = comparison.code;
+  }
+  return comparison;
+}
+
+function renderSelectorComparacionVita(shade, comparison) {
+  var select = document.getElementById('vita-compare-select');
+  if (!select) return;
+  if (!select.options.length) {
+    VITA_CLASSICAL.forEach(function(item) {
+      var option = document.createElement('option');
+      option.value = item.code;
+      option.textContent = 'VITA ' + item.code;
+      select.appendChild(option);
+    });
+  }
+  Array.prototype.forEach.call(select.options, function(option) {
+    option.disabled = S.vitaMode === 'vita' && option.value === shade.code;
+  });
+  select.value = comparison.code;
+}
+
+function seleccionarComparacionVita(code) {
+  if (S.vitaMode === 'vita' && code === S.vitaTone) return;
+  if (!VITA_CLASSICAL.some(function(item) { return item.code === code; })) return;
+  S.vitaCompareTone = code;
+  actualizarResumenVita();
+  saveProgress('s-vita');
+}
+
 function actualizarResumenVita() {
   var shade = VITA_CLASSICAL.find(function(item) { return item.code === S.vitaTone; }) || VITA_CLASSICAL[1];
+  var comparison = obtenerTonoComparacionVita(shade);
   var code = document.getElementById('vita-selected-code');
   var copy = document.getElementById('vita-selected-copy');
-  var swatch = document.getElementById('vita-selected-swatch');
-  var compare = document.getElementById('vita-compare');
   var status = document.getElementById('vita-status');
+  var selectedPhoto = document.getElementById('vita-compare-selected-photo');
+  var alternatePhoto = document.getElementById('vita-compare-alt-photo');
+  var selectedBrand = document.getElementById('vita-compare-selected-brand');
+  var alternateBrand = document.getElementById('vita-compare-alt-brand');
+  var selectedCode = document.getElementById('vita-compare-selected-code');
+  var currentShade = {color:'#DDD5C6',hi:'#F7F2E8',lo:'#BBAE98',depth:.055};
   var props = propiedadesVita(shade);
   if (S.vitaMode === 'current') {
     if (code) code.textContent = 'Igualar tono actual';
     if (copy) copy.textContent = 'Conservar el color natural observado en la fotografía';
-    if (compare) compare.innerHTML = 'La IA no aplicará un código VITA más blanco';
-    if (status) status.textContent = 'Simulación configurada para conservar el tono actual';
+    if (status) status.textContent = 'Comparando el tono actual con VITA ' + comparison.code;
+    aplicarCarillaVita(selectedPhoto, currentShade);
+    if (selectedBrand) selectedBrand.textContent = 'TONO ACTUAL';
+    if (selectedCode) selectedCode.textContent = 'Tono actual';
   } else {
     if (code) code.textContent = 'VITA ' + shade.code;
     if (copy) copy.textContent = shade.copy + ' · ' + props.lightness;
-    var index = VITA_CLASSICAL.indexOf(shade);
-    var neighbor = VITA_CLASSICAL[index < VITA_CLASSICAL.length - 1 ? index + 1 : index - 1];
-    if (compare && neighbor) compare.innerHTML = '<span class="vita-mini" style="background:'+shade.color+'"></span>'+shade.code+' <span>vs.</span> <span class="vita-mini" style="background:'+neighbor.color+'"></span>'+neighbor.code;
-    if (status) status.textContent = 'Simulación configurada en VITA ' + shade.code;
+    if (status) status.textContent = 'Comparando VITA ' + shade.code + ' con VITA ' + comparison.code;
+    aplicarCarillaVita(selectedPhoto, shade);
+    if (selectedBrand) selectedBrand.textContent = 'VITA ' + shade.code;
+    if (selectedCode) selectedCode.textContent = 'VITA ' + shade.code;
   }
-  if (swatch) {
-    swatch.style.setProperty('--shade', shade.color);
-    swatch.style.setProperty('--shade-hi', shade.hi);
-    swatch.style.setProperty('--shade-lo', shade.lo);
-  }
+  aplicarCarillaVita(alternatePhoto, comparison);
+  if (alternateBrand) alternateBrand.textContent = 'VITA ' + comparison.code;
+  renderSelectorComparacionVita(shade, comparison);
   actualizarVistaPreviaVita();
 }
 
@@ -3973,12 +4088,36 @@ function buildNativeProgressDots() {
 }
 
 var NATIVE_TIPS_BY_ID = {
-  frontal:    ['😁 Sonríe mostrando bien los dientes', '💡 Busca buena iluminación', '📱 Sostén el teléfono frente a tu cara'],
-  right:      ['➡ Gira tu cabeza hacia la derecha', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
-  left:       ['⬅ Gira tu cabeza hacia la izquierda', '👄 Muestra los dientes laterales', '📏 Mantén el teléfono al nivel de tu cara'],
-  extraoral:  ['📏 Aléjate unos 50 cm, de hombros hacia arriba', '💡 Busca buena iluminación de frente', '📱 Cámara trasera para mejor calidad'],
-  intraoral:  ['👄 Abre bien la boca mostrando los dientes', '📏 Acércate, a unos 10-15 cm', '📱 Usa la cámara trasera y enfoca antes de tomar'],
-  tresCuartos:['↗ Gira la cabeza a un ángulo de 45°', '😁 Mantén la sonrisa natural', '📱 Cámara trasera, misma distancia que la frontal'],
+  frontal: [
+    {emoji:'😁',title:'Sonrisa amplia',text:'Muestra todos los dientes y mantén los labios relajados.'},
+    {emoji:'🎯',title:'Rostro centrado',text:'Mira al frente y coloca el teléfono a la altura de tus ojos.'},
+    {emoji:'☀️',title:'Luz de frente',text:'Evita contraluz, filtros y sombras sobre la boca.'}
+  ],
+  right: [
+    {emoji:'↪️',title:'Gira hacia tu derecha',text:'Mantén la cabeza recta y deja visible el perfil.'},
+    {emoji:'😁',title:'Conserva la sonrisa',text:'Muestra también los dientes laterales.'},
+    {emoji:'📱',title:'Misma altura',text:'No inclines el teléfono hacia arriba ni hacia abajo.'}
+  ],
+  left: [
+    {emoji:'↩️',title:'Gira hacia tu izquierda',text:'Mantén la cabeza recta y deja visible el perfil.'},
+    {emoji:'😁',title:'Conserva la sonrisa',text:'Muestra también los dientes laterales.'},
+    {emoji:'📱',title:'Misma altura',text:'No inclines el teléfono hacia arriba ni hacia abajo.'}
+  ],
+  tresCuartos: [
+    {emoji:'↗️',title:'Giro suave de 45°',text:'Deja visibles el frente y un costado de tu sonrisa.'},
+    {emoji:'😊',title:'Sonrisa natural',text:'Repite la misma expresión de la foto frontal.'},
+    {emoji:'📏',title:'Conserva la distancia',text:'Mantén el mismo encuadre y altura de la cámara.'}
+  ],
+  intraoral: [
+    {emoji:'👄',title:'Abre bien la boca',text:'Separa los labios y muestra dientes y encías.'},
+    {emoji:'🔍',title:'Acércate 10–15 cm',text:'Llena el encuadre sin cortar ningún diente.'},
+    {emoji:'✨',title:'Enfoca antes de tomar',text:'Limpia la lente y evita reflejos directos.'}
+  ],
+  extraoral: [
+    {emoji:'📏',title:'Aléjate unos 50 cm',text:'Incluye el rostro completo y la parte superior de los hombros.'},
+    {emoji:'☀️',title:'Iluminación uniforme',text:'Usa luz frontal y evita ventanas detrás de ti.'},
+    {emoji:'📷',title:'Cámara estable',text:'Sujeta el teléfono con ambas manos y no uses filtros.'}
+  ]
 };
 
 function updateNativeCameraUI() {
@@ -4001,6 +4140,12 @@ function updateNativeCameraUI() {
   // Guía SVG de encuadre/distancia para esta vista
   var guideWrap = document.getElementById('native-guide-svg');
   if (guideWrap) guideWrap.innerHTML = viewGuideSVG(view.svg);
+  var guideImage = document.getElementById('native-guide-image');
+  if (guideImage) {
+    guideImage.style.display = 'block';
+    guideImage.src = view.asset || '';
+    guideImage.alt = view.imageAlt || ('Ejemplo para ' + view.label.split('—')[0].trim());
+  }
 
   // "Saltar esta foto" no aplica a la frontal -- el resto del flujo la
   // necesita sí o sí (análisis facial + simulación final mostrada).
@@ -4054,7 +4199,7 @@ function updateNativeCameraTips() {
   var tips = NATIVE_TIPS_BY_ID[view.id] || NATIVE_TIPS_BY_ID.frontal;
   var el = document.getElementById('native-tips');
   if (el) el.innerHTML = tips.map(function(t) {
-    return '<div style="display:flex;align-items:center;gap:6px">' + t + '</div>';
+    return '<div class="native-tip"><span class="native-tip-emoji" aria-hidden="true">' + t.emoji + '</span><span class="native-tip-copy"><strong>' + t.title + '</strong><span>' + t.text + '</span></span></div>';
   }).join('');
 }
 
@@ -4216,9 +4361,10 @@ function openInSafari() {
       <img id="native-preview-img" style="width:100%;height:100%;object-fit:cover" alt="">
     </div>
 
-    <!-- Guía de encuadre (SVG estático, se actualiza por vista) -->
+    <!-- Ejemplo visual correspondiente a cada una de las seis fotografías -->
     <div id="native-cam-icon" class="native-guide-icon">
-      <div id="native-guide-svg"></div>
+      <div id="native-guide-svg" class="native-guide-fallback"></div>
+      <img id="native-guide-image" class="native-guide-image" src="icons/capture-frontal-v2.webp" alt="Ejemplo de fotografía frontal sonriendo" onerror="this.style.display='none'">
     </div>
 
     <div class="native-badge" id="native-step-badge">Foto 1 de 3</div>
@@ -4227,6 +4373,7 @@ function openInSafari() {
 
     <!-- Tips -->
     <div class="native-tips-card">
+      <div class="native-tips-heading"><span>✓</span>Antes de tomar la foto</div>
       <div id="native-tips" class="native-tips-list"></div>
     </div>
 
