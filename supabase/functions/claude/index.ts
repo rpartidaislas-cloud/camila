@@ -6,17 +6,13 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Modelos Gemini para generación de imagen (en orden de preferencia)
-const GEMINI_IMAGE_MODELS = [
-  { name: "gemini-2.5-flash-image", modalities: ["TEXT", "IMAGE"] },
-  { name: "gemini-3.1-flash-image", modalities: ["TEXT", "IMAGE"] },
-  { name: "gemini-3-pro-image",     modalities: ["TEXT", "IMAGE"] },
-];
+// Modelo de OpenAI para generación/edición de imagen
+const OPENAI_IMAGE_MODEL = "gpt-image-1";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  // Esta función gasta dinero real (Anthropic y Gemini). Sin esta verificación
+  // Esta función gasta dinero real (Anthropic y OpenAI). Sin esta verificación
   // respondía a un POST a pelo, sin ningún header, desde cualquier lado.
   const { user, response: authError } = await requireUser(req, CORS);
   if (authError) return authError;
@@ -26,11 +22,11 @@ Deno.serve(async (req: Request) => {
     console.log("Llamada de:", user?.id || "(sin sesión / acceso anónimo)");
     console.log("Body keys:", Object.keys(body).join(", "));
 
-    // ── GENERAR IMAGEN CON GEMINI ──────────────────────────────────────────
+    // ── GENERAR IMAGEN CON CHATGPT (gpt-image-1) ────────────────────────────
     if (body.action === "generate_image") {
-      const KEY = Deno.env.get("GEMINI_API_KEY");
+      const KEY = Deno.env.get("OPENAI_API_KEY");
       if (!KEY) {
-        return new Response(JSON.stringify({ error: "GEMINI_API_KEY no configurada en Supabase Secrets" }), {
+        return new Response(JSON.stringify({ error: "OPENAI_API_KEY no configurada en Supabase Secrets" }), {
           headers: { ...CORS, "Content-Type": "application/json" }, status: 500
         });
       }
@@ -42,59 +38,56 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      for (const model of GEMINI_IMAGE_MODELS) {
-        console.log(`Intentando Gemini: ${model.name}`);
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${KEY}`;
-          const gBody = {
-            contents: [{
-              parts: [
-                { inline_data: { mime_type: mimeType, data: imageBase64 } },
-                { text: prompt }
-              ]
-            }],
-            generationConfig: {
-              responseModalities: model.modalities,
-              temperature: 1,
-            }
-          };
+      try {
+        console.log(`Intentando OpenAI: ${OPENAI_IMAGE_MODEL}`);
+        const bytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+        const imageBlob = new Blob([bytes], { type: mimeType });
 
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(gBody)
-          });
-          const data = await resp.json();
+        const form = new FormData();
+        form.append("model", OPENAI_IMAGE_MODEL);
+        form.append("image", imageBlob, "foto.jpg");
+        form.append("prompt", prompt);
+        form.append("size", "auto");
+        form.append("quality", "high");
+        form.append("input_fidelity", "high");
+        form.append("n", "1");
 
-          if (!resp.ok) {
-            console.warn(`Gemini ${model.name} error:`, data.error?.message);
-            continue;
-          }
+        const resp = await fetch("https://api.openai.com/v1/images/edits", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${KEY}` },
+          body: form,
+        });
+        const data = await resp.json();
 
-          const parts = data.candidates?.[0]?.content?.parts ?? [];
-          const imgPart = parts.find((p: any) => p.inlineData);
-          if (!imgPart) {
-            console.warn(`Gemini ${model.name}: sin imagen en respuesta`);
-            continue;
-          }
-
-          console.log(`✓ Gemini ${model.name} OK`);
+        if (!resp.ok) {
+          console.error("OpenAI error:", JSON.stringify(data.error));
           return new Response(JSON.stringify({
-            imageBase64: imgPart.inlineData.data,
-            mimeType: imgPart.inlineData.mimeType || "image/png",
-            source: "gemini",
-            model: model.name,
-          }), { headers: { ...CORS, "Content-Type": "application/json" } });
-
-        } catch (e: any) {
-          console.warn(`Gemini ${model.name} excepción:`, e.message);
-          continue;
+            error: data.error?.message || "OpenAI no pudo generar la imagen."
+          }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
         }
-      }
 
-      return new Response(JSON.stringify({
-        error: "Gemini no pudo generar la imagen. Revisa los logs."
-      }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) {
+          console.warn("OpenAI: sin imagen en respuesta");
+          return new Response(JSON.stringify({
+            error: "OpenAI no devolvió ninguna imagen."
+          }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
+        }
+
+        console.log(`✓ OpenAI ${OPENAI_IMAGE_MODEL} OK`);
+        return new Response(JSON.stringify({
+          imageBase64: b64,
+          mimeType: "image/png",
+          source: "openai",
+          model: OPENAI_IMAGE_MODEL,
+        }), { headers: { ...CORS, "Content-Type": "application/json" } });
+
+      } catch (e: any) {
+        console.error("OpenAI excepción:", e.message);
+        return new Response(JSON.stringify({
+          error: "OpenAI no pudo generar la imagen. Revisa los logs."
+        }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
+      }
     }
 
     // ── CLAUDE / ANTHROPIC ─────────────────────────────────────────────────

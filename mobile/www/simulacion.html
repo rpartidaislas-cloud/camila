@@ -723,7 +723,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <div class="pr1"></div><div class="pr2"></div>
   </div>
   <div class="proc-title" id="proc-title">Analizando tu sonrisa...</div>
-  <div class="proc-sub" id="proc-sub-main">Claude y Gemini están trabajando en tu simulación personalizada</div>
+  <div class="proc-sub" id="proc-sub-main">Claude y ChatGPT están trabajando en tu simulación personalizada</div>
   <!-- El Wake Lock (evitar que la pantalla se bloquee) no funciona de forma
        confiable dentro de una PWA instalada en iOS -- si la pantalla se
        bloquea a medio proceso, iOS corta la conexión y la generación falla
@@ -1076,7 +1076,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
         Regenerar simulación con estos cambios
       </button>
-      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">Esto vuelve a generar la simulación con Gemini (~15-20 s). Las guías son solo de referencia visual, no cambian la foto.</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">Esto vuelve a generar la simulación con ChatGPT (~15-20 s). Las guías son solo de referencia visual, no cambian la foto.</div>
     </div>
   </div>
 </div>
@@ -2521,7 +2521,7 @@ async function processPhotos() {
   if (ring) ring.style.display = 'flex';
   if (list) list.style.display = 'flex';
   if (title) title.textContent = 'Analizando tu sonrisa...';
-  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Claude y Gemini están trabajando en tu simulación personalizada'; }
+  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Claude y ChatGPT están trabajando en tu simulación personalizada'; }
 
   // Show photo thumbs
   var photosEl = document.getElementById('proc-photos');
