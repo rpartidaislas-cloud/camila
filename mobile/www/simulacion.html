@@ -2839,15 +2839,16 @@ async function generateSimulation(clinicalPrompt, foto) {
   var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change.';
   var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
 
-  // Límite de 40s — si Gemini se cuelga, el paciente no se queda esperando
-  // sin explicación indefinidamente
+  // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
+  // sin explicación indefinidamente. ChatGPT (gpt-image-1) en calidad alta
+  // puede tardar bastante más que Gemini, así que el margen es generoso.
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
   var timeoutPromise = new Promise(function(_, reject) {
-    setTimeout(function(){ reject(new Error('La generación tardó demasiado. Intenta de nuevo.')); }, 40000);
+    setTimeout(function(){ reject(new Error('La generación tardó demasiado. Intenta de nuevo.')); }, 110000);
   });
   var resp = await Promise.race([fetchPromise, timeoutPromise]);
   var data = await resp.json();
