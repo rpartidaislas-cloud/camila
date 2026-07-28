@@ -48,7 +48,10 @@ Deno.serve(async (req: Request) => {
         form.append("image", imageBlob, "foto.jpg");
         form.append("prompt", prompt);
         form.append("size", "auto");
-        form.append("quality", "high");
+        // "high" tarda bastante más (a veces 2+ minutos) y el paciente está
+        // esperando en el celular -- "medium" es notablemente más rápido y
+        // sigue dando buena calidad para este caso de uso.
+        form.append("quality", "medium");
         form.append("input_fidelity", "high");
         form.append("n", "1");
 
