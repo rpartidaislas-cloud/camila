@@ -287,6 +287,20 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .install-banner{position:fixed;bottom:0;left:0;right:0;z-index:200;padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 12px);background:rgba(15,10,30,.96);border-top:1px solid rgba(91,71,224,.3);backdrop-filter:blur(20px);display:none;align-items:center;gap:12px;animation:slideUp .3s ease}
 .install-banner.show{display:flex}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+/* ── SELECTOR DE VISTAS (solo compu) — celular / tablet / escritorio ── */
+#dp-toggle{display:none;position:fixed;top:16px;right:16px;z-index:100000;gap:4px;padding:4px;border-radius:14px;background:rgba(18,14,30,.92);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+@media(min-width:900px){#dp-toggle{display:flex}}
+.dp-btn{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;border:none;background:transparent;color:rgba(255,255,255,.55);font:600 12px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.dp-btn:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.06)}
+.dp-btn.active{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff}
+#dp-overlay{display:none;position:fixed;inset:0;z-index:99998;background:#050308;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#dp-overlay.show{display:flex}
+.dp-frame-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.dp-frame{background:#000;border-radius:34px;border:6px solid #1c1c22;box-shadow:0 30px 90px rgba(0,0,0,.6);overflow:hidden}
+.dp-frame iframe{display:block;border:none}
+.dp-label{color:rgba(255,255,255,.4);font:600 11px Inter,sans-serif;letter-spacing:.4px;text-transform:uppercase}
+body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ib-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#5B47E0,#2C6BED);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
 .ib-text{flex:1;min-width:0}
 .ib-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:1px}
@@ -4288,7 +4302,81 @@ function openInSafari() {
   <button class="ios-close-btn" onclick="document.getElementById('ios-install').classList.remove('show')">Entendido</button>
 </div>
 
+<!-- ══ SELECTOR DE VISTAS (revisión desde compu) ══ -->
+<div id="dp-toggle">
+  <button class="dp-btn active" type="button" data-dp="desktop" onclick="cambiarVistaPreview('desktop')">💻 Compu</button>
+  <button class="dp-btn" type="button" data-dp="tablet" onclick="cambiarVistaPreview('tablet')">📟 Tablet</button>
+  <button class="dp-btn" type="button" data-dp="mobile" onclick="cambiarVistaPreview('mobile')">📱 Celular</button>
+</div>
+<div id="dp-overlay">
+  <div class="dp-frame-wrap">
+    <div class="dp-frame" id="dp-frame"></div>
+    <div class="dp-label" id="dp-label"></div>
+  </div>
+</div>
+
 <script>
+// ══ SELECTOR DE VISTAS (revisión desde compu) ══
+(function() {
+  var DP_SIZES = {
+    mobile: { w: 390, h: 844, label: 'Celular · 390 × 844' },
+    tablet: { w: 834, h: 1194, label: 'Tablet · 834 × 1194' }
+  };
+  var enPreviewIframe = window.self !== window.top || new URLSearchParams(location.search).get('dpPreview') === '1';
+
+  window.cambiarVistaPreview = function(modo) {
+    if (enPreviewIframe) return;
+    document.querySelectorAll('.dp-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.dp === modo);
+    });
+    var overlay = document.getElementById('dp-overlay');
+    var frame = document.getElementById('dp-frame');
+    var label = document.getElementById('dp-label');
+    if (modo === 'desktop') {
+      overlay.classList.remove('show');
+      document.body.classList.remove('dp-active');
+      frame.innerHTML = '';
+      return;
+    }
+    var cfg = DP_SIZES[modo];
+    frame.style.width = cfg.w + 'px';
+    frame.style.height = cfg.h + 'px';
+    aplicarEscalaPreview(cfg);
+    label.textContent = cfg.label;
+    if (!frame.querySelector('iframe')) {
+      var iframe = document.createElement('iframe');
+      var url = new URL(location.href);
+      url.searchParams.set('dpPreview', '1');
+      iframe.src = url.toString();
+      iframe.width = cfg.w;
+      iframe.height = cfg.h;
+      frame.appendChild(iframe);
+    } else {
+      var existente = frame.querySelector('iframe');
+      existente.width = cfg.w;
+      existente.height = cfg.h;
+    }
+    document.body.classList.add('dp-active');
+    overlay.classList.add('show');
+  };
+
+  function aplicarEscalaPreview(cfg) {
+    var frame = document.getElementById('dp-frame');
+    var maxW = window.innerWidth - 80;
+    var maxH = window.innerHeight - 140;
+    var scale = Math.min(1, maxW / cfg.w, maxH / cfg.h);
+    frame.style.transform = 'scale(' + scale + ')';
+    frame.style.transformOrigin = 'center center';
+  }
+
+  window.addEventListener('resize', function() {
+    if (enPreviewIframe) return;
+    var activo = document.querySelector('.dp-btn.active');
+    if (!activo || activo.dataset.dp === 'desktop') return;
+    aplicarEscalaPreview(DP_SIZES[activo.dataset.dp]);
+  });
+})();
+
 // ══ SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
