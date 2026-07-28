@@ -1655,7 +1655,12 @@ function renderGuiaVita() {
   actualizarResumenVita();
 }
 
+function vibrarSeleccionVita() {
+  try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+}
+
 function seleccionarTonoVita(code, centrar, guardar) {
+  var cambioTono = S.vitaMode !== 'vita' || S.vitaTone !== code;
   S.vitaTone = code;
   S.vitaMode = 'vita';
   var currentBtn = document.getElementById('vita-current-btn');
@@ -1666,11 +1671,13 @@ function seleccionarTonoVita(code, centrar, guardar) {
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
   actualizarResumenVita();
+  if (cambioTono) vibrarSeleccionVita();
   if (guardar !== false) saveProgress('s-vita');
   if (centrar) centrarTonoVita(true);
 }
 
 function seleccionarTonoActual() {
+  var cambioTono = S.vitaMode !== 'current';
   S.vitaMode = 'current';
   document.querySelectorAll('#vita-shades-sim .vita-stick').forEach(function(btn) {
     btn.classList.remove('selected');
@@ -1679,6 +1686,7 @@ function seleccionarTonoActual() {
   var currentBtn = document.getElementById('vita-current-btn');
   if (currentBtn) currentBtn.classList.add('active');
   actualizarResumenVita();
+  if (cambioTono) vibrarSeleccionVita();
   saveProgress('s-vita');
 }
 
