@@ -1656,6 +1656,13 @@ function renderGuiaVita() {
 }
 
 function vibrarSeleccionVita() {
+  try {
+    var cap = window.Capacitor;
+    if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.Haptics) {
+      cap.Plugins.Haptics.impact({ style: 'LIGHT' }).catch(function() {});
+      return;
+    }
+  } catch (e) {}
   try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
 }
 
