@@ -193,6 +193,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 @keyframes spin{to{transform:rotate(360deg)}}
 .proc-title{font-size:20px;font-weight:800;color:#fff;max-width:260px}
 .proc-sub{font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;max-width:240px}
+.proc-bar-wrap{width:100%;max-width:270px}
+.proc-bar-track{width:100%;height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.proc-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--p),var(--p2));width:0%;transition:width 500ms ease}
+.proc-bar-msg{font-size:11.5px;color:rgba(255,255,255,.45);text-align:center;margin-top:9px;min-height:14px;transition:opacity 300ms}
 .proc-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:270px}
 .pstep{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.3);transition:all 300ms}
 .pstep.active{color:#fff}
@@ -781,6 +785,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
        garantizar solo en ese contexto. -->
   <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:10px;color:rgba(255,255,255,.4);font-size:11px">
     <span>📱</span> No bloquees la pantalla mientras esperas
+  </div>
+  <div class="proc-bar-wrap">
+    <div class="proc-bar-track"><div class="proc-bar-fill" id="proc-bar-fill"></div></div>
+    <div class="proc-bar-msg" id="proc-bar-msg"></div>
   </div>
   <div class="proc-list" id="proc-list">
     <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tus fotografías con IA</div>
@@ -2607,6 +2615,62 @@ function liberarWakeLock() {
   }
 }
 
+// ══ BARRA DE PROGRESO DEL PROCESO ══
+// Los primeros ~12s tienen pasos reales (Claude analizando, etc.) y avanzan
+// a tiempos fijos. Pero la generación de la imagen con IA en calidad alta
+// puede tardar 30-90s más, y ahí es donde la pantalla se sentía "trabada"
+// -- después de esos 12s la barra sigue avanzando sola (cada vez más
+// despacio, sin llegar nunca al 100% hasta que el resultado real llegue) y
+// los mensajes van cambiando, para que se sienta que algo sigue pasando.
+var _procBarTimers = [];
+var _procMsgIndex = 0;
+var PROC_MENSAJES_ESPERA = [
+  'Esto puede tardar hasta un minuto más...',
+  'Afinando cada detalle de tu sonrisa...',
+  'La IA está cuidando que se vea natural...',
+  'Dando los últimos toques...',
+  'Ya casi está, gracias por tu paciencia...'
+];
+
+function iniciarBarraProgreso() {
+  var fill = document.getElementById('proc-bar-fill');
+  var msg = document.getElementById('proc-bar-msg');
+  if (!fill || !msg) return;
+  fill.style.width = '0%';
+  msg.textContent = '';
+  _procMsgIndex = 0;
+
+  // Fase 1: avanza en sincronía con los pasos reales (0-12s)
+  var hitos = [[0, 8], [3000, 24], [6000, 40], [9000, 54], [12000, 66]];
+  hitos.forEach(function(h) {
+    _procBarTimers.push(setTimeout(function() { fill.style.width = h[1] + '%'; }, h[0]));
+  });
+
+  // Fase 2: after 12s, avance lento e indefinido hacia 95% -- nunca llega,
+  // así nunca "miente" diciendo que ya terminó antes de tiempo
+  var pct = 66;
+  _procBarTimers.push(setTimeout(function iterar() {
+    pct = pct + (95 - pct) * 0.18;
+    fill.style.width = pct.toFixed(1) + '%';
+    msg.style.opacity = '0';
+    setTimeout(function() {
+      msg.textContent = PROC_MENSAJES_ESPERA[_procMsgIndex % PROC_MENSAJES_ESPERA.length];
+      _procMsgIndex++;
+      msg.style.opacity = '1';
+    }, 300);
+    _procBarTimers.push(setTimeout(iterar, 5500));
+  }, 12000));
+}
+
+function detenerBarraProgreso(completo) {
+  _procBarTimers.forEach(function(t) { clearTimeout(t); });
+  _procBarTimers = [];
+  var fill = document.getElementById('proc-bar-fill');
+  var msg = document.getElementById('proc-bar-msg');
+  if (completo && fill) fill.style.width = '100%';
+  if (msg) msg.textContent = '';
+}
+
 // El sistema libera el wake lock solo si la app pasa a segundo plano (se
 // apaga la pantalla, se cambia de app, etc.) — si el usuario vuelve
 // mientras la espera de IA sigue en curso, se vuelve a pedir.
@@ -2648,6 +2712,7 @@ async function processPhotos() {
       });
     }, d);
   });
+  iniciarBarraProgreso();
 
   try {
     // Step 1: Claude analyzes all 3 photos + generates diagnosis + quotation
@@ -2685,12 +2750,14 @@ async function processPhotos() {
     S.photos.forEach(function(photo, i) { S.results[photo.view] = resultados[i]; });
     S.result = S.results.frontal;
     S.baVistaActual = 'frontal';
+    detenerBarraProgreso(true);
     showResult();
 
   } catch(e) {
     console.error(e);
     mostrarErrorProceso(e);
   } finally {
+    detenerBarraProgreso();
     liberarWakeLock();
   }
 }
