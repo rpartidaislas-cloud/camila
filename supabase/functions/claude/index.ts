@@ -48,10 +48,11 @@ Deno.serve(async (req: Request) => {
         form.append("image", imageBlob, "foto.jpg");
         form.append("prompt", prompt);
         form.append("size", "auto");
-        // "high" tarda bastante más (a veces 2+ minutos) y el paciente está
-        // esperando en el celular -- "medium" es notablemente más rápido y
-        // sigue dando buena calidad para este caso de uso.
-        form.append("quality", "medium");
+        // "high" es la calidad más realista de gpt-image-1, pero puede tardar
+        // 1-2 minutos. El límite de espera del cliente ya se subió a 110s
+        // para darle margen -- se prioriza realismo sobre velocidad porque
+        // el resultado es lo que más importa aquí.
+        form.append("quality", "high");
         form.append("input_fidelity", "high");
         form.append("n", "1");
 
