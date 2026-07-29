@@ -218,10 +218,15 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
    hallazgos, plan) seguían ocupando espacio debajo, aunque no se vieran */
 .ba-wrap.ba-fullscreen{position:fixed;inset:0;z-index:60;height:100dvh!important;width:100vw;background:#000;display:flex;align-items:center;justify-content:center}
 .ba-wrap.ba-fullscreen .ba-base{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-/* object-fit:cover (el normal) hace zoom agresivo cuando la foto no tiene
-   la misma proporción que la pantalla completa — con "contain" se ve la
-   foto entera, necesario para poder alinearla con precisión */
-.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:contain!important}
+/* IMPORTANTE: tiene que usar el mismo object-fit/object-position que la
+   vista normal (cover, center top) -- antes usaba "contain" para ver la
+   foto entera sin recortar, pero eso hacía que el recorte visual cambiara
+   al salir de pantalla completa (cover sí recorta), así que cualquier
+   ajuste que el usuario calzara con precisión en modo alineación se veía
+   movido/desalineado en la vista normal aunque el offset guardado fuera
+   el mismo -- el bug no era el guardado, era que "contain" y "cover"
+   recortan la foto distinto */
+.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:cover!important;object-position:center top!important}
 .ba-base{position:relative;width:100%}
 .ba-base{position:relative;width:100%;overflow:hidden}
 .ba-base img{width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
@@ -2975,7 +2980,8 @@ function construirPromptGemini(diagnostico) {
 async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var tc = CFG.tenantConfig || {};
-  var basePrompt = 'DENTAL SMILE SIMULATION. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same lighting, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth. Pixel-perfect alignment with original photo.';
+  var basePrompt = 'DENTAL SMILE SIMULATION — LOCAL EDIT ONLY, NOT A FULL REGENERATION. Treat this as a surgical inpaint restricted to the teeth inside the mouth opening. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth.' +
+    ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the teeth from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. Do NOT change the skin tone, lips, gums, eyes, hair, clothing or background — not even a subtle global tint. The darker or more saturated the chosen tooth shade is, the MORE important it is to keep this isolated: a dark tooth shade must never make the model darken, cool down, warm up or recolor the rest of the image to "match" — the teeth are the only thing allowed to change color. Pixel-perfect alignment with original photo outside the mouth.';
 
   // Tono elegido en la guía VITA (o "igual al actual" si S.vitaMode==='current').
   // Es el reemplazo del tono que antes venía del cuestionario (ya removido).
@@ -3012,7 +3018,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   }
   var clinicalBlock = clinicalPrompt ? ' ' + clinicalPrompt : '';
   var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
-  var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change.';
+  var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change color/shape — skin tone, lighting and white balance of the rest of the photo must stay exactly as in the original, regardless of how dark or saturated the chosen tooth shade is.';
   var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
 
   // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
@@ -3706,6 +3712,10 @@ function initBASlider() {
   wrap.addEventListener('touchstart', function(e){ if (esControlDePanel(e.target)) { alignEnd(); return; } alignStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
   wrap.addEventListener('touchmove', function(e){ if (S.baAlignMode) alignMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
   wrap.addEventListener('touchend', alignEnd, {passive:true});
+  // iOS interrumpe el toque con touchcancel (no touchend) en varios casos
+  // -- gestos del sistema, scroll, etc. -- sin esto alignDrag se quedaba
+  // "pegado" hasta el siguiente toque.
+  wrap.addEventListener('touchcancel', alignEnd, {passive:true});
 
   // Reveal animation
   var p = 100;
