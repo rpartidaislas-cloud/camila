@@ -10,6 +10,38 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-07-30 (5) — Claude Code
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+**Por pedido explícito del usuario** (y porque coincide con las fallas de
+generación que reportó ese mismo día -- ver entradas de chat, probablemente
+varias llamadas paralelas a OpenAI en calidad alta agotando tiempo/cuota):
+`processPhotos()` ya NO genera automáticamente la simulación de las 6
+vistas en paralelo -- **solo genera la frontal**. Las demás (perfiles,
+extraoral, intraoral, 3/4) quedan sin generar hasta que el dentista/
+paciente elige esa vista y le da "Generar esta vista" (mismo botón que
+"Generar de nuevo", ahora con etiqueta dinámica según si la vista ya tiene
+resultado). Claude sigue analizando las 6 fotos igual que antes (no cambió
+`analyzeWithClaude()`) -- esto solo afecta qué vistas se mandan a generar
+imagen con OpenAI.
+
+Funciones tocadas: `processPhotos()` (ya no hace el `Promise.all` de las 6
+vistas), `cambiarVistaBA()` (ya no bloquea con alert al cambiar a una vista
+sin generar -- muestra la foto "antes" en ambos lados del slider),
+`renderResPhotos()` (marca "· sin generar" en la miniatura), nueva
+`actualizarBotonGenerar()` (cambia la etiqueta del botón), y
+`regenerarSimulacion()` (ahora también llama a `registrarDiagnosticoUsado()`
+-- toda generación real de imagen cuenta contra el límite del plan, no solo
+la automática).
+
+**Si Codex toca la pantalla de resultados (`#s-res`, `renderResPhotos`,
+`cambiarVistaBA`, el botón `#btn-regenerar`)**: ojo con este flujo -- ya no
+todas las vistas tienen `S.results[view]` poblado por default, el código
+que las use debe tolerar `null`.
+
+---
+
 ## 2026-07-30 (4) — Claude Code
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

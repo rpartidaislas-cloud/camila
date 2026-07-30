@@ -2754,25 +2754,22 @@ async function processPhotos() {
     var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
     S.promptGeminiUsado = clinicalPrompt || null;
 
-    // Step 2: Gemini generates simulations for las 3 vistas (frontal + 2
-    // perfiles), en paralelo — la frontal es obligatoria (si falla, se
-    // aborta todo como antes); los perfiles son "best effort", si uno
-    // falla no rompe el flujo, simplemente no hay comparación para esa vista
-    if (procSub) procSub.textContent = 'Generando tus simulaciones...';
-    // Gemini genera simulación para las 6 vistas, en paralelo — la frontal
-    // es obligatoria (si falla, se aborta todo como antes, con reintento);
-    // el resto son "best effort" con su propio reintento, si aun así fallan
-    // no rompen el flujo, esa vista simplemente no tendrá comparación
-    var resultados = await Promise.all(S.photos.map(function(photo) {
-      var intentarGenerar = function(){ return generateSimulation(clinicalPrompt, photo); };
-      if (photo.view === 'frontal') return conReintento(intentarGenerar);
-      return conReintento(intentarGenerar).catch(function(){return null;});
-    }));
+    // Step 2: ChatGPT genera la simulación SOLO de la foto frontal
+    // automáticamente -- las demás vistas (perfiles, extraoral, etc.) se
+    // quedan sin generar hasta que el dentista/paciente elija generarlas
+    // desde esa vista (ver cambiarVistaBA/regenerarSimulacion). Antes se
+    // generaban las 6 en paralelo en cada caso, lo que multiplicaba el
+    // costo y el riesgo de que alguna fallara sin necesidad -- Claude sigue
+    // analizando las 6 fotos para el diagnóstico, esto solo cambia cuáles
+    // se mandan a generar imagen.
+    if (procSub) procSub.textContent = 'Generando tu simulación...';
+    var frontalPhoto = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
+    var resultadoFrontal = await conReintento(function(){ return generateSimulation(clinicalPrompt, frontalPhoto); });
 
     S.diagnosis = claudeResult;
     S.results = {};
-    S.photos.forEach(function(photo, i) { S.results[photo.view] = resultados[i]; });
-    S.result = S.results.frontal;
+    S.photos.forEach(function(photo) { S.results[photo.view] = photo.view === frontalPhoto.view ? resultadoFrontal : null; });
+    S.result = resultadoFrontal;
     S.baVistaActual = 'frontal';
     detenerBarraProgreso(true);
     showResult();
@@ -3557,15 +3554,14 @@ async function regenerarSimulacion() {
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
     initBASlider();
+    renderResPhotos();
+    registrarDiagnosticoUsado();
   } catch (e) {
     alert(mensajeErrorRegenerar(e));
   } finally {
     liberarWakeLock();
-    if (btn) {
-      btn.style.opacity = '1';
-      btn.style.pointerEvents = 'auto';
-      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Generar de nuevo';
-    }
+    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    actualizarBotonGenerar();
   }
 }
 
@@ -3577,23 +3573,38 @@ function renderResPhotos() {
   var labels = {frontal:'Frontal', right:'Perfil Der.', left:'Perfil Izq.', extraoral:'Extraoral', intraoral:'Intraoral', tresCuartos:'Vista 3/4'};
   wrap.innerHTML = S.photos.map(function(p) {
     var activo = (S.baVistaActual || 'frontal') === p.view;
+    var sinGenerar = !((S.results || {})[p.view]);
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
-      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + '</span></div>';
+      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + (sinGenerar ? ';opacity:.55' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
+      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · sin generar' : '') + '</span></div>';
   }).join('');
 }
 
-// Cambia qué foto/simulación muestra el slider antes/después
+// Cambia qué foto/simulación muestra el slider antes/después. Las vistas
+// que no se generaron automáticamente (solo la frontal se genera sola,
+// ver processPhotos) se pueden ver igual -- muestran la foto original de
+// "antes" en ambos lados del slider y el botón "Generar de nuevo" cambia a
+// "Generar esta vista" para dejar claro que hay que pedirla primero.
 function cambiarVistaBA(view) {
   var photo = S.photos.find(function(p){return p.view === view;});
   if (!photo) return;
   var resultado = (S.results || {})[view];
-  if (!resultado) { alert('No se generó una simulación para esta vista. Puedes intentar "Generar de nuevo".'); return; }
   S.baVistaActual = view;
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
-  document.getElementById('img-a').src = resultado;
+  document.getElementById('img-a').src = resultado || ('data:image/jpeg;base64,' + photo.b64);
   initBASlider();
   renderResPhotos();
+  actualizarBotonGenerar();
+}
+
+// El mismo botón sirve para "generar por primera vez" (vista sin resultado
+// todavía) y "regenerar" (vista que ya tiene uno) -- solo cambia la
+// etiqueta para que quede claro cuál de los dos va a pasar.
+function actualizarBotonGenerar() {
+  var btn = document.getElementById('btn-regenerar');
+  if (!btn) return;
+  var tieneResultado = !!((S.results || {})[S.baVistaActual || 'frontal']);
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Generar de nuevo' : 'Generar esta vista');
 }
 
 // ══ RESULT ══
@@ -3612,6 +3623,7 @@ function showResult() {
 
   // 3 photo thumbs — tocar una cambia la vista del comparador antes/después
   renderResPhotos();
+  actualizarBotonGenerar();
 
   // Hallazgos
   var hals = d.hallazgos || [];
