@@ -2603,6 +2603,19 @@ async function conReintento(fn, intentos) {
   throw ultimoError;
 }
 
+// Limita cuánto se espera una promesa (típicamente un fetch) antes de
+// darla por perdida. Sin esto, un fetch que se cuelga a nivel de red (la
+// conexión se estanca sin dar error ni respuesta) deja al usuario viendo
+// la pantalla de carga para siempre, sin ningún aviso -- pasaba con
+// analyzeWithClaude/analizarConClaude, que no tenían ningún límite
+// (generateSimulation ya lo tenía, ahora los tres lo comparten).
+function conTimeout(promise, ms) {
+  var timeoutPromise = new Promise(function(_, reject) {
+    setTimeout(function(){ reject(new Error('La operación tardó demasiado. Intenta de nuevo.')); }, ms);
+  });
+  return Promise.race([promise, timeoutPromise]);
+}
+
 // ══ WAKE LOCK — evita que la pantalla se bloquee mientras Claude/Gemini
 // procesan las fotos (puede tardar 30-60s con las 6 vistas). Sin esto, si
 // el celular se bloquea a medio proceso el usuario tiene que desbloquear
@@ -2889,7 +2902,7 @@ async function analyzeWithClaude() {
   });
   content.push({type:'text', text: prompt});
 
-  var resp = await fetch(CFG.edgeUrl, {
+  var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
@@ -2897,7 +2910,9 @@ async function analyzeWithClaude() {
       max_tokens: 1200
     })
   });
+  var resp = await conTimeout(fetchPromise, 60000);
   var data = await resp.json();
+  if (data.error) throw new Error(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -2911,7 +2926,7 @@ async function analizarConClaude(fotoFrontalBase64) {
     {type:'text', text: CLAUDE_ANALISIS_SYSTEM_PROMPT}
   ];
 
-  var resp = await fetch(CFG.edgeUrl, {
+  var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
@@ -2919,7 +2934,9 @@ async function analizarConClaude(fotoFrontalBase64) {
       max_tokens: 800
     })
   });
+  var resp = await conTimeout(fetchPromise, 60000);
   var data = await resp.json();
+  if (data.error) throw new Error(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
