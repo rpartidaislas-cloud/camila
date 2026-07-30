@@ -1202,9 +1202,11 @@ function cargarTenantConfig(tid) {
       applyTenantBranding(CFG.tenantConfig);
     } catch(e) {}
   }
-  // Also try Supabase
+  // Also try Supabase -- manda el JWT del dentista logueado, no el anon key:
+  // la RLS de camila_tenants exige auth.uid() = id, así que con el anon key
+  // esto siempre regresaba vacío (silenciosamente, por el .catch de abajo).
   return fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email', {
-    headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey}
+    headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey)}
   }).then(function(r){return r.json();}).then(function(data) {
     if (data && data[0] && data[0].config && data[0].config.sim) {
       CFG.tenantConfig = data[0].config.sim;

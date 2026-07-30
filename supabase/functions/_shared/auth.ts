@@ -1,13 +1,13 @@
 // Verificación de sesión para las Edge Functions que gastan dinero real
-// (Anthropic, Gemini, Replicate).
+// (Anthropic, OpenAI, Replicate).
 //
-// Preferentemente hay que mandar el JWT de una sesión real de Supabase Auth
-// (el `access_token` que devuelve signInWithPassword). Por pedido explícito
-// se volvió a aceptar también la publishable key sin sesión -- ACEPTAR ESTO
-// SIGNIFICA QUE CUALQUIERA CON LA URL PUBLICADA PUEDE GASTAR LOS CRÉDITOS DE
-// ANTHROPIC/GEMINI/REPLICATE DE ESTE PROYECTO, sin pasar por el login del
-// cliente (un `curl` a pelo funciona igual). Si se quiere volver a cerrar,
-// basta con quitar el bloque "acepta la publishable key" de abajo.
+// Exige un JWT de sesión real de Supabase Auth (el `access_token` que
+// devuelve signInWithPassword) -- la publishable key SIN sesión ya no basta.
+// Antes se aceptaba también sin sesión ("acceso anónimo permitido por
+// pedido explícito"), lo que significaba que cualquiera con la URL
+// publicada podía gastar los créditos de Anthropic/OpenAI/Replicate de este
+// proyecto sin pasar por el login (un `curl` a pelo funcionaba igual). Se
+// revirtió: ahora rechaza cualquier llamada sin una sesión válida.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -38,13 +38,11 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (!jwt) return deny('No autenticado: falta el header Authorization.');
 
-  // Intenta resolver una sesión real. Si el token no es una sesión válida
-  // (p. ej. es la publishable key, o una key de otro proyecto), YA NO se
-  // rechaza la llamada -- se deja pasar como acceso anónimo (user: null).
-  // El caller debe manejar ese caso (p. ej. tomar tenantId del body en vez
-  // de la sesión, como hace segment-teeth).
+  // Si el token no resuelve a una sesión real (p. ej. es la publishable
+  // key, un JWT vencido, o de otro proyecto), se rechaza -- ya no se deja
+  // pasar como acceso anónimo.
   const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: null }));
   if (data?.user) return { user: { id: data.user.id, email: data.user.email }, response: null };
 
-  return { user: null, response: null };
+  return deny('Sesión inválida o vencida: inicia sesión de nuevo.');
 }

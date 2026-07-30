@@ -10,6 +10,52 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-07-30 (3) — Claude Code
+
+**Tocado:** `simulacion.html`, `supabase/functions/claude/index.ts`,
+`supabase/functions/segment-teeth/index.ts`,
+`supabase/functions/_shared/auth.ts`, `supabase/migrations/camila_tenants.sql`,
+base de datos del proyecto Supabase "Smyl".
+
+Se resolvieron los 2 pendientes que había dejado abiertos en la entrada
+anterior:
+
+1. **`camila_tenants` no existía** — se recreó (migración
+   `supabase/migrations/camila_tenants.sql`, ya aplicada en vivo) con el
+   esquema exacto que `simulacion.html`/`index.html`/`app.html` ya
+   asumían: `id` (= auth.uid() del dentista), `nombre`, `email`, `plan`,
+   `limite_diagnosticos`, `diagnosticos_usados`, `activo`, `vence_en`,
+   `config` (jsonb), más `stripe_customer_id`/`stripe_subscription_id` que
+   `stripe_billing.sql` ya asumía. RLS: cada dentista solo ve/edita su
+   propia fila. También corregí `cargarTenantConfig()` en simulacion.html,
+   que le mandaba el anon key en vez del token de sesión (con RLS activo,
+   nunca iba a poder leer nada así).
+   - **`camila_precios` sigue sin existir, a propósito no la toqué**: el
+     único lugar que la lee (`loadPrecios()` en simulacion.html) no manda
+     `tenant_id` en el query y ya cae de forma segura a `PRECIOS_DEFAULT` si
+     falla — pero el editor de precios en `app.html` (`guardarPrecios()`)
+     solo guarda en `localStorage`, nunca en Supabase. O sea que aunque
+     recreara la tabla, nunca se llenaría con nada real: la función de
+     "precios por clínica" está a medio construir entre estos dos archivos
+     y no coinciden en el diseño. Esto necesita una decisión de producto
+     (¿precios son por tenant? ¿cómo se sincronizan?) antes de tocar
+     código — no lo inventé por mi cuenta.
+2. **Acceso anónimo a los Edge Functions que gastan dinero real** —
+   `_shared/auth.ts` (`requireUser`) aceptaba explícitamente la publishable
+   key sin sesión como fallback ("por pedido explícito" según el comentario
+   viejo). Se revirtió: ahora cualquier llamada sin una sesión válida se
+   rechaza con 401. Afecta a `claude` (Anthropic + OpenAI) y `segment-teeth`
+   (Replicate) — las dos únicas funciones que importan este archivo
+   compartido. Ya desplegadas (`claude` v18, `segment-teeth` v13).
+
+**Si Codex ve errores 401 en algún flujo que antes "funcionaba sin login"**:
+es esperado, era el hueco de seguridad que se cerró. Si hace falta un modo
+de acceso sin cuenta para algo específico (demo pública, por ejemplo), debe
+diseñarse aparte (token de un solo uso con alcance limitado), no reabriendo
+el fallback anónimo genérico.
+
+---
+
 ## 2026-07-30 (2) — Claude Code
 
 **Tocado:** `simulacion.html`, `revision-clinica.html`,

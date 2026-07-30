@@ -331,11 +331,9 @@ serve(async (req) => {
     const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = await req.json();
     const target: Target = targetRaw === "gum" ? "gum" : "tooth";
 
-    // El tenant_id sale de la sesión cuando hay una real. Sin login (acceso
-    // anónimo permitido por pedido explícito), no hay sesión de la que
-    // sacarlo, así que se toma del body -- con el riesgo ya conocido de que
-    // el cliente puede mandar cualquier tenantId (el service role no
-    // respeta RLS). Sin login no hay forma de evitar esto del todo.
+    // requireUser ya garantiza que hay una sesión real llegados a este punto
+    // (si no, ya habría regresado authError arriba) -- tenantIdBody se deja
+    // solo como último fallback por si algún día llega aquí sin user.id.
     const tenantId = user?.id || tenantIdBody || null;
 
     if (!imageUrl) {
