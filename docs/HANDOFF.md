@@ -10,6 +10,52 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-07-30 (4) — Claude Code
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- **Límite de plan (`limite_diagnosticos`/`diagnosticos_usados`) no se
+  aplicaba en el flujo principal.** Solo `app.html` (su propia herramienta
+  de análisis, aparte del flujo de simulación) lo hacía cumplir.
+  `simulacion.html` — el que de verdad genera con Claude + OpenAI en cada
+  foto, el gasto real de IA — no chequeaba ni incrementaba nada. Se agregó:
+  `cargarTenantConfig()` ahora también trae `plan/limite_diagnosticos/
+  diagnosticos_usados/activo`; `processPhotos()` bloquea con alert si ya se
+  agotó el límite (antes de generar, no después); `registrarDiagnosticoUsado()`
+  incrementa el contador tras una generación exitosa.
+- **Esto sigue siendo enforcement del lado del cliente**, igual que en
+  `app.html` — no hay nada en el Edge Function `claude` que verifique el
+  límite server-side. Alguien que llame al Edge Function directamente
+  (con una sesión válida, ya no se puede sin login) podría saltárselo. No
+  agregué el enforcement server-side porque implica una decisión
+  de producto que no me correspondía tomar sola (¿qué cuenta como "un
+  diagnóstico"? ¿la simulación completa de un caso, o cada foto/vista
+  generada por separado? `simulacion.html` genera hasta 6 fotos por caso).
+  Queda pendiente si se quiere cerrar del todo antes de lanzar cobros reales.
+
+### Auditoría de Stripe (sin tocar código, solo lectura)
+
+`stripe-checkout`/`stripe-portal`/`stripe-webhook` están bien escritos
+(verifican firma, no exponen secrets), pero el cobro real está
+deliberadamente sin terminar: `STRIPE_PRICE_IDS` en `app.html` están vacíos
+a propósito (ya hay un aviso puesto: "Falta terminar de configurar el
+cobro"). Antes de activarlo de verdad falta, como mínimo:
+- Precios reales de Stripe (decisión de negocio, no técnica).
+- Confirmar que `stripe-checkout`/`stripe-portal` estén desplegadas con ese
+  nombre exacto (la última vez que pude ver el proyecto real antes de que
+  el conector se desconectara, solo vi `checkout` y `stripe-webhook`
+  desplegadas, no `stripe-checkout`/`stripe-portal` — sin confirmar 100%,
+  el conector se cayó a media revisión).
+- `stripe-webhook` tenía `verify_jwt: true` a nivel de plataforma de
+  Supabase -- Stripe no manda un JWT de Supabase en sus webhooks, así que
+  es probable que Supabase rechace los eventos antes de que la función los
+  procese. Hay que desactivar esa verificación para ese endpoint específico.
+- `APP_URL` (usado para success/cancel/return de Stripe) tiene un valor por
+  defecto que no es ningún dominio real del proyecto -- hay que configurar
+  el secret real.
+
+---
+
 ## 2026-07-30 (3) — Claude Code
 
 **Tocado:** `simulacion.html`, `supabase/functions/claude/index.ts`,

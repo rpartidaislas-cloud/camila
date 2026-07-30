@@ -1205,13 +1205,19 @@ function cargarTenantConfig(tid) {
   // Also try Supabase -- manda el JWT del dentista logueado, no el anon key:
   // la RLS de camila_tenants exige auth.uid() = id, así que con el anon key
   // esto siempre regresaba vacío (silenciosamente, por el .catch de abajo).
-  return fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email', {
+  // También trae el límite del plan -- antes solo app.html lo consultaba y
+  // lo hacía cumplir; aquí (el flujo que de verdad gasta IA) no se pedía.
+  return fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email,plan,limite_diagnosticos,diagnosticos_usados,activo', {
     headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey)}
   }).then(function(r){return r.json();}).then(function(data) {
     if (data && data[0] && data[0].config && data[0].config.sim) {
       CFG.tenantConfig = data[0].config.sim;
       localStorage.setItem('camila_sim_config_' + tid, JSON.stringify(CFG.tenantConfig));
       applyTenantBranding(CFG.tenantConfig);
+    }
+    if (data && data[0]) {
+      CFG.limiteDiagnosticos = data[0].limite_diagnosticos;
+      CFG.diagnosticosUsados = data[0].diagnosticos_usados;
     }
     return data && data[0];
   }).catch(function(){});
@@ -2686,6 +2692,17 @@ document.addEventListener('visibilitychange', function() {
 });
 
 async function processPhotos() {
+  // Límite del plan -- antes solo app.html (su propia herramienta de
+  // análisis, aparte) hacía cumplir esto; este flujo, que es el que de
+  // verdad genera con Claude + OpenAI en cada foto, no tenía ningún tope.
+  // Si el límite no cargó (config sin cargar aún, fetch falló), se deja
+  // pasar en vez de bloquear por un dato que pudo no haber llegado.
+  if (typeof CFG.limiteDiagnosticos === 'number' && typeof CFG.diagnosticosUsados === 'number'
+      && CFG.diagnosticosUsados >= CFG.limiteDiagnosticos) {
+    alert('Ya usaste tus ' + CFG.limiteDiagnosticos + ' diagnósticos de este mes.\n\nSube de plan en el panel para seguir generando simulaciones este mes.');
+    return;
+  }
+
   show('s-proc');
   solicitarWakeLock();
 
@@ -2759,6 +2776,7 @@ async function processPhotos() {
     S.baVistaActual = 'frontal';
     detenerBarraProgreso(true);
     showResult();
+    registrarDiagnosticoUsado();
 
   } catch(e) {
     console.error(e);
@@ -2767,6 +2785,27 @@ async function processPhotos() {
     detenerBarraProgreso();
     liberarWakeLock();
   }
+}
+
+// Contabiliza el diagnóstico contra el límite del plan (igual que hace
+// app.html para su propia herramienta de análisis). No bloquea la pantalla
+// de resultado si falla -- la simulación ya se generó y se le cobró el
+// costo real de IA de todas formas, así que perder el conteo local no debe
+// tapar el resultado con un error.
+function registrarDiagnosticoUsado() {
+  if (!CFG.tenantId || typeof CFG.diagnosticosUsados !== 'number') return;
+  var nuevoUsado = CFG.diagnosticosUsados + 1;
+  CFG.diagnosticosUsados = nuevoUsado;
+  fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + CFG.tenantId, {
+    method: 'PATCH',
+    headers: {
+      'apikey': CFG.supaKey,
+      'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ diagnosticos_usados: nuevoUsado }),
+  }).catch(function(){});
 }
 
 // Antes un fallo aquí mandaba alert() + de vuelta a la pantalla de inicio,
