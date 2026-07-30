@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyle-v16';
+const CACHE_VERSION = 'smyl-v17';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -64,10 +64,13 @@ self.addEventListener('fetch', function(e) {
     return; // Fetch normal, sin cache
   }
 
-  // Network first para HTML (siempre versión más reciente)
+  // Network first para HTML (siempre versión más reciente) -- cache:
+  // 'no-store' para que ni el navegador use una copia intermedia de su
+  // propio caché HTTP; sin esto, "red primero" podía seguir sirviendo un
+  // HTML no tan fresco dentro de la ventana de cache-control del servidor.
   if (e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html')) {
     e.respondWith(
-      fetch(e.request).then(function(response) {
+      fetch(e.request, { cache: 'no-store' }).then(function(response) {
         var clone = response.clone();
         caches.open(STATIC_CACHE).then(function(cache) {
           cache.put(e.request, clone);
