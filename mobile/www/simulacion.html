@@ -3103,21 +3103,40 @@ function generarUuid() {
 
 // La simulación de Gemini normalmente llega como data:image/...;base64,...
 // (nunca se sube a Storage) -- el editor de revisión necesita una URL
-// pública real para poder mandarla a segmentar. La sube solo si hace falta;
+// real para poder mandarla a segmentar. La sube solo si hace falta;
 // si ya es una URL http(s) (por ejemplo si algún día Gemini regresa
 // imageUrl en vez de imageBase64), la reutiliza tal cual.
+//
+// El bucket "camila-fotos" es privado y la carpeta va prefijada con el
+// tenant_id (auth.uid() del dentista) porque la política RLS de Storage
+// exige que coincidan -- sin el prefijo, el POST de subida es rechazado.
 async function subirResultadoAStorage(dataUrlOFoto, casoId) {
   if (/^https?:\/\//.test(dataUrlOFoto)) return dataUrlOFoto;
   const blob = await (await fetch(dataUrlOFoto)).blob();
   const ext = (blob.type.split('/')[1] || 'png').replace(/[^a-z0-9]/g, '') || 'png';
-  const path = casoId + '/simulacion_' + Date.now() + '.' + ext;
+  const path = (CFG.tenantId || 'sin-tenant') + '/' + casoId + '/simulacion_' + Date.now() + '.' + ext;
   const resp = await fetch(CFG.supaUrl + '/storage/v1/object/' + FOTOS_BUCKET + '/' + path, {
     method: 'POST',
     headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey), 'Content-Type': blob.type },
     body: blob,
   });
   if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
-  return CFG.supaUrl + '/storage/v1/object/public/' + FOTOS_BUCKET + '/' + path;
+  return await firmarUrlStorage(path);
+}
+
+// Bucket privado -- una URL directa ya no sirve (403), hace falta pedirle a
+// Supabase una URL firmada (token en el query string, con expiración) para
+// poder mostrarla en <img> o mandársela a un servicio externo (Replicate)
+// sin exponer el archivo a cualquiera con el link para siempre.
+async function firmarUrlStorage(path) {
+  const resp = await fetch(CFG.supaUrl + '/storage/v1/object/sign/' + FOTOS_BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { 'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expiresIn: 31536000 }), // ~1 año -- largo para no romper revisiones viejas, pero no es "para siempre"
+  });
+  if (!resp.ok) throw new Error((await resp.text().catch(function(){return resp.status;})));
+  const data = await resp.json();
+  return CFG.supaUrl + '/storage/v1' + data.signedURL;
 }
 
 async function abrirRevisionClinica() {

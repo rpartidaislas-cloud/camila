@@ -929,14 +929,14 @@ async function generarSimulacionIA(){
       let casoId = document.getElementById('casoId').value.trim();
       if (!casoId) { casoId = crypto.randomUUID(); document.getElementById('casoId').value = casoId; }
       const bytes = Uint8Array.from(atob(data.imageBase64), c => c.charCodeAt(0));
-      const path = `${casoId}/simulacion_${Date.now()}.png`;
+      const path = `${tenantIdSesion || 'sin-tenant'}/${casoId}/simulacion_${Date.now()}.png`;
       const base = obtenerStorageBaseUrl();
       const up = await fetch(`${base}/storage/v1/object/${FOTOS_BUCKET}/${path}`, {
         method: 'POST',
         headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (userToken || DB_KEY), 'Content-Type': data.mimeType || 'image/png' },
         body: bytes,
       });
-      if (up.ok) simulacionGeneradaUrl = `${base}/storage/v1/object/public/${FOTOS_BUCKET}/${path}`;
+      if (up.ok) simulacionGeneradaUrl = await firmarUrlStorage(path);
     } catch (eUp) {
       console.warn('No se pudo subir la simulación generada a Storage (se ve en pantalla pero no se guardará si recargas):', eUp);
     }
@@ -2486,7 +2486,7 @@ async function subirFotoLocal(file){
   }
 
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const path = `${casoId}/original_${Date.now()}.${ext}`;
+  const path = `${tenantIdSesion || 'sin-tenant'}/${casoId}/original_${Date.now()}.${ext}`;
 
   statusEl.textContent = 'Subiendo foto...';
   try {
@@ -2502,14 +2502,29 @@ async function subirFotoLocal(file){
     });
     if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
 
-    const publicUrl = `${base}/storage/v1/object/public/${FOTOS_BUCKET}/${path}`;
-    document.getElementById('imageUrl').value = publicUrl;
+    document.getElementById('imageUrl').value = await firmarUrlStorage(path);
     statusEl.textContent = '✓ Foto subida. Ya puedes segmentar.';
     document.getElementById('btnAbrirGenSim').disabled = false;
   } catch(err) {
-    statusEl.textContent = 'Error al subir la foto: ' + err.message + ' (¿existe el bucket "camila-fotos" en Supabase Storage, marcado como público?)';
+    statusEl.textContent = 'Error al subir la foto: ' + err.message + ' (¿iniciaste sesión? sin sesión no se puede subir a un bucket privado)';
     console.error('Error subiendo foto:', err);
   }
+}
+
+// Bucket privado -- una URL directa da 403; hace falta pedir una URL
+// firmada (token en el query string, con expiración) para poder mostrarla
+// o mandársela a un servicio externo (Replicate) sin dejarla pública para
+// siempre.
+async function firmarUrlStorage(path) {
+  const base = obtenerStorageBaseUrl();
+  const resp = await fetch(`${base}/storage/v1/object/sign/${FOTOS_BUCKET}/${path}`, {
+    method: 'POST',
+    headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (userToken || DB_KEY), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expiresIn: 31536000 }), // ~1 año
+  });
+  if (!resp.ok) throw new Error(await resp.text().catch(() => String(resp.status)));
+  const data = await resp.json();
+  return base + '/storage/v1' + data.signedURL;
 }
 
 document.getElementById('fotoArchivo').addEventListener('change', (e) => {

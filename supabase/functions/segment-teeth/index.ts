@@ -294,13 +294,22 @@ async function uploadAll(
       continue;
     }
 
-    const { data: publicUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    // El bucket es privado -- esta función corre con el service role (se
+    // salta RLS), así que puede firmar la URL aunque el cliente que la
+    // recibe no tenga permiso directo sobre el objeto.
+    const { data: signedUrlData, error: signError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (signError) {
+      console.error(`Error firmando ${path}:`, signError);
+      continue;
+    }
 
     masks.push({
       index: i,
       bbox: cand.bbox,
       pixelCount: cand.pixelCount,
-      maskUrl: publicUrlData.publicUrl,
+      maskUrl: signedUrlData.signedUrl,
       fdi: cand.fdi,
       parentFdi: cand.parentFdi,
     });
