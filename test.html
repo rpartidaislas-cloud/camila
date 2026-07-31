@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Test segment-teeth</title>
+<style>
+  body{font-family:-apple-system,sans-serif;background:#0d0d0f;color:#e8e8ec;padding:32px;max-width:700px;margin:0 auto}
+  h1{font-size:20px;margin-bottom:8px}
+  p{color:#8a8a95;font-size:13px;margin-bottom:24px}
+  label{display:block;font-size:13px;margin:14px 0 6px;color:#c0c0c8}
+  input{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#1a1a1e;color:#fff;font-size:13px}
+  button{margin-top:20px;padding:12px 24px;border-radius:8px;border:none;background:#7c6ff7;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:wait}
+  pre{margin-top:24px;background:#111;border:1px solid #333;border-radius:8px;padding:16px;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:500px;overflow:auto}
+  .ok{color:#34d399}
+  .err{color:#f87171}
+</style>
+</head>
+<body>
+  <h1>Probar segment-teeth</h1>
+  <p>Página local para probar la Edge Function sin usar terminal. Ábrela con doble clic en tu navegador.</p>
+
+  <label>Supabase Function URL</label>
+  <input id="fnUrl" value="https://gfogifozhhbzxhcbecgf.supabase.co/functions/v1/segment-teeth">
+
+  <label>Supabase anon/publishable key (para el header Authorization)</label>
+  <input id="anonKey" placeholder="sb_publishable_... o tu anon key">
+
+  <label>Image URL</label>
+  <input id="imageUrl" value="https://replicate.delivery/pbxt/PPUoY37f1WOfdYhKd6y4mpcZGyLtOintxgUj3hDS6KvZrQSO/image.png">
+
+  <label>Caso ID (UUID de camila_casos)</label>
+  <input id="casoId" placeholder="pega aquí el id del caso">
+
+  <label>Target ("tooth" o "gum")</label>
+  <input id="target" value="tooth">
+
+  <label>Tenant ID</label>
+  <input id="tenantId" placeholder="pega aquí el tenant_id">
+
+  <button id="btn" onclick="runTest()">Ejecutar prueba</button>
+
+  <pre id="output">Esperando...</pre>
+
+<script>
+async function runTest(){
+  const btn = document.getElementById('btn');
+  const out = document.getElementById('output');
+  btn.disabled = true;
+  btn.textContent = 'Ejecutando... (puede tardar 20-60s)';
+  out.textContent = 'Llamando a la función...';
+  out.className = '';
+
+  const fnUrl = document.getElementById('fnUrl').value.trim();
+  const anonKey = document.getElementById('anonKey').value.trim();
+  const imageUrl = document.getElementById('imageUrl').value.trim();
+  const casoId = document.getElementById('casoId').value.trim();
+  const tenantId = document.getElementById('tenantId').value.trim();
+
+  try {
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + anonKey
+      },
+      body: JSON.stringify({ imageUrl, casoId, tenantId, target: document.getElementById('target').value.trim() })
+    });
+
+    const text = await res.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch(e) { parsed = text; }
+
+    out.className = res.ok ? 'ok' : 'err';
+    out.textContent = 'Status: ' + res.status + '\n\n' + JSON.stringify(parsed, null, 2);
+  } catch(err) {
+    out.className = 'err';
+    out.textContent = 'Error de red / fetch:\n' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ejecutar prueba';
+  }
+}
+</script>
+</body>
+</html>

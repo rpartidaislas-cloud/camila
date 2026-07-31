@@ -1,0 +1,32 @@
+{
+  "name": "SMYLE · Panel del Doctor",
+  "short_name": "SMYLE Panel",
+  "description": "Administra tus casos, pacientes, precios y simulaciones de diseño de sonrisa",
+  "start_url": "/camila/app.html",
+  "scope": "/camila/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#3F8CFF",
+  "lang": "es",
+  "categories": ["health", "medical", "business"],
+  "icons": [
+    { "src": "icons/smyl_pwa.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "icons/smyl_pwa.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo diseño",
+      "short_name": "Nuevo",
+      "description": "Registrar un nuevo caso y cotización",
+      "url": "/camila/app.html?ir=nuevo-diseno",
+      "icons": [{ "src": "icons/smyl_pwa.png", "sizes": "96x96" }]
+    }
+  ]
+}
