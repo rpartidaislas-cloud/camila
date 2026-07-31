@@ -2918,10 +2918,17 @@ async function analyzeWithClaude() {
       max_tokens: 1200
     })
   });
-  // 100s -- manda hasta 6 fotos en una sola llamada a Claude, más lento que
-  // analizarConClaude (1 sola foto). El límite de 60s que se le puso antes
-  // era muy corto para esto y cortaba análisis que iban bien, solo lentos.
-  var resp = await conTimeout(fetchPromise, 100000, 'análisis de las fotos con Claude');
+  // 150s -- manda hasta 6 fotos en una sola llamada a Claude, más lento que
+  // analizarConClaude (1 sola foto). El servidor (Edge Function) ya puede
+  // tardar hasta 98s en su peor caso (8s verificando la sesión + 90s
+  // esperando a Anthropic antes de cortar solo). Con 100s aquí casi no
+  // había margen -- el navegador se rendía casi al mismo tiempo que el
+  // servidor iba a responder, así que el mismo error "tardó demasiado"
+  // podía aparecer aunque el servidor funcionara bien, solo por quedarse
+  // sin margen. 150s da un colchón real para la subida de las fotos y la
+  // respuesta, sin dejar al paciente esperando indefinidamente (sigue
+  // habiendo botón "Reintentar").
+  var resp = await conTimeout(fetchPromise, 150000, 'análisis de las fotos con Claude');
   var data = await resp.json();
   if (data.error) throw new Error(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
@@ -2946,7 +2953,11 @@ async function analizarConClaude(fotoFrontalBase64) {
       max_tokens: 800
     })
   });
-  var resp = await conTimeout(fetchPromise, 60000, 'análisis de proporciones faciales');
+  // 110s por la misma razón que analyzeWithClaude: el servidor puede
+  // tardar hasta 98s en su peor caso, así que 60s aquí era más corto que
+  // eso -- el navegador siempre se rendía antes de que el servidor
+  // pudiera responder.
+  var resp = await conTimeout(fetchPromise, 110000, 'análisis de proporciones faciales');
   var data = await resp.json();
   if (data.error) throw new Error(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
