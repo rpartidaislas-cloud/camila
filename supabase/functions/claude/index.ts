@@ -30,13 +30,22 @@ async function fetchConTimeout(url: string, opciones: RequestInit, ms: number): 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
+  // Diagnóstico: Supabase mata la función si pasa de 2s de tiempo de CPU
+  // real (NO cuenta el tiempo esperando a Anthropic/OpenAI, eso es I/O).
+  // Si eso vuelve a pasar, estas marcas dicen hasta dónde llegó antes de
+  // que la maten -- la última que se alcance a imprimir en los logs.
+  const t0 = performance.now();
+  const marca = (etiqueta: string) => console.log(`[t] ${etiqueta}: ${(performance.now() - t0).toFixed(0)}ms`);
+
   // Esta función gasta dinero real (Anthropic y OpenAI). Sin esta verificación
   // respondía a un POST a pelo, sin ningún header, desde cualquier lado.
   const { user, response: authError } = await requireUser(req, CORS);
   if (authError) return authError;
+  marca("después de requireUser");
 
   try {
     const body = await req.json();
+    marca("después de req.json()");
     console.log("Llamada de:", user?.id);
     console.log("Body keys:", Object.keys(body).join(", "));
 
@@ -58,8 +67,20 @@ Deno.serve(async (req: Request) => {
 
       try {
         console.log(`Intentando OpenAI: ${OPENAI_IMAGE_MODEL}`);
-        const bytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+        // OJO: Uint8Array.from(atob(str), c => c.charCodeAt(0)) -- que es lo
+        // que había aquí antes -- recorre el string como iterable (por code
+        // point, no por índice) e invoca una función por cada carácter. Para
+        // una foto de ~1MB en base64 eso es a un millón de llamadas lentas,
+        // fácil de comerse los 2s de CPU que Supabase permite por invocación
+        // (y ese límite NO cuenta el tiempo esperando a OpenAI, solo el de
+        // cómputo real -- por eso esto podía matar la función antes de que
+        // el fetch a OpenAI siquiera empezara). Un for indexado con
+        // charCodeAt(i) es mucho más rápido porque el JIT lo optimiza bien.
+        const binary = atob(imageBase64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         const imageBlob = new Blob([bytes], { type: mimeType });
+        marca("después de decodificar la foto (base64 → bytes)");
 
         const form = new FormData();
         form.append("model", OPENAI_IMAGE_MODEL);
@@ -148,6 +169,8 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("Claude — modelo:", anthropicBody.model);
+    const cuerpoSerializado = JSON.stringify(anthropicBody);
+    marca(`después de serializar el body para Anthropic (${(cuerpoSerializado.length / 1024).toFixed(0)}KB)`);
     const cResp = await fetchConTimeout("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -155,9 +178,11 @@ Deno.serve(async (req: Request) => {
         "x-api-key": CLAUDE_KEY,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify(anthropicBody),
+      body: cuerpoSerializado,
     }, 90000);
+    marca("después de recibir respuesta de Anthropic (fetch)");
     const cData = await cResp.json();
+    marca("después de parsear la respuesta de Anthropic");
     if (!cResp.ok) {
       console.error("Claude error:", JSON.stringify(cData));
       return new Response(JSON.stringify({ error: cData.error?.message || "Claude error" }), {
