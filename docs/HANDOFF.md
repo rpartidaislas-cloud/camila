@@ -10,6 +10,51 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-07-31 (3) — Claude Code
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+**Por pedido explícito del usuario** (para reducir aún más el riesgo de que
+`claude` Edge Function se pase del límite de tiempo de la plataforma, y
+porque tiene sentido clínico aparte): se invirtió el orden del flujo.
+
+- `processPhotos()` ya NO llama a `analyzeWithClaude()` (el diagnóstico
+  completo — score/hallazgos/plan/cotización, hasta 6 fotos en una sola
+  llamada, la más lenta y pesada) de forma automática. Sigue llamando a
+  `analizarConClaude()` (1 sola foto, análisis de proporciones faciales
+  solo para afinar el prompt de generación) y luego `generateSimulation()`
+  igual que antes — el paciente ve su simulación más rápido, sin esperar el
+  diagnóstico.
+- Nuevo botón "Solicitar diagnóstico" en la pantalla de resultado (`#s-res`)
+  — nuevo `<div id="diag-request-box">` (CTA, visible cuando `S.diagnosis`
+  es `null`) y `<div id="diag-content">` (envuelve el score-banner/
+  hallazgos/plan/cotización que ya existían, oculto hasta que hay
+  diagnóstico). Nueva función `solicitarDiagnostico()` llama a
+  `analyzeWithClaude()` bajo demanda y `renderDiagnostico()` (extraída del
+  antiguo `showResult()`) pinta el resultado.
+- **`analyzeWithClaude()` sigue leyendo `S.photos`** (las fotos originales
+  "antes"), nunca `S.result`/`S.results` (las simulaciones generadas) — no
+  hizo falta guardar nada nuevo para esto, el estado ya los mantenía
+  separados; solo había que mover CUÁNDO se llama, no arreglar una fuga de
+  qué foto se manda.
+- **No toqué** `guardarCaso()` (Guardar en expediente) — ya toleraba
+  `S.diagnosis` nulo (`d = S.diagnosis || {}`, guarda 0/arrays vacíos), así
+  que un dentista puede seguir guardando un caso con solo la simulación,
+  sin pedir diagnóstico primero. Si eso no es lo que se quiere (forzar a
+  pedir diagnóstico antes de guardar/compartir), es una decisión de
+  producto aparte, no la tomé por mi cuenta.
+- Textos del loader (`ps3`/`ps4` en `#s-proc`) actualizados — ya no dicen
+  "Generando diagnóstico clínico"/"Calculando cotización" (ya no pasa en
+  ese paso) sino "Ajustando proporciones faciales"/"Aplicando el tono de
+  tus carillas".
+
+**Si Codex toca `#s-res`, `showResult`, `renderResPhotos` o el CSS de
+`.cta-box`/`.score-banner`**: ojo con el nuevo `#diag-request-box`/
+`#diag-content` — son hermanos dentro de `.res-body`, y `renderDiagnostico()`
+alterna cuál se muestra según `S.diagnosis`.
+
+---
+
 ## 2026-07-31 (2) — Claude Code
 
 **Tocado:** `supabase/functions/claude/index.ts`.
