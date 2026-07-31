@@ -28,14 +28,16 @@ async function fetchConTimeout(url: string, opciones: RequestInit, ms: number): 
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-
-  // Diagnóstico: Supabase mata la función si pasa de 2s de tiempo de CPU
-  // real (NO cuenta el tiempo esperando a Anthropic/OpenAI, eso es I/O).
-  // Si eso vuelve a pasar, estas marcas dicen hasta dónde llegó antes de
-  // que la maten -- la última que se alcance a imprimir en los logs.
+  // Diagnóstico: esta es la PRIMERA línea de todo el código, antes de
+  // revisar la sesión o leer el body. Si ni esto aparece en los logs de una
+  // invocación real (POST), la función está muriendo por el tamaño del
+  // paquete que le llega (memoria), antes de que nuestro código corra --
+  // no es un problema de lógica ni de tiempo de CPU dentro del código.
   const t0 = performance.now();
   const marca = (etiqueta: string) => console.log(`[t] ${etiqueta}: ${(performance.now() - t0).toFixed(0)}ms`);
+  console.log(`[t] inicio -- método: ${req.method}, content-length: ${req.headers.get("content-length") || "?"}`);
+
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   // Esta función gasta dinero real (Anthropic y OpenAI). Sin esta verificación
   // respondía a un POST a pelo, sin ningún header, desde cualquier lado.
