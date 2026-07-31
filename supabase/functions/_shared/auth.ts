@@ -38,11 +38,24 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (!jwt) return deny('No autenticado: falta el header Authorization.');
 
-  // Si el token no resuelve a una sesión real (p. ej. es la publishable
-  // key, un JWT vencido, o de otro proyecto), se rechaza -- ya no se deja
-  // pasar como acceso anónimo.
-  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: null }));
+  // Esta llamada corre ANTES de cualquier otro código de la función (incluido
+  // el fetchConTimeout de claude/index.ts) -- si se queda colgada sin límite
+  // de tiempo, la plataforma mata el proceso a medio camino sin headers de
+  // CORS ("CORS error" en el navegador) y ningún timeout más adelante en el
+  // código llega siquiera a ejecutarse. Se le pone su propio límite (8s,
+  // suficiente para una llamada a la API de Auth de Supabase en condiciones
+  // normales) para que, si falla, devuelva una respuesta real con CORS en
+  // vez de dejar que la plataforma la corte a ciegas.
+  let seTardo = false;
+  const timeout = new Promise<{ data: null }>((resolve) => {
+    setTimeout(() => { seTardo = true; resolve({ data: null }); }, 8000);
+  });
+  const { data } = await Promise.race([
+    admin.auth.getUser(jwt).catch(() => ({ data: null })),
+    timeout,
+  ]);
   if (data?.user) return { user: { id: data.user.id, email: data.user.email }, response: null };
 
+  if (seTardo) return deny('No se pudo verificar la sesión a tiempo (Supabase Auth no respondió). Intenta de nuevo.');
   return deny('Sesión inválida o vencida: inicia sesión de nuevo.');
 }
