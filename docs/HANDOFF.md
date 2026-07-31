@@ -10,6 +10,42 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-07-31 (1) — Claude Code
+
+**Tocado:** `supabase/functions/_shared/auth.ts`.
+
+**Contexto:** falla persistente en producción — la generación se quedaba
+"Tardó demasiado" y en DevTools aparecía como "CORS error" (proceso de la
+Edge Function muerto por el propio límite de la plataforma, sin devolver
+headers). Ya se había agregado un `fetchConTimeout` (AbortController, 90s)
+alrededor de las llamadas a Anthropic/OpenAI en `claude/index.ts`
+(commit `c56e309`), pero la falla siguió idéntica después de desplegarlo.
+
+**Causa encontrada:** `requireUser()` en `_shared/auth.ts` llama a
+`admin.auth.getUser(jwt)` **antes** de que el código con el `fetchConTimeout`
+llegue a ejecutarse, y esa llamada no tenía ningún límite de tiempo propio.
+Si esa llamada específica se cuelga, la plataforma mata el proceso antes de
+que el fix anterior siquiera entre en juego — explica por qué el síntoma no
+cambió nada después de ese primer fix.
+
+**Fix:** `Promise.race` con un timeout de 8s alrededor de
+`admin.auth.getUser(jwt)`. Si se tarda, ahora responde 401 con CORS
+("No se pudo verificar la sesión a tiempo...") en vez de dejar que la
+plataforma corte el proceso a ciegas.
+
+**Desplegado:** commit `dcd7938`, pusheado. **Falta que el usuario corra
+`supabase functions deploy claude` de nuevo** (este archivo es compartido,
+así que se despliega junto con la función `claude`) y pruebe otra vez —
+no confirmado en vivo todavía.
+
+**Si esto tampoco resuelve el "CORS error" real:** el siguiente paso es
+obtener los logs reales de la Edge Function desde el dashboard de Supabase
+(Project → Edge Functions → claude → Logs) durante una falla en vivo —
+nunca se logró ver un log real de una invocación fallida en esta sesión,
+todo el diagnóstico fue por síntomas del lado del navegador (DevTools).
+
+---
+
 ## 2026-07-30 (5) — Claude Code
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
