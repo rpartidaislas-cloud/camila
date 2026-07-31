@@ -2609,9 +2609,9 @@ async function conReintento(fn, intentos) {
 // la pantalla de carga para siempre, sin ningún aviso -- pasaba con
 // analyzeWithClaude/analizarConClaude, que no tenían ningún límite
 // (generateSimulation ya lo tenía, ahora los tres lo comparten).
-function conTimeout(promise, ms) {
+function conTimeout(promise, ms, etiqueta) {
   var timeoutPromise = new Promise(function(_, reject) {
-    setTimeout(function(){ reject(new Error('La operación tardó demasiado. Intenta de nuevo.')); }, ms);
+    setTimeout(function(){ reject(new Error('tardó demasiado (' + (etiqueta || 'operación') + '). Intenta de nuevo.')); }, ms);
   });
   return Promise.race([promise, timeoutPromise]);
 }
@@ -2833,7 +2833,7 @@ function mensajeErrorRegenerar(e) {
     return 'Se perdió la conexión mientras se generaba — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Ya reintentó automáticamente 2 veces; puedes darle otra vez.';
   }
   if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
-    return 'La generación tardó demasiado y se canceló. Puede pasar con conexiones lentas. Puedes intentar de nuevo.';
+    return 'Tardó demasiado: ' + e.message.replace(/^tardó demasiado \(/i, '').replace(/\)\.?\s*Intenta de nuevo\.?$/i, '') + '. Puede pasar con conexiones lentas. Puedes intentar de nuevo.';
   }
   return 'No se pudo regenerar: ' + (e && e.message ? e.message : 'error desconocido') + '. Puedes intentar de nuevo.';
 }
@@ -2843,7 +2843,10 @@ function mostrarErrorProceso(e) {
   if (e && e.message === 'Load failed') {
     msg = 'Se perdió la conexión mientras se generaba tu simulación — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Tus fotos siguen guardadas, solo dale reintentar.';
   } else if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
-    msg = 'La generación tardó demasiado y se canceló. Puede pasar con conexiones lentas. Tus fotos siguen guardadas, solo dale reintentar.';
+    // El mensaje real ya trae "tardó demasiado (X)" con el paso exacto que
+    // se tardó -- se muestra tal cual en vez de un genérico "problema de
+    // conexión" para no tener que adivinar cuál de los 3 pasos fue.
+    msg = 'Tardó demasiado: ' + e.message.replace(/^tardó demasiado \(/i, '').replace(/\)\.?\s*Intenta de nuevo\.?$/i, '') + '. Puede pasar con conexiones lentas o mucha demanda. Tus fotos siguen guardadas, solo dale reintentar.';
   }
   var detail = document.getElementById('proc-error-detail');
   if (detail) detail.textContent = msg;
@@ -2910,7 +2913,10 @@ async function analyzeWithClaude() {
       max_tokens: 1200
     })
   });
-  var resp = await conTimeout(fetchPromise, 60000);
+  // 100s -- manda hasta 6 fotos en una sola llamada a Claude, más lento que
+  // analizarConClaude (1 sola foto). El límite de 60s que se le puso antes
+  // era muy corto para esto y cortaba análisis que iban bien, solo lentos.
+  var resp = await conTimeout(fetchPromise, 100000, 'análisis de las fotos con Claude');
   var data = await resp.json();
   if (data.error) throw new Error(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
@@ -2934,7 +2940,7 @@ async function analizarConClaude(fotoFrontalBase64) {
       max_tokens: 800
     })
   });
-  var resp = await conTimeout(fetchPromise, 60000);
+  var resp = await conTimeout(fetchPromise, 60000, 'análisis de proporciones faciales');
   var data = await resp.json();
   if (data.error) throw new Error(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
@@ -3084,10 +3090,7 @@ async function generateSimulation(clinicalPrompt, foto) {
     headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
-  var timeoutPromise = new Promise(function(_, reject) {
-    setTimeout(function(){ reject(new Error('La generación tardó demasiado. Intenta de nuevo.')); }, 110000);
-  });
-  var resp = await Promise.race([fetchPromise, timeoutPromise]);
+  var resp = await conTimeout(fetchPromise, 110000, 'generación de la imagen con IA');
   var data = await resp.json();
   if (data.error) throw new Error(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
