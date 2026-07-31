@@ -2909,6 +2909,11 @@ async function analyzeWithClaude() {
     method: 'POST',
     headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
+      // PRUEBA (reversible -- quitar esta línea para volver al modelo por
+      // defecto del Edge Function, Opus): Opus es el más lento de Claude;
+      // para extraer score/hallazgos/cotización en JSON, Sonnet debería
+      // rendir igual de bien y bastante más rápido con 6 fotos de un jalón.
+      model: 'claude-sonnet-4-5',
       messages: [{role:'user', content: content}],
       max_tokens: 1200
     })
@@ -2936,6 +2941,7 @@ async function analizarConClaude(fotoFrontalBase64) {
     method: 'POST',
     headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
     body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
       messages: [{role:'user', content: content}],
       max_tokens: 800
     })
