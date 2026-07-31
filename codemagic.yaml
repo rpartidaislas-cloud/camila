@@ -1,0 +1,31 @@
+workflows:
+  smyl-ios-simulator:
+    name: SMYL - iOS (simulador, sin firma)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      xcode: latest
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: claude/camila-claude-clinical-analysis-sywxjv
+          include: true
+    scripts:
+      - name: Instalar dependencias e instalar Capacitor
+        script: |
+          cd mobile
+          npm install
+          npx cap sync ios
+      - name: Compilar para el simulador de iOS (sin firma)
+        script: |
+          cd mobile/ios/App
+          xcodebuild -project App.xcodeproj \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+    artifacts:
+      - mobile/ios/App/build/**/*.app

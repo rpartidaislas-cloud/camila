@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>SMYL</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  :root{--p:#5B47E0;--p2:#2C6BED;--bg:#0A0A0F}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif;background:var(--bg);color:#fff;-webkit-font-smoothing:antialiased}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;padding:24px;text-align:center}
+  .logo{font-family:'Playfair Display',serif;font-size:34px;font-weight:700}
+  .tag{font-size:13px;color:rgba(255,255,255,.5);margin-top:-20px}
+  .cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:340px}
+  .card{display:flex;align-items:center;gap:14px;padding:18px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);text-decoration:none;color:#fff;text-align:left;transition:background 150ms}
+  .card:active{background:rgba(255,255,255,.12)}
+  .card-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:linear-gradient(135deg,var(--p),var(--p2))}
+  .card-title{font-size:15px;font-weight:700}
+  .card-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+</style>
+</head>
+<body>
+  <div>
+    <div class="logo">SMYL</div>
+    <div class="tag">Diseño de sonrisa digital</div>
+  </div>
+  <div class="cards">
+    <a class="card" href="simulacion.html">
+      <div class="card-ico">📸</div>
+      <div>
+        <div class="card-title">Paciente</div>
+        <div class="card-sub">Tomar fotos y ver mi simulación</div>
+      </div>
+    </a>
+    <a class="card" href="revision-clinica.html">
+      <div class="card-ico">🦷</div>
+      <div>
+        <div class="card-title">Dentista</div>
+        <div class="card-sub">Revisión clínica de casos</div>
+      </div>
+    </a>
+  </div>
+</body>
+</html>

@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>SMYLE · Diseño de Sonrisa Digital</title>
+<title>SMYL · Diseño de Sonrisa Digital</title>
 <link rel="manifest" href="manifest-app.json">
 <meta name="theme-color" content="#3F8CFF">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="SMYLE Panel">
+<meta name="apple-mobile-web-app-title" content="SMYL Panel">
 <link rel="icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" sizes="152x152" href="icons/smyl_pwa.png">
@@ -626,7 +626,7 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 }
 
 /* ============================================
-   SMYLE — MEJORAS DIAGNÓSTICO IA
+   SMYL — MEJORAS DIAGNÓSTICO IA
    ============================================ */
 html,body{touch-action:pan-x pan-y;-webkit-user-scalable:none;user-scalable:none;overflow-x:hidden}
 input,textarea,select{touch-action:manipulation;font-size:16px!important}
@@ -688,7 +688,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <div id="auth-gate-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
   <div style="width:100%;max-width:400px;background:var(--color-surface);border-radius:22px;padding:28px 24px;box-shadow:0 24px 60px rgba(15,23,42,.18)">
-    <div style="font-size:19px;font-weight:800;color:var(--color-text-primary);margin-bottom:2px">SMYLE</div>
+    <div style="font-size:19px;font-weight:800;color:var(--color-text-primary);margin-bottom:2px">SMYL</div>
     <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:18px">Accede a tu cuenta</div>
     <div style="display:flex;background:var(--color-surface-raised);border-radius:13px;padding:4px;margin-bottom:18px">
       <div id="ag-tab-login" class="ag-tab activo" role="tab" tabindex="0" onclick="switchAuthGateTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('login')}">Iniciar sesión</div>
@@ -726,7 +726,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   <div class="sidebar">
     <div class="sb-logo">
       <div>
-        <img src="icons/smyl_logo.png" alt="SMYLE" style="height:20px;width:auto;display:block;margin-bottom:3px">
+        <img src="icons/smyl_logo.png" alt="SMYL" style="height:20px;width:auto;display:block;margin-bottom:3px">
         <span>Diseño de Sonrisa · IA</span>
       </div>
     </div>
@@ -819,7 +819,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="pantalla" id="p-bienvenida">
         <div class="card" style="text-align:center;padding:32px 24px;margin-bottom:20px">
           <div style="font-size:32px;margin-bottom:8px">🎉</div>
-          <h2 style="font-size:20px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px" id="bienvenida-nombre">¡Bienvenido a SMYLE!</h2>
+          <h2 style="font-size:20px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px" id="bienvenida-nombre">¡Bienvenido a SMYL!</h2>
           <p style="font-size:13px;color:var(--color-text-secondary);max-width:420px;margin:0 auto">Tu cuenta ya está lista. Aquí tienes lo esencial antes de tu primer caso.</p>
         </div>
 
@@ -1435,7 +1435,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <div class="collab-empty">
             <div class="icon">🤝</div>
             <h3>Colaboraciones próximamente</h3>
-            <p>Podrás compartir casos con otros especialistas y recibir segundas opiniones. <br>Disponible en SMYLE v1.1</p>
+            <p>Podrás compartir casos con otros especialistas y recibir segundas opiniones. <br>Disponible en SMYL v1.1</p>
           </div>
         </div>
       </div>
@@ -1571,7 +1571,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza cómo la IA genera el diagnóstico y la simulación para tus pacientes.</p>
 
           <div class="fg">
-            <label>Instrucción para Gemini (simulación visual)</label>
+            <label>Instrucción para ChatGPT (simulación visual)</label>
             <textarea id="sc-gemini-prompt" rows="3" placeholder="Ej. Genera carillas de porcelana e.max ultra-realistas. Mantén exactamente la misma persona, solo cambia los dientes. Resultado natural, no exagerado..."></textarea>
           </div>
           <div class="fg">
@@ -1925,9 +1925,9 @@ if (_diagTarget) _diagObs.observe(_diagTarget, {childList:true, subtree:true});
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
-      console.log('[SMYLE PWA] SW registered:', reg.scope);
+      console.log('[SMYL PWA] SW registered:', reg.scope);
     }).catch(function(err) {
-      console.warn('[SMYLE PWA] SW failed:', err);
+      console.warn('[SMYL PWA] SW failed:', err);
     });
   });
 }
@@ -1975,7 +1975,7 @@ var sb;
 try {
   sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 } catch (e) {
-  console.error('[SMYLE] No se pudo inicializar Supabase (¿sin internet o CDN bloqueado?):', e);
+  console.error('[SMYL] No se pudo inicializar Supabase (¿sin internet o CDN bloqueado?):', e);
   window.addEventListener('DOMContentLoaded', function() {
     var banner = document.createElement('div');
     banner.textContent = '⚠ Sin conexión con el servidor — trabajando en modo local, algunos datos no se sincronizarán.';
@@ -2747,7 +2747,7 @@ function cargarSimConfig() {
 
 function renderBienvenida() {
   var el = document.getElementById('bienvenida-nombre');
-  if (el) el.textContent = '¡Bienvenido a SMYLE, ' + (tenantData.nombre || 'Doctor') + '! 🎉';
+  if (el) el.textContent = '¡Bienvenido a SMYL, ' + (tenantData.nombre || 'Doctor') + '! 🎉';
 }
 
 async function guardarSimConfig() {
@@ -3218,10 +3218,10 @@ async function cargarHistorial() {
     // Si Supabase rechaza la consulta (p.ej. porque alguna columna del
     // select no existe en la tabla) esto fallaba en silencio y el
     // historial se veía "vacío" sin ninguna pista de por qué.
-    if (res.error) console.error('[SMYLE] Historial: Supabase rechazó la consulta:', res.error);
+    if (res.error) console.error('[SMYL] Historial: Supabase rechazó la consulta:', res.error);
     if (res.data && res.data.length) casos = res.data;
   } catch(e) {
-    console.error('[SMYLE] Historial: error de red/timeout consultando Supabase:', e);
+    console.error('[SMYL] Historial: error de red/timeout consultando Supabase:', e);
   }
 
   // Fallback to localStorage
@@ -3553,7 +3553,7 @@ async function cargarNotificaciones() {
     var res = await sbTimeout(sb.from('camila_notificaciones').select('*').order('created_at', {ascending:false}));
     lista = res.data || [];
   } catch(e) {
-    lista = [{id:'1', titulo:'Bienvenido a SMYLE v1.0', cuerpo:'Tu plataforma de diseño de sonrisa digital con IA ya está lista.', tipo:'info', created_at:new Date().toISOString()}];
+    lista = [{id:'1', titulo:'Bienvenido a SMYL v1.0', cuerpo:'Tu plataforma de diseño de sonrisa digital con IA ya está lista.', tipo:'info', created_at:new Date().toISOString()}];
   }
   var leidas = JSON.parse(localStorage.getItem('camila_notis_leidas_' + tenantId) || '[]');
   var noLeidas = lista.filter(function(n) { return leidas.indexOf(n.id) === -1; }).length;
@@ -3654,7 +3654,7 @@ function compartirConPaciente() {
     var waMsg = '¡Hola ' + nomPaciente.trim() + '! 😊 Aquí está tu Diseño de Sonrisa Digital personalizado.\n\nPuedes ver:\n✅ Cómo quedarían tus dientes\n✅ El plan de tratamiento\n✅ Tu cotización\n\n👇 Ábrelo aquí:\n' + url;
     if (navigator.share) {
       navigator.share({
-        title: 'Tu Diseño de Sonrisa · SMYLE',
+        title: 'Tu Diseño de Sonrisa · SMYL',
         text: waMsg,
         url: url,
       }).catch(function() {});
@@ -3742,7 +3742,7 @@ function generarPDF() {
   var txPxHTML = textoPx ? '<div class="seccion texto-px-pdf"><div class="sec-titulo">💬 Explicación para el Paciente</div><p>' + textoPx + '</p></div>' : '';
 
   var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-    '<title>SMYLE — ' + nombreCaso + '</title>' +
+    '<title>SMYL — ' + nombreCaso + '</title>' +
     '<style>' +
     'body{font-family:Arial,sans-serif;margin:0;padding:0;color:#1a1a2e;background:#fff;font-size:13px}' +
     '.header{background:linear-gradient(135deg,#7C3AED,#2563EB);color:#fff;padding:28px 36px;display:flex;justify-content:space-between;align-items:center}' +
@@ -3785,7 +3785,7 @@ function generarPDF() {
     '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}}' +
     '</style></head><body>' +
     '<div class="header">' +
-    '<div class="header-left"><h1>SMYLE</h1><p>Diseño de Sonrisa Digital · IA</p>' +
+    '<div class="header-left"><h1>SMYL</h1><p>Diseño de Sonrisa Digital · IA</p>' +
     '<div style="margin-top:12px;font-size:13px;opacity:.9"><strong>' + nombreCaso + '</strong><br>' +
     doctor + ' · ' + consultorio + (ciudad ? ' · ' + ciudad : '') + '<br>' +
     'Fecha: ' + fecha + '</div></div>' +
@@ -3799,7 +3799,7 @@ function generarPDF() {
     txPxHTML +
     '</div>' +
     '<div class="footer">' +
-    '<span>Generado con <strong>SMYLE</strong> — Cotización y Análisis Médico Inteligente para La Estética dental</span>' +
+    '<span>Generado con <strong>SMYL</strong> — Cotización y Análisis Médico Inteligente para La Estética dental</span>' +
     '<span>© 2025 <strong>Dr. Hernán Partida Islas</strong> · Propiedad Intelectual</span>' +
     '</div>' +
     '</body></html>';

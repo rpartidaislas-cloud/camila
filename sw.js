@@ -1,6 +1,6 @@
-// SMYLE PWA Service Worker
+// SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyle-v4';
+const CACHE_VERSION = 'smyl-v17';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -11,6 +11,8 @@ const STATIC_FILES = [
   '/camila/app.html',
   '/camila/manifest-app.json',
   '/camila/icons/smyl_pwa.png',
+  '/camila/icons/smyl_logo.png',
+  '/camila/icons/vita/vita-master-photo.webp',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
 ];
@@ -62,10 +64,13 @@ self.addEventListener('fetch', function(e) {
     return; // Fetch normal, sin cache
   }
 
-  // Network first para HTML (siempre versión más reciente)
+  // Network first para HTML (siempre versión más reciente) -- cache:
+  // 'no-store' para que ni el navegador use una copia intermedia de su
+  // propio caché HTTP; sin esto, "red primero" podía seguir sirviendo un
+  // HTML no tan fresco dentro de la ventana de cache-control del servidor.
   if (e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html')) {
     e.respondWith(
-      fetch(e.request).then(function(response) {
+      fetch(e.request, { cache: 'no-store' }).then(function(response) {
         var clone = response.clone();
         caches.open(STATIC_CACHE).then(function(cache) {
           cache.put(e.request, clone);
@@ -103,7 +108,7 @@ self.addEventListener('fetch', function(e) {
 self.addEventListener('push', function(e) {
   if (!e.data) return;
   var data = e.data.json();
-  self.registration.showNotification(data.title || 'SMYLE', {
+  self.registration.showNotification(data.title || 'SMYL', {
     body: data.body || 'Tienes una nueva simulación lista',
     icon: '/camila/icons/smyl_pwa.png',
     badge: '/camila/icons/smyl_pwa.png',
