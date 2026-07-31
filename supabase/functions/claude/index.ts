@@ -9,6 +9,24 @@ const CORS = {
 // Modelo de OpenAI para generación/edición de imagen
 const OPENAI_IMAGE_MODEL = "gpt-image-1";
 
+// La plataforma de Supabase mata la función si se pasa de su propio límite
+// de tiempo -- cuando eso pasa, el navegador ve la conexión cortada a medio
+// camino SIN los headers de CORS (porque el proceso murió antes de poder
+// responder nada), y lo reporta como "CORS error" en vez de un error claro.
+// Para que eso no vuelva a pasar, cada llamada externa (Anthropic, OpenAI)
+// se corta ANTES de ese límite, desde nuestro propio código, para siempre
+// devolver una respuesta real (con sus headers) en vez de dejar que la
+// plataforma mate el proceso a medias.
+async function fetchConTimeout(url: string, opciones: RequestInit, ms: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...opciones, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -57,11 +75,11 @@ Deno.serve(async (req: Request) => {
         form.append("input_fidelity", "high");
         form.append("n", "1");
 
-        const resp = await fetch("https://api.openai.com/v1/images/edits", {
+        const resp = await fetchConTimeout("https://api.openai.com/v1/images/edits", {
           method: "POST",
           headers: { "Authorization": `Bearer ${KEY}` },
           body: form,
-        });
+        }, 90000);
         const data = await resp.json();
 
         if (!resp.ok) {
@@ -130,7 +148,7 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("Claude — modelo:", anthropicBody.model);
-    const cResp = await fetch("https://api.anthropic.com/v1/messages", {
+    const cResp = await fetchConTimeout("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,7 +156,7 @@ Deno.serve(async (req: Request) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify(anthropicBody),
-    });
+    }, 90000);
     const cData = await cResp.json();
     if (!cResp.ok) {
       console.error("Claude error:", JSON.stringify(cData));
@@ -151,10 +169,16 @@ Deno.serve(async (req: Request) => {
     });
 
   } catch (e: any) {
+    // AbortError = lo cortó fetchConTimeout porque Anthropic/OpenAI no
+    // respondieron a tiempo -- se distingue para que el mensaje sea claro
+    // en vez de un genérico "AbortError" o "signal is aborted".
+    const esTimeout = e?.name === "AbortError";
     console.error("Excepción:", e.message);
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({
+      error: esTimeout ? "La IA (Anthropic/OpenAI) no respondió a tiempo. Intenta de nuevo." : e.message
+    }), {
       status: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" }
+      headers: { ...CORS, "Content-Type": "application/json" }
     });
   }
 });
