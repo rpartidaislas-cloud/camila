@@ -10,6 +10,47 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-07-31 (2) — Claude Code
+
+**Tocado:** `supabase/functions/claude/index.ts`.
+
+**CAUSA REAL encontrada** (con datos del dashboard de Supabase, no
+especulación): en Invocations, cada POST real a la función `claude`
+devolvía **503** (100% de las veces), mientras que los OPTIONS (preflight)
+daban 200 normal. 503 = la plataforma mató la función por pasarse de su
+límite de **2 segundos de tiempo de CPU real por invocación** — límite fijo
+en TODOS los planes de Supabase (Free y Pro), no cuenta el tiempo esperando
+a Anthropic/OpenAI (eso es I/O), solo cómputo real. Todo lo que se ajustó
+antes (entrada (1) de hoy, y los timeouts de la sesión anterior) apuntaba a
+límites de *tiempo de espera*, que nunca fueron la causa real.
+
+**Corregido:** en `generate_image`, la conversión de la foto de base64 a
+bytes usaba `Uint8Array.from(atob(str), c => c.charCodeAt(0))` — itera el
+string como iterable (no por índice) e invoca una función por cada
+carácter; para una foto de ~1MB en base64 son ~1M llamadas lentas, capaces
+de agotar los 2s de CPU por sí solas. Reemplazado por un for indexado con
+`charCodeAt(i)`, mucho más rápido para el JIT.
+
+**Agregado:** marcas de tiempo (`performance.now()`) en cada paso del
+handler (después de `requireUser`, después de `req.json()`, después de
+serializar el body para Anthropic con su tamaño en KB, después del fetch,
+después de parsear la respuesta). Si la función se vuelve a matar, el log
+va a decir exactamente hasta dónde llegó — ya no hace falta seguir
+adivinando.
+
+**Si esto no resuelve el 503 del todo:** lo más probable es que el cuello
+de botella esté en el parseo/serialización del JSON cuando van las 6 fotos
+juntas (`analyzeWithClaude` en `simulacion.html`, ~1-2MB de body). La
+solución en ese caso sería reducir el tamaño de las fotos que se mandan a
+analizar (resolución/calidad más baja específicamente para el análisis, no
+para lo que ve el paciente) — no se tocó todavía porque falta confirmar con
+las marcas de tiempo si de verdad es ahí donde se va el CPU.
+
+**Desplegado:** commit `01c263a`, pusheado. Falta que el usuario corra
+`supabase functions deploy claude` y pruebe de nuevo.
+
+---
+
 ## 2026-07-31 (1) — Claude Code
 
 **Tocado:** `supabase/functions/_shared/auth.ts`.
