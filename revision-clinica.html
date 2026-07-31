@@ -76,7 +76,7 @@
   .controls{background:var(--card);border:1px solid var(--card-b);border-radius:20px;padding:18px;min-width:280px;flex:1;box-shadow:0 24px 70px rgba(0,0,0,.3)}
   .controls h3{font-size:13px;margin-bottom:10px;color:#fff;font-weight:700;letter-spacing:.1px}
   .tooth-select{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-  .tooth-chip{padding:7px 10px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer;font-weight:600;transition:background 120ms,color 120ms,box-shadow 120ms}
+  .tooth-chip{padding:7px 10px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer;font-weight:600;transition:background 120ms,color 120ms,box-shadow 120ms;display:inline-flex;align-items:center;gap:6px}
   .tooth-chip:hover:not(.selected){background:rgba(255,255,255,.1);color:#fff}
   .chip{padding:8px 4px;border-radius:10px;border:1px solid var(--card-b);background:var(--field);color:var(--text-dim);font-size:11px;cursor:pointer;text-align:center;font-weight:600;transition:background 120ms,color 120ms}
   .chip.active{border-color:transparent;color:#fff;background:var(--grad)}
@@ -85,6 +85,40 @@
   .sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint);padding-bottom:5px;border-bottom:1px solid var(--card-b);margin-bottom:8px}
   .tooth-chip.selected{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(91,71,224,.35)}
   .tooth-chip.fragment{opacity:.38;font-style:normal}
+  .tooth-chip-remove{display:none;width:22px;height:22px;flex:0 0 22px;align-items:center;justify-content:center;margin:-4px -5px -4px 0;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font:700 16px/1 Inter,sans-serif;cursor:pointer;touch-action:manipulation;transition:background 120ms,transform 120ms}
+  .tooth-chip.selected .tooth-chip-remove{display:inline-flex}
+  .tooth-chip-remove:hover{background:rgba(255,255,255,.3);transform:scale(1.08)}
+  .tooth-chip-remove:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+  /* Procesamiento visual de segmentación */
+  .seg-processing{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:inherit;background:rgba(3,7,14,.78);backdrop-filter:blur(8px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 220ms ease,visibility 220ms ease}
+  .seg-processing.active{opacity:1;visibility:visible;pointer-events:auto}
+  .seg-processing::before{content:'';position:absolute;inset:-35%;background:conic-gradient(from 20deg,transparent 0 23%,rgba(20,214,232,.15) 31%,transparent 39% 58%,rgba(122,83,255,.18) 67%,transparent 76%);animation:segAura 5s linear infinite}
+  .seg-processing::after{content:'';position:absolute;left:8%;right:8%;height:2px;top:18%;border-radius:99px;background:linear-gradient(90deg,transparent,#14d6e8 24%,#477cff 52%,#9e4dff 78%,transparent);box-shadow:0 0 18px #36a8ff,0 0 34px rgba(151,68,255,.55);animation:segScan 2.1s cubic-bezier(.45,0,.55,1) infinite alternate}
+  .seg-processing-card{position:relative;z-index:2;width:min(260px,78%);display:flex;flex-direction:column;align-items:center;text-align:center;padding:25px 24px 22px;border:1px solid rgba(117,132,255,.28);border-radius:24px;background:linear-gradient(155deg,rgba(12,20,34,.88),rgba(19,10,39,.84));box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 50px rgba(62,124,255,.13),inset 0 1px rgba(255,255,255,.08);animation:segCardFloat 3.2s ease-in-out infinite}
+  .seg-orbit{position:relative;width:92px;height:92px;display:grid;place-items:center;margin-bottom:14px}
+  .seg-orbit::before,.seg-orbit::after{content:'';position:absolute;inset:2px;border-radius:50%;border:1px solid rgba(40,211,231,.28);border-top-color:#20d7e8;border-right-color:#7770ff;box-shadow:0 0 19px rgba(50,180,255,.2);animation:segSpin 1.55s linear infinite}
+  .seg-orbit::after{inset:12px;border-color:rgba(147,75,255,.2);border-bottom-color:#a052ff;border-left-color:#437cff;animation-direction:reverse;animation-duration:1.05s}
+  .seg-tooth{width:45px;height:55px;filter:drop-shadow(0 0 10px rgba(59,211,255,.48));animation:segPulse 1.5s ease-in-out infinite}
+  .seg-tooth-path{stroke-dasharray:145;stroke-dashoffset:145;animation:segDraw 2.25s cubic-bezier(.65,0,.35,1) infinite}
+  .seg-tooth-highlight{stroke-dasharray:28 90;animation:segTrace 1.45s linear infinite}
+  .seg-edit-node{fill:#0c1728;stroke:#55dcff;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:segNode 1.2s ease-in-out infinite}
+  .seg-edit-node:nth-of-type(2){animation-delay:.2s;stroke:#7185ff}.seg-edit-node:nth-of-type(3){animation-delay:.4s;stroke:#a45cff}.seg-edit-node:nth-of-type(4){animation-delay:.6s;stroke:#7185ff}
+  .seg-processing-title{font-size:15px;font-weight:750;color:#fff;margin-bottom:5px}
+  .seg-processing-copy{font-size:11px;line-height:1.5;color:rgba(220,228,255,.62)}
+  .seg-processing-dots{display:flex;gap:5px;margin-top:13px}
+  .seg-processing-dots i{width:5px;height:5px;border-radius:50%;background:#24d5e8;box-shadow:0 0 8px currentColor;animation:segDot 1.15s ease-in-out infinite}
+  .seg-processing-dots i:nth-child(2){background:#4e8cff;animation-delay:.16s}.seg-processing-dots i:nth-child(3){background:#9c4eff;animation-delay:.32s}
+  @keyframes segAura{to{transform:rotate(360deg)}}
+  @keyframes segScan{from{top:17%;opacity:.45}to{top:83%;opacity:1}}
+  @keyframes segSpin{to{transform:rotate(360deg)}}
+  @keyframes segPulse{50%{transform:scale(1.06);filter:drop-shadow(0 0 17px rgba(126,91,255,.75))}}
+  @keyframes segDraw{0%{stroke-dashoffset:145;opacity:.35}48%,72%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:-145;opacity:.35}}
+  @keyframes segTrace{to{stroke-dashoffset:-118}}
+  @keyframes segNode{0%,100%{transform:scale(.72);opacity:.45}50%{transform:scale(1.35);opacity:1;filter:drop-shadow(0 0 4px currentColor)}}
+  @keyframes segCardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes segDot{0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-4px);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.seg-processing::before,.seg-processing::after,.seg-processing-card,.seg-orbit::before,.seg-orbit::after,.seg-tooth,.seg-tooth-path,.seg-tooth-highlight,.seg-edit-node,.seg-processing-dots i{animation:none}}
 
   .slider-row{margin-bottom:14px}
   .slider-row label{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px;color:var(--text-dim)}
@@ -302,6 +336,22 @@
     <div class="canvas-col2">
     <div class="canvas-wrap">
       <canvas id="canvas" width="560" height="385"></canvas>
+      <div id="segProcessing" class="seg-processing" role="status" aria-live="polite" aria-hidden="true">
+        <div class="seg-processing-card">
+          <div class="seg-orbit" aria-hidden="true">
+            <svg class="seg-tooth" viewBox="0 0 48 58" fill="none">
+              <path class="seg-tooth-path" d="M24 5C16 1 7 5 5 14c-2 9 3 16 5 24 2 8 3 15 7 15 5 0 3-14 7-14s2 14 7 14c4 0 5-7 7-15 2-8 7-15 5-24C41 5 32 1 24 5Z" stroke="url(#segToothGradient)" stroke-width="2.3" stroke-linejoin="round"/>
+              <path class="seg-tooth-highlight" d="M24 5C16 1 7 5 5 14c-2 9 3 16 5 24 2 8 3 15 7 15 5 0 3-14 7-14s2 14 7 14c4 0 5-7 7-15 2-8 7-15 5-24C41 5 32 1 24 5Z" stroke="rgba(255,255,255,.72)" stroke-width="1" stroke-linejoin="round"/>
+              <path d="M13 13c5-4 16-4 22 0" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <circle class="seg-edit-node" cx="9" cy="11" r="2.2"/><circle class="seg-edit-node" cx="39" cy="11" r="2.2"/><circle class="seg-edit-node" cx="17" cy="51" r="2.2"/><circle class="seg-edit-node" cx="31" cy="51" r="2.2"/>
+              <defs><linearGradient id="segToothGradient" x1="5" y1="5" x2="43" y2="53"><stop stop-color="#20D9E9"/><stop offset=".52" stop-color="#4786FF"/><stop offset="1" stop-color="#A34CFF"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div id="segProcessingTitle" class="seg-processing-title">Analizando sonrisa</div>
+          <div id="segProcessingCopy" class="seg-processing-copy">La IA está identificando cada contorno dental.</div>
+          <div class="seg-processing-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+      </div>
       <button id="btnGuiasFloat" class="float-icon guias-toggle-btn" onclick="toggleGuiasProporcion()" style="position:absolute;top:10px;right:10px;width:auto;padding:0 12px;border-radius:99px;font-size:11px;font-weight:600;gap:5px;z-index:10">📐 Guías</button>
       <button id="btnNumerosFloat" class="float-icon numeros-toggle-btn" onclick="toggleNumerosDientes()" title="Muestra el número FDI de cada diente sobre la foto" style="position:absolute;top:10px;left:10px;width:auto;padding:0 12px;border-radius:99px;font-size:11px;font-weight:600;gap:5px;z-index:10">🔢 Números</button>
       <div class="float-group" style="bottom:10px;right:10px">
@@ -2552,6 +2602,7 @@ async function segmentar(){
   // que se mandó a segmentar (la llamada ya va en camino con esta URL).
   document.getElementById('fotoArchivo').disabled = true;
   setStatus('Segmentando... esto puede tardar 20-60 segundos', '');
+  mostrarAnimacionSegmentacion('dientes');
   if (typeof zoomImagen === 'function') zoomImagen(0); // resetea el zoom con cada foto nueva
 
   const fnUrl = document.getElementById('fnUrl').value.trim();
@@ -2593,6 +2644,7 @@ async function segmentar(){
     document.getElementById('calibracionStatus').textContent = 'Sin calibrar -- las medidas se muestran en píxeles.';
 
     setStatus(`✓ ${masks.length} regiones detectadas. Cargando imagen y máscaras...`, 'ok');
+    actualizarAnimacionSegmentacion(`${masks.length} regiones detectadas. Preparando los contornos...`);
 
     await cargarImagenBase(imageUrl);
     await precargarMascaras();
@@ -2612,6 +2664,7 @@ async function segmentar(){
     setStatus('Error: ' + err.message, 'err');
     console.error(err);
   } finally {
+    ocultarAnimacionSegmentacion();
     btn.disabled = false;
     document.getElementById('fotoArchivo').disabled = false;
   }
@@ -2816,6 +2869,7 @@ async function segmentarEncia({ automatico = false } = {}){
     if (!res.ok) throw new Error(data.error || 'Error desconocido');
 
     gumMasks = (data.masks || []).filter(m => Array.isArray(m.bbox) && m.bbox.length === 4);
+    actualizarAnimacionSegmentacion(`${gumMasks.length} regiones detectadas. Refinando la línea gingival...`);
     // Mismo reseteo que en dientes -- evita arrastrar ajustes de una foto vieja
     gumFormaState = {};
     selectedGumIndices = new Set();
@@ -2832,6 +2886,7 @@ async function segmentarEncia({ automatico = false } = {}){
     document.getElementById('gumStatus').textContent = 'Error: ' + err.message;
     console.error(err);
   } finally {
+    ocultarAnimacionSegmentacion();
     btn.disabled = false;
     document.getElementById('fotoArchivo').disabled = false;
   }
