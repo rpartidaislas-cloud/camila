@@ -3165,7 +3165,14 @@ async function generateSimulation(clinicalPrompt, foto) {
   if (data.error) throw new Error(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
-  return url;
+
+  // Pega SOLO la boca que generó la IA sobre la foto original sin tocar --
+  // así "antes" y "después" quedan idénticos pixel por pixel fuera de la
+  // sonrisa, sin depender de que la IA haya respetado el encuadre (ver
+  // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
+  // IA tal cual en vez de dejar al usuario sin nada.
+  var compuesta = await componerConOriginal('data:image/jpeg;base64,' + frontal.b64, url);
+  return compuesta || url;
 }
 
 // ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
@@ -3643,7 +3650,6 @@ async function regenerarSimulacion() {
     if (view === 'frontal') S.result = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
-    await autoAlinearBA(view);
     initBASlider();
     renderResPhotos();
     registrarDiagnosticoUsado();
@@ -3683,9 +3689,6 @@ async function cambiarVistaBA(view) {
   S.baVistaActual = view;
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
   document.getElementById('img-a').src = resultado || ('data:image/jpeg;base64,' + photo.b64);
-  // Sin simulación para esta vista, "antes" y "después" son la misma foto --
-  // no hace falta (ni tiene sentido) autoalinear contra sí misma.
-  if (resultado) await autoAlinearBA(view);
   initBASlider();
   renderResPhotos();
   actualizarBotonGenerar();
@@ -3791,7 +3794,6 @@ async function showResult() {
   renderDiagnostico();
 
   show('s-res');
-  await autoAlinearBA('frontal');
   initBASlider();
   setTimeout(function(){
     var tip = document.getElementById('ba-tip');
@@ -3952,91 +3954,147 @@ function initBASlider() {
   }, 14);
 }
 
-// Alineación automática: aunque el prompt le pide explícitamente a la IA no
-// reencuadrar, a veces mete un pequeño desfase de posición/escala al
-// regenerar. Busca por fuerza bruta (grueso -> fino) el x/y/scale que mejor
-// calza la simulación ("después") sobre la foto original ("antes"),
-// comparando en gris sobre miniaturas de 64x64 para que sea rápido incluso
-// en celular. Ignora la franja de la boca a propósito -- ahí SÍ cambia el
-// contenido (ese es el punto), compararla metería ruido en vez de ayudar.
-// Es heurística (solo traslada/escala, no corrige rotación ni deformaciones)
-// -- deja bastante más cerca del calce perfecto, pero "Ajustar alineación"
-// sigue disponible para el resto de los casos.
-function autoAlinearBA(view) {
-  return new Promise(function(resolve) {
-    var imgB = document.getElementById('img-b'); // "antes"
-    var imgA = document.getElementById('img-a'); // "después"
-    if (!imgB || !imgA) { resolve(); return; }
+// Busca por fuerza bruta (grueso -> fino) el x/y/scale que mejor calza
+// imgIA sobre imgOriginal, comparando en gris sobre miniaturas de 64x64
+// para que sea rápido incluso en celular. Ignora la franja de la boca a
+// propósito -- ahí SÍ cambia el contenido (ese es el punto de generar la
+// simulación), compararla metería ruido en vez de ayudar a alinear. Ambas
+// imágenes deben estar ya cargadas (naturalWidth disponible). Es heurística
+// -- solo traslada/escala, no corrige rotación ni deformaciones.
+function buscarAlineacionImagenes(imgOriginal, imgIA) {
+  var N = 64;
+  var cB = document.createElement('canvas'); cB.width = N; cB.height = N;
+  var ctxB = cB.getContext('2d', { willReadFrequently: true });
+  ctxB.drawImage(imgOriginal, 0, 0, N, N);
+  var pixB = ctxB.getImageData(0, 0, N, N).data;
+  var grisB = new Float32Array(N * N);
+  for (var i = 0; i < N * N; i++) {
+    grisB[i] = pixB[i * 4] * 0.299 + pixB[i * 4 + 1] * 0.587 + pixB[i * 4 + 2] * 0.114;
+  }
 
-    function esperarCarga(img) {
-      return new Promise(function(res) {
-        if (img.complete && img.naturalWidth) { res(); return; }
-        img.onload = function () { res(); };
-        img.onerror = function () { res(); };
-      });
-    }
+  var cA = document.createElement('canvas'); cA.width = N; cA.height = N;
+  var ctxA = cA.getContext('2d', { willReadFrequently: true });
+  var bordeIni = Math.round(N * 0.12), bordeFin = Math.round(N * 0.88);
+  var bocaYIni = N * 0.55, bocaYFin = N * 0.78, bocaXIni = N * 0.30, bocaXFin = N * 0.70;
 
-    Promise.all([esperarCarga(imgB), esperarCarga(imgA)]).then(function () {
-      try {
-        var N = 64;
-        var cB = document.createElement('canvas'); cB.width = N; cB.height = N;
-        var ctxB = cB.getContext('2d', { willReadFrequently: true });
-        ctxB.drawImage(imgB, 0, 0, N, N);
-        var pixB = ctxB.getImageData(0, 0, N, N).data;
-        var grisB = new Float32Array(N * N);
-        for (var i = 0; i < N * N; i++) {
-          grisB[i] = pixB[i * 4] * 0.299 + pixB[i * 4 + 1] * 0.587 + pixB[i * 4 + 2] * 0.114;
-        }
-
-        var cA = document.createElement('canvas'); cA.width = N; cA.height = N;
-        var ctxA = cA.getContext('2d', { willReadFrequently: true });
-        var bordeIni = Math.round(N * 0.12), bordeFin = Math.round(N * 0.88);
-        var bocaYIni = N * 0.55, bocaYFin = N * 0.78, bocaXIni = N * 0.30, bocaXFin = N * 0.70;
-
-        function costoPara(dx, dy, escala) {
-          ctxA.clearRect(0, 0, N, N);
-          var w = N * escala, h = N * escala;
-          ctxA.drawImage(imgA, (N - w) / 2 + dx * N, (N - h) / 2 + dy * N, w, h);
-          var pixA = ctxA.getImageData(0, 0, N, N).data;
-          var suma = 0, cuenta = 0;
-          for (var y = bordeIni; y < bordeFin; y++) {
-            var enBocaY = y > bocaYIni && y < bocaYFin;
-            for (var x = bordeIni; x < bordeFin; x++) {
-              if (enBocaY && x > bocaXIni && x < bocaXFin) continue;
-              var idx = y * N + x;
-              var g = pixA[idx * 4] * 0.299 + pixA[idx * 4 + 1] * 0.587 + pixA[idx * 4 + 2] * 0.114;
-              var d = g - grisB[idx];
-              suma += d * d;
-              cuenta++;
-            }
-          }
-          return cuenta ? suma / cuenta : Infinity;
-        }
-
-        function buscar(cx, cy, ce, rangoXY, rangoEscala, pasos) {
-          var mejor = { dx: cx, dy: cy, escala: ce, costo: Infinity };
-          for (var pe = -pasos; pe <= pasos; pe++) {
-            var escala = ce + (pe / pasos) * rangoEscala;
-            for (var py = -pasos; py <= pasos; py++) {
-              var dy = cy + (py / pasos) * rangoXY;
-              for (var px = -pasos; px <= pasos; px++) {
-                var dx = cx + (px / pasos) * rangoXY;
-                var c = costoPara(dx, dy, escala);
-                if (c < mejor.costo) mejor = { dx: dx, dy: dy, escala: escala, costo: c };
-              }
-            }
-          }
-          return mejor;
-        }
-
-        var r1 = buscar(0, 0, 1, 0.14, 0.10, 4);
-        var r2 = buscar(r1.dx, r1.dy, r1.escala, 0.03, 0.03, 4);
-        S.baAlign[view] = { x: r2.dx, y: r2.dy, scale: r2.escala };
-      } catch (e) {
-        console.warn('No se pudo autoalinear la simulación:', e);
+  function costoPara(dx, dy, escala) {
+    ctxA.clearRect(0, 0, N, N);
+    var w = N * escala, h = N * escala;
+    ctxA.drawImage(imgIA, (N - w) / 2 + dx * N, (N - h) / 2 + dy * N, w, h);
+    var pixA = ctxA.getImageData(0, 0, N, N).data;
+    var suma = 0, cuenta = 0;
+    for (var y = bordeIni; y < bordeFin; y++) {
+      var enBocaY = y > bocaYIni && y < bocaYFin;
+      for (var x = bordeIni; x < bordeFin; x++) {
+        if (enBocaY && x > bocaXIni && x < bocaXFin) continue;
+        var idx = y * N + x;
+        var g = pixA[idx * 4] * 0.299 + pixA[idx * 4 + 1] * 0.587 + pixA[idx * 4 + 2] * 0.114;
+        var d = g - grisB[idx];
+        suma += d * d;
+        cuenta++;
       }
-      resolve();
-    });
+    }
+    return cuenta ? suma / cuenta : Infinity;
+  }
+
+  function buscar(cx, cy, ce, rangoXY, rangoEscala, pasos) {
+    var mejor = { dx: cx, dy: cy, escala: ce, costo: Infinity };
+    for (var pe = -pasos; pe <= pasos; pe++) {
+      var escala = ce + (pe / pasos) * rangoEscala;
+      for (var py = -pasos; py <= pasos; py++) {
+        var dy = cy + (py / pasos) * rangoXY;
+        for (var px = -pasos; px <= pasos; px++) {
+          var dx = cx + (px / pasos) * rangoXY;
+          var c = costoPara(dx, dy, escala);
+          if (c < mejor.costo) mejor = { dx: dx, dy: dy, escala: escala, costo: c };
+        }
+      }
+    }
+    return mejor;
+  }
+
+  var r1 = buscar(0, 0, 1, 0.14, 0.10, 4);
+  var r2 = buscar(r1.dx, r1.dy, r1.escala, 0.03, 0.03, 4);
+  return { dx: r2.dx, dy: r2.dy, escala: r2.escala };
+}
+
+// Región de la boca como fracción del tamaño de la foto (misma zona que
+// buscarAlineacionImagenes ignora al comparar). Heurística basada en el
+// encuadre que ya intenta forzar la app (guía ovalada en la cámara en vivo,
+// validarEncuadreFrontal para la cámara nativa) -- no es detección real de
+// landmarks, así que puede no calzar perfecto si una foto en particular
+// salió con la cara muy descentrada.
+var MOUTH_CX = 0.5, MOUTH_CY = 0.665, MOUTH_RX = 0.23, MOUTH_RY = 0.15;
+
+// Pega SOLO la boca generada por la IA sobre la foto ORIGINAL sin tocar --
+// en vez de mostrar la imagen completa que regresa la IA (que puede traer
+// un desfase de encuadre por chico que sea el prompt le pida no meterlo).
+// Así todo lo que no es la sonrisa (ojos, piel, fondo, ángulo de cabeza)
+// es exactamente la foto real, pixel por pixel, garantizado por
+// construcción -- no depende de que la IA haya preservado el encuadre.
+// Si algo falla (imagen no carga, canvas tainted, etc.) regresa null y el
+// caller debe usar la imagen de la IA tal cual como respaldo.
+function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
+  return new Promise(function (resolve) {
+    var imgOriginal = new Image();
+    var imgIA = new Image();
+    var pendientes = 2;
+    var fallo = false;
+    function listo() {
+      if (fallo) return;
+      pendientes--;
+      if (pendientes > 0) return;
+      try {
+        var align = buscarAlineacionImagenes(imgOriginal, imgIA);
+        var W = imgOriginal.naturalWidth, H = imgOriginal.naturalHeight;
+
+        var out = document.createElement('canvas');
+        out.width = W; out.height = H;
+        var octx = out.getContext('2d');
+        octx.drawImage(imgOriginal, 0, 0, W, H); // base: foto real, intacta
+
+        // Capa de la IA, reencuadrada con el mismo dx/dy/escala que la
+        // alinea con la foto original -- a tamaño completo, no la
+        // miniatura de búsqueda.
+        var capaIA = document.createElement('canvas');
+        capaIA.width = W; capaIA.height = H;
+        var cctx = capaIA.getContext('2d');
+        var w = W * align.escala, h = H * align.escala;
+        cctx.drawImage(imgIA, (W - w) / 2 + align.dx * W, (H - h) / 2 + align.dy * H, w, h);
+
+        // Máscara elíptica con borde difuminado (gradiente radial) sobre la
+        // zona de la boca, para que no se note el corte entre piel real y
+        // piel generada alrededor de los labios.
+        var mascara = document.createElement('canvas');
+        mascara.width = W; mascara.height = H;
+        var mctx = mascara.getContext('2d');
+        var mx = W * MOUTH_CX, my = H * MOUTH_CY, rx = W * MOUTH_RX, ry = H * MOUTH_RY;
+        var grad = mctx.createRadialGradient(mx, my, Math.min(rx, ry) * 0.55, mx, my, Math.max(rx, ry));
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        mctx.save();
+        mctx.beginPath();
+        mctx.ellipse(mx, my, rx, ry, 0, 0, Math.PI * 2);
+        mctx.clip();
+        mctx.fillStyle = grad;
+        mctx.fillRect(mx - rx, my - ry, rx * 2, ry * 2);
+        mctx.restore();
+
+        cctx.globalCompositeOperation = 'destination-in';
+        cctx.drawImage(mascara, 0, 0);
+
+        octx.drawImage(capaIA, 0, 0);
+        resolve(out.toDataURL('image/jpeg', 0.92));
+      } catch (e) {
+        console.warn('No se pudo componer la simulación sobre la foto original:', e);
+        resolve(null);
+      }
+    }
+    function error() { fallo = true; resolve(null); }
+    imgOriginal.onload = listo; imgOriginal.onerror = error;
+    imgIA.onload = listo; imgIA.onerror = error;
+    imgOriginal.src = fotoOriginalUrl;
+    imgIA.src = resultadoIAUrl;
   });
 }
 
