@@ -2584,11 +2584,36 @@ function stopStream() {
   if (S.stream) S.stream.getTracks().forEach(function(t){t.stop();});
 }
 
+// Las fotos de la cámara nativa del teléfono o de la galería llegan sin
+// redimensionar (3-8MB+, a veces más) -- a diferencia de snap() (cámara en
+// vivo dentro del navegador), que ya recorta a 1024x1024 antes de guardar.
+// Subir esos archivos completos por WiFi es lento y, entre más tarda la
+// transferencia, más fácil que la conexión se corte a medias. Se
+// redimensiona aquí al mismo espíritu que snap() -- lado más largo a 1280px,
+// JPEG -- antes de guardar en S.photos, para toda foto que no pase por snap().
+function redimensionarFotoB64(dataUrl, maxLado, calidad) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var escala = Math.min(1, maxLado / Math.max(w, h));
+      var outW = Math.max(1, Math.round(w * escala));
+      var outH = Math.max(1, Math.round(h * escala));
+      var canvas = document.createElement('canvas');
+      canvas.width = outW; canvas.height = outH;
+      canvas.getContext('2d').drawImage(img, 0, 0, outW, outH);
+      resolve(canvas.toDataURL('image/jpeg', calidad || 0.85).split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
 function fromGallery(inp) {
   if (!inp.files[0]) return;
   var reader = new FileReader();
-  reader.onload = function(e) {
-    var b64 = e.target.result.split(',')[1];
+  reader.onload = async function(e) {
+    var b64 = await redimensionarFotoB64(e.target.result, 1280, 0.85).catch(function(){ return e.target.result.split(',')[1]; });
     S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
     S.currentPhoto++;
     if (S.currentPhoto < 3) {
@@ -4263,11 +4288,12 @@ function onNativePhoto(input) {
   if (!input.files || !input.files[0]) return;
   var reader = new FileReader();
   reader.onload = async function(e) {
-    var b64 = e.target.result.split(',')[1];
+    var b64 = await redimensionarFotoB64(e.target.result, 1280, 0.85).catch(function(){ return e.target.result.split(',')[1]; });
     var view = VIEWS[S.currentPhoto] || VIEWS[0];
     S.photos.push({b64: b64, view: view.id});
 
-    // Show preview
+    // Show preview (con el archivo original -- la miniatura no viaja por
+    // red, no hay razón para perder calidad ahí)
     var preview = document.getElementById('native-preview');
     var previewImg = document.getElementById('native-preview-img');
     if (preview && previewImg) {
