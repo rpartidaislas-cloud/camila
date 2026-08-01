@@ -901,6 +901,17 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       <button type="button" id="res-vita-actual-btn" onclick="elegirTonoActualDesdeResultado()" style="height:36px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Igualar el tono actual de mis dientes</button>
       <div id="res-vita-swatches" style="display:flex;overflow-x:auto;padding:2px 4px 4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch"></div>
     </div>
+
+    <!-- Bloquea toda la pantalla mientras se regenera con el nuevo tono --
+         por pedido explícito, para que quede claro que algo está pasando y
+         no se pueda tocar nada (foto, tarjetas, ✕) mientras tanto. -->
+    <div id="res-vita-loading" style="display:none;position:absolute;inset:0;z-index:20;background:rgba(6,4,14,.72);backdrop-filter:blur(3px);align-items:center;justify-content:center;flex-direction:column;gap:14px">
+      <div style="position:relative;width:44px;height:44px">
+        <div class="pr1"></div>
+        <div class="pr2"></div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#fff">Generando tono...</div>
+    </div>
   </div>
 
   <!-- 3 foto thumbs -->
@@ -2045,40 +2056,49 @@ async function confirmarTonoVita() {
 // visible arriba mientras se elige.
 function abrirGuiaVitaDesdeResultado() {
   var sheet = document.getElementById('res-vita-sheet');
-  var wrap = document.getElementById('ba-wrap');
   if (!sheet) { S.vitaReturnToResult = true; abrirGuiaVita(); return; } // respaldo si el panel no está en el DOM
   renderResVitaSwatches();
-  // Fullscreen (mismo mecanismo que "Ajustar alineación") para que la foto
-  // ocupe toda la pantalla y la barra de tonos quede fija abajo -- por
-  // pedido explícito, en vez del panel chico de antes.
-  setBaFullscreen(true);
   sheet.style.display = 'flex';
-  if (wrap) {
-    wrap.classList.add('ba-vita-mode');
-    // Alto explícito para la foto (variable CSS --ba-vita-h) que respeta su
-    // proporción real dentro del espacio que queda arriba del panel de
-    // tonos -- así "cover" casi no recorta nada (antes, a 100dvh sin
-    // relación con la proporción de la foto, el recorte era muy agresivo).
-    // Mismo alto para #ba-base y #ba-over (ver CSS) para que "antes" y
-    // "después" se sigan viendo a la misma escala -- si uno se calculara
-    // distinto del otro, quedarían desalineados entre sí.
-    // Usa el alto/ancho REAL del wrap ya en fullscreen (offsetHeight/Width,
-    // medidos después de aplicar la clase que pone 100dvh) en vez de
-    // window.innerHeight/innerWidth -- en Safari de iPhone, innerHeight NO
-    // siempre coincide con el alto real de pantalla completa (la barra de
-    // Safari se expande/colapsa y desfasa la medida), y esa diferencia era
-    // justo lo que dejaba la foto más alta de lo calculado, coleándose
-    // detrás del panel semi-transparente.
-    var imgB = document.getElementById('img-b');
-    var panelH = sheet.offsetHeight;
-    var wrapW = wrap.offsetWidth;
-    var disponible = wrap.offsetHeight - panelH - 6; // margen chico de seguridad, por si acaso
-    if (imgB && imgB.naturalWidth && imgB.naturalHeight) {
-      var alto = Math.min(disponible, wrapW * (imgB.naturalHeight / imgB.naturalWidth));
-      wrap.style.setProperty('--ba-vita-h', Math.max(120, alto) + 'px');
-    } else {
-      wrap.style.setProperty('--ba-vita-h', disponible + 'px');
-    }
+  activarModoVitaFullscreen();
+}
+
+// Fullscreen (mismo mecanismo que "Ajustar alineación") para que la foto
+// ocupe toda la pantalla y la barra de tonos quede fija abajo -- por pedido
+// explícito, en vez del panel chico de antes. Separado de
+// abrirGuiaVitaDesdeResultado() porque también hay que volver a llamarlo
+// después de cada regenerarSimulacion() -- initBASlider() (que corre al
+// final de esa función) apaga el fullscreen sin saber que el selector de
+// tono seguía abierto, y eso hacía que la pantalla "brincara" a la vista
+// normal (con el header de arriba asomando) cada vez que se elegía un tono.
+function activarModoVitaFullscreen() {
+  var sheet = document.getElementById('res-vita-sheet');
+  var wrap = document.getElementById('ba-wrap');
+  if (!sheet || !wrap || sheet.style.display === 'none') return;
+  setBaFullscreen(true);
+  wrap.classList.add('ba-vita-mode');
+  // Alto explícito para la foto (variable CSS --ba-vita-h) que respeta su
+  // proporción real dentro del espacio que queda arriba del panel de
+  // tonos -- así "cover" casi no recorta nada (antes, a 100dvh sin
+  // relación con la proporción de la foto, el recorte era muy agresivo).
+  // Mismo alto para #ba-base y #ba-over (ver CSS) para que "antes" y
+  // "después" se sigan viendo a la misma escala -- si uno se calculara
+  // distinto del otro, quedarían desalineados entre sí.
+  // Usa el alto/ancho REAL del wrap ya en fullscreen (offsetHeight/Width,
+  // medidos después de aplicar la clase que pone 100dvh) en vez de
+  // window.innerHeight/innerWidth -- en Safari de iPhone, innerHeight NO
+  // siempre coincide con el alto real de pantalla completa (la barra de
+  // Safari se expande/colapsa y desfasa la medida), y esa diferencia era
+  // justo lo que dejaba la foto más alta de lo calculado, coleándose
+  // detrás del panel semi-transparente.
+  var imgB = document.getElementById('img-b');
+  var panelH = sheet.offsetHeight;
+  var wrapW = wrap.offsetWidth;
+  var disponible = wrap.offsetHeight - panelH - 6; // margen chico de seguridad, por si acaso
+  if (imgB && imgB.naturalWidth && imgB.naturalHeight) {
+    var alto = Math.min(disponible, wrapW * (imgB.naturalHeight / imgB.naturalWidth));
+    wrap.style.setProperty('--ba-vita-h', Math.max(120, alto) + 'px');
+  } else {
+    wrap.style.setProperty('--ba-vita-h', disponible + 'px');
   }
 }
 
@@ -2088,6 +2108,16 @@ function cerrarResVitaSheet() {
   if (sheet) sheet.style.display = 'none';
   if (wrap) { wrap.classList.remove('ba-vita-mode'); wrap.style.removeProperty('--ba-vita-h'); }
   setBaFullscreen(false);
+}
+
+function mostrarVitaCargando() {
+  var el = document.getElementById('res-vita-loading');
+  if (el) el.style.display = 'flex';
+}
+
+function ocultarVitaCargando() {
+  var el = document.getElementById('res-vita-loading');
+  if (el) el.style.display = 'none';
 }
 
 // Mismas tarjetas ilustradas de diente que la guía VITA completa
@@ -2125,7 +2155,13 @@ async function elegirTonoDesdeResultado(code) {
   S.vitaTone = code;
   actualizarBotonVitaResultado();
   renderResVitaSwatches(); // refleja cuál queda seleccionado, sin cerrar el panel
-  await regenerarSimulacion();
+  mostrarVitaCargando();
+  try {
+    await regenerarSimulacion();
+  } finally {
+    activarModoVitaFullscreen(); // regenerarSimulacion() (initBASlider) apaga el fullscreen -- se reactiva
+    ocultarVitaCargando();
+  }
 }
 
 async function elegirTonoActualDesdeResultado() {
@@ -2133,7 +2169,13 @@ async function elegirTonoActualDesdeResultado() {
   S.vitaMode = 'current';
   actualizarBotonVitaResultado();
   renderResVitaSwatches();
-  await regenerarSimulacion();
+  mostrarVitaCargando();
+  try {
+    await regenerarSimulacion();
+  } finally {
+    activarModoVitaFullscreen();
+    ocultarVitaCargando();
+  }
 }
 
 function actualizarBotonVitaResultado() {
