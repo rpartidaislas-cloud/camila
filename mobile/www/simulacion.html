@@ -1754,6 +1754,198 @@ function labARgbSim(L,a,b) {
   return {r:srgb(r),g:srgb(g),b:srgb(bl)};
 }
 
+// Reutiliza la última máscara dental calculada. Así, cambiar entre los 14
+// tonos VITA sólo vuelve a componer el color y no analiza la foto otra vez.
+var mascaraDentalCacheSim = {url:null,width:0,height:0,canvas:null};
+
+function recolorearDientes(imagenBaseUrl, colorObjetivoRgb) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    if (/^https?:/i.test(imagenBaseUrl)) img.crossOrigin = 'anonymous';
+
+    img.onload = function() {
+      try {
+        var W = img.naturalWidth || img.width;
+        var H = img.naturalHeight || img.height;
+        if (!W || !H) throw new Error('La imagen base no tiene dimensiones válidas');
+
+        var salida = document.createElement('canvas');
+        salida.width = W;
+        salida.height = H;
+        var ctx = salida.getContext('2d', {willReadFrequently:true});
+        ctx.drawImage(img, 0, 0, W, H);
+
+        var mascara = null;
+        if (mascaraDentalCacheSim.url === imagenBaseUrl &&
+            mascaraDentalCacheSim.width === W &&
+            mascaraDentalCacheSim.height === H) {
+          mascara = mascaraDentalCacheSim.canvas;
+        } else {
+          mascara = crearMascaraDentalSim(ctx, W, H);
+          mascaraDentalCacheSim = {url:imagenBaseUrl,width:W,height:H,canvas:mascara};
+        }
+
+        // colorObjetivoRgb se usa literalmente (por ejemplo rgb(230,222,201)).
+        // El modo "color" conserva luces, sombras y textura del esmalte.
+        var capaColor = document.createElement('canvas');
+        capaColor.width = W;
+        capaColor.height = H;
+        var cctx = capaColor.getContext('2d');
+        cctx.fillStyle = colorObjetivoRgb;
+        cctx.fillRect(0, 0, W, H);
+        cctx.globalCompositeOperation = 'destination-in';
+        cctx.drawImage(mascara, 0, 0);
+
+        ctx.globalCompositeOperation = 'color';
+        ctx.drawImage(capaColor, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        resolve(salida.toDataURL('image/jpeg', 0.92));
+      } catch (error) {
+        reject(error);
+      }
+    };
+    img.onerror = function() {
+      reject(new Error('No se pudo cargar la imagen base para recolorearla'));
+    };
+    img.src = imagenBaseUrl;
+  });
+}
+
+function crearMascaraDentalSim(ctx, W, H) {
+  // La elipse sólo limita dónde buscar. Nunca se usa directamente para pintar.
+  var MOUTH_CX = 0.5, MOUTH_CY = 0.665, MOUTH_RX = 0.23, MOUTH_RY = 0.15;
+  var cx = W * MOUTH_CX, cy = H * MOUTH_CY;
+  var rx = W * MOUTH_RX, ry = H * MOUTH_RY;
+  var x0 = Math.max(0, Math.floor(cx - rx));
+  var y0 = Math.max(0, Math.floor(cy - ry));
+  var x1 = Math.min(W, Math.ceil(cx + rx));
+  var y1 = Math.min(H, Math.ceil(cy + ry));
+  var rw = x1 - x0, rh = y1 - y0;
+  var pixeles = ctx.getImageData(x0, y0, rw, rh).data;
+  var total = rw * rh;
+  var puntuacion = new Uint8ClampedArray(total);
+  var candidatos = new Uint8Array(total);
+
+  function suave(a, b, x) {
+    var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+
+  for (var y = 0; y < rh; y++) {
+    for (var x = 0; x < rw; x++) {
+      var nx = (x + x0 - cx) / rx;
+      var ny = (y + y0 - cy) / ry;
+      var radio2 = nx * nx + ny * ny;
+      if (radio2 >= 1) continue;
+
+      var p = y * rw + x, i = p * 4;
+      var r = pixeles[i], g = pixeles[i+1], b = pixeles[i+2];
+      var max = Math.max(r, g, b), min = Math.min(r, g, b);
+      var delta = max - min;
+      var sat = max ? delta / max : 0;
+      var lum = (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+      var hue = 0;
+      if (delta) {
+        if (max === r) hue = 60 * (((g-b)/delta) % 6);
+        else if (max === g) hue = 60 * ((b-r)/delta + 2);
+        else hue = 60 * ((r-g)/delta + 4);
+        if (hue < 0) hue += 360;
+      }
+
+      // Diente: luminosidad media/alta, croma limitado y color neutro o marfil.
+      // Encía/labio: normalmente rojo/rosa y con saturación claramente mayor.
+      var brillo = suave(0.43, 0.76, lum);
+      var pocaSaturacion = 1 - suave(0.20, 0.46, sat);
+      var esRojoRosa = sat > 0.13 && (hue < 22 || hue > 338);
+      var matizDental = sat < 0.10 || (hue >= 22 && hue <= 82);
+      if (esRojoRosa || (!matizDental && sat > 0.18)) continue;
+
+      // Suaviza el límite de la zona de búsqueda, sin convertirlo en máscara.
+      var limite = 1 - suave(0.86, 1, Math.sqrt(radio2));
+      var score = brillo * pocaSaturacion * limite;
+      if (score <= 0.10) continue;
+      puntuacion[p] = Math.round(Math.min(1, score) * 255);
+      if (score >= 0.24) candidatos[p] = 1;
+    }
+  }
+
+  // Quita ruido/reflejos aislados antes de buscar regiones conectadas.
+  var limpios = new Uint8Array(total);
+  for (var yy = 1; yy < rh-1; yy++) {
+    for (var xx = 1; xx < rw-1; xx++) {
+      var q = yy * rw + xx;
+      if (!candidatos[q]) continue;
+      var vecinos = 0;
+      for (var dy=-1; dy<=1; dy++) for (var dx=-1; dx<=1; dx++) {
+        vecinos += candidatos[q + dy*rw + dx];
+      }
+      if (vecinos >= 4) limpios[q] = 1;
+    }
+  }
+
+  // Conserva sólo componentes de tamaño dental; elimina brillos de labios/piel.
+  var visitado = new Uint8Array(total);
+  var cola = new Int32Array(total);
+  var conservar = new Uint8Array(total);
+  var areaMinima = Math.max(20, Math.floor(total * 0.00018));
+  for (var inicio=0; inicio<total; inicio++) {
+    if (!limpios[inicio] || visitado[inicio]) continue;
+    var cabeza=0, fin=0;
+    cola[fin++] = inicio;
+    visitado[inicio] = 1;
+    var minX=rw, maxX=0, minY=rh, maxY=0;
+    while (cabeza < fin) {
+      var actual = cola[cabeza++];
+      var ay = Math.floor(actual/rw), ax = actual-ay*rw;
+      if (ax<minX) minX=ax; if (ax>maxX) maxX=ax;
+      if (ay<minY) minY=ay; if (ay>maxY) maxY=ay;
+      var vecinos4 = [actual-1, actual+1, actual-rw, actual+rw];
+      for (var n=0; n<4; n++) {
+        var sig=vecinos4[n];
+        if (sig<0 || sig>=total || visitado[sig] || !limpios[sig]) continue;
+        var sy=Math.floor(sig/rw), sx=sig-sy*rw;
+        if (Math.abs(sx-ax)+Math.abs(sy-ay)!==1) continue;
+        visitado[sig]=1;
+        cola[fin++]=sig;
+      }
+    }
+    var ancho=maxX-minX+1, alto=maxY-minY+1;
+    if (fin>=areaMinima && ancho>=4 && alto>=4) {
+      for (var k=0; k<fin; k++) conservar[cola[k]]=1;
+    }
+  }
+
+  var mascaraROI = document.createElement('canvas');
+  mascaraROI.width = rw; mascaraROI.height = rh;
+  var mctx = mascaraROI.getContext('2d');
+  var datosMascara = mctx.createImageData(rw, rh);
+  for (var j=0; j<total; j++) {
+    if (!conservar[j]) continue;
+    var a = puntuacion[j];
+    datosMascara.data[j*4] = 255;
+    datosMascara.data[j*4+1] = 255;
+    datosMascara.data[j*4+2] = 255;
+    datosMascara.data[j*4+3] = a;
+  }
+  mctx.putImageData(datosMascara, 0, 0);
+
+  // Feather interior: suaviza el recorte, pero la segunda máscara impide que el
+  // desenfoque se derrame sobre encía o labio.
+  var suaveCanvas = document.createElement('canvas');
+  suaveCanvas.width = rw; suaveCanvas.height = rh;
+  var sctx = suaveCanvas.getContext('2d');
+  sctx.filter = 'blur(' + Math.max(0.7, Math.min(W,H)/1800).toFixed(2) + 'px)';
+  sctx.drawImage(mascaraROI, 0, 0);
+  sctx.filter = 'none';
+  sctx.globalCompositeOperation = 'destination-in';
+  sctx.drawImage(mascaraROI, 0, 0);
+
+  var mascaraFinal = document.createElement('canvas');
+  mascaraFinal.width = W; mascaraFinal.height = H;
+  mascaraFinal.getContext('2d').drawImage(suaveCanvas, x0, y0);
+  return mascaraFinal;
+}
+
 VITA_CLASSICAL.forEach(function(shade) {
   var ref=vitaLabPantallaSim(shade),rgb=labARgbSim(ref.L,ref.a,ref.b);
   var hi={r:Math.min(255,rgb.r+24),g:Math.min(255,rgb.g+22),b:Math.min(255,rgb.b+18)};
