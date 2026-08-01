@@ -1001,8 +1001,8 @@ function dibujarReferenciaGemini(){
   ctx.save();
   ctx.globalAlpha = opacidadReferenciaGemini / 100;
   // La IA no siempre devuelve la imagen con el mismo encuadre/tamaño que la
-  // foto original (sobre todo con ChatGPT) -- la escala permite compensarlo,
-  // centrada, además del offset manual para el desfase de posición.
+  // foto original -- la escala permite compensarlo, centrada, además del
+  // offset manual para el desfase de posición.
   const escala = escalaReferenciaGemini / 100;
   const w = canvas.width * escala;
   const h = canvas.height * escala;
