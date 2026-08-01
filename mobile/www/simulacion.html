@@ -1503,6 +1503,12 @@ var S = {
   baAlignMode: false,
   leadNombre: null,
   results: {},
+  // Copia "pristina" de cada simulación (recién salida de Gemini + compuesta
+  // sobre la foto original), por vista -- de ahí parte cada recoloreado
+  // local de tono VITA (recolorearDientes), para no recolorear un resultado
+  // que ya estaba recoloreado antes (eso iría degradando el color de a
+  // poco en vez de dar siempre el tono exacto pedido).
+  veneerBaseByView: {},
   baVistaActual: 'frontal',
   timer: null,
   faceOk: false,
@@ -2119,21 +2125,47 @@ function renderResVitaSwatches() {
   });
 }
 
+// Cambiar de tono desde este selector YA NO llama a Gemini (por pedido
+// explícito -- cada llamada cuesta dinero real, y probar varios tonos
+// seguidos salía caro). Recolorea localmente, sin red, partiendo siempre de
+// S.veneerBaseByView (la simulación "pristina" recién salida de Gemini) con
+// el color EXACTO de la guía VITA -- ver recolorearDientes(). Solo "Generar
+// de nuevo" (regenerarSimulacion) sigue llamando a la IA de verdad.
 async function elegirTonoDesdeResultado(code) {
   if (S.vitaMode === 'vita' && S.vitaTone === code) return; // ya es este tono
+  var view = S.baVistaActual || 'frontal';
+  var base = S.veneerBaseByView[view] || S.results[view];
+  var shade = VITA_CLASSICAL.find(function (s) { return s.code === code; });
+  if (!base || !shade) return; // no hay simulación generada todavía para esta vista
   S.vitaMode = 'vita';
   S.vitaTone = code;
   actualizarBotonVitaResultado();
   renderResVitaSwatches(); // refleja cuál queda seleccionado, sin cerrar el panel
-  await regenerarSimulacion();
+  var recoloreado = await recolorearDientes(base, shade.color);
+  aplicarResultadoRecoloreado(view, recoloreado || base);
 }
 
 async function elegirTonoActualDesdeResultado() {
   if (S.vitaMode === 'current') return;
+  var view = S.baVistaActual || 'frontal';
+  var base = S.veneerBaseByView[view] || S.results[view];
+  var fotoOriginal = S.photos.find(function (p) { return p.view === view; });
+  if (!base || !fotoOriginal) return;
   S.vitaMode = 'current';
   actualizarBotonVitaResultado();
   renderResVitaSwatches();
-  await regenerarSimulacion();
+  var colorActual = await colorPromedioDientes('data:image/jpeg;base64,' + fotoOriginal.b64);
+  var recoloreado = await recolorearDientes(base, colorActual);
+  aplicarResultadoRecoloreado(view, recoloreado || base);
+}
+
+function aplicarResultadoRecoloreado(view, url) {
+  S.results[view] = url;
+  if (view === 'frontal') S.result = url;
+  var imgA = document.getElementById('img-a');
+  if (imgA) imgA.src = url;
+  initBASlider();
+  renderResPhotos();
 }
 
 function actualizarBotonVitaResultado() {
@@ -2949,7 +2981,9 @@ async function processPhotos() {
     // importar que ya esté viendo la simulación generada en S.result.
     S.diagnosis = null;
     S.results = {};
+    S.veneerBaseByView = {};
     S.photos.forEach(function(photo) { S.results[photo.view] = photo.view === frontalPhoto.view ? resultadoFrontal : null; });
+    S.veneerBaseByView[frontalPhoto.view] = resultadoFrontal;
     S.result = resultadoFrontal;
     S.baVistaActual = 'frontal';
     detenerBarraProgreso(true);
@@ -3670,6 +3704,7 @@ async function edAplicarDiseno() {
     // todo el intento — igual que ya se maneja en processPhotos().
     var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo); });
     S.results[view] = nuevoResultado;
+    S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
     show('s-res');
     var imgA = document.getElementById('img-a');
@@ -3762,6 +3797,7 @@ async function regenerarSimulacion() {
     var photo = S.photos.find(function(p){return p.view === view;});
     var nuevoResultado = await conReintento(function(){ return generateSimulation(S.promptGeminiUsado, photo); });
     S.results[view] = nuevoResultado;
+    S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
@@ -4210,6 +4246,100 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
     imgIA.onload = listo; imgIA.onerror = error;
     imgOriginal.src = fotoOriginalUrl;
     imgIA.src = resultadoIAUrl;
+  });
+}
+
+// Recolorea SOLO los dientes de una simulación YA generada, sin llamar a la
+// IA de nuevo -- usa el color EXACTO (mismo rgb() que ya se calcula para
+// pintar cada tarjeta de tono en la guía VITA, ver VITA_CLASSICAL.forEach
+// más arriba) para que el resultado sea idéntico al que se ve ahí, no una
+// aproximación. globalCompositeOperation='color' toma el tono/saturación de
+// la capa de color, pero conserva la luminosidad de lo que ya está debajo
+// -- así se ven las luces/sombras que la IA ya dibujó en vez de quedar
+// plano. Recortado con la misma máscara elíptica de la boca (feather en el
+// borde) que usa componerConOriginal, para no pintar labios/piel.
+function recolorearDientes(imagenBaseUrl, colorObjetivoRgb) {
+  return new Promise(function (resolve) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var W = img.naturalWidth, H = img.naturalHeight;
+        var out = document.createElement('canvas');
+        out.width = W; out.height = H;
+        var ctx = out.getContext('2d');
+        ctx.drawImage(img, 0, 0, W, H);
+
+        var mascara = document.createElement('canvas');
+        mascara.width = W; mascara.height = H;
+        var mctx = mascara.getContext('2d');
+        var mx = W * MOUTH_CX, my = H * MOUTH_CY, rx = W * MOUTH_RX, ry = H * MOUTH_RY;
+        var grad = mctx.createRadialGradient(mx, my, Math.min(rx, ry) * 0.55, mx, my, Math.max(rx, ry));
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        mctx.save();
+        mctx.beginPath();
+        mctx.ellipse(mx, my, rx, ry, 0, 0, Math.PI * 2);
+        mctx.clip();
+        mctx.fillStyle = grad;
+        mctx.fillRect(mx - rx, my - ry, rx * 2, ry * 2);
+        mctx.restore();
+
+        var capaColor = document.createElement('canvas');
+        capaColor.width = W; capaColor.height = H;
+        var cctx = capaColor.getContext('2d');
+        cctx.fillStyle = colorObjetivoRgb;
+        cctx.fillRect(0, 0, W, H);
+        cctx.globalCompositeOperation = 'destination-in';
+        cctx.drawImage(mascara, 0, 0);
+
+        ctx.globalCompositeOperation = 'color';
+        ctx.drawImage(capaColor, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+
+        resolve(out.toDataURL('image/jpeg', 0.92));
+      } catch (e) {
+        console.warn('No se pudo recolorear localmente:', e);
+        resolve(null);
+      }
+    };
+    img.onerror = function () { resolve(null); };
+    img.src = imagenBaseUrl;
+  });
+}
+
+// Color promedio real de los dientes en la foto ORIGINAL (para "igualar el
+// tono actual" sin IA) -- muestrea un rectángulo chico centrado en la boca
+// (más angosto que la máscara de recorte, para no agarrar labios/encía) y
+// promedia solo los píxeles claros (los dientes), no las sombras entre
+// ellos que puedan caer en el rectángulo.
+function colorPromedioDientes(imagenUrl) {
+  return new Promise(function (resolve) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var W = img.naturalWidth, H = img.naturalHeight;
+        var cx = W * MOUTH_CX, cy = H * (MOUTH_CY - 0.02);
+        var rx = W * MOUTH_RX * 0.5, ry = H * MOUTH_RY * 0.35;
+        var canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        var ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, W, H);
+        var x0 = Math.max(0, Math.round(cx - rx)), y0 = Math.max(0, Math.round(cy - ry));
+        var w = Math.min(W - x0, Math.round(rx * 2)), h = Math.min(H - y0, Math.round(ry * 2));
+        var data = ctx.getImageData(x0, y0, Math.max(1, w), Math.max(1, h)).data;
+        var r = 0, g = 0, b = 0, n = 0;
+        for (var i = 0; i < data.length; i += 4) {
+          var lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          if (lum > 110) { r += data[i]; g += data[i + 1]; b += data[i + 2]; n++; }
+        }
+        resolve(n ? 'rgb(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ')' : 'rgb(255,255,255)');
+      } catch (e) {
+        console.warn('No se pudo muestrear el color actual de los dientes:', e);
+        resolve('rgb(255,255,255)');
+      }
+    };
+    img.onerror = function () { resolve('rgb(255,255,255)'); };
+    img.src = imagenUrl;
   });
 }
 
