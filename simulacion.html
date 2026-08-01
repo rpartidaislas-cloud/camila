@@ -2062,11 +2062,19 @@ function abrirGuiaVitaDesdeResultado() {
     // Mismo alto para #ba-base y #ba-over (ver CSS) para que "antes" y
     // "después" se sigan viendo a la misma escala -- si uno se calculara
     // distinto del otro, quedarían desalineados entre sí.
+    // Usa el alto/ancho REAL del wrap ya en fullscreen (offsetHeight/Width,
+    // medidos después de aplicar la clase que pone 100dvh) en vez de
+    // window.innerHeight/innerWidth -- en Safari de iPhone, innerHeight NO
+    // siempre coincide con el alto real de pantalla completa (la barra de
+    // Safari se expande/colapsa y desfasa la medida), y esa diferencia era
+    // justo lo que dejaba la foto más alta de lo calculado, coleándose
+    // detrás del panel semi-transparente.
     var imgB = document.getElementById('img-b');
     var panelH = sheet.offsetHeight;
-    var disponible = window.innerHeight - panelH;
+    var wrapW = wrap.offsetWidth;
+    var disponible = wrap.offsetHeight - panelH - 6; // margen chico de seguridad, por si acaso
     if (imgB && imgB.naturalWidth && imgB.naturalHeight) {
-      var alto = Math.min(disponible, window.innerWidth * (imgB.naturalHeight / imgB.naturalWidth));
+      var alto = Math.min(disponible, wrapW * (imgB.naturalHeight / imgB.naturalWidth));
       wrap.style.setProperty('--ba-vita-h', Math.max(120, alto) + 'px');
     } else {
       wrap.style.setProperty('--ba-vita-h', disponible + 'px');
