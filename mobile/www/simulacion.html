@@ -4295,7 +4295,21 @@ function setBaFullscreen(activo) {
   var body = document.querySelector('#s-res .res-body');
   if (!wrap) return;
   if (activo) {
+    // .ba-wrap tiene "transition:height 200ms ease" -- sin neutralizarla
+    // acá, el cambio a 100dvh (fullscreen) queda animándose 200ms, y
+    // cualquier código que mida wrap.offsetWidth/offsetHeight justo después
+    // (el alto reservado para el selector de tono, o el arranque del
+    // arrastre en "Ajustar alineación") agarra un tamaño intermedio,
+    // todavía chico, en vez del tamaño final -- eso causaba tanto el hueco
+    // negro en el selector de tono como que arrastrar para alinear
+    // "saltara" (el mismo arrastre en píxeles se traduce como fracción del
+    // tamaño equivocado, mucho más grande de lo que se movió el dedo). Se
+    // apaga la transición, se aplica el cambio, se fuerza a que el layout
+    // se recalcule YA (leer offsetHeight fuerza esto) y se reactiva.
+    wrap.style.transition = 'none';
     wrap.classList.add('ba-fullscreen');
+    void wrap.offsetHeight; // fuerza el reflow síncrono con el tamaño final
+    wrap.style.transition = '';
     if (header) header.style.display = 'none';
     if (photos) photos.style.display = 'none';
     if (body) body.style.display = 'none';
