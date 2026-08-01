@@ -103,7 +103,9 @@ Deno.serve(async (req: Request) => {
           headers: { "Authorization": `Bearer ${KEY}` },
           body: form,
         }, 90000);
+        marca(`después de recibir respuesta de OpenAI (status ${resp.status})`);
         const data = await resp.json();
+        marca("después de parsear la respuesta de OpenAI");
 
         if (!resp.ok) {
           console.error("OpenAI error:", JSON.stringify(data.error));
