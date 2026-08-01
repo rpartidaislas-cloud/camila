@@ -3859,72 +3859,88 @@ function initBASlider() {
   if (imgB.complete) fixH(); else imgB.onload = fixH;
   imgA.onload = fixH;
 
-  function mv(x) {
-    if (S.baAlignMode) return;
-    var r = wrap.getBoundingClientRect();
-    var p = Math.max(5, Math.min(95, (x-r.left)/r.width*100));
-    over.style.clipPath = 'inset(0 '+(100-p)+'% 0 0)';
-    line.style.left = p + '%';
-  }
-  // El botón "Ajustar alineación" también vive dentro de #ba-wrap -- sin este
-  // filtro, entrar al modo alineación también movía de golpe la línea
-  // comparadora hacia donde está el botón.
-  function esBotonDeWrap(target) {
-    return !!(target && target.closest && target.closest('button'));
-  }
-  wrap.addEventListener('mousedown', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.clientX);});
-  document.addEventListener('mousemove', function(e){if(drag)mv(e.clientX);});
-  document.addEventListener('mouseup', function(){drag=false;});
-  wrap.addEventListener('touchstart', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.touches[0].clientX);},{passive:true});
-  wrap.addEventListener('touchmove', function(e){if(drag)mv(e.touches[0].clientX);},{passive:true});
-  wrap.addEventListener('touchend', function(){drag=false;},{passive:true});
+  // Los listeners de arrastre (slider antes/después y modo alineación) se
+  // registran UNA SOLA VEZ para toda la vida de la página -- initBASlider()
+  // se vuelve a llamar cada vez que se muestra un resultado, se cambia de
+  // foto o se regenera, y #ba-wrap/#ba-over/#ba-line son los MISMOS nodos
+  // del DOM en todas esas llamadas (solo cambia el src de las imágenes
+  // adentro). Antes esto de aquí para abajo se repetía en cada llamada con
+  // addEventListener, sin quitar nunca los listeners de la vez anterior --
+  // después de la segunda vez que se abría un resultado ya había 2, 3, 4...
+  // copias de mousemove/touchmove compitiendo, cada una con su propio
+  // "dónde empezó el arrastre" viejo, y por eso "Ajustar alineación" saltaba
+  // a un lugar distinto de donde se soltaba en vez de quedarse ahí.
+  if (!S._baSliderListenersReady) {
+    S._baSliderListenersReady = true;
+    var drag = false;
 
-  // Arrastre para mover la foto "después" en modo alineación — se guarda
-  // como fracción del tamaño de la foto en pantalla (no en píxeles fijos)
-  // para que el ajuste se vea igual sin importar si se hizo en pantalla
-  // completa o en la vista normal, que tienen tamaños distintos.
-  var alignDrag = null;
-  // Los botones del panel (Zoom, Restablecer, Listo) viven DENTRO de #ba-wrap,
-  // así que un toque ahí también dispara mousedown/touchstart en wrap -- sin
-  // este filtro, tocar "Listo" se interpretaba como un arrastre hacia donde
-  // está el botón y corrompía el ajuste justo al guardarlo. Además, si un
-  // gesto anterior no soltó limpio (típico en pantallas táctiles con toques
-  // rápidos), alignDrag podía quedar "pegado" de la vez pasada -- por eso
-  // se cancela explícitamente aquí también, sin depender solo de mouseup
-  // /touchend para limpiarlo.
-  function esControlDePanel(target) {
-    return !!(target && target.closest && target.closest('#ba-align-panel'));
+    function mv(x) {
+      if (S.baAlignMode) return;
+      var r = wrap.getBoundingClientRect();
+      var p = Math.max(5, Math.min(95, (x-r.left)/r.width*100));
+      over.style.clipPath = 'inset(0 '+(100-p)+'% 0 0)';
+      line.style.left = p + '%';
+    }
+    // El botón "Ajustar alineación" también vive dentro de #ba-wrap -- sin este
+    // filtro, entrar al modo alineación también movía de golpe la línea
+    // comparadora hacia donde está el botón.
+    function esBotonDeWrap(target) {
+      return !!(target && target.closest && target.closest('button'));
+    }
+    wrap.addEventListener('mousedown', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.clientX);});
+    document.addEventListener('mousemove', function(e){if(drag)mv(e.clientX);});
+    document.addEventListener('mouseup', function(){drag=false;});
+    wrap.addEventListener('touchstart', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.touches[0].clientX);},{passive:true});
+    wrap.addEventListener('touchmove', function(e){if(drag)mv(e.touches[0].clientX);},{passive:true});
+    wrap.addEventListener('touchend', function(){drag=false;},{passive:true});
+
+    // Arrastre para mover la foto "después" en modo alineación — se guarda
+    // como fracción del tamaño de la foto en pantalla (no en píxeles fijos)
+    // para que el ajuste se vea igual sin importar si se hizo en pantalla
+    // completa o en la vista normal, que tienen tamaños distintos.
+    var alignDrag = null;
+    // Los botones del panel (Zoom, Restablecer, Listo) viven DENTRO de #ba-wrap,
+    // así que un toque ahí también dispara mousedown/touchstart en wrap -- sin
+    // este filtro, tocar "Listo" se interpretaba como un arrastre hacia donde
+    // está el botón y corrompía el ajuste justo al guardarlo. Además, si un
+    // gesto anterior no soltó limpio (típico en pantallas táctiles con toques
+    // rápidos), alignDrag podía quedar "pegado" de la vez pasada -- por eso
+    // se cancela explícitamente aquí también, sin depender solo de mouseup
+    // /touchend para limpiarlo.
+    function esControlDePanel(target) {
+      return !!(target && target.closest && target.closest('#ba-align-panel'));
+    }
+    function alignStart(x, y) {
+      if (!S.baAlignMode) return;
+      var a = getAlignFor(S.baVistaActual);
+      alignDrag = {x: x, y: y, ox: a.x, oy: a.y, w: wrap.offsetWidth || 1, h: wrap.offsetHeight || 1};
+    }
+    function alignMove(x, y) {
+      if (!alignDrag) return;
+      var a = getAlignFor(S.baVistaActual);
+      a.x = alignDrag.ox + (x - alignDrag.x) / alignDrag.w;
+      a.y = alignDrag.oy + (y - alignDrag.y) / alignDrag.h;
+      aplicarBaTransform();
+    }
+    function alignEnd() { alignDrag = null; }
+    wrap.addEventListener('mousedown', function(e){ if (esControlDePanel(e.target)) { alignEnd(); return; } alignStart(e.clientX, e.clientY); });
+    document.addEventListener('mousemove', function(e){
+      // Si el botón ya no está presionado (p. ej. se soltó fuera de la
+      // ventana y nunca llegó el mouseup), un movimiento posterior del mouse
+      // no debe seguir arrastrando con datos viejos -- se cancela en vez de
+      // aplicarlo.
+      if (alignDrag && !(e.buttons & 1)) { alignEnd(); return; }
+      alignMove(e.clientX, e.clientY);
+    });
+    document.addEventListener('mouseup', alignEnd);
+    wrap.addEventListener('touchstart', function(e){ if (esControlDePanel(e.target)) { alignEnd(); return; } alignStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+    wrap.addEventListener('touchmove', function(e){ if (S.baAlignMode) alignMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+    wrap.addEventListener('touchend', alignEnd, {passive:true});
+    // iOS interrumpe el toque con touchcancel (no touchend) en varios casos
+    // -- gestos del sistema, scroll, etc. -- sin esto alignDrag se quedaba
+    // "pegado" hasta el siguiente toque.
+    wrap.addEventListener('touchcancel', alignEnd, {passive:true});
   }
-  function alignStart(x, y) {
-    if (!S.baAlignMode) return;
-    var a = getAlignFor(S.baVistaActual);
-    alignDrag = {x: x, y: y, ox: a.x, oy: a.y, w: wrap.offsetWidth || 1, h: wrap.offsetHeight || 1};
-  }
-  function alignMove(x, y) {
-    if (!alignDrag) return;
-    var a = getAlignFor(S.baVistaActual);
-    a.x = alignDrag.ox + (x - alignDrag.x) / alignDrag.w;
-    a.y = alignDrag.oy + (y - alignDrag.y) / alignDrag.h;
-    aplicarBaTransform();
-  }
-  function alignEnd() { alignDrag = null; }
-  wrap.addEventListener('mousedown', function(e){ if (esControlDePanel(e.target)) { alignEnd(); return; } alignStart(e.clientX, e.clientY); });
-  document.addEventListener('mousemove', function(e){
-    // Si el botón ya no está presionado (p. ej. se soltó fuera de la
-    // ventana y nunca llegó el mouseup), un movimiento posterior del mouse
-    // no debe seguir arrastrando con datos viejos -- se cancela en vez de
-    // aplicarlo.
-    if (alignDrag && !(e.buttons & 1)) { alignEnd(); return; }
-    alignMove(e.clientX, e.clientY);
-  });
-  document.addEventListener('mouseup', alignEnd);
-  wrap.addEventListener('touchstart', function(e){ if (esControlDePanel(e.target)) { alignEnd(); return; } alignStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
-  wrap.addEventListener('touchmove', function(e){ if (S.baAlignMode) alignMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
-  wrap.addEventListener('touchend', alignEnd, {passive:true});
-  // iOS interrumpe el toque con touchcancel (no touchend) en varios casos
-  // -- gestos del sistema, scroll, etc. -- sin esto alignDrag se quedaba
-  // "pegado" hasta el siguiente toque.
-  wrap.addEventListener('touchcancel', alignEnd, {passive:true});
 
   // Reveal animation
   var p = 100;
@@ -4013,8 +4029,8 @@ function autoAlinearBA(view) {
           return mejor;
         }
 
-        var r1 = buscar(0, 0, 1, 0.08, 0.06, 3);
-        var r2 = buscar(r1.dx, r1.dy, r1.escala, 0.02, 0.02, 3);
+        var r1 = buscar(0, 0, 1, 0.14, 0.10, 4);
+        var r2 = buscar(r1.dx, r1.dy, r1.escala, 0.03, 0.03, 4);
         S.baAlign[view] = { x: r2.dx, y: r2.dy, scale: r2.escala };
       } catch (e) {
         console.warn('No se pudo autoalinear la simulación:', e);
