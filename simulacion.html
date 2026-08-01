@@ -227,13 +227,15 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
    el mismo -- el bug no era el guardado, era que "contain" y "cover"
    recortan la foto distinto */
 .ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:cover!important;object-position:center top!important}
-/* Selector de tono VITA: aquí SÍ conviene "contain" (ver la cara completa,
-   sin el recorte agresivo de "cover") porque este modo es solo para mirar
-   y comparar, no para calzar un ajuste con precisión como en el modo
-   alineación de arriba -- no hay ningún offset guardado que se desalinee
-   al cambiar el recorte. Selector más específico para ganarle a la regla
-   de "Ajustar alineación" de arriba. */
-.ba-wrap.ba-fullscreen.ba-vita-mode .ba-base img,.ba-wrap.ba-fullscreen.ba-vita-mode .ba-over img{object-fit:contain!important;object-position:center center!important}
+/* Selector de tono VITA: NO se toca el object-fit (tiene que ser IGUAL en
+   "antes" y "después" -- si uno usa cover y el otro contain, cada imagen
+   queda a una escala distinta y se ve desalineada/descuadrada). En vez de
+   eso, se le da a la caja (.ba-base/.ba-over) un alto explícito calculado
+   en JS que respeta la proporción real de la foto (en vez del 100dvh del
+   modo alineación, pensado para llenar toda la pantalla) -- con una caja
+   ya proporcionada, "cover" casi no tiene que recortar nada. */
+.ba-wrap.ba-fullscreen.ba-vita-mode{align-items:flex-start!important}
+.ba-wrap.ba-fullscreen.ba-vita-mode .ba-base,.ba-wrap.ba-fullscreen.ba-vita-mode .ba-over{height:var(--ba-vita-h,100%)!important}
 .ba-base{position:relative;width:100%}
 .ba-base{position:relative;width:100%;overflow:hidden}
 .ba-base img{width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
@@ -2053,11 +2055,22 @@ function abrirGuiaVitaDesdeResultado() {
   sheet.style.display = 'flex';
   if (wrap) {
     wrap.classList.add('ba-vita-mode');
-    // Reserva abajo el alto real del panel (ya con las tarjetas de diente
-    // renderizadas) para que la foto se achique y quepa completa arriba,
-    // SIN que el panel la tape -- antes el panel quedaba flotando encima
-    // de la foto a pantalla completa y se comía justo la sonrisa.
-    wrap.style.paddingBottom = sheet.offsetHeight + 'px';
+    // Alto explícito para la foto (variable CSS --ba-vita-h) que respeta su
+    // proporción real dentro del espacio que queda arriba del panel de
+    // tonos -- así "cover" casi no recorta nada (antes, a 100dvh sin
+    // relación con la proporción de la foto, el recorte era muy agresivo).
+    // Mismo alto para #ba-base y #ba-over (ver CSS) para que "antes" y
+    // "después" se sigan viendo a la misma escala -- si uno se calculara
+    // distinto del otro, quedarían desalineados entre sí.
+    var imgB = document.getElementById('img-b');
+    var panelH = sheet.offsetHeight;
+    var disponible = window.innerHeight - panelH;
+    if (imgB && imgB.naturalWidth && imgB.naturalHeight) {
+      var alto = Math.min(disponible, window.innerWidth * (imgB.naturalHeight / imgB.naturalWidth));
+      wrap.style.setProperty('--ba-vita-h', Math.max(120, alto) + 'px');
+    } else {
+      wrap.style.setProperty('--ba-vita-h', disponible + 'px');
+    }
   }
 }
 
@@ -2065,7 +2078,7 @@ function cerrarResVitaSheet() {
   var sheet = document.getElementById('res-vita-sheet');
   var wrap = document.getElementById('ba-wrap');
   if (sheet) sheet.style.display = 'none';
-  if (wrap) { wrap.classList.remove('ba-vita-mode'); wrap.style.paddingBottom = ''; }
+  if (wrap) { wrap.classList.remove('ba-vita-mode'); wrap.style.removeProperty('--ba-vita-h'); }
   setBaFullscreen(false);
 }
 
