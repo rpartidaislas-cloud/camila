@@ -473,8 +473,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .vita-compare{display:flex;align-items:center;gap:7px;margin-top:7px;color:rgba(255,255,255,.42);font-size:10px}.vita-mini{width:14px;height:18px;border-radius:6px 6px 5px 5px;border:1px solid rgba(255,255,255,.16)}
 .vita-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}.vita-option-card{padding:14px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-option-card label{display:block;margin-bottom:9px;color:rgba(255,255,255,.55);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}.vita-segments{display:flex;gap:5px}.vita-segment{flex:1;min-height:34px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:#090b0c;color:rgba(255,255,255,.5);font:600 10px Inter,sans-serif;cursor:pointer}.vita-segment.active{border-color:#6472ef;background:rgba(71,67,200,.18);color:#fff}
 .vita-lighting{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-bottom:16px;border-radius:12px;background:rgba(31,105,175,.09);border:1px solid rgba(74,155,229,.18);color:rgba(255,255,255,.55);font-size:11px;line-height:1.5}.vita-lighting b{color:#dbeafe}.vita-status{display:block;margin-top:7px;color:#8ee6b4;font-size:10px;font-weight:600}.res-vita-btn{height:32px;padding:0 10px;border-radius:9px;border:1px solid rgba(114,101,240,.35);background:rgba(83,61,209,.12);color:#d9d3ff;font:600 10.5px Inter,sans-serif;cursor:pointer}
-.res-vita-chip{flex:0 0 auto;width:52px;height:52px;border-radius:14px;border:2px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font:700 9.5px Inter,sans-serif;color:rgba(0,0,0,.55);text-shadow:0 1px 0 rgba(255,255,255,.35)}
-.res-vita-chip.active{border-color:#fff;box-shadow:0 0 0 2px var(--p)}
+#res-vita-swatches .vita-stick{padding-top:6px;padding-bottom:2px}
 .vita-preview{display:grid;grid-template-columns:220px 1fr;align-items:center;gap:22px;margin-bottom:16px;padding:18px;border-radius:15px;background:#101314;border:1px solid rgba(255,255,255,.08);transition:grid-template-columns .24s ease}.vita-preview-stage{position:relative;height:200px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#090b0c;overflow:hidden;transition:height .24s ease}.vita-preview-stage::before{display:none}.vita-preview-tooth{position:relative;width:76px;height:106px;overflow:hidden;clip-path:path('M23 0 C14 1 8 10 7 26 C4 50 3 72 9 87 C15 100 25 106 38 106 C51 106 61 100 67 87 C73 72 72 50 69 26 C68 10 62 1 53 0 Z');border-radius:48% 48% 38% 38%/22% 22% 25% 25%;background:radial-gradient(ellipse at 29% 14%,rgba(255,255,255,.95) 0 3%,rgba(255,255,255,.43) 7%,transparent 27%),linear-gradient(90deg,rgba(66,38,16,.12),transparent 18%,rgba(255,255,255,.2) 49%,transparent 82%,rgba(58,32,14,.15)),linear-gradient(180deg,var(--shade-hi),var(--shade) 64%,var(--shade-lo));filter:drop-shadow(0 12px 12px rgba(0,0,0,.52));transition:filter .2s ease,background .2s ease}.vita-preview-tooth::before{content:'';position:absolute;top:8%;left:21%;width:11%;height:60%;border-radius:50%;background:linear-gradient(rgba(255,255,255,.92),rgba(255,255,255,.15),transparent);filter:blur(.6px)}.vita-preview-tooth::after{content:'';position:absolute;left:6%;right:6%;bottom:0;height:19%;background:linear-gradient(transparent,rgba(220,241,245,.28));border-top:1px solid rgba(255,255,255,.17);border-radius:50%}.vita-preview[data-finish="translucent"] .vita-preview-tooth::after{height:28%;background:linear-gradient(transparent,rgba(207,237,244,.48));box-shadow:inset 0 -5px 10px rgba(185,224,235,.16)}.vita-preview[data-finish="luminous"] .vita-preview-tooth{filter:brightness(1.12) drop-shadow(0 -7px 12px rgba(255,252,222,.5)) drop-shadow(0 12px 12px rgba(0,0,0,.5))}.vita-preview[data-finish="luminous"] .vita-preview-tooth::before{width:15%;background:linear-gradient(#fff,rgba(255,255,255,.3),transparent);box-shadow:0 0 10px rgba(255,250,220,.28)}.vita-preview[data-intensity="subtle"] .vita-preview-tooth{opacity:.86;filter:saturate(.82) brightness(.97) drop-shadow(0 10px 10px rgba(0,0,0,.5))}.vita-preview[data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.1) contrast(1.04) brightness(1.07) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview[data-finish="luminous"][data-intensity="notable"] .vita-preview-tooth{filter:saturate(1.08) brightness(1.16) drop-shadow(0 -7px 13px rgba(255,252,222,.55)) drop-shadow(0 12px 12px rgba(0,0,0,.52))}.vita-preview-info h3{margin:0;color:#fff;font-size:15px}.vita-preview-info p{margin:0;color:rgba(255,255,255,.48);font-size:11px;line-height:1.5}.vita-preview-titlebar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}.vita-preview-zoom{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(107,104,239,.38);background:rgba(80,69,209,.12);color:#d8d4ff;font:650 10px Inter,sans-serif;cursor:pointer}.vita-preview-tags{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}.vita-preview-tag{padding:5px 8px;border-radius:99px;background:rgba(96,85,220,.12);border:1px solid rgba(111,99,235,.2);color:#cfc9ff;font-size:9.5px;font-weight:600}.vita-preview-warning{color:rgba(255,255,255,.3)!important;font-size:9.5px!important}
 .vita-photo-preview{width:60px;height:168px;--vita-tint-opacity:.68;transition:width .24s ease,height .24s ease}.vita-preview.expanded{grid-template-columns:310px 1fr}.vita-preview.expanded .vita-preview-stage{height:286px}.vita-preview.expanded .vita-photo-preview{width:96px;height:269px}
 .vita-preview[data-intensity="subtle"] .vita-photo-tint{opacity:.42}.vita-preview[data-intensity="balanced"] .vita-photo-tint{opacity:.68}.vita-preview[data-intensity="notable"] .vita-photo-tint{opacity:.86}
@@ -891,7 +890,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <button onclick="cerrarResVitaSheet()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;cursor:pointer;line-height:1">✕</button>
       </div>
       <button type="button" id="res-vita-actual-btn" onclick="elegirTonoActualDesdeResultado()" style="height:36px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Igualar el tono actual de mis dientes</button>
-      <div id="res-vita-swatches" style="display:flex;gap:9px;overflow-x:auto;padding:2px 2px 4px;-webkit-overflow-scrolling:touch"></div>
+      <div id="res-vita-swatches" style="display:flex;overflow-x:auto;padding:2px 4px 4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch"></div>
     </div>
   </div>
 
@@ -2039,37 +2038,62 @@ function abrirGuiaVitaDesdeResultado() {
   var sheet = document.getElementById('res-vita-sheet');
   if (!sheet) { S.vitaReturnToResult = true; abrirGuiaVita(); return; } // respaldo si el panel no está en el DOM
   renderResVitaSwatches();
+  // Fullscreen (mismo mecanismo que "Ajustar alineación") para que la foto
+  // ocupe toda la pantalla y la barra de tonos quede fija abajo, encima de
+  // la foto -- por pedido explícito, en vez del panel chico de antes.
+  setBaFullscreen(true);
   sheet.style.display = 'flex';
 }
 
 function cerrarResVitaSheet() {
   var sheet = document.getElementById('res-vita-sheet');
   if (sheet) sheet.style.display = 'none';
+  setBaFullscreen(false);
 }
 
+// Mismas tarjetas ilustradas de diente que la guía VITA completa
+// (renderGuiaVita/#vita-shades-sim) -- por pedido explícito, en vez de los
+// chips de color plano de antes. La diferencia es el onclick: aquí elige Y
+// regenera al toque, sin cerrar el panel, para poder probar varios tonos
+// seguidos comparando contra la foto real que queda arriba.
 function renderResVitaSwatches() {
   var wrap = document.getElementById('res-vita-swatches');
   var actualBtn = document.getElementById('res-vita-actual-btn');
   if (!wrap) return;
   if (actualBtn) actualBtn.classList.toggle('active', S.vitaMode === 'current');
-  wrap.innerHTML = VITA_CLASSICAL.map(function (shade) {
-    var activo = S.vitaMode !== 'current' && S.vitaTone === shade.code;
-    return '<button type="button" class="res-vita-chip' + (activo ? ' active' : '') + '" style="background:' + shade.color + '" onclick="elegirTonoDesdeResultado(\'' + shade.code + '\')" title="VITA ' + shade.code + '"><span>' + shade.code + '</span></button>';
-  }).join('');
+  wrap.innerHTML = '';
+  VITA_CLASSICAL.forEach(function (shade) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    var isSelected = S.vitaMode !== 'current' && shade.code === S.vitaTone;
+    btn.className = 'vita-stick' + (isSelected ? ' selected' : '');
+    btn.dataset.vitaCode = shade.code;
+    btn.setAttribute('aria-label', 'Elegir tono VITA ' + shade.code);
+    btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    btn.style.setProperty('--shade', shade.color);
+    btn.style.setProperty('--shade-hi', shade.hi);
+    btn.style.setProperty('--shade-lo', shade.lo);
+    btn.style.setProperty('--shade-depth', shade.depth.toFixed(3));
+    btn.innerHTML = '<span class="vita-photo" aria-hidden="true"><span class="vita-photo-base"></span><span class="vita-photo-tone vita-photo-tint"></span><span class="vita-photo-tone vita-photo-depth"></span><span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b>VITA ' + shade.code + '</b></span></span>';
+    btn.onclick = function () { elegirTonoDesdeResultado(shade.code); };
+    wrap.appendChild(btn);
+  });
 }
 
 async function elegirTonoDesdeResultado(code) {
+  if (S.vitaMode === 'vita' && S.vitaTone === code) return; // ya es este tono
   S.vitaMode = 'vita';
   S.vitaTone = code;
-  cerrarResVitaSheet();
   actualizarBotonVitaResultado();
+  renderResVitaSwatches(); // refleja cuál queda seleccionado, sin cerrar el panel
   await regenerarSimulacion();
 }
 
 async function elegirTonoActualDesdeResultado() {
+  if (S.vitaMode === 'current') return;
   S.vitaMode = 'current';
-  cerrarResVitaSheet();
   actualizarBotonVitaResultado();
+  renderResVitaSwatches();
   await regenerarSimulacion();
 }
 
