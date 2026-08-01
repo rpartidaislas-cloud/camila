@@ -3643,6 +3643,7 @@ async function regenerarSimulacion() {
     if (view === 'frontal') S.result = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
+    await autoAlinearBA(view);
     initBASlider();
     renderResPhotos();
     registrarDiagnosticoUsado();
@@ -3675,13 +3676,16 @@ function renderResPhotos() {
 // ver processPhotos) se pueden ver igual -- muestran la foto original de
 // "antes" en ambos lados del slider y el botón "Generar de nuevo" cambia a
 // "Generar esta vista" para dejar claro que hay que pedirla primero.
-function cambiarVistaBA(view) {
+async function cambiarVistaBA(view) {
   var photo = S.photos.find(function(p){return p.view === view;});
   if (!photo) return;
   var resultado = (S.results || {})[view];
   S.baVistaActual = view;
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
   document.getElementById('img-a').src = resultado || ('data:image/jpeg;base64,' + photo.b64);
+  // Sin simulación para esta vista, "antes" y "después" son la misma foto --
+  // no hace falta (ni tiene sentido) autoalinear contra sí misma.
+  if (resultado) await autoAlinearBA(view);
   initBASlider();
   renderResPhotos();
   actualizarBotonGenerar();
@@ -3774,7 +3778,7 @@ async function solicitarDiagnostico() {
   }
 }
 
-function showResult() {
+async function showResult() {
   var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
 
   // BA slider
@@ -3787,6 +3791,7 @@ function showResult() {
   renderDiagnostico();
 
   show('s-res');
+  await autoAlinearBA('frontal');
   initBASlider();
   setTimeout(function(){
     var tip = document.getElementById('ba-tip');
@@ -3929,6 +3934,94 @@ function initBASlider() {
     line.style.left = Math.min(50,100-p)+'%';
     if (p <= 50) clearInterval(anim);
   }, 14);
+}
+
+// Alineación automática: aunque el prompt le pide explícitamente a la IA no
+// reencuadrar, a veces mete un pequeño desfase de posición/escala al
+// regenerar. Busca por fuerza bruta (grueso -> fino) el x/y/scale que mejor
+// calza la simulación ("después") sobre la foto original ("antes"),
+// comparando en gris sobre miniaturas de 64x64 para que sea rápido incluso
+// en celular. Ignora la franja de la boca a propósito -- ahí SÍ cambia el
+// contenido (ese es el punto), compararla metería ruido en vez de ayudar.
+// Es heurística (solo traslada/escala, no corrige rotación ni deformaciones)
+// -- deja bastante más cerca del calce perfecto, pero "Ajustar alineación"
+// sigue disponible para el resto de los casos.
+function autoAlinearBA(view) {
+  return new Promise(function(resolve) {
+    var imgB = document.getElementById('img-b'); // "antes"
+    var imgA = document.getElementById('img-a'); // "después"
+    if (!imgB || !imgA) { resolve(); return; }
+
+    function esperarCarga(img) {
+      return new Promise(function(res) {
+        if (img.complete && img.naturalWidth) { res(); return; }
+        img.onload = function () { res(); };
+        img.onerror = function () { res(); };
+      });
+    }
+
+    Promise.all([esperarCarga(imgB), esperarCarga(imgA)]).then(function () {
+      try {
+        var N = 64;
+        var cB = document.createElement('canvas'); cB.width = N; cB.height = N;
+        var ctxB = cB.getContext('2d', { willReadFrequently: true });
+        ctxB.drawImage(imgB, 0, 0, N, N);
+        var pixB = ctxB.getImageData(0, 0, N, N).data;
+        var grisB = new Float32Array(N * N);
+        for (var i = 0; i < N * N; i++) {
+          grisB[i] = pixB[i * 4] * 0.299 + pixB[i * 4 + 1] * 0.587 + pixB[i * 4 + 2] * 0.114;
+        }
+
+        var cA = document.createElement('canvas'); cA.width = N; cA.height = N;
+        var ctxA = cA.getContext('2d', { willReadFrequently: true });
+        var bordeIni = Math.round(N * 0.12), bordeFin = Math.round(N * 0.88);
+        var bocaYIni = N * 0.55, bocaYFin = N * 0.78, bocaXIni = N * 0.30, bocaXFin = N * 0.70;
+
+        function costoPara(dx, dy, escala) {
+          ctxA.clearRect(0, 0, N, N);
+          var w = N * escala, h = N * escala;
+          ctxA.drawImage(imgA, (N - w) / 2 + dx * N, (N - h) / 2 + dy * N, w, h);
+          var pixA = ctxA.getImageData(0, 0, N, N).data;
+          var suma = 0, cuenta = 0;
+          for (var y = bordeIni; y < bordeFin; y++) {
+            var enBocaY = y > bocaYIni && y < bocaYFin;
+            for (var x = bordeIni; x < bordeFin; x++) {
+              if (enBocaY && x > bocaXIni && x < bocaXFin) continue;
+              var idx = y * N + x;
+              var g = pixA[idx * 4] * 0.299 + pixA[idx * 4 + 1] * 0.587 + pixA[idx * 4 + 2] * 0.114;
+              var d = g - grisB[idx];
+              suma += d * d;
+              cuenta++;
+            }
+          }
+          return cuenta ? suma / cuenta : Infinity;
+        }
+
+        function buscar(cx, cy, ce, rangoXY, rangoEscala, pasos) {
+          var mejor = { dx: cx, dy: cy, escala: ce, costo: Infinity };
+          for (var pe = -pasos; pe <= pasos; pe++) {
+            var escala = ce + (pe / pasos) * rangoEscala;
+            for (var py = -pasos; py <= pasos; py++) {
+              var dy = cy + (py / pasos) * rangoXY;
+              for (var px = -pasos; px <= pasos; px++) {
+                var dx = cx + (px / pasos) * rangoXY;
+                var c = costoPara(dx, dy, escala);
+                if (c < mejor.costo) mejor = { dx: dx, dy: dy, escala: escala, costo: c };
+              }
+            }
+          }
+          return mejor;
+        }
+
+        var r1 = buscar(0, 0, 1, 0.08, 0.06, 3);
+        var r2 = buscar(r1.dx, r1.dy, r1.escala, 0.02, 0.02, 3);
+        S.baAlign[view] = { x: r2.dx, y: r2.dy, scale: r2.escala };
+      } catch (e) {
+        console.warn('No se pudo autoalinear la simulación:', e);
+      }
+      resolve();
+    });
+  });
 }
 
 // Ajuste de alineación por vista — S.baAlign[viewId] = {x, y, scale}, con
