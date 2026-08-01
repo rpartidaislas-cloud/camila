@@ -10,6 +10,26 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-01 — Codex
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Agregada `recolorearDientes(imagenBaseUrl, colorObjetivoRgb)`: recoloración
+  local con Canvas 2D para reutilizar una simulación ya generada y aplicar
+  tonos VITA sin nuevas llamadas de red o IA.
+- La máscara combina la elipse de boca solamente como zona de búsqueda con
+  clasificación por luminosidad/saturación/matiz, limpieza de ruido,
+  componentes conectados y feather interior para excluir labios, encía y
+  piel.
+- La máscara se guarda en caché por imagen para que los siguientes tonos sólo
+  recompongan el color. No se modificaron `VITA_CLASSICAL`,
+  `vitaLabPantallaSim`, `labARgbSim` ni `shade.color`.
+- Validación de sintaxis aprobada en las copias web y móvil. La función queda
+  disponible para conectarla desde la interfaz que permita cambiar el tono de
+  una simulación ya generada.
+
+---
+
 ## 2026-07-31 (3) — Claude Code
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
