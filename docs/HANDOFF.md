@@ -10,6 +10,20 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex (acceso visible al editor)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Se detectó que `#s-editor` y `abrirEditorDiseno()` existían, pero ninguna
+  acción visible invocaba la función; por eso el editor morfológico era
+  inaccesible desde el flujo normal.
+- Se agregó en la pantalla de resultado, antes de “Revisión clínica
+  avanzada”, el botón principal “Editar diseño de carillas”. Abre el editor
+  existente donde se controlan forma, tamaño, proporción, textura y tono.
+- No se cambió la lógica de generación, prompts, backend ni Supabase.
+
+---
+
 ## 2026-08-02 — Codex
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

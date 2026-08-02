@@ -922,6 +922,14 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
   <div class="res-body">
 
+    <!-- Acceso al editor morfológico. La pantalla y su lógica ya existían,
+         pero no había ningún control visible que llamara a
+         abrirEditorDiseno(), por lo que el usuario no podía acceder. -->
+    <button id="btn-editor-diseno" onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:750;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px;box-shadow:0 8px 22px rgba(91,71,224,.24)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/><path d="m15 5 3 3"/></svg>
+      Editar diseño de carillas
+    </button>
+
     <!-- Revisión clínica avanzada (segmentación real por diente, tonos VITA, medidas) -->
     <button id="btn-revision-clinica" onclick="abrirRevisionClinica()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
