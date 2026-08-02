@@ -10,6 +10,21 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex (regeneración visible desde el editor)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Causa de “Regenerar no hace nada”: `show()` sólo quitaba `.active` de
+  `.screen`, mientras el editor es `.ed-screen`. El resultado podía
+  actualizarse por debajo y el editor permanecía cubriéndolo.
+- `show()` ahora cierra tanto `.screen` como `.ed-screen`, lo que también
+  corrige el botón de cerrar del editor.
+- El botón superior “Aplicar diseño” ahora muestra “Generando...” y se
+  bloquea junto con el botón inferior hasta terminar o fallar la llamada.
+- No se modificaron prompts, Edge Functions, Supabase ni lógica clínica.
+
+---
+
 ## 2026-08-02 — Codex (acceso visible al editor)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

@@ -1092,7 +1092,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <button class="ed-btn-icon" onclick="edRestablecer()" title="Restablecer">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
         </button>
-        <button class="ed-btn-aplicar" onclick="edAplicarDiseno()">
+        <button class="ed-btn-aplicar" id="ed-btn-aplicar-top" onclick="edAplicarDiseno()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Aplicar diseño
         </button>
@@ -1597,7 +1597,10 @@ var VIEWS = [
 
 // ══ SCREENS ══
 function show(id) {
-  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  // El editor usa .ed-screen en lugar de .screen. Si no se incluye aquí,
+  // show('s-res') actualiza el resultado por debajo pero deja el editor
+  // visible encima, dando la impresión de que "Regenerar" no hizo nada.
+  document.querySelectorAll('.screen, .ed-screen').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   saveProgress(id);
 }
@@ -4144,6 +4147,7 @@ function construirPromptEditor() {
 // S.results[view] con la nueva imagen y regresa al resultado.
 async function edAplicarDiseno() {
   var btn = document.getElementById('ed-btn-regenerar');
+  var btnTop = document.getElementById('ed-btn-aplicar-top');
   var promptEditor = construirPromptEditor();
   S.editorParams = JSON.parse(JSON.stringify(EDITOR_PARAMS));
 
@@ -4155,7 +4159,8 @@ async function edAplicarDiseno() {
     return;
   }
 
-  if (btn) { btn.disabled = true; btn.innerHTML = 'Generando...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Generando simulación...'; }
+  if (btnTop) { btnTop.disabled = true; btnTop.textContent = 'Generando...'; }
   solicitarWakeLock();
   try {
     var view = S.baVistaActual || 'frontal';
@@ -4180,6 +4185,7 @@ async function edAplicarDiseno() {
       btn.disabled = false;
       btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Regenerar simulación con estos cambios';
     }
+    if (btnTop) { btnTop.disabled = false; btnTop.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Aplicar diseño'; }
   }
 }
 
