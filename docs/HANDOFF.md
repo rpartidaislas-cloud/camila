@@ -10,6 +10,21 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex (guía VITA dentro del editor)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Se reemplazó el `<select>` “Escala de color (VITA)” del editor por una
+  guía visual horizontal con las 14 muestras de `VITA_CLASSICAL` que ya usa
+  SMYL, incluyendo fotografía de la carilla, logotipo y código.
+- La selección actual queda resaltada, se centra al elegirla y actualiza
+  `EDITOR_PARAMS.diseno.vita`, por lo que el tono elegido se conserva en el
+  prompt existente al regenerar.
+- Se mantiene la opción “Conservar el tono de la simulación actual”. No se
+  modificaron prompts, backend, Supabase ni recursos clínicos.
+
+---
+
 ## 2026-08-02 — Codex (regeneración visible desde el editor)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

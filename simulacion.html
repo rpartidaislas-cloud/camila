@@ -404,6 +404,11 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-slider-head span:last-child{font-weight:700;color:#7c6af7}
 .ed-range{width:100%;accent-color:#7c6af7}
 .ed-select{width:100%;height:42px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:13px;font-family:Inter,sans-serif;padding:0 12px;margin-bottom:16px}
+.ed-vita-guide{margin:0 0 18px;padding:12px 10px 8px;border-radius:13px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,#111416,#0a0c0d);overflow:hidden}
+.ed-vita-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 9px}.ed-vita-head span{color:rgba(255,255,255,.42);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.55px}.ed-vita-head strong{color:#fff;font-size:11px;font-weight:750}
+.ed-vita-current{width:100%;height:34px;margin:0 0 6px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:rgba(255,255,255,.62);font:650 10px Inter,sans-serif;cursor:pointer}.ed-vita-current.selected{border-color:rgba(99,112,244,.72);background:rgba(73,68,205,.16);color:#fff}
+.ed-vita-track{display:flex;gap:5px;overflow-x:auto;padding:14px 5px 16px;scroll-snap-type:x proximity;scrollbar-width:thin;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.ed-vita-stick{position:relative;flex:0 0 76px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 4px 7px;border:1px solid transparent;border-radius:13px;background:transparent;color:inherit;font-family:Inter,sans-serif;cursor:pointer;scroll-snap-align:center;transition:transform .2s ease,border-color .2s ease,background .2s ease}.ed-vita-stick .vita-photo{width:48px;height:135px}.ed-vita-stick .vita-photo-brand img{width:21px;max-height:11px}.ed-vita-stick .vita-photo-brand b{font-size:4px}.ed-vita-stick>strong{min-width:31px;height:21px;display:flex;align-items:center;justify-content:center;padding:0 6px;border-radius:6px;border:1px solid rgba(255,255,255,.09);background:#080a0b;color:rgba(255,255,255,.72);font-size:10px;font-weight:750}.ed-vita-stick.selected{transform:translateY(-3px) scale(1.04);border-color:rgba(95,111,255,.82);background:linear-gradient(180deg,rgba(68,95,230,.14),rgba(91,44,190,.06));box-shadow:0 0 24px rgba(82,89,240,.16)}.ed-vita-stick.selected::before{content:'';position:absolute;left:9px;right:9px;top:-10px;height:48px;background:radial-gradient(ellipse at 50% 0,rgba(255,252,221,.5),rgba(151,170,255,.13) 40%,transparent 72%);filter:blur(5px);pointer-events:none}.ed-vita-stick.selected .vita-photo{filter:brightness(1.08) drop-shadow(0 -6px 9px rgba(255,251,221,.55)) drop-shadow(0 8px 8px rgba(0,0,0,.5))}.ed-vita-stick.selected>strong{border-color:rgba(102,114,255,.72);background:rgba(70,66,204,.24);color:#fff}
 .ed-chip-row{display:flex;gap:6px;margin-bottom:16px}
 .ed-clinical-card{margin:0 0 16px;padding:13px;border-radius:13px;border:1px solid rgba(99,102,241,.28);background:linear-gradient(145deg,rgba(69,58,166,.16),rgba(20,18,35,.82))}
 .ed-clinical-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.ed-clinical-title{color:#fff;font-size:12px;font-weight:750}.ed-clinical-kicker{margin-top:2px;color:rgba(255,255,255,.42);font-size:9px;line-height:1.4}.ed-clinical-badge{flex:0 0 auto;padding:4px 7px;border-radius:99px;background:rgba(71,201,137,.12);border:1px solid rgba(71,201,137,.25);color:#8ee6b4;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.45px}
@@ -1177,16 +1182,12 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <option value="marcada">Definida — anatomía visible moderada</option>
       </select>
 
-      <div class="ed-label">Escala de color (VITA)</div>
-      <select id="ed-vita" class="ed-select" data-group="diseno" data-key="vita" onchange="edSelectChange(this)">
-        <option value="">Como en la simulación actual</option>
-        <option value="A1">A1 — natural claro</option>
-        <option value="A2">A2 — natural</option>
-        <option value="A3">A3 — natural cálido</option>
-        <option value="B1">B1 — blanco brillante</option>
-        <option value="B2">B2 — blanco suave</option>
-        <option value="Hollywood White">Hollywood White — máximo blanco</option>
-      </select>
+      <div class="ed-label">Guía de color VITA Classical</div>
+      <div class="ed-vita-guide" aria-label="Guía de tonos VITA Classical">
+        <div class="ed-vita-head"><span>Tono para regenerar</span><strong id="ed-vita-selected">Simulación actual</strong></div>
+        <button type="button" class="ed-vita-current" id="ed-vita-current" onclick="edSeleccionarTonoVita('',false)">Conservar el tono de la simulación actual</button>
+        <div class="ed-vita-track" id="ed-vita-shades"></div>
+      </div>
 
       <div class="ed-slider-row">
         <div class="ed-slider-head"><span>Valor (brillo del diente)</span><span id="ed-valor-lbl">Natural</span></div>
@@ -3947,6 +3948,57 @@ function edSelectChange(el) {
   EDITOR_PARAMS[el.dataset.group][el.dataset.key] = el.value;
 }
 
+function edRenderGuiaVita() {
+  var wrap = document.getElementById('ed-vita-shades');
+  if (!wrap || !EDITOR_PARAMS) return;
+  var seleccionado = EDITOR_PARAMS.diseno.vita || '';
+  if (seleccionado && !VITA_CLASSICAL.some(function(shade) { return shade.code === seleccionado; })) {
+    seleccionado = '';
+    EDITOR_PARAMS.diseno.vita = '';
+  }
+  wrap.innerHTML = '';
+  VITA_CLASSICAL.forEach(function(shade) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ed-vita-stick' + (seleccionado === shade.code ? ' selected' : '');
+    btn.dataset.vitaCode = shade.code;
+    btn.setAttribute('aria-label', 'Seleccionar tono VITA ' + shade.code);
+    btn.setAttribute('aria-pressed', seleccionado === shade.code ? 'true' : 'false');
+    btn.style.setProperty('--shade', shade.color);
+    btn.style.setProperty('--shade-hi', shade.hi);
+    btn.style.setProperty('--shade-lo', shade.lo);
+    btn.style.setProperty('--shade-depth', shade.depth.toFixed(3));
+    btn.innerHTML = '<span class="vita-photo" aria-hidden="true"><span class="vita-photo-base"></span><span class="vita-photo-tone vita-photo-tint"></span><span class="vita-photo-tone vita-photo-depth"></span><span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b>VITA ' + shade.code + '</b></span></span><strong>' + shade.code + '</strong>';
+    btn.onclick = function() { edSeleccionarTonoVita(shade.code, true); };
+    wrap.appendChild(btn);
+  });
+  edActualizarGuiaVita(false);
+}
+
+function edSeleccionarTonoVita(code, centrar) {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.diseno.vita = code || '';
+  edActualizarGuiaVita(centrar !== false);
+  vibrarSeleccionVita();
+}
+
+function edActualizarGuiaVita(centrar) {
+  var code = EDITOR_PARAMS && EDITOR_PARAMS.diseno ? (EDITOR_PARAMS.diseno.vita || '') : '';
+  var current = document.getElementById('ed-vita-current');
+  if (current) current.classList.toggle('selected', !code);
+  document.querySelectorAll('#ed-vita-shades .ed-vita-stick').forEach(function(btn) {
+    var activo = btn.dataset.vitaCode === code;
+    btn.classList.toggle('selected', activo);
+    btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+  });
+  var label = document.getElementById('ed-vita-selected');
+  if (label) label.textContent = code ? 'VITA ' + code : 'Simulación actual';
+  if (centrar && code) {
+    var elegido = document.querySelector('#ed-vita-shades .ed-vita-stick[data-vita-code="' + code + '"]');
+    if (elegido) elegido.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  }
+}
+
 function edChipClick(group, key, val, btn) {
   EDITOR_PARAMS[group][key] = val;
   document.querySelectorAll('.ed-chip[data-group="' + group + '"][data-key="' + key + '"]').forEach(function(b) {
@@ -4014,6 +4066,7 @@ function edSyncControles() {
   var b = document.getElementById('ed-colorB'); if (b) b.value = p.encia.colorB;
   var swatch = document.getElementById('ed-color-swatch');
   if (swatch) swatch.style.background = 'rgb(' + p.encia.colorR + ',' + p.encia.colorG + ',' + p.encia.colorB + ')';
+  edRenderGuiaVita();
   edActualizarInclinacionDisabled();
 }
 
