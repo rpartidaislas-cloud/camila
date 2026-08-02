@@ -4415,10 +4415,21 @@ function buscarAlineacionImagenes(imgOriginal, imgIA) {
   var bordeIni = Math.round(N * 0.12), bordeFin = Math.round(N * 0.88);
   var bocaYIni = N * 0.55, bocaYFin = N * 0.78, bocaXIni = N * 0.30, bocaXFin = N * 0.70;
 
-  function costoPara(dx, dy, escala) {
+  // "angulo" (grados) corrige que la IA haya girado la cara un poco al
+  // regenerar -- antes solo se corregía posición/escala, así que un giro,
+  // por chico que fuera, quedaba sin corregir (esa es la causa más probable
+  // de que ojos/nariz/boca no calzaran "idéntico" con la foto real).
+  function costoPara(dx, dy, escala, angulo) {
     ctxA.clearRect(0, 0, N, N);
+    ctxA.save();
+    if (angulo) {
+      ctxA.translate(N / 2, N / 2);
+      ctxA.rotate(angulo * Math.PI / 180);
+      ctxA.translate(-N / 2, -N / 2);
+    }
     var w = N * escala, h = N * escala;
     ctxA.drawImage(imgIA, (N - w) / 2 + dx * N, (N - h) / 2 + dy * N, w, h);
+    ctxA.restore();
     var pixA = ctxA.getImageData(0, 0, N, N).data;
     var suma = 0, cuenta = 0;
     for (var y = bordeIni; y < bordeFin; y++) {
@@ -4435,7 +4446,7 @@ function buscarAlineacionImagenes(imgOriginal, imgIA) {
     return cuenta ? suma / cuenta : Infinity;
   }
 
-  function buscar(cx, cy, ce, rangoXY, rangoEscala, pasos) {
+  function buscar(cx, cy, ce, ang, rangoXY, rangoEscala, pasos) {
     var mejor = { dx: cx, dy: cy, escala: ce, costo: Infinity };
     for (var pe = -pasos; pe <= pasos; pe++) {
       var escala = ce + (pe / pasos) * rangoEscala;
@@ -4443,7 +4454,7 @@ function buscarAlineacionImagenes(imgOriginal, imgIA) {
         var dy = cy + (py / pasos) * rangoXY;
         for (var px = -pasos; px <= pasos; px++) {
           var dx = cx + (px / pasos) * rangoXY;
-          var c = costoPara(dx, dy, escala);
+          var c = costoPara(dx, dy, escala, ang);
           if (c < mejor.costo) mejor = { dx: dx, dy: dy, escala: escala, costo: c };
         }
       }
@@ -4451,9 +4462,25 @@ function buscarAlineacionImagenes(imgOriginal, imgIA) {
     return mejor;
   }
 
-  var r1 = buscar(0, 0, 1, 0.14, 0.10, 4);
-  var r2 = buscar(r1.dx, r1.dy, r1.escala, 0.03, 0.03, 4);
-  return { dx: r2.dx, dy: r2.dy, escala: r2.escala };
+  function buscarAngulo(dx, dy, escala, centro, rango, pasos) {
+    var mejor = { angulo: centro, costo: Infinity };
+    for (var pa = -pasos; pa <= pasos; pa++) {
+      var angulo = centro + (pa / pasos) * rango;
+      var c = costoPara(dx, dy, escala, angulo);
+      if (c < mejor.costo) mejor = { angulo: angulo, costo: c };
+    }
+    return mejor;
+  }
+
+  // Grueso -> fino, alternando posición/escala y ángulo -- una búsqueda
+  // conjunta de las 4 dimensiones a la vez sería mucho más precisa pero
+  // demasiado lenta para correr en el navegador; así se queda cerca del
+  // mismo costo que la búsqueda de solo 3 dimensiones de antes.
+  var r1 = buscar(0, 0, 1, 0, 0.14, 0.10, 4);
+  var a1 = buscarAngulo(r1.dx, r1.dy, r1.escala, 0, 3, 6); // ±3°
+  var r2 = buscar(r1.dx, r1.dy, r1.escala, a1.angulo, 0.03, 0.03, 4);
+  var a2 = buscarAngulo(r2.dx, r2.dy, r2.escala, a1.angulo, 0.8, 4); // refina ±0.8°
+  return { dx: r2.dx, dy: r2.dy, escala: r2.escala, angulo: a2.angulo };
 }
 
 // Región de la boca como fracción del tamaño de la foto (misma zona que
@@ -4491,14 +4518,21 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
         var octx = out.getContext('2d');
         octx.drawImage(imgOriginal, 0, 0, W, H); // base: foto real, intacta
 
-        // Capa de la IA, reencuadrada con el mismo dx/dy/escala que la
-        // alinea con la foto original -- a tamaño completo, no la
+        // Capa de la IA, reencuadrada con el mismo dx/dy/escala/ángulo que
+        // la alinea con la foto original -- a tamaño completo, no la
         // miniatura de búsqueda.
         var capaIA = document.createElement('canvas');
         capaIA.width = W; capaIA.height = H;
         var cctx = capaIA.getContext('2d');
+        cctx.save();
+        if (align.angulo) {
+          cctx.translate(W / 2, H / 2);
+          cctx.rotate(align.angulo * Math.PI / 180);
+          cctx.translate(-W / 2, -H / 2);
+        }
         var w = W * align.escala, h = H * align.escala;
         cctx.drawImage(imgIA, (W - w) / 2 + align.dx * W, (H - h) / 2 + align.dy * H, w, h);
+        cctx.restore();
 
         // Máscara elíptica con borde difuminado (gradiente radial) sobre la
         // zona de la boca, para que no se note el corte entre piel real y
