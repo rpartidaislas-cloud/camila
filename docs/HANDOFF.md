@@ -10,6 +10,23 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex (guías independientes y agrupables)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Línea media, línea incisal, curva de sonrisa y proporción dejaron de
+  compartir la única `zone`: cada una conserva ahora su propia posición y
+  escala dentro de `guideZones`.
+- La última guía tocada queda marcada como objetivo; arrastrar o usar `+/-`
+  modifica solamente esa guía mientras las demás permanecen fijas.
+- Se añadió “Agrupar guías”. Al activarlo, las guías visibles se trasladan y
+  escalan juntas conservando su separación; al desagrupar vuelven a editarse
+  individualmente.
+- Compatibilidad: los casos anteriores inicializan las cuatro zonas desde la
+  antigua `zone`. No se modificaron prompts, backend ni lógica clínica.
+
+---
+
 ## 2026-08-02 — Codex (guía VITA dentro del editor)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
