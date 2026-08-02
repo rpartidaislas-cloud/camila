@@ -249,8 +249,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ba-tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.55);padding:3px 10px;border-radius:99px;z-index:6;backdrop-filter:blur(4px);white-space:nowrap;transition:opacity .4s}
 
 /* 3 foto thumbs */
-.res-photos{display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.07)}
-.res-thumb{flex:1;aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,.1)}
+.res-photos{display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.07);justify-content:center}
+.res-thumb{width:100%;aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,.1)}
 .res-thumb img{width:100%;height:100%;object-fit:cover}
 .res-thumb-lbl{font-size:9px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;display:block}
 
@@ -4451,7 +4451,11 @@ function renderResPhotos() {
   wrap.innerHTML = S.photos.map(function(p) {
     var activo = (S.baVistaActual || 'frontal') === p.view;
     var sinGenerar = !((S.results || {})[p.view]);
-    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
+    // flex:0 0 84px (ancho fijo) en vez de flex:1 -- con flex:1, entre menos
+    // fotos hubiera (a veces solo 1, la frontal), más se estiraba cada
+    // miniatura para llenar el espacio, hasta verse como una foto gigante
+    // en vez de una franja de miniaturas chicas.
+    return '<div style="flex:0 0 84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
       '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + (sinGenerar ? ';opacity:.55' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
       '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · sin generar' : '') + '</span></div>';
   }).join('');
