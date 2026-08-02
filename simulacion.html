@@ -2405,7 +2405,10 @@ async function elegirTonoDesdeResultado(code) {
   try {
     var recoloreado;
     try {
-      recoloreado = await recolorearDientes(base, shade.color);
+      // El recoloreado local es casi instantáneo (canvas, sin red) -- sin
+      // este mínimo, la animación de carga parpadea tan rápido que parece
+      // que nunca apareció. Por pedido explícito, tiene que verse.
+      recoloreado = (await Promise.all([recolorearDientes(base, shade.color), esperar(450)]))[0];
     } catch (e) {
       console.warn('No se pudo recolorear localmente, se deja la imagen sin cambiar:', e);
       recoloreado = base;
@@ -2431,7 +2434,7 @@ async function elegirTonoActualDesdeResultado() {
     var colorActual = await colorPromedioDientes('data:image/jpeg;base64,' + fotoOriginal.b64);
     var recoloreado;
     try {
-      recoloreado = await recolorearDientes(base, colorActual);
+      recoloreado = (await Promise.all([recolorearDientes(base, colorActual), esperar(450)]))[0];
     } catch (e) {
       console.warn('No se pudo recolorear localmente, se deja la imagen sin cambiar:', e);
       recoloreado = base;
