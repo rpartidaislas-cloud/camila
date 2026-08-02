@@ -10,6 +10,34 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+**Por pedido explícito del usuario** se amplió la simulación para que forma y
+tamaño se basen en un análisis visible facial, dentolabial y dental, además del
+tono VITA:
+
+- `CLAUDE_ANALISIS_SYSTEM_PROMPT` ahora devuelve forma recomendada (circular,
+  triangular o rectangular), tamaño relativo, relación ancho/alto de centrales,
+  línea de sonrisa, corredores bucales, soporte labial y caracterización. La
+  posición de reposo debe marcarse `no_valorable` cuando la foto sonriendo no
+  permite medirla; no se inventan medidas.
+- `construirPromptGemini()` incorpora anatomía primaria, secundaria y
+  terciaria, estratificación cerámica, mamelones, halo incisal, zonas de espejo
+  y sombra, microtextura y periquimatos moderados. Se reforzó no modificar
+  labios, encías, mordida, apertura, iluminación ni encuadre.
+- El editor muestra una tarjeta de recomendación faciodentolabial y permite
+  aplicarla. Se agregaron controles de forma, tamaño 88–112%, relación
+  ancho/alto 70–90% y caracterización superficial.
+- Casos guardados antes de estos campos reciben defaults compatibles.
+- No se modificaron Edge Functions, base de datos ni configuración nativa.
+  Sintaxis validada en web y móvil. La revisión visual automatizada quedó
+  impedida porque el navegador aislado no puede acceder a `file://` ni al
+  servidor local del host.
+
+---
+
 ## 2026-08-01 — Codex
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

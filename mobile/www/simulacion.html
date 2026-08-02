@@ -405,6 +405,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-range{width:100%;accent-color:#7c6af7}
 .ed-select{width:100%;height:42px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;font-size:13px;font-family:Inter,sans-serif;padding:0 12px;margin-bottom:16px}
 .ed-chip-row{display:flex;gap:6px;margin-bottom:16px}
+.ed-clinical-card{margin:0 0 16px;padding:13px;border-radius:13px;border:1px solid rgba(99,102,241,.28);background:linear-gradient(145deg,rgba(69,58,166,.16),rgba(20,18,35,.82))}
+.ed-clinical-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.ed-clinical-title{color:#fff;font-size:12px;font-weight:750}.ed-clinical-kicker{margin-top:2px;color:rgba(255,255,255,.42);font-size:9px;line-height:1.4}.ed-clinical-badge{flex:0 0 auto;padding:4px 7px;border-radius:99px;background:rgba(71,201,137,.12);border:1px solid rgba(71,201,137,.25);color:#8ee6b4;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.45px}
+.ed-clinical-tags{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.ed-clinical-tag{padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.74);font-size:9px}.ed-clinical-copy{color:rgba(255,255,255,.5);font-size:9.5px;line-height:1.5}.ed-clinical-apply{width:100%;height:34px;margin-top:10px;border-radius:9px;border:1px solid rgba(117,105,240,.35);background:rgba(91,71,224,.16);color:#e2deff;font:700 10px Inter,sans-serif;cursor:pointer}
 .ed-chip{flex:1;height:36px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11.5px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif}
 .ed-chip.ed-active{background:rgba(124,106,247,.22);border-color:#7c6af7;color:#fff}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
@@ -501,7 +504,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v68 — recursos maestros VITA completos</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v69 — diseño morfológico faciodentolabial</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1109,6 +1112,15 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
     <div class="ed-panel">
       <div class="ed-sec-label">Diseño de sonrisa</div>
+      <div class="ed-clinical-card" id="ed-clinical-card">
+        <div class="ed-clinical-head">
+          <div><div class="ed-clinical-title">Análisis faciodentolabial</div><div class="ed-clinical-kicker">Recomendación orientativa calculada desde la fotografía</div></div>
+          <span class="ed-clinical-badge" id="ed-clinical-badge">IA</span>
+        </div>
+        <div class="ed-clinical-tags" id="ed-clinical-tags"></div>
+        <div class="ed-clinical-copy" id="ed-clinical-copy">El análisis aparecerá cuando la fotografía frontal haya sido evaluada.</div>
+        <button type="button" class="ed-clinical-apply" id="ed-clinical-apply" onclick="edAplicarRecomendacion()">Usar recomendación en el editor</button>
+      </div>
       <div class="ed-label">Línea media</div>
       <div class="ed-chip-row">
         <button class="ed-chip" data-group="diseno" data-key="lineaMedia" data-val="izq" onclick="edChipClick('diseno','lineaMedia','izq',this)">◀ Izquierda</button>
@@ -1137,10 +1149,24 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       <div class="ed-label">Forma general</div>
       <select id="ed-forma" class="ed-select" data-group="diseno" data-key="forma" onchange="edSelectChange(this)">
         <option value="">IA decide (recomendado)</option>
-        <option value="oval">Ovalada — natural y femenina</option>
-        <option value="cuadrada">Cuadrada — fuerte y masculina</option>
-        <option value="rectangular">Rectangular — clásica</option>
-        <option value="triangular">Triangular — juvenil</option>
+        <option value="circular">Circular — ángulos suaves</option>
+        <option value="triangular">Triangular — cervical estrecho</option>
+        <option value="rectangular">Rectangular — líneas definidas</option>
+      </select>
+
+      <div class="ed-slider-row">
+        <div class="ed-slider-head"><span>Tamaño relativo de coronas</span><span id="ed-tamano-lbl">100%</span></div>
+        <input type="range" id="ed-tamano" class="ed-range" min="88" max="112" step="1" value="100" data-group="diseno" data-key="tamano" oninput="edSliderInput(this)">
+      </div>
+      <div class="ed-slider-row">
+        <div class="ed-slider-head"><span>Relación ancho/alto centrales</span><span id="ed-proporcion-lbl">78%</span></div>
+        <input type="range" id="ed-proporcion" class="ed-range" min="70" max="90" step="1" value="78" data-group="diseno" data-key="proporcion" oninput="edSliderInput(this)">
+      </div>
+      <div class="ed-label">Caracterización superficial</div>
+      <select id="ed-caracterizacion" class="ed-select" data-group="diseno" data-key="caracterizacion" onchange="edSelectChange(this)">
+        <option value="natural">Natural equilibrada</option>
+        <option value="sutil">Suave — microtextura mínima</option>
+        <option value="marcada">Definida — anatomía visible moderada</option>
       </select>
 
       <div class="ed-label">Escala de color (VITA)</div>
@@ -1186,7 +1212,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
         Regenerar simulación con estos cambios
       </button>
-      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">Esto vuelve a generar la simulación con Gemini (~15-20 s). Las guías son solo de referencia visual, no cambian la foto.</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">El tono puede previsualizarse localmente; cambiar forma o tamaño requiere regenerar la simulación (~15-20 s). Las guías son referencias visuales.</div>
     </div>
   </div>
 </div>
@@ -1225,8 +1251,8 @@ var CFG = {
 };
 
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
-var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design) con amplia experiencia clínica. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros faciodentales objetivos que servirán para guiar un diseño de carillas.\n\n' +
-  'Evalúa exclusivamente lo que es visible en la fotografía. No inventes datos que no puedas observar; si algo no es valorable con certeza, repórtalo como "no_valorable".\n\n' +
+var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design), análisis facial, dentolabial y morfología dental. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros visibles que guiarán una simulación orientativa de carillas.\n\n' +
+  'Analiza en tres niveles: FACIAL (simetría, línea media y plano oclusal), DENTOLABIAL (línea de sonrisa, exposición, corredores bucales, soporte y relación con labios) y DENTAL (forma, proporción, tamaño relativo, anatomía y textura). Evalúa exclusivamente lo visible. No diagnostiques, no inventes medidas ni infieras una posición de reposo desde una fotografía sonriendo; usa "no_valorable" cuando falte una toma adecuada.\n\n' +
   'Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin explicaciones y sin backticks de markdown, con exactamente esta estructura y estos valores posibles:\n\n' +
   '{\n' +
   '  "linea_media_dental": "centrada" | "desviada_derecha" | "desviada_izquierda",\n' +
@@ -1235,14 +1261,23 @@ var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa 
   '  "simetria_vertical": "buena" | "asimetria_leve" | "asimetria_marcada",\n' +
   '  "canteo_oclusal": "ausente" | "leve_derecha" | "leve_izquierda" | "marcado_derecha" | "marcado_izquierda",\n' +
   '  "inclinacion_incisivos": "normal" | "proinclinacion" | "retroinclinacion_excesiva",\n' +
-  '  "exposicion_incisal_reposo_mm": "estimación en mm como texto, ej. 2mm",\n' +
-  '  "sexo_aparente_para_referencia": "femenino" | "masculino",\n' +
+  '  "posicion_reposo": "valorable" | "no_valorable",\n' +
+  '  "exposicion_incisal_reposo_mm": "estimación visible como texto, ej. 2mm" | "no_valorable",\n' +
   '  "arco_incisivo_cuspideo": "simetrico" | "asimetrico",\n' +
+  '  "linea_sonrisa": "baja" | "media" | "alta" | "no_valorable",\n' +
+  '  "curvatura_labio_inferior": "plana" | "moderada" | "marcada" | "no_valorable",\n' +
+  '  "corredores_bucales": "estrechos" | "equilibrados" | "amplios" | "no_valorable",\n' +
+  '  "soporte_labial": "conservado" | "reducido" | "aumentado" | "no_valorable",\n' +
   '  "clase_oclusal_aparente": "Clase I aparente" | "Clase II aparente" | "Clase III aparente" | "no_valorable",\n' +
   '  "troneras": "naturales" | "cerradas" | "abiertas" | "irregulares",\n' +
   '  "zenits_gingivales": "regulares" | "irregulares",\n' +
+  '  "forma_dental_recomendada": "circular" | "triangular" | "rectangular",\n' +
+  '  "tamano_coronas_pct": número entero entre 88 y 112, donde 100 conserva el tamaño aparente actual,\n' +
+  '  "proporcion_ancho_alto_centrales_pct": número entero entre 70 y 90,\n' +
+  '  "caracterizacion_superficial": "sutil" | "natural" | "marcada",\n' +
+  '  "anatomia_recomendada": "descripción breve de anatomía primaria, secundaria y terciaria apropiada, sin exagerar",\n' +
   '  "contraindicaciones_visibles": ["lista de hallazgos visibles que limiten el diseño, ej. recesión gingival marcada, asimetría facial severa — array vacío [] si no hay"],\n' +
-  '  "recomendacion_diseño": "1-2 líneas con la recomendación de diseño de sonrisa para este paciente, en español"\n' +
+  '  "recomendacion_diseño": "2-3 líneas con la recomendación estética orientativa y sus límites, en español"\n' +
   '}';
 
 function cargarTenantConfig(tid) {
@@ -3439,7 +3474,7 @@ async function analizarConClaude(fotoFrontalBase64) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
       messages: [{role:'user', content: content}],
-      max_tokens: 800
+      max_tokens: 1400
     })
   });
   // 110s por la misma razón que analyzeWithClaude: el servidor puede
@@ -3489,6 +3524,11 @@ function construirPromptGemini(diagnostico) {
   var d = diagnostico || {};
   var partes = [];
 
+  function numeroEnRango(valor, minimo, maximo, respaldo) {
+    var n = parseFloat(valor);
+    return isFinite(n) ? Math.max(minimo, Math.min(maximo, n)) : respaldo;
+  }
+
   if (d['linea_media_dental'] && d['linea_media_dental'] !== 'centrada') {
     partes.push('Corrige la línea media dental para alinearla con el filtrum (línea media facial).');
   }
@@ -3503,6 +3543,19 @@ function construirPromptGemini(diagnostico) {
     partes.push('Usa una proporción de corona ' + proporciones[d['tipo_facial']] + ', acorde al tipo facial del paciente.');
   }
 
+  var formas = {
+    circular: 'circular with softly rounded line angles and a natural curved incisal silhouette',
+    triangular: 'triangular with a narrower cervical third and a controlled wider incisal third',
+    rectangular: 'rectangular with defined but non-sharp line angles and balanced parallel proximal contours'
+  };
+  if (formas[d['forma_dental_recomendada']]) {
+    partes.push('Recommended crown morphology: ' + formas[d['forma_dental_recomendada']] + '. Preserve individual variation between central incisors, lateral incisors and canines.');
+  }
+
+  var tamanoPct = numeroEnRango(d['tamano_coronas_pct'], 88, 112, 100);
+  var proporcionPct = numeroEnRango(d['proporcion_ancho_alto_centrales_pct'], 70, 90, 78);
+  partes.push('Use a conservative apparent crown-size target of approximately ' + Math.round(tamanoPct) + '% relative to the visible original crowns, without changing the mouth opening or moving the gingival margins. Target an upper-central-incisor width-to-height ratio near ' + Math.round(proporcionPct) + '%, adapted bilaterally rather than forcing mathematical perfection.');
+
   if (d['canteo_oclusal'] && d['canteo_oclusal'] !== 'ausente') {
     partes.push('Corrige el canteo del plano oclusal para nivelarlo.');
   }
@@ -3513,10 +3566,8 @@ function construirPromptGemini(diagnostico) {
     partes.push('Corrige la inclinación de los incisivos hacia el rango ideal de 1 a 3 grados de retroinclinación.');
   }
 
-  if (d['sexo_aparente_para_referencia'] === 'femenino') {
-    partes.push('Ajusta la exposición incisal en reposo a 2.5-3mm, acorde a una referencia femenina.');
-  } else if (d['sexo_aparente_para_referencia'] === 'masculino') {
-    partes.push('Ajusta la exposición incisal en reposo a 1.5-2mm, acorde a una referencia masculina.');
+  if (d['posicion_reposo'] === 'valorable' && d['exposicion_incisal_reposo_mm'] && d['exposicion_incisal_reposo_mm'] !== 'no_valorable') {
+    partes.push('Respect the observed incisal display at rest (' + d['exposicion_incisal_reposo_mm'] + ') and do not invent additional lip movement.');
   }
 
   if (d['simetria_vertical'] && d['simetria_vertical'] !== 'buena') {
@@ -3527,19 +3578,41 @@ function construirPromptGemini(diagnostico) {
     partes.push('Equilibra el arco incisivo-cuspídeo para que sea simétrico.');
   }
 
+  if (d['linea_sonrisa'] && d['linea_sonrisa'] !== 'no_valorable') {
+    partes.push('Keep the restored incisal curve harmonious with the observed ' + d['linea_sonrisa'] + ' smile line and the curvature of the lower lip.');
+  }
+  if (d['corredores_bucales'] === 'amplios') {
+    partes.push('Reduce the apparent buccal corridors only through conservative posterior crown contour, without widening or warping the lips.');
+  } else if (d['corredores_bucales'] === 'estrechos') {
+    partes.push('Preserve adequate buccal corridor depth; do not create an unnaturally full wall of teeth.');
+  }
+  if (d['soporte_labial'] && d['soporte_labial'] !== 'no_valorable') {
+    partes.push('Preserve the observed lip support (' + d['soporte_labial'] + '); do not project the veneers enough to move the lips.');
+  }
+
   if (d['troneras'] && d['troneras'] !== 'naturales') {
     partes.push('Ajusta las troneras para que luzcan naturales.');
   }
 
   if (d['zenits_gingivales'] === 'irregulares') {
-    partes.push('Armoniza los zenits gingivales.');
+    partes.push('Compensate visible zenith asymmetry only through crown emergence profile and line angles; do not edit, raise, lower or recolor the gums.');
   }
+
+  var caracterizacion = d['caracterizacion_superficial'] || 'natural';
+  var textura = caracterizacion === 'sutil' ?
+    'very restrained secondary anatomy and nearly imperceptible tertiary microtexture' :
+    caracterizacion === 'marcada' ?
+    'clearly readable but still clinically subtle secondary anatomy and fine tertiary microtexture' :
+    'balanced secondary anatomy and subtle tertiary microtexture visible only in highlights';
+  partes.push('Build realistic morphology at three scales. PRIMARY ANATOMY: individualized crown silhouette, emergence profile, transition line angles, contact areas and incisal edge. SECONDARY ANATOMY: modest developmental lobes, shallow vertical grooves, marginal ridges and natural embrasures. TERTIARY ANATOMY: ' + textura + ', with sparse delicate perikymata—never repetitive grooves, scratches or an aged surface.');
+  partes.push('Use optical ceramic layering: slightly warmer cervical dentin, controlled body value, incisal translucency with subtle mamelons and a restrained halo. Preserve natural mirror areas and shadow transition zones created by convexity; highlights must follow the original light source and must not appear as painted white stripes or horizontal bands.');
+  if (d['anatomia_recomendada']) partes.push('Patient-specific morphology note: ' + d['anatomia_recomendada'] + '.');
 
   if (d['recomendacion_diseño']) {
     partes.push(d['recomendacion_diseño']);
   }
 
-  partes.push('El resultado debe verse natural, fotorrealista, manteniendo la identidad facial del paciente, sin alterar labios, piel ni iluminación original.');
+  partes.push('El resultado debe verse natural, fotorrealista y clínicamente plausible, manteniendo la identidad facial y dental del paciente. No alteres labios, encías, piel, apertura bucal, mordida, iluminación ni encuadre. Esta es una visualización estética orientativa, no una predicción exacta de tratamiento.');
 
   return partes.join(' ');
 }
@@ -3622,7 +3695,7 @@ async function generateSimulation(clinicalPrompt, foto) {
 // regenerar la simulación con Gemini (único método que puede cambiar de
 // verdad forma/color/línea en una foto real).
 var EDITOR_PARAMS_DEFAULT = {
-  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', vita:'', valor:0, croma:0, opacidad:0},
+  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcion:78, caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   zone: {x:0.30, y:0.52, w:0.40, h:0.20},
@@ -3643,7 +3716,12 @@ function abrirEditorDiseno() {
   if (!url) { alert('Genera la simulación primero.'); return; }
 
   EDITOR_PARAMS = S.editorParams ? JSON.parse(JSON.stringify(S.editorParams)) : JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
+  // Compatibilidad con casos guardados antes de agregar morfología/tamaño.
+  if (typeof EDITOR_PARAMS.diseno.tamano !== 'number') EDITOR_PARAMS.diseno.tamano = 100;
+  if (typeof EDITOR_PARAMS.diseno.proporcion !== 'number') EDITOR_PARAMS.diseno.proporcion = 78;
+  if (!EDITOR_PARAMS.diseno.caracterizacion) EDITOR_PARAMS.diseno.caracterizacion = 'natural';
   edSyncControles();
+  edRenderAnalisisClinico();
   edInitZoneDrag();
 
   edBaseImg = new Image();
@@ -3656,6 +3734,74 @@ function abrirEditorDiseno() {
   edBaseImg.src = url;
 
   show('s-editor');
+}
+
+function edFormaRecomendada(d) {
+  if (d && ['circular','triangular','rectangular'].indexOf(d.forma_dental_recomendada) >= 0) return d.forma_dental_recomendada;
+  var porTipo = {braquifacial:'rectangular', mesofacial_pasivo:'circular', mesofacial_activo:'circular', dolicofacial:'triangular'};
+  return porTipo[(d || {}).tipo_facial] || 'circular';
+}
+
+function edNumeroClinico(valor, min, max, respaldo) {
+  var n = parseFloat(valor);
+  return isFinite(n) ? Math.round(Math.max(min, Math.min(max, n))) : respaldo;
+}
+
+function edRenderAnalisisClinico() {
+  var d = S.diagnosticoFacial;
+  var tags = document.getElementById('ed-clinical-tags');
+  var copy = document.getElementById('ed-clinical-copy');
+  var badge = document.getElementById('ed-clinical-badge');
+  var aplicar = document.getElementById('ed-clinical-apply');
+  if (!tags || !copy) return;
+  tags.innerHTML = '';
+  if (!d) {
+    if (badge) badge.textContent = 'Pendiente';
+    copy.textContent = 'No hay un análisis estructurado disponible. Puedes ajustar la forma y el tamaño manualmente.';
+    if (aplicar) aplicar.disabled = true;
+    return;
+  }
+  if (badge) badge.textContent = 'Analizado';
+  if (aplicar) aplicar.disabled = false;
+  var forma = edFormaRecomendada(d);
+  var formaTxt = {circular:'Circular', triangular:'Triangular', rectangular:'Rectangular'}[forma];
+  var valores = [
+    'Forma ' + formaTxt,
+    'Tamaño ' + edNumeroClinico(d.tamano_coronas_pct,88,112,100) + '%',
+    'Ancho/alto ' + edNumeroClinico(d.proporcion_ancho_alto_centrales_pct,70,90,78) + '%'
+  ];
+  if (d.linea_sonrisa && d.linea_sonrisa !== 'no_valorable') valores.push('Sonrisa ' + String(d.linea_sonrisa).replace(/_/g,' '));
+  if (d.caracterizacion_superficial) valores.push('Textura ' + String(d.caracterizacion_superficial).replace(/_/g,' '));
+  valores.forEach(function(texto) {
+    var tag = document.createElement('span');
+    tag.className = 'ed-clinical-tag';
+    tag.textContent = texto;
+    tags.appendChild(tag);
+  });
+  var notaReposo = d.posicion_reposo === 'valorable' ?
+    'La posición de reposo fue valorable en la toma.' :
+    'La posición de reposo no se infiere porque la fotografía no muestra una toma adecuada.';
+  copy.textContent = (d.recomendacion_diseño || 'Recomendación basada en los rasgos visibles de la fotografía.') + ' ' + notaReposo;
+}
+
+function edAplicarRecomendacion() {
+  var d = S.diagnosticoFacial;
+  if (!d || !EDITOR_PARAMS) return;
+  var diseno = EDITOR_PARAMS.diseno;
+  diseno.forma = edFormaRecomendada(d);
+  diseno.tamano = edNumeroClinico(d.tamano_coronas_pct,88,112,100);
+  diseno.proporcion = edNumeroClinico(d.proporcion_ancho_alto_centrales_pct,70,90,78);
+  diseno.caracterizacion = ['sutil','natural','marcada'].indexOf(d.caracterizacion_superficial) >= 0 ? d.caracterizacion_superficial : 'natural';
+  if (d.curvatura_labio_inferior === 'plana') diseno.arcoSonrisa = 'recto';
+  else if (d.curvatura_labio_inferior === 'marcada') diseno.arcoSonrisa = 'amplio';
+  else diseno.arcoSonrisa = 'suave';
+  if (d.linea_media_dental === 'desviada_izquierda') diseno.lineaMedia = 'der';
+  else if (d.linea_media_dental === 'desviada_derecha') diseno.lineaMedia = 'izq';
+  else diseno.lineaMedia = 'centrada';
+  edSyncControles();
+  redrawEditor();
+  var badge = document.getElementById('ed-clinical-badge');
+  if (badge) badge.textContent = 'Aplicado';
 }
 
 // ══ REVISIÓN CLÍNICA AVANZADA — abre revision-clinica.html con segmentación
@@ -3772,6 +3918,7 @@ function edRestablecer() {
 
 function edFormatLabel(group, key, val) {
   if (key === 'lineaIncisalInclinacion') return val.toFixed(1) + '°';
+  if (key === 'tamano' || key === 'proporcion') return Math.round(val) + '%';
   if (ED_ESCALAS[key]) return ED_ESCALAS[key][val + 2];
   return val;
 }
@@ -3932,8 +4079,28 @@ function construirPromptEditor() {
   var arcos = {recto:'a straight, less curved smile arc', amplio:'a wide, pronounced smile arc following the lower lip'};
   if (arcos[d.arcoSonrisa]) partes.push('Adjust the smile arc to ' + arcos[d.arcoSonrisa] + '.');
 
-  var formas = {oval:'a soft oval shape', cuadrada:'a square, strong shape', rectangular:'a classic rectangular shape', triangular:'a youthful triangular shape'};
-  if (formas[d.forma]) partes.push('Adjust the tooth shape to ' + formas[d.forma] + '.');
+  var formas = {
+    circular:'a circular morphology with soft transition line angles and a gently curved incisal silhouette',
+    triangular:'a triangular morphology with a narrower cervical third and controlled incisal width',
+    rectangular:'a rectangular morphology with defined but non-sharp line angles and balanced proximal contours',
+    oval:'a circular morphology with soft transition line angles',
+    cuadrada:'a rectangular morphology with defined but non-sharp line angles'
+  };
+  if (formas[d.forma]) partes.push('Adjust the individual crown morphology to ' + formas[d.forma] + ', while keeping central incisors dominant, lateral incisors slightly smaller and canines anatomically distinct.');
+
+  if (d.tamano && d.tamano !== 100) {
+    partes.push('Change the apparent clinical crown size to approximately ' + Math.round(d.tamano) + '% of the current simulated crown size. Do this through incisal and proximal ceramic contour only; do not move gingival margins, lips or jaw position.');
+  }
+  if (d.proporcion) {
+    partes.push('Target a central-incisor width-to-height ratio near ' + Math.round(d.proporcion) + '%, adapted to the patient rather than forced symmetrically.');
+  }
+  var caracterizaciones = {
+    sutil:'Use very restrained secondary anatomy, nearly imperceptible tertiary microtexture and only sparse delicate perikymata.',
+    natural:'Use balanced secondary anatomy and subtle tertiary microtexture visible mainly through natural specular highlights.',
+    marcada:'Use readable but clinically moderate developmental lobes, shallow grooves and fine tertiary microtexture; never create scratches, repetitive lines or an aged surface.'
+  };
+  partes.push('Rebuild PRIMARY ANATOMY (silhouette, emergence profile, transition line angles, contacts and incisal edge), SECONDARY ANATOMY (developmental lobes, marginal ridges, shallow grooves and embrasures) and TERTIARY ANATOMY (microtexture and perikymata). ' + (caracterizaciones[d.caracterizacion] || caracterizaciones.natural));
+  partes.push('Create realistic ceramic stratification: slightly warmer cervical dentin, controlled body value, incisal translucency with subtle mamelons and halo, natural mirror areas and soft shadow-transition zones. Highlights must follow the original illumination and must never look like painted white bands.');
 
   if (d.vita) partes.push('Adjust the tooth shade to VITA ' + d.vita + '.');
 
