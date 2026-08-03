@@ -10,6 +10,18 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (comparador sin recorte vertical)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El comparador antes/después ya no limita su altura normal a `58vh`.
+- La altura ahora se calcula con `ancho visible × proporción natural` de la
+  fotografía original, por lo que las tomas verticales muestran también la
+  barbilla, cuello y borde inferior sin recorte.
+- La misma regla se reaplica al salir de “Ajustar alineación”, evitando que el
+  recorte reaparezca después de usar esa herramienta.
+- Original y simulación conservan exactamente la misma caja y alineación.
+
 ## 2026-08-03 — Codex (pellizco de proporción, paneo y foto original)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

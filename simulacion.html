@@ -4979,7 +4979,10 @@ function initBASlider() {
   function fixH() {
     if (!imgB.naturalHeight) return;
     var r = imgB.naturalHeight / imgB.naturalWidth;
-    var h = Math.min(window.innerHeight * 0.58, wrap.offsetWidth * r);
+    // La altura debe salir únicamente de la proporción real de la foto.
+    // El límite anterior de 58vh convertía las fotos verticales en una caja
+    // más baja y object-fit:cover terminaba cortando barbilla/cuello.
+    var h = wrap.offsetWidth * r;
     wrap.style.height = h + 'px';
     // Force both images to same fixed height so they align perfectly
     imgB.style.height = h + 'px';
@@ -5370,7 +5373,9 @@ function setBaFullscreen(activo) {
     var imgA = document.getElementById('img-a');
     if (imgB && imgB.naturalHeight) {
       var r = imgB.naturalHeight / imgB.naturalWidth;
-      var h = Math.min(window.innerHeight * 0.58, wrap.offsetWidth * r);
+      // Conserva completa la fotografía vertical al regresar del modo de
+      // alineación; no volver a imponer un límite relativo al viewport.
+      var h = wrap.offsetWidth * r;
       wrap.style.height = h + 'px';
       imgB.style.height = h + 'px';
       if (imgA) imgA.style.height = h + 'px';
