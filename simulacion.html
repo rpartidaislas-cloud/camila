@@ -3714,6 +3714,7 @@ var EDITOR_PARAMS_DEFAULT = {
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   guiasAgrupadas:false,
+  curvaExtremos:0,
   guideZones: {
     lineaMedia:{x:0.30,y:0.52,w:0.40,h:0.20},
     lineaIncisal:{x:0.30,y:0.52,w:0.40,h:0.20},
@@ -3747,6 +3748,7 @@ function edAsegurarZonasGuias() {
     if (!EDITOR_PARAMS.guideZones[nombre]) EDITOR_PARAMS.guideZones[nombre] = edCopiarZona(base);
   });
   if (typeof EDITOR_PARAMS.guiasAgrupadas !== 'boolean') EDITOR_PARAMS.guiasAgrupadas = false;
+  if (typeof EDITOR_PARAMS.curvaExtremos !== 'number') EDITOR_PARAMS.curvaExtremos = 0;
 }
 
 function edZonaGuia(nombre) {
@@ -3783,7 +3785,9 @@ function edActualizarEstadoGuias() {
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
     if (!visibles.length) hint.textContent = 'Activa una guía para moverla';
+    else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · la manija naranja sólo ajusta la curva';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
+    else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para moverla · usa la manija naranja para ajustar sus extremos';
     else hint.textContent = 'Editando: ' + ED_GUIDE_LABELS[_edActiveGuide] + ' · las demás permanecen fijas';
   }
 }
@@ -4163,12 +4167,31 @@ function edInitZoneDrag() {
   if (_edDragInit) return;
   _edDragInit = true;
   var canvas = document.getElementById('ed-canvas');
-  var dragging = false, startX, startY, dragTargets = [], startZones = {};
+  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0;
 
   function start(clientX, clientY) {
+    var r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) { dragging = false; return; }
+    if (EDITOR_PARAMS.guias.curvaSonrisa) {
+      var handle = edCurvaHandlePx(canvas.width, canvas.height);
+      var px = (clientX - r.left) * canvas.width / r.width;
+      var py = (clientY - r.top) * canvas.height / r.height;
+      var hitRadius = 24 * canvas.width / r.width;
+      if (Math.hypot(px - handle.x, py - handle.y) <= hitRadius) {
+        dragging = true;
+        dragMode = 'curve';
+        startX = clientX; startY = clientY;
+        startCurveOffset = EDITOR_PARAMS.curvaExtremos || 0;
+        _edActiveGuide = 'curvaSonrisa';
+        edActualizarEstadoGuias();
+        redrawEditor();
+        return;
+      }
+    }
     dragTargets = edGuiasObjetivo();
     if (!dragTargets.length) { dragging = false; return; }
     dragging = true;
+    dragMode = 'zone';
     startX = clientX; startY = clientY;
     startZones = {};
     dragTargets.forEach(function(nombre) { startZones[nombre] = edCopiarZona(edZonaGuia(nombre)); });
@@ -4177,6 +4200,13 @@ function edInitZoneDrag() {
     if (!dragging) return;
     var r = canvas.getBoundingClientRect();
     if (!r.width || !r.height) return;
+    if (dragMode === 'curve') {
+      var curveZone = edZonaGuia('curvaSonrisa');
+      var deltaCurve = ((clientY - startY) / r.height) / Math.max(0.01, curveZone.h);
+      EDITOR_PARAMS.curvaExtremos = Math.max(-0.30, Math.min(0.70, startCurveOffset + deltaCurve));
+      redrawEditor();
+      return;
+    }
     var dx = (clientX - startX) / r.width;
     var dy = (clientY - startY) / r.height;
     dragTargets.forEach(function(nombre) {
@@ -4187,13 +4217,13 @@ function edInitZoneDrag() {
     });
     redrawEditor();
   }
-  function end() { dragging = false; }
+  function end() { dragging = false; dragMode = 'zone'; }
 
   canvas.addEventListener('mousedown', function(e){ start(e.clientX, e.clientY); });
   document.addEventListener('mousemove', function(e){ move(e.clientX, e.clientY); });
   document.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', function(e){ start(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
-  canvas.addEventListener('touchmove', function(e){ move(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  canvas.addEventListener('touchstart', function(e){ start(e.touches[0].clientX, e.touches[0].clientY); if (dragging) e.preventDefault(); }, {passive:false});
+  canvas.addEventListener('touchmove', function(e){ move(e.touches[0].clientX, e.touches[0].clientY); if (dragging) e.preventDefault(); }, {passive:false});
   canvas.addEventListener('touchend', end, {passive:true});
 }
 
@@ -4343,6 +4373,29 @@ function edZonaPx(nombre, w, h) {
   return {x:w*z.x,y:h*z.y,w:w*z.w,h:h*z.h};
 }
 
+function edCurvaGeometria(w, h) {
+  var zone = edZonaPx('curvaSonrisa', w, h);
+  var curvasProf = {recto: 0.02, suave: 0.08, amplio: 0.16};
+  var prof = curvasProf[EDITOR_PARAMS.diseno.arcoSonrisa] || 0.08;
+  var yBase = zone.y + zone.h * 0.15;
+  var yExtremos = yBase + zone.h * (EDITOR_PARAMS.curvaExtremos || 0);
+  var yCentro = yBase + zone.h * prof * 2;
+  // En una Bézier cuadrática simétrica, Q = 2C - E mantiene C fijo
+  // mientras ambos extremos E suben o bajan con la manija.
+  return {
+    zone: zone,
+    midX: zone.x + zone.w / 2,
+    yExtremos: yExtremos,
+    yCentro: yCentro,
+    yControl: 2 * yCentro - yExtremos
+  };
+}
+
+function edCurvaHandlePx(w, h) {
+  var curva = edCurvaGeometria(w, h);
+  return {x:curva.zone.x + curva.zone.w, y:curva.yExtremos};
+}
+
 function edDibujarGuias(ctx, w, h) {
   var g = EDITOR_PARAMS.guias;
 
@@ -4380,18 +4433,31 @@ function edDibujarGuias(ctx, w, h) {
   }
 
   if (g.curvaSonrisa) {
-    zone = edZonaPx('curvaSonrisa', w, h);
-    midX = zone.x + zone.w / 2;
+    var curva = edCurvaGeometria(w, h);
+    zone = curva.zone;
+    midX = curva.midX;
     ctx.save();
     ctx.strokeStyle = '#F59E0B';
     ctx.lineWidth = Math.max(1.5, w * 0.0025);
-    var curvasProf = {recto: 0.02, suave: 0.08, amplio: 0.16};
-    var prof = curvasProf[EDITOR_PARAMS.diseno.arcoSonrisa] || 0.08;
-    var y0c = zone.y + zone.h * 0.15;
-    var yMid = y0c + zone.h * prof * 4;
     ctx.beginPath();
-    ctx.moveTo(zone.x, y0c);
-    ctx.quadraticCurveTo(midX, yMid, zone.x + zone.w, y0c);
+    ctx.moveTo(zone.x, curva.yExtremos);
+    ctx.quadraticCurveTo(midX, curva.yControl, zone.x + zone.w, curva.yExtremos);
+    ctx.stroke();
+
+    var handleRadius = Math.max(7, w * 0.007);
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#F59E0B';
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = Math.max(2, w * 0.0018);
+    ctx.beginPath();
+    ctx.arc(zone.x + zone.w, curva.yExtremos, handleRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.lineWidth = Math.max(1.5, w * 0.0012);
+    ctx.beginPath();
+    ctx.moveTo(zone.x + zone.w, curva.yExtremos - handleRadius * 0.48);
+    ctx.lineTo(zone.x + zone.w, curva.yExtremos + handleRadius * 0.48);
     ctx.stroke();
     ctx.restore();
   }

@@ -10,6 +10,20 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex (manija de curvatura de sonrisa)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La guía “Curva sonrisa” incorpora una manija naranja en el extremo derecho.
+  Al arrastrarla verticalmente, los dos extremos de la curva suben o bajan de
+  forma simétrica mientras el punto central permanece fijo.
+- Arrastrar el resto del canvas conserva el comportamiento anterior: mueve la
+  guía activa o todas las visibles cuando están agrupadas. La manija ajusta
+  únicamente la curva, incluso con las guías agrupadas.
+- El ajuste se guarda en `EDITOR_PARAMS.curvaExtremos`; los casos anteriores
+  reciben `0` y conservan exactamente la geometría visual previa.
+- No se modificaron prompts, backend ni lógica clínica.
+
 ## 2026-08-02 — Codex (guías independientes y agrupables)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
