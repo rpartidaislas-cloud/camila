@@ -10,6 +10,22 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (pellizco de proporción, paneo y foto original)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La guía “Proporción” admite gesto de dos dedos: separarlos aumenta ancho y
+  alto, juntarlos los reduce, manteniendo el centro de la guía y respetando
+  los límites de la fotografía.
+- Al ampliar la fotografía aparece disponible “Mover foto”. Mientras está
+  activo, arrastrar desplaza la fotografía ampliada hasta sus bordes; las
+  guías viajan con el canvas y conservan su alineación. Volver a 100% restaura
+  posición y modo de movimiento.
+- Se añadió “Ver original” sobre la fotografía. Alterna en un toque entre la
+  toma original y la simulación, sin cerrar el editor ni perder zoom, paneo,
+  guías o parámetros; el texto cambia a “Ver simulación” al comparar.
+- No se modificaron prompts, backend ni lógica clínica.
+
 ## 2026-08-03 — Codex (proporción verde y zoom de fotografía)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
