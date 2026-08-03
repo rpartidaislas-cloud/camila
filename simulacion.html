@@ -5182,8 +5182,11 @@ function buscarAlineacionImagenes(imgOriginal, imgIA) {
 // encuadre que ya intenta forzar la app (guía ovalada en la cámara en vivo,
 // validarEncuadreFrontal para la cámara nativa) -- no es detección real de
 // landmarks, así que puede no calzar perfecto si una foto en particular
-// salió con la cara muy descentrada.
-var MOUTH_CX = 0.5, MOUTH_CY = 0.665, MOUTH_RX = 0.23, MOUTH_RY = 0.15;
+// salió con la cara muy descentrada. RY se redujo (0.15 -> 0.12) y CY se
+// bajó un poco (0.665 -> 0.685) a propósito -- por pedido explícito de que
+// LO ÚNICO que cambie sea el diente, el óvalo anterior podía alcanzar a
+// rozar la base de la nariz con el borde difuminado del gradiente.
+var MOUTH_CX = 0.5, MOUTH_CY = 0.685, MOUTH_RX = 0.23, MOUTH_RY = 0.12;
 
 // Pega SOLO la boca generada por la IA sobre la foto ORIGINAL sin tocar --
 // en vez de mostrar la imagen completa que regresa la IA (que puede traer
