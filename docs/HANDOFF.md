@@ -10,6 +10,20 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (proporción verde y zoom de fotografía)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Las líneas de la guía “Proporción” ahora se dibujan en verde fosforescente
+  (`#39FF14`) con brillo de contraste; su chip activo usa el mismo código
+  visual.
+- Se añadieron controles independientes de zoom para la fotografía del editor:
+  `−`, porcentaje/restablecer y `+`, desde 100% hasta 300% en pasos de 25%.
+- El zoom transforma conjuntamente la fotografía y las guías, conservando su
+  alineación y sin reutilizar los controles de escala de la guía activa.
+- El zoom vuelve a 100% cada vez que se abre el editor. No se modificaron
+  prompts, backend ni lógica clínica.
+
 ## 2026-08-02 — Codex (líneas horizontales y verticales múltiples)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
