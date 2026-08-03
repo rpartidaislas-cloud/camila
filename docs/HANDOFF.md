@@ -10,6 +10,15 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (guía de proporción con siete líneas)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La guía verde de “Proporción” pasa de cinco a siete líneas verticales.
+- Se añadieron dos divisiones áureas intermedias, simétricas respecto al eje
+  central y dentro de los límites existentes de la guía.
+- El pellizco, arrastre, agrupamiento, color y brillo no cambian.
+
 ## 2026-08-03 — Codex (comparador sin recorte vertical)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

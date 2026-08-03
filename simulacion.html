@@ -4750,7 +4750,7 @@ function edDibujarGuias(ctx, w, h) {
     var phi = 1.618;
     var d1 = zone.w / 2 / phi;
     var d2 = d1 / phi;
-    [midX - d1 - d2, midX - d1, midX, midX + d1, midX + d1 + d2].forEach(function(x) {
+    [midX - d1 - d2, midX - d1, midX - d2, midX, midX + d2, midX + d1, midX + d1 + d2].forEach(function(x) {
       ctx.beginPath();
       ctx.moveTo(x, zone.y);
       ctx.lineTo(x, zone.y + zone.h);
