@@ -395,6 +395,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-guide-chip{flex-shrink:0;height:32px;padding:0 9px;border-radius:99px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:10.5px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .ed-guide-chip.ed-active{background:rgba(124,106,247,.22);border-color:#7c6af7;color:#fff}
 .ed-guide-chip.ed-target{box-shadow:0 0 0 2px rgba(255,255,255,.72),0 0 14px rgba(124,106,247,.5)}
+.ed-line-guide-group{display:flex;align-items:center;gap:4px;flex-shrink:0}.ed-extra-lines{display:flex;align-items:center;gap:4px}.ed-extra-line{display:flex;align-items:center;gap:2px}.ed-guide-add{flex-shrink:0;height:32px;padding:0 9px;border-radius:99px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.28);color:rgba(255,255,255,.78);font:650 10.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}.ed-guide-add:hover{background:rgba(255,255,255,.1);color:#fff}.ed-line-remove{width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:rgba(255,255,255,.58);font:700 13px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}.ed-line-remove:hover{background:rgba(239,68,68,.18);border-color:rgba(248,113,113,.5);color:#fecaca}
 .ed-group-chip{flex-shrink:0;height:32px;padding:0 10px;border-radius:99px;background:rgba(38,170,121,.08);border:1.5px solid rgba(76,201,150,.24);color:rgba(174,241,215,.72);font:650 10.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}.ed-group-chip.ed-active{background:rgba(38,170,121,.2);border-color:rgba(93,224,175,.72);color:#c9f9e6;box-shadow:0 0 13px rgba(46,200,145,.16)}
 .ed-panel{max-height:42vh;overflow-y:auto;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 14px);background:rgba(15,13,25,.98);order:2}
 .ed-sec-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 10px}
@@ -1110,8 +1111,16 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   <div class="ed-body">
     <div class="ed-center">
       <div class="ed-guides-row">
-        <button class="ed-guide-chip" data-guia="lineaMedia" onclick="edGuiaToggle('lineaMedia',this)">Línea media</button>
-        <button class="ed-guide-chip" data-guia="lineaIncisal" onclick="edGuiaToggle('lineaIncisal',this)">Línea incisal</button>
+        <div class="ed-line-guide-group">
+          <button class="ed-guide-chip" data-guia="lineaMedia" onclick="edGuiaToggle('lineaMedia',this)">Línea vertical</button>
+          <span class="ed-extra-lines" id="ed-extra-verticales"></span>
+          <button class="ed-guide-add" onclick="edAgregarLinea('vertical')">+ Vertical</button>
+        </div>
+        <div class="ed-line-guide-group">
+          <button class="ed-guide-chip" data-guia="lineaIncisal" onclick="edGuiaToggle('lineaIncisal',this)">Línea horizontal</button>
+          <span class="ed-extra-lines" id="ed-extra-horizontales"></span>
+          <button class="ed-guide-add" onclick="edAgregarLinea('horizontal')">+ Horizontal</button>
+        </div>
         <button class="ed-guide-chip" data-guia="curvaSonrisa" onclick="edGuiaToggle('curvaSonrisa',this)">Curva sonrisa</button>
         <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporción</button>
         <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">🔗 Agrupar guías</button>
@@ -3700,11 +3709,10 @@ async function generateSimulation(clinicalPrompt, foto) {
 }
 
 // ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
-// Las 4 guías (línea media, línea incisal, curva de sonrisa, proporción
-// áurea) son overlays de líneas dibujados sobre la imagen ya generada —
-// referencia visual real, sin necesidad de detectar dientes. El usuario
-// las posiciona arrastrando/haciendo zoom en zonas independientes (fracciones
-// del tamaño del canvas), con una opción para agrupar las guías visibles.
+// Las guías (líneas verticales/horizontales múltiples, curva de sonrisa y
+// proporción áurea) se dibujan sobre la imagen ya generada como referencia
+// visual, sin necesidad de detectar dientes. El usuario las posiciona en
+// zonas independientes, con una opción para agrupar las guías visibles.
 // Los controles de "Diseño de sonrisa" y "Encía" NO
 // dibujan nada en el canvas — arman un prompt en inglés y mandan a
 // regenerar la simulación con Gemini (único método que puede cambiar de
@@ -3714,6 +3722,7 @@ var EDITOR_PARAMS_DEFAULT = {
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   guiasAgrupadas:false,
+  lineasExtra:[],
   curvaExtremos:0,
   guideZones: {
     lineaMedia:{x:0.30,y:0.52,w:0.40,h:0.20},
@@ -3733,19 +3742,48 @@ var EDITOR_PARAMS = null;
 var edBaseImg = null;
 var _edDragInit = false;
 var _edActiveGuide = null;
-var ED_GUIDE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
-var ED_GUIDE_LABELS = {lineaMedia:'Línea media',lineaIncisal:'Línea incisal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporción'};
+var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
+var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporción'};
 
 function edCopiarZona(z) {
   return {x:z.x,y:z.y,w:z.w,h:z.h};
 }
 
+function edNombresGuias() {
+  var extras = EDITOR_PARAMS && Array.isArray(EDITOR_PARAMS.lineasExtra) ? EDITOR_PARAMS.lineasExtra : [];
+  return ED_GUIDE_BASE_NAMES.concat(extras.map(function(linea) { return linea.id; }));
+}
+
+function edTipoGuia(nombre) {
+  if (nombre === 'lineaMedia') return 'vertical';
+  if (nombre === 'lineaIncisal') return 'horizontal';
+  var extra = EDITOR_PARAMS && Array.isArray(EDITOR_PARAMS.lineasExtra)
+    ? EDITOR_PARAMS.lineasExtra.find(function(linea) { return linea.id === nombre; })
+    : null;
+  return extra ? extra.tipo : nombre;
+}
+
+function edEtiquetaGuia(nombre) {
+  if (ED_GUIDE_LABELS[nombre]) return ED_GUIDE_LABELS[nombre];
+  var tipo = edTipoGuia(nombre);
+  var similares = (EDITOR_PARAMS.lineasExtra || []).filter(function(linea) { return linea.tipo === tipo; });
+  var indice = similares.findIndex(function(linea) { return linea.id === nombre; });
+  return 'Línea ' + tipo + ' ' + (indice + 2);
+}
+
 function edAsegurarZonasGuias() {
   if (!EDITOR_PARAMS) return;
   var base = EDITOR_PARAMS.zone || EDITOR_PARAMS_DEFAULT.zone;
+  if (!Array.isArray(EDITOR_PARAMS.lineasExtra)) EDITOR_PARAMS.lineasExtra = [];
+  EDITOR_PARAMS.lineasExtra = EDITOR_PARAMS.lineasExtra.filter(function(linea, indice, todas) {
+    return linea && typeof linea.id === 'string' && (linea.tipo === 'vertical' || linea.tipo === 'horizontal') &&
+      todas.findIndex(function(otra) { return otra && otra.id === linea.id; }) === indice;
+  });
   if (!EDITOR_PARAMS.guideZones) EDITOR_PARAMS.guideZones = {};
-  ED_GUIDE_NAMES.forEach(function(nombre) {
+  if (!EDITOR_PARAMS.guias) EDITOR_PARAMS.guias = {};
+  edNombresGuias().forEach(function(nombre) {
     if (!EDITOR_PARAMS.guideZones[nombre]) EDITOR_PARAMS.guideZones[nombre] = edCopiarZona(base);
+    if (typeof EDITOR_PARAMS.guias[nombre] !== 'boolean') EDITOR_PARAMS.guias[nombre] = false;
   });
   if (typeof EDITOR_PARAMS.guiasAgrupadas !== 'boolean') EDITOR_PARAMS.guiasAgrupadas = false;
   if (typeof EDITOR_PARAMS.curvaExtremos !== 'number') EDITOR_PARAMS.curvaExtremos = 0;
@@ -3757,7 +3795,7 @@ function edZonaGuia(nombre) {
 }
 
 function edGuiasVisibles() {
-  return ED_GUIDE_NAMES.filter(function(nombre) { return !!EDITOR_PARAMS.guias[nombre]; });
+  return edNombresGuias().filter(function(nombre) { return !!EDITOR_PARAMS.guias[nombre]; });
 }
 
 function edGuiasObjetivo() {
@@ -3770,6 +3808,7 @@ function edGuiasObjetivo() {
 
 function edActualizarEstadoGuias() {
   if (!EDITOR_PARAMS) return;
+  edRenderLineasExtra();
   var visibles = edGuiasVisibles();
   if (visibles.indexOf(_edActiveGuide) < 0) _edActiveGuide = visibles[0] || null;
   document.querySelectorAll('.ed-guide-chip[data-guia]').forEach(function(el) {
@@ -3788,7 +3827,16 @@ function edActualizarEstadoGuias() {
     else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · la manija naranja sólo ajusta la curva';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
     else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para moverla · usa la manija naranja para ajustar sus extremos';
-    else hint.textContent = 'Editando: ' + ED_GUIDE_LABELS[_edActiveGuide] + ' · las demás permanecen fijas';
+    else hint.textContent = 'Editando: ' + edEtiquetaGuia(_edActiveGuide) + ' · las demás permanecen fijas';
+  }
+  var zoom = document.querySelector('.ed-zoom-controls');
+  if (zoom) {
+    var objetivos = EDITOR_PARAMS.guiasAgrupadas ? visibles : (_edActiveGuide ? [_edActiveGuide] : []);
+    var puedeEscalar = objetivos.some(function(nombre) {
+      var tipo = edTipoGuia(nombre);
+      return tipo !== 'vertical' && tipo !== 'horizontal';
+    });
+    zoom.style.display = puedeEscalar ? 'flex' : 'none';
   }
 }
 
@@ -4112,6 +4160,67 @@ function edGuiaToggle(nombre, btn) {
   redrawEditor();
 }
 
+function edRenderLineasExtra() {
+  [['vertical','ed-extra-verticales'],['horizontal','ed-extra-horizontales']].forEach(function(config) {
+    var tipo = config[0];
+    var contenedor = document.getElementById(config[1]);
+    if (!contenedor) return;
+    contenedor.replaceChildren();
+    (EDITOR_PARAMS.lineasExtra || []).filter(function(linea) { return linea.tipo === tipo; }).forEach(function(linea) {
+      var item = document.createElement('span');
+      item.className = 'ed-extra-line';
+
+      var guiaBtn = document.createElement('button');
+      guiaBtn.type = 'button';
+      guiaBtn.className = 'ed-guide-chip';
+      guiaBtn.dataset.guia = linea.id;
+      guiaBtn.textContent = edEtiquetaGuia(linea.id);
+      guiaBtn.addEventListener('click', function() { edGuiaToggle(linea.id, guiaBtn); });
+
+      var eliminarBtn = document.createElement('button');
+      eliminarBtn.type = 'button';
+      eliminarBtn.className = 'ed-line-remove';
+      eliminarBtn.setAttribute('aria-label', 'Eliminar ' + edEtiquetaGuia(linea.id));
+      eliminarBtn.textContent = '×';
+      eliminarBtn.addEventListener('click', function() { edEliminarLinea(linea.id); });
+
+      item.appendChild(guiaBtn);
+      item.appendChild(eliminarBtn);
+      contenedor.appendChild(item);
+    });
+  });
+}
+
+function edAgregarLinea(tipo) {
+  if (tipo !== 'vertical' && tipo !== 'horizontal') return;
+  edAsegurarZonasGuias();
+  var id = 'linea_' + tipo + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  var baseNombre = tipo === 'vertical' ? 'lineaMedia' : 'lineaIncisal';
+  var zona = edCopiarZona(edZonaGuia(baseNombre));
+  var cantidad = (EDITOR_PARAMS.lineasExtra || []).filter(function(linea) { return linea.tipo === tipo; }).length + 1;
+  var desplazamiento = 0.055 * cantidad;
+  if (tipo === 'vertical') zona.x = Math.max(0, Math.min(1 - zona.w, zona.x + desplazamiento));
+  else zona.y = Math.max(0, Math.min(1 - zona.h, zona.y + desplazamiento));
+
+  EDITOR_PARAMS.lineasExtra.push({id:id,tipo:tipo});
+  EDITOR_PARAMS.guideZones[id] = zona;
+  EDITOR_PARAMS.guias[id] = true;
+  _edActiveGuide = id;
+  edActualizarEstadoGuias();
+  redrawEditor();
+}
+
+function edEliminarLinea(nombre) {
+  var eraExtra = (EDITOR_PARAMS.lineasExtra || []).some(function(linea) { return linea.id === nombre; });
+  if (!eraExtra) return;
+  EDITOR_PARAMS.lineasExtra = EDITOR_PARAMS.lineasExtra.filter(function(linea) { return linea.id !== nombre; });
+  delete EDITOR_PARAMS.guias[nombre];
+  delete EDITOR_PARAMS.guideZones[nombre];
+  if (_edActiveGuide === nombre) _edActiveGuide = edGuiasVisibles()[0] || null;
+  edActualizarEstadoGuias();
+  redrawEditor();
+}
+
 function edToggleGrupoGuias() {
   EDITOR_PARAMS.guiasAgrupadas = !EDITOR_PARAMS.guiasAgrupadas;
   edActualizarEstadoGuias();
@@ -4212,8 +4321,9 @@ function edInitZoneDrag() {
     dragTargets.forEach(function(nombre) {
       var inicio = startZones[nombre];
       var z = edZonaGuia(nombre);
-      z.x = Math.max(0, Math.min(1 - z.w, inicio.x + dx));
-      z.y = Math.max(0, Math.min(1 - z.h, inicio.y + dy));
+      var tipo = edTipoGuia(nombre);
+      if (tipo !== 'horizontal') z.x = Math.max(0, Math.min(1 - z.w, inicio.x + dx));
+      if (tipo !== 'vertical') z.y = Math.max(0, Math.min(1 - z.h, inicio.y + dy));
     });
     redrawEditor();
   }
@@ -4231,6 +4341,8 @@ function edZoomZona(delta) {
   var targets = edGuiasObjetivo();
   if (!targets.length) return;
   targets.forEach(function(nombre) {
+    var tipo = edTipoGuia(nombre);
+    if (tipo === 'vertical' || tipo === 'horizontal') return;
     var z = edZonaGuia(nombre);
     var newW = Math.max(0.12, Math.min(0.9, z.w + delta));
     var newH = Math.max(0.08, Math.min(0.7, z.h + delta * 0.65));
@@ -4398,39 +4510,47 @@ function edCurvaHandlePx(w, h) {
 
 function edDibujarGuias(ctx, w, h) {
   var g = EDITOR_PARAMS.guias;
+  var zone, midX;
 
-  if (g.lineaMedia) {
-    var zone = edZonaPx('lineaMedia', w, h);
-    var midX = zone.x + zone.w / 2;
-    ctx.save();
-    ctx.strokeStyle = '#3F8CFF';
-    ctx.lineWidth = Math.max(1, w * 0.002);
-    ctx.setLineDash([w * 0.01, w * 0.008]);
-    ctx.beginPath();
-    ctx.moveTo(midX, zone.y - zone.h * 0.3);
-    ctx.lineTo(midX, zone.y + zone.h * 1.3);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  if (g.lineaIncisal) {
-    zone = edZonaPx('lineaIncisal', w, h);
+  edNombresGuias().filter(function(nombre) {
+    return g[nombre] && edTipoGuia(nombre) === 'vertical';
+  }).forEach(function(nombre) {
+    zone = edZonaPx(nombre, w, h);
     midX = zone.x + zone.w / 2;
     ctx.save();
-    ctx.strokeStyle = '#7c6af7';
-    ctx.lineWidth = Math.max(1, w * 0.002);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = Math.max(nombre === _edActiveGuide ? 2 : 1.4, w * 0.002);
     ctx.setLineDash([w * 0.01, w * 0.008]);
-    var signo = EDITOR_PARAMS.diseno.lineaIncisal === 'inclIzq' ? -1 : EDITOR_PARAMS.diseno.lineaIncisal === 'inclDer' ? 1 : 0;
-    var incl = signo * (EDITOR_PARAMS.diseno.lineaIncisalInclinacion || 0) * (Math.PI / 180);
-    var y0 = zone.y + zone.h * 0.62;
-    var dx = zone.w * 0.55;
-    var dy = Math.tan(incl) * dx;
+    ctx.shadowColor = 'rgba(0,0,0,.82)';
+    ctx.shadowBlur = Math.max(3, w * 0.004);
     ctx.beginPath();
-    ctx.moveTo(midX - dx, y0 - dy);
-    ctx.lineTo(midX + dx, y0 + dy);
+    ctx.moveTo(midX, 0);
+    ctx.lineTo(midX, h);
     ctx.stroke();
     ctx.restore();
-  }
+  });
+
+  edNombresGuias().filter(function(nombre) {
+    return g[nombre] && edTipoGuia(nombre) === 'horizontal';
+  }).forEach(function(nombre) {
+    zone = edZonaPx(nombre, w, h);
+    midX = zone.x + zone.w / 2;
+    var signo = EDITOR_PARAMS.diseno.lineaIncisal === 'inclIzq' ? -1 : EDITOR_PARAMS.diseno.lineaIncisal === 'inclDer' ? 1 : 0;
+    var incl = signo * (EDITOR_PARAMS.diseno.lineaIncisalInclinacion || 0) * (Math.PI / 180);
+    var pendiente = Math.tan(incl);
+    var y0 = zone.y + zone.h * 0.62;
+    ctx.save();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = Math.max(nombre === _edActiveGuide ? 2 : 1.4, w * 0.002);
+    ctx.setLineDash([w * 0.01, w * 0.008]);
+    ctx.shadowColor = 'rgba(0,0,0,.82)';
+    ctx.shadowBlur = Math.max(3, w * 0.004);
+    ctx.beginPath();
+    ctx.moveTo(0, y0 - pendiente * midX);
+    ctx.lineTo(w, y0 + pendiente * (w - midX));
+    ctx.stroke();
+    ctx.restore();
+  });
 
   if (g.curvaSonrisa) {
     var curva = edCurvaGeometria(w, h);

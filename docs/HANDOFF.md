@@ -10,6 +10,22 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-02 — Codex (líneas horizontales y verticales múltiples)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Las guías “Línea media” y “Línea incisal” se presentan ahora como “Línea
+  vertical” y “Línea horizontal”. Los controles clínicos del panel conservan
+  sus nombres porque siguen alimentando el prompt de regeneración.
+- Las líneas se dibujan en blanco, con sombra de contraste, y abarcan toda la
+  altura o anchura de la fotografía. Las horizontales inclinadas también
+  alcanzan ambos bordes de la imagen.
+- Se pueden agregar y eliminar líneas verticales u horizontales adicionales.
+  Cada una tiene estado, posición, selección y persistencia independientes;
+  el agrupamiento incluye dinámicamente todas las líneas visibles.
+- Compatibilidad: los casos anteriores reciben `lineasExtra: []`. No se
+  modificaron prompts, backend ni lógica clínica.
+
 ## 2026-08-02 — Codex (manija de curvatura de sonrisa)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
