@@ -5266,8 +5266,9 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
           var saturacion = (maximo - minimo) / Math.max(1, maximo);
           // El esmalte puede ser blanco, marfil o cálido, pero no presenta el
           // rojo dominante de labios/encía ni la saturación de piel inflamada.
-          return luminancia >= 78 && excesoRojo <= 38 && saturacion <= 0.50 &&
-            g >= b - 24 && r >= g - 18;
+          var rojoDeTejido = r > g + 45 && r > b + 55;
+          return luminancia >= 65 && excesoRojo <= 48 && saturacion <= 0.58 &&
+            !rojoDeTejido && g >= b - 28 && r >= g - 20;
         }
 
         var xIni = Math.max(0, Math.floor(mx - rx));
@@ -5291,22 +5292,94 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
           }
         }
 
-        // Elimina motas aisladas y suaviza solo hacia DENTRO del área dental.
-        // Ningún píxel exterior recibe alfa, por lo que el fondo permanece
-        // literalmente igual al original.
+        // Cierre morfológico: une fragmentos vecinos y rellena sombras/huecos
+        // pequeños del mismo esmalte SIN agrandar el contorno exterior. Esto
+        // evita coronas serradas o formadas por parches de píxeles claros.
+        var radioCierre = Math.max(2, Math.min(6, Math.round(Math.min(W, H) * 0.0045)));
+        var dilatada = new Uint8Array(W * H);
+        for (var dy0 = yIni; dy0 <= yFin; dy0++) {
+          for (var dx0 = xIni; dx0 <= xFin; dx0++) {
+            var di = dy0 * W + dx0;
+            if (!dental[di]) continue;
+            for (var ddy = -radioCierre; ddy <= radioCierre; ddy++) {
+              var py0 = dy0 + ddy;
+              if (py0 < yIni || py0 > yFin) continue;
+              for (var ddx = -radioCierre; ddx <= radioCierre; ddx++) {
+                var px0 = dx0 + ddx;
+                if (px0 >= xIni && px0 <= xFin) dilatada[py0 * W + px0] = 1;
+              }
+            }
+          }
+        }
+        var cerrada = new Uint8Array(W * H);
+        for (var ey = yIni; ey <= yFin; ey++) {
+          for (var ex = xIni; ex <= xFin; ex++) {
+            var completa = true;
+            for (var eoy = -radioCierre; eoy <= radioCierre && completa; eoy++) {
+              var epy = ey + eoy;
+              if (epy < yIni || epy > yFin) { completa = false; break; }
+              for (var eox = -radioCierre; eox <= radioCierre; eox++) {
+                var epx = ex + eox;
+                if (epx < xIni || epx > xFin || !dilatada[epy * W + epx]) {
+                  completa = false;
+                  break;
+                }
+              }
+            }
+            if (completa) cerrada[ey * W + ex] = 1;
+          }
+        }
+
+        // Conserva únicamente regiones dentales continuas de tamaño clínico;
+        // las pequeñas manchas producidas por brillo de labios/piel se tiran.
+        var segmentada = new Uint8Array(W * H);
+        var visitada = new Uint8Array(W * H);
+        var minimoComponente = Math.max(24, Math.round(W * H * 0.00003));
+        for (var sy = yIni; sy <= yFin; sy++) {
+          for (var sx = xIni; sx <= xFin; sx++) {
+            var semilla = sy * W + sx;
+            if (!cerrada[semilla] || visitada[semilla]) continue;
+            var cola = [semilla];
+            var componente = [];
+            visitada[semilla] = 1;
+            for (var qi = 0; qi < cola.length; qi++) {
+              var actual = cola[qi];
+              componente.push(actual);
+              var cy0 = Math.floor(actual / W), cx0 = actual - cy0 * W;
+              for (var noy = -1; noy <= 1; noy++) {
+                for (var nox = -1; nox <= 1; nox++) {
+                  if (!nox && !noy) continue;
+                  var ncy = cy0 + noy, ncx = cx0 + nox;
+                  if (ncy < yIni || ncy > yFin || ncx < xIni || ncx > xFin) continue;
+                  var ni = ncy * W + ncx;
+                  if (cerrada[ni] && !visitada[ni]) {
+                    visitada[ni] = 1;
+                    cola.push(ni);
+                  }
+                }
+              }
+            }
+            if (componente.length >= minimoComponente) {
+              componente.forEach(function(indiceComponente) { segmentada[indiceComponente] = 1; });
+            }
+          }
+        }
+
+        // Suaviza solo hacia DENTRO del área dental. Ningún píxel exterior
+        // recibe alfa, por lo que el fondo permanece literalmente original.
         var datosMascara = mctx.createImageData(W, H);
         var pixelesMascara = 0;
         for (var y = yIni; y <= yFin; y++) {
           for (var x = xIni; x <= xFin; x++) {
             var i = y * W + x;
-            if (!dental[i]) continue;
+            if (!segmentada[i]) continue;
             var vecinos = 0;
             for (var oy = -1; oy <= 1; oy++) {
               var vy = y + oy;
               if (vy < 0 || vy >= H) continue;
               for (var ox = -1; ox <= 1; ox++) {
                 var vx = x + ox;
-                if (vx >= 0 && vx < W && dental[vy * W + vx]) vecinos++;
+                if (vx >= 0 && vx < W && segmentada[vy * W + vx]) vecinos++;
               }
             }
             if (vecinos < 3) continue;

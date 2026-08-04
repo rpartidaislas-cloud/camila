@@ -10,6 +10,20 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (máscara dental continua, sin dientes fragmentados)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Se corrigió la máscara estrictamente dental que podía dejar bordes dentados,
+  picos y fragmentos blancos al clasificar cada píxel de manera aislada.
+- La clasificación admite ahora esmalte más cálido y oscuro, manteniendo una
+  exclusión explícita para el rojo dominante de labios y encía.
+- Se añadió cierre morfológico para unir fragmentos y rellenar pequeños huecos
+  sin expandir el contorno, seguido de componentes conexos que eliminan motas
+  demasiado pequeñas para corresponder a una región dental.
+- El borde continúa suavizándose solo hacia dentro; fondo PNG, dimensiones y
+  alineación 1:1 permanecen iguales a la fotografía original.
+
 ## 2026-08-03 — Codex (composición estrictamente dental y empalme 1:1)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
