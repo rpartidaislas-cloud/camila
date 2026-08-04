@@ -3714,9 +3714,14 @@ async function generateSimulation(clinicalPrompt, foto) {
   // así "antes" y "después" quedan idénticos pixel por pixel fuera de la
   // sonrisa, sin depender de que la IA haya respetado el encuadre (ver
   // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
-  // IA tal cual en vez de dejar al usuario sin nada.
+  // Un fallo debe detener la simulación: mostrar la imagen completa de la IA
+  // como respaldo rompería la garantía de conservar intacto el rostro.
   var compuesta = await componerConOriginal('data:image/jpeg;base64,' + frontal.b64, url);
-  return compuesta || url;
+  if (!compuesta) throw new Error('No se pudo aislar la simulación exclusivamente dentro de los dientes. Intenta generar de nuevo.');
+  // La composición ya nace en las coordenadas exactas del original; cualquier
+  // ajuste manual guardado de una generación anterior volvería a desfasarla.
+  if (frontal.view) S.baAlign[frontal.view] = {x: 0, y: 0, scale: 1};
+  return compuesta;
 }
 
 // ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
@@ -5241,29 +5246,98 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
         cctx.drawImage(imgIA, (W - w) / 2 + align.dx * W, (H - h) / 2 + align.dy * H, w, h);
         cctx.restore();
 
-        // Máscara elíptica con borde difuminado (gradiente radial) sobre la
-        // zona de la boca, para que no se note el corte entre piel real y
-        // piel generada alrededor de los labios.
+        // Máscara DENTAL: el óvalo solo limita dónde buscar; no se copia toda
+        // la boca. Cada píxel debe parecer esmalte en la toma original o en
+        // la simulación alineada y tener un cambio visible. Así quedan fuera
+        // labios, encía, piel y barba aunque Gemini los haya regenerado.
         var mascara = document.createElement('canvas');
         mascara.width = W; mascara.height = H;
         var mctx = mascara.getContext('2d');
         var mx = W * MOUTH_CX, my = H * MOUTH_CY, rx = W * MOUTH_RX, ry = H * MOUTH_RY;
-        var grad = mctx.createRadialGradient(mx, my, Math.min(rx, ry) * 0.55, mx, my, Math.max(rx, ry));
-        grad.addColorStop(0, 'rgba(255,255,255,1)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        mctx.save();
-        mctx.beginPath();
-        mctx.ellipse(mx, my, rx, ry, 0, 0, Math.PI * 2);
-        mctx.clip();
-        mctx.fillStyle = grad;
-        mctx.fillRect(mx - rx, my - ry, rx * 2, ry * 2);
-        mctx.restore();
+        var pixOriginal = octx.getImageData(0, 0, W, H).data;
+        var pixIA = cctx.getImageData(0, 0, W, H).data;
+        var dental = new Uint8Array(W * H);
+
+        function pareceEsmalte(r, g, b) {
+          var maximo = Math.max(r, g, b);
+          var minimo = Math.min(r, g, b);
+          var luminancia = r * 0.299 + g * 0.587 + b * 0.114;
+          var excesoRojo = r - (g + b) / 2;
+          var saturacion = (maximo - minimo) / Math.max(1, maximo);
+          // El esmalte puede ser blanco, marfil o cálido, pero no presenta el
+          // rojo dominante de labios/encía ni la saturación de piel inflamada.
+          return luminancia >= 78 && excesoRojo <= 38 && saturacion <= 0.50 &&
+            g >= b - 24 && r >= g - 18;
+        }
+
+        var xIni = Math.max(0, Math.floor(mx - rx));
+        var xFin = Math.min(W - 1, Math.ceil(mx + rx));
+        var yIni = Math.max(0, Math.floor(my - ry));
+        var yFin = Math.min(H - 1, Math.ceil(my + ry));
+        for (var yy = yIni; yy <= yFin; yy++) {
+          var ny = (yy - my) / ry;
+          for (var xx = xIni; xx <= xFin; xx++) {
+            var nx = (xx - mx) / rx;
+            if (nx * nx + ny * ny > 1) continue;
+            var indice = yy * W + xx;
+            var p = indice * 4;
+            if (pixIA[p + 3] < 220) continue;
+            var cambio = Math.abs(pixOriginal[p] - pixIA[p]) +
+              Math.abs(pixOriginal[p + 1] - pixIA[p + 1]) +
+              Math.abs(pixOriginal[p + 2] - pixIA[p + 2]);
+            if (cambio < 12) continue;
+            if (pareceEsmalte(pixOriginal[p], pixOriginal[p + 1], pixOriginal[p + 2]) ||
+                pareceEsmalte(pixIA[p], pixIA[p + 1], pixIA[p + 2])) dental[indice] = 1;
+          }
+        }
+
+        // Elimina motas aisladas y suaviza solo hacia DENTRO del área dental.
+        // Ningún píxel exterior recibe alfa, por lo que el fondo permanece
+        // literalmente igual al original.
+        var datosMascara = mctx.createImageData(W, H);
+        var pixelesMascara = 0;
+        for (var y = yIni; y <= yFin; y++) {
+          for (var x = xIni; x <= xFin; x++) {
+            var i = y * W + x;
+            if (!dental[i]) continue;
+            var vecinos = 0;
+            for (var oy = -1; oy <= 1; oy++) {
+              var vy = y + oy;
+              if (vy < 0 || vy >= H) continue;
+              for (var ox = -1; ox <= 1; ox++) {
+                var vx = x + ox;
+                if (vx >= 0 && vx < W && dental[vy * W + vx]) vecinos++;
+              }
+            }
+            if (vecinos < 3) continue;
+            var mp = i * 4;
+            datosMascara.data[mp] = 255;
+            datosMascara.data[mp + 1] = 255;
+            datosMascara.data[mp + 2] = 255;
+            datosMascara.data[mp + 3] = vecinos === 9 ? 255 : Math.round(110 + vecinos * 16);
+            pixelesMascara++;
+          }
+        }
+        // Si la máscara quedó vacía o anormalmente grande, no se permite usar
+        // la imagen completa de IA como respaldo: es preferible pedir otro
+        // intento antes que modificar el rostro del paciente.
+        var minimoDental = Math.max(30, Math.round(W * H * 0.00005));
+        var maximoDental = Math.round(W * H * 0.04);
+        if (pixelesMascara < minimoDental || pixelesMascara > maximoDental) {
+          console.warn('Máscara dental descartada por tamaño:', pixelesMascara, minimoDental, maximoDental);
+          resolve(null);
+          return;
+        }
+        mctx.putImageData(datosMascara, 0, 0);
 
         cctx.globalCompositeOperation = 'destination-in';
         cctx.drawImage(mascara, 0, 0);
 
         octx.drawImage(capaIA, 0, 0);
-        resolve(out.toDataURL('image/jpeg', 0.92));
+        // PNG evita volver a comprimir el fondo JPEG. Los píxeles que no
+        // pertenecen a la máscara dental conservan exactamente el valor RGB
+        // decodificado de la fotografía original.
+        resolve(out.toDataURL('image/png'));
       } catch (e) {
         console.warn('No se pudo componer la simulación sobre la foto original:', e);
         resolve(null);

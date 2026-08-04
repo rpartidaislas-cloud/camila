@@ -10,6 +10,23 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (composición estrictamente dental y empalme 1:1)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- `componerConOriginal()` dejó de copiar un óvalo completo de boca. Ahora
+  construye una máscara píxel a píxel dentro de esa región y acepta solamente
+  cambios con apariencia de esmalte; labios, encía, piel y barba permanecen
+  tomados de la fotografía original.
+- La máscara elimina motas, suaviza exclusivamente hacia dentro del diente y
+  rechaza resultados vacíos o anormalmente grandes. Si falla, la aplicación
+  muestra error: ya no usa la cara completa generada por IA como respaldo.
+- La salida se exporta como PNG del mismo ancho y alto del original para no
+  recomprimir el fondo. Cada simulación restablece la alineación a `0,0,100%`,
+  pues la composición ya queda empalmada en coordenadas 1:1.
+- El cambio aplica tanto a la primera simulación como a regeneraciones hechas
+  desde el editor.
+
 ## 2026-08-03 — Codex (espaciado clínico de la guía de proporción)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
