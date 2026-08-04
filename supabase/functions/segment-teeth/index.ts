@@ -25,6 +25,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { checkAndConsumeLimit } from "../_shared/limits.ts";
 import { ZipReader, BlobReader, Uint8ArrayWriter } from "https://deno.land/x/zipjs@v2.7.32/index.js";
 import { decode as decodePng } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
@@ -326,6 +327,11 @@ serve(async (req) => {
   // POST sin credenciales.
   const { user, response: authError } = await requireUser(req, corsHeaders);
   if (authError) return authError;
+
+  // Tope de gasto server-side -- ver _shared/limits.ts. Replicate también
+  // cuesta dinero real por llamada, igual que Gemini/Anthropic en claude/index.ts.
+  const { allowed, response: limitError } = await checkAndConsumeLimit(req, user?.id ?? null, corsHeaders);
+  if (!allowed) return limitError!;
 
   try {
     const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = await req.json();

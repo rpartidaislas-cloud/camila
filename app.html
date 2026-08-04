@@ -3085,10 +3085,12 @@ async function ejecutarAnalisisIA() {
     document.getElementById('loading-ia').classList.remove('visible');
     mostrarAnalisis(r, nombre);
 
-    // Registrar uso
-    var usado = (tenantData.diagnosticos_usados || 0) + 1;
-    tenantData.diagnosticos_usados = usado;
-    try { await sbTimeout(sb.from('camila_tenants').update({diagnosticos_usados: usado}).eq('id', tenantId)); } catch(e) {}
+    // El conteo real ahora lo lleva el servidor (checkAndConsumeLimit en
+    // supabase/functions/_shared/limits.ts, incrementa diagnosticos_usados
+    // atómicamente en cada llamada real a claude/index.ts) -- ya no se
+    // escribe aquí para no pisar ese conteo con un valor absoluto calculado
+    // con datos locales desfasados. Solo se refleja localmente.
+    tenantData.diagnosticos_usados = (tenantData.diagnosticos_usados || 0) + 1;
     renderSidebar();
 
   } catch(e) {

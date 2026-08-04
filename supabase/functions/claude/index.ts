@@ -1,4 +1,5 @@
 import { requireUser } from "../_shared/auth.ts";
+import { checkAndConsumeLimit } from "../_shared/limits.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,13 @@ Deno.serve(async (req: Request) => {
   const { user, response: authError } = await requireUser(req, CORS);
   if (authError) return authError;
   marca("después de requireUser");
+
+  // Tope de gasto server-side -- ver _shared/limits.ts. Va antes de leer el
+  // body: si el tenant ya agotó su plan (o, sin sesión, ya agotó el tope
+  // por IP), no tiene sentido ni parsear la llamada.
+  const { allowed, response: limitError } = await checkAndConsumeLimit(req, user?.id ?? null, CORS);
+  if (!allowed) return limitError!;
+  marca("después de checkAndConsumeLimit");
 
   try {
     const body = await req.json();

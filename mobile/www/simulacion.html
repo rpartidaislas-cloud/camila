@@ -3356,25 +3356,18 @@ async function processPhotos() {
   }
 }
 
-// Contabiliza el diagnóstico contra el límite del plan (igual que hace
-// app.html para su propia herramienta de análisis). No bloquea la pantalla
-// de resultado si falla -- la simulación ya se generó y se le cobró el
-// costo real de IA de todas formas, así que perder el conteo local no debe
-// tapar el resultado con un error.
+// El conteo real ahora lo lleva el servidor: checkAndConsumeLimit()
+// (supabase/functions/_shared/limits.ts) incrementa diagnosticos_usados de
+// forma atómica en cada llamada real a claude/index.ts, contando también
+// las llamadas que no pasan por esta pantalla (curl directo, etc). Ya NO
+// se escribe aquí con un PATCH de valor absoluto -- eso pisaba el conteo
+// del servidor con datos locales potencialmente desfasados (doble conteo o
+// menos conteo del real, según la carrera). Esto solo refleja el cambio en
+// la copia local (CFG.diagnosticosUsados) para que el chequeo previo, unas
+// líneas arriba en esta misma sesión, no deje pasar de más.
 function registrarDiagnosticoUsado() {
   if (!CFG.tenantId || typeof CFG.diagnosticosUsados !== 'number') return;
-  var nuevoUsado = CFG.diagnosticosUsados + 1;
-  CFG.diagnosticosUsados = nuevoUsado;
-  fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + CFG.tenantId, {
-    method: 'PATCH',
-    headers: {
-      'apikey': CFG.supaKey,
-      'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
-    },
-    body: JSON.stringify({ diagnosticos_usados: nuevoUsado }),
-  }).catch(function(){});
+  CFG.diagnosticosUsados = CFG.diagnosticosUsados + 1;
 }
 
 // Antes un fallo aquí mandaba alert() + de vuelta a la pantalla de inicio,

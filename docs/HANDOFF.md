@@ -10,6 +10,95 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-04 — Claude Code (infraestructura multi-tenant, etapas 1 y 2)
+
+**Tocado:** `supabase/migrations/camila_tenant_provisioning.sql` (nuevo),
+`supabase/migrations/camila_limits.sql` (nuevo),
+`supabase/functions/_shared/limits.ts` (nuevo),
+`supabase/functions/claude/index.ts`, `supabase/functions/segment-teeth/index.ts`,
+`simulacion.html`, `mobile/www/simulacion.html`, `app.html`.
+
+Arranca el plan de infraestructura SaaS multi-tenant que pidió el usuario
+(revisó `revision-clinica.html`/`simulacion.html` y pidió empezar por las
+etapas 1 y 2 de un plan de 5 etapas discutido en el chat, no en este
+archivo). Faltan las migraciones SIN APLICAR en la base de datos real — ver
+abajo.
+
+1. **Etapa 1 — tope de gasto server-side.** `claude/index.ts` (Gemini +
+   Anthropic) y `segment-teeth/index.ts` (Replicate) NO validaban
+   `limite_diagnosticos`/`diagnosticos_usados` en el servidor — el tope
+   solo existía en el cliente, así que una llamada directa al Edge
+   Function (sin pasar por la UI) generaba sin ningún límite. Nuevo
+   `_shared/limits.ts` (`checkAndConsumeLimit`) llamado justo después de
+   `requireUser` en ambas funciones:
+   - Con sesión real: RPC `camila_consumir_diagnostico(tenant_id)` —
+     UPDATE atómico (`for update` + condición) que rechaza si
+     `!activo`, `vence_en` pasado, o `diagnosticos_usados >=
+     limite_diagnosticos`, e incrementa en la misma transacción si pasa.
+   - Sin sesión (el modo anónimo que dejamos abierto el 2026-08-01/02 por
+     pedido explícito — `_shared/auth.ts` sigue sin tocarse, sigue
+     dejando pasar `user: null`): tope duro de 5/hora por IP (`ANON_HOURLY_LIMIT`,
+     configurable) vía RPC `camila_anon_rate_check`, tabla nueva
+     `camila_anon_usage`. No reemplaza el login, solo evita gasto sin
+     ningún techo si el link se comparte.
+   - Ambas funciones de Postgres son `SECURITY DEFINER` con `EXECUTE`
+     revocado a `anon`/`authenticated` a propósito — si quedaran
+     invocables por RPC público, cualquiera podría pasar el `tenant_id`
+     de OTRA clínica como parámetro y drenarle su cupo sin generar nada
+     real. Solo las Edge Functions (service role) las llaman.
+   - **Efecto secundario que sí toqué para evitar doble conteo**: ahora
+     que el servidor incrementa `diagnosticos_usados` en cada llamada
+     real, dejé de dejar que el cliente también lo hiciera con un PATCH
+     de valor absoluto (`registrarDiagnosticoUsado()` en
+     `simulacion.html`/mobile, y el bloque equivalente en `app.html`)
+     porque esos dos escritores corriendo a la vez se pisaban entre sí
+     (carrera + el valor absoluto del cliente podía revertir el conteo
+     real del servidor). Ahora esas dos funciones SOLO actualizan la
+     copia local en memoria (`CFG.diagnosticosUsados` /
+     `tenantData.diagnosticos_usados`) para que el chequeo previo de esta
+     misma sesión no deje pasar de más — ya no escriben a la base de
+     datos, el servidor es la única fuente de verdad para el valor
+     persistido.
+2. **Etapa 2 — provisioning de tenant en el servidor.** El `INSERT` a
+   `camila_tenants` después de `signUp()` corría desde el cliente
+   (`simulacion.html`, `app.html`) — si fallaba (red, tab cerrado, o el
+   caso ya documentado de confirmación de correo activada, donde
+   `signUp()` no da sesión y RLS rechaza el insert hasta el siguiente
+   login) el usuario quedaba con cuenta en Auth pero sin fila de tenant.
+   `app.html` tenía un parche para recrear la fila en
+   `continuarConUsuario()`; `simulacion.html` NO tenía ningún parche — un
+   dentista que se registra ahí y nunca visita `app.html` se quedaba
+   atorado. Nuevo trigger `camila_on_auth_user_created` (AFTER INSERT en
+   `auth.users`) crea la fila automáticamente con los mismos defaults que
+   ya usaba el parche de `app.html` (plan `profesional`, límite 40, vence
+   en 1 mes), leyendo `raw_user_meta_data` (`nombre`/`plan`/
+   `limite_diagnosticos`, ya se mandaban en `options.data` del `signUp()`
+   existente — no hubo que tocar eso). `ON CONFLICT (id) DO NOTHING`, así
+   que el `INSERT` client-side existente se deja tal cual — con el
+   trigger la fila ya existe, ese insert simplemente no encuentra nada
+   que hacer.
+
+**IMPORTANTE — falta aplicar en la base de datos real:** las dos
+migraciones nuevas (`camila_tenant_provisioning.sql`, `camila_limits.sql`)
+están en el repo pero yo no tengo acceso a la CLI/credenciales de
+Supabase. Hay que correrlas en el SQL Editor del proyecto "Smyl" (o vía
+`supabase db push`) ANTES de que el próximo deploy de `claude`/
+`segment-teeth` llegue a producción — si las Edge Functions llaman a
+`camila_consumir_diagnostico`/`camila_anon_rate_check` y esas funciones no
+existen todavía, `checkAndConsumeLimit` los deja pasar (falla abierta a
+propósito, ver comentario en `limits.ts`), así que no hay riesgo de
+bloquear el servicio, pero el tope tampoco aplica hasta que se apliquen.
+También falta el deploy manual de las dos Edge Functions
+(`supabase functions deploy claude` y `supabase functions deploy
+segment-teeth`) — igual que siempre, esto no se auto-despliega.
+
+**Pendiente (etapas 3-5 del plan, no arrancadas):** definir
+`camila_precios` (decisión de producto pendiente), decidir si hace falta
+multi-usuario por clínica, observabilidad/alertas de costo. Ver el chat
+para el plan completo de 5 etapas si hace falta retomarlo.
+
+---
+
 ## 2026-08-03 — Codex (guía de proporción con siete líneas)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
