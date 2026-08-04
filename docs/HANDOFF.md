@@ -10,6 +10,57 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-04 (2) — Claude Code (infraestructura multi-tenant, etapa 3: precios reales por clínica)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `app.html`.
+Sin migración nueva — reutiliza la columna `camila_tenants.config` (jsonb)
+que ya existe, mismo patrón que el branding en `config.sim`.
+
+Decisión de producto (el usuario dijo "vamos etapa 3" sin objetar la
+recomendación que le planteé, así que seguí adelante con ella, dejándolo
+documentado por si hay que ajustarlo): **precios por clínica**, guardados
+en `camila_tenants.config.precios` como un mapa `{id: precio}` (solo
+overrides sobre `PRECIOS_DEFAULT`, igual que ya hacía el localStorage
+viejo) — no una tabla `camila_precios` nueva.
+
+- `app.html`: `guardarPrecios()` ahora hace `PATCH` a Supabase (antes SOLO
+  escribía a `localStorage`, nunca llegaba a la base de datos — por eso
+  `simulacion.html` nunca podía verlos). Sigue el mismo patrón que
+  `guardarConfig()` ya usaba: lee `tenantData.config`, le mezcla
+  `.precios`, hace `update({config})` completo (¡importante! un PATCH con
+  solo `{precios:...}` habría borrado `config.sim`/branding si existiera —
+  por eso siempre se manda el objeto `config` completo, mezclado). Si el
+  `PATCH` falla, el `localStorage` local (que sí se sigue escribiendo)
+  sirve de respaldo en ese dispositivo, con aviso claro al usuario de que
+  no sincronizó.
+  `getPrecios()` ahora prefiere `tenantData.config.precios` (ya cargado
+  desde Supabase al iniciar sesión) sobre el `localStorage` viejo.
+- `simulacion.html`/mobile: `loadPrecios()` apuntaba a una tabla
+  `camila_precios` que **nunca existió** — el fetch fallaba en silencio
+  (404) y siempre caía a `PRECIOS_DEFAULT`, sin importar lo que el
+  dentista hubiera configurado en `app.html` (que, de cualquier forma,
+  hasta este cambio tampoco llegaba a Supabase — los dos lados del bug se
+  arreglan juntos). Ahora lee `camila_tenants.config.precios` con la
+  sesión del dentista logueado.
+
+**Nota para Codex, no urgente:** los dos archivos tienen listas
+`PRECIOS_DEFAULT` con IDs ligeramente distintos — `app.html` incluye
+`implante` y `corona` que `simulacion.html` no tiene. No es un bug nuevo
+(ya eran independientes antes de este cambio) ni lo toqué: si un dentista
+configura precio para `implante`/`corona` en el panel, `simulacion.html`
+simplemente lo ignora (no cotiza esos dos conceptos, nunca lo hizo). Si en
+algún momento se quiere que el catálogo sea exactamente el mismo en ambos
+lados, avisen antes de unificarlo por si alguno de los dos ya depende de
+la lista corta a propósito.
+
+**Pendiente (etapas 4-5 del plan de infra):** decidir si hace falta
+multi-usuario por clínica, observabilidad/alertas de costo. Etapas 1 y 2
+(tope de gasto server-side + provisioning automático) quedaron en la
+entrada del 2026-08-04 (1) — recordatorio: sus migraciones seguían sin
+aplicarse en la base de datos real la última vez que se confirmó.
+
+---
+
 ## 2026-08-04 — Claude Code (infraestructura multi-tenant, etapas 1 y 2)
 
 **Tocado:** `supabase/migrations/camila_tenant_provisioning.sql` (nuevo),

@@ -3499,7 +3499,12 @@ function registrarCaso(nombre, r, total) {
 // PRECIOS
 // ══════════════════════════════════════════
 function getPrecios() {
-  var guardados = JSON.parse(localStorage.getItem('camila_precios_' + tenantId) || '{}');
+  // Por clínica: primero lo ya cargado de Supabase (tenantData.config.precios,
+  // trae la fuente de verdad real de todos los dispositivos del dentista);
+  // si no hay sesión o aún no cargó, cae al localStorage de este dispositivo
+  // como antes.
+  var guardados = (tenantData && tenantData.config && tenantData.config.precios)
+    || JSON.parse(localStorage.getItem('camila_precios_' + tenantId) || '{}');
   return PRECIOS_DEFAULT.map(function(p) {
     return Object.assign({}, p, {precio: guardados[p.id] || p.precio});
   });
@@ -3514,14 +3519,29 @@ function renderPrecios() {
       '<span style="font-size:11px;color:var(--texto3)">MXN</span></div></div>';
   }).join('');
 }
-function guardarPrecios() {
+async function guardarPrecios() {
   var obj = {};
   PRECIOS_DEFAULT.forEach(function(p) {
     var inp = document.getElementById('precio-' + p.id);
     if (inp) obj[p.id] = parseInt(inp.value) || p.precio;
   });
   localStorage.setItem('camila_precios_' + tenantId, JSON.stringify(obj));
-  alert('Precios guardados correctamente.');
+
+  // Antes solo se guardaba en localStorage -- nunca llegaba a Supabase, así
+  // que simulacion.html (que es quien realmente cotiza con IA) nunca veía
+  // estos precios y siempre cotizaba con PRECIOS_DEFAULT. Se guarda dentro
+  // de camila_tenants.config.precios (mismo patrón que guardarConfig() usa
+  // para el branding) para que quede disponible desde cualquier dispositivo
+  // con la misma cuenta.
+  var config = (tenantData && tenantData.config) || {};
+  config.precios = obj;
+  if (tenantData) tenantData.config = config;
+  try {
+    await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId));
+    alert('Precios guardados correctamente.');
+  } catch(e) {
+    alert('Los precios se guardaron en este dispositivo, pero no se pudieron sincronizar (' + (e.message || 'error de red') + ').');
+  }
 }
 
 // ══════════════════════════════════════════

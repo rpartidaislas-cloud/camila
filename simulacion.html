@@ -1774,15 +1774,26 @@ function zonaTexto(zona) {
 }
 
 // ══ PRECIOS ══
+// Por clínica: cada dentista los edita en app.html (guardarPrecios()), que
+// los guarda como overrides {id: precio} dentro de camila_tenants.config.precios
+// (mismo patrón que el branding en config.sim). Antes esto apuntaba a una
+// tabla `camila_precios` que nunca existió -- el fetch fallaba en silencio
+// y siempre caía a PRECIOS_DEFAULT sin importar lo que el dentista hubiera
+// configurado en el panel.
 async function loadPrecios() {
   try {
-    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_precios?select=*&limit=50', {
-      headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey}
-    });
-    var data = await resp.json();
-    if (data && data.length) {
-      S.precios = data;
-      return;
+    if (CFG.tenantId) {
+      var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + CFG.tenantId + '&select=config', {
+        headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey)}
+      });
+      var data = await resp.json();
+      var guardados = data && data[0] && data[0].config && data[0].config.precios;
+      if (guardados && typeof guardados === 'object') {
+        S.precios = PRECIOS_DEFAULT.map(function(p) {
+          return Object.assign({}, p, {precio: (typeof guardados[p.id] === 'number' ? guardados[p.id] : p.precio)});
+        });
+        return;
+      }
     }
   } catch(e) {}
   S.precios = PRECIOS_DEFAULT;
