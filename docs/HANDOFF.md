@@ -10,6 +10,17 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-03 — Codex (espaciado clínico de la guía de proporción)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Las siete líneas verdes delimitan ahora seis espacios con pesos exactos y
+  simétricos: `0.618 | 1.0 | 1.618 | 1.618 | 1.0 | 0.618`.
+- Los pesos se normalizan al ancho actual de la guía: los extremos permanecen
+  en sus bordes y la cuarta línea queda exactamente en el eje central.
+- La distribución se recalcula automáticamente al cambiar tamaño mediante
+  botones o pellizco; arrastre y agrupamiento permanecen intactos.
+
 ## 2026-08-03 — Codex (guía de proporción con siete líneas)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

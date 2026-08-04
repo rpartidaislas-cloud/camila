@@ -4748,9 +4748,19 @@ function edDibujarGuias(ctx, w, h) {
     ctx.shadowColor = 'rgba(57,255,20,.9)';
     ctx.shadowBlur = Math.max(4, w * 0.005);
     var phi = 1.618;
-    var d1 = zone.w / 2 / phi;
-    var d2 = d1 / phi;
-    [midX - d1 - d2, midX - d1, midX - d2, midX, midX + d2, midX + d1, midX + d1 + d2].forEach(function(x) {
+    // Seis espacios dentales simétricos según proporción áurea:
+    // lateral 0.618 · canino 1.0 · central 1.618 | 1.618 · 1.0 · 0.618.
+    // Al normalizar los seis pesos, la cuarta línea queda exactamente en
+    // el centro y las líneas primera/última coinciden con los bordes.
+    var intervalos = [1 / phi, 1, phi, phi, 1, 1 / phi];
+    var totalIntervalos = intervalos.reduce(function(suma, valor) { return suma + valor; }, 0);
+    var posiciones = [zone.x];
+    var acumulado = zone.x;
+    intervalos.forEach(function(valor) {
+      acumulado += zone.w * valor / totalIntervalos;
+      posiciones.push(acumulado);
+    });
+    posiciones.forEach(function(x) {
       ctx.beginPath();
       ctx.moveTo(x, zone.y);
       ctx.lineTo(x, zone.y + zone.h);
