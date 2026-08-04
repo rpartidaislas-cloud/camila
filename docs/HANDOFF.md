@@ -99,6 +99,48 @@ para el plan completo de 5 etapas si hace falta retomarlo.
 
 ---
 
+## 2026-08-03 — Codex (máscara dental continua, sin dientes fragmentados)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Se corrigió la máscara estrictamente dental que podía dejar bordes dentados,
+  picos y fragmentos blancos al clasificar cada píxel de manera aislada.
+- La clasificación admite ahora esmalte más cálido y oscuro, manteniendo una
+  exclusión explícita para el rojo dominante de labios y encía.
+- Se añadió cierre morfológico para unir fragmentos y rellenar pequeños huecos
+  sin expandir el contorno, seguido de componentes conexos que eliminan motas
+  demasiado pequeñas para corresponder a una región dental.
+- El borde continúa suavizándose solo hacia dentro; fondo PNG, dimensiones y
+  alineación 1:1 permanecen iguales a la fotografía original.
+
+## 2026-08-03 — Codex (composición estrictamente dental y empalme 1:1)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- `componerConOriginal()` dejó de copiar un óvalo completo de boca. Ahora
+  construye una máscara píxel a píxel dentro de esa región y acepta solamente
+  cambios con apariencia de esmalte; labios, encía, piel y barba permanecen
+  tomados de la fotografía original.
+- La máscara elimina motas, suaviza exclusivamente hacia dentro del diente y
+  rechaza resultados vacíos o anormalmente grandes. Si falla, la aplicación
+  muestra error: ya no usa la cara completa generada por IA como respaldo.
+- La salida se exporta como PNG del mismo ancho y alto del original para no
+  recomprimir el fondo. Cada simulación restablece la alineación a `0,0,100%`,
+  pues la composición ya queda empalmada en coordenadas 1:1.
+- El cambio aplica tanto a la primera simulación como a regeneraciones hechas
+  desde el editor.
+
+## 2026-08-03 — Codex (espaciado clínico de la guía de proporción)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Las siete líneas verdes delimitan ahora seis espacios con pesos exactos y
+  simétricos: `0.618 | 1.0 | 1.618 | 1.618 | 1.0 | 0.618`.
+- Los pesos se normalizan al ancho actual de la guía: los extremos permanecen
+  en sus bordes y la cuarta línea queda exactamente en el eje central.
+- La distribución se recalcula automáticamente al cambiar tamaño mediante
+  botones o pellizco; arrastre y agrupamiento permanecen intactos.
+
 ## 2026-08-03 — Codex (guía de proporción con siete líneas)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
