@@ -25,12 +25,42 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 export interface AuthResult {
   user: { id: string; email?: string } | null;
+  // La clínica real de quien llama -- NO uses user.id para topes de gasto,
+  // RPCs ni escrituras con tenant_id, usa siempre este campo. Para el dueño
+  // coincide con user.id (de siempre); para staff invitado (etapa 4, ver
+  // camila_team.sql/camila_usuarios) es la clínica de quien lo invitó.
+  // Antes de esto, claude/index.ts y segment-teeth/index.ts usaban user.id
+  // directo: camila_consumir_diagnostico nunca encontraba la fila de un
+  // staff en camila_tenants (rechazo 402, "no se encontró tu clínica"), y
+  // segment-teeth guardaba la segmentación con un tenant_id que no
+  // pertenecía a ningún caso real -- se perdía en silencio. null si no hay
+  // sesión.
+  tenantId: string | null;
   response: Response | null; // si no es null, devuélvela tal cual y no sigas
+}
+
+// Mismo patrón que ya usa el cliente (cargarTenantConfig() en
+// simulacion.html, continuarConUsuario() en app.html): resuelve si quien
+// llama es staff antes de asumir que su propio auth.uid() es el tenant.
+async function resolverTenantId(userId: string): Promise<string> {
+  try {
+    const { data, error } = await admin
+      .from('camila_usuarios')
+      .select('tenant_id')
+      .eq('id', userId)
+      .maybeSingle();
+    if (!error && data?.tenant_id) return data.tenant_id;
+  } catch (_e) {
+    // Si camila_usuarios no responde, se cae al valor de siempre (dueño) --
+    // más seguro que bloquear la llamada por un problema ajeno al usuario.
+  }
+  return userId;
 }
 
 export async function requireUser(req: Request, cors: Record<string, string>): Promise<AuthResult> {
   const deny = (msg: string) => ({
     user: null,
+    tenantId: null,
     response: new Response(JSON.stringify({ error: msg }), {
       status: 401,
       headers: { ...cors, 'Content-Type': 'application/json' },
@@ -56,7 +86,10 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
     admin.auth.getUser(jwt).catch(() => ({ data: null })),
     timeout,
   ]);
-  if (data?.user) return { user: { id: data.user.id, email: data.user.email }, response: null };
+  if (data?.user) {
+    const tenantId = await resolverTenantId(data.user.id);
+    return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+  }
 
   if (seTardo) return deny('No se pudo verificar la sesión a tiempo (Supabase Auth no respondió). Intenta de nuevo.');
 
@@ -64,5 +97,5 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   // una key de otro proyecto) -- se deja pasar como acceso anónimo (user:
   // null) en vez de rechazar. El caller debe manejar ese caso (p. ej. tomar
   // tenantId del body en vez de la sesión, como hace segment-teeth).
-  return { user: null, response: null };
+  return { user: null, tenantId: null, response: null };
 }

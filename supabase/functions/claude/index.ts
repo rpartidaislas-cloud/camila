@@ -48,21 +48,23 @@ Deno.serve(async (req: Request) => {
 
   // Esta función gasta dinero real (Anthropic y Gemini). Sin esta verificación
   // respondía a un POST a pelo, sin ningún header, desde cualquier lado.
-  const { user, response: authError } = await requireUser(req, CORS);
+  const { user, tenantId, response: authError } = await requireUser(req, CORS);
   if (authError) return authError;
   marca("después de requireUser");
 
   // Tope de gasto server-side -- ver _shared/limits.ts. Va antes de leer el
   // body: si el tenant ya agotó su plan (o, sin sesión, ya agotó el tope
-  // por IP), no tiene sentido ni parsear la llamada.
-  const { allowed, response: limitError } = await checkAndConsumeLimit(req, user?.id ?? null, CORS);
+  // por IP), no tiene sentido ni parsear la llamada. Usa tenantId (resuelto
+  // por requireUser -- distingue dueño de staff), NUNCA user.id directo: un
+  // staff tiene un auth.uid() propio que no es el id de su clínica.
+  const { allowed, response: limitError } = await checkAndConsumeLimit(req, tenantId, CORS);
   if (!allowed) return limitError!;
   marca("después de checkAndConsumeLimit");
 
   try {
     const body = await req.json();
     marca("después de req.json()");
-    console.log("Llamada de:", user?.id);
+    console.log("Llamada de:", user?.id, "-- tenant:", tenantId);
     console.log("Body keys:", Object.keys(body).join(", "));
 
     // ── GENERAR IMAGEN CON GEMINI ────────────────────────────────────────────

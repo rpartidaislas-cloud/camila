@@ -3136,11 +3136,17 @@ async function ejecutarAnalisisIA() {
   try {
     var resp, data;
     if (USE_EDGE) {
+      // Manda el JWT real de la sesión, no la llave anónima -- con la
+      // llave anónima el servidor trataba esta llamada como acceso sin
+      // sesión (tope genérico de 5/hora por IP) y nunca descontaba del
+      // plan real del tenant, sin importar si era Esencial o Premium.
+      var sesIA = await sb.auth.getSession();
+      var tokenIA = (sesIA.data && sesIA.data.session && sesIA.data.session.access_token) || SUPA_KEY;
       resp = await fetch(EDGE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + SUPA_KEY
+          'Authorization': 'Bearer ' + tokenIA
         },
         body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
       });
@@ -4320,11 +4326,16 @@ async function generarBeforeAfter() {
     'Photorealistic, clinical photography style.';
 
   try {
+    // Manda el JWT real de la sesión, no la llave anónima -- mismo motivo
+    // que en ejecutarAnalisisIA(): con la llave anónima el tope de gasto
+    // del plan real del tenant nunca aplicaba aquí.
+    var sesBA = await sb.auth.getSession();
+    var tokenBA = (sesBA.data && sesBA.data.session && sesBA.data.session.access_token) || SUPA_KEY;
     var resp = await fetch(EDGE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPA_KEY
+        'Authorization': 'Bearer ' + tokenBA
       },
       body: JSON.stringify({
         action: 'generate_image',

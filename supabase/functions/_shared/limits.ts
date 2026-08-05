@@ -51,11 +51,11 @@ const MENSAJES_TENANT: Record<string, string> = {
 // allowed=false, response ya trae el error listo para devolver tal cual.
 export async function checkAndConsumeLimit(
   req: Request,
-  userId: string | null,
+  tenantId: string | null, // el tenantId resuelto por requireUser() -- NUNCA user.id crudo, ver _shared/auth.ts
   cors: Record<string, string>
 ): Promise<LimitResult> {
-  if (userId) {
-    const { data, error } = await admin.rpc('camila_consumir_diagnostico', { p_tenant_id: userId });
+  if (tenantId) {
+    const { data, error } = await admin.rpc('camila_consumir_diagnostico', { p_tenant_id: tenantId });
     if (error) {
       // Falla de infraestructura ajena al usuario (RPC no desplegada,
       // conexión a la BD caída, etc.) -- no lo bloqueamos por eso, mejor

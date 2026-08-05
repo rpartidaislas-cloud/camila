@@ -10,6 +10,94 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-05 (3) — Claude Code (fix: staff no podía generar nada — etapa 4 quedó incompleta el mismo día)
+
+**Tocado:** `supabase/functions/_shared/auth.ts`, `supabase/functions/_shared/limits.ts`,
+`supabase/functions/claude/index.ts`, `supabase/functions/segment-teeth/index.ts`,
+`revision-clinica.html`, `mobile/www/revision-clinica.html`, `app.html`.
+Sin migración nueva.
+
+Una auditoría pedida por el usuario (agentes en paralelo revisando
+app.html/simulacion.html/revision-clinica.html) encontró que la etapa 4
+de hoy (dueño+staff) se cableó solo en el cliente de 2 de 5 puntos —
+`claude/index.ts`, `segment-teeth/index.ts` y `revision-clinica.html`
+seguían usando `user.id`/`auth.uid()` directo como si fuera el
+`tenant_id`, cierto solo para el dueño. Efecto real antes de este fix:
+un staff invitado no podía generar NINGÚN diagnóstico/simulación desde
+`simulacion.html` (402 "no se encontró tu clínica"), y si daba de alta
+un caso nuevo directo en `revision-clinica.html` (la puerta de entrada
+principal del dentista en la app móvil) el caso se guardaba con éxito
+aparente pero con un `tenant_id` que no pertenece a ninguna clínica real
+— invisible para el dueño y el resto del equipo.
+
+1. **`_shared/auth.ts`**: `AuthResult` ahora incluye `tenantId` (además de
+   `user`), resuelto por una función nueva `resolverTenantId(userId)` que
+   consulta `camila_usuarios` — mismo patrón que ya usaba el cliente
+   (`cargarTenantConfig()` en simulacion.html, `continuarConUsuario()` en
+   app.html). Para el dueño sigue siendo igual a `user.id` (comportamiento
+   sin cambios); para staff resuelve la clínica de quien lo invitó.
+   **Cualquier código nuevo que use `requireUser()` debe usar `tenantId`,
+   nunca `user.id`, para topes de gasto, RPCs o escrituras con
+   `tenant_id`** — dejé un comentario grande en la interfaz explicándolo.
+2. **`_shared/limits.ts`**: `checkAndConsumeLimit()` renombró su segundo
+   parámetro de `userId` a `tenantId` (mismo comportamiento, solo
+   clarifica qué es realmente).
+3. **`claude/index.ts` y `segment-teeth/index.ts`**: usan el `tenantId`
+   resuelto por `requireUser()` en vez de `user?.id` para
+   `checkAndConsumeLimit()`. En `segment-teeth` esto también corrige el
+   `.eq("tenant_id", tenantId)` del `UPDATE` que guarda la segmentación —
+   antes, para un staff, ese `UPDATE` nunca encontraba la fila del caso
+   real (que tiene el `tenant_id` del dueño) y la segmentación se perdía
+   sin error visible.
+4. **`revision-clinica.html` / mobile**: `_entrarSesionClinica()` ahora es
+   `async` y, justo después de fijar la sesión, consulta `camila_usuarios`
+   por el `auth.uid()` de quien inició sesión — si es staff, corrige
+   `tenantIdSesion`/el campo `#tenantId` a la clínica real ANTES de
+   `autoCargarCasoDesdeUrl()`. Aplicado quirúrgicamente (no se copió el
+   archivo completo) porque la copia móvil ya tenía otras diferencias
+   pendientes de sincronizar (ver auditoría UX del mismo día) que no eran
+   parte de este fix.
+5. **`app.html`**: `ejecutarAnalisisIA()` y `generarBeforeAfter()` mandaban
+   `Authorization: Bearer SUPA_KEY` (la llave pública) en vez del
+   `access_token` de la sesión real — la auditoría confirmó que esto no
+   solo evadía el tope de gasto de la etapa 1, sino que **ningún dentista
+   consumía su cupo pagado real desde esas dos pantallas** (quedaban
+   sujetos al tope anónimo de 5/hora sin importar su plan). Ahora ambas
+   piden `sb.auth.getSession()` y usan el `access_token` real, con
+   `SUPA_KEY` solo como último fallback si no hay sesión. Este fix
+   dependía de los puntos 1-3 (si se hacía al revés, el staff habría
+   quedado bloqueado con 402 en vez de generar sin límite).
+
+**Falta aplicar en producción:** desplegar las dos Edge Functions
+actualizadas —
+
+```
+supabase functions deploy claude --use-api
+supabase functions deploy segment-teeth --use-api
+```
+
+— y verificar en el dashboard (tab Code) que se suban `index.ts` +
+`_shared/auth.ts` + `_shared/limits.ts` (además de `_shared/limits.ts`
+para claude/segment-teeth, ya se sabe por experiencias anteriores que
+hay que confirmarlo, no basta el mensaje de "Deployed"). Los cambios de
+`app.html`/`revision-clinica.html` se publican solos vía GitHub Pages.
+**No pude probar en vivo** que un staff real ahora sí pueda generar un
+diagnóstico end-to-end (necesito una cuenta de staff con sesión real) —
+Ricardo, si tienes forma de probarlo con la cuenta que invitaste antes,
+avísame el resultado.
+
+**Pendiente de la misma auditoría, no atacado todavía** (ver el reporte
+completo que se le compartió al usuario como Artifact el mismo día):
+escala de "score" inconsistente (0-10 en app.html vs 0-100 en
+simulacion.html), protocolo de fotos y cuestionario pre-simulación sin
+ningún efecto real, `tenant_id` no determinista (`'local'` vs `null`)
+para casos guardados sin sesión, `mobile/www/revision-clinica.html`
+desincronizado en CSS de segmentación y de `.tooth-chip-remove`, y la
+URL/key de Supabase hardcodeada 5 veces (2 de ellas dentro del mismo
+archivo/función en revision-clinica.html).
+
+---
+
 ## 2026-08-05 (2) — Claude Code (infraestructura multi-tenant, etapa 4: dueño + staff con permisos distintos)
 
 **Tocado:** `supabase/migrations/camila_team.sql` (nuevo),
