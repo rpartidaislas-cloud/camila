@@ -1313,6 +1313,11 @@ var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa 
   '}';
 
 function cargarTenantConfig(tid) {
+  // Valor por defecto: tid ES el tenant (caso del dueño, de siempre) --
+  // se deja síncrono para no romper el timing que checkResumePrompt()
+  // necesita justo después de esta llamada (ver comentario en
+  // entrarConSesion). Si resulta ser staff, se corrige un poco más abajo,
+  // ya con datos reales, antes de tocar camila_tenants.
   CFG.tenantId = tid;
   // Try localStorage first (fast)
   var stored = localStorage.getItem('camila_sim_config_' + tid);
@@ -1322,17 +1327,30 @@ function cargarTenantConfig(tid) {
       applyTenantBranding(CFG.tenantConfig);
     } catch(e) {}
   }
-  // Also try Supabase -- manda el JWT del dentista logueado, no el anon key:
-  // la RLS de camila_tenants exige auth.uid() = id, así que con el anon key
-  // esto siempre regresaba vacío (silenciosamente, por el .catch de abajo).
-  // También trae el límite del plan -- antes solo app.html lo consultaba y
-  // lo hacía cumplir; aquí (el flujo que de verdad gasta IA) no se pedía.
-  return fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tid + '&select=config,nombre,email,plan,limite_diagnosticos,diagnosticos_usados,activo', {
+  // Si quien inició sesión es staff invitado (etapa 4, ver
+  // camila_team.sql) su clínica real es la de quien lo invitó, no su
+  // propio id -- se resuelve vía camila_usuarios ANTES de pedir
+  // camila_tenants (si no, esa consulta buscaría una fila con su propio
+  // id, que no existe, y sus casos terminarían guardándose con un
+  // tenant_id que no le pertenece a ninguna clínica).
+  return fetch(CFG.supaUrl + '/rest/v1/camila_usuarios?id=eq.' + tid + '&select=tenant_id', {
     headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey)}
+  }).then(function(r){return r.json();}).catch(function(){return null;}).then(function(miembro) {
+    var tenantReal = (miembro && miembro[0] && miembro[0].tenant_id) || tid;
+    CFG.tenantId = tenantReal;
+    // Also try Supabase -- manda el JWT del dentista logueado, no el anon key:
+    // la RLS de camila_tenants exige ser miembro de la clínica, así que con
+    // el anon key esto siempre regresaba vacío (silenciosamente, por el
+    // .catch de abajo). También trae el límite del plan -- antes solo
+    // app.html lo consultaba y lo hacía cumplir; aquí (el flujo que de
+    // verdad gasta IA) no se pedía.
+    return fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + tenantReal + '&select=config,nombre,email,plan,limite_diagnosticos,diagnosticos_usados,activo', {
+      headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey)}
+    });
   }).then(function(r){return r.json();}).then(function(data) {
     if (data && data[0] && data[0].config && data[0].config.sim) {
       CFG.tenantConfig = data[0].config.sim;
-      localStorage.setItem('camila_sim_config_' + tid, JSON.stringify(CFG.tenantConfig));
+      localStorage.setItem('camila_sim_config_' + CFG.tenantId, JSON.stringify(CFG.tenantConfig));
       applyTenantBranding(CFG.tenantConfig);
     }
     if (data && data[0]) {

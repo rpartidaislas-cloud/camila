@@ -10,6 +10,109 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-05 (2) — Claude Code (infraestructura multi-tenant, etapa 4: dueño + staff con permisos distintos)
+
+**Tocado:** `supabase/migrations/camila_team.sql` (nuevo),
+`supabase/functions/invite-staff/index.ts` (nuevo), `app.html`,
+`simulacion.html`, `mobile/www/simulacion.html`.
+
+Modelo elegido con el usuario (opción "dueño + staff con permisos
+distintos", invitación **por correo** vía `admin.inviteUserByEmail`):
+tabla nueva `camila_usuarios` vincula un `auth.users` a un `tenant_id` con
+`rol` ('dueño'/'staff'). El dueño sigue siendo la fila cuyo
+`id = tenant_id` (sin cambios ahí); el staff son cuentas NUEVAS invitadas
+por el dueño desde `app.html` (tarjeta "Mi Equipo", solo visible para
+dueño).
+
+1. **RLS reescrita con dos funciones `SECURITY DEFINER`**
+   (`camila_es_dueno`, `camila_es_miembro`) para evitar recursión de
+   políticas. `camila_tenants` SELECT ahora acepta a cualquier miembro
+   (antes solo `id = auth.uid()`) -- el staff necesita leer
+   branding/precios/límite de su clínica. `camila_tenants` INSERT/UPDATE
+   **no se tocó** -- sigue exigiendo `id = auth.uid()`, así que el staff
+   automáticamente no puede tocar precios/config/plan sin que hiciera
+   falta ninguna política nueva para eso. `camila_casos` SELECT/INSERT/
+   UPDATE ahora usan `camila_es_miembro()` en vez de comparar
+   `tenant_id = auth.uid()::text` directo.
+   - **Ojo con esto si se toca la migración:** `camila_casos.tenant_id` es
+     `text`, y `simulacion.html` en modo sin sesión a veces escribe el
+     literal `'local'` ahí (`CFG.tenantId || 'local'` en `guardarCaso()`,
+     confirmado leyendo el código, no soy quien lo escribió así). Un
+     `tenant_id::uuid` directo en una política revienta la consulta
+     COMPLETA (`invalid input syntax for type uuid`) en cuanto toca una
+     fila así -- no la descarta, tira todo el `SELECT`/`INSERT`/`UPDATE`
+     para cualquiera. Se agregó `camila_uuid_seguro()` (cast con
+     `exception when others return null`) para blindar esto.
+   - No se agregó política de `DELETE` en `camila_casos` -- ya no existía
+     antes de esta migración (nadie, ni el dueño, puede borrar un caso vía
+     RLS hoy), no era parte de esta etapa cambiar eso.
+2. **Provisioning (`camila_crear_tenant_en_signup`, ya existía desde la
+   etapa 2) actualizado**: si el signup trae `tenant_id_invitado` en
+   `user_metadata` (lo pone `invite-staff`), la cuenta se une como staff a
+   esa clínica en vez de crear una nueva. Si no, sigue creando su propia
+   clínica como antes, y AHORA también se da de alta a sí mismo en
+   `camila_usuarios` (rol dueño) -- backfill incluido para dueños que ya
+   existían antes de esta migración.
+3. **Edge Function nueva `invite-staff`**: valida que quien llama sea
+   dueño de una clínica real, hace cumplir el tope de usuarios por plan
+   (`esencial: 1, profesional: 3, premium: sin tope` -- mismos números que
+   ya anunciaba `app.html` en `PLANES.*.features`, antes solo como texto
+   de marketing sin ningún efecto real), y llama
+   `admin.auth.admin.inviteUserByEmail` con `tenant_id_invitado` en los
+   metadatos y `redirectTo: .../app.html?invite=1`.
+4. **Cliente:**
+   - `app.html`: `continuarConUsuario()` ahora resuelve la clínica real
+     antes de leer `camila_tenants` (consulta `camila_usuarios` por el
+     `auth.uid()` de quien inició sesión; si no es dueño, usa el
+     `tenant_id` de ahí). Nueva variable global `miRolEquipo`. Nueva
+     tarjeta "Mi Equipo" (listar/invitar/desactivar, solo dueño) en la
+     pantalla de precios. Nuevo flujo `?invite=1` +
+     `mostrarSetPasswordInvitado()`: cuando alguien abre el link del
+     correo de invitación, supabase-js ya le crea sesión automáticamente
+     (`detectSessionInUrl`) pero SIN contraseña -- se le pide ponerla
+     antes de entrar (si no, quedaría sin forma de volver a entrar cuando
+     expire el token). Los botones de guardar precios/config/branding se
+     deshabilitan para staff (`aplicarRestriccionesStaff()`) -- no es la
+     restricción de seguridad real (esa la da RLS), es solo para no
+     mostrar un botón que fallaría en silencio (PostgREST no marca error
+     cuando RLS descarta un UPDATE por falta de permiso, solo actualiza 0
+     filas).
+   - `simulacion.html`/mobile: `cargarTenantConfig()` ahora resuelve
+     primero si quien inició sesión es staff (vía `camila_usuarios`) antes
+     de pedir `camila_tenants` -- si no, sus casos se habrían guardado con
+     un `tenant_id` que no pertenece a ninguna clínica. Se cuidó el
+     timing: `CFG.tenantId` se sigue fijando SÍNCRONO de entrada (como
+     antes, para no romper `checkResumePrompt()` que corre justo después
+     en `entrarConSesion()`) y solo se corrige tras el fetch si resulta
+     ser staff -- para cuando el flujo real llega a guardar un caso ya está
+     resuelto.
+
+**Falta aplicar en producción (yo no tengo acceso a Supabase ni a la CLI
+del usuario):**
+- Correr `supabase/migrations/camila_team.sql` en el SQL Editor.
+- `supabase functions deploy invite-staff --use-api` (usar `--use-api`:
+  la CLI de Ricardo no tiene Docker corriendo, ver la entrada del
+  2026-08-04 (1) para el porqué). **Verificar en el dashboard, tab
+  "Code", que se subieron los 2 archivos** (`index.ts` +
+  `_shared/auth.ts`) -- ya pasó una vez que un deploy subió el código
+  viejo por un `git pull` no hecho antes de desplegar, ver esa misma
+  entrada.
+- **No pude probar el flujo de invitación en vivo** (no tengo forma de
+  recibir un correo real ni de abrir el link mágico desde este entorno) --
+  Ricardo necesita probarlo de punta a punta: invitar a un correo real
+  desde "Mi Equipo" en `app.html`, abrir el correo, confirmar que
+  `?invite=1` muestra el prompt de contraseña y que después de eso puede
+  ver/crear casos de la misma clínica del dueño.
+- Si el envío de correos de Supabase Auth no está configurado con SMTP
+  propio, usa el servicio compartido de Supabase (rate-limited, ya se
+  usaba para confirmar cuentas nuevas per el trigger de la etapa 2) --
+  puede tardar o caer en spam. No es nuevo de esta etapa, mismo mecanismo
+  que ya usaba el registro normal.
+
+**Pendiente (etapa 5, no arrancada):** observabilidad/alertas de costo.
+
+---
+
 ## 2026-08-05 — Claude Code (bug crítico: app.html/index.html/editor.html apuntaban al proyecto Supabase abandonado)
 
 **Tocado:** `app.html`, `index.html`, `editor.html`, `README.md`. Sin
