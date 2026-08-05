@@ -56,8 +56,9 @@ la lista corta a propósito.
 **Pendiente (etapas 4-5 del plan de infra):** decidir si hace falta
 multi-usuario por clínica, observabilidad/alertas de costo. Etapas 1 y 2
 (tope de gasto server-side + provisioning automático) quedaron en la
-entrada del 2026-08-04 (1) — recordatorio: sus migraciones seguían sin
-aplicarse en la base de datos real la última vez que se confirmó.
+entrada del 2026-08-04 (1) — sus migraciones y el deploy de Edge Functions
+ya se aplicaron en producción el 2026-08-05, ver el aviso al final de esa
+misma entrada.
 
 ---
 
@@ -129,24 +130,34 @@ abajo.
    trigger la fila ya existe, ese insert simplemente no encuentra nada
    que hacer.
 
-**IMPORTANTE — falta aplicar en la base de datos real:** las dos
-migraciones nuevas (`camila_tenant_provisioning.sql`, `camila_limits.sql`)
-están en el repo pero yo no tengo acceso a la CLI/credenciales de
-Supabase. Hay que correrlas en el SQL Editor del proyecto "Smyl" (o vía
-`supabase db push`) ANTES de que el próximo deploy de `claude`/
-`segment-teeth` llegue a producción — si las Edge Functions llaman a
-`camila_consumir_diagnostico`/`camila_anon_rate_check` y esas funciones no
-existen todavía, `checkAndConsumeLimit` los deja pasar (falla abierta a
-propósito, ver comentario en `limits.ts`), así que no hay riesgo de
-bloquear el servicio, pero el tope tampoco aplica hasta que se apliquen.
-También falta el deploy manual de las dos Edge Functions
-(`supabase functions deploy claude` y `supabase functions deploy
-segment-teeth`) — igual que siempre, esto no se auto-despliega.
+**ACTUALIZACIÓN 2026-08-05 — ya aplicado en producción.** El usuario
+(Ricardo) corrió las dos migraciones a mano en el SQL Editor del proyecto
+"Smyl" y desplegó ambas Edge Functions desde su máquina con
+`supabase functions deploy claude --use-api` y
+`supabase functions deploy segment-teeth --use-api` (su instalación de
+Supabase CLI no tenía Docker, `--use-api` empaqueta del lado del servidor
+sin necesitarlo). Ojo con algo que sí pasó y vale la pena dejar
+documentado: la primera vez que corrió el deploy, su carpeta local tenía
+el código de antes del 2026-08-04 (no había hecho `git fetch`/`pull` desde
+el 08-01, y `git status` decía "up to date" porque eso solo compara contra
+el último fetch cacheado, no contra GitHub en vivo) — el primer deploy
+subió `claude`/`segment-teeth` SIN `_shared/limits.ts`, function
+funcionalmente idéntica a la de antes de estas dos etapas. Se detectó
+revisando el tab "Code" de cada función en el dashboard (el log de
+`supabase functions deploy` no avisa de nada raro, solo lista los archivos
+que sí subió) antes de darlo por bueno, se hizo `git pull` y se volvió a
+desplegar — el segundo deploy sí incluyó los tres archivos
+(`index.ts`, `_shared/limits.ts`, `_shared/auth.ts`). **Si alguien más
+despliega Edge Functions manualmente:** después de desplegar, revisar el
+tab "Code" en el dashboard y confirmar que `_shared/limits.ts` (y
+cualquier otro `_shared/*` que la función importe) aparece en la lista de
+archivos — no basta con que el comando diga "Deployed Functions".
 
-**Pendiente (etapas 3-5 del plan, no arrancadas):** definir
-`camila_precios` (decisión de producto pendiente), decidir si hace falta
-multi-usuario por clínica, observabilidad/alertas de costo. Ver el chat
-para el plan completo de 5 etapas si hace falta retomarlo.
+**Pendiente (etapas 4-5 del plan, no arrancadas):** decidir si hace falta
+multi-usuario por clínica, observabilidad/alertas de costo. Etapa 3
+(precios por clínica) ya se hizo — ver la entrada de arriba
+(2026-08-04 (2)). Ver el chat para el plan completo de 5 etapas si hace
+falta retomarlo.
 
 ---
 
