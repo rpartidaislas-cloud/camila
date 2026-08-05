@@ -10,6 +10,59 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-05 — Claude Code (bug crítico: app.html/index.html/editor.html apuntaban al proyecto Supabase abandonado)
+
+**Tocado:** `app.html`, `index.html`, `editor.html`, `README.md`. Sin
+migración — solo constantes de configuración en el cliente.
+
+**Hallazgo, mientras se investigaba para la etapa 4 (multi-usuario):**
+`simulacion.html` migró hace tiempo al proyecto real "Smyl"
+(`rpxshsiwoxdbuevjjpfw`) — tiene hasta un comentario explícito diciendo
+que el proyecto viejo "quedó fuera del circuito por completo". Pero
+`app.html`, `index.html` y `editor.html` **nunca se actualizaron** —
+seguían con `SUPA_URL`/`SUPA_KEY` del proyecto abandonado
+`gfogifozhhbzxhcbecgf`. Efecto real: el login/signup, `camila_casos` y
+los precios que un dentista guardaba desde `app.html` (incluida la
+"etapa 3" de precios por clínica que se acababa de terminar) iban a una
+base de datos que el resto de la app ya no lee — separación silenciosa de
+datos entre páginas de la misma app, sin ningún error visible.
+
+También se descubrió que el `README.md` tenía la causa raíz de la
+confusión: decía "mismo proyecto que LANA: `lgjdzaqjrmmzyrenevfm`" —  eso
+es un proyecto de Supabase de OTRA app, sin relación con Camila. Quien
+siga ese README termina en el dashboard equivocado. Corregido.
+
+**Fix:** las 3 páginas ahora usan `SUPA_URL = rpxshsiwoxdbuevjjpfw` con la
+misma `sb_publishable_...` key que ya usaba `simulacion.html`.
+
+**Impacto en Stripe (revisado antes de tocar nada, no bloqueaba el fix):**
+`STRIPE_CHECKOUT_URL`/`STRIPE_PORTAL_URL` en `app.html` se derivan de
+`SUPA_URL`, así que ahora apuntan a
+`rpxshsiwoxdbuevjjpfw/functions/v1/stripe-checkout`/`stripe-portal` — pero
+esas Edge Functions (más `stripe-webhook`) probablemente solo estén
+desplegadas en el proyecto viejo (ver auditoría de Stripe en la entrada
+del 2026-07-30, nunca se confirmó al 100% ni con qué nombre). No es
+urgente porque el cobro real ya estaba deliberadamente sin terminar
+(`STRIPE_PRICE_IDS` vacíos) — pero **antes de activar cobros de verdad**
+hay que desplegar `stripe-checkout`/`stripe-portal`/`stripe-webhook` al
+proyecto `rpxshsiwoxdbuevjjpfw` y reconfigurar sus secrets
+(`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_URL`) ahí, además de
+apuntar el webhook de Stripe a la URL nueva.
+
+**No tocado a propósito:** `revisionclinica.html` (sin guión) también
+tiene una referencia al proyecto viejo, pero es un duplicado huérfano sin
+ninguna referencia entrante en el repo (`revision-clinica.html`, CON
+guión, es el archivo real y ya apunta al proyecto correcto) — no vale la
+pena arriesgar tocarlo.
+
+**Pendiente inmediato:** re-correr la introspección de esquema/RLS para
+etapa 4 (multi-usuario por clínica) en el proyecto CORRECTO
+(`rpxshsiwoxdbuevjjpfw`, no `lgjdzaqjrmmzyrenevfm`) — se pidió antes de
+este hallazgo y salió "0 rows" porque el usuario estaba en el proyecto de
+LANA.
+
+---
+
 ## 2026-08-04 (2) — Claude Code (infraestructura multi-tenant, etapa 3: precios reales por clínica)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `app.html`.

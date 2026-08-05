@@ -921,8 +921,10 @@ var planSeleccionado=null;
 // (contraseña en texto plano, sin conexión a la nube). Ahora usa el
 // sistema de autenticación real de Supabase: contraseñas cifradas,
 // sesión persistente y válida desde cualquier dispositivo.
-var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
+// Proyecto "Smyl" -- ver nota en app.html sobre por qué no es el original
+// gfogifozhhbzxhcbecgf (ese quedó abandonado, ver docs/HANDOFF.md 2026-08-05).
+var SUPA_URL = 'https://rpxshsiwoxdbuevjjpfw.supabase.co';
+var SUPA_KEY = 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
 var sb;
 try { sb = supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { console.error('[SMYL] No se pudo inicializar Supabase:', e); }
 
