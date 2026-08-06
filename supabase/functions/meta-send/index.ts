@@ -2,10 +2,19 @@
 //
 // El dentista/staff responde desde la bandeja de Mensajes de app.html (aún
 // sin construir, ver docs/HANDOFF.md etapa 5) -- esta función busca el
-// canal/token correcto de la conversación y llama al endpoint de envío que
+// canal correcto de la conversación y llama al endpoint de envío que
 // corresponda en Meta (WhatsApp Cloud API / Messenger Send API / Instagram
 // Messaging API -- las tres comparten casi el mismo formato de request vía
 // Graph API, solo cambia el shape del body).
+//
+// Arquitectura MULTI-TENANT (decisión del usuario 2026-08-06, mismo
+// patrón que su otro producto "LANA"): un solo token de un System User
+// "Tech Provider" (META_TOKEN, Secret compartido) firma las llamadas para
+// TODAS las clínicas -- camila_canales solo guarda el id_externo
+// (phone_number_id/page_id/ig_business_id) de cada una, nunca un token por
+// fila. Si algún día se agrega Embedded Signup para que cada dentista
+// conecte su propia cuenta, esto no cambia -- solo cambia CÓMO se llena
+// camila_canales (autoservicio en vez de INSERT manual).
 //
 // No probado en vivo -- necesita credenciales reales de Meta.
 
@@ -23,6 +32,10 @@ const SB_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
+// Token PERMANENTE del System User -- el mismo para todas las clínicas.
+// NUNCA se guarda en camila_canales ni se manda al cliente.
+const META_TOKEN = Deno.env.get("META_TOKEN") || "";
+
 const GRAPH_VERSION = "v21.0";
 
 function jsonError(status: number, msg: string): Response {
@@ -32,10 +45,10 @@ function jsonError(status: number, msg: string): Response {
   });
 }
 
-async function enviarWhatsApp(phoneNumberId: string, token: string, para: string, texto: string): Promise<string | null> {
+async function enviarWhatsApp(phoneNumberId: string, para: string, texto: string): Promise<string | null> {
   const resp = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${META_TOKEN}` },
     body: JSON.stringify({ messaging_product: "whatsapp", to: para, type: "text", text: { body: texto } }),
   });
   const data = await resp.json();
@@ -43,15 +56,10 @@ async function enviarWhatsApp(phoneNumberId: string, token: string, para: string
   return data.messages?.[0]?.id ?? null;
 }
 
-async function enviarMessengerOInstagram(
-  pageOrIgId: string,
-  token: string,
-  para: string,
-  texto: string
-): Promise<string | null> {
+async function enviarMessengerOInstagram(pageOrIgId: string, para: string, texto: string): Promise<string | null> {
   const resp = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pageOrIgId}/messages`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${META_TOKEN}` },
     body: JSON.stringify({ recipient: { id: para }, message: { text: texto } }),
   });
   const data = await resp.json();
@@ -92,7 +100,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: canalRow, error: canalErr } = await admin
     .from("camila_canales")
-    .select("canal, id_externo, access_token")
+    .select("canal, id_externo")
     .eq("id", conv.canal_id)
     .maybeSingle();
   if (canalErr || !canalRow) return jsonError(500, "No se encontró el canal de esta conversación.");
@@ -100,8 +108,8 @@ Deno.serve(async (req: Request) => {
   try {
     const idExternoMeta =
       canalRow.canal === "whatsapp"
-        ? await enviarWhatsApp(canalRow.id_externo, canalRow.access_token, conv.contacto_id_externo, texto)
-        : await enviarMessengerOInstagram(canalRow.id_externo, canalRow.access_token, conv.contacto_id_externo, texto);
+        ? await enviarWhatsApp(canalRow.id_externo, conv.contacto_id_externo, texto)
+        : await enviarMessengerOInstagram(canalRow.id_externo, conv.contacto_id_externo, texto);
 
     await admin.from("camila_mensajes").insert({
       conversacion_id: conversacionId,

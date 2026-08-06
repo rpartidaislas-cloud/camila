@@ -10,6 +10,59 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-06 (2) — Claude Code (etapa 5, corrección: chat de Meta pasa a ser multi-tenant desde el diseño)
+
+**Tocado:** `supabase/migrations/camila_chat.sql`,
+`supabase/functions/meta-send/index.ts`. `meta-webhook/index.ts` no
+necesitó cambios (nunca usó un token por canal, ver abajo). Ninguno de
+los 3 se había aplicado/desplegado todavía, así que se corrigieron en su
+lugar en vez de crear una migración nueva encima.
+
+**Decisión del usuario:** Smyl también debe ser multi-tenant en su
+conexión con Meta, igual que su otro producto "LANA" (compartió la
+arquitectura completa de LANA como referencia). Cambia el modelo de
+credenciales de la entrada anterior (2026-08-06 (1)):
+
+- **Antes:** cada fila de `camila_canales` guardaba su propio
+  `access_token` -- un token por canal por clínica.
+- **Ahora:** un solo **System User "Tech Provider"** con token
+  **permanente** (Secret `META_TOKEN`, compartido por todas las
+  clínicas) firma todas las llamadas a la Graph API. `camila_canales` ya
+  NO guarda ningún token -- solo los identificadores de cuenta de cada
+  clínica (`id_externo` = phone_number_id/page_id/ig_business_id, más
+  `waba_id` nuevo para WhatsApp). Esto es exactamente lo que hace falta
+  para que, más adelante, cada dentista pueda conectar su propia cuenta
+  vía Embedded Signup sin que la plataforma tenga que guardar ni rotar un
+  token por cliente.
+- `meta-send/index.ts`: ya no lee `access_token` de `camila_canales`,
+  usa `META_TOKEN` (env var) para las tres llamadas de envío.
+- `meta-webhook/index.ts`: sin cambios -- nunca leyó ni usó un token
+  (solo recibe y guarda mensajes, no manda nada), así que ya era
+  compatible con el modelo nuevo sin tocar nada.
+- El alta de canales SIGUE siendo manual por ahora (INSERT vía SQL
+  Editor con el `phone_number_id`/`waba_id`/`page_id` real de cada
+  clínica) — el autoservicio (Embedded Signup, botón "Conectar
+  WhatsApp" en el panel) es una fase posterior, no bloquea probar el
+  flujo completo con la clínica de Ricardo.
+
+**Además:** se escribió y se le entregó al usuario (como archivo, no
+como parte de este repo) una guía completa y portable —SQL + Edge
+Functions Deno + frontend con Embedded Signup + bandeja con Realtime—
+para que su OTRO programa ("LANA" u otro, tiene su propio repo/Supabase)
+implemente el mismo patrón multi-tenant. Esa guía no vive en este repo a
+propósito.
+
+**Sigue pendiente, sin cambios respecto a la entrada anterior:** aplicar
+la migración, desplegar las 2 funciones, configurar los Secrets
+(ahora **`META_TOKEN`** en vez de guardar tokens por fila, más
+`META_APP_SECRET`/`META_WEBHOOK_VERIFY_TOKEN` igual que antes), y
+conseguir el token permanente del System User desde Meta (Configuración
+de la Empresa → Usuarios del sistema) en vez del token temporal de 24h
+de la pantalla de pruebas -- ese temporal solo sirve para probar el
+handshake, no para dejarlo en producción.
+
+---
+
 ## 2026-08-06 — Claude Code (etapa 5: chat unificado con Meta — WhatsApp/Messenger/Instagram, fase 1)
 
 **Tocado:** `supabase/migrations/camila_chat.sql` (nuevo),

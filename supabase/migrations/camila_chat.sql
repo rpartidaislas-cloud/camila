@@ -1,10 +1,16 @@
 -- Etapa 5 de infraestructura: chat unificado con Meta (WhatsApp, Messenger,
--- Instagram). Fase 1: una sola clínica conectada (la del dueño de Smyl) --
--- el modelo ya queda listo para que cada tenant conecte su propia cuenta
--- más adelante, pero el alta de canales hoy es manual (vía SQL Editor,
--- pegando el access_token que Meta entrega al configurar la app) -- no hay
--- todavía un flujo de autoservicio (Embedded Signup) para que cualquier
--- dentista conecte su propio WhatsApp. Ver docs/HANDOFF.md.
+-- Instagram) -- arquitectura MULTI-TENANT desde el día uno (decisión del
+-- usuario 2026-08-06, mismo patrón que ya usa su otro producto "LANA"):
+-- una sola App de Meta + un solo System User "Tech Provider" con token
+-- PERMANENTE (vive como Secret compartido `META_TOKEN` de las Edge
+-- Functions, ver meta-webhook/meta-send) opera sobre las cuentas de
+-- WhatsApp/Messenger/Instagram de TODAS las clínicas. Por eso
+-- camila_canales NO guarda ningún token -- solo guarda los identificadores
+-- de la cuenta de cada clínica (phone_number_id/page_id/ig_business_id),
+-- que es lo único que cambia por tenant. El alta de canales hoy sigue
+-- siendo manual (INSERT vía SQL Editor) porque el flujo de autoservicio
+-- (Embedded Signup, para que cualquier dentista conecte su propia cuenta
+-- desde el panel) es una fase posterior -- ver docs/HANDOFF.md.
 --
 -- Nota: NO se agrega una FK a camila_pacientes -- esa tabla es referenciada
 -- por app.html (`.from('camila_pacientes')`) pero NO existe como tabla real
@@ -19,8 +25,8 @@ create table if not exists public.camila_canales (
   tenant_id uuid not null references public.camila_tenants(id) on delete cascade,
   canal text not null check (canal in ('whatsapp', 'messenger', 'instagram')),
   id_externo text not null, -- phone_number_id (whatsapp) / page_id (messenger) / ig_business_id (instagram)
+  waba_id text, -- solo aplica a whatsapp -- identificador de la cuenta de WhatsApp Business, distinto del phone_number_id
   nombre text, -- etiqueta humana para el panel, ej. "WhatsApp +52 33..."
-  access_token text not null, -- token de Meta -- SOLO lo lee el service role (Edge Functions), nunca el cliente ni el staff
   activo boolean not null default true,
   created_at timestamptz not null default now(),
   unique (canal, id_externo)
@@ -28,8 +34,11 @@ create table if not exists public.camila_canales (
 
 alter table public.camila_canales enable row level security;
 
--- Credenciales sensibles: solo el dueño, nunca el staff -- mismo criterio
--- que ya se usa para precios/config en camila_tenants.
+-- Solo el dueño ve/administra qué cuentas de Meta están conectadas a su
+-- clínica -- mismo criterio que precios/config en camila_tenants. No
+-- guarda ningún token (ver comentario arriba), pero sigue siendo
+-- información de negocio sensible (qué número/página/cuenta de IG está
+-- vinculada), no algo que el staff necesite tocar.
 create policy camila_canales_select_dueno on public.camila_canales
   for select to authenticated using (camila_es_dueno(tenant_id));
 create policy camila_canales_insert_dueno on public.camila_canales
