@@ -65,6 +65,16 @@ create table if not exists public.camila_conversaciones (
 
 alter table public.camila_conversaciones enable row level security;
 
+-- Sin esto, cuando se construya la bandeja en tiempo real (Supabase
+-- Realtime), el payload.old de un UPDATE solo trae la primary key -- toda
+-- lógica de "avisar solo si X cambió de verdad" (ej. no_leidos subió,
+-- alguien más ya la atendió) vería el resto de las columnas como
+-- undefined y fallaría en silencio. Encontrado por la skill de referencia
+-- meta-multitenant-chat (PR #5, extraída de un bug real ya visto en
+-- producción en otro proyecto) -- barato agregarlo ahora que corregirlo
+-- después de que ya esté en producción.
+alter table public.camila_conversaciones replica identity full;
+
 -- Cualquier miembro de la clínica (dueño o staff) ve/atiende la bandeja --
 -- no hay INSERT para el cliente: las conversaciones las crea el webhook
 -- (service role) al llegar el primer mensaje del paciente.
