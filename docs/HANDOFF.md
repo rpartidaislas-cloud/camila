@@ -10,6 +10,24 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-06 — Claude Code
+
+**Tocado:** `.claude/skills/meta-multitenant-chat/` (nuevo, solo agregado —
+nada existente tocado).
+
+Agregada una skill de referencia para conectar WhatsApp + Messenger +
+Instagram en modo multi-tenant (un solo Meta App/System User "Tech
+Provider" sirviendo el número/página propio de cada dentista/clínica, un
+solo webhook que resuelve a qué tenant pertenece cada mensaje). Se extrajo
+de una implementación real en otro proyecto (LANA), generalizada para
+adaptarse a cualquier esquema de Supabase — no asume las tablas de SMYL,
+hay que adaptar nombres al invocarla. Se activa sola si alguien pide
+conectar WhatsApp/Messenger/Instagram, o con `/meta-multitenant-chat`. No
+es una implementación — es la guía + plantillas (SQL, Edge Function,
+Embedded Signup) para cuando de verdad se construya esto en SMYL.
+
+---
+
 ## 2026-07-31 (3) — Claude Code
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
