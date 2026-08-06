@@ -10,6 +10,94 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-06 — Claude Code (etapa 5: chat unificado con Meta — WhatsApp/Messenger/Instagram, fase 1)
+
+**Tocado:** `supabase/migrations/camila_chat.sql` (nuevo),
+`supabase/functions/meta-webhook/index.ts` (nuevo),
+`supabase/functions/meta-send/index.ts` (nuevo).
+Sin tocar `app.html`/`simulacion.html`/`revision-clinica.html` todavía.
+
+El usuario quiere un chat integrado con Meta (IG + Messenger + WhatsApp),
+con dos capas: (1) bandeja unificada donde el dentista/staff responde a
+mano, (2) chatbot con IA encima (lo que ya anuncia el plan Profesional
+como "Chatbot de pacientes" sin que existiera). Se armó un plan completo
+(compartido con el usuario como Artifact) y se empezó por lo que no
+depende de que Meta apruebe nada: el modelo de datos y las dos Edge
+Functions de mensajería. **Decisión de producto acordada con el
+usuario:** fase 1 conecta SOLO la clínica del propio dueño de Smyl (una
+app de Meta separada de LANA) — NO el modelo "cada dentista conecta su
+propia cuenta" (eso requiere que Meta apruebe a Smyl como Tech
+Provider/Embedded Signup, un trámite mucho más largo que no tiene caso
+pedir antes de probar que el chat funciona con un cliente real).
+
+1. **`camila_chat.sql`** — 3 tablas nuevas:
+   - `camila_canales`: las cuentas de Meta conectadas por clínica
+     (`tenant_id`, `canal` whatsapp/messenger/instagram, `id_externo`
+     -- phone_number_id/page_id/ig_business_id según el canal --,
+     `access_token`). RLS: **solo dueño** (`camila_es_dueno`), nunca
+     staff — son credenciales, mismo criterio que precios/config en
+     `camila_tenants`. El alta de canales hoy es manual (INSERT directo
+     vía SQL Editor con el token que entrega Meta) — no hay UI de
+     "Conectar WhatsApp" todavía, eso es fase futura (Embedded Signup).
+   - `camila_conversaciones`: un hilo por contacto por canal. RLS:
+     cualquier miembro de la clínica (`camila_es_miembro`) puede
+     ver/actualizar (para atender la bandeja) — sin INSERT de cliente,
+     las crea el webhook.
+   - `camila_mensajes`: cada mensaje individual, con `id_externo_meta`
+     para no duplicar si Meta reintenta el webhook. RLS: **solo SELECT**
+     para el cliente — los INSERT siempre los hace el service role
+     (`meta-webhook` para entrantes, `meta-send` para salientes), así la
+     tabla es el registro real de lo que se envió/recibió de verdad, no
+     de lo que alguien intentó desde el cliente.
+   - **Ojo, importante:** `paciente_id` en `camila_conversaciones` es un
+     `uuid` SUELTO, sin FK. `camila_pacientes` NO existe como tabla real
+     en esta base de datos (confirmado por introspección directa el
+     2026-08-05 — la referencia en `app.html` es del mismo patrón de
+     tabla fantasma ya visto con `camila_notificaciones`/
+     `camila_precios`). Una FK a esa tabla habría hecho fallar esta
+     migración completa. Si algún día `camila_pacientes` se crea de
+     verdad, ahí sí conviene agregar la FK.
+2. **`meta-webhook`**: recibe los tres canales en una sola URL (Meta usa
+   el campo `object` del payload para decir cuál es). Verifica la firma
+   `X-Hub-Signature-256` (HMAC-SHA256 con `META_APP_SECRET`) antes de
+   procesar nada — sin esto, cualquiera que supiera la URL podría inyectar
+   mensajes falsos como si vinieran de un paciente real. Responde el
+   `hub.challenge` en el GET de verificación si `META_WEBHOOK_VERIFY_TOKEN`
+   coincide. Siempre responde 200 aunque falle el procesamiento interno
+   (si no, Meta reintenta el mismo evento en bucle).
+3. **`meta-send`**: la usa el dentista/staff desde `app.html` (cuando se
+   construya esa pantalla) para responder. Verifica que la conversación
+   pertenezca a su clínica (`requireUser` + comparar `tenant_id`, mismo
+   patrón que el resto de las Edge Functions), llama al endpoint de Graph
+   API que corresponda, y guarda el mensaje saliente.
+
+**Falta aplicar en producción:** correr `camila_chat.sql` en el SQL
+Editor, y desplegar las 2 funciones nuevas
+(`supabase functions deploy meta-webhook --use-api` /
+`supabase functions deploy meta-send --use-api`, verificar en el
+dashboard que se suban `index.ts` + `_shared/auth.ts` para `meta-send` --
+`meta-webhook` no depende de `_shared/`, no manda sesión de usuario).
+Además hacen falta 3 Secrets nuevos en Supabase:
+`META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` (uno inventado por
+Ricardo), y configurar la URL del webhook en el dashboard de Meta
+apuntando a `.../functions/v1/meta-webhook`.
+
+**No probado en vivo, no puede probarse todavía:** ninguna de las dos
+funciones se ha ejecutado contra credenciales reales de Meta — el shape
+exacto de cada payload (especialmente WhatsApp `contacts`/`messages`, y
+`is_echo` en Messenger/Instagram) está basado en la documentación de
+Meta, no verificado contra tráfico real. Cuando Ricardo tenga la app de
+Meta creada con el número de prueba de WhatsApp, hay que probar el flujo
+completo antes de dar por buena la fase 1.
+
+**Pendiente (siguiente parte de esta misma etapa):** pantalla "💬
+Mensajes" en `app.html` (bandeja + hilo + responder), y después el
+chatbot con IA (fase 2, reutiliza la Edge Function `claude` con un prompt
+nuevo que tenga contexto de precios/horarios/FAQ de la clínica). Ver el
+Artifact del plan completo compartido con el usuario el mismo día.
+
+---
+
 ## 2026-08-05 (3) — Claude Code (fix: staff no podía generar nada — etapa 4 quedó incompleta el mismo día)
 
 **Tocado:** `supabase/functions/_shared/auth.ts`, `supabase/functions/_shared/limits.ts`,
