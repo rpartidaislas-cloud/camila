@@ -5705,6 +5705,12 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     return salida.toDataURL('image/png');
   } catch (e) {
     console.warn('No se pudo hacer la composición dental segmentada:', e);
+    // Replicate es una mejora de precisión, no debe convertirse en un punto
+    // único de fallo. Si su inferencia, URL firmada o CORS no responde, se
+    // recupera con el compositor dental local que no necesita red. Sigue
+    // prohibido mostrar la cara completa generada por IA.
+    var respaldoLocal = await componerConOriginal(fotoOriginalUrl, resultadoIAUrl);
+    if (respaldoLocal) return respaldoLocal;
     throw e;
   }
 }
