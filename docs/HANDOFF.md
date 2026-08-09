@@ -10,6 +10,26 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-09 — Codex (composición dental anatómica para simulación)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/segment-teeth/index.ts`.
+
+Se reemplazó la máscara heurística de color/luminancia por la unión de dos
+máscaras anatómicas: dentición original + carillas generadas. Fuera de esa
+unión la salida procede exclusivamente de la fotografía original. La primera
+ejecución segmenta ambas vistas lado a lado en una sola inferencia; la máscara
+original queda cacheada y las regeneraciones sólo segmentan el diseño nuevo.
+
+`segment-teeth` acepta el modo prospecto mediante `X-Tenant-Id` y
+`checkAndConsumeLimitProspecto`, además del límite autenticado habitual. Se
+añadió `x-tenant-id` a CORS. No se modificaron secretos, buckets ni RLS.
+
+No se ejecutó una generación real durante QA para no gastar el cupo; sí se
+validó sintaxis y se desplegó la Edge Function.
+
+---
+
 ## 2026-08-06 (3) — Claude Code (etapa 6: modo "prospecto" — pacientes se simulan su propia sonrisa desde casa)
 
 **Tocado:** `supabase/migrations/camila_prospecto.sql` (nuevo),
