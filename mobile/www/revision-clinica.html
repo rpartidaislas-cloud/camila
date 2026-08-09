@@ -1001,8 +1001,8 @@ function dibujarReferenciaGemini(){
   ctx.save();
   ctx.globalAlpha = opacidadReferenciaGemini / 100;
   // La IA no siempre devuelve la imagen con el mismo encuadre/tamaño que la
-  // foto original (sobre todo con ChatGPT) -- la escala permite compensarlo,
-  // centrada, además del offset manual para el desfase de posición.
+  // foto original -- la escala permite compensarlo, centrada, además del
+  // offset manual para el desfase de posición.
   const escala = escalaReferenciaGemini / 100;
   const w = canvas.width * escala;
   const h = canvas.height * escala;
@@ -2373,13 +2373,33 @@ document.getElementById('loginOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'loginOverlay') cerrarLoginOverlay(); // clic fuera de la tarjeta = cerrar
 });
 
-function _entrarSesionClinica(user, session){
+async function _entrarSesionClinica(user, session){
   userToken = session.access_token;
   tenantIdSesion = user.id;
   document.getElementById('tenantId').value = user.id;
   cerrarLoginOverlay();
   const btnLogin = document.getElementById('btnAbrirLogin');
   if (btnLogin) btnLogin.title = 'Sesión iniciada: ' + user.email;
+
+  // Si quien inició sesión es staff invitado (etapa 4, ver
+  // camila_team.sql/camila_usuarios), su clínica real es la de quien lo
+  // invitó, no su propio id -- sin esto, un caso NUEVO creado aquí (esta
+  // pantalla es la puerta de entrada principal del dentista en la app
+  // móvil, ver mobile/www/index.html) se guardaba con éxito aparente pero
+  // con un tenant_id que no pertenece a ninguna clínica real: invisible
+  // para el dueño y el resto del equipo. Mismo patrón ya aplicado en
+  // simulacion.html/app.html.
+  try {
+    const resp = await fetch(DB_URL + '/rest/v1/camila_usuarios?id=eq.' + user.id + '&select=tenant_id', {
+      headers: {'apikey': DB_KEY, 'Authorization': 'Bearer ' + userToken}
+    });
+    const miembro = await resp.json();
+    if (miembro && miembro[0] && miembro[0].tenant_id) {
+      tenantIdSesion = miembro[0].tenant_id;
+      document.getElementById('tenantId').value = tenantIdSesion;
+    }
+  } catch (e) {}
+
   autoCargarCasoDesdeUrl();
 }
 

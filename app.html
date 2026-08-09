@@ -1459,7 +1459,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <div class="card-title">💰 Mis Precios por Procedimiento</div>
           <p style="font-size:12px;color:var(--texto3);margin-bottom:16px">La IA usará estos valores para generar cotizaciones automáticas para cada caso.</p>
           <div id="precios-lista"></div>
-          <button class="btn btn-primary" style="margin-top:16px" onclick="guardarPrecios()">💾 Guardar precios</button>
+          <button class="btn btn-primary" id="btn-guardar-precios" style="margin-top:16px" onclick="guardarPrecios()">💾 Guardar precios</button>
         </div>
         <div class="card">
           <div class="card-title">🏥 Información del Consultorio</div>
@@ -1468,7 +1468,22 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
             <div class="fg full"><label>Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
           </div>
-          <button class="btn btn-primary" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar información</button>
+          <button class="btn btn-primary" id="btn-guardar-config" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar información</button>
+        </div>
+
+        <!-- Solo visible para el dueño -- ver cargarEquipo() -->
+        <div class="card" id="equipo-card" style="display:none">
+          <div class="card-title">👥 Mi Equipo</div>
+          <p style="font-size:12px;color:var(--texto3);margin-bottom:8px">Invita a tu staff por correo — entran con su propia cuenta y ven los mismos casos que tú, pero no pueden tocar precios, configuración ni el plan.</p>
+          <p id="equipo-limite-nota" style="font-size:12px;color:var(--texto3);margin-bottom:16px"></p>
+          <div id="equipo-lista" style="margin-bottom:16px"></div>
+          <div class="form-grid">
+            <div class="fg"><label>Nombre</label><input type="text" id="equipo-nombre" placeholder="Ej. Dra. Ana López"></div>
+            <div class="fg"><label>Correo</label><input type="email" id="equipo-email" placeholder="ana@correo.com"></div>
+          </div>
+          <div id="equipo-err" style="display:none;background:var(--color-error-subtle);border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-top:8px"></div>
+          <div id="equipo-ok" style="display:none;color:#22c55e;font-size:12px;margin-top:8px"></div>
+          <button class="btn btn-primary" id="equipo-btn-invitar" style="margin-top:12px" onclick="invitarStaff()">Invitar por correo</button>
         </div>
       </div>
 
@@ -1480,6 +1495,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <div class="card-title">🔗 Simulación</div>
           <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">La simulación se usa en consulta: inicias sesión ahí con esta misma cuenta y tomas las fotos junto con tu paciente. Se abre con el branding que configures abajo.</p>
           <a href="simulacion.html" target="_blank" class="btn btn-primary" style="width:100%;justify-content:center">Abrir simulación →</a>
+        </div>
+
+        <!-- Link público para prospectos -->
+        <div class="card">
+          <div class="card-title">📲 Link para pacientes potenciales</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Compártelo en redes o WhatsApp: cualquiera lo abre, se toma su propia foto desde su casa y ve su simulación con tu marca y tus precios reales -- sin necesitar cuenta ni que tú estés presente. Cuando dejan sus datos al final, te llega como un nuevo caso marcado como prospecto.</p>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="copiarLinkProspecto()" id="btn-link-prospecto">📋 Copiar link para pacientes</button>
         </div>
 
         <!-- Branding -->
@@ -1571,7 +1593,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza cómo la IA genera el diagnóstico y la simulación para tus pacientes.</p>
 
           <div class="fg">
-            <label>Instrucción para ChatGPT (simulación visual)</label>
+            <label>Instrucción para Gemini (simulación visual)</label>
             <textarea id="sc-gemini-prompt" rows="3" placeholder="Ej. Genera carillas de porcelana e.max ultra-realistas. Mantén exactamente la misma persona, solo cambia los dientes. Resultado natural, no exagerado..."></textarea>
           </div>
           <div class="fg">
@@ -1584,7 +1606,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           </div>
         </div>
 
-        <button class="btn btn-primary btn-full" onclick="guardarSimConfig()">💾 Guardar configuración de simulación</button>
+        <button class="btn btn-primary btn-full" id="btn-guardar-sim-config" onclick="guardarSimConfig()">💾 Guardar configuración de simulación</button>
         <div style="height:20px"></div>
       </div>
 
@@ -1946,8 +1968,12 @@ window.addEventListener('unhandledrejection', function(ev) {
 // ══════════════════════════════════════════
 // SUPABASE CONFIG
 // ══════════════════════════════════════════
-var SUPA_URL = 'https://gfogifozhhbzxhcbecgf.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
+// El proyecto viejo (gfogifozhhbzxhcbecgf) quedó abandonado desde que
+// simulacion.html migró al proyecto "Smyl" -- app.html nunca se actualizó
+// y por eso el login/casos/precios de este panel iban a una base de datos
+// que el resto de la app ya no lee. Ver docs/HANDOFF.md 2026-08-05.
+var SUPA_URL = 'https://rpxshsiwoxdbuevjjpfw.supabase.co';
+var SUPA_KEY = 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
 var EDGE_URL = SUPA_URL + '/functions/v1/claude';
 var USE_EDGE = true;
 
@@ -2000,6 +2026,9 @@ function sbTimeout(promise, ms) {
 // ══════════════════════════════════════════
 var tenantId = null;
 var tenantData = null;
+// 'dueño' o 'staff' -- ver camila_usuarios (etapa 4, camila_team.sql).
+// Determina si se muestran los controles de precios/config/equipo.
+var miRolEquipo = 'dueño';
 var imagenes = [null, null, null, null];
 var chatHistorial = [];
 var cargandoChat = false;
@@ -2106,10 +2135,33 @@ function cerrarSesion() {
 async function continuarConUsuario(authUser) {
   document.getElementById('auth-gate-overlay').style.display = 'none';
 
+  // Resolver la clínica real antes de tocar camila_tenants: para el dueño
+  // es su propio id, de siempre. Para staff invitado (etapa 4, ver
+  // camila_team.sql) es la clínica de quien lo invitó -- se busca en
+  // camila_usuarios. Si esto falla o no hay fila (cuenta pre-etapa-4 sin
+  // backfill, o error de red) se asume dueño como antes, que es el
+  // comportamiento previo a esta función.
+  var miTenantId = authUser.id;
+  miRolEquipo = 'dueño';
+  try {
+    var miembroRes = await sbTimeout(sb.from('camila_usuarios').select('tenant_id, rol').eq('id', authUser.id).maybeSingle());
+    if (miembroRes.data && miembroRes.data.tenant_id) {
+      miTenantId = miembroRes.data.tenant_id;
+      miRolEquipo = miembroRes.data.rol || 'dueño';
+    }
+  } catch(e) {}
+
   // Cargar tenant desde Supabase
   try {
-    var res = await sbTimeout(sb.from('camila_tenants').select('*').eq('id', authUser.id).single());
+    var res = await sbTimeout(sb.from('camila_tenants').select('*').eq('id', miTenantId).single());
     if (res.error || !res.data) {
+      if (miRolEquipo !== 'dueño') {
+        // El staff no puede "recrear" la clínica de otra persona -- si no
+        // existe o no es legible, algo está mal del lado del dueño.
+        alert('No se pudo cargar la información de tu clínica. Contacta al dueño de la cuenta.');
+        cerrarSesion();
+        return;
+      }
       // Se autenticó bien pero aún no tiene fila en camila_tenants — pasa
       // cuando el registro se hizo con confirmación de correo activada
       // (signUp() no da sesión, y sin sesión la política de seguridad
@@ -2149,7 +2201,7 @@ async function continuarConUsuario(authUser) {
     if (new Date(tenantData.vence_en) < new Date()) { alert('Tu suscripción venció. Contacta al administrador.'); cerrarSesion(); return; }
   } catch(e) {
     tenantData = { nombre: authUser.email, email: authUser.email };
-    tenantId = authUser.id;
+    tenantId = miTenantId;
   }
 
   document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
@@ -2171,6 +2223,8 @@ async function continuarConUsuario(authUser) {
   cargarConfig();
   await cargarNotificaciones();
   await cargarPacientesSelect();
+  cargarEquipo();
+  aplicarRestriccionesStaff();
 }
 
 // ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══
@@ -2278,12 +2332,62 @@ async function hacerRegistroAppGate() {
 (async function init() {
   var authUser = null;
   try {
+    // supabase-js detecta y consume automáticamente el token que llega en
+    // el hash de la URL (detectSessionInUrl, default true) -- esto incluye
+    // el link de invite-staff, así que para cuando llegamos aquí la sesión
+    // del invitado YA existe, aunque nunca haya puesto contraseña.
     var authRes = await sb.auth.getSession();
     authUser = authRes.data && authRes.data.session && authRes.data.session.user;
   } catch (e) {}
   if (!authUser) return; // el overlay de login/registro ya está visible por defecto
+
+  var qp = new URLSearchParams(location.search);
+  if (qp.get('invite') === '1') {
+    // Quien invitó puso el correo, no una contraseña -- sin este paso el
+    // invitado quedaría con una sesión activa pero sin ninguna forma de
+    // volver a entrar después de que expire.
+    mostrarSetPasswordInvitado(authUser);
+    return;
+  }
   continuarConUsuario(authUser);
 })();
+
+function mostrarSetPasswordInvitado(authUser) {
+  document.getElementById('auth-gate-overlay').style.display = 'none';
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.5);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML =
+    '<div style="background:var(--color-surface,#fff);border-radius:16px;padding:28px;max-width:380px;width:100%">' +
+    '<div style="font-size:18px;font-weight:700;margin-bottom:6px">¡Bienvenido/a al equipo!</div>' +
+    '<p style="font-size:13px;color:var(--texto3);margin-bottom:16px">Crea una contraseña para tu cuenta (' + (authUser.email || '') + ') antes de continuar.</p>' +
+    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 6 caracteres)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<input type="password" id="invite-pass2" placeholder="Repite la contraseña" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<div id="invite-pass-err" style="display:none;color:#B91C1C;font-size:12px;margin-bottom:8px"></div>' +
+    '<button id="invite-pass-btn" class="btn btn-primary" style="width:100%;justify-content:center">Guardar y entrar →</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  document.getElementById('invite-pass-btn').onclick = async function() {
+    var p1 = document.getElementById('invite-pass1').value;
+    var p2 = document.getElementById('invite-pass2').value;
+    var errEl = document.getElementById('invite-pass-err');
+    errEl.style.display = 'none';
+    if (p1.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+    if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
+    var btn = document.getElementById('invite-pass-btn');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    try {
+      var res = await sb.auth.updateUser({ password: p1 });
+      if (res.error) { errEl.textContent = res.error.message; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Guardar y entrar →'; return; }
+      overlay.remove();
+      history.replaceState(null, '', location.pathname);
+      continuarConUsuario(authUser);
+    } catch (e) {
+      errEl.textContent = 'Error de red: ' + e.message; errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Guardar y entrar →';
+    }
+  };
+}
 
 function renderSidebar() {
   var nombre = tenantData.nombre || 'Doctor';
@@ -2750,6 +2854,21 @@ function renderBienvenida() {
   if (el) el.textContent = '¡Bienvenido a SMYL, ' + (tenantData.nombre || 'Doctor') + '! 🎉';
 }
 
+// Link público de "modo prospecto" (etapa 6, ver camila_prospecto.sql y
+// entrarComoProspecto() en simulacion.html) -- cualquiera que lo abra hace
+// la simulación por su cuenta, sin sesión, con la marca/precios de ESTA
+// clínica, y su lead queda guardado aquí mismo al final.
+function copiarLinkProspecto() {
+  var url = location.origin + location.pathname.replace(/[^/]*$/, 'simulacion.html') + '?clinica=' + encodeURIComponent(tenantId);
+  var btn = document.getElementById('btn-link-prospecto');
+  var restaurar = function() { if (btn) { btn.textContent = '📋 Copiar link para pacientes'; } };
+  navigator.clipboard.writeText(url).then(function() {
+    if (btn) { btn.textContent = '✓ Link copiado'; setTimeout(restaurar, 2000); }
+  }).catch(function() {
+    prompt('Copia este link manualmente:', url);
+  });
+}
+
 async function guardarSimConfig() {
   var cfg = {
     nombre: document.getElementById('sc-nombre').value.trim(),
@@ -3039,11 +3158,17 @@ async function ejecutarAnalisisIA() {
   try {
     var resp, data;
     if (USE_EDGE) {
+      // Manda el JWT real de la sesión, no la llave anónima -- con la
+      // llave anónima el servidor trataba esta llamada como acceso sin
+      // sesión (tope genérico de 5/hora por IP) y nunca descontaba del
+      // plan real del tenant, sin importar si era Esencial o Premium.
+      var sesIA = await sb.auth.getSession();
+      var tokenIA = (sesIA.data && sesIA.data.session && sesIA.data.session.access_token) || SUPA_KEY;
       resp = await fetch(EDGE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + SUPA_KEY
+          'Authorization': 'Bearer ' + tokenIA
         },
         body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
       });
@@ -3085,10 +3210,12 @@ async function ejecutarAnalisisIA() {
     document.getElementById('loading-ia').classList.remove('visible');
     mostrarAnalisis(r, nombre);
 
-    // Registrar uso
-    var usado = (tenantData.diagnosticos_usados || 0) + 1;
-    tenantData.diagnosticos_usados = usado;
-    try { await sbTimeout(sb.from('camila_tenants').update({diagnosticos_usados: usado}).eq('id', tenantId)); } catch(e) {}
+    // El conteo real ahora lo lleva el servidor (checkAndConsumeLimit en
+    // supabase/functions/_shared/limits.ts, incrementa diagnosticos_usados
+    // atómicamente en cada llamada real a claude/index.ts) -- ya no se
+    // escribe aquí para no pisar ese conteo con un valor absoluto calculado
+    // con datos locales desfasados. Solo se refleja localmente.
+    tenantData.diagnosticos_usados = (tenantData.diagnosticos_usados || 0) + 1;
     renderSidebar();
 
   } catch(e) {
@@ -3497,7 +3624,12 @@ function registrarCaso(nombre, r, total) {
 // PRECIOS
 // ══════════════════════════════════════════
 function getPrecios() {
-  var guardados = JSON.parse(localStorage.getItem('camila_precios_' + tenantId) || '{}');
+  // Por clínica: primero lo ya cargado de Supabase (tenantData.config.precios,
+  // trae la fuente de verdad real de todos los dispositivos del dentista);
+  // si no hay sesión o aún no cargó, cae al localStorage de este dispositivo
+  // como antes.
+  var guardados = (tenantData && tenantData.config && tenantData.config.precios)
+    || JSON.parse(localStorage.getItem('camila_precios_' + tenantId) || '{}');
   return PRECIOS_DEFAULT.map(function(p) {
     return Object.assign({}, p, {precio: guardados[p.id] || p.precio});
   });
@@ -3512,14 +3644,29 @@ function renderPrecios() {
       '<span style="font-size:11px;color:var(--texto3)">MXN</span></div></div>';
   }).join('');
 }
-function guardarPrecios() {
+async function guardarPrecios() {
   var obj = {};
   PRECIOS_DEFAULT.forEach(function(p) {
     var inp = document.getElementById('precio-' + p.id);
     if (inp) obj[p.id] = parseInt(inp.value) || p.precio;
   });
   localStorage.setItem('camila_precios_' + tenantId, JSON.stringify(obj));
-  alert('Precios guardados correctamente.');
+
+  // Antes solo se guardaba en localStorage -- nunca llegaba a Supabase, así
+  // que simulacion.html (que es quien realmente cotiza con IA) nunca veía
+  // estos precios y siempre cotizaba con PRECIOS_DEFAULT. Se guarda dentro
+  // de camila_tenants.config.precios (mismo patrón que guardarConfig() usa
+  // para el branding) para que quede disponible desde cualquier dispositivo
+  // con la misma cuenta.
+  var config = (tenantData && tenantData.config) || {};
+  config.precios = obj;
+  if (tenantData) tenantData.config = config;
+  try {
+    await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId));
+    alert('Precios guardados correctamente.');
+  } catch(e) {
+    alert('Los precios se guardaron en este dispositivo, pero no se pudieron sincronizar (' + (e.message || 'error de red') + ').');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -3542,6 +3689,98 @@ async function guardarConfig() {
   }
   document.getElementById('sb-consultorio').textContent = config.consultorio || 'Mi Consultorio';
   alert('Información guardada.');
+}
+
+// ══════════════════════════════════════════
+// EQUIPO (etapa 4 -- dueño + staff, ver camila_team.sql)
+// ══════════════════════════════════════════
+var LIMITE_USUARIOS_POR_PLAN = { esencial: 1, profesional: 3 }; // premium: sin tope
+
+// El staff nunca podría guardar estos cambios de todos modos (la política
+// RLS de camila_tenants solo acepta UPDATE si id = auth.uid(), y el staff
+// nunca tiene ese id) -- esto solo evita que vea un botón que fallaría en
+// silencio (PostgREST no marca error cuando RLS descarta el UPDATE, solo
+// actualiza 0 filas), no es la restricción de seguridad real.
+function aplicarRestriccionesStaff() {
+  if (miRolEquipo === 'dueño') return;
+  ['btn-guardar-precios', 'btn-guardar-config', 'btn-guardar-sim-config'].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    btn.disabled = true;
+    btn.title = 'Solo el dueño de la cuenta puede cambiar esto.';
+    btn.textContent = '🔒 Solo el dueño puede editar esto';
+  });
+}
+
+async function cargarEquipo() {
+  var card = document.getElementById('equipo-card');
+  if (!card) return;
+  // Solo el dueño administra el equipo -- el staff ni siquiera ve la
+  // tarjeta (además de que camila_usuarios_insert/update/delete_dueno en
+  // RLS igual se lo rechazaría si intentara forzarlo).
+  if (miRolEquipo !== 'dueño') { card.style.display = 'none'; return; }
+  card.style.display = '';
+  try {
+    var res = await sbTimeout(sb.from('camila_usuarios').select('*').eq('tenant_id', tenantId).order('created_at'));
+    var miembros = (res.data || []).filter(function(m) { return m.rol !== 'dueño'; });
+    var lista = document.getElementById('equipo-lista');
+    lista.innerHTML = miembros.length ? miembros.map(function(m) {
+      return '<div class="precio-item">' +
+        '<div><div class="precio-lbl">' + (m.nombre || m.email) + '</div><div class="precio-desc">' + m.email + (m.activo ? '' : ' · desactivado') + '</div></div>' +
+        '<button class="btn btn-secondary btn-sm" onclick="toggleMiembroActivo(\'' + m.id + '\', ' + !m.activo + ')">' + (m.activo ? 'Desactivar' : 'Reactivar') + '</button>' +
+        '</div>';
+    }).join('') : '<p style="font-size:12px;color:var(--texto3)">Todavía no invitas a nadie de tu equipo.</p>';
+
+    var limite = LIMITE_USUARIOS_POR_PLAN[tenantData.plan];
+    var usados = miembros.filter(function(m){return m.activo;}).length + 1; // +1 = el dueño
+    var nota = document.getElementById('equipo-limite-nota');
+    if (nota) nota.textContent = limite ? ('Tu plan (' + tenantData.plan + ') permite hasta ' + limite + ' usuario' + (limite===1?'':'s') + ' — llevas ' + usados + '.') : 'Tu plan permite usuarios ilimitados.';
+  } catch(e) {
+    console.error('[equipo] error cargando:', e);
+  }
+}
+
+async function toggleMiembroActivo(id, nuevoValor) {
+  try {
+    await sbTimeout(sb.from('camila_usuarios').update({activo: nuevoValor}).eq('id', id));
+    cargarEquipo();
+  } catch(e) {
+    alert('No se pudo actualizar: ' + (e.message || 'error de red'));
+  }
+}
+
+async function invitarStaff() {
+  var nombre = document.getElementById('equipo-nombre').value.trim();
+  var email = document.getElementById('equipo-email').value.trim().toLowerCase();
+  var errEl = document.getElementById('equipo-err');
+  var okEl = document.getElementById('equipo-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Ingresa un correo válido.'; errEl.style.display = 'block'; return;
+  }
+  var btn = document.getElementById('equipo-btn-invitar');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    var sess = await sb.auth.getSession();
+    var token = sess.data && sess.data.session && sess.data.session.access_token;
+    var res = await fetch(SUPA_URL + '/functions/v1/invite-staff', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY},
+      body: JSON.stringify({ email: email, nombre: nombre }),
+    });
+    var data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'No se pudo enviar la invitación.'; errEl.style.display = 'block'; return; }
+    okEl.textContent = 'Invitación enviada a ' + email + '.';
+    okEl.style.display = 'block';
+    document.getElementById('equipo-nombre').value = '';
+    document.getElementById('equipo-email').value = '';
+    cargarEquipo();
+  } catch(e) {
+    errEl.textContent = 'Error de red: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Invitar por correo';
+  }
 }
 
 // ══════════════════════════════════════════
@@ -4109,11 +4348,16 @@ async function generarBeforeAfter() {
     'Photorealistic, clinical photography style.';
 
   try {
+    // Manda el JWT real de la sesión, no la llave anónima -- mismo motivo
+    // que en ejecutarAnalisisIA(): con la llave anónima el tope de gasto
+    // del plan real del tenant nunca aplicaba aquí.
+    var sesBA = await sb.auth.getSession();
+    var tokenBA = (sesBA.data && sesBA.data.session && sesBA.data.session.access_token) || SUPA_KEY;
     var resp = await fetch(EDGE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPA_KEY
+        'Authorization': 'Bearer ' + tokenBA
       },
       body: JSON.stringify({
         action: 'generate_image',

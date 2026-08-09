@@ -25,6 +25,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
 import { ZipReader, BlobReader, Uint8ArrayWriter } from "https://deno.land/x/zipjs@v2.7.32/index.js";
 import { decode as decodePng } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
@@ -40,7 +41,7 @@ const IOU_THRESHOLD = 0.3;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id",
 };
 
 type Target = "tooth" | "gum";
@@ -324,8 +325,20 @@ serve(async (req) => {
   // Esta función gasta créditos de Replicate y escribe en camila_casos con el
   // service role (que se salta RLS). Sin esta verificación aceptaba cualquier
   // POST sin credenciales.
-  const { user, response: authError } = await requireUser(req, corsHeaders);
+  const { user, tenantId: tenantIdSesion, response: authError } = await requireUser(req, corsHeaders);
   if (authError) return authError;
+
+  // Tope de gasto server-side -- ver _shared/limits.ts. Replicate también
+  // cuesta dinero real por llamada, igual que Gemini/Anthropic en
+  // claude/index.ts. tenantIdSesion viene resuelto por requireUser()
+  // (distingue dueño de staff, ver _shared/auth.ts) -- NUNCA usar
+  // user?.id directo aquí, un staff tiene su propio auth.uid(), distinto
+  // al id de su clínica.
+  const tenantHeaderProspecto = user ? null : req.headers.get("x-tenant-id");
+  const { allowed, response: limitError } = tenantHeaderProspecto
+    ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, corsHeaders)
+    : await checkAndConsumeLimit(req, tenantIdSesion, corsHeaders);
+  if (!allowed) return limitError!;
 
   try {
     const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = await req.json();
@@ -333,8 +346,12 @@ serve(async (req) => {
 
     // requireUser ya garantiza que hay una sesión real llegados a este punto
     // (si no, ya habría regresado authError arriba) -- tenantIdBody se deja
-    // solo como último fallback por si algún día llega aquí sin user.id.
-    const tenantId = user?.id || tenantIdBody || null;
+    // solo como último fallback por si algún día llega aquí sin sesión. Si
+    // se usara user?.id en vez de tenantIdSesion, la segmentación de un
+    // staff se guardaría con un tenant_id que no coincide con el del caso
+    // real (creado por el dueño) -- el UPDATE de abajo simplemente no
+    // encontraría la fila y la segmentación se perdería sin error visible.
+    const tenantId = tenantIdSesion || tenantIdBody || null;
 
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "imageUrl es requerido" }), {

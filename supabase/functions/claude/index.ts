@@ -1,4 +1,5 @@
 import { requireUser } from "../_shared/auth.ts";
+import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -6,14 +7,20 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Modelo de OpenAI para generación/edición de imagen
-const OPENAI_IMAGE_MODEL = "gpt-image-1";
+// Modelos Gemini para generación de imagen (en orden de preferencia) --
+// vuelta atrás desde gpt-image-1 (OpenAI): Gemini termina cómodamente
+// dentro del límite de tiempo de la Edge Function; gpt-image-1 no.
+const GEMINI_IMAGE_MODELS = [
+  { name: "gemini-2.5-flash-image", modalities: ["TEXT", "IMAGE"] },
+  { name: "gemini-3.1-flash-image", modalities: ["TEXT", "IMAGE"] },
+  { name: "gemini-3-pro-image",     modalities: ["TEXT", "IMAGE"] },
+];
 
 // La plataforma de Supabase mata la función si se pasa de su propio límite
 // de tiempo -- cuando eso pasa, el navegador ve la conexión cortada a medio
 // camino SIN los headers de CORS (porque el proceso murió antes de poder
 // responder nada), y lo reporta como "CORS error" en vez de un error claro.
-// Para que eso no vuelva a pasar, cada llamada externa (Anthropic, OpenAI)
+// Para que eso no vuelva a pasar, cada llamada externa (Anthropic, Gemini)
 // se corta ANTES de ese límite, desde nuestro propio código, para siempre
 // devolver una respuesta real (con sus headers) en vez de dejar que la
 // plataforma mate el proceso a medias.
@@ -39,23 +46,44 @@ Deno.serve(async (req: Request) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  // Esta función gasta dinero real (Anthropic y OpenAI). Sin esta verificación
+  // Esta función gasta dinero real (Anthropic y Gemini). Sin esta verificación
   // respondía a un POST a pelo, sin ningún header, desde cualquier lado.
-  const { user, response: authError } = await requireUser(req, CORS);
+  const { user, tenantId, response: authError } = await requireUser(req, CORS);
   if (authError) return authError;
   marca("después de requireUser");
+
+  // Tope de gasto server-side -- ver _shared/limits.ts. Va antes de leer el
+  // body: si el tenant ya agotó su plan (o, sin sesión, ya agotó el tope
+  // por IP), no tiene sentido ni parsear la llamada. Usa tenantId (resuelto
+  // por requireUser -- distingue dueño de staff), NUNCA user.id directo: un
+  // staff tiene un auth.uid() propio que no es el id de su clínica.
+  //
+  // Modo prospecto (simulacion.html?clinica=<id>, sin sesión): el tenant_id
+  // viaja en un header en vez de la sesión -- checkAndConsumeLimitProspecto
+  // exige el tope real de esa clínica Y el tope por IP encima, para que
+  // nadie intente drenar el cupo de una clínica ajena solo por conocer su
+  // link público.
+  const tenantHeaderProspecto = user ? null : req.headers.get("x-tenant-id");
+  const { allowed, response: limitError } = tenantHeaderProspecto
+    ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, CORS)
+    : await checkAndConsumeLimit(req, tenantId, CORS);
+  if (!allowed) return limitError!;
+  marca("después de checkAndConsumeLimit");
 
   try {
     const body = await req.json();
     marca("después de req.json()");
-    console.log("Llamada de:", user?.id);
+    console.log("Llamada de:", user?.id, "-- tenant:", tenantId);
     console.log("Body keys:", Object.keys(body).join(", "));
 
-    // ── GENERAR IMAGEN CON CHATGPT (gpt-image-1) ────────────────────────────
+    // ── GENERAR IMAGEN CON GEMINI ────────────────────────────────────────────
+    // El prompt (construido en simulacion.html/revision-clinica.html) es el
+    // MISMO que se afinó para que funcionara bien con gpt-image-1 -- no se
+    // toca, Gemini lo recibe tal cual como el resto del contenido.
     if (body.action === "generate_image") {
-      const KEY = Deno.env.get("OPENAI_API_KEY");
+      const KEY = Deno.env.get("GEMINI_API_KEY");
       if (!KEY) {
-        return new Response(JSON.stringify({ error: "OPENAI_API_KEY no configurada en Supabase Secrets" }), {
+        return new Response(JSON.stringify({ error: "GEMINI_API_KEY no configurada en Supabase Secrets" }), {
           headers: { ...CORS, "Content-Type": "application/json" }, status: 500
         });
       }
@@ -66,74 +94,67 @@ Deno.serve(async (req: Request) => {
           headers: { ...CORS, "Content-Type": "application/json" }, status: 400
         });
       }
+      marca("después de leer imageBase64 del body");
 
-      try {
-        console.log(`Intentando OpenAI: ${OPENAI_IMAGE_MODEL}`);
-        // OJO: Uint8Array.from(atob(str), c => c.charCodeAt(0)) -- que es lo
-        // que había aquí antes -- recorre el string como iterable (por code
-        // point, no por índice) e invoca una función por cada carácter. Para
-        // una foto de ~1MB en base64 eso es a un millón de llamadas lentas,
-        // fácil de comerse los 2s de CPU que Supabase permite por invocación
-        // (y ese límite NO cuenta el tiempo esperando a OpenAI, solo el de
-        // cómputo real -- por eso esto podía matar la función antes de que
-        // el fetch a OpenAI siquiera empezara). Un for indexado con
-        // charCodeAt(i) es mucho más rápido porque el JIT lo optimiza bien.
-        const binary = atob(imageBase64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const imageBlob = new Blob([bytes], { type: mimeType });
-        marca("después de decodificar la foto (base64 → bytes)");
+      // Intenta los modelos en orden -- si uno falla o no trae imagen, sigue
+      // con el siguiente en vez de fallar de una vez. Cada intento se corta
+      // a los 30s (no 90s como con OpenAI): Gemini normalmente responde en
+      // segundos, y con hasta 3 modelos en la lista un timeout largo por
+      // intento podría sumar varios minutos en el peor caso.
+      for (const model of GEMINI_IMAGE_MODELS) {
+        console.log(`Intentando Gemini: ${model.name}`);
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${KEY}`;
+          const gBody = {
+            contents: [{
+              parts: [
+                { inline_data: { mime_type: mimeType, data: imageBase64 } },
+                { text: prompt }
+              ]
+            }],
+            generationConfig: {
+              responseModalities: model.modalities,
+              temperature: 1,
+            }
+          };
 
-        const form = new FormData();
-        form.append("model", OPENAI_IMAGE_MODEL);
-        form.append("image", imageBlob, "foto.jpg");
-        form.append("prompt", prompt);
-        form.append("size", "auto");
-        // PRUEBA (reversible -- para volver a "high" solo hay que cambiar
-        // esta línea y redesplegar): "medium" genera en ~20-40s en vez de
-        // 1-2 minutos, a cambio de un poco menos de detalle/realismo que
-        // "high". "high" sigue siendo la opción recomendada para el
-        // resultado final si el realismo importa más que la velocidad.
-        form.append("quality", "medium");
-        form.append("input_fidelity", "high");
-        form.append("n", "1");
+          const resp = await fetchConTimeout(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(gBody)
+          }, 30000);
+          marca(`después de recibir respuesta de Gemini ${model.name} (status ${resp.status})`);
+          const data = await resp.json();
 
-        const resp = await fetchConTimeout("https://api.openai.com/v1/images/edits", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${KEY}` },
-          body: form,
-        }, 90000);
-        const data = await resp.json();
+          if (!resp.ok) {
+            console.warn(`Gemini ${model.name} error:`, data.error?.message);
+            continue;
+          }
 
-        if (!resp.ok) {
-          console.error("OpenAI error:", JSON.stringify(data.error));
+          const parts = data.candidates?.[0]?.content?.parts ?? [];
+          const imgPart = parts.find((p: any) => p.inlineData);
+          if (!imgPart) {
+            console.warn(`Gemini ${model.name}: sin imagen en respuesta`);
+            continue;
+          }
+
+          console.log(`✓ Gemini ${model.name} OK`);
           return new Response(JSON.stringify({
-            error: data.error?.message || "OpenAI no pudo generar la imagen."
-          }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
+            imageBase64: imgPart.inlineData.data,
+            mimeType: imgPart.inlineData.mimeType || "image/png",
+            source: "gemini",
+            model: model.name,
+          }), { headers: { ...CORS, "Content-Type": "application/json" } });
+
+        } catch (e: any) {
+          console.warn(`Gemini ${model.name} excepción:`, e.message);
+          continue;
         }
-
-        const b64 = data.data?.[0]?.b64_json;
-        if (!b64) {
-          console.warn("OpenAI: sin imagen en respuesta");
-          return new Response(JSON.stringify({
-            error: "OpenAI no devolvió ninguna imagen."
-          }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
-        }
-
-        console.log(`✓ OpenAI ${OPENAI_IMAGE_MODEL} OK`);
-        return new Response(JSON.stringify({
-          imageBase64: b64,
-          mimeType: "image/png",
-          source: "openai",
-          model: OPENAI_IMAGE_MODEL,
-        }), { headers: { ...CORS, "Content-Type": "application/json" } });
-
-      } catch (e: any) {
-        console.error("OpenAI excepción:", e.message);
-        return new Response(JSON.stringify({
-          error: "OpenAI no pudo generar la imagen. Revisa los logs."
-        }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
       }
+
+      return new Response(JSON.stringify({
+        error: "Gemini no pudo generar la imagen. Revisa los logs."
+      }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
     }
 
     // ── CLAUDE / ANTHROPIC ─────────────────────────────────────────────────
@@ -196,13 +217,14 @@ Deno.serve(async (req: Request) => {
     });
 
   } catch (e: any) {
-    // AbortError = lo cortó fetchConTimeout porque Anthropic/OpenAI no
-    // respondieron a tiempo -- se distingue para que el mensaje sea claro
-    // en vez de un genérico "AbortError" o "signal is aborted".
+    // AbortError = lo cortó fetchConTimeout porque Anthropic no respondió a
+    // tiempo (Gemini ya maneja sus propios timeouts/reintentos arriba, sin
+    // llegar hasta acá) -- se distingue para que el mensaje sea claro en vez
+    // de un genérico "AbortError" o "signal is aborted".
     const esTimeout = e?.name === "AbortError";
     console.error("Excepción:", e.message);
     return new Response(JSON.stringify({
-      error: esTimeout ? "La IA (Anthropic/OpenAI) no respondió a tiempo. Intenta de nuevo." : e.message
+      error: esTimeout ? "Claude no respondió a tiempo. Intenta de nuevo." : e.message
     }), {
       status: 500,
       headers: { ...CORS, "Content-Type": "application/json" }

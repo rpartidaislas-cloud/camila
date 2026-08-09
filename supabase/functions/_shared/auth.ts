@@ -1,13 +1,15 @@
 // Verificación de sesión para las Edge Functions que gastan dinero real
-// (Anthropic, OpenAI, Replicate).
+// (Anthropic, Gemini, Replicate).
 //
-// Exige un JWT de sesión real de Supabase Auth (el `access_token` que
-// devuelve signInWithPassword) -- la publishable key SIN sesión ya no basta.
-// Antes se aceptaba también sin sesión ("acceso anónimo permitido por
-// pedido explícito"), lo que significaba que cualquiera con la URL
-// publicada podía gastar los créditos de Anthropic/OpenAI/Replicate de este
-// proyecto sin pasar por el login (un `curl` a pelo funcionaba igual). Se
-// revirtió: ahora rechaza cualquier llamada sin una sesión válida.
+// Preferentemente hay que mandar el JWT de una sesión real de Supabase Auth
+// (el `access_token` que devuelve signInWithPassword). Por pedido explícito
+// (de nuevo -- ya se había hecho y luego revertido una vez) se vuelve a
+// aceptar también la publishable key sin sesión -- ACEPTAR ESTO SIGNIFICA
+// QUE CUALQUIERA CON LA URL PUBLICADA PUEDE GASTAR LOS CRÉDITOS DE
+// ANTHROPIC/GEMINI/REPLICATE DE ESTE PROYECTO, sin pasar por el login del
+// cliente (un `curl` a pelo funciona igual). Si se quiere volver a cerrar,
+// basta con que el fallback de "sin sesión válida" de abajo rechace (deny)
+// en vez de dejar pasar como anónimo.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -23,12 +25,42 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 export interface AuthResult {
   user: { id: string; email?: string } | null;
+  // La clínica real de quien llama -- NO uses user.id para topes de gasto,
+  // RPCs ni escrituras con tenant_id, usa siempre este campo. Para el dueño
+  // coincide con user.id (de siempre); para staff invitado (etapa 4, ver
+  // camila_team.sql/camila_usuarios) es la clínica de quien lo invitó.
+  // Antes de esto, claude/index.ts y segment-teeth/index.ts usaban user.id
+  // directo: camila_consumir_diagnostico nunca encontraba la fila de un
+  // staff en camila_tenants (rechazo 402, "no se encontró tu clínica"), y
+  // segment-teeth guardaba la segmentación con un tenant_id que no
+  // pertenecía a ningún caso real -- se perdía en silencio. null si no hay
+  // sesión.
+  tenantId: string | null;
   response: Response | null; // si no es null, devuélvela tal cual y no sigas
+}
+
+// Mismo patrón que ya usa el cliente (cargarTenantConfig() en
+// simulacion.html, continuarConUsuario() en app.html): resuelve si quien
+// llama es staff antes de asumir que su propio auth.uid() es el tenant.
+async function resolverTenantId(userId: string): Promise<string> {
+  try {
+    const { data, error } = await admin
+      .from('camila_usuarios')
+      .select('tenant_id')
+      .eq('id', userId)
+      .maybeSingle();
+    if (!error && data?.tenant_id) return data.tenant_id;
+  } catch (_e) {
+    // Si camila_usuarios no responde, se cae al valor de siempre (dueño) --
+    // más seguro que bloquear la llamada por un problema ajeno al usuario.
+  }
+  return userId;
 }
 
 export async function requireUser(req: Request, cors: Record<string, string>): Promise<AuthResult> {
   const deny = (msg: string) => ({
     user: null,
+    tenantId: null,
     response: new Response(JSON.stringify({ error: msg }), {
       status: 401,
       headers: { ...cors, 'Content-Type': 'application/json' },
@@ -54,8 +86,16 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
     admin.auth.getUser(jwt).catch(() => ({ data: null })),
     timeout,
   ]);
-  if (data?.user) return { user: { id: data.user.id, email: data.user.email }, response: null };
+  if (data?.user) {
+    const tenantId = await resolverTenantId(data.user.id);
+    return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+  }
 
   if (seTardo) return deny('No se pudo verificar la sesión a tiempo (Supabase Auth no respondió). Intenta de nuevo.');
-  return deny('Sesión inválida o vencida: inicia sesión de nuevo.');
+
+  // El token no resolvió a una sesión real (p. ej. es la publishable key, o
+  // una key de otro proyecto) -- se deja pasar como acceso anónimo (user:
+  // null) en vez de rechazar. El caller debe manejar ese caso (p. ej. tomar
+  // tenantId del body en vez de la sesión, como hace segment-teeth).
+  return { user: null, tenantId: null, response: null };
 }
