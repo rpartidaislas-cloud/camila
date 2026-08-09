@@ -3262,7 +3262,14 @@ async function conReintento(fn, intentos) {
       return await fn();
     } catch (e) {
       ultimoError = e;
-      if (i < intentos - 1) await esperar(1500);
+      // Sólo se repiten desconexiones transitorias. Un timeout NO se repite:
+      // la petición anterior puede seguir procesándose en el servidor y un
+      // segundo intento duplicaría consumo/costo sin mejorar el resultado.
+      var mensaje = String(e && e.message || e || '');
+      var esFalloRed = mensaje === 'Load failed' ||
+        /failed to fetch|networkerror|network request failed|connection.*lost/i.test(mensaje);
+      if (!esFalloRed || i >= intentos - 1) break;
+      await esperar(1500);
     }
   }
   throw ultimoError;
@@ -3813,7 +3820,10 @@ async function generateSimulation(clinicalPrompt, foto) {
     headers: headersEdgeIA(),
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
-  var resp = await conTimeout(fetchPromise, 110000, 'generación de la imagen con IA');
+  // En horas de alta demanda Gemini puede acercarse al límite total de la
+  // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
+  // todavía estaban por finalizar; 150s cubre ese margen sin espera infinita.
+  var resp = await conTimeout(fetchPromise, 150000, 'generación de la imagen con IA');
   var data = await resp.json();
   if (data.error) throw new Error(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
