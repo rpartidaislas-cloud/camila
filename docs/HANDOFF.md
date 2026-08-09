@@ -10,6 +10,19 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-09 (4) — Codex (timeout de generación móvil)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+La espera cliente para `generate_image` subió de 110s a 150s porque la Edge
+Function puede recorrer varios modelos Gemini y superar 110s con demanda alta.
+Además `conReintento()` ya no repite timeouts ni errores semánticos: sólo
+reintenta desconexiones reales (`Load failed`, `Failed to fetch`,
+`NetworkError`). Antes un timeout podía iniciar otra generación mientras la
+primera seguía corriendo, duplicando tiempo y posible costo.
+
+---
+
 ## 2026-08-09 (3) — Codex (elimina encía roja de la simulación)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
