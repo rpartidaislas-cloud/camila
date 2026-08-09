@@ -3786,7 +3786,7 @@ async function generateSimulation(clinicalPrompt, foto) {
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
-  stylePrompt += ' APPLY PORCELAIN VENEERS TO BOTH THE UPPER AND LOWER TEETH (maxillary and mandibular arches).';
+  stylePrompt += ' TREATMENT SCOPE: apply porcelain veneers to the visible UPPER anterior teeth only (maxillary smile zone, normally 8 to 10 teeth depending on visibility). Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible, not a minimal retouch: harmonize width-to-height proportions, gently lengthen worn or short incisal edges when appropriate, close distracting dark spaces with realistic tooth volume and create a smooth smile arc. Preserve each tooth position and emergence point. Central incisors remain dominant, lateral incisors slightly smaller, and canines retain their characteristic transition anatomy. Do not make all crowns identical.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -5538,10 +5538,9 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
 }
 
 // Composición clínica basada en segmentación anatómica. La fotografía de la
-// IA nunca se usa como fondo: primero se alinea, después se recorta con la
-// unión de la dentición original y la dentición restaurada. La unión es
-// importante porque una carilla puede aumentar O reducir el contorno; usar
-// sólo una de las dos máscaras dejaría dientes viejos o cortaría los nuevos.
+// IA nunca se usa como fondo: primero se alinea y después se recorta con la
+// máscara anatómica de las carillas restauradas. La fotografía original sigue
+// siendo el fondo y la arcada inferior permanece intacta.
 function cargarImagenSegura(url) {
   return new Promise(function(resolve, reject) {
     var img = new Image();
@@ -5562,11 +5561,23 @@ function canvasReducidoParaSegmentacion(canvas) {
   return reducido;
 }
 
-async function unirMascarasSegmentadas(masks, ancho, alto) {
+async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
   if (!masks || !masks.length) throw new Error('La segmentación no encontró dientes visibles.');
+  // En la simulación rápida las carillas se aplican a la zona estética
+  // superior. Copiar la arcada inferior fue la causa de bordes gingivales
+  // rojizos y dientes inferiores artificiales. Se usa FDI (1x/2x = superior)
+  // y los fragmentos heredan el FDI de su diente principal.
+  var seleccionadas = masks;
+  if (arcada === 'upper') {
+    var superiores = masks.filter(function(m) {
+      var fdi = String(m.fdi || m.parentFdi || '');
+      return fdi.charAt(0) === '1' || fdi.charAt(0) === '2';
+    });
+    if (superiores.length) seleccionadas = superiores;
+  }
   var union = new Uint8Array(ancho * alto);
-  for (var i = 0; i < masks.length; i++) {
-    var img = await cargarImagenSegura(masks[i].maskUrl);
+  for (var i = 0; i < seleccionadas.length; i++) {
+    var img = await cargarImagenSegura(seleccionadas[i].maskUrl);
     var tmp = document.createElement('canvas');
     tmp.width = ancho; tmp.height = alto;
     var tctx = tmp.getContext('2d', {willReadFrequently:true});
@@ -5616,7 +5627,7 @@ async function segmentarCanvasDental(canvas, cacheKey) {
   var reducido = canvasReducidoParaSegmentacion(canvas);
   var entrada = reducido.toDataURL('image/jpeg', 0.78);
   var masks = await solicitarSegmentacionDental(entrada);
-  var mascaraUrl = await unirMascarasSegmentadas(masks, reducido.width, reducido.height);
+  var mascaraUrl = await unirMascarasSegmentadas(masks, reducido.width, reducido.height, 'upper');
   if (cacheKey) S.dentalMaskByView[cacheKey] = mascaraUrl;
   return mascaraUrl;
 }
@@ -5675,21 +5686,15 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     actx.drawImage(imgIA, (W - w) / 2 + align.dx * W, (H - h) / 2 + align.dy * H, w, h);
     actx.restore();
 
-    // Sólo la original se cachea. Cada nueva generación necesita su propia
-    // máscara de carillas porque su anatomía y tamaño pueden cambiar.
-    var cacheKey = 'original:' + (view || 'frontal');
-    var mascaras = S.dentalMaskByView[cacheKey]
-      ? [S.dentalMaskByView[cacheKey], await segmentarCanvasDental(alineada, null)]
-      : await segmentarParDental(original, alineada, cacheKey);
-    var maskOriginal = await cargarImagenSegura(mascaras[0]);
-    var maskIA = await cargarImagenSegura(mascaras[1]);
+    // Se usa exclusivamente la máscara de las CARILLAS generadas. La unión
+    // con la máscara de dientes originales copiaba encía de la IA en las
+    // zonas donde cambiaba un contorno, produciendo líneas rojas entre piezas.
+    var mascaraIAUrl = await segmentarCanvasDental(alineada, null);
+    var maskIA = await cargarImagenSegura(mascaraIAUrl);
     var union = document.createElement('canvas');
     union.width = W; union.height = H;
     var uctx = union.getContext('2d');
-    uctx.drawImage(maskOriginal, 0, 0, W, H);
-    uctx.globalCompositeOperation = 'lighter';
     uctx.drawImage(maskIA, 0, 0, W, H);
-    uctx.globalCompositeOperation = 'source-over';
 
     // Recorte estricto: fuera de la unión dental no sobrevive ni un solo
     // píxel de la imagen generada.

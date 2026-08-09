@@ -10,6 +10,23 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-09 (3) — Codex (elimina encía roja de la simulación)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+La composición dejó de unir la máscara de dientes originales con la máscara
+del resultado. Esa unión copiaba encía generada en las zonas donde cambiaba el
+contorno de una corona y producía líneas rojizas entre dientes. Ahora sólo se
+copia la máscara anatómica de las carillas generadas y se filtra a FDI 1x/2x
+(arcada superior); la arcada inferior permanece idéntica al original.
+
+El prompt también fija el tratamiento rápido en 8–10 carillas superiores
+visibles, exige un cambio morfológico perceptible y conserva jerarquía de
+centrales, laterales y caninos. El respaldo local continúa disponible si
+Replicate falla, sin mostrar nunca la cara completa generada.
+
+---
+
 ## 2026-08-09 (2) — Codex (recuperación si falla la segmentación remota)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
