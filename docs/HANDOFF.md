@@ -10,6 +10,19 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-09 (2) — Codex (recuperación si falla la segmentación remota)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+La segmentación anatómica con Replicate deja de ser un punto único de fallo:
+si la inferencia, la descarga de máscaras o CORS falla, la generación recupera
+automáticamente el compositor dental local anterior. Nunca se usa como
+respaldo la cara completa generada por IA. Esto mantiene la simulación
+operativa mientras se conserva la mayor precisión cuando `segment-teeth`
+responde correctamente.
+
+---
+
 ## 2026-08-06 — Claude Code (skill de Meta multi-tenant)
 
 **Tocado:** `.claude/skills/meta-multitenant-chat/` (nuevo, solo agregado —
