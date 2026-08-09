@@ -1,5 +1,5 @@
 import { requireUser } from "../_shared/auth.ts";
-import { checkAndConsumeLimit } from "../_shared/limits.ts";
+import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +57,16 @@ Deno.serve(async (req: Request) => {
   // por IP), no tiene sentido ni parsear la llamada. Usa tenantId (resuelto
   // por requireUser -- distingue dueño de staff), NUNCA user.id directo: un
   // staff tiene un auth.uid() propio que no es el id de su clínica.
-  const { allowed, response: limitError } = await checkAndConsumeLimit(req, tenantId, CORS);
+  //
+  // Modo prospecto (simulacion.html?clinica=<id>, sin sesión): el tenant_id
+  // viaja en un header en vez de la sesión -- checkAndConsumeLimitProspecto
+  // exige el tope real de esa clínica Y el tope por IP encima, para que
+  // nadie intente drenar el cupo de una clínica ajena solo por conocer su
+  // link público.
+  const tenantHeaderProspecto = user ? null : req.headers.get("x-tenant-id");
+  const { allowed, response: limitError } = tenantHeaderProspecto
+    ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, CORS)
+    : await checkAndConsumeLimit(req, tenantId, CORS);
   if (!allowed) return limitError!;
   marca("después de checkAndConsumeLimit");
 

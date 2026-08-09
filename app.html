@@ -1497,6 +1497,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <a href="simulacion.html" target="_blank" class="btn btn-primary" style="width:100%;justify-content:center">Abrir simulación →</a>
         </div>
 
+        <!-- Link público para prospectos -->
+        <div class="card">
+          <div class="card-title">📲 Link para pacientes potenciales</div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Compártelo en redes o WhatsApp: cualquiera lo abre, se toma su propia foto desde su casa y ve su simulación con tu marca y tus precios reales -- sin necesitar cuenta ni que tú estés presente. Cuando dejan sus datos al final, te llega como un nuevo caso marcado como prospecto.</p>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="copiarLinkProspecto()" id="btn-link-prospecto">📋 Copiar link para pacientes</button>
+        </div>
+
         <!-- Branding -->
         <div class="card">
           <div class="card-title">🎨 Branding del Consultorio</div>
@@ -2845,6 +2852,21 @@ function cargarSimConfig() {
 function renderBienvenida() {
   var el = document.getElementById('bienvenida-nombre');
   if (el) el.textContent = '¡Bienvenido a SMYL, ' + (tenantData.nombre || 'Doctor') + '! 🎉';
+}
+
+// Link público de "modo prospecto" (etapa 6, ver camila_prospecto.sql y
+// entrarComoProspecto() en simulacion.html) -- cualquiera que lo abra hace
+// la simulación por su cuenta, sin sesión, con la marca/precios de ESTA
+// clínica, y su lead queda guardado aquí mismo al final.
+function copiarLinkProspecto() {
+  var url = location.origin + location.pathname.replace(/[^/]*$/, 'simulacion.html') + '?clinica=' + encodeURIComponent(tenantId);
+  var btn = document.getElementById('btn-link-prospecto');
+  var restaurar = function() { if (btn) { btn.textContent = '📋 Copiar link para pacientes'; } };
+  navigator.clipboard.writeText(url).then(function() {
+    if (btn) { btn.textContent = '✓ Link copiado'; setTimeout(restaurar, 2000); }
+  }).catch(function() {
+    prompt('Copia este link manualmente:', url);
+  });
 }
 
 async function guardarSimConfig() {

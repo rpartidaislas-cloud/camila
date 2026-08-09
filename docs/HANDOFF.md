@@ -10,6 +10,99 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-06 (3) — Claude Code (etapa 6: modo "prospecto" — pacientes se simulan su propia sonrisa desde casa)
+
+**Tocado:** `supabase/migrations/camila_prospecto.sql` (nuevo),
+`supabase/functions/guardar-lead-prospecto/index.ts` (nuevo),
+`supabase/functions/_shared/limits.ts`, `supabase/functions/claude/index.ts`,
+`simulacion.html`, `mobile/www/simulacion.html`, `app.html`.
+
+Decisión del usuario: además del flujo de dentista (login obligatorio,
+foto tomada EN consulta), `simulacion.html` necesita un segundo modo para
+que un paciente potencial se tome su propia foto desde su casa, como
+gancho de marketing/generación de leads. Se acordaron 3 decisiones de
+diseño con el usuario antes de construir:
+1. **Dos links distintos**, no una pantalla de elección — el dentista
+   comparte un link público propio (`app.html` → tarjeta nueva "Link para
+   pacientes potenciales" → `copiarLinkProspecto()`, genera
+   `simulacion.html?clinica=<tenant_id>`).
+2. **El lead se captura DESPUÉS de ver el resultado** (menor fricción) —
+   mismo formulario que ya existía para que el dentista archive un caso
+   (`#fn`/`#ft`/`#fe`/`#fn-notas`), reetiquetado en runtime.
+3. **Mismo archivo, no uno aparte** — reutiliza toda la cámara/IA/
+   cotización que ya existe; solo cambia el punto de entrada y el copy de
+   la pantalla de resultado.
+
+**Dos huecos de RLS reales que había que cerrar** (un prospecto no tiene
+NINGUNA sesión, ni siquiera la de staff que sí resuelve `camila_es_miembro`):
+
+1. `camila_tenants` no era legible sin sesión — sin esto, el link no
+   podría mostrar ni el nombre de la clínica ni sus precios reales. Se
+   resuelve con una vista nueva, `camila_tenants_publico`
+   (`camila_prospecto.sql`), que expone SOLO `nombre`+`config` (nunca
+   `email`/`plan`/`diagnosticos_usados`/`stripe_*`) — aprovecha que en
+   Postgres una vista corre con los privilegios de quien la CREÓ, no de
+   quien la consulta, así que puede exponer esas dos columnas a `anon`
+   sin abrir ninguna política RLS en `camila_tenants` misma (que sigue
+   100% protegida). `loadPrecios()` y la nueva `entrarComoProspecto()` la
+   usan en vez de `camila_tenants` cuando `CFG.modoProspecto`.
+2. `camila_casos` tampoco aceptaba INSERT sin sesión — el lead se habría
+   perdido en silencio. Se resuelve con la Edge Function nueva
+   `guardar-lead-prospecto` (service role, valida que el `tenant_id` sea
+   real/activo antes de insertar, whitelist explícita de columnas
+   aceptadas del body para que un prospecto no pueda colar columnas que
+   no le corresponden). **A propósito NO se abrió una política de INSERT
+   para `anon` en `camila_casos`** — esa tabla ya tuvo un episodio real de
+   RLS abierta (`camila_casos_abierto_temporal`, ver entrada del
+   2026-07-30) y no valía la pena repetir ese riesgo por esta función.
+   Nueva columna `es_prospecto boolean` para distinguir estos casos de los
+   que crea el propio dentista/staff (aditiva, no rompe nada existente).
+
+**Tercer hueco, de gasto no de lectura:** las llamadas a la Edge Function
+`claude` (análisis + generación de imagen) tampoco tenían forma de saber
+"esta llamada sin sesión es un prospecto de la clínica X, aplícale SU
+tope real" -- antes solo existían dos caminos (sesión real, o anónimo
+genérico 5/hora/IP sin ningún tenant). Se agregó un tercero:
+`simulacion.html` manda el `tenant_id` en un header `X-Tenant-Id` cuando
+está en modo prospecto (`headersEdgeIA()`, nuevo helper -- las 4 llamadas
+a la Edge Function `claude` ahora pasan por ahí), y `claude/index.ts` lo
+usa vía la función nueva `checkAndConsumeLimitProspecto()`
+(`_shared/limits.ts`) que exige **los dos** controles: el tope real del
+plan de esa clínica (protege su cupo pagado, y de paso confirma que el
+`tenant_id` es real) Y el tope genérico por IP encima (protege contra que
+alguien intente drenar el cupo de una clínica ajena a punta de scripts
+solo por conocer su link público). `segment-teeth` no se tocó -- el modo
+prospecto no usa el editor clínico avanzado.
+
+**Flujo completo en `simulacion.html`:** `checkLogin()` ahora revisa
+`?clinica=<id>` ANTES que cualquier sesión -- si está presente, gana
+siempre y entra a `entrarComoProspecto()` (nunca muestra el overlay de
+login). El resultado final (`show('s-res')`) dispara
+`aplicarCopyProspecto()` (idempotente, se reetiqueta cada vez que se
+regenera/cambia tono) que cambia "Guardar en expediente" por "¿Te gustó
+tu nueva sonrisa?" y el botón por "Quiero agendar mi cita". Al guardar,
+`guardarCaso()` ahora bifurca: modo prospecto llama a
+`guardar-lead-prospecto`, modo dentista sigue con el INSERT directo de
+siempre. `showCasoGuardado()` también bifurca -- en modo prospecto no
+muestra "Enviar al paciente" (el prospecto YA es el paciente) ni "Ver en
+panel admin" (no tiene sesión para entrar ahí), solo la confirmación de
+que su interés quedó registrado.
+
+**Falta aplicar en producción:** correr `camila_prospecto.sql` en el SQL
+Editor, y desplegar `guardar-lead-prospecto`
+(`supabase functions deploy guardar-lead-prospecto --use-api`) más
+redesplegar `claude` (el header `X-Tenant-Id` es código nuevo en ese
+archivo). Verificar como siempre en el dashboard que se suban los
+archivos correctos.
+
+**No probado en vivo:** todo el flujo de prospecto de punta a punta
+(abrir el link sin sesión, ver marca/precios reales, generar la
+simulación, dejar los datos, y confirmar que el caso aparece en
+Historial de `app.html` marcado `es_prospecto=true`) -- necesita las
+migraciones aplicadas y las funciones desplegadas primero.
+
+---
+
 ## 2026-08-06 (2) — Claude Code (etapa 5, corrección: chat de Meta pasa a ser multi-tenant desde el diseño)
 
 **Tocado:** `supabase/migrations/camila_chat.sql`,

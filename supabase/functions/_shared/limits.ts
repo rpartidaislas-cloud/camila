@@ -90,3 +90,23 @@ export async function checkAndConsumeLimit(
   }
   return { allowed: true, response: null };
 }
+
+// Camino especial para el modo "prospecto" de simulacion.html (paciente
+// sin cuenta, entra por un link público con el tenant_id de la clínica en
+// la URL, ver ?clinica=<id> y entrarComoProspecto()). A diferencia del
+// resto de este archivo, aquí el tenant_id NO viene de una sesión
+// verificada -- lo manda el cliente sin más prueba que "conoce el link
+// público de esa clínica". Por eso se exigen los DOS controles, no uno
+// solo: el tope real de la clínica (protege su cupo pagado, y de paso
+// confirma que el tenant_id es real) Y el tope genérico por IP (protege
+// contra que alguien intente drenar el cupo de una clínica ajena a punta
+// de scripts, ahora que conoce su tenant_id).
+export async function checkAndConsumeLimitProspecto(
+  req: Request,
+  tenantIdCliente: string,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  const anonCheck = await checkAndConsumeLimit(req, null, cors);
+  if (!anonCheck.allowed) return anonCheck;
+  return checkAndConsumeLimit(req, tenantIdCliente, cors);
+}

@@ -1021,8 +1021,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         </div>
         <div>
-          <div class="cta-title" style="margin-bottom:0">Guardar en expediente</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4)">Se guardará en tu panel de pacientes</div>
+          <div class="cta-title" id="cta-guardar-title" style="margin-bottom:0">Guardar en expediente</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)" id="cta-guardar-sub">Se guardará en tu panel de pacientes</div>
         </div>
       </div>
 
@@ -1030,7 +1030,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
       <!-- Nombre del paciente -->
       <div class="fg">
-        <label>Nombre del paciente *</label>
+        <label id="fn-label">Nombre del paciente *</label>
         <input type="text" id="fn" placeholder="Nombre completo del paciente" autocomplete="off">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1045,15 +1045,15 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       </div>
 
       <!-- Notas del doctor -->
-      <div class="fg">
-        <label>Notas clínicas (opcional)</label>
+      <div class="fg" id="fn-notas-wrap">
+        <label id="fn-notas-label">Notas clínicas (opcional)</label>
         <textarea id="fn-notas" rows="2" placeholder="Observaciones adicionales del doctor..." style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px;font-family:Inter,sans-serif;color:#fff;outline:none;resize:none;-webkit-appearance:none"></textarea>
       </div>
 
       <!-- Botones acción -->
       <button onclick="guardarCaso()" id="btn-guardar" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;border-radius:13px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;box-shadow:0 4px 18px rgba(91,71,224,.35);margin-bottom:10px;transition:all 150ms">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Guardar caso en panel
+        <span id="btn-guardar-label">Guardar caso en panel</span>
       </button>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -1280,7 +1280,25 @@ var CFG = {
   // de camila_casos ahora exigen auth.uid(), así que las llamadas a esa
   // tabla/storage deben mandar este token en vez de CFG.supaKey.
   userToken: null,
+  // true = paciente prospecto sin cuenta, entró por el link público de una
+  // clínica (?clinica=<id>). Nunca hay userToken en este modo.
+  modoProspecto: false,
 };
+
+// Headers para las llamadas a la Edge Function `claude` (análisis/imagen).
+// En modo prospecto no hay sesión (userToken es null) -- el servidor no
+// tiene forma de saber a qué clínica descontarle el diagnóstico salvo que
+// se lo digamos aquí explícitamente. Este header no es un permiso
+// especial: el servidor valida que ese tenant_id sea real y aplica su
+// tope real de plan, más un tope extra por IP encima (ver
+// checkAndConsumeLimitProspecto en supabase/functions/_shared/limits.ts)
+// para que nadie intente drenar el cupo de una clínica ajena a punta de
+// scripts solo por conocer su link público.
+function headersEdgeIA() {
+  var h = {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)};
+  if (CFG.modoProspecto && CFG.tenantId) h['X-Tenant-Id'] = CFG.tenantId;
+  return h;
+}
 
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
 var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design), análisis facial, dentolabial y morfología dental. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros visibles que guiarán una simulación orientativa de carillas.\n\n' +
@@ -1405,6 +1423,35 @@ function entrarSinSesion() {
   show('s-intro');
 }
 
+// ══ MODO PROSPECTO — paciente sin cuenta, entra por el link público que el
+// dentista comparte desde app.html ("Copiar link para pacientes"). Nunca
+// pasa por el overlay de login: no tiene cuenta ni la necesita. Lee marca y
+// precios de camila_tenants_publico -- una vista nueva que expone SOLO
+// nombre+config a cualquiera (sin sesión), justo para este caso;
+// camila_tenants en sí sigue exigiendo ser miembro de la clínica, esto no
+// lo cambia. Si el tenant_id del link no existe o la clínica está inactiva,
+// la vista regresa vacío y la app sigue con branding/precios por defecto,
+// igual que si nunca hubiera link -- no rompe nada, no hay pantalla de error.
+function entrarComoProspecto(tenantId) {
+  CFG.tenantId = tenantId;
+  CFG.modoProspecto = true;
+  document.getElementById('dentist-login-overlay').style.display = 'none';
+  var btn = document.getElementById('sim-login-toggle-btn');
+  if (btn) btn.style.display = 'none'; // no hay sesión que iniciar ni cerrar en este modo
+
+  fetch(CFG.supaUrl + '/rest/v1/camila_tenants_publico?id=eq.' + encodeURIComponent(tenantId) + '&select=nombre,config', {
+    headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + CFG.supaKey}
+  }).then(function(r){return r.json();}).then(function(data) {
+    if (data && data[0] && data[0].config && data[0].config.sim) {
+      CFG.tenantConfig = data[0].config.sim;
+      applyTenantBranding(CFG.tenantConfig);
+    }
+  }).catch(function(){});
+
+  checkResumePrompt();
+  show('s-intro');
+}
+
 function abrirLoginSim() {
   document.getElementById('dentist-login-overlay').style.display = 'flex';
 }
@@ -1431,6 +1478,14 @@ function cerrarSesionSim() {
 }
 
 (function checkLogin() {
+  // ?clinica=<tenant_id> -- link público de prospecto (ver
+  // entrarComoProspecto). Gana siempre sobre cualquier sesión que pudiera
+  // existir en este navegador: es un link explícito para el modo paciente,
+  // no para que el dentista revise su propio panel desde ahí.
+  var qp = new URLSearchParams(location.search);
+  var clinicaProspecto = qp.get('clinica');
+  if (clinicaProspecto) { entrarComoProspecto(clinicaProspecto); return; }
+
   if (!sbAuth) { entrarSinSesion(); return; }
   sbAuth.auth.getSession().then(function(res) {
     var session = res.data && res.data.session;
@@ -1645,6 +1700,30 @@ function show(id) {
   document.querySelectorAll('.screen, .ed-screen').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   saveProgress(id);
+  if (id === 's-res') aplicarCopyProspecto();
+}
+
+// ══ MODO PROSPECTO — ajusta el copy de "Guardar en expediente" (pensado
+// para que el DOCTOR archive un caso) a un CTA de captura de lead (pensado
+// para que el PACIENTE deje sus datos) -- mismos campos y misma función de
+// guardado por debajo (guardarCaso()), solo cambia lo que se le muestra a
+// quién. Idempotente: se puede llamar cada vez que se navega a 's-res'
+// (regenerar, cambiar tono VITA, etc. vuelven a pasar por aquí).
+function aplicarCopyProspecto() {
+  if (!CFG.modoProspecto) return;
+  var nombreClinica = (CFG.tenantConfig && CFG.tenantConfig.nombre) || 'la clínica';
+  var titulo = document.getElementById('cta-guardar-title');
+  if (titulo) titulo.textContent = '¿Te gustó tu nueva sonrisa?';
+  var sub = document.getElementById('cta-guardar-sub');
+  if (sub) sub.textContent = 'Deja tus datos y ' + nombreClinica + ' te contacta para agendar tu cita';
+  var fnLabel = document.getElementById('fn-label');
+  if (fnLabel) fnLabel.textContent = 'Tu nombre completo *';
+  var notasLabel = document.getElementById('fn-notas-label');
+  if (notasLabel) notasLabel.textContent = 'Cuéntanos qué te gustaría mejorar (opcional)';
+  var notas = document.getElementById('fn-notas');
+  if (notas) notas.placeholder = 'Ej. me gustaría que se vean más blancos...';
+  var btnLabel = document.getElementById('btn-guardar-label');
+  if (btnLabel) btnLabel.textContent = 'Quiero agendar mi cita';
 }
 
 // ══ RECUPERAR AVANCE ══
@@ -1801,7 +1880,10 @@ function zonaTexto(zona) {
 async function loadPrecios() {
   try {
     if (CFG.tenantId) {
-      var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_tenants?id=eq.' + CFG.tenantId + '&select=config', {
+      // Modo prospecto: sin sesión, camila_tenants (protegida) regresaría
+      // vacío -- se usa la misma vista pública que ya carga el branding.
+      var tabla = CFG.modoProspecto ? 'camila_tenants_publico' : 'camila_tenants';
+      var resp = await fetch(CFG.supaUrl + '/rest/v1/' + tabla + '?id=eq.' + CFG.tenantId + '&select=config', {
         headers: {'apikey': CFG.supaKey, 'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey)}
       });
       var data = await resp.json();
@@ -3488,7 +3570,7 @@ async function analyzeWithClaude() {
 
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
+    headers: headersEdgeIA(),
     body: JSON.stringify({
       // PRUEBA (reversible -- quitar esta línea para volver al modelo por
       // defecto del Edge Function, Opus): Opus es el más lento de Claude;
@@ -3527,7 +3609,7 @@ async function analizarConClaude(fotoFrontalBase64) {
 
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
+    headers: headersEdgeIA(),
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
       messages: [{role:'user', content: content}],
@@ -3560,7 +3642,7 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
 
   var resp = await fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
+    headers: headersEdgeIA(),
     body: JSON.stringify({
       messages: [{role:'user', content: [
         {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
@@ -3723,7 +3805,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   // segundos; el margen generoso es por si acaso, no porque se necesite.
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)},
+    headers: headersEdgeIA(),
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
   var resp = await conTimeout(fetchPromise, 110000, 'generación de la imagen con IA');
@@ -5644,53 +5726,69 @@ async function guardarCaso() {
 
   // Save to Supabase
   var savedToCloud = false;
+  var camposCaso = {
+    id: casoId,
+    tenant_id: CFG.tenantId || null,
+    nombre_paciente: casoData.nombre_paciente,
+    telefono: casoData.telefono,
+    email: casoData.email,
+    notas_doctor: casoData.notas_doctor,
+    score: casoData.score,
+    score_lbl: casoData.score_lbl,
+    resumen: casoData.resumen,
+    diagnostico: JSON.stringify({
+      scoreLbl: d.scoreLbl,
+      resumen: d.resumen,
+      hallazgos: d.hallazgos,
+      plan: d.plan,
+      cotizacion: d.cotizacion,
+    }),
+    total_cotizacion: total,
+    simulacion_url: casoData.simulacion_url,
+    simulacion_url_der: casoData.simulacion_url_der,
+    simulacion_url_izq: casoData.simulacion_url_izq,
+    simulacion_url_extraoral: casoData.simulacion_url_extraoral,
+    simulacion_url_intraoral: casoData.simulacion_url_intraoral,
+    simulacion_url_tres_cuartos: casoData.simulacion_url_tres_cuartos,
+    foto_frontal: casoData.foto_frontal,
+    foto_perfil_der: casoData.foto_perfil_der,
+    foto_perfil_izq: casoData.foto_perfil_izq,
+    foto_extraoral: casoData.foto_extraoral,
+    foto_intraoral: casoData.foto_intraoral,
+    foto_tres_cuartos: casoData.foto_tres_cuartos,
+    cuestionario: JSON.stringify(S.questionnaire || {}),
+    fotos_count: S.photos.length,
+    diagnostico_claude: S.diagnosticoFacial || null,
+    prompt_gemini_usado: S.promptGeminiUsado || null,
+    editor_params: S.editorParams || null,
+    created_at: casoData.created_at,
+  };
+
   try {
-    var resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos?on_conflict=id', {
-      method: 'POST',
-      headers: {
-        'apikey': CFG.supaKey,
-        'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify({
-        id: casoId,
-        tenant_id: CFG.tenantId || null,
-        nombre_paciente: casoData.nombre_paciente,
-        telefono: casoData.telefono,
-        email: casoData.email,
-        notas_doctor: casoData.notas_doctor,
-        score: casoData.score,
-        score_lbl: casoData.score_lbl,
-        resumen: casoData.resumen,
-        diagnostico: JSON.stringify({
-          scoreLbl: d.scoreLbl,
-          resumen: d.resumen,
-          hallazgos: d.hallazgos,
-          plan: d.plan,
-          cotizacion: d.cotizacion,
-        }),
-        total_cotizacion: total,
-        simulacion_url: casoData.simulacion_url,
-        simulacion_url_der: casoData.simulacion_url_der,
-        simulacion_url_izq: casoData.simulacion_url_izq,
-        simulacion_url_extraoral: casoData.simulacion_url_extraoral,
-        simulacion_url_intraoral: casoData.simulacion_url_intraoral,
-        simulacion_url_tres_cuartos: casoData.simulacion_url_tres_cuartos,
-        foto_frontal: casoData.foto_frontal,
-        foto_perfil_der: casoData.foto_perfil_der,
-        foto_perfil_izq: casoData.foto_perfil_izq,
-        foto_extraoral: casoData.foto_extraoral,
-        foto_intraoral: casoData.foto_intraoral,
-        foto_tres_cuartos: casoData.foto_tres_cuartos,
-        cuestionario: JSON.stringify(S.questionnaire || {}),
-        fotos_count: S.photos.length,
-        diagnostico_claude: S.diagnosticoFacial || null,
-        prompt_gemini_usado: S.promptGeminiUsado || null,
-        editor_params: S.editorParams || null,
-        created_at: casoData.created_at,
-      })
-    });
+    var resp;
+    if (CFG.modoProspecto) {
+      // Sin sesión: camila_casos exige ser miembro de la clínica (RLS), un
+      // prospecto nunca lo es -- el INSERT directo se rechazaría en
+      // silencio. Pasa por una Edge Function con service role que valida
+      // que el tenant_id sea real/activo antes de guardar, igual que
+      // invite-staff/meta-send validan sus propias escrituras.
+      resp = await fetch(CFG.supaUrl + '/functions/v1/guardar-lead-prospecto', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + CFG.supaKey},
+        body: JSON.stringify(camposCaso)
+      });
+    } else {
+      resp = await fetch(CFG.supaUrl + '/rest/v1/camila_casos?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          'apikey': CFG.supaKey,
+          'Authorization': 'Bearer ' + (CFG.userToken || CFG.supaKey),
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(camposCaso)
+      });
+    }
     if (resp.ok || resp.status === 201) {
       savedToCloud = true;
     } else {
@@ -5699,10 +5797,10 @@ async function guardarCaso() {
       // qué el caso nunca llegaba al panel. Se deja el detalle en consola
       // para poder diagnosticarlo.
       var errBody = await resp.text().catch(function(){return '';});
-      console.error('[SMYL] Supabase rechazó el guardado del caso (status ' + resp.status + '):', errBody);
+      console.error('[SMYL] No se pudo guardar el caso (status ' + resp.status + '):', errBody);
     }
   } catch(e) {
-    console.error('[SMYL] Error de red guardando el caso en Supabase:', e);
+    console.error('[SMYL] Error de red guardando el caso:', e);
   }
 
   // El caso ya quedó guardado (localStorage y/o Supabase) — ya no hace
@@ -5720,6 +5818,25 @@ function showCasoGuardado(caso, enNube) {
 
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
+
+  if (CFG.modoProspecto) {
+    // Sin "Enviar al paciente" (el prospecto ES el paciente) ni "Ver en
+    // panel admin" (requiere login que no tiene) -- solo la confirmación
+    // de que su interés ya quedó registrado para la clínica.
+    var nombreClinica = (CFG.tenantConfig && CFG.tenantConfig.nombre) || 'La clínica';
+    cta.innerHTML =
+      '<div style="text-align:center;padding:8px 0">' +
+      '<div style="width:56px;height:56px;border-radius:50%;background:rgba(22,163,74,.2);border:2px solid #16A34A;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">' +
+      '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+      '<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:4px">¡Listo, ' + caso.nombre_paciente + '!</div>' +
+      '<div style="font-size:13px;color:rgba(255,255,255,.5)">' + nombreClinica + ' recibió tus datos y se pondrá en contacto contigo pronto.</div>' +
+      '</div>' +
+      '<button onclick="nuevoCaso()" style="width:100%;height:46px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+      'Probar de nuevo</button>';
+    S._casoGuardado = caso;
+    return;
+  }
 
   cta.innerHTML =
     '<div style="text-align:center;padding:8px 0">' +
