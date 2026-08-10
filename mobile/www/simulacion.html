@@ -3556,23 +3556,29 @@ function mensajeErrorRegenerar(e) {
 }
 
 function mostrarErrorProceso(e) {
-  // El genérico de "problema de conexión" es SOLO el último recurso: si el
-  // servidor mandó un motivo real (límite del plan agotado, plan vencido,
-  // clínica no encontrada...), se muestra tal cual. Antes cualquier error
-  // que no fuera caída de red o timeout se disfrazaba de problema de
-  // conexión, así que el dentista veía "reintenta" ante un error que
-  // reintentar no arregla nunca -- y sin forma de saber qué pasó.
+  // Regla: el genérico de "problema de conexión" es el ÚLTIMO recurso, solo
+  // cuando de verdad no hay nada que decir. Cualquier error con mensaje
+  // propio se muestra tal cual -- da igual si viene del servidor (plan
+  // agotado), de la composición del canvas ("no se pudo aislar la
+  // simulación dentro de los dientes") o de donde sea. Esconderlos todos
+  // detrás de "problema de conexión · reintenta" nos dejó ciegos dos veces
+  // seguidas persiguiendo un error que la pantalla nunca dijo cuál era.
+  var esFalloRed = e && (e.message === 'Load failed' ||
+    /failed to fetch|networkerror|network request failed|connection.*lost/i.test(e.message || ''));
   var msg = 'Hubo un problema de conexión generando tu simulación. Tus fotos siguen guardadas — no hace falta repetirlas, solo reintenta.';
-  if (e && e.message === 'Load failed') {
+  if (esFalloRed) {
     msg = 'Se perdió la conexión mientras se generaba tu simulación — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Tus fotos siguen guardadas, solo dale reintentar.';
-  } else if (e && e.esDelServidor && e.message) {
-    msg = e.message;
   } else if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
     // El mensaje real ya trae "tardó demasiado (X)" con el paso exacto que
     // se tardó -- se muestra tal cual en vez de un genérico "problema de
     // conexión" para no tener que adivinar cuál de los 3 pasos fue.
     msg = 'Tardó demasiado: ' + e.message.replace(/^tardó demasiado \(/i, '').replace(/\)\.?\s*Intenta de nuevo\.?$/i, '') + '. Puede pasar con conexiones lentas o mucha demanda. Tus fotos siguen guardadas, solo dale reintentar.';
+  } else if (e && e.message) {
+    msg = e.message + ' Tus fotos siguen guardadas.';
   }
+  // Rastro técnico siempre disponible, aunque el mensaje de arriba sea el
+  // genérico -- para no volver a depender de adivinar desde una captura.
+  console.error('[SMYL] fallo generando la simulación:', e);
   var detail = document.getElementById('proc-error-detail');
   if (detail) detail.textContent = msg;
 
@@ -5678,7 +5684,7 @@ async function solicitarSegmentacionDental(entrada) {
     })
   }), 90000, 'segmentación de los dientes');
   var data = await resp.json().catch(function(){ return {}; });
-  if (!resp.ok || data.error) throw new Error(data.error || ('La segmentación respondió ' + resp.status));
+  if (!resp.ok || data.error) throw errorDelServidor(data.error || ('La segmentación de dientes respondió ' + resp.status + '.'));
   return data.masks || [];
 }
 
