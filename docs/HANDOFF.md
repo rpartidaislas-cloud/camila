@@ -87,6 +87,32 @@ ser simplemente que no había sesión iniciada ahí, o algo más de fondo;
 revisar `camila_anon_usage` (si tiene filas con contador alto, confirma
 el diagnóstico) antes de dar el tema por cerrado.
 
+**CONFIRMADO Y CERRADO (2026-08-10):** `camila_anon_usage` tenía 3 filas,
+las tres con `contador = 5` clavado en el tope — huella inequívoca de que
+las llamadas entraban por el camino anónimo y se bloqueaban. Peor: un
+`count` sobre `camila_casos` dio **2 huérfanos de 2 totales, 0 en la
+clínica** — o sea, el 100% de las simulaciones hechas hasta ahora quedaron
+fuera del panel del dentista. Se reasignaron a mano con un `update
+camila_casos set tenant_id = '<id>' where tenant_id is null or tenant_id =
+'local'`.
+
+**Decisión tomada con Ricardo a raíz de eso: se ELIMINÓ el modo anónimo de
+`simulacion.html`.** El "login opcional" que se había pedido en su momento
+era la causa raíz de los casos huérfanos (y de que no se cargara marca ni
+precios, y de que el cupo del plan nunca se cobrara). Ahora hay
+exactamente dos entradas, ninguna anónima:
+  1. Dentista/staff con sesión → `entrarConSesion()`.
+  2. Paciente por link público `?clinica=<tenant_id>` →
+     `entrarComoProspecto()` (sin cuenta, pero con clínica identificada).
+Sin ninguna de las dos, `pedirSesionParaEntrar()` (reemplaza a la
+eliminada `entrarSinSesion()`) bloquea la app con el overlay de login, con
+un aviso amarillo explicando por qué, el botón × oculto, y
+`cerrarLoginSim()` con guarda para que no se pueda esquivar.
+**Ojo para quien siga:** el tope anónimo por IP (`ANON_HOURLY_LIMIT`) ya
+casi no aplica a nadie con este cambio — solo quedaría para llamadas
+directas a la Edge Function sin pasar por la UI. El que importa ahora es
+`PROSPECTO_HOURLY_LIMIT`.
+
 **Pendiente de confirmar con Ricardo:** cuánto cupo le queda realmente
 (`select nombre, diagnosticos_usados, limite_diagnosticos, activo,
 vence_en from camila_tenants;`). Si ya está en el tope, el fix de arriba

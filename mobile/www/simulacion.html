@@ -622,10 +622,11 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
      branding/precios personalizados de un dentista sin identificarse. -->
 <div id="dentist-login-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
   <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;margin:auto 0;position:relative">
-    <button type="button" onclick="cerrarLoginSim()" aria-label="Cerrar" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;line-height:1;cursor:pointer;padding:4px">×</button>
+    <button type="button" id="dl-cerrar" onclick="cerrarLoginSim()" aria-label="Cerrar" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;line-height:1;cursor:pointer;padding:4px">×</button>
     <img src="icons/smyl_logo.png" alt="SMYL" style="height:26px;width:auto;display:block;margin-bottom:18px">
     <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Accede a tu cuenta</div>
     <div style="font-size:12.5px;color:rgba(255,255,255,.5);margin-bottom:18px">Con el mismo correo y contraseña de tu panel</div>
+    <div id="dl-aviso-sesion" style="display:none;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:11px;padding:11px 13px;margin-bottom:16px;font-size:12.5px;line-height:1.5;color:#FCD34D">Inicia sesión para que el caso se guarde en tu panel y la simulación use tu marca y tus precios.</div>
 
     <div style="display:flex;background:rgba(255,255,255,.06);border-radius:12px;padding:4px;margin-bottom:18px">
       <div id="dl-tab-login" class="dl-tab dl-tab-activo" role="tab" tabindex="0" onclick="switchDlTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchDlTab('login')}" style="flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer">Iniciar sesión</div>
@@ -1381,11 +1382,15 @@ function cargarTenantConfig(tid) {
 }
 
 // ══ LOGIN OBLIGATORIO — mismo Supabase Auth que app.html ══
-// Ya no hay entrada libre por link (?tenant=id) para pacientes: para usar
-// la simulación hay que iniciar sesión con la misma cuenta del panel. El
-// overlay de login está visible por defecto (ver HTML) y solo se oculta
-// cuando confirmamos una sesión válida — así el paciente nunca llega a
-// ver la pantalla de inicio sin que el dentista haya entrado primero.
+// Hay exactamente DOS formas de entrar, ninguna anónima (ver checkLogin):
+//   1. Dentista/staff con sesión del panel → entrarConSesion().
+//   2. Paciente por el link público de una clínica, ?clinica=<tenant_id>
+//      → entrarComoProspecto(). No necesita cuenta, pero SÍ sabe de qué
+//      clínica es lo que genera.
+// Sin ninguna de las dos, pedirSesionParaEntrar() bloquea la app con el
+// overlay de login (que arranca oculto en el HTML y se muestra desde JS).
+// El modo "sin sesión y sin clínica" se eliminó el 2026-08-10: producía
+// casos huérfanos que nunca llegaban a ningún panel.
 var sbAuth;
 try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 
@@ -1417,11 +1422,23 @@ function entrarConSesion(uid) {
 // arranca igual, con CFG.tenantId en null (sin branding/precios de un
 // dentista en particular) y usando la publishable key directo para hablar
 // con Supabase/las Edge Functions (que ya la aceptan sin sesión).
-function entrarSinSesion() {
-  document.getElementById('dentist-login-overlay').style.display = 'none';
+// Antes esto dejaba pasar a la app sin sesión ("login opcional", pedido
+// explícito en su momento). Se cerró el 2026-08-10 con evidencia dura: los
+// 2 de 2 casos que existían en la base quedaron huérfanos (tenant_id nulo o
+// 'local'), es decir FUERA del panel del dentista, sin que nadie lo notara.
+// Sin sesión también se pierde su marca/precios en la simulación y su cupo
+// del plan nunca se cobra. El modo paciente sigue existiendo, pero por el
+// link público con ?clinica=<id> (entrarComoProspecto), que sí sabe a qué
+// clínica pertenece lo que se genera.
+function pedirSesionParaEntrar() {
+  document.getElementById('dentist-login-overlay').style.display = 'flex';
   actualizarBotonLoginSim();
-  checkResumePrompt();
-  show('s-intro');
+  var aviso = document.getElementById('dl-aviso-sesion');
+  if (aviso) aviso.style.display = 'block';
+  // Sin sesión no hay a dónde ir: cerrar el overlay dejaría al usuario en la
+  // pantalla de inicio en el mismo estado anónimo que se acaba de cerrar.
+  var cerrar = document.getElementById('dl-cerrar');
+  if (cerrar) cerrar.style.display = 'none';
 }
 
 // ══ MODO PROSPECTO — paciente sin cuenta, entra por el link público que el
@@ -1453,11 +1470,22 @@ function entrarComoProspecto(tenantId) {
   show('s-intro');
 }
 
+// Apertura voluntaria del overlay (no la obligatoria de arranque): aquí sí
+// se puede cerrar, así que se restaura el × y se quita el aviso amarillo.
 function abrirLoginSim() {
   document.getElementById('dentist-login-overlay').style.display = 'flex';
+  var cerrar = document.getElementById('dl-cerrar');
+  if (cerrar) cerrar.style.display = '';
+  var aviso = document.getElementById('dl-aviso-sesion');
+  if (aviso) aviso.style.display = 'none';
 }
 
 function cerrarLoginSim() {
+  // Solo se puede cerrar si ya hay sesión -- si no, la simulación quedaría
+  // en el modo anónimo que produce casos huérfanos (ver
+  // pedirSesionParaEntrar). El botón × ya viene oculto en ese caso; esto es
+  // el cinturón por si se llega aquí por otra vía.
+  if (!CFG.userToken) return;
   document.getElementById('dentist-login-overlay').style.display = 'none';
 }
 
@@ -1487,7 +1515,7 @@ function cerrarSesionSim() {
   var clinicaProspecto = qp.get('clinica');
   if (clinicaProspecto) { entrarComoProspecto(clinicaProspecto); return; }
 
-  if (!sbAuth) { entrarSinSesion(); return; }
+  if (!sbAuth) { pedirSesionParaEntrar(); return; }
   sbAuth.auth.getSession().then(function(res) {
     var session = res.data && res.data.session;
     var user = session && session.user;
@@ -1495,9 +1523,9 @@ function cerrarSesionSim() {
       CFG.userToken = session.access_token;
       entrarConSesion(user.id);
     } else {
-      entrarSinSesion();
+      pedirSesionParaEntrar();
     }
-  }).catch(function(){ entrarSinSesion(); });
+  }).catch(function(){ pedirSesionParaEntrar(); });
 })();
 
 async function hacerLoginDentista() {
