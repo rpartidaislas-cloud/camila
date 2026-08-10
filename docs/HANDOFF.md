@@ -10,6 +10,26 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (5) — Codex (elimina halo amarillo y refuerza cerámica/anatomía)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Sustituida la transición interior de 2–4 px por antialias cercano a 1 px,
+  con alfa sesgado hacia la restauración. Evita que reaparezca el esmalte
+  original como contorno amarillo sin expandir la máscara sobre encía.
+- El prompt exige cobertura completa de la cara vestibular, sin doble borde,
+  halo amarillo ni exposición del diente viejo; refuerza centrales dominantes,
+  laterales más estrechos/cortos, caninos individualizados, arco incisal y
+  troneras naturales.
+- El color VITA ahora se describe como cerámica ópticamente estratificada
+  bajo la iluminación original: dentina cervical, cuerpo, translucidez
+  incisal, mamelones, opalescencia, áreas de espejo y sombras de convexidad.
+- El recorte facial de generación es más cerrado alrededor de la sonrisa para
+  dedicar más resolución efectiva a la anatomía dental. La reinserción sigue
+  realizándose sobre la fotografía maestra intacta.
+
+---
+
 ## 2026-08-10 (4) — Codex (integración de carillas sin efecto de sobreposición)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

@@ -3837,15 +3837,15 @@ async function prepararRecorteDental(fotoOriginalUrl, view) {
     var esPerfil = view === 'right' || view === 'left';
     var esHorizontal = W > H * 1.08;
     if (esHorizontal) {
-      x = Math.round(W * (esPerfil ? 0.05 : 0.12));
-      y = Math.round(H * 0.34);
-      w = Math.round(W * (esPerfil ? 0.90 : 0.76));
-      h = Math.round(H * 0.58);
+      x = Math.round(W * (esPerfil ? 0.05 : 0.14));
+      y = Math.round(H * (esPerfil ? 0.32 : 0.40));
+      w = Math.round(W * (esPerfil ? 0.90 : 0.72));
+      h = Math.round(H * (esPerfil ? 0.60 : 0.44));
     } else {
-      x = Math.round(W * (esPerfil ? 0.05 : 0.12));
-      y = Math.round(H * 0.43);
-      w = Math.round(W * (esPerfil ? 0.90 : 0.76));
-      h = Math.round(H * 0.40);
+      x = Math.round(W * (esPerfil ? 0.05 : 0.14));
+      y = Math.round(H * (esPerfil ? 0.38 : 0.50));
+      w = Math.round(W * (esPerfil ? 0.90 : 0.72));
+      h = Math.round(H * (esPerfil ? 0.50 : 0.30));
     }
     x = Math.max(0, Math.min(W - 2, x));
     y = Math.max(0, Math.min(H - 2, y));
@@ -3906,8 +3906,8 @@ async function generateSimulation(clinicalPrompt, foto) {
   var stylePrompt = S.vitaMode === 'current' ?
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
-  stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
-  stylePrompt += ' TREATMENT SCOPE: restore the visible UPPER teeth one-to-one. Every original maxillary tooth must remain the same identifiable tooth: preserve its emergence point, longitudinal axis, general position and relationship with its neighbors. Do not invent teeth and do not force a fixed tooth count. Give primary aesthetic emphasis to the SIX anterior teeth; include premolars only when they are naturally visible in this exact photograph. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible but anatomically credible: harmonize width-to-height proportions, moderately restore worn or short incisal edges and create natural contacts without shrinking the teeth to fit extra crowns. Central incisors must be the widest and most dominant; lateral incisors visibly smaller and slightly shorter; canines must preserve a stronger cervical body and characteristic cusp transition. Preserve subtle left-right variation. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
+  stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL CERAMIC REQUIREMENTS: interpret the selected VITA shade as a perceptual shade under the ORIGINAL illumination, not as one flat RGB fill. Build a continuous layered ceramic body with slightly warmer cervical dentin, a controlled-value middle third, and approximately 15–20 percent visually translucent incisal enamel. Include extremely subtle internal mamelons, a restrained opalescent incisal halo, natural mirror areas, convexity shadow transitions and narrow vertical specular highlights that follow the original light direction. Keep tiny natural value and texture variation between neighboring teeth while all remain recognizably within the selected VITA shade. AVOID: flat paint, uniform opaque fill, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness, repeated highlights or identical plastic-looking teeth.';
+  stylePrompt += ' TREATMENT SCOPE: restore the visible UPPER teeth one-to-one. Every original maxillary tooth must remain the same identifiable tooth: preserve its emergence point, longitudinal axis, general position and relationship with its neighbors. Do not invent teeth and do not force a fixed tooth count. Give primary aesthetic emphasis to the SIX anterior teeth; include premolars only when they are naturally visible in this exact photograph. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible but anatomically credible: harmonize width-to-height proportions, moderately restore worn or short incisal edges and create natural contacts without shrinking the teeth to fit extra crowns. The two central incisors are the widest and visually dominant pair, with softly individualized line angles; lateral incisors are distinctly narrower and about 0.5–1.0 mm visually shorter; canines retain a stronger cervical body, a subtle cusp and a natural transition toward the premolars. Preserve small left-right differences instead of mirror-copying crowns. Shape the incisal edges as a smooth progressive smile arc parallel to the lower lip—not a single flat line. Contacts must be broad enough cervically and separate into clean, small incisal embrasures; never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from the existing gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -5768,7 +5768,13 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
   var data = mctx.createImageData(ancho, alto);
   var activos = 0;
   for (var k = 0, q = 0; k < union.length; k++, q += 4) {
-    var a = union[k] > 96 ? 255 : 0;
+    // Conserva la cobertura real de la máscara en vez de convertirla de
+    // inmediato a un recorte binario. Una curva inclinada hacia la carilla
+    // mantiene el nuevo esmalte dominante en el margen y evita que reaparezca
+    // el borde amarillo del diente original.
+    var t = Math.max(0, Math.min(1, (union[k] - 18) / 132));
+    var continuo = t * t * (3 - 2 * t);
+    var a = t > 0 ? Math.round(255 * Math.pow(continuo, 0.42)) : 0;
     if (a) activos++;
     data.data[q] = 255; data.data[q + 1] = 255; data.data[q + 2] = 255; data.data[q + 3] = a;
   }
@@ -5777,21 +5783,11 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
     throw new Error('La máscara dental obtenida no tiene una extensión válida.');
   }
 
-  // Suaviza el borde. Con la máscara binaria (alfa 0 o 255, sin nada en
-  // medio) el diente generado terminaba en un canto perfectamente recortado
-  // contra la foto original -- que es exactamente la sensación de "carilla
-  // sobrepuesta / calcomanía pegada" que se reportó. Una foto real no tiene
-  // bordes así: hay penumbra, sombra y algo de desenfoque en el límite entre
-  // diente y encía/labio.
-  //
-  // Importante: el degradado tiene que quedar HACIA ADENTRO del diente. Si
-  // el borde creciera hacia afuera se copiaría color de la IA sobre la
-  // encía, que es justo el problema de líneas rojizas ya corregido antes
-  // (ver componerConOriginalSegmentado). Por eso son dos pasos: difuminar,
-  // y luego recortar el resultado contra la silueta original -- el halo que
-  // el desenfoque dejó por fuera se descarta y solo sobrevive la parte del
-  // degradado que cae dentro de la máscara.
-  var radio = Math.max(1, Math.round(Math.min(ancho, alto) * 0.004));
+  // Antialias fotográfico subpíxel. El radio anterior (0.4 % del lado menor)
+  // llegaba a 2–4 px y revelaba un halo del esmalte viejo. Aquí la transición
+  // queda limitada aproximadamente a un píxel y después se sesga su alfa
+  // hacia la carilla. destination-in impide que el blur crezca sobre encía.
+  var radio = Math.max(0.55, Math.min(1.1, Math.min(ancho, alto) * 0.00135));
   var suave = document.createElement('canvas');
   suave.width = ancho; suave.height = alto;
   var sctx2 = suave.getContext('2d');
@@ -5804,6 +5800,13 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
     sctx2.globalCompositeOperation = 'destination-in';
     sctx2.drawImage(mascara, 0, 0);
     sctx2.globalCompositeOperation = 'source-over';
+    var suaveData = sctx2.getImageData(0, 0, ancho, alto);
+    for (var si = 3; si < suaveData.data.length; si += 4) {
+      var alfaNormalizada = suaveData.data[si] / 255;
+      suaveData.data[si] = alfaNormalizada < 0.025 ? 0 :
+        Math.min(255, Math.round(255 * Math.pow(alfaNormalizada, 0.34)));
+    }
+    sctx2.putImageData(suaveData, 0, 0);
     return suave.toDataURL('image/png');
   }
   return mascara.toDataURL('image/png');
