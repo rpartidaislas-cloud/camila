@@ -3824,10 +3824,68 @@ function construirPromptGemini(diagnostico) {
   return partes.join(' ');
 }
 
+// Gemini genera mucho mejor anatomía cuando los dientes ocupan una porción
+// importante de la entrada. La foto completa se conserva como documento
+// maestro; sólo se envía a IA un recorte clínico de sonrisa y luego se vuelve
+// a insertar exactamente en sus coordenadas originales.
+async function prepararRecorteDental(fotoOriginalUrl, view) {
+  var img = await cargarImagenSegura(fotoOriginalUrl);
+  var W = img.naturalWidth, H = img.naturalHeight;
+  var esIntraoral = view === 'intraoral';
+  var x = 0, y = 0, w = W, h = H;
+  if (!esIntraoral) {
+    var esPerfil = view === 'right' || view === 'left';
+    var esHorizontal = W > H * 1.08;
+    if (esHorizontal) {
+      x = Math.round(W * (esPerfil ? 0.05 : 0.12));
+      y = Math.round(H * 0.34);
+      w = Math.round(W * (esPerfil ? 0.90 : 0.76));
+      h = Math.round(H * 0.58);
+    } else {
+      x = Math.round(W * (esPerfil ? 0.05 : 0.12));
+      y = Math.round(H * 0.43);
+      w = Math.round(W * (esPerfil ? 0.90 : 0.76));
+      h = Math.round(H * 0.40);
+    }
+    x = Math.max(0, Math.min(W - 2, x));
+    y = Math.max(0, Math.min(H - 2, y));
+    w = Math.max(2, Math.min(W - x, w));
+    h = Math.max(2, Math.min(H - y, h));
+  }
+  var crop = document.createElement('canvas');
+  crop.width = w; crop.height = h;
+  crop.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+  var dataUrl = crop.toDataURL('image/jpeg', 0.94);
+  return {
+    dataUrl: dataUrl,
+    b64: dataUrl.split(',')[1],
+    mimeType: 'image/jpeg',
+    rect: {x:x, y:y, w:w, h:h},
+    fullSize: {w:W, h:H},
+    isFull: x === 0 && y === 0 && w === W && h === H
+  };
+}
+
+async function reinsertarRecorteDental(fotoOriginalUrl, recorteCompuestoUrl, rect) {
+  var imagenes = await Promise.all([
+    cargarImagenSegura(fotoOriginalUrl),
+    cargarImagenSegura(recorteCompuestoUrl)
+  ]);
+  var original = imagenes[0], recorte = imagenes[1];
+  var out = document.createElement('canvas');
+  out.width = original.naturalWidth; out.height = original.naturalHeight;
+  var ctx = out.getContext('2d');
+  ctx.drawImage(original, 0, 0, out.width, out.height);
+  ctx.drawImage(recorte, rect.x, rect.y, rect.w, rect.h);
+  return out.toDataURL('image/png');
+}
+
 async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+  var fotoOriginalUrl = 'data:image/jpeg;base64,' + frontal.b64;
+  var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
   var tc = CFG.tenantConfig || {};
-  var basePrompt = 'DENTAL SMILE SIMULATION — LOCAL EDIT ONLY, NOT A FULL REGENERATION. Treat this as a surgical inpaint restricted to the teeth inside the mouth opening. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth.' +
+  var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. Treat this as a surgical inpaint restricted to visible dental enamel. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. ONLY modify the teeth selected for treatment. Do not outpaint, zoom, recenter or rebuild the mouth. Preserve every non-dental pixel.' +
     ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the teeth from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. Do NOT change the skin tone, lips, gums, eyes, hair, clothing or background — not even a subtle global tint. The darker or more saturated the chosen tooth shade is, the MORE important it is to keep this isolated: a dark tooth shade must never make the model darken, cool down, warm up or recolor the rest of the image to "match" — the teeth are the only thing allowed to change color. Pixel-perfect alignment with original photo outside the mouth.';
 
   // Tono elegido en la guía VITA (o "igual al actual" si S.vitaMode==='current').
@@ -3849,7 +3907,7 @@ async function generateSimulation(clinicalPrompt, foto) {
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
-  stylePrompt += ' TREATMENT SCOPE: apply porcelain veneers to the visible UPPER anterior teeth only (maxillary smile zone, normally 8 to 10 teeth depending on visibility). Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible, not a minimal retouch: harmonize width-to-height proportions, gently lengthen worn or short incisal edges when appropriate, close distracting dark spaces with realistic tooth volume and create a smooth smile arc. Preserve each tooth position and emergence point. Central incisors remain dominant, lateral incisors slightly smaller, and canines retain their characteristic transition anatomy. Do not make all crowns identical.';
+  stylePrompt += ' TREATMENT SCOPE: restore the visible UPPER teeth one-to-one. Every original maxillary tooth must remain the same identifiable tooth: preserve its emergence point, longitudinal axis, general position and relationship with its neighbors. Do not invent teeth and do not force a fixed tooth count. Give primary aesthetic emphasis to the SIX anterior teeth; include premolars only when they are naturally visible in this exact photograph. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible but anatomically credible: harmonize width-to-height proportions, moderately restore worn or short incisal edges and create natural contacts without shrinking the teeth to fit extra crowns. Central incisors must be the widest and most dominant; lateral incisors visibly smaller and slightly shorter; canines must preserve a stronger cervical body and characteristic cusp transition. Preserve subtle left-right variation. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -3874,7 +3932,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: headersEdgeIA(),
-    body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
+    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt})
   });
   // En horas de alta demanda Gemini puede acercarse al límite total de la
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
@@ -3891,11 +3949,14 @@ async function generateSimulation(clinicalPrompt, foto) {
   // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
   // Un fallo debe detener la simulación: mostrar la imagen completa de la IA
   // como respaldo rompería la garantía de conservar intacto el rostro.
-  var compuesta = await componerConOriginalSegmentado(
-    'data:image/jpeg;base64,' + frontal.b64,
+  var compuestaRecorte = await componerConOriginalSegmentado(
+    entradaDental.dataUrl,
     url,
     frontal.view || 'frontal'
   );
+  var compuesta = entradaDental.isFull
+    ? compuestaRecorte
+    : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
   if (!compuesta) throw new Error('No se pudo aislar la simulación exclusivamente dentro de los dientes. Intenta generar de nuevo.');
   // La composición ya nace en las coordenadas exactas del original; cualquier
   // ajuste manual guardado de una generación anterior volvería a desfasarla.
