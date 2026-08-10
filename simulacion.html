@@ -5700,27 +5700,53 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
       var fdi = String(m.fdi || m.parentFdi || '');
       return fdi.charAt(0) === '1' || fdi.charAt(0) === '2';
     });
-    if (superiores.length) {
-      seleccionadas = superiores;
-    } else {
-      // Respaldo por POSICIÓN cuando la notación FDI no vino o vino toda
-      // como inferior. Antes aquí se caía a `masks` completo -- es decir, a
-      // pegar carillas también sobre los dientes de abajo, que es justo lo
-      // que este filtro existe para evitar. assignFdiNotation (en
-      // segment-teeth) siempre parte las piezas en dos "arcadas" buscando
-      // el mayor hueco vertical, así que en una sonrisa donde casi solo se
-      // ve la arcada superior puede etiquetar piezas de arriba como
-      // inferiores. Con el centro vertical de cada máscara nos quedamos con
-      // la mitad de arriba, que es la zona estética real.
-      var conY = masks.filter(function(m) { return m.bbox && m.bbox.length === 4; });
-      if (conY.length) {
-        var centros = conY.map(function(m) { return m.bbox[1] + m.bbox[3] / 2; });
-        var minY = Math.min.apply(null, centros);
-        var maxY = Math.max.apply(null, centros);
-        var corte = minY + (maxY - minY) * 0.55;
-        var arriba = conY.filter(function(m) { return (m.bbox[1] + m.bbox[3] / 2) <= corte; });
-        if (arriba.length) seleccionadas = arriba;
+    // La posición manda cuando hay dos filas claras. La notación FDI puede
+    // venir incompleta o equivocada cuando sólo se ve una parte de la arcada;
+    // confiar en que exista *algún* FDI superior todavía dejaba pasar piezas
+    // inferiores mal rotuladas. Se detecta el mayor espacio entre centros
+    // verticales y sólo se acepta la fila superior cuando ese espacio tiene
+    // tamaño dental real. Si la toma contiene una sola fila, entonces sí se
+    // usa FDI; si tampoco hay FDI, se conserva esa única fila visible.
+    var conY = masks.filter(function(m) {
+      return m.bbox && m.bbox.length === 4 &&
+        m.bbox.every(function(v) { return Number.isFinite(Number(v)); });
+    });
+    var filaSuperior = [];
+    var hayDosFilas = false;
+    if (conY.length > 1) {
+      var ordenadas = conY.map(function(m) {
+        return {
+          mask: m,
+          centro: Number(m.bbox[1]) + Number(m.bbox[3]) / 2,
+          alto: Math.max(1, Number(m.bbox[3]))
+        };
+      }).sort(function(a, b) { return a.centro - b.centro; });
+      var altos = ordenadas.map(function(item) { return item.alto; })
+        .sort(function(a, b) { return a - b; });
+      var altoMediano = altos[Math.floor(altos.length / 2)];
+      var mayorHueco = 0, indiceCorte = -1;
+      for (var gi = 0; gi < ordenadas.length - 1; gi++) {
+        var hueco = ordenadas[gi + 1].centro - ordenadas[gi].centro;
+        if (hueco > mayorHueco) { mayorHueco = hueco; indiceCorte = gi; }
       }
+      // 22 % de la altura mediana separa filas, pero no divide una sola
+      // arcada por pequeñas diferencias naturales de posición/incisal.
+      if (indiceCorte >= 0 && mayorHueco >= Math.max(3, altoMediano * 0.22)) {
+        filaSuperior = ordenadas.slice(0, indiceCorte + 1).map(function(item) { return item.mask; });
+        hayDosFilas = filaSuperior.length > 0 && filaSuperior.length < conY.length;
+      }
+    }
+    if (hayDosFilas) {
+      seleccionadas = filaSuperior;
+    } else if (superiores.length) {
+      seleccionadas = superiores;
+    } else if (conY.length) {
+      seleccionadas = conY;
+    } else {
+      // Sin FDI y sin ubicación no hay forma segura de distinguir arcadas.
+      // Fallar permite reintentar; copiar ambas filas produciría un resultado
+      // clínicamente engañoso y el efecto de carilla sobrepuesta reportado.
+      throw new Error('No fue posible identificar con seguridad la arcada superior. Intenta generar de nuevo.');
     }
   }
   var union = new Uint8Array(ancho * alto);
