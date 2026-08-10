@@ -5700,7 +5700,54 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
       var fdi = String(m.fdi || m.parentFdi || '');
       return fdi.charAt(0) === '1' || fdi.charAt(0) === '2';
     });
-    if (superiores.length) seleccionadas = superiores;
+    // La posición manda cuando hay dos filas claras. La notación FDI puede
+    // venir incompleta o equivocada cuando sólo se ve una parte de la arcada;
+    // confiar en que exista *algún* FDI superior todavía dejaba pasar piezas
+    // inferiores mal rotuladas. Se detecta el mayor espacio entre centros
+    // verticales y sólo se acepta la fila superior cuando ese espacio tiene
+    // tamaño dental real. Si la toma contiene una sola fila, entonces sí se
+    // usa FDI; si tampoco hay FDI, se conserva esa única fila visible.
+    var conY = masks.filter(function(m) {
+      return m.bbox && m.bbox.length === 4 &&
+        m.bbox.every(function(v) { return Number.isFinite(Number(v)); });
+    });
+    var filaSuperior = [];
+    var hayDosFilas = false;
+    if (conY.length > 1) {
+      var ordenadas = conY.map(function(m) {
+        return {
+          mask: m,
+          centro: Number(m.bbox[1]) + Number(m.bbox[3]) / 2,
+          alto: Math.max(1, Number(m.bbox[3]))
+        };
+      }).sort(function(a, b) { return a.centro - b.centro; });
+      var altos = ordenadas.map(function(item) { return item.alto; })
+        .sort(function(a, b) { return a - b; });
+      var altoMediano = altos[Math.floor(altos.length / 2)];
+      var mayorHueco = 0, indiceCorte = -1;
+      for (var gi = 0; gi < ordenadas.length - 1; gi++) {
+        var hueco = ordenadas[gi + 1].centro - ordenadas[gi].centro;
+        if (hueco > mayorHueco) { mayorHueco = hueco; indiceCorte = gi; }
+      }
+      // 22 % de la altura mediana separa filas, pero no divide una sola
+      // arcada por pequeñas diferencias naturales de posición/incisal.
+      if (indiceCorte >= 0 && mayorHueco >= Math.max(3, altoMediano * 0.22)) {
+        filaSuperior = ordenadas.slice(0, indiceCorte + 1).map(function(item) { return item.mask; });
+        hayDosFilas = filaSuperior.length > 0 && filaSuperior.length < conY.length;
+      }
+    }
+    if (hayDosFilas) {
+      seleccionadas = filaSuperior;
+    } else if (superiores.length) {
+      seleccionadas = superiores;
+    } else if (conY.length) {
+      seleccionadas = conY;
+    } else {
+      // Sin FDI y sin ubicación no hay forma segura de distinguir arcadas.
+      // Fallar permite reintentar; copiar ambas filas produciría un resultado
+      // clínicamente engañoso y el efecto de carilla sobrepuesta reportado.
+      throw new Error('No fue posible identificar con seguridad la arcada superior. Intenta generar de nuevo.');
+    }
   }
   var union = new Uint8Array(ancho * alto);
   for (var i = 0; i < seleccionadas.length; i++) {
@@ -5728,6 +5775,36 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
   mctx.putImageData(data, 0, 0);
   if (activos < Math.max(30, ancho * alto * 0.00005) || activos > ancho * alto * 0.18) {
     throw new Error('La máscara dental obtenida no tiene una extensión válida.');
+  }
+
+  // Suaviza el borde. Con la máscara binaria (alfa 0 o 255, sin nada en
+  // medio) el diente generado terminaba en un canto perfectamente recortado
+  // contra la foto original -- que es exactamente la sensación de "carilla
+  // sobrepuesta / calcomanía pegada" que se reportó. Una foto real no tiene
+  // bordes así: hay penumbra, sombra y algo de desenfoque en el límite entre
+  // diente y encía/labio.
+  //
+  // Importante: el degradado tiene que quedar HACIA ADENTRO del diente. Si
+  // el borde creciera hacia afuera se copiaría color de la IA sobre la
+  // encía, que es justo el problema de líneas rojizas ya corregido antes
+  // (ver componerConOriginalSegmentado). Por eso son dos pasos: difuminar,
+  // y luego recortar el resultado contra la silueta original -- el halo que
+  // el desenfoque dejó por fuera se descarta y solo sobrevive la parte del
+  // degradado que cae dentro de la máscara.
+  var radio = Math.max(1, Math.round(Math.min(ancho, alto) * 0.004));
+  var suave = document.createElement('canvas');
+  suave.width = ancho; suave.height = alto;
+  var sctx2 = suave.getContext('2d');
+  // Canvas filter no existe en iOS anteriores a 17; sin él simplemente se
+  // devuelve la máscara dura de siempre, sin romper nada.
+  if (typeof sctx2.filter === 'string') {
+    sctx2.filter = 'blur(' + radio + 'px)';
+    sctx2.drawImage(mascara, 0, 0);
+    sctx2.filter = 'none';
+    sctx2.globalCompositeOperation = 'destination-in';
+    sctx2.drawImage(mascara, 0, 0);
+    sctx2.globalCompositeOperation = 'source-over';
+    return suave.toDataURL('image/png');
   }
   return mascara.toDataURL('image/png');
 }

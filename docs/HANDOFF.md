@@ -10,6 +10,21 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (4) — Codex (integración de carillas sin efecto de sobreposición)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Integrado el feather interior de la máscara generado por Claude: suaviza el
+  canto de recorte sin expandir píxeles sobre encía o labios.
+- Endurecido el filtro de arcada superior. Si hay dos filas dentales claras,
+  se separan por el mayor espacio vertical entre centros y sólo se compone la
+  fila superior; FDI queda como respaldo para tomas de una sola fila.
+- Si no existen ni coordenadas válidas ni identificación FDI, la simulación
+  falla de forma explícita en lugar de copiar todas las máscaras y alcanzar
+  dientes inferiores.
+
+---
+
 ## 2026-08-10 (3) — Codex (carillas anatómicas: generación local de alta resolución)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
