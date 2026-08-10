@@ -1,9 +1,18 @@
 import { requireUser } from "../_shared/auth.ts";
-import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
+import {
+  checkAndConsumeLimit,
+  checkAndConsumeLimitProspecto,
+  checkLimitSinConsumir,
+  checkLimitPorIpProspecto,
+} from "../_shared/limits.ts";
 
 const CORS = {
+  // x-tenant-id lo manda simulacion.html en modo prospecto (ver
+  // headersEdgeIA). Sin declararlo aquí, el navegador corta la llamada en
+  // el preflight de CORS y el paciente ve un "problema de conexión" que no
+  // tiene nada que ver con su conexión.
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -52,28 +61,60 @@ Deno.serve(async (req: Request) => {
   if (authError) return authError;
   marca("después de requireUser");
 
-  // Tope de gasto server-side -- ver _shared/limits.ts. Va antes de leer el
-  // body: si el tenant ya agotó su plan (o, sin sesión, ya agotó el tope
-  // por IP), no tiene sentido ni parsear la llamada. Usa tenantId (resuelto
-  // por requireUser -- distingue dueño de staff), NUNCA user.id directo: un
-  // staff tiene un auth.uid() propio que no es el id de su clínica.
-  //
   // Modo prospecto (simulacion.html?clinica=<id>, sin sesión): el tenant_id
-  // viaja en un header en vez de la sesión -- checkAndConsumeLimitProspecto
-  // exige el tope real de esa clínica Y el tope por IP encima, para que
-  // nadie intente drenar el cupo de una clínica ajena solo por conocer su
-  // link público.
+  // viaja en un header en vez de la sesión.
   const tenantHeaderProspecto = user ? null : req.headers.get("x-tenant-id");
-  const { allowed, response: limitError } = tenantHeaderProspecto
-    ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, CORS)
-    : await checkAndConsumeLimit(req, tenantId, CORS);
-  if (!allowed) return limitError!;
-  marca("después de checkAndConsumeLimit");
+  // Tenant efectivo: de la sesión (requireUser ya distingue dueño de staff,
+  // NUNCA user.id directo) o del header en modo prospecto.
+  const tenantEfectivo = tenantHeaderProspecto || tenantId;
+
+  let body: any;
+  try {
+    body = await req.json();
+    marca("después de req.json()");
+  } catch {
+    return new Response(JSON.stringify({ error: "Body inválido." }), {
+      status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
+  // Tope de gasto server-side -- ver _shared/limits.ts.
+  //
+  // SOLO la generación de imagen descuenta del plan. Una sola simulación
+  // hace 4+ llamadas a esta función (validar encuadre, analizar
+  // proporciones, analizar fotos para el diagnóstico, generar la imagen) y
+  // cada una se reintenta hasta 2 veces sola (conReintento en
+  // simulacion.html): si todas descontaran, un plan de 40 "diagnósticos"
+  // daría ~10 simulaciones reales, y darle a "Reintentar" cerca del límite
+  // consumiría MÁS cupo, que es justo lo contrario de lo que el dentista
+  // espera. Las llamadas de análisis igual se verifican (clínica real,
+  // activa, con cupo disponible) y siguen sujetas al tope por IP en modo
+  // anónimo/prospecto -- simplemente no incrementan el contador.
+  const esGeneracionImagen = body?.action === "generate_image";
+  let limitCheck;
+  if (esGeneracionImagen) {
+    limitCheck = tenantHeaderProspecto
+      ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, CORS)
+      : await checkAndConsumeLimit(req, tenantEfectivo, CORS);
+  } else if (tenantHeaderProspecto) {
+    // Prospecto, llamada de análisis: no descuenta del plan, pero sí cuenta
+    // contra el tope por IP -- si no, se podrían spamear análisis (que
+    // cuestan Anthropic) usando el link público de una clínica sin tocar
+    // nunca su contador.
+    const porIp = await checkLimitPorIpProspecto(req, CORS);
+    limitCheck = porIp.allowed ? await checkLimitSinConsumir(tenantEfectivo, CORS) : porIp;
+  } else if (!user) {
+    // Anónimo puro (sin sesión y sin link de clínica): el tope estricto por
+    // IP aplica a TODAS sus llamadas, igual que antes de este cambio.
+    limitCheck = await checkAndConsumeLimit(req, null, CORS);
+  } else {
+    limitCheck = await checkLimitSinConsumir(tenantEfectivo, CORS);
+  }
+  if (!limitCheck.allowed) return limitCheck.response!;
+  marca("después del chequeo de límite");
 
   try {
-    const body = await req.json();
-    marca("después de req.json()");
-    console.log("Llamada de:", user?.id, "-- tenant:", tenantId);
+    console.log("Llamada de:", user?.id, "-- tenant:", tenantEfectivo, "-- descuenta:", esGeneracionImagen);
     console.log("Body keys:", Object.keys(body).join(", "));
 
     // ── GENERAR IMAGEN CON GEMINI ────────────────────────────────────────────

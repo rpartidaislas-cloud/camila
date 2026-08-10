@@ -622,10 +622,11 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
      branding/precios personalizados de un dentista sin identificarse. -->
 <div id="dentist-login-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;overflow-y:auto">
   <div style="width:100%;max-width:340px;background:#12101f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;margin:auto 0;position:relative">
-    <button type="button" onclick="cerrarLoginSim()" aria-label="Cerrar" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;line-height:1;cursor:pointer;padding:4px">×</button>
+    <button type="button" id="dl-cerrar" onclick="cerrarLoginSim()" aria-label="Cerrar" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;line-height:1;cursor:pointer;padding:4px">×</button>
     <img src="icons/smyl_logo.png" alt="SMYL" style="height:26px;width:auto;display:block;margin-bottom:18px">
     <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Accede a tu cuenta</div>
     <div style="font-size:12.5px;color:rgba(255,255,255,.5);margin-bottom:18px">Con el mismo correo y contraseña de tu panel</div>
+    <div id="dl-aviso-sesion" style="display:none;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:11px;padding:11px 13px;margin-bottom:16px;font-size:12.5px;line-height:1.5;color:#FCD34D">Inicia sesión para que el caso se guarde en tu panel y la simulación use tu marca y tus precios.</div>
 
     <div style="display:flex;background:rgba(255,255,255,.06);border-radius:12px;padding:4px;margin-bottom:18px">
       <div id="dl-tab-login" class="dl-tab dl-tab-activo" role="tab" tabindex="0" onclick="switchDlTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchDlTab('login')}" style="flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer">Iniciar sesión</div>
@@ -1381,11 +1382,15 @@ function cargarTenantConfig(tid) {
 }
 
 // ══ LOGIN OBLIGATORIO — mismo Supabase Auth que app.html ══
-// Ya no hay entrada libre por link (?tenant=id) para pacientes: para usar
-// la simulación hay que iniciar sesión con la misma cuenta del panel. El
-// overlay de login está visible por defecto (ver HTML) y solo se oculta
-// cuando confirmamos una sesión válida — así el paciente nunca llega a
-// ver la pantalla de inicio sin que el dentista haya entrado primero.
+// Hay exactamente DOS formas de entrar, ninguna anónima (ver checkLogin):
+//   1. Dentista/staff con sesión del panel → entrarConSesion().
+//   2. Paciente por el link público de una clínica, ?clinica=<tenant_id>
+//      → entrarComoProspecto(). No necesita cuenta, pero SÍ sabe de qué
+//      clínica es lo que genera.
+// Sin ninguna de las dos, pedirSesionParaEntrar() bloquea la app con el
+// overlay de login (que arranca oculto en el HTML y se muestra desde JS).
+// El modo "sin sesión y sin clínica" se eliminó el 2026-08-10: producía
+// casos huérfanos que nunca llegaban a ningún panel.
 var sbAuth;
 try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 
@@ -1417,11 +1422,23 @@ function entrarConSesion(uid) {
 // arranca igual, con CFG.tenantId en null (sin branding/precios de un
 // dentista en particular) y usando la publishable key directo para hablar
 // con Supabase/las Edge Functions (que ya la aceptan sin sesión).
-function entrarSinSesion() {
-  document.getElementById('dentist-login-overlay').style.display = 'none';
+// Antes esto dejaba pasar a la app sin sesión ("login opcional", pedido
+// explícito en su momento). Se cerró el 2026-08-10 con evidencia dura: los
+// 2 de 2 casos que existían en la base quedaron huérfanos (tenant_id nulo o
+// 'local'), es decir FUERA del panel del dentista, sin que nadie lo notara.
+// Sin sesión también se pierde su marca/precios en la simulación y su cupo
+// del plan nunca se cobra. El modo paciente sigue existiendo, pero por el
+// link público con ?clinica=<id> (entrarComoProspecto), que sí sabe a qué
+// clínica pertenece lo que se genera.
+function pedirSesionParaEntrar() {
+  document.getElementById('dentist-login-overlay').style.display = 'flex';
   actualizarBotonLoginSim();
-  checkResumePrompt();
-  show('s-intro');
+  var aviso = document.getElementById('dl-aviso-sesion');
+  if (aviso) aviso.style.display = 'block';
+  // Sin sesión no hay a dónde ir: cerrar el overlay dejaría al usuario en la
+  // pantalla de inicio en el mismo estado anónimo que se acaba de cerrar.
+  var cerrar = document.getElementById('dl-cerrar');
+  if (cerrar) cerrar.style.display = 'none';
 }
 
 // ══ MODO PROSPECTO — paciente sin cuenta, entra por el link público que el
@@ -1453,11 +1470,22 @@ function entrarComoProspecto(tenantId) {
   show('s-intro');
 }
 
+// Apertura voluntaria del overlay (no la obligatoria de arranque): aquí sí
+// se puede cerrar, así que se restaura el × y se quita el aviso amarillo.
 function abrirLoginSim() {
   document.getElementById('dentist-login-overlay').style.display = 'flex';
+  var cerrar = document.getElementById('dl-cerrar');
+  if (cerrar) cerrar.style.display = '';
+  var aviso = document.getElementById('dl-aviso-sesion');
+  if (aviso) aviso.style.display = 'none';
 }
 
 function cerrarLoginSim() {
+  // Solo se puede cerrar si ya hay sesión -- si no, la simulación quedaría
+  // en el modo anónimo que produce casos huérfanos (ver
+  // pedirSesionParaEntrar). El botón × ya viene oculto en ese caso; esto es
+  // el cinturón por si se llega aquí por otra vía.
+  if (!CFG.userToken) return;
   document.getElementById('dentist-login-overlay').style.display = 'none';
 }
 
@@ -1487,7 +1515,7 @@ function cerrarSesionSim() {
   var clinicaProspecto = qp.get('clinica');
   if (clinicaProspecto) { entrarComoProspecto(clinicaProspecto); return; }
 
-  if (!sbAuth) { entrarSinSesion(); return; }
+  if (!sbAuth) { pedirSesionParaEntrar(); return; }
   sbAuth.auth.getSession().then(function(res) {
     var session = res.data && res.data.session;
     var user = session && session.user;
@@ -1495,9 +1523,9 @@ function cerrarSesionSim() {
       CFG.userToken = session.access_token;
       entrarConSesion(user.id);
     } else {
-      entrarSinSesion();
+      pedirSesionParaEntrar();
     }
-  }).catch(function(){ entrarSinSesion(); });
+  }).catch(function(){ pedirSesionParaEntrar(); });
 })();
 
 async function hacerLoginDentista() {
@@ -3254,6 +3282,17 @@ function esperar(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 // "Load failed" (el error genérico de Safari/WebKit para fallos de red) es
 // casi siempre transitorio: la pantalla se bloqueó un instante, cambió de
 // wifi a datos, etc. Un segundo intento resuelve la mayoría de los casos.
+// Marca los errores que vienen CON un motivo real del servidor (límite del
+// plan agotado, plan vencido, clínica inactiva, tope por IP...) para
+// distinguirlos de una caída de red. Sin esta marca, la pantalla de error
+// los trataba a todos igual y mostraba "problema de conexión · reintenta"
+// incluso cuando reintentar no podía arreglar nada.
+function errorDelServidor(mensaje) {
+  var e = new Error(mensaje);
+  e.esDelServidor = true;
+  return e;
+}
+
 async function conReintento(fn, intentos) {
   intentos = intentos || 2;
   var ultimoError;
@@ -3265,6 +3304,9 @@ async function conReintento(fn, intentos) {
       // Sólo se repiten desconexiones transitorias. Un timeout NO se repite:
       // la petición anterior puede seguir procesándose en el servidor y un
       // segundo intento duplicaría consumo/costo sin mejorar el resultado.
+      // (Los errores con motivo del servidor -- plan agotado, clínica
+      // inactiva -- tampoco caen aquí: no son fallos de red, así que
+      // salen del bucle sin reintentar, que es justo lo que se quiere.)
       var mensaje = String(e && e.message || e || '');
       var esFalloRed = mensaje === 'Load failed' ||
         /failed to fetch|networkerror|network request failed|connection.*lost/i.test(mensaje);
@@ -3514,15 +3556,29 @@ function mensajeErrorRegenerar(e) {
 }
 
 function mostrarErrorProceso(e) {
+  // Regla: el genérico de "problema de conexión" es el ÚLTIMO recurso, solo
+  // cuando de verdad no hay nada que decir. Cualquier error con mensaje
+  // propio se muestra tal cual -- da igual si viene del servidor (plan
+  // agotado), de la composición del canvas ("no se pudo aislar la
+  // simulación dentro de los dientes") o de donde sea. Esconderlos todos
+  // detrás de "problema de conexión · reintenta" nos dejó ciegos dos veces
+  // seguidas persiguiendo un error que la pantalla nunca dijo cuál era.
+  var esFalloRed = e && (e.message === 'Load failed' ||
+    /failed to fetch|networkerror|network request failed|connection.*lost/i.test(e.message || ''));
   var msg = 'Hubo un problema de conexión generando tu simulación. Tus fotos siguen guardadas — no hace falta repetirlas, solo reintenta.';
-  if (e && e.message === 'Load failed') {
+  if (esFalloRed) {
     msg = 'Se perdió la conexión mientras se generaba tu simulación — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Tus fotos siguen guardadas, solo dale reintentar.';
   } else if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
     // El mensaje real ya trae "tardó demasiado (X)" con el paso exacto que
     // se tardó -- se muestra tal cual en vez de un genérico "problema de
     // conexión" para no tener que adivinar cuál de los 3 pasos fue.
     msg = 'Tardó demasiado: ' + e.message.replace(/^tardó demasiado \(/i, '').replace(/\)\.?\s*Intenta de nuevo\.?$/i, '') + '. Puede pasar con conexiones lentas o mucha demanda. Tus fotos siguen guardadas, solo dale reintentar.';
+  } else if (e && e.message) {
+    msg = e.message + ' Tus fotos siguen guardadas.';
   }
+  // Rastro técnico siempre disponible, aunque el mensaje de arriba sea el
+  // genérico -- para no volver a depender de adivinar desde una captura.
+  console.error('[SMYL] fallo generando la simulación:', e);
   var detail = document.getElementById('proc-error-detail');
   if (detail) detail.textContent = msg;
 
@@ -3605,7 +3661,7 @@ async function analyzeWithClaude() {
   // habiendo botón "Reintentar").
   var resp = await conTimeout(fetchPromise, 150000, 'análisis de las fotos con Claude');
   var data = await resp.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw errorDelServidor(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -3634,7 +3690,7 @@ async function analizarConClaude(fotoFrontalBase64) {
   // pudiera responder.
   var resp = await conTimeout(fetchPromise, 110000, 'análisis de proporciones faciales');
   var data = await resp.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw errorDelServidor(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -3768,10 +3824,68 @@ function construirPromptGemini(diagnostico) {
   return partes.join(' ');
 }
 
+// Gemini genera mucho mejor anatomía cuando los dientes ocupan una porción
+// importante de la entrada. La foto completa se conserva como documento
+// maestro; sólo se envía a IA un recorte clínico de sonrisa y luego se vuelve
+// a insertar exactamente en sus coordenadas originales.
+async function prepararRecorteDental(fotoOriginalUrl, view) {
+  var img = await cargarImagenSegura(fotoOriginalUrl);
+  var W = img.naturalWidth, H = img.naturalHeight;
+  var esIntraoral = view === 'intraoral';
+  var x = 0, y = 0, w = W, h = H;
+  if (!esIntraoral) {
+    var esPerfil = view === 'right' || view === 'left';
+    var esHorizontal = W > H * 1.08;
+    if (esHorizontal) {
+      x = Math.round(W * (esPerfil ? 0.05 : 0.12));
+      y = Math.round(H * 0.34);
+      w = Math.round(W * (esPerfil ? 0.90 : 0.76));
+      h = Math.round(H * 0.58);
+    } else {
+      x = Math.round(W * (esPerfil ? 0.05 : 0.12));
+      y = Math.round(H * 0.43);
+      w = Math.round(W * (esPerfil ? 0.90 : 0.76));
+      h = Math.round(H * 0.40);
+    }
+    x = Math.max(0, Math.min(W - 2, x));
+    y = Math.max(0, Math.min(H - 2, y));
+    w = Math.max(2, Math.min(W - x, w));
+    h = Math.max(2, Math.min(H - y, h));
+  }
+  var crop = document.createElement('canvas');
+  crop.width = w; crop.height = h;
+  crop.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+  var dataUrl = crop.toDataURL('image/jpeg', 0.94);
+  return {
+    dataUrl: dataUrl,
+    b64: dataUrl.split(',')[1],
+    mimeType: 'image/jpeg',
+    rect: {x:x, y:y, w:w, h:h},
+    fullSize: {w:W, h:H},
+    isFull: x === 0 && y === 0 && w === W && h === H
+  };
+}
+
+async function reinsertarRecorteDental(fotoOriginalUrl, recorteCompuestoUrl, rect) {
+  var imagenes = await Promise.all([
+    cargarImagenSegura(fotoOriginalUrl),
+    cargarImagenSegura(recorteCompuestoUrl)
+  ]);
+  var original = imagenes[0], recorte = imagenes[1];
+  var out = document.createElement('canvas');
+  out.width = original.naturalWidth; out.height = original.naturalHeight;
+  var ctx = out.getContext('2d');
+  ctx.drawImage(original, 0, 0, out.width, out.height);
+  ctx.drawImage(recorte, rect.x, rect.y, rect.w, rect.h);
+  return out.toDataURL('image/png');
+}
+
 async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+  var fotoOriginalUrl = 'data:image/jpeg;base64,' + frontal.b64;
+  var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
   var tc = CFG.tenantConfig || {};
-  var basePrompt = 'DENTAL SMILE SIMULATION — LOCAL EDIT ONLY, NOT A FULL REGENERATION. Treat this as a surgical inpaint restricted to the teeth inside the mouth opening. OUTPUT MUST BE IDENTICAL DIMENSIONS AND FRAMING AS INPUT. Same exact crop, same face position, same head angle, same background, same distance. ONLY modify the teeth — apply beautiful porcelain veneers inside the existing mouth. Do NOT move the head. Do NOT reframe. Do NOT change anything outside the teeth.' +
+  var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. Treat this as a surgical inpaint restricted to visible dental enamel. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. ONLY modify the teeth selected for treatment. Do not outpaint, zoom, recenter or rebuild the mouth. Preserve every non-dental pixel.' +
     ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the teeth from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. Do NOT change the skin tone, lips, gums, eyes, hair, clothing or background — not even a subtle global tint. The darker or more saturated the chosen tooth shade is, the MORE important it is to keep this isolated: a dark tooth shade must never make the model darken, cool down, warm up or recolor the rest of the image to "match" — the teeth are the only thing allowed to change color. Pixel-perfect alignment with original photo outside the mouth.';
 
   // Tono elegido en la guía VITA (o "igual al actual" si S.vitaMode==='current').
@@ -3793,7 +3907,7 @@ async function generateSimulation(clinicalPrompt, foto) {
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
-  stylePrompt += ' TREATMENT SCOPE: apply porcelain veneers to the visible UPPER anterior teeth only (maxillary smile zone, normally 8 to 10 teeth depending on visibility). Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible, not a minimal retouch: harmonize width-to-height proportions, gently lengthen worn or short incisal edges when appropriate, close distracting dark spaces with realistic tooth volume and create a smooth smile arc. Preserve each tooth position and emergence point. Central incisors remain dominant, lateral incisors slightly smaller, and canines retain their characteristic transition anatomy. Do not make all crowns identical.';
+  stylePrompt += ' TREATMENT SCOPE: restore the visible UPPER teeth one-to-one. Every original maxillary tooth must remain the same identifiable tooth: preserve its emergence point, longitudinal axis, general position and relationship with its neighbors. Do not invent teeth and do not force a fixed tooth count. Give primary aesthetic emphasis to the SIX anterior teeth; include premolars only when they are naturally visible in this exact photograph. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible but anatomically credible: harmonize width-to-height proportions, moderately restore worn or short incisal edges and create natural contacts without shrinking the teeth to fit extra crowns. Central incisors must be the widest and most dominant; lateral incisors visibly smaller and slightly shorter; canines must preserve a stronger cervical body and characteristic cusp transition. Preserve subtle left-right variation. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -3818,14 +3932,14 @@ async function generateSimulation(clinicalPrompt, foto) {
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: headersEdgeIA(),
-    body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
+    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt})
   });
   // En horas de alta demanda Gemini puede acercarse al límite total de la
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
   // todavía estaban por finalizar; 150s cubre ese margen sin espera infinita.
   var resp = await conTimeout(fetchPromise, 150000, 'generación de la imagen con IA');
   var data = await resp.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw errorDelServidor(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
 
@@ -3835,11 +3949,14 @@ async function generateSimulation(clinicalPrompt, foto) {
   // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
   // Un fallo debe detener la simulación: mostrar la imagen completa de la IA
   // como respaldo rompería la garantía de conservar intacto el rostro.
-  var compuesta = await componerConOriginalSegmentado(
-    'data:image/jpeg;base64,' + frontal.b64,
+  var compuestaRecorte = await componerConOriginalSegmentado(
+    entradaDental.dataUrl,
     url,
     frontal.view || 'frontal'
   );
+  var compuesta = entradaDental.isFull
+    ? compuestaRecorte
+    : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
   if (!compuesta) throw new Error('No se pudo aislar la simulación exclusivamente dentro de los dientes. Intenta generar de nuevo.');
   // La composición ya nace en las coordenadas exactas del original; cualquier
   // ajuste manual guardado de una generación anterior volvería a desfasarla.
@@ -5628,7 +5745,7 @@ async function solicitarSegmentacionDental(entrada) {
     })
   }), 90000, 'segmentación de los dientes');
   var data = await resp.json().catch(function(){ return {}; });
-  if (!resp.ok || data.error) throw new Error(data.error || ('La segmentación respondió ' + resp.status));
+  if (!resp.ok || data.error) throw errorDelServidor(data.error || ('La segmentación de dientes respondió ' + resp.status + '.'));
   return data.masks || [];
 }
 

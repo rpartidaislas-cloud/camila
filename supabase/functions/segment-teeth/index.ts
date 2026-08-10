@@ -30,8 +30,18 @@ import { ZipReader, BlobReader, Uint8ArrayWriter } from "https://deno.land/x/zip
 import { decode as decodePng } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_TOKEN") || "";
-const SB_URL = Deno.env.get("SB_URL") || "";
-const SB_SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+// SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY las inyecta Supabase sola en toda
+// Edge Function; SB_URL / SB_SERVICE_ROLE_KEY son secrets manuales que
+// existían en el proyecto viejo (el prefijo SUPABASE_ está reservado y no se
+// puede definir a mano). Este archivo leía SOLO los manuales, que nunca se
+// configuraron en el proyecto "Smyl" -- createClient recibía cadenas vacías
+// y reventaba con "supabaseUrl is required" en cada llamada. No se notó
+// antes porque hasta hace poco nada del flujo normal llamaba a esta función;
+// ahora la composición de la simulación la usa en cada caso.
+// Mismo orden de preferencia que _shared/auth.ts y _shared/limits.ts.
+const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
+const SB_SERVICE_ROLE_KEY =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
 const STORAGE_BUCKET = "camila-masks";
 
 const MODEL_VERSION =
@@ -321,6 +331,20 @@ async function uploadAll(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Falta de configuración, no del usuario: sin esto el fallo salía como
+  // "supabaseUrl is required" o como un error crudo de Replicate a media
+  // simulación, imposible de diagnosticar desde el celular de la doctora.
+  const faltantes: string[] = [];
+  if (!SB_URL || !SB_SERVICE_ROLE_KEY) faltantes.push("SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY");
+  if (!REPLICATE_API_TOKEN) faltantes.push("REPLICATE_API_TOKEN");
+  if (faltantes.length) {
+    console.error("[segment-teeth] faltan secrets:", faltantes.join(", "));
+    return new Response(
+      JSON.stringify({ error: "La segmentación no está configurada en el servidor (falta " + faltantes.join(" y ") + "). Avisa a soporte." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   // Esta función gasta créditos de Replicate y escribe en camila_casos con el
   // service role (que se salta RLS). Sin esta verificación aceptaba cualquier

@@ -10,6 +10,185 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (3) — Codex (carillas anatómicas: generación local de alta resolución)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La simulación facial ya no manda la fotografía completa a generación. Se
+  obtiene un recorte clínico de la sonrisa a resolución nativa, se genera y
+  segmenta únicamente en ese recorte, y después se reinserta en las
+  coordenadas exactas de la fotografía maestra. Esto da muchos más píxeles a
+  la anatomía dental y mantiene intactos rostro, labios, encías y encuadre.
+- Se eliminó la instrucción que forzaba "8 a 10" coronas, porque promovía
+  dientes estrechos, repetidos y de apariencia protésica. Ahora existe
+  correspondencia uno-a-uno con cada diente superior realmente visible, sin
+  inventar piezas ni cambiar los dientes inferiores.
+- El prompt exige jerarquía morfológica: centrales dominantes, laterales algo
+  menores y caninos con transición propia; además prohíbe expresamente el
+  patrón de teclas de piano/chiclets, la fila de dentadura, el blanco plano y
+  los bordes incisales idénticos.
+- No se realizó una generación pagada durante la validación. La prueba final
+  debe hacerse con una fotografía clínica real y revisar el resultado a 100 %
+  antes de usarlo como material de presentación al paciente.
+
+---
+
+## 2026-08-10 (2) — Claude Code (CAUSA REAL del "No se pudo generar tu simulación": segment-teeth nunca tuvo credenciales en el proyecto Smyl)
+
+**Tocado:** `supabase/functions/segment-teeth/index.ts`, `simulacion.html`,
+`mobile/www/simulacion.html`.
+
+Tras hacer que la pantalla de error mostrara el motivo real (ver entrada
+anterior), la siguiente captura del celular dijo por fin la verdad:
+**`Error: supabaseUrl is required`**. Con eso el diagnóstico fue directo.
+
+`segment-teeth/index.ts` leía sus credenciales así:
+```
+const SB_URL = Deno.env.get("SB_URL") || "";
+```
+— **solo** los secrets manuales `SB_URL`/`SB_SERVICE_ROLE_KEY`, sin caer a
+`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, que Supabase inyecta sola en
+toda Edge Function. Esos secrets manuales existían en el proyecto viejo
+(`gfogifozhhbzxhcbecgf`) y **nunca se configuraron en "Smyl"**, así que
+`createClient("", "")` reventaba en cada llamada. `_shared/auth.ts` y
+`_shared/limits.ts` ya usaban el fallback correcto desde siempre — solo
+este archivo se quedó atrás cuando se migró de proyecto.
+
+**Por qué no se había notado:** hasta hace pocos días nada del flujo normal
+llamaba a `segment-teeth` (solo `revision-clinica.html`, que casi no se
+usaba). Los cambios recientes de Codex hicieron que la **composición de
+cada simulación** la invoque, así que el bug latente pasó a romper el flujo
+principal.
+
+Arreglado con el mismo orden de preferencia que el resto
+(`SUPABASE_URL || SB_URL`), más una guarda al inicio del handler que
+responde un mensaje claro si faltan `SUPABASE_URL`/`SERVICE_ROLE_KEY` o
+`REPLICATE_API_TOKEN`, en vez de reventar a media simulación con un error
+críptico.
+
+**Lección para la próxima:** dos rondas completas se perdieron persiguiendo
+hipótesis equivocadas (cupo agotado, tope por IP) porque
+`mostrarErrorProceso()` disfrazaba TODO de "problema de conexión". Ya se
+corrigió para mostrar cualquier mensaje real; **no volver a meter errores
+detrás de un mensaje genérico** — el costo de depurar a ciegas desde una
+captura de celular es altísimo.
+
+**Falta verificar en producción:** que `REPLICATE_API_TOKEN` esté
+configurado como secret en Smyl y que el bucket `camila-masks` exista ahí
+(la función lo usa para subir las máscaras). Si falta cualquiera de los
+dos, la guarda nueva lo dirá claro en el mensaje de error.
+
+---
+
+## 2026-08-10 — Claude Code (fix: "No se pudo generar tu simulación" — el cupo del plan se agotaba 4x más rápido de lo debido)
+
+**Tocado:** `supabase/functions/_shared/limits.ts`,
+`supabase/functions/claude/index.ts`, `simulacion.html`,
+`mobile/www/simulacion.html`.
+
+Ricardo reportó que la simulación fallaba con "Hubo un problema de
+conexión generando tu simulación". Al revisar el código, ese mensaje es
+el **genérico por defecto** de `mostrarErrorProceso()` — solo se muestra
+cuando el error NO es caída de red ni timeout. O sea: el servidor sí
+estaba respondiendo con un motivo real, y la UI lo estaba disfrazando de
+problema de conexión (mandando a "Reintentar" ante errores que reintentar
+no arregla nunca). Tres bugs distintos, uno de ellos causa raíz:
+
+1. **CAUSA RAÍZ — cada llamada a la Edge Function `claude` descontaba un
+   "diagnóstico" del plan.** Una sola simulación hace **4+ llamadas**
+   (`validarEncuadreFrontal`, `analizarConClaude`, `analyzeWithClaude`,
+   `generateSimulation`), y tres de ellas están envueltas en
+   `conReintento` (hasta 2 intentos cada una) → hasta **7 descuentos por
+   simulación**. Un plan de 40 "diagnósticos/mes" daba ~10 simulaciones
+   reales, y darle a "Reintentar" cerca del límite consumía MÁS cupo.
+   Esto no se notaba antes de hoy porque el contador no se aplicaba de
+   verdad (ver entrada 2026-08-05 (3): `app.html` mandaba la llave
+   anónima, y el staff ni siquiera podía generar) — al arreglar eso hoy,
+   el contador empezó a funcionar y se agotó rápido con las pruebas del
+   día.
+   **Fix:** solo `action === 'generate_image'` descuenta del plan. Las
+   llamadas de análisis pasan por `checkLimitSinConsumir()` (nueva en
+   `limits.ts`) que verifica clínica real/activa/con cupo pero NO
+   incrementa. Para poder decidir según la acción hubo que mover el
+   `req.json()` ANTES del chequeo de límite (antes iba después a
+   propósito, para no parsear bodies grandes si el tenant ya estaba
+   agotado — se pierde esa micro-optimización a cambio de cobrar bien).
+2. **CORS incompleto para el modo prospecto** (bug que introduje yo el
+   mismo día): `simulacion.html` en modo prospecto manda el header
+   `X-Tenant-Id`, pero `claude/index.ts` no lo declaraba en
+   `Access-Control-Allow-Headers` — el navegador cortaba la llamada en el
+   preflight y el paciente veía "problema de conexión" sin que su
+   conexión tuviera nada que ver. Agregado `x-tenant-id`.
+3. **El error real se ocultaba.** `mostrarErrorProceso()` solo
+   distinguía "Load failed" y timeouts; cualquier otro error (incluidos
+   los 402 de límite de plan) caía al genérico de conexión. Ahora los
+   errores que traen un motivo del servidor se marcan explícitamente
+   (`errorDelServidor()`, pone `e.esDelServidor = true` en los 3 sitios
+   que hacen `throw` con `data.error`) y se muestran tal cual. De paso,
+   `conReintento` ya no reintenta esos errores — reintentar un "plan
+   agotado" solo retrasa el aviso y gasta otra llamada.
+
+**Ajuste de dimensionamiento relacionado:** el tope por IP del modo
+anónimo son 5 llamadas/hora. Como una simulación son ~4 llamadas, un
+prospecto quedaba bloqueado a media primera simulación. Se separó un
+`PROSPECTO_HOURLY_LIMIT` (default 20/hora ≈ 5 simulaciones por IP) para
+el modo prospecto, dejando el estricto de 5 para el anónimo puro (sin
+link de clínica). El cupo del plan de la clínica sigue siendo el límite
+real de gasto; el de IP es solo anti-abuso.
+
+**Falta aplicar en producción:** redesplegar `claude`
+(`supabase functions deploy claude --use-api`). `simulacion.html` se
+publica solo por GitHub Pages.
+
+**ACTUALIZACIÓN tras revisar la base de datos con Ricardo:** la hipótesis
+del cupo agotado era **incorrecta** — `diagnosticos_usados` estaba en 0 de
+40, plan activo y vigente, y ambas RPC (`camila_consumir_diagnostico`,
+`camila_anon_rate_check`) sí existen en el proyecto Smyl. Ese 0 es la
+pista real: si el contador nunca subió pese a un día entero de pruebas,
+las llamadas **no estaban llegando con sesión de dentista** — caían al
+camino anónimo (`tenantId` null en `requireUser`), cuyo tope era de 5
+llamadas/hora por IP. Con ~4 llamadas por simulación, la segunda
+simulación de cada hora se bloqueaba con "Demasiadas solicitudes sin
+iniciar sesión", que la pantalla mostraba como "problema de conexión".
+El tope anónimo se subió de 5 a 20/hora (≈5 simulaciones) por la misma
+razón que el de prospecto. **Falta confirmar por qué la sesión no llega
+al Edge Function** cuando se usa la simulación desde el celular — puede
+ser simplemente que no había sesión iniciada ahí, o algo más de fondo;
+revisar `camila_anon_usage` (si tiene filas con contador alto, confirma
+el diagnóstico) antes de dar el tema por cerrado.
+
+**CONFIRMADO Y CERRADO (2026-08-10):** `camila_anon_usage` tenía 3 filas,
+las tres con `contador = 5` clavado en el tope — huella inequívoca de que
+las llamadas entraban por el camino anónimo y se bloqueaban. Peor: un
+`count` sobre `camila_casos` dio **2 huérfanos de 2 totales, 0 en la
+clínica** — o sea, el 100% de las simulaciones hechas hasta ahora quedaron
+fuera del panel del dentista. Se reasignaron a mano con un `update
+camila_casos set tenant_id = '<id>' where tenant_id is null or tenant_id =
+'local'`.
+
+**Decisión tomada con Ricardo a raíz de eso: se ELIMINÓ el modo anónimo de
+`simulacion.html`.** El "login opcional" que se había pedido en su momento
+era la causa raíz de los casos huérfanos (y de que no se cargara marca ni
+precios, y de que el cupo del plan nunca se cobrara). Ahora hay
+exactamente dos entradas, ninguna anónima:
+  1. Dentista/staff con sesión → `entrarConSesion()`.
+  2. Paciente por link público `?clinica=<tenant_id>` →
+     `entrarComoProspecto()` (sin cuenta, pero con clínica identificada).
+Sin ninguna de las dos, `pedirSesionParaEntrar()` (reemplaza a la
+eliminada `entrarSinSesion()`) bloquea la app con el overlay de login, con
+un aviso amarillo explicando por qué, el botón × oculto, y
+`cerrarLoginSim()` con guarda para que no se pueda esquivar.
+**Ojo para quien siga:** el tope anónimo por IP (`ANON_HOURLY_LIMIT`) ya
+casi no aplica a nadie con este cambio — solo quedaría para llamadas
+directas a la Edge Function sin pasar por la UI. El que importa ahora es
+`PROSPECTO_HOURLY_LIMIT`.
+
+**Pendiente de confirmar con Ricardo:** cuánto cupo le queda realmente
+(`select nombre, diagnosticos_usados, limite_diagnosticos, activo,
+vence_en from camila_tenants;`). Si ya está en el tope, el fix de arriba
+evita que se vuelva a agotar tan rápido, pero el contador actual hay que
+resetearlo a mano — el consumo de hoy fue casi todo de pruebas, no de
+pacientes reales.
 ## 2026-08-09 (4) — Codex (timeout de generación móvil)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
