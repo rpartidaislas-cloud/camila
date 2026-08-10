@@ -10,6 +10,75 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-06 (4) — Claude Code (fix: "No se pudo generar tu simulación" — el cupo del plan se agotaba 4x más rápido de lo debido)
+
+**Tocado:** `supabase/functions/_shared/limits.ts`,
+`supabase/functions/claude/index.ts`, `simulacion.html`,
+`mobile/www/simulacion.html`.
+
+Ricardo reportó que la simulación fallaba con "Hubo un problema de
+conexión generando tu simulación". Al revisar el código, ese mensaje es
+el **genérico por defecto** de `mostrarErrorProceso()` — solo se muestra
+cuando el error NO es caída de red ni timeout. O sea: el servidor sí
+estaba respondiendo con un motivo real, y la UI lo estaba disfrazando de
+problema de conexión (mandando a "Reintentar" ante errores que reintentar
+no arregla nunca). Tres bugs distintos, uno de ellos causa raíz:
+
+1. **CAUSA RAÍZ — cada llamada a la Edge Function `claude` descontaba un
+   "diagnóstico" del plan.** Una sola simulación hace **4+ llamadas**
+   (`validarEncuadreFrontal`, `analizarConClaude`, `analyzeWithClaude`,
+   `generateSimulation`), y tres de ellas están envueltas en
+   `conReintento` (hasta 2 intentos cada una) → hasta **7 descuentos por
+   simulación**. Un plan de 40 "diagnósticos/mes" daba ~10 simulaciones
+   reales, y darle a "Reintentar" cerca del límite consumía MÁS cupo.
+   Esto no se notaba antes de hoy porque el contador no se aplicaba de
+   verdad (ver entrada 2026-08-05 (3): `app.html` mandaba la llave
+   anónima, y el staff ni siquiera podía generar) — al arreglar eso hoy,
+   el contador empezó a funcionar y se agotó rápido con las pruebas del
+   día.
+   **Fix:** solo `action === 'generate_image'` descuenta del plan. Las
+   llamadas de análisis pasan por `checkLimitSinConsumir()` (nueva en
+   `limits.ts`) que verifica clínica real/activa/con cupo pero NO
+   incrementa. Para poder decidir según la acción hubo que mover el
+   `req.json()` ANTES del chequeo de límite (antes iba después a
+   propósito, para no parsear bodies grandes si el tenant ya estaba
+   agotado — se pierde esa micro-optimización a cambio de cobrar bien).
+2. **CORS incompleto para el modo prospecto** (bug que introduje yo el
+   mismo día): `simulacion.html` en modo prospecto manda el header
+   `X-Tenant-Id`, pero `claude/index.ts` no lo declaraba en
+   `Access-Control-Allow-Headers` — el navegador cortaba la llamada en el
+   preflight y el paciente veía "problema de conexión" sin que su
+   conexión tuviera nada que ver. Agregado `x-tenant-id`.
+3. **El error real se ocultaba.** `mostrarErrorProceso()` solo
+   distinguía "Load failed" y timeouts; cualquier otro error (incluidos
+   los 402 de límite de plan) caía al genérico de conexión. Ahora los
+   errores que traen un motivo del servidor se marcan explícitamente
+   (`errorDelServidor()`, pone `e.esDelServidor = true` en los 3 sitios
+   que hacen `throw` con `data.error`) y se muestran tal cual. De paso,
+   `conReintento` ya no reintenta esos errores — reintentar un "plan
+   agotado" solo retrasa el aviso y gasta otra llamada.
+
+**Ajuste de dimensionamiento relacionado:** el tope por IP del modo
+anónimo son 5 llamadas/hora. Como una simulación son ~4 llamadas, un
+prospecto quedaba bloqueado a media primera simulación. Se separó un
+`PROSPECTO_HOURLY_LIMIT` (default 20/hora ≈ 5 simulaciones por IP) para
+el modo prospecto, dejando el estricto de 5 para el anónimo puro (sin
+link de clínica). El cupo del plan de la clínica sigue siendo el límite
+real de gasto; el de IP es solo anti-abuso.
+
+**Falta aplicar en producción:** redesplegar `claude`
+(`supabase functions deploy claude --use-api`). `simulacion.html` se
+publica solo por GitHub Pages.
+
+**Pendiente de confirmar con Ricardo:** cuánto cupo le queda realmente
+(`select nombre, diagnosticos_usados, limite_diagnosticos, activo,
+vence_en from camila_tenants;`). Si ya está en el tope, el fix de arriba
+evita que se vuelva a agotar tan rápido, pero el contador actual hay que
+resetearlo a mano — el consumo de hoy fue casi todo de pruebas, no de
+pacientes reales.
+
+---
+
 ## 2026-08-06 (3) — Claude Code (etapa 6: modo "prospecto" — pacientes se simulan su propia sonrisa desde casa)
 
 **Tocado:** `supabase/migrations/camila_prospecto.sql` (nuevo),

@@ -22,6 +22,15 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 const ANON_LIMITE_POR_HORA = Number(Deno.env.get('ANON_HOURLY_LIMIT') || '5');
 const ANON_VENTANA_SEG = 3600;
 
+// El modo prospecto necesita su propio techo por IP, más alto que el
+// anónimo puro: UNA simulación completa hace ~4 llamadas a esta función
+// (validar encuadre, analizar proporciones, generar imagen, diagnóstico),
+// así que con 5/hora un paciente quedaba bloqueado a media primera
+// simulación. 20/hora ≈ 5 simulaciones por IP por hora, que sigue siendo un
+// techo real contra abuso -- y encima está el cupo del plan de la clínica,
+// que es el que de verdad limita el gasto.
+const PROSPECTO_LIMITE_POR_HORA = Number(Deno.env.get('PROSPECTO_HOURLY_LIMIT') || '20');
+
 export interface LimitResult {
   allowed: boolean;
   response: Response | null;
@@ -46,6 +55,43 @@ const MENSAJES_TENANT: Record<string, string> = {
   plan_vencido: 'Tu plan venció. Renueva tu suscripción para seguir generando simulaciones.',
   limite_alcanzado: 'Alcanzaste el límite de diagnósticos de tu plan en este periodo.',
 };
+
+// Verifica que la clínica pueda seguir generando, SIN descontarle nada.
+// Existe porque una sola simulación hace VARIAS llamadas a la Edge
+// Function `claude` (validar encuadre + analizar proporciones + analizar
+// fotos + generar imagen, más los reintentos automáticos de conReintento):
+// si cada una descontara un "diagnóstico", un plan de 40 daría ~10
+// simulaciones reales en vez de 40, que no es lo que el dentista compró ni
+// lo que dice su plan. Solo la generación de imagen descuenta (ver
+// claude/index.ts); el resto pasa por aquí.
+export async function checkLimitSinConsumir(
+  tenantId: string | null,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  if (!tenantId) return { allowed: true, response: null };
+
+  const { data, error } = await admin
+    .from('camila_tenants')
+    .select('activo, vence_en, diagnosticos_usados, limite_diagnosticos')
+    .eq('id', tenantId)
+    .maybeSingle();
+
+  // Falla de infraestructura ajena al usuario -- mismo criterio que el
+  // resto de este archivo: no bloquear por eso, dejar rastro en los logs.
+  if (error) {
+    console.error('[limits] error verificando tenant:', error.message);
+    return { allowed: true, response: null };
+  }
+  if (!data) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.tenant_no_encontrado) };
+  if (!data.activo) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_inactivo) };
+  if (data.vence_en && new Date(data.vence_en as string) < new Date()) {
+    return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_vencido) };
+  }
+  if ((data.diagnosticos_usados as number) >= (data.limite_diagnosticos as number)) {
+    return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.limite_alcanzado) };
+  }
+  return { allowed: true, response: null };
+}
 
 // Llamar UNA vez por request, antes de gastar en la API externa. Si
 // allowed=false, response ya trae el error listo para devolver tal cual.
@@ -72,10 +118,18 @@ export async function checkAndConsumeLimit(
   }
 
   // Sin sesión (acceso anónimo temporalmente permitido, ver auth.ts).
+  return checkLimitPorIp(req, ANON_LIMITE_POR_HORA, cors);
+}
+
+async function checkLimitPorIp(
+  req: Request,
+  limitePorHora: number,
+  cors: Record<string, string>
+): Promise<LimitResult> {
   const ip = ipDelRequest(req);
   const { data, error } = await admin.rpc('camila_anon_rate_check', {
     p_ip: ip,
-    p_limite: ANON_LIMITE_POR_HORA,
+    p_limite: limitePorHora,
     p_ventana_seg: ANON_VENTANA_SEG,
   });
   if (error) {
@@ -85,7 +139,7 @@ export async function checkAndConsumeLimit(
   if (!data) {
     return {
       allowed: false,
-      response: limitDeny(cors, 429, 'Demasiadas solicitudes sin iniciar sesión. Inicia sesión o intenta más tarde.'),
+      response: limitDeny(cors, 429, 'Demasiadas solicitudes desde esta conexión. Intenta de nuevo en un rato.'),
     };
   }
   return { allowed: true, response: null };
@@ -106,7 +160,18 @@ export async function checkAndConsumeLimitProspecto(
   tenantIdCliente: string,
   cors: Record<string, string>
 ): Promise<LimitResult> {
-  const anonCheck = await checkAndConsumeLimit(req, null, cors);
-  if (!anonCheck.allowed) return anonCheck;
+  const porIp = await checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
+  if (!porIp.allowed) return porIp;
   return checkAndConsumeLimit(req, tenantIdCliente, cors);
+}
+
+// Tope por IP para las llamadas de prospecto que NO descuentan del plan
+// (los análisis previos a la imagen). Sin esto, alguien podría spamear
+// análisis con Anthropic gratis usando el link público de una clínica sin
+// tocar nunca su contador.
+export async function checkLimitPorIpProspecto(
+  req: Request,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  return checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
 }

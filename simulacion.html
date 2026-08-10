@@ -3249,6 +3249,17 @@ function esperar(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 // "Load failed" (el error genérico de Safari/WebKit para fallos de red) es
 // casi siempre transitorio: la pantalla se bloqueó un instante, cambió de
 // wifi a datos, etc. Un segundo intento resuelve la mayoría de los casos.
+// Marca los errores que vienen CON un motivo real del servidor (límite del
+// plan agotado, plan vencido, clínica inactiva, tope por IP...) para
+// distinguirlos de una caída de red. Sin esta marca, la pantalla de error
+// los trataba a todos igual y mostraba "problema de conexión · reintenta"
+// incluso cuando reintentar no podía arreglar nada.
+function errorDelServidor(mensaje) {
+  var e = new Error(mensaje);
+  e.esDelServidor = true;
+  return e;
+}
+
 async function conReintento(fn, intentos) {
   intentos = intentos || 2;
   var ultimoError;
@@ -3257,6 +3268,10 @@ async function conReintento(fn, intentos) {
       return await fn();
     } catch (e) {
       ultimoError = e;
+      // Si el servidor ya dio un motivo definitivo (plan agotado, clínica
+      // inactiva, tope por IP), reintentar no lo va a arreglar -- solo
+      // retrasa el aviso al usuario y gasta otra llamada.
+      if (e && e.esDelServidor) break;
       if (i < intentos - 1) await esperar(1500);
     }
   }
@@ -3502,9 +3517,17 @@ function mensajeErrorRegenerar(e) {
 }
 
 function mostrarErrorProceso(e) {
+  // El genérico de "problema de conexión" es SOLO el último recurso: si el
+  // servidor mandó un motivo real (límite del plan agotado, plan vencido,
+  // clínica no encontrada...), se muestra tal cual. Antes cualquier error
+  // que no fuera caída de red o timeout se disfrazaba de problema de
+  // conexión, así que el dentista veía "reintenta" ante un error que
+  // reintentar no arregla nunca -- y sin forma de saber qué pasó.
   var msg = 'Hubo un problema de conexión generando tu simulación. Tus fotos siguen guardadas — no hace falta repetirlas, solo reintenta.';
   if (e && e.message === 'Load failed') {
     msg = 'Se perdió la conexión mientras se generaba tu simulación — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Tus fotos siguen guardadas, solo dale reintentar.';
+  } else if (e && e.esDelServidor && e.message) {
+    msg = e.message;
   } else if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
     // El mensaje real ya trae "tardó demasiado (X)" con el paso exacto que
     // se tardó -- se muestra tal cual en vez de un genérico "problema de
@@ -3593,7 +3616,7 @@ async function analyzeWithClaude() {
   // habiendo botón "Reintentar").
   var resp = await conTimeout(fetchPromise, 150000, 'análisis de las fotos con Claude');
   var data = await resp.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw errorDelServidor(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -3622,7 +3645,7 @@ async function analizarConClaude(fotoFrontalBase64) {
   // pudiera responder.
   var resp = await conTimeout(fetchPromise, 110000, 'análisis de proporciones faciales');
   var data = await resp.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw errorDelServidor(data.error);
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -3810,7 +3833,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   });
   var resp = await conTimeout(fetchPromise, 110000, 'generación de la imagen con IA');
   var data = await resp.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) throw errorDelServidor(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
 
