@@ -690,9 +690,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       <div class="vita-option-card">
         <label>Intensidad del cambio</label>
         <div class="vita-segments" id="vita-intensity-options">
-          <button class="vita-segment" type="button" data-value="subtle" onclick="setVitaOption('intensity','subtle',this)">Sutil</button>
-          <button class="vita-segment active" type="button" data-value="balanced" onclick="setVitaOption('intensity','balanced',this)">Equilibrado</button>
-          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Notable</button>
+          <button class="vita-segment" type="button" data-value="subtle" onclick="setVitaOption('intensity','subtle',this)">Natural</button>
+          <button class="vita-segment active" type="button" data-value="balanced" onclick="setVitaOption('intensity','balanced',this)">Armónico</button>
+          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Hollywood</button>
         </div>
       </div>
     </div>
@@ -823,8 +823,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   </div>
   <div class="proc-list" id="proc-list">
     <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tu fotografía con IA</div>
-    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Detectando estructura dental</div>
-    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando proporciones faciales</div>
+    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Diseñando cada diente de forma individual</div>
+    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando proporciones dentofaciales</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Aplicando el tono de tus carillas</div>
     <div class="pstep" id="ps5"><div class="pstep-dot"></div>Generando simulación fotorrealista ✨</div>
   </div>
@@ -934,6 +934,19 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   <div class="res-photos" id="res-photos"></div>
 
   <div class="res-body">
+
+    <div id="sim-quality-card" style="display:none;margin-bottom:10px;padding:11px 12px;border-radius:12px;background:rgba(40,199,125,.08);border:1px solid rgba(40,199,125,.22)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span id="sim-quality-icon" style="font-size:15px">✓</span>
+          <div>
+            <div id="sim-quality-title" style="font-size:11.5px;font-weight:750;color:#B8F3D4">Control visual automático aprobado</div>
+            <div id="sim-quality-detail" style="margin-top:2px;font-size:9.5px;line-height:1.4;color:rgba(255,255,255,.48)">Arcada, cobertura, tono y anatomía revisados antes de mostrar el resultado.</div>
+          </div>
+        </div>
+        <span style="flex:0 0 auto;padding:4px 7px;border-radius:99px;background:rgba(255,255,255,.06);font-size:8px;font-weight:750;color:rgba(255,255,255,.55);letter-spacing:.45px">ORIENTATIVO</span>
+      </div>
+    </div>
 
     <!-- Acceso al editor morfológico. La pantalla y su lógica ya existían,
          pero no había ningún control visible que llamara a
@@ -1692,6 +1705,10 @@ var S = {
   // La máscara de la fotografía original se calcula una sola vez por toma.
   // Al regenerar solo se vuelve a segmentar el nuevo diseño de carillas.
   dentalMaskByView: {},
+  // Control visual local posterior a la generación. No realiza otra llamada
+  // de IA: resume cobertura, piezas detectadas, variación óptica y tono por
+  // cada vista para decidir si el resultado merece revisión manual.
+  simulationQualityByView: {},
   baVistaActual: 'frontal',
   timer: null,
   faceOk: false,
@@ -1792,6 +1809,7 @@ function saveProgress(screenId) {
     promptGeminiUsado: S.promptGeminiUsado,
     results: S.results,
     result: S.result,
+    simulationQualityByView: S.simulationQualityByView,
     baVistaActual: S.baVistaActual,
     baAlign: S.baAlign,
   };
@@ -1871,6 +1889,7 @@ function continuarProgreso() {
   S.promptGeminiUsado = snap.promptGeminiUsado || null;
   S.results = snap.results || {};
   S.result = snap.result || null;
+  S.simulationQualityByView = snap.simulationQualityByView || {};
   S.baVistaActual = snap.baVistaActual || 'frontal';
   S.baAlign = snap.baAlign || {};
 
@@ -1943,7 +1962,10 @@ function getPrecio(id) {
 // exacto también se envía al modelo para dirigir la simulación.
 var VITA_CLASSICAL = [
   {code:'B1',L:81.8,a:0.5,b:16.0,asset:'icons/vita/vita-b1-photo.png',copy:'El tono natural más luminoso, marfil neutro'},
-  {code:'A1',L:80.1,a:1.5,b:18.0,asset:'icons/vita/vita-a1-photo.png',copy:'Marfil claro, natural y ligeramente cálido'},
+  // Referencia visual medida sobre la propia muestra fotográfica A1 de SMYL
+  // (promedio de esmalte claro: sRGB 236/234/233). No sustituye una toma
+  // clínica calibrada; evita que la previsualización convierta A1 en beige.
+  {code:'A1',L:80.1,a:1.5,b:18.0,screenRgb:[236,234,233],asset:'icons/vita/vita-a1-photo.png',copy:'Marfil claro casi neutro, con calidez mínima'},
   {code:'B2',L:79.2,a:1.0,b:19.0,asset:'icons/vita/vita-b2-photo.png',copy:'Claro con calidez amarilla suave'},
   {code:'D2',L:78.4,a:1.2,b:15.5,asset:'icons/vita/vita-d2-photo.png',copy:'Claro con matiz cálido rojizo muy sutil'},
   {code:'A2',L:77.6,a:2.0,b:20.5,asset:'icons/vita/vita-a2-photo.png',copy:'Marfil medio-claro de apariencia natural'},
@@ -2203,7 +2225,9 @@ function colorPromedioDientes(imagenUrl) {
 }
 
 VITA_CLASSICAL.forEach(function(shade) {
-  var ref=vitaLabPantallaSim(shade),rgb=labARgbSim(ref.L,ref.a,ref.b);
+  var ref=vitaLabPantallaSim(shade),rgb=shade.screenRgb ?
+    {r:shade.screenRgb[0],g:shade.screenRgb[1],b:shade.screenRgb[2]} :
+    labARgbSim(ref.L,ref.a,ref.b);
   var hi={r:Math.min(255,rgb.r+24),g:Math.min(255,rgb.g+22),b:Math.min(255,rgb.b+18)};
   var lo={r:Math.max(0,rgb.r-25),g:Math.max(0,rgb.g-23),b:Math.max(0,rgb.b-20)};
   shade.color='rgb('+rgb.r+','+rgb.g+','+rgb.b+')';
@@ -2302,7 +2326,7 @@ function actualizarVistaPreviaVita() {
   tooth.style.setProperty('--shade-lo', S.vitaMode === 'current' ? '#BBAE98' : shade.lo);
   tooth.style.setProperty('--shade-depth', S.vitaMode === 'current' ? '.055' : shade.depth.toFixed(3));
   var finishLabels = {natural:'Natural',translucent:'Translúcido',luminous:'Luminoso'};
-  var intensityLabels = {subtle:'Cambio sutil',balanced:'Cambio equilibrado',notable:'Cambio notable'};
+  var intensityLabels = {subtle:'Diseño natural',balanced:'Diseño armónico',notable:'Diseño Hollywood'};
   var title = document.getElementById('vita-preview-title');
   var finish = document.getElementById('vita-preview-finish');
   var intensity = document.getElementById('vita-preview-intensity');
@@ -2662,10 +2686,19 @@ async function elegirTonoActualDesdeResultado() {
 function aplicarResultadoRecoloreado(view, url) {
   S.results[view] = url;
   if (view === 'frontal') S.result = url;
+  // El cambio rápido de tono conserva la geometría previamente validada,
+  // pero modifica ópticamente el esmalte. No reutilizamos silenciosamente
+  // la aprobación anterior: pedimos una comprobación visual del tono.
+  S.simulationQualityByView[view] = {
+    status: 'review',
+    issues: ['El tono se ajustó localmente; comprueba la coincidencia VITA y la naturalidad del esmalte.'],
+    metrics: {}
+  };
   var imgA = document.getElementById('img-a');
   if (imgA) imgA.src = url;
   initBASlider();
   renderResPhotos();
+  renderControlCalidadSimulacion();
 }
 
 function actualizarBotonVitaResultado() {
@@ -3899,15 +3932,18 @@ async function generateSimulation(clinicalPrompt, foto) {
     luminous:'clean luminous enamel with controlled highlights, never pure white or overexposed'
   }[S.vitaFinish] || 'balanced natural enamel translucency and restrained gloss';
   var intensityPrompt = {
-    subtle:'SUBTLE change: stay close to the patient original appearance and avoid dramatic whitening',
-    balanced:'BALANCED change: visibly improve the smile while retaining a believable natural result',
-    notable:'NOTICEABLE change: make the selected shade clearly visible while remaining clinically believable'
-  }[S.vitaIntensity] || 'BALANCED change: visibly improve the smile while retaining a believable natural result';
+    subtle:'NATURAL DESIGN: conservative contour refinement, restrained symmetry and a shade transition close to the patient; preserve more individual character',
+    balanced:'HARMONIC DESIGN: clearly improve alignment, proportion and smile arc while retaining believable individual anatomy',
+    notable:'HOLLYWOOD DESIGN: brighter, more symmetrical and more assertive proportions, but still individualized ceramic veneers—not oversized, opaque or identical crowns'
+  }[S.vitaIntensity] || 'HARMONIC DESIGN: clearly improve alignment, proportion and smile arc while retaining believable individual anatomy';
+  var shadeReferencePrompt = vitaShade.screenRgb ?
+    ' CALIBRATED SMYL DISPLAY REFERENCE: approximate sRGB ' + vitaShade.screenRgb.join(',') + ', measured from the app shade photograph. For A1 this must read as light near-neutral ivory with minimal yellow—not beige. Adapt it to the original illumination and preserve ceramic depth; this screen value is a visual reference, not a flat fill.' :
+    ' CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '.';
   var stylePrompt = S.vitaMode === 'current' ?
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
-    ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
+    ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '.' + shadeReferencePrompt + ' LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. VISUAL DESCRIPTION: ' + vitaShade.copy + '. Match the perceived shade consistently while retaining optically natural variation.';
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL CERAMIC REQUIREMENTS: interpret the selected VITA shade as a perceptual shade under the ORIGINAL illumination, not as one flat RGB fill. Build a continuous layered ceramic body with slightly warmer cervical dentin, a controlled-value middle third, and approximately 15–20 percent visually translucent incisal enamel. Include extremely subtle internal mamelons, a restrained opalescent incisal halo, natural mirror areas, convexity shadow transitions and narrow vertical specular highlights that follow the original light direction. Keep tiny natural value and texture variation between neighboring teeth while all remain recognizably within the selected VITA shade. AVOID: flat paint, uniform opaque fill, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness, repeated highlights or identical plastic-looking teeth.';
-  stylePrompt += ' TREATMENT SCOPE: restore the visible UPPER teeth one-to-one. Every original maxillary tooth must remain the same identifiable tooth: preserve its emergence point, longitudinal axis, general position and relationship with its neighbors. Do not invent teeth and do not force a fixed tooth count. Give primary aesthetic emphasis to the SIX anterior teeth; include premolars only when they are naturally visible in this exact photograph. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible but anatomically credible: harmonize width-to-height proportions, moderately restore worn or short incisal edges and create natural contacts without shrinking the teeth to fit extra crowns. The two central incisors are the widest and visually dominant pair, with softly individualized line angles; lateral incisors are distinctly narrower and about 0.5–1.0 mm visually shorter; canines retain a stronger cervical body, a subtle cusp and a natural transition toward the premolars. Preserve small left-right differences instead of mirror-copying crowns. Shape the incisal edges as a smooth progressive smile arc parallel to the lower lip—not a single flat line. Contacts must be broad enough cervically and separate into clean, small incisal embrasures; never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from the existing gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
+  stylePrompt += ' INDIVIDUAL TOOTH DESIGN: restore the visible UPPER teeth one-to-one. Every original maxillary tooth remains the same identifiable tooth and keeps its exact gingival emergence point and root reference. You MAY correct the VISIBLE CORONAL axis, rotation and alignment through the veneer facial contour, transition line angles and contact design; this is required when the original crowns look crowded or rotated. Do not move gingival margins, translate the whole arch, enlarge the mouth or invent teeth. Give primary aesthetic emphasis to the SIX anterior teeth; include premolars only when naturally visible. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. PROPORTIONAL TEMPLATE, adapted to facial type and perspective rather than forced mechanically: central-incisor width-to-height approximately 75–82 percent; lateral incisors about 70–78 percent of central crown width and visually 0.5–1.0 mm shorter; canines about 75–85 percent of central crown width with a stronger cervical body, subtle cusp and smooth posterior transition. Keep the central pair symmetric within a small natural tolerance, not cloned. Harmonize the dental midline with the facial midline and build a progressive incisal curve parallel to the lower lip. Correct visual crowding by conservative coronal contour and line-angle changes; never make the dental arch wider than the mouth or stack one veneer over another. Contacts must remain distinct, with clean small incisal embrasures and preserved interproximal shadows so the result never becomes one continuous white plate. Never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from the existing gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -5032,6 +5068,7 @@ async function regenerarSimulacion() {
     if (imgA) imgA.src = nuevoResultado;
     initBASlider();
     renderResPhotos();
+    renderControlCalidadSimulacion();
     registrarDiagnosticoUsado();
   } catch (e) {
     alert(mensajeErrorRegenerar(e));
@@ -5061,6 +5098,35 @@ function renderResPhotos() {
   }).join('');
 }
 
+function renderControlCalidadSimulacion() {
+  var card=document.getElementById('sim-quality-card');
+  var title=document.getElementById('sim-quality-title');
+  var detail=document.getElementById('sim-quality-detail');
+  var icon=document.getElementById('sim-quality-icon');
+  if(!card||!title||!detail||!icon)return;
+  var view=S.baVistaActual||'frontal';
+  var tieneResultado=!!((S.results||{})[view]);
+  var reporte=(S.simulationQualityByView||{})[view];
+  if(!tieneResultado){card.style.display='none';return;}
+  card.style.display='block';
+  if(!reporte){
+    card.style.background='rgba(245,158,11,.08)';
+    card.style.borderColor='rgba(245,158,11,.24)';
+    icon.textContent='◌';title.style.color='#F8D68A';
+    title.textContent='Resultado pendiente de control visual';
+    detail.textContent='Ábrelo en Revisión clínica avanzada antes de presentarlo.';
+    return;
+  }
+  var aprobado=reporte.status==='approved';
+  card.style.background=aprobado?'rgba(40,199,125,.08)':'rgba(245,158,11,.08)';
+  card.style.borderColor=aprobado?'rgba(40,199,125,.22)':'rgba(245,158,11,.24)';
+  icon.textContent=aprobado?'✓':'!';title.style.color=aprobado?'#B8F3D4':'#F8D68A';
+  title.textContent=aprobado?'Control visual automático aprobado':'Resultado recomendado para revisión';
+  detail.textContent=aprobado?
+    'Arcada superior, cobertura, variación óptica y proporciones dentro del rango visual.' :
+    (reporte.issues||[]).slice(0,3).join(' · ') || 'Conviene revisarlo antes de presentarlo.';
+}
+
 // Cambia qué foto/simulación muestra el slider antes/después. Las vistas
 // que no se generaron automáticamente (solo la frontal se genera sola,
 // ver processPhotos) se pueden ver igual -- muestran la foto original de
@@ -5076,6 +5142,7 @@ async function cambiarVistaBA(view) {
   initBASlider();
   renderResPhotos();
   actualizarBotonGenerar();
+  renderControlCalidadSimulacion();
 }
 
 // El mismo botón sirve para "generar por primera vez" (vista sin resultado
@@ -5176,6 +5243,7 @@ async function showResult() {
   renderResPhotos();
   actualizarBotonGenerar();
   renderDiagnostico();
+  renderControlCalidadSimulacion();
 
   show('s-res');
   initBASlider();
@@ -5688,6 +5756,11 @@ function canvasReducidoParaSegmentacion(canvas) {
   return reducido;
 }
 
+// Metadatos de la última selección superior. Se usan inmediatamente después
+// de componer el mismo resultado para un control visual local; no se mandan a
+// ningún servicio ni provocan otra inferencia/costo.
+var _ultimaSeleccionDental = [];
+
 async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
   if (!masks || !masks.length) throw new Error('La segmentación no encontró dientes visibles.');
   // En la simulación rápida las carillas se aplican a la zona estética
@@ -5748,6 +5821,7 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
       // clínicamente engañoso y el efecto de carilla sobrepuesta reportado.
       throw new Error('No fue posible identificar con seguridad la arcada superior. Intenta generar de nuevo.');
     }
+    _ultimaSeleccionDental = seleccionadas.slice();
   }
   var union = new Uint8Array(ancho * alto);
   for (var i = 0; i < seleccionadas.length; i++) {
@@ -5810,6 +5884,78 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
     return suave.toDataURL('image/png');
   }
   return mascara.toDataURL('image/png');
+}
+
+function medianaNumerica(valores) {
+  if (!valores.length) return 0;
+  var copia = valores.slice().sort(function(a,b){ return a-b; });
+  var mitad = Math.floor(copia.length / 2);
+  return copia.length % 2 ? copia[mitad] : (copia[mitad - 1] + copia[mitad]) / 2;
+}
+
+// Control orientativo y sin costo adicional. Evalúa la imagen que realmente
+// se va a mostrar, ya aislada por la máscara superior. No pretende sustituir
+// la revisión odontológica: detecta señales visuales evidentes para no llamar
+// "aprobado" a un render plano, casi sin cambio, excesivamente amarillo o con
+// proporciones centrales atípicas.
+function analizarCalidadVisualCarillas(original, alineada, mascara, view) {
+  var maxLado = 640;
+  var escala = Math.min(1, maxLado / Math.max(original.width, original.height));
+  var W = Math.max(1, Math.round(original.width * escala));
+  var H = Math.max(1, Math.round(original.height * escala));
+  function reducidoDe(origen) {
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    c.getContext('2d').drawImage(origen, 0, 0, W, H);
+    return c;
+  }
+  var oc = reducidoDe(original), ac = reducidoDe(alineada), mc = reducidoDe(mascara);
+  var op = oc.getContext('2d').getImageData(0,0,W,H).data;
+  var ap = ac.getContext('2d').getImageData(0,0,W,H).data;
+  var mp = mc.getContext('2d').getImageData(0,0,W,H).data;
+  var activos=0,cambiados=0,difTotal=0,lumN=0,lumSum=0,lumSq=0;
+  var claros=0,amarilloSum=0;
+  for (var i=0;i<mp.length;i+=4) {
+    if (mp[i+3] < 40) continue;
+    activos++;
+    var dif=(Math.abs(ap[i]-op[i])+Math.abs(ap[i+1]-op[i+1])+Math.abs(ap[i+2]-op[i+2]))/3;
+    difTotal+=dif; if(dif>10)cambiados++;
+    var lum=ap[i]*.299+ap[i+1]*.587+ap[i+2]*.114;
+    lumN++;lumSum+=lum;lumSq+=lum*lum;
+    if(lum>135){claros++;amarilloSum+=(ap[i]+ap[i+1])/2-ap[i+2];}
+  }
+  var cobertura=activos/(W*H);
+  var cambio=activos?cambiados/activos:0;
+  var lumMedia=lumN?lumSum/lumN:0;
+  var lumDesv=lumN?Math.sqrt(Math.max(0,lumSq/lumN-lumMedia*lumMedia)):0;
+  var amarillo=claros?amarilloSum/claros:0;
+  var cajas=_ultimaSeleccionDental.filter(function(m){return m.bbox&&m.bbox.length===4;}).map(function(m){
+    return {x:+m.bbox[0],y:+m.bbox[1],w:+m.bbox[2],h:+m.bbox[3]};
+  }).filter(function(b){return [b.x,b.y,b.w,b.h].every(Number.isFinite)&&b.w>0&&b.h>0;});
+  var problemas=[];
+  if(!activos||cobertura<.0004||cobertura>.16) problemas.push('cobertura dental irregular');
+  if(cambio<.32) problemas.push('cambio demasiado conservador');
+  if(lumDesv<7.5) problemas.push('textura óptica demasiado uniforme');
+  if(S.vitaMode!=='current'&&S.vitaTone==='A1'&&amarillo>17) problemas.push('A1 conserva demasiado amarillo');
+  if(view==='frontal') {
+    if(cajas.length<4) problemas.push('se detectaron pocas piezas superiores');
+    if(cajas.length) {
+      var centroX=(Math.min.apply(null,cajas.map(function(b){return b.x;}))+Math.max.apply(null,cajas.map(function(b){return b.x+b.w;})))/2;
+      var centrales=cajas.slice().sort(function(a,b){
+        return Math.abs((a.x+a.w/2)-centroX)-Math.abs((b.x+b.w/2)-centroX);
+      }).slice(0,2);
+      if(centrales.length===2){
+        var simetria=Math.abs(centrales[0].w-centrales[1].w)/Math.max(1,(centrales[0].w+centrales[1].w)/2);
+        var ratios=centrales.map(function(b){return b.w/b.h;});
+        if(simetria>.20) problemas.push('centrales con anchuras poco simétricas');
+        if(medianaNumerica(ratios)<.58||medianaNumerica(ratios)>1.02) problemas.push('proporción central fuera del rango visual');
+      }
+    }
+  }
+  return {
+    status:problemas.length?'review':'approved',
+    issues:problemas,
+    metrics:{pieces:cajas.length,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1)}
+  };
 }
 
 async function solicitarSegmentacionDental(entrada) {
@@ -5914,6 +6060,16 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     var sctx = salida.getContext('2d');
     sctx.drawImage(original, 0, 0);
     sctx.drawImage(alineada, 0, 0);
+    try {
+      S.simulationQualityByView[view || 'frontal'] = analizarCalidadVisualCarillas(
+        original, alineada, union, view || 'frontal'
+      );
+    } catch (qualityError) {
+      console.warn('No se pudo completar el control visual automático:', qualityError);
+      S.simulationQualityByView[view || 'frontal'] = {
+        status:'review',issues:['control visual incompleto'],metrics:{}
+      };
+    }
     return salida.toDataURL('image/png');
   } catch (e) {
     console.warn('No se pudo hacer la composición dental segmentada:', e);
@@ -5922,7 +6078,12 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     // recupera con el compositor dental local que no necesita red. Sigue
     // prohibido mostrar la cara completa generada por IA.
     var respaldoLocal = await componerConOriginal(fotoOriginalUrl, resultadoIAUrl);
-    if (respaldoLocal) return respaldoLocal;
+    if (respaldoLocal) {
+      S.simulationQualityByView[view || 'frontal'] = {
+        status:'review',issues:['segmentación avanzada no disponible; revisar contornos manualmente'],metrics:{}
+      };
+      return respaldoLocal;
+    }
     throw e;
   }
 }
@@ -6288,6 +6449,7 @@ function compartirConPaciente() {
 function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.dentalMaskByView = {};
+  S.simulationQualityByView = {};
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   S.vitaTone = null;
