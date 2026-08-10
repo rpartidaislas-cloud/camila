@@ -10,6 +10,31 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (6) — Codex (diseño individual por diente y control visual local)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El prompt de simulación dejó de tratar la sonrisa como una sola zona blanca:
+  define por separado centrales, laterales y caninos, sus proporciones,
+  contactos, troneras, eje clínico, línea media y arco de sonrisa. Permite
+  corregir el contorno coronal sin mover encía, boca, rostro ni toda la arcada.
+- Las intensidades ahora se presentan como `Natural`, `Armónico` y
+  `Hollywood`; incluso la última conserva anatomía individual y evita dientes
+  clonados, opacos o sobredimensionados.
+- La referencia visual A1 se midió desde el activo fotográfico incluido en la
+  app (`sRGB 236, 234, 233`) y se describe como marfil casi neutro con calidez
+  mínima, no beige ni amarillo. No sustituye una calibración clínica.
+- Añadido un control automático local, sin nuevas llamadas ni costo de IA,
+  que revisa cobertura, cambio real, textura óptica, amarillez A1, cantidad de
+  piezas superiores, simetría central y proporción ancho/alto. Su resultado es
+  orientativo y solicita revisión cuando hay indicios de error.
+- El cambio rápido de tono invalida la aprobación anterior y pide comprobar
+  nuevamente la coincidencia VITA y la naturalidad del esmalte.
+- No se modificó backend ni se añadieron reintentos automáticos. La generación
+  sigue siendo una sola llamada; la segmentación posterior limita la
+  composición a las coronas superiores detectadas.
+- La validación visual automatizada quedó bloqueada por el sandbox de Windows;
+  se realizaron comprobaciones de sintaxis, diff y sincronización.
 ## 2026-08-10 (5) — Codex (elimina halo amarillo y refuerza cerámica/anatomía)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
