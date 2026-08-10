@@ -10,6 +10,53 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (2) — Claude Code (CAUSA REAL del "No se pudo generar tu simulación": segment-teeth nunca tuvo credenciales en el proyecto Smyl)
+
+**Tocado:** `supabase/functions/segment-teeth/index.ts`, `simulacion.html`,
+`mobile/www/simulacion.html`.
+
+Tras hacer que la pantalla de error mostrara el motivo real (ver entrada
+anterior), la siguiente captura del celular dijo por fin la verdad:
+**`Error: supabaseUrl is required`**. Con eso el diagnóstico fue directo.
+
+`segment-teeth/index.ts` leía sus credenciales así:
+```
+const SB_URL = Deno.env.get("SB_URL") || "";
+```
+— **solo** los secrets manuales `SB_URL`/`SB_SERVICE_ROLE_KEY`, sin caer a
+`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, que Supabase inyecta sola en
+toda Edge Function. Esos secrets manuales existían en el proyecto viejo
+(`gfogifozhhbzxhcbecgf`) y **nunca se configuraron en "Smyl"**, así que
+`createClient("", "")` reventaba en cada llamada. `_shared/auth.ts` y
+`_shared/limits.ts` ya usaban el fallback correcto desde siempre — solo
+este archivo se quedó atrás cuando se migró de proyecto.
+
+**Por qué no se había notado:** hasta hace pocos días nada del flujo normal
+llamaba a `segment-teeth` (solo `revision-clinica.html`, que casi no se
+usaba). Los cambios recientes de Codex hicieron que la **composición de
+cada simulación** la invoque, así que el bug latente pasó a romper el flujo
+principal.
+
+Arreglado con el mismo orden de preferencia que el resto
+(`SUPABASE_URL || SB_URL`), más una guarda al inicio del handler que
+responde un mensaje claro si faltan `SUPABASE_URL`/`SERVICE_ROLE_KEY` o
+`REPLICATE_API_TOKEN`, en vez de reventar a media simulación con un error
+críptico.
+
+**Lección para la próxima:** dos rondas completas se perdieron persiguiendo
+hipótesis equivocadas (cupo agotado, tope por IP) porque
+`mostrarErrorProceso()` disfrazaba TODO de "problema de conexión". Ya se
+corrigió para mostrar cualquier mensaje real; **no volver a meter errores
+detrás de un mensaje genérico** — el costo de depurar a ciegas desde una
+captura de celular es altísimo.
+
+**Falta verificar en producción:** que `REPLICATE_API_TOKEN` esté
+configurado como secret en Smyl y que el bucket `camila-masks` exista ahí
+(la función lo usa para subir las máscaras). Si falta cualquiera de los
+dos, la guarda nueva lo dirá claro en el mensaje de error.
+
+---
+
 ## 2026-08-10 — Claude Code (fix: "No se pudo generar tu simulación" — el cupo del plan se agotaba 4x más rápido de lo debido)
 
 **Tocado:** `supabase/functions/_shared/limits.ts`,
