@@ -25,7 +25,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
-import { checkAndConsumeLimit } from "../_shared/limits.ts";
+import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
 import { ZipReader, BlobReader, Uint8ArrayWriter } from "https://deno.land/x/zipjs@v2.7.32/index.js";
 import { decode as decodePng } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
@@ -41,7 +41,7 @@ const IOU_THRESHOLD = 0.3;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id",
 };
 
 type Target = "tooth" | "gum";
@@ -334,7 +334,10 @@ serve(async (req) => {
   // (distingue dueño de staff, ver _shared/auth.ts) -- NUNCA usar
   // user?.id directo aquí, un staff tiene su propio auth.uid(), distinto
   // al id de su clínica.
-  const { allowed, response: limitError } = await checkAndConsumeLimit(req, tenantIdSesion, corsHeaders);
+  const tenantHeaderProspecto = user ? null : req.headers.get("x-tenant-id");
+  const { allowed, response: limitError } = tenantHeaderProspecto
+    ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, corsHeaders)
+    : await checkAndConsumeLimit(req, tenantIdSesion, corsHeaders);
   if (!allowed) return limitError!;
 
   try {

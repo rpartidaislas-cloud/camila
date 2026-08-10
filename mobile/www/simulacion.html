@@ -1271,6 +1271,7 @@ window.addEventListener('unhandledrejection', function(ev) {
 var CFG = {
   waNum: '523312345678',
   edgeUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/claude',
+  segmentUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/segment-teeth',
   edgeKey: 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo',
   supaKey: 'sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo',
   supaUrl: 'https://rpxshsiwoxdbuevjjpfw.supabase.co',
@@ -1660,6 +1661,9 @@ var S = {
   // que ya estaba recoloreado antes (eso iría degradando el color de a
   // poco en vez de dar siempre el tono exacto pedido).
   veneerBaseByView: {},
+  // La máscara de la fotografía original se calcula una sola vez por toma.
+  // Al regenerar solo se vuelve a segmentar el nuevo diseño de carillas.
+  dentalMaskByView: {},
   baVistaActual: 'frontal',
   timer: null,
   faceOk: false,
@@ -2645,6 +2649,7 @@ function actualizarBotonVitaResultado() {
 
 async function startCam() {
   S.photos = [];
+  S.dentalMaskByView = {};
   S.currentPhoto = 0;
   S._ovalReady = false;
   loadPrecios().catch(function(){}); // se necesita más adelante en la cotización -- se dispara ya para que esté lista a tiempo
@@ -3268,11 +3273,17 @@ async function conReintento(fn, intentos) {
       return await fn();
     } catch (e) {
       ultimoError = e;
-      // Si el servidor ya dio un motivo definitivo (plan agotado, clínica
-      // inactiva, tope por IP), reintentar no lo va a arreglar -- solo
-      // retrasa el aviso al usuario y gasta otra llamada.
-      if (e && e.esDelServidor) break;
-      if (i < intentos - 1) await esperar(1500);
+      // Sólo se repiten desconexiones transitorias. Un timeout NO se repite:
+      // la petición anterior puede seguir procesándose en el servidor y un
+      // segundo intento duplicaría consumo/costo sin mejorar el resultado.
+      // (Los errores con motivo del servidor -- plan agotado, clínica
+      // inactiva -- tampoco caen aquí: no son fallos de red, así que
+      // salen del bucle sin reintentar, que es justo lo que se quiere.)
+      var mensaje = String(e && e.message || e || '');
+      var esFalloRed = mensaje === 'Load failed' ||
+        /failed to fetch|networkerror|network request failed|connection.*lost/i.test(mensaje);
+      if (!esFalloRed || i >= intentos - 1) break;
+      await esperar(1500);
     }
   }
   throw ultimoError;
@@ -3804,7 +3815,7 @@ async function generateSimulation(clinicalPrompt, foto) {
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '. CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '. LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. SCREEN REFERENCE: ' + vitaShade.copy + '. Match this VITA reference consistently across every restored tooth.';
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL REQUIREMENTS: smooth even base color; subtle cervical warmth; gentle incisal translucency; natural internal depth; controlled vertical specular highlights; tiny natural variation between teeth. AVOID: flat paint, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness or identical plastic-looking teeth.';
-  stylePrompt += ' APPLY PORCELAIN VENEERS TO BOTH THE UPPER AND LOWER TEETH (maxillary and mandibular arches).';
+  stylePrompt += ' TREATMENT SCOPE: apply porcelain veneers to the visible UPPER anterior teeth only (maxillary smile zone, normally 8 to 10 teeth depending on visibility). Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. The veneer result must be clearly visible, not a minimal retouch: harmonize width-to-height proportions, gently lengthen worn or short incisal edges when appropriate, close distracting dark spaces with realistic tooth volume and create a smooth smile arc. Preserve each tooth position and emergence point. Central incisors remain dominant, lateral incisors slightly smaller, and canines retain their characteristic transition anatomy. Do not make all crowns identical.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -3831,7 +3842,10 @@ async function generateSimulation(clinicalPrompt, foto) {
     headers: headersEdgeIA(),
     body: JSON.stringify({action:'generate_image', imageBase64: frontal.b64, mimeType:'image/jpeg', prompt: prompt})
   });
-  var resp = await conTimeout(fetchPromise, 110000, 'generación de la imagen con IA');
+  // En horas de alta demanda Gemini puede acercarse al límite total de la
+  // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
+  // todavía estaban por finalizar; 150s cubre ese margen sin espera infinita.
+  var resp = await conTimeout(fetchPromise, 150000, 'generación de la imagen con IA');
   var data = await resp.json();
   if (data.error) throw errorDelServidor(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
@@ -3843,7 +3857,11 @@ async function generateSimulation(clinicalPrompt, foto) {
   // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
   // Un fallo debe detener la simulación: mostrar la imagen completa de la IA
   // como respaldo rompería la garantía de conservar intacto el rostro.
-  var compuesta = await componerConOriginal('data:image/jpeg;base64,' + frontal.b64, url);
+  var compuesta = await componerConOriginalSegmentado(
+    'data:image/jpeg;base64,' + frontal.b64,
+    url,
+    frontal.view || 'frontal'
+  );
   if (!compuesta) throw new Error('No se pudo aislar la simulación exclusivamente dentro de los dientes. Intenta generar de nuevo.');
   // La composición ya nace en las coordenadas exactas del original; cualquier
   // ajuste manual guardado de una generación anterior volvería a desfasarla.
@@ -5551,6 +5569,189 @@ function componerConOriginal(fotoOriginalUrl, resultadoIAUrl) {
   });
 }
 
+// Composición clínica basada en segmentación anatómica. La fotografía de la
+// IA nunca se usa como fondo: primero se alinea y después se recorta con la
+// máscara anatómica de las carillas restauradas. La fotografía original sigue
+// siendo el fondo y la arcada inferior permanece intacta.
+function cargarImagenSegura(url) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    if (/^https?:/i.test(url)) img.crossOrigin = 'anonymous';
+    img.onload = function(){ resolve(img); };
+    img.onerror = function(){ reject(new Error('No se pudo cargar una imagen para la composición dental.')); };
+    img.src = url;
+  });
+}
+
+function canvasReducidoParaSegmentacion(canvas) {
+  var maxLado = 1024;
+  var escala = Math.min(1, maxLado / Math.max(canvas.width, canvas.height));
+  var reducido = document.createElement('canvas');
+  reducido.width = Math.max(1, Math.round(canvas.width * escala));
+  reducido.height = Math.max(1, Math.round(canvas.height * escala));
+  reducido.getContext('2d').drawImage(canvas, 0, 0, reducido.width, reducido.height);
+  return reducido;
+}
+
+async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
+  if (!masks || !masks.length) throw new Error('La segmentación no encontró dientes visibles.');
+  // En la simulación rápida las carillas se aplican a la zona estética
+  // superior. Copiar la arcada inferior fue la causa de bordes gingivales
+  // rojizos y dientes inferiores artificiales. Se usa FDI (1x/2x = superior)
+  // y los fragmentos heredan el FDI de su diente principal.
+  var seleccionadas = masks;
+  if (arcada === 'upper') {
+    var superiores = masks.filter(function(m) {
+      var fdi = String(m.fdi || m.parentFdi || '');
+      return fdi.charAt(0) === '1' || fdi.charAt(0) === '2';
+    });
+    if (superiores.length) seleccionadas = superiores;
+  }
+  var union = new Uint8Array(ancho * alto);
+  for (var i = 0; i < seleccionadas.length; i++) {
+    var img = await cargarImagenSegura(seleccionadas[i].maskUrl);
+    var tmp = document.createElement('canvas');
+    tmp.width = ancho; tmp.height = alto;
+    var tctx = tmp.getContext('2d', {willReadFrequently:true});
+    tctx.drawImage(img, 0, 0, ancho, alto);
+    var px = tctx.getImageData(0, 0, ancho, alto).data;
+    for (var p = 0, j = 0; p < union.length; p++, j += 4) {
+      var valor = Math.max(px[j], px[j + 1], px[j + 2]);
+      if (valor > union[p]) union[p] = valor;
+    }
+  }
+  var mascara = document.createElement('canvas');
+  mascara.width = ancho; mascara.height = alto;
+  var mctx = mascara.getContext('2d');
+  var data = mctx.createImageData(ancho, alto);
+  var activos = 0;
+  for (var k = 0, q = 0; k < union.length; k++, q += 4) {
+    var a = union[k] > 96 ? 255 : 0;
+    if (a) activos++;
+    data.data[q] = 255; data.data[q + 1] = 255; data.data[q + 2] = 255; data.data[q + 3] = a;
+  }
+  mctx.putImageData(data, 0, 0);
+  if (activos < Math.max(30, ancho * alto * 0.00005) || activos > ancho * alto * 0.18) {
+    throw new Error('La máscara dental obtenida no tiene una extensión válida.');
+  }
+  return mascara.toDataURL('image/png');
+}
+
+async function solicitarSegmentacionDental(entrada) {
+  if (!S.casoId) S.casoId = generarUuid();
+  var resp = await conTimeout(fetch(CFG.segmentUrl, {
+    method: 'POST',
+    headers: headersEdgeIA(),
+    body: JSON.stringify({
+      imageUrl: entrada,
+      casoId: S.casoId,
+      tenantId: CFG.tenantId,
+      target: 'tooth'
+    })
+  }), 90000, 'segmentación de los dientes');
+  var data = await resp.json().catch(function(){ return {}; });
+  if (!resp.ok || data.error) throw new Error(data.error || ('La segmentación respondió ' + resp.status));
+  return data.masks || [];
+}
+
+async function segmentarCanvasDental(canvas, cacheKey) {
+  if (cacheKey && S.dentalMaskByView[cacheKey]) return S.dentalMaskByView[cacheKey];
+  var reducido = canvasReducidoParaSegmentacion(canvas);
+  var entrada = reducido.toDataURL('image/jpeg', 0.78);
+  var masks = await solicitarSegmentacionDental(entrada);
+  var mascaraUrl = await unirMascarasSegmentadas(masks, reducido.width, reducido.height, 'upper');
+  if (cacheKey) S.dentalMaskByView[cacheKey] = mascaraUrl;
+  return mascaraUrl;
+}
+
+// La primera simulación manda original y resultado en una sola imagen lado a
+// lado. Replicate hace UNA inferencia, después se separan ambas mitades. Esto
+// reduce el costo inicial y evita gastar dos solicitudes de segmentación.
+async function segmentarParDental(original, alineada, cacheKey) {
+  var maxLado = 720;
+  var escala = Math.min(1, maxLado / Math.max(original.width, original.height));
+  var w = Math.max(1, Math.round(original.width * escala));
+  var h = Math.max(1, Math.round(original.height * escala));
+  var par = document.createElement('canvas');
+  par.width = w * 2; par.height = h;
+  var pctx = par.getContext('2d');
+  pctx.drawImage(original, 0, 0, w, h);
+  pctx.drawImage(alineada, w, 0, w, h);
+  var masks = await solicitarSegmentacionDental(par.toDataURL('image/jpeg', 0.76));
+  var mascaraParUrl = await unirMascarasSegmentadas(masks, par.width, par.height);
+  var mascaraPar = await cargarImagenSegura(mascaraParUrl);
+  var izquierda = document.createElement('canvas');
+  var derecha = document.createElement('canvas');
+  izquierda.width = derecha.width = w;
+  izquierda.height = derecha.height = h;
+  izquierda.getContext('2d').drawImage(mascaraPar, 0, 0, w, h, 0, 0, w, h);
+  derecha.getContext('2d').drawImage(mascaraPar, w, 0, w, h, 0, 0, w, h);
+  var originalMaskUrl = izquierda.toDataURL('image/png');
+  var iaMaskUrl = derecha.toDataURL('image/png');
+  if (cacheKey) S.dentalMaskByView[cacheKey] = originalMaskUrl;
+  return [originalMaskUrl, iaMaskUrl];
+}
+
+async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, view) {
+  try {
+    var imagenes = await Promise.all([
+      cargarImagenSegura(fotoOriginalUrl),
+      cargarImagenSegura(resultadoIAUrl)
+    ]);
+    var imgOriginal = imagenes[0], imgIA = imagenes[1];
+    var W = imgOriginal.naturalWidth, H = imgOriginal.naturalHeight;
+    var original = document.createElement('canvas');
+    original.width = W; original.height = H;
+    original.getContext('2d').drawImage(imgOriginal, 0, 0, W, H);
+
+    var align = buscarAlineacionImagenes(imgOriginal, imgIA);
+    var alineada = document.createElement('canvas');
+    alineada.width = W; alineada.height = H;
+    var actx = alineada.getContext('2d');
+    actx.save();
+    if (align.angulo) {
+      actx.translate(W / 2, H / 2);
+      actx.rotate(align.angulo * Math.PI / 180);
+      actx.translate(-W / 2, -H / 2);
+    }
+    var w = W * align.escala, h = H * align.escala;
+    actx.drawImage(imgIA, (W - w) / 2 + align.dx * W, (H - h) / 2 + align.dy * H, w, h);
+    actx.restore();
+
+    // Se usa exclusivamente la máscara de las CARILLAS generadas. La unión
+    // con la máscara de dientes originales copiaba encía de la IA en las
+    // zonas donde cambiaba un contorno, produciendo líneas rojas entre piezas.
+    var mascaraIAUrl = await segmentarCanvasDental(alineada, null);
+    var maskIA = await cargarImagenSegura(mascaraIAUrl);
+    var union = document.createElement('canvas');
+    union.width = W; union.height = H;
+    var uctx = union.getContext('2d');
+    uctx.drawImage(maskIA, 0, 0, W, H);
+
+    // Recorte estricto: fuera de la unión dental no sobrevive ni un solo
+    // píxel de la imagen generada.
+    actx.globalCompositeOperation = 'destination-in';
+    actx.drawImage(union, 0, 0);
+    actx.globalCompositeOperation = 'source-over';
+
+    var salida = document.createElement('canvas');
+    salida.width = W; salida.height = H;
+    var sctx = salida.getContext('2d');
+    sctx.drawImage(original, 0, 0);
+    sctx.drawImage(alineada, 0, 0);
+    return salida.toDataURL('image/png');
+  } catch (e) {
+    console.warn('No se pudo hacer la composición dental segmentada:', e);
+    // Replicate es una mejora de precisión, no debe convertirse en un punto
+    // único de fallo. Si su inferencia, URL firmada o CORS no responde, se
+    // recupera con el compositor dental local que no necesita red. Sigue
+    // prohibido mostrar la cara completa generada por IA.
+    var respaldoLocal = await componerConOriginal(fotoOriginalUrl, resultadoIAUrl);
+    if (respaldoLocal) return respaldoLocal;
+    throw e;
+  }
+}
+
 // Ajuste de alineación por vista — S.baAlign[viewId] = {x, y, scale}, con
 // x/y como fracción del tamaño de la foto (no píxeles), para que se vea
 // igual en pantalla completa (modo ajuste) y en la vista normal reducida.
@@ -5911,6 +6112,7 @@ function compartirConPaciente() {
 
 function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
+  S.dentalMaskByView = {};
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   S.vitaTone = null;

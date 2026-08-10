@@ -10,7 +10,7 @@ Las entradas más nuevas van arriba.
 
 ---
 
-## 2026-08-06 (4) — Claude Code (fix: "No se pudo generar tu simulación" — el cupo del plan se agotaba 4x más rápido de lo debido)
+## 2026-08-10 — Claude Code (fix: "No se pudo generar tu simulación" — el cupo del plan se agotaba 4x más rápido de lo debido)
 
 **Tocado:** `supabase/functions/_shared/limits.ts`,
 `supabase/functions/claude/index.ts`, `simulacion.html`,
@@ -76,6 +76,84 @@ vence_en from camila_tenants;`). Si ya está en el tope, el fix de arriba
 evita que se vuelva a agotar tan rápido, pero el contador actual hay que
 resetearlo a mano — el consumo de hoy fue casi todo de pruebas, no de
 pacientes reales.
+## 2026-08-09 (4) — Codex (timeout de generación móvil)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+La espera cliente para `generate_image` subió de 110s a 150s porque la Edge
+Function puede recorrer varios modelos Gemini y superar 110s con demanda alta.
+Además `conReintento()` ya no repite timeouts ni errores semánticos: sólo
+reintenta desconexiones reales (`Load failed`, `Failed to fetch`,
+`NetworkError`). Antes un timeout podía iniciar otra generación mientras la
+primera seguía corriendo, duplicando tiempo y posible costo.
+
+---
+
+## 2026-08-09 (3) — Codex (elimina encía roja de la simulación)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+La composición dejó de unir la máscara de dientes originales con la máscara
+del resultado. Esa unión copiaba encía generada en las zonas donde cambiaba el
+contorno de una corona y producía líneas rojizas entre dientes. Ahora sólo se
+copia la máscara anatómica de las carillas generadas y se filtra a FDI 1x/2x
+(arcada superior); la arcada inferior permanece idéntica al original.
+
+El prompt también fija el tratamiento rápido en 8–10 carillas superiores
+visibles, exige un cambio morfológico perceptible y conserva jerarquía de
+centrales, laterales y caninos. El respaldo local continúa disponible si
+Replicate falla, sin mostrar nunca la cara completa generada.
+
+---
+
+## 2026-08-09 (2) — Codex (recuperación si falla la segmentación remota)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+La segmentación anatómica con Replicate deja de ser un punto único de fallo:
+si la inferencia, la descarga de máscaras o CORS falla, la generación recupera
+automáticamente el compositor dental local anterior. Nunca se usa como
+respaldo la cara completa generada por IA. Esto mantiene la simulación
+operativa mientras se conserva la mayor precisión cuando `segment-teeth`
+responde correctamente.
+
+---
+
+## 2026-08-06 — Claude Code (skill de Meta multi-tenant)
+
+**Tocado:** `.claude/skills/meta-multitenant-chat/` (nuevo, solo agregado —
+nada existente tocado).
+
+Agregada una skill de referencia para conectar WhatsApp + Messenger +
+Instagram en modo multi-tenant (un solo Meta App/System User "Tech
+Provider" sirviendo el número/página propio de cada dentista/clínica, un
+solo webhook que resuelve a qué tenant pertenece cada mensaje). Se extrajo
+de una implementación real en otro proyecto (LANA), generalizada para
+adaptarse a cualquier esquema de Supabase — no asume las tablas de SMYL,
+hay que adaptar nombres al invocarla. Se activa sola si alguien pide
+conectar WhatsApp/Messenger/Instagram, o con `/meta-multitenant-chat`. No
+es una implementación — es la guía + plantillas (SQL, Edge Function,
+Embedded Signup) para cuando de verdad se construya esto en SMYL.
+
+---
+
+## 2026-08-09 — Codex (composición dental anatómica para simulación)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/segment-teeth/index.ts`.
+
+Se reemplazó la máscara heurística de color/luminancia por la unión de dos
+máscaras anatómicas: dentición original + carillas generadas. Fuera de esa
+unión la salida procede exclusivamente de la fotografía original. La primera
+ejecución segmenta ambas vistas lado a lado en una sola inferencia; la máscara
+original queda cacheada y las regeneraciones sólo segmentan el diseño nuevo.
+
+`segment-teeth` acepta el modo prospecto mediante `X-Tenant-Id` y
+`checkAndConsumeLimitProspecto`, además del límite autenticado habitual. Se
+añadió `x-tenant-id` a CORS. No se modificaron secretos, buckets ni RLS.
+
+No se ejecutó una generación real durante QA para no gastar el cupo; sí se
+validó sintaxis y se desplegó la Edge Function.
 
 ---
 
