@@ -70,6 +70,23 @@ real de gasto; el de IP es solo anti-abuso.
 (`supabase functions deploy claude --use-api`). `simulacion.html` se
 publica solo por GitHub Pages.
 
+**ACTUALIZACIÓN tras revisar la base de datos con Ricardo:** la hipótesis
+del cupo agotado era **incorrecta** — `diagnosticos_usados` estaba en 0 de
+40, plan activo y vigente, y ambas RPC (`camila_consumir_diagnostico`,
+`camila_anon_rate_check`) sí existen en el proyecto Smyl. Ese 0 es la
+pista real: si el contador nunca subió pese a un día entero de pruebas,
+las llamadas **no estaban llegando con sesión de dentista** — caían al
+camino anónimo (`tenantId` null en `requireUser`), cuyo tope era de 5
+llamadas/hora por IP. Con ~4 llamadas por simulación, la segunda
+simulación de cada hora se bloqueaba con "Demasiadas solicitudes sin
+iniciar sesión", que la pantalla mostraba como "problema de conexión".
+El tope anónimo se subió de 5 a 20/hora (≈5 simulaciones) por la misma
+razón que el de prospecto. **Falta confirmar por qué la sesión no llega
+al Edge Function** cuando se usa la simulación desde el celular — puede
+ser simplemente que no había sesión iniciada ahí, o algo más de fondo;
+revisar `camila_anon_usage` (si tiene filas con contador alto, confirma
+el diagnóstico) antes de dar el tema por cerrado.
+
 **Pendiente de confirmar con Ricardo:** cuánto cupo le queda realmente
 (`select nombre, diagnosticos_usados, limite_diagnosticos, activo,
 vence_en from camila_tenants;`). Si ya está en el tope, el fix de arriba

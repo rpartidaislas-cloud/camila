@@ -19,16 +19,23 @@ const SB_SERVICE_ROLE_KEY =
 
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
-const ANON_LIMITE_POR_HORA = Number(Deno.env.get('ANON_HOURLY_LIMIT') || '5');
+// 20/hora ≈ 5 simulaciones por IP por hora. Estaba en 5, que sonaba a "5
+// simulaciones" pero en realidad era ~1: una sola simulación hace ~4
+// llamadas a la Edge Function (validar encuadre, analizar proporciones,
+// diagnóstico, generar imagen), así que la segunda simulación de cada hora
+// se bloqueaba con "Demasiadas solicitudes" -- y como ese error no era ni
+// caída de red ni timeout, la pantalla lo mostraba como "problema de
+// conexión", mandando a reintentar algo que solo se arregla esperando.
+// Sigue siendo un techo real contra abuso; el gasto de un dentista con
+// sesión no pasa por aquí, lo limita el cupo de su plan.
+const ANON_LIMITE_POR_HORA = Number(Deno.env.get('ANON_HOURLY_LIMIT') || '20');
 const ANON_VENTANA_SEG = 3600;
 
-// El modo prospecto necesita su propio techo por IP, más alto que el
-// anónimo puro: UNA simulación completa hace ~4 llamadas a esta función
-// (validar encuadre, analizar proporciones, generar imagen, diagnóstico),
-// así que con 5/hora un paciente quedaba bloqueado a media primera
-// simulación. 20/hora ≈ 5 simulaciones por IP por hora, que sigue siendo un
-// techo real contra abuso -- y encima está el cupo del plan de la clínica,
-// que es el que de verdad limita el gasto.
+// Perilla aparte para el modo prospecto (paciente que entra por el link
+// público de una clínica). Hoy vale lo mismo que el anónimo, pero se deja
+// separada a propósito: son dos poblaciones distintas y probablemente
+// haya que ajustar una sin tocar la otra -- un prospecto además está
+// respaldado por el cupo del plan de SU clínica, un anónimo puro no.
 const PROSPECTO_LIMITE_POR_HORA = Number(Deno.env.get('PROSPECTO_HOURLY_LIMIT') || '20');
 
 export interface LimitResult {
