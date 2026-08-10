@@ -10,6 +10,18 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (9) — Codex (corrige falso rechazo A1/piezas)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- A1 se mezcla con fuerza mínima de 82 % dentro de la máscara para eliminar
+  amarillo residual sin perder la luminancia, textura ni reflejos generados.
+- El control pieza por pieza ya no confunde un cambio visual conservador con
+  una carilla ausente. Ahora la presencia se decide por solapamiento real de
+  las máscaras original/generada y por la correspondencia anatómica previa.
+- Las diferencias tonales aisladas quedan como revisión; una cobertura física
+  insuficiente sigue siendo un rechazo crítico. Control actualizado a v4.
+
 ## 2026-08-10 (8) — Codex (flujo dental determinista antes/después)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

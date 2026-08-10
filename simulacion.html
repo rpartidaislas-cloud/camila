@@ -5802,7 +5802,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 3;
+var SIM_QUALITY_VERSION = 4;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};
@@ -6020,36 +6020,38 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     if(esperadas.length<4) problemas.push('segmentación original incompleta');
     if(cajas.length<4) problemas.push('se detectaron pocas piezas superiores generadas');
     if(esperadas.length && cajas.length < esperadas.length) problemas.push('faltan piezas en la secuencia de carillas');
-    var piezasSinCambio=[], estadisticasPieza=[];
+    var piezasSinCobertura=[], piezasTonoAtipico=[], estadisticasPieza=[];
     if(esperadas.length && comparacion.width && comparacion.height) {
       var sx=W/comparacion.width, sy=H/comparacion.height;
       esperadas.forEach(function(b, indice){
         var x0=Math.max(0,Math.floor(b.x*sx)), x1=Math.min(W,Math.ceil((b.x+b.w)*sx));
         var y0=Math.max(0,Math.floor(b.y*sy)), y1=Math.min(H,Math.ceil((b.y+b.h)*sy));
-        var n=0,c=0,suma=0,lumPieza=0,amarilloPieza=0;
+        var esperadosPieza=0,n=0,lumPieza=0,amarilloPieza=0;
         for(var yy=y0;yy<y1;yy++) for(var xx=x0;xx<x1;xx++) {
           var pi=(yy*W+xx)*4;
           if(ep[pi+3]<45) continue;
-          var pd=(Math.abs(ap[pi]-op[pi])+Math.abs(ap[pi+1]-op[pi+1])+Math.abs(ap[pi+2]-op[pi+2]))/3;
+          esperadosPieza++;
+          if(mp[pi+3]<45) continue;
           var lp=ap[pi]*.299+ap[pi+1]*.587+ap[pi+2]*.114;
-          n++;suma+=pd;lumPieza+=lp;amarilloPieza+=(ap[pi]+ap[pi+1])/2-ap[pi+2];if(pd>10)c++;
+          n++;lumPieza+=lp;amarilloPieza+=(ap[pi]+ap[pi+1])/2-ap[pi+2];
         }
-        var fraccion=n?c/n:0, diferencia=n?suma/n:0;
         var idPieza=b.fdi||String(indice+1);
         estadisticasPieza.push({id:idPieza,lum:n?lumPieza/n:0,amarillo:n?amarilloPieza/n:0,n:n});
-        if(n<12||fraccion<.18||diferencia<6.5) piezasSinCambio.push(idPieza);
+        if(esperadosPieza<12||n/Math.max(1,esperadosPieza)<.42) piezasSinCobertura.push(idPieza);
       });
       var validas=estadisticasPieza.filter(function(s){return s.n>=12;});
       if(validas.length>=4){
         var medLum=medianaNumerica(validas.map(function(s){return s.lum;}));
         var medAmarillo=medianaNumerica(validas.map(function(s){return s.amarillo;}));
         validas.forEach(function(s){
-          if(s.lum<medLum-22||s.amarillo>medAmarillo+11) piezasSinCambio.push(s.id);
+          if(s.lum<medLum-22||s.amarillo>medAmarillo+11) piezasTonoAtipico.push(s.id);
         });
       }
     }
-    piezasSinCambio=piezasSinCambio.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
-    if(piezasSinCambio.length) problemas.push(piezasSinCambio.length+' pieza(s) superior(es) parecen no haber recibido carilla');
+    piezasSinCobertura=piezasSinCobertura.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
+    piezasTonoAtipico=piezasTonoAtipico.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
+    if(piezasSinCobertura.length) problemas.push('cobertura insuficiente en '+piezasSinCobertura.length+' pieza(s) superior(es)');
+    if(piezasTonoAtipico.length) problemas.push('tono desigual en '+piezasTonoAtipico.length+' pieza(s)');
     if(esperadas.length && cajas.length) {
       var expMin=Math.min.apply(null,esperadas.map(function(b){return b.x;}));
       var expMax=Math.max.apply(null,esperadas.map(function(b){return b.x+b.w;}));
@@ -6077,7 +6079,7 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }
   }
   var hayFalloCritico=problemas.some(function(p){
-    return /faltan piezas|no haber recibido carilla|cobertura bilateral|línea media|desnivelados|pocas piezas superiores/.test(p);
+    return /faltan piezas|cobertura insuficiente|cobertura bilateral|línea media|desnivelados|pocas piezas superiores/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,
@@ -6218,7 +6220,9 @@ async function aplicarTonoVitaConMascara(canvas, mascaraUrl, shade) {
   var img=ctx.getImageData(0,0,W,H), mp=mctx.getImageData(0,0,W,H).data;
   var rgb=shade.screenRgb?{r:shade.screenRgb[0],g:shade.screenRgb[1],b:shade.screenRgb[2]}:labARgbSim(vitaLabPantallaSim(shade));
   var targetLum=.299*rgb.r+.587*rgb.g+.114*rgb.b;
-  var fuerza=S.vitaIntensity==='subtle'?.48:(S.vitaIntensity==='notable'?.68:.58);
+  var fuerzaBase=S.vitaIntensity==='subtle'?.48:(S.vitaIntensity==='notable'?.68:.58);
+  // A1 es casi neutro; una mezcla débil conserva el amarillo fotográfico.
+  var fuerza=shade.code==='A1'?Math.max(.82,fuerzaBase):fuerzaBase;
   for(var i=0;i<img.data.length;i+=4){
     var alfa=mp[i+3]/255;if(alfa<.04)continue;
     var r=img.data[i],g=img.data[i+1],b=img.data[i+2];
