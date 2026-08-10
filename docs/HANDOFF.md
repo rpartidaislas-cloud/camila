@@ -10,6 +10,23 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (8) — Codex (flujo dental determinista antes/después)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La arcada superior original se segmenta **antes** de llamar al generador.
+  El conteo y orden de piezas se convierten en contrato explícito del prompt.
+- El prompt de imagen quedó reducido a anatomía, cobertura y material. El
+  tono VITA ya no compite con la forma durante la generación: se calibra
+  después, sólo dentro de la máscara superior, conservando textura y luces.
+- El resultado vuelve a segmentarse y se compara pieza por pieza con el mapa
+  original. Diferencias de conteo, posición o proporción rechazan la imagen.
+- Se eliminó el compositor heurístico de respaldo: si falla segmentación,
+  correspondencia o control crítico, nunca se muestra una simulación parcial.
+- El control visual sube a versión 3. No se consumió una generación real de
+  imagen durante validación; las pruebas locales cubren sintaxis, estructura,
+  sincronización móvil y limpieza del diff.
+
 ## 2026-08-10 (7) — Codex (cobertura dental completa y rechazo de carillas ausentes)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
