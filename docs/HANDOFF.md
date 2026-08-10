@@ -10,6 +10,29 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (3) — Codex (carillas anatómicas: generación local de alta resolución)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La simulación facial ya no manda la fotografía completa a generación. Se
+  obtiene un recorte clínico de la sonrisa a resolución nativa, se genera y
+  segmenta únicamente en ese recorte, y después se reinserta en las
+  coordenadas exactas de la fotografía maestra. Esto da muchos más píxeles a
+  la anatomía dental y mantiene intactos rostro, labios, encías y encuadre.
+- Se eliminó la instrucción que forzaba "8 a 10" coronas, porque promovía
+  dientes estrechos, repetidos y de apariencia protésica. Ahora existe
+  correspondencia uno-a-uno con cada diente superior realmente visible, sin
+  inventar piezas ni cambiar los dientes inferiores.
+- El prompt exige jerarquía morfológica: centrales dominantes, laterales algo
+  menores y caninos con transición propia; además prohíbe expresamente el
+  patrón de teclas de piano/chiclets, la fila de dentadura, el blanco plano y
+  los bordes incisales idénticos.
+- No se realizó una generación pagada durante la validación. La prueba final
+  debe hacerse con una fotografía clínica real y revisar el resultado a 100 %
+  antes de usarlo como material de presentación al paciente.
+
+---
+
 ## 2026-08-10 (2) — Claude Code (CAUSA REAL del "No se pudo generar tu simulación": segment-teeth nunca tuvo credenciales en el proyecto Smyl)
 
 **Tocado:** `supabase/functions/segment-teeth/index.ts`, `simulacion.html`,
