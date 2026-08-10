@@ -5639,7 +5639,28 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
       var fdi = String(m.fdi || m.parentFdi || '');
       return fdi.charAt(0) === '1' || fdi.charAt(0) === '2';
     });
-    if (superiores.length) seleccionadas = superiores;
+    if (superiores.length) {
+      seleccionadas = superiores;
+    } else {
+      // Respaldo por POSICIÓN cuando la notación FDI no vino o vino toda
+      // como inferior. Antes aquí se caía a `masks` completo -- es decir, a
+      // pegar carillas también sobre los dientes de abajo, que es justo lo
+      // que este filtro existe para evitar. assignFdiNotation (en
+      // segment-teeth) siempre parte las piezas en dos "arcadas" buscando
+      // el mayor hueco vertical, así que en una sonrisa donde casi solo se
+      // ve la arcada superior puede etiquetar piezas de arriba como
+      // inferiores. Con el centro vertical de cada máscara nos quedamos con
+      // la mitad de arriba, que es la zona estética real.
+      var conY = masks.filter(function(m) { return m.bbox && m.bbox.length === 4; });
+      if (conY.length) {
+        var centros = conY.map(function(m) { return m.bbox[1] + m.bbox[3] / 2; });
+        var minY = Math.min.apply(null, centros);
+        var maxY = Math.max.apply(null, centros);
+        var corte = minY + (maxY - minY) * 0.55;
+        var arriba = conY.filter(function(m) { return (m.bbox[1] + m.bbox[3] / 2) <= corte; });
+        if (arriba.length) seleccionadas = arriba;
+      }
+    }
   }
   var union = new Uint8Array(ancho * alto);
   for (var i = 0; i < seleccionadas.length; i++) {
@@ -5667,6 +5688,36 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
   mctx.putImageData(data, 0, 0);
   if (activos < Math.max(30, ancho * alto * 0.00005) || activos > ancho * alto * 0.18) {
     throw new Error('La máscara dental obtenida no tiene una extensión válida.');
+  }
+
+  // Suaviza el borde. Con la máscara binaria (alfa 0 o 255, sin nada en
+  // medio) el diente generado terminaba en un canto perfectamente recortado
+  // contra la foto original -- que es exactamente la sensación de "carilla
+  // sobrepuesta / calcomanía pegada" que se reportó. Una foto real no tiene
+  // bordes así: hay penumbra, sombra y algo de desenfoque en el límite entre
+  // diente y encía/labio.
+  //
+  // Importante: el degradado tiene que quedar HACIA ADENTRO del diente. Si
+  // el borde creciera hacia afuera se copiaría color de la IA sobre la
+  // encía, que es justo el problema de líneas rojizas ya corregido antes
+  // (ver componerConOriginalSegmentado). Por eso son dos pasos: difuminar,
+  // y luego recortar el resultado contra la silueta original -- el halo que
+  // el desenfoque dejó por fuera se descarta y solo sobrevive la parte del
+  // degradado que cae dentro de la máscara.
+  var radio = Math.max(1, Math.round(Math.min(ancho, alto) * 0.004));
+  var suave = document.createElement('canvas');
+  suave.width = ancho; suave.height = alto;
+  var sctx2 = suave.getContext('2d');
+  // Canvas filter no existe en iOS anteriores a 17; sin él simplemente se
+  // devuelve la máscara dura de siempre, sin romper nada.
+  if (typeof sctx2.filter === 'string') {
+    sctx2.filter = 'blur(' + radio + 'px)';
+    sctx2.drawImage(mascara, 0, 0);
+    sctx2.filter = 'none';
+    sctx2.globalCompositeOperation = 'destination-in';
+    sctx2.drawImage(mascara, 0, 0);
+    sctx2.globalCompositeOperation = 'source-over';
+    return suave.toDataURL('image/png');
   }
   return mascara.toDataURL('image/png');
 }
