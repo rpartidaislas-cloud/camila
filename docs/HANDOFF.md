@@ -10,6 +10,26 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (7) — Codex (cobertura dental completa y rechazo de carillas ausentes)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El prompt exige contar y restaurar todas las piezas superiores visibles de
+  extremo a extremo, con seis anteriores obligatorias y premolares visibles,
+  además de continuidad bilateral, línea media e incisales nivelados.
+- La segmentación ahora recibe original y resultado lado a lado en una sola
+  inferencia. Compara las piezas esperadas con las generadas sin añadir otra
+  llamada respecto al flujo anterior.
+- El control local mide cambio y consistencia de color por pieza; detecta un
+  diente sin carilla, menos piezas, cobertura lateral incompleta, línea media
+  desplazada y centrales desnivelados.
+- Los fallos críticos se muestran en rojo como `Simulación incompleta` y ya no
+  pueden aparecer como aprobados. Los reportes antiguos quedan invalidados
+  hasta generar de nuevo con la versión 2 del control.
+- La tira de resultados muestra una sola miniatura por tipo de vista, evitando
+  dos tarjetas `Frontal` para el mismo resultado.
+- La prueba visual local por navegador fue bloqueada por la política para URLs
+  `file://`; se mantuvieron pruebas de sintaxis, diff y sincronización.
 ## 2026-08-10 (6) — Codex (diseño individual por diente y control visual local)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
