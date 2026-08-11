@@ -10,6 +10,23 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (20) — Codex (regeneración vinculada al arco incisal)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/claude/index.ts`, `sw.js`.
+
+- La regeneración desde el editor ya no comunica la curva únicamente como
+  coordenadas textuales. Genera un mapa geométrico PNG temporal, normalizado
+  al mismo recorte clínico, con la curva final y los seis objetivos 13–23.
+- La Edge Function admite esa segunda imagen como referencia de control para
+  Gemini. El prompt distingue expresamente la foto clínica (entrada 1) del
+  mapa geométrico (entrada 2), exige que las coronas terminen en los objetivos
+  y prohíbe reproducir líneas, puntos, etiquetas o fondo del mapa.
+- La prescripción incisal pasó al inicio del bloque clínico para que nunca sea
+  truncada por el límite de longitud. Mantiene márgenes gingivales fijos y
+  obliga a redimensionar cada corona hacia su borde incisal.
+- Indicador visible actualizado a `build v76`; caché PWA `smyl-v19`.
+
 ## 2026-08-11 (19) — Codex (calce canónico Antes/Después y panel táctil amplio)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
