@@ -516,7 +516,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v69 — diseño morfológico faciodentolabial</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v70 — composición dental localizada</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -3919,24 +3919,38 @@ async function reinsertarRecorteDental(fotoOriginalUrl, recorteCompuestoUrl, rec
 // Localiza una sola banda dental continua. No identifica ni segmenta piezas:
 // únicamente calcula el centro y la extensión aproximada de la arcada visible
 // para registrar la simulación y construir una ventana de composición suave.
-function detectarBandaDentalContinua(canvas) {
+function detectarBandaDentalContinua(canvas,view) {
   var W=canvas.width,H=canvas.height,ctx=canvas.getContext('2d',{willReadFrequently:true});
   var data=ctx.getImageData(0,0,W,H).data;
-  var x0=Math.round(W*.14),x1=Math.round(W*.86),y0=Math.round(H*.28),y1=Math.round(H*.82);
+  // El recorte clínico coloca la sonrisa en su mitad inferior. Excluir la
+  // zona superior es una barrera deliberada: bigote, fosas nasales y piel no
+  // pueden convertirse en ancla aunque sean claros o poco saturados.
+  var esIntraoral=view==='intraoral',esperadoY=esIntraoral?.38:.68;
+  var x0=Math.round(W*(esIntraoral?.05:.16)),x1=Math.round(W*(esIntraoral?.95:.84));
+  var y0=Math.round(H*(esIntraoral?.12:.50)),y1=Math.round(H*(esIntraoral?.82:.92));
   var filas=new Float32Array(H),columnas=new Float32Array(W);
   function candidato(x,y) {
     var i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2];
     var lum=.299*r+.587*g+.114*b;
     var max=Math.max(r,g,b),min=Math.min(r,g,b),croma=max-min;
-    var rojo=r-(g+b)*.5;
-    // Esmalte natural: claro o medio, de cromaticidad moderada y sin el
-    // predominio rojo característico de labio/encía/piel.
-    return lum>78 && g>48 && b>38 && croma<92 && rojo<34;
+    // El esmalte amarillo natural puede tener bastante diferencia R-B, pero
+    // a diferencia de la piel conserva R-G moderado y suficiente luminancia.
+    // Esta regla admite dientes A/D oscuros sin admitir barba ni bigote.
+    return lum>108 && g>72 && b>48 && croma<102 && (r-g)<43 && (g-b)<74;
   }
   for(var y=y0;y<y1;y++) for(var x=x0;x<x1;x++) if(candidato(x,y)) filas[y]++;
-  var maxFila=0,picoY=Math.round(H*.57);
-  for(var fy=y0;fy<y1;fy++) if(filas[fy]>maxFila){maxFila=filas[fy];picoY=fy;}
-  if(maxFila<Math.max(8,W*.025)) return {x:W*.22,y:H*.43,w:W*.56,h:H*.27,cx:W*.5,cy:H*.565,confidence:0};
+  var maxFila=0,mejorFila=0,picoY=Math.round(H*esperadoY);
+  for(var fy=y0;fy<y1;fy++) {
+    var cercania=.72+.28*Math.max(0,1-Math.abs(fy/H-esperadoY)/(esIntraoral?.34:.22));
+    var puntaje=filas[fy]*cercania;
+    if(puntaje>mejorFila){mejorFila=puntaje;maxFila=filas[fy];picoY=fy;}
+  }
+  // Respaldo seguro centrado en la boca, nunca en la altura del bigote.
+  if(maxFila<Math.max(8,W*.025) || (!esIntraoral&&picoY<H*.54)) {
+    return esIntraoral
+      ? {x:W*.07,y:H*.15,w:W*.86,h:H*.48,cx:W*.5,cy:H*.39,confidence:0}
+      : {x:W*.20,y:H*.54,w:W*.60,h:H*.27,cx:W*.5,cy:H*.675,confidence:0};
+  }
 
   // El máximo pertenece normalmente al cuerpo de los incisivos superiores.
   // Acotamos la lectura vertical para no incorporar la arcada inferior.
@@ -3962,11 +3976,11 @@ function detectarBandaDentalContinua(canvas) {
   if(ancho<W*.24){izq=Math.round(W*.25);der=Math.round(W*.75);ancho=der-izq;}
   var margenX=Math.max(3,ancho*.08),alto=Math.max(H*.18,(bandaAbajo-bandaArriba)*1.18);
   var bx=Math.max(0,izq-margenX),bw=Math.min(W-bx,ancho+margenX*2);
-  var by=Math.max(0,picoY-alto*.56),bh=Math.min(H-by,alto);
+  var by=Math.max(H*(esIntraoral?.10:.52),picoY-alto*.56),bh=Math.min(H-by,alto);
   return {x:bx,y:by,w:bw,h:bh,cx:bx+bw*.5,cy:by+bh*.5,confidence:Math.min(1,maxFila/(W*.32))};
 }
 
-function dibujarImagenRegistrada(imgOriginal,imgIA,W,H) {
+function dibujarImagenRegistrada(imgOriginal,imgIA,W,H,view) {
   var inicial=document.createElement('canvas');inicial.width=W;inicial.height=H;
   var ictx=inicial.getContext('2d');
   var align=buscarAlineacionImagenes(imgOriginal,imgIA);
@@ -3982,8 +3996,8 @@ function dibujarImagenRegistrada(imgOriginal,imgIA,W,H) {
 
   var origCanvas=document.createElement('canvas');origCanvas.width=W;origCanvas.height=H;
   origCanvas.getContext('2d').drawImage(imgOriginal,0,0,W,H);
-  var bandaOriginal=detectarBandaDentalContinua(origCanvas);
-  var bandaIA=detectarBandaDentalContinua(inicial);
+  var bandaOriginal=detectarBandaDentalContinua(origCanvas,view);
+  var bandaIA=detectarBandaDentalContinua(inicial,view);
   // Corrige sólo la traslación residual del diseño dental. Nunca escala la
   // corona generada, de modo que los cambios intencionales de forma/tamaño se
   // conservan y únicamente se elimina el efecto de boca desplazada.
@@ -4004,7 +4018,7 @@ async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   var W=original.naturalWidth,H=original.naturalHeight;
   var base=document.createElement('canvas');base.width=W;base.height=H;
   var bctx=base.getContext('2d');bctx.drawImage(original,0,0,W,H);
-  var registrada=dibujarImagenRegistrada(original,ia,W,H);
+  var registrada=dibujarImagenRegistrada(original,ia,W,H,view);
   var capa=registrada.canvas,cctx=capa.getContext('2d',{willReadFrequently:true});
   var pix=cctx.getImageData(0,0,W,H),orig=bctx.getImageData(0,0,W,H).data,banda=registrada.banda;
   function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
@@ -5900,7 +5914,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 8;
+var SIM_QUALITY_VERSION = 9;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};

@@ -10,6 +10,19 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (14) — Codex (impide falso anclaje en bigote)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Corregido un falso positivo del localizador de banda dental que podía tomar
+  vello/piel del bigote como esmalte, aplicar allí la capa generada y dejar los
+  dientes originales sin cambio.
+- En retratos, la búsqueda y su respaldo quedan confinados a la altura real de
+  la boca; la ventana final tiene un límite superior que impide alcanzar el
+  bigote. Las tomas intraorales conservan un rango específico más amplio.
+- El criterio de esmalte exige ahora suficiente luminancia y relaciones de
+  color que admiten tonos naturales amarillos sin confundirlos con vello.
+
 ## 2026-08-11 (13) — Codex (registro automático y composición dental localizada)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
