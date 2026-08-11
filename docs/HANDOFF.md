@@ -10,6 +10,23 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (19) — Codex (calce canónico Antes/Después y panel táctil amplio)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El comparador descarta al entrar cualquier traslación, escala o ajuste
+  manual heredado de otra visita/generación. Antes y Después parten siempre
+  de `{x:0,y:0,scale:1}` y ocupan el mismo rectángulo derivado exclusivamente
+  de las dimensiones de la fotografía original.
+- Ambas capas usan el mismo mapeo de píxeles en la vista normal; en pantalla
+  completa usan `contain` en común para conservar toda la fotografía sin
+  recortes ni deformaciones diferenciales.
+- La curva amarilla ahora puede trasladarse libremente en X/Y. Se añadió un
+  panel táctil amplio separado de la foto: permite mover la curva completa,
+  ajustar el arco, los extremos o una pieza 13–23 sin que el dedo cubra la
+  sonrisa. Los gestos son relativos y no producen saltos al tocar.
+- Indicador visible actualizado a `build v75`.
+
 ## 2026-08-11 (18) — Codex (manija principal y control remoto del arco)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

@@ -226,7 +226,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
    movido/desalineado en la vista normal aunque el offset guardado fuera
    el mismo -- el bug no era el guardado, era que "contain" y "cover"
    recortan la foto distinto */
-.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:cover!important;object-position:center top!important}
+.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:contain!important;object-position:center center!important}
 /* Selector de tono VITA: NO se toca el object-fit (tiene que ser IGUAL en
    "antes" y "después" -- si uno usa cover y el otro contain, cada imagen
    queda a una escala distinta y se ve desalineada/descuadrada). En vez de
@@ -238,9 +238,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ba-wrap.ba-fullscreen.ba-vita-mode .ba-base,.ba-wrap.ba-fullscreen.ba-vita-mode .ba-over{height:var(--ba-vita-h,100%)!important}
 .ba-base{position:relative;width:100%}
 .ba-base{position:relative;width:100%;overflow:hidden}
-.ba-base img{width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
+.ba-base img{width:100%;height:100%;object-fit:fill;display:block;object-position:center center}
 .ba-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 0 0 50%)}
-.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
+.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;object-position:center center}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
 .ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
@@ -432,7 +432,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-incisal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}.ed-incisal-title{color:#fff8e7;font-size:11px;font-weight:750}.ed-incisal-badge{padding:3px 6px;border-radius:99px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.24);color:#ffd98a;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.35px}.ed-incisal-copy{color:rgba(255,255,255,.44);font-size:9px;line-height:1.45;margin-bottom:9px}
 .ed-tooth-chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-bottom:10px}.ed-tooth-chip{height:30px;padding:0;border-radius:8px;border:1px solid rgba(245,158,11,.18);background:rgba(255,255,255,.045);color:rgba(255,255,255,.62);font:700 9.5px Inter,sans-serif;cursor:pointer}.ed-tooth-chip.ed-active{background:rgba(245,158,11,.17);border-color:#F59E0B;color:#fff4d6;box-shadow:0 0 11px rgba(245,158,11,.16)}
 .ed-incisal-reset{width:100%;height:32px;margin-top:8px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);color:rgba(255,255,255,.68);font:650 9.5px Inter,sans-serif;cursor:pointer}.ed-incisal-note{margin-top:7px;color:rgba(255,255,255,.36);font-size:8.5px;line-height:1.45}
-.ed-incisal-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:9px}.ed-arc-main,.ed-curve-ends,.ed-remote-toggle{min-height:42px;padding:6px 5px;border-radius:10px;font:700 8.5px Inter,sans-serif;line-height:1.25;cursor:pointer}.ed-arc-main,.ed-curve-ends{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#ffe2a7}.ed-arc-main.ed-active,.ed-curve-ends.ed-active{background:rgba(245,158,11,.2);border-color:#F59E0B;box-shadow:0 0 13px rgba(245,158,11,.18)}.ed-remote-toggle{border:1px solid rgba(45,212,191,.24);background:rgba(45,212,191,.07);color:#a7f3e8}.ed-remote-toggle.ed-active{background:rgba(45,212,191,.16);border-color:#2DD4BF}.ed-remote-status{grid-column:1/-1;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.22);color:rgba(255,255,255,.46);font-size:8.5px;line-height:1.4}.ed-remote-status strong{color:#fff3cf}
+.ed-incisal-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-bottom:9px}.ed-curve-move,.ed-arc-main,.ed-curve-ends,.ed-remote-toggle{min-height:42px;padding:6px 5px;border-radius:10px;font:700 8.5px Inter,sans-serif;line-height:1.25;cursor:pointer}.ed-curve-move,.ed-arc-main,.ed-curve-ends{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#ffe2a7}.ed-curve-move.ed-active,.ed-arc-main.ed-active,.ed-curve-ends.ed-active{background:rgba(245,158,11,.2);border-color:#F59E0B;box-shadow:0 0 13px rgba(245,158,11,.18)}.ed-remote-toggle{border:1px solid rgba(45,212,191,.24);background:rgba(45,212,191,.07);color:#a7f3e8}.ed-remote-toggle.ed-active{background:rgba(45,212,191,.16);border-color:#2DD4BF}.ed-remote-status{grid-column:1/-1;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.22);color:rgba(255,255,255,.46);font-size:8.5px;line-height:1.4}.ed-remote-status strong{color:#fff3cf}
+.ed-remote-pad{grid-column:1/-1;position:relative;height:132px;overflow:hidden;border-radius:13px;border:1px solid rgba(45,212,191,.3);background:linear-gradient(rgba(45,212,191,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.055) 1px,transparent 1px),rgba(2,10,14,.7);background-size:22px 22px;touch-action:none;user-select:none;cursor:grab}.ed-remote-pad.ed-dragging{cursor:grabbing;border-color:#2DD4BF;box-shadow:inset 0 0 22px rgba(45,212,191,.13)}.ed-remote-pad::before,.ed-remote-pad::after{content:"";position:absolute;background:rgba(45,212,191,.16);pointer-events:none}.ed-remote-pad::before{left:50%;top:0;bottom:0;width:1px}.ed-remote-pad::after{top:50%;left:0;right:0;height:1px}.ed-pad-title{position:absolute;left:10px;top:8px;color:#c8fff7;font-size:9px;font-weight:800;letter-spacing:.2px;pointer-events:none}.ed-pad-copy{position:absolute;left:10px;right:10px;bottom:8px;color:rgba(255,255,255,.42);font-size:8px;text-align:center;pointer-events:none}.ed-pad-knob{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px;border-radius:50%;background:rgba(45,212,191,.18);border:2px solid #2DD4BF;box-shadow:0 4px 18px rgba(0,0,0,.4);display:grid;place-items:center;color:#d9fffa;font-size:16px;font-weight:800;pointer-events:none;transform:translate(0,0)}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
 @media(min-width:820px){
@@ -527,7 +528,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v74 — control remoto del arco</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v75 — comparador calzado y panel táctil</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1210,10 +1211,16 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-incisal-head"><div class="ed-incisal-title">Altura incisal de las carillas</div><span class="ed-incisal-badge">Vinculada a curva</span></div>
         <div class="ed-incisal-copy">El punto principal modifica la profundidad del arco; los extremos controlan los lados y 13–23 ajustan cada carilla. Con control remoto puedes moverlos desde una zona donde el dedo no tape la sonrisa.</div>
         <div class="ed-incisal-tools">
-          <button type="button" id="ed-arc-main" class="ed-arc-main ed-active" onclick="edSeleccionarControlArco()">● Punto principal<br>Modificar arco</button>
+          <button type="button" id="ed-curve-move" class="ed-curve-move ed-active" onclick="edSeleccionarMoverCurva()">✥ Mover curva<br>Libre X / Y</button>
+          <button type="button" id="ed-arc-main" class="ed-arc-main" onclick="edSeleccionarControlArco()">● Punto principal<br>Modificar arco</button>
           <button type="button" id="ed-curve-ends" class="ed-curve-ends" onclick="edSeleccionarControlExtremos()">↕ Extremos<br>Modificar lados</button>
           <button type="button" id="ed-remote-toggle" class="ed-remote-toggle ed-active" onclick="edToggleControlRemoto()">🎯 Control remoto<br>Activo</button>
-          <div id="ed-remote-status" class="ed-remote-status"><strong>Seleccionado: arco principal.</strong> Arrastra desde una zona vacía para no tapar la curva con el dedo.</div>
+          <div id="ed-remote-status" class="ed-remote-status"><strong>Seleccionado: mover curva completa.</strong> Usa el panel grande para desplazarla libremente sin taparla.</div>
+          <div id="ed-remote-pad" class="ed-remote-pad" role="application" aria-label="Panel táctil amplio para mover la curva">
+            <div class="ed-pad-title">ÁREA AMPLIA DE ARRASTRE</div>
+            <div id="ed-pad-knob" class="ed-pad-knob">✥</div>
+            <div class="ed-pad-copy">Desliza aquí el dedo · la sonrisa permanece completamente visible arriba</div>
+          </div>
         </div>
         <div class="ed-tooth-chips" id="ed-tooth-chips">
           <button type="button" class="ed-tooth-chip" data-tooth-index="0" onclick="edSeleccionarDienteAltura(0,this)">13</button>
@@ -4246,7 +4253,8 @@ var _edSimulationUrl = '';
 var _edOriginalUrl = '';
 var _edShowingOriginal = false;
 var _edActiveToothIndex = 2;
-var _edRemoteTarget = {type:'arc', index:null};
+var _edRemoteTarget = {type:'move', index:null};
+var _edRemotePadInit = false;
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
 var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
 var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
@@ -4332,16 +4340,28 @@ function edActualizarControlRemoto() {
     toggle.classList.toggle('ed-active', activo);
     toggle.innerHTML = '🎯 Control remoto<br>' + (activo ? 'Activo' : 'Desactivado');
   }
+  var mover = document.getElementById('ed-curve-move');
+  if (mover) mover.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'move');
   var arco = document.getElementById('ed-arc-main');
   if (arco) arco.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'arc');
   var extremos = document.getElementById('ed-curve-ends');
   if (extremos) extremos.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'ends');
   var status = document.getElementById('ed-remote-status');
   if (!status) return;
-  var nombre = 'arco principal';
+  var nombre = 'curva completa';
   if (_edRemoteTarget && _edRemoteTarget.type === 'tooth') nombre = 'diente ' + ED_TOOTH_IDS[_edRemoteTarget.index];
   else if (_edRemoteTarget && _edRemoteTarget.type === 'ends') nombre = 'extremos de la curva';
-  status.innerHTML = '<strong>Seleccionado: ' + nombre + '.</strong> ' + (activo ? 'Arrastra desde una zona vacía para no tapar la guía con el dedo.' : 'Arrastra directamente la manija o el punto.');
+  else if (_edRemoteTarget && _edRemoteTarget.type === 'arc') nombre = 'arco principal';
+  var instruccion = 'Arrastra directamente la manija o el punto.';
+  if (activo) {
+    if (_edRemoteTarget && _edRemoteTarget.type === 'move') instruccion = 'Desliza en el panel grande: horizontal y vertical mueven toda la curva.';
+    else if (_edRemoteTarget && _edRemoteTarget.type === 'arc') instruccion = 'Desliza verticalmente en el panel grande para modificar el arco.';
+    else if (_edRemoteTarget && _edRemoteTarget.type === 'ends') instruccion = 'Desliza verticalmente en el panel grande para subir o bajar ambos extremos.';
+    else instruccion = 'Desliza verticalmente en el panel grande para ajustar esa carilla.';
+  }
+  status.innerHTML = '<strong>Seleccionado: ' + nombre + '.</strong> ' + instruccion;
+  var pad = document.getElementById('ed-remote-pad');
+  if (pad) pad.style.display = activo ? 'block' : 'none';
 }
 
 function edSeleccionarObjetivoRemoto(tipo, indice) {
@@ -4349,6 +4369,12 @@ function edSeleccionarObjetivoRemoto(tipo, indice) {
   if (tipo === 'tooth' && typeof indice === 'number') _edActiveToothIndex = indice;
   edActualizarControlAlturaDiente();
   edActualizarControlRemoto();
+}
+
+function edSeleccionarMoverCurva() {
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('move');
+  redrawEditor();
 }
 
 function edSeleccionarControlArco() {
@@ -4486,7 +4512,7 @@ function edActualizarEstadoGuias() {
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
     if (!visibles.length) hint.textContent = 'Activa una guía para moverla';
-    else if (_edActiveGuide === 'curvaSonrisa' && EDITOR_PARAMS.controlRemoto !== false) hint.textContent = 'Control remoto activo · selecciona ARCO, 13–23 o los extremos y arrastra desde una zona vacía';
+    else if (_edActiveGuide === 'curvaSonrisa' && EDITOR_PARAMS.controlRemoto !== false) hint.textContent = 'Control remoto activo · elige mover, arco, 13–23 o extremos y usa el panel amplio inferior';
     else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
     else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para redimensionar el conjunto · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
@@ -4527,7 +4553,7 @@ function abrirEditorDiseno() {
   _edPhotoPanY = 0;
   _edPhotoPanMode = false;
   _edActiveToothIndex = 2;
-  _edRemoteTarget = {type:'arc', index:null};
+  _edRemoteTarget = {type:'move', index:null};
   _edSimulationUrl = url;
   _edOriginalUrl = fotoOriginal ? 'data:image/jpeg;base64,' + fotoOriginal.b64 : '';
   _edShowingOriginal = false;
@@ -4536,6 +4562,7 @@ function abrirEditorDiseno() {
   edSyncControles();
   edRenderAnalisisClinico();
   edInitZoneDrag();
+  edInitRemotePad();
 
   edBaseImg = new Image();
   edBaseImg.onload = function() {
@@ -4731,7 +4758,7 @@ function edCerrar() {
 function edRestablecer() {
   EDITOR_PARAMS = JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
   _edActiveGuide = null;
-  _edRemoteTarget = {type:'arc', index:null};
+  _edRemoteTarget = {type:'move', index:null};
   edAsegurarZonasGuias();
   edSyncControles();
   redrawEditor();
@@ -5093,7 +5120,10 @@ function edInitZoneDrag() {
         dragging = true;
         startX = clientX; startY = clientY;
         _edActiveGuide = 'curvaSonrisa';
-        if (_edRemoteTarget.type === 'tooth') {
+        if (_edRemoteTarget.type === 'move') {
+          dragMode = 'curve-position';
+          startZones = {curvaSonrisa:edCopiarZona(edZonaGuia('curvaSonrisa'))};
+        } else if (_edRemoteTarget.type === 'tooth') {
           dragMode = 'tooth-height';
           _edActiveToothIndex = Math.max(0,Math.min(5,_edRemoteTarget.index || 0));
           edAsegurarAlturasDientes();
@@ -5126,6 +5156,14 @@ function edInitZoneDrag() {
       _edPhotoPanX = startPhotoPanX + clientX - startX;
       _edPhotoPanY = startPhotoPanY + clientY - startY;
       edAplicarZoomFoto();
+      return;
+    }
+    if (dragMode === 'curve-position') {
+      var inicioCurva = startZones.curvaSonrisa;
+      var zonaCurva = edZonaGuia('curvaSonrisa');
+      zonaCurva.x = Math.max(0, Math.min(1 - zonaCurva.w, inicioCurva.x + (clientX - startX) / r.width));
+      zonaCurva.y = Math.max(0, Math.min(1 - zonaCurva.h, inicioCurva.y + (clientY - startY) / r.height));
+      redrawEditor();
       return;
     }
     if (dragMode === 'curve') {
@@ -5186,6 +5224,51 @@ function edInitZoneDrag() {
     if (!e.touches.length) end();
   }, {passive:true});
   canvas.addEventListener('touchcancel', function(){ pinching = false; end(); }, {passive:true});
+}
+
+// Superficie táctil separada de la fotografía. El dedo se mueve en este
+// panel amplio y la curva permanece completamente visible sobre la sonrisa.
+function edInitRemotePad() {
+  if (_edRemotePadInit) return;
+  var pad = document.getElementById('ed-remote-pad');
+  var knob = document.getElementById('ed-pad-knob');
+  if (!pad || !knob) return;
+  _edRemotePadInit = true;
+  var drag = null;
+  function comenzar(e) {
+    if (!EDITOR_PARAMS || EDITOR_PARAMS.controlRemoto === false || !_edRemoteTarget) return;
+    edAsegurarAlturasDientes();
+    drag = {id:e.pointerId,x:e.clientX,y:e.clientY,zona:edCopiarZona(edZonaGuia('curvaSonrisa')),centro:EDITOR_PARAMS.curvaCentroOffset||0,extremos:EDITOR_PARAMS.curvaExtremos||0,diente:EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex]||0};
+    pad.classList.add('ed-dragging');
+    if (pad.setPointerCapture) pad.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+  function mover(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var r=pad.getBoundingClientRect(); if(!r.width||!r.height)return;
+    var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    knob.style.transform='translate('+Math.max(-r.width*.38,Math.min(r.width*.38,dx))+'px,'+Math.max(-r.height*.32,Math.min(r.height*.32,dy))+'px)';
+    if(_edRemoteTarget.type==='move'){
+      var z=edZonaGuia('curvaSonrisa');
+      z.x=Math.max(0,Math.min(1-z.w,drag.zona.x+dx/r.width*.55));
+      z.y=Math.max(0,Math.min(1-z.h,drag.zona.y+dy/r.height*.45));
+    }else if(_edRemoteTarget.type==='arc') EDITOR_PARAMS.curvaCentroOffset=Math.max(-.35,Math.min(.55,drag.centro+dy/r.height*.9));
+    else if(_edRemoteTarget.type==='ends') EDITOR_PARAMS.curvaExtremos=Math.max(-.30,Math.min(.70,drag.extremos+dy/r.height));
+    else if(_edRemoteTarget.type==='tooth'){
+      EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex]=Math.max(-20,Math.min(20,drag.diente+dy/r.height*40));
+      edActualizarControlAlturaDiente();
+    }
+    redrawEditor(); e.preventDefault();
+  }
+  function terminar(e){
+    if(!drag||e&&typeof e.pointerId==='number'&&e.pointerId!==drag.id)return;
+    drag=null;pad.classList.remove('ed-dragging');knob.style.transform='translate(0,0)';
+  }
+  pad.addEventListener('pointerdown',comenzar);
+  pad.addEventListener('pointermove',mover);
+  pad.addEventListener('pointerup',terminar);
+  pad.addEventListener('pointercancel',terminar);
+  pad.addEventListener('lostpointercapture',terminar);
 }
 
 function edZoomZona(delta) {
@@ -5748,8 +5831,14 @@ async function cambiarVistaBA(view) {
   if (!photo) return;
   var resultado = (S.results || {})[view];
   S.baVistaActual = view;
+  // Cada resultado ya se compone sobre el lienzo del original. Nunca heredar
+  // un desplazamiento manual de una visita o generación anterior: eso mueve
+  // la cara completa y rompe el calce aunque ambos archivos sean correctos.
+  S.baAlign[view] = {x:0,y:0,scale:1};
+  var imgDespues = document.getElementById('img-a');
+  if (imgDespues) imgDespues.style.transform = 'none';
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
-  document.getElementById('img-a').src = resultado || ('data:image/jpeg;base64,' + photo.b64);
+  imgDespues.src = resultado || ('data:image/jpeg;base64,' + photo.b64);
   initBASlider();
   renderResPhotos();
   actualizarBotonGenerar();
@@ -5847,8 +5936,12 @@ async function showResult() {
   var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
 
   // BA slider
+  S.baVistaActual = frontal.view || 'frontal';
+  S.baAlign[S.baVistaActual] = {x:0,y:0,scale:1};
+  var imgDespues = document.getElementById('img-a');
+  if (imgDespues) imgDespues.style.transform = 'none';
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + frontal.b64;
-  document.getElementById('img-a').src = S.result;
+  imgDespues.src = S.result;
 
   // 3 photo thumbs — tocar una cambia la vista del comparador antes/después
   renderResPhotos();
@@ -5892,10 +5985,9 @@ function initBASlider() {
   var line = document.getElementById('ba-line');
   var drag = false;
 
-  // Al mostrar un resultado se sale del modo alineación, pero el ajuste ya
-  // hecho en cada vista (S.baAlign, por id de vista) NO se borra — antes se
-  // reseteaba aquí cada vez, así que cambiar de foto o volver a esta
-  // función perdía el ajuste ya hecho.
+  // La entrada al comparador siempre parte de la geometría canónica, común
+  // para Antes y Después. Un ajuste manual sólo vive mientras permanece en
+  // esa vista; showResult/cambiarVistaBA eliminan estados obsoletos.
   S.baAlignMode = false;
   var alignPanel = document.getElementById('ba-align-panel');
   var alignBtn = document.getElementById('ba-align-btn');
@@ -5911,18 +6003,26 @@ function initBASlider() {
   var imgB = document.getElementById('img-b');
   var imgA = document.getElementById('img-a');
   function fixH() {
-    if (!imgB.naturalHeight) return;
+    if (!imgB.naturalHeight || !imgB.naturalWidth) return;
     var r = imgB.naturalHeight / imgB.naturalWidth;
     // La altura debe salir únicamente de la proporción real de la foto.
     // El límite anterior de 58vh convertía las fotos verticales en una caja
     // más baja y object-fit:cover terminaba cortando barbilla/cuello.
     var h = wrap.offsetWidth * r;
     wrap.style.height = h + 'px';
+    wrap.style.aspectRatio = imgB.naturalWidth + ' / ' + imgB.naturalHeight;
     // Force both images to same fixed height so they align perfectly
     imgB.style.height = h + 'px';
     imgA.style.height = h + 'px';
     imgB.style.width = '100%';
     imgA.style.width = '100%';
+    // Ambas capas ocupan exactamente el mismo rectángulo. `fill` es
+    // intencional: la simulación final debería tener las mismas dimensiones,
+    // pero incluso si el navegador decodifica metadatos distintos no permite
+    // que una capa use un recorte/escala diferente de la otra.
+    imgB.style.objectFit = 'fill';
+    imgA.style.objectFit = 'fill';
+    aplicarBaTransform();
   }
   if (imgB.complete) fixH(); else imgB.onload = fixH;
   imgA.onload = fixH;
