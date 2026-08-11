@@ -10,6 +10,25 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (12) — Codex (simulación rápida directa, sin segmentación)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `AGENTS.md`,
+`docs/CARILLAS_SIMULATION_CONTEXT.md`.
+
+- Por decisión expresa del usuario, `generateSimulation()` ya no llama al
+  segmentador antes ni después de generar, no empareja piezas y no recolorea
+  dientes mediante máscaras. El tono VITA vuelve a solicitarse directamente
+  dentro del prompt de imagen.
+- El resultado completo del recorte clínico se integra sobre la fotografía
+  maestra con un feather suave sólo en los bordes externos del recorte. Así se
+  evita el aspecto gris/recortado de las carillas y se conserva fuera del
+  recorte el rostro original.
+- Las funciones de segmentación permanecen disponibles para el editor y sus
+  herramientas opcionales, pero ya no forman parte de la simulación rápida.
+- La referencia clínica/estética de carillas quedó versionada en
+  `docs/CARILLAS_SIMULATION_CONTEXT.md`; `AGENTS.md` obliga a leerla antes de
+  cualquier cambio futuro relacionado con simulaciones.
+
 ## 2026-08-10 (11) — Codex (separa bloqueo técnico de revisión estética)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

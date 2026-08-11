@@ -3916,18 +3916,31 @@ async function reinsertarRecorteDental(fotoOriginalUrl, recorteCompuestoUrl, rec
   return out.toDataURL('image/png');
 }
 
+// Flujo rápido sin segmentación dental. La IA recibe el recorte clínico y su
+// resultado se integra completo; sólo se suavizan los bordes externos.
+async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
+  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl)]);
+  var original=imagenes[0],ia=imagenes[1];
+  var W=original.naturalWidth,H=original.naturalHeight;
+  var base=document.createElement('canvas');base.width=W;base.height=H;
+  var bctx=base.getContext('2d');bctx.drawImage(original,0,0,W,H);
+  var capa=document.createElement('canvas');capa.width=W;capa.height=H;
+  var cctx=capa.getContext('2d',{willReadFrequently:true});cctx.drawImage(ia,0,0,W,H);
+  var pix=cctx.getImageData(0,0,W,H),margenX=Math.max(2,W*.055),margenY=Math.max(2,H*.075);
+  function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
+  for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
+    var borde=Math.min(x/margenX,(W-1-x)/margenX,y/margenY,(H-1-y)/margenY);
+    pix.data[(y*W+x)*4+3]=Math.round(255*suave(borde));
+  }
+  cctx.putImageData(pix,0,0);bctx.drawImage(capa,0,0);
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'direct-no-segmentation'}};
+  return base.toDataURL('image/png');
+}
+
 async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var fotoOriginalUrl = 'data:image/jpeg;base64,' + frontal.b64;
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
-  var entradaImg = await cargarImagenSegura(entradaDental.dataUrl);
-  var entradaCanvas = document.createElement('canvas');
-  entradaCanvas.width = entradaImg.naturalWidth; entradaCanvas.height = entradaImg.naturalHeight;
-  entradaCanvas.getContext('2d').drawImage(entradaImg, 0, 0);
-  var mapaDentalOriginal = await segmentarCanvasDentalDetallado(
-    entradaCanvas,
-    'mapa-original:' + (frontal.view || 'frontal')
-  );
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. Treat this as a surgical inpaint restricted to visible dental enamel. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. ONLY modify the teeth selected for treatment. Do not outpaint, zoom, recenter or rebuild the mouth. Preserve every non-dental pixel.' +
     ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the teeth from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. Do NOT change the skin tone, lips, gums, eyes, hair, clothing or background — not even a subtle global tint. The darker or more saturated the chosen tooth shade is, the MORE important it is to keep this isolated: a dark tooth shade must never make the model darken, cool down, warm up or recolor the rest of the image to "match" — the teeth are the only thing allowed to change color. Pixel-perfect alignment with original photo outside the mouth.';
@@ -3956,15 +3969,11 @@ async function generateSimulation(clinicalPrompt, foto) {
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL CERAMIC REQUIREMENTS: interpret the selected VITA shade as a perceptual shade under the ORIGINAL illumination, not as one flat RGB fill. Build a continuous layered ceramic body with slightly warmer cervical dentin, a controlled-value middle third, and approximately 15–20 percent visually translucent incisal enamel. Include extremely subtle internal mamelons, a restrained opalescent incisal halo, natural mirror areas, convexity shadow transitions and narrow vertical specular highlights that follow the original light direction. Keep tiny natural value and texture variation between neighboring teeth while all remain recognizably within the selected VITA shade. AVOID: flat paint, uniform opaque fill, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness, repeated highlights or identical plastic-looking teeth.';
   stylePrompt += ' INDIVIDUAL TOOTH DESIGN AND MANDATORY COVERAGE: first identify and count every visible MAXILLARY tooth in the smile corridor, from the most posterior visible tooth on the patient right to the most posterior visible tooth on the patient left. Restore EVERY ONE of those visible upper teeth in the same pass, one-to-one. The six anterior teeth are mandatory, and every naturally visible premolar must also receive the same complete ceramic treatment. Never leave one natural, yellow or untreated upper tooth between or immediately beside restored teeth. Before returning the image, perform a bilateral checklist: the treated sequence must be continuous, with an equivalent visible endpoint on both sides whenever the photograph shows both counterparts. Every original maxillary tooth remains the same identifiable tooth and keeps its exact gingival emergence point and root reference. You MAY correct the VISIBLE CORONAL axis, rotation and alignment through the veneer facial contour, transition line angles and contact design; this is required when the original crowns look crowded or rotated. Do not move gingival margins, translate the whole arch, enlarge the mouth or invent teeth. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. PROPORTIONAL TEMPLATE, adapted to facial type and perspective rather than forced mechanically: central-incisor width-to-height approximately 75–82 percent; lateral incisors about 70–78 percent of central crown width and visually 0.5–1.0 mm shorter; canines about 75–85 percent of central crown width with a stronger cervical body, subtle cusp and smooth posterior transition. Keep the central pair symmetric within a small natural tolerance, not cloned. Place their contact line on the facial and dental midline, keep their incisal edges level within natural perspective, then create a progressive incisal curve parallel to the lower lip through laterals and canines. Correct visual crowding by conservative coronal contour and line-angle changes; never make the dental arch wider than the mouth or stack one veneer over another. Contacts must remain distinct, with clean small incisal embrasures and preserved interproximal shadows so the result never becomes one continuous white plate. Never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from the existing gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. FINAL SELF-CHECK: no visible upper tooth in the treated corridor may remain unchanged; both sides must have coherent shade, surface, axial alignment and endpoint coverage. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
-  var fdiDetectados = mapaDentalOriginal.pieces.map(function(p){return p.fdi;}).filter(Boolean);
-  stylePrompt = ' ANATOMICAL VENEER PASS ONLY. The original segmentation found EXACTLY ' +
-    mapaDentalOriginal.pieces.length + ' visible upper teeth, ordered continuously from image left to image right' +
-    (fdiDetectados.length ? ' (labels: ' + fdiDetectados.join(', ') + ')' : '') +
-    '. Create exactly one distinct ceramic veneer for each of those ' + mapaDentalOriginal.pieces.length +
-    ' teeth, in the same order and at the same gingival emergence. Treat every detected upper tooth; omit none and add none. ' +
-    'Do not alter lower teeth, gingiva, lips, skin, face, lighting or crop. Improve only visible coronal form: natural central dominance, slightly shorter and narrower laterals, anatomical canine transition, individual contacts and small incisal embrasures. ' +
-    'Use a gentle smile arc parallel to the lower lip. Preserve perspective and natural asymmetry. Ceramic must show real enamel depth, fine vertical texture, restrained translucency and original-light reflections. ' +
-    'Use a neutral light ivory working shade; do not solve or exaggerate final shade here. Avoid identical piano-key teeth, flat white blocks, doubled margins, exposed yellow rims and overlays on lower teeth.';
+  stylePrompt = (S.vitaMode==='current' ? ' Match the patient current natural enamel shade.' :
+    ' Apply VITA Classical '+vitaShade.code+' directly, using '+vitaShade.copy+'.'+shadeReferencePrompt) +
+    ' DIRECT VENEER APPLICATION — NO SEGMENTATION OR MASK OUTPUT. Apply individualized ceramic veneers directly to every visible upper tooth in one continuous natural smile design. Keep the same teeth, gingival emergence, perspective and mouth opening. ' +
+    'Central incisors retain natural dominance; laterals are subtly shorter and narrower; canines preserve anatomical character. Use distinct contacts, small embrasures, layered ceramic depth, fine vertical texture, restrained incisal translucency and reflections from the original light. ' +
+    'Leave lower teeth, gingiva, lips and every non-dental detail visually unchanged. Do not create gray cutouts, flat overlays, isolated patches, doubled borders, piano-key teeth or a uniform opaque row. '+finishPrompt+'. '+intensityPrompt+'.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -4000,23 +4009,17 @@ async function generateSimulation(clinicalPrompt, foto) {
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
 
-  // Pega SOLO la boca que generó la IA sobre la foto original sin tocar --
-  // así "antes" y "después" quedan idénticos pixel por pixel fuera de la
-  // sonrisa, sin depender de que la IA haya respetado el encuadre (ver
-  // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
-  // Un fallo debe detener la simulación: mostrar la imagen completa de la IA
-  // como respaldo rompería la garantía de conservar intacto el rostro.
-  var compuestaRecorte = await componerConOriginalSegmentado(
+  // Integración directa del recorte generado: sin segmentar, recortar ni
+  // recolorear dientes individualmente después de la generación.
+  var compuestaRecorte = await componerRecorteDirecto(
     entradaDental.dataUrl,
     url,
-    frontal.view || 'frontal',
-    mapaDentalOriginal,
-    vitaShade
+    frontal.view || 'frontal'
   );
   var compuesta = entradaDental.isFull
     ? compuestaRecorte
     : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
-  if (!compuesta) throw new Error('No se pudo aislar la simulación exclusivamente dentro de los dientes. Intenta generar de nuevo.');
+  if (!compuesta) throw new Error('No se pudo integrar la simulación. Intenta generar de nuevo.');
   // La composición ya nace en las coordenadas exactas del original; cualquier
   // ajuste manual guardado de una generación anterior volvería a desfasarla.
   if (frontal.view) S.baAlign[frontal.view] = {x: 0, y: 0, scale: 1};
@@ -5802,7 +5805,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 6;
+var SIM_QUALITY_VERSION = 7;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};

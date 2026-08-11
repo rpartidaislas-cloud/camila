@@ -19,7 +19,12 @@ nativa envuelta con Capacitor en `mobile/`.
    recientemente y qué está en curso. Si algo que ibas a tocar aparece ahí
    como "en curso" por el otro lado, avisa en el chat con el usuario antes
    de modificarlo.
-2. Al terminar una sesión de cambios, agrega una entrada nueva en
+2. Antes de crear, revisar o modificar una simulación de carillas, lee
+   `docs/CARILLAS_SIMULATION_CONTEXT.md` completo y úsalo como referencia de
+   color VITA, anatomía, proporciones, material y diseño de sonrisa. La
+   preferencia expresa del usuario y la preservación de la foto original
+   prevalecen si existe conflicto.
+3. Al terminar una sesión de cambios, agrega una entrada nueva en
    `docs/HANDOFF.md` (fecha, qué tocaste, qué archivos, cualquier cosa que
    el otro agente deba saber).
 
