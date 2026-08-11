@@ -428,6 +428,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-proportion-red{margin:2px 0 10px;padding:9px;border-radius:10px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.07)}.ed-proportion-red .ed-slider-row{margin-bottom:0}
 .ed-proportion-summary{padding:8px 9px;border-radius:9px;background:rgba(57,255,20,.075);border:1px solid rgba(57,255,20,.16);color:#caffbc;font-size:9.5px;line-height:1.45;font-weight:650}
 .ed-proportion-note{margin-top:7px;color:rgba(255,255,255,.38);font-size:8.5px;line-height:1.45}
+.ed-incisal-card{margin:2px 0 16px;padding:12px;border-radius:13px;border:1px solid rgba(245,158,11,.22);background:linear-gradient(145deg,rgba(245,158,11,.07),rgba(18,14,10,.82))}
+.ed-incisal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}.ed-incisal-title{color:#fff8e7;font-size:11px;font-weight:750}.ed-incisal-badge{padding:3px 6px;border-radius:99px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.24);color:#ffd98a;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.35px}.ed-incisal-copy{color:rgba(255,255,255,.44);font-size:9px;line-height:1.45;margin-bottom:9px}
+.ed-tooth-chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-bottom:10px}.ed-tooth-chip{height:30px;padding:0;border-radius:8px;border:1px solid rgba(245,158,11,.18);background:rgba(255,255,255,.045);color:rgba(255,255,255,.62);font:700 9.5px Inter,sans-serif;cursor:pointer}.ed-tooth-chip.ed-active{background:rgba(245,158,11,.17);border-color:#F59E0B;color:#fff4d6;box-shadow:0 0 11px rgba(245,158,11,.16)}
+.ed-incisal-reset{width:100%;height:32px;margin-top:8px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);color:rgba(255,255,255,.68);font:650 9.5px Inter,sans-serif;cursor:pointer}.ed-incisal-note{margin-top:7px;color:rgba(255,255,255,.36);font-size:8.5px;line-height:1.45}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
 @media(min-width:820px){
@@ -522,7 +526,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v72 — proporciones dentales configurables</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v73 — curva incisal vinculada</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1200,6 +1204,24 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <button class="ed-chip" data-group="diseno" data-key="arcoSonrisa" data-val="recto" onclick="edChipClick('diseno','arcoSonrisa','recto',this)">Recto</button>
         <button class="ed-chip ed-active" data-group="diseno" data-key="arcoSonrisa" data-val="suave" onclick="edChipClick('diseno','arcoSonrisa','suave',this)">Suave</button>
         <button class="ed-chip" data-group="diseno" data-key="arcoSonrisa" data-val="amplio" onclick="edChipClick('diseno','arcoSonrisa','amplio',this)">Amplio</button>
+      </div>
+      <div class="ed-incisal-card">
+        <div class="ed-incisal-head"><div class="ed-incisal-title">Altura incisal de las carillas</div><span class="ed-incisal-badge">Vinculada a curva</span></div>
+        <div class="ed-incisal-copy">Arrastra la curva amarilla para ajustar todos los dientes. Toca una pieza y mueve su punto amarillo para afinarla individualmente.</div>
+        <div class="ed-tooth-chips" id="ed-tooth-chips">
+          <button type="button" class="ed-tooth-chip" data-tooth-index="0" onclick="edSeleccionarDienteAltura(0,this)">13</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="1" onclick="edSeleccionarDienteAltura(1,this)">12</button>
+          <button type="button" class="ed-tooth-chip ed-active" data-tooth-index="2" onclick="edSeleccionarDienteAltura(2,this)">11</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="3" onclick="edSeleccionarDienteAltura(3,this)">21</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="4" onclick="edSeleccionarDienteAltura(4,this)">22</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="5" onclick="edSeleccionarDienteAltura(5,this)">23</button>
+        </div>
+        <div class="ed-slider-row" style="margin-bottom:0">
+          <div class="ed-slider-head"><span id="ed-altura-diente-title">Ajuste individual · 11</span><span id="ed-altura-diente-lbl">0%</span></div>
+          <input type="range" id="ed-altura-diente" class="ed-range" min="-20" max="20" step="1" value="0" oninput="edAlturaDienteInput(this)">
+        </div>
+        <button type="button" class="ed-incisal-reset" onclick="edRestablecerAlturasDientes()">Restablecer alturas individuales</button>
+        <div class="ed-incisal-note">La encía permanece fija. Los cambios se realizan hacia el borde incisal y los anchos siguen la proporción verde seleccionada.</div>
       </div>
 
       <div class="ed-label">Forma general</div>
@@ -3884,13 +3906,9 @@ function construirPromptGemini(diagnostico) {
   return partes.join(' ');
 }
 
-// Gemini genera mucho mejor anatomía cuando los dientes ocupan una porción
-// importante de la entrada. La foto completa se conserva como documento
-// maestro; sólo se envía a IA un recorte clínico de sonrisa y luego se vuelve
-// a insertar exactamente en sus coordenadas originales.
-async function prepararRecorteDental(fotoOriginalUrl, view) {
-  var img = await cargarImagenSegura(fotoOriginalUrl);
-  var W = img.naturalWidth, H = img.naturalHeight;
+// Un único cálculo compartido mantiene sincronizados el recorte enviado a la
+// IA y las coordenadas clínicas dibujadas en el editor.
+function calcularRectRecorteDental(W, H, view) {
   var esIntraoral = view === 'intraoral';
   var x = 0, y = 0, w = W, h = H;
   if (!esIntraoral) {
@@ -3912,6 +3930,18 @@ async function prepararRecorteDental(fotoOriginalUrl, view) {
     w = Math.max(2, Math.min(W - x, w));
     h = Math.max(2, Math.min(H - y, h));
   }
+  return {x:x, y:y, w:w, h:h, isFull:x === 0 && y === 0 && w === W && h === H};
+}
+
+// Gemini genera mucho mejor anatomía cuando los dientes ocupan una porción
+// importante de la entrada. La foto completa se conserva como documento
+// maestro; sólo se envía a IA un recorte clínico de sonrisa y luego se vuelve
+// a insertar exactamente en sus coordenadas originales.
+async function prepararRecorteDental(fotoOriginalUrl, view) {
+  var img = await cargarImagenSegura(fotoOriginalUrl);
+  var W = img.naturalWidth, H = img.naturalHeight;
+  var rect = calcularRectRecorteDental(W, H, view);
+  var x = rect.x, y = rect.y, w = rect.w, h = rect.h;
   var crop = document.createElement('canvas');
   crop.width = w; crop.height = h;
   crop.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
@@ -3922,7 +3952,7 @@ async function prepararRecorteDental(fotoOriginalUrl, view) {
     mimeType: 'image/jpeg',
     rect: {x:x, y:y, w:w, h:h},
     fullSize: {w:W, h:H},
-    isFull: x === 0 && y === 0 && w === W && h === H
+    isFull: rect.isFull
   };
 }
 
@@ -4123,7 +4153,10 @@ async function generateSimulation(clinicalPrompt, foto) {
     }
     if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
   }
-  var clinicalBlock = clinicalPrompt ? ' FACIAL CONTEXT (secondary only): ' + String(clinicalPrompt).slice(0, 700) : '';
+  // El editor coloca primero proporciones y objetivos incisales. Se conserva
+  // suficiente longitud para que los seis puntos clínicos no se pierdan al
+  // combinarse con el análisis facial guardado.
+  var clinicalBlock = clinicalPrompt ? ' CLINICAL AND EDITOR PRESCRIPTION (mandatory where specific): ' + String(clinicalPrompt).slice(0, 2600) : '';
   var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
   var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change color/shape — skin tone, lighting and white balance of the rest of the photo must stay exactly as in the original, regardless of how dark or saturated the chosen tooth shade is.';
   var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
@@ -4172,7 +4205,7 @@ async function generateSimulation(clinicalPrompt, foto) {
 // regenerar la simulación con Gemini (único método que puede cambiar de
 // verdad forma/color/línea en una foto real).
 var EDITOR_PARAMS_DEFAULT = {
-  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
+  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, alturasDientes:[0,0,0,0,0,0], caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   guiasAgrupadas:false,
@@ -4203,6 +4236,7 @@ var _edPhotoPanMode = false;
 var _edSimulationUrl = '';
 var _edOriginalUrl = '';
 var _edShowingOriginal = false;
+var _edActiveToothIndex = 2;
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
 var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
 var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
@@ -4243,6 +4277,73 @@ function edActualizarControlesProporcion() {
   } else {
     resumen.textContent = 'Golden Percentage del frente anterior · cada central 25% · lateral 15% · canino 10%.';
   }
+}
+
+var ED_TOOTH_IDS = ['13','12','11','21','22','23'];
+
+function edAsegurarAlturasDientes() {
+  if (!EDITOR_PARAMS || !EDITOR_PARAMS.diseno) return;
+  var alturas = EDITOR_PARAMS.diseno.alturasDientes;
+  if (!Array.isArray(alturas) || alturas.length !== 6) alturas = [0,0,0,0,0,0];
+  EDITOR_PARAMS.diseno.alturasDientes = alturas.map(function(valor) {
+    valor = parseFloat(valor);
+    return Math.max(-20, Math.min(20, isFinite(valor) ? valor : 0));
+  });
+}
+
+function edEtiquetaAltura(valor) {
+  valor = Math.round(parseFloat(valor) || 0);
+  if (valor > 0) return 'Alargar +' + valor + '%';
+  if (valor < 0) return 'Acortar ' + valor + '%';
+  return '0%';
+}
+
+function edActualizarControlAlturaDiente() {
+  if (!EDITOR_PARAMS) return;
+  edAsegurarAlturasDientes();
+  _edActiveToothIndex = Math.max(0, Math.min(5, parseInt(_edActiveToothIndex, 10) || 0));
+  var valor = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex];
+  var slider = document.getElementById('ed-altura-diente');
+  if (slider) slider.value = valor;
+  var label = document.getElementById('ed-altura-diente-lbl');
+  if (label) label.textContent = edEtiquetaAltura(valor);
+  var title = document.getElementById('ed-altura-diente-title');
+  if (title) title.textContent = 'Ajuste individual · ' + ED_TOOTH_IDS[_edActiveToothIndex];
+  document.querySelectorAll('.ed-tooth-chip[data-tooth-index]').forEach(function(btn) {
+    btn.classList.toggle('ed-active', parseInt(btn.dataset.toothIndex, 10) === _edActiveToothIndex);
+  });
+}
+
+function edActivarGuiasIncisales() {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.guias.curvaSonrisa = true;
+  EDITOR_PARAMS.guias.proporcionAurea = true;
+  _edActiveGuide = 'curvaSonrisa';
+  edActualizarEstadoGuias();
+}
+
+function edSeleccionarDienteAltura(indice) {
+  _edActiveToothIndex = Math.max(0, Math.min(5, parseInt(indice, 10) || 0));
+  edActivarGuiasIncisales();
+  edActualizarControlAlturaDiente();
+  redrawEditor();
+}
+
+function edAlturaDienteInput(el) {
+  if (!EDITOR_PARAMS) return;
+  edAsegurarAlturasDientes();
+  EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] = Math.max(-20, Math.min(20, parseFloat(el.value) || 0));
+  edActivarGuiasIncisales();
+  edActualizarControlAlturaDiente();
+  redrawEditor();
+}
+
+function edRestablecerAlturasDientes() {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.diseno.alturasDientes = [0,0,0,0,0,0];
+  edActivarGuiasIncisales();
+  edActualizarControlAlturaDiente();
+  redrawEditor();
 }
 
 function edCopiarZona(z) {
@@ -4324,9 +4425,9 @@ function edActualizarEstadoGuias() {
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
     if (!visibles.length) hint.textContent = 'Activa una guía para moverla';
-    else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · la manija naranja sólo ajusta la curva';
+    else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
-    else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para moverla · usa la manija naranja para ajustar sus extremos';
+    else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para redimensionar el conjunto · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: ' + ED_PROPORTION_LABELS[edMetodoProporcion()] + ' · pellizca con dos dedos para cambiar su tamaño · arrastra para moverla';
     else hint.textContent = 'Editando: ' + edEtiquetaGuia(_edActiveGuide) + ' · las demás permanecen fijas';
   }
@@ -4354,6 +4455,7 @@ function abrirEditorDiseno() {
   if (typeof EDITOR_PARAMS.diseno.red !== 'number') EDITOR_PARAMS.diseno.red = 70;
   EDITOR_PARAMS.diseno.red = Math.max(62, Math.min(80, EDITOR_PARAMS.diseno.red));
   if (typeof EDITOR_PARAMS.diseno.proporcion !== 'number') EDITOR_PARAMS.diseno.proporcion = 78;
+  edAsegurarAlturasDientes();
   if (!EDITOR_PARAMS.diseno.caracterizacion) EDITOR_PARAMS.diseno.caracterizacion = 'natural';
   edAsegurarZonasGuias();
   _edActiveGuide = edGuiasVisibles()[0] || null;
@@ -4361,6 +4463,7 @@ function abrirEditorDiseno() {
   _edPhotoPanX = 0;
   _edPhotoPanY = 0;
   _edPhotoPanMode = false;
+  _edActiveToothIndex = 2;
   _edSimulationUrl = url;
   _edOriginalUrl = fotoOriginal ? 'data:image/jpeg;base64,' + fotoOriginal.b64 : '';
   _edShowingOriginal = false;
@@ -4440,6 +4543,7 @@ function edAplicarRecomendacion() {
   diseno.proporcionMetodo = 'adaptativa';
   diseno.red = 70;
   diseno.proporcion = edNumeroClinico(d.proporcion_ancho_alto_centrales_pct,70,90,78);
+  diseno.alturasDientes = [0,0,0,0,0,0];
   diseno.caracterizacion = ['sutil','natural','marcada'].indexOf(d.caracterizacion_superficial) >= 0 ? d.caracterizacion_superficial : 'natural';
   if (d.curvatura_labio_inferior === 'plana') diseno.arcoSonrisa = 'recto';
   else if (d.curvatura_labio_inferior === 'marcada') diseno.arcoSonrisa = 'amplio';
@@ -4803,6 +4907,7 @@ function edSyncControles() {
   edRenderGuiaVita();
   edActualizarInclinacionDisabled();
   edActualizarControlesProporcion();
+  edActualizarControlAlturaDiente();
 }
 
 // Cada guía tiene su propia zona. En modo independiente, arrastrar/zoom sólo
@@ -4812,7 +4917,7 @@ function edInitZoneDrag() {
   if (_edDragInit) return;
   _edDragInit = true;
   var canvas = document.getElementById('ed-canvas');
-  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0;
+  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0, startToothOffset = 0;
   var startPhotoPanX = 0, startPhotoPanY = 0;
   var pinching = false, startPinchDistance = 0, startPinchZone = null;
 
@@ -4867,6 +4972,29 @@ function edInitZoneDrag() {
       var px = (clientX - r.left) * canvas.width / r.width;
       var py = (clientY - r.top) * canvas.height / r.height;
       var hitRadius = 24 * canvas.width / r.width;
+      var objetivos = edObjetivosIncisalesPx(canvas.width, canvas.height);
+      var objetivoActivo = null;
+      var distanciaActiva = Infinity;
+      objetivos.forEach(function(objetivo) {
+        var distancia = Math.hypot(px - objetivo.x, py - objetivo.y);
+        if (distancia <= hitRadius * 1.25 && distancia < distanciaActiva) {
+          objetivoActivo = objetivo;
+          distanciaActiva = distancia;
+        }
+      });
+      if (objetivoActivo) {
+        dragging = true;
+        dragMode = 'tooth-height';
+        startX = clientX; startY = clientY;
+        _edActiveToothIndex = objetivoActivo.indice;
+        edAsegurarAlturasDientes();
+        startToothOffset = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] || 0;
+        _edActiveGuide = 'curvaSonrisa';
+        edActualizarEstadoGuias();
+        edActualizarControlAlturaDiente();
+        redrawEditor();
+        return;
+      }
       if (Math.hypot(px - handle.x, py - handle.y) <= hitRadius) {
         dragging = true;
         dragMode = 'curve';
@@ -4900,6 +5028,15 @@ function edInitZoneDrag() {
       var curveZone = edZonaGuia('curvaSonrisa');
       var deltaCurve = ((clientY - startY) / r.height) / Math.max(0.01, curveZone.h);
       EDITOR_PARAMS.curvaExtremos = Math.max(-0.30, Math.min(0.70, startCurveOffset + deltaCurve));
+      redrawEditor();
+      return;
+    }
+    if (dragMode === 'tooth-height') {
+      var toothZone = edZonaGuia('curvaSonrisa');
+      var deltaTooth = ((clientY - startY) / r.height) / Math.max(0.01, toothZone.h) * 100;
+      edAsegurarAlturasDientes();
+      EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] = Math.max(-20, Math.min(20, startToothOffset + deltaTooth));
+      edActualizarControlAlturaDiente();
       redrawEditor();
       return;
     }
@@ -5015,6 +5152,26 @@ function redrawEditor() {
 // en inglés para Gemini — se reconstruye completo cada vez (no acumula
 // sobre sí mismo), así lo que se ve en el panel coincide con lo que se va
 // a generar.
+function edPrescripcionIncisalPrompt() {
+  if (!EDITOR_PARAMS || !edBaseImg || !EDITOR_PARAMS.guias.curvaSonrisa) return '';
+  var W = edBaseImg.naturalWidth || 0, H = edBaseImg.naturalHeight || 0;
+  if (!W || !H) return '';
+  var view = S.baVistaActual || 'frontal';
+  var crop = calcularRectRecorteDental(W, H, view);
+  var objetivos = edObjetivosIncisalesPx(W, H);
+  if (!objetivos.length) return '';
+  var puntos = objetivos.map(function(punto) {
+    var nx = Math.max(0, Math.min(1, (punto.x - crop.x) / crop.w));
+    var ny = Math.max(0, Math.min(1, (punto.y - crop.y) / crop.h));
+    return punto.id + '=(' + nx.toFixed(3) + ',' + ny.toFixed(3) + ')';
+  }).join(', ');
+  var ajustes = objetivos.map(function(punto) {
+    var valor = Math.round((EDITOR_PARAMS.diseno.alturasDientes[punto.indice] || 0) * 10) / 10;
+    return punto.id + ':' + (valor > 0 ? '+' : '') + valor + '%';
+  }).join(', ');
+  return 'MANDATORY PATIENT-SPECIFIC INCISAL PRESCRIPTION. The editor has defined the final incisal-edge target for the six maxillary anterior veneers. Coordinates are normalized to the supplied smile crop (0,0 top-left; 1,1 bottom-right), listed image-left to image-right: ' + puntos + '. Individual crown-length adjustments relative to the shared smile curve are: ' + ajustes + '. Keep every existing gingival margin and emergence point absolutely fixed; resize each clinical crown only toward its incisal edge until the edge passes through its assigned target. Interpolate a smooth continuous smile arc between targets, preserve the selected apparent-width proportions and individualized central/lateral/canine anatomy. Do not translate, rotate or scale the mouth, lips, gums, face, photograph or lower teeth. Do not stretch pixels or paste flat tooth shapes.';
+}
+
 function construirPromptEditor() {
   var d = EDITOR_PARAMS.diseno, e = EDITOR_PARAMS.encia;
   var partes = [];
@@ -5035,6 +5192,9 @@ function construirPromptEditor() {
   } else if (metodoProporcion === 'golden') {
     partes.push('Use Golden Percentage across the visible six maxillary anterior teeth: each central incisor about 25% of the combined anterior apparent width, each lateral about 15%, and each canine about 10%. Preserve perspective and individualized anatomy; do not alter lips, gingiva or facial tissues.');
   }
+
+  var prescripcionIncisal = edPrescripcionIncisalPrompt();
+  if (prescripcionIncisal) partes.push(prescripcionIncisal);
 
   if (d.lineaMedia === 'izq') partes.push('Shift the dental midline slightly to the left compared to the current simulation.');
   else if (d.lineaMedia === 'der') partes.push('Shift the dental midline slightly to the right compared to the current simulation.');
@@ -5166,6 +5326,52 @@ function edCurvaGeometria(w, h) {
   };
 }
 
+function edCurvaYEnX(curva, x) {
+  var t = Math.max(0, Math.min(1, (x - curva.zone.x) / Math.max(1, curva.zone.w)));
+  var unoMenos = 1 - t;
+  return unoMenos * unoMenos * curva.yExtremos + 2 * unoMenos * t * curva.yControl + t * t * curva.yExtremos;
+}
+
+// Centros aparentes de 13–23 dentro de la curva, usando exactamente los
+// mismos pesos que las siete líneas verdes de proporción.
+function edObjetivosIncisalesPx(w, h) {
+  edAsegurarAlturasDientes();
+  var curva = edCurvaGeometria(w, h);
+  var intervalos = edIntervalosProporcion();
+  var total = intervalos.reduce(function(suma, valor) { return suma + valor; }, 0);
+  var acumulado = curva.zone.x;
+  return intervalos.map(function(valor, indice) {
+    var ancho = curva.zone.w * valor / total;
+    var x = acumulado + ancho / 2;
+    acumulado += ancho;
+    var ajuste = (EDITOR_PARAMS.diseno.alturasDientes[indice] || 0) / 100;
+    return {id:ED_TOOTH_IDS[indice],indice:indice,x:x,y:edCurvaYEnX(curva,x) + curva.zone.h * ajuste};
+  });
+}
+
+function edPuntosCurvaSonrisa(w, h) {
+  var curva = edCurvaGeometria(w, h);
+  return [{x:curva.zone.x,y:curva.yExtremos}]
+    .concat(edObjetivosIncisalesPx(w,h).map(function(p){return {x:p.x,y:p.y};}))
+    .concat([{x:curva.zone.x+curva.zone.w,y:curva.yExtremos}]);
+}
+
+function edTrazarCurvaSuave(ctx, puntos) {
+  if (!puntos.length) return;
+  ctx.moveTo(puntos[0].x, puntos[0].y);
+  for (var i=0; i<puntos.length-1; i++) {
+    var p0 = puntos[Math.max(0,i-1)];
+    var p1 = puntos[i];
+    var p2 = puntos[i+1];
+    var p3 = puntos[Math.min(puntos.length-1,i+2)];
+    var cp1x = p1.x + (p2.x-p0.x)/6;
+    var cp1y = p1.y + (p2.y-p0.y)/6;
+    var cp2x = p2.x - (p3.x-p1.x)/6;
+    var cp2y = p2.y - (p3.y-p1.y)/6;
+    ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
+  }
+}
+
 function edCurvaHandlePx(w, h) {
   var curva = edCurvaGeometria(w, h);
   return {x:curva.zone.x + curva.zone.w, y:curva.yExtremos};
@@ -5223,9 +5429,26 @@ function edDibujarGuias(ctx, w, h) {
     ctx.strokeStyle = '#F59E0B';
     ctx.lineWidth = Math.max(1.5, w * 0.0025);
     ctx.beginPath();
-    ctx.moveTo(zone.x, curva.yExtremos);
-    ctx.quadraticCurveTo(midX, curva.yControl, zone.x + zone.w, curva.yExtremos);
+    edTrazarCurvaSuave(ctx, edPuntosCurvaSonrisa(w,h));
     ctx.stroke();
+
+    var objetivosIncisales = edObjetivosIncisalesPx(w,h);
+    objetivosIncisales.forEach(function(punto) {
+      var activo = punto.indice === _edActiveToothIndex;
+      var radio = Math.max(activo ? 7 : 5, w * (activo ? 0.0065 : 0.0048));
+      ctx.beginPath();
+      ctx.fillStyle = activo ? '#FFF7D6' : '#F59E0B';
+      ctx.strokeStyle = activo ? '#F59E0B' : '#FFFFFF';
+      ctx.lineWidth = Math.max(1.5,w*0.0014);
+      ctx.arc(punto.x,punto.y,radio,0,Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = activo ? '#4A2B00' : '#FFF8E7';
+      ctx.font = '700 ' + Math.max(8,Math.round(w*0.008)) + 'px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(punto.id,punto.x,punto.y-radio-3);
+    });
 
     var handleRadius = Math.max(7, w * 0.007);
     ctx.setLineDash([]);

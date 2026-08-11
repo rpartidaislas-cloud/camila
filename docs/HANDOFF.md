@@ -10,6 +10,26 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (17) — Codex (curva incisal vinculada al tamaño dental)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La curva amarilla dejó de ser sólo una referencia visual: contiene seis
+  objetivos incisales identificados como 13, 12, 11, 21, 22 y 23. Arrastrar
+  la curva mueve el objetivo del conjunto; cada punto o su control permite
+  alargar/acortar individualmente la corona dentro de ±20 %.
+- El margen gingival y el punto de emergencia quedan fijos. El cambio ocurre
+  únicamente hacia el borde incisal; las anchuras aparentes siguen el método
+  de proporción verde elegido y centrales, laterales y caninos conservan su
+  jerarquía anatómica.
+- `edPrescripcionIncisalPrompt()` convierte los seis objetivos a coordenadas
+  normalizadas del mismo recorte clínico enviado a la IA. El regenerador
+  recibe esas coordenadas como prescripción obligatoria, sin estirar píxeles,
+  segmentar dientes ni mover labios, encías, cara o arcada inferior.
+- El cálculo del recorte se centralizó en `calcularRectRecorteDental()` para
+  que editor y regenerador compartan exactamente el mismo sistema de
+  coordenadas. Indicador visible actualizado a `build v73`.
+
 ## 2026-08-11 (16) — Codex (proporciones dentales configurables)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
