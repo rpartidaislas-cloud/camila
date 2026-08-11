@@ -516,7 +516,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v70 — composición dental localizada</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v71 — simulación continua alineada</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -4018,31 +4018,34 @@ async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   var W=original.naturalWidth,H=original.naturalHeight;
   var base=document.createElement('canvas');base.width=W;base.height=H;
   var bctx=base.getContext('2d');bctx.drawImage(original,0,0,W,H);
-  var registrada=dibujarImagenRegistrada(original,ia,W,H,view);
-  var capa=registrada.canvas,cctx=capa.getContext('2d',{willReadFrequently:true});
-  var pix=cctx.getImageData(0,0,W,H),orig=bctx.getImageData(0,0,W,H).data,banda=registrada.banda;
+  var capa=document.createElement('canvas');capa.width=W;capa.height=H;
+  var cctx=capa.getContext('2d',{willReadFrequently:true});
+
+  // Se recupera la composición continua que daba el aspecto natural. La
+  // única intervención posterior a la IA es registrar el recorte completo
+  // contra el original; no se clasifican colores, tejidos ni dientes.
+  var align=buscarAlineacionImagenes(original,ia);
+  align.dx=Math.max(-.045,Math.min(.045,align.dx));
+  align.dy=Math.max(-.045,Math.min(.045,align.dy));
+  align.escala=Math.max(.975,Math.min(1.025,align.escala));
+  align.angulo=Math.max(-1.2,Math.min(1.2,align.angulo||0));
+  cctx.save();
+  cctx.translate(W/2,H/2);
+  cctx.rotate(align.angulo*Math.PI/180);
+  var iw=W*align.escala,ih=H*align.escala;
+  cctx.drawImage(ia,-iw/2+align.dx*W,-ih/2+align.dy*H,iw,ih);
+  cctx.restore();
+
+  // Sólo se difuminan los límites exteriores del recorte para que la unión
+  // con la fotografía maestra no tenga un rectángulo visible.
+  var pix=cctx.getImageData(0,0,W,H),margenX=Math.max(2,W*.055),margenY=Math.max(2,H*.075);
   function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
   for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
-    var i=(y*W+x)*4,nx=Math.abs((x-banda.cx)/Math.max(1,banda.w*.5)),ny=Math.abs((y-banda.cy)/Math.max(1,banda.h*.5));
-    // Superelipse: cubre la arcada continua sin bordes rectos ni recortar
-    // caninos, pero su transición permanece dentro de la zona dental.
-    var distancia=Math.pow(nx,4)+Math.pow(ny,4);
-    var alfa=1-suave((distancia-.66)/.34);
-    if(alfa>0){
-      var r=orig[i],g=orig[i+1],b=orig[i+2],lum=.299*r+.587*g+.114*b;
-      var tejido=(r-g>29&&r-b>36)||(r>(g+b)*.62&&r>105&&g<118);
-      // Protección cromática del tejido: aun dentro de la ventana, labios y
-      // encía proceden de la foto original. Las sombras oscuras conservan su
-      // profundidad y evitan el borde de "calcomanía".
-      if(tejido) alfa=0;
-      else if(lum<38) alfa*=.18;
-      var cambio=Math.abs(pix.data[i]-r)+Math.abs(pix.data[i+1]-g)+Math.abs(pix.data[i+2]-b);
-      if(cambio<7) alfa=0;
-    }
-    pix.data[i+3]=Math.round(255*Math.max(0,Math.min(1,alfa)));
+    var borde=Math.min(x/margenX,(W-1-x)/margenX,y/margenY,(H-1-y)/margenY);
+    pix.data[(y*W+x)*4+3]=Math.round(255*suave(borde));
   }
   cctx.putImageData(pix,0,0);bctx.drawImage(capa,0,0);
-  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'single-dental-window',alignment:registrada.alignment,window:{x:banda.x,y:banda.y,w:banda.w,h:banda.h},confidence:banda.confidence}};
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'direct-aligned-no-segmentation',alignment:{dx:align.dx*W,dy:align.dy*H,scale:align.escala,angle:align.angulo}}};
   return base.toDataURL('image/png');
 }
 
@@ -5914,7 +5917,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 9;
+var SIM_QUALITY_VERSION = 10;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};

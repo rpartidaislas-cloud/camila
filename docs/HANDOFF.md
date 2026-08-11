@@ -10,6 +10,20 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (15) — Codex (restaura simulación continua y sólo alinea)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Retirado del flujo rápido el filtro cromático por píxel de v70, que podía
+  descartar esmalte amarillo como si fuera tejido y producir dientes sin
+  cambio, fragmentos o bordes rotos.
+- Restaurada la composición continua del recorte generado que previamente
+  daba el resultado natural. La única corrección posterior es el registro
+  automático limitado de posición, escala y giro contra el recorte original.
+- No se segmentan dientes, no se crean máscaras de color y no se perfora la
+  simulación. Sólo se suaviza el perímetro exterior del recorte. Control
+  interno v10; indicador visible `build v71`.
+
 ## 2026-08-11 (14) — Codex (impide falso anclaje en bigote)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
