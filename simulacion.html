@@ -5802,7 +5802,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 4;
+var SIM_QUALITY_VERSION = 5;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};
@@ -6193,17 +6193,46 @@ function emparejarPiezasDentales(esperadas, generadas) {
   var e=(esperadas||[]).slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
   var g=(generadas||[]).slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
   var problemas=[];
-  if(e.length!==g.length) problemas.push('se esperaban '+e.length+' carillas y se detectaron '+g.length);
-  var n=Math.min(e.length,g.length), pares=[];
-  for(var i=0;i<n;i++){
-    var anchoRef=Math.max(1,e[i].w);
-    var distancia=Math.abs((e[i].x+e[i].w/2)-(g[i].x+g[i].w/2))/anchoRef;
-    var proporcion=g[i].w/Math.max(1,e[i].w);
-    pares.push({original:e[i],generada:g[i],distance:distancia,widthRatio:proporcion});
-    if(distancia>.72) problemas.push('la carilla '+(i+1)+' no coincide con su diente original');
-    if(proporcion<.48||proporcion>1.85) problemas.push('la carilla '+(i+1)+' tiene una proporción incompatible');
+  if(g.length<e.length) {
+    problemas.push('se esperaban '+e.length+' carillas y sólo se detectaron '+g.length);
+    return {ok:false,pairs:[],extras:g,issues:problemas};
   }
-  return {ok:problemas.length===0,pairs:pares,issues:problemas};
+  // A veces el segmentador divide un mismo diente en dos candidatos. En vez
+  // de emparejar por índice (lo que desplaza toda la secuencia), buscamos la
+  // subsecuencia generada de menor costo que conserve el orden anatómico.
+  var filas=e.length+1,columnas=g.length+1,infinito=1e9;
+  var dp=Array.from({length:filas},function(){return Array(columnas).fill(infinito);});
+  var paso=Array.from({length:filas},function(){return Array(columnas).fill(null);});
+  for(var j0=0;j0<columnas;j0++) dp[0][j0]=0;
+  function costo(a,b){
+    var distancia=Math.abs((a.x+a.w/2)-(b.x+b.w/2))/Math.max(1,a.w);
+    var ratio=b.w/Math.max(1,a.w);
+    return distancia+Math.abs(Math.log(Math.max(.05,ratio)))*.32;
+  }
+  for(var i=1;i<filas;i++) for(var j=1;j<columnas;j++) {
+    if(dp[i][j-1]<=dp[i-1][j-1]+costo(e[i-1],g[j-1])) {
+      dp[i][j]=dp[i][j-1];paso[i][j]='skip';
+    } else {
+      dp[i][j]=dp[i-1][j-1]+costo(e[i-1],g[j-1]);paso[i][j]='match';
+    }
+  }
+  var pares=[],usadas=new Set(),ii=e.length,jj=g.length;
+  while(ii>0&&jj>0){
+    if(paso[ii][jj]==='match'){
+      var original=e[ii-1],generada=g[jj-1];
+      var distancia=Math.abs((original.x+original.w/2)-(generada.x+generada.w/2))/Math.max(1,original.w);
+      var proporcion=generada.w/Math.max(1,original.w);
+      pares.unshift({original:original,generada:generada,distance:distancia,widthRatio:proporcion});
+      usadas.add(generada);ii--;jj--;
+    } else jj--;
+  }
+  if(pares.length!==e.length) problemas.push('no se pudo completar la correspondencia anatómica');
+  pares.forEach(function(par,indice){
+    if(par.distance>.92) problemas.push('la carilla '+(indice+1)+' no coincide con su diente original');
+    if(par.widthRatio<.42||par.widthRatio>2.05) problemas.push('la carilla '+(indice+1)+' tiene una proporción incompatible');
+  });
+  var extras=g.filter(function(p){return !usadas.has(p);});
+  return {ok:problemas.length===0,pairs:pares,extras:extras,issues:problemas};
 }
 
 // El modelo genera anatomía y textura. El tono VITA se aplica después y sólo
@@ -6279,7 +6308,7 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
         width: mapaOriginal.width,
         height: mapaOriginal.height,
         expectedPieces: mapaOriginal.pieces,
-        generatedPieces: mapaGenerado.pieces,
+        generatedPieces: correspondencia.pairs.map(function(par){return par.generada;}),
         pairs: correspondencia.pairs
       }
     };
@@ -6293,6 +6322,19 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     union.width = W; union.height = H;
     var uctx = union.getContext('2d');
     uctx.drawImage(maskIA, 0, 0, W, H);
+
+    // Los candidatos extra que queden fuera de la secuencia original no se
+    // componen. Se conserva un margen de media corona para permitir mejoras
+    // de contorno sin inventar dientes posteriores fuera del corredor real.
+    var anchosOriginales=mapaOriginal.pieces.map(function(p){return p.w;});
+    var margenCorredor=(medianaNumerica(anchosOriginales)||1)*.55;
+    var xMinMapa=Math.min.apply(null,mapaOriginal.pieces.map(function(p){return p.x;}))-margenCorredor;
+    var xMaxMapa=Math.max.apply(null,mapaOriginal.pieces.map(function(p){return p.x+p.w;}))+margenCorredor;
+    var escalaCorredor=W/Math.max(1,mapaOriginal.width);
+    uctx.globalCompositeOperation='destination-in';
+    uctx.fillStyle='#fff';
+    uctx.fillRect(Math.max(0,xMinMapa*escalaCorredor),0,Math.min(W,(xMaxMapa-xMinMapa)*escalaCorredor),H);
+    uctx.globalCompositeOperation='source-over';
 
     await aplicarTonoVitaConMascara(alineada, parDental.iaMaskUrl, vitaShade);
 

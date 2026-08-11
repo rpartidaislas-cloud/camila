@@ -10,6 +10,17 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (10) — Codex (emparejamiento tolerante a fragmentos extra)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Cuando la segunda segmentación devuelve candidatos extra (por ejemplo 11
+  contra 9 originales), el comparador elige la subsecuencia ordenada de menor
+  costo en vez de desplazar todas las piezas por índice.
+- Los sobrantes se excluyen del análisis y la máscara final se limita al
+  corredor dental original. Menos piezas o una incompatibilidad anatómica
+  real siguen rechazándose. Control actualizado a v5.
+
 ## 2026-08-10 (9) — Codex (corrige falso rechazo A1/piezas)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
