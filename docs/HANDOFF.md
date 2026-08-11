@@ -10,6 +10,25 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (16) — Codex (proporciones dentales configurables)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La antigua guía fija `Proporción` ahora se presenta como `Proporciones` y
+  conserva siete líneas verdes, pero su distribución cambia entre cuatro
+  métodos: Adaptativa (RED 70 % como referencia no rígida), RED ajustable
+  (62–80 %), Proporción áurea y Golden Percentage (25/15/10 por hemiarcada).
+- Se separó explícitamente la distribución horizontal aparente de la relación
+  ancho/alto de los incisivos centrales. Los casos guardados anteriores se
+  migran en memoria a `proporcionMetodo: adaptativa` y `red: 70`.
+- La opción elegida no es sólo visual: `construirPromptEditor()` envía al
+  regenerador el método, sus valores y la relación ancho/alto. Las
+  instrucciones de proporción se colocan primero para no quedar fuera del
+  límite del bloque clínico secundario.
+- La guía sigue siendo móvil, escalable con pellizco e independiente de las
+  otras guías; también conserva el modo de agrupación existente. Indicador
+  visible actualizado a `build v72`.
+
 ## 2026-08-11 (15) — Codex (restaura simulación continua y sólo alinea)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

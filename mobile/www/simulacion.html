@@ -372,7 +372,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
 /* ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
    Solo guías de referencia (línea media/incisal, curva de sonrisa,
-   proporción áurea) sobre la imagen ya generada — el usuario las
+   proporciones dentales) sobre la imagen ya generada — el usuario las
    posiciona arrastrando/haciendo zoom sobre la zona de la sonrisa (no hay
    detección real de dientes). Los cambios reales de color/forma/línea se
    mandan a regenerar con Gemini, no se fingen con canvas. */
@@ -422,6 +422,12 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-clinical-tags{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.ed-clinical-tag{padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.74);font-size:9px}.ed-clinical-copy{color:rgba(255,255,255,.5);font-size:9.5px;line-height:1.5}.ed-clinical-apply{width:100%;height:34px;margin-top:10px;border-radius:9px;border:1px solid rgba(117,105,240,.35);background:rgba(91,71,224,.16);color:#e2deff;font:700 10px Inter,sans-serif;cursor:pointer}
 .ed-chip{flex:1;height:36px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11.5px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif}
 .ed-chip.ed-active{background:rgba(124,106,247,.22);border-color:#7c6af7;color:#fff}
+.ed-proportion-card{margin:2px 0 16px;padding:12px;border-radius:13px;border:1px solid rgba(57,255,20,.18);background:linear-gradient(145deg,rgba(57,255,20,.055),rgba(12,15,13,.78))}
+.ed-proportion-title{color:#f4fff1;font-size:11px;font-weight:750;margin-bottom:3px}.ed-proportion-kicker{color:rgba(255,255,255,.43);font-size:9px;line-height:1.45;margin-bottom:9px}
+.ed-proportion-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px}.ed-proportion-methods .ed-chip{width:100%;padding:0 7px;font-size:10px}.ed-proportion-methods .ed-chip.ed-active{background:rgba(57,255,20,.13);border-color:rgba(57,255,20,.68);color:#eaffdf}
+.ed-proportion-red{margin:2px 0 10px;padding:9px;border-radius:10px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.07)}.ed-proportion-red .ed-slider-row{margin-bottom:0}
+.ed-proportion-summary{padding:8px 9px;border-radius:9px;background:rgba(57,255,20,.075);border:1px solid rgba(57,255,20,.16);color:#caffbc;font-size:9.5px;line-height:1.45;font-weight:650}
+.ed-proportion-note{margin-top:7px;color:rgba(255,255,255,.38);font-size:8.5px;line-height:1.45}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
 @media(min-width:820px){
@@ -516,7 +522,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v71 — simulación continua alineada</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v72 — proporciones dentales configurables</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1140,7 +1146,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
           <button class="ed-guide-add" onclick="edAgregarLinea('horizontal')">+ Horizontal</button>
         </div>
         <button class="ed-guide-chip" data-guia="curvaSonrisa" onclick="edGuiaToggle('curvaSonrisa',this)">Curva sonrisa</button>
-        <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporción</button>
+        <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporciones</button>
         <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">🔗 Agrupar guías</button>
       </div>
       <div class="ed-canvas-wrap" id="ed-canvas-wrap">
@@ -1208,8 +1214,26 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-slider-head"><span>Tamaño relativo de coronas</span><span id="ed-tamano-lbl">100%</span></div>
         <input type="range" id="ed-tamano" class="ed-range" min="88" max="112" step="1" value="100" data-group="diseno" data-key="tamano" oninput="edSliderInput(this)">
       </div>
+      <div class="ed-proportion-card">
+        <div class="ed-proportion-title">Distribución horizontal anterior</div>
+        <div class="ed-proportion-kicker">Controla el ancho aparente de caninos, laterales y centrales en vista frontal.</div>
+        <div class="ed-proportion-methods">
+          <button class="ed-chip ed-active" data-group="diseno" data-key="proporcionMetodo" data-val="adaptativa" onclick="edChipClick('diseno','proporcionMetodo','adaptativa',this)">Adaptativa</button>
+          <button class="ed-chip" data-group="diseno" data-key="proporcionMetodo" data-val="red" onclick="edChipClick('diseno','proporcionMetodo','red',this)">RED ajustable</button>
+          <button class="ed-chip" data-group="diseno" data-key="proporcionMetodo" data-val="aurea" onclick="edChipClick('diseno','proporcionMetodo','aurea',this)">Proporción áurea</button>
+          <button class="ed-chip" data-group="diseno" data-key="proporcionMetodo" data-val="golden" onclick="edChipClick('diseno','proporcionMetodo','golden',this)">Golden %</button>
+        </div>
+        <div class="ed-proportion-red" id="ed-red-control">
+          <div class="ed-slider-row">
+            <div class="ed-slider-head"><span>RED sucesivo</span><span id="ed-red-lbl">70%</span></div>
+            <input type="range" id="ed-red" class="ed-range" min="62" max="80" step="1" value="70" data-group="diseno" data-key="red" oninput="edSliderInput(this)">
+          </div>
+        </div>
+        <div class="ed-proportion-summary" id="ed-proportion-summary"></div>
+        <div class="ed-proportion-note">Esta distribución y la relación ancho/alto del incisivo central son controles clínicos diferentes. Es una referencia visual y debe validarse con el caso real.</div>
+      </div>
       <div class="ed-slider-row">
-        <div class="ed-slider-head"><span>Relación ancho/alto centrales</span><span id="ed-proporcion-lbl">78%</span></div>
+        <div class="ed-slider-head"><span>Ancho/alto centrales · referencia 75–80%</span><span id="ed-proporcion-lbl">78%</span></div>
         <input type="range" id="ed-proporcion" class="ed-range" min="70" max="90" step="1" value="78" data-group="diseno" data-key="proporcion" oninput="edSliderInput(this)">
       </div>
       <div class="ed-label">Caracterización superficial</div>
@@ -4148,7 +4172,7 @@ async function generateSimulation(clinicalPrompt, foto) {
 // regenerar la simulación con Gemini (único método que puede cambiar de
 // verdad forma/color/línea en una foto real).
 var EDITOR_PARAMS_DEFAULT = {
-  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcion:78, caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
+  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   guiasAgrupadas:false,
@@ -4180,7 +4204,46 @@ var _edSimulationUrl = '';
 var _edOriginalUrl = '';
 var _edShowingOriginal = false;
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
-var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporción'};
+var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
+var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
+
+function edMetodoProporcion() {
+  var metodo = EDITOR_PARAMS && EDITOR_PARAMS.diseno ? EDITOR_PARAMS.diseno.proporcionMetodo : 'adaptativa';
+  return ED_PROPORTION_LABELS[metodo] ? metodo : 'adaptativa';
+}
+
+function edRedProporcion() {
+  var valor = EDITOR_PARAMS && EDITOR_PARAMS.diseno ? parseFloat(EDITOR_PARAMS.diseno.red) : 70;
+  return Math.max(62, Math.min(80, isFinite(valor) ? valor : 70));
+}
+
+// Devuelve los anchos aparentes, de canino izquierdo a canino derecho.
+// La guía conserva siete líneas: una por cada límite de las seis piezas.
+function edIntervalosProporcion() {
+  var metodo = edMetodoProporcion();
+  if (metodo === 'aurea') return [0.382, 0.618, 1, 1, 0.618, 0.382];
+  if (metodo === 'golden') return [0.10, 0.15, 0.25, 0.25, 0.15, 0.10];
+  var r = (metodo === 'red' ? edRedProporcion() : 70) / 100;
+  return [r * r, r, 1, 1, r, r * r];
+}
+
+function edActualizarControlesProporcion() {
+  var metodo = edMetodoProporcion();
+  var redControl = document.getElementById('ed-red-control');
+  if (redControl) redControl.style.display = metodo === 'red' ? 'block' : 'none';
+  var resumen = document.getElementById('ed-proportion-summary');
+  if (!resumen) return;
+  if (metodo === 'adaptativa') {
+    resumen.textContent = 'RED 70% como punto de partida · adaptación natural permitida según anatomía, perspectiva y corredor bucal.';
+  } else if (metodo === 'red') {
+    var red = Math.round(edRedProporcion());
+    resumen.textContent = 'RED ' + red + '% · central 1.00 · lateral ' + (red / 100).toFixed(2) + ' · canino ' + Math.pow(red / 100, 2).toFixed(2) + '.';
+  } else if (metodo === 'aurea') {
+    resumen.textContent = 'Referencia áurea frontal · central 1.00 · lateral 0.618 · canino 0.382.';
+  } else {
+    resumen.textContent = 'Golden Percentage del frente anterior · cada central 25% · lateral 15% · canino 10%.';
+  }
+}
 
 function edCopiarZona(z) {
   return {x:z.x,y:z.y,w:z.w,h:z.h};
@@ -4264,7 +4327,7 @@ function edActualizarEstadoGuias() {
     else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · la manija naranja sólo ajusta la curva';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
     else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para moverla · usa la manija naranja para ajustar sus extremos';
-    else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: Proporción · pellizca con dos dedos para cambiar su tamaño · arrastra para moverla';
+    else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: ' + ED_PROPORTION_LABELS[edMetodoProporcion()] + ' · pellizca con dos dedos para cambiar su tamaño · arrastra para moverla';
     else hint.textContent = 'Editando: ' + edEtiquetaGuia(_edActiveGuide) + ' · las demás permanecen fijas';
   }
   var zoom = document.querySelector('.ed-zoom-controls');
@@ -4287,6 +4350,9 @@ function abrirEditorDiseno() {
   EDITOR_PARAMS = S.editorParams ? JSON.parse(JSON.stringify(S.editorParams)) : JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
   // Compatibilidad con casos guardados antes de agregar morfología/tamaño.
   if (typeof EDITOR_PARAMS.diseno.tamano !== 'number') EDITOR_PARAMS.diseno.tamano = 100;
+  if (!ED_PROPORTION_LABELS[EDITOR_PARAMS.diseno.proporcionMetodo]) EDITOR_PARAMS.diseno.proporcionMetodo = 'adaptativa';
+  if (typeof EDITOR_PARAMS.diseno.red !== 'number') EDITOR_PARAMS.diseno.red = 70;
+  EDITOR_PARAMS.diseno.red = Math.max(62, Math.min(80, EDITOR_PARAMS.diseno.red));
   if (typeof EDITOR_PARAMS.diseno.proporcion !== 'number') EDITOR_PARAMS.diseno.proporcion = 78;
   if (!EDITOR_PARAMS.diseno.caracterizacion) EDITOR_PARAMS.diseno.caracterizacion = 'natural';
   edAsegurarZonasGuias();
@@ -4371,6 +4437,8 @@ function edAplicarRecomendacion() {
   var diseno = EDITOR_PARAMS.diseno;
   diseno.forma = edFormaRecomendada(d);
   diseno.tamano = edNumeroClinico(d.tamano_coronas_pct,88,112,100);
+  diseno.proporcionMetodo = 'adaptativa';
+  diseno.red = 70;
   diseno.proporcion = edNumeroClinico(d.proporcion_ancho_alto_centrales_pct,70,90,78);
   diseno.caracterizacion = ['sutil','natural','marcada'].indexOf(d.caracterizacion_superficial) >= 0 ? d.caracterizacion_superficial : 'natural';
   if (d.curvatura_labio_inferior === 'plana') diseno.arcoSonrisa = 'recto';
@@ -4501,7 +4569,7 @@ function edRestablecer() {
 
 function edFormatLabel(group, key, val) {
   if (key === 'lineaIncisalInclinacion') return val.toFixed(1) + '°';
-  if (key === 'tamano' || key === 'proporcion') return Math.round(val) + '%';
+  if (key === 'tamano' || key === 'proporcion' || key === 'red') return Math.round(val) + '%';
   if (ED_ESCALAS[key]) return ED_ESCALAS[key][val + 2];
   return val;
 }
@@ -4512,6 +4580,7 @@ function edSliderInput(el) {
   EDITOR_PARAMS[group][key] = val;
   var lbl = document.getElementById(el.id + '-lbl');
   if (lbl) lbl.textContent = edFormatLabel(group, key, val);
+  if (group === 'diseno' && (key === 'red' || key === 'proporcion')) edActualizarControlesProporcion();
   redrawEditor();
 }
 
@@ -4577,6 +4646,7 @@ function edChipClick(group, key, val, btn) {
   });
   btn.classList.add('ed-active');
   if (group === 'diseno' && key === 'lineaIncisal') edActualizarInclinacionDisabled();
+  if (group === 'diseno' && key === 'proporcionMetodo') edActualizarControlesProporcion();
   redrawEditor();
 }
 
@@ -4732,6 +4802,7 @@ function edSyncControles() {
   if (swatch) swatch.style.background = 'rgb(' + p.encia.colorR + ',' + p.encia.colorG + ',' + p.encia.colorB + ')';
   edRenderGuiaVita();
   edActualizarInclinacionDisabled();
+  edActualizarControlesProporcion();
 }
 
 // Cada guía tiene su propia zona. En modo independiente, arrastrar/zoom sólo
@@ -4948,6 +5019,23 @@ function construirPromptEditor() {
   var d = EDITOR_PARAMS.diseno, e = EDITOR_PARAMS.encia;
   var partes = [];
 
+  // Las proporciones van primero porque generateSimulation limita el bloque
+  // secundario; así la configuración clínica elegida nunca queda truncada.
+  if (d.proporcion) {
+    partes.push('Target a central-incisor width-to-height ratio near ' + Math.round(d.proporcion) + '%, adapted to the patient rather than forced symmetrically.');
+  }
+  var metodoProporcion = edMetodoProporcion();
+  if (metodoProporcion === 'adaptativa') {
+    partes.push('Use an individualized anterior apparent-width distribution derived from RED near 70% as a starting reference: each lateral incisor near 70% of its central incisor and each canine near 70% of its lateral. Allow small natural deviations for the patient\'s existing anatomy, frontal perspective, arch curvature and buccal corridor; never force a mechanical template.');
+  } else if (metodoProporcion === 'red') {
+    var redRatio = edRedProporcion();
+    partes.push('Use a RED apparent-width distribution of ' + Math.round(redRatio) + '% across the six visible maxillary anterior teeth: each lateral incisor approximately ' + Math.round(redRatio) + '% of its adjacent central incisor and each canine approximately ' + Math.round(redRatio) + '% of its adjacent lateral. Treat these as frontal apparent widths, preserve natural bilateral variation and do not move gingiva or lips.');
+  } else if (metodoProporcion === 'aurea') {
+    partes.push('Use the golden proportion as a deliberate frontal apparent-width reference across the six maxillary anterior teeth: central 1.000, lateral 0.618 and canine 0.382 on each side. Preserve perspective, distinct tooth anatomy and small natural bilateral variation; do not create identical repeated teeth.');
+  } else if (metodoProporcion === 'golden') {
+    partes.push('Use Golden Percentage across the visible six maxillary anterior teeth: each central incisor about 25% of the combined anterior apparent width, each lateral about 15%, and each canine about 10%. Preserve perspective and individualized anatomy; do not alter lips, gingiva or facial tissues.');
+  }
+
   if (d.lineaMedia === 'izq') partes.push('Shift the dental midline slightly to the left compared to the current simulation.');
   else if (d.lineaMedia === 'der') partes.push('Shift the dental midline slightly to the right compared to the current simulation.');
 
@@ -4968,9 +5056,6 @@ function construirPromptEditor() {
 
   if (d.tamano && d.tamano !== 100) {
     partes.push('Change the apparent clinical crown size to approximately ' + Math.round(d.tamano) + '% of the current simulated crown size. Do this through incisal and proximal ceramic contour only; do not move gingival margins, lips or jaw position.');
-  }
-  if (d.proporcion) {
-    partes.push('Target a central-incisor width-to-height ratio near ' + Math.round(d.proporcion) + '%, adapted to the patient rather than forced symmetrically.');
   }
   var caracterizaciones = {
     sutil:'Use very restrained secondary anatomy, nearly imperceptible tertiary microtexture and only sparse delicate perikymata.',
@@ -5032,7 +5117,9 @@ async function edAplicarDiseno() {
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
-    var promptCombinado = (S.promptGeminiUsado || '') + ' ' + promptEditor;
+    // El bloque clínico secundario se recorta dentro de generateSimulation;
+    // el ajuste recién elegido debe ir primero para no quedar fuera del límite.
+    var promptCombinado = promptEditor + ' ' + (S.promptGeminiUsado || '');
     // Sin reintento, un solo parpadeo de red durante los ~15-20s de espera
     // de Gemini ("Load failed" es el error típico de eso en iOS) tumbaba
     // todo el intento — igual que ya se maneja en processPhotos().
@@ -5166,12 +5253,9 @@ function edDibujarGuias(ctx, w, h) {
     ctx.lineWidth = Math.max(1.5, w * 0.0018);
     ctx.shadowColor = 'rgba(57,255,20,.9)';
     ctx.shadowBlur = Math.max(4, w * 0.005);
-    var phi = 1.618;
-    // Seis espacios dentales simétricos según proporción áurea:
-    // lateral 0.618 · canino 1.0 · central 1.618 | 1.618 · 1.0 · 0.618.
-    // Al normalizar los seis pesos, la cuarta línea queda exactamente en
-    // el centro y las líneas primera/última coinciden con los bordes.
-    var intervalos = [1 / phi, 1, phi, phi, 1, 1 / phi];
+    // Seis anchos dentales aparentes y siete límites. El método puede ser
+    // adaptativo, RED, áureo o Golden Percentage sin cambiar la interacción.
+    var intervalos = edIntervalosProporcion();
     var totalIntervalos = intervalos.reduce(function(suma, valor) { return suma + valor; }, 0);
     var posiciones = [zone.x];
     var acumulado = zone.x;
