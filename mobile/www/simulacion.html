@@ -3916,24 +3916,119 @@ async function reinsertarRecorteDental(fotoOriginalUrl, recorteCompuestoUrl, rec
   return out.toDataURL('image/png');
 }
 
-// Flujo rápido sin segmentación dental. La IA recibe el recorte clínico y su
-// resultado se integra completo; sólo se suavizan los bordes externos.
+// Localiza una sola banda dental continua. No identifica ni segmenta piezas:
+// únicamente calcula el centro y la extensión aproximada de la arcada visible
+// para registrar la simulación y construir una ventana de composición suave.
+function detectarBandaDentalContinua(canvas) {
+  var W=canvas.width,H=canvas.height,ctx=canvas.getContext('2d',{willReadFrequently:true});
+  var data=ctx.getImageData(0,0,W,H).data;
+  var x0=Math.round(W*.14),x1=Math.round(W*.86),y0=Math.round(H*.28),y1=Math.round(H*.82);
+  var filas=new Float32Array(H),columnas=new Float32Array(W);
+  function candidato(x,y) {
+    var i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+    var lum=.299*r+.587*g+.114*b;
+    var max=Math.max(r,g,b),min=Math.min(r,g,b),croma=max-min;
+    var rojo=r-(g+b)*.5;
+    // Esmalte natural: claro o medio, de cromaticidad moderada y sin el
+    // predominio rojo característico de labio/encía/piel.
+    return lum>78 && g>48 && b>38 && croma<92 && rojo<34;
+  }
+  for(var y=y0;y<y1;y++) for(var x=x0;x<x1;x++) if(candidato(x,y)) filas[y]++;
+  var maxFila=0,picoY=Math.round(H*.57);
+  for(var fy=y0;fy<y1;fy++) if(filas[fy]>maxFila){maxFila=filas[fy];picoY=fy;}
+  if(maxFila<Math.max(8,W*.025)) return {x:W*.22,y:H*.43,w:W*.56,h:H*.27,cx:W*.5,cy:H*.565,confidence:0};
+
+  // El máximo pertenece normalmente al cuerpo de los incisivos superiores.
+  // Acotamos la lectura vertical para no incorporar la arcada inferior.
+  var bandaArriba=Math.max(y0,Math.round(picoY-H*.105));
+  var bandaAbajo=Math.min(y1,Math.round(picoY+H*.09));
+  for(var yy=bandaArriba;yy<=bandaAbajo;yy++) for(var xx=x0;xx<x1;xx++) if(candidato(xx,yy)) columnas[xx]++;
+  var maxCol=0;for(var cx0=x0;cx0<x1;cx0++) maxCol=Math.max(maxCol,columnas[cx0]);
+  var umbral=Math.max(2,maxCol*.18),centro=Math.round(W*.5),izq=centro,der=centro;
+  // Encuentra el primer grupo dental cercano al centro y después crece hasta
+  // los extremos continuos del corredor visible.
+  if(columnas[centro]<umbral){
+    for(var d=1;d<W*.22;d++){
+      if(columnas[centro-d]>=umbral){centro-=d;break;}
+      if(columnas[centro+d]>=umbral){centro+=d;break;}
+    }
+  }
+  izq=der=centro;
+  var vacios=0;
+  for(var lx=centro;lx>=x0;lx--){if(columnas[lx]>=umbral){izq=lx;vacios=0;}else if(++vacios>Math.max(4,W*.018))break;}
+  vacios=0;
+  for(var rx=centro;rx<x1;rx++){if(columnas[rx]>=umbral){der=rx;vacios=0;}else if(++vacios>Math.max(4,W*.018))break;}
+  var ancho=der-izq+1;
+  if(ancho<W*.24){izq=Math.round(W*.25);der=Math.round(W*.75);ancho=der-izq;}
+  var margenX=Math.max(3,ancho*.08),alto=Math.max(H*.18,(bandaAbajo-bandaArriba)*1.18);
+  var bx=Math.max(0,izq-margenX),bw=Math.min(W-bx,ancho+margenX*2);
+  var by=Math.max(0,picoY-alto*.56),bh=Math.min(H-by,alto);
+  return {x:bx,y:by,w:bw,h:bh,cx:bx+bw*.5,cy:by+bh*.5,confidence:Math.min(1,maxFila/(W*.32))};
+}
+
+function dibujarImagenRegistrada(imgOriginal,imgIA,W,H) {
+  var inicial=document.createElement('canvas');inicial.width=W;inicial.height=H;
+  var ictx=inicial.getContext('2d');
+  var align=buscarAlineacionImagenes(imgOriginal,imgIA);
+  // La IA recibe exactamente el mismo recorte. Limitamos la heurística para
+  // impedir que una coincidencia espuria de piel/labio introduzca un zoom.
+  align.dx=Math.max(-.045,Math.min(.045,align.dx));
+  align.dy=Math.max(-.045,Math.min(.045,align.dy));
+  align.escala=Math.max(.975,Math.min(1.025,align.escala));
+  align.angulo=Math.max(-1.2,Math.min(1.2,align.angulo||0));
+  ictx.save();ictx.translate(W/2,H/2);ictx.rotate(align.angulo*Math.PI/180);
+  var iw=W*align.escala,ih=H*align.escala;
+  ictx.drawImage(imgIA,-iw/2+align.dx*W,-ih/2+align.dy*H,iw,ih);ictx.restore();
+
+  var origCanvas=document.createElement('canvas');origCanvas.width=W;origCanvas.height=H;
+  origCanvas.getContext('2d').drawImage(imgOriginal,0,0,W,H);
+  var bandaOriginal=detectarBandaDentalContinua(origCanvas);
+  var bandaIA=detectarBandaDentalContinua(inicial);
+  // Corrige sólo la traslación residual del diseño dental. Nunca escala la
+  // corona generada, de modo que los cambios intencionales de forma/tamaño se
+  // conservan y únicamente se elimina el efecto de boca desplazada.
+  var dx=Math.max(-W*.045,Math.min(W*.045,bandaOriginal.cx-bandaIA.cx));
+  var dy=Math.max(-H*.055,Math.min(H*.055,bandaOriginal.cy-bandaIA.cy));
+  var finalCanvas=document.createElement('canvas');finalCanvas.width=W;finalCanvas.height=H;
+  finalCanvas.getContext('2d').drawImage(inicial,dx,dy);
+  return {canvas:finalCanvas,banda:bandaOriginal,alignment:{dx:align.dx*W+dx,dy:align.dy*H+dy,scale:align.escala,angle:align.angulo}};
+}
+
+// Flujo rápido sin segmentación por diente. La foto original es la base
+// inmutable; de la IA se transfiere exclusivamente una banda dental continua
+// autocentrada. Labios, encía, piel, apertura bucal y resto de la cara quedan
+// formados por píxeles de la fotografía original.
 async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl)]);
   var original=imagenes[0],ia=imagenes[1];
   var W=original.naturalWidth,H=original.naturalHeight;
   var base=document.createElement('canvas');base.width=W;base.height=H;
   var bctx=base.getContext('2d');bctx.drawImage(original,0,0,W,H);
-  var capa=document.createElement('canvas');capa.width=W;capa.height=H;
-  var cctx=capa.getContext('2d',{willReadFrequently:true});cctx.drawImage(ia,0,0,W,H);
-  var pix=cctx.getImageData(0,0,W,H),margenX=Math.max(2,W*.055),margenY=Math.max(2,H*.075);
+  var registrada=dibujarImagenRegistrada(original,ia,W,H);
+  var capa=registrada.canvas,cctx=capa.getContext('2d',{willReadFrequently:true});
+  var pix=cctx.getImageData(0,0,W,H),orig=bctx.getImageData(0,0,W,H).data,banda=registrada.banda;
   function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
   for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
-    var borde=Math.min(x/margenX,(W-1-x)/margenX,y/margenY,(H-1-y)/margenY);
-    pix.data[(y*W+x)*4+3]=Math.round(255*suave(borde));
+    var i=(y*W+x)*4,nx=Math.abs((x-banda.cx)/Math.max(1,banda.w*.5)),ny=Math.abs((y-banda.cy)/Math.max(1,banda.h*.5));
+    // Superelipse: cubre la arcada continua sin bordes rectos ni recortar
+    // caninos, pero su transición permanece dentro de la zona dental.
+    var distancia=Math.pow(nx,4)+Math.pow(ny,4);
+    var alfa=1-suave((distancia-.66)/.34);
+    if(alfa>0){
+      var r=orig[i],g=orig[i+1],b=orig[i+2],lum=.299*r+.587*g+.114*b;
+      var tejido=(r-g>29&&r-b>36)||(r>(g+b)*.62&&r>105&&g<118);
+      // Protección cromática del tejido: aun dentro de la ventana, labios y
+      // encía proceden de la foto original. Las sombras oscuras conservan su
+      // profundidad y evitan el borde de "calcomanía".
+      if(tejido) alfa=0;
+      else if(lum<38) alfa*=.18;
+      var cambio=Math.abs(pix.data[i]-r)+Math.abs(pix.data[i+1]-g)+Math.abs(pix.data[i+2]-b);
+      if(cambio<7) alfa=0;
+    }
+    pix.data[i+3]=Math.round(255*Math.max(0,Math.min(1,alfa)));
   }
   cctx.putImageData(pix,0,0);bctx.drawImage(capa,0,0);
-  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'direct-no-segmentation'}};
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'single-dental-window',alignment:registrada.alignment,window:{x:banda.x,y:banda.y,w:banda.w,h:banda.h},confidence:banda.confidence}};
   return base.toDataURL('image/png');
 }
 
@@ -5805,7 +5900,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 7;
+var SIM_QUALITY_VERSION = 8;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};

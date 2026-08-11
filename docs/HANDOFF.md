@@ -10,6 +10,25 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (13) — Codex (registro automático y composición dental localizada)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La simulación rápida continúa sin segmentación ni emparejamiento por piezas.
+  Se añadió una detección geométrica de una sola banda dental continua,
+  utilizada exclusivamente para centrar el resultado generado sobre la
+  sonrisa original.
+- La fotografía original vuelve a ser la base inmutable. De la imagen de IA
+  sólo se transfiere una ventana dental continua con transición suave;
+  labios, encías, piel, apertura bucal y resto del rostro permanecen formados
+  por píxeles originales.
+- El registro combina una alineación global limitada con una corrección final
+  de traslación de la banda dental. No escala la anatomía generada, por lo que
+  conserva los cambios intencionales de forma y tamaño de las carillas.
+- La protección cromática interna evita copiar tejido rojo/rosado y sombras
+  profundas desde la IA, reduciendo el efecto de boca elevada o de carilla
+  superpuesta. Control interno actualizado a v8.
+
 ## 2026-08-11 (12) — Codex (simulación rápida directa, sin segmentación)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `AGENTS.md`,
