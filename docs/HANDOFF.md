@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-11 — Codex: lienzo móvil prioritario y pinch-to-zoom
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`
+
+- En móvil, el panel de ajustes abre recogido como una bandeja inferior de 56 px para que la fotografía ocupe la mayor parte de la pantalla; puede abrirse y cerrarse sin perder valores.
+- La barra de fotografía y tamaño de guía ocupa una sola fila desplazable en vez de dos filas.
+- El gesto de dos dedos ahora amplía/reduce la fotografía entre 100% y 400%, mantiene el punto focal bajo los dedos y permite trasladar la imagen durante el gesto.
+- El escalado de proporciones permanece disponible mediante `Tamaño de guía`, evitando que el mismo gesto tenga dos significados.
+- No se modificaron la generación, los prompts ni los parámetros clínicos.
+
+---
+
 ## 2026-08-11 — Codex: política visual y reorganización segura del editor
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`, `docs/POLITICA_IMAGEN_SMYL.md`

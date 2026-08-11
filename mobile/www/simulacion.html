@@ -483,6 +483,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-zoom-controls{flex-direction:row;gap:4px}
 .ed-panel{background:#101217;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
 .ed-panel-intro{margin-bottom:14px;color:var(--ed-muted);font-size:9.5px;line-height:1.5}
+.ed-panel-toggle{display:none;width:100%;height:44px;padding:0 4px;border:0;background:transparent;color:#f4f6f8;font:700 11px Inter,sans-serif;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+.ed-panel-toggle-main{display:flex;align-items:center;gap:9px}.ed-panel-handle{width:34px;height:4px;border-radius:99px;background:#59616c;display:block}.ed-panel-toggle-state{color:#8f97a2;font-size:9px;font-weight:600}
+.ed-panel-content{display:block}
 .ed-sec-label.ed-section-title{display:flex;flex-direction:column;gap:3px;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--ed-border);color:#f3f5f7;font-size:11px;text-transform:none;letter-spacing:0}
 .ed-sec-label.ed-section-title small{font-size:8.5px;font-weight:500;color:#7f8791;text-transform:none;letter-spacing:0;line-height:1.4}
 .ed-clinical-card,.ed-proportion-card,.ed-incisal-card,.ed-vita-guide{background:var(--ed-surface);border-color:var(--ed-border);border-radius:10px;box-shadow:none}
@@ -499,14 +502,23 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-vita-stick.selected::before{display:none}
 .ed-remote-pad{background-color:#0d1718;background-image:linear-gradient(rgba(45,212,191,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.045) 1px,transparent 1px);box-shadow:none}
 #ed-btn-regenerar{background:#7667e8!important;border-radius:9px!important;box-shadow:none!important}
+@media(max-width:819px){
+  .ed-panel{max-height:min(52vh,520px);padding:7px 14px calc(env(safe-area-inset-bottom,0px) + 14px);transition:max-height .22s ease;overscroll-behavior:contain}
+  .ed-panel-toggle{display:flex;position:sticky;top:-7px;z-index:4;background:#101217}
+  .ed-panel.ed-panel-collapsed{max-height:56px;overflow:hidden;padding-bottom:5px}
+  .ed-panel.ed-panel-collapsed .ed-panel-content{display:none}
+}
 @media(max-width:560px){
-  .ed-canvas-toolbar{align-items:stretch;flex-direction:column;gap:7px}
-  .ed-toolbar-group{width:100%}
-  .ed-toolbar-group:first-child{overflow-x:auto;padding-bottom:1px}
-  .ed-toolbar-group:last-child{justify-content:flex-end;border-top:1px solid rgba(255,255,255,.06);padding-top:7px}
+  .ed-workspace-head{padding:7px 10px 5px}.ed-workspace-copy{display:none}
+  .ed-guides-row{padding:6px 8px 7px}
+  .ed-canvas-toolbar{align-items:center;flex-direction:row;justify-content:flex-start;gap:14px;padding:7px 8px;overflow-x:auto;scrollbar-width:none}
+  .ed-canvas-toolbar::-webkit-scrollbar{display:none}
+  .ed-toolbar-group{width:auto;flex:0 0 auto}
+  .ed-toolbar-group:first-child{overflow:visible;padding:0}
+  .ed-toolbar-group:last-child{justify-content:flex-start;border:0;padding:0}
   .ed-photo-toggle{flex:0 0 auto}
-  .ed-photo-zoom{margin-left:auto}
-  .ed-panel{max-height:46vh}
+  .ed-photo-zoom{margin-left:0}
+  .ed-toolbar-label{font-size:8px;margin-right:1px}
 }
 @media(min-width:820px){
   .ed-panel{width:380px}
@@ -599,7 +611,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v77 — editor clínico reorganizado</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v78 — lienzo amplio y zoom táctil</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1255,7 +1267,12 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       </div>
     </div>
 
-    <div class="ed-panel">
+    <div class="ed-panel" id="ed-panel">
+      <button type="button" class="ed-panel-toggle" id="ed-panel-toggle" onclick="edTogglePanel()" aria-expanded="false">
+        <span class="ed-panel-toggle-main"><span class="ed-panel-handle"></span><span>Ajustes de diseño</span></span>
+        <span class="ed-panel-toggle-state" id="ed-panel-toggle-state">Abrir</span>
+      </button>
+      <div class="ed-panel-content">
       <div class="ed-sec-label">Recomendación clínica</div>
       <div class="ed-panel-intro">La recomendación orienta el punto de partida. Los ajustes permanecen bajo control del profesional.</div>
       <div class="ed-clinical-card" id="ed-clinical-card">
@@ -1406,6 +1423,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         Regenerar simulación con estos cambios
       </button>
       <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">El tono puede previsualizarse localmente; cambiar forma o tamaño requiere regenerar la simulación (~15-20 s). Las guías son referencias visuales.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -4339,12 +4357,32 @@ var _edPhotoPanMode = false;
 var _edSimulationUrl = '';
 var _edOriginalUrl = '';
 var _edShowingOriginal = false;
+var _edPanelCollapsed = false;
 var _edActiveToothIndex = 2;
 var _edRemoteTarget = {type:'move', index:null};
 var _edRemotePadInit = false;
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
 var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
 var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
+
+function edActualizarPanel() {
+  var panel = document.getElementById('ed-panel');
+  var btn = document.getElementById('ed-panel-toggle');
+  var estado = document.getElementById('ed-panel-toggle-state');
+  if (!panel) return;
+  panel.classList.toggle('ed-panel-collapsed', _edPanelCollapsed);
+  if (btn) btn.setAttribute('aria-expanded', _edPanelCollapsed ? 'false' : 'true');
+  if (estado) estado.textContent = _edPanelCollapsed ? 'Abrir' : 'Cerrar';
+}
+
+function edTogglePanel(forzar) {
+  _edPanelCollapsed = typeof forzar === 'boolean' ? forzar : !_edPanelCollapsed;
+  edActualizarPanel();
+  window.setTimeout(function() {
+    edAplicarZoomFoto();
+    redrawEditor();
+  }, 240);
+}
 
 function edMetodoProporcion() {
   var metodo = EDITOR_PARAMS && EDITOR_PARAMS.diseno ? EDITOR_PARAMS.diseno.proporcionMetodo : 'adaptativa';
@@ -4598,13 +4636,13 @@ function edActualizarEstadoGuias() {
   }
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
-    if (!visibles.length) hint.textContent = 'Activa una guía para moverla';
+    if (!visibles.length) hint.textContent = 'Pellizca con dos dedos para ampliar · activa una guía para editarla';
     else if (_edActiveGuide === 'curvaSonrisa' && EDITOR_PARAMS.controlRemoto !== false) hint.textContent = 'Control remoto activo · elige mover, arco, 13–23 o extremos y usa el panel amplio inferior';
     else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
     else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para redimensionar el conjunto · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
-    else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: ' + ED_PROPORTION_LABELS[edMetodoProporcion()] + ' · pellizca con dos dedos para cambiar su tamaño · arrastra para moverla';
-    else hint.textContent = 'Editando: ' + edEtiquetaGuia(_edActiveGuide) + ' · las demás permanecen fijas';
+    else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: ' + ED_PROPORTION_LABELS[edMetodoProporcion()] + ' · usa Tamaño de guía para escalarla · pellizca la foto para ampliar';
+    else hint.textContent = 'Editando: ' + edEtiquetaGuia(_edActiveGuide) + ' · pellizca la foto con dos dedos para ampliar';
   }
   var zoom = document.querySelector('.ed-zoom-controls');
   if (zoom) {
@@ -4662,6 +4700,8 @@ function abrirEditorDiseno() {
   edBaseImg.src = url;
 
   show('s-editor');
+  _edPanelCollapsed = !!(window.matchMedia && window.matchMedia('(max-width:819px)').matches);
+  edActualizarPanel();
 }
 
 function edFormaRecomendada(d) {
@@ -5100,7 +5140,8 @@ function edInitZoneDrag() {
   var canvas = document.getElementById('ed-canvas');
   var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0, startCenterOffset = 0, startToothOffset = 0;
   var startPhotoPanX = 0, startPhotoPanY = 0;
-  var pinching = false, startPinchDistance = 0, startPinchZone = null;
+  var pinching = false, startPinchDistance = 0, startPinchZoom = 1;
+  var startPinchPanX = 0, startPinchPanY = 0, pinchFocusX = 0, pinchFocusY = 0, pinchImageX = 0, pinchImageY = 0;
 
   function touchDistance(touches) {
     var dx = touches[1].clientX - touches[0].clientX;
@@ -5109,31 +5150,45 @@ function edInitZoneDrag() {
   }
 
   function startPinch(touches) {
-    if (touches.length < 2 || !EDITOR_PARAMS.guias.proporcionAurea) return false;
+    if (touches.length < 2) return false;
     startPinchDistance = touchDistance(touches);
     if (!startPinchDistance) return false;
+    var wrap = document.getElementById('ed-canvas-wrap');
+    var wr = wrap ? wrap.getBoundingClientRect() : canvas.getBoundingClientRect();
+    var midX = (touches[0].clientX + touches[1].clientX) / 2;
+    var midY = (touches[0].clientY + touches[1].clientY) / 2;
+    startPinchZoom = _edPhotoZoom;
+    startPinchPanX = _edPhotoPanX;
+    startPinchPanY = _edPhotoPanY;
+    pinchFocusX = midX - (wr.left + wr.width / 2);
+    pinchFocusY = midY - (wr.top + wr.height / 2);
+    pinchImageX = (pinchFocusX - startPinchPanX) / Math.max(0.01, startPinchZoom);
+    pinchImageY = (pinchFocusY - startPinchPanY) / Math.max(0.01, startPinchZoom);
     pinching = true;
     dragging = false;
-    startPinchZone = edCopiarZona(edZonaGuia('proporcionAurea'));
-    _edActiveGuide = 'proporcionAurea';
-    edActualizarEstadoGuias();
-    redrawEditor();
+    canvas.classList.add('ed-photo-panning');
     return true;
   }
 
   function movePinch(touches) {
-    if (!pinching || touches.length < 2 || !startPinchZone) return;
+    if (!pinching || touches.length < 2) return;
     var ratio = touchDistance(touches) / startPinchDistance;
-    var newW = Math.max(0.12, Math.min(0.9, startPinchZone.w * ratio));
-    var newH = Math.max(0.08, Math.min(0.7, startPinchZone.h * ratio));
-    var centerX = startPinchZone.x + startPinchZone.w / 2;
-    var centerY = startPinchZone.y + startPinchZone.h / 2;
-    var z = edZonaGuia('proporcionAurea');
-    z.w = newW;
-    z.h = newH;
-    z.x = Math.max(0, Math.min(1 - newW, centerX - newW / 2));
-    z.y = Math.max(0, Math.min(1 - newH, centerY - newH / 2));
-    redrawEditor();
+    var wrap = document.getElementById('ed-canvas-wrap');
+    var wr = wrap ? wrap.getBoundingClientRect() : canvas.getBoundingClientRect();
+    var currentFocusX = (touches[0].clientX + touches[1].clientX) / 2 - (wr.left + wr.width / 2);
+    var currentFocusY = (touches[0].clientY + touches[1].clientY) / 2 - (wr.top + wr.height / 2);
+    _edPhotoZoom = Math.max(1, Math.min(4, startPinchZoom * ratio));
+    if (_edPhotoZoom <= 1.001) {
+      _edPhotoZoom = 1;
+      _edPhotoPanX = 0;
+      _edPhotoPanY = 0;
+      _edPhotoPanMode = false;
+    } else {
+      _edPhotoPanX = currentFocusX - pinchImageX * _edPhotoZoom;
+      _edPhotoPanY = currentFocusY - pinchImageY * _edPhotoZoom;
+      _edPhotoPanMode = true;
+    }
+    edAplicarZoomFoto();
   }
 
   function start(clientX, clientY) {
@@ -5307,7 +5362,10 @@ function edInitZoneDrag() {
     if (dragging) e.preventDefault();
   }, {passive:false});
   canvas.addEventListener('touchend', function(e){
-    if (pinching && e.touches.length < 2) pinching = false;
+    if (pinching && e.touches.length < 2) {
+      pinching = false;
+      canvas.classList.remove('ed-photo-panning');
+    }
     if (!e.touches.length) end();
   }, {passive:true});
   canvas.addEventListener('touchcancel', function(){ pinching = false; end(); }, {passive:true});
@@ -5395,7 +5453,7 @@ function edAplicarZoomFoto() {
 }
 
 function edZoomFoto(delta) {
-  _edPhotoZoom = Math.max(1, Math.min(3, Math.round((_edPhotoZoom + delta) * 4) / 4));
+  _edPhotoZoom = Math.max(1, Math.min(4, Math.round((_edPhotoZoom + delta) * 4) / 4));
   if (_edPhotoZoom === 1) {
     _edPhotoPanX = 0;
     _edPhotoPanY = 0;
