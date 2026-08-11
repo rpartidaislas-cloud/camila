@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-11 — Codex: política visual y reorganización segura del editor
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`, `docs/POLITICA_IMAGEN_SMYL.md`
+
+- Se creó una política de imagen de producto clínico/editorial para evitar el aspecto de interfaz genérica generada por IA: paleta, tipografía, fotografía, iconos, interacción, voz y lista de verificación.
+- Se reorganizó el editor sin cambiar IDs ni funciones: las guías tienen encabezado propio; fotografía, movimiento, zoom y tamaño de guía quedaron en una barra independiente fuera del lienzo.
+- El panel lateral ahora distingue recomendación clínica, forma y posición, proporciones dentales, color/material y ajustes avanzados de encía.
+- Se retiraron emojis de los controles del editor y se sustituyeron degradados, brillos y halos por superficies sólidas y una jerarquía más sobria.
+- No se modificaron prompts, generación, Supabase ni lógica clínica. Las funciones existentes conservan sus firmas y eventos.
+
+---
+
 Este archivo es la memoria compartida entre Codex (diseño/frontend) y Claude
 Code (arquitectura/backend/infra). Ninguno de los dos agentes recuerda lo que
 hizo el otro entre sesiones — así que antes de tocar algo, lee la entrada más
@@ -9,6 +21,215 @@ Formato de cada entrada: fecha, agente, qué se tocó, qué debe saber el otro.
 Las entradas más nuevas van arriba.
 
 ---
+
+## 2026-08-11 (20) — Codex (regeneración vinculada al arco incisal)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/claude/index.ts`, `sw.js`.
+
+- La regeneración desde el editor ya no comunica la curva únicamente como
+  coordenadas textuales. Genera un mapa geométrico PNG temporal, normalizado
+  al mismo recorte clínico, con la curva final y los seis objetivos 13–23.
+- La Edge Function admite esa segunda imagen como referencia de control para
+  Gemini. El prompt distingue expresamente la foto clínica (entrada 1) del
+  mapa geométrico (entrada 2), exige que las coronas terminen en los objetivos
+  y prohíbe reproducir líneas, puntos, etiquetas o fondo del mapa.
+- La prescripción incisal pasó al inicio del bloque clínico para que nunca sea
+  truncada por el límite de longitud. Mantiene márgenes gingivales fijos y
+  obliga a redimensionar cada corona hacia su borde incisal.
+- Indicador visible actualizado a `build v76`; caché PWA `smyl-v19`.
+
+## 2026-08-11 (19) — Codex (calce canónico Antes/Después y panel táctil amplio)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El comparador descarta al entrar cualquier traslación, escala o ajuste
+  manual heredado de otra visita/generación. Antes y Después parten siempre
+  de `{x:0,y:0,scale:1}` y ocupan el mismo rectángulo derivado exclusivamente
+  de las dimensiones de la fotografía original.
+- Ambas capas usan el mismo mapeo de píxeles en la vista normal; en pantalla
+  completa usan `contain` en común para conservar toda la fotografía sin
+  recortes ni deformaciones diferenciales.
+- La curva amarilla ahora puede trasladarse libremente en X/Y. Se añadió un
+  panel táctil amplio separado de la foto: permite mover la curva completa,
+  ajustar el arco, los extremos o una pieza 13–23 sin que el dedo cubra la
+  sonrisa. Los gestos son relativos y no producen saltos al tocar.
+- Indicador visible actualizado a `build v75`.
+
+## 2026-08-11 (18) — Codex (manija principal y control remoto del arco)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La curva amarilla incorpora una manija central `ARCO`. Su desplazamiento
+  vertical modifica la profundidad/concavidad del arco sin trasladar toda la
+  sonrisa; las manijas de los extremos continúan controlando los lados.
+- Se añadió un selector explícito para `Punto principal`, `Extremos` y cada
+  pieza 13–23. El objetivo seleccionado permanece resaltado y se muestra en
+  un estado textual para evitar ambigüedad clínica.
+- El nuevo `Control remoto` permite seleccionar primero el objetivo y después
+  arrastrar desde cualquier zona vacía de la fotografía. Se aplica sólo el
+  desplazamiento del dedo, sin saltar la guía hasta el punto de contacto, de
+  modo que el dedo no cubre la curva durante el ajuste. Puede desactivarse
+  para volver al arrastre directo.
+- `curvaCentroOffset` y la preferencia del control remoto se guardan con el
+  caso; los casos anteriores se migran en memoria. Los seis objetivos
+  normalizados enviados al regenerador ya incorporan la nueva geometría.
+  Indicador visible actualizado a `build v74`.
+
+## 2026-08-11 (17) — Codex (curva incisal vinculada al tamaño dental)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La curva amarilla dejó de ser sólo una referencia visual: contiene seis
+  objetivos incisales identificados como 13, 12, 11, 21, 22 y 23. Arrastrar
+  la curva mueve el objetivo del conjunto; cada punto o su control permite
+  alargar/acortar individualmente la corona dentro de ±20 %.
+- El margen gingival y el punto de emergencia quedan fijos. El cambio ocurre
+  únicamente hacia el borde incisal; las anchuras aparentes siguen el método
+  de proporción verde elegido y centrales, laterales y caninos conservan su
+  jerarquía anatómica.
+- `edPrescripcionIncisalPrompt()` convierte los seis objetivos a coordenadas
+  normalizadas del mismo recorte clínico enviado a la IA. El regenerador
+  recibe esas coordenadas como prescripción obligatoria, sin estirar píxeles,
+  segmentar dientes ni mover labios, encías, cara o arcada inferior.
+- El cálculo del recorte se centralizó en `calcularRectRecorteDental()` para
+  que editor y regenerador compartan exactamente el mismo sistema de
+  coordenadas. Indicador visible actualizado a `build v73`.
+
+## 2026-08-11 (16) — Codex (proporciones dentales configurables)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La antigua guía fija `Proporción` ahora se presenta como `Proporciones` y
+  conserva siete líneas verdes, pero su distribución cambia entre cuatro
+  métodos: Adaptativa (RED 70 % como referencia no rígida), RED ajustable
+  (62–80 %), Proporción áurea y Golden Percentage (25/15/10 por hemiarcada).
+- Se separó explícitamente la distribución horizontal aparente de la relación
+  ancho/alto de los incisivos centrales. Los casos guardados anteriores se
+  migran en memoria a `proporcionMetodo: adaptativa` y `red: 70`.
+- La opción elegida no es sólo visual: `construirPromptEditor()` envía al
+  regenerador el método, sus valores y la relación ancho/alto. Las
+  instrucciones de proporción se colocan primero para no quedar fuera del
+  límite del bloque clínico secundario.
+- La guía sigue siendo móvil, escalable con pellizco e independiente de las
+  otras guías; también conserva el modo de agrupación existente. Indicador
+  visible actualizado a `build v72`.
+
+## 2026-08-11 (15) — Codex (restaura simulación continua y sólo alinea)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Retirado del flujo rápido el filtro cromático por píxel de v70, que podía
+  descartar esmalte amarillo como si fuera tejido y producir dientes sin
+  cambio, fragmentos o bordes rotos.
+- Restaurada la composición continua del recorte generado que previamente
+  daba el resultado natural. La única corrección posterior es el registro
+  automático limitado de posición, escala y giro contra el recorte original.
+- No se segmentan dientes, no se crean máscaras de color y no se perfora la
+  simulación. Sólo se suaviza el perímetro exterior del recorte. Control
+  interno v10; indicador visible `build v71`.
+
+## 2026-08-11 (14) — Codex (impide falso anclaje en bigote)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Corregido un falso positivo del localizador de banda dental que podía tomar
+  vello/piel del bigote como esmalte, aplicar allí la capa generada y dejar los
+  dientes originales sin cambio.
+- En retratos, la búsqueda y su respaldo quedan confinados a la altura real de
+  la boca; la ventana final tiene un límite superior que impide alcanzar el
+  bigote. Las tomas intraorales conservan un rango específico más amplio.
+- El criterio de esmalte exige ahora suficiente luminancia y relaciones de
+  color que admiten tonos naturales amarillos sin confundirlos con vello.
+
+## 2026-08-11 (13) — Codex (registro automático y composición dental localizada)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La simulación rápida continúa sin segmentación ni emparejamiento por piezas.
+  Se añadió una detección geométrica de una sola banda dental continua,
+  utilizada exclusivamente para centrar el resultado generado sobre la
+  sonrisa original.
+- La fotografía original vuelve a ser la base inmutable. De la imagen de IA
+  sólo se transfiere una ventana dental continua con transición suave;
+  labios, encías, piel, apertura bucal y resto del rostro permanecen formados
+  por píxeles originales.
+- El registro combina una alineación global limitada con una corrección final
+  de traslación de la banda dental. No escala la anatomía generada, por lo que
+  conserva los cambios intencionales de forma y tamaño de las carillas.
+- La protección cromática interna evita copiar tejido rojo/rosado y sombras
+  profundas desde la IA, reduciendo el efecto de boca elevada o de carilla
+  superpuesta. Control interno actualizado a v8.
+
+## 2026-08-11 (12) — Codex (simulación rápida directa, sin segmentación)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `AGENTS.md`,
+`docs/CARILLAS_SIMULATION_CONTEXT.md`.
+
+- Por decisión expresa del usuario, `generateSimulation()` ya no llama al
+  segmentador antes ni después de generar, no empareja piezas y no recolorea
+  dientes mediante máscaras. El tono VITA vuelve a solicitarse directamente
+  dentro del prompt de imagen.
+- El resultado completo del recorte clínico se integra sobre la fotografía
+  maestra con un feather suave sólo en los bordes externos del recorte. Así se
+  evita el aspecto gris/recortado de las carillas y se conserva fuera del
+  recorte el rostro original.
+- Las funciones de segmentación permanecen disponibles para el editor y sus
+  herramientas opcionales, pero ya no forman parte de la simulación rápida.
+- La referencia clínica/estética de carillas quedó versionada en
+  `docs/CARILLAS_SIMULATION_CONTEXT.md`; `AGENTS.md` obliga a leerla antes de
+  cualquier cambio futuro relacionado con simulaciones.
+
+## 2026-08-10 (11) — Codex (separa bloqueo técnico de revisión estética)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El control v6 sólo cancela la simulación por una ausencia real de piezas.
+  Tono, textura, línea media, bordes, cobertura parcial y proporciones se
+  conservan como revisión del editor, no como error para el paciente.
+- Las diferencias naturales de tono entre piezas se guardan únicamente como
+  métrica interna. Distancia/proporción del emparejamiento también pasan a
+  advertencias, mientras que menos piezas que el original sigue bloqueando.
+
+## 2026-08-10 (10) — Codex (emparejamiento tolerante a fragmentos extra)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Cuando la segunda segmentación devuelve candidatos extra (por ejemplo 11
+  contra 9 originales), el comparador elige la subsecuencia ordenada de menor
+  costo en vez de desplazar todas las piezas por índice.
+- Los sobrantes se excluyen del análisis y la máscara final se limita al
+  corredor dental original. Menos piezas o una incompatibilidad anatómica
+  real siguen rechazándose. Control actualizado a v5.
+
+## 2026-08-10 (9) — Codex (corrige falso rechazo A1/piezas)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- A1 se mezcla con fuerza mínima de 82 % dentro de la máscara para eliminar
+  amarillo residual sin perder la luminancia, textura ni reflejos generados.
+- El control pieza por pieza ya no confunde un cambio visual conservador con
+  una carilla ausente. Ahora la presencia se decide por solapamiento real de
+  las máscaras original/generada y por la correspondencia anatómica previa.
+- Las diferencias tonales aisladas quedan como revisión; una cobertura física
+  insuficiente sigue siendo un rechazo crítico. Control actualizado a v4.
+
+## 2026-08-10 (8) — Codex (flujo dental determinista antes/después)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La arcada superior original se segmenta **antes** de llamar al generador.
+  El conteo y orden de piezas se convierten en contrato explícito del prompt.
+- El prompt de imagen quedó reducido a anatomía, cobertura y material. El
+  tono VITA ya no compite con la forma durante la generación: se calibra
+  después, sólo dentro de la máscara superior, conservando textura y luces.
+- El resultado vuelve a segmentarse y se compara pieza por pieza con el mapa
+  original. Diferencias de conteo, posición o proporción rechazan la imagen.
+- Se eliminó el compositor heurístico de respaldo: si falla segmentación,
+  correspondencia o control crítico, nunca se muestra una simulación parcial.
+- El control visual sube a versión 3. No se consumió una generación real de
+  imagen durante validación; las pruebas locales cubren sintaxis, estructura,
+  sincronización móvil y limpieza del diff.
 
 ## 2026-08-10 (7) — Codex (cobertura dental completa y rechazo de carillas ausentes)
 

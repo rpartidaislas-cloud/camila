@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const { imageBase64, mimeType = "image/jpeg", prompt = "Mejora la sonrisa dental con carillas naturales" } = body;
+      const { imageBase64, mimeType = "image/jpeg", prompt = "Mejora la sonrisa dental con carillas naturales", guideImageBase64 = "", guideMimeType = "image/png" } = body;
       if (!imageBase64) {
         return new Response(JSON.stringify({ error: "imageBase64 requerido" }), {
           headers: { ...CORS, "Content-Type": "application/json" }, status: 400
@@ -146,12 +146,18 @@ Deno.serve(async (req: Request) => {
         console.log(`Intentando Gemini: ${model.name}`);
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${KEY}`;
+          const inputParts: any[] = [
+            { inline_data: { mime_type: mimeType, data: imageBase64 } },
+          ];
+          if (guideImageBase64) {
+            inputParts.push({ inline_data: { mime_type: guideMimeType, data: guideImageBase64 } });
+          }
+          inputParts.push({ text: guideImageBase64
+            ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is a geometric incisal-edge control map only. Follow its curve and labeled target points, but never render any map color, line, dot, label or black background. " + prompt
+            : prompt });
           const gBody = {
             contents: [{
-              parts: [
-                { inline_data: { mime_type: mimeType, data: imageBase64 } },
-                { text: prompt }
-              ]
+              parts: inputParts
             }],
             generationConfig: {
               responseModalities: model.modalities,

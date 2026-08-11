@@ -226,7 +226,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
    movido/desalineado en la vista normal aunque el offset guardado fuera
    el mismo -- el bug no era el guardado, era que "contain" y "cover"
    recortan la foto distinto */
-.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:cover!important;object-position:center top!important}
+.ba-wrap.ba-fullscreen .ba-base img,.ba-wrap.ba-fullscreen .ba-over img{height:100%!important;width:100%!important;object-fit:contain!important;object-position:center center!important}
 /* Selector de tono VITA: NO se toca el object-fit (tiene que ser IGUAL en
    "antes" y "después" -- si uno usa cover y el otro contain, cada imagen
    queda a una escala distinta y se ve desalineada/descuadrada). En vez de
@@ -238,9 +238,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ba-wrap.ba-fullscreen.ba-vita-mode .ba-base,.ba-wrap.ba-fullscreen.ba-vita-mode .ba-over{height:var(--ba-vita-h,100%)!important}
 .ba-base{position:relative;width:100%}
 .ba-base{position:relative;width:100%;overflow:hidden}
-.ba-base img{width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
+.ba-base img{width:100%;height:100%;object-fit:fill;display:block;object-position:center center}
 .ba-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 0 0 50%)}
-.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;object-position:center top}
+.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;object-position:center center}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
 .ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
@@ -372,7 +372,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
 /* ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
    Solo guías de referencia (línea media/incisal, curva de sonrisa,
-   proporción áurea) sobre la imagen ya generada — el usuario las
+   proporciones dentales) sobre la imagen ya generada — el usuario las
    posiciona arrastrando/haciendo zoom sobre la zona de la sonrisa (no hay
    detección real de dientes). Los cambios reales de color/forma/línea se
    mandan a regenerar con Gemini, no se fingen con canvas. */
@@ -422,12 +422,95 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-clinical-tags{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.ed-clinical-tag{padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.74);font-size:9px}.ed-clinical-copy{color:rgba(255,255,255,.5);font-size:9.5px;line-height:1.5}.ed-clinical-apply{width:100%;height:34px;margin-top:10px;border-radius:9px;border:1px solid rgba(117,105,240,.35);background:rgba(91,71,224,.16);color:#e2deff;font:700 10px Inter,sans-serif;cursor:pointer}
 .ed-chip{flex:1;height:36px;border-radius:10px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11.5px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif}
 .ed-chip.ed-active{background:rgba(124,106,247,.22);border-color:#7c6af7;color:#fff}
+.ed-proportion-card{margin:2px 0 16px;padding:12px;border-radius:13px;border:1px solid rgba(57,255,20,.18);background:linear-gradient(145deg,rgba(57,255,20,.055),rgba(12,15,13,.78))}
+.ed-proportion-title{color:#f4fff1;font-size:11px;font-weight:750;margin-bottom:3px}.ed-proportion-kicker{color:rgba(255,255,255,.43);font-size:9px;line-height:1.45;margin-bottom:9px}
+.ed-proportion-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px}.ed-proportion-methods .ed-chip{width:100%;padding:0 7px;font-size:10px}.ed-proportion-methods .ed-chip.ed-active{background:rgba(57,255,20,.13);border-color:rgba(57,255,20,.68);color:#eaffdf}
+.ed-proportion-red{margin:2px 0 10px;padding:9px;border-radius:10px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.07)}.ed-proportion-red .ed-slider-row{margin-bottom:0}
+.ed-proportion-summary{padding:8px 9px;border-radius:9px;background:rgba(57,255,20,.075);border:1px solid rgba(57,255,20,.16);color:#caffbc;font-size:9.5px;line-height:1.45;font-weight:650}
+.ed-proportion-note{margin-top:7px;color:rgba(255,255,255,.38);font-size:8.5px;line-height:1.45}
+.ed-incisal-card{margin:2px 0 16px;padding:12px;border-radius:13px;border:1px solid rgba(245,158,11,.22);background:linear-gradient(145deg,rgba(245,158,11,.07),rgba(18,14,10,.82))}
+.ed-incisal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}.ed-incisal-title{color:#fff8e7;font-size:11px;font-weight:750}.ed-incisal-badge{padding:3px 6px;border-radius:99px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.24);color:#ffd98a;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.35px}.ed-incisal-copy{color:rgba(255,255,255,.44);font-size:9px;line-height:1.45;margin-bottom:9px}
+.ed-tooth-chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-bottom:10px}.ed-tooth-chip{height:30px;padding:0;border-radius:8px;border:1px solid rgba(245,158,11,.18);background:rgba(255,255,255,.045);color:rgba(255,255,255,.62);font:700 9.5px Inter,sans-serif;cursor:pointer}.ed-tooth-chip.ed-active{background:rgba(245,158,11,.17);border-color:#F59E0B;color:#fff4d6;box-shadow:0 0 11px rgba(245,158,11,.16)}
+.ed-incisal-reset{width:100%;height:32px;margin-top:8px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);color:rgba(255,255,255,.68);font:650 9.5px Inter,sans-serif;cursor:pointer}.ed-incisal-note{margin-top:7px;color:rgba(255,255,255,.36);font-size:8.5px;line-height:1.45}
+.ed-incisal-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-bottom:9px}.ed-curve-move,.ed-arc-main,.ed-curve-ends,.ed-remote-toggle{min-height:42px;padding:6px 5px;border-radius:10px;font:700 8.5px Inter,sans-serif;line-height:1.25;cursor:pointer}.ed-curve-move,.ed-arc-main,.ed-curve-ends{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#ffe2a7}.ed-curve-move.ed-active,.ed-arc-main.ed-active,.ed-curve-ends.ed-active{background:rgba(245,158,11,.2);border-color:#F59E0B;box-shadow:0 0 13px rgba(245,158,11,.18)}.ed-remote-toggle{border:1px solid rgba(45,212,191,.24);background:rgba(45,212,191,.07);color:#a7f3e8}.ed-remote-toggle.ed-active{background:rgba(45,212,191,.16);border-color:#2DD4BF}.ed-remote-status{grid-column:1/-1;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.22);color:rgba(255,255,255,.46);font-size:8.5px;line-height:1.4}.ed-remote-status strong{color:#fff3cf}
+.ed-remote-pad{grid-column:1/-1;position:relative;height:132px;overflow:hidden;border-radius:13px;border:1px solid rgba(45,212,191,.3);background:linear-gradient(rgba(45,212,191,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.055) 1px,transparent 1px),rgba(2,10,14,.7);background-size:22px 22px;touch-action:none;user-select:none;cursor:grab}.ed-remote-pad.ed-dragging{cursor:grabbing;border-color:#2DD4BF;box-shadow:inset 0 0 22px rgba(45,212,191,.13)}.ed-remote-pad::before,.ed-remote-pad::after{content:"";position:absolute;background:rgba(45,212,191,.16);pointer-events:none}.ed-remote-pad::before{left:50%;top:0;bottom:0;width:1px}.ed-remote-pad::after{top:50%;left:0;right:0;height:1px}.ed-pad-title{position:absolute;left:10px;top:8px;color:#c8fff7;font-size:9px;font-weight:800;letter-spacing:.2px;pointer-events:none}.ed-pad-copy{position:absolute;left:10px;right:10px;bottom:8px;color:rgba(255,255,255,.42);font-size:8px;text-align:center;pointer-events:none}.ed-pad-knob{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px;border-radius:50%;background:rgba(45,212,191,.18);border:2px solid #2DD4BF;box-shadow:0 4px 18px rgba(0,0,0,.4);display:grid;place-items:center;color:#d9fffa;font-size:16px;font-weight:800;pointer-events:none;transform:translate(0,0)}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
 @media(min-width:820px){
   .ed-body{flex-direction:row}
   .ed-center{order:1}
   .ed-panel{width:340px;max-height:none;border-left:1px solid rgba(255,255,255,.08);order:2;flex-shrink:0}
+}
+
+/* v77 — sistema visual clínico/editorial del editor.
+   Mantiene la lógica y los identificadores existentes; sólo ordena jerarquía,
+   superficies, espaciado y ubicación de herramientas. */
+.ed-screen{
+  --ed-bg:#0b0d10;--ed-surface:#121519;--ed-surface-2:#181c21;
+  --ed-border:rgba(255,255,255,.09);--ed-muted:#9299a3;
+  --ed-text:#f5f7f9;--ed-accent:#7667e8;--ed-success:#3fc58d;
+  background:var(--ed-bg);color:var(--ed-text)
+}
+.ed-topbar{background:#101217;border-bottom:1px solid var(--ed-border);box-shadow:none}
+.ed-topbar-inner{height:58px;padding:0 16px;gap:12px}
+.ed-title{font-size:15px;letter-spacing:-.15px}
+.ed-btn-icon{width:38px;height:38px;border-radius:9px;background:#191c22;border-color:var(--ed-border)}
+.ed-btn-aplicar{height:38px;border-radius:9px;background:var(--ed-accent);box-shadow:none;font-size:12px}
+.ed-workspace-head{padding:10px 12px 7px;background:#101217;border-bottom:1px solid var(--ed-border)}
+.ed-workspace-title{font-size:11px;font-weight:750;color:var(--ed-text);letter-spacing:.15px}
+.ed-workspace-copy{margin-top:2px;font-size:9px;color:var(--ed-muted)}
+.ed-guides-row{padding:8px 10px 10px;gap:6px;background:#101217;border:0;border-bottom:1px solid var(--ed-border)}
+.ed-guide-chip,.ed-guide-add,.ed-group-chip{height:34px;border-radius:8px;box-shadow:none}
+.ed-guide-chip{background:#171a1f;border-color:var(--ed-border);color:#adb3bc}
+.ed-guide-chip.ed-active{background:#25213d;border-color:#7667e8;color:#fff}
+.ed-guide-chip[data-guia="proporcionAurea"].ed-active{background:#13251b;border-color:#4ed391;color:#dff8ea;box-shadow:none}
+.ed-guide-chip.ed-target{box-shadow:inset 0 0 0 1px rgba(255,255,255,.65)}
+.ed-guide-add{background:transparent;border-color:rgba(255,255,255,.2);color:#aeb4bd}
+.ed-group-chip{background:#14201c;border-color:rgba(63,197,141,.32);color:#a9dcc6}
+.ed-group-chip.ed-active{background:#173126;border-color:#3fc58d;color:#d8f7e9;box-shadow:none}
+.ed-canvas-wrap{background:#060708}
+.ed-zone-hint{bottom:8px;background:rgba(9,11,14,.82);border:1px solid rgba(255,255,255,.08);border-radius:7px;backdrop-filter:none;color:#c3c8cf}
+.ed-canvas-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;background:#101217;border-top:1px solid var(--ed-border);flex-shrink:0}
+.ed-toolbar-group{display:flex;align-items:center;gap:5px;min-width:0}
+.ed-toolbar-label{margin-right:4px;color:#858c96;font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.55px;white-space:nowrap}
+.ed-photo-toggle,.ed-photo-zoom,.ed-zoom-controls{position:static;display:flex;align-items:center;z-index:auto}
+.ed-photo-toggle{height:34px;padding:0 10px;border-radius:8px;background:#191d22;border:1px solid var(--ed-border);backdrop-filter:none;font:700 10px Inter,sans-serif}
+.ed-photo-toggle.ed-showing-original{background:#173126;border-color:rgba(63,197,141,.55);color:#d8f7e9}
+.ed-photo-zoom{gap:4px;padding:0;background:transparent;border:0;border-radius:0;backdrop-filter:none}
+.ed-photo-zoom button,.ed-zoom-btn{height:34px;min-width:34px;border-radius:8px;background:#191d22;border:1px solid var(--ed-border);backdrop-filter:none;color:#f4f6f8;font:700 12px Inter,sans-serif}
+.ed-photo-zoom button.ed-photo-pan-active{background:#242039;color:#fff;box-shadow:none;border-color:#7667e8}
+.ed-photo-zoom .ed-photo-zoom-value{min-width:48px;color:#e4e7eb}
+.ed-zoom-controls{flex-direction:row;gap:4px}
+.ed-panel{background:#101217;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
+.ed-panel-intro{margin-bottom:14px;color:var(--ed-muted);font-size:9.5px;line-height:1.5}
+.ed-sec-label.ed-section-title{display:flex;flex-direction:column;gap:3px;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--ed-border);color:#f3f5f7;font-size:11px;text-transform:none;letter-spacing:0}
+.ed-sec-label.ed-section-title small{font-size:8.5px;font-weight:500;color:#7f8791;text-transform:none;letter-spacing:0;line-height:1.4}
+.ed-clinical-card,.ed-proportion-card,.ed-incisal-card,.ed-vita-guide{background:var(--ed-surface);border-color:var(--ed-border);border-radius:10px;box-shadow:none}
+.ed-clinical-badge{background:#16261f;border-color:rgba(63,197,141,.28);color:#90d9b8}
+.ed-clinical-tag{border-radius:6px;background:#1a1e23}
+.ed-clinical-apply{background:#201d35;border-color:rgba(118,103,232,.45)}
+.ed-chip,.ed-select{border-radius:8px;background:#181c21;border-color:var(--ed-border)}
+.ed-chip.ed-active{background:#27223f;border-color:#7667e8}
+.ed-proportion-methods .ed-chip.ed-active{background:#16271e;border-color:#43bf85;color:#ddf6e9}
+.ed-proportion-card{border-left:3px solid #43bf85}
+.ed-incisal-card{border-left:3px solid #d6a34b}
+.ed-vita-guide{background:#0e1114}
+.ed-vita-stick.selected{background:#201d35;box-shadow:none}
+.ed-vita-stick.selected::before{display:none}
+.ed-remote-pad{background-color:#0d1718;background-image:linear-gradient(rgba(45,212,191,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.045) 1px,transparent 1px);box-shadow:none}
+#ed-btn-regenerar{background:#7667e8!important;border-radius:9px!important;box-shadow:none!important}
+@media(max-width:560px){
+  .ed-canvas-toolbar{align-items:stretch;flex-direction:column;gap:7px}
+  .ed-toolbar-group{width:100%}
+  .ed-toolbar-group:first-child{overflow-x:auto;padding-bottom:1px}
+  .ed-toolbar-group:last-child{justify-content:flex-end;border-top:1px solid rgba(255,255,255,.06);padding-top:7px}
+  .ed-photo-toggle{flex:0 0 auto}
+  .ed-photo-zoom{margin-left:auto}
+  .ed-panel{max-height:46vh}
+}
+@media(min-width:820px){
+  .ed-panel{width:380px}
+  .ed-canvas-toolbar{padding:10px 12px}
 }
 
 /* Chips de molestias agregadas a mano — se pueden quitar con la × */
@@ -516,7 +599,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v69 — diseño morfológico faciodentolabial</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v77 — editor clínico reorganizado</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1128,6 +1211,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
   <div class="ed-body">
     <div class="ed-center">
+      <div class="ed-workspace-head">
+        <div class="ed-workspace-title">Guías de análisis</div>
+        <div class="ed-workspace-copy">Activa sólo las referencias que necesites. Puedes moverlas juntas o por separado.</div>
+      </div>
       <div class="ed-guides-row">
         <div class="ed-line-guide-group">
           <button class="ed-guide-chip" data-guia="lineaMedia" onclick="edGuiaToggle('lineaMedia',this)">Línea vertical</button>
@@ -1140,28 +1227,37 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
           <button class="ed-guide-add" onclick="edAgregarLinea('horizontal')">+ Horizontal</button>
         </div>
         <button class="ed-guide-chip" data-guia="curvaSonrisa" onclick="edGuiaToggle('curvaSonrisa',this)">Curva sonrisa</button>
-        <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporción</button>
-        <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">🔗 Agrupar guías</button>
+        <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporciones</button>
+        <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">Agrupar guías</button>
       </div>
       <div class="ed-canvas-wrap" id="ed-canvas-wrap">
         <canvas id="ed-canvas"></canvas>
-        <button type="button" class="ed-photo-toggle" id="ed-photo-toggle" onclick="edAlternarFotoOriginal()">◐ Ver original</button>
         <div class="ed-zone-hint" id="ed-zone-hint">Activa una guía para moverla</div>
-        <div class="ed-zoom-controls">
-          <button class="ed-zoom-btn" onclick="edZoomZona(0.03)">+</button>
-          <button class="ed-zoom-btn" onclick="edZoomZona(-0.03)">−</button>
-        </div>
-        <div class="ed-photo-zoom" aria-label="Zoom de la fotografía">
-          <button type="button" id="ed-photo-pan-btn" onclick="edTogglePanFoto()" aria-label="Mover fotografía ampliada">✥ Mover foto</button>
+      </div>
+      <div class="ed-canvas-toolbar" aria-label="Herramientas del lienzo">
+        <div class="ed-toolbar-group">
+          <span class="ed-toolbar-label">Fotografía</span>
+          <button type="button" class="ed-photo-toggle" id="ed-photo-toggle" onclick="edAlternarFotoOriginal()">Ver original</button>
+          <div class="ed-photo-zoom" aria-label="Zoom de la fotografía">
+          <button type="button" id="ed-photo-pan-btn" onclick="edTogglePanFoto()" aria-label="Mover fotografía ampliada">Mover</button>
           <button type="button" onclick="edZoomFoto(-0.25)" aria-label="Reducir fotografía">−</button>
           <button type="button" class="ed-photo-zoom-value" id="ed-photo-zoom-value" onclick="edRestablecerZoomFoto()" aria-label="Restablecer fotografía al cien por ciento">100%</button>
           <button type="button" onclick="edZoomFoto(0.25)" aria-label="Ampliar fotografía">+</button>
+          </div>
+        </div>
+        <div class="ed-toolbar-group">
+          <span class="ed-toolbar-label">Tamaño de guía</span>
+          <div class="ed-zoom-controls">
+            <button class="ed-zoom-btn" onclick="edZoomZona(-0.03)" aria-label="Reducir guía">−</button>
+            <button class="ed-zoom-btn" onclick="edZoomZona(0.03)" aria-label="Ampliar guía">+</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="ed-panel">
-      <div class="ed-sec-label">Diseño de sonrisa</div>
+      <div class="ed-sec-label">Recomendación clínica</div>
+      <div class="ed-panel-intro">La recomendación orienta el punto de partida. Los ajustes permanecen bajo control del profesional.</div>
       <div class="ed-clinical-card" id="ed-clinical-card">
         <div class="ed-clinical-head">
           <div><div class="ed-clinical-title">Análisis faciodentolabial</div><div class="ed-clinical-kicker">Recomendación orientativa calculada desde la fotografía</div></div>
@@ -1171,6 +1267,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-clinical-copy" id="ed-clinical-copy">El análisis aparecerá cuando la fotografía frontal haya sido evaluada.</div>
         <button type="button" class="ed-clinical-apply" id="ed-clinical-apply" onclick="edAplicarRecomendacion()">Usar recomendación en el editor</button>
       </div>
+      <div class="ed-sec-label ed-section-title"><span>Forma y posición</span><small>Alineación, arco, longitud incisal y anatomía general.</small></div>
       <div class="ed-label">Línea media</div>
       <div class="ed-chip-row">
         <button class="ed-chip" data-group="diseno" data-key="lineaMedia" data-val="izq" onclick="edChipClick('diseno','lineaMedia','izq',this)">◀ Izquierda</button>
@@ -1195,6 +1292,36 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <button class="ed-chip ed-active" data-group="diseno" data-key="arcoSonrisa" data-val="suave" onclick="edChipClick('diseno','arcoSonrisa','suave',this)">Suave</button>
         <button class="ed-chip" data-group="diseno" data-key="arcoSonrisa" data-val="amplio" onclick="edChipClick('diseno','arcoSonrisa','amplio',this)">Amplio</button>
       </div>
+      <div class="ed-incisal-card">
+        <div class="ed-incisal-head"><div class="ed-incisal-title">Altura incisal de las carillas</div><span class="ed-incisal-badge">Vinculada a curva</span></div>
+        <div class="ed-incisal-copy">El punto principal modifica la profundidad del arco; los extremos controlan los lados y 13–23 ajustan cada carilla. Con control remoto puedes moverlos desde una zona donde el dedo no tape la sonrisa.</div>
+        <div class="ed-incisal-tools">
+          <button type="button" id="ed-curve-move" class="ed-curve-move ed-active" onclick="edSeleccionarMoverCurva()">Mover curva<br>Libre X / Y</button>
+          <button type="button" id="ed-arc-main" class="ed-arc-main" onclick="edSeleccionarControlArco()">Punto principal<br>Modificar arco</button>
+          <button type="button" id="ed-curve-ends" class="ed-curve-ends" onclick="edSeleccionarControlExtremos()">Extremos<br>Modificar lados</button>
+          <button type="button" id="ed-remote-toggle" class="ed-remote-toggle ed-active" onclick="edToggleControlRemoto()">Control táctil<br>Activo</button>
+          <div id="ed-remote-status" class="ed-remote-status"><strong>Seleccionado: mover curva completa.</strong> Usa el panel grande para desplazarla libremente sin taparla.</div>
+          <div id="ed-remote-pad" class="ed-remote-pad" role="application" aria-label="Panel táctil amplio para mover la curva">
+            <div class="ed-pad-title">ÁREA AMPLIA DE ARRASTRE</div>
+            <div id="ed-pad-knob" class="ed-pad-knob">✥</div>
+            <div class="ed-pad-copy">Desliza aquí el dedo · la sonrisa permanece completamente visible arriba</div>
+          </div>
+        </div>
+        <div class="ed-tooth-chips" id="ed-tooth-chips">
+          <button type="button" class="ed-tooth-chip" data-tooth-index="0" onclick="edSeleccionarDienteAltura(0,this)">13</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="1" onclick="edSeleccionarDienteAltura(1,this)">12</button>
+          <button type="button" class="ed-tooth-chip ed-active" data-tooth-index="2" onclick="edSeleccionarDienteAltura(2,this)">11</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="3" onclick="edSeleccionarDienteAltura(3,this)">21</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="4" onclick="edSeleccionarDienteAltura(4,this)">22</button>
+          <button type="button" class="ed-tooth-chip" data-tooth-index="5" onclick="edSeleccionarDienteAltura(5,this)">23</button>
+        </div>
+        <div class="ed-slider-row" style="margin-bottom:0">
+          <div class="ed-slider-head"><span id="ed-altura-diente-title">Ajuste individual · 11</span><span id="ed-altura-diente-lbl">0%</span></div>
+          <input type="range" id="ed-altura-diente" class="ed-range" min="-20" max="20" step="1" value="0" oninput="edAlturaDienteInput(this)">
+        </div>
+        <button type="button" class="ed-incisal-reset" onclick="edRestablecerAlturasDientes()">Restablecer alturas individuales</button>
+        <div class="ed-incisal-note">La encía permanece fija. Los cambios se realizan hacia el borde incisal y los anchos siguen la proporción verde seleccionada.</div>
+      </div>
 
       <div class="ed-label">Forma general</div>
       <select id="ed-forma" class="ed-select" data-group="diseno" data-key="forma" onchange="edSelectChange(this)">
@@ -1208,10 +1335,30 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-slider-head"><span>Tamaño relativo de coronas</span><span id="ed-tamano-lbl">100%</span></div>
         <input type="range" id="ed-tamano" class="ed-range" min="88" max="112" step="1" value="100" data-group="diseno" data-key="tamano" oninput="edSliderInput(this)">
       </div>
+      <div class="ed-sec-label ed-section-title"><span>Proporciones dentales</span><small>Distribución anterior y relación ancho/alto.</small></div>
+      <div class="ed-proportion-card">
+        <div class="ed-proportion-title">Distribución horizontal anterior</div>
+        <div class="ed-proportion-kicker">Controla el ancho aparente de caninos, laterales y centrales en vista frontal.</div>
+        <div class="ed-proportion-methods">
+          <button class="ed-chip ed-active" data-group="diseno" data-key="proporcionMetodo" data-val="adaptativa" onclick="edChipClick('diseno','proporcionMetodo','adaptativa',this)">Adaptativa</button>
+          <button class="ed-chip" data-group="diseno" data-key="proporcionMetodo" data-val="red" onclick="edChipClick('diseno','proporcionMetodo','red',this)">RED ajustable</button>
+          <button class="ed-chip" data-group="diseno" data-key="proporcionMetodo" data-val="aurea" onclick="edChipClick('diseno','proporcionMetodo','aurea',this)">Proporción áurea</button>
+          <button class="ed-chip" data-group="diseno" data-key="proporcionMetodo" data-val="golden" onclick="edChipClick('diseno','proporcionMetodo','golden',this)">Golden %</button>
+        </div>
+        <div class="ed-proportion-red" id="ed-red-control">
+          <div class="ed-slider-row">
+            <div class="ed-slider-head"><span>RED sucesivo</span><span id="ed-red-lbl">70%</span></div>
+            <input type="range" id="ed-red" class="ed-range" min="62" max="80" step="1" value="70" data-group="diseno" data-key="red" oninput="edSliderInput(this)">
+          </div>
+        </div>
+        <div class="ed-proportion-summary" id="ed-proportion-summary"></div>
+        <div class="ed-proportion-note">Esta distribución y la relación ancho/alto del incisivo central son controles clínicos diferentes. Es una referencia visual y debe validarse con el caso real.</div>
+      </div>
       <div class="ed-slider-row">
-        <div class="ed-slider-head"><span>Relación ancho/alto centrales</span><span id="ed-proporcion-lbl">78%</span></div>
+        <div class="ed-slider-head"><span>Ancho/alto centrales · referencia 75–80%</span><span id="ed-proporcion-lbl">78%</span></div>
         <input type="range" id="ed-proporcion" class="ed-range" min="70" max="90" step="1" value="78" data-group="diseno" data-key="proporcion" oninput="edSliderInput(this)">
       </div>
+      <div class="ed-sec-label ed-section-title"><span>Color y material</span><small>Tono VITA, textura, brillo y translucidez.</small></div>
       <div class="ed-label">Caracterización superficial</div>
       <select id="ed-caracterizacion" class="ed-select" data-group="diseno" data-key="caracterizacion" onchange="edSelectChange(this)">
         <option value="natural">Natural equilibrada</option>
@@ -1239,7 +1386,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <input type="range" id="ed-opacidad" class="ed-range" min="-2" max="2" step="1" value="0" data-group="diseno" data-key="opacidad" oninput="edSliderInput(this)">
       </div>
 
-      <div class="ed-sec-label">Encía</div>
+      <div class="ed-sec-label ed-section-title"><span>Ajustes avanzados de encía</span><small>Úsalos sólo cuando el caso clínico lo justifique.</small></div>
       <div class="ed-slider-row">
         <div class="ed-slider-head"><span>Nivel gingival</span><span id="ed-nivel-lbl">Sin cambio</span></div>
         <input type="range" id="ed-nivel" class="ed-range" min="-2" max="2" step="1" value="0" data-group="encia" data-key="nivel" oninput="edSliderInput(this)">
@@ -1705,6 +1852,7 @@ var S = {
   // La máscara de la fotografía original se calcula una sola vez por toma.
   // Al regenerar solo se vuelve a segmentar el nuevo diseño de carillas.
   dentalMaskByView: {},
+  dentalMapByView: {},
   // Control visual local posterior a la generación. No realiza otra llamada
   // de IA: resume cobertura, piezas detectadas, variación óptica y tono por
   // cada vista para decidir si el resultado merece revisión manual.
@@ -2712,6 +2860,7 @@ function actualizarBotonVitaResultado() {
 async function startCam() {
   S.photos = [];
   S.dentalMaskByView = {};
+  S.dentalMapByView = {};
   S.currentPhoto = 0;
   S._ovalReady = false;
   loadPrecios().catch(function(){}); // se necesita más adelante en la cotización -- se dispara ya para que esté lista a tiempo
@@ -3858,13 +4007,9 @@ function construirPromptGemini(diagnostico) {
   return partes.join(' ');
 }
 
-// Gemini genera mucho mejor anatomía cuando los dientes ocupan una porción
-// importante de la entrada. La foto completa se conserva como documento
-// maestro; sólo se envía a IA un recorte clínico de sonrisa y luego se vuelve
-// a insertar exactamente en sus coordenadas originales.
-async function prepararRecorteDental(fotoOriginalUrl, view) {
-  var img = await cargarImagenSegura(fotoOriginalUrl);
-  var W = img.naturalWidth, H = img.naturalHeight;
+// Un único cálculo compartido mantiene sincronizados el recorte enviado a la
+// IA y las coordenadas clínicas dibujadas en el editor.
+function calcularRectRecorteDental(W, H, view) {
   var esIntraoral = view === 'intraoral';
   var x = 0, y = 0, w = W, h = H;
   if (!esIntraoral) {
@@ -3886,6 +4031,18 @@ async function prepararRecorteDental(fotoOriginalUrl, view) {
     w = Math.max(2, Math.min(W - x, w));
     h = Math.max(2, Math.min(H - y, h));
   }
+  return {x:x, y:y, w:w, h:h, isFull:x === 0 && y === 0 && w === W && h === H};
+}
+
+// Gemini genera mucho mejor anatomía cuando los dientes ocupan una porción
+// importante de la entrada. La foto completa se conserva como documento
+// maestro; sólo se envía a IA un recorte clínico de sonrisa y luego se vuelve
+// a insertar exactamente en sus coordenadas originales.
+async function prepararRecorteDental(fotoOriginalUrl, view) {
+  var img = await cargarImagenSegura(fotoOriginalUrl);
+  var W = img.naturalWidth, H = img.naturalHeight;
+  var rect = calcularRectRecorteDental(W, H, view);
+  var x = rect.x, y = rect.y, w = rect.w, h = rect.h;
   var crop = document.createElement('canvas');
   crop.width = w; crop.height = h;
   crop.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
@@ -3896,7 +4053,7 @@ async function prepararRecorteDental(fotoOriginalUrl, view) {
     mimeType: 'image/jpeg',
     rect: {x:x, y:y, w:w, h:h},
     fullSize: {w:W, h:H},
-    isFull: x === 0 && y === 0 && w === W && h === H
+    isFull: rect.isFull
   };
 }
 
@@ -3914,7 +4071,140 @@ async function reinsertarRecorteDental(fotoOriginalUrl, recorteCompuestoUrl, rec
   return out.toDataURL('image/png');
 }
 
-async function generateSimulation(clinicalPrompt, foto) {
+// Localiza una sola banda dental continua. No identifica ni segmenta piezas:
+// únicamente calcula el centro y la extensión aproximada de la arcada visible
+// para registrar la simulación y construir una ventana de composición suave.
+function detectarBandaDentalContinua(canvas,view) {
+  var W=canvas.width,H=canvas.height,ctx=canvas.getContext('2d',{willReadFrequently:true});
+  var data=ctx.getImageData(0,0,W,H).data;
+  // El recorte clínico coloca la sonrisa en su mitad inferior. Excluir la
+  // zona superior es una barrera deliberada: bigote, fosas nasales y piel no
+  // pueden convertirse en ancla aunque sean claros o poco saturados.
+  var esIntraoral=view==='intraoral',esperadoY=esIntraoral?.38:.68;
+  var x0=Math.round(W*(esIntraoral?.05:.16)),x1=Math.round(W*(esIntraoral?.95:.84));
+  var y0=Math.round(H*(esIntraoral?.12:.50)),y1=Math.round(H*(esIntraoral?.82:.92));
+  var filas=new Float32Array(H),columnas=new Float32Array(W);
+  function candidato(x,y) {
+    var i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+    var lum=.299*r+.587*g+.114*b;
+    var max=Math.max(r,g,b),min=Math.min(r,g,b),croma=max-min;
+    // El esmalte amarillo natural puede tener bastante diferencia R-B, pero
+    // a diferencia de la piel conserva R-G moderado y suficiente luminancia.
+    // Esta regla admite dientes A/D oscuros sin admitir barba ni bigote.
+    return lum>108 && g>72 && b>48 && croma<102 && (r-g)<43 && (g-b)<74;
+  }
+  for(var y=y0;y<y1;y++) for(var x=x0;x<x1;x++) if(candidato(x,y)) filas[y]++;
+  var maxFila=0,mejorFila=0,picoY=Math.round(H*esperadoY);
+  for(var fy=y0;fy<y1;fy++) {
+    var cercania=.72+.28*Math.max(0,1-Math.abs(fy/H-esperadoY)/(esIntraoral?.34:.22));
+    var puntaje=filas[fy]*cercania;
+    if(puntaje>mejorFila){mejorFila=puntaje;maxFila=filas[fy];picoY=fy;}
+  }
+  // Respaldo seguro centrado en la boca, nunca en la altura del bigote.
+  if(maxFila<Math.max(8,W*.025) || (!esIntraoral&&picoY<H*.54)) {
+    return esIntraoral
+      ? {x:W*.07,y:H*.15,w:W*.86,h:H*.48,cx:W*.5,cy:H*.39,confidence:0}
+      : {x:W*.20,y:H*.54,w:W*.60,h:H*.27,cx:W*.5,cy:H*.675,confidence:0};
+  }
+
+  // El máximo pertenece normalmente al cuerpo de los incisivos superiores.
+  // Acotamos la lectura vertical para no incorporar la arcada inferior.
+  var bandaArriba=Math.max(y0,Math.round(picoY-H*.105));
+  var bandaAbajo=Math.min(y1,Math.round(picoY+H*.09));
+  for(var yy=bandaArriba;yy<=bandaAbajo;yy++) for(var xx=x0;xx<x1;xx++) if(candidato(xx,yy)) columnas[xx]++;
+  var maxCol=0;for(var cx0=x0;cx0<x1;cx0++) maxCol=Math.max(maxCol,columnas[cx0]);
+  var umbral=Math.max(2,maxCol*.18),centro=Math.round(W*.5),izq=centro,der=centro;
+  // Encuentra el primer grupo dental cercano al centro y después crece hasta
+  // los extremos continuos del corredor visible.
+  if(columnas[centro]<umbral){
+    for(var d=1;d<W*.22;d++){
+      if(columnas[centro-d]>=umbral){centro-=d;break;}
+      if(columnas[centro+d]>=umbral){centro+=d;break;}
+    }
+  }
+  izq=der=centro;
+  var vacios=0;
+  for(var lx=centro;lx>=x0;lx--){if(columnas[lx]>=umbral){izq=lx;vacios=0;}else if(++vacios>Math.max(4,W*.018))break;}
+  vacios=0;
+  for(var rx=centro;rx<x1;rx++){if(columnas[rx]>=umbral){der=rx;vacios=0;}else if(++vacios>Math.max(4,W*.018))break;}
+  var ancho=der-izq+1;
+  if(ancho<W*.24){izq=Math.round(W*.25);der=Math.round(W*.75);ancho=der-izq;}
+  var margenX=Math.max(3,ancho*.08),alto=Math.max(H*.18,(bandaAbajo-bandaArriba)*1.18);
+  var bx=Math.max(0,izq-margenX),bw=Math.min(W-bx,ancho+margenX*2);
+  var by=Math.max(H*(esIntraoral?.10:.52),picoY-alto*.56),bh=Math.min(H-by,alto);
+  return {x:bx,y:by,w:bw,h:bh,cx:bx+bw*.5,cy:by+bh*.5,confidence:Math.min(1,maxFila/(W*.32))};
+}
+
+function dibujarImagenRegistrada(imgOriginal,imgIA,W,H,view) {
+  var inicial=document.createElement('canvas');inicial.width=W;inicial.height=H;
+  var ictx=inicial.getContext('2d');
+  var align=buscarAlineacionImagenes(imgOriginal,imgIA);
+  // La IA recibe exactamente el mismo recorte. Limitamos la heurística para
+  // impedir que una coincidencia espuria de piel/labio introduzca un zoom.
+  align.dx=Math.max(-.045,Math.min(.045,align.dx));
+  align.dy=Math.max(-.045,Math.min(.045,align.dy));
+  align.escala=Math.max(.975,Math.min(1.025,align.escala));
+  align.angulo=Math.max(-1.2,Math.min(1.2,align.angulo||0));
+  ictx.save();ictx.translate(W/2,H/2);ictx.rotate(align.angulo*Math.PI/180);
+  var iw=W*align.escala,ih=H*align.escala;
+  ictx.drawImage(imgIA,-iw/2+align.dx*W,-ih/2+align.dy*H,iw,ih);ictx.restore();
+
+  var origCanvas=document.createElement('canvas');origCanvas.width=W;origCanvas.height=H;
+  origCanvas.getContext('2d').drawImage(imgOriginal,0,0,W,H);
+  var bandaOriginal=detectarBandaDentalContinua(origCanvas,view);
+  var bandaIA=detectarBandaDentalContinua(inicial,view);
+  // Corrige sólo la traslación residual del diseño dental. Nunca escala la
+  // corona generada, de modo que los cambios intencionales de forma/tamaño se
+  // conservan y únicamente se elimina el efecto de boca desplazada.
+  var dx=Math.max(-W*.045,Math.min(W*.045,bandaOriginal.cx-bandaIA.cx));
+  var dy=Math.max(-H*.055,Math.min(H*.055,bandaOriginal.cy-bandaIA.cy));
+  var finalCanvas=document.createElement('canvas');finalCanvas.width=W;finalCanvas.height=H;
+  finalCanvas.getContext('2d').drawImage(inicial,dx,dy);
+  return {canvas:finalCanvas,banda:bandaOriginal,alignment:{dx:align.dx*W+dx,dy:align.dy*H+dy,scale:align.escala,angle:align.angulo}};
+}
+
+// Flujo rápido sin segmentación por diente. La foto original es la base
+// inmutable; de la IA se transfiere exclusivamente una banda dental continua
+// autocentrada. Labios, encía, piel, apertura bucal y resto de la cara quedan
+// formados por píxeles de la fotografía original.
+async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
+  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl)]);
+  var original=imagenes[0],ia=imagenes[1];
+  var W=original.naturalWidth,H=original.naturalHeight;
+  var base=document.createElement('canvas');base.width=W;base.height=H;
+  var bctx=base.getContext('2d');bctx.drawImage(original,0,0,W,H);
+  var capa=document.createElement('canvas');capa.width=W;capa.height=H;
+  var cctx=capa.getContext('2d',{willReadFrequently:true});
+
+  // Se recupera la composición continua que daba el aspecto natural. La
+  // única intervención posterior a la IA es registrar el recorte completo
+  // contra el original; no se clasifican colores, tejidos ni dientes.
+  var align=buscarAlineacionImagenes(original,ia);
+  align.dx=Math.max(-.045,Math.min(.045,align.dx));
+  align.dy=Math.max(-.045,Math.min(.045,align.dy));
+  align.escala=Math.max(.975,Math.min(1.025,align.escala));
+  align.angulo=Math.max(-1.2,Math.min(1.2,align.angulo||0));
+  cctx.save();
+  cctx.translate(W/2,H/2);
+  cctx.rotate(align.angulo*Math.PI/180);
+  var iw=W*align.escala,ih=H*align.escala;
+  cctx.drawImage(ia,-iw/2+align.dx*W,-ih/2+align.dy*H,iw,ih);
+  cctx.restore();
+
+  // Sólo se difuminan los límites exteriores del recorte para que la unión
+  // con la fotografía maestra no tenga un rectángulo visible.
+  var pix=cctx.getImageData(0,0,W,H),margenX=Math.max(2,W*.055),margenY=Math.max(2,H*.075);
+  function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
+  for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
+    var borde=Math.min(x/margenX,(W-1-x)/margenX,y/margenY,(H-1-y)/margenY);
+    pix.data[(y*W+x)*4+3]=Math.round(255*suave(borde));
+  }
+  cctx.putImageData(pix,0,0);bctx.drawImage(capa,0,0);
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'direct-aligned-no-segmentation',alignment:{dx:align.dx*W,dy:align.dy*H,scale:align.escala,angle:align.angulo}}};
+  return base.toDataURL('image/png');
+}
+
+async function generateSimulation(clinicalPrompt, foto, guideImageBase64) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var fotoOriginalUrl = 'data:image/jpeg;base64,' + frontal.b64;
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
@@ -3946,6 +4236,12 @@ async function generateSimulation(clinicalPrompt, foto) {
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL CERAMIC REQUIREMENTS: interpret the selected VITA shade as a perceptual shade under the ORIGINAL illumination, not as one flat RGB fill. Build a continuous layered ceramic body with slightly warmer cervical dentin, a controlled-value middle third, and approximately 15–20 percent visually translucent incisal enamel. Include extremely subtle internal mamelons, a restrained opalescent incisal halo, natural mirror areas, convexity shadow transitions and narrow vertical specular highlights that follow the original light direction. Keep tiny natural value and texture variation between neighboring teeth while all remain recognizably within the selected VITA shade. AVOID: flat paint, uniform opaque fill, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness, repeated highlights or identical plastic-looking teeth.';
   stylePrompt += ' INDIVIDUAL TOOTH DESIGN AND MANDATORY COVERAGE: first identify and count every visible MAXILLARY tooth in the smile corridor, from the most posterior visible tooth on the patient right to the most posterior visible tooth on the patient left. Restore EVERY ONE of those visible upper teeth in the same pass, one-to-one. The six anterior teeth are mandatory, and every naturally visible premolar must also receive the same complete ceramic treatment. Never leave one natural, yellow or untreated upper tooth between or immediately beside restored teeth. Before returning the image, perform a bilateral checklist: the treated sequence must be continuous, with an equivalent visible endpoint on both sides whenever the photograph shows both counterparts. Every original maxillary tooth remains the same identifiable tooth and keeps its exact gingival emergence point and root reference. You MAY correct the VISIBLE CORONAL axis, rotation and alignment through the veneer facial contour, transition line angles and contact design; this is required when the original crowns look crowded or rotated. Do not move gingival margins, translate the whole arch, enlarge the mouth or invent teeth. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. PROPORTIONAL TEMPLATE, adapted to facial type and perspective rather than forced mechanically: central-incisor width-to-height approximately 75–82 percent; lateral incisors about 70–78 percent of central crown width and visually 0.5–1.0 mm shorter; canines about 75–85 percent of central crown width with a stronger cervical body, subtle cusp and smooth posterior transition. Keep the central pair symmetric within a small natural tolerance, not cloned. Place their contact line on the facial and dental midline, keep their incisal edges level within natural perspective, then create a progressive incisal curve parallel to the lower lip through laterals and canines. Correct visual crowding by conservative coronal contour and line-angle changes; never make the dental arch wider than the mouth or stack one veneer over another. Contacts must remain distinct, with clean small incisal embrasures and preserved interproximal shadows so the result never becomes one continuous white plate. Never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from the existing gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. FINAL SELF-CHECK: no visible upper tooth in the treated corridor may remain unchanged; both sides must have coherent shade, surface, axial alignment and endpoint coverage. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
+  stylePrompt = (S.vitaMode==='current' ? ' Match the patient current natural enamel shade.' :
+    ' Apply VITA Classical '+vitaShade.code+' directly, using '+vitaShade.copy+'.'+shadeReferencePrompt) +
+    ' DIRECT VENEER APPLICATION — NO SEGMENTATION OR MASK OUTPUT. Apply individualized ceramic veneers directly to every visible upper tooth in one continuous natural smile design. Keep the same teeth, gingival emergence, perspective and mouth opening. ' +
+    'Central incisors retain natural dominance; laterals are subtly shorter and narrower; canines preserve anatomical character. Use distinct contacts, small embrasures, layered ceramic depth, fine vertical texture, restrained incisal translucency and reflections from the original light. ' +
+    'Leave lower teeth, gingiva, lips and every non-dental detail visually unchanged. Do not create gray cutouts, flat overlays, isolated patches, doubled borders, piano-key teeth or a uniform opaque row. '+finishPrompt+'. '+intensityPrompt+'.';
+
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
   // S.questionnaire, se respeta la zona/quejas que el paciente eligió ahí.
@@ -3958,7 +4254,10 @@ async function generateSimulation(clinicalPrompt, foto) {
     }
     if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
   }
-  var clinicalBlock = clinicalPrompt ? ' ' + clinicalPrompt : '';
+  // El editor coloca primero proporciones y objetivos incisales. Se conserva
+  // suficiente longitud para que los seis puntos clínicos no se pierdan al
+  // combinarse con el análisis facial guardado.
+  var clinicalBlock = clinicalPrompt ? ' CLINICAL AND EDITOR PRESCRIPTION (mandatory where specific): ' + String(clinicalPrompt).slice(0, 2600) : '';
   var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
   var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change color/shape — skin tone, lighting and white balance of the rest of the photo must stay exactly as in the original, regardless of how dark or saturated the chosen tooth shade is.';
   var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
@@ -3969,7 +4268,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: headersEdgeIA(),
-    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt})
+    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt, guideImageBase64:guideImageBase64 || '', guideMimeType:'image/png'})
   });
   // En horas de alta demanda Gemini puede acercarse al límite total de la
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
@@ -3980,13 +4279,9 @@ async function generateSimulation(clinicalPrompt, foto) {
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
 
-  // Pega SOLO la boca que generó la IA sobre la foto original sin tocar --
-  // así "antes" y "después" quedan idénticos pixel por pixel fuera de la
-  // sonrisa, sin depender de que la IA haya respetado el encuadre (ver
-  // componerConOriginal). Si por lo que sea falla, se usa la imagen de la
-  // Un fallo debe detener la simulación: mostrar la imagen completa de la IA
-  // como respaldo rompería la garantía de conservar intacto el rostro.
-  var compuestaRecorte = await componerConOriginalSegmentado(
+  // Integración directa del recorte generado: sin segmentar, recortar ni
+  // recolorear dientes individualmente después de la generación.
+  var compuestaRecorte = await componerRecorteDirecto(
     entradaDental.dataUrl,
     url,
     frontal.view || 'frontal'
@@ -3994,7 +4289,7 @@ async function generateSimulation(clinicalPrompt, foto) {
   var compuesta = entradaDental.isFull
     ? compuestaRecorte
     : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
-  if (!compuesta) throw new Error('No se pudo aislar la simulación exclusivamente dentro de los dientes. Intenta generar de nuevo.');
+  if (!compuesta) throw new Error('No se pudo integrar la simulación. Intenta generar de nuevo.');
   // La composición ya nace en las coordenadas exactas del original; cualquier
   // ajuste manual guardado de una generación anterior volvería a desfasarla.
   if (frontal.view) S.baAlign[frontal.view] = {x: 0, y: 0, scale: 1};
@@ -4011,12 +4306,14 @@ async function generateSimulation(clinicalPrompt, foto) {
 // regenerar la simulación con Gemini (único método que puede cambiar de
 // verdad forma/color/línea en una foto real).
 var EDITOR_PARAMS_DEFAULT = {
-  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcion:78, caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
+  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, alturasDientes:[0,0,0,0,0,0], caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   guiasAgrupadas:false,
   lineasExtra:[],
   curvaExtremos:0,
+  curvaCentroOffset:0,
+  controlRemoto:true,
   guideZones: {
     lineaMedia:{x:0.30,y:0.52,w:0.40,h:0.20},
     lineaIncisal:{x:0.30,y:0.52,w:0.40,h:0.20},
@@ -4042,8 +4339,183 @@ var _edPhotoPanMode = false;
 var _edSimulationUrl = '';
 var _edOriginalUrl = '';
 var _edShowingOriginal = false;
+var _edActiveToothIndex = 2;
+var _edRemoteTarget = {type:'move', index:null};
+var _edRemotePadInit = false;
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
-var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporción'};
+var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
+var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
+
+function edMetodoProporcion() {
+  var metodo = EDITOR_PARAMS && EDITOR_PARAMS.diseno ? EDITOR_PARAMS.diseno.proporcionMetodo : 'adaptativa';
+  return ED_PROPORTION_LABELS[metodo] ? metodo : 'adaptativa';
+}
+
+function edRedProporcion() {
+  var valor = EDITOR_PARAMS && EDITOR_PARAMS.diseno ? parseFloat(EDITOR_PARAMS.diseno.red) : 70;
+  return Math.max(62, Math.min(80, isFinite(valor) ? valor : 70));
+}
+
+// Devuelve los anchos aparentes, de canino izquierdo a canino derecho.
+// La guía conserva siete líneas: una por cada límite de las seis piezas.
+function edIntervalosProporcion() {
+  var metodo = edMetodoProporcion();
+  if (metodo === 'aurea') return [0.382, 0.618, 1, 1, 0.618, 0.382];
+  if (metodo === 'golden') return [0.10, 0.15, 0.25, 0.25, 0.15, 0.10];
+  var r = (metodo === 'red' ? edRedProporcion() : 70) / 100;
+  return [r * r, r, 1, 1, r, r * r];
+}
+
+function edActualizarControlesProporcion() {
+  var metodo = edMetodoProporcion();
+  var redControl = document.getElementById('ed-red-control');
+  if (redControl) redControl.style.display = metodo === 'red' ? 'block' : 'none';
+  var resumen = document.getElementById('ed-proportion-summary');
+  if (!resumen) return;
+  if (metodo === 'adaptativa') {
+    resumen.textContent = 'RED 70% como punto de partida · adaptación natural permitida según anatomía, perspectiva y corredor bucal.';
+  } else if (metodo === 'red') {
+    var red = Math.round(edRedProporcion());
+    resumen.textContent = 'RED ' + red + '% · central 1.00 · lateral ' + (red / 100).toFixed(2) + ' · canino ' + Math.pow(red / 100, 2).toFixed(2) + '.';
+  } else if (metodo === 'aurea') {
+    resumen.textContent = 'Referencia áurea frontal · central 1.00 · lateral 0.618 · canino 0.382.';
+  } else {
+    resumen.textContent = 'Golden Percentage del frente anterior · cada central 25% · lateral 15% · canino 10%.';
+  }
+}
+
+var ED_TOOTH_IDS = ['13','12','11','21','22','23'];
+
+function edAsegurarAlturasDientes() {
+  if (!EDITOR_PARAMS || !EDITOR_PARAMS.diseno) return;
+  var alturas = EDITOR_PARAMS.diseno.alturasDientes;
+  if (!Array.isArray(alturas) || alturas.length !== 6) alturas = [0,0,0,0,0,0];
+  EDITOR_PARAMS.diseno.alturasDientes = alturas.map(function(valor) {
+    valor = parseFloat(valor);
+    return Math.max(-20, Math.min(20, isFinite(valor) ? valor : 0));
+  });
+}
+
+function edEtiquetaAltura(valor) {
+  valor = Math.round(parseFloat(valor) || 0);
+  if (valor > 0) return 'Alargar +' + valor + '%';
+  if (valor < 0) return 'Acortar ' + valor + '%';
+  return '0%';
+}
+
+function edActualizarControlAlturaDiente() {
+  if (!EDITOR_PARAMS) return;
+  edAsegurarAlturasDientes();
+  _edActiveToothIndex = Math.max(0, Math.min(5, parseInt(_edActiveToothIndex, 10) || 0));
+  var valor = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex];
+  var slider = document.getElementById('ed-altura-diente');
+  if (slider) slider.value = valor;
+  var label = document.getElementById('ed-altura-diente-lbl');
+  if (label) label.textContent = edEtiquetaAltura(valor);
+  var title = document.getElementById('ed-altura-diente-title');
+  if (title) title.textContent = 'Ajuste individual · ' + ED_TOOTH_IDS[_edActiveToothIndex];
+  document.querySelectorAll('.ed-tooth-chip[data-tooth-index]').forEach(function(btn) {
+    btn.classList.toggle('ed-active', _edRemoteTarget && _edRemoteTarget.type === 'tooth' && parseInt(btn.dataset.toothIndex, 10) === _edActiveToothIndex);
+  });
+}
+
+function edActualizarControlRemoto() {
+  if (!EDITOR_PARAMS) return;
+  var activo = EDITOR_PARAMS.controlRemoto !== false;
+  var toggle = document.getElementById('ed-remote-toggle');
+  if (toggle) {
+    toggle.classList.toggle('ed-active', activo);
+    toggle.innerHTML = 'Control táctil<br>' + (activo ? 'Activo' : 'Desactivado');
+  }
+  var mover = document.getElementById('ed-curve-move');
+  if (mover) mover.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'move');
+  var arco = document.getElementById('ed-arc-main');
+  if (arco) arco.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'arc');
+  var extremos = document.getElementById('ed-curve-ends');
+  if (extremos) extremos.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'ends');
+  var status = document.getElementById('ed-remote-status');
+  if (!status) return;
+  var nombre = 'curva completa';
+  if (_edRemoteTarget && _edRemoteTarget.type === 'tooth') nombre = 'diente ' + ED_TOOTH_IDS[_edRemoteTarget.index];
+  else if (_edRemoteTarget && _edRemoteTarget.type === 'ends') nombre = 'extremos de la curva';
+  else if (_edRemoteTarget && _edRemoteTarget.type === 'arc') nombre = 'arco principal';
+  var instruccion = 'Arrastra directamente la manija o el punto.';
+  if (activo) {
+    if (_edRemoteTarget && _edRemoteTarget.type === 'move') instruccion = 'Desliza en el panel grande: horizontal y vertical mueven toda la curva.';
+    else if (_edRemoteTarget && _edRemoteTarget.type === 'arc') instruccion = 'Desliza verticalmente en el panel grande para modificar el arco.';
+    else if (_edRemoteTarget && _edRemoteTarget.type === 'ends') instruccion = 'Desliza verticalmente en el panel grande para subir o bajar ambos extremos.';
+    else instruccion = 'Desliza verticalmente en el panel grande para ajustar esa carilla.';
+  }
+  status.innerHTML = '<strong>Seleccionado: ' + nombre + '.</strong> ' + instruccion;
+  var pad = document.getElementById('ed-remote-pad');
+  if (pad) pad.style.display = activo ? 'block' : 'none';
+}
+
+function edSeleccionarObjetivoRemoto(tipo, indice) {
+  _edRemoteTarget = {type:tipo, index:typeof indice === 'number' ? indice : null};
+  if (tipo === 'tooth' && typeof indice === 'number') _edActiveToothIndex = indice;
+  edActualizarControlAlturaDiente();
+  edActualizarControlRemoto();
+}
+
+function edSeleccionarMoverCurva() {
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('move');
+  redrawEditor();
+}
+
+function edSeleccionarControlArco() {
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('arc');
+  redrawEditor();
+}
+
+function edSeleccionarControlExtremos() {
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('ends');
+  redrawEditor();
+}
+
+function edToggleControlRemoto() {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.controlRemoto = EDITOR_PARAMS.controlRemoto === false;
+  edActualizarControlRemoto();
+  edActualizarEstadoGuias();
+}
+
+function edActivarGuiasIncisales() {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.guias.curvaSonrisa = true;
+  EDITOR_PARAMS.guias.proporcionAurea = true;
+  _edActiveGuide = 'curvaSonrisa';
+  edActualizarEstadoGuias();
+}
+
+function edSeleccionarDienteAltura(indice) {
+  _edActiveToothIndex = Math.max(0, Math.min(5, parseInt(indice, 10) || 0));
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
+  edActualizarControlAlturaDiente();
+  redrawEditor();
+}
+
+function edAlturaDienteInput(el) {
+  if (!EDITOR_PARAMS) return;
+  edAsegurarAlturasDientes();
+  EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] = Math.max(-20, Math.min(20, parseFloat(el.value) || 0));
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
+  edActualizarControlAlturaDiente();
+  redrawEditor();
+}
+
+function edRestablecerAlturasDientes() {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.diseno.alturasDientes = [0,0,0,0,0,0];
+  edActivarGuiasIncisales();
+  edActualizarControlAlturaDiente();
+  redrawEditor();
+}
 
 function edCopiarZona(z) {
   return {x:z.x,y:z.y,w:z.w,h:z.h};
@@ -4087,6 +4559,9 @@ function edAsegurarZonasGuias() {
   });
   if (typeof EDITOR_PARAMS.guiasAgrupadas !== 'boolean') EDITOR_PARAMS.guiasAgrupadas = false;
   if (typeof EDITOR_PARAMS.curvaExtremos !== 'number') EDITOR_PARAMS.curvaExtremos = 0;
+  if (typeof EDITOR_PARAMS.curvaCentroOffset !== 'number') EDITOR_PARAMS.curvaCentroOffset = 0;
+  EDITOR_PARAMS.curvaCentroOffset = Math.max(-0.35, Math.min(0.55, EDITOR_PARAMS.curvaCentroOffset));
+  if (typeof EDITOR_PARAMS.controlRemoto !== 'boolean') EDITOR_PARAMS.controlRemoto = true;
 }
 
 function edZonaGuia(nombre) {
@@ -4119,15 +4594,16 @@ function edActualizarEstadoGuias() {
   var groupBtn = document.getElementById('ed-group-guides');
   if (groupBtn) {
     groupBtn.classList.toggle('ed-active', EDITOR_PARAMS.guiasAgrupadas);
-    groupBtn.textContent = EDITOR_PARAMS.guiasAgrupadas ? '🔗 Desagrupar' : '🔗 Agrupar guías';
+    groupBtn.textContent = EDITOR_PARAMS.guiasAgrupadas ? 'Desagrupar guías' : 'Agrupar guías';
   }
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
     if (!visibles.length) hint.textContent = 'Activa una guía para moverla';
-    else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · la manija naranja sólo ajusta la curva';
+    else if (_edActiveGuide === 'curvaSonrisa' && EDITOR_PARAMS.controlRemoto !== false) hint.textContent = 'Control remoto activo · elige mover, arco, 13–23 o extremos y usa el panel amplio inferior';
+    else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
-    else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para moverla · usa la manija naranja para ajustar sus extremos';
-    else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: Proporción · pellizca con dos dedos para cambiar su tamaño · arrastra para moverla';
+    else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para redimensionar el conjunto · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
+    else if (_edActiveGuide === 'proporcionAurea') hint.textContent = 'Editando: ' + ED_PROPORTION_LABELS[edMetodoProporcion()] + ' · pellizca con dos dedos para cambiar su tamaño · arrastra para moverla';
     else hint.textContent = 'Editando: ' + edEtiquetaGuia(_edActiveGuide) + ' · las demás permanecen fijas';
   }
   var zoom = document.querySelector('.ed-zoom-controls');
@@ -4139,6 +4615,7 @@ function edActualizarEstadoGuias() {
     });
     zoom.style.display = puedeEscalar ? 'flex' : 'none';
   }
+  edActualizarControlRemoto();
 }
 
 function abrirEditorDiseno() {
@@ -4150,7 +4627,11 @@ function abrirEditorDiseno() {
   EDITOR_PARAMS = S.editorParams ? JSON.parse(JSON.stringify(S.editorParams)) : JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
   // Compatibilidad con casos guardados antes de agregar morfología/tamaño.
   if (typeof EDITOR_PARAMS.diseno.tamano !== 'number') EDITOR_PARAMS.diseno.tamano = 100;
+  if (!ED_PROPORTION_LABELS[EDITOR_PARAMS.diseno.proporcionMetodo]) EDITOR_PARAMS.diseno.proporcionMetodo = 'adaptativa';
+  if (typeof EDITOR_PARAMS.diseno.red !== 'number') EDITOR_PARAMS.diseno.red = 70;
+  EDITOR_PARAMS.diseno.red = Math.max(62, Math.min(80, EDITOR_PARAMS.diseno.red));
   if (typeof EDITOR_PARAMS.diseno.proporcion !== 'number') EDITOR_PARAMS.diseno.proporcion = 78;
+  edAsegurarAlturasDientes();
   if (!EDITOR_PARAMS.diseno.caracterizacion) EDITOR_PARAMS.diseno.caracterizacion = 'natural';
   edAsegurarZonasGuias();
   _edActiveGuide = edGuiasVisibles()[0] || null;
@@ -4158,6 +4639,8 @@ function abrirEditorDiseno() {
   _edPhotoPanX = 0;
   _edPhotoPanY = 0;
   _edPhotoPanMode = false;
+  _edActiveToothIndex = 2;
+  _edRemoteTarget = {type:'move', index:null};
   _edSimulationUrl = url;
   _edOriginalUrl = fotoOriginal ? 'data:image/jpeg;base64,' + fotoOriginal.b64 : '';
   _edShowingOriginal = false;
@@ -4166,6 +4649,7 @@ function abrirEditorDiseno() {
   edSyncControles();
   edRenderAnalisisClinico();
   edInitZoneDrag();
+  edInitRemotePad();
 
   edBaseImg = new Image();
   edBaseImg.onload = function() {
@@ -4234,7 +4718,11 @@ function edAplicarRecomendacion() {
   var diseno = EDITOR_PARAMS.diseno;
   diseno.forma = edFormaRecomendada(d);
   diseno.tamano = edNumeroClinico(d.tamano_coronas_pct,88,112,100);
+  diseno.proporcionMetodo = 'adaptativa';
+  diseno.red = 70;
   diseno.proporcion = edNumeroClinico(d.proporcion_ancho_alto_centrales_pct,70,90,78);
+  diseno.alturasDientes = [0,0,0,0,0,0];
+  EDITOR_PARAMS.curvaCentroOffset = 0;
   diseno.caracterizacion = ['sutil','natural','marcada'].indexOf(d.caracterizacion_superficial) >= 0 ? d.caracterizacion_superficial : 'natural';
   if (d.curvatura_labio_inferior === 'plana') diseno.arcoSonrisa = 'recto';
   else if (d.curvatura_labio_inferior === 'marcada') diseno.arcoSonrisa = 'amplio';
@@ -4357,6 +4845,7 @@ function edCerrar() {
 function edRestablecer() {
   EDITOR_PARAMS = JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
   _edActiveGuide = null;
+  _edRemoteTarget = {type:'move', index:null};
   edAsegurarZonasGuias();
   edSyncControles();
   redrawEditor();
@@ -4364,7 +4853,7 @@ function edRestablecer() {
 
 function edFormatLabel(group, key, val) {
   if (key === 'lineaIncisalInclinacion') return val.toFixed(1) + '°';
-  if (key === 'tamano' || key === 'proporcion') return Math.round(val) + '%';
+  if (key === 'tamano' || key === 'proporcion' || key === 'red') return Math.round(val) + '%';
   if (ED_ESCALAS[key]) return ED_ESCALAS[key][val + 2];
   return val;
 }
@@ -4375,6 +4864,7 @@ function edSliderInput(el) {
   EDITOR_PARAMS[group][key] = val;
   var lbl = document.getElementById(el.id + '-lbl');
   if (lbl) lbl.textContent = edFormatLabel(group, key, val);
+  if (group === 'diseno' && (key === 'red' || key === 'proporcion')) edActualizarControlesProporcion();
   redrawEditor();
 }
 
@@ -4440,6 +4930,7 @@ function edChipClick(group, key, val, btn) {
   });
   btn.classList.add('ed-active');
   if (group === 'diseno' && key === 'lineaIncisal') edActualizarInclinacionDisabled();
+  if (group === 'diseno' && key === 'proporcionMetodo') edActualizarControlesProporcion();
   redrawEditor();
 }
 
@@ -4477,7 +4968,7 @@ function edActualizarBotonFotoOriginal() {
   if (!btn) return;
   btn.disabled = !_edOriginalUrl;
   btn.classList.toggle('ed-showing-original', _edShowingOriginal);
-  btn.textContent = _edShowingOriginal ? '◑ Ver simulación' : '◐ Ver original';
+  btn.textContent = _edShowingOriginal ? 'Ver simulación' : 'Ver original';
   btn.setAttribute('aria-pressed', _edShowingOriginal ? 'true' : 'false');
 }
 
@@ -4595,6 +5086,9 @@ function edSyncControles() {
   if (swatch) swatch.style.background = 'rgb(' + p.encia.colorR + ',' + p.encia.colorG + ',' + p.encia.colorB + ')';
   edRenderGuiaVita();
   edActualizarInclinacionDisabled();
+  edActualizarControlesProporcion();
+  edActualizarControlAlturaDiente();
+  edActualizarControlRemoto();
 }
 
 // Cada guía tiene su propia zona. En modo independiente, arrastrar/zoom sólo
@@ -4604,7 +5098,7 @@ function edInitZoneDrag() {
   if (_edDragInit) return;
   _edDragInit = true;
   var canvas = document.getElementById('ed-canvas');
-  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0;
+  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0, startCenterOffset = 0, startToothOffset = 0;
   var startPhotoPanX = 0, startPhotoPanY = 0;
   var pinching = false, startPinchDistance = 0, startPinchZone = null;
 
@@ -4656,15 +5150,78 @@ function edInitZoneDrag() {
     }
     if (EDITOR_PARAMS.guias.curvaSonrisa) {
       var handle = edCurvaHandlePx(canvas.width, canvas.height);
+      var centerHandle = edCurvaCentroHandlePx(canvas.width, canvas.height);
       var px = (clientX - r.left) * canvas.width / r.width;
       var py = (clientY - r.top) * canvas.height / r.height;
       var hitRadius = 24 * canvas.width / r.width;
+      if (Math.hypot(px - centerHandle.x, py - centerHandle.y) <= hitRadius * 1.35) {
+        dragging = true;
+        dragMode = 'curve-center';
+        startX = clientX; startY = clientY;
+        startCenterOffset = EDITOR_PARAMS.curvaCentroOffset || 0;
+        _edActiveGuide = 'curvaSonrisa';
+        edSeleccionarObjetivoRemoto('arc');
+        edActualizarEstadoGuias();
+        redrawEditor();
+        return;
+      }
+      var objetivos = edObjetivosIncisalesPx(canvas.width, canvas.height);
+      var objetivoActivo = null;
+      var distanciaActiva = Infinity;
+      objetivos.forEach(function(objetivo) {
+        var distancia = Math.hypot(px - objetivo.x, py - objetivo.y);
+        if (distancia <= hitRadius * 1.25 && distancia < distanciaActiva) {
+          objetivoActivo = objetivo;
+          distanciaActiva = distancia;
+        }
+      });
+      if (objetivoActivo) {
+        dragging = true;
+        dragMode = 'tooth-height';
+        startX = clientX; startY = clientY;
+        _edActiveToothIndex = objetivoActivo.indice;
+        edAsegurarAlturasDientes();
+        startToothOffset = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] || 0;
+        _edActiveGuide = 'curvaSonrisa';
+        edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
+        edActualizarEstadoGuias();
+        edActualizarControlAlturaDiente();
+        redrawEditor();
+        return;
+      }
       if (Math.hypot(px - handle.x, py - handle.y) <= hitRadius) {
         dragging = true;
         dragMode = 'curve';
         startX = clientX; startY = clientY;
         startCurveOffset = EDITOR_PARAMS.curvaExtremos || 0;
         _edActiveGuide = 'curvaSonrisa';
+        edSeleccionarObjetivoRemoto('ends');
+        edActualizarEstadoGuias();
+        redrawEditor();
+        return;
+      }
+      // Control a distancia: una vez elegido un objetivo, cualquier zona
+      // vacía funciona como superficie de arrastre. Sólo se usa el delta del
+      // dedo, por lo que la guía nunca salta hasta la posición de contacto.
+      if (EDITOR_PARAMS.controlRemoto !== false && _edRemoteTarget) {
+        dragging = true;
+        startX = clientX; startY = clientY;
+        _edActiveGuide = 'curvaSonrisa';
+        if (_edRemoteTarget.type === 'move') {
+          dragMode = 'curve-position';
+          startZones = {curvaSonrisa:edCopiarZona(edZonaGuia('curvaSonrisa'))};
+        } else if (_edRemoteTarget.type === 'tooth') {
+          dragMode = 'tooth-height';
+          _edActiveToothIndex = Math.max(0,Math.min(5,_edRemoteTarget.index || 0));
+          edAsegurarAlturasDientes();
+          startToothOffset = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] || 0;
+        } else if (_edRemoteTarget.type === 'ends') {
+          dragMode = 'curve';
+          startCurveOffset = EDITOR_PARAMS.curvaExtremos || 0;
+        } else {
+          dragMode = 'curve-center';
+          startCenterOffset = EDITOR_PARAMS.curvaCentroOffset || 0;
+        }
         edActualizarEstadoGuias();
         redrawEditor();
         return;
@@ -4688,10 +5245,34 @@ function edInitZoneDrag() {
       edAplicarZoomFoto();
       return;
     }
+    if (dragMode === 'curve-position') {
+      var inicioCurva = startZones.curvaSonrisa;
+      var zonaCurva = edZonaGuia('curvaSonrisa');
+      zonaCurva.x = Math.max(0, Math.min(1 - zonaCurva.w, inicioCurva.x + (clientX - startX) / r.width));
+      zonaCurva.y = Math.max(0, Math.min(1 - zonaCurva.h, inicioCurva.y + (clientY - startY) / r.height));
+      redrawEditor();
+      return;
+    }
     if (dragMode === 'curve') {
       var curveZone = edZonaGuia('curvaSonrisa');
       var deltaCurve = ((clientY - startY) / r.height) / Math.max(0.01, curveZone.h);
       EDITOR_PARAMS.curvaExtremos = Math.max(-0.30, Math.min(0.70, startCurveOffset + deltaCurve));
+      redrawEditor();
+      return;
+    }
+    if (dragMode === 'curve-center') {
+      var centerZone = edZonaGuia('curvaSonrisa');
+      var deltaCenter = ((clientY - startY) / r.height) / Math.max(0.01, centerZone.h);
+      EDITOR_PARAMS.curvaCentroOffset = Math.max(-0.35, Math.min(0.55, startCenterOffset + deltaCenter));
+      redrawEditor();
+      return;
+    }
+    if (dragMode === 'tooth-height') {
+      var toothZone = edZonaGuia('curvaSonrisa');
+      var deltaTooth = ((clientY - startY) / r.height) / Math.max(0.01, toothZone.h) * 100;
+      edAsegurarAlturasDientes();
+      EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] = Math.max(-20, Math.min(20, startToothOffset + deltaTooth));
+      edActualizarControlAlturaDiente();
       redrawEditor();
       return;
     }
@@ -4732,6 +5313,51 @@ function edInitZoneDrag() {
   canvas.addEventListener('touchcancel', function(){ pinching = false; end(); }, {passive:true});
 }
 
+// Superficie táctil separada de la fotografía. El dedo se mueve en este
+// panel amplio y la curva permanece completamente visible sobre la sonrisa.
+function edInitRemotePad() {
+  if (_edRemotePadInit) return;
+  var pad = document.getElementById('ed-remote-pad');
+  var knob = document.getElementById('ed-pad-knob');
+  if (!pad || !knob) return;
+  _edRemotePadInit = true;
+  var drag = null;
+  function comenzar(e) {
+    if (!EDITOR_PARAMS || EDITOR_PARAMS.controlRemoto === false || !_edRemoteTarget) return;
+    edAsegurarAlturasDientes();
+    drag = {id:e.pointerId,x:e.clientX,y:e.clientY,zona:edCopiarZona(edZonaGuia('curvaSonrisa')),centro:EDITOR_PARAMS.curvaCentroOffset||0,extremos:EDITOR_PARAMS.curvaExtremos||0,diente:EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex]||0};
+    pad.classList.add('ed-dragging');
+    if (pad.setPointerCapture) pad.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+  function mover(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var r=pad.getBoundingClientRect(); if(!r.width||!r.height)return;
+    var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    knob.style.transform='translate('+Math.max(-r.width*.38,Math.min(r.width*.38,dx))+'px,'+Math.max(-r.height*.32,Math.min(r.height*.32,dy))+'px)';
+    if(_edRemoteTarget.type==='move'){
+      var z=edZonaGuia('curvaSonrisa');
+      z.x=Math.max(0,Math.min(1-z.w,drag.zona.x+dx/r.width*.55));
+      z.y=Math.max(0,Math.min(1-z.h,drag.zona.y+dy/r.height*.45));
+    }else if(_edRemoteTarget.type==='arc') EDITOR_PARAMS.curvaCentroOffset=Math.max(-.35,Math.min(.55,drag.centro+dy/r.height*.9));
+    else if(_edRemoteTarget.type==='ends') EDITOR_PARAMS.curvaExtremos=Math.max(-.30,Math.min(.70,drag.extremos+dy/r.height));
+    else if(_edRemoteTarget.type==='tooth'){
+      EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex]=Math.max(-20,Math.min(20,drag.diente+dy/r.height*40));
+      edActualizarControlAlturaDiente();
+    }
+    redrawEditor(); e.preventDefault();
+  }
+  function terminar(e){
+    if(!drag||e&&typeof e.pointerId==='number'&&e.pointerId!==drag.id)return;
+    drag=null;pad.classList.remove('ed-dragging');knob.style.transform='translate(0,0)';
+  }
+  pad.addEventListener('pointerdown',comenzar);
+  pad.addEventListener('pointermove',mover);
+  pad.addEventListener('pointerup',terminar);
+  pad.addEventListener('pointercancel',terminar);
+  pad.addEventListener('lostpointercapture',terminar);
+}
+
 function edZoomZona(delta) {
   var targets = edGuiasObjetivo();
   if (!targets.length) return;
@@ -4764,7 +5390,7 @@ function edAplicarZoomFoto() {
   if (panBtn) {
     panBtn.disabled = _edPhotoZoom <= 1;
     panBtn.classList.toggle('ed-photo-pan-active', _edPhotoPanMode && _edPhotoZoom > 1);
-    panBtn.textContent = _edPhotoPanMode && _edPhotoZoom > 1 ? '✓ Moviendo' : '✥ Mover foto';
+    panBtn.textContent = _edPhotoPanMode && _edPhotoZoom > 1 ? 'Moviendo' : 'Mover';
   }
 }
 
@@ -4807,9 +5433,87 @@ function redrawEditor() {
 // en inglés para Gemini — se reconstruye completo cada vez (no acumula
 // sobre sí mismo), así lo que se ve en el panel coincide con lo que se va
 // a generar.
+function edPrescripcionIncisalPrompt() {
+  if (!EDITOR_PARAMS || !edBaseImg || !EDITOR_PARAMS.guias.curvaSonrisa) return '';
+  var W = edBaseImg.naturalWidth || 0, H = edBaseImg.naturalHeight || 0;
+  if (!W || !H) return '';
+  var view = S.baVistaActual || 'frontal';
+  var crop = calcularRectRecorteDental(W, H, view);
+  var objetivos = edObjetivosIncisalesPx(W, H);
+  if (!objetivos.length) return '';
+  var puntos = objetivos.map(function(punto) {
+    var nx = Math.max(0, Math.min(1, (punto.x - crop.x) / crop.w));
+    var ny = Math.max(0, Math.min(1, (punto.y - crop.y) / crop.h));
+    return punto.id + '=(' + nx.toFixed(3) + ',' + ny.toFixed(3) + ')';
+  }).join(', ');
+  var ajustes = objetivos.map(function(punto) {
+    var valor = Math.round((EDITOR_PARAMS.diseno.alturasDientes[punto.indice] || 0) * 10) / 10;
+    return punto.id + ':' + (valor > 0 ? '+' : '') + valor + '%';
+  }).join(', ');
+  return 'HIGHEST-PRIORITY MANDATORY INCISAL GEOMETRY. The editor defined the FINAL incisal-edge target of each of the six maxillary anterior veneers. INPUT IMAGE 2 is a geometric control map of these exact targets; it is not patient anatomy and must never appear in the output. Coordinates below are normalized to INPUT IMAGE 1, the supplied smile crop (0,0 top-left; 1,1 bottom-right), image-left to image-right: ' + puntos + '. Individual crown-length adjustments relative to the shared smile curve are: ' + ajustes + '. First lock every existing gingival margin and emergence point. Then rebuild each clinical crown from that fixed cervical origin so its final incisal edge lands on its assigned control-map point. This requirement overrides the previous simulation crown length and generic smile-arc preferences. Interpolate a smooth continuous arc through all six targets while preserving distinct central, lateral and canine anatomy. Do not translate, rotate or scale the mouth, lips, gums, face, photograph or lower teeth. Do not render the colored control curve, dots, labels or black control-map background.';
+}
+
+// Crea una segunda imagen de referencia exclusivamente geométrica. A
+// diferencia de coordenadas escritas en el prompt, esta curva le permite al
+// modelo ver la altura final de las seis carillas en el mismo sistema de
+// coordenadas del recorte que recibe como INPUT IMAGE 1.
+function edCrearMapaIncisalBase64() {
+  if (!EDITOR_PARAMS || !edBaseImg || !EDITOR_PARAMS.guias.curvaSonrisa) return '';
+  var W=edBaseImg.naturalWidth||0,H=edBaseImg.naturalHeight||0;
+  if(!W||!H)return '';
+  var view=S.baVistaActual||'frontal';
+  var crop=calcularRectRecorteDental(W,H,view);
+  var puntos=edPuntosCurvaSonrisa(W,H).map(function(p){
+    return {x:(p.x-crop.x)/crop.w,y:(p.y-crop.y)/crop.h};
+  });
+  var objetivos=edObjetivosIncisalesPx(W,H).map(function(p){
+    return {id:p.id,x:(p.x-crop.x)/crop.w,y:(p.y-crop.y)/crop.h};
+  });
+  var mw=640,mh=Math.max(240,Math.min(640,Math.round(mw*crop.h/crop.w)));
+  var mapa=document.createElement('canvas');mapa.width=mw;mapa.height=mh;
+  var ctx=mapa.getContext('2d');
+  ctx.fillStyle='#05070a';ctx.fillRect(0,0,mw,mh);
+  ctx.strokeStyle='#ff2bd6';ctx.lineWidth=Math.max(4,mw*.007);ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();
+  puntos.forEach(function(p,i){
+    var x=Math.max(0,Math.min(mw,p.x*mw)),y=Math.max(0,Math.min(mh,p.y*mh));
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.font='700 '+Math.max(14,Math.round(mw*.026))+'px Arial';ctx.textAlign='center';ctx.textBaseline='bottom';
+  objetivos.forEach(function(p){
+    var x=Math.max(0,Math.min(mw,p.x*mw)),y=Math.max(0,Math.min(mh,p.y*mh));
+    ctx.fillStyle='#35f2ff';ctx.beginPath();ctx.arc(x,y,Math.max(7,mw*.012),0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.fillText(p.id,x,y-Math.max(10,mw*.018));
+  });
+  return mapa.toDataURL('image/png').split(',')[1];
+}
+
 function construirPromptEditor() {
   var d = EDITOR_PARAMS.diseno, e = EDITOR_PARAMS.encia;
   var partes = [];
+
+  // La geometría incisal se coloca primero: generateSimulation limita el
+  // bloque secundario y este requisito nunca debe quedar truncado.
+  var prescripcionIncisal = edPrescripcionIncisalPrompt();
+  if (prescripcionIncisal) partes.push(prescripcionIncisal);
+
+  // Las proporciones van primero porque generateSimulation limita el bloque
+  // secundario; así la configuración clínica elegida nunca queda truncada.
+  if (d.proporcion) {
+    partes.push('Target a central-incisor width-to-height ratio near ' + Math.round(d.proporcion) + '%, adapted to the patient rather than forced symmetrically.');
+  }
+  var metodoProporcion = edMetodoProporcion();
+  if (metodoProporcion === 'adaptativa') {
+    partes.push('Use an individualized anterior apparent-width distribution derived from RED near 70% as a starting reference: each lateral incisor near 70% of its central incisor and each canine near 70% of its lateral. Allow small natural deviations for the patient\'s existing anatomy, frontal perspective, arch curvature and buccal corridor; never force a mechanical template.');
+  } else if (metodoProporcion === 'red') {
+    var redRatio = edRedProporcion();
+    partes.push('Use a RED apparent-width distribution of ' + Math.round(redRatio) + '% across the six visible maxillary anterior teeth: each lateral incisor approximately ' + Math.round(redRatio) + '% of its adjacent central incisor and each canine approximately ' + Math.round(redRatio) + '% of its adjacent lateral. Treat these as frontal apparent widths, preserve natural bilateral variation and do not move gingiva or lips.');
+  } else if (metodoProporcion === 'aurea') {
+    partes.push('Use the golden proportion as a deliberate frontal apparent-width reference across the six maxillary anterior teeth: central 1.000, lateral 0.618 and canine 0.382 on each side. Preserve perspective, distinct tooth anatomy and small natural bilateral variation; do not create identical repeated teeth.');
+  } else if (metodoProporcion === 'golden') {
+    partes.push('Use Golden Percentage across the visible six maxillary anterior teeth: each central incisor about 25% of the combined anterior apparent width, each lateral about 15%, and each canine about 10%. Preserve perspective and individualized anatomy; do not alter lips, gingiva or facial tissues.');
+  }
 
   if (d.lineaMedia === 'izq') partes.push('Shift the dental midline slightly to the left compared to the current simulation.');
   else if (d.lineaMedia === 'der') partes.push('Shift the dental midline slightly to the right compared to the current simulation.');
@@ -4831,9 +5535,6 @@ function construirPromptEditor() {
 
   if (d.tamano && d.tamano !== 100) {
     partes.push('Change the apparent clinical crown size to approximately ' + Math.round(d.tamano) + '% of the current simulated crown size. Do this through incisal and proximal ceramic contour only; do not move gingival margins, lips or jaw position.');
-  }
-  if (d.proporcion) {
-    partes.push('Target a central-incisor width-to-height ratio near ' + Math.round(d.proporcion) + '%, adapted to the patient rather than forced symmetrically.');
   }
   var caracterizaciones = {
     sutil:'Use very restrained secondary anatomy, nearly imperceptible tertiary microtexture and only sparse delicate perikymata.',
@@ -4895,11 +5596,14 @@ async function edAplicarDiseno() {
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
-    var promptCombinado = (S.promptGeminiUsado || '') + ' ' + promptEditor;
+    // El bloque clínico secundario se recorta dentro de generateSimulation;
+    // el ajuste recién elegido debe ir primero para no quedar fuera del límite.
+    var promptCombinado = promptEditor + ' ' + (S.promptGeminiUsado || '');
     // Sin reintento, un solo parpadeo de red durante los ~15-20s de espera
     // de Gemini ("Load failed" es el error típico de eso en iOS) tumbaba
     // todo el intento — igual que ya se maneja en processPhotos().
-    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo); });
+    var mapaIncisal = edCrearMapaIncisalBase64();
+    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo, mapaIncisal); });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
@@ -4930,7 +5634,7 @@ function edCurvaGeometria(w, h) {
   var prof = curvasProf[EDITOR_PARAMS.diseno.arcoSonrisa] || 0.08;
   var yBase = zone.y + zone.h * 0.15;
   var yExtremos = yBase + zone.h * (EDITOR_PARAMS.curvaExtremos || 0);
-  var yCentro = yBase + zone.h * prof * 2;
+  var yCentro = yBase + zone.h * (prof * 2 + (EDITOR_PARAMS.curvaCentroOffset || 0));
   // En una Bézier cuadrática simétrica, Q = 2C - E mantiene C fijo
   // mientras ambos extremos E suben o bajan con la manija.
   return {
@@ -4942,9 +5646,60 @@ function edCurvaGeometria(w, h) {
   };
 }
 
+function edCurvaYEnX(curva, x) {
+  var t = Math.max(0, Math.min(1, (x - curva.zone.x) / Math.max(1, curva.zone.w)));
+  var unoMenos = 1 - t;
+  return unoMenos * unoMenos * curva.yExtremos + 2 * unoMenos * t * curva.yControl + t * t * curva.yExtremos;
+}
+
+// Centros aparentes de 13–23 dentro de la curva, usando exactamente los
+// mismos pesos que las siete líneas verdes de proporción.
+function edObjetivosIncisalesPx(w, h) {
+  edAsegurarAlturasDientes();
+  var curva = edCurvaGeometria(w, h);
+  var intervalos = edIntervalosProporcion();
+  var total = intervalos.reduce(function(suma, valor) { return suma + valor; }, 0);
+  var acumulado = curva.zone.x;
+  return intervalos.map(function(valor, indice) {
+    var ancho = curva.zone.w * valor / total;
+    var x = acumulado + ancho / 2;
+    acumulado += ancho;
+    var ajuste = (EDITOR_PARAMS.diseno.alturasDientes[indice] || 0) / 100;
+    return {id:ED_TOOTH_IDS[indice],indice:indice,x:x,y:edCurvaYEnX(curva,x) + curva.zone.h * ajuste};
+  });
+}
+
+function edPuntosCurvaSonrisa(w, h) {
+  var curva = edCurvaGeometria(w, h);
+  return [{x:curva.zone.x,y:curva.yExtremos}]
+    .concat(edObjetivosIncisalesPx(w,h).map(function(p){return {x:p.x,y:p.y};}))
+    .concat([{x:curva.zone.x+curva.zone.w,y:curva.yExtremos}]);
+}
+
+function edTrazarCurvaSuave(ctx, puntos) {
+  if (!puntos.length) return;
+  ctx.moveTo(puntos[0].x, puntos[0].y);
+  for (var i=0; i<puntos.length-1; i++) {
+    var p0 = puntos[Math.max(0,i-1)];
+    var p1 = puntos[i];
+    var p2 = puntos[i+1];
+    var p3 = puntos[Math.min(puntos.length-1,i+2)];
+    var cp1x = p1.x + (p2.x-p0.x)/6;
+    var cp1y = p1.y + (p2.y-p0.y)/6;
+    var cp2x = p2.x - (p3.x-p1.x)/6;
+    var cp2y = p2.y - (p3.y-p1.y)/6;
+    ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
+  }
+}
+
 function edCurvaHandlePx(w, h) {
   var curva = edCurvaGeometria(w, h);
   return {x:curva.zone.x + curva.zone.w, y:curva.yExtremos};
+}
+
+function edCurvaCentroHandlePx(w, h) {
+  var curva = edCurvaGeometria(w, h);
+  return {x:curva.midX, y:curva.yCentro};
 }
 
 function edDibujarGuias(ctx, w, h) {
@@ -4999,14 +5754,63 @@ function edDibujarGuias(ctx, w, h) {
     ctx.strokeStyle = '#F59E0B';
     ctx.lineWidth = Math.max(1.5, w * 0.0025);
     ctx.beginPath();
-    ctx.moveTo(zone.x, curva.yExtremos);
-    ctx.quadraticCurveTo(midX, curva.yControl, zone.x + zone.w, curva.yExtremos);
+    edTrazarCurvaSuave(ctx, edPuntosCurvaSonrisa(w,h));
     ctx.stroke();
 
-    var handleRadius = Math.max(7, w * 0.007);
+    // Manija principal: modifica únicamente la profundidad del arco. Se
+    // coloca entre 11 y 21 para no confundirse con una pieza dental.
+    var centroHandle = edCurvaCentroHandlePx(w,h);
+    var centroActivo = _edRemoteTarget && _edRemoteTarget.type === 'arc';
+    var centroRadio = Math.max(centroActivo ? 11 : 9, w * (centroActivo ? 0.009 : 0.0075));
     ctx.setLineDash([]);
-    ctx.fillStyle = '#F59E0B';
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.fillStyle = centroActivo ? '#FFF3C4' : '#F59E0B';
+    ctx.strokeStyle = centroActivo ? '#F59E0B' : '#FFFFFF';
+    ctx.lineWidth = Math.max(2,w*0.0018);
+    ctx.arc(centroHandle.x,centroHandle.y,centroRadio,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = centroActivo ? '#6B3E00' : '#FFFFFF';
+    ctx.lineWidth = Math.max(1.5,w*0.0013);
+    ctx.beginPath();
+    ctx.moveTo(centroHandle.x,centroHandle.y-centroRadio*.45);
+    ctx.lineTo(centroHandle.x,centroHandle.y+centroRadio*.45);
+    ctx.moveTo(centroHandle.x-centroRadio*.24,centroHandle.y-centroRadio*.22);
+    ctx.lineTo(centroHandle.x,centroHandle.y-centroRadio*.45);
+    ctx.lineTo(centroHandle.x+centroRadio*.24,centroHandle.y-centroRadio*.22);
+    ctx.moveTo(centroHandle.x-centroRadio*.24,centroHandle.y+centroRadio*.22);
+    ctx.lineTo(centroHandle.x,centroHandle.y+centroRadio*.45);
+    ctx.lineTo(centroHandle.x+centroRadio*.24,centroHandle.y+centroRadio*.22);
+    ctx.stroke();
+    ctx.fillStyle = '#FFF3C4';
+    ctx.font = '800 ' + Math.max(8,Math.round(w*0.008)) + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('ARCO',centroHandle.x,centroHandle.y-centroRadio-4);
+
+    var objetivosIncisales = edObjetivosIncisalesPx(w,h);
+    objetivosIncisales.forEach(function(punto) {
+      var activo = _edRemoteTarget && _edRemoteTarget.type === 'tooth' && punto.indice === _edActiveToothIndex;
+      var radio = Math.max(activo ? 7 : 5, w * (activo ? 0.0065 : 0.0048));
+      ctx.beginPath();
+      ctx.fillStyle = activo ? '#FFF7D6' : '#F59E0B';
+      ctx.strokeStyle = activo ? '#F59E0B' : '#FFFFFF';
+      ctx.lineWidth = Math.max(1.5,w*0.0014);
+      ctx.arc(punto.x,punto.y,radio,0,Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = activo ? '#4A2B00' : '#FFF8E7';
+      ctx.font = '700 ' + Math.max(8,Math.round(w*0.008)) + 'px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(punto.id,punto.x,punto.y-radio-3);
+    });
+
+    var handleRadius = Math.max(7, w * 0.007);
+    var extremosActivos = _edRemoteTarget && _edRemoteTarget.type === 'ends';
+    ctx.setLineDash([]);
+    ctx.fillStyle = extremosActivos ? '#FFF3C4' : '#F59E0B';
+    ctx.strokeStyle = extremosActivos ? '#F59E0B' : '#FFFFFF';
     ctx.lineWidth = Math.max(2, w * 0.0018);
     ctx.beginPath();
     ctx.arc(zone.x + zone.w, curva.yExtremos, handleRadius, 0, Math.PI * 2);
@@ -5029,12 +5833,9 @@ function edDibujarGuias(ctx, w, h) {
     ctx.lineWidth = Math.max(1.5, w * 0.0018);
     ctx.shadowColor = 'rgba(57,255,20,.9)';
     ctx.shadowBlur = Math.max(4, w * 0.005);
-    var phi = 1.618;
-    // Seis espacios dentales simétricos según proporción áurea:
-    // lateral 0.618 · canino 1.0 · central 1.618 | 1.618 · 1.0 · 0.618.
-    // Al normalizar los seis pesos, la cuarta línea queda exactamente en
-    // el centro y las líneas primera/última coinciden con los bordes.
-    var intervalos = [1 / phi, 1, phi, phi, 1, 1 / phi];
+    // Seis anchos dentales aparentes y siete límites. El método puede ser
+    // adaptativo, RED, áureo o Golden Percentage sin cambiar la interacción.
+    var intervalos = edIntervalosProporcion();
     var totalIntervalos = intervalos.reduce(function(suma, valor) { return suma + valor; }, 0);
     var posiciones = [zone.x];
     var acumulado = zone.x;
@@ -5156,8 +5957,14 @@ async function cambiarVistaBA(view) {
   if (!photo) return;
   var resultado = (S.results || {})[view];
   S.baVistaActual = view;
+  // Cada resultado ya se compone sobre el lienzo del original. Nunca heredar
+  // un desplazamiento manual de una visita o generación anterior: eso mueve
+  // la cara completa y rompe el calce aunque ambos archivos sean correctos.
+  S.baAlign[view] = {x:0,y:0,scale:1};
+  var imgDespues = document.getElementById('img-a');
+  if (imgDespues) imgDespues.style.transform = 'none';
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + photo.b64;
-  document.getElementById('img-a').src = resultado || ('data:image/jpeg;base64,' + photo.b64);
+  imgDespues.src = resultado || ('data:image/jpeg;base64,' + photo.b64);
   initBASlider();
   renderResPhotos();
   actualizarBotonGenerar();
@@ -5255,8 +6062,12 @@ async function showResult() {
   var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
 
   // BA slider
+  S.baVistaActual = frontal.view || 'frontal';
+  S.baAlign[S.baVistaActual] = {x:0,y:0,scale:1};
+  var imgDespues = document.getElementById('img-a');
+  if (imgDespues) imgDespues.style.transform = 'none';
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + frontal.b64;
-  document.getElementById('img-a').src = S.result;
+  imgDespues.src = S.result;
 
   // 3 photo thumbs — tocar una cambia la vista del comparador antes/después
   renderResPhotos();
@@ -5300,10 +6111,9 @@ function initBASlider() {
   var line = document.getElementById('ba-line');
   var drag = false;
 
-  // Al mostrar un resultado se sale del modo alineación, pero el ajuste ya
-  // hecho en cada vista (S.baAlign, por id de vista) NO se borra — antes se
-  // reseteaba aquí cada vez, así que cambiar de foto o volver a esta
-  // función perdía el ajuste ya hecho.
+  // La entrada al comparador siempre parte de la geometría canónica, común
+  // para Antes y Después. Un ajuste manual sólo vive mientras permanece en
+  // esa vista; showResult/cambiarVistaBA eliminan estados obsoletos.
   S.baAlignMode = false;
   var alignPanel = document.getElementById('ba-align-panel');
   var alignBtn = document.getElementById('ba-align-btn');
@@ -5319,18 +6129,26 @@ function initBASlider() {
   var imgB = document.getElementById('img-b');
   var imgA = document.getElementById('img-a');
   function fixH() {
-    if (!imgB.naturalHeight) return;
+    if (!imgB.naturalHeight || !imgB.naturalWidth) return;
     var r = imgB.naturalHeight / imgB.naturalWidth;
     // La altura debe salir únicamente de la proporción real de la foto.
     // El límite anterior de 58vh convertía las fotos verticales en una caja
     // más baja y object-fit:cover terminaba cortando barbilla/cuello.
     var h = wrap.offsetWidth * r;
     wrap.style.height = h + 'px';
+    wrap.style.aspectRatio = imgB.naturalWidth + ' / ' + imgB.naturalHeight;
     // Force both images to same fixed height so they align perfectly
     imgB.style.height = h + 'px';
     imgA.style.height = h + 'px';
     imgB.style.width = '100%';
     imgA.style.width = '100%';
+    // Ambas capas ocupan exactamente el mismo rectángulo. `fill` es
+    // intencional: la simulación final debería tener las mismas dimensiones,
+    // pero incluso si el navegador decodifica metadatos distintos no permite
+    // que una capa use un recorte/escala diferente de la otra.
+    imgB.style.objectFit = 'fill';
+    imgA.style.objectFit = 'fill';
+    aplicarBaTransform();
   }
   if (imgB.complete) fixH(); else imgB.onload = fixH;
   imgA.onload = fixH;
@@ -5780,7 +6598,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 2;
+var SIM_QUALITY_VERSION = 10;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};
@@ -5990,6 +6808,9 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }).filter(function(b){return [b.x,b.y,b.w,b.h].every(Number.isFinite)&&b.w>0&&b.h>0;});
   }
   var problemas=[];
+  if(comparacion.matchWarnings&&comparacion.matchWarnings.length) {
+    problemas=problemas.concat(comparacion.matchWarnings);
+  }
   if(!activos||cobertura<.0004||cobertura>.16) problemas.push('cobertura dental irregular');
   if(cambio<.32) problemas.push('cambio demasiado conservador');
   if(lumDesv<7.5) problemas.push('textura óptica demasiado uniforme');
@@ -5998,36 +6819,40 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     if(esperadas.length<4) problemas.push('segmentación original incompleta');
     if(cajas.length<4) problemas.push('se detectaron pocas piezas superiores generadas');
     if(esperadas.length && cajas.length < esperadas.length) problemas.push('faltan piezas en la secuencia de carillas');
-    var piezasSinCambio=[], estadisticasPieza=[];
+    var piezasSinCobertura=[], piezasTonoAtipico=[], estadisticasPieza=[];
     if(esperadas.length && comparacion.width && comparacion.height) {
       var sx=W/comparacion.width, sy=H/comparacion.height;
       esperadas.forEach(function(b, indice){
         var x0=Math.max(0,Math.floor(b.x*sx)), x1=Math.min(W,Math.ceil((b.x+b.w)*sx));
         var y0=Math.max(0,Math.floor(b.y*sy)), y1=Math.min(H,Math.ceil((b.y+b.h)*sy));
-        var n=0,c=0,suma=0,lumPieza=0,amarilloPieza=0;
+        var esperadosPieza=0,n=0,lumPieza=0,amarilloPieza=0;
         for(var yy=y0;yy<y1;yy++) for(var xx=x0;xx<x1;xx++) {
           var pi=(yy*W+xx)*4;
           if(ep[pi+3]<45) continue;
-          var pd=(Math.abs(ap[pi]-op[pi])+Math.abs(ap[pi+1]-op[pi+1])+Math.abs(ap[pi+2]-op[pi+2]))/3;
+          esperadosPieza++;
+          if(mp[pi+3]<45) continue;
           var lp=ap[pi]*.299+ap[pi+1]*.587+ap[pi+2]*.114;
-          n++;suma+=pd;lumPieza+=lp;amarilloPieza+=(ap[pi]+ap[pi+1])/2-ap[pi+2];if(pd>10)c++;
+          n++;lumPieza+=lp;amarilloPieza+=(ap[pi]+ap[pi+1])/2-ap[pi+2];
         }
-        var fraccion=n?c/n:0, diferencia=n?suma/n:0;
         var idPieza=b.fdi||String(indice+1);
         estadisticasPieza.push({id:idPieza,lum:n?lumPieza/n:0,amarillo:n?amarilloPieza/n:0,n:n});
-        if(n<12||fraccion<.18||diferencia<6.5) piezasSinCambio.push(idPieza);
+        if(esperadosPieza<12||n/Math.max(1,esperadosPieza)<.42) piezasSinCobertura.push(idPieza);
       });
       var validas=estadisticasPieza.filter(function(s){return s.n>=12;});
       if(validas.length>=4){
         var medLum=medianaNumerica(validas.map(function(s){return s.lum;}));
         var medAmarillo=medianaNumerica(validas.map(function(s){return s.amarillo;}));
         validas.forEach(function(s){
-          if(s.lum<medLum-22||s.amarillo>medAmarillo+11) piezasSinCambio.push(s.id);
+          if(s.lum<medLum-22||s.amarillo>medAmarillo+11) piezasTonoAtipico.push(s.id);
         });
       }
     }
-    piezasSinCambio=piezasSinCambio.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
-    if(piezasSinCambio.length) problemas.push(piezasSinCambio.length+' pieza(s) superior(es) parecen no haber recibido carilla');
+    piezasSinCobertura=piezasSinCobertura.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
+    piezasTonoAtipico=piezasTonoAtipico.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
+    if(piezasSinCobertura.length) problemas.push('cobertura insuficiente en '+piezasSinCobertura.length+' pieza(s) superior(es)');
+    // Diferencias de luminancia entre laterales, caninos y centrales son
+    // normales por perspectiva. Se registran como métrica interna, pero no
+    // deben alarmar al paciente ni cancelar una simulación íntegra.
     if(esperadas.length && cajas.length) {
       var expMin=Math.min.apply(null,esperadas.map(function(b){return b.x;}));
       var expMax=Math.max.apply(null,esperadas.map(function(b){return b.x+b.w;}));
@@ -6055,13 +6880,16 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }
   }
   var hayFalloCritico=problemas.some(function(p){
-    return /faltan piezas|no haber recibido carilla|cobertura bilateral|línea media|desnivelados|pocas piezas superiores/.test(p);
+    // La correspondencia uno-a-uno ya comprobó la integridad antes de llegar
+    // aquí. Sólo una ausencia real de piezas bloquea; geometría, cobertura
+    // parcial, línea media, tono y textura pasan al editor como revisión.
+    return /faltan piezas|pocas piezas superiores/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,
     status:hayFalloCritico?'rejected':(problemas.length?'review':'approved'),
     issues:problemas,
-    metrics:{pieces:cajas.length,expectedPieces:esperadas.length,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1)}
+    metrics:{pieces:cajas.length,expectedPieces:esperadas.length,toneOutliers:piezasTonoAtipico?piezasTonoAtipico.length:0,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1)}
   };
 }
 
@@ -6140,7 +6968,110 @@ async function segmentarParDental(original, alineada, cacheKey) {
   return {originalMaskUrl:originalMaskUrl,iaMaskUrl:iaMaskUrl,comparison:comparacion};
 }
 
-async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, view) {
+// Mapa anatómico completo de una arcada. A diferencia de la máscara simple,
+// conserva la lista ordenada de piezas para exigir correspondencia uno a uno
+// antes de permitir que una simulación llegue al paciente.
+async function segmentarCanvasDentalDetallado(canvas, cacheKey) {
+  if (cacheKey && S.dentalMapByView && S.dentalMapByView[cacheKey]) {
+    return S.dentalMapByView[cacheKey];
+  }
+  var reducido = canvasReducidoParaSegmentacion(canvas);
+  var entrada = reducido.toDataURL('image/jpeg', 0.82);
+  var masks = await solicitarSegmentacionDental(entrada);
+  var mascaraUrl = await unirMascarasSegmentadas(masks, reducido.width, reducido.height, 'upper');
+  var seleccion = _ultimaSeleccionDental.slice();
+  var piezas = resumirPiezasDentales(seleccion, 0, reducido.width);
+  if (piezas.length < 6) {
+    throw new Error('No fue posible identificar con seguridad todos los dientes superiores visibles. Usa una foto frontal nítida y vuelve a intentar.');
+  }
+  var resultado = {maskUrl:mascaraUrl,pieces:piezas,width:reducido.width,height:reducido.height};
+  if (cacheKey) {
+    S.dentalMaskByView[cacheKey] = mascaraUrl;
+    if (!S.dentalMapByView) S.dentalMapByView = {};
+    S.dentalMapByView[cacheKey] = resultado;
+  }
+  return resultado;
+}
+
+function emparejarPiezasDentales(esperadas, generadas) {
+  var e=(esperadas||[]).slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
+  var g=(generadas||[]).slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
+  var problemas=[],advertencias=[];
+  if(g.length<e.length) {
+    problemas.push('se esperaban '+e.length+' carillas y sólo se detectaron '+g.length);
+    return {ok:false,pairs:[],extras:g,issues:problemas,warnings:advertencias};
+  }
+  // A veces el segmentador divide un mismo diente en dos candidatos. En vez
+  // de emparejar por índice (lo que desplaza toda la secuencia), buscamos la
+  // subsecuencia generada de menor costo que conserve el orden anatómico.
+  var filas=e.length+1,columnas=g.length+1,infinito=1e9;
+  var dp=Array.from({length:filas},function(){return Array(columnas).fill(infinito);});
+  var paso=Array.from({length:filas},function(){return Array(columnas).fill(null);});
+  for(var j0=0;j0<columnas;j0++) dp[0][j0]=0;
+  function costo(a,b){
+    var distancia=Math.abs((a.x+a.w/2)-(b.x+b.w/2))/Math.max(1,a.w);
+    var ratio=b.w/Math.max(1,a.w);
+    return distancia+Math.abs(Math.log(Math.max(.05,ratio)))*.32;
+  }
+  for(var i=1;i<filas;i++) for(var j=1;j<columnas;j++) {
+    if(dp[i][j-1]<=dp[i-1][j-1]+costo(e[i-1],g[j-1])) {
+      dp[i][j]=dp[i][j-1];paso[i][j]='skip';
+    } else {
+      dp[i][j]=dp[i-1][j-1]+costo(e[i-1],g[j-1]);paso[i][j]='match';
+    }
+  }
+  var pares=[],usadas=new Set(),ii=e.length,jj=g.length;
+  while(ii>0&&jj>0){
+    if(paso[ii][jj]==='match'){
+      var original=e[ii-1],generada=g[jj-1];
+      var distancia=Math.abs((original.x+original.w/2)-(generada.x+generada.w/2))/Math.max(1,original.w);
+      var proporcion=generada.w/Math.max(1,original.w);
+      pares.unshift({original:original,generada:generada,distance:distancia,widthRatio:proporcion});
+      usadas.add(generada);ii--;jj--;
+    } else jj--;
+  }
+  if(pares.length!==e.length) problemas.push('no se pudo completar la correspondencia anatómica');
+  pares.forEach(function(par,indice){
+    if(par.distance>.92) advertencias.push('revisar posición de la carilla '+(indice+1));
+    if(par.widthRatio<.42||par.widthRatio>2.05) advertencias.push('revisar proporción de la carilla '+(indice+1));
+  });
+  var extras=g.filter(function(p){return !usadas.has(p);});
+  return {ok:problemas.length===0,pairs:pares,extras:extras,issues:problemas,warnings:advertencias};
+}
+
+// El modelo genera anatomía y textura. El tono VITA se aplica después y sólo
+// dentro de la máscara superior, conservando la luminancia local, reflejos y
+// microtextura del render en lugar de pedirle simultáneamente forma y color.
+async function aplicarTonoVitaConMascara(canvas, mascaraUrl, shade) {
+  if(S.vitaMode==='current'||!shade) return canvas;
+  var maskImg=await cargarImagenSegura(mascaraUrl);
+  var W=canvas.width,H=canvas.height;
+  var mask=document.createElement('canvas');mask.width=W;mask.height=H;
+  var mctx=mask.getContext('2d',{willReadFrequently:true});
+  mctx.drawImage(maskImg,0,0,W,H);
+  var ctx=canvas.getContext('2d',{willReadFrequently:true});
+  var img=ctx.getImageData(0,0,W,H), mp=mctx.getImageData(0,0,W,H).data;
+  var rgb=shade.screenRgb?{r:shade.screenRgb[0],g:shade.screenRgb[1],b:shade.screenRgb[2]}:labARgbSim(vitaLabPantallaSim(shade));
+  var targetLum=.299*rgb.r+.587*rgb.g+.114*rgb.b;
+  var fuerzaBase=S.vitaIntensity==='subtle'?.48:(S.vitaIntensity==='notable'?.68:.58);
+  // A1 es casi neutro; una mezcla débil conserva el amarillo fotográfico.
+  var fuerza=shade.code==='A1'?Math.max(.82,fuerzaBase):fuerzaBase;
+  for(var i=0;i<img.data.length;i+=4){
+    var alfa=mp[i+3]/255;if(alfa<.04)continue;
+    var r=img.data[i],g=img.data[i+1],b=img.data[i+2];
+    var lum=.299*r+.587*g+.114*b;
+    var escala=Math.max(.48,Math.min(1.35,lum/Math.max(1,targetLum)));
+    var tr=Math.min(255,rgb.r*escala),tg=Math.min(255,rgb.g*escala),tb=Math.min(255,rgb.b*escala);
+    var mezcla=fuerza*Math.pow(alfa,.7);
+    img.data[i]=Math.round(r*(1-mezcla)+tr*mezcla);
+    img.data[i+1]=Math.round(g*(1-mezcla)+tg*mezcla);
+    img.data[i+2]=Math.round(b*(1-mezcla)+tb*mezcla);
+  }
+  ctx.putImageData(img,0,0);
+  return canvas;
+}
+
+async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, view, mapaOriginal, vitaShade) {
   try {
     var imagenes = await Promise.all([
       cargarImagenSegura(fotoOriginalUrl),
@@ -6166,14 +7097,26 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     actx.drawImage(imgIA, (W - w) / 2 + align.dx * W, (H - h) / 2 + align.dy * H, w, h);
     actx.restore();
 
-    // Se usa exclusivamente la máscara de las CARILLAS generadas. La unión
-    // con la máscara de dientes originales copiaba encía de la IA en las
-    // zonas donde cambiaba un contorno, produciendo líneas rojas entre piezas.
-    // Una sola inferencia de segmentación recibe original y simulación lado a
-    // lado. Así conocemos cuántas piezas debían tratarse y podemos detectar
-    // una carilla ausente, aunque el modelo haya dejado visible el diente
-    // natural. No agrega una segunda llamada respecto al flujo anterior.
-    var parDental = await segmentarParDental(original, alineada, view ? 'original:' + view : null);
+    if (!mapaOriginal || !mapaOriginal.pieces || !mapaOriginal.pieces.length) {
+      throw new Error('Falta el mapa dental original necesario para validar la simulación.');
+    }
+    var mapaGenerado = await segmentarCanvasDentalDetallado(alineada, null);
+    var correspondencia = emparejarPiezasDentales(mapaOriginal.pieces, mapaGenerado.pieces);
+    if (!correspondencia.ok) {
+      throw new Error('La simulación quedó incompleta: ' + correspondencia.issues.slice(0, 2).join(' · ') + '. Genera de nuevo; no se mostrará un resultado parcial.');
+    }
+    var parDental = {
+      originalMaskUrl: mapaOriginal.maskUrl,
+      iaMaskUrl: mapaGenerado.maskUrl,
+      comparison: {
+        width: mapaOriginal.width,
+        height: mapaOriginal.height,
+        expectedPieces: mapaOriginal.pieces,
+        generatedPieces: correspondencia.pairs.map(function(par){return par.generada;}),
+        pairs: correspondencia.pairs,
+        matchWarnings: correspondencia.warnings || []
+      }
+    };
     var mascarasComparadas = await Promise.all([
       cargarImagenSegura(parDental.originalMaskUrl),
       cargarImagenSegura(parDental.iaMaskUrl)
@@ -6184,6 +7127,21 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     union.width = W; union.height = H;
     var uctx = union.getContext('2d');
     uctx.drawImage(maskIA, 0, 0, W, H);
+
+    // Los candidatos extra que queden fuera de la secuencia original no se
+    // componen. Se conserva un margen de media corona para permitir mejoras
+    // de contorno sin inventar dientes posteriores fuera del corredor real.
+    var anchosOriginales=mapaOriginal.pieces.map(function(p){return p.w;});
+    var margenCorredor=(medianaNumerica(anchosOriginales)||1)*.55;
+    var xMinMapa=Math.min.apply(null,mapaOriginal.pieces.map(function(p){return p.x;}))-margenCorredor;
+    var xMaxMapa=Math.max.apply(null,mapaOriginal.pieces.map(function(p){return p.x+p.w;}))+margenCorredor;
+    var escalaCorredor=W/Math.max(1,mapaOriginal.width);
+    uctx.globalCompositeOperation='destination-in';
+    uctx.fillStyle='#fff';
+    uctx.fillRect(Math.max(0,xMinMapa*escalaCorredor),0,Math.min(W,(xMaxMapa-xMinMapa)*escalaCorredor),H);
+    uctx.globalCompositeOperation='source-over';
+
+    await aplicarTonoVitaConMascara(alineada, parDental.iaMaskUrl, vitaShade);
 
     // Recorte estricto: fuera de la unión dental no sobrevive ni un solo
     // píxel de la imagen generada.
@@ -6196,30 +7154,16 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
     var sctx = salida.getContext('2d');
     sctx.drawImage(original, 0, 0);
     sctx.drawImage(alineada, 0, 0);
-    try {
-      S.simulationQualityByView[view || 'frontal'] = analizarCalidadVisualCarillas(
-        original, alineada, union, view || 'frontal', maskOriginal, parDental.comparison
-      );
-    } catch (qualityError) {
-      console.warn('No se pudo completar el control visual automático:', qualityError);
-      S.simulationQualityByView[view || 'frontal'] = {
-        version:SIM_QUALITY_VERSION,status:'review',issues:['control visual incompleto'],metrics:{}
-      };
+    var reporte = analizarCalidadVisualCarillas(
+      original, alineada, union, view || 'frontal', maskOriginal, parDental.comparison
+    );
+    S.simulationQualityByView[view || 'frontal'] = reporte;
+    if (reporte.status === 'rejected') {
+      throw new Error('La simulación no superó el control dental: ' + reporte.issues.slice(0, 2).join(' · ') + '. No se mostrará un resultado incompleto.');
     }
     return salida.toDataURL('image/png');
   } catch (e) {
     console.warn('No se pudo hacer la composición dental segmentada:', e);
-    // Replicate es una mejora de precisión, no debe convertirse en un punto
-    // único de fallo. Si su inferencia, URL firmada o CORS no responde, se
-    // recupera con el compositor dental local que no necesita red. Sigue
-    // prohibido mostrar la cara completa generada por IA.
-    var respaldoLocal = await componerConOriginal(fotoOriginalUrl, resultadoIAUrl);
-    if (respaldoLocal) {
-      S.simulationQualityByView[view || 'frontal'] = {
-        version:SIM_QUALITY_VERSION,status:'review',issues:['segmentación avanzada no disponible; revisar contornos manualmente'],metrics:{}
-      };
-      return respaldoLocal;
-    }
     throw e;
   }
 }
@@ -6585,6 +7529,7 @@ function compartirConPaciente() {
 function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.dentalMaskByView = {};
+  S.dentalMapByView = {};
   S.simulationQualityByView = {};
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
