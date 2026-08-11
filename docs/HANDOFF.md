@@ -10,6 +10,17 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-10 (11) — Codex (separa bloqueo técnico de revisión estética)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- El control v6 sólo cancela la simulación por una ausencia real de piezas.
+  Tono, textura, línea media, bordes, cobertura parcial y proporciones se
+  conservan como revisión del editor, no como error para el paciente.
+- Las diferencias naturales de tono entre piezas se guardan únicamente como
+  métrica interna. Distancia/proporción del emparejamiento también pasan a
+  advertencias, mientras que menos piezas que el original sigue bloqueando.
+
 ## 2026-08-10 (10) — Codex (emparejamiento tolerante a fragmentos extra)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.

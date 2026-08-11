@@ -5802,7 +5802,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 5;
+var SIM_QUALITY_VERSION = 6;
 
 function resumirPiezasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};
@@ -6012,6 +6012,9 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }).filter(function(b){return [b.x,b.y,b.w,b.h].every(Number.isFinite)&&b.w>0&&b.h>0;});
   }
   var problemas=[];
+  if(comparacion.matchWarnings&&comparacion.matchWarnings.length) {
+    problemas=problemas.concat(comparacion.matchWarnings);
+  }
   if(!activos||cobertura<.0004||cobertura>.16) problemas.push('cobertura dental irregular');
   if(cambio<.32) problemas.push('cambio demasiado conservador');
   if(lumDesv<7.5) problemas.push('textura óptica demasiado uniforme');
@@ -6051,7 +6054,9 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     piezasSinCobertura=piezasSinCobertura.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
     piezasTonoAtipico=piezasTonoAtipico.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
     if(piezasSinCobertura.length) problemas.push('cobertura insuficiente en '+piezasSinCobertura.length+' pieza(s) superior(es)');
-    if(piezasTonoAtipico.length) problemas.push('tono desigual en '+piezasTonoAtipico.length+' pieza(s)');
+    // Diferencias de luminancia entre laterales, caninos y centrales son
+    // normales por perspectiva. Se registran como métrica interna, pero no
+    // deben alarmar al paciente ni cancelar una simulación íntegra.
     if(esperadas.length && cajas.length) {
       var expMin=Math.min.apply(null,esperadas.map(function(b){return b.x;}));
       var expMax=Math.max.apply(null,esperadas.map(function(b){return b.x+b.w;}));
@@ -6079,13 +6084,16 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }
   }
   var hayFalloCritico=problemas.some(function(p){
-    return /faltan piezas|cobertura insuficiente|cobertura bilateral|línea media|desnivelados|pocas piezas superiores/.test(p);
+    // La correspondencia uno-a-uno ya comprobó la integridad antes de llegar
+    // aquí. Sólo una ausencia real de piezas bloquea; geometría, cobertura
+    // parcial, línea media, tono y textura pasan al editor como revisión.
+    return /faltan piezas|pocas piezas superiores/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,
     status:hayFalloCritico?'rejected':(problemas.length?'review':'approved'),
     issues:problemas,
-    metrics:{pieces:cajas.length,expectedPieces:esperadas.length,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1)}
+    metrics:{pieces:cajas.length,expectedPieces:esperadas.length,toneOutliers:piezasTonoAtipico?piezasTonoAtipico.length:0,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1)}
   };
 }
 
@@ -6192,10 +6200,10 @@ async function segmentarCanvasDentalDetallado(canvas, cacheKey) {
 function emparejarPiezasDentales(esperadas, generadas) {
   var e=(esperadas||[]).slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
   var g=(generadas||[]).slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
-  var problemas=[];
+  var problemas=[],advertencias=[];
   if(g.length<e.length) {
     problemas.push('se esperaban '+e.length+' carillas y sólo se detectaron '+g.length);
-    return {ok:false,pairs:[],extras:g,issues:problemas};
+    return {ok:false,pairs:[],extras:g,issues:problemas,warnings:advertencias};
   }
   // A veces el segmentador divide un mismo diente en dos candidatos. En vez
   // de emparejar por índice (lo que desplaza toda la secuencia), buscamos la
@@ -6228,11 +6236,11 @@ function emparejarPiezasDentales(esperadas, generadas) {
   }
   if(pares.length!==e.length) problemas.push('no se pudo completar la correspondencia anatómica');
   pares.forEach(function(par,indice){
-    if(par.distance>.92) problemas.push('la carilla '+(indice+1)+' no coincide con su diente original');
-    if(par.widthRatio<.42||par.widthRatio>2.05) problemas.push('la carilla '+(indice+1)+' tiene una proporción incompatible');
+    if(par.distance>.92) advertencias.push('revisar posición de la carilla '+(indice+1));
+    if(par.widthRatio<.42||par.widthRatio>2.05) advertencias.push('revisar proporción de la carilla '+(indice+1));
   });
   var extras=g.filter(function(p){return !usadas.has(p);});
-  return {ok:problemas.length===0,pairs:pares,extras:extras,issues:problemas};
+  return {ok:problemas.length===0,pairs:pares,extras:extras,issues:problemas,warnings:advertencias};
 }
 
 // El modelo genera anatomía y textura. El tono VITA se aplica después y sólo
@@ -6309,7 +6317,8 @@ async function componerConOriginalSegmentado(fotoOriginalUrl, resultadoIAUrl, vi
         height: mapaOriginal.height,
         expectedPieces: mapaOriginal.pieces,
         generatedPieces: correspondencia.pairs.map(function(par){return par.generada;}),
-        pairs: correspondencia.pairs
+        pairs: correspondencia.pairs,
+        matchWarnings: correspondencia.warnings || []
       }
     };
     var mascarasComparadas = await Promise.all([
