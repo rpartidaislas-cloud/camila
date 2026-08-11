@@ -432,6 +432,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-incisal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}.ed-incisal-title{color:#fff8e7;font-size:11px;font-weight:750}.ed-incisal-badge{padding:3px 6px;border-radius:99px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.24);color:#ffd98a;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.35px}.ed-incisal-copy{color:rgba(255,255,255,.44);font-size:9px;line-height:1.45;margin-bottom:9px}
 .ed-tooth-chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-bottom:10px}.ed-tooth-chip{height:30px;padding:0;border-radius:8px;border:1px solid rgba(245,158,11,.18);background:rgba(255,255,255,.045);color:rgba(255,255,255,.62);font:700 9.5px Inter,sans-serif;cursor:pointer}.ed-tooth-chip.ed-active{background:rgba(245,158,11,.17);border-color:#F59E0B;color:#fff4d6;box-shadow:0 0 11px rgba(245,158,11,.16)}
 .ed-incisal-reset{width:100%;height:32px;margin-top:8px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);color:rgba(255,255,255,.68);font:650 9.5px Inter,sans-serif;cursor:pointer}.ed-incisal-note{margin-top:7px;color:rgba(255,255,255,.36);font-size:8.5px;line-height:1.45}
+.ed-incisal-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:9px}.ed-arc-main,.ed-curve-ends,.ed-remote-toggle{min-height:42px;padding:6px 5px;border-radius:10px;font:700 8.5px Inter,sans-serif;line-height:1.25;cursor:pointer}.ed-arc-main,.ed-curve-ends{border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#ffe2a7}.ed-arc-main.ed-active,.ed-curve-ends.ed-active{background:rgba(245,158,11,.2);border-color:#F59E0B;box-shadow:0 0 13px rgba(245,158,11,.18)}.ed-remote-toggle{border:1px solid rgba(45,212,191,.24);background:rgba(45,212,191,.07);color:#a7f3e8}.ed-remote-toggle.ed-active{background:rgba(45,212,191,.16);border-color:#2DD4BF}.ed-remote-status{grid-column:1/-1;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.22);color:rgba(255,255,255,.46);font-size:8.5px;line-height:1.4}.ed-remote-status strong{color:#fff3cf}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
 @media(min-width:820px){
@@ -526,7 +527,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v73 — curva incisal vinculada</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v74 — control remoto del arco</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1207,7 +1208,13 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       </div>
       <div class="ed-incisal-card">
         <div class="ed-incisal-head"><div class="ed-incisal-title">Altura incisal de las carillas</div><span class="ed-incisal-badge">Vinculada a curva</span></div>
-        <div class="ed-incisal-copy">Arrastra la curva amarilla para ajustar todos los dientes. Toca una pieza y mueve su punto amarillo para afinarla individualmente.</div>
+        <div class="ed-incisal-copy">El punto principal modifica la profundidad del arco; los extremos controlan los lados y 13–23 ajustan cada carilla. Con control remoto puedes moverlos desde una zona donde el dedo no tape la sonrisa.</div>
+        <div class="ed-incisal-tools">
+          <button type="button" id="ed-arc-main" class="ed-arc-main ed-active" onclick="edSeleccionarControlArco()">● Punto principal<br>Modificar arco</button>
+          <button type="button" id="ed-curve-ends" class="ed-curve-ends" onclick="edSeleccionarControlExtremos()">↕ Extremos<br>Modificar lados</button>
+          <button type="button" id="ed-remote-toggle" class="ed-remote-toggle ed-active" onclick="edToggleControlRemoto()">🎯 Control remoto<br>Activo</button>
+          <div id="ed-remote-status" class="ed-remote-status"><strong>Seleccionado: arco principal.</strong> Arrastra desde una zona vacía para no tapar la curva con el dedo.</div>
+        </div>
         <div class="ed-tooth-chips" id="ed-tooth-chips">
           <button type="button" class="ed-tooth-chip" data-tooth-index="0" onclick="edSeleccionarDienteAltura(0,this)">13</button>
           <button type="button" class="ed-tooth-chip" data-tooth-index="1" onclick="edSeleccionarDienteAltura(1,this)">12</button>
@@ -4211,6 +4218,8 @@ var EDITOR_PARAMS_DEFAULT = {
   guiasAgrupadas:false,
   lineasExtra:[],
   curvaExtremos:0,
+  curvaCentroOffset:0,
+  controlRemoto:true,
   guideZones: {
     lineaMedia:{x:0.30,y:0.52,w:0.40,h:0.20},
     lineaIncisal:{x:0.30,y:0.52,w:0.40,h:0.20},
@@ -4237,6 +4246,7 @@ var _edSimulationUrl = '';
 var _edOriginalUrl = '';
 var _edShowingOriginal = false;
 var _edActiveToothIndex = 2;
+var _edRemoteTarget = {type:'arc', index:null};
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
 var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
 var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
@@ -4310,8 +4320,54 @@ function edActualizarControlAlturaDiente() {
   var title = document.getElementById('ed-altura-diente-title');
   if (title) title.textContent = 'Ajuste individual · ' + ED_TOOTH_IDS[_edActiveToothIndex];
   document.querySelectorAll('.ed-tooth-chip[data-tooth-index]').forEach(function(btn) {
-    btn.classList.toggle('ed-active', parseInt(btn.dataset.toothIndex, 10) === _edActiveToothIndex);
+    btn.classList.toggle('ed-active', _edRemoteTarget && _edRemoteTarget.type === 'tooth' && parseInt(btn.dataset.toothIndex, 10) === _edActiveToothIndex);
   });
+}
+
+function edActualizarControlRemoto() {
+  if (!EDITOR_PARAMS) return;
+  var activo = EDITOR_PARAMS.controlRemoto !== false;
+  var toggle = document.getElementById('ed-remote-toggle');
+  if (toggle) {
+    toggle.classList.toggle('ed-active', activo);
+    toggle.innerHTML = '🎯 Control remoto<br>' + (activo ? 'Activo' : 'Desactivado');
+  }
+  var arco = document.getElementById('ed-arc-main');
+  if (arco) arco.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'arc');
+  var extremos = document.getElementById('ed-curve-ends');
+  if (extremos) extremos.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'ends');
+  var status = document.getElementById('ed-remote-status');
+  if (!status) return;
+  var nombre = 'arco principal';
+  if (_edRemoteTarget && _edRemoteTarget.type === 'tooth') nombre = 'diente ' + ED_TOOTH_IDS[_edRemoteTarget.index];
+  else if (_edRemoteTarget && _edRemoteTarget.type === 'ends') nombre = 'extremos de la curva';
+  status.innerHTML = '<strong>Seleccionado: ' + nombre + '.</strong> ' + (activo ? 'Arrastra desde una zona vacía para no tapar la guía con el dedo.' : 'Arrastra directamente la manija o el punto.');
+}
+
+function edSeleccionarObjetivoRemoto(tipo, indice) {
+  _edRemoteTarget = {type:tipo, index:typeof indice === 'number' ? indice : null};
+  if (tipo === 'tooth' && typeof indice === 'number') _edActiveToothIndex = indice;
+  edActualizarControlAlturaDiente();
+  edActualizarControlRemoto();
+}
+
+function edSeleccionarControlArco() {
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('arc');
+  redrawEditor();
+}
+
+function edSeleccionarControlExtremos() {
+  edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('ends');
+  redrawEditor();
+}
+
+function edToggleControlRemoto() {
+  if (!EDITOR_PARAMS) return;
+  EDITOR_PARAMS.controlRemoto = EDITOR_PARAMS.controlRemoto === false;
+  edActualizarControlRemoto();
+  edActualizarEstadoGuias();
 }
 
 function edActivarGuiasIncisales() {
@@ -4325,6 +4381,7 @@ function edActivarGuiasIncisales() {
 function edSeleccionarDienteAltura(indice) {
   _edActiveToothIndex = Math.max(0, Math.min(5, parseInt(indice, 10) || 0));
   edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
   edActualizarControlAlturaDiente();
   redrawEditor();
 }
@@ -4334,6 +4391,7 @@ function edAlturaDienteInput(el) {
   edAsegurarAlturasDientes();
   EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] = Math.max(-20, Math.min(20, parseFloat(el.value) || 0));
   edActivarGuiasIncisales();
+  edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
   edActualizarControlAlturaDiente();
   redrawEditor();
 }
@@ -4388,6 +4446,9 @@ function edAsegurarZonasGuias() {
   });
   if (typeof EDITOR_PARAMS.guiasAgrupadas !== 'boolean') EDITOR_PARAMS.guiasAgrupadas = false;
   if (typeof EDITOR_PARAMS.curvaExtremos !== 'number') EDITOR_PARAMS.curvaExtremos = 0;
+  if (typeof EDITOR_PARAMS.curvaCentroOffset !== 'number') EDITOR_PARAMS.curvaCentroOffset = 0;
+  EDITOR_PARAMS.curvaCentroOffset = Math.max(-0.35, Math.min(0.55, EDITOR_PARAMS.curvaCentroOffset));
+  if (typeof EDITOR_PARAMS.controlRemoto !== 'boolean') EDITOR_PARAMS.controlRemoto = true;
 }
 
 function edZonaGuia(nombre) {
@@ -4425,6 +4486,7 @@ function edActualizarEstadoGuias() {
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
     if (!visibles.length) hint.textContent = 'Activa una guía para moverla';
+    else if (_edActiveGuide === 'curvaSonrisa' && EDITOR_PARAMS.controlRemoto !== false) hint.textContent = 'Control remoto activo · selecciona ARCO, 13–23 o los extremos y arrastra desde una zona vacía';
     else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
     else if (_edActiveGuide === 'curvaSonrisa') hint.textContent = 'Arrastra la curva para redimensionar el conjunto · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
@@ -4440,6 +4502,7 @@ function edActualizarEstadoGuias() {
     });
     zoom.style.display = puedeEscalar ? 'flex' : 'none';
   }
+  edActualizarControlRemoto();
 }
 
 function abrirEditorDiseno() {
@@ -4464,6 +4527,7 @@ function abrirEditorDiseno() {
   _edPhotoPanY = 0;
   _edPhotoPanMode = false;
   _edActiveToothIndex = 2;
+  _edRemoteTarget = {type:'arc', index:null};
   _edSimulationUrl = url;
   _edOriginalUrl = fotoOriginal ? 'data:image/jpeg;base64,' + fotoOriginal.b64 : '';
   _edShowingOriginal = false;
@@ -4544,6 +4608,7 @@ function edAplicarRecomendacion() {
   diseno.red = 70;
   diseno.proporcion = edNumeroClinico(d.proporcion_ancho_alto_centrales_pct,70,90,78);
   diseno.alturasDientes = [0,0,0,0,0,0];
+  EDITOR_PARAMS.curvaCentroOffset = 0;
   diseno.caracterizacion = ['sutil','natural','marcada'].indexOf(d.caracterizacion_superficial) >= 0 ? d.caracterizacion_superficial : 'natural';
   if (d.curvatura_labio_inferior === 'plana') diseno.arcoSonrisa = 'recto';
   else if (d.curvatura_labio_inferior === 'marcada') diseno.arcoSonrisa = 'amplio';
@@ -4666,6 +4731,7 @@ function edCerrar() {
 function edRestablecer() {
   EDITOR_PARAMS = JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
   _edActiveGuide = null;
+  _edRemoteTarget = {type:'arc', index:null};
   edAsegurarZonasGuias();
   edSyncControles();
   redrawEditor();
@@ -4908,6 +4974,7 @@ function edSyncControles() {
   edActualizarInclinacionDisabled();
   edActualizarControlesProporcion();
   edActualizarControlAlturaDiente();
+  edActualizarControlRemoto();
 }
 
 // Cada guía tiene su propia zona. En modo independiente, arrastrar/zoom sólo
@@ -4917,7 +4984,7 @@ function edInitZoneDrag() {
   if (_edDragInit) return;
   _edDragInit = true;
   var canvas = document.getElementById('ed-canvas');
-  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0, startToothOffset = 0;
+  var dragging = false, dragMode = 'zone', startX, startY, dragTargets = [], startZones = {}, startCurveOffset = 0, startCenterOffset = 0, startToothOffset = 0;
   var startPhotoPanX = 0, startPhotoPanY = 0;
   var pinching = false, startPinchDistance = 0, startPinchZone = null;
 
@@ -4969,9 +5036,21 @@ function edInitZoneDrag() {
     }
     if (EDITOR_PARAMS.guias.curvaSonrisa) {
       var handle = edCurvaHandlePx(canvas.width, canvas.height);
+      var centerHandle = edCurvaCentroHandlePx(canvas.width, canvas.height);
       var px = (clientX - r.left) * canvas.width / r.width;
       var py = (clientY - r.top) * canvas.height / r.height;
       var hitRadius = 24 * canvas.width / r.width;
+      if (Math.hypot(px - centerHandle.x, py - centerHandle.y) <= hitRadius * 1.35) {
+        dragging = true;
+        dragMode = 'curve-center';
+        startX = clientX; startY = clientY;
+        startCenterOffset = EDITOR_PARAMS.curvaCentroOffset || 0;
+        _edActiveGuide = 'curvaSonrisa';
+        edSeleccionarObjetivoRemoto('arc');
+        edActualizarEstadoGuias();
+        redrawEditor();
+        return;
+      }
       var objetivos = edObjetivosIncisalesPx(canvas.width, canvas.height);
       var objetivoActivo = null;
       var distanciaActiva = Infinity;
@@ -4990,6 +5069,7 @@ function edInitZoneDrag() {
         edAsegurarAlturasDientes();
         startToothOffset = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] || 0;
         _edActiveGuide = 'curvaSonrisa';
+        edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
         edActualizarEstadoGuias();
         edActualizarControlAlturaDiente();
         redrawEditor();
@@ -5001,6 +5081,30 @@ function edInitZoneDrag() {
         startX = clientX; startY = clientY;
         startCurveOffset = EDITOR_PARAMS.curvaExtremos || 0;
         _edActiveGuide = 'curvaSonrisa';
+        edSeleccionarObjetivoRemoto('ends');
+        edActualizarEstadoGuias();
+        redrawEditor();
+        return;
+      }
+      // Control a distancia: una vez elegido un objetivo, cualquier zona
+      // vacía funciona como superficie de arrastre. Sólo se usa el delta del
+      // dedo, por lo que la guía nunca salta hasta la posición de contacto.
+      if (EDITOR_PARAMS.controlRemoto !== false && _edRemoteTarget) {
+        dragging = true;
+        startX = clientX; startY = clientY;
+        _edActiveGuide = 'curvaSonrisa';
+        if (_edRemoteTarget.type === 'tooth') {
+          dragMode = 'tooth-height';
+          _edActiveToothIndex = Math.max(0,Math.min(5,_edRemoteTarget.index || 0));
+          edAsegurarAlturasDientes();
+          startToothOffset = EDITOR_PARAMS.diseno.alturasDientes[_edActiveToothIndex] || 0;
+        } else if (_edRemoteTarget.type === 'ends') {
+          dragMode = 'curve';
+          startCurveOffset = EDITOR_PARAMS.curvaExtremos || 0;
+        } else {
+          dragMode = 'curve-center';
+          startCenterOffset = EDITOR_PARAMS.curvaCentroOffset || 0;
+        }
         edActualizarEstadoGuias();
         redrawEditor();
         return;
@@ -5028,6 +5132,13 @@ function edInitZoneDrag() {
       var curveZone = edZonaGuia('curvaSonrisa');
       var deltaCurve = ((clientY - startY) / r.height) / Math.max(0.01, curveZone.h);
       EDITOR_PARAMS.curvaExtremos = Math.max(-0.30, Math.min(0.70, startCurveOffset + deltaCurve));
+      redrawEditor();
+      return;
+    }
+    if (dragMode === 'curve-center') {
+      var centerZone = edZonaGuia('curvaSonrisa');
+      var deltaCenter = ((clientY - startY) / r.height) / Math.max(0.01, centerZone.h);
+      EDITOR_PARAMS.curvaCentroOffset = Math.max(-0.35, Math.min(0.55, startCenterOffset + deltaCenter));
       redrawEditor();
       return;
     }
@@ -5314,7 +5425,7 @@ function edCurvaGeometria(w, h) {
   var prof = curvasProf[EDITOR_PARAMS.diseno.arcoSonrisa] || 0.08;
   var yBase = zone.y + zone.h * 0.15;
   var yExtremos = yBase + zone.h * (EDITOR_PARAMS.curvaExtremos || 0);
-  var yCentro = yBase + zone.h * prof * 2;
+  var yCentro = yBase + zone.h * (prof * 2 + (EDITOR_PARAMS.curvaCentroOffset || 0));
   // En una Bézier cuadrática simétrica, Q = 2C - E mantiene C fijo
   // mientras ambos extremos E suben o bajan con la manija.
   return {
@@ -5377,6 +5488,11 @@ function edCurvaHandlePx(w, h) {
   return {x:curva.zone.x + curva.zone.w, y:curva.yExtremos};
 }
 
+function edCurvaCentroHandlePx(w, h) {
+  var curva = edCurvaGeometria(w, h);
+  return {x:curva.midX, y:curva.yCentro};
+}
+
 function edDibujarGuias(ctx, w, h) {
   var g = EDITOR_PARAMS.guias;
   var zone, midX;
@@ -5432,9 +5548,40 @@ function edDibujarGuias(ctx, w, h) {
     edTrazarCurvaSuave(ctx, edPuntosCurvaSonrisa(w,h));
     ctx.stroke();
 
+    // Manija principal: modifica únicamente la profundidad del arco. Se
+    // coloca entre 11 y 21 para no confundirse con una pieza dental.
+    var centroHandle = edCurvaCentroHandlePx(w,h);
+    var centroActivo = _edRemoteTarget && _edRemoteTarget.type === 'arc';
+    var centroRadio = Math.max(centroActivo ? 11 : 9, w * (centroActivo ? 0.009 : 0.0075));
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.fillStyle = centroActivo ? '#FFF3C4' : '#F59E0B';
+    ctx.strokeStyle = centroActivo ? '#F59E0B' : '#FFFFFF';
+    ctx.lineWidth = Math.max(2,w*0.0018);
+    ctx.arc(centroHandle.x,centroHandle.y,centroRadio,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = centroActivo ? '#6B3E00' : '#FFFFFF';
+    ctx.lineWidth = Math.max(1.5,w*0.0013);
+    ctx.beginPath();
+    ctx.moveTo(centroHandle.x,centroHandle.y-centroRadio*.45);
+    ctx.lineTo(centroHandle.x,centroHandle.y+centroRadio*.45);
+    ctx.moveTo(centroHandle.x-centroRadio*.24,centroHandle.y-centroRadio*.22);
+    ctx.lineTo(centroHandle.x,centroHandle.y-centroRadio*.45);
+    ctx.lineTo(centroHandle.x+centroRadio*.24,centroHandle.y-centroRadio*.22);
+    ctx.moveTo(centroHandle.x-centroRadio*.24,centroHandle.y+centroRadio*.22);
+    ctx.lineTo(centroHandle.x,centroHandle.y+centroRadio*.45);
+    ctx.lineTo(centroHandle.x+centroRadio*.24,centroHandle.y+centroRadio*.22);
+    ctx.stroke();
+    ctx.fillStyle = '#FFF3C4';
+    ctx.font = '800 ' + Math.max(8,Math.round(w*0.008)) + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('ARCO',centroHandle.x,centroHandle.y-centroRadio-4);
+
     var objetivosIncisales = edObjetivosIncisalesPx(w,h);
     objetivosIncisales.forEach(function(punto) {
-      var activo = punto.indice === _edActiveToothIndex;
+      var activo = _edRemoteTarget && _edRemoteTarget.type === 'tooth' && punto.indice === _edActiveToothIndex;
       var radio = Math.max(activo ? 7 : 5, w * (activo ? 0.0065 : 0.0048));
       ctx.beginPath();
       ctx.fillStyle = activo ? '#FFF7D6' : '#F59E0B';
@@ -5451,9 +5598,10 @@ function edDibujarGuias(ctx, w, h) {
     });
 
     var handleRadius = Math.max(7, w * 0.007);
+    var extremosActivos = _edRemoteTarget && _edRemoteTarget.type === 'ends';
     ctx.setLineDash([]);
-    ctx.fillStyle = '#F59E0B';
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.fillStyle = extremosActivos ? '#FFF3C4' : '#F59E0B';
+    ctx.strokeStyle = extremosActivos ? '#F59E0B' : '#FFFFFF';
     ctx.lineWidth = Math.max(2, w * 0.0018);
     ctx.beginPath();
     ctx.arc(zone.x + zone.w, curva.yExtremos, handleRadius, 0, Math.PI * 2);

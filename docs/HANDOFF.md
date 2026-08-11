@@ -10,6 +10,26 @@ Las entradas más nuevas van arriba.
 
 ---
 
+## 2026-08-11 (18) — Codex (manija principal y control remoto del arco)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- La curva amarilla incorpora una manija central `ARCO`. Su desplazamiento
+  vertical modifica la profundidad/concavidad del arco sin trasladar toda la
+  sonrisa; las manijas de los extremos continúan controlando los lados.
+- Se añadió un selector explícito para `Punto principal`, `Extremos` y cada
+  pieza 13–23. El objetivo seleccionado permanece resaltado y se muestra en
+  un estado textual para evitar ambigüedad clínica.
+- El nuevo `Control remoto` permite seleccionar primero el objetivo y después
+  arrastrar desde cualquier zona vacía de la fotografía. Se aplica sólo el
+  desplazamiento del dedo, sin saltar la guía hasta el punto de contacto, de
+  modo que el dedo no cubre la curva durante el ajuste. Puede desactivarse
+  para volver al arrastre directo.
+- `curvaCentroOffset` y la preferencia del control remoto se guardan con el
+  caso; los casos anteriores se migran en memoria. Los seis objetivos
+  normalizados enviados al regenerador ya incorporan la nueva geometría.
+  Indicador visible actualizado a `build v74`.
+
 ## 2026-08-11 (17) — Codex (curva incisal vinculada al tamaño dental)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
