@@ -442,6 +442,77 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   .ed-panel{width:340px;max-height:none;border-left:1px solid rgba(255,255,255,.08);order:2;flex-shrink:0}
 }
 
+/* v77 — sistema visual clínico/editorial del editor.
+   Mantiene la lógica y los identificadores existentes; sólo ordena jerarquía,
+   superficies, espaciado y ubicación de herramientas. */
+.ed-screen{
+  --ed-bg:#0b0d10;--ed-surface:#121519;--ed-surface-2:#181c21;
+  --ed-border:rgba(255,255,255,.09);--ed-muted:#9299a3;
+  --ed-text:#f5f7f9;--ed-accent:#7667e8;--ed-success:#3fc58d;
+  background:var(--ed-bg);color:var(--ed-text)
+}
+.ed-topbar{background:#101217;border-bottom:1px solid var(--ed-border);box-shadow:none}
+.ed-topbar-inner{height:58px;padding:0 16px;gap:12px}
+.ed-title{font-size:15px;letter-spacing:-.15px}
+.ed-btn-icon{width:38px;height:38px;border-radius:9px;background:#191c22;border-color:var(--ed-border)}
+.ed-btn-aplicar{height:38px;border-radius:9px;background:var(--ed-accent);box-shadow:none;font-size:12px}
+.ed-workspace-head{padding:10px 12px 7px;background:#101217;border-bottom:1px solid var(--ed-border)}
+.ed-workspace-title{font-size:11px;font-weight:750;color:var(--ed-text);letter-spacing:.15px}
+.ed-workspace-copy{margin-top:2px;font-size:9px;color:var(--ed-muted)}
+.ed-guides-row{padding:8px 10px 10px;gap:6px;background:#101217;border:0;border-bottom:1px solid var(--ed-border)}
+.ed-guide-chip,.ed-guide-add,.ed-group-chip{height:34px;border-radius:8px;box-shadow:none}
+.ed-guide-chip{background:#171a1f;border-color:var(--ed-border);color:#adb3bc}
+.ed-guide-chip.ed-active{background:#25213d;border-color:#7667e8;color:#fff}
+.ed-guide-chip[data-guia="proporcionAurea"].ed-active{background:#13251b;border-color:#4ed391;color:#dff8ea;box-shadow:none}
+.ed-guide-chip.ed-target{box-shadow:inset 0 0 0 1px rgba(255,255,255,.65)}
+.ed-guide-add{background:transparent;border-color:rgba(255,255,255,.2);color:#aeb4bd}
+.ed-group-chip{background:#14201c;border-color:rgba(63,197,141,.32);color:#a9dcc6}
+.ed-group-chip.ed-active{background:#173126;border-color:#3fc58d;color:#d8f7e9;box-shadow:none}
+.ed-canvas-wrap{background:#060708}
+.ed-zone-hint{bottom:8px;background:rgba(9,11,14,.82);border:1px solid rgba(255,255,255,.08);border-radius:7px;backdrop-filter:none;color:#c3c8cf}
+.ed-canvas-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;background:#101217;border-top:1px solid var(--ed-border);flex-shrink:0}
+.ed-toolbar-group{display:flex;align-items:center;gap:5px;min-width:0}
+.ed-toolbar-label{margin-right:4px;color:#858c96;font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.55px;white-space:nowrap}
+.ed-photo-toggle,.ed-photo-zoom,.ed-zoom-controls{position:static;display:flex;align-items:center;z-index:auto}
+.ed-photo-toggle{height:34px;padding:0 10px;border-radius:8px;background:#191d22;border:1px solid var(--ed-border);backdrop-filter:none;font:700 10px Inter,sans-serif}
+.ed-photo-toggle.ed-showing-original{background:#173126;border-color:rgba(63,197,141,.55);color:#d8f7e9}
+.ed-photo-zoom{gap:4px;padding:0;background:transparent;border:0;border-radius:0;backdrop-filter:none}
+.ed-photo-zoom button,.ed-zoom-btn{height:34px;min-width:34px;border-radius:8px;background:#191d22;border:1px solid var(--ed-border);backdrop-filter:none;color:#f4f6f8;font:700 12px Inter,sans-serif}
+.ed-photo-zoom button.ed-photo-pan-active{background:#242039;color:#fff;box-shadow:none;border-color:#7667e8}
+.ed-photo-zoom .ed-photo-zoom-value{min-width:48px;color:#e4e7eb}
+.ed-zoom-controls{flex-direction:row;gap:4px}
+.ed-panel{background:#101217;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
+.ed-panel-intro{margin-bottom:14px;color:var(--ed-muted);font-size:9.5px;line-height:1.5}
+.ed-sec-label.ed-section-title{display:flex;flex-direction:column;gap:3px;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--ed-border);color:#f3f5f7;font-size:11px;text-transform:none;letter-spacing:0}
+.ed-sec-label.ed-section-title small{font-size:8.5px;font-weight:500;color:#7f8791;text-transform:none;letter-spacing:0;line-height:1.4}
+.ed-clinical-card,.ed-proportion-card,.ed-incisal-card,.ed-vita-guide{background:var(--ed-surface);border-color:var(--ed-border);border-radius:10px;box-shadow:none}
+.ed-clinical-badge{background:#16261f;border-color:rgba(63,197,141,.28);color:#90d9b8}
+.ed-clinical-tag{border-radius:6px;background:#1a1e23}
+.ed-clinical-apply{background:#201d35;border-color:rgba(118,103,232,.45)}
+.ed-chip,.ed-select{border-radius:8px;background:#181c21;border-color:var(--ed-border)}
+.ed-chip.ed-active{background:#27223f;border-color:#7667e8}
+.ed-proportion-methods .ed-chip.ed-active{background:#16271e;border-color:#43bf85;color:#ddf6e9}
+.ed-proportion-card{border-left:3px solid #43bf85}
+.ed-incisal-card{border-left:3px solid #d6a34b}
+.ed-vita-guide{background:#0e1114}
+.ed-vita-stick.selected{background:#201d35;box-shadow:none}
+.ed-vita-stick.selected::before{display:none}
+.ed-remote-pad{background-color:#0d1718;background-image:linear-gradient(rgba(45,212,191,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.045) 1px,transparent 1px);box-shadow:none}
+#ed-btn-regenerar{background:#7667e8!important;border-radius:9px!important;box-shadow:none!important}
+@media(max-width:560px){
+  .ed-canvas-toolbar{align-items:stretch;flex-direction:column;gap:7px}
+  .ed-toolbar-group{width:100%}
+  .ed-toolbar-group:first-child{overflow-x:auto;padding-bottom:1px}
+  .ed-toolbar-group:last-child{justify-content:flex-end;border-top:1px solid rgba(255,255,255,.06);padding-top:7px}
+  .ed-photo-toggle{flex:0 0 auto}
+  .ed-photo-zoom{margin-left:auto}
+  .ed-panel{max-height:46vh}
+}
+@media(min-width:820px){
+  .ed-panel{width:380px}
+  .ed-canvas-toolbar{padding:10px 12px}
+}
+
 /* Chips de molestias agregadas a mano — se pueden quitar con la × */
 .q-chip-custom{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;background:rgba(91,71,224,.16);border:1.5px solid rgba(91,71,224,.4);border-radius:99px;color:#fff;font-size:12.5px;font-weight:500}
 .q-chip-custom button{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
@@ -528,7 +599,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v76 — carillas vinculadas al arco</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v77 — editor clínico reorganizado</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1140,6 +1211,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
   <div class="ed-body">
     <div class="ed-center">
+      <div class="ed-workspace-head">
+        <div class="ed-workspace-title">Guías de análisis</div>
+        <div class="ed-workspace-copy">Activa sólo las referencias que necesites. Puedes moverlas juntas o por separado.</div>
+      </div>
       <div class="ed-guides-row">
         <div class="ed-line-guide-group">
           <button class="ed-guide-chip" data-guia="lineaMedia" onclick="edGuiaToggle('lineaMedia',this)">Línea vertical</button>
@@ -1153,27 +1228,36 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         </div>
         <button class="ed-guide-chip" data-guia="curvaSonrisa" onclick="edGuiaToggle('curvaSonrisa',this)">Curva sonrisa</button>
         <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporciones</button>
-        <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">🔗 Agrupar guías</button>
+        <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">Agrupar guías</button>
       </div>
       <div class="ed-canvas-wrap" id="ed-canvas-wrap">
         <canvas id="ed-canvas"></canvas>
-        <button type="button" class="ed-photo-toggle" id="ed-photo-toggle" onclick="edAlternarFotoOriginal()">◐ Ver original</button>
         <div class="ed-zone-hint" id="ed-zone-hint">Activa una guía para moverla</div>
-        <div class="ed-zoom-controls">
-          <button class="ed-zoom-btn" onclick="edZoomZona(0.03)">+</button>
-          <button class="ed-zoom-btn" onclick="edZoomZona(-0.03)">−</button>
-        </div>
-        <div class="ed-photo-zoom" aria-label="Zoom de la fotografía">
-          <button type="button" id="ed-photo-pan-btn" onclick="edTogglePanFoto()" aria-label="Mover fotografía ampliada">✥ Mover foto</button>
+      </div>
+      <div class="ed-canvas-toolbar" aria-label="Herramientas del lienzo">
+        <div class="ed-toolbar-group">
+          <span class="ed-toolbar-label">Fotografía</span>
+          <button type="button" class="ed-photo-toggle" id="ed-photo-toggle" onclick="edAlternarFotoOriginal()">Ver original</button>
+          <div class="ed-photo-zoom" aria-label="Zoom de la fotografía">
+          <button type="button" id="ed-photo-pan-btn" onclick="edTogglePanFoto()" aria-label="Mover fotografía ampliada">Mover</button>
           <button type="button" onclick="edZoomFoto(-0.25)" aria-label="Reducir fotografía">−</button>
           <button type="button" class="ed-photo-zoom-value" id="ed-photo-zoom-value" onclick="edRestablecerZoomFoto()" aria-label="Restablecer fotografía al cien por ciento">100%</button>
           <button type="button" onclick="edZoomFoto(0.25)" aria-label="Ampliar fotografía">+</button>
+          </div>
+        </div>
+        <div class="ed-toolbar-group">
+          <span class="ed-toolbar-label">Tamaño de guía</span>
+          <div class="ed-zoom-controls">
+            <button class="ed-zoom-btn" onclick="edZoomZona(-0.03)" aria-label="Reducir guía">−</button>
+            <button class="ed-zoom-btn" onclick="edZoomZona(0.03)" aria-label="Ampliar guía">+</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="ed-panel">
-      <div class="ed-sec-label">Diseño de sonrisa</div>
+      <div class="ed-sec-label">Recomendación clínica</div>
+      <div class="ed-panel-intro">La recomendación orienta el punto de partida. Los ajustes permanecen bajo control del profesional.</div>
       <div class="ed-clinical-card" id="ed-clinical-card">
         <div class="ed-clinical-head">
           <div><div class="ed-clinical-title">Análisis faciodentolabial</div><div class="ed-clinical-kicker">Recomendación orientativa calculada desde la fotografía</div></div>
@@ -1183,6 +1267,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-clinical-copy" id="ed-clinical-copy">El análisis aparecerá cuando la fotografía frontal haya sido evaluada.</div>
         <button type="button" class="ed-clinical-apply" id="ed-clinical-apply" onclick="edAplicarRecomendacion()">Usar recomendación en el editor</button>
       </div>
+      <div class="ed-sec-label ed-section-title"><span>Forma y posición</span><small>Alineación, arco, longitud incisal y anatomía general.</small></div>
       <div class="ed-label">Línea media</div>
       <div class="ed-chip-row">
         <button class="ed-chip" data-group="diseno" data-key="lineaMedia" data-val="izq" onclick="edChipClick('diseno','lineaMedia','izq',this)">◀ Izquierda</button>
@@ -1211,10 +1296,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-incisal-head"><div class="ed-incisal-title">Altura incisal de las carillas</div><span class="ed-incisal-badge">Vinculada a curva</span></div>
         <div class="ed-incisal-copy">El punto principal modifica la profundidad del arco; los extremos controlan los lados y 13–23 ajustan cada carilla. Con control remoto puedes moverlos desde una zona donde el dedo no tape la sonrisa.</div>
         <div class="ed-incisal-tools">
-          <button type="button" id="ed-curve-move" class="ed-curve-move ed-active" onclick="edSeleccionarMoverCurva()">✥ Mover curva<br>Libre X / Y</button>
-          <button type="button" id="ed-arc-main" class="ed-arc-main" onclick="edSeleccionarControlArco()">● Punto principal<br>Modificar arco</button>
-          <button type="button" id="ed-curve-ends" class="ed-curve-ends" onclick="edSeleccionarControlExtremos()">↕ Extremos<br>Modificar lados</button>
-          <button type="button" id="ed-remote-toggle" class="ed-remote-toggle ed-active" onclick="edToggleControlRemoto()">🎯 Control remoto<br>Activo</button>
+          <button type="button" id="ed-curve-move" class="ed-curve-move ed-active" onclick="edSeleccionarMoverCurva()">Mover curva<br>Libre X / Y</button>
+          <button type="button" id="ed-arc-main" class="ed-arc-main" onclick="edSeleccionarControlArco()">Punto principal<br>Modificar arco</button>
+          <button type="button" id="ed-curve-ends" class="ed-curve-ends" onclick="edSeleccionarControlExtremos()">Extremos<br>Modificar lados</button>
+          <button type="button" id="ed-remote-toggle" class="ed-remote-toggle ed-active" onclick="edToggleControlRemoto()">Control táctil<br>Activo</button>
           <div id="ed-remote-status" class="ed-remote-status"><strong>Seleccionado: mover curva completa.</strong> Usa el panel grande para desplazarla libremente sin taparla.</div>
           <div id="ed-remote-pad" class="ed-remote-pad" role="application" aria-label="Panel táctil amplio para mover la curva">
             <div class="ed-pad-title">ÁREA AMPLIA DE ARRASTRE</div>
@@ -1250,6 +1335,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-slider-head"><span>Tamaño relativo de coronas</span><span id="ed-tamano-lbl">100%</span></div>
         <input type="range" id="ed-tamano" class="ed-range" min="88" max="112" step="1" value="100" data-group="diseno" data-key="tamano" oninput="edSliderInput(this)">
       </div>
+      <div class="ed-sec-label ed-section-title"><span>Proporciones dentales</span><small>Distribución anterior y relación ancho/alto.</small></div>
       <div class="ed-proportion-card">
         <div class="ed-proportion-title">Distribución horizontal anterior</div>
         <div class="ed-proportion-kicker">Controla el ancho aparente de caninos, laterales y centrales en vista frontal.</div>
@@ -1272,6 +1358,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-slider-head"><span>Ancho/alto centrales · referencia 75–80%</span><span id="ed-proporcion-lbl">78%</span></div>
         <input type="range" id="ed-proporcion" class="ed-range" min="70" max="90" step="1" value="78" data-group="diseno" data-key="proporcion" oninput="edSliderInput(this)">
       </div>
+      <div class="ed-sec-label ed-section-title"><span>Color y material</span><small>Tono VITA, textura, brillo y translucidez.</small></div>
       <div class="ed-label">Caracterización superficial</div>
       <select id="ed-caracterizacion" class="ed-select" data-group="diseno" data-key="caracterizacion" onchange="edSelectChange(this)">
         <option value="natural">Natural equilibrada</option>
@@ -1299,7 +1386,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <input type="range" id="ed-opacidad" class="ed-range" min="-2" max="2" step="1" value="0" data-group="diseno" data-key="opacidad" oninput="edSliderInput(this)">
       </div>
 
-      <div class="ed-sec-label">Encía</div>
+      <div class="ed-sec-label ed-section-title"><span>Ajustes avanzados de encía</span><small>Úsalos sólo cuando el caso clínico lo justifique.</small></div>
       <div class="ed-slider-row">
         <div class="ed-slider-head"><span>Nivel gingival</span><span id="ed-nivel-lbl">Sin cambio</span></div>
         <input type="range" id="ed-nivel" class="ed-range" min="-2" max="2" step="1" value="0" data-group="encia" data-key="nivel" oninput="edSliderInput(this)">
@@ -4338,7 +4425,7 @@ function edActualizarControlRemoto() {
   var toggle = document.getElementById('ed-remote-toggle');
   if (toggle) {
     toggle.classList.toggle('ed-active', activo);
-    toggle.innerHTML = '🎯 Control remoto<br>' + (activo ? 'Activo' : 'Desactivado');
+    toggle.innerHTML = 'Control táctil<br>' + (activo ? 'Activo' : 'Desactivado');
   }
   var mover = document.getElementById('ed-curve-move');
   if (mover) mover.classList.toggle('ed-active', !!_edRemoteTarget && _edRemoteTarget.type === 'move');
@@ -4507,7 +4594,7 @@ function edActualizarEstadoGuias() {
   var groupBtn = document.getElementById('ed-group-guides');
   if (groupBtn) {
     groupBtn.classList.toggle('ed-active', EDITOR_PARAMS.guiasAgrupadas);
-    groupBtn.textContent = EDITOR_PARAMS.guiasAgrupadas ? '🔗 Desagrupar' : '🔗 Agrupar guías';
+    groupBtn.textContent = EDITOR_PARAMS.guiasAgrupadas ? 'Desagrupar guías' : 'Agrupar guías';
   }
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
@@ -4881,7 +4968,7 @@ function edActualizarBotonFotoOriginal() {
   if (!btn) return;
   btn.disabled = !_edOriginalUrl;
   btn.classList.toggle('ed-showing-original', _edShowingOriginal);
-  btn.textContent = _edShowingOriginal ? '◑ Ver simulación' : '◐ Ver original';
+  btn.textContent = _edShowingOriginal ? 'Ver simulación' : 'Ver original';
   btn.setAttribute('aria-pressed', _edShowingOriginal ? 'true' : 'false');
 }
 
@@ -5303,7 +5390,7 @@ function edAplicarZoomFoto() {
   if (panBtn) {
     panBtn.disabled = _edPhotoZoom <= 1;
     panBtn.classList.toggle('ed-photo-pan-active', _edPhotoPanMode && _edPhotoZoom > 1);
-    panBtn.textContent = _edPhotoPanMode && _edPhotoZoom > 1 ? '✓ Moviendo' : '✥ Mover foto';
+    panBtn.textContent = _edPhotoPanMode && _edPhotoZoom > 1 ? 'Moviendo' : 'Mover';
   }
 }
 

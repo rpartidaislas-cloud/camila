@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-11 — Codex: política visual y reorganización segura del editor
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`, `docs/POLITICA_IMAGEN_SMYL.md`
+
+- Se creó una política de imagen de producto clínico/editorial para evitar el aspecto de interfaz genérica generada por IA: paleta, tipografía, fotografía, iconos, interacción, voz y lista de verificación.
+- Se reorganizó el editor sin cambiar IDs ni funciones: las guías tienen encabezado propio; fotografía, movimiento, zoom y tamaño de guía quedaron en una barra independiente fuera del lienzo.
+- El panel lateral ahora distingue recomendación clínica, forma y posición, proporciones dentales, color/material y ajustes avanzados de encía.
+- Se retiraron emojis de los controles del editor y se sustituyeron degradados, brillos y halos por superficies sólidas y una jerarquía más sobria.
+- No se modificaron prompts, generación, Supabase ni lógica clínica. Las funciones existentes conservan sus firmas y eventos.
+
+---
+
 Este archivo es la memoria compartida entre Codex (diseño/frontend) y Claude
 Code (arquitectura/backend/infra). Ninguno de los dos agentes recuerda lo que
 hizo el otro entre sesiones — así que antes de tocar algo, lee la entrada más
