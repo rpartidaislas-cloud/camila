@@ -611,7 +611,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v78 — lienzo amplio y zoom táctil</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v79 — curva clínica sin marcas</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -4222,7 +4222,46 @@ async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   return base.toDataURL('image/png');
 }
 
-async function generateSimulation(clinicalPrompt, foto, guideImageBase64) {
+// La curva del editor se transmite como geometría numérica, nunca como una
+// imagen coloreada. Este control es una última barrera por si el modelo llega
+// a inventar puntos o líneas técnicas: un resultado así no debe mostrarse como
+// una simulación clínica aprobada.
+async function detectarMarcasTecnicasIA(imagenUrl, view) {
+  var img = await cargarImagenSegura(imagenUrl);
+  var escala = Math.min(1, 640 / Math.max(img.naturalWidth, img.naturalHeight));
+  var canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * escala));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * escala));
+  var ctx = canvas.getContext('2d', {willReadFrequently:true});
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  var banda = detectarBandaDentalContinua(canvas, view || 'frontal');
+  var x0 = Math.max(0, Math.round(banda.x - banda.w * .08));
+  var x1 = Math.min(canvas.width, Math.round(banda.x + banda.w * 1.08));
+  var y0 = Math.max(0, Math.round(banda.y - banda.h * .18));
+  var y1 = Math.min(canvas.height, Math.round(banda.y + banda.h * 1.18));
+  var cian = 0, magenta = 0, celdasCian = {}, celdasMagenta = {};
+  for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) {
+    var i = (y * canvas.width + x) * 4;
+    var r = data[i], g = data[i+1], b = data[i+2];
+    var esCian = g > 145 && b > 145 && r < 135 && g-r > 48 && b-r > 48 && Math.abs(g-b) < 90;
+    var esMagenta = r > 165 && b > 145 && g < 125 && r-g > 55 && b-g > 42;
+    var celda = Math.floor(x / 12) + ':' + Math.floor(y / 12);
+    if (esCian) { cian++; celdasCian[celda] = true; }
+    if (esMagenta) { magenta++; celdasMagenta[celda] = true; }
+  }
+  var gruposCian = Object.keys(celdasCian).length;
+  var gruposMagenta = Object.keys(celdasMagenta).length;
+  return {
+    detected: (cian >= 14 && gruposCian >= 3) || (magenta >= 28 && gruposMagenta >= 4),
+    cyanPixels:cian,
+    magentaPixels:magenta,
+    cyanCells:gruposCian,
+    magentaCells:gruposMagenta
+  };
+}
+
+async function generateSimulation(clinicalPrompt, foto) {
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var fotoOriginalUrl = 'data:image/jpeg;base64,' + frontal.b64;
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
@@ -4286,7 +4325,7 @@ async function generateSimulation(clinicalPrompt, foto, guideImageBase64) {
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: headersEdgeIA(),
-    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt, guideImageBase64:guideImageBase64 || '', guideMimeType:'image/png'})
+    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt})
   });
   // En horas de alta demanda Gemini puede acercarse al límite total de la
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
@@ -4296,6 +4335,12 @@ async function generateSimulation(clinicalPrompt, foto, guideImageBase64) {
   if (data.error) throw errorDelServidor(data.error);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
+  var marcasTecnicas = await detectarMarcasTecnicasIA(url, frontal.view || 'frontal');
+  if (marcasTecnicas.detected) {
+    var errorMarcas = new Error('La IA dibujó marcas técnicas en la sonrisa y el resultado fue descartado. Genera de nuevo; la curva se enviará únicamente como geometría clínica.');
+    errorMarcas.qualityMetrics = marcasTecnicas;
+    throw errorMarcas;
+  }
 
   // Integración directa del recorte generado: sin segmentar, recortar ni
   // recolorear dientes individualmente después de la generación.
@@ -5508,43 +5553,7 @@ function edPrescripcionIncisalPrompt() {
     var valor = Math.round((EDITOR_PARAMS.diseno.alturasDientes[punto.indice] || 0) * 10) / 10;
     return punto.id + ':' + (valor > 0 ? '+' : '') + valor + '%';
   }).join(', ');
-  return 'HIGHEST-PRIORITY MANDATORY INCISAL GEOMETRY. The editor defined the FINAL incisal-edge target of each of the six maxillary anterior veneers. INPUT IMAGE 2 is a geometric control map of these exact targets; it is not patient anatomy and must never appear in the output. Coordinates below are normalized to INPUT IMAGE 1, the supplied smile crop (0,0 top-left; 1,1 bottom-right), image-left to image-right: ' + puntos + '. Individual crown-length adjustments relative to the shared smile curve are: ' + ajustes + '. First lock every existing gingival margin and emergence point. Then rebuild each clinical crown from that fixed cervical origin so its final incisal edge lands on its assigned control-map point. This requirement overrides the previous simulation crown length and generic smile-arc preferences. Interpolate a smooth continuous arc through all six targets while preserving distinct central, lateral and canine anatomy. Do not translate, rotate or scale the mouth, lips, gums, face, photograph or lower teeth. Do not render the colored control curve, dots, labels or black control-map background.';
-}
-
-// Crea una segunda imagen de referencia exclusivamente geométrica. A
-// diferencia de coordenadas escritas en el prompt, esta curva le permite al
-// modelo ver la altura final de las seis carillas en el mismo sistema de
-// coordenadas del recorte que recibe como INPUT IMAGE 1.
-function edCrearMapaIncisalBase64() {
-  if (!EDITOR_PARAMS || !edBaseImg || !EDITOR_PARAMS.guias.curvaSonrisa) return '';
-  var W=edBaseImg.naturalWidth||0,H=edBaseImg.naturalHeight||0;
-  if(!W||!H)return '';
-  var view=S.baVistaActual||'frontal';
-  var crop=calcularRectRecorteDental(W,H,view);
-  var puntos=edPuntosCurvaSonrisa(W,H).map(function(p){
-    return {x:(p.x-crop.x)/crop.w,y:(p.y-crop.y)/crop.h};
-  });
-  var objetivos=edObjetivosIncisalesPx(W,H).map(function(p){
-    return {id:p.id,x:(p.x-crop.x)/crop.w,y:(p.y-crop.y)/crop.h};
-  });
-  var mw=640,mh=Math.max(240,Math.min(640,Math.round(mw*crop.h/crop.w)));
-  var mapa=document.createElement('canvas');mapa.width=mw;mapa.height=mh;
-  var ctx=mapa.getContext('2d');
-  ctx.fillStyle='#05070a';ctx.fillRect(0,0,mw,mh);
-  ctx.strokeStyle='#ff2bd6';ctx.lineWidth=Math.max(4,mw*.007);ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.beginPath();
-  puntos.forEach(function(p,i){
-    var x=Math.max(0,Math.min(mw,p.x*mw)),y=Math.max(0,Math.min(mh,p.y*mh));
-    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-  ctx.font='700 '+Math.max(14,Math.round(mw*.026))+'px Arial';ctx.textAlign='center';ctx.textBaseline='bottom';
-  objetivos.forEach(function(p){
-    var x=Math.max(0,Math.min(mw,p.x*mw)),y=Math.max(0,Math.min(mh,p.y*mh));
-    ctx.fillStyle='#35f2ff';ctx.beginPath();ctx.arc(x,y,Math.max(7,mw*.012),0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#ffffff';ctx.fillText(p.id,x,y-Math.max(10,mw*.018));
-  });
-  return mapa.toDataURL('image/png').split(',')[1];
+  return 'HIGHEST-PRIORITY NUMERIC INCISAL PRESCRIPTION. Use the single supplied clinical smile photograph as the only visual input. The editor defined the FINAL incisal-edge destination for each of the six maxillary anterior veneers. The following values are coordinate metadata normalized to this supplied smile crop (0,0 top-left; 1,1 bottom-right), ordered from image-left to image-right: ' + puntos + '. Individual crown-length adjustments relative to the shared smile arc are: ' + ajustes + '. Keep every existing gingival margin and cervical emergence point fixed. Rebuild each clinical crown from that fixed cervical origin toward its assigned numeric incisal destination; do not translate the whole tooth or mouth. The final lower contour of the six veneers must interpolate a smooth continuous smile arc through those destinations, with dominant central incisors, slightly shorter lateral incisors and anatomical canine transitions. This numeric prescription overrides the previous simulated crown length and generic smile-arc preference. The coordinates are invisible metadata, not graphic objects: NEVER draw points, dots, lines, labels, numbers, colored guides, a control map or any annotation in the photograph. Do not translate, rotate or scale the mouth, lips, gums, face, photograph or lower teeth.';
 }
 
 function construirPromptEditor() {
@@ -5660,8 +5669,7 @@ async function edAplicarDiseno() {
     // Sin reintento, un solo parpadeo de red durante los ~15-20s de espera
     // de Gemini ("Load failed" es el error típico de eso en iOS) tumbaba
     // todo el intento — igual que ya se maneja en processPhotos().
-    var mapaIncisal = edCrearMapaIncisalBase64();
-    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo, mapaIncisal); });
+    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo); });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
