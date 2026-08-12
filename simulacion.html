@@ -611,7 +611,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v79 — curva clínica sin marcas</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v80 — curva aplicada a carillas</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -4261,9 +4261,39 @@ async function detectarMarcasTecnicasIA(imagenUrl, view) {
   };
 }
 
-async function generateSimulation(clinicalPrompt, foto) {
+// Confirma que una segunda pasada del editor no haya devuelto la misma banda
+// dental. No segmenta dientes ni altera la imagen: sólo compara píxeles dentro
+// del corredor de sonrisa para evitar afirmar que se aplicó un diseño cuando
+// el modelo ignoró la prescripción.
+async function medirCambioDentalVisible(antesUrl, despuesUrl, view) {
+  var imagenes = await Promise.all([cargarImagenSegura(antesUrl), cargarImagenSegura(despuesUrl)]);
+  var W = Math.min(imagenes[0].naturalWidth, imagenes[1].naturalWidth);
+  var H = Math.min(imagenes[0].naturalHeight, imagenes[1].naturalHeight);
+  var escala = Math.min(1, 640 / Math.max(W, H));
+  var w = Math.max(1, Math.round(W * escala)), h = Math.max(1, Math.round(H * escala));
+  var ca = document.createElement('canvas'), cb = document.createElement('canvas');
+  ca.width = cb.width = w; ca.height = cb.height = h;
+  var actx = ca.getContext('2d', {willReadFrequently:true});
+  var bctx = cb.getContext('2d', {willReadFrequently:true});
+  actx.drawImage(imagenes[0], 0, 0, w, h); bctx.drawImage(imagenes[1], 0, 0, w, h);
+  var banda = detectarBandaDentalContinua(ca, view || 'frontal');
+  var x0 = Math.max(0, Math.round(banda.x)), x1 = Math.min(w, Math.round(banda.x + banda.w));
+  var y0 = Math.max(0, Math.round(banda.y)), y1 = Math.min(h, Math.round(banda.y + banda.h));
+  var a = actx.getImageData(0, 0, w, h).data, b = bctx.getImageData(0, 0, w, h).data;
+  var total = 0, distintos = 0, muestras = 0;
+  for (var y = y0; y < y1; y += 2) for (var x = x0; x < x1; x += 2) {
+    var i = (y * w + x) * 4;
+    var delta = (Math.abs(a[i]-b[i]) + Math.abs(a[i+1]-b[i+1]) + Math.abs(a[i+2]-b[i+2])) / 3;
+    total += delta; muestras++;
+    if (delta >= 10) distintos++;
+  }
+  return {mean:muestras ? total/muestras : 0, changedRatio:muestras ? distintos/muestras : 0};
+}
+
+async function generateSimulation(clinicalPrompt, foto, generationOptions) {
+  generationOptions = generationOptions || {};
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
-  var fotoOriginalUrl = 'data:image/jpeg;base64,' + frontal.b64;
+  var fotoOriginalUrl = frontal.dataUrl || ('data:' + (frontal.mimeType || 'image/jpeg') + ';base64,' + frontal.b64);
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. Treat this as a surgical inpaint restricted to visible dental enamel. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. ONLY modify the teeth selected for treatment. Do not outpaint, zoom, recenter or rebuild the mouth. Preserve every non-dental pixel.' +
@@ -4317,6 +4347,9 @@ async function generateSimulation(clinicalPrompt, foto) {
   var clinicalBlock = clinicalPrompt ? ' CLINICAL AND EDITOR PRESCRIPTION (mandatory where specific): ' + String(clinicalPrompt).slice(0, 2600) : '';
   var customPrompt = tc.geminiPrompt ? ' ADDITIONAL: ' + tc.geminiPrompt : '';
   var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change color/shape — skin tone, lighting and white balance of the rest of the photo must stay exactly as in the original, regardless of how dark or saturated the chosen tooth shade is.';
+  if (generationOptions.editorRevision) {
+    framingReminder += ' EDITOR REVISION PASS: the input already contains a veneer simulation. Revise those existing upper veneers in place; do not reset to the original tooth contours and do not return the input unchanged. The numeric incisal destinations are an execution constraint, not a suggestion. Produce a clearly visible but anatomically plausible change in crown length and lower veneer contour wherever the requested target differs, while keeping cervical emergence fixed.';
+  }
   var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
 
   // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
@@ -4340,6 +4373,14 @@ async function generateSimulation(clinicalPrompt, foto) {
     var errorMarcas = new Error('La IA dibujó marcas técnicas en la sonrisa y el resultado fue descartado. Genera de nuevo; la curva se enviará únicamente como geometría clínica.');
     errorMarcas.qualityMetrics = marcasTecnicas;
     throw errorMarcas;
+  }
+  if (generationOptions.requireVisibleChange) {
+    var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, url, frontal.view || 'frontal');
+    if (cambioVisible.mean < 2.4 && cambioVisible.changedRatio < .035) {
+      var errorSinCambio = new Error('La IA devolvió prácticamente el mismo contorno dental y no aplicó la curva. El resultado fue descartado para no mostrar un diseño sin cambios.');
+      errorSinCambio.qualityMetrics = cambioVisible;
+      throw errorSinCambio;
+    }
   }
 
   // Integración directa del recorte generado: sin segmentar, recortar ni
@@ -5553,7 +5594,7 @@ function edPrescripcionIncisalPrompt() {
     var valor = Math.round((EDITOR_PARAMS.diseno.alturasDientes[punto.indice] || 0) * 10) / 10;
     return punto.id + ':' + (valor > 0 ? '+' : '') + valor + '%';
   }).join(', ');
-  return 'HIGHEST-PRIORITY NUMERIC INCISAL PRESCRIPTION. Use the single supplied clinical smile photograph as the only visual input. The editor defined the FINAL incisal-edge destination for each of the six maxillary anterior veneers. The following values are coordinate metadata normalized to this supplied smile crop (0,0 top-left; 1,1 bottom-right), ordered from image-left to image-right: ' + puntos + '. Individual crown-length adjustments relative to the shared smile arc are: ' + ajustes + '. Keep every existing gingival margin and cervical emergence point fixed. Rebuild each clinical crown from that fixed cervical origin toward its assigned numeric incisal destination; do not translate the whole tooth or mouth. The final lower contour of the six veneers must interpolate a smooth continuous smile arc through those destinations, with dominant central incisors, slightly shorter lateral incisors and anatomical canine transitions. This numeric prescription overrides the previous simulated crown length and generic smile-arc preference. The coordinates are invisible metadata, not graphic objects: NEVER draw points, dots, lines, labels, numbers, colored guides, a control map or any annotation in the photograph. Do not translate, rotate or scale the mouth, lips, gums, face, photograph or lower teeth.';
+  return 'HIGHEST-PRIORITY NUMERIC INCISAL PRESCRIPTION. Use the single supplied clinical smile photograph as the only visual input. The input may already contain simulated veneers: EDIT those existing veneers instead of recreating the prior contour. The editor defined the FINAL incisal-edge destination for each of the six maxillary anterior veneers. The following values are coordinate metadata normalized to this supplied smile crop (0,0 top-left; 1,1 bottom-right), ordered from image-left to image-right: ' + puntos + '. Individual crown-length adjustments relative to the shared smile arc are: ' + ajustes + '. Keep every existing gingival margin and cervical emergence point fixed. Rebuild each clinical crown from that fixed cervical origin toward its assigned numeric incisal destination; do not translate the whole tooth or mouth. LAND THE VISIBLE INCISAL EDGE within 0.008 normalized image height of each assigned destination. The final lower contour of the six veneers must interpolate a smooth continuous smile arc through those destinations, with dominant central incisors, slightly shorter lateral incisors and anatomical canine transitions. If the requested destination differs from the current edge, a visible crown extension or reduction is mandatory; returning the current contour unchanged is a failed edit. This numeric prescription overrides the previous simulated crown length and generic smile-arc preference. The coordinates are invisible metadata, not graphic objects: NEVER draw points, dots, lines, labels, numbers, colored guides, a control map or any annotation in the photograph. Do not translate, rotate or scale the mouth, lips, gums, face, photograph or lower teeth.';
 }
 
 function construirPromptEditor() {
@@ -5663,13 +5704,22 @@ async function edAplicarDiseno() {
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
+    var resultadoActual = S.results[view] || (view === 'frontal' ? S.result : '') || _edSimulationUrl;
+    var photoEditor = photo;
+    // Una edición debe partir de las carillas visibles en el editor. Antes se
+    // reenviaba la foto clínica original y el modelo reconstruía casi el mismo
+    // diseño inicial, ignorando la curva que el usuario acababa de ajustar.
+    if (resultadoActual && /^data:image\//i.test(resultadoActual)) {
+      var matchData = resultadoActual.match(/^data:([^;]+);base64,(.+)$/);
+      if (matchData) photoEditor = Object.assign({}, photo, {dataUrl:resultadoActual,mimeType:matchData[1],b64:matchData[2]});
+    }
     // El bloque clínico secundario se recorta dentro de generateSimulation;
     // el ajuste recién elegido debe ir primero para no quedar fuera del límite.
     var promptCombinado = promptEditor + ' ' + (S.promptGeminiUsado || '');
     // Sin reintento, un solo parpadeo de red durante los ~15-20s de espera
     // de Gemini ("Load failed" es el error típico de eso en iOS) tumbaba
     // todo el intento — igual que ya se maneja en processPhotos().
-    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photo); });
+    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photoEditor, {editorRevision:true,requireVisibleChange:true}); });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;

@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-11 — Codex: la curva regenera las carillas existentes (build v80)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`
+
+- `Aplicar diseño` ya no vuelve a enviar la fotografía clínica original: usa como entrada la simulación de carillas que está visible en el editor. Así la segunda pasada modifica ese diseño en lugar de reconstruir casi el mismo resultado inicial.
+- La prescripción numérica exige aterrizar cada borde incisal 13–23 en su destino, mantener fijo el margen gingival y producir una extensión o reducción visible cuando la curva difiere del contorno actual.
+- La revisión del editor se identifica explícitamente como una segunda pasada; se prohíbe restablecer el contorno anterior o devolver la entrada sin cambios.
+- Se añadió una comparación local del corredor dental. Si la IA devuelve prácticamente la misma banda dental, el resultado se descarta y se informa que la curva no fue aplicada, en vez de mostrar silenciosamente la misma imagen.
+- Indicador visible actualizado a `build v80`; caché PWA `smyl-v23`.
+
+---
+
 ## 2026-08-11 — Codex: curva clínica sin marcas técnicas (build v79)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`
