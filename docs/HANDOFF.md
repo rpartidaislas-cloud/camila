@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-11 — Codex: curva clínica sin marcas técnicas (build v79)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`
+
+- Se eliminó la segunda imagen negra con curva magenta, puntos cian y etiquetas dentales que el editor enviaba a la IA; podía interpretarse como contenido y terminar dibujada sobre las carillas.
+- La curva de sonrisa ahora se transmite exclusivamente como una prescripción numérica normalizada de los seis bordes incisales (13–23). Se fijan los márgenes gingivales y se reconstruye cada corona hacia su destino, conservando anatomía individual, dominio de centrales, laterales algo más cortos y transición canina.
+- `generateSimulation()` vuelve a enviar una sola fotografía clínica y ya no incluye `guideImageBase64`.
+- Se añadió una barrera local previa a la composición que busca agrupaciones cian o magenta dentro de la banda dental. Un resultado con puntos, líneas o marcas técnicas se descarta en vez de aprobarse como simulación clínica.
+- Indicador visible actualizado a `build v79`; caché PWA `smyl-v22`.
+
+---
+
 ## 2026-08-11 — Codex: lienzo móvil prioritario y pinch-to-zoom
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`
