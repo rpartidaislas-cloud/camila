@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: control profesional editor-v2 (etapa 5)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió simetría bilateral opcional para replicar geometría, forma,
+  material y visibilidad en la pieza contralateral, con posición y rotación
+  reflejadas respecto de la línea media.
+- Cada pieza se puede ocultar y volver a mostrar sin eliminarla del diseño. La
+  capa orientativa de cinco papilas se activa de forma independiente.
+- Se incorporó historial de 60 estados con deshacer/rehacer, incluidos los
+  atajos `Ctrl/Cmd+Z` y `Ctrl/Cmd+Shift+Z`.
+- El contrato JSON pasó a versión 5 y migra diseños 1–4 agregando `visible` y
+  las opciones `symmetry`/`papillae` de forma compatible.
+- Prueba headless completa: simetría 11↔21, cinco papilas, ocultación bilateral,
+  undo/redo y render responsive. No se conectó al simulador ni a la IA.
+
+---
+
 ## 2026-08-13 — Codex: color y material editor-v2 (etapa 4)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

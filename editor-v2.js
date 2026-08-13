@@ -7,6 +7,7 @@
   var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
   var VITA_COLORS = { B1: '#f4edda', A1: '#eee2c7', B2: '#ead9b8', D2: '#e2d1b9', A2: '#dfc8a4' };
   var defaultMaterial = { vita: 'A1', value: 0, chroma: 0, translucency: 35, texture: 'natural' };
+  var COUNTERPART = { '13': '23', '12': '22', '11': '21', '21': '11', '22': '12', '23': '13' };
   var ROLE_END = { central: 20.2, lateral: 18.2, canine: 18.5 };
   var SHAPE_ROLE_WIDTH = {
     'rectangular-soft': { central: 12.2, lateral: 10.2, canine: 10 },
@@ -43,14 +44,16 @@
   function tooth(id, role, side, x, y, width, height, rotation) {
     return {
       id: id, role: role, side: side, x: x, y: y, width: width, height: height,
-      rotation: rotation, shape: 'rectangular-soft', material: clone(defaultMaterial),
+      rotation: rotation, shape: 'rectangular-soft', material: clone(defaultMaterial), visible: true,
       gingivalAnchor: { x: 0.5, y: 0 }, incisalAnchor: { x: 0.5, y: 1 }
     };
   }
 
   var defaultGuides = { incisalCenter: 93.5, incisalArc: 4.5, gingivalCenter: 63.2, gingivalArc: 2.2, red: 70 };
-  var state = { schema: 'smyl.veneer-design', version: 4, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides) };
+  var state = { schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides), options: { symmetry: false, papillae: false } };
   var drag = null;
+  var history = [];
+  var historyIndex = -1;
 
   var svg = document.getElementById('design-svg');
   var layer = document.getElementById('teeth-layer');
@@ -79,7 +82,65 @@
 
   function isModified(t) {
     var d = original(t.id);
-    return t.shape !== d.shape || JSON.stringify(t.material) !== JSON.stringify(d.material) || ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
+    return t.visible === false || t.shape !== d.shape || JSON.stringify(t.material) !== JSON.stringify(d.material) || ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
+  }
+
+  function historyState() {
+    var copy = clone(state);
+    copy.updatedAt = null;
+    return copy;
+  }
+
+  function recordHistory() {
+    var serialized = JSON.stringify(historyState());
+    if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === serialized) return;
+    history = history.slice(0, historyIndex + 1);
+    history.push(JSON.parse(serialized));
+    if (history.length > 60) history.shift();
+    historyIndex = history.length - 1;
+    syncHistoryControls();
+  }
+
+  function resetHistory() {
+    history = [];
+    historyIndex = -1;
+    recordHistory();
+  }
+
+  function restoreHistory(nextIndex) {
+    if (nextIndex < 0 || nextIndex >= history.length) return;
+    historyIndex = nextIndex;
+    state = clone(history[historyIndex]);
+    render();
+    setStatus(historyIndex === history.length - 1 ? 'Diseño restaurado al cambio más reciente.' : 'Cambio anterior restaurado.');
+  }
+
+  function syncHistoryControls() {
+    var undo = document.getElementById('undo-design');
+    var redo = document.getElementById('redo-design');
+    if (!undo || !redo) return;
+    undo.disabled = historyIndex <= 0;
+    redo.disabled = historyIndex < 0 || historyIndex >= history.length - 1;
+  }
+
+  function commit(message) {
+    recordHistory();
+    render();
+    if (message) setStatus(message);
+  }
+
+  function counterpart(t) { return state.teeth.find(function (other) { return other.id === COUNTERPART[t.id]; }); }
+
+  function mirrorFields(t, fields) {
+    if (!state.options.symmetry) return;
+    var pair = counterpart(t);
+    if (!pair) return;
+    fields.forEach(function (field) {
+      if (field === 'x') pair.x = 100 - t.x;
+      else if (field === 'rotation') pair.rotation = -t.rotation;
+      else if (field === 'material') pair.material = clone(t.material);
+      else pair[field] = t[field];
+    });
   }
 
   function guideTarget(kind, x) {
@@ -134,6 +195,13 @@
     gingivalPoints.forEach(function (p) { html += '<circle class="curve-point gingival" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
     incisalPoints.forEach(function (p) { html += '<circle class="curve-point incisal" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
     boundaries.forEach(function (x, index) { html += '<line class="proportion-line" x1="' + x.toFixed(2) + '" y1="' + top.toFixed(2) + '" x2="' + x.toFixed(2) + '" y2="' + bottom.toFixed(2) + '"></line><text class="guide-label" x="' + x.toFixed(2) + '" y="' + (top - 1).toFixed(2) + '">' + (index + 1) + '</text>'; });
+    if (state.options.papillae) {
+      for (var j = 0; j < ordered.length - 1; j++) {
+        var contactX = boundaries[j + 1];
+        var papillaY = (guideTarget('gingival', ordered[j].x) + guideTarget('gingival', ordered[j + 1].x)) / 2 + 1.2;
+        html += '<path class="papilla" d="M ' + (contactX - 1.25).toFixed(2) + ' ' + papillaY.toFixed(2) + ' Q ' + contactX.toFixed(2) + ' ' + (papillaY + 4.4).toFixed(2) + ' ' + (contactX + 1.25).toFixed(2) + ' ' + papillaY.toFixed(2) + ' Z"></path>';
+      }
+    }
     guidesLayer.innerHTML = html;
   }
 
@@ -152,7 +220,7 @@
       // completo porque también invertiría etiquetas y puntos de control.
       var transform = 'translate(' + t.x + ' ' + t.y + ') rotate(' + t.rotation + ') scale(' + sx + ' ' + sy + ')';
       var path = PATHS[t.shape][t.role];
-      return '<g class="tooth' + selectedClass + modifiedClass + '" data-id="' + esc(t.id) + '" tabindex="0" role="button" aria-label="Diente ' + esc(t.id) + ', ' + ROLE_NAMES[t.role] + '" transform="' + transform + '">' +
+      return '<g class="tooth' + selectedClass + modifiedClass + (t.visible === false ? ' is-hidden' : '') + '" data-id="' + esc(t.id) + '" tabindex="0" role="button" aria-label="Diente ' + esc(t.id) + ', ' + ROLE_NAMES[t.role] + '" transform="' + transform + '">' +
         '<path class="shape" style="fill:url(#enamel-' + t.id + ')" d="' + path + '"></path>' +
         '<path class="incisal-layer" style="opacity:' + (t.material.translucency / 250).toFixed(3) + '" d="M -3.9 ' + (ROLE_END[t.role] - 1.3) + ' Q 0 ' + (ROLE_END[t.role] + .15) + ' 3.9 ' + (ROLE_END[t.role] - 1.3) + '"></path>' +
         '<path class="inner" style="opacity:' + (t.material.texture === 'smooth' ? '.18' : t.material.texture === 'characterized' ? '.9' : '.55') + '" d="M -3.1 2 C -1.2 1.1 1.2 1.1 3.1 2 M -3.5 5.2 C -2.5 8.2 -2.4 13.4 -1.5 17 M 3.5 5.2 C 2.5 8.2 2.4 13.4 1.5 17"></path>' +
@@ -167,11 +235,12 @@
     syncGuideControls();
     syncShapeControls();
     syncMaterialControls();
+    syncProfessionalControls();
   }
 
   function renderList() {
     document.getElementById('teeth-list').innerHTML = state.teeth.map(function (t) {
-      return '<button type="button" class="tooth-select' + (t.id === state.selectedId ? ' active' : '') + (isModified(t) ? ' modified' : '') + '" data-select="' + t.id + '">' + t.id + '</button>';
+      return '<button type="button" class="tooth-select' + (t.id === state.selectedId ? ' active' : '') + (isModified(t) ? ' modified' : '') + '" data-select="' + t.id + '" title="' + (t.visible === false ? 'Pieza oculta' : 'Pieza visible') + '">' + t.id + (t.visible === false ? ' ·' : '') + '</button>';
     }).join('');
   }
 
@@ -227,6 +296,18 @@
     });
   }
 
+  function syncProfessionalControls() {
+    var t = selected();
+    var symmetry = document.getElementById('symmetry-toggle');
+    var papillae = document.getElementById('papillae-toggle');
+    symmetry.classList.toggle('active', state.options.symmetry);
+    symmetry.setAttribute('aria-pressed', state.options.symmetry ? 'true' : 'false');
+    papillae.classList.toggle('active', state.options.papillae);
+    papillae.setAttribute('aria-pressed', state.options.papillae ? 'true' : 'false');
+    document.getElementById('visibility-toggle').textContent = t.visible === false ? 'Mostrar pieza' : 'Ocultar pieza';
+    syncHistoryControls();
+  }
+
   function select(id) {
     if (IDS.indexOf(id) === -1) return;
     state.selectedId = id;
@@ -257,14 +338,14 @@
     var t = selected();
     t.x = clamp(p.x - drag.dx, 5, 95);
     t.y = clamp(p.y - drag.dy, 8, 88);
+    mirrorFields(t, ['x', 'y']);
     render();
   });
 
   function endDrag(event) {
     if (!drag || drag.pointerId !== event.pointerId) return;
     drag = null;
-    render();
-    setStatus('Pieza ' + state.selectedId + ' movida. El resto del diseño no cambió.');
+    commit('Pieza ' + state.selectedId + ' movida' + (state.options.symmetry ? ' con su contralateral.' : '.'));
   }
   svg.addEventListener('pointerup', endDrag);
   svg.addEventListener('pointercancel', endDrag);
@@ -277,16 +358,16 @@
   widthControl.addEventListener('input', function () {
     var t = selected(), d = original(t.id);
     t.width = d.width * Number(this.value) / 100;
-    render();
+    mirrorFields(t, ['width']); commit();
   });
   heightControl.addEventListener('input', function () {
     var t = selected(), d = original(t.id);
     t.height = d.height * Number(this.value) / 100;
-    render();
+    mirrorFields(t, ['height']); commit();
   });
   rotationControl.addEventListener('input', function () {
-    selected().rotation = Number(this.value);
-    render();
+    var t = selected(); t.rotation = Number(this.value);
+    mirrorFields(t, ['rotation']); commit();
   });
 
   [
@@ -298,14 +379,13 @@
     document.getElementById(binding[0]).addEventListener('input', function () {
       state.guides[binding[1]] = Number(this.value);
       applyGuides();
-      render();
-      setStatus('Curvas clínicas aplicadas a las seis piezas superiores.');
+      commit('Curvas clínicas aplicadas a las seis piezas superiores.');
     });
   });
 
   document.getElementById('red-control').addEventListener('input', function () {
     state.guides.red = Number(this.value);
-    render();
+    commit();
   });
 
   document.getElementById('apply-red').addEventListener('click', function () {
@@ -328,61 +408,53 @@
     byId['13'].x = byId['12'].x - (targetVisual.lateral + targetVisual.canine) / 2;
     byId['23'].x = byId['22'].x + (targetVisual.lateral + targetVisual.canine) / 2;
     applyGuides();
-    render();
-    setStatus('Proporción RED ' + state.guides.red + '% aplicada de forma simétrica: centrales, laterales y caninos.');
+    commit('Proporción RED ' + state.guides.red + '% aplicada de forma simétrica: centrales, laterales y caninos.');
   });
 
   document.getElementById('reset-guides').addEventListener('click', function () {
     state.guides = clone(defaultGuides);
     applyGuides();
-    render();
-    setStatus('Guías clínicas restauradas y reaplicadas.');
+    commit('Guías clínicas restauradas y reaplicadas.');
   });
 
   document.getElementById('shape-options').addEventListener('click', function (event) {
     var button = event.target.closest('[data-shape]');
     if (!button || !PATHS[button.dataset.shape]) return;
-    selected().shape = button.dataset.shape;
-    render();
-    setStatus('Pieza ' + state.selectedId + ': familia ' + SHAPE_NAMES[button.dataset.shape].toLowerCase() + '.');
+    var t = selected(); t.shape = button.dataset.shape; mirrorFields(t, ['shape']);
+    commit('Pieza ' + state.selectedId + ': familia ' + SHAPE_NAMES[button.dataset.shape].toLowerCase() + (state.options.symmetry ? ' replicada contralateralmente.' : '.'));
   });
 
   document.getElementById('apply-shape-all').addEventListener('click', function () {
     var shape = selected().shape;
     state.teeth.forEach(function (t) { t.shape = shape; });
-    render();
-    setStatus('Familia ' + SHAPE_NAMES[shape].toLowerCase() + ' aplicada de forma simétrica a 13–23.');
+    commit('Familia ' + SHAPE_NAMES[shape].toLowerCase() + ' aplicada de forma simétrica a 13–23.');
   });
 
   document.getElementById('vita-options').addEventListener('click', function (event) {
     var button = event.target.closest('[data-vita]');
     if (!button || !VITA_COLORS[button.dataset.vita]) return;
-    selected().material.vita = button.dataset.vita;
-    render();
-    setStatus('Pieza ' + state.selectedId + ': referencia VITA ' + button.dataset.vita + '.');
+    var t = selected(); t.material.vita = button.dataset.vita; mirrorFields(t, ['material']);
+    commit('Pieza ' + state.selectedId + ': referencia VITA ' + button.dataset.vita + (state.options.symmetry ? ' replicada contralateralmente.' : '.'));
   });
 
   [['value-control','value'],['chroma-control','chroma'],['translucency-control','translucency']].forEach(function (binding) {
     document.getElementById(binding[0]).addEventListener('input', function () {
-      selected().material[binding[1]] = Number(this.value);
-      render();
-      setStatus('Material de la pieza ' + state.selectedId + ' actualizado localmente.');
+      var t = selected(); t.material[binding[1]] = Number(this.value); mirrorFields(t, ['material']);
+      commit('Material de la pieza ' + state.selectedId + ' actualizado' + (state.options.symmetry ? ' bilateralmente.' : ' localmente.'));
     });
   });
 
   document.getElementById('texture-options').addEventListener('click', function (event) {
     var button = event.target.closest('[data-texture]');
     if (!button) return;
-    selected().material.texture = button.dataset.texture;
-    render();
-    setStatus('Textura de la pieza ' + state.selectedId + ' actualizada.');
+    var t = selected(); t.material.texture = button.dataset.texture; mirrorFields(t, ['material']);
+    commit('Textura de la pieza ' + state.selectedId + ' actualizada' + (state.options.symmetry ? ' bilateralmente.' : '.'));
   });
 
   document.getElementById('apply-material-all').addEventListener('click', function () {
     var material = clone(selected().material);
     state.teeth.forEach(function (t) { t.material = clone(material); });
-    render();
-    setStatus('Material VITA ' + material.vita + ' aplicado a las seis piezas.');
+    commit('Material VITA ' + material.vita + ' aplicado a las seis piezas.');
   });
 
   document.querySelector('.nudge-grid').addEventListener('click', function (event) {
@@ -395,17 +467,34 @@
       selected().x = clamp(selected().x + bits[0], 5, 95);
       selected().y = clamp(selected().y + bits[1], 8, 88);
     }
-    render();
+    mirrorFields(selected(), ['x', 'y']); commit();
   });
 
   document.getElementById('reset-tooth').addEventListener('click', function () {
     var index = state.teeth.findIndex(function (t) { return t.id === state.selectedId; });
     state.teeth[index] = clone(original(state.selectedId));
-    render(); setStatus('Pieza ' + state.selectedId + ' restaurada.');
+    if (state.options.symmetry) { var pair = counterpart(state.teeth[index]); state.teeth[state.teeth.indexOf(pair)] = clone(original(pair.id)); }
+    commit('Pieza ' + state.selectedId + (state.options.symmetry ? ' y su contralateral restauradas.' : ' restaurada.'));
   });
   document.getElementById('reset-all').addEventListener('click', function () {
-    state.teeth = clone(defaults); state.guides = clone(defaultGuides); state.selectedId = '11'; render(); setStatus('Diseño completo restaurado.');
+    state.teeth = clone(defaults); state.guides = clone(defaultGuides); state.selectedId = '11'; state.options = { symmetry: false, papillae: false }; commit('Diseño completo restaurado.');
   });
+
+  document.getElementById('symmetry-toggle').addEventListener('click', function () {
+    state.options.symmetry = !state.options.symmetry;
+    commit('Simetría bilateral ' + (state.options.symmetry ? 'activada. Los cambios de pieza se replicarán al lado opuesto.' : 'desactivada. Cada pieza volverá a editarse de forma independiente.'));
+  });
+  document.getElementById('visibility-toggle').addEventListener('click', function () {
+    var t = selected(); t.visible = t.visible === false;
+    mirrorFields(t, ['visible']);
+    commit('Pieza ' + t.id + (t.visible ? ' visible.' : ' oculta.') + (state.options.symmetry ? ' El estado se replicó en su contralateral.' : ''));
+  });
+  document.getElementById('papillae-toggle').addEventListener('click', function () {
+    state.options.papillae = !state.options.papillae;
+    commit('Capa orientativa de papilas ' + (state.options.papillae ? 'visible.' : 'oculta.'));
+  });
+  document.getElementById('undo-design').addEventListener('click', function () { restoreHistory(historyIndex - 1); });
+  document.getElementById('redo-design').addEventListener('click', function () { restoreHistory(historyIndex + 1); });
 
   document.getElementById('save-design').addEventListener('click', function () {
     state.updatedAt = new Date().toISOString();
@@ -415,7 +504,7 @@
   document.getElementById('load-design').addEventListener('click', function () {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return setStatus('Todavía no existe un diseño guardado.');
-    try { state = validate(JSON.parse(raw)); render(); setStatus('Diseño recuperado sin modificar la fotografía.'); }
+    try { state = validate(JSON.parse(raw)); resetHistory(); render(); setStatus('Diseño recuperado sin modificar la fotografía.'); }
     catch (error) { setStatus('El diseño guardado no es compatible: ' + error.message); }
   });
   document.getElementById('export-design').addEventListener('click', function () {
@@ -427,7 +516,7 @@
   });
   document.getElementById('import-design').addEventListener('change', function () {
     var file = this.files && this.files[0]; if (!file) return;
-    file.text().then(function (raw) { state = validate(JSON.parse(raw)); render(); setStatus('JSON importado correctamente.'); }).catch(function (error) { setStatus('No se pudo importar: ' + error.message); });
+    file.text().then(function (raw) { state = validate(JSON.parse(raw)); resetHistory(); render(); setStatus('JSON importado correctamente.'); }).catch(function (error) { setStatus('No se pudo importar: ' + error.message); });
     this.value = '';
   });
 
@@ -449,15 +538,22 @@
 
   document.addEventListener('keydown', function (event) {
     if (/^(INPUT|TEXTAREA)$/.test(event.target.tagName)) return;
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      restoreHistory(historyIndex + (event.shiftKey ? 1 : -1));
+      return;
+    }
     var i = IDS.indexOf(state.selectedId);
     if (event.key === 'Tab') return;
     if (event.key === '[') { event.preventDefault(); select(IDS[(i + IDS.length - 1) % IDS.length]); }
     if (event.key === ']') { event.preventDefault(); select(IDS[(i + 1) % IDS.length]); }
     var amount = event.shiftKey ? 1 : 0.25;
-    if (event.key === 'ArrowLeft') { selected().x -= amount; event.preventDefault(); render(); }
-    if (event.key === 'ArrowRight') { selected().x += amount; event.preventDefault(); render(); }
-    if (event.key === 'ArrowUp') { selected().y -= amount; event.preventDefault(); render(); }
-    if (event.key === 'ArrowDown') { selected().y += amount; event.preventDefault(); render(); }
+    var moved = false;
+    if (event.key === 'ArrowLeft') { selected().x -= amount; moved = true; }
+    if (event.key === 'ArrowRight') { selected().x += amount; moved = true; }
+    if (event.key === 'ArrowUp') { selected().y -= amount; moved = true; }
+    if (event.key === 'ArrowDown') { selected().y += amount; moved = true; }
+    if (moved) { event.preventDefault(); mirrorFields(selected(), ['x', 'y']); commit(); }
   });
 
   function validate(candidate) {
@@ -475,7 +571,12 @@
         if (!t.material) t.material = clone(defaultMaterial);
       });
     }
-    if (candidate.version !== 4) throw new Error('versión no compatible');
+    if (candidate.version >= 1 && candidate.version <= 4) {
+      candidate.version = 5;
+      candidate.options = candidate.options || { symmetry: false, papillae: false };
+      candidate.teeth.forEach(function (t) { if (typeof t.visible !== 'boolean') t.visible = true; });
+    }
+    if (candidate.version !== 5) throw new Error('versión no compatible');
     if (candidate.teeth.length !== 6 || IDS.some(function (id) { return !candidate.teeth.some(function (t) { return t.id === id; }); })) throw new Error('deben existir las seis piezas 13–23');
     candidate.teeth.forEach(function (t) {
       ['x','y','width','height','rotation'].forEach(function (key) { if (!Number.isFinite(Number(t[key]))) throw new Error('valor inválido en ' + t.id); t[key] = Number(t[key]); });
@@ -486,6 +587,7 @@
       t.material.chroma = clamp(Number(t.material.chroma) || 0, -20, 20);
       t.material.translucency = clamp(Number(t.material.translucency) || 0, 0, 100);
       if (['smooth','natural','characterized'].indexOf(t.material.texture) === -1) t.material.texture = defaultMaterial.texture;
+      t.visible = t.visible !== false;
     });
     if (!candidate.guides) candidate.guides = clone(defaultGuides);
     ['incisalCenter','incisalArc','gingivalCenter','gingivalArc','red'].forEach(function (key) {
@@ -497,6 +599,9 @@
     candidate.guides.gingivalCenter = clamp(candidate.guides.gingivalCenter, 48, 75);
     candidate.guides.gingivalArc = clamp(candidate.guides.gingivalArc, -5, 5);
     candidate.guides.red = clamp(candidate.guides.red, 62, 80);
+    candidate.options = candidate.options || {};
+    candidate.options.symmetry = candidate.options.symmetry === true;
+    candidate.options.papillae = candidate.options.papillae === true;
     if (IDS.indexOf(candidate.selectedId) === -1) candidate.selectedId = '11';
     return candidate;
   }
@@ -505,4 +610,5 @@
   function setStatus(message) { statusEl.textContent = message; }
 
   render();
+  resetHistory();
 }());

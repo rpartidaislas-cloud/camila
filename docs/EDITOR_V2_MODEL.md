@@ -42,9 +42,13 @@ clínicas son parámetros serializables del diseño.
 ```json
 {
   "schema": "smyl.veneer-design",
-  "version": 4,
+  "version": 5,
   "updatedAt": "ISO-8601",
   "selectedId": "11",
+  "options": {
+    "symmetry": false,
+    "papillae": false
+  },
   "guides": {
     "incisalCenter": 93.5,
     "incisalArc": 4.5,
@@ -63,6 +67,7 @@ clínicas son parámetros serializables del diseño.
       "height": 24.0,
       "rotation": 0,
       "shape": "rectangular-soft",
+      "visible": true,
       "material": {
         "vita": "A1",
         "value": 0,
@@ -107,6 +112,14 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 - Los diseños versiones 1–3 migran a versión 4 agregando material A1 natural.
 - El material se puede modificar por pieza o copiar a 13–23. No cambia ninguna
   coordenada ni deforma la fotografía; sólo altera el render vectorial local.
+- Los diseños versiones 1–4 migran a versión 5 agregando visibilidad por pieza
+  y las opciones profesionales `symmetry` y `papillae` desactivadas por defecto.
+- La simetría es una decisión explícita: replica forma, geometría, material y
+  visibilidad en la pieza contralateral, reflejando posición y rotación.
+- Ocultar una pieza nunca la elimina del JSON. La capa de papilas es únicamente
+  una referencia visual y no modifica los objetos dentales.
+- El historial conserva hasta 60 estados íntegros del diseño y permite
+  deshacer/rehacer sin afectar la fotografía abierta en memoria.
 
 ## Criterios de aceptación
 
@@ -127,3 +140,9 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 13. Color y textura de una pieza no afectan a sus vecinas hasta usar la acción
     explícita de aplicar material a 13–23.
 14. Guardar y recuperar conserva VITA, valor, croma, translucidez y textura.
+15. Con simetría activa, cualquier cambio local se refleja exclusivamente en
+    la pieza contralateral correspondiente; con simetría inactiva sigue siendo
+    independiente.
+16. Ocultar/mostrar conserva la pieza serializada y deshacer/rehacer recupera
+    visibilidad, anatomía, geometría, material, guías y opciones.
+17. La capa de papilas puede activarse y ocultarse sin cambiar los seis dientes.

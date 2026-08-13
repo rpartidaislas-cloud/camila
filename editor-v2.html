@@ -35,6 +35,8 @@
     .curve-point{stroke:#08100d;stroke-width:.35;vector-effect:non-scaling-stroke;pointer-events:none}.curve-point.incisal{fill:#f0b429}.curve-point.gingival{fill:#54d6a0}
     .proportion-line{stroke:#53f36c;stroke-width:.4;stroke-dasharray:1.6 1;vector-effect:non-scaling-stroke;pointer-events:none}
     .guide-label{font-size:2.2px;font-weight:800;fill:#e8edef;paint-order:stroke;stroke:#111;stroke-width:.65;pointer-events:none;text-anchor:middle}
+    .papilla{fill:#ce7380;fill-opacity:.76;stroke:#8f4550;stroke-width:.22;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth.is-hidden{display:none}
     .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
     .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
     .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
@@ -52,6 +54,7 @@
     .shape-options{display:grid;grid-template-columns:1fr;gap:7px}.shape-option{min-height:46px;padding:8px 10px;display:grid;grid-template-columns:36px 1fr;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.shape-option svg{width:30px;height:32px;justify-self:center}.shape-option path{fill:#e9dfc8;stroke:#fff;stroke-width:.7}.shape-option strong{display:block;font-size:12px}.shape-option small{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.3}.shape-option.active{border-color:var(--accent2);background:#15313a}.shape-option.active small{color:#a9dce7}
     .vita-options{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.vita-option{min-height:48px;padding:5px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:800}.vita-option i{display:block;width:20px;height:25px;margin:0 auto 3px;border:1px solid rgba(255,255,255,.55);border-radius:6px 6px 8px 8px;background:var(--shade)}.vita-option.active{border-color:var(--accent2);background:#15313a;color:#9ee8f6}
     .texture-options{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.texture-option{min-height:40px;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:750}.texture-option.active{border-color:var(--accent2);background:#15313a;color:#9ee8f6}
+    .tool-toggles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.tool-toggle{min-height:42px;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:750}.tool-toggle.active{border-color:#3e8d70;background:#10271f;color:#8ce2ba}.history-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}.history-row button:disabled{opacity:.35;cursor:not-allowed}
     input[type=range]{width:100%;accent-color:var(--accent)}
     .nudge-grid{display:grid;grid-template-columns:repeat(3,42px);justify-content:center;gap:5px;margin:12px auto}.nudge-grid button{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.nudge-grid .blank{visibility:hidden}
     .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
@@ -65,7 +68,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 4 · COLOR Y MATERIAL</div>
+    <div class="stage-pill">ETAPA 5 · CONTROL PROFESIONAL</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -103,6 +106,8 @@
         <h2>Pieza activa</h2>
         <div class="teeth-list" id="teeth-list"></div>
         <div class="selected-meta"><span>Seleccionada</span><strong id="selected-name">11 · Central</strong></div>
+        <div class="history-row"><button class="small-btn" id="undo-design" type="button">Deshacer</button><button class="small-btn" id="redo-design" type="button">Rehacer</button></div>
+        <div class="tool-toggles"><button class="tool-toggle" id="symmetry-toggle" type="button">Simetría</button><button class="tool-toggle" id="visibility-toggle" type="button">Ocultar pieza</button><button class="tool-toggle" id="papillae-toggle" type="button">Papilas</button></div>
         <div class="nudge-grid" aria-label="Movimiento preciso">
           <span class="blank"></span><button type="button" data-nudge="0,-0.25" aria-label="Mover arriba">↑</button><span class="blank"></span>
           <button type="button" data-nudge="-0.25,0" aria-label="Mover izquierda">←</button><button type="button" data-nudge="0,0" aria-label="Centrar selección">•</button><button type="button" data-nudge="0.25,0" aria-label="Mover derecha">→</button>
@@ -144,7 +149,7 @@
         <div class="row"><button class="primary" id="save-design" type="button">Guardar diseño</button><button class="small-btn" id="load-design" type="button">Recuperar</button></div>
         <div class="row" style="margin-top:8px"><button class="small-btn" id="export-design" type="button">Exportar JSON</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar JSON<input id="import-design" type="file" accept="application/json" hidden></label></div>
         <div class="status" id="status" role="status">Prototipo listo. La fotografía y el diseño permanecen en este dispositivo.</div>
-        <div class="schema">smyl.veneer-design · versión 4</div>
+        <div class="schema">smyl.veneer-design · versión 5</div>
       </section>
     </aside>
   </div>
