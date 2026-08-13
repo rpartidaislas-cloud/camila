@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: prototipo paramétrico aislado editor-v2 (etapa 1)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se creó un laboratorio separado del flujo público con seis piezas superiores
+  FDI 13–23 como objetos SVG independientes. Cada pieza se puede seleccionar,
+  trasladar, cambiar de ancho y altura incisal, rotar y restaurar sin afectar a
+  las demás.
+- El diseño usa un estado JSON versionado (`smyl.veneer-design`, versión 1),
+  guardado/recuperado local y exportable/importable sin incluir la fotografía.
+- La fotografía opcional sólo se abre en memoria. El lienzo adopta su relación
+  de aspecto exacta y las coordenadas se normalizan respecto de toda la imagen,
+  evitando asumir que las tomas siempre son 4:3.
+- Validado en escritorio y viewport móvil: seis objetos, controles
+  independientes, persistencia geométrica exacta y cero errores de consola.
+- No se modificaron `simulacion.html`, prompts, Supabase, segmentación, IA ni
+  copias móviles como parte de esta entrega. El prototipo se publica únicamente
+  como ruta de laboratorio y no está conectado al flujo principal. No integrar
+  hasta recibir aprobación visual del usuario.
+
+---
+
 ## 2026-08-11 — Codex: la curva regenera las carillas existentes (build v80)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`

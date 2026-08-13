@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SMYL · Editor paramétrico v2</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090b0d;--panel:#111416;--panel2:#171b1e;--line:#2b3135;--text:#f4f6f7;--muted:#9da6ab;--accent:#7b68ee;--accent2:#35b9df;--ok:#3fc98b;--danger:#ef6a70}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,input{font:inherit}
+    button{color:inherit}
+    .app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+    .topbar{min-height:68px;padding:12px 18px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line);background:#0d1012;position:relative;z-index:5}
+    .brand{font-size:23px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(90deg,#29c4e2,#7456ff);color:transparent;background-clip:text}
+    .titleblock{min-width:0}
+    .titleblock h1{font-size:16px;margin:0 0 3px}.titleblock p{font-size:12px;margin:0;color:var(--muted)}
+    .stage-pill{margin-left:auto;padding:7px 10px;border:1px solid #2d5f4c;border-radius:999px;color:#86e4b9;background:#10251d;font-size:11px;font-weight:700;white-space:nowrap}
+    .workspace{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
+    .viewer{min-width:0;min-height:560px;position:relative;display:flex;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at center,#21272a 0,#0b0e10 72%);overflow:hidden}
+    .canvas-shell{position:relative;width:min(100%,960px);aspect-ratio:4/3;border:1px solid #3a4247;border-radius:18px;overflow:hidden;background:#151a1d;box-shadow:0 22px 70px rgba(0,0,0,.35)}
+    .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#090b0d;display:none;user-select:none}
+    .demo-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,#6a4740 0 14%,#2a1d1b 15% 23%,#15191b 24% 100%)}
+    .demo-bg::before{content:"Fotografía local opcional";position:absolute;left:50%;top:19%;transform:translateX(-50%);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6e777c}
+    #design-svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
+    .tooth{cursor:grab;outline:none}.tooth.dragging{cursor:grabbing}.tooth .shape{fill:url(#enamel);stroke:rgba(255,255,255,.82);stroke-width:.38;vector-effect:non-scaling-stroke;filter:url(#soft-shadow)}
+    .tooth .inner{fill:none;stroke:rgba(188,157,104,.25);stroke-width:.55;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth .selection{fill:none;stroke:transparent;stroke-width:1.15;stroke-dasharray:2 1.4;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth.selected .selection{stroke:#5fd6f1}.tooth:focus-visible .selection{stroke:#fff}
+    .anchor{display:none;pointer-events:none;vector-effect:non-scaling-stroke}.tooth.selected .anchor{display:block}
+    .tooth-label{font-size:3px;font-weight:800;fill:#061014;paint-order:stroke;stroke:rgba(255,255,255,.86);stroke-width:1.25;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
+    .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
+    .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
+    .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
+    .photo-btn:hover,.small-btn:hover{border-color:#586168}.photo-btn input{display:none}
+    .sidebar{min-height:0;border-left:1px solid var(--line);background:var(--panel);padding:18px;overflow:auto}
+    .section{padding:0 0 20px;margin:0 0 20px;border-bottom:1px solid var(--line)}.section:last-child{border:0;margin:0}
+    .section h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px;color:#c6cdd0}
+    .teeth-list{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+    .tooth-select{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:12px;font-weight:800;cursor:pointer}
+    .tooth-select.active{border-color:var(--accent2);background:#15313a;color:#8ee6f7}.tooth-select.modified::after{content:"";display:block;width:4px;height:4px;margin:3px auto 0;border-radius:50%;background:var(--ok)}
+    .selected-meta{display:flex;align-items:center;justify-content:space-between;margin:12px 0;color:var(--muted);font-size:12px}.selected-meta strong{color:var(--text);font-size:14px}
+    .control{margin:14px 0}.control-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;font-size:12px;color:var(--muted)}.control output{color:#dcd7ff;font-weight:700}
+    input[type=range]{width:100%;accent-color:var(--accent)}
+    .nudge-grid{display:grid;grid-template-columns:repeat(3,42px);justify-content:center;gap:5px;margin:12px auto}.nudge-grid button{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.nudge-grid .blank{visibility:hidden}
+    .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
+    .status{min-height:38px;padding:10px 12px;border-radius:10px;background:#0c1212;color:#9bdcbd;border:1px solid #203a30;font-size:12px;line-height:1.4}
+    .schema{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;color:#778187;margin-top:10px}
+    @media(max-width:820px){.topbar{min-height:62px;padding:10px 12px}.titleblock p{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:auto auto}.viewer{min-height:0;padding:10px;align-items:start}.canvas-shell{width:100%;border-radius:12px}.sidebar{overflow:visible;border-left:0;border-top:1px solid var(--line);padding:15px}.stage-pill{font-size:9px}.empty-hint{max-width:70%}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand">smyl</div>
+    <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
+    <div class="stage-pill">ETAPA 1 · SIN IA</div>
+  </header>
+  <div class="workspace">
+    <section class="viewer" aria-label="Lienzo de diseño">
+      <div class="canvas-shell" id="canvas-shell">
+        <div class="demo-bg" id="demo-bg"></div>
+        <img class="photo" id="patient-photo" alt="Fotografía local del paciente">
+        <div class="photo-actions">
+          <label class="photo-btn">Abrir fotografía<input id="photo-input" type="file" accept="image/*"></label>
+          <button class="photo-btn" id="clear-photo" type="button">Quitar</button>
+        </div>
+        <svg id="design-svg" viewBox="0 0 100 100" preserveAspectRatio="none" role="application" aria-label="Carillas editables">
+          <defs>
+            <linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf4"/><stop offset=".52" stop-color="#efe6cf"/><stop offset="1" stop-color="#d4c29f"/></linearGradient>
+            <filter id="soft-shadow" x="-40%" y="-30%" width="180%" height="190%"><feDropShadow dx="0" dy=".75" stdDeviation=".8" flood-color="#000" flood-opacity=".42"/></filter>
+          </defs>
+          <g id="teeth-layer"></g>
+        </svg>
+        <div class="empty-hint">Arrastra una carilla. Usa los controles para cambiar ancho, altura y rotación.</div>
+      </div>
+    </section>
+    <aside class="sidebar">
+      <section class="section">
+        <h2>Pieza activa</h2>
+        <div class="teeth-list" id="teeth-list"></div>
+        <div class="selected-meta"><span>Seleccionada</span><strong id="selected-name">11 · Central</strong></div>
+        <div class="nudge-grid" aria-label="Movimiento preciso">
+          <span class="blank"></span><button type="button" data-nudge="0,-0.25" aria-label="Mover arriba">↑</button><span class="blank"></span>
+          <button type="button" data-nudge="-0.25,0" aria-label="Mover izquierda">←</button><button type="button" data-nudge="0,0" aria-label="Centrar selección">•</button><button type="button" data-nudge="0.25,0" aria-label="Mover derecha">→</button>
+          <span class="blank"></span><button type="button" data-nudge="0,0.25" aria-label="Mover abajo">↓</button><span class="blank"></span>
+        </div>
+        <div class="control"><div class="control-head"><label for="width-control">Ancho</label><output id="width-output"></output></div><input id="width-control" type="range" min="65" max="140" step="1"></div>
+        <div class="control"><div class="control-head"><label for="height-control">Altura incisal</label><output id="height-output"></output></div><input id="height-control" type="range" min="70" max="135" step="1"></div>
+        <div class="control"><div class="control-head"><label for="rotation-control">Rotación</label><output id="rotation-output"></output></div><input id="rotation-control" type="range" min="-15" max="15" step="0.5"></div>
+        <div class="row"><button class="small-btn" id="reset-tooth" type="button">Restaurar pieza</button><button class="small-btn danger" id="reset-all" type="button">Restaurar todo</button></div>
+      </section>
+      <section class="section">
+        <h2>Diseño local</h2>
+        <div class="row"><button class="primary" id="save-design" type="button">Guardar diseño</button><button class="small-btn" id="load-design" type="button">Recuperar</button></div>
+        <div class="row" style="margin-top:8px"><button class="small-btn" id="export-design" type="button">Exportar JSON</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar JSON<input id="import-design" type="file" accept="application/json" hidden></label></div>
+        <div class="status" id="status" role="status">Prototipo listo. La fotografía y el diseño permanecen en este dispositivo.</div>
+        <div class="schema">smyl.veneer-design · versión 1</div>
+      </section>
+    </aside>
+  </div>
+</main>
+<script src="editor-v2.js"></script>
+</body>
+</html>
