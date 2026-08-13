@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: familias morfológicas editor-v2 (etapa 3)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- El laboratorio incorpora familias rectangular suave, ovalada y triangular.
+  Cada familia tiene contornos diferentes para centrales, laterales y caninos;
+  aplicar una familia completa no clona una sola anatomía seis veces.
+- La forma puede cambiarse en una sola pieza sin modificar posición, altura,
+  ancho nominal ni rotación, o aplicarse de manera simétrica a 13–23.
+- RED y las siete líneas de contacto ahora calculan el ancho visible real de la
+  familia activa, evitando perder proporciones al cambiar el contorno.
+- El estado JSON pasó a versión 3. Los diseños versiones 1–2 migran en memoria
+  y la forma heredada `natural-soft` se mapea a `rectangular-soft`.
+- Validado: independencia por pieza, tres variantes anatómicas por familia,
+  compatibilidad con RED y guías, persistencia y cero errores de consola.
+- Sigue aislado del flujo vigente; no toca IA, prompts, Supabase, segmentación,
+  simulador principal ni copias móviles.
+
+---
+
 ## 2026-08-13 — Codex: guías clínicas funcionales editor-v2 (etapa 2)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

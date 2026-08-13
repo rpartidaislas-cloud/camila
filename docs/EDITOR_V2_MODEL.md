@@ -1,4 +1,4 @@
-# SMYL Editor paramétrico v2 — contrato de las etapas 1–2
+# SMYL Editor paramétrico v2 — contrato de las etapas 1–3
 
 ## Propósito
 
@@ -22,6 +22,9 @@ clínicas son parámetros serializables del diseño.
 - Siete límites verticales de proporción derivados de los contornos visibles.
 - Aplicación explícita de proporción RED simétrica para centrales, laterales y
   caninos, conservando el contacto y la línea media.
+- Familias morfológicas `rectangular-soft`, `oval` y `triangular`, con anatomía
+  propia para central, lateral y canino. Se aplican por pieza o simétricamente
+  a las seis piezas.
 
 ## Fuera de alcance
 
@@ -37,7 +40,7 @@ clínicas son parámetros serializables del diseño.
 ```json
 {
   "schema": "smyl.veneer-design",
-  "version": 2,
+  "version": 3,
   "updatedAt": "ISO-8601",
   "selectedId": "11",
   "guides": {
@@ -57,7 +60,7 @@ clínicas son parámetros serializables del diseño.
       "width": 13.2,
       "height": 24.0,
       "rotation": 0,
-      "shape": "natural-soft",
+      "shape": "rectangular-soft",
       "gingivalAnchor": { "x": 0.5, "y": 0 },
       "incisalAnchor": { "x": 0.5, "y": 1 }
     }
@@ -87,6 +90,11 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 - Las siete líneas verdes representan los dos extremos del conjunto y los cinco
   contactos interdentales; no son siete dientes ni diagnósticos automáticos.
 - Los diseños de versión 1 se migran a versión 2 agregando las guías por defecto.
+- Los diseños de versiones 1–2 se migran a versión 3 y la anatomía heredada
+  `natural-soft` se conserva visualmente como `rectangular-soft`.
+- Cambiar la familia no altera por sí mismo posición, ancho nominal, altura,
+  rotación ni tono. Las proporciones RED miden el contorno real de la familia
+  elegida antes de recalcular anchos y contactos.
 
 ## Criterios de aceptación
 
@@ -100,3 +108,7 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 8. Aplicar RED conserva simetría respecto de la línea media y muestra siete
    límites proporcionales.
 9. Guardar y recuperar conserva también las curvas y el valor RED.
+10. Cambiar la forma de una pieza no cambia la anatomía de sus vecinas.
+11. Aplicar una familia completa conserva tres anatomías diferenciadas según el
+    rol: centrales, laterales y caninos nunca se convierten en seis clones.
+12. Guardar y recuperar conserva las familias morfológicas seleccionadas.

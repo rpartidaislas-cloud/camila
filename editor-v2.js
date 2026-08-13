@@ -4,12 +4,29 @@
   var STORAGE_KEY = 'smyl_editor_v2_design';
   var IDS = ['13', '12', '11', '21', '22', '23'];
   var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
+  var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
   var ROLE_END = { central: 20.2, lateral: 18.2, canine: 18.5 };
-  var ROLE_WIDTH = { central: 12.2, lateral: 10.2, canine: 10 };
+  var SHAPE_ROLE_WIDTH = {
+    'rectangular-soft': { central: 12.2, lateral: 10.2, canine: 10 },
+    oval: { central: 12, lateral: 10.2, canine: 10 },
+    triangular: { central: 11.8, lateral: 10, canine: 9.8 }
+  };
   var PATHS = {
-    central: 'M -5.4 0 C -3.8 -1.4 3.8 -1.4 5.4 0 C 6.1 4.5 6.1 13.6 5.2 18.4 C 3.7 20.2 -3.7 20.2 -5.2 18.4 C -6.1 13.6 -6.1 4.5 -5.4 0 Z',
-    lateral: 'M -4.4 0 C -3.2 -1.2 3.2 -1.2 4.4 0 C 5.1 4.2 5 12.3 4.2 16.8 C 2.9 18.2 -2.9 18.2 -4.2 16.8 C -5 12.3 -5.1 4.2 -4.4 0 Z',
-    canine: 'M -4.3 0 C -2.9 -1 2.9 -1 4.3 0 C 5 4.1 4.8 11.6 3.7 15.2 C 2.5 16.1 1.3 17.5 0 18.5 C -1.3 17.5 -2.5 16.1 -3.7 15.2 C -4.8 11.6 -5 4.1 -4.3 0 Z'
+    'rectangular-soft': {
+      central: 'M -5.4 0 C -3.8 -1.4 3.8 -1.4 5.4 0 C 6.1 4.5 6.1 13.6 5.2 18.4 C 3.7 20.2 -3.7 20.2 -5.2 18.4 C -6.1 13.6 -6.1 4.5 -5.4 0 Z',
+      lateral: 'M -4.4 0 C -3.2 -1.2 3.2 -1.2 4.4 0 C 5.1 4.2 5 12.3 4.2 16.8 C 2.9 18.2 -2.9 18.2 -4.2 16.8 C -5 12.3 -5.1 4.2 -4.4 0 Z',
+      canine: 'M -4.3 0 C -2.9 -1 2.9 -1 4.3 0 C 5 4.1 4.8 11.6 3.7 15.2 C 2.5 16.1 1.3 17.5 0 18.5 C -1.3 17.5 -2.5 16.1 -3.7 15.2 C -4.8 11.6 -5 4.1 -4.3 0 Z'
+    },
+    oval: {
+      central: 'M -4.7 0 C -3.2 -1.5 3.2 -1.5 4.7 0 C 6 4.8 5.8 13.9 4.5 18.1 C 2.8 20.4 -2.8 20.4 -4.5 18.1 C -5.8 13.9 -6 4.8 -4.7 0 Z',
+      lateral: 'M -3.9 0 C -2.6 -1.3 2.6 -1.3 3.9 0 C 5.1 4.4 4.9 12.3 3.8 16.6 C 2.5 18.4 -2.5 18.4 -3.8 16.6 C -4.9 12.3 -5.1 4.4 -3.9 0 Z',
+      canine: 'M -3.9 0 C -2.5 -1.1 2.5 -1.1 3.9 0 C 5 4.2 4.7 11.8 3.4 15 C 2.3 16 1.2 17.4 0 18.5 C -1.2 17.4 -2.3 16 -3.4 15 C -4.7 11.8 -5 4.2 -3.9 0 Z'
+    },
+    triangular: {
+      central: 'M -3.8 0 C -2.8 -1.1 2.8 -1.1 3.8 0 C 4.8 5.2 5.9 14.7 5.2 18.5 C 3.6 20.1 -3.6 20.1 -5.2 18.5 C -5.9 14.7 -4.8 5.2 -3.8 0 Z',
+      lateral: 'M -3.2 0 C -2.2 -1 2.2 -1 3.2 0 C 4.1 4.9 5 13.2 4.2 16.8 C 2.9 18.2 -2.9 18.2 -4.2 16.8 C -5 13.2 -4.1 4.9 -3.2 0 Z',
+      canine: 'M -3.2 0 C -2.1 -.9 2.1 -.9 3.2 0 C 4.1 4.8 4.9 12.1 3.8 15.1 C 2.5 16.1 1.3 17.5 0 18.5 C -1.3 17.5 -2.5 16.1 -3.8 15.1 C -4.9 12.1 -4.1 4.8 -3.2 0 Z'
+    }
   };
 
   var defaults = [
@@ -24,13 +41,13 @@
   function tooth(id, role, side, x, y, width, height, rotation) {
     return {
       id: id, role: role, side: side, x: x, y: y, width: width, height: height,
-      rotation: rotation, shape: 'natural-soft',
+      rotation: rotation, shape: 'rectangular-soft',
       gingivalAnchor: { x: 0.5, y: 0 }, incisalAnchor: { x: 0.5, y: 1 }
     };
   }
 
   var defaultGuides = { incisalCenter: 93.5, incisalArc: 4.5, gingivalCenter: 63.2, gingivalArc: 2.2, red: 70 };
-  var state = { schema: 'smyl.veneer-design', version: 2, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides) };
+  var state = { schema: 'smyl.veneer-design', version: 3, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides) };
   var drag = null;
 
   var svg = document.getElementById('design-svg');
@@ -50,7 +67,7 @@
 
   function isModified(t) {
     var d = original(t.id);
-    return ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
+    return t.shape !== d.shape || ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
   }
 
   function guideTarget(kind, x) {
@@ -71,8 +88,7 @@
   }
 
   function actualHalfWidth(t) {
-    var baseHalf = t.role === 'central' ? 5.65 : t.role === 'lateral' ? 4.7 : 4.65;
-    return baseHalf * t.width / 11;
+    return SHAPE_ROLE_WIDTH[t.shape][t.role] * t.width / 22;
   }
 
   function smoothPath(points) {
@@ -119,7 +135,7 @@
       // Las anatomías de esta etapa son simétricas. No reflejamos el grupo
       // completo porque también invertiría etiquetas y puntos de control.
       var transform = 'translate(' + t.x + ' ' + t.y + ') rotate(' + t.rotation + ') scale(' + sx + ' ' + sy + ')';
-      var path = PATHS[t.role];
+      var path = PATHS[t.shape][t.role];
       return '<g class="tooth' + selectedClass + modifiedClass + '" data-id="' + esc(t.id) + '" tabindex="0" role="button" aria-label="Diente ' + esc(t.id) + ', ' + ROLE_NAMES[t.role] + '" transform="' + transform + '">' +
         '<path class="shape" d="' + path + '"></path>' +
         '<path class="inner" d="M -3.1 2 C -1.2 1.1 1.2 1.1 3.1 2 M -3.5 5.2 C -2.5 8.2 -2.4 13.4 -1.5 17 M 3.5 5.2 C 2.5 8.2 2.4 13.4 1.5 17"></path>' +
@@ -131,6 +147,7 @@
     renderList();
     syncControls();
     syncGuideControls();
+    syncShapeControls();
   }
 
   function renderList() {
@@ -165,6 +182,13 @@
       var value = state.guides[binding[1]];
       document.getElementById(binding[0]).value = value;
       document.getElementById(binding[2]).textContent = Number(value).toFixed(binding[1] === 'red' ? 0 : 1) + binding[3];
+    });
+  }
+
+  function syncShapeControls() {
+    document.querySelectorAll('[data-shape]').forEach(function (button) {
+      button.classList.toggle('active', button.dataset.shape === selected().shape);
+      button.setAttribute('aria-pressed', button.dataset.shape === selected().shape ? 'true' : 'false');
     });
   }
 
@@ -251,28 +275,23 @@
 
   document.getElementById('apply-red').addEventListener('click', function () {
     var ratio = state.guides.red / 100;
-    var centralDesignWidth = (state.teeth.find(function (t) { return t.id === '11'; }).width + state.teeth.find(function (t) { return t.id === '21'; }).width) / 2;
-    var centralVisualWidth = ROLE_WIDTH.central * centralDesignWidth / 11;
-    var targetWidths = {
-      central: centralDesignWidth,
-      lateral: centralVisualWidth * ratio * 11 / ROLE_WIDTH.lateral,
-      canine: centralVisualWidth * ratio * ratio * 11 / ROLE_WIDTH.canine
+    var centrals = state.teeth.filter(function (t) { return t.role === 'central'; });
+    var centralVisualWidth = centrals.reduce(function (sum, t) { return sum + actualHalfWidth(t) * 2; }, 0) / centrals.length;
+    var targetVisual = {
+      central: centralVisualWidth,
+      lateral: centralVisualWidth * ratio,
+      canine: centralVisualWidth * ratio * ratio
     };
-    state.teeth.forEach(function (t) { t.width = targetWidths[t.role]; });
+    state.teeth.forEach(function (t) { t.width = targetVisual[t.role] * 11 / SHAPE_ROLE_WIDTH[t.shape][t.role]; });
 
     var byId = {};
     state.teeth.forEach(function (t) { byId[t.id] = t; });
-    var visible = {
-      central: ROLE_WIDTH.central * targetWidths.central / 11,
-      lateral: ROLE_WIDTH.lateral * targetWidths.lateral / 11,
-      canine: ROLE_WIDTH.canine * targetWidths.canine / 11
-    };
-    byId['11'].x = 50 - visible.central / 2;
-    byId['21'].x = 50 + visible.central / 2;
-    byId['12'].x = byId['11'].x - (visible.central + visible.lateral) / 2;
-    byId['22'].x = byId['21'].x + (visible.central + visible.lateral) / 2;
-    byId['13'].x = byId['12'].x - (visible.lateral + visible.canine) / 2;
-    byId['23'].x = byId['22'].x + (visible.lateral + visible.canine) / 2;
+    byId['11'].x = 50 - targetVisual.central / 2;
+    byId['21'].x = 50 + targetVisual.central / 2;
+    byId['12'].x = byId['11'].x - (targetVisual.central + targetVisual.lateral) / 2;
+    byId['22'].x = byId['21'].x + (targetVisual.central + targetVisual.lateral) / 2;
+    byId['13'].x = byId['12'].x - (targetVisual.lateral + targetVisual.canine) / 2;
+    byId['23'].x = byId['22'].x + (targetVisual.lateral + targetVisual.canine) / 2;
     applyGuides();
     render();
     setStatus('Proporción RED ' + state.guides.red + '% aplicada de forma simétrica: centrales, laterales y caninos.');
@@ -283,6 +302,21 @@
     applyGuides();
     render();
     setStatus('Guías clínicas restauradas y reaplicadas.');
+  });
+
+  document.getElementById('shape-options').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-shape]');
+    if (!button || !PATHS[button.dataset.shape]) return;
+    selected().shape = button.dataset.shape;
+    render();
+    setStatus('Pieza ' + state.selectedId + ': familia ' + SHAPE_NAMES[button.dataset.shape].toLowerCase() + '.');
+  });
+
+  document.getElementById('apply-shape-all').addEventListener('click', function () {
+    var shape = selected().shape;
+    state.teeth.forEach(function (t) { t.shape = shape; });
+    render();
+    setStatus('Familia ' + SHAPE_NAMES[shape].toLowerCase() + ' aplicada de forma simétrica a 13–23.');
   });
 
   document.querySelector('.nudge-grid').addEventListener('click', function (event) {
@@ -363,14 +397,17 @@
   function validate(candidate) {
     if (!candidate || candidate.schema !== 'smyl.veneer-design' || !Array.isArray(candidate.teeth)) throw new Error('esquema desconocido');
     if (candidate.version === 1) {
-      candidate.version = 2;
       candidate.guides = clone(defaultGuides);
     }
-    if (candidate.version !== 2) throw new Error('versión no compatible');
+    if (candidate.version === 1 || candidate.version === 2) {
+      candidate.version = 3;
+      candidate.teeth.forEach(function (t) { if (!t.shape || t.shape === 'natural-soft') t.shape = 'rectangular-soft'; });
+    }
+    if (candidate.version !== 3) throw new Error('versión no compatible');
     if (candidate.teeth.length !== 6 || IDS.some(function (id) { return !candidate.teeth.some(function (t) { return t.id === id; }); })) throw new Error('deben existir las seis piezas 13–23');
     candidate.teeth.forEach(function (t) {
       ['x','y','width','height','rotation'].forEach(function (key) { if (!Number.isFinite(Number(t[key]))) throw new Error('valor inválido en ' + t.id); t[key] = Number(t[key]); });
-      if (!PATHS[t.role]) throw new Error('anatomía desconocida en ' + t.id);
+      if (!PATHS[t.shape] || !PATHS[t.shape][t.role]) throw new Error('anatomía desconocida en ' + t.id);
     });
     if (!candidate.guides) candidate.guides = clone(defaultGuides);
     ['incisalCenter','incisalArc','gingivalCenter','gingivalArc','red'].forEach(function (key) {
