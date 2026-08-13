@@ -398,6 +398,38 @@
     }).catch(function (error) { setStatus('No se pudo preparar la comparación: ' + error.message); });
   }
 
+  function deliveryHtml() {
+    if (!document.getElementById('confirm-delivery').checked) { setStatus('Confirma que revisaste los datos antes de generar la entrega.'); return Promise.reject(new Error('confirmación requerida')); }
+    if (!requirePhoto()) return Promise.reject(new Error('fotografía requerida'));
+    readCaseForm();
+    return Promise.all([Promise.resolve(originalCanvas()), resultCanvas()]).then(function (canvases) {
+      var before = canvases[0].toDataURL('image/jpeg', .92), after = canvases[1].toDataURL('image/jpeg', .92);
+      var shapes = {}, vitas = {}; state.teeth.filter(function (t) { return t.visible !== false; }).forEach(function (t) { shapes[SHAPE_NAMES[t.shape]] = true; vitas[t.material.vita] = true; });
+      var notes = document.getElementById('include-notes').checked && caseState.notes ? '<section><h2>Observaciones</h2><p>' + esc(caseState.notes).replace(/\n/g,'<br>') + '</p></section>' : '';
+      return buildDeliveryDocument(before, after, Object.keys(shapes), Object.keys(vitas), notes);
+    });
+  }
+
+  function buildDeliveryDocument(before, after, shapes, vitas, notes) {
+    var statusNames = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
+    var visible = state.teeth.filter(function (t) { return t.visible !== false; }).map(function (t) { return t.id; }).join(' · ');
+    var css = '*{box-sizing:border-box}body{margin:0;background:#f2f3f2;color:#18201d;font:15px/1.55 system-ui,sans-serif}.page{width:min(1120px,100%);margin:auto;background:#fff;min-height:100vh;padding:42px}.head{display:flex;gap:18px;border-bottom:1px solid #dce2df;padding-bottom:24px}.brand{font-size:28px;font-weight:850;color:#2764ef}.head div:nth-child(2){flex:1}.head h1{margin:0;font-size:28px}.muted{color:#6a746f}.tag{padding:7px 10px;border-radius:999px;background:#e8f7ef;color:#17633f;font-size:11px;font-weight:800}.images{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0}.figure{margin:0;border:1px solid #dce2df;border-radius:14px;overflow:hidden;background:#111}.figure img{display:block;width:100%;height:auto}.figure figcaption{padding:10px;background:#18201d;color:#fff;font-weight:750}section{border-top:1px solid #e4e8e6;padding-top:20px;margin-top:20px}h2{font-size:17px}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.fact{padding:13px;border-radius:11px;background:#f4f6f5}.fact small{display:block;color:#707975;text-transform:uppercase;font-size:9px}.notice{margin-top:28px;padding:14px;border-radius:11px;background:#fff8df;color:#665215}.actions{text-align:right;margin-top:22px}.actions button{border:0;border-radius:10px;background:#2864ef;color:#fff;padding:12px 18px;font-weight:800}@media(max-width:700px){.page{padding:22px}.head{flex-wrap:wrap}.images,.facts{grid-template-columns:1fr}}@media print{body{background:#fff}.page{width:100%;padding:18px}.actions{display:none}}';
+    return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · ' + esc(caseState.folio || 'Caso') + '</title><style>' + css + '</style></head><body><main class="page"><header class="head"><div class="brand">smyl</div><div><h1>Presentación de diseño de sonrisa</h1><div class="muted">' + esc(caseState.patient || 'Paciente') + ' · ' + esc(caseState.folio || 'Sin folio') + '</div></div><span class="tag">' + esc(statusNames[caseState.status] || 'Borrador') + '</span></header><div class="images"><figure class="figure"><img src="' + before + '"><figcaption>Antes</figcaption></figure><figure class="figure"><img src="' + after + '"><figcaption>Propuesta de diseño</figcaption></figure></div><section><h2>Resumen del diseño</h2><div class="facts"><div class="fact"><small>Piezas visibles</small>' + visible + '</div><div class="fact"><small>Morfología</small>' + esc(shapes.join(', ')) + '</div><div class="fact"><small>Referencias VITA</small>' + esc(vitas.join(', ')) + '</div></div></section>' + notes + '<div class="notice"><strong>Simulación orientativa.</strong> No sustituye diagnóstico, planificación clínica, consentimiento informado ni prueba estética.</div><div class="actions"><button onclick="window.print()">Imprimir / guardar PDF</button></div></main></body></html>';
+  }
+
+  function openDelivery(printNow) {
+    deliveryHtml().then(function (html) {
+      var win = window.open('', '_blank'); if (!win) throw new Error('el navegador bloqueó la vista previa');
+      win.document.open(); win.document.write(html); win.document.close();
+      if (printNow) setTimeout(function () { win.print(); }, 500);
+      setStatus('Presentación generada localmente.');
+    }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo generar la entrega: ' + error.message); });
+  }
+
+  function downloadDelivery() {
+    deliveryHtml().then(function (html) { var blob = new Blob([html], {type:'text/html'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '-presentacion.html'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Presentación HTML descargada.'); }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo descargar: ' + error.message); });
+  }
+
   function select(id) {
     if (IDS.indexOf(id) === -1) return;
     state.selectedId = id;
@@ -592,6 +624,9 @@
   document.getElementById('modal-export-result').addEventListener('click', function () { downloadCanvas(resultCanvas, 'smyl-resultado'); });
   document.getElementById('export-compare').addEventListener('click', function () { downloadCanvas(comparisonCanvas, 'smyl-antes-despues'); });
   document.getElementById('modal-export-compare').addEventListener('click', function () { downloadCanvas(comparisonCanvas, 'smyl-antes-despues'); });
+  document.getElementById('preview-delivery').addEventListener('click', function () { openDelivery(false); });
+  document.getElementById('print-delivery').addEventListener('click', function () { openDelivery(true); });
+  document.getElementById('download-delivery').addEventListener('click', downloadDelivery);
 
   ['case-folio','case-patient','case-status','case-notes'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { readCaseForm(); renderCase(); }); });
   document.getElementById('case-files').addEventListener('change', function () {

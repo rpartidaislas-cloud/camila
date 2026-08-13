@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: entrega del caso editor-v2 (etapa 8)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió una presentación HTML autocontenida para paciente/laboratorio con
+  antes, propuesta, resumen morfológico, piezas visibles y referencias VITA.
+- Permite vista previa, descarga HTML e impresión/guardado PDF desde navegador.
+- Las notas clínicas se excluyen por defecto y requieren selección explícita;
+  toda entrega exige confirmar previamente la revisión de datos.
+- Incluye advertencia visible sobre el carácter orientativo de la simulación.
+- Prueba headless: documento válido, dos imágenes incrustadas, datos del caso,
+  notas privadas excluidas y función de impresión presente.
+
+---
+
 ## 2026-08-13 — Codex: expediente local editor-v2 (etapa 7)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

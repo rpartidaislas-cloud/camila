@@ -188,3 +188,18 @@ El expediente usa un contrato separado del diseño dental:
 - El paquete se puede exportar/importar para auditoría o transferencia manual.
 - Esta etapa no es todavía un expediente clínico regulado, no implementa
   cifrado, consentimiento, control de acceso ni almacenamiento remoto.
+
+## Entrega del caso de la etapa 8
+
+- Genera una presentación HTML autocontenida con fotografía original,
+  composición propuesta, folio, paciente, estado y resumen del diseño.
+- La presentación incluye una acción de impresión compatible con **Guardar como
+  PDF** del navegador y un diseño responsive para teléfono y escritorio.
+- Las notas están excluidas por defecto. Sólo se incorporan cuando el profesional
+  activa explícitamente la opción correspondiente.
+- Antes de previsualizar, descargar o imprimir se exige confirmar que los datos
+  visibles fueron revisados.
+- El documento incluye una advertencia permanente de que la simulación es
+  orientativa y no sustituye diagnóstico, planificación ni consentimiento.
+- Las imágenes quedan incrustadas dentro del HTML; por ello el archivo debe
+  compartirse mediante un canal autorizado por la clínica.
