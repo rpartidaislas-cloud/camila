@@ -25,6 +25,7 @@
     #design-svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
     .tooth{cursor:grab;outline:none}.tooth.dragging{cursor:grabbing}.tooth .shape{fill:url(#enamel);stroke:rgba(255,255,255,.82);stroke-width:.38;vector-effect:non-scaling-stroke;filter:url(#soft-shadow)}
     .tooth .inner{fill:none;stroke:rgba(188,157,104,.25);stroke-width:.55;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth .incisal-layer{fill:none;stroke:#c7e4e6;stroke-width:2.7;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}.tooth .material-texture{fill:none;stroke:#b59a72;stroke-width:.32;vector-effect:non-scaling-stroke;pointer-events:none}
     .tooth .selection{fill:none;stroke:transparent;stroke-width:1.15;stroke-dasharray:2 1.4;vector-effect:non-scaling-stroke;pointer-events:none}
     .tooth.selected .selection{stroke:#5fd6f1}.tooth:focus-visible .selection{stroke:#fff}
     .anchor{display:none;pointer-events:none;vector-effect:non-scaling-stroke}.tooth.selected .anchor{display:block}
@@ -49,6 +50,8 @@
     .guide-note{margin:-2px 0 12px;color:var(--muted);font-size:11px;line-height:1.45}
     .guide-key{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:11px;color:var(--muted)}.guide-key span{display:flex;align-items:center;gap:5px}.guide-key i{width:14px;height:2px;border-radius:2px;background:currentColor}
     .shape-options{display:grid;grid-template-columns:1fr;gap:7px}.shape-option{min-height:46px;padding:8px 10px;display:grid;grid-template-columns:36px 1fr;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.shape-option svg{width:30px;height:32px;justify-self:center}.shape-option path{fill:#e9dfc8;stroke:#fff;stroke-width:.7}.shape-option strong{display:block;font-size:12px}.shape-option small{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.3}.shape-option.active{border-color:var(--accent2);background:#15313a}.shape-option.active small{color:#a9dce7}
+    .vita-options{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.vita-option{min-height:48px;padding:5px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:800}.vita-option i{display:block;width:20px;height:25px;margin:0 auto 3px;border:1px solid rgba(255,255,255,.55);border-radius:6px 6px 8px 8px;background:var(--shade)}.vita-option.active{border-color:var(--accent2);background:#15313a;color:#9ee8f6}
+    .texture-options{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.texture-option{min-height:40px;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:750}.texture-option.active{border-color:var(--accent2);background:#15313a;color:#9ee8f6}
     input[type=range]{width:100%;accent-color:var(--accent)}
     .nudge-grid{display:grid;grid-template-columns:repeat(3,42px);justify-content:center;gap:5px;margin:12px auto}.nudge-grid button{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.nudge-grid .blank{visibility:hidden}
     .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
@@ -62,7 +65,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 3 · MORFOLOGÍA DENTAL</div>
+    <div class="stage-pill">ETAPA 4 · COLOR Y MATERIAL</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -121,11 +124,27 @@
         <button class="small-btn" id="apply-shape-all" type="button" style="width:100%;margin-top:9px">Aplicar familia a 13–23</button>
       </section>
       <section class="section">
+        <h2>Color y material</h2>
+        <p class="guide-note">Previsualización local orientativa. No sustituye una toma de color clínica.</p>
+        <div class="vita-options" id="vita-options">
+          <button class="vita-option" type="button" data-vita="B1" style="--shade:#f4edda"><i></i>B1</button>
+          <button class="vita-option" type="button" data-vita="A1" style="--shade:#eee2c7"><i></i>A1</button>
+          <button class="vita-option" type="button" data-vita="B2" style="--shade:#ead9b8"><i></i>B2</button>
+          <button class="vita-option" type="button" data-vita="D2" style="--shade:#e2d1b9"><i></i>D2</button>
+          <button class="vita-option" type="button" data-vita="A2" style="--shade:#dfc8a4"><i></i>A2</button>
+        </div>
+        <div class="control"><div class="control-head"><label for="value-control">Valor</label><output id="value-output"></output></div><input id="value-control" type="range" min="-12" max="12" step="1"></div>
+        <div class="control"><div class="control-head"><label for="chroma-control">Croma</label><output id="chroma-output"></output></div><input id="chroma-control" type="range" min="-20" max="20" step="1"></div>
+        <div class="control"><div class="control-head"><label for="translucency-control">Translucidez incisal</label><output id="translucency-output"></output></div><input id="translucency-control" type="range" min="0" max="100" step="1"></div>
+        <div class="texture-options" id="texture-options"><button class="texture-option" data-texture="smooth" type="button">Lisa</button><button class="texture-option" data-texture="natural" type="button">Natural</button><button class="texture-option" data-texture="characterized" type="button">Caracterizada</button></div>
+        <button class="small-btn" id="apply-material-all" type="button" style="width:100%;margin-top:9px">Aplicar material a 13–23</button>
+      </section>
+      <section class="section">
         <h2>Diseño local</h2>
         <div class="row"><button class="primary" id="save-design" type="button">Guardar diseño</button><button class="small-btn" id="load-design" type="button">Recuperar</button></div>
         <div class="row" style="margin-top:8px"><button class="small-btn" id="export-design" type="button">Exportar JSON</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar JSON<input id="import-design" type="file" accept="application/json" hidden></label></div>
         <div class="status" id="status" role="status">Prototipo listo. La fotografía y el diseño permanecen en este dispositivo.</div>
-        <div class="schema">smyl.veneer-design · versión 3</div>
+        <div class="schema">smyl.veneer-design · versión 4</div>
       </section>
     </aside>
   </div>

@@ -1,4 +1,4 @@
-# SMYL Editor paramétrico v2 — contrato de las etapas 1–3
+# SMYL Editor paramétrico v2 — contrato de las etapas 1–4
 
 ## Propósito
 
@@ -25,6 +25,8 @@ clínicas son parámetros serializables del diseño.
 - Familias morfológicas `rectangular-soft`, `oval` y `triangular`, con anatomía
   propia para central, lateral y canino. Se aplican por pieza o simétricamente
   a las seis piezas.
+- Material por pieza con referencia VITA abreviada, valor, croma, translucidez
+  incisal y textura. Su render es una previsualización local orientativa.
 
 ## Fuera de alcance
 
@@ -40,7 +42,7 @@ clínicas son parámetros serializables del diseño.
 ```json
 {
   "schema": "smyl.veneer-design",
-  "version": 3,
+  "version": 4,
   "updatedAt": "ISO-8601",
   "selectedId": "11",
   "guides": {
@@ -61,6 +63,13 @@ clínicas son parámetros serializables del diseño.
       "height": 24.0,
       "rotation": 0,
       "shape": "rectangular-soft",
+      "material": {
+        "vita": "A1",
+        "value": 0,
+        "chroma": 0,
+        "translucency": 35,
+        "texture": "natural"
+      },
       "gingivalAnchor": { "x": 0.5, "y": 0 },
       "incisalAnchor": { "x": 0.5, "y": 1 }
     }
@@ -95,6 +104,9 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 - Cambiar la familia no altera por sí mismo posición, ancho nominal, altura,
   rotación ni tono. Las proporciones RED miden el contorno real de la familia
   elegida antes de recalcular anchos y contactos.
+- Los diseños versiones 1–3 migran a versión 4 agregando material A1 natural.
+- El material se puede modificar por pieza o copiar a 13–23. No cambia ninguna
+  coordenada ni deforma la fotografía; sólo altera el render vectorial local.
 
 ## Criterios de aceptación
 
@@ -112,3 +124,6 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 11. Aplicar una familia completa conserva tres anatomías diferenciadas según el
     rol: centrales, laterales y caninos nunca se convierten en seis clones.
 12. Guardar y recuperar conserva las familias morfológicas seleccionadas.
+13. Color y textura de una pieza no afectan a sus vecinas hasta usar la acción
+    explícita de aplicar material a 13–23.
+14. Guardar y recuperar conserva VITA, valor, croma, translucidez y textura.

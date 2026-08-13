@@ -5,6 +5,8 @@
   var IDS = ['13', '12', '11', '21', '22', '23'];
   var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
   var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
+  var VITA_COLORS = { B1: '#f4edda', A1: '#eee2c7', B2: '#ead9b8', D2: '#e2d1b9', A2: '#dfc8a4' };
+  var defaultMaterial = { vita: 'A1', value: 0, chroma: 0, translucency: 35, texture: 'natural' };
   var ROLE_END = { central: 20.2, lateral: 18.2, canine: 18.5 };
   var SHAPE_ROLE_WIDTH = {
     'rectangular-soft': { central: 12.2, lateral: 10.2, canine: 10 },
@@ -41,13 +43,13 @@
   function tooth(id, role, side, x, y, width, height, rotation) {
     return {
       id: id, role: role, side: side, x: x, y: y, width: width, height: height,
-      rotation: rotation, shape: 'rectangular-soft',
+      rotation: rotation, shape: 'rectangular-soft', material: clone(defaultMaterial),
       gingivalAnchor: { x: 0.5, y: 0 }, incisalAnchor: { x: 0.5, y: 1 }
     };
   }
 
   var defaultGuides = { incisalCenter: 93.5, incisalArc: 4.5, gingivalCenter: 63.2, gingivalArc: 2.2, red: 70 };
-  var state = { schema: 'smyl.veneer-design', version: 3, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides) };
+  var state = { schema: 'smyl.veneer-design', version: 4, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides) };
   var drag = null;
 
   var svg = document.getElementById('design-svg');
@@ -65,9 +67,19 @@
   function original(id) { return defaults.find(function (t) { return t.id === id; }); }
   function esc(value) { return String(value).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
 
+  function materialColors(material) {
+    var hex = VITA_COLORS[material.vita] || VITA_COLORS.A1;
+    var rgb = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+    var average = (rgb[0] + rgb[1] + rgb[2]) / 3;
+    var saturation = 1 + material.chroma / 55;
+    rgb = rgb.map(function (value) { return clamp((average + (value - average) * saturation) + material.value * 2.3, 0, 255); });
+    function tone(offset) { return 'rgb(' + rgb.map(function (value) { return Math.round(clamp(value + offset, 0, 255)); }).join(',') + ')'; }
+    return { light: tone(13), middle: tone(0), dark: tone(-22) };
+  }
+
   function isModified(t) {
     var d = original(t.id);
-    return t.shape !== d.shape || ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
+    return t.shape !== d.shape || JSON.stringify(t.material) !== JSON.stringify(d.material) || ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
   }
 
   function guideTarget(kind, x) {
@@ -127,7 +139,11 @@
 
   function render() {
     renderGuides();
-    layer.innerHTML = state.teeth.map(function (t) {
+    var materialDefs = state.teeth.map(function (t) {
+      var colors = materialColors(t.material);
+      return '<linearGradient id="enamel-' + t.id + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + colors.light + '"/><stop offset=".56" stop-color="' + colors.middle + '"/><stop offset="1" stop-color="' + colors.dark + '"/></linearGradient>';
+    }).join('');
+    layer.innerHTML = '<defs>' + materialDefs + '</defs>' + state.teeth.map(function (t) {
       var selectedClass = t.id === state.selectedId ? ' selected' : '';
       var modifiedClass = isModified(t) ? ' modified' : '';
       var sx = t.width / 11;
@@ -137,8 +153,10 @@
       var transform = 'translate(' + t.x + ' ' + t.y + ') rotate(' + t.rotation + ') scale(' + sx + ' ' + sy + ')';
       var path = PATHS[t.shape][t.role];
       return '<g class="tooth' + selectedClass + modifiedClass + '" data-id="' + esc(t.id) + '" tabindex="0" role="button" aria-label="Diente ' + esc(t.id) + ', ' + ROLE_NAMES[t.role] + '" transform="' + transform + '">' +
-        '<path class="shape" d="' + path + '"></path>' +
-        '<path class="inner" d="M -3.1 2 C -1.2 1.1 1.2 1.1 3.1 2 M -3.5 5.2 C -2.5 8.2 -2.4 13.4 -1.5 17 M 3.5 5.2 C 2.5 8.2 2.4 13.4 1.5 17"></path>' +
+        '<path class="shape" style="fill:url(#enamel-' + t.id + ')" d="' + path + '"></path>' +
+        '<path class="incisal-layer" style="opacity:' + (t.material.translucency / 250).toFixed(3) + '" d="M -3.9 ' + (ROLE_END[t.role] - 1.3) + ' Q 0 ' + (ROLE_END[t.role] + .15) + ' 3.9 ' + (ROLE_END[t.role] - 1.3) + '"></path>' +
+        '<path class="inner" style="opacity:' + (t.material.texture === 'smooth' ? '.18' : t.material.texture === 'characterized' ? '.9' : '.55') + '" d="M -3.1 2 C -1.2 1.1 1.2 1.1 3.1 2 M -3.5 5.2 C -2.5 8.2 -2.4 13.4 -1.5 17 M 3.5 5.2 C 2.5 8.2 2.4 13.4 1.5 17"></path>' +
+        (t.material.texture === 'characterized' ? '<path class="material-texture" d="M -3.8 7 Q -2.8 7.5 -2 7 M -4 10 Q -3 10.6 -2.1 10 M 2 7 Q 2.8 7.5 3.7 7 M 2.1 10 Q 3 10.6 3.9 10 M -2.8 14 Q 0 13.2 2.8 14"></path>' : '') +
         '<path class="selection" d="' + path + '"></path>' +
         '<circle class="anchor" cx="0" cy="0" r="1.05" fill="#55d8a3" stroke="#07100d" stroke-width=".35"></circle>' +
         '<circle class="anchor" cx="0" cy="' + (t.role === 'central' ? '19.2' : t.role === 'lateral' ? '17.4' : '18') + '" r="1.05" fill="#f3b84f" stroke="#130d04" stroke-width=".35"></circle>' +
@@ -148,6 +166,7 @@
     syncControls();
     syncGuideControls();
     syncShapeControls();
+    syncMaterialControls();
   }
 
   function renderList() {
@@ -189,6 +208,22 @@
     document.querySelectorAll('[data-shape]').forEach(function (button) {
       button.classList.toggle('active', button.dataset.shape === selected().shape);
       button.setAttribute('aria-pressed', button.dataset.shape === selected().shape ? 'true' : 'false');
+    });
+  }
+
+  function syncMaterialControls() {
+    var material = selected().material;
+    document.querySelectorAll('[data-vita]').forEach(function (button) {
+      button.classList.toggle('active', button.dataset.vita === material.vita);
+      button.setAttribute('aria-pressed', button.dataset.vita === material.vita ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-texture]').forEach(function (button) {
+      button.classList.toggle('active', button.dataset.texture === material.texture);
+      button.setAttribute('aria-pressed', button.dataset.texture === material.texture ? 'true' : 'false');
+    });
+    [['value-control','value','value-output'],['chroma-control','chroma','chroma-output'],['translucency-control','translucency','translucency-output']].forEach(function (binding) {
+      document.getElementById(binding[0]).value = material[binding[1]];
+      document.getElementById(binding[2]).textContent = (material[binding[1]] > 0 && binding[1] !== 'translucency' ? '+' : '') + material[binding[1]] + (binding[1] === 'translucency' ? '%' : '');
     });
   }
 
@@ -319,6 +354,37 @@
     setStatus('Familia ' + SHAPE_NAMES[shape].toLowerCase() + ' aplicada de forma simétrica a 13–23.');
   });
 
+  document.getElementById('vita-options').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-vita]');
+    if (!button || !VITA_COLORS[button.dataset.vita]) return;
+    selected().material.vita = button.dataset.vita;
+    render();
+    setStatus('Pieza ' + state.selectedId + ': referencia VITA ' + button.dataset.vita + '.');
+  });
+
+  [['value-control','value'],['chroma-control','chroma'],['translucency-control','translucency']].forEach(function (binding) {
+    document.getElementById(binding[0]).addEventListener('input', function () {
+      selected().material[binding[1]] = Number(this.value);
+      render();
+      setStatus('Material de la pieza ' + state.selectedId + ' actualizado localmente.');
+    });
+  });
+
+  document.getElementById('texture-options').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-texture]');
+    if (!button) return;
+    selected().material.texture = button.dataset.texture;
+    render();
+    setStatus('Textura de la pieza ' + state.selectedId + ' actualizada.');
+  });
+
+  document.getElementById('apply-material-all').addEventListener('click', function () {
+    var material = clone(selected().material);
+    state.teeth.forEach(function (t) { t.material = clone(material); });
+    render();
+    setStatus('Material VITA ' + material.vita + ' aplicado a las seis piezas.');
+  });
+
   document.querySelector('.nudge-grid').addEventListener('click', function (event) {
     var button = event.target.closest('[data-nudge]');
     if (!button) return;
@@ -400,14 +466,26 @@
       candidate.guides = clone(defaultGuides);
     }
     if (candidate.version === 1 || candidate.version === 2) {
-      candidate.version = 3;
       candidate.teeth.forEach(function (t) { if (!t.shape || t.shape === 'natural-soft') t.shape = 'rectangular-soft'; });
     }
-    if (candidate.version !== 3) throw new Error('versión no compatible');
+    if (candidate.version >= 1 && candidate.version <= 3) {
+      candidate.version = 4;
+      candidate.teeth.forEach(function (t) {
+        if (!t.shape || t.shape === 'natural-soft') t.shape = 'rectangular-soft';
+        if (!t.material) t.material = clone(defaultMaterial);
+      });
+    }
+    if (candidate.version !== 4) throw new Error('versión no compatible');
     if (candidate.teeth.length !== 6 || IDS.some(function (id) { return !candidate.teeth.some(function (t) { return t.id === id; }); })) throw new Error('deben existir las seis piezas 13–23');
     candidate.teeth.forEach(function (t) {
       ['x','y','width','height','rotation'].forEach(function (key) { if (!Number.isFinite(Number(t[key]))) throw new Error('valor inválido en ' + t.id); t[key] = Number(t[key]); });
       if (!PATHS[t.shape] || !PATHS[t.shape][t.role]) throw new Error('anatomía desconocida en ' + t.id);
+      if (!t.material) t.material = clone(defaultMaterial);
+      if (!VITA_COLORS[t.material.vita]) t.material.vita = defaultMaterial.vita;
+      t.material.value = clamp(Number(t.material.value) || 0, -12, 12);
+      t.material.chroma = clamp(Number(t.material.chroma) || 0, -20, 20);
+      t.material.translucency = clamp(Number(t.material.translucency) || 0, 0, 100);
+      if (['smooth','natural','characterized'].indexOf(t.material.texture) === -1) t.material.texture = defaultMaterial.texture;
     });
     if (!candidate.guides) candidate.guides = clone(defaultGuides);
     ['incisalCenter','incisalArc','gingivalCenter','gingivalArc','red'].forEach(function (key) {

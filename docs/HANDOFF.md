@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: color y material editor-v2 (etapa 4)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió caracterización óptica por pieza: referencias VITA B1, A1, B2, D2
+  y A2; ajustes de valor, croma y translucidez incisal; y texturas lisa,
+  natural o caracterizada.
+- Los cambios son locales, reversibles y no modifican geometría ni fotografía.
+  El profesional puede aplicarlos a una pieza o copiarlos a 13–23 mediante una
+  acción explícita.
+- El estado JSON pasó a versión 4. Los diseños versiones 1–3 migran agregando
+  material A1 natural por defecto.
+- Validado: independencia por pieza, aplicación global, cambio visible del
+  gradiente, persistencia exacta, responsive y cero errores de consola.
+- La paleta es orientativa y no pretende sustituir fotografía calibrada,
+  espectrofotómetro ni selección clínica de tono.
+
+---
+
 ## 2026-08-13 — Codex: familias morfológicas editor-v2 (etapa 3)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
