@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: guías clínicas funcionales editor-v2 (etapa 2)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se conectaron dos curvas paramétricas al modelo: incisal y gingival. Sus
+  controles recalculan las seis coronas 13–23 manteniendo intacta la fotografía.
+- Se añadieron siete límites verticales de proporción (extremos y cinco
+  contactos) y una regla RED configurable 62–80% que distribuye centrales,
+  laterales y caninos de forma simétrica respecto de la línea media.
+- El contrato JSON pasó a versión 2 e incluye `guides`. Los diseños versión 1
+  se migran en memoria agregando valores clínicos predeterminados.
+- Validado en navegador: dos curvas, doce puntos, siete líneas, cambio real de
+  geometría, aplicación RED, persistencia exacta y presentación responsive.
+- Continúa siendo un laboratorio aislado. No se modificaron el simulador
+  vigente, prompts, Supabase, segmentación, IA ni las copias móviles.
+
+---
+
 ## 2026-08-13 — Codex: prototipo paramétrico aislado editor-v2 (etapa 1)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

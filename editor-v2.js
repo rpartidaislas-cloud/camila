@@ -4,6 +4,8 @@
   var STORAGE_KEY = 'smyl_editor_v2_design';
   var IDS = ['13', '12', '11', '21', '22', '23'];
   var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
+  var ROLE_END = { central: 20.2, lateral: 18.2, canine: 18.5 };
+  var ROLE_WIDTH = { central: 12.2, lateral: 10.2, canine: 10 };
   var PATHS = {
     central: 'M -5.4 0 C -3.8 -1.4 3.8 -1.4 5.4 0 C 6.1 4.5 6.1 13.6 5.2 18.4 C 3.7 20.2 -3.7 20.2 -5.2 18.4 C -6.1 13.6 -6.1 4.5 -5.4 0 Z',
     lateral: 'M -4.4 0 C -3.2 -1.2 3.2 -1.2 4.4 0 C 5.1 4.2 5 12.3 4.2 16.8 C 2.9 18.2 -2.9 18.2 -4.2 16.8 C -5 12.3 -5.1 4.2 -4.4 0 Z',
@@ -27,11 +29,13 @@
     };
   }
 
-  var state = { schema: 'smyl.veneer-design', version: 1, updatedAt: null, selectedId: '11', teeth: clone(defaults) };
+  var defaultGuides = { incisalCenter: 93.5, incisalArc: 4.5, gingivalCenter: 63.2, gingivalArc: 2.2, red: 70 };
+  var state = { schema: 'smyl.veneer-design', version: 2, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides) };
   var drag = null;
 
   var svg = document.getElementById('design-svg');
   var layer = document.getElementById('teeth-layer');
+  var guidesLayer = document.getElementById('guides-layer');
   var photo = document.getElementById('patient-photo');
   var demoBg = document.getElementById('demo-bg');
   var statusEl = document.getElementById('status');
@@ -49,7 +53,64 @@
     return ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
   }
 
+  function guideTarget(kind, x) {
+    var normalized = Math.min(1, Math.abs(x - 50) / 30);
+    var curve = normalized * normalized;
+    return kind === 'incisal'
+      ? state.guides.incisalCenter - state.guides.incisalArc * curve
+      : state.guides.gingivalCenter + state.guides.gingivalArc * curve;
+  }
+
+  function applyGuides() {
+    state.teeth.forEach(function (t) {
+      var gingival = guideTarget('gingival', t.x);
+      var incisal = guideTarget('incisal', t.x);
+      t.y = gingival;
+      t.height = Math.max(8, (incisal - gingival) * 20 / ROLE_END[t.role]);
+    });
+  }
+
+  function actualHalfWidth(t) {
+    var baseHalf = t.role === 'central' ? 5.65 : t.role === 'lateral' ? 4.7 : 4.65;
+    return baseHalf * t.width / 11;
+  }
+
+  function smoothPath(points) {
+    if (!points.length) return '';
+    var d = 'M ' + points[0].x.toFixed(2) + ' ' + points[0].y.toFixed(2);
+    for (var i = 1; i < points.length - 1; i++) {
+      var midX = (points[i].x + points[i + 1].x) / 2;
+      var midY = (points[i].y + points[i + 1].y) / 2;
+      d += ' Q ' + points[i].x.toFixed(2) + ' ' + points[i].y.toFixed(2) + ' ' + midX.toFixed(2) + ' ' + midY.toFixed(2);
+    }
+    var last = points[points.length - 1];
+    d += ' T ' + last.x.toFixed(2) + ' ' + last.y.toFixed(2);
+    return d;
+  }
+
+  function renderGuides() {
+    var ordered = state.teeth.slice().sort(function (a, b) { return a.x - b.x; });
+    var gingivalPoints = ordered.map(function (t) { return { x: t.x, y: guideTarget('gingival', t.x) }; });
+    var incisalPoints = ordered.map(function (t) { return { x: t.x, y: guideTarget('incisal', t.x) }; });
+    var boundaries = [ordered[0].x - actualHalfWidth(ordered[0])];
+    for (var i = 0; i < ordered.length - 1; i++) {
+      var rightEdge = ordered[i].x + actualHalfWidth(ordered[i]);
+      var leftEdge = ordered[i + 1].x - actualHalfWidth(ordered[i + 1]);
+      boundaries.push((rightEdge + leftEdge) / 2);
+    }
+    boundaries.push(ordered[ordered.length - 1].x + actualHalfWidth(ordered[ordered.length - 1]));
+    var top = Math.min.apply(null, gingivalPoints.map(function (p) { return p.y; })) - 4;
+    var bottom = Math.max.apply(null, incisalPoints.map(function (p) { return p.y; })) + 4;
+    var html = '<path class="clinical-curve gingival" d="' + smoothPath(gingivalPoints) + '"></path>' +
+      '<path class="clinical-curve incisal" d="' + smoothPath(incisalPoints) + '"></path>';
+    gingivalPoints.forEach(function (p) { html += '<circle class="curve-point gingival" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
+    incisalPoints.forEach(function (p) { html += '<circle class="curve-point incisal" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
+    boundaries.forEach(function (x, index) { html += '<line class="proportion-line" x1="' + x.toFixed(2) + '" y1="' + top.toFixed(2) + '" x2="' + x.toFixed(2) + '" y2="' + bottom.toFixed(2) + '"></line><text class="guide-label" x="' + x.toFixed(2) + '" y="' + (top - 1).toFixed(2) + '">' + (index + 1) + '</text>'; });
+    guidesLayer.innerHTML = html;
+  }
+
   function render() {
+    renderGuides();
     layer.innerHTML = state.teeth.map(function (t) {
       var selectedClass = t.id === state.selectedId ? ' selected' : '';
       var modifiedClass = isModified(t) ? ' modified' : '';
@@ -69,6 +130,7 @@
     }).join('');
     renderList();
     syncControls();
+    syncGuideControls();
   }
 
   function renderList() {
@@ -89,6 +151,21 @@
     document.getElementById('height-output').textContent = heightPct + '%';
     document.getElementById('rotation-output').textContent = Number(t.rotation).toFixed(1) + '°';
     document.getElementById('selected-name').textContent = t.id + ' · ' + ROLE_NAMES[t.role];
+  }
+
+  function syncGuideControls() {
+    var bindings = [
+      ['incisal-center', 'incisalCenter', 'incisal-center-output', ''],
+      ['incisal-arc', 'incisalArc', 'incisal-arc-output', ''],
+      ['gingival-center', 'gingivalCenter', 'gingival-center-output', ''],
+      ['gingival-arc', 'gingivalArc', 'gingival-arc-output', ''],
+      ['red-control', 'red', 'red-output', '%']
+    ];
+    bindings.forEach(function (binding) {
+      var value = state.guides[binding[1]];
+      document.getElementById(binding[0]).value = value;
+      document.getElementById(binding[2]).textContent = Number(value).toFixed(binding[1] === 'red' ? 0 : 1) + binding[3];
+    });
   }
 
   function select(id) {
@@ -153,6 +230,61 @@
     render();
   });
 
+  [
+    ['incisal-center', 'incisalCenter'],
+    ['incisal-arc', 'incisalArc'],
+    ['gingival-center', 'gingivalCenter'],
+    ['gingival-arc', 'gingivalArc']
+  ].forEach(function (binding) {
+    document.getElementById(binding[0]).addEventListener('input', function () {
+      state.guides[binding[1]] = Number(this.value);
+      applyGuides();
+      render();
+      setStatus('Curvas clínicas aplicadas a las seis piezas superiores.');
+    });
+  });
+
+  document.getElementById('red-control').addEventListener('input', function () {
+    state.guides.red = Number(this.value);
+    render();
+  });
+
+  document.getElementById('apply-red').addEventListener('click', function () {
+    var ratio = state.guides.red / 100;
+    var centralDesignWidth = (state.teeth.find(function (t) { return t.id === '11'; }).width + state.teeth.find(function (t) { return t.id === '21'; }).width) / 2;
+    var centralVisualWidth = ROLE_WIDTH.central * centralDesignWidth / 11;
+    var targetWidths = {
+      central: centralDesignWidth,
+      lateral: centralVisualWidth * ratio * 11 / ROLE_WIDTH.lateral,
+      canine: centralVisualWidth * ratio * ratio * 11 / ROLE_WIDTH.canine
+    };
+    state.teeth.forEach(function (t) { t.width = targetWidths[t.role]; });
+
+    var byId = {};
+    state.teeth.forEach(function (t) { byId[t.id] = t; });
+    var visible = {
+      central: ROLE_WIDTH.central * targetWidths.central / 11,
+      lateral: ROLE_WIDTH.lateral * targetWidths.lateral / 11,
+      canine: ROLE_WIDTH.canine * targetWidths.canine / 11
+    };
+    byId['11'].x = 50 - visible.central / 2;
+    byId['21'].x = 50 + visible.central / 2;
+    byId['12'].x = byId['11'].x - (visible.central + visible.lateral) / 2;
+    byId['22'].x = byId['21'].x + (visible.central + visible.lateral) / 2;
+    byId['13'].x = byId['12'].x - (visible.lateral + visible.canine) / 2;
+    byId['23'].x = byId['22'].x + (visible.lateral + visible.canine) / 2;
+    applyGuides();
+    render();
+    setStatus('Proporción RED ' + state.guides.red + '% aplicada de forma simétrica: centrales, laterales y caninos.');
+  });
+
+  document.getElementById('reset-guides').addEventListener('click', function () {
+    state.guides = clone(defaultGuides);
+    applyGuides();
+    render();
+    setStatus('Guías clínicas restauradas y reaplicadas.');
+  });
+
   document.querySelector('.nudge-grid').addEventListener('click', function (event) {
     var button = event.target.closest('[data-nudge]');
     if (!button) return;
@@ -172,7 +304,7 @@
     render(); setStatus('Pieza ' + state.selectedId + ' restaurada.');
   });
   document.getElementById('reset-all').addEventListener('click', function () {
-    state.teeth = clone(defaults); state.selectedId = '11'; render(); setStatus('Diseño completo restaurado.');
+    state.teeth = clone(defaults); state.guides = clone(defaultGuides); state.selectedId = '11'; render(); setStatus('Diseño completo restaurado.');
   });
 
   document.getElementById('save-design').addEventListener('click', function () {
@@ -229,12 +361,27 @@
   });
 
   function validate(candidate) {
-    if (!candidate || candidate.schema !== 'smyl.veneer-design' || candidate.version !== 1 || !Array.isArray(candidate.teeth)) throw new Error('esquema desconocido');
+    if (!candidate || candidate.schema !== 'smyl.veneer-design' || !Array.isArray(candidate.teeth)) throw new Error('esquema desconocido');
+    if (candidate.version === 1) {
+      candidate.version = 2;
+      candidate.guides = clone(defaultGuides);
+    }
+    if (candidate.version !== 2) throw new Error('versión no compatible');
     if (candidate.teeth.length !== 6 || IDS.some(function (id) { return !candidate.teeth.some(function (t) { return t.id === id; }); })) throw new Error('deben existir las seis piezas 13–23');
     candidate.teeth.forEach(function (t) {
       ['x','y','width','height','rotation'].forEach(function (key) { if (!Number.isFinite(Number(t[key]))) throw new Error('valor inválido en ' + t.id); t[key] = Number(t[key]); });
       if (!PATHS[t.role]) throw new Error('anatomía desconocida en ' + t.id);
     });
+    if (!candidate.guides) candidate.guides = clone(defaultGuides);
+    ['incisalCenter','incisalArc','gingivalCenter','gingivalArc','red'].forEach(function (key) {
+      if (!Number.isFinite(Number(candidate.guides[key]))) candidate.guides[key] = defaultGuides[key];
+      candidate.guides[key] = Number(candidate.guides[key]);
+    });
+    candidate.guides.incisalCenter = clamp(candidate.guides.incisalCenter, 82, 98);
+    candidate.guides.incisalArc = clamp(candidate.guides.incisalArc, 0, 10);
+    candidate.guides.gingivalCenter = clamp(candidate.guides.gingivalCenter, 48, 75);
+    candidate.guides.gingivalArc = clamp(candidate.guides.gingivalArc, -5, 5);
+    candidate.guides.red = clamp(candidate.guides.red, 62, 80);
     if (IDS.indexOf(candidate.selectedId) === -1) candidate.selectedId = '11';
     return candidate;
   }

@@ -29,6 +29,11 @@
     .tooth.selected .selection{stroke:#5fd6f1}.tooth:focus-visible .selection{stroke:#fff}
     .anchor{display:none;pointer-events:none;vector-effect:non-scaling-stroke}.tooth.selected .anchor{display:block}
     .tooth-label{font-size:3px;font-weight:800;fill:#061014;paint-order:stroke;stroke:rgba(255,255,255,.86);stroke-width:1.25;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
+    .clinical-curve{fill:none;stroke-width:.7;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+    .clinical-curve.incisal{stroke:#f0b429}.clinical-curve.gingival{stroke:#54d6a0}
+    .curve-point{stroke:#08100d;stroke-width:.35;vector-effect:non-scaling-stroke;pointer-events:none}.curve-point.incisal{fill:#f0b429}.curve-point.gingival{fill:#54d6a0}
+    .proportion-line{stroke:#53f36c;stroke-width:.4;stroke-dasharray:1.6 1;vector-effect:non-scaling-stroke;pointer-events:none}
+    .guide-label{font-size:2.2px;font-weight:800;fill:#e8edef;paint-order:stroke;stroke:#111;stroke-width:.65;pointer-events:none;text-anchor:middle}
     .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
     .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
     .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
@@ -41,6 +46,8 @@
     .tooth-select.active{border-color:var(--accent2);background:#15313a;color:#8ee6f7}.tooth-select.modified::after{content:"";display:block;width:4px;height:4px;margin:3px auto 0;border-radius:50%;background:var(--ok)}
     .selected-meta{display:flex;align-items:center;justify-content:space-between;margin:12px 0;color:var(--muted);font-size:12px}.selected-meta strong{color:var(--text);font-size:14px}
     .control{margin:14px 0}.control-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;font-size:12px;color:var(--muted)}.control output{color:#dcd7ff;font-weight:700}
+    .guide-note{margin:-2px 0 12px;color:var(--muted);font-size:11px;line-height:1.45}
+    .guide-key{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:11px;color:var(--muted)}.guide-key span{display:flex;align-items:center;gap:5px}.guide-key i{width:14px;height:2px;border-radius:2px;background:currentColor}
     input[type=range]{width:100%;accent-color:var(--accent)}
     .nudge-grid{display:grid;grid-template-columns:repeat(3,42px);justify-content:center;gap:5px;margin:12px auto}.nudge-grid button{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.nudge-grid .blank{visibility:hidden}
     .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
@@ -54,7 +61,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 1 · SIN IA</div>
+    <div class="stage-pill">ETAPA 2 · GUÍAS FUNCIONALES</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -70,12 +77,24 @@
             <linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf4"/><stop offset=".52" stop-color="#efe6cf"/><stop offset="1" stop-color="#d4c29f"/></linearGradient>
             <filter id="soft-shadow" x="-40%" y="-30%" width="180%" height="190%"><feDropShadow dx="0" dy=".75" stdDeviation=".8" flood-color="#000" flood-opacity=".42"/></filter>
           </defs>
+          <g id="guides-layer"></g>
           <g id="teeth-layer"></g>
         </svg>
         <div class="empty-hint">Arrastra una carilla. Usa los controles para cambiar ancho, altura y rotación.</div>
       </div>
     </section>
     <aside class="sidebar">
+      <section class="section">
+        <h2>Guías clínicas</h2>
+        <div class="guide-key"><span style="color:#f0b429"><i></i>Incisal</span><span style="color:#54d6a0"><i></i>Gingival</span><span style="color:#53f36c"><i></i>Proporciones</span></div>
+        <p class="guide-note">Las curvas modifican las seis coronas. La fotografía permanece intacta.</p>
+        <div class="control"><div class="control-head"><label for="incisal-center">Altura incisal central</label><output id="incisal-center-output"></output></div><input id="incisal-center" type="range" min="82" max="98" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="incisal-arc">Profundidad del arco</label><output id="incisal-arc-output"></output></div><input id="incisal-arc" type="range" min="0" max="10" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="gingival-center">Altura gingival central</label><output id="gingival-center-output"></output></div><input id="gingival-center" type="range" min="48" max="75" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="gingival-arc">Arco gingival</label><output id="gingival-arc-output"></output></div><input id="gingival-arc" type="range" min="-5" max="5" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="red-control">Proporción RED</label><output id="red-output"></output></div><input id="red-control" type="range" min="62" max="80" step="1"></div>
+        <div class="row"><button class="primary" id="apply-red" type="button">Aplicar RED</button><button class="small-btn" id="reset-guides" type="button">Restaurar guías</button></div>
+      </section>
       <section class="section">
         <h2>Pieza activa</h2>
         <div class="teeth-list" id="teeth-list"></div>
@@ -95,7 +114,7 @@
         <div class="row"><button class="primary" id="save-design" type="button">Guardar diseño</button><button class="small-btn" id="load-design" type="button">Recuperar</button></div>
         <div class="row" style="margin-top:8px"><button class="small-btn" id="export-design" type="button">Exportar JSON</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar JSON<input id="import-design" type="file" accept="application/json" hidden></label></div>
         <div class="status" id="status" role="status">Prototipo listo. La fotografía y el diseño permanecen en este dispositivo.</div>
-        <div class="schema">smyl.veneer-design · versión 1</div>
+        <div class="schema">smyl.veneer-design · versión 2</div>
       </section>
     </aside>
   </div>

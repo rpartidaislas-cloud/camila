@@ -1,12 +1,13 @@
-# SMYL Editor paramétrico v2 — contrato de la etapa 1
+# SMYL Editor paramétrico v2 — contrato de las etapas 1–2
 
 ## Propósito
 
-Esta etapa valida la edición geométrica local de seis carillas superiores antes
-de conectar guías clínicas, segmentación o generación con IA. La fotografía es
-una capa inmutable y las carillas son objetos vectoriales independientes.
+Este laboratorio valida la edición geométrica local de seis carillas superiores
+antes de conectar segmentación o generación con IA. La fotografía es una capa
+inmutable, las carillas son objetos vectoriales independientes y las guías
+clínicas son parámetros serializables del diseño.
 
-## Alcance de la primera entrega
+## Alcance acumulado
 
 - Piezas FDI: `13`, `12`, `11`, `21`, `22`, `23`.
 - Selección individual por fotografía, lista o teclado.
@@ -16,6 +17,11 @@ una capa inmutable y las carillas son objetos vectoriales independientes.
 - Importación opcional de una fotografía local; no se sube a ningún servidor.
 - Persistencia de la fotografía fuera del estado JSON para evitar guardar datos
   clínicos dentro del navegador sin una decisión posterior de privacidad.
+- Curvas incisal y gingival paramétricas que recalculan las seis alturas sin
+  desplazar la fotografía.
+- Siete límites verticales de proporción derivados de los contornos visibles.
+- Aplicación explícita de proporción RED simétrica para centrales, laterales y
+  caninos, conservando el contacto y la línea media.
 
 ## Fuera de alcance
 
@@ -31,9 +37,16 @@ una capa inmutable y las carillas son objetos vectoriales independientes.
 ```json
 {
   "schema": "smyl.veneer-design",
-  "version": 1,
+  "version": 2,
   "updatedAt": "ISO-8601",
   "selectedId": "11",
+  "guides": {
+    "incisalCenter": 93.5,
+    "incisalArc": 4.5,
+    "gingivalCenter": 63.2,
+    "gingivalArc": 2.2,
+    "red": 70
+  },
   "teeth": [
     {
       "id": "11",
@@ -67,6 +80,13 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 - Caninos: transición lateral con contorno y borde incisal propios.
 - Los límites de escala evitan valores degenerados, pero no pretenden validar
   por sí solos un tratamiento.
+- La curva incisal define el destino inferior de cada corona y la gingival su
+  origen superior; la altura se calcula entre ambos destinos.
+- La regla RED es configurable entre 62% y 80%. Al aplicarla, el ancho visible
+  del lateral es `central × RED` y el del canino `lateral × RED`.
+- Las siete líneas verdes representan los dos extremos del conjunto y los cinco
+  contactos interdentales; no son siete dientes ni diagnósticos automáticos.
+- Los diseños de versión 1 se migran a versión 2 agregando las guías por defecto.
 
 ## Criterios de aceptación
 
@@ -76,3 +96,7 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 4. Guardar, recargar y restaurar produce el mismo JSON y la misma geometría.
 5. Restablecer una pieza no altera las demás.
 6. El prototipo funciona con mouse, lápiz y toque.
+7. Mover cualquiera de las curvas recalcula las seis coronas en tiempo real.
+8. Aplicar RED conserva simetría respecto de la línea media y muestra siete
+   límites proporcionales.
+9. Guardar y recuperar conserva también las curvas y el valor RED.
