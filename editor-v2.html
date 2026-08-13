@@ -37,6 +37,9 @@
     .guide-label{font-size:2.2px;font-weight:800;fill:#e8edef;paint-order:stroke;stroke:#111;stroke-width:.65;pointer-events:none;text-anchor:middle}
     .papilla{fill:#ce7380;fill-opacity:.76;stroke:#8f4550;stroke-width:.22;vector-effect:non-scaling-stroke;pointer-events:none}
     .tooth.is-hidden{display:none}
+    .compare-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.compare-actions .primary{grid-column:1/-1}
+    .compare-modal{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,7,.88);backdrop-filter:blur(8px)}.compare-modal.open{display:flex}
+    .compare-card{width:min(1120px,100%);max-height:94vh;overflow:auto;border:1px solid #313a3e;border-radius:18px;background:#111517;padding:16px;box-shadow:0 24px 80px #000}.compare-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}.compare-head h2{margin:0;font-size:17px}.compare-head button{margin-left:auto}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compare-pane{position:relative;border-radius:12px;overflow:hidden;background:#080a0b}.compare-pane img{display:block;width:100%;height:auto}.compare-pane b{position:absolute;left:10px;top:10px;padding:6px 9px;border-radius:999px;background:rgba(5,7,8,.78);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.compare-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}
     .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
     .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
     .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
@@ -60,7 +63,7 @@
     .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
     .status{min-height:38px;padding:10px 12px;border-radius:10px;background:#0c1212;color:#9bdcbd;border:1px solid #203a30;font-size:12px;line-height:1.4}
     .schema{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;color:#778187;margin-top:10px}
-    @media(max-width:820px){.topbar{min-height:62px;padding:10px 12px}.titleblock p{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:auto auto}.viewer{min-height:0;padding:10px;align-items:start}.canvas-shell{width:100%;border-radius:12px}.sidebar{overflow:visible;border-left:0;border-top:1px solid var(--line);padding:15px}.stage-pill{font-size:9px}.empty-hint{max-width:70%}}
+    @media(max-width:820px){.topbar{min-height:62px;padding:10px 12px}.titleblock p{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:auto auto}.viewer{min-height:0;padding:10px;align-items:start}.canvas-shell{width:100%;border-radius:12px}.sidebar{overflow:visible;border-left:0;border-top:1px solid var(--line);padding:15px}.stage-pill{font-size:9px}.empty-hint{max-width:70%}.compare-modal{padding:8px}.compare-card{padding:10px}.compare-grid{grid-template-columns:1fr}.compare-foot{display:grid;grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
@@ -68,7 +71,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 5 · CONTROL PROFESIONAL</div>
+    <div class="stage-pill">ETAPA 6 · COMPARAR Y EXPORTAR</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -145,6 +148,11 @@
         <button class="small-btn" id="apply-material-all" type="button" style="width:100%;margin-top:9px">Aplicar material a 13–23</button>
       </section>
       <section class="section">
+        <h2>Salida profesional</h2>
+        <p class="guide-note">Genera una comparación desde la fotografía intacta y una composición sin guías ni controles.</p>
+        <div class="compare-actions"><button class="primary" id="open-compare" type="button">Comparar antes / después</button><button class="small-btn" id="export-result" type="button">Descargar resultado</button><button class="small-btn" id="export-compare" type="button">Descargar comparativa</button></div>
+      </section>
+      <section class="section">
         <h2>Diseño local</h2>
         <div class="row"><button class="primary" id="save-design" type="button">Guardar diseño</button><button class="small-btn" id="load-design" type="button">Recuperar</button></div>
         <div class="row" style="margin-top:8px"><button class="small-btn" id="export-design" type="button">Exportar JSON</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar JSON<input id="import-design" type="file" accept="application/json" hidden></label></div>
@@ -154,6 +162,9 @@
     </aside>
   </div>
 </main>
+<div class="compare-modal" id="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+  <div class="compare-card"><div class="compare-head"><h2 id="compare-title">Comparación clínica</h2><button class="small-btn" id="close-compare" type="button">Cerrar</button></div><div class="compare-grid"><div class="compare-pane"><b>Antes</b><img id="before-preview" alt="Fotografía original"></div><div class="compare-pane"><b>Diseño</b><img id="after-preview" alt="Composición con diseño"></div></div><div class="compare-foot"><button class="small-btn" id="modal-export-result" type="button">Resultado PNG</button><button class="primary" id="modal-export-compare" type="button">Comparativa PNG</button></div></div>
+</div>
 <script src="editor-v2.js"></script>
 </body>
 </html>

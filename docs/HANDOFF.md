@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: comparar y exportar editor-v2 (etapa 6)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió una vista modal antes/después a partir de una sola fotografía
+  original intacta y del diseño paramétrico actual.
+- El editor exporta un PNG del resultado y una comparativa PNG en dos paneles.
+  Ambos conservan las dimensiones y la relación de aspecto de la fuente.
+- El render de salida elimina guías clínicas, puntos, numeración, selección y
+  controles; sólo compone las carillas visibles sobre la fotografía.
+- La generación ocurre enteramente en memoria y no llama servicios externos.
+- Prueba headless: modal funcional y paneles antes/después idénticos de 360×720.
+  Continúa aislado del flujo público, de IA y de segmentación.
+
+---
+
 ## 2026-08-13 — Codex: control profesional editor-v2 (etapa 5)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

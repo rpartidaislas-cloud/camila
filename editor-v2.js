@@ -308,6 +308,69 @@
     syncHistoryControls();
   }
 
+  function requirePhoto() {
+    if (!photo.src || !photo.naturalWidth) { setStatus('Abre una fotografía antes de comparar o exportar.'); return false; }
+    return true;
+  }
+
+  function originalCanvas() {
+    var canvas = document.createElement('canvas');
+    canvas.width = photo.naturalWidth; canvas.height = photo.naturalHeight;
+    canvas.getContext('2d').drawImage(photo, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  function designSvgBlob() {
+    var copy = svg.cloneNode(true);
+    copy.setAttribute('width', photo.naturalWidth); copy.setAttribute('height', photo.naturalHeight);
+    copy.querySelector('#guides-layer').remove();
+    copy.querySelectorAll('.selection,.anchor,.tooth-label').forEach(function (node) { node.remove(); });
+    copy.querySelectorAll('.tooth.is-hidden').forEach(function (node) { node.setAttribute('display', 'none'); });
+    var style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    style.textContent = '.shape{stroke:rgba(255,255,255,.62);stroke-width:.28;vector-effect:non-scaling-stroke}.inner,.material-texture{fill:none;stroke:rgba(255,255,255,.44);stroke-width:.26;stroke-linecap:round;vector-effect:non-scaling-stroke}.incisal-layer{fill:none;stroke:#d8e4e6;stroke-width:1.25;stroke-linecap:round;vector-effect:non-scaling-stroke}';
+    copy.insertBefore(style, copy.firstChild);
+    return new Blob([new XMLSerializer().serializeToString(copy)], { type: 'image/svg+xml' });
+  }
+
+  function resultCanvas() {
+    if (!requirePhoto()) return Promise.reject(new Error('fotografía requerida'));
+    var canvas = originalCanvas(), url = URL.createObjectURL(designSvgBlob());
+    return new Promise(function (resolve, reject) {
+      var overlay = new Image();
+      overlay.onload = function () { canvas.getContext('2d').drawImage(overlay, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); resolve(canvas); };
+      overlay.onerror = function () { URL.revokeObjectURL(url); reject(new Error('no se pudo renderizar el diseño')); };
+      overlay.src = url;
+    });
+  }
+
+  function comparisonCanvas() {
+    return resultCanvas().then(function (after) {
+      var before = originalCanvas(), header = Math.max(48, Math.round(before.height * .055));
+      var canvas = document.createElement('canvas'); canvas.width = before.width * 2; canvas.height = before.height + header;
+      var ctx = canvas.getContext('2d'); ctx.fillStyle = '#101416'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(before, 0, header); ctx.drawImage(after, before.width, header);
+      ctx.fillStyle = '#f4f6f7'; ctx.font = '700 ' + Math.max(18, Math.round(header * .42)) + 'px system-ui'; ctx.textBaseline = 'middle';
+      ctx.fillText('ANTES', 22, header / 2); ctx.fillText('DISEÑO SMYL', before.width + 22, header / 2);
+      return canvas;
+    });
+  }
+
+  function downloadCanvas(factory, name) {
+    factory().then(function (canvas) {
+      var link = document.createElement('a'); link.download = name + '-' + Date.now() + '.png'; link.href = canvas.toDataURL('image/png', 1); link.click();
+      setStatus('PNG generado con la proporción original de la fotografía.');
+    }).catch(function (error) { if (error.message !== 'fotografía requerida') setStatus('No se pudo exportar: ' + error.message); });
+  }
+
+  function openComparison() {
+    if (!requirePhoto()) return;
+    Promise.all([Promise.resolve(originalCanvas()), resultCanvas()]).then(function (canvases) {
+      document.getElementById('before-preview').src = canvases[0].toDataURL('image/png', 1);
+      document.getElementById('after-preview').src = canvases[1].toDataURL('image/png', 1);
+      document.getElementById('compare-modal').classList.add('open'); document.getElementById('close-compare').focus();
+    }).catch(function (error) { setStatus('No se pudo preparar la comparación: ' + error.message); });
+  }
+
   function select(id) {
     if (IDS.indexOf(id) === -1) return;
     state.selectedId = id;
@@ -495,6 +558,13 @@
   });
   document.getElementById('undo-design').addEventListener('click', function () { restoreHistory(historyIndex - 1); });
   document.getElementById('redo-design').addEventListener('click', function () { restoreHistory(historyIndex + 1); });
+  document.getElementById('open-compare').addEventListener('click', openComparison);
+  document.getElementById('close-compare').addEventListener('click', function () { document.getElementById('compare-modal').classList.remove('open'); });
+  document.getElementById('compare-modal').addEventListener('click', function (event) { if (event.target === this) this.classList.remove('open'); });
+  document.getElementById('export-result').addEventListener('click', function () { downloadCanvas(resultCanvas, 'smyl-resultado'); });
+  document.getElementById('modal-export-result').addEventListener('click', function () { downloadCanvas(resultCanvas, 'smyl-resultado'); });
+  document.getElementById('export-compare').addEventListener('click', function () { downloadCanvas(comparisonCanvas, 'smyl-antes-despues'); });
+  document.getElementById('modal-export-compare').addEventListener('click', function () { downloadCanvas(comparisonCanvas, 'smyl-antes-despues'); });
 
   document.getElementById('save-design').addEventListener('click', function () {
     state.updatedAt = new Date().toISOString();

@@ -146,3 +146,20 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
 16. Ocultar/mostrar conserva la pieza serializada y deshacer/rehacer recupera
     visibilidad, anatomía, geometría, material, guías y opciones.
 17. La capa de papilas puede activarse y ocultarse sin cambiar los seis dientes.
+18. La comparación usa la misma fotografía original para ambos paneles y
+    conserva exactamente sus dimensiones y relación de aspecto.
+19. El PNG de resultado excluye guías, puntos, etiquetas y contornos de
+    selección; contiene sólo la fotografía y las carillas visibles.
+20. La comparativa exportable coloca original y diseño lado a lado sin recortar
+    ni deformar ninguno de los dos paneles.
+
+## Salida visual de la etapa 6
+
+- `Resultado PNG`: composición a resolución original, con las carillas visibles
+  y sin elementos de la interfaz.
+- `Comparativa PNG`: dos paneles del mismo tamaño, etiquetados **Antes** y
+  **Diseño SMYL**.
+- La exportación se construye en memoria. No sube fotografías, no modifica el
+  JSON y no altera el historial del diseño.
+- Esta composición sigue siendo paramétrica y orientativa; aún no está
+  conectada con segmentación automática ni simulación generativa.
