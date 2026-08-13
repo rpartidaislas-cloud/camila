@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-13 — Codex: expediente local editor-v2 (etapa 7)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se agregó un expediente local separado con folio, identificador del paciente,
+  estado del caso y notas.
+- El expediente guarda una copia versionada del diseño actual y permite
+  recuperar ambos de forma atómica.
+- Los archivos de referencia se registran sólo por metadatos; no se guardan ni
+  exportan sus bytes, evitando llenar `localStorage` y reduciendo exposición.
+- Se añadió exportación/importación del paquete `smyl.case-package` versión 1.
+- Prueba headless: folio, paciente, estado y diseño de seis piezas restaurados
+  después de alterarlos. Sigue siendo un laboratorio local, no un EHR regulado.
+
+---
+
 ## 2026-08-13 — Codex: comparar y exportar editor-v2 (etapa 6)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

@@ -163,3 +163,28 @@ tamaño de pantalla o de que la fotografía sea horizontal o vertical.
   JSON y no altera el historial del diseño.
 - Esta composición sigue siendo paramétrica y orientativa; aún no está
   conectada con segmentación automática ni simulación generativa.
+
+## Expediente local de la etapa 7
+
+El expediente usa un contrato separado del diseño dental:
+
+```json
+{
+  "schema": "smyl.case-package",
+  "version": 1,
+  "folio": "SMYL-20260813",
+  "patient": "Identificador local",
+  "status": "draft | review | approved",
+  "notes": "Observaciones del caso",
+  "files": [{ "name": "scan.stl", "type": "model/stl", "size": 1234 }],
+  "design": { "schema": "smyl.veneer-design", "version": 5 }
+}
+```
+
+- Guarda y recupera localmente los datos del caso junto con una copia completa
+  del diseño actual.
+- Los archivos sólo se registran como metadatos; su contenido no se incrusta en
+  `localStorage` ni en el JSON exportado.
+- El paquete se puede exportar/importar para auditoría o transferencia manual.
+- Esta etapa no es todavía un expediente clínico regulado, no implementa
+  cifrado, consentimiento, control de acceso ni almacenamiento remoto.

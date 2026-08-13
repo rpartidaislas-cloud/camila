@@ -40,6 +40,7 @@
     .compare-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.compare-actions .primary{grid-column:1/-1}
     .compare-modal{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,7,.88);backdrop-filter:blur(8px)}.compare-modal.open{display:flex}
     .compare-card{width:min(1120px,100%);max-height:94vh;overflow:auto;border:1px solid #313a3e;border-radius:18px;background:#111517;padding:16px;box-shadow:0 24px 80px #000}.compare-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}.compare-head h2{margin:0;font-size:17px}.compare-head button{margin-left:auto}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compare-pane{position:relative;border-radius:12px;overflow:hidden;background:#080a0b}.compare-pane img{display:block;width:100%;height:auto}.compare-pane b{position:absolute;left:10px;top:10px;padding:6px 9px;border-radius:999px;background:rgba(5,7,8,.78);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.compare-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}
+    .case-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.case-grid .wide{grid-column:1/-1}.case-field{display:grid;gap:5px}.case-field label{font-size:10px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.06em}.case-field input,.case-field textarea,.case-field select{width:100%;border:1px solid var(--line);border-radius:9px;background:#0b0f11;color:var(--text);padding:9px;font:inherit}.case-field textarea{min-height:72px;resize:vertical}.file-list{display:grid;gap:6px;margin-top:8px}.file-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:#0b0f11}.file-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.file-item small{color:var(--muted);font-size:9px}.case-summary{margin-top:8px;padding:9px;border-radius:9px;background:#0b1110;border:1px solid #244336;color:#a7dfc3;font-size:11px;line-height:1.45}
     .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
     .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
     .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
@@ -71,7 +72,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 6 · COMPARAR Y EXPORTAR</div>
+    <div class="stage-pill">ETAPA 7 · EXPEDIENTE LOCAL</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -146,6 +147,13 @@
         <div class="control"><div class="control-head"><label for="translucency-control">Translucidez incisal</label><output id="translucency-output"></output></div><input id="translucency-control" type="range" min="0" max="100" step="1"></div>
         <div class="texture-options" id="texture-options"><button class="texture-option" data-texture="smooth" type="button">Lisa</button><button class="texture-option" data-texture="natural" type="button">Natural</button><button class="texture-option" data-texture="characterized" type="button">Caracterizada</button></div>
         <button class="small-btn" id="apply-material-all" type="button" style="width:100%;margin-top:9px">Aplicar material a 13–23</button>
+      </section>
+      <section class="section">
+        <h2>Expediente del caso</h2>
+        <p class="guide-note">Datos locales. Los archivos se registran por nombre y no se suben.</p>
+        <div class="case-grid"><div class="case-field"><label for="case-folio">Folio</label><input id="case-folio" autocomplete="off"></div><div class="case-field"><label for="case-status">Estado</label><select id="case-status"><option value="draft">Borrador</option><option value="review">En revisión</option><option value="approved">Aprobado</option></select></div><div class="case-field wide"><label for="case-patient">Paciente</label><input id="case-patient" autocomplete="off" placeholder="Nombre o identificador clínico"></div><div class="case-field wide"><label for="case-notes">Notas</label><textarea id="case-notes" placeholder="Objetivo estético, observaciones y acuerdos"></textarea></div></div>
+        <label class="small-btn" style="display:block;text-align:center;margin-top:9px;cursor:pointer">Agregar archivos de referencia<input id="case-files" type="file" multiple hidden></label><div class="file-list" id="case-file-list"></div><div class="case-summary" id="case-summary">Caso nuevo · sin archivos.</div>
+        <div class="row" style="margin-top:9px"><button class="primary" id="save-case" type="button">Guardar caso</button><button class="small-btn" id="load-case" type="button">Recuperar</button></div><div class="row" style="margin-top:8px"><button class="small-btn" id="export-case" type="button">Exportar paquete</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar paquete<input id="import-case" type="file" accept="application/json" hidden></label></div>
       </section>
       <section class="section">
         <h2>Salida profesional</h2>
