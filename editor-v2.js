@@ -5,6 +5,15 @@
   var CASE_STORAGE_KEY = 'smyl_editor_v2_case';
   var CASE_LIBRARY_KEY = 'smyl_editor_v2_case_library';
   var PHOTO_SLOTS = [{id:'frontal',label:'Frontal sonrisa',required:true,guide:true},{id:'profile-right',label:'Perfil derecho',guide:true},{id:'profile-left',label:'Perfil izquierdo',guide:true},{id:'three-quarter',label:'Vista 3/4',guide:true},{id:'intraoral',label:'Intraoral dientes'},{id:'extraoral',label:'Extraoral rostro'}];
+  var WORKFLOW_STEPS = ['case','photo','calibration','design','review','delivery'];
+  var WORKFLOW_COPY = {
+    case:['Caso','Confirma folio, paciente y objetivo clínico.'],
+    photo:['Fotografía','Carga la frontal principal; las demás tomas son opcionales.'],
+    calibration:['Calibración','Usa la frontal y centra el diseño con referencias faciales.'],
+    design:['Diseño','Ajusta proporciones, anatomía, color y material.'],
+    review:['Revisión','Guarda una versión para comparar y recuperar la propuesta.'],
+    delivery:['Entrega','Revisa la comparación y genera el archivo profesional.']
+  };
   var IDS = ['13', '12', '11', '21', '22', '23'];
   var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
   var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
@@ -58,7 +67,7 @@
   var drag = null;
   var history = [];
   var historyIndex = -1;
-  var caseState = { schema: 'smyl.case-package', version: 1, id: makeId(), folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), updatedAt: null };
+  var caseState = { schema: 'smyl.case-package', version: 1, id: makeId(), folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), workflow:{step:'case',completed:[]}, updatedAt: null };
   var caseLibrary = [];
   var mediaDbPromise = null;
   var photoUrls = {};
@@ -121,6 +130,7 @@
     return Promise.all([storePhoto(slot,file),analyzePhoto(file)]).then(function (results) {
       var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }), metadata = photoMetadata(slot,file,results[1]);
       if (index >= 0) records[index] = metadata; else records.push(metadata);
+      if (slot === 'frontal') markWorkflowComplete('photo');
       var qualityMessage = metadata.quality.status === 'ready' ? 'Control técnico aprobado.' : metadata.quality.status === 'review' ? 'Conviene repetir: ' + metadata.quality.issues.join(', ') + '.' : 'No se pudo completar el control técnico.';
       upsertCurrentCase(); renderCase(); renderLibrary(); setStatus((message || 'Fotografía guardada en este dispositivo.') + ' ' + qualityMessage);
     });
@@ -415,6 +425,53 @@
     caseState.notes = document.getElementById('case-notes').value.trim();
   }
 
+  function validateWorkflow(workflow) {
+    workflow = workflow || {};
+    var step = WORKFLOW_STEPS.indexOf(workflow.step) === -1 ? 'case' : workflow.step;
+    var completed = Array.isArray(workflow.completed) ? workflow.completed.filter(function (item, index, list) { return WORKFLOW_STEPS.indexOf(item) !== -1 && list.indexOf(item) === index; }) : [];
+    return {step:step,completed:completed};
+  }
+
+  function renderWorkflow() {
+    caseState.workflow = validateWorkflow(caseState.workflow);
+    var workflow = caseState.workflow, copy = WORKFLOW_COPY[workflow.step], currentIndex = WORKFLOW_STEPS.indexOf(workflow.step);
+    document.querySelectorAll('[data-workflow-step]').forEach(function (button) {
+      var step = button.dataset.workflowStep;
+      button.classList.toggle('active', step === workflow.step);
+      button.classList.toggle('complete', workflow.completed.indexOf(step) !== -1);
+      button.setAttribute('aria-current', step === workflow.step ? 'step' : 'false');
+    });
+    document.querySelectorAll('.workflow-target').forEach(function (section) { section.classList.toggle('workflow-focus', section.id === 'workflow-' + workflow.step); });
+    document.getElementById('workflow-current').innerHTML = '<strong>' + copy[0] + '</strong>' + copy[1];
+    document.getElementById('workflow-progress-label').textContent = workflow.completed.length + ' de ' + WORKFLOW_STEPS.length;
+    document.getElementById('workflow-progress-bar').style.width = Math.round(workflow.completed.length / WORKFLOW_STEPS.length * 100) + '%';
+    document.getElementById('workflow-previous').disabled = currentIndex === 0;
+    var next = document.getElementById('workflow-next'); next.disabled = currentIndex === WORKFLOW_STEPS.length - 1; next.textContent = currentIndex === WORKFLOW_STEPS.length - 2 ? 'Ir a entrega' : 'Siguiente';
+  }
+
+  function activateWorkflowStep(step, shouldScroll) {
+    if (WORKFLOW_STEPS.indexOf(step) === -1) return;
+    caseState.workflow = validateWorkflow(caseState.workflow); caseState.workflow.step = step; upsertCurrentCase(); renderLibrary(); renderWorkflow();
+    var target = document.getElementById('workflow-' + step);
+    if (shouldScroll && target) target.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function markWorkflowComplete(step) {
+    caseState.workflow = validateWorkflow(caseState.workflow);
+    if (caseState.workflow.completed.indexOf(step) === -1) caseState.workflow.completed.push(step);
+    renderWorkflow();
+  }
+
+  function completeWorkflowStep(step) {
+    readCaseForm();
+    if (step === 'case' && !caseState.folio) { setStatus('Agrega un folio antes de continuar a fotografía.'); return false; }
+    if (step === 'photo' && !(caseState.photos || []).some(function (item) { return item.slot === 'frontal'; })) { setStatus('Carga la fotografía frontal principal antes de continuar. Las demás tomas son opcionales.'); return false; }
+    if (step === 'calibration' && !(caseState.calibration && caseState.calibration.enabled && caseState.calibration.alignedAt)) { setStatus('Muestra las guías y usa “Centrar diseño” antes de continuar.'); return false; }
+    if (step === 'review' && !(caseState.revisions || []).length) { setStatus('Guarda al menos una versión del diseño antes de preparar la entrega.'); return false; }
+    markWorkflowComplete(step); upsertCurrentCase(); renderLibrary();
+    return true;
+  }
+
   function renderCase() {
     document.getElementById('case-folio').value = caseState.folio; document.getElementById('case-patient').value = caseState.patient;
     document.getElementById('case-status').value = caseState.status; document.getElementById('case-notes').value = caseState.notes;
@@ -424,6 +481,7 @@
     renderCalibrationControls();
     renderRevisions();
     renderPhotoRecords();
+    renderWorkflow();
   }
 
   function renderCalibrationControls() {
@@ -457,6 +515,7 @@
     if (!Array.isArray(candidate.photos)) candidate.photos = [];
     candidate.photos = candidate.photos.filter(function (item) { return PHOTO_SLOTS.some(function (slot) { return slot.id === item.slot; }); }).slice(0, PHOTO_SLOTS.length).map(function (item) { return { slot: String(item.slot), name: String(item.name || '').slice(0,240), type: String(item.type || ''), size: Math.max(0,Number(item.size)||0), capturedAt: String(item.capturedAt || ''), quality:validatePhotoQuality(item.quality) }; });
     candidate.calibration = validateCalibration(candidate.calibration);
+    candidate.workflow = validateWorkflow(candidate.workflow);
     if (!Array.isArray(candidate.revisions)) candidate.revisions = [];
     candidate.revisions = candidate.revisions.slice(0, 20).map(function (revision, index) { return { id: String(revision.id || ('revision-' + index)), label: String(revision.label || ('Versión ' + (index + 1))).slice(0, 80), createdAt: String(revision.createdAt || ''), design: validate(revision.design) }; });
     if (candidate.design) candidate.design = validate(candidate.design);
@@ -473,7 +532,7 @@
   }
 
   function blankCase() {
-    return { schema: 'smyl.case-package', version: 1, id: makeId(), folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
+    return { schema: 'smyl.case-package', version: 1, id: makeId(), folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), workflow:{step:'case',completed:[]}, updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
   }
 
   function loadLibrary() {
@@ -610,12 +669,13 @@
       var win = window.open('', '_blank'); if (!win) throw new Error('el navegador bloqueó la vista previa');
       win.document.open(); win.document.write(html); win.document.close();
       if (printNow) setTimeout(function () { win.print(); }, 500);
+      markWorkflowComplete('delivery'); upsertCurrentCase(); renderLibrary();
       setStatus('Presentación generada localmente.');
     }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo generar la entrega: ' + error.message); });
   }
 
   function downloadDelivery() {
-    deliveryHtml().then(function (html) { var blob = new Blob([html], {type:'text/html'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '-presentacion.html'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Presentación HTML descargada.'); }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo descargar: ' + error.message); });
+    deliveryHtml().then(function (html) { var blob = new Blob([html], {type:'text/html'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '-presentacion.html'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); markWorkflowComplete('delivery'); upsertCurrentCase(); renderLibrary(); setStatus('Presentación HTML descargada.'); }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo descargar: ' + error.message); });
   }
 
   function select(id) {
@@ -680,6 +740,20 @@
     mirrorFields(t, ['rotation']); commit();
   });
 
+  document.getElementById('workflow-steps').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-workflow-step]'); if (!button) return;
+    activateWorkflowStep(button.dataset.workflowStep,true);
+  });
+  document.getElementById('workflow-previous').addEventListener('click', function () {
+    var current = WORKFLOW_STEPS.indexOf(caseState.workflow.step); if (current > 0) activateWorkflowStep(WORKFLOW_STEPS[current - 1],true);
+  });
+  document.getElementById('workflow-next').addEventListener('click', function () {
+    var current = WORKFLOW_STEPS.indexOf(caseState.workflow.step); if (current < 0 || current >= WORKFLOW_STEPS.length - 1) return;
+    if (!completeWorkflowStep(caseState.workflow.step)) return;
+    activateWorkflowStep(WORKFLOW_STEPS[current + 1],true);
+    setStatus('Paso completado. Continúa con ' + WORKFLOW_COPY[WORKFLOW_STEPS[current + 1]][0].toLowerCase() + '.');
+  });
+
   [['face-midline','midline'],['pupil-level','pupilY'],['pupil-tilt','pupilTilt'],['occlusal-level','occlusalY'],['occlusal-tilt','occlusalTilt']].forEach(function (binding) {
     document.getElementById(binding[0]).addEventListener('input', function () {
       caseState.calibration[binding[1]] = Number(this.value); caseState.calibration.enabled = true;
@@ -704,7 +778,7 @@
     var right = state.teeth.find(function (t) { return t.id === '11'; }), left = state.teeth.find(function (t) { return t.id === '21'; });
     var currentCenter = (right.x + left.x) / 2, delta = caseState.calibration.midline - currentCenter;
     state.teeth.forEach(function (t) { t.x = clamp(t.x + delta,5,95); }); caseState.calibration.enabled = true; caseState.calibration.alignedAt = new Date().toISOString();
-    commit('Diseño centrado en la línea media facial sin modificar la fotografía.'); renderCalibrationControls();
+    markWorkflowComplete('calibration'); commit('Diseño centrado en la línea media facial sin modificar la fotografía.'); renderCalibrationControls();
   });
 
   document.getElementById('reset-calibration').addEventListener('click', function () {
@@ -863,7 +937,7 @@
     if (duplicate) {
       var source = caseLibrary[Number(duplicate.dataset.duplicateCase)];
       if (!source) return;
-      caseState = clone(source); caseState.id = makeId(); caseState.photos = []; caseState.calibration = clone(defaultCalibration); caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
+      caseState = clone(source); caseState.id = makeId(); caseState.photos = []; caseState.calibration = clone(defaultCalibration); caseState.workflow = {step:'case',completed:[]}; caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
       caseLibrary.unshift(clone(caseState)); persistLibrary(); openCaseAt(0); setStatus('Caso duplicado como ' + caseState.folio + '.'); return;
     }
     var remove = event.target.closest('[data-delete-case]');
@@ -880,7 +954,7 @@
     var input = document.getElementById('revision-label'), revisions = caseState.revisions || (caseState.revisions = []);
     var label = input.value.trim() || ('Versión ' + (revisions.length + 1));
     revisions.unshift({ id: 'revision-' + Date.now(), label: label.slice(0,80), createdAt: new Date().toISOString(), design: clone(state) });
-    caseState.revisions = revisions.slice(0,20); input.value = ''; upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión “' + label + '” guardada dentro del caso.');
+    caseState.revisions = revisions.slice(0,20); input.value = ''; markWorkflowComplete('review'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión “' + label + '” guardada dentro del caso.');
   });
   document.getElementById('revision-list').addEventListener('click', function (event) {
     var restore = event.target.closest('[data-restore-revision]');
@@ -919,7 +993,7 @@
       saveCasePhoto(slot,file,'Captura guiada guardada en el expediente local.').catch(function () { setStatus('No se pudo guardar la captura.'); });
     },'image/jpeg',.94);
   });
-  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
+  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); markWorkflowComplete('case'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
   document.getElementById('load-case').addEventListener('click', function () { var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index < 0) return setStatus('Este folio todavía no está guardado en la biblioteca.'); openCaseAt(index); });
   document.getElementById('export-case').addEventListener('click', function () { readCaseForm(); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var blob = new Blob([JSON.stringify(caseState, null, 2)], {type:'application/json'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '.json'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Paquete del caso exportado sin fotografías ni contenido binario.'); });
   document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); caseState.id = makeId(); caseState.photos = []; if (caseLibrary.some(function (item) { return item.folio === caseState.folio; })) caseState.folio = availableFolio(caseState.folio + '-IMPORTADO'); caseState.updatedAt = new Date().toISOString(); caseLibrary.unshift(clone(caseState)); persistLibrary(); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Paquete importado. Sus fotografías no forman parte del JSON.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });

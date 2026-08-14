@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: ruta clínica guiada (etapa 15)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- Se añadió una ruta visible de seis pasos: caso, fotografía, calibración,
+  diseño, revisión y entrega, sin ocultar ni bloquear las herramientas actuales.
+- El dentista puede entrar directamente a cualquier etapa; `Anterior` y
+  `Siguiente` desplazan a la sección correspondiente y explican el objetivo.
+- Los requisitos ligeros impiden avanzar con una frontal ausente, calibración
+  sin centrar o revisión sin versión guardada, pero no eliminan trabajo.
+- Paso actual y completados viajan dentro de `smyl.case-package`; los paquetes
+  anteriores reciben un estado inicial compatible al abrirse.
+- Validado en 1440×900, 820×1180 y 390×844: sin desbordamiento horizontal,
+  navegación directa, bloqueo explicativo, persistencia al guardar y cero
+  errores de consola.
+
 ## 2026-08-14 — Codex: calibración facial manual (etapa 14)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`.

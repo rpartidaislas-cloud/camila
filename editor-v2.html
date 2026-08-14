@@ -16,6 +16,11 @@
     .titleblock{min-width:0}
     .titleblock h1{font-size:16px;margin:0 0 3px}.titleblock p{font-size:12px;margin:0;color:var(--muted)}
     .stage-pill{margin-left:auto;padding:7px 10px;border:1px solid #2d5f4c;border-radius:999px;color:#86e4b9;background:#10251d;font-size:11px;font-weight:700;white-space:nowrap}
+    .workflow-card{padding:13px;margin:0 0 18px;border:1px solid #343b3f;border-radius:14px;background:linear-gradient(145deg,#15191b,#0d1012);box-shadow:0 10px 28px rgba(0,0,0,.18)}
+    .workflow-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:11px}.workflow-head div{min-width:0}.workflow-head h2{margin:0 0 3px;font-size:13px;color:#f2f4f5}.workflow-head p{margin:0;color:var(--muted);font-size:10px;line-height:1.35}.workflow-progress-label{margin-left:auto;color:#9fe3c1;font-size:10px;font-weight:800;white-space:nowrap}
+    .workflow-progress{height:4px;margin-bottom:12px;border-radius:999px;background:#252b2e;overflow:hidden}.workflow-progress i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#38c98c,#7566ef);transition:width .2s ease}
+    .workflow-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.workflow-step{min-width:0;min-height:48px;padding:7px;border:1px solid #2d3438;border-radius:9px;background:#111517;text-align:left;cursor:pointer}.workflow-step b,.workflow-step span{display:block}.workflow-step b{font-size:10px;color:#eef1f2}.workflow-step span{margin-top:3px;color:#758086;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workflow-step.active{border-color:#796af0;background:#19162b}.workflow-step.active b{color:#dcd7ff}.workflow-step.complete{border-color:#286649;background:#10231d}.workflow-step.complete span{color:#88d6b0}.workflow-step.complete span::before{content:"✓ ";font-weight:900}.workflow-step:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    .workflow-current{margin:10px 0 8px;padding:9px;border-radius:9px;background:#0b0f11;color:#b6bec2;font-size:10px;line-height:1.45}.workflow-current strong{display:block;margin-bottom:2px;color:#f1f4f5;font-size:11px}.workflow-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.workflow-actions button:disabled{opacity:.35;cursor:not-allowed}.workflow-target{scroll-margin-top:18px}.workflow-target.workflow-focus{border-color:#4f467f;box-shadow:0 0 0 1px rgba(123,104,238,.18)}
     .workspace{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
     .viewer{min-width:0;min-height:560px;position:relative;display:flex;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at center,#21272a 0,#0b0e10 72%);overflow:hidden}
     .canvas-shell{position:relative;width:min(100%,960px);aspect-ratio:4/3;border:1px solid #3a4247;border-radius:18px;overflow:hidden;background:#151a1d;box-shadow:0 22px 70px rgba(0,0,0,.35)}
@@ -70,7 +75,7 @@
     .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
     .status{min-height:38px;padding:10px 12px;border-radius:10px;background:#0c1212;color:#9bdcbd;border:1px solid #203a30;font-size:12px;line-height:1.4}
     .schema{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;color:#778187;margin-top:10px}
-    @media(max-width:820px){.topbar{min-height:62px;padding:10px 12px}.titleblock p{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:auto auto}.viewer{min-height:0;padding:10px;align-items:start}.canvas-shell{width:100%;border-radius:12px}.sidebar{overflow:visible;border-left:0;border-top:1px solid var(--line);padding:15px}.stage-pill{font-size:9px}.empty-hint{max-width:70%}.compare-modal{padding:8px}.compare-card{padding:10px}.compare-grid{grid-template-columns:1fr}.compare-foot{display:grid;grid-template-columns:1fr 1fr}}
+    @media(max-width:820px){.topbar{min-height:62px;padding:10px 12px}.titleblock p{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:auto auto}.viewer{min-height:0;padding:10px;align-items:start}.canvas-shell{width:100%;border-radius:12px}.sidebar{overflow:visible;border-left:0;border-top:1px solid var(--line);padding:15px}.stage-pill{font-size:9px}.empty-hint{max-width:70%}.compare-modal{padding:8px}.compare-card{padding:10px}.compare-grid{grid-template-columns:1fr}.compare-foot{display:grid;grid-template-columns:1fr 1fr}.workflow-card{position:relative;margin-bottom:15px}.workflow-steps{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
@@ -78,7 +83,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 14 · CALIBRACIÓN FACIAL</div>
+    <div class="stage-pill">ETAPA 15 · RUTA CLÍNICA GUIADA</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -101,7 +106,21 @@
       </div>
     </section>
     <aside class="sidebar">
-      <section class="section">
+      <nav class="workflow-card" aria-label="Ruta clínica guiada">
+        <div class="workflow-head"><div><h2>Ruta del caso</h2><p>Avanza con orden sin perder acceso a ninguna herramienta.</p></div><span class="workflow-progress-label" id="workflow-progress-label">0 de 6</span></div>
+        <div class="workflow-progress" aria-hidden="true"><i id="workflow-progress-bar"></i></div>
+        <div class="workflow-steps" id="workflow-steps">
+          <button class="workflow-step" type="button" data-workflow-step="case"><b>1 · Caso</b><span>Identificación</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="photo"><b>2 · Fotografía</b><span>Frontal principal</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="calibration"><b>3 · Calibración</b><span>Referencias faciales</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="design"><b>4 · Diseño</b><span>Forma y material</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="review"><b>5 · Revisión</b><span>Guardar versión</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="delivery"><b>6 · Entrega</b><span>Presentar resultado</span></button>
+        </div>
+        <div class="workflow-current" id="workflow-current"><strong>Caso</strong>Completa el expediente para iniciar.</div>
+        <div class="workflow-actions"><button class="small-btn" id="workflow-previous" type="button">Anterior</button><button class="primary" id="workflow-next" type="button">Siguiente</button></div>
+      </nav>
+      <section class="section workflow-target" id="workflow-calibration">
         <h2>Calibración facial</h2>
         <p class="guide-note">Alinea manualmente la fotografía frontal antes de diseñar. No modifica ni recorta la imagen.</p>
         <div class="calibration-key"><span class="mid"><i></i>Línea media</span><span class="pupil"><i></i>Interpupilar</span><span class="occlusal"><i></i>Plano oclusal</span></div>
@@ -115,7 +134,7 @@
         <div class="row"><button class="primary" id="align-design-midline" type="button">Centrar diseño</button><button class="small-btn" id="reset-calibration" type="button">Restaurar</button></div>
         <p class="quality-note">Referencia manual orientativa. La calibración no detecta landmarks ni sustituye el análisis clínico.</p>
       </section>
-      <section class="section">
+      <section class="section workflow-target" id="workflow-design">
         <h2>Guías clínicas</h2>
         <div class="guide-key"><span style="color:#f0b429"><i></i>Incisal</span><span style="color:#54d6a0"><i></i>Gingival</span><span style="color:#53f36c"><i></i>Proporciones</span></div>
         <p class="guide-note">Las curvas modifican las seis coronas. La fotografía permanece intacta.</p>
@@ -171,20 +190,20 @@
       <section class="section">
         <h2>Biblioteca local</h2><div class="library-tools"><input id="case-search" type="search" placeholder="Buscar folio o paciente"><select id="case-filter"><option value="all">Todos</option><option value="draft">Borradores</option><option value="review">En revisión</option><option value="approved">Aprobados</option></select></div><button class="small-btn" id="new-case" type="button" style="width:100%;margin-bottom:8px">+ Nuevo caso</button><div class="case-library" id="case-library"></div>
       </section>
-      <section class="section">
+      <section class="section workflow-target" id="workflow-case">
         <h2>Expediente del caso</h2>
         <p class="guide-note">Datos locales. Los archivos se registran por nombre y no se suben.</p>
         <div class="case-grid"><div class="case-field"><label for="case-folio">Folio</label><input id="case-folio" autocomplete="off"></div><div class="case-field"><label for="case-status">Estado</label><select id="case-status"><option value="draft">Borrador</option><option value="review">En revisión</option><option value="approved">Aprobado</option></select></div><div class="case-field wide"><label for="case-patient">Paciente</label><input id="case-patient" autocomplete="off" placeholder="Nombre o identificador clínico"></div><div class="case-field wide"><label for="case-notes">Notas</label><textarea id="case-notes" placeholder="Objetivo estético, observaciones y acuerdos"></textarea></div></div>
         <label class="small-btn" style="display:block;text-align:center;margin-top:9px;cursor:pointer">Agregar archivos de referencia<input id="case-files" type="file" multiple hidden></label><div class="file-list" id="case-file-list"></div><div class="case-summary" id="case-summary">Caso nuevo · sin archivos.</div>
         <div class="row" style="margin-top:9px"><button class="primary" id="save-case" type="button">Guardar caso</button><button class="small-btn" id="load-case" type="button">Recuperar</button></div><div class="row" style="margin-top:8px"><button class="small-btn" id="export-case" type="button">Exportar paquete</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar paquete<input id="import-case" type="file" accept="application/json" hidden></label></div>
       </section>
-      <section class="section">
+      <section class="section workflow-target" id="workflow-review">
         <h2>Versiones del diseño</h2><p class="guide-note">Guarda hitos clínicos antes de probar otra forma, proporción o tono.</p><div class="revision-create"><input id="revision-label" maxlength="80" placeholder="Ej. Propuesta inicial A1"><button class="primary" id="save-revision" type="button">Guardar versión</button></div><div class="revision-list" id="revision-list"></div>
       </section>
-      <section class="section">
+      <section class="section workflow-target" id="workflow-photo">
         <h2>Registro fotográfico</h2><p class="guide-note">La frontal es la toma principal. Las demás documentan el caso y son opcionales para la simulación rápida.</p><div class="photo-progress" id="photo-progress">Frontal pendiente · 0 de 6 tomas</div><div class="case-photo-grid" id="case-photo-grid"></div><p class="quality-note">El control evalúa resolución, exposición y nitidez en este dispositivo. Es una ayuda técnica, no una validación clínica.</p>
       </section>
-      <section class="section">
+      <section class="section workflow-target" id="workflow-delivery">
         <h2>Salida profesional</h2>
         <p class="guide-note">Genera una comparación desde la fotografía intacta y una composición sin guías ni controles.</p>
         <div class="compare-actions"><button class="primary" id="open-compare" type="button">Comparar antes / después</button><button class="small-btn" id="export-result" type="button">Descargar resultado</button><button class="small-btn" id="export-compare" type="button">Descargar comparativa</button></div>
