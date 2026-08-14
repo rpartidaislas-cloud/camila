@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: captura fotográfica guiada editor-v2 (etapa 12)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- El registro fotográfico abre una cámara integrada para frontal, perfiles
+  derecho/izquierdo y vista 3/4; intraoral y extraoral permanecen como
+  registros libres desde galería.
+- El visor usa cuadrícula de tercios, referencia facial e instrucciones
+  específicas por posición. La captura frontal utiliza la cámara delantera,
+  conserva la resolución disponible y se guarda en IndexedDB dentro del caso.
+- Galería permanece como respaldo cuando falta permiso o soporte de cámara.
+  Las solicitudes tardías se invalidan y todas las pistas se detienen al
+  cerrar, cambiar de toma o salir de la página.
+- Validado en navegador y móvil: cuatro accesos guiados, seis accesos de
+  galería, variante de perfil, cierre con flujo desconectado y cero errores de
+  consola. Sigue aislado de simulación, IA, Supabase y la app móvil vigente.
+
 ## 2026-08-13 — Codex: entrega del caso editor-v2 (etapa 8)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.

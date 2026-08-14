@@ -61,6 +61,9 @@
   var caseLibrary = [];
   var mediaDbPromise = null;
   var photoUrls = {};
+  var cameraStream = null;
+  var cameraSlot = null;
+  var cameraRequest = 0;
 
   var svg = document.getElementById('design-svg');
   var layer = document.getElementById('teeth-layer');
@@ -93,6 +96,49 @@
   function getPhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var request = db.transaction('photos').objectStore('photos').get(photoKey(caseId,slot)); request.onsuccess = function () { resolve(request.result && request.result.blob); }; request.onerror = function () { reject(request.error); }; }); }); }
   function removePhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').delete(photoKey(caseId,slot)); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
   function removeCasePhotos(caseId) { return Promise.all(PHOTO_SLOTS.map(function (slot) { return removePhoto(caseId,slot.id); })); }
+
+  function photoMetadata(slot, file) { return { slot:slot,name:file.name || (slot + '-' + Date.now() + '.jpg'),type:file.type || 'image/jpeg',size:file.size || 0,capturedAt:new Date().toISOString() }; }
+
+  function saveCasePhoto(slot, file, message) {
+    return storePhoto(slot,file).then(function () {
+      var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }), metadata = photoMetadata(slot,file);
+      if (index >= 0) records[index] = metadata; else records.push(metadata);
+      upsertCurrentCase(); renderCase(); renderLibrary(); setStatus(message || 'Fotografía guardada en este dispositivo.');
+    });
+  }
+
+  function stopCamera() {
+    cameraRequest += 1;
+    if (cameraStream) cameraStream.getTracks().forEach(function (track) { track.stop(); });
+    cameraStream = null; cameraSlot = null;
+    document.getElementById('camera-video').srcObject = null;
+    document.getElementById('camera-modal').classList.remove('open');
+  }
+
+  function cameraCopy(slot) {
+    var copy = {
+      frontal: ['Frontal sonrisa','Rostro recto, ojos sobre la línea superior y sonrisa centrada.'],
+      'profile-right': ['Perfil derecho','Gira 90° hacia tu izquierda y mantén el perfil dentro del óvalo.'],
+      'profile-left': ['Perfil izquierdo','Gira 90° hacia tu derecha y mantén el perfil dentro del óvalo.'],
+      'three-quarter': ['Vista 3/4','Gira aproximadamente 45° y conserva ambos ojos visibles.']
+    };
+    return copy[slot] || ['Captura clínica','Alinea la toma con las referencias.'];
+  }
+
+  function openCamera(slot) {
+    var definition = PHOTO_SLOTS.find(function (item) { return item.id === slot; });
+    if (!definition || !definition.guide) return;
+    stopCamera(); cameraSlot = slot; var requestId = ++cameraRequest;
+    var copy = cameraCopy(slot), guide = document.getElementById('camera-guide'), error = document.getElementById('camera-error');
+    document.getElementById('camera-title').textContent = copy[0]; document.getElementById('camera-subtitle').textContent = 'Captura guiada · ' + copy[0]; document.getElementById('camera-direction').textContent = copy[1];
+    guide.className = 'camera-guide' + (slot === 'profile-right' ? ' profile' : slot === 'profile-left' ? ' profile profile-left' : slot === 'three-quarter' ? ' three-quarter' : '');
+    error.classList.remove('show'); document.getElementById('camera-modal').classList.add('open');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { error.classList.add('show'); return; }
+    navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ideal:1920}, height:{ideal:1080} }, audio:false }).then(function (stream) {
+      if (requestId !== cameraRequest || cameraSlot !== slot) { stream.getTracks().forEach(function (track) { track.stop(); }); return; }
+      cameraStream = stream; document.getElementById('camera-video').srcObject = stream;
+    }).catch(function () { if (requestId !== cameraRequest) return; error.classList.add('show'); setStatus('La cámara no está disponible. Puedes usar Galería.'); });
+  }
 
   function materialColors(material) {
     var hex = VITA_COLORS[material.vita] || VITA_COLORS.A1;
@@ -403,7 +449,7 @@
     document.getElementById('photo-progress').textContent = (records.some(function (item) { return item.slot === 'frontal'; }) ? 'Frontal completa' : 'Frontal pendiente') + ' · ' + records.length + ' de ' + PHOTO_SLOTS.length + ' tomas';
     document.getElementById('case-photo-grid').innerHTML = PHOTO_SLOTS.map(function (slot) {
       var record = records.find(function (item) { return item.slot === slot.id; });
-      return '<article class="case-photo-card"><div class="case-photo-preview" id="photo-preview-' + slot.id + '">' + (record ? '⌛' : '＋') + '</div><div class="case-photo-body"><strong>' + esc(slot.label) + (slot.required ? ' <em class="required-tag">Principal</em>' : '') + '</strong><span>' + (record ? esc(record.name) : (slot.guide ? 'Encuadre facial guiado' : 'Registro clínico libre')) + '</span><div class="case-photo-actions"><label class="small-btn">' + (record ? 'Cambiar' : 'Agregar') + '<input type="file" accept="image/*" capture="environment" data-photo-input="' + slot.id + '" hidden></label>' + (record ? '<button class="small-btn" type="button" data-use-photo="' + slot.id + '">Usar</button><button class="small-btn danger" type="button" data-remove-photo="' + slot.id + '">Quitar</button>' : '') + '</div></div></article>';
+      return '<article class="case-photo-card"><div class="case-photo-preview" id="photo-preview-' + slot.id + '">' + (record ? '⌛' : '＋') + '</div><div class="case-photo-body"><strong>' + esc(slot.label) + (slot.required ? ' <em class="required-tag">Principal</em>' : '') + '</strong><span>' + (record ? esc(record.name) : (slot.guide ? 'Encuadre facial guiado' : 'Registro clínico libre')) + '</span><div class="case-photo-actions">' + (slot.guide ? '<button class="small-btn" type="button" data-open-camera="' + slot.id + '">Cámara</button>' : '') + '<label class="small-btn">Galería<input type="file" accept="image/*" data-photo-input="' + slot.id + '" hidden></label>' + (record ? '<button class="small-btn" type="button" data-use-photo="' + slot.id + '">Usar</button><button class="small-btn danger" type="button" data-remove-photo="' + slot.id + '">Quitar</button>' : '') + '</div></div></article>';
     }).join('');
     records.forEach(function (record) { getPhoto(activeCaseId,record.slot).then(function (blob) { if (!blob || caseState.id !== activeCaseId) return; var preview = document.getElementById('photo-preview-' + record.slot); if (!preview) return; var url = URL.createObjectURL(blob); photoUrls[record.slot] = url; preview.innerHTML = '<img src="' + url + '" alt="' + esc(record.name) + '">'; }).catch(function () {}); });
   }
@@ -759,14 +805,30 @@
     var input = event.target.closest('[data-photo-input]'), file = input && input.files && input.files[0]; if (!file) return;
     if (!/^image\//.test(file.type) || file.size > 20 * 1024 * 1024) { input.value = ''; return setStatus('Usa una imagen de hasta 20 MB.'); }
     var slot = input.dataset.photoInput;
-    storePhoto(slot,file).then(function () { var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }); var metadata = { slot:slot,name:file.name,type:file.type,size:file.size,capturedAt:new Date().toISOString() }; if (index >= 0) records[index] = metadata; else records.push(metadata); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Fotografía guardada en este dispositivo.'); }).catch(function () { setStatus('No se pudo guardar la fotografía en este dispositivo.'); });
+    saveCasePhoto(slot,file).catch(function () { setStatus('No se pudo guardar la fotografía en este dispositivo.'); });
     input.value = '';
   });
   document.getElementById('case-photo-grid').addEventListener('click', function (event) {
+    var camera = event.target.closest('[data-open-camera]');
+    if (camera) { openCamera(camera.dataset.openCamera); return; }
     var use = event.target.closest('[data-use-photo]');
     if (use) { var slot = use.dataset.usePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === slot; }); getPhoto(caseState.id,slot).then(function (blob) { if (!blob) throw new Error(); setCanvasPhoto(blob,definition && definition.label); }).catch(function () { setStatus('La fotografía ya no está disponible en este dispositivo.'); }); return; }
     var remove = event.target.closest('[data-remove-photo]');
     if (remove) { var removeSlot = remove.dataset.removePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === removeSlot; }); if (!window.confirm('¿Quitar la fotografía ' + (definition && definition.label) + '?')) return; removePhoto(caseState.id,removeSlot).then(function () { caseState.photos = (caseState.photos || []).filter(function (item) { return item.slot !== removeSlot; }); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Fotografía retirada del expediente local.'); }); }
+  });
+  document.getElementById('close-camera').addEventListener('click', stopCamera);
+  document.getElementById('camera-modal').addEventListener('click', function (event) { if (event.target === this) stopCamera(); });
+  window.addEventListener('pagehide', stopCamera);
+  document.getElementById('capture-camera').addEventListener('click', function () {
+    var video = document.getElementById('camera-video'), slot = cameraSlot;
+    if (!slot || !cameraStream || !video.videoWidth) return setStatus('Espera a que la cámara esté lista.');
+    var canvas = document.createElement('canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    var context = canvas.getContext('2d'); context.translate(canvas.width,0); context.scale(-1,1); context.drawImage(video,0,0,canvas.width,canvas.height);
+    canvas.toBlob(function (blob) {
+      if (!blob) return setStatus('No se pudo capturar la fotografía.');
+      var file = new File([blob], slot + '-' + Date.now() + '.jpg', {type:'image/jpeg'}); stopCamera();
+      saveCasePhoto(slot,file,'Captura guiada guardada en el expediente local.').catch(function () { setStatus('No se pudo guardar la captura.'); });
+    },'image/jpeg',.94);
   });
   document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
   document.getElementById('load-case').addEventListener('click', function () { var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index < 0) return setStatus('Este folio todavía no está guardado en la biblioteca.'); openCaseAt(index); });
