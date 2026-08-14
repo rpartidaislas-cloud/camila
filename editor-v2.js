@@ -3,6 +3,7 @@
 
   var STORAGE_KEY = 'smyl_editor_v2_design';
   var CASE_STORAGE_KEY = 'smyl_editor_v2_case';
+  var CASE_LIBRARY_KEY = 'smyl_editor_v2_case_library';
   var IDS = ['13', '12', '11', '21', '22', '23'];
   var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
   var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
@@ -56,6 +57,7 @@
   var history = [];
   var historyIndex = -1;
   var caseState = { schema: 'smyl.case-package', version: 1, folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], updatedAt: null };
+  var caseLibrary = [];
 
   var svg = document.getElementById('design-svg');
   var layer = document.getElementById('teeth-layer');
@@ -334,6 +336,34 @@
     if (candidate.design) candidate.design = validate(candidate.design);
     return candidate;
   }
+
+  function persistLibrary() { localStorage.setItem(CASE_LIBRARY_KEY, JSON.stringify({ schema: 'smyl.case-library', version: 1, cases: caseLibrary })); }
+
+  function availableFolio(seed) {
+    var base = seed || ('SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''));
+    var folio = base, copy = 2;
+    while (caseLibrary.some(function (item) { return item.folio === folio; })) folio = base + '-' + copy++;
+    return folio;
+  }
+
+  function blankCase() {
+    return { schema: 'smyl.case-package', version: 1, folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
+  }
+
+  function loadLibrary() {
+    try { var parsed = JSON.parse(localStorage.getItem(CASE_LIBRARY_KEY) || 'null'); if (parsed && parsed.schema === 'smyl.case-library' && parsed.version === 1 && Array.isArray(parsed.cases)) caseLibrary = parsed.cases.map(validateCase); } catch (error) { caseLibrary = []; }
+    if (!caseLibrary.length) { try { var legacy = JSON.parse(localStorage.getItem(CASE_STORAGE_KEY) || 'null'); if (legacy) { caseLibrary.push(validateCase(legacy)); persistLibrary(); } } catch (error) {} }
+    caseLibrary.sort(function (a, b) { return String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')); });
+  }
+
+  function renderLibrary() {
+    var q = document.getElementById('case-search').value.trim().toLowerCase(), filter = document.getElementById('case-filter').value;
+    var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
+    var visible = caseLibrary.filter(function (item) { return (filter === 'all' || item.status === filter) && (!q || (item.folio + ' ' + item.patient).toLowerCase().indexOf(q) !== -1); });
+    document.getElementById('case-library').innerHTML = visible.length ? visible.map(function (item) { var index = caseLibrary.indexOf(item); return '<article class="case-card' + (item.folio === caseState.folio ? ' active' : '') + '"><div><strong>' + esc(item.folio || 'Sin folio') + '</strong><span>' + esc(item.patient || 'Sin paciente') + ' · ' + esc(labels[item.status] || 'Borrador') + '</span></div><small>' + (item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Nuevo') + '</small><div class="case-card-actions"><button class="small-btn" data-open-case="' + index + '">Abrir</button><button class="small-btn" data-duplicate-case="' + index + '">Duplicar</button><button class="small-btn danger" data-delete-case="' + index + '">Eliminar</button></div></article>'; }).join('') : '<div class="guide-note">No hay casos que coincidan.</div>';
+  }
+
+  function openCaseAt(index) { var item = caseLibrary[index]; if (!item) return; caseState = clone(item); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' abierto.'); }
 
   function requirePhoto() {
     if (!photo.src || !photo.naturalWidth) { setStatus('Abre una fotografía antes de comparar o exportar.'); return false; }
@@ -634,10 +664,32 @@
     caseState.files = caseState.files.slice(0, 30); this.value = ''; renderCase(); setStatus('Referencias añadidas al expediente. El contenido de los archivos no se almacenó.');
   });
   document.getElementById('case-file-list').addEventListener('click', function (event) { var button = event.target.closest('[data-remove-file]'); if (!button) return; caseState.files.splice(Number(button.dataset.removeFile), 1); renderCase(); });
-  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(caseState)); renderCase(); setStatus('Caso ' + (caseState.folio || 'sin folio') + ' guardado localmente con el diseño actual.'); });
-  document.getElementById('load-case').addEventListener('click', function () { var raw = localStorage.getItem(CASE_STORAGE_KEY); if (!raw) return setStatus('Todavía no existe un caso guardado.'); try { caseState = validateCase(JSON.parse(raw)); if (caseState.design) { state = caseState.design; resetHistory(); render(); } renderCase(); setStatus('Expediente y diseño recuperados.'); } catch (error) { setStatus('No se pudo recuperar el caso: ' + error.message); } });
+  document.getElementById('case-search').addEventListener('input', renderLibrary);
+  document.getElementById('case-filter').addEventListener('change', renderLibrary);
+  document.getElementById('new-case').addEventListener('click', function () { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); renderLibrary(); setStatus('Nuevo expediente listo. Guarda el caso para añadirlo a la biblioteca.'); });
+  document.getElementById('case-library').addEventListener('click', function (event) {
+    var open = event.target.closest('[data-open-case]');
+    if (open) return openCaseAt(Number(open.dataset.openCase));
+    var duplicate = event.target.closest('[data-duplicate-case]');
+    if (duplicate) {
+      var source = caseLibrary[Number(duplicate.dataset.duplicateCase)];
+      if (!source) return;
+      caseState = clone(source); caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
+      caseLibrary.unshift(clone(caseState)); persistLibrary(); openCaseAt(0); setStatus('Caso duplicado como ' + caseState.folio + '.'); return;
+    }
+    var remove = event.target.closest('[data-delete-case]');
+    if (remove) {
+      var index = Number(remove.dataset.deleteCase), item = caseLibrary[index];
+      if (!item || !window.confirm('¿Eliminar el caso ' + item.folio + ' de este dispositivo?')) return;
+      caseLibrary.splice(index, 1); persistLibrary();
+      if (caseState.folio === item.folio) { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); }
+      renderLibrary(); setStatus('Caso eliminado de la biblioteca local.');
+    }
+  });
+  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index >= 0) caseLibrary[index] = clone(caseState); else caseLibrary.unshift(clone(caseState)); persistLibrary(); localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(caseState)); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
+  document.getElementById('load-case').addEventListener('click', function () { var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index < 0) return setStatus('Este folio todavía no está guardado en la biblioteca.'); openCaseAt(index); });
   document.getElementById('export-case').addEventListener('click', function () { readCaseForm(); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var blob = new Blob([JSON.stringify(caseState, null, 2)], {type:'application/json'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '.json'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Paquete del caso exportado sin fotografías ni contenido binario.'); });
-  document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); if (caseState.design) { state = caseState.design; resetHistory(); render(); } renderCase(); setStatus('Paquete de caso importado correctamente.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });
+  document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); if (caseLibrary.some(function (item) { return item.folio === caseState.folio; })) caseState.folio = availableFolio(caseState.folio + '-IMPORTADO'); caseState.updatedAt = new Date().toISOString(); caseLibrary.unshift(clone(caseState)); persistLibrary(); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Paquete importado y añadido a la biblioteca.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });
 
   document.getElementById('save-design').addEventListener('click', function () {
     state.updatedAt = new Date().toISOString();
@@ -752,7 +804,10 @@
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   function setStatus(message) { statusEl.textContent = message; }
 
+  loadLibrary();
+  if (caseLibrary.length) { caseState = clone(caseLibrary[0]); if (caseState.design) state = validate(caseState.design); }
   render();
   resetHistory();
   renderCase();
+  renderLibrary();
 }());

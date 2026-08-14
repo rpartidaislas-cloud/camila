@@ -42,6 +42,7 @@
     .compare-card{width:min(1120px,100%);max-height:94vh;overflow:auto;border:1px solid #313a3e;border-radius:18px;background:#111517;padding:16px;box-shadow:0 24px 80px #000}.compare-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}.compare-head h2{margin:0;font-size:17px}.compare-head button{margin-left:auto}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compare-pane{position:relative;border-radius:12px;overflow:hidden;background:#080a0b}.compare-pane img{display:block;width:100%;height:auto}.compare-pane b{position:absolute;left:10px;top:10px;padding:6px 9px;border-radius:999px;background:rgba(5,7,8,.78);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.compare-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}
     .case-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.case-grid .wide{grid-column:1/-1}.case-field{display:grid;gap:5px}.case-field label{font-size:10px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.06em}.case-field input,.case-field textarea,.case-field select{width:100%;border:1px solid var(--line);border-radius:9px;background:#0b0f11;color:var(--text);padding:9px;font:inherit}.case-field textarea{min-height:72px;resize:vertical}.file-list{display:grid;gap:6px;margin-top:8px}.file-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:#0b0f11}.file-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.file-item small{color:var(--muted);font-size:9px}.case-summary{margin-top:8px;padding:9px;border-radius:9px;background:#0b1110;border:1px solid #244336;color:#a7dfc3;font-size:11px;line-height:1.45}
     .delivery-options{display:grid;gap:7px;margin-top:10px}.check-row{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid var(--line);border-radius:9px;background:#0b0f11;font-size:10px;color:#b8c0c4;line-height:1.4}.check-row input{margin-top:2px;accent-color:#6d5dfc}.delivery-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.delivery-actions .primary{grid-column:1/-1}
+    .library-tools{display:grid;grid-template-columns:1fr 110px;gap:7px;margin-bottom:8px}.library-tools input,.library-tools select{width:100%;border:1px solid var(--line);border-radius:9px;background:#0b0f11;color:var(--text);padding:9px;font:inherit}.case-library{display:grid;gap:7px;max-height:280px;overflow:auto}.case-card{display:grid;grid-template-columns:1fr auto;gap:7px;padding:9px;border:1px solid var(--line);border-radius:10px;background:#0b0f11}.case-card.active{border-color:#6d5dfc;background:#15122a}.case-card strong,.case-card span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.case-card span{color:var(--muted);font-size:10px;margin-top:3px}.case-card-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;grid-column:1/-1}.case-card-actions button{padding:6px;font-size:9px}
     .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
     .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
     .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
@@ -73,7 +74,7 @@
   <header class="topbar">
     <div class="brand">smyl</div>
     <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
-    <div class="stage-pill">ETAPA 8 · ENTREGA DEL CASO</div>
+    <div class="stage-pill">ETAPA 9 · BIBLIOTECA DE CASOS</div>
   </header>
   <div class="workspace">
     <section class="viewer" aria-label="Lienzo de diseño">
@@ -148,6 +149,9 @@
         <div class="control"><div class="control-head"><label for="translucency-control">Translucidez incisal</label><output id="translucency-output"></output></div><input id="translucency-control" type="range" min="0" max="100" step="1"></div>
         <div class="texture-options" id="texture-options"><button class="texture-option" data-texture="smooth" type="button">Lisa</button><button class="texture-option" data-texture="natural" type="button">Natural</button><button class="texture-option" data-texture="characterized" type="button">Caracterizada</button></div>
         <button class="small-btn" id="apply-material-all" type="button" style="width:100%;margin-top:9px">Aplicar material a 13–23</button>
+      </section>
+      <section class="section">
+        <h2>Biblioteca local</h2><div class="library-tools"><input id="case-search" type="search" placeholder="Buscar folio o paciente"><select id="case-filter"><option value="all">Todos</option><option value="draft">Borradores</option><option value="review">En revisión</option><option value="approved">Aprobados</option></select></div><button class="small-btn" id="new-case" type="button" style="width:100%;margin-bottom:8px">+ Nuevo caso</button><div class="case-library" id="case-library"></div>
       </section>
       <section class="section">
         <h2>Expediente del caso</h2>
