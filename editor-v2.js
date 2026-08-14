@@ -4,6 +4,7 @@
   var STORAGE_KEY = 'smyl_editor_v2_design';
   var CASE_STORAGE_KEY = 'smyl_editor_v2_case';
   var CASE_LIBRARY_KEY = 'smyl_editor_v2_case_library';
+  var PHOTO_SLOTS = [{id:'frontal',label:'Frontal sonrisa',required:true,guide:true},{id:'profile-right',label:'Perfil derecho',guide:true},{id:'profile-left',label:'Perfil izquierdo',guide:true},{id:'three-quarter',label:'Vista 3/4',guide:true},{id:'intraoral',label:'Intraoral dientes'},{id:'extraoral',label:'Extraoral rostro'}];
   var IDS = ['13', '12', '11', '21', '22', '23'];
   var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
   var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
@@ -56,8 +57,10 @@
   var drag = null;
   var history = [];
   var historyIndex = -1;
-  var caseState = { schema: 'smyl.case-package', version: 1, folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], updatedAt: null };
+  var caseState = { schema: 'smyl.case-package', version: 1, id: makeId(), folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], updatedAt: null };
   var caseLibrary = [];
+  var mediaDbPromise = null;
+  var photoUrls = {};
 
   var svg = document.getElementById('design-svg');
   var layer = document.getElementById('teeth-layer');
@@ -70,9 +73,26 @@
   var rotationControl = document.getElementById('rotation-control');
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function makeId() { return 'case-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10); }
   function selected() { return state.teeth.find(function (t) { return t.id === state.selectedId; }); }
   function original(id) { return defaults.find(function (t) { return t.id === id; }); }
   function esc(value) { return String(value).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+  function mediaDb() {
+    if (mediaDbPromise) return mediaDbPromise;
+    mediaDbPromise = new Promise(function (resolve, reject) {
+      var request = indexedDB.open('smyl_editor_v2_media', 1);
+      request.onupgradeneeded = function () { if (!request.result.objectStoreNames.contains('photos')) request.result.createObjectStore('photos', { keyPath: 'key' }); };
+      request.onsuccess = function () { resolve(request.result); }; request.onerror = function () { reject(request.error); };
+    });
+    return mediaDbPromise;
+  }
+
+  function photoKey(caseId, slot) { return caseId + ':' + slot; }
+  function storePhoto(slot, file) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').put({ key: photoKey(caseState.id, slot), caseId: caseState.id, slot: slot, blob: file }); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
+  function getPhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var request = db.transaction('photos').objectStore('photos').get(photoKey(caseId,slot)); request.onsuccess = function () { resolve(request.result && request.result.blob); }; request.onerror = function () { reject(request.error); }; }); }); }
+  function removePhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').delete(photoKey(caseId,slot)); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
+  function removeCasePhotos(caseId) { return Promise.all(PHOTO_SLOTS.map(function (slot) { return removePhoto(caseId,slot.id); })); }
 
   function materialColors(material) {
     var hex = VITA_COLORS[material.vita] || VITA_COLORS.A1;
@@ -326,14 +346,18 @@
     var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
     document.getElementById('case-summary').textContent = (caseState.folio || 'Sin folio') + ' · ' + (labels[caseState.status] || 'Borrador') + ' · ' + caseState.files.length + ' archivo(s) · ' + (caseState.revisions || []).length + ' versión(es) · diseño v' + state.version + '.';
     renderRevisions();
+    renderPhotoRecords();
   }
 
   function validateCase(candidate) {
     if (!candidate || candidate.schema !== 'smyl.case-package' || candidate.version !== 1) throw new Error('paquete de caso incompatible');
+    candidate.id = String(candidate.id || makeId()).slice(0,80);
     candidate.folio = String(candidate.folio || '').slice(0, 80); candidate.patient = String(candidate.patient || '').slice(0, 160); candidate.notes = String(candidate.notes || '').slice(0, 5000);
     if (['draft','review','approved'].indexOf(candidate.status) === -1) candidate.status = 'draft';
     if (!Array.isArray(candidate.files)) candidate.files = [];
     candidate.files = candidate.files.slice(0, 30).map(function (file) { return { name: String(file.name || '').slice(0, 240), type: String(file.type || ''), size: Math.max(0, Number(file.size) || 0), lastModified: Number(file.lastModified) || 0 }; });
+    if (!Array.isArray(candidate.photos)) candidate.photos = [];
+    candidate.photos = candidate.photos.filter(function (item) { return PHOTO_SLOTS.some(function (slot) { return slot.id === item.slot; }); }).slice(0, PHOTO_SLOTS.length).map(function (item) { return { slot: String(item.slot), name: String(item.name || '').slice(0,240), type: String(item.type || ''), size: Math.max(0,Number(item.size)||0), capturedAt: String(item.capturedAt || '') }; });
     if (!Array.isArray(candidate.revisions)) candidate.revisions = [];
     candidate.revisions = candidate.revisions.slice(0, 20).map(function (revision, index) { return { id: String(revision.id || ('revision-' + index)), label: String(revision.label || ('Versión ' + (index + 1))).slice(0, 80), createdAt: String(revision.createdAt || ''), design: validate(revision.design) }; });
     if (candidate.design) candidate.design = validate(candidate.design);
@@ -350,7 +374,7 @@
   }
 
   function blankCase() {
-    return { schema: 'smyl.case-package', version: 1, folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], revisions: [], updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
+    return { schema: 'smyl.case-package', version: 1, id: makeId(), folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
   }
 
   function loadLibrary() {
@@ -371,6 +395,23 @@
   function renderRevisions() {
     var revisions = caseState.revisions || [];
     document.getElementById('revision-list').innerHTML = revisions.length ? revisions.map(function (revision, index) { return '<article class="revision-card"><div><strong>' + esc(revision.label) + '</strong><span>' + (revision.createdAt ? new Date(revision.createdAt).toLocaleString() : 'Sin fecha') + '</span></div><small>v' + revision.design.version + '</small><div class="revision-actions"><button class="small-btn" data-restore-revision="' + index + '">Restaurar en lienzo</button><button class="small-btn danger" data-delete-revision="' + index + '">Eliminar</button></div></article>'; }).join('') : '<div class="guide-note">Aún no hay versiones guardadas para este caso.</div>';
+  }
+
+  function renderPhotoRecords() {
+    Object.keys(photoUrls).forEach(function (key) { URL.revokeObjectURL(photoUrls[key]); }); photoUrls = {};
+    var records = caseState.photos || [], activeCaseId = caseState.id;
+    document.getElementById('photo-progress').textContent = (records.some(function (item) { return item.slot === 'frontal'; }) ? 'Frontal completa' : 'Frontal pendiente') + ' · ' + records.length + ' de ' + PHOTO_SLOTS.length + ' tomas';
+    document.getElementById('case-photo-grid').innerHTML = PHOTO_SLOTS.map(function (slot) {
+      var record = records.find(function (item) { return item.slot === slot.id; });
+      return '<article class="case-photo-card"><div class="case-photo-preview" id="photo-preview-' + slot.id + '">' + (record ? '⌛' : '＋') + '</div><div class="case-photo-body"><strong>' + esc(slot.label) + (slot.required ? ' <em class="required-tag">Principal</em>' : '') + '</strong><span>' + (record ? esc(record.name) : (slot.guide ? 'Encuadre facial guiado' : 'Registro clínico libre')) + '</span><div class="case-photo-actions"><label class="small-btn">' + (record ? 'Cambiar' : 'Agregar') + '<input type="file" accept="image/*" capture="environment" data-photo-input="' + slot.id + '" hidden></label>' + (record ? '<button class="small-btn" type="button" data-use-photo="' + slot.id + '">Usar</button><button class="small-btn danger" type="button" data-remove-photo="' + slot.id + '">Quitar</button>' : '') + '</div></div></article>';
+    }).join('');
+    records.forEach(function (record) { getPhoto(activeCaseId,record.slot).then(function (blob) { if (!blob || caseState.id !== activeCaseId) return; var preview = document.getElementById('photo-preview-' + record.slot); if (!preview) return; var url = URL.createObjectURL(blob); photoUrls[record.slot] = url; preview.innerHTML = '<img src="' + url + '" alt="' + esc(record.name) + '">'; }).catch(function () {}); });
+  }
+
+  function setCanvasPhoto(blob, label) {
+    var url = URL.createObjectURL(blob);
+    photo.onload = function () { document.getElementById('canvas-shell').style.aspectRatio = photo.naturalWidth + ' / ' + photo.naturalHeight; demoBg.style.display = 'none'; photo.style.display = 'block'; URL.revokeObjectURL(url); setStatus((label || 'Fotografía') + ' abierta en el lienzo sin alterar su proporción.'); };
+    photo.src = url;
   }
 
   function upsertCurrentCase() {
@@ -689,14 +730,14 @@
     if (duplicate) {
       var source = caseLibrary[Number(duplicate.dataset.duplicateCase)];
       if (!source) return;
-      caseState = clone(source); caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
+      caseState = clone(source); caseState.id = makeId(); caseState.photos = []; caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
       caseLibrary.unshift(clone(caseState)); persistLibrary(); openCaseAt(0); setStatus('Caso duplicado como ' + caseState.folio + '.'); return;
     }
     var remove = event.target.closest('[data-delete-case]');
     if (remove) {
       var index = Number(remove.dataset.deleteCase), item = caseLibrary[index];
       if (!item || !window.confirm('¿Eliminar el caso ' + item.folio + ' de este dispositivo?')) return;
-      caseLibrary.splice(index, 1); persistLibrary();
+      caseLibrary.splice(index, 1); persistLibrary(); removeCasePhotos(item.id).catch(function () {});
       if (caseState.folio === item.folio) { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); }
       renderLibrary(); setStatus('Caso eliminado de la biblioteca local.');
     }
@@ -714,10 +755,23 @@
     var remove = event.target.closest('[data-delete-revision]');
     if (remove) { var index = Number(remove.dataset.deleteRevision), item = (caseState.revisions || [])[index]; if (!item || !window.confirm('¿Eliminar la versión ' + item.label + '?')) return; caseState.revisions.splice(index,1); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión eliminada del historial del caso.'); }
   });
+  document.getElementById('case-photo-grid').addEventListener('change', function (event) {
+    var input = event.target.closest('[data-photo-input]'), file = input && input.files && input.files[0]; if (!file) return;
+    if (!/^image\//.test(file.type) || file.size > 20 * 1024 * 1024) { input.value = ''; return setStatus('Usa una imagen de hasta 20 MB.'); }
+    var slot = input.dataset.photoInput;
+    storePhoto(slot,file).then(function () { var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }); var metadata = { slot:slot,name:file.name,type:file.type,size:file.size,capturedAt:new Date().toISOString() }; if (index >= 0) records[index] = metadata; else records.push(metadata); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Fotografía guardada en este dispositivo.'); }).catch(function () { setStatus('No se pudo guardar la fotografía en este dispositivo.'); });
+    input.value = '';
+  });
+  document.getElementById('case-photo-grid').addEventListener('click', function (event) {
+    var use = event.target.closest('[data-use-photo]');
+    if (use) { var slot = use.dataset.usePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === slot; }); getPhoto(caseState.id,slot).then(function (blob) { if (!blob) throw new Error(); setCanvasPhoto(blob,definition && definition.label); }).catch(function () { setStatus('La fotografía ya no está disponible en este dispositivo.'); }); return; }
+    var remove = event.target.closest('[data-remove-photo]');
+    if (remove) { var removeSlot = remove.dataset.removePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === removeSlot; }); if (!window.confirm('¿Quitar la fotografía ' + (definition && definition.label) + '?')) return; removePhoto(caseState.id,removeSlot).then(function () { caseState.photos = (caseState.photos || []).filter(function (item) { return item.slot !== removeSlot; }); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Fotografía retirada del expediente local.'); }); }
+  });
   document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
   document.getElementById('load-case').addEventListener('click', function () { var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index < 0) return setStatus('Este folio todavía no está guardado en la biblioteca.'); openCaseAt(index); });
   document.getElementById('export-case').addEventListener('click', function () { readCaseForm(); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var blob = new Blob([JSON.stringify(caseState, null, 2)], {type:'application/json'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '.json'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Paquete del caso exportado sin fotografías ni contenido binario.'); });
-  document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); if (caseLibrary.some(function (item) { return item.folio === caseState.folio; })) caseState.folio = availableFolio(caseState.folio + '-IMPORTADO'); caseState.updatedAt = new Date().toISOString(); caseLibrary.unshift(clone(caseState)); persistLibrary(); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Paquete importado y añadido a la biblioteca.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });
+  document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); caseState.id = makeId(); caseState.photos = []; if (caseLibrary.some(function (item) { return item.folio === caseState.folio; })) caseState.folio = availableFolio(caseState.folio + '-IMPORTADO'); caseState.updatedAt = new Date().toISOString(); caseLibrary.unshift(clone(caseState)); persistLibrary(); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Paquete importado. Sus fotografías no forman parte del JSON.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });
 
   document.getElementById('save-design').addEventListener('click', function () {
     state.updatedAt = new Date().toISOString();
@@ -745,13 +799,7 @@
 
   document.getElementById('photo-input').addEventListener('change', function () {
     var file = this.files && this.files[0]; if (!file) return;
-    var url = URL.createObjectURL(file);
-    photo.onload = function () {
-      document.getElementById('canvas-shell').style.aspectRatio = photo.naturalWidth + ' / ' + photo.naturalHeight;
-      demoBg.style.display = 'none'; photo.style.display = 'block'; URL.revokeObjectURL(url);
-      setStatus('Fotografía abierta sólo en memoria. El lienzo respetó su proporción original.');
-    };
-    photo.src = url; this.value = '';
+    setCanvasPhoto(file,'Fotografía'); this.value = '';
   });
   document.getElementById('clear-photo').addEventListener('click', function () {
     photo.removeAttribute('src'); photo.style.display = 'none'; demoBg.style.display = 'block';
