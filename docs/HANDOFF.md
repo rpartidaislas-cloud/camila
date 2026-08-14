@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: control técnico fotográfico local (etapa 13)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- Cada fotografía nueva se analiza localmente antes de registrarse en el caso:
+  resolución, exposición, contraste y una estimación orientativa de nitidez.
+- El expediente diferencia tomas técnicamente aptas de aquellas que conviene
+  repetir y explica el motivo sin bloquear el resto del flujo clínico.
+- Las fotografías guardadas con versiones anteriores conservan compatibilidad
+  y pueden evaluarse después con el botón `Evaluar`.
+- El resultado técnico queda dentro de los metadatos del caso y se sanea al
+  importar paquetes; la imagen continúa en IndexedDB y no se envía a servicios
+  externos.
+- Validado con imágenes sintéticas: una toma de 200×150 oscura fue advertida,
+  una de 1200×900 con detalle fue aprobada, el diseño móvil mantuvo las tarjetas
+  dentro del viewport y no hubo errores de consola. Es una ayuda de captura,
+  no una validación diagnóstica ni clínica.
+
 ## 2026-08-14 — Codex: captura fotográfica guiada editor-v2 (etapa 12)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`.

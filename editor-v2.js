@@ -97,13 +97,31 @@
   function removePhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').delete(photoKey(caseId,slot)); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
   function removeCasePhotos(caseId) { return Promise.all(PHOTO_SLOTS.map(function (slot) { return removePhoto(caseId,slot.id); })); }
 
-  function photoMetadata(slot, file) { return { slot:slot,name:file.name || (slot + '-' + Date.now() + '.jpg'),type:file.type || 'image/jpeg',size:file.size || 0,capturedAt:new Date().toISOString() }; }
+  function photoMetadata(slot, file, quality) { return { slot:slot,name:file.name || (slot + '-' + Date.now() + '.jpg'),type:file.type || 'image/jpeg',size:file.size || 0,capturedAt:new Date().toISOString(),quality:quality || null }; }
+
+  function analyzePhoto(file) {
+    var load = window.createImageBitmap ? createImageBitmap(file) : new Promise(function (resolve, reject) { var image = new Image(), url = URL.createObjectURL(file); image.onload = function () { URL.revokeObjectURL(url); resolve(image); }; image.onerror = function () { URL.revokeObjectURL(url); reject(new Error('image')); }; image.src = url; });
+    return load.then(function (image) {
+      var width = image.width || image.naturalWidth, height = image.height || image.naturalHeight, sampleWidth = Math.min(240,width), sampleHeight = Math.max(1,Math.round(height * sampleWidth / width));
+      var canvas = document.createElement('canvas'); canvas.width = sampleWidth; canvas.height = sampleHeight; var context = canvas.getContext('2d',{willReadFrequently:true}); context.drawImage(image,0,0,sampleWidth,sampleHeight);
+      var pixels = context.getImageData(0,0,sampleWidth,sampleHeight).data, count = sampleWidth * sampleHeight, sum = 0, sum2 = 0, edge = 0, edgeCount = 0, previousRow = new Float32Array(sampleWidth);
+      for (var y=0;y<sampleHeight;y++) { var previous = 0; for (var x=0;x<sampleWidth;x++) { var offset=(y*sampleWidth+x)*4, gray=.2126*pixels[offset]+.7152*pixels[offset+1]+.0722*pixels[offset+2]; sum+=gray; sum2+=gray*gray; if (x) { edge+=Math.abs(gray-previous); edgeCount++; } if (y) { edge+=Math.abs(gray-previousRow[x]); edgeCount++; } previous=gray; previousRow[x]=gray; } }
+      if (image.close) image.close();
+      var brightness=sum/count, contrast=Math.sqrt(Math.max(0,sum2/count-brightness*brightness)), sharpness=edge/Math.max(1,edgeCount), issues=[];
+      if (width < 960 || height < 720) issues.push('Resolución baja');
+      if (brightness < 55) issues.push('Imagen oscura'); else if (brightness > 210) issues.push('Imagen muy clara');
+      if (contrast < 27) issues.push('Poco contraste');
+      if (sharpness < 7) issues.push('Posible desenfoque');
+      return {status:issues.length ? 'review' : 'ready',width:width,height:height,brightness:Math.round(brightness),contrast:Math.round(contrast),sharpness:Math.round(sharpness*10)/10,issues:issues,checkedAt:new Date().toISOString()};
+    }).catch(function () { return {status:'unknown',width:0,height:0,brightness:0,contrast:0,sharpness:0,issues:['No se pudo evaluar'],checkedAt:new Date().toISOString()}; });
+  }
 
   function saveCasePhoto(slot, file, message) {
-    return storePhoto(slot,file).then(function () {
-      var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }), metadata = photoMetadata(slot,file);
+    return Promise.all([storePhoto(slot,file),analyzePhoto(file)]).then(function (results) {
+      var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }), metadata = photoMetadata(slot,file,results[1]);
       if (index >= 0) records[index] = metadata; else records.push(metadata);
-      upsertCurrentCase(); renderCase(); renderLibrary(); setStatus(message || 'Fotografía guardada en este dispositivo.');
+      var qualityMessage = metadata.quality.status === 'ready' ? 'Control técnico aprobado.' : metadata.quality.status === 'review' ? 'Conviene repetir: ' + metadata.quality.issues.join(', ') + '.' : 'No se pudo completar el control técnico.';
+      upsertCurrentCase(); renderCase(); renderLibrary(); setStatus((message || 'Fotografía guardada en este dispositivo.') + ' ' + qualityMessage);
     });
   }
 
@@ -395,6 +413,11 @@
     renderPhotoRecords();
   }
 
+  function validatePhotoQuality(quality) {
+    if (!quality || ['ready','review','unknown'].indexOf(quality.status) === -1) return null;
+    return {status:quality.status,width:Math.max(0,Number(quality.width)||0),height:Math.max(0,Number(quality.height)||0),brightness:Math.max(0,Number(quality.brightness)||0),contrast:Math.max(0,Number(quality.contrast)||0),sharpness:Math.max(0,Number(quality.sharpness)||0),issues:Array.isArray(quality.issues) ? quality.issues.slice(0,5).map(function (issue) { return String(issue).slice(0,80); }) : [],checkedAt:String(quality.checkedAt||'')};
+  }
+
   function validateCase(candidate) {
     if (!candidate || candidate.schema !== 'smyl.case-package' || candidate.version !== 1) throw new Error('paquete de caso incompatible');
     candidate.id = String(candidate.id || makeId()).slice(0,80);
@@ -403,7 +426,7 @@
     if (!Array.isArray(candidate.files)) candidate.files = [];
     candidate.files = candidate.files.slice(0, 30).map(function (file) { return { name: String(file.name || '').slice(0, 240), type: String(file.type || ''), size: Math.max(0, Number(file.size) || 0), lastModified: Number(file.lastModified) || 0 }; });
     if (!Array.isArray(candidate.photos)) candidate.photos = [];
-    candidate.photos = candidate.photos.filter(function (item) { return PHOTO_SLOTS.some(function (slot) { return slot.id === item.slot; }); }).slice(0, PHOTO_SLOTS.length).map(function (item) { return { slot: String(item.slot), name: String(item.name || '').slice(0,240), type: String(item.type || ''), size: Math.max(0,Number(item.size)||0), capturedAt: String(item.capturedAt || '') }; });
+    candidate.photos = candidate.photos.filter(function (item) { return PHOTO_SLOTS.some(function (slot) { return slot.id === item.slot; }); }).slice(0, PHOTO_SLOTS.length).map(function (item) { return { slot: String(item.slot), name: String(item.name || '').slice(0,240), type: String(item.type || ''), size: Math.max(0,Number(item.size)||0), capturedAt: String(item.capturedAt || ''), quality:validatePhotoQuality(item.quality) }; });
     if (!Array.isArray(candidate.revisions)) candidate.revisions = [];
     candidate.revisions = candidate.revisions.slice(0, 20).map(function (revision, index) { return { id: String(revision.id || ('revision-' + index)), label: String(revision.label || ('Versión ' + (index + 1))).slice(0, 80), createdAt: String(revision.createdAt || ''), design: validate(revision.design) }; });
     if (candidate.design) candidate.design = validate(candidate.design);
@@ -446,10 +469,13 @@
   function renderPhotoRecords() {
     Object.keys(photoUrls).forEach(function (key) { URL.revokeObjectURL(photoUrls[key]); }); photoUrls = {};
     var records = caseState.photos || [], activeCaseId = caseState.id;
-    document.getElementById('photo-progress').textContent = (records.some(function (item) { return item.slot === 'frontal'; }) ? 'Frontal completa' : 'Frontal pendiente') + ' · ' + records.length + ' de ' + PHOTO_SLOTS.length + ' tomas';
+    var frontal = records.find(function (item) { return item.slot === 'frontal'; }), ready = records.filter(function (item) { return item.quality && item.quality.status === 'ready'; }).length;
+    document.getElementById('photo-progress').textContent = (!frontal ? 'Frontal pendiente' : frontal.quality && frontal.quality.status === 'ready' ? 'Frontal técnicamente lista' : 'Frontal por revisar') + ' · ' + records.length + ' de ' + PHOTO_SLOTS.length + ' tomas · ' + ready + ' apta(s)';
     document.getElementById('case-photo-grid').innerHTML = PHOTO_SLOTS.map(function (slot) {
       var record = records.find(function (item) { return item.slot === slot.id; });
-      return '<article class="case-photo-card"><div class="case-photo-preview" id="photo-preview-' + slot.id + '">' + (record ? '⌛' : '＋') + '</div><div class="case-photo-body"><strong>' + esc(slot.label) + (slot.required ? ' <em class="required-tag">Principal</em>' : '') + '</strong><span>' + (record ? esc(record.name) : (slot.guide ? 'Encuadre facial guiado' : 'Registro clínico libre')) + '</span><div class="case-photo-actions">' + (slot.guide ? '<button class="small-btn" type="button" data-open-camera="' + slot.id + '">Cámara</button>' : '') + '<label class="small-btn">Galería<input type="file" accept="image/*" data-photo-input="' + slot.id + '" hidden></label>' + (record ? '<button class="small-btn" type="button" data-use-photo="' + slot.id + '">Usar</button><button class="small-btn danger" type="button" data-remove-photo="' + slot.id + '">Quitar</button>' : '') + '</div></div></article>';
+      var quality = record && record.quality, qualityClass = quality ? quality.status : 'unknown', qualityLabel = !record ? '' : !quality ? 'Sin evaluar' : quality.status === 'ready' ? 'Técnicamente apta' : quality.status === 'review' ? 'Conviene repetir' : 'No evaluada';
+      var detail = !record ? (slot.guide ? 'Encuadre facial guiado' : 'Registro clínico libre') : quality && quality.issues.length ? quality.issues.join(' · ') : quality && quality.width ? quality.width + ' × ' + quality.height + ' px' : record.name;
+      return '<article class="case-photo-card"><div class="case-photo-preview" id="photo-preview-' + slot.id + '">' + (record ? '⌛' : '＋') + '</div><div class="case-photo-body"><strong>' + esc(slot.label) + (slot.required ? ' <em class="required-tag">Principal</em>' : '') + '</strong><span class="quality-detail">' + esc(detail) + '</span>' + (record ? '<span class="photo-quality ' + qualityClass + '">' + qualityLabel + '</span>' : '') + '<div class="case-photo-actions">' + (slot.guide ? '<button class="small-btn" type="button" data-open-camera="' + slot.id + '">Cámara</button>' : '') + '<label class="small-btn">Galería<input type="file" accept="image/*" data-photo-input="' + slot.id + '" hidden></label>' + (record ? (!quality ? '<button class="small-btn" type="button" data-check-photo="' + slot.id + '">Evaluar</button>' : '') + '<button class="small-btn" type="button" data-use-photo="' + slot.id + '">Usar</button><button class="small-btn danger" type="button" data-remove-photo="' + slot.id + '">Quitar</button>' : '') + '</div></div></article>';
     }).join('');
     records.forEach(function (record) { getPhoto(activeCaseId,record.slot).then(function (blob) { if (!blob || caseState.id !== activeCaseId) return; var preview = document.getElementById('photo-preview-' + record.slot); if (!preview) return; var url = URL.createObjectURL(blob); photoUrls[record.slot] = url; preview.innerHTML = '<img src="' + url + '" alt="' + esc(record.name) + '">'; }).catch(function () {}); });
   }
@@ -811,6 +837,8 @@
   document.getElementById('case-photo-grid').addEventListener('click', function (event) {
     var camera = event.target.closest('[data-open-camera]');
     if (camera) { openCamera(camera.dataset.openCamera); return; }
+    var check = event.target.closest('[data-check-photo]');
+    if (check) { var checkSlot = check.dataset.checkPhoto, checkCaseId = caseState.id; setStatus('Evaluando calidad técnica de la fotografía…'); getPhoto(checkCaseId,checkSlot).then(analyzePhoto).then(function (quality) { if (caseState.id !== checkCaseId) return; var record = (caseState.photos || []).find(function (item) { return item.slot === checkSlot; }); if (!record) return; record.quality = quality; upsertCurrentCase(); renderCase(); renderLibrary(); setStatus(quality.status === 'ready' ? 'Fotografía técnicamente apta.' : 'Conviene repetir la fotografía: ' + quality.issues.join(', ') + '.'); }).catch(function () { setStatus('No se pudo evaluar la fotografía.'); }); return; }
     var use = event.target.closest('[data-use-photo]');
     if (use) { var slot = use.dataset.usePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === slot; }); getPhoto(caseState.id,slot).then(function (blob) { if (!blob) throw new Error(); setCanvasPhoto(blob,definition && definition.label); }).catch(function () { setStatus('La fotografía ya no está disponible en este dispositivo.'); }); return; }
     var remove = event.target.closest('[data-remove-photo]');
