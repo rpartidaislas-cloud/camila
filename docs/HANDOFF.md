@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: estabilización UX del simulador (etapa 1)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Se corrigieron los handlers rotos de `Nueva foto` y `Enviar al paciente`.
+- `Nueva foto` confirma antes de reemplazar las tomas; cancelar conserva la
+  simulación visible. Compartir antes de guardar explica el paso requerido y
+  lleva el foco al nombre del paciente.
+- Los errores globales y de generación conservan el detalle técnico en la
+  consola, pero presentan al usuario categorías sencillas (sesión, plan,
+  conexión, espera, fotografía o calidad) sin stack, líneas ni mensajes
+  internos de segmentación.
+- La web muestra de inmediato `Abriendo cámara...` mientras resuelve permisos
+  o prepara el respaldo nativo. La app móvil mantiene su cámara nativa directa,
+  por lo que no incorpora esa espera.
+- Verificado: scripts inline válidos en ambas copias, handlers resueltos, sin
+  espacios inválidos en el diff y carga responsive local a 390×844 sin
+  desbordamiento horizontal. No se llamaron APIs ni se usaron fotos reales.
+- La publicación incluye la cuadrícula de captura build v81 que ya estaba
+  preparada en `simulacion.html`, como base de la siguiente etapa de
+  unificación del flujo fotográfico.
+
 ## 2026-08-14 — Codex: resumen operativo del expediente (etapa 17)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`,

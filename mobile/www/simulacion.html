@@ -611,6 +611,13 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </head>
 <body>
 <div id="flash"></div>
+<div id="app-safe-notice" role="alertdialog" aria-modal="true" aria-labelledby="app-safe-notice-title" aria-describedby="app-safe-notice-detail" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(7,6,14,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px">
+  <div style="width:min(100%,360px);background:#171421;border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.45)">
+    <div id="app-safe-notice-title" style="font-size:17px;font-weight:750;color:#fff;margin-bottom:8px">No pudimos completar la acción</div>
+    <div id="app-safe-notice-detail" style="font-size:13px;line-height:1.55;color:rgba(255,255,255,.68)">Tu avance sigue guardado. Intenta nuevamente.</div>
+    <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
+  </div>
+</div>
 <div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v80 — curva aplicada a carillas</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
@@ -951,7 +958,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
         Generar de nuevo
       </button>
-      <button class="redo-btn" onclick="redo()">
+      <button class="redo-btn" onclick="repetirFotografias()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         Nueva foto
       </button>
@@ -1166,7 +1173,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       </button>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="compartirPaciente()" style="display:flex;align-items:center;justify-content:center;gap:6px;height:44px;border-radius:10px;background:#25D366;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">
+        <button onclick="compartirConPaciente()" style="display:flex;align-items:center;justify-content:center;gap:6px;height:44px;border-radius:10px;background:#25D366;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
           Enviar al paciente
         </button>
@@ -1429,13 +1436,57 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </div>
 
 <script>
+var appSafeNoticePreviousFocus = null;
+function mostrarAvisoAplicacion(titulo, detalle) {
+  var notice = document.getElementById('app-safe-notice');
+  if (!notice) return;
+  appSafeNoticePreviousFocus = document.activeElement;
+  document.getElementById('app-safe-notice-title').textContent = titulo || 'No pudimos completar la acción';
+  document.getElementById('app-safe-notice-detail').textContent = detalle || 'Tu avance sigue guardado. Intenta nuevamente.';
+  notice.style.display = 'flex';
+  var btn = notice.querySelector('button');
+  if (btn) setTimeout(function(){ btn.focus(); }, 0);
+}
+function cerrarAvisoAplicacion() {
+  var notice = document.getElementById('app-safe-notice');
+  if (notice) notice.style.display = 'none';
+  if (appSafeNoticePreviousFocus && appSafeNoticePreviousFocus.focus) appSafeNoticePreviousFocus.focus();
+  appSafeNoticePreviousFocus = null;
+}
+function clasificarErrorParaUsuario(error) {
+  var raw = String(error && error.message ? error.message : error || '').toLowerCase();
+  if (/unauthorized|no autenticado|sesión|session|jwt|token/.test(raw)) {
+    return {titulo:'Tu sesión necesita renovarse', detalle:'Vuelve a iniciar sesión y podrás continuar con tu caso.'};
+  }
+  if (/plan|límite|limite|quota|crédito|credito|saldo|agotad/.test(raw)) {
+    return {titulo:'No hay simulaciones disponibles', detalle:'Revisa el plan de la clínica antes de intentarlo nuevamente.'};
+  }
+  if (/timeout|tardó demasiado|timed out/.test(raw)) {
+    return {titulo:'La respuesta está tardando más de lo esperado', detalle:'La conexión o la demanda pueden retrasar el proceso. Puedes intentarlo nuevamente.'};
+  }
+  if (/load failed|failed to fetch|network|conexión|connection/.test(raw)) {
+    return {titulo:'Se interrumpió la conexión', detalle:'Comprueba tu conexión e inténtalo nuevamente.'};
+  }
+  if (/safety|rejected|rechazad/.test(raw)) {
+    return {titulo:'No pudimos procesar esta fotografía', detalle:'Prueba con otra toma frontal, bien iluminada y sin filtros.'};
+  }
+  if (/control dental|tono desigual|incompleta|segment|correspondencia|sin imagen/.test(raw)) {
+    return {titulo:'La propuesta necesita generarse nuevamente', detalle:'El resultado no alcanzó la calidad necesaria para mostrarse. Tus fotografías siguen guardadas.'};
+  }
+  return {titulo:'No pudimos completar la acción', detalle:'Tu avance sigue guardado. Intenta nuevamente.'};
+}
 window.onerror = function(msg, src, line, col, err) {
-  alert('JS Error:\n' + msg + '\nLine: ' + line + '\n' + (err ? err.stack : ''));
-  return false;
+  console.error('[SMYL] Error de aplicación:', {msg:msg, src:src, line:line, col:col, error:err});
+  var info = clasificarErrorParaUsuario(err || msg);
+  mostrarAvisoAplicacion(info.titulo, info.detalle);
+  return true;
 };
 window.addEventListener('unhandledrejection', function(ev) {
   var r = ev.reason;
-  alert('Promise Error:\n' + (r && r.message ? r.message : r) + (r && r.stack ? '\n' + r.stack : ''));
+  console.error('[SMYL] Promesa rechazada:', r);
+  var info = clasificarErrorParaUsuario(r);
+  mostrarAvisoAplicacion(info.titulo, info.detalle);
+  if (ev.preventDefault) ev.preventDefault();
 });
 
 // ══ CONFIG ══
@@ -3747,13 +3798,8 @@ function registrarDiagnosticoUsado() {
 // conexión a medio fetch (pantalla bloqueada, cambio de wifi a datos,
 // señal débil).
 function mensajeErrorRegenerar(e) {
-  if (e && e.message === 'Load failed') {
-    return 'Se perdió la conexión mientras se generaba — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Ya reintentó automáticamente 2 veces; puedes darle otra vez.';
-  }
-  if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
-    return 'Tardó demasiado: ' + e.message.replace(/^tardó demasiado \(/i, '').replace(/\)\.?\s*Intenta de nuevo\.?$/i, '') + '. Puede pasar con conexiones lentas. Puedes intentar de nuevo.';
-  }
-  return 'No se pudo regenerar: ' + (e && e.message ? e.message : 'error desconocido') + '. Puedes intentar de nuevo.';
+  var info = clasificarErrorParaUsuario(e);
+  return info.detalle + ' Puedes intentarlo nuevamente.';
 }
 
 function mostrarErrorProceso(e) {
@@ -3764,19 +3810,8 @@ function mostrarErrorProceso(e) {
   // simulación dentro de los dientes") o de donde sea. Esconderlos todos
   // detrás de "problema de conexión · reintenta" nos dejó ciegos dos veces
   // seguidas persiguiendo un error que la pantalla nunca dijo cuál era.
-  var esFalloRed = e && (e.message === 'Load failed' ||
-    /failed to fetch|networkerror|network request failed|connection.*lost/i.test(e.message || ''));
-  var msg = 'Hubo un problema de conexión generando tu simulación. Tus fotos siguen guardadas — no hace falta repetirlas, solo reintenta.';
-  if (esFalloRed) {
-    msg = 'Se perdió la conexión mientras se generaba tu simulación — pasa seguido si la pantalla se bloqueó, cambiaste de wifi a datos, o la señal es débil. Tus fotos siguen guardadas, solo dale reintentar.';
-  } else if (e && /timeout|tardó demasiado/i.test(e.message || '')) {
-    // El mensaje real ya trae "tardó demasiado (X)" con el paso exacto que
-    // se tardó -- se muestra tal cual en vez de un genérico "problema de
-    // conexión" para no tener que adivinar cuál de los 3 pasos fue.
-    msg = 'Tardó demasiado: ' + e.message.replace(/^tardó demasiado \(/i, '').replace(/\)\.?\s*Intenta de nuevo\.?$/i, '') + '. Puede pasar con conexiones lentas o mucha demanda. Tus fotos siguen guardadas, solo dale reintentar.';
-  } else if (e && e.message) {
-    msg = e.message + ' Tus fotos siguen guardadas.';
-  }
+  var info = clasificarErrorParaUsuario(e);
+  var msg = info.detalle + (/siguen guardad/i.test(info.detalle) ? '' : ' Tus fotos siguen guardadas; no necesitas repetirlas.');
   // Rastro técnico siempre disponible, aunque el mensaje de arriba sea el
   // genérico -- para no volver a depender de adivinar desde una captura.
   console.error('[SMYL] fallo generando la simulación:', e);
@@ -7627,7 +7662,12 @@ function showCasoGuardado(caso, enNube) {
 
 function compartirConPaciente() {
   var caso = S._casoGuardado;
-  if (!caso) return;
+  if (!caso) {
+    mostrarAvisoAplicacion('Guarda el caso antes de enviarlo', 'Completa el nombre del paciente y pulsa “Guardar caso en panel”. Después podrás enviarlo por WhatsApp.');
+    var nombre = document.getElementById('fn');
+    if (nombre) setTimeout(function(){ nombre.focus(); }, 0);
+    return;
+  }
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
   var hallazgos = (d.hallazgos||[]).map(function(h){return '• '+h.texto;}).join('\n');
@@ -7657,6 +7697,12 @@ function nuevoCaso() {
   S.editorParams = null;
   S.casoId = null; // si no, el siguiente guardado actualizaría el caso del paciente anterior en vez de crear uno nuevo
   show('s-intro');
+}
+
+function repetirFotografias() {
+  var continuar = window.confirm('¿Quieres tomar las fotografías de nuevo? La simulación actual seguirá visible si cancelas.');
+  if (!continuar) return;
+  startCam();
 }
 
 function dl() {
