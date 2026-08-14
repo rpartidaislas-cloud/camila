@@ -324,7 +324,8 @@
     document.getElementById('case-status').value = caseState.status; document.getElementById('case-notes').value = caseState.notes;
     document.getElementById('case-file-list').innerHTML = caseState.files.map(function (file, index) { return '<div class="file-item"><span title="' + esc(file.name) + '">' + esc(file.name) + '<br><small>' + esc(file.type || 'archivo') + ' · ' + Math.ceil(file.size / 1024) + ' KB</small></span><button class="small-btn" type="button" data-remove-file="' + index + '">Quitar</button></div>'; }).join('');
     var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
-    document.getElementById('case-summary').textContent = (caseState.folio || 'Sin folio') + ' · ' + (labels[caseState.status] || 'Borrador') + ' · ' + caseState.files.length + ' archivo(s) · diseño v' + state.version + '.';
+    document.getElementById('case-summary').textContent = (caseState.folio || 'Sin folio') + ' · ' + (labels[caseState.status] || 'Borrador') + ' · ' + caseState.files.length + ' archivo(s) · ' + (caseState.revisions || []).length + ' versión(es) · diseño v' + state.version + '.';
+    renderRevisions();
   }
 
   function validateCase(candidate) {
@@ -333,6 +334,8 @@
     if (['draft','review','approved'].indexOf(candidate.status) === -1) candidate.status = 'draft';
     if (!Array.isArray(candidate.files)) candidate.files = [];
     candidate.files = candidate.files.slice(0, 30).map(function (file) { return { name: String(file.name || '').slice(0, 240), type: String(file.type || ''), size: Math.max(0, Number(file.size) || 0), lastModified: Number(file.lastModified) || 0 }; });
+    if (!Array.isArray(candidate.revisions)) candidate.revisions = [];
+    candidate.revisions = candidate.revisions.slice(0, 20).map(function (revision, index) { return { id: String(revision.id || ('revision-' + index)), label: String(revision.label || ('Versión ' + (index + 1))).slice(0, 80), createdAt: String(revision.createdAt || ''), design: validate(revision.design) }; });
     if (candidate.design) candidate.design = validate(candidate.design);
     return candidate;
   }
@@ -347,7 +350,7 @@
   }
 
   function blankCase() {
-    return { schema: 'smyl.case-package', version: 1, folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
+    return { schema: 'smyl.case-package', version: 1, folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], revisions: [], updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
   }
 
   function loadLibrary() {
@@ -364,6 +367,18 @@
   }
 
   function openCaseAt(index) { var item = caseLibrary[index]; if (!item) return; caseState = clone(item); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' abierto.'); }
+
+  function renderRevisions() {
+    var revisions = caseState.revisions || [];
+    document.getElementById('revision-list').innerHTML = revisions.length ? revisions.map(function (revision, index) { return '<article class="revision-card"><div><strong>' + esc(revision.label) + '</strong><span>' + (revision.createdAt ? new Date(revision.createdAt).toLocaleString() : 'Sin fecha') + '</span></div><small>v' + revision.design.version + '</small><div class="revision-actions"><button class="small-btn" data-restore-revision="' + index + '">Restaurar en lienzo</button><button class="small-btn danger" data-delete-revision="' + index + '">Eliminar</button></div></article>'; }).join('') : '<div class="guide-note">Aún no hay versiones guardadas para este caso.</div>';
+  }
+
+  function upsertCurrentCase() {
+    caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state);
+    var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; });
+    if (index >= 0) caseLibrary[index] = clone(caseState); else caseLibrary.unshift(clone(caseState));
+    persistLibrary(); localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(caseState));
+  }
 
   function requirePhoto() {
     if (!photo.src || !photo.naturalWidth) { setStatus('Abre una fotografía antes de comparar o exportar.'); return false; }
@@ -686,7 +701,20 @@
       renderLibrary(); setStatus('Caso eliminado de la biblioteca local.');
     }
   });
-  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index >= 0) caseLibrary[index] = clone(caseState); else caseLibrary.unshift(clone(caseState)); persistLibrary(); localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(caseState)); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
+  document.getElementById('save-revision').addEventListener('click', function () {
+    readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar una versión.');
+    var input = document.getElementById('revision-label'), revisions = caseState.revisions || (caseState.revisions = []);
+    var label = input.value.trim() || ('Versión ' + (revisions.length + 1));
+    revisions.unshift({ id: 'revision-' + Date.now(), label: label.slice(0,80), createdAt: new Date().toISOString(), design: clone(state) });
+    caseState.revisions = revisions.slice(0,20); input.value = ''; upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión “' + label + '” guardada dentro del caso.');
+  });
+  document.getElementById('revision-list').addEventListener('click', function (event) {
+    var restore = event.target.closest('[data-restore-revision]');
+    if (restore) { var revision = (caseState.revisions || [])[Number(restore.dataset.restoreRevision)]; if (!revision) return; state = validate(clone(revision.design)); resetHistory(); render(); renderCase(); setStatus('Versión “' + revision.label + '” restaurada en el lienzo. Guarda el caso para confirmarla como diseño actual.'); return; }
+    var remove = event.target.closest('[data-delete-revision]');
+    if (remove) { var index = Number(remove.dataset.deleteRevision), item = (caseState.revisions || [])[index]; if (!item || !window.confirm('¿Eliminar la versión ' + item.label + '?')) return; caseState.revisions.splice(index,1); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión eliminada del historial del caso.'); }
+  });
+  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
   document.getElementById('load-case').addEventListener('click', function () { var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index < 0) return setStatus('Este folio todavía no está guardado en la biblioteca.'); openCaseAt(index); });
   document.getElementById('export-case').addEventListener('click', function () { readCaseForm(); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var blob = new Blob([JSON.stringify(caseState, null, 2)], {type:'application/json'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '.json'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Paquete del caso exportado sin fotografías ni contenido binario.'); });
   document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); if (caseLibrary.some(function (item) { return item.folio === caseState.folio; })) caseState.folio = availableFolio(caseState.folio + '-IMPORTADO'); caseState.updatedAt = new Date().toISOString(); caseLibrary.unshift(clone(caseState)); persistLibrary(); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Paquete importado y añadido a la biblioteca.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });
