@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: panel profesional de casos (etapa 16)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- La biblioteca local ahora funciona como panel de trabajo: resume casos
+  totales, en revisión y aprobados, sin migrar ni renombrar expedientes.
+- Se añadieron búsqueda, filtros por estado y tarjetas con paciente, folio,
+  fecha, avance de la ruta, fotografías, versiones y estado clínico.
+- Las acciones existentes de continuar, duplicar, eliminar y crear caso se
+  conservaron sobre el mismo almacenamiento local `smyl.case-library`.
+- El estado activo y los filtros se expresan visualmente sin modificar fotos,
+  simulaciones, prompts ni servicios de IA.
+
 ## 2026-08-14 — Codex: ruta clínica guiada (etapa 15)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`.

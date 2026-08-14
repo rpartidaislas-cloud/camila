@@ -541,11 +541,29 @@
     caseLibrary.sort(function (a, b) { return String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')); });
   }
 
+  function caseInitials(item) {
+    var source = (item.patient || item.folio || 'SM').trim().split(/\s+/).filter(Boolean);
+    return (source.length > 1 ? source.slice(0,2).map(function (part) { return part.charAt(0); }).join('') : source[0].slice(0,2)).toUpperCase() || 'SM';
+  }
+
+  function caseDate(value) {
+    if (!value) return 'Sin actividad';
+    var date = new Date(value), today = new Date();
+    if (date.toDateString() === today.toDateString()) return 'Hoy · ' + date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    return date.toLocaleDateString([], {day:'2-digit',month:'short',year:'numeric'});
+  }
+
   function renderLibrary() {
     var q = document.getElementById('case-search').value.trim().toLowerCase(), filter = document.getElementById('case-filter').value;
     var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
-    var visible = caseLibrary.filter(function (item) { return (filter === 'all' || item.status === filter) && (!q || (item.folio + ' ' + item.patient).toLowerCase().indexOf(q) !== -1); });
-    document.getElementById('case-library').innerHTML = visible.length ? visible.map(function (item) { var index = caseLibrary.indexOf(item); return '<article class="case-card' + (item.folio === caseState.folio ? ' active' : '') + '"><div><strong>' + esc(item.folio || 'Sin folio') + '</strong><span>' + esc(item.patient || 'Sin paciente') + ' · ' + esc(labels[item.status] || 'Borrador') + '</span></div><small>' + (item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Nuevo') + '</small><div class="case-card-actions"><button class="small-btn" data-open-case="' + index + '">Abrir</button><button class="small-btn" data-duplicate-case="' + index + '">Duplicar</button><button class="small-btn danger" data-delete-case="' + index + '">Eliminar</button></div></article>'; }).join('') : '<div class="guide-note">No hay casos que coincidan.</div>';
+    var visible = caseLibrary.filter(function (item) { return (filter === 'all' || item.status === filter) && (!q || ((item.folio || '') + ' ' + (item.patient || '')).toLowerCase().indexOf(q) !== -1); });
+    var reviewCount = caseLibrary.filter(function (item) { return item.status === 'review'; }).length, approvedCount = caseLibrary.filter(function (item) { return item.status === 'approved'; }).length;
+    document.getElementById('case-metrics').innerHTML = '<div class="case-metric"><strong>' + caseLibrary.length + '</strong><span>Total</span></div><div class="case-metric review"><strong>' + reviewCount + '</strong><span>En revisión</span></div><div class="case-metric approved"><strong>' + approvedCount + '</strong><span>Aprobados</span></div>';
+    document.querySelectorAll('[data-case-status]').forEach(function (button) { button.classList.toggle('active', button.dataset.caseStatus === filter); button.setAttribute('aria-pressed', button.dataset.caseStatus === filter ? 'true' : 'false'); });
+    document.getElementById('case-library').innerHTML = visible.length ? visible.map(function (item) {
+      var index = caseLibrary.indexOf(item), workflow = validateWorkflow(item.workflow), progress = Math.round(workflow.completed.length / WORKFLOW_STEPS.length * 100), photos = (item.photos || []).length, revisions = (item.revisions || []).length;
+      return '<article class="case-card' + (item.id === caseState.id ? ' active' : '') + '"><div class="case-avatar" aria-hidden="true">' + esc(caseInitials(item)) + '</div><div class="case-card-copy"><strong>' + esc(item.patient || 'Paciente por identificar') + '</strong><span>' + esc(item.folio || 'Sin folio') + '</span><span>' + esc(caseDate(item.updatedAt)) + '</span></div><em class="case-status ' + esc(item.status) + '">' + esc(labels[item.status] || 'Borrador') + '</em><div class="case-card-meta"><span>' + progress + '% ruta</span><span>' + photos + ' foto' + (photos === 1 ? '' : 's') + '</span><span>' + revisions + ' ' + (revisions === 1 ? 'versión' : 'versiones') + '</span></div><div class="case-progress" aria-label="Avance ' + progress + '%"><i style="width:' + progress + '%"></i></div><div class="case-card-actions"><button class="primary" data-open-case="' + index + '">Continuar</button><button class="small-btn" data-duplicate-case="' + index + '">Duplicar</button><button class="small-btn danger" data-delete-case="' + index + '" aria-label="Eliminar ' + esc(item.folio || 'caso') + '">Eliminar</button></div></article>';
+    }).join('') : '<div class="case-empty"><strong>No hay casos aquí</strong><span>Ajusta la búsqueda, cambia el filtro o crea un expediente nuevo.</span></div>';
   }
 
   function openCaseAt(index) { var item = caseLibrary[index]; if (!item) return; caseState = clone(item); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' abierto.'); }
@@ -929,6 +947,7 @@
   document.getElementById('case-file-list').addEventListener('click', function (event) { var button = event.target.closest('[data-remove-file]'); if (!button) return; caseState.files.splice(Number(button.dataset.removeFile), 1); renderCase(); });
   document.getElementById('case-search').addEventListener('input', renderLibrary);
   document.getElementById('case-filter').addEventListener('change', renderLibrary);
+  document.getElementById('case-filter-tabs').addEventListener('click', function (event) { var button = event.target.closest('[data-case-status]'); if (!button) return; document.getElementById('case-filter').value = button.dataset.caseStatus; renderLibrary(); });
   document.getElementById('new-case').addEventListener('click', function () { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); renderLibrary(); setStatus('Nuevo expediente listo. Guarda el caso para añadirlo a la biblioteca.'); });
   document.getElementById('case-library').addEventListener('click', function (event) {
     var open = event.target.closest('[data-open-case]');
