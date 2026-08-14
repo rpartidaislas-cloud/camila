@@ -53,11 +53,12 @@
   }
 
   var defaultGuides = { incisalCenter: 93.5, incisalArc: 4.5, gingivalCenter: 63.2, gingivalArc: 2.2, red: 70 };
+  var defaultCalibration = { enabled: false, midline: 50, pupilY: 34, pupilTilt: 0, occlusalY: 64, occlusalTilt: 0, alignedAt: '' };
   var state = { schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides), options: { symmetry: false, papillae: false } };
   var drag = null;
   var history = [];
   var historyIndex = -1;
-  var caseState = { schema: 'smyl.case-package', version: 1, id: makeId(), folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], updatedAt: null };
+  var caseState = { schema: 'smyl.case-package', version: 1, id: makeId(), folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), updatedAt: null };
   var caseLibrary = [];
   var mediaDbPromise = null;
   var photoUrls = {};
@@ -278,7 +279,18 @@
     boundaries.push(ordered[ordered.length - 1].x + actualHalfWidth(ordered[ordered.length - 1]));
     var top = Math.min.apply(null, gingivalPoints.map(function (p) { return p.y; })) - 4;
     var bottom = Math.max.apply(null, incisalPoints.map(function (p) { return p.y; })) + 4;
-    var html = '<path class="clinical-curve gingival" d="' + smoothPath(gingivalPoints) + '"></path>' +
+    var calibration = caseState.calibration || defaultCalibration, html = '';
+    if (calibration.enabled) {
+      var pupilDelta = Math.tan(calibration.pupilTilt * Math.PI / 180) * 50;
+      var occlusalDelta = Math.tan(calibration.occlusalTilt * Math.PI / 180) * 50;
+      html += '<line class="facial-guide center" x1="' + calibration.midline + '" y1="0" x2="' + calibration.midline + '" y2="100"></line>' +
+        '<circle class="facial-guide-point center" cx="' + calibration.midline + '" cy="50" r=".9"></circle>' +
+        '<line class="facial-guide pupillary" x1="0" y1="' + (calibration.pupilY - pupilDelta).toFixed(2) + '" x2="100" y2="' + (calibration.pupilY + pupilDelta).toFixed(2) + '"></line>' +
+        '<circle class="facial-guide-point pupillary" cx="50" cy="' + calibration.pupilY + '" r=".8"></circle>' +
+        '<line class="facial-guide occlusal" x1="0" y1="' + (calibration.occlusalY - occlusalDelta).toFixed(2) + '" x2="100" y2="' + (calibration.occlusalY + occlusalDelta).toFixed(2) + '"></line>' +
+        '<circle class="facial-guide-point occlusal" cx="50" cy="' + calibration.occlusalY + '" r=".8"></circle>';
+    }
+    html += '<path class="clinical-curve gingival" d="' + smoothPath(gingivalPoints) + '"></path>' +
       '<path class="clinical-curve incisal" d="' + smoothPath(incisalPoints) + '"></path>';
     gingivalPoints.forEach(function (p) { html += '<circle class="curve-point gingival" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
     incisalPoints.forEach(function (p) { html += '<circle class="curve-point incisal" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
@@ -409,13 +421,30 @@
     document.getElementById('case-file-list').innerHTML = caseState.files.map(function (file, index) { return '<div class="file-item"><span title="' + esc(file.name) + '">' + esc(file.name) + '<br><small>' + esc(file.type || 'archivo') + ' · ' + Math.ceil(file.size / 1024) + ' KB</small></span><button class="small-btn" type="button" data-remove-file="' + index + '">Quitar</button></div>'; }).join('');
     var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
     document.getElementById('case-summary').textContent = (caseState.folio || 'Sin folio') + ' · ' + (labels[caseState.status] || 'Borrador') + ' · ' + caseState.files.length + ' archivo(s) · ' + (caseState.revisions || []).length + ' versión(es) · diseño v' + state.version + '.';
+    renderCalibrationControls();
     renderRevisions();
     renderPhotoRecords();
+  }
+
+  function renderCalibrationControls() {
+    var calibration = caseState.calibration || (caseState.calibration = clone(defaultCalibration));
+    [['face-midline','midline','%'],['pupil-level','pupilY','%'],['pupil-tilt','pupilTilt','°'],['occlusal-level','occlusalY','%'],['occlusal-tilt','occlusalTilt','°']].forEach(function (binding) {
+      var input = document.getElementById(binding[0]), output = document.getElementById(binding[0] + '-output');
+      input.value = calibration[binding[1]]; output.textContent = Number(calibration[binding[1]]).toFixed(1) + binding[2];
+    });
+    var frontal = (caseState.photos || []).find(function (item) { return item.slot === 'frontal'; });
+    var toggle = document.getElementById('calibration-toggle'); toggle.textContent = calibration.enabled ? 'Ocultar guías' : 'Mostrar guías'; toggle.setAttribute('aria-pressed', calibration.enabled ? 'true' : 'false');
+    document.getElementById('calibration-state').textContent = !calibration.enabled ? 'Calibración oculta · abre o usa una fotografía frontal.' : !frontal ? 'Guías visibles · falta cargar la fotografía frontal.' : frontal.quality && frontal.quality.status === 'ready' ? 'Frontal técnicamente apta · ajusta las tres referencias.' : 'Guías visibles · conviene revisar la calidad de la frontal.';
   }
 
   function validatePhotoQuality(quality) {
     if (!quality || ['ready','review','unknown'].indexOf(quality.status) === -1) return null;
     return {status:quality.status,width:Math.max(0,Number(quality.width)||0),height:Math.max(0,Number(quality.height)||0),brightness:Math.max(0,Number(quality.brightness)||0),contrast:Math.max(0,Number(quality.contrast)||0),sharpness:Math.max(0,Number(quality.sharpness)||0),issues:Array.isArray(quality.issues) ? quality.issues.slice(0,5).map(function (issue) { return String(issue).slice(0,80); }) : [],checkedAt:String(quality.checkedAt||'')};
+  }
+
+  function validateCalibration(calibration) {
+    calibration = calibration || {};
+    return {enabled:calibration.enabled === true,midline:clamp(Number(calibration.midline)||50,40,60),pupilY:clamp(Number(calibration.pupilY)||34,18,52),pupilTilt:clamp(Number(calibration.pupilTilt)||0,-8,8),occlusalY:clamp(Number(calibration.occlusalY)||64,48,82),occlusalTilt:clamp(Number(calibration.occlusalTilt)||0,-8,8),alignedAt:String(calibration.alignedAt||'').slice(0,40)};
   }
 
   function validateCase(candidate) {
@@ -427,6 +456,7 @@
     candidate.files = candidate.files.slice(0, 30).map(function (file) { return { name: String(file.name || '').slice(0, 240), type: String(file.type || ''), size: Math.max(0, Number(file.size) || 0), lastModified: Number(file.lastModified) || 0 }; });
     if (!Array.isArray(candidate.photos)) candidate.photos = [];
     candidate.photos = candidate.photos.filter(function (item) { return PHOTO_SLOTS.some(function (slot) { return slot.id === item.slot; }); }).slice(0, PHOTO_SLOTS.length).map(function (item) { return { slot: String(item.slot), name: String(item.name || '').slice(0,240), type: String(item.type || ''), size: Math.max(0,Number(item.size)||0), capturedAt: String(item.capturedAt || ''), quality:validatePhotoQuality(item.quality) }; });
+    candidate.calibration = validateCalibration(candidate.calibration);
     if (!Array.isArray(candidate.revisions)) candidate.revisions = [];
     candidate.revisions = candidate.revisions.slice(0, 20).map(function (revision, index) { return { id: String(revision.id || ('revision-' + index)), label: String(revision.label || ('Versión ' + (index + 1))).slice(0, 80), createdAt: String(revision.createdAt || ''), design: validate(revision.design) }; });
     if (candidate.design) candidate.design = validate(candidate.design);
@@ -443,7 +473,7 @@
   }
 
   function blankCase() {
-    return { schema: 'smyl.case-package', version: 1, id: makeId(), folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
+    return { schema: 'smyl.case-package', version: 1, id: makeId(), folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
   }
 
   function loadLibrary() {
@@ -650,6 +680,37 @@
     mirrorFields(t, ['rotation']); commit();
   });
 
+  [['face-midline','midline'],['pupil-level','pupilY'],['pupil-tilt','pupilTilt'],['occlusal-level','occlusalY'],['occlusal-tilt','occlusalTilt']].forEach(function (binding) {
+    document.getElementById(binding[0]).addEventListener('input', function () {
+      caseState.calibration[binding[1]] = Number(this.value); caseState.calibration.enabled = true;
+      renderGuides(); renderCalibrationControls(); setStatus('Calibración facial ajustada. Guarda el caso para conservarla.');
+    });
+  });
+
+  document.getElementById('calibration-toggle').addEventListener('click', function () {
+    caseState.calibration.enabled = !caseState.calibration.enabled; renderGuides(); renderCalibrationControls();
+    setStatus(caseState.calibration.enabled ? 'Guías de calibración visibles.' : 'Guías de calibración ocultas.');
+  });
+
+  document.getElementById('use-frontal-calibration').addEventListener('click', function () {
+    var frontal = (caseState.photos || []).find(function (item) { return item.slot === 'frontal'; });
+    if (!frontal) return setStatus('Carga primero la fotografía frontal del caso.');
+    var caseId = caseState.id; getPhoto(caseId,'frontal').then(function (blob) {
+      if (!blob || caseState.id !== caseId) throw new Error(); caseState.calibration.enabled = true; setCanvasPhoto(blob,'Frontal sonrisa'); renderGuides(); renderCalibrationControls();
+    }).catch(function () { setStatus('La fotografía frontal ya no está disponible en este dispositivo.'); });
+  });
+
+  document.getElementById('align-design-midline').addEventListener('click', function () {
+    var right = state.teeth.find(function (t) { return t.id === '11'; }), left = state.teeth.find(function (t) { return t.id === '21'; });
+    var currentCenter = (right.x + left.x) / 2, delta = caseState.calibration.midline - currentCenter;
+    state.teeth.forEach(function (t) { t.x = clamp(t.x + delta,5,95); }); caseState.calibration.enabled = true; caseState.calibration.alignedAt = new Date().toISOString();
+    commit('Diseño centrado en la línea media facial sin modificar la fotografía.'); renderCalibrationControls();
+  });
+
+  document.getElementById('reset-calibration').addEventListener('click', function () {
+    caseState.calibration = clone(defaultCalibration); renderGuides(); renderCalibrationControls(); setStatus('Calibración facial restaurada.');
+  });
+
   [
     ['incisal-center', 'incisalCenter'],
     ['incisal-arc', 'incisalArc'],
@@ -802,7 +863,7 @@
     if (duplicate) {
       var source = caseLibrary[Number(duplicate.dataset.duplicateCase)];
       if (!source) return;
-      caseState = clone(source); caseState.id = makeId(); caseState.photos = []; caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
+      caseState = clone(source); caseState.id = makeId(); caseState.photos = []; caseState.calibration = clone(defaultCalibration); caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
       caseLibrary.unshift(clone(caseState)); persistLibrary(); openCaseAt(0); setStatus('Caso duplicado como ' + caseState.folio + '.'); return;
     }
     var remove = event.target.closest('[data-delete-case]');

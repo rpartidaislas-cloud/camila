@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: calibración facial manual (etapa 14)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- Línea media, plano interpupilar y plano oclusal se ajustan sobre la foto intacta.
+- La frontal del caso se recupera desde IndexedDB y el diseño puede centrarse como grupo.
+- Calibración validada, persistente, reversible y compatible con móvil; sin errores de consola.
+- Es una referencia manual orientativa, sin landmarks, segmentación ni diagnóstico.
+
 ## 2026-08-14 — Codex: control técnico fotográfico local (etapa 13)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`.
