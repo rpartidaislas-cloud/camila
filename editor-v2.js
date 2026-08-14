@@ -478,6 +478,7 @@
     document.getElementById('case-file-list').innerHTML = caseState.files.map(function (file, index) { return '<div class="file-item"><span title="' + esc(file.name) + '">' + esc(file.name) + '<br><small>' + esc(file.type || 'archivo') + ' · ' + Math.ceil(file.size / 1024) + ' KB</small></span><button class="small-btn" type="button" data-remove-file="' + index + '">Quitar</button></div>'; }).join('');
     var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
     document.getElementById('case-summary').textContent = (caseState.folio || 'Sin folio') + ' · ' + (labels[caseState.status] || 'Borrador') + ' · ' + caseState.files.length + ' archivo(s) · ' + (caseState.revisions || []).length + ' versión(es) · diseño v' + state.version + '.';
+    renderCaseOverview();
     renderCalibrationControls();
     renderRevisions();
     renderPhotoRecords();
@@ -551,6 +552,18 @@
     var date = new Date(value), today = new Date();
     if (date.toDateString() === today.toDateString()) return 'Hoy · ' + date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     return date.toLocaleDateString([], {day:'2-digit',month:'short',year:'numeric'});
+  }
+
+  function renderCaseOverview() {
+    var workflow = validateWorkflow(caseState.workflow), completed = workflow.completed.length;
+    var nextStep = WORKFLOW_STEPS.find(function (step) { return workflow.completed.indexOf(step) === -1; }) || 'delivery';
+    var photos = caseState.photos || [], readyPhotos = photos.filter(function (item) { return item.quality && item.quality.status === 'ready'; }).length;
+    var labels = { draft:'Borrador', review:'En revisión', approved:'Aprobado' }, pending = [];
+    if (!caseState.patient) pending.push('identificar paciente');
+    if (!photos.some(function (item) { return item.slot === 'frontal'; })) pending.push('capturar frontal');
+    if (!(caseState.revisions || []).length) pending.push('guardar una versión');
+    var alert = pending.length ? 'Pendiente: ' + pending.join(' · ') + '.' : 'Expediente preparado para revisión y entrega.';
+    document.getElementById('case-overview').innerHTML = '<div class="case-overview-head"><div class="case-avatar" aria-hidden="true">' + esc(caseInitials(caseState)) + '</div><div><strong>' + esc(caseState.patient || 'Paciente por identificar') + '</strong><span>' + esc(caseState.folio || 'Sin folio') + ' · ' + esc(caseDate(caseState.updatedAt)) + '</span></div><em class="case-status ' + esc(caseState.status) + '">' + esc(labels[caseState.status] || 'Borrador') + '</em></div><div class="case-overview-stats"><div class="case-overview-stat"><b>' + completed + '/6</b><span>Ruta</span></div><div class="case-overview-stat"><b>' + photos.length + '</b><span>Fotos</span></div><div class="case-overview-stat"><b>' + readyPhotos + '</b><span>Aptas</span></div><div class="case-overview-stat"><b>' + (caseState.revisions || []).length + '</b><span>Versiones</span></div></div><div class="case-overview-next"><div><small>Próxima acción</small><strong>' + esc(WORKFLOW_COPY[nextStep][0]) + '</strong></div><button class="primary" type="button" data-overview-step="' + nextStep + '">Continuar</button></div><div class="case-overview-alert' + (pending.length ? '' : ' ready') + '">' + esc(alert) + '</div>';
   }
 
   function renderLibrary() {
@@ -948,6 +961,7 @@
   document.getElementById('case-search').addEventListener('input', renderLibrary);
   document.getElementById('case-filter').addEventListener('change', renderLibrary);
   document.getElementById('case-filter-tabs').addEventListener('click', function (event) { var button = event.target.closest('[data-case-status]'); if (!button) return; document.getElementById('case-filter').value = button.dataset.caseStatus; renderLibrary(); });
+  document.getElementById('case-overview').addEventListener('click', function (event) { var button = event.target.closest('[data-overview-step]'); if (button) activateWorkflowStep(button.dataset.overviewStep,true); });
   document.getElementById('new-case').addEventListener('click', function () { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); renderLibrary(); setStatus('Nuevo expediente listo. Guarda el caso para añadirlo a la biblioteca.'); });
   document.getElementById('case-library').addEventListener('click', function (event) {
     var open = event.target.closest('[data-open-case]');

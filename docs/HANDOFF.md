@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: resumen operativo del expediente (etapa 17)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`,
+`docs/SIMULACION_AGENT_HARNESS.md`.
+
+- El caso seleccionado muestra paciente, folio, estado, actividad, avance de
+  ruta, fotografías, tomas técnicamente aptas y versiones guardadas.
+- La próxima acción se deriva del primer paso aún no completado y abre
+  directamente su sección existente; no crea una segunda ruta paralela.
+- Los pendientes esenciales se presentan como recordatorios locales sin
+  bloquear ni cambiar el contenido del expediente.
+- Validado con un caso ficticio en 1440×900, 820×1180 y 390×844: la próxima
+  acción abrió fotografía, el resumen permaneció dentro del viewport y no hubo
+  errores de consola.
+- Se documentó un harness para futuras revisiones de `simulacion.html` con
+  Orchestrator, Explorer, Reviewer, Implementer/Fixer y Tester, incluyendo
+  artefactos, puertas de calidad y condiciones de rechazo.
+
 ## 2026-08-14 — Codex: panel profesional de casos (etapa 16)
 
 **Tocado:** `editor-v2.html`, `editor-v2.js`.
