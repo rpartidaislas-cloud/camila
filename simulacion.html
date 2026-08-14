@@ -621,7 +621,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v81 — cuadrícula de captura</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v82 — flujo fotográfico unificado</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -878,12 +878,14 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <div class="cpi" id="cpi-1"></div>
     <div class="cpi" id="cpi-2"></div>
     <div class="cpi" id="cpi-3"></div>
+    <div class="cpi" id="cpi-4"></div>
+    <div class="cpi" id="cpi-5"></div>
   </div>
 
   <!-- Guide text — positioned above oval -->
   <div class="cam-guide" id="cam-guide" style="top:22%">
     <span class="guide-main" id="g-main">Centra tu cara</span>
-    <span class="guide-hint" id="g-hint">Foto 1 de 3 — Vista frontal</span>
+    <span class="guide-hint" id="g-hint">Foto 1 de 6 · Obligatoria</span>
   </div>
 
   <!-- Indicator badges — positioned below oval -->
@@ -894,6 +896,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 
   <!-- Photo saved confirmation -->
   <div class="photo-saved" id="photo-saved">✓ Foto guardada</div>
+
+  <button type="button" id="cam-skip-btn" onclick="saltarFotoIntegrada()" style="display:none;position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:12;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.24);background:rgba(10,8,20,.66);color:#fff;font:650 12px Inter,sans-serif;backdrop-filter:blur(8px);cursor:pointer">Saltar foto opcional</button>
 
   <div class="cam-bottom">
     <button class="cam-side-btn" onclick="flipCam()">
@@ -1884,12 +1888,7 @@ function applyTenantBranding(cfg) {
     var sub = document.querySelector('.intro-sub');
     if (sub) sub.textContent = cfg.bienvenida;
   }
-  if (cfg.protoCount) {
-    VIEWS_COUNT = parseInt(cfg.protoCount) || 3;
-  }
 }
-
-var VIEWS_COUNT = 3;
 
 // Default prices (fallback if not configured in panel)
 var PRECIOS_DEFAULT = [
@@ -1950,17 +1949,22 @@ var S = {
   vitaReturnToResult: false,
 };
 
-// facing: cámara por default para esa foto — 'user' (frontal) para las 3
-// vistas originales, 'environment' (trasera) para las 3 nuevas de
-// documentación clínica, que en la práctica siempre se toman con la trasera.
+// Secuencia única de captura. Solo la frontal es indispensable para generar
+// la simulación rápida; las otras cinco vistas enriquecen el expediente y se
+// pueden omitir sin provocar llamadas adicionales a la IA.
 var VIEWS = [
-  {id:'frontal',label:'Vista Frontal — Sonrisa completa',hint:'Mira al frente, centra tu rostro y muestra todos los dientes.',facing:'user',svg:'frontal',asset:'icons/capture-frontal-v2.webp',imageAlt:'Ejemplo de fotografía frontal sonriendo'},
+  {id:'frontal',label:'Vista Frontal — Sonrisa completa',hint:'Mira al frente, centra tu rostro y muestra todos los dientes.',facing:'user',required:true,svg:'frontal',asset:'icons/capture-frontal-v2.webp',imageAlt:'Ejemplo de fotografía frontal sonriendo'},
   {id:'right',label:'Perfil Derecho — Gira a tu derecha',hint:'Gira la cabeza hacia tu derecha sin inclinarla.',facing:'user',svg:'perfil-der',asset:'icons/capture-right-v2.webp',imageAlt:'Ejemplo de perfil derecho sonriendo'},
   {id:'left',label:'Perfil Izquierdo — Gira a tu izquierda',hint:'Gira la cabeza hacia tu izquierda sin inclinarla.',facing:'user',svg:'perfil-izq',asset:'icons/capture-left-v2.webp',imageAlt:'Ejemplo de perfil izquierdo sonriendo'},
   {id:'tresCuartos',label:'Vista 3/4 — Ángulo de la sonrisa',hint:'Coloca el rostro a 45° y conserva una sonrisa natural.',facing:'environment',svg:'tres-cuartos',asset:'icons/capture-three-quarter-v2.webp',imageAlt:'Ejemplo de vista de tres cuartos sonriendo'},
   {id:'intraoral',label:'Fotografía Intraoral — Dientes de cerca',hint:'Acerca la cámara y encuadra dientes y encías con nitidez.',facing:'environment',svg:'intraoral',asset:'icons/capture-intraoral-v3.webp',imageAlt:'Ejemplo de fotografía intraoral',orientation:'landscape'},
   {id:'extraoral',label:'Fotografía Extraoral — Rostro completo',hint:'Aléjate y encuadra el rostro completo con luz frontal.',facing:'environment',svg:'extraoral',asset:'icons/capture-extraoral-v3.webp',imageAlt:'Ejemplo de fotografía extraoral',orientation:'landscape'},
 ];
+var INTEGRATED_CAPTURE_COUNT = Math.min(4, VIEWS.length);
+
+function vistaEsObligatoria(view) {
+  return !!(view && view.required);
+}
 
 // ══ SCREENS ══
 function show(id) {
@@ -2121,8 +2125,9 @@ function continuarProgreso() {
   } else if (snap.screen === 's-res' && S.result) {
     show('s-res');
     showResult();
-  } else if (S.photos.length >= VIEWS.length) {
-    // Ya tenía todas las fotos pero se salió antes de terminar de generar
+  } else if (S.currentPhoto >= VIEWS.length && S.photos.some(function(p){ return p.view === 'frontal'; })) {
+    // Ya terminó la secuencia (incluyendo vistas opcionales saltadas), pero
+    // salió antes de terminar de generar.
     processPhotos();
   } else {
     show('s-cam-native');
@@ -3021,12 +3026,14 @@ function flipCam() {
 function updatePhotoUI() {
   var view = VIEWS[S.currentPhoto] || VIEWS[0];
   // Progress dots
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < VIEWS.length; i++) {
     var dot = document.getElementById('cpi-' + i);
     if (!dot) continue;
     dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
   }
-  setGuide(view.label, view.hint, false);
+  setGuide(view.label, 'Foto ' + (S.currentPhoto + 1) + ' de ' + VIEWS.length + ' · ' + (vistaEsObligatoria(view) ? 'Obligatoria' : 'Opcional') + ' · ' + view.hint, false);
+  var skip = document.getElementById('cam-skip-btn');
+  if (skip) skip.style.display = vistaEsObligatoria(view) ? 'none' : 'block';
   setupOval();
 }
 
@@ -3510,7 +3517,11 @@ function snap() {
 
   // Next photo or process
   S.currentPhoto++;
-  if (S.currentPhoto < 4) {
+  continuarCapturaIntegrada();
+}
+
+function continuarCapturaIntegrada() {
+  if (S.currentPhoto < INTEGRATED_CAPTURE_COUNT) {
     S.faceOk = false;
     clearTimer();
     var siguiente = VIEWS[S.currentPhoto] || VIEWS[0];
@@ -3529,13 +3540,24 @@ function snap() {
       updatePhotoUI();
       setTimeout(tryFaceDetect, 500);
     }
-  } else {
+  } else if (S.currentPhoto < VIEWS.length) {
     stopStream();
     // Intraoral y extraoral no necesitan cuadrícula y conservan el selector
     // nativo, que ofrece mejor control de enfoque y orientación clínica.
     show('s-cam-native');
     updateNativeCameraUI();
+  } else {
+    stopStream();
+    processPhotos();
   }
+}
+
+function saltarFotoIntegrada() {
+  var view = VIEWS[S.currentPhoto];
+  if (!view || vistaEsObligatoria(view)) return;
+  S.currentPhoto++;
+  saveProgress('s-cam');
+  continuarCapturaIntegrada();
 }
 
 function stopStream() {
@@ -3574,13 +3596,8 @@ function fromGallery(inp) {
     var b64 = await redimensionarFotoB64(e.target.result, 1280, 0.85).catch(function(){ return e.target.result.split(',')[1]; });
     S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
     S.currentPhoto++;
-    if (S.currentPhoto < 3) {
-      updatePhotoUI();
-      setTimeout(tryFaceDetect, 300);
-    } else {
-      stopStream();
-      processPhotos();
-    }
+    inp.value = '';
+    continuarCapturaIntegrada();
   };
   reader.readAsDataURL(inp.files[0]);
 }
@@ -3729,6 +3746,14 @@ document.addEventListener('visibilitychange', function() {
 });
 
 async function processPhotos() {
+  var frontalDisponible = S.photos.some(function(p){ return p.view === 'frontal'; });
+  if (!frontalDisponible) {
+    mostrarAvisoAplicacion('Falta la fotografía frontal', 'La vista frontal es la única foto obligatoria para crear la simulación. Las demás son opcionales.');
+    show('s-cam-native');
+    S.currentPhoto = 0;
+    updateNativeCameraUI();
+    return;
+  }
   // Límite del plan -- antes solo app.html (su propia herramienta de
   // análisis, aparte) hacía cumplir esto; este flujo, que es el que de
   // verdad genera con Claude + OpenAI en cada foto, no tenía ningún tope.
@@ -7963,7 +7988,7 @@ function updateNativeCameraUI() {
   // "Saltar esta foto" no aplica a la frontal -- el resto del flujo la
   // necesita sí o sí (análisis facial + simulación final mostrada).
   var skipBtn = document.getElementById('native-skip-btn');
-  if (skipBtn) skipBtn.style.display = view.id === 'frontal' ? 'none' : '';
+  if (skipBtn) skipBtn.style.display = vistaEsObligatoria(view) ? 'none' : '';
 
   // Progress
   buildNativeProgressDots();
@@ -8180,7 +8205,7 @@ function openInSafari() {
       <img id="native-guide-image" class="native-guide-image" src="icons/capture-frontal-v2.webp" alt="Ejemplo de fotografía frontal sonriendo" onerror="this.style.display='none'">
     </div>
 
-    <div class="native-badge" id="native-step-badge">Foto 1 de 3</div>
+    <div class="native-badge" id="native-step-badge">Foto 1 de 6</div>
     <div class="native-title" id="native-cam-title">Vista Frontal</div>
     <div class="native-sub" id="native-cam-sub">Sonríe mostrando los dientes y centra tu cara</div>
 

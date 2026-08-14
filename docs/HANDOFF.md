@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: flujo fotográfico unificado (etapa 2)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Una sola secuencia define las seis vistas: frontal, derecha, izquierda,
+  tres cuartos, intraoral y extraoral.
+- Solo la frontal es obligatoria para la simulación rápida. Las otras cinco
+  se pueden saltar y permanecen como documentación opcional del expediente.
+- Se eliminaron los contadores heredados de tres y cuatro fotografías; cámara
+  integrada, galería, cámara nativa, reanudación y progreso usan `VIEWS.length`.
+- La captura no llama a la IA por cada fotografía. Al cerrar la secuencia se
+  analiza la frontal y se genera únicamente su simulación; las tomas opcionales
+  quedan guardadas para uso posterior.
+- Se impide iniciar el procesamiento sin una fotografía frontal y se explica
+  al usuario cómo continuar, sin perder el avance.
+
 ## 2026-08-14 — Codex: estabilización UX del simulador (etapa 1)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
