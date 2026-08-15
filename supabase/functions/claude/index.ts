@@ -33,6 +33,26 @@ const GEMINI_IMAGE_MAX_ATTEMPTS = Math.min(
   Math.max(1, Number.parseInt(Deno.env.get("GEMINI_IMAGE_MAX_ATTEMPTS") || "1", 10) || 1),
 );
 
+// GPT Image 2 se mantiene como proveedor experimental y opt-in. No se usa
+// como respaldo automático de Gemini: una acción del usuario equivale a una
+// sola llamada pagada a un proveedor explícito.
+const OPENAI_IMAGE_EXPERIMENT_ENABLED =
+  Deno.env.get("OPENAI_IMAGE_EXPERIMENT_ENABLED") === "true";
+const OPENAI_IMAGE_MODEL =
+  Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2-2026-04-21";
+const OPENAI_IMAGE_TIMEOUT_MS = Math.min(
+  55000,
+  Math.max(15000, Number.parseInt(Deno.env.get("OPENAI_IMAGE_TIMEOUT_MS") || "45000", 10) || 45000),
+);
+
+function base64ABytes(base64: string): Uint8Array {
+  const limpio = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
+  const binario = atob(limpio);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return bytes;
+}
+
 // La plataforma de Supabase mata la función si se pasa de su propio límite
 // de tiempo -- cuando eso pasa, el navegador ve la conexión cortada a medio
 // camino SIN los headers de CORS (porque el proceso murió antes de poder
@@ -91,6 +111,28 @@ Deno.serve(async (req: Request) => {
   const requestReason = typeof body?.requestReason === "string"
     ? body.requestReason.slice(0, 80)
     : (body?.action || "analysis");
+  const imageProvider = body?.imageProvider === "openai" ? "openai" : "gemini";
+
+  // El candidato OpenAI es solo para pruebas internas autenticadas. Esta
+  // validación ocurre ANTES de consumir el límite del plan para que una
+  // configuración apagada o incompleta nunca cobre un intento.
+  if (body?.action === "generate_image" && imageProvider === "openai") {
+    if (!user) {
+      return new Response(JSON.stringify({ error: "La prueba OpenAI requiere una sesión profesional." }), {
+        status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (!OPENAI_IMAGE_EXPERIMENT_ENABLED) {
+      return new Response(JSON.stringify({ error: "La prueba OpenAI no está habilitada." }), {
+        status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (!Deno.env.get("OPENAI_API_KEY")) {
+      return new Response(JSON.stringify({ error: "OPENAI_API_KEY no configurada en Supabase Secrets" }), {
+        status: 500, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+  }
 
   // Tope de gasto server-side -- ver _shared/limits.ts.
   //
@@ -132,19 +174,12 @@ Deno.serve(async (req: Request) => {
     console.log("Llamada de:", user?.id, "-- tenant:", tenantEfectivo, "-- descuenta:", esGeneracionImagen, "-- request:", requestId);
     console.log("Body keys:", Object.keys(body).join(", "));
 
-    // ── GENERAR IMAGEN CON GEMINI ────────────────────────────────────────────
+    // ── GENERAR IMAGEN (GEMINI CONTROL / OPENAI EXPERIMENTAL) ───────────────
     // El prompt (construido en simulacion.html/revision-clinica.html) es el
     // MISMO que se afinó para que funcionara bien con gpt-image-1 -- no se
     // toca, Gemini lo recibe tal cual como el resto del contenido.
     if (body.action === "generate_image") {
       const imageStartedAt = performance.now();
-      const KEY = Deno.env.get("GEMINI_API_KEY");
-      if (!KEY) {
-        return new Response(JSON.stringify({ error: "GEMINI_API_KEY no configurada en Supabase Secrets" }), {
-          headers: { ...CORS, "Content-Type": "application/json" }, status: 500
-        });
-      }
-
       const { imageBase64, mimeType = "image/jpeg", prompt = "Mejora la sonrisa dental con carillas naturales", guideImageBase64 = "", guideMimeType = "image/png" } = body;
       if (!imageBase64) {
         return new Response(JSON.stringify({ error: "imageBase64 requerido" }), {
@@ -152,6 +187,106 @@ Deno.serve(async (req: Request) => {
         });
       }
       marca("después de leer imageBase64 del body");
+
+      if (imageProvider === "openai") {
+        const KEY = Deno.env.get("OPENAI_API_KEY")!;
+        const promptOpenAI = guideImageBase64
+          ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is a geometric incisal-edge control map only. Follow its curve and labeled target points, but never render any map color, line, dot, label or black background. " + prompt
+          : prompt;
+        const form = new FormData();
+        form.append("model", OPENAI_IMAGE_MODEL);
+        form.append("image[]", new Blob([base64ABytes(imageBase64)], { type: mimeType }), "patient-smile.jpg");
+        if (guideImageBase64) {
+          form.append("image[]", new Blob([base64ABytes(guideImageBase64)], { type: guideMimeType }), "incisal-guide.png");
+        }
+        form.append("prompt", promptOpenAI);
+        form.append("quality", "medium");
+        form.append("size", "auto");
+        form.append("output_format", "jpeg");
+        form.append("output_compression", "90");
+
+        console.log(JSON.stringify({
+          event: "image_generation_attempt",
+          requestId,
+          requestReason,
+          provider: "openai",
+          model: OPENAI_IMAGE_MODEL,
+          attempt: 1,
+        }));
+
+        try {
+          const resp = await fetchConTimeout("https://api.openai.com/v1/images/edits", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${KEY}` },
+            body: form,
+          }, OPENAI_IMAGE_TIMEOUT_MS);
+          marca(`después de recibir respuesta de OpenAI (status ${resp.status})`);
+          const providerRequestId = resp.headers.get("x-request-id");
+          const data = await resp.json();
+          if (!resp.ok) {
+            console.warn("OpenAI image edit error:", data?.error?.message || resp.status);
+            return new Response(JSON.stringify({
+              error: data?.error?.message || "OpenAI no pudo generar la imagen.",
+              requestId,
+              providerRequestId,
+            }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+          }
+
+          const generatedBase64 = data?.data?.[0]?.b64_json;
+          if (!generatedBase64) {
+            return new Response(JSON.stringify({
+              error: "OpenAI respondió sin una imagen.", requestId, providerRequestId,
+            }), { status: 502, headers: { ...CORS, "Content-Type": "application/json" } });
+          }
+
+          const elapsedMs = Math.round(performance.now() - imageStartedAt);
+          const usage = data?.usage || null;
+          console.log(JSON.stringify({
+            event: "image_generation_success",
+            requestId,
+            requestReason,
+            provider: "openai",
+            model: OPENAI_IMAGE_MODEL,
+            attempts: 1,
+            elapsedMs,
+            usage,
+            providerRequestId,
+          }));
+          return new Response(JSON.stringify({
+            imageBase64: generatedBase64,
+            mimeType: "image/jpeg",
+            source: "openai",
+            model: OPENAI_IMAGE_MODEL,
+            generation: {
+              requestId,
+              reason: requestReason,
+              provider: "openai",
+              model: OPENAI_IMAGE_MODEL,
+              attempts: 1,
+              attemptLimit: 1,
+              elapsedMs,
+              usage,
+              providerRequestId,
+            },
+          }), { headers: { ...CORS, "Content-Type": "application/json" } });
+        } catch (e: any) {
+          const timeout = e?.name === "AbortError";
+          console.warn("OpenAI image edit excepción:", e?.message || e);
+          return new Response(JSON.stringify({
+            error: timeout
+              ? "OpenAI tardó más del límite experimental. No se realizó un segundo intento."
+              : "No se pudo completar la prueba con OpenAI.",
+            requestId,
+          }), { status: timeout ? 504 : 502, headers: { ...CORS, "Content-Type": "application/json" } });
+        }
+      }
+
+      const KEY = Deno.env.get("GEMINI_API_KEY");
+      if (!KEY) {
+        return new Response(JSON.stringify({ error: "GEMINI_API_KEY no configurada en Supabase Secrets" }), {
+          headers: { ...CORS, "Content-Type": "application/json" }, status: 500
+        });
+      }
 
       // Por defecto sólo se usa el primer modelo: no existen cobros ocultos
       // por reintentos automáticos. Si GEMINI_IMAGE_MAX_ATTEMPTS se configura
