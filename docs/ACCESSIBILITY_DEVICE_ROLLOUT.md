@@ -31,3 +31,25 @@ Bloquean el avance: botón sin feedback, acción inaccesible con teclado/zoom,
 pérdida de fotos, cambio de identidad, desalineación o incremento no explicado
 de costo/error. Cada versión publicada debe registrar SHA, fecha, función Edge
 y versión de caché para poder volver al último estado aprobado.
+
+## Evidencia local — 2026-08-15
+
+Validación por HTTP local de `simulacion.html`, sin fotografías y sin llamadas
+a proveedores de IA:
+
+| Tamaño | Resultado |
+|---|---|
+| 390×844 | Sin desbordamiento horizontal; acceso visible; zoom del navegador habilitado |
+| 820×1180 | Sin desbordamiento horizontal |
+| 1440×900 | Sin desbordamiento horizontal |
+
+- El `viewport` permite escala hasta 5× y conserva `user-scalable=yes`.
+- La interfaz respeta la preferencia de movimiento reducido.
+- La pantalla de acceso expone diálogo, pestañas, campos y acción principal
+  con semántica accesible.
+- No se registraron errores ni advertencias de consola durante la carga y los
+  cambios de tamaño.
+
+Esta evidencia **no sustituye** las pruebas físicas pendientes en Safari/iPhone
+y Chrome/Android: permisos reales, cámara, galería, rotación, retorno desde la
+cámara, captura de los seis pasos y reanudación tras segundo plano.
