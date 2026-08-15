@@ -26,9 +26,12 @@
   attempts; así se puede detectar si una simulación consumió más de un intento
   en el proveedor.
 
-## Comparación futura con OpenAI
+## Comparación controlada con OpenAI
 
-La ruta vigente no cambia todavía de proveedor. La prueba A/B se hará con la
+La ruta vigente no cambia de proveedor. El backend ya acepta una prueba A/B
+interna mediante `imageProvider: "openai"`, pero está desactivada por defecto,
+exige sesión profesional y no aparece en la interfaz del paciente. La prueba
+se hará con la
 misma fotografía, recorte y prescripción clínica:
 
 - **Control:** Gemini actual.
@@ -39,9 +42,13 @@ misma fotografía, recorte y prescripción clínica:
 - **Criterio de decisión:** no migrar por una sola imagen atractiva. Se exige
   un lote de casos representativo y revisión ciega.
 
+El procedimiento, rúbrica, telemetría y rollback están definidos en
+`docs/AI_IMAGE_AB_HARNESS.md`.
+
 Documentación oficial de OpenAI:
 
 - https://developers.openai.com/api/docs/models/gpt-image-2
+- https://developers.openai.com/api/docs/guides/image-generation
 
 La documentación oficial describe GPT Image 2 como el modelo actual de
 generación y edición de imágenes y confirma que admite entrada y salida de

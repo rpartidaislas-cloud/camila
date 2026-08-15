@@ -2142,3 +2142,25 @@ También pendiente de confirmar en vivo: si la política RLS de `camila_casos`
 (que ya exige `auth.uid()`, ver comentario en `CFG` de simulacion.html)
 realmente limita cada dentista a ver solo sus propios casos vía `tenant_id`,
 o si cualquier cuenta logueada puede leer casos de otro tenant.
+## 2026-08-15 — Etapa 7: proveedor de imagen experimental controlado
+
+**Tocado:** `supabase/functions/claude/index.ts`,
+`docs/AI_COST_CONTROL.md`, `docs/AI_IMAGE_AB_HARNESS.md`
+
+- Gemini sigue siendo el proveedor predeterminado de producción.
+- Se añadió GPT Image 2 como candidato explícito mediante
+  `imageProvider: "openai"`, sin fallback ni reintentos automáticos.
+- La ruta candidata exige usuario profesional autenticado, API key y
+  `OPENAI_IMAGE_EXPERIMENT_ENABLED=true`; las validaciones ocurren antes de
+  consumir el límite del plan.
+- El contrato de respuesta mantiene `source`, `model` y telemetría de
+  generación; además registra el `x-request-id` del proveedor cuando existe.
+- El experimento utiliza `/v1/images/edits`, entradas `image[]`, calidad media
+  y un timeout configurable de 45 s (máximo 55 s).
+- Se documentó un harness ciego de 20+ casos, rúbrica clínica, fallos críticos,
+  métricas de costo/latencia y criterios de migración/rollback.
+
+**Importante:** desplegar el código no activa OpenAI. La bandera permanece
+apagada si el Secret no existe. No exponer un selector al paciente.
+
+---
