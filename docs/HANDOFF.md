@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: selección VITA con acción visible (etapa 5)
+
+**Tocado:** simulación web/móvil y caché.
+
+- La selección actual y el botón para continuar aparecen inmediatamente después del carrusel, sin obligar a recorrer comparaciones y opciones avanzadas.
+- El texto del botón se simplificó a `Continuar con este tono` o `Aplicar este tono` según el contexto.
+- El resumen rápido se actualiza al elegir un tono o conservar el tono observado en la fotografía.
+- VITA Classical muestra sus 16 códigos, incorporando A3.5 y C4. Los colores de pantalla siguen siendo ilustrativos, no una medición clínica calibrada.
+
 ## 2026-08-14 — Codex: separación paciente/profesional (etapa 4)
 
 **Tocado:** simulación web/móvil, documentación y caché.
