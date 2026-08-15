@@ -502,6 +502,20 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-vita-stick.selected::before{display:none}
 .ed-remote-pad{background-color:#0d1718;background-image:linear-gradient(rgba(45,212,191,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.045) 1px,transparent 1px);box-shadow:none}
 #ed-btn-regenerar{background:#7667e8!important;border-radius:9px!important;box-shadow:none!important}
+.ed-guide-more{flex:0 0 auto;height:34px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:#171a1f;color:#c8cdd4;font:650 10.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.ed-guide-more.ed-active{background:#242039;border-color:#7667e8;color:#fff}
+.ed-guides-row .ed-guide-add{display:none}
+.ed-guides-row.ed-add-mode .ed-guide-add{display:flex}
+.ed-settings-section{margin:10px 0 0;border:1px solid var(--ed-border);border-radius:10px;background:var(--ed-surface);overflow:hidden}
+.ed-settings-section>summary{position:relative;display:flex;flex-direction:column;gap:3px;padding:13px 38px 13px 13px;list-style:none;cursor:pointer;color:#f3f5f7;font-size:11px;font-weight:750}
+.ed-settings-section>summary::-webkit-details-marker{display:none}
+.ed-settings-section>summary::after{content:'+';position:absolute;right:13px;top:50%;transform:translateY(-50%);color:#9299a3;font-size:18px;font-weight:400}
+.ed-settings-section[open]>summary{border-bottom:1px solid var(--ed-border)}
+.ed-settings-section[open]>summary::after{content:'−'}
+.ed-settings-section>summary small{color:#7f8791;font-size:8.5px;font-weight:500;line-height:1.4}
+.ed-settings-section>*:not(summary){margin-left:12px;margin-right:12px}
+.ed-settings-section>summary+.ed-label,.ed-settings-section>summary+.ed-proportion-card{margin-top:13px}
+.ed-settings-section>.ed-color-row:last-child,.ed-settings-section>.ed-slider-row:last-child,.ed-settings-section>.ed-select:last-child{margin-bottom:13px}
 @media(max-width:819px){
   .ed-panel{max-height:min(52vh,520px);padding:7px 14px calc(env(safe-area-inset-bottom,0px) + 14px);transition:max-height .22s ease;overscroll-behavior:contain}
   .ed-panel-toggle{display:flex;position:sticky;top:-7px;z-index:4;background:#101217}
@@ -1235,7 +1249,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         </button>
         <button class="ed-btn-aplicar" id="ed-btn-aplicar-top" onclick="edAplicarDiseno()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Aplicar diseño
+          Regenerar
         </button>
       </div>
     </div>
@@ -1244,8 +1258,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   <div class="ed-body">
     <div class="ed-center">
       <div class="ed-workspace-head">
-        <div class="ed-workspace-title">Guías de análisis</div>
-        <div class="ed-workspace-copy">Activa sólo las referencias que necesites. Puedes moverlas juntas o por separado.</div>
+        <div class="ed-workspace-title">Guías</div>
+        <div class="ed-workspace-copy">Activa una referencia y ajústala sobre la sonrisa.</div>
       </div>
       <div class="ed-guides-row">
         <div class="ed-line-guide-group">
@@ -1260,6 +1274,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         </div>
         <button class="ed-guide-chip" data-guia="curvaSonrisa" onclick="edGuiaToggle('curvaSonrisa',this)">Curva sonrisa</button>
         <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporciones</button>
+        <button class="ed-guide-more" type="button" aria-expanded="false" onclick="edToggleAgregarGuias(this)">Más guías</button>
         <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">Agrupar guías</button>
       </div>
       <div class="ed-canvas-wrap" id="ed-canvas-wrap">
@@ -1268,10 +1283,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
       </div>
       <div class="ed-canvas-toolbar" aria-label="Herramientas del lienzo">
         <div class="ed-toolbar-group">
-          <span class="ed-toolbar-label">Fotografía</span>
+          <span class="ed-toolbar-label">Vista</span>
           <button type="button" class="ed-photo-toggle" id="ed-photo-toggle" onclick="edAlternarFotoOriginal()">Ver original</button>
           <div class="ed-photo-zoom" aria-label="Zoom de la fotografía">
-          <button type="button" id="ed-photo-pan-btn" onclick="edTogglePanFoto()" aria-label="Mover fotografía ampliada">Mover</button>
+          <button type="button" id="ed-photo-pan-btn" onclick="edTogglePanFoto()" aria-label="Mover fotografía ampliada">Desplazar</button>
           <button type="button" onclick="edZoomFoto(-0.25)" aria-label="Reducir fotografía">−</button>
           <button type="button" class="ed-photo-zoom-value" id="ed-photo-zoom-value" onclick="edRestablecerZoomFoto()" aria-label="Restablecer fotografía al cien por ciento">100%</button>
           <button type="button" onclick="edZoomFoto(0.25)" aria-label="Ampliar fotografía">+</button>
@@ -1304,7 +1319,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-clinical-copy" id="ed-clinical-copy">El análisis aparecerá cuando la fotografía frontal haya sido evaluada.</div>
         <button type="button" class="ed-clinical-apply" id="ed-clinical-apply" onclick="edAplicarRecomendacion()">Usar recomendación en el editor</button>
       </div>
-      <div class="ed-sec-label ed-section-title"><span>Forma y posición</span><small>Alineación, arco, longitud incisal y anatomía general.</small></div>
+      <details class="ed-settings-section" open>
+      <summary><span>Diseño dental</span><small>Forma, posición, arco y tamaño.</small></summary>
       <div class="ed-label">Línea media</div>
       <div class="ed-chip-row">
         <button class="ed-chip" data-group="diseno" data-key="lineaMedia" data-val="izq" onclick="edChipClick('diseno','lineaMedia','izq',this)">◀ Izquierda</button>
@@ -1372,7 +1388,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-slider-head"><span>Tamaño relativo de coronas</span><span id="ed-tamano-lbl">100%</span></div>
         <input type="range" id="ed-tamano" class="ed-range" min="88" max="112" step="1" value="100" data-group="diseno" data-key="tamano" oninput="edSliderInput(this)">
       </div>
-      <div class="ed-sec-label ed-section-title"><span>Proporciones dentales</span><small>Distribución anterior y relación ancho/alto.</small></div>
+      </details>
+      <details class="ed-settings-section">
+      <summary><span>Proporciones dentales</span><small>Distribución anterior y relación ancho/alto.</small></summary>
       <div class="ed-proportion-card">
         <div class="ed-proportion-title">Distribución horizontal anterior</div>
         <div class="ed-proportion-kicker">Controla el ancho aparente de caninos, laterales y centrales en vista frontal.</div>
@@ -1395,7 +1413,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <div class="ed-slider-head"><span>Ancho/alto centrales · referencia 75–80%</span><span id="ed-proporcion-lbl">78%</span></div>
         <input type="range" id="ed-proporcion" class="ed-range" min="70" max="90" step="1" value="78" data-group="diseno" data-key="proporcion" oninput="edSliderInput(this)">
       </div>
-      <div class="ed-sec-label ed-section-title"><span>Color y material</span><small>Tono VITA, textura, brillo y translucidez.</small></div>
+      </details>
+      <details class="ed-settings-section">
+      <summary><span>Color y material</span><small>Tono VITA, textura, brillo y translucidez.</small></summary>
       <div class="ed-label">Caracterización superficial</div>
       <select id="ed-caracterizacion" class="ed-select" data-group="diseno" data-key="caracterizacion" onchange="edSelectChange(this)">
         <option value="natural">Natural equilibrada</option>
@@ -1423,7 +1443,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
         <input type="range" id="ed-opacidad" class="ed-range" min="-2" max="2" step="1" value="0" data-group="diseno" data-key="opacidad" oninput="edSliderInput(this)">
       </div>
 
-      <div class="ed-sec-label ed-section-title"><span>Ajustes avanzados de encía</span><small>Úsalos sólo cuando el caso clínico lo justifique.</small></div>
+      </details>
+      <details class="ed-settings-section">
+      <summary><span>Encía · avanzado</span><small>Úsalo sólo cuando el caso clínico lo justifique.</small></summary>
       <div class="ed-slider-row">
         <div class="ed-slider-head"><span>Nivel gingival</span><span id="ed-nivel-lbl">Sin cambio</span></div>
         <input type="range" id="ed-nivel" class="ed-range" min="-2" max="2" step="1" value="0" data-group="encia" data-key="nivel" oninput="edSliderInput(this)">
@@ -1437,6 +1459,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
           <input type="range" id="ed-colorB" min="0" max="255" value="120" oninput="edColorInput()" style="width:100%;accent-color:#3F8CFF">
         </div>
       </div>
+
+      </details>
 
       <button id="ed-btn-regenerar" onclick="edAplicarDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:linear-gradient(135deg,#7c6af7,#5B47E0);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
@@ -4582,6 +4606,17 @@ function edTogglePanel(forzar) {
     edAplicarZoomFoto();
     redrawEditor();
   }, 240);
+}
+
+function edToggleAgregarGuias(button) {
+  var row = button && button.closest ? button.closest('.ed-guides-row') : document.querySelector('.ed-guides-row');
+  if (!row) return;
+  var active = row.classList.toggle('ed-add-mode');
+  if (button) {
+    button.classList.toggle('ed-active', active);
+    button.setAttribute('aria-expanded', active ? 'true' : 'false');
+    button.textContent = active ? 'Listo' : 'Más guías';
+  }
 }
 
 function edMetodoProporcion() {

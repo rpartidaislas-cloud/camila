@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-15 — Codex: editor por niveles (etapa 6)
+
+**Tocado:** simulación web/móvil y caché.
+
+- El editor conserva todas sus funciones clínicas, pero deja visible primero el
+  diseño dental. Proporciones, color/material y encía avanzada se abren sólo
+  cuando el profesional los necesita.
+- Las guías principales permanecen directas; añadir líneas verticales u
+  horizontales pasa a Más guías, reduciendo la saturación de la barra.
+- Se simplificaron los nombres de acciones: Guías, Vista, Desplazar y
+  Regenerar, sin cambiar IDs, parámetros, zoom, controles táctiles ni llamada
+  de regeneración.
+- Verificado: cuatro secciones y cuatro resúmenes por copia, IDs del editor sin
+  duplicados, controles de agrupación conservados y tres scripts inline válidos
+  tanto en web como en móvil.
+
+
 ## 2026-08-14 — Codex: selección VITA con acción visible (etapa 5)
 
 **Tocado:** simulación web/móvil y caché.
