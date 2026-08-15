@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: separación paciente/profesional (etapa 4)
+
+**Tocado:** simulación web/móvil, documentación y caché.
+
+- El acceso profesional conserva inicio de sesión, editor, revisión clínica y diagnóstico ampliado.
+- El enlace público `?clinica=<id>` usa lenguaje para paciente, pide una frontal obligatoria y presenta las otras cinco vistas como opcionales.
+- Editor, revisión clínica y diagnóstico ampliado quedan ocultos en el enlace público; el paciente conserva el resultado y la solicitud de contacto.
+- Los selectores de dispositivo y la etiqueta de build ya no aparecen en producción. Para revisión interna se habilitan con `?debugUI=1`.
+
 ## 2026-08-14 — Codex: control de costo y telemetría IA (etapa 3)
 
 **Tocado:** simulación web/móvil, función claude, documentación y caché.

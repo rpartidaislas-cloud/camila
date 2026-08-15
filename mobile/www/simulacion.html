@@ -313,7 +313,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 
 /* ── SELECTOR DE VISTAS (solo compu) — celular / tablet / escritorio ── */
 #dp-toggle{display:none;position:fixed;top:16px;right:16px;z-index:100000;gap:4px;padding:4px;border-radius:14px;background:rgba(18,14,30,.92);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(0,0,0,.4)}
-@media(min-width:900px){#dp-toggle{display:flex}}
+@media(min-width:900px){body.debug-ui #dp-toggle{display:flex}}
 .dp-btn{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;border:none;background:transparent;color:rgba(255,255,255,.55);font:600 12px Inter,sans-serif;cursor:pointer;white-space:nowrap}
 .dp-btn:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.06)}
 .dp-btn.active{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff}
@@ -618,7 +618,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v83 — costo IA controlado</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v84 — modos separados</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -636,9 +636,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 <!-- ══ INTRO ══ -->
 <div class="screen" id="s-intro">
   <div class="intro-logo"><img src="icons/smyl_logo.png" alt="SMYL" style="height:42px;width:auto;display:block;margin:0 auto"></div>
-  <div class="intro-tag">Diseño de Sonrisa · IA</div>
-  <div class="intro-title">Descubre tu sonrisa perfecta en 60 segundos</div>
-  <div class="intro-sub">Tomaremos 6 fotos guiadas. La IA analizará tus dientes y generará una simulación + diagnóstico + cotización.</div>
+  <div class="intro-tag" id="intro-mode-tag">Herramienta profesional</div>
+  <div class="intro-title" id="intro-main-title">Crea una simulación de sonrisa</div>
+  <div class="intro-sub" id="intro-main-sub">La foto frontal genera la propuesta. Puedes agregar hasta cinco vistas opcionales para documentar el caso.</div>
 
   <!-- 6 fotos preview -->
   <div class="photo-steps">
@@ -680,9 +680,9 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     </div>
   </div>
 
-  <button class="btn-start" onclick="comenzarFlujoSimulacion()">
+  <button class="btn-start" id="btn-start-simulation" onclick="comenzarFlujoSimulacion()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    Comenzar simulación
+    <span id="btn-start-label">Comenzar caso</span>
   </button>
 
   <!-- Browser warning — shown only if not Safari on iOS -->
@@ -1056,13 +1056,13 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <!-- Acceso al editor morfológico. La pantalla y su lógica ya existían,
          pero no había ningún control visible que llamara a
          abrirEditorDiseno(), por lo que el usuario no podía acceder. -->
-    <button id="btn-editor-diseno" onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:750;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px;box-shadow:0 8px 22px rgba(91,71,224,.24)">
+    <button id="btn-editor-diseno" class="professional-only" onclick="abrirEditorDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:750;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px;box-shadow:0 8px 22px rgba(91,71,224,.24)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/><path d="m15 5 3 3"/></svg>
       Editar diseño de carillas
     </button>
 
     <!-- Revisión clínica avanzada (segmentación real por diente, tonos VITA, medidas) -->
-    <button id="btn-revision-clinica" onclick="abrirRevisionClinica()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
+    <button id="btn-revision-clinica" class="professional-only" onclick="abrirRevisionClinica()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       Revisión clínica avanzada
     </button>
@@ -1070,7 +1070,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <!-- Diagnóstico clínico -- se pide aparte, después de ver la simulación
          (ver renderDiagnostico/solicitarDiagnostico). Analiza siempre la
          foto original ("antes"), nunca la simulación generada. -->
-    <div class="cta-box" id="diag-request-box" style="display:none">
+    <div class="cta-box professional-only" id="diag-request-box" style="display:none">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1636,7 +1636,29 @@ if (sbAuth && sbAuth.auth) {
   });
 }
 
+function configurarExperienciaModo(esProspecto) {
+  var tag = document.getElementById('intro-mode-tag');
+  var title = document.getElementById('intro-main-title');
+  var sub = document.getElementById('intro-main-sub');
+  var start = document.getElementById('btn-start-label');
+  if (esProspecto) {
+    if (tag) tag.textContent = 'Simulación orientativa';
+    if (title) title.textContent = 'Visualiza una propuesta para tu sonrisa';
+    if (sub) sub.textContent = 'Solo necesitas una foto frontal. Las demás vistas son opcionales y ayudan a documentar tu caso.';
+    if (start) start.textContent = 'Tomar foto frontal';
+  } else {
+    if (tag) tag.textContent = 'Herramienta profesional';
+    if (title) title.textContent = 'Crea una simulación de sonrisa';
+    if (sub) sub.textContent = 'La foto frontal genera la propuesta. Puedes agregar hasta cinco vistas opcionales para documentar el caso.';
+    if (start) start.textContent = 'Comenzar caso';
+  }
+  document.querySelectorAll('.professional-only').forEach(function(el) {
+    el.hidden = !!esProspecto;
+  });
+}
+
 function entrarConSesion(uid) {
+  configurarExperienciaModo(false);
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
   actualizarBotonLoginSim();
@@ -1685,6 +1707,7 @@ function pedirSesionParaEntrar() {
 function entrarComoProspecto(tenantId) {
   CFG.tenantId = tenantId;
   CFG.modoProspecto = true;
+  configurarExperienciaModo(true);
   document.getElementById('dentist-login-overlay').style.display = 'none';
   var btn = document.getElementById('sim-login-toggle-btn');
   if (btn) btn.style.display = 'none'; // no hay sesión que iniciar ni cerrar en este modo
@@ -6186,6 +6209,11 @@ function actualizarBotonGenerar() {
 function renderDiagnostico() {
   var reqBox = document.getElementById('diag-request-box');
   var content = document.getElementById('diag-content');
+  if (CFG.modoProspecto) {
+    if (reqBox) reqBox.style.display = 'none';
+    if (content) content.style.display = 'none';
+    return;
+  }
   if (!S.diagnosis) {
     if (reqBox) reqBox.style.display = 'block';
     if (content) content.style.display = 'none';
@@ -8269,6 +8297,10 @@ function openInSafari() {
     tablet: { w: 834, h: 1194, label: 'Tablet · 834 × 1194' }
   };
   var enPreviewIframe = window.self !== window.top || new URLSearchParams(location.search).get('dpPreview') === '1';
+  var debugUi = new URLSearchParams(location.search).get('debugUI') === '1';
+  document.body.classList.toggle('debug-ui', debugUi && !enPreviewIframe);
+  var buildBadge = document.getElementById('debug-build-badge');
+  if (buildBadge && debugUi) buildBadge.style.display = 'block';
 
   window.cambiarVistaPreview = function(modo) {
     if (enPreviewIframe) return;
