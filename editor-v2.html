@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SMYL · Editor paramétrico v2</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090b0d;--panel:#111416;--panel2:#171b1e;--line:#2b3135;--text:#f4f6f7;--muted:#9da6ab;--accent:#7b68ee;--accent2:#35b9df;--ok:#3fc98b;--danger:#ef6a70}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,input{font:inherit}
+    button{color:inherit}
+    .app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+    .topbar{min-height:68px;padding:12px 18px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line);background:#0d1012;position:relative;z-index:5}
+    .brand{font-size:23px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(90deg,#29c4e2,#7456ff);color:transparent;background-clip:text}
+    .titleblock{min-width:0}
+    .titleblock h1{font-size:16px;margin:0 0 3px}.titleblock p{font-size:12px;margin:0;color:var(--muted)}
+    .stage-pill{margin-left:auto;padding:7px 10px;border:1px solid #2d5f4c;border-radius:999px;color:#86e4b9;background:#10251d;font-size:11px;font-weight:700;white-space:nowrap}
+    .workflow-card{padding:13px;margin:0 0 18px;border:1px solid #343b3f;border-radius:14px;background:linear-gradient(145deg,#15191b,#0d1012);box-shadow:0 10px 28px rgba(0,0,0,.18)}
+    .workflow-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:11px}.workflow-head div{min-width:0}.workflow-head h2{margin:0 0 3px;font-size:13px;color:#f2f4f5}.workflow-head p{margin:0;color:var(--muted);font-size:10px;line-height:1.35}.workflow-progress-label{margin-left:auto;color:#9fe3c1;font-size:10px;font-weight:800;white-space:nowrap}
+    .workflow-progress{height:4px;margin-bottom:12px;border-radius:999px;background:#252b2e;overflow:hidden}.workflow-progress i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#38c98c,#7566ef);transition:width .2s ease}
+    .workflow-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.workflow-step{min-width:0;min-height:48px;padding:7px;border:1px solid #2d3438;border-radius:9px;background:#111517;text-align:left;cursor:pointer}.workflow-step b,.workflow-step span{display:block}.workflow-step b{font-size:10px;color:#eef1f2}.workflow-step span{margin-top:3px;color:#758086;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workflow-step.active{border-color:#796af0;background:#19162b}.workflow-step.active b{color:#dcd7ff}.workflow-step.complete{border-color:#286649;background:#10231d}.workflow-step.complete span{color:#88d6b0}.workflow-step.complete span::before{content:"✓ ";font-weight:900}.workflow-step:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    .workflow-current{margin:10px 0 8px;padding:9px;border-radius:9px;background:#0b0f11;color:#b6bec2;font-size:10px;line-height:1.45}.workflow-current strong{display:block;margin-bottom:2px;color:#f1f4f5;font-size:11px}.workflow-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.workflow-actions button:disabled{opacity:.35;cursor:not-allowed}.workflow-target{scroll-margin-top:18px}.workflow-target.workflow-focus{border-color:#4f467f;box-shadow:0 0 0 1px rgba(123,104,238,.18)}
+    .workspace{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
+    .viewer{min-width:0;min-height:560px;position:relative;display:flex;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at center,#21272a 0,#0b0e10 72%);overflow:hidden}
+    .canvas-shell{position:relative;width:min(100%,960px);aspect-ratio:4/3;border:1px solid #3a4247;border-radius:18px;overflow:hidden;background:#151a1d;box-shadow:0 22px 70px rgba(0,0,0,.35)}
+    .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#090b0d;display:none;user-select:none}
+    .demo-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,#6a4740 0 14%,#2a1d1b 15% 23%,#15191b 24% 100%)}
+    .demo-bg::before{content:"Fotografía local opcional";position:absolute;left:50%;top:19%;transform:translateX(-50%);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6e777c}
+    #design-svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;overflow:visible}
+    .tooth{cursor:grab;outline:none}.tooth.dragging{cursor:grabbing}.tooth .shape{fill:url(#enamel);stroke:rgba(255,255,255,.82);stroke-width:.38;vector-effect:non-scaling-stroke;filter:url(#soft-shadow)}
+    .tooth .inner{fill:none;stroke:rgba(188,157,104,.25);stroke-width:.55;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth .incisal-layer{fill:none;stroke:#c7e4e6;stroke-width:2.7;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}.tooth .material-texture{fill:none;stroke:#b59a72;stroke-width:.32;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth .selection{fill:none;stroke:transparent;stroke-width:1.15;stroke-dasharray:2 1.4;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth.selected .selection{stroke:#5fd6f1}.tooth:focus-visible .selection{stroke:#fff}
+    .anchor{display:none;pointer-events:none;vector-effect:non-scaling-stroke}.tooth.selected .anchor{display:block}
+    .tooth-label{font-size:3px;font-weight:800;fill:#061014;paint-order:stroke;stroke:rgba(255,255,255,.86);stroke-width:1.25;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
+    .clinical-curve{fill:none;stroke-width:.7;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+    .clinical-curve.incisal{stroke:#f0b429}.clinical-curve.gingival{stroke:#54d6a0}
+    .curve-point{stroke:#08100d;stroke-width:.35;vector-effect:non-scaling-stroke;pointer-events:none}.curve-point.incisal{fill:#f0b429}.curve-point.gingival{fill:#54d6a0}
+    .proportion-line{stroke:#53f36c;stroke-width:.4;stroke-dasharray:1.6 1;vector-effect:non-scaling-stroke;pointer-events:none}
+    .facial-guide{fill:none;stroke-width:.48;vector-effect:non-scaling-stroke;pointer-events:none}.facial-guide.center{stroke:#fff;stroke-dasharray:2 1.4}.facial-guide.pupillary{stroke:#62d5ff;stroke-dasharray:2.4 1.2}.facial-guide.occlusal{stroke:#f0b429;stroke-dasharray:2.4 1.2}.facial-guide-point{stroke:#071014;stroke-width:.35;vector-effect:non-scaling-stroke;pointer-events:none}.facial-guide-point.center{fill:#fff}.facial-guide-point.pupillary{fill:#62d5ff}.facial-guide-point.occlusal{fill:#f0b429}
+    .guide-label{font-size:2.2px;font-weight:800;fill:#e8edef;paint-order:stroke;stroke:#111;stroke-width:.65;pointer-events:none;text-anchor:middle}
+    .papilla{fill:#ce7380;fill-opacity:.76;stroke:#8f4550;stroke-width:.22;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooth.is-hidden{display:none}
+    .compare-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.compare-actions .primary{grid-column:1/-1}
+    .compare-modal{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,7,.88);backdrop-filter:blur(8px)}.compare-modal.open{display:flex}
+    .compare-card{width:min(1120px,100%);max-height:94vh;overflow:auto;border:1px solid #313a3e;border-radius:18px;background:#111517;padding:16px;box-shadow:0 24px 80px #000}.compare-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}.compare-head h2{margin:0;font-size:17px}.compare-head button{margin-left:auto}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compare-pane{position:relative;border-radius:12px;overflow:hidden;background:#080a0b}.compare-pane img{display:block;width:100%;height:auto}.compare-pane b{position:absolute;left:10px;top:10px;padding:6px 9px;border-radius:999px;background:rgba(5,7,8,.78);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.compare-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}
+    .case-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.case-grid .wide{grid-column:1/-1}.case-field{display:grid;gap:5px}.case-field label{font-size:10px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.06em}.case-field input,.case-field textarea,.case-field select{width:100%;border:1px solid var(--line);border-radius:9px;background:#0b0f11;color:var(--text);padding:9px;font:inherit}.case-field textarea{min-height:72px;resize:vertical}.file-list{display:grid;gap:6px;margin-top:8px}.file-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:#0b0f11}.file-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.file-item small{color:var(--muted);font-size:9px}.case-summary{margin-top:8px;padding:9px;border-radius:9px;background:#0b1110;border:1px solid #244336;color:#a7dfc3;font-size:11px;line-height:1.45}
+    .delivery-options{display:grid;gap:7px;margin-top:10px}.check-row{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid var(--line);border-radius:9px;background:#0b0f11;font-size:10px;color:#b8c0c4;line-height:1.4}.check-row input{margin-top:2px;accent-color:#6d5dfc}.delivery-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.delivery-actions .primary{grid-column:1/-1}
+    .calibration-state{padding:9px;border:1px solid #285163;border-radius:9px;background:#0d1d24;color:#a8def1;font-size:10px;line-height:1.45;margin:8px 0}.calibration-key{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 10px;color:#9ca6aa;font-size:9px}.calibration-key i{display:inline-block;width:13px;height:2px;margin-right:4px;vertical-align:middle}.calibration-key .mid i{background:#fff}.calibration-key .pupil i{background:#62d5ff}.calibration-key .occlusal i{background:#f0b429}
+    .library-heading{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}.library-heading div{min-width:0}.library-heading h2{margin-bottom:3px}.library-heading p{margin:0;color:var(--muted);font-size:10px;line-height:1.35}.library-heading button{margin-left:auto;white-space:nowrap}
+    .case-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}.case-metric{padding:8px;border:1px solid #2a3135;border-radius:9px;background:#0b0f11}.case-metric strong,.case-metric span{display:block}.case-metric strong{font-size:16px;line-height:1;color:#f4f6f7}.case-metric span{margin-top:4px;color:#818b90;font-size:8px;text-transform:uppercase;letter-spacing:.05em}.case-metric.review strong{color:#f0c76c}.case-metric.approved strong{color:#7fddb2}
+    .library-tools{display:grid;grid-template-columns:1fr 104px;gap:7px;margin-bottom:8px}.library-tools input,.library-tools select,.revision-create input{width:100%;border:1px solid var(--line);border-radius:9px;background:#0b0f11;color:var(--text);padding:9px;font:inherit}.case-filter-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:9px}.case-filter-tab{min-width:0;padding:7px 3px;border:1px solid #293034;border-radius:8px;background:#101416;color:#8c969b;font-size:8px;font-weight:800;cursor:pointer}.case-filter-tab.active{border-color:#6458c8;background:#19162b;color:#e1ddff}
+    .case-library,.revision-list{display:grid;gap:8px;max-height:430px;overflow:auto;padding-right:2px}.case-card,.revision-card{display:grid;grid-template-columns:38px 1fr auto;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0b0f11}.case-card.active{border-color:#6d5dfc;background:#15122a;box-shadow:inset 3px 0 #7868ee}.case-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(145deg,#243037,#121719);color:#bfeaf3;font-size:11px;font-weight:900;letter-spacing:.03em}.case-card.active .case-avatar{background:linear-gradient(145deg,#5145a8,#1f1a3b);color:#fff}.case-card-copy{min-width:0}.case-card strong,.case-card span,.revision-card strong,.revision-card span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.case-card strong{font-size:11px}.case-card span,.revision-card span{color:var(--muted);font-size:9px;margin-top:3px}.case-status{align-self:start;padding:4px 6px;border:1px solid #394146;border-radius:999px;color:#aeb6ba;font-size:7px;font-style:normal;font-weight:850;text-transform:uppercase;letter-spacing:.04em}.case-status.review{border-color:#705923;background:#261f11;color:#edc875}.case-status.approved{border-color:#286649;background:#10271f;color:#8ce2ba}.case-card-meta{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.case-card-meta span{padding:5px 6px;border-radius:7px;background:#121719;text-align:center;font-size:8px}.case-progress{grid-column:1/-1;height:3px;border-radius:999px;background:#242b2e;overflow:hidden}.case-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#38c98c,#7566ef)}.case-card-actions,.revision-actions{display:grid;grid-template-columns:1.25fr 1fr auto;gap:5px;grid-column:1/-1}.case-card-actions button,.revision-actions button{padding:7px 5px;font-size:8px}.case-empty{padding:22px 14px;border:1px dashed #343c40;border-radius:12px;background:#0b0f11;text-align:center}.case-empty strong,.case-empty span{display:block}.case-empty strong{font-size:12px}.case-empty span{margin-top:5px;color:var(--muted);font-size:9px;line-height:1.4}.revision-card{grid-template-columns:1fr auto}.revision-create{display:grid;grid-template-columns:1fr auto;gap:7px;margin:9px 0}.revision-actions{grid-template-columns:1fr auto}
+    .case-overview{margin-top:10px;padding:11px;border:1px solid #30383c;border-radius:13px;background:linear-gradient(145deg,#121719,#0a0d0f)}.case-overview-head{display:flex;align-items:flex-start;gap:9px}.case-overview-head>div{min-width:0}.case-overview-head strong,.case-overview-head span{display:block}.case-overview-head strong{font-size:12px}.case-overview-head span{margin-top:3px;color:var(--muted);font-size:9px}.case-overview-head .case-status{margin-left:auto}.case-overview-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px}.case-overview-stat{padding:7px 4px;border-radius:8px;background:#0b0f11;text-align:center}.case-overview-stat b,.case-overview-stat span{display:block}.case-overview-stat b{font-size:11px}.case-overview-stat span{margin-top:3px;color:#7f898e;font-size:7px;text-transform:uppercase}.case-overview-next{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:9px;padding:9px;border:1px solid #302a57;border-radius:9px;background:#161329}.case-overview-next small,.case-overview-next strong{display:block}.case-overview-next small{color:#9d95d6;font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.case-overview-next strong{margin-top:3px;font-size:10px}.case-overview-next button{white-space:nowrap}.case-overview-alert{margin-top:8px;color:#d5b971;font-size:8px;line-height:1.4}.case-overview-alert.ready{color:#86dcb5}
+    .photo-progress{padding:9px;border:1px solid #244336;border-radius:9px;background:#0b1110;color:#a7dfc3;font-size:10px;margin-bottom:8px}.case-photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.case-photo-card{position:relative;min-width:0;border:1px solid var(--line);border-radius:10px;background:#0b0f11;overflow:hidden}.case-photo-preview{aspect-ratio:4/3;display:grid;place-items:center;background:linear-gradient(145deg,#151a1d,#090b0c);color:#566066;font-size:24px;overflow:hidden}.case-photo-preview img{width:100%;height:100%;object-fit:cover}.case-photo-body{padding:8px}.case-photo-body strong,.case-photo-body span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.case-photo-body strong{font-size:10px}.case-photo-body span{font-size:9px;color:var(--muted);margin-top:3px}.case-photo-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.case-photo-actions .small-btn{flex:1 1 58px;padding:6px;font-size:9px;text-align:center;cursor:pointer}.required-tag{color:#f0b429;font-size:8px;text-transform:uppercase;letter-spacing:.06em}.photo-quality{display:inline-flex!important;width:auto;max-width:100%;margin-top:6px!important;padding:4px 6px;border-radius:999px;border:1px solid #394146;font-size:8px!important;font-weight:800;letter-spacing:.03em}.photo-quality.ready{border-color:#286649;background:#10271f;color:#8ce2ba}.photo-quality.review{border-color:#795b22;background:#2a2110;color:#f2cd72}.photo-quality.unknown{color:#aeb6ba}.quality-detail{white-space:normal!important;line-height:1.35;min-height:24px}.quality-note{margin:8px 0 0;color:#798287;font-size:9px;line-height:1.45}
+    .camera-modal{position:fixed;inset:0;z-index:40;display:none;background:#050607;color:#fff}.camera-modal.open{display:grid;grid-template-rows:auto 1fr auto}.camera-head{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#0b0e10;border-bottom:1px solid #252b2e}.camera-head div{min-width:0}.camera-head strong,.camera-head span{display:block}.camera-head strong{font-size:15px}.camera-head span{margin-top:3px;color:#aab3b7;font-size:11px}.camera-head button{margin-left:auto}.camera-stage{position:relative;min-height:0;overflow:hidden;background:#000}.camera-stage video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}.camera-guide{position:absolute;inset:0;pointer-events:none}.camera-guide i{position:absolute;display:block;background:rgba(220,231,75,.72);box-shadow:0 0 0 .4px rgba(0,0,0,.32)}.camera-guide .v1{left:33.333%;top:0;bottom:0;width:1px}.camera-guide .v2{left:66.666%;top:0;bottom:0;width:1px}.camera-guide .h1{top:33.333%;left:0;right:0;height:1px}.camera-guide .h2{top:66.666%;left:0;right:0;height:1px}.camera-guide::after{content:"";position:absolute;left:50%;top:50%;width:min(53vw,360px);height:min(67vh,500px);transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.52);border-radius:48% 48% 44% 44%;opacity:.72}.camera-guide.profile::after{left:53%;width:min(46vw,310px)}.camera-guide.profile-left::after{left:47%}.camera-guide.three-quarter::after{left:52%;width:min(50vw,335px);transform:translate(-50%,-50%) rotate(-2deg)}.camera-direction{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(90%,470px);padding:9px 12px;border-radius:999px;background:rgba(5,7,8,.76);text-align:center;font-size:11px;line-height:1.35;backdrop-filter:blur(7px)}.camera-foot{padding:14px 16px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 72px 1fr;align-items:center;gap:14px;background:#0b0e10;border-top:1px solid #252b2e}.camera-foot .camera-capture{width:70px;height:70px;border-radius:50%;border:5px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #0b0e10;cursor:pointer}.camera-foot small{color:#9aa4a9;font-size:10px;line-height:1.35}.camera-foot small:last-child{text-align:right}.camera-error{position:absolute;inset:0;display:none;place-items:center;padding:30px;background:#0b0e10;text-align:center;color:#d5dade}.camera-error.show{display:grid}.camera-error strong{display:block;margin-bottom:8px}.camera-error span{display:block;max-width:380px;color:#9da6ab;font-size:12px;line-height:1.5}
+    .empty-hint{position:absolute;left:18px;bottom:16px;padding:9px 12px;border-radius:10px;background:rgba(7,9,10,.82);color:#bcc5c9;font-size:12px;pointer-events:none}
+    .photo-actions{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:2}
+    .photo-btn,.small-btn,.primary{border:1px solid var(--line);background:rgba(13,16,18,.9);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer}
+    .photo-btn:hover,.small-btn:hover{border-color:#586168}.photo-btn input{display:none}
+    .sidebar{min-height:0;border-left:1px solid var(--line);background:var(--panel);padding:18px;overflow:auto}
+    .section{padding:0 0 20px;margin:0 0 20px;border-bottom:1px solid var(--line)}.section:last-child{border:0;margin:0}
+    .section h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px;color:#c6cdd0}
+    .teeth-list{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+    .tooth-select{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:12px;font-weight:800;cursor:pointer}
+    .tooth-select.active{border-color:var(--accent2);background:#15313a;color:#8ee6f7}.tooth-select.modified::after{content:"";display:block;width:4px;height:4px;margin:3px auto 0;border-radius:50%;background:var(--ok)}
+    .selected-meta{display:flex;align-items:center;justify-content:space-between;margin:12px 0;color:var(--muted);font-size:12px}.selected-meta strong{color:var(--text);font-size:14px}
+    .control{margin:14px 0}.control-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;font-size:12px;color:var(--muted)}.control output{color:#dcd7ff;font-weight:700}
+    .guide-note{margin:-2px 0 12px;color:var(--muted);font-size:11px;line-height:1.45}
+    .guide-key{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:11px;color:var(--muted)}.guide-key span{display:flex;align-items:center;gap:5px}.guide-key i{width:14px;height:2px;border-radius:2px;background:currentColor}
+    .shape-options{display:grid;grid-template-columns:1fr;gap:7px}.shape-option{min-height:46px;padding:8px 10px;display:grid;grid-template-columns:36px 1fr;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.shape-option svg{width:30px;height:32px;justify-self:center}.shape-option path{fill:#e9dfc8;stroke:#fff;stroke-width:.7}.shape-option strong{display:block;font-size:12px}.shape-option small{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.3}.shape-option.active{border-color:var(--accent2);background:#15313a}.shape-option.active small{color:#a9dce7}
+    .vita-options{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.vita-option{min-height:48px;padding:5px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:800}.vita-option i{display:block;width:20px;height:25px;margin:0 auto 3px;border:1px solid rgba(255,255,255,.55);border-radius:6px 6px 8px 8px;background:var(--shade)}.vita-option.active{border-color:var(--accent2);background:#15313a;color:#9ee8f6}
+    .texture-options{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.texture-option{min-height:40px;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:750}.texture-option.active{border-color:var(--accent2);background:#15313a;color:#9ee8f6}
+    .tool-toggles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.tool-toggle{min-height:42px;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer;font-size:10px;font-weight:750}.tool-toggle.active{border-color:#3e8d70;background:#10271f;color:#8ce2ba}.history-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}.history-row button:disabled{opacity:.35;cursor:not-allowed}
+    input[type=range]{width:100%;accent-color:var(--accent)}
+    .nudge-grid{display:grid;grid-template-columns:repeat(3,42px);justify-content:center;gap:5px;margin:12px auto}.nudge-grid button{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}.nudge-grid .blank{visibility:hidden}
+    .row{display:flex;gap:8px}.row>*{flex:1}.primary{border-color:#6d5de1;background:var(--accent);color:#fff}.danger{color:#ffadb1}
+    .status{min-height:38px;padding:10px 12px;border-radius:10px;background:#0c1212;color:#9bdcbd;border:1px solid #203a30;font-size:12px;line-height:1.4}
+    .schema{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;color:#778187;margin-top:10px}
+    @media(max-width:820px){.topbar{min-height:62px;padding:10px 12px}.titleblock p{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:auto auto}.viewer{min-height:0;padding:10px;align-items:start}.canvas-shell{width:100%;border-radius:12px}.sidebar{overflow:visible;border-left:0;border-top:1px solid var(--line);padding:15px}.stage-pill{font-size:9px}.empty-hint{max-width:70%}.compare-modal{padding:8px}.compare-card{padding:10px}.compare-grid{grid-template-columns:1fr}.compare-foot{display:grid;grid-template-columns:1fr 1fr}.workflow-card{position:relative;margin-bottom:15px}.workflow-steps{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand">smyl</div>
+    <div class="titleblock"><h1>Editor paramétrico</h1><p>Prototipo aislado · seis carillas superiores</p></div>
+    <div class="stage-pill">ETAPA 17 · RESUMEN DEL EXPEDIENTE</div>
+  </header>
+  <div class="workspace">
+    <section class="viewer" aria-label="Lienzo de diseño">
+      <div class="canvas-shell" id="canvas-shell">
+        <div class="demo-bg" id="demo-bg"></div>
+        <img class="photo" id="patient-photo" alt="Fotografía local del paciente">
+        <div class="photo-actions">
+          <label class="photo-btn">Abrir fotografía<input id="photo-input" type="file" accept="image/*"></label>
+          <button class="photo-btn" id="clear-photo" type="button">Quitar</button>
+        </div>
+        <svg id="design-svg" viewBox="0 0 100 100" preserveAspectRatio="none" role="application" aria-label="Carillas editables">
+          <defs>
+            <linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf4"/><stop offset=".52" stop-color="#efe6cf"/><stop offset="1" stop-color="#d4c29f"/></linearGradient>
+            <filter id="soft-shadow" x="-40%" y="-30%" width="180%" height="190%"><feDropShadow dx="0" dy=".75" stdDeviation=".8" flood-color="#000" flood-opacity=".42"/></filter>
+          </defs>
+          <g id="guides-layer"></g>
+          <g id="teeth-layer"></g>
+        </svg>
+        <div class="empty-hint">Arrastra una carilla. Usa los controles para cambiar ancho, altura y rotación.</div>
+      </div>
+    </section>
+    <aside class="sidebar">
+      <nav class="workflow-card" aria-label="Ruta clínica guiada">
+        <div class="workflow-head"><div><h2>Ruta del caso</h2><p>Avanza con orden sin perder acceso a ninguna herramienta.</p></div><span class="workflow-progress-label" id="workflow-progress-label">0 de 6</span></div>
+        <div class="workflow-progress" aria-hidden="true"><i id="workflow-progress-bar"></i></div>
+        <div class="workflow-steps" id="workflow-steps">
+          <button class="workflow-step" type="button" data-workflow-step="case"><b>1 · Caso</b><span>Identificación</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="photo"><b>2 · Fotografía</b><span>Frontal principal</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="calibration"><b>3 · Calibración</b><span>Referencias faciales</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="design"><b>4 · Diseño</b><span>Forma y material</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="review"><b>5 · Revisión</b><span>Guardar versión</span></button>
+          <button class="workflow-step" type="button" data-workflow-step="delivery"><b>6 · Entrega</b><span>Presentar resultado</span></button>
+        </div>
+        <div class="workflow-current" id="workflow-current"><strong>Caso</strong>Completa el expediente para iniciar.</div>
+        <div class="workflow-actions"><button class="small-btn" id="workflow-previous" type="button">Anterior</button><button class="primary" id="workflow-next" type="button">Siguiente</button></div>
+      </nav>
+      <section class="section workflow-target" id="workflow-calibration">
+        <h2>Calibración facial</h2>
+        <p class="guide-note">Alinea manualmente la fotografía frontal antes de diseñar. No modifica ni recorta la imagen.</p>
+        <div class="calibration-key"><span class="mid"><i></i>Línea media</span><span class="pupil"><i></i>Interpupilar</span><span class="occlusal"><i></i>Plano oclusal</span></div>
+        <div class="calibration-state" id="calibration-state">Calibración oculta · abre o usa una fotografía frontal.</div>
+        <div class="row"><button class="primary" id="use-frontal-calibration" type="button">Usar frontal</button><button class="small-btn" id="calibration-toggle" type="button">Mostrar guías</button></div>
+        <div class="control"><div class="control-head"><label for="face-midline">Línea media facial</label><output id="face-midline-output"></output></div><input id="face-midline" type="range" min="40" max="60" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="pupil-level">Nivel interpupilar</label><output id="pupil-level-output"></output></div><input id="pupil-level" type="range" min="18" max="52" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="pupil-tilt">Inclinación interpupilar</label><output id="pupil-tilt-output"></output></div><input id="pupil-tilt" type="range" min="-8" max="8" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="occlusal-level">Nivel del plano oclusal</label><output id="occlusal-level-output"></output></div><input id="occlusal-level" type="range" min="48" max="82" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="occlusal-tilt">Inclinación oclusal</label><output id="occlusal-tilt-output"></output></div><input id="occlusal-tilt" type="range" min="-8" max="8" step="0.1"></div>
+        <div class="row"><button class="primary" id="align-design-midline" type="button">Centrar diseño</button><button class="small-btn" id="reset-calibration" type="button">Restaurar</button></div>
+        <p class="quality-note">Referencia manual orientativa. La calibración no detecta landmarks ni sustituye el análisis clínico.</p>
+      </section>
+      <section class="section workflow-target" id="workflow-design">
+        <h2>Guías clínicas</h2>
+        <div class="guide-key"><span style="color:#f0b429"><i></i>Incisal</span><span style="color:#54d6a0"><i></i>Gingival</span><span style="color:#53f36c"><i></i>Proporciones</span></div>
+        <p class="guide-note">Las curvas modifican las seis coronas. La fotografía permanece intacta.</p>
+        <div class="control"><div class="control-head"><label for="incisal-center">Altura incisal central</label><output id="incisal-center-output"></output></div><input id="incisal-center" type="range" min="82" max="98" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="incisal-arc">Profundidad del arco</label><output id="incisal-arc-output"></output></div><input id="incisal-arc" type="range" min="0" max="10" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="gingival-center">Altura gingival central</label><output id="gingival-center-output"></output></div><input id="gingival-center" type="range" min="48" max="75" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="gingival-arc">Arco gingival</label><output id="gingival-arc-output"></output></div><input id="gingival-arc" type="range" min="-5" max="5" step="0.1"></div>
+        <div class="control"><div class="control-head"><label for="red-control">Proporción RED</label><output id="red-output"></output></div><input id="red-control" type="range" min="62" max="80" step="1"></div>
+        <div class="row"><button class="primary" id="apply-red" type="button">Aplicar RED</button><button class="small-btn" id="reset-guides" type="button">Restaurar guías</button></div>
+      </section>
+      <section class="section">
+        <h2>Pieza activa</h2>
+        <div class="teeth-list" id="teeth-list"></div>
+        <div class="selected-meta"><span>Seleccionada</span><strong id="selected-name">11 · Central</strong></div>
+        <div class="history-row"><button class="small-btn" id="undo-design" type="button">Deshacer</button><button class="small-btn" id="redo-design" type="button">Rehacer</button></div>
+        <div class="tool-toggles"><button class="tool-toggle" id="symmetry-toggle" type="button">Simetría</button><button class="tool-toggle" id="visibility-toggle" type="button">Ocultar pieza</button><button class="tool-toggle" id="papillae-toggle" type="button">Papilas</button></div>
+        <div class="nudge-grid" aria-label="Movimiento preciso">
+          <span class="blank"></span><button type="button" data-nudge="0,-0.25" aria-label="Mover arriba">↑</button><span class="blank"></span>
+          <button type="button" data-nudge="-0.25,0" aria-label="Mover izquierda">←</button><button type="button" data-nudge="0,0" aria-label="Centrar selección">•</button><button type="button" data-nudge="0.25,0" aria-label="Mover derecha">→</button>
+          <span class="blank"></span><button type="button" data-nudge="0,0.25" aria-label="Mover abajo">↓</button><span class="blank"></span>
+        </div>
+        <div class="control"><div class="control-head"><label for="width-control">Ancho</label><output id="width-output"></output></div><input id="width-control" type="range" min="65" max="140" step="1"></div>
+        <div class="control"><div class="control-head"><label for="height-control">Altura incisal</label><output id="height-output"></output></div><input id="height-control" type="range" min="70" max="135" step="1"></div>
+        <div class="control"><div class="control-head"><label for="rotation-control">Rotación</label><output id="rotation-output"></output></div><input id="rotation-control" type="range" min="-15" max="15" step="0.5"></div>
+        <div class="row"><button class="small-btn" id="reset-tooth" type="button">Restaurar pieza</button><button class="small-btn danger" id="reset-all" type="button">Restaurar todo</button></div>
+      </section>
+      <section class="section">
+        <h2>Familia morfológica</h2>
+        <p class="guide-note">Cambia el contorno de la pieza activa sin alterar su posición, altura ni tono.</p>
+        <div class="shape-options" id="shape-options">
+          <button class="shape-option" type="button" data-shape="rectangular-soft"><svg viewBox="-7 -2 14 24" aria-hidden="true"><path d="M-5.4 0C-4-1.2 4-1.2 5.4 0C6 5 6 14 5.1 18.5C3.7 20.1-3.7 20.1-5.1 18.5C-6 14-6 5-5.4 0Z"/></svg><span><strong>Rectangular suave</strong><small>Ángulos redondeados y dominio central.</small></span></button>
+          <button class="shape-option" type="button" data-shape="oval"><svg viewBox="-7 -2 14 24" aria-hidden="true"><path d="M-4.7 0C-3.2-1.4 3.2-1.4 4.7 0C6 5 5.8 14.2 4.5 18.2C2.8 20.4-2.8 20.4-4.5 18.2C-5.8 14.2-6 5-4.7 0Z"/></svg><span><strong>Ovalada</strong><small>Transiciones continuas y bordes más curvos.</small></span></button>
+          <button class="shape-option" type="button" data-shape="triangular"><svg viewBox="-7 -2 14 24" aria-hidden="true"><path d="M-3.8 0C-2.8-1.1 2.8-1.1 3.8 0C4.8 5.3 5.9 14.8 5.2 18.5C3.6 20.1-3.6 20.1-5.2 18.5C-5.9 14.8-4.8 5.3-3.8 0Z"/></svg><span><strong>Triangular</strong><small>Cuello estrecho y mayor apertura incisal.</small></span></button>
+        </div>
+        <button class="small-btn" id="apply-shape-all" type="button" style="width:100%;margin-top:9px">Aplicar familia a 13–23</button>
+      </section>
+      <section class="section">
+        <h2>Color y material</h2>
+        <p class="guide-note">Previsualización local orientativa. No sustituye una toma de color clínica.</p>
+        <div class="vita-options" id="vita-options">
+          <button class="vita-option" type="button" data-vita="B1" style="--shade:#f4edda"><i></i>B1</button>
+          <button class="vita-option" type="button" data-vita="A1" style="--shade:#eee2c7"><i></i>A1</button>
+          <button class="vita-option" type="button" data-vita="B2" style="--shade:#ead9b8"><i></i>B2</button>
+          <button class="vita-option" type="button" data-vita="D2" style="--shade:#e2d1b9"><i></i>D2</button>
+          <button class="vita-option" type="button" data-vita="A2" style="--shade:#dfc8a4"><i></i>A2</button>
+        </div>
+        <div class="control"><div class="control-head"><label for="value-control">Valor</label><output id="value-output"></output></div><input id="value-control" type="range" min="-12" max="12" step="1"></div>
+        <div class="control"><div class="control-head"><label for="chroma-control">Croma</label><output id="chroma-output"></output></div><input id="chroma-control" type="range" min="-20" max="20" step="1"></div>
+        <div class="control"><div class="control-head"><label for="translucency-control">Translucidez incisal</label><output id="translucency-output"></output></div><input id="translucency-control" type="range" min="0" max="100" step="1"></div>
+        <div class="texture-options" id="texture-options"><button class="texture-option" data-texture="smooth" type="button">Lisa</button><button class="texture-option" data-texture="natural" type="button">Natural</button><button class="texture-option" data-texture="characterized" type="button">Caracterizada</button></div>
+        <button class="small-btn" id="apply-material-all" type="button" style="width:100%;margin-top:9px">Aplicar material a 13–23</button>
+      </section>
+      <section class="section">
+        <div class="library-heading"><div><h2>Mis casos</h2><p>Actividad clínica guardada en este dispositivo.</p></div><button class="primary" id="new-case" type="button">+ Nuevo</button></div>
+        <div class="case-metrics" id="case-metrics"></div>
+        <div class="library-tools"><input id="case-search" type="search" placeholder="Buscar paciente o folio" aria-label="Buscar casos"><select id="case-filter" aria-label="Filtrar casos"><option value="all">Todos</option><option value="draft">Borradores</option><option value="review">En revisión</option><option value="approved">Aprobados</option></select></div>
+        <div class="case-filter-tabs" id="case-filter-tabs"><button class="case-filter-tab active" type="button" data-case-status="all">Todos</button><button class="case-filter-tab" type="button" data-case-status="draft">Borrador</button><button class="case-filter-tab" type="button" data-case-status="review">Revisión</button><button class="case-filter-tab" type="button" data-case-status="approved">Aprobado</button></div>
+        <div class="case-library" id="case-library"></div>
+        <div class="case-overview" id="case-overview" aria-live="polite"></div>
+      </section>
+      <section class="section workflow-target" id="workflow-case">
+        <h2>Expediente del caso</h2>
+        <p class="guide-note">Datos locales. Los archivos se registran por nombre y no se suben.</p>
+        <div class="case-grid"><div class="case-field"><label for="case-folio">Folio</label><input id="case-folio" autocomplete="off"></div><div class="case-field"><label for="case-status">Estado</label><select id="case-status"><option value="draft">Borrador</option><option value="review">En revisión</option><option value="approved">Aprobado</option></select></div><div class="case-field wide"><label for="case-patient">Paciente</label><input id="case-patient" autocomplete="off" placeholder="Nombre o identificador clínico"></div><div class="case-field wide"><label for="case-notes">Notas</label><textarea id="case-notes" placeholder="Objetivo estético, observaciones y acuerdos"></textarea></div></div>
+        <label class="small-btn" style="display:block;text-align:center;margin-top:9px;cursor:pointer">Agregar archivos de referencia<input id="case-files" type="file" multiple hidden></label><div class="file-list" id="case-file-list"></div><div class="case-summary" id="case-summary">Caso nuevo · sin archivos.</div>
+        <div class="row" style="margin-top:9px"><button class="primary" id="save-case" type="button">Guardar caso</button><button class="small-btn" id="load-case" type="button">Recuperar</button></div><div class="row" style="margin-top:8px"><button class="small-btn" id="export-case" type="button">Exportar paquete</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar paquete<input id="import-case" type="file" accept="application/json" hidden></label></div>
+      </section>
+      <section class="section workflow-target" id="workflow-review">
+        <h2>Versiones del diseño</h2><p class="guide-note">Guarda hitos clínicos antes de probar otra forma, proporción o tono.</p><div class="revision-create"><input id="revision-label" maxlength="80" placeholder="Ej. Propuesta inicial A1"><button class="primary" id="save-revision" type="button">Guardar versión</button></div><div class="revision-list" id="revision-list"></div>
+      </section>
+      <section class="section workflow-target" id="workflow-photo">
+        <h2>Registro fotográfico</h2><p class="guide-note">La frontal es la toma principal. Las demás documentan el caso y son opcionales para la simulación rápida.</p><div class="photo-progress" id="photo-progress">Frontal pendiente · 0 de 6 tomas</div><div class="case-photo-grid" id="case-photo-grid"></div><p class="quality-note">El control evalúa resolución, exposición y nitidez en este dispositivo. Es una ayuda técnica, no una validación clínica.</p>
+      </section>
+      <section class="section workflow-target" id="workflow-delivery">
+        <h2>Salida profesional</h2>
+        <p class="guide-note">Genera una comparación desde la fotografía intacta y una composición sin guías ni controles.</p>
+        <div class="compare-actions"><button class="primary" id="open-compare" type="button">Comparar antes / después</button><button class="small-btn" id="export-result" type="button">Descargar resultado</button><button class="small-btn" id="export-compare" type="button">Descargar comparativa</button></div>
+        <div class="delivery-options"><label class="check-row"><input id="include-notes" type="checkbox"><span>Incluir las notas del expediente en la presentación compartible.</span></label><label class="check-row"><input id="confirm-delivery" type="checkbox"><span>Confirmo que revisé los datos que aparecerán en el archivo de entrega.</span></label></div>
+        <div class="delivery-actions"><button class="primary" id="preview-delivery" type="button">Vista previa de entrega</button><button class="small-btn" id="download-delivery" type="button">Descargar HTML</button><button class="small-btn" id="print-delivery" type="button">Imprimir / PDF</button></div>
+      </section>
+      <section class="section">
+        <h2>Diseño local</h2>
+        <div class="row"><button class="primary" id="save-design" type="button">Guardar diseño</button><button class="small-btn" id="load-design" type="button">Recuperar</button></div>
+        <div class="row" style="margin-top:8px"><button class="small-btn" id="export-design" type="button">Exportar JSON</button><label class="small-btn" style="text-align:center;cursor:pointer">Importar JSON<input id="import-design" type="file" accept="application/json" hidden></label></div>
+        <div class="status" id="status" role="status">Prototipo listo. La fotografía y el diseño permanecen en este dispositivo.</div>
+        <div class="schema">smyl.veneer-design · versión 5</div>
+      </section>
+    </aside>
+  </div>
+</main>
+<div class="compare-modal" id="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+  <div class="compare-card"><div class="compare-head"><h2 id="compare-title">Comparación clínica</h2><button class="small-btn" id="close-compare" type="button">Cerrar</button></div><div class="compare-grid"><div class="compare-pane"><b>Antes</b><img id="before-preview" alt="Fotografía original"></div><div class="compare-pane"><b>Diseño</b><img id="after-preview" alt="Composición con diseño"></div></div><div class="compare-foot"><button class="small-btn" id="modal-export-result" type="button">Resultado PNG</button><button class="primary" id="modal-export-compare" type="button">Comparativa PNG</button></div></div>
+</div>
+<div class="camera-modal" id="camera-modal" role="dialog" aria-modal="true" aria-labelledby="camera-title">
+  <header class="camera-head"><div><strong id="camera-title">Captura guiada</strong><span id="camera-subtitle">Alinea el rostro con las referencias</span></div><button class="small-btn" id="close-camera" type="button">Cerrar</button></header>
+  <div class="camera-stage"><video id="camera-video" autoplay muted playsinline></video><div class="camera-guide" id="camera-guide" aria-hidden="true"><i class="v1"></i><i class="v2"></i><i class="h1"></i><i class="h2"></i></div><div class="camera-direction" id="camera-direction"></div><div class="camera-error" id="camera-error"><div><strong>No se pudo abrir la cámara</strong><span>Revisa el permiso del navegador o utiliza “Galería” desde el registro fotográfico.</span></div></div></div>
+  <footer class="camera-foot"><small>Centra ojos y boca con la cuadrícula.</small><button class="camera-capture" id="capture-camera" type="button" aria-label="Tomar fotografía"></button><small>La imagen conserva su resolución original.</small></footer>
+</div>
+<script src="editor-v2.js"></script>
+</body>
+</html>

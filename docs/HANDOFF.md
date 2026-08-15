@@ -1,5 +1,309 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: selección VITA con acción visible (etapa 5)
+
+**Tocado:** simulación web/móvil y caché.
+
+- La selección actual y el botón para continuar aparecen inmediatamente después del carrusel, sin obligar a recorrer comparaciones y opciones avanzadas.
+- El texto del botón se simplificó a `Continuar con este tono` o `Aplicar este tono` según el contexto.
+- El resumen rápido se actualiza al elegir un tono o conservar el tono observado en la fotografía.
+- VITA Classical muestra sus 16 códigos, incorporando A3.5 y C4. Los colores de pantalla siguen siendo ilustrativos, no una medición clínica calibrada.
+
+## 2026-08-14 — Codex: separación paciente/profesional (etapa 4)
+
+**Tocado:** simulación web/móvil, documentación y caché.
+
+- El acceso profesional conserva inicio de sesión, editor, revisión clínica y diagnóstico ampliado.
+- El enlace público `?clinica=<id>` usa lenguaje para paciente, pide una frontal obligatoria y presenta las otras cinco vistas como opcionales.
+- Editor, revisión clínica y diagnóstico ampliado quedan ocultos en el enlace público; el paciente conserva el resultado y la solicitud de contacto.
+- Los selectores de dispositivo y la etiqueta de build ya no aparecen en producción. Para revisión interna se habilitan con `?debugUI=1`.
+
+## 2026-08-14 — Codex: control de costo y telemetría IA (etapa 3)
+
+**Tocado:** simulación web/móvil, función claude, documentación y caché.
+
+- La generación de imagen pagada ya no se reintenta automáticamente ante una
+  desconexión. Cada pulsación genera como máximo una solicitud desde el cliente.
+- Simulación inicial, regeneración manual y revisión del editor crean un
+  identificador y explican el motivo de la solicitud.
+- La función devuelve proveedor, modelo, intentos internos, duración y uso
+  reportado por Gemini; el cliente conserva el último registro en memoria.
+- Se documentó la ruta actual de dos pasos y el protocolo futuro para comparar
+  Gemini con GPT Image 2 sin sustituir el proveedor de producción a ciegas.
+
+## 2026-08-14 — Codex: flujo fotográfico unificado (etapa 2)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Una sola secuencia define las seis vistas: frontal, derecha, izquierda,
+  tres cuartos, intraoral y extraoral.
+- Solo la frontal es obligatoria para la simulación rápida. Las otras cinco
+  se pueden saltar y permanecen como documentación opcional del expediente.
+- Se eliminaron los contadores heredados de tres y cuatro fotografías; cámara
+  integrada, galería, cámara nativa, reanudación y progreso usan `VIEWS.length`.
+- La captura no llama a la IA por cada fotografía. Al cerrar la secuencia se
+  analiza la frontal y se genera únicamente su simulación; las tomas opcionales
+  quedan guardadas para uso posterior.
+- Se impide iniciar el procesamiento sin una fotografía frontal y se explica
+  al usuario cómo continuar, sin perder el avance.
+
+## 2026-08-14 — Codex: estabilización UX del simulador (etapa 1)
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`.
+
+- Se corrigieron los handlers rotos de `Nueva foto` y `Enviar al paciente`.
+- `Nueva foto` confirma antes de reemplazar las tomas; cancelar conserva la
+  simulación visible. Compartir antes de guardar explica el paso requerido y
+  lleva el foco al nombre del paciente.
+- Los errores globales y de generación conservan el detalle técnico en la
+  consola, pero presentan al usuario categorías sencillas (sesión, plan,
+  conexión, espera, fotografía o calidad) sin stack, líneas ni mensajes
+  internos de segmentación.
+- La web muestra de inmediato `Abriendo cámara...` mientras resuelve permisos
+  o prepara el respaldo nativo. La app móvil mantiene su cámara nativa directa,
+  por lo que no incorpora esa espera.
+- Verificado: scripts inline válidos en ambas copias, handlers resueltos, sin
+  espacios inválidos en el diff y carga responsive local a 390×844 sin
+  desbordamiento horizontal. No se llamaron APIs ni se usaron fotos reales.
+- La publicación incluye la cuadrícula de captura build v81 que ya estaba
+  preparada en `simulacion.html`, como base de la siguiente etapa de
+  unificación del flujo fotográfico.
+
+## 2026-08-14 — Codex: resumen operativo del expediente (etapa 17)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`,
+`docs/SIMULACION_AGENT_HARNESS.md`.
+
+- El caso seleccionado muestra paciente, folio, estado, actividad, avance de
+  ruta, fotografías, tomas técnicamente aptas y versiones guardadas.
+- La próxima acción se deriva del primer paso aún no completado y abre
+  directamente su sección existente; no crea una segunda ruta paralela.
+- Los pendientes esenciales se presentan como recordatorios locales sin
+  bloquear ni cambiar el contenido del expediente.
+- Validado con un caso ficticio en 1440×900, 820×1180 y 390×844: la próxima
+  acción abrió fotografía, el resumen permaneció dentro del viewport y no hubo
+  errores de consola.
+- Se documentó un harness para futuras revisiones de `simulacion.html` con
+  Orchestrator, Explorer, Reviewer, Implementer/Fixer y Tester, incluyendo
+  artefactos, puertas de calidad y condiciones de rechazo.
+
+## 2026-08-14 — Codex: panel profesional de casos (etapa 16)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- La biblioteca local ahora funciona como panel de trabajo: resume casos
+  totales, en revisión y aprobados, sin migrar ni renombrar expedientes.
+- Se añadieron búsqueda, filtros por estado y tarjetas con paciente, folio,
+  fecha, avance de la ruta, fotografías, versiones y estado clínico.
+- Las acciones existentes de continuar, duplicar, eliminar y crear caso se
+  conservaron sobre el mismo almacenamiento local `smyl.case-library`.
+- El estado activo y los filtros se expresan visualmente sin modificar fotos,
+  simulaciones, prompts ni servicios de IA.
+
+## 2026-08-14 — Codex: ruta clínica guiada (etapa 15)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- Se añadió una ruta visible de seis pasos: caso, fotografía, calibración,
+  diseño, revisión y entrega, sin ocultar ni bloquear las herramientas actuales.
+- El dentista puede entrar directamente a cualquier etapa; `Anterior` y
+  `Siguiente` desplazan a la sección correspondiente y explican el objetivo.
+- Los requisitos ligeros impiden avanzar con una frontal ausente, calibración
+  sin centrar o revisión sin versión guardada, pero no eliminan trabajo.
+- Paso actual y completados viajan dentro de `smyl.case-package`; los paquetes
+  anteriores reciben un estado inicial compatible al abrirse.
+- Validado en 1440×900, 820×1180 y 390×844: sin desbordamiento horizontal,
+  navegación directa, bloqueo explicativo, persistencia al guardar y cero
+  errores de consola.
+
+## 2026-08-14 — Codex: calibración facial manual (etapa 14)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- Línea media, plano interpupilar y plano oclusal se ajustan sobre la foto intacta.
+- La frontal del caso se recupera desde IndexedDB y el diseño puede centrarse como grupo.
+- Calibración validada, persistente, reversible y compatible con móvil; sin errores de consola.
+- Es una referencia manual orientativa, sin landmarks, segmentación ni diagnóstico.
+
+## 2026-08-14 — Codex: control técnico fotográfico local (etapa 13)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- Cada fotografía nueva se analiza localmente antes de registrarse en el caso:
+  resolución, exposición, contraste y una estimación orientativa de nitidez.
+- El expediente diferencia tomas técnicamente aptas de aquellas que conviene
+  repetir y explica el motivo sin bloquear el resto del flujo clínico.
+- Las fotografías guardadas con versiones anteriores conservan compatibilidad
+  y pueden evaluarse después con el botón `Evaluar`.
+- El resultado técnico queda dentro de los metadatos del caso y se sanea al
+  importar paquetes; la imagen continúa en IndexedDB y no se envía a servicios
+  externos.
+- Validado con imágenes sintéticas: una toma de 200×150 oscura fue advertida,
+  una de 1200×900 con detalle fue aprobada, el diseño móvil mantuvo las tarjetas
+  dentro del viewport y no hubo errores de consola. Es una ayuda de captura,
+  no una validación diagnóstica ni clínica.
+
+## 2026-08-14 — Codex: captura fotográfica guiada editor-v2 (etapa 12)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`.
+
+- El registro fotográfico abre una cámara integrada para frontal, perfiles
+  derecho/izquierdo y vista 3/4; intraoral y extraoral permanecen como
+  registros libres desde galería.
+- El visor usa cuadrícula de tercios, referencia facial e instrucciones
+  específicas por posición. La captura frontal utiliza la cámara delantera,
+  conserva la resolución disponible y se guarda en IndexedDB dentro del caso.
+- Galería permanece como respaldo cuando falta permiso o soporte de cámara.
+  Las solicitudes tardías se invalidan y todas las pistas se detienen al
+  cerrar, cambiar de toma o salir de la página.
+- Validado en navegador y móvil: cuatro accesos guiados, seis accesos de
+  galería, variante de perfil, cierre con flujo desconectado y cero errores de
+  consola. Sigue aislado de simulación, IA, Supabase y la app móvil vigente.
+
+## 2026-08-13 — Codex: entrega del caso editor-v2 (etapa 8)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió una presentación HTML autocontenida para paciente/laboratorio con
+  antes, propuesta, resumen morfológico, piezas visibles y referencias VITA.
+- Permite vista previa, descarga HTML e impresión/guardado PDF desde navegador.
+- Las notas clínicas se excluyen por defecto y requieren selección explícita;
+  toda entrega exige confirmar previamente la revisión de datos.
+- Incluye advertencia visible sobre el carácter orientativo de la simulación.
+- Prueba headless: documento válido, dos imágenes incrustadas, datos del caso,
+  notas privadas excluidas y función de impresión presente.
+
+---
+
+## 2026-08-13 — Codex: expediente local editor-v2 (etapa 7)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se agregó un expediente local separado con folio, identificador del paciente,
+  estado del caso y notas.
+- El expediente guarda una copia versionada del diseño actual y permite
+  recuperar ambos de forma atómica.
+- Los archivos de referencia se registran sólo por metadatos; no se guardan ni
+  exportan sus bytes, evitando llenar `localStorage` y reduciendo exposición.
+- Se añadió exportación/importación del paquete `smyl.case-package` versión 1.
+- Prueba headless: folio, paciente, estado y diseño de seis piezas restaurados
+  después de alterarlos. Sigue siendo un laboratorio local, no un EHR regulado.
+
+---
+
+## 2026-08-13 — Codex: comparar y exportar editor-v2 (etapa 6)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió una vista modal antes/después a partir de una sola fotografía
+  original intacta y del diseño paramétrico actual.
+- El editor exporta un PNG del resultado y una comparativa PNG en dos paneles.
+  Ambos conservan las dimensiones y la relación de aspecto de la fuente.
+- El render de salida elimina guías clínicas, puntos, numeración, selección y
+  controles; sólo compone las carillas visibles sobre la fotografía.
+- La generación ocurre enteramente en memoria y no llama servicios externos.
+- Prueba headless: modal funcional y paneles antes/después idénticos de 360×720.
+  Continúa aislado del flujo público, de IA y de segmentación.
+
+---
+
+## 2026-08-13 — Codex: control profesional editor-v2 (etapa 5)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió simetría bilateral opcional para replicar geometría, forma,
+  material y visibilidad en la pieza contralateral, con posición y rotación
+  reflejadas respecto de la línea media.
+- Cada pieza se puede ocultar y volver a mostrar sin eliminarla del diseño. La
+  capa orientativa de cinco papilas se activa de forma independiente.
+- Se incorporó historial de 60 estados con deshacer/rehacer, incluidos los
+  atajos `Ctrl/Cmd+Z` y `Ctrl/Cmd+Shift+Z`.
+- El contrato JSON pasó a versión 5 y migra diseños 1–4 agregando `visible` y
+  las opciones `symmetry`/`papillae` de forma compatible.
+- Prueba headless completa: simetría 11↔21, cinco papilas, ocultación bilateral,
+  undo/redo y render responsive. No se conectó al simulador ni a la IA.
+
+---
+
+## 2026-08-13 — Codex: color y material editor-v2 (etapa 4)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se añadió caracterización óptica por pieza: referencias VITA B1, A1, B2, D2
+  y A2; ajustes de valor, croma y translucidez incisal; y texturas lisa,
+  natural o caracterizada.
+- Los cambios son locales, reversibles y no modifican geometría ni fotografía.
+  El profesional puede aplicarlos a una pieza o copiarlos a 13–23 mediante una
+  acción explícita.
+- El estado JSON pasó a versión 4. Los diseños versiones 1–3 migran agregando
+  material A1 natural por defecto.
+- Validado: independencia por pieza, aplicación global, cambio visible del
+  gradiente, persistencia exacta, responsive y cero errores de consola.
+- La paleta es orientativa y no pretende sustituir fotografía calibrada,
+  espectrofotómetro ni selección clínica de tono.
+
+---
+
+## 2026-08-13 — Codex: familias morfológicas editor-v2 (etapa 3)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- El laboratorio incorpora familias rectangular suave, ovalada y triangular.
+  Cada familia tiene contornos diferentes para centrales, laterales y caninos;
+  aplicar una familia completa no clona una sola anatomía seis veces.
+- La forma puede cambiarse en una sola pieza sin modificar posición, altura,
+  ancho nominal ni rotación, o aplicarse de manera simétrica a 13–23.
+- RED y las siete líneas de contacto ahora calculan el ancho visible real de la
+  familia activa, evitando perder proporciones al cambiar el contorno.
+- El estado JSON pasó a versión 3. Los diseños versiones 1–2 migran en memoria
+  y la forma heredada `natural-soft` se mapea a `rectangular-soft`.
+- Validado: independencia por pieza, tres variantes anatómicas por familia,
+  compatibilidad con RED y guías, persistencia y cero errores de consola.
+- Sigue aislado del flujo vigente; no toca IA, prompts, Supabase, segmentación,
+  simulador principal ni copias móviles.
+
+---
+
+## 2026-08-13 — Codex: guías clínicas funcionales editor-v2 (etapa 2)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se conectaron dos curvas paramétricas al modelo: incisal y gingival. Sus
+  controles recalculan las seis coronas 13–23 manteniendo intacta la fotografía.
+- Se añadieron siete límites verticales de proporción (extremos y cinco
+  contactos) y una regla RED configurable 62–80% que distribuye centrales,
+  laterales y caninos de forma simétrica respecto de la línea media.
+- El contrato JSON pasó a versión 2 e incluye `guides`. Los diseños versión 1
+  se migran en memoria agregando valores clínicos predeterminados.
+- Validado en navegador: dos curvas, doce puntos, siete líneas, cambio real de
+  geometría, aplicación RED, persistencia exacta y presentación responsive.
+- Continúa siendo un laboratorio aislado. No se modificaron el simulador
+  vigente, prompts, Supabase, segmentación, IA ni las copias móviles.
+
+---
+
+## 2026-08-13 — Codex: prototipo paramétrico aislado editor-v2 (etapa 1)
+
+**Tocado:** `editor-v2.html`, `editor-v2.js`, `docs/EDITOR_V2_MODEL.md`.
+
+- Se creó un laboratorio separado del flujo público con seis piezas superiores
+  FDI 13–23 como objetos SVG independientes. Cada pieza se puede seleccionar,
+  trasladar, cambiar de ancho y altura incisal, rotar y restaurar sin afectar a
+  las demás.
+- El diseño usa un estado JSON versionado (`smyl.veneer-design`, versión 1),
+  guardado/recuperado local y exportable/importable sin incluir la fotografía.
+- La fotografía opcional sólo se abre en memoria. El lienzo adopta su relación
+  de aspecto exacta y las coordenadas se normalizan respecto de toda la imagen,
+  evitando asumir que las tomas siempre son 4:3.
+- Validado en escritorio y viewport móvil: seis objetos, controles
+  independientes, persistencia geométrica exacta y cero errores de consola.
+- No se modificaron `simulacion.html`, prompts, Supabase, segmentación, IA ni
+  copias móviles como parte de esta entrega. El prototipo se publica únicamente
+  como ruta de laboratorio y no está conectado al flujo principal. No integrar
+  hasta recibir aprobación visual del usuario.
+
+---
+
 ## 2026-08-11 — Codex: la curva regenera las carillas existentes (build v80)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`

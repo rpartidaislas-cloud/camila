@@ -1,0 +1,1147 @@
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'smyl_editor_v2_design';
+  var CASE_STORAGE_KEY = 'smyl_editor_v2_case';
+  var CASE_LIBRARY_KEY = 'smyl_editor_v2_case_library';
+  var PHOTO_SLOTS = [{id:'frontal',label:'Frontal sonrisa',required:true,guide:true},{id:'profile-right',label:'Perfil derecho',guide:true},{id:'profile-left',label:'Perfil izquierdo',guide:true},{id:'three-quarter',label:'Vista 3/4',guide:true},{id:'intraoral',label:'Intraoral dientes'},{id:'extraoral',label:'Extraoral rostro'}];
+  var WORKFLOW_STEPS = ['case','photo','calibration','design','review','delivery'];
+  var WORKFLOW_COPY = {
+    case:['Caso','Confirma folio, paciente y objetivo clínico.'],
+    photo:['Fotografía','Carga la frontal principal; las demás tomas son opcionales.'],
+    calibration:['Calibración','Usa la frontal y centra el diseño con referencias faciales.'],
+    design:['Diseño','Ajusta proporciones, anatomía, color y material.'],
+    review:['Revisión','Guarda una versión para comparar y recuperar la propuesta.'],
+    delivery:['Entrega','Revisa la comparación y genera el archivo profesional.']
+  };
+  var IDS = ['13', '12', '11', '21', '22', '23'];
+  var ROLE_NAMES = { central: 'Central', lateral: 'Lateral', canine: 'Canino' };
+  var SHAPE_NAMES = { 'rectangular-soft': 'Rectangular suave', oval: 'Ovalada', triangular: 'Triangular' };
+  var VITA_COLORS = { B1: '#f4edda', A1: '#eee2c7', B2: '#ead9b8', D2: '#e2d1b9', A2: '#dfc8a4' };
+  var defaultMaterial = { vita: 'A1', value: 0, chroma: 0, translucency: 35, texture: 'natural' };
+  var COUNTERPART = { '13': '23', '12': '22', '11': '21', '21': '11', '22': '12', '23': '13' };
+  var ROLE_END = { central: 20.2, lateral: 18.2, canine: 18.5 };
+  var SHAPE_ROLE_WIDTH = {
+    'rectangular-soft': { central: 12.2, lateral: 10.2, canine: 10 },
+    oval: { central: 12, lateral: 10.2, canine: 10 },
+    triangular: { central: 11.8, lateral: 10, canine: 9.8 }
+  };
+  var PATHS = {
+    'rectangular-soft': {
+      central: 'M -5.4 0 C -3.8 -1.4 3.8 -1.4 5.4 0 C 6.1 4.5 6.1 13.6 5.2 18.4 C 3.7 20.2 -3.7 20.2 -5.2 18.4 C -6.1 13.6 -6.1 4.5 -5.4 0 Z',
+      lateral: 'M -4.4 0 C -3.2 -1.2 3.2 -1.2 4.4 0 C 5.1 4.2 5 12.3 4.2 16.8 C 2.9 18.2 -2.9 18.2 -4.2 16.8 C -5 12.3 -5.1 4.2 -4.4 0 Z',
+      canine: 'M -4.3 0 C -2.9 -1 2.9 -1 4.3 0 C 5 4.1 4.8 11.6 3.7 15.2 C 2.5 16.1 1.3 17.5 0 18.5 C -1.3 17.5 -2.5 16.1 -3.7 15.2 C -4.8 11.6 -5 4.1 -4.3 0 Z'
+    },
+    oval: {
+      central: 'M -4.7 0 C -3.2 -1.5 3.2 -1.5 4.7 0 C 6 4.8 5.8 13.9 4.5 18.1 C 2.8 20.4 -2.8 20.4 -4.5 18.1 C -5.8 13.9 -6 4.8 -4.7 0 Z',
+      lateral: 'M -3.9 0 C -2.6 -1.3 2.6 -1.3 3.9 0 C 5.1 4.4 4.9 12.3 3.8 16.6 C 2.5 18.4 -2.5 18.4 -3.8 16.6 C -4.9 12.3 -5.1 4.4 -3.9 0 Z',
+      canine: 'M -3.9 0 C -2.5 -1.1 2.5 -1.1 3.9 0 C 5 4.2 4.7 11.8 3.4 15 C 2.3 16 1.2 17.4 0 18.5 C -1.2 17.4 -2.3 16 -3.4 15 C -4.7 11.8 -5 4.2 -3.9 0 Z'
+    },
+    triangular: {
+      central: 'M -3.8 0 C -2.8 -1.1 2.8 -1.1 3.8 0 C 4.8 5.2 5.9 14.7 5.2 18.5 C 3.6 20.1 -3.6 20.1 -5.2 18.5 C -5.9 14.7 -4.8 5.2 -3.8 0 Z',
+      lateral: 'M -3.2 0 C -2.2 -1 2.2 -1 3.2 0 C 4.1 4.9 5 13.2 4.2 16.8 C 2.9 18.2 -2.9 18.2 -4.2 16.8 C -5 13.2 -4.1 4.9 -3.2 0 Z',
+      canine: 'M -3.2 0 C -2.1 -.9 2.1 -.9 3.2 0 C 4.1 4.8 4.9 12.1 3.8 15.1 C 2.5 16.1 1.3 17.5 0 18.5 C -1.3 17.5 -2.5 16.1 -3.8 15.1 C -4.9 12.1 -4.1 4.8 -3.2 0 Z'
+    }
+  };
+
+  var defaults = [
+    tooth('13', 'canine', 'right', 20.8, 63.7, 9.6, 25.6, -4),
+    tooth('12', 'lateral', 'right', 31.7, 64.8, 9.3, 24.4, -2),
+    tooth('11', 'central', 'right', 43.8, 63.2, 12.1, 30, -0.5),
+    tooth('21', 'central', 'left', 56.2, 63.2, 12.1, 30, 0.5),
+    tooth('22', 'lateral', 'left', 68.3, 64.8, 9.3, 24.4, 2),
+    tooth('23', 'canine', 'left', 79.2, 63.7, 9.6, 25.6, 4)
+  ];
+
+  function tooth(id, role, side, x, y, width, height, rotation) {
+    return {
+      id: id, role: role, side: side, x: x, y: y, width: width, height: height,
+      rotation: rotation, shape: 'rectangular-soft', material: clone(defaultMaterial), visible: true,
+      gingivalAnchor: { x: 0.5, y: 0 }, incisalAnchor: { x: 0.5, y: 1 }
+    };
+  }
+
+  var defaultGuides = { incisalCenter: 93.5, incisalArc: 4.5, gingivalCenter: 63.2, gingivalArc: 2.2, red: 70 };
+  var defaultCalibration = { enabled: false, midline: 50, pupilY: 34, pupilTilt: 0, occlusalY: 64, occlusalTilt: 0, alignedAt: '' };
+  var state = { schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: clone(defaults), guides: clone(defaultGuides), options: { symmetry: false, papillae: false } };
+  var drag = null;
+  var history = [];
+  var historyIndex = -1;
+  var caseState = { schema: 'smyl.case-package', version: 1, id: makeId(), folio: 'SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), workflow:{step:'case',completed:[]}, updatedAt: null };
+  var caseLibrary = [];
+  var mediaDbPromise = null;
+  var photoUrls = {};
+  var cameraStream = null;
+  var cameraSlot = null;
+  var cameraRequest = 0;
+
+  var svg = document.getElementById('design-svg');
+  var layer = document.getElementById('teeth-layer');
+  var guidesLayer = document.getElementById('guides-layer');
+  var photo = document.getElementById('patient-photo');
+  var demoBg = document.getElementById('demo-bg');
+  var statusEl = document.getElementById('status');
+  var widthControl = document.getElementById('width-control');
+  var heightControl = document.getElementById('height-control');
+  var rotationControl = document.getElementById('rotation-control');
+
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function makeId() { return 'case-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10); }
+  function selected() { return state.teeth.find(function (t) { return t.id === state.selectedId; }); }
+  function original(id) { return defaults.find(function (t) { return t.id === id; }); }
+  function esc(value) { return String(value).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+  function mediaDb() {
+    if (mediaDbPromise) return mediaDbPromise;
+    mediaDbPromise = new Promise(function (resolve, reject) {
+      var request = indexedDB.open('smyl_editor_v2_media', 1);
+      request.onupgradeneeded = function () { if (!request.result.objectStoreNames.contains('photos')) request.result.createObjectStore('photos', { keyPath: 'key' }); };
+      request.onsuccess = function () { resolve(request.result); }; request.onerror = function () { reject(request.error); };
+    });
+    return mediaDbPromise;
+  }
+
+  function photoKey(caseId, slot) { return caseId + ':' + slot; }
+  function storePhoto(slot, file) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').put({ key: photoKey(caseState.id, slot), caseId: caseState.id, slot: slot, blob: file }); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
+  function getPhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var request = db.transaction('photos').objectStore('photos').get(photoKey(caseId,slot)); request.onsuccess = function () { resolve(request.result && request.result.blob); }; request.onerror = function () { reject(request.error); }; }); }); }
+  function removePhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').delete(photoKey(caseId,slot)); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
+  function removeCasePhotos(caseId) { return Promise.all(PHOTO_SLOTS.map(function (slot) { return removePhoto(caseId,slot.id); })); }
+
+  function photoMetadata(slot, file, quality) { return { slot:slot,name:file.name || (slot + '-' + Date.now() + '.jpg'),type:file.type || 'image/jpeg',size:file.size || 0,capturedAt:new Date().toISOString(),quality:quality || null }; }
+
+  function analyzePhoto(file) {
+    var load = window.createImageBitmap ? createImageBitmap(file) : new Promise(function (resolve, reject) { var image = new Image(), url = URL.createObjectURL(file); image.onload = function () { URL.revokeObjectURL(url); resolve(image); }; image.onerror = function () { URL.revokeObjectURL(url); reject(new Error('image')); }; image.src = url; });
+    return load.then(function (image) {
+      var width = image.width || image.naturalWidth, height = image.height || image.naturalHeight, sampleWidth = Math.min(240,width), sampleHeight = Math.max(1,Math.round(height * sampleWidth / width));
+      var canvas = document.createElement('canvas'); canvas.width = sampleWidth; canvas.height = sampleHeight; var context = canvas.getContext('2d',{willReadFrequently:true}); context.drawImage(image,0,0,sampleWidth,sampleHeight);
+      var pixels = context.getImageData(0,0,sampleWidth,sampleHeight).data, count = sampleWidth * sampleHeight, sum = 0, sum2 = 0, edge = 0, edgeCount = 0, previousRow = new Float32Array(sampleWidth);
+      for (var y=0;y<sampleHeight;y++) { var previous = 0; for (var x=0;x<sampleWidth;x++) { var offset=(y*sampleWidth+x)*4, gray=.2126*pixels[offset]+.7152*pixels[offset+1]+.0722*pixels[offset+2]; sum+=gray; sum2+=gray*gray; if (x) { edge+=Math.abs(gray-previous); edgeCount++; } if (y) { edge+=Math.abs(gray-previousRow[x]); edgeCount++; } previous=gray; previousRow[x]=gray; } }
+      if (image.close) image.close();
+      var brightness=sum/count, contrast=Math.sqrt(Math.max(0,sum2/count-brightness*brightness)), sharpness=edge/Math.max(1,edgeCount), issues=[];
+      if (width < 960 || height < 720) issues.push('Resolución baja');
+      if (brightness < 55) issues.push('Imagen oscura'); else if (brightness > 210) issues.push('Imagen muy clara');
+      if (contrast < 27) issues.push('Poco contraste');
+      if (sharpness < 7) issues.push('Posible desenfoque');
+      return {status:issues.length ? 'review' : 'ready',width:width,height:height,brightness:Math.round(brightness),contrast:Math.round(contrast),sharpness:Math.round(sharpness*10)/10,issues:issues,checkedAt:new Date().toISOString()};
+    }).catch(function () { return {status:'unknown',width:0,height:0,brightness:0,contrast:0,sharpness:0,issues:['No se pudo evaluar'],checkedAt:new Date().toISOString()}; });
+  }
+
+  function saveCasePhoto(slot, file, message) {
+    return Promise.all([storePhoto(slot,file),analyzePhoto(file)]).then(function (results) {
+      var records = caseState.photos || (caseState.photos = []), index = records.findIndex(function (item) { return item.slot === slot; }), metadata = photoMetadata(slot,file,results[1]);
+      if (index >= 0) records[index] = metadata; else records.push(metadata);
+      if (slot === 'frontal') markWorkflowComplete('photo');
+      var qualityMessage = metadata.quality.status === 'ready' ? 'Control técnico aprobado.' : metadata.quality.status === 'review' ? 'Conviene repetir: ' + metadata.quality.issues.join(', ') + '.' : 'No se pudo completar el control técnico.';
+      upsertCurrentCase(); renderCase(); renderLibrary(); setStatus((message || 'Fotografía guardada en este dispositivo.') + ' ' + qualityMessage);
+    });
+  }
+
+  function stopCamera() {
+    cameraRequest += 1;
+    if (cameraStream) cameraStream.getTracks().forEach(function (track) { track.stop(); });
+    cameraStream = null; cameraSlot = null;
+    document.getElementById('camera-video').srcObject = null;
+    document.getElementById('camera-modal').classList.remove('open');
+  }
+
+  function cameraCopy(slot) {
+    var copy = {
+      frontal: ['Frontal sonrisa','Rostro recto, ojos sobre la línea superior y sonrisa centrada.'],
+      'profile-right': ['Perfil derecho','Gira 90° hacia tu izquierda y mantén el perfil dentro del óvalo.'],
+      'profile-left': ['Perfil izquierdo','Gira 90° hacia tu derecha y mantén el perfil dentro del óvalo.'],
+      'three-quarter': ['Vista 3/4','Gira aproximadamente 45° y conserva ambos ojos visibles.']
+    };
+    return copy[slot] || ['Captura clínica','Alinea la toma con las referencias.'];
+  }
+
+  function openCamera(slot) {
+    var definition = PHOTO_SLOTS.find(function (item) { return item.id === slot; });
+    if (!definition || !definition.guide) return;
+    stopCamera(); cameraSlot = slot; var requestId = ++cameraRequest;
+    var copy = cameraCopy(slot), guide = document.getElementById('camera-guide'), error = document.getElementById('camera-error');
+    document.getElementById('camera-title').textContent = copy[0]; document.getElementById('camera-subtitle').textContent = 'Captura guiada · ' + copy[0]; document.getElementById('camera-direction').textContent = copy[1];
+    guide.className = 'camera-guide' + (slot === 'profile-right' ? ' profile' : slot === 'profile-left' ? ' profile profile-left' : slot === 'three-quarter' ? ' three-quarter' : '');
+    error.classList.remove('show'); document.getElementById('camera-modal').classList.add('open');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { error.classList.add('show'); return; }
+    navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ideal:1920}, height:{ideal:1080} }, audio:false }).then(function (stream) {
+      if (requestId !== cameraRequest || cameraSlot !== slot) { stream.getTracks().forEach(function (track) { track.stop(); }); return; }
+      cameraStream = stream; document.getElementById('camera-video').srcObject = stream;
+    }).catch(function () { if (requestId !== cameraRequest) return; error.classList.add('show'); setStatus('La cámara no está disponible. Puedes usar Galería.'); });
+  }
+
+  function materialColors(material) {
+    var hex = VITA_COLORS[material.vita] || VITA_COLORS.A1;
+    var rgb = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+    var average = (rgb[0] + rgb[1] + rgb[2]) / 3;
+    var saturation = 1 + material.chroma / 55;
+    rgb = rgb.map(function (value) { return clamp((average + (value - average) * saturation) + material.value * 2.3, 0, 255); });
+    function tone(offset) { return 'rgb(' + rgb.map(function (value) { return Math.round(clamp(value + offset, 0, 255)); }).join(',') + ')'; }
+    return { light: tone(13), middle: tone(0), dark: tone(-22) };
+  }
+
+  function isModified(t) {
+    var d = original(t.id);
+    return t.visible === false || t.shape !== d.shape || JSON.stringify(t.material) !== JSON.stringify(d.material) || ['x','y','width','height','rotation'].some(function (key) { return Math.abs(t[key] - d[key]) > 0.001; });
+  }
+
+  function historyState() {
+    var copy = clone(state);
+    copy.updatedAt = null;
+    return copy;
+  }
+
+  function recordHistory() {
+    var serialized = JSON.stringify(historyState());
+    if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === serialized) return;
+    history = history.slice(0, historyIndex + 1);
+    history.push(JSON.parse(serialized));
+    if (history.length > 60) history.shift();
+    historyIndex = history.length - 1;
+    syncHistoryControls();
+  }
+
+  function resetHistory() {
+    history = [];
+    historyIndex = -1;
+    recordHistory();
+  }
+
+  function restoreHistory(nextIndex) {
+    if (nextIndex < 0 || nextIndex >= history.length) return;
+    historyIndex = nextIndex;
+    state = clone(history[historyIndex]);
+    render();
+    setStatus(historyIndex === history.length - 1 ? 'Diseño restaurado al cambio más reciente.' : 'Cambio anterior restaurado.');
+  }
+
+  function syncHistoryControls() {
+    var undo = document.getElementById('undo-design');
+    var redo = document.getElementById('redo-design');
+    if (!undo || !redo) return;
+    undo.disabled = historyIndex <= 0;
+    redo.disabled = historyIndex < 0 || historyIndex >= history.length - 1;
+  }
+
+  function commit(message) {
+    recordHistory();
+    render();
+    if (message) setStatus(message);
+  }
+
+  function counterpart(t) { return state.teeth.find(function (other) { return other.id === COUNTERPART[t.id]; }); }
+
+  function mirrorFields(t, fields) {
+    if (!state.options.symmetry) return;
+    var pair = counterpart(t);
+    if (!pair) return;
+    fields.forEach(function (field) {
+      if (field === 'x') pair.x = 100 - t.x;
+      else if (field === 'rotation') pair.rotation = -t.rotation;
+      else if (field === 'material') pair.material = clone(t.material);
+      else pair[field] = t[field];
+    });
+  }
+
+  function guideTarget(kind, x) {
+    var normalized = Math.min(1, Math.abs(x - 50) / 30);
+    var curve = normalized * normalized;
+    return kind === 'incisal'
+      ? state.guides.incisalCenter - state.guides.incisalArc * curve
+      : state.guides.gingivalCenter + state.guides.gingivalArc * curve;
+  }
+
+  function applyGuides() {
+    state.teeth.forEach(function (t) {
+      var gingival = guideTarget('gingival', t.x);
+      var incisal = guideTarget('incisal', t.x);
+      t.y = gingival;
+      t.height = Math.max(8, (incisal - gingival) * 20 / ROLE_END[t.role]);
+    });
+  }
+
+  function actualHalfWidth(t) {
+    return SHAPE_ROLE_WIDTH[t.shape][t.role] * t.width / 22;
+  }
+
+  function smoothPath(points) {
+    if (!points.length) return '';
+    var d = 'M ' + points[0].x.toFixed(2) + ' ' + points[0].y.toFixed(2);
+    for (var i = 1; i < points.length - 1; i++) {
+      var midX = (points[i].x + points[i + 1].x) / 2;
+      var midY = (points[i].y + points[i + 1].y) / 2;
+      d += ' Q ' + points[i].x.toFixed(2) + ' ' + points[i].y.toFixed(2) + ' ' + midX.toFixed(2) + ' ' + midY.toFixed(2);
+    }
+    var last = points[points.length - 1];
+    d += ' T ' + last.x.toFixed(2) + ' ' + last.y.toFixed(2);
+    return d;
+  }
+
+  function renderGuides() {
+    var ordered = state.teeth.slice().sort(function (a, b) { return a.x - b.x; });
+    var gingivalPoints = ordered.map(function (t) { return { x: t.x, y: guideTarget('gingival', t.x) }; });
+    var incisalPoints = ordered.map(function (t) { return { x: t.x, y: guideTarget('incisal', t.x) }; });
+    var boundaries = [ordered[0].x - actualHalfWidth(ordered[0])];
+    for (var i = 0; i < ordered.length - 1; i++) {
+      var rightEdge = ordered[i].x + actualHalfWidth(ordered[i]);
+      var leftEdge = ordered[i + 1].x - actualHalfWidth(ordered[i + 1]);
+      boundaries.push((rightEdge + leftEdge) / 2);
+    }
+    boundaries.push(ordered[ordered.length - 1].x + actualHalfWidth(ordered[ordered.length - 1]));
+    var top = Math.min.apply(null, gingivalPoints.map(function (p) { return p.y; })) - 4;
+    var bottom = Math.max.apply(null, incisalPoints.map(function (p) { return p.y; })) + 4;
+    var calibration = caseState.calibration || defaultCalibration, html = '';
+    if (calibration.enabled) {
+      var pupilDelta = Math.tan(calibration.pupilTilt * Math.PI / 180) * 50;
+      var occlusalDelta = Math.tan(calibration.occlusalTilt * Math.PI / 180) * 50;
+      html += '<line class="facial-guide center" x1="' + calibration.midline + '" y1="0" x2="' + calibration.midline + '" y2="100"></line>' +
+        '<circle class="facial-guide-point center" cx="' + calibration.midline + '" cy="50" r=".9"></circle>' +
+        '<line class="facial-guide pupillary" x1="0" y1="' + (calibration.pupilY - pupilDelta).toFixed(2) + '" x2="100" y2="' + (calibration.pupilY + pupilDelta).toFixed(2) + '"></line>' +
+        '<circle class="facial-guide-point pupillary" cx="50" cy="' + calibration.pupilY + '" r=".8"></circle>' +
+        '<line class="facial-guide occlusal" x1="0" y1="' + (calibration.occlusalY - occlusalDelta).toFixed(2) + '" x2="100" y2="' + (calibration.occlusalY + occlusalDelta).toFixed(2) + '"></line>' +
+        '<circle class="facial-guide-point occlusal" cx="50" cy="' + calibration.occlusalY + '" r=".8"></circle>';
+    }
+    html += '<path class="clinical-curve gingival" d="' + smoothPath(gingivalPoints) + '"></path>' +
+      '<path class="clinical-curve incisal" d="' + smoothPath(incisalPoints) + '"></path>';
+    gingivalPoints.forEach(function (p) { html += '<circle class="curve-point gingival" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
+    incisalPoints.forEach(function (p) { html += '<circle class="curve-point incisal" cx="' + p.x + '" cy="' + p.y + '" r=".8"></circle>'; });
+    boundaries.forEach(function (x, index) { html += '<line class="proportion-line" x1="' + x.toFixed(2) + '" y1="' + top.toFixed(2) + '" x2="' + x.toFixed(2) + '" y2="' + bottom.toFixed(2) + '"></line><text class="guide-label" x="' + x.toFixed(2) + '" y="' + (top - 1).toFixed(2) + '">' + (index + 1) + '</text>'; });
+    if (state.options.papillae) {
+      for (var j = 0; j < ordered.length - 1; j++) {
+        var contactX = boundaries[j + 1];
+        var papillaY = (guideTarget('gingival', ordered[j].x) + guideTarget('gingival', ordered[j + 1].x)) / 2 + 1.2;
+        html += '<path class="papilla" d="M ' + (contactX - 1.25).toFixed(2) + ' ' + papillaY.toFixed(2) + ' Q ' + contactX.toFixed(2) + ' ' + (papillaY + 4.4).toFixed(2) + ' ' + (contactX + 1.25).toFixed(2) + ' ' + papillaY.toFixed(2) + ' Z"></path>';
+      }
+    }
+    guidesLayer.innerHTML = html;
+  }
+
+  function render() {
+    renderGuides();
+    var materialDefs = state.teeth.map(function (t) {
+      var colors = materialColors(t.material);
+      return '<linearGradient id="enamel-' + t.id + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + colors.light + '"/><stop offset=".56" stop-color="' + colors.middle + '"/><stop offset="1" stop-color="' + colors.dark + '"/></linearGradient>';
+    }).join('');
+    layer.innerHTML = '<defs>' + materialDefs + '</defs>' + state.teeth.map(function (t) {
+      var selectedClass = t.id === state.selectedId ? ' selected' : '';
+      var modifiedClass = isModified(t) ? ' modified' : '';
+      var sx = t.width / 11;
+      var sy = t.height / 20;
+      // Las anatomías de esta etapa son simétricas. No reflejamos el grupo
+      // completo porque también invertiría etiquetas y puntos de control.
+      var transform = 'translate(' + t.x + ' ' + t.y + ') rotate(' + t.rotation + ') scale(' + sx + ' ' + sy + ')';
+      var path = PATHS[t.shape][t.role];
+      return '<g class="tooth' + selectedClass + modifiedClass + (t.visible === false ? ' is-hidden' : '') + '" data-id="' + esc(t.id) + '" tabindex="0" role="button" aria-label="Diente ' + esc(t.id) + ', ' + ROLE_NAMES[t.role] + '" transform="' + transform + '">' +
+        '<path class="shape" style="fill:url(#enamel-' + t.id + ')" d="' + path + '"></path>' +
+        '<path class="incisal-layer" style="opacity:' + (t.material.translucency / 250).toFixed(3) + '" d="M -3.9 ' + (ROLE_END[t.role] - 1.3) + ' Q 0 ' + (ROLE_END[t.role] + .15) + ' 3.9 ' + (ROLE_END[t.role] - 1.3) + '"></path>' +
+        '<path class="inner" style="opacity:' + (t.material.texture === 'smooth' ? '.18' : t.material.texture === 'characterized' ? '.9' : '.55') + '" d="M -3.1 2 C -1.2 1.1 1.2 1.1 3.1 2 M -3.5 5.2 C -2.5 8.2 -2.4 13.4 -1.5 17 M 3.5 5.2 C 2.5 8.2 2.4 13.4 1.5 17"></path>' +
+        (t.material.texture === 'characterized' ? '<path class="material-texture" d="M -3.8 7 Q -2.8 7.5 -2 7 M -4 10 Q -3 10.6 -2.1 10 M 2 7 Q 2.8 7.5 3.7 7 M 2.1 10 Q 3 10.6 3.9 10 M -2.8 14 Q 0 13.2 2.8 14"></path>' : '') +
+        '<path class="selection" d="' + path + '"></path>' +
+        '<circle class="anchor" cx="0" cy="0" r="1.05" fill="#55d8a3" stroke="#07100d" stroke-width=".35"></circle>' +
+        '<circle class="anchor" cx="0" cy="' + (t.role === 'central' ? '19.2' : t.role === 'lateral' ? '17.4' : '18') + '" r="1.05" fill="#f3b84f" stroke="#130d04" stroke-width=".35"></circle>' +
+        '<text class="tooth-label" x="0" y="10">' + esc(t.id) + '</text></g>';
+    }).join('');
+    renderList();
+    syncControls();
+    syncGuideControls();
+    syncShapeControls();
+    syncMaterialControls();
+    syncProfessionalControls();
+  }
+
+  function renderList() {
+    document.getElementById('teeth-list').innerHTML = state.teeth.map(function (t) {
+      return '<button type="button" class="tooth-select' + (t.id === state.selectedId ? ' active' : '') + (isModified(t) ? ' modified' : '') + '" data-select="' + t.id + '" title="' + (t.visible === false ? 'Pieza oculta' : 'Pieza visible') + '">' + t.id + (t.visible === false ? ' ·' : '') + '</button>';
+    }).join('');
+  }
+
+  function syncControls() {
+    var t = selected();
+    var d = original(t.id);
+    var widthPct = Math.round(t.width / d.width * 100);
+    var heightPct = Math.round(t.height / d.height * 100);
+    widthControl.value = widthPct;
+    heightControl.value = heightPct;
+    rotationControl.value = t.rotation;
+    document.getElementById('width-output').textContent = widthPct + '%';
+    document.getElementById('height-output').textContent = heightPct + '%';
+    document.getElementById('rotation-output').textContent = Number(t.rotation).toFixed(1) + '°';
+    document.getElementById('selected-name').textContent = t.id + ' · ' + ROLE_NAMES[t.role];
+  }
+
+  function syncGuideControls() {
+    var bindings = [
+      ['incisal-center', 'incisalCenter', 'incisal-center-output', ''],
+      ['incisal-arc', 'incisalArc', 'incisal-arc-output', ''],
+      ['gingival-center', 'gingivalCenter', 'gingival-center-output', ''],
+      ['gingival-arc', 'gingivalArc', 'gingival-arc-output', ''],
+      ['red-control', 'red', 'red-output', '%']
+    ];
+    bindings.forEach(function (binding) {
+      var value = state.guides[binding[1]];
+      document.getElementById(binding[0]).value = value;
+      document.getElementById(binding[2]).textContent = Number(value).toFixed(binding[1] === 'red' ? 0 : 1) + binding[3];
+    });
+  }
+
+  function syncShapeControls() {
+    document.querySelectorAll('[data-shape]').forEach(function (button) {
+      button.classList.toggle('active', button.dataset.shape === selected().shape);
+      button.setAttribute('aria-pressed', button.dataset.shape === selected().shape ? 'true' : 'false');
+    });
+  }
+
+  function syncMaterialControls() {
+    var material = selected().material;
+    document.querySelectorAll('[data-vita]').forEach(function (button) {
+      button.classList.toggle('active', button.dataset.vita === material.vita);
+      button.setAttribute('aria-pressed', button.dataset.vita === material.vita ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-texture]').forEach(function (button) {
+      button.classList.toggle('active', button.dataset.texture === material.texture);
+      button.setAttribute('aria-pressed', button.dataset.texture === material.texture ? 'true' : 'false');
+    });
+    [['value-control','value','value-output'],['chroma-control','chroma','chroma-output'],['translucency-control','translucency','translucency-output']].forEach(function (binding) {
+      document.getElementById(binding[0]).value = material[binding[1]];
+      document.getElementById(binding[2]).textContent = (material[binding[1]] > 0 && binding[1] !== 'translucency' ? '+' : '') + material[binding[1]] + (binding[1] === 'translucency' ? '%' : '');
+    });
+  }
+
+  function syncProfessionalControls() {
+    var t = selected();
+    var symmetry = document.getElementById('symmetry-toggle');
+    var papillae = document.getElementById('papillae-toggle');
+    symmetry.classList.toggle('active', state.options.symmetry);
+    symmetry.setAttribute('aria-pressed', state.options.symmetry ? 'true' : 'false');
+    papillae.classList.toggle('active', state.options.papillae);
+    papillae.setAttribute('aria-pressed', state.options.papillae ? 'true' : 'false');
+    document.getElementById('visibility-toggle').textContent = t.visible === false ? 'Mostrar pieza' : 'Ocultar pieza';
+    syncHistoryControls();
+  }
+
+  function readCaseForm() {
+    caseState.folio = document.getElementById('case-folio').value.trim();
+    caseState.patient = document.getElementById('case-patient').value.trim();
+    caseState.status = document.getElementById('case-status').value;
+    caseState.notes = document.getElementById('case-notes').value.trim();
+  }
+
+  function validateWorkflow(workflow) {
+    workflow = workflow || {};
+    var step = WORKFLOW_STEPS.indexOf(workflow.step) === -1 ? 'case' : workflow.step;
+    var completed = Array.isArray(workflow.completed) ? workflow.completed.filter(function (item, index, list) { return WORKFLOW_STEPS.indexOf(item) !== -1 && list.indexOf(item) === index; }) : [];
+    return {step:step,completed:completed};
+  }
+
+  function renderWorkflow() {
+    caseState.workflow = validateWorkflow(caseState.workflow);
+    var workflow = caseState.workflow, copy = WORKFLOW_COPY[workflow.step], currentIndex = WORKFLOW_STEPS.indexOf(workflow.step);
+    document.querySelectorAll('[data-workflow-step]').forEach(function (button) {
+      var step = button.dataset.workflowStep;
+      button.classList.toggle('active', step === workflow.step);
+      button.classList.toggle('complete', workflow.completed.indexOf(step) !== -1);
+      button.setAttribute('aria-current', step === workflow.step ? 'step' : 'false');
+    });
+    document.querySelectorAll('.workflow-target').forEach(function (section) { section.classList.toggle('workflow-focus', section.id === 'workflow-' + workflow.step); });
+    document.getElementById('workflow-current').innerHTML = '<strong>' + copy[0] + '</strong>' + copy[1];
+    document.getElementById('workflow-progress-label').textContent = workflow.completed.length + ' de ' + WORKFLOW_STEPS.length;
+    document.getElementById('workflow-progress-bar').style.width = Math.round(workflow.completed.length / WORKFLOW_STEPS.length * 100) + '%';
+    document.getElementById('workflow-previous').disabled = currentIndex === 0;
+    var next = document.getElementById('workflow-next'); next.disabled = currentIndex === WORKFLOW_STEPS.length - 1; next.textContent = currentIndex === WORKFLOW_STEPS.length - 2 ? 'Ir a entrega' : 'Siguiente';
+  }
+
+  function activateWorkflowStep(step, shouldScroll) {
+    if (WORKFLOW_STEPS.indexOf(step) === -1) return;
+    caseState.workflow = validateWorkflow(caseState.workflow); caseState.workflow.step = step; upsertCurrentCase(); renderLibrary(); renderWorkflow();
+    var target = document.getElementById('workflow-' + step);
+    if (shouldScroll && target) target.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function markWorkflowComplete(step) {
+    caseState.workflow = validateWorkflow(caseState.workflow);
+    if (caseState.workflow.completed.indexOf(step) === -1) caseState.workflow.completed.push(step);
+    renderWorkflow();
+  }
+
+  function completeWorkflowStep(step) {
+    readCaseForm();
+    if (step === 'case' && !caseState.folio) { setStatus('Agrega un folio antes de continuar a fotografía.'); return false; }
+    if (step === 'photo' && !(caseState.photos || []).some(function (item) { return item.slot === 'frontal'; })) { setStatus('Carga la fotografía frontal principal antes de continuar. Las demás tomas son opcionales.'); return false; }
+    if (step === 'calibration' && !(caseState.calibration && caseState.calibration.enabled && caseState.calibration.alignedAt)) { setStatus('Muestra las guías y usa “Centrar diseño” antes de continuar.'); return false; }
+    if (step === 'review' && !(caseState.revisions || []).length) { setStatus('Guarda al menos una versión del diseño antes de preparar la entrega.'); return false; }
+    markWorkflowComplete(step); upsertCurrentCase(); renderLibrary();
+    return true;
+  }
+
+  function renderCase() {
+    document.getElementById('case-folio').value = caseState.folio; document.getElementById('case-patient').value = caseState.patient;
+    document.getElementById('case-status').value = caseState.status; document.getElementById('case-notes').value = caseState.notes;
+    document.getElementById('case-file-list').innerHTML = caseState.files.map(function (file, index) { return '<div class="file-item"><span title="' + esc(file.name) + '">' + esc(file.name) + '<br><small>' + esc(file.type || 'archivo') + ' · ' + Math.ceil(file.size / 1024) + ' KB</small></span><button class="small-btn" type="button" data-remove-file="' + index + '">Quitar</button></div>'; }).join('');
+    var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
+    document.getElementById('case-summary').textContent = (caseState.folio || 'Sin folio') + ' · ' + (labels[caseState.status] || 'Borrador') + ' · ' + caseState.files.length + ' archivo(s) · ' + (caseState.revisions || []).length + ' versión(es) · diseño v' + state.version + '.';
+    renderCaseOverview();
+    renderCalibrationControls();
+    renderRevisions();
+    renderPhotoRecords();
+    renderWorkflow();
+  }
+
+  function renderCalibrationControls() {
+    var calibration = caseState.calibration || (caseState.calibration = clone(defaultCalibration));
+    [['face-midline','midline','%'],['pupil-level','pupilY','%'],['pupil-tilt','pupilTilt','°'],['occlusal-level','occlusalY','%'],['occlusal-tilt','occlusalTilt','°']].forEach(function (binding) {
+      var input = document.getElementById(binding[0]), output = document.getElementById(binding[0] + '-output');
+      input.value = calibration[binding[1]]; output.textContent = Number(calibration[binding[1]]).toFixed(1) + binding[2];
+    });
+    var frontal = (caseState.photos || []).find(function (item) { return item.slot === 'frontal'; });
+    var toggle = document.getElementById('calibration-toggle'); toggle.textContent = calibration.enabled ? 'Ocultar guías' : 'Mostrar guías'; toggle.setAttribute('aria-pressed', calibration.enabled ? 'true' : 'false');
+    document.getElementById('calibration-state').textContent = !calibration.enabled ? 'Calibración oculta · abre o usa una fotografía frontal.' : !frontal ? 'Guías visibles · falta cargar la fotografía frontal.' : frontal.quality && frontal.quality.status === 'ready' ? 'Frontal técnicamente apta · ajusta las tres referencias.' : 'Guías visibles · conviene revisar la calidad de la frontal.';
+  }
+
+  function validatePhotoQuality(quality) {
+    if (!quality || ['ready','review','unknown'].indexOf(quality.status) === -1) return null;
+    return {status:quality.status,width:Math.max(0,Number(quality.width)||0),height:Math.max(0,Number(quality.height)||0),brightness:Math.max(0,Number(quality.brightness)||0),contrast:Math.max(0,Number(quality.contrast)||0),sharpness:Math.max(0,Number(quality.sharpness)||0),issues:Array.isArray(quality.issues) ? quality.issues.slice(0,5).map(function (issue) { return String(issue).slice(0,80); }) : [],checkedAt:String(quality.checkedAt||'')};
+  }
+
+  function validateCalibration(calibration) {
+    calibration = calibration || {};
+    return {enabled:calibration.enabled === true,midline:clamp(Number(calibration.midline)||50,40,60),pupilY:clamp(Number(calibration.pupilY)||34,18,52),pupilTilt:clamp(Number(calibration.pupilTilt)||0,-8,8),occlusalY:clamp(Number(calibration.occlusalY)||64,48,82),occlusalTilt:clamp(Number(calibration.occlusalTilt)||0,-8,8),alignedAt:String(calibration.alignedAt||'').slice(0,40)};
+  }
+
+  function validateCase(candidate) {
+    if (!candidate || candidate.schema !== 'smyl.case-package' || candidate.version !== 1) throw new Error('paquete de caso incompatible');
+    candidate.id = String(candidate.id || makeId()).slice(0,80);
+    candidate.folio = String(candidate.folio || '').slice(0, 80); candidate.patient = String(candidate.patient || '').slice(0, 160); candidate.notes = String(candidate.notes || '').slice(0, 5000);
+    if (['draft','review','approved'].indexOf(candidate.status) === -1) candidate.status = 'draft';
+    if (!Array.isArray(candidate.files)) candidate.files = [];
+    candidate.files = candidate.files.slice(0, 30).map(function (file) { return { name: String(file.name || '').slice(0, 240), type: String(file.type || ''), size: Math.max(0, Number(file.size) || 0), lastModified: Number(file.lastModified) || 0 }; });
+    if (!Array.isArray(candidate.photos)) candidate.photos = [];
+    candidate.photos = candidate.photos.filter(function (item) { return PHOTO_SLOTS.some(function (slot) { return slot.id === item.slot; }); }).slice(0, PHOTO_SLOTS.length).map(function (item) { return { slot: String(item.slot), name: String(item.name || '').slice(0,240), type: String(item.type || ''), size: Math.max(0,Number(item.size)||0), capturedAt: String(item.capturedAt || ''), quality:validatePhotoQuality(item.quality) }; });
+    candidate.calibration = validateCalibration(candidate.calibration);
+    candidate.workflow = validateWorkflow(candidate.workflow);
+    if (!Array.isArray(candidate.revisions)) candidate.revisions = [];
+    candidate.revisions = candidate.revisions.slice(0, 20).map(function (revision, index) { return { id: String(revision.id || ('revision-' + index)), label: String(revision.label || ('Versión ' + (index + 1))).slice(0, 80), createdAt: String(revision.createdAt || ''), design: validate(revision.design) }; });
+    if (candidate.design) candidate.design = validate(candidate.design);
+    return candidate;
+  }
+
+  function persistLibrary() { localStorage.setItem(CASE_LIBRARY_KEY, JSON.stringify({ schema: 'smyl.case-library', version: 1, cases: caseLibrary })); }
+
+  function availableFolio(seed) {
+    var base = seed || ('SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''));
+    var folio = base, copy = 2;
+    while (caseLibrary.some(function (item) { return item.folio === folio; })) folio = base + '-' + copy++;
+    return folio;
+  }
+
+  function blankCase() {
+    return { schema: 'smyl.case-package', version: 1, id: makeId(), folio: availableFolio(), patient: '', status: 'draft', notes: '', files: [], photos: [], revisions: [], calibration: clone(defaultCalibration), workflow:{step:'case',completed:[]}, updatedAt: null, design: clone({ schema: 'smyl.veneer-design', version: 5, updatedAt: null, selectedId: '11', teeth: defaults, guides: defaultGuides, options: { symmetry: false, papillae: false } }) };
+  }
+
+  function loadLibrary() {
+    try { var parsed = JSON.parse(localStorage.getItem(CASE_LIBRARY_KEY) || 'null'); if (parsed && parsed.schema === 'smyl.case-library' && parsed.version === 1 && Array.isArray(parsed.cases)) caseLibrary = parsed.cases.map(validateCase); } catch (error) { caseLibrary = []; }
+    if (!caseLibrary.length) { try { var legacy = JSON.parse(localStorage.getItem(CASE_STORAGE_KEY) || 'null'); if (legacy) { caseLibrary.push(validateCase(legacy)); persistLibrary(); } } catch (error) {} }
+    caseLibrary.sort(function (a, b) { return String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')); });
+  }
+
+  function caseInitials(item) {
+    var source = (item.patient || item.folio || 'SM').trim().split(/\s+/).filter(Boolean);
+    return (source.length > 1 ? source.slice(0,2).map(function (part) { return part.charAt(0); }).join('') : source[0].slice(0,2)).toUpperCase() || 'SM';
+  }
+
+  function caseDate(value) {
+    if (!value) return 'Sin actividad';
+    var date = new Date(value), today = new Date();
+    if (date.toDateString() === today.toDateString()) return 'Hoy · ' + date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    return date.toLocaleDateString([], {day:'2-digit',month:'short',year:'numeric'});
+  }
+
+  function renderCaseOverview() {
+    var workflow = validateWorkflow(caseState.workflow), completed = workflow.completed.length;
+    var nextStep = WORKFLOW_STEPS.find(function (step) { return workflow.completed.indexOf(step) === -1; }) || 'delivery';
+    var photos = caseState.photos || [], readyPhotos = photos.filter(function (item) { return item.quality && item.quality.status === 'ready'; }).length;
+    var labels = { draft:'Borrador', review:'En revisión', approved:'Aprobado' }, pending = [];
+    if (!caseState.patient) pending.push('identificar paciente');
+    if (!photos.some(function (item) { return item.slot === 'frontal'; })) pending.push('capturar frontal');
+    if (!(caseState.revisions || []).length) pending.push('guardar una versión');
+    var alert = pending.length ? 'Pendiente: ' + pending.join(' · ') + '.' : 'Expediente preparado para revisión y entrega.';
+    document.getElementById('case-overview').innerHTML = '<div class="case-overview-head"><div class="case-avatar" aria-hidden="true">' + esc(caseInitials(caseState)) + '</div><div><strong>' + esc(caseState.patient || 'Paciente por identificar') + '</strong><span>' + esc(caseState.folio || 'Sin folio') + ' · ' + esc(caseDate(caseState.updatedAt)) + '</span></div><em class="case-status ' + esc(caseState.status) + '">' + esc(labels[caseState.status] || 'Borrador') + '</em></div><div class="case-overview-stats"><div class="case-overview-stat"><b>' + completed + '/6</b><span>Ruta</span></div><div class="case-overview-stat"><b>' + photos.length + '</b><span>Fotos</span></div><div class="case-overview-stat"><b>' + readyPhotos + '</b><span>Aptas</span></div><div class="case-overview-stat"><b>' + (caseState.revisions || []).length + '</b><span>Versiones</span></div></div><div class="case-overview-next"><div><small>Próxima acción</small><strong>' + esc(WORKFLOW_COPY[nextStep][0]) + '</strong></div><button class="primary" type="button" data-overview-step="' + nextStep + '">Continuar</button></div><div class="case-overview-alert' + (pending.length ? '' : ' ready') + '">' + esc(alert) + '</div>';
+  }
+
+  function renderLibrary() {
+    var q = document.getElementById('case-search').value.trim().toLowerCase(), filter = document.getElementById('case-filter').value;
+    var labels = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
+    var visible = caseLibrary.filter(function (item) { return (filter === 'all' || item.status === filter) && (!q || ((item.folio || '') + ' ' + (item.patient || '')).toLowerCase().indexOf(q) !== -1); });
+    var reviewCount = caseLibrary.filter(function (item) { return item.status === 'review'; }).length, approvedCount = caseLibrary.filter(function (item) { return item.status === 'approved'; }).length;
+    document.getElementById('case-metrics').innerHTML = '<div class="case-metric"><strong>' + caseLibrary.length + '</strong><span>Total</span></div><div class="case-metric review"><strong>' + reviewCount + '</strong><span>En revisión</span></div><div class="case-metric approved"><strong>' + approvedCount + '</strong><span>Aprobados</span></div>';
+    document.querySelectorAll('[data-case-status]').forEach(function (button) { button.classList.toggle('active', button.dataset.caseStatus === filter); button.setAttribute('aria-pressed', button.dataset.caseStatus === filter ? 'true' : 'false'); });
+    document.getElementById('case-library').innerHTML = visible.length ? visible.map(function (item) {
+      var index = caseLibrary.indexOf(item), workflow = validateWorkflow(item.workflow), progress = Math.round(workflow.completed.length / WORKFLOW_STEPS.length * 100), photos = (item.photos || []).length, revisions = (item.revisions || []).length;
+      return '<article class="case-card' + (item.id === caseState.id ? ' active' : '') + '"><div class="case-avatar" aria-hidden="true">' + esc(caseInitials(item)) + '</div><div class="case-card-copy"><strong>' + esc(item.patient || 'Paciente por identificar') + '</strong><span>' + esc(item.folio || 'Sin folio') + '</span><span>' + esc(caseDate(item.updatedAt)) + '</span></div><em class="case-status ' + esc(item.status) + '">' + esc(labels[item.status] || 'Borrador') + '</em><div class="case-card-meta"><span>' + progress + '% ruta</span><span>' + photos + ' foto' + (photos === 1 ? '' : 's') + '</span><span>' + revisions + ' ' + (revisions === 1 ? 'versión' : 'versiones') + '</span></div><div class="case-progress" aria-label="Avance ' + progress + '%"><i style="width:' + progress + '%"></i></div><div class="case-card-actions"><button class="primary" data-open-case="' + index + '">Continuar</button><button class="small-btn" data-duplicate-case="' + index + '">Duplicar</button><button class="small-btn danger" data-delete-case="' + index + '" aria-label="Eliminar ' + esc(item.folio || 'caso') + '">Eliminar</button></div></article>';
+    }).join('') : '<div class="case-empty"><strong>No hay casos aquí</strong><span>Ajusta la búsqueda, cambia el filtro o crea un expediente nuevo.</span></div>';
+  }
+
+  function openCaseAt(index) { var item = caseLibrary[index]; if (!item) return; caseState = clone(item); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' abierto.'); }
+
+  function renderRevisions() {
+    var revisions = caseState.revisions || [];
+    document.getElementById('revision-list').innerHTML = revisions.length ? revisions.map(function (revision, index) { return '<article class="revision-card"><div><strong>' + esc(revision.label) + '</strong><span>' + (revision.createdAt ? new Date(revision.createdAt).toLocaleString() : 'Sin fecha') + '</span></div><small>v' + revision.design.version + '</small><div class="revision-actions"><button class="small-btn" data-restore-revision="' + index + '">Restaurar en lienzo</button><button class="small-btn danger" data-delete-revision="' + index + '">Eliminar</button></div></article>'; }).join('') : '<div class="guide-note">Aún no hay versiones guardadas para este caso.</div>';
+  }
+
+  function renderPhotoRecords() {
+    Object.keys(photoUrls).forEach(function (key) { URL.revokeObjectURL(photoUrls[key]); }); photoUrls = {};
+    var records = caseState.photos || [], activeCaseId = caseState.id;
+    var frontal = records.find(function (item) { return item.slot === 'frontal'; }), ready = records.filter(function (item) { return item.quality && item.quality.status === 'ready'; }).length;
+    document.getElementById('photo-progress').textContent = (!frontal ? 'Frontal pendiente' : frontal.quality && frontal.quality.status === 'ready' ? 'Frontal técnicamente lista' : 'Frontal por revisar') + ' · ' + records.length + ' de ' + PHOTO_SLOTS.length + ' tomas · ' + ready + ' apta(s)';
+    document.getElementById('case-photo-grid').innerHTML = PHOTO_SLOTS.map(function (slot) {
+      var record = records.find(function (item) { return item.slot === slot.id; });
+      var quality = record && record.quality, qualityClass = quality ? quality.status : 'unknown', qualityLabel = !record ? '' : !quality ? 'Sin evaluar' : quality.status === 'ready' ? 'Técnicamente apta' : quality.status === 'review' ? 'Conviene repetir' : 'No evaluada';
+      var detail = !record ? (slot.guide ? 'Encuadre facial guiado' : 'Registro clínico libre') : quality && quality.issues.length ? quality.issues.join(' · ') : quality && quality.width ? quality.width + ' × ' + quality.height + ' px' : record.name;
+      return '<article class="case-photo-card"><div class="case-photo-preview" id="photo-preview-' + slot.id + '">' + (record ? '⌛' : '＋') + '</div><div class="case-photo-body"><strong>' + esc(slot.label) + (slot.required ? ' <em class="required-tag">Principal</em>' : '') + '</strong><span class="quality-detail">' + esc(detail) + '</span>' + (record ? '<span class="photo-quality ' + qualityClass + '">' + qualityLabel + '</span>' : '') + '<div class="case-photo-actions">' + (slot.guide ? '<button class="small-btn" type="button" data-open-camera="' + slot.id + '">Cámara</button>' : '') + '<label class="small-btn">Galería<input type="file" accept="image/*" data-photo-input="' + slot.id + '" hidden></label>' + (record ? (!quality ? '<button class="small-btn" type="button" data-check-photo="' + slot.id + '">Evaluar</button>' : '') + '<button class="small-btn" type="button" data-use-photo="' + slot.id + '">Usar</button><button class="small-btn danger" type="button" data-remove-photo="' + slot.id + '">Quitar</button>' : '') + '</div></div></article>';
+    }).join('');
+    records.forEach(function (record) { getPhoto(activeCaseId,record.slot).then(function (blob) { if (!blob || caseState.id !== activeCaseId) return; var preview = document.getElementById('photo-preview-' + record.slot); if (!preview) return; var url = URL.createObjectURL(blob); photoUrls[record.slot] = url; preview.innerHTML = '<img src="' + url + '" alt="' + esc(record.name) + '">'; }).catch(function () {}); });
+  }
+
+  function setCanvasPhoto(blob, label) {
+    var url = URL.createObjectURL(blob);
+    photo.onload = function () { document.getElementById('canvas-shell').style.aspectRatio = photo.naturalWidth + ' / ' + photo.naturalHeight; demoBg.style.display = 'none'; photo.style.display = 'block'; URL.revokeObjectURL(url); setStatus((label || 'Fotografía') + ' abierta en el lienzo sin alterar su proporción.'); };
+    photo.src = url;
+  }
+
+  function upsertCurrentCase() {
+    caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state);
+    var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; });
+    if (index >= 0) caseLibrary[index] = clone(caseState); else caseLibrary.unshift(clone(caseState));
+    persistLibrary(); localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(caseState));
+  }
+
+  function requirePhoto() {
+    if (!photo.src || !photo.naturalWidth) { setStatus('Abre una fotografía antes de comparar o exportar.'); return false; }
+    return true;
+  }
+
+  function originalCanvas() {
+    var canvas = document.createElement('canvas');
+    canvas.width = photo.naturalWidth; canvas.height = photo.naturalHeight;
+    canvas.getContext('2d').drawImage(photo, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  function designSvgBlob() {
+    var copy = svg.cloneNode(true);
+    copy.setAttribute('width', photo.naturalWidth); copy.setAttribute('height', photo.naturalHeight);
+    copy.querySelector('#guides-layer').remove();
+    copy.querySelectorAll('.selection,.anchor,.tooth-label').forEach(function (node) { node.remove(); });
+    copy.querySelectorAll('.tooth.is-hidden').forEach(function (node) { node.setAttribute('display', 'none'); });
+    var style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    style.textContent = '.shape{stroke:rgba(255,255,255,.62);stroke-width:.28;vector-effect:non-scaling-stroke}.inner,.material-texture{fill:none;stroke:rgba(255,255,255,.44);stroke-width:.26;stroke-linecap:round;vector-effect:non-scaling-stroke}.incisal-layer{fill:none;stroke:#d8e4e6;stroke-width:1.25;stroke-linecap:round;vector-effect:non-scaling-stroke}';
+    copy.insertBefore(style, copy.firstChild);
+    return new Blob([new XMLSerializer().serializeToString(copy)], { type: 'image/svg+xml' });
+  }
+
+  function resultCanvas() {
+    if (!requirePhoto()) return Promise.reject(new Error('fotografía requerida'));
+    var canvas = originalCanvas(), url = URL.createObjectURL(designSvgBlob());
+    return new Promise(function (resolve, reject) {
+      var overlay = new Image();
+      overlay.onload = function () { canvas.getContext('2d').drawImage(overlay, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); resolve(canvas); };
+      overlay.onerror = function () { URL.revokeObjectURL(url); reject(new Error('no se pudo renderizar el diseño')); };
+      overlay.src = url;
+    });
+  }
+
+  function comparisonCanvas() {
+    return resultCanvas().then(function (after) {
+      var before = originalCanvas(), header = Math.max(48, Math.round(before.height * .055));
+      var canvas = document.createElement('canvas'); canvas.width = before.width * 2; canvas.height = before.height + header;
+      var ctx = canvas.getContext('2d'); ctx.fillStyle = '#101416'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(before, 0, header); ctx.drawImage(after, before.width, header);
+      ctx.fillStyle = '#f4f6f7'; ctx.font = '700 ' + Math.max(18, Math.round(header * .42)) + 'px system-ui'; ctx.textBaseline = 'middle';
+      ctx.fillText('ANTES', 22, header / 2); ctx.fillText('DISEÑO SMYL', before.width + 22, header / 2);
+      return canvas;
+    });
+  }
+
+  function downloadCanvas(factory, name) {
+    factory().then(function (canvas) {
+      var link = document.createElement('a'); link.download = name + '-' + Date.now() + '.png'; link.href = canvas.toDataURL('image/png', 1); link.click();
+      setStatus('PNG generado con la proporción original de la fotografía.');
+    }).catch(function (error) { if (error.message !== 'fotografía requerida') setStatus('No se pudo exportar: ' + error.message); });
+  }
+
+  function openComparison() {
+    if (!requirePhoto()) return;
+    Promise.all([Promise.resolve(originalCanvas()), resultCanvas()]).then(function (canvases) {
+      document.getElementById('before-preview').src = canvases[0].toDataURL('image/png', 1);
+      document.getElementById('after-preview').src = canvases[1].toDataURL('image/png', 1);
+      document.getElementById('compare-modal').classList.add('open'); document.getElementById('close-compare').focus();
+    }).catch(function (error) { setStatus('No se pudo preparar la comparación: ' + error.message); });
+  }
+
+  function deliveryHtml() {
+    if (!document.getElementById('confirm-delivery').checked) { setStatus('Confirma que revisaste los datos antes de generar la entrega.'); return Promise.reject(new Error('confirmación requerida')); }
+    if (!requirePhoto()) return Promise.reject(new Error('fotografía requerida'));
+    readCaseForm();
+    return Promise.all([Promise.resolve(originalCanvas()), resultCanvas()]).then(function (canvases) {
+      var before = canvases[0].toDataURL('image/jpeg', .92), after = canvases[1].toDataURL('image/jpeg', .92);
+      var shapes = {}, vitas = {}; state.teeth.filter(function (t) { return t.visible !== false; }).forEach(function (t) { shapes[SHAPE_NAMES[t.shape]] = true; vitas[t.material.vita] = true; });
+      var notes = document.getElementById('include-notes').checked && caseState.notes ? '<section><h2>Observaciones</h2><p>' + esc(caseState.notes).replace(/\n/g,'<br>') + '</p></section>' : '';
+      return buildDeliveryDocument(before, after, Object.keys(shapes), Object.keys(vitas), notes);
+    });
+  }
+
+  function buildDeliveryDocument(before, after, shapes, vitas, notes) {
+    var statusNames = { draft: 'Borrador', review: 'En revisión', approved: 'Aprobado' };
+    var visible = state.teeth.filter(function (t) { return t.visible !== false; }).map(function (t) { return t.id; }).join(' · ');
+    var css = '*{box-sizing:border-box}body{margin:0;background:#f2f3f2;color:#18201d;font:15px/1.55 system-ui,sans-serif}.page{width:min(1120px,100%);margin:auto;background:#fff;min-height:100vh;padding:42px}.head{display:flex;gap:18px;border-bottom:1px solid #dce2df;padding-bottom:24px}.brand{font-size:28px;font-weight:850;color:#2764ef}.head div:nth-child(2){flex:1}.head h1{margin:0;font-size:28px}.muted{color:#6a746f}.tag{padding:7px 10px;border-radius:999px;background:#e8f7ef;color:#17633f;font-size:11px;font-weight:800}.images{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0}.figure{margin:0;border:1px solid #dce2df;border-radius:14px;overflow:hidden;background:#111}.figure img{display:block;width:100%;height:auto}.figure figcaption{padding:10px;background:#18201d;color:#fff;font-weight:750}section{border-top:1px solid #e4e8e6;padding-top:20px;margin-top:20px}h2{font-size:17px}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.fact{padding:13px;border-radius:11px;background:#f4f6f5}.fact small{display:block;color:#707975;text-transform:uppercase;font-size:9px}.notice{margin-top:28px;padding:14px;border-radius:11px;background:#fff8df;color:#665215}.actions{text-align:right;margin-top:22px}.actions button{border:0;border-radius:10px;background:#2864ef;color:#fff;padding:12px 18px;font-weight:800}@media(max-width:700px){.page{padding:22px}.head{flex-wrap:wrap}.images,.facts{grid-template-columns:1fr}}@media print{body{background:#fff}.page{width:100%;padding:18px}.actions{display:none}}';
+    return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · ' + esc(caseState.folio || 'Caso') + '</title><style>' + css + '</style></head><body><main class="page"><header class="head"><div class="brand">smyl</div><div><h1>Presentación de diseño de sonrisa</h1><div class="muted">' + esc(caseState.patient || 'Paciente') + ' · ' + esc(caseState.folio || 'Sin folio') + '</div></div><span class="tag">' + esc(statusNames[caseState.status] || 'Borrador') + '</span></header><div class="images"><figure class="figure"><img src="' + before + '"><figcaption>Antes</figcaption></figure><figure class="figure"><img src="' + after + '"><figcaption>Propuesta de diseño</figcaption></figure></div><section><h2>Resumen del diseño</h2><div class="facts"><div class="fact"><small>Piezas visibles</small>' + visible + '</div><div class="fact"><small>Morfología</small>' + esc(shapes.join(', ')) + '</div><div class="fact"><small>Referencias VITA</small>' + esc(vitas.join(', ')) + '</div></div></section>' + notes + '<div class="notice"><strong>Simulación orientativa.</strong> No sustituye diagnóstico, planificación clínica, consentimiento informado ni prueba estética.</div><div class="actions"><button onclick="window.print()">Imprimir / guardar PDF</button></div></main></body></html>';
+  }
+
+  function openDelivery(printNow) {
+    deliveryHtml().then(function (html) {
+      var win = window.open('', '_blank'); if (!win) throw new Error('el navegador bloqueó la vista previa');
+      win.document.open(); win.document.write(html); win.document.close();
+      if (printNow) setTimeout(function () { win.print(); }, 500);
+      markWorkflowComplete('delivery'); upsertCurrentCase(); renderLibrary();
+      setStatus('Presentación generada localmente.');
+    }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo generar la entrega: ' + error.message); });
+  }
+
+  function downloadDelivery() {
+    deliveryHtml().then(function (html) { var blob = new Blob([html], {type:'text/html'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '-presentacion.html'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); markWorkflowComplete('delivery'); upsertCurrentCase(); renderLibrary(); setStatus('Presentación HTML descargada.'); }).catch(function (error) { if (!/requerida/.test(error.message)) setStatus('No se pudo descargar: ' + error.message); });
+  }
+
+  function select(id) {
+    if (IDS.indexOf(id) === -1) return;
+    state.selectedId = id;
+    render();
+  }
+
+  function pointerPosition(event) {
+    var point = svg.createSVGPoint();
+    point.x = event.clientX; point.y = event.clientY;
+    return point.matrixTransform(svg.getScreenCTM().inverse());
+  }
+
+  svg.addEventListener('pointerdown', function (event) {
+    var node = event.target.closest('.tooth');
+    if (!node) return;
+    event.preventDefault();
+    select(node.dataset.id);
+    var p = pointerPosition(event);
+    var t = selected();
+    drag = { pointerId: event.pointerId, dx: p.x - t.x, dy: p.y - t.y };
+    node.classList.add('dragging');
+    svg.setPointerCapture(event.pointerId);
+  });
+
+  svg.addEventListener('pointermove', function (event) {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    var p = pointerPosition(event);
+    var t = selected();
+    t.x = clamp(p.x - drag.dx, 5, 95);
+    t.y = clamp(p.y - drag.dy, 8, 88);
+    mirrorFields(t, ['x', 'y']);
+    render();
+  });
+
+  function endDrag(event) {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag = null;
+    commit('Pieza ' + state.selectedId + ' movida' + (state.options.symmetry ? ' con su contralateral.' : '.'));
+  }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+
+  document.getElementById('teeth-list').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-select]');
+    if (button) select(button.dataset.select);
+  });
+
+  widthControl.addEventListener('input', function () {
+    var t = selected(), d = original(t.id);
+    t.width = d.width * Number(this.value) / 100;
+    mirrorFields(t, ['width']); commit();
+  });
+  heightControl.addEventListener('input', function () {
+    var t = selected(), d = original(t.id);
+    t.height = d.height * Number(this.value) / 100;
+    mirrorFields(t, ['height']); commit();
+  });
+  rotationControl.addEventListener('input', function () {
+    var t = selected(); t.rotation = Number(this.value);
+    mirrorFields(t, ['rotation']); commit();
+  });
+
+  document.getElementById('workflow-steps').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-workflow-step]'); if (!button) return;
+    activateWorkflowStep(button.dataset.workflowStep,true);
+  });
+  document.getElementById('workflow-previous').addEventListener('click', function () {
+    var current = WORKFLOW_STEPS.indexOf(caseState.workflow.step); if (current > 0) activateWorkflowStep(WORKFLOW_STEPS[current - 1],true);
+  });
+  document.getElementById('workflow-next').addEventListener('click', function () {
+    var current = WORKFLOW_STEPS.indexOf(caseState.workflow.step); if (current < 0 || current >= WORKFLOW_STEPS.length - 1) return;
+    if (!completeWorkflowStep(caseState.workflow.step)) return;
+    activateWorkflowStep(WORKFLOW_STEPS[current + 1],true);
+    setStatus('Paso completado. Continúa con ' + WORKFLOW_COPY[WORKFLOW_STEPS[current + 1]][0].toLowerCase() + '.');
+  });
+
+  [['face-midline','midline'],['pupil-level','pupilY'],['pupil-tilt','pupilTilt'],['occlusal-level','occlusalY'],['occlusal-tilt','occlusalTilt']].forEach(function (binding) {
+    document.getElementById(binding[0]).addEventListener('input', function () {
+      caseState.calibration[binding[1]] = Number(this.value); caseState.calibration.enabled = true;
+      renderGuides(); renderCalibrationControls(); setStatus('Calibración facial ajustada. Guarda el caso para conservarla.');
+    });
+  });
+
+  document.getElementById('calibration-toggle').addEventListener('click', function () {
+    caseState.calibration.enabled = !caseState.calibration.enabled; renderGuides(); renderCalibrationControls();
+    setStatus(caseState.calibration.enabled ? 'Guías de calibración visibles.' : 'Guías de calibración ocultas.');
+  });
+
+  document.getElementById('use-frontal-calibration').addEventListener('click', function () {
+    var frontal = (caseState.photos || []).find(function (item) { return item.slot === 'frontal'; });
+    if (!frontal) return setStatus('Carga primero la fotografía frontal del caso.');
+    var caseId = caseState.id; getPhoto(caseId,'frontal').then(function (blob) {
+      if (!blob || caseState.id !== caseId) throw new Error(); caseState.calibration.enabled = true; setCanvasPhoto(blob,'Frontal sonrisa'); renderGuides(); renderCalibrationControls();
+    }).catch(function () { setStatus('La fotografía frontal ya no está disponible en este dispositivo.'); });
+  });
+
+  document.getElementById('align-design-midline').addEventListener('click', function () {
+    var right = state.teeth.find(function (t) { return t.id === '11'; }), left = state.teeth.find(function (t) { return t.id === '21'; });
+    var currentCenter = (right.x + left.x) / 2, delta = caseState.calibration.midline - currentCenter;
+    state.teeth.forEach(function (t) { t.x = clamp(t.x + delta,5,95); }); caseState.calibration.enabled = true; caseState.calibration.alignedAt = new Date().toISOString();
+    markWorkflowComplete('calibration'); commit('Diseño centrado en la línea media facial sin modificar la fotografía.'); renderCalibrationControls();
+  });
+
+  document.getElementById('reset-calibration').addEventListener('click', function () {
+    caseState.calibration = clone(defaultCalibration); renderGuides(); renderCalibrationControls(); setStatus('Calibración facial restaurada.');
+  });
+
+  [
+    ['incisal-center', 'incisalCenter'],
+    ['incisal-arc', 'incisalArc'],
+    ['gingival-center', 'gingivalCenter'],
+    ['gingival-arc', 'gingivalArc']
+  ].forEach(function (binding) {
+    document.getElementById(binding[0]).addEventListener('input', function () {
+      state.guides[binding[1]] = Number(this.value);
+      applyGuides();
+      commit('Curvas clínicas aplicadas a las seis piezas superiores.');
+    });
+  });
+
+  document.getElementById('red-control').addEventListener('input', function () {
+    state.guides.red = Number(this.value);
+    commit();
+  });
+
+  document.getElementById('apply-red').addEventListener('click', function () {
+    var ratio = state.guides.red / 100;
+    var centrals = state.teeth.filter(function (t) { return t.role === 'central'; });
+    var centralVisualWidth = centrals.reduce(function (sum, t) { return sum + actualHalfWidth(t) * 2; }, 0) / centrals.length;
+    var targetVisual = {
+      central: centralVisualWidth,
+      lateral: centralVisualWidth * ratio,
+      canine: centralVisualWidth * ratio * ratio
+    };
+    state.teeth.forEach(function (t) { t.width = targetVisual[t.role] * 11 / SHAPE_ROLE_WIDTH[t.shape][t.role]; });
+
+    var byId = {};
+    state.teeth.forEach(function (t) { byId[t.id] = t; });
+    byId['11'].x = 50 - targetVisual.central / 2;
+    byId['21'].x = 50 + targetVisual.central / 2;
+    byId['12'].x = byId['11'].x - (targetVisual.central + targetVisual.lateral) / 2;
+    byId['22'].x = byId['21'].x + (targetVisual.central + targetVisual.lateral) / 2;
+    byId['13'].x = byId['12'].x - (targetVisual.lateral + targetVisual.canine) / 2;
+    byId['23'].x = byId['22'].x + (targetVisual.lateral + targetVisual.canine) / 2;
+    applyGuides();
+    commit('Proporción RED ' + state.guides.red + '% aplicada de forma simétrica: centrales, laterales y caninos.');
+  });
+
+  document.getElementById('reset-guides').addEventListener('click', function () {
+    state.guides = clone(defaultGuides);
+    applyGuides();
+    commit('Guías clínicas restauradas y reaplicadas.');
+  });
+
+  document.getElementById('shape-options').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-shape]');
+    if (!button || !PATHS[button.dataset.shape]) return;
+    var t = selected(); t.shape = button.dataset.shape; mirrorFields(t, ['shape']);
+    commit('Pieza ' + state.selectedId + ': familia ' + SHAPE_NAMES[button.dataset.shape].toLowerCase() + (state.options.symmetry ? ' replicada contralateralmente.' : '.'));
+  });
+
+  document.getElementById('apply-shape-all').addEventListener('click', function () {
+    var shape = selected().shape;
+    state.teeth.forEach(function (t) { t.shape = shape; });
+    commit('Familia ' + SHAPE_NAMES[shape].toLowerCase() + ' aplicada de forma simétrica a 13–23.');
+  });
+
+  document.getElementById('vita-options').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-vita]');
+    if (!button || !VITA_COLORS[button.dataset.vita]) return;
+    var t = selected(); t.material.vita = button.dataset.vita; mirrorFields(t, ['material']);
+    commit('Pieza ' + state.selectedId + ': referencia VITA ' + button.dataset.vita + (state.options.symmetry ? ' replicada contralateralmente.' : '.'));
+  });
+
+  [['value-control','value'],['chroma-control','chroma'],['translucency-control','translucency']].forEach(function (binding) {
+    document.getElementById(binding[0]).addEventListener('input', function () {
+      var t = selected(); t.material[binding[1]] = Number(this.value); mirrorFields(t, ['material']);
+      commit('Material de la pieza ' + state.selectedId + ' actualizado' + (state.options.symmetry ? ' bilateralmente.' : ' localmente.'));
+    });
+  });
+
+  document.getElementById('texture-options').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-texture]');
+    if (!button) return;
+    var t = selected(); t.material.texture = button.dataset.texture; mirrorFields(t, ['material']);
+    commit('Textura de la pieza ' + state.selectedId + ' actualizada' + (state.options.symmetry ? ' bilateralmente.' : '.'));
+  });
+
+  document.getElementById('apply-material-all').addEventListener('click', function () {
+    var material = clone(selected().material);
+    state.teeth.forEach(function (t) { t.material = clone(material); });
+    commit('Material VITA ' + material.vita + ' aplicado a las seis piezas.');
+  });
+
+  document.querySelector('.nudge-grid').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-nudge]');
+    if (!button) return;
+    var bits = button.dataset.nudge.split(',').map(Number);
+    if (bits[0] === 0 && bits[1] === 0) {
+      var d = original(state.selectedId), t = selected(); t.x = d.x; t.y = d.y;
+    } else {
+      selected().x = clamp(selected().x + bits[0], 5, 95);
+      selected().y = clamp(selected().y + bits[1], 8, 88);
+    }
+    mirrorFields(selected(), ['x', 'y']); commit();
+  });
+
+  document.getElementById('reset-tooth').addEventListener('click', function () {
+    var index = state.teeth.findIndex(function (t) { return t.id === state.selectedId; });
+    state.teeth[index] = clone(original(state.selectedId));
+    if (state.options.symmetry) { var pair = counterpart(state.teeth[index]); state.teeth[state.teeth.indexOf(pair)] = clone(original(pair.id)); }
+    commit('Pieza ' + state.selectedId + (state.options.symmetry ? ' y su contralateral restauradas.' : ' restaurada.'));
+  });
+  document.getElementById('reset-all').addEventListener('click', function () {
+    state.teeth = clone(defaults); state.guides = clone(defaultGuides); state.selectedId = '11'; state.options = { symmetry: false, papillae: false }; commit('Diseño completo restaurado.');
+  });
+
+  document.getElementById('symmetry-toggle').addEventListener('click', function () {
+    state.options.symmetry = !state.options.symmetry;
+    commit('Simetría bilateral ' + (state.options.symmetry ? 'activada. Los cambios de pieza se replicarán al lado opuesto.' : 'desactivada. Cada pieza volverá a editarse de forma independiente.'));
+  });
+  document.getElementById('visibility-toggle').addEventListener('click', function () {
+    var t = selected(); t.visible = t.visible === false;
+    mirrorFields(t, ['visible']);
+    commit('Pieza ' + t.id + (t.visible ? ' visible.' : ' oculta.') + (state.options.symmetry ? ' El estado se replicó en su contralateral.' : ''));
+  });
+  document.getElementById('papillae-toggle').addEventListener('click', function () {
+    state.options.papillae = !state.options.papillae;
+    commit('Capa orientativa de papilas ' + (state.options.papillae ? 'visible.' : 'oculta.'));
+  });
+  document.getElementById('undo-design').addEventListener('click', function () { restoreHistory(historyIndex - 1); });
+  document.getElementById('redo-design').addEventListener('click', function () { restoreHistory(historyIndex + 1); });
+  document.getElementById('open-compare').addEventListener('click', openComparison);
+  document.getElementById('close-compare').addEventListener('click', function () { document.getElementById('compare-modal').classList.remove('open'); });
+  document.getElementById('compare-modal').addEventListener('click', function (event) { if (event.target === this) this.classList.remove('open'); });
+  document.getElementById('export-result').addEventListener('click', function () { downloadCanvas(resultCanvas, 'smyl-resultado'); });
+  document.getElementById('modal-export-result').addEventListener('click', function () { downloadCanvas(resultCanvas, 'smyl-resultado'); });
+  document.getElementById('export-compare').addEventListener('click', function () { downloadCanvas(comparisonCanvas, 'smyl-antes-despues'); });
+  document.getElementById('modal-export-compare').addEventListener('click', function () { downloadCanvas(comparisonCanvas, 'smyl-antes-despues'); });
+  document.getElementById('preview-delivery').addEventListener('click', function () { openDelivery(false); });
+  document.getElementById('print-delivery').addEventListener('click', function () { openDelivery(true); });
+  document.getElementById('download-delivery').addEventListener('click', downloadDelivery);
+
+  ['case-folio','case-patient','case-status','case-notes'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { readCaseForm(); renderCase(); }); });
+  document.getElementById('case-files').addEventListener('change', function () {
+    Array.prototype.slice.call(this.files || []).forEach(function (file) { caseState.files.push({ name: file.name, type: file.type, size: file.size, lastModified: file.lastModified }); });
+    caseState.files = caseState.files.slice(0, 30); this.value = ''; renderCase(); setStatus('Referencias añadidas al expediente. El contenido de los archivos no se almacenó.');
+  });
+  document.getElementById('case-file-list').addEventListener('click', function (event) { var button = event.target.closest('[data-remove-file]'); if (!button) return; caseState.files.splice(Number(button.dataset.removeFile), 1); renderCase(); });
+  document.getElementById('case-search').addEventListener('input', renderLibrary);
+  document.getElementById('case-filter').addEventListener('change', renderLibrary);
+  document.getElementById('case-filter-tabs').addEventListener('click', function (event) { var button = event.target.closest('[data-case-status]'); if (!button) return; document.getElementById('case-filter').value = button.dataset.caseStatus; renderLibrary(); });
+  document.getElementById('case-overview').addEventListener('click', function (event) { var button = event.target.closest('[data-overview-step]'); if (button) activateWorkflowStep(button.dataset.overviewStep,true); });
+  document.getElementById('new-case').addEventListener('click', function () { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); renderLibrary(); setStatus('Nuevo expediente listo. Guarda el caso para añadirlo a la biblioteca.'); });
+  document.getElementById('case-library').addEventListener('click', function (event) {
+    var open = event.target.closest('[data-open-case]');
+    if (open) return openCaseAt(Number(open.dataset.openCase));
+    var duplicate = event.target.closest('[data-duplicate-case]');
+    if (duplicate) {
+      var source = caseLibrary[Number(duplicate.dataset.duplicateCase)];
+      if (!source) return;
+      caseState = clone(source); caseState.id = makeId(); caseState.photos = []; caseState.calibration = clone(defaultCalibration); caseState.workflow = {step:'case',completed:[]}; caseState.folio = availableFolio(source.folio + '-COPIA'); caseState.status = 'draft'; caseState.updatedAt = new Date().toISOString();
+      caseLibrary.unshift(clone(caseState)); persistLibrary(); openCaseAt(0); setStatus('Caso duplicado como ' + caseState.folio + '.'); return;
+    }
+    var remove = event.target.closest('[data-delete-case]');
+    if (remove) {
+      var index = Number(remove.dataset.deleteCase), item = caseLibrary[index];
+      if (!item || !window.confirm('¿Eliminar el caso ' + item.folio + ' de este dispositivo?')) return;
+      caseLibrary.splice(index, 1); persistLibrary(); removeCasePhotos(item.id).catch(function () {});
+      if (caseState.folio === item.folio) { caseState = blankCase(); state = validate(caseState.design); resetHistory(); render(); renderCase(); }
+      renderLibrary(); setStatus('Caso eliminado de la biblioteca local.');
+    }
+  });
+  document.getElementById('save-revision').addEventListener('click', function () {
+    readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar una versión.');
+    var input = document.getElementById('revision-label'), revisions = caseState.revisions || (caseState.revisions = []);
+    var label = input.value.trim() || ('Versión ' + (revisions.length + 1));
+    revisions.unshift({ id: 'revision-' + Date.now(), label: label.slice(0,80), createdAt: new Date().toISOString(), design: clone(state) });
+    caseState.revisions = revisions.slice(0,20); input.value = ''; markWorkflowComplete('review'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión “' + label + '” guardada dentro del caso.');
+  });
+  document.getElementById('revision-list').addEventListener('click', function (event) {
+    var restore = event.target.closest('[data-restore-revision]');
+    if (restore) { var revision = (caseState.revisions || [])[Number(restore.dataset.restoreRevision)]; if (!revision) return; state = validate(clone(revision.design)); resetHistory(); render(); renderCase(); setStatus('Versión “' + revision.label + '” restaurada en el lienzo. Guarda el caso para confirmarla como diseño actual.'); return; }
+    var remove = event.target.closest('[data-delete-revision]');
+    if (remove) { var index = Number(remove.dataset.deleteRevision), item = (caseState.revisions || [])[index]; if (!item || !window.confirm('¿Eliminar la versión ' + item.label + '?')) return; caseState.revisions.splice(index,1); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Versión eliminada del historial del caso.'); }
+  });
+  document.getElementById('case-photo-grid').addEventListener('change', function (event) {
+    var input = event.target.closest('[data-photo-input]'), file = input && input.files && input.files[0]; if (!file) return;
+    if (!/^image\//.test(file.type) || file.size > 20 * 1024 * 1024) { input.value = ''; return setStatus('Usa una imagen de hasta 20 MB.'); }
+    var slot = input.dataset.photoInput;
+    saveCasePhoto(slot,file).catch(function () { setStatus('No se pudo guardar la fotografía en este dispositivo.'); });
+    input.value = '';
+  });
+  document.getElementById('case-photo-grid').addEventListener('click', function (event) {
+    var camera = event.target.closest('[data-open-camera]');
+    if (camera) { openCamera(camera.dataset.openCamera); return; }
+    var check = event.target.closest('[data-check-photo]');
+    if (check) { var checkSlot = check.dataset.checkPhoto, checkCaseId = caseState.id; setStatus('Evaluando calidad técnica de la fotografía…'); getPhoto(checkCaseId,checkSlot).then(analyzePhoto).then(function (quality) { if (caseState.id !== checkCaseId) return; var record = (caseState.photos || []).find(function (item) { return item.slot === checkSlot; }); if (!record) return; record.quality = quality; upsertCurrentCase(); renderCase(); renderLibrary(); setStatus(quality.status === 'ready' ? 'Fotografía técnicamente apta.' : 'Conviene repetir la fotografía: ' + quality.issues.join(', ') + '.'); }).catch(function () { setStatus('No se pudo evaluar la fotografía.'); }); return; }
+    var use = event.target.closest('[data-use-photo]');
+    if (use) { var slot = use.dataset.usePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === slot; }); getPhoto(caseState.id,slot).then(function (blob) { if (!blob) throw new Error(); setCanvasPhoto(blob,definition && definition.label); }).catch(function () { setStatus('La fotografía ya no está disponible en este dispositivo.'); }); return; }
+    var remove = event.target.closest('[data-remove-photo]');
+    if (remove) { var removeSlot = remove.dataset.removePhoto, definition = PHOTO_SLOTS.find(function (item) { return item.id === removeSlot; }); if (!window.confirm('¿Quitar la fotografía ' + (definition && definition.label) + '?')) return; removePhoto(caseState.id,removeSlot).then(function () { caseState.photos = (caseState.photos || []).filter(function (item) { return item.slot !== removeSlot; }); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Fotografía retirada del expediente local.'); }); }
+  });
+  document.getElementById('close-camera').addEventListener('click', stopCamera);
+  document.getElementById('camera-modal').addEventListener('click', function (event) { if (event.target === this) stopCamera(); });
+  window.addEventListener('pagehide', stopCamera);
+  document.getElementById('capture-camera').addEventListener('click', function () {
+    var video = document.getElementById('camera-video'), slot = cameraSlot;
+    if (!slot || !cameraStream || !video.videoWidth) return setStatus('Espera a que la cámara esté lista.');
+    var canvas = document.createElement('canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    var context = canvas.getContext('2d'); context.translate(canvas.width,0); context.scale(-1,1); context.drawImage(video,0,0,canvas.width,canvas.height);
+    canvas.toBlob(function (blob) {
+      if (!blob) return setStatus('No se pudo capturar la fotografía.');
+      var file = new File([blob], slot + '-' + Date.now() + '.jpg', {type:'image/jpeg'}); stopCamera();
+      saveCasePhoto(slot,file,'Captura guiada guardada en el expediente local.').catch(function () { setStatus('No se pudo guardar la captura.'); });
+    },'image/jpeg',.94);
+  });
+  document.getElementById('save-case').addEventListener('click', function () { readCaseForm(); if (!caseState.folio) return setStatus('Agrega un folio antes de guardar.'); markWorkflowComplete('case'); upsertCurrentCase(); renderCase(); renderLibrary(); setStatus('Caso ' + caseState.folio + ' guardado en la biblioteca local.'); });
+  document.getElementById('load-case').addEventListener('click', function () { var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; }); if (index < 0) return setStatus('Este folio todavía no está guardado en la biblioteca.'); openCaseAt(index); });
+  document.getElementById('export-case').addEventListener('click', function () { readCaseForm(); caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state); var blob = new Blob([JSON.stringify(caseState, null, 2)], {type:'application/json'}); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = (caseState.folio || 'smyl-caso') + '.json'; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 500); setStatus('Paquete del caso exportado sin fotografías ni contenido binario.'); });
+  document.getElementById('import-case').addEventListener('change', function () { var file = this.files && this.files[0]; if (!file) return; file.text().then(function (raw) { caseState = validateCase(JSON.parse(raw)); caseState.id = makeId(); caseState.photos = []; if (caseLibrary.some(function (item) { return item.folio === caseState.folio; })) caseState.folio = availableFolio(caseState.folio + '-IMPORTADO'); caseState.updatedAt = new Date().toISOString(); caseLibrary.unshift(clone(caseState)); persistLibrary(); if (caseState.design) { state = validate(caseState.design); resetHistory(); render(); } renderCase(); renderLibrary(); setStatus('Paquete importado. Sus fotografías no forman parte del JSON.'); }).catch(function (error) { setStatus('No se pudo importar el caso: ' + error.message); }); this.value = ''; });
+
+  document.getElementById('save-design').addEventListener('click', function () {
+    state.updatedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setStatus('Diseño guardado localmente a las ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '.');
+  });
+  document.getElementById('load-design').addEventListener('click', function () {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return setStatus('Todavía no existe un diseño guardado.');
+    try { state = validate(JSON.parse(raw)); resetHistory(); render(); setStatus('Diseño recuperado sin modificar la fotografía.'); }
+    catch (error) { setStatus('El diseño guardado no es compatible: ' + error.message); }
+  });
+  document.getElementById('export-design').addEventListener('click', function () {
+    state.updatedAt = new Date().toISOString();
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'smyl-diseno-' + Date.now() + '.json'; link.click();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 500);
+    setStatus('JSON exportado. No incluye la fotografía.');
+  });
+  document.getElementById('import-design').addEventListener('change', function () {
+    var file = this.files && this.files[0]; if (!file) return;
+    file.text().then(function (raw) { state = validate(JSON.parse(raw)); resetHistory(); render(); setStatus('JSON importado correctamente.'); }).catch(function (error) { setStatus('No se pudo importar: ' + error.message); });
+    this.value = '';
+  });
+
+  document.getElementById('photo-input').addEventListener('change', function () {
+    var file = this.files && this.files[0]; if (!file) return;
+    setCanvasPhoto(file,'Fotografía'); this.value = '';
+  });
+  document.getElementById('clear-photo').addEventListener('click', function () {
+    photo.removeAttribute('src'); photo.style.display = 'none'; demoBg.style.display = 'block';
+    document.getElementById('canvas-shell').style.aspectRatio = '4 / 3';
+    setStatus('Fotografía retirada del prototipo.');
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (/^(INPUT|TEXTAREA)$/.test(event.target.tagName)) return;
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      restoreHistory(historyIndex + (event.shiftKey ? 1 : -1));
+      return;
+    }
+    var i = IDS.indexOf(state.selectedId);
+    if (event.key === 'Tab') return;
+    if (event.key === '[') { event.preventDefault(); select(IDS[(i + IDS.length - 1) % IDS.length]); }
+    if (event.key === ']') { event.preventDefault(); select(IDS[(i + 1) % IDS.length]); }
+    var amount = event.shiftKey ? 1 : 0.25;
+    var moved = false;
+    if (event.key === 'ArrowLeft') { selected().x -= amount; moved = true; }
+    if (event.key === 'ArrowRight') { selected().x += amount; moved = true; }
+    if (event.key === 'ArrowUp') { selected().y -= amount; moved = true; }
+    if (event.key === 'ArrowDown') { selected().y += amount; moved = true; }
+    if (moved) { event.preventDefault(); mirrorFields(selected(), ['x', 'y']); commit(); }
+  });
+
+  function validate(candidate) {
+    if (!candidate || candidate.schema !== 'smyl.veneer-design' || !Array.isArray(candidate.teeth)) throw new Error('esquema desconocido');
+    if (candidate.version === 1) {
+      candidate.guides = clone(defaultGuides);
+    }
+    if (candidate.version === 1 || candidate.version === 2) {
+      candidate.teeth.forEach(function (t) { if (!t.shape || t.shape === 'natural-soft') t.shape = 'rectangular-soft'; });
+    }
+    if (candidate.version >= 1 && candidate.version <= 3) {
+      candidate.version = 4;
+      candidate.teeth.forEach(function (t) {
+        if (!t.shape || t.shape === 'natural-soft') t.shape = 'rectangular-soft';
+        if (!t.material) t.material = clone(defaultMaterial);
+      });
+    }
+    if (candidate.version >= 1 && candidate.version <= 4) {
+      candidate.version = 5;
+      candidate.options = candidate.options || { symmetry: false, papillae: false };
+      candidate.teeth.forEach(function (t) { if (typeof t.visible !== 'boolean') t.visible = true; });
+    }
+    if (candidate.version !== 5) throw new Error('versión no compatible');
+    if (candidate.teeth.length !== 6 || IDS.some(function (id) { return !candidate.teeth.some(function (t) { return t.id === id; }); })) throw new Error('deben existir las seis piezas 13–23');
+    candidate.teeth.forEach(function (t) {
+      ['x','y','width','height','rotation'].forEach(function (key) { if (!Number.isFinite(Number(t[key]))) throw new Error('valor inválido en ' + t.id); t[key] = Number(t[key]); });
+      if (!PATHS[t.shape] || !PATHS[t.shape][t.role]) throw new Error('anatomía desconocida en ' + t.id);
+      if (!t.material) t.material = clone(defaultMaterial);
+      if (!VITA_COLORS[t.material.vita]) t.material.vita = defaultMaterial.vita;
+      t.material.value = clamp(Number(t.material.value) || 0, -12, 12);
+      t.material.chroma = clamp(Number(t.material.chroma) || 0, -20, 20);
+      t.material.translucency = clamp(Number(t.material.translucency) || 0, 0, 100);
+      if (['smooth','natural','characterized'].indexOf(t.material.texture) === -1) t.material.texture = defaultMaterial.texture;
+      t.visible = t.visible !== false;
+    });
+    if (!candidate.guides) candidate.guides = clone(defaultGuides);
+    ['incisalCenter','incisalArc','gingivalCenter','gingivalArc','red'].forEach(function (key) {
+      if (!Number.isFinite(Number(candidate.guides[key]))) candidate.guides[key] = defaultGuides[key];
+      candidate.guides[key] = Number(candidate.guides[key]);
+    });
+    candidate.guides.incisalCenter = clamp(candidate.guides.incisalCenter, 82, 98);
+    candidate.guides.incisalArc = clamp(candidate.guides.incisalArc, 0, 10);
+    candidate.guides.gingivalCenter = clamp(candidate.guides.gingivalCenter, 48, 75);
+    candidate.guides.gingivalArc = clamp(candidate.guides.gingivalArc, -5, 5);
+    candidate.guides.red = clamp(candidate.guides.red, 62, 80);
+    candidate.options = candidate.options || {};
+    candidate.options.symmetry = candidate.options.symmetry === true;
+    candidate.options.papillae = candidate.options.papillae === true;
+    if (IDS.indexOf(candidate.selectedId) === -1) candidate.selectedId = '11';
+    return candidate;
+  }
+
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function setStatus(message) { statusEl.textContent = message; }
+
+  loadLibrary();
+  if (caseLibrary.length) { caseState = clone(caseLibrary[0]); if (caseState.design) state = validate(caseState.design); }
+  render();
+  resetHistory();
+  renderCase();
+  renderLibrary();
+}());
