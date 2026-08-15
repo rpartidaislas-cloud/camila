@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-14 — Codex: control de costo y telemetría IA (etapa 3)
+
+**Tocado:** simulación web/móvil, función claude, documentación y caché.
+
+- La generación de imagen pagada ya no se reintenta automáticamente ante una
+  desconexión. Cada pulsación genera como máximo una solicitud desde el cliente.
+- Simulación inicial, regeneración manual y revisión del editor crean un
+  identificador y explican el motivo de la solicitud.
+- La función devuelve proveedor, modelo, intentos internos, duración y uso
+  reportado por Gemini; el cliente conserva el último registro en memoria.
+- Se documentó la ruta actual de dos pasos y el protocolo futuro para comparar
+  Gemini con GPT Image 2 sin sustituir el proveedor de producción a ciegas.
+
 ## 2026-08-14 — Codex: flujo fotográfico unificado (etapa 2)
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

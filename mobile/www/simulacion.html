@@ -618,7 +618,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v82 — flujo fotográfico unificado</div>
+<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v83 — costo IA controlado</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1924,6 +1924,7 @@ var S = {
   // de IA: resume cobertura, piezas detectadas, variación óptica y tono por
   // cada vista para decidir si el resultado merece revisión manual.
   simulationQualityByView: {},
+  lastGenerationMeta: null,
   baVistaActual: 'frontal',
   timer: null,
   faceOk: false,
@@ -3533,6 +3534,11 @@ function fromGallery(inp) {
 // ══ PROCESS ══
 function esperar(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
+function crearIdSolicitudIA() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  return 'smyl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
 // Reintenta una función async hasta 2 veces con una pausa entre intentos —
 // "Load failed" (el error genérico de Safari/WebKit para fallos de red) es
 // casi siempre transitorio: la pantalla se bloqueó un instante, cambió de
@@ -3758,7 +3764,13 @@ async function processPhotos() {
     // costo y el riesgo de que alguna fallara sin necesidad.
     if (procSub) procSub.textContent = 'Generando tu simulación...';
     var frontalPhoto = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
-    var resultadoFrontal = await conReintento(function(){ return generateSimulation(clinicalPrompt, frontalPhoto); });
+    // La generación de imagen es pagada: no se reintenta automáticamente.
+    // Si la respuesta se pierde, el usuario decide explícitamente si genera
+    // otra vez, evitando cargos duplicados invisibles.
+    var resultadoFrontal = await generateSimulation(clinicalPrompt, frontalPhoto, {
+      requestId: crearIdSolicitudIA(),
+      reason: 'simulacion_inicial'
+    });
 
     // S.diagnosis se deja sin pedir -- S.photos (las fotos originales,
     // "antes") sigue intacto y es lo que analyzeWithClaude va a leer cuando
@@ -4338,6 +4350,7 @@ async function medirCambioDentalVisible(antesUrl, despuesUrl, view) {
 
 async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   generationOptions = generationOptions || {};
+  var requestId = generationOptions.requestId || crearIdSolicitudIA();
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var fotoOriginalUrl = frontal.dataUrl || ('data:' + (frontal.mimeType || 'image/jpeg') + ';base64,' + frontal.b64);
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
@@ -4404,7 +4417,14 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   var fetchPromise = fetch(CFG.edgeUrl, {
     method: 'POST',
     headers: headersEdgeIA(),
-    body: JSON.stringify({action:'generate_image', imageBase64: entradaDental.b64, mimeType:entradaDental.mimeType, prompt: prompt})
+    body: JSON.stringify({
+      action:'generate_image',
+      requestId:requestId,
+      requestReason:generationOptions.reason || (generationOptions.editorRevision ? 'revision_editor' : 'generacion_manual'),
+      imageBase64:entradaDental.b64,
+      mimeType:entradaDental.mimeType,
+      prompt:prompt
+    })
   });
   // En horas de alta demanda Gemini puede acercarse al límite total de la
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
@@ -4412,6 +4432,12 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   var resp = await conTimeout(fetchPromise, 150000, 'generación de la imagen con IA');
   var data = await resp.json();
   if (data.error) throw errorDelServidor(data.error);
+  S.lastGenerationMeta = data.generation || {
+    requestId: requestId,
+    provider: data.source || 'desconocido',
+    model: data.model || 'desconocido'
+  };
+  console.info('[SMYL] generación de imagen:', S.lastGenerationMeta);
   var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
   if (!url) throw new Error('Sin imagen');
   var marcasTecnicas = await detectarMarcasTecnicasIA(url, frontal.view || 'frontal');
@@ -5765,7 +5791,12 @@ async function edAplicarDiseno() {
     // Sin reintento, un solo parpadeo de red durante los ~15-20s de espera
     // de Gemini ("Load failed" es el error típico de eso en iOS) tumbaba
     // todo el intento — igual que ya se maneja en processPhotos().
-    var nuevoResultado = await conReintento(function(){ return generateSimulation(promptCombinado, photoEditor, {editorRevision:true,requireVisibleChange:true}); });
+    var nuevoResultado = await generateSimulation(promptCombinado, photoEditor, {
+      editorRevision:true,
+      requireVisibleChange:true,
+      requestId:crearIdSolicitudIA(),
+      reason:'revision_editor'
+    });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;
@@ -6024,7 +6055,10 @@ async function regenerarSimulacion() {
   try {
     var view = S.baVistaActual || 'frontal';
     var photo = S.photos.find(function(p){return p.view === view;});
-    var nuevoResultado = await conReintento(function(){ return generateSimulation(S.promptGeminiUsado, photo); });
+    var nuevoResultado = await generateSimulation(S.promptGeminiUsado, photo, {
+      requestId:crearIdSolicitudIA(),
+      reason:'regeneracion_manual'
+    });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
     if (view === 'frontal') S.result = nuevoResultado;

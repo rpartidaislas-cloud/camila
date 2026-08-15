@@ -25,6 +25,14 @@ const GEMINI_IMAGE_MODELS = [
   { name: "gemini-3-pro-image",     modalities: ["TEXT", "IMAGE"] },
 ];
 
+// Una acción del usuario debe equivaler, por defecto, a un solo intento de
+// generación cobrado por el proveedor. Se puede elevar temporalmente a 2 o 3
+// desde Secrets si la disponibilidad lo exige, pero nunca de forma accidental.
+const GEMINI_IMAGE_MAX_ATTEMPTS = Math.min(
+  GEMINI_IMAGE_MODELS.length,
+  Math.max(1, Number.parseInt(Deno.env.get("GEMINI_IMAGE_MAX_ATTEMPTS") || "1", 10) || 1),
+);
+
 // La plataforma de Supabase mata la función si se pasa de su propio límite
 // de tiempo -- cuando eso pasa, el navegador ve la conexión cortada a medio
 // camino SIN los headers de CORS (porque el proceso murió antes de poder
@@ -77,14 +85,21 @@ Deno.serve(async (req: Request) => {
       status: 400, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
+  const requestId = typeof body?.requestId === "string" && body.requestId.trim()
+    ? body.requestId.trim().slice(0, 120)
+    : crypto.randomUUID();
+  const requestReason = typeof body?.requestReason === "string"
+    ? body.requestReason.slice(0, 80)
+    : (body?.action || "analysis");
 
   // Tope de gasto server-side -- ver _shared/limits.ts.
   //
   // SOLO la generación de imagen descuenta del plan. Una sola simulación
   // hace 4+ llamadas a esta función (validar encuadre, analizar
   // proporciones, analizar fotos para el diagnóstico, generar la imagen) y
-  // cada una se reintenta hasta 2 veces sola (conReintento en
-  // simulacion.html): si todas descontaran, un plan de 40 "diagnósticos"
+  // las llamadas de análisis pueden reintentarse ante fallos transitorios,
+  // pero la generación de imagen requiere una nueva acción del usuario. Si
+  // todas descontaran, un plan de 40 "diagnósticos"
   // daría ~10 simulaciones reales, y darle a "Reintentar" cerca del límite
   // consumiría MÁS cupo, que es justo lo contrario de lo que el dentista
   // espera. Las llamadas de análisis igual se verifican (clínica real,
@@ -114,7 +129,7 @@ Deno.serve(async (req: Request) => {
   marca("después del chequeo de límite");
 
   try {
-    console.log("Llamada de:", user?.id, "-- tenant:", tenantEfectivo, "-- descuenta:", esGeneracionImagen);
+    console.log("Llamada de:", user?.id, "-- tenant:", tenantEfectivo, "-- descuenta:", esGeneracionImagen, "-- request:", requestId);
     console.log("Body keys:", Object.keys(body).join(", "));
 
     // ── GENERAR IMAGEN CON GEMINI ────────────────────────────────────────────
@@ -122,6 +137,7 @@ Deno.serve(async (req: Request) => {
     // MISMO que se afinó para que funcionara bien con gpt-image-1 -- no se
     // toca, Gemini lo recibe tal cual como el resto del contenido.
     if (body.action === "generate_image") {
+      const imageStartedAt = performance.now();
       const KEY = Deno.env.get("GEMINI_API_KEY");
       if (!KEY) {
         return new Response(JSON.stringify({ error: "GEMINI_API_KEY no configurada en Supabase Secrets" }), {
@@ -137,13 +153,21 @@ Deno.serve(async (req: Request) => {
       }
       marca("después de leer imageBase64 del body");
 
-      // Intenta los modelos en orden -- si uno falla o no trae imagen, sigue
-      // con el siguiente en vez de fallar de una vez. Cada intento se corta
-      // a los 30s (no 90s como con OpenAI): Gemini normalmente responde en
-      // segundos, y con hasta 3 modelos en la lista un timeout largo por
-      // intento podría sumar varios minutos en el peor caso.
-      for (const model of GEMINI_IMAGE_MODELS) {
-        console.log(`Intentando Gemini: ${model.name}`);
+      // Por defecto sólo se usa el primer modelo: no existen cobros ocultos
+      // por reintentos automáticos. Si GEMINI_IMAGE_MAX_ATTEMPTS se configura
+      // explícitamente por encima de 1, los modelos alternativos se prueban en
+      // orden. Cada intento se corta a los 30s.
+      let providerAttempts = 0;
+      for (const model of GEMINI_IMAGE_MODELS.slice(0, GEMINI_IMAGE_MAX_ATTEMPTS)) {
+        providerAttempts++;
+        console.log(JSON.stringify({
+          event: "image_generation_attempt",
+          requestId,
+          requestReason,
+          provider: "gemini",
+          model: model.name,
+          attempt: providerAttempts,
+        }));
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${KEY}`;
           const inputParts: any[] = [
@@ -185,12 +209,33 @@ Deno.serve(async (req: Request) => {
             continue;
           }
 
-          console.log(`✓ Gemini ${model.name} OK`);
+          const elapsedMs = Math.round(performance.now() - imageStartedAt);
+          const usage = data.usageMetadata || null;
+          console.log(JSON.stringify({
+            event: "image_generation_success",
+            requestId,
+            requestReason,
+            provider: "gemini",
+            model: model.name,
+            attempts: providerAttempts,
+            elapsedMs,
+            usage,
+          }));
           return new Response(JSON.stringify({
             imageBase64: imgPart.inlineData.data,
             mimeType: imgPart.inlineData.mimeType || "image/png",
             source: "gemini",
             model: model.name,
+            generation: {
+              requestId,
+              reason: requestReason,
+              provider: "gemini",
+              model: model.name,
+              attempts: providerAttempts,
+              attemptLimit: GEMINI_IMAGE_MAX_ATTEMPTS,
+              elapsedMs,
+              usage,
+            },
           }), { headers: { ...CORS, "Content-Type": "application/json" } });
 
         } catch (e: any) {
@@ -200,7 +245,8 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(JSON.stringify({
-        error: "Gemini no pudo generar la imagen. Revisa los logs."
+        error: "Gemini no pudo generar la imagen. Revisa los logs.",
+        requestId,
       }), { headers: { ...CORS, "Content-Type": "application/json" }, status: 500 });
     }
 
