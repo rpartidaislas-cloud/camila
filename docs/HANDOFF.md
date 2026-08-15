@@ -2163,4 +2163,10 @@ o si cualquier cuenta logueada puede leer casos de otro tenant.
 **Importante:** desplegar el código no activa OpenAI. La bandera permanece
 apagada si el Secret no existe. No exponer un selector al paciente.
 
+**Despliegue verificado:** Edge Function `claude` versión 47, activa y con su
+configuración existente `verify_jwt=false`. `OPENAI_API_KEY` está configurada,
+pero `OPENAI_IMAGE_EXPERIMENT_ENABLED` no existe, por lo que el candidato sigue
+apagado. Prueba de humo sin foto y sin sesión: `HTTP 403` con “La prueba OpenAI
+requiere una sesión profesional”; se rechaza antes del límite y del proveedor.
+
 ---
