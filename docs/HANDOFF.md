@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: fotograma real en diagnóstico de cámara
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- El diagnóstico ya no aprueba la cámara sólo porque `video.play()` resuelva:
+  espera metadatos y dimensiones antes de marcarla como funcional.
+- Añadidos `autoplay`, `playsinline` y `webkit-playsinline` para Safari/iOS,
+  además de un segundo intento compatible sin `facingMode` cuando el primero
+  concede permiso pero no entrega imagen.
+- Si ningún intento produce fotograma, lo reporta como fallo de video en vivo
+  y dirige a la captura nativa que realmente usa SMYL, sin bloquear las seis
+  pruebas de cámara/galería.
+- Caché PWA actualizado a `smyl-v32`. Falta confirmar el fotograma en los
+  dispositivos físicos que presentaron la pantalla negra.
+
 ## 2026-08-15 — Codex: diagnóstico físico de cámara sin consumo de IA
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

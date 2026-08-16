@@ -1539,7 +1539,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <h2>2. Cámara en vivo</h2>
       <p class="diag-card-sub">Pulsa el botón para solicitar permiso y confirmar que Safari o Chrome pueden abrir la cámara.</p>
       <div class="diag-video-wrap">
-        <video id="diag-video" class="diag-video" playsinline muted></video>
+        <video id="diag-video" class="diag-video" autoplay playsinline webkit-playsinline muted></video>
         <div class="diag-video-empty" id="diag-video-empty"><b>Cámara todavía cerrada</b><span>El navegador pedirá permiso sólo después de tocar “Probar cámara”.</span></div>
       </div>
       <div class="diag-actions">
@@ -2368,6 +2368,56 @@ async function iniciarDiagnosticoDispositivo() {
   diagRenderReport();
 }
 
+function diagEsperar(ms) {
+  return new Promise(function(resolve){ setTimeout(resolve, ms); });
+}
+
+function diagSolicitarStream(constraints) {
+  var expired = false;
+  var timer = null;
+  var request = navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+    if (expired) {
+      stream.getTracks().forEach(function(track){ track.stop(); });
+      throw new Error('La cámara respondió después del tiempo permitido.');
+    }
+    return stream;
+  });
+  var timeout = new Promise(function(_, reject) {
+    timer = setTimeout(function() {
+      expired = true;
+      reject(new Error('La cámara tardó más de 12 segundos.'));
+    }, 12000);
+  });
+  return Promise.race([request, timeout]).finally(function(){ if (timer) clearTimeout(timer); });
+}
+
+async function diagEsperarFotograma(video) {
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+  try { await video.play(); } catch (e) { /* Se reintenta mientras llegan metadatos. */ }
+  var limit = Date.now() + 8000;
+  while (Date.now() < limit) {
+    if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+      try { await video.play(); } catch (e2) {}
+      return {width:video.videoWidth, height:video.videoHeight};
+    }
+    await diagEsperar(150);
+  }
+  throw new Error('El permiso fue concedido, pero el navegador no entregó imagen de video.');
+}
+
+async function diagConectarVideo(constraints) {
+  var stream = await diagSolicitarStream(constraints);
+  var video = document.getElementById('diag-video');
+  DEVICE_DIAG_STREAM = stream;
+  video.srcObject = stream;
+  var size = await diagEsperarFotograma(video);
+  return {stream:stream, video:video, size:size};
+}
+
 async function diagAbrirCamara() {
   if (!DEVICE_DIAG || !DEVICE_DIAG.mediaSupported) {
     DEVICE_DIAG.errors.push('La cámara en vivo no está disponible en este navegador.');
@@ -2377,15 +2427,18 @@ async function diagAbrirCamara() {
   if (btn) { btn.disabled = true; btn.textContent = 'Abriendo cámara…'; }
   try {
     diagDetenerCamara(false);
-    var media = navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:DEVICE_DIAG.facing}},audio:false});
-    var timeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('La cámara tardó más de 12 segundos.')); },12000); });
-    DEVICE_DIAG_STREAM = await Promise.race([media, timeout]);
-    var video = document.getElementById('diag-video');
-    video.srcObject = DEVICE_DIAG_STREAM;
+    var connected;
+    try {
+      connected = await diagConectarVideo({video:{facingMode:{ideal:DEVICE_DIAG.facing}},audio:false});
+    } catch (firstError) {
+      diagDetenerCamara(false);
+      connected = await diagConectarVideo({video:true,audio:false});
+    }
+    var video = connected.video;
     video.classList.toggle('mirror', DEVICE_DIAG.facing === 'user');
-    await video.play();
     DEVICE_DIAG.permission = 'granted';
     DEVICE_DIAG.liveCamera = true;
+    DEVICE_DIAG.liveResolution = connected.size.width + '×' + connected.size.height;
     var empty = document.getElementById('diag-video-empty');
     if (empty) empty.style.display = 'none';
     document.getElementById('diag-switch-camera').disabled = false;
@@ -2396,7 +2449,7 @@ async function diagAbrirCamara() {
     var message = denied ? 'El permiso de cámara fue rechazado o está bloqueado.' : String(e && e.message ? e.message : e);
     if (DEVICE_DIAG.errors.indexOf(message) < 0) DEVICE_DIAG.errors.push(message);
     var empty2 = document.getElementById('diag-video-empty');
-    if (empty2) { empty2.style.display = 'flex'; empty2.innerHTML = '<b>No se pudo abrir la cámara</b><span>' + message + '</span>'; }
+    if (empty2) { empty2.style.display = 'flex'; empty2.innerHTML = '<b>No llegó imagen en vivo</b><span>' + message + ' Puedes continuar abajo con “Cámara del teléfono”; esa es la captura nativa que usa SMYL.</span>'; }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = DEVICE_DIAG.liveCamera ? 'Cámara aprobada' : 'Reintentar cámara'; }
     diagSaveState(); diagRenderReport();
@@ -2407,7 +2460,8 @@ function diagDetenerCamara(updateUi) {
   if (DEVICE_DIAG_STREAM) DEVICE_DIAG_STREAM.getTracks().forEach(function(t){ t.stop(); });
   DEVICE_DIAG_STREAM = null;
   var video = document.getElementById('diag-video');
-  if (video) video.srcObject = null;
+  if (video) { try { video.pause(); } catch (e) {} video.srcObject = null; }
+  if (DEVICE_DIAG) DEVICE_DIAG.liveCamera = false;
   if (updateUi !== false) {
     var empty = document.getElementById('diag-video-empty');
     if (empty) { empty.style.display = 'flex'; empty.innerHTML = '<b>Cámara detenida</b><span>La prueba ya quedó registrada. Puedes abrirla otra vez si lo necesitas.</span>'; }
