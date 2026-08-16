@@ -1,5 +1,16 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: zoom del navegador bloqueado en la experiencia móvil
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- La aplicación ya no permite que Safari/Chrome amplíen la interfaz completa:
+  viewport fijo y bloqueo de `gesturestart`, `gesturechange` y `gestureend`.
+- El comparador conserva el arrastre de un dedo exclusivamente para la línea
+  antes/después. El zoom propio del editor de diseño permanece disponible,
+  porque transforma sólo su canvas y no el documento.
+- Caché PWA actualizado a `smyl-v36`.
+
 ## 2026-08-16 — Codex: comparador táctil aislado de la interfaz
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

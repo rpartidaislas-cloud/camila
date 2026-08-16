@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>SMYL · Simula tu Sonrisa</title>
 
 <!-- PWA -->
@@ -1586,6 +1586,14 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 </div>
 
 <script>
+// La interfaz se comporta como aplicación instalada: Safari no debe ampliar
+// ni desplazar el documento cuando el usuario manipula el comparador. El
+// editor conserva su zoom propio sobre el canvas mediante sus listeners.
+['gesturestart','gesturechange','gestureend'].forEach(function(tipo) {
+  document.addEventListener(tipo, function(e) {
+    if (e.cancelable) e.preventDefault();
+  }, {passive:false});
+});
 var appSafeNoticePreviousFocus = null;
 function mostrarAvisoAplicacion(titulo, detalle) {
   var notice = document.getElementById('app-safe-notice');
