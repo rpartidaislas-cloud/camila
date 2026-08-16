@@ -214,7 +214,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .redo-btn{height:32px;padding:0 12px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:5px}
 
 /* BA Slider */
-.ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0;transition:height 200ms ease}
+.ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0;transition:height 200ms ease;touch-action:none;overscroll-behavior:contain;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 /* Modo alineación en pantalla completa — antes el área de la foto quedaba
    limitada a 58% del alto de pantalla y el resto de las secciones (score,
    hallazgos, plan) seguían ocupando espacio debajo, aunque no se vieran */
@@ -240,9 +240,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ba-wrap.ba-fullscreen.ba-vita-mode .ba-base,.ba-wrap.ba-fullscreen.ba-vita-mode .ba-over{height:var(--ba-vita-h,100%)!important}
 .ba-base{position:relative;width:100%}
 .ba-base{position:relative;width:100%;overflow:hidden}
-.ba-base img{width:100%;height:100%;object-fit:fill;display:block;object-position:center center}
+.ba-base img{width:100%;height:100%;object-fit:fill;display:block;object-position:center center;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none}
 .ba-over{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 0 0 50%)}
-.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;object-position:center center}
+.ba-over img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;object-position:center center;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none}
 .ba-line{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;cursor:col-resize}
 .ba-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .ba-tag{position:absolute;top:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;z-index:6}
@@ -7061,9 +7061,19 @@ function initBASlider() {
     wrap.addEventListener('mousedown', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.clientX);});
     document.addEventListener('mousemove', function(e){if(drag)mv(e.clientX);});
     document.addEventListener('mouseup', function(){drag=false;});
-    wrap.addEventListener('touchstart', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.touches[0].clientX);},{passive:true});
-    wrap.addEventListener('touchmove', function(e){if(drag)mv(e.touches[0].clientX);},{passive:true});
-    wrap.addEventListener('touchend', function(){drag=false;},{passive:true});
+    wrap.addEventListener('touchstart', function(e){
+      if(S.baAlignMode || esBotonDeWrap(e.target)) return;
+      if (e.cancelable) e.preventDefault();
+      if (e.touches.length !== 1) { drag=false; return; }
+      drag=true; mv(e.touches[0].clientX);
+    },{passive:false});
+    wrap.addEventListener('touchmove', function(e){
+      if (!drag || e.touches.length !== 1) { drag=false; return; }
+      if (e.cancelable) e.preventDefault();
+      mv(e.touches[0].clientX);
+    },{passive:false});
+    wrap.addEventListener('touchend', function(e){ if (e.cancelable) e.preventDefault(); drag=false; },{passive:false});
+    wrap.addEventListener('touchcancel', function(){ drag=false; },{passive:true});
 
     // Arrastre para mover la foto "después" en modo alineación — se guarda
     // como fracción del tamaño de la foto en pantalla (no en píxeles fijos)
@@ -7104,9 +7114,19 @@ function initBASlider() {
       alignMove(e.clientX, e.clientY);
     });
     document.addEventListener('mouseup', alignEnd);
-    wrap.addEventListener('touchstart', function(e){ if (esControlDePanel(e.target)) { alignEnd(); return; } alignStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
-    wrap.addEventListener('touchmove', function(e){ if (S.baAlignMode) alignMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
-    wrap.addEventListener('touchend', alignEnd, {passive:true});
+    wrap.addEventListener('touchstart', function(e){
+      if (esControlDePanel(e.target)) { alignEnd(); return; }
+      if (!S.baAlignMode) return;
+      if (e.cancelable) e.preventDefault();
+      if (e.touches.length !== 1) { alignEnd(); return; }
+      alignStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive:false});
+    wrap.addEventListener('touchmove', function(e){
+      if (!S.baAlignMode || e.touches.length !== 1) { alignEnd(); return; }
+      if (e.cancelable) e.preventDefault();
+      alignMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive:false});
+    wrap.addEventListener('touchend', function(e){ if (e.cancelable) e.preventDefault(); alignEnd(); }, {passive:false});
     // iOS interrumpe el toque con touchcancel (no touchend) en varios casos
     // -- gestos del sistema, scroll, etc. -- sin esto alignDrag se quedaba
     // "pegado" hasta el siguiente toque.

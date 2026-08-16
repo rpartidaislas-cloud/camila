@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: comparador táctil aislado de la interfaz
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- El lienzo antes/después ahora usa `touch-action:none`, contención de
+  overscroll y eventos táctiles no pasivos dentro de la fotografía.
+- Arrastrar con un dedo mueve sólo la línea comparadora; gestos múltiples en
+  ese lienzo ya no amplían ni desplazan la página completa. El modo manual de
+  alineación recibe la misma protección.
+- Se conserva el zoom accesible del navegador fuera del comparador y el zoom
+  controlado del editor de diseño. Caché PWA actualizado a `smyl-v35`.
+- Proveedor vigente: Gemini por omisión (`gemini-2.5-flash-image` primero).
+  GPT Image 2 continúa desplegado sólo como opción experimental y el frontend
+  no envía `imageProvider:"openai"`.
+
 ## 2026-08-16 — Codex: primera foto clínica nativa en web móvil
 
 **Tocado:** `simulacion.html`, `sw.js`.
