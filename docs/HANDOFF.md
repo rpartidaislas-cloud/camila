@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: diagnóstico móvil por cámara nativa
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- La prueba física confirmó pantalla negra al forzar video web en iPhone.
+- En iPhone/iPad y Android, el diagnóstico ahora omite `getUserMedia` y abre
+  directamente el selector `capture` del sistema, igual que el flujo clínico
+  estable de SMYL. El video en vivo se conserva sólo para escritorio.
+- Una fotografía tomada desde el sistema valida cámara y permiso; el archivo
+  sólo se lee para comprobar dimensiones y después se descarta.
+- Estado de diagnóstico actualizado a v2 para no reutilizar errores guardados
+  de la prueba anterior. Caché PWA actualizado a `smyl-v33`.
+
 ## 2026-08-16 — Codex: fotograma real en diagnóstico de cámara
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

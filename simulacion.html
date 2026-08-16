@@ -1541,8 +1541,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     </section>
 
     <section class="diag-card">
-      <h2>2. Cámara en vivo</h2>
-      <p class="diag-card-sub">Pulsa el botón para solicitar permiso y confirmar que Safari o Chrome pueden abrir la cámara.</p>
+      <h2 id="diag-camera-title">2. Cámara en vivo</h2>
+      <p class="diag-card-sub" id="diag-camera-copy">Pulsa el botón para solicitar permiso y confirmar que Safari o Chrome pueden abrir la cámara.</p>
       <div class="diag-video-wrap">
         <video id="diag-video" class="diag-video" autoplay playsinline webkit-playsinline muted></video>
         <div class="diag-video-empty" id="diag-video-empty"><b>Cámara todavía cerrada</b><span>El navegador pedirá permiso sólo después de tocar “Probar cámara”.</span></div>
@@ -2145,7 +2145,7 @@ var INTEGRATED_CAPTURE_COUNT = Math.min(4, VIEWS.length);
 // propios; nunca escribe en S.photos ni llama processPhotos(). Las imágenes
 // seleccionadas se leen sólo para obtener dimensiones y se descartan.
 var DEVICE_DIAG_ACTIVE = new URLSearchParams(location.search).get('diagnostico') === '1';
-var DEVICE_DIAG_KEY = 'smyl_device_diagnostic_v1';
+var DEVICE_DIAG_KEY = 'smyl_device_diagnostic_v2';
 var DEVICE_DIAG = null;
 var DEVICE_DIAG_STREAM = null;
 
@@ -2162,10 +2162,16 @@ function diagBrowserName() {
   return 'Navegador no identificado';
 }
 
+function diagPrefiereCapturaNativa() {
+  var ua = navigator.userAgent || '';
+  var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return ios || /Android/.test(ua);
+}
+
 function diagNewState() {
   var now = new Date().toISOString();
   return {
-    version: 1,
+    version: 2,
     startedAt: now,
     updatedAt: now,
     browser: diagBrowserName(),
@@ -2179,6 +2185,8 @@ function diagNewState() {
     permission: 'pending',
     liveCamera: false,
     facing: 'user',
+    nativeCapturePreferred: diagPrefiereCapturaNativa(),
+    nativeCamera: false,
     gallery: false,
     captures: {},
     orientationStart: diagOrientation(),
@@ -2196,7 +2204,7 @@ function diagLoadState() {
     var raw = localStorage.getItem(DEVICE_DIAG_KEY);
     if (!raw) return null;
     var parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== 1) return null;
+    if (!parsed || parsed.version !== 2) return null;
     parsed.viewport = {width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio || 1};
     parsed.orientationCurrent = diagOrientation();
     return parsed;
@@ -2210,7 +2218,7 @@ function diagSaveState() {
   try {
     localStorage.setItem(DEVICE_DIAG_KEY, JSON.stringify(DEVICE_DIAG));
     var verified = JSON.parse(localStorage.getItem(DEVICE_DIAG_KEY) || '{}');
-    DEVICE_DIAG.storageOk = verified.version === 1;
+    DEVICE_DIAG.storageOk = verified.version === 2;
     if (DEVICE_DIAG.storageOk) {
       DEVICE_DIAG.updatedAt = new Date().toISOString();
       localStorage.setItem(DEVICE_DIAG_KEY, JSON.stringify(DEVICE_DIAG));
@@ -2282,12 +2290,14 @@ function diagBuildReport() {
     } : {ok: false};
   });
   var allViews = VIEWS.every(function(v){ return !!DEVICE_DIAG.captures[v.id]; });
+  var nativeMode = !!DEVICE_DIAG.nativeCapturePreferred;
+  var nativeCameraOk = !!DEVICE_DIAG.nativeCamera;
   var checks = {
     secureContext: DEVICE_DIAG.secureContext,
-    mediaSupported: DEVICE_DIAG.mediaSupported,
+    mediaSupported: nativeMode ? true : DEVICE_DIAG.mediaSupported,
     storage: DEVICE_DIAG.storageOk,
-    cameraPermission: DEVICE_DIAG.permission === 'granted',
-    liveCamera: DEVICE_DIAG.liveCamera,
+    cameraPermission: nativeMode ? nativeCameraOk : DEVICE_DIAG.permission === 'granted',
+    cameraImage: nativeMode ? nativeCameraOk : DEVICE_DIAG.liveCamera,
     frontalRequired: !!DEVICE_DIAG.captures.frontal,
     sixViews: allViews,
     gallery: DEVICE_DIAG.gallery,
@@ -2319,11 +2329,13 @@ function diagBuildReport() {
 
 function diagRenderReport() {
   if (!DEVICE_DIAG) return;
+  var nativeMode = !!DEVICE_DIAG.nativeCapturePreferred;
   diagSetCheck('diag-check-secure', DEVICE_DIAG.secureContext ? 'pass' : 'fail', DEVICE_DIAG.secureContext ? 'HTTPS o contexto seguro activo' : 'La cámara requiere HTTPS');
-  diagSetCheck('diag-check-media', DEVICE_DIAG.mediaSupported ? 'pass' : 'fail', DEVICE_DIAG.mediaSupported ? 'getUserMedia disponible' : 'Este navegador no ofrece cámara en vivo');
+  diagSetCheck('diag-check-media', (nativeMode || DEVICE_DIAG.mediaSupported) ? 'pass' : 'fail', nativeMode ? 'Captura nativa seleccionada para este móvil' : DEVICE_DIAG.mediaSupported ? 'Video en vivo disponible' : 'Este navegador no ofrece cámara en vivo');
   diagSetCheck('diag-check-storage', DEVICE_DIAG.storageOk ? 'pass' : 'fail', DEVICE_DIAG.storageOk ? 'Reporte guardado y recuperable' : 'No se pudo verificar localStorage');
-  var pState = DEVICE_DIAG.permission === 'granted' ? 'pass' : DEVICE_DIAG.permission === 'denied' ? 'fail' : 'pending';
-  var pText = DEVICE_DIAG.permission === 'granted' ? 'Permiso concedido' : DEVICE_DIAG.permission === 'denied' ? 'Permiso bloqueado' : 'Aún no solicitado';
+  var permissionOk = nativeMode ? !!DEVICE_DIAG.nativeCamera : DEVICE_DIAG.permission === 'granted';
+  var pState = permissionOk ? 'pass' : DEVICE_DIAG.permission === 'denied' ? 'fail' : 'pending';
+  var pText = permissionOk ? (nativeMode ? 'Cámara nativa aprobada' : 'Permiso concedido') : DEVICE_DIAG.permission === 'denied' ? 'Permiso bloqueado' : 'Aún no solicitado';
   diagSetCheck('diag-check-permission', pState, pText);
   diagRenderViews();
 
@@ -2357,9 +2369,25 @@ async function iniciarDiagnosticoDispositivo() {
   var screen = document.getElementById('s-device-diag');
   if (screen) screen.classList.add('active');
   DEVICE_DIAG = diagLoadState() || diagNewState();
+  DEVICE_DIAG.nativeCapturePreferred = diagPrefiereCapturaNativa();
   DEVICE_DIAG.secureContext = !!window.isSecureContext;
   DEVICE_DIAG.mediaSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   diagSaveState();
+
+  if (DEVICE_DIAG.nativeCapturePreferred) {
+    var title = document.getElementById('diag-camera-title');
+    var copy = document.getElementById('diag-camera-copy');
+    var empty = document.getElementById('diag-video-empty');
+    var open = document.getElementById('diag-open-camera');
+    var change = document.getElementById('diag-switch-camera');
+    var stop = document.getElementById('diag-stop-camera');
+    if (title) title.textContent = '2. Cámara del teléfono';
+    if (copy) copy.textContent = 'En iPhone y Android SMYL usa la cámara nativa para evitar pantallas negras del video web.';
+    if (empty) empty.innerHTML = '<b>Captura nativa preparada</b><span>Al tocar el botón se abrirá la cámara normal del teléfono. La foto se descartará después de verificarla.</span>';
+    if (open) open.textContent = DEVICE_DIAG.nativeCamera ? 'Cámara nativa aprobada' : 'Probar cámara nativa';
+    if (change) change.style.display = 'none';
+    if (stop) stop.style.display = 'none';
+  }
 
   if (navigator.permissions && navigator.permissions.query) {
     try {
@@ -2425,6 +2453,11 @@ async function diagConectarVideo(constraints) {
 }
 
 async function diagAbrirCamara() {
+  if (DEVICE_DIAG && DEVICE_DIAG.nativeCapturePreferred) {
+    var nativeInput = document.getElementById('diag-capture-input');
+    if (nativeInput) nativeInput.click();
+    return;
+  }
   if (!DEVICE_DIAG || !DEVICE_DIAG.mediaSupported) {
     DEVICE_DIAG.errors.push('La cámara en vivo no está disponible en este navegador.');
     diagRenderReport(); return;
@@ -2511,6 +2544,12 @@ async function diagRegistrarArchivo(input, source) {
       orientation: dim.width >= dim.height ? 'horizontal' : 'vertical',
       capturedAt: new Date().toISOString()
     };
+    if (source === 'camara') {
+      DEVICE_DIAG.nativeCamera = true;
+      DEVICE_DIAG.permission = 'granted';
+      var open = document.getElementById('diag-open-camera');
+      if (open && DEVICE_DIAG.nativeCapturePreferred) open.textContent = 'Cámara nativa aprobada';
+    }
     if (source === 'galeria') DEVICE_DIAG.gallery = true;
   } catch (e) {
     DEVICE_DIAG.errors.push('No se pudo leer una fotografía seleccionada.');
