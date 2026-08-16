@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-15 — Codex: diagnóstico físico de cámara sin consumo de IA
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Nueva entrada interna `simulacion.html?diagnostico=1`. Gana antes del login,
+  prospecto y recuperación de casos, y utiliza una pantalla/estado propios.
+- Verifica contexto seguro, disponibilidad de `getUserMedia`, permiso y cámara
+  en vivo; también guía una prueba de las seis posiciones, incluida frontal
+  obligatoria y cinco vistas opcionales, usando cámara nativa o galería.
+- Registra rotación, salida y regreso desde segundo plano y persistencia local.
+  Las fotografías sólo se abren para leer dimensiones/tipo/tamaño: no se
+  guardan, no se incluyen en el reporte y no se escriben en `S.photos`.
+- El reporte local se puede copiar o descargar como JSON y declara de forma
+  explícita `containsImages:false`, `usesAI:false` y
+  `consumesSimulation:false`.
+- `processPhotos()` queda bloqueado defensivamente mientras el parámetro de
+  diagnóstico está activo. No se llama a Claude, Gemini, GPT Image ni al
+  contador del plan.
+- Prueba local responsive aprobada en 390×844, 820×1180 y 1440×900: una sola
+  pantalla activa, sin login visible ni desbordamiento horizontal. La prueba
+  real de permisos/cámara/rotación/segundo plano sigue requiriendo iPhone y
+  Android físicos.
+- Caché PWA actualizado a `smyl-v31`.
+
 ## 2026-08-15 — Codex: editor por niveles (etapa 6)
 
 **Tocado:** simulación web/móvil y caché.

@@ -626,6 +626,39 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 @media(max-width:620px){#s-res .res-header{gap:7px;padding-inline:10px}#s-res .res-header>div:last-child{gap:5px!important;min-width:0;overflow-x:auto;scrollbar-width:none}.redo-btn{height:30px;padding:0 8px;font-size:10px;white-space:nowrap}.res-logo{flex:0 0 auto}}
 @media(orientation:landscape) and (max-height:700px){#s-vita{overflow-y:auto}.vita-head{padding-top:10px}.vita-head img{width:72px}.vita-head h2{font-size:19px}.vita-guide-card{margin-top:12px;padding-top:12px}.vita-shades-sim{padding-top:14px;padding-bottom:14px}.vita-stick .vita-photo{width:62px;height:174px}.vita-stick{flex-basis:96px}.vita-options{margin-bottom:10px}.vita-preview{grid-template-columns:120px 1fr;margin-bottom:10px;padding:10px}.vita-preview-stage{height:112px}.vita-preview .vita-photo-preview{width:40px;height:112px}.vita-preview.expanded{grid-template-columns:220px 1fr}.vita-preview.expanded .vita-preview-stage{height:210px}.vita-preview.expanded .vita-photo-preview{width:70px;height:196px}}
 
+/* Modo interno de diagnóstico de dispositivo. Solo aparece con
+   ?diagnostico=1 y no comparte fotos ni estado con el flujo clínico. */
+.diag-screen{overflow-y:auto;background:linear-gradient(180deg,#0d0b17 0%,#090812 100%);padding:0;color:#fff}
+.diag-shell{width:min(100%,760px);margin:0 auto;padding:24px 18px max(36px,env(safe-area-inset-bottom))}
+.diag-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.diag-brand{height:28px;width:auto;display:block;margin-bottom:18px}
+.diag-head h1{font-size:24px;line-height:1.15;margin:0 0 7px}.diag-head p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.58);margin:0;max-width:520px}
+.diag-badge{flex:0 0 auto;border:1px solid rgba(52,211,153,.35);background:rgba(16,185,129,.1);color:#86efac;border-radius:99px;padding:7px 10px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.diag-card{background:rgba(20,18,31,.92);border:1px solid rgba(255,255,255,.1);border-radius:17px;padding:16px;margin-bottom:12px;box-shadow:0 16px 40px rgba(0,0,0,.16)}
+.diag-card h2{font-size:15px;margin:0 0 5px}.diag-card-sub{font-size:12px;line-height:1.5;color:rgba(255,255,255,.52);margin:0 0 14px}
+.diag-privacy{display:flex;gap:10px;align-items:flex-start;background:rgba(59,130,246,.08);border-color:rgba(96,165,250,.25)}
+.diag-privacy strong{display:block;font-size:13px;margin-bottom:3px}.diag-privacy span{display:block;font-size:11px;line-height:1.5;color:rgba(255,255,255,.58)}
+.diag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.diag-check{min-height:62px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);padding:11px;display:flex;gap:9px;align-items:flex-start}
+.diag-check-dot{width:10px;height:10px;border-radius:50%;margin-top:3px;background:#64748b;box-shadow:0 0 0 4px rgba(100,116,139,.12);flex:0 0 auto}
+.diag-check[data-state="pass"] .diag-check-dot{background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.12)}
+.diag-check[data-state="fail"] .diag-check-dot{background:#fb7185;box-shadow:0 0 0 4px rgba(251,113,133,.12)}
+.diag-check[data-state="warn"] .diag-check-dot{background:#fbbf24;box-shadow:0 0 0 4px rgba(251,191,36,.12)}
+.diag-check strong{display:block;font-size:12px;margin-bottom:3px}.diag-check small{display:block;color:rgba(255,255,255,.48);font-size:10.5px;line-height:1.35}
+.diag-video-wrap{position:relative;overflow:hidden;border-radius:14px;background:#030306;aspect-ratio:4/3;margin-bottom:12px;border:1px solid rgba(255,255,255,.09)}
+.diag-video{width:100%;height:100%;object-fit:cover;display:block}.diag-video.mirror{transform:scaleX(-1)}
+.diag-video-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;color:rgba(255,255,255,.55);font-size:12px;line-height:1.5}.diag-video-empty b{color:#fff;font-size:14px;margin-bottom:4px}
+.diag-actions{display:flex;gap:8px;flex-wrap:wrap}.diag-btn{min-height:42px;border-radius:11px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.06);color:#fff;padding:0 14px;font:700 12px Inter,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}.diag-btn.primary{background:linear-gradient(135deg,#5b47e0,#3478f6);border-color:transparent}.diag-btn.success{background:rgba(16,185,129,.14);border-color:rgba(52,211,153,.3);color:#a7f3d0}.diag-btn:disabled{opacity:.42;cursor:not-allowed}
+.diag-current{display:flex;align-items:center;gap:12px;margin-bottom:12px}.diag-step-num{width:42px;height:42px;border-radius:12px;background:rgba(91,71,224,.18);border:1px solid rgba(129,109,246,.35);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}.diag-current strong{font-size:14px;display:block}.diag-current span{font-size:11px;color:rgba(255,255,255,.48);display:block;margin-top:3px}
+.diag-capture-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.diag-file-btn{position:relative;overflow:hidden}.diag-file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.diag-views{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}.diag-view{padding:9px 7px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.035);min-width:0}.diag-view b{font-size:10.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.diag-view span{font-size:9.5px;color:rgba(255,255,255,.42);display:block;margin-top:3px}.diag-view[data-state="pass"]{border-color:rgba(52,211,153,.3);background:rgba(16,185,129,.08)}.diag-view[data-state="active"]{border-color:rgba(129,109,246,.6);background:rgba(91,71,224,.12)}
+.diag-event-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:12px 0;border-top:1px solid rgba(255,255,255,.07)}.diag-event-row:first-of-type{border-top:0}.diag-event-row strong{display:block;font-size:12px}.diag-event-row span{font-size:10.5px;line-height:1.4;color:rgba(255,255,255,.48)}
+.diag-state-pill{border-radius:99px;padding:5px 8px;font-size:9px!important;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:rgba(100,116,139,.14);color:#cbd5e1!important}.diag-state-pill.pass{background:rgba(16,185,129,.13);color:#86efac!important}.diag-state-pill.warn{background:rgba(245,158,11,.13);color:#fcd34d!important}
+.diag-report-status{border-radius:13px;padding:13px;margin-bottom:12px;background:rgba(100,116,139,.1);border:1px solid rgba(148,163,184,.18)}.diag-report-status.pass{background:rgba(16,185,129,.09);border-color:rgba(52,211,153,.28)}.diag-report-status strong{font-size:14px;display:block;margin-bottom:3px}.diag-report-status span{font-size:11px;color:rgba(255,255,255,.55);line-height:1.45}
+.diag-report-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}.diag-report-list li{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:rgba(255,255,255,.62)}.diag-report-list b{color:#fff;font-weight:650;text-align:right}
+body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-toggle,body.diag-mode #resume-overlay,body.diag-mode #dentist-login-overlay{display:none!important}
+@media(max-width:520px){.diag-shell{padding:18px 12px max(28px,env(safe-area-inset-bottom))}.diag-head{display:block}.diag-badge{display:inline-flex;margin-top:12px}.diag-grid{grid-template-columns:1fr}.diag-views{grid-template-columns:repeat(2,minmax(0,1fr))}.diag-capture-actions{grid-template-columns:1fr}.diag-actions .diag-btn{flex:1}.diag-head h1{font-size:21px}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1479,6 +1512,84 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   </div>
 </div>
 
+<!-- ══ DIAGNÓSTICO DE DISPOSITIVO — se activa solo con ?diagnostico=1 ══ -->
+<div class="screen diag-screen" id="s-device-diag" aria-labelledby="diag-title">
+  <main class="diag-shell">
+    <img class="diag-brand" src="icons/smyl_logo.png" alt="SMYL">
+    <div class="diag-head">
+      <div>
+        <h1 id="diag-title">Prueba de cámara y fotografías</h1>
+        <p>Comprueba este teléfono antes de usarlo con pacientes. Esta prueba no inicia sesión, no llama a la IA y no consume simulaciones.</p>
+      </div>
+      <span class="diag-badge">Sin IA · sin costo</span>
+    </div>
+
+    <section class="diag-card diag-privacy" aria-label="Privacidad de la prueba">
+      <span aria-hidden="true" style="font-size:20px">🔒</span>
+      <div><strong>Las imágenes se descartan</strong><span>SMYL sólo conserva en este dispositivo el resultado técnico, las dimensiones y el tipo de archivo. El reporte nunca incluye fotografías.</span></div>
+    </section>
+
+    <section class="diag-card">
+      <h2>1. Compatibilidad del dispositivo</h2>
+      <p class="diag-card-sub">Estos controles se revisan automáticamente al abrir esta página.</p>
+      <div class="diag-grid" id="diag-system-grid">
+        <div class="diag-check" id="diag-check-secure" data-state="pending"><i class="diag-check-dot"></i><div><strong>Conexión segura</strong><small>Esperando revisión</small></div></div>
+        <div class="diag-check" id="diag-check-media" data-state="pending"><i class="diag-check-dot"></i><div><strong>Cámara del navegador</strong><small>Esperando revisión</small></div></div>
+        <div class="diag-check" id="diag-check-storage" data-state="pending"><i class="diag-check-dot"></i><div><strong>Guardado local</strong><small>Esperando revisión</small></div></div>
+        <div class="diag-check" id="diag-check-permission" data-state="pending"><i class="diag-check-dot"></i><div><strong>Permiso de cámara</strong><small>Aún no solicitado</small></div></div>
+      </div>
+    </section>
+
+    <section class="diag-card">
+      <h2>2. Cámara en vivo</h2>
+      <p class="diag-card-sub">Pulsa el botón para solicitar permiso y confirmar que Safari o Chrome pueden abrir la cámara.</p>
+      <div class="diag-video-wrap">
+        <video id="diag-video" class="diag-video" playsinline muted></video>
+        <div class="diag-video-empty" id="diag-video-empty"><b>Cámara todavía cerrada</b><span>El navegador pedirá permiso sólo después de tocar “Probar cámara”.</span></div>
+      </div>
+      <div class="diag-actions">
+        <button class="diag-btn primary" id="diag-open-camera" type="button" onclick="diagAbrirCamara()">Probar cámara</button>
+        <button class="diag-btn" id="diag-switch-camera" type="button" onclick="diagCambiarCamara()" disabled>Cambiar cámara</button>
+        <button class="diag-btn" id="diag-stop-camera" type="button" onclick="diagDetenerCamara()" disabled>Detener</button>
+      </div>
+    </section>
+
+    <section class="diag-card">
+      <h2>3. Secuencia de seis fotografías</h2>
+      <p class="diag-card-sub">La frontal es obligatoria en SMYL; las otras cinco son opcionales para el paciente, pero conviene probarlas aquí una vez.</p>
+      <div class="diag-current">
+        <div class="diag-step-num" id="diag-step-num">1/6</div>
+        <div><strong id="diag-view-title">Vista frontal</strong><span id="diag-view-hint">Prueba la cámara del teléfono y, al menos una vez, la galería.</span></div>
+      </div>
+      <div class="diag-capture-actions">
+        <label class="diag-btn primary diag-file-btn">Cámara del teléfono<input id="diag-capture-input" type="file" accept="image/*" capture="user" onchange="diagRegistrarArchivo(this,'camara')"></label>
+        <label class="diag-btn diag-file-btn">Elegir de galería<input id="diag-gallery-input" type="file" accept="image/*" onchange="diagRegistrarArchivo(this,'galeria')"></label>
+      </div>
+      <div class="diag-views" id="diag-views"></div>
+    </section>
+
+    <section class="diag-card">
+      <h2>4. Rotación y segundo plano</h2>
+      <p class="diag-card-sub">Gira el teléfono una vez. Después cambia a otra aplicación y regresa a SMYL.</p>
+      <div class="diag-event-row"><div><strong>Rotación</strong><span id="diag-orientation-copy">Orientación actual: —</span></div><span class="diag-state-pill" id="diag-orientation-state">Pendiente</span></div>
+      <div class="diag-event-row"><div><strong>Segundo plano</strong><span id="diag-background-copy">Sal de SMYL y vuelve sin cerrarlo.</span></div><span class="diag-state-pill" id="diag-background-state">Pendiente</span></div>
+    </section>
+
+    <section class="diag-card">
+      <h2>5. Reporte local</h2>
+      <p class="diag-card-sub">El reporte se actualiza mientras avanzas y puede compartirse sin revelar imágenes ni información de pacientes.</p>
+      <div class="diag-report-status" id="diag-report-status"><strong>Prueba en curso</strong><span>Completa las comprobaciones pendientes.</span></div>
+      <ul class="diag-report-list" id="diag-report-list"></ul>
+      <div class="diag-actions" style="margin-top:14px">
+        <button class="diag-btn success" type="button" onclick="diagCopiarReporte()">Copiar reporte</button>
+        <button class="diag-btn" type="button" onclick="diagDescargarReporte()">Descargar JSON</button>
+        <button class="diag-btn" type="button" onclick="diagReiniciar()">Reiniciar prueba</button>
+      </div>
+      <div id="diag-copy-feedback" role="status" aria-live="polite" style="font-size:10.5px;color:#86efac;margin-top:9px;min-height:15px"></div>
+    </section>
+  </main>
+</div>
+
 <script>
 var appSafeNoticePreviousFocus = null;
 function mostrarAvisoAplicacion(titulo, detalle) {
@@ -1803,6 +1914,13 @@ function cerrarSesionSim() {
 }
 
 (function checkLogin() {
+  // El diagnóstico técnico es deliberadamente local: no necesita sesión,
+  // tenant ni API. Debe ganar antes que cualquier otro modo de entrada.
+  if (new URLSearchParams(location.search).get('diagnostico') === '1') {
+    DEVICE_DIAG_ACTIVE = true;
+    document.addEventListener('DOMContentLoaded', iniciarDiagnosticoDispositivo, {once:true});
+    return;
+  }
   // ?clinica=<tenant_id> -- link público de prospecto (ver
   // entrarComoProspecto). Gana siempre sobre cualquier sesión que pudiera
   // existir en este navegador: es un link explícito para el modo paciente,
@@ -2021,6 +2139,388 @@ var VIEWS = [
   {id:'extraoral',label:'Fotografía Extraoral — Rostro completo',hint:'Aléjate y encuadra el rostro completo con luz frontal.',facing:'environment',svg:'extraoral',asset:'icons/capture-extraoral-v3.webp',imageAlt:'Ejemplo de fotografía extraoral',orientation:'landscape'},
 ];
 var INTEGRATED_CAPTURE_COUNT = Math.min(4, VIEWS.length);
+
+// ══ DIAGNÓSTICO DE DISPOSITIVO (sin IA) ══
+// Se activa únicamente mediante ?diagnostico=1. Usa estado y almacenamiento
+// propios; nunca escribe en S.photos ni llama processPhotos(). Las imágenes
+// seleccionadas se leen sólo para obtener dimensiones y se descartan.
+var DEVICE_DIAG_ACTIVE = new URLSearchParams(location.search).get('diagnostico') === '1';
+var DEVICE_DIAG_KEY = 'smyl_device_diagnostic_v1';
+var DEVICE_DIAG = null;
+var DEVICE_DIAG_STREAM = null;
+
+function diagOrientation() {
+  return window.matchMedia && window.matchMedia('(orientation: portrait)').matches ? 'vertical' : 'horizontal';
+}
+
+function diagBrowserName() {
+  var ua = navigator.userAgent || '';
+  if (/EdgiOS|Edg\//.test(ua)) return 'Edge';
+  if (/CriOS|Chrome\//.test(ua)) return 'Chrome';
+  if (/FxiOS|Firefox\//.test(ua)) return 'Firefox';
+  if (/Safari\//.test(ua)) return 'Safari';
+  return 'Navegador no identificado';
+}
+
+function diagNewState() {
+  var now = new Date().toISOString();
+  return {
+    version: 1,
+    startedAt: now,
+    updatedAt: now,
+    browser: diagBrowserName(),
+    userAgent: navigator.userAgent || '',
+    platform: navigator.platform || '',
+    viewport: {width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio || 1},
+    standalone: isInStandaloneMode(),
+    secureContext: !!window.isSecureContext,
+    mediaSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+    storageOk: false,
+    permission: 'pending',
+    liveCamera: false,
+    facing: 'user',
+    gallery: false,
+    captures: {},
+    orientationStart: diagOrientation(),
+    orientationCurrent: diagOrientation(),
+    orientationChanged: false,
+    backgroundHidden: false,
+    backgroundReturned: false,
+    hiddenAt: null,
+    errors: []
+  };
+}
+
+function diagLoadState() {
+  try {
+    var raw = localStorage.getItem(DEVICE_DIAG_KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== 1) return null;
+    parsed.viewport = {width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio || 1};
+    parsed.orientationCurrent = diagOrientation();
+    return parsed;
+  } catch (e) { return null; }
+}
+
+function diagSaveState() {
+  if (!DEVICE_DIAG) return false;
+  DEVICE_DIAG.updatedAt = new Date().toISOString();
+  DEVICE_DIAG.viewport = {width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio || 1};
+  try {
+    localStorage.setItem(DEVICE_DIAG_KEY, JSON.stringify(DEVICE_DIAG));
+    var verified = JSON.parse(localStorage.getItem(DEVICE_DIAG_KEY) || '{}');
+    DEVICE_DIAG.storageOk = verified.version === 1;
+    if (DEVICE_DIAG.storageOk) {
+      DEVICE_DIAG.updatedAt = new Date().toISOString();
+      localStorage.setItem(DEVICE_DIAG_KEY, JSON.stringify(DEVICE_DIAG));
+    }
+    return DEVICE_DIAG.storageOk;
+  } catch (e) {
+    DEVICE_DIAG.storageOk = false;
+    if (DEVICE_DIAG.errors.indexOf('No se pudo guardar el reporte local.') < 0) DEVICE_DIAG.errors.push('No se pudo guardar el reporte local.');
+    return false;
+  }
+}
+
+function diagSetCheck(id, state, detail) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.dataset.state = state;
+  var small = el.querySelector('small');
+  if (small) small.textContent = detail;
+}
+
+function diagCurrentCaptureIndex() {
+  for (var i = 0; i < VIEWS.length; i++) {
+    if (!DEVICE_DIAG.captures[VIEWS[i].id]) return i;
+  }
+  return VIEWS.length - 1;
+}
+
+function diagRenderViews() {
+  var wrap = document.getElementById('diag-views');
+  if (!wrap || !DEVICE_DIAG) return;
+  var current = diagCurrentCaptureIndex();
+  wrap.innerHTML = VIEWS.map(function(v, i) {
+    var cap = DEVICE_DIAG.captures[v.id];
+    var state = cap ? 'pass' : i === current ? 'active' : 'pending';
+    var detail = cap ? ((cap.source === 'galeria' ? 'Galería' : 'Cámara') + ' · ' + cap.width + '×' + cap.height) : (v.required ? 'Obligatoria' : 'Opcional');
+    return '<div class="diag-view" data-state="' + state + '"><b>' + (cap ? '✓ ' : '') + v.label.split('—')[0].trim() + '</b><span>' + detail + '</span></div>';
+  }).join('');
+
+  var view = VIEWS[current] || VIEWS[0];
+  var num = document.getElementById('diag-step-num');
+  var title = document.getElementById('diag-view-title');
+  var hint = document.getElementById('diag-view-hint');
+  if (num) num.textContent = (current + 1) + '/' + VIEWS.length;
+  if (title) title.textContent = Object.keys(DEVICE_DIAG.captures).length === VIEWS.length ? 'Secuencia completa' : view.label.split('—')[0].trim();
+  if (hint) hint.textContent = Object.keys(DEVICE_DIAG.captures).length === VIEWS.length ? 'Las seis posiciones quedaron registradas.' : view.hint;
+  var captureInput = document.getElementById('diag-capture-input');
+  if (captureInput) captureInput.setAttribute('capture', view.facing || 'user');
+}
+
+function diagSetPill(id, passed, pendingText, passedText) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'diag-state-pill' + (passed ? ' pass' : '');
+  el.textContent = passed ? passedText : pendingText;
+}
+
+function diagBuildReport() {
+  var captures = {};
+  VIEWS.forEach(function(v) {
+    var c = DEVICE_DIAG.captures[v.id];
+    captures[v.id] = c ? {
+      ok: true,
+      source: c.source,
+      width: c.width,
+      height: c.height,
+      bytes: c.bytes,
+      mime: c.mime,
+      orientation: c.orientation
+    } : {ok: false};
+  });
+  var allViews = VIEWS.every(function(v){ return !!DEVICE_DIAG.captures[v.id]; });
+  var checks = {
+    secureContext: DEVICE_DIAG.secureContext,
+    mediaSupported: DEVICE_DIAG.mediaSupported,
+    storage: DEVICE_DIAG.storageOk,
+    cameraPermission: DEVICE_DIAG.permission === 'granted',
+    liveCamera: DEVICE_DIAG.liveCamera,
+    frontalRequired: !!DEVICE_DIAG.captures.frontal,
+    sixViews: allViews,
+    gallery: DEVICE_DIAG.gallery,
+    rotation: DEVICE_DIAG.orientationChanged,
+    backgroundReturn: DEVICE_DIAG.backgroundReturned
+  };
+  var approved = Object.keys(checks).every(function(k){ return checks[k]; });
+  return {
+    product: 'SMYL',
+    reportType: 'device-camera-diagnostic',
+    containsImages: false,
+    usesAI: false,
+    consumesSimulation: false,
+    startedAt: DEVICE_DIAG.startedAt,
+    updatedAt: DEVICE_DIAG.updatedAt,
+    approved: approved,
+    device: {
+      browser: DEVICE_DIAG.browser,
+      platform: DEVICE_DIAG.platform,
+      userAgent: DEVICE_DIAG.userAgent,
+      viewport: DEVICE_DIAG.viewport,
+      standalone: DEVICE_DIAG.standalone
+    },
+    checks: checks,
+    captures: captures,
+    errors: DEVICE_DIAG.errors.slice()
+  };
+}
+
+function diagRenderReport() {
+  if (!DEVICE_DIAG) return;
+  diagSetCheck('diag-check-secure', DEVICE_DIAG.secureContext ? 'pass' : 'fail', DEVICE_DIAG.secureContext ? 'HTTPS o contexto seguro activo' : 'La cámara requiere HTTPS');
+  diagSetCheck('diag-check-media', DEVICE_DIAG.mediaSupported ? 'pass' : 'fail', DEVICE_DIAG.mediaSupported ? 'getUserMedia disponible' : 'Este navegador no ofrece cámara en vivo');
+  diagSetCheck('diag-check-storage', DEVICE_DIAG.storageOk ? 'pass' : 'fail', DEVICE_DIAG.storageOk ? 'Reporte guardado y recuperable' : 'No se pudo verificar localStorage');
+  var pState = DEVICE_DIAG.permission === 'granted' ? 'pass' : DEVICE_DIAG.permission === 'denied' ? 'fail' : 'pending';
+  var pText = DEVICE_DIAG.permission === 'granted' ? 'Permiso concedido' : DEVICE_DIAG.permission === 'denied' ? 'Permiso bloqueado' : 'Aún no solicitado';
+  diagSetCheck('diag-check-permission', pState, pText);
+  diagRenderViews();
+
+  var orientationCopy = document.getElementById('diag-orientation-copy');
+  if (orientationCopy) orientationCopy.textContent = DEVICE_DIAG.orientationChanged ? 'Cambio detectado; ahora está en ' + DEVICE_DIAG.orientationCurrent + '.' : 'Orientación actual: ' + DEVICE_DIAG.orientationCurrent + '. Gira el teléfono una vez.';
+  diagSetPill('diag-orientation-state', DEVICE_DIAG.orientationChanged, 'Pendiente', 'Aprobado');
+  var backgroundCopy = document.getElementById('diag-background-copy');
+  if (backgroundCopy) backgroundCopy.textContent = DEVICE_DIAG.backgroundReturned ? 'SMYL volvió correctamente después de estar en segundo plano.' : DEVICE_DIAG.backgroundHidden ? 'Salida detectada; vuelve a SMYL.' : 'Sal de SMYL y vuelve sin cerrarlo.';
+  diagSetPill('diag-background-state', DEVICE_DIAG.backgroundReturned, 'Pendiente', 'Aprobado');
+
+  var report = diagBuildReport();
+  var status = document.getElementById('diag-report-status');
+  if (status) {
+    status.className = 'diag-report-status' + (report.approved ? ' pass' : '');
+    status.innerHTML = report.approved ? '<strong>Dispositivo aprobado</strong><span>Las pruebas técnicas necesarias quedaron completas.</span>' : '<strong>Prueba en curso</strong><span>Completa las comprobaciones pendientes antes de usar este dispositivo con pacientes.</span>';
+  }
+  var list = document.getElementById('diag-report-list');
+  if (list) {
+    var done = Object.keys(report.checks).filter(function(k){ return report.checks[k]; }).length;
+    list.innerHTML = '<li><span>Avance</span><b>' + done + ' de ' + Object.keys(report.checks).length + ' controles</b></li>' +
+      '<li><span>Fotografías verificadas</span><b>' + Object.keys(DEVICE_DIAG.captures).length + ' de ' + VIEWS.length + '</b></li>' +
+      '<li><span>Galería</span><b>' + (DEVICE_DIAG.gallery ? 'Aprobada' : 'Pendiente') + '</b></li>' +
+      '<li><span>Navegador</span><b>' + DEVICE_DIAG.browser + '</b></li>' +
+      '<li><span>IA / consumo</span><b>No utilizado</b></li>';
+  }
+}
+
+async function iniciarDiagnosticoDispositivo() {
+  document.body.classList.add('diag-mode');
+  document.querySelectorAll('.screen, .ed-screen').forEach(function(s){ s.classList.remove('active'); });
+  var screen = document.getElementById('s-device-diag');
+  if (screen) screen.classList.add('active');
+  DEVICE_DIAG = diagLoadState() || diagNewState();
+  DEVICE_DIAG.secureContext = !!window.isSecureContext;
+  DEVICE_DIAG.mediaSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  diagSaveState();
+
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      var permission = await navigator.permissions.query({name:'camera'});
+      if (permission.state === 'granted' || permission.state === 'denied') DEVICE_DIAG.permission = permission.state;
+      permission.onchange = function() {
+        DEVICE_DIAG.permission = permission.state;
+        diagSaveState(); diagRenderReport();
+      };
+    } catch (e) { /* Safari no implementa Permissions API para cámara. */ }
+  }
+  diagRenderReport();
+}
+
+async function diagAbrirCamara() {
+  if (!DEVICE_DIAG || !DEVICE_DIAG.mediaSupported) {
+    DEVICE_DIAG.errors.push('La cámara en vivo no está disponible en este navegador.');
+    diagRenderReport(); return;
+  }
+  var btn = document.getElementById('diag-open-camera');
+  if (btn) { btn.disabled = true; btn.textContent = 'Abriendo cámara…'; }
+  try {
+    diagDetenerCamara(false);
+    var media = navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:DEVICE_DIAG.facing}},audio:false});
+    var timeout = new Promise(function(_, reject){ setTimeout(function(){ reject(new Error('La cámara tardó más de 12 segundos.')); },12000); });
+    DEVICE_DIAG_STREAM = await Promise.race([media, timeout]);
+    var video = document.getElementById('diag-video');
+    video.srcObject = DEVICE_DIAG_STREAM;
+    video.classList.toggle('mirror', DEVICE_DIAG.facing === 'user');
+    await video.play();
+    DEVICE_DIAG.permission = 'granted';
+    DEVICE_DIAG.liveCamera = true;
+    var empty = document.getElementById('diag-video-empty');
+    if (empty) empty.style.display = 'none';
+    document.getElementById('diag-switch-camera').disabled = false;
+    document.getElementById('diag-stop-camera').disabled = false;
+  } catch (e) {
+    var denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+    DEVICE_DIAG.permission = denied ? 'denied' : DEVICE_DIAG.permission;
+    var message = denied ? 'El permiso de cámara fue rechazado o está bloqueado.' : String(e && e.message ? e.message : e);
+    if (DEVICE_DIAG.errors.indexOf(message) < 0) DEVICE_DIAG.errors.push(message);
+    var empty2 = document.getElementById('diag-video-empty');
+    if (empty2) { empty2.style.display = 'flex'; empty2.innerHTML = '<b>No se pudo abrir la cámara</b><span>' + message + '</span>'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = DEVICE_DIAG.liveCamera ? 'Cámara aprobada' : 'Reintentar cámara'; }
+    diagSaveState(); diagRenderReport();
+  }
+}
+
+function diagDetenerCamara(updateUi) {
+  if (DEVICE_DIAG_STREAM) DEVICE_DIAG_STREAM.getTracks().forEach(function(t){ t.stop(); });
+  DEVICE_DIAG_STREAM = null;
+  var video = document.getElementById('diag-video');
+  if (video) video.srcObject = null;
+  if (updateUi !== false) {
+    var empty = document.getElementById('diag-video-empty');
+    if (empty) { empty.style.display = 'flex'; empty.innerHTML = '<b>Cámara detenida</b><span>La prueba ya quedó registrada. Puedes abrirla otra vez si lo necesitas.</span>'; }
+    var stop = document.getElementById('diag-stop-camera');
+    if (stop) stop.disabled = true;
+  }
+}
+
+function diagCambiarCamara() {
+  if (!DEVICE_DIAG) return;
+  DEVICE_DIAG.facing = DEVICE_DIAG.facing === 'user' ? 'environment' : 'user';
+  diagAbrirCamara();
+}
+
+function diagImageDimensions(file) {
+  return new Promise(function(resolve, reject) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() {
+      var result = {width:img.naturalWidth,height:img.naturalHeight};
+      URL.revokeObjectURL(url); resolve(result);
+    };
+    img.onerror = function(e) { URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+
+async function diagRegistrarArchivo(input, source) {
+  if (!DEVICE_DIAG || !input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var index = diagCurrentCaptureIndex();
+  var view = VIEWS[index] || VIEWS[0];
+  try {
+    var dim = await diagImageDimensions(file);
+    DEVICE_DIAG.captures[view.id] = {
+      source: source,
+      width: dim.width,
+      height: dim.height,
+      bytes: file.size || 0,
+      mime: file.type || 'image/unknown',
+      orientation: dim.width >= dim.height ? 'horizontal' : 'vertical',
+      capturedAt: new Date().toISOString()
+    };
+    if (source === 'galeria') DEVICE_DIAG.gallery = true;
+  } catch (e) {
+    DEVICE_DIAG.errors.push('No se pudo leer una fotografía seleccionada.');
+  }
+  input.value = '';
+  diagSaveState(); diagRenderReport();
+}
+
+function diagHandleOrientation() {
+  if (!DEVICE_DIAG_ACTIVE || !DEVICE_DIAG) return;
+  var current = diagOrientation();
+  if (DEVICE_DIAG.orientationCurrent && DEVICE_DIAG.orientationCurrent !== current) DEVICE_DIAG.orientationChanged = true;
+  DEVICE_DIAG.orientationCurrent = current;
+  diagSaveState(); diagRenderReport();
+}
+
+function diagHandleVisibility() {
+  if (!DEVICE_DIAG_ACTIVE || !DEVICE_DIAG) return;
+  if (document.visibilityState === 'hidden') {
+    DEVICE_DIAG.backgroundHidden = true;
+    DEVICE_DIAG.hiddenAt = new Date().toISOString();
+    diagSaveState();
+  } else if (DEVICE_DIAG.backgroundHidden) {
+    DEVICE_DIAG.backgroundReturned = true;
+    diagSaveState(); diagRenderReport();
+  }
+}
+
+function diagReportText(report) {
+  var lines = ['SMYL · Diagnóstico de cámara', 'Resultado: ' + (report.approved ? 'APROBADO' : 'INCOMPLETO'), 'Fecha: ' + report.updatedAt, 'Navegador: ' + report.device.browser, 'Fotos incluidas en reporte: NO', 'IA utilizada: NO', ''];
+  Object.keys(report.checks).forEach(function(k){ lines.push((report.checks[k] ? '✓ ' : '○ ') + k); });
+  return lines.join('\n');
+}
+
+async function diagCopiarReporte() {
+  var report = diagBuildReport();
+  var text = diagReportText(report);
+  try {
+    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+    else {
+      var area = document.createElement('textarea'); area.value = text; area.style.position = 'fixed'; area.style.opacity = '0';
+      document.body.appendChild(area); area.select(); document.execCommand('copy'); area.remove();
+    }
+    document.getElementById('diag-copy-feedback').textContent = 'Reporte copiado. No contiene fotografías.';
+  } catch (e) { document.getElementById('diag-copy-feedback').textContent = 'No se pudo copiar; usa “Descargar JSON”.'; }
+}
+
+function diagDescargarReporte() {
+  var report = diagBuildReport();
+  var blob = new Blob([JSON.stringify(report, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = 'smyl-diagnostico-dispositivo.json'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 500);
+}
+
+function diagReiniciar() {
+  diagDetenerCamara();
+  try { localStorage.removeItem(DEVICE_DIAG_KEY); } catch (e) {}
+  location.reload();
+}
+
+window.addEventListener('orientationchange', diagHandleOrientation);
+window.addEventListener('resize', diagHandleOrientation);
+document.addEventListener('visibilitychange', diagHandleVisibility);
 
 function vistaEsObligatoria(view) {
   return !!(view && view.required);
@@ -3820,6 +4320,10 @@ document.addEventListener('visibilitychange', function() {
 });
 
 async function processPhotos() {
+  if (DEVICE_DIAG_ACTIVE) {
+    console.warn('[SMYL diagnóstico] Se bloqueó processPhotos(): este modo no utiliza IA.');
+    return;
+  }
   var frontalDisponible = S.photos.some(function(p){ return p.view === 'frontal'; });
   if (!frontalDisponible) {
     mostrarAvisoAplicacion('Falta la fotografía frontal', 'La vista frontal es la única foto obligatoria para crear la simulación. Las demás son opcionales.');
