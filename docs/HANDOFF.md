@@ -1,5 +1,16 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: primera foto clínica nativa en web móvil
+
+**Tocado:** `simulacion.html`, `sw.js`.
+
+- Corregido el alcance de la solución: no sólo el diagnóstico, sino también
+  `startCam()` del flujo público detecta iPhone/iPad/Android y abre desde la
+  primera foto `s-cam-native`, sin intentar `getUserMedia`.
+- Las seis tomas permanecen en la misma secuencia nativa; escritorio conserva
+  la cámara integrada con cuadrícula y su respaldo nativo.
+- Caché PWA actualizado a `smyl-v34`.
+
 ## 2026-08-16 — Codex: diagnóstico móvil por cámara nativa
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

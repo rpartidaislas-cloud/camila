@@ -3605,6 +3605,16 @@ async function startCam() {
   S._ovalReady = false;
   loadPrecios().catch(function(){}); // se necesita más adelante en la cotización -- se dispara ya para que esté lista a tiempo
 
+  // En móviles se usa siempre el capturador nativo. La prueba física confirmó
+  // que WebKit puede conceder getUserMedia y aun así mostrar video negro. Esta
+  // es también la ruta estable usada por la app Capacitor.
+  if (diagPrefiereCapturaNativa()) {
+    stopStream();
+    show('s-cam-native');
+    updateNativeCameraUI();
+    return;
+  }
+
   // Para las cuatro vistas faciales se intenta primero la cámara integrada:
   // es la única forma de mostrar una cuadrícula real durante la toma sin
   // imprimirla en la fotografía. Si el navegador/dispositivo no permite una
