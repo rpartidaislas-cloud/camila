@@ -184,6 +184,20 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 /* Photo saved flash */
 .photo-saved{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(22,163,74,.9);color:#fff;font-size:16px;font-weight:700;padding:12px 24px;border-radius:12px;z-index:25;display:none;backdrop-filter:blur(8px);white-space:nowrap}
 
+/* Editor previo de fotografía — recorte, giro y enderezado sin salir del flujo */
+.photo-adjust{display:none;position:fixed;inset:0;z-index:120;background:#090a0f;color:#fff;flex-direction:column;overflow:hidden;touch-action:none;overscroll-behavior:none}
+.photo-adjust.open{display:flex}
+.photo-adjust-head{height:calc(58px + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 14px 0;display:grid;grid-template-columns:74px 1fr 74px;align-items:center;border-bottom:1px solid rgba(255,255,255,.1);background:#0d0e14;flex:0 0 auto}
+.photo-adjust-head strong{text-align:center;font-size:16px}.photo-adjust-head button,.photo-adjust-actions button{border:0;font:700 13px Inter,sans-serif;cursor:pointer}
+.photo-adjust-cancel{color:rgba(255,255,255,.72);background:transparent;text-align:left}.photo-adjust-use{height:36px;border-radius:10px!important;background:#635bff;color:#fff}
+.photo-adjust-stage{position:relative;flex:1;min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000;padding:18px;touch-action:none}
+.photo-adjust-stage canvas{display:block;max-width:100%;max-height:100%;touch-action:none}
+.photo-adjust-help{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:7px 11px;border-radius:99px;background:rgba(0,0,0,.72);color:rgba(255,255,255,.82);font-size:11px;white-space:nowrap;pointer-events:none}
+.photo-adjust-panel{flex:0 0 auto;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:#111219;border-top:1px solid rgba(255,255,255,.1)}
+.photo-adjust-range-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-size:12px;color:rgba(255,255,255,.68)}.photo-adjust-range-head b{color:#fff;font-variant-numeric:tabular-nums}
+.photo-adjust-panel input[type=range]{width:100%;accent-color:#756bff;margin:0 0 14px}
+.photo-adjust-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.photo-adjust-actions button{height:42px;border-radius:11px;background:#1d1f29;color:#fff;border:1px solid rgba(255,255,255,.1)}
+
 /* ══ PROCESANDO ══ */
 #s-proc{background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
 .proc-photos{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
@@ -962,6 +976,27 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       <input type="file" accept="image/*" onchange="fromGallery(this)">
     </label>
+  </div>
+</div>
+
+<!-- Edición no destructiva antes de guardar cada fotografía -->
+<div class="photo-adjust" id="photo-adjust" role="dialog" aria-modal="true" aria-labelledby="photo-adjust-title">
+  <div class="photo-adjust-head">
+    <button type="button" class="photo-adjust-cancel" id="photo-adjust-cancel">Cancelar</button>
+    <strong id="photo-adjust-title">Ajustar foto</strong>
+    <button type="button" class="photo-adjust-use" id="photo-adjust-use">Usar foto</button>
+  </div>
+  <div class="photo-adjust-stage" id="photo-adjust-stage">
+    <canvas id="photo-adjust-canvas"></canvas>
+    <div class="photo-adjust-help">Arrastra para encuadrar · pellizca para ampliar</div>
+  </div>
+  <div class="photo-adjust-panel">
+    <div class="photo-adjust-range-head"><span>Enderezar</span><b id="photo-adjust-angle">0°</b></div>
+    <input id="photo-adjust-range" type="range" min="-15" max="15" step="0.5" value="0" aria-label="Enderezar fotografía">
+    <div class="photo-adjust-actions">
+      <button type="button" id="photo-adjust-rotate">↻ Girar 90°</button>
+      <button type="button" id="photo-adjust-reset">Restablecer</button>
+    </div>
   </div>
 </div>
 
@@ -4099,7 +4134,7 @@ function clearTimer() {
 }
 
 // ══ SNAP ══
-function snap() {
+async function snap() {
   clearTimer();
   var v = document.getElementById('vid');
   // Flash
@@ -4132,7 +4167,9 @@ function snap() {
   ctx.drawImage(v, cropX, cropY, Math.min(cropW,cropH), Math.min(cropW,cropH), 0, 0, size, size);
   ctx.restore();
 
-  var b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+  var ajustada = await ajustarFotoAntesDeGuardar(canvas.toDataURL('image/jpeg', 0.94), VIEWS[S.currentPhoto]).catch(function(){ return null; });
+  if (!ajustada) return;
+  var b64 = await redimensionarFotoB64(ajustada, 1280, 0.88).catch(function(){ return ajustada.split(',')[1]; });
   S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
 
   // Show saved confirmation
@@ -4186,7 +4223,9 @@ function fromGallery(inp) {
   if (!inp.files[0]) return;
   var reader = new FileReader();
   reader.onload = async function(e) {
-    var b64 = await redimensionarFotoB64(e.target.result, 1280, 0.85).catch(function(){ return e.target.result.split(',')[1]; });
+    var ajustada = await ajustarFotoAntesDeGuardar(e.target.result, VIEWS[S.currentPhoto]).catch(function(){ return null; });
+    if (!ajustada) { inp.value=''; return; }
+    var b64 = await redimensionarFotoB64(ajustada, 1280, 0.88).catch(function(){ return ajustada.split(',')[1]; });
     S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
     S.currentPhoto++;
     if (S.currentPhoto < VIEWS.length) {
@@ -8495,8 +8534,10 @@ function onNativePhoto(input) {
   if (!input.files || !input.files[0]) return;
   var reader = new FileReader();
   reader.onload = async function(e) {
-    var b64 = await redimensionarFotoB64(e.target.result, 1280, 0.85).catch(function(){ return e.target.result.split(',')[1]; });
     var view = VIEWS[S.currentPhoto] || VIEWS[0];
+    var ajustada = await ajustarFotoAntesDeGuardar(e.target.result, view).catch(function(){ return null; });
+    if (!ajustada) { input.value=''; return; }
+    var b64 = await redimensionarFotoB64(ajustada, 1280, 0.88).catch(function(){ return ajustada.split(',')[1]; });
     S.photos.push({b64: b64, view: view.id});
 
     // Show preview (con el archivo original -- la miniatura no viaja por
@@ -8504,7 +8545,7 @@ function onNativePhoto(input) {
     var preview = document.getElementById('native-preview');
     var previewImg = document.getElementById('native-preview-img');
     if (preview && previewImg) {
-      previewImg.src = e.target.result;
+      previewImg.src = ajustada;
       preview.style.display = 'block';
       document.getElementById('native-cam-icon').style.display = 'none';
     }
@@ -8541,7 +8582,7 @@ function onNativePhoto(input) {
     // salió vertical en una vista que debía ser horizontal.
     if (view.orientation === 'landscape') {
       try {
-        var dim = await medirDimensionesImagen(e.target.result);
+        var dim = await medirDimensionesImagen(ajustada);
         if (dim.height > dim.width) {
           var repetirH = confirm('Esta foto salió vertical. Para "' + view.label.split('—')[0].trim() + '" se recomienda tomarla en horizontal, acostando el teléfono de lado.\n\n¿Quieres repetirla?');
           if (repetirH) {
@@ -9108,5 +9149,6 @@ window.addEventListener('appinstalled', function() {
   document.getElementById('ios-install').classList.remove('show');
 });
 </script>
+<script src="photo-adjust.js"></script>
 </body>
 </html>

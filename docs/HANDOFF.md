@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: edición previa de cada fotografía
+
+**Tocado:** `simulacion.html`, `photo-adjust.js`, `mobile/www/simulacion.html`,
+`mobile/www/photo-adjust.js`, `sw.js`.
+
+- Toda foto procedente de cámara nativa, cámara integrada o galería pasa por
+  una revisión no destructiva antes de guardarse.
+- El usuario puede arrastrar para recortar, pellizcar para ampliar, enderezar
+  entre −15° y +15°, girar 90°, restablecer, cancelar o confirmar.
+- Sólo al pulsar `Usar foto` se exporta y comprime la fotografía editada; la
+  validación frontal y la persistencia reciben esa misma versión.
+- Caché PWA actualizado a `smyl-v37`.
+
 ## 2026-08-16 — Codex: zoom del navegador bloqueado en la experiencia móvil
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

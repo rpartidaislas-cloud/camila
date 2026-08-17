@@ -1,12 +1,13 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v36';
+const CACHE_VERSION = 'smyl-v37';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
   '/camila/simulacion.html',
+  '/camila/photo-adjust.js',
   '/camila/manifest.json',
   '/camila/app.html',
   '/camila/manifest-app.json',
