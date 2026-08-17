@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-16 — Codex: proporción fotográfica clínica sin deformación
+
+**Tocado:** `simulacion.html`, `photo-adjust.js`, `mobile/www/simulacion.html`,
+`mobile/www/photo-adjust.js`, `sw.js`.
+
+- El recorte deja de heredar la proporción arbitraria del teléfono: las vistas
+  de rostro usan un marco 4:5 y las tomas clínicas horizontales, 4:3.
+- El comparador reemplaza `object-fit:fill` por `object-fit:cover`; original y
+  simulación llenan el mismo marco mediante recorte central proporcional, sin
+  estirar ni comprimir la anatomía facial.
+- Caché PWA actualizado a `smyl-v38`.
+
 ## 2026-08-16 — Codex: edición previa de cada fotografía
 
 **Tocado:** `simulacion.html`, `photo-adjust.js`, `mobile/www/simulacion.html`,
