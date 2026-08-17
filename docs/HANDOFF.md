@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-17 — Codex: restaura prescripción completa de carillas
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Corregida una sobrescritura de `stylePrompt`: la prescripción extensa de
+  cobertura bilateral, jerarquía central/lateral/canino, contactos, curva
+  incisal y cerámica estratificada se construía y luego era reemplazada por
+  una versión breve. Ahora ambas instrucciones se acumulan.
+- El generador vuelve a exigir continuidad en todos los dientes maxilares
+  visibles, variación anatómica y preservación de la arcada inferior/tejidos.
+- El mensaje verde ya no afirma aprobación clínica automática; solicita
+  revisión profesional. Caché PWA actualizado a `smyl-v40`.
+
 ## 2026-08-17 — Codex: composición limitada a la sonrisa sin deformar el rostro
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
