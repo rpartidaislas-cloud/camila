@@ -4979,16 +4979,24 @@ async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   cctx.drawImage(ia,-iw/2+align.dx*W,-ih/2+align.dy*H,iw,ih);
   cctx.restore();
 
-  // Sólo se difuminan los límites exteriores del recorte para que la unión
-  // con la fotografía maestra no tenga un rectángulo visible.
-  var pix=cctx.getImageData(0,0,W,H),margenX=Math.max(2,W*.055),margenY=Math.max(2,H*.075);
+  // La IA recibe contexto facial, pero sólo transferimos una banda dental
+  // continua. No se separan ni etiquetan piezas y el rostro queda original.
+  var originalCanvas=document.createElement('canvas');originalCanvas.width=W;originalCanvas.height=H;
+  originalCanvas.getContext('2d').drawImage(original,0,0,W,H);
+  var banda=detectarBandaDentalContinua(originalCanvas,view);
+  var centroX=banda.cx,centroY=banda.cy;
+  var radioX=Math.max(W*.13,Math.min(W*.46,banda.w*.58));
+  var radioY=Math.max(H*.055,Math.min(H*.18,banda.h*.46));
+  var pluma=.20;
+  var pix=cctx.getImageData(0,0,W,H);
   function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
   for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
-    var borde=Math.min(x/margenX,(W-1-x)/margenX,y/margenY,(H-1-y)/margenY);
-    pix.data[(y*W+x)*4+3]=Math.round(255*suave(borde));
+    var nx=(x-centroX)/radioX,ny=(y-centroY)/radioY;
+    var distancia=Math.sqrt(nx*nx+ny*ny);
+    pix.data[(y*W+x)*4+3]=Math.round(255*suave((1-distancia)/pluma));
   }
   cctx.putImageData(pix,0,0);bctx.drawImage(capa,0,0);
-  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'direct-aligned-no-segmentation',alignment:{dx:align.dx*W,dy:align.dy*H,scale:align.escala,angle:align.angulo}}};
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'continuous-dental-band-no-tooth-segmentation',alignment:{dx:align.dx*W,dy:align.dy*H,scale:align.escala,angle:align.angulo}}};
   return base.toDataURL('image/png');
 }
 
@@ -7066,12 +7074,10 @@ function initBASlider() {
     imgA.style.height = h + 'px';
     imgB.style.width = '100%';
     imgA.style.width = '100%';
-    // Ambas capas ocupan exactamente el mismo rectángulo. `fill` es
-    // intencional: la simulación final debería tener las mismas dimensiones,
-    // pero incluso si el navegador decodifica metadatos distintos no permite
-    // que una capa use un recorte/escala diferente de la otra.
-    imgB.style.objectFit = 'fill';
-    imgA.style.objectFit = 'fill';
+    // Ambas capas ocupan el mismo rectángulo sin deformar la anatomía cuando
+    // la proporción de la foto y la del visor no coinciden exactamente.
+    imgB.style.objectFit = 'cover';
+    imgA.style.objectFit = 'cover';
     aplicarBaTransform();
   }
   if (imgB.complete) fixH(); else imgB.onload = fixH;

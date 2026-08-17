@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-17 — Codex: composición limitada a la sonrisa sin deformar el rostro
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Corregido un override JavaScript que todavía imponía `object-fit:fill` en el
+  comparador y podía estirar rostros pese a que el CSS ya usaba `cover`.
+- La IA conserva un recorte amplio como contexto de generación, pero al
+  recomponer sólo se transfiere una banda dental continua con feather elíptico.
+  No se segmentan ni etiquetan piezas; nariz, bigote, labios, piel y expresión
+  permanecen formados por píxeles de la fotografía original.
+- Esto elimina el borde horizontal/rectangular visible en algunos resultados y
+  evita que la mitad “con carillas” sustituya una zona grande del rostro.
+- Caché PWA actualizado a `smyl-v39`. Las simulaciones ya guardadas no se
+  reprocesan; hay que generar una nueva para comprobar la composición corregida.
+
 ## 2026-08-16 — Codex: proporción fotográfica clínica sin deformación
 
 **Tocado:** `simulacion.html`, `photo-adjust.js`, `mobile/www/simulacion.html`,
