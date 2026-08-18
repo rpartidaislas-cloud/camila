@@ -5015,6 +5015,72 @@ async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   return base.toDataURL('image/png');
 }
 
+function medirMascaraAnatomica(canvas) {
+  var W=canvas.width,H=canvas.height,ctx=canvas.getContext('2d',{willReadFrequently:true});
+  var px=ctx.getImageData(0,0,W,H).data;
+  var minX=W,minY=H,maxX=-1,maxY=-1,area=0,sumaX=0,sumaY=0;
+  for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
+    var a=px[(y*W+x)*4+3];
+    if(a<45)continue;
+    area++;sumaX+=x;sumaY+=y;
+    if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+  }
+  if(!area)return {area:0,ratio:0,x:0,y:0,w:0,h:0,cx:0,cy:0};
+  return {area:area,ratio:area/(W*H),x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1,cx:sumaX/area,cy:sumaY/area};
+}
+
+function medirTejidoRosadoEnMascara(imagenCanvas,mascaraCanvas) {
+  var W=imagenCanvas.width,H=imagenCanvas.height;
+  var ip=imagenCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var mp=mascaraCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var activos=0,rosados=0,filas=new Uint16Array(H),maxFila=0;
+  for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
+    var i=(y*W+x)*4;if(mp[i+3]<45)continue;activos++;
+    var r=ip[i],g=ip[i+1],b=ip[i+2];
+    var rosado=r>105&&(r-g)>22&&b>=g*.88&&(r-b)>10;
+    if(rosado){rosados++;filas[y]++;if(filas[y]>maxFila)maxFila=filas[y];}
+  }
+  return {ratio:activos?rosados/activos:0,pixels:rosados,maxRowRatio:activos?maxFila/Math.max(1,Math.sqrt(activos)):0};
+}
+
+async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view) {
+  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl)]);
+  var originalImg=imagenes[0],iaImg=imagenes[1],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
+  var original=document.createElement('canvas');original.width=W;original.height=H;
+  original.getContext('2d').drawImage(originalImg,0,0,W,H);
+  var registrada=dibujarImagenRegistrada(originalImg,iaImg,W,H,view||'frontal');
+  var alineada=registrada.canvas;
+  var par=await segmentarParDental(original,alineada,null);
+  var imgsMascara=await Promise.all([cargarImagenSegura(par.originalMaskUrl),cargarImagenSegura(par.iaMaskUrl)]);
+  var maskOriginal=document.createElement('canvas'),maskIA=document.createElement('canvas');
+  maskOriginal.width=maskIA.width=W;maskOriginal.height=maskIA.height=H;
+  maskOriginal.getContext('2d').drawImage(imgsMascara[0],0,0,W,H);
+  maskIA.getContext('2d').drawImage(imgsMascara[1],0,0,W,H);
+  var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA);
+  var tejido=medirTejidoRosadoEnMascara(alineada,maskIA),errores=[];
+  if(!mo.area||!mg.area)errores.push('no se identificó la arcada superior completa');
+  if(mg.ratio<.001||mg.ratio>.13)errores.push('la región dental generada tiene una extensión anormal');
+  if(mo.area&&mg.area) {
+    var areaRel=mg.area/mo.area,anchoRel=mg.w/Math.max(1,mo.w);
+    var centroX=Math.abs(mg.cx-mo.cx)/Math.max(1,mo.w),centroY=Math.abs(mg.cy-mo.cy)/Math.max(1,mo.h);
+    if(areaRel<.56||areaRel>1.75)errores.push('la cobertura dental no corresponde con la sonrisa original');
+    if(anchoRel<.78||anchoRel>1.28)errores.push('la cobertura bilateral quedó incompleta');
+    if(centroX>.12||centroY>.30)errores.push('la arcada generada quedó desplazada');
+  }
+  if(tejido.ratio>.045||tejido.maxRowRatio>.34)errores.push('se detectó tejido rosado dentro de la capa dental');
+  if(errores.length) {
+    var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
+    fallo.qualityMetrics={original:mo,generated:mg,pinkTissue:tejido,mode:'continuous-anatomical-upper-arch'};throw fallo;
+  }
+  var protegida=document.createElement('canvas');protegida.width=W;protegida.height=H;
+  var pctx=protegida.getContext('2d');pctx.drawImage(alineada,0,0);
+  pctx.globalCompositeOperation='destination-in';pctx.drawImage(maskIA,0,0);pctx.globalCompositeOperation='source-over';
+  var salida=document.createElement('canvas');salida.width=W;salida.height=H;
+  var sctx=salida.getContext('2d');sctx.drawImage(original,0,0);sctx.drawImage(protegida,0,0);
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'review',issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'],metrics:{mode:'continuous-anatomical-upper-arch',original:mo,generated:mg,pinkTissue:tejido,alignment:registrada.alignment}};
+  return salida.toDataURL('image/png');
+}
+
 // La curva del editor se transmite como geometría numérica, nunca como una
 // imagen coloreada. Este control es una última barrera por si el modelo llega
 // a inventar puntos o líneas técnicas: un resultado así no debe mostrarse como
@@ -5192,7 +5258,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
 
   // Integración directa del recorte generado: sin segmentar, recortar ni
   // recolorear dientes individualmente después de la generación.
-  var compuestaRecorte = await componerRecorteDirecto(
+  var compuestaRecorte = await componerConMascaraAnatomicaContinua(
     entradaDental.dataUrl,
     url,
     frontal.view || 'frontal'

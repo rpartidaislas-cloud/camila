@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-17 — Codex: composición anatómica cerrada de arcada superior
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- El flujo público deja de usar definitivamente la clasificación del esmalte
+  por color para componer la simulación.
+- Original y render se segmentan juntos en una sola solicitud; las piezas se
+  unen en una región anatómica continua de la arcada superior. No se mueven ni
+  reconstruyen dientes individualmente.
+- La fotografía original es la base inmutable y fuera de la máscara no
+  sobrevive ningún píxel generado. Se validan área, cobertura bilateral,
+  centro y desplazamiento antes de mostrar el resultado.
+- Una segunda barrera detecta tejido rosado dentro de la capa dental. Ante
+  máscara insegura, labio/encía o cobertura parcial, el flujo falla cerrado y
+  pide regenerar; no existe respaldo por color. Caché PWA `smyl-v42`.
+
 ## 2026-08-17 — Codex: bloquea tejido labial en la composición dental
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
