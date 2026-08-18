@@ -5061,24 +5061,39 @@ async function componerRecorteDirecto(fotoOriginalUrl, resultadoIAUrl, view) {
   cctx.drawImage(ia,-iw/2+align.dx*W,-ih/2+align.dy*H,iw,ih);
   cctx.restore();
 
-  // La IA recibe contexto facial, pero sólo transferimos una banda dental
-  // continua. No se separan ni etiquetan piezas y el rostro queda original.
+  // La IA recibe contexto facial, pero sólo transferimos esmalte dentro de
+  // una banda dental continua. No se separan ni etiquetan piezas. La máscara
+  // nace del original y se expande unos píxeles para admitir el nuevo contorno
+  // de las carillas sin permitir que labios o encía generados entren al rostro.
   var originalCanvas=document.createElement('canvas');originalCanvas.width=W;originalCanvas.height=H;
-  originalCanvas.getContext('2d').drawImage(original,0,0,W,H);
+  var originalCtx=originalCanvas.getContext('2d',{willReadFrequently:true});
+  originalCtx.drawImage(original,0,0,W,H);
   var banda=detectarBandaDentalContinua(originalCanvas,view);
   var centroX=banda.cx,centroY=banda.cy;
   var radioX=Math.max(W*.13,Math.min(W*.46,banda.w*.58));
   var radioY=Math.max(H*.055,Math.min(H*.18,banda.h*.46));
-  var pluma=.20;
-  var pix=cctx.getImageData(0,0,W,H);
-  function suave(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
+  var originalPix=originalCtx.getImageData(0,0,W,H).data;
+  var semilla=document.createElement('canvas');semilla.width=W;semilla.height=H;
+  var semillaCtx=semilla.getContext('2d'),semillaData=semillaCtx.createImageData(W,H);
   for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
     var nx=(x-centroX)/radioX,ny=(y-centroY)/radioY;
-    var distancia=Math.sqrt(nx*nx+ny*ny);
-    pix.data[(y*W+x)*4+3]=Math.round(255*suave((1-distancia)/pluma));
+    if(nx*nx+ny*ny>1)continue;
+    var i=(y*W+x)*4,r=originalPix[i],g=originalPix[i+1],b=originalPix[i+2];
+    var lum=.299*r+.587*g+.114*b,max=Math.max(r,g,b),min=Math.min(r,g,b);
+    var esEsmalte=lum>102&&g>68&&b>44&&(max-min)<108&&(r-g)<44&&(g-b)<78;
+    if(esEsmalte){semillaData.data[i]=255;semillaData.data[i+1]=255;semillaData.data[i+2]=255;semillaData.data[i+3]=255;}
   }
-  cctx.putImageData(pix,0,0);bctx.drawImage(capa,0,0);
-  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'approved',issues:[],metrics:{mode:'continuous-dental-band-no-tooth-segmentation',alignment:{dx:align.dx*W,dy:align.dy*H,scale:align.escala,angle:align.angulo}}};
+  semillaCtx.putImageData(semillaData,0,0);
+  var mascara=document.createElement('canvas');mascara.width=W;mascara.height=H;
+  var mctx=mascara.getContext('2d'),dilatar=Math.max(3,Math.round(W*.010));
+  for(var oy=-dilatar;oy<=dilatar;oy+=Math.max(2,Math.round(dilatar/2)))
+    for(var ox=-dilatar;ox<=dilatar;ox+=Math.max(2,Math.round(dilatar/2)))
+      if(ox*ox+oy*oy<=dilatar*dilatar*1.25)mctx.drawImage(semilla,ox,oy);
+  var suave=document.createElement('canvas');suave.width=W;suave.height=H;
+  var sctx=suave.getContext('2d');sctx.filter='blur('+Math.max(1.5,W*.0035)+'px)';sctx.drawImage(mascara,0,0);
+  cctx.globalCompositeOperation='destination-in';cctx.drawImage(suave,0,0);cctx.globalCompositeOperation='source-over';
+  bctx.drawImage(capa,0,0);
+  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'review',issues:['Revisa continuidad bilateral, anatomía individual y coincidencia VITA antes de presentar.'],metrics:{mode:'continuous-enamel-mask-no-tooth-segmentation',alignment:{dx:align.dx*W,dy:align.dy*H,scale:align.escala,angle:align.angulo}}};
   return base.toDataURL('image/png');
 }
 

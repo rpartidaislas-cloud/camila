@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-17 — Codex: bloquea tejido labial en la composición dental
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Un resultado real mostró una franja horizontal de labio sobre las coronas:
+  la ventana elíptica de composición seguía admitiendo tejido rosado generado.
+- La recomposición ahora usa una máscara continua de esmalte derivada de la
+  foto original, dilatada y suavizada para aceptar el nuevo contorno sin
+  segmentar ni numerar dientes. Labios y encía generados quedan excluidos.
+- El resultado queda en estado `review`, nunca aprobado automáticamente, y
+  exige revisión bilateral/anatómica/VITA. Caché PWA `smyl-v41`.
+
 ## 2026-08-17 — Codex: restaura prescripción completa de carillas
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
