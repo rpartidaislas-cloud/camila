@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-19 — Codex: módulo privado de calibración de simulaciones
+
+**Tocado:** `calibracion.html`, `sw.js`.
+
+- Se añadió un harness visual interno para comparar la fotografía original y
+  la simulación final, con división arrastrable, mapa de cambios y señales de
+  riesgo sobre protección exterior, cambio dental, tejido rosado y cobertura.
+- El profesional puede registrar proveedor/modelo, tiempo, costo, decisión,
+  fallos y observaciones; el historial local se exporta en CSV o JSON.
+- Las fotografías se procesan sólo en memoria y no se guardan ni se envían a
+  IA. El historial conserva únicamente métricas y alias anónimos, sin nombres
+  ni imágenes de pacientes.
+- La ruta exige sesión activa y limita el acceso en interfaz a propietarios y
+  administradores. El análisis es orientativo y nunca sustituye la decisión
+  clínica. Se agregó la ruta al caché PWA `smyl-v43`.
+
+
 ## 2026-08-17 — Codex: composición anatómica cerrada de arcada superior
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

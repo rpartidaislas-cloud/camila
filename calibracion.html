@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Calibración de simulaciones · SMYL</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#07101d;--panel:#0d1827;--panel2:#111f31;--line:rgba(255,255,255,.09);--text:#f5f7fb;--muted:#8f9bad;--blue:#3977f6;--violet:#7148ea;--green:#34d399;--amber:#fbbf24;--red:#fb7185;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 85% 0,#142243 0,transparent 32%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;background:rgba(4,9,17,.94);backdrop-filter:blur(12px)}.gate-card{width:min(430px,100%);padding:28px;border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:0 30px 80px rgba(0,0,0,.4)}.gate-logo{height:25px;margin-bottom:24px}.gate h1{font-size:22px;margin:0 0 8px}.gate p{color:var(--muted);line-height:1.55;margin:0 0 20px}.gate .btn{width:100%}
+.shell{max-width:1480px;margin:auto;padding:0 24px 70px}.top{height:74px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--line);margin-bottom:24px}.top img{height:23px}.top-title{font-weight:760}.top-sub{font-size:12px;color:var(--muted);margin-top:2px}.top-actions{margin-left:auto;display:flex;gap:9px}
+.btn{min-height:40px;border:1px solid var(--line);border-radius:11px;padding:0 15px;background:#142033;color:var(--text);font-weight:680}.btn:hover{border-color:rgba(255,255,255,.2)}.btn-primary{border:0;background:linear-gradient(135deg,var(--violet),var(--blue));box-shadow:0 9px 24px rgba(57,119,246,.22)}.btn-danger{color:#fecdd3;border-color:rgba(251,113,133,.32);background:rgba(127,29,29,.15)}.btn-small{min-height:34px;padding:0 11px;font-size:12px}.eyebrow{font-size:11px;color:#8492aa;font-weight:800;text-transform:uppercase;letter-spacing:.12em}
+.intro{display:grid;grid-template-columns:1.4fr .6fr;gap:16px;margin-bottom:20px}.intro-card{padding:22px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,rgba(113,72,234,.13),rgba(57,119,246,.04)),var(--panel)}.intro h1{font-size:24px;margin:7px 0}.intro p{margin:0;color:var(--muted);line-height:1.6;max-width:780px}.privacy{display:flex;gap:12px;align-items:flex-start}.privacy-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(52,211,153,.12);color:var(--green);flex:0 0 auto}.privacy strong{display:block;margin-bottom:5px}.privacy span{font-size:12px;color:var(--muted);line-height:1.45}
+.uploads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:20px}.drop{position:relative;min-height:142px;padding:20px;border:1px dashed rgba(255,255,255,.18);border-radius:17px;background:rgba(13,24,39,.74);display:flex;align-items:center;gap:16px;transition:.2s}.drop:hover,.drop.ready{border-color:#647af2;background:rgba(51,65,122,.18)}.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}.drop-icon{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;background:#17263b;color:#9bb6ff;font-size:22px}.drop h3{font-size:15px;margin:0 0 5px}.drop p{font-size:12px;color:var(--muted);margin:0;line-height:1.4}.drop-name{font-size:11px;color:#a8b9ff;margin-top:8px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,.55fr);gap:18px;align-items:start}.card{border:1px solid var(--line);border-radius:18px;background:rgba(13,24,39,.88);overflow:hidden}.card-head{min-height:58px;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}.card-head h2{font-size:14px;margin:0}.card-head p{font-size:11px;color:var(--muted);margin:3px 0 0}.tabs{margin-left:auto;display:flex;padding:3px;border:1px solid var(--line);border-radius:10px;background:#08111d}.tab{border:0;border-radius:7px;padding:7px 10px;background:transparent;color:#8290a5;font-size:11px;font-weight:700}.tab.active{background:#1c2b42;color:#fff}
+.viewer{position:relative;aspect-ratio:4/5;max-height:760px;margin:auto;background:#05090f;overflow:hidden;touch-action:none}.viewer img,.viewer canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.viewer .after-wrap{position:absolute;inset:0;overflow:hidden}.viewer .divider{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:50%;box-shadow:0 0 0 1px rgba(0,0,0,.15)}.viewer .divider::after{content:'↔';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#4e46ce;font-weight:900;box-shadow:0 5px 18px rgba(0,0,0,.35)}.label{position:absolute;top:12px;z-index:4;border-radius:999px;padding:6px 10px;background:rgba(5,9,15,.72);backdrop-filter:blur(8px);font-size:10px;font-weight:800;letter-spacing:.04em}.label.before{left:12px}.label.after{right:12px;background:rgba(81,58,209,.82)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:14px}.metric{padding:12px;border:1px solid var(--line);border-radius:13px;background:#0a1421}.metric span{display:block;font-size:10px;color:var(--muted);margin-bottom:8px}.metric strong{font-size:18px}.metric small{display:block;margin-top:4px;font-size:10px}.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+.side{display:flex;flex-direction:column;gap:14px}.section{padding:17px}.section h2{font-size:15px;margin:0 0 5px}.section-lead{font-size:11px;color:var(--muted);margin:0 0 15px;line-height:1.45}.field{margin-bottom:12px}.field label{display:block;font-size:11px;color:#a5b0c1;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#08121f;color:#fff;padding:10px 11px;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#6577ef}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field textarea{min-height:76px;resize:vertical}.status-group{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:15px}.status{min-height:54px;padding:8px;border:1px solid var(--line);border-radius:11px;background:#0a1421;color:#94a0b3;font-size:11px;font-weight:760}.status[data-value=approved].active{border-color:rgba(52,211,153,.7);background:rgba(6,95,70,.22);color:#a7f3d0}.status[data-value=review].active{border-color:rgba(251,191,36,.65);background:rgba(120,53,15,.22);color:#fde68a}.status[data-value=rejected].active{border-color:rgba(251,113,133,.7);background:rgba(127,29,29,.23);color:#fecdd3}
+.checks{display:grid;gap:7px}.check{display:flex;align-items:flex-start;gap:9px;padding:9px;border:1px solid var(--line);border-radius:10px;background:#0a1421;font-size:11px;color:#b4becc}.check input{accent-color:#6c63ea;margin-top:1px}.save-row{display:flex;gap:8px;margin-top:15px}.save-row .btn-primary{flex:1}.score{display:flex;gap:13px;align-items:center;padding:13px;border-radius:13px;background:#091521;border:1px solid var(--line);margin-bottom:14px}.score-ring{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--green) calc(var(--score)*1%),#263245 0);position:relative}.score-ring::before{content:'';position:absolute;inset:6px;border-radius:50%;background:#091521}.score-ring strong{position:relative;font-size:16px}.score-copy strong{display:block;font-size:13px}.score-copy span{font-size:11px;color:var(--muted)}
+.history{margin-top:20px}.history-head{display:flex;align-items:end;gap:12px;margin-bottom:10px}.history-head h2{font-size:17px;margin:0}.history-head p{font-size:11px;color:var(--muted);margin:3px 0 0}.history-actions{margin-left:auto;display:flex;gap:7px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}table{width:100%;border-collapse:collapse;min-width:820px}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px}th{color:#7f8ca0;text-transform:uppercase;letter-spacing:.08em;font-size:9px}td{color:#c9d1dd}.pill{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}.pill.approved{color:#a7f3d0;background:rgba(6,95,70,.28)}.pill.review{color:#fde68a;background:rgba(120,53,15,.28)}.pill.rejected{color:#fecdd3;background:rgba(127,29,29,.3)}.empty{text-align:center;padding:28px!important;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:22px;z-index:60;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#f8fafc;color:#111827;padding:10px 15px;border-radius:11px;font-size:12px;font-weight:700;transition:.2s;box-shadow:0 10px 30px rgba(0,0,0,.3)}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:980px){.intro{grid-template-columns:1fr}.workspace{grid-template-columns:1fr}.viewer{max-height:none}.side{display:grid;grid-template-columns:1fr 1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.shell{padding:0 12px 50px}.top{height:64px}.top-sub{display:none}.top-actions .btn:first-child{display:none}.intro-card{padding:17px}.intro h1{font-size:20px}.uploads{grid-template-columns:1fr}.drop{min-height:112px}.side{display:flex}.card-head{align-items:flex-start}.tabs{margin-left:auto}.metrics{padding:10px}.status-group{grid-template-columns:1fr}.history-head{align-items:flex-start;flex-direction:column}.history-actions{margin-left:0}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <img class="gate-logo" src="icons/smyl_logo.png" alt="SMYL">
+    <h1 id="gate-title">Verificando acceso</h1>
+    <p id="gate-copy">Este módulo contiene herramientas internas de control de calidad.</p>
+    <button class="btn btn-primary hidden" id="gate-action" onclick="location.href='index.html'">Iniciar sesión</button>
+  </div>
+</div>
+
+<main class="shell" id="app" hidden>
+  <header class="top">
+    <img src="icons/smyl_logo.png" alt="SMYL">
+    <div><div class="top-title">Calibración de simulaciones</div><div class="top-sub">Control interno de calidad · sin consumo de IA</div></div>
+    <div class="top-actions"><button class="btn btn-small" onclick="location.href='app.html'">Volver al panel</button><button class="btn btn-small" onclick="reiniciarCaso()">Nuevo caso</button></div>
+  </header>
+
+  <section class="intro">
+    <div class="intro-card"><div class="eyebrow">Harness de evaluación</div><h1>Mide antes de volver a ajustar</h1><p>Compara el original y la simulación bajo los mismos criterios. El análisis automático orienta; la decisión clínica siempre corresponde al profesional.</p></div>
+    <div class="intro-card privacy"><div class="privacy-icon">⌁</div><div><strong>Procesamiento privado</strong><span>Las imágenes permanecen en memoria. El historial guarda métricas y etiquetas, nunca fotografías ni nombres de pacientes.</span></div></div>
+  </section>
+
+  <section class="uploads">
+    <label class="drop" id="drop-original"><input type="file" id="file-original" accept="image/*"><span class="drop-icon">A</span><span><h3>Fotografía original</h3><p>La toma previa a la simulación.</p><div class="drop-name" id="name-original">Seleccionar archivo</div></span></label>
+    <label class="drop" id="drop-result"><input type="file" id="file-result" accept="image/*"><span class="drop-icon">B</span><span><h3>Simulación final</h3><p>La imagen que recibió el usuario.</p><div class="drop-name" id="name-result">Seleccionar archivo</div></span></label>
+  </section>
+
+  <section class="workspace hidden" id="workspace">
+    <div class="card">
+      <div class="card-head"><div><h2>Inspección visual</h2><p>Arrastra la división para revisar coincidencia y artefactos.</p></div><div class="tabs"><button class="tab active" data-mode="compare">Comparar</button><button class="tab" data-mode="mask">Cambios</button><button class="tab" data-mode="heat">Riesgos</button></div></div>
+      <div class="viewer" id="viewer">
+        <img id="img-original" alt="Fotografía original"><div class="after-wrap" id="after-wrap"><img id="img-result" alt="Simulación"></div>
+        <canvas id="analysis-canvas" class="hidden"></canvas><span class="label before">ORIGINAL</span><span class="label after">SIMULACIÓN</span><div class="divider" id="divider"></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><span>Protección exterior</span><strong id="m-out">—</strong><small id="m-out-note">Sin analizar</small></div>
+        <div class="metric"><span>Cambio dental</span><strong id="m-dental">—</strong><small id="m-dental-note">Sin analizar</small></div>
+        <div class="metric"><span>Tejido rosado</span><strong id="m-pink">—</strong><small id="m-pink-note">Sin analizar</small></div>
+        <div class="metric"><span>Cobertura bilateral</span><strong id="m-width">—</strong><small id="m-width-note">Sin analizar</small></div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="card section">
+        <h2>Resultado automático</h2><p class="section-lead">Estas métricas detectan señales de riesgo. No sustituyen la revisión clínica.</p>
+        <div class="score"><div class="score-ring" id="score-ring" style="--score:0"><strong id="score-value">0</strong></div><div class="score-copy"><strong id="score-title">Pendiente</strong><span id="score-note">Carga ambas imágenes.</span></div></div>
+        <div class="row"><div class="field"><label>Proveedor</label><select id="provider"><option>Gemini</option><option>OpenAI</option><option>Otro</option></select></div><div class="field"><label>Modelo</label><input id="model" placeholder="Modelo utilizado"></div></div>
+        <div class="row"><div class="field"><label>Tiempo (seg)</label><input id="duration" type="number" min="0" step="1"></div><div class="field"><label>Costo USD</label><input id="cost" type="number" min="0" step="0.001"></div></div>
+        <div class="field"><label>Alias anónimo del caso</label><input id="alias" placeholder="Ej. CAL-001 · sin nombre del paciente"></div>
+      </div>
+
+      <div class="card section">
+        <h2>Decisión profesional</h2><p class="section-lead">Califica lo que realmente presentarías al paciente.</p>
+        <div class="status-group"><button class="status" data-value="approved">Aprobado</button><button class="status" data-value="review">Requiere edición</button><button class="status" data-value="rejected">Rechazado</button></div>
+        <div class="checks" id="checks"></div>
+        <div class="field" style="margin-top:12px"><label>Observaciones</label><textarea id="notes" placeholder="Describe el problema de manera concreta..."></textarea></div>
+        <div class="save-row"><button class="btn btn-primary" id="save" onclick="guardarEvaluacion()">Guardar evaluación</button><button class="btn" onclick="reiniciarCaso()">Limpiar</button></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="history">
+    <div class="history-head"><div><h2>Historial de calibración</h2><p id="history-summary">Sin evaluaciones guardadas.</p></div><div class="history-actions"><button class="btn btn-small" onclick="exportarCSV()">Exportar CSV</button><button class="btn btn-small" onclick="exportarJSON()">Exportar JSON</button></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Caso</th><th>Decisión</th><th>Puntaje</th><th>Proveedor/modelo</th><th>Fallos</th><th></th></tr></thead><tbody id="history-body"></tbody></table></div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL='https://rpxshsiwoxdbuevjjpfw.supabase.co';
+const SUPA_KEY='sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
+const STORAGE_KEY='smyl_calibration_v1';
+const FAILURES=[['missing','Faltan carillas'],['pink','Labio o encía modificados'],['tone','Tono VITA incorrecto'],['anatomy','Anatomía artificial'],['alignment','Alineación incorrecta'],['weak','Cambio insuficiente'],['lower','Dientes inferiores modificados'],['texture','Esmalte plano o plástico']];
+let sb=null,user=null,images={original:null,result:null},analysis=null,decision='';
+
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2200)}
+function failGate(title,copy){document.getElementById('gate-title').textContent=title;document.getElementById('gate-copy').textContent=copy;document.getElementById('gate-action').classList.remove('hidden')}
+async function init(){
+  try{sb=supabase.createClient(SUPA_URL,SUPA_KEY);const res=await sb.auth.getSession();user=res.data&&res.data.session&&res.data.session.user;if(!user)return failGate('Inicia sesión','Accede con la cuenta propietaria de la clínica para abrir calibración.');
+    let allowed=false;
+    const owner=await sb.from('camila_tenants').select('id').eq('id',user.id).maybeSingle();
+    if(owner.data)allowed=true;
+    if(!allowed){const member=await sb.from('camila_usuarios').select('rol').eq('id',user.id).maybeSingle();const role=(member.data&&member.data.rol||'').toLowerCase();allowed=role==='dueño'||role==='dueno'||role==='admin';}
+    if(!allowed)return failGate('Acceso restringido','Este módulo está disponible únicamente para propietarios y administradores.');
+    document.getElementById('gate').classList.add('hidden');document.getElementById('app').hidden=false;renderHistory();
+  }catch(e){failGate('No se pudo verificar el acceso','Comprueba tu conexión e inténtalo nuevamente desde el panel de SMYL.');}
+}
+
+function fileToImage(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>resolve({img,url,file});img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Imagen inválida'))};img.src=url})}
+async function loadFile(kind,file){if(!file)return;try{if(images[kind])URL.revokeObjectURL(images[kind].url);images[kind]=await fileToImage(file);document.getElementById('name-'+kind).textContent=file.name;document.getElementById('drop-'+kind).classList.add('ready');if(images.original&&images.result)analizar();}catch(e){toast('No se pudo leer la imagen')}}
+document.getElementById('file-original').addEventListener('change',e=>loadFile('original',e.target.files[0]));
+document.getElementById('file-result').addEventListener('change',e=>loadFile('result',e.target.files[0]));
+
+function drawContain(ctx,img,w,h){const scale=Math.min(w/img.naturalWidth,h/img.naturalHeight),dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;ctx.fillStyle='#05090f';ctx.fillRect(0,0,w,h);ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh)}
+function analizar(){
+  const W=540,H=675,a=document.createElement('canvas'),b=document.createElement('canvas');a.width=b.width=W;a.height=b.height=H;const ac=a.getContext('2d',{willReadFrequently:true}),bc=b.getContext('2d',{willReadFrequently:true});drawContain(ac,images.original.img,W,H);drawContain(bc,images.result.img,W,H);
+  const ap=ac.getImageData(0,0,W,H).data,bp=bc.getImageData(0,0,W,H).data;let outTotal=0,outChanged=0,dentalTotal=0,dentalChanged=0,pink=0,minX=W,maxX=-1;const map=document.createElement('canvas');map.width=W;map.height=H;const mc=map.getContext('2d'),md=mc.createImageData(W,H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4,delta=(Math.abs(ap[i]-bp[i])+Math.abs(ap[i+1]-bp[i+1])+Math.abs(ap[i+2]-bp[i+2]))/3;const mouth=x>W*.13&&x<W*.87&&y>H*.51&&y<H*.82;const dental=x>W*.16&&x<W*.84&&y>H*.57&&y<H*.75;if(!mouth){outTotal++;if(delta>14)outChanged++;}if(dental){dentalTotal++;if(delta>13){dentalChanged++;minX=Math.min(minX,x);maxX=Math.max(maxX,x);const r=bp[i],g=bp[i+1],bl=bp[i+2];if(r>105&&r-g>22&&bl>=g*.88&&r-bl>10)pink++;}}
+    if(delta>14){const risk=!mouth||(dental&&bp[i]>105&&bp[i]-bp[i+1]>22&&bp[i+2]>=bp[i+1]*.88);md.data[i]=risk?251:255;md.data[i+1]=risk?82:255;md.data[i+2]=risk?103:255;md.data[i+3]=Math.min(230,70+delta*3);}}
+  mc.putImageData(md,0,0);const outside=outChanged/Math.max(1,outTotal),change=dentalChanged/Math.max(1,dentalTotal),pinkRatio=pink/Math.max(1,dentalChanged),width=maxX>=minX?(maxX-minX+1)/(W*.68):0;
+  let score=100;score-=Math.min(45,outside*1300);if(change<.025)score-=25;if(change>.72)score-=18;score-=Math.min(35,pinkRatio*500);if(width<.48)score-=20;score=Math.max(0,Math.round(score));analysis={outside,change,pink:pinkRatio,width:Math.min(1,width),score,map};
+  document.getElementById('img-original').src=images.original.url;document.getElementById('img-result').src=images.result.url;document.getElementById('workspace').classList.remove('hidden');setMode('compare');renderMetrics();
+}
+function metric(id,value,note,state){const val=document.getElementById(id);val.textContent=value;val.className=state;document.getElementById(id+'-note').textContent=note;document.getElementById(id+'-note').className=state}
+function renderMetrics(){const a=analysis;metric('m-out',(100-a.outside*100).toFixed(1)+'%','Píxeles externos conservados',a.outside<.008?'ok':a.outside<.02?'warn':'bad');metric('m-dental',(a.change*100).toFixed(1)+'%',a.change<.025?'Cambio casi imperceptible':a.change>.72?'Cambio excesivo':'Cambio visible',a.change>=.025&&a.change<=.72?'ok':'warn');metric('m-pink',(a.pink*100).toFixed(1)+'%',a.pink<.01?'Sin señal relevante':'Revisar tejido transferido',a.pink<.01?'ok':a.pink<.035?'warn':'bad');metric('m-width',(a.width*100).toFixed(0)+'%',a.width>.55?'Cambio bilateral':'Cobertura limitada',a.width>.55?'ok':'warn');document.getElementById('score-ring').style.setProperty('--score',a.score);document.getElementById('score-value').textContent=a.score;document.getElementById('score-title').textContent=a.score>=85?'Buen candidato':a.score>=65?'Requiere revisión':'Riesgo elevado';document.getElementById('score-note').textContent=a.score>=85?'Confirma anatomía y VITA.':a.score>=65?'Revisa las alertas antes de aprobar.':'No debería presentarse sin corrección.'}
+
+function setDivider(p){p=Math.max(3,Math.min(97,p));document.getElementById('after-wrap').style.clipPath=`inset(0 ${100-p}% 0 0)`;document.getElementById('divider').style.left=p+'%'}
+function moveDivider(e){const r=document.getElementById('viewer').getBoundingClientRect(),x=(e.touches?e.touches[0].clientX:e.clientX)-r.left;setDivider(x/r.width*100)}
+const viewer=document.getElementById('viewer');let dragging=false;viewer.addEventListener('pointerdown',e=>{if(document.querySelector('.tab.active').dataset.mode!=='compare')return;dragging=true;viewer.setPointerCapture(e.pointerId);moveDivider(e)});viewer.addEventListener('pointermove',e=>{if(dragging)moveDivider(e)});viewer.addEventListener('pointerup',()=>dragging=false);
+document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+function setMode(mode){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));const canvas=document.getElementById('analysis-canvas'),compare=mode==='compare';document.getElementById('after-wrap').classList.toggle('hidden',!compare);document.getElementById('divider').classList.toggle('hidden',!compare);document.querySelectorAll('.viewer .label').forEach(x=>x.classList.toggle('hidden',!compare));canvas.classList.toggle('hidden',compare);if(!compare&&analysis){const c=canvas.getContext('2d');canvas.width=analysis.map.width;canvas.height=analysis.map.height;c.fillStyle=mode==='heat'?'#15080d':'#020408';c.fillRect(0,0,canvas.width,canvas.height);c.drawImage(analysis.map,0,0);if(mode==='heat'){c.globalCompositeOperation='screen';c.globalAlpha=.22;c.drawImage(analysis.map,-3,0);c.drawImage(analysis.map,3,0);c.globalAlpha=1;c.globalCompositeOperation='source-over';}}}
+
+const checks=document.getElementById('checks');checks.innerHTML=FAILURES.map(([id,label])=>`<label class="check"><input type="checkbox" value="${id}"><span>${label}</span></label>`).join('');document.querySelectorAll('.status').forEach(b=>b.addEventListener('click',()=>{decision=b.dataset.value;document.querySelectorAll('.status').forEach(x=>x.classList.toggle('active',x===b))}));
+function readHistory(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return[]}}
+function writeHistory(rows){localStorage.setItem(STORAGE_KEY,JSON.stringify(rows))}
+function guardarEvaluacion(){if(!analysis)return toast('Carga ambas imágenes');if(!decision)return toast('Selecciona una decisión');const alias=document.getElementById('alias').value.trim()||`CAL-${Date.now().toString().slice(-6)}`;const failures=[...checks.querySelectorAll('input:checked')].map(x=>x.value);const row={id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(36),createdAt:new Date().toISOString(),alias,decision,failures,notes:document.getElementById('notes').value.trim(),provider:document.getElementById('provider').value,model:document.getElementById('model').value.trim(),duration:Number(document.getElementById('duration').value)||null,cost:Number(document.getElementById('cost').value)||null,metrics:{outside:+analysis.outside.toFixed(4),dentalChange:+analysis.change.toFixed(4),pink:+analysis.pink.toFixed(4),bilateral:+analysis.width.toFixed(4),score:analysis.score}};const rows=readHistory();rows.unshift(row);writeHistory(rows);renderHistory();toast('Evaluación guardada sin fotografías')}
+function statusLabel(s){return s==='approved'?'Aprobado':s==='review'?'Requiere edición':'Rechazado'}
+function renderHistory(){const rows=readHistory(),body=document.getElementById('history-body');document.getElementById('history-summary').textContent=rows.length?`${rows.length} evaluaciones · ${Math.round(rows.filter(x=>x.decision==='approved').length/rows.length*100)}% aprobadas`:'Sin evaluaciones guardadas.';body.innerHTML=rows.length?rows.map(r=>`<tr><td>${new Date(r.createdAt).toLocaleDateString('es-MX')}</td><td>${esc(r.alias)}</td><td><span class="pill ${r.decision}">${statusLabel(r.decision)}</span></td><td>${r.metrics.score}/100</td><td>${esc(r.provider)}${r.model?' · '+esc(r.model):''}</td><td>${r.failures.length?r.failures.map(id=>FAILURES.find(f=>f[0]===id)?.[1]||id).join(', '):'—'}</td><td><button class="btn btn-small btn-danger" onclick="deleteRow('${r.id}')">Eliminar</button></td></tr>`).join(''):'<tr><td class="empty" colspan="7">Aún no hay resultados calibrados.</td></tr>'}
+function esc(v){return String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function deleteRow(id){writeHistory(readHistory().filter(x=>x.id!==id));renderHistory()}
+function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
+function exportarJSON(){const rows=readHistory();if(!rows.length)return toast('No hay evaluaciones');download('smyl-calibracion.json',JSON.stringify({version:1,exportedAt:new Date().toISOString(),containsImages:false,evaluations:rows},null,2),'application/json')}
+function exportarCSV(){const rows=readHistory();if(!rows.length)return toast('No hay evaluaciones');const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',head=['fecha','caso','decision','puntaje','proveedor','modelo','tiempo_seg','costo_usd','fallos','notas'],lines=[head.join(',')];rows.forEach(r=>lines.push([r.createdAt,r.alias,r.decision,r.metrics.score,r.provider,r.model,r.duration,r.cost,r.failures.join('|'),r.notes].map(q).join(',')));download('smyl-calibracion.csv',lines.join('\n'),'text/csv')}
+function reiniciarCaso(){Object.values(images).forEach(x=>x&&URL.revokeObjectURL(x.url));images={original:null,result:null};analysis=null;decision='';['original','result'].forEach(k=>{document.getElementById('file-'+k).value='';document.getElementById('name-'+k).textContent='Seleccionar archivo';document.getElementById('drop-'+k).classList.remove('ready')});document.getElementById('workspace').classList.add('hidden');document.querySelectorAll('.status').forEach(x=>x.classList.remove('active'));checks.querySelectorAll('input').forEach(x=>x.checked=false);['alias','model','duration','cost','notes'].forEach(id=>document.getElementById(id).value='');scrollTo({top:0,behavior:'smooth'})}
+init();
+</script>
+</body>
+</html>
