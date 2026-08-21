@@ -65,6 +65,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cam-video.mirror{-webkit-transform:scaleX(-1) translateZ(0);transform:scaleX(-1) translateZ(0)}
 .cam-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.native-guide-icon.native-grid-enabled::before,.native-guide-icon.native-grid-enabled::after{content:'';position:absolute;inset:0;z-index:4;pointer-events:none}
+.native-guide-icon.native-grid-enabled::before{background:linear-gradient(90deg,transparent 33.15%,rgba(224,220,72,.72) 33.15%,rgba(224,220,72,.72) 33.7%,transparent 33.7%,transparent 66.3%,rgba(224,220,72,.72) 66.3%,rgba(224,220,72,.72) 66.85%,transparent 66.85%)}
+.native-guide-icon.native-grid-enabled::after{background:linear-gradient(180deg,transparent 33.15%,rgba(224,220,72,.72) 33.15%,rgba(224,220,72,.72) 33.7%,transparent 33.7%,transparent 66.3%,rgba(224,220,72,.72) 66.3%,rgba(224,220,72,.72) 66.85%,transparent 66.85%)}
 
 /* Top bar */
 .cam-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
@@ -618,6 +621,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .vita-handle{width:38px;height:38px;margin-top:-2px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#303338,#080a0b 62%);border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 15px rgba(0,0,0,.48);font-size:8px;font-weight:700}.vita-handle b{background:linear-gradient(90deg,#12c6f3,#9228ee);background-clip:text;-webkit-background-clip:text;color:transparent}.vita-stick>strong{position:relative;z-index:4;display:flex;align-items:center;justify-content:center;min-width:34px;height:23px;margin-top:8px;padding:0 7px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:#080a0b;color:rgba(255,255,255,.78);font-size:11px;font-weight:750;line-height:1;letter-spacing:.2px;box-shadow:0 4px 10px rgba(0,0,0,.28)}.vita-stick.selected>strong{border-color:rgba(102,114,255,.72);background:linear-gradient(135deg,rgba(43,106,227,.28),rgba(116,43,219,.25));color:#fff;text-shadow:0 0 10px rgba(255,255,255,.45);box-shadow:0 0 13px rgba(89,88,239,.35)}
 .vita-selected-card{display:grid;grid-template-columns:minmax(270px,340px) minmax(170px,1fr) auto;align-items:center;gap:20px;padding:16px 18px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-selected-info{display:flex;min-width:0;flex-direction:column}.vita-selected-code{font-size:22px;color:#fff;font-weight:650}.vita-selected-copy{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}.vita-confirm{height:52px;min-width:210px;padding:0 24px;border:0;border-radius:11px;background:linear-gradient(100deg,#2576f3,#8427ed);color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 25px rgba(76,53,220,.28)}.vita-note{text-align:center;color:rgba(255,255,255,.34);font-size:10.5px;line-height:1.5;margin:12px 10px 0}
 .vita-quick-action{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;margin:0 0 16px;padding:14px 16px;border-radius:13px;background:#141522;border:1px solid rgba(106,99,238,.34);box-shadow:0 10px 28px rgba(25,20,72,.2)}.vita-quick-copy{display:flex;min-width:0;flex-direction:column;gap:3px}.vita-quick-copy small{color:rgba(255,255,255,.48);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}.vita-quick-copy strong{color:#fff;font-size:16px}.vita-quick-copy span{color:rgba(255,255,255,.42);font-size:10px}.vita-quick-action .vita-confirm{height:46px;min-width:190px}.vita-detail-hint{margin:-4px 0 14px;color:rgba(255,255,255,.42);font-size:10.5px;text-align:center}
+.vita-advanced{margin:0 0 16px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.025);overflow:hidden}.vita-advanced>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 16px;color:rgba(255,255,255,.72);font-size:11px;font-weight:700;cursor:pointer;list-style:none}.vita-advanced>summary::-webkit-details-marker{display:none}.vita-advanced>summary::after{content:'+';font-size:19px;font-weight:400;color:#a9a3ff}.vita-advanced[open]>summary::after{content:'−'}.vita-advanced-body{padding:0 14px 14px}.vita-advanced .vita-selected-card{grid-template-columns:minmax(250px,340px) minmax(160px,1fr)}
 .vita-comparison{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:9px;padding:12px;border-radius:12px;background:#090b0c;border:1px solid rgba(255,255,255,.07)}.vita-compare-sample{display:flex;min-width:0;flex-direction:column;align-items:center;gap:6px}.vita-compare-kicker{color:rgba(255,255,255,.48);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.65px}.vita-compare-code{min-height:27px;display:flex;align-items:center;color:#fff;font-size:10.5px;font-weight:700}.vita-compare-vs{align-self:center;color:rgba(255,255,255,.32);font-size:9px;font-weight:800;letter-spacing:.8px}.vita-photo-compare{width:54px;height:152px;--vita-tint-opacity:.72}.vita-photo-compare .vita-photo-brand img{width:24px;max-height:13px}.vita-photo-compare .vita-photo-brand b{font-size:4.5px}.vita-compare-select{width:100%;height:27px;padding:0 23px 0 8px;border-radius:7px;border:1px solid rgba(106,109,238,.42);background:#141526;color:#fff;font:650 10px Inter,sans-serif;cursor:pointer;color-scheme:dark}
 .vita-current-btn{width:100%;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0a0c0d;color:rgba(255,255,255,.7);font:600 12px Inter,sans-serif;cursor:pointer;margin-bottom:14px}.vita-current-btn.active{border-color:#5b7cff;background:rgba(63,85,220,.15);color:#fff;box-shadow:0 0 18px rgba(69,84,224,.14)}
 .vita-compare{display:flex;align-items:center;gap:7px;margin-top:7px;color:rgba(255,255,255,.42);font-size:10px}.vita-mini{width:14px;height:18px;border-radius:6px 6px 5px 5px;border:1px solid rgba(255,255,255,.16)}
@@ -852,7 +856,10 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       </div>
       <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Continuar con este tono</button>
     </div>
-    <p class="vita-detail-hint">Opcional: ajusta acabado, intensidad o compara tonos antes de continuar.</p>
+    <p class="vita-detail-hint">Para una simulación rápida, el tono es suficiente.</p>
+    <details class="vita-advanced">
+      <summary>Opciones de apariencia y comparación</summary>
+      <div class="vita-advanced-body">
     <div class="vita-options">
       <div class="vita-option-card">
         <label>Acabado del esmalte</label>
@@ -867,7 +874,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <div class="vita-segments" id="vita-intensity-options">
           <button class="vita-segment" type="button" data-value="subtle" onclick="setVitaOption('intensity','subtle',this)">Natural</button>
           <button class="vita-segment active" type="button" data-value="balanced" onclick="setVitaOption('intensity','balanced',this)">Armónico</button>
-          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Hollywood</button>
+          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Notable</button>
         </div>
       </div>
     </div>
@@ -924,8 +931,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <span class="vita-selected-copy" id="vita-selected-copy">Marfil claro, natural y ligeramente cálido</span>
         <span class="vita-status" id="vita-status">Simulación configurada en VITA A1</span>
       </div>
-      <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Continuar con este tono</button>
     </div>
+      </div>
+    </details>
     <p class="vita-note">La IA recibirá el código VITA y sus características ópticas. El resultado conserva translucidez, brillo de esmalte y variaciones naturales.</p>
   </div>
 </div>
@@ -967,6 +975,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
   <!-- Photo saved confirmation -->
   <div class="photo-saved" id="photo-saved">✓ Foto guardada</div>
 
+  <button type="button" id="cam-skip-btn" onclick="saltarFotoIntegrada()" style="display:none;position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:12;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.24);background:rgba(10,8,20,.66);color:#fff;font:650 12px Inter,sans-serif;backdrop-filter:blur(8px);cursor:pointer">Saltar foto opcional</button>
+
   <div class="cam-bottom">
     <button class="cam-side-btn" onclick="flipCam()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
@@ -1007,7 +1017,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div class="pr1"></div><div class="pr2"></div>
   </div>
   <div class="proc-title" id="proc-title">Analizando tu sonrisa...</div>
-  <div class="proc-sub" id="proc-sub-main">Claude y Gemini están trabajando en tu simulación personalizada</div>
+  <div class="proc-sub" id="proc-sub-main">Estamos preparando tu simulación personalizada</div>
   <!-- El Wake Lock (evitar que la pantalla se bloquee) no funciona de forma
        confiable dentro de una PWA instalada en iOS -- si la pantalla se
        bloquea a medio proceso, iOS corta la conexión y la generación falla
@@ -1022,8 +1032,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
   </div>
   <div class="proc-list" id="proc-list">
     <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tu fotografía con IA</div>
-    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Diseñando cada diente de forma individual</div>
-    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando proporciones dentofaciales</div>
+    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Diseñando la propuesta dental</div>
+    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando forma y proporciones</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Aplicando el tono de tus carillas</div>
     <div class="pstep" id="ps5"><div class="pstep-dot"></div>Generando simulación fotorrealista ✨</div>
   </div>
@@ -1139,7 +1149,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <div style="display:flex;align-items:center;gap:8px;min-width:0">
           <span id="sim-quality-icon" style="font-size:15px">✓</span>
           <div>
-            <div id="sim-quality-title" style="font-size:11.5px;font-weight:750;color:#B8F3D4">Control visual automático aprobado</div>
+            <div id="sim-quality-title" style="font-size:11.5px;font-weight:750;color:#B8F3D4">Revisión visual automática terminada</div>
             <div id="sim-quality-detail" style="margin-top:2px;font-size:9.5px;line-height:1.4;color:rgba(255,255,255,.48)">Arcada, cobertura, tono y anatomía revisados antes de mostrar el resultado.</div>
           </div>
         </div>
@@ -1228,7 +1238,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 
     <!-- CTA -->
     <!-- Acciones clínicas del doctor -->
-    <div class="cta-box">
+    <div class="cta-box" id="case-actions-box">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -1704,6 +1714,7 @@ var CFG = {
   // de camila_casos ahora exigen auth.uid(), así que las llamadas a esa
   // tabla/storage deben mandar este token en vez de CFG.supaKey.
   userToken: null,
+  userId: null,
   // true = paciente prospecto sin cuenta, entró por el link público de una
   // clínica (?clinica=<id>). Nunca hay userToken en este modo.
   modoProspecto: false,
@@ -1823,6 +1834,7 @@ try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 if (sbAuth && sbAuth.auth) {
   sbAuth.auth.onAuthStateChange(function(event, session) {
     CFG.userToken = (session && session.access_token) || null;
+    CFG.userId = (session && session.user && session.user.id) || null;
   });
 }
 
@@ -1848,6 +1860,7 @@ function configurarExperienciaModo(esProspecto) {
 }
 
 function entrarConSesion(uid) {
+  CFG.userId = uid || CFG.userId;
   configurarExperienciaModo(false);
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
@@ -1947,6 +1960,7 @@ function actualizarBotonLoginSim() {
 }
 
 function cerrarSesionSim() {
+  clearProgress();
   if (sbAuth && sbAuth.auth) sbAuth.auth.signOut().catch(function(){});
   location.reload();
 }
@@ -2176,6 +2190,7 @@ var VIEWS = [
   {id:'intraoral',label:'Fotografía Intraoral — Dientes de cerca',hint:'Acerca la cámara y encuadra dientes y encías con nitidez.',facing:'environment',svg:'intraoral',asset:'icons/capture-intraoral-v3.webp',imageAlt:'Ejemplo de fotografía intraoral',orientation:'landscape'},
   {id:'extraoral',label:'Fotografía Extraoral — Rostro completo',hint:'Aléjate y encuadra el rostro completo con luz frontal.',facing:'environment',svg:'extraoral',asset:'icons/capture-extraoral-v3.webp',imageAlt:'Ejemplo de fotografía extraoral',orientation:'landscape'},
 ];
+var INTEGRATED_CAPTURE_COUNT = Math.min(4, VIEWS.length);
 
 // ══ DIAGNÓSTICO DE DISPOSITIVO (sin IA) ══
 // Se activa únicamente mediante ?diagnostico=1. Usa estado y almacenamiento
@@ -2699,12 +2714,20 @@ function aplicarCopyProspecto() {
 var PROGRESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h — progreso más viejo se descarta
 
 function progressKey() {
-  return 'camila_progreso_' + (CFG.tenantId || 'local');
+  var actor = CFG.modoProspecto ? 'prospecto' : (CFG.userId || 'usuario');
+  return 'camila_progreso_' + (CFG.tenantId || 'local') + '_' + actor;
+}
+
+function progressStorage() {
+  // En el enlace público, las fotos sólo sobreviven dentro de la sesión de
+  // navegador actual. Así otra persona que use después el mismo dispositivo
+  // no puede recuperar por accidente las imágenes del paciente anterior.
+  return CFG.modoProspecto ? sessionStorage : localStorage;
 }
 
 function trySaveSnapshot(snapshot) {
   try {
-    localStorage.setItem(progressKey(), JSON.stringify(snapshot));
+    progressStorage().setItem(progressKey(), JSON.stringify(snapshot));
     return true;
   } catch (e) {
     return false; // cuota de localStorage llena
@@ -2744,12 +2767,12 @@ function saveProgress(screenId) {
 }
 
 function clearProgress() {
-  try { localStorage.removeItem(progressKey()); } catch (e) {}
+  try { progressStorage().removeItem(progressKey()); } catch (e) {}
 }
 
 function loadSavedProgress() {
   try {
-    var raw = localStorage.getItem(progressKey());
+    var raw = progressStorage().getItem(progressKey());
     if (!raw) return null;
     var snap = JSON.parse(raw);
     if (!snap.ts || (Date.now() - snap.ts) > PROGRESS_TTL_MS) { clearProgress(); return null; }
@@ -3642,13 +3665,33 @@ async function startCam() {
   S._ovalReady = false;
   loadPrecios().catch(function(){}); // se necesita más adelante en la cotización -- se dispara ya para que esté lista a tiempo
 
-  // La cámara personalizada con MediaPipe deja la pantalla en negro sin
-  // ningún error en iOS (GPU y CPU delegate) y se confirmó el mismo
-  // síntoma en Android — nunca funcionó de forma confiable en ningún
-  // dispositivo real. Se usa la cámara nativa del sistema para todas las
-  // fotos, en todos los dispositivos.
+  // En móviles se usa siempre el capturador nativo. La prueba física confirmó
+  // que WebKit puede conceder getUserMedia y aun así mostrar video negro. Esta
+  // es también la ruta estable usada por la app Capacitor.
+  if (diagPrefiereCapturaNativa()) {
+    stopStream();
+    show('s-cam-native');
+    updateNativeCameraUI();
+    return;
+  }
+
+  // Para las cuatro vistas faciales se intenta primero la cámara integrada:
+  // es la única forma de mostrar una cuadrícula real durante la toma sin
+  // imprimirla en la fotografía. Si el navegador/dispositivo no permite una
+  // vista en vivo fiable, se conserva el selector nativo como respaldo.
+  S.facing = (VIEWS[0] && VIEWS[0].facing) || 'user';
+  // La pantalla cambia inmediatamente para que el CTA nunca parezca muerto
+  // mientras el navegador resuelve permisos o abre el flujo integrado.
   show('s-cam-native');
   updateNativeCameraUI();
+  var opening = document.getElementById('native-opening-overlay');
+  if (opening) opening.style.display = 'flex';
+  var integrada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && await initCam(true);
+  if (opening) opening.style.display = 'none';
+  if (!integrada) {
+    // El selector nativo y la galería ya están listos como respaldo.
+    show('s-cam-native');
+  }
 }
 
 async function initCam(silentFallback) {
@@ -3721,7 +3764,32 @@ function updatePhotoUI() {
     dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
   }
   setGuide(view.label, 'Foto ' + (S.currentPhoto + 1) + ' de ' + VIEWS.length + ' · ' + (vistaEsObligatoria(view) ? 'Obligatoria' : 'Opcional') + ' · ' + view.hint, false);
+  var skip = document.getElementById('cam-skip-btn');
+  if (skip) skip.style.display = vistaEsObligatoria(view) ? 'none' : 'block';
   setupOval();
+}
+
+function vistaUsaCuadricula(view) {
+  var id = view && view.id;
+  return id === 'frontal' || id === 'right' || id === 'left' || id === 'tresCuartos';
+}
+
+// Regla de tercios para nivelar y centrar las vistas faciales. Se dibuja en
+// el canvas de interfaz, separado del canvas temporal usado por snap(), por
+// lo que nunca forma parte del JPEG guardado.
+function paintCaptureGrid(ctx, W, H) {
+  var view = VIEWS[S.currentPhoto] || VIEWS[0];
+  if (!vistaUsaCuadricula(view)) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(224,220,72,.72)';
+  ctx.lineWidth = Math.max(1, Math.min(1.5, W / 420));
+  ctx.shadowColor = 'rgba(0,0,0,.28)';
+  ctx.shadowBlur = 1;
+  [1/3,2/3].forEach(function(p) {
+    ctx.beginPath(); ctx.moveTo(W*p,0); ctx.lineTo(W*p,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,H*p); ctx.lineTo(W,H*p); ctx.stroke();
+  });
+  ctx.restore();
 }
 
 // ══ OVAL GUIDE ══
@@ -3803,6 +3871,10 @@ function paintOval(state) {
   ctx.ellipse(ox,oy,ow,oh,0,0,Math.PI*2);
   ctx.fill('evenodd');
   ctx.restore();
+
+  // La cuadrícula queda encima del oscurecimiento exterior para conservar
+  // líneas continuas de borde a borde como en una cámara fotográfica.
+  paintCaptureGrid(ctx, W, H);
 
   // Oval border with color based on state
   var color = state === 'green' ? '#16A34A' : state === 'yellow' ? '#F59E0B' : state === 'red' ? '#EF4444' : 'rgba(255,255,255,0.7)';
@@ -4179,15 +4251,47 @@ async function snap() {
 
   // Next photo or process
   S.currentPhoto++;
-  if (S.currentPhoto < VIEWS.length) {
+  continuarCapturaIntegrada();
+}
+
+function continuarCapturaIntegrada() {
+  if (S.currentPhoto < INTEGRATED_CAPTURE_COUNT) {
     S.faceOk = false;
     clearTimer();
-    updatePhotoUI();
-    setTimeout(tryFaceDetect, 500);
+    var siguiente = VIEWS[S.currentPhoto] || VIEWS[0];
+    if (siguiente.facing !== S.facing) {
+      S.facing = siguiente.facing;
+      S._ovalReady = false;
+      initCam(true).then(function(ok){
+        if (ok) updatePhotoUI();
+        else {
+          stopStream();
+          show('s-cam-native');
+          updateNativeCameraUI();
+        }
+      });
+    } else {
+      updatePhotoUI();
+      setTimeout(tryFaceDetect, 500);
+    }
+  } else if (S.currentPhoto < VIEWS.length) {
+    stopStream();
+    // Intraoral y extraoral no necesitan cuadrícula y conservan el selector
+    // nativo, que ofrece mejor control de enfoque y orientación clínica.
+    show('s-cam-native');
+    updateNativeCameraUI();
   } else {
     stopStream();
     processPhotos();
   }
+}
+
+function saltarFotoIntegrada() {
+  var view = VIEWS[S.currentPhoto];
+  if (!view || vistaEsObligatoria(view)) return;
+  S.currentPhoto++;
+  saveProgress('s-cam');
+  continuarCapturaIntegrada();
 }
 
 function stopStream() {
@@ -4228,13 +4332,8 @@ function fromGallery(inp) {
     var b64 = await redimensionarFotoB64(ajustada, 1280, 0.88).catch(function(){ return ajustada.split(',')[1]; });
     S.photos.push({b64: b64, view: VIEWS[S.currentPhoto].id});
     S.currentPhoto++;
-    if (S.currentPhoto < VIEWS.length) {
-      updatePhotoUI();
-      setTimeout(tryFaceDetect, 300);
-    } else {
-      stopStream();
-      processPhotos();
-    }
+    inp.value = '';
+    continuarCapturaIntegrada();
   };
   reader.readAsDataURL(inp.files[0]);
 }
@@ -4426,7 +4525,7 @@ async function processPhotos() {
   if (ring) ring.style.display = 'flex';
   if (list) list.style.display = 'flex';
   if (title) title.textContent = 'Analizando tu sonrisa...';
-  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Claude y Gemini están trabajando en tu simulación personalizada'; }
+  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Estamos preparando tu simulación personalizada'; }
 
   // Show photo thumbs
   var photosEl = document.getElementById('proc-photos');
@@ -5037,12 +5136,20 @@ function medirTejidoRosadoEnMascara(imagenCanvas,mascaraCanvas) {
   for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
     var i=(y*W+x)*4;if(mp[i+3]<45)continue;activos++;
     var r=ip[i],g=ip[i+1],b=ip[i+2];
+    // Tejido labial/gingival: rojo dominante con azul cercano o superior al
+    // verde. El esmalte cálido mantiene normalmente g claramente por encima b.
     var rosado=r>105&&(r-g)>22&&b>=g*.88&&(r-b)>10;
     if(rosado){rosados++;filas[y]++;if(filas[y]>maxFila)maxFila=filas[y];}
   }
   return {ratio:activos?rosados/activos:0,pixels:rosados,maxRowRatio:activos?maxFila/Math.max(1,Math.sqrt(activos)):0};
 }
 
+// Composición segura para el flujo público. El segmentador puede entregar
+// piezas individuales, pero aquí se unen en UNA región anatómica continua de
+// la arcada superior: no se recolocan, escalan ni reconstruyen dientes por
+// separado. La fotografía original es la única base y la IA sólo sobrevive
+// dentro de esa región. Si la región no es bilateral y coherente, se falla de
+// forma cerrada; nunca se vuelve a la máscara aproximada basada en color.
 async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view) {
   var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl)]);
   var originalImg=imagenes[0],iaImg=imagenes[1],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
@@ -5050,19 +5157,26 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   original.getContext('2d').drawImage(originalImg,0,0,W,H);
   var registrada=dibujarImagenRegistrada(originalImg,iaImg,W,H,view||'frontal');
   var alineada=registrada.canvas;
+
+  // Una sola inferencia de segmentación contiene original y resultado lado a
+  // lado. La salida se usa exclusivamente como máscara protectora.
   var par=await segmentarParDental(original,alineada,null);
-  var imgsMascara=await Promise.all([cargarImagenSegura(par.originalMaskUrl),cargarImagenSegura(par.iaMaskUrl)]);
+  var imgsMascara=await Promise.all([
+    cargarImagenSegura(par.originalMaskUrl),cargarImagenSegura(par.iaMaskUrl)
+  ]);
   var maskOriginal=document.createElement('canvas'),maskIA=document.createElement('canvas');
   maskOriginal.width=maskIA.width=W;maskOriginal.height=maskIA.height=H;
   maskOriginal.getContext('2d').drawImage(imgsMascara[0],0,0,W,H);
   maskIA.getContext('2d').drawImage(imgsMascara[1],0,0,W,H);
   var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA);
-  var tejido=medirTejidoRosadoEnMascara(alineada,maskIA),errores=[];
+  var tejido=medirTejidoRosadoEnMascara(alineada,maskIA);
+  var errores=[];
   if(!mo.area||!mg.area)errores.push('no se identificó la arcada superior completa');
   if(mg.ratio<.001||mg.ratio>.13)errores.push('la región dental generada tiene una extensión anormal');
   if(mo.area&&mg.area) {
     var areaRel=mg.area/mo.area,anchoRel=mg.w/Math.max(1,mo.w);
-    var centroX=Math.abs(mg.cx-mo.cx)/Math.max(1,mo.w),centroY=Math.abs(mg.cy-mo.cy)/Math.max(1,mo.h);
+    var centroX=Math.abs(mg.cx-mo.cx)/Math.max(1,mo.w);
+    var centroY=Math.abs(mg.cy-mo.cy)/Math.max(1,mo.h);
     if(areaRel<.56||areaRel>1.75)errores.push('la cobertura dental no corresponde con la sonrisa original');
     if(anchoRel<.78||anchoRel>1.28)errores.push('la cobertura bilateral quedó incompleta');
     if(centroX>.12||centroY>.30)errores.push('la arcada generada quedó desplazada');
@@ -5070,14 +5184,27 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   if(tejido.ratio>.045||tejido.maxRowRatio>.34)errores.push('se detectó tejido rosado dentro de la capa dental');
   if(errores.length) {
     var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
-    fallo.qualityMetrics={original:mo,generated:mg,pinkTissue:tejido,mode:'continuous-anatomical-upper-arch'};throw fallo;
+    fallo.qualityMetrics={original:mo,generated:mg,pinkTissue:tejido,mode:'continuous-anatomical-upper-arch'};
+    throw fallo;
   }
+
+  // El contorno generado puede crecer moderadamente respecto al diente
+  // original. Se conserva la máscara de la IA, con un feather interior corto;
+  // no se dilata hacia encía o labio.
   var protegida=document.createElement('canvas');protegida.width=W;protegida.height=H;
-  var pctx=protegida.getContext('2d');pctx.drawImage(alineada,0,0);
+  var pctx=protegida.getContext('2d');
+  pctx.drawImage(alineada,0,0);
   pctx.globalCompositeOperation='destination-in';pctx.drawImage(maskIA,0,0);pctx.globalCompositeOperation='source-over';
   var salida=document.createElement('canvas');salida.width=W;salida.height=H;
   var sctx=salida.getContext('2d');sctx.drawImage(original,0,0);sctx.drawImage(protegida,0,0);
-  S.simulationQualityByView[view||'frontal']={version:SIM_QUALITY_VERSION,status:'review',issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'],metrics:{mode:'continuous-anatomical-upper-arch',original:mo,generated:mg,pinkTissue:tejido,alignment:registrada.alignment}};
+
+  // Garantía determinista: fuera de la máscara todo píxel procede del original.
+  // El reporte nunca se presenta como aprobación clínica automática.
+  S.simulationQualityByView[view||'frontal']={
+    version:SIM_QUALITY_VERSION,status:'review',
+    issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'],
+    metrics:{mode:'continuous-anatomical-upper-arch',original:mo,generated:mg,pinkTissue:tejido,alignment:registrada.alignment}
+  };
   return salida.toDataURL('image/png');
 }
 
@@ -5256,8 +5383,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     }
   }
 
-  // Integración directa del recorte generado: sin segmentar, recortar ni
-  // recolorear dientes individualmente después de la generación.
+  // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
+  // arcada superior. Si no puede validarse, el resultado se descarta.
   var compuestaRecorte = await componerConMascaraAnatomicaContinua(
     entradaDental.dataUrl,
     url,
@@ -6912,8 +7039,8 @@ function renderResPhotos() {
     // miniatura para llenar el espacio, hasta verse como una foto gigante
     // en vez de una franja de miniaturas chicas.
     return '<div style="flex:0 0 84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
-      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + (sinGenerar ? ';opacity:.55' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · sin generar' : '') + '</span></div>';
+      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
+      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · documentación' : '') + '</span></div>';
   }).join('');
 }
 
@@ -6949,7 +7076,7 @@ function renderControlCalidadSimulacion() {
   card.style.background=aprobado?'rgba(40,199,125,.08)':(rechazado?'rgba(239,68,68,.09)':'rgba(245,158,11,.08)');
   card.style.borderColor=aprobado?'rgba(40,199,125,.22)':(rechazado?'rgba(239,68,68,.30)':'rgba(245,158,11,.24)');
   icon.textContent=aprobado?'✓':(rechazado?'×':'!');title.style.color=aprobado?'#B8F3D4':(rechazado?'#FFB4B4':'#F8D68A');
-  title.textContent=aprobado?'Control automático completado · revisa el resultado':(rechazado?'Simulación incompleta · genera de nuevo':'Resultado recomendado para revisión');
+  title.textContent=aprobado?'Revisión visual automática terminada':(rechazado?'Simulación incompleta · genera de nuevo':'Resultado recomendado para revisión');
   detail.textContent=aprobado?
     'Arcada superior, cobertura, variación óptica y proporciones dentro del rango visual.' :
     (reporte.issues||[]).slice(0,3).join(' · ') || 'Conviene revisarlo antes de presentarlo.';
@@ -6986,7 +7113,7 @@ function actualizarBotonGenerar() {
   var btn = document.getElementById('btn-regenerar');
   if (!btn) return;
   var tieneResultado = !!((S.results || {})[S.baVistaActual || 'frontal']);
-  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Generar de nuevo' : 'Generar esta vista');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Generar de nuevo' : 'Crear simulación de esta vista');
 }
 
 // ══ RESULT ══
@@ -7095,11 +7222,12 @@ async function showResult() {
     if (tip) tip.style.opacity = '0';
   }, 3500);
 
-  // Gate de captura de lead — bloquea el resultado hasta que dé su nombre
+  // El gate comercial pertenece solamente al recorrido público. Un profesional
+  // autenticado debe poder revisar primero y completar los datos al guardar.
   var gate = document.getElementById('lead-gate');
   var gateInput = document.getElementById('lead-gate-nombre');
   if (gateInput) { gateInput.value = ''; gateInput.style.borderColor = 'rgba(255,255,255,.15)'; }
-  if (gate) gate.style.display = 'flex';
+  if (gate) gate.style.display = CFG.modoProspecto ? 'flex' : 'none';
 }
 
 function revelarResultado() {
@@ -8484,8 +8612,9 @@ async function guardarCaso() {
 
 function showCasoGuardado(caso, enNube) {
   // Replace CTA box with success state
-  var cta = document.querySelector('.cta-box');
+  var cta = document.getElementById('case-actions-box');
   if (!cta) return;
+  if (!cta.dataset.originalHtml) cta.dataset.originalHtml = cta.innerHTML;
 
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
@@ -8548,7 +8677,15 @@ function compartirConPaciente() {
     if (nombre) setTimeout(function(){ nombre.focus(); }, 0);
     return;
   }
-  var d = S.diagnosis || {};
+  var d = S.diagnosis || null;
+  if (!d) {
+    var simpleMsg = 'Hola *' + caso.nombre_paciente + '*, tu simulación de sonrisa SMYL está lista.\n\n' +
+      'Es una vista previa orientativa y debe ser revisada por tu dentista antes de tomar decisiones de tratamiento.\n\n' +
+      '¿Tienes alguna pregunta? Con gusto te atiendo.';
+    var simpleWa = caso.telefono ? caso.telefono.replace(/[^0-9]/g,'') : CFG.waNum;
+    window.open('https://wa.me/' + simpleWa + '?text=' + encodeURIComponent(simpleMsg), '_blank');
+    return;
+  }
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
   var hallazgos = (d.hallazgos||[]).map(function(h){return '• '+h.texto;}).join('\n');
 
@@ -8576,6 +8713,8 @@ function nuevoCaso() {
   S.results = {}; S.baVistaActual = 'frontal';
   S.editorParams = null;
   S.casoId = null; // si no, el siguiente guardado actualizaría el caso del paciente anterior en vez de crear uno nuevo
+  var caseActions = document.getElementById('case-actions-box');
+  if (caseActions && caseActions.dataset.originalHtml) caseActions.innerHTML = caseActions.dataset.originalHtml;
   show('s-intro');
 }
 
@@ -8781,6 +8920,9 @@ function updateNativeCameraUI() {
     guideImage.src = view.asset || '';
     guideImage.alt = view.imageAlt || ('Ejemplo para ' + view.label.split('—')[0].trim());
   }
+  var nativeIcon = document.getElementById('native-cam-icon');
+  if (nativeIcon) nativeIcon.classList.toggle('native-grid-enabled', vistaUsaCuadricula(view));
+
   // "Saltar esta foto" no aplica a la frontal -- el resto del flujo la
   // necesita sí o sí (análisis facial + simulación final mostrada).
   var skipBtn = document.getElementById('native-skip-btn');
@@ -9033,6 +9175,15 @@ function openInSafari() {
       Saltar esta foto
     </button>
 
+  </div>
+
+  <!-- Feedback inmediato mientras se solicita la cámara integrada. Sin este
+       estado, el permiso puede tardar hasta ocho segundos y el CTA parece no
+       haber respondido. -->
+  <div id="native-opening-overlay" role="status" aria-live="polite" style="display:none;position:absolute;inset:0;background:rgba(10,8,20,.92);backdrop-filter:blur(4px);z-index:21;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center">
+    <div class="proc-ring-wrap"><div class="pr1"></div><div class="pr2"></div></div>
+    <div style="font-size:16px;font-weight:700;color:#fff">Abriendo cámara...</div>
+    <div style="font-size:12px;line-height:1.5;color:rgba(255,255,255,.55);max-width:260px">Si el navegador no puede abrirla, podrás continuar con la cámara del teléfono o elegir una foto de la galería.</div>
   </div>
 
   <!-- Overlay bloqueante mientras se verifica el encuadre de la foto frontal -->

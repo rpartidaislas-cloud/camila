@@ -621,6 +621,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .vita-handle{width:38px;height:38px;margin-top:-2px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#303338,#080a0b 62%);border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 15px rgba(0,0,0,.48);font-size:8px;font-weight:700}.vita-handle b{background:linear-gradient(90deg,#12c6f3,#9228ee);background-clip:text;-webkit-background-clip:text;color:transparent}.vita-stick>strong{position:relative;z-index:4;display:flex;align-items:center;justify-content:center;min-width:34px;height:23px;margin-top:8px;padding:0 7px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:#080a0b;color:rgba(255,255,255,.78);font-size:11px;font-weight:750;line-height:1;letter-spacing:.2px;box-shadow:0 4px 10px rgba(0,0,0,.28)}.vita-stick.selected>strong{border-color:rgba(102,114,255,.72);background:linear-gradient(135deg,rgba(43,106,227,.28),rgba(116,43,219,.25));color:#fff;text-shadow:0 0 10px rgba(255,255,255,.45);box-shadow:0 0 13px rgba(89,88,239,.35)}
 .vita-selected-card{display:grid;grid-template-columns:minmax(270px,340px) minmax(170px,1fr) auto;align-items:center;gap:20px;padding:16px 18px;border-radius:13px;background:#101314;border:1px solid rgba(255,255,255,.07)}.vita-selected-info{display:flex;min-width:0;flex-direction:column}.vita-selected-code{font-size:22px;color:#fff;font-weight:650}.vita-selected-copy{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}.vita-confirm{height:52px;min-width:210px;padding:0 24px;border:0;border-radius:11px;background:linear-gradient(100deg,#2576f3,#8427ed);color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 25px rgba(76,53,220,.28)}.vita-note{text-align:center;color:rgba(255,255,255,.34);font-size:10.5px;line-height:1.5;margin:12px 10px 0}
 .vita-quick-action{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;margin:0 0 16px;padding:14px 16px;border-radius:13px;background:#141522;border:1px solid rgba(106,99,238,.34);box-shadow:0 10px 28px rgba(25,20,72,.2)}.vita-quick-copy{display:flex;min-width:0;flex-direction:column;gap:3px}.vita-quick-copy small{color:rgba(255,255,255,.48);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}.vita-quick-copy strong{color:#fff;font-size:16px}.vita-quick-copy span{color:rgba(255,255,255,.42);font-size:10px}.vita-quick-action .vita-confirm{height:46px;min-width:190px}.vita-detail-hint{margin:-4px 0 14px;color:rgba(255,255,255,.42);font-size:10.5px;text-align:center}
+.vita-advanced{margin:0 0 16px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.025);overflow:hidden}.vita-advanced>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 16px;color:rgba(255,255,255,.72);font-size:11px;font-weight:700;cursor:pointer;list-style:none}.vita-advanced>summary::-webkit-details-marker{display:none}.vita-advanced>summary::after{content:'+';font-size:19px;font-weight:400;color:#a9a3ff}.vita-advanced[open]>summary::after{content:'−'}.vita-advanced-body{padding:0 14px 14px}.vita-advanced .vita-selected-card{grid-template-columns:minmax(250px,340px) minmax(160px,1fr)}
 .vita-comparison{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:9px;padding:12px;border-radius:12px;background:#090b0c;border:1px solid rgba(255,255,255,.07)}.vita-compare-sample{display:flex;min-width:0;flex-direction:column;align-items:center;gap:6px}.vita-compare-kicker{color:rgba(255,255,255,.48);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.65px}.vita-compare-code{min-height:27px;display:flex;align-items:center;color:#fff;font-size:10.5px;font-weight:700}.vita-compare-vs{align-self:center;color:rgba(255,255,255,.32);font-size:9px;font-weight:800;letter-spacing:.8px}.vita-photo-compare{width:54px;height:152px;--vita-tint-opacity:.72}.vita-photo-compare .vita-photo-brand img{width:24px;max-height:13px}.vita-photo-compare .vita-photo-brand b{font-size:4.5px}.vita-compare-select{width:100%;height:27px;padding:0 23px 0 8px;border-radius:7px;border:1px solid rgba(106,109,238,.42);background:#141526;color:#fff;font:650 10px Inter,sans-serif;cursor:pointer;color-scheme:dark}
 .vita-current-btn{width:100%;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0a0c0d;color:rgba(255,255,255,.7);font:600 12px Inter,sans-serif;cursor:pointer;margin-bottom:14px}.vita-current-btn.active{border-color:#5b7cff;background:rgba(63,85,220,.15);color:#fff;box-shadow:0 0 18px rgba(69,84,224,.14)}
 .vita-compare{display:flex;align-items:center;gap:7px;margin-top:7px;color:rgba(255,255,255,.42);font-size:10px}.vita-mini{width:14px;height:18px;border-radius:6px 6px 5px 5px;border:1px solid rgba(255,255,255,.16)}
@@ -855,7 +856,10 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       </div>
       <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Continuar con este tono</button>
     </div>
-    <p class="vita-detail-hint">Opcional: ajusta acabado, intensidad o compara tonos antes de continuar.</p>
+    <p class="vita-detail-hint">Para una simulación rápida, el tono es suficiente.</p>
+    <details class="vita-advanced">
+      <summary>Opciones de apariencia y comparación</summary>
+      <div class="vita-advanced-body">
     <div class="vita-options">
       <div class="vita-option-card">
         <label>Acabado del esmalte</label>
@@ -870,7 +874,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <div class="vita-segments" id="vita-intensity-options">
           <button class="vita-segment" type="button" data-value="subtle" onclick="setVitaOption('intensity','subtle',this)">Natural</button>
           <button class="vita-segment active" type="button" data-value="balanced" onclick="setVitaOption('intensity','balanced',this)">Armónico</button>
-          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Hollywood</button>
+          <button class="vita-segment" type="button" data-value="notable" onclick="setVitaOption('intensity','notable',this)">Notable</button>
         </div>
       </div>
     </div>
@@ -927,8 +931,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <span class="vita-selected-copy" id="vita-selected-copy">Marfil claro, natural y ligeramente cálido</span>
         <span class="vita-status" id="vita-status">Simulación configurada en VITA A1</span>
       </div>
-      <button class="vita-confirm" type="button" onclick="confirmarTonoVita()">Continuar con este tono</button>
     </div>
+      </div>
+    </details>
     <p class="vita-note">La IA recibirá el código VITA y sus características ópticas. El resultado conserva translucidez, brillo de esmalte y variaciones naturales.</p>
   </div>
 </div>
@@ -1012,7 +1017,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div class="pr1"></div><div class="pr2"></div>
   </div>
   <div class="proc-title" id="proc-title">Analizando tu sonrisa...</div>
-  <div class="proc-sub" id="proc-sub-main">Claude y Gemini están trabajando en tu simulación personalizada</div>
+  <div class="proc-sub" id="proc-sub-main">Estamos preparando tu simulación personalizada</div>
   <!-- El Wake Lock (evitar que la pantalla se bloquee) no funciona de forma
        confiable dentro de una PWA instalada en iOS -- si la pantalla se
        bloquea a medio proceso, iOS corta la conexión y la generación falla
@@ -1027,8 +1032,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
   </div>
   <div class="proc-list" id="proc-list">
     <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tu fotografía con IA</div>
-    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Diseñando cada diente de forma individual</div>
-    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando proporciones dentofaciales</div>
+    <div class="pstep" id="ps2"><div class="pstep-dot"></div>Diseñando la propuesta dental</div>
+    <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando forma y proporciones</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Aplicando el tono de tus carillas</div>
     <div class="pstep" id="ps5"><div class="pstep-dot"></div>Generando simulación fotorrealista ✨</div>
   </div>
@@ -1144,7 +1149,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <div style="display:flex;align-items:center;gap:8px;min-width:0">
           <span id="sim-quality-icon" style="font-size:15px">✓</span>
           <div>
-            <div id="sim-quality-title" style="font-size:11.5px;font-weight:750;color:#B8F3D4">Control visual automático aprobado</div>
+            <div id="sim-quality-title" style="font-size:11.5px;font-weight:750;color:#B8F3D4">Revisión visual automática terminada</div>
             <div id="sim-quality-detail" style="margin-top:2px;font-size:9.5px;line-height:1.4;color:rgba(255,255,255,.48)">Arcada, cobertura, tono y anatomía revisados antes de mostrar el resultado.</div>
           </div>
         </div>
@@ -1233,7 +1238,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 
     <!-- CTA -->
     <!-- Acciones clínicas del doctor -->
-    <div class="cta-box">
+    <div class="cta-box" id="case-actions-box">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -1709,6 +1714,7 @@ var CFG = {
   // de camila_casos ahora exigen auth.uid(), así que las llamadas a esa
   // tabla/storage deben mandar este token en vez de CFG.supaKey.
   userToken: null,
+  userId: null,
   // true = paciente prospecto sin cuenta, entró por el link público de una
   // clínica (?clinica=<id>). Nunca hay userToken en este modo.
   modoProspecto: false,
@@ -1828,6 +1834,7 @@ try { sbAuth = supabase.createClient(CFG.supaUrl, CFG.supaKey); } catch (e) {}
 if (sbAuth && sbAuth.auth) {
   sbAuth.auth.onAuthStateChange(function(event, session) {
     CFG.userToken = (session && session.access_token) || null;
+    CFG.userId = (session && session.user && session.user.id) || null;
   });
 }
 
@@ -1853,6 +1860,7 @@ function configurarExperienciaModo(esProspecto) {
 }
 
 function entrarConSesion(uid) {
+  CFG.userId = uid || CFG.userId;
   configurarExperienciaModo(false);
   cargarTenantConfig(uid);
   document.getElementById('dentist-login-overlay').style.display = 'none';
@@ -1952,6 +1960,7 @@ function actualizarBotonLoginSim() {
 }
 
 function cerrarSesionSim() {
+  clearProgress();
   if (sbAuth && sbAuth.auth) sbAuth.auth.signOut().catch(function(){});
   location.reload();
 }
@@ -2705,12 +2714,20 @@ function aplicarCopyProspecto() {
 var PROGRESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h — progreso más viejo se descarta
 
 function progressKey() {
-  return 'camila_progreso_' + (CFG.tenantId || 'local');
+  var actor = CFG.modoProspecto ? 'prospecto' : (CFG.userId || 'usuario');
+  return 'camila_progreso_' + (CFG.tenantId || 'local') + '_' + actor;
+}
+
+function progressStorage() {
+  // En el enlace público, las fotos sólo sobreviven dentro de la sesión de
+  // navegador actual. Así otra persona que use después el mismo dispositivo
+  // no puede recuperar por accidente las imágenes del paciente anterior.
+  return CFG.modoProspecto ? sessionStorage : localStorage;
 }
 
 function trySaveSnapshot(snapshot) {
   try {
-    localStorage.setItem(progressKey(), JSON.stringify(snapshot));
+    progressStorage().setItem(progressKey(), JSON.stringify(snapshot));
     return true;
   } catch (e) {
     return false; // cuota de localStorage llena
@@ -2750,12 +2767,12 @@ function saveProgress(screenId) {
 }
 
 function clearProgress() {
-  try { localStorage.removeItem(progressKey()); } catch (e) {}
+  try { progressStorage().removeItem(progressKey()); } catch (e) {}
 }
 
 function loadSavedProgress() {
   try {
-    var raw = localStorage.getItem(progressKey());
+    var raw = progressStorage().getItem(progressKey());
     if (!raw) return null;
     var snap = JSON.parse(raw);
     if (!snap.ts || (Date.now() - snap.ts) > PROGRESS_TTL_MS) { clearProgress(); return null; }
@@ -4508,7 +4525,7 @@ async function processPhotos() {
   if (ring) ring.style.display = 'flex';
   if (list) list.style.display = 'flex';
   if (title) title.textContent = 'Analizando tu sonrisa...';
-  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Claude y Gemini están trabajando en tu simulación personalizada'; }
+  if (subMain) { subMain.style.display = 'block'; subMain.textContent = 'Estamos preparando tu simulación personalizada'; }
 
   // Show photo thumbs
   var photosEl = document.getElementById('proc-photos');
@@ -7022,8 +7039,8 @@ function renderResPhotos() {
     // miniatura para llenar el espacio, hasta verse como una foto gigante
     // en vez de una franja de miniaturas chicas.
     return '<div style="flex:0 0 84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
-      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + (sinGenerar ? ';opacity:.55' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · sin generar' : '') + '</span></div>';
+      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
+      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · documentación' : '') + '</span></div>';
   }).join('');
 }
 
@@ -7059,7 +7076,7 @@ function renderControlCalidadSimulacion() {
   card.style.background=aprobado?'rgba(40,199,125,.08)':(rechazado?'rgba(239,68,68,.09)':'rgba(245,158,11,.08)');
   card.style.borderColor=aprobado?'rgba(40,199,125,.22)':(rechazado?'rgba(239,68,68,.30)':'rgba(245,158,11,.24)');
   icon.textContent=aprobado?'✓':(rechazado?'×':'!');title.style.color=aprobado?'#B8F3D4':(rechazado?'#FFB4B4':'#F8D68A');
-  title.textContent=aprobado?'Control automático completado · revisa el resultado':(rechazado?'Simulación incompleta · genera de nuevo':'Resultado recomendado para revisión');
+  title.textContent=aprobado?'Revisión visual automática terminada':(rechazado?'Simulación incompleta · genera de nuevo':'Resultado recomendado para revisión');
   detail.textContent=aprobado?
     'Arcada superior, cobertura, variación óptica y proporciones dentro del rango visual.' :
     (reporte.issues||[]).slice(0,3).join(' · ') || 'Conviene revisarlo antes de presentarlo.';
@@ -7096,7 +7113,7 @@ function actualizarBotonGenerar() {
   var btn = document.getElementById('btn-regenerar');
   if (!btn) return;
   var tieneResultado = !!((S.results || {})[S.baVistaActual || 'frontal']);
-  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Generar de nuevo' : 'Generar esta vista');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Generar de nuevo' : 'Crear simulación de esta vista');
 }
 
 // ══ RESULT ══
@@ -7205,11 +7222,12 @@ async function showResult() {
     if (tip) tip.style.opacity = '0';
   }, 3500);
 
-  // Gate de captura de lead — bloquea el resultado hasta que dé su nombre
+  // El gate comercial pertenece solamente al recorrido público. Un profesional
+  // autenticado debe poder revisar primero y completar los datos al guardar.
   var gate = document.getElementById('lead-gate');
   var gateInput = document.getElementById('lead-gate-nombre');
   if (gateInput) { gateInput.value = ''; gateInput.style.borderColor = 'rgba(255,255,255,.15)'; }
-  if (gate) gate.style.display = 'flex';
+  if (gate) gate.style.display = CFG.modoProspecto ? 'flex' : 'none';
 }
 
 function revelarResultado() {
@@ -8594,8 +8612,9 @@ async function guardarCaso() {
 
 function showCasoGuardado(caso, enNube) {
   // Replace CTA box with success state
-  var cta = document.querySelector('.cta-box');
+  var cta = document.getElementById('case-actions-box');
   if (!cta) return;
+  if (!cta.dataset.originalHtml) cta.dataset.originalHtml = cta.innerHTML;
 
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
@@ -8658,7 +8677,15 @@ function compartirConPaciente() {
     if (nombre) setTimeout(function(){ nombre.focus(); }, 0);
     return;
   }
-  var d = S.diagnosis || {};
+  var d = S.diagnosis || null;
+  if (!d) {
+    var simpleMsg = 'Hola *' + caso.nombre_paciente + '*, tu simulación de sonrisa SMYL está lista.\n\n' +
+      'Es una vista previa orientativa y debe ser revisada por tu dentista antes de tomar decisiones de tratamiento.\n\n' +
+      '¿Tienes alguna pregunta? Con gusto te atiendo.';
+    var simpleWa = caso.telefono ? caso.telefono.replace(/[^0-9]/g,'') : CFG.waNum;
+    window.open('https://wa.me/' + simpleWa + '?text=' + encodeURIComponent(simpleMsg), '_blank');
+    return;
+  }
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
   var hallazgos = (d.hallazgos||[]).map(function(h){return '• '+h.texto;}).join('\n');
 
@@ -8686,6 +8713,8 @@ function nuevoCaso() {
   S.results = {}; S.baVistaActual = 'frontal';
   S.editorParams = null;
   S.casoId = null; // si no, el siguiente guardado actualizaría el caso del paciente anterior en vez de crear uno nuevo
+  var caseActions = document.getElementById('case-actions-box');
+  if (caseActions && caseActions.dataset.originalHtml) caseActions.innerHTML = caseActions.dataset.originalHtml;
   show('s-intro');
 }
 

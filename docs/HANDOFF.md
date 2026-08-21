@@ -2357,3 +2357,31 @@ apagado. Prueba de humo sin foto y sin sesión: `HTTP 403` con “La prueba Open
 requiere una sesión profesional”; se rechaza antes del límite y del proveedor.
 
 ---
+
+## 2026-08-21 — Limpieza funcional y revisión harness de simulación
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`
+
+- Se simplificó la selección VITA: la decisión principal y su CTA permanecen
+  visibles; acabado, intensidad y comparación pasan a un bloque avanzado.
+- Las cinco tomas opcionales se identifican como documentación, sin sugerir que
+  el caso está incompleto ni empujar generaciones pagadas adicionales.
+- La pantalla de espera ya no expone nombres de proveedores internos.
+- El gate comercial del resultado queda reservado al enlace prospecto y no
+  interrumpe al profesional autenticado.
+- La revisión automática usa lenguaje orientativo y evita declarar una
+  aprobación clínica definitiva.
+- Se corrigió el aislamiento del progreso: clave por clínica + usuario; el modo
+  prospecto usa almacenamiento de sesión y cerrar sesión borra el avance activo.
+- Se corrigió el bloque de acciones de casos para que se restaure al iniciar un
+  paciente nuevo y el mensaje de WhatsApp sin diagnóstico ya no envía campos
+  vacíos ni una cotización de cero.
+- No se tocaron prompts, Edge Functions, RLS, Storage ni configuración nativa.
+- La revisión completa quedó documentada en
+  `artifacts/simulacion-harness/2026-08-21-product-cleanup/`.
+
+**Pendiente separado:** política visible de conservación/borrado de fotografías,
+validación server-side de cuotas/consumo y prueba real autenticada de cámara, IA,
+nube y envío al paciente.
+
+---
