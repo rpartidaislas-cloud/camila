@@ -1048,6 +1048,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16.5" x2="12.01" y2="16.5"/><circle cx="12" cy="12" r="9.5"/></svg>
     </div>
     <div style="font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55;max-width:280px" id="proc-error-detail">Hubo un problema de conexión.</div>
+    <div id="proc-error-code" style="display:none;font-size:10.5px;color:rgba(255,255,255,.38);letter-spacing:.04em"></div>
     <div style="display:flex;gap:10px;width:100%;max-width:280px;margin-top:4px">
       <button onclick="show('s-intro')" style="flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Cancelar</button>
       <button onclick="processPhotos()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
@@ -1658,11 +1659,18 @@ function cerrarAvisoAplicacion() {
 }
 function clasificarErrorParaUsuario(error) {
   var raw = String(error && error.message ? error.message : error || '').toLowerCase();
-  if (/unauthorized|no autenticado|sesión|session|jwt|token/.test(raw)) {
-    return {titulo:'Tu sesión necesita renovarse', detalle:'Vuelve a iniciar sesión y podrás continuar con tu caso.'};
+  var status = Number(error && error.status) || 0;
+  if (status === 401 || /unauthorized|no autenticado|sesión|session|jwt|token.*(expir|invalid)|estado 401/.test(raw)) {
+    return {titulo:'Tu sesión necesita renovarse', detalle:'Tu sesión venció antes de terminar. Vuelve a iniciar sesión y continúa con las fotos que ya guardaste.'};
   }
-  if (/plan|límite|limite|quota|crédito|credito|saldo|agotad/.test(raw)) {
+  if (status === 402 || /plan|límite|limite|quota|crédito|credito|saldo|agotad/.test(raw)) {
     return {titulo:'No hay simulaciones disponibles', detalle:'Revisa el plan de la clínica antes de intentarlo nuevamente.'};
+  }
+  if (status === 413 || /payload too large|request entity too large|estado 413|imagen demasiado grande/.test(raw)) {
+    return {titulo:'La fotografía es demasiado grande', detalle:'SMYL conservará la foto y preparará una copia optimizada cuando vuelvas a intentarlo.'};
+  }
+  if (status === 429 || /too many requests|rate limit|estado 429|alta demanda/.test(raw)) {
+    return {titulo:'El servicio está recibiendo muchas solicitudes', detalle:'Espera un momento antes de intentarlo nuevamente. Tus fotografías siguen guardadas.'};
   }
   if (/timeout|tardó demasiado|timed out/.test(raw)) {
     return {titulo:'La respuesta está tardando más de lo esperado', detalle:'La conexión o la demanda pueden retrasar el proceso. Puedes intentarlo nuevamente.'};
@@ -1675,6 +1683,9 @@ function clasificarErrorParaUsuario(error) {
   }
   if (/control dental|tono desigual|incompleta|segment|correspondencia|sin imagen/.test(raw)) {
     return {titulo:'La propuesta necesita generarse nuevamente', detalle:'El resultado no alcanzó la calidad necesaria para mostrarse. Tus fotografías siguen guardadas.'};
+  }
+  if (status >= 500 || /estado 50[0-9]|respuesta vacía|respuesta vacia|json|unexpected end|unexpected token/.test(raw)) {
+    return {titulo:'El servicio no terminó la simulación', detalle:'La solicitud llegó al servidor, pero no recibió una respuesta completa. Puedes intentarlo nuevamente sin repetir tus fotos.'};
   }
   return {titulo:'No pudimos completar la acción', detalle:'Tu avance sigue guardado. Intenta nuevamente.'};
 }
@@ -4361,6 +4372,56 @@ function errorDelServidor(mensaje) {
   return e;
 }
 
+// Lee siempre primero el texto de la Edge Function. Si el servidor corta la
+// respuesta, devuelve HTML o responde sin cuerpo, resp.json() ocultaba el
+// estado HTTP detrás de un "JSON parse error" y la pantalla sólo mostraba el
+// genérico. Este lector conserva estado + requestId sin exponer detalles del
+// proveedor al paciente.
+async function leerRespuestaEdge(resp, requestId, etapa) {
+  var texto = '';
+  try { texto = await resp.text(); } catch (e) {}
+  var data = null;
+  if (texto) {
+    try { data = JSON.parse(texto); } catch (e) {
+      var errorFormato = new Error('Respuesta incompleta del servidor en ' + (etapa || 'la operación') + ' · estado ' + resp.status);
+      errorFormato.status = resp.status || 502;
+      errorFormato.requestId = requestId || '';
+      errorFormato.responsePreview = texto.slice(0, 180);
+      throw errorFormato;
+    }
+  }
+  if (!resp.ok || !data || data.error) {
+    var mensaje = data && data.error ? data.error :
+      (!texto ? 'Respuesta vacía del servidor · estado ' + resp.status : 'La solicitud no pudo completarse · estado ' + resp.status);
+    var errorHttp = errorDelServidor(mensaje);
+    errorHttp.status = resp.status || 502;
+    errorHttp.requestId = (data && data.requestId) || requestId || '';
+    throw errorHttp;
+  }
+  return data;
+}
+
+// El SDK renueva sesiones en segundo plano, pero iOS puede suspender esa
+// tarea mientras el usuario encuadra varias fotos. Justo antes de cualquier
+// llamada de IA verificamos/renovamos el JWT para que una sesión vencida no
+// falle al final de una espera larga. El modo prospecto usa su enlace de
+// clínica y no requiere sesión profesional.
+async function asegurarAutorizacionIA() {
+  if (CFG.modoProspecto) return;
+  if (!sbAuth || !sbAuth.auth) throw new Error('Sesión no disponible. Inicia sesión nuevamente.');
+  var res = await sbAuth.auth.getSession();
+  var session = res && res.data && res.data.session;
+  if (!session) throw new Error('Sesión vencida. Inicia sesión nuevamente.');
+  var expiraEnMs = ((session.expires_at || 0) * 1000) - Date.now();
+  if (expiraEnMs < 120000 && typeof sbAuth.auth.refreshSession === 'function') {
+    var renovada = await sbAuth.auth.refreshSession();
+    if (renovada.error || !renovada.data || !renovada.data.session) throw new Error('Sesión vencida. Inicia sesión nuevamente.');
+    session = renovada.data.session;
+  }
+  CFG.userToken = session.access_token;
+  CFG.userId = session.user && session.user.id || CFG.userId;
+}
+
 async function conReintento(fn, intentos) {
   intentos = intentos || 2;
   var ultimoError;
@@ -4546,6 +4607,9 @@ async function processPhotos() {
   iniciarBarraProgreso();
 
   try {
+    // Renueva la sesión antes de empezar la cadena. Así no descubrimos al
+    // final de la generación que el token había vencido durante la captura.
+    await asegurarAutorizacionIA();
     // Step 1: Claude analyzes the frontal photo for facial/dental proportions
     // (afina el prompt de generación, no es el diagnóstico completo). El
     // diagnóstico con score/hallazgos/plan/cotización (analyzeWithClaude,
@@ -4651,6 +4715,18 @@ function mostrarErrorProceso(e) {
   console.error('[SMYL] fallo generando la simulación:', e);
   var detail = document.getElementById('proc-error-detail');
   if (detail) detail.textContent = msg;
+  var support = document.getElementById('proc-error-code');
+  var codigo = String(e && e.requestId || '').trim() || ('local-' + Date.now().toString(36));
+  if (support) {
+    support.textContent = 'Código de soporte: ' + codigo;
+    support.style.display = 'block';
+  }
+  try {
+    sessionStorage.setItem('smyl_ultimo_error', JSON.stringify({
+      at:new Date().toISOString(), code:codigo, status:Number(e && e.status)||0,
+      message:String(e && e.message || e || '').slice(0,500)
+    }));
+  } catch (_) {}
 
   var ring = document.getElementById('proc-ring-wrap');
   var list = document.getElementById('proc-list');
@@ -4658,7 +4734,7 @@ function mostrarErrorProceso(e) {
   var subMain = document.getElementById('proc-sub-main');
   if (ring) ring.style.display = 'none';
   if (list) list.style.display = 'none';
-  if (title) title.textContent = 'No se pudo generar tu simulación';
+  if (title) title.textContent = info.titulo || 'No se pudo generar tu simulación';
   if (subMain) subMain.style.display = 'none';
 
   var errBox = document.getElementById('proc-error');
@@ -4666,6 +4742,8 @@ function mostrarErrorProceso(e) {
 }
 
 async function analyzeWithClaude() {
+  await asegurarAutorizacionIA();
+  var analysisRequestId = crearIdSolicitudIA();
   var precios = S.precios || PRECIOS_DEFAULT;
   var preciosTexto = precios.map(function(p) {
     return '- ' + p.nombre + ': $' + p.precio.toLocaleString() + ' MXN (' + p.unidad + ')';
@@ -4715,6 +4793,8 @@ async function analyzeWithClaude() {
       // para extraer score/hallazgos/cotización en JSON, Sonnet debería
       // rendir igual de bien y bastante más rápido con 6 fotos de un jalón.
       model: 'claude-sonnet-4-5',
+      requestId: analysisRequestId,
+      requestReason: 'diagnostico_opcional',
       messages: [{role:'user', content: content}],
       max_tokens: 1200
     })
@@ -4730,8 +4810,7 @@ async function analyzeWithClaude() {
   // respuesta, sin dejar al paciente esperando indefinidamente (sigue
   // habiendo botón "Reintentar").
   var resp = await conTimeout(fetchPromise, 150000, 'análisis de las fotos con Claude');
-  var data = await resp.json();
-  if (data.error) throw errorDelServidor(data.error);
+  var data = await leerRespuestaEdge(resp, analysisRequestId, 'el análisis clínico');
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -4740,6 +4819,8 @@ async function analyzeWithClaude() {
 }
 
 async function analizarConClaude(fotoFrontalBase64) {
+  await asegurarAutorizacionIA();
+  var facialRequestId = crearIdSolicitudIA();
   var content = [
     {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
     {type:'text', text: CLAUDE_ANALISIS_SYSTEM_PROMPT}
@@ -4750,6 +4831,8 @@ async function analizarConClaude(fotoFrontalBase64) {
     headers: headersEdgeIA(),
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
+      requestId: facialRequestId,
+      requestReason: 'analisis_facial',
       messages: [{role:'user', content: content}],
       max_tokens: 1400
     })
@@ -4759,8 +4842,7 @@ async function analizarConClaude(fotoFrontalBase64) {
   // eso -- el navegador siempre se rendía antes de que el servidor
   // pudiera responder.
   var resp = await conTimeout(fetchPromise, 110000, 'análisis de proporciones faciales');
-  var data = await resp.json();
-  if (data.error) throw errorDelServidor(data.error);
+  var data = await leerRespuestaEdge(resp, facialRequestId, 'el análisis facial');
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -4773,6 +4855,8 @@ async function analizarConClaude(fotoFrontalBase64) {
 // ligero (no el análisis clínico completo) para detectar cabeza ladeada o
 // muy descentrada y ofrecer repetir la foto.
 async function validarEncuadreFrontal(fotoFrontalBase64) {
+  await asegurarAutorizacionIA();
+  var framingRequestId = crearIdSolicitudIA();
   var prompt = 'Analiza esta foto frontal de un paciente para diseño de sonrisa dental. ' +
     'Responde ÚNICAMENTE con JSON, sin markdown: {"centrada": true o false, "razon": "breve explicación en español si no está centrada, vacío si sí"}. ' +
     'Marca centrada:false SOLO si la cabeza está claramente ladeada (los ojos notoriamente no están a la misma altura) o la cara está muy descentrada/cortada del encuadre. ' +
@@ -4782,6 +4866,8 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
     method: 'POST',
     headers: headersEdgeIA(),
     body: JSON.stringify({
+      requestId: framingRequestId,
+      requestReason: 'validacion_encuadre',
       messages: [{role:'user', content: [
         {type:'image', source:{type:'base64', media_type:'image/jpeg', data: fotoFrontalBase64}},
         {type:'text', text: prompt}
@@ -4789,7 +4875,7 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
       max_tokens: 150
     })
   });
-  var data = await resp.json();
+  var data = await leerRespuestaEdge(resp, framingRequestId, 'la validación de la fotografía');
   var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
   var clean = txt.replace(/```json|```/g,'').trim();
   var match = clean.match(/\{[\s\S]*\}/);
@@ -5339,6 +5425,10 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   }
   var prompt = basePrompt + stylePrompt + clinicalBlock + customPrompt + framingReminder;
 
+  // Una sesión profesional puede caducar mientras se capturan o ajustan las
+  // fotos. Se renueva justo antes de la única llamada pagada.
+  await asegurarAutorizacionIA();
+
   // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
   // sin explicación indefinidamente. Gemini normalmente responde en
   // segundos; el margen generoso es por si acaso, no porque se necesite.
@@ -5358,8 +5448,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
   // todavía estaban por finalizar; 150s cubre ese margen sin espera infinita.
   var resp = await conTimeout(fetchPromise, 150000, 'generación de la imagen con IA');
-  var data = await resp.json();
-  if (data.error) throw errorDelServidor(data.error);
+  var data = await leerRespuestaEdge(resp, requestId, 'la generación de la simulación');
   S.lastGenerationMeta = data.generation || {
     requestId: requestId,
     provider: data.source || 'desconocido',

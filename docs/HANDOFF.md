@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-21 — Codex: recuperación y diagnóstico de fallos de generación
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Antes de cada llamada de IA profesional se verifica la sesión y se renueva
+  el token si está próximo a vencer; el modo prospecto conserva su acceso por
+  enlace de clínica.
+- Las respuestas de la Edge Function se leen de forma tolerante: se preservan
+  estado HTTP y `requestId` aunque el cuerpo esté vacío, incompleto o no sea
+  JSON. La interfaz diferencia sesión, plan, tamaño, demanda, red, timeout y
+  errores 5xx sin mostrar nombres de proveedores.
+- Cada fallo deja un código de soporte visible y un registro técnico mínimo en
+  `sessionStorage`, sin fotografías ni datos del paciente. Las fotos y el
+  avance continúan intactos. Caché PWA actualizado a `smyl-v45`.
+
 ## 2026-08-19 — Codex: módulo privado de calibración de simulaciones
 
 **Tocado:** `calibracion.html`, `sw.js`.
