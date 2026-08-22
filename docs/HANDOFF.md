@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-22 — Codex: composición acotada por la máscara dental original
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- La máscara segmentada de los dientes superiores originales pasa a ser el
+  límite anatómico confiable de la composición. El render sólo puede extender
+  ese contorno entre uno y cinco píxeles cuando ambas máscaras coinciden;
+  labios, encía y dientes inferiores continúan saliendo de la foto original.
+- Las variaciones de área, anchura o centro en la segmentación del render se
+  conservan como advertencias para revisión, pero ya no descartan una propuesta
+  completa. La ausencia de máscara del lado generado usa la arcada original
+  como recorte seguro, sin respaldo por color ni ampliación libre.
+- Siguen bloqueando la entrega una máscara original ausente/incompleta, una
+  extensión anatómica anormal o tejido rosado dentro de la capa protegida. Los
+  mensajes ahora distinguen segmentación, cobertura y protección de tejidos.
+- No se modificaron backend, prompts, fotografías ni llamadas de IA. Verificado
+  con scripts inline válidos y vistas locales de 390×844, 834×1194 y 1440×900
+  sin desbordamiento. Caché PWA `smyl-v47`, build visual `v86`.
+
 ## 2026-08-22 — Codex: evita falsos rechazos de arcada superior curva
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

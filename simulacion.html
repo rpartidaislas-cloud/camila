@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v85 — arcada continua</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v86 — máscara protegida</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1680,6 +1680,15 @@ function clasificarErrorParaUsuario(error) {
   }
   if (/safety|rejected|rechazad/.test(raw)) {
     return {titulo:'No pudimos procesar esta fotografía', detalle:'Prueba con otra toma frontal, bien iluminada y sin filtros.'};
+  }
+  if (/segmentación no encontró|segmentación de dientes|no fue posible comparar/.test(raw)) {
+    return {titulo:'No se pudo aislar la zona dental', detalle:'La propuesta sí fue generada, pero el paso que separa los dientes no terminó correctamente. Tus fotografías siguen guardadas.'};
+  }
+  if (/cobertura bilateral|cobertura dental|arcada.*incomplet/.test(raw)) {
+    return {titulo:'La detección omitió parte de la sonrisa', detalle:'La propuesta sí fue generada, pero la máscara dejó fuera parte de los dientes superiores. Tus fotografías siguen guardadas.'};
+  }
+  if (/tejido rosado|labio|encía|encia/.test(raw)) {
+    return {titulo:'El control protegió los tejidos de la sonrisa', detalle:'La propuesta incluyó tejido fuera de los dientes y se descartó para no alterar labios o encía.'};
   }
   if (/control dental|tono desigual|incompleta|segment|correspondencia|sin imagen/.test(raw)) {
     return {titulo:'La propuesta necesita generarse nuevamente', detalle:'El resultado no alcanzó la calidad necesaria para mostrarse. Tus fotografías siguen guardadas.'};
@@ -5240,6 +5249,28 @@ function medirTejidoRosadoEnMascara(imagenCanvas,mascaraCanvas) {
   return {ratio:activos?rosados/activos:0,pixels:rosados,maxRowRatio:activos?maxFila/Math.max(1,Math.sqrt(activos)):0};
 }
 
+// La máscara original es el límite anatómico confiable: ya corresponde a los
+// dientes superiores reales. La máscara del render sólo puede ampliar ese
+// límite unos pocos píxeles para aceptar un nuevo borde incisal. Así, una
+// segmentación variable del render no elimina laterales/centrales y tampoco
+// puede introducir labios, encía o dientes inferiores.
+function construirMascaraDentalProtegida(maskOriginal,maskIA) {
+  var W=maskOriginal.width,H=maskOriginal.height;
+  var margen=Math.max(1,Math.min(5,Math.round(Math.min(W,H)*.007)));
+  var expandida=document.createElement('canvas');expandida.width=W;expandida.height=H;
+  var ectx=expandida.getContext('2d');
+  for(var oy=-margen;oy<=margen;oy++) for(var ox=-margen;ox<=margen;ox++) {
+    if(ox*ox+oy*oy<=margen*margen*1.15)ectx.drawImage(maskOriginal,ox,oy);
+  }
+  var extension=document.createElement('canvas');extension.width=W;extension.height=H;
+  var xctx=extension.getContext('2d');xctx.drawImage(maskIA,0,0);
+  xctx.globalCompositeOperation='destination-in';xctx.drawImage(expandida,0,0);
+  xctx.globalCompositeOperation='source-over';
+  var segura=document.createElement('canvas');segura.width=W;segura.height=H;
+  var sctx=segura.getContext('2d');sctx.drawImage(maskOriginal,0,0);sctx.drawImage(extension,0,0);
+  return segura;
+}
+
 // Composición segura para el flujo público. El segmentador puede entregar
 // piezas individuales, pero aquí se unen en UNA región anatómica continua de
 // la arcada superior: no se recolocan, escalan ni reconstruyen dientes por
@@ -5264,33 +5295,38 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   maskOriginal.width=maskIA.width=W;maskOriginal.height=maskIA.height=H;
   maskOriginal.getContext('2d').drawImage(imgsMascara[0],0,0,W,H);
   maskIA.getContext('2d').drawImage(imgsMascara[1],0,0,W,H);
-  var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA);
-  var tejido=medirTejidoRosadoEnMascara(alineada,maskIA);
+  var maskSegura=construirMascaraDentalProtegida(maskOriginal,maskIA);
+  var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA),ms=medirMascaraAnatomica(maskSegura);
+  var tejido=medirTejidoRosadoEnMascara(alineada,maskSegura);
   var errores=[];
-  if(!mo.area||!mg.area)errores.push('no se identificó la arcada superior completa');
-  if(mg.ratio<.001||mg.ratio>.13)errores.push('la región dental generada tiene una extensión anormal');
+  var advertencias=[];
+  var piezasOriginales=par.comparison&&par.comparison.expectedPieces||[];
+  if(par.comparison&&par.comparison.usedOriginalMaskFallback)advertencias.push('el render se protegió con la máscara superior original');
+  if(!mo.area||!ms.area)errores.push('no se identificó la arcada superior completa');
+  if(mo.ratio<.001||mo.ratio>.13)errores.push('la región dental original tiene una extensión anormal');
+  if(piezasOriginales.length&&piezasOriginales.length<4)errores.push('la segmentación original quedó incompleta');
+  if(!mg.area||mg.ratio<.001||mg.ratio>.13)advertencias.push('la máscara generada requirió el límite de la arcada original');
   if(mo.area&&mg.area) {
     var areaRel=mg.area/mo.area,anchoRel=mg.w/Math.max(1,mo.w);
     var centroX=Math.abs(mg.cx-mo.cx)/Math.max(1,mo.w);
     var centroY=Math.abs(mg.cy-mo.cy)/Math.max(1,mo.h);
-    if(areaRel<.56||areaRel>1.75)errores.push('la cobertura dental no corresponde con la sonrisa original');
-    if(anchoRel<.78||anchoRel>1.28)errores.push('la cobertura bilateral quedó incompleta');
-    if(centroX>.12||centroY>.30)errores.push('la arcada generada quedó desplazada');
+    if(areaRel<.56||areaRel>1.75)advertencias.push('la máscara generada cambió de área');
+    if(anchoRel<.78||anchoRel>1.28)advertencias.push('la máscara generada cambió de cobertura bilateral');
+    if(centroX>.12||centroY>.30)advertencias.push('la máscara generada llegó desplazada');
   }
   if(tejido.ratio>.045||tejido.maxRowRatio>.34)errores.push('se detectó tejido rosado dentro de la capa dental');
   if(errores.length) {
     var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
-    fallo.qualityMetrics={original:mo,generated:mg,pinkTissue:tejido,mode:'continuous-anatomical-upper-arch'};
+    fallo.qualityMetrics={original:mo,generated:mg,safe:ms,pinkTissue:tejido,warnings:advertencias,mode:'original-bounded-upper-arch'};
     throw fallo;
   }
 
-  // El contorno generado puede crecer moderadamente respecto al diente
-  // original. Se conserva la máscara de la IA, con un feather interior corto;
-  // no se dilata hacia encía o labio.
+  // La IA sólo sobrevive dentro de la máscara original protegida. La pequeña
+  // extensión admitida está simultáneamente respaldada por ambas máscaras.
   var protegida=document.createElement('canvas');protegida.width=W;protegida.height=H;
   var pctx=protegida.getContext('2d');
   pctx.drawImage(alineada,0,0);
-  pctx.globalCompositeOperation='destination-in';pctx.drawImage(maskIA,0,0);pctx.globalCompositeOperation='source-over';
+  pctx.globalCompositeOperation='destination-in';pctx.drawImage(maskSegura,0,0);pctx.globalCompositeOperation='source-over';
   var salida=document.createElement('canvas');salida.width=W;salida.height=H;
   var sctx=salida.getContext('2d');sctx.drawImage(original,0,0);sctx.drawImage(protegida,0,0);
 
@@ -5298,8 +5334,8 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   // El reporte nunca se presenta como aprobación clínica automática.
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
-    issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'],
-    metrics:{mode:'continuous-anatomical-upper-arch',original:mo,generated:mg,pinkTissue:tejido,alignment:registrada.alignment}
+    issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'].concat(advertencias),
+    metrics:{mode:'original-bounded-upper-arch',original:mo,generated:mg,safe:ms,pinkTissue:tejido,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
@@ -8204,30 +8240,37 @@ async function segmentarParDental(original, alineada, cacheKey) {
   });
   var izquierdaMasks = conCaja.filter(function(m){ return Number(m.bbox[0])+Number(m.bbox[2])/2 < w; });
   var derechaMasks = conCaja.filter(function(m){ return Number(m.bbox[0])+Number(m.bbox[2])/2 >= w; });
-  if (!izquierdaMasks.length || !derechaMasks.length) {
-    throw new Error('No fue posible comparar todos los dientes originales con las carillas generadas.');
+  if (!izquierdaMasks.length) {
+    throw new Error('La segmentación no encontró la arcada superior original.');
   }
   var mascaraIzquierdaUrl = await unirMascarasSegmentadas(izquierdaMasks, par.width, par.height, 'upper');
   var seleccionOriginal = _ultimaSeleccionDental.slice();
-  var mascaraDerechaUrl = await unirMascarasSegmentadas(derechaMasks, par.width, par.height, 'upper');
-  var seleccionGenerada = _ultimaSeleccionDental.slice();
+  var mascaraDerechaUrl = derechaMasks.length
+    ? await unirMascarasSegmentadas(derechaMasks, par.width, par.height, 'upper') : null;
+  var seleccionGenerada = derechaMasks.length ? _ultimaSeleccionDental.slice() : [];
   var imagenesMascara = await Promise.all([
-    cargarImagenSegura(mascaraIzquierdaUrl), cargarImagenSegura(mascaraDerechaUrl)
+    cargarImagenSegura(mascaraIzquierdaUrl),
+    mascaraDerechaUrl ? cargarImagenSegura(mascaraDerechaUrl) : Promise.resolve(null)
   ]);
   var izquierda = document.createElement('canvas');
   var derecha = document.createElement('canvas');
   izquierda.width = derecha.width = w;
   izquierda.height = derecha.height = h;
   izquierda.getContext('2d').drawImage(imagenesMascara[0], 0, 0, w, h, 0, 0, w, h);
-  derecha.getContext('2d').drawImage(imagenesMascara[1], w, 0, w, h, 0, 0, w, h);
   var originalMaskUrl = izquierda.toDataURL('image/png');
-  var iaMaskUrl = derecha.toDataURL('image/png');
+  if (imagenesMascara[1]) derecha.getContext('2d').drawImage(imagenesMascara[1], w, 0, w, h, 0, 0, w, h);
+  var iaMaskUrl = imagenesMascara[1] ? derecha.toDataURL('image/png') : originalMaskUrl;
+  var piezasEsperadas=resumirPiezasDentales(seleccionOriginal, 0, w);
+  var piezasGeneradas=imagenesMascara[1]
+    ? resumirPiezasDentales(seleccionGenerada, w, w)
+    : piezasEsperadas.map(function(p){return Object.assign({},p);});
   var comparacion = {
     width:w,height:h,
-    expectedPieces:resumirPiezasDentales(seleccionOriginal, 0, w),
-    generatedPieces:resumirPiezasDentales(seleccionGenerada, w, w)
+    expectedPieces:piezasEsperadas,
+    generatedPieces:piezasGeneradas,
+    usedOriginalMaskFallback:!imagenesMascara[1]
   };
-  _ultimaSeleccionDental = seleccionGenerada.slice();
+  _ultimaSeleccionDental = (seleccionGenerada.length ? seleccionGenerada : seleccionOriginal).slice();
   _ultimaComparacionDental = comparacion;
   if (cacheKey) S.dentalMaskByView[cacheKey] = originalMaskUrl;
   return {originalMaskUrl:originalMaskUrl,iaMaskUrl:iaMaskUrl,comparison:comparacion};
