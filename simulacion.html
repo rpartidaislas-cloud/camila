@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v84 — modos separados</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v85 — arcada continua</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1051,7 +1051,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div id="proc-error-code" style="display:none;font-size:10.5px;color:rgba(255,255,255,.38);letter-spacing:.04em"></div>
     <div style="display:flex;gap:10px;width:100%;max-width:280px;margin-top:4px">
       <button onclick="show('s-intro')" style="flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Cancelar</button>
-      <button onclick="processPhotos()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
+      <button id="proc-retry-btn" onclick="processPhotos()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
     </div>
   </div>
 </div>
@@ -4724,9 +4724,19 @@ function mostrarErrorProceso(e) {
   try {
     sessionStorage.setItem('smyl_ultimo_error', JSON.stringify({
       at:new Date().toISOString(), code:codigo, status:Number(e && e.status)||0,
-      message:String(e && e.message || e || '').slice(0,500)
+      stage:String(e && e.stage || '').slice(0,80),
+      message:String(e && e.message || e || '').slice(0,500),
+      quality:e && e.qualityMetrics ? e.qualityMetrics : null
     }));
   } catch (_) {}
+
+  // Un rechazo de calidad ocurre después de recibir la imagen pagada. En ese
+  // caso el botón no es un simple reintento de red: generará otra propuesta.
+  // Nombrarlo explícitamente evita pulsaciones repetidas por error.
+  var retry = document.getElementById('proc-retry-btn');
+  var raw = String(e && e.message || e || '').toLowerCase();
+  if (retry) retry.textContent = /protección anatómica|control dental|incomplet|segment|correspondencia/.test(raw)
+    ? '↻ Generar otra propuesta' : '↻ Reintentar';
 
   var ring = document.getElementById('proc-ring-wrap');
   var list = document.getElementById('proc-list');
@@ -5474,11 +5484,21 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
 
   // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
   // arcada superior. Si no puede validarse, el resultado se descarta.
-  var compuestaRecorte = await componerConMascaraAnatomicaContinua(
-    entradaDental.dataUrl,
-    url,
-    frontal.view || 'frontal'
-  );
+  var compuestaRecorte;
+  try {
+    compuestaRecorte = await componerConMascaraAnatomicaContinua(
+      entradaDental.dataUrl,
+      url,
+      frontal.view || 'frontal'
+    );
+  } catch (errorComposicion) {
+    // La generación sí llegó al navegador; el fallo ocurrió al validar o
+    // componer su máscara. Conservamos el requestId real para poder relacionar
+    // la captura del teléfono con la generación que produjo el resultado.
+    if (!errorComposicion.requestId) errorComposicion.requestId = requestId;
+    errorComposicion.stage = errorComposicion.stage || 'composicion_dental_local';
+    throw errorComposicion;
+  }
   var compuesta = entradaDental.isFull
     ? compuestaRecorte
     : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
@@ -7878,62 +7898,59 @@ function resumirPiezasDentales(masks, offsetX, anchoMitad) {
     .sort(function(a,b){ return a.x+a.w/2-(b.x+b.w/2); });
 }
 
+// El servicio asigna FDI después de buscar el mayor salto vertical de toda la
+// imagen. En un recorte que sólo contiene la arcada superior, la curva natural
+// de la sonrisa puede hacer que ese salto separe centrales y laterales como si
+// fueran maxilar y mandíbula. Además, al segmentar el par original/resultado,
+// la notación se calcula sobre ambas mitades juntas. Por eso la selección final
+// se decide aquí por geometría y sólo se divide cuando existen dos filas
+// dentales realmente separadas.
+function seleccionarMascarasArcadaSuperior(masks) {
+  var conCaja = (masks || []).filter(function(m) {
+    return m.bbox && m.bbox.length === 4 &&
+      m.bbox.every(function(v) { return Number.isFinite(Number(v)); });
+  });
+  if (!conCaja.length) return [];
+  if (conCaja.length === 1) return conCaja;
+
+  var ordenadas = conCaja.map(function(m) {
+    return {
+      mask:m,
+      centro:Number(m.bbox[1]) + Number(m.bbox[3]) / 2,
+      alto:Math.max(1, Number(m.bbox[3]))
+    };
+  }).sort(function(a,b) { return a.centro - b.centro; });
+  var altos = ordenadas.map(function(item) { return item.alto; })
+    .sort(function(a,b) { return a-b; });
+  var altoMediano = altos[Math.floor(altos.length / 2)] || 1;
+  var mayorHueco = 0, indiceCorte = -1;
+  for (var i=0; i<ordenadas.length-1; i++) {
+    var hueco = ordenadas[i+1].centro - ordenadas[i].centro;
+    if (hueco > mayorHueco) { mayorHueco = hueco; indiceCorte = i; }
+  }
+  if (indiceCorte < 0) return conCaja;
+
+  var superiores = ordenadas.slice(0, indiceCorte+1);
+  var inferiores = ordenadas.slice(indiceCorte+1);
+  // Dos grupos con varias piezas necesitan separar sus centros al menos media
+  // corona. Si uno sólo contiene una pieza, exigimos una distancia mayor para
+  // no confundir un canino alto o un lateral corto con la arcada inferior.
+  var grupoPequeno = Math.min(superiores.length, inferiores.length);
+  var separacionMinima = altoMediano * (grupoPequeno >= 2 ? 0.52 : 0.82);
+  if (mayorHueco < Math.max(4, separacionMinima)) return conCaja;
+  return superiores.map(function(item) { return item.mask; });
+}
+
 async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
   if (!masks || !masks.length) throw new Error('La segmentación no encontró dientes visibles.');
   // En la simulación rápida las carillas se aplican a la zona estética
   // superior. Copiar la arcada inferior fue la causa de bordes gingivales
-  // rojizos y dientes inferiores artificiales. Se usa FDI (1x/2x = superior)
-  // y los fragmentos heredan el FDI de su diente principal.
+  // rojizos y dientes inferiores artificiales.
   var seleccionadas = masks;
   if (arcada === 'upper') {
-    var superiores = masks.filter(function(m) {
-      var fdi = String(m.fdi || m.parentFdi || '');
-      return fdi.charAt(0) === '1' || fdi.charAt(0) === '2';
-    });
-    // La posición manda cuando hay dos filas claras. La notación FDI puede
-    // venir incompleta o equivocada cuando sólo se ve una parte de la arcada;
-    // confiar en que exista *algún* FDI superior todavía dejaba pasar piezas
-    // inferiores mal rotuladas. Se detecta el mayor espacio entre centros
-    // verticales y sólo se acepta la fila superior cuando ese espacio tiene
-    // tamaño dental real. Si la toma contiene una sola fila, entonces sí se
-    // usa FDI; si tampoco hay FDI, se conserva esa única fila visible.
-    var conY = masks.filter(function(m) {
-      return m.bbox && m.bbox.length === 4 &&
-        m.bbox.every(function(v) { return Number.isFinite(Number(v)); });
-    });
-    var filaSuperior = [];
-    var hayDosFilas = false;
-    if (conY.length > 1) {
-      var ordenadas = conY.map(function(m) {
-        return {
-          mask: m,
-          centro: Number(m.bbox[1]) + Number(m.bbox[3]) / 2,
-          alto: Math.max(1, Number(m.bbox[3]))
-        };
-      }).sort(function(a, b) { return a.centro - b.centro; });
-      var altos = ordenadas.map(function(item) { return item.alto; })
-        .sort(function(a, b) { return a - b; });
-      var altoMediano = altos[Math.floor(altos.length / 2)];
-      var mayorHueco = 0, indiceCorte = -1;
-      for (var gi = 0; gi < ordenadas.length - 1; gi++) {
-        var hueco = ordenadas[gi + 1].centro - ordenadas[gi].centro;
-        if (hueco > mayorHueco) { mayorHueco = hueco; indiceCorte = gi; }
-      }
-      // 22 % de la altura mediana separa filas, pero no divide una sola
-      // arcada por pequeñas diferencias naturales de posición/incisal.
-      if (indiceCorte >= 0 && mayorHueco >= Math.max(3, altoMediano * 0.22)) {
-        filaSuperior = ordenadas.slice(0, indiceCorte + 1).map(function(item) { return item.mask; });
-        hayDosFilas = filaSuperior.length > 0 && filaSuperior.length < conY.length;
-      }
-    }
-    if (hayDosFilas) {
-      seleccionadas = filaSuperior;
-    } else if (superiores.length) {
-      seleccionadas = superiores;
-    } else if (conY.length) {
-      seleccionadas = conY;
-    } else {
-      // Sin FDI y sin ubicación no hay forma segura de distinguir arcadas.
+    seleccionadas = seleccionarMascarasArcadaSuperior(masks);
+    if (!seleccionadas.length) {
+      // Sin ubicación no hay forma segura de distinguir arcadas.
       // Fallar permite reintentar; copiar ambas filas produciría un resultado
       // clínicamente engañoso y el efecto de carilla sobrepuesta reportado.
       throw new Error('No fue posible identificar con seguridad la arcada superior. Intenta generar de nuevo.');

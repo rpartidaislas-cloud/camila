@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-22 — Codex: evita falsos rechazos de arcada superior curva
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Corregida la selección local de máscaras: el umbral vertical anterior podía
+  dividir una sola sonrisa curva en dos filas y descartar centrales o laterales
+  como si fueran dientes inferiores. La app conserva una arcada continua y sólo
+  separa mandíbula cuando existe una distancia de tamaño dental real.
+- La composición mantiene el cierre de seguridad: fuera de la máscara dental
+  siguen sobreviviendo exclusivamente píxeles de la fotografía original; no se
+  añadió respaldo por color ni se relajó la detección de labio/encía.
+- Los fallos locales de composición conservan ahora el `requestId` real de la
+  generación, la etapa y métricas no sensibles. Un rechazo de calidad etiqueta
+  el botón como `Generar otra propuesta` para dejar claro que no es un retry de
+  red. Caché PWA actualizado a `smyl-v46`, build visual `v85`.
+- Verificado sin IA ni fotografías: cuatro scripts inline válidos; casos
+  sintéticos de arcada única, curva marcada, dos filas y una pieza inferior;
+  revisión local en 390×844, 834×1194 y 1440×900 sin desbordamiento visible.
+
 ## 2026-08-21 — Codex: recuperación y diagnóstico de fallos de generación
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
