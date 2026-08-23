@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: excluye tejido rosado sin perder la propuesta
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Un resultado real de GPT Image 2 llegó correctamente, pero el control local
+  descartó toda la propuesta por un borde rosado pequeño dentro de la máscara.
+- La composición resta ahora de la máscara cualquier píxel con apariencia de
+  labio/encía en la foto original o en el render, con un margen corto. En esas
+  zonas permanece la fotografía original; el color sólo EXCLUYE píxeles de IA
+  y nunca se usa para agregarlos.
+- Una contaminación extensa (más de 28 % de la máscara) continúa bloqueando la
+  entrega. Los bordes pequeños pasan como advertencia para revisión clínica y
+  se conservan fuera de la capa generada.
+- No se modificaron backend, proveedor, modelo ni prompts. Build visual `v87`,
+  caché PWA `smyl-v48`; verificado con lienzos sintéticos y vistas responsive.
+
 ## 2026-08-23 — Codex: GPT Image 2 como proveedor predeterminado server-side
 
 **Tocado:** `supabase/functions/claude/index.ts`, `docs/AI_COST_CONTROL.md`,

@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v86 — máscara protegida</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v87 — tejido excluido</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5233,6 +5233,12 @@ function medirMascaraAnatomica(canvas) {
   return {area:area,ratio:area/(W*H),x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1,cx:sumaX/area,cy:sumaY/area};
 }
 
+function esPixelTejidoRosado(r,g,b) {
+  // Tejido labial/gingival: rojo dominante con azul cercano o superior al
+  // verde. El esmalte cálido mantiene normalmente g claramente por encima b.
+  return r>105&&(r-g)>22&&b>=g*.88&&(r-b)>10;
+}
+
 function medirTejidoRosadoEnMascara(imagenCanvas,mascaraCanvas) {
   var W=imagenCanvas.width,H=imagenCanvas.height;
   var ip=imagenCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
@@ -5241,12 +5247,50 @@ function medirTejidoRosadoEnMascara(imagenCanvas,mascaraCanvas) {
   for(var y=0;y<H;y++) for(var x=0;x<W;x++) {
     var i=(y*W+x)*4;if(mp[i+3]<45)continue;activos++;
     var r=ip[i],g=ip[i+1],b=ip[i+2];
-    // Tejido labial/gingival: rojo dominante con azul cercano o superior al
-    // verde. El esmalte cálido mantiene normalmente g claramente por encima b.
-    var rosado=r>105&&(r-g)>22&&b>=g*.88&&(r-b)>10;
+    var rosado=esPixelTejidoRosado(r,g,b);
     if(rosado){rosados++;filas[y]++;if(filas[y]>maxFila)maxFila=filas[y];}
   }
   return {ratio:activos?rosados/activos:0,pixels:rosados,maxRowRatio:activos?maxFila/Math.max(1,Math.sqrt(activos)):0};
+}
+
+// Si el segmentador incluye un borde mínimo de labio o encía, no es necesario
+// perder una generación completa. Se resta ese tejido de la máscara final y,
+// por construcción, allí queda visible la fotografía original. El color nunca
+// se usa para AGREGAR píxeles generados: sólo para excluir una zona de riesgo.
+function excluirTejidoRosadoDeMascara(originalCanvas,iaCanvas,mascaraCanvas) {
+  var W=mascaraCanvas.width,H=mascaraCanvas.height;
+  var op=originalCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var ip=iaCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var mp=mascaraCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var tejido=document.createElement('canvas');tejido.width=W;tejido.height=H;
+  var tctx=tejido.getContext('2d'),td=tctx.createImageData(W,H);
+  var activos=0,marcados=0;
+  for(var i=0;i<mp.length;i+=4) {
+    if(mp[i+3]<45)continue;activos++;
+    var rosadoOriginal=esPixelTejidoRosado(op[i],op[i+1],op[i+2]);
+    var rosadoIA=esPixelTejidoRosado(ip[i],ip[i+1],ip[i+2]);
+    if(!rosadoOriginal&&!rosadoIA)continue;
+    td.data[i]=255;td.data[i+1]=255;td.data[i+2]=255;td.data[i+3]=255;marcados++;
+  }
+  tctx.putImageData(td,0,0);
+  var margen=Math.max(1,Math.min(3,Math.round(Math.min(W,H)*.004)));
+  var expandido=document.createElement('canvas');expandido.width=W;expandido.height=H;
+  var ectx=expandido.getContext('2d');
+  for(var oy=-margen;oy<=margen;oy++) for(var ox=-margen;ox<=margen;ox++) {
+    if(ox*ox+oy*oy<=margen*margen*1.2)ectx.drawImage(tejido,ox,oy);
+  }
+  var segura=document.createElement('canvas');segura.width=W;segura.height=H;
+  var sctx=segura.getContext('2d');sctx.drawImage(mascaraCanvas,0,0);
+  sctx.globalCompositeOperation='destination-out';sctx.drawImage(expandido,0,0);
+  sctx.globalCompositeOperation='source-over';
+  var antes=medirMascaraAnatomica(mascaraCanvas),despues=medirMascaraAnatomica(segura);
+  return {
+    canvas:segura,
+    detectedRatio:activos?marcados/activos:0,
+    removedRatio:antes.area?Math.max(0,(antes.area-despues.area)/antes.area):0,
+    detectedPixels:marcados,
+    margin:margen
+  };
 }
 
 // La máscara original es el límite anatómico confiable: ya corresponde a los
@@ -5295,7 +5339,15 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   maskOriginal.width=maskIA.width=W;maskOriginal.height=maskIA.height=H;
   maskOriginal.getContext('2d').drawImage(imgsMascara[0],0,0,W,H);
   maskIA.getContext('2d').drawImage(imgsMascara[1],0,0,W,H);
-  var maskSegura=construirMascaraDentalProtegida(maskOriginal,maskIA);
+  var maskAnatomica=construirMascaraDentalProtegida(maskOriginal,maskIA);
+  var proteccionTejido=excluirTejidoRosadoDeMascara(original,alineada,maskAnatomica);
+  var datosProteccionTejido={
+    detectedRatio:proteccionTejido.detectedRatio,
+    removedRatio:proteccionTejido.removedRatio,
+    detectedPixels:proteccionTejido.detectedPixels,
+    margin:proteccionTejido.margin
+  };
+  var maskSegura=proteccionTejido.canvas;
   var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA),ms=medirMascaraAnatomica(maskSegura);
   var tejido=medirTejidoRosadoEnMascara(alineada,maskSegura);
   var errores=[];
@@ -5305,6 +5357,8 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   if(!mo.area||!ms.area)errores.push('no se identificó la arcada superior completa');
   if(mo.ratio<.001||mo.ratio>.13)errores.push('la región dental original tiene una extensión anormal');
   if(piezasOriginales.length&&piezasOriginales.length<4)errores.push('la segmentación original quedó incompleta');
+  if(proteccionTejido.removedRatio>.28)errores.push('la máscara dental invadió demasiado tejido rosado');
+  else if(proteccionTejido.removedRatio>.012)advertencias.push('se conservaron bordes originales de labio o encía');
   if(!mg.area||mg.ratio<.001||mg.ratio>.13)advertencias.push('la máscara generada requirió el límite de la arcada original');
   if(mo.area&&mg.area) {
     var areaRel=mg.area/mo.area,anchoRel=mg.w/Math.max(1,mo.w);
@@ -5314,10 +5368,12 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
     if(anchoRel<.78||anchoRel>1.28)advertencias.push('la máscara generada cambió de cobertura bilateral');
     if(centroX>.12||centroY>.30)advertencias.push('la máscara generada llegó desplazada');
   }
-  if(tejido.ratio>.045||tejido.maxRowRatio>.34)errores.push('se detectó tejido rosado dentro de la capa dental');
+  // Después de restar el tejido, cualquier remanente relevante indica que la
+  // exclusión no fue suficiente y se mantiene el cierre de seguridad.
+  if(tejido.ratio>.008||tejido.maxRowRatio>.12)errores.push('se detectó tejido rosado residual dentro de la capa dental');
   if(errores.length) {
     var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
-    fallo.qualityMetrics={original:mo,generated:mg,safe:ms,pinkTissue:tejido,warnings:advertencias,mode:'original-bounded-upper-arch'};
+    fallo.qualityMetrics={original:mo,generated:mg,safe:ms,pinkTissue:tejido,tissueProtection:datosProteccionTejido,warnings:advertencias,mode:'original-bounded-upper-arch'};
     throw fallo;
   }
 
@@ -5335,7 +5391,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
     issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'].concat(advertencias),
-    metrics:{mode:'original-bounded-upper-arch',original:mo,generated:mg,safe:ms,pinkTissue:tejido,alignment:registrada.alignment}
+    metrics:{mode:'original-bounded-upper-arch',original:mo,generated:mg,safe:ms,pinkTissue:tejido,tissueProtection:datosProteccionTejido,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
