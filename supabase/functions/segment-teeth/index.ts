@@ -76,30 +76,53 @@ function promptParaTarget(target: Target): string {
 }
 
 async function callReplicate(imageUrl: string, target: Target): Promise<string> {
-  const createRes = await fetch("https://api.replicate.com/v1/predictions", {
-    method: "POST",
-    headers: {
-      Authorization: `Token ${REPLICATE_API_TOKEN}`,
-      "Content-Type": "application/json",
+  const createBody = JSON.stringify({
+    version: MODEL_VERSION,
+    input: {
+      image: imageUrl,
+      prompt: promptParaTarget(target),
+      threshold: 0.08,
+      mask_only: true,
+      return_zip: true,
+      save_overlay: false,
     },
-    body: JSON.stringify({
-      version: MODEL_VERSION,
-      input: {
-        image: imageUrl,
-        prompt: promptParaTarget(target),
-        threshold: 0.08,
-        mask_only: true,
-        return_zip: true,
-        save_overlay: false,
-      },
-    }),
   });
+  let prediction: any = null;
 
-  if (!createRes.ok) {
-    throw new Error(`Replicate create error: ${createRes.status} ${await createRes.text()}`);
+  // Un 429/5xx de CREATE significa que Replicate rechazó la solicitud antes
+  // de crear una predicción, por lo que es seguro repetirla una sola vez sin
+  // duplicar una inferencia ni su costo. Los errores de red no se repiten: si
+  // se perdió la respuesta no podemos saber si el proveedor sí creó el job.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const createRes = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: createBody,
+    });
+
+    if (createRes.ok) {
+      prediction = await createRes.json();
+      break;
+    }
+
+    const errorBody = await createRes.text();
+    const retryableCreate = createRes.status === 429 || createRes.status >= 500;
+    if (!retryableCreate || attempt === 2) {
+      throw new Error(`Replicate create error: ${createRes.status} ${errorBody}`);
+    }
+
+    const retryAfterSeconds = Number(createRes.headers.get("retry-after"));
+    const retryDelayMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? Math.min(3000, Math.round(retryAfterSeconds * 1000))
+      : 800;
+    console.warn(`[segment-teeth] Replicate rechazó CREATE con ${createRes.status}; reintento único en ${retryDelayMs}ms`);
+    await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
   }
 
-  let prediction = await createRes.json();
+  if (!prediction) throw new Error("Replicate no devolvió una predicción.");
   const pollUrl = prediction.urls?.get;
   let attempts = 0;
 
@@ -416,6 +439,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    console.error("[segment-teeth] error procesando la segmentación:", err);
     return new Response(JSON.stringify({ error: String(err), stack: (err as Error).stack }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

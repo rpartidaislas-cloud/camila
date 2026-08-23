@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: reintento seguro al crear la segmentación dental
+
+**Tocado:** `supabase/functions/segment-teeth/index.ts`.
+
+- El código de soporte `b90bde8c-7fd8-4940-9413-f706d272cd52` confirmó una
+  generación OpenAI exitosa (HTTP 200, 70.2 s) seguida por un HTTP 500 de
+  `segment-teeth`; las otras 27 invocaciones conservadas del segmentador
+  respondieron 200.
+- `callReplicate()` repite una sola vez exclusivamente cuando el endpoint de
+  creación rechaza explícitamente la solicitud con 429 o 5xx. En esos estados
+  no se creó una predicción, por lo que no se duplica inferencia ni costo.
+  Fallos de red inciertos no se reintentan.
+- El catch principal registra ahora el error interno en los logs de la función,
+  para que una nueva captura pueda diagnosticarse sin depender del texto
+  genérico del teléfono.
+- No se modificaron OpenAI, prompts, frontend, fotografías, esquema ni
+  Secrets. `segment-teeth` fue desplegada y verificada en producción; no se
+  ejecutó una inferencia adicional durante QA.
+
 ## 2026-08-23 — Codex: anatomía dental estricta y GPT Image 2 en calidad alta
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
