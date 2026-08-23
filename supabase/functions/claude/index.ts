@@ -247,6 +247,12 @@ Deno.serve(async (req: Request) => {
         form.append("size", "auto");
         form.append("output_format", "jpeg");
         form.append("output_compression", "90");
+        // Sin streaming, la conexión entre Supabase y OpenAI puede permanecer
+        // completamente ociosa durante más de 30 s y algún intermediario la
+        // reinicia antes de que termine la imagen. Las imágenes parciales
+        // mantienen viva esa conexión; sólo se conserva y entrega la final.
+        form.append("stream", "true");
+        form.append("partial_images", "3");
 
         console.log(JSON.stringify({
           event: "image_generation_attempt",
@@ -259,24 +265,100 @@ Deno.serve(async (req: Request) => {
         }));
 
         try {
-          const resp = await fetchConTimeout("https://api.openai.com/v1/images/edits", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${KEY}` },
-            body: form,
-          }, OPENAI_IMAGE_TIMEOUT_MS);
-          marca(`después de recibir respuesta de OpenAI (status ${resp.status})`);
-          const providerRequestId = resp.headers.get("x-request-id");
-          const data = await resp.json();
-          if (!resp.ok) {
-            console.warn("OpenAI image edit error:", data?.error?.message || resp.status);
-            return new Response(JSON.stringify({
-              error: data?.error?.message || "OpenAI no pudo generar la imagen.",
-              requestId,
-              providerRequestId,
-            }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
+          let providerRequestId: string | null = null;
+          let generatedBase64 = "";
+          let usage: any = null;
+          let partialCount = 0;
+
+          try {
+            const resp = await fetch("https://api.openai.com/v1/images/edits", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${KEY}`,
+                "Accept": "text/event-stream",
+                // Permite a soporte de OpenAI localizar la solicitud incluso
+                // si la red se corta antes de recibir su x-request-id.
+                "X-Client-Request-Id": requestId,
+              },
+              body: form,
+              signal: controller.signal,
+            });
+            marca(`después de recibir headers de OpenAI (status ${resp.status})`);
+            providerRequestId = resp.headers.get("x-request-id");
+
+            if (!resp.ok) {
+              const raw = await resp.text();
+              let data: any = null;
+              try { data = JSON.parse(raw); } catch { /* respuesta no JSON */ }
+              console.warn("OpenAI image edit error:", data?.error?.message || raw || resp.status);
+              return new Response(JSON.stringify({
+                error: data?.error?.message || "OpenAI no pudo generar la imagen.",
+                requestId,
+                providerRequestId,
+              }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+            }
+
+            const contentType = resp.headers.get("content-type") || "";
+            if (!contentType.toLowerCase().includes("text/event-stream")) {
+              // Compatibilidad defensiva si el proveedor ignora `stream`.
+              const data = await resp.json();
+              generatedBase64 = data?.data?.[0]?.b64_json || "";
+              usage = data?.usage || null;
+            } else if (resp.body) {
+              const reader = resp.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer = "";
+
+              const procesarBloque = (bloque: string) => {
+                const dataText = bloque
+                  .split(/\r?\n/)
+                  .filter((linea) => linea.startsWith("data:"))
+                  .map((linea) => linea.slice(5).trimStart())
+                  .join("\n");
+                if (!dataText || dataText === "[DONE]") return;
+
+                let evento: any;
+                try { evento = JSON.parse(dataText); } catch {
+                  console.warn("Evento SSE de OpenAI inválido; se omitió.");
+                  return;
+                }
+
+                if (evento?.type === "image_edit.partial_image") {
+                  partialCount += 1;
+                  console.log(JSON.stringify({
+                    event: "image_generation_stream_progress",
+                    requestId,
+                    partialImageIndex: evento?.partial_image_index ?? partialCount - 1,
+                    partialCount,
+                    elapsedMs: Math.round(performance.now() - imageStartedAt),
+                  }));
+                } else if (evento?.type === "image_edit.completed") {
+                  generatedBase64 = evento?.b64_json || "";
+                  usage = evento?.usage || null;
+                }
+              };
+
+              while (true) {
+                const { value, done } = await reader.read();
+                buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+
+                let separador: RegExpExecArray | null;
+                while ((separador = /\r?\n\r?\n/.exec(buffer)) !== null) {
+                  const bloque = buffer.slice(0, separador.index);
+                  buffer = buffer.slice(separador.index + separador[0].length);
+                  procesarBloque(bloque);
+                }
+
+                if (done) break;
+              }
+              if (buffer.trim()) procesarBloque(buffer);
+            }
+          } finally {
+            clearTimeout(timeoutId);
           }
 
-          const generatedBase64 = data?.data?.[0]?.b64_json;
           if (!generatedBase64) {
             return new Response(JSON.stringify({
               error: "OpenAI respondió sin una imagen.", requestId, providerRequestId,
@@ -284,7 +366,6 @@ Deno.serve(async (req: Request) => {
           }
 
           const elapsedMs = Math.round(performance.now() - imageStartedAt);
-          const usage = data?.usage || null;
           console.log(JSON.stringify({
             event: "image_generation_success",
             requestId,
@@ -293,6 +374,7 @@ Deno.serve(async (req: Request) => {
             model: OPENAI_IMAGE_MODEL,
             quality: OPENAI_IMAGE_QUALITY,
             attempts: 1,
+            partialCount,
             elapsedMs,
             usage,
             providerRequestId,

@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: streaming para evitar cortes entre Supabase y OpenAI
+
+**Tocado:** `supabase/functions/claude/index.ts`.
+
+- El código de soporte `0a4c451f-14b1-4ecb-89df-e827f8a52cfc` llegó a la
+  función y comenzó una edición con GPT Image 2, pero a los 30 s la conexión
+  saliente entre Supabase y `api.openai.com` terminó con `connection reset`.
+  OpenAI no alcanzó a devolver headers ni imagen y nunca se llamó a
+  `segment-teeth`; la clave, el saldo y el teléfono no fueron la causa.
+- La edición usa ahora el streaming SSE oficial de `/v1/images/edits` con
+  imágenes parciales. La función consume esos avances sólo para mantener viva
+  la conexión y entrega exclusivamente el JPEG final; el modelo, calidad,
+  prompt y contrato binario del cliente no cambian.
+- Se mantiene una sola llamada pagada, sin reintento ni fallback automático
+  ante un fallo de red incierto. Además se envía `X-Client-Request-Id` con el
+  `requestId` de SMYL, para que OpenAI pueda localizar solicitudes cuyo
+  `x-request-id` no haya alcanzado a regresar.
+- Edge Function `claude` versión 56 desplegada y verificada `ACTIVE`, conservó
+  `verify_jwt=false` por autorización explícita del usuario. El empaquetado
+  remoto validó la función. No se ejecutó una generación pagada durante QA.
+
 ## 2026-08-23 — Codex: entrega binaria de la simulación en iOS
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
