@@ -8,10 +8,13 @@ por una sola acción del paciente.
 
 ## Estado de seguridad
 
-- Gemini sigue siendo el proveedor predeterminado.
-- OpenAI solo responde cuando el cuerpo incluye `imageProvider: "openai"`.
-- La ruta OpenAI exige una sesión profesional autenticada.
-- La ruta OpenAI exige `OPENAI_IMAGE_EXPERIMENT_ENABLED=true`.
+- El proveedor predeterminado lo decide `SMYL_IMAGE_PROVIDER` en el servidor;
+  producción usa `openai` y Gemini queda como rollback.
+- El cliente público no puede forzar ni cambiar el proveedor.
+- Sólo una sesión profesional autenticada puede sobrescribirlo con
+  `imageProvider` para una comparación A/B.
+- Cuando el predeterminado es Gemini, pedir OpenAI en una prueba exige
+  `OPENAI_IMAGE_EXPERIMENT_ENABLED=true`.
 - Si la bandera o la API key faltan, la solicitud se rechaza antes de consumir
   el límite del plan.
 - No existe fallback automático entre proveedores. Cada ejecución llama una
@@ -21,6 +24,7 @@ por una sola acción del paciente.
 
 ```text
 OPENAI_API_KEY=<clave del proyecto de pruebas>
+SMYL_IMAGE_PROVIDER=openai
 OPENAI_IMAGE_EXPERIMENT_ENABLED=true
 OPENAI_IMAGE_MODEL=gpt-image-2-2026-04-21
 OPENAI_IMAGE_TIMEOUT_MS=45000
@@ -29,6 +33,7 @@ OPENAI_IMAGE_TIMEOUT_MS=45000
 Para apagar inmediatamente el experimento:
 
 ```text
+SMYL_IMAGE_PROVIDER=gemini
 OPENAI_IMAGE_EXPERIMENT_ENABLED=false
 ```
 

@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: GPT Image 2 como proveedor predeterminado server-side
+
+**Tocado:** `supabase/functions/claude/index.ts`, `docs/AI_COST_CONTROL.md`,
+`docs/AI_IMAGE_AB_HARNESS.md`.
+
+- La generación de simulaciones toma ahora el proveedor predeterminado desde
+  `SMYL_IMAGE_PROVIDER`; producción usa `openai` con el snapshot fijo
+  `gpt-image-2-2026-04-21`. La clave permanece sólo en Supabase Secrets.
+- El navegador público no puede elegir proveedor. Un profesional autenticado
+  conserva el override A/B; si el servidor vuelve a Gemini, la ruta OpenAI
+  experimental sigue exigiendo su bandera.
+- No existe fallback automático ni doble cobro: cada acción llama una sola vez
+  al proveedor efectivo y mantiene los topes actuales por plan/IP. Gemini es
+  el rollback inmediato cambiando el Secret a `gemini`.
+- No se modificaron prompts clínicos, frontend, fotos, esquema ni aplicación
+  móvil. Claude continúa a cargo del análisis textual.
+
 ## 2026-08-22 — Codex: composición acotada por la máscara dental original
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

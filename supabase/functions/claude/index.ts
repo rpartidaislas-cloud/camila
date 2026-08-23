@@ -33,9 +33,20 @@ const GEMINI_IMAGE_MAX_ATTEMPTS = Math.min(
   Math.max(1, Number.parseInt(Deno.env.get("GEMINI_IMAGE_MAX_ATTEMPTS") || "1", 10) || 1),
 );
 
-// GPT Image 2 se mantiene como proveedor experimental y opt-in. No se usa
-// como respaldo automático de Gemini: una acción del usuario equivale a una
-// sola llamada pagada a un proveedor explícito.
+type ImageProvider = "gemini" | "openai";
+
+// El proveedor predeterminado se decide exclusivamente en el servidor. El
+// navegador no necesita conocer esta configuración y nunca recibe la clave.
+// Cambiar el Secret a `gemini` permite un rollback inmediato sin modificar el
+// frontend ni volver a desplegar GitHub Pages.
+const DEFAULT_IMAGE_PROVIDER: ImageProvider =
+  Deno.env.get("SMYL_IMAGE_PROVIDER")?.trim().toLowerCase() === "openai"
+    ? "openai"
+    : "gemini";
+
+// La bandera experimental se conserva para comparaciones A/B autenticadas
+// cuando Gemini sea el proveedor predeterminado. No existe fallback automático
+// entre proveedores: una acción del usuario equivale a una sola llamada pagada.
 const OPENAI_IMAGE_EXPERIMENT_ENABLED =
   Deno.env.get("OPENAI_IMAGE_EXPERIMENT_ENABLED") === "true";
 const OPENAI_IMAGE_MODEL =
@@ -111,22 +122,47 @@ Deno.serve(async (req: Request) => {
   const requestReason = typeof body?.requestReason === "string"
     ? body.requestReason.slice(0, 80)
     : (body?.action || "analysis");
-  const imageProvider = body?.imageProvider === "openai" ? "openai" : "gemini";
+  const requestedImageProvider: ImageProvider | null =
+    body?.imageProvider === "openai" || body?.imageProvider === "gemini"
+      ? body.imageProvider
+      : null;
+  let imageProvider: ImageProvider = DEFAULT_IMAGE_PROVIDER;
 
-  // El candidato OpenAI es solo para pruebas internas autenticadas. Esta
-  // validación ocurre ANTES de consumir el límite del plan para que una
-  // configuración apagada o incompleta nunca cobre un intento.
-  if (body?.action === "generate_image" && imageProvider === "openai") {
-    if (!user) {
-      return new Response(JSON.stringify({ error: "La prueba OpenAI requiere una sesión profesional." }), {
-        status: 403, headers: { ...CORS, "Content-Type": "application/json" },
-      });
-    }
-    if (!OPENAI_IMAGE_EXPERIMENT_ENABLED) {
+  // Sólo una sesión profesional puede sobrescribir el proveedor del servidor.
+  // Esto conserva el harness A/B sin permitir que un cliente público fuerce
+  // una ruta distinta. La configuración predeterminada sí aplica por igual al
+  // profesional y al prospecto, bajo los mismos topes server-side existentes.
+  if (requestedImageProvider && user) {
+    if (
+      requestedImageProvider === "openai" &&
+      DEFAULT_IMAGE_PROVIDER !== "openai" &&
+      !OPENAI_IMAGE_EXPERIMENT_ENABLED
+    ) {
       return new Response(JSON.stringify({ error: "La prueba OpenAI no está habilitada." }), {
         status: 403, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
+    imageProvider = requestedImageProvider;
+  } else if (requestedImageProvider && requestedImageProvider !== DEFAULT_IMAGE_PROVIDER) {
+    return new Response(JSON.stringify({ error: "La selección de proveedor requiere una sesión profesional." }), {
+      status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
+  if (body?.action === "generate_image") {
+    console.log(JSON.stringify({
+      event: "image_provider_selected",
+      requestId,
+      defaultProvider: DEFAULT_IMAGE_PROVIDER,
+      requestedProvider: requestedImageProvider,
+      effectiveProvider: imageProvider,
+      authenticatedOverride: Boolean(user && requestedImageProvider),
+    }));
+  }
+
+  // La validación ocurre ANTES de consumir el límite del plan para que una
+  // configuración incompleta nunca cobre un intento.
+  if (body?.action === "generate_image" && imageProvider === "openai") {
     if (!Deno.env.get("OPENAI_API_KEY")) {
       return new Response(JSON.stringify({ error: "OPENAI_API_KEY no configurada en Supabase Secrets" }), {
         status: 500, headers: { ...CORS, "Content-Type": "application/json" },
