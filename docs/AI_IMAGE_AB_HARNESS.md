@@ -27,7 +27,8 @@ OPENAI_API_KEY=<clave del proyecto de pruebas>
 SMYL_IMAGE_PROVIDER=openai
 OPENAI_IMAGE_EXPERIMENT_ENABLED=true
 OPENAI_IMAGE_MODEL=gpt-image-2-2026-04-21
-OPENAI_IMAGE_TIMEOUT_MS=45000
+OPENAI_IMAGE_QUALITY=high
+OPENAI_IMAGE_TIMEOUT_MS=80000
 ```
 
 Para apagar inmediatamente el experimento:
@@ -92,6 +93,8 @@ Además se marca como fallo crítico cualquiera de estos eventos:
 - cambia cara, labios, encía, apertura, fondo o exposición;
 - edita la arcada inferior cuando no fue solicitada;
 - omite una pieza o agrega/elimina dientes;
+- fusiona coronas, repite rectángulos, iguala laterales con centrales o crea
+  una línea incisal horizontal sin jerarquía anterior;
 - dibuja guías, puntos, texto o manchas fuera de los dientes;
 - devuelve una imagen desalineada o con otra proporción.
 

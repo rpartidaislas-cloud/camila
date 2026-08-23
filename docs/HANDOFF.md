@@ -1,5 +1,36 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: anatomía dental estricta y GPT Image 2 en calidad alta
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/claude/index.ts`, `docs/AI_COST_CONTROL.md`,
+`docs/AI_IMAGE_AB_HARNESS.md`, `sw.js`.
+
+- Una propuesta real llegó a mostrarse con centrales anchos y cuadrados,
+  laterales sin jerarquía, caninos diluidos y una línea incisal plana. El
+  resultado no era apto ni siquiera como orientación para el paciente.
+- El análisis facial ya no puede pedir extremos de 70–90 % de ancho/alto ni
+  coronas de 88–112 %: centrales quedan acotados a 75–80 % y el tamaño aparente
+  a 94–106 %. El patrón braquifacial deja de traducirse como “cuadrado y ancho”.
+- La edición recibe un gate anatómico prioritario por piezas 13–23: identidad
+  individual, dominancia central sin volumen excesivo, laterales 70–78 % y
+  0.5–1.0 mm más cortos, caninos reconocibles, troneras, curva incisal y relieve
+  facial. Preferencias clínicas opcionales no pueden sobrescribirlo.
+- El control local usa las cajas individuales que ya devuelve la segmentación,
+  sin otra inferencia: bloquea menos de seis anteriores, fallback sin anatomía
+  verificable y combinaciones de proporción central anormal, laterales iguales,
+  fila plana, anchuras clonadas o caninos atípicos. Una sola desviación aislada
+  queda como advertencia para tolerar perspectiva.
+- GPT Image 2 usa ahora calidad `high`; `OPENAI_IMAGE_QUALITY=medium` conserva
+  rollback server-side. El timeout admite hasta 85 s y producción se configura
+  en 80 s. Sigue existiendo una sola llamada pagada, sin reintentos ni fallback
+  automático.
+- Pruebas: scripts inline válidos; caso sintético natural aceptado; fila plana,
+  piezas fusionadas y máscara de respaldo rechazadas; vistas 390×844,
+  834×1194 y 1440×900 sin desbordamiento horizontal. Build `v89`, caché
+  `smyl-v50`. Edge Function `claude` versión 51 desplegada y activa; Secrets
+  `OPENAI_IMAGE_QUALITY` y `OPENAI_IMAGE_TIMEOUT_MS` configurados.
+
 ## 2026-08-23 — Codex: distingue esmalte VITA cálido de tejido rosado
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.

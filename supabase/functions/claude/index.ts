@@ -51,9 +51,13 @@ const OPENAI_IMAGE_EXPERIMENT_ENABLED =
   Deno.env.get("OPENAI_IMAGE_EXPERIMENT_ENABLED") === "true";
 const OPENAI_IMAGE_MODEL =
   Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2-2026-04-21";
+const OPENAI_IMAGE_QUALITY =
+  Deno.env.get("OPENAI_IMAGE_QUALITY")?.trim().toLowerCase() === "medium"
+    ? "medium"
+    : "high";
 const OPENAI_IMAGE_TIMEOUT_MS = Math.min(
-  55000,
-  Math.max(15000, Number.parseInt(Deno.env.get("OPENAI_IMAGE_TIMEOUT_MS") || "45000", 10) || 45000),
+  85000,
+  Math.max(30000, Number.parseInt(Deno.env.get("OPENAI_IMAGE_TIMEOUT_MS") || "75000", 10) || 75000),
 );
 
 function base64ABytes(base64: string): Uint8Array {
@@ -236,7 +240,10 @@ Deno.serve(async (req: Request) => {
           form.append("image[]", new Blob([base64ABytes(guideImageBase64)], { type: guideMimeType }), "incisal-guide.png");
         }
         form.append("prompt", promptOpenAI);
-        form.append("quality", "medium");
+        // Los acercamientos dentales son ediciones de detalle y anatomía fina.
+        // Calidad alta es el valor de producción; `medium` queda disponible
+        // como rollback server-side sin publicar una nueva app.
+        form.append("quality", OPENAI_IMAGE_QUALITY);
         form.append("size", "auto");
         form.append("output_format", "jpeg");
         form.append("output_compression", "90");
@@ -247,6 +254,7 @@ Deno.serve(async (req: Request) => {
           requestReason,
           provider: "openai",
           model: OPENAI_IMAGE_MODEL,
+          quality: OPENAI_IMAGE_QUALITY,
           attempt: 1,
         }));
 
@@ -283,6 +291,7 @@ Deno.serve(async (req: Request) => {
             requestReason,
             provider: "openai",
             model: OPENAI_IMAGE_MODEL,
+            quality: OPENAI_IMAGE_QUALITY,
             attempts: 1,
             elapsedMs,
             usage,
@@ -298,6 +307,7 @@ Deno.serve(async (req: Request) => {
               reason: requestReason,
               provider: "openai",
               model: OPENAI_IMAGE_MODEL,
+              quality: OPENAI_IMAGE_QUALITY,
               attempts: 1,
               attemptLimit: 1,
               elapsedMs,

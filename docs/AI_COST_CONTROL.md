@@ -23,8 +23,8 @@
 - Las fallas de red no repiten automáticamente esa generación. El usuario
   decide si desea volver a intentarlo.
 - Cada solicitud lleva requestId y requestReason.
-- La respuesta registra provider, model, attempts, elapsedMs y usage cuando
-  el proveedor lo informa.
+- La respuesta registra provider, model, quality, attempts, elapsedMs y usage
+  cuando el proveedor lo informa.
 - Si se habilitan modelos de respaldo, los intentos quedan visibles como
   attempts; así se puede detectar si una simulación consumió más de un intento
   en el proveedor.
@@ -34,7 +34,10 @@
 `SMYL_IMAGE_PROVIDER` acepta `openai` o `gemini` y se resuelve únicamente en la
 Edge Function. El navegador público no puede cambiarlo ni recibe credenciales.
 La configuración vigente usa `openai` con el snapshot
-`gpt-image-2-2026-04-21`. Para rollback inmediato:
+`gpt-image-2-2026-04-21`. Los acercamientos dentales usan calidad `high` para
+priorizar anatomía y detalle; `OPENAI_IMAGE_QUALITY=medium` permite un rollback
+de costo/latencia sin publicar otra versión. Para rollback inmediato de
+proveedor:
 
 ```text
 SMYL_IMAGE_PROVIDER=gemini
