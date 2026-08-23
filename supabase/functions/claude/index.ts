@@ -271,6 +271,7 @@ Deno.serve(async (req: Request) => {
           let generatedBase64 = "";
           let usage: any = null;
           let partialCount = 0;
+          let timeoutTransferidoAlStream = false;
 
           try {
             const resp = await fetch("https://api.openai.com/v1/images/edits", {
@@ -301,6 +302,205 @@ Deno.serve(async (req: Request) => {
             }
 
             const contentType = resp.headers.get("content-type") || "";
+            if (
+              (body?.responseMode === "stream" || body?.responseMode === "binary") &&
+              contentType.toLowerCase().includes("text/event-stream") &&
+              resp.body
+            ) {
+              const entregarComoJpeg = body?.responseMode === "binary";
+              const upstreamReader = resp.body.getReader();
+              const encoder = new TextEncoder();
+              const downstream = new ReadableStream<Uint8Array>({
+                start(output) {
+                  let cerrado = false;
+                  let completado = false;
+
+                  const enviar = (tipo: string, payload: Record<string, unknown>) => {
+                    if (cerrado) return;
+                    const json = JSON.stringify({ type: tipo, ...payload });
+                    if (!entregarComoJpeg) {
+                      output.enqueue(encoder.encode(`event: ${tipo}\ndata: ${json}\n\n`));
+                      return;
+                    }
+                    // JPEG permite comentarios COM entre SOI y los datos de la
+                    // imagen. Safari recibe estos bytes como actividad real,
+                    // pero el archivo final sigue siendo un JPEG estándar.
+                    const comentario = encoder.encode(json);
+                    const largo = Math.min(65533, comentario.byteLength) + 2;
+                    const segmento = new Uint8Array(largo + 2);
+                    segmento[0] = 0xff;
+                    segmento[1] = 0xfe;
+                    segmento[2] = (largo >> 8) & 0xff;
+                    segmento[3] = largo & 0xff;
+                    segmento.set(comentario.subarray(0, largo - 2), 4);
+                    output.enqueue(segmento);
+                  };
+
+                  if (entregarComoJpeg) output.enqueue(new Uint8Array([0xff, 0xd8]));
+
+                  enviar("image_generation.started", {
+                    requestId,
+                    provider: "openai",
+                    model: OPENAI_IMAGE_MODEL,
+                    quality: OPENAI_IMAGE_QUALITY,
+                  });
+
+                  const transfer = (async () => {
+                    const decoder = new TextDecoder();
+                    let buffer = "";
+                    let cantidadParciales = 0;
+
+                    const procesarBloqueStream = (bloque: string) => {
+                      const dataText = bloque
+                        .split(/\r?\n/)
+                        .filter((linea) => linea.startsWith("data:"))
+                        .map((linea) => linea.slice(5).trimStart())
+                        .join("\n");
+                      if (!dataText || dataText === "[DONE]") return;
+
+                      let evento: any;
+                      try { evento = JSON.parse(dataText); } catch {
+                        console.warn("Evento SSE de OpenAI inválido; se omitió.");
+                        return;
+                      }
+
+                      if (evento?.type === "image_edit.partial_image") {
+                        cantidadParciales += 1;
+                        const elapsedMs = Math.round(performance.now() - imageStartedAt);
+                        const partialImageIndex = evento?.partial_image_index ?? cantidadParciales - 1;
+                        console.log(JSON.stringify({
+                          event: "image_generation_stream_progress",
+                          requestId,
+                          partialImageIndex,
+                          partialCount: cantidadParciales,
+                          elapsedMs,
+                        }));
+                        // El avance mantiene viva la conexión móvil. La imagen
+                        // parcial no se reenvía: sólo viaja el JPEG final.
+                        enviar("image_generation.progress", {
+                          requestId,
+                          partialImageIndex,
+                          partialCount: cantidadParciales,
+                          elapsedMs,
+                        });
+                        return;
+                      }
+
+                      if (evento?.type === "image_edit.completed") {
+                        const finalBase64 = evento?.b64_json || "";
+                        if (!finalBase64) return;
+                        const elapsedMs = Math.round(performance.now() - imageStartedAt);
+                        const finalUsage = evento?.usage || null;
+                        const generation = {
+                          requestId,
+                          reason: requestReason,
+                          provider: "openai",
+                          model: OPENAI_IMAGE_MODEL,
+                          quality: OPENAI_IMAGE_QUALITY,
+                          attempts: 1,
+                          attemptLimit: 1,
+                          partialCount: cantidadParciales,
+                          elapsedMs,
+                          usage: finalUsage,
+                          providerRequestId,
+                        };
+                        console.log(JSON.stringify({
+                          event: "image_generation_success",
+                          requestId,
+                          requestReason,
+                          provider: "openai",
+                          model: OPENAI_IMAGE_MODEL,
+                          quality: OPENAI_IMAGE_QUALITY,
+                          attempts: 1,
+                          partialCount: cantidadParciales,
+                          elapsedMs,
+                          usage: finalUsage,
+                          providerRequestId,
+                        }));
+                        console.log(JSON.stringify({
+                          event: "image_delivery_stream",
+                          requestId,
+                          estimatedBytes: Math.floor(finalBase64.length * 3 / 4),
+                        }));
+                        if (entregarComoJpeg) {
+                          const finalBytes = base64ABytes(finalBase64);
+                          if (finalBytes[0] !== 0xff || finalBytes[1] !== 0xd8) {
+                            throw new Error("OpenAI devolvió bytes sin cabecera JPEG.");
+                          }
+                          // SOI ya se envió antes de los comentarios keepalive.
+                          output.enqueue(finalBytes.subarray(2));
+                        } else {
+                          enviar("image_generation.completed", {
+                            requestId,
+                            imageBase64: finalBase64,
+                            mimeType: "image/jpeg",
+                            source: "openai",
+                            model: OPENAI_IMAGE_MODEL,
+                            generation,
+                          });
+                        }
+                        completado = true;
+                      }
+                    };
+
+                    while (true) {
+                      const { value, done } = await upstreamReader.read();
+                      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+                      let separador: RegExpExecArray | null;
+                      while ((separador = /\r?\n\r?\n/.exec(buffer)) !== null) {
+                        const bloque = buffer.slice(0, separador.index);
+                        buffer = buffer.slice(separador.index + separador[0].length);
+                        procesarBloqueStream(bloque);
+                      }
+                      if (done) break;
+                    }
+                    if (buffer.trim()) procesarBloqueStream(buffer);
+                    if (!completado) throw new Error("OpenAI terminó el stream sin una imagen final.");
+                  })().catch((e: any) => {
+                    console.warn("OpenAI image stream excepción:", e?.message || e);
+                    try {
+                      enviar("image_generation.error", {
+                        requestId,
+                        status: e?.name === "AbortError" ? 504 : 502,
+                        error: e?.name === "AbortError"
+                          ? "OpenAI tardó más del límite de la simulación."
+                          : "El servicio de imagen no terminó la respuesta.",
+                      });
+                    } catch { /* el cliente ya cerró la conexión */ }
+                  }).finally(() => {
+                    clearTimeout(timeoutId);
+                    cerrado = true;
+                    try { output.close(); } catch { /* conexión ya cerrada */ }
+                  });
+
+                  // Supabase puede retirar un worker que parece ocioso después
+                  // de devolver Response. Se vincula toda la transferencia al
+                  // ciclo de vida oficial de la Edge Function.
+                  EdgeRuntime.waitUntil(transfer);
+                },
+                cancel() {
+                  clearTimeout(timeoutId);
+                  try { upstreamReader.cancel("cliente desconectado"); } catch { /* ya cerrado */ }
+                },
+              });
+
+              timeoutTransferidoAlStream = true;
+              return new Response(downstream, {
+                headers: {
+                  ...CORS,
+                  "Cache-Control": "no-cache, no-store",
+                  "Content-Type": entregarComoJpeg ? "image/jpeg" : "text/event-stream; charset=utf-8",
+                  "X-Accel-Buffering": "no",
+                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-provider-request-id",
+                  "X-SMYL-Request-Id": requestId,
+                  "X-SMYL-Provider": "openai",
+                  "X-SMYL-Model": OPENAI_IMAGE_MODEL,
+                  "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
+                  "X-SMYL-Provider-Request-Id": providerRequestId || "",
+                },
+              });
+            }
+
             if (!contentType.toLowerCase().includes("text/event-stream")) {
               // Compatibilidad defensiva si el proveedor ignora `stream`.
               const data = await resp.json();
@@ -356,7 +556,7 @@ Deno.serve(async (req: Request) => {
               if (buffer.trim()) procesarBloque(buffer);
             }
           } finally {
-            clearTimeout(timeoutId);
+            if (!timeoutTransferidoAlStream) clearTimeout(timeoutId);
           }
 
           if (!generatedBase64) {

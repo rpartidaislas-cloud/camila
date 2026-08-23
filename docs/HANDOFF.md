@@ -20,6 +20,17 @@
 - Edge Function `claude` versión 56 desplegada y verificada `ACTIVE`, conservó
   `verify_jwt=false` por autorización explícita del usuario. El empaquetado
   remoto validó la función. No se ejecutó una generación pagada durante QA.
+- El código posterior `20a0015a-0f8d-4404-8c52-32055317cdf8` confirmó que
+  el stream upstream quedó resuelto: OpenAI entregó tres parciales, HTTP 200 y
+  un JPEG de 156,278 bytes en 70.3 s. Sin embargo, el iPhone no invocó
+  `segment-teeth`: la conexión navegador→Supabase también permanecía ociosa
+  hasta el final.
+- En `responseMode:'binary'` la función devuelve ahora un JPEG transmitido:
+  envía SOI y pequeños segmentos COM válidos con cada avance, después adjunta
+  el JPEG final sin repetir SOI. Safari recibe actividad desde el primer
+  parcial, mientras el cliente existente sigue viendo un `image/jpeg` normal;
+  no requiere nueva app, Storage ni otra generación.
+- Edge Function `claude` versión 57 desplegada y verificada `ACTIVE`.
 
 ## 2026-08-23 — Codex: entrega binaria de la simulación en iOS
 
