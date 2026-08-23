@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v89 — anatomía estricta</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v90 — entrega binaria</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5572,62 +5572,100 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       requestReason:generationOptions.reason || (generationOptions.editorRevision ? 'revision_editor' : 'generacion_manual'),
       imageBase64:entradaDental.b64,
       mimeType:entradaDental.mimeType,
-      prompt:prompt
+      prompt:prompt,
+      // Evita transportar el JPEG como base64 dentro de JSON: en iOS esa
+      // copia adicional podía cortar o agotar la respuesta ya generada.
+      responseMode:'binary'
     })
   });
   // En horas de alta demanda Gemini puede acercarse al límite total de la
   // Edge Function (varios modelos de respaldo). 110s cortaba respuestas que
   // todavía estaban por finalizar; 150s cubre ese margen sin espera infinita.
   var resp = await conTimeout(fetchPromise, 150000, 'generación de la imagen con IA');
-  var data = await leerRespuestaEdge(resp, requestId, 'la generación de la simulación');
-  S.lastGenerationMeta = data.generation || {
-    requestId: requestId,
-    provider: data.source || 'desconocido',
-    model: data.model || 'desconocido'
-  };
-  console.info('[SMYL] generación de imagen:', S.lastGenerationMeta);
-  var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
-  if (!url) throw new Error('Sin imagen');
-  var marcasTecnicas = await detectarMarcasTecnicasIA(url, frontal.view || 'frontal');
-  if (marcasTecnicas.detected) {
-    var errorMarcas = new Error('La IA dibujó marcas técnicas en la sonrisa y el resultado fue descartado. Genera de nuevo; la curva se enviará únicamente como geometría clínica.');
-    errorMarcas.qualityMetrics = marcasTecnicas;
-    throw errorMarcas;
-  }
-  if (generationOptions.requireVisibleChange) {
-    var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, url, frontal.view || 'frontal');
-    if (cambioVisible.mean < 2.4 && cambioVisible.changedRatio < .035) {
-      var errorSinCambio = new Error('La IA devolvió prácticamente el mismo contorno dental y no aplicó la curva. El resultado fue descartado para no mostrar un diseño sin cambios.');
-      errorSinCambio.qualityMetrics = cambioVisible;
-      throw errorSinCambio;
-    }
-  }
-
-  // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
-  // arcada superior. Si no puede validarse, el resultado se descarta.
-  var compuestaRecorte;
+  var temporaryImageUrl = '';
+  var providerResponseAccepted = false;
   try {
-    compuestaRecorte = await componerConMascaraAnatomicaContinua(
+    var responseContentType = String(resp.headers.get('content-type') || '').toLowerCase();
+    var data;
+    if (resp.ok && responseContentType.indexOf('image/') === 0) {
+      var imageBlob = await resp.blob();
+      if (!imageBlob || !imageBlob.size) {
+        var errorImagenVacia = new Error('Respuesta vacía del servidor al entregar la imagen.');
+        errorImagenVacia.status = 502;
+        throw errorImagenVacia;
+      }
+      temporaryImageUrl = URL.createObjectURL(imageBlob);
+      data = {
+        imageUrl: temporaryImageUrl,
+        mimeType: imageBlob.type || responseContentType.split(';')[0] || 'image/jpeg',
+        source: resp.headers.get('x-smyl-provider') || 'openai',
+        model: resp.headers.get('x-smyl-model') || 'desconocido',
+        generation: {
+          requestId: resp.headers.get('x-smyl-request-id') || requestId,
+          provider: resp.headers.get('x-smyl-provider') || 'openai',
+          model: resp.headers.get('x-smyl-model') || 'desconocido',
+          quality: resp.headers.get('x-smyl-quality') || '',
+          elapsedMs: Number(resp.headers.get('x-smyl-elapsed-ms')) || 0,
+          providerRequestId: resp.headers.get('x-smyl-provider-request-id') || ''
+        }
+      };
+    } else {
+      // Compatibilidad con Gemini y con versiones anteriores del backend.
+      data = await leerRespuestaEdge(resp, requestId, 'la generación de la simulación');
+    }
+    if (!data) {
+      var errorRespuestaVacia = new Error('Respuesta vacía del servidor al entregar la simulación.');
+      errorRespuestaVacia.status = 502;
+      throw errorRespuestaVacia;
+    }
+    providerResponseAccepted = true;
+    S.lastGenerationMeta = data.generation || {
+      requestId: requestId,
+      provider: data.source || 'desconocido',
+      model: data.model || 'desconocido'
+    };
+    console.info('[SMYL] generación de imagen:', S.lastGenerationMeta);
+    var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
+    if (!url) throw new Error('Sin imagen');
+    var marcasTecnicas = await detectarMarcasTecnicasIA(url, frontal.view || 'frontal');
+    if (marcasTecnicas.detected) {
+      var errorMarcas = new Error('La IA dibujó marcas técnicas en la sonrisa y el resultado fue descartado. Genera de nuevo; la curva se enviará únicamente como geometría clínica.');
+      errorMarcas.qualityMetrics = marcasTecnicas;
+      throw errorMarcas;
+    }
+    if (generationOptions.requireVisibleChange) {
+      var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, url, frontal.view || 'frontal');
+      if (cambioVisible.mean < 2.4 && cambioVisible.changedRatio < .035) {
+        var errorSinCambio = new Error('La IA devolvió prácticamente el mismo contorno dental y no aplicó la curva. El resultado fue descartado para no mostrar un diseño sin cambios.');
+        errorSinCambio.qualityMetrics = cambioVisible;
+        throw errorSinCambio;
+      }
+    }
+
+    // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
+    // arcada superior. Si no puede validarse, el resultado se descarta.
+    var compuestaRecorte = await componerConMascaraAnatomicaContinua(
       entradaDental.dataUrl,
       url,
       frontal.view || 'frontal'
     );
-  } catch (errorComposicion) {
-    // La generación sí llegó al navegador; el fallo ocurrió al validar o
-    // componer su máscara. Conservamos el requestId real para poder relacionar
-    // la captura del teléfono con la generación que produjo el resultado.
-    if (!errorComposicion.requestId) errorComposicion.requestId = requestId;
-    errorComposicion.stage = errorComposicion.stage || 'composicion_dental_local';
-    throw errorComposicion;
+    var compuesta = entradaDental.isFull
+      ? compuestaRecorte
+      : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
+    if (!compuesta) throw new Error('No se pudo integrar la simulación. Intenta generar de nuevo.');
+    // La composición ya nace en las coordenadas exactas del original; cualquier
+    // ajuste manual guardado de una generación anterior volvería a desfasarla.
+    if (frontal.view) S.baAlign[frontal.view] = {x: 0, y: 0, scale: 1};
+    return compuesta;
+  } catch (errorResultado) {
+    // Conserva siempre el requestId real después de una generación pagada,
+    // incluso si falla la descarga binaria o un control previo a la máscara.
+    if (!errorResultado.requestId) errorResultado.requestId = requestId;
+    if (providerResponseAccepted) errorResultado.stage = errorResultado.stage || 'validacion_dental_local';
+    throw errorResultado;
+  } finally {
+    if (temporaryImageUrl) URL.revokeObjectURL(temporaryImageUrl);
   }
-  var compuesta = entradaDental.isFull
-    ? compuestaRecorte
-    : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
-  if (!compuesta) throw new Error('No se pudo integrar la simulación. Intenta generar de nuevo.');
-  // La composición ya nace en las coordenadas exactas del original; cualquier
-  // ajuste manual guardado de una generación anterior volvería a desfasarla.
-  if (frontal.view) S.baAlign[frontal.view] = {x: 0, y: 0, scale: 1};
-  return compuesta;
 }
 
 // ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══

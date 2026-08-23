@@ -297,23 +297,51 @@ Deno.serve(async (req: Request) => {
             usage,
             providerRequestId,
           }));
+          const generation = {
+            requestId,
+            reason: requestReason,
+            provider: "openai",
+            model: OPENAI_IMAGE_MODEL,
+            quality: OPENAI_IMAGE_QUALITY,
+            attempts: 1,
+            attemptLimit: 1,
+            elapsedMs,
+            usage,
+            providerRequestId,
+          };
+
+          // El JSON con b64_json aumenta el JPEG cerca de 33 % y obliga a
+          // Safari/iOS a mantener simultáneamente el texto, el objeto parseado
+          // y la imagen. El cliente actual pide binario para recibir el JPEG
+          // directamente; el modo JSON se conserva para versiones antiguas.
+          if (body?.responseMode === "binary") {
+            const generatedBytes = base64ABytes(generatedBase64);
+            console.log(JSON.stringify({
+              event: "image_delivery_binary",
+              requestId,
+              bytes: generatedBytes.byteLength,
+            }));
+            return new Response(generatedBytes, {
+              headers: {
+                ...CORS,
+                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-elapsed-ms, x-smyl-provider-request-id",
+                "Cache-Control": "no-store",
+                "Content-Type": "image/jpeg",
+                "X-SMYL-Request-Id": requestId,
+                "X-SMYL-Provider": "openai",
+                "X-SMYL-Model": OPENAI_IMAGE_MODEL,
+                "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
+                "X-SMYL-Elapsed-Ms": String(elapsedMs),
+                "X-SMYL-Provider-Request-Id": providerRequestId || "",
+              },
+            });
+          }
           return new Response(JSON.stringify({
             imageBase64: generatedBase64,
             mimeType: "image/jpeg",
             source: "openai",
             model: OPENAI_IMAGE_MODEL,
-            generation: {
-              requestId,
-              reason: requestReason,
-              provider: "openai",
-              model: OPENAI_IMAGE_MODEL,
-              quality: OPENAI_IMAGE_QUALITY,
-              attempts: 1,
-              attemptLimit: 1,
-              elapsedMs,
-              usage,
-              providerRequestId,
-            },
+            generation,
           }), { headers: { ...CORS, "Content-Type": "application/json" } });
         } catch (e: any) {
           const timeout = e?.name === "AbortError";

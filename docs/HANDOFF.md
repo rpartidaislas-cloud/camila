@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: entrega binaria de la simulación en iOS
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/claude/index.ts`, `sw.js`.
+
+- El código de soporte `42514beb-7ff6-46cd-9ca0-5bd20c95acc8` confirmó otra
+  generación OpenAI exitosa (HTTP 200, 71.8 s), pero esta vez no existió una
+  invocación posterior a `segment-teeth`: el JPEG en base64 dentro del JSON no
+  alcanzó la siguiente etapa del navegador móvil.
+- El cliente pide ahora `responseMode:'binary'`; OpenAI conserva exactamente el
+  mismo modelo, calidad y prompt, pero la Edge Function devuelve el JPEG como
+  cuerpo binario con metadatos mínimos en headers. El modo JSON queda compatible
+  para clientes antiguos y Gemini.
+- La app crea una URL `blob:` sólo en memoria, ejecuta los controles dentales y
+  la revoca siempre al terminar. No se guarda una copia temporal en Storage y
+  se evita el aumento aproximado de 33 % propio de base64/JSON.
+- Todos los fallos posteriores a una generación pagada conservan ahora el
+  `requestId`, aunque ocurran antes de componer la máscara. Build `v90`, caché
+  PWA `smyl-v51`; scripts inline válidos y copias web/móvil idénticas.
+- Edge Function `claude` desplegada y verificada activa. No se ejecutó una
+  generación adicional durante QA.
+
 ## 2026-08-23 — Codex: reintento seguro al crear la segmentación dental
 
 **Tocado:** `supabase/functions/segment-teeth/index.ts`.
