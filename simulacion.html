@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v87 — tejido excluido</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v88 — rosa cromático</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5234,9 +5234,15 @@ function medirMascaraAnatomica(canvas) {
 }
 
 function esPixelTejidoRosado(r,g,b) {
-  // Tejido labial/gingival: rojo dominante con azul cercano o superior al
-  // verde. El esmalte cálido mantiene normalmente g claramente por encima b.
-  return r>105&&(r-g)>22&&b>=g*.88&&(r-b)>10;
+  // Un simple predominio de rojo también aparece en esmalte VITA cálido y en
+  // sombras cervicales. Para llamarlo tejido exigimos además saturación real y
+  // un componente azul próximo/superior al verde (rosa/magenta), o un rojo muy
+  // saturado. El beige dental de baja saturación queda fuera del detector.
+  var max=Math.max(r,g,b),min=Math.min(r,g,b);
+  var saturacion=max?(max-min)/max:0;
+  var rosaMagenta=saturacion>.22&&b>=g*1.02&&(r-g)>22;
+  var rojoTejido=saturacion>.32&&b>=g*.90&&(r-g)>38;
+  return r>105&&(r-b)>10&&(rosaMagenta||rojoTejido);
 }
 
 function medirTejidoRosadoEnMascara(imagenCanvas,mascaraCanvas) {

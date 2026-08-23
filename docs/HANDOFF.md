@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: distingue esmalte VITA cálido de tejido rosado
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
+
+- Una segunda generación real siguió bloqueándose: el detector anterior podía
+  clasificar beige dental cálido y sombras cervicales como tejido por usar sólo
+  diferencias RGB amplias.
+- La clasificación exige ahora saturación cromática y una relación azul/verde
+  propia de rosa/magenta, o un rojo fuertemente saturado. Tonos marfil, beige y
+  marrón dental quedan fuera aunque el canal rojo sea dominante.
+- Se conserva la exclusión protectora de `v87` y el bloqueo cuando el tejido
+  real invade más de 28 % de la máscara. No se tocaron GPT Image 2, backend ni
+  prompts. Build visual `v88`, caché PWA `smyl-v49`.
+
 ## 2026-08-23 — Codex: excluye tejido rosado sin perder la propuesta
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`.
