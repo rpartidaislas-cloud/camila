@@ -21,6 +21,13 @@
   bitmap), sintaxis válida y `git diff --check` limpio salvo avisos CRLF.
   `segment-teeth` versión 33 quedó desplegada, `ACTIVE` y con su configuración
   previa `verify_jwt=false`. No se ejecutó una segmentación pagada durante QA.
+- El intento posterior `114854bb-5076-4d1c-b8a2-d66d52dc1ce0` confirmó el
+  arreglo panorámico: GPT recibió un lienzo `1440x480`, completó la máscara en
+  20.4 s y produjo componentes utilizables. La entrega falló después porque el
+  bucket privado `camila-masks` sólo admitía `image/png` y las máscaras
+  deterministas nuevas son SVG. En producción se conservó el bucket privado y
+  se amplió su lista a `image/png, image/svg+xml`; no se abrió acceso público ni
+  se modificaron políticas, fotografías o límites de tamaño.
 
 ## 2026-08-23 — Codex: segmentación dental migrada de SAM 3 a GPT Image 2
 
