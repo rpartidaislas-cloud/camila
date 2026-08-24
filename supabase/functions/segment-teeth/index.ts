@@ -18,8 +18,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
-import { decode as decodeImage } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
-import { calculateOutputSize, extractMaskComponents } from "./mask-utils.ts";
+import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
+import {
+  calculateGptCanvas,
+  calculateOutputSize,
+  cropBitmapToSource,
+  extractMaskComponents,
+} from "./mask-utils.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const OPENAI_SEGMENTATION_MODEL =
@@ -77,6 +82,7 @@ function promptParaTarget(target: Target): string {
     return [
       "Create a pixel-aligned binary semantic segmentation mask of the visible gingiva in the supplied dental photograph.",
       "Keep exactly the same canvas, crop, scale, perspective and position as the input.",
+      "Black padding may surround the photograph; keep that padding pure black and never segment it.",
       "Output pure white (#FFFFFF) only where visible pink gingival tissue exists and pure black (#000000) everywhere else.",
       "Exclude teeth, lips, tongue, skin, shadows, instruments and background.",
       "Use flat solid fills: no texture, gradients, antialias haze, outlines, labels, symbols or explanatory text.",
@@ -86,6 +92,7 @@ function promptParaTarget(target: Target): string {
     "Create a pixel-aligned binary instance-style segmentation mask of every visible human tooth in the supplied dental photograph.",
     "If the image contains two side-by-side panels, preserve both panels exactly and segment each panel independently without moving or merging them across the center seam.",
     "Keep exactly the same canvas, crop, scale, perspective and tooth positions as the input.",
+    "Black padding may surround the photograph; keep that padding pure black and never segment it.",
     "Output pure white (#FFFFFF) only on visible dental crown/enamel surfaces and pure black (#000000) everywhere else.",
     "Exclude gingiva, lips, tongue, skin, oral cavity, shadows, braces, instruments and background.",
     "Keep each visible tooth as an individually separated white component with a narrow black interproximal boundary at real tooth contacts.",
@@ -118,7 +125,7 @@ async function loadSourceImage(imageUrl: string) {
     throw new Error("La entrada de segmentación no es una imagen válida.");
   }
   const decoded = await decodeImage(bytes);
-  return { bytes, mimeType, width: decoded.width, height: decoded.height };
+  return { bytes, mimeType, width: decoded.width, height: decoded.height, decoded };
 }
 
 interface GptMaskResult {
@@ -127,6 +134,11 @@ interface GptMaskResult {
   maskHeight: number;
   sourceWidth: number;
   sourceHeight: number;
+  inputWidth: number;
+  inputHeight: number;
+  sourceX: number;
+  sourceY: number;
+  padded: boolean;
   usage: unknown;
   providerRequestId: string | null;
   partialCount: number;
@@ -139,10 +151,24 @@ async function callOpenAIMask(
   onProgress: (payload: Record<string, unknown>) => void,
 ): Promise<GptMaskResult> {
   const source = await loadSourceImage(imageUrl);
-  const outputSize = calculateOutputSize(source.width, source.height);
+  const canvas = calculateGptCanvas(source.width, source.height);
+  let inputBytes = source.bytes;
+  let inputMimeType = source.mimeType;
+  if (canvas.padded) {
+    const paddedImage = new Image(canvas.width, canvas.height);
+    paddedImage.fill(0x000000ff);
+    paddedImage.composite(source.decoded, canvas.sourceX, canvas.sourceY);
+    inputBytes = await paddedImage.encode(1);
+    inputMimeType = "image/png";
+  }
+  const outputSize = calculateOutputSize(canvas.width, canvas.height);
   const form = new FormData();
   form.append("model", OPENAI_SEGMENTATION_MODEL);
-  form.append("image[]", new Blob([source.bytes], { type: source.mimeType }), "dental-input.jpg");
+  form.append(
+    "image[]",
+    new Blob([inputBytes], { type: inputMimeType }),
+    inputMimeType === "image/png" ? "dental-input.png" : "dental-input.jpg",
+  );
   form.append("prompt", promptParaTarget(target));
   form.append("quality", OPENAI_SEGMENTATION_QUALITY);
   form.append("size", outputSize.value);
@@ -232,6 +258,8 @@ async function callOpenAIMask(
       model: OPENAI_SEGMENTATION_MODEL,
       quality: OPENAI_SEGMENTATION_QUALITY,
       sourceSize: `${source.width}x${source.height}`,
+      inputCanvas: `${canvas.width}x${canvas.height}`,
+      padded: canvas.padded,
       outputSize: `${decoded.width}x${decoded.height}`,
       partialCount,
       elapsedMs: Math.round(performance.now() - startedAt),
@@ -244,6 +272,11 @@ async function callOpenAIMask(
       maskHeight: decoded.height,
       sourceWidth: source.width,
       sourceHeight: source.height,
+      inputWidth: canvas.width,
+      inputHeight: canvas.height,
+      sourceX: canvas.sourceX,
+      sourceY: canvas.sourceY,
+      padded: canvas.padded,
       usage,
       providerRequestId,
       partialCount,
@@ -509,10 +542,21 @@ serve(async (req) => {
             }
           });
           const decodedMask = await decodeImage(gptMask.bytes);
-          const allCandidates = extractMaskComponents(
+          const sourceMask = cropBitmapToSource(
             gptMask.maskWidth,
             gptMask.maskHeight,
             decodedMask.bitmap,
+            gptMask.inputWidth,
+            gptMask.inputHeight,
+            gptMask.sourceX,
+            gptMask.sourceY,
+            gptMask.sourceWidth,
+            gptMask.sourceHeight,
+          );
+          const allCandidates = extractMaskComponents(
+            sourceMask.width,
+            sourceMask.height,
+            sourceMask.bitmap,
             gptMask.sourceWidth,
             gptMask.sourceHeight,
           ) as Candidate[];

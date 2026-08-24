@@ -12,6 +12,20 @@ export interface OutputSize {
   value: string;
 }
 
+export interface GptCanvas {
+  width: number;
+  height: number;
+  sourceX: number;
+  sourceY: number;
+  padded: boolean;
+}
+
+export interface CroppedBitmap {
+  width: number;
+  height: number;
+  bitmap: Uint8Array;
+}
+
 const MIN_OUTPUT_PIXELS = 655_360;
 const MAX_OUTPUT_PIXELS = 8_294_400;
 const MAX_OUTPUT_EDGE = 3_840;
@@ -20,13 +34,39 @@ function multipleOf16(value: number): number {
   return Math.max(16, Math.ceil(value / 16) * 16);
 }
 
+function assertDimensions(width: number, height: number): void {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    throw new Error("Dimensiones de imagen inválidas.");
+  }
+}
+
+// Los recortes clínicos pueden ser panorámicos, especialmente cuando se
+// comparan original y propuesta lado a lado. En vez de deformarlos o
+// recortarlos, se centran sobre un lienzo negro con relación máxima 3:1.
+export function calculateGptCanvas(sourceWidth: number, sourceHeight: number): GptCanvas {
+  assertDimensions(sourceWidth, sourceHeight);
+  const width = Math.round(sourceWidth);
+  const height = Math.round(sourceHeight);
+  let canvasWidth = width;
+  let canvasHeight = height;
+
+  if (width / height > 3) canvasHeight = Math.ceil(width / 3);
+  if (height / width > 3) canvasWidth = Math.ceil(height / 3);
+
+  return {
+    width: canvasWidth,
+    height: canvasHeight,
+    sourceX: Math.floor((canvasWidth - width) / 2),
+    sourceY: Math.floor((canvasHeight - height) / 2),
+    padded: canvasWidth !== width || canvasHeight !== height,
+  };
+}
+
 // GPT Image 2 admite tamaños flexibles, pero exige múltiplos de 16, un
 // mínimo de píxeles y una relación máxima 3:1. La app ya manda un recorte de
 // sonrisa; sólo se escala el lienzo de salida, nunca se recorta ni deforma.
 export function calculateOutputSize(sourceWidth: number, sourceHeight: number): OutputSize {
-  if (!Number.isFinite(sourceWidth) || !Number.isFinite(sourceHeight) || sourceWidth <= 0 || sourceHeight <= 0) {
-    throw new Error("Dimensiones de imagen inválidas.");
-  }
+  assertDimensions(sourceWidth, sourceHeight);
   const ratio = sourceWidth / sourceHeight;
   if (ratio > 3 || ratio < 1 / 3) {
     throw new Error("El recorte dental excede la relación 3:1 admitida por GPT Image.");
@@ -47,6 +87,46 @@ export function calculateOutputSize(sourceWidth: number, sourceHeight: number): 
   }
 
   return { width, height, value: `${width}x${height}` };
+}
+
+// Recorta del bitmap devuelto por GPT el margen agregado antes de enviarlo.
+// El cálculo usa proporciones porque GPT puede devolver una resolución distinta
+// a la del lienzo de entrada, pero conserva el mismo sistema de coordenadas.
+export function cropBitmapToSource(
+  bitmapWidth: number,
+  bitmapHeight: number,
+  bitmap: Uint8Array,
+  inputWidth: number,
+  inputHeight: number,
+  sourceX: number,
+  sourceY: number,
+  sourceWidth: number,
+  sourceHeight: number,
+): CroppedBitmap {
+  assertDimensions(bitmapWidth, bitmapHeight);
+  assertDimensions(inputWidth, inputHeight);
+  assertDimensions(sourceWidth, sourceHeight);
+  if (bitmap.byteLength !== bitmapWidth * bitmapHeight * 4) {
+    throw new Error("La máscara GPT tiene un tamaño de bitmap inválido.");
+  }
+
+  const scaleX = bitmapWidth / inputWidth;
+  const scaleY = bitmapHeight / inputHeight;
+  const left = Math.max(0, Math.min(bitmapWidth - 1, Math.round(sourceX * scaleX)));
+  const top = Math.max(0, Math.min(bitmapHeight - 1, Math.round(sourceY * scaleY)));
+  const right = Math.max(left + 1, Math.min(bitmapWidth, Math.round((sourceX + sourceWidth) * scaleX)));
+  const bottom = Math.max(top + 1, Math.min(bitmapHeight, Math.round((sourceY + sourceHeight) * scaleY)));
+  const width = right - left;
+  const height = bottom - top;
+  const cropped = new Uint8Array(width * height * 4);
+
+  for (let row = 0; row < height; row++) {
+    const sourceStart = ((top + row) * bitmapWidth + left) * 4;
+    const sourceEnd = sourceStart + width * 4;
+    cropped.set(bitmap.subarray(sourceStart, sourceEnd), row * width * 4);
+  }
+
+  return { width, height, bitmap: cropped };
 }
 
 function componentSvg(width: number, height: number, pixels: number[]): Uint8Array {

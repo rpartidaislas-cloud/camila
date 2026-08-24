@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { calculateOutputSize, extractMaskComponents } from "./mask-utils.ts";
+import {
+  calculateGptCanvas,
+  calculateOutputSize,
+  cropBitmapToSource,
+  extractMaskComponents,
+} from "./mask-utils.ts";
 
 function bitmap(width, height, rectangles, noise = []) {
   const pixels = new Uint8Array(width * height * 4);
@@ -42,10 +47,36 @@ assert.equal(output.height % 16, 0);
 assert.ok(output.width * output.height >= 655_360);
 assert.equal(output.value, `${output.width}x${output.height}`);
 
+const panoramicCanvas = calculateGptCanvas(1600, 400);
+assert.deepEqual(panoramicCanvas, {
+  width: 1600,
+  height: 534,
+  sourceX: 0,
+  sourceY: 67,
+  padded: true,
+});
+assert.doesNotThrow(() => calculateOutputSize(panoramicCanvas.width, panoramicCanvas.height));
+
+const verticalCanvas = calculateGptCanvas(400, 1600);
+assert.deepEqual(verticalCanvas, {
+  width: 534,
+  height: 1600,
+  sourceX: 67,
+  sourceY: 0,
+  padded: true,
+});
+
+const paddedMask = bitmap(24, 8, [[4, 2, 6, 4]]);
+const croppedMask = cropBitmapToSource(24, 8, paddedMask, 12, 4, 0, 1, 12, 2);
+assert.equal(croppedMask.width, 24);
+assert.equal(croppedMask.height, 4);
+assert.equal(croppedMask.bitmap[(4 * 4)], 255, "el contenido debe conservar su coordenada horizontal");
+assert.equal(croppedMask.bitmap[((3 * 24 + 4) * 4)], 255, "el contenido debe conservar toda su altura");
+
 assert.throws(
   () => extractMaskComponents(20, 20, bitmap(20, 20, [[0, 0, 20, 20]])),
   /cobertura inválida/,
 );
 assert.throws(() => calculateOutputSize(1600, 400), /relación 3:1/);
 
-console.log("mask-utils: 6 verificaciones superadas");
+console.log("mask-utils: 12 verificaciones superadas");

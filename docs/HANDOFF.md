@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: segmentación GPT admite recortes panorámicos
+
+**Tocado:** `supabase/functions/segment-teeth/index.ts`,
+`supabase/functions/segment-teeth/mask-utils.ts` y su prueba local.
+
+- El código de soporte `289a2f40-f9f7-4344-ae72-f8089e2e5bb2` confirmó que
+  la generación principal terminó correctamente en OpenAI (74.2 s), pero el
+  segmentador rechazó el recorte lado a lado antes de llamar a GPT porque su
+  relación era mayor que 3:1. La segmentación fallida no consumió una segunda
+  inferencia ni un segundo cobro.
+- Los recortes panorámicos o verticales extremos se centran ahora sobre un
+  lienzo negro con relación máxima 3:1, sin recortar, estirar ni deformar la
+  fotografía. Tras recibir la máscara, el servidor elimina esos márgenes y
+  proyecta componentes y cajas a las coordenadas exactas del recorte original.
+- El prompt declara el margen negro como zona no segmentable. El contrato
+  `masks`, las máscaras SVG individuales, FDI, Storage privado, autenticación y
+  límites de gasto permanecen iguales; no hubo cambios de frontend/PWA.
+- Prueba local ampliada a 12 verificaciones (panorámico, vertical y recorte de
+  bitmap), sintaxis válida y `git diff --check` limpio salvo avisos CRLF.
+  `segment-teeth` versión 33 quedó desplegada, `ACTIVE` y con su configuración
+  previa `verify_jwt=false`. No se ejecutó una segmentación pagada durante QA.
+
 ## 2026-08-23 — Codex: segmentación dental migrada de SAM 3 a GPT Image 2
 
 **Tocado:** `supabase/functions/segment-teeth/index.ts`,
