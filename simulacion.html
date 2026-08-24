@@ -1663,7 +1663,11 @@ function clasificarErrorParaUsuario(error) {
   if (status === 401 || /unauthorized|no autenticado|sesión|session|jwt|token.*(expir|invalid)|estado 401/.test(raw)) {
     return {titulo:'Tu sesión necesita renovarse', detalle:'Tu sesión venció antes de terminar. Vuelve a iniciar sesión y continúa con las fotos que ya guardaste.'};
   }
-  if (status === 402 || /plan|límite|limite|quota|crédito|credito|saldo|agotad/.test(raw)) {
+  // No buscar `plan` como simple subcadena: errores clínicos como "fila
+  // plana" contienen esas cuatro letras y antes se mostraban falsamente como
+  // falta de saldo, aunque la generación y la segmentación hubieran terminado.
+  var errorDePlan = /(?:^|[^a-záéíóúüñ0-9_])(?:plan|planes|límite|límites|limite|limites|quota|crédito|créditos|credito|creditos|saldo|agotado|agotada|agotados|agotadas)(?=$|[^a-záéíóúüñ0-9_])/i.test(raw);
+  if (status === 402 || errorDePlan) {
     return {titulo:'No hay simulaciones disponibles', detalle:'Revisa el plan de la clínica antes de intentarlo nuevamente.'};
   }
   if (status === 413 || /payload too large|request entity too large|estado 413|imagen demasiado grande/.test(raw)) {
