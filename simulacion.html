@@ -5366,6 +5366,15 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   var maskSegura=proteccionTejido.canvas;
   var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA),ms=medirMascaraAnatomica(maskSegura);
   var tejido=medirTejidoRosadoEnMascara(alineada,maskSegura);
+  // La cantidad retirada no define por sí sola si la propuesta es segura. El
+  // detector puede marcar encía adherida al borde de varias piezas y superar
+  // el porcentaje histórico aunque la resta deje una arcada completa. Lo que
+  // importa es que, DESPUÉS de limpiar, sobrevivan área y cobertura bilateral
+  // suficientes y que no quede tejido rosado residual.
+  var retencionArea=mo.area?ms.area/mo.area:0;
+  var retencionAncho=mo.w?ms.w/mo.w:0;
+  datosProteccionTejido.retainedAreaRatio=retencionArea;
+  datosProteccionTejido.retainedWidthRatio=retencionAncho;
   var revisionAnatomica=evaluarAnatomiaSegmentada(par.comparison,view||'frontal');
   var errores=revisionAnatomica.critical.slice();
   var advertencias=revisionAnatomica.warnings.slice();
@@ -5374,8 +5383,8 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   if(!mo.area||!ms.area)errores.push('no se identificó la arcada superior completa');
   if(mo.ratio<.001||mo.ratio>.13)errores.push('la región dental original tiene una extensión anormal');
   if(piezasOriginales.length&&piezasOriginales.length<4)errores.push('la segmentación original quedó incompleta');
-  if(proteccionTejido.removedRatio>.28)errores.push('la máscara dental invadió demasiado tejido rosado');
-  else if(proteccionTejido.removedRatio>.012)advertencias.push('se conservaron bordes originales de labio o encía');
+  if(mo.area&&(retencionArea<.52||retencionAncho<.68))errores.push('la limpieza de tejido no conservó una arcada dental completa');
+  else if(proteccionTejido.removedRatio>.012)advertencias.push('se restauraron desde la fotografía original bordes de labio o encía');
   if(!mg.area||mg.ratio<.001||mg.ratio>.13)advertencias.push('la máscara generada requirió el límite de la arcada original');
   if(mo.area&&mg.area) {
     var areaRel=mg.area/mo.area,anchoRel=mg.w/Math.max(1,mo.w);
@@ -8029,7 +8038,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 11;
+var SIM_QUALITY_VERSION = 12;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
