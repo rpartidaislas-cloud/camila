@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-23 — Codex: segmentación dental migrada de SAM 3 a GPT Image 2
+
+**Tocado:** `supabase/functions/segment-teeth/index.ts`,
+`supabase/functions/segment-teeth/mask-utils.ts` y su prueba local.
+
+- Por decisión del usuario, `segment-teeth` deja de llamar al SAM 3
+  generalista hospedado en Replicate. Reutiliza el Secret `OPENAI_API_KEY` y
+  el snapshot estable `gpt-image-2-2026-04-21`; ya no depende de
+  `REPLICATE_API_TOKEN`.
+- GPT recibe el recorte dental y devuelve una máscara binaria alineada, blanca
+  sobre negra. El servidor no confía directamente en esa imagen: aplica
+  umbrales de luminancia/cobertura, separa componentes conexos, descarta ruido
+  y blobs fusionados, conserva cajas/FDI y publica una máscara SVG individual
+  por componente. El contrato JSON `masks` no cambia para las apps existentes.
+- La llamada usa streaming con una imagen parcial y la respuesta JSON envía
+  whitespace de keepalive cada 8 s. Esto evita repetir el corte de Safari por
+  una conexión ociosa durante una operación larga; sólo se conserva la máscara
+  final y no existe reintento automático que pueda duplicar costo.
+- Defaults server-side: `OPENAI_SEGMENTATION_QUALITY=medium` y timeout 120 s;
+  ambos admiten override por Secret sin publicar otra app. La función mantiene
+  autenticación, límites por clínica/IP, Storage privado y guardado en
+  `camila_casos`.
+- Prueba local `mask-utils.test.mjs`: componentes separados, descarte de ruido,
+  escalado de cajas, SVG por pieza, restricciones de tamaño y rechazo de
+  coberturas inválidas. `segment-teeth` versión 31 quedó desplegada y `ACTIVE`
+  con `verify_jwt=false`; no se ejecutó una segmentación pagada durante QA.
+
 ## 2026-08-23 — Codex: streaming para evitar cortes entre Supabase y OpenAI
 
 **Tocado:** `supabase/functions/claude/index.ts`.
