@@ -68,6 +68,16 @@ function base64ABytes(base64: string): Uint8Array {
   return bytes;
 }
 
+function dimensionesPng(bytes: Uint8Array): { width: number; height: number; hasAlpha: boolean } | null {
+  const firma = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (bytes.byteLength < 26 || !firma.every((valor, indice) => bytes[indice] === valor)) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = view.getUint32(16);
+  const height = view.getUint32(20);
+  const colorType = bytes[25];
+  return { width, height, hasAlpha: colorType === 4 || colorType === 6 };
+}
+
 // La plataforma de Supabase mata la función si se pasa de su propio límite
 // de tiempo -- cuando eso pasa, el navegador ve la conexión cortada a medio
 // camino SIN los headers de CORS (porque el proceso murió antes de poder
@@ -220,7 +230,15 @@ Deno.serve(async (req: Request) => {
     // toca, Gemini lo recibe tal cual como el resto del contenido.
     if (body.action === "generate_image") {
       const imageStartedAt = performance.now();
-      const { imageBase64, mimeType = "image/jpeg", prompt = "Mejora la sonrisa dental con carillas naturales", guideImageBase64 = "", guideMimeType = "image/png" } = body;
+      const {
+        imageBase64,
+        mimeType = "image/jpeg",
+        prompt = "Mejora la sonrisa dental con carillas naturales",
+        guideImageBase64 = "",
+        guideMimeType = "image/png",
+        editMaskBase64 = "",
+        editMaskMimeType = "image/png",
+      } = body;
       if (!imageBase64) {
         return new Response(JSON.stringify({ error: "imageBase64 requerido" }), {
           headers: { ...CORS, "Content-Type": "application/json" }, status: 400
@@ -230,12 +248,32 @@ Deno.serve(async (req: Request) => {
 
       if (imageProvider === "openai") {
         const KEY = Deno.env.get("OPENAI_API_KEY")!;
+        const imageBytes = base64ABytes(imageBase64);
+        let editMaskBytes: Uint8Array | null = null;
+        if (editMaskBase64) {
+          editMaskBytes = base64ABytes(editMaskBase64);
+          const imagePng = dimensionesPng(imageBytes);
+          const maskPng = dimensionesPng(editMaskBytes);
+          if (!imagePng || !maskPng || mimeType !== "image/png" || editMaskMimeType !== "image/png") {
+            return new Response(JSON.stringify({ error: "La imagen y la máscara de edición deben ser PNG." }), {
+              status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+            });
+          }
+          if (imagePng.width !== maskPng.width || imagePng.height !== maskPng.height || !maskPng.hasAlpha) {
+            return new Response(JSON.stringify({ error: "La máscara debe tener canal alfa y las mismas dimensiones que la imagen." }), {
+              status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+            });
+          }
+        }
         const promptOpenAI = guideImageBase64
           ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is a geometric incisal-edge control map only. Follow its curve and labeled target points, but never render any map color, line, dot, label or black background. " + prompt
           : prompt;
         const form = new FormData();
         form.append("model", OPENAI_IMAGE_MODEL);
-        form.append("image[]", new Blob([base64ABytes(imageBase64)], { type: mimeType }), "patient-smile.jpg");
+        form.append("image[]", new Blob([imageBytes], { type: mimeType }), mimeType === "image/png" ? "patient-smile.png" : "patient-smile.jpg");
+        if (editMaskBytes) {
+          form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
+        }
         if (guideImageBase64) {
           form.append("image[]", new Blob([base64ABytes(guideImageBase64)], { type: guideMimeType }), "incisal-guide.png");
         }

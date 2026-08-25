@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-25 — Codex: edición limitada a dientes maxilares y encía
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
+`supabase/functions/claude/index.ts` y `supabase/functions/segment-teeth/index.ts`.
+
+- La generación prepara primero una máscara GPT `target: "treatment"` que sólo
+  admite dientes maxilares visibles y su encía asociada. Excluye de forma
+  explícita arcada inferior, labios, lengua, piel, vello y resto del rostro.
+- El recorte clínico se envía como PNG y la Edge Function valida firma, tamaño,
+  dimensiones y canal alfa antes de adjuntar la máscara a `/v1/images/edits`.
+  Fuera de esa máscara OpenAI recibe una zona opaca no editable.
+- La fotografía original sigue siendo la única base del resultado. Después de
+  generar, el navegador recorta nuevamente la IA con la misma región, limita su
+  borde inferior respecto a la arcada superior detectada y restaura todos los
+  píxeles exteriores desde el original. Así, un cambio de piel, labio, lengua o
+  dientes inferiores producido por el modelo no llega a la imagen presentada.
+- La encía puede refinarse sólo de forma conservadora: papilas y cénits con
+  textura, color y asimetría biológica; se rechazan bandas rosas planas. El
+  control de anatomía dental endurece proporciones centrales, jerarquía de
+  laterales/caninos, simetría, curva incisal y repetición de anchos.
+- Las segmentaciones son pasos internos de una simulación y ya no descuentan
+  usos adicionales del plan; la generación principal sigue descontando una vez
+  y se mantienen los límites por clínica e IP.
+- QA local: scripts inline válidos, archivos TypeScript aceptados por el parser
+  de Node, 12 verificaciones de `mask-utils` superadas y `git diff --check`
+  limpio salvo avisos CRLF. Caché PWA `smyl-v52`. **No se publicó ni desplegó**.
+
 ## 2026-08-23 — Codex: segmentación GPT admite recortes panorámicos
 
 **Tocado:** `supabase/functions/segment-teeth/index.ts`,

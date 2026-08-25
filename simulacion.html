@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v90 — entrega binaria</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v91 — máscara dientes + encía</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -2180,6 +2180,9 @@ var S = {
   // La máscara de la fotografía original se calcula una sola vez por toma.
   // Al regenerar solo se vuelve a segmentar el nuevo diseño de carillas.
   dentalMaskByView: {},
+  // Región estricta que sí puede editarse: dientes maxilares visibles y su
+  // encía asociada. Todo lo demás se restaura desde la fotografía original.
+  treatmentMaskByView: {},
   dentalMapByView: {},
   // Control visual local posterior a la generación. No realiza otra llamada
   // de IA: resume cobertura, piezas detectadas, variación óptica y tono por
@@ -3687,6 +3690,7 @@ function actualizarBotonVitaResultado() {
 async function startCam() {
   S.photos = [];
   S.dentalMaskByView = {};
+  S.treatmentMaskByView = {};
   S.dentalMapByView = {};
   S.currentPhoto = 0;
   S._ovalReady = false;
@@ -5048,11 +5052,13 @@ async function prepararRecorteDental(fotoOriginalUrl, view) {
   var crop = document.createElement('canvas');
   crop.width = w; crop.height = h;
   crop.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
-  var dataUrl = crop.toDataURL('image/jpeg', 0.94);
+  // OpenAI exige que imagen y máscara tengan el mismo formato y dimensiones.
+  // PNG además evita una recompresión previa en el borde exacto del tejido.
+  var dataUrl = crop.toDataURL('image/png');
   return {
     dataUrl: dataUrl,
     b64: dataUrl.split(',')[1],
-    mimeType: 'image/jpeg',
+    mimeType: 'image/png',
     rect: {x:x, y:y, w:w, h:h},
     fullSize: {w:W, h:H},
     isFull: rect.isFull
@@ -5337,9 +5343,10 @@ function construirMascaraDentalProtegida(maskOriginal,maskIA) {
 // separado. La fotografía original es la única base y la IA sólo sobrevive
 // dentro de esa región. Si la región no es bilateral y coherente, se falla de
 // forma cerrada; nunca se vuelve a la máscara aproximada basada en color.
-async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view) {
-  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl)]);
-  var originalImg=imagenes[0],iaImg=imagenes[1],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
+async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view,tratamientoMaskUrl) {
+  if(!tratamientoMaskUrl)throw new Error('Falta la máscara protegida de dientes y encía.');
+  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl),cargarImagenSegura(tratamientoMaskUrl)]);
+  var originalImg=imagenes[0],iaImg=imagenes[1],tratamientoImg=imagenes[2],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
   var original=document.createElement('canvas');original.width=W;original.height=H;
   original.getContext('2d').drawImage(originalImg,0,0,W,H);
   var registrada=dibujarImagenRegistrada(originalImg,iaImg,W,H,view||'frontal');
@@ -5351,40 +5358,56 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   var imgsMascara=await Promise.all([
     cargarImagenSegura(par.originalMaskUrl),cargarImagenSegura(par.iaMaskUrl)
   ]);
-  var maskOriginal=document.createElement('canvas'),maskIA=document.createElement('canvas');
+  var maskOriginal=document.createElement('canvas'),maskIA=document.createElement('canvas'),maskTratamiento=document.createElement('canvas');
   maskOriginal.width=maskIA.width=W;maskOriginal.height=maskIA.height=H;
+  maskTratamiento.width=W;maskTratamiento.height=H;
   maskOriginal.getContext('2d').drawImage(imgsMascara[0],0,0,W,H);
   maskIA.getContext('2d').drawImage(imgsMascara[1],0,0,W,H);
-  var maskAnatomica=construirMascaraDentalProtegida(maskOriginal,maskIA);
-  var proteccionTejido=excluirTejidoRosadoDeMascara(original,alineada,maskAnatomica);
-  var datosProteccionTejido={
-    detectedRatio:proteccionTejido.detectedRatio,
-    removedRatio:proteccionTejido.removedRatio,
-    detectedPixels:proteccionTejido.detectedPixels,
-    margin:proteccionTejido.margin
-  };
-  var maskSegura=proteccionTejido.canvas;
-  var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA),ms=medirMascaraAnatomica(maskSegura);
-  var tejido=medirTejidoRosadoEnMascara(alineada,maskSegura);
-  // La cantidad retirada no define por sí sola si la propuesta es segura. El
-  // detector puede marcar encía adherida al borde de varias piezas y superar
-  // el porcentaje histórico aunque la resta deje una arcada completa. Lo que
-  // importa es que, DESPUÉS de limpiar, sobrevivan área y cobertura bilateral
-  // suficientes y que no quede tejido rosado residual.
-  var retencionArea=mo.area?ms.area/mo.area:0;
-  var retencionAncho=mo.w?ms.w/mo.w:0;
-  datosProteccionTejido.retainedAreaRatio=retencionArea;
-  datosProteccionTejido.retainedWidthRatio=retencionAncho;
+  maskTratamiento.getContext('2d').drawImage(tratamientoImg,0,0,W,H);
+  var mo=medirMascaraAnatomica(maskOriginal),mg=medirMascaraAnatomica(maskIA),mt=medirMascaraAnatomica(maskTratamiento);
+
+  // Corredor geométrico duro: la región puede crecer hacia arriba para incluir
+  // encía, pero nunca puede bajar hasta la arcada mandibular ni extenderse más
+  // allá de los extremos razonables del maxilar detectado.
+  var maskSegura=document.createElement('canvas');maskSegura.width=W;maskSegura.height=H;
+  var tctx=maskTratamiento.getContext('2d',{willReadFrequently:true});
+  var safeCtx=maskSegura.getContext('2d');
+  var tdata=tctx.getImageData(0,0,W,H),sdata=safeCtx.createImageData(W,H);
+  var xMin=mo.area?Math.max(0,Math.floor(mo.x-mo.w*.20)):0;
+  var xMax=mo.area?Math.min(W-1,Math.ceil(mo.x+mo.w*1.20)):W-1;
+  var yMax=mo.area?Math.min(H-1,Math.ceil(mo.y+mo.h*1.18)):H-1;
+  for(var tp=0;tp<tdata.data.length;tp+=4){
+    var pixel=tp/4,px=pixel%W,py=Math.floor(pixel/W);
+    var alfa=(px>=xMin&&px<=xMax&&py<=yMax)?tdata.data[tp+3]:0;
+    sdata.data[tp]=255;sdata.data[tp+1]=255;sdata.data[tp+2]=255;sdata.data[tp+3]=alfa;
+  }
+  safeCtx.putImageData(sdata,0,0);
+  var ms=medirMascaraAnatomica(maskSegura);
+
+  var mop=maskOriginal.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var msp=safeCtx.getImageData(0,0,W,H).data,dentales=0,cubiertos=0;
+  for(var mi=3;mi<mop.length;mi+=4){
+    if(mop[mi]>40){dentales++;if(msp[mi]>40)cubiertos++;}
+  }
+  var coberturaDental=dentales?cubiertos/dentales:0;
   var revisionAnatomica=evaluarAnatomiaSegmentada(par.comparison,view||'frontal');
   var errores=revisionAnatomica.critical.slice();
   var advertencias=revisionAnatomica.warnings.slice();
   var piezasOriginales=par.comparison&&par.comparison.expectedPieces||[];
   if(par.comparison&&par.comparison.usedOriginalMaskFallback)advertencias.push('el render se protegió con la máscara superior original');
-  if(!mo.area||!ms.area)errores.push('no se identificó la arcada superior completa');
+  if(!mo.area||!mt.area||!ms.area)errores.push('no se identificó la región superior de dientes y encía');
   if(mo.ratio<.001||mo.ratio>.13)errores.push('la región dental original tiene una extensión anormal');
+  if(mt.ratio<.0015||mt.ratio>.24)errores.push('la región de tratamiento tiene una extensión anormal');
   if(piezasOriginales.length&&piezasOriginales.length<4)errores.push('la segmentación original quedó incompleta');
-  if(mo.area&&(retencionArea<.52||retencionAncho<.68))errores.push('la limpieza de tejido no conservó una arcada dental completa');
-  else if(proteccionTejido.removedRatio>.012)advertencias.push('se restauraron desde la fotografía original bordes de labio o encía');
+  if(mo.area&&coberturaDental<.76)errores.push('la región protegida no cubrió la arcada superior completa');
+  if(mo.area&&mt.area){
+    var anchoTratamiento=mt.w/Math.max(1,mo.w);
+    var centroTratamiento=Math.abs(mt.cx-mo.cx)/Math.max(1,mo.w);
+    var altoTratamiento=mt.h/Math.max(1,mo.h);
+    var fondoTratamiento=(mt.y+mt.h)-(mo.y+mo.h);
+    if(anchoTratamiento<.76||anchoTratamiento>1.42||centroTratamiento>.14)errores.push('la región protegida no coincide bilateralmente con el maxilar');
+    if(altoTratamiento>2.8||fondoTratamiento>mo.h*.20)errores.push('la región protegida alcanzó tejido inferior ajeno al tratamiento');
+  }
   if(!mg.area||mg.ratio<.001||mg.ratio>.13)advertencias.push('la máscara generada requirió el límite de la arcada original');
   if(mo.area&&mg.area) {
     var areaRel=mg.area/mo.area,anchoRel=mg.w/Math.max(1,mo.w);
@@ -5394,17 +5417,13 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
     if(anchoRel<.78||anchoRel>1.28)advertencias.push('la máscara generada cambió de cobertura bilateral');
     if(centroX>.12||centroY>.30)advertencias.push('la máscara generada llegó desplazada');
   }
-  // Después de restar el tejido, cualquier remanente relevante indica que la
-  // exclusión no fue suficiente y se mantiene el cierre de seguridad.
-  if(tejido.ratio>.008||tejido.maxRowRatio>.12)errores.push('se detectó tejido rosado residual dentro de la capa dental');
   if(errores.length) {
     var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
-    fallo.qualityMetrics={original:mo,generated:mg,safe:ms,pinkTissue:tejido,tissueProtection:datosProteccionTejido,anatomy:revisionAnatomica.metrics,warnings:advertencias,mode:'original-bounded-upper-arch'};
+    fallo.qualityMetrics={original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:coberturaDental,anatomy:revisionAnatomica.metrics,warnings:advertencias,mode:'original-bounded-upper-teeth-and-gingiva'};
     throw fallo;
   }
 
-  // La IA sólo sobrevive dentro de la máscara original protegida. La pequeña
-  // extensión admitida está simultáneamente respaldada por ambas máscaras.
+  // La IA sólo sobrevive dentro de la región de dientes maxilares y encía.
   var protegida=document.createElement('canvas');protegida.width=W;protegida.height=H;
   var pctx=protegida.getContext('2d');
   pctx.drawImage(alineada,0,0);
@@ -5416,8 +5435,8 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   // El reporte nunca se presenta como aprobación clínica automática.
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
-    issues:['Revisa anatomía, continuidad bilateral y coincidencia VITA antes de presentar.'].concat(advertencias),
-    metrics:{mode:'original-bounded-upper-arch',original:mo,generated:mg,safe:ms,pinkTissue:tejido,tissueProtection:datosProteccionTejido,anatomy:revisionAnatomica.metrics,alignment:registrada.alignment}
+    issues:['Revisa anatomía, simetría natural, encía y coincidencia VITA antes de presentar.'].concat(advertencias),
+    metrics:{mode:'original-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),anatomy:revisionAnatomica.metrics,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
@@ -5497,8 +5516,9 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   var fotoOriginalUrl = frontal.dataUrl || ('data:' + (frontal.mimeType || 'image/jpeg') + ';base64,' + frontal.b64);
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
   var tc = CFG.tenantConfig || {};
-  var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. Treat this as a surgical inpaint restricted to visible dental enamel. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. ONLY modify the teeth selected for treatment. Do not outpaint, zoom, recenter or rebuild the mouth. Preserve every non-dental pixel.' +
-    ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the teeth from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. Do NOT change the skin tone, lips, gums, eyes, hair, clothing or background — not even a subtle global tint. The darker or more saturated the chosen tooth shade is, the MORE important it is to keep this isolated: a dark tooth shade must never make the model darken, cool down, warm up or recolor the rest of the image to "match" — the teeth are the only thing allowed to change color. Pixel-perfect alignment with original photo outside the mouth.';
+  var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. A supplied edit mask is the absolute treatment boundary. Treat this as a surgical inpaint restricted to the visible MAXILLARY teeth and their directly associated visible upper gingiva inside that mask. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. Do not outpaint, zoom, recenter or rebuild the mouth. Every pixel outside the edit mask must remain identical.' +
+    ' TISSUE ISOLATION — NON-NEGOTIABLE: ONLY upper teeth and their visible upper gingiva may change. Preserve lower teeth, lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose and every other facial structure exactly as photographed. Never extend enamel over gingiva or lip; never extend pink gingiva onto teeth, lips or skin.' +
+    ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the masked treatment tissue from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. A dark or saturated tooth shade must never recolor the rest of the image to "match". Pixel-perfect alignment outside the treatment region.';
 
   // Tono elegido en la guía VITA (o "igual al actual" si S.vitaMode==='current').
   // Es el reemplazo del tono que antes venía del cuestionario (ya removido).
@@ -5538,13 +5558,13 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     ' SHADE SYSTEM: VITA Classical. TARGET SHADE: ' + vitaShade.code + '.' + shadeReferencePrompt + ' LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. VISUAL DESCRIPTION: ' + vitaShade.copy + '. Match the perceived shade consistently while retaining optically natural variation.';
   stylePrompt += ' ENAMEL FINISH: ' + finishPrompt + '. CHANGE INTENSITY: ' + intensityPrompt + '. OPTICAL CERAMIC REQUIREMENTS: interpret the selected VITA shade as a perceptual shade under the ORIGINAL illumination, not as one flat RGB fill. Build a continuous layered ceramic body with slightly warmer cervical dentin, a controlled-value middle third, and approximately 15–20 percent visually translucent incisal enamel. Include extremely subtle internal mamelons, a restrained opalescent incisal halo, natural mirror areas, convexity shadow transitions and narrow vertical specular highlights that follow the original light direction. Keep tiny natural value and texture variation between neighboring teeth while all remain recognizably within the selected VITA shade. AVOID: flat paint, uniform opaque fill, gray cast, excessive yellow, blown-out white, horizontal color bands, neon brightness, repeated highlights or identical plastic-looking teeth.';
-  stylePrompt += ' INDIVIDUAL TOOTH DESIGN AND MANDATORY COVERAGE: first identify and count every visible MAXILLARY tooth in the smile corridor, from the most posterior visible tooth on the patient right to the most posterior visible tooth on the patient left. Restore EVERY ONE of those visible upper teeth in the same pass, one-to-one. The six anterior teeth are mandatory, and every naturally visible premolar must also receive the same complete ceramic treatment. Never leave one natural, yellow or untreated upper tooth between or immediately beside restored teeth. Before returning the image, perform a bilateral checklist: the treated sequence must be continuous, with an equivalent visible endpoint on both sides whenever the photograph shows both counterparts. Every original maxillary tooth remains the same identifiable tooth and keeps its exact gingival emergence point and root reference. You MAY correct the VISIBLE CORONAL axis, rotation and alignment through the veneer facial contour, transition line angles and contact design; this is required when the original crowns look crowded or rotated. Do not move gingival margins, translate the whole arch, enlarge the mouth or invent teeth. Leave every LOWER tooth exactly as photographed: same color, shape, position, texture and shadows. PROPORTIONAL TEMPLATE, adapted to facial type and perspective rather than forced mechanically: central-incisor width-to-height approximately 75–82 percent; lateral incisors about 70–78 percent of central crown width and visually 0.5–1.0 mm shorter; canines about 75–85 percent of central crown width with a stronger cervical body, subtle cusp and smooth posterior transition. Keep the central pair symmetric within a small natural tolerance, not cloned. Place their contact line on the facial and dental midline, keep their incisal edges level within natural perspective, then create a progressive incisal curve parallel to the lower lip through laterals and canines. Correct visual crowding by conservative coronal contour and line-angle changes; never make the dental arch wider than the mouth or stack one veneer over another. Contacts must remain distinct, with clean small incisal embrasures and preserved interproximal shadows so the result never becomes one continuous white plate. Never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from the existing gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. FINAL SELF-CHECK: no visible upper tooth in the treated corridor may remain unchanged; both sides must have coherent shade, surface, axial alignment and endpoint coverage. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
+  stylePrompt += ' INDIVIDUAL TOOTH DESIGN AND MANDATORY COVERAGE: first identify and count every visible MAXILLARY tooth in the smile corridor, from the most posterior visible tooth on the patient right to the most posterior visible tooth on the patient left. Restore EVERY ONE of those visible upper teeth in the same pass, one-to-one. The six anterior teeth are mandatory, and every naturally visible premolar must also receive the same complete ceramic treatment. Never leave one natural, yellow or untreated upper tooth between or immediately beside restored teeth. Before returning the image, perform a bilateral checklist: the treated sequence must be continuous, with an equivalent visible endpoint on both sides whenever the photograph shows both counterparts. Every original maxillary tooth remains the same identifiable tooth and preserves its root reference. You MAY correct the VISIBLE CORONAL axis, rotation and alignment through the veneer facial contour, transition line angles and contact design; this is required when the original crowns look crowded or rotated. Within the supplied mask only, you MAY make a conservative gingival refinement where needed to balance papillae and gingival zeniths. Gingiva must retain natural color variation, stippling, vascular detail and periodontal identity; never create a flat pink band, artificial recession, excessive crown lengthening or perfectly mirrored tissue. Do not translate the whole arch, enlarge the mouth or invent teeth. Leave every LOWER tooth and lower gingiva exactly as photographed: same color, shape, position, texture and shadows. PROPORTIONAL TEMPLATE, adapted to facial type and perspective rather than forced mechanically: central-incisor width-to-height approximately 75–82 percent; lateral incisors about 70–78 percent of central crown width and visually 0.5–1.0 mm shorter; canines about 75–85 percent of central crown width with a stronger cervical body, subtle cusp and smooth posterior transition. Keep the central pair symmetric within a small natural tolerance, not cloned. Place their contact line on the facial and dental midline, keep their incisal edges level within natural perspective, then create a progressive incisal curve parallel to the lower lip through laterals and canines. Correct visual crowding by conservative coronal contour and line-angle changes; never make the dental arch wider than the mouth or stack one veneer over another. Contacts must remain distinct, with clean small incisal embrasures and preserved interproximal shadows so the result never becomes one continuous white plate. Never create black triangular holes, duplicated borders or dark cut-out gaps. COVERAGE AND MARGINS: each new veneer must completely replace the visible facial enamel of its corresponding original upper tooth from its natural or conservatively refined gingival margin to the new incisal edge. Never leave a yellow rim, old-tooth outline, double contour or translucent border showing the original enamel underneath. Blend cervical value inside the ceramic itself; do not achieve blending by exposing the old tooth. FINAL SELF-CHECK: no visible upper tooth in the treated corridor may remain unchanged; both sides must have coherent shade, surface, axial alignment and endpoint coverage. ABSOLUTELY AVOID piano-key teeth, a denture row, identical chiclet crowns, narrow repeated rectangles, flat opaque white surfaces or an unnaturally perfect picket-fence edge.';
 
   stylePrompt += (S.vitaMode==='current' ? ' Match the patient current natural enamel shade.' :
     ' Apply VITA Classical '+vitaShade.code+' directly, using '+vitaShade.copy+'.'+shadeReferencePrompt) +
     ' DIRECT VENEER APPLICATION — NO SEGMENTATION OR MASK OUTPUT. Apply individualized ceramic veneers directly to every visible upper tooth in one continuous natural smile design. Keep the same teeth, gingival emergence, perspective and mouth opening. ' +
     'Central incisors retain natural dominance; laterals are subtly shorter and narrower; canines preserve anatomical character. Use distinct contacts, small embrasures, layered ceramic depth, fine vertical texture, restrained incisal translucency and reflections from the original light. ' +
-    'Leave lower teeth, gingiva, lips and every non-dental detail visually unchanged. Do not create gray cutouts, flat overlays, isolated patches, doubled borders, piano-key teeth or a uniform opaque row. '+finishPrompt+'. '+intensityPrompt+'.';
+    'Gingival refinements, when clinically useful, must stay conservative and natural inside the supplied mask. Leave lower teeth, lower gingiva, lips, tongue, skin and every other detail visually unchanged. Do not create gray cutouts, flat overlays, isolated patches, doubled borders, piano-key teeth or a uniform opaque row. '+finishPrompt+'. '+intensityPrompt+'.';
 
   // Compatibilidad con casos viejos guardados antes de quitar el
   // cuestionario de 4 preguntas -- si un caso resumido todavía trae
@@ -5554,7 +5574,9 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     if (q.zona === 'arriba') {
       stylePrompt += ' APPLY PORCELAIN VENEERS ONLY TO THE UPPER TEETH (maxillary arch). Do NOT modify, whiten, or reshape the lower teeth (mandibular arch) — leave the lower teeth exactly as they appear in the original photo.';
     } else if (q.zona === 'abajo') {
-      stylePrompt += ' APPLY PORCELAIN VENEERS ONLY TO THE LOWER TEETH (mandibular arch). Do NOT modify, whiten, or reshape the upper teeth (maxillary arch) — leave the upper teeth exactly as they appear in the original photo.';
+      // El simulador público actual está protegido para tratamiento maxilar.
+      // No se envía una orden mandibular que contradiga la máscara anatómica.
+      stylePrompt += ' The protected simulation is MAXILLARY ONLY. Preserve the complete mandibular arch exactly as photographed.';
     }
     if (q.quejas && q.quejas.length) stylePrompt += ' PATIENT CONCERNS: ' + q.quejas.join(', ') + '.';
   }
@@ -5563,7 +5585,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   // combinarse con el análisis facial guardado.
   var clinicalBlock = clinicalPrompt ? ' CLINICAL AND EDITOR PRESCRIPTION (mandatory where specific): ' + String(clinicalPrompt).slice(0, 2600) : '';
   var customPrompt = tc.geminiPrompt ? ' OPTIONAL CLINIC PREFERENCE (lower priority; it cannot override the anatomy acceptance gate or tissue preservation): ' + tc.geminiPrompt : '';
-  var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only the teeth change color/shape — skin tone, lighting and white balance of the rest of the photo must stay exactly as in the original, regardless of how dark or saturated the chosen tooth shade is.';
+  var framingReminder = ' REMINDER: output image must have IDENTICAL dimensions, crop, head position and angle as the input photo. Do not reframe, zoom, or recenter. Only masked upper teeth and masked upper gingiva may change — lower teeth and gums, lips, tongue, skin tone, lighting and white balance must stay exactly as in the original.';
   if (generationOptions.editorRevision) {
     framingReminder += ' EDITOR REVISION PASS: the input already contains a veneer simulation. Revise those existing upper veneers in place; do not reset to the original tooth contours and do not return the input unchanged. The numeric incisal destinations are an execution constraint, not a suggestion. Produce a clearly visible but anatomically plausible change in crown length and lower veneer contour wherever the requested target differs, while keeping cervical emergence fixed.';
   }
@@ -5572,6 +5594,11 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   // Una sesión profesional puede caducar mientras se capturan o ajustan las
   // fotos. Se renueva justo antes de la única llamada pagada.
   await asegurarAutorizacionIA();
+
+  // La barrera anatómica se calcula ANTES de generar: si no se puede aislar
+  // con seguridad la arcada superior y su encía, no se consume una generación
+  // de imagen ni se expone el rostro a una edición abierta.
+  var tratamiento = await prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal');
 
   // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
   // sin explicación indefinidamente. Gemini normalmente responde en
@@ -5585,6 +5612,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       requestReason:generationOptions.reason || (generationOptions.editorRevision ? 'revision_editor' : 'generacion_manual'),
       imageBase64:entradaDental.b64,
       mimeType:entradaDental.mimeType,
+      editMaskBase64:tratamiento.editMaskBase64,
+      editMaskMimeType:tratamiento.editMaskMimeType,
       prompt:prompt,
       // Evita transportar el JPEG como base64 dentro de JSON: en iOS esa
       // copia adicional podía cortar o agotar la respuesta ya generada.
@@ -5640,28 +5669,31 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     console.info('[SMYL] generación de imagen:', S.lastGenerationMeta);
     var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
     if (!url) throw new Error('Sin imagen');
-    var marcasTecnicas = await detectarMarcasTecnicasIA(url, frontal.view || 'frontal');
+    // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
+    // arcada superior. Si no puede validarse, el resultado se descarta.
+    var compuestaRecorte = await componerConMascaraAnatomicaContinua(
+      entradaDental.dataUrl,
+      url,
+      frontal.view || 'frontal',
+      tratamiento.regionUrl
+    );
+    // Los controles se ejecutan sobre la composición protegida, no sobre los
+    // píxeles crudos que la IA pudo producir fuera de la máscara y que ya se
+    // restauraron desde la fotografía original.
+    var marcasTecnicas = await detectarMarcasTecnicasIA(compuestaRecorte, frontal.view || 'frontal');
     if (marcasTecnicas.detected) {
-      var errorMarcas = new Error('La IA dibujó marcas técnicas en la sonrisa y el resultado fue descartado. Genera de nuevo; la curva se enviará únicamente como geometría clínica.');
+      var errorMarcas = new Error('La IA dibujó marcas técnicas dentro de la sonrisa y el resultado fue descartado. Genera de nuevo.');
       errorMarcas.qualityMetrics = marcasTecnicas;
       throw errorMarcas;
     }
     if (generationOptions.requireVisibleChange) {
-      var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, url, frontal.view || 'frontal');
+      var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, compuestaRecorte, frontal.view || 'frontal');
       if (cambioVisible.mean < 2.4 && cambioVisible.changedRatio < .035) {
         var errorSinCambio = new Error('La IA devolvió prácticamente el mismo contorno dental y no aplicó la curva. El resultado fue descartado para no mostrar un diseño sin cambios.');
         errorSinCambio.qualityMetrics = cambioVisible;
         throw errorSinCambio;
       }
     }
-
-    // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
-    // arcada superior. Si no puede validarse, el resultado se descarta.
-    var compuestaRecorte = await componerConMascaraAnatomicaContinua(
-      entradaDental.dataUrl,
-      url,
-      frontal.view || 'frontal'
-    );
     var compuesta = entradaDental.isFull
       ? compuestaRecorte
       : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
@@ -8038,7 +8070,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 12;
+var SIM_QUALITY_VERSION = 13;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
@@ -8099,18 +8131,22 @@ function evaluarAnatomiaSegmentada(comparacion, view) {
   metricas.incisalRange=+rangoIncisal.toFixed(3);
   metricas.lateralStep=+escalonLateral.toFixed(3);
   metricas.widthVariation=+cvAnchos.toFixed(3);
-  var fallos=[];
-  if(ratioCentral<.66||ratioCentral>.92)fallos.push('proporción central fuera de un corredor natural');
-  if(ratioLateral<.55||ratioLateral>.93)fallos.push('jerarquía anterior sin laterales claramente más estrechos');
-  if(simetriaCentral>.18)fallos.push('centrales con anchuras incompatibles');
+  var fallos=[],severos=[];
+  if(ratioCentral<.70||ratioCentral>.88)fallos.push('proporción central fuera de un corredor natural');
+  if(ratioCentral<.62||ratioCentral>.98)severos.push('proporción central grotesca');
+  if(ratioLateral<.60||ratioLateral>.86)fallos.push('jerarquía anterior sin laterales claramente más estrechos');
+  if(ratioLateral>.98)severos.push('laterales tan anchos como los centrales');
+  if(simetriaCentral>.14)fallos.push('centrales con anchuras incompatibles');
+  if(simetriaCentral>.24)severos.push('asimetría central excesiva');
   if(rangoIncisal<.035||escalonLateral<.012)fallos.push('fila plana sin escalón lateral ni curva incisal');
-  if(cvAnchos<.045)fallos.push('anchos repetidos con aspecto de dientes clonados');
-  if(ratioCanino<.48||ratioCanino>1.08)fallos.push('caninos sin transición anatómica plausible');
+  if(rangoIncisal<.025&&escalonLateral<.010)severos.push('borde incisal completamente plano');
+  if(cvAnchos<.055)fallos.push('anchos repetidos con aspecto de dientes clonados');
+  if(ratioCanino<.55||ratioCanino>.95)fallos.push('caninos sin transición anatómica plausible');
   metricas.grossFailureCount=fallos.length;
-  // Una sola desviación puede provenir de perspectiva o de la segmentación.
-  // Dos señales simultáneas representan el patrón grotesco que no debe llegar
-  // al paciente: centrales en bloque, laterales iguales y borde recto.
-  if(fallos.length>=2)criticos.push('anatomía dental inválida: '+fallos.slice(0,3).join(' · '));
+  metricas.severeFailureCount=severos.length;
+  // Una desviación moderada puede provenir de perspectiva; una señal extrema
+  // o dos señales simultáneas ya representan un resultado no presentable.
+  if(severos.length||fallos.length>=2)criticos.push('anatomía dental inválida: '+(severos.length?severos:fallos).slice(0,3).join(' · '));
   else if(fallos.length)advertencias.push(fallos[0]);
   return {critical:criticos,warnings:advertencias,metrics:metricas};
 }
@@ -8189,7 +8225,7 @@ function seleccionarMascarasArcadaSuperior(masks) {
 }
 
 async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
-  if (!masks || !masks.length) throw new Error('La segmentación no encontró dientes visibles.');
+  if (!masks || !masks.length) throw new Error(arcada === 'treatment' ? 'La segmentación no encontró el área dental superior.' : 'La segmentación no encontró dientes visibles.');
   // En la simulación rápida las carillas se aplican a la zona estética
   // superior. Copiar la arcada inferior fue la causa de bordes gingivales
   // rojizos y dientes inferiores artificiales.
@@ -8234,7 +8270,8 @@ async function unirMascarasSegmentadas(masks, ancho, alto, arcada) {
     data.data[q] = 255; data.data[q + 1] = 255; data.data[q + 2] = 255; data.data[q + 3] = a;
   }
   mctx.putImageData(data, 0, 0);
-  if (activos < Math.max(30, ancho * alto * 0.00005) || activos > ancho * alto * 0.18) {
+  var maximoRegion = arcada === 'treatment' ? 0.24 : 0.18;
+  if (activos < Math.max(30, ancho * alto * 0.00005) || activos > ancho * alto * maximoRegion) {
     throw new Error('La máscara dental obtenida no tiene una extensión válida.');
   }
 
@@ -8405,7 +8442,7 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
   };
 }
 
-async function solicitarSegmentacionDental(entrada) {
+async function solicitarSegmentacion(entrada, target) {
   if (!S.casoId) S.casoId = generarUuid();
   var resp = await conTimeout(fetch(CFG.segmentUrl, {
     method: 'POST',
@@ -8414,12 +8451,58 @@ async function solicitarSegmentacionDental(entrada) {
       imageUrl: entrada,
       casoId: S.casoId,
       tenantId: CFG.tenantId,
-      target: 'tooth'
+      target: target || 'tooth'
     })
-  }), 90000, 'segmentación de los dientes');
+  }), 90000, target === 'treatment' ? 'segmentación del área de tratamiento' : 'segmentación de los dientes');
   var data = await resp.json().catch(function(){ return {}; });
-  if (!resp.ok || data.error) throw errorDelServidor(data.error || ('La segmentación de dientes respondió ' + resp.status + '.'));
+  if (!resp.ok || data.error) throw errorDelServidor(data.error || ('La segmentación dental respondió ' + resp.status + '.'));
   return data.masks || [];
+}
+
+async function solicitarSegmentacionDental(entrada) {
+  return solicitarSegmentacion(entrada, 'tooth');
+}
+
+// Construye las dos representaciones de la misma región: una máscara visible
+// para la composición local (alfa dentro del tratamiento) y la máscara que
+// espera OpenAI (transparente dentro, opaca fuera). Ambas conservan exactamente
+// el tamaño del recorte PNG enviado a generación.
+async function prepararMascaraTratamiento(entradaDental, view) {
+  var clave = (view || 'frontal') + ':' + entradaDental.rect.w + 'x' + entradaDental.rect.h;
+  var regionUrl = S.treatmentMaskByView[clave];
+  if (!regionUrl) {
+    var masks = await solicitarSegmentacion(entradaDental.dataUrl, 'treatment');
+    regionUrl = await unirMascarasSegmentadas(masks, entradaDental.rect.w, entradaDental.rect.h, 'treatment');
+    S.treatmentMaskByView[clave] = regionUrl;
+  }
+  var regionImg = await cargarImagenSegura(regionUrl);
+  var region = document.createElement('canvas');
+  region.width = entradaDental.rect.w; region.height = entradaDental.rect.h;
+  var rctx = region.getContext('2d', {willReadFrequently:true});
+  rctx.drawImage(regionImg, 0, 0, region.width, region.height);
+  var medida = medirMascaraAnatomica(region);
+  if (!medida.area || medida.ratio < .0015 || medida.ratio > .24 || medida.w < region.width * .18) {
+    throw new Error('No fue posible aislar con seguridad dientes y encía superior. Intenta con otra fotografía frontal.');
+  }
+
+  var edit = document.createElement('canvas');
+  edit.width = region.width; edit.height = region.height;
+  var ectx = edit.getContext('2d');
+  var src = rctx.getImageData(0, 0, region.width, region.height).data;
+  var dst = ectx.createImageData(region.width, region.height);
+  for (var i = 0; i < src.length; i += 4) {
+    var dentro = src[i + 3] > 24;
+    dst.data[i] = 255; dst.data[i + 1] = 255; dst.data[i + 2] = 255;
+    dst.data[i + 3] = dentro ? 0 : 255;
+  }
+  ectx.putImageData(dst, 0, 0);
+  var editUrl = edit.toDataURL('image/png');
+  return {
+    regionUrl: region.toDataURL('image/png'),
+    editMaskBase64: editUrl.split(',')[1],
+    editMaskMimeType: 'image/png',
+    metrics: medida
+  };
 }
 
 async function segmentarCanvasDental(canvas, cacheKey) {
@@ -9062,6 +9145,7 @@ function compartirConPaciente() {
 function nuevoCaso() {
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.dentalMaskByView = {};
+  S.treatmentMaskByView = {};
   S.dentalMapByView = {};
   S.simulationQualityByView = {};
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;

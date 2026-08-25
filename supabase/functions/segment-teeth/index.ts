@@ -8,7 +8,8 @@
 //
 // Uso:
 //   { imageUrl, casoId, tenantId, target: "tooth" }  <- default, como antes
-//   { imageUrl, casoId, tenantId, target: "gum" }    <- nuevo
+//   { imageUrl, casoId, tenantId, target: "gum" }    <- encía visible
+//   { imageUrl, casoId, tenantId, target: "treatment" } <- dientes maxilares + encía asociada
 //
 // Para "gum" NO se asigna notación FDI (no aplica), solo se numeran por
 // índice y se guardan en una columna separada (segmentacion_encia) para
@@ -17,7 +18,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
-import { checkAndConsumeLimit, checkAndConsumeLimitProspecto } from "../_shared/limits.ts";
+import {
+  checkAndConsumeLimit,
+  checkLimitPorIpProspecto,
+  checkLimitSinConsumir,
+} from "../_shared/limits.ts";
 import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import {
   calculateGptCanvas,
@@ -58,7 +63,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id",
 };
 
-type Target = "tooth" | "gum";
+type Target = "tooth" | "gum" | "treatment";
 
 interface Candidate {
   bbox: [number, number, number, number];
@@ -78,6 +83,18 @@ interface RegionMask {
 }
 
 function promptParaTarget(target: Target): string {
+  if (target === "treatment") {
+    return [
+      "Create a pixel-aligned binary semantic segmentation mask of ONLY the visible MAXILLARY teeth and the directly associated visible upper gingiva in the supplied smile photograph.",
+      "This is a strict dental treatment edit region, not a mouth or face mask.",
+      "Keep exactly the same canvas, crop, scale, perspective and position as the input.",
+      "Output pure white (#FFFFFF) on every visible upper tooth crown and on visible upper gingiva immediately surrounding those teeth, including natural papillae and gingival margins.",
+      "Output pure black (#000000) on lower teeth, lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose, shadows, background and every other structure.",
+      "Never include the upper or lower lip, even where its pink color resembles gingiva. Never include mandibular teeth or tissue.",
+      "Do not invent, enlarge, straighten or reshape any structure. Do not create a smile design.",
+      "Use flat solid fills: no texture, gradients, antialias haze, outlines, labels, symbols or explanatory text.",
+    ].join(" ");
+  }
   if (target === "gum") {
     return [
       "Create a pixel-aligned binary semantic segmentation mask of the visible gingiva in the supplied dental photograph.",
@@ -397,9 +414,9 @@ function assignFdiNotation(survivors: Candidate[]) {
   return [...upperResult, ...lowerResult];
 }
 
-// Para "gum" no hay FDI -- solo se ordenan de izquierda a derecha y se
-// numeran por índice, sin la lógica de dientes/fragmentos.
-function tagAsGum(survivors: Candidate[]) {
+// Para regiones continuas (encía o tratamiento) no hay FDI: se ordenan de
+// izquierda a derecha sin aplicar lógica de piezas dentales.
+function tagAsRegion(survivors: Candidate[]) {
   const sorted = [...survivors].sort((a, b) => a.bbox[0] - b.bbox[0]);
   return sorted.map((m) => ({ ...m, fdi: null as string | null, parentFdi: null as string | null }));
 }
@@ -411,7 +428,7 @@ async function uploadAll(
   target: Target
 ): Promise<RegionMask[]> {
   const folder = casoId || `sin-caso-${Date.now()}`;
-  const prefix = target === "gum" ? "gum_mask" : "mask";
+  const prefix = target === "gum" ? "gum_mask" : target === "treatment" ? "treatment_mask" : "mask";
   const masks: RegionMask[] = [];
 
   for (let i = 0; i < taggedMasks.length; i++) {
@@ -474,16 +491,24 @@ serve(async (req) => {
   const { user, tenantId: tenantIdSesion, response: authError } = await requireUser(req, corsHeaders);
   if (authError) return authError;
 
-  // Tope de gasto server-side -- ver _shared/limits.ts. GPT Image también
-  // cuesta dinero real por llamada, igual que la generación principal en
-  // claude/index.ts. tenantIdSesion viene resuelto por requireUser()
-  // (distingue dueño de staff, ver _shared/auth.ts) -- NUNCA usar
-  // user?.id directo aquí, un staff tiene su propio auth.uid(), distinto
-  // al id de su clínica.
+  // La segmentación es un paso interno de UNA simulación. La generación
+  // principal ya descuenta esa simulación del plan; volver a descontar por
+  // cada máscara haría que un solo resultado consumiera tres usos. Aquí se
+  // valida que el plan tenga cupo y se conserva el límite por IP, sin sumar
+  // otro uso clínico. Un anónimo sin tenant mantiene el control estricto.
   const tenantHeaderProspecto = user ? null : req.headers.get("x-tenant-id");
-  const { allowed, response: limitError } = tenantHeaderProspecto
-    ? await checkAndConsumeLimitProspecto(req, tenantHeaderProspecto, corsHeaders)
-    : await checkAndConsumeLimit(req, tenantIdSesion, corsHeaders);
+  let limitCheck;
+  if (tenantHeaderProspecto) {
+    const porIp = await checkLimitPorIpProspecto(req, corsHeaders);
+    limitCheck = porIp.allowed
+      ? await checkLimitSinConsumir(tenantHeaderProspecto, corsHeaders)
+      : porIp;
+  } else if (!user) {
+    limitCheck = await checkAndConsumeLimit(req, null, corsHeaders);
+  } else {
+    limitCheck = await checkLimitSinConsumir(tenantIdSesion, corsHeaders);
+  }
+  const { allowed, response: limitError } = limitCheck;
   if (!allowed) return limitError!;
 
   let body: any;
@@ -497,7 +522,7 @@ serve(async (req) => {
   }
 
   const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = body || {};
-  const target: Target = targetRaw === "gum" ? "gum" : "tooth";
+  const target: Target = targetRaw === "gum" || targetRaw === "treatment" ? targetRaw : "tooth";
   if (!imageUrl) {
     return new Response(JSON.stringify({ error: "imageUrl es requerido" }), {
       status: 400,
@@ -569,14 +594,16 @@ serve(async (req) => {
           if (!survivorsFiltrados.length) {
             throw new Error("GPT no dejó componentes dentales válidos después del control geométrico.");
           }
-          const tagged = target === "gum" ? tagAsGum(survivorsFiltrados) : assignFdiNotation(survivorsFiltrados);
+          const tagged = target === "tooth" ? assignFdiNotation(survivorsFiltrados) : tagAsRegion(survivorsFiltrados);
           const supabase = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
           const masks = await uploadAll(tagged, supabase, casoId, target);
           if (masks.length !== tagged.length) {
             throw new Error("No fue posible publicar todas las máscaras dentales generadas.");
           }
 
-          if (casoId && tenantId) {
+          // La región de tratamiento es efímera y sólo protege una generación;
+          // no sustituye las segmentaciones clínicas persistentes del caso.
+          if (casoId && tenantId && target !== "treatment") {
             const columnaDestino = target === "gum" ? "segmentacion_encia" : "segmentacion";
             const { error: dbError } = await supabase
               .from("camila_casos")
