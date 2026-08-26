@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v93 — contrato único de carillas</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v94 — plano individual 13–23</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -4664,7 +4664,8 @@ async function processPhotos() {
     // otra vez, evitando cargos duplicados invisibles.
     var resultadoFrontal = await generateSimulation(clinicalPrompt, frontalPhoto, {
       requestId: crearIdSolicitudIA(),
-      reason: 'simulacion_inicial'
+      reason: 'simulacion_inicial',
+      requireVisibleChange: true
     });
 
     // S.diagnosis se deja sin pedir -- S.photos (las fotos originales,
@@ -5343,7 +5344,7 @@ function construirMascaraDentalProtegida(maskOriginal,maskIA) {
 // separado. La fotografía original es la única base y la IA sólo sobrevive
 // dentro de esa región. Si la región no es bilateral y coherente, se falla de
 // forma cerrada; nunca se vuelve a la máscara aproximada basada en color.
-async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view,tratamientoMaskUrl) {
+async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view,tratamientoMaskUrl,planoDental) {
   if(!tratamientoMaskUrl)throw new Error('Falta la máscara protegida de dientes y encía.');
   var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl),cargarImagenSegura(tratamientoMaskUrl)]);
   var originalImg=imagenes[0],iaImg=imagenes[1],tratamientoImg=imagenes[2],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
@@ -5390,7 +5391,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
     if(mop[mi]>40){dentales++;if(msp[mi]>40)cubiertos++;}
   }
   var coberturaDental=dentales?cubiertos/dentales:0;
-  var revisionAnatomica=evaluarAnatomiaSegmentada(par.comparison,view||'frontal');
+  var revisionAnatomica=evaluarAnatomiaSegmentada(par.comparison,view||'frontal',planoDental);
   var errores=revisionAnatomica.critical.slice();
   var advertencias=revisionAnatomica.warnings.slice();
   var piezasOriginales=par.comparison&&par.comparison.expectedPieces||[];
@@ -5445,7 +5446,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
     issues:['Revisa anatomía, simetría natural, encía y coincidencia VITA antes de presentar.'].concat(advertencias,revisionVisual.issues||[]),
-    metrics:{mode:'original-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,alignment:registrada.alignment}
+    metrics:{mode:'original-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
@@ -5627,10 +5628,12 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   // fotos. Se renueva justo antes de la única llamada pagada.
   await asegurarAutorizacionIA();
 
-  // La barrera anatómica se calcula ANTES de generar: si no se puede aislar
-  // con seguridad la arcada superior y su encía, no se consume una generación
-  // de imagen ni se expone el rostro a una edición abierta.
+  // El plano individual y la barrera anatómica se calculan ANTES de generar:
+  // si no pueden identificarse seis piezas o aislarse dientes/encía, no se
+  // consume una generación de imagen ni se expone el rostro a edición abierta.
+  var planoDental = await prepararPlanoDentalIndividual(entradaDental, frontal.view || 'frontal');
   var tratamiento = await prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal');
+  prompt += ' ' + planoDental.prompt;
 
   // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
   // sin explicación indefinidamente. Gemini normalmente responde en
@@ -5646,6 +5649,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       mimeType:entradaDental.mimeType,
       editMaskBase64:tratamiento.editMaskBase64,
       editMaskMimeType:tratamiento.editMaskMimeType,
+      guideImageBase64:planoDental.guideBase64,
+      guideMimeType:planoDental.guideMimeType,
       prompt:prompt,
       // Evita transportar el JPEG como base64 dentro de JSON: en iOS esa
       // copia adicional podía cortar o agotar la respuesta ya generada.
@@ -5707,7 +5712,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       entradaDental.dataUrl,
       url,
       frontal.view || 'frontal',
-      tratamiento.regionUrl
+      tratamiento.regionUrl,
+      planoDental
     );
     // Los controles se ejecutan sobre la composición protegida, no sobre los
     // píxeles crudos que la IA pudo producir fuera de la máscara y que ya se
@@ -5718,10 +5724,10 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       errorMarcas.qualityMetrics = marcasTecnicas;
       throw errorMarcas;
     }
-    if (generationOptions.requireVisibleChange) {
+    if (generationOptions.requireVisibleChange !== false) {
       var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, compuestaRecorte, frontal.view || 'frontal');
-      if (cambioVisible.mean < 2.4 && cambioVisible.changedRatio < .035) {
-        var errorSinCambio = new Error('La IA devolvió prácticamente el mismo contorno dental y no aplicó la curva. El resultado fue descartado para no mostrar un diseño sin cambios.');
+      if (cambioVisible.mean < 4 || cambioVisible.changedRatio < .09) {
+        var errorSinCambio = new Error('La IA devolvió prácticamente la misma sonrisa y no ejecutó el plano individual de carillas. El resultado fue descartado para no mostrar un diseño sin cambios.');
         errorSinCambio.qualityMetrics = cambioVisible;
         throw errorSinCambio;
       }
@@ -8102,13 +8108,13 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 15;
+var SIM_QUALITY_VERSION = 16;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
 // seis anteriores conserven jerarquía y curva, en vez de aceptar una fila de
 // rectángulos sólo porque todos los píxeles están dentro de la boca.
-function evaluarAnatomiaSegmentada(comparacion, view) {
+function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
   var criticos=[],advertencias=[],metricas={};
   if((view||'frontal')!=='frontal')return {critical:criticos,warnings:advertencias,metrics:{skipped:'non-frontal'}};
   comparacion=comparacion||{};
@@ -8188,6 +8194,26 @@ function evaluarAnatomiaSegmentada(comparacion, view) {
   if(metricas.ignoredFragments)advertencias.push('se ignoraron '+metricas.ignoredFragments+' fragmento(s) extra del segmentador');
 
   var fallos=[],severos=[];
+  if(planoDental&&planoDental.targetMetrics){
+    var objetivo=planoDental.targetMetrics;
+    function errorContraPlano(m){
+      return (
+        Math.abs(m.centralWidthHeight-objetivo.centralWidthHeight)/.15+
+        Math.abs(m.lateralToCentral-objetivo.lateralToCentral)/.18+
+        Math.abs(m.canineToCentral-objetivo.canineToCentral)/.20+
+        Math.abs(m.incisalRange-objetivo.incisalRange)/.10+
+        Math.abs(m.lateralStep-objetivo.lateralStep)/.08
+      )/5;
+    }
+    var errorOriginal=errorContraPlano(originalM),errorGenerado=errorContraPlano(generadaM);
+    metricas.blueprint={
+      originalError:+errorOriginal.toFixed(3),
+      generatedError:+errorGenerado.toFixed(3),
+      improvement:+(errorOriginal?((errorOriginal-errorGenerado)/errorOriginal):0).toFixed(3)
+    };
+    if(errorOriginal>.25&&errorGenerado>errorOriginal*.88)severos.push('la propuesta no ejecutó el plano geométrico individual');
+    if(errorGenerado>1.45)severos.push('la anatomía generada quedó muy lejos del plano de carillas');
+  }
   var centralSeAlejo=Math.abs(generadaM.centralWidthHeight-.79)>Math.abs(originalM.centralWidthHeight-.79)+.06;
   if((generadaM.centralWidthHeight<.68||generadaM.centralWidthHeight>.92)&&centralSeAlejo)fallos.push('la proporción central empeoró respecto a la fotografía');
   if((generadaM.centralWidthHeight<.58||generadaM.centralWidthHeight>1.02)&&Math.abs(generadaM.centralWidthHeight-originalM.centralWidthHeight)>.14)severos.push('proporción central grotesca');
@@ -8494,7 +8520,7 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     // cajas. Bloqueamos también las señales locales que corresponden a los
     // fallos reportados: placa uniforme, proporciones impropias, cobertura
     // parcial o una sonrisa geométricamente desarticulada.
-    return /faltan piezas|pocas piezas superiores|cobertura dental irregular|textura óptica demasiado uniforme|segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|proporción central fuera|centrales con anchuras poco simétricas|línea media dental desplazada|bordes de los centrales desnivelados/.test(p);
+    return /faltan piezas|pocas piezas superiores|cobertura dental irregular|cambio demasiado conservador|textura óptica demasiado uniforme|A1 conserva demasiado amarillo|segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|proporción central fuera|centrales con anchuras poco simétricas|línea media dental desplazada|bordes de los centrales desnivelados/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,
@@ -8655,6 +8681,137 @@ async function segmentarCanvasDentalDetallado(canvas, cacheKey) {
     S.dentalMapByView[cacheKey] = resultado;
   }
   return resultado;
+}
+
+function limitarPlanoDental(valor, minimo, maximo) {
+  return Math.max(minimo, Math.min(maximo, valor));
+}
+
+// Convierte las seis piezas anteriores identificadas en un objetivo explícito
+// 13–23. El plano conserva línea media y perspectiva del paciente, pero impone
+// jerarquía de centrales/laterales/caninos y una curva incisal legible.
+function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
+  opciones = opciones || {};
+  var candidatas = (piezas || []).filter(function(p){
+    return p && [p.x,p.y,p.w,p.h].every(Number.isFinite) && p.w > 1 && p.h > 1;
+  });
+  if (candidatas.length < 6) throw new Error('No fue posible construir el plano: faltan dientes anteriores identificables.');
+  var minX = Math.min.apply(null, candidatas.map(function(p){return p.x;}));
+  var maxX = Math.max.apply(null, candidatas.map(function(p){return p.x+p.w;}));
+  var centroArcada = (minX + maxX) / 2;
+  var anteriores = candidatas.slice().sort(function(a,b){
+    return Math.abs((a.x+a.w/2)-centroArcada)-Math.abs((b.x+b.w/2)-centroArcada);
+  }).slice(0,6).sort(function(a,b){return (a.x+a.w/2)-(b.x+b.w/2);});
+  var extension = (anteriores[5].x+anteriores[5].w)-anteriores[0].x;
+  if (extension < ancho*.12 || extension > ancho*.78) throw new Error('La geometría anterior detectada no tiene una extensión segura.');
+
+  var originalesCentrales = [anteriores[2],anteriores[3]];
+  var anchoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.w;}));
+  var altoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.h;}));
+  var fondoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.y+p.h;}));
+  var tamano = limitarPlanoDental(Number(opciones.sizeFactor)||1, .97, 1.07);
+  var anchoCentral = anchoCentralOriginal * tamano;
+  var altoCentral = limitarPlanoDental(anchoCentral/.79, altoCentralOriginal*.94, altoCentralOriginal*1.38);
+  var anchoLateral = anchoCentral*.74;
+  var altoLateral = altoCentral*.92;
+  var anchoCanino = anchoCentral*.80;
+  var altoCanino = altoCentral*.90;
+  var lineaMedia = ((anteriores[2].x+anteriores[2].w/2)+(anteriores[3].x+anteriores[3].w/2))/2;
+  var separacion = Math.max(.8, anchoCentral*.028);
+  var fondoCentral = limitarPlanoDental(fondoCentralOriginal+Math.max(1,altoCentralOriginal*.025), alto*.10, alto*.96);
+  var fondoLateral = fondoCentral-altoCentral*.058;
+  var fondoCanino = fondoCentral-altoCentral*.038;
+  var roles = ['canine','lateral','central','central','lateral','canine'];
+  var ids = ['13','12','11','21','22','23'];
+  var anchos = [anchoCanino,anchoLateral,anchoCentral,anchoCentral,anchoLateral,anchoCanino];
+  var altos = [altoCanino,altoLateral,altoCentral,altoCentral,altoLateral,altoCanino];
+  var fondos = [fondoCanino,fondoLateral,fondoCentral,fondoCentral,fondoLateral,fondoCanino];
+  var centros = [];
+  centros[2] = lineaMedia-separacion/2-anchoCentral/2;
+  centros[3] = lineaMedia+separacion/2+anchoCentral/2;
+  centros[1] = centros[2]-(anchoCentral+anchoLateral)/2-separacion;
+  centros[4] = centros[3]+(anchoCentral+anchoLateral)/2+separacion;
+  centros[0] = centros[1]-(anchoLateral+anchoCanino)/2-separacion;
+  centros[5] = centros[4]+(anchoLateral+anchoCanino)/2+separacion;
+  var objetivos = ids.map(function(id,indice){
+    var w = anchos[indice], h = altos[indice];
+    return {
+      id:id, role:roles[indice], side:indice<3?'right':'left',
+      family:opciones.family||'rectangular-soft',
+      x:limitarPlanoDental(centros[indice]-w/2,0,Math.max(0,ancho-w)),
+      y:limitarPlanoDental(fondos[indice]-h,0,Math.max(0,alto-h)),
+      w:w,h:h,
+      original:anteriores[indice]
+    };
+  });
+  var anchosObjetivo = objetivos.map(function(p){return p.w;});
+  var anchoMedio = anchosObjetivo.reduce(function(a,b){return a+b;},0)/anchosObjetivo.length;
+  return {
+    family:opciones.family||'rectangular-soft',
+    width:ancho,height:alto,pieces:objetivos,
+    targetMetrics:{
+      centralWidthHeight:anchoCentral/altoCentral,
+      lateralToCentral:anchoLateral/anchoCentral,
+      canineToCentral:anchoCanino/anchoCentral,
+      centralWidthAsymmetry:0,
+      incisalRange:(fondoCentral-Math.min(fondoLateral,fondoCanino))/altoCentral,
+      lateralStep:(fondoCentral-fondoLateral)/altoCentral,
+      widthVariation:Math.sqrt(anchosObjetivo.reduce(function(s,w){return s+Math.pow(w-anchoMedio,2);},0)/anchosObjetivo.length)/anchoMedio
+    }
+  };
+}
+
+function trazarSiluetaPlanoDental(ctx, pieza, escalaX, escalaY) {
+  var x=pieza.x*escalaX,y=pieza.y*escalaY,w=pieza.w*escalaX,h=pieza.h*escalaY;
+  var cx=x+w/2,izq=x,der=x+w,abajo=y+h;
+  var cervical=pieza.family==='triangular'?.22:(pieza.family==='oval'?.36:.30);
+  ctx.beginPath();
+  ctx.moveTo(cx-w*cervical,y);
+  if(pieza.role==='canine'){
+    ctx.bezierCurveTo(izq+w*.08,y+h*.12,izq,y+h*.55,izq+w*.12,y+h*.78);
+    ctx.bezierCurveTo(cx-w*.22,abajo-h*.13,cx-w*.10,abajo-h*.06,cx,abajo);
+    ctx.bezierCurveTo(cx+w*.10,abajo-h*.06,cx+w*.22,abajo-h*.13,der-w*.12,y+h*.78);
+  }else{
+    var redondeo=pieza.family==='oval'?.22:(pieza.role==='lateral'?.18:.12);
+    ctx.bezierCurveTo(izq+w*.08,y+h*.12,izq,y+h*.58,izq+w*.08,y+h*.84);
+    ctx.bezierCurveTo(izq+w*redondeo,abajo,izq+w*.32,abajo,cx,abajo-h*.012);
+    ctx.bezierCurveTo(der-w*.32,abajo,der-w*redondeo,abajo,der-w*.08,y+h*.84);
+  }
+  ctx.bezierCurveTo(der,y+h*.58,der-w*.08,y+h*.12,cx+w*cervical,y);
+  ctx.bezierCurveTo(cx+w*.16,y-h*.025,cx-w*.16,y-h*.025,cx-w*cervical,y);
+  ctx.closePath();
+}
+
+function renderizarGuiaPlanoDental(plano, anchoSalida, altoSalida) {
+  var canvas=document.createElement('canvas');canvas.width=anchoSalida;canvas.height=altoSalida;
+  var ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+  var sx=canvas.width/plano.width,sy=canvas.height/plano.height;
+  plano.pieces.forEach(function(pieza){
+    trazarSiluetaPlanoDental(ctx,pieza,sx,sy);
+    var grad=ctx.createLinearGradient(0,pieza.y*sy,0,(pieza.y+pieza.h)*sy);
+    grad.addColorStop(0,'#aeb4b8');grad.addColorStop(.55,'#e2e5e7');grad.addColorStop(1,'#f7f8f8');
+    ctx.fillStyle=grad;ctx.fill();
+    ctx.lineWidth=Math.max(1,Math.min(canvas.width,canvas.height)*.0022);
+    ctx.strokeStyle='#fff';ctx.stroke();
+  });
+  return canvas.toDataURL('image/png');
+}
+
+async function prepararPlanoDentalIndividual(entradaDental, view) {
+  var img=await cargarImagenSegura(entradaDental.dataUrl);
+  var canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+  canvas.getContext('2d').drawImage(img,0,0);
+  var clave='plan:'+(view||'frontal')+':'+canvas.width+'x'+canvas.height;
+  var mapa=await segmentarCanvasDentalDetallado(canvas,clave);
+  var diagnostico=S.diagnosticoFacial||{};
+  var familia={circular:'oval',triangular:'triangular',rectangular:'rectangular-soft'}[diagnostico.forma_dental_recomendada]||'rectangular-soft';
+  var factor=limitarPlanoDental((Number(diagnostico.tamano_coronas_pct)||100)/100,.97,1.07);
+  var plano=construirPlanoGeometricoDental(mapa.pieces,mapa.width,mapa.height,{family:familia,sizeFactor:factor});
+  var guia=renderizarGuiaPlanoDental(plano,entradaDental.rect.w,entradaDental.rect.h);
+  plano.guideBase64=guia.split(',')[1];
+  plano.guideMimeType='image/png';
+  plano.prompt='GEOMETRIC BLUEPRINT CONTRACT: reproduce the six separate target silhouettes in IMAGE 2 as teeth 13-12-11-21-22-23. Preserve their individual role hierarchy and incisal curve; adapt only microscopic contour transitions to the real photographic perspective. The target metrics are central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(2)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(2)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(2)+'. Never copy the diagram appearance or background.';
+  return plano;
 }
 
 function emparejarPiezasDentales(esperadas, generadas) {

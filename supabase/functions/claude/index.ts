@@ -250,6 +250,7 @@ Deno.serve(async (req: Request) => {
         const KEY = Deno.env.get("OPENAI_API_KEY")!;
         const imageBytes = base64ABytes(imageBase64);
         let editMaskBytes: Uint8Array | null = null;
+        let guideImageBytes: Uint8Array | null = null;
         if (editMaskBase64) {
           editMaskBytes = base64ABytes(editMaskBase64);
           const imagePng = dimensionesPng(imageBytes);
@@ -265,8 +266,23 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
+        if (guideImageBase64) {
+          guideImageBytes = base64ABytes(guideImageBase64);
+          const imagePng = dimensionesPng(imageBytes);
+          const guidePng = dimensionesPng(guideImageBytes);
+          if (!imagePng || !guidePng || mimeType !== "image/png" || guideMimeType !== "image/png") {
+            return new Response(JSON.stringify({ error: "La imagen y el plano geométrico deben ser PNG." }), {
+              status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+            });
+          }
+          if (imagePng.width !== guidePng.width || imagePng.height !== guidePng.height) {
+            return new Response(JSON.stringify({ error: "El plano geométrico debe tener las mismas dimensiones que la imagen." }), {
+              status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+            });
+          }
+        }
         const promptOpenAI = guideImageBase64
-          ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is a geometric incisal-edge control map only. Follow its curve and labeled target points, but never render any map color, line, dot, label or black background. " + prompt
+          ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is an abstract black-background GEOMETRIC VENEER BLUEPRINT for maxillary teeth 13-12-11-21-22-23 only. Its six separate pale silhouettes define the intended crown hierarchy, individual widths, heights and incisal curve. Transfer only that geometry to the corresponding real teeth in IMAGE 1. The blueprint is not a photograph, material sample, segmentation mask or visible overlay. Never render its black background, gray fill, white outlines, control marks, colors, labels or diagram appearance. Use the original photograph for all texture, lighting, tissue and identity information. " + prompt
           : prompt;
         const form = new FormData();
         form.append("model", OPENAI_IMAGE_MODEL);
@@ -274,8 +290,8 @@ Deno.serve(async (req: Request) => {
         if (editMaskBytes) {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
-        if (guideImageBase64) {
-          form.append("image[]", new Blob([base64ABytes(guideImageBase64)], { type: guideMimeType }), "incisal-guide.png");
+        if (guideImageBytes) {
+          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), "veneer-blueprint.png");
         }
         form.append("prompt", promptOpenAI);
         // Los acercamientos dentales son ediciones de detalle y anatomía fina.
