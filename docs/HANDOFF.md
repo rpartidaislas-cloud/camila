@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-25 — Codex: validador relativo tolera fragmentos de segmentación
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html` y `sw.js`.
+
+- El soporte `3cb132aa-eec1-4fd1-a66f-2b7529fc1192` confirmó generación OpenAI
+  exitosa en calidad alta (70.6 s), máscara `treatment` correcta con 12
+  componentes y 25 componentes en la segmentación posterior lado a lado. El
+  componente impar adicional podía desplazar la selección de los seis dientes
+  centrales y producir un falso rechazo anatómico.
+- El control v14 parte ahora de los seis dientes anteriores originales y busca
+  una subsecuencia generada en el mismo orden y corredor. Los fragmentos extra
+  se omiten antes de calcular centrales, laterales, caninos, simetría y curva.
+- Las proporciones se evalúan de forma relativa: una característica original
+  fuera del promedio no se castiga si la propuesta la conserva o mejora. Se
+  mantiene el bloqueo para pérdida real de correspondencia, piezas fusionadas,
+  desplazamientos/anchos extremos, fila incisal plana con anchos clonados o dos
+  deterioros anatómicos simultáneos.
+- QA local sintético: un séptimo fragmento entre centrales se tolera y registra;
+  una fila de seis dientes planos y repetidos se rechaza. Scripts inline válidos,
+  12 pruebas de máscaras superadas, copias web/móvil idénticas. Build `v92`,
+  caché PWA `smyl-v53`.
+
 ## 2026-08-25 — Codex: edición limitada a dientes maxilares y encía
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,

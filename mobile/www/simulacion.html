@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v91 — máscara dientes + encía</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v92 — validación dental relativa</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -8070,82 +8070,111 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 13;
+var SIM_QUALITY_VERSION = 14;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
 // seis anteriores conserven jerarquía y curva, en vez de aceptar una fila de
 // rectángulos sólo porque todos los píxeles están dentro de la boca.
 function evaluarAnatomiaSegmentada(comparacion, view) {
-  var criticos=[], advertencias=[], metricas={};
-  if ((view || 'frontal') !== 'frontal') {
-    return {critical:criticos,warnings:advertencias,metrics:{skipped:'non-frontal'}};
-  }
+  var criticos=[],advertencias=[],metricas={};
+  if((view||'frontal')!=='frontal')return {critical:criticos,warnings:advertencias,metrics:{skipped:'non-frontal'}};
   comparacion=comparacion||{};
   var esperadas=(comparacion.expectedPieces||[]).slice();
   var generadas=(comparacion.generatedPieces||[]).slice();
   metricas.expectedPieces=esperadas.length;
   metricas.generatedPieces=generadas.length;
   metricas.usedOriginalMaskFallback=!!comparacion.usedOriginalMaskFallback;
-  if(comparacion.usedOriginalMaskFallback) {
+  if(comparacion.usedOriginalMaskFallback){
     criticos.push('no fue posible verificar la anatomía individual del render');
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
-  if(esperadas.length<6) {
+  if(esperadas.length<6){
     criticos.push('la fotografía no permitió identificar seis dientes anteriores superiores');
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
-  if(generadas.length<6) {
+  if(generadas.length<6){
     criticos.push('se detectaron dientes fusionados o menos de seis piezas anteriores');
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
   function centro(p){return p.x+p.w/2;}
+  function seisCentrales(piezas,centroArcada){
+    return piezas.slice().sort(function(a,b){
+      return Math.abs(centro(a)-centroArcada)-Math.abs(centro(b)-centroArcada);
+    }).slice(0,6).sort(function(a,b){return centro(a)-centro(b);});
+  }
+  function medirSeis(seis){
+    var caninos=[seis[0],seis[5]],laterales=[seis[1],seis[4]],centrales=[seis[2],seis[3]];
+    var anchoCentral=medianaNumerica(centrales.map(function(p){return p.w;}))||1;
+    var altoCentral=medianaNumerica(centrales.map(function(p){return p.h;}))||1;
+    var altoMediano=medianaNumerica(seis.map(function(p){return p.h;}))||1;
+    var bordes=seis.map(function(p){return p.y+p.h;});
+    var anchos=seis.map(function(p){return p.w;});
+    var anchoMedio=anchos.reduce(function(a,b){return a+b;},0)/anchos.length;
+    var bordeCentral=medianaNumerica(centrales.map(function(p){return p.y+p.h;}));
+    var bordeLateral=medianaNumerica(laterales.map(function(p){return p.y+p.h;}));
+    return {
+      centralWidthHeight:anchoCentral/altoCentral,
+      lateralToCentral:(medianaNumerica(laterales.map(function(p){return p.w;}))||1)/anchoCentral,
+      canineToCentral:(medianaNumerica(caninos.map(function(p){return p.w;}))||1)/anchoCentral,
+      centralWidthAsymmetry:Math.abs(centrales[0].w-centrales[1].w)/anchoCentral,
+      incisalRange:(Math.max.apply(null,bordes)-Math.min.apply(null,bordes))/altoMediano,
+      lateralStep:(bordeCentral-bordeLateral)/altoMediano,
+      widthVariation:Math.sqrt(anchos.reduce(function(s,w){return s+Math.pow(w-anchoMedio,2);},0)/anchos.length)/Math.max(1,anchoMedio)
+    };
+  }
+  function redondearMetricas(datos){
+    var salida={};Object.keys(datos).forEach(function(k){salida[k]=+datos[k].toFixed(3);});return salida;
+  }
+
+  // La fotografía original determina qué seis piezas son anteriores. Después
+  // se busca una subsecuencia generada en el mismo orden. Un fragmento extra se
+  // omite sin desplazar centrales/laterales/caninos ni falsear sus proporciones.
   var minE=Math.min.apply(null,esperadas.map(function(p){return p.x;}));
   var maxE=Math.max.apply(null,esperadas.map(function(p){return p.x+p.w;}));
   var centroArcada=(minE+maxE)/2;
-  var seis=generadas.slice().sort(function(a,b){
-    return Math.abs(centro(a)-centroArcada)-Math.abs(centro(b)-centroArcada);
-  }).slice(0,6).sort(function(a,b){return centro(a)-centro(b);});
-  var caninos=[seis[0],seis[5]],laterales=[seis[1],seis[4]],centrales=[seis[2],seis[3]];
-  var anchoCentral=medianaNumerica(centrales.map(function(p){return p.w;}))||1;
-  var altoCentral=medianaNumerica(centrales.map(function(p){return p.h;}))||1;
-  var altoMediano=medianaNumerica(seis.map(function(p){return p.h;}))||1;
-  var anchoLateral=medianaNumerica(laterales.map(function(p){return p.w;}))||1;
-  var anchoCanino=medianaNumerica(caninos.map(function(p){return p.w;}))||1;
-  var ratioCentral=anchoCentral/altoCentral;
-  var ratioLateral=anchoLateral/anchoCentral;
-  var ratioCanino=anchoCanino/anchoCentral;
-  var simetriaCentral=Math.abs(centrales[0].w-centrales[1].w)/anchoCentral;
-  var bordes=seis.map(function(p){return p.y+p.h;});
-  var rangoIncisal=(Math.max.apply(null,bordes)-Math.min.apply(null,bordes))/altoMediano;
-  var bordeCentral=medianaNumerica(centrales.map(function(p){return p.y+p.h;}));
-  var bordeLateral=medianaNumerica(laterales.map(function(p){return p.y+p.h;}));
-  var escalonLateral=(bordeCentral-bordeLateral)/altoMediano;
-  var anchos=seis.map(function(p){return p.w;});
-  var anchoMedio=anchos.reduce(function(a,b){return a+b;},0)/anchos.length;
-  var cvAnchos=Math.sqrt(anchos.reduce(function(s,w){return s+Math.pow(w-anchoMedio,2);},0)/anchos.length)/Math.max(1,anchoMedio);
-  metricas.centralWidthHeight=+ratioCentral.toFixed(3);
-  metricas.lateralToCentral=+ratioLateral.toFixed(3);
-  metricas.canineToCentral=+ratioCanino.toFixed(3);
-  metricas.centralWidthAsymmetry=+simetriaCentral.toFixed(3);
-  metricas.incisalRange=+rangoIncisal.toFixed(3);
-  metricas.lateralStep=+escalonLateral.toFixed(3);
-  metricas.widthVariation=+cvAnchos.toFixed(3);
+  var originales=seisCentrales(esperadas,centroArcada);
+  var anchoRef=medianaNumerica(originales.map(function(p){return p.w;}))||1;
+  var corredorMin=Math.min.apply(null,originales.map(function(p){return p.x;}))-anchoRef*.75;
+  var corredorMax=Math.max.apply(null,originales.map(function(p){return p.x+p.w;}))+anchoRef*.75;
+  var candidatas=generadas.filter(function(p){return centro(p)>=corredorMin&&centro(p)<=corredorMax;});
+  var correspondencia=emparejarPiezasDentales(originales,candidatas);
+  if(!correspondencia.ok||correspondencia.pairs.length<6){
+    criticos.push('no fue posible verificar seis dientes anteriores correspondientes');
+    metricas.matchedPieces=correspondencia.pairs.length;
+    return {critical:criticos,warnings:advertencias,metrics:metricas};
+  }
+  var generadasPareadas=correspondencia.pairs.map(function(par){return par.generada;});
+  var originalM=medirSeis(originales),generadaM=medirSeis(generadasPareadas);
+  metricas.original=redondearMetricas(originalM);
+  metricas.generated=redondearMetricas(generadaM);
+  metricas.matchedPieces=6;
+  metricas.ignoredFragments=Math.max(0,candidatas.length-6);
+  metricas.maxPairDistance=+Math.max.apply(null,correspondencia.pairs.map(function(p){return p.distance;})).toFixed(3);
+  metricas.minPairWidthRatio=+Math.min.apply(null,correspondencia.pairs.map(function(p){return p.widthRatio;})).toFixed(3);
+  metricas.maxPairWidthRatio=+Math.max.apply(null,correspondencia.pairs.map(function(p){return p.widthRatio;})).toFixed(3);
+  if(metricas.ignoredFragments)advertencias.push('se ignoraron '+metricas.ignoredFragments+' fragmento(s) extra del segmentador');
+
   var fallos=[],severos=[];
-  if(ratioCentral<.70||ratioCentral>.88)fallos.push('proporción central fuera de un corredor natural');
-  if(ratioCentral<.62||ratioCentral>.98)severos.push('proporción central grotesca');
-  if(ratioLateral<.60||ratioLateral>.86)fallos.push('jerarquía anterior sin laterales claramente más estrechos');
-  if(ratioLateral>.98)severos.push('laterales tan anchos como los centrales');
-  if(simetriaCentral>.14)fallos.push('centrales con anchuras incompatibles');
-  if(simetriaCentral>.24)severos.push('asimetría central excesiva');
-  if(rangoIncisal<.035||escalonLateral<.012)fallos.push('fila plana sin escalón lateral ni curva incisal');
-  if(rangoIncisal<.025&&escalonLateral<.010)severos.push('borde incisal completamente plano');
-  if(cvAnchos<.055)fallos.push('anchos repetidos con aspecto de dientes clonados');
-  if(ratioCanino<.55||ratioCanino>.95)fallos.push('caninos sin transición anatómica plausible');
-  metricas.grossFailureCount=fallos.length;
+  var centralSeAlejo=Math.abs(generadaM.centralWidthHeight-.79)>Math.abs(originalM.centralWidthHeight-.79)+.06;
+  if((generadaM.centralWidthHeight<.68||generadaM.centralWidthHeight>.92)&&centralSeAlejo)fallos.push('la proporción central empeoró respecto a la fotografía');
+  if((generadaM.centralWidthHeight<.58||generadaM.centralWidthHeight>1.02)&&Math.abs(generadaM.centralWidthHeight-originalM.centralWidthHeight)>.14)severos.push('proporción central grotesca');
+  if((generadaM.lateralToCentral<.52||generadaM.lateralToCentral>.92)&&Math.abs(generadaM.lateralToCentral-originalM.lateralToCentral)>.14)fallos.push('se perdió la jerarquía natural de los laterales');
+  if(generadaM.lateralToCentral>.99&&generadaM.lateralToCentral>originalM.lateralToCentral+.10)severos.push('laterales tan anchos como los centrales');
+  if(generadaM.centralWidthAsymmetry>.18&&generadaM.centralWidthAsymmetry>originalM.centralWidthAsymmetry+.07)fallos.push('la asimetría de los centrales aumentó');
+  if(generadaM.centralWidthAsymmetry>.29&&generadaM.centralWidthAsymmetry>originalM.centralWidthAsymmetry+.10)severos.push('asimetría central excesiva');
+  var planaGenerada=generadaM.incisalRange<.028&&generadaM.lateralStep<.010;
+  var curvaOriginal=originalM.incisalRange>.05||originalM.lateralStep>.020;
+  if(planaGenerada&&curvaOriginal)fallos.push('la propuesta eliminó la curva incisal visible');
+  if(planaGenerada&&generadaM.widthVariation<.035)severos.push('fila plana con dientes repetidos');
+  if(generadaM.widthVariation<.040&&originalM.widthVariation>.070)fallos.push('los anchos se uniformaron con aspecto clonado');
+  if((generadaM.canineToCentral<.45||generadaM.canineToCentral>1.08)&&Math.abs(generadaM.canineToCentral-originalM.canineToCentral)>.18)fallos.push('se perdió la transición anatómica de los caninos');
+  correspondencia.pairs.forEach(function(par){
+    if(par.distance>1.05)severos.push('una pieza cambió de posición de forma extrema');
+    if(par.widthRatio<.42||par.widthRatio>1.85)severos.push('una pieza cambió de ancho de forma extrema');
+  });
+  metricas.relativeFailureCount=fallos.length;
   metricas.severeFailureCount=severos.length;
-  // Una desviación moderada puede provenir de perspectiva; una señal extrema
-  // o dos señales simultáneas ya representan un resultado no presentable.
   if(severos.length||fallos.length>=2)criticos.push('anatomía dental inválida: '+(severos.length?severos:fallos).slice(0,3).join(' · '));
   else if(fallos.length)advertencias.push(fallos[0]);
   return {critical:criticos,warnings:advertencias,metrics:metricas};
