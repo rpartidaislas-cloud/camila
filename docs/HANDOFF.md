@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-26 — Codex: plano geométrico individual 13–23 y rechazo de simulaciones inertes
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y
+`supabase/functions/claude/index.ts`; se añadió
+`tests/simulation-blueprint.test.mjs` y `tests/inline-scripts.test.mjs`.
+
+- Antes de llamar a GPT Image, la app segmenta la arcada superior y construye
+  un objetivo geométrico explícito para las seis piezas anteriores 13–23. El
+  plano conserva la línea media y el tamaño detectado, pero define centrales,
+  laterales y caninos separados, proporciones jerárquicas y curva incisal.
+- La Edge Function recibe ese plano como segunda imagen PNG, con las mismas
+  dimensiones que el recorte clínico. Se usa sólo como referencia geométrica;
+  la primera imagen continúa siendo la fotografía del paciente y la máscara de
+  edición sigue limitando los píxeles modificables a dientes superiores y encía
+  directamente asociada.
+- El control local compara la geometría generada contra el plano y descarta una
+  propuesta que no mejore una anatomía que necesitaba corrección. También son
+  rechazo obligatorio un cambio casi imperceptible y un A1 visiblemente
+  amarillo; ya no pueden salir sólo como advertencia orientativa.
+- QA local: scripts inline y TypeScript válidos, 12 pruebas de máscaras
+  superadas y prueba sintética del plano 13–23: un resultado idéntico fue
+  rechazado y el objetivo geométrico aceptado. Build `v94`, calidad `v16`,
+  caché PWA `smyl-v55`.
+- Producción: Edge Function `claude` versión 59 quedó `ACTIVE` con su
+  configuración existente `verify_jwt=false`; el frontend se publicó mediante
+  GitHub Pages desde la rama de producción de este proyecto.
+
 ## 2026-08-26 — Codex: contrato único de carillas y control visual activo
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html` y `sw.js`.
