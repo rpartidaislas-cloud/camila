@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v92 — validación dental relativa</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v93 — contrato único de carillas</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5008,7 +5008,7 @@ function construirPromptGemini(diagnostico) {
     partes.push(d['recomendacion_diseño']);
   }
 
-  partes.push('El resultado debe verse natural, fotorrealista y clínicamente plausible, manteniendo la identidad facial y dental del paciente. No alteres labios, encías, piel, apertura bucal, mordida, iluminación ni encuadre. Esta es una visualización estética orientativa, no una predicción exacta de tratamiento.');
+  partes.push('El resultado debe verse natural, fotorrealista y clínicamente plausible, manteniendo la identidad facial y dental del paciente. No alteres labios, piel, apertura bucal, mordida, iluminación ni encuadre. Sólo se permite un refinamiento conservador de la encía superior directamente asociada a las carillas, dentro de la máscara protegida; no cambies ningún otro tejido. Esta es una visualización estética orientativa, no una predicción exacta de tratamiento.');
 
   return partes.join(' ');
 }
@@ -5431,12 +5431,21 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   var salida=document.createElement('canvas');salida.width=W;salida.height=H;
   var sctx=salida.getContext('2d');sctx.drawImage(original,0,0);sctx.drawImage(protegida,0,0);
 
+  var revisionVisual=analizarCalidadVisualCarillas(
+    original,salida,maskOriginal,view||'frontal',maskOriginal,par.comparison
+  );
+  if(revisionVisual.status==='rejected'){
+    var rechazoVisual=new Error('La simulación no alcanzó el estándar visual de carillas: '+revisionVisual.issues.slice(0,2).join(' · ')+'. Genera otra propuesta; este resultado no se mostrará.');
+    rechazoVisual.qualityMetrics={reviewer:'local',visual:revisionVisual,anatomy:revisionAnatomica.metrics};
+    throw rechazoVisual;
+  }
+
   // Garantía determinista: fuera de la máscara todo píxel procede del original.
   // El reporte nunca se presenta como aprobación clínica automática.
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
-    issues:['Revisa anatomía, simetría natural, encía y coincidencia VITA antes de presentar.'].concat(advertencias),
-    metrics:{mode:'original-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),anatomy:revisionAnatomica.metrics,alignment:registrada.alignment}
+    issues:['Revisa anatomía, simetría natural, encía y coincidencia VITA antes de presentar.'].concat(advertencias,revisionVisual.issues||[]),
+    metrics:{mode:'original-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
@@ -5589,7 +5598,30 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   if (generationOptions.editorRevision) {
     framingReminder += ' EDITOR REVISION PASS: the input already contains a veneer simulation. Revise those existing upper veneers in place; do not reset to the original tooth contours and do not return the input unchanged. The numeric incisal destinations are an execution constraint, not a suggestion. Produce a clearly visible but anatomically plausible change in crown length and lower veneer contour wherever the requested target differs, while keeping cervical emergence fixed.';
   }
-  var prompt = basePrompt + anatomyAcceptancePrompt + stylePrompt + clinicalBlock + customPrompt + anatomyAcceptancePrompt + framingReminder;
+  // El proveedor recibía antes varias prescripciones anatómicas repetidas y
+  // parcialmente contradictorias. La orden efectiva ahora es un solo contrato
+  // jerárquico: alcance, roles dentales, material, encía y controles finales.
+  // Los bloques extensos de compatibilidad de arriba se conservan por ahora
+  // para poder leer casos antiguos, pero no vuelven a duplicarse en la llamada.
+  var shadeInstruction = S.vitaMode === 'current'
+    ? 'SHADE: preserve the patient current natural enamel shade; do not whiten it.'
+    : 'SHADE: reproduce VITA Classical ' + vitaShade.code + ' as perceived under the ORIGINAL illumination. ' + vitaShade.copy + shadeReferencePrompt;
+  var prompt = [
+    basePrompt,
+    'PRIMARY TASK: create a premium porcelain-veneer simulation, not a generic idealized white smile. The improvement must be clearly visible yet remain anatomically credible for this exact patient.',
+    'ONE-TO-ONE DENTAL CONTRACT: first identify every visible maxillary tooth and preserve its identity, root reference, perspective and left-to-right order. Restore the complete visible maxillary treatment corridor continuously; never leave an untreated upper tooth trapped between restored teeth and never invent, remove, fuse or duplicate a tooth.',
+    'ANTERIOR ROLES 13-12-11-21-22-23: the two centrals are the natural visual leaders with softly defined line angles and related but non-cloned anatomy. Each lateral is distinctly narrower (about 70–78% of its neighboring central) and 0.5–1.0 mm visually shorter. Each canine keeps a stronger cervical body, mesial ridge, gentle cusp and posterior transition; it must never look like a third lateral. Preserve subtle bilateral human asymmetry.',
+    'INCISAL AND INTERPROXIMAL DESIGN: form a smooth smile arc that follows the lower lip—centrals lead, laterals step up and canines turn posteriorly. Give every crown independent mesial and distal line angles, realistic short contact areas, fine interproximal shadows and progressively larger incisal embrasures. A straight picket-fence edge or one continuous white plate is failure.',
+    'PREMIUM CERAMIC MATERIAL: use three-dimensional facial convexity, restrained developmental lobes and shallow vertical depressions, fine non-repetitive microtexture, slightly warmer cervical dentin, controlled body value, subtle incisal translucency and internal depth. Highlights must follow the original light. The result must look like individually fabricated layered ceramic veneers—never flat paint, opaque chalk, plastic, uniform rectangles, identical highlights or oversized crowns.',
+    shadeInstruction,
+    'GINGIVA: change only the directly associated visible upper gingiva where essential for a plausible veneer emergence profile. Preserve papillae, stippling, vascular/color variation and periodontal identity. Never create a smooth pink band, perfectly mirrored tissue, artificial recession, exposed yellow cervical rims or doubled margins.',
+    'PRESERVATION: lower teeth and lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose, mouth opening, bite, crop, exposure, white balance and identity must remain exactly as photographed. The protected mask is a maximum boundary, not permission to alter all tissue inside it.',
+    'DESIGN INTENSITY: ' + intensityPrompt + '. ENAMEL FINISH: ' + finishPrompt + '.',
+    clinicalBlock,
+    customPrompt,
+    framingReminder,
+    'FINAL INTERNAL INSPECTION BEFORE OUTPUT: reject and correct your own draft if any anterior crowns are fused, repeated, flat, rectangular, opaque, denture-like or if central/lateral/canine hierarchy, incisal arc, ceramic depth, gingival texture or untreated-tissue preservation is not visibly convincing. Return only the final photorealistic image; never render masks, guides, labels, text or annotations.'
+  ].filter(Boolean).join(' ');
 
   // Una sesión profesional puede caducar mientras se capturan o ajustan las
   // fotos. Se renueva justo antes de la única llamada pagada.
@@ -8070,7 +8102,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 14;
+var SIM_QUALITY_VERSION = 15;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
@@ -8458,10 +8490,11 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }
   }
   var hayFalloCritico=problemas.some(function(p){
-    // La correspondencia uno-a-uno ya comprobó la integridad antes de llegar
-    // aquí. Sólo una ausencia real de piezas bloquea; geometría, cobertura
-    // parcial, línea media, tono y textura pasan al editor como revisión.
-    return /faltan piezas|pocas piezas superiores/.test(p);
+    // Un resultado paciente-facing ya no se acepta sólo porque haya seis
+    // cajas. Bloqueamos también las señales locales que corresponden a los
+    // fallos reportados: placa uniforme, proporciones impropias, cobertura
+    // parcial o una sonrisa geométricamente desarticulada.
+    return /faltan piezas|pocas piezas superiores|cobertura dental irregular|textura óptica demasiado uniforme|segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|proporción central fuera|centrales con anchuras poco simétricas|línea media dental desplazada|bordes de los centrales desnivelados/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,

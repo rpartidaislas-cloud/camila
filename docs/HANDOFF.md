@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-26 — Codex: contrato único de carillas y control visual activo
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html` y `sw.js`.
+
+- La orden efectiva a GPT Image se consolidó en un único contrato jerárquico:
+  alcance protegido, correspondencia uno a uno, roles 13–23, curva y contactos,
+  cerámica estratificada, encía conservadora y preservación absoluta del resto.
+  Se dejan de enviar juntos los bloques anatómicos repetidos que competían entre
+  sí y favorecían una fila genérica de dientes blancos.
+- El análisis facial ya no contradice la máscara: admite únicamente un ajuste
+  conservador de la encía superior directamente asociada a las carillas.
+- El control visual local existente se conectó al resultado compuesto real. Ya
+  no basta con detectar seis cajas: textura óptica plana, proporciones centrales
+  impropias, cobertura incompleta, línea media o bordes centrales incoherentes
+  pueden descartar el render antes de mostrárselo al paciente.
+- La fotografía original continúa siendo la base determinista; sólo sobreviven
+  píxeles generados dentro de dientes superiores y encía asociada. Build `v93`,
+  control de calidad `v15`, caché PWA `smyl-v54`. **No se publicó ni desplegó**.
+- QA local: scripts inline válidos, 12 verificaciones de máscaras superadas,
+  caso sintético natural aceptado y fila plana/repetida rechazada; copias
+  web/móvil idénticas y sin desbordamiento horizontal a 390×844, 834×1194 y
+  1440×900, sin errores de consola.
+- La revisión visual externa con Claude quedó fuera de este cambio: requiere
+  autorización explícita para enviar la foto clínica original y el resultado a
+  Anthropic, incluso cuando Claude se utilice solamente como revisor.
+
 ## 2026-08-25 — Codex: validador relativo tolera fragmentos de segmentación
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html` y `sw.js`.
