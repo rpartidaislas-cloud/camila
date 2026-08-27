@@ -1,5 +1,48 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-27 — Codex: una sola máscara previa y preservación por píxel
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y
+`tests/simulation-blueprint.test.mjs`.
+
+- El soporte `8a964724-d71e-4189-a4fb-eb3093cf01cd` confirmó otro falso rechazo
+  posterior a una generación ya pagada: la segunda segmentación del render no
+  pudo volver a confirmar la misma zona dental.
+- El compositor ya no llama `segmentarParDental()` sobre la imagen generada.
+  Reutiliza la máscara de tratamiento y el mapa dental 13–23 que fueron
+  validados antes de generar, por lo que revalidar no repite una inferencia
+  variable ni vuelve a depender del conteo de piezas del render.
+- La seguridad final ahora es determinista: el render se recorta dentro de la
+  máscara previa y se comparan todos los píxeles exteriores contra la fotografía
+  original. Cualquier diferencia exterior bloquea el resultado; anatomía, tono
+  y cobertura siguen visibles como revisión clínica.
+- Las cachés de máscara y plano ahora incluyen una firma de la fotografía. Dos
+  pacientes o capturas con las mismas dimensiones ya no pueden reutilizar por
+  accidente una máscara anterior sólo por compartir ancho y alto.
+- Build `v99`, calidad `v21`, caché PWA `smyl-v60`. Publicación a `main` y
+  GitHub Pages autorizada por el usuario.
+
+## 2026-08-27 — Codex: entrega segura con hallazgos en revisión clínica
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y
+`tests/simulation-blueprint.test.mjs`.
+
+- Se separaron los bloqueos anatómicos deterministas de los controles visuales
+  variables. La app sólo detiene la entrega cuando la máscara no puede asegurar
+  que el cambio permanezca en dientes superiores y encía directamente asociada.
+- Los hallazgos de geometría, tono, textura, proporción o cambio insuficiente se
+  consolidan sin duplicados y aparecen en `Resultado recomendado para revisión`;
+  ya no convierten una propuesta protegida en el error genérico posterior al
+  pago.
+- Las marcas técnicas siguen siendo un rechazo real de presentabilidad y ahora
+  eliminan la imagen temporal para que el botón solicite una propuesta nueva.
+  También se añadieron mensajes específicos para compatibilidad con errores
+  visuales e integración de versiones anteriores.
+- QA local: dos scripts inline válidos, flujo de entrega segura/revisión clínica
+  aprobado y 12 verificaciones de máscaras superadas; copias web/móvil
+  idénticas. Build `v98`, calidad `v20`, caché PWA `smyl-v59`. **No se publicó
+  ni desplegó.**
+
 ## 2026-08-27 — Codex: consolidación de fragmentos y revalidación sin nueva generación
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y

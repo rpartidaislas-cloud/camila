@@ -72,7 +72,47 @@ vm.runInContext([
   extractFunction('construirPlanoGeometricoDental'),
   extractFunction('emparejarPiezasDentales'),
   extractFunction('evaluarAnatomiaSegmentada'),
+  extractFunction('consolidarHallazgosRevision'),
+  extractFunction('medirDiferenciasFueraMascara'),
+  extractFunction('firmaEntradaDental'),
 ].join('\n'), context);
+
+const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
+assert.doesNotMatch(compositorSeguro, /revisionVisual\.status\s*===\s*['"]rejected['"][\s\S]{0,300}throw/);
+assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
+assert.match(compositorSeguro, /deliveryGate:'deterministic-outside-mask-integrity'/);
+
+const pixelOriginal = new Uint8ClampedArray([
+  10,20,30,255,
+  40,50,60,255,
+]);
+const pixelSalidaInterior = new Uint8ClampedArray([
+  10,20,30,255,
+  200,210,220,255,
+]);
+const mascaraInterior = new Uint8ClampedArray([
+  255,255,255,0,
+  255,255,255,255,
+]);
+const exteriorIntacto = context.medirDiferenciasFueraMascara(pixelOriginal,pixelSalidaInterior,mascaraInterior);
+assert.equal(exteriorIntacto.identical,true);
+assert.equal(exteriorIntacto.changedPixels,0);
+
+const pixelSalidaExterior = new Uint8ClampedArray(pixelSalidaInterior);
+pixelSalidaExterior[0] = 11;
+const exteriorAlterado = context.medirDiferenciasFueraMascara(pixelOriginal,pixelSalidaExterior,mascaraInterior);
+assert.equal(exteriorAlterado.identical,false);
+assert.equal(exteriorAlterado.changedPixels,1);
+assert.equal(exteriorAlterado.maxDelta,1);
+
+const firmaPacienteA=context.firmaEntradaDental({dataUrl:'data:image/jpeg;base64,AAAA1111BBBB'});
+const firmaPacienteB=context.firmaEntradaDental({dataUrl:'data:image/jpeg;base64,AAAA2222BBBB'});
+assert.notEqual(firmaPacienteA,firmaPacienteB);
+assert.equal(firmaPacienteA,context.firmaEntradaDental({dataUrl:'data:image/jpeg;base64,AAAA1111BBBB'}));
+
+const validacionRecibida = extractFunction('validarResultadoIARecibido');
+assert.doesNotMatch(validacionRecibida, /errorSinCambio[\s\S]{0,200}throw errorSinCambio/);
+assert.match(validacionRecibida, /cambio dental visible fue demasiado conservador/i);
 
 const originales = [200, 275, 350, 425, 500, 575].map((x, index) => ({
   x,
@@ -124,6 +164,23 @@ const mensajeAnatomico = context.clasificarErrorParaUsuario(
   new Error('La simulación no superó la protección anatómica: anatomía dental inválida: fila plana con dientes repetidos.'),
 );
 assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
+
+const mensajeVisualCompatibilidad = context.clasificarErrorParaUsuario(
+  new Error('La simulación no alcanzó el estándar visual de carillas: tono A1 demasiado amarillo.'),
+);
+assert.equal(mensajeVisualCompatibilidad.titulo, 'La propuesta requiere revisión visual');
+
+const hallazgosRevision = context.consolidarHallazgosRevision(
+  {critical:['fila plana'],warnings:['tono desigual','fila plana']},
+  {status:'rejected',issues:['proporción central','tono desigual']},
+  ['revisión clínica'],
+);
+assert.deepEqual(Array.from(hallazgosRevision), [
+  'fila plana',
+  'tono desigual',
+  'proporción central',
+  'revisión clínica',
+]);
 
 const recorteInferior = context.evaluarProteccionInferiorMascara(
   {y:100,h:50},
@@ -178,4 +235,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('simulation blueprint: 13-23 geometry, 46-fragment consolidation and quality gates passed');
+console.log('simulation blueprint: geometry, fragment consolidation, safe delivery and clinical review passed');
