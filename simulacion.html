@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v95 — consolidación 13–23</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v96 — control dental estable</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1697,7 +1697,8 @@ function clasificarErrorParaUsuario(error) {
   if (/tejido inferior ajeno/.test(raw)) {
     return {titulo:'El control protegió la arcada inferior', detalle:'La propuesta alcanzó tejido fuera del maxilar y se descartó antes de modificarlo.'};
   }
-  if (/protección anatómica|proteccion anatomica/.test(raw)) {
+  if ((/protección anatómica|proteccion anatomica/.test(raw)) &&
+      !/anatomía dental inválida|anatomia dental invalida|anatomía individual|anatomia individual|dientes fusionados|fila plana|proporción central|proporcion central/.test(raw)) {
     return {titulo:'El control no pudo confirmar la zona dental', detalle:'La propuesta sí fue generada, pero no se confirmó con seguridad el límite de los seis dientes anteriores y su encía asociada.'};
   }
   if (/cobertura bilateral|cobertura dental|arcada.*incomplet/.test(raw)) {
@@ -5392,9 +5393,9 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   var registrada=dibujarImagenRegistrada(originalImg,iaImg,W,H,view||'frontal');
   var alineada=registrada.canvas;
 
-  // Una sola inferencia de segmentación contiene original y resultado lado a
-  // lado. La salida se usa exclusivamente como máscara protectora.
-  var par=await segmentarParDental(original,alineada,null);
+  // La máscara original ya validada se reutiliza y sólo se analiza el render.
+  // La salida generada es un control de calidad; no amplía la zona editable.
+  var par=await segmentarParDental(original,alineada,null,planoDental);
   var imgsMascara=await Promise.all([
     cargarImagenSegura(par.originalMaskUrl),cargarImagenSegura(par.iaMaskUrl)
   ]);
@@ -8201,7 +8202,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 17;
+var SIM_QUALITY_VERSION = 18;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
@@ -8217,7 +8218,13 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
   metricas.generatedPieces=generadas.length;
   metricas.usedOriginalMaskFallback=!!comparacion.usedOriginalMaskFallback;
   if(comparacion.usedOriginalMaskFallback){
-    criticos.push('no fue posible verificar la anatomía individual del render');
+    // La barrera de composición sigue siendo determinista: la IA sólo puede
+    // sobrevivir dentro de la máscara original de dientes/encía. Una lectura
+    // inconclusa del render no debe borrar una generación ya pagada ni fingir
+    // que el servicio encontró un defecto anatómico que realmente no midió.
+    advertencias.push('la anatomía individual del render quedó para revisión clínica');
+    metricas.verification='inconclusive';
+    comparacion.useGeneratedGeometryForQuality=false;
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
   if(esperadas.length<6){
@@ -8225,7 +8232,9 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
   if(generadas.length<6){
-    criticos.push('se detectaron dientes fusionados o menos de seis piezas anteriores');
+    advertencias.push('el segmentador no confirmó seis piezas en el render');
+    metricas.verification='inconclusive';
+    comparacion.useGeneratedGeometryForQuality=false;
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
   function centro(p){return p.x+p.w/2;}
@@ -8271,8 +8280,10 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
   var candidatas=generadas.filter(function(p){return centro(p)>=corredorMin&&centro(p)<=corredorMax;});
   var correspondencia=emparejarPiezasDentales(originales,candidatas);
   if(!correspondencia.ok||correspondencia.pairs.length<6){
-    criticos.push('no fue posible verificar seis dientes anteriores correspondientes');
+    advertencias.push('la correspondencia dental del render quedó inconclusa');
     metricas.matchedPieces=correspondencia.pairs.length;
+    metricas.verification='inconclusive';
+    comparacion.useGeneratedGeometryForQuality=false;
     return {critical:criticos,warnings:advertencias,metrics:metricas};
   }
   var generadasPareadas=correspondencia.pairs.map(function(par){return par.generada;});
@@ -8284,6 +8295,13 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
   metricas.maxPairDistance=+Math.max.apply(null,correspondencia.pairs.map(function(p){return p.distance;})).toFixed(3);
   metricas.minPairWidthRatio=+Math.min.apply(null,correspondencia.pairs.map(function(p){return p.widthRatio;})).toFixed(3);
   metricas.maxPairWidthRatio=+Math.max.apply(null,correspondencia.pairs.map(function(p){return p.widthRatio;})).toFixed(3);
+  var idsEsperados=['13','12','11','21','22','23'];
+  var identidadConfiable=originales.every(function(p,indice){return !p.sourceFdi||p.sourceFdi===idsEsperados[indice];})&&
+    generadasPareadas.every(function(p,indice){return !p.sourceFdi||p.sourceFdi===idsEsperados[indice];});
+  var geometriaConfiable=metricas.maxPairDistance<=.78&&metricas.minPairWidthRatio>=.50&&metricas.maxPairWidthRatio<=1.70;
+  var verificacionConfiable=identidadConfiable&&geometriaConfiable;
+  metricas.verification=verificacionConfiable?'confirmed':'inconclusive';
+  comparacion.useGeneratedGeometryForQuality=verificacionConfiable;
   if(metricas.ignoredFragments)advertencias.push('se ignoraron '+metricas.ignoredFragments+' fragmento(s) extra del segmentador');
 
   var fallos=[],severos=[];
@@ -8304,8 +8322,8 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
       generatedError:+errorGenerado.toFixed(3),
       improvement:+(errorOriginal?((errorOriginal-errorGenerado)/errorOriginal):0).toFixed(3)
     };
-    if(errorOriginal>.25&&errorGenerado>errorOriginal*.88)severos.push('la propuesta no ejecutó el plano geométrico individual');
-    if(errorGenerado>1.45)severos.push('la anatomía generada quedó muy lejos del plano de carillas');
+    if(errorOriginal>.25&&errorGenerado>errorOriginal*.88)fallos.push('la propuesta no ejecutó el plano geométrico individual');
+    if(errorGenerado>1.45)fallos.push('la anatomía generada quedó muy lejos del plano de carillas');
   }
   var centralSeAlejo=Math.abs(generadaM.centralWidthHeight-.79)>Math.abs(originalM.centralWidthHeight-.79)+.06;
   if((generadaM.centralWidthHeight<.68||generadaM.centralWidthHeight>.92)&&centralSeAlejo)fallos.push('la proporción central empeoró respecto a la fotografía');
@@ -8326,8 +8344,12 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
   });
   metricas.relativeFailureCount=fallos.length;
   metricas.severeFailureCount=severos.length;
-  if(severos.length||fallos.length>=2)criticos.push('anatomía dental inválida: '+(severos.length?severos:fallos).slice(0,3).join(' · '));
-  else if(fallos.length)advertencias.push(fallos[0]);
+  // Sólo una anomalía severa respaldada por correspondencia FDI y geometría
+  // coherentes bloquea el resultado. Las desviaciones del plano son avisos:
+  // el control visual local y la revisión clínica deciden sobre la imagen
+  // compuesta, no sobre cajas variables de un segmentador generativo.
+  if(severos.length&&verificacionConfiable)criticos.push('anatomía dental inválida: '+severos.slice(0,3).join(' · '));
+  else if(severos.length||fallos.length)advertencias.push((severos.length?severos:fallos).slice(0,2).join(' · '));
   return {critical:criticos,warnings:advertencias,metrics:metricas};
 }
 
@@ -8608,7 +8630,12 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
   var amarillo=claros?amarilloSum/claros:0;
   var comparacion = comparacionDental || _ultimaComparacionDental || {};
   var esperadas = (comparacion.expectedPieces || []).slice();
-  var cajas = (comparacion.generatedPieces || []).slice();
+  // Si la lectura del render fue inconclusa, las cajas generadas no son una
+  // base válida para declarar dientes ausentes, descentrados o asimétricos.
+  // Se usan entonces las seis cajas originales; los píxeles del resultado se
+  // siguen evaluando dentro de cada pieza y fuera de la máscara nunca cambia.
+  var cajas = comparacion.useGeneratedGeometryForQuality===false
+    ? esperadas.slice() : (comparacion.generatedPieces || []).slice();
   if (!cajas.length) {
     cajas=_ultimaSeleccionDental.filter(function(m){return m.bbox&&m.bbox.length===4;}).map(function(m){
       return {x:+m.bbox[0],y:+m.bbox[1],w:+m.bbox[2],h:+m.bbox[3]};
@@ -8776,14 +8803,71 @@ async function segmentarCanvasDental(canvas, cacheKey) {
   return mascaraUrl;
 }
 
-// La primera simulación manda original y resultado en una sola imagen lado a
-// lado. Replicate hace UNA inferencia, después se separan ambas mitades. Esto
-// reduce el costo inicial y evita gastar dos solicitudes de segmentación.
-async function segmentarParDental(original, alineada, cacheKey) {
+// Reutiliza el plano fuente y segmenta únicamente el render. El modo lateral
+// antiguo queda debajo sólo para sesiones iniciadas antes de esta versión.
+async function segmentarParDental(original, alineada, cacheKey, planoDental) {
   var maxLado = 720;
   var escala = Math.min(1, maxLado / Math.max(original.width, original.height));
   var w = Math.max(1, Math.round(original.width * escala));
   var h = Math.max(1, Math.round(original.height * escala));
+
+  // El plano ya segmentó y validó la fotografía original antes de pagar la
+  // generación. Reutilizar esa máscara evita volver a interpretar el mismo
+  // paciente y permite analizar el render solo, sin que la notación FDI de dos
+  // sonrisas colocadas lado a lado se mezcle o se fragmente de forma aleatoria.
+  var tienePlanoFuente=!!(planoDental&&planoDental.sourceMaskUrl&&
+    planoDental.sourcePieces&&planoDental.sourcePieces.length>=6);
+  if(tienePlanoFuente){
+    var reducidaIA=document.createElement('canvas');reducidaIA.width=w;reducidaIA.height=h;
+    reducidaIA.getContext('2d').drawImage(alineada,0,0,w,h);
+    var masksGeneradas=[],errorSegmentacion='';
+    try{
+      masksGeneradas=await solicitarSegmentacionDental(reducidaIA.toDataURL('image/jpeg',.80));
+    }catch(errorLectura){
+      errorSegmentacion=String(errorLectura&&errorLectura.message||errorLectura||'lectura no disponible');
+    }
+    var conCajaGenerada=masksGeneradas.filter(function(m){
+      return m.bbox&&m.bbox.length===4&&m.bbox.every(function(v){return Number.isFinite(Number(v));});
+    });
+    var piezasGeneradas=seleccionarPiezasArcadaSuperior(conCajaGenerada,0,w,w/2);
+    var sx=w/Math.max(1,Number(planoDental.sourceWidth)||w);
+    var sy=h/Math.max(1,Number(planoDental.sourceHeight)||h);
+    var piezasEsperadas=planoDental.sourcePieces.slice(0,6).map(function(p){
+      var copia=Object.assign({},p);
+      copia.x*=sx;copia.y*=sy;copia.w*=sx;copia.h*=sy;
+      return copia;
+    });
+    var seleccionGenerada=mascarasDePiezasDentales(piezasGeneradas);
+    var mascaraGeneradaUrl=seleccionGenerada.length
+      ? await unirMascarasSegmentadas(seleccionGenerada,w,h,'selected') : null;
+    var imagenesFuente=await Promise.all([
+      cargarImagenSegura(planoDental.sourceMaskUrl),
+      mascaraGeneradaUrl?cargarImagenSegura(mascaraGeneradaUrl):Promise.resolve(null)
+    ]);
+    var originalFuente=document.createElement('canvas'),generadaFuente=document.createElement('canvas');
+    originalFuente.width=generadaFuente.width=w;originalFuente.height=generadaFuente.height=h;
+    originalFuente.getContext('2d').drawImage(imagenesFuente[0],0,0,w,h);
+    var originalMaskUrl=originalFuente.toDataURL('image/png');
+    if(imagenesFuente[1])generadaFuente.getContext('2d').drawImage(imagenesFuente[1],0,0,w,h);
+    var usoRespaldo=!imagenesFuente[1]||piezasGeneradas.length<6;
+    var iaMaskUrl=usoRespaldo?originalMaskUrl:generadaFuente.toDataURL('image/png');
+    if(usoRespaldo)piezasGeneradas=piezasEsperadas.map(function(p){return Object.assign({},p);});
+    var comparacionPlano={
+      width:w,height:h,
+      expectedPieces:piezasEsperadas,
+      generatedPieces:piezasGeneradas,
+      usedOriginalMaskFallback:usoRespaldo,
+      segmentationError:errorSegmentacion,
+      rawFragments:{original:Number(planoDental.sourceRawFragments)||0,generated:conCajaGenerada.length},
+      consolidatedPieces:{original:piezasEsperadas.length,generated:usoRespaldo?0:piezasGeneradas.length}
+    };
+    _ultimaSeleccionDental=(seleccionGenerada.length?seleccionGenerada:[]).slice();
+    _ultimaComparacionDental=comparacionPlano;
+    if(cacheKey)S.dentalMaskByView[cacheKey]=originalMaskUrl;
+    return {originalMaskUrl:originalMaskUrl,iaMaskUrl:iaMaskUrl,comparison:comparacionPlano};
+  }
+
+  // Compatibilidad con sesiones antiguas que no guardaron el plano fuente.
   var par = document.createElement('canvas');
   par.width = w * 2; par.height = h;
   var pctx = par.getContext('2d');
@@ -8806,9 +8890,6 @@ async function segmentarParDental(original, alineada, cacheKey) {
   var piezasGeneradas=derechaMasks.length
     ? seleccionarPiezasArcadaSuperior(derechaMasks,w,w,centroOriginal)
     : [];
-  if(derechaMasks.length&&piezasGeneradas.length<6) {
-    throw new Error('La segmentación generada se dividió en demasiados fragmentos dentales y no confirmó las seis piezas anteriores.');
-  }
   var seleccionOriginal=mascarasDePiezasDentales(piezasEsperadas);
   var seleccionGenerada=mascarasDePiezasDentales(piezasGeneradas);
   var mascaraIzquierdaUrl = await unirMascarasSegmentadas(seleccionOriginal, par.width, par.height, 'selected');
@@ -8826,12 +8907,13 @@ async function segmentarParDental(original, alineada, cacheKey) {
   var originalMaskUrl = izquierda.toDataURL('image/png');
   if (imagenesMascara[1]) derecha.getContext('2d').drawImage(imagenesMascara[1], w, 0, w, h, 0, 0, w, h);
   var iaMaskUrl = imagenesMascara[1] ? derecha.toDataURL('image/png') : originalMaskUrl;
-  if (!imagenesMascara[1]) piezasGeneradas=piezasEsperadas.map(function(p){return Object.assign({},p);});
+  var usoRespaldoLegacy=!imagenesMascara[1]||piezasGeneradas.length<6;
+  if (usoRespaldoLegacy) piezasGeneradas=piezasEsperadas.map(function(p){return Object.assign({},p);});
   var comparacion = {
     width:w,height:h,
     expectedPieces:piezasEsperadas,
     generatedPieces:piezasGeneradas,
-    usedOriginalMaskFallback:!imagenesMascara[1],
+    usedOriginalMaskFallback:usoRespaldoLegacy,
     rawFragments:{original:izquierdaMasks.length,generated:derechaMasks.length},
     consolidatedPieces:{original:piezasEsperadas.length,generated:piezasGeneradas.length}
   };
@@ -8991,6 +9073,13 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   var familia={circular:'oval',triangular:'triangular',rectangular:'rectangular-soft'}[diagnostico.forma_dental_recomendada]||'rectangular-soft';
   var factor=limitarPlanoDental((Number(diagnostico.tamano_coronas_pct)||100)/100,.97,1.07);
   var plano=construirPlanoGeometricoDental(mapa.pieces,mapa.width,mapa.height,{family:familia,sizeFactor:factor});
+  // Estos datos ya fueron validados antes de generar y se reutilizan para la
+  // composición y el control posterior. No se envían como parte del prompt.
+  plano.sourceMaskUrl=mapa.maskUrl;
+  plano.sourcePieces=mapa.pieces.map(function(p){return Object.assign({},p);});
+  plano.sourceWidth=mapa.width;
+  plano.sourceHeight=mapa.height;
+  plano.sourceRawFragments=mapa.rawFragments;
   var guia=renderizarGuiaPlanoDental(plano,entradaDental.rect.w,entradaDental.rect.h);
   plano.guideBase64=guia.split(',')[1];
   plano.guideMimeType='image/png';

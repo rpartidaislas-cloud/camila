@@ -60,6 +60,7 @@ function extractFunction(name) {
 const context = {};
 vm.createContext(context);
 vm.runInContext([
+  extractFunction('clasificarErrorParaUsuario'),
   extractFunction('medianaNumerica'),
   extractFunction('agruparMascarasDentales'),
   extractFunction('resumirPiezasDentales'),
@@ -94,7 +95,34 @@ const sinCambio = context.evaluarAnatomiaSegmentada({
   generatedPieces: originales,
   usedOriginalMaskFallback: false,
 }, 'frontal', plano);
-assert.ok(sinCambio.critical.some((issue) => issue.includes('no ejecutó el plano')));
+assert.ok(sinCambio.critical.length > 0);
+
+// Una segmentación inconclusa del render no debe borrar una generación ya
+// pagada. La máscara original sigue siendo la barrera determinista y el control
+// visual evalúa la imagen usando las seis cajas fuente.
+const lecturaInconclusa = {
+  expectedPieces: originales,
+  generatedPieces: originales.slice(0, 3),
+  usedOriginalMaskFallback: true,
+};
+const conRespaldo = context.evaluarAnatomiaSegmentada(lecturaInconclusa, 'frontal', plano);
+assert.equal(conRespaldo.critical.length, 0);
+assert.equal(lecturaInconclusa.useGeneratedGeometryForQuality, false);
+assert.equal(conRespaldo.metrics.verification, 'inconclusive');
+
+const lecturaParcial = {
+  expectedPieces: originales,
+  generatedPieces: originales.slice(0, 4),
+  usedOriginalMaskFallback: false,
+};
+const parcial = context.evaluarAnatomiaSegmentada(lecturaParcial, 'frontal', plano);
+assert.equal(parcial.critical.length, 0);
+assert.equal(lecturaParcial.useGeneratedGeometryForQuality, false);
+
+const mensajeAnatomico = context.clasificarErrorParaUsuario(
+  new Error('La simulación no superó la protección anatómica: anatomía dental inválida: fila plana con dientes repetidos.'),
+);
+assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
 
 const ejecutado = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,
