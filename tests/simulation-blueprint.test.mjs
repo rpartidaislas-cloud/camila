@@ -61,6 +61,7 @@ const context = {};
 vm.createContext(context);
 vm.runInContext([
   extractFunction('clasificarErrorParaUsuario'),
+  extractFunction('evaluarProteccionInferiorMascara'),
   extractFunction('medianaNumerica'),
   extractFunction('agruparMascarasDentales'),
   extractFunction('resumirPiezasDentales'),
@@ -123,6 +124,21 @@ const mensajeAnatomico = context.clasificarErrorParaUsuario(
   new Error('La simulación no superó la protección anatómica: anatomía dental inválida: fila plana con dientes repetidos.'),
 );
 assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
+
+const recorteInferior = context.evaluarProteccionInferiorMascara(
+  {y:100,h:50},
+  {y:95,h:75},
+  {y:63,h:94},
+);
+assert.equal(recorteInferior.clipped, true);
+assert.equal(recorteInferior.protected, true);
+
+const escapeInferior = context.evaluarProteccionInferiorMascara(
+  {y:100,h:50},
+  {y:95,h:75},
+  {y:63,h:97},
+);
+assert.equal(escapeInferior.protected, false);
 
 const ejecutado = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,

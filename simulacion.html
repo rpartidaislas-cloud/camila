@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v96 — control dental estable</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v97 — recorte inferior automático</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5290,6 +5290,26 @@ function medirMascaraAnatomica(canvas) {
   return {area:area,ratio:area/(W*H),x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1,cx:sumaX/area,cy:sumaY/area};
 }
 
+// Distingue entre una máscara de tratamiento que originalmente llegó demasiado
+// abajo y la máscara que realmente se va a componer. La primera sólo produce
+// una advertencia porque el corredor duro ya la recortó; la segunda sí debe
+// fallar si, por una regresión, todavía rebasa el maxilar.
+function evaluarProteccionInferiorMascara(original, tratamiento, segura) {
+  var fondoOriginal=(original.y+original.h-1);
+  var fondoTratamiento=(tratamiento.y+tratamiento.h-1);
+  var fondoSeguro=(segura.y+segura.h-1);
+  var extensionOriginal=Math.max(0,fondoTratamiento-fondoOriginal);
+  var extensionSegura=Math.max(0,fondoSeguro-fondoOriginal);
+  var tolerancia=Math.max(1,original.h*.13+1);
+  return {
+    rawExtension:extensionOriginal,
+    safeExtension:extensionSegura,
+    tolerance:tolerancia,
+    clipped:extensionOriginal>extensionSegura+1,
+    protected:extensionSegura<=tolerancia
+  };
+}
+
 function esPixelTejidoRosado(r,g,b) {
   // Un simple predominio de rojo también aparece en esmalte VITA cálido y en
   // sombras cervicales. Para llamarlo tejido exigimos además saturación real y
@@ -5445,10 +5465,10 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   if(mo.area&&mt.area){
     var anchoTratamiento=ms.w/Math.max(1,mo.w);
     var centroTratamiento=Math.abs(ms.cx-mo.cx)/Math.max(1,mo.w);
-    var altoTratamiento=ms.h/Math.max(1,mo.h);
-    var fondoTratamiento=(ms.y+ms.h)-(mo.y+mo.h);
+    var proteccionInferior=evaluarProteccionInferiorMascara(mo,mt,ms);
     if(anchoTratamiento<.76||anchoTratamiento>1.28||centroTratamiento>.10)errores.push('la región protegida no coincide bilateralmente con el maxilar');
-    if(altoTratamiento>1.9||fondoTratamiento>mo.h*.13)errores.push('la región protegida alcanzó tejido inferior ajeno al tratamiento');
+    if(!proteccionInferior.protected)errores.push('la región protegida alcanzó tejido inferior ajeno al tratamiento');
+    else if(proteccionInferior.clipped)advertencias.push('se recortó automáticamente una extensión inferior fuera del maxilar');
   }
   if(!mg.area||mg.ratio<.001||mg.ratio>.13)advertencias.push('la máscara generada requirió el límite de la arcada original');
   if(mo.area&&mg.area) {
@@ -5461,7 +5481,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   }
   if(errores.length) {
     var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
-    fallo.qualityMetrics={original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:coberturaDental,anatomy:revisionAnatomica.metrics,warnings:advertencias,fragments:par.comparison&&par.comparison.rawFragments||null,mode:'six-anterior-bounded-upper-teeth-and-gingiva'};
+    fallo.qualityMetrics={original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:coberturaDental,lowerProtection:proteccionInferior||null,anatomy:revisionAnatomica.metrics,warnings:advertencias,fragments:par.comparison&&par.comparison.rawFragments||null,mode:'six-anterior-bounded-upper-teeth-and-gingiva'};
     throw fallo;
   }
 
@@ -5487,7 +5507,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
     issues:['Revisa anatomía, simetría natural, encía y coincidencia VITA antes de presentar.'].concat(advertencias,revisionVisual.issues||[]),
-    metrics:{mode:'six-anterior-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),fragments:par.comparison&&par.comparison.rawFragments||null,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'six-anterior-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),lowerProtection:proteccionInferior||null,fragments:par.comparison&&par.comparison.rawFragments||null,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
@@ -8202,7 +8222,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 18;
+var SIM_QUALITY_VERSION = 19;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
