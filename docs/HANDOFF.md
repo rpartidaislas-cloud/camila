@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-27 — Codex: consolidación de fragmentos y revalidación sin nueva generación
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y
+`tests/simulation-blueprint.test.mjs`.
+
+- El soporte `468c3035-f084-4a1f-a181-e6885581107a` confirmó que OpenAI sí
+  entregó la imagen y que el fallo ocurrió después: la segmentación lado a lado
+  devolvió 46 componentes y la protección anatómica local rechazó la máscara.
+- Los componentes ahora se agrupan por `fdi/parentFdi`, se separa la arcada
+  superior por geometría y se elige una sola secuencia canónica de seis piezas
+  13–23. Sólo las máscaras que pertenecen a esas seis piezas entran al
+  compositor; los fragmentos no se cuentan como dientes independientes.
+- El corredor final queda limitado a esas seis piezas y su encía directamente
+  asociada. Tiene límites superiores, laterales e inferiores explícitos; fuera
+  de ellos siempre se restaura la fotografía original.
+- Cuando una generación pagada falla únicamente en el control local, la imagen
+  cruda queda en memoria durante esa pantalla. El primer botón vuelve a ejecutar
+  segmentación y validación sin llamar otra vez a generación; si también falla,
+  se elimina y recién entonces se ofrece crear otra propuesta.
+- Los errores de protección anatómica muestran ahora la causa concreta en lugar
+  del genérico. Build `v95`, calidad `v17`, caché PWA `smyl-v56`.
+- QA local: scripts inline válidos, 12 pruebas de máscara y caso sintético de 46
+  fragmentos consolidados a 13–23 superados; copias web/móvil idénticas. **No se
+  publicó ni desplegó.**
+
 ## 2026-08-26 — Codex: plano geométrico individual 13–23 y rechazo de simulaciones inertes
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y

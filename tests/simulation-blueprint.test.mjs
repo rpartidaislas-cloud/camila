@@ -61,6 +61,11 @@ const context = {};
 vm.createContext(context);
 vm.runInContext([
   extractFunction('medianaNumerica'),
+  extractFunction('agruparMascarasDentales'),
+  extractFunction('resumirPiezasDentales'),
+  extractFunction('seleccionarSeisPiezasAnteriores'),
+  extractFunction('seleccionarPiezasArcadaSuperior'),
+  extractFunction('mascarasDePiezasDentales'),
   extractFunction('limitarPlanoDental'),
   extractFunction('construirPlanoGeometricoDental'),
   extractFunction('emparejarPiezasDentales'),
@@ -99,4 +104,34 @@ const ejecutado = context.evaluarAnatomiaSegmentada({
 assert.equal(ejecutado.critical.length, 0);
 assert.ok(ejecutado.metrics.blueprint.improvement > 0.8);
 
-console.log('simulation blueprint: 13-23 geometry, no-op rejection and target acceptance passed');
+// Una salida real puede traer decenas de componentes: coronas principales y
+// pequeñas islas asignadas con parentFdi. No deben contarse como 46 dientes ni
+// ampliar la máscara a la mandíbula; se consolidan en seis piezas anteriores.
+const fragmentadas = [];
+const superiores = ['14','13','12','11','21','22','23','24'];
+superiores.forEach((fdi,index) => {
+  const x = 60 + index * 60;
+  fragmentadas.push({fdi,parentFdi:null,bbox:[x,100,50,68],pixelCount:1800,maskUrl:`upper-${fdi}`});
+  fragmentadas.push({fdi:null,parentFdi:fdi,bbox:[x+4,104,12,10],pixelCount:80,maskUrl:`upper-frag-a-${fdi}`});
+  fragmentadas.push({fdi:null,parentFdi:fdi,bbox:[x+29,151,14,9],pixelCount:70,maskUrl:`upper-frag-b-${fdi}`});
+});
+['43','42','41','31','32','33'].forEach((fdi,index) => {
+  const x = 120 + index * 65;
+  fragmentadas.push({fdi,parentFdi:null,bbox:[x,235,52,55],pixelCount:1500,maskUrl:`lower-${fdi}`});
+  fragmentadas.push({fdi:null,parentFdi:fdi,bbox:[x+18,243,10,8],pixelCount:60,maskUrl:`lower-frag-${fdi}`});
+});
+while (fragmentadas.length < 46) {
+  const i = fragmentadas.length;
+  fragmentadas.push({fdi:null,parentFdi:'11',bbox:[270+(i%4),110+(i%7),6,5],pixelCount:20,maskUrl:`noise-${i}`});
+}
+const seis = context.seleccionarPiezasArcadaSuperior(fragmentadas,0,600,300);
+assert.equal(seis.length,6);
+assert.deepEqual(Array.from(seis,p => p.fdi),['13','12','11','21','22','23']);
+assert.ok(context.mascarasDePiezasDentales(seis).length < fragmentadas.length);
+assert.ok(context.mascarasDePiezasDentales(seis).length > 6);
+
+const ausentesSuperiores = new Set(['22','23','24']);
+const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
+assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
+
+console.log('simulation blueprint: 13-23 geometry, 46-fragment consolidation and quality gates passed');

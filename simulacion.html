@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v94 — plano individual 13–23</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v95 — consolidación 13–23</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1051,7 +1051,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div id="proc-error-code" style="display:none;font-size:10.5px;color:rgba(255,255,255,.38);letter-spacing:.04em"></div>
     <div style="display:flex;gap:10px;width:100%;max-width:280px;margin-top:4px">
       <button onclick="show('s-intro')" style="flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Cancelar</button>
-      <button id="proc-retry-btn" onclick="processPhotos()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
+      <button id="proc-retry-btn" onclick="reintentarProceso()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
     </div>
   </div>
 </div>
@@ -1688,6 +1688,18 @@ function clasificarErrorParaUsuario(error) {
   if (/segmentación no encontró|segmentación de dientes|no fue posible comparar/.test(raw)) {
     return {titulo:'No se pudo aislar la zona dental', detalle:'La propuesta sí fue generada, pero el paso que separa los dientes no terminó correctamente. Tus fotografías siguen guardadas.'};
   }
+  if (/región dental original.*extensión anormal|region dental original.*extension anormal|demasiados fragmentos dentales/.test(raw)) {
+    return {titulo:'La sonrisa se dividió en demasiados fragmentos', detalle:'La propuesta sí fue generada. El control local conservará la imagen y puede volver a unir las seis piezas anteriores sin repetir la generación.'};
+  }
+  if (/región protegida no coincide bilateralmente|region protegida no coincide bilateralmente/.test(raw)) {
+    return {titulo:'La máscara no coincidió con toda la sonrisa', detalle:'La propuesta sí fue generada, pero el límite de dientes y encía no coincidió con ambos lados de la arcada superior.'};
+  }
+  if (/tejido inferior ajeno/.test(raw)) {
+    return {titulo:'El control protegió la arcada inferior', detalle:'La propuesta alcanzó tejido fuera del maxilar y se descartó antes de modificarlo.'};
+  }
+  if (/protección anatómica|proteccion anatomica/.test(raw)) {
+    return {titulo:'El control no pudo confirmar la zona dental', detalle:'La propuesta sí fue generada, pero no se confirmó con seguridad el límite de los seis dientes anteriores y su encía asociada.'};
+  }
   if (/cobertura bilateral|cobertura dental|arcada.*incomplet/.test(raw)) {
     return {titulo:'La detección omitió parte de la sonrisa', detalle:'La propuesta sí fue generada, pero la máscara dejó fuera parte de los dientes superiores. Tus fotografías siguen guardadas.'};
   }
@@ -2188,6 +2200,10 @@ var S = {
   // de IA: resume cobertura, piezas detectadas, variación óptica y tono por
   // cada vista para decidir si el resultado merece revisión manual.
   simulationQualityByView: {},
+  // Resultado crudo ya pagado que todavía no superó una validación local.
+  // Es deliberadamente efímero: no se guarda en localStorage ni en Supabase.
+  // Permite repetir una vez la segmentación sin volver a generar/cobrar IA.
+  pendingGeneratedByView: {},
   lastGenerationMeta: null,
   baVistaActual: 'frontal',
   timer: null,
@@ -4567,7 +4583,17 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible' && _wakeLockDeseado && !_wakeLock) solicitarWakeLock();
 });
 
-async function processPhotos() {
+function reintentarProceso() {
+  var frontal = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
+  var view = frontal && frontal.view || 'frontal';
+  var pendiente = S.pendingGeneratedByView && S.pendingGeneratedByView[view];
+  var reutilizable = !!(pendiente && pendiente.photoSignature === firmaFotoParaRevalidacion(frontal));
+  if (pendiente && !reutilizable) delete S.pendingGeneratedByView[view];
+  processPhotos({revalidateCached:reutilizable});
+}
+
+async function processPhotos(processOptions) {
+  processOptions = processOptions || {};
   if (DEVICE_DIAG_ACTIVE) {
     console.warn('[SMYL diagnóstico] Se bloqueó processPhotos(): este modo no utiliza IA.');
     return;
@@ -4643,13 +4669,16 @@ async function processPhotos() {
     var frontalForAnalysis = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
     var procSub = document.getElementById('proc-sub-main');
     if (procSub) procSub.textContent = 'Analizando proporciones faciales...';
-    var diagnosticoFacial = null;
-    try {
-      diagnosticoFacial = await conReintento(function(){ return analizarConClaude(frontalForAnalysis.b64); });
-    } catch (e) { diagnosticoFacial = null; }
-    S.diagnosticoFacial = diagnosticoFacial;
-    var clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
-    S.promptGeminiUsado = clinicalPrompt || null;
+    var diagnosticoFacial = S.diagnosticoFacial || null;
+    var clinicalPrompt = S.promptGeminiUsado || '';
+    if (!processOptions.revalidateCached) {
+      try {
+        diagnosticoFacial = await conReintento(function(){ return analizarConClaude(frontalForAnalysis.b64); });
+      } catch (e) { diagnosticoFacial = null; }
+      S.diagnosticoFacial = diagnosticoFacial;
+      clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
+      S.promptGeminiUsado = clinicalPrompt || null;
+    }
 
     // Step 2: Gemini genera la simulación SOLO de la foto frontal
     // automáticamente -- las demás vistas (perfiles, extraoral, etc.) se
@@ -4664,7 +4693,8 @@ async function processPhotos() {
     // otra vez, evitando cargos duplicados invisibles.
     var resultadoFrontal = await generateSimulation(clinicalPrompt, frontalPhoto, {
       requestId: crearIdSolicitudIA(),
-      reason: 'simulacion_inicial',
+      reason: processOptions.revalidateCached ? 'revalidacion_local_sin_generacion' : 'simulacion_inicial',
+      revalidateCached: !!processOptions.revalidateCached,
       requireVisibleChange: true
     });
 
@@ -4681,10 +4711,15 @@ async function processPhotos() {
     S.baVistaActual = 'frontal';
     detenerBarraProgreso(true);
     showResult();
-    registrarDiagnosticoUsado();
+    if (!processOptions.revalidateCached) registrarDiagnosticoUsado();
 
   } catch(e) {
     console.error(e);
+    if (processOptions.revalidateCached) {
+      var vistaPendiente = (S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0] || {}).view || 'frontal';
+      if (S.pendingGeneratedByView) delete S.pendingGeneratedByView[vistaPendiente];
+      e.revalidationExhausted = true;
+    }
     mostrarErrorProceso(e);
   } finally {
     detenerBarraProgreso();
@@ -4751,13 +4786,17 @@ function mostrarErrorProceso(e) {
     }));
   } catch (_) {}
 
-  // Un rechazo de calidad ocurre después de recibir la imagen pagada. En ese
-  // caso el botón no es un simple reintento de red: generará otra propuesta.
-  // Nombrarlo explícitamente evita pulsaciones repetidas por error.
+  // Si la imagen pagada ya llegó, primero se repite únicamente la
+  // segmentación/validación local. Sólo después de ese intento se ofrece una
+  // nueva propuesta, evitando un segundo cargo innecesario.
   var retry = document.getElementById('proc-retry-btn');
   var raw = String(e && e.message || e || '').toLowerCase();
-  if (retry) retry.textContent = /protección anatómica|control dental|incomplet|segment|correspondencia/.test(raw)
-    ? '↻ Generar otra propuesta' : '↻ Reintentar';
+  var vista = (S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0] || {}).view || 'frontal';
+  var conservaGeneracion = !!(S.pendingGeneratedByView && S.pendingGeneratedByView[vista]);
+  if (retry) retry.textContent = conservaGeneracion
+    ? '↻ Revalidar resultado'
+    : (/protección anatómica|proteccion anatomica|control dental|incomplet|segment|correspondencia/.test(raw)
+      ? '↻ Generar otra propuesta' : '↻ Reintentar');
 
   var ring = document.getElementById('proc-ring-wrap');
   var list = document.getElementById('proc-list');
@@ -5374,12 +5413,13 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   var tctx=maskTratamiento.getContext('2d',{willReadFrequently:true});
   var safeCtx=maskSegura.getContext('2d');
   var tdata=tctx.getImageData(0,0,W,H),sdata=safeCtx.createImageData(W,H);
-  var xMin=mo.area?Math.max(0,Math.floor(mo.x-mo.w*.20)):0;
-  var xMax=mo.area?Math.min(W-1,Math.ceil(mo.x+mo.w*1.20)):W-1;
-  var yMax=mo.area?Math.min(H-1,Math.ceil(mo.y+mo.h*1.18)):H-1;
+  var xMin=mo.area?Math.max(0,Math.floor(mo.x-mo.w*.12)):0;
+  var xMax=mo.area?Math.min(W-1,Math.ceil(mo.x+mo.w*1.12)):W-1;
+  var yMin=mo.area?Math.max(0,Math.floor(mo.y-mo.h*.75)):0;
+  var yMax=mo.area?Math.min(H-1,Math.ceil(mo.y+mo.h*1.12)):H-1;
   for(var tp=0;tp<tdata.data.length;tp+=4){
     var pixel=tp/4,px=pixel%W,py=Math.floor(pixel/W);
-    var alfa=(px>=xMin&&px<=xMax&&py<=yMax)?tdata.data[tp+3]:0;
+    var alfa=(px>=xMin&&px<=xMax&&py>=yMin&&py<=yMax)?tdata.data[tp+3]:0;
     sdata.data[tp]=255;sdata.data[tp+1]=255;sdata.data[tp+2]=255;sdata.data[tp+3]=alfa;
   }
   safeCtx.putImageData(sdata,0,0);
@@ -5402,12 +5442,12 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   if(piezasOriginales.length&&piezasOriginales.length<4)errores.push('la segmentación original quedó incompleta');
   if(mo.area&&coberturaDental<.76)errores.push('la región protegida no cubrió la arcada superior completa');
   if(mo.area&&mt.area){
-    var anchoTratamiento=mt.w/Math.max(1,mo.w);
-    var centroTratamiento=Math.abs(mt.cx-mo.cx)/Math.max(1,mo.w);
-    var altoTratamiento=mt.h/Math.max(1,mo.h);
-    var fondoTratamiento=(mt.y+mt.h)-(mo.y+mo.h);
-    if(anchoTratamiento<.76||anchoTratamiento>1.42||centroTratamiento>.14)errores.push('la región protegida no coincide bilateralmente con el maxilar');
-    if(altoTratamiento>2.8||fondoTratamiento>mo.h*.20)errores.push('la región protegida alcanzó tejido inferior ajeno al tratamiento');
+    var anchoTratamiento=ms.w/Math.max(1,mo.w);
+    var centroTratamiento=Math.abs(ms.cx-mo.cx)/Math.max(1,mo.w);
+    var altoTratamiento=ms.h/Math.max(1,mo.h);
+    var fondoTratamiento=(ms.y+ms.h)-(mo.y+mo.h);
+    if(anchoTratamiento<.76||anchoTratamiento>1.28||centroTratamiento>.10)errores.push('la región protegida no coincide bilateralmente con el maxilar');
+    if(altoTratamiento>1.9||fondoTratamiento>mo.h*.13)errores.push('la región protegida alcanzó tejido inferior ajeno al tratamiento');
   }
   if(!mg.area||mg.ratio<.001||mg.ratio>.13)advertencias.push('la máscara generada requirió el límite de la arcada original');
   if(mo.area&&mg.area) {
@@ -5420,7 +5460,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   }
   if(errores.length) {
     var fallo=new Error('La simulación no superó la protección anatómica: '+errores.slice(0,2).join(' · ')+'. Genera de nuevo; no se mostrará un resultado parcial.');
-    fallo.qualityMetrics={original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:coberturaDental,anatomy:revisionAnatomica.metrics,warnings:advertencias,mode:'original-bounded-upper-teeth-and-gingiva'};
+    fallo.qualityMetrics={original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:coberturaDental,anatomy:revisionAnatomica.metrics,warnings:advertencias,fragments:par.comparison&&par.comparison.rawFragments||null,mode:'six-anterior-bounded-upper-teeth-and-gingiva'};
     throw fallo;
   }
 
@@ -5446,7 +5486,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:'review',
     issues:['Revisa anatomía, simetría natural, encía y coincidencia VITA antes de presentar.'].concat(advertencias,revisionVisual.issues||[]),
-    metrics:{mode:'original-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'six-anterior-bounded-upper-teeth-and-gingiva',original:mo,generated:mg,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),fragments:par.comparison&&par.comparison.rawFragments||null,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   return salida.toDataURL('image/png');
 }
@@ -5519,12 +5559,78 @@ async function medirCambioDentalVisible(antesUrl, despuesUrl, view) {
   return {mean:muestras ? total/muestras : 0, changedRatio:muestras ? distintos/muestras : 0};
 }
 
+function leerBlobComoDataUrl(blob) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(){ resolve(String(reader.result || '')); };
+    reader.onerror = function(){ reject(new Error('No se pudo conservar temporalmente la imagen generada.')); };
+    reader.readAsDataURL(blob);
+  });
+}
+
+function firmaFotoParaRevalidacion(foto) {
+  var b64 = String(foto && foto.b64 || '');
+  return String(foto && foto.view || 'frontal') + ':' + b64.length + ':' + b64.slice(0,24) + ':' + b64.slice(-24);
+}
+
+async function validarResultadoIARecibido(contexto) {
+  var entradaDental = contexto.entradaDental;
+  var frontal = contexto.frontal;
+  var generationOptions = contexto.generationOptions || {};
+  var compuestaRecorte = await componerConMascaraAnatomicaContinua(
+    entradaDental.dataUrl,
+    contexto.generatedImageUrl,
+    frontal.view || 'frontal',
+    contexto.tratamiento.regionUrl,
+    contexto.planoDental
+  );
+  var marcasTecnicas = await detectarMarcasTecnicasIA(compuestaRecorte, frontal.view || 'frontal');
+  if (marcasTecnicas.detected) {
+    var errorMarcas = new Error('La IA dibujó marcas técnicas dentro de la sonrisa y el resultado fue descartado. Genera de nuevo.');
+    errorMarcas.qualityMetrics = marcasTecnicas;
+    throw errorMarcas;
+  }
+  if (generationOptions.requireVisibleChange !== false) {
+    var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, compuestaRecorte, frontal.view || 'frontal');
+    if (cambioVisible.mean < 4 || cambioVisible.changedRatio < .09) {
+      var errorSinCambio = new Error('La IA devolvió prácticamente la misma sonrisa y no ejecutó el plano individual de carillas. El resultado fue descartado para no mostrar un diseño sin cambios.');
+      errorSinCambio.qualityMetrics = cambioVisible;
+      throw errorSinCambio;
+    }
+  }
+  var compuesta = entradaDental.isFull
+    ? compuestaRecorte
+    : await reinsertarRecorteDental(contexto.fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
+  if (!compuesta) throw new Error('No se pudo integrar la simulación. Intenta generar de nuevo.');
+  if (frontal.view) S.baAlign[frontal.view] = {x:0,y:0,scale:1};
+  return compuesta;
+}
+
 async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   generationOptions = generationOptions || {};
   var requestId = generationOptions.requestId || crearIdSolicitudIA();
   var frontal = foto || S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
   var fotoOriginalUrl = frontal.dataUrl || ('data:' + (frontal.mimeType || 'image/jpeg') + ';base64,' + frontal.b64);
   var entradaDental = await prepararRecorteDental(fotoOriginalUrl, frontal.view || 'frontal');
+  var vistaGenerada = frontal.view || 'frontal';
+  if (generationOptions.revalidateCached) {
+    var pendiente = S.pendingGeneratedByView && S.pendingGeneratedByView[vistaGenerada];
+    if (!pendiente || pendiente.photoSignature !== firmaFotoParaRevalidacion(frontal)) {
+      throw new Error('La imagen temporal ya no está disponible. Genera otra propuesta.');
+    }
+    S.lastGenerationMeta = pendiente.generation || S.lastGenerationMeta;
+    var resultadoRevalidado = await validarResultadoIARecibido({
+      entradaDental:entradaDental,
+      frontal:frontal,
+      fotoOriginalUrl:fotoOriginalUrl,
+      generatedImageUrl:pendiente.generatedImageUrl,
+      tratamiento:pendiente.tratamiento,
+      planoDental:pendiente.planoDental,
+      generationOptions:generationOptions
+    });
+    delete S.pendingGeneratedByView[vistaGenerada];
+    return resultadoRevalidado;
+  }
   var tc = CFG.tenantConfig || {};
   var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. A supplied edit mask is the absolute treatment boundary. Treat this as a surgical inpaint restricted to the visible MAXILLARY teeth and their directly associated visible upper gingiva inside that mask. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. Do not outpaint, zoom, recenter or rebuild the mouth. Every pixel outside the edit mask must remain identical.' +
     ' TISSUE ISOLATION — NON-NEGOTIABLE: ONLY upper teeth and their visible upper gingiva may change. Preserve lower teeth, lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose and every other facial structure exactly as photographed. Never extend enamel over gingiva or lip; never extend pink gingiva onto teeth, lips or skin.' +
@@ -5676,6 +5782,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       temporaryImageUrl = URL.createObjectURL(imageBlob);
       data = {
         imageUrl: temporaryImageUrl,
+        reusableImageUrl: await leerBlobComoDataUrl(imageBlob),
         mimeType: imageBlob.type || responseContentType.split(';')[0] || 'image/jpeg',
         source: resp.headers.get('x-smyl-provider') || 'openai',
         model: resp.headers.get('x-smyl-model') || 'desconocido',
@@ -5704,41 +5811,27 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       model: data.model || 'desconocido'
     };
     console.info('[SMYL] generación de imagen:', S.lastGenerationMeta);
-    var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : data.imageUrl;
+    var url = data.imageBase64 ? 'data:'+(data.mimeType||'image/png')+';base64,'+data.imageBase64 : (data.reusableImageUrl || data.imageUrl);
     if (!url) throw new Error('Sin imagen');
-    // La IA sólo aporta píxeles dentro de una máscara anatómica continua de la
-    // arcada superior. Si no puede validarse, el resultado se descarta.
-    var compuestaRecorte = await componerConMascaraAnatomicaContinua(
-      entradaDental.dataUrl,
-      url,
-      frontal.view || 'frontal',
-      tratamiento.regionUrl,
-      planoDental
-    );
-    // Los controles se ejecutan sobre la composición protegida, no sobre los
-    // píxeles crudos que la IA pudo producir fuera de la máscara y que ya se
-    // restauraron desde la fotografía original.
-    var marcasTecnicas = await detectarMarcasTecnicasIA(compuestaRecorte, frontal.view || 'frontal');
-    if (marcasTecnicas.detected) {
-      var errorMarcas = new Error('La IA dibujó marcas técnicas dentro de la sonrisa y el resultado fue descartado. Genera de nuevo.');
-      errorMarcas.qualityMetrics = marcasTecnicas;
-      throw errorMarcas;
-    }
-    if (generationOptions.requireVisibleChange !== false) {
-      var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, compuestaRecorte, frontal.view || 'frontal');
-      if (cambioVisible.mean < 4 || cambioVisible.changedRatio < .09) {
-        var errorSinCambio = new Error('La IA devolvió prácticamente la misma sonrisa y no ejecutó el plano individual de carillas. El resultado fue descartado para no mostrar un diseño sin cambios.');
-        errorSinCambio.qualityMetrics = cambioVisible;
-        throw errorSinCambio;
-      }
-    }
-    var compuesta = entradaDental.isFull
-      ? compuestaRecorte
-      : await reinsertarRecorteDental(fotoOriginalUrl, compuestaRecorte, entradaDental.rect);
-    if (!compuesta) throw new Error('No se pudo integrar la simulación. Intenta generar de nuevo.');
-    // La composición ya nace en las coordenadas exactas del original; cualquier
-    // ajuste manual guardado de una generación anterior volvería a desfasarla.
-    if (frontal.view) S.baAlign[frontal.view] = {x: 0, y: 0, scale: 1};
+    if (!S.pendingGeneratedByView) S.pendingGeneratedByView = {};
+    S.pendingGeneratedByView[vistaGenerada] = {
+      photoSignature:firmaFotoParaRevalidacion(frontal),
+      generatedImageUrl:url,
+      tratamiento:tratamiento,
+      planoDental:planoDental,
+      generation:S.lastGenerationMeta,
+      createdAt:Date.now()
+    };
+    var compuesta = await validarResultadoIARecibido({
+      entradaDental:entradaDental,
+      frontal:frontal,
+      fotoOriginalUrl:fotoOriginalUrl,
+      generatedImageUrl:url,
+      tratamiento:tratamiento,
+      planoDental:planoDental,
+      generationOptions:generationOptions
+    });
+    delete S.pendingGeneratedByView[vistaGenerada];
     return compuesta;
   } catch (errorResultado) {
     // Conserva siempre el requestId real después de una generación pagada,
@@ -8108,7 +8201,7 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 16;
+var SIM_QUALITY_VERSION = 17;
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
@@ -8238,7 +8331,7 @@ function evaluarAnatomiaSegmentada(comparacion, view, planoDental) {
   return {critical:criticos,warnings:advertencias,metrics:metricas};
 }
 
-function resumirPiezasDentales(masks, offsetX, anchoMitad) {
+function agruparMascarasDentales(masks, offsetX, anchoMitad) {
   var grupos = {};
   (masks || []).forEach(function(m, indice) {
     if (!m.bbox || m.bbox.length !== 4) return;
@@ -8251,21 +8344,99 @@ function resumirPiezasDentales(masks, offsetX, anchoMitad) {
     if (x2 <= x1) return;
     var fdi = String(m.fdi || m.parentFdi || '').trim();
     var clave = fdi ? 'fdi:' + fdi : 'pieza:' + indice;
-    if (!grupos[clave]) grupos[clave] = {key:clave,fdi:fdi,x:x1,y:y,w:x2-x1,h:h};
+    if (!grupos[clave]) grupos[clave] = {key:clave,fdi:fdi,x:x1,y:y,w:x2-x1,h:h,members:[m],pixelCount:Number(m.pixelCount)||0};
     else {
       var g = grupos[clave];
       var gx2 = Math.max(g.x + g.w, x2);
       var gy2 = Math.max(g.y + g.h, y + h);
       g.x = Math.min(g.x, x1); g.y = Math.min(g.y, y);
       g.w = gx2 - g.x; g.h = gy2 - g.y;
+      g.members.push(m);
+      g.pixelCount += Number(m.pixelCount)||0;
     }
   });
   var piezas = Object.keys(grupos).map(function(k){ return grupos[k]; });
   if (!piezas.length) return piezas;
-  var areas = piezas.map(function(p){ return p.w*p.h; }).sort(function(a,b){return a-b;});
+  // GPT puede devolver decenas de islas pequeñas. El backend las relaciona
+  // con su pieza mediante parentFdi; cuando hay suficientes grupos con
+  // identidad, las islas huérfanas no deben convertirse en dientes nuevos.
+  var identificadas = piezas.filter(function(p){ return !!p.fdi; });
+  var base = identificadas.length >= 4 ? identificadas : piezas;
+  var areas = base.map(function(p){ return p.w*p.h; }).sort(function(a,b){return a-b;});
   var medianaArea = areas[Math.floor(areas.length/2)] || 1;
-  return piezas.filter(function(p){ return p.w*p.h >= medianaArea*.22; })
+  return base.filter(function(p){ return p.w*p.h >= medianaArea*.20; })
     .sort(function(a,b){ return a.x+a.w/2-(b.x+b.w/2); });
+}
+
+function resumirPiezasDentales(masks, offsetX, anchoMitad) {
+  return agruparMascarasDentales(masks, offsetX, anchoMitad);
+}
+
+function seleccionarSeisPiezasAnteriores(piezas, anchoMitad, centroReferencia) {
+  var candidatas = (piezas || []).filter(function(p){
+    return p && [p.x,p.y,p.w,p.h].every(Number.isFinite) && p.w>1 && p.h>1;
+  }).sort(function(a,b){ return (a.x+a.w/2)-(b.x+b.w/2); });
+  if (candidatas.length < 6) return [];
+  var centro = Number.isFinite(centroReferencia) ? centroReferencia : anchoMitad/2;
+  var mejor = null, mejorPuntaje = Infinity;
+  for (var i=0;i<=candidatas.length-6;i++) {
+    var ventana = candidatas.slice(i,i+6);
+    var minX=ventana[0].x, maxX=ventana[5].x+ventana[5].w;
+    var centroVentana=(minX+maxX)/2;
+    var alturas=ventana.map(function(p){return p.h;});
+    var bases=ventana.map(function(p){return p.y+p.h;});
+    var medH=medianaNumerica(alturas)||1, medBase=medianaNumerica(bases)||1;
+    var dispersionH=alturas.reduce(function(s,v){return s+Math.abs(v-medH)/medH;},0)/6;
+    var dispersionBase=bases.reduce(function(s,v){return s+Math.abs(v-medBase)/medH;},0)/6;
+    var izquierda=ventana.filter(function(p){return p.x+p.w/2<centro;}).length;
+    var equilibrio=Math.abs(izquierda-3);
+    var huecos=0;
+    for(var j=0;j<5;j++){
+      var gap=ventana[j+1].x-(ventana[j].x+ventana[j].w);
+      if(gap>medH*.55)huecos+=(gap/(medH||1));
+    }
+    var puntaje=Math.abs(centroVentana-centro)/Math.max(1,anchoMitad)*8+
+      equilibrio*1.5+dispersionH*1.4+dispersionBase*1.2+huecos;
+    if(puntaje<mejorPuntaje){mejorPuntaje=puntaje;mejor=ventana;}
+  }
+  var ids=['13','12','11','21','22','23'];
+  return (mejor||[]).map(function(p,indice){
+    var copia=Object.assign({},p);
+    copia.sourceFdi=p.fdi||null;
+    copia.fdi=ids[indice];
+    return copia;
+  });
+}
+
+function seleccionarPiezasArcadaSuperior(masks, offsetX, anchoMitad, centroReferencia) {
+  var piezas=agruparMascarasDentales(masks,offsetX,anchoMitad);
+  if(piezas.length<6)return [];
+  var ordenY=piezas.slice().sort(function(a,b){return a.y+a.h/2-(b.y+b.h/2);});
+  var alturas=ordenY.map(function(p){return p.h;});
+  var medH=medianaNumerica(alturas)||1,mayorHueco=0,corte=-1;
+  for(var i=0;i<ordenY.length-1;i++){
+    var hueco=(ordenY[i+1].y+ordenY[i+1].h/2)-(ordenY[i].y+ordenY[i].h/2);
+    if(hueco>mayorHueco){mayorHueco=hueco;corte=i;}
+  }
+  var superiores=ordenY;
+  var tamSuperior=corte+1,tamInferior=ordenY.length-tamSuperior;
+  var filasSeparadas=corte>=0&&tamSuperior>=2&&tamInferior>=2&&mayorHueco>Math.max(4,medH*.52);
+  if(filasSeparadas){
+    if(tamSuperior<6)return [];
+    superiores=ordenY.slice(0,tamSuperior);
+  }
+  var seis=seleccionarSeisPiezasAnteriores(superiores,anchoMitad,centroReferencia);
+  return seis.length===6?seis:seleccionarSeisPiezasAnteriores(piezas,anchoMitad,centroReferencia);
+}
+
+function mascarasDePiezasDentales(piezas) {
+  var salida=[],vistos=[];
+  (piezas||[]).forEach(function(p){
+    (p.members||[]).forEach(function(m){
+      if(vistos.indexOf(m)<0){vistos.push(m);salida.push(m);}
+    });
+  });
+  return salida;
 }
 
 // El servicio asigna FDI después de buscar el mayor salto vertical de toda la
@@ -8598,7 +8769,9 @@ async function segmentarCanvasDental(canvas, cacheKey) {
   var reducido = canvasReducidoParaSegmentacion(canvas);
   var entrada = reducido.toDataURL('image/jpeg', 0.78);
   var masks = await solicitarSegmentacionDental(entrada);
-  var mascaraUrl = await unirMascarasSegmentadas(masks, reducido.width, reducido.height, 'upper');
+  var piezas=seleccionarPiezasArcadaSuperior(masks,0,reducido.width,reducido.width/2);
+  if(piezas.length<6)throw new Error('La segmentación no confirmó los seis dientes anteriores superiores.');
+  var mascaraUrl = await unirMascarasSegmentadas(mascarasDePiezasDentales(piezas), reducido.width, reducido.height, 'selected');
   if (cacheKey) S.dentalMaskByView[cacheKey] = mascaraUrl;
   return mascaraUrl;
 }
@@ -8625,11 +8798,22 @@ async function segmentarParDental(original, alineada, cacheKey) {
   if (!izquierdaMasks.length) {
     throw new Error('La segmentación no encontró la arcada superior original.');
   }
-  var mascaraIzquierdaUrl = await unirMascarasSegmentadas(izquierdaMasks, par.width, par.height, 'upper');
-  var seleccionOriginal = _ultimaSeleccionDental.slice();
-  var mascaraDerechaUrl = derechaMasks.length
-    ? await unirMascarasSegmentadas(derechaMasks, par.width, par.height, 'upper') : null;
-  var seleccionGenerada = derechaMasks.length ? _ultimaSeleccionDental.slice() : [];
+  var piezasEsperadas=seleccionarPiezasArcadaSuperior(izquierdaMasks,0,w,w/2);
+  if(piezasEsperadas.length<6) {
+    throw new Error('La segmentación original no confirmó los seis dientes anteriores superiores.');
+  }
+  var centroOriginal=(piezasEsperadas[0].x+piezasEsperadas[5].x+piezasEsperadas[5].w)/2;
+  var piezasGeneradas=derechaMasks.length
+    ? seleccionarPiezasArcadaSuperior(derechaMasks,w,w,centroOriginal)
+    : [];
+  if(derechaMasks.length&&piezasGeneradas.length<6) {
+    throw new Error('La segmentación generada se dividió en demasiados fragmentos dentales y no confirmó las seis piezas anteriores.');
+  }
+  var seleccionOriginal=mascarasDePiezasDentales(piezasEsperadas);
+  var seleccionGenerada=mascarasDePiezasDentales(piezasGeneradas);
+  var mascaraIzquierdaUrl = await unirMascarasSegmentadas(seleccionOriginal, par.width, par.height, 'selected');
+  var mascaraDerechaUrl = seleccionGenerada.length
+    ? await unirMascarasSegmentadas(seleccionGenerada, par.width, par.height, 'selected') : null;
   var imagenesMascara = await Promise.all([
     cargarImagenSegura(mascaraIzquierdaUrl),
     mascaraDerechaUrl ? cargarImagenSegura(mascaraDerechaUrl) : Promise.resolve(null)
@@ -8642,15 +8826,14 @@ async function segmentarParDental(original, alineada, cacheKey) {
   var originalMaskUrl = izquierda.toDataURL('image/png');
   if (imagenesMascara[1]) derecha.getContext('2d').drawImage(imagenesMascara[1], w, 0, w, h, 0, 0, w, h);
   var iaMaskUrl = imagenesMascara[1] ? derecha.toDataURL('image/png') : originalMaskUrl;
-  var piezasEsperadas=resumirPiezasDentales(seleccionOriginal, 0, w);
-  var piezasGeneradas=imagenesMascara[1]
-    ? resumirPiezasDentales(seleccionGenerada, w, w)
-    : piezasEsperadas.map(function(p){return Object.assign({},p);});
+  if (!imagenesMascara[1]) piezasGeneradas=piezasEsperadas.map(function(p){return Object.assign({},p);});
   var comparacion = {
     width:w,height:h,
     expectedPieces:piezasEsperadas,
     generatedPieces:piezasGeneradas,
-    usedOriginalMaskFallback:!imagenesMascara[1]
+    usedOriginalMaskFallback:!imagenesMascara[1],
+    rawFragments:{original:izquierdaMasks.length,generated:derechaMasks.length},
+    consolidatedPieces:{original:piezasEsperadas.length,generated:piezasGeneradas.length}
   };
   _ultimaSeleccionDental = (seleccionGenerada.length ? seleccionGenerada : seleccionOriginal).slice();
   _ultimaComparacionDental = comparacion;
@@ -8668,13 +8851,14 @@ async function segmentarCanvasDentalDetallado(canvas, cacheKey) {
   var reducido = canvasReducidoParaSegmentacion(canvas);
   var entrada = reducido.toDataURL('image/jpeg', 0.82);
   var masks = await solicitarSegmentacionDental(entrada);
-  var mascaraUrl = await unirMascarasSegmentadas(masks, reducido.width, reducido.height, 'upper');
-  var seleccion = _ultimaSeleccionDental.slice();
-  var piezas = resumirPiezasDentales(seleccion, 0, reducido.width);
+  var piezas = seleccionarPiezasArcadaSuperior(masks, 0, reducido.width, reducido.width/2);
   if (piezas.length < 6) {
     throw new Error('No fue posible identificar con seguridad todos los dientes superiores visibles. Usa una foto frontal nítida y vuelve a intentar.');
   }
-  var resultado = {maskUrl:mascaraUrl,pieces:piezas,width:reducido.width,height:reducido.height};
+  var seleccion=mascarasDePiezasDentales(piezas);
+  var mascaraUrl = await unirMascarasSegmentadas(seleccion, reducido.width, reducido.height, 'selected');
+  _ultimaSeleccionDental=seleccion.slice();
+  var resultado = {maskUrl:mascaraUrl,pieces:piezas,width:reducido.width,height:reducido.height,rawFragments:masks.length};
   if (cacheKey) {
     S.dentalMaskByView[cacheKey] = mascaraUrl;
     if (!S.dentalMapByView) S.dentalMapByView = {};
