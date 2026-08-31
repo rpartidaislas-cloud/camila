@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v104 — máscara única de seis coronas</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v105 — propuesta visible con revisión</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1687,7 +1687,7 @@ function clasificarErrorParaUsuario(error) {
   if (/safety|rejected|rechazad/.test(raw)) {
     return {titulo:'No pudimos procesar esta fotografía', detalle:'Prueba con otra toma frontal, bien iluminada y sin filtros.'};
   }
-  if (/control de captura v10[0-4]/.test(raw)) {
+  if (/control de captura v10[0-5]/.test(raw)) {
     return {titulo:'Necesitamos otra fotografía frontal', detalle:'La sonrisa quedó demasiado pequeña, incompleta o fuera de un encuadre útil. Toma otra frontal antes de generar; no se consumió una simulación.'};
   }
   if (/segmentación no encontró|segmentación de dientes|no fue posible comparar/.test(raw)) {
@@ -1712,7 +1712,7 @@ function clasificarErrorParaUsuario(error) {
   if (/cobertura bilateral|cobertura dental|arcada.*incomplet/.test(raw)) {
     return {titulo:'La detección omitió parte de la sonrisa', detalle:'La propuesta sí fue generada, pero la máscara dejó fuera parte de los dientes superiores. Tus fotografías siguen guardadas.'};
   }
-  if (/backend no confirmó el contrato v10[0-4]/.test(raw)) {
+  if (/backend no confirmó el contrato v10[0-5]/.test(raw)) {
     return {titulo:'La actualización del simulador está incompleta', detalle:'La aplicación y el servicio de generación no tienen la misma versión. No vuelvas a intentarlo hasta actualizar el servicio.'};
   }
   if (/líneas rojizas|lineas rojizas|bordes de plano|recortes oscuros|superficie blanca plana/.test(raw)) {
@@ -1721,7 +1721,7 @@ function clasificarErrorParaUsuario(error) {
   if (/seis coronas visualmente independientes/.test(raw)) {
     return {titulo:'La anatomía dental no es presentable', detalle:'El resultado no conservó seis dientes superiores claramente separados y se descartó antes de mostrarlo.'};
   }
-  if (/contrato visual v10[0-4]/.test(raw)) {
+  if (/contrato visual v10[0-5]/.test(raw)) {
     return {titulo:'La propuesta no es presentable', detalle:'El resultado no cambió de forma convincente las seis carillas o no conservó la calidad natural necesaria. Se descartó antes de mostrarlo; tus fotografías siguen guardadas.'};
   }
   if (/estándar visual de carillas|estandar visual de carillas|estándar visual|estandar visual/.test(raw)) {
@@ -5666,7 +5666,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
 
   // Garantía determinista: fuera de la máscara todo píxel procede del original.
   // El reporte nunca se presenta como aprobación clínica automática.
-  var contratoV104=evaluarContratoPresentacionV104({
+  var contratoV105=evaluarContratoPresentacionV105({
     trace:S.lastGenerationMeta||{},
     outsideMask:exterior,
     sourcePieces:piezasOriginales.length,
@@ -5675,14 +5675,14 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
     perToothChange:revisionVisual.metrics&&revisionVisual.metrics.perToothChange||[],
     vitaTone:S.vitaMode==='current'?'current':S.vitaTone
   });
-  advertencias=consolidarHallazgosRevision({warnings:advertencias},null,contratoV104.reviewFindings);
+  advertencias=consolidarHallazgosRevision({warnings:advertencias},null,contratoV105.reviewFindings);
   S.simulationQualityByView[view||'frontal']={
-    version:SIM_QUALITY_VERSION,status:contratoV104.accepted?'review':'rejected',
+    version:SIM_QUALITY_VERSION,status:contratoV105.accepted?'review':'rejected',
     issues:advertencias,
-    metrics:{mode:'v104-single-source-derived-crown-mask',deliveryGate:'v104-safe-delivery-clinical-review',qualityOutcome:revisionVisual.status,contract:contratoV104,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'v105-single-source-derived-crown-mask',deliveryGate:'v105-safe-delivery-clinical-review',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
-  if(!contratoV104.accepted){
-    var errorContrato=new Error('La simulación no superó el contrato visual v104: '+contratoV104.failures.slice(0,3).join(' · ')+'.');
+  if(!contratoV105.accepted){
+    var errorContrato=new Error('La simulación no superó el contrato visual v105: '+contratoV105.failures.slice(0,3).join(' · ')+'.');
     errorContrato.qualityMetrics=S.simulationQualityByView[view||'frontal'].metrics;
     // La propuesta pagada se conserva. Después de una corrección del control
     // local podrá revalidarse sin volver a llamar al generador.
@@ -5800,15 +5800,22 @@ async function validarResultadoIARecibido(contexto) {
   );
   var marcasTecnicas = await detectarMarcasTecnicasIA(compuestaRecorte, frontal.view || 'frontal');
   if (marcasTecnicas.detected) {
-    var errorMarcas = new Error('La IA dibujó marcas técnicas dentro de la sonrisa y el resultado fue descartado. Genera de nuevo.');
-    errorMarcas.qualityMetrics = marcasTecnicas;
-    errorMarcas.requiresNewGeneration = false;
-    throw errorMarcas;
+    var vistaRevision=frontal.view||'frontal';
+    var reporteRevision=S.simulationQualityByView[vistaRevision]||{version:SIM_QUALITY_VERSION,status:'review',issues:[],metrics:{}};
+    reporteRevision.status='review';
+    reporteRevision.issues=consolidarHallazgosRevision(
+      {warnings:reporteRevision.issues||[]},null,
+      ['El control local detectó posibles marcas cromáticas; revisa la propuesta antes de presentarla.']
+    );
+    reporteRevision.metrics=reporteRevision.metrics||{};
+    reporteRevision.metrics.technicalMarks=marcasTecnicas;
+    S.simulationQualityByView[vistaRevision]=reporteRevision;
+    console.warn('[SMYL] v105: posibles marcas técnicas; la propuesta se muestra con revisión recomendada.',marcasTecnicas);
   }
   if (generationOptions.requireVisibleChange !== false) {
     var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, compuestaRecorte, frontal.view || 'frontal');
     if (cambioVisible.mean < 4 || cambioVisible.changedRatio < .09) {
-      console.warn('[SMYL] v104: cambio dental conservador; se entrega con revisión recomendada.',cambioVisible);
+      console.warn('[SMYL] v105: cambio dental conservador; se entrega con revisión recomendada.',cambioVisible);
     }
   }
   var compuesta = entradaDental.isFull
@@ -5838,7 +5845,10 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       throw new Error('La imagen temporal ya no está disponible. Genera otra propuesta.');
     }
     try {
-      S.lastGenerationMeta = pendiente.generation || S.lastGenerationMeta;
+      S.lastGenerationMeta = Object.assign({},pendiente.generation||S.lastGenerationMeta||{}, {
+        localValidationContract:'v105',
+        revalidationMode:'cached-paid-proposal'
+      });
       var resultadoRevalidado = await validarResultadoIARecibido({
         entradaDental:entradaDental,
         frontal:frontal,
@@ -5982,7 +5992,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       editMaskBase64:tratamiento.editMaskBase64,
       editMaskMimeType:tratamiento.editMaskMimeType,
       prompt:prompt,
-      contractVersion:'v104',
+      contractVersion:'v105',
       // Evita transportar el JPEG como base64 dentro de JSON: en iOS esa
       // copia adicional podía cortar o agotar la respuesta ya generada.
       responseMode:'binary'
@@ -8427,9 +8437,9 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 26;
-var SIM_ACCEPTANCE_V104 = Object.freeze({
-  version:'v104',
+var SIM_QUALITY_VERSION = 27;
+var SIM_ACCEPTANCE_V105 = Object.freeze({
+  version:'v105',
   minimumSourcePieces:6,
   minimumSourceCoverage:.88,
   minimumTargetCoverage:.82,
@@ -8444,7 +8454,7 @@ var SIM_ACCEPTANCE_V104 = Object.freeze({
 // Contrato único para decidir si una propuesta puede llegar al comparador.
 // Recibe únicamente evidencia medida sobre la imagen final; nunca acepta como
 // sustituto las cajas de la fotografía original ni un mensaje del modelo.
-function evaluarContratoPresentacionV104(evidencia) {
+function evaluarContratoPresentacionV105(evidencia) {
   evidencia=evidencia||{};
   var fallos=[];
   var revision=[];
@@ -8453,24 +8463,30 @@ function evaluarContratoPresentacionV104(evidencia) {
   var mascara=evidencia.mask||{};
   var visual=evidencia.visual||{};
   var porPieza=Array.isArray(evidencia.perToothChange)?evidencia.perToothChange:[];
-  if(trazabilidad.contract!=='v104')fallos.push('el backend no confirmó el contrato v104');
+  var revalidacionV104=trazabilidad.contract==='v104'&&trazabilidad.localValidationContract==='v105'&&trazabilidad.revalidationMode==='cached-paid-proposal';
+  if(trazabilidad.contract!=='v105'&&!revalidacionV104)fallos.push('el backend no confirmó el contrato v105');
   if(trazabilidad.provider!=='openai'||!/^gpt-image-2(?:-|$)/.test(String(trazabilidad.model||'')))fallos.push('la simulación no usó el renderizador GPT Image 2 requerido');
   if(exterior.identical!==true||Number(exterior.changedPixels||0)!==0)fallos.push('se modificaron píxeles fuera de dientes y encía superior');
-  if(Number(evidencia.sourcePieces||0)<SIM_ACCEPTANCE_V104.minimumSourcePieces)fallos.push('no se confirmaron seis dientes anteriores en la fotografía');
-  if(Number(mascara.sourceCoverage||0)<SIM_ACCEPTANCE_V104.minimumSourceCoverage)fallos.push('la máscara destino no cubre los dientes originales');
-  if(Number(mascara.targetCoverage||0)<SIM_ACCEPTANCE_V104.minimumTargetCoverage)fallos.push('la máscara destino no cubre la geometría propuesta');
-  if(Number(mascara.outsideEnvelopeRatio||0)>SIM_ACCEPTANCE_V104.maximumMaskOutsideEnvelopeRatio)fallos.push('la máscara salió de las seis coronas protegidas');
-  if(visual.artifacts&&visual.artifacts.detected)fallos.push('se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana');
+  if(Number(evidencia.sourcePieces||0)<SIM_ACCEPTANCE_V105.minimumSourcePieces)fallos.push('no se confirmaron seis dientes anteriores en la fotografía');
+  if(Number(mascara.sourceCoverage||0)<SIM_ACCEPTANCE_V105.minimumSourceCoverage)fallos.push('la máscara destino no cubre los dientes originales');
+  if(Number(mascara.targetCoverage||0)<SIM_ACCEPTANCE_V105.minimumTargetCoverage)fallos.push('la máscara destino no cubre la geometría propuesta');
+  if(Number(mascara.outsideEnvelopeRatio||0)>SIM_ACCEPTANCE_V105.maximumMaskOutsideEnvelopeRatio)fallos.push('la máscara salió de las seis coronas protegidas');
+  // v105 nunca oculta una propuesta pagada por una inferencia estética local.
+  // Los píxeles fuera de máscara y el contrato siguen siendo barreras duras;
+  // líneas, sombras, textura o fusión aparente se muestran para revisión.
+  if(visual.artifacts&&visual.artifacts.detected){
+    revision=revision.concat(Array.isArray(visual.artifacts.reasons)?visual.artifacts.reasons:['conviene revisar posibles bordes artificiales']);
+  }
   if(visual.artifacts&&Array.isArray(visual.artifacts.reviewReasons))revision=revision.concat(visual.artifacts.reviewReasons);
   if(!visual.independentTeeth||visual.independentTeeth.confirmed!==true)revision.push('conviene revisar la separación visual de las seis coronas');
-  if(Number(visual.changed||0)<SIM_ACCEPTANCE_V104.minimumChangedRatio||Number(visual.meanDifference||0)<SIM_ACCEPTANCE_V104.minimumMeanDifference)revision.push('el cambio dental visible es conservador');
-  if(Number(visual.texture||0)<SIM_ACCEPTANCE_V104.minimumTextureDeviation)revision.push('la textura cerámica requiere revisión');
-  if(evidencia.vitaTone==='A1'&&Number(visual.yellow||0)>SIM_ACCEPTANCE_V104.maximumA1Yellow)revision.push('el tono A1 conserva demasiado amarillo');
-  if(porPieza.length<SIM_ACCEPTANCE_V104.minimumSourcePieces)revision.push('faltan mediciones independientes por diente');
-  else if(porPieza.some(function(p){return Number(p&&p.changedRatio||0)<SIM_ACCEPTANCE_V104.minimumChangedRatioPerTooth;}))revision.push('una o más carillas muestran un cambio conservador');
+  if(Number(visual.changed||0)<SIM_ACCEPTANCE_V105.minimumChangedRatio||Number(visual.meanDifference||0)<SIM_ACCEPTANCE_V105.minimumMeanDifference)revision.push('el cambio dental visible es conservador');
+  if(Number(visual.texture||0)<SIM_ACCEPTANCE_V105.minimumTextureDeviation)revision.push('la textura cerámica requiere revisión');
+  if(evidencia.vitaTone==='A1'&&Number(visual.yellow||0)>SIM_ACCEPTANCE_V105.maximumA1Yellow)revision.push('el tono A1 conserva demasiado amarillo');
+  if(porPieza.length<SIM_ACCEPTANCE_V105.minimumSourcePieces)revision.push('faltan mediciones independientes por diente');
+  else if(porPieza.some(function(p){return Number(p&&p.changedRatio||0)<SIM_ACCEPTANCE_V105.minimumChangedRatioPerTooth;}))revision.push('una o más carillas muestran un cambio conservador');
   revision=revision.filter(function(item,pos,lista){return item&&lista.indexOf(item)===pos;});
   return {
-    version:SIM_ACCEPTANCE_V104.version,
+    version:SIM_ACCEPTANCE_V105.version,
     accepted:fallos.length===0,
     status:fallos.length?'blocked':'ready-for-clinical-review',
     failures:fallos,
@@ -9090,7 +9106,7 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
         estadisticasPieza.push({id:idPieza,lum:n?lumPieza/n:0,amarillo:n?amarilloPieza/n:0,n:n});
         cambioPorPieza.push({id:idPieza,changedRatio:+ratioCambioPieza.toFixed(3),samples:esperadosPieza});
         if(esperadosPieza<12||n/Math.max(1,esperadosPieza)<.42) piezasSinCobertura.push(idPieza);
-        if(esperadosPieza<12||ratioCambioPieza<SIM_ACCEPTANCE_V104.minimumChangedRatioPerTooth)piezasSinCambio.push(idPieza);
+        if(esperadosPieza<12||ratioCambioPieza<SIM_ACCEPTANCE_V105.minimumChangedRatioPerTooth)piezasSinCambio.push(idPieza);
       });
       var validas=estadisticasPieza.filter(function(s){return s.n>=12;});
       if(validas.length>=4){
@@ -9136,11 +9152,10 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     }
   }
   var hayFalloCritico=problemas.some(function(p){
-    // Un resultado paciente-facing ya no se acepta sólo porque haya seis
-    // cajas. Bloqueamos también las señales locales que corresponden a los
-    // fallos reportados: placa uniforme, proporciones impropias, cobertura
-    // parcial o una sonrisa geométricamente desarticulada.
-    return /faltan piezas|pocas piezas superiores|cobertura dental irregular|cambio demasiado conservador|cambio insuficiente|textura óptica demasiado uniforme|A1 conserva demasiado amarillo|segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|proporción central fuera|centrales con anchuras poco simétricas|línea media dental desplazada|bordes de los centrales desnivelados|líneas rojizas|recortes oscuros|superficie blanca plana|seis coronas visualmente independientes/.test(p);
+    // Sólo una inconsistencia medible de cobertura anatómica mantiene estado
+    // rechazado. Toda inferencia estética o de calidad óptica se entrega como
+    // revisión para que nunca vuelva a ocultar una propuesta ya pagada.
+    return /segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|cobertura dental irregular/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,
@@ -9196,10 +9211,10 @@ async function prepararMascaraTratamiento(entradaDental, view, planoDental) {
   var sourceCoverage=medirCoberturaEntreMascaras(sourceMask,destinationMask);
   var targetCoverage=medirCoberturaEntreMascaras(targetMask,destinationMask);
   var medidaDestino=medirMascaraAnatomica(destinationMask);
-  if(sourceCoverage<SIM_ACCEPTANCE_V104.minimumSourceCoverage||targetCoverage<SIM_ACCEPTANCE_V104.minimumTargetCoverage||geometriaMascara.outsideEnvelopeRatio>SIM_ACCEPTANCE_V104.maximumMaskOutsideEnvelopeRatio){
+  if(sourceCoverage<SIM_ACCEPTANCE_V105.minimumSourceCoverage||targetCoverage<SIM_ACCEPTANCE_V105.minimumTargetCoverage||geometriaMascara.outsideEnvelopeRatio>SIM_ACCEPTANCE_V105.maximumMaskOutsideEnvelopeRatio){
     var errorCobertura=new Error('La máscara destino no cubre con seguridad los dientes originales y la geometría propuesta. Usa otra fotografía frontal.');
     errorCobertura.qualityMetrics={
-      stage:'v104-single-mask-preflight',
+      stage:'v105-single-mask-preflight',
       maskCoverage:{sourceCoverage:+sourceCoverage.toFixed(4),targetCoverage:+targetCoverage.toFixed(4)},
       source:medirMascaraAnatomica(sourceMask),
       target:medirMascaraAnatomica(targetMask),
@@ -9631,7 +9646,7 @@ function construirMascaraDestinoV104(sourceMask,targetMask,plano) {
   cctx.drawImage(fuenteExpandida,0,0,W,H);
   cctx.globalCompositeOperation='source-over';
   var geometria=evaluarMascaraCoronalV104(candidata,plano);
-  if(geometria.envelopeCount!==6||!geometria.activePixels||geometria.outsideEnvelopeRatio>SIM_ACCEPTANCE_V104.maximumMaskOutsideEnvelopeRatio){
+  if(geometria.envelopeCount!==6||!geometria.activePixels||geometria.outsideEnvelopeRatio>SIM_ACCEPTANCE_V105.maximumMaskOutsideEnvelopeRatio){
     var errorMascara=new Error('La máscara coronal salió de las seis carillas protegidas. Usa otra fotografía frontal.');
     errorMascara.qualityMetrics={stage:'v104-crown-mask',geometry:geometria};
     errorMascara.requiresNewGeneration=false;

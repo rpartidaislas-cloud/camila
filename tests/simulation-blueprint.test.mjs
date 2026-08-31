@@ -60,8 +60,8 @@ function extractFunction(name) {
 
 const context = {};
 vm.createContext(context);
-context.SIM_ACCEPTANCE_V104 = {
-  version:'v104',
+context.SIM_ACCEPTANCE_V105 = {
+  version:'v105',
   minimumSourcePieces:6,
   minimumSourceCoverage:.88,
   minimumTargetCoverage:.82,
@@ -89,28 +89,30 @@ vm.runInContext([
   extractFunction('consolidarHallazgosRevision'),
   extractFunction('medirDiferenciasFueraMascara'),
   extractFunction('firmaEntradaDental'),
-  extractFunction('evaluarContratoPresentacionV104'),
+  extractFunction('evaluarContratoPresentacionV105'),
   extractFunction('evaluarIntegridadVisualV104'),
   extractFunction('construirPrescripcionNumericaV104'),
 ].join('\n'), context);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'v104-safe-delivery-clinical-review'/);
+assert.match(compositorSeguro, /deliveryGate:'v105-safe-delivery-clinical-review'/);
 assert.match(compositorSeguro, /generatedPieces:\[\]/);
-assert.match(compositorSeguro, /evaluarContratoPresentacionV104/);
+assert.match(compositorSeguro, /evaluarContratoPresentacionV105/);
 assert.match(compositorSeguro, /throw errorContrato/);
 assert.match(compositorSeguro, /contract:'post-safety-clip-six-crowns'/);
 assert.match(compositorSeguro, /mask:coberturaContrato/);
 assert.doesNotMatch(compositorSeguro, /mask:tratamientoActual\.metrics/);
-assert.match(html, /contractVersion:'v104'/);
-const generadorV104=extractFunction('generateSimulation');
-assert.doesNotMatch(generadorV104, /IMAGE 2 already fixes/);
-assert.doesNotMatch(generadorV104, /guideImageBase64:/);
-assert.match(generadorV104, /There is NO second reference image and no visual blueprint/);
-assert.match(generadorV104, /Never treat premolars, lower teeth or any unlisted tooth/);
-assert.match(generadorV104, /The gingiva is outside the editable mask/);
-assert.doesNotMatch(generadorV104, /requiresNewGeneration[\s\S]{0,180}delete S\.pendingGeneratedByView/);
+assert.match(html, /contractVersion:'v105'/);
+const generadorV105=extractFunction('generateSimulation');
+assert.doesNotMatch(generadorV105, /IMAGE 2 already fixes/);
+assert.doesNotMatch(generadorV105, /guideImageBase64:/);
+assert.match(generadorV105, /There is NO second reference image and no visual blueprint/);
+assert.match(generadorV105, /Never treat premolars, lower teeth or any unlisted tooth/);
+assert.match(generadorV105, /The gingiva is outside the editable mask/);
+assert.doesNotMatch(generadorV105, /requiresNewGeneration[\s\S]{0,180}delete S\.pendingGeneratedByView/);
+assert.match(generadorV105, /localValidationContract:'v105'/);
+assert.match(generadorV105, /revalidationMode:'cached-paid-proposal'/);
 assert.match(extractFunction('saveProgress'), /pendingGeneratedByView/);
 assert.match(extractFunction('continuarProgreso'), /revalidateCached:coincide/);
 assert.doesNotMatch(extractFunction('processPhotos'), /processOptions\.revalidateCached[\s\S]{0,180}delete S\.pendingGeneratedByView/);
@@ -129,12 +131,12 @@ assert.match(mascaraV104, /alturaMediana\*\.13/);
 assert.match(mascaraV104, /evaluarMascaraCoronalV104/);
 assert.match(mascaraV104, /suavizarMascaraHaciaDentroV104/);
 assert.doesNotMatch(mascaraV104, /fillRect|regionExpandida/);
-assert.match(preparadorMascara, /stage:'v104-single-mask-preflight'/);
+assert.match(preparadorMascara, /stage:'v105-single-mask-preflight'/);
 assert.match(backend, /X-SMYL-Contract/);
 assert.match(backend, /contract:\s*simulationContract/);
-assert.match(backend, /simulationContract === "v101" \|\| simulationContract === "v102" \|\| simulationContract === "v103" \|\| simulationContract === "v104"/);
-assert.match(backend, /simulationContract === "v104"/);
-assert.match(backend, /V104 SINGLE-MASK CROWN-ONLY DENTAL EDIT/);
+assert.match(backend, /simulationContract === "v101" \|\| simulationContract === "v102" \|\| simulationContract === "v103" \|\| simulationContract === "v104" \|\| simulationContract === "v105"/);
+assert.match(backend, /simulationContract === "v105"/);
+assert.match(backend, /V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT/);
 assert.match(backend, /The mask contains no gingiva/);
 assert.match(backend, /The patient smile crop is the ONE AND ONLY visual reference/);
 assert.match(backend, /guideImageBase64 && !isMeasuredMaskOnlyContract/);
@@ -170,10 +172,12 @@ assert.equal(firmaPacienteA,context.firmaEntradaDental({dataUrl:'data:image/jpeg
 
 const validacionRecibida = extractFunction('validarResultadoIARecibido');
 assert.doesNotMatch(validacionRecibida, /throw errorSinCambio/);
+assert.doesNotMatch(validacionRecibida, /throw errorMarcas/);
+assert.match(validacionRecibida, /posibles marcas técnicas; la propuesta se muestra con revisión recomendada/i);
 assert.match(validacionRecibida, /cambio dental conservador; se entrega con revisión recomendada/i);
 
 const evidenciaValida = {
-  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v104'},
+  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v105'},
   outsideMask:{identical:true,changedPixels:0},
   sourcePieces:6,
   mask:{sourceCoverage:.96,targetCoverage:.94},
@@ -181,35 +185,43 @@ const evidenciaValida = {
   perToothChange:['13','12','11','21','22','23'].map((id)=>({id,changedRatio:.52})),
   vitaTone:'A1',
 };
-const contratoValido = context.evaluarContratoPresentacionV104(evidenciaValida);
+const contratoValido = context.evaluarContratoPresentacionV105(evidenciaValida);
 assert.equal(contratoValido.accepted,true);
 assert.equal(contratoValido.status,'ready-for-clinical-review');
+
+const evidenciaRevalidadaV104=structuredClone(evidenciaValida);
+evidenciaRevalidadaV104.trace={
+  provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v104',
+  localValidationContract:'v105',revalidationMode:'cached-paid-proposal',
+};
+const contratoRevalidadoV104=context.evaluarContratoPresentacionV105(evidenciaRevalidadaV104);
+assert.equal(contratoRevalidadoV104.accepted,true);
 
 const evidenciaInerte = structuredClone(evidenciaValida);
 evidenciaInerte.visual.changed=.05;
 evidenciaInerte.visual.meanDifference=2;
 evidenciaInerte.perToothChange[3].changedRatio=.02;
-const contratoInerte=context.evaluarContratoPresentacionV104(evidenciaInerte);
+const contratoInerte=context.evaluarContratoPresentacionV105(evidenciaInerte);
 assert.equal(contratoInerte.accepted,true);
 assert.ok(contratoInerte.reviewFindings.some((item)=>/cambio dental visible/.test(item)));
 assert.ok(contratoInerte.reviewFindings.some((item)=>/carillas muestran/.test(item)));
 
 const evidenciaFuera=structuredClone(evidenciaValida);
 evidenciaFuera.outsideMask={identical:false,changedPixels:1};
-assert.equal(context.evaluarContratoPresentacionV104(evidenciaFuera).accepted,false);
+assert.equal(context.evaluarContratoPresentacionV105(evidenciaFuera).accepted,false);
 
 const evidenciaSinTraza=structuredClone(evidenciaValida);
 evidenciaSinTraza.trace={provider:'openai',model:'desconocido'};
-assert.equal(context.evaluarContratoPresentacionV104(evidenciaSinTraza).accepted,false);
+assert.equal(context.evaluarContratoPresentacionV105(evidenciaSinTraza).accepted,false);
 
 const evidenciaMascaraRectangular=structuredClone(evidenciaValida);
 evidenciaMascaraRectangular.mask.outsideEnvelopeRatio=.08;
-const contratoMascaraRectangular=context.evaluarContratoPresentacionV104(evidenciaMascaraRectangular);
+const contratoMascaraRectangular=context.evaluarContratoPresentacionV105(evidenciaMascaraRectangular);
 assert.equal(contratoMascaraRectangular.accepted,false);
 assert.ok(contratoMascaraRectangular.failures.some((item)=>/seis coronas protegidas/.test(item)));
 
-// Regresión v104: seis coronas naturales deben conservar separaciones finas;
-// un plano copiado con líneas rojizas o una placa blanca fusionada se bloquean.
+// Regresión v105: seis coronas naturales deben conservar separaciones finas.
+// Los indicios visuales se conservan como revisión; nunca ocultan la propuesta.
 function crearCoronasSinteticas(modo) {
   const width=170,height=82;
   const pixels=new Uint8ClampedArray(width*height*4);
@@ -291,7 +303,9 @@ assert.equal(integridadPlano.artifacts.detected,true);
 assert.ok(integridadPlano.artifacts.reasons.some((item)=>/líneas rojizas/.test(item)));
 const evidenciaConPlano=structuredClone(evidenciaValida);
 evidenciaConPlano.visual.artifacts=integridadPlano.artifacts;
-assert.equal(context.evaluarContratoPresentacionV104(evidenciaConPlano).accepted,false);
+const contratoConPlano=context.evaluarContratoPresentacionV105(evidenciaConPlano);
+assert.equal(contratoConPlano.accepted,true);
+assert.ok(contratoConPlano.reviewFindings.some((item)=>/líneas rojizas/.test(item)));
 
 const contornoTecnico=crearCoronasSinteticas('edge-outline');
 const integridadContorno=context.evaluarIntegridadVisualV104(
@@ -300,6 +314,9 @@ const integridadContorno=context.evaluarIntegridadVisualV104(
 assert.equal(integridadContorno.artifacts.detected,true,JSON.stringify(integridadContorno.artifacts));
 assert.ok(integridadContorno.artifacts.boundaryRedAffectedTeeth>=2);
 assert.ok(integridadContorno.artifacts.reasons.some((item)=>/bordes técnicos/.test(item)));
+const evidenciaConContorno=structuredClone(evidenciaValida);
+evidenciaConContorno.visual.artifacts=integridadContorno.artifacts;
+assert.equal(context.evaluarContratoPresentacionV105(evidenciaConContorno).accepted,true);
 
 const placa=crearCoronasSinteticas('flat');
 const integridadPlaca=context.evaluarIntegridadVisualV104(
@@ -308,6 +325,12 @@ const integridadPlaca=context.evaluarIntegridadVisualV104(
 assert.equal(integridadPlaca.artifacts.detected,true);
 assert.equal(integridadPlaca.artifacts.flatPlate,true);
 assert.equal(integridadPlaca.independentTeeth.confirmed,false);
+const evidenciaConPlaca=structuredClone(evidenciaValida);
+evidenciaConPlaca.visual.artifacts=integridadPlaca.artifacts;
+evidenciaConPlaca.visual.independentTeeth=integridadPlaca.independentTeeth;
+const contratoConPlaca=context.evaluarContratoPresentacionV105(evidenciaConPlaca);
+assert.equal(contratoConPlaca.accepted,true);
+assert.ok(contratoConPlaca.reviewFindings.some((item)=>/superficie blanca plana/.test(item)));
 
 const originales = [200, 275, 350, 425, 500, 575].map((x, index) => ({
   x,
@@ -376,12 +399,12 @@ const mensajeAnatomico = context.clasificarErrorParaUsuario(
 assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
 
 const mensajeArtefacto = context.clasificarErrorParaUsuario(
-  new Error('La simulación no superó el contrato visual v104: se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana.'),
+  new Error('La simulación no superó el contrato visual v105: se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana.'),
 );
 assert.equal(mensajeArtefacto.titulo, 'La propuesta contiene bordes artificiales');
 
 const mensajeVersion = context.clasificarErrorParaUsuario(
-  new Error('La simulación no superó el contrato visual v104: el backend no confirmó el contrato v104.'),
+  new Error('La simulación no superó el contrato visual v105: el backend no confirmó el contrato v105.'),
 );
 assert.equal(mensajeVersion.titulo, 'La actualización del simulador está incompleta');
 
@@ -455,4 +478,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('simulation v104: single crown-derived mask, retained candidates and calibrated review passed');
+console.log('simulation v105: paid proposals remain visible with clinical-review warnings');

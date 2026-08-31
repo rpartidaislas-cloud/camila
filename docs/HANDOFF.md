@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-31 — Codex: v105 local, la propuesta pagada siempre se muestra
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V105_ACCEPTANCE.md`.
+
+- La captura posterior a v104 confirmó que el generador y la máscara sí
+  terminaron, pero el detector local volvió a ocultar la propuesta por una
+  inferencia de bordes artificiales.
+- v105 conserva como barreras duras únicamente el contrato, el proveedor, las
+  seis coronas, la cobertura de máscara y la igualdad exacta fuera de máscara.
+- Bordes rojizos u oscuros, placa aparente, separación, textura, tono,
+  simetría y magnitud de cambio son hallazgos de revisión y ya no bloquean el
+  comparador.
+- El detector de posibles marcas cromáticas tampoco descarta: adjunta una
+  advertencia visible al reporte de revisión.
+- Una propuesta conservada por v104 puede revalidarse localmente con v105 sin
+  pedir otra imagen a GPT.
+- Build `v105`, calidad `v27`, caché PWA `smyl-v68`.
+- QA aprobado sin IA: scripts inline, regresión v105, 12 pruebas de máscara,
+  sintaxis TypeScript y revisión responsive a 390×844, 834×1194 y 1440×900.
+- **No se desplegó v105, no se publicó y no se consumió otra generación.**
+
 ## 2026-08-31 — Codex: v104 local, una máscara y propuestas recuperables
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

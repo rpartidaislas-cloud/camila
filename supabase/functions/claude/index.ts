@@ -139,7 +139,7 @@ Deno.serve(async (req: Request) => {
   const simulationContract = typeof body?.contractVersion === "string"
     ? body.contractVersion.trim().slice(0, 32)
     : "legacy";
-  const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104";
+  const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -178,10 +178,10 @@ Deno.serve(async (req: Request) => {
     }));
   }
 
-  // v102-v104 son contratos cerrados: una sola fotografía PNG, máscara alfa
+  // v102-v105 son contratos cerrados: una sola fotografía PNG, máscara alfa
   // y geometría numérica de seis carillas. Si producción no está configurada
   // para GPT Image 2 o falta la máscara, se rechaza antes de descontar cuota.
-  if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104")) {
+  if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105")) {
     if (imageProvider !== "openai") {
       return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere GPT Image 2; el proveedor de producción no está configurado.` }), {
         status: 503, headers: { ...CORS, "Content-Type": "application/json" },
@@ -302,8 +302,10 @@ Deno.serve(async (req: Request) => {
           }
         }
         const promptOpenAI = isMeasuredMaskOnlyContract
-          ? (simulationContract === "v104"
-            ? "V104 SINGLE-MASK CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. The alpha mask was derived directly from six individually identified source crowns and contains no gingiva. Edit only the visible crowns of maxillary veneers 13-12-11-21-22-23 inside that transparent mask. Preserve every pink tissue pixel, lip, lower tooth, premolar and every unmasked pixel exactly as photographed. Follow the six numeric crown envelopes tooth by tooth and keep the cervical margins fixed. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
+          ? (simulationContract === "v105"
+            ? "V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. The alpha mask was derived directly from six individually identified source crowns and contains no gingiva. Edit only the visible crowns of maxillary veneers 13-12-11-21-22-23 inside that transparent mask. Preserve every pink tissue pixel, lip, lower tooth, premolar and every unmasked pixel exactly as photographed. Follow the six numeric crown envelopes tooth by tooth and keep the cervical margins fixed. Produce six separate natural ceramic veneers with individual anatomy, interproximal separations and subtle optical texture. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
+            : simulationContract === "v104"
+              ? "V104 SINGLE-MASK CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. The alpha mask was derived directly from six individually identified source crowns and contains no gingiva. Edit only the visible crowns of maxillary veneers 13-12-11-21-22-23 inside that transparent mask. Preserve every pink tissue pixel, lip, lower tooth, premolar and every unmasked pixel exactly as photographed. Follow the six numeric crown envelopes tooth by tooth and keep the cervical margins fixed. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
             : simulationContract === "v103"
               ? "V103 CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. Edit only the visible crowns of the six maxillary anterior veneers 13-12-11-21-22-23 inside the transparent alpha mask. The mask contains no gingiva: preserve all pink tissue and lips exactly as photographed. Follow the six numeric crown envelopes tooth by tooth. Preserve every unmasked pixel and every unlisted tooth. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
               : simulationContract === "v102"
