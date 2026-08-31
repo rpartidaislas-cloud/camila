@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-31 — Codex: v102 con seis destinos numéricos
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
+`supabase/functions/claude/index.ts`, `tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V102_ACCEPTANCE.md`.
+
+- La fotografía del paciente es la única referencia visual; se eliminó la
+  contradicción que pedía una segunda imagen que el contrato no enviaba.
+- El tratamiento queda limitado a 13–12–11–21–22–23 y a su encía inmediata.
+  El diseño se transmite como seis envolventes numéricas independientes.
+- GPT Image 2 recibe una máscara alfa PNG. Fuera de ella se restaura la foto
+  original por píxel; premolares, arcada inferior, labios y rostro se excluyen.
+- El backend exige GPT Image 2, imagen PNG y máscara PNG antes de consumir
+  cuota; no existe fallback silencioso para v102.
+- Build `v102`, calidad `v24`, caché PWA `smyl-v65`. Web y móvil son idénticos.
+- QA local aprobado: scripts inline, contrato v102, 12 pruebas de máscara,
+  sintaxis TypeScript y revisión a 1440×900, 834×1194 y 390×844.
+
+
 ## 2026-08-27 — Codex: una sola máscara previa y preservación por píxel
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y

@@ -136,6 +136,10 @@ Deno.serve(async (req: Request) => {
   const requestReason = typeof body?.requestReason === "string"
     ? body.requestReason.slice(0, 80)
     : (body?.action || "analysis");
+  const simulationContract = typeof body?.contractVersion === "string"
+    ? body.contractVersion.trim().slice(0, 32)
+    : "legacy";
+  const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102";
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -172,6 +176,22 @@ Deno.serve(async (req: Request) => {
       effectiveProvider: imageProvider,
       authenticatedOverride: Boolean(user && requestedImageProvider),
     }));
+  }
+
+  // v102 es un contrato cerrado: una sola fotografía PNG, máscara alfa y
+  // geometría numérica de seis carillas. Si producción no está configurada
+  // para GPT Image 2 o falta la máscara, se rechaza antes de descontar cuota.
+  if (body?.action === "generate_image" && simulationContract === "v102") {
+    if (imageProvider !== "openai") {
+      return new Response(JSON.stringify({ error: "El contrato v102 requiere GPT Image 2; el proveedor de producción no está configurado." }), {
+        status: 503, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (!body?.editMaskBase64 || body?.mimeType !== "image/png" || body?.editMaskMimeType !== "image/png") {
+      return new Response(JSON.stringify({ error: "El contrato v102 requiere imagen PNG y máscara alfa PNG." }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
   }
 
   // La validación ocurre ANTES de consumir el límite del plan para que una
@@ -266,7 +286,7 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        if (guideImageBase64) {
+        if (guideImageBase64 && !isMeasuredMaskOnlyContract) {
           guideImageBytes = base64ABytes(guideImageBase64);
           const imagePng = dimensionesPng(imageBytes);
           const guidePng = dimensionesPng(guideImageBytes);
@@ -281,16 +301,20 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        const promptOpenAI = guideImageBase64
-          ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is an abstract black-background GEOMETRIC VENEER BLUEPRINT for maxillary teeth 13-12-11-21-22-23 only. Its six separate pale silhouettes define the intended crown hierarchy, individual widths, heights and incisal curve. Transfer only that geometry to the corresponding real teeth in IMAGE 1. The blueprint is not a photograph, material sample, segmentation mask or visible overlay. Never render its black background, gray fill, white outlines, control marks, colors, labels or diagram appearance. Use the original photograph for all texture, lighting, tissue and identity information. " + prompt
-          : prompt;
+        const promptOpenAI = isMeasuredMaskOnlyContract
+          ? (simulationContract === "v102"
+            ? "V102 CONTROLLED DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. Edit only the six maxillary anterior veneers 13-12-11-21-22-23 inside the transparent alpha mask. Follow the six numeric crown envelopes in the prompt tooth by tooth. Preserve every unmasked pixel and every unlisted tooth. Never introduce outlines, diagrams, colored seams, cut-out borders, labels or technical marks. " + prompt
+            : "INPUT IMAGE 1 is the only visual reference: the patient smile crop. The transparent edit mask is the absolute treatment boundary. Tooth-by-tooth geometry is provided only as numeric/text instructions in the prompt; there is no visual blueprint to copy. Render natural ceramic anatomy inside the editable area and never introduce outlines, diagrams, colored seams, cut-out borders or technical marks. " + prompt)
+          : guideImageBase64
+            ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is an abstract black-background GEOMETRIC VENEER BLUEPRINT for maxillary teeth 13-12-11-21-22-23 only. Its six separate pale silhouettes define the intended crown hierarchy, individual widths, heights and incisal curve. Transfer only that geometry to the corresponding real teeth in IMAGE 1. The blueprint is not a photograph, material sample, segmentation mask or visible overlay. Never render its black background, gray fill, white outlines, control marks, colors, labels or diagram appearance. Use the original photograph for all texture, lighting, tissue and identity information. " + prompt
+            : prompt;
         const form = new FormData();
         form.append("model", OPENAI_IMAGE_MODEL);
         form.append("image[]", new Blob([imageBytes], { type: mimeType }), mimeType === "image/png" ? "patient-smile.png" : "patient-smile.jpg");
         if (editMaskBytes) {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
-        if (guideImageBytes) {
+        if (guideImageBytes && !isMeasuredMaskOnlyContract) {
           form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), "veneer-blueprint.png");
         }
         form.append("prompt", promptOpenAI);
@@ -315,6 +339,8 @@ Deno.serve(async (req: Request) => {
           provider: "openai",
           model: OPENAI_IMAGE_MODEL,
           quality: OPENAI_IMAGE_QUALITY,
+          contract: simulationContract,
+          guideMode: isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none"),
           attempt: 1,
         }));
 
@@ -457,6 +483,7 @@ Deno.serve(async (req: Request) => {
                           elapsedMs,
                           usage: finalUsage,
                           providerRequestId,
+                          contract: simulationContract,
                         };
                         console.log(JSON.stringify({
                           event: "image_generation_success",
@@ -545,11 +572,12 @@ Deno.serve(async (req: Request) => {
                   "Cache-Control": "no-cache, no-store",
                   "Content-Type": entregarComoJpeg ? "image/jpeg" : "text/event-stream; charset=utf-8",
                   "X-Accel-Buffering": "no",
-                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-provider-request-id",
+                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-provider-request-id",
                   "X-SMYL-Request-Id": requestId,
                   "X-SMYL-Provider": "openai",
                   "X-SMYL-Model": OPENAI_IMAGE_MODEL,
                   "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
+                  "X-SMYL-Contract": simulationContract,
                   "X-SMYL-Provider-Request-Id": providerRequestId || "",
                 },
               });
@@ -644,6 +672,7 @@ Deno.serve(async (req: Request) => {
             elapsedMs,
             usage,
             providerRequestId,
+            contract: simulationContract,
           };
 
           // El JSON con b64_json aumenta el JPEG cerca de 33 % y obliga a
@@ -660,13 +689,14 @@ Deno.serve(async (req: Request) => {
             return new Response(generatedBytes, {
               headers: {
                 ...CORS,
-                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-elapsed-ms, x-smyl-provider-request-id",
+                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-elapsed-ms, x-smyl-provider-request-id",
                 "Cache-Control": "no-store",
                 "Content-Type": "image/jpeg",
                 "X-SMYL-Request-Id": requestId,
                 "X-SMYL-Provider": "openai",
                 "X-SMYL-Model": OPENAI_IMAGE_MODEL,
                 "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
+                "X-SMYL-Contract": simulationContract,
                 "X-SMYL-Elapsed-Ms": String(elapsedMs),
                 "X-SMYL-Provider-Request-Id": providerRequestId || "",
               },
@@ -718,10 +748,11 @@ Deno.serve(async (req: Request) => {
           const inputParts: any[] = [
             { inline_data: { mime_type: mimeType, data: imageBase64 } },
           ];
-          if (guideImageBase64) {
+          const geminiGuideEnabled = Boolean(guideImageBase64) && !isMeasuredMaskOnlyContract;
+          if (geminiGuideEnabled) {
             inputParts.push({ inline_data: { mime_type: guideMimeType, data: guideImageBase64 } });
           }
-          inputParts.push({ text: guideImageBase64
+          inputParts.push({ text: geminiGuideEnabled
             ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is a geometric incisal-edge control map only. Follow its curve and labeled target points, but never render any map color, line, dot, label or black background. " + prompt
             : prompt });
           const gBody = {
@@ -780,6 +811,7 @@ Deno.serve(async (req: Request) => {
               attemptLimit: GEMINI_IMAGE_MAX_ATTEMPTS,
               elapsedMs,
               usage,
+              contract: simulationContract,
             },
           }), { headers: { ...CORS, "Content-Type": "application/json" } });
 

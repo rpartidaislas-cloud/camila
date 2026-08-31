@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v99 — máscara previa sin resegmentación</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v102 — seis destinos numéricos</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1049,6 +1049,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     </div>
     <div style="font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55;max-width:280px" id="proc-error-detail">Hubo un problema de conexión.</div>
     <div id="proc-error-code" style="display:none;font-size:10.5px;color:rgba(255,255,255,.38);letter-spacing:.04em"></div>
+    <pre id="proc-error-diagnostics" style="display:none;width:100%;max-width:360px;max-height:220px;overflow:auto;margin:0;padding:12px;border-radius:10px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);color:#B8C7FF;font:10px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:left;white-space:pre-wrap;word-break:break-word"></pre>
+    <img id="proc-error-preview" alt="Candidato bloqueado para calibración" style="display:none;width:100%;max-width:360px;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#050711">
     <div style="display:flex;gap:10px;width:100%;max-width:280px;margin-top:4px">
       <button onclick="show('s-intro')" style="flex:1;height:46px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Cancelar</button>
       <button id="proc-retry-btn" onclick="reintentarProceso()" style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">↻ Reintentar</button>
@@ -1685,6 +1687,9 @@ function clasificarErrorParaUsuario(error) {
   if (/safety|rejected|rechazad/.test(raw)) {
     return {titulo:'No pudimos procesar esta fotografía', detalle:'Prueba con otra toma frontal, bien iluminada y sin filtros.'};
   }
+  if (/control de captura v10[01]/.test(raw)) {
+    return {titulo:'Necesitamos otra fotografía frontal', detalle:'La sonrisa quedó demasiado pequeña, incompleta o fuera de un encuadre útil. Toma otra frontal antes de generar; no se consumió una simulación.'};
+  }
   if (/segmentación no encontró|segmentación de dientes|no fue posible comparar/.test(raw)) {
     return {titulo:'No se pudo aislar la zona dental', detalle:'La propuesta sí fue generada, pero el paso que separa los dientes no terminó correctamente. Tus fotografías siguen guardadas.'};
   }
@@ -1703,6 +1708,18 @@ function clasificarErrorParaUsuario(error) {
   }
   if (/cobertura bilateral|cobertura dental|arcada.*incomplet/.test(raw)) {
     return {titulo:'La detección omitió parte de la sonrisa', detalle:'La propuesta sí fue generada, pero la máscara dejó fuera parte de los dientes superiores. Tus fotografías siguen guardadas.'};
+  }
+  if (/backend no confirmó el contrato v10[0-2]/.test(raw)) {
+    return {titulo:'La actualización del simulador está incompleta', detalle:'La aplicación y el servicio de generación no tienen la misma versión. No vuelvas a intentarlo hasta actualizar el servicio.'};
+  }
+  if (/líneas rojizas|lineas rojizas|bordes de plano|recortes oscuros|superficie blanca plana/.test(raw)) {
+    return {titulo:'La propuesta contiene bordes artificiales', detalle:'El control detectó líneas, recortes o una superficie fusionada dentro de las carillas y bloqueó el resultado antes de mostrarlo.'};
+  }
+  if (/seis coronas visualmente independientes/.test(raw)) {
+    return {titulo:'La anatomía dental no es presentable', detalle:'El resultado no conservó seis dientes superiores claramente separados y se descartó antes de mostrarlo.'};
+  }
+  if (/contrato visual v10[0-2]/.test(raw)) {
+    return {titulo:'La propuesta no es presentable', detalle:'El resultado no cambió de forma convincente las seis carillas o no conservó la calidad natural necesaria. Se descartó antes de mostrarlo; tus fotografías siguen guardadas.'};
   }
   if (/estándar visual de carillas|estandar visual de carillas|estándar visual|estandar visual/.test(raw)) {
     return {titulo:'La propuesta requiere revisión visual', detalle:'La propuesta quedó protegida dentro de dientes y encía superior, pero conviene revisar anatomía, naturalidad y tono antes de presentarla.'};
@@ -4772,6 +4789,25 @@ function mensajeErrorRegenerar(e) {
   return info.detalle + ' Puedes intentarlo nuevamente.';
 }
 
+// Sólo en ?debugUI=1: muestra evidencia numérica y el candidato bloqueado
+// para calibrar el contrato sin convertirlo en un resultado para pacientes.
+function resumirDiagnosticoCalibracion(error) {
+  var q=error&&error.qualityMetrics||{};
+  var visual=q.visual||q.visibleChange||{};
+  var contrato=q.contract||{};
+  var mascara=q.maskCoverage||{};
+  return {
+    etapa:q.stage||error&&error.stage||'',
+    fallos:Array.isArray(contrato.failures)?contrato.failures:[],
+    proveedor:q.trace&&q.trace.provider||'',
+    modelo:q.trace&&q.trace.model||'',
+    mascara:{fuente:mascara.sourceCoverage,destino:mascara.targetCoverage},
+    cambio:{ratio:visual.changed,media:visual.meanDifference,textura:visual.texture,amarillo:visual.yellow},
+    porDiente:Array.isArray(visual.perToothChange)?visual.perToothChange:[],
+    fueraMascara:q.outsideMask&&q.outsideMask.changedPixels
+  };
+}
+
 function mostrarErrorProceso(e) {
   // Regla: el genérico de "problema de conexión" es el ÚLTIMO recurso, solo
   // cuando de verdad no hay nada que decir. Cualquier error con mensaje
@@ -4793,6 +4829,21 @@ function mostrarErrorProceso(e) {
     support.textContent = 'Código de soporte: ' + codigo;
     support.style.display = 'block';
   }
+  var debugCalibracion=new URLSearchParams(location.search).get('debugUI')==='1';
+  var vistaError=(S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0] || {}).view || 'frontal';
+  var diagnostico=document.getElementById('proc-error-diagnostics');
+  if(diagnostico){
+    diagnostico.style.display=debugCalibracion&&e&&e.qualityMetrics?'block':'none';
+    diagnostico.textContent=debugCalibracion&&e&&e.qualityMetrics
+      ?JSON.stringify(resumirDiagnosticoCalibracion(e),null,2):'';
+  }
+  var preview=document.getElementById('proc-error-preview');
+  var pendienteDebug=S.pendingGeneratedByView&&S.pendingGeneratedByView[vistaError];
+  if(preview){
+    preview.style.display=debugCalibracion&&pendienteDebug&&pendienteDebug.generatedImageUrl?'block':'none';
+    if(debugCalibracion&&pendienteDebug&&pendienteDebug.generatedImageUrl)preview.src=pendienteDebug.generatedImageUrl;
+    else preview.removeAttribute('src');
+  }
   try {
     sessionStorage.setItem('smyl_ultimo_error', JSON.stringify({
       at:new Date().toISOString(), code:codigo, status:Number(e && e.status)||0,
@@ -4807,7 +4858,7 @@ function mostrarErrorProceso(e) {
   // nueva propuesta, evitando un segundo cargo innecesario.
   var retry = document.getElementById('proc-retry-btn');
   var raw = String(e && e.message || e || '').toLowerCase();
-  var vista = (S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0] || {}).view || 'frontal';
+  var vista = vistaError;
   var requiereNuevaPropuesta = !!(e && e.requiresNewGeneration) ||
     /marcas técnicas|marcas tecnicas|integrar la simulación|integrar la simulacion|reinsertar|reinserción|reinsercion/.test(raw);
   var conservaGeneracion = !!(S.pendingGeneratedByView && S.pendingGeneratedByView[vista]) && !requiereNuevaPropuesta;
@@ -5461,21 +5512,26 @@ function consolidarHallazgosRevision(revisionAnatomica,revisionVisual,extras) {
 // de tratamiento y el mapa dental fuente del plano 13–23. No vuelve a llamar al
 // segmentador sobre el render; esa segunda inferencia variable era la causa de
 // falsos rechazos aun cuando la imagen ya había sido generada correctamente.
-async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view,tratamientoMaskUrl,planoDental) {
+async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUrl,view,tratamiento,planoDental) {
+  var tratamientoMaskUrl=tratamiento&&tratamiento.regionUrl;
   if(!tratamientoMaskUrl)throw new Error('Falta la máscara protegida de dientes y encía.');
   if(!planoDental||!planoDental.sourceMaskUrl)throw new Error('Falta el mapa dental validado antes de generar.');
-  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl),cargarImagenSegura(tratamientoMaskUrl),cargarImagenSegura(planoDental.sourceMaskUrl)]);
-  var originalImg=imagenes[0],iaImg=imagenes[1],tratamientoImg=imagenes[2],fuenteDentalImg=imagenes[3],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
+  var tratamientoActual=tratamiento||{};
+  var targetMaskUrl=tratamientoActual.targetMaskUrl||renderizarMascaraObjetivoDental(planoDental,planoDental.width,planoDental.height).toDataURL('image/png');
+  var imagenes=await Promise.all([cargarImagenSegura(fotoOriginalUrl),cargarImagenSegura(resultadoIAUrl),cargarImagenSegura(tratamientoMaskUrl),cargarImagenSegura(planoDental.sourceMaskUrl),cargarImagenSegura(targetMaskUrl)]);
+  var originalImg=imagenes[0],iaImg=imagenes[1],tratamientoImg=imagenes[2],fuenteDentalImg=imagenes[3],targetDentalImg=imagenes[4],W=originalImg.naturalWidth,H=originalImg.naturalHeight;
   var original=document.createElement('canvas');original.width=W;original.height=H;
   original.getContext('2d').drawImage(originalImg,0,0,W,H);
   var registrada=dibujarImagenRegistrada(originalImg,iaImg,W,H,view||'frontal');
   var alineada=registrada.canvas;
 
-  var maskOriginal=document.createElement('canvas'),maskTratamiento=document.createElement('canvas');
+  var maskOriginal=document.createElement('canvas'),maskTratamiento=document.createElement('canvas'),maskObjetivo=document.createElement('canvas');
   maskOriginal.width=W;maskOriginal.height=H;
   maskTratamiento.width=W;maskTratamiento.height=H;
+  maskObjetivo.width=W;maskObjetivo.height=H;
   maskOriginal.getContext('2d').drawImage(fuenteDentalImg,0,0,W,H);
   maskTratamiento.getContext('2d').drawImage(tratamientoImg,0,0,W,H);
+  maskObjetivo.getContext('2d').drawImage(targetDentalImg,0,0,W,H);
   var mo=medirMascaraAnatomica(maskOriginal),mt=medirMascaraAnatomica(maskTratamiento);
 
   // El mapa fuente dental fija el corredor del maxilar. La máscara de
@@ -5503,18 +5559,28 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
     if(mop[mi]>40){dentales++;if(msp[mi]>40)cubiertos++;}
   }
   var coberturaDental=dentales?cubiertos/dentales:0;
-  var piezasOriginales=(planoDental.sourcePieces||planoDental.pieces||[]).slice();
+  // Estas coberturas se calculan contra la máscara realmente usada en la
+  // composición final, después del recorte anatómico de seguridad. Así el
+  // contrato no hereda métricas optimistas de una máscara previa más amplia.
+  var coberturaObjetivo=medirCoberturaEntreMascaras(maskObjetivo,maskSegura);
+  var coberturaContrato={
+    sourceCoverage:+coberturaDental.toFixed(4),
+    targetCoverage:+coberturaObjetivo.toFixed(4),
+    contract:'post-safety-clip'
+  };
+  var piezasOriginales=(planoDental.sourcePieces||[]).slice();
+  var piezasObjetivo=(planoDental.pieces||[]).slice();
   var comparacionPrevia={
-    expectedPieces:piezasOriginales,
-    generatedPieces:piezasOriginales,
+    expectedPieces:piezasObjetivo,
+    generatedPieces:[],
     useGeneratedGeometryForQuality:false,
-    width:planoDental.sourceWidth||W,
-    height:planoDental.sourceHeight||H,
+    width:planoDental.width||W,
+    height:planoDental.height||H,
     matchWarnings:[],
     rawFragments:{original:planoDental.sourceRawFragments||piezasOriginales.length,generated:0},
     consolidatedPieces:{original:piezasOriginales.length,generated:0}
   };
-  var revisionAnatomica={critical:[],warnings:[],metrics:{verification:'prevalidated-source-mask',pieces:piezasOriginales.length}};
+  var revisionAnatomica={critical:[],warnings:[],metrics:{verification:'pixel-target-regions',pieces:piezasObjetivo.length}};
   var errores=[];
   var advertencias=consolidarHallazgosRevision(revisionAnatomica,null,[]);
   if(!mo.area||!mt.area||!ms.area)errores.push('no se identificó la región superior de dientes y encía');
@@ -5556,7 +5622,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   }
 
   var revisionVisual=analizarCalidadVisualCarillas(
-    original,salida,maskOriginal,view||'frontal',maskOriginal,comparacionPrevia
+    original,salida,maskSegura,view||'frontal',maskObjetivo,comparacionPrevia
   );
   advertencias=consolidarHallazgosRevision(
     {warnings:advertencias},
@@ -5566,11 +5632,26 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
 
   // Garantía determinista: fuera de la máscara todo píxel procede del original.
   // El reporte nunca se presenta como aprobación clínica automática.
+  var contratoV102=evaluarContratoPresentacionV102({
+    trace:S.lastGenerationMeta||{},
+    outsideMask:exterior,
+    sourcePieces:piezasOriginales.length,
+    mask:coberturaContrato,
+    visual:revisionVisual.metrics||{},
+    perToothChange:revisionVisual.metrics&&revisionVisual.metrics.perToothChange||[],
+    vitaTone:S.vitaMode==='current'?'current':S.vitaTone
+  });
   S.simulationQualityByView[view||'frontal']={
-    version:SIM_QUALITY_VERSION,status:'review',
+    version:SIM_QUALITY_VERSION,status:contratoV102.accepted?'review':'rejected',
     issues:advertencias,
-    metrics:{mode:'prevalidated-treatment-mask-with-clinical-review',deliveryGate:'deterministic-outside-mask-integrity',qualityOutcome:revisionVisual.status,original:mo,treatment:mt,safe:ms,dentalCoverage:+coberturaDental.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'v102-alpha-mask-six-numeric-envelopes',deliveryGate:'v102-six-veneer-render-contract',qualityOutcome:revisionVisual.status,contract:contratoV102,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
+  if(!contratoV102.accepted){
+    var errorContrato=new Error('La simulación no superó el contrato visual v102: '+contratoV102.failures.slice(0,3).join(' · ')+'.');
+    errorContrato.qualityMetrics=S.simulationQualityByView[view||'frontal'].metrics;
+    errorContrato.requiresNewGeneration=true;
+    throw errorContrato;
+  }
   return salida.toDataURL('image/png');
 }
 
@@ -5677,7 +5758,7 @@ async function validarResultadoIARecibido(contexto) {
     entradaDental.dataUrl,
     contexto.generatedImageUrl,
     frontal.view || 'frontal',
-    contexto.tratamiento.regionUrl,
+    contexto.tratamiento,
     contexto.planoDental
   );
   var marcasTecnicas = await detectarMarcasTecnicasIA(compuestaRecorte, frontal.view || 'frontal');
@@ -5690,16 +5771,10 @@ async function validarResultadoIARecibido(contexto) {
   if (generationOptions.requireVisibleChange !== false) {
     var cambioVisible = await medirCambioDentalVisible(entradaDental.dataUrl, compuestaRecorte, frontal.view || 'frontal');
     if (cambioVisible.mean < 4 || cambioVisible.changedRatio < .09) {
-      var reporteCambio = S.simulationQualityByView[frontal.view || 'frontal'] || {version:SIM_QUALITY_VERSION,status:'review',issues:[],metrics:{}};
-      reporteCambio.status = 'review';
-      reporteCambio.issues = consolidarHallazgosRevision(
-        {warnings:reporteCambio.issues},
-        null,
-        ['El cambio dental visible fue demasiado conservador; considera generar otra propuesta.']
-      );
-      reporteCambio.metrics = reporteCambio.metrics || {};
-      reporteCambio.metrics.visibleChange = cambioVisible;
-      S.simulationQualityByView[frontal.view || 'frontal'] = reporteCambio;
+      var errorSinCambio=new Error('La simulación no superó el contrato visual v102: el cambio dental visible fue demasiado conservador.');
+      errorSinCambio.qualityMetrics={visibleChange:cambioVisible,contract:'v102-six-veneer-render-contract'};
+      errorSinCambio.requiresNewGeneration=true;
+      throw errorSinCambio;
     }
   }
   var compuesta = entradaDental.isFull
@@ -5747,7 +5822,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     }
   }
   var tc = CFG.tenantConfig || {};
-  var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. A supplied edit mask is the absolute treatment boundary. Treat this as a surgical inpaint restricted to the visible MAXILLARY teeth and their directly associated visible upper gingiva inside that mask. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. Do not outpaint, zoom, recenter or rebuild the mouth. Every pixel outside the edit mask must remain identical.' +
+  var basePrompt = 'DENTAL SMILE SIMULATION — HIGH-RESOLUTION LOCAL SMILE CROP, NOT A FULL-PHOTO REGENERATION. The supplied image is a crop taken directly from the patient photograph so the teeth have enough pixels for professional morphology. A supplied edit mask is the absolute treatment boundary. Treat this as a surgical inpaint restricted to the six MAXILLARY anterior teeth 13-12-11-21-22-23 and only the narrow directly associated upper-gingival transition already included in that mask. OUTPUT MUST BE IDENTICAL DIMENSIONS, CROP AND ALIGNMENT AS INPUT. Do not outpaint, zoom, recenter or rebuild the mouth. Every pixel outside the edit mask must remain identical.' +
     ' TISSUE ISOLATION — NON-NEGOTIABLE: ONLY upper teeth and their visible upper gingiva may change. Preserve lower teeth, lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose and every other facial structure exactly as photographed. Never extend enamel over gingiva or lip; never extend pink gingiva onto teeth, lips or skin.' +
     ' COLOR AND LIGHTING ISOLATION (critical, applies even for dark/saturated shades): copy every pixel outside the masked treatment tissue from the original photo unchanged. Do NOT shift the overall white balance, exposure, brightness, contrast or color grading of the photo. A dark or saturated tooth shade must never recolor the rest of the image to "match". Pixel-perfect alignment outside the treatment region.';
 
@@ -5830,19 +5905,18 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     : 'SHADE: reproduce VITA Classical ' + vitaShade.code + ' as perceived under the ORIGINAL illumination. ' + vitaShade.copy + shadeReferencePrompt;
   var prompt = [
     basePrompt,
-    'PRIMARY TASK: create a premium porcelain-veneer simulation, not a generic idealized white smile. The improvement must be clearly visible yet remain anatomically credible for this exact patient.',
-    'ONE-TO-ONE DENTAL CONTRACT: first identify every visible maxillary tooth and preserve its identity, root reference, perspective and left-to-right order. Restore the complete visible maxillary treatment corridor continuously; never leave an untreated upper tooth trapped between restored teeth and never invent, remove, fuse or duplicate a tooth.',
-    'ANTERIOR ROLES 13-12-11-21-22-23: the two centrals are the natural visual leaders with softly defined line angles and related but non-cloned anatomy. Each lateral is distinctly narrower (about 70–78% of its neighboring central) and 0.5–1.0 mm visually shorter. Each canine keeps a stronger cervical body, mesial ridge, gentle cusp and posterior transition; it must never look like a third lateral. Preserve subtle bilateral human asymmetry.',
-    'INCISAL AND INTERPROXIMAL DESIGN: form a smooth smile arc that follows the lower lip—centrals lead, laterals step up and canines turn posteriorly. Give every crown independent mesial and distal line angles, realistic short contact areas, fine interproximal shadows and progressively larger incisal embrasures. A straight picket-fence edge or one continuous white plate is failure.',
-    'PREMIUM CERAMIC MATERIAL: use three-dimensional facial convexity, restrained developmental lobes and shallow vertical depressions, fine non-repetitive microtexture, slightly warmer cervical dentin, controlled body value, subtle incisal translucency and internal depth. Highlights must follow the original light. The result must look like individually fabricated layered ceramic veneers—never flat paint, opaque chalk, plastic, uniform rectangles, identical highlights or oversized crowns.',
+    'ROLE: act only as the photorealistic ceramic renderer. There is NO second reference image and no visual blueprint. The patient crop is the only visual input; the alpha mask is the absolute editable boundary and the six numeric crown envelopes below are the design prescription.',
+    'RENDERING TASK: replace only the visible facial enamel of teeth 13-12-11-21-22-23 with six clearly changed, independently readable porcelain veneers. Land each crown inside its assigned numeric envelope while preserving the photographed left-to-right identity and perspective. Never treat premolars, lower teeth or any unlisted tooth; never invent, remove, fuse or duplicate a tooth.',
+    anatomyAcceptancePrompt,
+    'CERAMIC MATERIAL: render layered porcelain with individual facial convexity, restrained developmental lobes, shallow non-repetitive vertical texture, slightly warmer cervical dentin, controlled body value, subtle incisal translucency and highlights from the original light. Never return flat paint, opaque chalk, plastic rectangles or a uniform white row.',
     shadeInstruction,
-    'GINGIVA: change only the directly associated visible upper gingiva where essential for a plausible veneer emergence profile. Preserve papillae, stippling, vascular/color variation and periodontal identity. Never create a smooth pink band, perfectly mirrored tissue, artificial recession, exposed yellow cervical rims or doubled margins.',
-    'PRESERVATION: lower teeth and lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose, mouth opening, bite, crop, exposure, white balance and identity must remain exactly as photographed. The protected mask is a maximum boundary, not permission to alter all tissue inside it.',
+    'GINGIVA: only refine the short masked cervical band when necessary for emergence. Preserve papillae, stippling and natural color variation; never make a smooth pink band or artificial recession.',
+    'PRESERVATION: lower teeth and lower gingiva, lips, tongue, oral cavity, skin, facial hair, nose, mouth opening, bite, crop, exposure, white balance and identity remain exactly as photographed.',
     'DESIGN INTENSITY: ' + intensityPrompt + '. ENAMEL FINISH: ' + finishPrompt + '.',
     clinicalBlock,
     customPrompt,
     framingReminder,
-    'FINAL INTERNAL INSPECTION BEFORE OUTPUT: reject and correct your own draft if any anterior crowns are fused, repeated, flat, rectangular, opaque, denture-like or if central/lateral/canine hierarchy, incisal arc, ceramic depth, gingival texture or untreated-tissue preservation is not visibly convincing. Return only the final photorealistic image; never render masks, guides, labels, text or annotations.'
+    'OUTPUT: return only the final photorealistic crop. Never render masks, guides, labels, text or annotations.'
   ].filter(Boolean).join(' ');
 
   // Una sesión profesional puede caducar mientras se capturan o ajustan las
@@ -5853,7 +5927,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   // si no pueden identificarse seis piezas o aislarse dientes/encía, no se
   // consume una generación de imagen ni se expone el rostro a edición abierta.
   var planoDental = await prepararPlanoDentalIndividual(entradaDental, frontal.view || 'frontal');
-  var tratamiento = await prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal');
+  var tratamiento = await prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal', planoDental);
   prompt += ' ' + planoDental.prompt;
 
   // Límite de 110s — si la IA se cuelga, el paciente no se queda esperando
@@ -5870,9 +5944,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       mimeType:entradaDental.mimeType,
       editMaskBase64:tratamiento.editMaskBase64,
       editMaskMimeType:tratamiento.editMaskMimeType,
-      guideImageBase64:planoDental.guideBase64,
-      guideMimeType:planoDental.guideMimeType,
       prompt:prompt,
+      contractVersion:'v102',
       // Evita transportar el JPEG como base64 dentro de JSON: en iOS esa
       // copia adicional podía cortar o agotar la respuesta ya generada.
       responseMode:'binary'
@@ -5906,6 +5979,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
           provider: resp.headers.get('x-smyl-provider') || 'openai',
           model: resp.headers.get('x-smyl-model') || 'desconocido',
           quality: resp.headers.get('x-smyl-quality') || '',
+          contract: resp.headers.get('x-smyl-contract') || '',
           elapsedMs: Number(resp.headers.get('x-smyl-elapsed-ms')) || 0,
           providerRequestId: resp.headers.get('x-smyl-provider-request-id') || ''
         }
@@ -5953,7 +6027,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     // incluso si falla la descarga binaria o un control previo a la máscara.
     if (!errorResultado.requestId) errorResultado.requestId = requestId;
     if (providerResponseAccepted) errorResultado.stage = errorResultado.stage || 'validacion_dental_local';
-    if (errorResultado && errorResultado.requiresNewGeneration && S.pendingGeneratedByView) {
+    if (errorResultado && errorResultado.requiresNewGeneration && S.pendingGeneratedByView && new URLSearchParams(location.search).get('debugUI')!=='1') {
       delete S.pendingGeneratedByView[vistaGenerada];
     }
     throw errorResultado;
@@ -8319,7 +8393,50 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 21;
+var SIM_QUALITY_VERSION = 24;
+var SIM_ACCEPTANCE_V102 = Object.freeze({
+  version:'v102',
+  minimumSourcePieces:6,
+  minimumSourceCoverage:.88,
+  minimumTargetCoverage:.82,
+  minimumChangedRatio:.32,
+  minimumMeanDifference:8,
+  minimumTextureDeviation:7.5,
+  maximumA1Yellow:17,
+  minimumChangedRatioPerTooth:.28
+});
+
+// Contrato único para decidir si una propuesta puede llegar al comparador.
+// Recibe únicamente evidencia medida sobre la imagen final; nunca acepta como
+// sustituto las cajas de la fotografía original ni un mensaje del modelo.
+function evaluarContratoPresentacionV102(evidencia) {
+  evidencia=evidencia||{};
+  var fallos=[];
+  var trazabilidad=evidencia.trace||{};
+  var exterior=evidencia.outsideMask||{};
+  var mascara=evidencia.mask||{};
+  var visual=evidencia.visual||{};
+  var porPieza=Array.isArray(evidencia.perToothChange)?evidencia.perToothChange:[];
+  if(trazabilidad.contract!=='v102')fallos.push('el backend no confirmó el contrato v102');
+  if(trazabilidad.provider!=='openai'||!/^gpt-image-2(?:-|$)/.test(String(trazabilidad.model||'')))fallos.push('la simulación no usó el renderizador GPT Image 2 requerido');
+  if(exterior.identical!==true||Number(exterior.changedPixels||0)!==0)fallos.push('se modificaron píxeles fuera de dientes y encía superior');
+  if(Number(evidencia.sourcePieces||0)<SIM_ACCEPTANCE_V102.minimumSourcePieces)fallos.push('no se confirmaron seis dientes anteriores en la fotografía');
+  if(Number(mascara.sourceCoverage||0)<SIM_ACCEPTANCE_V102.minimumSourceCoverage)fallos.push('la máscara destino no cubre los dientes originales');
+  if(Number(mascara.targetCoverage||0)<SIM_ACCEPTANCE_V102.minimumTargetCoverage)fallos.push('la máscara destino no cubre la geometría propuesta');
+  if(visual.artifacts&&visual.artifacts.detected)fallos.push('se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana');
+  if(!visual.independentTeeth||visual.independentTeeth.confirmed!==true)fallos.push('no se confirmaron seis coronas visualmente independientes');
+  if(Number(visual.changed||0)<SIM_ACCEPTANCE_V102.minimumChangedRatio||Number(visual.meanDifference||0)<SIM_ACCEPTANCE_V102.minimumMeanDifference)fallos.push('el cambio dental visible es insuficiente');
+  if(Number(visual.texture||0)<SIM_ACCEPTANCE_V102.minimumTextureDeviation)fallos.push('la cerámica quedó visualmente plana');
+  if(evidencia.vitaTone==='A1'&&Number(visual.yellow||0)>SIM_ACCEPTANCE_V102.maximumA1Yellow)fallos.push('el tono A1 conserva demasiado amarillo');
+  if(porPieza.length<SIM_ACCEPTANCE_V102.minimumSourcePieces)fallos.push('faltan mediciones independientes por diente');
+  else if(porPieza.some(function(p){return Number(p&&p.changedRatio||0)<SIM_ACCEPTANCE_V102.minimumChangedRatioPerTooth;}))fallos.push('una o más carillas no muestran un cambio verificable');
+  return {
+    version:SIM_ACCEPTANCE_V102.version,
+    accepted:fallos.length===0,
+    status:fallos.length?'blocked':'ready-for-clinical-review',
+    failures:fallos
+  };
+}
 
 // Control geométrico sin una segunda llamada de IA. El segmentador ya entrega
 // las cajas de cada pieza del original y del render; aquí se comprueba que los
@@ -8713,6 +8830,105 @@ function medianaNumerica(valores) {
 // la revisión odontológica: detecta señales visuales evidentes para no llamar
 // "aprobado" a un render plano, casi sin cambio, excesivamente amarillo o con
 // proporciones centrales atípicas.
+// Control puramente local de v102. Trabaja sobre los píxeles finales dentro
+// de las seis siluetas objetivo: no usa una respuesta verbal del modelo ni
+// vuelve a enviar la fotografía a otro servicio. Su misión es detectar justo
+// las fallas que engañaban al contrato v100: líneas del plano copiadas,
+// recortes oscuros/rojizos y una sola placa blanca sin separaciones reales.
+function evaluarIntegridadVisualV102(pixelData, maskData, width, height, pieces, sourceWidth, sourceHeight) {
+  var datos=pixelData||[],mascara=maskData||[],W=Number(width)||0,H=Number(height)||0;
+  var originales=Array.isArray(pieces)?pieces.slice():[];
+  if(!W||!H||datos.length<W*H*4||mascara.length<W*H*4||originales.length<6){
+    return {
+      artifacts:{detected:true,reasons:['evidencia visual incompleta'],redAffectedTeeth:0,darkAffectedTeeth:0,flatPlate:false},
+      independentTeeth:{confirmed:false,expected:6,measured:0,separators:0,separatorMetrics:[]},
+      perTooth:[]
+    };
+  }
+  var sx=W/Math.max(1,Number(sourceWidth)||W),sy=H/Math.max(1,Number(sourceHeight)||H);
+  var cajas=originales.slice().sort(function(a,b){return Number(a.x)-Number(b.x);}).slice(0,6).map(function(p,indice){
+    return {
+      id:p.fdi||p.id||String(indice+1),
+      x:Number(p.x)*sx,y:Number(p.y)*sy,w:Number(p.w)*sx,h:Number(p.h)*sy
+    };
+  });
+  function luminancia(i){return datos[i]*.299+datos[i+1]*.587+datos[i+2]*.114;}
+  function muestraLum(x,y){
+    var xx=Math.max(0,Math.min(W-1,Math.round(x))),yy=Math.max(0,Math.min(H-1,Math.round(y)));
+    return luminancia((yy*W+xx)*4);
+  }
+  var porPieza=[],total=0,rojos=0,oscuros=0,clarosNeutros=0;
+  cajas.forEach(function(caja){
+    var x0=Math.max(0,Math.floor(caja.x)),x1=Math.min(W,Math.ceil(caja.x+caja.w));
+    var y0=Math.max(0,Math.floor(caja.y)),y1=Math.min(H,Math.ceil(caja.y+caja.h));
+    var margenX=Math.max(1,Math.round(caja.w*.09)),margenY=Math.max(1,Math.round(caja.h*.08));
+    var n=0,sum=0,sumSq=0,red=0,dark=0,bright=0;
+    for(var y=y0+margenY;y<y1-margenY;y++)for(var x=x0+margenX;x<x1-margenX;x++){
+      var i=(y*W+x)*4;
+      if(mascara[i+3]<45)continue;
+      var r=datos[i],g=datos[i+1],b=datos[i+2],lum=luminancia(i),croma=Math.max(r,g,b)-Math.min(r,g,b);
+      var rojoLineal=r>=88&&r-g>27&&r-b>21&&g<152&&b<148&&lum<178;
+      var oscuroInterior=lum<88;
+      var claroNeutro=lum>218&&croma<30;
+      n++;sum+=lum;sumSq+=lum*lum;
+      if(rojoLineal)red++;
+      if(oscuroInterior)dark++;
+      if(claroNeutro)bright++;
+    }
+    var media=n?sum/n:0,desv=n?Math.sqrt(Math.max(0,sumSq/n-media*media)):0;
+    var metrica={
+      id:caja.id,samples:n,mean:+media.toFixed(1),texture:+desv.toFixed(1),
+      redRatio:+(n?red/n:0).toFixed(4),darkRatio:+(n?dark/n:0).toFixed(4),
+      brightNeutralRatio:+(n?bright/n:0).toFixed(4)
+    };
+    porPieza.push(metrica);total+=n;rojos+=red;oscuros+=dark;clarosNeutros+=bright;
+  });
+  var separadores=[];
+  for(var s=0;s<cajas.length-1;s++){
+    var izquierda=cajas[s],derecha=cajas[s+1];
+    var limite=((izquierda.x+izquierda.w)+derecha.x)/2;
+    var altoReferencia=Math.max(4,Math.min(izquierda.h,derecha.h));
+    var yInicio=Math.max(0,Math.round(Math.max(izquierda.y,derecha.y)+altoReferencia*.22));
+    var yFin=Math.min(H-1,Math.round(Math.min(izquierda.y+izquierda.h,derecha.y+derecha.h)-altoReferencia*.18));
+    var desplazamiento=Math.max(2,Math.min(izquierda.w,derecha.w)*.22);
+    var seam=0,flank=0,nSep=0;
+    for(var yy=yInicio;yy<=yFin;yy+=2){
+      seam+=(muestraLum(limite-1,yy)+muestraLum(limite,yy)+muestraLum(limite+1,yy))/3;
+      flank+=(muestraLum(limite-desplazamiento,yy)+muestraLum(limite+desplazamiento,yy))/2;
+      nSep++;
+    }
+    var seamMean=nSep?seam/nSep:255,flankMean=nSep?flank/nSep:0,contraste=flankMean-seamMean;
+    separadores.push({between:izquierda.id+'-'+derecha.id,contrast:+contraste.toFixed(1),present:nSep>=4&&contraste>=6});
+  }
+  var validas=porPieza.filter(function(p){return p.samples>=24;});
+  var redAffected=validas.filter(function(p){return p.redRatio>.004;}).length;
+  var darkAffected=validas.filter(function(p){return p.darkRatio>.035;}).length;
+  var texturas=validas.map(function(p){return p.texture;});
+  var medias=validas.map(function(p){return p.mean;});
+  var brightRatio=total?clarosNeutros/total:0;
+  var texturaMediana=texturas.length?medianaNumerica(texturas):0;
+  var dispersionMedias=medias.length?Math.max.apply(null,medias)-Math.min.apply(null,medias):0;
+  var placaPlana=validas.length>=6&&brightRatio>.58&&texturaMediana<8&&dispersionMedias<7;
+  var razones=[];
+  if(redAffected>=2)razones.push('líneas rojizas o bordes de plano dentro de las carillas');
+  if(darkAffected>=4)razones.push('recortes oscuros repetidos dentro de las coronas');
+  if(placaPlana)razones.push('superficie blanca plana y fusionada');
+  var separadoresPresentes=separadores.filter(function(item){return item.present;}).length;
+  return {
+    artifacts:{
+      detected:razones.length>0,reasons:razones,redAffectedTeeth:redAffected,darkAffectedTeeth:darkAffected,
+      redRatio:+(total?rojos/total:0).toFixed(4),darkRatio:+(total?oscuros/total:0).toFixed(4),
+      brightNeutralRatio:+brightRatio.toFixed(4),medianTexture:+texturaMediana.toFixed(1),
+      toothMeanSpread:+dispersionMedias.toFixed(1),flatPlate:placaPlana
+    },
+    independentTeeth:{
+      confirmed:validas.length>=6&&separadoresPresentes===5,
+      expected:6,measured:validas.length,separators:separadoresPresentes,separatorMetrics:separadores
+    },
+    perTooth:porPieza
+  };
+}
+
 function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascaraEsperada, comparacionDental) {
   var maxLado = 640;
   var escala = Math.min(1, maxLado / Math.max(original.width, original.height));
@@ -8758,7 +8974,16 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
       return {x:+m.bbox[0],y:+m.bbox[1],w:+m.bbox[2],h:+m.bbox[3]};
     }).filter(function(b){return [b.x,b.y,b.w,b.h].every(Number.isFinite)&&b.w>0&&b.h>0;});
   }
+  var integridadV102=evaluarIntegridadVisualV102(
+    ap,ep,W,H,esperadas,comparacion.width||W,comparacion.height||H
+  );
   var problemas=[];
+  if(integridadV102.artifacts.detected){
+    problemas=problemas.concat(integridadV102.artifacts.reasons);
+  }
+  if(!integridadV102.independentTeeth.confirmed){
+    problemas.push('no se confirmaron seis coronas visualmente independientes');
+  }
   if(comparacion.matchWarnings&&comparacion.matchWarnings.length) {
     problemas=problemas.concat(comparacion.matchWarnings);
   }
@@ -8770,24 +8995,29 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     if(esperadas.length<4) problemas.push('segmentación original incompleta');
     if(cajas.length<4) problemas.push('se detectaron pocas piezas superiores generadas');
     if(esperadas.length && cajas.length < esperadas.length) problemas.push('faltan piezas en la secuencia de carillas');
-    var piezasSinCobertura=[], piezasTonoAtipico=[], estadisticasPieza=[];
+    var piezasSinCobertura=[], piezasSinCambio=[], piezasTonoAtipico=[], estadisticasPieza=[], cambioPorPieza=[];
     if(esperadas.length && comparacion.width && comparacion.height) {
       var sx=W/comparacion.width, sy=H/comparacion.height;
       esperadas.forEach(function(b, indice){
         var x0=Math.max(0,Math.floor(b.x*sx)), x1=Math.min(W,Math.ceil((b.x+b.w)*sx));
         var y0=Math.max(0,Math.floor(b.y*sy)), y1=Math.min(H,Math.ceil((b.y+b.h)*sy));
-        var esperadosPieza=0,n=0,lumPieza=0,amarilloPieza=0;
+        var esperadosPieza=0,n=0,cambiadosPieza=0,lumPieza=0,amarilloPieza=0;
         for(var yy=y0;yy<y1;yy++) for(var xx=x0;xx<x1;xx++) {
           var pi=(yy*W+xx)*4;
           if(ep[pi+3]<45) continue;
           esperadosPieza++;
           if(mp[pi+3]<45) continue;
+          var deltaPieza=(Math.abs(ap[pi]-op[pi])+Math.abs(ap[pi+1]-op[pi+1])+Math.abs(ap[pi+2]-op[pi+2]))/3;
+          if(deltaPieza>=10)cambiadosPieza++;
           var lp=ap[pi]*.299+ap[pi+1]*.587+ap[pi+2]*.114;
           n++;lumPieza+=lp;amarilloPieza+=(ap[pi]+ap[pi+1])/2-ap[pi+2];
         }
-        var idPieza=b.fdi||String(indice+1);
+        var idPieza=b.fdi||b.id||String(indice+1);
+        var ratioCambioPieza=esperadosPieza?cambiadosPieza/esperadosPieza:0;
         estadisticasPieza.push({id:idPieza,lum:n?lumPieza/n:0,amarillo:n?amarilloPieza/n:0,n:n});
+        cambioPorPieza.push({id:idPieza,changedRatio:+ratioCambioPieza.toFixed(3),samples:esperadosPieza});
         if(esperadosPieza<12||n/Math.max(1,esperadosPieza)<.42) piezasSinCobertura.push(idPieza);
+        if(esperadosPieza<12||ratioCambioPieza<SIM_ACCEPTANCE_V102.minimumChangedRatioPerTooth)piezasSinCambio.push(idPieza);
       });
       var validas=estadisticasPieza.filter(function(s){return s.n>=12;});
       if(validas.length>=4){
@@ -8799,8 +9029,10 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
       }
     }
     piezasSinCobertura=piezasSinCobertura.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
+    piezasSinCambio=piezasSinCambio.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
     piezasTonoAtipico=piezasTonoAtipico.filter(function(id,pos,lista){return lista.indexOf(id)===pos;});
     if(piezasSinCobertura.length) problemas.push('cobertura insuficiente en '+piezasSinCobertura.length+' pieza(s) superior(es)');
+    if(piezasSinCambio.length) problemas.push('cambio insuficiente en '+piezasSinCambio.length+' pieza(s) superior(es)');
     // Diferencias de luminancia entre laterales, caninos y centrales son
     // normales por perspectiva. Se registran como métrica interna, pero no
     // deben alarmar al paciente ni cancelar una simulación íntegra.
@@ -8835,13 +9067,13 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
     // cajas. Bloqueamos también las señales locales que corresponden a los
     // fallos reportados: placa uniforme, proporciones impropias, cobertura
     // parcial o una sonrisa geométricamente desarticulada.
-    return /faltan piezas|pocas piezas superiores|cobertura dental irregular|cambio demasiado conservador|textura óptica demasiado uniforme|A1 conserva demasiado amarillo|segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|proporción central fuera|centrales con anchuras poco simétricas|línea media dental desplazada|bordes de los centrales desnivelados/.test(p);
+    return /faltan piezas|pocas piezas superiores|cobertura dental irregular|cambio demasiado conservador|cambio insuficiente|textura óptica demasiado uniforme|A1 conserva demasiado amarillo|segmentación original incompleta|cobertura insuficiente|cobertura bilateral incompleta|proporción central fuera|centrales con anchuras poco simétricas|línea media dental desplazada|bordes de los centrales desnivelados|líneas rojizas|recortes oscuros|superficie blanca plana|seis coronas visualmente independientes/.test(p);
   });
   return {
     version:SIM_QUALITY_VERSION,
     status:hayFalloCritico?'rejected':(problemas.length?'review':'approved'),
     issues:problemas,
-    metrics:{pieces:cajas.length,expectedPieces:esperadas.length,toneOutliers:piezasTonoAtipico?piezasTonoAtipico.length:0,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1)}
+    metrics:{pieces:cajas.length,expectedPieces:esperadas.length,toneOutliers:piezasTonoAtipico?piezasTonoAtipico.length:0,coverage:+cobertura.toFixed(4),changed:+cambio.toFixed(3),texture:+lumDesv.toFixed(1),yellow:+amarillo.toFixed(1),meanDifference:+(activos?difTotal/activos:0).toFixed(1),perToothChange:cambioPorPieza||[],artifacts:integridadV102.artifacts,independentTeeth:integridadV102.independentTeeth,perToothIntegrity:integridadV102.perTooth}
   };
 }
 
@@ -8870,7 +9102,7 @@ async function solicitarSegmentacionDental(entrada) {
 // para la composición local (alfa dentro del tratamiento) y la máscara que
 // espera OpenAI (transparente dentro, opaca fuera). Ambas conservan exactamente
 // el tamaño del recorte PNG enviado a generación.
-async function prepararMascaraTratamiento(entradaDental, view) {
+async function prepararMascaraTratamiento(entradaDental, view, planoDental) {
   var clave = (view || 'frontal') + ':' + entradaDental.rect.w + 'x' + entradaDental.rect.h + ':' + firmaEntradaDental(entradaDental);
   var regionUrl = S.treatmentMaskByView[clave];
   if (!regionUrl) {
@@ -8888,11 +9120,39 @@ async function prepararMascaraTratamiento(entradaDental, view) {
     throw new Error('No fue posible aislar con seguridad dientes y encía superior. Intenta con otra fotografía frontal.');
   }
 
+  if(!planoDental||!planoDental.sourceMaskUrl||!planoDental.pieces||planoDental.pieces.length<6){
+    throw new Error('No fue posible construir una máscara destino individual para las seis carillas.');
+  }
+  var sourceImg=await cargarImagenSegura(planoDental.sourceMaskUrl);
+  var sourceMask=document.createElement('canvas');sourceMask.width=region.width;sourceMask.height=region.height;
+  sourceMask.getContext('2d').drawImage(sourceImg,0,0,region.width,region.height);
+  var targetMask=renderizarMascaraObjetivoDental(planoDental,region.width,region.height);
+  var destinationMask=construirMascaraDestinoV102(region,sourceMask,targetMask,planoDental);
+  var sourceCoverage=medirCoberturaEntreMascaras(sourceMask,destinationMask);
+  var targetCoverage=medirCoberturaEntreMascaras(targetMask,destinationMask);
+  var medidaDestino=medirMascaraAnatomica(destinationMask);
+  if(sourceCoverage<SIM_ACCEPTANCE_V102.minimumSourceCoverage||targetCoverage<SIM_ACCEPTANCE_V102.minimumTargetCoverage){
+    var errorCobertura=new Error('La máscara destino no cubre con seguridad los dientes originales y la geometría propuesta. Usa otra fotografía frontal.');
+    errorCobertura.qualityMetrics={
+      stage:'mask-preflight',
+      maskCoverage:{sourceCoverage:+sourceCoverage.toFixed(4),targetCoverage:+targetCoverage.toFixed(4)},
+      source:medirMascaraAnatomica(sourceMask),
+      target:medirMascaraAnatomica(targetMask),
+      destination:medidaDestino
+    };
+    errorCobertura.requiresNewGeneration=false;
+    throw errorCobertura;
+  }
+  if(!medidaDestino.area||medidaDestino.ratio>.18){
+    throw new Error('La máscara destino de carillas tiene una extensión insegura.');
+  }
+
   var edit = document.createElement('canvas');
-  edit.width = region.width; edit.height = region.height;
+  edit.width = destinationMask.width; edit.height = destinationMask.height;
   var ectx = edit.getContext('2d');
-  var src = rctx.getImageData(0, 0, region.width, region.height).data;
-  var dst = ectx.createImageData(region.width, region.height);
+  var destinationCtx=destinationMask.getContext('2d',{willReadFrequently:true});
+  var src = destinationCtx.getImageData(0, 0, destinationMask.width, destinationMask.height).data;
+  var dst = ectx.createImageData(destinationMask.width, destinationMask.height);
   for (var i = 0; i < src.length; i += 4) {
     var dentro = src[i + 3] > 24;
     dst.data[i] = 255; dst.data[i + 1] = 255; dst.data[i + 2] = 255;
@@ -8901,10 +9161,18 @@ async function prepararMascaraTratamiento(entradaDental, view) {
   ectx.putImageData(dst, 0, 0);
   var editUrl = edit.toDataURL('image/png');
   return {
-    regionUrl: region.toDataURL('image/png'),
+    regionUrl: destinationMask.toDataURL('image/png'),
+    sourceMaskUrl: sourceMask.toDataURL('image/png'),
+    targetMaskUrl: targetMask.toDataURL('image/png'),
     editMaskBase64: editUrl.split(',')[1],
     editMaskMimeType: 'image/png',
-    metrics: medida
+    metrics: {
+      treatment:medida,
+      destination:medidaDestino,
+      sourceCoverage:+sourceCoverage.toFixed(4),
+      targetCoverage:+targetCoverage.toFixed(4),
+      contract:'source-plus-target-silhouettes'
+    }
   };
 }
 
@@ -9070,6 +9338,25 @@ function limitarPlanoDental(valor, minimo, maximo) {
   return Math.max(minimo, Math.min(maximo, valor));
 }
 
+function evaluarCapturaDentalV102(piezas,ancho,alto) {
+  var validas=(piezas||[]).filter(function(p){return p&&[p.x,p.y,p.w,p.h].every(Number.isFinite)&&p.w>1&&p.h>1;});
+  var fallos=[];
+  if(validas.length<6)fallos.push('no se identificaron seis dientes anteriores');
+  var seis=validas.slice().sort(function(a,b){return (a.x+a.w/2)-(b.x+b.w/2);}).slice(0,6);
+  var alturaMediana=medianaNumerica(seis.map(function(p){return p.h;}));
+  var minX=seis.length?Math.min.apply(null,seis.map(function(p){return p.x;})):0;
+  var maxX=seis.length?Math.max.apply(null,seis.map(function(p){return p.x+p.w;})):0;
+  var extension=(maxX-minX)/Math.max(1,ancho);
+  if(Math.min(ancho,alto)<320)fallos.push('el recorte dental tiene poca resolución');
+  if(alturaMediana<24||alturaMediana/Math.max(1,alto)<.045)fallos.push('los dientes ocupan muy pocos píxeles');
+  if(extension<.16||extension>.82)fallos.push('la sonrisa no tiene un encuadre frontal utilizable');
+  return {
+    accepted:fallos.length===0,
+    failures:fallos,
+    metrics:{pieces:validas.length,medianToothHeight:+alturaMediana.toFixed(1),medianToothHeightRatio:+(alturaMediana/Math.max(1,alto)).toFixed(3),anteriorSpan:+extension.toFixed(3),width:ancho,height:alto}
+  };
+}
+
 // Convierte las seis piezas anteriores identificadas en un objetivo explícito
 // 13–23. El plano conserva línea media y perspectiva del paciente, pero impone
 // jerarquía de centrales/laterales/caninos y una curva incisal legible.
@@ -9180,12 +9467,103 @@ function renderizarGuiaPlanoDental(plano, anchoSalida, altoSalida) {
   return canvas.toDataURL('image/png');
 }
 
+function renderizarMascaraObjetivoDental(plano, anchoSalida, altoSalida) {
+  var canvas=document.createElement('canvas');canvas.width=anchoSalida;canvas.height=altoSalida;
+  var ctx=canvas.getContext('2d');
+  var sx=canvas.width/Math.max(1,plano.width),sy=canvas.height/Math.max(1,plano.height);
+  ctx.fillStyle='#fff';
+  (plano.pieces||[]).forEach(function(pieza){
+    trazarSiluetaPlanoDental(ctx,pieza,sx,sy);
+    ctx.fill();
+  });
+  return canvas;
+}
+
+function medirCoberturaEntreMascaras(referencia,contenedora) {
+  var W=Math.min(referencia.width,contenedora.width),H=Math.min(referencia.height,contenedora.height);
+  var a=referencia.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var b=contenedora.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var esperados=0,cubiertos=0;
+  for(var i=3;i<a.length;i+=4){
+    if(a[i]>40){esperados++;if(b[i]>40)cubiertos++;}
+  }
+  return esperados?cubiertos/esperados:0;
+}
+
+// La región editable deja de ser solamente el contorno original. Es la unión
+// de los dientes fuente y las seis siluetas destino, más una franja cervical
+// corta. La segmentación fuente se dilata sólo una fracción de la altura
+// dentaria antes de intersectarla: el contorno estricto original no contiene
+// los espacios ni los bordes nuevos y por definición no puede alojar carillas
+// de otra forma. La candidata sigue limitada a las seis siluetas y no abre una
+// región rectangular sobre labios, arcada inferior, piel o resto del rostro.
+function construirMascaraDestinoV102(region,sourceMask,targetMask,plano) {
+  var W=region.width,H=region.height;
+  var candidata=document.createElement('canvas');candidata.width=W;candidata.height=H;
+  var cctx=candidata.getContext('2d');
+  cctx.drawImage(sourceMask,0,0,W,H);
+  cctx.drawImage(targetMask,0,0,W,H);
+  var sx=W/Math.max(1,plano.width),sy=H/Math.max(1,plano.height);
+  cctx.fillStyle='#fff';
+  (plano.pieces||[]).forEach(function(pieza){
+    var x=pieza.x*sx,y=pieza.y*sy,w=pieza.w*sx,h=pieza.h*sy;
+    cctx.fillRect(Math.max(0,x-w*.07),Math.max(0,y-h*.13),Math.min(W,x+w*1.07)-Math.max(0,x-w*.07),Math.max(1,h*.20));
+  });
+  var margen=Math.max(1,Math.min(3,Math.round(Math.min(W,H)*.0035)));
+  var expandida=document.createElement('canvas');expandida.width=W;expandida.height=H;
+  var ectx=expandida.getContext('2d');
+  for(var oy=-margen;oy<=margen;oy++)for(var ox=-margen;ox<=margen;ox++){
+    if(ox*ox+oy*oy<=margen*margen*1.2)ectx.drawImage(candidata,ox,oy);
+  }
+
+  // La tolerancia se deriva de la corona mediana y queda acotada. Permite
+  // cerrar diastemas y extender suavemente bordes incisales sin convertir la
+  // máscara en una edición libre de la boca.
+  var alturas=(plano.sourcePieces||plano.pieces||[]).map(function(p){return Number(p.h||0)*sy;}).filter(function(v){return v>0;});
+  var alturaMediana=medianaNumerica(alturas)||Math.min(W,H)*.08;
+  var dilatacionSegura=Math.max(3,Math.min(18,Math.round(alturaMediana*.16)));
+  var regionExpandida=document.createElement('canvas');regionExpandida.width=W;regionExpandida.height=H;
+  var rctx=regionExpandida.getContext('2d');
+  for(var ry=-dilatacionSegura;ry<=dilatacionSegura;ry++)for(var rx=-dilatacionSegura;rx<=dilatacionSegura;rx++){
+    if(rx*rx+ry*ry<=dilatacionSegura*dilatacionSegura)rctx.drawImage(region,rx,ry);
+  }
+  ectx.globalCompositeOperation='destination-in';
+  ectx.drawImage(regionExpandida,0,0,W,H);
+  ectx.globalCompositeOperation='source-over';
+  expandida.dataset.safetyDilation=String(dilatacionSegura);
+  return expandida;
+}
+
+// GPT Image recibe una sola fotografía. La geometría individual se expresa
+// con seis envolventes normalizadas para evitar la contradicción histórica de
+// pedirle copiar una "IMAGE 2" que el contrato de máscara no transmite.
+function construirPrescripcionNumericaV102(plano) {
+  if(!plano||!plano.width||!plano.height||!plano.pieces||plano.pieces.length!==6){
+    throw new Error('No fue posible construir la prescripción numérica de las seis carillas.');
+  }
+  function normalizar(valor,base){return (Number(valor||0)/Math.max(1,Number(base)||1)).toFixed(4);}
+  var envolventes=plano.pieces.map(function(pieza){
+    return [
+      'FDI '+pieza.id,
+      'role='+pieza.role,
+      'centerX='+normalizar(pieza.x+pieza.w/2,plano.width),
+      'cervicalY='+normalizar(pieza.y,plano.height),
+      'incisalY='+normalizar(pieza.y+pieza.h,plano.height),
+      'width='+normalizar(pieza.w,plano.width),
+      'height='+normalizar(pieza.h,plano.height)
+    ].join(',');
+  }).join(' ; ');
+  return 'NUMERIC SIX-VENEER PRESCRIPTION — NO SECOND IMAGE IS SUPPLIED. Coordinates are normalized to the single patient crop, origin at top-left. Each envelope is the final visible crown target inside the alpha mask: '+envolventes+'. Keep each cervical emergence anchored at its cervicalY, land the incisal edge at its incisalY, and use centerX/width/height to preserve six separate crowns. Interpolate a smooth lower-lip smile arc through the six incisal destinations. These values are invisible constraints: never draw boxes, outlines, dots, labels, seams or annotations. Target ratios: central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(3)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(3)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(3)+'.';
+}
+
 async function prepararPlanoDentalIndividual(entradaDental, view) {
   var img=await cargarImagenSegura(entradaDental.dataUrl);
   var canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
   canvas.getContext('2d').drawImage(img,0,0);
   var clave='plan:'+(view||'frontal')+':'+canvas.width+'x'+canvas.height+':'+firmaEntradaDental(entradaDental);
   var mapa=await segmentarCanvasDentalDetallado(canvas,clave);
+  var captura=evaluarCapturaDentalV102(mapa.pieces,mapa.width,mapa.height);
+  if(!captura.accepted)throw new Error('La fotografía no cumple el control de captura v102: '+captura.failures.slice(0,2).join(' · ')+'. Toma otra frontal antes de generar.');
   var diagnostico=S.diagnosticoFacial||{};
   var familia={circular:'oval',triangular:'triangular',rectangular:'rectangular-soft'}[diagnostico.forma_dental_recomendada]||'rectangular-soft';
   var factor=limitarPlanoDental((Number(diagnostico.tamano_coronas_pct)||100)/100,.97,1.07);
@@ -9197,10 +9575,8 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   plano.sourceWidth=mapa.width;
   plano.sourceHeight=mapa.height;
   plano.sourceRawFragments=mapa.rawFragments;
-  var guia=renderizarGuiaPlanoDental(plano,entradaDental.rect.w,entradaDental.rect.h);
-  plano.guideBase64=guia.split(',')[1];
-  plano.guideMimeType='image/png';
-  plano.prompt='GEOMETRIC BLUEPRINT CONTRACT: reproduce the six separate target silhouettes in IMAGE 2 as teeth 13-12-11-21-22-23. Preserve their individual role hierarchy and incisal curve; adapt only microscopic contour transitions to the real photographic perspective. The target metrics are central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(2)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(2)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(2)+'. Never copy the diagram appearance or background.';
+  plano.captureMetrics=captura.metrics;
+  plano.prompt=construirPrescripcionNumericaV102(plano);
   return plano;
 }
 
