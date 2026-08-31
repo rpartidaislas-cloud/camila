@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-31 — Codex: v103, seis máscaras coronales sin franja gingival
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
+`supabase/functions/claude/index.ts`, `tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V103_ACCEPTANCE.md`.
+
+- La captura posterior a v102 confirmó un parche rectangular sobre labio y
+  encía. La causa era determinista: seis bandas cervicales rectangulares se
+  unían en una sola franja horizontal editable.
+- v103 elimina por completo esa franja. La máscara es sólo la unión de seis
+  coronas fuente/destino; encía, labios, piel y el resto de la fotografía
+  permanecen fuera de edición.
+- El borde se suaviza hacia dentro, sin abrir nuevos píxeles sobre tejido.
+- Un control previo bloquea si la máscara sale más de 0.3 % de las seis
+  envolventes coronales.
+- El control visual inspecciona el perímetro de cada corona para rechazar
+  contornos rojizos u oscuros y marcas técnicas.
+- Build `v103`, calidad `v25`, caché PWA `smyl-v66`. Web y móvil son idénticos.
+- QA aprobado: scripts inline, contrato v103, 12 pruebas de máscara, sintaxis
+  TypeScript y revisión a 1440×900, 834×1194 y 390×844.
+- Publicación de frontend y backend autorizada por el usuario.
+
 ## 2026-08-31 — Codex: v102 con seis destinos numéricos
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,

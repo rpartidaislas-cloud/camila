@@ -60,8 +60,8 @@ function extractFunction(name) {
 
 const context = {};
 vm.createContext(context);
-context.SIM_ACCEPTANCE_V102 = {
-  version:'v102',
+context.SIM_ACCEPTANCE_V103 = {
+  version:'v103',
   minimumSourcePieces:6,
   minimumSourceCoverage:.88,
   minimumTargetCoverage:.82,
@@ -70,6 +70,7 @@ context.SIM_ACCEPTANCE_V102 = {
   minimumTextureDeviation:7.5,
   maximumA1Yellow:17,
   minimumChangedRatioPerTooth:.28,
+  maximumMaskOutsideEnvelopeRatio:.003,
 };
 vm.runInContext([
   extractFunction('clasificarErrorParaUsuario'),
@@ -82,48 +83,54 @@ vm.runInContext([
   extractFunction('mascarasDePiezasDentales'),
   extractFunction('limitarPlanoDental'),
   extractFunction('construirPlanoGeometricoDental'),
-  extractFunction('evaluarCapturaDentalV102'),
+  extractFunction('evaluarCapturaDentalV103'),
   extractFunction('emparejarPiezasDentales'),
   extractFunction('evaluarAnatomiaSegmentada'),
   extractFunction('consolidarHallazgosRevision'),
   extractFunction('medirDiferenciasFueraMascara'),
   extractFunction('firmaEntradaDental'),
-  extractFunction('evaluarContratoPresentacionV102'),
-  extractFunction('evaluarIntegridadVisualV102'),
-  extractFunction('construirPrescripcionNumericaV102'),
+  extractFunction('evaluarContratoPresentacionV103'),
+  extractFunction('evaluarIntegridadVisualV103'),
+  extractFunction('construirPrescripcionNumericaV103'),
 ].join('\n'), context);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'v102-six-veneer-render-contract'/);
+assert.match(compositorSeguro, /deliveryGate:'v103-crown-only-render-contract'/);
 assert.match(compositorSeguro, /generatedPieces:\[\]/);
-assert.match(compositorSeguro, /evaluarContratoPresentacionV102/);
+assert.match(compositorSeguro, /evaluarContratoPresentacionV103/);
 assert.match(compositorSeguro, /throw errorContrato/);
-assert.match(compositorSeguro, /contract:'post-safety-clip'/);
+assert.match(compositorSeguro, /contract:'post-safety-clip-six-crowns'/);
 assert.match(compositorSeguro, /mask:coberturaContrato/);
 assert.doesNotMatch(compositorSeguro, /mask:tratamientoActual\.metrics/);
-assert.match(html, /contractVersion:'v102'/);
-const generadorV102=extractFunction('generateSimulation');
-assert.doesNotMatch(generadorV102, /IMAGE 2 already fixes/);
-assert.doesNotMatch(generadorV102, /guideImageBase64:/);
-assert.match(generadorV102, /There is NO second reference image and no visual blueprint/);
-assert.match(generadorV102, /Never treat premolars, lower teeth or any unlisted tooth/);
+assert.match(html, /contractVersion:'v103'/);
+const generadorV103=extractFunction('generateSimulation');
+assert.doesNotMatch(generadorV103, /IMAGE 2 already fixes/);
+assert.doesNotMatch(generadorV103, /guideImageBase64:/);
+assert.match(generadorV103, /There is NO second reference image and no visual blueprint/);
+assert.match(generadorV103, /Never treat premolars, lower teeth or any unlisted tooth/);
+assert.match(generadorV103, /The gingiva is outside the editable mask/);
 assert.match(html, /function resumirDiagnosticoCalibracion/);
 assert.match(html, /proc-error-diagnostics/);
 assert.match(html, /proc-error-preview/);
 assert.match(html, /get\('debugUI'\)!=='1'/);
-assert.match(extractFunction('prepararMascaraTratamiento'), /construirMascaraDestinoV102/);
-assert.match(extractFunction('construirMascaraDestinoV102'), /drawImage\(sourceMask/);
-assert.match(extractFunction('construirMascaraDestinoV102'), /drawImage\(targetMask/);
-assert.match(extractFunction('construirMascaraDestinoV102'), /destination-in/);
-assert.match(extractFunction('construirMascaraDestinoV102'), /regionExpandida/);
-assert.match(extractFunction('construirMascaraDestinoV102'), /alturaMediana\*\.16/);
+assert.match(extractFunction('prepararMascaraTratamiento'), /construirMascaraDestinoV103/);
+const mascaraV103=extractFunction('construirMascaraDestinoV103');
+assert.match(mascaraV103, /drawImage\(sourceMask/);
+assert.match(mascaraV103, /drawImage\(targetMask/);
+assert.match(mascaraV103, /destination-in/);
+assert.match(mascaraV103, /regionExpandida/);
+assert.match(mascaraV103, /alturaMediana\*\.16/);
+assert.match(mascaraV103, /evaluarMascaraCoronalV103/);
+assert.match(mascaraV103, /suavizarMascaraHaciaDentroV103/);
+assert.doesNotMatch(mascaraV103, /fillRect/);
 assert.match(extractFunction('prepararMascaraTratamiento'), /stage:'mask-preflight'/);
 assert.match(backend, /X-SMYL-Contract/);
 assert.match(backend, /contract:\s*simulationContract/);
-assert.match(backend, /simulationContract === "v101" \|\| simulationContract === "v102"/);
-assert.match(backend, /simulationContract === "v102"/);
-assert.match(backend, /contrato v102 requiere GPT Image 2/i);
+assert.match(backend, /simulationContract === "v101" \|\| simulationContract === "v102" \|\| simulationContract === "v103"/);
+assert.match(backend, /simulationContract === "v103"/);
+assert.match(backend, /V103 CROWN-ONLY DENTAL EDIT/);
+assert.match(backend, /The mask contains no gingiva/);
 assert.match(backend, /The patient smile crop is the ONE AND ONLY visual reference/);
 assert.match(backend, /guideImageBase64 && !isMeasuredMaskOnlyContract/);
 assert.match(backend, /numeric-geometry-only/);
@@ -158,10 +165,10 @@ assert.equal(firmaPacienteA,context.firmaEntradaDental({dataUrl:'data:image/jpeg
 
 const validacionRecibida = extractFunction('validarResultadoIARecibido');
 assert.match(validacionRecibida, /errorSinCambio[\s\S]{0,300}throw errorSinCambio/);
-assert.match(validacionRecibida, /contrato visual v102/i);
+assert.match(validacionRecibida, /contrato visual v103/i);
 
 const evidenciaValida = {
-  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v102'},
+  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v103'},
   outsideMask:{identical:true,changedPixels:0},
   sourcePieces:6,
   mask:{sourceCoverage:.96,targetCoverage:.94},
@@ -169,7 +176,7 @@ const evidenciaValida = {
   perToothChange:['13','12','11','21','22','23'].map((id)=>({id,changedRatio:.52})),
   vitaTone:'A1',
 };
-const contratoValido = context.evaluarContratoPresentacionV102(evidenciaValida);
+const contratoValido = context.evaluarContratoPresentacionV103(evidenciaValida);
 assert.equal(contratoValido.accepted,true);
 assert.equal(contratoValido.status,'ready-for-clinical-review');
 
@@ -177,20 +184,26 @@ const evidenciaInerte = structuredClone(evidenciaValida);
 evidenciaInerte.visual.changed=.05;
 evidenciaInerte.visual.meanDifference=2;
 evidenciaInerte.perToothChange[3].changedRatio=.02;
-const contratoInerte=context.evaluarContratoPresentacionV102(evidenciaInerte);
+const contratoInerte=context.evaluarContratoPresentacionV103(evidenciaInerte);
 assert.equal(contratoInerte.accepted,false);
 assert.ok(contratoInerte.failures.some((item)=>/cambio dental visible/.test(item)));
 assert.ok(contratoInerte.failures.some((item)=>/carillas no muestran/.test(item)));
 
 const evidenciaFuera=structuredClone(evidenciaValida);
 evidenciaFuera.outsideMask={identical:false,changedPixels:1};
-assert.equal(context.evaluarContratoPresentacionV102(evidenciaFuera).accepted,false);
+assert.equal(context.evaluarContratoPresentacionV103(evidenciaFuera).accepted,false);
 
 const evidenciaSinTraza=structuredClone(evidenciaValida);
 evidenciaSinTraza.trace={provider:'openai',model:'desconocido'};
-assert.equal(context.evaluarContratoPresentacionV102(evidenciaSinTraza).accepted,false);
+assert.equal(context.evaluarContratoPresentacionV103(evidenciaSinTraza).accepted,false);
 
-// Regresión v102: seis coronas naturales deben conservar separaciones finas;
+const evidenciaMascaraRectangular=structuredClone(evidenciaValida);
+evidenciaMascaraRectangular.mask.outsideEnvelopeRatio=.08;
+const contratoMascaraRectangular=context.evaluarContratoPresentacionV103(evidenciaMascaraRectangular);
+assert.equal(contratoMascaraRectangular.accepted,false);
+assert.ok(contratoMascaraRectangular.failures.some((item)=>/seis coronas protegidas/.test(item)));
+
+// Regresión v103: seis coronas naturales deben conservar separaciones finas;
 // un plano copiado con líneas rojizas o una placa blanca fusionada se bloquean.
 function crearCoronasSinteticas(modo) {
   const width=170,height=82;
@@ -230,11 +243,21 @@ function crearCoronasSinteticas(modo) {
       }
     });
   }
+  if(modo==='edge-outline'){
+    pieces.forEach((piece)=>{
+      for(let y=piece.y;y<piece.y+piece.h;y+=1)for(let x=piece.x;x<piece.x+piece.w;x+=1){
+        const borde=x===piece.x||x===piece.x+piece.w-1||y===piece.y||y===piece.y+piece.h-1;
+        if(!borde)continue;
+        const i=(y*width+x)*4;
+        pixels[i]=128;pixels[i+1]=65;pixels[i+2]=52;
+      }
+    });
+  }
   return {width,height,pixels,mask,pieces};
 }
 
 const natural=crearCoronasSinteticas('natural');
-const integridadNatural=context.evaluarIntegridadVisualV102(
+const integridadNatural=context.evaluarIntegridadVisualV103(
   natural.pixels,natural.mask,natural.width,natural.height,natural.pieces,natural.width,natural.height,
 );
 assert.equal(integridadNatural.artifacts.detected,false);
@@ -242,17 +265,25 @@ assert.equal(integridadNatural.independentTeeth.confirmed,true);
 assert.equal(integridadNatural.independentTeeth.separators,5);
 
 const planoCopiado=crearCoronasSinteticas('blueprint');
-const integridadPlano=context.evaluarIntegridadVisualV102(
+const integridadPlano=context.evaluarIntegridadVisualV103(
   planoCopiado.pixels,planoCopiado.mask,planoCopiado.width,planoCopiado.height,planoCopiado.pieces,planoCopiado.width,planoCopiado.height,
 );
 assert.equal(integridadPlano.artifacts.detected,true);
 assert.ok(integridadPlano.artifacts.reasons.some((item)=>/líneas rojizas/.test(item)));
 const evidenciaConPlano=structuredClone(evidenciaValida);
 evidenciaConPlano.visual.artifacts=integridadPlano.artifacts;
-assert.equal(context.evaluarContratoPresentacionV102(evidenciaConPlano).accepted,false);
+assert.equal(context.evaluarContratoPresentacionV103(evidenciaConPlano).accepted,false);
+
+const contornoTecnico=crearCoronasSinteticas('edge-outline');
+const integridadContorno=context.evaluarIntegridadVisualV103(
+  contornoTecnico.pixels,contornoTecnico.mask,contornoTecnico.width,contornoTecnico.height,contornoTecnico.pieces,contornoTecnico.width,contornoTecnico.height,
+);
+assert.equal(integridadContorno.artifacts.detected,true);
+assert.ok(integridadContorno.artifacts.boundaryRedAffectedTeeth>=2);
+assert.ok(integridadContorno.artifacts.reasons.some((item)=>/bordes técnicos/.test(item)));
 
 const placa=crearCoronasSinteticas('flat');
-const integridadPlaca=context.evaluarIntegridadVisualV102(
+const integridadPlaca=context.evaluarIntegridadVisualV103(
   placa.pixels,placa.mask,placa.width,placa.height,placa.pieces,placa.width,placa.height,
 );
 assert.equal(integridadPlaca.artifacts.detected,true);
@@ -266,9 +297,9 @@ const originales = [200, 275, 350, 425, 500, 575].map((x, index) => ({
   h: 80,
   fdi: String([13, 12, 11, 21, 22, 23][index]),
 }));
-const capturaValida=context.evaluarCapturaDentalV102(originales,900,700);
+const capturaValida=context.evaluarCapturaDentalV103(originales,900,700);
 assert.equal(capturaValida.accepted,true);
-const capturaLejana=context.evaluarCapturaDentalV102(originales.map((p)=>({...p,w:10,h:12})),900,700);
+const capturaLejana=context.evaluarCapturaDentalV103(originales.map((p)=>({...p,w:10,h:12})),900,700);
 assert.equal(capturaLejana.accepted,false);
 assert.ok(capturaLejana.failures.some((item)=>/pocos píxeles/.test(item)));
 const plano = context.construirPlanoGeometricoDental(originales, 900, 700, {
@@ -281,7 +312,7 @@ assert.ok(Math.abs(plano.targetMetrics.centralWidthHeight - 0.79) < 0.035);
 assert.ok(Math.abs(plano.targetMetrics.lateralToCentral - 0.74) < 0.001);
 assert.ok(Math.abs(plano.targetMetrics.canineToCentral - 0.80) < 0.001);
 
-const prescripcionNumerica=context.construirPrescripcionNumericaV102(plano);
+const prescripcionNumerica=context.construirPrescripcionNumericaV103(plano);
 assert.match(prescripcionNumerica,/NO SECOND IMAGE IS SUPPLIED/);
 assert.match(prescripcionNumerica,/FDI 13,role=canine,centerX=/);
 assert.match(prescripcionNumerica,/FDI 11,role=central,centerX=/);
@@ -324,12 +355,12 @@ const mensajeAnatomico = context.clasificarErrorParaUsuario(
 assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
 
 const mensajeArtefacto = context.clasificarErrorParaUsuario(
-  new Error('La simulación no superó el contrato visual v102: se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana.'),
+  new Error('La simulación no superó el contrato visual v103: se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana.'),
 );
 assert.equal(mensajeArtefacto.titulo, 'La propuesta contiene bordes artificiales');
 
 const mensajeVersion = context.clasificarErrorParaUsuario(
-  new Error('La simulación no superó el contrato visual v102: el backend no confirmó el contrato v102.'),
+  new Error('La simulación no superó el contrato visual v103: el backend no confirmó el contrato v103.'),
 );
 assert.equal(mensajeVersion.titulo, 'La actualización del simulador está incompleta');
 
@@ -403,4 +434,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('simulation v102: alpha-only render, six numeric envelopes and six-crown contract passed');
+console.log('simulation v103: six crown-only masks, inward feather and artifact rejection passed');
