@@ -20,7 +20,10 @@
 - Build `v103`, calidad `v25`, caché PWA `smyl-v66`. Web y móvil son idénticos.
 - QA aprobado: scripts inline, contrato v103, 12 pruebas de máscara, sintaxis
   TypeScript y revisión a 1440×900, 834×1194 y 390×844.
-- Publicación de frontend y backend autorizada por el usuario.
+- Publicado en GitHub Pages desde el commit funcional `0d6d86c`; backend
+  Supabase `claude` activo en la versión 63. La comprobación pública devolvió
+  `build v103 — seis máscaras coronales` y el contrato de máscara v103.
+- La publicación y la verificación no consumieron una generación de imagen.
 
 ## 2026-08-31 — Codex: v102 con seis destinos numéricos
 
