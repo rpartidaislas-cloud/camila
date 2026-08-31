@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-08-31 — Codex: v104 local, una máscara y propuestas recuperables
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V104_ACCEPTANCE.md`.
+
+- Los soportes `local-mthf2shh` y
+  `51749c65-cc22-44d7-a697-2069054ce10b` separaron dos fallos: un bloqueo
+  previo sin trazabilidad y un falso positivo posterior por bordes rojizos.
+- Se eliminó la segunda segmentación genérica de tratamiento. La máscara se
+  deriva exclusivamente de las seis coronas fuente y sus objetivos.
+- Los objetivos conservan el margen cervical y sólo pueden crecer hacia
+  incisal un máximo conservador de 12 %.
+- El detector ya no interpreta la zona cervical gingival como línea técnica;
+  exige continuidad y afectación bilateral. Las dudas estéticas pasan a
+  revisión recomendada.
+- Una propuesta recibida ya no se elimina por fallar un control local. Se
+  conserva para `Revalidar resultado` sin otra llamada pagada y se intenta
+  incluir en el avance guardado cuando existe espacio en el navegador.
+- Cada error conserva identificador y etapa desde el inicio.
+- Build `v104`, calidad `v26`, caché PWA `smyl-v67`.
+- QA aprobado sin IA: scripts inline, contrato v104, 12 pruebas de máscara,
+  sintaxis TypeScript y revisión responsive a 390×844, 834×1194 y 1440×900.
+- **No se desplegó, no se publicó y no se consumió otra generación.**
+
 ## 2026-08-31 — Codex: v103, seis máscaras coronales sin franja gingival
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
