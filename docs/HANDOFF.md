@@ -22,7 +22,10 @@
 - Build `v105`, calidad `v27`, caché PWA `smyl-v68`.
 - QA aprobado sin IA: scripts inline, regresión v105, 12 pruebas de máscara,
   sintaxis TypeScript y revisión responsive a 390×844, 834×1194 y 1440×900.
-- **No se desplegó v105, no se publicó y no se consumió otra generación.**
+- Edge Function `claude` versión 65 desplegada y verificada `ACTIVE`, con
+  `verify_jwt=false` preservado. El frontend v105 quedó autorizado para
+  GitHub Pages.
+- **La publicación no ejecutó la simulación ni consumió otra generación.**
 
 ## 2026-08-31 — Codex: v104 local, una máscara y propuestas recuperables
 
