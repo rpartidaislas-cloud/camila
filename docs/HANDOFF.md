@@ -24,7 +24,10 @@
 - Build `v104`, calidad `v26`, caché PWA `smyl-v67`.
 - QA aprobado sin IA: scripts inline, contrato v104, 12 pruebas de máscara,
   sintaxis TypeScript y revisión responsive a 390×844, 834×1194 y 1440×900.
-- **No se desplegó, no se publicó y no se consumió otra generación.**
+- Edge Function `claude` versión 64 desplegada y verificada `ACTIVE`, con
+  `verify_jwt=false` preservado. El frontend v104 quedó autorizado para
+  GitHub Pages.
+- **La publicación no ejecutó la simulación ni consumió otra generación.**
 
 ## 2026-08-31 — Codex: v103, seis máscaras coronales sin franja gingival
 
