@@ -34,18 +34,19 @@ document.getElementById('engine').addEventListener('load',async()=>{
   const report=document.getElementById('report');
   try{
     const w=document.getElementById('engine').contentWindow;
+    const localMap=w.construirMapaDentalLocalV1(canvas,'frontal');
     const cases=[
       {family:'rectangular-soft',target:'after-rect'},
       {family:'oval',target:'after-oval'},
       {family:'triangular',target:'after-tri'},
     ];
     const results=await Promise.all(cases.map(async item=>{
-      const plan=w.construirPlanoGeometricoDental(originals,960,600,{family:item.family,sizeFactor:1.02});
+      const plan=w.construirPlanoGeometricoDental(localMap.pieces,960,600,{family:item.family,sizeFactor:1.02});
       const result=await w.renderizarSimulacionBibliotecaV1(canvas.toDataURL('image/png'),plan,{code:'A1',screenRgb:[236,234,233]},{vitaMode:'vita',finish:'natural',intensity:'balanced'});
       document.getElementById(item.target).src=result.url;
       return result.metrics;
     }));
-    report.textContent=JSON.stringify(results,null,2);
+    report.textContent=JSON.stringify({locator:localMap.locator,locatorConfidence:localMap.locatorConfidence,geometry:localMap.pieces,results},null,2);
     report.classList.toggle('error',results.some(item=>!item.continuousCrowns));
   }catch(error){report.textContent=error&&error.stack||String(error);report.classList.add('error');}
 });

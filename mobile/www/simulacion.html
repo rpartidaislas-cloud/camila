@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build design-v1 — seis dientes completos</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build design-v1.1 — motor local sin plan</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -4676,7 +4676,8 @@ async function processPhotos(processOptions) {
   // verdad genera con Claude + OpenAI en cada foto, no tenía ningún tope.
   // Si el límite no cargó (config sin cargar aún, fetch falló), se deja
   // pasar en vez de bloquear por un dato que pudo no haber llegado.
-  if (typeof CFG.limiteDiagnosticos === 'number' && typeof CFG.diagnosticosUsados === 'number'
+  if (!SMYL_DESIGN_ENGINE_V1_ENABLED &&
+      typeof CFG.limiteDiagnosticos === 'number' && typeof CFG.diagnosticosUsados === 'number'
       && CFG.diagnosticosUsados >= CFG.limiteDiagnosticos) {
     alert('Ya usaste tus ' + CFG.limiteDiagnosticos + ' diagnósticos de este mes.\n\nSube de plan en el panel para seguir generando simulaciones este mes.');
     return;
@@ -4720,8 +4721,10 @@ async function processPhotos(processOptions) {
   try {
     // Renueva la sesión antes de empezar la cadena. Así no descubrimos al
     // final de la generación que el token había vencido durante la captura.
-    processStage='autorizacion';
-    await asegurarAutorizacionIA();
+    if (!SMYL_DESIGN_ENGINE_V1_ENABLED) {
+      processStage='autorizacion';
+      await asegurarAutorizacionIA();
+    }
     // Step 1: Claude analyzes the frontal photo for facial/dental proportions
     // (afina el prompt de generación, no es el diagnóstico completo). El
     // diagnóstico con score/hallazgos/plan/cotización (analyzeWithClaude,
@@ -4785,7 +4788,7 @@ async function processPhotos(processOptions) {
     S.baVistaActual = 'frontal';
     detenerBarraProgreso(true);
     showResult();
-    if (!processOptions.revalidateCached) registrarDiagnosticoUsado();
+    if (!processOptions.revalidateCached && !SMYL_DESIGN_ENGINE_V1_ENABLED) registrarDiagnosticoUsado();
 
   } catch(e) {
     console.error(e);
@@ -5973,9 +5976,11 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     'OUTPUT: return only the final photorealistic crop. Never render masks, guides, labels, text or annotations.'
   ].filter(Boolean).join(' ');
 
-  // Una sesión profesional puede caducar mientras se capturan o ajustan las
-  // fotos. Se renueva justo antes de la única llamada pagada.
-  await ejecutarEtapaLocalConRastro('autorizacion_ia',requestId,asegurarAutorizacionIA);
+  // Sólo la ruta histórica de generación pagada necesita sesión y cupo. El
+  // motor design-v1 local no debe bloquearse ni consumir usos del plan.
+  if (!SMYL_DESIGN_ENGINE_V1_ENABLED) {
+    await ejecutarEtapaLocalConRastro('autorizacion_ia',requestId,asegurarAutorizacionIA);
+  }
 
   // El plano individual y la barrera anatómica se calculan ANTES de generar:
   // si no pueden identificarse seis piezas o aislarse dientes/encía, no se
@@ -8496,7 +8501,7 @@ var _ultimaComparacionDental = null;
 // siluetas completas y editables; el generador fotográfico deja de ser el
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = true;
-var SIM_QUALITY_VERSION = 28;
+var SIM_QUALITY_VERSION = 29;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'v105',
   minimumSourcePieces:6,
@@ -9237,7 +9242,11 @@ async function solicitarSegmentacion(entrada, target) {
     })
   }), 90000, target === 'treatment' ? 'segmentación del área de tratamiento' : 'segmentación de los dientes');
   var data = await resp.json().catch(function(){ return {}; });
-  if (!resp.ok || data.error) throw errorDelServidor(data.error || ('La segmentación dental respondió ' + resp.status + '.'));
+  if (!resp.ok || data.error) {
+    var errorSegmentacion=errorDelServidor(data.error || ('La segmentación dental respondió ' + resp.status + '.'));
+    errorSegmentacion.status=resp.status||502;
+    throw errorSegmentacion;
+  }
   return data.masks || [];
 }
 
@@ -9477,6 +9486,53 @@ async function segmentarCanvasDentalDetallado(canvas, cacheKey) {
 
 function limitarPlanoDental(valor, minimo, maximo) {
   return Math.max(minimo, Math.min(maximo, valor));
+}
+
+// Convierte una banda dental detectada por color/luminancia en seis cajas
+// anteriores estables. Es deliberadamente geométrico: no segmenta, no llama a
+// un proveedor y no depende del cupo del plan de la clínica.
+function construirPiezasBandaDentalV1(banda,ancho,alto) {
+  banda=banda||{};
+  var centro=Number.isFinite(Number(banda.cx))?Number(banda.cx):ancho*.5;
+  var anchoBanda=Number(banda.w)||ancho*.5;
+  var altoBanda=Number(banda.h)||alto*.22;
+  var extension=limitarPlanoDental(anchoBanda*.82,ancho*.30,ancho*.60);
+  var separacion=Math.max(1,extension*.006);
+  var unidades=2+2*.74+2*.80;
+  var anchoCentral=(extension-separacion*5)/unidades;
+  var anchos=[anchoCentral*.80,anchoCentral*.74,anchoCentral,anchoCentral,anchoCentral*.74,anchoCentral*.80];
+  var altoCentral=limitarPlanoDental(altoBanda*.74,alto*.095,alto*.22);
+  var altos=[altoCentral*.90,altoCentral*.92,altoCentral,altoCentral,altoCentral*.92,altoCentral*.90];
+  var inicioCentral=limitarPlanoDental((Number(banda.y)||alto*.54)-altoBanda*.06,alto*.30,alto*.78);
+  var fondo=limitarPlanoDental(inicioCentral+altoCentral,alto*.42,alto*.88);
+  var ids=['13','12','11','21','22','23'];
+  var roles=['canine','lateral','central','central','lateral','canine'];
+  var total=anchos.reduce(function(s,w){return s+w;},0)+separacion*5;
+  var cursor=limitarPlanoDental(centro-total/2,0,Math.max(0,ancho-total));
+  return ids.map(function(id,indice){
+    var h=altos[indice];
+    var pasoIncisal=(indice===0||indice===5)?altoCentral*.03:(indice===1||indice===4?altoCentral*.055:0);
+    var pieza={
+      id:id,fdi:id,role:roles[indice],family:'rectangular-soft',
+      x:cursor,y:limitarPlanoDental(fondo-h-pasoIncisal,0,Math.max(0,alto-h)),
+      w:anchos[indice],h:h
+    };
+    cursor+=anchos[indice]+separacion;
+    return pieza;
+  });
+}
+
+function construirMapaDentalLocalV1(canvas,view) {
+  var banda=detectarBandaDentalContinua(canvas,view||'frontal');
+  var piezas=construirPiezasBandaDentalV1(banda,canvas.width,canvas.height);
+  var mascara=document.createElement('canvas');mascara.width=canvas.width;mascara.height=canvas.height;
+  var ctx=mascara.getContext('2d');ctx.fillStyle='#fff';
+  piezas.forEach(function(pieza){trazarSiluetaPlanoDental(ctx,pieza,1,1);ctx.fill();});
+  return {
+    maskUrl:mascara.toDataURL('image/png'),pieces:piezas,
+    width:canvas.width,height:canvas.height,rawFragments:0,
+    locator:'local-band-v1',locatorConfidence:+(Number(banda&&banda.confidence)||0).toFixed(3)
+  };
 }
 
 function evaluarCapturaDentalV104(piezas,ancho,alto) {
@@ -9863,7 +9919,17 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   var canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
   canvas.getContext('2d').drawImage(img,0,0);
   var clave='plan:'+(view||'frontal')+':'+canvas.width+'x'+canvas.height+':'+firmaEntradaDental(entradaDental);
-  var mapa=await segmentarCanvasDentalDetallado(canvas,clave);
+  var mapa;
+  if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
+    var mapaGuardado=S.dentalMapByView&&S.dentalMapByView[clave];
+    mapa=mapaGuardado&&mapaGuardado.locator==='local-band-v1'
+      ?mapaGuardado:construirMapaDentalLocalV1(canvas,view||'frontal');
+    if(!S.dentalMapByView)S.dentalMapByView={};
+    S.dentalMapByView[clave]=mapa;
+    S.dentalMaskByView[clave]=mapa.maskUrl;
+  } else {
+    mapa=await segmentarCanvasDentalDetallado(canvas,clave);
+  }
   var captura=evaluarCapturaDentalV104(mapa.pieces,mapa.width,mapa.height);
   if(!captura.accepted)throw new Error('La fotografía no cumple el control de captura v104: '+captura.failures.slice(0,2).join(' · ')+'. Toma otra frontal antes de generar.');
   var diagnostico=S.diagnosticoFacial||{};
@@ -9885,6 +9951,8 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   plano.sourceHeight=mapa.height;
   plano.sourceRawFragments=mapa.rawFragments;
   plano.captureMetrics=captura.metrics;
+  plano.locator=mapa.locator||'remote-instance-segmentation';
+  plano.locatorConfidence=Number(mapa.locatorConfidence)||0;
   plano.prompt=construirPrescripcionNumericaV104(plano);
   return plano;
 }

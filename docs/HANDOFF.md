@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-01 — Codex: hotfix design-v1.1, motor local sin bloqueo de plan
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/design-engine-v1-demo.html` y
+`docs/SMYL_DESIGN_ENGINE_V1_ACCEPTANCE.md`.
+
+- La captura con soporte `7f0f2e80-0d03-43fa-b6ab-ab23041d26da` confirmó
+  que design-v1 todavía llamaba a `segment-teeth`. Esa función usa GPT Image
+  y valida el cupo del plan, por lo que el render local nunca comenzaba cuando
+  la clínica había agotado sus simulaciones.
+- Design-v1.1 ya no consulta el límite mensual, no renueva autorización de IA,
+  no incrementa usos y no llama al segmentador remoto.
+- `local-band-v1` detecta en el navegador la banda de esmalte del recorte y la
+  transforma en seis cajas 13–12–11–21–22–23. La biblioteca paramétrica sigue
+  siendo la única fuente de la anatomía final.
+- Build `design-v1.1`, calidad `v29`, caché PWA `smyl-v70`.
+- QA sintético: scripts inline, contrato del motor, 12 pruebas de máscara y
+  revisión visual de las tres familias en escritorio y 390×844.
+- No se modificó ni desplegó backend. La fotografía de la captura no se leyó,
+  subió ni incorporó a pruebas.
+
 ## 2026-09-01 — Codex: Design Engine v1 local, seis coronas completas
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

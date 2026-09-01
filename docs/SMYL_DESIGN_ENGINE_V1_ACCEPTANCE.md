@@ -27,7 +27,8 @@ Una salida `design-v1` sólo es válida cuando:
    labios, piel, arcada inferior ni premolares.
 5. La imagen de salida inicia como una copia de la foto original. Sólo los
    píxeles cubiertos por una de las seis coronas reciben material cerámico.
-6. El flujo principal retorna antes de preparar `editMaskBase64` o llamar al
+6. El flujo principal no consulta cupos, no incrementa usos, no llama a
+   `segment-teeth` y retorna antes de preparar `editMaskBase64` o llamar al
    proveedor de generación de imágenes.
 7. El resultado se etiqueta como orientativo y exige revisión clínica de
    anatomía, margen gingival y tono.
@@ -42,6 +43,9 @@ Una salida `design-v1` sólo es válida cuando:
 - Tonos VITA, tono actual, intensidad y acabado cerámico.
 - Iluminación, luminancia y microtextura muestreadas de la pieza original.
 - Re-render desde la foto original para evitar acumulación de capas.
+- Localizador `local-band-v1`: detecta la banda de esmalte por
+  luminancia/croma dentro del recorte y construye las seis cajas anteriores
+  sin transmitir la fotografía fuera del navegador.
 
 ## Fuera de alcance de v1
 
@@ -57,9 +61,9 @@ node --test tests\inline-scripts.test.mjs tests\simulation-blueprint.test.mjs su
 ```
 
 La demo `tests/design-engine-v1-demo.html` usa un retrato totalmente sintético.
-Debe mostrar seis coronas en cada una de las tres familias,
-`continuousCrowns: true` y `outsideTreatment: original-pixel-source` tanto en
-escritorio como a 390×844.
+Debe mostrar `locator: local-band-v1`, seis coronas en cada una de las tres
+familias, `continuousCrowns: true` y
+`outsideTreatment: original-pixel-source` tanto en escritorio como a 390×844.
 
 ## Próximo gate
 

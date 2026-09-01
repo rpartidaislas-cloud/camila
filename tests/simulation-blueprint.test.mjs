@@ -82,6 +82,7 @@ vm.runInContext([
   extractFunction('seleccionarPiezasArcadaSuperior'),
   extractFunction('mascarasDePiezasDentales'),
   extractFunction('limitarPlanoDental'),
+  extractFunction('construirPiezasBandaDentalV1'),
   extractFunction('construirPlanoGeometricoDental'),
   extractFunction('evaluarCapturaDentalV104'),
   extractFunction('emparejarPiezasDentales'),
@@ -97,7 +98,7 @@ vm.runInContext([
 ].join('\n'), context);
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 28/);
+assert.match(html, /var SIM_QUALITY_VERSION = 29/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -133,6 +134,7 @@ assert.match(generadorV105, /SMYL_DESIGN_ENGINE_V1_ENABLED/);
 assert.match(generadorV105, /renderizarSimulacionBibliotecaV1/);
 assert.match(generadorV105, /provider:'smyl-local'/);
 assert.match(generadorV105, /deliveryGate:'six-complete-parametric-crowns'/);
+assert.match(generadorV105, /if \(!SMYL_DESIGN_ENGINE_V1_ENABLED\)[\s\S]*autorizacion_ia/);
 assert.ok(
   generadorV105.indexOf("if (SMYL_DESIGN_ENGINE_V1_ENABLED)") < generadorV105.indexOf("var tratamiento ="),
   'El motor determinista debe ejecutarse antes de construir la máscara fragmentable o llamar al proveedor',
@@ -148,6 +150,10 @@ assert.match(generadorV105, /revalidationMode:'cached-paid-proposal'/);
 assert.match(extractFunction('saveProgress'), /pendingGeneratedByView/);
 assert.match(extractFunction('continuarProgreso'), /revalidateCached:coincide/);
 assert.doesNotMatch(extractFunction('processPhotos'), /processOptions\.revalidateCached[\s\S]{0,180}delete S\.pendingGeneratedByView/);
+const procesoLocal=extractFunction('processPhotos');
+assert.match(procesoLocal,/!SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*CFG\.limiteDiagnosticos/);
+assert.match(procesoLocal,/if \(!SMYL_DESIGN_ENGINE_V1_ENABLED\)[\s\S]*asegurarAutorizacionIA/);
+assert.match(procesoLocal,/!processOptions\.revalidateCached && !SMYL_DESIGN_ENGINE_V1_ENABLED/);
 assert.match(html, /function resumirDiagnosticoCalibracion/);
 assert.match(html, /proc-error-diagnostics/);
 assert.match(html, /proc-error-preview/);
@@ -388,6 +394,16 @@ assert.ok(Math.abs(plano.targetMetrics.canineToCentral - 0.80) < 0.001);
 assert.ok(plano.pieces.every((piece,index)=>piece.y===originales[index].y));
 assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
 
+const piezasLocales=context.construirPiezasBandaDentalV1(
+  {x:180,y:260,w:540,h:150,cx:450,cy:335,confidence:.82},900,700,
+);
+assert.equal(piezasLocales.length,6);
+assert.deepEqual(Array.from(piezasLocales,p=>p.fdi),['13','12','11','21','22','23']);
+assert.ok(piezasLocales.every(p=>p.x>=0&&p.y>=0&&p.x+p.w<=900&&p.y+p.h<=700));
+assert.ok(piezasLocales[2].w>piezasLocales[1].w);
+assert.ok(piezasLocales[2].h>piezasLocales[0].h);
+assert.ok(Math.abs((piezasLocales[2].x+piezasLocales[2].w)-(piezasLocales[3].x))<10);
+
 const planoEditor = context.construirPlanoGeometricoDental(originales, 900, 700, {
   family: 'oval',
   sizeFactor: 1,
@@ -402,6 +418,8 @@ const preparadorPlano=extractFunction('prepararPlanoDentalIndividual');
 assert.match(preparadorPlano,/S\.editorParams/);
 assert.match(preparadorPlano,/heightAdjustments/);
 assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
+assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
+assert.match(preparadorPlano,/locator==='local-band-v1'/);
 assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
 
