@@ -92,7 +92,31 @@ vm.runInContext([
   extractFunction('evaluarContratoPresentacionV105'),
   extractFunction('evaluarIntegridadVisualV104'),
   extractFunction('construirPrescripcionNumericaV104'),
+  extractFunction('limitarCanalCarillaV1'),
+  extractFunction('resolverMaterialCarillaV1'),
 ].join('\n'), context);
+
+assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = true/);
+assert.match(html, /var SIM_QUALITY_VERSION = 28/);
+const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
+assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
+assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
+assert.match(motorBiblioteca, /suavizarMascaraHaciaDentroV104/);
+assert.match(motorBiblioteca, /outsideTreatment:'original-pixel-source'/);
+assert.match(motorBiblioteca, /continuousCrowns/);
+assert.doesNotMatch(motorBiblioteca, /sourceMask|editMaskBase64|resultadoIA/);
+const materialNatural=context.resolverMaterialCarillaV1(
+  {code:'A1',screenRgb:[236,234,233]},
+  {finish:'natural',intensity:'balanced',vitaMode:'vita'},
+);
+assert.deepEqual(Array.from(Object.values(materialNatural.rgb)),[236,234,233]);
+assert.ok(materialNatural.opacity>.94&&materialNatural.opacity<.98);
+const materialTranslucido=context.resolverMaterialCarillaV1(
+  {code:'A1',screenRgb:[236,234,233]},
+  {finish:'translucent',intensity:'notable',vitaMode:'vita'},
+);
+assert.ok(materialTranslucido.incisalCool>materialNatural.incisalCool);
+assert.ok(materialTranslucido.opacity>materialNatural.opacity);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
@@ -105,6 +129,14 @@ assert.match(compositorSeguro, /mask:coberturaContrato/);
 assert.doesNotMatch(compositorSeguro, /mask:tratamientoActual\.metrics/);
 assert.match(html, /contractVersion:'v105'/);
 const generadorV105=extractFunction('generateSimulation');
+assert.match(generadorV105, /SMYL_DESIGN_ENGINE_V1_ENABLED/);
+assert.match(generadorV105, /renderizarSimulacionBibliotecaV1/);
+assert.match(generadorV105, /provider:'smyl-local'/);
+assert.match(generadorV105, /deliveryGate:'six-complete-parametric-crowns'/);
+assert.ok(
+  generadorV105.indexOf("if (SMYL_DESIGN_ENGINE_V1_ENABLED)") < generadorV105.indexOf("var tratamiento ="),
+  'El motor determinista debe ejecutarse antes de construir la máscara fragmentable o llamar al proveedor',
+);
 assert.doesNotMatch(generadorV105, /IMAGE 2 already fixes/);
 assert.doesNotMatch(generadorV105, /guideImageBase64:/);
 assert.match(generadorV105, /There is NO second reference image and no visual blueprint/);
@@ -356,13 +388,30 @@ assert.ok(Math.abs(plano.targetMetrics.canineToCentral - 0.80) < 0.001);
 assert.ok(plano.pieces.every((piece,index)=>piece.y===originales[index].y));
 assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
 
+const planoEditor = context.construirPlanoGeometricoDental(originales, 900, 700, {
+  family: 'oval',
+  sizeFactor: 1,
+  heightAdjustments: [-12, -6, 8, 8, -6, -12],
+});
+assert.equal(planoEditor.family, 'oval');
+assert.ok(planoEditor.pieces[2].h > plano.pieces[2].h);
+assert.ok(planoEditor.pieces[0].h < plano.pieces[0].h);
+assert.ok(planoEditor.pieces.every((piece,index)=>piece.y===originales[index].y));
+assert.ok(planoEditor.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
+const preparadorPlano=extractFunction('prepararPlanoDentalIndividual');
+assert.match(preparadorPlano,/S\.editorParams/);
+assert.match(preparadorPlano,/heightAdjustments/);
+assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
+assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
+assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
+
 const prescripcionNumerica=context.construirPrescripcionNumericaV104(plano);
 assert.match(prescripcionNumerica,/NO SECOND IMAGE IS SUPPLIED/);
 assert.match(prescripcionNumerica,/FDI 13,role=canine,centerX=/);
 assert.match(prescripcionNumerica,/FDI 11,role=central,centerX=/);
 assert.match(prescripcionNumerica,/FDI 23,role=canine,centerX=/);
 assert.equal((prescripcionNumerica.match(/FDI /g)||[]).length,6);
-assert.doesNotMatch(extractFunction('prepararPlanoDentalIndividual'),/guideBase64|renderizarGuiaPlanoDental/);
+assert.doesNotMatch(preparadorPlano,/guideBase64|renderizarGuiaPlanoDental/);
 
 const sinCambio = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,
@@ -478,4 +527,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('simulation v105: paid proposals remain visible with clinical-review warnings');
+console.log('SMYL Design Engine v1: six complete crowns render locally with deterministic editor controls');

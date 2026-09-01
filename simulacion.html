@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build v105 — propuesta visible con revisión</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build design-v1 — seis dientes completos</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1031,11 +1031,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div class="proc-bar-msg" id="proc-bar-msg"></div>
   </div>
   <div class="proc-list" id="proc-list">
-    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Analizando tu fotografía con IA</div>
+    <div class="pstep active" id="ps1"><div class="pstep-dot"></div>Localizando seis dientes anteriores</div>
     <div class="pstep" id="ps2"><div class="pstep-dot"></div>Diseñando la propuesta dental</div>
     <div class="pstep" id="ps3"><div class="pstep-dot"></div>Ajustando forma y proporciones</div>
     <div class="pstep" id="ps4"><div class="pstep-dot"></div>Aplicando el tono de tus carillas</div>
-    <div class="pstep" id="ps5"><div class="pstep-dot"></div>Generando simulación fotorrealista ✨</div>
+    <div class="pstep" id="ps5"><div class="pstep-dot"></div>Renderizando material cerámico ✨</div>
   </div>
 
   <!-- Antes esto era un alert() que mandaba de vuelta a la pantalla de
@@ -1066,7 +1066,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <button class="res-vita-btn" id="res-vita-btn" onclick="abrirGuiaVitaDesdeResultado()">Tono VITA A1 · Cambiar</button>
       <button class="redo-btn" id="btn-regenerar" onclick="regenerarSimulacion()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-        Generar de nuevo
+        Recalcular diseño
       </button>
       <button class="redo-btn" onclick="repetirFotografias()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -1461,7 +1461,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 
       <div class="ed-label">Forma general</div>
       <select id="ed-forma" class="ed-select" data-group="diseno" data-key="forma" onchange="edSelectChange(this)">
-        <option value="">IA decide (recomendado)</option>
+        <option value="">Biblioteca recomendada</option>
         <option value="circular">Circular — ángulos suaves</option>
         <option value="triangular">Triangular — cervical estrecho</option>
         <option value="rectangular">Rectangular — líneas definidas</option>
@@ -1547,9 +1547,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 
       <button id="ed-btn-regenerar" onclick="edAplicarDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:linear-gradient(135deg,#7c6af7,#5B47E0);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-        Regenerar simulación con estos cambios
+        Actualizar diseño con estos cambios
       </button>
-      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">El tono puede previsualizarse localmente; cambiar forma o tamaño requiere regenerar la simulación (~15-20 s). Las guías son referencias visuales.</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">Tono, forma, tamaño y alturas se recalculan con la biblioteca dental, sin consumir una generación de imagen. Las guías son referencias visuales.</div>
       </div>
     </div>
   </div>
@@ -3661,13 +3661,10 @@ function renderResVitaSwatches() {
   });
 }
 
-// Cambiar de tono desde este selector YA NO llama a Gemini (por pedido
-// explícito -- cada llamada cuesta dinero real, y probar varios tonos
-// seguidos salía caro). Recolorea localmente, sin red, partiendo siempre de
-// S.veneerBaseByView (la simulación "pristina" recién salida de Gemini) con
-// el color EXACTO de la guía VITA -- ver recolorearDientes()/
-// crearMascaraDentalSim() más arriba. Solo "Generar de nuevo"
-// (regenerarSimulacion) sigue llamando a la IA de verdad.
+// El motor de biblioteca vuelve a renderizar la misma geometría ya localizada
+// y, gracias al mapa dental en caché, no necesita otra generación de imagen ni
+// acumular recoloreados sobre el resultado anterior. La ruta v105 se conserva
+// debajo únicamente para casos antiguos.
 async function elegirTonoDesdeResultado(code) {
   if (S.vitaMode === 'vita' && S.vitaTone === code) return; // ya es este tono
   var view = S.baVistaActual || 'frontal';
@@ -3680,6 +3677,10 @@ async function elegirTonoDesdeResultado(code) {
   renderResVitaSwatches(); // refleja cuál queda seleccionado, sin cerrar el panel
   mostrarVitaCargando();
   try {
+    if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
+      await Promise.all([regenerarSimulacion(), esperar(300)]);
+      return;
+    }
     var recoloreado;
     try {
       // El recoloreado local es casi instantáneo (canvas, sin red) -- sin
@@ -3708,6 +3709,10 @@ async function elegirTonoActualDesdeResultado() {
   renderResVitaSwatches();
   mostrarVitaCargando();
   try {
+    if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
+      await Promise.all([regenerarSimulacion(), esperar(300)]);
+      return;
+    }
     var colorActual = await colorPromedioDientes('data:image/jpeg;base64,' + fotoOriginal.b64);
     var recoloreado;
     try {
@@ -4732,7 +4737,7 @@ async function processPhotos(processOptions) {
     if (procSub) procSub.textContent = 'Analizando proporciones faciales...';
     var diagnosticoFacial = S.diagnosticoFacial || null;
     var clinicalPrompt = S.promptGeminiUsado || '';
-    if (!processOptions.revalidateCached) {
+    if (!processOptions.revalidateCached && !SMYL_DESIGN_ENGINE_V1_ENABLED) {
       processStage='analisis_facial';
       try {
         diagnosticoFacial = await conReintento(function(){ return analizarConClaude(frontalForAnalysis.b64); });
@@ -4740,6 +4745,11 @@ async function processPhotos(processOptions) {
       S.diagnosticoFacial = diagnosticoFacial;
       clinicalPrompt = diagnosticoFacial ? construirPromptGemini(diagnosticoFacial) : '';
       S.promptGeminiUsado = clinicalPrompt || null;
+    } else if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
+      // El motor local no necesita un LLM para decidir la anatomía. En esta
+      // primera versión usa la familia elegida previamente o la biblioteca
+      // rectangular suave predeterminada.
+      clinicalPrompt = '';
     }
 
     // Step 2: Gemini genera la simulación SOLO de la foto frontal
@@ -4748,7 +4758,8 @@ async function processPhotos(processOptions) {
     // desde esa vista (ver cambiarVistaBA/regenerarSimulacion). Antes se
     // generaban las 6 en paralelo en cada caso, lo que multiplicaba el
     // costo y el riesgo de que alguna fallara sin necesidad.
-    if (procSub) procSub.textContent = 'Generando tu simulación...';
+    if (procSub) procSub.textContent = SMYL_DESIGN_ENGINE_V1_ENABLED ?
+      'Diseñando seis dientes completos...' : 'Generando tu simulación...';
     var frontalPhoto = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
     // La generación de imagen es pagada: no se reintenta automáticamente.
     // Si la respuesta se pierde, el usuario decide explícitamente si genera
@@ -5972,6 +5983,50 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   var planoDental = await ejecutarEtapaLocalConRastro('segmentacion_seis_coronas',requestId,function(){
     return prepararPlanoDentalIndividual(entradaDental, frontal.view || 'frontal');
   });
+
+  // Ruta principal de SMYL Design Engine. La segmentación sólo localiza las
+  // seis piezas; la forma final siempre procede de la biblioteca paramétrica.
+  // No se crea una máscara a fragmentos y no se llama al generador de imagen.
+  if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
+    var disenoLocal = await ejecutarEtapaLocalConRastro('render_biblioteca_seis_coronas',requestId,function(){
+      return renderizarSimulacionBibliotecaV1(entradaDental.dataUrl,planoDental,vitaShade,{
+        vitaMode:S.vitaMode,
+        finish:S.vitaFinish,
+        intensity:S.vitaIntensity
+      });
+    });
+    if(!disenoLocal.metrics.continuousCrowns){
+      var errorBiblioteca=new Error('El motor de diseño no pudo construir seis coronas continuas.');
+      errorBiblioteca.requiresNewGeneration=false;
+      throw errorBiblioteca;
+    }
+    S.lastGenerationMeta={
+      requestId:requestId,
+      provider:'smyl-local',
+      model:'design-engine-v1',
+      quality:'deterministic',
+      contract:'design-v1',
+      elapsedMs:0
+    };
+    S.simulationQualityByView[vistaGenerada]={
+      version:SIM_QUALITY_VERSION,
+      status:'review',
+      issues:['Diseño determinista de seis coronas. Revisa anatomía, encía y tono antes de presentarlo.'],
+      metrics:{
+        mode:'smyl-design-engine-v1',
+        deliveryGate:'six-complete-parametric-crowns',
+        trace:S.lastGenerationMeta,
+        design:disenoLocal.metrics,
+        blueprint:planoDental.targetMetrics||null
+      }
+    };
+    var resultadoLocal=entradaDental.isFull?disenoLocal.url:
+      await reinsertarRecorteDental(fotoOriginalUrl,disenoLocal.url,entradaDental.rect);
+    if(!resultadoLocal)throw new Error('No se pudo integrar el diseño dental local.');
+    if(frontal.view)S.baAlign[frontal.view]={x:0,y:0,scale:1};
+    return resultadoLocal;
+  }
+
   var tratamiento = await ejecutarEtapaLocalConRastro('mascara_unica_seis_coronas',requestId,function(){
     return prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal', planoDental);
   });
@@ -7400,7 +7455,7 @@ async function edAplicarDiseno() {
     // Una edición debe partir de las carillas visibles en el editor. Antes se
     // reenviaba la foto clínica original y el modelo reconstruía casi el mismo
     // diseño inicial, ignorando la curva que el usuario acababa de ajustar.
-    if (resultadoActual && /^data:image\//i.test(resultadoActual)) {
+    if (!SMYL_DESIGN_ENGINE_V1_ENABLED && resultadoActual && /^data:image\//i.test(resultadoActual)) {
       var matchData = resultadoActual.match(/^data:([^;]+);base64,(.+)$/);
       if (matchData) photoEditor = Object.assign({}, photo, {dataUrl:resultadoActual,mimeType:matchData[1],b64:matchData[2]});
     }
@@ -7429,7 +7484,7 @@ async function edAplicarDiseno() {
     liberarWakeLock();
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Regenerar simulación con estos cambios';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Actualizar diseño con estos cambios';
     }
     if (btnTop) { btnTop.disabled = false; btnTop.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Aplicar diseño'; }
   }
@@ -7793,7 +7848,7 @@ function actualizarBotonGenerar() {
   var btn = document.getElementById('btn-regenerar');
   if (!btn) return;
   var tieneResultado = !!((S.results || {})[S.baVistaActual || 'frontal']);
-  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Generar de nuevo' : 'Crear simulación de esta vista');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Recalcular diseño' : 'Crear simulación de esta vista');
 }
 
 // ══ RESULT ══
@@ -8437,7 +8492,11 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
-var SIM_QUALITY_VERSION = 27;
+// Primer motor de diseño determinista de SMYL. La anatomía proviene de seis
+// siluetas completas y editables; el generador fotográfico deja de ser el
+// responsable de inventar forma, límites o continuidad dental.
+var SMYL_DESIGN_ENGINE_V1_ENABLED = true;
+var SIM_QUALITY_VERSION = 28;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'v105',
   minimumSourcePieces:6,
@@ -9461,6 +9520,7 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
   var anchoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.w;}));
   var altoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.h;}));
   var tamano = limitarPlanoDental(Number(opciones.sizeFactor)||1, .97, 1.07);
+  var ajustesAltura = Array.isArray(opciones.heightAdjustments) ? opciones.heightAdjustments : [];
   var anchoCentral = anchoCentralOriginal * tamano;
   var altoCentral = limitarPlanoDental(anchoCentral/.79, altoCentralOriginal*.98, altoCentralOriginal*1.12);
   var anchoLateral = anchoCentral*.74;
@@ -9485,7 +9545,8 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
     // El margen cervical permanece donde lo detectó el diente fuente. Toda
     // variación de longitud se dirige hacia el borde incisal, nunca hacia la
     // encía. Además se limita a un máximo conservador de 12 % por corona.
-    var h=limitarPlanoDental(altos[indice],original.h*.96,original.h*1.12);
+    var ajusteAltura=limitarPlanoDental((Number(ajustesAltura[indice])||0)/100,-.12,.12);
+    var h=limitarPlanoDental(altos[indice]*(1+ajusteAltura),original.h*.90,original.h*1.12);
     return {
       id:id, role:roles[indice], side:indice<3?'right':'left',
       family:opciones.family||'rectangular-soft',
@@ -9561,6 +9622,123 @@ function renderizarMascaraObjetivoDental(plano, anchoSalida, altoSalida) {
     ctx.fill();
   });
   return canvas;
+}
+
+// Material cerámico reproducible. No dibuja anatomía: sólo describe cómo se
+// ilumina y colorea cada silueta completa de la biblioteca paramétrica.
+function resolverMaterialCarillaV1(shade,opciones) {
+  opciones=opciones||{};
+  var rgb=shade&&shade.screenRgb?
+    {r:shade.screenRgb[0],g:shade.screenRgb[1],b:shade.screenRgb[2]}:
+    (shade?labARgbSim(vitaLabPantallaSim(shade)):{r:232,g:229,b:222});
+  var acabado=opciones.finish||'natural';
+  var intensidad=opciones.intensity||'balanced';
+  return {
+    rgb:rgb,
+    current:opciones.vitaMode==='current',
+    opacity:intensidad==='subtle'?.91:(intensidad==='notable'?.985:.96),
+    edgeShade:intensidad==='notable'?.085:.07,
+    highlight:acabado==='luminous'?.105:(acabado==='translucent'?.075:.065),
+    incisalCool:acabado==='translucent'?9:(acabado==='luminous'?6:4),
+    texture:acabado==='luminous'?1.3:2.2
+  };
+}
+
+function limitarCanalCarillaV1(valor) {
+  return Math.max(0,Math.min(255,Math.round(valor)));
+}
+
+// SMYL Design Engine v1: transforma seis cajas dentales verificadas en seis
+// coronas continuas. Cada diente se renderiza por separado desde una silueta
+// paramétrica; la fotografía sólo aporta iluminación y microtextura. Por eso
+// nunca puede aparecer una máscara rectangular o una carilla a fragmentos.
+async function renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opciones) {
+  opciones=opciones||{};
+  if(!plano||!plano.pieces||plano.pieces.length!==6){
+    throw new Error('SMYL Design Engine necesita seis dientes anteriores completos.');
+  }
+  var img=await cargarImagenSegura(fotoOriginalUrl);
+  var W=img.naturalWidth,H=img.naturalHeight;
+  var sx=W/Math.max(1,plano.width),sy=H/Math.max(1,plano.height);
+  var original=document.createElement('canvas');original.width=W;original.height=H;
+  var originalCtx=original.getContext('2d',{willReadFrequently:true});
+  originalCtx.drawImage(img,0,0,W,H);
+  var originalPixels=originalCtx.getImageData(0,0,W,H).data;
+  var salida=document.createElement('canvas');salida.width=W;salida.height=H;
+  var salidaCtx=salida.getContext('2d');salidaCtx.drawImage(original,0,0);
+  var material=resolverMaterialCarillaV1(shade,opciones);
+  var metricas=[];
+
+  plano.pieces.forEach(function(pieza,indice){
+    var mascaraDura=document.createElement('canvas');mascaraDura.width=W;mascaraDura.height=H;
+    var mascaraCtx=mascaraDura.getContext('2d');
+    mascaraCtx.fillStyle='#fff';
+    trazarSiluetaPlanoDental(mascaraCtx,pieza,sx,sy);
+    mascaraCtx.fill();
+    var mascara=suavizarMascaraHaciaDentroV104(mascaraDura);
+    var mascaraPixels=mascara.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+    var capa=document.createElement('canvas');capa.width=W;capa.height=H;
+    var capaCtx=capa.getContext('2d');
+    var datos=capaCtx.createImageData(W,H);
+    var x0=Math.max(0,Math.floor(pieza.x*sx)-2),x1=Math.min(W,Math.ceil((pieza.x+pieza.w)*sx)+2);
+    var y0=Math.max(0,Math.floor(pieza.y*sy)-2),y1=Math.min(H,Math.ceil((pieza.y+pieza.h)*sy)+2);
+    var originalPieza=pieza.original||pieza;
+    var activos=0,lumAcumulada=0;
+    var variacionIdentidad=(indice-2.5)*.006;
+
+    for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){
+      var pi=(y*W+x)*4,alfa=mascaraPixels[pi+3]/255;
+      if(alfa<.015)continue;
+      var u=limitarPlanoDental((x/sx-pieza.x)/Math.max(1,pieza.w),0,1);
+      var v=limitarPlanoDental((y/sy-pieza.y)/Math.max(1,pieza.h),0,1);
+      var ox=limitarPlanoDental(Math.round((originalPieza.x+u*originalPieza.w)*sx),0,W-1);
+      var oy=limitarPlanoDental(Math.round((originalPieza.y+v*originalPieza.h)*sy),0,H-1);
+      var oi=(oy*W+ox)*4;
+      var sr=originalPixels[oi],sg=originalPixels[oi+1],sb=originalPixels[oi+2];
+      var lum=.299*sr+.587*sg+.114*sb;
+      lumAcumulada+=lum;activos++;
+
+      var baseR=material.current?sr:material.rgb.r;
+      var baseG=material.current?sg:material.rgb.g;
+      var baseB=material.current?sb:material.rgb.b;
+      var luz=material.current?1:(.84+(lum/255)*.23);
+      var borde=Math.pow(Math.abs(u-.5)*2,1.7)*material.edgeShade;
+      var cervical=Math.max(0,1-v/.24);
+      var incisal=Math.max(0,(v-.78)/.22);
+      var brillo=Math.exp(-Math.pow((u-.34)/.105,2))*Math.max(0,1-v*.72)*material.highlight;
+      var grano=(Math.sin((x+indice*19)*.29)+Math.sin((y-indice*13)*.17))*.5*material.texture;
+      var rol=pieza.role==='central'?1:(pieza.role==='lateral'?.988:.978);
+      var factor=(luz-borde+brillo+variacionIdentidad)*rol;
+      var r=baseR*factor+grano+5*cervical-2*incisal;
+      var g=baseG*factor+grano-1*cervical+2*incisal;
+      var b=baseB*factor+grano-4*cervical+material.incisalCool*incisal;
+      datos.data[pi]=limitarCanalCarillaV1(r);
+      datos.data[pi+1]=limitarCanalCarillaV1(g);
+      datos.data[pi+2]=limitarCanalCarillaV1(b);
+      datos.data[pi+3]=limitarCanalCarillaV1(255*alfa*material.opacity);
+    }
+    capaCtx.putImageData(datos,0,0);
+    salidaCtx.drawImage(capa,0,0);
+    metricas.push({
+      id:pieza.id||pieza.fdi||String(indice+1),
+      role:pieza.role,
+      pixels:activos,
+      sourceLuminance:activos?+(lumAcumulada/activos).toFixed(1):0,
+      continuous:activos>0
+    });
+  });
+
+  return {
+    url:salida.toDataURL('image/png'),
+    maskUrl:renderizarMascaraObjetivoDental(plano,W,H).toDataURL('image/png'),
+    metrics:{
+      engine:'smyl-design-engine-v1',
+      library:plano.family||'rectangular-soft',
+      crowns:metricas,
+      continuousCrowns:metricas.length===6&&metricas.every(function(item){return item.continuous;}),
+      outsideTreatment:'original-pixel-source'
+    }
+  };
 }
 
 function medirCoberturaEntreMascaras(referencia,contenedora) {
@@ -9689,9 +9867,16 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   var captura=evaluarCapturaDentalV104(mapa.pieces,mapa.width,mapa.height);
   if(!captura.accepted)throw new Error('La fotografía no cumple el control de captura v104: '+captura.failures.slice(0,2).join(' · ')+'. Toma otra frontal antes de generar.');
   var diagnostico=S.diagnosticoFacial||{};
-  var familia={circular:'oval',triangular:'triangular',rectangular:'rectangular-soft'}[diagnostico.forma_dental_recomendada]||'rectangular-soft';
-  var factor=limitarPlanoDental((Number(diagnostico.tamano_coronas_pct)||100)/100,.97,1.07);
-  var plano=construirPlanoGeometricoDental(mapa.pieces,mapa.width,mapa.height,{family:familia,sizeFactor:factor});
+  var editor=S.editorParams&&S.editorParams.diseno?S.editorParams.diseno:{};
+  var formaElegida=editor.forma||diagnostico.forma_dental_recomendada||'';
+  var familia={circular:'oval',oval:'oval',triangular:'triangular',rectangular:'rectangular-soft',cuadrada:'rectangular-soft'}[formaElegida]||'rectangular-soft';
+  var tamanoElegido=Number(editor.tamano)||Number(diagnostico.tamano_coronas_pct)||100;
+  var factor=limitarPlanoDental(tamanoElegido/100,.97,1.07);
+  var plano=construirPlanoGeometricoDental(mapa.pieces,mapa.width,mapa.height,{
+    family:familia,
+    sizeFactor:factor,
+    heightAdjustments:Array.isArray(editor.alturasDientes)?editor.alturasDientes:null
+  });
   // Estos datos ya fueron validados antes de generar y se reutilizan para la
   // composición y el control posterior. No se envían como parte del prompt.
   plano.sourceMaskUrl=mapa.maskUrl;

@@ -1,0 +1,69 @@
+# SMYL Design Engine v1 — contrato de aceptación
+
+Fecha: 2026-09-01  
+Estado: prototipo funcional local; no publicado.
+
+## Objetivo
+
+Sustituir la composición de una imagen generada a través de máscaras dentales
+fragmentadas por un flujo de diseño reproducible: localizar seis dientes,
+construir seis coronas completas desde una biblioteca paramétrica y renderizar
+material cerámico dentro de esas siluetas.
+
+Esta versión resuelve estructuralmente el defecto observado en producción:
+parches blancos rectangulares y costuras horizontales sobre dientes, encía o
+labio. No intenta todavía igualar el acabado final de un CAD dental 3D.
+
+## Contrato duro
+
+Una salida `design-v1` sólo es válida cuando:
+
+1. El plano contiene exactamente 13–12–11–21–22–23.
+2. Cada pieza genera una corona paramétrica completa y continua.
+3. La anatomía procede de `trazarSiluetaPlanoDental`; las máscaras segmentadas
+   de origen no se usan para recortar el material final.
+4. El suavizado del perímetro crece hacia dentro y no abre píxeles sobre encía,
+   labios, piel, arcada inferior ni premolares.
+5. La imagen de salida inicia como una copia de la foto original. Sólo los
+   píxeles cubiertos por una de las seis coronas reciben material cerámico.
+6. El flujo principal retorna antes de preparar `editMaskBase64` o llamar al
+   proveedor de generación de imágenes.
+7. El resultado se etiqueta como orientativo y exige revisión clínica de
+   anatomía, margen gingival y tono.
+
+## Biblioteca y controles implementados
+
+- Familias: `rectangular-soft`, `oval` y `triangular`.
+- Roles anatómicos distintos: centrales, laterales y caninos.
+- Tamaño global conservador, anclado al margen cervical detectado.
+- Alturas individuales 13–23, limitadas a un rango seguro y dirigidas hacia
+  incisal.
+- Tonos VITA, tono actual, intensidad y acabado cerámico.
+- Iluminación, luminancia y microtextura muestreadas de la pieza original.
+- Re-render desde la foto original para evitar acumulación de capas.
+
+## Fuera de alcance de v1
+
+- Modelo 3D real, escaneo intraoral, oclusión y planificación de laboratorio.
+- Rotación/traslación libre por pieza y edición manual del contorno cervical.
+- Validación clínica automática o promesa de resultado terapéutico.
+- Publicación del prototipo o uso de una fotografía real sin autorización.
+
+## Verificación local
+
+```powershell
+node --test tests\inline-scripts.test.mjs tests\simulation-blueprint.test.mjs supabase\functions\segment-teeth\mask-utils.test.mjs
+```
+
+La demo `tests/design-engine-v1-demo.html` usa un retrato totalmente sintético.
+Debe mostrar seis coronas en cada una de las tres familias,
+`continuousCrowns: true` y `outsideTreatment: original-pixel-source` tanto en
+escritorio como a 390×844.
+
+## Próximo gate
+
+Ejecutar una sola prueba controlada con foto frontal nítida y autorizada. Antes
+de publicarla se revisarán: encaje cervical, eje y proporción de cada pieza,
+corredores bucales, naturalidad del material, tono y conservación exacta de
+tejidos. Cualquier fallo se corrige en geometría/render; no se compensa con una
+cadena de generaciones pagadas.

@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-01 — Codex: Design Engine v1 local, seis coronas completas
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/design-engine-v1-demo.html` y
+`docs/SMYL_DESIGN_ENGINE_V1_ACCEPTANCE.md`.
+
+- La ruta principal ya no pide a un generador fotográfico que invente la
+  anatomía dentro de una máscara segmentada. La segmentación sólo localiza los
+  seis anteriores; una biblioteca paramétrica construye 13–12–11–21–22–23.
+- Cada corona se rasteriza como una silueta completa, con suavizado hacia
+  dentro. Fuera de esas seis siluetas la salida parte del píxel original, por
+  lo que no puede aparecer la franja rectangular observada en v103–v105.
+- El material cerámico conserva iluminación y microtextura de la toma, añade
+  profundidad cervical/incisal y reproduce el tono VITA elegido sin llamar al
+  proveedor de generación de imágenes.
+- El editor alimenta el motor determinista: familia circular, triangular o
+  rectangular, tamaño global y alturas individuales 13–23. Cada actualización
+  se recompone desde la fotografía clínica original; no acumula renders.
+- Build `design-v1`, calidad `v28`, caché PWA `smyl-v69`. Web y móvil son
+  idénticos.
+- QA sin datos de paciente ni generación pagada: scripts inline, contrato de
+  motor, 12 pruebas de máscara y regresión visual sintética aprobados en
+  escritorio y 390×844.
+- **Estado:** prototipo funcional local, todavía no publicado. El siguiente
+  gate es una prueba controlada con una fotografía expresamente autorizada.
+
 ## 2026-08-31 — Codex: v105 local, la propuesta pagada siempre se muestra
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
