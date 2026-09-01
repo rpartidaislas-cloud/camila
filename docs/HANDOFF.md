@@ -24,8 +24,11 @@
 - QA sin datos de paciente ni generación pagada: scripts inline, contrato de
   motor, 12 pruebas de máscara y regresión visual sintética aprobados en
   escritorio y 390×844.
-- **Estado:** prototipo funcional local, todavía no publicado. El siguiente
-  gate es una prueba controlada con una fotografía expresamente autorizada.
+- Publicado en GitHub Pages desde el commit funcional `b282e2d`; verificación
+  pública `HTTP 200`, build `design-v1` y motor local habilitado.
+- **La publicación no ejecutó una simulación, no subió fotografías y no
+  consumió una generación de imagen.** El siguiente gate es una prueba
+  controlada con una fotografía expresamente autorizada.
 
 ## 2026-08-31 — Codex: v105 local, la propuesta pagada siempre se muestra
 

@@ -1,7 +1,8 @@
 # SMYL Design Engine v1 — contrato de aceptación
 
 Fecha: 2026-09-01  
-Estado: prototipo funcional local; no publicado.
+Estado: prototipo funcional publicado en GitHub Pages; pendiente de prueba
+controlada con fotografía autorizada.
 
 ## Objetivo
 
