@@ -20,8 +20,14 @@
   Calidad `v35`, caché PWA `smyl-v76`, contrato `hybrid-2d-v2`.
 - Pruebas de scripts, contrato y máscaras aprobadas. La vista sintética confirmó
   una trayectoria conectada y cobertura completa, sin fotografías ni llamadas
-  a servicios. Falta una generación con fotografía expresamente autorizada y
-  el despliegue de backend/frontend.
+  a servicios.
+- Edge Function `claude` versión 67 desplegada y verificada `ACTIVE`; conservó
+  `verify_jwt=false` con autorización explícita del usuario. El frontend v2 se
+  publica en GitHub Pages desde la rama configurada
+  `claude/camila-claude-clinical-analysis-sywxjv`; `main` permanece intacta.
+- La publicación no ejecutó una simulación, no subió fotografías y no consumió
+  una generación. Queda pendiente validar el resultado con una fotografía
+  expresamente autorizada.
 
 ## 2026-09-02 — Codex: hybrid-2d-v1, geometría invisible y render fotográfico
 
