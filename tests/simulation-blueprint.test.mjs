@@ -95,29 +95,44 @@ vm.runInContext([
   extractFunction('construirPrescripcionNumericaV104'),
   extractFunction('limitarCanalCarillaV1'),
   extractFunction('resolverMaterialCarillaV1'),
+  extractFunction('analizarTexturaFuenteCarillaV2'),
 ].join('\n'), context);
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 29/);
+assert.match(html, /var SIM_QUALITY_VERSION = 30/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
 assert.match(motorBiblioteca, /suavizarMascaraHaciaDentroV104/);
 assert.match(motorBiblioteca, /outsideTreatment:'original-pixel-source'/);
 assert.match(motorBiblioteca, /continuousCrowns/);
+assert.match(motorBiblioteca, /analizarTexturaFuenteCarillaV2/);
+assert.match(motorBiblioteca, /incisalTransparency/);
+assert.match(motorBiblioteca, /sourceContrast/);
 assert.doesNotMatch(motorBiblioteca, /sourceMask|editMaskBase64|resultadoIA/);
 const materialNatural=context.resolverMaterialCarillaV1(
   {code:'A1',screenRgb:[236,234,233]},
   {finish:'natural',intensity:'balanced',vitaMode:'vita'},
 );
 assert.deepEqual(Array.from(Object.values(materialNatural.rgb)),[236,234,233]);
-assert.ok(materialNatural.opacity>.94&&materialNatural.opacity<.98);
+assert.ok(materialNatural.opacity>.80&&materialNatural.opacity<.88);
+assert.ok(materialNatural.sourceTexture>.5);
+assert.ok(materialNatural.incisalTransparency>.15);
 const materialTranslucido=context.resolverMaterialCarillaV1(
   {code:'A1',screenRgb:[236,234,233]},
   {finish:'translucent',intensity:'notable',vitaMode:'vita'},
 );
 assert.ok(materialTranslucido.incisalCool>materialNatural.incisalCool);
 assert.ok(materialTranslucido.opacity>materialNatural.opacity);
+assert.ok(materialTranslucido.incisalTransparency>materialNatural.incisalTransparency);
+
+const texturaFuente=context.analizarTexturaFuenteCarillaV2(
+  Uint8ClampedArray.from({length:40*30*4},(_,index)=>index%4===3?255:(index%4===0?210:(index%4===1?205:196))),
+  40,30,{x:4,y:3,w:28,h:22},1,1,
+);
+assert.ok(texturaFuente.mean>180&&texturaFuente.mean<220);
+assert.ok(texturaFuente.contrast>=28);
+assert.ok([.38,.62].includes(texturaFuente.highlightU));
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
@@ -389,8 +404,8 @@ const plano = context.construirPlanoGeometricoDental(originales, 900, 700, {
 
 assert.deepEqual(Array.from(plano.pieces, (piece) => piece.id), ['13', '12', '11', '21', '22', '23']);
 assert.ok(Math.abs(plano.targetMetrics.centralWidthHeight - 0.79) < 0.035);
-assert.ok(Math.abs(plano.targetMetrics.lateralToCentral - 0.74) < 0.001);
-assert.ok(Math.abs(plano.targetMetrics.canineToCentral - 0.80) < 0.001);
+assert.ok(Math.abs(plano.targetMetrics.lateralToCentral - 0.72) < 0.001);
+assert.ok(Math.abs(plano.targetMetrics.canineToCentral - 0.76) < 0.001);
 assert.ok(plano.pieces.every((piece,index)=>piece.y===originales[index].y));
 assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
 
@@ -419,7 +434,7 @@ assert.match(preparadorPlano,/S\.editorParams/);
 assert.match(preparadorPlano,/heightAdjustments/);
 assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
 assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
-assert.match(preparadorPlano,/locator==='local-band-v1'/);
+assert.match(preparadorPlano,/locator==='local-band-v2'/);
 assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
 
@@ -545,4 +560,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL Design Engine v1: six complete crowns render locally with deterministic editor controls');
+console.log('SMYL Design Engine v1.2: anatomical crowns preserve source texture and incisal depth');

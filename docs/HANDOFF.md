@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-01 — Codex: design-v1.2, anatomía y esmalte natural
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/design-engine-v1-demo.html`,
+`docs/SMYL_DESIGN_ENGINE_V1_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- La captura de producción mostró que design-v1.1 ya generaba seis coronas,
+  pero todavía parecían pegatinas: opacidad excesiva, dientes repetidos y
+  caninos con una cúspide geométrica demasiado marcada.
+- Design-v1.2 conserva por pieza la luminancia, el contraste y la dirección
+  de reflejo de la foto fuente; combina esa firma con calidez cervical,
+  microtextura, surcos suaves y translucidez incisal.
+- La opacidad equilibrada baja de `.96` a `.84`; el borde incisal reduce aún
+  más su opacidad para dejar profundidad del sustrato en lugar de blanco plano.
+- Las proporciones quedan dentro de la referencia del proyecto: centrales
+  75–80 % ancho/alto, laterales 72 % y caninos 76 % del ancho central. La
+  cúspide canina ahora es baja, redondeada y ligeramente mesial.
+- Localizador `local-band-v2`, calidad `v30`, caché PWA `smyl-v71`.
+- QA sin fotografías de paciente: pruebas inline/contrato/máscara aprobadas y
+  demo sintética revisada en escritorio, tableta 834×1194 y móvil 390×844.
+- No se modificó backend, prompts de IA ni configuración nativa.
+
 ## 2026-09-01 — Codex: hotfix design-v1.1, motor local sin bloqueo de plan
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
