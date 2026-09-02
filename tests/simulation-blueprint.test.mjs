@@ -83,6 +83,7 @@ vm.runInContext([
   extractFunction('mascarasDePiezasDentales'),
   extractFunction('limitarPlanoDental'),
   extractFunction('construirPiezasBandaDentalV1'),
+  extractFunction('esPixelEsmalteLocalV3'),
   extractFunction('construirPlanoGeometricoDental'),
   extractFunction('evaluarCapturaDentalV104'),
   extractFunction('emparejarPiezasDentales'),
@@ -99,7 +100,7 @@ vm.runInContext([
 ].join('\n'), context);
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 30/);
+assert.match(html, /var SIM_QUALITY_VERSION = 31/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -109,6 +110,10 @@ assert.match(motorBiblioteca, /continuousCrowns/);
 assert.match(motorBiblioteca, /analizarTexturaFuenteCarillaV2/);
 assert.match(motorBiblioteca, /incisalTransparency/);
 assert.match(motorBiblioteca, /sourceContrast/);
+assert.match(motorBiblioteca, /localEnamelMaskUrl/);
+assert.match(motorBiblioteca, /gingivalGate/);
+assert.match(motorBiblioteca, /local-enamel-contour-v3/);
+assert.match(motorBiblioteca, /sourceEnvelopeMetrics/);
 assert.doesNotMatch(motorBiblioteca, /sourceMask|editMaskBase64|resultadoIA/);
 const materialNatural=context.resolverMaterialCarillaV1(
   {code:'A1',screenRgb:[236,234,233]},
@@ -133,6 +138,9 @@ const texturaFuente=context.analizarTexturaFuenteCarillaV2(
 assert.ok(texturaFuente.mean>180&&texturaFuente.mean<220);
 assert.ok(texturaFuente.contrast>=28);
 assert.ok([.38,.62].includes(texturaFuente.highlightU));
+assert.equal(context.esPixelEsmalteLocalV3(214,190,148),true);
+assert.equal(context.esPixelEsmalteLocalV3(181,91,103),false);
+assert.equal(context.esPixelEsmalteLocalV3(42,37,35),false);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
@@ -434,7 +442,8 @@ assert.match(preparadorPlano,/S\.editorParams/);
 assert.match(preparadorPlano,/heightAdjustments/);
 assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
 assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
-assert.match(preparadorPlano,/locator==='local-band-v2'/);
+assert.match(preparadorPlano,/locator==='local-contour-v3'/);
+assert.match(preparadorPlano,/localEnamelMaskUrl/);
 assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
 
@@ -560,4 +569,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL Design Engine v1.2: anatomical crowns preserve source texture and incisal depth');
+console.log('SMYL Design Engine v1.3: local enamel contours anchor margins and cover the original crown');

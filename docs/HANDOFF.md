@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-01 — Codex: design-v1.3, contorno local de esmalte
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/design-engine-v1-demo.html`,
+`docs/SMYL_DESIGN_ENGINE_V1_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- La captura real de design-v1.2 confirmó tres defectos: halos amarillos del
+  esmalte original, margen cervical flotante y caninos grises por muestreo de
+  sombra intraoral.
+- `local-contour-v3` clasifica esmalte sólo dentro de las seis envolventes y,
+  por columna, conserva el tramo dental continuo más largo. La máscara se
+  suaviza únicamente hacia dentro para no invadir encía ni labio.
+- El compositor realiza una primera neutralización sobre todo el esmalte
+  fuente detectado y después superpone la corona paramétrica. Esto cubre el
+  borde original incluso cuando el diseño objetivo es más angosto.
+- El margen cervical se abre progresivamente desde el contorno fuente hacia la
+  anatomía objetivo; la forma ya no empieza como una caja opaca sobre encía.
+- La luminancia ambiental se limita a ±2.5 %, evitando que la oscuridad de la
+  boca vuelva gris una pieza completa sin perder su microtextura.
+- Build `design-v1.3`, calidad `v31`, caché PWA `smyl-v72`.
+- QA sin incorporar fotografías de paciente al repositorio: pruebas inline,
+  contrato y máscara aprobadas; demo sintética revisada en escritorio,
+  tableta 834×1194 y móvil 390×844.
+- No se modificó backend, prompts de IA ni configuración nativa.
+
 ## 2026-09-01 — Codex: design-v1.2, anatomía y esmalte natural
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

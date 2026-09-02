@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SMYL Design Engine v1.2 — regresión visual</title>
+<title>SMYL Design Engine v1.3 — regresión visual</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#090a10;color:#fff;font:14px Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:28px}.head{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:18px}.head h1{font-size:22px;margin:0 0 5px}.head p{margin:0;color:#9ca3af}.badge{padding:7px 10px;border:1px solid #334155;border-radius:99px;color:#cbd5e1;font-size:11px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{overflow:hidden;border:1px solid #242938;border-radius:16px;background:#11131b}.card h2{font-size:12px;margin:0;padding:12px 14px;border-bottom:1px solid #242938;color:#cbd5e1}.stage{aspect-ratio:8/5;background:#05060a}.stage canvas,.stage img{display:block;width:100%;height:100%;object-fit:contain}.report{margin-top:16px;padding:14px;border:1px solid #242938;border-radius:14px;background:#11131b;white-space:pre-wrap;color:#a7f3d0;font:12px ui-monospace,monospace}.error{color:#fca5a5}@media(max-width:720px){.shell{padding:16px}.grid{grid-template-columns:1fr}.head{align-items:start;flex-direction:column}}
 </style>
 </head>
 <body>
 <main class="shell">
-  <div class="head"><div><h1>SMYL Design Engine v1.2</h1><p>Anatomía individual · textura fuente · estratificación cervical e incisal · ninguna llamada de IA</p></div><span class="badge">REGRESIÓN VISUAL LOCAL</span></div>
+  <div class="head"><div><h1>SMYL Design Engine v1.3</h1><p>Contorno de esmalte real · margen cervical anclado · ninguna llamada de IA</p></div><span class="badge">REGRESIÓN VISUAL LOCAL</span></div>
   <section class="grid">
     <article class="card"><h2>ORIGINAL SINTÉTICO</h2><div class="stage"><canvas id="before" width="960" height="600"></canvas></div></article>
     <article class="card"><h2>RECTANGULAR SUAVE · ESMALTE NATURAL</h2><div class="stage"><img id="after-rect" alt="Seis coronas anatómicas con textura y translucidez natural"></div></article>
@@ -42,11 +42,12 @@ document.getElementById('engine').addEventListener('load',async()=>{
     ];
     const results=await Promise.all(cases.map(async item=>{
       const plan=w.construirPlanoGeometricoDental(localMap.pieces,960,600,{family:item.family,sizeFactor:1.02});
+      plan.localEnamelMaskUrl=localMap.maskUrl;
       const result=await w.renderizarSimulacionBibliotecaV1(canvas.toDataURL('image/png'),plan,{code:'A1',screenRgb:[236,234,233]},{vitaMode:'vita',finish:'natural',intensity:'balanced'});
       document.getElementById(item.target).src=result.url;
       return result.metrics;
     }));
-    report.textContent=JSON.stringify({locator:localMap.locator,locatorConfidence:localMap.locatorConfidence,geometry:localMap.pieces,results},null,2);
+    report.textContent=JSON.stringify({locator:localMap.locator,locatorConfidence:localMap.locatorConfidence,enamel:localMap.enamelMetrics,geometry:localMap.pieces,results},null,2);
     report.classList.toggle('error',results.some(item=>!item.continuousCrowns));
   }catch(error){report.textContent=error&&error.stack||String(error);report.classList.add('error');}
 });

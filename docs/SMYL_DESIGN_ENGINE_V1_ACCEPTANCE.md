@@ -1,4 +1,4 @@
-# SMYL Design Engine v1.2 — contrato de aceptación
+# SMYL Design Engine v1.3 — contrato de aceptación
 
 Fecha: 2026-09-01  
 Estado: prototipo funcional publicado en GitHub Pages; pendiente de prueba
@@ -17,7 +17,7 @@ labio. No intenta todavía igualar el acabado final de un CAD dental 3D.
 
 ## Contrato duro
 
-Una salida `design-v1.2` sólo es válida cuando:
+Una salida `design-v1.3` sólo es válida cuando:
 
 1. El plano contiene exactamente 13–12–11–21–22–23.
 2. Cada pieza genera una corona paramétrica completa y continua.
@@ -27,10 +27,13 @@ Una salida `design-v1.2` sólo es válida cuando:
    labios, piel, arcada inferior ni premolares.
 5. La imagen de salida inicia como una copia de la foto original. Sólo los
    píxeles cubiertos por una de las seis coronas reciben material cerámico.
-6. El flujo principal no consulta cupos, no incrementa usos, no llama a
+6. Una máscara cromática local sigue el esmalte original de cada pieza. Esa
+   máscara neutraliza el sustrato completo antes de renderizar la nueva corona,
+   por lo que no pueden quedar halos amarillos alrededor del diseño.
+7. El flujo principal no consulta cupos, no incrementa usos, no llama a
    `segment-teeth` y retorna antes de preparar `editMaskBase64` o llamar al
    proveedor de generación de imágenes.
-7. El resultado se etiqueta como orientativo y exige revisión clínica de
+8. El resultado se etiqueta como orientativo y exige revisión clínica de
    anatomía, margen gingival y tono.
 
 ## Biblioteca y controles implementados
@@ -48,9 +51,12 @@ Una salida `design-v1.2` sólo es válida cuando:
   calidez cervical y translucidez incisal variable. No se admite un relleno
   blanco plano ni una fila de coronas ópticamente idénticas.
 - Re-render desde la foto original para evitar acumulación de capas.
-- Localizador `local-band-v2`: detecta la banda de esmalte por
-  luminancia/croma dentro del recorte y construye las seis cajas anteriores
-  sin transmitir la fotografía fuera del navegador.
+- Localizador `local-contour-v3`: detecta la banda de esmalte y reconstruye el
+  tramo vertical continuo de cada pieza por luminancia/croma. El margen
+  cervical del render se mezcla con ese contorno y no con una caja.
+- La luminancia global queda limitada a un rango estrecho: la sombra de la boca
+  puede aportar textura, pero no volver gris un canino o lateral completo.
+- Todo el análisis ocurre dentro del navegador, sin transmitir la fotografía.
 
 ## Fuera de alcance de v1
 
@@ -66,9 +72,9 @@ node --test tests\inline-scripts.test.mjs tests\simulation-blueprint.test.mjs su
 ```
 
 La demo `tests/design-engine-v1-demo.html` usa un retrato totalmente sintético.
-Debe mostrar `locator: local-band-v2`, seis coronas en cada una de las tres
+Debe mostrar `locator: local-contour-v3`, seis coronas en cada una de las tres
 familias, `continuousCrowns: true` y
-`outsideTreatment: original-pixel-source` tanto en escritorio como a 390×844.
+`sourceEnvelope: local-enamel-contour-v3` tanto en escritorio como a 390×844.
 
 ## Próximo gate
 
