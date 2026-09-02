@@ -140,7 +140,7 @@ Deno.serve(async (req: Request) => {
     ? body.contractVersion.trim().slice(0, 32)
     : "legacy";
   const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
-  const isHybrid2DContract = simulationContract === "hybrid-2d-v1";
+  const isHybrid2DContract = simulationContract === "hybrid-2d-v2";
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -194,7 +194,7 @@ Deno.serve(async (req: Request) => {
       });
     }
     if (isHybrid2DContract && (!body?.guideImageBase64 || body?.guideMimeType !== "image/png")) {
-      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v1 requiere un plano morfológico PNG." }), {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v2 requiere un plano morfológico PNG." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -308,7 +308,7 @@ Deno.serve(async (req: Request) => {
           }
         }
         const promptOpenAI = isHybrid2DContract
-          ? "HYBRID 2D VENEER EDIT. IMAGE 1 is the patient smile crop and is the only source for identity, gingival emergence, perspective, lighting and photographic texture. IMAGE 2 is a same-size abstract morphology control map for maxillary teeth 13-12-11-21-22-23. Use only its six silhouettes to control crown position, relative width, length, contour hierarchy and incisal smile arc. The alpha mask applies to IMAGE 1 and is the absolute edit boundary. Convert the six target silhouettes into natural layered porcelain integrated into the photographed teeth. Do not paste, trace or render the map: its black background, pale fills and white outlines must never appear. Preserve every unmasked pixel exactly. Return only the final photorealistic patient crop. " + prompt
+          ? "HYBRID 2D VENEER EDIT V2. IMAGE 1 is the patient smile crop and is the only source for identity, gingival emergence, perspective, lighting and photographic texture. IMAGE 2 is a same-size abstract morphology control map for maxillary teeth 13-12-11-21-22-23. Use only its six silhouettes to control crown position, relative width, length, contour hierarchy and incisal smile arc. The alpha mask on IMAGE 1 is one connected upper-smile working region, not six tooth cut-outs. Reconstruct all six veneers as one coherent photographic dental edit while keeping six anatomically separate crowns, natural contacts and uninterrupted cervical-to-incisal ceramic on every tooth. Do not return isolated white patches, partial overlays, stickers, floating fragments or unchanged tooth sections inside a veneer. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed even when they fall inside the working region. Do not paste, trace or render IMAGE 2: its black background, pale fills and white outlines must never appear. Return only the final photorealistic patient crop. " + prompt
           : isMeasuredMaskOnlyContract
           ? (simulationContract === "v105"
             ? "V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. The alpha mask was derived directly from six individually identified source crowns and contains no gingiva. Edit only the visible crowns of maxillary veneers 13-12-11-21-22-23 inside that transparent mask. Preserve every pink tissue pixel, lip, lower tooth, premolar and every unmasked pixel exactly as photographed. Follow the six numeric crown envelopes tooth by tooth and keep the cervical margins fixed. Produce six separate natural ceramic veneers with individual anatomy, interproximal separations and subtle optical texture. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
@@ -354,7 +354,7 @@ Deno.serve(async (req: Request) => {
           model: OPENAI_IMAGE_MODEL,
           quality: OPENAI_IMAGE_QUALITY,
           contract: simulationContract,
-          guideMode: isHybrid2DContract ? "hybrid-2d-target-map" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none")),
+          guideMode: isHybrid2DContract ? "hybrid-2d-v2-continuous-smile-roi" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none")),
           attempt: 1,
         }));
 

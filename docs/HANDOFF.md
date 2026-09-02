@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-02 — Codex: hybrid-2d-v2, región continua y bloqueo de parches
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs`,
+`docs/SMYL_HYBRID_2D_V2_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- La evidencia pública de v1 mostró fragmentos blancos sobre esmalte original:
+  la máscara de seis coronas separadas volvía a recortar el render y el control
+  visual trataba los defectos como revisión en lugar de bloquearlos.
+- v2 crea una sola cinta suave alrededor de las seis coronas fuente/objetivo.
+  Esa región se usa tanto para la edición GPT Image 2 como para la composición;
+  las siluetas 13–23 quedan sólo como control geométrico y evidencia de calidad.
+- El contrato bloquea carillas con menos de 42 % de cambio, cambios ausentes en
+  cualquiera de los tercios cervical/medio/incisal, placa plana, artefactos o
+  menos de seis coronas visualmente independientes.
+- Fuera de la región continua se conserva la restauración exacta de píxeles.
+  Calidad `v35`, caché PWA `smyl-v76`, contrato `hybrid-2d-v2`.
+- Pruebas de scripts, contrato y máscaras aprobadas. La vista sintética confirmó
+  una trayectoria conectada y cobertura completa, sin fotografías ni llamadas
+  a servicios. Falta una generación con fotografía expresamente autorizada y
+  el despliegue de backend/frontend.
+
 ## 2026-09-02 — Codex: hybrid-2d-v1, geometría invisible y render fotográfico
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
