@@ -1,4 +1,4 @@
-# SMYL Design Engine v1.2 — contrato de aceptación
+# SMYL Design Engine v1.4 — contrato de aceptación
 
 Fecha: 2026-09-01  
 Estado: prototipo funcional publicado en GitHub Pages; pendiente de prueba
@@ -17,7 +17,7 @@ labio. No intenta todavía igualar el acabado final de un CAD dental 3D.
 
 ## Contrato duro
 
-Una salida `design-v1.2` sólo es válida cuando:
+Una salida `design-v1.4` sólo es válida cuando:
 
 1. El plano contiene exactamente 13–12–11–21–22–23.
 2. Cada pieza genera una corona paramétrica completa y continua.
@@ -27,10 +27,14 @@ Una salida `design-v1.2` sólo es válida cuando:
    labios, piel, arcada inferior ni premolares.
 5. La imagen de salida inicia como una copia de la foto original. Sólo los
    píxeles cubiertos por una de las seis coronas reciben material cerámico.
-6. El flujo principal no consulta cupos, no incrementa usos, no llama a
+6. Cada pieza se rasteriza exactamente una vez. No existe una capa de
+   neutralización, relleno cromático o máscara fuente superpuesta.
+7. Los píxeles candidatos a esmalte se reducen a hitos estadísticos suaves
+   —centro, ancho, cervical e incisal— y nunca se dibujan directamente.
+8. El flujo principal no consulta cupos, no incrementa usos, no llama a
    `segment-teeth` y retorna antes de preparar `editMaskBase64` o llamar al
    proveedor de generación de imágenes.
-7. El resultado se etiqueta como orientativo y exige revisión clínica de
+9. El resultado se etiqueta como orientativo y exige revisión clínica de
    anatomía, margen gingival y tono.
 
 ## Biblioteca y controles implementados
@@ -42,15 +46,17 @@ Una salida `design-v1.2` sólo es válida cuando:
 - Alturas individuales 13–23, limitadas a un rango seguro y dirigidas hacia
   incisal.
 - Tonos VITA, tono actual, intensidad y acabado cerámico.
-- Iluminación, luminancia, dirección de reflejo y microtextura muestreadas de
-  cada pieza original.
-- Opacidad equilibrada con el sustrato fotográfico, sombras interproximales,
-  calidez cervical y translucidez incisal variable. No se admite un relleno
-  blanco plano ni una fila de coronas ópticamente idénticas.
+- Estratificación óptica en una sola capa: dentina cervical cálida, cuerpo de
+  esmalte, mamelones internos, opalescencia, halo incisal, microtextura,
+  periquimatos, surcos de desarrollo y reflexión especular.
+- Iluminación, luminancia y dirección de reflejo muestreadas de cada pieza.
+  La luminancia global se limita a ±2.5 % para que la sombra intraoral aporte
+  relieve sin volver gris una corona completa.
+- Mezcla controlada del sustrato y opacidad decreciente hacia incisal.
 - Re-render desde la foto original para evitar acumulación de capas.
-- Localizador `local-band-v2`: detecta la banda de esmalte por
-  luminancia/croma dentro del recorte y construye las seis cajas anteriores
-  sin transmitir la fotografía fuera del navegador.
+- Localizador `local-landmarks-v4`: usa percentiles de luminancia/croma para
+  corregir seis cajas suaves sin convertir el resultado cromático en máscara.
+  Todo ocurre en el navegador y la fotografía no se transmite.
 
 ## Fuera de alcance de v1
 
@@ -66,9 +72,9 @@ node --test tests\inline-scripts.test.mjs tests\simulation-blueprint.test.mjs su
 ```
 
 La demo `tests/design-engine-v1-demo.html` usa un retrato totalmente sintético.
-Debe mostrar `locator: local-band-v2`, seis coronas en cada una de las tres
-familias, `continuousCrowns: true` y
-`outsideTreatment: original-pixel-source` tanto en escritorio como a 390×844.
+Debe mostrar `locator: local-landmarks-v4`, seis coronas en cada una de las tres
+familias, `continuousCrowns: true`, `singleLayer: true`, las siete capas
+ópticas declaradas y `outsideTreatment: original-pixel-source`.
 
 ## Próximo gate
 

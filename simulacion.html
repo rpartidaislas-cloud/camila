@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build design-v1.2 — anatomía y esmalte natural</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build design-v1.4 — estratificación cerámica</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -8501,7 +8501,7 @@ var _ultimaComparacionDental = null;
 // siluetas completas y editables; el generador fotográfico deja de ser el
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = true;
-var SIM_QUALITY_VERSION = 30;
+var SIM_QUALITY_VERSION = 32;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'v105',
   minimumSourcePieces:6,
@@ -9522,16 +9522,66 @@ function construirPiezasBandaDentalV1(banda,ancho,alto) {
   });
 }
 
+function percentilNumericoV4(valores,ratio) {
+  if(!valores||!valores.length)return 0;
+  var ordenados=valores.slice().sort(function(a,b){return a-b;});
+  return ordenados[Math.max(0,Math.min(ordenados.length-1,Math.round((ordenados.length-1)*ratio)))];
+}
+
+function esPixelEsmalteLocalV4(r,g,b) {
+  var lum=.299*r+.587*g+.114*b;
+  var max=Math.max(r,g,b),min=Math.min(r,g,b),croma=max-min;
+  return lum>74&&g>48&&b>31&&croma<118&&(r-g)<51&&(g-b)<88;
+}
+
+// Extrae únicamente hitos geométricos suaves. Nunca usa la máscara cromática
+// como una segunda capa de pintura: sus percentiles sólo corrigen centro,
+// ancho, margen cervical y borde incisal de cada caja paramétrica.
+function refinarPiezasEsmalteLocalV4(canvas,piezas) {
+  var W=canvas.width,H=canvas.height;
+  var data=canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  return (piezas||[]).map(function(pieza){
+    var x0=Math.max(0,Math.floor(pieza.x-pieza.w*.06));
+    var x1=Math.min(W-1,Math.ceil(pieza.x+pieza.w*1.06));
+    var y0=Math.max(0,Math.floor(pieza.y-pieza.h*.08));
+    var y1=Math.min(H-1,Math.ceil(pieza.y+pieza.h*1.06));
+    var xs=[],ys=[];
+    for(var y=y0;y<=y1;y+=2)for(var x=x0;x<=x1;x+=2){
+      var i=(y*W+x)*4;
+      if(esPixelEsmalteLocalV4(data[i],data[i+1],data[i+2])){xs.push(x);ys.push(y);}
+    }
+    var areaMuestreada=Math.max(1,Math.ceil((x1-x0+1)/2)*Math.ceil((y1-y0+1)/2));
+    var confianza=xs.length/areaMuestreada;
+    if(xs.length<24||confianza<.075)return Object.assign({},pieza,{landmarkConfidence:0});
+    var dx0=percentilNumericoV4(xs,.035),dx1=percentilNumericoV4(xs,.965);
+    var dy0=percentilNumericoV4(ys,.035),dy1=percentilNumericoV4(ys,.975);
+    var dw=limitarPlanoDental((dx1-dx0+1)*1.025,pieza.w*.84,pieza.w*1.075);
+    var dh=limitarPlanoDental((dy1-dy0+1)*1.025,pieza.h*.84,pieza.h*1.075);
+    var dcx=(dx0+dx1)/2;
+    var xRef=limitarPlanoDental(dcx-dw/2,0,Math.max(0,W-dw));
+    var yRef=limitarPlanoDental(dy0-pieza.h*.008,0,Math.max(0,H-dh));
+    return Object.assign({},pieza,{
+      x:pieza.x*.34+xRef*.66,y:pieza.y*.34+yRef*.66,
+      w:pieza.w*.34+dw*.66,h:pieza.h*.34+dh*.66,
+      landmarkConfidence:+confianza.toFixed(3),
+      landmarks:{cervicalY:dy0,incisalY:dy1,centerX:dcx}
+    });
+  });
+}
+
 function construirMapaDentalLocalV1(canvas,view) {
   var banda=detectarBandaDentalContinua(canvas,view||'frontal');
-  var piezas=construirPiezasBandaDentalV1(banda,canvas.width,canvas.height);
+  var cajas=construirPiezasBandaDentalV1(banda,canvas.width,canvas.height);
+  var piezas=refinarPiezasEsmalteLocalV4(canvas,cajas);
   var mascara=document.createElement('canvas');mascara.width=canvas.width;mascara.height=canvas.height;
   var ctx=mascara.getContext('2d');ctx.fillStyle='#fff';
   piezas.forEach(function(pieza){trazarSiluetaPlanoDental(ctx,pieza,1,1);ctx.fill();});
+  var confianzaHitos=piezas.reduce(function(s,p){return s+(Number(p.landmarkConfidence)||0);},0)/Math.max(1,piezas.length);
   return {
     maskUrl:mascara.toDataURL('image/png'),pieces:piezas,
     width:canvas.width,height:canvas.height,rawFragments:0,
-    locator:'local-band-v2',locatorConfidence:+(Number(banda&&banda.confidence)||0).toFixed(3)
+    locator:'local-landmarks-v4',locatorConfidence:+Math.min(Number(banda&&banda.confidence)||0,confianzaHitos||0).toFixed(3),
+    landmarkMetrics:{meanConfidence:+confianzaHitos.toFixed(3),pieces:piezas.map(function(p){return {id:p.id,confidence:p.landmarkConfidence||0};})}
   };
 }
 
@@ -9587,29 +9637,37 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
   var separacion = Math.max(.8, anchoCentral*.028);
   var roles = ['canine','lateral','central','central','lateral','canine'];
   var ids = ['13','12','11','21','22','23'];
-  var anchos = [anchoCanino,anchoLateral,anchoCentral,anchoCentral,anchoLateral,anchoCanino];
-  var altos = [altoCanino,altoLateral,altoCentral,altoCentral,altoLateral,altoCanino];
+  var anchosIdeales = [anchoCanino,anchoLateral,anchoCentral,anchoCentral,anchoLateral,anchoCanino];
+  var altosIdeales = [altoCanino,altoLateral,altoCentral,altoCentral,altoLateral,altoCanino];
+  // Una sola corona cubre por completo la caja fuente suavizada.
+  var anchos=anchosIdeales.map(function(valor,indice){
+    return limitarPlanoDental(Math.max(valor,anteriores[indice].w*1.025),valor*.97,valor*1.105);
+  });
+  var altos=altosIdeales.map(function(valor,indice){
+    return limitarPlanoDental(Math.max(valor,anteriores[indice].h*1.018),anteriores[indice].h*.98,anteriores[indice].h*1.12);
+  });
   var centros = [];
-  centros[2] = lineaMedia-separacion/2-anchoCentral/2;
-  centros[3] = lineaMedia+separacion/2+anchoCentral/2;
-  centros[1] = centros[2]-(anchoCentral+anchoLateral)/2-separacion;
-  centros[4] = centros[3]+(anchoCentral+anchoLateral)/2+separacion;
-  centros[0] = centros[1]-(anchoLateral+anchoCanino)/2-separacion;
-  centros[5] = centros[4]+(anchoLateral+anchoCanino)/2+separacion;
+  centros[2] = lineaMedia-separacion/2-anchos[2]/2;
+  centros[3] = lineaMedia+separacion/2+anchos[3]/2;
+  centros[1] = centros[2]-(anchos[2]+anchos[1])/2-separacion;
+  centros[4] = centros[3]+(anchos[3]+anchos[4])/2+separacion;
+  centros[0] = centros[1]-(anchos[1]+anchos[0])/2-separacion;
+  centros[5] = centros[4]+(anchos[4]+anchos[5])/2+separacion;
   var objetivos = ids.map(function(id,indice){
     var original=anteriores[indice],w=anchos[indice];
     // El margen cervical permanece donde lo detectó el diente fuente. Toda
     // variación de longitud se dirige hacia el borde incisal, nunca hacia la
     // encía. Además se limita a un máximo conservador de 12 % por corona.
     var ajusteAltura=limitarPlanoDental((Number(ajustesAltura[indice])||0)/100,-.12,.12);
-    var h=limitarPlanoDental(altos[indice]*(1+ajusteAltura),original.h*.90,original.h*1.12);
+    var h=limitarPlanoDental(altos[indice]*(1+ajusteAltura),original.h*.98,original.h*1.12);
     return {
       id:id, role:roles[indice], side:indice<3?'right':'left',
       family:opciones.family||'rectangular-soft',
       x:limitarPlanoDental(centros[indice]-w/2,0,Math.max(0,ancho-w)),
       y:limitarPlanoDental(original.y,0,Math.max(0,alto-h)),
       w:w,h:h,
-      original:original
+      original:original,
+      naturalVariation:[-.012,.009,.006,-.005,.011,-.010][indice]
     };
   });
   var anchosObjetivo = objetivos.map(function(p){return p.w;});
@@ -9621,9 +9679,9 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
     family:opciones.family||'rectangular-soft',
     width:ancho,height:alto,pieces:objetivos,
     targetMetrics:{
-      centralWidthHeight:anchoCentral/altoCentral,
-      lateralToCentral:anchoLateral/anchoCentral,
-      canineToCentral:anchoCanino/anchoCentral,
+      centralWidthHeight:medianaNumerica([objetivos[2].w/objetivos[2].h,objetivos[3].w/objetivos[3].h]),
+      lateralToCentral:medianaNumerica([objetivos[1].w,objetivos[4].w])/medianaNumerica([objetivos[2].w,objetivos[3].w]),
+      canineToCentral:medianaNumerica([objetivos[0].w,objetivos[5].w])/medianaNumerica([objetivos[2].w,objetivos[3].w]),
       centralWidthAsymmetry:0,
       incisalRange:(Math.max.apply(null,fondosObjetivo)-Math.min.apply(null,fondosObjetivo))/altoCentral,
       lateralStep:(fondoCentral-fondoLateral)/altoCentral,
@@ -9635,9 +9693,11 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
 function trazarSiluetaPlanoDental(ctx, pieza, escalaX, escalaY) {
   var x=pieza.x*escalaX,y=pieza.y*escalaY,w=pieza.w*escalaX,h=pieza.h*escalaY;
   var cx=x+w/2,izq=x,der=x+w,abajo=y+h;
-  var cervical=pieza.family==='triangular'?.22:(pieza.family==='oval'?.36:(pieza.role==='lateral'?.32:.30));
+  var variacion=Number(pieza.naturalVariation)||0;
+  var cervical=pieza.family==='triangular'?.34:(pieza.family==='oval'?.45:(pieza.role==='lateral'?.41:(pieza.role==='canine'?.39:.43)));
+  var cervicalIzq=cervical*(1+variacion),cervicalDer=cervical*(1-variacion);
   ctx.beginPath();
-  ctx.moveTo(cx-w*cervical,y);
+  ctx.moveTo(cx-w*cervicalIzq,y);
   if(pieza.role==='canine'){
     // La cúspide canina es baja, redondeada y ligeramente mesial. La versión
     // anterior terminaba en un vértice central que parecía una figura pegada.
@@ -9649,11 +9709,11 @@ function trazarSiluetaPlanoDental(ctx, pieza, escalaX, escalaY) {
     var redondeo=pieza.family==='oval'?.24:(pieza.role==='lateral'?.20:.14);
     var elevacionBorde=pieza.role==='lateral'?h*.018:h*.010;
     ctx.bezierCurveTo(izq+w*.08,y+h*.12,izq,y+h*.57,izq+w*.075,y+h*.83);
-    ctx.bezierCurveTo(izq+w*redondeo,abajo-elevacionBorde,izq+w*.34,abajo,cx,abajo-h*.006);
-    ctx.bezierCurveTo(der-w*.34,abajo,der-w*redondeo,abajo-elevacionBorde,der-w*.075,y+h*.83);
+    ctx.bezierCurveTo(izq+w*redondeo*(1+variacion),abajo-elevacionBorde,izq+w*.34,abajo,cx,abajo-h*(.006+variacion*.12));
+    ctx.bezierCurveTo(der-w*.34,abajo,der-w*redondeo*(1-variacion),abajo-elevacionBorde,der-w*.075,y+h*.83);
   }
-  ctx.bezierCurveTo(der,y+h*.58,der-w*.08,y+h*.12,cx+w*cervical,y);
-  ctx.bezierCurveTo(cx+w*.16,y-h*.025,cx-w*.16,y-h*.025,cx-w*cervical,y);
+  ctx.bezierCurveTo(der,y+h*.58,der-w*.08,y+h*.12,cx+w*cervicalDer,y);
+  ctx.bezierCurveTo(cx+w*.18,y-h*.018,cx-w*.18,y-h*.018,cx-w*cervicalIzq,y);
   ctx.closePath();
 }
 
@@ -9696,16 +9756,43 @@ function resolverMaterialCarillaV1(shade,opciones) {
   return {
     rgb:rgb,
     current:opciones.vitaMode==='current',
-    // La cerámica conserva parte del relieve y la luz del esmalte fuente. Una
-    // opacidad de 96–99 % convertía el resultado en seis pegatinas blancas.
-    opacity:intensidad==='subtle'?.76:(intensidad==='notable'?.90:.84),
-    edgeShade:intensidad==='notable'?.155:.135,
-    highlight:acabado==='luminous'?.085:(acabado==='translucent'?.067:.055),
+    opacity:intensidad==='subtle'?.78:(intensidad==='notable'?.91:.86),
+    substrateMix:intensidad==='subtle'?.22:(intensidad==='notable'?.09:.15),
+    edgeShade:intensidad==='notable'?.135:.12,
+    highlight:acabado==='luminous'?.082:(acabado==='translucent'?.064:.052),
     incisalCool:acabado==='translucent'?10:(acabado==='luminous'?7:5),
-    incisalTransparency:acabado==='translucent'?.24:(acabado==='luminous'?.14:.18),
-    sourceTexture:intensidad==='subtle'?.62:(intensidad==='notable'?.43:.54),
-    cervicalWarmth:acabado==='luminous'?4:7,
-    texture:acabado==='luminous'?.7:1.15
+    incisalTransparency:acabado==='translucent'?.34:(acabado==='luminous'?.18:.25),
+    sourceTexture:intensidad==='subtle'?.66:(intensidad==='notable'?.46:.58),
+    cervicalWarmth:acabado==='luminous'?4.5:8,
+    dentinDepth:intensidad==='notable'?6.5:5.2,
+    opalescence:acabado==='translucent'?8.5:(acabado==='luminous'?5.5:6.5),
+    incisalHalo:acabado==='luminous'?8:(acabado==='translucent'?6.5:5),
+    mamelonStrength:acabado==='translucent'?4.2:3.2,
+    texture:acabado==='luminous'?1.15:1.8
+  };
+}
+
+function resolverEstratificacionCarillaV4(material,u,v,indice,highlightU,x,y) {
+  var cervical=Math.pow(Math.max(0,1-v/.34),1.18);
+  var incisal=limitarPlanoDental((v-.68)/.32,0,1);
+  var borde=Math.pow(Math.abs(u-.5)*2,1.62);
+  var espejo=Math.exp(-Math.pow((u-highlightU)/.092,2))*Math.max(0,1-v*.78);
+  var nucleoDentina=Math.exp(-Math.pow((u-.5)/.31,2))*Math.pow(Math.max(0,1-v),.72);
+  var ventanaMamelon=limitarPlanoDental((v-.61)/.15,0,1)*(1-limitarPlanoDental((v-.93)/.07,0,1));
+  var fase=(u+indice*.026)*Math.PI*6;
+  var mamelon=Math.max(0,Math.cos(fase))*ventanaMamelon;
+  var halo=Math.exp(-Math.pow((v-.965)/.028,2))*Math.pow(Math.max(0,1-Math.abs(u-.5)*1.28),.45);
+  var surcos=(Math.exp(-Math.pow((u-.29)/.048,2))+Math.exp(-Math.pow((u-.71)/.048,2)))*Math.sin(Math.PI*v);
+  var periquimatos=Math.sin(v*Math.PI*25+indice*.73)*Math.pow(Math.sin(Math.PI*v),2);
+  var micro=(Math.sin((x+indice*17)*.31)+Math.sin((y-indice*11)*.19))*.5;
+  return {
+    cervical:cervical,incisal:incisal,
+    lightFactor:1-borde*material.edgeShade+espejo*material.highlight+nucleoDentina*(material.dentinDepth/255),
+    warmShift:cervical*material.cervicalWarmth+mamelon*material.mamelonStrength,
+    coolShift:incisal*material.opalescence,
+    haloShift:halo*material.incisalHalo,
+    textureShift:-surcos*2.1+periquimatos*.72+micro*material.texture,
+    opacity:material.opacity*(1-incisal*material.incisalTransparency)
   };
 }
 
@@ -9742,7 +9829,9 @@ function analizarTexturaFuenteCarillaV2(pixels,W,H,pieza,sx,sy) {
   };
 }
 
-// SMYL Design Engine v1.2: transforma seis cajas dentales verificadas en seis
+// SMYL Design Engine v1.4: cada pieza se compone una sola vez con una
+// estratificación óptica continua. Los hitos cromáticos sólo corrigen la caja
+// geométrica; nunca se convierten en una segunda máscara visible.
 // coronas continuas. Cada diente se renderiza por separado desde una silueta
 // paramétrica; la fotografía aporta iluminación, relieve y microtextura. La
 // estratificación cervical–cuerpo–incisal evita el blanco plano y los caninos
@@ -9795,30 +9884,23 @@ async function renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opci
       var lum=.299*sr+.587*sg+.114*sb;
       lumAcumulada+=lum;activos++;
 
-      var baseR=material.current?sr:material.rgb.r;
-      var baseG=material.current?sg:material.rgb.g;
-      var baseB=material.current?sb:material.rgb.b;
-      var luzAmbiente=material.current?1:(.91+limitarPlanoDental((perfil.mean-150)/255,-.055,.045));
-      var borde=Math.pow(Math.abs(u-.5)*2,1.55)*material.edgeShade;
-      var cervical=Math.max(0,1-v/.24);
-      var incisal=Math.max(0,(v-.78)/.22);
-      var brillo=Math.exp(-Math.pow((u-perfil.highlightU)/.105,2))*Math.max(0,1-v*.72)*material.highlight;
-      var deltaFuente=limitarPlanoDental((lum-perfil.mean)*material.sourceTexture,-20,20);
-      var residualR=(sr-lum)*.10,residualG=(sg-lum)*.08,residualB=(sb-lum)*.07;
-      var surcos=-2.2*(Math.exp(-Math.pow((u-.285)/.050,2))+Math.exp(-Math.pow((u-.715)/.050,2)))*Math.sin(Math.PI*v);
-      var mamelones=incisal*Math.sin((u*.96+indice*.07)*Math.PI*5)*1.35;
-      var grano=(Math.sin((x+indice*19)*.29)+Math.sin((y-indice*13)*.17))*.5*material.texture;
+      var mezclaSustrato=material.current?1:material.substrateMix;
+      var baseR=material.current?sr:material.rgb.r*(1-mezclaSustrato)+sr*mezclaSustrato;
+      var baseG=material.current?sg:material.rgb.g*(1-mezclaSustrato)+sg*mezclaSustrato;
+      var baseB=material.current?sb:material.rgb.b*(1-mezclaSustrato)+sb*mezclaSustrato;
+      var luzAmbiente=material.current?1:(.955+limitarPlanoDental((perfil.mean-170)/255,-.025,.025));
+      var optica=resolverEstratificacionCarillaV4(material,u,v,indice,perfil.highlightU,x,y);
+      var deltaFuente=limitarPlanoDental((lum-perfil.mean)*material.sourceTexture,-18,18);
+      var residualR=(sr-lum)*.07,residualG=(sg-lum)*.055,residualB=(sb-lum)*.05;
       var rol=pieza.role==='central'?1:(pieza.role==='lateral'?.993:.986);
-      var factor=(luzAmbiente-borde+brillo+variacionIdentidad)*rol;
-      var calidez=material.cervicalWarmth*cervical;
-      var r=baseR*factor+deltaFuente+residualR+grano+surcos+mamelones+calidez-2*incisal;
-      var g=baseG*factor+deltaFuente+residualG+grano+surcos+mamelones+calidez*.28+2*incisal;
-      var b=baseB*factor+deltaFuente+residualB+grano+surcos+mamelones-calidez*.55+material.incisalCool*incisal;
-      var opacidadLocal=material.opacity*(1-incisal*material.incisalTransparency);
+      var factor=(luzAmbiente+variacionIdentidad)*rol*optica.lightFactor;
+      var r=baseR*factor+deltaFuente+residualR+optica.textureShift+optica.warmShift+optica.haloShift-optica.coolShift*.18;
+      var g=baseG*factor+deltaFuente+residualG+optica.textureShift+optica.warmShift*.28+optica.haloShift+optica.coolShift*.20;
+      var b=baseB*factor+deltaFuente+residualB+optica.textureShift-optica.warmShift*.52+optica.haloShift+optica.coolShift+material.incisalCool*optica.incisal*.28;
       datos.data[pi]=limitarCanalCarillaV1(r);
       datos.data[pi+1]=limitarCanalCarillaV1(g);
       datos.data[pi+2]=limitarCanalCarillaV1(b);
-      datos.data[pi+3]=limitarCanalCarillaV1(255*alfa*opacidadLocal);
+      datos.data[pi+3]=limitarCanalCarillaV1(255*alfa*optica.opacity);
     }
     capaCtx.putImageData(datos,0,0);
     salidaCtx.drawImage(capa,0,0);
@@ -9837,9 +9919,13 @@ async function renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opci
     url:salida.toDataURL('image/png'),
     maskUrl:renderizarMascaraObjetivoDental(plano,W,H).toDataURL('image/png'),
     metrics:{
-      engine:'smyl-design-engine-v1.2',
+      engine:'smyl-design-engine-v1.4',
       library:plano.family||'rectangular-soft',
-      material:{opacity:material.opacity,sourceTexture:material.sourceTexture,incisalTransparency:material.incisalTransparency},
+      material:{
+        singleLayer:true,opacity:material.opacity,substrateMix:material.substrateMix,
+        sourceTexture:material.sourceTexture,incisalTransparency:material.incisalTransparency,
+        stratification:['cervical-dentin','enamel-body','mamelons','opalescent-incisal','incisal-halo','microtexture','specular-reflection']
+      },
       crowns:metricas,
       continuousCrowns:metricas.length===6&&metricas.every(function(item){return item.continuous;}),
       outsideTreatment:'original-pixel-source'
@@ -9972,7 +10058,7 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   var mapa;
   if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
     var mapaGuardado=S.dentalMapByView&&S.dentalMapByView[clave];
-    mapa=mapaGuardado&&mapaGuardado.locator==='local-band-v2'
+    mapa=mapaGuardado&&mapaGuardado.locator==='local-landmarks-v4'
       ?mapaGuardado:construirMapaDentalLocalV1(canvas,view||'frontal');
     if(!S.dentalMapByView)S.dentalMapByView={};
     S.dentalMapByView[clave]=mapa;
@@ -10003,6 +10089,7 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   plano.captureMetrics=captura.metrics;
   plano.locator=mapa.locator||'remote-instance-segmentation';
   plano.locatorConfidence=Number(mapa.locatorConfidence)||0;
+  plano.landmarkMetrics=mapa.landmarkMetrics||null;
   plano.prompt=construirPrescripcionNumericaV104(plano);
   return plano;
 }

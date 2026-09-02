@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-02 — Codex: design-v1.4, compositor cerámico de una capa
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/design-engine-v1-demo.html`,
+`docs/SMYL_DESIGN_ENGINE_V1_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- Design-v1.3 fue revertido en el commit `e48e581` porque una máscara cromática
+  se pintaba debajo de las coronas y producía bordes serrados, duplicados y
+  fragmentos blancos. La reversión segura se publicó antes de esta reconstrucción.
+- Design-v1.4 vuelve a una única silueta Bézier continua por pieza. El análisis
+  cromático sólo genera hitos estadísticos suaves de posición y tamaño mediante
+  `local-landmarks-v4`; ningún píxel de esa clasificación se pinta directamente.
+- El destino cubre conservadoramente la caja fuente para evitar halos del
+  esmalte antiguo sin añadir una segunda capa.
+- `resolverEstratificacionCarillaV4` modela dentina cervical, cuerpo de esmalte,
+  mamelones, opalescencia, halo incisal, microtextura/periquimatos y reflejo
+  especular. La opacidad disminuye hacia incisal y mezcla una porción controlada
+  del sustrato fotográfico.
+- La luminancia ambiental queda limitada a ±2.5 %, evitando caninos grises por
+  la sombra de la boca. Cada pieza conserva variaciones ópticas pequeñas para
+  evitar una fila clonada.
+- Build `design-v1.4`, calidad `v32`, caché PWA `smyl-v73`.
+- QA sólo con retrato sintético: pruebas inline/contrato/máscara aprobadas y
+  revisión visual de las tres familias. No se añadió ninguna foto de paciente.
+- No se modificó backend, prompts de IA ni configuración nativa.
+
 ## 2026-09-01 — Codex: design-v1.2, anatomía y esmalte natural
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
