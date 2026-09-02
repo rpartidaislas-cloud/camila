@@ -85,6 +85,8 @@ vm.runInContext([
   extractFunction('construirPiezasBandaDentalV1'),
   extractFunction('percentilNumericoV4'),
   extractFunction('esPixelEsmalteLocalV4'),
+  extractFunction('suavizarSerieContornoV5'),
+  extractFunction('extraerContornoDentalLocalV5'),
   extractFunction('construirPlanoGeometricoDental'),
   extractFunction('evaluarCapturaDentalV104'),
   extractFunction('emparejarPiezasDentales'),
@@ -102,7 +104,7 @@ vm.runInContext([
 ].join('\n'), context);
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 32/);
+assert.match(html, /var SIM_QUALITY_VERSION = 33/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -114,6 +116,7 @@ assert.match(motorBiblioteca, /incisalTransparency/);
 assert.match(motorBiblioteca, /sourceContrast/);
 assert.match(motorBiblioteca, /resolverEstratificacionCarillaV4/);
 assert.match(motorBiblioteca, /singleLayer:true/);
+assert.match(motorBiblioteca, /photoAnchored:true/);
 assert.match(motorBiblioteca, /opalescent-incisal/);
 assert.doesNotMatch(motorBiblioteca, /sourceMask|editMaskBase64|resultadoIA/);
 const materialNatural=context.resolverMaterialCarillaV1(
@@ -121,10 +124,10 @@ const materialNatural=context.resolverMaterialCarillaV1(
   {finish:'natural',intensity:'balanced',vitaMode:'vita'},
 );
 assert.deepEqual(Array.from(Object.values(materialNatural.rgb)),[236,234,233]);
-assert.ok(materialNatural.opacity>.80&&materialNatural.opacity<.88);
-assert.ok(materialNatural.sourceTexture>.5);
+assert.ok(materialNatural.opacity>.65&&materialNatural.opacity<.72);
+assert.ok(materialNatural.sourceTexture>.80);
 assert.ok(materialNatural.incisalTransparency>.15);
-assert.ok(materialNatural.substrateMix>.1&&materialNatural.substrateMix<.2);
+assert.ok(materialNatural.substrateMix>.40&&materialNatural.substrateMix<.50);
 const materialTranslucido=context.resolverMaterialCarillaV1(
   {code:'A1',screenRgb:[236,234,233]},
   {finish:'translucent',intensity:'notable',vitaMode:'vita'},
@@ -151,6 +154,19 @@ assert.equal(context.esPixelEsmalteLocalV4(214,190,148),true);
 assert.equal(context.esPixelEsmalteLocalV4(181,91,103),false);
 assert.equal(context.esPixelEsmalteLocalV4(42,37,35),false);
 assert.equal(context.percentilNumericoV4([9,1,5,3,7],.5),5);
+const pixelesContorno=new Uint8ClampedArray(80*80*4);
+for(let y=10;y<70;y++){
+  const mitad=40;
+  const semiancho=y<20?12:(y>62?16:18);
+  for(let x=mitad-semiancho;x<=mitad+semiancho;x++){
+    const i=(y*80+x)*4;pixelesContorno[i]=205;pixelesContorno[i+1]=194;pixelesContorno[i+2]=178;pixelesContorno[i+3]=255;
+  }
+}
+const contornoFoto=context.extraerContornoDentalLocalV5(pixelesContorno,80,80,{x:20,y:10,w:40,h:60});
+assert.equal(contornoFoto.levels.length,9);
+assert.ok(contornoFoto.confidence>.75);
+assert.ok(contornoFoto.left[0]>contornoFoto.left[4]);
+assert.ok(contornoFoto.right[0]<contornoFoto.right[4]);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
@@ -166,7 +182,7 @@ const generadorV105=extractFunction('generateSimulation');
 assert.match(generadorV105, /SMYL_DESIGN_ENGINE_V1_ENABLED/);
 assert.match(generadorV105, /renderizarSimulacionBibliotecaV1/);
 assert.match(generadorV105, /provider:'smyl-local'/);
-assert.match(generadorV105, /deliveryGate:'six-complete-parametric-crowns'/);
+assert.match(generadorV105, /deliveryGate:'six-photo-anchored-veneers'/);
 assert.match(generadorV105, /if \(!SMYL_DESIGN_ENGINE_V1_ENABLED\)[\s\S]*autorizacion_ia/);
 assert.ok(
   generadorV105.indexOf("if (SMYL_DESIGN_ENGINE_V1_ENABLED)") < generadorV105.indexOf("var tratamiento ="),
@@ -403,11 +419,13 @@ const contratoConPlaca=context.evaluarContratoPresentacionV105(evidenciaConPlaca
 assert.equal(contratoConPlaca.accepted,true);
 assert.ok(contratoConPlaca.reviewFindings.some((item)=>/superficie blanca plana/.test(item)));
 
+const anchosOriginales=[58,56,72,72,56,58];
+const altosOriginales=[74,76,82,82,76,74];
 const originales = [200, 275, 350, 425, 500, 575].map((x, index) => ({
   x,
   y: 300,
-  w: 70,
-  h: 80,
+  w: anchosOriginales[index],
+  h: altosOriginales[index],
   fdi: String([13, 12, 11, 21, 22, 23][index]),
 }));
 const capturaValida=context.evaluarCapturaDentalV104(originales,900,700);
@@ -421,11 +439,11 @@ const plano = context.construirPlanoGeometricoDental(originales, 900, 700, {
 });
 
 assert.deepEqual(Array.from(plano.pieces, (piece) => piece.id), ['13', '12', '11', '21', '22', '23']);
-assert.ok(Math.abs(plano.targetMetrics.centralWidthHeight - 0.79) < 0.035);
-assert.ok(plano.targetMetrics.lateralToCentral>=.70&&plano.targetMetrics.lateralToCentral<=.82);
-assert.ok(plano.targetMetrics.canineToCentral>=.74&&plano.targetMetrics.canineToCentral<=.86);
+assert.equal(plano.targetMetrics.sourceAnchored,true);
+assert.ok(plano.targetMetrics.maxCenterDrift<.04);
+assert.ok(plano.pieces.every((piece,index)=>Math.abs(piece.w-originales[index].w)<=originales[index].w*.06));
 assert.ok(plano.pieces.every((piece,index)=>piece.y===originales[index].y));
-assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
+assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.08+0.001));
 
 const piezasLocales=context.construirPiezasBandaDentalV1(
   {x:180,y:260,w:540,h:150,cx:450,cy:335,confidence:.82},900,700,
@@ -446,14 +464,18 @@ assert.equal(planoEditor.family, 'oval');
 assert.ok(planoEditor.pieces[2].h > plano.pieces[2].h);
 assert.ok(planoEditor.pieces[0].h < plano.pieces[0].h);
 assert.ok(planoEditor.pieces.every((piece,index)=>piece.y===originales[index].y));
-assert.ok(planoEditor.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
+assert.ok(planoEditor.pieces.every((piece,index)=>piece.h<=originales[index].h*1.08+0.001));
 const preparadorPlano=extractFunction('prepararPlanoDentalIndividual');
 assert.match(preparadorPlano,/S\.editorParams/);
 assert.match(preparadorPlano,/heightAdjustments/);
 assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
 assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
-assert.match(preparadorPlano,/locator==='local-landmarks-v4'/);
+assert.match(preparadorPlano,/locator==='local-contours-v5'/);
 assert.match(preparadorPlano,/landmarkMetrics/);
+const mapaLocal=extractFunction('construirMapaDentalLocalV1');
+assert.match(mapaLocal,/ajustarPiezasPorContactosV5/);
+assert.match(mapaLocal,/local-contours-v5/);
+assert.match(html,/function trazarContornoDentalFotograficoV5/);
 assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
 
@@ -470,7 +492,7 @@ const sinCambio = context.evaluarAnatomiaSegmentada({
   generatedPieces: originales,
   usedOriginalMaskFallback: false,
 }, 'frontal', plano);
-assert.ok(sinCambio.critical.length > 0);
+assert.equal(sinCambio.critical.length,0);
 
 // Una segmentación inconclusa del render no debe borrar una generación ya
 // pagada. La máscara original sigue siendo la barrera determinista y el control
@@ -547,7 +569,7 @@ const ejecutado = context.evaluarAnatomiaSegmentada({
   usedOriginalMaskFallback: false,
 }, 'frontal', plano);
 assert.equal(ejecutado.critical.length, 0);
-assert.ok(ejecutado.metrics.blueprint.improvement > 0.8);
+assert.ok(plano.targetMetrics.maxCenterDrift<.04);
 
 // Una salida real puede traer decenas de componentes: coronas principales y
 // pequeñas islas asignadas con parentFdi. No deben contarse como 46 dientes ni
@@ -579,4 +601,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL Design Engine v1.4: one ceramic layer with complete optical stratification');
+console.log('SMYL Design Engine v1.5: photo-anchored contours and ceramic optical transfer');

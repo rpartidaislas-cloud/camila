@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-02 — Codex: design-v1.5, carillas ancladas a la anatomía fotográfica
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/design-engine-v1-demo.html`,
+`docs/SMYL_DESIGN_ENGINE_V1_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- La captura real de v1.4 mostró que la estratificación óptica mejoró, pero las
+  seis cajas todavía se redistribuían sobre una retícula ideal y producían
+  dientes grandes, uniformes y separados de su anatomía fuente.
+- `local-contours-v5` toma nueve perfiles transversales por diente y los
+  convierte en curvas suaves. La clasificación cromática sólo calcula esos
+  perfiles: sus píxeles nunca se pintan ni llegan al resultado.
+- El objetivo conserva 88 % de la posición fotográfica y limita a 12 % la
+  armonización bilateral; ancho, longitud y centro sólo cambian dentro de
+  márgenes conservadores. Contactos, perspectiva y margen cervical tienen
+  prioridad sobre una proporción matemática rígida.
+- El compositor mezcla más sustrato, conserva aproximadamente el doble de
+  microcontraste fuente y reduce la opacidad del material. Sigue aplicando
+  dentina, esmalte, mamelones, opalescencia, halo y microtextura en una sola
+  capa por pieza.
+- Build `design-v1.5`, calidad `v33`, caché PWA `smyl-v74`.
+- Pruebas automáticas y QA sintético aprobados en escritorio, tableta 834×1194
+  y móvil 390×844, sin fotografías de pacientes. Publicado en GitHub Pages;
+  pendiente de una validación controlada con imagen expresamente autorizada.
+- No se modificó backend, prompts de IA ni configuración nativa.
+
 ## 2026-09-02 — Codex: design-v1.4, compositor cerámico de una capa
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

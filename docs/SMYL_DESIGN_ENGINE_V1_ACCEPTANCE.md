@@ -1,15 +1,15 @@
-# SMYL Design Engine v1.4 — contrato de aceptación
+# SMYL Design Engine v1.5 — contrato de aceptación
 
 Fecha: 2026-09-01  
-Estado: prototipo funcional publicado en GitHub Pages; pendiente de prueba
+Estado: reconstrucción fotográfica publicada; pendiente de prueba
 controlada con fotografía autorizada.
 
 ## Objetivo
 
-Sustituir la composición de una imagen generada a través de máscaras dentales
-fragmentadas por un flujo de diseño reproducible: localizar seis dientes,
-construir seis coronas completas desde una biblioteca paramétrica y renderizar
-material cerámico dentro de esas siluetas.
+Localizar seis dientes y transferir material cerámico conservando el centro,
+eje, perspectiva, volumen y contorno suavizado de cada pieza fotografiada. La
+geometría ideal sólo corrige de forma conservadora; nunca recoloca la dentadura
+en una retícula genérica.
 
 Esta versión resuelve estructuralmente el defecto observado en producción:
 parches blancos rectangulares y costuras horizontales sobre dientes, encía o
@@ -17,20 +17,22 @@ labio. No intenta todavía igualar el acabado final de un CAD dental 3D.
 
 ## Contrato duro
 
-Una salida `design-v1.4` sólo es válida cuando:
+Una salida `design-v1.5` sólo es válida cuando:
 
 1. El plano contiene exactamente 13–12–11–21–22–23.
-2. Cada pieza genera una corona paramétrica completa y continua.
-3. La anatomía procede de `trazarSiluetaPlanoDental`; las máscaras segmentadas
-   de origen no se usan para recortar el material final.
+2. Cada pieza genera una carilla completa y continua sobre su diente fuente.
+3. `extraerContornoDentalLocalV5` resume la fotografía en nueve secciones y
+   `trazarContornoDentalFotograficoV5` las convierte en una curva continua; los
+   píxeles clasificados nunca se pintan ni aparecen como borde dentado.
 4. El suavizado del perímetro crece hacia dentro y no abre píxeles sobre encía,
    labios, piel, arcada inferior ni premolares.
 5. La imagen de salida inicia como una copia de la foto original. Sólo los
    píxeles cubiertos por una de las seis coronas reciben material cerámico.
 6. Cada pieza se rasteriza exactamente una vez. No existe una capa de
    neutralización, relleno cromático o máscara fuente superpuesta.
-7. Los píxeles candidatos a esmalte se reducen a hitos estadísticos suaves
-   —centro, ancho, cervical e incisal— y nunca se dibujan directamente.
+7. Los centros se conservan dentro de una deriva máxima conservadora; los
+   contactos y la perspectiva fuente tienen prioridad sobre proporciones
+   matemáticas rígidas.
 8. El flujo principal no consulta cupos, no incrementa usos, no llama a
    `segment-teeth` y retorna antes de preparar `editMaskBase64` o llamar al
    proveedor de generación de imágenes.
@@ -42,20 +44,20 @@ Una salida `design-v1.4` sólo es válida cuando:
 - Familias: `rectangular-soft`, `oval` y `triangular`.
 - Roles anatómicos distintos: centrales, laterales y caninos; la cúspide
   canina es redondeada y ligeramente mesial, nunca un vértice geométrico.
-- Tamaño global conservador, anclado al margen cervical detectado.
+- Tamaño global conservador, anclado al margen cervical, centro y eje detectados.
 - Alturas individuales 13–23, limitadas a un rango seguro y dirigidas hacia
   incisal.
 - Tonos VITA, tono actual, intensidad y acabado cerámico.
 - Estratificación óptica en una sola capa: dentina cervical cálida, cuerpo de
   esmalte, mamelones internos, opalescencia, halo incisal, microtextura,
   periquimatos, surcos de desarrollo y reflexión especular.
-- Iluminación, luminancia y dirección de reflejo muestreadas de cada pieza.
-  La luminancia global se limita a ±2.5 % para que la sombra intraoral aporte
-  relieve sin volver gris una corona completa.
-- Mezcla controlada del sustrato y opacidad decreciente hacia incisal.
+- Iluminación, luminancia, croma residual, microcontraste y dirección de reflejo
+  muestreados de cada pieza para conservar el volumen de la fotografía.
+- Mezcla dominante del sustrato fotográfico y opacidad decreciente hacia
+  incisal; la cerámica recolorea el diente en lugar de taparlo con blanco plano.
 - Re-render desde la foto original para evitar acumulación de capas.
-- Localizador `local-landmarks-v4`: usa percentiles de luminancia/croma para
-  corregir seis cajas suaves sin convertir el resultado cromático en máscara.
+- Localizador `local-contours-v5`: usa hitos y nueve perfiles transversales para
+  conservar la silueta individual sin convertir el resultado cromático en máscara.
   Todo ocurre en el navegador y la fotografía no se transmite.
 
 ## Fuera de alcance de v1
@@ -72,9 +74,9 @@ node --test tests\inline-scripts.test.mjs tests\simulation-blueprint.test.mjs su
 ```
 
 La demo `tests/design-engine-v1-demo.html` usa un retrato totalmente sintético.
-Debe mostrar `locator: local-landmarks-v4`, seis coronas en cada una de las tres
-familias, `continuousCrowns: true`, `singleLayer: true`, las siete capas
-ópticas declaradas y `outsideTreatment: original-pixel-source`.
+Debe mostrar `locator: local-contours-v5`, seis carillas en cada una de las tres
+familias, `continuousCrowns: true`, `singleLayer: true`, `photoAnchored: true`,
+las siete capas ópticas declaradas y `outsideTreatment: original-pixel-source`.
 
 ## Próximo gate
 
