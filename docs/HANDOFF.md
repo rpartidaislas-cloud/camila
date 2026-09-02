@@ -26,7 +26,8 @@
   sin desbordamiento horizontal ni errores de consola.
 - Edge Function `claude` versión 66 desplegada y verificada `ACTIVE`; conservó
   `verify_jwt=false` por autorización explícita del usuario. El frontend híbrido
-  se publicó en GitHub Pages desde `main`.
+  se publicó en GitHub Pages desde su rama configurada
+  `claude/camila-claude-clinical-analysis-sywxjv`; `main` quedó intacta.
 - La publicación y su verificación no ejecutaron una simulación, no subieron
   fotografías y no consumieron una generación. Sigue pendiente una validación
   controlada con una fotografía expresamente autorizada.
