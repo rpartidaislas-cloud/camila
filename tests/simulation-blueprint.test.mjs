@@ -103,8 +103,9 @@ vm.runInContext([
   extractFunction('analizarTexturaFuenteCarillaV2'),
 ].join('\n'), context);
 
-assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 33/);
+assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
+assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
+assert.match(html, /var SIM_QUALITY_VERSION = 34/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -170,14 +171,14 @@ assert.ok(contornoFoto.right[0]<contornoFoto.right[4]);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'v105-safe-delivery-clinical-review'/);
+assert.match(compositorSeguro, /deliveryGate:'hybrid-2d-safe-delivery-clinical-review'/);
 assert.match(compositorSeguro, /generatedPieces:\[\]/);
 assert.match(compositorSeguro, /evaluarContratoPresentacionV105/);
 assert.match(compositorSeguro, /throw errorContrato/);
 assert.match(compositorSeguro, /contract:'post-safety-clip-six-crowns'/);
 assert.match(compositorSeguro, /mask:coberturaContrato/);
 assert.doesNotMatch(compositorSeguro, /mask:tratamientoActual\.metrics/);
-assert.match(html, /contractVersion:'v105'/);
+assert.match(html, /contractVersion:'hybrid-2d-v1'/);
 const generadorV105=extractFunction('generateSimulation');
 assert.match(generadorV105, /SMYL_DESIGN_ENGINE_V1_ENABLED/);
 assert.match(generadorV105, /renderizarSimulacionBibliotecaV1/);
@@ -189,12 +190,15 @@ assert.ok(
   'El motor determinista debe ejecutarse antes de construir la máscara fragmentable o llamar al proveedor',
 );
 assert.doesNotMatch(generadorV105, /IMAGE 2 already fixes/);
-assert.doesNotMatch(generadorV105, /guideImageBase64:/);
-assert.match(generadorV105, /There is NO second reference image and no visual blueprint/);
+assert.match(generadorV105, /guideImageBase64:guia2DBase64/);
+assert.match(generadorV105, /guideMimeType:'image\/png'/);
+assert.match(generadorV105, /imageProvider:'openai'/);
+assert.match(generadorV105, /IMAGE 2 is an invisible 2D morphology control map/);
+assert.match(generadorV105, /renderizarGuiaPlanoDental/);
 assert.match(generadorV105, /Never treat premolars, lower teeth or any unlisted tooth/);
 assert.match(generadorV105, /The gingiva is outside the editable mask/);
 assert.doesNotMatch(generadorV105, /requiresNewGeneration[\s\S]{0,180}delete S\.pendingGeneratedByView/);
-assert.match(generadorV105, /localValidationContract:'v105'/);
+assert.match(generadorV105, /localValidationContract:'hybrid-2d-v1'/);
 assert.match(generadorV105, /revalidationMode:'cached-paid-proposal'/);
 assert.match(extractFunction('saveProgress'), /pendingGeneratedByView/);
 assert.match(extractFunction('continuarProgreso'), /revalidateCached:coincide/);
@@ -221,13 +225,17 @@ assert.doesNotMatch(mascaraV104, /fillRect|regionExpandida/);
 assert.match(preparadorMascara, /stage:'v105-single-mask-preflight'/);
 assert.match(backend, /X-SMYL-Contract/);
 assert.match(backend, /contract:\s*simulationContract/);
-assert.match(backend, /simulationContract === "v101" \|\| simulationContract === "v102" \|\| simulationContract === "v103" \|\| simulationContract === "v104" \|\| simulationContract === "v105"/);
+assert.match(backend, /const isHybrid2DContract = simulationContract === "hybrid-2d-v1"/);
+assert.match(backend, /simulationContract === "v105" \|\| isHybrid2DContract/);
 assert.match(backend, /simulationContract === "v105"/);
 assert.match(backend, /V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT/);
 assert.match(backend, /The mask contains no gingiva/);
 assert.match(backend, /The patient smile crop is the ONE AND ONLY visual reference/);
 assert.match(backend, /guideImageBase64 && !isMeasuredMaskOnlyContract/);
 assert.match(backend, /numeric-geometry-only/);
+assert.match(backend, /HYBRID 2D VENEER EDIT/);
+assert.match(backend, /hybrid-2d-target-map/);
+assert.match(backend, /hybrid-2d-v1 requiere un plano morfológico PNG/);
 
 const pixelOriginal = new Uint8ClampedArray([
   10,20,30,255,
@@ -275,6 +283,11 @@ const evidenciaValida = {
 const contratoValido = context.evaluarContratoPresentacionV105(evidenciaValida);
 assert.equal(contratoValido.accepted,true);
 assert.equal(contratoValido.status,'ready-for-clinical-review');
+
+const evidenciaHibrida=structuredClone(evidenciaValida);
+evidenciaHibrida.trace.contract='hybrid-2d-v1';
+const contratoHibrido=context.evaluarContratoPresentacionV105(evidenciaHibrida);
+assert.equal(contratoHibrido.accepted,true);
 
 const evidenciaRevalidadaV104=structuredClone(evidenciaValida);
 evidenciaRevalidadaV104.trace={
@@ -480,12 +493,17 @@ assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
 
 const prescripcionNumerica=context.construirPrescripcionNumericaV104(plano);
-assert.match(prescripcionNumerica,/NO SECOND IMAGE IS SUPPLIED/);
+assert.match(prescripcionNumerica,/NUMERIC CROSS-CHECK FOR IMAGE 2/);
 assert.match(prescripcionNumerica,/FDI 13,role=canine,centerX=/);
 assert.match(prescripcionNumerica,/FDI 11,role=central,centerX=/);
 assert.match(prescripcionNumerica,/FDI 23,role=canine,centerX=/);
 assert.equal((prescripcionNumerica.match(/FDI /g)||[]).length,6);
 assert.doesNotMatch(preparadorPlano,/guideBase64|renderizarGuiaPlanoDental/);
+const guiaMorfologica=extractFunction('renderizarGuiaPlanoDental');
+assert.match(guiaMorfologica,/plano\.pieces\.forEach/);
+assert.match(guiaMorfologica,/trazarSiluetaPlanoDental/);
+assert.match(guiaMorfologica,/ctx\.fillStyle='#000'/);
+assert.doesNotMatch(guiaMorfologica,/drawImage/);
 
 const sinCambio = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,
@@ -527,7 +545,7 @@ const mensajeArtefacto = context.clasificarErrorParaUsuario(
 assert.equal(mensajeArtefacto.titulo, 'La propuesta contiene bordes artificiales');
 
 const mensajeVersion = context.clasificarErrorParaUsuario(
-  new Error('La simulación no superó el contrato visual v105: el backend no confirmó el contrato v105.'),
+  new Error('La simulación no superó el contrato visual híbrido 2D: el backend no confirmó el contrato híbrido 2D.'),
 );
 assert.equal(mensajeVersion.titulo, 'La actualización del simulador está incompleta');
 
@@ -601,4 +619,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL Design Engine v1.5: photo-anchored contours and ceramic optical transfer');
+console.log('SMYL hybrid-2d-v1: masked GPT Image edit with an invisible six-tooth morphology map');

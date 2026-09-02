@@ -140,6 +140,7 @@ Deno.serve(async (req: Request) => {
     ? body.contractVersion.trim().slice(0, 32)
     : "legacy";
   const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
+  const isHybrid2DContract = simulationContract === "hybrid-2d-v1";
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -178,10 +179,10 @@ Deno.serve(async (req: Request) => {
     }));
   }
 
-  // v102-v105 son contratos cerrados: una sola fotografía PNG, máscara alfa
-  // y geometría numérica de seis carillas. Si producción no está configurada
-  // para GPT Image 2 o falta la máscara, se rechaza antes de descontar cuota.
-  if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105")) {
+  // Los contratos cerrados requieren GPT Image 2 y máscara alfa. El híbrido
+  // añade un plano morfológico 2D de las seis carillas con las mismas medidas
+  // de la fotografía; nunca se utiliza como imagen de salida.
+  if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105" || isHybrid2DContract)) {
     if (imageProvider !== "openai") {
       return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere GPT Image 2; el proveedor de producción no está configurado.` }), {
         status: 503, headers: { ...CORS, "Content-Type": "application/json" },
@@ -189,6 +190,11 @@ Deno.serve(async (req: Request) => {
     }
     if (!body?.editMaskBase64 || body?.mimeType !== "image/png" || body?.editMaskMimeType !== "image/png") {
       return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere imagen PNG y máscara alfa PNG.` }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (isHybrid2DContract && (!body?.guideImageBase64 || body?.guideMimeType !== "image/png")) {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v1 requiere un plano morfológico PNG." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -301,7 +307,9 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        const promptOpenAI = isMeasuredMaskOnlyContract
+        const promptOpenAI = isHybrid2DContract
+          ? "HYBRID 2D VENEER EDIT. IMAGE 1 is the patient smile crop and is the only source for identity, gingival emergence, perspective, lighting and photographic texture. IMAGE 2 is a same-size abstract morphology control map for maxillary teeth 13-12-11-21-22-23. Use only its six silhouettes to control crown position, relative width, length, contour hierarchy and incisal smile arc. The alpha mask applies to IMAGE 1 and is the absolute edit boundary. Convert the six target silhouettes into natural layered porcelain integrated into the photographed teeth. Do not paste, trace or render the map: its black background, pale fills and white outlines must never appear. Preserve every unmasked pixel exactly. Return only the final photorealistic patient crop. " + prompt
+          : isMeasuredMaskOnlyContract
           ? (simulationContract === "v105"
             ? "V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. The alpha mask was derived directly from six individually identified source crowns and contains no gingiva. Edit only the visible crowns of maxillary veneers 13-12-11-21-22-23 inside that transparent mask. Preserve every pink tissue pixel, lip, lower tooth, premolar and every unmasked pixel exactly as photographed. Follow the six numeric crown envelopes tooth by tooth and keep the cervical margins fixed. Produce six separate natural ceramic veneers with individual anatomy, interproximal separations and subtle optical texture. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
             : simulationContract === "v104"
@@ -346,7 +354,7 @@ Deno.serve(async (req: Request) => {
           model: OPENAI_IMAGE_MODEL,
           quality: OPENAI_IMAGE_QUALITY,
           contract: simulationContract,
-          guideMode: isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none"),
+          guideMode: isHybrid2DContract ? "hybrid-2d-target-map" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none")),
           attempt: 1,
         }));
 

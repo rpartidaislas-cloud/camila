@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-02 — Codex: hybrid-2d-v1, geometría invisible y render fotográfico
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs`,
+`docs/SMYL_HYBRID_2D_V1_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- Se desactiva como salida principal el compositor Canvas `design-v1.5`, que
+  producía superficies con apariencia de capa pegada. Su código queda sólo
+  como rollback local; la bandera activa es `SMYL_HYBRID_2D_ENABLED`.
+- La ruta nueva vuelve a segmentar seis coronas superiores reales y construye
+  una máscara alfa exclusivamente coronal. Genera además un plano morfológico
+  2D del mismo tamaño con seis siluetas 13–23; ese plano es control invisible,
+  no una capa visual ni el resultado final.
+- El contrato `hybrid-2d-v1` exige GPT Image 2, foto PNG, máscara PNG y plano
+  PNG antes de aceptar la generación. La Edge Function envía foto y plano como
+  dos entradas, aplica la máscara a la foto y prohíbe reproducir fondos,
+  rellenos, contornos o marcas del plano.
+- Después de generar, el navegador reutiliza la máscara validada antes del
+  pago y recompone desde la fotografía original. Cualquier diferencia fuera
+  de las seis coronas sigue bloqueándose de forma determinista.
+- Calidad `v34`, caché PWA `smyl-v75`. Pruebas locales de scripts, contrato y
+  máscaras aprobadas. QA responsivo aprobado en 390×844, 834×1194 y 1440×900,
+  sin desbordamiento horizontal ni errores de consola. Falta desplegar la Edge
+  Function y validar una generación con fotografía expresamente autorizada
+  antes de publicar.
+
 ## 2026-09-02 — Codex: design-v1.5, carillas ancladas a la anatomía fotográfica
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
