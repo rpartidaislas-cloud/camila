@@ -1,6 +1,6 @@
 # Bitácora compartida — SMYL
 
-## 2026-09-02 — Codex: hybrid-2d-v2.2, contactos naturales sin falso rechazo
+## 2026-09-03 — Codex: hybrid-2d-v2.2, contactos naturales sin falso rechazo
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
 `sw.js`, `tests/simulation-blueprint.test.mjs`,
@@ -14,7 +14,8 @@
   uniformidad y pérdida estructural. Menos de cuatro separadores visibles se
   registra como revisión interproximal; ya no bloquea por sí solo.
 - Calidad `v37`, caché PWA `smyl-v78`. La propuesta pagada permanece
-  revalidable sin otra generación. Pendiente de pruebas y publicación.
+  revalidable sin otra generación. Pruebas aprobadas y publicación realizada
+  en GitHub Pages; el backend `claude` permanece sin cambios en versión 67.
 
 ## 2026-09-02 — Codex: hybrid-2d-v2.1, estructura dura y cromática revisable
 
