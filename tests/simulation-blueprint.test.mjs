@@ -107,7 +107,7 @@ vm.runInContext([
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 35/);
+assert.match(html, /var SIM_QUALITY_VERSION = 36/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -173,7 +173,7 @@ assert.ok(contornoFoto.right[0]<contornoFoto.right[4]);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'continuous-smile-roi-hard-visual-gate'/);
+assert.match(compositorSeguro, /deliveryGate:'continuous-smile-roi-hard-structure-soft-chroma-gate'/);
 assert.match(compositorSeguro, /generatedPieces:\[\]/);
 assert.match(compositorSeguro, /evaluarContratoPresentacionV105/);
 assert.match(compositorSeguro, /throw errorContrato/);
@@ -283,7 +283,7 @@ const evidenciaValida = {
   outsideMask:{identical:true,changedPixels:0},
   sourcePieces:6,
   mask:{sourceCoverage:.96,targetCoverage:.98,connectedRegion:true,regionPathCount:1,roiRatio:.08},
-  visual:{changed:.58,meanDifference:24,texture:15,yellow:8,artifacts:{detected:false},independentTeeth:{confirmed:true},partialPatches:{detected:false,teeth:[]}},
+  visual:{changed:.58,meanDifference:24,texture:15,yellow:8,artifacts:{detected:false,blockingDetected:false},independentTeeth:{confirmed:true},partialPatches:{detected:false,teeth:[]}},
   perToothChange:['13','12','11','21','22','23'].map((id)=>({id,changedRatio:.52})),
   vitaTone:'A1',
 };
@@ -416,29 +416,34 @@ const integridadPlano=context.evaluarIntegridadVisualV104(
   planoCopiado.pixels,planoCopiado.mask,planoCopiado.width,planoCopiado.height,planoCopiado.pieces,planoCopiado.width,planoCopiado.height,
 );
 assert.equal(integridadPlano.artifacts.detected,true);
+assert.equal(integridadPlano.artifacts.blockingDetected,false);
 assert.ok(integridadPlano.artifacts.reasons.some((item)=>/líneas rojizas/.test(item)));
 const evidenciaConPlano=structuredClone(evidenciaValida);
 evidenciaConPlano.visual.artifacts=integridadPlano.artifacts;
 const contratoConPlano=context.evaluarContratoPresentacionV105(evidenciaConPlano);
-assert.equal(contratoConPlano.accepted,false);
-assert.ok(contratoConPlano.failures.some((item)=>/líneas rojizas/.test(item)));
+assert.equal(contratoConPlano.accepted,true);
+assert.ok(contratoConPlano.reviewFindings.some((item)=>/líneas rojizas/.test(item)));
 
 const contornoTecnico=crearCoronasSinteticas('edge-outline');
 const integridadContorno=context.evaluarIntegridadVisualV104(
   contornoTecnico.pixels,contornoTecnico.mask,contornoTecnico.width,contornoTecnico.height,contornoTecnico.pieces,contornoTecnico.width,contornoTecnico.height,
 );
 assert.equal(integridadContorno.artifacts.detected,true,JSON.stringify(integridadContorno.artifacts));
+assert.equal(integridadContorno.artifacts.blockingDetected,false);
 assert.ok(integridadContorno.artifacts.boundaryRedAffectedTeeth>=2);
 assert.ok(integridadContorno.artifacts.reasons.some((item)=>/bordes técnicos/.test(item)));
 const evidenciaConContorno=structuredClone(evidenciaValida);
 evidenciaConContorno.visual.artifacts=integridadContorno.artifacts;
-assert.equal(context.evaluarContratoPresentacionV105(evidenciaConContorno).accepted,false);
+const contratoConContorno=context.evaluarContratoPresentacionV105(evidenciaConContorno);
+assert.equal(contratoConContorno.accepted,true);
+assert.ok(contratoConContorno.reviewFindings.some((item)=>/bordes técnicos/.test(item)));
 
 const placa=crearCoronasSinteticas('flat');
 const integridadPlaca=context.evaluarIntegridadVisualV104(
   placa.pixels,placa.mask,placa.width,placa.height,placa.pieces,placa.width,placa.height,
 );
 assert.equal(integridadPlaca.artifacts.detected,true);
+assert.equal(integridadPlaca.artifacts.blockingDetected,true);
 assert.equal(integridadPlaca.artifacts.flatPlate,true);
 assert.equal(integridadPlaca.independentTeeth.confirmed,false);
 const evidenciaConPlaca=structuredClone(evidenciaValida);

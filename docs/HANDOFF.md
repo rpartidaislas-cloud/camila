@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-02 — Codex: hybrid-2d-v2.1, estructura dura y cromática revisable
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`docs/SMYL_HYBRID_2D_V2_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- La primera generación pública de v2 llegó correctamente, pero el control
+  agrupó color rojizo, sombras y placa fusionada bajo el mismo bloqueo de
+  “bordes artificiales”. La propuesta pagada quedó guardada para revalidación.
+- v2.1 mantiene como barreras duras la placa plana/fusionada, dientes no
+  separados, parches incompletos, cobertura, región continua e integridad de
+  píxeles. Posibles bordes cromáticos y sombras pasan a revisión clínica.
+- Calidad `v36`, caché PWA `smyl-v77`. Pruebas de scripts, contrato y máscaras
+  aprobadas; web y móvil quedaron idénticos. El botón `Revalidar resultado`
+  puede recuperar la propuesta guardada sin volver a llamar al generador
+  cuando no exista un defecto estructural. Pendiente de publicación.
+
 ## 2026-09-02 — Codex: hybrid-2d-v2, región continua y bloqueo de parches
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

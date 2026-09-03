@@ -26,12 +26,19 @@ El resultado no llega al comparador cuando ocurre cualquiera de estos casos:
 - Alguna carilla cambia menos del 42 % de su área objetivo.
 - El cambio no aparece en los tercios cervical, medio e incisal de una pieza.
 - No se confirman seis coronas visualmente independientes.
-- Se detectan fragmentos blancos, placa plana, líneas técnicas, bordes
-  artificiales o recortes oscuros repetidos.
+- Se detectan fragmentos blancos o una placa plana/fusionada.
 - Cambia cualquier píxel fuera de la región continua.
 
 Una propuesta pagada rechazada puede conservarse para diagnóstico interno,
 pero nunca se muestra como simulación presentable.
+
+## Revisión clínica sin bloqueo
+
+Las señales cromáticas —posibles líneas rojizas y sombras oscuras en contactos—
+son heurísticas sensibles a encía reflejada, iluminación y profundidad natural.
+Se registran como hallazgos de revisión, pero no ocultan por sí solas una
+propuesta estructuralmente íntegra. La placa fusionada, la pérdida de separación
+y los parches incompletos continúan siendo bloqueos obligatorios.
 
 ## Validación local
 
