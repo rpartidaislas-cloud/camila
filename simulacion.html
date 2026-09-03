@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v2.1 — región continua + control estructural</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v2.2 — contactos naturales + control estructural</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5696,7 +5696,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:contratoV105.accepted?'review':'rejected',
     issues:advertencias,
-    metrics:{mode:'hybrid-2d-v2.1',deliveryGate:'continuous-smile-roi-hard-structure-soft-chroma-gate',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'hybrid-2d-v2.2',deliveryGate:'continuous-smile-roi-hard-fusion-soft-interproximal-gate',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   if(!contratoV105.accepted){
     var errorContrato=new Error('La simulación no superó el contrato visual híbrido 2D v2: '+contratoV105.failures.slice(0,3).join(' · ')+'.');
@@ -8519,7 +8519,7 @@ var _ultimaComparacionDental = null;
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = false;
 var SMYL_HYBRID_2D_ENABLED = true;
-var SIM_QUALITY_VERSION = 36;
+var SIM_QUALITY_VERSION = 37;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'hybrid-2d-v2',
   minimumSourcePieces:6,
@@ -9094,6 +9094,14 @@ function evaluarIntegridadVisualV104(pixelData, maskData, width, height, pieces,
   var razones=razonesDuras.concat(senalesCromaticas);
   revision=revision.concat(senalesCromaticas);
   var separadoresPresentes=separadores.filter(function(item){return item.present;}).length;
+  // Los contactos naturales no siempre forman cinco líneas oscuras continuas:
+  // reflejos, translucidez y puntos de contacto cerrados pueden borrar una o
+  // varias ranuras sin fusionar las coronas. La fusión sólo es concluyente si
+  // coincide con la señal multivariable de placa plana; una lectura débil de
+  // separadores se conserva como revisión clínica.
+  if(validas.length>=6&&separadoresPresentes<4&&!placaPlana){
+    revision.push('conviene revisar la separación interproximal de las seis carillas');
+  }
   return {
     artifacts:{
       detected:razones.length>0,blockingDetected:razonesDuras.length>0,reasons:razones,hardReasons:razonesDuras,reviewReasons:revision,redAffectedTeeth:redAffected,darkAffectedTeeth:darkAffected,
@@ -9104,8 +9112,10 @@ function evaluarIntegridadVisualV104(pixelData, maskData, width, height, pieces,
       toothMeanSpread:+dispersionMedias.toFixed(1),flatPlate:placaPlana
     },
     independentTeeth:{
-      confirmed:validas.length>=6&&separadoresPresentes===5,
-      expected:6,measured:validas.length,separators:separadoresPresentes,separatorMetrics:separadores
+      confirmed:validas.length>=6&&!placaPlana,
+      expected:6,measured:validas.length,separators:separadoresPresentes,
+      separationReviewRequired:validas.length>=6&&separadoresPresentes<4&&!placaPlana,
+      structuralFusionDetected:placaPlana,separatorMetrics:separadores
     },
     perTooth:porPieza
   };

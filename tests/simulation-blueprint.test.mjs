@@ -107,7 +107,7 @@ vm.runInContext([
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 36/);
+assert.match(html, /var SIM_QUALITY_VERSION = 37/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -173,7 +173,7 @@ assert.ok(contornoFoto.right[0]<contornoFoto.right[4]);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'continuous-smile-roi-hard-structure-soft-chroma-gate'/);
+assert.match(compositorSeguro, /deliveryGate:'continuous-smile-roi-hard-fusion-soft-interproximal-gate'/);
 assert.match(compositorSeguro, /generatedPieces:\[\]/);
 assert.match(compositorSeguro, /evaluarContratoPresentacionV105/);
 assert.match(compositorSeguro, /throw errorContrato/);
@@ -352,12 +352,12 @@ function crearCoronasSinteticas(modo) {
   pieces.forEach((piece)=>{
     for(let y=piece.y;y<piece.y+piece.h;y+=1)for(let x=piece.x;x<piece.x+piece.w;x+=1){
       const i=(y*width+x)*4;
-      const base=modo==='flat'?238:176+((x*7+y*11)%41);
+      const base=modo==='flat'?238:(modo==='natural-contacts'?184+((y*11)%31):176+((x*7+y*11)%41));
       pixels[i]=Math.min(255,base+10);pixels[i+1]=Math.min(255,base+6);pixels[i+2]=base;pixels[i+3]=255;
       mask[i]=255;mask[i+1]=255;mask[i+2]=255;mask[i+3]=255;
     }
   });
-  if(modo!=='flat'){
+  if(modo!=='flat'&&modo!=='natural-contacts'){
     pieces.slice(1).forEach((piece)=>{
       for(let y=piece.y+8;y<piece.y+piece.h-7;y+=1){
         const x=piece.x,i=(y*width+x)*4;
@@ -404,6 +404,15 @@ const integridadNatural=context.evaluarIntegridadVisualV104(
 assert.equal(integridadNatural.artifacts.detected,false);
 assert.equal(integridadNatural.independentTeeth.confirmed,true);
 assert.equal(integridadNatural.independentTeeth.separators,5);
+
+const contactosNaturales=crearCoronasSinteticas('natural-contacts');
+const integridadContactos=context.evaluarIntegridadVisualV104(
+  contactosNaturales.pixels,contactosNaturales.mask,contactosNaturales.width,contactosNaturales.height,contactosNaturales.pieces,contactosNaturales.width,contactosNaturales.height,
+);
+assert.equal(integridadContactos.artifacts.flatPlate,false);
+assert.equal(integridadContactos.independentTeeth.confirmed,true);
+assert.equal(integridadContactos.independentTeeth.separationReviewRequired,true);
+assert.ok(integridadContactos.artifacts.reviewReasons.some((item)=>/separación interproximal/.test(item)));
 
 const cervicalNatural=crearCoronasSinteticas('cervical-natural');
 const integridadCervical=context.evaluarIntegridadVisualV104(

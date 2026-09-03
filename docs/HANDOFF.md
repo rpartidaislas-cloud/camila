@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-02 — Codex: hybrid-2d-v2.2, contactos naturales sin falso rechazo
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`docs/SMYL_HYBRID_2D_V2_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- Al revalidar la primera propuesta, v2.1 superó el control cromático pero
+  exigió cinco líneas interdentales oscuras exactas y la ocultó como “anatomía
+  no presentable”. Los contactos naturales claros o cerrados no cumplen esa
+  suposición aunque las seis regiones dentales estén presentes.
+- v2.2 sólo confirma fusión cuando coinciden las señales de placa plana,
+  uniformidad y pérdida estructural. Menos de cuatro separadores visibles se
+  registra como revisión interproximal; ya no bloquea por sí solo.
+- Calidad `v37`, caché PWA `smyl-v78`. La propuesta pagada permanece
+  revalidable sin otra generación. Pendiente de pruebas y publicación.
+
 ## 2026-09-02 — Codex: hybrid-2d-v2.1, estructura dura y cromática revisable
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

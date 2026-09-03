@@ -36,9 +36,11 @@ pero nunca se muestra como simulación presentable.
 
 Las señales cromáticas —posibles líneas rojizas y sombras oscuras en contactos—
 son heurísticas sensibles a encía reflejada, iluminación y profundidad natural.
-Se registran como hallazgos de revisión, pero no ocultan por sí solas una
-propuesta estructuralmente íntegra. La placa fusionada, la pérdida de separación
-y los parches incompletos continúan siendo bloqueos obligatorios.
+La ausencia de una o varias líneas interproximales oscuras también puede deberse
+a contactos cerrados, translucidez o reflejos. Estas señales se registran como
+hallazgos de revisión, pero no ocultan por sí solas una propuesta estructuralmente
+íntegra. La placa fusionada confirmada por textura, uniformidad y separación, y
+los parches incompletos continúan siendo bloqueos obligatorios.
 
 ## Validación local
 
