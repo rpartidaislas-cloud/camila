@@ -15,7 +15,10 @@
 - Calidad `v36`, caché PWA `smyl-v77`. Pruebas de scripts, contrato y máscaras
   aprobadas; web y móvil quedaron idénticos. El botón `Revalidar resultado`
   puede recuperar la propuesta guardada sin volver a llamar al generador
-  cuando no exista un defecto estructural. Pendiente de publicación.
+  cuando no exista un defecto estructural.
+- Publicado en GitHub Pages desde la rama configurada; el backend no cambió y
+  permaneció en `claude` versión 67. La publicación no subió fotografías ni
+  consumió una generación.
 
 ## 2026-09-02 — Codex: hybrid-2d-v2, región continua y bloqueo de parches
 
