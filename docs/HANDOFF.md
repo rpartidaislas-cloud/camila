@@ -17,7 +17,7 @@
 - Una generación pagada que ya cruzó la protección determinista llega siempre
   al comparador. Calidad `v38`, caché PWA `smyl-v79`; backend sin cambios.
   Pruebas de scripts, contrato y máscaras aprobadas; web y móvil idénticos.
-  Pendiente de publicación. No se ejecutó otra generación.
+  Publicado en GitHub Pages; no se ejecutó otra generación.
 
 ## 2026-09-03 — Codex: hybrid-2d-v2.2, contactos naturales sin falso rechazo
 
