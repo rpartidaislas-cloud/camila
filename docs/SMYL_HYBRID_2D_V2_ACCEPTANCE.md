@@ -1,4 +1,4 @@
-# SMYL hybrid-2d-v2 — región continua y rechazo de parches
+# SMYL hybrid-2d-v2 — región continua y revisión clínica
 
 ## Objetivo
 
@@ -23,24 +23,19 @@ El resultado no llega al comparador cuando ocurre cualquiera de estos casos:
 - El backend no confirma `hybrid-2d-v2` y GPT Image 2.
 - La región no es una única trayectoria conectada.
 - Falta cobertura de las coronas fuente o de la geometría objetivo.
-- Alguna carilla cambia menos del 42 % de su área objetivo.
-- El cambio no aparece en los tercios cervical, medio e incisal de una pieza.
-- No se confirman seis coronas visualmente independientes.
-- Se detectan fragmentos blancos o una placa plana/fusionada.
 - Cambia cualquier píxel fuera de la región continua.
 
-Una propuesta pagada rechazada puede conservarse para diagnóstico interno,
-pero nunca se muestra como simulación presentable.
+Estos fallos son deterministas y se evalúan sobre contrato, máscara y píxeles.
+Una propuesta que no supera esta protección no llega al comparador.
 
 ## Revisión clínica sin bloqueo
 
-Las señales cromáticas —posibles líneas rojizas y sombras oscuras en contactos—
-son heurísticas sensibles a encía reflejada, iluminación y profundidad natural.
-La ausencia de una o varias líneas interproximales oscuras también puede deberse
-a contactos cerrados, translucidez o reflejos. Estas señales se registran como
-hallazgos de revisión, pero no ocultan por sí solas una propuesta estructuralmente
-íntegra. La placa fusionada confirmada por textura, uniformidad y separación, y
-los parches incompletos continúan siendo bloqueos obligatorios.
+Una generación pagada que ya superó la protección determinista se muestra en el
+comparador. Las señales de líneas rojizas, sombras, placa aparente, contactos
+cerrados, poca separación, textura uniforme, cambio conservador o parches
+incompletos se registran como hallazgos visibles para revisión y regeneración
+voluntaria. No vuelven a ocultar el resultado ni a provocar otro consumo por sí
+solas.
 
 ## Validación local
 

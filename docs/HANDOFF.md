@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-04 — Codex: hybrid-2d-v2.3, mostrar primero y revisar después
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`docs/SMYL_HYBRID_2D_V2_ACCEPTANCE.md` y `docs/HANDOFF.md`.
+
+- La propuesta guardada superó los falsos positivos cromático e interproximal,
+  pero se perdió al recargar entre versiones porque la imagen temporal excedió
+  el almacenamiento ligero del navegador. El sistema terminó ofreciendo una
+  generación nueva sin que el usuario pudiera ver la anterior.
+- v2.3 separa seguridad determinista de calidad visual. Contrato, proveedor,
+  región conectada, cobertura e igualdad exacta fuera de máscara siguen siendo
+  barreras duras. Naturalidad, placa aparente, separación, textura, magnitud de
+  cambio y parches pasan al reporte visible de revisión clínica.
+- Una generación pagada que ya cruzó la protección determinista llega siempre
+  al comparador. Calidad `v38`, caché PWA `smyl-v79`; backend sin cambios.
+  Pruebas de scripts, contrato y máscaras aprobadas; web y móvil idénticos.
+  Pendiente de publicación. No se ejecutó otra generación.
+
 ## 2026-09-03 — Codex: hybrid-2d-v2.2, contactos naturales sin falso rechazo
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

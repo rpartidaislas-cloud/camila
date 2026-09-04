@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v2.2 — contactos naturales + control estructural</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v2.3 — seguridad determinista + revisión clínica</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -5696,7 +5696,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:contratoV105.accepted?'review':'rejected',
     issues:advertencias,
-    metrics:{mode:'hybrid-2d-v2.2',deliveryGate:'continuous-smile-roi-hard-fusion-soft-interproximal-gate',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'hybrid-2d-v2.3',deliveryGate:'deterministic-safety-hard-visual-quality-review',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   if(!contratoV105.accepted){
     var errorContrato=new Error('La simulación no superó el contrato visual híbrido 2D v2: '+contratoV105.failures.slice(0,3).join(' · ')+'.');
@@ -8519,7 +8519,7 @@ var _ultimaComparacionDental = null;
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = false;
 var SMYL_HYBRID_2D_ENABLED = true;
-var SIM_QUALITY_VERSION = 37;
+var SIM_QUALITY_VERSION = 38;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'hybrid-2d-v2',
   minimumSourcePieces:6,
@@ -8556,25 +8556,20 @@ function evaluarContratoPresentacionV105(evidencia) {
   if(Number(mascara.sourceCoverage||0)<SIM_ACCEPTANCE_V105.minimumSourceCoverage)fallos.push('la región continua no cubre los dientes originales');
   if(Number(mascara.targetCoverage||0)<SIM_ACCEPTANCE_V105.minimumTargetCoverage)fallos.push('la región continua no cubre la geometría propuesta');
   if(Number(mascara.roiRatio||0)<SIM_ACCEPTANCE_V105.minimumRoiRatio||Number(mascara.roiRatio||0)>SIM_ACCEPTANCE_V105.maximumRoiRatio)fallos.push('la región continua tiene una extensión insegura');
-  // Los detectores de color son heurísticos: encía reflejada y sombras de
-  // contacto reales pueden parecer líneas rojizas u oscuras. Sólo una placa
-  // plana/fusionada es un artefacto estructural bloqueante; las señales
-  // cromáticas llegan a revisión para no ocultar una propuesta ya pagada.
-  if(visual.artifacts&&(visual.artifacts.blockingDetected===true||visual.artifacts.flatPlate===true)){
-    var razonesDuras=Array.isArray(visual.artifacts.hardReasons)&&visual.artifacts.hardReasons.length
-      ?visual.artifacts.hardReasons:['superficie blanca plana y fusionada'];
-    fallos=fallos.concat(razonesDuras);
-  } else if(visual.artifacts&&visual.artifacts.detected){
-    revision=revision.concat(Array.isArray(visual.artifacts.reasons)?visual.artifacts.reasons:['conviene revisar posibles artefactos cromáticos']);
+  // Una generación pagada que ya pasó la región determinista se entrega para
+  // revisión clínica. Textura, placa aparente, separación y magnitud de cambio
+  // son inferencias visuales: se informan, pero no vuelven a ocultar la imagen.
+  if(visual.artifacts&&visual.artifacts.detected){
+    revision=revision.concat(Array.isArray(visual.artifacts.reasons)?visual.artifacts.reasons:['conviene revisar posibles artefactos visuales']);
   }
   if(visual.artifacts&&Array.isArray(visual.artifacts.reviewReasons))revision=revision.concat(visual.artifacts.reviewReasons);
-  if(!visual.independentTeeth||visual.independentTeeth.confirmed!==true)fallos.push('no se confirmaron seis coronas visualmente independientes');
-  if(visual.partialPatches&&visual.partialPatches.detected)fallos.push('se detectaron cambios fragmentados o parches incompletos en '+visual.partialPatches.teeth.join(', '));
-  if(Number(visual.changed||0)<SIM_ACCEPTANCE_V105.minimumChangedRatio||Number(visual.meanDifference||0)<SIM_ACCEPTANCE_V105.minimumMeanDifference)fallos.push('el cambio dental visible quedó incompleto');
+  if(!visual.independentTeeth||visual.independentTeeth.confirmed!==true)revision.push('no se confirmaron seis coronas visualmente independientes');
+  if(visual.partialPatches&&visual.partialPatches.detected)revision.push('se detectaron cambios fragmentados o parches incompletos en '+visual.partialPatches.teeth.join(', '));
+  if(Number(visual.changed||0)<SIM_ACCEPTANCE_V105.minimumChangedRatio||Number(visual.meanDifference||0)<SIM_ACCEPTANCE_V105.minimumMeanDifference)revision.push('el cambio dental visible quedó incompleto');
   if(Number(visual.texture||0)<SIM_ACCEPTANCE_V105.minimumTextureDeviation)revision.push('la textura cerámica requiere revisión');
   if(evidencia.vitaTone==='A1'&&Number(visual.yellow||0)>SIM_ACCEPTANCE_V105.maximumA1Yellow)revision.push('el tono A1 conserva demasiado amarillo');
-  if(porPieza.length<SIM_ACCEPTANCE_V105.minimumSourcePieces)fallos.push('faltan mediciones independientes por diente');
-  else if(porPieza.some(function(p){return Number(p&&p.changedRatio||0)<SIM_ACCEPTANCE_V105.minimumChangedRatioPerTooth;}))fallos.push('una o más carillas quedaron parcialmente sin reconstruir');
+  if(porPieza.length<SIM_ACCEPTANCE_V105.minimumSourcePieces)revision.push('faltan mediciones independientes por diente');
+  else if(porPieza.some(function(p){return Number(p&&p.changedRatio||0)<SIM_ACCEPTANCE_V105.minimumChangedRatioPerTooth;}))revision.push('una o más carillas quedaron parcialmente sin reconstruir');
   fallos=fallos.filter(function(item,pos,lista){return item&&lista.indexOf(item)===pos;});
   revision=revision.filter(function(item,pos,lista){return item&&lista.indexOf(item)===pos;});
   return {

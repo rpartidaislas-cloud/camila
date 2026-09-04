@@ -107,7 +107,7 @@ vm.runInContext([
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 37/);
+assert.match(html, /var SIM_QUALITY_VERSION = 38/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -173,7 +173,7 @@ assert.ok(contornoFoto.right[0]<contornoFoto.right[4]);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'continuous-smile-roi-hard-fusion-soft-interproximal-gate'/);
+assert.match(compositorSeguro, /deliveryGate:'deterministic-safety-hard-visual-quality-review'/);
 assert.match(compositorSeguro, /generatedPieces:\[\]/);
 assert.match(compositorSeguro, /evaluarContratoPresentacionV105/);
 assert.match(compositorSeguro, /throw errorContrato/);
@@ -308,15 +308,16 @@ evidenciaInerte.visual.changed=.05;
 evidenciaInerte.visual.meanDifference=2;
 evidenciaInerte.perToothChange[3].changedRatio=.02;
 const contratoInerte=context.evaluarContratoPresentacionV105(evidenciaInerte);
-assert.equal(contratoInerte.accepted,false);
-assert.ok(contratoInerte.failures.some((item)=>/cambio dental visible/.test(item)));
-assert.ok(contratoInerte.failures.some((item)=>/parcialmente sin reconstruir/.test(item)));
+assert.equal(contratoInerte.accepted,true);
+assert.equal(contratoInerte.failures.length,0);
+assert.ok(contratoInerte.reviewFindings.some((item)=>/cambio dental visible/.test(item)));
+assert.ok(contratoInerte.reviewFindings.some((item)=>/parcialmente sin reconstruir/.test(item)));
 
 const evidenciaConParches=structuredClone(evidenciaValida);
 evidenciaConParches.visual.partialPatches={detected:true,teeth:['11','21']};
 const contratoConParches=context.evaluarContratoPresentacionV105(evidenciaConParches);
-assert.equal(contratoConParches.accepted,false);
-assert.ok(contratoConParches.failures.some((item)=>/parches incompletos en 11, 21/.test(item)));
+assert.equal(contratoConParches.accepted,true);
+assert.ok(contratoConParches.reviewFindings.some((item)=>/parches incompletos en 11, 21/.test(item)));
 
 const evidenciaFuera=structuredClone(evidenciaValida);
 evidenciaFuera.outsideMask={identical:false,changedPixels:1};
@@ -459,8 +460,9 @@ const evidenciaConPlaca=structuredClone(evidenciaValida);
 evidenciaConPlaca.visual.artifacts=integridadPlaca.artifacts;
 evidenciaConPlaca.visual.independentTeeth=integridadPlaca.independentTeeth;
 const contratoConPlaca=context.evaluarContratoPresentacionV105(evidenciaConPlaca);
-assert.equal(contratoConPlaca.accepted,false);
-assert.ok(contratoConPlaca.failures.some((item)=>/superficie blanca plana/.test(item)));
+assert.equal(contratoConPlaca.accepted,true);
+assert.ok(contratoConPlaca.reviewFindings.some((item)=>/superficie blanca plana/.test(item)));
+assert.ok(contratoConPlaca.reviewFindings.some((item)=>/seis coronas visualmente independientes/.test(item)));
 
 const anchosOriginales=[58,56,72,72,56,58];
 const altosOriginales=[74,76,82,82,76,74];
@@ -649,4 +651,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL hybrid-2d-v2: continuous smile ROI with hard rejection of partial veneer patches');
+console.log('SMYL hybrid-2d-v2.3: deterministic safety with visible clinical quality review');
