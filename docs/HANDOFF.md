@@ -27,8 +27,9 @@ y `docs/HANDOFF.md`.
 - Calidad `v44`, caché PWA `smyl-v91`. Web y móvil están sincronizados; las
   tres suites locales pasan. La vista sintética de QA confirmó `PASS`, seis
   regiones, geometría bloqueada y cobertura objetivo completa sin usar fotos.
-- **Pendiente de publicación:** desplegar la función `claude`, crear commit y
-  publicar Pages.
+- **Publicado:** función `claude` y GitHub Pages actualizados con el contrato
+  v4. Commit funcional `05371e5`; la URL pública se verificó sirviendo la
+  etiqueta `build hybrid-2d-v4` y el contrato correspondiente.
 
 ## 2026-09-05 — Codex: compatibilidad del servicio con la guía anatómica
 
