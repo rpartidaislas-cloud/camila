@@ -19,7 +19,7 @@ assert.match(html, /La fotografía se procesa en este dispositivo\. No se sube n
 assert.doesNotMatch(html, /supabase\.co|openai\.com|fetch\s*\(/i);
 
 assets.forEach((asset) => {
-  const relative = `assets/dental-library/natural-a1-v1/${asset}`;
+  const relative = `icons/dental-library/natural-a1-v1/${asset}`;
   const file = path.join(root, ...relative.split('/'));
   assert.ok(fs.existsSync(file), `Falta ${relative}`);
   assert.ok(fs.statSync(file).size > 500_000, `${relative} no parece contener la textura fotográfica completa`);
@@ -28,7 +28,7 @@ assets.forEach((asset) => {
 });
 
 assert.match(simulator, /href="biblioteca-carillas\.html"/);
-assert.match(worker, /smyl-v81/);
+assert.match(worker, /smyl-v82/);
 assert.match(worker, /\/camila\/biblioteca-carillas\.html/);
 
 console.log('SMYL photo-library POC: assets, local compositor and integration verified');

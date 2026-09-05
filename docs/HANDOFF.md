@@ -3,7 +3,7 @@
 ## 2026-09-04 — Codex: hybrid-2d-v3 con biblioteca fotográfica Natural A1
 
 **Tocado localmente:** `biblioteca-carillas.html`,
-`assets/dental-library/natural-a1-v1/*`, `simulacion.html`,
+`icons/dental-library/natural-a1-v1/*`, `simulacion.html`,
 `mobile/www/simulacion.html`, `dental_library.html`, `sw.js`,
 `tests/dental-library-photo.test.mjs`, `docs/SMYL_PHOTO_LIBRARY_POC.md` y
 `docs/HANDOFF.md`.
@@ -35,8 +35,8 @@
   `verify_jwt=false`. Frontend autorizado para publicarse desde la rama de
   GitHub Pages. El despliegue no ejecutó una simulación, no subió fotografías
   y no consumió una generación.
-- Caché PWA `smyl-v81`. Las rutas de los PNG llevan sufijo `-r1` para evitar
-  el caché negativo de GitHub Pages observado durante la primera publicación.
+- Caché PWA `smyl-v82`. Las rutas de los PNG llevan sufijo `-r1` y viven bajo
+  `icons/dental-library`, una ruta estática ya servida por GitHub Pages.
   Sintaxis, prueba de integración, regresión v3 y QA visual aprobados en
   escritorio y 390×844, sin errores de consola.
 

@@ -25,9 +25,9 @@ el recorte dental necesario para la inferencia, como ya hacía el motor público
 
 ## Activos
 
-- `assets/dental-library/natural-a1-v1/central-r1.png`
-- `assets/dental-library/natural-a1-v1/lateral-r1.png`
-- `assets/dental-library/natural-a1-v1/canine-r1.png`
+- `icons/dental-library/natural-a1-v1/central-r1.png`
+- `icons/dental-library/natural-a1-v1/lateral-r1.png`
+- `icons/dental-library/natural-a1-v1/canine-r1.png`
 
 Los activos finales conservan fondo uniforme `#05070A`. El compositor elimina
 ese fondo en memoria, obtiene alfa suave y recorta la corona antes de colocarla.
