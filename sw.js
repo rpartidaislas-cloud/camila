@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v82';
+const CACHE_VERSION = 'smyl-v83';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -16,9 +16,9 @@ const STATIC_FILES = [
   '/camila/icons/smyl_pwa.png',
   '/camila/icons/smyl_logo.png',
   '/camila/icons/vita/vita-master-photo.webp',
-  '/camila/icons/dental-library/natural-a1-v1/central-r1.png',
-  '/camila/icons/dental-library/natural-a1-v1/lateral-r1.png',
-  '/camila/icons/dental-library/natural-a1-v1/canine-r1.png',
+  '/camila/mobile/www/assets/dental-library/natural-a1-v1/central.png',
+  '/camila/mobile/www/assets/dental-library/natural-a1-v1/lateral.png',
+  '/camila/mobile/www/assets/dental-library/natural-a1-v1/canine.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
 ];

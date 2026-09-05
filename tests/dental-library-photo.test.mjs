@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'biblioteca-carillas.html'), 'utf8');
 const simulator = fs.readFileSync(path.join(root, 'simulacion.html'), 'utf8');
 const worker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-const assets = ['central-r1.png', 'lateral-r1.png', 'canine-r1.png'];
+const assets = ['central.png', 'lateral.png', 'canine.png'];
 
 assert.match(html, /Carillas fotográficas por pieza/);
 assert.match(html, /id="photo-input"[^>]*accept="image\/\*"/);
@@ -19,16 +19,19 @@ assert.match(html, /La fotografía se procesa en este dispositivo\. No se sube n
 assert.doesNotMatch(html, /supabase\.co|openai\.com|fetch\s*\(/i);
 
 assets.forEach((asset) => {
-  const relative = `icons/dental-library/natural-a1-v1/${asset}`;
+  const relative = `assets/dental-library/natural-a1-v1/${asset}`;
+  const publicRelative = `mobile/www/${relative}`;
   const file = path.join(root, ...relative.split('/'));
+  const publicFile = path.join(root, ...publicRelative.split('/'));
   assert.ok(fs.existsSync(file), `Falta ${relative}`);
+  assert.ok(fs.existsSync(publicFile), `Falta ${publicRelative}`);
   assert.ok(fs.statSync(file).size > 500_000, `${relative} no parece contener la textura fotográfica completa`);
-  assert.ok(html.includes(relative), `${relative} no está conectado al laboratorio`);
-  assert.ok(worker.includes(`/camila/${relative}`), `${relative} no está incluido en el caché PWA`);
+  assert.ok(html.includes(asset), `${asset} no está conectado al laboratorio`);
+  assert.ok(worker.includes(`/camila/${publicRelative}`), `${publicRelative} no está incluido en el caché PWA`);
 });
 
 assert.match(simulator, /href="biblioteca-carillas\.html"/);
-assert.match(worker, /smyl-v82/);
+assert.match(worker, /smyl-v83/);
 assert.match(worker, /\/camila\/biblioteca-carillas\.html/);
 
 console.log('SMYL photo-library POC: assets, local compositor and integration verified');
