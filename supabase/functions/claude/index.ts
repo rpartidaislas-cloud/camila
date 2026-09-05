@@ -158,7 +158,9 @@ Deno.serve(async (req: Request) => {
   const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
   const isPhotographicLibraryContract = simulationContract === "hybrid-2d-v3";
   const isPatientAnatomyGuide = isPhotographicLibraryContract && guideLibraryVersion === "patient-anatomy-warp-v2";
-  const isHybrid2DContract = simulationContract === "hybrid-2d-v2" || isPhotographicLibraryContract;
+  const isGeometryLockedContract = simulationContract === "hybrid-2d-v4";
+  const isPatientGeometryLock = isGeometryLockedContract && guideLibraryVersion === "patient-geometry-lock-v1";
+  const isHybrid2DContract = simulationContract === "hybrid-2d-v2" || isPhotographicLibraryContract || isGeometryLockedContract;
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -218,6 +220,11 @@ Deno.serve(async (req: Request) => {
     }
     if (isPhotographicLibraryContract && guideLibraryVersion !== "natural-a1-v1" && !isPatientAnatomyGuide) {
       return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v3 requiere una guía dental compatible." }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (isGeometryLockedContract && !isPatientGeometryLock) {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v4 requiere la guía anatómica bloqueada patient-geometry-lock-v1." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -330,7 +337,9 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        const promptOpenAI = isPatientAnatomyGuide
+        const promptOpenAI = isPatientGeometryLock
+          ? "HYBRID 2D VENEER EDIT V4 — LOCKED PATIENT GEOMETRY. IMAGE 1 is already a patient-specific deterministic reconstruction of the six intended veneers 13-12-11-21-22-23. Its crown silhouettes, cervical margins, proximal limits, facial axes, individual widths, lengths, asymmetries and incisal smile arc are final and MUST NOT be redrawn, resized, shifted, squared, cloned or replaced. The alpha edit mask exposes exactly six closed crown interiors and locks every pixel outside those six crowns. IMAGE 2 is the original same-size patient crop and is reference only for illumination direction, color temperature, photographic grain and local reflections; never copy its original tooth geometry back into IMAGE 1. Perform optical/material finishing only inside each exposed crown: integrate natural layered ceramic color, subtle dentin body, enamel translucency, low-contrast mamelons, fine vertical texture, realistic specular highlights and contact shadows while preserving the exact outer silhouette and separation of every crown already present in IMAGE 1. Do not invent a stock smile, generic rectangular veneers, a continuous white row, stickers, hard borders or new anatomy. Preserve gingiva, lips, lower teeth, posterior teeth and face exactly. Return only the final photorealistic patient crop. " + prompt
+          : isPatientAnatomyGuide
           ? "HYBRID 2D VENEER EDIT V3 — PATIENT-DERIVED ANATOMY. IMAGE 1 is the patient smile crop and the primary source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent anatomical preview reconstructed one-to-one from this patient's own teeth 13-12-11-21-22-23. Its visible pixels preserve the individual cervical margins, proximal limits, facial axes, convexity, incisal trajectories and original light while previewing the selected ceramic material. It is not a stock library row. Keep the identity and anatomy of each corresponding tooth from IMAGE 1; use IMAGE 2 only as a pixel-registered target for conservative contour refinement and layered porcelain optics. Never paste IMAGE 2 as flat sprites, never clone one crown into another and never impose generic rectangular shapes. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Preserve gingiva, lips, lower teeth, premolars and every unrelated pixel exactly as photographed. Return only the final photorealistic patient crop. " + prompt
           : isPhotographicLibraryContract
           ? "HYBRID 2D VENEER EDIT V3 — PHOTOGRAPHIC LIBRARY TRANSFER. IMAGE 1 is the patient smile crop and is the only source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent reference board assembled automatically from the SMYL Natural A1 photographic library. It contains exactly six assigned crowns in image-left-to-right order 13-12-11-21-22-23 and already encodes their target position, width, length, contour hierarchy and incisal smile arc. Transfer the corresponding photographic anatomy and layered ceramic optical character from each IMAGE 2 crown into the matching real tooth in IMAGE 1, adapting it to patient perspective, original light and the requested VITA shade. Do not simply paste the reference pixels and do not render the reference canvas, source black background, hard sprite edges or transparency artifacts. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Reconstruct six complete, separate veneers with natural contacts and uninterrupted cervical-to-incisal ceramic. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed. Return only the final photorealistic patient crop. " + prompt
@@ -356,7 +365,7 @@ Deno.serve(async (req: Request) => {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
         if (guideImageBytes && !isMeasuredMaskOnlyContract) {
-          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPatientAnatomyGuide ? "patient-anatomy-guide.png" : (isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png"));
+          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPatientGeometryLock ? "patient-original-reference.png" : (isPatientAnatomyGuide ? "patient-anatomy-guide.png" : (isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png")));
         }
         form.append("prompt", promptOpenAI);
         // Los acercamientos dentales son ediciones de detalle y anatomía fina.
@@ -381,8 +390,8 @@ Deno.serve(async (req: Request) => {
           model: OPENAI_IMAGE_MODEL,
           quality: OPENAI_IMAGE_QUALITY,
           contract: simulationContract,
-          guideMode: isPhotographicLibraryContract ? "hybrid-2d-v3-photographic-library" : (isHybrid2DContract ? "hybrid-2d-v2-continuous-smile-roi" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none"))),
-          guideLibraryVersion: isPhotographicLibraryContract ? guideLibraryVersion : null,
+          guideMode: isPatientGeometryLock ? "hybrid-2d-v4-locked-patient-geometry" : (isPhotographicLibraryContract ? "hybrid-2d-v3-photographic-library" : (isHybrid2DContract ? "hybrid-2d-v2-continuous-smile-roi" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none")))),
+          guideLibraryVersion: isPhotographicLibraryContract || isGeometryLockedContract ? guideLibraryVersion : null,
           attempt: 1,
         }));
 

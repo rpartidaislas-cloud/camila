@@ -1,5 +1,35 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-05 — Codex: hybrid-2d-v4 con geometría del paciente bloqueada
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/claude/index.ts`, `sw.js`,
+`tests/simulation-blueprint.test.mjs`, `tests/dental-library-photo.test.mjs`
+y `docs/HANDOFF.md`.
+
+- La validación pública de `91d5bf6` demostró que una guía registrada seguía
+  siendo sólo una sugerencia para GPT Image: al recibir una región continua,
+  el modelo podía ignorar los perfiles individuales y reconstruir una fila
+  genérica de seis carillas.
+- El nuevo contrato `hybrid-2d-v4` invierte el flujo. IMAGE 1 ya es la
+  reconstrucción local de las seis coronas, calculada desde la anatomía de la
+  paciente; IMAGE 2 es la fotografía original y sólo sirve como referencia de
+  luz, grano y color. El proveedor deja de diseñar formas y actúa únicamente
+  como terminador del material cerámico.
+- La máscara alfa ya no es una cinta de sonrisa: contiene exactamente seis
+  interiores de corona y bloquea encía, labios, dientes inferiores y cualquier
+  píxel exterior. El compositor final vuelve a aplicar esas mismas seis
+  regiones sobre la fotografía original.
+- El backend exige `patient-geometry-lock-v1`, da nombres semánticos a ambas
+  imágenes y añade una instrucción específica que prohíbe redibujar, clonar,
+  ensanchar o regularizar las coronas. El control de presentación comprueba el
+  contrato v4, seis regiones y `geometryLocked=true`.
+- Calidad `v44`, caché PWA `smyl-v91`. Web y móvil están sincronizados; las
+  tres suites locales pasan. La vista sintética de QA confirmó `PASS`, seis
+  regiones, geometría bloqueada y cobertura objetivo completa sin usar fotos.
+- **Pendiente de publicación:** desplegar la función `claude`, crear commit y
+  publicar Pages.
+
 ## 2026-09-05 — Codex: compatibilidad del servicio con la guía anatómica
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
