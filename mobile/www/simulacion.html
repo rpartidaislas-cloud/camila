@@ -1694,8 +1694,8 @@ function clasificarErrorParaUsuario(error) {
   if (/control de captura v10[0-5]/.test(raw)) {
     return {titulo:'Necesitamos otra fotografía frontal', detalle:'La sonrisa quedó demasiado pequeña, incompleta o fuera de un encuadre útil. Toma otra frontal antes de generar; no se consumió una simulación.'};
   }
-  if (/segmentación no encontró|segmentación de dientes|no fue posible comparar/.test(raw)) {
-    return {titulo:'No se pudo aislar la zona dental', detalle:'La propuesta sí fue generada, pero el paso que separa los dientes no terminó correctamente. Tus fotografías siguen guardadas.'};
+  if (/segmentación no encontró|segmentación de dientes|segmentación dental|segmentacion dental|no fue posible comparar/.test(raw)) {
+    return {titulo:'No se pudo localizar la zona dental', detalle:'El paso que ubica los seis dientes no terminó correctamente. No se generó ni se cobró una propuesta; tus fotografías siguen guardadas.'};
   }
   if (/máscara coronal|mascara coronal|máscara destino|mascara destino|no fue posible construir la región continua|no fue posible construir la region continua|la región continua no cubre con seguridad|la region continua no cubre con seguridad|región continua de sonrisa tiene una extensión insegura|region continua de sonrisa tiene una extension insegura|aislar las seis coronas|prescripción numérica de las seis carillas|prescripcion numerica de las seis carillas|plano 2d de las seis carillas/.test(raw)) {
     return {titulo:'No se pudo preparar la zona de las seis carillas', detalle:'El control local no pudo construir una región continua segura para las seis coronas. No se consumió una generación de imagen.'};
@@ -5634,9 +5634,12 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
     rawFragments:{original:planoDental.sourceRawFragments||piezasOriginales.length,generated:0},
     consolidatedPieces:{original:piezasOriginales.length,generated:0}
   };
-  var revisionAnatomica={critical:[],warnings:[],metrics:{verification:'pixel-target-regions',pieces:piezasObjetivo.length}};
+  var revisionAnatomica={critical:[],warnings:[],metrics:{verification:'pixel-target-regions',pieces:piezasObjetivo.length,locator:planoDental.locator||'unknown',locatorFallback:!!planoDental.locatorFallback}};
   var errores=[];
   var advertencias=consolidarHallazgosRevision(revisionAnatomica,null,[]);
+  if(planoDental.locatorFallback){
+    advertencias.push('La localización dental remota no estuvo disponible; se usó el anclaje local de seis coronas y conviene revisar la alineación.');
+  }
   if(!mo.area||!mt.area||!ms.area)errores.push('no se identificó la región superior de dientes y encía');
   if(mt.ratio<.0005||mt.ratio>.30)errores.push('la máscara de tratamiento validada quedó corrupta');
   if(mo.area&&coberturaDental<.76)advertencias.push('la máscara protegida cubre parcialmente el mapa dental fuente');
@@ -5993,7 +5996,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   // si no pueden identificarse seis piezas o aislarse dientes/encía, no se
   // consume una generación de imagen ni se expone el rostro a edición abierta.
   var planoDental = await ejecutarEtapaLocalConRastro('segmentacion_seis_coronas',requestId,function(){
-    return prepararPlanoDentalIndividual(entradaDental, frontal.view || 'frontal');
+    return prepararPlanoDentalIndividual(entradaDental, frontal.view || 'frontal', requestId);
   });
 
   // Ruta principal de SMYL Design Engine. La segmentación sólo localiza las
@@ -8540,7 +8543,7 @@ var _smylPhotoLibraryPromise = null;
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = false;
 var SMYL_HYBRID_2D_ENABLED = true;
-var SIM_QUALITY_VERSION = 39;
+var SIM_QUALITY_VERSION = 40;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'hybrid-2d-v3',
   minimumSourcePieces:6,
@@ -9293,8 +9296,9 @@ function analizarCalidadVisualCarillas(original, alineada, mascara, view, mascar
   };
 }
 
-async function solicitarSegmentacion(entrada, target) {
+async function solicitarSegmentacion(entrada, target, requestId) {
   if (!S.casoId) S.casoId = generarUuid();
+  var operationRequestId=requestId||crearIdSolicitudIA();
   var resp = await conTimeout(fetch(CFG.segmentUrl, {
     method: 'POST',
     headers: headersEdgeIA(),
@@ -9302,20 +9306,16 @@ async function solicitarSegmentacion(entrada, target) {
       imageUrl: entrada,
       casoId: S.casoId,
       tenantId: CFG.tenantId,
-      target: target || 'tooth'
+      target: target || 'tooth',
+      requestId: operationRequestId
     })
   }), 90000, target === 'treatment' ? 'segmentación del área de tratamiento' : 'segmentación de los dientes');
-  var data = await resp.json().catch(function(){ return {}; });
-  if (!resp.ok || data.error) {
-    var errorSegmentacion=errorDelServidor(data.error || ('La segmentación dental respondió ' + resp.status + '.'));
-    errorSegmentacion.status=resp.status||502;
-    throw errorSegmentacion;
-  }
+  var data = await leerRespuestaEdge(resp, operationRequestId, 'la segmentación dental');
   return data.masks || [];
 }
 
-async function solicitarSegmentacionDental(entrada) {
-  return solicitarSegmentacion(entrada, 'tooth');
+async function solicitarSegmentacionDental(entrada, requestId) {
+  return solicitarSegmentacion(entrada, 'tooth', requestId);
 }
 
 // Construye una sola región continua para que OpenAI pueda reconstruir las seis
@@ -9527,13 +9527,13 @@ async function segmentarParDental(original, alineada, cacheKey, planoDental) {
 // Mapa anatómico completo de una arcada. A diferencia de la máscara simple,
 // conserva la lista ordenada de piezas para exigir correspondencia uno a uno
 // antes de permitir que una simulación llegue al paciente.
-async function segmentarCanvasDentalDetallado(canvas, cacheKey) {
+async function segmentarCanvasDentalDetallado(canvas, cacheKey, requestId) {
   if (cacheKey && S.dentalMapByView && S.dentalMapByView[cacheKey]) {
     return S.dentalMapByView[cacheKey];
   }
   var reducido = canvasReducidoParaSegmentacion(canvas);
   var entrada = reducido.toDataURL('image/jpeg', 0.82);
-  var masks = await solicitarSegmentacionDental(entrada);
+  var masks = await solicitarSegmentacionDental(entrada, requestId);
   var piezas = seleccionarPiezasArcadaSuperior(masks, 0, reducido.width, reducido.width/2);
   if (piezas.length < 6) {
     throw new Error('No fue posible identificar con seguridad todos los dientes superiores visibles. Usa una foto frontal nítida y vuelve a intentar.');
@@ -10483,7 +10483,7 @@ function construirPrescripcionNumericaV104(plano) {
   return 'NUMERIC CROSS-CHECK FOR IMAGE 2. Coordinates are normalized to IMAGE 1, origin at top-left. Each envelope describes the same final visible crown target occupied by its photographic veneer reference in IMAGE 2: '+envolventes+'. Keep each cervical emergence anchored at its cervicalY without changing gingiva, land the incisal edge at its incisalY, and use centerX/width/height to preserve six separate crowns. Interpolate a smooth lower-lip smile arc through the six incisal destinations. IMAGE 2 and these values are invisible constraints: never draw their transparent canvas, black source background, boxes, rectangles, outlines, dots, labels, seams or annotations. Target ratios: central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(3)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(3)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(3)+'.';
 }
 
-async function prepararPlanoDentalIndividual(entradaDental, view) {
+async function prepararPlanoDentalIndividual(entradaDental, view, requestId) {
   var img=await cargarImagenSegura(entradaDental.dataUrl);
   var canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
   canvas.getContext('2d').drawImage(img,0,0);
@@ -10497,10 +10497,38 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
     S.dentalMapByView[clave]=mapa;
     S.dentalMaskByView[clave]=mapa.maskUrl;
   } else {
-    mapa=await segmentarCanvasDentalDetallado(canvas,clave);
+    try {
+      mapa=await segmentarCanvasDentalDetallado(canvas,clave,requestId);
+    } catch(errorSegmentacionRemota) {
+      // La segmentación GPT ayuda a perfilar cada corona, pero no debe ser un
+      // punto único de fallo antes de una generación. El localizador local ya
+      // probado sólo calcula seis anclajes; no pinta carillas ni sustituye al
+      // renderizador fotográfico. Las barreras de captura, máscara continua y
+      // píxeles exteriores siguen ejecutándose exactamente igual.
+      try {
+        mapa=construirMapaDentalLocalV1(canvas,view||'frontal');
+        mapa.locatorFallback=true;
+        mapa.remoteLocatorError=String(errorSegmentacionRemota&&errorSegmentacionRemota.message||errorSegmentacionRemota||'segmentación remota no disponible').slice(0,240);
+        if(!S.dentalMapByView)S.dentalMapByView={};
+        S.dentalMapByView[clave]=mapa;
+        S.dentalMaskByView[clave]=mapa.maskUrl;
+        console.warn('[SMYL] segmentación remota no disponible; se usará el anclaje local para esta propuesta.',{
+          requestId:requestId||'',reason:mapa.remoteLocatorError,locator:mapa.locator
+        });
+      } catch(errorLocalizadorLocal) {
+        if(!errorSegmentacionRemota.requestId)errorSegmentacionRemota.requestId=requestId||'';
+        errorSegmentacionRemota.localFallbackError=String(errorLocalizadorLocal&&errorLocalizadorLocal.message||errorLocalizadorLocal||'localizador local no disponible').slice(0,240);
+        throw errorSegmentacionRemota;
+      }
+    }
   }
   var captura=evaluarCapturaDentalV104(mapa.pieces,mapa.width,mapa.height);
-  if(!captura.accepted)throw new Error('La fotografía no cumple el control de captura v104: '+captura.failures.slice(0,2).join(' · ')+'. Toma otra frontal antes de generar.');
+  if(!captura.accepted){
+    var errorCaptura=new Error('La fotografía no cumple el control de captura v104: '+captura.failures.slice(0,2).join(' · ')+'. Toma otra frontal antes de generar.');
+    errorCaptura.requiresNewGeneration=false;
+    errorCaptura.qualityMetrics={stage:'six-crown-capture-preflight',locator:mapa.locator||'unknown',locatorFallback:!!mapa.locatorFallback,capture:captura.metrics};
+    throw errorCaptura;
+  }
   var diagnostico=S.diagnosticoFacial||{};
   var editor=S.editorParams&&S.editorParams.diseno?S.editorParams.diseno:{};
   var formaElegida=editor.forma||diagnostico.forma_dental_recomendada||'';
@@ -10523,6 +10551,8 @@ async function prepararPlanoDentalIndividual(entradaDental, view) {
   plano.locator=mapa.locator||'remote-instance-segmentation';
   plano.locatorConfidence=Number(mapa.locatorConfidence)||0;
   plano.landmarkMetrics=mapa.landmarkMetrics||null;
+  plano.locatorFallback=!!mapa.locatorFallback;
+  plano.remoteLocatorError=mapa.remoteLocatorError||'';
   plano.prompt=construirPrescripcionNumericaV104(plano);
   return plano;
 }

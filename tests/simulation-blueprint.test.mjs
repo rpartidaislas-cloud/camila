@@ -107,7 +107,7 @@ vm.runInContext([
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 39/);
+assert.match(html, /var SIM_QUALITY_VERSION = 40/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -525,6 +525,14 @@ assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
 assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
 assert.match(preparadorPlano,/locator==='local-contours-v5'/);
 assert.match(preparadorPlano,/landmarkMetrics/);
+assert.match(preparadorPlano,/segmentarCanvasDentalDetallado\(canvas,clave,requestId\)/);
+assert.match(preparadorPlano,/catch\(errorSegmentacionRemota\)/);
+assert.match(preparadorPlano,/mapa=construirMapaDentalLocalV1/);
+assert.match(preparadorPlano,/mapa\.locatorFallback=true/);
+assert.match(preparadorPlano,/plano\.locatorFallback=!!mapa\.locatorFallback/);
+const solicitadorSegmentacion=extractFunction('solicitarSegmentacion');
+assert.match(solicitadorSegmentacion,/requestId: operationRequestId/);
+assert.match(solicitadorSegmentacion,/leerRespuestaEdge\(resp, operationRequestId, 'la segmentación dental'\)/);
 const mapaLocal=extractFunction('construirMapaDentalLocalV1');
 assert.match(mapaLocal,/ajustarPiezasPorContactosV5/);
 assert.match(mapaLocal,/local-contours-v5/);
@@ -587,6 +595,12 @@ const mensajeAnatomico = context.clasificarErrorParaUsuario(
   new Error('La simulación no superó la protección anatómica: anatomía dental inválida: fila plana con dientes repetidos.'),
 );
 assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
+
+const mensajeSegmentacion = context.clasificarErrorParaUsuario(
+  new Error('La segmentación dental con GPT no produjo una máscara utilizable.'),
+);
+assert.equal(mensajeSegmentacion.titulo, 'No se pudo localizar la zona dental');
+assert.match(mensajeSegmentacion.detalle, /No se generó ni se cobró una propuesta/);
 
 const mensajeArtefacto = context.clasificarErrorParaUsuario(
   new Error('La simulación no superó el contrato visual v105: se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana.'),

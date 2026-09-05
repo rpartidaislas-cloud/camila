@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-04 — Codex: respaldo automático para la localización de seis dientes
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/dental-library-photo.test.mjs` y `docs/HANDOFF.md`.
+
+- El intento público con soporte `08112e66-3064-4b18-b5e1-c878c70fccde`
+  terminó antes de guardar una imagen generada: el botón ofreció una nueva
+  propuesta, no revalidar la anterior. Esto acotó el fallo a la localización
+  previa de los seis dientes o a la entrega del servicio, no a la biblioteca
+  fotográfica ni al control visual posterior.
+- La segmentación remota deja de ser un punto único de fallo. Si no responde,
+  entrega una respuesta incompleta o no confirma seis piezas, el flujo usa
+  `local-contours-v5` para calcular automáticamente seis anclajes y continúa
+  con GPT Image 2 y la biblioteca `natural-a1-v1`. El localizador no pinta
+  dientes ni sustituye el render fotográfico.
+- El respaldo conserva los controles duros: calidad de captura, seis coronas,
+  región continua, protección de la arcada inferior e igualdad exacta de todos
+  los píxeles exteriores. Su uso queda registrado como revisión de alineación.
+- El mismo `requestId` pasa ahora por `segment-teeth` y la generación para que
+  el código de soporte sea rastreable. Las respuestas vacías o truncadas se
+  leen con el lector robusto compartido y el mensaje de segmentación ya no se
+  oculta bajo un error genérico.
+- Calidad `v40`, caché PWA `smyl-v86`; web y móvil sincronizados. No se ejecutó
+  una generación ni se enviaron fotografías durante la corrección.
+
 ## 2026-09-04 — Codex: hybrid-2d-v3 con biblioteca fotográfica Natural A1
 
 **Tocado localmente:** `biblioteca-carillas.html`,
