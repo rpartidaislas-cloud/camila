@@ -125,8 +125,9 @@
 (function(){
   'use strict';
   var inMobileBundle=/\/mobile\/www\//.test(location.pathname.replace(/\\/g,'/'));
-  var useSharedWebAssets=!inMobileBundle&&(location.hostname==='rpartidaislas-cloud.github.io'||location.protocol==='file:');
-  var assetBase=useSharedWebAssets?'mobile/www/assets/dental-library/natural-a1-v1/':'assets/dental-library/natural-a1-v1/';
+  var assetBase=location.hostname==='rpartidaislas-cloud.github.io'
+    ?'https://raw.githubusercontent.com/rpartidaislas-cloud/camila/claude/camila-claude-clinical-analysis-sywxjv/mobile/www/assets/dental-library/natural-a1-v1/'
+    :(location.protocol==='file:'&&!inMobileBundle?'mobile/www/assets/dental-library/natural-a1-v1/':'assets/dental-library/natural-a1-v1/');
   var ASSETS={central:assetBase+'central-v3.png',lateral:assetBase+'lateral-v3.png',canine:assetBase+'canine-v3.png'};
   document.querySelectorAll('[data-library-piece]').forEach(function(img){img.src=ASSETS[img.dataset.libraryPiece];});
   var canvas=document.getElementById('preview'),ctx=canvas.getContext('2d');

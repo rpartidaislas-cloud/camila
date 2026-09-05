@@ -27,11 +27,12 @@ assets.forEach((asset) => {
   assert.ok(fs.existsSync(publicFile), `Falta ${publicRelative}`);
   assert.ok(fs.statSync(file).size > 500_000, `${relative} no parece contener la textura fotográfica completa`);
   assert.ok(html.includes(asset), `${asset} no está conectado al laboratorio`);
-  assert.ok(worker.includes(`/camila/${publicRelative}`), `${publicRelative} no está incluido en el caché PWA`);
+  assert.ok(worker.includes('raw.githubusercontent.com/rpartidaislas-cloud/camila/'), 'Falta el origen CORS de la biblioteca');
+  assert.ok(worker.includes(publicRelative), `${publicRelative} no está incluido en el caché PWA`);
 });
 
 assert.match(simulator, /href="biblioteca-carillas\.html"/);
-assert.match(worker, /smyl-v84/);
+assert.match(worker, /smyl-v85/);
 assert.match(worker, /\/camila\/biblioteca-carillas\.html/);
 
 console.log('SMYL photo-library POC: assets, local compositor and integration verified');

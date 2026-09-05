@@ -35,10 +35,10 @@
   `verify_jwt=false`. Frontend autorizado para publicarse desde la rama de
   GitHub Pages. El despliegue no ejecutó una simulación, no subió fotografías
   y no consumió una generación.
-- Caché PWA `smyl-v84`. En GitHub Pages la web carga la copia publicada bajo
-  `mobile/www/assets`; la app móvil y otros hosts usan `assets` desde su raíz.
-  Los nombres `*-v3.png` evitan el caché negativo de las rutas descartadas; la
-  selección es automática y mantiene el mismo HTML web/móvil.
+- Caché PWA `smyl-v85`. En GitHub Pages la web carga la copia del repositorio
+  desde `raw.githubusercontent.com`, que responde con CORS `*`; la app móvil y
+  otros hosts usan `assets` desde su raíz. Los nombres `*-v3.png` evitan el
+  caché negativo de rutas descartadas y el mismo HTML funciona en ambos medios.
   Sintaxis, prueba de integración, regresión v3 y QA visual aprobados en
   escritorio y 390×844, sin errores de consola.
 
