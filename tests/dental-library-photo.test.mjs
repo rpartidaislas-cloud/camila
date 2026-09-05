@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'biblioteca-carillas.html'), 'utf8');
 const simulator = fs.readFileSync(path.join(root, 'simulacion.html'), 'utf8');
 const worker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-const assets = ['central.png', 'lateral.png', 'canine.png'];
+const assets = ['central-v3.png', 'lateral-v3.png', 'canine-v3.png'];
 
 assert.match(html, /Carillas fotográficas por pieza/);
 assert.match(html, /id="photo-input"[^>]*accept="image\/\*"/);
@@ -31,7 +31,7 @@ assets.forEach((asset) => {
 });
 
 assert.match(simulator, /href="biblioteca-carillas\.html"/);
-assert.match(worker, /smyl-v83/);
+assert.match(worker, /smyl-v84/);
 assert.match(worker, /\/camila\/biblioteca-carillas\.html/);
 
 console.log('SMYL photo-library POC: assets, local compositor and integration verified');

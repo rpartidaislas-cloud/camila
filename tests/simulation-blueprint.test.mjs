@@ -547,7 +547,7 @@ assert.doesNotMatch(guiaMorfologica,/drawImage/);
 const guiaFotografica=extractFunction('renderizarGuiaBibliotecaFotograficaV1');
 assert.match(html,/var SMYL_PHOTO_LIBRARY_V1 = Object\.freeze/);
 assert.match(html,/mobile\/www\/assets\/dental-library\/natural-a1-v1\//);
-assert.match(html,/central\.png/);
+assert.match(html,/central-v3\.png/);
 assert.match(guiaFotografica,/cargarBibliotecaFotograficaV1/);
 assert.match(guiaFotografica,/rolesEsperados=\['canine','lateral','central','central','lateral','canine'\]/);
 assert.match(guiaFotografica,/ctx\.drawImage\(sprite/);
