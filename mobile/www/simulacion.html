@@ -1719,7 +1719,7 @@ function clasificarErrorParaUsuario(error) {
   if (/cobertura bilateral|cobertura dental|arcada.*incomplet/.test(raw)) {
     return {titulo:'La detección omitió parte de la sonrisa', detalle:'La propuesta sí fue generada, pero la máscara dejó fuera parte de los dientes superiores. Tus fotografías siguen guardadas.'};
   }
-  if (/backend no confirmó el contrato (?:v10[0-5]|híbrido 2d|hibrido 2d)/.test(raw)) {
+  if (/backend no confirmó el contrato (?:v10[0-5]|híbrido 2d|hibrido 2d)|requiere la biblioteca fotográfica|guía dental.*(?:versión|version|compatible)/.test(raw)) {
     return {titulo:'La actualización del simulador está incompleta', detalle:'La aplicación y el servicio de generación no tienen la misma versión. No vuelvas a intentarlo hasta actualizar el servicio.'};
   }
   if (/líneas rojizas|lineas rojizas|bordes de plano|recortes oscuros|superficie blanca plana/.test(raw)) {
@@ -8615,7 +8615,7 @@ var SMYL_HYBRID_2D_ENABLED = true;
 // segunda generación de imagen antes del render final y mantiene el plano
 // anclado a la misma fotografía que verá el paciente.
 var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true;
-var SIM_QUALITY_VERSION = 42;
+var SIM_QUALITY_VERSION = 43;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'hybrid-2d-v3',
   minimumSourcePieces:6,
@@ -10401,11 +10401,13 @@ async function renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opci
 // escaladas. Se crea desde los seis dientes reales del paciente: conserva su
 // silueta individual, margen cervical, eje, contactos, volumen luminoso y
 // perspectiva; el modelo local sólo anticipa el material cerámico seleccionado.
-// Al ser una segunda fotografía completa y registrada píxel a píxel, el modelo
-// remoto no necesita adivinar dónde colocar una corona ni copiar un recorte.
+// El lienzo conserva las mismas dimensiones y el mismo registro de IMAGE 1,
+// pero queda transparente fuera de las seis coronas para no duplicar el peso de
+// la fotografía ni ofrecer al modelo otra versión del rostro o de los tejidos.
 async function renderizarGuiaAnatomicaPacienteV2(fotoOriginalUrl,plano,shade,opciones) {
   var diseno=await renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opciones||{});
-  var maskImg=await cargarImagenSegura(diseno.maskUrl);
+  var imagenes=await Promise.all([cargarImagenSegura(diseno.url),cargarImagenSegura(diseno.maskUrl)]);
+  var previewImg=imagenes[0],maskImg=imagenes[1];
   var maskCanvas=document.createElement('canvas');
   maskCanvas.width=maskImg.naturalWidth;maskCanvas.height=maskImg.naturalHeight;
   maskCanvas.getContext('2d').drawImage(maskImg,0,0);
@@ -10413,14 +10415,19 @@ async function renderizarGuiaAnatomicaPacienteV2(fotoOriginalUrl,plano,shade,opc
   if(!diseno.url||!medicion.area||medicion.ratio>.30){
     throw new Error('La previsualización anatómica salió vacía o fuera de escala.');
   }
+  var guia=document.createElement('canvas');guia.width=previewImg.naturalWidth;guia.height=previewImg.naturalHeight;
+  var guiaCtx=guia.getContext('2d');guiaCtx.drawImage(previewImg,0,0);
+  guiaCtx.globalCompositeOperation='destination-in';guiaCtx.drawImage(maskCanvas,0,0,guia.width,guia.height);
+  guiaCtx.globalCompositeOperation='source-over';
   return {
-    dataUrl:diseno.url,
+    dataUrl:guia.toDataURL('image/png'),
     libraryVersion:'patient-anatomy-warp-v2',
     pieces:plano.pieces.length,
     coverage:+medicion.ratio.toFixed(4),
     metrics:{
       source:'patient-own-six-crowns',
-      registration:'pixel-aligned-full-crop',
+      registration:'pixel-aligned-transparent-crowns',
+      transparentOutsideCrowns:true,
       anatomy:'cervical-proximal-axis-incisal-contours',
       material:diseno.metrics&&diseno.metrics.material||null
     }

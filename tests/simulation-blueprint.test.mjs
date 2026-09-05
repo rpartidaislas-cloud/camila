@@ -108,7 +108,7 @@ vm.runInContext([
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
 assert.match(html, /var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 42/);
+assert.match(html, /var SIM_QUALITY_VERSION = 43/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -238,6 +238,7 @@ assert.match(backend, /X-SMYL-Contract/);
 assert.match(backend, /X-SMYL-Guide-Library/);
 assert.match(backend, /contract:\s*simulationContract/);
 assert.match(backend, /const isPhotographicLibraryContract = simulationContract === "hybrid-2d-v3"/);
+assert.match(backend, /const isPatientAnatomyGuide = isPhotographicLibraryContract && guideLibraryVersion === "patient-anatomy-warp-v2"/);
 assert.match(backend, /const isHybrid2DContract = simulationContract === "hybrid-2d-v2" \|\| isPhotographicLibraryContract/);
 assert.match(backend, /simulationContract === "v105" \|\| isHybrid2DContract/);
 assert.match(backend, /simulationContract === "v105"/);
@@ -248,6 +249,8 @@ assert.match(backend, /guideImageBase64 && !isMeasuredMaskOnlyContract/);
 assert.match(backend, /numeric-geometry-only/);
 assert.match(backend, /HYBRID 2D VENEER EDIT V2/);
 assert.match(backend, /HYBRID 2D VENEER EDIT V3 — PHOTOGRAPHIC LIBRARY TRANSFER/);
+assert.match(backend, /HYBRID 2D VENEER EDIT V3 — PATIENT-DERIVED ANATOMY/);
+assert.match(backend, /patient-anatomy-guide\.png/);
 assert.match(backend, /smyl-photo-library\.png/);
 assert.match(backend, /natural-a1-v1/);
 assert.match(backend, /one connected upper-smile working region/);
@@ -580,7 +583,9 @@ const guiaAnatomica=extractFunction('renderizarGuiaAnatomicaPacienteV2');
 assert.match(guiaAnatomica,/renderizarSimulacionBibliotecaV1\(fotoOriginalUrl,plano,shade/);
 assert.match(guiaAnatomica,/patient-anatomy-warp-v2/);
 assert.match(guiaAnatomica,/source:'patient-own-six-crowns'/);
-assert.match(guiaAnatomica,/registration:'pixel-aligned-full-crop'/);
+assert.match(guiaAnatomica,/registration:'pixel-aligned-transparent-crowns'/);
+assert.match(guiaAnatomica,/transparentOutsideCrowns:true/);
+assert.match(guiaAnatomica,/destination-in/);
 assert.doesNotMatch(guiaAnatomica,/cargarBibliotecaFotograficaV1|drawImage\(sprite/);
 
 const armonizador=extractFunction('armonizarCarillasFotometricamenteV2');
@@ -640,6 +645,11 @@ const mensajeVersion = context.clasificarErrorParaUsuario(
   new Error('La simulación no superó el contrato visual híbrido 2D: el backend no confirmó el contrato híbrido 2D.'),
 );
 assert.equal(mensajeVersion.titulo, 'La actualización del simulador está incompleta');
+
+const mensajeGuiaIncompatible = context.clasificarErrorParaUsuario(
+  new Error('El contrato hybrid-2d-v3 requiere una guía dental compatible.'),
+);
+assert.equal(mensajeGuiaIncompatible.titulo, 'La actualización del simulador está incompleta');
 
 const mensajeVisualCompatibilidad = context.clasificarErrorParaUsuario(
   new Error('La simulación no alcanzó el estándar visual de carillas: tono A1 demasiado amarillo.'),

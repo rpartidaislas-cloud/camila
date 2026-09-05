@@ -157,6 +157,7 @@ Deno.serve(async (req: Request) => {
     : "";
   const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
   const isPhotographicLibraryContract = simulationContract === "hybrid-2d-v3";
+  const isPatientAnatomyGuide = isPhotographicLibraryContract && guideLibraryVersion === "patient-anatomy-warp-v2";
   const isHybrid2DContract = simulationContract === "hybrid-2d-v2" || isPhotographicLibraryContract;
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
@@ -215,8 +216,8 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
-    if (isPhotographicLibraryContract && guideLibraryVersion !== "natural-a1-v1") {
-      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v3 requiere la biblioteca fotográfica natural-a1-v1." }), {
+    if (isPhotographicLibraryContract && guideLibraryVersion !== "natural-a1-v1" && !isPatientAnatomyGuide) {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v3 requiere una guía dental compatible." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -329,7 +330,9 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        const promptOpenAI = isPhotographicLibraryContract
+        const promptOpenAI = isPatientAnatomyGuide
+          ? "HYBRID 2D VENEER EDIT V3 — PATIENT-DERIVED ANATOMY. IMAGE 1 is the patient smile crop and the primary source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent anatomical preview reconstructed one-to-one from this patient's own teeth 13-12-11-21-22-23. Its visible pixels preserve the individual cervical margins, proximal limits, facial axes, convexity, incisal trajectories and original light while previewing the selected ceramic material. It is not a stock library row. Keep the identity and anatomy of each corresponding tooth from IMAGE 1; use IMAGE 2 only as a pixel-registered target for conservative contour refinement and layered porcelain optics. Never paste IMAGE 2 as flat sprites, never clone one crown into another and never impose generic rectangular shapes. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Preserve gingiva, lips, lower teeth, premolars and every unrelated pixel exactly as photographed. Return only the final photorealistic patient crop. " + prompt
+          : isPhotographicLibraryContract
           ? "HYBRID 2D VENEER EDIT V3 — PHOTOGRAPHIC LIBRARY TRANSFER. IMAGE 1 is the patient smile crop and is the only source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent reference board assembled automatically from the SMYL Natural A1 photographic library. It contains exactly six assigned crowns in image-left-to-right order 13-12-11-21-22-23 and already encodes their target position, width, length, contour hierarchy and incisal smile arc. Transfer the corresponding photographic anatomy and layered ceramic optical character from each IMAGE 2 crown into the matching real tooth in IMAGE 1, adapting it to patient perspective, original light and the requested VITA shade. Do not simply paste the reference pixels and do not render the reference canvas, source black background, hard sprite edges or transparency artifacts. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Reconstruct six complete, separate veneers with natural contacts and uninterrupted cervical-to-incisal ceramic. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed. Return only the final photorealistic patient crop. " + prompt
           : isHybrid2DContract
           ? "HYBRID 2D VENEER EDIT V2. IMAGE 1 is the patient smile crop and is the only source for identity, gingival emergence, perspective, lighting and photographic texture. IMAGE 2 is a same-size abstract morphology control map for maxillary teeth 13-12-11-21-22-23. Use only its six silhouettes to control crown position, relative width, length, contour hierarchy and incisal smile arc. The alpha mask on IMAGE 1 is one connected upper-smile working region, not six tooth cut-outs. Reconstruct all six veneers as one coherent photographic dental edit while keeping six anatomically separate crowns, natural contacts and uninterrupted cervical-to-incisal ceramic on every tooth. Do not return isolated white patches, partial overlays, stickers, floating fragments or unchanged tooth sections inside a veneer. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed even when they fall inside the working region. Do not paste, trace or render IMAGE 2: its black background, pale fills and white outlines must never appear. Return only the final photorealistic patient crop. " + prompt
@@ -353,7 +356,7 @@ Deno.serve(async (req: Request) => {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
         if (guideImageBytes && !isMeasuredMaskOnlyContract) {
-          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png");
+          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPatientAnatomyGuide ? "patient-anatomy-guide.png" : (isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png"));
         }
         form.append("prompt", promptOpenAI);
         // Los acercamientos dentales son ediciones de detalle y anatomía fina.

@@ -32,7 +32,7 @@ assets.forEach((asset) => {
 });
 
 assert.match(simulator, /href="biblioteca-carillas\.html"/);
-assert.match(worker, /smyl-v89/);
+assert.match(worker, /smyl-v90/);
 assert.match(worker, /\/camila\/biblioteca-carillas\.html/);
 
 console.log('SMYL photo-library POC: assets, local compositor and integration verified');

@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-05 — Codex: compatibilidad del servicio con la guía anatómica
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`supabase/functions/claude/index.ts`, `sw.js`,
+`tests/simulation-blueprint.test.mjs`, `tests/dental-library-photo.test.mjs`
+y `docs/HANDOFF.md`.
+
+- El intento público con soporte `d73ca2d-0b2e-4793-a3ae-e1182f2ef4e0`
+  terminó antes de llamar a GPT Image: la función desplegada de `claude`
+  aceptaba `hybrid-2d-v3` únicamente cuando `guideLibraryVersion` era
+  `natural-a1-v1`, mientras el cliente nuevo enviaba
+  `patient-anatomy-warp-v2`. La validación ocurre antes de consumir el límite,
+  por lo que este rechazo no debe contar como generación.
+- El servicio local reconoce ahora ambas variantes para conservar
+  compatibilidad. La nueva rama `isPatientAnatomyGuide` usa una instrucción
+  específica donde IMAGE 1 conserva la anatomía primaria e IMAGE 2 describe
+  las seis coronas propias de la paciente, no una arcada de biblioteca.
+- Para evitar que la guía nueva duplique todo el peso de la fotografía,
+  `renderizarGuiaAnatomicaPacienteV2` mantiene las mismas dimensiones y el
+  registro píxel a píxel, pero deja transparente todo lo que está fuera de las
+  seis coronas. No vuelve a usar sprites ni recortes maestros.
+- El clasificador muestra una actualización incompleta cuando cliente y servicio
+  no comparten versión, en vez del mensaje genérico. Calidad `v43`, caché PWA
+  `smyl-v90`; web y móvil sincronizados y pruebas locales aprobadas.
+- **Pendiente de despliegue:** la función `claude` todavía no se desplegó. El
+  proyecto no tiene `supabase/config.toml` y el flujo prospecto depende de la
+  verificación interna de `requireUser`; desplegar con `--no-verify-jwt` requiere
+  autorización explícita para conservar la configuración pública actual.
+
 ## 2026-09-05 — Codex: guía registrada desde la anatomía del paciente
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
