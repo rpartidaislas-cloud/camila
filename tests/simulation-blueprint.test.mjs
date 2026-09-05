@@ -108,7 +108,7 @@ vm.runInContext([
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
 assert.match(html, /var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 41/);
+assert.match(html, /var SIM_QUALITY_VERSION = 42/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -167,7 +167,7 @@ for(let y=10;y<70;y++){
   }
 }
 const contornoFoto=context.extraerContornoDentalLocalV5(pixelesContorno,80,80,{x:20,y:10,w:40,h:60});
-assert.equal(contornoFoto.levels.length,9);
+assert.equal(contornoFoto.levels.length,17);
 assert.ok(contornoFoto.confidence>.75);
 assert.ok(contornoFoto.left[0]>contornoFoto.left[4]);
 assert.ok(contornoFoto.right[0]<contornoFoto.right[4]);
@@ -198,8 +198,10 @@ assert.match(generadorV105, /guideMimeType:'image\/png'/);
 assert.match(generadorV105, /guideLibraryVersion:guia2D\.libraryVersion/);
 assert.match(generadorV105, /x-smyl-guide-library/);
 assert.match(generadorV105, /imageProvider:'openai'/);
-assert.match(generadorV105, /IMAGE 2 is a same-size transparent photographic reference board/);
-assert.match(generadorV105, /renderizarGuiaBibliotecaFotograficaV1/);
+assert.match(generadorV105, /IMAGE 2 is a pixel-registered patient-derived veneer preview/);
+assert.match(generadorV105, /IMAGE 1 is the patient crop and is the PRIMARY anatomical source/);
+assert.match(generadorV105, /renderizarGuiaAnatomicaPacienteV2/);
+assert.doesNotMatch(generadorV105, /renderizarGuiaBibliotecaFotograficaV1/);
 assert.doesNotMatch(generadorV105, /renderizarGuiaPlanoDental/);
 assert.match(generadorV105, /Never treat premolars, lower teeth or any unlisted tooth/);
 assert.match(generadorV105, /one connected upper-smile working region/);
@@ -532,7 +534,7 @@ assert.match(preparadorPlano,/heightAdjustments/);
 assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
 assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
 assert.match(preparadorPlano,/SMYL_DESIGN_ENGINE_V1_ENABLED \|\| SMYL_HYBRID_LOCAL_LOCATOR_ENABLED/);
-assert.match(preparadorPlano,/locator==='local-contours-v6'/);
+assert.match(preparadorPlano,/locator==='local-contours-v7'/);
 assert.match(preparadorPlano,/landmarkMetrics/);
 assert.match(preparadorPlano,/segmentarCanvasDentalDetallado\(canvas,clave,requestId\)/);
 assert.match(preparadorPlano,/catch\(errorSegmentacionRemota\)/);
@@ -544,13 +546,13 @@ assert.match(solicitadorSegmentacion,/requestId: operationRequestId/);
 assert.match(solicitadorSegmentacion,/leerRespuestaEdge\(resp, operationRequestId, 'la segmentación dental'\)/);
 const mapaLocal=extractFunction('construirMapaDentalLocalV1');
 assert.match(mapaLocal,/ajustarPiezasPorContactosV5/);
-assert.match(mapaLocal,/local-contours-v6/);
+assert.match(mapaLocal,/local-contours-v7/);
 assert.match(html,/function trazarContornoDentalFotograficoV5/);
 assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
 
 const prescripcionNumerica=context.construirPrescripcionNumericaV104(plano);
-assert.match(prescripcionNumerica,/NUMERIC CROSS-CHECK FOR IMAGE 2/);
+assert.match(prescripcionNumerica,/NUMERIC CROSS-CHECK FOR THE PATIENT-DERIVED PREVIEW IN IMAGE 2/);
 assert.match(prescripcionNumerica,/FDI 13,role=canine,centerX=/);
 assert.match(prescripcionNumerica,/FDI 11,role=central,centerX=/);
 assert.match(prescripcionNumerica,/FDI 23,role=canine,centerX=/);
@@ -574,6 +576,12 @@ assert.match(guiaFotografica,/ctx\.rotate\(rotaciones\[indice\]/);
 assert.match(guiaFotografica,/source-atop/);
 assert.match(guiaFotografica,/rgba\(45,35,31,\.24\)/);
 assert.match(guiaFotografica,/libraryVersion:SMYL_PHOTO_LIBRARY_V1\.version/);
+const guiaAnatomica=extractFunction('renderizarGuiaAnatomicaPacienteV2');
+assert.match(guiaAnatomica,/renderizarSimulacionBibliotecaV1\(fotoOriginalUrl,plano,shade/);
+assert.match(guiaAnatomica,/patient-anatomy-warp-v2/);
+assert.match(guiaAnatomica,/source:'patient-own-six-crowns'/);
+assert.match(guiaAnatomica,/registration:'pixel-aligned-full-crop'/);
+assert.doesNotMatch(guiaAnatomica,/cargarBibliotecaFotograficaV1|drawImage\(sprite/);
 
 const armonizador=extractFunction('armonizarCarillasFotometricamenteV2');
 assert.match(armonizador,/sourceTextureTransfer:\.20/);
@@ -713,4 +721,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL hybrid-2d-v3: photographic veneer library with deterministic safety');
+console.log('SMYL hybrid-2d-v3: patient-derived anatomy with deterministic safety');

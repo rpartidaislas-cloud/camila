@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v3 — biblioteca fotográfica + seguridad determinista</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v3 — anatomía del paciente + seguridad determinista</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -6035,8 +6035,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     : 'SHADE: reproduce VITA Classical ' + vitaShade.code + ' as perceived under the ORIGINAL illumination. ' + vitaShade.copy + shadeReferencePrompt;
   var prompt = [
     basePrompt,
-    'ROLE: act only as the photorealistic ceramic renderer. IMAGE 1 is the patient crop. IMAGE 2 is a same-size transparent photographic reference board built from the SMYL Natural A1 veneer library. Its six real ceramic crowns are already assigned and positioned as 13-12-11-21-22-23. The alpha mask applies only to IMAGE 1 and is one connected upper-smile working region, not six separate tooth cut-outs.',
-    'RENDERING TASK: reconstruct the complete visible facial enamel of teeth 13-12-11-21-22-23 as six clearly changed, independently readable porcelain veneers in one coherent photographic edit. Use the corresponding crown in IMAGE 2 as the primary reference for individual anatomy, width, length, line angles, incisal character, layered translucency and microtexture. Adapt those references to the patient perspective, cervical emergence, illumination and selected VITA shade from IMAGE 1; do not paste them as flat sprites. Every veneer must be continuous from cervical emergence to incisal edge, with no white patches, stickers, floating fragments or unchanged enamel islands. Never render the transparent board, black source background, hard cut-out borders or reference-sheet artifacts. Never treat premolars, lower teeth or any unlisted tooth; never invent, remove, fuse or duplicate a tooth.',
+    'ROLE: act only as the photorealistic ceramic renderer. IMAGE 1 is the patient crop and is the PRIMARY anatomical source. IMAGE 2 is a pixel-registered patient-derived veneer preview: it was rebuilt from the same six original crowns, their cervical margins, contacts, axes, individual contours and original illumination. It is not a stock-tooth board and it is not permission to replace the patient anatomy. The alpha mask applies only to IMAGE 1 and is one connected upper-smile working region, not six separate tooth cut-outs.',
+    'RENDERING TASK: reconstruct the complete visible facial enamel of teeth 13-12-11-21-22-23 as six clearly changed, independently readable porcelain veneers in one coherent photographic edit. Preserve the one-to-one anatomy and identity of each tooth from IMAGE 1. Use IMAGE 2 only as the registered target preview for conservative contour refinement, VITA material, layered translucency and microtexture. Follow every patient-derived cervical margin, proximal boundary, facial axis, convexity and incisal trajectory; never substitute a generic library crown, paste a sprite or flatten the six teeth into a stock row. Every veneer must be continuous from its own cervical emergence to its own incisal edge, with no white patches, stickers, floating fragments or unchanged enamel islands. Never render hard cut-out borders, reference artifacts or duplicated contours. Never treat premolars, lower teeth or any unlisted tooth; never invent, remove, fuse or duplicate a tooth.',
     anatomyAcceptancePrompt,
     'CERAMIC MATERIAL: render layered porcelain with individual facial convexity, restrained developmental lobes, shallow non-repetitive vertical texture, slightly warmer cervical dentin, controlled body value, subtle incisal translucency and highlights from the original light. Never return flat paint, opaque chalk, plastic rectangles or a uniform white row.',
     shadeInstruction,
@@ -6109,14 +6109,19 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     return prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal', planoDental);
   });
   prompt += ' ' + planoDental.prompt;
-  var guia2D = await renderizarGuiaBibliotecaFotograficaV1(
+  var guia2D = await renderizarGuiaAnatomicaPacienteV2(
+    entradaDental.dataUrl,
     planoDental,
-    entradaDental.rect.w,
-    entradaDental.rect.h
+    vitaShade,
+    {
+      vitaMode:S.vitaMode,
+      finish:S.vitaFinish,
+      intensity:S.vitaIntensity
+    }
   );
   var guia2DBase64 = guia2D.dataUrl.split(',')[1] || '';
   if (!guia2DBase64) {
-    var errorGuia2D = new Error('No fue posible construir la guía fotográfica de las seis carillas.');
+    var errorGuia2D = new Error('No fue posible construir la guía anatómica de las seis carillas.');
     errorGuia2D.requiresNewGeneration = false;
     throw errorGuia2D;
   }
@@ -8610,7 +8615,7 @@ var SMYL_HYBRID_2D_ENABLED = true;
 // segunda generación de imagen antes del render final y mantiene el plano
 // anclado a la misma fotografía que verá el paciente.
 var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true;
-var SIM_QUALITY_VERSION = 41;
+var SIM_QUALITY_VERSION = 42;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'hybrid-2d-v3',
   minimumSourcePieces:6,
@@ -9691,11 +9696,11 @@ function suavizarSerieContornoV5(valores,respaldo) {
 }
 
 // Convierte la fotografía en un perfil anatómico muy suave, no en una máscara
-// visible. Nueve secciones horizontales conservan la emergencia cervical,
+// visible. Diecisiete secciones horizontales conservan la emergencia cervical,
 // convexidad y ancho incisal propios de cada diente sin copiar bordes dentados.
 function extraerContornoDentalLocalV5(data,W,H,pieza) {
-  var niveles=[0,.10,.22,.36,.52,.68,.82,.93,.985];
-  var respaldoIzq=[.29,.20,.13,.085,.06,.055,.075,.11,.16];
+  var niveles=[0,.045,.09,.14,.20,.27,.35,.44,.53,.62,.71,.79,.86,.91,.95,.975,.992];
+  var respaldoIzq=[.29,.255,.22,.18,.145,.115,.092,.074,.061,.055,.060,.070,.084,.102,.123,.145,.16];
   var respaldoDer=respaldoIzq.map(function(v){return 1-v;});
   var izquierda=[],derecha=[],validas=0;
   var centro=pieza.x+pieza.w/2;
@@ -9852,7 +9857,7 @@ function construirMapaDentalLocalV1(canvas,view) {
   return {
     maskUrl:mascara.toDataURL('image/png'),pieces:piezas,
     width:canvas.width,height:canvas.height,rawFragments:0,
-    locator:'local-contours-v6',locatorConfidence:+Math.min(Number(banda&&banda.confidence)||0,confianzaHitos||0).toFixed(3),
+    locator:'local-contours-v7',locatorConfidence:+Math.min(Number(banda&&banda.confidence)||0,confianzaHitos||0).toFixed(3),
     landmarkMetrics:{meanConfidence:+confianzaHitos.toFixed(3),pieces:piezas.map(function(p){return {id:p.id,confidence:p.landmarkConfidence||0,contactConfidence:p.contactConfidence||0,contourConfidence:p.anatomicContour&&p.anatomicContour.confidence||0};})}
   };
 }
@@ -10289,7 +10294,7 @@ function analizarTexturaFuenteCarillaV2(pixels,W,H,pieza,sx,sy) {
   };
 }
 
-// SMYL Design Engine v1.5: transferencia cerámica anclada a la fotografía.
+// SMYL Design Engine v1.6: transferencia cerámica anclada a la fotografía.
 // Cada pieza conserva su centro, eje, perspectiva y perfil anatómico suavizado;
 // la cerámica recolorea ese volumen real en vez de sustituirlo por un diente
 // genérico. El contorno fotográfico sólo guía una curva vectorial continua.
@@ -10378,7 +10383,7 @@ async function renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opci
     url:salida.toDataURL('image/png'),
     maskUrl:renderizarMascaraObjetivoDental(plano,W,H).toDataURL('image/png'),
     metrics:{
-      engine:'smyl-design-engine-v1.5',
+      engine:'smyl-design-engine-v1.6',
       library:plano.family||'rectangular-soft',
       material:{
         singleLayer:true,photoAnchored:true,opacity:material.opacity,substrateMix:material.substrateMix,
@@ -10388,6 +10393,36 @@ async function renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opci
       crowns:metricas,
       continuousCrowns:metricas.length===6&&metricas.every(function(item){return item.continuous;}),
       outsideTreatment:'original-pixel-source'
+    }
+  };
+}
+
+// La guía que recibe el generador ya no se compone con fotografías maestras
+// escaladas. Se crea desde los seis dientes reales del paciente: conserva su
+// silueta individual, margen cervical, eje, contactos, volumen luminoso y
+// perspectiva; el modelo local sólo anticipa el material cerámico seleccionado.
+// Al ser una segunda fotografía completa y registrada píxel a píxel, el modelo
+// remoto no necesita adivinar dónde colocar una corona ni copiar un recorte.
+async function renderizarGuiaAnatomicaPacienteV2(fotoOriginalUrl,plano,shade,opciones) {
+  var diseno=await renderizarSimulacionBibliotecaV1(fotoOriginalUrl,plano,shade,opciones||{});
+  var maskImg=await cargarImagenSegura(diseno.maskUrl);
+  var maskCanvas=document.createElement('canvas');
+  maskCanvas.width=maskImg.naturalWidth;maskCanvas.height=maskImg.naturalHeight;
+  maskCanvas.getContext('2d').drawImage(maskImg,0,0);
+  var medicion=medirMascaraAnatomica(maskCanvas);
+  if(!diseno.url||!medicion.area||medicion.ratio>.30){
+    throw new Error('La previsualización anatómica salió vacía o fuera de escala.');
+  }
+  return {
+    dataUrl:diseno.url,
+    libraryVersion:'patient-anatomy-warp-v2',
+    pieces:plano.pieces.length,
+    coverage:+medicion.ratio.toFixed(4),
+    metrics:{
+      source:'patient-own-six-crowns',
+      registration:'pixel-aligned-full-crop',
+      anatomy:'cervical-proximal-axis-incisal-contours',
+      material:diseno.metrics&&diseno.metrics.material||null
     }
   };
 }
@@ -10575,7 +10610,7 @@ function construirPrescripcionNumericaV104(plano) {
       'height='+normalizar(pieza.h,plano.height)
     ].join(',');
   }).join(' ; ');
-  return 'NUMERIC CROSS-CHECK FOR IMAGE 2. Coordinates are normalized to IMAGE 1, origin at top-left. Each envelope describes the same final visible crown target occupied by its photographic veneer reference in IMAGE 2: '+envolventes+'. Keep each cervical emergence anchored at its cervicalY without changing gingiva, land the incisal edge at its incisalY, and use centerX/width/height to preserve six separate crowns. Interpolate a smooth lower-lip smile arc through the six incisal destinations. IMAGE 2 and these values are invisible constraints: never draw their transparent canvas, black source background, boxes, rectangles, outlines, dots, labels, seams or annotations. Target ratios: central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(3)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(3)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(3)+'.';
+  return 'NUMERIC CROSS-CHECK FOR THE PATIENT-DERIVED PREVIEW IN IMAGE 2. Coordinates are normalized to IMAGE 1, origin at top-left. Each envelope describes the final visible crown target reconstructed from the corresponding original patient tooth: '+envolventes+'. Keep each cervical emergence anchored at its cervicalY without changing gingiva, land the incisal edge at its incisalY, and use centerX/width/height to preserve six separate crowns. Interpolate a smooth lower-lip smile arc through the six incisal destinations. IMAGE 2 and these values are invisible constraints: never draw boxes, rectangles, outlines, dots, labels, seams or annotations. Target ratios: central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(3)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(3)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(3)+'.';
 }
 
 async function prepararPlanoDentalIndividual(entradaDental, view, requestId) {
@@ -10586,7 +10621,7 @@ async function prepararPlanoDentalIndividual(entradaDental, view, requestId) {
   var mapa;
   if (SMYL_DESIGN_ENGINE_V1_ENABLED || SMYL_HYBRID_LOCAL_LOCATOR_ENABLED) {
     var mapaGuardado=S.dentalMapByView&&S.dentalMapByView[clave];
-    mapa=mapaGuardado&&mapaGuardado.locator==='local-contours-v6'
+    mapa=mapaGuardado&&mapaGuardado.locator==='local-contours-v7'
       ?mapaGuardado:construirMapaDentalLocalV1(canvas,view||'frontal');
     if(!S.dentalMapByView)S.dentalMapByView={};
     S.dentalMapByView[clave]=mapa;

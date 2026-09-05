@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-05 — Codex: guía registrada desde la anatomía del paciente
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/dental-library-photo.test.mjs` y `docs/HANDOFF.md`.
+
+- La validación pública de `515041e` confirmó el defecto descrito por Ricardo:
+  la textura parecía real, pero la biblioteca se estaba escalando y rotando
+  dentro de seis siluetas, por lo que el conjunto podía leerse como fotografías
+  recortadas y pegadas sobre la dentadura.
+- La generación ya no recibe la biblioteca fotográfica posicionada como
+  anatomía primaria. `renderizarGuiaAnatomicaPacienteV2` construye IMAGE 2 desde
+  las seis coronas originales de la paciente, conserva el registro píxel a
+  píxel de la fotografía y anticipa sobre ese volumen el material VITA elegido.
+  La biblioteca queda disponible como referencia/laboratorio, pero no impone
+  forma, tamaño ni perspectiva en el flujo público.
+- El contrato del generador declara ahora IMAGE 1 como fuente anatómica primaria
+  y obliga a seguir por pieza el margen cervical, límites proximales, eje,
+  convexidad y trayectoria incisal. Se eliminó la instrucción que convertía las
+  coronas maestras en referencia anatómica principal.
+- El localizador `local-contours-v7` eleva el perfil transversal de 9 a 17
+  secciones por diente para describir con mayor continuidad la emergencia
+  cervical, el cuerpo proximal y el borde incisal. La ruta sigue haciendo una
+  sola solicitud de imagen y conserva el respaldo sin dependencias nuevas.
+- Calidad `v42`, caché PWA `smyl-v89`; web y móvil sincronizados. Pruebas de
+  biblioteca, scripts inline y contrato híbrido aprobadas. La carga local de
+  escritorio mostró la etiqueta nueva sin errores visibles; no se inició sesión,
+  no se ejecutó una generación y no se usaron fotografías durante QA.
+
 ## 2026-09-05 — Codex: guía 2D conservadora y armonización fotográfica
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
