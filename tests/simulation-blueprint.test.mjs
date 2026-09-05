@@ -107,7 +107,8 @@ vm.runInContext([
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 40/);
+assert.match(html, /var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true/);
+assert.match(html, /var SIM_QUALITY_VERSION = 41/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -499,9 +500,11 @@ const plano = context.construirPlanoGeometricoDental(originales, 900, 700, {
 assert.deepEqual(Array.from(plano.pieces, (piece) => piece.id), ['13', '12', '11', '21', '22', '23']);
 assert.equal(plano.targetMetrics.sourceAnchored,true);
 assert.ok(plano.targetMetrics.maxCenterDrift<.04);
-assert.ok(plano.pieces.every((piece,index)=>Math.abs(piece.w-originales[index].w)<=originales[index].w*.06));
+assert.ok(plano.pieces.every((piece,index)=>Math.abs(piece.w-originales[index].w)<=originales[index].w*.09));
 assert.ok(plano.pieces.every((piece,index)=>piece.y===originales[index].y));
-assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.08+0.001));
+assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.035+0.001));
+assert.ok(plano.targetMetrics.lateralToCentral<.80);
+assert.ok(plano.targetMetrics.incisalRange>.02);
 
 const piezasLocales=context.construirPiezasBandaDentalV1(
   {x:180,y:260,w:540,h:150,cx:450,cy:335,confidence:.82},900,700,
@@ -522,13 +525,14 @@ assert.equal(planoEditor.family, 'oval');
 assert.ok(planoEditor.pieces[2].h > plano.pieces[2].h);
 assert.ok(planoEditor.pieces[0].h < plano.pieces[0].h);
 assert.ok(planoEditor.pieces.every((piece,index)=>piece.y===originales[index].y));
-assert.ok(planoEditor.pieces.every((piece,index)=>piece.h<=originales[index].h*1.08+0.001));
+assert.ok(planoEditor.pieces.every((piece,index)=>piece.h<=originales[index].h*1.035+0.001));
 const preparadorPlano=extractFunction('prepararPlanoDentalIndividual');
 assert.match(preparadorPlano,/S\.editorParams/);
 assert.match(preparadorPlano,/heightAdjustments/);
 assert.match(preparadorPlano,/rectangular:'rectangular-soft'/);
 assert.match(preparadorPlano,/construirMapaDentalLocalV1/);
-assert.match(preparadorPlano,/locator==='local-contours-v5'/);
+assert.match(preparadorPlano,/SMYL_DESIGN_ENGINE_V1_ENABLED \|\| SMYL_HYBRID_LOCAL_LOCATOR_ENABLED/);
+assert.match(preparadorPlano,/locator==='local-contours-v6'/);
 assert.match(preparadorPlano,/landmarkMetrics/);
 assert.match(preparadorPlano,/segmentarCanvasDentalDetallado\(canvas,clave,requestId\)/);
 assert.match(preparadorPlano,/catch\(errorSegmentacionRemota\)/);
@@ -540,7 +544,7 @@ assert.match(solicitadorSegmentacion,/requestId: operationRequestId/);
 assert.match(solicitadorSegmentacion,/leerRespuestaEdge\(resp, operationRequestId, 'la segmentación dental'\)/);
 const mapaLocal=extractFunction('construirMapaDentalLocalV1');
 assert.match(mapaLocal,/ajustarPiezasPorContactosV5/);
-assert.match(mapaLocal,/local-contours-v5/);
+assert.match(mapaLocal,/local-contours-v6/);
 assert.match(html,/function trazarContornoDentalFotograficoV5/);
 assert.match(extractFunction('elegirTonoDesdeResultado'),/SMYL_DESIGN_ENGINE_V1_ENABLED[\s\S]*regenerarSimulacion/);
 assert.match(extractFunction('edAplicarDiseno'),/!SMYL_DESIGN_ENGINE_V1_ENABLED/);
@@ -565,7 +569,19 @@ assert.match(guiaFotografica,/cargarBibliotecaFotograficaV1/);
 assert.match(guiaFotografica,/rolesEsperados=\['canine','lateral','central','central','lateral','canine'\]/);
 assert.match(guiaFotografica,/ctx\.drawImage\(sprite/);
 assert.match(guiaFotografica,/if\(indice>2\)ctx\.scale\(-1,1\)/);
+assert.match(guiaFotografica,/ctx\.clip\(\)/);
+assert.match(guiaFotografica,/ctx\.rotate\(rotaciones\[indice\]/);
+assert.match(guiaFotografica,/source-atop/);
+assert.match(guiaFotografica,/rgba\(45,35,31,\.24\)/);
 assert.match(guiaFotografica,/libraryVersion:SMYL_PHOTO_LIBRARY_V1\.version/);
+
+const armonizador=extractFunction('armonizarCarillasFotometricamenteV2');
+assert.match(armonizador,/sourceTextureTransfer:\.20/);
+assert.match(armonizador,/highlightCompression:true/);
+assert.match(armonizador,/proximalConvexityShadow:true/);
+assert.match(armonizador,/lumComprimida>232/);
+assert.match(compositorSeguro,/armonizarCarillasFotometricamenteV2/);
+assert.match(compositorSeguro,/photometric:armonizacion\.metrics/);
 
 const sinCambio = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,

@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-05 — Codex: guía 2D conservadora y armonización fotográfica
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs`,
+`tests/dental-library-photo.test.mjs` y `docs/HANDOFF.md`.
+
+- La evidencia comparativa mostró por primera vez seis coronas completas y
+  aproximadamente alineadas, pero con volumen excesivo, fila rígida, valor
+  blanco uniforme y poca separación interproximal. Se conservó esa ruta como
+  base en vez de sustituir nuevamente el motor.
+- Hybrid-2d-v3 usa ahora `local-contours-v6` como localizador estándar en el
+  navegador. La segmentación generativa deja de ejecutarse antes del render
+  principal: una propuesta nueva hace una sola solicitud de imagen pagada.
+- El plano reduce el crecimiento máximo, aumenta la jerarquía central/lateral,
+  abre contactos de forma limitada y refuerza una curva incisal suave. La guía
+  fotográfica recorta cada corona maestra con su contorno detectado, añade una
+  rotación posterior mínima y sombras cortas en los cinco contactos.
+- Después del render, `photo-harmonizer-v2` actúa únicamente dentro de las seis
+  máscaras objetivo: comprime blancos recortados, recupera 20 % de la variación
+  luminosa fuente, conserva la emergencia cervical y añade sombra de convexidad
+  proximal. El exterior continúa procediendo exactamente de la foto original.
+- No se modificaron prompts, Edge Functions, Supabase ni secretos. Calidad
+  `v41`, caché PWA `smyl-v88`; pruebas de scripts, biblioteca y contrato
+  aprobadas. La carga local de escritorio fue correcta; no se ejecutó ninguna
+  generación ni se usaron fotografías durante QA.
+
 ## 2026-09-05 — Codex: reintento seguro ante saturación de GPT Image 2
 
 **Tocado localmente:** `supabase/functions/claude/index.ts`,

@@ -5562,6 +5562,64 @@ function consolidarHallazgosRevision(revisionAnatomica,revisionVisual,extras) {
   return hallazgos;
 }
 
+// Ajuste fotométrico posterior al render. No inventa anatomía ni recolorea el
+// rostro: recupera variación luminosa de la fotografía dentro de cada corona,
+// comprime blancos recortados y añade una sombra de convexidad muy corta en
+// los bordes proximales. La máscara objetivo mantiene el efecto dentro de las
+// seis carillas y la transición cervical queda deliberadamente conservadora.
+function armonizarCarillasFotometricamenteV2(originalCanvas,salidaCanvas,maskObjetivo,planoDental) {
+  var W=salidaCanvas.width,H=salidaCanvas.height;
+  var original=originalCanvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var salidaCtx=salidaCanvas.getContext('2d',{willReadFrequently:true});
+  var datos=salidaCtx.getImageData(0,0,W,H);
+  var mascara=maskObjetivo.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  var sx=W/Math.max(1,planoDental.width),sy=H/Math.max(1,planoDental.height);
+  var intensidad=S.vitaIntensity||'balanced';
+  var aclarado=intensidad==='subtle'?13:(intensidad==='notable'?27:20);
+  var metricas=[];
+
+  (planoDental.pieces||[]).forEach(function(pieza,indice){
+    var fuente=pieza.original||pieza;
+    var perfil=analizarTexturaFuenteCarillaV2(original,W,H,fuente,sx,sy);
+    var x0=Math.max(0,Math.floor(pieza.x*sx)),x1=Math.min(W,Math.ceil((pieza.x+pieza.w)*sx));
+    var y0=Math.max(0,Math.floor(pieza.y*sy)),y1=Math.min(H,Math.ceil((pieza.y+pieza.h)*sy));
+    var sumaGenerada=0,muestras=0;
+    for(var y=y0;y<y1;y+=2)for(var x=x0;x<x1;x+=2){
+      var i=(y*W+x)*4;if(mascara[i+3]<48)continue;
+      sumaGenerada+=.299*datos.data[i]+.587*datos.data[i+1]+.114*datos.data[i+2];muestras++;
+    }
+    var mediaGenerada=muestras?sumaGenerada/muestras:perfil.mean;
+    var mediaObjetivo=S.vitaMode==='current'?perfil.mean:limitarPlanoDental(perfil.mean+aclarado,150,224);
+    var corregidos=0;
+    for(var py=y0;py<y1;py++)for(var px=x0;px<x1;px++){
+      var pi=(py*W+px)*4,alfa=mascara[pi+3]/255;if(alfa<.04)continue;
+      var u=limitarPlanoDental((px/sx-pieza.x)/Math.max(1,pieza.w),0,1);
+      var v=limitarPlanoDental((py/sy-pieza.y)/Math.max(1,pieza.h),0,1);
+      var ox=limitarPlanoDental(Math.round((fuente.x+u*fuente.w)*sx),0,W-1);
+      var oy=limitarPlanoDental(Math.round((fuente.y+v*fuente.h)*sy),0,H-1);
+      var oi=(oy*W+ox)*4;
+      var lumFuente=.299*original[oi]+.587*original[oi+1]+.114*original[oi+2];
+      var detalleFuente=limitarPlanoDental((lumFuente-perfil.mean)*.20,-7.5,7.5);
+      var r=datos.data[pi],g=datos.data[pi+1],b=datos.data[pi+2];
+      var lum=.299*r+.587*g+.114*b;
+      var lumComprimida=mediaObjetivo+(lum-mediaGenerada)*.84+detalleFuente;
+      if(lumComprimida>232)lumComprimida=232+(lumComprimida-232)*.38;
+      var sombraBorde=Math.pow(Math.abs(u-.5)*2,3.6)*Math.pow(Math.max(0,Math.sin(Math.PI*v)),.72)*5.2;
+      lumComprimida=limitarPlanoDental(lumComprimida-sombraBorde,72,244);
+      var delta=lumComprimida-lum;
+      var cervical=Math.max(0,1-v/.20),incisal=Math.max(0,(v-.80)/.20);
+      var fuerza=alfa*(.86-cervical*.24-incisal*.08);
+      datos.data[pi]=limitarCanalCarillaV1(r+delta*fuerza);
+      datos.data[pi+1]=limitarCanalCarillaV1(g+delta*fuerza);
+      datos.data[pi+2]=limitarCanalCarillaV1(b+delta*fuerza);
+      corregidos++;
+    }
+    metricas.push({id:pieza.id||String(indice+1),sourceMean:+perfil.mean.toFixed(1),generatedMean:+mediaGenerada.toFixed(1),targetMean:+mediaObjetivo.toFixed(1),pixels:corregidos});
+  });
+  salidaCtx.putImageData(datos,0,0);
+  return {canvas:salidaCanvas,metrics:{version:'photo-harmonizer-v2',pieces:metricas,sourceTextureTransfer:.20,highlightCompression:true,proximalConvexityShadow:true}};
+}
+
 // Composición segura para el flujo público. La IA sobrevive dentro de una sola
 // región continua de sonrisa; las seis siluetas individuales sirven únicamente
 // para medir cobertura y calidad, nunca para volver a recortar el render.
@@ -5669,6 +5727,8 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   pctx.globalCompositeOperation='destination-in';pctx.drawImage(maskSegura,0,0);pctx.globalCompositeOperation='source-over';
   var salida=document.createElement('canvas');salida.width=W;salida.height=H;
   var sctx=salida.getContext('2d');sctx.drawImage(original,0,0);sctx.drawImage(protegida,0,0);
+  var armonizacion=armonizarCarillasFotometricamenteV2(original,salida,maskObjetivo,planoDental);
+  salida=armonizacion.canvas;sctx=salida.getContext('2d',{willReadFrequently:true});
 
   var exterior=medirDiferenciasFueraMascara(
     original.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data,
@@ -5706,7 +5766,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:contratoV105.accepted?'review':'rejected',
     issues:advertencias,
-    metrics:{mode:'hybrid-2d-v3-photo-library',deliveryGate:'deterministic-safety-hard-visual-quality-review',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'hybrid-2d-v3-photo-library',deliveryGate:'deterministic-safety-hard-visual-quality-review',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,photometric:armonizacion.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   if(!contratoV105.accepted){
     var errorContrato=new Error('La simulación no superó el contrato visual híbrido 2D v2: '+contratoV105.failures.slice(0,3).join(' · ')+'.');
@@ -8546,7 +8606,11 @@ var _smylPhotoLibraryPromise = null;
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = false;
 var SMYL_HYBRID_2D_ENABLED = true;
-var SIM_QUALITY_VERSION = 40;
+// La ruta híbrida localiza las seis coronas en el navegador. Esto evita una
+// segunda generación de imagen antes del render final y mantiene el plano
+// anclado a la misma fotografía que verá el paciente.
+var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true;
+var SIM_QUALITY_VERSION = 41;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
   version:'hybrid-2d-v3',
   minimumSourcePieces:6,
@@ -9788,7 +9852,7 @@ function construirMapaDentalLocalV1(canvas,view) {
   return {
     maskUrl:mascara.toDataURL('image/png'),pieces:piezas,
     width:canvas.width,height:canvas.height,rawFragments:0,
-    locator:'local-contours-v5',locatorConfidence:+Math.min(Number(banda&&banda.confidence)||0,confianzaHitos||0).toFixed(3),
+    locator:'local-contours-v6',locatorConfidence:+Math.min(Number(banda&&banda.confidence)||0,confianzaHitos||0).toFixed(3),
     landmarkMetrics:{meanConfidence:+confianzaHitos.toFixed(3),pieces:piezas.map(function(p){return {id:p.id,confidence:p.landmarkConfidence||0,contactConfidence:p.contactConfidence||0,contourConfidence:p.anatomicContour&&p.anatomicContour.confidence||0};})}
   };
 }
@@ -9834,13 +9898,16 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
   var originalesCentrales = [anteriores[2],anteriores[3]];
   var anchoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.w;}));
   var altoCentralOriginal = medianaNumerica(originalesCentrales.map(function(p){return p.h;}));
-  var tamano = limitarPlanoDental(Number(opciones.sizeFactor)||1, .98, 1.04);
+  // La guía anterior podía inducir al generador a engrosar todas las coronas.
+  // El objetivo nuevo permanece ligeramente por dentro de la envolvente real:
+  // una carilla mejora contorno y eje sin convertir la arcada en dientes grandes.
+  var tamano = limitarPlanoDental(Number(opciones.sizeFactor)||1, .96, 1.005);
   var ajustesAltura = Array.isArray(opciones.heightAdjustments) ? opciones.heightAdjustments : [];
   var lineaMedia = ((anteriores[2].x+anteriores[2].w/2)+(anteriores[3].x+anteriores[3].w/2))/2;
-  var separacion = Math.max(.55, anchoCentralOriginal*.012);
+  var separacion = Math.max(.8, anchoCentralOriginal*.024);
   var roles = ['canine','lateral','central','central','lateral','canine'];
   var ids = ['13','12','11','21','22','23'];
-  var jerarquia=[.78,.76,1,1,.76,.78];
+  var jerarquia=[.76,.72,1,1,.72,.76];
   var centrosFuente=anteriores.map(function(p){return p.x+p.w/2;});
   var centros=centrosFuente.slice();
   [[2,3],[1,4],[0,5]].forEach(function(par){
@@ -9856,19 +9923,19 @@ function construirPlanoGeometricoDental(piezas, ancho, alto, opciones) {
   });
   var anchos=anteriores.map(function(original,indice){
     var anatomico=anchoCentralOriginal*jerarquia[indice];
-    var propuesto=(original.w*.88+anatomico*.12)*tamano;
+    var propuesto=(original.w*.93+anatomico*.07)*tamano;
     var maximo=Math.max(original.w*.86,limites[indice].right-limites[indice].left);
-    return limitarPlanoDental(propuesto,original.w*.94,Math.min(original.w*1.045,maximo));
+    return limitarPlanoDental(propuesto,original.w*.92,Math.min(original.w*1.01,maximo));
   });
   var fondoCentral=medianaNumerica([anteriores[2].y+anteriores[2].h,anteriores[3].y+anteriores[3].h]);
-  var pasos=[-.030,-.016,0,0,-.016,-.030];
+  var pasos=[-.050,-.030,0,0,-.030,-.050];
   var objetivos = ids.map(function(id,indice){
     var original=anteriores[indice],w=anchos[indice];
     var ajusteAltura=limitarPlanoDental((Number(ajustesAltura[indice])||0)/100,-.08,.08);
     var fondoFuente=original.y+original.h;
     var fondoArmonizado=fondoCentral+pasos[indice]*altoCentralOriginal;
-    var fondo=fondoFuente*.82+fondoArmonizado*.18+original.h*ajusteAltura;
-    var h=limitarPlanoDental(fondo-original.y,original.h*.96,original.h*1.08);
+    var fondo=fondoFuente*.66+fondoArmonizado*.34+original.h*ajusteAltura;
+    var h=limitarPlanoDental(fondo-original.y,original.h*.94,original.h*1.035);
     var cx=limitarPlanoDental(centros[indice],limites[indice].left+w/2,limites[indice].right-w/2);
     return {
       id:id, role:roles[indice], side:indice<3?'right':'left',
@@ -10049,17 +10116,42 @@ async function renderizarGuiaBibliotecaFotograficaV1(plano, anchoSalida, altoSal
   var sx=canvas.width/Math.max(1,plano.width),sy=canvas.height/Math.max(1,plano.height);
   var piezas=plano.pieces.slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
   var rolesEsperados=['canine','lateral','central','central','lateral','canine'];
+  var rotaciones=[1.15,.42,.10,-.10,-.42,-1.15];
   piezas.forEach(function(pieza,indice){
     var rol=biblioteca[pieza.role]?pieza.role:rolesEsperados[indice];
     var sprite=biblioteca[rol];
     if(!sprite)throw new Error('Falta la pieza '+rol+' en la biblioteca fotográfica.');
     var x=pieza.x*sx,y=pieza.y*sy,w=pieza.w*sx,h=pieza.h*sy;
     ctx.save();
+    // La corona maestra se recorta con el contorno individual detectado. La
+    // fotografía aporta material, pero no puede imponer seis rectángulos.
+    trazarSiluetaPlanoDental(ctx,pieza,sx,sy);
+    ctx.clip();
     ctx.translate(x+w/2,y+h/2);
+    ctx.rotate(rotaciones[indice]*Math.PI/180);
     if(indice>2)ctx.scale(-1,1);
-    ctx.drawImage(sprite,-w/2,-h/2,w,h);
+    ctx.drawImage(sprite,-w*.49,-h/2,w*.98,h);
     ctx.restore();
   });
+  // Sombra corta en los cinco contactos: mantiene coronas independientes sin
+  // abrir triángulos negros ni dibujar líneas técnicas sobre la referencia.
+  ctx.save();
+  ctx.globalCompositeOperation='source-atop';
+  for(var contacto=0;contacto<5;contacto++){
+    var izquierda=piezas[contacto],derecha=piezas[contacto+1];
+    var contactoX=((izquierda.x+izquierda.w)+(derecha.x))*sx/2;
+    var alturaReferencia=Math.min(izquierda.h,derecha.h)*sy;
+    var radio=Math.max(1.2,alturaReferencia*.032);
+    var superior=Math.max(izquierda.y,derecha.y)*sy+alturaReferencia*.16;
+    var inferior=Math.min(izquierda.y+izquierda.h,derecha.y+derecha.h)*sy-alturaReferencia*.06;
+    var sombra=ctx.createLinearGradient(contactoX-radio,0,contactoX+radio,0);
+    sombra.addColorStop(0,'rgba(45,35,31,0)');
+    sombra.addColorStop(.5,'rgba(45,35,31,.24)');
+    sombra.addColorStop(1,'rgba(45,35,31,0)');
+    ctx.fillStyle=sombra;
+    ctx.fillRect(contactoX-radio,superior,radio*2,Math.max(1,inferior-superior));
+  }
+  ctx.restore();
   var alpha=ctx.getImageData(0,0,canvas.width,canvas.height).data;
   var activos=0;
   for(var i=3;i<alpha.length;i+=4)if(alpha[i]>36)activos++;
@@ -10492,9 +10584,9 @@ async function prepararPlanoDentalIndividual(entradaDental, view, requestId) {
   canvas.getContext('2d').drawImage(img,0,0);
   var clave='plan:'+(view||'frontal')+':'+canvas.width+'x'+canvas.height+':'+firmaEntradaDental(entradaDental);
   var mapa;
-  if (SMYL_DESIGN_ENGINE_V1_ENABLED) {
+  if (SMYL_DESIGN_ENGINE_V1_ENABLED || SMYL_HYBRID_LOCAL_LOCATOR_ENABLED) {
     var mapaGuardado=S.dentalMapByView&&S.dentalMapByView[clave];
-    mapa=mapaGuardado&&mapaGuardado.locator==='local-contours-v5'
+    mapa=mapaGuardado&&mapaGuardado.locator==='local-contours-v6'
       ?mapaGuardado:construirMapaDentalLocalV1(canvas,view||'frontal');
     if(!S.dentalMapByView)S.dentalMapByView={};
     S.dentalMapByView[clave]=mapa;
