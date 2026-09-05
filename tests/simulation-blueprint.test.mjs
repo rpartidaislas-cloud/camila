@@ -251,6 +251,11 @@ assert.match(backend, /one connected upper-smile working region/);
 assert.match(backend, /Do not return isolated white patches/);
 assert.match(backend, /hybrid-2d-v2-continuous-smile-roi/);
 assert.match(backend, /requiere una guía dental PNG/);
+assert.match(backend, /OPENAI_TRANSIENT_RETRY_LIMIT = 2/);
+assert.match(backend, /resp\.status === 429/);
+assert.match(backend, /image_generation_rate_limit_retry/);
+assert.match(backend, /insufficient_quota\|billing\|credit/);
+assert.match(backend, /attemptLimit: OPENAI_TRANSIENT_RETRY_LIMIT/);
 
 const pixelOriginal = new Uint8ClampedArray([
   10,20,30,255,
@@ -616,6 +621,16 @@ const mensajeVisualCompatibilidad = context.clasificarErrorParaUsuario(
   new Error('La simulación no alcanzó el estándar visual de carillas: tono A1 demasiado amarillo.'),
 );
 assert.equal(mensajeVisualCompatibilidad.titulo, 'La propuesta requiere revisión visual');
+
+const mensajeLimiteConexion = context.clasificarErrorParaUsuario(
+  new Error('Demasiadas solicitudes desde esta conexión. Intenta nuevamente más tarde.'),
+);
+assert.equal(mensajeLimiteConexion.titulo, 'Se alcanzó el límite temporal de seguridad');
+
+const mensajeSaturacionProveedor = context.clasificarErrorParaUsuario(
+  Object.assign(new Error('Too many requests'), {status: 429}),
+);
+assert.equal(mensajeSaturacionProveedor.titulo, 'El servicio está recibiendo muchas solicitudes');
 
 const hallazgosRevision = context.consolidarHallazgosRevision(
   {critical:['fila plana'],warnings:['tono desigual','fila plana']},

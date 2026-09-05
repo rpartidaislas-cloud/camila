@@ -1679,6 +1679,9 @@ function clasificarErrorParaUsuario(error) {
   if (status === 413 || /payload too large|request entity too large|estado 413|imagen demasiado grande/.test(raw)) {
     return {titulo:'La fotografía es demasiado grande', detalle:'SMYL conservará la foto y preparará una copia optimizada cuando vuelvas a intentarlo.'};
   }
+  if (/demasiadas solicitudes desde esta conexión/.test(raw)) {
+    return {titulo:'Se alcanzó el límite temporal de seguridad', detalle:'Esta conexión hizo varios intentos en poco tiempo. Espera a que termine la ventana de una hora o inicia sesión profesional antes de continuar.'};
+  }
   if (status === 429 || /too many requests|rate limit|estado 429|alta demanda/.test(raw)) {
     return {titulo:'El servicio está recibiendo muchas solicitudes', detalle:'Espera un momento antes de intentarlo nuevamente. Tus fotografías siguen guardadas.'};
   }

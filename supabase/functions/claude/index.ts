@@ -59,6 +59,19 @@ const OPENAI_IMAGE_TIMEOUT_MS = Math.min(
   85000,
   Math.max(30000, Number.parseInt(Deno.env.get("OPENAI_IMAGE_TIMEOUT_MS") || "75000", 10) || 75000),
 );
+const OPENAI_TRANSIENT_RETRY_LIMIT = 2;
+
+function espera(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function demoraReintentoOpenAI(response: Response, intento: number): number {
+  const retryAfterSeconds = Number(response.headers.get("retry-after") || "0");
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.max(1500, Math.min(15000, Math.round(retryAfterSeconds * 1000)));
+  }
+  return Math.min(8000, 2500 * intento);
+}
 
 function base64ABytes(base64: string): Uint8Array {
   const limpio = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
@@ -371,40 +384,67 @@ Deno.serve(async (req: Request) => {
         }));
 
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
+          let controller = new AbortController();
+          let timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
           let providerRequestId: string | null = null;
+          let providerAttempts = 0;
           let generatedBase64 = "";
           let usage: any = null;
           let partialCount = 0;
           let timeoutTransferidoAlStream = false;
 
           try {
-            const resp = await fetch("https://api.openai.com/v1/images/edits", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${KEY}`,
-                "Accept": "text/event-stream",
-                // Permite a soporte de OpenAI localizar la solicitud incluso
-                // si la red se corta antes de recibir su x-request-id.
-                "X-Client-Request-Id": requestId,
-              },
-              body: form,
-              signal: controller.signal,
-            });
-            marca(`después de recibir headers de OpenAI (status ${resp.status})`);
-            providerRequestId = resp.headers.get("x-request-id");
+            let resp: Response;
+            while (true) {
+              providerAttempts += 1;
+              resp = await fetch("https://api.openai.com/v1/images/edits", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${KEY}`,
+                  "Accept": "text/event-stream",
+                  // Permite a soporte de OpenAI localizar la solicitud incluso
+                  // si la red se corta antes de recibir su x-request-id.
+                  "X-Client-Request-Id": requestId,
+                },
+                body: form,
+                signal: controller.signal,
+              });
+              marca(`después de recibir headers de OpenAI (status ${resp.status}, intento ${providerAttempts})`);
+              providerRequestId = resp.headers.get("x-request-id");
+              if (resp.ok) break;
 
-            if (!resp.ok) {
               const raw = await resp.text();
               let data: any = null;
               try { data = JSON.parse(raw); } catch { /* respuesta no JSON */ }
-              console.warn("OpenAI image edit error:", data?.error?.message || raw || resp.status);
-              return new Response(JSON.stringify({
-                error: data?.error?.message || "OpenAI no pudo generar la imagen.",
+              const providerCode = String(data?.error?.code || data?.error?.type || "").toLowerCase();
+              const reintentable = resp.status === 429 &&
+                providerAttempts < OPENAI_TRANSIENT_RETRY_LIMIT &&
+                !/insufficient_quota|billing|credit/.test(providerCode + " " + String(data?.error?.message || "").toLowerCase());
+              if (!reintentable) {
+                console.warn("OpenAI image edit error:", data?.error?.message || raw || resp.status);
+                return new Response(JSON.stringify({
+                  error: data?.error?.message || "OpenAI no pudo generar la imagen.",
+                  requestId,
+                  providerRequestId,
+                  providerCode: providerCode || null,
+                  attempts: providerAttempts,
+                }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+              }
+
+              const retryDelayMs = demoraReintentoOpenAI(resp, providerAttempts);
+              console.warn(JSON.stringify({
+                event: "image_generation_rate_limit_retry",
                 requestId,
+                provider: "openai",
+                model: OPENAI_IMAGE_MODEL,
+                attempt: providerAttempts,
+                retryDelayMs,
                 providerRequestId,
-              }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+              }));
+              clearTimeout(timeoutId);
+              await espera(retryDelayMs);
+              controller = new AbortController();
+              timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
             }
 
             const contentType = resp.headers.get("content-type") || "";
@@ -503,8 +543,8 @@ Deno.serve(async (req: Request) => {
                           provider: "openai",
                           model: OPENAI_IMAGE_MODEL,
                           quality: OPENAI_IMAGE_QUALITY,
-                          attempts: 1,
-                          attemptLimit: 1,
+                          attempts: providerAttempts,
+                          attemptLimit: OPENAI_TRANSIENT_RETRY_LIMIT,
                           partialCount: cantidadParciales,
                           elapsedMs,
                           usage: finalUsage,
@@ -518,7 +558,7 @@ Deno.serve(async (req: Request) => {
                           provider: "openai",
                           model: OPENAI_IMAGE_MODEL,
                           quality: OPENAI_IMAGE_QUALITY,
-                          attempts: 1,
+                          attempts: providerAttempts,
                           partialCount: cantidadParciales,
                           elapsedMs,
                           usage: finalUsage,
@@ -682,7 +722,7 @@ Deno.serve(async (req: Request) => {
             provider: "openai",
             model: OPENAI_IMAGE_MODEL,
             quality: OPENAI_IMAGE_QUALITY,
-            attempts: 1,
+            attempts: providerAttempts,
             partialCount,
             elapsedMs,
             usage,
@@ -695,8 +735,8 @@ Deno.serve(async (req: Request) => {
             provider: "openai",
             model: OPENAI_IMAGE_MODEL,
             quality: OPENAI_IMAGE_QUALITY,
-            attempts: 1,
-            attemptLimit: 1,
+            attempts: providerAttempts,
+            attemptLimit: OPENAI_TRANSIENT_RETRY_LIMIT,
             elapsedMs,
             usage,
             providerRequestId,

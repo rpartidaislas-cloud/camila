@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-05 — Codex: reintento seguro ante saturación de GPT Image 2
+
+**Tocado localmente:** `supabase/functions/claude/index.ts`,
+`simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
+`tests/simulation-blueprint.test.mjs`, `tests/dental-library-photo.test.mjs`
+y `docs/HANDOFF.md`.
+
+- El intento nuevo de hybrid-2d-v3 con soporte
+  `db8234c9-c06d-45f4-9e68-c4ac9d8714e1` avanzó más allá del localizador
+  dental, pero terminó con HTTP 429 antes de recibir una imagen.
+- La Edge Function permite ahora un solo reintento interno cuando OpenAI
+  responde 429 transitorio. Respeta `Retry-After` con espera limitada y usa el
+  mismo `requestId`; el control del plan se ejecuta una sola vez para toda la
+  acción. No se reintentan errores de saldo, facturación o cuota insuficiente.
+- No se reintentan cortes de red ni respuestas ambiguas, porque en esos casos
+  el proveedor podría haber comenzado una generación. La excepción se limita
+  al rechazo HTTP 429 explícito previo al stream.
+- La interfaz distingue ahora la saturación del proveedor del límite temporal
+  antiabuso por conexión, para que el siguiente código de soporte no vuelva a
+  ocultar dos causas distintas bajo el mismo mensaje.
+- Caché PWA `smyl-v87`. No se ejecutaron generaciones ni se enviaron fotos
+  durante esta corrección.
+
 ## 2026-09-04 — Codex: respaldo automático para la localización de seis dientes
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
