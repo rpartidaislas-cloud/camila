@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-05 — Codex: Fase 1, editor vectorial de seis carillas
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `tests/simulation-blueprint.test.mjs` y `docs/HANDOFF.md`.
+
+- El editor profesional ya inicializa seis contornos individuales en orden FDI
+  `13-12-11-21-22-23` desde la fotografía frontal. Cada corona conserva ocho
+  controles semánticos normalizados: margen cervical, paredes proximales y
+  borde incisal.
+- Los puntos se seleccionan y arrastran directamente sobre la fotografía. Se
+  puede restablecer una corona o las seis, y la edición queda guardada en el
+  caso sin depender de la resolución de la imagen.
+- `Aplicar diseño` dejó de enviar la anatomía a una nueva generación cuando
+  existen contornos válidos. El plano profesional se materializa con
+  `renderizarSimulacionBibliotecaV1`, se reinserta sobre la fotografía original
+  y no consume cuota de IA. Si faltan seis contornos, el editor se bloquea en
+  vez de volver silenciosamente a la ruta generativa.
+- `trazarSiluetaPlanoDental` acepta ahora `vectorContour` y le da prioridad
+  sobre el perfil detectado. `prepararPlanoDentalIndividual` integra esos seis
+  límites exactos y marca el resultado como `vector-editor-v1`.
+- Se añadió una demostración sintética sólo para QA con
+  `?debugUI=1&vectorEditorDemo=1`. La verificación visual cubrió escritorio,
+  tableta y móvil; también confirmó arrastre y restablecimiento del incisivo
+  11. En 834 px el panel pasa a la parte inferior plegable para no reducir el
+  lienzo.
+- Caché PWA `smyl-v92`; web y móvil sincronizados. Las tres suites locales
+  pasan. Esta fase no tocó backend, prompts, RLS, Storage ni configuración
+  nativa, y todavía no se ha publicado.
+
 ## 2026-09-05 — Codex: hybrid-2d-v4 con geometría del paciente bloqueada
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,

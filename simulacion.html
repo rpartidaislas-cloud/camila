@@ -389,12 +389,10 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .vita-card.selected .vita-card-img{filter:drop-shadow(0 4px 16px rgba(124,106,247,.75)) brightness(1.15) saturate(1.1)}
 .vita-card.selected .vita-card-lbl{color:#fff}
 
-/* ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
-   Solo guías de referencia (línea media/incisal, curva de sonrisa,
-   proporciones dentales) sobre la imagen ya generada — el usuario las
-   posiciona arrastrando/haciendo zoom sobre la zona de la sonrisa (no hay
-   detección real de dientes). Los cambios reales de color/forma/línea se
-   mandan a regenerar con Gemini, no se fingen con canvas. */
+/* ══ EDITOR DE DISEÑO — seis contornos 2D + guías clínicas ══
+   La Fase 1 conserva ocho controles por corona en coordenadas normalizadas.
+   Las guías siguen siendo referencias; la geometría aprobada se materializa
+   directamente con el renderizador local y no se reinterpreta con IA. */
 .ed-screen{position:fixed;inset:0;z-index:90;background:#09090f;display:none;flex-direction:column}
 .ed-screen.active{display:flex}
 .ed-topbar{padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;justify-content:space-between;background:rgba(15,13,25,.95);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
@@ -455,7 +453,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-remote-pad{grid-column:1/-1;position:relative;height:132px;overflow:hidden;border-radius:13px;border:1px solid rgba(45,212,191,.3);background:linear-gradient(rgba(45,212,191,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.055) 1px,transparent 1px),rgba(2,10,14,.7);background-size:22px 22px;touch-action:none;user-select:none;cursor:grab}.ed-remote-pad.ed-dragging{cursor:grabbing;border-color:#2DD4BF;box-shadow:inset 0 0 22px rgba(45,212,191,.13)}.ed-remote-pad::before,.ed-remote-pad::after{content:"";position:absolute;background:rgba(45,212,191,.16);pointer-events:none}.ed-remote-pad::before{left:50%;top:0;bottom:0;width:1px}.ed-remote-pad::after{top:50%;left:0;right:0;height:1px}.ed-pad-title{position:absolute;left:10px;top:8px;color:#c8fff7;font-size:9px;font-weight:800;letter-spacing:.2px;pointer-events:none}.ed-pad-copy{position:absolute;left:10px;right:10px;bottom:8px;color:rgba(255,255,255,.42);font-size:8px;text-align:center;pointer-events:none}.ed-pad-knob{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px;border-radius:50%;background:rgba(45,212,191,.18);border:2px solid #2DD4BF;box-shadow:0 4px 18px rgba(0,0,0,.4);display:grid;place-items:center;color:#d9fffa;font-size:16px;font-weight:800;pointer-events:none;transform:translate(0,0)}
 .ed-color-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .ed-color-swatch{width:36px;height:36px;border-radius:10px;border:1.5px solid rgba(255,255,255,.2);flex-shrink:0}
-@media(min-width:820px){
+@media(min-width:1024px){
   .ed-body{flex-direction:row}
   .ed-center{order:1}
   .ed-panel{width:340px;max-height:none;border-left:1px solid rgba(255,255,255,.08);order:2;flex-shrink:0}
@@ -525,6 +523,8 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-guide-more.ed-active{background:#242039;border-color:#7667e8;color:#fff}
 .ed-guides-row .ed-guide-add{display:none}
 .ed-guides-row.ed-add-mode .ed-guide-add{display:flex}
+.ed-contour-toggle{flex:0 0 auto;height:34px;padding:0 11px;border-radius:8px;border:1px solid rgba(63,197,141,.38);background:#14201c;color:#bfe9d7;font:750 10.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}.ed-contour-toggle.ed-active{background:#1d4434;border-color:#58d39e;color:#fff;box-shadow:inset 0 0 0 1px rgba(88,211,158,.2)}
+.ed-contour-bar{display:flex;align-items:center;gap:6px;min-height:43px;padding:5px 10px;background:#0d1013;border-bottom:1px solid var(--ed-border);overflow-x:auto;scrollbar-width:none;flex-shrink:0}.ed-contour-bar::-webkit-scrollbar{display:none}.ed-contour-label{flex:0 0 auto;color:#8d949d;font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.45px}.ed-contour-chip{flex:0 0 auto;min-width:35px;height:31px;padding:0 8px;border-radius:7px;border:1px solid rgba(255,255,255,.11);background:#181c21;color:#b9bec6;font:750 10px Inter,sans-serif;cursor:pointer}.ed-contour-chip.ed-active{background:#203b31;border-color:#58d39e;color:#effff8}.ed-contour-action{flex:0 0 auto;height:31px;padding:0 9px;border-radius:7px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#aeb4bc;font:650 9.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}.ed-contour-action:hover{background:#1a1e23;color:#fff}.ed-contour-status{flex:0 0 auto;color:#75dcb1;font-size:9px;white-space:nowrap}.ed-canvas-wrap.ed-contour-mode canvas{cursor:crosshair}
 .ed-settings-section{margin:10px 0 0;border:1px solid var(--ed-border);border-radius:10px;background:var(--ed-surface);overflow:hidden}
 .ed-settings-section>summary{position:relative;display:flex;flex-direction:column;gap:3px;padding:13px 38px 13px 13px;list-style:none;cursor:pointer;color:#f3f5f7;font-size:11px;font-weight:750}
 .ed-settings-section>summary::-webkit-details-marker{display:none}
@@ -535,7 +535,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-settings-section>*:not(summary){margin-left:12px;margin-right:12px}
 .ed-settings-section>summary+.ed-label,.ed-settings-section>summary+.ed-proportion-card{margin-top:13px}
 .ed-settings-section>.ed-color-row:last-child,.ed-settings-section>.ed-slider-row:last-child,.ed-settings-section>.ed-select:last-child{margin-bottom:13px}
-@media(max-width:819px){
+@media(max-width:1023px){
   .ed-panel{max-height:min(52vh,520px);padding:7px 14px calc(env(safe-area-inset-bottom,0px) + 14px);transition:max-height .22s ease;overscroll-behavior:contain}
   .ed-panel-toggle{display:flex;position:sticky;top:-7px;z-index:4;background:#101217}
   .ed-panel.ed-panel-collapsed{max-height:56px;overflow:hidden;padding-bottom:5px}
@@ -553,7 +553,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
   .ed-photo-zoom{margin-left:0}
   .ed-toolbar-label{font-size:8px;margin-right:1px}
 }
-@media(min-width:820px){
+@media(min-width:1024px){
   .ed-panel{width:380px}
   .ed-canvas-toolbar{padding:10px 12px}
 }
@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v4 — geometría del paciente bloqueada</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build vector-editor-v1 — seis contornos profesionales</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1332,7 +1332,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         </button>
         <button class="ed-btn-aplicar" id="ed-btn-aplicar-top" onclick="edAplicarDiseno()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Regenerar
+          Aplicar diseño
         </button>
       </div>
     </div>
@@ -1341,10 +1341,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
   <div class="ed-body">
     <div class="ed-center">
       <div class="ed-workspace-head">
-        <div class="ed-workspace-title">Guías</div>
-        <div class="ed-workspace-copy">Activa una referencia y ajústala sobre la sonrisa.</div>
+        <div class="ed-workspace-title">Contornos y guías</div>
+        <div class="ed-workspace-copy">Define cada límite dental; las guías permanecen como referencias opcionales.</div>
       </div>
       <div class="ed-guides-row">
+        <button class="ed-contour-toggle ed-active" id="ed-contour-toggle" type="button" onclick="edToggleModoContorno()">Contornos dentales</button>
         <div class="ed-line-guide-group">
           <button class="ed-guide-chip" data-guia="lineaMedia" onclick="edGuiaToggle('lineaMedia',this)">Línea vertical</button>
           <span class="ed-extra-lines" id="ed-extra-verticales"></span>
@@ -1359,6 +1360,18 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <button class="ed-guide-chip" data-guia="proporcionAurea" onclick="edGuiaToggle('proporcionAurea',this)">Proporciones</button>
         <button class="ed-guide-more" type="button" aria-expanded="false" onclick="edToggleAgregarGuias(this)">Más guías</button>
         <button class="ed-group-chip" id="ed-group-guides" onclick="edToggleGrupoGuias()">Agrupar guías</button>
+      </div>
+      <div class="ed-contour-bar" id="ed-contour-bar" aria-label="Editor individual de contornos dentales">
+        <span class="ed-contour-label">Diente</span>
+        <button type="button" class="ed-contour-chip" data-contour-index="0" onclick="edSeleccionarContornoDiente(0)">13</button>
+        <button type="button" class="ed-contour-chip" data-contour-index="1" onclick="edSeleccionarContornoDiente(1)">12</button>
+        <button type="button" class="ed-contour-chip ed-active" data-contour-index="2" onclick="edSeleccionarContornoDiente(2)">11</button>
+        <button type="button" class="ed-contour-chip" data-contour-index="3" onclick="edSeleccionarContornoDiente(3)">21</button>
+        <button type="button" class="ed-contour-chip" data-contour-index="4" onclick="edSeleccionarContornoDiente(4)">22</button>
+        <button type="button" class="ed-contour-chip" data-contour-index="5" onclick="edSeleccionarContornoDiente(5)">23</button>
+        <button type="button" class="ed-contour-action" onclick="edRestablecerContornoSeleccionado()">Restablecer diente</button>
+        <button type="button" class="ed-contour-action" onclick="edRestablecerTodosContornos()">Restablecer seis</button>
+        <span class="ed-contour-status" id="ed-contour-status">Preparando anatomía…</span>
       </div>
       <div class="ed-canvas-wrap" id="ed-canvas-wrap">
         <canvas id="ed-canvas"></canvas>
@@ -1551,9 +1564,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 
       <button id="ed-btn-regenerar" onclick="edAplicarDiseno()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:linear-gradient(135deg,#7c6af7,#5B47E0);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-top:8px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-        Actualizar diseño con estos cambios
+        Aplicar contornos y material
       </button>
-      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">Tono, forma, tamaño y alturas se recalculan con la biblioteca dental, sin consumir una generación de imagen. Las guías son referencias visuales.</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px">Los seis contornos se aplican exactamente con el motor 2D local, sin consumir una generación de imagen. Las guías son referencias visuales.</div>
       </div>
     </div>
   </div>
@@ -6246,15 +6259,10 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   }
 }
 
-// ══ EDITOR DE DISEÑO — guías + regenerar con Gemini ══
-// Las guías (líneas verticales/horizontales múltiples, curva de sonrisa y
-// proporción áurea) se dibujan sobre la imagen ya generada como referencia
-// visual, sin necesidad de detectar dientes. El usuario las posiciona en
-// zonas independientes, con una opción para agrupar las guías visibles.
-// Los controles de "Diseño de sonrisa" y "Encía" NO
-// dibujan nada en el canvas — arman un prompt en inglés y mandan a
-// regenerar la simulación con Gemini (único método que puede cambiar de
-// verdad forma/color/línea en una foto real).
+// ══ EDITOR DE DISEÑO — seis contornos 2D + guías clínicas ══
+// Cada corona anterior se inicializa desde la fotografía y expone ocho puntos
+// editables. La geometría guardada se usa directamente en el render local.
+// La ruta de prompt permanece sólo como compatibilidad con casos antiguos.
 var EDITOR_PARAMS_DEFAULT = {
   diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, alturasDientes:[0,0,0,0,0,0], caracterizacion:'natural', vita:'', valor:0, croma:0, opacidad:0},
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
@@ -6296,6 +6304,235 @@ var _edRemotePadInit = false;
 var ED_GUIDE_BASE_NAMES = ['lineaMedia','lineaIncisal','curvaSonrisa','proporcionAurea'];
 var ED_GUIDE_LABELS = {lineaMedia:'Línea vertical',lineaIncisal:'Línea horizontal',curvaSonrisa:'Curva de sonrisa',proporcionAurea:'Proporciones'};
 var ED_PROPORTION_LABELS = {adaptativa:'Adaptativa',red:'RED ajustable',aurea:'Proporción áurea',golden:'Golden Percentage'};
+var _edContourMode = true;
+var _edContourReady = false;
+var _edActiveContourHandle = -1;
+var _edContourInitToken = 0;
+
+function edClonarPuntosContorno(puntos) {
+  return (puntos || []).map(function(p) { return {x:Number(p.x),y:Number(p.y)}; });
+}
+
+function edContornosVectorialesValidos(modelo) {
+  return !!(modelo && modelo.version === 1 && Array.isArray(modelo.teeth) && modelo.teeth.length === 6 &&
+    modelo.teeth.every(function(diente, indice) {
+      return diente && diente.id === ['13','12','11','21','22','23'][indice] &&
+        Array.isArray(diente.points) && diente.points.length === 8 &&
+        diente.points.every(function(p) { return p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)); });
+    }));
+}
+
+function edPerfilEnNivel(perfil, lado, nivel, respaldo) {
+  if (!perfil || !Array.isArray(perfil.levels) || !Array.isArray(perfil[lado])) return respaldo;
+  var niveles = perfil.levels, valores = perfil[lado];
+  if (niveles.length !== valores.length || !niveles.length) return respaldo;
+  for (var i=1;i<niveles.length;i++) {
+    if (nivel <= niveles[i]) {
+      var tramo = Math.max(.0001,niveles[i]-niveles[i-1]);
+      var t = (nivel-niveles[i-1])/tramo;
+      return valores[i-1]+(valores[i]-valores[i-1])*t;
+    }
+  }
+  return valores[valores.length-1];
+}
+
+function edCrearContornosDesdePlano(plano, view) {
+  var ids=['13','12','11','21','22','23'];
+  var teeth=plano.pieces.map(function(pieza, indice) {
+    var perfil=pieza.anatomicContour;
+    var izqSuperior=edPerfilEnNivel(perfil,'left',.08,.22);
+    var derSuperior=edPerfilEnNivel(perfil,'right',.08,.78);
+    var izqMedio=edPerfilEnNivel(perfil,'left',.55,.07);
+    var derMedio=edPerfilEnNivel(perfil,'right',.55,.93);
+    var canino=pieza.role==='canine';
+    var incisalCentro=canino ? .985 : 1;
+    var incisalLado=canino ? .91 : .975;
+    function punto(u,v){return {x:(pieza.x+u*pieza.w)/plano.width,y:(pieza.y+v*pieza.h)/plano.height};}
+    var points=[
+      punto(izqSuperior,.08),punto(.5,0),punto(derSuperior,.08),punto(derMedio,.55),
+      punto(.82,incisalLado),punto(canino?(indice<3?.44:.56):.5,incisalCentro),punto(.18,incisalLado),punto(izqMedio,.55)
+    ];
+    return {
+      id:ids[indice],role:pieza.role,side:pieza.side,
+      bounds:{x:pieza.x/plano.width,y:pieza.y/plano.height,w:pieza.w/plano.width,h:pieza.h/plano.height},
+      points:edClonarPuntosContorno(points),basePoints:edClonarPuntosContorno(points)
+    };
+  });
+  return {version:1,coordinateSpace:'normalized-smile-crop',view:view||'frontal',teeth:teeth};
+}
+
+function edFotoOriginalUrl(foto) {
+  if (!foto) return '';
+  if (foto.dataUrl) return foto.dataUrl;
+  if (foto.b64) return 'data:'+(foto.mimeType||'image/jpeg')+';base64,'+foto.b64;
+  return '';
+}
+
+function edActualizarUIContornos(mensaje) {
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  _edContourReady=edContornosVectorialesValidos(modelo);
+  var wrap=document.getElementById('ed-canvas-wrap');
+  if(wrap)wrap.classList.toggle('ed-contour-mode',_edContourMode&&_edContourReady);
+  var toggle=document.getElementById('ed-contour-toggle');
+  if(toggle){toggle.classList.toggle('ed-active',_edContourMode);toggle.textContent=_edContourMode?'Contornos activos':'Editar contornos';}
+  document.querySelectorAll('.ed-contour-chip[data-contour-index]').forEach(function(btn){
+    btn.classList.toggle('ed-active',parseInt(btn.dataset.contourIndex,10)===_edActiveToothIndex);
+    btn.disabled=!_edContourReady;
+  });
+  var status=document.getElementById('ed-contour-status');
+  if(status)status.textContent=mensaje||(_edContourReady?'8 controles · anatomía bloqueada':'Preparando anatomía…');
+  var hint=document.getElementById('ed-zone-hint');
+  if(hint&&_edContourMode)hint.textContent=_edContourReady?'Arrastra los puntos del diente seleccionado · cada límite se aplica exactamente':'Localizando seis dientes…';
+}
+
+async function edAsegurarContornosVectoriales(forzar) {
+  if(!EDITOR_PARAMS||!EDITOR_PARAMS.diseno)return;
+  var view=S.baVistaActual||'frontal';
+  var actual=EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!forzar&&edContornosVectorialesValidos(actual)&&actual.view===view){
+    actual.teeth.forEach(function(d){if(!Array.isArray(d.basePoints)||d.basePoints.length!==8)d.basePoints=edClonarPuntosContorno(d.points);});
+    edActualizarUIContornos();redrawEditor();return;
+  }
+  var token=++_edContourInitToken;
+  _edContourReady=false;edActualizarUIContornos('Analizando anatomía…');
+  var foto=S.photos.find(function(p){return p.view===view;});
+  var originalUrl=edFotoOriginalUrl(foto)||_edOriginalUrl;
+  if(!originalUrl){edActualizarUIContornos('Falta la fotografía original');return;}
+  try{
+    var entrada=await prepararRecorteDental(originalUrl,view);
+    var img=await cargarImagenSegura(entrada.dataUrl);
+    if(token!==_edContourInitToken)return;
+    var canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+    canvas.getContext('2d').drawImage(img,0,0);
+    var mapa=construirMapaDentalLocalV1(canvas,view);
+    var captura=evaluarCapturaDentalV104(mapa.pieces,mapa.width,mapa.height);
+    if(!captura.accepted)throw new Error(captura.failures[0]||'No se identificaron seis coronas completas.');
+    var forma=EDITOR_PARAMS.diseno.forma||'rectangular';
+    var familia={circular:'oval',triangular:'triangular',rectangular:'rectangular-soft'}[forma]||'rectangular-soft';
+    var plano=construirPlanoGeometricoDental(mapa.pieces,mapa.width,mapa.height,{
+      family:familia,sizeFactor:(Number(EDITOR_PARAMS.diseno.tamano)||100)/100,
+      heightAdjustments:EDITOR_PARAMS.diseno.alturasDientes
+    });
+    EDITOR_PARAMS.diseno.contornosVectoriales=edCrearContornosDesdePlano(plano,view);
+    edActualizarUIContornos('Listos · selecciona 13–23');
+    redrawEditor();
+  }catch(error){
+    console.warn('[SMYL] No se pudo inicializar el editor vectorial.',error);
+    edActualizarUIContornos('No se detectaron seis dientes');
+  }
+}
+
+function edRectRecorteSobreEditor(w,h){return calcularRectRecorteDental(w,h,S.baVistaActual||'frontal');}
+
+function edPuntosContornoCanvas(diente,w,h){
+  var rect=edRectRecorteSobreEditor(w,h);
+  return diente.points.map(function(p){return {x:rect.x+p.x*rect.w,y:rect.y+p.y*rect.h};});
+}
+
+function edTrazarSplineCerrada(ctx,puntos){
+  if(!puntos||puntos.length<3)return;
+  ctx.beginPath();ctx.moveTo(puntos[0].x,puntos[0].y);
+  for(var i=0;i<puntos.length;i++){
+    var p0=puntos[(i-1+puntos.length)%puntos.length],p1=puntos[i],p2=puntos[(i+1)%puntos.length],p3=puntos[(i+2)%puntos.length];
+    ctx.bezierCurveTo(p1.x+(p2.x-p0.x)/6,p1.y+(p2.y-p0.y)/6,p2.x-(p3.x-p1.x)/6,p2.y-(p3.y-p1.y)/6,p2.x,p2.y);
+  }
+  ctx.closePath();
+}
+
+function edDibujarContornosVectoriales(ctx,w,h){
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!_edContourMode||!edContornosVectorialesValidos(modelo))return;
+  ctx.save();
+  modelo.teeth.forEach(function(diente,indice){
+    var puntos=edPuntosContornoCanvas(diente,w,h),activo=indice===_edActiveToothIndex;
+    edTrazarSplineCerrada(ctx,puntos);
+    ctx.fillStyle=activo?'rgba(61,213,153,.12)':'rgba(118,103,232,.035)';ctx.fill();
+    ctx.strokeStyle=activo?'#58e0a8':'rgba(220,215,255,.58)';ctx.lineWidth=activo?Math.max(2,w*.0018):Math.max(1,w*.001);ctx.stroke();
+    var centro=puntos.reduce(function(acc,p){acc.x+=p.x;acc.y+=p.y;return acc;},{x:0,y:0});centro.x/=puntos.length;centro.y/=puntos.length;
+    ctx.fillStyle=activo?'#dffff2':'rgba(255,255,255,.75)';ctx.font='700 '+Math.max(10,Math.round(w*.009))+'px Inter, sans-serif';ctx.textAlign='center';ctx.fillText(diente.id,centro.x,centro.y);
+    if(activo)puntos.forEach(function(p,i){
+      var radio=Math.max(5,Math.min(10,w*.006));ctx.beginPath();ctx.arc(p.x,p.y,radio,0,Math.PI*2);
+      ctx.fillStyle=i===_edActiveContourHandle?'#fff':'#58d39e';ctx.fill();ctx.strokeStyle='#0d2b20';ctx.lineWidth=Math.max(1,w*.0013);ctx.stroke();
+    });
+  });
+  ctx.restore();
+}
+
+function edSeleccionarContornoDiente(indice){
+  _edActiveToothIndex=Math.max(0,Math.min(5,parseInt(indice,10)||0));_edActiveContourHandle=-1;_edContourMode=true;
+  edActualizarUIContornos();edActualizarControlAlturaDiente();redrawEditor();
+}
+
+function edToggleModoContorno(){
+  _edContourMode=!_edContourMode;_edActiveContourHandle=-1;
+  if(_edContourMode){_edPhotoPanMode=false;edAplicarZoomFoto();}
+  edActualizarUIContornos();edActualizarEstadoGuias();redrawEditor();
+}
+
+function edRestablecerContornoSeleccionado(){
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!edContornosVectorialesValidos(modelo))return;
+  var d=modelo.teeth[_edActiveToothIndex];d.points=edClonarPuntosContorno(d.basePoints);_edActiveContourHandle=-1;redrawEditor();
+}
+
+function edRestablecerTodosContornos(){
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!edContornosVectorialesValidos(modelo))return;
+  modelo.teeth.forEach(function(d){d.points=edClonarPuntosContorno(d.basePoints);});_edActiveContourHandle=-1;redrawEditor();
+}
+
+function edBuscarManejadorContorno(px,py,w,h,radio){
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!edContornosVectorialesValidos(modelo))return -1;
+  var puntos=edPuntosContornoCanvas(modelo.teeth[_edActiveToothIndex],w,h),mejor=-1,distancia=Infinity;
+  puntos.forEach(function(p,i){var d=Math.hypot(px-p.x,py-p.y);if(d<=radio&&d<distancia){mejor=i;distancia=d;}});return mejor;
+}
+
+function edBuscarDienteContorno(px,py,w,h){
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!edContornosVectorialesValidos(modelo))return -1;
+  var mejor=-1,distancia=Infinity;
+  modelo.teeth.forEach(function(diente,i){var pts=edPuntosContornoCanvas(diente,w,h),cx=0,cy=0,minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;pts.forEach(function(p){cx+=p.x;cy+=p.y;minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);});cx/=pts.length;cy/=pts.length;if(px>=minX&&px<=maxX&&py>=minY&&py<=maxY){var d=Math.hypot(px-cx,py-cy);if(d<distancia){mejor=i;distancia=d;}}});return mejor;
+}
+
+function edMoverManejadorContorno(indice,px,py,w,h){
+  var modelo=EDITOR_PARAMS&&EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.contornosVectoriales;
+  if(!edContornosVectorialesValidos(modelo))return;
+  var d=modelo.teeth[_edActiveToothIndex],rect=edRectRecorteSobreEditor(w,h),b=d.bounds||{x:0,y:0,w:1,h:1};
+  var x=(px-rect.x)/Math.max(1,rect.w),y=(py-rect.y)/Math.max(1,rect.h),margenX=b.w*.10,margenY=b.h*.06;
+  x=Math.max(b.x-margenX,Math.min(b.x+b.w+margenX,x));y=Math.max(b.y-margenY,Math.min(b.y+b.h+margenY,y));
+  var p=d.points;
+  if(indice<=2)y=Math.min(y,b.y+b.h*.34);
+  if(indice===3||indice===7)y=Math.max(b.y+b.h*.20,Math.min(b.y+b.h*.82,y));
+  if(indice>=4&&indice<=6)y=Math.max(y,b.y+b.h*.67);
+  if(indice===0)x=Math.min(x,p[1].x-b.w*.06);
+  if(indice===1)x=Math.max(p[0].x+b.w*.06,Math.min(p[2].x-b.w*.06,x));
+  if(indice===2)x=Math.max(x,p[1].x+b.w*.06);
+  if(indice===3||indice===4)x=Math.max(x,p[1].x+b.w*.10);
+  if(indice===5)x=Math.max(p[6].x+b.w*.10,Math.min(p[4].x-b.w*.10,x));
+  if(indice===6||indice===7)x=Math.min(x,p[1].x-b.w*.10);
+  p[indice]={x:x,y:y};
+}
+
+function edAplicarContornosVectorialesAlPlano(plano,view){
+  var modelo=S.editorParams&&S.editorParams.diseno&&S.editorParams.diseno.contornosVectoriales;
+  if(!edContornosVectorialesValidos(modelo)||modelo.view!==(view||'frontal'))return plano;
+  var ids=['13','12','11','21','22','23'],roles=['canine','lateral','central','central','lateral','canine'];
+  var previas=plano.pieces.slice();
+  plano.pieces=modelo.teeth.map(function(diente,indice){
+    var absolutos=diente.points.map(function(p){return {x:p.x*plano.width,y:p.y*plano.height};});
+    var xs=absolutos.map(function(p){return p.x;}),ys=absolutos.map(function(p){return p.y;});
+    var x=Math.min.apply(null,xs),y=Math.min.apply(null,ys),w=Math.max.apply(null,xs)-x,h=Math.max.apply(null,ys)-y;
+    if(w<2||h<2)throw new Error('El contorno '+ids[indice]+' no tiene una dimensión válida.');
+    return {id:ids[indice],role:roles[indice],side:indice<3?'right':'left',family:plano.family,x:x,y:y,w:w,h:h,
+      original:previas[indice]&&previas[indice].original||previas[indice],naturalVariation:[-.012,.009,.006,-.005,.011,-.010][indice],
+      vectorContour:{version:1,points:absolutos.map(function(p){return {x:(p.x-x)/w,y:(p.y-y)/h};})}};
+  });
+  var centrals=[plano.pieces[2],plano.pieces[3]],laterals=[plano.pieces[1],plano.pieces[4]],canines=[plano.pieces[0],plano.pieces[5]];
+  var centralW=medianaNumerica(centrals.map(function(p){return p.w;}));
+  plano.targetMetrics=Object.assign({},plano.targetMetrics,{centralWidthHeight:medianaNumerica(centrals.map(function(p){return p.w/p.h;})),lateralToCentral:medianaNumerica(laterals.map(function(p){return p.w;}))/centralW,canineToCentral:medianaNumerica(canines.map(function(p){return p.w;}))/centralW,sourceAnchored:true,vectorEdited:true});
+  plano.vectorEditorVersion=1;return plano;
+}
 
 function edActualizarPanel() {
   var panel = document.getElementById('ed-panel');
@@ -6396,7 +6633,8 @@ function edActualizarControlAlturaDiente() {
   var title = document.getElementById('ed-altura-diente-title');
   if (title) title.textContent = 'Ajuste individual · ' + ED_TOOTH_IDS[_edActiveToothIndex];
   document.querySelectorAll('.ed-tooth-chip[data-tooth-index]').forEach(function(btn) {
-    btn.classList.toggle('ed-active', _edRemoteTarget && _edRemoteTarget.type === 'tooth' && parseInt(btn.dataset.toothIndex, 10) === _edActiveToothIndex);
+    var seleccionado=parseInt(btn.dataset.toothIndex,10)===_edActiveToothIndex;
+    btn.classList.toggle('ed-active', seleccionado && (_edContourMode || (_edRemoteTarget && _edRemoteTarget.type === 'tooth')));
   });
 }
 
@@ -6477,6 +6715,7 @@ function edSeleccionarDienteAltura(indice) {
   edActivarGuiasIncisales();
   edSeleccionarObjetivoRemoto('tooth', _edActiveToothIndex);
   edActualizarControlAlturaDiente();
+  edActualizarUIContornos();
   redrawEditor();
 }
 
@@ -6579,7 +6818,8 @@ function edActualizarEstadoGuias() {
   }
   var hint = document.getElementById('ed-zone-hint');
   if (hint) {
-    if (!visibles.length) hint.textContent = 'Pellizca con dos dedos para ampliar · activa una guía para editarla';
+    if (_edContourMode) hint.textContent = _edContourReady ? 'Arrastra los puntos del diente seleccionado · cada límite se aplica exactamente' : 'Localizando seis dientes…';
+    else if (!visibles.length) hint.textContent = 'Pellizca con dos dedos para ampliar · activa una guía para editarla';
     else if (_edActiveGuide === 'curvaSonrisa' && EDITOR_PARAMS.controlRemoto !== false) hint.textContent = 'Control remoto activo · elige mover, arco, 13–23 o extremos y usa el panel amplio inferior';
     else if (EDITOR_PARAMS.guiasAgrupadas && _edActiveGuide === 'curvaSonrisa') hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas · mueve los puntos 13–23 para ajustar cada carilla · la manija naranja ajusta los extremos';
     else if (EDITOR_PARAMS.guiasAgrupadas) hint.textContent = 'Guías agrupadas · arrastra para moverlas juntas';
@@ -6621,9 +6861,11 @@ function abrirEditorDiseno() {
   _edPhotoPanY = 0;
   _edPhotoPanMode = false;
   _edActiveToothIndex = 2;
+  _edActiveContourHandle = -1;
+  _edContourMode = true;
   _edRemoteTarget = {type:'move', index:null};
   _edSimulationUrl = url;
-  _edOriginalUrl = fotoOriginal ? 'data:image/jpeg;base64,' + fotoOriginal.b64 : '';
+  _edOriginalUrl = edFotoOriginalUrl(fotoOriginal);
   _edShowingOriginal = false;
   edAplicarZoomFoto();
   edActualizarBotonFotoOriginal();
@@ -6639,11 +6881,12 @@ function abrirEditorDiseno() {
     canvas.height = edBaseImg.naturalHeight;
     redrawEditor();
     edAplicarZoomFoto();
+    edAsegurarContornosVectoriales(false);
   };
   edBaseImg.src = url;
 
   show('s-editor');
-  _edPanelCollapsed = !!(window.matchMedia && window.matchMedia('(max-width:819px)').matches);
+  _edPanelCollapsed = !!(window.matchMedia && window.matchMedia('(max-width:1023px)').matches);
   edActualizarPanel();
 }
 
@@ -6828,10 +7071,13 @@ function edCerrar() {
 function edRestablecer() {
   EDITOR_PARAMS = JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));
   _edActiveGuide = null;
+  _edActiveContourHandle = -1;
+  _edContourMode = true;
   _edRemoteTarget = {type:'move', index:null};
   edAsegurarZonasGuias();
   edSyncControles();
   redrawEditor();
+  edAsegurarContornosVectoriales(true);
 }
 
 function edFormatLabel(group, key, val) {
@@ -7072,6 +7318,7 @@ function edSyncControles() {
   edActualizarControlesProporcion();
   edActualizarControlAlturaDiente();
   edActualizarControlRemoto();
+  edActualizarUIContornos();
 }
 
 // Cada guía tiene su propia zona. En modo independiente, arrastrar/zoom sólo
@@ -7145,6 +7392,19 @@ function edInitZoneDrag() {
       startPhotoPanY = _edPhotoPanY;
       canvas.classList.add('ed-photo-panning');
       return;
+    }
+    if (_edContourMode && _edContourReady) {
+      var contourPx=(clientX-r.left)*canvas.width/r.width;
+      var contourPy=(clientY-r.top)*canvas.height/r.height;
+      var contourRadius=Math.max(14,22*canvas.width/r.width);
+      var contourHandle=edBuscarManejadorContorno(contourPx,contourPy,canvas.width,canvas.height,contourRadius);
+      if(contourHandle>=0){
+        dragging=true;dragMode='contour-handle';_edActiveContourHandle=contourHandle;
+        edMoverManejadorContorno(contourHandle,contourPx,contourPy,canvas.width,canvas.height);redrawEditor();return;
+      }
+      var contourTooth=edBuscarDienteContorno(contourPx,contourPy,canvas.width,canvas.height);
+      if(contourTooth>=0&&contourTooth!==_edActiveToothIndex)edSeleccionarContornoDiente(contourTooth);
+      dragging=false;return;
     }
     if (EDITOR_PARAMS.guias.curvaSonrisa) {
       var handle = edCurvaHandlePx(canvas.width, canvas.height);
@@ -7243,6 +7503,12 @@ function edInitZoneDrag() {
       edAplicarZoomFoto();
       return;
     }
+    if(dragMode==='contour-handle'){
+      var contourPx=(clientX-r.left)*canvas.width/r.width;
+      var contourPy=(clientY-r.top)*canvas.height/r.height;
+      edMoverManejadorContorno(_edActiveContourHandle,contourPx,contourPy,canvas.width,canvas.height);
+      redrawEditor();return;
+    }
     if (dragMode === 'curve-position') {
       var inicioCurva = startZones.curvaSonrisa;
       var zonaCurva = edZonaGuia('curvaSonrisa');
@@ -7286,6 +7552,7 @@ function edInitZoneDrag() {
     redrawEditor();
   }
   function end() {
+    if(dragMode==='contour-handle'){_edActiveContourHandle=-1;redrawEditor();}
     dragging = false;
     dragMode = 'zone';
     canvas.classList.remove('ed-photo-panning');
@@ -7428,6 +7695,7 @@ function redrawEditor() {
   ctx.drawImage(edBaseImg, 0, 0, w, h);
 
   edDibujarGuias(ctx, w, h);
+  edDibujarContornosVectoriales(ctx, w, h);
 }
 
 // Traduce el estado del panel "Diseño de sonrisa" + "Encía" a instrucciones
@@ -7538,14 +7806,59 @@ function construirPromptEditor() {
   return partes.join(' ');
 }
 
-// Manda a regenerar la simulación de la vista actual con Gemini incluyendo
-// los ajustes del panel — no dibuja nada nuevo en el canvas, reemplaza
-// S.results[view] con la nueva imagen y regresa al resultado.
+async function edAplicarDisenoVectorialLocal(){
+  var view=S.baVistaActual||'frontal';
+  var photo=S.photos.find(function(p){return p.view===view;});
+  var fotoOriginalUrl=edFotoOriginalUrl(photo);
+  if(!fotoOriginalUrl)throw new Error('No está disponible la fotografía clínica original de esta vista.');
+  var entrada=await prepararRecorteDental(fotoOriginalUrl,view);
+  var requestId=crearIdSolicitudIA();
+  var plano=await prepararPlanoDentalIndividual(entrada,view,requestId);
+  if(!plano.vectorEditorVersion)throw new Error('El plano vectorial no pudo vincularse con las seis coronas.');
+  var codigo=(EDITOR_PARAMS.diseno&&EDITOR_PARAMS.diseno.vita)||S.vitaTone||'A1';
+  var shade=VITA_CLASSICAL.find(function(item){return item.code===codigo;})||VITA_CLASSICAL[1];
+  var render=await renderizarSimulacionBibliotecaV1(entrada.dataUrl,plano,shade,{
+    vitaMode:codigo?'vita':S.vitaMode,finish:S.vitaFinish,intensity:S.vitaIntensity
+  });
+  if(!render||!render.url||!render.metrics||!render.metrics.continuousCrowns)throw new Error('El render local no pudo completar las seis carillas.');
+  var resultado=entrada.isFull?render.url:await reinsertarRecorteDental(fotoOriginalUrl,render.url,entrada.rect);
+  if(!resultado)throw new Error('No se pudo integrar el diseño dental en la fotografía.');
+  if(!S.results)S.results={};if(!S.veneerBaseByView)S.veneerBaseByView={};if(!S.simulationQualityByView)S.simulationQualityByView={};
+  S.results[view]=resultado;S.veneerBaseByView[view]=resultado;if(view==='frontal')S.result=resultado;
+  if(!S.baAlign)S.baAlign={};S.baAlign[view]={x:0,y:0,scale:1};
+  S.lastGenerationMeta={requestId:requestId,provider:'smyl-local',model:'vector-editor-v1',quality:'deterministic',contract:'six-locked-contours',elapsedMs:0};
+  S.simulationQualityByView[view]={version:SIM_QUALITY_VERSION,status:'review',issues:['Diseño vectorial aplicado a seis carillas. Revisa márgenes, contactos y tono antes de presentarlo.'],metrics:{mode:'smyl-vector-editor-v1',deliveryGate:'six-professional-contours',trace:S.lastGenerationMeta,design:render.metrics,blueprint:plano.targetMetrics||null}};
+  _edSimulationUrl=resultado;
+  show('s-res');
+  var imgA=document.getElementById('img-a');if(imgA)imgA.src=resultado;
+  initBASlider();
+  return resultado;
+}
+
+// Aplica primero la geometría vectorial local. La ruta histórica de Gemini se
+// conserva sólo como compatibilidad para sesiones anteriores sin contornos.
 async function edAplicarDiseno() {
   var btn = document.getElementById('ed-btn-regenerar');
   var btnTop = document.getElementById('ed-btn-aplicar-top');
-  var promptEditor = construirPromptEditor();
   S.editorParams = JSON.parse(JSON.stringify(EDITOR_PARAMS));
+
+  if(SMYL_VECTOR_EDITOR_V1_ENABLED){
+    if(!edContornosVectorialesValidos(S.editorParams.diseno.contornosVectoriales)){
+      alert('Todavía no hay seis contornos dentales válidos. Espera a que termine el análisis o usa una fotografía frontal más clara.');
+      return;
+    }
+    if(btn){btn.disabled=true;btn.textContent='Aplicando seis contornos…';}
+    if(btnTop){btnTop.disabled=true;btnTop.textContent='Aplicando…';}
+    try{await edAplicarDisenoVectorialLocal();}
+    catch(errorVectorial){console.error(errorVectorial);alert('No se pudo aplicar el diseño vectorial: '+(errorVectorial&&errorVectorial.message||errorVectorial));}
+    finally{
+      if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Aplicar contornos y material';}
+      if(btnTop){btnTop.disabled=false;btnTop.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Aplicar diseño';}
+    }
+    return;
+  }
+
+  var promptEditor = construirPromptEditor();
 
   // Antes esto regresaba en silencio si solo se habían tocado guías (que
   // no generan instrucciones para Gemini) — el botón "Regenerar" parecía
@@ -8622,6 +8935,10 @@ var _smylPhotoLibraryPromise = null;
 // siluetas completas y editables; el generador fotográfico deja de ser el
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = false;
+// Fase 1: el editor profesional aplica seis contornos normalizados mediante
+// el renderizador local. No consume cuota ni permite que un modelo reinterprete
+// los límites aprobados por el profesional.
+var SMYL_VECTOR_EDITOR_V1_ENABLED = true;
 var SMYL_HYBRID_2D_ENABLED = true;
 // La ruta híbrida localiza las seis coronas en el navegador. Esto evita una
 // segunda generación de imagen antes del render final y mantiene el plano
@@ -10099,7 +10416,16 @@ function trazarContornoDentalFotograficoV5(ctx,pieza,escalaX,escalaY) {
   return true;
 }
 
+function trazarContornoDentalVectorialV1(ctx,pieza,escalaX,escalaY){
+  var contorno=pieza&&pieza.vectorContour;
+  if(!contorno||contorno.version!==1||!Array.isArray(contorno.points)||contorno.points.length!==8)return false;
+  var puntos=contorno.points.map(function(p){return {x:(pieza.x+p.x*pieza.w)*escalaX,y:(pieza.y+p.y*pieza.h)*escalaY};});
+  edTrazarSplineCerrada(ctx,puntos);
+  return true;
+}
+
 function trazarSiluetaPlanoDental(ctx, pieza, escalaX, escalaY) {
+  if(trazarContornoDentalVectorialV1(ctx,pieza,escalaX,escalaY))return;
   if(trazarContornoDentalFotograficoV5(ctx,pieza,escalaX,escalaY))return;
   var x=pieza.x*escalaX,y=pieza.y*escalaY,w=pieza.w*escalaX,h=pieza.h*escalaY;
   var cx=x+w/2,izq=x,der=x+w,abajo=y+h;
@@ -10766,6 +11092,7 @@ async function prepararPlanoDentalIndividual(entradaDental, view, requestId) {
     sizeFactor:factor,
     heightAdjustments:Array.isArray(editor.alturasDientes)?editor.alturasDientes:null
   });
+  plano=edAplicarContornosVectorialesAlPlano(plano,view||'frontal');
   // Estos datos ya fueron validados antes de generar y se reutilizan para la
   // composición y el control posterior. No se envían como parte del prompt.
   plano.sourceMaskUrl=mapa.maskUrl;
@@ -11973,6 +12300,32 @@ if (new URLSearchParams(location.search).get('debugUI')==='1'&&new URLSearchPara
     estado.textContent=(segura?'PASS':'FAIL')+' · regiones='+m.regionPathCount+' · geometría bloqueada='+m.geometryLocked+' · cobertura objetivo='+m.targetCoverage+' · área='+m.roiRatio;
     capa.firstChild.appendChild(vista);capa.firstChild.appendChild(estado);document.body.appendChild(capa);document.body.dataset.maskDemoReady=String(segura);
   });
+}
+
+// Editor vectorial sintético para QA visual. Se activa únicamente con
+// ?debugUI=1&vectorEditorDemo=1 y nunca carga, guarda ni transmite pacientes.
+if(new URLSearchParams(location.search).get('debugUI')==='1'&&new URLSearchParams(location.search).get('vectorEditorDemo')==='1'){
+  window.addEventListener('load',function(){window.setTimeout(function(){
+    var W=1200,H=800,c=document.createElement('canvas');c.width=W;c.height=H;var ctx=c.getContext('2d');
+    var piel=ctx.createRadialGradient(W*.5,H*.42,40,W*.5,H*.45,W*.72);piel.addColorStop(0,'#c98f73');piel.addColorStop(1,'#7b4d42');ctx.fillStyle=piel;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#713f47';ctx.beginPath();ctx.ellipse(W*.5,H*.60,W*.32,H*.16,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#221419';ctx.beginPath();ctx.ellipse(W*.5,H*.59,W*.265,H*.105,0,0,Math.PI*2);ctx.fill();
+    var rect=calcularRectRecorteDental(W,H,'frontal'),cw=rect.w,ch=rect.h;
+    var piezas=[
+      {id:'13',role:'canine',side:'right',x:cw*.245,y:ch*.39,w:cw*.075,h:ch*.31},
+      {id:'12',role:'lateral',side:'right',x:cw*.325,y:ch*.36,w:cw*.070,h:ch*.32},
+      {id:'11',role:'central',side:'right',x:cw*.402,y:ch*.32,w:cw*.096,h:ch*.38},
+      {id:'21',role:'central',side:'left',x:cw*.502,y:ch*.32,w:cw*.096,h:ch*.38},
+      {id:'22',role:'lateral',side:'left',x:cw*.605,y:ch*.36,w:cw*.070,h:ch*.32},
+      {id:'23',role:'canine',side:'left',x:cw*.680,y:ch*.39,w:cw*.075,h:ch*.31}
+    ];
+    piezas.forEach(function(p,i){var x=rect.x+p.x,y=rect.y+p.y;ctx.fillStyle=i===2||i===3?'#eee8dc':'#e7dfd1';ctx.beginPath();ctx.roundRect(x,y,p.w,p.h,[p.w*.28,p.w*.28,p.w*.16,p.w*.16]);ctx.fill();ctx.strokeStyle='rgba(90,62,57,.45)';ctx.lineWidth=2;ctx.stroke();});
+    var url=c.toDataURL('image/jpeg',.9),b64=url.split(',')[1];
+    var plano={width:cw,height:ch,pieces:piezas};
+    S.photos=[{view:'frontal',dataUrl:url,b64:b64,mimeType:'image/jpeg'}];S.results={frontal:url};S.veneerBaseByView={frontal:url};S.result=url;S.baVistaActual='frontal';S.editorParams=JSON.parse(JSON.stringify(EDITOR_PARAMS_DEFAULT));S.editorParams.diseno.contornosVectoriales=edCrearContornosDesdePlano(plano,'frontal');
+    var loginDemo=document.getElementById('dentist-login-overlay');if(loginDemo)loginDemo.style.setProperty('display','none','important');
+    abrirEditorDiseno();document.body.dataset.vectorEditorDemoReady='true';
+  },120);});
 }
 
 // ══ SERVICE WORKER ══

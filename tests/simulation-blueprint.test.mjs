@@ -103,9 +103,15 @@ vm.runInContext([
   extractFunction('resolverMaterialCarillaV1'),
   extractFunction('resolverEstratificacionCarillaV4'),
   extractFunction('analizarTexturaFuenteCarillaV2'),
+  extractFunction('edClonarPuntosContorno'),
+  extractFunction('edContornosVectorialesValidos'),
+  extractFunction('edPerfilEnNivel'),
+  extractFunction('edCrearContornosDesdePlano'),
+  extractFunction('edAplicarContornosVectorialesAlPlano'),
 ].join('\n'), context);
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
+assert.match(html, /var SMYL_VECTOR_EDITOR_V1_ENABLED = true/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
 assert.match(html, /var SMYL_HYBRID_LOCAL_LOCATOR_ENABLED = true/);
 assert.match(html, /var SIM_QUALITY_VERSION = 44/);
@@ -123,6 +129,34 @@ assert.match(motorBiblioteca, /singleLayer:true/);
 assert.match(motorBiblioteca, /photoAnchored:true/);
 assert.match(motorBiblioteca, /opalescent-incisal/);
 assert.doesNotMatch(motorBiblioteca, /sourceMask|editMaskBase64|resultadoIA/);
+
+const planoVectorBase={
+  width:1000,height:400,family:'rectangular-soft',targetMetrics:{sourceAnchored:true},
+  pieces:[
+    {id:'13',role:'canine',side:'right',x:220,y:145,w:70,h:115},{id:'12',role:'lateral',side:'right',x:292,y:135,w:66,h:120},
+    {id:'11',role:'central',side:'right',x:360,y:120,w:92,h:142},{id:'21',role:'central',side:'left',x:455,y:120,w:92,h:142},
+    {id:'22',role:'lateral',side:'left',x:549,y:135,w:66,h:120},{id:'23',role:'canine',side:'left',x:617,y:145,w:70,h:115},
+  ],
+};
+const contornos=context.edCrearContornosDesdePlano(planoVectorBase,'frontal');
+assert.equal(context.edContornosVectorialesValidos(contornos),true);
+assert.deepEqual(Array.from(contornos.teeth,(d)=>d.id),['13','12','11','21','22','23']);
+assert.ok(contornos.teeth.every((d)=>d.points.length===8&&d.basePoints.length===8));
+const puntoPrevio=contornos.teeth[2].points[5].y;
+contornos.teeth[2].points[5].y+=0.025;
+context.S={editorParams:{diseno:{contornosVectoriales:contornos}}};
+const aplicado=context.edAplicarContornosVectorialesAlPlano(structuredClone(planoVectorBase),'frontal');
+assert.equal(aplicado.vectorEditorVersion,1);
+assert.equal(aplicado.pieces.length,6);
+assert.ok(aplicado.pieces.every((p)=>p.vectorContour?.points?.length===8));
+assert.ok(aplicado.pieces[2].y+aplicado.pieces[2].h>(puntoPrevio*planoVectorBase.height));
+assert.equal(aplicado.targetMetrics.vectorEdited,true);
+const trazadorVector=extractFunction('trazarContornoDentalVectorialV1');
+assert.match(trazadorVector,/edTrazarSplineCerrada/);
+assert.match(extractFunction('trazarSiluetaPlanoDental'),/trazarContornoDentalVectorialV1/);
+const aplicadorEditor=extractFunction('edAplicarDiseno');
+assert.ok(aplicadorEditor.indexOf('edAplicarDisenoVectorialLocal')<aplicadorEditor.indexOf('generateSimulation'));
+assert.match(extractFunction('prepararPlanoDentalIndividual'),/edAplicarContornosVectorialesAlPlano/);
 const materialNatural=context.resolverMaterialCarillaV1(
   {code:'A1',screenRgb:[236,234,233]},
   {finish:'natural',intensity:'balanced',vitaMode:'vita'},
