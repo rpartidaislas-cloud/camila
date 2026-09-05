@@ -35,8 +35,10 @@
   `verify_jwt=false`. Frontend autorizado para publicarse desde la rama de
   GitHub Pages. El despliegue no ejecutó una simulación, no subió fotografías
   y no consumió una generación.
-- Caché PWA `smyl-v80`. Sintaxis, prueba de integración, regresión v3 y QA
-  visual aprobados en escritorio y 390×844, sin errores de consola.
+- Caché PWA `smyl-v81`. Las rutas de los PNG llevan sufijo `-r1` para evitar
+  el caché negativo de GitHub Pages observado durante la primera publicación.
+  Sintaxis, prueba de integración, regresión v3 y QA visual aprobados en
+  escritorio y 390×844, sin errores de consola.
 
 ## 2026-09-04 — Codex: hybrid-2d-v2.3, mostrar primero y revisar después
 
