@@ -61,7 +61,7 @@ function extractFunction(name) {
 const context = {};
 vm.createContext(context);
 context.SIM_ACCEPTANCE_V105 = {
-  version:'hybrid-2d-v2',
+  version:'hybrid-2d-v3',
   minimumSourcePieces:6,
   minimumSourceCoverage:.88,
   minimumTargetCoverage:.94,
@@ -107,7 +107,7 @@ vm.runInContext([
 
 assert.match(html, /var SMYL_DESIGN_ENGINE_V1_ENABLED = false/);
 assert.match(html, /var SMYL_HYBRID_2D_ENABLED = true/);
-assert.match(html, /var SIM_QUALITY_VERSION = 38/);
+assert.match(html, /var SIM_QUALITY_VERSION = 39/);
 const motorBiblioteca=extractFunction('renderizarSimulacionBibliotecaV1');
 assert.match(motorBiblioteca, /plano\.pieces\.forEach/);
 assert.match(motorBiblioteca, /trazarSiluetaPlanoDental/);
@@ -180,7 +180,7 @@ assert.match(compositorSeguro, /throw errorContrato/);
 assert.match(compositorSeguro, /contract:'post-safety-clip-continuous-smile-roi'/);
 assert.match(compositorSeguro, /mask:coberturaContrato/);
 assert.doesNotMatch(compositorSeguro, /mask:tratamientoActual\.metrics/);
-assert.match(html, /contractVersion:'hybrid-2d-v2'/);
+assert.match(html, /contractVersion:'hybrid-2d-v3'/);
 const generadorV105=extractFunction('generateSimulation');
 assert.match(generadorV105, /SMYL_DESIGN_ENGINE_V1_ENABLED/);
 assert.match(generadorV105, /renderizarSimulacionBibliotecaV1/);
@@ -194,14 +194,17 @@ assert.ok(
 assert.doesNotMatch(generadorV105, /IMAGE 2 already fixes/);
 assert.match(generadorV105, /guideImageBase64:guia2DBase64/);
 assert.match(generadorV105, /guideMimeType:'image\/png'/);
+assert.match(generadorV105, /guideLibraryVersion:guia2D\.libraryVersion/);
+assert.match(generadorV105, /x-smyl-guide-library/);
 assert.match(generadorV105, /imageProvider:'openai'/);
-assert.match(generadorV105, /IMAGE 2 is an invisible 2D morphology control map/);
-assert.match(generadorV105, /renderizarGuiaPlanoDental/);
+assert.match(generadorV105, /IMAGE 2 is a same-size transparent photographic reference board/);
+assert.match(generadorV105, /renderizarGuiaBibliotecaFotograficaV1/);
+assert.doesNotMatch(generadorV105, /renderizarGuiaPlanoDental/);
 assert.match(generadorV105, /Never treat premolars, lower teeth or any unlisted tooth/);
 assert.match(generadorV105, /one connected upper-smile working region/);
 assert.match(generadorV105, /no white patches, stickers, floating fragments or unchanged enamel islands/);
 assert.doesNotMatch(generadorV105, /requiresNewGeneration[\s\S]{0,180}delete S\.pendingGeneratedByView/);
-assert.match(generadorV105, /localValidationContract:'hybrid-2d-v2'/);
+assert.match(generadorV105, /localValidationContract:'hybrid-2d-v3'/);
 assert.match(generadorV105, /revalidationMode:'cached-paid-proposal'/);
 assert.match(extractFunction('saveProgress'), /pendingGeneratedByView/);
 assert.match(extractFunction('continuarProgreso'), /revalidateCached:coincide/);
@@ -227,10 +230,12 @@ assert.match(mascaraContinua, /suavizarMascaraHaciaDentroV104/);
 assert.doesNotMatch(mascaraContinua, /destination-in|evaluarMascaraCoronalV104/);
 assert.match(preparadorMascara, /stage:'v105-single-mask-preflight'/);
 assert.match(preparadorMascara, /connectedRegion:geometriaMascara\.connectedRegion===true/);
-assert.match(preparadorMascara, /hybrid-2d-v2-continuous-smile-roi/);
+assert.match(preparadorMascara, /hybrid-2d-v3-continuous-smile-roi/);
 assert.match(backend, /X-SMYL-Contract/);
+assert.match(backend, /X-SMYL-Guide-Library/);
 assert.match(backend, /contract:\s*simulationContract/);
-assert.match(backend, /const isHybrid2DContract = simulationContract === "hybrid-2d-v2"/);
+assert.match(backend, /const isPhotographicLibraryContract = simulationContract === "hybrid-2d-v3"/);
+assert.match(backend, /const isHybrid2DContract = simulationContract === "hybrid-2d-v2" \|\| isPhotographicLibraryContract/);
 assert.match(backend, /simulationContract === "v105" \|\| isHybrid2DContract/);
 assert.match(backend, /simulationContract === "v105"/);
 assert.match(backend, /V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT/);
@@ -239,10 +244,13 @@ assert.match(backend, /The patient smile crop is the ONE AND ONLY visual referen
 assert.match(backend, /guideImageBase64 && !isMeasuredMaskOnlyContract/);
 assert.match(backend, /numeric-geometry-only/);
 assert.match(backend, /HYBRID 2D VENEER EDIT V2/);
+assert.match(backend, /HYBRID 2D VENEER EDIT V3 — PHOTOGRAPHIC LIBRARY TRANSFER/);
+assert.match(backend, /smyl-photo-library\.png/);
+assert.match(backend, /natural-a1-v1/);
 assert.match(backend, /one connected upper-smile working region/);
 assert.match(backend, /Do not return isolated white patches/);
 assert.match(backend, /hybrid-2d-v2-continuous-smile-roi/);
-assert.match(backend, /hybrid-2d-v2 requiere un plano morfológico PNG/);
+assert.match(backend, /requiere una guía dental PNG/);
 
 const pixelOriginal = new Uint8ClampedArray([
   10,20,30,255,
@@ -279,7 +287,7 @@ assert.match(validacionRecibida, /posibles marcas técnicas; la propuesta se mue
 assert.match(validacionRecibida, /cambio dental conservador; se entrega con revisión recomendada/i);
 
 const evidenciaValida = {
-  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'hybrid-2d-v2'},
+  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'hybrid-2d-v3'},
   outsideMask:{identical:true,changedPixels:0},
   sourcePieces:6,
   mask:{sourceCoverage:.96,targetCoverage:.98,connectedRegion:true,regionPathCount:1,roiRatio:.08},
@@ -536,6 +544,14 @@ assert.match(guiaMorfologica,/plano\.pieces\.forEach/);
 assert.match(guiaMorfologica,/trazarSiluetaPlanoDental/);
 assert.match(guiaMorfologica,/ctx\.fillStyle='#000'/);
 assert.doesNotMatch(guiaMorfologica,/drawImage/);
+const guiaFotografica=extractFunction('renderizarGuiaBibliotecaFotograficaV1');
+assert.match(html,/var SMYL_PHOTO_LIBRARY_V1 = Object\.freeze/);
+assert.match(html,/assets\/dental-library\/natural-a1-v1\/central\.png/);
+assert.match(guiaFotografica,/cargarBibliotecaFotograficaV1/);
+assert.match(guiaFotografica,/rolesEsperados=\['canine','lateral','central','central','lateral','canine'\]/);
+assert.match(guiaFotografica,/ctx\.drawImage\(sprite/);
+assert.match(guiaFotografica,/if\(indice>2\)ctx\.scale\(-1,1\)/);
+assert.match(guiaFotografica,/libraryVersion:SMYL_PHOTO_LIBRARY_V1\.version/);
 
 const sinCambio = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,
@@ -651,4 +667,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('SMYL hybrid-2d-v2.3: deterministic safety with visible clinical quality review');
+console.log('SMYL hybrid-2d-v3: photographic veneer library with deterministic safety');

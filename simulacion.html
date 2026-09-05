@@ -686,7 +686,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <button type="button" onclick="cerrarAvisoAplicacion()" style="width:100%;height:44px;margin-top:18px;border:0;border-radius:11px;background:#5B47E0;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer">Entendido</button>
   </div>
 </div>
-<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v2.3 — seguridad determinista + revisión clínica</div>
+<div id="debug-build-badge" style="display:none;position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">build hybrid-2d-v3 — biblioteca fotográfica + seguridad determinista</div>
 
 <!-- ══ RECUPERAR AVANCE ══ (si se cerró/recargó por accidente a medio caso) -->
 <div id="resume-overlay" role="dialog" aria-modal="true" aria-labelledby="resume-title" aria-describedby="resume-detail" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,8,20,.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px">
@@ -1466,6 +1466,10 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <option value="triangular">Triangular — cervical estrecho</option>
         <option value="rectangular">Rectangular — líneas definidas</option>
       </select>
+      <a href="biblioteca-carillas.html" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;padding:11px 12px;border:1px solid rgba(121,103,255,.35);border-radius:11px;background:rgba(121,103,255,.08);color:#dcd7ff;text-decoration:none;font-size:11px;font-weight:700">
+        <span><strong style="display:block;color:#fff;font-size:11.5px">Biblioteca fotográfica 2D · beta</strong><small style="display:block;margin-top:2px;color:rgba(255,255,255,.48);font-size:9.5px;font-weight:500">Prueba seis carillas Natural A1 sin consumir IA</small></span>
+        <span aria-hidden="true">↗</span>
+      </a>
 
       <div class="ed-slider-row">
         <div class="ed-slider-head"><span>Tamaño relativo de coronas</span><span id="ed-tamano-lbl">100%</span></div>
@@ -5696,7 +5700,7 @@ async function componerConMascaraAnatomicaContinua(fotoOriginalUrl,resultadoIAUr
   S.simulationQualityByView[view||'frontal']={
     version:SIM_QUALITY_VERSION,status:contratoV105.accepted?'review':'rejected',
     issues:advertencias,
-    metrics:{mode:'hybrid-2d-v2.3',deliveryGate:'deterministic-safety-hard-visual-quality-review',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
+    metrics:{mode:'hybrid-2d-v3-photo-library',deliveryGate:'deterministic-safety-hard-visual-quality-review',qualityOutcome:revisionVisual.status,contract:contratoV105,trace:S.lastGenerationMeta||{},original:mo,treatment:mt,safe:ms,maskCoverage:coberturaContrato,dentalCoverage:+coberturaDental.toFixed(3),targetCoverage:+coberturaObjetivo.toFixed(3),outsideMask:exterior,lowerProtection:proteccionInferior,fragments:comparacionPrevia.rawFragments,anatomy:revisionAnatomica.metrics,visual:revisionVisual.metrics,blueprint:planoDental&&planoDental.targetMetrics||null,alignment:registrada.alignment}
   };
   if(!contratoV105.accepted){
     var errorContrato=new Error('La simulación no superó el contrato visual híbrido 2D v2: '+contratoV105.failures.slice(0,3).join(' · ')+'.');
@@ -5863,7 +5867,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     }
     try {
       S.lastGenerationMeta = Object.assign({},pendiente.generation||S.lastGenerationMeta||{}, {
-        localValidationContract:'hybrid-2d-v2',
+        localValidationContract:'hybrid-2d-v3',
         revalidationMode:'cached-paid-proposal'
       });
       var resultadoRevalidado = await validarResultadoIARecibido({
@@ -5965,8 +5969,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     : 'SHADE: reproduce VITA Classical ' + vitaShade.code + ' as perceived under the ORIGINAL illumination. ' + vitaShade.copy + shadeReferencePrompt;
   var prompt = [
     basePrompt,
-    'ROLE: act only as the photorealistic ceramic renderer. IMAGE 1 is the patient crop. IMAGE 2 is an invisible 2D morphology control map for the six target veneers; it is geometry, not photographic content. The alpha mask on IMAGE 1 is one connected upper-smile working region, not six separate tooth cut-outs.',
-    'RENDERING TASK: reconstruct the complete visible facial enamel of teeth 13-12-11-21-22-23 as six clearly changed, independently readable porcelain veneers in one coherent photographic edit. Every veneer must be continuous from cervical emergence to incisal edge, with no white patches, stickers, floating fragments or unchanged enamel islands. Match the position, width, length, contour hierarchy and smile arc encoded by IMAGE 2 while preserving the photographed left-to-right identity, cervical emergence and perspective from IMAGE 1. Never copy the control map background, fills or outlines. Never treat premolars, lower teeth or any unlisted tooth; never invent, remove, fuse or duplicate a tooth.',
+    'ROLE: act only as the photorealistic ceramic renderer. IMAGE 1 is the patient crop. IMAGE 2 is a same-size transparent photographic reference board built from the SMYL Natural A1 veneer library. Its six real ceramic crowns are already assigned and positioned as 13-12-11-21-22-23. The alpha mask applies only to IMAGE 1 and is one connected upper-smile working region, not six separate tooth cut-outs.',
+    'RENDERING TASK: reconstruct the complete visible facial enamel of teeth 13-12-11-21-22-23 as six clearly changed, independently readable porcelain veneers in one coherent photographic edit. Use the corresponding crown in IMAGE 2 as the primary reference for individual anatomy, width, length, line angles, incisal character, layered translucency and microtexture. Adapt those references to the patient perspective, cervical emergence, illumination and selected VITA shade from IMAGE 1; do not paste them as flat sprites. Every veneer must be continuous from cervical emergence to incisal edge, with no white patches, stickers, floating fragments or unchanged enamel islands. Never render the transparent board, black source background, hard cut-out borders or reference-sheet artifacts. Never treat premolars, lower teeth or any unlisted tooth; never invent, remove, fuse or duplicate a tooth.',
     anatomyAcceptancePrompt,
     'CERAMIC MATERIAL: render layered porcelain with individual facial convexity, restrained developmental lobes, shallow non-repetitive vertical texture, slightly warmer cervical dentin, controlled body value, subtle incisal translucency and highlights from the original light. Never return flat paint, opaque chalk, plastic rectangles or a uniform white row.',
     shadeInstruction,
@@ -6039,14 +6043,14 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     return prepararMascaraTratamiento(entradaDental, frontal.view || 'frontal', planoDental);
   });
   prompt += ' ' + planoDental.prompt;
-  var guia2DUrl = renderizarGuiaPlanoDental(
+  var guia2D = await renderizarGuiaBibliotecaFotograficaV1(
     planoDental,
     entradaDental.rect.w,
     entradaDental.rect.h
   );
-  var guia2DBase64 = guia2DUrl.split(',')[1] || '';
+  var guia2DBase64 = guia2D.dataUrl.split(',')[1] || '';
   if (!guia2DBase64) {
-    var errorGuia2D = new Error('No fue posible construir el plano 2D de las seis carillas.');
+    var errorGuia2D = new Error('No fue posible construir la guía fotográfica de las seis carillas.');
     errorGuia2D.requiresNewGeneration = false;
     throw errorGuia2D;
   }
@@ -6068,7 +6072,8 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
       guideImageBase64:guia2DBase64,
       guideMimeType:'image/png',
       prompt:prompt,
-      contractVersion:'hybrid-2d-v2',
+      contractVersion:'hybrid-2d-v3',
+      guideLibraryVersion:guia2D.libraryVersion,
       imageProvider:'openai',
       // Evita transportar el JPEG como base64 dentro de JSON: en iOS esa
       // copia adicional podía cortar o agotar la respuesta ya generada.
@@ -6104,6 +6109,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
           model: resp.headers.get('x-smyl-model') || 'desconocido',
           quality: resp.headers.get('x-smyl-quality') || '',
           contract: resp.headers.get('x-smyl-contract') || '',
+          guideLibraryVersion: resp.headers.get('x-smyl-guide-library') || '',
           elapsedMs: Number(resp.headers.get('x-smyl-elapsed-ms')) || 0,
           providerRequestId: resp.headers.get('x-smyl-provider-request-id') || ''
         }
@@ -8514,14 +8520,23 @@ function canvasReducidoParaSegmentacion(canvas) {
 // ningún servicio ni provocan otra inferencia/costo.
 var _ultimaSeleccionDental = [];
 var _ultimaComparacionDental = null;
+var SMYL_PHOTO_LIBRARY_V1 = Object.freeze({
+  version:'natural-a1-v1',
+  assets:Object.freeze({
+    central:'assets/dental-library/natural-a1-v1/central.png',
+    lateral:'assets/dental-library/natural-a1-v1/lateral.png',
+    canine:'assets/dental-library/natural-a1-v1/canine.png'
+  })
+});
+var _smylPhotoLibraryPromise = null;
 // Primer motor de diseño determinista de SMYL. La anatomía proviene de seis
 // siluetas completas y editables; el generador fotográfico deja de ser el
 // responsable de inventar forma, límites o continuidad dental.
 var SMYL_DESIGN_ENGINE_V1_ENABLED = false;
 var SMYL_HYBRID_2D_ENABLED = true;
-var SIM_QUALITY_VERSION = 38;
+var SIM_QUALITY_VERSION = 39;
 var SIM_ACCEPTANCE_V105 = Object.freeze({
-  version:'hybrid-2d-v2',
+  version:'hybrid-2d-v3',
   minimumSourcePieces:6,
   minimumSourceCoverage:.88,
   minimumTargetCoverage:.94,
@@ -8547,8 +8562,8 @@ function evaluarContratoPresentacionV105(evidencia) {
   var mascara=evidencia.mask||{};
   var visual=evidencia.visual||{};
   var porPieza=Array.isArray(evidencia.perToothChange)?evidencia.perToothChange:[];
-  var contratoHibrido=trazabilidad.contract==='hybrid-2d-v2';
-  if(!contratoHibrido)fallos.push('el backend no confirmó el contrato híbrido 2D v2');
+  var contratoHibrido=trazabilidad.contract==='hybrid-2d-v3';
+  if(!contratoHibrido)fallos.push('el backend no confirmó el contrato híbrido 2D v3 con biblioteca fotográfica');
   if(trazabilidad.provider!=='openai'||!/^gpt-image-2(?:-|$)/.test(String(trazabilidad.model||'')))fallos.push('la simulación no usó el renderizador GPT Image 2 requerido');
   if(exterior.identical!==true||Number(exterior.changedPixels||0)!==0)fallos.push('se modificaron píxeles fuera de la región continua de sonrisa');
   if(Number(evidencia.sourcePieces||0)<SIM_ACCEPTANCE_V105.minimumSourcePieces)fallos.push('no se confirmaron seis dientes anteriores en la fotografía');
@@ -9366,7 +9381,7 @@ async function prepararMascaraTratamiento(entradaDental, view, planoDental) {
       regionPathCount:Number(geometriaMascara.regionPathCount)||0,
       roiRatio:+Number(medidaDestino.ratio||0).toFixed(4),
       regionMode:'continuous-upper-smile-roi',
-      contract:'hybrid-2d-v2-continuous-smile-roi'
+      contract:'hybrid-2d-v3-continuous-smile-roi'
     }
   };
 }
@@ -9960,6 +9975,122 @@ function renderizarGuiaPlanoDental(plano, anchoSalida, altoSalida) {
   return canvas.toDataURL('image/png');
 }
 
+// Convierte las fotografías maestras con fondo #05070A en sprites RGBA. El
+// recorte se hace sólo en memoria: los PNG originales siguen intactos y la
+// guía que recibe el renderizador no contiene el fondo oscuro del estudio.
+function extraerSpriteBibliotecaFotograficaV1(img) {
+  var fuente=document.createElement('canvas');
+  fuente.width=img.naturalWidth;fuente.height=img.naturalHeight;
+  var fctx=fuente.getContext('2d',{willReadFrequently:true});
+  fctx.drawImage(img,0,0);
+  var imagen=fctx.getImageData(0,0,fuente.width,fuente.height),d=imagen.data;
+  var minX=fuente.width,minY=fuente.height,maxX=0,maxY=0,encontrados=0;
+  for(var y=0;y<fuente.height;y++)for(var x=0;x<fuente.width;x++){
+    var i=(y*fuente.width+x)*4,valor=Math.max(d[i],d[i+1],d[i+2]);
+    var t=limitarPlanoDental((valor-18)/54,0,1);
+    var alfa=valor<18?0:t*t*(3-2*t);
+    d[i+3]=Math.round(alfa*255);
+    if(alfa>.42){
+      encontrados++;minX=Math.min(minX,x);minY=Math.min(minY,y);
+      maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);
+    }
+  }
+  if(encontrados<500)throw new Error('Una pieza de la biblioteca fotográfica no contiene una corona utilizable.');
+  fctx.putImageData(imagen,0,0);
+  var margen=Math.max(4,Math.round(Math.min(fuente.width,fuente.height)*.006));
+  minX=Math.max(0,minX-margen);minY=Math.max(0,minY-margen);
+  maxX=Math.min(fuente.width-1,maxX+margen);maxY=Math.min(fuente.height-1,maxY+margen);
+  var sprite=document.createElement('canvas');
+  sprite.width=maxX-minX+1;sprite.height=maxY-minY+1;
+  sprite.getContext('2d').drawImage(fuente,minX,minY,sprite.width,sprite.height,0,0,sprite.width,sprite.height);
+  sprite.smylOpaquePixels=encontrados;
+  return sprite;
+}
+
+function cargarBibliotecaFotograficaV1() {
+  if(_smylPhotoLibraryPromise)return _smylPhotoLibraryPromise;
+  var assets=SMYL_PHOTO_LIBRARY_V1.assets;
+  _smylPhotoLibraryPromise=Promise.all(Object.keys(assets).map(function(rol){
+    return cargarImagenSegura(assets[rol]).then(function(img){
+      return [rol,extraerSpriteBibliotecaFotograficaV1(img)];
+    });
+  })).then(function(entradas){
+    var biblioteca={};
+    entradas.forEach(function(entrada){biblioteca[entrada[0]]=entrada[1];});
+    return biblioteca;
+  }).catch(function(error){
+    _smylPhotoLibraryPromise=null;
+    throw error;
+  });
+  return _smylPhotoLibraryPromise;
+}
+
+// IMAGE 2 se construye automáticamente con las mismas cajas anatómicas que
+// produjo la segmentación. Cada fotografía maestra queda en la posición final
+// de su diente; GPT Image sólo debe integrarla con la perspectiva y la luz de
+// IMAGE 1, no adivinar la forma desde cero.
+async function renderizarGuiaBibliotecaFotograficaV1(plano, anchoSalida, altoSalida) {
+  if(!plano||!Array.isArray(plano.pieces)||plano.pieces.length!==6){
+    throw new Error('La guía fotográfica requiere seis carillas identificadas.');
+  }
+  var biblioteca=await cargarBibliotecaFotograficaV1();
+  var canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(anchoSalida));canvas.height=Math.max(1,Math.round(altoSalida));
+  var ctx=canvas.getContext('2d');
+  var sx=canvas.width/Math.max(1,plano.width),sy=canvas.height/Math.max(1,plano.height);
+  var piezas=plano.pieces.slice().sort(function(a,b){return a.x+a.w/2-(b.x+b.w/2);});
+  var rolesEsperados=['canine','lateral','central','central','lateral','canine'];
+  piezas.forEach(function(pieza,indice){
+    var rol=biblioteca[pieza.role]?pieza.role:rolesEsperados[indice];
+    var sprite=biblioteca[rol];
+    if(!sprite)throw new Error('Falta la pieza '+rol+' en la biblioteca fotográfica.');
+    var x=pieza.x*sx,y=pieza.y*sy,w=pieza.w*sx,h=pieza.h*sy;
+    ctx.save();
+    ctx.translate(x+w/2,y+h/2);
+    if(indice>2)ctx.scale(-1,1);
+    ctx.drawImage(sprite,-w/2,-h/2,w,h);
+    ctx.restore();
+  });
+  var alpha=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  var activos=0;
+  for(var i=3;i<alpha.length;i+=4)if(alpha[i]>36)activos++;
+  var cobertura=activos/Math.max(1,canvas.width*canvas.height);
+  if(activos<1200||cobertura>.30){
+    throw new Error('La guía fotográfica salió vacía o fuera de escala.');
+  }
+  return {
+    dataUrl:canvas.toDataURL('image/png'),
+    libraryVersion:SMYL_PHOTO_LIBRARY_V1.version,
+    pieces:piezas.length,
+    coverage:+cobertura.toFixed(4)
+  };
+}
+
+// Sonda local sin datos de paciente. Sólo se activa explícitamente durante QA
+// y publica métricas en el DOM para comprobar que los tres PNG producen una
+// guía real de seis piezas en navegadores de escritorio y móviles.
+if(new URLSearchParams(location.search).get('libraryProbe')==='1'){
+  setTimeout(function(){
+    var sonda=document.createElement('output');sonda.id='smyl-photo-library-probe';
+    sonda.hidden=true;sonda.dataset.status='loading';document.body.appendChild(sonda);
+    var piezasSonda=[
+      {id:'13',role:'canine',x:165,y:155,w:42,h:72},
+      {id:'12',role:'lateral',x:209,y:151,w:39,h:70},
+      {id:'11',role:'central',x:250,y:143,w:50,h:80},
+      {id:'21',role:'central',x:302,y:143,w:50,h:80},
+      {id:'22',role:'lateral',x:354,y:151,w:39,h:70},
+      {id:'23',role:'canine',x:395,y:155,w:42,h:72}
+    ];
+    renderizarGuiaBibliotecaFotograficaV1({width:600,height:400,pieces:piezasSonda},600,400).then(function(resultado){
+      sonda.dataset.status='ready';sonda.dataset.library=resultado.libraryVersion;
+      sonda.dataset.pieces=String(resultado.pieces);sonda.dataset.coverage=String(resultado.coverage);
+      sonda.dataset.bytes=String(resultado.dataUrl.length);
+    }).catch(function(error){
+      sonda.dataset.status='error';sonda.dataset.error=String(error&&error.message||error);
+    });
+  },0);
+}
+
 function renderizarMascaraObjetivoDental(plano, anchoSalida, altoSalida) {
   var canvas=document.createElement('canvas');canvas.width=anchoSalida;canvas.height=altoSalida;
   var ctx=canvas.getContext('2d');
@@ -10343,7 +10474,7 @@ function construirPrescripcionNumericaV104(plano) {
       'height='+normalizar(pieza.h,plano.height)
     ].join(',');
   }).join(' ; ');
-  return 'NUMERIC CROSS-CHECK FOR IMAGE 2. Coordinates are normalized to IMAGE 1, origin at top-left. Each envelope describes the same final visible crown target shown in the 2D morphology map: '+envolventes+'. Keep each cervical emergence anchored at its cervicalY without changing gingiva, land the incisal edge at its incisalY, and use centerX/width/height to preserve six separate crowns. Interpolate a smooth lower-lip smile arc through the six incisal destinations. IMAGE 2 and these values are invisible constraints: never draw their background, boxes, rectangles, outlines, dots, labels, seams or annotations. Target ratios: central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(3)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(3)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(3)+'.';
+  return 'NUMERIC CROSS-CHECK FOR IMAGE 2. Coordinates are normalized to IMAGE 1, origin at top-left. Each envelope describes the same final visible crown target occupied by its photographic veneer reference in IMAGE 2: '+envolventes+'. Keep each cervical emergence anchored at its cervicalY without changing gingiva, land the incisal edge at its incisalY, and use centerX/width/height to preserve six separate crowns. Interpolate a smooth lower-lip smile arc through the six incisal destinations. IMAGE 2 and these values are invisible constraints: never draw their transparent canvas, black source background, boxes, rectangles, outlines, dots, labels, seams or annotations. Target ratios: central width/height '+plano.targetMetrics.centralWidthHeight.toFixed(3)+', lateral/central width '+plano.targetMetrics.lateralToCentral.toFixed(3)+', canine/central width '+plano.targetMetrics.canineToCentral.toFixed(3)+'.';
 }
 
 async function prepararPlanoDentalIndividual(entradaDental, view) {
@@ -11571,7 +11702,7 @@ if (new URLSearchParams(location.search).get('debugUI')==='1'&&new URLSearchPara
     var region=construirMascaraRegionContinuaHibrida2D(source,target,{width:W,height:H,sourceWidth:W,sourceHeight:H,sourcePieces:piezas,pieces:objetivos});
     var capa=document.createElement('section');capa.id='hybrid-mask-demo';
     capa.style.cssText='position:fixed;inset:0;z-index:100000;background:#080b18;color:#eef2ff;padding:28px;font:15px system-ui;overflow:auto';
-    capa.innerHTML='<div style="max-width:1040px;margin:auto;background:#11162b;border:1px solid #2c365a;border-radius:18px;padding:20px"><h1 style="margin:0 0 8px;font-size:22px">Región de edición hybrid-2d-v2</h1><p style="color:#aeb8da;margin:0 0 18px">La zona blanca debe ser una sola cinta suave que cubra las seis coronas, sin recortes individuales.</p></div>';
+    capa.innerHTML='<div style="max-width:1040px;margin:auto;background:#11162b;border:1px solid #2c365a;border-radius:18px;padding:20px"><h1 style="margin:0 0 8px;font-size:22px">Región de edición hybrid-2d-v3</h1><p style="color:#aeb8da;margin:0 0 18px">La zona blanca debe ser una sola cinta suave que cubra las seis coronas, sin recortes individuales.</p></div>';
     var vista=document.createElement('canvas');vista.width=W;vista.height=H;vista.style.cssText='display:block;width:100%;height:auto;background:#050711;border:1px solid #36416d;border-radius:12px';
     var ctx=vista.getContext('2d'),grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#11172d');grad.addColorStop(1,'#050711');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);ctx.globalAlpha=.9;ctx.drawImage(region,0,0);ctx.globalAlpha=1;ctx.strokeStyle='#38bdf8';ctx.lineWidth=2;objetivos.forEach(function(p){ctx.strokeRect(p.x,p.y,p.w,p.h);});
     var estado=document.createElement('div'),m=region.hybrid2DMetrics||{};estado.id='hybrid-mask-demo-status';estado.style.cssText='margin-top:14px;color:#6ee7b7;font:600 14px ui-monospace,monospace';

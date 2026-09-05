@@ -139,8 +139,12 @@ Deno.serve(async (req: Request) => {
   const simulationContract = typeof body?.contractVersion === "string"
     ? body.contractVersion.trim().slice(0, 32)
     : "legacy";
+  const guideLibraryVersion = typeof body?.guideLibraryVersion === "string"
+    ? body.guideLibraryVersion.trim().slice(0, 40)
+    : "";
   const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
-  const isHybrid2DContract = simulationContract === "hybrid-2d-v2";
+  const isPhotographicLibraryContract = simulationContract === "hybrid-2d-v3";
+  const isHybrid2DContract = simulationContract === "hybrid-2d-v2" || isPhotographicLibraryContract;
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -180,8 +184,8 @@ Deno.serve(async (req: Request) => {
   }
 
   // Los contratos cerrados requieren GPT Image 2 y máscara alfa. El híbrido
-  // añade un plano morfológico 2D de las seis carillas con las mismas medidas
-  // de la fotografía; nunca se utiliza como imagen de salida.
+  // v2 conserva el plano geométrico histórico; v3 recibe una guía fotográfica
+  // transparente armada con la biblioteca SMYL y alineada a la fotografía.
   if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105" || isHybrid2DContract)) {
     if (imageProvider !== "openai") {
       return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere GPT Image 2; el proveedor de producción no está configurado.` }), {
@@ -194,7 +198,12 @@ Deno.serve(async (req: Request) => {
       });
     }
     if (isHybrid2DContract && (!body?.guideImageBase64 || body?.guideMimeType !== "image/png")) {
-      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v2 requiere un plano morfológico PNG." }), {
+      return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere una guía dental PNG.` }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (isPhotographicLibraryContract && guideLibraryVersion !== "natural-a1-v1") {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v3 requiere la biblioteca fotográfica natural-a1-v1." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -307,7 +316,9 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        const promptOpenAI = isHybrid2DContract
+        const promptOpenAI = isPhotographicLibraryContract
+          ? "HYBRID 2D VENEER EDIT V3 — PHOTOGRAPHIC LIBRARY TRANSFER. IMAGE 1 is the patient smile crop and is the only source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent reference board assembled automatically from the SMYL Natural A1 photographic library. It contains exactly six assigned crowns in image-left-to-right order 13-12-11-21-22-23 and already encodes their target position, width, length, contour hierarchy and incisal smile arc. Transfer the corresponding photographic anatomy and layered ceramic optical character from each IMAGE 2 crown into the matching real tooth in IMAGE 1, adapting it to patient perspective, original light and the requested VITA shade. Do not simply paste the reference pixels and do not render the reference canvas, source black background, hard sprite edges or transparency artifacts. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Reconstruct six complete, separate veneers with natural contacts and uninterrupted cervical-to-incisal ceramic. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed. Return only the final photorealistic patient crop. " + prompt
+          : isHybrid2DContract
           ? "HYBRID 2D VENEER EDIT V2. IMAGE 1 is the patient smile crop and is the only source for identity, gingival emergence, perspective, lighting and photographic texture. IMAGE 2 is a same-size abstract morphology control map for maxillary teeth 13-12-11-21-22-23. Use only its six silhouettes to control crown position, relative width, length, contour hierarchy and incisal smile arc. The alpha mask on IMAGE 1 is one connected upper-smile working region, not six tooth cut-outs. Reconstruct all six veneers as one coherent photographic dental edit while keeping six anatomically separate crowns, natural contacts and uninterrupted cervical-to-incisal ceramic on every tooth. Do not return isolated white patches, partial overlays, stickers, floating fragments or unchanged tooth sections inside a veneer. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed even when they fall inside the working region. Do not paste, trace or render IMAGE 2: its black background, pale fills and white outlines must never appear. Return only the final photorealistic patient crop. " + prompt
           : isMeasuredMaskOnlyContract
           ? (simulationContract === "v105"
@@ -329,7 +340,7 @@ Deno.serve(async (req: Request) => {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
         if (guideImageBytes && !isMeasuredMaskOnlyContract) {
-          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), "veneer-blueprint.png");
+          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png");
         }
         form.append("prompt", promptOpenAI);
         // Los acercamientos dentales son ediciones de detalle y anatomía fina.
@@ -354,7 +365,8 @@ Deno.serve(async (req: Request) => {
           model: OPENAI_IMAGE_MODEL,
           quality: OPENAI_IMAGE_QUALITY,
           contract: simulationContract,
-          guideMode: isHybrid2DContract ? "hybrid-2d-v2-continuous-smile-roi" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none")),
+          guideMode: isPhotographicLibraryContract ? "hybrid-2d-v3-photographic-library" : (isHybrid2DContract ? "hybrid-2d-v2-continuous-smile-roi" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none"))),
+          guideLibraryVersion: isPhotographicLibraryContract ? guideLibraryVersion : null,
           attempt: 1,
         }));
 
@@ -586,12 +598,13 @@ Deno.serve(async (req: Request) => {
                   "Cache-Control": "no-cache, no-store",
                   "Content-Type": entregarComoJpeg ? "image/jpeg" : "text/event-stream; charset=utf-8",
                   "X-Accel-Buffering": "no",
-                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-provider-request-id",
+                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-guide-library, x-smyl-provider-request-id",
                   "X-SMYL-Request-Id": requestId,
                   "X-SMYL-Provider": "openai",
                   "X-SMYL-Model": OPENAI_IMAGE_MODEL,
                   "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
                   "X-SMYL-Contract": simulationContract,
+                  "X-SMYL-Guide-Library": isPhotographicLibraryContract ? guideLibraryVersion : "",
                   "X-SMYL-Provider-Request-Id": providerRequestId || "",
                 },
               });
@@ -674,6 +687,7 @@ Deno.serve(async (req: Request) => {
             elapsedMs,
             usage,
             providerRequestId,
+            guideLibraryVersion: isPhotographicLibraryContract ? guideLibraryVersion : null,
           }));
           const generation = {
             requestId,
@@ -687,6 +701,7 @@ Deno.serve(async (req: Request) => {
             usage,
             providerRequestId,
             contract: simulationContract,
+            guideLibraryVersion: isPhotographicLibraryContract ? guideLibraryVersion : null,
           };
 
           // El JSON con b64_json aumenta el JPEG cerca de 33 % y obliga a
@@ -703,7 +718,7 @@ Deno.serve(async (req: Request) => {
             return new Response(generatedBytes, {
               headers: {
                 ...CORS,
-                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-elapsed-ms, x-smyl-provider-request-id",
+                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-guide-library, x-smyl-elapsed-ms, x-smyl-provider-request-id",
                 "Cache-Control": "no-store",
                 "Content-Type": "image/jpeg",
                 "X-SMYL-Request-Id": requestId,
@@ -711,6 +726,7 @@ Deno.serve(async (req: Request) => {
                 "X-SMYL-Model": OPENAI_IMAGE_MODEL,
                 "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
                 "X-SMYL-Contract": simulationContract,
+                "X-SMYL-Guide-Library": isPhotographicLibraryContract ? guideLibraryVersion : "",
                 "X-SMYL-Elapsed-Ms": String(elapsedMs),
                 "X-SMYL-Provider-Request-Id": providerRequestId || "",
               },

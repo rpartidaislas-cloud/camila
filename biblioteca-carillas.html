@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>SMYL · Biblioteca fotográfica 2D</title>
+<style>
+  :root{--bg:#090b11;--panel:#11141d;--panel2:#171b26;--line:rgba(255,255,255,.1);--text:#f7f8fb;--muted:#9299aa;--violet:#7967ff;--blue:#25a7ff;--green:#43d69d}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  button,input,select{font:inherit}
+  button,a,.file-button{-webkit-tap-highlight-color:transparent}
+  .shell{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+  .topbar{height:64px;padding:0 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:rgba(9,11,17,.9);backdrop-filter:blur(18px);position:sticky;top:0;z-index:20}
+  .brand{font-weight:850;letter-spacing:-.7px;font-size:18px;background:linear-gradient(90deg,#22c5ff,#7967ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8d95aa;margin-left:9px;-webkit-text-fill-color:#8d95aa}
+  .back{color:#d8dbea;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;background:rgba(255,255,255,.04)}
+  .workspace{display:grid;grid-template-columns:310px minmax(0,1fr);min-height:calc(100vh - 64px)}
+  .controls{border-right:1px solid var(--line);background:var(--panel);padding:20px;overflow:auto}
+  .eyebrow{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--green);font-weight:800}
+  h1{font-size:24px;line-height:1.08;margin:8px 0 10px;letter-spacing:-.8px}
+  .intro{font-size:12px;line-height:1.55;color:var(--muted);margin:0 0 18px}
+  .notice{border:1px solid rgba(67,214,157,.22);background:rgba(67,214,157,.07);border-radius:12px;padding:11px 12px;font-size:11px;line-height:1.45;color:#b9ecd8;margin-bottom:18px}
+  .section{padding:16px 0;border-top:1px solid var(--line)}
+  .section:first-of-type{border-top:0;padding-top:0}
+  .section-title{font-size:11px;font-weight:800;margin-bottom:12px;color:#d9dce7}
+  .upload-section{margin:0 -8px;padding:16px 8px;border:1px solid rgba(121,103,255,.28)!important;border-radius:14px;background:linear-gradient(145deg,rgba(121,103,255,.13),rgba(37,167,255,.045))}
+  .upload-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .file-button,.button{height:39px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.055);color:#e9ebf4;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;font-weight:750;cursor:pointer;text-decoration:none;padding:0 10px}
+  .file-button input{display:none}
+  .file-button.upload-primary{grid-column:1/-1;height:56px;flex-direction:column;gap:2px;border-color:transparent;background:linear-gradient(135deg,var(--violet),#426fff);color:#fff;box-shadow:0 10px 24px rgba(89,87,255,.22);font-size:13px}
+  .upload-primary small{font-size:9px;font-weight:550;color:rgba(255,255,255,.72)}
+  .demo-button{grid-column:1/-1}
+  .button.primary{background:linear-gradient(135deg,var(--violet),#506bff);border-color:transparent;color:white}
+  .button:disabled{opacity:.5;cursor:not-allowed}
+  .slider{margin-top:13px}
+  .slider-head{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:#b7bccb;margin-bottom:7px}
+  .slider-head output{color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;height:4px;margin:0;appearance:none;border-radius:99px;background:#2a3040;outline:0}
+  input[type=range]::-webkit-slider-thumb{appearance:none;width:17px;height:17px;border-radius:50%;background:white;border:4px solid var(--violet);box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:grab}
+  .pieces{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .piece{background:#07090d;border:1px solid var(--line);border-radius:10px;overflow:hidden;text-align:center;padding:7px 5px 6px}
+  .piece img{display:block;width:100%;aspect-ratio:1;object-fit:contain;mix-blend-mode:screen}
+  .piece strong{display:block;font-size:9px;margin-top:2px}.piece span{font-size:8px;color:var(--muted)}
+  .stage{min-width:0;padding:22px;display:flex;flex-direction:column;gap:14px}
+  .stage-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .stage-title{font-size:14px;font-weight:800}.stage-copy{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.badge{font-size:9px;font-weight:750;color:#cbd0df;border:1px solid var(--line);border-radius:99px;padding:5px 8px;background:rgba(255,255,255,.035)}
+  .canvas-card{position:relative;flex:1;min-height:430px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#05070a;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+  canvas{display:block;max-width:100%;max-height:calc(100vh - 210px);width:auto;height:auto;touch-action:none;cursor:grab}
+  canvas.dragging{cursor:grabbing}
+  .canvas-tip{position:absolute;left:14px;bottom:14px;border:1px solid var(--line);background:rgba(8,10,15,.72);backdrop-filter:blur(10px);border-radius:10px;padding:8px 10px;font-size:9.5px;color:#c8cddd;pointer-events:none}
+  .compare{position:absolute;right:14px;bottom:14px;display:flex;padding:3px;border:1px solid var(--line);background:rgba(8,10,15,.8);backdrop-filter:blur(10px);border-radius:10px}
+  .compare button{border:0;background:transparent;color:#9199aa;padding:7px 10px;border-radius:7px;font-size:10px;font-weight:750;cursor:pointer}
+  .compare button.active{background:white;color:#10131b}
+  .footer-actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap}
+  .footer-actions .button{min-width:145px}
+  .status{margin-right:auto;font-size:10px;color:var(--muted);align-self:center}.status.ok{color:var(--green)}
+  @media(max-width:860px){
+    .topbar{height:58px;padding:0 14px}.brand small{display:none}.workspace{grid-template-columns:1fr}.controls{border-right:0;border-bottom:1px solid var(--line);padding:16px}.stage{padding:14px}.canvas-card{min-height:360px}.stage-head{flex-direction:column}.badges{justify-content:flex-start}.pieces{max-width:360px}.footer-actions{justify-content:stretch}.footer-actions .button{flex:1}.status{width:100%;order:3}.canvas-tip{display:none}canvas{max-height:68vh}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">smyl <small>Biblioteca 2D</small></div>
+    <a class="back" href="simulacion.html">Volver al simulador</a>
+  </header>
+  <main class="workspace">
+    <aside class="controls">
+      <div class="eyebrow">Prototipo funcional · Natural A1</div>
+      <h1>Carillas fotográficas por pieza</h1>
+      <p class="intro">Tres coronas maestras forman los seis dientes 13–23. La adaptación ocurre localmente y no consume una generación de IA.</p>
+      <div class="notice">Este laboratorio sirve para evaluar material, escala y colocación. Todavía no sustituye la revisión clínica ni el motor público de SMYL.</div>
+
+      <section class="section upload-section">
+        <div class="section-title">1 · Sube una fotografía frontal</div>
+        <div class="upload-row">
+          <label class="file-button upload-primary">Subir mi foto<small>JPG, PNG o foto del celular</small><input id="photo-input" type="file" accept="image/*"></label>
+          <button class="button demo-button" type="button" id="demo-button">Ver primero con la foto de ejemplo</button>
+        </div>
+        <p style="font-size:9px;color:var(--muted);line-height:1.4;margin:8px 0 0">La fotografía se procesa en este dispositivo. No se sube ni se guarda.</p>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Ajuste de la arcada</div>
+        <div class="slider"><div class="slider-head"><span>Ancho total</span><output id="width-out">21.5%</output></div><input id="width" type="range" min="12" max="55" value="21.5" step=".5"></div>
+        <div class="slider"><div class="slider-head"><span>Altura de coronas</span><output id="height-out">92%</output></div><input id="height" type="range" min="70" max="135" value="92"></div>
+        <div class="slider"><div class="slider-head"><span>Curva de sonrisa</span><output id="curve-out">5</output></div><input id="curve" type="range" min="0" max="22" value="5"></div>
+        <div class="slider"><div class="slider-head"><span>Separación</span><output id="gap-out">0</output></div><input id="gap" type="range" min="-4" max="10" value="0" step=".5"></div>
+        <div class="slider"><div class="slider-head"><span>Integración fotográfica</span><output id="opacity-out">90%</output></div><input id="opacity" type="range" min="60" max="100" value="90"></div>
+        <div class="slider"><div class="slider-head"><span>Temperatura cerámica</span><output id="warmth-out">Natural</output></div><input id="warmth" type="range" min="-12" max="12" value="0"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Piezas maestras</div>
+        <div class="pieces">
+          <div class="piece"><img src="assets/dental-library/natural-a1-v1/central.png" alt="Incisivo central Natural A1"><strong>11 / 21</strong><span>Central</span></div>
+          <div class="piece"><img src="assets/dental-library/natural-a1-v1/lateral.png" alt="Incisivo lateral Natural A1"><strong>12 / 22</strong><span>Lateral</span></div>
+          <div class="piece"><img src="assets/dental-library/natural-a1-v1/canine.png" alt="Canino Natural A1"><strong>13 / 23</strong><span>Canino</span></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="stage">
+      <div class="stage-head">
+        <div><div class="stage-title">Vista previa sobre fotografía</div><div class="stage-copy">Arrastra las seis carillas para colocarlas. Los controles no deforman la cara ni los tejidos.</div></div>
+        <div class="badges"><span class="badge">6 piezas independientes</span><span class="badge">Render 2D local</span><span class="badge">Sin costo por intento</span></div>
+      </div>
+      <div class="canvas-card">
+        <canvas id="preview" width="512" height="512" aria-label="Vista previa de biblioteca dental"></canvas>
+        <div class="canvas-tip">Arrastra para mover · ajusta el ancho y la curva desde el panel</div>
+        <div class="compare"><button id="before-button" type="button">Original</button><button id="after-button" class="active" type="button">Biblioteca</button></div>
+      </div>
+      <div class="footer-actions">
+        <div id="status" class="status">Cargando las piezas fotográficas…</div>
+        <button class="button" type="button" id="reset-button">Restablecer</button>
+        <button class="button primary" type="button" id="download-button" disabled>Descargar ejemplo</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var ASSETS={central:'assets/dental-library/natural-a1-v1/central.png',lateral:'assets/dental-library/natural-a1-v1/lateral.png',canine:'assets/dental-library/natural-a1-v1/canine.png'};
+  var canvas=document.getElementById('preview'),ctx=canvas.getContext('2d');
+  var statusEl=document.getElementById('status'),downloadButton=document.getElementById('download-button');
+  var sourcePhoto=null,sprites={},showAfter=true,isDemo=true,drag=null;
+  var state={centerX:.544,centerY:.579,width:21.5,height:92,curve:5,gap:0,opacity:90,warmth:0};
+  var defaults={demo:{centerX:.544,centerY:.579,width:21.5,height:92,curve:5,gap:0,opacity:90,warmth:0},photo:{centerX:.5,centerY:.58,width:32,height:100,curve:6,gap:0,opacity:92,warmth:0}};
+  var inputs=['width','height','curve','gap','opacity','warmth'];
+
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+  function smoothstep(a,b,v){var t=clamp((v-a)/(b-a),0,1);return t*t*(3-2*t);}
+  function loadImage(src){return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){resolve(img)};img.onerror=reject;img.src=src;});}
+
+  function extractSprite(img){
+    var c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
+    var cx=c.getContext('2d',{willReadFrequently:true});cx.drawImage(img,0,0);
+    var image=cx.getImageData(0,0,c.width,c.height),d=image.data,minX=c.width,minY=c.height,maxX=0,maxY=0,found=false;
+    for(var y=0;y<c.height;y++)for(var x=0;x<c.width;x++){
+      var i=(y*c.width+x)*4,r=d[i],g=d[i+1],b=d[i+2],value=Math.max(r,g,b);
+      var a=smoothstep(18,72,value);
+      if(value<18)a=0;
+      d[i+3]=Math.round(a*255);
+      if(a>.42){found=true;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+    }
+    cx.putImageData(image,0,0);
+    if(!found)return c;
+    var pad=Math.max(4,Math.round(Math.min(c.width,c.height)*.006));
+    minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);maxX=Math.min(c.width-1,maxX+pad);maxY=Math.min(c.height-1,maxY+pad);
+    var out=document.createElement('canvas');out.width=maxX-minX+1;out.height=maxY-minY+1;
+    out.getContext('2d').drawImage(c,minX,minY,out.width,out.height,0,0,out.width,out.height);
+    return out;
+  }
+
+  function fitCanvasToImage(img){
+    var maxSide=1400,scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+    canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+  }
+
+  function syncControls(){
+    inputs.forEach(function(id){var el=document.getElementById(id);el.value=state[id];});
+    updateOutputs();
+  }
+  function updateOutputs(){
+    document.getElementById('width-out').textContent=Number(state.width).toFixed(state.width%1?1:0)+'%';
+    document.getElementById('height-out').textContent=Math.round(state.height)+'%';
+    document.getElementById('curve-out').textContent=Math.round(state.curve);
+    document.getElementById('gap-out').textContent=(state.gap>0?'+':'')+Number(state.gap).toFixed(state.gap%1?1:0);
+    document.getElementById('opacity-out').textContent=Math.round(state.opacity)+'%';
+    document.getElementById('warmth-out').textContent=state.warmth===0?'Natural':(state.warmth>0?'Más cálida':'Más neutra');
+  }
+
+  function drawPhoto(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#05070a';ctx.fillRect(0,0,canvas.width,canvas.height);
+    if(!sourcePhoto)return;
+    ctx.drawImage(sourcePhoto,0,0,canvas.width,canvas.height);
+  }
+
+  function toothLayout(){
+    var ratios=[.76,.72,1,1,.72,.76],types=['canine','lateral','central','central','lateral','canine'];
+    var groupW=canvas.width*state.width/100,gap=groupW*(state.gap/100),sum=ratios.reduce(function(a,b){return a+b},0),unit=(groupW-gap*5)/sum;
+    var x=canvas.width*state.centerX-groupW/2,curvePx=canvas.height*state.curve/1000;
+    return ratios.map(function(r,index){
+      var w=unit*r,h=unit/.78*(state.height/100)*(types[index]==='lateral'?.91:types[index]==='canine'?.96:1);
+      var arc=[0,.38,1,1,.38,0][index]*curvePx;
+      var item={type:types[index],x:x+w/2,y:canvas.height*state.centerY+arc,w:w,h:h,flip:index>2,rotate:[-2.2,-.8,-.25,.25,.8,2.2][index]*Math.PI/180,light:[.97,1.01,1,1,.985,.96][index]};
+      x+=w+gap;return item;
+    });
+  }
+
+  function drawLibrary(){
+    if(!showAfter||!sprites.central||!sprites.lateral||!sprites.canine)return;
+    var warmth=Number(state.warmth),sepia=Math.max(0,warmth)/85,sat=100+Math.max(0,warmth)*1.1-Math.max(0,-warmth)*.5;
+    toothLayout().forEach(function(t){
+      var sprite=sprites[t.type];ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.rotate);ctx.scale(t.flip?-1:1,1);
+      ctx.globalAlpha=state.opacity/100;ctx.filter='brightness('+(t.light*100+(warmth<0?Math.abs(warmth)*.25:0))+'%) saturate('+sat+'%) sepia('+sepia+')';
+      ctx.drawImage(sprite,-t.w/2,-t.h/2,t.w,t.h);ctx.restore();
+    });
+    ctx.filter='none';ctx.globalAlpha=1;
+  }
+  function render(){drawPhoto();drawLibrary();}
+
+  function setMode(after){showAfter=after;document.getElementById('after-button').classList.toggle('active',after);document.getElementById('before-button').classList.toggle('active',!after);render();}
+  function resetState(){state=Object.assign({},isDemo?defaults.demo:defaults.photo);syncControls();setMode(true);render();}
+
+  inputs.forEach(function(id){document.getElementById(id).addEventListener('input',function(){state[id]=Number(this.value);updateOutputs();render();});});
+  document.getElementById('before-button').addEventListener('click',function(){setMode(false)});
+  document.getElementById('after-button').addEventListener('click',function(){setMode(true)});
+  document.getElementById('reset-button').addEventListener('click',resetState);
+
+  function useDemo(){
+    loadImage('icons/capture-frontal-v2.webp').then(function(img){sourcePhoto=img;isDemo=true;fitCanvasToImage(img);resetState();statusEl.textContent='Ejemplo SMYL listo · arrastra las carillas para moverlas';statusEl.className='status ok';downloadButton.disabled=false;});
+  }
+  document.getElementById('demo-button').addEventListener('click',useDemo);
+  document.getElementById('photo-input').addEventListener('change',function(){
+    var file=this.files&&this.files[0];if(!file)return;var url=URL.createObjectURL(file);
+    loadImage(url).then(function(img){sourcePhoto=img;isDemo=false;fitCanvasToImage(img);resetState();statusEl.textContent='Foto local lista · colócala con arrastre y controles';statusEl.className='status ok';downloadButton.disabled=false;URL.revokeObjectURL(url);}).catch(function(){statusEl.textContent='No se pudo leer esa fotografía.';URL.revokeObjectURL(url);});
+  });
+
+  function pointerPosition(event){var r=canvas.getBoundingClientRect();return{x:(event.clientX-r.left)*canvas.width/r.width,y:(event.clientY-r.top)*canvas.height/r.height};}
+  canvas.addEventListener('pointerdown',function(e){var p=pointerPosition(e);drag={id:e.pointerId,x:p.x,y:p.y,cx:state.centerX,cy:state.centerY};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');});
+  canvas.addEventListener('pointermove',function(e){if(!drag||drag.id!==e.pointerId)return;var p=pointerPosition(e);state.centerX=clamp(drag.cx+(p.x-drag.x)/canvas.width,.05,.95);state.centerY=clamp(drag.cy+(p.y-drag.y)/canvas.height,.05,.95);render();});
+  function endDrag(e){if(drag&&(!e||drag.id===e.pointerId)){drag=null;canvas.classList.remove('dragging')}}
+  canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);
+
+  downloadButton.addEventListener('click',function(){
+    canvas.toBlob(function(blob){if(!blob)return;var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='smyl-biblioteca-natural-a1-ejemplo.png';a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);},'image/png');
+  });
+
+  Promise.all(Object.keys(ASSETS).map(function(key){return loadImage(ASSETS[key]).then(function(img){sprites[key]=extractSprite(img);});})).then(function(){statusEl.textContent='Biblioteca Natural A1 cargada';statusEl.className='status ok';useDemo();}).catch(function(){statusEl.textContent='No se pudieron cargar las piezas de la biblioteca.';statusEl.className='status';});
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,43 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-04 — Codex: hybrid-2d-v3 con biblioteca fotográfica Natural A1
+
+**Tocado localmente:** `biblioteca-carillas.html`,
+`assets/dental-library/natural-a1-v1/*`, `simulacion.html`,
+`mobile/www/simulacion.html`, `dental_library.html`, `sw.js`,
+`tests/dental-library-photo.test.mjs`, `docs/SMYL_PHOTO_LIBRARY_POC.md` y
+`docs/HANDOFF.md`.
+
+- Se añadió un laboratorio independiente y reversible con coronas maestras
+  fotográficas para central, lateral y canino. Las tres piezas se reflejan y
+  componen como 13–12–11–21–22–23 sobre el rostro guía o una fotografía que
+  permanece local en el navegador.
+- El usuario puede arrastrar la arcada, ajustar ancho, altura, curva,
+  separación, integración y temperatura, alternar original/biblioteca y
+  descargar el PNG resultante.
+- La carga local quedó como primer paso visible mediante el CTA “Subir mi
+  foto”; acepta imágenes del dispositivo y conserva el ejemplo como opción
+  secundaria.
+- Los PNG finales usan fondo uniforme `#05070A`; el laboratorio genera alfa y
+  recorte en memoria. El primer intento de transparencia generado por la
+  herramienta llegó sin canal alfa y no se integró al producto.
+- `simulacion.html` enlaza el laboratorio desde “Forma general”. La biblioteca
+  se activa en el motor público v3 sin modificar cuotas.
+- El flujo automático ya compone una guía PNG transparente con las seis piezas
+  fotográficas sobre las envolventes detectadas y la envía como IMAGE 2. La
+  foto del paciente sigue siendo IMAGE 1 y la máscara alfa sólo se aplica a
+  ella. Contrato nuevo `hybrid-2d-v3`; el backend conserva compatibilidad con
+  `hybrid-2d-v2`.
+- Se actualizó el prompt del cliente y `supabase/functions/claude/index.ts`
+  para transferir anatomía/material desde `natural-a1-v1`, rechazar contratos
+  v3 sin esa biblioteca y registrar el modo de guía fotográfica.
+- Edge Function `claude` versión 68 desplegada y verificada `ACTIVE`; conservó
+  `verify_jwt=false`. Frontend autorizado para publicarse desde la rama de
+  GitHub Pages. El despliegue no ejecutó una simulación, no subió fotografías
+  y no consumió una generación.
+- Caché PWA `smyl-v80`. Sintaxis, prueba de integración, regresión v3 y QA
+  visual aprobados en escritorio y 390×844, sin errores de consola.
+
 ## 2026-09-04 — Codex: hybrid-2d-v2.3, mostrar primero y revisar después
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
