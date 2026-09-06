@@ -6,7 +6,7 @@ const ui = {
   photo: document.getElementById('photo'), mask: document.getElementById('mask'), markers: document.getElementById('markers'),
   status: document.getElementById('model-status'), title: document.getElementById('status-title'), detail: document.getElementById('status-detail'), progress: document.getElementById('progress-bar'),
   positive: document.getElementById('positive'), negative: document.getElementById('negative'), opacity: document.getElementById('opacity'), opacityValue: document.getElementById('opacity-value'),
-  clear: document.getElementById('clear'), change: document.getElementById('change-photo'), download: document.getElementById('download'), demo: document.getElementById('synthetic-demo'), segmentAll: document.getElementById('segment-all'),
+  clear: document.getElementById('clear'), change: document.getElementById('change-photo'), download: document.getElementById('download'), demo: document.getElementById('synthetic-demo'), reference: document.getElementById('reference-demo'), segmentAll: document.getElementById('segment-all'),
   toothButtons: [...document.querySelectorAll('[data-tooth]')], score: document.getElementById('score'), coverage: document.getElementById('coverage'), points: document.getElementById('points-count'), time: document.getElementById('time')
 };
 
@@ -190,6 +190,13 @@ function syntheticSmile() {
   return { url: canvas.toDataURL('image/jpeg', .96), width: canvas.width, height: canvas.height };
 }
 
+function useReferencePhoto() {
+  const image = new Image();
+  image.onload = () => usePreparedImage({ url: image.src, width: image.naturalWidth, height: image.naturalHeight });
+  image.onerror = () => setStatus('error', 'No se pudo abrir la referencia', 'Recarga la página para descargar nuevamente el archivo de prueba.');
+  image.src = new URL('./assets/references/smyl-segmentation-reference-v1.png', import.meta.url).href;
+}
+
 worker.addEventListener('message', (event) => {
   const { type, data, requestId } = event.data || {};
   if (type === 'progress') {
@@ -233,6 +240,7 @@ worker.addEventListener('error', () => setStatus('error', 'No se pudo iniciar el
 ui.input.disabled = false; ui.demo.disabled = true; ui.change.disabled = false; worker.postMessage({ type: 'load' });
 
 ui.input.addEventListener('change', (event) => loadPhoto(event.target.files && event.target.files[0]));
+ui.reference.addEventListener('click', useReferencePhoto);
 ui.demo.addEventListener('click', () => usePreparedImage(syntheticSmile()));
 ui.positive.addEventListener('click', () => setMode('positive')); ui.negative.addEventListener('click', () => setMode('negative'));
 ui.toothButtons.forEach((button) => button.addEventListener('click', () => selectTooth(button.dataset.tooth)));

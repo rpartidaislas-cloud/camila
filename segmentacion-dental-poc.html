@@ -31,7 +31,7 @@
         <div class="empty" id="empty">
           <div class="empty-icon">🦷</div><h2>Sube una fotografía de prueba</h2>
           <p>Usa una sonrisa frontal bien iluminada. El archivo se procesa localmente y no se guarda.</p>
-          <div class="empty-actions"><label class="upload">Seleccionar fotografía<input id="file-input" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="demo" id="synthetic-demo">Usar sonrisa sintética</button></div>
+          <div class="empty-actions"><label class="upload">Seleccionar fotografía<input id="file-input" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="demo" id="reference-demo">Usar referencia hiperrealista</button><button class="demo" id="synthetic-demo">Usar dibujo técnico</button></div>
         </div>
         <div class="stage" id="stage" aria-label="Área interactiva de segmentación">
           <img id="photo" alt="Fotografía cargada para segmentación"><canvas id="mask"></canvas><div id="markers"></div>
@@ -49,6 +49,6 @@
       </aside>
     </section>
   </main>
-  <script type="module" src="segmentacion-dental-poc.js?v=phase-2b-3"></script>
+  <script type="module" src="segmentacion-dental-poc.js?v=phase-2b-4"></script>
 </body>
 </html>

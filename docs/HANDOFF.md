@@ -29,6 +29,11 @@
 - Refinamiento 2B: cada máscara incorpora exclusiones automáticas en los
   límites interproximales y por encima/debajo de la pieza. Si una máscara sigue
   invadiendo otro centro, la interfaz identifica y resalta en rojo su número.
+- Se añadió `assets/references/smyl-segmentation-reference-v1.png`, fotografía
+  hiperrealista generada de una adulta ficticia para pruebas controladas. La
+  prueba reportada por el usuario obtuvo 53% de confianza, 4.6% de cobertura y
+  fallos en 13, 11, 21 y 23, confirmando que SlimSAM no es apto como segmentador
+  dental principal incluso con una captura favorable.
 
 ## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
 

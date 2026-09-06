@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const html = fs.readFileSync(new URL('../segmentacion-dental-poc.html', import.meta.url), 'utf8');
 const main = fs.readFileSync(new URL('../segmentacion-dental-poc.js', import.meta.url), 'utf8');
 const worker = fs.readFileSync(new URL('../segmentacion-dental-worker.js', import.meta.url), 'utf8');
+const reference = fs.statSync(new URL('../assets/references/smyl-segmentation-reference-v1.png', import.meta.url));
 
 assert.match(html, /Fase 2B · separación individual/);
 assert.match(html, /data-tooth="0"[^>]*>13/);
@@ -15,10 +16,12 @@ assert.match(html, /id="file-input"[^>]+accept="image\/jpeg,image\/png,image\/we
 assert.match(html, /id="mask"/);
 assert.match(html, /Descargar mapa de 6 piezas/);
 assert.match(html, /id="synthetic-demo"/);
+assert.match(html, /id="reference-demo"/);
 
 assert.match(main, /new Worker\(new URL\('\.\/segmentacion-dental-worker\.js\?v=phase-2b-3'/);
 assert.match(main, /maxSide = 1600/);
 assert.match(main, /function syntheticSmile\(\)/);
+assert.match(main, /function useReferencePhoto\(\)/);
 assert.match(main, /has\('qaAuto'\)/);
 assert.match(main, /const FDI = \['13', '12', '11', '21', '22', '23'\]/);
 assert.match(main, /type: 'decode_batch'/);
@@ -38,5 +41,6 @@ assert.match(worker, /message\.type === 'decode_batch'/);
 assert.match(worker, /index === toothIndex \? 1 : 0/);
 assert.match(worker, /function automaticBoundaryNegatives\(/);
 assert.doesNotMatch(worker, /HF_TOKEN|api[_-]?key|authorization/i);
+assert.ok(reference.size > 100_000, 'hyperrealistic reference image should be present');
 
 console.log('SMYL Phase 2B: six independent in-browser dental masks verified');

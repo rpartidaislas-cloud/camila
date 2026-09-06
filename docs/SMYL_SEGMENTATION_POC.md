@@ -18,6 +18,9 @@ seis carillas.
 - La máscara binaria puede descargarse como PNG para revisión.
 - Incluye una sonrisa geométrica sintética para pruebas técnicas sin usar una
   fotografía personal.
+- Incluye una fotografía hiperrealista generada de una persona adulta ficticia,
+  con iluminación y encuadre controlados, para separar la calidad del modelo
+  de los problemas de captura fotográfica. No representa a una paciente.
 
 SlimSAM es la línea base porque existe una implementación oficial y probada con
 Transformers.js. MobileSAM se evaluará como segundo candidato con el mismo
