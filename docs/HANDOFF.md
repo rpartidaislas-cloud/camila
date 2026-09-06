@@ -26,6 +26,9 @@
 - Corrección de caché: el Worker de segmentación lleva versión explícita para
   impedir que la Fase 2B se ejecute contra el Worker antiguo de la Fase 2A. La
   interfaz explica además los números FDI con nombres comunes.
+- Refinamiento 2B: cada máscara incorpora exclusiones automáticas en los
+  límites interproximales y por encima/debajo de la pieza. Si una máscara sigue
+  invadiendo otro centro, la interfaz identifica y resalta en rojo su número.
 
 ## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
 

@@ -16,7 +16,7 @@ assert.match(html, /id="mask"/);
 assert.match(html, /Descargar mapa de 6 piezas/);
 assert.match(html, /id="synthetic-demo"/);
 
-assert.match(main, /new Worker\(new URL\('\.\/segmentacion-dental-worker\.js\?v=phase-2b-2'/);
+assert.match(main, /new Worker\(new URL\('\.\/segmentacion-dental-worker\.js\?v=phase-2b-3'/);
 assert.match(main, /maxSide = 1600/);
 assert.match(main, /function syntheticSmile\(\)/);
 assert.match(main, /has\('qaAuto'\)/);
@@ -25,6 +25,7 @@ assert.match(main, /type: 'decode_batch'/);
 assert.match(main, /function maskContains\(/);
 assert.match(main, /valid: ownHit && foreignHits === 0/);
 assert.match(main, /state\.overlapRatio > \.08/);
+assert.match(main, /state\.invalidTeeth/);
 assert.match(main, /ui\.input\.disabled = false; ui\.demo\.disabled = true/);
 assert.match(main, /worker\.postMessage\(\{ type: 'segment', data: image\.url \}\)/);
 assert.doesNotMatch(main, /fetch\(|XMLHttpRequest|supabase|authorization/i);
@@ -35,6 +36,7 @@ assert.match(worker, /get_image_embeddings/);
 assert.match(worker, /post_process_masks/);
 assert.match(worker, /message\.type === 'decode_batch'/);
 assert.match(worker, /index === toothIndex \? 1 : 0/);
+assert.match(worker, /function automaticBoundaryNegatives\(/);
 assert.doesNotMatch(worker, /HF_TOKEN|api[_-]?key|authorization/i);
 
 console.log('SMYL Phase 2B: six independent in-browser dental masks verified');

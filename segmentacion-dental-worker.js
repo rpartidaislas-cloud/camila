@@ -9,6 +9,17 @@ let processorPromise = null;
 let imageInputs = null;
 let imageEmbeddings = null;
 
+function automaticBoundaryNegatives(teeth, toothIndex) {
+  const center = teeth[toothIndex].center;
+  const neighbors = [teeth[toothIndex - 1], teeth[toothIndex + 1]].filter(Boolean);
+  const gaps = neighbors.map((tooth) => Math.abs(tooth.center.x - center.x)).filter((gap) => gap > 0);
+  const span = gaps.length ? gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length : .06;
+  const points = neighbors.map((tooth) => ({ x: (center.x + tooth.center.x) / 2, y: (center.y + tooth.center.y) / 2, label: 0 }));
+  points.push({ x: center.x, y: Math.max(0, center.y - span * 1.35), label: 0 });
+  points.push({ x: center.x, y: Math.min(1, center.y + span * 1.35), label: 0 });
+  return points;
+}
+
 function progress(update) {
   self.postMessage({ type: 'progress', data: update || {} });
 }
@@ -66,6 +77,7 @@ self.onmessage = async (event) => {
       const results = [];
       for (let toothIndex = 0; toothIndex < teeth.length; toothIndex += 1) {
         const prompts = teeth.map((tooth, index) => ({ ...tooth.center, label: index === toothIndex ? 1 : 0 }));
+        prompts.push(...automaticBoundaryNegatives(teeth, toothIndex));
         for (const exclusion of teeth[toothIndex].exclusions || []) prompts.push({ ...exclusion, label: 0 });
         const points = prompts.map((item) => [item.x * reshaped[1], item.y * reshaped[0]]);
         const labels = prompts.map((item) => BigInt(item.label));

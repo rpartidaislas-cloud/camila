@@ -16,7 +16,7 @@ const state = {
   requestId: 0, acceptedRequestId: 0, imageUrl: '', labelImage: null
 };
 const qaAuto = new URLSearchParams(location.search).has('qaAuto');
-const worker = new Worker(new URL('./segmentacion-dental-worker.js?v=phase-2b-2', import.meta.url), { type: 'module' });
+const worker = new Worker(new URL('./segmentacion-dental-worker.js?v=phase-2b-3', import.meta.url), { type: 'module' });
 
 function setStatus(kind, title, detail) {
   ui.status.className = `status ${kind || ''}`;
@@ -34,6 +34,7 @@ function resetMetrics() {
 function clearMask() {
   ui.mask.getContext('2d').clearRect(0, 0, ui.mask.width, ui.mask.height);
   state.labelImage = null;
+  state.invalidTeeth = [];
   state.teeth.forEach((tooth) => { tooth.binary = null; tooth.score = null; });
   ui.download.disabled = true;
 }
@@ -50,6 +51,7 @@ function updateControls() {
   ui.clear.disabled = count === 0;
   ui.segmentAll.disabled = !state.encoded || count !== 6;
   ui.toothButtons.forEach((button, index) => button.classList.toggle('placed', Boolean(state.teeth[index].center)));
+  ui.toothButtons.forEach((button, index) => button.classList.toggle('invalid', (state.invalidTeeth || []).includes(index)));
 }
 
 function clearPrompts() {
@@ -129,7 +131,7 @@ function drawBatchMasks(results) {
   const mean = results.reduce((sum, result) => sum + result.score, 0) / results.length;
   ui.score.textContent = `${Math.round(mean * 100)}%`;
   ui.coverage.textContent = `${((union / Math.max(1, width * height)) * 100).toFixed(1)}%`;
-  state.overlapRatio = collisions / Math.max(1, union); state.invalidMasks = results.filter((result) => !result.valid).length;
+  state.overlapRatio = collisions / Math.max(1, union); state.invalidTeeth = results.map((result, index) => result.valid ? -1 : index).filter((index) => index >= 0); state.invalidMasks = state.invalidTeeth.length;
   ui.download.disabled = state.overlapRatio > .08 || state.invalidMasks > 0;
 }
 
@@ -214,7 +216,10 @@ worker.addEventListener('message', (event) => {
     state.acceptedRequestId = requestId;
     const results = data.results.map((result, toothIndex) => binaryFromResult(result.mask, result.scores, toothIndex));
     drawBatchMasks(results); ui.time.textContent = `${Math.round(data.elapsedMs)} ms`; updateControls();
-    if (state.invalidMasks > 0) setStatus('error', 'Una pieza invadió otro centro', 'Añade exclusiones a la pieza afectada y vuelve a separar.');
+    if (state.invalidMasks > 0) {
+      selectTooth(state.invalidTeeth[0]);
+      setStatus('error', `Revisa ${state.invalidTeeth.map((index) => FDI[index]).join(', ')}`, 'La pieza marcada en rojo invadió otro centro. Añade una exclusión y vuelve a separar.');
+    }
     else if (state.overlapRatio > .08) setStatus('error', 'Las piezas todavía se superponen', 'Selecciona la pieza afectada, añade una exclusión y vuelve a separar.');
     else setStatus('ready', 'Seis máscaras calculadas', 'Cada color corresponde a una pieza independiente. Selecciona una pieza y añade exclusiones si necesita ajuste.');
   } else if (type === 'error') {
