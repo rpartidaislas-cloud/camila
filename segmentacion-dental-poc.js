@@ -224,7 +224,7 @@ worker.addEventListener('message', (event) => {
 });
 
 worker.addEventListener('error', () => setStatus('error', 'No se pudo iniciar el modelo', 'Este navegador puede bloquear módulos o almacenamiento del modelo.'));
-ui.input.disabled = true; ui.demo.disabled = true; ui.change.disabled = true; worker.postMessage({ type: 'load' });
+ui.input.disabled = false; ui.demo.disabled = true; ui.change.disabled = false; worker.postMessage({ type: 'load' });
 
 ui.input.addEventListener('change', (event) => loadPhoto(event.target.files && event.target.files[0]));
 ui.demo.addEventListener('click', () => usePreparedImage(syntheticSmile()));

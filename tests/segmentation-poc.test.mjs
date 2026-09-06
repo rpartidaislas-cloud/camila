@@ -24,7 +24,7 @@ assert.match(main, /type: 'decode_batch'/);
 assert.match(main, /function maskContains\(/);
 assert.match(main, /valid: ownHit && foreignHits === 0/);
 assert.match(main, /state\.overlapRatio > \.08/);
-assert.match(main, /ui\.input\.disabled = true; ui\.demo\.disabled = true/);
+assert.match(main, /ui\.input\.disabled = false; ui\.demo\.disabled = true/);
 assert.match(main, /worker\.postMessage\(\{ type: 'segment', data: image\.url \}\)/);
 assert.doesNotMatch(main, /fetch\(|XMLHttpRequest|supabase|authorization/i);
 

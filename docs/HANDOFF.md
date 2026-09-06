@@ -20,6 +20,9 @@
   excluya los otros cinco centros; un incumplimiento invalida la exportación.
 - Sigue siendo un laboratorio aislado y local: no se tocaron producción,
   backend, Supabase, prompts, copias móviles ni configuración nativa.
+- Corrección UX: el selector de fotografías ya no queda bloqueado mientras se
+  descarga SlimSAM. El archivo puede elegirse inmediatamente y el análisis
+  espera al modelo en segundo plano.
 
 ## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
 
