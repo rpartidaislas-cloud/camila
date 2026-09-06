@@ -23,6 +23,9 @@
 - Corrección UX: el selector de fotografías ya no queda bloqueado mientras se
   descarga SlimSAM. El archivo puede elegirse inmediatamente y el análisis
   espera al modelo en segundo plano.
+- Corrección de caché: el Worker de segmentación lleva versión explícita para
+  impedir que la Fase 2B se ejecute contra el Worker antiguo de la Fase 2A. La
+  interfaz explica además los números FDI con nombres comunes.
 
 ## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
 

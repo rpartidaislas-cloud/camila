@@ -16,7 +16,7 @@ const state = {
   requestId: 0, acceptedRequestId: 0, imageUrl: '', labelImage: null
 };
 const qaAuto = new URLSearchParams(location.search).has('qaAuto');
-const worker = new Worker(new URL('./segmentacion-dental-worker.js', import.meta.url), { type: 'module' });
+const worker = new Worker(new URL('./segmentacion-dental-worker.js?v=phase-2b-2', import.meta.url), { type: 'module' });
 
 function setStatus(kind, title, detail) {
   ui.status.className = `status ${kind || ''}`;
@@ -219,7 +219,8 @@ worker.addEventListener('message', (event) => {
     else setStatus('ready', 'Seis máscaras calculadas', 'Cada color corresponde a una pieza independiente. Selecciona una pieza y añade exclusiones si necesita ajuste.');
   } else if (type === 'error') {
     console.error('SMYL_SEGMENTATION_WORKER:', data.message); updateControls();
-    setStatus('error', 'No se pudo ejecutar el modelo', `${data.message} Comprueba tu conexión durante la primera carga.`);
+    if (/acción de segmentación desconocida/i.test(data.message)) setStatus('error', 'El navegador conservó una versión anterior', 'Recarga con Ctrl + F5 y vuelve a pulsar “Separar las 6 piezas”.');
+    else setStatus('error', 'No se pudo ejecutar el modelo', `${data.message} Comprueba tu conexión durante la primera carga.`);
   }
 });
 

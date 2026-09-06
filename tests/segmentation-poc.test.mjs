@@ -6,8 +6,9 @@ const main = fs.readFileSync(new URL('../segmentacion-dental-poc.js', import.met
 const worker = fs.readFileSync(new URL('../segmentacion-dental-worker.js', import.meta.url), 'utf8');
 
 assert.match(html, /Fase 2B · separación individual/);
-assert.match(html, /data-tooth="0">13/);
-assert.match(html, /data-tooth="5">23/);
+assert.match(html, /data-tooth="0"[^>]*>13/);
+assert.match(html, /data-tooth="5"[^>]*>23/);
+assert.match(html, /colmillo · lateral · central/);
 assert.match(html, /id="segment-all"/);
 assert.match(html, /La fotografía permanece en este dispositivo/);
 assert.match(html, /id="file-input"[^>]+accept="image\/jpeg,image\/png,image\/webp"/);
@@ -15,7 +16,7 @@ assert.match(html, /id="mask"/);
 assert.match(html, /Descargar mapa de 6 piezas/);
 assert.match(html, /id="synthetic-demo"/);
 
-assert.match(main, /new Worker\(new URL\('\.\/segmentacion-dental-worker\.js'/);
+assert.match(main, /new Worker\(new URL\('\.\/segmentacion-dental-worker\.js\?v=phase-2b-2'/);
 assert.match(main, /maxSide = 1600/);
 assert.match(main, /function syntheticSmile\(\)/);
 assert.match(main, /has\('qaAuto'\)/);
