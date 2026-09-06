@@ -1,5 +1,33 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
+
+**Tocado localmente:** `segmentacion-dental-poc.html`,
+`segmentacion-dental-poc.js`, `segmentacion-dental-worker.js`,
+`tests/segmentation-poc.test.mjs`, `docs/SMYL_SEGMENTATION_POC.md` y
+`docs/HANDOFF.md`.
+
+- Se creó un laboratorio aislado para validar segmentación antes de conectarla
+  al flujo público. La foto se redimensiona a un máximo de 1600 px y se procesa
+  íntegramente en un Web Worker; no se envía a Supabase ni a un proveedor.
+- La línea base usa `Xenova/slimsam-77-uniform`, modelo cuantizado compatible
+  con la implementación oficial de Transformers.js. MobileSAM queda como
+  segundo candidato a comparar con el mismo protocolo, no como integración
+  asumida.
+- El usuario puede añadir puntos positivos o negativos, ver confianza,
+  cobertura y tiempo, limpiar la selección y descargar una máscara PNG binaria.
+- El laboratorio incorpora una sonrisa geométrica sintética para validar el
+  ciclo técnico completo sin usar ni inventar datos de pacientes.
+- El modelo se descarga desde Hugging Face durante la primera carga y se guarda
+  en la caché del navegador. No usa tokens ni claves.
+- QA real en navegador completado con la sonrisa sintética: un solo punto aisló
+  un incisivo sin invadir sus vecinos, con 2.0% de cobertura y 549 ms de
+  decodificación de máscara. También se verificó la composición en escritorio,
+  tablet (834 px) y móvil (390 px).
+- El protocolo de diez fotografías y los criterios de avance están en
+  `docs/SMYL_SEGMENTATION_POC.md`. No se tocaron producción, backend, prompts,
+  Supabase, copias móviles ni configuración nativa.
+
 ## 2026-09-05 — Codex: Fase 1, editor vectorial de seis carillas
 
 **Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
