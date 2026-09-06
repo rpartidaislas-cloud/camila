@@ -22,6 +22,8 @@ assert.match(main, /new Worker\(new URL\('\.\/segmentacion-dental-worker\.js\?v=
 assert.match(main, /maxSide = 1600/);
 assert.match(main, /function syntheticSmile\(\)/);
 assert.match(main, /function useReferencePhoto\(\)/);
+assert.match(main, /event\.target\.value = ''/);
+assert.match(main, /jpe\?g\|png\|webp/);
 assert.match(main, /has\('qaAuto'\)/);
 assert.match(main, /const FDI = \['13', '12', '11', '21', '22', '23'\]/);
 assert.match(main, /type: 'decode_batch'/);

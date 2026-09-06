@@ -163,7 +163,8 @@ function resizePhoto(file) {
 
 async function loadPhoto(file) {
   if (!file) return;
-  if (!file.type.startsWith('image/')) { setStatus('error', 'Archivo no compatible', 'Selecciona una fotografía JPG, PNG o WebP.'); return; }
+  const supportedType = /^image\/(jpeg|png|webp)$/i.test(file.type || '') || /\.(jpe?g|png|webp)$/i.test(file.name || '');
+  if (!supportedType) { setStatus('error', 'Archivo no compatible', 'Selecciona una fotografía JPG, PNG o WebP. Los archivos HEIC deben convertirse primero.'); return; }
   if (file.size > 20 * 1024 * 1024) { setStatus('error', 'Fotografía demasiado grande', 'El límite de este laboratorio es 20 MB.'); return; }
   try { setStatus('', 'Preparando fotografía', 'Redimensionando localmente para acelerar la prueba…'); usePreparedImage(await resizePhoto(file)); }
   catch (error) { setStatus('error', 'No pudimos abrir la fotografía', error.message); }
@@ -239,7 +240,11 @@ worker.addEventListener('message', (event) => {
 worker.addEventListener('error', () => setStatus('error', 'No se pudo iniciar el modelo', 'Este navegador puede bloquear módulos o almacenamiento del modelo.'));
 ui.input.disabled = false; ui.demo.disabled = true; ui.change.disabled = false; worker.postMessage({ type: 'load' });
 
-ui.input.addEventListener('change', (event) => loadPhoto(event.target.files && event.target.files[0]));
+ui.input.addEventListener('change', (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  loadPhoto(file);
+});
 ui.reference.addEventListener('click', useReferencePhoto);
 ui.demo.addEventListener('click', () => usePreparedImage(syntheticSmile()));
 ui.positive.addEventListener('click', () => setMode('positive')); ui.negative.addEventListener('click', () => setMode('negative'));

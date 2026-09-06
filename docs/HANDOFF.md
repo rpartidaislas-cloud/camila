@@ -34,6 +34,8 @@
   prueba reportada por el usuario obtuvo 53% de confianza, 4.6% de cobertura y
   fallos en 13, 11, 21 y 23, confirmando que SlimSAM no es apto como segmentador
   dental principal incluso con una captura favorable.
+- El selector permite volver a elegir el mismo archivo, acepta JPG/PNG/WebP
+  aunque Windows omita el MIME y muestra una explicación específica para HEIC.
 
 ## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
 
