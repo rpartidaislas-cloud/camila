@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-06 — Codex: Fase 2B, separación individual de seis dientes
+
+**Tocado localmente:** `segmentacion-dental-poc.html`,
+`segmentacion-dental-poc.js`, `segmentacion-dental-worker.js`,
+`tests/segmentation-poc.test.mjs`, `docs/SMYL_SEGMENTATION_POC.md` y
+`docs/HANDOFF.md`.
+
+- El laboratorio dejó de tratar varios puntos positivos como una sola región.
+  Ahora registra centros en orden FDI `13-12-11-21-22-23` y ejecuta seis
+  decodificaciones independientes.
+- En cada decodificación, el centro de la pieza activa es positivo y los otros
+  cinco centros son exclusiones automáticas. Las exclusiones manuales quedan
+  asociadas únicamente a la pieza seleccionada.
+- La vista combina seis máscaras con colores distintos y el PNG exportado
+  conserva la identidad de cada pieza. Una superposición mayor a 8% bloquea la
+  descarga para evitar aceptar una arcada fusionada.
+- La selección de máscara verifica además que incluya el centro propio y
+  excluya los otros cinco centros; un incumplimiento invalida la exportación.
+- Sigue siendo un laboratorio aislado y local: no se tocaron producción,
+  backend, Supabase, prompts, copias móviles ni configuración nativa.
+
 ## 2026-09-06 — Codex: Fase 2A, laboratorio local de segmentación
 
 **Tocado localmente:** `segmentacion-dental-poc.html`,

@@ -1,4 +1,4 @@
-# SMYL — Fase 2A: laboratorio de segmentación dental
+# SMYL — Fases 2A–2B: laboratorio de segmentación dental
 
 ## Objetivo
 
@@ -54,3 +54,19 @@ el borde cervical/proximal/incisal es aprovechable.
 
 Esta prueba evalúa segmentación visual, no diagnóstico ni aptitud clínica del
 tratamiento.
+
+## Fase 2B — separación de seis piezas
+
+- El operador registra un centro por pieza en orden FDI `13-12-11-21-22-23`.
+- Para calcular una pieza, su centro es el único punto positivo y los centros
+  de las otras cinco piezas se convierten automáticamente en puntos negativos.
+- Cada pieza conserva su máscara binaria independiente; la vista superpuesta
+  usa seis colores únicamente para revisión.
+- Se pueden añadir exclusiones manuales a la pieza seleccionada cuando invada
+  encía, labio o un espacio vecino.
+- El mapa PNG exportado conserva una etiqueta cromática distinta por pieza.
+- Si la superposición acumulada entre máscaras supera 8%, el laboratorio
+  bloquea la descarga y solicita afinamiento.
+- El selector de candidato prioriza la máscara que contiene su propio centro y
+  no contiene ninguno de los otros cinco; si esa condición falla, el resultado
+  se marca como inválido y tampoco puede exportarse.

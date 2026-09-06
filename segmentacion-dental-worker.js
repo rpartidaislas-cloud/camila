@@ -57,6 +57,28 @@ self.onmessage = async (event) => {
       self.postMessage({ type: 'decoded', requestId: message.requestId, data: { mask: RawImage.fromTensor(masks[0][0]), scores: Array.from(outputs.iou_scores.data), elapsedMs: performance.now() - started } });
       return;
     }
+    if (message.type === 'decode_batch') {
+      if (!imageInputs || !imageEmbeddings) throw new Error('La imagen todavía no está preparada.');
+      const teeth = message.teeth || [];
+      if (teeth.length !== 6 || teeth.some((tooth) => !tooth.center)) throw new Error('Se requieren los seis centros dentales.');
+      const reshaped = imageInputs.reshaped_input_sizes[0];
+      const started = performance.now();
+      const results = [];
+      for (let toothIndex = 0; toothIndex < teeth.length; toothIndex += 1) {
+        const prompts = teeth.map((tooth, index) => ({ ...tooth.center, label: index === toothIndex ? 1 : 0 }));
+        for (const exclusion of teeth[toothIndex].exclusions || []) prompts.push({ ...exclusion, label: 0 });
+        const points = prompts.map((item) => [item.x * reshaped[1], item.y * reshaped[0]]);
+        const labels = prompts.map((item) => BigInt(item.label));
+        const inputPoints = new Tensor('float32', points.flat(), [1, 1, points.length, 2]);
+        const inputLabels = new Tensor('int64', labels, [1, 1, labels.length]);
+        const outputs = await model({ ...imageEmbeddings, input_points: inputPoints, input_labels: inputLabels });
+        const masks = await processor.post_process_masks(outputs.pred_masks, imageInputs.original_sizes, imageInputs.reshaped_input_sizes);
+        results.push({ mask: RawImage.fromTensor(masks[0][0]), scores: Array.from(outputs.iou_scores.data) });
+        self.postMessage({ type: 'batch_progress', requestId: message.requestId, data: { completed: toothIndex + 1, total: teeth.length } });
+      }
+      self.postMessage({ type: 'batch_decoded', requestId: message.requestId, data: { results, elapsedMs: performance.now() - started } });
+      return;
+    }
     throw new Error('Acción de segmentación desconocida.');
   } catch (error) {
     self.postMessage({ type: 'error', data: { message: error && error.message ? error.message : String(error) } });
