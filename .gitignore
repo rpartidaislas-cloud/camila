@@ -1,3 +1,7 @@
 # Estado local del CLI de Supabase (a qué proyecto está enlazada esta copia).
 # Es por máquina, no del proyecto.
 supabase/.temp/
+
+# Secretos locales: nunca se versionan. El archivo .env.example sí se conserva.
+supabase/.env
+supabase/.env.local

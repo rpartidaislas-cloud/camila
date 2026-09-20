@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync('visual-composition.js','utf8'),context={};vm.createContext(context);vm.runInContext(source,context);
+const api=context.SmylVisualComposition;
+const anchor={x:.16,y:.44,w:.68,h:.40};
+assert.equal(api.validateRegion(anchor,anchor).safe,true);
+assert.equal(api.validateRegion({x:.22,y:.04,w:.52,h:.28},anchor).safe,false);
+assert.match(api.validateRegion({x:.22,y:.04,w:.52,h:.28},anchor).reason,/dientes/);
+assert.equal(api.validateRegion({x:.18,y:.40,w:.65,h:.43},anchor).safe,true);
+assert.doesNotMatch(source,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+console.log('Visual union: dental anchor accepted; skin/lip displacement rejected; local-only module pass.');

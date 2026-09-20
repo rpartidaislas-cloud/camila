@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const html = fs.readFileSync(new URL('../simulacion.html', import.meta.url), 'utf8');
+const backend = fs.readFileSync(new URL('../supabase/functions/claude/index.ts', import.meta.url), 'utf8');
 
 function extractFunction(name) {
   const marker = `function ${name}(`;
@@ -59,6 +60,18 @@ function extractFunction(name) {
 
 const context = {};
 vm.createContext(context);
+context.SIM_ACCEPTANCE_V105 = {
+  version:'v105',
+  minimumSourcePieces:6,
+  minimumSourceCoverage:.88,
+  minimumTargetCoverage:.82,
+  minimumChangedRatio:.32,
+  minimumMeanDifference:8,
+  minimumTextureDeviation:7.5,
+  maximumA1Yellow:17,
+  minimumChangedRatioPerTooth:.28,
+  maximumMaskOutsideEnvelopeRatio:.003,
+};
 vm.runInContext([
   extractFunction('clasificarErrorParaUsuario'),
   extractFunction('evaluarProteccionInferiorMascara'),
@@ -70,17 +83,64 @@ vm.runInContext([
   extractFunction('mascarasDePiezasDentales'),
   extractFunction('limitarPlanoDental'),
   extractFunction('construirPlanoGeometricoDental'),
+  extractFunction('evaluarCapturaDentalV104'),
   extractFunction('emparejarPiezasDentales'),
   extractFunction('evaluarAnatomiaSegmentada'),
   extractFunction('consolidarHallazgosRevision'),
   extractFunction('medirDiferenciasFueraMascara'),
   extractFunction('firmaEntradaDental'),
+  extractFunction('evaluarContratoPresentacionV105'),
+  extractFunction('evaluarIntegridadVisualV104'),
+  extractFunction('construirPrescripcionNumericaV104'),
 ].join('\n'), context);
 
 const compositorSeguro = extractFunction('componerConMascaraAnatomicaContinua');
-assert.doesNotMatch(compositorSeguro, /revisionVisual\.status\s*===\s*['"]rejected['"][\s\S]{0,300}throw/);
 assert.doesNotMatch(compositorSeguro, /segmentarParDental\s*\(/);
-assert.match(compositorSeguro, /deliveryGate:'deterministic-outside-mask-integrity'/);
+assert.match(compositorSeguro, /deliveryGate:'v105-safe-delivery-clinical-review'/);
+assert.match(compositorSeguro, /generatedPieces:\[\]/);
+assert.match(compositorSeguro, /evaluarContratoPresentacionV105/);
+assert.match(compositorSeguro, /throw errorContrato/);
+assert.match(compositorSeguro, /contract:'post-safety-clip-six-crowns'/);
+assert.match(compositorSeguro, /mask:coberturaContrato/);
+assert.doesNotMatch(compositorSeguro, /mask:tratamientoActual\.metrics/);
+assert.match(html, /contractVersion:'v105'/);
+const generadorV105=extractFunction('generateSimulation');
+assert.doesNotMatch(generadorV105, /IMAGE 2 already fixes/);
+assert.doesNotMatch(generadorV105, /guideImageBase64:/);
+assert.match(generadorV105, /There is NO second reference image and no visual blueprint/);
+assert.match(generadorV105, /Never treat premolars, lower teeth or any unlisted tooth/);
+assert.match(generadorV105, /The gingiva is outside the editable mask/);
+assert.doesNotMatch(generadorV105, /requiresNewGeneration[\s\S]{0,180}delete S\.pendingGeneratedByView/);
+assert.match(generadorV105, /localValidationContract:'v105'/);
+assert.match(generadorV105, /revalidationMode:'cached-paid-proposal'/);
+assert.match(extractFunction('saveProgress'), /pendingGeneratedByView/);
+assert.match(extractFunction('continuarProgreso'), /revalidateCached:coincide/);
+assert.doesNotMatch(extractFunction('processPhotos'), /processOptions\.revalidateCached[\s\S]{0,180}delete S\.pendingGeneratedByView/);
+assert.match(html, /function resumirDiagnosticoCalibracion/);
+assert.match(html, /proc-error-diagnostics/);
+assert.match(html, /proc-error-preview/);
+const preparadorMascara=extractFunction('prepararMascaraTratamiento');
+assert.match(preparadorMascara, /construirMascaraDestinoV104/);
+assert.doesNotMatch(preparadorMascara, /solicitarSegmentacion\s*\(/);
+const mascaraV104=extractFunction('construirMascaraDestinoV104');
+assert.match(mascaraV104, /drawImage\(sourceMask/);
+assert.match(mascaraV104, /drawImage\(targetMask/);
+assert.match(mascaraV104, /destination-in/);
+assert.match(mascaraV104, /fuenteExpandida/);
+assert.match(mascaraV104, /alturaMediana\*\.13/);
+assert.match(mascaraV104, /evaluarMascaraCoronalV104/);
+assert.match(mascaraV104, /suavizarMascaraHaciaDentroV104/);
+assert.doesNotMatch(mascaraV104, /fillRect|regionExpandida/);
+assert.match(preparadorMascara, /stage:'v105-single-mask-preflight'/);
+assert.match(backend, /X-SMYL-Contract/);
+assert.match(backend, /contract:\s*simulationContract/);
+assert.match(backend, /simulationContract === "v101" \|\| simulationContract === "v102" \|\| simulationContract === "v103" \|\| simulationContract === "v104" \|\| simulationContract === "v105"/);
+assert.match(backend, /simulationContract === "v105"/);
+assert.match(backend, /V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT/);
+assert.match(backend, /The mask contains no gingiva/);
+assert.match(backend, /The patient smile crop is the ONE AND ONLY visual reference/);
+assert.match(backend, /guideImageBase64 && !isMeasuredMaskOnlyContract/);
+assert.match(backend, /numeric-geometry-only/);
 
 const pixelOriginal = new Uint8ClampedArray([
   10,20,30,255,
@@ -111,8 +171,166 @@ assert.notEqual(firmaPacienteA,firmaPacienteB);
 assert.equal(firmaPacienteA,context.firmaEntradaDental({dataUrl:'data:image/jpeg;base64,AAAA1111BBBB'}));
 
 const validacionRecibida = extractFunction('validarResultadoIARecibido');
-assert.doesNotMatch(validacionRecibida, /errorSinCambio[\s\S]{0,200}throw errorSinCambio/);
-assert.match(validacionRecibida, /cambio dental visible fue demasiado conservador/i);
+assert.doesNotMatch(validacionRecibida, /throw errorSinCambio/);
+assert.doesNotMatch(validacionRecibida, /throw errorMarcas/);
+assert.match(validacionRecibida, /posibles marcas técnicas; la propuesta se muestra con revisión recomendada/i);
+assert.match(validacionRecibida, /cambio dental conservador; se entrega con revisión recomendada/i);
+
+const evidenciaValida = {
+  trace:{provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v105'},
+  outsideMask:{identical:true,changedPixels:0},
+  sourcePieces:6,
+  mask:{sourceCoverage:.96,targetCoverage:.94},
+  visual:{changed:.58,meanDifference:24,texture:15,yellow:8,artifacts:{detected:false},independentTeeth:{confirmed:true}},
+  perToothChange:['13','12','11','21','22','23'].map((id)=>({id,changedRatio:.52})),
+  vitaTone:'A1',
+};
+const contratoValido = context.evaluarContratoPresentacionV105(evidenciaValida);
+assert.equal(contratoValido.accepted,true);
+assert.equal(contratoValido.status,'ready-for-clinical-review');
+
+const evidenciaRevalidadaV104=structuredClone(evidenciaValida);
+evidenciaRevalidadaV104.trace={
+  provider:'openai',model:'gpt-image-2-2026-04-21',contract:'v104',
+  localValidationContract:'v105',revalidationMode:'cached-paid-proposal',
+};
+const contratoRevalidadoV104=context.evaluarContratoPresentacionV105(evidenciaRevalidadaV104);
+assert.equal(contratoRevalidadoV104.accepted,true);
+
+const evidenciaInerte = structuredClone(evidenciaValida);
+evidenciaInerte.visual.changed=.05;
+evidenciaInerte.visual.meanDifference=2;
+evidenciaInerte.perToothChange[3].changedRatio=.02;
+const contratoInerte=context.evaluarContratoPresentacionV105(evidenciaInerte);
+assert.equal(contratoInerte.accepted,true);
+assert.ok(contratoInerte.reviewFindings.some((item)=>/cambio dental visible/.test(item)));
+assert.ok(contratoInerte.reviewFindings.some((item)=>/carillas muestran/.test(item)));
+
+const evidenciaFuera=structuredClone(evidenciaValida);
+evidenciaFuera.outsideMask={identical:false,changedPixels:1};
+assert.equal(context.evaluarContratoPresentacionV105(evidenciaFuera).accepted,false);
+
+const evidenciaSinTraza=structuredClone(evidenciaValida);
+evidenciaSinTraza.trace={provider:'openai',model:'desconocido'};
+assert.equal(context.evaluarContratoPresentacionV105(evidenciaSinTraza).accepted,false);
+
+const evidenciaMascaraRectangular=structuredClone(evidenciaValida);
+evidenciaMascaraRectangular.mask.outsideEnvelopeRatio=.08;
+const contratoMascaraRectangular=context.evaluarContratoPresentacionV105(evidenciaMascaraRectangular);
+assert.equal(contratoMascaraRectangular.accepted,false);
+assert.ok(contratoMascaraRectangular.failures.some((item)=>/seis coronas protegidas/.test(item)));
+
+// Regresión v105: seis coronas naturales deben conservar separaciones finas.
+// Los indicios visuales se conservan como revisión; nunca ocultan la propuesta.
+function crearCoronasSinteticas(modo) {
+  const width=170,height=82;
+  const pixels=new Uint8ClampedArray(width*height*4);
+  const mask=new Uint8ClampedArray(width*height*4);
+  const pieces=[0,1,2,3,4,5].map((index)=>({
+    x:10+index*25,y:16,w:25,h:50,fdi:String([13,12,11,21,22,23][index]),
+  }));
+  for(let y=0;y<height;y+=1)for(let x=0;x<width;x+=1){
+    const i=(y*width+x)*4;
+    pixels[i]=42;pixels[i+1]=28;pixels[i+2]=28;pixels[i+3]=255;
+  }
+  pieces.forEach((piece)=>{
+    for(let y=piece.y;y<piece.y+piece.h;y+=1)for(let x=piece.x;x<piece.x+piece.w;x+=1){
+      const i=(y*width+x)*4;
+      const base=modo==='flat'?238:176+((x*7+y*11)%41);
+      pixels[i]=Math.min(255,base+10);pixels[i+1]=Math.min(255,base+6);pixels[i+2]=base;pixels[i+3]=255;
+      mask[i]=255;mask[i+1]=255;mask[i+2]=255;mask[i+3]=255;
+    }
+  });
+  if(modo!=='flat'){
+    pieces.slice(1).forEach((piece)=>{
+      for(let y=piece.y+8;y<piece.y+piece.h-7;y+=1){
+        const x=piece.x,i=(y*width+x)*4;
+        pixels[i]=92;pixels[i+1]=86;pixels[i+2]=82;
+      }
+    });
+  }
+  if(modo==='blueprint'){
+    pieces.forEach((piece)=>{
+      for(let y=piece.y+7;y<piece.y+piece.h-7;y+=1){
+        const x=piece.x+5+((y-piece.y)>>3);
+        for(let dx=0;dx<2;dx+=1){
+          const i=(y*width+x+dx)*4;
+          pixels[i]=126;pixels[i+1]=54;pixels[i+2]=49;
+        }
+      }
+    });
+  }
+  if(modo==='edge-outline'){
+    pieces.forEach((piece)=>{
+      for(let y=piece.y;y<piece.y+piece.h;y+=1)for(let x=piece.x;x<piece.x+piece.w;x+=1){
+        const borde=x===piece.x||x===piece.x+piece.w-1||y===piece.y||y===piece.y+piece.h-1;
+        if(!borde)continue;
+        const i=(y*width+x)*4;
+        pixels[i]=128;pixels[i+1]=65;pixels[i+2]=52;
+      }
+    });
+  }
+  if(modo==='cervical-natural'){
+    pieces.forEach((piece)=>{
+      for(let y=piece.y;y<piece.y+Math.round(piece.h*.22);y+=1)for(let x=piece.x;x<piece.x+piece.w;x+=1){
+        const i=(y*width+x)*4;
+        pixels[i]=138;pixels[i+1]=82;pixels[i+2]=72;
+      }
+    });
+  }
+  return {width,height,pixels,mask,pieces};
+}
+
+const natural=crearCoronasSinteticas('natural');
+const integridadNatural=context.evaluarIntegridadVisualV104(
+  natural.pixels,natural.mask,natural.width,natural.height,natural.pieces,natural.width,natural.height,
+);
+assert.equal(integridadNatural.artifacts.detected,false);
+assert.equal(integridadNatural.independentTeeth.confirmed,true);
+assert.equal(integridadNatural.independentTeeth.separators,5);
+
+const cervicalNatural=crearCoronasSinteticas('cervical-natural');
+const integridadCervical=context.evaluarIntegridadVisualV104(
+  cervicalNatural.pixels,cervicalNatural.mask,cervicalNatural.width,cervicalNatural.height,cervicalNatural.pieces,cervicalNatural.width,cervicalNatural.height,
+);
+assert.equal(integridadCervical.artifacts.detected,false);
+
+const planoCopiado=crearCoronasSinteticas('blueprint');
+const integridadPlano=context.evaluarIntegridadVisualV104(
+  planoCopiado.pixels,planoCopiado.mask,planoCopiado.width,planoCopiado.height,planoCopiado.pieces,planoCopiado.width,planoCopiado.height,
+);
+assert.equal(integridadPlano.artifacts.detected,true);
+assert.ok(integridadPlano.artifacts.reasons.some((item)=>/líneas rojizas/.test(item)));
+const evidenciaConPlano=structuredClone(evidenciaValida);
+evidenciaConPlano.visual.artifacts=integridadPlano.artifacts;
+const contratoConPlano=context.evaluarContratoPresentacionV105(evidenciaConPlano);
+assert.equal(contratoConPlano.accepted,true);
+assert.ok(contratoConPlano.reviewFindings.some((item)=>/líneas rojizas/.test(item)));
+
+const contornoTecnico=crearCoronasSinteticas('edge-outline');
+const integridadContorno=context.evaluarIntegridadVisualV104(
+  contornoTecnico.pixels,contornoTecnico.mask,contornoTecnico.width,contornoTecnico.height,contornoTecnico.pieces,contornoTecnico.width,contornoTecnico.height,
+);
+assert.equal(integridadContorno.artifacts.detected,true,JSON.stringify(integridadContorno.artifacts));
+assert.ok(integridadContorno.artifacts.boundaryRedAffectedTeeth>=2);
+assert.ok(integridadContorno.artifacts.reasons.some((item)=>/bordes técnicos/.test(item)));
+const evidenciaConContorno=structuredClone(evidenciaValida);
+evidenciaConContorno.visual.artifacts=integridadContorno.artifacts;
+assert.equal(context.evaluarContratoPresentacionV105(evidenciaConContorno).accepted,true);
+
+const placa=crearCoronasSinteticas('flat');
+const integridadPlaca=context.evaluarIntegridadVisualV104(
+  placa.pixels,placa.mask,placa.width,placa.height,placa.pieces,placa.width,placa.height,
+);
+assert.equal(integridadPlaca.artifacts.detected,true);
+assert.equal(integridadPlaca.artifacts.flatPlate,true);
+assert.equal(integridadPlaca.independentTeeth.confirmed,false);
+const evidenciaConPlaca=structuredClone(evidenciaValida);
+evidenciaConPlaca.visual.artifacts=integridadPlaca.artifacts;
+evidenciaConPlaca.visual.independentTeeth=integridadPlaca.independentTeeth;
+const contratoConPlaca=context.evaluarContratoPresentacionV105(evidenciaConPlaca);
+assert.equal(contratoConPlaca.accepted,true);
+assert.ok(contratoConPlaca.reviewFindings.some((item)=>/superficie blanca plana/.test(item)));
 
 const originales = [200, 275, 350, 425, 500, 575].map((x, index) => ({
   x,
@@ -121,6 +339,11 @@ const originales = [200, 275, 350, 425, 500, 575].map((x, index) => ({
   h: 80,
   fdi: String([13, 12, 11, 21, 22, 23][index]),
 }));
+const capturaValida=context.evaluarCapturaDentalV104(originales,900,700);
+assert.equal(capturaValida.accepted,true);
+const capturaLejana=context.evaluarCapturaDentalV104(originales.map((p)=>({...p,w:10,h:12})),900,700);
+assert.equal(capturaLejana.accepted,false);
+assert.ok(capturaLejana.failures.some((item)=>/pocos píxeles/.test(item)));
 const plano = context.construirPlanoGeometricoDental(originales, 900, 700, {
   family: 'rectangular-soft',
   sizeFactor: 1,
@@ -130,6 +353,16 @@ assert.deepEqual(Array.from(plano.pieces, (piece) => piece.id), ['13', '12', '11
 assert.ok(Math.abs(plano.targetMetrics.centralWidthHeight - 0.79) < 0.035);
 assert.ok(Math.abs(plano.targetMetrics.lateralToCentral - 0.74) < 0.001);
 assert.ok(Math.abs(plano.targetMetrics.canineToCentral - 0.80) < 0.001);
+assert.ok(plano.pieces.every((piece,index)=>piece.y===originales[index].y));
+assert.ok(plano.pieces.every((piece,index)=>piece.h<=originales[index].h*1.12+0.001));
+
+const prescripcionNumerica=context.construirPrescripcionNumericaV104(plano);
+assert.match(prescripcionNumerica,/NO SECOND IMAGE IS SUPPLIED/);
+assert.match(prescripcionNumerica,/FDI 13,role=canine,centerX=/);
+assert.match(prescripcionNumerica,/FDI 11,role=central,centerX=/);
+assert.match(prescripcionNumerica,/FDI 23,role=canine,centerX=/);
+assert.equal((prescripcionNumerica.match(/FDI /g)||[]).length,6);
+assert.doesNotMatch(extractFunction('prepararPlanoDentalIndividual'),/guideBase64|renderizarGuiaPlanoDental/);
 
 const sinCambio = context.evaluarAnatomiaSegmentada({
   expectedPieces: originales,
@@ -164,6 +397,16 @@ const mensajeAnatomico = context.clasificarErrorParaUsuario(
   new Error('La simulación no superó la protección anatómica: anatomía dental inválida: fila plana con dientes repetidos.'),
 );
 assert.equal(mensajeAnatomico.titulo, 'La anatomía dental no es presentable');
+
+const mensajeArtefacto = context.clasificarErrorParaUsuario(
+  new Error('La simulación no superó el contrato visual v105: se detectaron líneas rojizas, recortes oscuros o una superficie blanca plana.'),
+);
+assert.equal(mensajeArtefacto.titulo, 'La propuesta contiene bordes artificiales');
+
+const mensajeVersion = context.clasificarErrorParaUsuario(
+  new Error('La simulación no superó el contrato visual v105: el backend no confirmó el contrato v105.'),
+);
+assert.equal(mensajeVersion.titulo, 'La actualización del simulador está incompleta');
 
 const mensajeVisualCompatibilidad = context.clasificarErrorParaUsuario(
   new Error('La simulación no alcanzó el estándar visual de carillas: tono A1 demasiado amarillo.'),
@@ -235,4 +478,4 @@ const ausentesSuperiores = new Set(['22','23','24']);
 const superiorIncompleta = fragmentadas.filter((mask) => !ausentesSuperiores.has(mask.parentFdi) && !ausentesSuperiores.has(mask.fdi));
 assert.equal(context.seleccionarPiezasArcadaSuperior(superiorIncompleta,0,600,300).length,0);
 
-console.log('simulation blueprint: geometry, fragment consolidation, safe delivery and clinical review passed');
+console.log('simulation v105: paid proposals remain visible with clinical-review warnings');

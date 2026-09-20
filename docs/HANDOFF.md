@@ -1,5 +1,274 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-20 — Localización automática de sonrisa para web, Android e iOS
+
+- `simulacion-rapida.html` reutiliza el Face Landmarker ya empleado por la cámara para localizar comisuras y contorno labial en fotografías frontales, perfiles y 3/4. El recorte y la zona inicial de unión se calculan desde esa boca real, sin asumir que la sonrisa está a una altura fija.
+- El detector de esmalte queda restringido por la boca encontrada; los diseños de ambas arcadas usan una zona derivada de los mismos landmarks. La fotografía intraoral conserva su detector dental independiente y cualquier fallo/carga lenta de MediaPipe cae al respaldo anterior sin bloquear el caso.
+- Las sesiones que guardaron una zona previa se vuelven a preparar localmente con `face-mouth-v1`; no se pide otra generación. El diálogo aclara que la zona ya fue localizada y mantiene todos los controles manuales.
+- Web y `mobile/www/` sincronizados; `visual-composition.js` v5 y caché PWA `smyl-v81-auto-smile-localizer`. Pruebas de geometría con landmarks simulados, scripts, composición, paridad móvil y LANA aprobadas. No se tocaron prompts, backend ni configuración nativa.
+
+## 2026-09-20 — Recalcular VITA desde el propio mensaje
+
+- En el selector VITA a pantalla completa, el aviso pedía buscar `Recalcular diseño` pero ocultaba la barra donde estaba ese botón.
+- El aviso admite ahora una acción primaria contextual. Al elegir A1 muestra `Aplicar A1 y recalcular`, cierra el selector y ejecuta directamente la nueva generación cerámica. Los avisos normales conservan `Entendido`.
+- Caché PWA v76. No se consumió API durante el cambio.
+
+## 2026-09-20 — Selector VITA posterior sin parches locales
+
+- La prueba A1 posterior confirmó bloques blancos sobre incisivos inferiores: la máscara heurística local era fragmentaria y no es segura para recolorear un resultado clínico-fotográfico terminado.
+- Elegir un tono desde el resultado ahora solo guarda el objetivo VITA y restaura la última generación limpia. El tono se aplica al pulsar `Recalcular diseño`, dentro de la generación completa; nunca vuelve a pintar dientes con una máscara local. También se puede pulsar otra vez el mismo A1 para limpiar el resultado afectado.
+- Caché PWA v75. No se generó imagen ni se consumió API.
+
+## 2026-09-20 — Corrección relativa de la guía VITA
+
+- La captura A1 mostró una separación cromática: superiores cálidos e inferiores gris-azulados. La revisión encontró que el selector posterior usaba `mix-blend-mode: color` al 100 % y la referencia A1 de pantalla era casi acromática (`236/234/233`); conservaba la luminosidad original y podía desaturar los dientes hasta gris.
+- El recoloreado local ahora aproxima simultáneamente luminosidad y croma, conserva contraste, sombras y microtextura, y usa una referencia A1 cálida-neutra (`236/228/216`). El prompt exige la misma familia/valor VITA en ambas arcadas y rechaza divisiones cálido/gris entre superior e inferior.
+- La interfaz aclara que es calibración visual relativa; la selección clínica definitiva requiere guía física o espectrofotómetro. `visual-simulation.js` v19, caché v74. No se consumió API.
+
+## 2026-09-20 — Alineación + carillas + VITA en una sola generación
+
+- Una captura confirmó que el resultado combinado seguía mostrando esmalte natural: A1 estaba seleccionado, pero el flujo solo había generado la antigua etapa 1 de alineación y esperaba una segunda llamada mediante `Etapa 2 · Añadir carillas`.
+- El modo combinado ahora genera en una sola solicitud la alineación completa, la morfología final de carillas, el material cerámico elegido y el tono VITA. El prompt rechaza internamente tanto dientes anteriores todavía rotados/solapados como una salida que conserve apariencia de esmalte sin tratar.
+- Se retiró la creación de una etapa intermedia nueva; los resultados combinados nuevos ya no muestran el botón de segunda generación. `smile-modes.js` v13, caché PWA v72, web/móvil sincronizados. No se consumió API durante el cambio.
+
+## 2026-09-20 — Alineación completa como criterio obligatorio
+
+- La comparación del usuario mostró que el modo combinado conservaba rotaciones y solapamientos visibles, especialmente en laterales y caninos, mientras una edición directa de ChatGPT sí reconstruía la secuencia anterior completa.
+- `smile-modes.js` v12 elimina la contradicción entre alineación completa y preservación rígida de la posición fuente. La generación inicial ahora exige un estado tipo post-brackets visible, revisa canino-lateral-central por ambos lados y por cada arcada, permite reconstruir superficies recién expuestas conservando identidad y rechaza internamente cualquier diente seleccionado que permanezca girado, retraído, proyectado o solapado.
+- No cambia mandíbula, mordida, número de dientes, tejido global ni encuadre; sigue siendo una ilustración estética, no planificación ortodóncica. Caché PWA v71. Web/móvil sincronizados y pruebas de contrato actualizadas. No se consumió API ni se generó una imagen.
+
+## 2026-09-19 — Bordes incisales terminados en 11 y 21
+
+- Usuario detectó que un central heredó la irregularidad del diente fuente. visual-simulation v17 exige contorno incisal cerámico liso y continuo en 11/21, elimina muescas/desgaste heredado sin convertirlos en rectángulos clonados y añade revisión final separada de ambos centrales. Aplica a carillas rápidas y etapa de acabado.
+
+## 2026-09-19 — Unión local bloquea zonas fuera de la arcada
+
+- Captura mostró la zona de composición sobre labio/piel. visual-composition v4 valida cobertura y distancia respecto al corredor dental inicial, marca en rojo, deshabilita revisión y bloquea aceptación. prepararUnionVisual reemplaza detección frontal demasiado alta por zona dental segura. Cache v70 y mobile sincronizados.
+
+## 2026-09-19 — Instrucción de diagnóstico de cupo para Claude
+
+- Usuario acreditó usos en Supabase pero la generación sigue mostrando falta de simulaciones. Se documentó revisión completa en `docs/CLAUDE_REVIEW_QUOTA.md`: resolución email→usuario→tenant, estado/vence/cupo, logs por support id, RPC efectiva y código desplegado. No se modificó cupo, no se desplegó y no se consumió API.
+
+## 2026-09-18 — Integración aislada del simulador rápido con flujo profesional LANA
+
+- En copia `camila-lana-integration`, rama codex/smyl-lana-integration. Copiados los cambios pendientes de camila sin modificar fuentes. Se conservó simulacion.html clínico y añadió simulacion-rapida.html con módulos ceramica16 aprobados.
+- Panel enlaza ambos flujos. nueva/ dirige al rápido profesional; experiencia=clinica conserva compatibilidad. lana-quick-bridge valida sesión/tenant, notifica después de guardado confirmado y distingue error de entrega. HTTP local no notifica. Mobile sincronizado.
+- Pruebas de contrato, tenant, persistencia y UI responsive con solicitudes simuladas. Sin despliegue, generación ni mensajes reales. No se implementó aún captura pública ni generación asíncrona desde WhatsApp. Ver docs/QUICK_LANA_PILOT.md para bloqueos y siguiente etapa; no confundir analizar-foto con un generador del después.
+
+## 2026-09-17 — Codex: integración LANA completa en local
+
+**Añadido localmente:** `nueva/index.html`,
+`supabase/functions/analizar-foto/index.ts`,
+`supabase/functions/lana-webhook/index.ts`,
+`supabase/functions/_shared/lana.ts`,
+`supabase/migrations/20260917_lana_integration.sql`,
+`supabase/.env.example`, `docs/LANA_INTEGRATION.md` y
+`tests/lana-integration.test.mjs`.
+
+**Actualizado localmente:** `simulacion.html`,
+`mobile/www/simulacion.html`,
+`supabase/functions/guardar-lead-prospecto/index.ts` y `.gitignore`.
+
+- `/nueva/` valida el contexto de LANA, conserva temporalmente nombre,
+  teléfono, tenant y cita, retira la PII de la barra y prellena el simulador
+  sólo cuando el tenant coincide con la sesión profesional real.
+- Al guardar, `camila_casos` conserva `lana_cita_id`/`lana_origen`; la nueva
+  función `lana-webhook` vuelve a validar sesión, tenant, caso y origen del
+  enlace antes de notificar `simulacion_guardada` a LANA.
+- `analizar-foto` recibe fotografías HTTPS de WhatsApp/Instagram con secreto
+  compartido, reserva el UUID y responde 200 inmediatamente. El trabajo en
+  segundo plano descarga con límites y protección SSRF, analiza con
+  `gpt-4o-2024-11-20` y JSON Schema estricto, persiste el resultado y envía
+  `analisis_completado`. La URL de simulación queda `null` para fase 2.
+- Los webhooks hacen un intento inicial y hasta tres reintentos ante red/5xx,
+  con esperas de 2, 4 y 8 segundos; 4xx se considera definitivo.
+- Si descarga/OpenAI falla después del 200 asíncrono, la fila queda en
+  `estado='error'` y no se emite un webhook de completado. No es posible
+  devolver un 500 después de haber respondido 200 al solicitante.
+- Secretos requeridos: `OPENAI_API_KEY`, `LANA_WEBHOOK_URL` y
+  `LANA_WEBHOOK_SECRET`; no se incluyó ningún valor real.
+- QA local aprobado: contrato LANA, scripts inline, regresión v105, sintaxis
+  TypeScript con Node y paridad exacta web/móvil.
+- **No se aplicó la migración, no se configuraron secretos, no se desplegaron
+  Edge Functions y no se publicó el frontend.**
+
+## 2026-08-31 — Codex: v105 local, la propuesta pagada siempre se muestra
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V105_ACCEPTANCE.md`.
+
+- La captura posterior a v104 confirmó que el generador y la máscara sí
+  terminaron, pero el detector local volvió a ocultar la propuesta por una
+  inferencia de bordes artificiales.
+- v105 conserva como barreras duras únicamente el contrato, el proveedor, las
+  seis coronas, la cobertura de máscara y la igualdad exacta fuera de máscara.
+- Bordes rojizos u oscuros, placa aparente, separación, textura, tono,
+  simetría y magnitud de cambio son hallazgos de revisión y ya no bloquean el
+  comparador.
+- El detector de posibles marcas cromáticas tampoco descarta: adjunta una
+  advertencia visible al reporte de revisión.
+- Una propuesta conservada por v104 puede revalidarse localmente con v105 sin
+  pedir otra imagen a GPT.
+- Build `v105`, calidad `v27`, caché PWA `smyl-v68`.
+- QA aprobado sin IA: scripts inline, regresión v105, 12 pruebas de máscara,
+  sintaxis TypeScript y revisión responsive a 390×844, 834×1194 y 1440×900.
+- Edge Function `claude` versión 65 desplegada y verificada `ACTIVE`, con
+  `verify_jwt=false` preservado. El frontend v105 se publicó en GitHub Pages.
+- **La publicación no ejecutó la simulación ni consumió otra generación.**
+
+## 2026-08-31 — Codex: v104 local, una máscara y propuestas recuperables
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V104_ACCEPTANCE.md`.
+
+- Los soportes `local-mthf2shh` y
+  `51749c65-cc22-44d7-a697-2069054ce10b` separaron dos fallos: un bloqueo
+  previo sin trazabilidad y un falso positivo posterior por bordes rojizos.
+- Se eliminó la segunda segmentación genérica de tratamiento. La máscara se
+  deriva exclusivamente de las seis coronas fuente y sus objetivos.
+- Los objetivos conservan el margen cervical y sólo pueden crecer hacia
+  incisal un máximo conservador de 12 %.
+- El detector ya no interpreta la zona cervical gingival como línea técnica;
+  exige continuidad y afectación bilateral. Las dudas estéticas pasan a
+  revisión recomendada.
+- Una propuesta recibida ya no se elimina por fallar un control local. Se
+  conserva para `Revalidar resultado` sin otra llamada pagada y se intenta
+  incluir en el avance guardado cuando existe espacio en el navegador.
+- Cada error conserva identificador y etapa desde el inicio.
+- Build `v104`, calidad `v26`, caché PWA `smyl-v67`.
+- QA aprobado sin IA: scripts inline, contrato v104, 12 pruebas de máscara,
+  sintaxis TypeScript y revisión responsive a 390×844, 834×1194 y 1440×900.
+- Edge Function `claude` versión 64 desplegada y verificada `ACTIVE`, con
+  `verify_jwt=false` preservado. El frontend v104 se publicó en GitHub Pages.
+- **La publicación no ejecutó la simulación ni consumió otra generación.**
+
+## 2026-08-31 — Codex: v103 local, máscaras coronales sin franja gingival
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V103_ACCEPTANCE.md`.
+
+- La captura posterior a v102 confirmó un parche rectangular sobre labio y
+  encía. La causa era determinista: seis `fillRect` cervicales se unían en una
+  sola franja horizontal editable.
+- v103 elimina por completo esa franja. La máscara es sólo la unión de seis
+  coronas fuente/destino y todo el tejido gingival queda en la foto original.
+- El borde se suaviza hacia dentro: mejora la integración sin abrir nuevos
+  píxeles sobre encía, labios o piel.
+- Un control previo mide que la máscara permanezca dentro de seis envolventes
+  coronales; una fuga mayor a 0.3 % bloquea antes de generar.
+- El control visual ahora inspecciona también el perímetro de cada corona para
+  detectar contornos rojizos u oscuros como los observados en la regresión.
+- Build `v103`, calidad `v25`, caché PWA `smyl-v66`.
+- QA sin generación: scripts inline, regresión v103 y sintaxis TypeScript
+  aprobados. Web/móvil quedaron sincronizados.
+- **No se desplegó v103, no se publicó y no se consumió otra generación.**
+
+
+## 2026-08-31 — Codex: v102 local con seis destinos numéricos
+
+**Tocado localmente:** `simulacion.html`, `mobile/www/simulacion.html`,
+`sw.js`, `supabase/functions/claude/index.ts`,
+`tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V102_ACCEPTANCE.md`.
+
+- La v102 elimina la contradicción activa de v101: el prompt pedía obedecer
+  una `IMAGE 2`, pero el contrato de máscara alfa deliberadamente no enviaba
+  esa imagen. La fotografía del paciente es ahora la única referencia visual.
+- El plano 13–23 se transmite como seis envolventes numéricas independientes:
+  centro, origen cervical, destino incisal, ancho, alto y rol dental. No se
+  genera ni se adjunta una guía rasterizada.
+- La orden efectiva limita el tratamiento a 13–12–11–21–22–23 y excluye
+  expresamente premolares, arcada inferior y cualquier pieza no enumerada.
+- El backend reconoce v101 y v102 como contratos sin plano visual. Para v102
+  exige GPT Image 2, imagen PNG y máscara alfa PNG antes de descontar cuota;
+  no existe fallback silencioso a Gemini.
+- La composición determinista y los controles por píxel se mantienen: fuera
+  de la máscara final todo procede del original y no se vuelve a segmentar el
+  render generado.
+- Build `v102`, calidad `v24`, caché PWA `smyl-v65`. Web y móvil quedaron
+  idénticos.
+- QA sin generación pagada: scripts inline válidos, regresión v102 aprobada,
+  12 pruebas de máscara aprobadas y TypeScript del backend sintácticamente
+  válido con el parser de Node 24.
+- Revisión local sin autenticación: 1440×900, 834×1194 y 390×844 cargan sin
+  desbordamiento horizontal ni errores de consola; la tarjeta de acceso se
+  mantiene legible. El flujo autenticado y el resultado real no se probaron.
+- **No se desplegó backend, no se publicó frontend y no se consumió una
+  generación.** Falta una prueba controlada autorizada antes de considerar
+  producción.
+
+## 2026-08-30 — Codex: backend v101 desplegado, frontend aún local
+
+**Tocado en producción:** Edge Function `claude`.
+
+- Con autorización del usuario se desplegó el backend compatible con el
+  contrato `v101` al proyecto Smyl `rpxshsiwoxdbuevjjpfw`.
+- Supabase confirmó la función `claude` versión 61 en estado `ACTIVE`, con
+  `verify_jwt=false` preservado y los módulos `_shared/auth.ts` y
+  `_shared/limits.ts` incluidos en el paquete.
+- Una solicitud `OPTIONS` sin fotografía ni generación respondió HTTP 200 y
+  devolvió los encabezados CORS esperados.
+- No se ejecutó una generación de imagen, no se transmitió una fotografía y
+  no se consumió cuota durante esta verificación.
+- El frontend v101 sigue únicamente local; no se publicó GitHub Pages ni la
+  copia móvil. La siguiente acción requiere confirmación separada para una
+  única generación controlada y revisión visual antes de publicar.
+
+## 2026-08-28 — Codex: base v100 con máscara destino y aceptación medida
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
+`supabase/functions/claude/index.ts`, `tests/simulation-blueprint.test.mjs` y
+`docs/SIMULATION_V100_ACCEPTANCE.md`.
+
+- La v99 queda como referencia estable en el commit `01eeb77`. La v100 se
+  desarrolla localmente y **no fue publicada ni desplegada**.
+- Antes de consumir generación se exige una captura frontal con seis piezas
+  anteriores, resolución dental suficiente y encuadre utilizable.
+- La máscara editable ya no se limita al contorno original: une dientes
+  fuente, siluetas destino 13–23 y una franja cervical corta, siempre
+  intersectados con la segmentación segura de dientes y encía superior.
+- GPT Image 2 queda reducido al papel de renderizador cerámico. El frontend
+  envía `contractVersion:'v100'`; la Edge Function lo devuelve como
+  `X-SMYL-Contract` y en la telemetría. El contrato paciente-facing exige
+  OpenAI GPT Image 2 explícito, sin fallback silencioso a otro proveedor.
+- Se eliminó la evidencia ficticia `generatedPieces:piezasOriginales`. El
+  resultado se mide por píxeles en las seis regiones destino: cambio global,
+  diferencia media, textura, amarillo A1 y cambio mínimo independiente por
+  carilla. Cualquier fallo es bloqueo real, no una advertencia que permita
+  mostrar una imagen deficiente.
+- Fuera de la máscara se conserva igualdad exacta de píxel. El contrato, sus
+  umbrales y la política de regresión quedaron documentados y cubiertos con
+  pruebas sintéticas.
+- QA sin llamadas pagadas: scripts inline y TypeScript válidos, pruebas de
+  geometría/contrato superadas, copias web/móvil idénticas y carga local sin
+  errores ni desbordamiento horizontal en 390×844, 834×1194 y 1440×900.
+- Pendiente antes de producción: construir el conjunto de regresión
+  anonimizado, revisar clínicamente resultados reales, ajustar umbrales sólo
+  con evidencia, definir la política de candidatos/costo, desplegar la Edge
+  Function y pedir autorización explícita para publicar frontend.
+- Se inició la regresión sin datos de pacientes con tres retratos sintéticos en
+  `artifacts/v100-regression/synthetic/`: apiñamiento leve, laterales pequeños y
+  desgaste/diastema. La aplicación v100 local abre correctamente, pero la
+  ejecución pagada queda pendiente de iniciar sesión manualmente en el origen
+  `http://127.0.0.1:4173`; el origen `file://` no comparte esa sesión.
+- El primer candidato sintético fue bloqueado correctamente por el contrato,
+  pero la pantalla ocultaba la causa concreta. En `?debugUI=1` ahora se muestra
+  exclusivamente para calibración: fallos, proveedor/modelo, coberturas,
+  cambio global, textura, amarillo, cambio por diente y una previsualización
+  del candidato rechazado. En la experiencia normal sigue sin mostrarse.
+- El reintento `local-mtdjs566` no consumió generación: falló en el preflight
+  porque la máscara destino se intersectaba con el contorno dental original
+  estricto, haciendo imposible alojar nuevas proporciones. La región segura se
+  dilata ahora un 16 % de la altura dentaria mediana (acotada a 3–18 px) y sólo
+  intersecta la unión de seis siluetas, fuente y franja cervical. Los fallos de
+  cobertura previos a GPT también exponen métricas en `debugUI`.
+
 ## 2026-08-27 — Codex: una sola máscara previa y preservación por píxel
 
 **Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js` y
@@ -806,6 +1075,102 @@
 - Incluye advertencia visible sobre el carácter orientativo de la simulación.
 - Prueba headless: documento válido, dos imágenes incrustadas, datos del caso,
   notas privadas excluidas y función de impresión presente.
+
+---
+
+## 2026-09-20 — Prueba pareada frontal + intraoral
+
+**Tocado:** `simulacion-rapida.html`, `sw.js`, `demo/smyl-paciente-chuecos-v2/`,
+copias `mobile/www/` y `tests/lana-quick.test.mjs`.
+
+- `Laboratorio avanzado` incorpora `Probar frontal + intraoral` con dos fotos
+  sintéticas del mismo paciente.
+- Ambas vistas comparten la selección VITA y el mismo modo de simulación.
+- Las generaciones son consecutivas, no concurrentes: el módulo de revisión
+  visual requiere autorizar y aceptar cada fotografía por separado.
+- Si falla o se cancela la intraoral, se conserva la frontal ya terminada y la
+  intraoral puede generarse después desde su miniatura.
+- La interfaz advierte que completar ambas consume dos usos.
+
+No se ejecutó ninguna generación SMYL ni se desplegó el cambio.
+
+---
+
+## 2026-09-20 — Paciente sintético coherente de seis vistas
+
+**Tocado:** `simulacion-rapida.html`, `sw.js`, `demo/smyl-paciente-chuecos-v1/`,
+copias `mobile/www/` y `tests/lana-quick.test.mjs`.
+
+- Se añadió un juego sintético del mismo paciente: frontal, perfil derecho,
+  perfil izquierdo, vista 3/4, intraoral frontal y extraoral de sonrisa.
+- En `Laboratorio avanzado` aparece `Cargar paciente sintético · 6 fotos`.
+- El cargador coloca cada fotografía en su vista correspondiente, abre la guía
+  VITA y, al confirmar, procesa únicamente la frontal; las otras cinco quedan
+  como documentación del mismo caso y no generan consumo adicional.
+- Las imágenes se identifican como sintéticas en memoria y no reemplazan los
+  ejemplos de captura normales.
+
+No se ejecutó una simulación SMYL ni se desplegó este cambio.
+
+---
+
+## 2026-09-20 — Cambio VITA con geometría bloqueada
+
+**Tocado:** `simulacion-rapida.html`, `visual-simulation.js`, `sw.js`, copias
+`mobile/www/` y `tests/lana-quick.test.mjs`.
+
+- Si el usuario cambia únicamente el VITA, la generación parte del resultado
+  aprobado y no de la fotografía dental original.
+- El prompt activa un contrato de solo material: bloquea formas, ejes, bordes,
+  contactos, encía, mordida, encuadre y resto de la fotografía.
+- La revisión previa y posterior explica que solo deben variar valor, matiz,
+  croma, translucidez y óptica cerámica.
+- Se añadió una comprobación explícita de coherencia de tono entre centrales,
+  laterales, caninos y las arcadas seleccionadas.
+
+No se consumió API ni se desplegó este cambio.
+
+---
+
+## 2026-09-19 — Cambio VITA visible y tonos diferenciados
+
+**Tocado:** `simulacion-rapida.html`, `visual-simulation.js`, `sw.js`, copias
+`mobile/www/` y `tests/lana-quick.test.mjs`.
+
+- Durante una regeneración ya no se presenta el resultado anterior como si
+  fuera el tono recién elegido: se atenúa y se muestra explícitamente el tono
+  anterior y el tono que se está generando.
+- Al terminar, el comparador identifica el VITA realmente asociado al resultado.
+- El prompt distingue cada familia VITA y refuerza especialmente la diferencia
+  perceptual A1/C2; no aplica recoloración local ni filtros planos.
+- Se incrementó la versión de caché para evitar recursos anteriores.
+
+No se consumió API ni se desplegó este cambio.
+
+---
+
+## 2026-08-29 — v101 local: máscara alfa sin plano visual
+
+**Tocado:** `simulacion.html`, `mobile/www/simulacion.html`, `sw.js`,
+`supabase/functions/claude/index.ts`, `tests/simulation-blueprint.test.mjs`,
+`docs/SIMULATION_V101_ACCEPTANCE.md`.
+
+- La calibración v100 produjo una salida con carillas planas y líneas rojizas
+  copiadas del plano geométrico. El contrato anterior la aceptó porque esos
+  artefactos elevaban cambio y textura.
+- v101 deja de transmitir `guideImageBase64`; GPT Image recibe solamente el
+  recorte original y la máscara alfa. La geometría individual continúa en el
+  prompt como números y texto.
+- El backend activa este modo exclusivamente para `contractVersion=v101`. Las
+  llamadas heredadas conservan el plano visual y el prompt anterior para no
+  cambiar el frontend público v99 antes de autorización.
+- Se añadió un control local por corona que bloquea líneas rojizas, recortes
+  oscuros repetidos, placas claras uniformes y menos de cinco separaciones
+  entre las seis piezas anteriores.
+- Las regresiones usan matrices sintéticas; ninguna fotografía identificable
+  de paciente se incorpora al repositorio.
+- No se ejecutó una generación adicional. No se desplegó v101 ni se publicó el
+  frontend.
 
 ---
 

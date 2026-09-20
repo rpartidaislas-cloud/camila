@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Abriendo SMYL…</title>
+  <style>
+    html,body{height:100%;margin:0;background:#0b0a17;color:#fff;font:500 15px system-ui,sans-serif}
+    body{display:grid;place-items:center}.box{text-align:center;padding:24px}.dot{width:34px;height:34px;margin:0 auto 14px;border:3px solid #34324b;border-top-color:#6c5ce7;border-radius:50%;animation:g .8s linear infinite}@keyframes g{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="box"><div class="dot"></div><div id="estado">Abriendo el caso en SMYL…</div></div>
+  <script>
+  (function(){
+    var params=new URLSearchParams(location.search);
+    var contexto={
+      tenant_id:(params.get('tenant_id')||'').trim(),
+      cita_id:(params.get('cita_id')||'').trim(),
+      paciente:(params.get('paciente')||'').trim(),
+      telefono:(params.get('telefono')||'').trim(),
+      origen:(params.get('origen')||'').trim().toLowerCase()
+    };
+    var uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var cita=/^[1-9]\d{0,18}$/;
+    var telefono=/^\+[1-9]\d{7,14}$/;
+    var citaNumero=Number(contexto.cita_id);
+    if(contexto.origen!=='lana'||!uuid.test(contexto.tenant_id)||!cita.test(contexto.cita_id)||!Number.isSafeInteger(citaNumero)||citaNumero<=0||!contexto.paciente||contexto.paciente.length>160||!telefono.test(contexto.telefono)){
+      document.getElementById('estado').textContent='El enlace de LANA está incompleto o no es válido.';
+      return;
+    }
+    try{sessionStorage.setItem('smyl_lana_context',JSON.stringify(contexto));}
+    catch(e){document.getElementById('estado').textContent='No se pudo conservar el contexto de la cita.';return;}
+    // location.replace retira nombre y teléfono de la barra/historial.
+    // La ruta clínica previa sigue disponible con experiencia=clinica.
+    var destino=new URL(params.get('experiencia')==='clinica'?'../simulacion.html':'../simulacion-rapida.html',location.href);
+    destino.searchParams.set('origen','lana');
+    location.replace(destino.href);
+  })();
+  </script>
+</body>
+</html>

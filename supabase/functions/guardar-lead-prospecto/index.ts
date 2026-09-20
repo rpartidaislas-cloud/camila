@@ -35,6 +35,7 @@ const CAMPOS_PERMITIDOS = [
   "foto_frontal", "foto_perfil_der", "foto_perfil_izq", "foto_extraoral",
   "foto_intraoral", "foto_tres_cuartos", "cuestionario", "fotos_count",
   "diagnostico_claude", "prompt_gemini_usado", "editor_params", "created_at",
+  "lana_cita_id", "lana_origen",
 ];
 
 function jsonError(status: number, msg: string): Response {
