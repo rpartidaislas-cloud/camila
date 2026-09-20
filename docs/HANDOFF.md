@@ -3469,3 +3469,27 @@ validación server-side de cuotas/consumo y prueba real autenticada de cámara, 
 nube y envío al paciente.
 
 ---
+
+## 2026-09-19 — Claude Code — 402 mal clasificado como falta de cupo
+
+**Síntoma reportado:** la generación fallaba con "No hay simulaciones
+disponibles / Revisa el plan de la clínica" pese a haber acreditado usos
+adicionales en Supabase.
+
+**Causa real:** el tenant tenía `vence_en` en el pasado. Tanto
+`_shared/limits.ts` como la RPC `camila_consumir_diagnostico` evalúan
+`plan_vencido` ANTES que `limite_alcanzado`, así que el cupo nunca se
+consultaba: acreditar usos no podía desbloquear nada.
+
+**Por qué se confundió:** `clasificarErrorParaUsuario()` en `simulacion.html`
+colapsaba cualquier HTTP 402 en el mensaje de falta de cupo, descartando el
+texto que el backend sí manda y que `leerRespuestaEdge()` ya dejaba en
+`error.message`. Los cuatro motivos (`tenant_no_encontrado`, `plan_inactivo`,
+`plan_vencido`, `limite_alcanzado`) se veían idénticos en pantalla.
+
+**Tocado:** `simulacion.html` + copia en `mobile/www/`
+(`clasificarErrorParaUsuario`), y pruebas en
+`tests/simulation-blueprint.test.mjs` para los cuatro motivos.
+
+**Sin tocar:** no se modificó ningún dato en Supabase. El vencimiento del
+plan es una decisión de facturación y quedó pendiente de autorización.

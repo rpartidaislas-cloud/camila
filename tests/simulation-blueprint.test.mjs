@@ -730,6 +730,41 @@ const mensajeSaturacionProveedor = context.clasificarErrorParaUsuario(
 );
 assert.equal(mensajeSaturacionProveedor.titulo, 'El servicio está recibiendo muchas solicitudes');
 
+// Un 402 tiene cuatro causas distintas y el backend ya las distingue
+// (supabase/functions/_shared/limits.ts, MENSAJES_TENANT). Presentarlas
+// todas como falta de cupo llevó a acreditar usos adicionales en una cuenta
+// cuyo contador estaba en 0 y cuyo bloqueo real era el vencimiento: el
+// mensaje mandaba a revisar el plan y la generación seguía fallando igual.
+// Los textos de abajo son los literales que devuelve limits.ts.
+function errorDePlanBackend(mensaje) {
+  const e = new Error(mensaje);
+  e.status = 402;
+  return e;
+}
+
+const planVencido = context.clasificarErrorParaUsuario(errorDePlanBackend(
+  'Tu plan venció. Renueva tu suscripción para seguir generando simulaciones.',
+));
+assert.equal(planVencido.titulo, 'Tu plan venció');
+assert.notEqual(planVencido.titulo, 'No hay simulaciones disponibles');
+
+const planInactivo = context.clasificarErrorParaUsuario(errorDePlanBackend(
+  'Tu plan no está activo. Revisa tu suscripción.',
+));
+assert.equal(planInactivo.titulo, 'Tu plan no está activo');
+
+const tenantAusente = context.clasificarErrorParaUsuario(errorDePlanBackend(
+  'No se encontró tu cuenta de clínica.',
+));
+assert.equal(tenantAusente.titulo, 'No encontramos tu cuenta de clínica');
+
+// El cupo agotado sí conserva el mensaje original: es el único de los cuatro
+// que de verdad se resuelve acreditando usos.
+const cupoAgotado = context.clasificarErrorParaUsuario(errorDePlanBackend(
+  'Alcanzaste el límite de diagnósticos de tu plan en este periodo.',
+));
+assert.equal(cupoAgotado.titulo, 'No hay simulaciones disponibles');
+
 const hallazgosRevision = context.consolidarHallazgosRevision(
   {critical:['fila plana'],warnings:['tono desigual','fila plana']},
   {status:'rejected',issues:['proporción central','tono desigual']},
