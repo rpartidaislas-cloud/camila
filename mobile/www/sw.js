@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v93-auto-smile-localizer';
+const CACHE_VERSION = 'smyl-v94-pwa-update';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -34,14 +34,15 @@ const STATIC_FILES = [
 
 // ── INSTALL ──
 self.addEventListener('install', function(e) {
-  console.log('[SW] Installing CAMILA v1...');
+  console.log('[SW] Installing SMYL PWA update...');
   e.waitUntil(
     caches.open(STATIC_CACHE).then(function(cache) {
-      return cache.addAll(STATIC_FILES.map(function(url) {
-        return new Request(url, { cache: 'reload' });
-      })).catch(function(err) {
-        console.warn('[SW] Some files failed to cache:', err);
-      });
+      // Un recurso externo no debe impedir que se actualice toda la PWA.
+      return Promise.all(STATIC_FILES.map(function(url) {
+        return cache.add(new Request(url, { cache: 'reload' })).catch(function(err) {
+          console.warn('[SW] File not cached:', url, err);
+        });
+      }));
     }).then(function() {
       return self.skipWaiting();
     })
@@ -93,7 +94,7 @@ self.addEventListener('fetch', function(e) {
         return response;
       }).catch(function() {
         return caches.match(e.request).then(function(cached) {
-          return cached || caches.match('/camila/simulacion.html');
+          return cached || caches.match('/camila/simulacion-rapida.html');
         });
       })
     );
@@ -127,13 +128,13 @@ self.addEventListener('push', function(e) {
     body: data.body || 'Tienes una nueva simulación lista',
     icon: '/camila/icons/smyl_pwa.png',
     badge: '/camila/icons/smyl_pwa.png',
-    data: { url: data.url || '/camila/simulacion.html' }
+    data: { url: data.url || '/camila/simulacion-rapida.html' }
   });
 });
 
 self.addEventListener('notificationclick', function(e) {
   e.notification.close();
   e.waitUntil(
-    clients.openWindow(e.notification.data.url || '/camila/simulacion.html')
+    clients.openWindow(e.notification.data.url || '/camila/simulacion-rapida.html')
   );
 });

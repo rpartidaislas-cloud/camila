@@ -1948,11 +1948,18 @@ if (_diagTarget) _diagObs.observe(_diagTarget, {childList:true, subtree:true});
 // ══ SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg) {
       console.log('[SMYL PWA] SW registered:', reg.scope);
+      reg.update().catch(function() {});
     }).catch(function(err) {
       console.warn('[SMYL PWA] SW failed:', err);
     });
+  });
+  var smylRefreshingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (smylRefreshingForUpdate) return;
+    smylRefreshingForUpdate = true;
+    window.location.reload();
   });
 }
 </script>

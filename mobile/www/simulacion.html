@@ -12347,11 +12347,18 @@ if(new URLSearchParams(location.search).get('debugUI')==='1'&&new URLSearchParam
 // ══ SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg) {
       console.log('[SMYL PWA] SW registered:', reg.scope);
+      reg.update().catch(function() {});
     }).catch(function(err) {
       console.warn('[SMYL PWA] SW failed:', err);
     });
+  });
+  var smylRefreshingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (smylRefreshingForUpdate) return;
+    smylRefreshingForUpdate = true;
+    window.location.reload();
   });
 }
 
