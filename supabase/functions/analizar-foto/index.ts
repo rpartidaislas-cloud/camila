@@ -1,316 +1,348 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { autorizarLana, enviarWebhookLana } from "../_shared/lana.ts";
+// supabase/functions/analizar-foto/index.ts
+//
+// Endpoint server-to-server llamado por LANA cuando un paciente envía una
+// foto dental por WhatsApp/Instagram (vertical = salud).
+//
+// Recibe la URL de la imagen + datos del paciente, genera diagnóstico con
+// GPT-4o Vision y simulación de sonrisa con GPT Image 2, sube la simulación
+// al bucket "camila-analisis", y notifica de vuelta a LANA vía callback_url.
+//
+// Auth entrante:  Authorization: Bearer <LANA_API_KEY>
+// Auth saliente:  Authorization: Bearer <callback_secret>  (al notificar)
+//
+// Body de entrada (POST JSON):
+//   { tenant_id, canal, sender_id, nombre_paciente?,
+//     imagen_url, callback_url, callback_secret }
+//
+// Body de notificación saliente (POST JSON a callback_url):
+//   { tenant_id, canal, sender_id, nombre_paciente?,
+//     diagnostico, tratamientos_sugeridos, zona_afectada, requiere_urgente,
+//     imagen_original_url, imagen_simulacion_url? }
+//   En error: { tenant_id, canal, sender_id, error: true, error_message }
+//
+// Responde 200 inmediatamente y procesa en background (EdgeRuntime.waitUntil).
 
-declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+const LANA_API_KEY = Deno.env.get("LANA_API_KEY") || "";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const SB_URL = Deno.env.get("SUPABASE_URL") || "";
+const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const OPENAI_IMAGE_MODEL =
+  Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2-2026-04-21";
+const ANALISIS_BUCKET = "camila-analisis";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, idempotency-key",
+  "Access-Control-Allow-Headers": "authorization, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
-const SB_SERVICE_ROLE_KEY =
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
-const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const GPT_MODEL = "gpt-4o-2024-11-20";
-
-const SYSTEM_PROMPT = `Eres un asistente dental especializado. Analiza la imagen dental del paciente y devuelve únicamente el JSON solicitado.
-
-- diagnostico: texto en español, máximo 3 párrafos, lenguaje claro para el paciente y limitado a lo realmente visible. No declares un diagnóstico definitivo ni sustituyas una consulta clínica.
-- tratamientos_sugeridos: array de objetos con {nombre, descripcion, urgencia: "alta" | "media" | "baja"}.
-- zona_afectada: descripción breve de los dientes o la zona visible.
-- requiere_consulta_urgente: boolean.
-
-Si la fotografía no permite valorar un dato, dilo expresamente. No inventes dientes, síntomas, antecedentes, radiografías ni hallazgos que la imagen no muestre.`;
-
-const ANALYSIS_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["diagnostico", "tratamientos_sugeridos", "zona_afectada", "requiere_consulta_urgente"],
-  properties: {
-    diagnostico: { type: "string", minLength: 1, maxLength: 2400 },
-    tratamientos_sugeridos: {
-      type: "array",
-      maxItems: 6,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["nombre", "descripcion", "urgencia"],
-        properties: {
-          nombre: { type: "string", minLength: 1, maxLength: 120 },
-          descripcion: { type: "string", minLength: 1, maxLength: 600 },
-          urgencia: { type: "string", enum: ["alta", "media", "baja"] },
-        },
-      },
-    },
-    zona_afectada: { type: "string", minLength: 1, maxLength: 300 },
-    requiere_consulta_urgente: { type: "boolean" },
-  },
-} as const;
-
-interface EntradaAnalisis {
-  tenant_id: string;
-  cita_id: number | null;
-  paciente_nombre: string;
-  paciente_telefono: string;
-  imagen_url: string;
-  origen: "whatsapp" | "instagram";
-}
-
-interface AnalisisDental {
-  diagnostico: string;
-  tratamientos_sugeridos: Array<{ nombre: string; descripcion: string; urgencia: "alta" | "media" | "baja" }>;
-  zona_afectada: string;
-  requiere_consulta_urgente: boolean;
-}
-
-function responder(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
+function jsonResp(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
     status,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 }
 
-function esUuidV4(valor: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(valor);
-}
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return jsonResp({ error: "Método no permitido" }, 405);
 
-function validarEntrada(body: Record<string, unknown>): EntradaAnalisis {
-  const tenantId = String(body.tenant_id || "").trim();
-  const nombre = String(body.paciente_nombre || "").trim();
-  const telefono = String(body.paciente_telefono || "").trim();
-  const imagenUrl = String(body.imagen_url || "").trim();
-  const origen = String(body.origen || "").trim().toLowerCase();
-  if (!esUuidV4(tenantId)) throw new Error("tenant_id debe ser un UUID v4 válido.");
-  if (!nombre || nombre.length > 160) throw new Error("paciente_nombre es obligatorio y admite máximo 160 caracteres.");
-  if (!/^\+[1-9]\d{7,14}$/.test(telefono)) throw new Error("paciente_telefono debe usar formato E.164.");
-  if (origen !== "whatsapp" && origen !== "instagram") throw new Error("origen debe ser whatsapp o instagram.");
-  let parsed: URL;
-  try { parsed = new URL(imagenUrl); } catch { throw new Error("imagen_url no es una URL válida."); }
-  if (parsed.protocol !== "https:") throw new Error("imagen_url debe usar HTTPS.");
-  let citaId: number | null = null;
-  if (body.cita_id !== null && body.cita_id !== undefined && body.cita_id !== "") {
-    const raw = typeof body.cita_id === "number" ? body.cita_id : Number(String(body.cita_id));
-    if (!Number.isSafeInteger(raw) || raw <= 0) throw new Error("cita_id debe ser null o un entero positivo seguro.");
-    citaId = raw;
+  // Autenticación: secreto compartido LANA → CAMILA
+  const tokenEntrante = (req.headers.get("Authorization") || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+  if (!LANA_API_KEY || tokenEntrante !== LANA_API_KEY) {
+    return jsonResp({ error: "No autorizado" }, 401);
   }
-  return { tenant_id: tenantId, cita_id: citaId, paciente_nombre: nombre, paciente_telefono: telefono, imagen_url: parsed.toString(), origen };
-}
 
-function ipPrivada(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h.endsWith(".local") || h === "::1" || h === "0.0.0.0") return true;
-  const p = h.split(".").map(Number);
-  if (p.length === 4 && p.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
-    return p[0] === 10 || p[0] === 127 || (p[0] === 169 && p[1] === 254) ||
-      (p[0] === 172 && p[1] >= 16 && p[1] <= 31) || (p[0] === 192 && p[1] === 168) || p[0] === 0;
-  }
-  return h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80:");
-}
-
-async function validarDestinoPublico(url: URL): Promise<void> {
-  if (url.protocol !== "https:" || ipPrivada(url.hostname)) throw new Error("La URL de imagen no apunta a un destino público permitido.");
-  // Reduce SSRF por DNS hacia redes privadas. Si el runtime no permite DNS,
-  // el fetch aún queda limitado a HTTPS y bloquea hosts/IP literales privados.
+  let body: any;
   try {
-    const ips = await Deno.resolveDns(url.hostname, "A");
-    if (ips.some(ipPrivada)) throw new Error("La URL de imagen resolvió a una red privada.");
-  } catch (error) {
-    if (error instanceof Error && /red privada/.test(error.message)) throw error;
+    body = await req.json();
+  } catch {
+    return jsonResp({ error: "Body inválido (se esperaba JSON)" }, 400);
+  }
+
+  const { tenant_id, canal, sender_id, nombre_paciente, imagen_url, callback_url, callback_secret } = body;
+
+  if (!tenant_id || !canal || !sender_id || !imagen_url || !callback_url || !callback_secret) {
+    return jsonResp({
+      error: "Faltan campos requeridos: tenant_id, canal, sender_id, imagen_url, callback_url, callback_secret",
+    }, 400);
+  }
+
+  const job_id = crypto.randomUUID();
+  console.log(`[analizar-foto] job_id=${job_id} tenant=${tenant_id} canal=${canal} sender=${sender_id}`);
+
+  const tarea = procesarFotoDental({
+    job_id, tenant_id, canal, sender_id,
+    nombre_paciente: nombre_paciente || null,
+    imagen_url,
+    callback_url,
+    callback_secret,
+  });
+
+  // EdgeRuntime.waitUntil mantiene viva la función hasta que termina el
+  // procesamiento aunque la respuesta ya fue enviada.
+  try {
+    (globalThis as any).EdgeRuntime.waitUntil(tarea);
+  } catch {
+    tarea.catch((e: Error) => console.error("[analizar-foto] tarea de fondo:", e));
+  }
+
+  return jsonResp({ ok: true, job_id, message: "Procesando..." });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Procesamiento asíncrono
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function procesarFotoDental(opts: {
+  job_id: string;
+  tenant_id: string;
+  canal: string;
+  sender_id: string;
+  nombre_paciente: string | null;
+  imagen_url: string;
+  callback_url: string;
+  callback_secret: string;
+}): Promise<void> {
+  const { job_id, tenant_id, canal, sender_id, nombre_paciente, imagen_url, callback_url, callback_secret } = opts;
+
+  try {
+    // 1. Descargar la imagen dental
+    const imagenRes = await fetch(imagen_url);
+    if (!imagenRes.ok) {
+      throw new Error(`No se pudo descargar la imagen: HTTP ${imagenRes.status}`);
+    }
+    const mimeType = (imagenRes.headers.get("content-type") || "image/jpeg").split(";")[0];
+    const imagenBytes = new Uint8Array(await imagenRes.arrayBuffer());
+    const imagenBase64 = bytesABase64(imagenBytes);
+
+    // 2. Diagnóstico con GPT-4o Vision
+    const diagnostico = await diagnosticarFoto(imagenBase64, mimeType);
+
+    // 3. Simulación de sonrisa (se intenta; si falla no bloquea el callback)
+    let imagen_simulacion_url: string | null = null;
+    try {
+      imagen_simulacion_url = await generarSimulacion(imagenBase64, mimeType, job_id, tenant_id);
+    } catch (e) {
+      console.error(`[analizar-foto] job_id=${job_id} — simulación no disponible:`, e);
+    }
+
+    // 4. Notificar a LANA
+    await notificarCallback(callback_url, callback_secret, {
+      tenant_id, canal, sender_id,
+      nombre_paciente: nombre_paciente || undefined,
+      diagnostico: diagnostico.diagnostico,
+      tratamientos_sugeridos: diagnostico.tratamientos_sugeridos,
+      zona_afectada: diagnostico.zona_afectada,
+      requiere_urgente: diagnostico.requiere_urgente,
+      imagen_original_url: imagen_url,
+      imagen_simulacion_url: imagen_simulacion_url || undefined,
+    });
+
+    console.log(`[analizar-foto] job_id=${job_id} completado`);
+  } catch (e) {
+    console.error(`[analizar-foto] job_id=${job_id} error:`, e);
+    // Callback de error para que LANA sepa que falló y pueda responder al paciente
+    try {
+      await notificarCallback(callback_url, callback_secret, {
+        tenant_id, canal, sender_id,
+        error: true,
+        error_message: String(e),
+      });
+    } catch (_e2) { /* ignorar si el callback mismo falla */ }
   }
 }
 
-async function descargarImagen(urlInicial: string): Promise<{ bytes: Uint8Array; mimeType: string }> {
-  let url = new URL(urlInicial);
-  for (let redireccion = 0; redireccion <= 3; redireccion += 1) {
-    await validarDestinoPublico(url);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
-    let respuesta: Response;
-    try {
-      respuesta = await fetch(url, { redirect: "manual", signal: controller.signal, headers: { Accept: "image/jpeg,image/png,image/webp" } });
-    } finally {
-      clearTimeout(timer);
-    }
-    if ([301, 302, 303, 307, 308].includes(respuesta.status)) {
-      const location = respuesta.headers.get("location");
-      if (!location || redireccion === 3) throw new Error("La imagen excedió el límite de redirecciones.");
-      url = new URL(location, url);
-      continue;
-    }
-    if (!respuesta.ok || !respuesta.body) throw new Error(`No se pudo descargar la imagen (${respuesta.status}).`);
-    const mimeType = (respuesta.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) throw new Error("imagen_url no devolvió JPEG, PNG o WebP.");
-    const largo = Number(respuesta.headers.get("content-length") || 0);
-    if (largo > MAX_IMAGE_BYTES) throw new Error("La imagen excede 8 MB.");
-    const lector = respuesta.body.getReader();
-    const partes: Uint8Array[] = [];
-    let total = 0;
-    while (true) {
-      const { value, done } = await lector.read();
-      if (done) break;
-      if (!value) continue;
-      total += value.length;
-      if (total > MAX_IMAGE_BYTES) { await lector.cancel(); throw new Error("La imagen excede 8 MB."); }
-      partes.push(value);
-    }
-    const bytes = new Uint8Array(total);
-    let offset = 0;
-    for (const parte of partes) { bytes.set(parte, offset); offset += parte.length; }
-    if (!bytes.length) throw new Error("La imagen descargada está vacía.");
-    return { bytes, mimeType };
-  }
-  throw new Error("No se pudo descargar la imagen.");
+// ─────────────────────────────────────────────────────────────────────────────
+// GPT-4o Vision: diagnóstico estructurado
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DiagnosticoResult {
+  diagnostico: string;
+  tratamientos_sugeridos: string[];
+  zona_afectada: string;
+  requiere_urgente: boolean;
 }
+
+async function diagnosticarFoto(imagenBase64: string, mimeType: string): Promise<DiagnosticoResult> {
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY no configurada");
+
+  const instruccion = [
+    "Eres un asistente dental. Analiza esta fotografía dental y devuelve ÚNICAMENTE JSON válido con el siguiente esquema exacto:",
+    '{"diagnostico":"descripción clínica breve del estado dental observado (máx. 200 caracteres)",',
+    '"tratamientos_sugeridos":["tratamiento1","tratamiento2"],',
+    '"zona_afectada":"descripción de la zona (ej: incisivos superiores, molares inferiores)",',
+    '"requiere_urgente":false}',
+    "Si la imagen no muestra claramente la dentadura, escribe diagnostico: 'Foto no analizable — no se distingue la dentadura' y deja los arreglos vacíos.",
+    "Responde SOLO con el JSON, sin markdown ni texto adicional.",
+  ].join(" ");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: instruccion },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${imagenBase64}`,
+                detail: "high",
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`GPT-4o Vision error (${res.status}): ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const texto = data.choices?.[0]?.message?.content || "";
+
+  try {
+    const limpio = texto.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(limpio);
+    return {
+      diagnostico: String(parsed.diagnostico || "Sin diagnóstico disponible").slice(0, 500),
+      tratamientos_sugeridos: Array.isArray(parsed.tratamientos_sugeridos)
+        ? parsed.tratamientos_sugeridos.map(String).slice(0, 10)
+        : [],
+      zona_afectada: String(parsed.zona_afectada || "").slice(0, 200),
+      requiere_urgente: Boolean(parsed.requiere_urgente),
+    };
+  } catch {
+    return {
+      diagnostico: texto.slice(0, 500) || "No se pudo generar diagnóstico.",
+      tratamientos_sugeridos: [],
+      zona_afectada: "",
+      requiere_urgente: false,
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GPT Image 2: simulación de sonrisa → sube a Supabase Storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function generarSimulacion(
+  imagenBase64: string,
+  mimeType: string,
+  jobId: string,
+  tenantId: string,
+): Promise<string> {
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY no configurada");
+  if (!SB_URL || !SB_SERVICE_ROLE_KEY) throw new Error("Supabase no configurado");
+
+  const promptSimulacion = [
+    "You are a dental smile simulation tool.",
+    "Generate a photorealistic simulation showing natural veneers that improve the patient smile.",
+    "Keep the patient's real features, lighting, background, and jaw structure exactly as they are.",
+    "Only modify the visible upper teeth: whiten, align, and add natural-looking ceramic veneers.",
+    "Do NOT alter skin, hair, lips, eyes, or any other part of the image.",
+    "The result must look like a real dental before/after photo.",
+  ].join(" ");
+
+  const formData = new FormData();
+  formData.append(
+    "image",
+    new Blob([base64ABytes(imagenBase64)], { type: mimeType }),
+    "dental.jpg",
+  );
+  formData.append("prompt", promptSimulacion);
+  formData.append("model", OPENAI_IMAGE_MODEL);
+  formData.append("size", "1024x1024");
+  formData.append("quality", "medium");
+  formData.append("n", "1");
+  formData.append("response_format", "b64_json");
+
+  const res = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${OPENAI_API_KEY}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`GPT Image edits error (${res.status}): ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const b64 = data.data?.[0]?.b64_json;
+  if (!b64) throw new Error("GPT Image no devolvió imagen en b64_json");
+
+  const pngBytes = base64ABytes(b64);
+  const path = `${tenantId}/${jobId}.png`;
+
+  const uploadRes = await fetch(
+    `${SB_URL}/storage/v1/object/${ANALISIS_BUCKET}/${path}`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SB_SERVICE_ROLE_KEY}`,
+        "Content-Type": "image/png",
+        "x-upsert": "true",
+      },
+      body: pngBytes,
+    },
+  );
+
+  if (!uploadRes.ok) {
+    const err = await uploadRes.text().catch(() => "");
+    throw new Error(`Storage upload error (${uploadRes.status}): ${err.slice(0, 200)}`);
+  }
+
+  return `${SB_URL}/storage/v1/object/public/${ANALISIS_BUCKET}/${path}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Callback a LANA
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function notificarCallback(url: string, secret: string, payload: Record<string, unknown>): Promise<void> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${secret}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const texto = await res.text().catch(() => "");
+    throw new Error(`Callback error (${res.status}): ${texto.slice(0, 200)}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilidades
+// ─────────────────────────────────────────────────────────────────────────────
 
 function bytesABase64(bytes: Uint8Array): string {
   let binario = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    binario += String.fromCharCode(...bytes.subarray(i, Math.min(bytes.length, i + 0x8000)));
-  }
+  for (let i = 0; i < bytes.length; i++) binario += String.fromCharCode(bytes[i]);
   return btoa(binario);
 }
 
-function extraerTextoRespuesta(data: Record<string, unknown>): string {
-  if (typeof data.output_text === "string") return data.output_text;
-  const output = Array.isArray(data.output) ? data.output as Array<Record<string, unknown>> : [];
-  for (const item of output) {
-    const contenido = Array.isArray(item.content) ? item.content as Array<Record<string, unknown>> : [];
-    for (const parte of contenido) if (parte.type === "output_text" && typeof parte.text === "string") return parte.text;
-  }
-  return "";
+function base64ABytes(base64: string): Uint8Array {
+  const limpio = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
+  const binario = atob(limpio);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return bytes;
 }
-
-async function analizarConGpt4o(imagen: { bytes: Uint8Array; mimeType: string }): Promise<{ analysis: AnalisisDental; responseId: string }> {
-  const apiKey = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-  if (!apiKey) throw new Error("OPENAI_API_KEY no está configurada.");
-  const respuesta = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: GPT_MODEL,
-      store: false,
-      instructions: SYSTEM_PROMPT,
-      input: [{
-        role: "user",
-        content: [
-          { type: "input_text", text: "Analiza esta fotografía dental. Limítate a hallazgos visibles y responde con el esquema solicitado." },
-          { type: "input_image", image_url: `data:${imagen.mimeType};base64,${bytesABase64(imagen.bytes)}`, detail: "high" },
-        ],
-      }],
-      text: { format: { type: "json_schema", name: "analisis_dental", strict: true, schema: ANALYSIS_SCHEMA } },
-      max_output_tokens: 1400,
-      temperature: 0.2,
-    }),
-  });
-  const data = await respuesta.json().catch(() => ({})) as Record<string, unknown>;
-  if (!respuesta.ok) {
-    const detalle = typeof (data.error as Record<string, unknown> | undefined)?.message === "string"
-      ? String((data.error as Record<string, unknown>).message) : `OpenAI respondió ${respuesta.status}.`;
-    throw new Error(detalle);
-  }
-  const texto = extraerTextoRespuesta(data);
-  if (!texto) throw new Error("OpenAI no devolvió el análisis estructurado.");
-  const analysis = JSON.parse(texto) as AnalisisDental;
-  if (!analysis.diagnostico || !Array.isArray(analysis.tratamientos_sugeridos) || !analysis.zona_afectada || typeof analysis.requiere_consulta_urgente !== "boolean") {
-    throw new Error("La respuesta de OpenAI no cumple el esquema dental.");
-  }
-  return { analysis, responseId: String(data.id || "") };
-}
-
-async function procesarEnSegundoPlano(id: string, entrada: EntradaAnalisis): Promise<void> {
-  try {
-    await admin.from("smyl_analisis_fotos").update({ estado: "procesando", updated_at: new Date().toISOString() }).eq("id", id);
-    const imagen = await descargarImagen(entrada.imagen_url);
-    const { analysis, responseId } = await analizarConGpt4o(imagen);
-    const completado = new Date().toISOString();
-    const { error: updateError } = await admin.from("smyl_analisis_fotos").update({
-      diagnostico: analysis.diagnostico,
-      tratamientos_sugeridos: analysis.tratamientos_sugeridos,
-      zona_afectada: analysis.zona_afectada,
-      requiere_consulta_urgente: analysis.requiere_consulta_urgente,
-      imagen_simulacion_url: null,
-      estado: "completado",
-      gpt_model: GPT_MODEL,
-      gpt_response_id: responseId || null,
-      procesado_at: completado,
-      updated_at: completado,
-      webhook_estado: "enviando",
-    }).eq("id", id);
-    if (updateError) throw new Error(`No se pudo guardar el análisis: ${updateError.message}`);
-
-    const payload = {
-      evento: "analisis_completado",
-      tenant_id: entrada.tenant_id,
-      cita_id: entrada.cita_id,
-      simulacion_id: id,
-      imagen_original_url: entrada.imagen_url,
-      imagen_simulacion_url: null,
-      diagnostico: analysis.diagnostico,
-      tratamientos_sugeridos: analysis.tratamientos_sugeridos,
-      zona_afectada: analysis.zona_afectada,
-      requiere_consulta_urgente: analysis.requiere_consulta_urgente,
-      timestamp: completado,
-    };
-    const webhook = await enviarWebhookLana(payload);
-    await admin.from("smyl_analisis_fotos").update({
-      webhook_estado: webhook.ok ? "enviado" : "error",
-      webhook_intentos: webhook.attempts,
-      webhook_ultimo_error: webhook.ok ? null : webhook.error,
-      webhook_enviado_at: webhook.ok ? new Date().toISOString() : null,
-      updated_at: new Date().toISOString(),
-    }).eq("id", id);
-  } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error desconocido procesando la imagen.";
-    console.error("[analizar-foto]", id, mensaje);
-    // Si GPT o la descarga fallan, NO se llama al webhook de completado.
-    await admin.from("smyl_analisis_fotos").update({
-      estado: "error",
-      error_procesamiento: mensaje.slice(0, 1200),
-      webhook_estado: "pendiente",
-      updated_at: new Date().toISOString(),
-    }).eq("id", id);
-  }
-}
-
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return responder(405, { error: "Método no permitido." });
-  if (!autorizarLana(req)) return responder(401, { error: "No autorizado." });
-
-  let body: Record<string, unknown>;
-  try { body = await req.json(); } catch { return responder(400, { error: "Body JSON inválido." }); }
-  let entrada: EntradaAnalisis;
-  try { entrada = validarEntrada(body); } catch (error) {
-    return responder(400, { error: error instanceof Error ? error.message : "Payload inválido." });
-  }
-
-  const { data: tenant } = await admin.from("camila_tenants").select("id,activo").eq("id", entrada.tenant_id).maybeSingle();
-  if (!tenant || !tenant.activo) return responder(404, { error: "tenant_id no pertenece a una clínica SMYL activa." });
-
-  const idempotencyKey = (req.headers.get("Idempotency-Key") || "").trim().slice(0, 160) || null;
-  if (idempotencyKey) {
-    const { data: existente } = await admin.from("smyl_analisis_fotos").select("id").eq("tenant_id", entrada.tenant_id).eq("idempotency_key", idempotencyKey).maybeSingle();
-    if (existente?.id) return responder(200, { recibido: true, simulacion_id: existente.id, duplicado: true });
-  }
-
-  const id = crypto.randomUUID();
-  const { error: insertError } = await admin.from("smyl_analisis_fotos").insert({
-    id,
-    tenant_id: entrada.tenant_id,
-    cita_id: entrada.cita_id,
-    paciente_nombre: entrada.paciente_nombre,
-    paciente_telefono: entrada.paciente_telefono,
-    origen: entrada.origen,
-    imagen_original_url: entrada.imagen_url,
-    idempotency_key: idempotencyKey,
-    estado: "pendiente",
-  });
-  if (insertError) return responder(500, { error: "No se pudo reservar el análisis." });
-
-  EdgeRuntime.waitUntil(procesarEnSegundoPlano(id, entrada));
-  return responder(200, { recibido: true, simulacion_id: id });
-});
-

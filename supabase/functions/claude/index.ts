@@ -59,6 +59,19 @@ const OPENAI_IMAGE_TIMEOUT_MS = Math.min(
   85000,
   Math.max(30000, Number.parseInt(Deno.env.get("OPENAI_IMAGE_TIMEOUT_MS") || "75000", 10) || 75000),
 );
+const OPENAI_TRANSIENT_RETRY_LIMIT = 2;
+
+function espera(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function demoraReintentoOpenAI(response: Response, intento: number): number {
+  const retryAfterSeconds = Number(response.headers.get("retry-after") || "0");
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.max(1500, Math.min(15000, Math.round(retryAfterSeconds * 1000)));
+  }
+  return Math.min(8000, 2500 * intento);
+}
 
 function base64ABytes(base64: string): Uint8Array {
   const limpio = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
@@ -139,7 +152,15 @@ Deno.serve(async (req: Request) => {
   const simulationContract = typeof body?.contractVersion === "string"
     ? body.contractVersion.trim().slice(0, 32)
     : "legacy";
+  const guideLibraryVersion = typeof body?.guideLibraryVersion === "string"
+    ? body.guideLibraryVersion.trim().slice(0, 40)
+    : "";
   const isMeasuredMaskOnlyContract = simulationContract === "v101" || simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105";
+  const isPhotographicLibraryContract = simulationContract === "hybrid-2d-v3";
+  const isPatientAnatomyGuide = isPhotographicLibraryContract && guideLibraryVersion === "patient-anatomy-warp-v2";
+  const isGeometryLockedContract = simulationContract === "hybrid-2d-v4";
+  const isPatientGeometryLock = isGeometryLockedContract && guideLibraryVersion === "patient-geometry-lock-v1";
+  const isHybrid2DContract = simulationContract === "hybrid-2d-v2" || isPhotographicLibraryContract || isGeometryLockedContract;
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
       ? body.imageProvider
@@ -178,10 +199,10 @@ Deno.serve(async (req: Request) => {
     }));
   }
 
-  // v102-v105 son contratos cerrados: una sola fotografía PNG, máscara alfa
-  // y geometría numérica de seis carillas. Si producción no está configurada
-  // para GPT Image 2 o falta la máscara, se rechaza antes de descontar cuota.
-  if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105")) {
+  // Los contratos cerrados requieren GPT Image 2 y máscara alfa. El híbrido
+  // v2 conserva el plano geométrico histórico; v3 recibe una guía fotográfica
+  // transparente armada con la biblioteca SMYL y alineada a la fotografía.
+  if (body?.action === "generate_image" && (simulationContract === "v102" || simulationContract === "v103" || simulationContract === "v104" || simulationContract === "v105" || isHybrid2DContract)) {
     if (imageProvider !== "openai") {
       return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere GPT Image 2; el proveedor de producción no está configurado.` }), {
         status: 503, headers: { ...CORS, "Content-Type": "application/json" },
@@ -189,6 +210,21 @@ Deno.serve(async (req: Request) => {
     }
     if (!body?.editMaskBase64 || body?.mimeType !== "image/png" || body?.editMaskMimeType !== "image/png") {
       return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere imagen PNG y máscara alfa PNG.` }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (isHybrid2DContract && (!body?.guideImageBase64 || body?.guideMimeType !== "image/png")) {
+      return new Response(JSON.stringify({ error: `El contrato ${simulationContract} requiere una guía dental PNG.` }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (isPhotographicLibraryContract && guideLibraryVersion !== "natural-a1-v1" && !isPatientAnatomyGuide) {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v3 requiere una guía dental compatible." }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (isGeometryLockedContract && !isPatientGeometryLock) {
+      return new Response(JSON.stringify({ error: "El contrato hybrid-2d-v4 requiere la guía anatómica bloqueada patient-geometry-lock-v1." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -301,7 +337,15 @@ Deno.serve(async (req: Request) => {
             });
           }
         }
-        const promptOpenAI = isMeasuredMaskOnlyContract
+        const promptOpenAI = isPatientGeometryLock
+          ? "HYBRID 2D VENEER EDIT V4 — LOCKED PATIENT GEOMETRY. IMAGE 1 is already a patient-specific deterministic reconstruction of the six intended veneers 13-12-11-21-22-23. Its crown silhouettes, cervical margins, proximal limits, facial axes, individual widths, lengths, asymmetries and incisal smile arc are final and MUST NOT be redrawn, resized, shifted, squared, cloned or replaced. The alpha edit mask exposes exactly six closed crown interiors and locks every pixel outside those six crowns. IMAGE 2 is the original same-size patient crop and is reference only for illumination direction, color temperature, photographic grain and local reflections; never copy its original tooth geometry back into IMAGE 1. Perform optical/material finishing only inside each exposed crown: integrate natural layered ceramic color, subtle dentin body, enamel translucency, low-contrast mamelons, fine vertical texture, realistic specular highlights and contact shadows while preserving the exact outer silhouette and separation of every crown already present in IMAGE 1. Do not invent a stock smile, generic rectangular veneers, a continuous white row, stickers, hard borders or new anatomy. Preserve gingiva, lips, lower teeth, posterior teeth and face exactly. Return only the final photorealistic patient crop. " + prompt
+          : isPatientAnatomyGuide
+          ? "HYBRID 2D VENEER EDIT V3 — PATIENT-DERIVED ANATOMY. IMAGE 1 is the patient smile crop and the primary source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent anatomical preview reconstructed one-to-one from this patient's own teeth 13-12-11-21-22-23. Its visible pixels preserve the individual cervical margins, proximal limits, facial axes, convexity, incisal trajectories and original light while previewing the selected ceramic material. It is not a stock library row. Keep the identity and anatomy of each corresponding tooth from IMAGE 1; use IMAGE 2 only as a pixel-registered target for conservative contour refinement and layered porcelain optics. Never paste IMAGE 2 as flat sprites, never clone one crown into another and never impose generic rectangular shapes. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Preserve gingiva, lips, lower teeth, premolars and every unrelated pixel exactly as photographed. Return only the final photorealistic patient crop. " + prompt
+          : isPhotographicLibraryContract
+          ? "HYBRID 2D VENEER EDIT V3 — PHOTOGRAPHIC LIBRARY TRANSFER. IMAGE 1 is the patient smile crop and is the only source for identity, cervical emergence, perspective, illumination and surrounding tissue. IMAGE 2 is a same-size transparent reference board assembled automatically from the SMYL Natural A1 photographic library. It contains exactly six assigned crowns in image-left-to-right order 13-12-11-21-22-23 and already encodes their target position, width, length, contour hierarchy and incisal smile arc. Transfer the corresponding photographic anatomy and layered ceramic optical character from each IMAGE 2 crown into the matching real tooth in IMAGE 1, adapting it to patient perspective, original light and the requested VITA shade. Do not simply paste the reference pixels and do not render the reference canvas, source black background, hard sprite edges or transparency artifacts. The alpha mask applies only to IMAGE 1 and defines one connected upper-smile working region. Reconstruct six complete, separate veneers with natural contacts and uninterrupted cervical-to-incisal ceramic. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed. Return only the final photorealistic patient crop. " + prompt
+          : isHybrid2DContract
+          ? "HYBRID 2D VENEER EDIT V2. IMAGE 1 is the patient smile crop and is the only source for identity, gingival emergence, perspective, lighting and photographic texture. IMAGE 2 is a same-size abstract morphology control map for maxillary teeth 13-12-11-21-22-23. Use only its six silhouettes to control crown position, relative width, length, contour hierarchy and incisal smile arc. The alpha mask on IMAGE 1 is one connected upper-smile working region, not six tooth cut-outs. Reconstruct all six veneers as one coherent photographic dental edit while keeping six anatomically separate crowns, natural contacts and uninterrupted cervical-to-incisal ceramic on every tooth. Do not return isolated white patches, partial overlays, stickers, floating fragments or unchanged tooth sections inside a veneer. Preserve gingiva, lips, lower teeth, premolars and every pixel unrelated to the six veneers exactly as photographed even when they fall inside the working region. Do not paste, trace or render IMAGE 2: its black background, pale fills and white outlines must never appear. Return only the final photorealistic patient crop. " + prompt
+          : isMeasuredMaskOnlyContract
           ? (simulationContract === "v105"
             ? "V105 REVIEWABLE SINGLE-MASK CROWN-ONLY DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. The alpha mask was derived directly from six individually identified source crowns and contains no gingiva. Edit only the visible crowns of maxillary veneers 13-12-11-21-22-23 inside that transparent mask. Preserve every pink tissue pixel, lip, lower tooth, premolar and every unmasked pixel exactly as photographed. Follow the six numeric crown envelopes tooth by tooth and keep the cervical margins fixed. Produce six separate natural ceramic veneers with individual anatomy, interproximal separations and subtle optical texture. Never introduce outlines, diagrams, colored seams, rectangular patches, cut-out borders, labels or technical marks. " + prompt
             : simulationContract === "v104"
@@ -321,7 +365,7 @@ Deno.serve(async (req: Request) => {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
         if (guideImageBytes && !isMeasuredMaskOnlyContract) {
-          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), "veneer-blueprint.png");
+          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPatientGeometryLock ? "patient-original-reference.png" : (isPatientAnatomyGuide ? "patient-anatomy-guide.png" : (isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png")));
         }
         form.append("prompt", promptOpenAI);
         // Los acercamientos dentales son ediciones de detalle y anatomía fina.
@@ -346,45 +390,73 @@ Deno.serve(async (req: Request) => {
           model: OPENAI_IMAGE_MODEL,
           quality: OPENAI_IMAGE_QUALITY,
           contract: simulationContract,
-          guideMode: isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none"),
+          guideMode: isPatientGeometryLock ? "hybrid-2d-v4-locked-patient-geometry" : (isPhotographicLibraryContract ? "hybrid-2d-v3-photographic-library" : (isHybrid2DContract ? "hybrid-2d-v2-continuous-smile-roi" : (isMeasuredMaskOnlyContract ? "numeric-geometry-only" : (guideImageBytes ? "visual-blueprint" : "none")))),
+          guideLibraryVersion: isPhotographicLibraryContract || isGeometryLockedContract ? guideLibraryVersion : null,
           attempt: 1,
         }));
 
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
+          let controller = new AbortController();
+          let timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
           let providerRequestId: string | null = null;
+          let providerAttempts = 0;
           let generatedBase64 = "";
           let usage: any = null;
           let partialCount = 0;
           let timeoutTransferidoAlStream = false;
 
           try {
-            const resp = await fetch("https://api.openai.com/v1/images/edits", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${KEY}`,
-                "Accept": "text/event-stream",
-                // Permite a soporte de OpenAI localizar la solicitud incluso
-                // si la red se corta antes de recibir su x-request-id.
-                "X-Client-Request-Id": requestId,
-              },
-              body: form,
-              signal: controller.signal,
-            });
-            marca(`después de recibir headers de OpenAI (status ${resp.status})`);
-            providerRequestId = resp.headers.get("x-request-id");
+            let resp: Response;
+            while (true) {
+              providerAttempts += 1;
+              resp = await fetch("https://api.openai.com/v1/images/edits", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${KEY}`,
+                  "Accept": "text/event-stream",
+                  // Permite a soporte de OpenAI localizar la solicitud incluso
+                  // si la red se corta antes de recibir su x-request-id.
+                  "X-Client-Request-Id": requestId,
+                },
+                body: form,
+                signal: controller.signal,
+              });
+              marca(`después de recibir headers de OpenAI (status ${resp.status}, intento ${providerAttempts})`);
+              providerRequestId = resp.headers.get("x-request-id");
+              if (resp.ok) break;
 
-            if (!resp.ok) {
               const raw = await resp.text();
               let data: any = null;
               try { data = JSON.parse(raw); } catch { /* respuesta no JSON */ }
-              console.warn("OpenAI image edit error:", data?.error?.message || raw || resp.status);
-              return new Response(JSON.stringify({
-                error: data?.error?.message || "OpenAI no pudo generar la imagen.",
+              const providerCode = String(data?.error?.code || data?.error?.type || "").toLowerCase();
+              const reintentable = resp.status === 429 &&
+                providerAttempts < OPENAI_TRANSIENT_RETRY_LIMIT &&
+                !/insufficient_quota|billing|credit/.test(providerCode + " " + String(data?.error?.message || "").toLowerCase());
+              if (!reintentable) {
+                console.warn("OpenAI image edit error:", data?.error?.message || raw || resp.status);
+                return new Response(JSON.stringify({
+                  error: data?.error?.message || "OpenAI no pudo generar la imagen.",
+                  requestId,
+                  providerRequestId,
+                  providerCode: providerCode || null,
+                  attempts: providerAttempts,
+                }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+              }
+
+              const retryDelayMs = demoraReintentoOpenAI(resp, providerAttempts);
+              console.warn(JSON.stringify({
+                event: "image_generation_rate_limit_retry",
                 requestId,
+                provider: "openai",
+                model: OPENAI_IMAGE_MODEL,
+                attempt: providerAttempts,
+                retryDelayMs,
                 providerRequestId,
-              }), { status: resp.status, headers: { ...CORS, "Content-Type": "application/json" } });
+              }));
+              clearTimeout(timeoutId);
+              await espera(retryDelayMs);
+              controller = new AbortController();
+              timeoutId = setTimeout(() => controller.abort(), OPENAI_IMAGE_TIMEOUT_MS);
             }
 
             const contentType = resp.headers.get("content-type") || "";
@@ -483,8 +555,8 @@ Deno.serve(async (req: Request) => {
                           provider: "openai",
                           model: OPENAI_IMAGE_MODEL,
                           quality: OPENAI_IMAGE_QUALITY,
-                          attempts: 1,
-                          attemptLimit: 1,
+                          attempts: providerAttempts,
+                          attemptLimit: OPENAI_TRANSIENT_RETRY_LIMIT,
                           partialCount: cantidadParciales,
                           elapsedMs,
                           usage: finalUsage,
@@ -498,7 +570,7 @@ Deno.serve(async (req: Request) => {
                           provider: "openai",
                           model: OPENAI_IMAGE_MODEL,
                           quality: OPENAI_IMAGE_QUALITY,
-                          attempts: 1,
+                          attempts: providerAttempts,
                           partialCount: cantidadParciales,
                           elapsedMs,
                           usage: finalUsage,
@@ -578,12 +650,13 @@ Deno.serve(async (req: Request) => {
                   "Cache-Control": "no-cache, no-store",
                   "Content-Type": entregarComoJpeg ? "image/jpeg" : "text/event-stream; charset=utf-8",
                   "X-Accel-Buffering": "no",
-                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-provider-request-id",
+                  "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-guide-library, x-smyl-provider-request-id",
                   "X-SMYL-Request-Id": requestId,
                   "X-SMYL-Provider": "openai",
                   "X-SMYL-Model": OPENAI_IMAGE_MODEL,
                   "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
                   "X-SMYL-Contract": simulationContract,
+                  "X-SMYL-Guide-Library": isPhotographicLibraryContract ? guideLibraryVersion : "",
                   "X-SMYL-Provider-Request-Id": providerRequestId || "",
                 },
               });
@@ -661,11 +734,12 @@ Deno.serve(async (req: Request) => {
             provider: "openai",
             model: OPENAI_IMAGE_MODEL,
             quality: OPENAI_IMAGE_QUALITY,
-            attempts: 1,
+            attempts: providerAttempts,
             partialCount,
             elapsedMs,
             usage,
             providerRequestId,
+            guideLibraryVersion: isPhotographicLibraryContract ? guideLibraryVersion : null,
           }));
           const generation = {
             requestId,
@@ -673,12 +747,13 @@ Deno.serve(async (req: Request) => {
             provider: "openai",
             model: OPENAI_IMAGE_MODEL,
             quality: OPENAI_IMAGE_QUALITY,
-            attempts: 1,
-            attemptLimit: 1,
+            attempts: providerAttempts,
+            attemptLimit: OPENAI_TRANSIENT_RETRY_LIMIT,
             elapsedMs,
             usage,
             providerRequestId,
             contract: simulationContract,
+            guideLibraryVersion: isPhotographicLibraryContract ? guideLibraryVersion : null,
           };
 
           // El JSON con b64_json aumenta el JPEG cerca de 33 % y obliga a
@@ -695,7 +770,7 @@ Deno.serve(async (req: Request) => {
             return new Response(generatedBytes, {
               headers: {
                 ...CORS,
-                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-elapsed-ms, x-smyl-provider-request-id",
+                "Access-Control-Expose-Headers": "x-smyl-request-id, x-smyl-provider, x-smyl-model, x-smyl-quality, x-smyl-contract, x-smyl-guide-library, x-smyl-elapsed-ms, x-smyl-provider-request-id",
                 "Cache-Control": "no-store",
                 "Content-Type": "image/jpeg",
                 "X-SMYL-Request-Id": requestId,
@@ -703,6 +778,7 @@ Deno.serve(async (req: Request) => {
                 "X-SMYL-Model": OPENAI_IMAGE_MODEL,
                 "X-SMYL-Quality": OPENAI_IMAGE_QUALITY,
                 "X-SMYL-Contract": simulationContract,
+                "X-SMYL-Guide-Library": isPhotographicLibraryContract ? guideLibraryVersion : "",
                 "X-SMYL-Elapsed-Ms": String(elapsedMs),
                 "X-SMYL-Provider-Request-Id": providerRequestId || "",
               },

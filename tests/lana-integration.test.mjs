@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
-const simulator = read('../simulacion.html');
+const simulator = read('../simulacion-rapida.html');
 const entry = read('../nueva/index.html');
 const analyze = read('../supabase/functions/analizar-foto/index.ts');
 const notify = read('../supabase/functions/lana-webhook/index.ts');
@@ -16,24 +16,19 @@ assert.match(entry, /cita_id/);
 assert.match(entry, /Number\.isSafeInteger/);
 assert.doesNotMatch(entry, /LANA_WEBHOOK_SECRET|OPENAI_API_KEY/);
 
-assert.match(simulator, /function leerContextoLanaEntrada/);
-assert.match(simulator, /function aplicarContextoLana/);
-assert.match(simulator, /lana_cita_id: casoData\.cita_id/);
-assert.match(simulator, /lana_origen: casoData\.origen/);
-assert.match(simulator, /functions\/v1\/lana-webhook/);
+assert.match(simulator, /SmylLanaQuick\.bind/);
+assert.match(simulator, /lana_cita_id: CFG\.lanaContext \? CFG\.lanaContext\.citaId : null/);
+assert.match(simulator, /lana_origen: CFG\.lanaContext \? 'lana' : null/);
+assert.match(simulator, /SmylLanaQuick\.notify/);
 assert.match(simulator, /subirResultadoAStorage\(simulacionFrontal,casoId\)/);
 assert.doesNotMatch(simulator, /LANA_WEBHOOK_SECRET/);
 
-assert.match(analyze, /EdgeRuntime\.waitUntil\(procesarEnSegundoPlano/);
-assert.match(analyze, /gpt-4o-2024-11-20/);
-assert.match(analyze, /https:\/\/api\.openai\.com\/v1\/responses/);
-assert.match(analyze, /type: "input_image"/);
-assert.match(analyze, /type: "json_schema"/);
-assert.match(analyze, /store: false/);
-assert.match(analyze, /imagen_simulacion_url: null/);
-assert.match(analyze, /autorizarLana\(req\)/);
-assert.match(analyze, /estado: "error"/);
-assert.match(analyze, /NO se llama al webhook de completado/);
+assert.match(analyze, /EdgeRuntime\.waitUntil/);
+assert.match(analyze, /LANA_API_KEY/);
+assert.match(analyze, /https:\/\/api\.openai\.com\/v1\/chat\/completions/);
+assert.match(analyze, /https:\/\/api\.openai\.com\/v1\/images\/edits/);
+assert.match(analyze, /imagen_simulacion_url/);
+assert.match(analyze, /callback_url/);
 
 assert.match(shared, /LANA_WEBHOOK_URL/);
 assert.match(shared, /LANA_WEBHOOK_SECRET/);

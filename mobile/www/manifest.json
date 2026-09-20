@@ -2,7 +2,7 @@
   "name": "SMYL · Diseño de Sonrisa",
   "short_name": "SMYL",
   "description": "Simula tu nueva sonrisa con Inteligencia Artificial en segundos",
-  "start_url": "/camila/simulacion.html",
+  "start_url": "/camila/simulacion-rapida.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0F",
@@ -33,7 +33,7 @@
       "name": "Simular mi sonrisa",
       "short_name": "Simular",
       "description": "Tómate una selfie y simula tus carillas",
-      "url": "/camila/simulacion.html",
+      "url": "/camila/simulacion-rapida.html",
       "icons": [{ "src": "icons/smyl_pwa.png", "sizes": "96x96" }]
     }
   ]
