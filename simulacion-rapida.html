@@ -4872,7 +4872,7 @@ function reintentarProceso() {
   var frontal = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
   var view = frontal && frontal.view || 'frontal';
   var pendiente = S.pendingGeneratedByView && S.pendingGeneratedByView[view];
-  var reutilizable = !!(pendiente && pendiente.photoSignature === firmaFotoParaRevalidacion(frontal));
+  var reutilizable = !!(pendiente && !pendiente.revalidationExhausted && pendiente.photoSignature === firmaFotoParaRevalidacion(frontal));
   if (pendiente && !reutilizable) delete S.pendingGeneratedByView[view];
   processPhotos({
     revalidateCached:reutilizable,
@@ -5044,7 +5044,14 @@ async function processPhotos(processOptions) {
     console.error(e);
     if(!e.requestId)e.requestId=processRequestId;
     if(!e.stage)e.stage=processStage;
-    if (processOptions.revalidateCached) e.revalidationExhausted = true;
+    if (processOptions.revalidateCached) {
+      e.revalidationExhausted = true;
+      var frontalFallida=S.photos.find(function(p){return p.view==='frontal';})||S.photos[0];
+      var vistaFallida=frontalFallida&&frontalFallida.view||'frontal';
+      if(S.pendingGeneratedByView&&S.pendingGeneratedByView[vistaFallida]){
+        S.pendingGeneratedByView[vistaFallida].revalidationExhausted=true;
+      }
+    }
     mostrarErrorProceso(e);
   } finally {
     detenerBarraProgreso();
@@ -5110,6 +5117,9 @@ function mostrarErrorProceso(e) {
   // seguidas persiguiendo un error que la pantalla nunca dijo cuál era.
   var info = clasificarErrorParaUsuario(e);
   var msg = info.detalle + (/siguen guardad/i.test(info.detalle) ? '' : ' Tus fotos siguen guardadas; no necesitas repetirlas.');
+  var fallosContrato=e&&e.qualityMetrics&&e.qualityMetrics.contract&&Array.isArray(e.qualityMetrics.contract.failures)
+    ?e.qualityMetrics.contract.failures.slice(0,2):[];
+  if(fallosContrato.length)msg+=' Motivo detectado: '+fallosContrato.join(' · ')+'.';
   // Rastro técnico siempre disponible, aunque el mensaje de arriba sea el
   // genérico -- para no volver a depender de adivinar desde una captura.
   console.error('[SMYL] fallo generando la simulación:', e);
@@ -5152,11 +5162,17 @@ function mostrarErrorProceso(e) {
   var raw = String(e && e.message || e || '').toLowerCase();
   var vista = vistaError;
   var requiereNuevaPropuesta = !!(e && e.requiresNewGeneration);
-  var conservaGeneracion = !!(S.pendingGeneratedByView && S.pendingGeneratedByView[vista]) && !requiereNuevaPropuesta;
-  if (retry) retry.textContent = conservaGeneracion
-    ? '↻ Revalidar resultado'
-    : (/protección anatómica|proteccion anatomica|control dental|incomplet|segment|correspondencia|marcas técnicas|marcas tecnicas|integrar la simulación|integrar la simulacion/.test(raw)
-      ? '↻ Generar otra propuesta' : '↻ Reintentar');
+  var revalidacionAgotada=!!(e&&e.revalidationExhausted);
+  var conservaGeneracion = !!(S.pendingGeneratedByView && S.pendingGeneratedByView[vista]) && !requiereNuevaPropuesta && !revalidacionAgotada;
+  if (retry) {
+    retry.textContent = revalidacionAgotada
+      ? 'Cambiar fotografías'
+      : (conservaGeneracion
+        ? '↻ Revalidar resultado'
+        : (/protección anatómica|proteccion anatomica|control dental|incomplet|segment|correspondencia|marcas técnicas|marcas tecnicas|integrar la simulación|integrar la simulacion/.test(raw)
+          ? '↻ Generar otra propuesta' : '↻ Reintentar'));
+    retry.onclick=revalidacionAgotada?repetirFotografias:reintentarProceso;
+  }
 
   var ring = document.getElementById('proc-ring-wrap');
   var list = document.getElementById('proc-list');
