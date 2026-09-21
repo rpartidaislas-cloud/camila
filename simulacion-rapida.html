@@ -681,6 +681,29 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-toggle,body.diag-mode #resume-overlay,body.diag-mode #dentist-login-overlay{display:none!important}
 @media(max-width:520px){.diag-shell{padding:18px 12px max(28px,env(safe-area-inset-bottom))}.diag-head{display:block}.diag-badge{display:inline-flex;margin-top:12px}.diag-grid{grid-template-columns:1fr}.diag-views{grid-template-columns:repeat(2,minmax(0,1fr))}.diag-capture-actions{grid-template-columns:1fr}.diag-actions .diag-btn{flex:1}.diag-head h1{font-size:21px}}
 
+/* Flujo guiado: deja las decisiones frecuentes a la vista y conserva el
+   laboratorio completo como una salida voluntaria para el profesional. */
+.quick-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:390px;margin:18px auto 22px}
+.quick-step{padding:12px 8px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.035);text-align:center}
+.quick-step b{display:block;color:#fff;font-size:12px;margin:5px 0 2px}.quick-step span{display:block;color:rgba(255,255,255,.45);font-size:10px;line-height:1.35}.quick-step i{font-style:normal;font-size:20px}
+.advanced-entry{width:100%;max-width:390px;margin:14px auto 0;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.025);padding:0 14px}
+.advanced-entry>summary{cursor:pointer;padding:13px 0;color:rgba(255,255,255,.65);font-size:12px;font-weight:700;text-align:center}
+.advanced-entry-body{border-top:1px solid rgba(255,255,255,.08);padding:13px 0 15px;display:grid;gap:9px}
+.advanced-entry-btn{min-height:44px;border-radius:11px;border:1px solid rgba(126,104,255,.42);background:rgba(91,71,224,.13);color:#fff;font:700 12px Inter,sans-serif;cursor:pointer;padding:8px 12px}
+.advanced-entry-copy{margin:0;color:rgba(255,255,255,.48);font-size:10.5px;line-height:1.45;text-align:center}
+.legacy-photo-guide,.legacy-intraoral-entry{display:none!important}
+#quick-config{display:none}.quick-guided-active #quick-config{display:block}.quick-guided-active #smile-design-options,.quick-guided-active .vita-guide-card,.quick-guided-active #vita-construction-options,.quick-guided-active .vita-quick-action,.quick-guided-active .vita-detail-hint,.quick-guided-active .vita-advanced,.quick-guided-active>.vita-shell>.vita-note{display:none!important}
+.quick-config-card{width:min(640px,100%);margin:18px auto 0;border:1px solid rgba(112,231,211,.22);border-radius:20px;background:linear-gradient(160deg,rgba(24,30,42,.96),rgba(15,14,29,.98));padding:20px;box-shadow:0 22px 50px rgba(0,0,0,.24)}
+.quick-config-card h3{margin:0 0 5px;font-size:19px}.quick-config-card>p{margin:0 0 18px;color:rgba(255,255,255,.56);font-size:12px;line-height:1.5}
+.quick-choice-title{display:block;margin:17px 0 8px;color:#c9fff6;font-size:12px;font-weight:800}
+.quick-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.quick-choice{min-height:76px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(255,255,255,.045);color:#fff;padding:11px 8px;font:700 12px Inter,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center}
+.quick-choice small{font-size:9.5px;line-height:1.3;color:rgba(255,255,255,.48);font-weight:500}.quick-choice.selected{border-color:#55d9c4;background:rgba(55,190,169,.14);box-shadow:0 0 0 1px rgba(85,217,196,.2) inset}.quick-choice.selected small{color:#bff8ef}
+.quick-generate{width:100%;min-height:50px;margin-top:20px;border:0;border-radius:13px;background:linear-gradient(135deg,#5b47e0,#3478f6);color:#fff;font:800 14px Inter,sans-serif;cursor:pointer}
+.quick-professional-link{display:block;margin:13px auto 0;border:0;background:none;color:rgba(255,255,255,.52);font:650 11px Inter,sans-serif;text-decoration:underline;cursor:pointer}
+.quick-safety{margin:14px 0 0!important;color:rgba(255,255,255,.4)!important;font-size:10px!important;text-align:center}
+@media(max-width:520px){.quick-steps{gap:6px}.quick-step{padding:10px 5px}.quick-choice-grid{grid-template-columns:1fr}.quick-choice{min-height:58px;flex-direction:row;justify-content:flex-start;text-align:left;padding-inline:14px}.quick-choice small{margin-left:auto;max-width:48%;text-align:right}.quick-config-card{padding:16px;border-radius:17px}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="contour-review.css?v=1">
@@ -720,10 +743,14 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <div class="screen" id="s-intro">
   <div class="intro-logo"><img src="icons/smyl_logo.png" alt="SMYL" style="height:42px;width:auto;display:block;margin:0 auto"></div>
   <div class="intro-tag" id="intro-mode-tag">Herramienta profesional</div>
-  <div class="intro-title" id="intro-main-title">Crea una simulación de sonrisa</div>
-  <div class="intro-sub" id="intro-main-sub">La foto frontal genera la propuesta. Puedes agregar hasta cinco vistas opcionales para documentar el caso.</div>
-  <p style="max-width:440px;margin:14px auto;color:#b7d8d2;font-size:13px;line-height:1.6">Antes y después con IA, sin marcar dientes. Revisa la propuesta antes de presentarla. Para cambios de forma, utiliza el editor profesional.</p>
-  <details class="professional-only" style="margin:16px auto;max-width:420px;text-align:center"><summary style="cursor:pointer;font-size:12px;color:#aaa">Laboratorio avanzado · opcional</summary>
+  <div class="intro-title" id="intro-main-title">Simulación rápida de sonrisa</div>
+  <div class="intro-sub" id="intro-main-sub">Toma una foto frontal, elige el resultado y revisa la propuesta.</div>
+  <div class="quick-steps" aria-label="Tres pasos para crear la simulación">
+    <div class="quick-step"><i>📷</i><b>1. Foto</b><span>Frontal y bien iluminada</span></div>
+    <div class="quick-step"><i>✨</i><b>2. Resultado</b><span>Elige objetivo y apariencia</span></div>
+    <div class="quick-step"><i>✓</i><b>3. Revisa</b><span>Aprueba o ajusta</span></div>
+  </div>
+  <details class="professional-only legacy-lab-entry" style="display:none"><summary>Laboratorio avanzado · opcional</summary>
     <label for="local-boundary-photo" style="display:block;color:#b6ddd4;margin-bottom:8px">Probar bordes originales · sin IA ni generación</label>
     <input id="local-boundary-photo" type="file" accept="image/jpeg,image/png,image/webp" style="max-width:100%" onchange="probarContornosSinIA(this.files[0]);this.value=''">
     <p style="font-size:12px;color:#aaa">Solo prueba local. No modifica tu simulación ni envía la foto.</p>
@@ -734,7 +761,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
   </details>
 
   <!-- 6 fotos preview -->
-  <div class="photo-steps">
+  <div class="photo-steps legacy-photo-guide">
     <div class="ps-item">
       <div class="ps-icon">
         <img class="capture-icon" src="icons/capture-frontal-v2.webp" alt="Frontal sonrisa" onerror="this.style.display='none'">
@@ -775,11 +802,24 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 
   <button class="btn-start" id="btn-start-simulation" onclick="comenzarFlujoSimulacion()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    <span id="btn-start-label">Comenzar caso</span>
+    <span id="btn-start-label">Nueva simulación rápida</span>
   </button>
 
-  <button class="btn-start" type="button" style="margin-top:12px" onclick="document.getElementById('intraoral-independent-file').click()">Simulación intraoral independiente</button>
-  <p style="max-width:340px;text-align:center;font-size:12px;color:#b9b6ca">Solo una foto intraoral, sin foto frontal. Elige alineación, carillas o ambas y la arcada. No diagnostica ni valida un tratamiento.</p>
+  <details class="advanced-entry professional-only">
+    <summary>Opciones avanzadas</summary>
+    <div class="advanced-entry-body">
+      <button class="advanced-entry-btn" type="button" onclick="comenzarFlujoAvanzado()">Caso documentado · hasta 6 fotos</button>
+      <p class="advanced-entry-copy">Permite añadir perfiles, vista 3/4, intraoral y extraoral. Sólo la frontal genera la propuesta.</p>
+      <button class="advanced-entry-btn" type="button" onclick="document.getElementById('intraoral-independent-file').click()">Simulación intraoral independiente</button>
+      <button class="advanced-entry-btn" type="button" onclick="document.getElementById('local-boundary-photo').click()">Probar bordes originales · sin IA</button>
+      <button class="advanced-entry-btn" type="button" onclick="cargarPacientePruebaSeisFotos(this)">Cargar paciente sintético · 6 fotos</button>
+      <button class="advanced-entry-btn" type="button" onclick="cargarPruebaFrontalIntraoral(this)">Probar frontal + intraoral</button>
+      <p class="advanced-entry-copy">Herramientas para documentación y pruebas profesionales. No cambian la ruta rápida.</p>
+    </div>
+  </details>
+
+  <button class="btn-start legacy-intraoral-entry" type="button" onclick="document.getElementById('intraoral-independent-file').click()">Simulación intraoral independiente</button>
+  <p class="legacy-intraoral-entry">Solo una foto intraoral, sin foto frontal. Elige alineación, carillas o ambas y la arcada.</p>
   <input id="intraoral-independent-file" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="cargarIntraoralIndependiente(this)">
 
   <!-- Browser warning — shown only if not Safari on iOS -->
@@ -870,6 +910,25 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <p>Elige el objetivo, la arcada y la apariencia antes de generar</p>
       </div>
     </div>
+    <section id="quick-config" class="quick-config-card" aria-labelledby="quick-config-title">
+      <h3 id="quick-config-title">¿Qué quieres mostrar?</h3>
+      <p>La fotografía ya está lista. Elige una opción de cada grupo.</p>
+      <span class="quick-choice-title">Objetivo de la simulación</span>
+      <div class="quick-choice-grid" id="quick-objective-options">
+        <button type="button" class="quick-choice selected" data-quick-objective="veneers" onclick="seleccionarObjetivoRapido('veneers',this)">Carillas<small>Superiores terminadas</small></button>
+        <button type="button" class="quick-choice" data-quick-objective="alignment" onclick="seleccionarObjetivoRapido('alignment',this)">Alineación<small>Ambas arcadas</small></button>
+        <button type="button" class="quick-choice" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alineación + carillas<small>Ambas arcadas</small></button>
+      </div>
+      <span class="quick-choice-title">Apariencia</span>
+      <div class="quick-choice-grid" id="quick-appearance-options">
+        <button type="button" class="quick-choice" data-quick-appearance="current" onclick="seleccionarAparienciaRapida('current',this)">Natural<small>Conservar tono actual</small></button>
+        <button type="button" class="quick-choice selected" data-quick-appearance="A1" onclick="seleccionarAparienciaRapida('A1',this)">VITA A1<small>Claro y natural</small></button>
+        <button type="button" class="quick-choice" data-quick-appearance="B1" onclick="seleccionarAparienciaRapida('B1',this)">VITA B1<small>Más luminoso</small></button>
+      </div>
+      <button class="quick-generate" type="button" onclick="confirmarConfiguracionRapida()">Generar simulación</button>
+      <button class="quick-professional-link" type="button" onclick="mostrarAjustesProfesionales()">Necesito ajustes profesionales</button>
+      <p class="quick-safety">Propuesta visual orientativa. No diagnostica ni sustituye la valoración clínica.</p>
+    </section>
     <fieldset class="vita-construction smile-design" id="smile-design-options">
       <legend>¿Qué quieres visualizar?</legend>
       <label>Objetivo<select name="smile-mode" onchange="SmylSmileModes.change()"><option value="veneers">Carillas terminadas · simulación rápida</option><option value="alignment">Alineación visual</option><option value="combined">Alineación completa + carillas · una generación</option></select></label>
@@ -2031,13 +2090,13 @@ function configurarExperienciaModo(esProspecto) {
   if (esProspecto) {
     if (tag) tag.textContent = 'Simulación orientativa';
     if (title) title.textContent = 'Visualiza una propuesta para tu sonrisa';
-    if (sub) sub.textContent = 'Solo necesitas una foto frontal. Las demás vistas son opcionales y ayudan a documentar tu caso.';
+    if (sub) sub.textContent = 'Toma una foto frontal, elige el resultado y revisa la propuesta.';
     if (start) start.textContent = 'Tomar foto frontal';
   } else {
     if (tag) tag.textContent = 'Herramienta profesional';
-    if (title) title.textContent = 'Crea una simulación de sonrisa';
-    if (sub) sub.textContent = 'La foto frontal genera la propuesta. Puedes agregar hasta cinco vistas opcionales para documentar el caso.';
-    if (start) start.textContent = 'Comenzar caso';
+    if (title) title.textContent = 'Simulación rápida de sonrisa';
+    if (sub) sub.textContent = 'Toma una foto frontal, elige el resultado y revisa la propuesta.';
+    if (start) start.textContent = 'Nueva simulación rápida';
   }
   document.querySelectorAll('.professional-only').forEach(function(el) {
     el.hidden = !!esProspecto;
@@ -2370,6 +2429,10 @@ var S = {
   vitaConstruction: 'layered',
   vitaIntensity: 'balanced',
   vitaReturnToResult: false,
+  // La ruta principal captura primero una sola frontal y después presenta
+  // decisiones visuales sencillas. El flujo clínico de seis vistas permanece
+  // disponible desde Opciones avanzadas.
+  quickGuided: false,
 };
 
 // Secuencia única de captura. Solo la frontal es indispensable para generar
@@ -2962,6 +3025,7 @@ function saveProgress(screenId) {
     baAlign: S.baAlign,
     vitaTone: S.vitaTone, vitaMode: S.vitaMode, vitaFinish: S.vitaFinish,
     vitaIntensity: S.vitaIntensity, vitaConstruction: S.vitaConstruction,
+    quickGuided: !!S.quickGuided,
   };
   if (trySaveSnapshot(base)) return;
   // Las 6 fotos + hasta 6 simulaciones generadas por Gemini pueden pesar
@@ -3052,6 +3116,7 @@ function continuarProgreso() {
   S.vitaFinish = ['natural','translucent','luminous'].indexOf(snap.vitaFinish)>=0 ? snap.vitaFinish : 'natural';
   S.vitaIntensity = ['subtle','balanced','notable'].indexOf(snap.vitaIntensity)>=0 ? snap.vitaIntensity : 'balanced';
   S.vitaConstruction = snap.vitaConstruction === 'monolithic' ? 'monolithic' : 'layered';
+  S.quickGuided = !!snap.quickGuided && S.photos.some(function(photo){ return photo.view === 'frontal'; });
 
   if (snap.screen === 's-vita') {
     S.vitaReturnToResult = !!S.result;
@@ -3065,6 +3130,10 @@ function continuarProgreso() {
     showResult();
   } else if (S.independentIntraoral) {
     S.vitaReturnToResult=false;abrirGuiaVita();
+  } else if (S.quickGuided && S.photos.some(function(p){ return p.view === 'frontal'; })) {
+    // Si la app se cerró justo después de validar la frontal, retoma en las
+    // decisiones sencillas y conserva la fotografía ya aprobada.
+    abrirConfiguracionRapida();
   } else if (S.currentPhoto >= VIEWS.length && S.photos.some(function(p){ return p.view === 'frontal'; })) {
     // Ya terminó la secuencia (incluyendo vistas opcionales saltadas), pero
     // salió antes de terminar. Si existe una propuesta pagada, se revalida
@@ -3710,6 +3779,8 @@ function abrirGuiaVita() {
   if (!S.vitaTone) S.vitaTone = 'A1';
   renderGuiaVita();
   sincronizarOpcionesVita();
+  var vitaScreen = document.getElementById('s-vita');
+  if (vitaScreen) vitaScreen.classList.toggle('quick-guided-active', !!S.quickGuided && !S.vitaReturnToResult && S.photos.some(function(photo){ return photo.view === 'frontal'; }));
   show('s-vita');
   activarCarruselVita();
   document.querySelectorAll('#s-vita .vita-confirm').forEach(function(confirmBtn) {
@@ -3732,6 +3803,67 @@ async function cargarIntraoralIndependiente(input) {
     S.independentIntraoral=true;S.photos=[{view:'intraoral',b64:b64,mimeType:'image/jpeg'}];S.baVistaActual='intraoral';
     S.vitaReturnToResult=false;abrirGuiaVita();saveProgress('s-vita');
   }catch(e){mostrarAvisoAplicacion('Fotografía intraoral',e.message||'No se pudo abrir esta imagen.');}
+}
+
+function marcarEleccionRapida(contenedor, atributo, valor) {
+  document.querySelectorAll('#' + contenedor + ' [' + atributo + ']').forEach(function(button) {
+    button.classList.toggle('selected', button.getAttribute(atributo) === valor);
+  });
+}
+
+function seleccionarObjetivoRapido(mode, button) {
+  var box = document.getElementById('smile-design-options');
+  if (!box) return;
+  var arch = mode === 'veneers' ? 'upper' : 'both';
+  box.querySelector('[name=smile-mode]').value = mode;
+  box.querySelector('[name=smile-arch]').value = arch;
+  if (mode !== 'veneers') box.querySelector('[name=alignment-style]').value = 'complete';
+  window.SmylSmileModes?.change();
+  marcarEleccionRapida('quick-objective-options', 'data-quick-objective', mode);
+  if (button) vibrarSeleccionVita();
+}
+
+function seleccionarAparienciaRapida(value, button) {
+  S.vitaFinish = value === 'B1' ? 'luminous' : 'natural';
+  S.vitaIntensity = 'balanced';
+  S.vitaConstruction = 'layered';
+  if (value === 'current') seleccionarTonoActual();
+  else seleccionarTonoVita(value, false, true);
+  sincronizarOpcionesVita();
+  marcarEleccionRapida('quick-appearance-options', 'data-quick-appearance', value);
+  if (button) vibrarSeleccionVita();
+}
+
+function sincronizarConfiguracionRapida() {
+  var design = window.SmylSmileModes?.normalize(S.smileDesign) || {mode:'veneers'};
+  var appearance = S.vitaMode === 'current' ? 'current' : (S.vitaTone === 'B1' ? 'B1' : 'A1');
+  marcarEleccionRapida('quick-objective-options', 'data-quick-objective', design.mode);
+  marcarEleccionRapida('quick-appearance-options', 'data-quick-appearance', appearance);
+}
+
+function abrirConfiguracionRapida() {
+  S.quickGuided = true;
+  if (!S.smileDesign) S.smileDesign = {mode:'veneers',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
+  if (!S.vitaTone) S.vitaTone = 'A1';
+  abrirGuiaVita();
+  sincronizarConfiguracionRapida();
+  saveProgress('s-vita');
+}
+
+function mostrarAjustesProfesionales() {
+  var vitaScreen = document.getElementById('s-vita');
+  if (vitaScreen) vitaScreen.classList.remove('quick-guided-active');
+  window.SmylSmileModes?.sync();
+  requestAnimationFrame(function(){ document.getElementById('smile-design-options')?.scrollIntoView({block:'start',behavior:'smooth'}); });
+}
+
+async function confirmarConfiguracionRapida() {
+  if (!S.photos.some(function(photo){ return photo.view === 'frontal'; })) {
+    mostrarAvisoAplicacion('Falta la fotografía frontal', 'Vuelve a tomar la foto para generar la simulación.');
+    return;
+  }
+  saveProgress('s-vita');
+  await processPhotos();
 }
 
 async function cargarPacientePruebaSeisFotos(button) {
@@ -3789,10 +3921,20 @@ async function cargarPruebaFrontalIntraoral(button) {
 }
 
 function comenzarFlujoSimulacion() {
-  // El tono se decide antes de capturar cualquier fotografía. startCam()
-  // limpiará las fotos únicamente después de que el usuario lo confirme.
+  // Ruta cotidiana: primero una sola fotografía frontal; las decisiones de
+  // diseño aparecen después, cuando ya existe una imagen para contextualizarlas.
   S.independentIntraoral = false;
   S.vitaReturnToResult = false;
+  S.quickGuided = true;
+  S.smileDesign = {mode:'veneers',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
+  S.vitaTone = 'A1'; S.vitaMode = 'vita'; S.vitaFinish = 'natural'; S.vitaIntensity = 'balanced'; S.vitaConstruction = 'layered';
+  startCam();
+}
+
+function comenzarFlujoAvanzado() {
+  S.independentIntraoral = false;
+  S.vitaReturnToResult = false;
+  S.quickGuided = false;
   abrirGuiaVita();
 }
 
@@ -3814,6 +3956,7 @@ async function confirmarTonoVita() {
   }
   if(S.independentIntraoral && S.photos.length===1 && S.photos[0].view==='intraoral') {await processPhotos();return;}
   if(S.testDatasetLoaded && S.photos.some(function(photo){return photo.view==='frontal';})) {S.testDatasetLoaded=false;await processPhotos();return;}
+  if(S.quickGuided && S.photos.some(function(photo){return photo.view==='frontal';})) {await processPhotos();return;}
   startCam();
 }
 
@@ -4080,13 +4223,15 @@ function flipCam() {
 
 function updatePhotoUI() {
   var view = VIEWS[S.currentPhoto] || VIEWS[0];
+  var captureTotal = S.quickGuided ? 1 : VIEWS.length;
   // Progress dots
   for (var i = 0; i < VIEWS.length; i++) {
     var dot = document.getElementById('cpi-' + i);
     if (!dot) continue;
+    dot.style.display = i < captureTotal ? '' : 'none';
     dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
   }
-  setGuide(view.label, 'Foto ' + (S.currentPhoto + 1) + ' de ' + VIEWS.length + ' · ' + (vistaEsObligatoria(view) ? 'Obligatoria' : 'Opcional') + ' · ' + view.hint, false);
+  setGuide(view.label, 'Foto ' + (S.currentPhoto + 1) + ' de ' + captureTotal + ' · ' + (vistaEsObligatoria(view) ? 'Obligatoria' : 'Opcional') + ' · ' + view.hint, false);
   var skip = document.getElementById('cam-skip-btn');
   if (skip) skip.style.display = vistaEsObligatoria(view) ? 'none' : 'block';
   setupOval();
@@ -4574,6 +4719,11 @@ async function snap() {
 
   // Next photo or process
   S.currentPhoto++;
+  if (S.quickGuided && VIEWS[S.currentPhoto - 1]?.id === 'frontal') {
+    stopStream();
+    abrirConfiguracionRapida();
+    return;
+  }
   continuarCapturaIntegrada();
 }
 
@@ -12199,6 +12349,7 @@ function nuevoCaso() {
   S.independentIntraoral = false;
   S.testDatasetLoaded = false;
   S.testPairedGeneration = false;
+  S.quickGuided = false;
   window.SmylVisualComposition?.clear();S.visualCurrentByView={};
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.dentalMaskByView = {};
@@ -12327,6 +12478,12 @@ function onNativePhoto(input) {
     S.currentPhoto++;
     saveProgress('s-cam-native');
 
+    if (S.quickGuided && view.id === 'frontal') {
+      setTimeout(function() { abrirConfiguracionRapida(); }, 250);
+      input.value = '';
+      return;
+    }
+
     if (S.currentPhoto < VIEWS.length) {
       // Next photo
       setTimeout(function() {
@@ -12357,7 +12514,8 @@ function medirDimensionesImagen(dataUrl) {
 function buildNativeProgressDots() {
   var wrap = document.getElementById('native-progress-dots');
   if (!wrap) return;
-  wrap.innerHTML = VIEWS.map(function(v, i) {
+  var captureViews = S.quickGuided ? VIEWS.slice(0, 1) : VIEWS;
+  wrap.innerHTML = captureViews.map(function(v, i) {
     return '<div class="cpi" id="ncpi-' + i + '"></div>';
   }).join('');
 }
@@ -12397,11 +12555,12 @@ var NATIVE_TIPS_BY_ID = {
 
 function updateNativeCameraUI() {
   var view = VIEWS[S.currentPhoto] || VIEWS[0];
+  var captureTotal = S.quickGuided ? 1 : VIEWS.length;
 
   var el = document.getElementById('native-cam-title');
   if (el) el.textContent = view.label.split('—')[0].trim();
   var badge = document.getElementById('native-step-badge');
-  if (badge) badge.textContent = 'Foto ' + (S.currentPhoto + 1) + ' de ' + VIEWS.length;
+  if (badge) badge.textContent = 'Foto ' + (S.currentPhoto + 1) + ' de ' + captureTotal;
   var btn = document.getElementById('native-btn-txt');
   if (btn) btn.textContent = 'Tomar foto';
   var sub = document.getElementById('native-cam-sub');
@@ -12431,7 +12590,7 @@ function updateNativeCameraUI() {
 
   // Progress
   buildNativeProgressDots();
-  for (var i = 0; i < VIEWS.length; i++) {
+  for (var i = 0; i < captureTotal; i++) {
     var dot = document.getElementById('ncpi-' + i);
     if (dot) dot.className = 'cpi' + (i < S.currentPhoto ? ' done' : i === S.currentPhoto ? ' active' : '');
   }
