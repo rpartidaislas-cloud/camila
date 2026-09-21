@@ -1244,16 +1244,19 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       </div>
     </div>
 
-    <!-- Selector rápido de tono VITA -- aparece ENCIMA de la foto. Selecciona
-         el objetivo cromático sin pintar localmente sobre el resultado; la
-         aplicación real ocurre al recalcular la generación cerámica. -->
-    <div id="res-vita-sheet" style="display:none;position:absolute;left:0;right:0;bottom:0;z-index:11;background:linear-gradient(to top,rgba(0,0,0,.92),rgba(0,0,0,.55));padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 12px);flex-direction:column;gap:9px">
+    <!-- En resultados no se muestra la guía completa: aquí sólo interesa
+         cambiar rápidamente entre las tres apariencias del flujo guiado. -->
+    <div id="res-vita-sheet" style="display:none;position:absolute;left:10px;right:10px;bottom:10px;z-index:11;background:rgba(10,9,18,.94);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:12px;flex-direction:column;gap:10px;box-shadow:0 16px 40px rgba(0,0,0,.42)">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px">Elegir tono VITA · recalcula para aplicarlo</span>
+        <div><strong style="display:block;font-size:13px;color:#fff">Cambiar apariencia</strong><span style="display:block;margin-top:2px;font-size:9.5px;color:rgba(255,255,255,.48)">Elige una opción y aplícala al diseño</span></div>
         <button onclick="cerrarResVitaSheet()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;cursor:pointer;line-height:1">✕</button>
       </div>
-      <button type="button" id="res-vita-actual-btn" onclick="elegirTonoActualDesdeResultado()" style="height:36px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Igualar el tono actual de mis dientes</button>
-      <div id="res-vita-swatches" style="display:flex;overflow-x:auto;padding:2px 4px 4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch"></div>
+      <div id="res-vita-swatches" class="quick-choice-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <button type="button" class="quick-choice" data-res-appearance="current" onclick="elegirTonoActualDesdeResultado()">Natural<small>Tono actual</small></button>
+        <button type="button" class="quick-choice" data-res-appearance="A1" onclick="elegirTonoDesdeResultado('A1')">VITA A1<small>Claro natural</small></button>
+        <button type="button" class="quick-choice" data-res-appearance="B1" onclick="elegirTonoDesdeResultado('B1')">VITA B1<small>Más luminoso</small></button>
+      </div>
+      <button type="button" id="res-vita-apply" onclick="aplicarTonoDesdeResultado()" style="height:42px;border:0;border-radius:11px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font:750 12px Inter,sans-serif;cursor:pointer">Aplicar y regenerar</button>
     </div>
 
     <!-- Bloquea toda la pantalla mientras se regenera con el nuevo tono --
@@ -3968,9 +3971,9 @@ async function confirmarTonoVita() {
 function abrirGuiaVitaDesdeResultado() {
   var sheet = document.getElementById('res-vita-sheet');
   if (!sheet) { S.vitaReturnToResult = true; abrirGuiaVita(); return; } // respaldo si el panel no está en el DOM
+  RES_VITA_DRAFT = S.vitaMode === 'current' ? 'current' : (S.vitaTone === 'B1' ? 'B1' : 'A1');
   renderResVitaSwatches();
   sheet.style.display = 'flex';
-  activarModoVitaFullscreen();
 }
 
 // Fullscreen (mismo mecanismo que "Ajustar alineación") para que la foto
@@ -4031,31 +4034,24 @@ function ocultarVitaCargando() {
   if (el) el.style.display = 'none';
 }
 
-// Mismas tarjetas ilustradas de la guía completa. Elegir un tono solo cambia
-// el objetivo de la próxima generación; no se pinta sobre la fotografía con
-// una máscara heurística porque puede producir parches dentales artificiales.
+// En el resultado sólo se ofrecen las tres apariencias entendibles del flujo
+// rápido. La guía VITA completa permanece en Ajustes profesionales.
+var RES_VITA_DRAFT = 'A1';
 function renderResVitaSwatches() {
   var wrap = document.getElementById('res-vita-swatches');
-  var actualBtn = document.getElementById('res-vita-actual-btn');
   if (!wrap) return;
-  if (actualBtn) actualBtn.classList.toggle('active', S.vitaMode === 'current');
-  wrap.innerHTML = '';
-  VITA_CLASSICAL.forEach(function (shade) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    var isSelected = S.vitaMode !== 'current' && shade.code === S.vitaTone;
-    btn.className = 'vita-stick' + (isSelected ? ' selected' : '');
-    btn.dataset.vitaCode = shade.code;
-    btn.setAttribute('aria-label', 'Elegir tono VITA ' + shade.code);
-    btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-    btn.style.setProperty('--shade', shade.color);
-    btn.style.setProperty('--shade-hi', shade.hi);
-    btn.style.setProperty('--shade-lo', shade.lo);
-    btn.style.setProperty('--shade-depth', shade.depth.toFixed(3));
-    btn.innerHTML = '<span class="vita-photo" aria-hidden="true"><span class="vita-photo-base"></span><span class="vita-photo-tone vita-photo-tint"></span><span class="vita-photo-tone vita-photo-depth"></span><span class="vita-photo-brand"><img src="icons/smyl_logo.png" alt=""><b>VITA ' + shade.code + '</b></span></span>';
-    btn.onclick = function () { elegirTonoDesdeResultado(shade.code); };
-    wrap.appendChild(btn);
+  wrap.querySelectorAll('[data-res-appearance]').forEach(function (btn) {
+    var selected = btn.dataset.resAppearance === RES_VITA_DRAFT;
+    btn.classList.toggle('selected', selected);
+    btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
   });
+  var apply = document.getElementById('res-vita-apply');
+  var current = S.vitaMode === 'current' ? 'current' : (S.vitaTone === 'B1' ? 'B1' : 'A1');
+  if (apply) {
+    apply.disabled = RES_VITA_DRAFT === current;
+    apply.style.opacity = apply.disabled ? '.45' : '1';
+    apply.textContent = apply.disabled ? 'Apariencia actual' : 'Aplicar y regenerar';
+  }
 }
 
 // El motor de biblioteca vuelve a renderizar la misma geometría ya localizada
@@ -4063,34 +4059,36 @@ function renderResVitaSwatches() {
 // acumular recoloreados sobre el resultado anterior. La ruta v105 se conserva
 // debajo únicamente para casos antiguos.
 async function elegirTonoDesdeResultado(code) {
-  var view = S.baVistaActual || 'frontal';
-  var base = S.veneerBaseByView[view] || S.results[view];
-  var shade = VITA_CLASSICAL.find(function (s) { return s.code === code; });
-  if (!base || !shade) return; // no hay simulación generada todavía para esta vista
-  S.vitaMode = 'vita';
-  S.vitaTone = code;
-  actualizarBotonVitaResultado();
+  if (code !== 'A1' && code !== 'B1') return;
+  RES_VITA_DRAFT = code;
   renderResVitaSwatches();
-  saveProgress('s-res');
-  // Restaura siempre la última generación limpia si una versión anterior
-  // había dejado un recoloreado local con artefactos.
-  if (S.results[view] !== base) aplicarResultadoRecoloreado(view, base);
-  activarModoVitaFullscreen();
-  mostrarAvisoAplicacion('VITA '+code+' seleccionado','El resultado actual se conserva sin filtros. Puedes aplicarlo ahora dentro de las carillas.','Aplicar '+code+' y recalcular',async function(){cerrarResVitaSheet();await regenerarSimulacion();});
 }
 
 async function elegirTonoActualDesdeResultado() {
+  RES_VITA_DRAFT = 'current';
+  renderResVitaSwatches();
+}
+
+async function aplicarTonoDesdeResultado() {
   var view = S.baVistaActual || 'frontal';
   var base = S.veneerBaseByView[view] || S.results[view];
-  var fotoOriginal = S.photos.find(function (p) { return p.view === view; });
-  if (!base || !fotoOriginal) return;
-  S.vitaMode = 'current';
+  if (!base) return;
+  if (RES_VITA_DRAFT === 'current') {
+    S.vitaMode = 'current';
+    S.vitaFinish = 'natural';
+  } else {
+    S.vitaMode = 'vita';
+    S.vitaTone = RES_VITA_DRAFT === 'B1' ? 'B1' : 'A1';
+    S.vitaFinish = S.vitaTone === 'B1' ? 'luminous' : 'natural';
+  }
+  S.vitaIntensity = 'balanced';
   actualizarBotonVitaResultado();
-  renderResVitaSwatches();
   saveProgress('s-res');
+  // Antes de regenerar se conserva la última salida limpia; nunca se aplica
+  // un filtro local que pueda crear parches o bordes artificiales.
   if (S.results[view] !== base) aplicarResultadoRecoloreado(view, base);
-  activarModoVitaFullscreen();
-  mostrarAvisoAplicacion('Tono actual seleccionado','El resultado actual se conserva sin filtros. Puedes aplicarlo ahora dentro de las carillas.','Aplicar tono y recalcular',async function(){cerrarResVitaSheet();await regenerarSimulacion();});
+  cerrarResVitaSheet();
+  await regenerarSimulacion();
 }
 
 function aplicarResultadoRecoloreado(view, url) {

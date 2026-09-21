@@ -20,5 +20,11 @@ assert.match(html, /S\.quickGuided && view\.id === 'frontal'/);
 assert.match(html, /S\.quickGuided && VIEWS\[S\.currentPhoto - 1\]\?\.id === 'frontal'/);
 assert.match(html, /if\(S\.quickGuided && S\.photos\.some[\s\S]*await processPhotos\(\);return;/);
 assert.match(html, /Propuesta visual orientativa\. No diagnostica ni sustituye la valoración clínica\./);
+assert.match(html, /Cambiar apariencia/);
+assert.match(html, /data-res-appearance="current"/);
+assert.match(html, /data-res-appearance="A1"/);
+assert.match(html, /data-res-appearance="B1"/);
+assert.match(html, /function aplicarTonoDesdeResultado\(\)/);
+assert.doesNotMatch(html.slice(html.indexOf('function abrirGuiaVitaDesdeResultado'), html.indexOf('function activarModoVitaFullscreen')), /activarModoVitaFullscreen\(\)/);
 
 console.log('SMYL quick guided flow: camera-first route, simple choices and advanced fallback verified');
