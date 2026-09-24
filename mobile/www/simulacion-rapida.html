@@ -711,8 +711,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
 <script src="visual-simulation.js?v=21"></script>
-<script src="dental-transfer.js?v=1"></script>
-<link rel="stylesheet" href="dental-transfer.css?v=1">
+<script src="photo-reference.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
 <link rel="stylesheet" href="dental-transfer.css?v=1">
 <script src="lana-quick-bridge.js?v=1"></script>
@@ -1199,8 +1198,6 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <button class="res-vita-btn" id="res-vita-btn" onclick="abrirGuiaVitaDesdeResultado()">Tono VITA A1 · Cambiar</button>
       <button class="res-vita-btn" id="res-construction-btn" type="button" onclick="abrirAcabadoCeramico()">Acabado cerámico</button>
       <button class="res-vita-btn" type="button" onclick="ajustarUnionVisualActual(this)">Corregir unión · local</button>
-      <button class="res-vita-btn" type="button" onclick="transferirPiezasDesdeIntraoral(this)">Vincular dientes · asistido</button>
-      <button class="res-vita-btn" type="button" onclick="transferirPiezasDesdeIntraoral(this)">Vincular dientes · asistido</button>
       <button class="res-vita-btn" type="button" onclick="compararAcabadosVisuales()">Comparar acabados</button>
       <button class="res-vita-btn" id="smile-stage-two" type="button" hidden onclick="generarEtapaCarillas(this)">Etapa 2 · Añadir carillas</button>
       <span id="smile-result-label" style="font-size:11px;color:#b9eadd"></span>
@@ -5228,23 +5225,29 @@ async function processPhotos(processOptions) {
     if (procSub) procSub.textContent = SMYL_DESIGN_ENGINE_V1_ENABLED ?
       'Diseñando seis dientes completos...' : 'Generando tu simulación...';
     var frontalPhoto = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
-    var intraoralPhoto=S.testPairedGeneration?S.photos.find(function(p){return p.view==='intraoral';}):null;
+    var referenceView=frontalPhoto.view;
+    if(SMYL_VISUAL_PREVIEW_ENABLED&&!processOptions.revalidateCached){
+      referenceView=await window.SmylPhotoReference.choose(S.photos);
+      if(!referenceView)throw new Error('Selección cancelada. No se generó otra imagen.');
+    }
+    var intraoralPhoto=referenceView!==frontalPhoto.view?S.photos.find(function(p){return p.view===referenceView;}):null;
     var resultadoIntraoral=null,errorIntraoral=null;
     if(!processOptions.revalidateCached){
       S.results={};S.veneerBaseByView={};S.dentalDesignMaster=null;
     }
     if(intraoralPhoto&&!processOptions.revalidateCached){
-      if(procSub)procSub.textContent='Creando el diseño dental maestro desde la vista intraoral…';
+      if(procSub)procSub.textContent='Creando el diseño desde la referencia seleccionada…';
       try{
         resultadoIntraoral=await generateSimulation(clinicalPrompt,intraoralPhoto,{
           requestId:crearIdSolicitudIA(),reason:'diseno_maestro_intraoral',requireVisibleChange:true,disableMasterReference:true
         });
-        S.results.intraoral=resultadoIntraoral;
-        S.veneerBaseByView.intraoral=resultadoIntraoral;
-        S.dentalDesignMaster={view:'intraoral',revision:Date.now()};
+        S.results[intraoralPhoto.view]=resultadoIntraoral;
+        S.veneerBaseByView[intraoralPhoto.view]=resultadoIntraoral;
+        S.dentalDesignMaster={view:intraoralPhoto.view,revision:Date.now()};
+        saveProgress('s-proc');
       }catch(errorVista){
+        if(!window.SmylPhotoReference.independent())throw errorVista;
         errorIntraoral=errorVista;
-        console.warn('[SMYL] La referencia intraoral no terminó; se usará la frontal como diseño maestro.',errorVista);
       }
     }
     // La generación de imagen es pagada: no se reintenta automáticamente.
@@ -5276,7 +5279,7 @@ async function processPhotos(processOptions) {
       registrarDiagnosticoUsado();
       if(resultadoIntraoral)registrarDiagnosticoUsado();
     }
-    if(errorIntraoral)mostrarAvisoAplicacion('Resultado frontal conservado','No se completó la referencia intraoral. La frontal quedó como diseño maestro; puedes abrir la miniatura intraoral y generarla después con ese mismo diseño.');
+    if(errorIntraoral)mostrarAvisoAplicacion('Simulación independiente','Continuaste sin la referencia seleccionada. La frontal será la referencia para las siguientes vistas.');
 
   } catch(e) {
     console.error(e);
@@ -6878,29 +6881,6 @@ async function transferirPiezasDesdeIntraoral(button) {
   finally{button.disabled=false;}
 }
 
-async function transferirPiezasDesdeIntraoral(button) {
-  if(button.disabled)return;
-  button.disabled=true;
-  try {
-    var f=fotoVisualActual(),intra=S.photos.find(function(p){return p.view==='intraoral';});
-    if(f.view==='intraoral')throw new Error('Abre la miniatura frontal o de otra vista para transferir allí el diseño intraoral.');
-    if(!intra||!S.results.intraoral)throw new Error('Necesitas la intraoral original y su diseño aceptado en este mismo caso.');
-    var target=S.results[f.view]||f.original;
-    var edited=await window.SmylDentalTransfer.open({source:S.results.intraoral,anatomy:intra.dataUrl||('data:'+(intra.mimeType||'image/jpeg')+';base64,'+intra.b64),original:f.original,target:target});
-    if(!edited)return;
-    S.results[f.view]=edited.url;
-    if(f.view==='frontal')S.result=edited.url;
-    S.veneerBaseByView[f.view]=edited.url;
-    if(S.visualCurrentByView)delete S.visualCurrentByView[f.view];
-    if(S.alignedPreviewByView)delete S.alignedPreviewByView[f.view];
-    S.simulationQualityByView[f.view]={version:SIM_QUALITY_VERSION,status:'review',issues:['Transferencia geométrica asistida desde intraoral. Contornos y correspondencias revisados por el usuario.'],metrics:{mode:edited.version,userReviewed:true,pieces:edited.entries.map(function(e){return e.id;})}};
-    S.baAlign[f.view]={x:0,y:0,scale:1};
-    document.getElementById('img-a').src=edited.url;
-    document.getElementById('img-a').style.transform='none';
-    initBASlider();renderControlCalidadSimulacion();saveProgress('s-res');
-  }catch(error){mostrarAvisoAplicacion('Vincular dientes',error.message);}
-  finally{button.disabled=false;}
-}
 
 async function ajustarUnionVisualActual(button) {
   if(button.disabled)return;button.disabled=true;
@@ -6962,8 +6942,9 @@ async function generarAproximacionVisualIA(foto, options) {
       var masterCrop=await prepararRecorteDental(masterReference.result,masterReference.view);
       masterGuide={dataUrl:masterCrop.dataUrl,b64:masterCrop.b64,mimeType:masterCrop.mimeType||'image/png'};
     }catch(errorMaster){
-      console.warn('[SMYL] No se pudo preparar la referencia maestra; la vista continuará sin ella.',errorMaster);
+      if(!window.SmylPhotoReference.independent())throw new Error('No se pudo preparar la referencia. No se generó otra imagen.');
       masterReference=null;
+      masterGuide=null;
     }
   }
   return window.SmylVisualSimulation.run({

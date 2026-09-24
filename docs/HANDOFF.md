@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-24 — Intraoral opcional y selección de referencia
+
+`photo-reference.js` propone intraoral si existe; sin ella propone frontal.
+Una foto omite el selector. Con varias se puede elegir cualquier referencia;
+si no es la frontal se genera/acepta primero y las demás heredan la guía visual.
+Cada generación conserva consentimiento. Si generar o preparar la referencia
+falla, solo continúa independientemente tras confirmación explícita.
+Retirados los dos botones manuales de la barra y la función/carga duplicadas.
+Copias móviles sincronizadas, caché v103. Pruebas de navegación en 390/768/1280.
+Esto adapta el flujo; NO garantiza correspondencia geométrica automática ni
+anatomía exacta y no reemplaza la validación visual pendiente con casos reales.
+
+
 ## 2026-09-24 — Transferencia geométrica asistida experimental
 
 Nuevo dental-transfer.js/css y botón Vincular dientes en simulación rápida.

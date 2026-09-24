@@ -10,7 +10,7 @@ const edge = fs.readFileSync(path.join(root, 'supabase/functions/claude/index.ts
 
 assert.match(html, /dentalDesignMaster:\s*null/);
 assert.match(html, /diseno_maestro_intraoral/);
-assert.match(html, /S\.dentalDesignMaster=\{view:'intraoral'/);
+assert.match(html, /S\.dentalDesignMaster=\{view:intraoralPhoto\.view/);
 assert.match(html, /referenciaDentalMaestraParaVista\(view\)/);
 assert.match(html, /masterGuide:masterGuide,multiviewReference:!!masterGuide/);
 assert.match(html, /dentalDesignMaster:\s*S\.dentalDesignMaster/);

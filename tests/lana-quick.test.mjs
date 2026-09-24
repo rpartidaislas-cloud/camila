@@ -33,7 +33,7 @@ assert.match(html,/S\.testDatasetLoaded=false;await processPhotos\(\)/);
 assert.match(html,/Probar frontal \+ intraoral/);
 assert.match(html,/SMYL_SYNTHETIC_PAIRED_CASE/);
 assert.match(html,/reason:'diseno_maestro_intraoral'/);
-assert.match(html,/S\.veneerBaseByView\.intraoral=resultadoIntraoral/);
+assert.match(html,/S\.veneerBaseByView\[intraoralPhoto\.view\]=resultadoIntraoral/);
 assert.match(html,/async function localizarBocaEnFotografia/);
 assert.match(html,/S\.landmarker\.detectForVideo\(img, performance\.now\(\)\)/);
 assert.match(html,/mouthRegion: mouthRegion/);
