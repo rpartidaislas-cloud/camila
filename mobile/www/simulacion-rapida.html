@@ -711,6 +711,10 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
 <script src="visual-simulation.js?v=21"></script>
+<script src="dental-transfer.js?v=1"></script>
+<link rel="stylesheet" href="dental-transfer.css?v=1">
+<script src="dental-transfer.js?v=1"></script>
+<link rel="stylesheet" href="dental-transfer.css?v=1">
 <script src="lana-quick-bridge.js?v=1"></script>
 <script src="contour-review.js?v=2"></script>
 <script src="tooth-boundaries.js?v=1"></script>
@@ -1195,6 +1199,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <button class="res-vita-btn" id="res-vita-btn" onclick="abrirGuiaVitaDesdeResultado()">Tono VITA A1 · Cambiar</button>
       <button class="res-vita-btn" id="res-construction-btn" type="button" onclick="abrirAcabadoCeramico()">Acabado cerámico</button>
       <button class="res-vita-btn" type="button" onclick="ajustarUnionVisualActual(this)">Corregir unión · local</button>
+      <button class="res-vita-btn" type="button" onclick="transferirPiezasDesdeIntraoral(this)">Vincular dientes · asistido</button>
+      <button class="res-vita-btn" type="button" onclick="transferirPiezasDesdeIntraoral(this)">Vincular dientes · asistido</button>
       <button class="res-vita-btn" type="button" onclick="compararAcabadosVisuales()">Comparar acabados</button>
       <button class="res-vita-btn" id="smile-stage-two" type="button" hidden onclick="generarEtapaCarillas(this)">Etapa 2 · Añadir carillas</button>
       <span id="smile-result-label" style="font-size:11px;color:#b9eadd"></span>
@@ -6846,6 +6852,54 @@ function fotoVisualActual() {
   var view=S.baVistaActual||'frontal',photo=S.photos.find(function(p){return p.view===view;})||S.photos[0];
   if(!photo)throw new Error('Carga o recupera primero la fotografía original.');
   return {view:photo.view||'frontal',photo:photo,original:photo.dataUrl||('data:'+(photo.mimeType||'image/jpeg')+';base64,'+photo.b64)};
+}
+
+async function transferirPiezasDesdeIntraoral(button) {
+  if(button.disabled)return;
+  button.disabled=true;
+  try {
+    var f=fotoVisualActual(),intra=S.photos.find(function(p){return p.view==='intraoral';});
+    if(f.view!=='frontal'&&f.view!=='extraoral')throw new Error('Esta transferencia 2D está disponible en frontal y extraoral de frente. Las vistas laterales y 3/4 requieren una adaptación de perspectiva adicional.');
+    if(!intra||!S.results.intraoral)throw new Error('Necesitas la intraoral original y su diseño aceptado en este mismo caso.');
+    var target=S.results[f.view]||f.original;
+    var edited=await window.SmylDentalTransfer.open({source:S.results.intraoral,anatomy:intra.dataUrl||('data:'+(intra.mimeType||'image/jpeg')+';base64,'+intra.b64),original:f.original,target:target});
+    if(!edited)return;
+    S.results[f.view]=edited.url;
+    if(f.view==='frontal')S.result=edited.url;
+    S.veneerBaseByView[f.view]=edited.url;
+    if(S.visualCurrentByView)delete S.visualCurrentByView[f.view];
+    if(S.alignedPreviewByView)delete S.alignedPreviewByView[f.view];
+    S.simulationQualityByView[f.view]={version:SIM_QUALITY_VERSION,status:'review',issues:['Transferencia geométrica asistida desde intraoral. Contornos y correspondencias revisados por el usuario.'],metrics:{mode:edited.version,userReviewed:true,pieces:edited.entries.map(function(e){return e.id;})}};
+    S.baAlign[f.view]={x:0,y:0,scale:1};
+    document.getElementById('img-a').src=edited.url;
+    document.getElementById('img-a').style.transform='none';
+    initBASlider();renderControlCalidadSimulacion();saveProgress('s-res');
+  }catch(error){mostrarAvisoAplicacion('Vincular dientes',error.message);}
+  finally{button.disabled=false;}
+}
+
+async function transferirPiezasDesdeIntraoral(button) {
+  if(button.disabled)return;
+  button.disabled=true;
+  try {
+    var f=fotoVisualActual(),intra=S.photos.find(function(p){return p.view==='intraoral';});
+    if(f.view==='intraoral')throw new Error('Abre la miniatura frontal o de otra vista para transferir allí el diseño intraoral.');
+    if(!intra||!S.results.intraoral)throw new Error('Necesitas la intraoral original y su diseño aceptado en este mismo caso.');
+    var target=S.results[f.view]||f.original;
+    var edited=await window.SmylDentalTransfer.open({source:S.results.intraoral,anatomy:intra.dataUrl||('data:'+(intra.mimeType||'image/jpeg')+';base64,'+intra.b64),original:f.original,target:target});
+    if(!edited)return;
+    S.results[f.view]=edited.url;
+    if(f.view==='frontal')S.result=edited.url;
+    S.veneerBaseByView[f.view]=edited.url;
+    if(S.visualCurrentByView)delete S.visualCurrentByView[f.view];
+    if(S.alignedPreviewByView)delete S.alignedPreviewByView[f.view];
+    S.simulationQualityByView[f.view]={version:SIM_QUALITY_VERSION,status:'review',issues:['Transferencia geométrica asistida desde intraoral. Contornos y correspondencias revisados por el usuario.'],metrics:{mode:edited.version,userReviewed:true,pieces:edited.entries.map(function(e){return e.id;})}};
+    S.baAlign[f.view]={x:0,y:0,scale:1};
+    document.getElementById('img-a').src=edited.url;
+    document.getElementById('img-a').style.transform='none';
+    initBASlider();renderControlCalidadSimulacion();saveProgress('s-res');
+  }catch(error){mostrarAvisoAplicacion('Vincular dientes',error.message);}
+  finally{button.disabled=false;}
 }
 
 async function ajustarUnionVisualActual(button) {

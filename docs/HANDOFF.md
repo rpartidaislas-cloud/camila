@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-24 — Transferencia geométrica asistida experimental
+
+Nuevo dental-transfer.js/css y botón Vincular dientes en simulación rápida.
+Transformación afín local por pieza: contorno, tres anclajes y recorte visible
+marcados por el usuario. Reutiliza píxeles intraorales; no genera ni envía fotos.
+Solo frontal y extraoral de frente; laterales/3/4 pendientes. No es automático:
+proporciones dependen de los anclajes e iluminación requiere revisión manual.
+Incluye cancelar, quitar pieza y confirmación antes de guardar.
+Pruebas matemáticas y browser sintético a 1280/768/390: correspondencia, rechazo
+de degeneración, píxeles protegidos, guardado y disposición adaptable.
+Pendiente validar con caso real y automatizar correspondencias fiables.
+Copias móviles sincronizadas, caché v102. Sin consumo de IA.
+
+
 ## 2026-09-24 — Carga propia frontal + intraoral
 
 - `Opciones avanzadas` separa ahora el ejemplo sintético de la carga real.

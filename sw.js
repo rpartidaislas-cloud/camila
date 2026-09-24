@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v101-cross-view-tooth-lock';
+const CACHE_VERSION = 'smyl-v102-assisted-transfer';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -12,6 +12,8 @@ const STATIC_FILES = [
   '/camila/smile-modes.js?v=13',
   '/camila/visual-composition.js?v=5',
   '/camila/visual-simulation.js?v=21',
+  '/camila/dental-transfer.js?v=1',
+  '/camila/dental-transfer.css?v=1',
   '/camila/visual-simulation.css?v=5',
   '/camila/contour-review.js?v=2',
   '/camila/contour-review.css?v=1',
