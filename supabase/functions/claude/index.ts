@@ -160,6 +160,8 @@ Deno.serve(async (req: Request) => {
   const isPatientAnatomyGuide = isPhotographicLibraryContract && guideLibraryVersion === "patient-anatomy-warp-v2";
   const isGeometryLockedContract = simulationContract === "hybrid-2d-v4";
   const isPatientGeometryLock = isGeometryLockedContract && guideLibraryVersion === "patient-geometry-lock-v1";
+  const isMultiViewVisualContract = simulationContract === "visual-preview-v2-multiview";
+  const isSamePatientMasterGuide = isMultiViewVisualContract && guideLibraryVersion === "same-patient-master-v1";
   const isHybrid2DContract = simulationContract === "hybrid-2d-v2" || isPhotographicLibraryContract || isGeometryLockedContract;
   const requestedImageProvider: ImageProvider | null =
     body?.imageProvider === "openai" || body?.imageProvider === "gemini"
@@ -355,6 +357,8 @@ Deno.serve(async (req: Request) => {
               : simulationContract === "v102"
                 ? "V102 CONTROLLED DENTAL EDIT. The patient smile crop is the ONE AND ONLY visual reference; no second image or visual blueprint exists. Edit only the six maxillary anterior veneers 13-12-11-21-22-23 inside the transparent alpha mask. Follow the six numeric crown envelopes in the prompt tooth by tooth. Preserve every unmasked pixel and every unlisted tooth. Never introduce outlines, diagrams, colored seams, cut-out borders, labels or technical marks. " + prompt
                 : "INPUT IMAGE 1 is the only visual reference: the patient smile crop. The transparent edit mask is the absolute treatment boundary. Tooth-by-tooth geometry is provided only as numeric/text instructions in the prompt; there is no visual blueprint to copy. Render natural ceramic anatomy inside the editable area and never introduce outlines, diagrams, colored seams, cut-out borders or technical marks. " + prompt)
+          : isSamePatientMasterGuide
+            ? "MULTI-VIEW SAME-PATIENT DENTAL DESIGN TRANSFER. IMAGE 1 is the target photograph to edit and remains the only source for this view's face, pose, lips, gingiva, occlusion, illumination, crop and perspective. IMAGE 2 is the accepted master dental design from another photograph of the SAME patient. Use IMAGE 2 only to keep one stable dental design identity across views: the same central-incisor width/height hierarchy, lateral scale, canine character, incisal design, contact rhythm, smile-arc intent, VITA family and ceramic character. Re-express that design with the anatomically correct foreshortening and visibility of IMAGE 1. Never paste or trace IMAGE 2; never copy its face, soft tissue, camera angle, crop or lighting. Do not reveal teeth hidden in IMAGE 1 and do not create a new smile design for this angle. Preserve every unrelated pixel in IMAGE 1. Return only the edited target photograph. " + prompt
           : guideImageBase64
             ? "INPUT IMAGE 1 is the patient smile crop to edit. INPUT IMAGE 2 is an abstract black-background GEOMETRIC VENEER BLUEPRINT for maxillary teeth 13-12-11-21-22-23 only. Its six separate pale silhouettes define the intended crown hierarchy, individual widths, heights and incisal curve. Transfer only that geometry to the corresponding real teeth in IMAGE 1. The blueprint is not a photograph, material sample, segmentation mask or visible overlay. Never render its black background, gray fill, white outlines, control marks, colors, labels or diagram appearance. Use the original photograph for all texture, lighting, tissue and identity information. " + prompt
             : prompt;
@@ -365,7 +369,7 @@ Deno.serve(async (req: Request) => {
           form.append("mask", new Blob([editMaskBytes], { type: editMaskMimeType }), "treatment-mask.png");
         }
         if (guideImageBytes && !isMeasuredMaskOnlyContract) {
-          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isPatientGeometryLock ? "patient-original-reference.png" : (isPatientAnatomyGuide ? "patient-anatomy-guide.png" : (isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png")));
+          form.append("image[]", new Blob([guideImageBytes], { type: guideMimeType }), isSamePatientMasterGuide ? "same-patient-master-design.png" : (isPatientGeometryLock ? "patient-original-reference.png" : (isPatientAnatomyGuide ? "patient-anatomy-guide.png" : (isPhotographicLibraryContract ? "smyl-photo-library.png" : "veneer-blueprint.png"))));
         }
         form.append("prompt", promptOpenAI);
         // Los acercamientos dentales son ediciones de detalle y anatomía fina.

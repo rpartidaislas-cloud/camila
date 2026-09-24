@@ -2391,6 +2391,9 @@ var S = {
   baAlignMode: false,
   leadNombre: null,
   results: {},
+  // Una sola identidad dental por caso. La vista maestra define forma,
+  // jerarquía, bordes, tono y acabado; las demás sólo cambian perspectiva.
+  dentalDesignMaster: null, // {view, revision}
   // Copia "pristina" de cada simulación (recién salida de Gemini + compuesta
   // sobre la foto original), por vista -- de ahí parte cada recoloreado
   // local de tono VITA (recolorearDientes), para no recolorear un resultado
@@ -3018,6 +3021,7 @@ function saveProgress(screenId) {
     promptGeminiUsado: S.promptGeminiUsado,
     results: S.results,
     result: S.result,
+    dentalDesignMaster: S.dentalDesignMaster,
     pendingGeneratedByView: S.pendingGeneratedByView,
     simulationQualityByView: S.simulationQualityByView,
     baVistaActual: S.baVistaActual,
@@ -3106,6 +3110,7 @@ function continuarProgreso() {
   S.promptGeminiUsado = snap.promptGeminiUsado || null;
   S.results = snap.results || {};
   S.result = snap.result || null;
+  S.dentalDesignMaster = snap.dentalDesignMaster || (S.results.frontal ? {view:'frontal',revision:snap.ts||Date.now()} : null);
   S.pendingGeneratedByView = snap.pendingGeneratedByView || {};
   S.simulationQualityByView = snap.simulationQualityByView || {};
   S.baVistaActual = snap.baVistaActual || 'frontal';
@@ -5129,15 +5134,32 @@ async function processPhotos(processOptions) {
       clinicalPrompt = '';
     }
 
-    // Step 2: Gemini genera la simulación SOLO de la foto frontal
-    // automáticamente -- las demás vistas (perfiles, extraoral, etc.) se
-    // quedan sin generar hasta que el dentista/paciente elija generarlas
-    // desde esa vista (ver cambiarVistaBA/regenerarSimulacion). Antes se
-    // generaban las 6 en paralelo en cada caso, lo que multiplicaba el
-    // costo y el riesgo de que alguna fallara sin necesidad.
+    // Step 2: la frontal se genera automáticamente. En la prueba frontal +
+    // intraoral, la toma intraoral se resuelve primero porque muestra mejor
+    // la anatomía: se convierte en referencia maestra y la frontal hereda el
+    // mismo diseño. Las demás vistas siguen bajo demanda y usan esa referencia.
     if (procSub) procSub.textContent = SMYL_DESIGN_ENGINE_V1_ENABLED ?
       'Diseñando seis dientes completos...' : 'Generando tu simulación...';
     var frontalPhoto = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
+    var intraoralPhoto=S.testPairedGeneration?S.photos.find(function(p){return p.view==='intraoral';}):null;
+    var resultadoIntraoral=null,errorIntraoral=null;
+    if(!processOptions.revalidateCached){
+      S.results={};S.veneerBaseByView={};S.dentalDesignMaster=null;
+    }
+    if(intraoralPhoto&&!processOptions.revalidateCached){
+      if(procSub)procSub.textContent='Creando el diseño dental maestro desde la vista intraoral…';
+      try{
+        resultadoIntraoral=await generateSimulation(clinicalPrompt,intraoralPhoto,{
+          requestId:crearIdSolicitudIA(),reason:'diseno_maestro_intraoral',requireVisibleChange:true,disableMasterReference:true
+        });
+        S.results.intraoral=resultadoIntraoral;
+        S.veneerBaseByView.intraoral=resultadoIntraoral;
+        S.dentalDesignMaster={view:'intraoral',revision:Date.now()};
+      }catch(errorVista){
+        errorIntraoral=errorVista;
+        console.warn('[SMYL] La referencia intraoral no terminó; se usará la frontal como diseño maestro.',errorVista);
+      }
+    }
     // La generación de imagen es pagada: no se reintenta automáticamente.
     // Si la respuesta se pierde, el usuario decide explícitamente si genera
     // otra vez, evitando cargos duplicados invisibles.
@@ -5149,34 +5171,15 @@ async function processPhotos(processOptions) {
       requireVisibleChange: true
     });
 
-    // La prueba pareada mantiene las dos vistas en un solo caso, pero genera
-    // consecutivamente para evitar revisiones superpuestas y estados cruzados.
-    var intraoralPhoto=S.testPairedGeneration?S.photos.find(function(p){return p.view==='intraoral';}):null;
-    var resultadoIntraoral=null,errorIntraoral=null;
-    if(intraoralPhoto&&!processOptions.revalidateCached){
-      if(procSub)procSub.textContent='Generando ahora la vista intraoral del mismo paciente…';
-      try{
-        resultadoIntraoral=await generateSimulation(clinicalPrompt,intraoralPhoto,{
-          requestId:crearIdSolicitudIA(),
-          reason:'prueba_pareada_intraoral',
-          requireVisibleChange:true
-        });
-      }catch(errorVista){
-        errorIntraoral=errorVista;
-        console.warn('[SMYL] La frontal se conserva; la vista intraoral pareada no terminó.',errorVista);
-      }
-    }
-
     // S.diagnosis se deja sin pedir -- S.photos (las fotos originales,
     // "antes") sigue intacto y es lo que analyzeWithClaude va a leer cuando
     // el paciente pida el diagnóstico desde la pantalla de resultado, sin
     // importar que ya esté viendo la simulación generada en S.result.
     S.diagnosis = null;
-    S.results = {};
-    S.veneerBaseByView = {};
-    S.photos.forEach(function(photo) { S.results[photo.view] = photo.view === frontalPhoto.view ? resultadoFrontal : (photo.view==='intraoral'?resultadoIntraoral:null); });
+    S.photos.forEach(function(photo) { if(!(photo.view in S.results))S.results[photo.view]=null; });
+    S.results[frontalPhoto.view]=resultadoFrontal;
     S.veneerBaseByView[frontalPhoto.view] = resultadoFrontal;
-    if(resultadoIntraoral)S.veneerBaseByView.intraoral=resultadoIntraoral;
+    if(!S.dentalDesignMaster)S.dentalDesignMaster={view:frontalPhoto.view,revision:Date.now()};
     S.result = resultadoFrontal;
     S.baVistaActual = frontalPhoto.view;
     S.testPairedGeneration=false;
@@ -5186,7 +5189,7 @@ async function processPhotos(processOptions) {
       registrarDiagnosticoUsado();
       if(resultadoIntraoral)registrarDiagnosticoUsado();
     }
-    if(errorIntraoral)mostrarAvisoAplicacion('Resultado frontal conservado','La simulación frontal terminó correctamente, pero la intraoral no se completó. Puedes abrir la miniatura intraoral y generarla después.');
+    if(errorIntraoral)mostrarAvisoAplicacion('Resultado frontal conservado','No se completó la referencia intraoral. La frontal quedó como diseño maestro; puedes abrir la miniatura intraoral y generarla después con ese mismo diseño.');
 
   } catch(e) {
     console.error(e);
@@ -6769,7 +6772,7 @@ async function ajustarUnionVisualActual(button) {
   try{
     var f=fotoVisualActual(),result=S.results[f.view]||(f.view==='frontal'?S.result:null);
     if(!result)throw new Error('No hay un resultado para corregir.');
-    if(S.simulationQualityByView[f.view]?.metrics?.mode!=='visual-preview-v1')throw new Error('Esta corrección es para la aproximación visual IA; conserva el editor para otros diseños.');
+    if(!/^visual-preview-v[12]/.test(S.simulationQualityByView[f.view]?.metrics?.mode||''))throw new Error('Esta corrección es para la aproximación visual IA; conserva el editor para otros diseños.');
     var current=S.visualCurrentByView?.[f.view];
     if(!current||current.original!==f.original||current.prepared?.localizerVersion!=='face-mouth-v1'){
       var input=await prepararRecorteDental(f.original,f.view),img=await cargarImagenSegura(result),c=document.createElement('canvas');
@@ -6795,7 +6798,16 @@ async function compararAcabadosVisuales() {
   catch(error){mostrarAvisoAplicacion('Comparar acabados',error.message);}
 }
 
+function referenciaDentalMaestraParaVista(view) {
+  var master=S.dentalDesignMaster;
+  if(!master||master.view===view||!S.results)return null;
+  var result=S.results[master.view];
+  if(!result||!/^data:image\//i.test(result))return null;
+  return {view:master.view,result:result,revision:master.revision||0};
+}
+
 async function generarAproximacionVisualIA(foto, options) {
+  options=options||{};
   if (!window.SmylVisualSimulation) throw new Error('No se cargó el módulo de simulación visual.');
   var frontal=foto||S.photos.find(function(p){return p.view==='frontal';})||S.photos[0];
   if(!frontal)throw new Error('Carga una fotografía de sonrisa.');
@@ -6803,21 +6815,32 @@ async function generarAproximacionVisualIA(foto, options) {
   var original=frontal.dataUrl||('data:'+(frontal.mimeType||'image/jpeg')+';base64,'+frontal.b64);
   var signature=firmaFotoParaRevalidacion(frontal);
   var pending=(S.pendingGeneratedByView||{})[view];
-  var cached=options.revalidateCached&&pending&&pending.photoSignature===signature&&pending.mode==='visual-preview-v1'
+  var cached=options.revalidateCached&&pending&&pending.photoSignature===signature&&pending.mode==='visual-preview-v2-multiview'
     ?{url:pending.generatedImageUrl,meta:pending.generation}:null;
   var prepared;
   var design=window.SmylSmileModes?.normalize(options.design||S.smileDesign)||{};
   var inputSource=options.alignedBase||original;
+  var masterReference=options.disableMasterReference?null:referenciaDentalMaestraParaVista(view);
+  var masterGuide=null;
+  if(masterReference){
+    try{
+      var masterCrop=await prepararRecorteDental(masterReference.result,masterReference.view);
+      masterGuide={dataUrl:masterCrop.dataUrl,b64:masterCrop.b64,mimeType:masterCrop.mimeType||'image/png'};
+    }catch(errorMaster){
+      console.warn('[SMYL] No se pudo preparar la referencia maestra; la vista continuará sin ella.',errorMaster);
+      masterReference=null;
+    }
+  }
   return window.SmylVisualSimulation.run({
     original:original,requestId:requestId,endpoint:CFG.edgeUrl,headers:headersEdgeIA,
-    options:{...design,shade:S.vitaTone||'A1',current:S.vitaMode==='current',finish:S.vitaFinish,intensity:S.vitaIntensity,construction:S.vitaConstruction==='monolithic'?'monolithic':'layered',materialOnly:!!options.materialOnly,baseShade:options.baseShade||''},
+    options:{...design,shade:S.vitaTone||'A1',current:S.vitaMode==='current',finish:S.vitaFinish,intensity:S.vitaIntensity,construction:S.vitaConstruction==='monolithic'?'monolithic':'layered',materialOnly:!!options.materialOnly,baseShade:options.baseShade||'',masterGuide:masterGuide,multiviewReference:!!masterGuide,masterView:masterReference&&masterReference.view||'',targetView:view},
     revalidate:!!options.revalidateCached,cached:cached,
     onStatus:function(status){var b=document.getElementById('btn-regenerar');if(b?.disabled)b.textContent={consent:'Esperando autorización…',generating:'Generando imagen…',review:'Revisa la propuesta…'}[status]||'Preparando…';},
     authorize:async function(){await asegurarAutorizacionIA();},
     prepare:function(){return prepararRecorteDental(inputSource,view);},
     save:function(candidate){
       if(!S.pendingGeneratedByView)S.pendingGeneratedByView={};
-      S.pendingGeneratedByView[view]={mode:'visual-preview-v1',photoSignature:signature,generatedImageUrl:candidate.url,generation:candidate.meta,createdAt:Date.now()};
+      S.pendingGeneratedByView[view]={mode:'visual-preview-v2-multiview',photoSignature:signature,generatedImageUrl:candidate.url,generation:candidate.meta,createdAt:Date.now()};
     },
     compose:async function(url,input,actualDesign){
       prepared=await prepararUnionVisual(original,url,input,view,actualDesign);
@@ -6838,7 +6861,7 @@ async function generarAproximacionVisualIA(foto, options) {
         window.SmylVisualComposition.remember({original:original,after:after,rect:input.rect,options:meta.visualOptions});
       }
       if(!S.simulationQualityByView)S.simulationQualityByView={};
-      S.simulationQualityByView[view]={version:SIM_QUALITY_VERSION,status:'review',issues:['Aproximación visual con IA. Comparación aceptada por el usuario; anatomía y resultado clínico no certificados.'],metrics:{mode:'visual-preview-v1',userReviewed:true,trace:meta}};
+      S.simulationQualityByView[view]={version:SIM_QUALITY_VERSION,status:'review',issues:[masterGuide?'Diseño dental maestro aplicado a esta perspectiva. Revisión visual aceptada; anatomía y resultado clínico no certificados.':'Aproximación visual con IA. Comparación aceptada por el usuario; anatomía y resultado clínico no certificados.'],metrics:{mode:'visual-preview-v2-multiview',userReviewed:true,masterView:masterReference&&masterReference.view||view,trace:meta}};
       if(!S.baAlign)S.baAlign={};S.baAlign[view]={x:0,y:0,scale:1};
       if(S.pendingGeneratedByView)delete S.pendingGeneratedByView[view];
     }
@@ -8522,6 +8545,8 @@ async function edAplicarDiseno() {
     });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
+    if(!S.dentalDesignMaster)S.dentalDesignMaster={view:view,revision:Date.now()};
+    else if(S.dentalDesignMaster.view===view)S.dentalDesignMaster.revision=Date.now();
     if (view === 'frontal') S.result = nuevoResultado;
     show('s-res');
     var imgA = document.getElementById('img-a');
@@ -8797,6 +8822,8 @@ async function regenerarSimulacion() {
     });
     S.results[view] = nuevoResultado;
     S.veneerBaseByView[view] = nuevoResultado;
+    if(!S.dentalDesignMaster)S.dentalDesignMaster={view:view,revision:Date.now()};
+    else if(S.dentalDesignMaster.view===view)S.dentalDesignMaster.revision=Date.now();
     if (view === 'frontal') S.result = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
@@ -8874,10 +8901,12 @@ function renderControlCalidadSimulacion() {
   var reporte=(S.simulationQualityByView||{})[view];
   if(!tieneResultado){card.style.display='none';return;}
   card.style.display='block';
-  if(reporte&&reporte.metrics&&reporte.metrics.mode==='visual-preview-v1'){
+  if(reporte&&reporte.metrics&&/^visual-preview-v[12]/.test(reporte.metrics.mode||'')){
     card.style.background='rgba(77,193,178,.08)';card.style.borderColor='rgba(77,193,178,.3)';
     icon.textContent='◌';title.style.color='#a7e8d8';title.textContent='Primera aproximación visual · IA';
-    detail.textContent='Comparación aceptada por el usuario. No certifica anatomía ni predice el tratamiento. Para cambios profesionales, abre el editor.';
+    detail.textContent=reporte.metrics.mode==='visual-preview-v2-multiview'&&reporte.metrics.masterView!==view?
+      'Usa el mismo diseño dental maestro adaptado a esta perspectiva. No certifica anatomía ni predice el tratamiento.' :
+      'Comparación aceptada por el usuario. Esta vista define el diseño maestro del caso; no certifica anatomía ni predice el tratamiento.';
     return;
   }
   if(!reporte){
@@ -12361,6 +12390,7 @@ function nuevoCaso() {
   S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;
   S.results = {}; S.baVistaActual = 'frontal';
+  S.dentalDesignMaster = null;
   S.editorParams = null;
   S.casoId = null; // si no, el siguiente guardado actualizaría el caso del paciente anterior en vez de crear uno nuevo
   var caseActions = document.getElementById('case-actions-box');

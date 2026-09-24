@@ -1,6 +1,6 @@
 (function (root) {
   'use strict';
-  const CONTRACT = 'visual-preview-v1';
+  const CONTRACT = 'visual-preview-v2-multiview';
   let active = false;
   const constructionOf = options => options?.construction === 'monolithic' ? 'monolithic' : 'layered';
   const constructionLabel = value => value === 'monolithic' ? 'Monolítico' : 'Estratificado';
@@ -40,7 +40,15 @@
       'This override cancels any morphology, alignment or contour instruction elsewhere in the prompt. If a requested shade would require changing geometry, keep the geometry and adapt only the material appearance.',
       'SHADE CONSISTENCY CHECK: centrals, laterals, canines and every selected tooth must remain recognizably in the same selected VITA family. Preserve plausible shadow and translucency differences, but reject a result where centrals turn gray while adjacent teeth turn yellow, or where upper and lower selected arches belong to visibly different shade families.'
     ].join(' ') : '';
+    const multiviewLock = options.multiviewReference ? [
+      'MULTI-VIEW DENTAL IDENTITY LOCK — HIGHEST PRIORITY: IMAGE 2 shows the already accepted master dental design for this SAME patient in another view. Reproduce the same dental identity in IMAGE 1; change only what perspective and natural photographic visibility require.',
+      'Keep the same relative width-to-height hierarchy, central-incisor dominance, lateral-incisor scale, canine character, incisal-edge design, contact rhythm, embrasures, smile-arc intent, VITA shade family, ceramic construction and surface character. Do not invent a second smile design for this angle.',
+      'Do NOT paste, warp or trace IMAGE 2 and do not copy its lips, gingiva, face, crop, lighting or camera angle. IMAGE 1 remains the sole source for patient pose, facial identity, visible tooth count, soft tissues, occlusion, illumination and perspective. Translate the master design anatomically into the target view with correct foreshortening and visibility.',
+      'If a feature is hidden in IMAGE 1, do not expose it merely because it appears in IMAGE 2. Preserve the target photograph outside the requested dental restoration. The purpose of IMAGE 2 is cross-view consistency, not pixel registration.',
+      'Before output, mentally compare the target result with IMAGE 2: it must be recognizable as the same planned veneers photographed from another angle, not a new set of teeth.'
+    ].join(' ') : '';
     const ceramic = [
+      multiviewLock,
       materialLock,
       'EDIT THE SUPPLIED PHOTOGRAPH. Show the FINISHED PORCELAIN VENEERS ALREADY IN PLACE in one photorealistic quick consultation preview. This is a restorative aesthetic illustration, not merely whitening and not a staged correction workflow. The source photograph anchors patient identity, tooth count, relative scale and the surrounding smile.',
       'REQUESTED CHANGE — FINISHED VENEER MORPHOLOGY: redesign the visible facial surfaces and contours of selected crowns into a coherent finished restoration. You may refine irregular outlines, restore worn or chipped incisal edges, harmonize modest length differences and apparent facial axes, and improve visible contact transitions within the existing smile envelope. Do not copy the original chips and uneven borders onto the finished ceramic. Preserve recognizable relative tooth sizes: dominant centrals, smaller laterals and distinct canine character; avoid oversized crowns, stock teeth and mirror cloning. No orthodontic alignment is being prescribed or predicted: apparent crown pose may be idealized for this aesthetic illustration, not represented as achievable with veneers alone. Do not alter jaw position, bite, arch width or tooth count. Do not impose golden proportions or mathematical symmetry.',
@@ -55,6 +63,24 @@
       'FINAL CHECK: each selected tooth must read as a finished veneer, with purposeful contours and ceramic depth rather than whitening alone. Inspect the complete incisal outline of 11 and 21 separately: both must be smooth, finished and free of copied source defects while retaining natural curvature. If both arches are selected, compare upper and lower anterior value and hue: correct any blue-gray lower arch, orange upper arch or unrelated white-balance split so both express the same requested VITA shade under the same photographed light. Check no uncovered enamel rim or double edge, then check all tissue boundaries, tooth count, non-target teeth, color and framing. Protected tissue and patient identity take priority; requested restorative contour changes are intentional, not preservation failures. ' + (options.materialOnly ? 'For this material-only pass, compare against the supplied design one final time and undo any geometric or tissue change before output.' : '') + ' This image does not establish clinical feasibility. OUTPUT ONLY the edited photograph with the same framing and aspect ratio. No side-by-side, guides, text, annotations, masks or watermark.'
     ].join('\n');
     return root.SmylSmileModes ? root.SmylSmileModes.prompt(options,ceramic) : ceramic;
+  }
+
+  function loadImage(url) {
+    return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('No se pudo preparar la referencia dental maestra.'));image.src=url;});
+  }
+
+  async function fitGuideToInput(guide,input) {
+    if(!guide)return null;
+    const target=await loadImage(input.dataUrl||('data:'+(input.mimeType||'image/png')+';base64,'+input.b64));
+    const source=await loadImage(guide.dataUrl||('data:'+(guide.mimeType||'image/png')+';base64,'+guide.b64));
+    const canvas=document.createElement('canvas');canvas.width=target.naturalWidth||target.width;canvas.height=target.naturalHeight||target.height;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#111';ctx.fillRect(0,0,canvas.width,canvas.height);
+    const scale=Math.max(canvas.width/(source.naturalWidth||source.width),canvas.height/(source.naturalHeight||source.height));
+    const width=(source.naturalWidth||source.width)*scale,height=(source.naturalHeight||source.height)*scale;
+    ctx.drawImage(source,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
+    const dataUrl=canvas.toDataURL('image/png');
+    return {dataUrl,b64:dataUrl.split(',')[1],mimeType:'image/png'};
   }
   function review({before, after, consent = false, construction = 'layered', adjust, options={}, rawBefore, rawAfter}) {
     return new Promise(resolve => {
@@ -128,9 +154,12 @@
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(),155000);
     try {
+      const guide=await fitGuideToInput(options.masterGuide,input);
       const response = await fetch(endpoint, {method:'POST',headers:typeof headers==='function'?headers():headers,signal:controller.signal,body:JSON.stringify({
         action:'generate_image',requestId,requestReason:'primera_aproximacion_visual',
         imageBase64:input.b64,mimeType:input.mimeType||'image/png',prompt:prompt(options),
+        guideImageBase64:guide?.b64||'',guideMimeType:guide?.mimeType||'image/png',
+        guideLibraryVersion:guide?'same-patient-master-v1':'',
         contractVersion:CONTRACT,imageProvider:'openai',responseMode:'binary'
       })});
       if(!response.ok){let detail;try{detail=await response.json();}catch{}const error=new Error(detail?.error||'El servicio no pudo generar la propuesta.');error.status=response.status;throw error;}

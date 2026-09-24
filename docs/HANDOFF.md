@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-23 — Identidad dental maestra entre frontal, intraoral, perfiles y 3/4
+
+- `simulacion-rapida.html` guarda una sola `dentalDesignMaster` por caso. En
+  la prueba frontal + intraoral se genera primero la intraoral y se usa como
+  referencia anatómica maestra; si no existe, la frontal queda como maestra.
+- Las vistas posteriores se mantienen bajo demanda para no multiplicar costo,
+  pero al generar perfil derecho, perfil izquierdo, 3/4, frontal o intraoral
+  reciben el diseño maestro aceptado: jerarquía central/lateral/canino, bordes
+  incisales, contactos, arco, tono VITA y material. La pose, tejidos, luz y
+  perspectiva proceden siempre de la fotografía objetivo.
+- `visual-simulation.js` usa el contrato `visual-preview-v2-multiview` y envía
+  una segunda imagen PNG del mismo tamaño como referencia, sin pegarla ni
+  registrarla píxel a píxel. Estado y recuperación de avance conservan qué
+  vista es maestra.
+- `supabase/functions/claude/index.ts` reconoce
+  `same-patient-master-v1` y da a GPT Image instrucciones específicas de
+  transferencia multivista. No se cambiaron cuotas, autenticación, RLS,
+  Storage ni secretos.
+- Edge Function `claude` versión 77 desplegada y verificada `ACTIVE`, con
+  `verify_jwt=false` preservado. Caché PWA
+  `smyl-v98-multiview-dental-identity`; copias web/móvil sincronizadas.
+- QA local: todas las suites existentes más
+  `tests/multiview-dental-identity.test.mjs` pasan. No se ejecutó una
+  generación de imagen ni se enviaron fotografías durante la verificación.
+
 ## 2026-09-20 — Publicación preparada: simulador rápido y localizador automático
 
 - Se integró `simulacion-rapida.html` sobre la rama pública actual sin reemplazar la biblioteca dental, el editor vectorial ni la segmentación ya existentes.
