@@ -1,6 +1,6 @@
 (function (root) {
   'use strict';
-  const CONTRACT = 'visual-preview-v2-multiview';
+  const CONTRACT = 'visual-preview-v3-tooth-lock';
   let active = false;
   const constructionOf = options => options?.construction === 'monolithic' ? 'monolithic' : 'layered';
   const constructionLabel = value => value === 'monolithic' ? 'Monolítico' : 'Estratificado';
@@ -42,10 +42,11 @@
     ].join(' ') : '';
     const multiviewLock = options.multiviewReference ? [
       'MULTI-VIEW DENTAL IDENTITY LOCK — HIGHEST PRIORITY: IMAGE 2 shows the already accepted master dental design for this SAME patient in another view. Reproduce the same dental identity in IMAGE 1; change only what perspective and natural photographic visibility require.',
-      'Keep the same relative width-to-height hierarchy, central-incisor dominance, lateral-incisor scale, canine character, incisal-edge design, contact rhythm, embrasures, smile-arc intent, VITA shade family, ceramic construction and surface character. Do not invent a second smile design for this angle.',
-      'Do NOT paste, warp or trace IMAGE 2 and do not copy its lips, gingiva, face, crop, lighting or camera angle. IMAGE 1 remains the sole source for patient pose, facial identity, visible tooth count, soft tissues, occlusion, illumination and perspective. Translate the master design anatomically into the target view with correct foreshortening and visibility.',
+      'TOOTH-COUNT AND BOUNDARY LOCK: IMAGE 2 is authoritative for the identity, count, order and interproximal separation of the corresponding anterior teeth. Transfer every corresponding visible tooth one-to-one. Preserve six distinct maxillary anterior units in FDI order 13-12-11-21-22-23 whenever that same span is visible in IMAGE 1. Never merge 11 and 21, never absorb a lateral into a central, never split one tooth into two and never replace two narrow or overlapping source teeth with one oversized crown.',
+      'Keep the same relative width-to-height hierarchy, central-incisor dominance, lateral-incisor scale, canine character, incisal-edge design, contact rhythm, embrasures, smile-arc intent, VITA shade family, ceramic construction and surface character. Keep the restored anterior group inside the dental envelope visible in IMAGE 1; blur or low resolution is not permission to enlarge crowns, erase contact lines or invent a second smile design.',
+      'Do NOT paste, warp or trace IMAGE 2 and do not copy its lips, gingiva, face, crop, lighting or camera angle. IMAGE 1 remains the sole source for patient pose, soft tissues, occlusion, illumination and perspective. IMAGE 2 overrides IMAGE 1 only when the target photograph is ambiguous about tooth count, individual boundaries or relative crown proportions. Translate the master design anatomically into the target view with correct foreshortening and visibility.',
       'If a feature is hidden in IMAGE 1, do not expose it merely because it appears in IMAGE 2. Preserve the target photograph outside the requested dental restoration. The purpose of IMAGE 2 is cross-view consistency, not pixel registration.',
-      'Before output, mentally compare the target result with IMAGE 2: it must be recognizable as the same planned veneers photographed from another angle, not a new set of teeth.'
+      'Before output, count the corresponding teeth from left to right and verify each boundary separately against IMAGE 2. The result must be recognizable as the same planned veneers photographed from another angle, not a new set of teeth.'
     ].join(' ') : '';
     const ceramic = [
       multiviewLock,
@@ -76,7 +77,9 @@
     const canvas=document.createElement('canvas');canvas.width=target.naturalWidth||target.width;canvas.height=target.naturalHeight||target.height;
     const ctx=canvas.getContext('2d');
     ctx.fillStyle='#111';ctx.fillRect(0,0,canvas.width,canvas.height);
-    const scale=Math.max(canvas.width/(source.naturalWidth||source.width),canvas.height/(source.naturalHeight||source.height));
+    // Contain, no cover: recortar los extremos de la intraoral podía ocultar
+    // laterales/caninos y debilitaba precisamente el conteo que debe transferir.
+    const scale=Math.min(canvas.width/(source.naturalWidth||source.width),canvas.height/(source.naturalHeight||source.height));
     const width=(source.naturalWidth||source.width)*scale,height=(source.naturalHeight||source.height)*scale;
     ctx.drawImage(source,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
     const dataUrl=canvas.toDataURL('image/png');
@@ -159,7 +162,7 @@
         action:'generate_image',requestId,requestReason:'primera_aproximacion_visual',
         imageBase64:input.b64,mimeType:input.mimeType||'image/png',prompt:prompt(options),
         guideImageBase64:guide?.b64||'',guideMimeType:guide?.mimeType||'image/png',
-        guideLibraryVersion:guide?'same-patient-master-v1':'',
+        guideLibraryVersion:guide?'same-patient-master-v2':'',
         contractVersion:CONTRACT,imageProvider:'openai',responseMode:'binary'
       })});
       if(!response.ok){let detail;try{detail=await response.json();}catch{}const error=new Error(detail?.error||'El servicio no pudo generar la propuesta.');error.status=response.status;throw error;}

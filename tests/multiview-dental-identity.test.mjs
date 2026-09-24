@@ -25,14 +25,17 @@ assert.match(html, /class="advanced-entry-btn debug-test-only"[^>]*hidden[^>]*>E
 assert.match(html, /some\(function\(photo\)\{ return !!photo\.synthetic; \}\)/);
 assert.match(html, /element\.hidden=!debugUi/);
 
-assert.match(visual, /visual-preview-v2-multiview/);
+assert.match(visual, /visual-preview-v3-tooth-lock/);
 assert.match(visual, /MULTI-VIEW DENTAL IDENTITY LOCK/);
-assert.match(visual, /same-patient-master-v1/);
+assert.match(visual, /same-patient-master-v2/);
+assert.match(visual, /TOOTH-COUNT AND BOUNDARY LOCK/);
+assert.match(visual, /const scale=Math\.min/);
 assert.match(visual, /guideImageBase64:guide\?\.b64/);
 assert.match(visual, /change only what perspective and natural photographic visibility require/);
 
 assert.match(edge, /isSamePatientMasterGuide/);
 assert.match(edge, /MULTI-VIEW SAME-PATIENT DENTAL DESIGN TRANSFER/);
+assert.match(edge, /STRICT TOOTH IDENTITY/);
 assert.match(edge, /same-patient-master-design\.png/);
 
 console.log('SMYL multiview: one master dental identity is reused across frontal, intraoral, profiles and 3/4 views.');

@@ -6896,7 +6896,7 @@ async function generarAproximacionVisualIA(foto, options) {
   var original=frontal.dataUrl||('data:'+(frontal.mimeType||'image/jpeg')+';base64,'+frontal.b64);
   var signature=firmaFotoParaRevalidacion(frontal);
   var pending=(S.pendingGeneratedByView||{})[view];
-  var cached=options.revalidateCached&&pending&&pending.photoSignature===signature&&pending.mode==='visual-preview-v2-multiview'
+  var cached=options.revalidateCached&&pending&&pending.photoSignature===signature&&pending.mode==='visual-preview-v3-tooth-lock'
     ?{url:pending.generatedImageUrl,meta:pending.generation}:null;
   var prepared;
   var design=window.SmylSmileModes?.normalize(options.design||S.smileDesign)||{};
@@ -6921,7 +6921,7 @@ async function generarAproximacionVisualIA(foto, options) {
     prepare:function(){return prepararRecorteDental(inputSource,view);},
     save:function(candidate){
       if(!S.pendingGeneratedByView)S.pendingGeneratedByView={};
-      S.pendingGeneratedByView[view]={mode:'visual-preview-v2-multiview',photoSignature:signature,generatedImageUrl:candidate.url,generation:candidate.meta,createdAt:Date.now()};
+      S.pendingGeneratedByView[view]={mode:'visual-preview-v3-tooth-lock',photoSignature:signature,generatedImageUrl:candidate.url,generation:candidate.meta,createdAt:Date.now()};
     },
     compose:async function(url,input,actualDesign){
       prepared=await prepararUnionVisual(original,url,input,view,actualDesign);
@@ -6942,7 +6942,7 @@ async function generarAproximacionVisualIA(foto, options) {
         window.SmylVisualComposition.remember({original:original,after:after,rect:input.rect,options:meta.visualOptions});
       }
       if(!S.simulationQualityByView)S.simulationQualityByView={};
-      S.simulationQualityByView[view]={version:SIM_QUALITY_VERSION,status:'review',issues:[masterGuide?'Diseño dental maestro aplicado a esta perspectiva. Revisión visual aceptada; anatomía y resultado clínico no certificados.':'Aproximación visual con IA. Comparación aceptada por el usuario; anatomía y resultado clínico no certificados.'],metrics:{mode:'visual-preview-v2-multiview',userReviewed:true,masterView:masterReference&&masterReference.view||view,trace:meta}};
+      S.simulationQualityByView[view]={version:SIM_QUALITY_VERSION,status:'review',issues:[masterGuide?'Diseño dental maestro aplicado con bloqueo de piezas a esta perspectiva. Revisión visual aceptada; anatomía y resultado clínico no certificados.':'Aproximación visual con IA. Comparación aceptada por el usuario; anatomía y resultado clínico no certificados.'],metrics:{mode:'visual-preview-v3-tooth-lock',userReviewed:true,masterView:masterReference&&masterReference.view||view,trace:meta}};
       if(!S.baAlign)S.baAlign={};S.baAlign[view]={x:0,y:0,scale:1};
       if(S.pendingGeneratedByView)delete S.pendingGeneratedByView[view];
     }

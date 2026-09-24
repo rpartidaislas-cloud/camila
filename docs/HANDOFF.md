@@ -3550,3 +3550,27 @@ plan es una decisión de facturación y quedó pendiente de autorización.
   fueran fotografías elegidas por el usuario.
 - Caché actualizado a `smyl-v100-no-synthetic-resume` y copia móvil sincronizada.
 - Suite completa de pruebas aprobada. No se enviaron fotografías ni se consumió IA.
+
+---
+
+## 2026-09-24 — Bloqueo de conteo dental entre intraoral y frontal
+
+**Tocado:** `visual-simulation.js`, `simulacion-rapida.html`, copias en
+`mobile/www/`, `sw.js`, `supabase/functions/claude/index.ts` y pruebas.
+
+- Nuevo contrato `visual-preview-v3-tooth-lock` con referencia
+  `same-patient-master-v2`.
+- La intraoral maestra es autoritativa para identidad, orden, límites
+  interproximales y proporciones relativas de los dientes correspondientes.
+  Se prohíbe fusionar 11–21, absorber un lateral, dividir una pieza o sustituir
+  dos dientes estrechos/superpuestos por una corona sobredimensionada.
+- La frontal sigue siendo autoritativa para rostro, labios, encía, oclusión,
+  iluminación y perspectiva. Si está borrosa, la IA debe resolver límites desde
+  la intraoral en lugar de inferirlos del desenfoque.
+- La guía intraoral ahora se ajusta completa con `contain`; antes `cover` podía
+  recortar dientes laterales/caninos en fotografías con distinta proporción.
+- Caché actualizado a `smyl-v101-cross-view-tooth-lock`; copias móviles
+  sincronizadas y suite completa aprobada.
+- Edge Function `claude` desplegada en producción como versión 78, `ACTIVE`,
+  `verify_jwt=false`, con `_shared/limits.ts` y `_shared/auth.ts` incluidos.
+- No se generó ninguna simulación ni se consumió cupo durante la validación.
