@@ -15,6 +15,12 @@ assert.match(html, /referenciaDentalMaestraParaVista\(view\)/);
 assert.match(html, /masterGuide:masterGuide,multiviewReference:!!masterGuide/);
 assert.match(html, /dentalDesignMaster:\s*S\.dentalDesignMaster/);
 assert.match(html, /snap\.dentalDesignMaster/);
+assert.match(html, /Cargar mis fotos · frontal \+ intraoral/);
+assert.match(html, /id="paired-own-frontal"/);
+assert.match(html, /id="paired-own-intraoral"/);
+assert.match(html, /function confirmarCargaParPropio\(button\)/);
+assert.match(html, /S\.testPairedGeneration=true/);
+assert.match(html, /Ejemplo precargado · frontal \+ intraoral/);
 
 assert.match(visual, /visual-preview-v2-multiview/);
 assert.match(visual, /MULTI-VIEW DENTAL IDENTITY LOCK/);

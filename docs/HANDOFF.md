@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-24 — Carga propia frontal + intraoral
+
+- `Opciones avanzadas` separa ahora el ejemplo sintético de la carga real.
+  `Cargar mis fotos · frontal + intraoral` solicita explícitamente ambos
+  archivos, muestra el estado de cada uno y mantiene desactivado el avance
+  hasta tener dos imágenes válidas de hasta 20 MB.
+- Las dos fotografías se ajustan localmente antes de guardarlas. No se llama
+  al generador al elegir archivos; la generación empieza únicamente después
+  de escoger configuración y confirmar en la guía VITA.
+- El flujo propio activa el mismo contrato pareado: intraoral como diseño
+  maestro y frontal adaptada a esa identidad. El botón sintético se renombró
+  `Ejemplo precargado · frontal + intraoral` para evitar confundirlo con una
+  carga desde el dispositivo.
+- Caché PWA `smyl-v99-own-paired-upload`; copias web/móvil sincronizadas y
+  todas las suites locales aprobadas. No se ejecutó IA ni se enviaron fotos.
+
 ## 2026-09-23 — Identidad dental maestra entre frontal, intraoral, perfiles y 3/4
 
 - `simulacion-rapida.html` guarda una sola `dentalDesignMaster` por caso. En

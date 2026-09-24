@@ -811,9 +811,20 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <button class="advanced-entry-btn" type="button" onclick="comenzarFlujoAvanzado()">Caso documentado · hasta 6 fotos</button>
       <p class="advanced-entry-copy">Permite añadir perfiles, vista 3/4, intraoral y extraoral. Sólo la frontal genera la propuesta.</p>
       <button class="advanced-entry-btn" type="button" onclick="document.getElementById('intraoral-independent-file').click()">Simulación intraoral independiente</button>
+      <button class="advanced-entry-btn" type="button" onclick="abrirCargaParPropio()">Cargar mis fotos · frontal + intraoral</button>
+      <div id="paired-own-upload" hidden style="margin:8px 0 12px;padding:12px;border:1px solid rgba(137,116,255,.35);border-radius:12px;background:rgba(91,71,224,.08)">
+        <p class="advanced-entry-copy" style="margin:0 0 10px">Selecciona dos fotografías de la misma persona. No se generará nada hasta que confirmes ambas.</p>
+        <label class="advanced-entry-btn" for="paired-own-frontal" style="display:flex;align-items:center;justify-content:center;margin-bottom:7px;cursor:pointer">1. Elegir fotografía frontal</label>
+        <input id="paired-own-frontal" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="actualizarCargaParPropio()">
+        <div id="paired-own-frontal-status" class="advanced-entry-copy" style="margin:-2px 0 9px">Pendiente</div>
+        <label class="advanced-entry-btn" for="paired-own-intraoral" style="display:flex;align-items:center;justify-content:center;margin-bottom:7px;cursor:pointer">2. Elegir fotografía intraoral</label>
+        <input id="paired-own-intraoral" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="actualizarCargaParPropio()">
+        <div id="paired-own-intraoral-status" class="advanced-entry-copy" style="margin:-2px 0 9px">Pendiente</div>
+        <button id="paired-own-confirm" class="advanced-entry-btn" type="button" onclick="confirmarCargaParPropio(this)" disabled>Continuar con mis dos fotos</button>
+      </div>
       <button class="advanced-entry-btn" type="button" onclick="document.getElementById('local-boundary-photo').click()">Probar bordes originales · sin IA</button>
       <button class="advanced-entry-btn" type="button" onclick="cargarPacientePruebaSeisFotos(this)">Cargar paciente sintético · 6 fotos</button>
-      <button class="advanced-entry-btn" type="button" onclick="cargarPruebaFrontalIntraoral(this)">Probar frontal + intraoral</button>
+      <button class="advanced-entry-btn" type="button" onclick="cargarPruebaFrontalIntraoral(this)">Ejemplo precargado · frontal + intraoral</button>
       <p class="advanced-entry-copy">Herramientas para documentación y pruebas profesionales. No cambian la ruta rápida.</p>
     </div>
   </details>
@@ -3872,6 +3883,72 @@ async function confirmarConfiguracionRapida() {
   }
   saveProgress('s-vita');
   await processPhotos();
+}
+
+function abrirCargaParPropio() {
+  var panel=document.getElementById('paired-own-upload');
+  if(!panel)return;
+  panel.hidden=false;
+  actualizarCargaParPropio();
+  requestAnimationFrame(function(){panel.scrollIntoView({block:'nearest',behavior:'smooth'});});
+}
+
+function fotoPropiaPermitida(file) {
+  if(!file||file.size>20*1024*1024)return false;
+  return ['image/jpeg','image/png','image/webp'].includes(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name||'');
+}
+
+function actualizarCargaParPropio() {
+  var frontal=document.getElementById('paired-own-frontal')?.files?.[0];
+  var intraoral=document.getElementById('paired-own-intraoral')?.files?.[0];
+  var estadoFrontal=document.getElementById('paired-own-frontal-status');
+  var estadoIntraoral=document.getElementById('paired-own-intraoral-status');
+  if(estadoFrontal)estadoFrontal.textContent=frontal?(fotoPropiaPermitida(frontal)?'Frontal seleccionada ✓':'Archivo no válido o mayor de 20 MB'):'Pendiente';
+  if(estadoIntraoral)estadoIntraoral.textContent=intraoral?(fotoPropiaPermitida(intraoral)?'Intraoral seleccionada ✓':'Archivo no válido o mayor de 20 MB'):'Pendiente';
+  var confirmar=document.getElementById('paired-own-confirm');
+  if(confirmar)confirmar.disabled=!(fotoPropiaPermitida(frontal)&&fotoPropiaPermitida(intraoral));
+}
+
+function leerFotoPropia(file) {
+  return new Promise(function(resolve,reject){
+    var reader=new FileReader();
+    reader.onload=function(){resolve(reader.result);};
+    reader.onerror=function(){reject(new Error('No se pudo leer una de las fotografías.'));};
+    reader.readAsDataURL(file);
+  });
+}
+
+async function confirmarCargaParPropio(button) {
+  var inputFrontal=document.getElementById('paired-own-frontal');
+  var inputIntraoral=document.getElementById('paired-own-intraoral');
+  var fileFrontal=inputFrontal?.files?.[0],fileIntraoral=inputIntraoral?.files?.[0];
+  if(!fotoPropiaPermitida(fileFrontal)||!fotoPropiaPermitida(fileIntraoral)){
+    mostrarAvisoAplicacion('Faltan fotografías','Selecciona una frontal y una intraoral en JPG, PNG o WebP de hasta 20 MB.');return;
+  }
+  if(S.photos.length&&!window.confirm('Se iniciará un caso nuevo con estas dos fotografías y se reemplazará el avance de esta pestaña. Guarda tu resultado antes de continuar. ¿Continuar?'))return;
+  var etiqueta=button.textContent;button.disabled=true;button.textContent='Preparando fotografías…';
+  try{
+    var seleccion=[{file:fileFrontal,view:'frontal'},{file:fileIntraoral,view:'intraoral'}],fotos=[];
+    for(var i=0;i<seleccion.length;i++){
+      var item=seleccion[i],view=VIEWS.find(function(candidate){return candidate.id===item.view;});
+      var dataUrl=await leerFotoPropia(item.file);
+      var ajustada=await ajustarFotoAntesDeGuardar(dataUrl,view);
+      if(!ajustada)throw new Error('La preparación fue cancelada. Tus archivos siguen seleccionados.');
+      var b64=await redimensionarFotoB64(ajustada,1280,.92);
+      fotos.push({view:item.view,b64:b64,mimeType:'image/jpeg'});
+    }
+    nuevoCaso();
+    S.photos=fotos;S.currentPhoto=0;S.baVistaActual='frontal';S.testDatasetLoaded=true;S.testPairedGeneration=true;
+    S.vitaTone='A1';S.vitaMode='vita';S.quickGuided=false;
+    inputFrontal.value='';inputIntraoral.value='';
+    document.getElementById('paired-own-upload').hidden=true;
+    abrirGuiaVita();saveProgress('s-vita');
+  }catch(error){
+    mostrarAvisoAplicacion('Frontal + intraoral',error.message||'No se pudieron preparar las fotografías.');
+  }finally{
+    button.disabled=false;button.textContent=etiqueta;
+    actualizarCargaParPropio();
+  }
 }
 
 async function cargarPacientePruebaSeisFotos(button) {
