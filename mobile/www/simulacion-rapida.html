@@ -823,9 +823,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <button id="paired-own-confirm" class="advanced-entry-btn" type="button" onclick="confirmarCargaParPropio(this)" disabled>Continuar con mis dos fotos</button>
       </div>
       <button class="advanced-entry-btn" type="button" onclick="document.getElementById('local-boundary-photo').click()">Probar bordes originales · sin IA</button>
-      <button class="advanced-entry-btn" type="button" onclick="cargarPacientePruebaSeisFotos(this)">Cargar paciente sintético · 6 fotos</button>
-      <button class="advanced-entry-btn" type="button" onclick="cargarPruebaFrontalIntraoral(this)">Ejemplo precargado · frontal + intraoral</button>
-      <p class="advanced-entry-copy">Herramientas para documentación y pruebas profesionales. No cambian la ruta rápida.</p>
+      <button class="advanced-entry-btn debug-test-only" type="button" hidden onclick="cargarPacientePruebaSeisFotos(this)">Cargar paciente sintético · 6 fotos</button>
+      <button class="advanced-entry-btn debug-test-only" type="button" hidden onclick="cargarPruebaFrontalIntraoral(this)">Ejemplo precargado · frontal + intraoral</button>
+      <p class="advanced-entry-copy debug-test-only" hidden>Ejemplos disponibles únicamente en modo de pruebas.</p>
     </div>
   </details>
 
@@ -3069,6 +3069,10 @@ function loadSavedProgress() {
     var raw = progressStorage().getItem(progressKey());
     if (!raw) return null;
     var snap = JSON.parse(raw);
+    // Las demostraciones nunca deben reaparecer al abrir la PWA normal. Un
+    // ejemplo sintético guardado se descarta en vez de ofrecer "Continuar" y
+    // confundirse con las fotografías que el usuario acaba de seleccionar.
+    if ((snap.photos || []).some(function(photo){ return !!photo.synthetic; })) { clearProgress(); return null; }
     if (!snap.ts || (Date.now() - snap.ts) > PROGRESS_TTL_MS) { clearProgress(); return null; }
     if (!snap.screen || snap.screen === 's-intro') return null;
     return snap;
@@ -13023,6 +13027,7 @@ function openInSafari() {
   var enPreviewIframe = window.self !== window.top || new URLSearchParams(location.search).get('dpPreview') === '1';
   var debugUi = new URLSearchParams(location.search).get('debugUI') === '1';
   document.body.classList.toggle('debug-ui', debugUi && !enPreviewIframe);
+  document.querySelectorAll('.debug-test-only').forEach(function(element){ element.hidden=!debugUi; });
   var buildBadge = document.getElementById('debug-build-badge');
   if (buildBadge && debugUi) buildBadge.style.display = 'block';
 

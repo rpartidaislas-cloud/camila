@@ -21,6 +21,9 @@ assert.match(html, /id="paired-own-intraoral"/);
 assert.match(html, /function confirmarCargaParPropio\(button\)/);
 assert.match(html, /S\.testPairedGeneration=true/);
 assert.match(html, /Ejemplo precargado · frontal \+ intraoral/);
+assert.match(html, /class="advanced-entry-btn debug-test-only"[^>]*hidden[^>]*>Ejemplo precargado/);
+assert.match(html, /some\(function\(photo\)\{ return !!photo\.synthetic; \}\)/);
+assert.match(html, /element\.hidden=!debugUi/);
 
 assert.match(visual, /visual-preview-v2-multiview/);
 assert.match(visual, /MULTI-VIEW DENTAL IDENTITY LOCK/);

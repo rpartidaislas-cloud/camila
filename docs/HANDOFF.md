@@ -3534,3 +3534,19 @@ texto que el backend sí manda y que `leerRespuestaEdge()` ya dejaba en
 
 **Sin tocar:** no se modificó ningún dato en Supabase. El vencimiento del
 plan es una decisión de facturación y quedó pendiente de autorización.
+
+---
+
+## 2026-09-24 — Fotografías propias sin ejemplos precargados en la PWA
+
+**Tocado:** `simulacion-rapida.html`, copia en `mobile/www/`, `sw.js` y pruebas.
+
+- Los accesos a pacientes sintéticos y al par frontal + intraoral de ejemplo
+  quedan ocultos en la PWA normal; solo aparecen con `?debugUI=1`.
+- La opción visible para el profesional continúa siendo `Cargar mis fotos ·
+  frontal + intraoral`, con un archivo propio por cada vista.
+- Si una versión anterior dejó guardado un caso con fotografías sintéticas, el
+  progreso se descarta automáticamente para que no vuelva a mostrarse como si
+  fueran fotografías elegidas por el usuario.
+- Caché actualizado a `smyl-v100-no-synthetic-resume` y copia móvil sincronizada.
+- Suite completa de pruebas aprobada. No se enviaron fotografías ni se consumió IA.
