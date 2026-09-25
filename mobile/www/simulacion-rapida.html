@@ -710,9 +710,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="visual-simulation.css?v=5">
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
-<link rel="stylesheet" href="dental-review.css?v=1">
-<script src="dental-review.js?v=1"></script>
-<script src="visual-simulation.js?v=22"></script>
+<script src="visual-simulation.js?v=23"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
 <link rel="stylesheet" href="dental-transfer.css?v=1">
@@ -931,9 +929,15 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <p>La fotografía ya está lista. Elige una opción de cada grupo.</p>
       <span class="quick-choice-title">Objetivo de la simulación</span>
       <div class="quick-choice-grid" id="quick-objective-options">
-        <button type="button" class="quick-choice selected" data-quick-objective="veneers" onclick="seleccionarObjetivoRapido('veneers',this)">Carillas<small>Superiores terminadas</small></button>
-        <button type="button" class="quick-choice" data-quick-objective="alignment" onclick="seleccionarObjetivoRapido('alignment',this)">Alineación<small>Ambas arcadas</small></button>
-        <button type="button" class="quick-choice" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alineación + carillas<small>Ambas arcadas</small></button>
+        <button type="button" class="quick-choice selected" data-quick-objective="veneers" onclick="seleccionarObjetivoRapido('veneers',this)">Carillas<small>Sin alineación adicional</small></button>
+        <button type="button" class="quick-choice" data-quick-objective="alignment" onclick="seleccionarObjetivoRapido('alignment',this)">Alinear<small>Sin carillas · tono original</small></button>
+        <button type="button" class="quick-choice" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alinear + carillas<small>Una simulación</small></button>
+      </div>
+      <span class="quick-choice-title">¿Qué dientes?</span>
+      <div class="quick-choice-grid" id="quick-arch-options">
+        <button type="button" class="quick-choice selected" data-quick-arch="upper" onclick="seleccionarArcadaRapida('upper')">Arriba</button>
+        <button type="button" class="quick-choice" data-quick-arch="lower" onclick="seleccionarArcadaRapida('lower')">Abajo</button>
+        <button type="button" class="quick-choice" data-quick-arch="both" onclick="seleccionarArcadaRapida('both')">Ambos</button>
       </div>
       <span class="quick-choice-title">Apariencia</span>
       <div class="quick-choice-grid" id="quick-appearance-options">
@@ -941,8 +945,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <button type="button" class="quick-choice selected" data-quick-appearance="A1" onclick="seleccionarAparienciaRapida('A1',this)">VITA A1<small>Claro y natural</small></button>
         <button type="button" class="quick-choice" data-quick-appearance="B1" onclick="seleccionarAparienciaRapida('B1',this)">VITA B1<small>Más luminoso</small></button>
       </div>
+      <label class="quick-choice-title" for="quick-vita-tone">Guía VITA · todos los tonos</label>
+      <select id="quick-vita-tone" onchange="seleccionarAparienciaRapida(this.value)" style="width:100%;min-height:48px;padding:12px;border-radius:12px;background:#202333;color:white;border:1px solid #666;margin-bottom:16px">
+        <option value="current">Conservar tono actual</option><option>B1</option><option selected>A1</option><option>B2</option><option>D2</option><option>A2</option><option>C1</option><option>C2</option><option>D4</option><option>A3</option><option>D3</option><option>B3</option><option>A3.5</option><option>B4</option><option>C3</option><option>A4</option><option>C4</option>
+      </select>
       <button class="quick-generate" type="button" onclick="confirmarConfiguracionRapida()">Generar simulación</button>
-      <button class="quick-professional-link" type="button" onclick="mostrarAjustesProfesionales()">Necesito ajustes profesionales</button>
       <p class="quick-safety">Propuesta visual orientativa. No diagnostica ni sustituye la valoración clínica.</p>
     </section>
     <fieldset class="vita-construction smile-design" id="smile-design-options">
@@ -3842,13 +3849,18 @@ function marcarEleccionRapida(contenedor, atributo, valor) {
 function seleccionarObjetivoRapido(mode, button) {
   var box = document.getElementById('smile-design-options');
   if (!box) return;
-  var arch = mode === 'veneers' ? 'upper' : 'both';
   box.querySelector('[name=smile-mode]').value = mode;
-  box.querySelector('[name=smile-arch]').value = arch;
   if (mode !== 'veneers') box.querySelector('[name=alignment-style]').value = 'complete';
   window.SmylSmileModes?.change();
   marcarEleccionRapida('quick-objective-options', 'data-quick-objective', mode);
+  sincronizarConfiguracionRapida();
   if (button) vibrarSeleccionVita();
+}
+
+function seleccionarArcadaRapida(arch) {
+  document.querySelector('#smile-design-options [name=smile-arch]').value=arch;
+  window.SmylSmileModes?.change();
+  sincronizarConfiguracionRapida();
 }
 
 function seleccionarAparienciaRapida(value, button) {
@@ -3859,14 +3871,20 @@ function seleccionarAparienciaRapida(value, button) {
   else seleccionarTonoVita(value, false, true);
   sincronizarOpcionesVita();
   marcarEleccionRapida('quick-appearance-options', 'data-quick-appearance', value);
+  document.getElementById('quick-vita-tone').value=value;
   if (button) vibrarSeleccionVita();
 }
 
 function sincronizarConfiguracionRapida() {
   var design = window.SmylSmileModes?.normalize(S.smileDesign) || {mode:'veneers'};
-  var appearance = S.vitaMode === 'current' ? 'current' : (S.vitaTone === 'B1' ? 'B1' : 'A1');
+  var appearance = S.vitaMode === 'current' ? 'current' : (S.vitaTone || 'A1');
   marcarEleccionRapida('quick-objective-options', 'data-quick-objective', design.mode);
   marcarEleccionRapida('quick-appearance-options', 'data-quick-appearance', appearance);
+  marcarEleccionRapida('quick-arch-options', 'data-quick-arch', design.arch || 'upper');
+  var tone=document.getElementById('quick-vita-tone');
+  tone.value=appearance;
+  tone.disabled=design.mode==='alignment';
+  document.querySelectorAll('#quick-appearance-options button').forEach(function(b){b.disabled=design.mode==='alignment';});
 }
 
 function abrirConfiguracionRapida() {

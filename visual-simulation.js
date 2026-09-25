@@ -192,11 +192,6 @@
       let candidate=context.cached;
       if(!candidate) {
         if(context.revalidate)throw new Error('No hay una propuesta de esta modalidad para revisar. No se generó otra.');
-        if(root.SmylDentalReview&&!options.materialOnly){
-          context.onStatus?.('dental-review');
-          options.dentalReview=await root.SmylDentalReview.open(input,options);
-          if(!options.dentalReview)throw new Error('Revisión cancelada. No se solicitó una imagen.');
-        }
         context.onStatus?.('consent');
         if(!await review({before:input.dataUrl,consent:true,construction:options.construction,options}))throw new Error('Generación cancelada. No se solicitó una imagen.');
         context.onStatus?.('generating');

@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-25 — Flujo sencillo solicitado por el usuario
+
+Retirada la revisión manual obligatoria y sus recursos del simulador y caché.
+El módulo experimental sigue en el repositorio, desconectado del flujo.
+Selección independiente de arcada (arriba/abajo/ambos), tres objetivos y guía
+con 16 tonos. Alinear sin carillas conserva el color: selector desactivado.
+No se cambia el backend ni se promete conteo automático. Sin nueva generación.
+Copias móviles sincronizadas; caché v105-simple-photo-flow preparado.
+
 ## 2026-09-25 — Revisión manual previa de piezas visibles (local, no publicado)
 
 Nuevo dental-review.js/css: ampliación desde mouthRegion, reencuadre manual,
