@@ -1,0 +1,4 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Revisión dental · prueba sintética local</title><link rel="stylesheet" href="../dental-review.css"><script src="../dental-review.js"></script><body><h1>Prueba local sin paciente ni IA</h1><button id="start">Abrir revisión</button><output id="result"></output><script>
+const c=document.createElement('canvas');c.width=900;c.height=450;const g=c.getContext('2d');g.fillStyle='#281319';g.fillRect(0,0,900,450);for(let row=0;row<2;row++)for(let i=0;i<8;i++){g.fillStyle='#eee5ce';g.fillRect(80+i*92,70+row*155,83,140);}
+document.querySelector('#start').onclick=async()=>{const result=await SmylDentalReview.open({dataUrl:c.toDataURL(),mouthRegion:{x:0,y:0,w:1,h:1}},{arch:'both'});document.querySelector('#result').textContent=result?JSON.stringify(result):'Cancelado: ninguna solicitud enviada';};
+</script></body></html>

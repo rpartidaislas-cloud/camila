@@ -160,7 +160,7 @@
       const guide=await fitGuideToInput(options.masterGuide,input);
       const response = await fetch(endpoint, {method:'POST',headers:typeof headers==='function'?headers():headers,signal:controller.signal,body:JSON.stringify({
         action:'generate_image',requestId,requestReason:'primera_aproximacion_visual',
-        imageBase64:input.b64,mimeType:input.mimeType||'image/png',prompt:prompt(options),
+        imageBase64:input.b64,mimeType:input.mimeType||'image/png',prompt:prompt(options)+(root.SmylDentalReview?.instruction(options.dentalReview,options)||''),
         guideImageBase64:guide?.b64||'',guideMimeType:guide?.mimeType||'image/png',
         guideLibraryVersion:guide?'same-patient-master-v2':'',
         contractVersion:CONTRACT,imageProvider:'openai',responseMode:'binary'
@@ -192,10 +192,16 @@
       let candidate=context.cached;
       if(!candidate) {
         if(context.revalidate)throw new Error('No hay una propuesta de esta modalidad para revisar. No se generó otra.');
+        if(root.SmylDentalReview&&!options.materialOnly){
+          context.onStatus?.('dental-review');
+          options.dentalReview=await root.SmylDentalReview.open(input,options);
+          if(!options.dentalReview)throw new Error('Revisión cancelada. No se solicitó una imagen.');
+        }
         context.onStatus?.('consent');
         if(!await review({before:input.dataUrl,consent:true,construction:options.construction,options}))throw new Error('Generación cancelada. No se solicitó una imagen.');
         context.onStatus?.('generating');
         candidate=await request({...context,input,options});
+        candidate.meta.dentalReview=options.dentalReview||null;
         context.save(candidate);
       }
       let after=await context.compose(candidate.url,input,candidate.meta.visualOptions||{});

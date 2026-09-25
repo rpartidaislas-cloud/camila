@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-25 — Revisión manual previa de piezas visibles (local, no publicado)
+
+Nuevo dental-review.js/css: ampliación desde mouthRegion, reencuadre manual,
+marcas móviles por arcada sin asumir seis piezas, eliminación y controles de
+teclado/táctiles. Los extremos y separaciones definen intervalos visibles;
+no es segmentación ni asignación FDI. Incertidumbre explícita por arcada permite
+continuar sin confirmar un conteo. Confirmación inválida tras editar marcas.
+visual-simulation.js abre la revisión antes del consentimiento y envía las
+coordenadas normalizadas como instrucciones adicionales, guardadas en metadatos.
+No toca píxeles de entrada, no cambia Edge ni garantiza anatomía/correspondencia.
+Material-only y revisión de candidatos existentes no repiten esta etapa.
+No se publicaron cambios ni se generaron imágenes para esta implementación.
+
 ## 2026-09-24 — Intraoral opcional y selección de referencia
 
 `photo-reference.js` propone intraoral si existe; sin ella propone frontal.

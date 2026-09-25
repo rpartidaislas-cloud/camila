@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import '../dental-review.js';
+const r=globalThis.SmylDentalReview;
+const points=[{x:.2,y:.4},{x:.4,y:.4},{x:.6,y:.4}];
+const model={version:1,coordinateSpace:'normalized-input-image',upper:{points},lower:{uncertain:true}};
+assert(r.valid(model,{arch:'both'}));
+assert(!r.valid({...model,lower:{points:[]}},{arch:'both'}));
+assert(!r.validRow({points:[points[1],points[0]]}));
+assert(!r.validRow({points:[points[0],points[0]]}));
+assert(!r.validRow({points:[{x:NaN,y:.4},points[1]]}));
+assert(!r.validRow({points:[{x:-1,y:.4},points[1]]}));
+assert(r.instruction(model,{arch:'both'}).includes('"visibleIntervals":2'));
+assert(r.instruction(model,{arch:'both'}).includes('"uncertain":true'));
+assert.equal(r.instruction({},{}),'');
+console.log('Manual dental review validation passed');
