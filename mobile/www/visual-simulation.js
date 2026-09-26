@@ -40,7 +40,12 @@
       'This override cancels any morphology, alignment or contour instruction elsewhere in the prompt. If a requested shade would require changing geometry, keep the geometry and adapt only the material appearance.',
       'SHADE CONSISTENCY CHECK: centrals, laterals, canines and every selected tooth must remain recognizably in the same selected VITA family. Preserve plausible shadow and translucency differences, but reject a result where centrals turn gray while adjacent teeth turn yellow, or where upper and lower selected arches belong to visibly different shade families.'
     ].join(' ') : '';
-    const multiviewLock = options.multiviewReference ? [
+    const anatomySupport = options.referenceRole==='original-anatomy';
+    const multiviewLock = anatomySupport ? [
+      'REFERENCE ROLES: IMAGE 1 is the only photograph to edit and controls apparent tooth size, perspective, mouth opening, occlusion, lips, gingiva and illumination.',
+      'IMAGE 2 is the ORIGINAL untreated intraoral photograph of the same patient, NOT a finished smile or target design. Use it only to distinguish corresponding visible teeth and interproximal separations when IMAGE 1 is ambiguous. Do not copy its absolute crown sizes, retractor exposure, arch width, pose, lighting or gums into IMAGE 1.',
+      'Identify only reliably corresponding visible units; never force six teeth when fewer are visible, merge neighboring crowns, split a crown, or expose teeth hidden by IMAGE 1 lips. If correspondence is uncertain, preserve that evidence rather than inventing anatomy. Apply requested treatment only within IMAGE 1 photographed smile. Output IMAGE 1 only.'
+    ].join(' ') : options.multiviewReference ? [
       'MULTI-VIEW DENTAL IDENTITY LOCK — HIGHEST PRIORITY: IMAGE 2 shows the already accepted master dental design for this SAME patient in another view. Reproduce the same dental identity in IMAGE 1; change only what perspective and natural photographic visibility require.',
       'TOOTH-COUNT AND BOUNDARY LOCK: IMAGE 2 is authoritative for the identity, count, order and interproximal separation of the corresponding anterior teeth. Transfer every corresponding visible tooth one-to-one. Preserve six distinct maxillary anterior units in FDI order 13-12-11-21-22-23 whenever that same span is visible in IMAGE 1. Never merge 11 and 21, never absorb a lateral into a central, never split one tooth into two and never replace two narrow or overlapping source teeth with one oversized crown.',
       'Keep the same relative width-to-height hierarchy, central-incisor dominance, lateral-incisor scale, canine character, incisal-edge design, contact rhythm, embrasures, smile-arc intent, VITA shade family, ceramic construction and surface character. Keep the restored anterior group inside the dental envelope visible in IMAGE 1; blur or low resolution is not permission to enlarge crowns, erase contact lines or invent a second smile design.',
@@ -49,7 +54,6 @@
       'Before output, count the corresponding teeth from left to right and verify each boundary separately against IMAGE 2. The result must be recognizable as the same planned veneers photographed from another angle, not a new set of teeth.'
     ].join(' ') : '';
     const ceramic = [
-      multiviewLock,
       materialLock,
       'EDIT THE SUPPLIED PHOTOGRAPH. Show the FINISHED PORCELAIN VENEERS ALREADY IN PLACE in one photorealistic quick consultation preview. This is a restorative aesthetic illustration, not merely whitening and not a staged correction workflow. The source photograph anchors patient identity, tooth count, relative scale and the surrounding smile.',
       'REQUESTED CHANGE — FINISHED VENEER MORPHOLOGY: redesign the visible facial surfaces and contours of selected crowns into a coherent finished restoration. You may refine irregular outlines, restore worn or chipped incisal edges, harmonize modest length differences and apparent facial axes, and improve visible contact transitions within the existing smile envelope. Do not copy the original chips and uneven borders onto the finished ceramic. Preserve recognizable relative tooth sizes: dominant centrals, smaller laterals and distinct canine character; avoid oversized crowns, stock teeth and mirror cloning. No orthodontic alignment is being prescribed or predicted: apparent crown pose may be idealized for this aesthetic illustration, not represented as achievable with veneers alone. Do not alter jaw position, bite, arch width or tooth count. Do not impose golden proportions or mathematical symmetry.',
@@ -63,7 +67,7 @@
       'MATERIAL SELF-CHECK BEFORE OUTPUT: compare both central incisors with their neighbors at the final photograph scale. If a selected tooth reads as a flat opaque patch or bulky cap, revise its curvature shading, material depth and edge integration within this same image. For layered construction, retain a softly luminous body beneath translucent enamel and restrained incisal opalescence; for monolithic construction, retain a smoother single-body gradient without invented strata. Never make the incisal edge transparent, dark gray or outlined merely to emphasize layering. Preserve intentional contour improvements and relative tooth dimensions. Do not rely on a whiter shade alone to communicate veneers.',
       'FINAL CHECK: each selected tooth must read as a finished veneer, with purposeful contours and ceramic depth rather than whitening alone. Inspect the complete incisal outline of 11 and 21 separately: both must be smooth, finished and free of copied source defects while retaining natural curvature. If both arches are selected, compare upper and lower anterior value and hue: correct any blue-gray lower arch, orange upper arch or unrelated white-balance split so both express the same requested VITA shade under the same photographed light. Check no uncovered enamel rim or double edge, then check all tissue boundaries, tooth count, non-target teeth, color and framing. Protected tissue and patient identity take priority; requested restorative contour changes are intentional, not preservation failures. ' + (options.materialOnly ? 'For this material-only pass, compare against the supplied design one final time and undo any geometric or tissue change before output.' : '') + ' This image does not establish clinical feasibility. OUTPUT ONLY the edited photograph with the same framing and aspect ratio. No side-by-side, guides, text, annotations, masks or watermark.'
     ].join('\n');
-    return root.SmylSmileModes ? root.SmylSmileModes.prompt(options,ceramic) : ceramic;
+    return multiviewLock+' '+(root.SmylSmileModes ? root.SmylSmileModes.prompt(options,ceramic) : ceramic);
   }
 
   function loadImage(url) {
@@ -95,7 +99,7 @@
       const material = document.createElement('p'); material.className = 'sv-material';
       material.textContent = 'Apariencia cerámica: ' + constructionLabel(construction) + ' · simulación visual';
       if(root.SmylSmileModes){material.textContent=root.SmylSmileModes.label(options)+(root.SmylSmileModes.alignment(options)?' · conservar color y forma individual':' · '+constructionLabel(construction));
-        dialog.querySelector('.sv-description').textContent=consent?'Revisa la foto y la arcada seleccionada. Solo se enviará esta imagen al autorizar. '+(options.stage==='finishing'?'Etapa 2: carillas sobre la alineación aceptada; esta es otra generación.':''):'Revisa que solo cambie lo solicitado. Comprueba tejido, dientes no seleccionados, número de piezas y encuadre. La alineación es hipotética; no valida movimientos, raíces ni mordida. Descarta si aparecen cambios no autorizados.';
+        dialog.querySelector('.sv-description').textContent=consent?'Revisa la foto y la arcada seleccionada. Se enviarán las fotografías mostradas al autorizar. '+(options.stage==='finishing'?'Etapa 2: carillas sobre la alineación aceptada; esta es otra generación.':''):'Revisa que solo cambie lo solicitado. Comprueba tejido, dientes no seleccionados, número de piezas y encuadre. La alineación es hipotética; no valida movimientos, raíces ni mordida. Descarta si aparecen cambios no autorizados.';
       }
       dialog.querySelector('.sv-description').after(material);
       if(root.SmylSmileModes&&!root.SmylSmileModes.alignment(options)){
@@ -110,6 +114,7 @@
       }
       const comparison = dialog.querySelector('.sv-comparison');
       const sources = consent ? [['Fotografía que se enviará',before]] : [[options.refineTargets?.length?'Antes · resultado conservado':'Antes · fotografía original',before],['Después · propuesta IA',after]];
+      if(consent&&options.masterGuide?.dataUrl)sources.push([options.referenceRole==='original-anatomy'?'Intraoral original · apoyo anatómico':'Diseño aceptado · referencia',options.masterGuide.dataUrl]);
       if (consent) comparison.classList.add('sv-single');
       for (const [caption,url] of sources) {
         const figure = document.createElement('figure'), img = document.createElement('img'), label = document.createElement('figcaption');
@@ -125,6 +130,10 @@
         material.textContent=root.SmylSmileModes.label(options)+' · interpretación visual, no anatomía exacta';
         dialog.querySelector('.sv-description').textContent=consent?'Alineación estética idealizada: interpreta ejes, posiciones y contactos procurando conservar cada diente. Solo usa referencias visibles; no determina Clase I, mordida ni función. Revisa foto y arcada antes de autorizar.':'Compara línea media visible, ejes, identidad dental, tamaño, textura, encía y detalles ajenos a la alineación. La propuesta interpreta posiciones y contactos; no diagnostica oclusión, sustrato ni función.';
         if(!consent)dialog.querySelector('.sv-check span').textContent='Revisé la fidelidad a la foto y acepto una alineación estética idealizada, con interpretación de posiciones y contactos, únicamente como ilustración visual y no como resultado de tratamiento.';
+      }
+      if(consent&&options.masterGuide){
+        dialog.querySelector('.sv-description').textContent+=' Se enviarán la fotografía a editar y la referencia mostrada. La foto a editar define el encuadre y la perspectiva; la referencia no garantiza exactitud anatómica.';
+        dialog.querySelector('.sv-check span').textContent='Tengo autorización para enviar ambas fotografías a OpenAI mediante SMYL. Entiendo que generar consume cupo y puede tener coste.';
       }
       const yes = dialog.querySelector('[data-action=accept]'), no = dialog.querySelector('[data-action=cancel]'), check = dialog.querySelector('input');
       let direct=false;
@@ -162,7 +171,7 @@
         action:'generate_image',requestId,requestReason:'primera_aproximacion_visual',
         imageBase64:input.b64,mimeType:input.mimeType||'image/png',prompt:prompt(options)+(root.SmylDentalReview?.instruction(options.dentalReview,options)||''),
         guideImageBase64:guide?.b64||'',guideMimeType:guide?.mimeType||'image/png',
-        guideLibraryVersion:guide?'same-patient-master-v2':'',
+        guideLibraryVersion:guide?(options.referenceRole==='original-anatomy'?'same-patient-original-v1':'same-patient-master-v2'):'',
         contractVersion:CONTRACT,imageProvider:'openai',responseMode:'binary'
       })});
       if(!response.ok){let detail;try{detail=await response.json();}catch{}const error=new Error(detail?.error||'El servicio no pudo generar la propuesta.');error.status=response.status;throw error;}
@@ -176,7 +185,7 @@
         meta=data.generation||{requestId,provider:data.source,model:data.model};
       }
       if(!url)throw new Error('No llegó una imagen válida.');
-      return {url,meta:{...meta,contract:CONTRACT,construction:constructionOf(options),visualOptions:{...(root.SmylSmileModes?root.SmylSmileModes.normalize(options):{}),shade:options.shade,current:!!options.current,finish:options.finish||'natural',intensity:options.intensity||'balanced',construction:constructionOf(options),materialOnly:!!options.materialOnly,baseShade:options.baseShade||''}}};
+      return {url,meta:{...meta,contract:CONTRACT,construction:constructionOf(options),visualOptions:{...(root.SmylSmileModes?root.SmylSmileModes.normalize(options):{}),shade:options.shade,current:!!options.current,finish:options.finish||'natural',intensity:options.intensity||'balanced',construction:constructionOf(options),materialOnly:!!options.materialOnly,baseShade:options.baseShade||'',referenceRole:options.referenceRole||'',masterView:options.masterView||''}}};
     } catch(error) {
       if(error.name==='AbortError')error=new Error('Se agotó la espera. El intento pudo consumir cupo; no se reintentó automáticamente.');
       error.requestId=requestId;throw error;

@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v105-simple-photo-flow';
+const CACHE_VERSION = 'smyl-v107-optional-intraoral';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -11,7 +11,7 @@ const STATIC_FILES = [
   '/camila/lana-quick-bridge.js?v=1',
   '/camila/smile-modes.js?v=13',
   '/camila/visual-composition.js?v=5',
-  '/camila/visual-simulation.js?v=23',
+  '/camila/visual-simulation.js?v=24',
   '/camila/photo-reference.js?v=1',
   '/camila/dental-transfer.js?v=1',
   '/camila/dental-transfer.css?v=1',

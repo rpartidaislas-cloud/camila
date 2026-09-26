@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-26 — Intraoral opcional en configuración rápida (local)
+
+Tarjeta no bloqueante en simulacion-rapida.html: añadir/cambiar intraoral,
+vista previa y quitar apoyo sin sustituir frontal ni generar imágenes.
+Validación de archivo y bloqueo de botones durante lectura; conserva la foto
+anterior si falla. Prueba tests/optional-reference.test.mjs.
+Es sugerencia general, NO detector automático de calidad ni conteo dental.
+No incluye todavía las categorías de ocho vistas. Sin cambios de backend en
+esta sesión. Mantiene dependencia de Edge indicada abajo, sin publicación.
+Caché v107 y copias móviles sincronizadas.
+
+## 2026-09-25 — Referencia intraoral original, frontal primero (local)
+
+La frontal ya no depende de una generación intraoral previa. La intraoral
+original opcional se envía como apoyo anatómico con contrato
+same-patient-original-v1, separado de una referencia de diseño aceptado.
+El consentimiento muestra las dos fotos y declara el envío de ambas.
+Sin marcas manuales ni conteo automático validado: este cambio de roles no
+certifica conservación dental. Pendiente prueba real y despliegue conjunto:
+publicar primero Edge claude y luego frontend v24 / caché v106.
+No se ha ejecutado generación pagada ni publicado durante este cambio.
+
 ## 2026-09-25 — Flujo sencillo solicitado por el usuario
 
 Retirada la revisión manual obligatoria y sus recursos del simulador y caché.
