@@ -712,6 +712,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-composition.js?v=5"></script>
 <script src="visual-simulation.js?v=24"></script>
 <script src="photo-reference.js?v=1"></script>
+<script src="case-views.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
 <link rel="stylesheet" href="dental-transfer.css?v=1">
 <script src="lana-quick-bridge.js?v=1"></script>
@@ -803,6 +804,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     </div>
   </div>
 
+  <label for="main-photo-kind">Foto principal</label>
+  <select id="main-photo-kind" style="padding:12px;margin:12px;background:#202333;color:white;border-radius:12px"><option value="frontal">Frontal sonriendo</option><option value="intraoral">Frontal intraoral</option></select>
   <button class="btn-start" id="btn-start-simulation" onclick="comenzarFlujoSimulacion()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     <span id="btn-start-label">Nueva simulación rápida</span>
@@ -927,6 +930,12 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <section id="quick-config" class="quick-config-card" aria-labelledby="quick-config-title">
       <h3 id="quick-config-title">¿Qué quieres mostrar?</h3>
       <p>La fotografía ya está lista. Elige una opción de cada grupo.</p>
+      <details style="margin-bottom:16px" ontoggle="if(this.open)renderVistasOpcionales()">
+        <summary style="padding:14px;cursor:pointer">Añadir más vistas · opcional</summary>
+        <p>Fotos de la misma persona. Izquierda y derecha corresponden al paciente. Cargar fotos no inicia generaciones.</p>
+        <div id="optional-view-categories"></div>
+        <input id="optional-view-file" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="cargarVistaOpcional(this)">
+      </details>
       <div id="quick-reference" style="padding:14px;border:1px solid #485266;border-radius:14px;margin-bottom:18px">
         <strong>Más detalle · opcional</strong>
         <p id="quick-reference-status" role="status" style="font-size:13px;line-height:1.5">Si los dientes no se distinguen bien, añade una intraoral de la misma persona. También puedes continuar solo con la frontal.</p>
@@ -3160,7 +3169,7 @@ function continuarProgreso() {
   S.vitaFinish = ['natural','translucent','luminous'].indexOf(snap.vitaFinish)>=0 ? snap.vitaFinish : 'natural';
   S.vitaIntensity = ['subtle','balanced','notable'].indexOf(snap.vitaIntensity)>=0 ? snap.vitaIntensity : 'balanced';
   S.vitaConstruction = snap.vitaConstruction === 'monolithic' ? 'monolithic' : 'layered';
-  S.quickGuided = !!snap.quickGuided && S.photos.some(function(photo){ return photo.view === 'frontal'; });
+  S.quickGuided = !!snap.quickGuided && S.photos.some(function(photo){ return photo.view === 'frontal'||photo.view==='intraoral'; });
 
   if (snap.screen === 's-vita') {
     S.vitaReturnToResult = !!S.result;
@@ -3174,15 +3183,15 @@ function continuarProgreso() {
     showResult();
   } else if (S.independentIntraoral) {
     S.vitaReturnToResult=false;abrirGuiaVita();
-  } else if (S.quickGuided && S.photos.some(function(p){ return p.view === 'frontal'; })) {
+  } else if (S.quickGuided && S.photos.some(function(p){ return p.view === 'frontal'||p.view==='intraoral'; })) {
     // Si la app se cerró justo después de validar la frontal, retoma en las
     // decisiones sencillas y conserva la fotografía ya aprobada.
     abrirConfiguracionRapida();
-  } else if (S.currentPhoto >= VIEWS.length && S.photos.some(function(p){ return p.view === 'frontal'; })) {
+  } else if (S.currentPhoto >= VIEWS.length && S.photos.some(function(p){ return p.view === 'frontal'||p.view==='intraoral'; })) {
     // Ya terminó la secuencia (incluyendo vistas opcionales saltadas), pero
     // salió antes de terminar. Si existe una propuesta pagada, se revalida
     // localmente y no se llama otra vez al generador.
-    var frontalGuardada=S.photos.find(function(p){return p.view==='frontal';})||S.photos[0];
+    var frontalGuardada=(S.quickGuided?S.photos[0]:S.photos.find(function(p){return p.view==='frontal';}))||S.photos[0];
     var vistaGuardada=frontalGuardada&&frontalGuardada.view||'frontal';
     var propuestaGuardada=S.pendingGeneratedByView&&S.pendingGeneratedByView[vistaGuardada];
     var coincide=!!(propuestaGuardada&&propuestaGuardada.photoSignature===firmaFotoParaRevalidacion(frontalGuardada));
@@ -3825,7 +3834,7 @@ function abrirGuiaVita() {
   renderGuiaVita();
   sincronizarOpcionesVita();
   var vitaScreen = document.getElementById('s-vita');
-  if (vitaScreen) vitaScreen.classList.toggle('quick-guided-active', !!S.quickGuided && !S.vitaReturnToResult && S.photos.some(function(photo){ return photo.view === 'frontal'; }));
+  if (vitaScreen) vitaScreen.classList.toggle('quick-guided-active', !!S.quickGuided && !S.vitaReturnToResult && S.photos.some(function(photo){ return photo.view === 'frontal'||photo.view==='intraoral'; }));
   show('s-vita');
   activarCarruselVita();
   document.querySelectorAll('#s-vita .vita-confirm').forEach(function(confirmBtn) {
@@ -3846,7 +3855,7 @@ async function cargarIntraoralIndependiente(input) {
     var b64=await redimensionarFotoB64(url,1280,.92);
     nuevoCaso();S.pendingGeneratedByView={};S.veneerBaseByView={};
     S.independentIntraoral=true;S.photos=[{view:'intraoral',b64:b64,mimeType:'image/jpeg'}];S.baVistaActual='intraoral';
-    S.vitaReturnToResult=false;abrirGuiaVita();saveProgress('s-vita');
+    S.quickGuided=true;S.vitaReturnToResult=false;abrirConfiguracionRapida();saveProgress('s-vita');
   }catch(e){mostrarAvisoAplicacion('Fotografía intraoral',e.message||'No se pudo abrir esta imagen.');}
 }
 
@@ -3914,7 +3923,7 @@ function mostrarAjustesProfesionales() {
 }
 
 async function confirmarConfiguracionRapida() {
-  if (!S.photos.some(function(photo){ return photo.view === 'frontal'; })) {
+  if (!S.photos.some(function(photo){ return photo.view === 'frontal'||photo.view==='intraoral'; })) {
     mostrarAvisoAplicacion('Falta la fotografía frontal', 'Vuelve a tomar la foto para generar la simulación.');
     return;
   }
@@ -3932,6 +3941,7 @@ function abrirCargaParPropio() {
 
 var referenciaOpcionalCargando=false;
 function actualizarReferenciaOpcional() {
+  document.getElementById('quick-reference').hidden=S.photos[0]?.view==='intraoral';
   var photo=S.photos.find(function(p){return p.view==='intraoral';});
   var preview=document.getElementById('quick-reference-preview');
   var status=document.getElementById('quick-reference-status');
@@ -3961,6 +3971,7 @@ async function cargarReferenciaOpcional(input) {
   finally{referenciaOpcionalCargando=false;input.value='';controls.forEach(function(b,i){b.disabled=previous[i];});}
 }
 function quitarReferenciaOpcional() {
+  if(S.photos[0]?.view==='intraoral')return;
   if(referenciaOpcionalCargando)return;
   S.photos=S.photos.filter(function(p){return p.view!=='intraoral';});
   S.pendingGeneratedByView={};
@@ -4079,6 +4090,7 @@ async function cargarPruebaFrontalIntraoral(button) {
 }
 
 function comenzarFlujoSimulacion() {
+  if(document.getElementById('main-photo-kind').value==='intraoral'){document.getElementById('intraoral-independent-file').click();return;}
   // Ruta cotidiana: primero una sola fotografía frontal; las decisiones de
   // diseño aparecen después, cuando ya existe una imagen para contextualizarlas.
   S.independentIntraoral = false;
@@ -5192,7 +5204,7 @@ async function processPhotos(processOptions) {
     return;
   }
   var frontalDisponible = S.photos.some(function(p){ return p.view === 'frontal'; });
-  var intraoralIndependiente = SMYL_VISUAL_PREVIEW_ENABLED && S.independentIntraoral && S.photos.length === 1 && S.photos[0].view === 'intraoral';
+  var intraoralIndependiente = SMYL_VISUAL_PREVIEW_ENABLED && S.photos.some(function(p){return p.view==='intraoral';});
   if (!frontalDisponible && !intraoralIndependiente) {
     mostrarAvisoAplicacion('Falta la fotografía frontal', 'La vista frontal es la única foto obligatoria para crear la simulación. Las demás son opcionales.');
     show('s-cam-native');
@@ -5287,7 +5299,7 @@ async function processPhotos(processOptions) {
     // La frontal se genera primero; las demás vistas siguen bajo demanda.
     if (procSub) procSub.textContent = SMYL_DESIGN_ENGINE_V1_ENABLED ?
       'Diseñando seis dientes completos...' : 'Generando tu simulación...';
-    var frontalPhoto = S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0];
+    var frontalPhoto = S.quickGuided ? S.photos[0] : (S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0]);
     // La frontal manda. La intraoral original solo aporta evidencia anatómica;
     // no se genera ni se acepta un diseño intraoral antes de la frontal.
     if(!processOptions.revalidateCached){
@@ -5328,7 +5340,7 @@ async function processPhotos(processOptions) {
     if(!e.stage)e.stage=processStage;
     if (processOptions.revalidateCached) {
       e.revalidationExhausted = true;
-      var frontalFallida=S.photos.find(function(p){return p.view==='frontal';})||S.photos[0];
+      var frontalFallida=(S.quickGuided?S.photos[0]:S.photos.find(function(p){return p.view==='frontal';}))||S.photos[0];
       var vistaFallida=frontalFallida&&frontalFallida.view||'frontal';
       if(S.pendingGeneratedByView&&S.pendingGeneratedByView[vistaFallida]){
         S.pendingGeneratedByView[vistaFallida].revalidationExhausted=true;
@@ -5414,7 +5426,7 @@ function mostrarErrorProceso(e) {
     support.style.display = 'block';
   }
   var debugCalibracion=new URLSearchParams(location.search).get('debugUI')==='1';
-  var vistaError=(S.photos.find(function(p){ return p.view === 'frontal'; }) || S.photos[0] || {}).view || 'frontal';
+  var vistaError=((S.quickGuided?S.photos[0]:S.photos.find(function(p){ return p.view === 'frontal'; })) || S.photos[0] || {}).view || 'frontal';
   var diagnostico=document.getElementById('proc-error-diagnostics');
   if(diagnostico){
     diagnostico.style.display=debugCalibracion&&e&&e.qualityMetrics?'block':'none';
@@ -5720,7 +5732,7 @@ function construirPromptGemini(diagnostico) {
 // altura o encuadre predeterminados. En intraorales (o si el modelo no carga)
 // se conserva el localizador dental/fallback existente.
 async function localizarBocaEnFotografia(img, view) {
-  if (!img || view === 'intraoral') return null;
+  if (!img || /^intraoral/.test(view)) return null;
   try {
     var listo = await Promise.race([
       initFaceLandmarker(),
@@ -5750,7 +5762,7 @@ async function localizarBocaEnFotografia(img, view) {
 // Un único cálculo compartido mantiene sincronizados el recorte enviado a la
 // IA y las coordenadas clínicas dibujadas en el editor.
 function calcularRectRecorteDental(W, H, view, boca) {
-  var esIntraoral = view === 'intraoral';
+  var esIntraoral = /^intraoral/.test(view);
   var x = 0, y = 0, w = W, h = H;
   if (!esIntraoral) {
     var esPerfil = view === 'right' || view === 'left';
@@ -5839,7 +5851,7 @@ function detectarBandaDentalContinua(canvas,view,mouthRegion) {
   // El recorte clínico coloca la sonrisa en su mitad inferior. Excluir la
   // zona superior es una barrera deliberada: bigote, fosas nasales y piel no
   // pueden convertirse en ancla aunque sean claros o poco saturados.
-  var esIntraoral=view==='intraoral';
+  var esIntraoral=/^intraoral/.test(view);
   var tieneBoca=!esIntraoral&&mouthRegion&&Number.isFinite(mouthRegion.x)&&Number.isFinite(mouthRegion.y)&&mouthRegion.w>.08&&mouthRegion.h>.02;
   var esperadoY=tieneBoca?mouthRegion.y+mouthRegion.h*.52:(esIntraoral?.38:.68);
   var x0=Math.round(W*(tieneBoca?Math.max(.02,mouthRegion.x-mouthRegion.w*.12):(esIntraoral?.05:.16)));
@@ -6871,7 +6883,7 @@ async function prepararUnionVisual(original,raw,input,view,design) {
   var img=await cargarImagenSegura(input.dataUrl),c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);
   var b=detectarBandaDentalContinua(c,view,input.mouthRegion);
   if(design&&(design.mode!=='veneers'||design.arch!=='upper')){
-    var intra=view==='intraoral';
+    var intra=/^intraoral/.test(view);
     if(input.mouthRegion){
       b=bandaArcadasDesdeBoca(c,input.mouthRegion);
     }else{
@@ -6880,7 +6892,7 @@ async function prepararUnionVisual(original,raw,input,view,design) {
     }
   }
   var region={x:b.x/c.width,y:b.y/c.height,w:b.w/c.width,h:b.h/c.height};
-  var centroY=region.y+region.h*.5,esIntraoral=view==='intraoral';
+  var centroY=region.y+region.h*.5,esIntraoral=/^intraoral/.test(view);
   // Una detección espuria de piel o labio puede producir una zona alta. La
   // unión siempre debe permanecer en el corredor dental del recorte.
   if(!Number.isFinite(centroY)||(!input.mouthRegion&&!esIntraoral&&centroY<.40)||(!input.mouthRegion&&region.y+region.h<.50)){
@@ -6956,8 +6968,9 @@ async function compararAcabadosVisuales() {
 
 function referenciaDentalMaestraParaVista(view) {
   if(view!=='intraoral'){
-    var source=(S.photos||[]).find(function(p){return p.view==='intraoral';});
-    if(source&&(source.dataUrl||source.b64))return {view:'intraoral',result:source.dataUrl||('data:'+(source.mimeType||'image/jpeg')+';base64,'+source.b64),role:'original-anatomy',revision:0};
+    var preferred=view==='left'?'intraoralLeft':view==='right'?'intraoralRight':'intraoral';
+    var source=(S.photos||[]).find(function(p){return p.view===preferred&&p.view!==view;})||(S.photos||[]).find(function(p){return /^intraoral/.test(p.view)&&p.view!==view;});
+    if(source&&(source.dataUrl||source.b64))return {view:source.view,result:source.dataUrl||('data:'+(source.mimeType||'image/jpeg')+';base64,'+source.b64),role:'original-anatomy',revision:0};
   }
   var master=S.dentalDesignMaster;
   if(!master||master.view===view||!S.results)return null;
@@ -8985,7 +8998,7 @@ async function regenerarSimulacion() {
     S.veneerBaseByView[view] = nuevoResultado;
     if(!S.dentalDesignMaster)S.dentalDesignMaster={view:view,revision:Date.now()};
     else if(S.dentalDesignMaster.view===view)S.dentalDesignMaster.revision=Date.now();
-    if (view === 'frontal') S.result = nuevoResultado;
+    if (view === S.photos[0]?.view) S.result = nuevoResultado;
     var imgA = document.getElementById('img-a');
     if (imgA) imgA.src = nuevoResultado;
     initBASlider();
@@ -9021,7 +9034,7 @@ function mostrarEstadoRegeneracion(activo,tonoObjetivo,tonoAnterior){
 function renderResPhotos() {
   var wrap = document.getElementById('res-photos');
   if (!wrap) return;
-  var labels = {frontal:'Frontal', right:'Perfil Der.', left:'Perfil Izq.', extraoral:'Extraoral', intraoral:'Intraoral', tresCuartos:'Vista 3/4'};
+  var labels = {frontal:'Frontal', right:'Perfil Der.', left:'Perfil Izq.', extraoral:'Detalle de sonrisa', intraoral:'Frontal intraoral', intraoralLeft:'Intraoral izquierda', intraoralRight:'Intraoral derecha', tresCuartos:'Vista 3/4'};
   // El resultado se indexa por tipo de vista, no por captura. Si una sesión
   // vieja guardó dos entradas "frontal", mostrar ambas parecía indicar dos
   // simulaciones distintas aunque apuntaran al mismo resultado.
@@ -9040,7 +9053,7 @@ function renderResPhotos() {
     // en vez de una franja de miniaturas chicas.
     return '<div style="flex:0 0 84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
       '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · documentación' : '') + '</span></div>';
+      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · sin generar' : '') + '</span></div>';
   }).join('');
 }
 
@@ -9128,7 +9141,7 @@ function actualizarBotonGenerar() {
   var btn = document.getElementById('btn-regenerar');
   if (!btn) return;
   var tieneResultado = !!((S.results || {})[S.baVistaActual || 'frontal']);
-  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Recalcular diseño' : 'Crear simulación de esta vista');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> ' + (tieneResultado ? 'Recalcular diseño' : 'Generar esta vista');
 }
 
 // ══ RESULT ══
@@ -9214,7 +9227,7 @@ async function solicitarDiagnostico() {
 }
 
 async function showResult() {
-  var frontal = S.photos.find(function(p){return p.view==='frontal';}) || S.photos[0];
+  var frontal = S.photos.find(function(p){return p.view===S.baVistaActual;}) || S.photos[0];
 
   // BA slider
   S.baVistaActual = frontal.view || 'frontal';
@@ -9222,7 +9235,7 @@ async function showResult() {
   var imgDespues = document.getElementById('img-a');
   if (imgDespues) imgDespues.style.transform = 'none';
   document.getElementById('img-b').src = 'data:image/jpeg;base64,' + frontal.b64;
-  imgDespues.src = S.result;
+  imgDespues.src = (S.results||{})[frontal.view] || ('data:image/jpeg;base64,'+frontal.b64);
 
   // 3 photo thumbs — tocar una cambia la vista del comparador antes/después
   renderResPhotos();

@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-26 — Publicación autorizada de ocho vistas
+
+Publicación de frontend y PWA v108-eight-views. Cinco pruebas locales pasan.
+Sin cambios adicionales de servidor, esquema ni generación pagada. Mantiene
+limitación del expediente en nube descrita abajo. Se excluyen artifacts y
+cambios ajenos de app.html y simulacion.html de esta publicación.
+
+## 2026-09-26 — Ocho vistas opcionales (local, sin publicar)
+
+case-views.js organiza Rostro y sonrisa (cinco) e Intraorales (tres).
+Inicio permite frontal o intraoral principal; S.photos[0] conserva la principal
+en flujo rápido. Carga/reemplazo/quitar opcionales no invoca IA; invalida
+resultado asociado, no sobrescribe otras vistas. Laterales intraorales usan
+encuadre completo. Miniaturas permiten selección y Generar esta vista.
+Referencia original preferida por lado, sin garantía anatómica. Sin cambios
+de backend ni esquema: persistencia local incluye ocho fotos; exportación
+histórica a campos de expediente sigue limitada al esquema anterior.
+Pruebas case-views, optional-reference y regresiones; demo local sin pacientes.
+Caché v108, copias móviles sincronizadas. No generación pagada.
+
 ## 2026-09-26 — Intraoral opcional en configuración rápida (local)
 
 Tarjeta no bloqueante en simulacion-rapida.html: añadir/cambiar intraoral,

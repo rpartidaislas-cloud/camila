@@ -1,11 +1,12 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v107-optional-intraoral';
+const CACHE_VERSION = 'smyl-v108-eight-views';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
+  '/camila/case-views.js?v=1',
   '/camila/simulacion.html',
   '/camila/simulacion-rapida.html',
   '/camila/lana-quick-bridge.js?v=1',

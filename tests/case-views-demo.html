@@ -1,0 +1,10 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · ocho vistas · prueba local</title>
+<body style="background:#111320;color:white;font-family:system-ui"><main id="s-vita" class="quick-guided-active"><div class="vita-shell"></div></main>
+<script>var S={photos:[{view:'frontal',b64:''}]};</script><script src="../case-views.js"></script>
+<script>
+fetch('../simulacion-rapida.html').then(r=>r.text()).then(text=>{
+const source=new DOMParser().parseFromString(text,'text/html');source.querySelectorAll('style').forEach(s=>document.head.append(s.cloneNode(true)));
+document.querySelector('.vita-shell').append(source.querySelector('#quick-config').cloneNode(true));
+document.querySelector('#quick-reference').hidden=true;document.querySelector('details').open=true;renderVistasOpcionales();
+});
+</script></body></html>
