@@ -710,9 +710,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="visual-simulation.css?v=5">
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
-<script src="visual-simulation.js?v=26"></script>
+<script src="visual-simulation.js?v=27"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=1"></script>
+<link rel="stylesheet" href="smyl-workflow.css?v=1">
+<script defer src="smyl-workflow.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
 <link rel="stylesheet" href="dental-transfer.css?v=1">
 <script src="lana-quick-bridge.js?v=1"></script>
@@ -3169,7 +3171,7 @@ function continuarProgreso() {
   S.vitaFinish = ['natural','translucent','luminous'].indexOf(snap.vitaFinish)>=0 ? snap.vitaFinish : 'natural';
   S.vitaIntensity = ['subtle','balanced','notable'].indexOf(snap.vitaIntensity)>=0 ? snap.vitaIntensity : 'balanced';
   S.vitaConstruction = snap.vitaConstruction === 'monolithic' ? 'monolithic' : 'layered';
-  S.quickGuided = !!snap.quickGuided && S.photos.some(function(photo){ return photo.view === 'frontal'||photo.view==='intraoral'; });
+  S.quickGuided = !!snap.quickGuided && S.photos.length > 0;
 
   if (snap.screen === 's-vita') {
     S.vitaReturnToResult = !!S.result;
@@ -3183,7 +3185,7 @@ function continuarProgreso() {
     showResult();
   } else if (S.independentIntraoral) {
     S.vitaReturnToResult=false;abrirGuiaVita();
-  } else if (S.quickGuided && S.photos.some(function(p){ return p.view === 'frontal'||p.view==='intraoral'; })) {
+  } else if (S.quickGuided && S.photos.length > 0) {
     // Si la app se cerró justo después de validar la frontal, retoma en las
     // decisiones sencillas y conserva la fotografía ya aprobada.
     abrirConfiguracionRapida();
@@ -3834,7 +3836,7 @@ function abrirGuiaVita() {
   renderGuiaVita();
   sincronizarOpcionesVita();
   var vitaScreen = document.getElementById('s-vita');
-  if (vitaScreen) vitaScreen.classList.toggle('quick-guided-active', !!S.quickGuided && !S.vitaReturnToResult && S.photos.some(function(photo){ return photo.view === 'frontal'||photo.view==='intraoral'; }));
+  if (vitaScreen) vitaScreen.classList.toggle('quick-guided-active', !!S.quickGuided && !S.vitaReturnToResult && S.photos.length > 0);
   show('s-vita');
   activarCarruselVita();
   document.querySelectorAll('#s-vita .vita-confirm').forEach(function(confirmBtn) {
@@ -3923,8 +3925,8 @@ function mostrarAjustesProfesionales() {
 }
 
 async function confirmarConfiguracionRapida() {
-  if (!S.photos.some(function(photo){ return photo.view === 'frontal'||photo.view==='intraoral'; })) {
-    mostrarAvisoAplicacion('Falta la fotografía frontal', 'Vuelve a tomar la foto para generar la simulación.');
+  if (!S.photos.length) {
+    mostrarAvisoAplicacion('Añade una fotografía', 'Elige una foto del rostro o intraoral para continuar.');
     return;
   }
   saveProgress('s-vita');
@@ -5205,7 +5207,7 @@ async function processPhotos(processOptions) {
   }
   var frontalDisponible = S.photos.some(function(p){ return p.view === 'frontal'; });
   var intraoralIndependiente = SMYL_VISUAL_PREVIEW_ENABLED && S.photos.some(function(p){return p.view==='intraoral';});
-  if (!frontalDisponible && !intraoralIndependiente) {
+  if (!frontalDisponible && !intraoralIndependiente && !(SMYL_VISUAL_PREVIEW_ENABLED && S.quickGuided && S.photos.length)) {
     mostrarAvisoAplicacion('Falta la fotografía frontal', 'La vista frontal es la única foto obligatoria para crear la simulación. Las demás son opcionales.');
     show('s-cam-native');
     S.currentPhoto = 0;
@@ -5852,11 +5854,12 @@ function detectarBandaDentalContinua(canvas,view,mouthRegion) {
   // zona superior es una barrera deliberada: bigote, fosas nasales y piel no
   // pueden convertirse en ancla aunque sean claros o poco saturados.
   var esIntraoral=/^intraoral/.test(view);
+  var esOblicua=['left','right','tresCuartos','intraoralLeft','intraoralRight'].includes(view);
   var tieneBoca=!esIntraoral&&mouthRegion&&Number.isFinite(mouthRegion.x)&&Number.isFinite(mouthRegion.y)&&mouthRegion.w>.08&&mouthRegion.h>.02;
   var esperadoY=tieneBoca?mouthRegion.y+mouthRegion.h*.52:(esIntraoral?.38:.68);
   var x0=Math.round(W*(tieneBoca?Math.max(.02,mouthRegion.x-mouthRegion.w*.12):(esIntraoral?.05:.16)));
   var x1=Math.round(W*(tieneBoca?Math.min(.98,mouthRegion.x+mouthRegion.w*1.12):(esIntraoral?.95:.84)));
-  var y0=Math.round(H*(tieneBoca?Math.max(.02,mouthRegion.y-mouthRegion.h*.45):(esIntraoral?.12:.50)));
+  var y0=Math.round(H*(tieneBoca?Math.max(.02,mouthRegion.y-mouthRegion.h*.45):(esOblicua?.04:esIntraoral?.12:.50)));
   var y1=Math.round(H*(tieneBoca?Math.min(.98,mouthRegion.y+mouthRegion.h*1.30):(esIntraoral?.82:.92)));
   var filas=new Float32Array(H),columnas=new Float32Array(W);
   function candidato(x,y) {
@@ -5876,7 +5879,7 @@ function detectarBandaDentalContinua(canvas,view,mouthRegion) {
     if(puntaje>mejorFila){mejorFila=puntaje;maxFila=filas[fy];picoY=fy;}
   }
   // Respaldo seguro centrado en la boca, nunca en la altura del bigote.
-  if(maxFila<Math.max(8,W*.025) || (!esIntraoral&&!tieneBoca&&picoY<H*.54)) {
+  if(maxFila<Math.max(8,W*.025) || (!esOblicua&&!esIntraoral&&!tieneBoca&&picoY<H*.54)) {
     if(tieneBoca){
       var fx=Math.max(.02,mouthRegion.x-mouthRegion.w*.06),fy0=Math.max(.02,mouthRegion.y-mouthRegion.h*.22);
       return {x:W*fx,y:H*fy0,w:W*Math.min(.96-fx,mouthRegion.w*1.12),h:H*Math.min(.72,mouthRegion.h*1.38),cx:W*(mouthRegion.x+mouthRegion.w*.5),cy:H*(mouthRegion.y+mouthRegion.h*.48),confidence:0,source:'face-landmarks-fallback'};
@@ -5912,7 +5915,7 @@ function detectarBandaDentalContinua(canvas,view,mouthRegion) {
   }
   var margenX=Math.max(3,ancho*.08),alto=Math.max(H*(tieneBoca?.12:.18),(bandaAbajo-bandaArriba)*1.18);
   var bx=Math.max(0,izq-margenX),bw=Math.min(W-bx,ancho+margenX*2);
-  var limiteSuperior=tieneBoca?Math.max(.02,mouthRegion.y-mouthRegion.h*.30):(esIntraoral?.10:.52);
+  var limiteSuperior=tieneBoca?Math.max(.02,mouthRegion.y-mouthRegion.h*.30):(esOblicua?.02:esIntraoral?.10:.52);
   var by=Math.max(H*limiteSuperior,picoY-alto*.56),bh=Math.min(H-by,alto);
   return {x:bx,y:by,w:bw,h:bh,cx:bx+bw*.5,cy:by+bh*.5,confidence:Math.min(1,maxFila/(W*.32)),source:tieneBoca?'face-guided-enamel':'enamel'};
 }
@@ -6882,7 +6885,18 @@ async function prepararUnionVisual(original,raw,input,view,design) {
   if(!window.SmylVisualComposition)throw new Error('No se cargó el compositor local.');
   var img=await cargarImagenSegura(input.dataUrl),c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);
   var b=detectarBandaDentalContinua(c,view,input.mouthRegion);
-  if(design&&(design.mode!=='veneers'||design.arch!=='upper')){
+  var oblicua=['left','right','tresCuartos','intraoralLeft','intraoralRight'].includes(view);
+  if(oblicua&&input.mouthRegion&&design&&(design.mode!=='veneers'||design.arch!=='upper'))b=bandaArcadasDesdeBoca(c,input.mouthRegion);
+  // Detect in the actual crop, not in the lower half of the original face.
+  // For oblique crops without landmarks, anchor to observed enamel. Never
+  // silently blend a guessed chin/skin rectangle when detection fails.
+  if(oblicua&&!input.mouthRegion){
+    if(!b.confidence)throw new Error('No se pudo localizar con confianza la zona dental lateral. La salida generada se conserva para revisión; no se solicitará otra imagen automáticamente.');
+    var top=Math.max(.02*c.height,b.y-b.h*.25);
+    var bottom=Math.min(.96*c.height,b.y+b.h*(design&&design.arch==='upper'?1.25:2.1));
+    b={...b,y:top,h:bottom-top};
+  }
+  if(!oblicua&&design&&(design.mode!=='veneers'||design.arch!=='upper')){
     var intra=/^intraoral/.test(view);
     if(input.mouthRegion){
       b=bandaArcadasDesdeBoca(c,input.mouthRegion);
@@ -6895,11 +6909,11 @@ async function prepararUnionVisual(original,raw,input,view,design) {
   var centroY=region.y+region.h*.5,esIntraoral=/^intraoral/.test(view);
   // Una detección espuria de piel o labio puede producir una zona alta. La
   // unión siempre debe permanecer en el corredor dental del recorte.
-  if(!Number.isFinite(centroY)||(!input.mouthRegion&&!esIntraoral&&centroY<.40)||(!input.mouthRegion&&region.y+region.h<.50)){
+  if(!Number.isFinite(centroY)||(!oblicua&&!input.mouthRegion&&!esIntraoral&&centroY<.40)||(!oblicua&&!input.mouthRegion&&region.y+region.h<.50)){
     region=esIntraoral?{x:.07,y:.15,w:.86,h:.48}:{x:.16,y:.44,w:.68,h:.40};
   }
   var prepared=await window.SmylVisualComposition.prepare(original,raw,input.rect,input.dataUrl,region);
-  prepared.localizerVersion='face-mouth-v1';
+  prepared.localizerVersion='face-mouth-v2';
   prepared.autoLocated=!!input.mouthRegion;
   return prepared;
 }
@@ -6940,9 +6954,9 @@ async function ajustarUnionVisualActual(button) {
   try{
     var f=fotoVisualActual(),result=S.results[f.view]||(f.view==='frontal'?S.result:null);
     if(!result)throw new Error('No hay un resultado para corregir.');
-    if(!/^visual-preview-v[12]/.test(S.simulationQualityByView[f.view]?.metrics?.mode||''))throw new Error('Esta corrección es para la aproximación visual IA; conserva el editor para otros diseños.');
+    if(!/^visual-preview-v[123]/.test(S.simulationQualityByView[f.view]?.metrics?.mode||''))throw new Error('Esta corrección es para la aproximación visual IA; conserva el editor para otros diseños.');
     var current=S.visualCurrentByView?.[f.view];
-    if(!current||current.original!==f.original||current.prepared?.localizerVersion!=='face-mouth-v1'){
+    if(!current||current.original!==f.original||current.prepared?.localizerVersion!=='face-mouth-v2'){
       var input=await prepararRecorteDental(f.original,f.view),img=await cargarImagenSegura(result),c=document.createElement('canvas');
       if(img.naturalWidth!==input.fullSize.w||img.naturalHeight!==input.fullSize.h)throw new Error('El resultado no coincide con las dimensiones del original.');
       c.width=input.rect.w;c.height=input.rect.h;c.getContext('2d').drawImage(img,input.rect.x,input.rect.y,c.width,c.height,0,0,c.width,c.height);

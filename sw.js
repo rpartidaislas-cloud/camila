@@ -1,18 +1,20 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v110-oblique-visible-change';
+const CACHE_VERSION = 'smyl-v112-lateral-crop';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
+  '/camila/smyl-workflow.js?v=1',
+  '/camila/smyl-workflow.css?v=1',
   '/camila/case-views.js?v=1',
   '/camila/simulacion.html',
   '/camila/simulacion-rapida.html',
   '/camila/lana-quick-bridge.js?v=1',
   '/camila/smile-modes.js?v=13',
   '/camila/visual-composition.js?v=5',
-  '/camila/visual-simulation.js?v=26',
+  '/camila/visual-simulation.js?v=27',
   '/camila/photo-reference.js?v=1',
   '/camila/dental-transfer.js?v=1',
   '/camila/dental-transfer.css?v=1',

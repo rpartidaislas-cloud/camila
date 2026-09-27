@@ -1,5 +1,42 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-27 — Publicación solicitada: recorrido y laterales v112
+
+Se publica el recorrido Fotografías/Opciones/Resultado y el ajuste de región
+oblicua con prompt v27. Pruebas locales pasan; sin generaciones pagadas.
+No incluye cambios ajenos de app.html/simulacion.html. El error 402 se
+investigó: el POST usa un usuario distinto, sin correo, al dueño con saldo.
+No se modificaron Auth, cupos ni backend. Pendiente iniciar sesión correcta
+y validar calidad de alineación con una generación real; no está certificada.
+
+## 2026-09-27 — Laterales: anclaje en coordenadas de recorte (local)
+
+Detector oblicuo permite bandas por encima de la mitad del recorte. Unión
+sin landmarks usa esa banda observada y no el rectángulo fijo inferior;
+si no detecta esmalte, falla explícitamente conservando el candidato pagado.
+Con landmarks mantiene cobertura de ambas arcadas. Localizador face-mouth-v2;
+ajuste local reconoce contrato visual-preview-v3. Prompt lateral permite
+cambio de silueta proyectada y unión cervical local al mover corona completa.
+Guía oficial OpenAI de edición consultada para separar cambios e invariantes.
+Prueba sintética de bandas altas pasa en cinco vistas; pruebas previas de
+composición y 45 combinaciones de prompt pasan. No prueba clínica/anatómica.
+Sin generación pagada, sin publicación, pendiente comparar imágenes reales.
+Frontend v27, caché v112; copias móviles sincronizadas.
+
+## 2026-09-27 — Recorrido y diseño unificados (local)
+
+smyl-workflow.js/css reorganizan el simulador en Fotografías, Opciones y
+Resultado. Una entrada, ocho vistas agrupadas, cámara/archivo por vista,
+cambio de primera foto y carga sin generar. Se admite una lateral como única
+foto en la ruta visual existente. Intraorales independientes y opcionales.
+Herramientas profesionales se agrupan bajo Más herramientas; VITA completo
+se despliega bajo demanda. Sin cambios de prompts ni backend; no promete
+corregir anatomía. Pruebas en 390/768/1366 con generaciones interceptadas,
+carga, selección de principal, arcada, conservación de tono al alinear y
+ausencia de desbordamiento. Copias móviles sincronizadas y caché v111.
+No publicado; app.html y simulacion.html tienen cambios previos ajenos que
+se conservan. La reorganización se aplica a simulacion-rapida.html.
+
 ## 2026-09-27 — Publicación autorizada de corrección oblicua
 
 Publicación de frontend y PWA con visual-simulation v26 y caché
