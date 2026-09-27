@@ -1,5 +1,41 @@
 # Bitácora compartida — SMYL
 
+## 2026-09-27 — Publicación autorizada de corrección oblicua
+
+Publicación de frontend y PWA con visual-simulation v26 y caché
+v110-oblique-visible-change. La ruta para perfiles, vista 3/4 e intraorales
+laterales exige un cambio visible de posición de corona y descarta como
+insuficiente una salida que solo cambie tono, brillo o textura. Pasan pruebas
+de instrucciones oblicuas, referencias multivista, ocho vistas, referencia
+opcional, scripts y flujo rápido. Sin cambios de backend o esquema y sin
+consumir una generación durante la publicación. Sigue requiriendo validación
+con una nueva generación real; no incorpora segmentación ni garantía anatómica.
+
+## 2026-09-27 — Corrección whitening-only en vistas oblicuas (local)
+
+La primera prueba real de intraoral lateral confirmó que la salida directa
+solo blanqueaba. Se reforzó la ruta oblicua: exige reposicionamiento visible
+de corona completa en todas las piezas identificables, permite conservar solo
+la pieza ambigua, y rechaza internamente una salida cuyo único cambio sea
+tono/brillo. Combined exige alineación visible antes del acabado cerámico.
+No segmenta ni valida automáticamente piezas y no garantiza que el modelo
+obedezca; requiere otra generación real autorizada. Sin publicar ni generar
+otra imagen durante este ajuste.
+
+## 2026-09-26 — Corrección de instrucciones oblicuas (local)
+
+Hallazgo: combined/complete exigían colocar caninos y centrales de ambos
+lados aun en perfiles. visual-simulation.js usa ahora ruta oblicua separada
+para left/right/tresCuartos/intraoralLeft/intraoralRight, sin plantilla frontal.
+Conserva posteriores, identidad visible, profundidad y arcada no seleccionada;
+material-only mantiene su ruta. Referencia: mismo lado o intraoral frontal;
+no lado opuesto ni diseño frontal generado como anatomía oblicua.
+Prueba oblique-prompt: 45 combinaciones más selección de referencias.
+NO implementa segmentación automática, máscara por pieza ni evaluación
+anatómica posterior. NO resuelve por sí sola la fusión ni el borrado al mezclar.
+Pendiente prueba real con originales y comparación salida directa/integrada.
+Sin publicación, cambios de modelo, backend ni consumo de generación.
+
 ## 2026-09-26 — Publicación autorizada de ocho vistas
 
 Publicación de frontend y PWA v108-eight-views. Cinco pruebas locales pasan.

@@ -710,7 +710,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="visual-simulation.css?v=5">
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
-<script src="visual-simulation.js?v=24"></script>
+<script src="visual-simulation.js?v=26"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
@@ -6969,10 +6969,14 @@ async function compararAcabadosVisuales() {
 function referenciaDentalMaestraParaVista(view) {
   if(view!=='intraoral'){
     var preferred=view==='left'?'intraoralLeft':view==='right'?'intraoralRight':'intraoral';
-    var source=(S.photos||[]).find(function(p){return p.view===preferred&&p.view!==view;})||(S.photos||[]).find(function(p){return /^intraoral/.test(p.view)&&p.view!==view;});
+    if(view==='intraoralLeft')preferred='intraoralLeft';
+    if(view==='intraoralRight')preferred='intraoralRight';
+    var source=(S.photos||[]).find(function(p){return p.view===preferred&&p.view!==view;})||(S.photos||[]).find(function(p){return p.view==='intraoral'&&p.view!==view;});
     if(source&&(source.dataUrl||source.b64))return {view:source.view,result:source.dataUrl||('data:'+(source.mimeType||'image/jpeg')+';base64,'+source.b64),role:'original-anatomy',revision:0};
   }
   var master=S.dentalDesignMaster;
+  // An accepted frontal design is not anatomical evidence for an oblique edit.
+  if(['left','right','tresCuartos','intraoralLeft','intraoralRight'].includes(view))return null;
   if(!master||master.view===view||!S.results)return null;
   var result=S.results[master.view];
   if(!result||!/^data:image\//i.test(result))return null;

@@ -23,6 +23,22 @@
     C4:'the deepest muted neutral-gray ivory in the C family'
   };
   function prompt(options) {
+    if(['left','right','tresCuartos','intraoralLeft','intraoralRight'].includes(options.targetView)&&!options.materialOnly){
+      const arch=options.arch==='lower'?'lower':options.arch==='both'?'upper and lower':'upper';
+      const align=options.mode==='alignment'||options.mode==='combined';
+      const veneers=options.mode!=='alignment';
+      const shade=shadeDescriptions[options.shade]?options.shade:'A1';
+      return [
+        'OBLIQUE DENTAL PHOTO EDIT. IMAGE 1 is the target photograph. Keep its actual camera angle, foreshortening, depth, jaw relationship, mouth opening and visible tooth sequence. Do not turn it into a frontal smile.',
+        'Treat only confidently identifiable visible anterior crowns in the '+arch+' arch(es). Preserve the unselected arch, posterior teeth, gingiva, lips, retractors, skin, background, crop and illumination.',
+        'Map each edited visible crown to its own source crown. Preserve distinct incisor, canine and premolar identities: do not give canines flat incisor edges or turn premolars into incisors. No fixed tooth count, bilateral template, mirrored far-side teeth, invented hidden teeth, merged crowns, split crowns or equal-width rectangular row. Preserve realistic depth-related overlap rather than making every tooth face the camera.',
+        align?'VISIBLE WHOLE-CROWN REPOSITIONING IS REQUIRED for every confidently identifiable selected anterior crown. Correct visible rotation, tipping, recession, projection and overlap by moving the cervical, middle and incisal portions together within the existing curved arch. Bring each displaced visible crown into a coherent depth sequence with its immediate neighbors and create plausible individual contacts and embrasures. The final result must show an unmistakable positional change, not merely whitening or smoother enamel. If one ambiguous crown cannot be moved without inventing anatomy, preserve that crown but still align every other confidently identified selected crown. Do not widen the arch, enlarge or shrink crowns, change their intrinsic shapes, or reconstruct hidden far-side surfaces.':'Preserve tooth positions; do not add alignment to this veneer-only request.',
+        veneers?'AFTER the requested positional correction, apply finished veneer contours and individualized ceramic optics to each selected identifiable anterior surface. The output must communicate both the new crown positions and the ceramic restoration; a color-only or whitening-only result is a failed output. Preserve size hierarchy, individual line angles, embrasures and canine character. '+(options.current?'Keep the original color.':'Approximate VITA '+shade+': '+shadeDescriptions[shade]+'.')+' Use '+constructionOf(options)+' ceramic appearance under the existing light. Avoid bulky caps, identical stock teeth and identical highlights.':'No veneers, whitening or reshaping: preserve individual enamel texture, shade, wear and cusp form.',
+        options.masterGuide?'IMAGE 2 is an untreated original reference, not a finished design. Use only reliably corresponding visible boundaries; never copy its scale, exposure, angle or unseen teeth. IMAGE 1 remains authoritative.':'Only IMAGE 1 is supplied. Do not invent anatomical evidence.',
+        align?'FINAL REJECTION CHECK: compare the input and output tooth by tooth. Reject and revise internally if the only obvious difference is shade, brightness, gloss or surface smoothness; at least the confidently identified malpositioned selected crowns must show whole-crown axis, depth or overlap correction while retaining one-to-one identity.':'FINAL CHECK: preserve positions and limit the edit to the requested veneer appearance.',
+        'If identity is ambiguous, retain the uncertain tooth instead of substituting a generic crown. This is a visual approximation, not clinical planning. Output only the edited IMAGE 1, with unchanged framing and aspect ratio.'
+      ].join('\n');
+    }
     const shadeCode = /^(A[1-4](\.5)?|B[1-4]|C[1-4]|D[2-4])$/.test(options.shade) ? options.shade : 'A1';
     const shade = options.current ? 'Keep the original enamel shade as the ceramic color reference; still perform the requested finished veneer morphology.' :
       'VITA SHADE — REQUIRED: approximate VITA Classical ' + shadeCode + ' under the ORIGINAL light and apply it consistently to every selected veneer. ' +
