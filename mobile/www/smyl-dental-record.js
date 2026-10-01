@@ -1,0 +1,152 @@
+/* Private manual dental workspace. No image interpretation API is called. */
+(function(){
+ 'use strict';
+ const M=window.SmylDentalModel,bucket='smyl-radiographs';let active=null;
+ const n=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls||'';if(text!=null)e.textContent=text;return e;};
+ const button=(text,fn)=>{const e=n('button','dr-button',text);e.type='button';e.onclick=fn;return e;};
+ const types={panoramic:'Panorámica',periapical:'Periapical',bitewing:'Aleta de mordida',other:'Otra radiografía'};
+ function input(label,value,max,tag='textarea'){
+  const box=n('label','dr-field',label),e=n(tag);e.value=value||'';e.maxLength=max;if(tag==='textarea')e.rows=3;box.append(e);return {box,e};
+ }
+ const message=(ctx,text)=>{ctx.status.textContent=text;};
+ const current=ctx=>active===ctx&&ctx.host.isConnected&&window.tenantId===ctx.tenant&&window.pacienteActual?.id===ctx.patient;
+ async function checked(p){const r=await window.sbTimeout(p,20000);if(r.error)throw r.error;return r.data;}
+ async function guard(ctx){
+  const data=await checked(sb.auth.getUser());if(!current(ctx)||data?.user?.id!==ctx.tenant||data.user.is_anonymous!==false)throw new Error('La sesión cambió. Abre la ficha con la cuenta titular.');
+ }
+ function errorText(e){return e.code==='40001'?'La ficha cambió en otra sesión. Tus notas siguen aquí; recarga la ficha antes de guardar.':e.code==='PGRST205'||e.code==='42P01'||e.code==='PGRST202'?'Este espacio aún no está habilitado para guardar en la clínica.':e.code==='42501'?'Tu cuenta no tiene permiso para guardar en esta ficha.':e.message?.startsWith('Usa ')||e.message?.startsWith('El contenido')?e.message:'No pudimos confirmar la operación. Conserva esta pantalla y vuelve a intentar.';}
+ function dispose(ctx){if(!ctx)return;ctx.urls.forEach(URL.revokeObjectURL);ctx.urls=[];ctx.dialogs.forEach(d=>d.remove());}
+ function mayLeave(){if(!active)return true;if(active.busy){alert('Espera a que termine el guardado o la carga.');return false;}return !active.dirty||confirm('Hay observaciones dentales sin guardar. ¿Salir y descartarlas?');}
+ function dirty(ctx){ctx.dirty=true;ctx.save.disabled=!ctx.ready;message(ctx,'Cambios sin guardar · pulsa Guardar observaciones.');}
+ function dialog(ctx,title){const d=n('dialog','dr-dialog');d.setAttribute('aria-label',title);d.append(n('h2','',title));document.body.append(d);ctx.dialogs.push(d);return d;}
+ function toothDialog(ctx,tooth){
+  if(!ctx.ready||ctx.busy)return;
+  const old=ctx.doc.teeth[tooth]||{observation:'',action:'',status:'pending'},d=dialog(ctx,'Diente '+tooth);
+  const observation=input('Observación del dentista',old.observation,2000),action=input('Acción propuesta',old.action,2000);
+  const state=n('select');state.setAttribute('aria-label','Estado');[['pending','Pendiente'],['following','En seguimiento'],['done','Realizado']].forEach(([v,t])=>state.add(new Option(t,v)));state.value=old.status;
+  d.append(observation.box,action.box,state,n('p','dr-help','Se incorpora al borrador; guarda las observaciones al terminar.'));
+  d.append(button('Volver',()=>d.close()),button('Aplicar al borrador',()=>{if(!current(ctx))return;ctx.doc.teeth[tooth]={observation:observation.e.value,action:action.e.value,status:state.value};dirty(ctx);renderTeeth(ctx);d.close();}));
+  d.showModal();observation.e.focus();
+ }
+ function renderTeeth(ctx){
+  ctx.map.replaceChildren();
+  ctx.map.append(n('span','dr-arch-label dr-upper','Superior'),n('span','dr-arch-label dr-lower','Inferior'));
+  for(const [row,ids] of [[0,M.upper],[1,M.lower]])ids.forEach((id,i)=>{
+   const theta=-Math.PI/2+i*Math.PI/15,x=300+220*Math.sin(theta),y=row?350+210*Math.cos(theta):280-210*Math.cos(theta);
+   const note=ctx.doc.teeth[id],b=button(String(id),()=>toothDialog(ctx,String(id)));
+   b.className='dr-tooth'+(note?' dr-noted dr-'+note.status:'');b.style.left=x/6+'%';b.style.top=y/6.3+'%';
+   b.setAttribute('aria-label','Diente '+id+(note?' · con observación':' · sin observaciones'));b.disabled=!ctx.ready;
+   ctx.map.append(b);
+  });
+  ctx.notes.replaceChildren();
+  for(const [id,note] of Object.entries(ctx.doc.teeth)){
+   const item=n('article','dr-note');item.append(button('Diente '+id,()=>toothDialog(ctx,id)),n('p','',note.observation||'Sin observación escrita'),n('p','',note.action||'Sin acción propuesta'),n('small','',{'pending':'Pendiente','following':'En seguimiento','done':'Realizado'}[note.status]));ctx.notes.append(item);
+  }
+ }
+ async function imageUrl(ctx,study){
+  let blob=ctx.files.get(study.id);
+  if(!blob){await guard(ctx);blob=await checked(sb.storage.from(bucket).download(study.asset.path));}
+  if(!(blob instanceof Blob)||blob.size!==study.asset.bytes||await M.hash(await blob.arrayBuffer())!==study.asset.sha256)throw new Error('Imagen no verificada');
+  if(!current(ctx))throw new Error('La sesión cambió');const url=URL.createObjectURL(blob);ctx.urls.push(url);return url;
+ }
+ function markDialog(ctx,study,mark,refresh){
+  const d=dialog(ctx,'Anotación en la radiografía'),note=input('Observación del dentista',mark.note,2000);
+  const tooth=n('select');tooth.setAttribute('aria-label','Diente relacionado');tooth.add(new Option('Observación general',''));M.teeth.forEach(t=>tooth.add(new Option('Diente '+t,t)));tooth.value=mark.tooth;
+  const xpos=input('Posición horizontal (%)',String(Math.round(mark.x*100)),3,'input'),ypos=input('Posición vertical (%)',String(Math.round(mark.y*100)),3,'input');
+  [xpos,ypos].forEach(f=>{f.e.type='number';f.e.min=0;f.e.max=100;});
+  d.append(note.box,tooth,xpos.box,ypos.box,button('Cancelar',()=>d.close()),button('Aplicar al borrador',()=>{
+   if(!current(ctx)||!xpos.e.reportValidity()||!ypos.e.reportValidity())return;
+   const next={...mark,note:note.e.value,tooth:tooth.value,x:Number(xpos.e.value)/100,y:Number(ypos.e.value)/100};
+   const index=study.marks.findIndex(m=>m.id===mark.id);if(index<0){if(study.marks.length>=50)return;study.marks.push(next);}else study.marks[index]=next;
+   dirty(ctx);refresh();d.close();
+  }));d.showModal();note.e.focus();
+ }
+ async function viewStudy(ctx,study){
+  const d=dialog(ctx,study.label||types[study.type]),loading=n('p','','Cargando imagen privada…');d.append(loading);d.append(button('Cerrar',()=>d.close()));d.showModal();
+  let url;
+  d.addEventListener('close',()=>{if(url){URL.revokeObjectURL(url);ctx.urls=ctx.urls.filter(u=>u!==url);}},{once:true});
+  try{
+   url=await imageUrl(ctx,study);if(!current(ctx)||!d.open){URL.revokeObjectURL(url);return;}loading.remove();
+   const tools=n('div','dr-tools'),zoom=n('input');zoom.type='range';zoom.min=1;zoom.max=3;zoom.step=.25;zoom.value=1;zoom.setAttribute('aria-label','Ampliar radiografía');
+   const viewport=n('div','dr-viewport'),stage=n('div','dr-image-stage'),img=n('img');img.src=url;img.alt='Radiografía original · '+(study.label||types[study.type]);stage.append(img);viewport.append(stage);
+   const marks=n('div','dr-marks'),list=n('div','dr-mark-list');stage.append(marks);
+   function refresh(){marks.replaceChildren();list.replaceChildren();study.marks.forEach((m,i)=>{
+    const b=button(String(i+1),()=>markDialog(ctx,study,m,refresh));b.className='dr-mark';b.style.left=m.x*100+'%';b.style.top=m.y*100+'%';b.setAttribute('aria-label','Anotación '+(i+1));marks.append(b);
+    const item=n('article','dr-note');item.append(n('strong','',(i+1)+'. '+(m.tooth?'Diente '+m.tooth:'General')),n('p','',m.note||'Sin texto'),button('Editar',()=>markDialog(ctx,study,m,refresh)),button('Quitar marca',()=>{study.marks=study.marks.filter(x=>x.id!==m.id);dirty(ctx);refresh();}));list.append(item);
+   });}
+   const add=(x,y)=>{if(study.marks.length<50)markDialog(ctx,study,{id:crypto.randomUUID(),x,y,tooth:'',note:''},refresh);};
+   img.onclick=e=>{const r=img.getBoundingClientRect();add((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);};
+   zoom.oninput=()=>stage.style.width=Number(zoom.value)*100+'%';
+   tools.append(n('span','','Ampliar'),zoom,button('Añadir marca',()=>add(.5,.5)));
+   const notes=input('Observaciones de este estudio',study.notes,4000);notes.e.oninput=()=>{study.notes=notes.e.value;dirty(ctx);};
+   d.append(tools,n('p','dr-help','Toca la imagen para marcar un punto, o utiliza Añadir marca. El original no se modifica.'),viewport,list,notes.box,n('p','dr-help','Cierra el visor y pulsa Guardar observaciones para conservar tus cambios.'));refresh();
+  }catch(e){loading.textContent=errorText(e);}
+ }
+ function renderStudies(ctx){
+  ctx.studies.replaceChildren();
+  if(!ctx.doc.studies.length)ctx.studies.append(n('p','dr-help','Todavía no hay radiografías en esta ficha.'));
+  ctx.doc.studies.forEach(s=>{const card=n('article','dr-study');card.append(n('h4','',s.label||types[s.type]),n('p','',types[s.type]+(s.date?' · '+s.date:'')),n('small','',ctx.files.has(s.id)?'Pendiente de guardar':'Original privado'),button('Abrir y anotar',()=>viewStudy(ctx,s)));ctx.studies.append(card);});
+ }
+ async function addFile(ctx,file){
+  if(!file||ctx.busy||!ctx.ready||ctx.doc.studies.length>=20)return;
+  ctx.busy=true;ctx.form.disabled=true;message(ctx,'Preparando imagen sin modificar el original…');
+  try{
+   await guard(ctx);const id=crypto.randomUUID(),asset=await M.asset(file,ctx.tenant,ctx.patient,id);
+   // Decode locally to reject malformed images; never transcode original bytes.
+   const url=URL.createObjectURL(file);try{await new Promise((resolve,reject)=>{const img=new Image(),timer=setTimeout(()=>{img.src='';reject(new Error('Imagen no legible'));},15000);img.onload=()=>{clearTimeout(timer);img.naturalWidth*img.naturalHeight<=80000000?resolve():reject(new Error('Imagen demasiado grande'));};img.onerror=()=>{clearTimeout(timer);reject(new Error('Imagen no legible'));};img.src=url;});}finally{URL.revokeObjectURL(url);}
+   if(!current(ctx))return;
+   ctx.doc.studies.push({id,type:ctx.type.value,label:ctx.label.value.trim(),date:ctx.date.value,asset,notes:'',marks:[]});ctx.files.set(id,file);dirty(ctx);renderStudies(ctx);
+  }catch(e){message(ctx,errorText(e));}finally{ctx.busy=false;if(current(ctx)){ctx.form.disabled=!ctx.ready;ctx.file.value='';}}
+ }
+ async function save(ctx){
+  if(!ctx.ready||ctx.busy||!ctx.dirty)return;ctx.busy=true;ctx.form.disabled=true;ctx.save.disabled=true;message(ctx,'Guardando observaciones e imágenes privadas…');
+  try{
+   await guard(ctx);const doc=structuredClone(ctx.doc);if(!M.validate(doc,ctx.tenant,ctx.patient))throw new Error('Documento no válido');
+   for(const s of doc.studies){const file=ctx.files.get(s.id);if(!file)continue;await guard(ctx);
+    try{await checked(sb.storage.from(bucket).upload(s.asset.path,file,{contentType:s.asset.mime,upsert:false}));}
+    catch(e){const existing=await checked(sb.storage.from(bucket).download(s.asset.path));if(!(existing instanceof Blob)||existing.size!==s.asset.bytes||await M.hash(await existing.arrayBuffer())!==s.asset.sha256)throw e;}
+   }
+   await guard(ctx);const row=await checked(sb.rpc('smyl_save_dental_record',{p_patient_id:ctx.patient,p_expected_revision:ctx.revision,p_document:doc}));
+   if(!current(ctx))return;if(!row||row.patient_id!==ctx.patient||row.tenant_id!==ctx.tenant||!M.validate(row.document,ctx.tenant,ctx.patient)||!SmylCaseModel.same(row.document,doc))throw new Error('Respuesta no confirmada');
+   ctx.revision=row.revision;ctx.doc=row.document;ctx.dirty=false;ctx.files.clear();renderStudies(ctx);message(ctx,'Observaciones guardadas · versión '+row.revision+'. No se ha aprobado ningún tratamiento.');
+  }catch(e){if(current(ctx)){if(e.code==='40001')ctx.ready=false;message(ctx,errorText(e));}}
+  finally{ctx.busy=false;if(current(ctx)){ctx.form.disabled=!ctx.ready;ctx.save.disabled=!ctx.ready||!ctx.dirty;}}
+ }
+ async function mount(){
+  const screen=document.getElementById('p-paciente-detalle'),layout=screen?.querySelector('.clinic-layout');
+  if(!layout||screen.querySelector('.dr-record')||!window.pacienteActual?.id)return;
+  dispose(active);
+  const host=n('section','dr-record'),ctx={host,tenant:window.tenantId,patient:pacienteActual.id,doc:M.empty(),revision:0,ready:false,busy:false,dirty:false,files:new Map(),urls:[],dialogs:[]};active=ctx;
+  host.append(n('p','dr-eyebrow','EXPEDIENTE DEL PACIENTE'),n('h2','','Mapa dental y radiografías'));
+  ctx.status=n('p','dr-status','Cargando…');ctx.status.setAttribute('role','status');host.append(ctx.status);
+  const form=n('fieldset','dr-form');ctx.form=form;form.disabled=true;
+  const details=n('details','dr-section');details.open=true;details.append(n('summary','','Mapa dental'));
+  details.append(n('p','dr-help','Dentición permanente · numeración FDI. Toca un diente para registrar una observación. Sin marca no significa sano: significa sin anotación.'));
+  const orientation=n('div','dr-orientation');orientation.append(n('span','','Derecha del paciente'),n('span','','Izquierda del paciente'));details.append(orientation);
+  ctx.map=n('div','dr-map');ctx.notes=n('div','dr-notes');details.append(ctx.map,ctx.notes);form.append(details);
+  const picker=n('select');picker.setAttribute('aria-label','Seleccionar diente');picker.add(new Option('Seleccionar diente…',''));M.teeth.forEach(t=>picker.add(new Option('Diente '+t,t)));picker.onchange=()=>{if(picker.value)toothDialog(ctx,picker.value);picker.value='';};details.insertBefore(picker,ctx.map);
+  const rx=n('details','dr-section');rx.open=true;rx.append(n('summary','','Radiografías'),n('p','dr-help','Originales JPG o PNG, hasta 20 MB por imagen. Sin envío a IA. PDF, DICOM y estudios 3D no se admiten en esta versión.'));
+  const fields=n('div','dr-upload-fields'),type=n('select');type.setAttribute('aria-label','Tipo de radiografía');Object.entries(types).forEach(([v,t])=>type.add(new Option(t,v)));ctx.type=type;
+  const label=input('Nombre del estudio · opcional','',100,'input'),date=input('Fecha del estudio · opcional','',10,'input');date.e.type='date';ctx.label=label.e;ctx.date=date.e;
+  const file=n('input');file.type='file';file.accept='image/png,image/jpeg';file.setAttribute('aria-label','Subir radiografía');file.onchange=()=>addFile(ctx,file.files[0]);ctx.file=file;
+  fields.append(type,label.box,date.box,file);rx.append(fields);ctx.studies=n('div','dr-studies');rx.append(ctx.studies);
+  const ai=n('aside','dr-ai');ai.append(n('strong','','Interpretación con IA · pendiente de validación'),n('p','','No está activada. Tus radiografías no se enviarán a un modelo generalista para producir diagnósticos. Puedes registrar y guardar tus propias observaciones.'));rx.append(ai);form.append(rx);
+  ctx.save=button('Guardar observaciones',()=>save(ctx));ctx.save.classList.add('dr-primary');ctx.save.disabled=true;form.append(ctx.save);host.append(form);layout.before(host);
+  if(pacienteActual._local||window.miRolEquipo!=='dueño'){message(ctx,'Disponible para la cuenta titular y pacientes guardados en la clínica.');return;}
+  try{
+   await guard(ctx);const row=await checked(sb.from('smyl_dental_records').select('*').eq('tenant_id',ctx.tenant).eq('patient_id',ctx.patient).maybeSingle());
+   if(!current(ctx))return;if(row){if(row.tenant_id!==ctx.tenant||row.patient_id!==ctx.patient||!M.validate(row.document,ctx.tenant,ctx.patient))throw new Error('Registro no válido');ctx.doc=row.document;ctx.revision=row.revision;}
+   ctx.ready=true;form.disabled=false;renderTeeth(ctx);renderStudies(ctx);message(ctx,row?'Observaciones guardadas · versión '+row.revision:'Sin anotaciones. No se guarda automáticamente.');
+  }catch(e){if(current(ctx))message(ctx,errorText(e));}
+ }
+ function init(){
+  const screen=document.getElementById('p-paciente-detalle');if(!screen)return;
+  const prior=window.verPaciente;window.verPaciente=function(id){if(!mayLeave())return;return prior(id);};
+  const logout=window.cerrarSesion;if(logout)window.cerrarSesion=function(...args){if(!mayLeave())return;return logout.apply(this,args);};
+  const route=window.ir;window.ir=function(target){if(target!=='paciente-detalle'&&!mayLeave())return false;const result=route(target);if(result!==false&&target!=='paciente-detalle'){dispose(active);active=null;}return result;};
+  addEventListener('beforeunload',e=>{if(active&&(active.dirty||active.busy)){e.preventDefault();e.returnValue='';}});
+  sb.auth.onAuthStateChange?.((event,session)=>{if(active&&(session?.user?.id!==active.tenant||session.user.is_anonymous)){const ctx=active;dispose(ctx);active=null;ctx.host.replaceChildren(n('p','','La sesión cambió. Abre nuevamente la ficha.'));}});
+  new MutationObserver(mount).observe(screen,{childList:true,subtree:true});mount();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
