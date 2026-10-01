@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Simula tu Sonrisa</title>
 
 <!-- PWA -->
@@ -710,11 +710,15 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="visual-simulation.css?v=5">
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
-<script src="visual-simulation.js?v=27"></script>
+<script src="visual-simulation.js?v=28"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=1"></script>
-<link rel="stylesheet" href="smyl-workflow.css?v=1">
-<script defer src="smyl-workflow.js?v=1"></script>
+<link rel="stylesheet" href="smyl-studio.css?v=1">
+<script defer src="smyl-studio.js?v=1"></script>
+<link rel="stylesheet" href="smyl-patient-cases.css?v=1">
+<script defer src="smyl-case-model.js?v=1"></script>
+<script defer src="smyl-case-client.js?v=1"></script>
+<script defer src="smyl-patient-cases.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
 <link rel="stylesheet" href="dental-transfer.css?v=1">
 <script src="lana-quick-bridge.js?v=1"></script>
@@ -3175,7 +3179,8 @@ function continuarProgreso() {
 
   if (snap.screen === 's-vita') {
     S.vitaReturnToResult = !!S.result;
-    abrirGuiaVita();
+    if (S.quickGuided) abrirConfiguracionRapida();
+    else abrirGuiaVita();
   } else if (snap.screen === 's-q') {
     // Pantalla vieja (de antes de quitar el cuestionario) -- ya no existe,
     // lo más parecido es retomar directo en la cámara.

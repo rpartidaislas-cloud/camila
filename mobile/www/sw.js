@@ -1,20 +1,33 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v112-lateral-crop';
+const CACHE_VERSION = 'smyl-v120-clinical-review';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
-  '/camila/smyl-workflow.js?v=1',
-  '/camila/smyl-workflow.css?v=1',
+  '/camila/smyl-case-model.js?v=1',
+  '/camila/smyl-case-client.js?v=1',
+  '/camila/smyl-patient-cases.js?v=1',
+  '/camila/smyl-patient-cases.css?v=1',
+  '/camila/smyl-proposals.css?v=1',
+  '/camila/smyl-proposals.js?v=3',
+  '/camila/smyl-proposal-model.js?v=1',
+  '/camila/smyl-proposal-print.js?v=1',
+  '/camila/smyl-clinic.js?v=2',
+  '/camila/smyl-clinic.css?v=1',
+  '/camila/smyl-clinical-model.js?v=1',
+  '/camila/smyl-panel.js?v=1',
+  '/camila/smyl-panel.css?v=1',
+  '/camila/smyl-studio.js?v=1',
+  '/camila/smyl-studio.css?v=1',
   '/camila/case-views.js?v=1',
   '/camila/simulacion.html',
   '/camila/simulacion-rapida.html',
   '/camila/lana-quick-bridge.js?v=1',
   '/camila/smile-modes.js?v=13',
   '/camila/visual-composition.js?v=5',
-  '/camila/visual-simulation.js?v=27',
+  '/camila/visual-simulation.js?v=28',
   '/camila/photo-reference.js?v=1',
   '/camila/dental-transfer.js?v=1',
   '/camila/dental-transfer.css?v=1',

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Diseño de Sonrisa Digital</title>
 <link rel="manifest" href="manifest-app.json">
 <meta name="theme-color" content="#3F8CFF">
@@ -681,9 +681,22 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   .contenido{padding-bottom:100px!important}
 }
 </style>
+<link rel="stylesheet" href="smyl-panel.css?v=1">
+<script defer src="smyl-panel.js?v=1"></script>
+<link rel="stylesheet" href="smyl-clinic.css?v=1">
+<script defer src="smyl-clinical-model.js?v=1"></script>
+<script defer src="smyl-clinic.js?v=2"></script>
+<link rel="stylesheet" href="smyl-proposals.css?v=1">
+<script defer src="smyl-proposal-model.js?v=1"></script>
+<script defer src="smyl-proposal-print.js?v=1"></script>
+<script defer src="smyl-proposals.js?v=3"></script>
+<link rel="stylesheet" href="smyl-patient-cases.css?v=1">
+<script defer src="smyl-case-model.js?v=1"></script>
+<script defer src="smyl-case-client.js?v=1"></script>
+<script defer src="smyl-patient-cases.js?v=1"></script>
 </head>
 <body>
-<div style="position:fixed;bottom:4px;right:6px;font-size:9px;color:rgba(255,255,255,.35);z-index:99999;pointer-events:none;font-family:monospace;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px">app build v17 — checkout y portal de facturación Stripe</div>
+<!-- The build identifier belongs in diagnostics, not over the patient's form. -->
 
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <div id="auth-gate-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.4);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
@@ -1814,16 +1827,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </div>
 
 <!-- ═══ COPYRIGHT ═══ -->
-<div style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#94A3B8;font-family:Georgia,serif;letter-spacing:.8px;opacity:.5;z-index:9999;pointer-events:none">© 2025 Dr. Hernán Partida Islas · Propiedad Intelectual</div>
+<div id="app-copyright" style="position:fixed;bottom:8px;right:14px;font-size:9px;color:#94A3B8;font-family:Georgia,serif;letter-spacing:.8px;opacity:.5;z-index:9999;pointer-events:none">© 2025 Dr. Hernán Partida Islas · Propiedad Intelectual</div>
 
 <script>
-// ── Bloquear zoom en móvil ──
-document.addEventListener('touchstart', function(e) {
-  if (e.touches.length > 1) e.preventDefault();
-}, {passive:false});
-document.addEventListener('touchmove', function(e) {
-  if (e.scale && e.scale !== 1) e.preventDefault();
-}, {passive:false});
+// Preserve browser zoom for accessibility; editor gestures are scoped to their canvas.
 
 // ── Sistema de iconos SVG profesionales ──
 var SLOT_ICONS = [
