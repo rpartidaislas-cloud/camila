@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v123-vita-workflow';
+const CACHE_VERSION = 'smyl-v127-vita-swipe';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -22,8 +22,9 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=1',
   '/camila/smyl-panel.js?v=1',
   '/camila/smyl-panel.css?v=1',
-  '/camila/smyl-studio.js?v=2',
-  '/camila/smyl-studio.css?v=2',
+  '/camila/smyl-studio.js?v=5',
+  '/camila/smyl-studio.css?v=6',
+  '/camila/smyl-vita-samples.js?v=1',
   '/camila/case-views.js?v=1',
   '/camila/simulacion.html',
   '/camila/simulacion-rapida.html',
@@ -39,6 +40,7 @@ const STATIC_FILES = [
   '/camila/contour-review.css?v=1',
   '/camila/tooth-boundaries.js?v=1',
   '/camila/photo-adjust.js',
+  '/camila/photo-adjust.js?v=2',
   '/camila/manifest.json',
   '/camila/app.html',
   '/camila/calibracion.html',
@@ -47,6 +49,7 @@ const STATIC_FILES = [
   '/camila/icons/smyl_pwa.png',
   '/camila/icons/smyl_logo.png',
   '/camila/icons/vita/vita-master-photo.webp',
+  '/camila/icons/vita/veneer-ceramic-v2.webp',
   'https://raw.githubusercontent.com/rpartidaislas-cloud/camila/claude/camila-claude-clinical-analysis-sywxjv/mobile/www/assets/dental-library/natural-a1-v1/central-v3.png',
   'https://raw.githubusercontent.com/rpartidaislas-cloud/camila/claude/camila-claude-clinical-analysis-sywxjv/mobile/www/assets/dental-library/natural-a1-v1/lateral-v3.png',
   'https://raw.githubusercontent.com/rpartidaislas-cloud/camila/claude/camila-claude-clinical-analysis-sywxjv/mobile/www/assets/dental-library/natural-a1-v1/canine-v3.png',
