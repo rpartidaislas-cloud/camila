@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v122-dental-arches';
+const CACHE_VERSION = 'smyl-v123-vita-workflow';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -22,8 +22,8 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=1',
   '/camila/smyl-panel.js?v=1',
   '/camila/smyl-panel.css?v=1',
-  '/camila/smyl-studio.js?v=1',
-  '/camila/smyl-studio.css?v=1',
+  '/camila/smyl-studio.js?v=2',
+  '/camila/smyl-studio.css?v=2',
   '/camila/case-views.js?v=1',
   '/camila/simulacion.html',
   '/camila/simulacion-rapida.html',
