@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v127-vita-swipe';
+const CACHE_VERSION = 'smyl-v132-centered-photo-guides';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -22,8 +22,17 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=1',
   '/camila/smyl-panel.js?v=1',
   '/camila/smyl-panel.css?v=1',
-  '/camila/smyl-studio.js?v=5',
-  '/camila/smyl-studio.css?v=6',
+  '/camila/smyl-studio.js?v=10',
+  '/camila/smyl-studio.css?v=11',
+  '/camila/icons/capture-frontal-v2.webp',
+  '/camila/icons/capture-left-v2.webp',
+  '/camila/icons/capture-right-v2.webp',
+  '/camila/icons/capture-three-quarter-v2.webp',
+  '/camila/icons/capture-extraoral-v3.webp',
+  '/camila/icons/capture-intraoral-v3.webp',
+  '/camila/icons/ui/capture-intraoral-left-v1.webp',
+  '/camila/icons/ui/capture-intraoral-right-v1.webp',
+  '/camila/icons/ui/dental-miniature-v1.webp',
   '/camila/smyl-vita-samples.js?v=1',
   '/camila/case-views.js?v=1',
   '/camila/simulacion.html',
