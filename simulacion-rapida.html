@@ -723,6 +723,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
 <script defer src="smyl-studio.js?v=16"></script>
+<link rel="stylesheet" href="smyl-result-viewer.css?v=1">
+<script defer src="smyl-result-viewer.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=1">
 <script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
@@ -1237,9 +1239,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div class="res-logo"><img src="icons/smyl_logo.png" alt="SMYL" style="height:18px;width:auto;display:block"></div>
     <div style="display:flex;gap:8px">
       <button class="res-vita-btn" id="res-vita-btn" onclick="abrirGuiaVitaDesdeResultado()">Tono VITA A1 · Cambiar</button>
-      <button class="res-vita-btn" id="res-construction-btn" type="button" onclick="abrirAcabadoCeramico()">Acabado cerámico</button>
-      <button class="res-vita-btn" type="button" onclick="ajustarUnionVisualActual(this)">Corregir unión · local</button>
-      <button class="res-vita-btn" type="button" onclick="compararAcabadosVisuales()">Comparar acabados</button>
+      <button class="res-vita-btn" id="res-construction-btn" type="button" onclick="abrirAcabadoCeramico()" hidden>Acabado cerámico</button>
+      <button class="res-vita-btn" type="button" onclick="ajustarUnionVisualActual(this)" hidden>Corregir unión · local</button>
+      <button class="res-vita-btn" type="button" onclick="compararAcabadosVisuales()" hidden>Comparar acabados</button>
       <button class="res-vita-btn" id="smile-stage-two" type="button" hidden onclick="generarEtapaCarillas(this)">Etapa 2 · Añadir carillas</button>
       <span id="smile-result-label" style="font-size:11px;color:#b9eadd"></span>
       <button class="redo-btn" id="btn-regenerar" onclick="regenerarSimulacion()">
