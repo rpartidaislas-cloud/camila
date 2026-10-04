@@ -105,6 +105,11 @@
       };
       const close = value => { if (closed) return; closed = true; dispose(); resolve(value); };
       const changed = () => { dirty = true; $('.lt-reviewed').checked = false; schedule(); };
+      function shadeSelection() {
+        $('.lt-shade-label').textContent = shade === 'base' ? 'Tono de la simulación' : 'VITA ' + shade;
+        d.querySelectorAll('[data-shade]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.shade === shade)));
+        $('[data-act="base"]').setAttribute('aria-pressed', String(shade === 'base'));
+      }
       function remember() { history.push(mg.getImageData(0, 0, W, H)); if (history.length > Math.max(2, Math.min(12, Math.floor(32000000 / (W * H * 4))))) history.shift(); }
       function repaint() {
         renderFrame = null; if (closed) return;
@@ -124,9 +129,7 @@
           const layer = canvas(W, H); layer.getContext('2d').putImageData(overlay, 0, 0); g.drawImage(layer, 0, 0); layer.width = 1;
         }
         if (keyboard) { g.strokeStyle = '#ffffff'; g.lineWidth = W / display.getBoundingClientRect().width; g.beginPath(); g.arc(cursor.x, cursor.y, radius(), 0, Math.PI * 2); g.stroke(); }
-        $('.lt-shade-label').textContent = shade === 'base' ? 'Tono de la simulación' : 'VITA ' + shade;
-        d.querySelectorAll('[data-shade]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.shade === shade)));
-        $('[data-act="base"]').setAttribute('aria-pressed', String(shade === 'base'));
+        shadeSelection();
         $('[data-act="use"]').disabled = !dirty || !$('.lt-reviewed').checked || (shade !== 'base' && !paintOK) || comparing || $('.lt-overlay').checked || !!stroke;
         $('[data-act="undo"]').disabled = !history.length;
       }
@@ -173,7 +176,14 @@
         b.append(swatch, document.createTextNode(code)); b.onclick = () => shadeCarousel.pick(code); $('.lt-tones').append(b);
       });
       shadeCarousel = root.SmylShadeCarousel.attach({ track: $('.lt-tones'), selector: '[data-shade]', key: 'data-shade', enabled: () => !closed && !submitting,
-        onSelect(code) { shade = code; $('.lt-overlay').checked = false; comparing = false; $('[data-act="compare"]').textContent = 'Ver base'; if (paintOK) $('.lt-selection').open = false; changed(); }
+        onSelect(code) {
+          shade = code; $('.lt-overlay').checked = false; comparing = false; $('[data-act="compare"]').textContent = 'Ver base';
+          if (paintOK) $('.lt-selection').open = false;
+          // Feedback must not wait for recoloring a full-size photo.
+          dirty = true; $('.lt-reviewed').checked = false; $('[data-act="use"]').disabled = true; shadeSelection();
+          $('.lt-status').textContent = 'VITA ' + shade + ' seleccionado · suelta para ver el tono';
+        },
+        onSettle: schedule
       });
       shadeCarousel.sync(shade);
       d.querySelectorAll('[data-mode]').forEach(b => { b.onclick = () => { setMode(b.dataset.mode); $('.lt-overlay').checked = true; schedule(); }; });

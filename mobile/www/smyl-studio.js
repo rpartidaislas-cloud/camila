@@ -234,7 +234,7 @@
     byId('quick-appearance-options').hidden=true;config.querySelector('label[for="quick-vita-tone"]').hidden=true;byId('quick-vita-tone').hidden=true;
     var shadeHeader=element('div','flow-shade-header'),selectedTone=element('strong');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');shadeHeader.append(selectedTone);
     var track=element('div','flow-vita-track');track.id='flow-vita-track';track.setAttribute('aria-label','Tonos VITA Classical');
-    function chooseTone(code){seleccionarAparienciaRapida(code);syncPreferences();}
+    function chooseTone(code){seleccionarAparienciaRapida(code,null,false);syncPreferences();}
     [-1,1].forEach(function(direction){var b=button(direction<0?'‹':'›',function(){shadeCarousel.step(direction);},'flow-shade-arrow');b.setAttribute('aria-label',direction<0?'Ver tonos anteriores':'Ver más tonos');shadeHeader.append(b);});
     VITA_CLASSICAL.forEach(function(shade){var b=button('',function(){shadeCarousel.pick(shade.code);},'flow-vita-card');b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar tono VITA '+shade.code);
       b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>VITA '+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
@@ -243,7 +243,7 @@
     });
     var currentTone=button('Conservar color original',function(){chooseTone('current');},'flow-keep-tone');currentTone.dataset.flowTone='current';
     tones.append(shadeHeader,track,currentTone,element('p','flow-tone-help','Desliza: la carilla del centro queda seleccionada. También puedes tocarla. Tonos aproximados en pantalla; confirma con la guía VITA física.'));
-    shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
+    shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
     var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
     var gen=config.querySelector('.quick-generate');gen.before(notes);gen.id='flow-generate';gen.textContent='Generar mi propuesta';gen.removeAttribute('onclick');gen.onclick=generate;

@@ -713,15 +713,15 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-simulation.js?v=28"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=2"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=15">
+<link rel="stylesheet" href="smyl-studio.css?v=16">
 <script defer src="smyl-vita-samples.js?v=1"></script>
-<script defer src="smyl-shade-carousel.js?v=1"></script>
+<script defer src="smyl-shade-carousel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-local-tone.css?v=2">
-<script defer src="smyl-local-tone.js?v=2"></script>
+<script defer src="smyl-local-tone.js?v=3"></script>
 <link rel="stylesheet" href="smyl-analysis-guides.css?v=1">
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
-<script defer src="smyl-studio.js?v=13"></script>
+<script defer src="smyl-studio.js?v=14"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=1">
 <script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
@@ -3900,12 +3900,12 @@ function seleccionarArcadaRapida(arch) {
   sincronizarConfiguracionRapida();
 }
 
-function seleccionarAparienciaRapida(value, button) {
+function seleccionarAparienciaRapida(value, button, guardar) {
   S.vitaFinish = value === 'B1' ? 'luminous' : 'natural';
   S.vitaIntensity = 'balanced';
   S.vitaConstruction = 'layered';
   if (value === 'current') seleccionarTonoActual();
-  else seleccionarTonoVita(value, false, true);
+  else seleccionarTonoVita(value, false, guardar !== false);
   sincronizarOpcionesVita();
   marcarEleccionRapida('quick-appearance-options', 'data-quick-appearance', value);
   document.getElementById('quick-vita-tone').value=value;

@@ -1,11 +1,12 @@
 /* Center-to-select interaction shared by preparation and local shade preview.
- * Only settles a user scroll; layout changes never silently change a preset.
+ * Selection follows user scrolling each frame; expensive work waits for settling.
+ * Layout changes never silently change a preset.
  */
 (function (root) {
   'use strict';
-  function attach({ track, selector, key, onSelect, enabled = () => true }) {
-    let selected = null, timer = null, frame = null, dragging = null, suppressClick = false;
-    let syncing = false, reporting = false, destroyed = false, moved = false;
+  function attach({ track, selector, key, onSelect, onSettle = () => {}, enabled = () => true }) {
+    let selected = null, timer = null, frame = null, selectionFrame = null, dragging = null, suppressClick = false;
+    let syncing = false, reporting = false, destroyed = false, moved = false, pending = false;
     const pointers = new Set(), listeners = [];
     const items = () => Array.from(track.querySelectorAll(selector));
     const value = item => item?.getAttribute(key);
@@ -24,8 +25,16 @@
     function notify(item, force = false) {
       if (!item || item.disabled || !enabled()) return;
       const code = value(item); if (code === selected && !force) return;
-      selected = code; tabs(); reporting = true;
+      selected = code; pending = true; tabs(); reporting = true;
       try { onSelect(code); } finally { reporting = false; }
+    }
+    function commit() {
+      if (!pending || !enabled()) return;
+      pending = false; onSettle(selected);
+    }
+    function followCenter() {
+      selectionFrame = null;
+      if (!destroyed && !syncing && moved && track.clientWidth && enabled()) notify(nearest());
     }
     function center(item, smooth) {
       if (!item || !track.clientWidth) return;
@@ -36,21 +45,21 @@
     function settle() {
       clearTimeout(timer);
       if (destroyed || pointers.size || !track.clientWidth) return;
-      if (syncing) { syncing = false; moved = false; return; }
+      if (syncing) { syncing = false; moved = false; commit(); return; }
       if (!moved) return;
       moved = false;
       if (!enabled()) { center(byValue(selected), false); return; }
-      const item = nearest(); notify(item);
+      const item = nearest(); notify(item); commit();
       if (item && Math.abs(offset(item)) > .75) center(item, true);
     }
     function defer() { clearTimeout(timer); timer = setTimeout(settle, 160); }
     function sync(code) {
       const changed = code !== selected; selected = code; tabs();
-      if (changed && !reporting) center(byValue(code) || nearest(), false);
+      if (changed && !reporting) { pending = false; center(byValue(code) || nearest(), false); }
     }
     function pick(code) {
       const item = byValue(code); if (!item || item.disabled || !enabled()) return;
-      notify(item, true); center(item, true);
+      notify(item, true); commit(); center(item, true);
     }
     function step(direction) {
       const list = items(), start = byValue(selected) || nearest();
@@ -64,7 +73,13 @@
       if (track.style.getPropertyValue('--shade-edge') !== edge) track.style.setProperty('--shade-edge', edge);
       if (!pointers.size) center(byValue(selected) || nearest(), false);
     }
-    on('scroll', () => { if (!syncing) moved = true; defer(); }, { passive: true });
+    on('scroll', () => {
+      if (!syncing) {
+        moved = true;
+        if (selectionFrame === null) selectionFrame = requestAnimationFrame(followCenter);
+      }
+      defer();
+    }, { passive: true });
     on('scrollend', settle);
     on('pointerdown', event => {
       if (!enabled() || event.button > 0) return;
@@ -101,7 +116,7 @@
     const resize = new ResizeObserver(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(layout); });
     resize.observe(track, { box: 'border-box' }); tabs();
     return { sync, pick, step, layout, destroy() {
-      destroyed = true; clearTimeout(timer); cancelAnimationFrame(frame); resize.disconnect();
+      destroyed = true; clearTimeout(timer); cancelAnimationFrame(frame); cancelAnimationFrame(selectionFrame); resize.disconnect();
       listeners.forEach(([event, fn, options]) => track.removeEventListener(event, fn, options));
     } };
   }

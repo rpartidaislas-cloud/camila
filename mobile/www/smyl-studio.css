@@ -79,8 +79,8 @@
 .flow-vita-track.is-dragging .flow-vita-card{cursor:grabbing}
 .flow-vita-card{position:relative;flex:0 0 112px;display:flex;flex-direction:column;align-items:center;gap:24px;padding:25px 9px 16px;border:0;border-radius:0;background:transparent;color:#284745;box-shadow:none;scroll-snap-align:center;cursor:pointer;min-height:180px;isolation:isolate}
 /* Two light pools outside the 234px sample stage: never tint enamel or the holder. */
-.flow-vita-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:283px;z-index:0;pointer-events:none;opacity:0;transition:opacity .32s ease;background-image:radial-gradient(ellipse closest-side,rgba(68,177,165,.55) 0%,rgba(68,177,165,.22) 38%,rgba(68,177,165,0) 100%),radial-gradient(ellipse closest-side,rgba(68,177,165,.55) 0%,rgba(68,177,165,.22) 38%,rgba(68,177,165,0) 100%);background-position:center top,center bottom;background-size:100% 18px;background-repeat:no-repeat}
-.flow-vita-card.selected::before{opacity:1}
+.flow-vita-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:283px;z-index:0;pointer-events:none;opacity:0;transition:opacity .08s ease-out;background-image:radial-gradient(ellipse closest-side,rgba(68,177,165,.55) 0%,rgba(68,177,165,.22) 38%,rgba(68,177,165,0) 100%),radial-gradient(ellipse closest-side,rgba(68,177,165,.55) 0%,rgba(68,177,165,.22) 38%,rgba(68,177,165,0) 100%);background-position:center top,center bottom;background-size:100% 18px;background-repeat:no-repeat}
+.flow-vita-card.selected::before{opacity:1;transition-duration:0s}
 .flow-vita-card>strong{font-size:14px;letter-spacing:.3px;line-height:20px}.flow-vita-card.selected>strong{color:var(--flow-tone-accent)}.flow-vita-card.selected::after{content:'';position:absolute;bottom:3px;left:calc(50% - 14px);width:28px;height:3px;border-radius:2px;background:var(--flow-tone-accent)}.flow-vita-card:disabled{cursor:not-allowed}
 .flow-veneer-stage{position:relative;display:block;width:94px;height:234px;background:transparent;overflow:hidden}
 .flow-veneer-holder{position:absolute;top:0;left:4px;width:86px;height:241px;background:url('icons/vita/vita-master-photo.webp') center/100% 100% no-repeat;clip-path:polygon(36.67% 40%,36.67% 42.26%,35.83% 47.32%,32.50% 51.98%,28.06% 55.36%,18.61% 60.12%,15.56% 63.19%,14.44% 75.60%,17.22% 79.07%,26.11% 83.53%,27.50% 85.52%,28.06% 88.79%,30.56% 91.37%,36.39% 93.75%,44.72% 95.24%,55.28% 95.24%,63.89% 93.45%,68.89% 91.17%,71.39% 88.59%,71.67% 85.71%,73.33% 83.43%,81.94% 79.07%,84.44% 76.09%,84.44% 65.48%,83.33% 62.50%,80% 59.62%,69.44% 53.97%,65.56% 50.10%,63.33% 44.94%,63.33% 40%);pointer-events:none}
@@ -150,7 +150,7 @@
 #quick-arch-options .flow-choice-art{height:51px;width:82px;max-width:100%}
 .flow-vita-card.selected .flow-veneer-stage{animation:flow-shade-lift .32s ease-out}
 @keyframes flow-shade-lift{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-.flow-shade-check{transition:opacity .18s ease;opacity:0}.flow-vita-card.selected .flow-shade-check{opacity:1}
+.flow-shade-check{transition:opacity .18s ease;opacity:0}.flow-vita-card.selected .flow-shade-check{opacity:1;transition-duration:0s}
 .smyl-organized #quick-config .quick-generate{display:flex;align-items:center;justify-content:center;gap:12px;transition:transform .18s ease,background-color .18s ease}
 .smyl-organized #quick-config .quick-generate::after{content:'→';font-size:19px;font-weight:400;transition:transform .18s ease}
 .smyl-organized #quick-config .flow-visual-choice:disabled{opacity:.45;cursor:not-allowed}
