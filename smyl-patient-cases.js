@@ -153,6 +153,46 @@
   }
   function initPanel() {
     let activeGallery = null, urls = [], thumbnails = [], viewerSequence = 0;
+    let myPreview = null;
+    function closeMyPreview(run = myPreview) {
+      if (!run || run.closed) return;
+      run.closed = true; clearInterval(run.watch); run.controller?.destroy();
+      run.dialog.close(); run.dialog.remove(); run.urls.forEach(URL.revokeObjectURL);
+      if (myPreview === run) myPreview = null;
+      if (run.focus?.isConnected) run.focus.focus({preventScroll:true});
+    }
+    async function openMyPreview(api, row, current) {
+      closeMyPreview();
+      if (!current() || !window.MySmyl || window.miRolEquipo !== 'dueño') return;
+      const dialog = node('dialog','ms-preview-dialog'), bar = node('div','ms-preview-bar'), host = node('div');
+      dialog.setAttribute('aria-label','Vista previa de My SMYL');
+      const run = {dialog,urls:[],closed:false,focus:document.activeElement}; myPreview = run;
+      const valid = () => !run.closed && current() && window.miRolEquipo === 'dueño' && $('p-paciente-detalle').classList.contains('activa');
+      bar.append(node('span','','My SMYL · vista previa'),button('Volver al expediente',()=>closeMyPreview(run)));
+      host.append(node('p','ms-preview-loading','Abriendo las imágenes de esta simulación…'));
+      dialog.append(bar,host);document.body.append(dialog);dialog.showModal();
+      dialog.addEventListener('cancel',e=>{e.preventDefault();closeMyPreview(run);});
+      run.watch=setInterval(()=>{if(!valid())closeMyPreview(run);},200);
+      try {
+        const views=[];
+        // Only this saved case. Supporting photos without a simulation are not
+        // offered as before/after pairs. No diagnosis, plan or internal notes.
+        for (const view of row.document.views.filter(v=>v.result)) {
+          const pair={view:view.view};
+          for (const role of ['original','result']) {
+            const url=await api.image(row,view[role]);
+            if(!valid()){URL.revokeObjectURL(url);closeMyPreview(run);return;}
+            run.urls.push(url);pair[role]=url;
+          }
+          views.push(pair);
+        }
+        if(valid())run.controller=window.MySmyl.mount(host,{views});
+      } catch (_) {
+        if(!valid()){closeMyPreview(run);return;}
+        run.urls.forEach(URL.revokeObjectURL);run.urls=[];
+        const error=node('div','ms-preview-loading');error.append(node('p','','No pudimos abrir esta vista previa. No se ha compartido ninguna fotografía.'),button('Reintentar',()=>openMyPreview(api,row,current)));host.replaceChildren(error);
+      }
+    }
     const clearThumbnails = () => { thumbnails.forEach(URL.revokeObjectURL); thumbnails = []; };
     const revoke = () => { urls.forEach(URL.revokeObjectURL); urls = []; };
     const viewer = node('dialog', 'pc-dialog pc-viewer'); viewer.setAttribute('aria-label','Comparación guardada');
@@ -161,7 +201,7 @@
     function mount() {
       const screen = $('p-paciente-detalle'), layout = screen?.querySelector('.clinic-layout');
       if (!layout || screen.querySelector('.pc-gallery') || !window.pacienteActual?.id) return;
-      if (activeGallery && !activeGallery.isConnected) { viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails(); }
+      if (activeGallery && !activeGallery.isConnected) { closeMyPreview(); viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails(); }
       const patient = pacienteActual.id, tenant = tenantId;
       const gallery = node('section','pc-gallery'); activeGallery = gallery; gallery.dataset.patientId = patient;
       gallery.append(node('h2','','Simulaciones')); const body = node('div','pc-case-list'); gallery.append(body); layout.before(gallery);
@@ -196,7 +236,8 @@
                 }
               } catch (_) { if(current()) preview.append(node('p','','No se pudo cargar la vista previa. Abre la comparación para reintentar.')); } })();
             }
-            card.append(description,button('Ver comparación', async () => {
+            const actions=node('div','ms-preview-entry');
+            actions.append(button('Ver comparación', async () => {
               const token = ++viewerSequence;
               viewerContent.textContent = 'Cargando imágenes privadas…'; viewer.showModal(); revoke();
               try {
@@ -216,7 +257,9 @@
                 }
                 if (current() && viewer.open && token === viewerSequence) viewerContent.replaceChildren(...pairs);
               } catch (error) { if (current() && viewer.open && token === viewerSequence) { revoke(); viewerContent.textContent = M.message(error); } }
-            })); body.append(card);
+            }));
+            actions.append(button('Vista previa de My SMYL',()=>openMyPreview(api,row,current)),node('small','','Comprueba cómo se verá. El envío al paciente todavía no está habilitado.'));
+            card.append(description,actions); body.append(card);
           });
         } catch (error) { if (current()) body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); }
       }
@@ -225,12 +268,12 @@
     viewer.addEventListener('close', () => { ++viewerSequence; viewerContent.replaceChildren(); revoke(); });
     if (window.sb?.auth?.onAuthStateChange) sb.auth.onAuthStateChange((event, session) => {
       if (session?.user?.id === window.tenantId && !session.user.is_anonymous) return;
-      ++viewerSequence; viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails();
+      closeMyPreview(); ++viewerSequence; viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails();
       if (activeGallery) activeGallery.replaceChildren(node('p','','La sesión cambió. Vuelve a abrir la ficha con la cuenta autorizada.'));
     });
     new MutationObserver(mount).observe($('p-paciente-detalle'), { childList:true, subtree:true });
     const previous = window.ir;
-    window.ir = function(route) { const result = previous(route); if (result !== false && route !== 'paciente-detalle') { viewer.close(); revoke(); const launch = document.querySelector('.topbar-right a.btn-primary'); if (launch) launch.href = 'simulacion-rapida.html?workspace=professional'; } return result; };
+    window.ir = function(route) { const result = previous(route); if (result !== false && route !== 'paciente-detalle') { closeMyPreview(); viewer.close(); revoke(); const launch = document.querySelector('.topbar-right a.btn-primary'); if (launch) launch.href = 'simulacion-rapida.html?workspace=professional'; } return result; };
     const target = /^#patient=([a-f0-9-]+)$/.exec(location.hash)?.[1];
     if (M.uuid(target)) {
       history.replaceState(null, '', location.pathname + location.search);
