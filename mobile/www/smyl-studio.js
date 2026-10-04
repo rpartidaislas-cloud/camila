@@ -131,10 +131,12 @@
     busy=true;render();
     try{
       var original=photo.adjustOriginal||source(photo);
-      var adjusted=await ajustarFotoAntesDeGuardar(original,{label:label(photo.view),preserveAspect:true});
-      if(!adjusted||!S.photos.includes(photo))return;
+      var isFace=['frontal','left','right','tresCuartos'].includes(photo.view);
+      var adjusted=await ajustarFotoAntesDeGuardar(original,{label:label(photo.view),aspectRatio:isFace?4/5:4/3,formatLabel:isFace?'Rostro · 4:5':'Sonrisa · 4:3',ratioLabel:isFace?'4:5':'4:3',guide:isFace?'face':'smile'});
+      if(!adjusted||!S.photos.includes(photo)||adjusted===source(photo))return;
       if(S.results?.[photo.view]&&!confirm('El encuadre cambiará. Tendrás que generar de nuevo esta vista. ¿Aplicar ajuste?'))return;
-      photo.adjustOriginal=original;photo.b64=adjusted.split(',')[1];photo.mimeType='image/jpeg';delete photo.dataUrl;
+      if(adjusted===original)delete photo.adjustOriginal;else photo.adjustOriginal=original;
+      photo.b64=adjusted.split(',')[1];photo.mimeType=adjusted.slice(5,adjusted.indexOf(';'));delete photo.dataUrl;
       invalidarVistaCargada(photo.view);saveProgress('s-vita');
     }catch(e){mostrarAvisoAplicacion('No se pudo ajustar','Tu fotografía se conserva. Intenta de nuevo.');}
     finally{busy=false;render();}

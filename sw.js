@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v133-vita-selection-light';
+const CACHE_VERSION = 'smyl-v134-standard-photo-frames';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -22,8 +22,8 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=1',
   '/camila/smyl-panel.js?v=1',
   '/camila/smyl-panel.css?v=1',
-  '/camila/smyl-studio.js?v=10',
-  '/camila/smyl-studio.css?v=12',
+  '/camila/smyl-studio.js?v=11',
+  '/camila/smyl-studio.css?v=13',
   '/camila/icons/capture-frontal-v2.webp',
   '/camila/icons/capture-left-v2.webp',
   '/camila/icons/capture-right-v2.webp',
@@ -49,7 +49,7 @@ const STATIC_FILES = [
   '/camila/contour-review.css?v=1',
   '/camila/tooth-boundaries.js?v=1',
   '/camila/photo-adjust.js',
-  '/camila/photo-adjust.js?v=2',
+  '/camila/photo-adjust.js?v=3',
   '/camila/manifest.json',
   '/camila/app.html',
   '/camila/calibracion.html',
