@@ -22,6 +22,7 @@
 .flow-heading{display:flex;align-items:center;justify-content:space-between;color:var(--flow-muted);font-size:13px}.flow-heading img{height:28px;width:auto}
 .flow-steps{display:flex;gap:28px;font-size:12px;color:#687b78;padding:20px 0;border-bottom:1px solid var(--flow-line)}.flow-steps .current{color:#215d60;font-weight:700}
 .flow-title{margin:26px 0}.flow-title h1{font-size:32px;line-height:1.2;font-weight:500;letter-spacing:-1px;margin-bottom:8px}
+.flow-return-result{margin-top:18px}#flow-return-result-bottom{width:100%;margin-top:8px}#flow-existing-note{border-left:2px solid var(--flow-line);padding-left:12px;font-size:12px}
 .flow-muted{color:var(--flow-muted);font-size:13px;line-height:1.6}
 .flow-prepare-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,1fr);gap:36px;align-items:start}.flow-photo-workspace{min-width:0}
 .flow-main-photo{position:relative;border:1px solid var(--flow-line);background:#e9eee7;border-radius:16px;min-height:340px;height:clamp(340px,37vw,470px);display:grid;place-items:center;overflow:hidden}

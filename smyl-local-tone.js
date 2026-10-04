@@ -1,5 +1,5 @@
-/* Local, manually bounded shade preview. No fetch, inference, or generation.
- * The user paints the visible enamel; this is NOT automatic segmentation.
+/* Local shade preview with a reviewable changed-enamel selection suggestion.
+ * Heuristic selection is not clinical segmentation. No network or generation.
  * Every render starts from one immutable accepted image, never a tinted copy.
  */
 (function (root) {
@@ -75,7 +75,7 @@
     return out;
   }
   let busy = false;
-  async function open({ original, base, result, record, view, label, archLabel, isCurrent, owner }) {
+  async function open({ original, base, result, record, view, label, archLabel, isCurrent, owner, region }) {
     if (busy) return null;
     busy = true;
     let image;
@@ -85,8 +85,9 @@
       const previous = document.activeElement, d = document.createElement('dialog');
       d.className = 'lt-dialog'; d.setAttribute('aria-labelledby', 'lt-title');
       d.innerHTML = `<header><div><span class="lt-eyebrow">SIN GENERAR OTRA IMAGEN</span><h2 id="lt-title">Prueba el tono</h2><p class="lt-context"></p></div><button type="button" data-act="cancel" aria-label="Cancelar cambio de tono">✕</button></header>
-        <div class="lt-layout"><div class="lt-image-panel"><div class="lt-viewport"><canvas class="lt-photo" tabindex="0" aria-label="Selecciona esmalte con el pincel. Con teclado, mueve el cursor con flechas y pinta con Espacio."></canvas></div><div class="lt-view-tools"><button type="button" data-act="zoom-out" aria-label="Alejar fotografía">−</button><output class="lt-zoom">1×</output><button type="button" data-act="zoom-in" aria-label="Ampliar fotografía">+</button><button type="button" data-act="compare">Ver base</button></div></div>
-        <section class="lt-controls"><details class="lt-selection"><summary>Seleccionar dientes <span>· una vez por foto</span></summary><p>Pinta solo el esmalte que quieres cambiar. Evita encías, labios y espacios entre dientes. Amplía la foto para revisar los bordes.</p><div class="lt-tools"><button type="button" data-mode="paint" aria-pressed="true">Pintar</button><button type="button" data-mode="erase" aria-pressed="false">Borrar</button><button type="button" data-mode="move" aria-pressed="false">Mover foto</button></div><label>Tamaño del pincel <input type="range" class="lt-size" min="3" max="40" value="12" aria-label="Tamaño del pincel"></label><div class="lt-tools"><button type="button" data-act="undo">Deshacer</button><button type="button" data-act="clear">Limpiar selección</button></div><label class="lt-check"><input type="checkbox" class="lt-overlay" checked> Ver zona seleccionada</label></details>
+        <div class="lt-layout"><div class="lt-image-panel"><div class="lt-viewport"><canvas class="lt-photo" tabindex="0" aria-label="Toca un diente para añadir o quitar su zona. Con teclado, mueve el cursor con flechas y selecciona con Espacio."></canvas></div><div class="lt-view-tools"><button type="button" data-act="zoom-out" aria-label="Alejar fotografía">−</button><output class="lt-zoom">1×</output><button type="button" data-act="zoom-in" aria-label="Ampliar fotografía">+</button><button type="button" data-act="compare">Ver base</button></div></div>
+        <section class="lt-controls"><div class="lt-auto"><strong>Los dientes, sin pintarlos</strong><p>Busca el esmalte que cambió entre tu foto y la simulación. La selección es aproximada: revísala antes de aplicar.</p><button type="button" data-act="detect">Detectar dientes</button><p class="lt-detection-status" role="status"></p><div class="lt-tools"><button type="button" data-mode="tap" aria-pressed="true">Tocar dientes</button><button type="button" data-mode="move" aria-pressed="false">Mover foto</button></div><label class="lt-check"><input type="checkbox" class="lt-overlay" checked> Ver zona seleccionada</label></div>
+        <details class="lt-selection"><summary>Corregir selección <span>· opcional</span></summary><p>Puedes tocar para añadir o quitar zonas de esmalte. Si hace falta, usa el pincel solo para afinar los bordes; evita encía, labios y espacios.</p><div class="lt-tools"><button type="button" data-mode="paint" aria-pressed="false">Pintar</button><button type="button" data-mode="erase" aria-pressed="false">Borrar</button></div><label>Tamaño del pincel <input type="range" class="lt-size" min="3" max="40" value="12" aria-label="Tamaño del pincel"></label><div class="lt-tools"><button type="button" data-act="undo">Deshacer</button><button type="button" data-act="clear">Limpiar selección</button></div></details>
         <div class="lt-shade-heading"><strong class="lt-shade-label">Elige un tono</strong><span>Desliza: el centro selecciona el tono</span></div><div class="lt-tones" role="group" aria-label="Tonos VITA"></div><button type="button" data-act="base" class="lt-base">Restablecer tono de la simulación</button>
         <p class="lt-status" role="status" aria-live="polite"></p><label class="lt-check"><input type="checkbox" class="lt-reviewed"> Revisé el tono y que solo cambien los dientes seleccionados.</label><p class="lt-note">Aproximación VITA en pantalla, no medición clínica. Cambia solo esta vista. La foto original y la forma se conservan. La selección se guarda en el avance de este dispositivo, no en el expediente.</p></section></div>
         <footer><button type="button" data-act="back">Cancelar</button><button type="button" data-act="use" class="lt-primary" disabled>Usar tono</button></footer>`;
@@ -97,10 +98,10 @@
       const pixels = baseCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H);
       const mg = maskCanvas.getContext('2d', { willReadFrequently: true });
       const display = $('.lt-photo'), g = display.getContext('2d'); display.width = W; display.height = H;
-      let mode = 'paint', shade = record?.shade || 'base', zoom = 1, history = [], stroke = null, comparing = false, dirty = false, closed = false, submitting = false, renderFrame = null, paintOK = false, cursor = { x: W / 2, y: H / 2 }, keyboard = false, shadeCarousel = null;
+      let mode = 'tap', shade = record?.shade || 'base', zoom = 1, history = [], stroke = null, comparing = false, dirty = false, closed = false, submitting = false, renderFrame = null, paintOK = false, cursor = { x: W / 2, y: H / 2 }, keyboard = false, shadeCarousel = null, analysis = null, detecting = false;
       const dispose = () => {
         clearInterval(watch); cancelAnimationFrame(renderFrame); shadeCarousel?.destroy(); d.close(); d.remove();
-        [baseCanvas, maskCanvas, output, display].forEach(c => { c.width = 1; c.height = 1; });
+        analysis=null;[baseCanvas, maskCanvas, output, display].forEach(c => { c.width = 1; c.height = 1; });
         previous?.focus(); busy = false;
       };
       const close = value => { if (closed) return; closed = true; dispose(); resolve(value); };
@@ -111,6 +112,47 @@
         $('[data-act="base"]').setAttribute('aria-pressed', String(shade === 'base'));
       }
       function remember() { history.push(mg.getImageData(0, 0, W, H)); if (history.length > Math.max(2, Math.min(12, Math.floor(32000000 / (W * H * 4))))) history.shift(); }
+      async function prepareSelection(){
+        if(analysis)return analysis;
+        let originalPixels=null,photoCanvas=null;
+        try{
+          const photo=await load(original);
+          if(closed||!isCurrent())return null;
+          // No registration/warping guesses: require the same dimensions.
+          if(photo.naturalWidth===W&&photo.naturalHeight===H){photoCanvas=canvas(W,H);photoCanvas.getContext('2d').drawImage(photo,0,0);originalPixels=photoCanvas.getContext('2d').getImageData(0,0,W,H).data;}
+        }catch(_){}finally{if(photoCanvas){photoCanvas.width=1;photoCanvas.height=1;}}
+        if(closed||!isCurrent())return null;
+        analysis=root.SmylToothSelection.analyze({data:pixels.data,original:originalPixels,width:W,height:H,region});
+        return analysis;
+      }
+      async function detect(){
+        if(detecting||submitting||stroke||closed)return;
+        detecting=true;$('[data-act="detect"]').disabled=true;$('.lt-detection-status').textContent='Buscando la zona dental en este dispositivo…';schedule();
+        try{
+          await new Promise(resolve=>requestAnimationFrame(resolve));
+          const found=await prepareSelection();if(!found||closed)return;
+          const suggestion=root.SmylToothSelection.suggest(found);
+          $('.lt-detection-status').textContent=suggestion.reason;
+          if(suggestion.count){remember();mg.putImageData(new ImageData(suggestion.data,W,H),0,0);$('.lt-overlay').checked=true;$('.lt-selection').open=false;changed();}
+          setMode('tap');
+        }catch(_){if(!closed)$('.lt-detection-status').textContent='No se pudo sugerir una selección. Puedes tocar los dientes o corregir los bordes.';}
+        finally{detecting=false;if(!closed){$('[data-act="detect"]').disabled=false;schedule();}}
+      }
+      async function tap(point){
+        if(detecting||submitting||closed)return;
+        detecting=true;schedule();
+        try{
+          const found=await prepareSelection();if(!found||closed)return;
+          const zone=root.SmylToothSelection.at(found,point.x,point.y);
+          if(!zone){$('.lt-detection-status').textContent='No se distinguió esmalte aquí. Amplía y toca el centro del diente.';return;}
+          const selection=mg.getImageData(0,0,W,H);let marked=0;
+          for(let i=3;i<zone.data.length;i+=4)if(zone.data[i]&&selection.data[i])marked++;
+          const remove=marked>zone.count*.5;remember();
+          for(let i=0;i<zone.data.length;i+=4)if(zone.data[i+3]){selection.data[i]=selection.data[i+1]=selection.data[i+2]=255;selection.data[i+3]=remove?0:zone.data[i+3];}
+          mg.putImageData(selection,0,0);$('.lt-overlay').checked=true;$('.lt-detection-status').textContent=remove?'Zona retirada. Revisa la selección.':'Zona añadida. Dientes en contacto pueden quedar unidos: revisa los bordes.';changed();
+        }catch(_){if(!closed)$('.lt-detection-status').textContent='No se pudo seleccionar esta zona. Prueba con Corregir selección.';}
+        finally{detecting=false;if(!closed)schedule();}
+      }
       function repaint() {
         renderFrame = null; if (closed) return;
         const mask = mg.getImageData(0, 0, W, H); paintOK = false;
@@ -120,7 +162,7 @@
           paintOK = true; $('.lt-status').textContent = shade === 'base' ? 'Base sin recolorear. No cambia la foto original.' : 'Vista previa local · VITA ' + shade;
         } catch (_) {
           output.getContext('2d').drawImage(baseCanvas, 0, 0);
-          $('.lt-status').textContent = 'Primero marca los dientes con el pincel.';
+          $('.lt-status').textContent = 'Detecta los dientes o tócalos para seleccionar la zona.';
         }
         g.drawImage(comparing ? baseCanvas : output, 0, 0);
         if (!comparing && $('.lt-overlay').checked) {
@@ -130,8 +172,9 @@
         }
         if (keyboard) { g.strokeStyle = '#ffffff'; g.lineWidth = W / display.getBoundingClientRect().width; g.beginPath(); g.arc(cursor.x, cursor.y, radius(), 0, Math.PI * 2); g.stroke(); }
         shadeSelection();
-        $('[data-act="use"]').disabled = !dirty || !$('.lt-reviewed').checked || (shade !== 'base' && !paintOK) || comparing || $('.lt-overlay').checked || !!stroke;
-        $('[data-act="undo"]').disabled = !history.length;
+        $('[data-act="use"]').disabled = detecting || !dirty || !$('.lt-reviewed').checked || (shade !== 'base' && !paintOK) || comparing || $('.lt-overlay').checked || !!stroke;
+        d.querySelectorAll('[data-mode],[data-act="clear"]').forEach(b=>{b.disabled=detecting;});
+        $('[data-act="undo"]').disabled = detecting || !history.length;
       }
       function schedule() { if (!renderFrame) renderFrame = requestAnimationFrame(repaint); }
       function radius() { return +$('.lt-size').value / 2 * W / Math.max(1, display.getBoundingClientRect().width); }
@@ -149,7 +192,8 @@
         d.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
       }
       display.onpointerdown = event => {
-        if (submitting || stroke || event.button > 0) return;
+        if (submitting || detecting || stroke || event.button > 0) return;
+        if(mode==='tap'){keyboard=false;cursor=point(event);tap(cursor);event.preventDefault();return;}
         if (mode === 'move') { if (event.pointerType !== 'mouse') return; stroke = { id: event.pointerId, mode, x: event.clientX, y: event.clientY, left: $('.lt-viewport').scrollLeft, top: $('.lt-viewport').scrollTop }; }
         else { remember(); keyboard = false; cursor = point(event); stroke = { id: event.pointerId, mode, point: cursor }; paint(cursor, cursor); }
         display.setPointerCapture(event.pointerId); event.preventDefault();
@@ -163,10 +207,10 @@
         if (!stroke || stroke.id !== event.pointerId) return; stroke = null; schedule();
       };
       display.onkeydown = event => {
-        if (submitting || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(event.key)) return;
+        if (submitting || detecting || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(event.key)) return;
         event.preventDefault(); keyboard = true;
         const step = (event.shiftKey ? 10 : 2) * W / display.getBoundingClientRect().width;
-        if (event.key === ' ') { if (mode !== 'move') { remember(); paint(cursor, cursor); } }
+        if (event.key === ' ') { if(mode==='tap')tap(cursor);else if (mode !== 'move') { remember(); paint(cursor, cursor); } }
         else { cursor.x = clamp(cursor.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0), 0, W); cursor.y = clamp(cursor.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0), 0, H); }
         schedule();
       };
@@ -175,7 +219,7 @@
         const swatch = document.createElement('img'); swatch.className = 'lt-swatch'; swatch.src = 'icons/vita/veneer-ceramic-v2.webp'; swatch.alt = ''; swatch.draggable = false; root.SmylVitaSamples.attachFilter(swatch, code);
         b.append(swatch, document.createTextNode(code)); b.onclick = () => shadeCarousel.pick(code); $('.lt-tones').append(b);
       });
-      shadeCarousel = root.SmylShadeCarousel.attach({ track: $('.lt-tones'), selector: '[data-shade]', key: 'data-shade', enabled: () => !closed && !submitting,
+      shadeCarousel = root.SmylShadeCarousel.attach({ track: $('.lt-tones'), selector: '[data-shade]', key: 'data-shade', enabled: () => !closed && !submitting && !detecting,
         onSelect(code) {
           shade = code; $('.lt-overlay').checked = false; comparing = false; $('[data-act="compare"]').textContent = 'Ver base';
           if (paintOK) $('.lt-selection').open = false;
@@ -186,6 +230,7 @@
         onSettle: schedule
       });
       shadeCarousel.sync(shade);
+      $('[data-act="detect"]').onclick=detect;
       d.querySelectorAll('[data-mode]').forEach(b => { b.onclick = () => { setMode(b.dataset.mode); $('.lt-overlay').checked = true; schedule(); }; });
       function zoomTo(value) {
         const v = $('.lt-viewport'), ratio = value / zoom, x = (v.scrollLeft + v.clientWidth / 2) * ratio - v.clientWidth / 2, y = (v.scrollTop + v.clientHeight / 2) * ratio - v.clientHeight / 2;
@@ -225,8 +270,9 @@
             else throw Error('La selección guardada no coincide con la fotografía.');
           }
           if (closed) return;
-          document.body.append(d); d.showModal(); $('.lt-selection').open = !record; $('.lt-overlay').checked = !record;
-          setMode('paint'); repaint();
+          document.body.append(d); d.showModal(); $('.lt-selection').open = false; $('.lt-overlay').checked = !record;
+          setMode('tap'); repaint();
+          if(!record)detect();else $('.lt-detection-status').textContent='Selección recuperada de esta simulación. Puedes cambiar el tono sin volver a seleccionar.';
         } catch (error) { if (closed) return; closed = true; dispose(); reject(error); }
       }
       start();
@@ -245,8 +291,16 @@
       if (!current()) return;
       const base = record ? state.veneerBaseByView[f.view] : result;
       const meta = state.simulationQualityByView?.[f.view]?.metrics?.trace?.visualOptions || state.smileDesign || {};
+      // Reuse a live composition corridor only when its exact original and
+      // generation trace still match this view. Restored sessions use the pair.
+      const live=state.visualCurrentByView?.[f.view],prepared=live?.prepared;
+      let region;
+      if(live?.original===original&&live.meta===state.simulationQualityByView?.[f.view]?.metrics?.trace&&prepared?.region&&prepared?.rect){
+        const r=prepared.region,c=prepared.rect;
+        region={x:c.x+r.x*c.w,y:c.y+r.y*c.h,w:r.w*c.w,h:r.h*c.h};
+      }
       const choice = await open({ original, base, result, record, view: f.view, label: root.SmylCaseModel?.label(f.view) || f.view,
-        archLabel: 'Selecciona ' + ({ upper: 'solo dientes de arriba', lower: 'solo dientes de abajo', both: 'dientes de ambas arcadas' }[meta.arch] || 'los dientes a cambiar'), isCurrent: current, owner });
+        archLabel: 'Selecciona ' + ({ upper: 'solo dientes de arriba', lower: 'solo dientes de abajo', both: 'dientes de ambas arcadas' }[meta.arch] || 'los dientes a cambiar'), isCurrent: current, owner, region });
       if (!choice || !current()) return;
       if (!state.localToneByView) state.localToneByView = {};
       state.localToneByView[f.view] = choice.record;

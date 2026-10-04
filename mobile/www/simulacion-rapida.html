@@ -713,15 +713,16 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-simulation.js?v=28"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=2"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=16">
+<link rel="stylesheet" href="smyl-studio.css?v=17">
 <script defer src="smyl-vita-samples.js?v=1"></script>
 <script defer src="smyl-shade-carousel.js?v=2"></script>
-<link rel="stylesheet" href="smyl-local-tone.css?v=2">
-<script defer src="smyl-local-tone.js?v=3"></script>
+<link rel="stylesheet" href="smyl-local-tone.css?v=3">
+<script defer src="smyl-tooth-selection.js?v=1"></script>
+<script defer src="smyl-local-tone.js?v=4"></script>
 <link rel="stylesheet" href="smyl-analysis-guides.css?v=2">
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
-<script defer src="smyl-studio.js?v=15"></script>
+<script defer src="smyl-studio.js?v=16"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=1">
 <script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
@@ -9106,7 +9107,7 @@ function renderControlCalidadSimulacion() {
   if(localTone&&localTone.shade!=='base'&&reporte?.status!=='rejected'){
     card.style.background='rgba(77,193,178,.08)';card.style.borderColor='rgba(77,193,178,.3)';
     icon.textContent='◌';title.style.color='#a7e8d8';title.textContent='Tono ajustado localmente · sin IA';
-    detail.textContent='VITA '+localTone.shade+' aproximado sobre una selección manual de esmalte. No cambia forma ni alineación. Revisión visual, no medición clínica del color.';
+    detail.textContent='VITA '+localTone.shade+' aproximado sobre una selección revisada de esmalte. No cambia forma ni alineación. Revisión visual, no medición clínica del color.';
     return;
   }
   if(reporte&&reporte.metrics&&/^visual-preview-v[12]/.test(reporte.metrics.mode||'')){
