@@ -23,7 +23,7 @@ function renderVistasOpcionales(){
 }
 function invalidarVistaCargada(view){
   S.pendingGeneratedByView={};
-  ['results','veneerBaseByView','visualCurrentByView','simulationQualityByView','alignedPreviewByView'].forEach(function(key){if(S[key])delete S[key][view];});
+  ['results','veneerBaseByView','localToneByView','visualCurrentByView','simulationQualityByView','alignedPreviewByView'].forEach(function(key){if(S[key])delete S[key][view];});
   if(S.dentalDesignMaster?.view===view)S.dentalDesignMaster=null;
 }
 async function cargarVistaOpcional(input){

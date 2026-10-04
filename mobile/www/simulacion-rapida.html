@@ -712,12 +712,18 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-composition.js?v=5"></script>
 <script src="visual-simulation.js?v=28"></script>
 <script src="photo-reference.js?v=1"></script>
-<script src="case-views.js?v=1"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=13">
+<script src="case-views.js?v=2"></script>
+<link rel="stylesheet" href="smyl-studio.css?v=15">
 <script defer src="smyl-vita-samples.js?v=1"></script>
-<script defer src="smyl-studio.js?v=11"></script>
+<script defer src="smyl-shade-carousel.js?v=1"></script>
+<link rel="stylesheet" href="smyl-local-tone.css?v=2">
+<script defer src="smyl-local-tone.js?v=2"></script>
+<link rel="stylesheet" href="smyl-analysis-guides.css?v=1">
+<script defer src="smyl-analysis-model.js?v=1"></script>
+<script defer src="smyl-analysis-guides.js?v=1"></script>
+<script defer src="smyl-studio.js?v=13"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=1">
-<script defer src="smyl-case-model.js?v=1"></script>
+<script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
 <script defer src="smyl-patient-cases.js?v=1"></script>
 <script src="dental-transfer.js?v=1"></script>
@@ -2448,6 +2454,7 @@ var S = {
   // que ya estaba recoloreado antes (eso iría degradando el color de a
   // poco en vez de dar siempre el tono exacto pedido).
   veneerBaseByView: {},
+  localToneByView: {}, // Manually reviewed masks and local shade per exact result.
   // La máscara de la fotografía original se calcula una sola vez por toma.
   // Al regenerar solo se vuelve a segmentar el nuevo diseño de carillas.
   dentalMaskByView: {},
@@ -3076,6 +3083,7 @@ function saveProgress(screenId) {
     independentIntraoral: !!S.independentIntraoral,
     smileDesign: S.smileDesign,
     veneerBaseByView: S.veneerBaseByView,
+    localToneByView: S.localToneByView,
     alignedPreviewByView: S.alignedPreviewByView,
     baAlign: S.baAlign,
     vitaTone: S.vitaTone, vitaMode: S.vitaMode, vitaFinish: S.vitaFinish,
@@ -3169,6 +3177,8 @@ function continuarProgreso() {
   S.independentIntraoral = !!snap.independentIntraoral && S.photos.length === 1 && S.photos[0].view === 'intraoral';
   S.smileDesign = window.SmylSmileModes?.normalize(snap.smileDesign)||{};
   S.veneerBaseByView = snap.veneerBaseByView || {};
+  S.localToneByView = snap.localToneByView || {};
+  window.SmylLocalTone?.restore(S).then(function(){actualizarBotonVitaResultado();renderControlCalidadSimulacion();});
   S.alignedPreviewByView = snap.alignedPreviewByView || {};
   S.baAlign = snap.baAlign || {};
   S.vitaTone = VITA_CLASSICAL.some(function(t){return t.code===snap.vitaTone;}) ? snap.vitaTone : 'A1';
@@ -4144,11 +4154,12 @@ async function confirmarTonoVita() {
 // encima de la foto, dentro de #ba-wrap, así que el antes/después sigue
 // visible arriba mientras se elige.
 function abrirGuiaVitaDesdeResultado() {
-  var sheet = document.getElementById('res-vita-sheet');
-  if (!sheet) { S.vitaReturnToResult = true; abrirGuiaVita(); return; } // respaldo si el panel no está en el DOM
-  RES_VITA_DRAFT = S.vitaMode === 'current' ? 'current' : (S.vitaTone === 'B1' ? 'B1' : 'A1');
-  renderResVitaSwatches();
-  sheet.style.display = 'flex';
+  cerrarResVitaSheet();
+  if (!window.SmylLocalTone) {
+    mostrarAvisoAplicacion('Cambio de tono', 'No se cargó el ajuste local. Recarga cuando hayas guardado tu simulación. No se generó otra imagen.');
+    return;
+  }
+  return window.SmylLocalTone.openFromResult();
 }
 
 // Fullscreen (mismo mecanismo que "Ajustar alineación") para que la foto
@@ -4225,7 +4236,7 @@ function renderResVitaSwatches() {
   if (apply) {
     apply.disabled = RES_VITA_DRAFT === current;
     apply.style.opacity = apply.disabled ? '.45' : '1';
-    apply.textContent = apply.disabled ? 'Apariencia actual' : 'Aplicar y regenerar';
+    apply.textContent = apply.disabled ? 'Apariencia actual' : 'Probar tono sin IA';
   }
 }
 
@@ -4245,25 +4256,8 @@ async function elegirTonoActualDesdeResultado() {
 }
 
 async function aplicarTonoDesdeResultado() {
-  var view = S.baVistaActual || 'frontal';
-  var base = S.veneerBaseByView[view] || S.results[view];
-  if (!base) return;
-  if (RES_VITA_DRAFT === 'current') {
-    S.vitaMode = 'current';
-    S.vitaFinish = 'natural';
-  } else {
-    S.vitaMode = 'vita';
-    S.vitaTone = RES_VITA_DRAFT === 'B1' ? 'B1' : 'A1';
-    S.vitaFinish = S.vitaTone === 'B1' ? 'luminous' : 'natural';
-  }
-  S.vitaIntensity = 'balanced';
-  actualizarBotonVitaResultado();
-  saveProgress('s-res');
-  // Antes de regenerar se conserva la última salida limpia; nunca se aplica
-  // un filtro local que pueda crear parches o bordes artificiales.
-  if (S.results[view] !== base) aplicarResultadoRecoloreado(view, base);
-  cerrarResVitaSheet();
-  await regenerarSimulacion();
+  // Compatibility entry point: never fall back to a paid generation for color.
+  return abrirGuiaVitaDesdeResultado();
 }
 
 function aplicarResultadoRecoloreado(view, url) {
@@ -4288,7 +4282,11 @@ function aplicarResultadoRecoloreado(view, url) {
 function actualizarBotonVitaResultado() {
   var btn = document.getElementById('res-vita-btn');
   if (!btn) return;
-  btn.textContent = (S.vitaMode === 'current' ? 'Tono actual' : 'VITA ' + S.vitaTone) + ' · Cambiar';
+  var view=S.baVistaActual||'frontal',local=window.SmylLocalTone?.currentRecord(S,view);
+  var meta=S.simulationQualityByView?.[view]?.metrics?.trace?.visualOptions;
+  var label=local&&local.shade!=='base'?'VITA '+local.shade:(meta?(meta.current?'Tono natural':'VITA '+meta.shade):(S.vitaMode==='current'?'Tono natural':'VITA '+(S.vitaTone||'A1')));
+  btn.textContent = label + ' · Cambiar sin IA';
+  btn.disabled = !S.results?.[view];
 }
 
 
@@ -4297,6 +4295,7 @@ async function startCam() {
   S.testDatasetLoaded = false;
   S.testPairedGeneration = false;
   S.photos = [];
+  S.localToneByView = {};
   S.dentalMaskByView = {};
   S.treatmentMaskByView = {};
   S.dentalMapByView = {};
@@ -6959,6 +6958,8 @@ async function ajustarUnionVisualActual(button) {
   if(button.disabled)return;button.disabled=true;
   try{
     var f=fotoVisualActual(),result=S.results[f.view]||(f.view==='frontal'?S.result:null);
+    var localTone=window.SmylLocalTone?.currentRecord(S,f.view);
+    if(localTone&&localTone.shade!=='base')throw new Error('Primero restablece el tono de la simulación en Cambiar sin IA. Después corrige la unión y vuelve a probar el tono: así no se pierde tu ajuste sin avisarte.');
     if(!result)throw new Error('No hay un resultado para corregir.');
     if(!/^visual-preview-v[123]/.test(S.simulationQualityByView[f.view]?.metrics?.mode||''))throw new Error('Esta corrección es para la aproximación visual IA; conserva el editor para otros diseños.');
     var current=S.visualCurrentByView?.[f.view];
@@ -9086,6 +9087,9 @@ function renderControlCalidadSimulacion() {
   if(stageButton)stageButton.hidden=true;
   var visualMeta=S.simulationQualityByView?.[actual]?.metrics?.trace?.visualOptions;
   var tonoResultado=visualMeta?(visualMeta.current?'TONO NATURAL':visualMeta.shade?'VITA '+visualMeta.shade:''):'';
+  var localTone=window.SmylLocalTone?.currentRecord(S,actual);
+  if(localTone&&localTone.shade!=='base')tonoResultado='VITA '+localTone.shade+' · AJUSTE LOCAL';
+  actualizarBotonVitaResultado();
   var tipoResultado=visualMeta?(window.SmylSmileModes?.alignment(visualMeta)?'ALINEACIÓN':visualMeta.mode==='combined'?'ALINEACIÓN + CARILLAS':'CON CARILLAS'):'DESPUÉS';
   var resultTag=document.getElementById('ba-result-tag');if(resultTag)resultTag.textContent=(tonoResultado?tonoResultado+' · ':'')+tipoResultado;
   if(summary)summary.textContent=visualMeta&&window.SmylSmileModes?((tonoResultado?tonoResultado+' · ':'')+window.SmylSmileModes.label(visualMeta)):'';
@@ -9099,6 +9103,12 @@ function renderControlCalidadSimulacion() {
   var reporte=(S.simulationQualityByView||{})[view];
   if(!tieneResultado){card.style.display='none';return;}
   card.style.display='block';
+  if(localTone&&localTone.shade!=='base'&&reporte?.status!=='rejected'){
+    card.style.background='rgba(77,193,178,.08)';card.style.borderColor='rgba(77,193,178,.3)';
+    icon.textContent='◌';title.style.color='#a7e8d8';title.textContent='Tono ajustado localmente · sin IA';
+    detail.textContent='VITA '+localTone.shade+' aproximado sobre una selección manual de esmalte. No cambia forma ni alineación. Revisión visual, no medición clínica del color.';
+    return;
+  }
   if(reporte&&reporte.metrics&&/^visual-preview-v[12]/.test(reporte.metrics.mode||'')){
     card.style.background='rgba(77,193,178,.08)';card.style.borderColor='rgba(77,193,178,.3)';
     icon.textContent='◌';title.style.color='#a7e8d8';title.textContent='Primera aproximación visual · IA';
@@ -12576,6 +12586,7 @@ function nuevoCaso() {
   S.testPairedGeneration = false;
   S.quickGuided = false;
   window.SmylVisualComposition?.clear();S.visualCurrentByView={};
+  S.localToneByView={};
   S.photos = []; S.currentPhoto = 0; S.result = null;
   S.dentalMaskByView = {};
   S.treatmentMaskByView = {};

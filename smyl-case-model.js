@@ -25,9 +25,15 @@
     if (!photos.some(photo => photo.result)) fail('CASE_EMPTY');
     const design = state.smileDesign || {};
     if (!['alignment','veneers','combined'].includes(design.mode) || !['upper','lower','both'].includes(design.arch)) fail('CASE_INVALID');
+    // A per-view local shade is not the global generation preset. The current
+    // cloud contract has one tone string, so do not mislabel every view as A1.
+    const localShade = photos.some(photo => {
+      const tone = state.localToneByView?.[photo.view];
+      return tone && tone.shade !== 'base' && tone._output === photo.result;
+    });
     return {
       schema: 1, photos,
-      settings: { mode: design.mode, arch: design.arch, tone: design.mode === 'alignment' || state.vitaMode === 'current' ? 'original' : state.vitaTone || 'A1', alignmentStyle: design.alignmentStyle || 'faithful', finish: state.vitaFinish || 'natural', construction: state.vitaConstruction || 'layered', intensity: state.vitaIntensity || 'balanced', instructions: String(design.instructions || '').slice(0,500) }
+      settings: { mode: design.mode, arch: design.arch, tone: localShade ? 'Ajuste local · ver fotografías' : design.mode === 'alignment' || state.vitaMode === 'current' ? 'original' : state.vitaTone || 'A1', alignmentStyle: design.alignmentStyle || 'faithful', finish: state.vitaFinish || 'natural', construction: state.vitaConstruction || 'layered', intensity: state.vitaIntensity || 'balanced', instructions: String(design.instructions || '').slice(0,500) }
     };
   }
   function imageData(src) {

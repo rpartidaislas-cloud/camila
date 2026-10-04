@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v134-standard-photo-frames';
+const CACHE_VERSION = 'smyl-v138-centered-shade';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -9,7 +9,7 @@ const STATIC_FILES = [
   '/camila/smyl-dental-model.js?v=1',
   '/camila/smyl-dental-record.js?v=2',
   '/camila/smyl-dental-record.css?v=2',
-  '/camila/smyl-case-model.js?v=1',
+  '/camila/smyl-case-model.js?v=2',
   '/camila/smyl-case-client.js?v=1',
   '/camila/smyl-patient-cases.js?v=1',
   '/camila/smyl-patient-cases.css?v=1',
@@ -22,8 +22,11 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=1',
   '/camila/smyl-panel.js?v=1',
   '/camila/smyl-panel.css?v=1',
-  '/camila/smyl-studio.js?v=11',
-  '/camila/smyl-studio.css?v=13',
+  '/camila/smyl-studio.js?v=13',
+  '/camila/smyl-analysis-model.js?v=1',
+  '/camila/smyl-analysis-guides.js?v=1',
+  '/camila/smyl-analysis-guides.css?v=1',
+  '/camila/smyl-studio.css?v=15',
   '/camila/icons/capture-frontal-v2.webp',
   '/camila/icons/capture-left-v2.webp',
   '/camila/icons/capture-right-v2.webp',
@@ -34,7 +37,10 @@ const STATIC_FILES = [
   '/camila/icons/ui/capture-intraoral-right-v1.webp',
   '/camila/icons/ui/dental-miniature-v1.webp',
   '/camila/smyl-vita-samples.js?v=1',
-  '/camila/case-views.js?v=1',
+  '/camila/smyl-shade-carousel.js?v=1',
+  '/camila/smyl-local-tone.js?v=2',
+  '/camila/smyl-local-tone.css?v=2',
+  '/camila/case-views.js?v=2',
   '/camila/simulacion.html',
   '/camila/simulacion-rapida.html',
   '/camila/lana-quick-bridge.js?v=1',
