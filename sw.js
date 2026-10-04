@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v139-instant-shade';
+const CACHE_VERSION = 'smyl-v140-analysis-after-simulation';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -22,10 +22,10 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=1',
   '/camila/smyl-panel.js?v=1',
   '/camila/smyl-panel.css?v=1',
-  '/camila/smyl-studio.js?v=14',
+  '/camila/smyl-studio.js?v=15',
   '/camila/smyl-analysis-model.js?v=1',
   '/camila/smyl-analysis-guides.js?v=1',
-  '/camila/smyl-analysis-guides.css?v=1',
+  '/camila/smyl-analysis-guides.css?v=2',
   '/camila/smyl-studio.css?v=16',
   '/camila/icons/capture-frontal-v2.webp',
   '/camila/icons/capture-left-v2.webp',

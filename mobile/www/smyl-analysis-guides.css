@@ -1,6 +1,7 @@
 /* Optional professional overlay; never changes photographic pixels. */
 .flow-analysis-entry{margin-top:14px;padding:13px 15px;border:1px solid #31465e;border-radius:14px;background:#102437;color:#dce9f2;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .flow-analysis-entry strong{font-size:13px;display:block}.flow-analysis-entry small{display:block;color:#a3b8ca;font-size:11px;line-height:1.5;margin-top:3px}.flow-analysis-entry[hidden]{display:none}
+.flow-tool-body>.flow-analysis-entry{flex-basis:100%;min-width:0;margin-top:0}.flow-analysis-entry>div{min-width:0}.flow-analysis-entry button{flex-shrink:0}
 .ag-dialog{--ag-text:#eaf3f8;--ag-muted:#a9bdd0;--ag-line:#31465e;--ag-accent:#8ae0d1;color:var(--ag-text);background:#0c162a;width:calc(100vw - 32px);max-width:1440px;height:calc(100dvh - 32px);max-height:100dvh;border:1px solid var(--ag-line);border-radius:20px;padding:0;margin:auto;font-family:Inter,sans-serif;overflow:hidden}
 .ag-dialog::backdrop{background:#030916dd}.ag-dialog[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}.ag-dialog [hidden]{display:none!important}
 .ag-dialog *{box-sizing:border-box}.ag-dialog button,.ag-dialog select,.ag-dialog textarea{font:inherit}.ag-dialog button{cursor:pointer;min-height:44px;border-radius:9px;border:1px solid var(--ag-line);background:#18263e;color:var(--ag-text);padding:8px 12px;font-size:12px;font-weight:600}

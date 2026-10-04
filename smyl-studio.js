@@ -127,17 +127,26 @@
   }
   function select(photo){if(busy||generating)return;S.photos=[photo].concat(S.photos.filter(function(p){return p!==photo;}));S.baVistaActual=photo.view;saveProgress('s-vita');render();}
   function professionalAnalysis(){return !CFG.modoProspecto&&(new URLSearchParams(location.search).get('workspace')==='professional'||(!!CFG.userId&&CFG.userId===CFG.tenantId));}
+  function analysisPhoto(){var view=S.baVistaActual||'frontal';return S.results?.[view]?S.photos.find(function(p){return p.view===view;}):null;}
+  function renderAnalysis(){
+    var photo=analysisPhoto(),entry=byId('flow-analysis-entry');if(!entry)return;
+    entry.hidden=!photo||!professionalAnalysis();
+    var guideCount=photo?.analysisGuides?.items?.length||0;
+    byId('flow-analysis-status').textContent=(photo?label(photo.view)+' · ':'')+(guideCount?guideCount+' guías en avance local (24 h) · aún sin enviar al expediente':'Guías opcionales sobre la foto original de esta vista');
+    byId('flow-analysis-open').textContent=guideCount?'Revisar guías':'Mostrar guías';
+    byId('flow-analysis-open').disabled=busy||generating;
+  }
   async function analyzePhoto(){
-    var photo=S.photos[0];if(!photo||busy||generating||!professionalAnalysis())return;
-    var original=photo.adjustOriginal||source(photo),ownerKey=progressKey(),focus=document.activeElement;
-    var current=function(){return professionalAnalysis()&&progressKey()===ownerKey&&S.photos.includes(photo)&&(photo.adjustOriginal||source(photo))===original;};
+    var photo=analysisPhoto();if(!photo||busy||generating||!professionalAnalysis()||!byId('s-res').classList.contains('active'))return;
+    var original=photo.adjustOriginal||source(photo),result=S.results[photo.view],ownerKey=progressKey(),focus=document.activeElement;
+    var current=function(){return professionalAnalysis()&&progressKey()===ownerKey&&analysisPhoto()===photo&&S.results[photo.view]===result&&byId('s-res').classList.contains('active')&&(photo.adjustOriginal||source(photo))===original;};
     busy=true;render();
     try{
       await SmylAnalysisGuides.open({source:original,view:photo.view,label:label(photo.view),record:photo.analysisGuides,isCurrent:current,onSave:function(record){
         if(!current())return false;
         var prior=photo.analysisGuides,storage=progressStorage(),backup=null;
         try{
-          backup=storage.getItem(ownerKey);photo.analysisGuides=record;saveProgress('s-vita');
+          backup=storage.getItem(ownerKey);photo.analysisGuides=record;saveProgress('s-res');
           var saved=JSON.parse(storage.getItem(ownerKey)||'null'),stored=saved?.photos?.find(function(p){return p.view===photo.view;});
           if(JSON.stringify(stored?.analysisGuides)===JSON.stringify(record))return true;
         }catch(_){}
@@ -184,10 +193,7 @@
     }
     byId('flow-edit-photo').hidden=!primary;byId('flow-remove-photo').hidden=!primary;byId('flow-add-photo').hidden=!primary;
     byId('flow-adjust-photo').hidden=!primary;byId('flow-restore-photo').hidden=!primary?.adjustOriginal;
-    byId('flow-analysis-entry').hidden=!primary||!professionalAnalysis();
-    var guideCount=primary?.analysisGuides?.items?.length||0;
-    byId('flow-analysis-status').textContent=guideCount?guideCount+' guías en avance local (24 h) · aún sin enviar al expediente':'Opcional · referencias manuales sobre la foto original';
-    byId('flow-analysis-open').textContent=guideCount?'Revisar guías':'Mostrar guías';
+    renderAnalysis();
     byId('flow-photo-count').textContent=busy?'Preparando fotografía…':S.photos.length+' '+(S.photos.length===1?'fotografía':'fotografías')+' en este caso';
     var added=S.photos.find(function(p){return p.view===addedView;}),notice=byId('flow-photo-notice');notice.hidden=!added;
     byId('flow-photo-notice-text').textContent=added?'Foto añadida · '+label(added.view)+'. Puedes dejarla así o ajustar su encuadre.':'';
@@ -217,7 +223,7 @@
     var remove=button('Quitar',function(){var photo=S.photos[0];if(!window.confirm('¿Quitar '+label(photo.view).toLowerCase()+' de este caso? Se retirará también su resultado asociado.'))return;S.photos=S.photos.filter(function(p){return p!==photo;});invalidarVistaCargada(photo.view);saveProgress('s-vita');render();},'flow-text');remove.id='flow-remove-photo';actions.append(add,edit,remove);
     var analysis=element('section','flow-analysis-entry');analysis.id='flow-analysis-entry';analysis.hidden=true;
     var analysisCopy=element('div');analysisCopy.append(element('strong','','Análisis avanzado'));var analysisStatus=element('small');analysisStatus.id='flow-analysis-status';analysisStatus.setAttribute('role','status');analysisCopy.append(analysisStatus);
-    var analysisOpen=button('Mostrar guías',analyzePhoto);analysisOpen.id='flow-analysis-open';analysis.append(analysisCopy,analysisOpen);photos.append(analysis);
+    var analysisOpen=button('Mostrar guías',analyzePhoto);analysisOpen.id='flow-analysis-open';analysis.append(analysisCopy,analysisOpen);
     var notice=element('div','flow-photo-notice');notice.id='flow-photo-notice';notice.hidden=true;
     var noticeText=element('p');noticeText.id='flow-photo-notice-text';noticeText.setAttribute('role','status');notice.append(noticeText);
     var noticeAdjust=button('Encuadrar y enderezar',function(){var photo=S.photos.find(function(p){return p.view===addedView;});if(photo)adjustPhoto(photo);},'flow-text');noticeAdjust.id='flow-new-photo-adjust';notice.append(noticeAdjust);
@@ -275,8 +281,10 @@
     byId('flow-instructions').addEventListener('input',function(){var note=this.value.slice(0,500);S.smileDesign=SmylSmileModes.normalize(Object.assign({},S.smileDesign,{instructions:note}));document.querySelector('#smile-design-options textarea').value=note;byId('flow-instruction-count').textContent=note.length+'/500';saveProgress('s-vita');});
     var previousSync=window.sincronizarConfiguracionRapida;window.sincronizarConfiguracionRapida=function(){previousSync();syncPreferences();};
     var previousOpen=window.abrirConfiguracionRapida;window.abrirConfiguracionRapida=function(){previousOpen();render();show('s-photos');};
+    var previousQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=previousQuality.apply(this,arguments);renderAnalysis();return result;};
     var resHeader=byId('s-res').querySelector('.res-header');var oldNewPhoto=resHeader.querySelector('button[onclick="repetirFotografias()"]');if(oldNewPhoto)oldNewPhoto.hidden=true;
     var tools=element('details','flow-result-tools');tools.append(element('summary','','Herramientas de revisión'));var toolBody=element('div','flow-tool-body');tools.append(toolBody);
+    toolBody.append(analysis);
     Array.from(resHeader.querySelectorAll('.res-vita-btn')).forEach(function(control){toolBody.append(control);});
     if(byId('btn-regenerar'))toolBody.append(byId('btn-regenerar'));
     ['btn-editor-diseno','btn-revision-clinica','diag-request-box'].forEach(function(id){if(byId(id))toolBody.append(byId(id));});byId('s-res').querySelector('.res-body').prepend(tools);
