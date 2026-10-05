@@ -1,4 +1,4 @@
-/* mySmyl v2: read-only presentation, not a patient authentication system.
+/* mySmyl v3: read-only presentation, not a patient authentication system.
  * Professional preview accepts verified, ephemeral blob images only.
  * Only an explicitly confirmed patient summary, never full clinical documents.
  * No patient identifiers, storage, messaging or AI access.
@@ -75,7 +75,7 @@
       help.append(el('span','ms-review-symbol','↗'),el('h3','','Entender es el primer paso.'),el('p','','Anota lo que quieras preguntar y coméntalo con tu dentista. Puedes revisar tu propuesta visual a tu ritmo.'),button('Volver a mi sonrisa',()=>{activate(0);tabs[0].focus();},'ms-primary'));
       reviewLayout.append(summary,help);panels[1].append(reviewLayout,el('p','ms-review-boundary','La revisión y la simulación son distintas: la imagen muestra una posibilidad estética, no un diagnóstico ni un resultado garantizado.'));
     }else emptyPanel(panels[1],'01','Tu revisión, explicada con claridad.','Todavía no hay observaciones compartidas.','Aquí verás las explicaciones que tu dentista haya revisado y elegido compartir. Las sugerencias de IA pendientes de revisión no se muestran.',()=>{activate(0);tabs[0].focus();});
-    emptyPanel(panels[2],'02','Un plan pensado para ti.','Todavía no hay un plan compartido.','Aquí podrás consultar las etapas y la cotización aprobada por tu dentista. La propuesta visual no establece por sí sola qué tratamiento necesitas.',()=>{activate(0);tabs[0].focus();});
+    emptyPanel(panels[2],'02','Un plan pensado para ti.','Todavía no hay un plan compartido.','Aquí podrás consultar las etapas que tu dentista elija compartir. El presupuesto solo se incluirá si decide mostrarlo. La propuesta visual no establece por sí sola qué tratamiento necesitas.',()=>{activate(0);tabs[0].focus();});
     const footer=el('footer','ms-footer');footer.append(el('span','','mySmyl · Tu sonrisa, paso a paso.'),el('span','',demo?'Demostración sin datos personales.':'Vista previa local. El acceso privado y el envío todavía no están habilitados.'));root.append(footer);
     function emptyPanel(panel,number,title,status,copy,back){
       const box=el('div','ms-empty'),icon=el('span','ms-empty-number',number);icon.setAttribute('aria-hidden','true');
@@ -123,6 +123,9 @@
     mounted.set(host,controller);return controller;
   }
   window.MySmyl={mount};
-  function boot(){const host=document.getElementById('my-smyl-root');if(host&&new URLSearchParams(location.search).get('demo')==='1')mount(host,{demo:true,views:[{view:'frontal',original:'icons/ui/my-smyl-example-before.svg',result:'icons/ui/my-smyl-example-after.svg'}]});}
+  function boot(){const host=document.getElementById('my-smyl-root');if(host&&new URLSearchParams(location.search).get('demo')==='1'){
+    if(window.MySmylPresentation&&window.SmylToothMap)window.MySmylPresentation.mount(host);
+    else mount(host,{demo:true,views:[{view:'frontal',original:'icons/ui/my-smyl-example-before.svg',result:'icons/ui/my-smyl-example-after.svg'}]});
+  }}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
