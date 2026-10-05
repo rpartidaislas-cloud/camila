@@ -94,6 +94,12 @@
     document.getElementById('clinic-add').disabled = !current.ready || current.saving || document.querySelectorAll('.clinic-treatment').length >= 20;
     var proposal = document.getElementById('clinic-proposal');
     if (proposal) proposal.disabled = !savedReview || current.dirty || current.saving;
+    var resume = document.getElementById('clinic-portal-return');
+    if (resume) {
+      var ready = !!capturePatientReview(current.tenant, current.patient);
+      resume.querySelector('p').textContent = ready ? 'Listo. Tu valoración y plan ya están revisados.' : 'Falta completar la valoración y el tratamiento, y pulsar «Revisar plan». Después podrás continuar aquí.';
+      resume.querySelector('button').disabled = !ready;
+    }
   }
   var rowSequence = 0;
   function addTreatment(item) {
@@ -140,7 +146,7 @@
       document.getElementById('clinic-review-dialog').showModal();
     }, 'btn btn-primary'); review.id = 'clinic-review';
     actions.append(save, review); foot.append(saveState, actions); form.append(foot);
-    var proposal = button('Preparar propuesta', function () { if (window.SmylProposals) SmylProposals.forPatient(current.patient); });
+    var proposal = button('Preparar presupuesto · opcional', function () { if (window.SmylProposals) SmylProposals.forPatient(current.patient); });
     proposal.id = 'clinic-proposal'; foot.append(proposal);
     host.append(form);
     doc.treatments.forEach(addTreatment);
@@ -358,6 +364,31 @@
   }
   function init() {
     window.SmylClinicalPreview = Object.freeze({ capture: capturePatientReview });
+    // A guided return to mySmyl. Never saves or approves on the dentist's behalf.
+    window.SmylClinicalWorkflow = Object.freeze({
+      status: function (tenant, patient) {
+        var ctx = current;
+        if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient) return null;
+        var review = capturePatientReview(tenant, patient);
+        return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving };
+      },
+      focus: function (tenant, patient, resume) {
+        var ctx = current;
+        if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient || miRolEquipo !== 'dueño') return false;
+        var host = document.getElementById('clinic-content');
+        if (!host || !document.getElementById('clinic-form')) return false;
+        document.getElementById('clinic-portal-return')?.remove();
+        var guide = el('section', 'clinic-notice'); guide.id = 'clinic-portal-return';
+        guide.append(el('strong', '', '1 · Preparar la propuesta'), el('p'), button('Continuar con mySmyl', function () {
+          if (current === ctx && capturePatientReview(tenant, patient)) resume();
+        }, 'btn btn-primary'));
+        host.prepend(guide); status();
+        guide.scrollIntoView({ block: 'center' });
+        var target = document.getElementById('clinic-assessment');
+        target?.focus({ preventScroll: true });
+        return true;
+      }
+    });
     window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients;
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;

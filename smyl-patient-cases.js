@@ -263,8 +263,12 @@
               } catch (_) { if(current()) preview.append(node('p','','No se pudo cargar la vista previa. Abre la comparación para reintentar.')); } })();
             }
             const actions=node('div','ms-preview-entry');
-            const reviewEntry=button('Revisar fotos y dientes',()=>window.SmylPhotoAnalysis?.open({api,row,current}));reviewEntry.dataset.reviewCase=row.id;actions.append(reviewEntry);
-            actions.append(button('Ver comparación', async () => {
+            if(window.MySmylPortal){
+              actions.append(node('strong','','Propuesta para tu paciente'),button('Preparar propuesta para el paciente',()=>window.MySmylPortal.open({api,row,current}),'pc-primary'),node('small','','1 Preparar → 2 Revisar → 3 Compartir. Te indicaremos qué falta en cada paso.'));
+            }
+            const tools=node('details','pc-case-tools');tools.append(node('summary','','Revisar fotos y otras opciones'));actions.append(tools);
+            const reviewEntry=button('Revisar fotos y dientes',()=>window.SmylPhotoAnalysis?.open({api,row,current}));reviewEntry.dataset.reviewCase=row.id;tools.append(reviewEntry);
+            tools.append(button('Ver comparación', async () => {
               const token = ++viewerSequence;
               viewerContent.textContent = 'Cargando imágenes privadas…'; viewer.showModal(); revoke();
               try {
@@ -285,8 +289,7 @@
                 if (current() && viewer.open && token === viewerSequence) viewerContent.replaceChildren(...pairs);
               } catch (error) { if (current() && viewer.open && token === viewerSequence) { revoke(); viewerContent.textContent = M.message(error); } }
             }));
-            actions.append(button('Vista previa de mySmyl',()=>openMyPreview(api,row,current)),node('small','','Compara su sonrisa y elige una valoración revisada. Es una vista previa; todavía no se envía.'));
-            if(window.MySmylPortal)actions.append(button('Preparar y compartir mySmyl',()=>window.MySmylPortal.open({api,row,current})),node('small','','Elige qué compartir, revisa la presentación y administra su acceso privado.'));
+            tools.append(button('Vista previa de mySmyl',()=>openMyPreview(api,row,current)),node('small','','Consulta rápida. Para enviar la propuesta, usa el recorrido de tres pasos.'));
             card.append(description,actions); body.append(card);
           });
         } catch (error) { if (current()) body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); }
