@@ -3,7 +3,11 @@
  'use strict';
  async function connect(client,row,current){
   const M=SmylPhotoReviewModel;
-  async function checked(p){const r=await window.sbTimeout(p,20000);if(!current())throw new Error('La ficha cambió.');if(r.error)throw r.error;return r.data;}
+  async function checked(p){const r=await window.sbTimeout(p,20000);if(!current())throw new Error('La ficha cambió.');if(r.error){
+   // Keep the UI conflict contract, without asking PostgREST to retry a business conflict.
+   if(r.error.code==='PT409')throw {...r.error,code:'40001',serverCode:'PT409'};
+   throw r.error;
+  }return r.data;}
   async function guard(){const data=await checked(client.auth.getUser());if(data?.user?.id!==row.tenant_id||data.user.is_anonymous!==false)throw new Error('Abre la ficha con la cuenta titular.');}
   await guard();const caps=await checked(client.rpc('smyl_photo_review_capabilities'));
   if(caps?.schema!==1||caps.enabled!==true||caps.tenant_id!==row.tenant_id)throw new Error('Guardado de revisiones no habilitado.');

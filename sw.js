@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v148-resumable-review';
+const CACHE_VERSION = 'smyl-v149-private-review-enabled';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -9,7 +9,7 @@ const STATIC_FILES = [
   '/camila/smyl-dental-model.js?v=1',
   '/camila/smyl-dental-record.js?v=4',
   '/camila/smyl-photo-review-model.js?v=1',
-  '/camila/smyl-photo-review-store.js?v=1',
+  '/camila/smyl-photo-review-store.js?v=2',
   '/camila/smyl-photo-findings.js?v=1',
   '/camila/smyl-tooth-map.js?v=2',
   '/camila/smyl-photo-review.js?v=2',
