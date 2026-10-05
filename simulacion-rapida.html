@@ -713,7 +713,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-simulation.js?v=28"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=2"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=17">
+<link rel="stylesheet" href="smyl-studio.css?v=18">
 <script defer src="smyl-vita-samples.js?v=1"></script>
 <script defer src="smyl-shade-carousel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-local-tone.css?v=3">
@@ -722,13 +722,18 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="smyl-analysis-guides.css?v=2">
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
-<script defer src="smyl-studio.js?v=16"></script>
+<script defer src="smyl-studio.js?v=17"></script>
 <link rel="stylesheet" href="smyl-result-viewer.css?v=1">
 <script defer src="smyl-result-viewer.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=1">
 <script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
-<script defer src="smyl-patient-cases.js?v=2"></script>
+<script defer src="smyl-patient-cases.js?v=5"></script>
+<link rel="stylesheet" href="my-smyl.css?v=1">
+<link rel="stylesheet" href="my-smyl-review.css?v=1">
+<link rel="stylesheet" href="my-smyl-studio.css?v=1">
+<script defer src="my-smyl.js?v=2"></script>
+<script defer src="my-smyl-studio.js?v=2"></script>
 <script src="dental-transfer.js?v=1"></script>
 <link rel="stylesheet" href="dental-transfer.css?v=1">
 <script src="lana-quick-bridge.js?v=1"></script>
@@ -963,9 +968,8 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       </div>
       <span class="quick-choice-title">Objetivo de la simulación</span>
       <div class="quick-choice-grid" id="quick-objective-options">
-        <button type="button" class="quick-choice selected" data-quick-objective="veneers" onclick="seleccionarObjetivoRapido('veneers',this)">Carillas<small>Sin alineación adicional</small></button>
         <button type="button" class="quick-choice" data-quick-objective="alignment" onclick="seleccionarObjetivoRapido('alignment',this)">Alinear<small>Sin carillas · tono original</small></button>
-        <button type="button" class="quick-choice" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alinear + carillas<small>Una simulación</small></button>
+        <button type="button" class="quick-choice selected" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alinear + carillas<small>Una simulación</small></button>
       </div>
       <span class="quick-choice-title">¿Qué dientes?</span>
       <div class="quick-choice-grid" id="quick-arch-options">
@@ -988,7 +992,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     </section>
     <fieldset class="vita-construction smile-design" id="smile-design-options">
       <legend>¿Qué quieres visualizar?</legend>
-      <label>Objetivo<select name="smile-mode" onchange="SmylSmileModes.change()"><option value="veneers">Carillas terminadas · simulación rápida</option><option value="alignment">Alineación visual</option><option value="combined">Alineación completa + carillas · una generación</option></select></label>
+      <label>Objetivo<select name="smile-mode" onchange="SmylSmileModes.change()"><option value="alignment">Alineación visual</option><option value="combined" selected>Alineación completa + carillas · una generación</option></select></label>
       <label>Arcada<select name="smile-arch" onchange="SmylSmileModes.change()"><option value="upper">Superiores</option><option value="lower">Inferiores</option><option value="both">Ambas arcadas</option></select></label>
       <div data-alignment-style hidden><label>Tipo de alineación<select name="alignment-style" onchange="SmylSmileModes.change()"><option value="complete">Alineación completa natural</option><option value="faithful">Conservadora · priorizar forma original</option><option value="idealized">Estética idealizada · anterior</option></select></label><p>Completa natural busca enderezar centrales, laterales y caninos de la arcada seleccionada, conservando tamaño, forma, desgaste, color y textura individuales. Apariencia orientativa después de brackets; revisa la fidelidad de cada diente en el antes y después.</p></div>
       <label>Indicaciones adicionales (opcional)<textarea maxlength="500" rows="2" placeholder="Por ejemplo: conservar el tamaño individual y evitar una sonrisa demasiado uniforme" oninput="SmylSmileModes.change()"></textarea></label>
@@ -3850,6 +3854,7 @@ function actualizarResumenVita() {
 
 function abrirGuiaVita() {
   actualizarReferenciaOpcional();
+  prepararObjetivoRapido();
   window.SmylSmileModes?.sync();
   if (!S.vitaTone) S.vitaTone = 'A1';
   renderGuiaVita();
@@ -3886,11 +3891,21 @@ function marcarEleccionRapida(contenedor, atributo, valor) {
   });
 }
 
+// UI policy for a new proposal only. Keep the shared legacy mode and historical
+// result metadata unchanged; opening a saved result must never relabel its pixels.
+function prepararObjetivoRapido() {
+  var design = window.SmylSmileModes?.normalize(S.smileDesign) || Object.assign({},S.smileDesign);
+  if (design.mode !== 'alignment' && design.mode !== 'combined') {
+    S.smileDesign = Object.assign({},design,{mode:'combined',alignmentStyle:'complete',stage:'initial'});
+  }
+}
+
 function seleccionarObjetivoRapido(mode, button) {
   var box = document.getElementById('smile-design-options');
   if (!box) return;
+  mode = mode === 'alignment' ? 'alignment' : 'combined';
   box.querySelector('[name=smile-mode]').value = mode;
-  if (mode !== 'veneers') box.querySelector('[name=alignment-style]').value = 'complete';
+  box.querySelector('[name=alignment-style]').value = 'complete';
   window.SmylSmileModes?.change();
   marcarEleccionRapida('quick-objective-options', 'data-quick-objective', mode);
   sincronizarConfiguracionRapida();
@@ -3898,6 +3913,8 @@ function seleccionarObjetivoRapido(mode, button) {
 }
 
 function seleccionarArcadaRapida(arch) {
+  prepararObjetivoRapido();
+  window.SmylSmileModes?.sync();
   document.querySelector('#smile-design-options [name=smile-arch]').value=arch;
   window.SmylSmileModes?.change();
   sincronizarConfiguracionRapida();
@@ -3916,7 +3933,7 @@ function seleccionarAparienciaRapida(value, button, guardar) {
 }
 
 function sincronizarConfiguracionRapida() {
-  var design = window.SmylSmileModes?.normalize(S.smileDesign) || {mode:'veneers'};
+  var design = window.SmylSmileModes?.normalize(S.smileDesign) || {mode:'combined'};
   var appearance = S.vitaMode === 'current' ? 'current' : (S.vitaTone || 'A1');
   marcarEleccionRapida('quick-objective-options', 'data-quick-objective', design.mode);
   marcarEleccionRapida('quick-appearance-options', 'data-quick-appearance', appearance);
@@ -3929,7 +3946,7 @@ function sincronizarConfiguracionRapida() {
 
 function abrirConfiguracionRapida() {
   S.quickGuided = true;
-  if (!S.smileDesign) S.smileDesign = {mode:'veneers',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
+  if (!S.smileDesign) S.smileDesign = {mode:'combined',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
   if (!S.vitaTone) S.vitaTone = 'A1';
   abrirGuiaVita();
   sincronizarConfiguracionRapida();
@@ -3939,6 +3956,7 @@ function abrirConfiguracionRapida() {
 function mostrarAjustesProfesionales() {
   var vitaScreen = document.getElementById('s-vita');
   if (vitaScreen) vitaScreen.classList.remove('quick-guided-active');
+  prepararObjetivoRapido();
   window.SmylSmileModes?.sync();
   requestAnimationFrame(function(){ document.getElementById('smile-design-options')?.scrollIntoView({block:'start',behavior:'smooth'}); });
 }
@@ -3948,6 +3966,8 @@ async function confirmarConfiguracionRapida() {
     mostrarAvisoAplicacion('Añade una fotografía', 'Elige una foto del rostro o intraoral para continuar.');
     return;
   }
+  prepararObjetivoRapido();
+  window.SmylSmileModes?.sync();
   saveProgress('s-vita');
   await processPhotos();
 }
@@ -4117,7 +4137,7 @@ function comenzarFlujoSimulacion() {
   S.independentIntraoral = false;
   S.vitaReturnToResult = false;
   S.quickGuided = true;
-  S.smileDesign = {mode:'veneers',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
+  S.smileDesign = {mode:'combined',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
   S.vitaTone = 'A1'; S.vitaMode = 'vita'; S.vitaFinish = 'natural'; S.vitaIntensity = 'balanced'; S.vitaConstruction = 'layered';
   startCam();
 }
@@ -12583,7 +12603,7 @@ function nuevoCaso() {
   CFG.lanaContext=null;
   try{sessionStorage.removeItem('smyl_lana_context');}catch{}
   S.lastGenerationMeta=null;
-  S.smileDesign={mode:'veneers',arch:'upper',instructions:'',stage:'initial'};S.alignedPreviewByView={};
+  S.smileDesign={mode:'combined',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};S.alignedPreviewByView={};
   S.independentIntraoral = false;
   S.testDatasetLoaded = false;
   S.testPairedGeneration = false;

@@ -51,6 +51,31 @@
       })
     });
   }
+  // Local professional-preview adapter, NOT patient authorization or publishing.
+  // Never expose the full clinical document to the patient-facing renderer.
+  function capturePatientReview(tenant, patient) {
+    var ctx = current, row = ctx && ctx.row;
+    function available() {
+      return current === ctx && ctx && ctx.ready && !ctx.dirty && !ctx.saving &&
+        ctx.tenant === tenant && ctx.patient === patient && tenantId === tenant &&
+        pacienteActual && pacienteActual.id === patient && !pacienteActual._local &&
+        miRolEquipo === 'dueño' && document.getElementById('p-paciente-detalle').classList.contains('activa') &&
+        ctx.row === row && row && JSON.stringify(formDocument()) === ctx.saved && row.tenant_id === tenant && row.patient_id === patient &&
+        row.status === 'reviewed' && Number.isInteger(row.revision) && row.revision > 0 &&
+        row.reviewed_by && row.reviewed_at && Number.isFinite(Date.parse(row.reviewed_at));
+    }
+    if (!available()) return null;
+    var assessment = model.normalize(row.document).assessment;
+    if (!assessment.trim()) return null;
+    var revision = row.revision, reviewedAt = row.reviewed_at;
+    return Object.freeze({
+      assessment: assessment, revision: revision, reviewedAt: reviewedAt,
+      isCurrent: function () {
+        return !!available() && row.revision === revision && row.reviewed_at === reviewedAt &&
+          model.normalize(row.document).assessment === assessment;
+      }
+    });
+  }
   function changed() {
     if (!current || !current.ready) return;
     current.dirty = JSON.stringify(formDocument()) !== current.saved;
@@ -332,6 +357,7 @@
     } catch (_) { select.replaceChildren(new Option('No se pudieron cargar los pacientes','')); }
   }
   function init() {
+    window.SmylClinicalPreview = Object.freeze({ capture: capturePatientReview });
     window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients;
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;

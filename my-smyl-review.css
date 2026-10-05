@@ -1,0 +1,42 @@
+/* Patient summary and professional preparation are deliberately separate views. */
+.ms-review-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:34px;align-items:start}
+.ms-review-summary{background:#fff;border:1px solid #dce3de;border-radius:20px;padding:30px;min-width:0}
+.ms-review-summary h2{font-size:clamp(24px,2.6vw,31px);line-height:1.25;font-weight:550;letter-spacing:-.7px;margin:0 0 12px;max-width:460px}
+.ms-review-date{font-size:11px;color:#607677;margin:0;padding-bottom:22px;border-bottom:1px solid #e1e8e2}
+.ms-review-copy{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.85;padding-top:22px;color:#294e51}
+.ms-review-help{padding:24px 0;color:#52706d}
+.ms-review-symbol{display:grid;place-items:center;width:44px;height:44px;background:#e2eee7;border-radius:50%;color:#27685f;font-size:22px}
+.ms-review-help h3{font-size:23px;font-weight:500;letter-spacing:-.5px;color:#173b40;line-height:1.3;margin:18px 0 12px}
+.ms-review-help p{font-size:13px;line-height:1.8;margin:0 0 24px}
+.ms-review-help button{width:100%}
+.ms-review-boundary{font-size:11px;color:#627970;line-height:1.7;margin:20px 0 0;max-width:700px}
+.ms-preview-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.ms-preview-actions [hidden]{display:none!important}
+.ms-preview-actions button:disabled{opacity:.5;cursor:default}
+.ms-review-editor{font:14px/1.6 system-ui,sans-serif;box-sizing:border-box;color:#173b40;max-width:860px;margin:auto;padding:34px 36px 42px}
+.ms-review-editor *{box-sizing:border-box}
+.ms-review-editor h1{font-size:32px;line-height:1.2;font-weight:550;letter-spacing:-1px;margin:0 0 12px}
+.ms-review-editor h2{font-weight:550;font-size:23px;margin-top:28px}
+.ms-review-lead{color:#53716e;margin:0 0 22px}
+.ms-review-tip{background:#e7efea;border-left:3px solid #75a793;border-radius:0 10px 10px 0;padding:13px 17px;margin-bottom:24px;font-size:12px;color:#315c53}
+.ms-review-tip p{margin:3px 0 0}
+.ms-review-reference{padding:13px 0;border-top:1px solid #d2dfd8;border-bottom:1px solid #d2dfd8;margin-bottom:24px}
+.ms-review-reference summary{cursor:pointer;min-height:32px;font-size:13px;padding:5px 0;color:#37635c}
+.ms-review-source{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;color:#5c716d;padding:12px 0;margin:0}
+.ms-review-label{display:block;font-size:16px;font-weight:600;margin-bottom:10px}
+.ms-review-input{display:block;width:100%;max-width:100%;min-height:180px;padding:16px;border:1px solid #a3c1b7;border-radius:12px;background:#fff;color:#193b40;font:16px/1.65 system-ui,sans-serif;resize:vertical}
+.ms-review-input::placeholder{color:#6c817d;font-size:14px}
+.ms-review-field-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:6px}
+.ms-review-field-tools span{font-size:11px;color:#637b74}
+.ms-review-editor button{font:13px/1.4 system-ui,sans-serif;min-height:44px;cursor:pointer}
+.ms-review-editor button:disabled{opacity:.45;cursor:default}
+.ms-review-secondary{background:transparent;color:#2c655c;border:1px solid #afc9bf;border-radius:9px;padding:10px 14px}
+.ms-review-field-tools .ms-review-secondary{border:0;padding-left:0;text-decoration:underline;text-underline-offset:4px}
+.ms-review-field-help{color:#647b74;font-size:12px;line-height:1.7;margin:7px 0 24px}
+.ms-review-confirm{display:flex;align-items:flex-start;gap:12px;padding:17px;background:#eef2ed;border-radius:12px;cursor:pointer;font-size:13px;line-height:1.7}
+.ms-review-confirm input{width:20px;height:20px;flex:0 0 auto;accent-color:#22695f;margin:2px 0 0}
+.ms-review-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:24px}
+.ms-review-editor :is(button,input,textarea,summary):focus-visible{outline:3px solid #087d77;outline-offset:3px}
+.ms-review-editor h1:focus{outline:0}
+@media(max-width:900px){.ms-review-layout{grid-template-columns:1fr;gap:18px}.ms-review-help{padding:20px 22px;border:1px solid #dce3de;border-radius:16px}.ms-review-help p{margin-bottom:14px}.ms-review-help .ms-review-symbol{display:none}.ms-review-help h3{font-size:20px;margin:0 0 8px}.ms-review-help button{width:auto}}
+@media(max-width:540px){.ms-preview-bar:has(.ms-preview-actions){flex-wrap:wrap;gap:5px;padding:9px 12px}.ms-preview-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.ms-preview-actions button{padding:8px;font-size:11px}.ms-preview-actions button[hidden]+button{grid-column:1 / -1}.ms-review-editor{padding:26px 18px 30px}.ms-review-editor h1{font-size:28px}.ms-review-summary{padding:23px 20px;border-radius:15px}.ms-review-copy{font-size:14px;line-height:1.85}.ms-review-summary h2{font-size:25px}.ms-review-confirm{padding:14px}.ms-review-actions{flex-direction:column-reverse}.ms-review-actions button{width:100%}}

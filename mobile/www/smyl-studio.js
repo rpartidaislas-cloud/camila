@@ -47,30 +47,14 @@
     void control.offsetWidth;control.classList.add('flow-choice-playing');
     control._flowMotionTimer=setTimeout(function(){control.classList.remove('flow-choice-playing');},850);
   }
-  // UI illustrations only: never used to edit a patient photo or a generation prompt.
-  function choiceSvg(kind){
-    if(kind!=='veneers')return realDentalArt(kind);
-    var id='flow-enamel-'+kind;
-    var defs='<defs><linearGradient id="'+id+'" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fffdf2"/><stop offset=".55" stop-color="#e9e3d1"/><stop offset="1" stop-color="#cacbbf"/></linearGradient></defs>';
-    var enamel='fill="url(#'+id+')" stroke="#b9beb1" stroke-width=".8"';
-    var crown='M4 2 Q14 -1 24 2 C28 7 29 19 30 29 Q31 36 26 38 Q14 42 2 38 Q-2 36 0 29 C1 18 0 8 4 2Z';
-    var drawing='';
-    if(kind==='veneers'){
-      drawing='<path class="flow-art-guide" d="M16 52 Q51 60 89 52"/>'+
-        '<g transform="translate(24 18) rotate(-12 14 20) scale(.77)"><path class="flow-art-outline" d="'+crown+'"/></g>'+
-        '<g transform="translate(51 17) rotate(12 14 20) scale(.78)"><path class="flow-art-outline" d="'+crown+'"/></g>'+
-        '<g class="flow-art-shell"><g transform="translate(37 9)"><path '+enamel+' d="'+crown+'"/><path d="M7 8 Q4 21 5 30 M24 12 Q27 26 24 34" fill="none" stroke="#fffdf5" stroke-width="1.4" opacity=".7"/><path d="M7 35 Q15 38 23 35" fill="none" stroke="#a7b9b3" opacity=".65"/></g></g>';
-    }
-    return '<svg class="flow-choice-art flow-art-'+kind+'" viewBox="0 0 104 66" aria-hidden="true" focusable="false">'+defs+drawing+'</svg>';
-  }
   function illustrateChoices(){
-    var groups=[{id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{veneers:['Carillas','Sin alinear'],alignment:['Alinear','Conserva el tono'],combined:['Alinear + carillas','En una simulación']}},{id:'quick-arch-options',label:'¿Dónde aplicamos el cambio?',key:'quickArch',options:{upper:['Arriba',''],lower:['Abajo',''],both:['Ambos','']}}];
+    var groups=[{id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{alignment:['Alinear','Conserva el tono'],combined:['Alinear + carillas','En una simulación']}},{id:'quick-arch-options',label:'¿Dónde aplicamos el cambio?',key:'quickArch',options:{upper:['Arriba',''],lower:['Abajo',''],both:['Ambos','']}}];
     groups.forEach(function(group){
       var root=byId(group.id);root.setAttribute('role','group');root.setAttribute('aria-label',group.label);
       root.querySelectorAll('button').forEach(function(b){
         var kind=b.dataset[group.key],copy=group.options[kind];
         b.classList.add('flow-visual-choice');b.setAttribute('aria-label',copy[0]);
-        b.innerHTML='<span class="flow-choice-check" aria-hidden="true">✓</span>'+choiceSvg(kind)+'<strong>'+copy[0]+'</strong>';
+        b.innerHTML='<span class="flow-choice-check" aria-hidden="true">✓</span>'+realDentalArt(kind)+'<strong>'+copy[0]+'</strong>';
         if(copy[1]){var detail=element('small','',copy[1]);detail.id='flow-choice-detail-'+kind;b.append(detail);b.setAttribute('aria-describedby',detail.id);}
         b.addEventListener('click',function(){playChoice(b);});
       });

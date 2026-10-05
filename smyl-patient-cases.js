@@ -156,7 +156,8 @@
     let myPreview = null;
     function closeMyPreview(run = myPreview) {
       if (!run || run.closed) return;
-      run.closed = true; clearInterval(run.watch); run.controller?.destroy();
+      run.closed = true; clearInterval(run.watch); run.controller?.destroy(); run.composer?.destroy();
+      run.review = null; run.reviewSource = null;
       run.dialog.close(); run.dialog.remove(); run.urls.forEach(URL.revokeObjectURL);
       if (myPreview === run) myPreview = null;
       if (run.focus?.isConnected) run.focus.focus({preventScroll:true});
@@ -165,13 +166,38 @@
       closeMyPreview();
       if (!current() || !window.MySmyl || window.miRolEquipo !== 'dueño') return;
       const dialog = node('dialog','ms-preview-dialog'), bar = node('div','ms-preview-bar'), host = node('div');
-      dialog.setAttribute('aria-label','Vista previa de My SMYL');
+      dialog.setAttribute('aria-label','Vista previa de mySmyl');
       const run = {dialog,urls:[],closed:false,focus:document.activeElement}; myPreview = run;
-      const valid = () => !run.closed && current() && window.miRolEquipo === 'dueño' && $('p-paciente-detalle').classList.contains('activa');
-      bar.append(node('span','','My SMYL · vista previa'),button('Volver al expediente',()=>closeMyPreview(run)));
+      const valid = () => !run.closed && current() && window.miRolEquipo === 'dueño' && $('p-paciente-detalle').classList.contains('activa') && (!run.reviewSource || run.reviewSource.isCurrent());
+      const actions=node('div','ms-preview-actions');
+      const prepare=button('Preparar mi revisión',()=>{
+        if(!valid()){closeMyPreview(run);return;}
+        run.reviewSource=run.reviewSource || window.SmylClinicalPreview?.capture(row.tenant_id,row.patient_id) || null;
+        run.controller?.destroy();run.controller=null;prepare.hidden=true;
+        run.composer=window.MySmylReview.mount(host,{
+          source:run.reviewSource,previous:run.review,
+          onCancel:()=>showPreview(run.review?'review':'smile'),
+          onPreview:review=>{if(!valid()){closeMyPreview(run);return;}run.review=review;showPreview('review');},
+          onRemove:()=>{if(!valid()){closeMyPreview(run);return;}run.review=null;showPreview('review');}
+        });
+        dialog.scrollTop=0;
+      });prepare.disabled=true;
+      actions.append(prepare,button('Volver al expediente',()=>closeMyPreview(run)));
+      bar.append(node('span','','mySmyl · vista previa'),actions);
+      function showPreview(initialTab='smile'){
+        if(!valid()){closeMyPreview(run);return;}
+        const fromComposer=!!run.composer;
+        run.composer?.destroy();run.composer=null;
+        run.controller=window.MySmyl.mount(host,{views:run.views,review:run.review,initialTab});
+        prepare.hidden=false;prepare.disabled=!window.MySmylReview;
+        prepare.textContent=run.review?'Editar mi revisión':'Preparar mi revisión';
+        dialog.scrollTop=0;
+        if(fromComposer||initialTab==='review')host.querySelector('[role="tab"][aria-selected="true"]')?.focus({preventScroll:true});
+      }
       host.append(node('p','ms-preview-loading','Abriendo las imágenes de esta simulación…'));
       dialog.append(bar,host);document.body.append(dialog);dialog.showModal();
       dialog.addEventListener('cancel',e=>{e.preventDefault();closeMyPreview(run);});
+      dialog.addEventListener('close',()=>closeMyPreview(run));
       run.watch=setInterval(()=>{if(!valid())closeMyPreview(run);},200);
       try {
         const views=[];
@@ -186,7 +212,7 @@
           }
           views.push(pair);
         }
-        if(valid())run.controller=window.MySmyl.mount(host,{views});
+        if(valid()){run.views=views;showPreview();}
       } catch (_) {
         if(!valid()){closeMyPreview(run);return;}
         run.urls.forEach(URL.revokeObjectURL);run.urls=[];
@@ -237,6 +263,7 @@
               } catch (_) { if(current()) preview.append(node('p','','No se pudo cargar la vista previa. Abre la comparación para reintentar.')); } })();
             }
             const actions=node('div','ms-preview-entry');
+            const reviewEntry=button('Revisar fotos y dientes',()=>window.SmylPhotoAnalysis?.open({api,row,current}));reviewEntry.dataset.reviewCase=row.id;actions.append(reviewEntry);
             actions.append(button('Ver comparación', async () => {
               const token = ++viewerSequence;
               viewerContent.textContent = 'Cargando imágenes privadas…'; viewer.showModal(); revoke();
@@ -258,7 +285,7 @@
                 if (current() && viewer.open && token === viewerSequence) viewerContent.replaceChildren(...pairs);
               } catch (error) { if (current() && viewer.open && token === viewerSequence) { revoke(); viewerContent.textContent = M.message(error); } }
             }));
-            actions.append(button('Vista previa de My SMYL',()=>openMyPreview(api,row,current)),node('small','','Comprueba cómo se verá. El envío al paciente todavía no está habilitado.'));
+            actions.append(button('Vista previa de mySmyl',()=>openMyPreview(api,row,current)),node('small','','Compara su sonrisa y elige una valoración revisada. Es una vista previa; todavía no se envía.'));
             card.append(description,actions); body.append(card);
           });
         } catch (error) { if (current()) body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); }
@@ -266,9 +293,11 @@
       load();
     }
     viewer.addEventListener('close', () => { ++viewerSequence; viewerContent.replaceChildren(); revoke(); });
+    addEventListener('pagehide',()=>closeMyPreview());
     if (window.sb?.auth?.onAuthStateChange) sb.auth.onAuthStateChange((event, session) => {
       if (session?.user?.id === window.tenantId && !session.user.is_anonymous) return;
       closeMyPreview(); ++viewerSequence; viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails();
+      window.SmylPhotoAnalysis?.close();
       if (activeGallery) activeGallery.replaceChildren(node('p','','La sesión cambió. Vuelve a abrir la ficha con la cuenta autorizada.'));
     });
     new MutationObserver(mount).observe($('p-paciente-detalle'), { childList:true, subtree:true });

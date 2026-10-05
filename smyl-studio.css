@@ -41,6 +41,7 @@
 .smyl-organized #quick-config .quick-choice{background:#f8f8f2;border:1px solid #d4ddd7;box-shadow:none;color:#3a5554;min-height:52px;border-radius:9px;font-size:12px;font-weight:600;padding:10px 5px;flex-direction:column;justify-content:center;text-align:center;gap:5px}
 .smyl-organized #quick-config .quick-choice.selected{background:#e5efea;border-color:#507e71;color:#174b47}.smyl-organized #quick-config .quick-choice small{font-size:10px;color:#5c716b;max-width:none;text-align:center;margin:0;font-weight:400}
 .smyl-organized #quick-config .quick-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.smyl-organized #quick-arch-options .quick-choice{min-height:44px}
+.smyl-organized #quick-config #quick-objective-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .smyl-organized #quick-config select{background:#fffefa!important;color:#233c3d!important;border:1px solid #b6cac6!important;font:400 14px Inter,sans-serif}
 .flow-tones{margin:8px 0 0}.flow-tones summary{font-size:12px;color:#365f5c;padding:12px 0;cursor:pointer;min-height:44px}
 .flow-notes{border-top:1px solid var(--flow-line);margin-top:14px;padding-top:5px}.flow-notes summary{cursor:pointer;font-size:13px;padding:14px 0;min-height:46px;color:#365f5c}.flow-notes summary span{font-size:11px;color:#687b78;margin-left:8px}

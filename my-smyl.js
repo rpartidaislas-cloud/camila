@@ -1,6 +1,7 @@
-/* My SMYL v1: read-only presentation, not a patient authentication system.
+/* mySmyl v2: read-only presentation, not a patient authentication system.
  * Professional preview accepts verified, ephemeral blob images only.
- * No clinical documents, patient identifiers, storage, messaging or AI access.
+ * Only an explicitly confirmed patient summary, never full clinical documents.
+ * No patient identifiers, storage, messaging or AI access.
  */
 (function () {
   'use strict';
@@ -18,7 +19,7 @@
   function mount(host, options) {
     const demo=options?.demo===true;
     const seen=new Set(), views=[];
-    // Explicit image-only projection. Never render diagnosis, plan, contact or notes.
+    // Explicit image projection. Never render diagnosis, plan, contact or notes.
     for(const v of options?.views||[]) {
       if(!v||!labels[v.view]||seen.has(v.view)||!allowedSource(v.original,demo)||!allowedSource(v.result,demo))continue;
       seen.add(v.view);views.push({view:v.view,original:v.original,result:v.result});
@@ -29,10 +30,10 @@
     let disposed=false, sequence=0, currentView=0, ready=false, split=50, zoom=1, x=0, y=0, gesture=null, ratio=1;
     const pointers=new Map();
     const notice=el('div','ms-notice',demo?'Muestra ilustrativa · no son fotografías de pacientes':'Vista previa para el dentista · no se ha compartido con el paciente');root.append(notice);
-    const header=el('header','ms-header'),brand=el('div','ms-brand');brand.append(document.createTextNode('My '),el('strong','','smyl'),el('span','','✦'));
+    const header=el('header','ms-header'),brand=el('div','ms-brand');brand.append(document.createTextNode('my'),el('strong','','Smyl'),el('span','','✦'));
     header.append(brand,el('p','','Tu sonrisa, paso a paso.'));root.append(header);
     const intro=el('div','ms-intro');intro.append(el('p','ms-kicker','UN ESPACIO PARA TI'),el('h1','','Tu próxima sonrisa empieza aquí.'),el('p','','Explora tu propuesta, entiende tu revisión y conoce los próximos pasos.'));root.append(intro);
-    const nav=el('div','ms-nav');nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Tu espacio My SMYL');root.append(nav);
+    const nav=el('div','ms-nav');nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Tu espacio mySmyl');root.append(nav);
     const panels=[],tabs=[];
     ['Mi sonrisa','Mi revisión','Mi plan'].forEach((name,i)=>{
       const tab=button(name,()=>activate(i),'ms-tab'),panel=el('section','ms-panel');tab.id=prefix+'-tab-'+i;panel.id=prefix+'-panel-'+i;
@@ -61,9 +62,21 @@
     const note=el('div','ms-note');note.append(el('span','ms-note-icon','i'),el('p','','Es una simulación visual, no una fotografía de un tratamiento realizado ni una garantía de resultado.'));aside.append(note);
     const next=button('Conocer mi revisión →',()=>{activate(1);tabs[1].focus();},'ms-primary');aside.append(next);
     const guide=el('div','ms-guide');guide.append(el('strong','','A tu ritmo'),el('p','','Compara, acerca los detalles y vuelve a la original las veces que quieras.'));aside.append(guide);
-    emptyPanel(panels[1],'01','Tu revisión, explicada con claridad.','Todavía no hay observaciones compartidas.','Aquí verás el mapa dental y las explicaciones que tu dentista haya revisado y elegido compartir. Las sugerencias de IA pendientes de revisión no se muestran.',()=>{activate(0);tabs[0].focus();});
+    // Preview-only allowlist. This flag is a UI confirmation, NOT a server approval.
+    const review=options?.review;
+    const hasReview=!demo && review?.confirmed===true && typeof review.summary==='string' &&
+      review.summary.trim().length>0 && review.summary.length<=8000 &&
+      Number.isInteger(review.sourceRevision) && review.sourceRevision>0 &&
+      typeof review.reviewedAt==='string' && Number.isFinite(Date.parse(review.reviewedAt));
+    if(hasReview){
+      notice.textContent='Vista previa · resumen elegido solo para esta vista, no guardado ni enviado.';
+      const reviewLayout=el('div','ms-review-layout'),summary=el('article','ms-review-summary'),help=el('aside','ms-review-help');
+      summary.append(el('p','ms-kicker','CON EL ACOMPAÑAMIENTO DE TU DENTISTA'),el('h2','','Tu revisión, explicada con claridad.'),el('p','ms-review-date','Basada en la valoración del '+new Date(review.reviewedAt).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})),el('div','ms-review-copy',review.summary.trim()));
+      help.append(el('span','ms-review-symbol','↗'),el('h3','','Entender es el primer paso.'),el('p','','Anota lo que quieras preguntar y coméntalo con tu dentista. Puedes revisar tu propuesta visual a tu ritmo.'),button('Volver a mi sonrisa',()=>{activate(0);tabs[0].focus();},'ms-primary'));
+      reviewLayout.append(summary,help);panels[1].append(reviewLayout,el('p','ms-review-boundary','La revisión y la simulación son distintas: la imagen muestra una posibilidad estética, no un diagnóstico ni un resultado garantizado.'));
+    }else emptyPanel(panels[1],'01','Tu revisión, explicada con claridad.','Todavía no hay observaciones compartidas.','Aquí verás las explicaciones que tu dentista haya revisado y elegido compartir. Las sugerencias de IA pendientes de revisión no se muestran.',()=>{activate(0);tabs[0].focus();});
     emptyPanel(panels[2],'02','Un plan pensado para ti.','Todavía no hay un plan compartido.','Aquí podrás consultar las etapas y la cotización aprobada por tu dentista. La propuesta visual no establece por sí sola qué tratamiento necesitas.',()=>{activate(0);tabs[0].focus();});
-    const footer=el('footer','ms-footer');footer.append(el('span','','My SMYL · Tu sonrisa, paso a paso.'),el('span','',demo?'Demostración sin datos personales.':'Vista previa local. El acceso privado y el envío todavía no están habilitados.'));root.append(footer);
+    const footer=el('footer','ms-footer');footer.append(el('span','','mySmyl · Tu sonrisa, paso a paso.'),el('span','',demo?'Demostración sin datos personales.':'Vista previa local. El acceso privado y el envío todavía no están habilitados.'));root.append(footer);
     function emptyPanel(panel,number,title,status,copy,back){
       const box=el('div','ms-empty'),icon=el('span','ms-empty-number',number);icon.setAttribute('aria-hidden','true');
       box.append(icon,el('p','ms-kicker','CON EL ACOMPAÑAMIENTO DE TU DENTISTA'),el('h2','',title),el('strong','ms-empty-status',status),el('p','',copy),button('Volver a mi sonrisa',back,'ms-primary'));panel.append(box);
@@ -105,7 +118,7 @@
     };
     stage.onpointerup=stage.onpointercancel=stage.onlostpointercapture=e=>{pointers.delete(e.pointerId);startGesture();};
     stage.onkeydown=e=>{if(!ready)return;if(['+','=','-','0'].includes(e.key)){e.preventDefault();zoom=e.key==='0'?1:clamp(zoom+(e.key==='-'?-.25:.25),1,3);paint();}};
-    const observer=new ResizeObserver(paint);observer.observe(stage);activate(0);selectView(currentView);
+    const observer=new ResizeObserver(paint);observer.observe(stage);activate(options?.initialTab==='review'?1:0);selectView(currentView);
     const controller={destroy(){disposed=true;++sequence;observer.disconnect();pointers.clear();before.removeAttribute('src');after.removeAttribute('src');root.remove();if(mounted.get(host)===controller)mounted.delete(host);}};
     mounted.set(host,controller);return controller;
   }
