@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v150-presentation-preview';
+const CACHE_VERSION = 'smyl-v151-private-portal';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -19,7 +19,10 @@ const STATIC_FILES = [
   '/camila/smyl-dental-record.css?v=3',
   '/camila/smyl-case-model.js?v=2',
   '/camila/smyl-case-client.js?v=1',
-  '/camila/smyl-patient-cases.js?v=5',
+  '/camila/smyl-patient-cases.js?v=6',
+  '/camila/my-smyl-document.js?v=1',
+  '/camila/my-smyl-portal.js?v=1',
+  '/camila/my-smyl-portal.css?v=1',
   '/camila/my-smyl.html',
   '/camila/my-smyl.js?v=3',
   '/camila/my-smyl-presentation.js?v=1',
@@ -33,7 +36,7 @@ const STATIC_FILES = [
   '/camila/icons/ui/my-smyl-example-after.svg',
   '/camila/smyl-patient-cases.css?v=1',
   '/camila/smyl-proposals.css?v=1',
-  '/camila/smyl-proposals.js?v=3',
+  '/camila/smyl-proposals.js?v=4',
   '/camila/smyl-proposal-model.js?v=1',
   '/camila/smyl-proposal-print.js?v=1',
   '/camila/smyl-clinic.js?v=3',
@@ -133,6 +136,15 @@ self.addEventListener('activate', function(e) {
 // ── FETCH ──
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
+
+  // Patient credentials are fragments; data/photos are POST no-store to Edge.
+  // Never supply an offline simulator or cached navigation for this portal.
+  if (new URL(url).pathname.endsWith('/my-smyl-private.html')) {
+    e.respondWith(fetch(e.request, {cache:'no-store'}).catch(function(){
+      return new Response('Conéctate a internet y abre nuevamente el enlace de tu clínica.', {status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
+    }));
+    return;
+  }
 
   // No cachear llamadas a APIs (Supabase, Anthropic, Google)
   if (url.includes('supabase.co') || 

@@ -286,6 +286,7 @@
               } catch (error) { if (current() && viewer.open && token === viewerSequence) { revoke(); viewerContent.textContent = M.message(error); } }
             }));
             actions.append(button('Vista previa de mySmyl',()=>openMyPreview(api,row,current)),node('small','','Compara su sonrisa y elige una valoración revisada. Es una vista previa; todavía no se envía.'));
+            if(window.MySmylPortal)actions.append(button('Preparar y compartir mySmyl',()=>window.MySmylPortal.open({api,row,current})),node('small','','Elige qué compartir, revisa la presentación y administra su acceso privado.'));
             card.append(description,actions); body.append(card);
           });
         } catch (error) { if (current()) body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); }
@@ -297,12 +298,12 @@
     if (window.sb?.auth?.onAuthStateChange) sb.auth.onAuthStateChange((event, session) => {
       if (session?.user?.id === window.tenantId && !session.user.is_anonymous) return;
       closeMyPreview(); ++viewerSequence; viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails();
-      window.SmylPhotoAnalysis?.close();
+      window.SmylPhotoAnalysis?.close(); window.MySmylPortal?.close(true);
       if (activeGallery) activeGallery.replaceChildren(node('p','','La sesión cambió. Vuelve a abrir la ficha con la cuenta autorizada.'));
     });
     new MutationObserver(mount).observe($('p-paciente-detalle'), { childList:true, subtree:true });
     const previous = window.ir;
-    window.ir = function(route) { const result = previous(route); if (result !== false && route !== 'paciente-detalle') { closeMyPreview(); viewer.close(); revoke(); const launch = document.querySelector('.topbar-right a.btn-primary'); if (launch) launch.href = 'simulacion-rapida.html?workspace=professional'; } return result; };
+    window.ir = function(route) { const result = previous(route); if (result !== false && route !== 'paciente-detalle') { closeMyPreview(); window.MySmylPortal?.close(true); viewer.close(); revoke(); const launch = document.querySelector('.topbar-right a.btn-primary'); if (launch) launch.href = 'simulacion-rapida.html?workspace=professional'; } return result; };
     const target = /^#patient=([a-f0-9-]+)$/.exec(location.hash)?.[1];
     if (M.uuid(target)) {
       history.replaceState(null, '', location.pathname + location.search);

@@ -7,7 +7,7 @@
   function notice(text,error){var e=n('p','clinic-notice'+(error?' clinic-error':''),text);e.setAttribute('role',error?'alert':'status');return e;}
   function field(label,id,value,type){var wrap=n('div','clinic-field'),input=n(type==='textarea'?'textarea':'input'),lbl=n('label','',label);input.id=id;lbl.htmlFor=id;if(type&&type!=='textarea')input.type=type;input.value=value==null?'':value;wrap.append(lbl,input);return wrap;}
   async function checked(query){var res=await sbTimeout(query,30000);if(res.error)throw res.error;return res.data;}
-  function errorText(error){if(error.code==='40001')return 'El plan o la propuesta cambió, o su vigencia terminó. Conservamos tus cambios; vuelve a cargar la propuesta o actualiza su plan y revisa de nuevo.';if(['42P01','PGRST202','PGRST205'].includes(error.code))return 'Propuestas aún no está habilitado en la base de datos. Falta activar esta etapa.';return SmylClinicalModel.errorMessage(error);}
+  function errorText(error){if(['40001','PT409'].includes(error.code))return 'El plan o la propuesta cambió, o su vigencia terminó. Conservamos tus cambios; vuelve a cargar la propuesta o actualiza su plan y revisa de nuevo.';if(['42P01','PGRST202','PGRST205'].includes(error.code))return 'Propuestas aún no está habilitado en la base de datos. Falta activar esta etapa.';return SmylClinicalModel.errorMessage(error);}
   function feedback(text,error){var host=document.getElementById('proposal-feedback');if(host)host.replaceChildren(notice(text,error));}
   function cleanup(){if(ctx)Object.values(ctx.files).forEach(function(f){if(f)URL.revokeObjectURL(f.url);});ctx=null;sequence++;}
   function leave(){if(ctx&&ctx.busy){alert('Espera a que termine la operación.');return false;}if(ctx&&ctx.dirty&&!confirm('Hay cambios sin guardar en la propuesta. ¿Quieres descartarlos?'))return false;cleanup();return true;}
@@ -97,7 +97,7 @@
       current.row=saved;current.photoPaths=saved.document.photos;current.saved=JSON.stringify(saved.document);current.dirty=false;
       feedback(approve?'Propuesta aprobada y guardada. Ya puedes preparar el PDF; no se ha enviado a nadie.':'Borrador guardado. Los cambios aún necesitan revisión.');
       document.getElementById('proposal-versions').open=false;
-    }catch(error){if(ctx===current){feedback(errorText(error),true);if(error.code==='40001')current.stale=true;}}
+    }catch(error){if(ctx===current){feedback(errorText(error),true);if(['40001','PT409'].includes(error.code))current.stale=true;}}
     finally{current.busy=false;if(ctx===current){document.getElementById('proposal-form').disabled=false;controls();}}
   }
   async function preview(){
@@ -121,7 +121,7 @@
       await Promise.all(Array.from(print.querySelectorAll('img')).map(function(img){return img.decode();}));
       document.body.classList.add('proposal-exporting');window.print();
       feedback('Se abrió la impresión. Elige “Guardar como PDF”. El archivo no se envía automáticamente.');
-    }catch(error){if(ctx===current){feedback(errorText(error),true);if(error.code==='40001')current.stale=true;}}
+    }catch(error){if(ctx===current){feedback(errorText(error),true);if(['40001','PT409'].includes(error.code))current.stale=true;}}
     finally{current.busy=false;if(ctx===current)controls();}
   }
   async function refreshPlan(){
