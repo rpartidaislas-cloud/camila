@@ -107,7 +107,7 @@
     const dataUrl=canvas.toDataURL('image/png');
     return {dataUrl,b64:dataUrl.split(',')[1],mimeType:'image/png'};
   }
-  function review({before, after, consent = false, construction = 'layered', adjust, options={}, rawBefore, rawAfter}) {
+  function review({before, after, consent = false, construction = 'layered', adjust, options={}, rawBefore, rawAfter, isCurrent}) {
     return new Promise(resolve => {
       const previous = document.activeElement;
       const dialog = document.createElement('dialog'); dialog.className = 'smyl-visual-dialog';
@@ -174,10 +174,12 @@
       yes.textContent = consent ? 'Generar con IA' : 'Usar esta aproximación'; no.textContent = consent ? 'Volver sin generar' : 'Descartar propuesta';
       dialog.querySelector('.sv-footnote').textContent = 'La IA puede modificar detalles. No garantiza exactitud anatómica ni resultado de tratamiento. Sustrato, oclusión y función requieren valoración clínica; los cambios profesionales se realizan en el editor.';
       check.addEventListener('change',()=>{yes.disabled=!check.checked;});
-      function close(value) { dialog.close(); dialog.remove(); previous?.focus(); resolve(value); }
+      let contextWatch,closed=false;
+      function close(value) { if(closed)return;closed=true;clearInterval(contextWatch);dialog.close(); dialog.remove(); previous?.focus(); resolve(value); }
       yes.addEventListener('click',()=>{if(check.checked&&!direct)close(true);}); no.addEventListener('click',()=>close(false));
       dialog.addEventListener('cancel',event=>{event.preventDefault();close(false);});
       document.body.append(dialog); dialog.showModal(); no.focus();
+      if(isCurrent)contextWatch=setInterval(()=>{if(!isCurrent())close(false);},200);
     });
   }
   async function request({endpoint, headers, input, options, requestId}) {
@@ -215,23 +217,42 @@
     const options = {...context.options, construction:constructionOf(context.options)};
     try {
       await context.authorize();
+      if(context.batch&&!context.batch.isCurrent())throw new Error('La sesión o las fotos cambiaron.');
       const input=await context.prepare();
       let candidate=context.cached;
       if(!candidate) {
         if(context.revalidate)throw new Error('No hay una propuesta de esta modalidad para revisar. No se generó otra.');
         context.onStatus?.('consent');
-        if(!await review({before:input.dataUrl,consent:true,construction:options.construction,options}))throw new Error('Generación cancelada. No se solicitó una imagen.');
+        // A batch authorizes the exact set of original photos once. Individual
+        // calls still run the existing session, crop and composition checks.
+        if(context.batch) {
+          if(!context.batch.isCurrent())throw new Error('Las fotos o la sesión cambiaron. Vuelve a revisar la selección.');
+        } else if(!await review({before:input.dataUrl,consent:true,construction:options.construction,options}))throw new Error('Generación cancelada. No se solicitó una imagen.');
         context.onStatus?.('generating');
         candidate=await request({...context,input,options});
+        if(context.batch&&!context.batch.isCurrent())throw new Error('La sesión o las fotos cambiaron. El resultado no se aplicó.');
+        context.onGenerated?.();
         candidate.meta.dentalReview=options.dentalReview||null;
         context.save(candidate);
       }
       let after=await context.compose(candidate.url,input,candidate.meta.visualOptions||{});
+      if(context.batch&&!context.batch.isCurrent())throw new Error('La sesión o las fotos cambiaron. El resultado no se aplicó.');
       const adjust=context.adjust?async()=>{const url=await context.adjust(candidate.url,input);if(url)after=url;return url;}:null;
-      context.onStatus?.('review');
-      if(!await review({before:context.original,after,rawBefore:input.dataUrl,rawAfter:candidate.url,construction:constructionOf(candidate.meta),adjust,options:candidate.meta.visualOptions||{}})) {context.discard();throw new Error('Propuesta descartada. La fotografía original sigue intacta; no se generó otra imagen.');}
-      context.accept(candidate.meta,after,candidate,input);
-      return after;
+      async function reviewResult() {
+        if(context.batch&&!context.batch.isCurrent())throw new Error('Las fotos o la sesión cambiaron. La propuesta no se aplicó.');
+        context.onStatus?.('review');
+        const approved=await review({before:context.original,after,rawBefore:input.dataUrl,rawAfter:candidate.url,construction:constructionOf(candidate.meta),adjust,options:candidate.meta.visualOptions||{},isCurrent:context.batch?.isCurrent});
+        if(context.batch&&!context.batch.isCurrent())throw new Error('Las fotos o la sesión cambiaron. La propuesta no se aplicó.');
+        if(!approved) {context.discard();const error=new Error('Propuesta descartada. La fotografía original sigue intacta; no se generó otra imagen.');error.discarded=true;throw error;}
+        context.accept(candidate.meta,after,candidate,input);
+        return after;
+      }
+      // Generate the whole selection first; never auto-approve patient images.
+      if(context.batch)return {review:async function(){
+        if(active)throw new Error('Ya hay una simulación en curso.');
+        active=true;try{return await reviewResult();}finally{active=false;}
+      }};
+      return await reviewResult();
     } catch(error) {
       error.requestId=error.requestId||context.requestId;
       throw error;

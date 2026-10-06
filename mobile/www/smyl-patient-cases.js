@@ -239,8 +239,9 @@
       }
       const current = () => gallery.isConnected && tenantId === tenant && pacienteActual?.id === patient;
       async function load() {
+        gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = [];
         body.textContent = 'Consultando sus simulaciones…';
-        if (pacienteActual._local || window.miRolEquipo !== 'dueño') { body.textContent = 'La consulta de simulaciones requiere una ficha en nube y la cuenta titular.'; return; }
+        if (pacienteActual._local || window.miRolEquipo !== 'dueño') { gallery.dataset.loadState = 'unavailable'; body.textContent = 'La consulta de simulaciones requiere una ficha en nube y la cuenta titular.'; return; }
         try {
           const api = await C.connect(window.sb, tenant, current);
           const rows = await api.list(patient);
@@ -291,8 +292,10 @@
             }));
             tools.append(button('Vista previa de mySmyl',()=>openMyPreview(api,row,current)),node('small','','Consulta rápida. Para enviar la propuesta, usa el recorrido de tres pasos.'));
             card.append(description,actions); body.append(card);
+            gallery.smylCaseEntries.push({row,card,review:()=>reviewEntry.click(),present:()=>window.MySmylPortal?.open({api,row,current}),current});
           });
-        } catch (error) { if (current()) body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); }
+          gallery.dataset.loadState = 'ready';
+        } catch (error) { if (current()) { gallery.dataset.loadState = 'error'; body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); } }
       }
       load();
     }

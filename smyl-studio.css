@@ -258,6 +258,18 @@
  .flow-photo-tabs{margin-bottom:4px}.flow-picker-footer{padding-top:8px;padding-bottom:8px}.flow-picker-footer>strong{margin-bottom:6px}
 }
 
+/* Batch selection separates the active preview from the photos to generate. */
+.flow-photo-role{display:grid!important;grid-template-columns:24px 1fr;align-items:center;gap:4px 8px;padding:12px 0;font:500 13px/1.5 Inter,sans-serif;color:inherit!important;cursor:pointer}
+.flow-photo-role input{width:20px;height:20px;accent-color:#247e7a;grid-row:1/3}.flow-photo-role small{grid-column:2;font-size:11px;font-weight:400;color:var(--flow-muted)}
+.smyl-batch{box-sizing:border-box;margin:auto;padding:26px;width:min(600px,calc(100% - 24px));max-height:92dvh;overflow:auto;border:1px solid var(--flow-line,#30415d);border-radius:18px;background:var(--flow-panel,#111c34);color:inherit;font-family:Inter,sans-serif}
+.smyl-batch::backdrop{background:#030a1dc9;backdrop-filter:blur(4px)}.smyl-batch h2{font-size:23px;margin:0 0 12px;letter-spacing:-.5px}.smyl-batch p{font-size:13px;line-height:1.6;margin:10px 0 18px;color:var(--flow-muted)}
+.smyl-batch-list{display:grid;gap:8px}.smyl-batch-photo{display:flex;gap:14px;align-items:center;padding:10px;border:1px solid var(--flow-line);border-radius:10px}.smyl-batch-photo img{width:62px;height:62px;object-fit:contain;border-radius:7px;background:#071023}.smyl-batch-photo>div{min-width:0}.smyl-batch-photo strong{font-size:13px;display:block;overflow-wrap:anywhere}.smyl-batch-photo small{font-size:11px;display:block;line-height:1.5;margin-top:5px;color:var(--flow-muted)}
+.smyl-batch-photo [data-status=accepted],.smyl-batch-photo [data-status=ready]{color:#318a70}.smyl-batch-photo [data-status=failed]{color:#c15b4d}
+.smyl-batch-consent{display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.6;margin:20px 0}.smyl-batch-consent input{width:20px;height:20px;flex:0 0 20px;accent-color:#247e7a}.smyl-batch-consent[hidden]{display:none}
+.smyl-batch-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.smyl-batch-actions button{flex:1;min-width:120px;white-space:normal;line-height:1.4;padding:12px}.smyl-batch-references{margin:12px 0;font-size:12px}.smyl-batch-references summary{cursor:pointer;min-height:44px;padding-top:12px}.smyl-batch-references figure{display:inline-block;width:100px;margin:8px}.smyl-batch-references img{width:100px;height:85px;object-fit:contain}.smyl-batch-references figcaption{font-size:10px}.smyl-batch-errors{font-size:12px;line-height:1.5;padding-left:18px;overflow-wrap:anywhere}
+@media(max-width:520px){.smyl-batch{padding:20px 16px}.smyl-batch h2{font-size:21px}}
+@media(max-width:860px){.smyl-batch-photo [data-status=accepted],.smyl-batch-photo [data-status=ready]{color:#8ae0d1}.smyl-batch-photo [data-status=failed]{color:#ffb5ab}}
+
 /* Standard framing is a preview choice; guides are never exported. */
 .smyl-organized .photo-adjust-format{flex:0 0 auto;padding:10px 16px;background:#111c34;border-bottom:1px solid #30415d}
 .photo-adjust-format-options{display:flex;gap:8px;max-width:560px;margin:auto}

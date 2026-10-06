@@ -710,10 +710,10 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="visual-simulation.css?v=5">
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=5"></script>
-<script src="visual-simulation.js?v=28"></script>
+<script src="visual-simulation.js?v=29"></script>
 <script src="photo-reference.js?v=1"></script>
-<script src="case-views.js?v=2"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=18">
+<script src="case-views.js?v=3"></script>
+<link rel="stylesheet" href="smyl-studio.css?v=19">
 <script defer src="smyl-vita-samples.js?v=1"></script>
 <script defer src="smyl-shade-carousel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-local-tone.css?v=3">
@@ -722,13 +722,14 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="smyl-analysis-guides.css?v=2">
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
-<script defer src="smyl-studio.js?v=17"></script>
+<script defer src="smyl-photo-batch.js?v=1"></script>
+<script defer src="smyl-studio.js?v=18"></script>
 <link rel="stylesheet" href="smyl-result-viewer.css?v=1">
 <script defer src="smyl-result-viewer.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=2">
 <script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
-<script defer src="smyl-patient-cases.js?v=7"></script>
+<script defer src="smyl-patient-cases.js?v=8"></script>
 <link rel="stylesheet" href="my-smyl.css?v=1">
 <link rel="stylesheet" href="my-smyl-review.css?v=1">
 <link rel="stylesheet" href="my-smyl-studio.css?v=1">
@@ -2477,6 +2478,7 @@ var S = {
   // Se conserva en memoria y, si cabe en el almacenamiento privado de avance,
   // durante la sesión para revalidarlo sin volver a generar/cobrar IA.
   pendingGeneratedByView: {},
+  photoBatchReceipts: {},
   lastGenerationMeta: null,
   baVistaActual: 'frontal',
   timer: null,
@@ -3085,6 +3087,7 @@ function saveProgress(screenId) {
     result: S.result,
     dentalDesignMaster: S.dentalDesignMaster,
     pendingGeneratedByView: S.pendingGeneratedByView,
+    photoBatchReceipts: S.photoBatchReceipts,
     simulationQualityByView: S.simulationQualityByView,
     baVistaActual: S.baVistaActual,
     independentIntraoral: !!S.independentIntraoral,
@@ -3179,6 +3182,7 @@ function continuarProgreso() {
   S.result = snap.result || null;
   S.dentalDesignMaster = snap.dentalDesignMaster || (S.results.frontal ? {view:'frontal',revision:snap.ts||Date.now()} : null);
   S.pendingGeneratedByView = snap.pendingGeneratedByView || {};
+  S.photoBatchReceipts = snap.photoBatchReceipts || {};
   S.simulationQualityByView = snap.simulationQualityByView || {};
   S.baVistaActual = snap.baVistaActual || 'frontal';
   S.independentIntraoral = !!snap.independentIntraoral && S.photos.length === 1 && S.photos[0].view === 'intraoral';
@@ -3990,7 +3994,7 @@ function actualizarReferenciaOpcional() {
   preview.hidden=!photo;
   if(photo)preview.src=photo.dataUrl||('data:'+(photo.mimeType||'image/jpeg')+';base64,'+photo.b64);
   else preview.removeAttribute('src');
-  status.textContent=photo?'Intraoral añadida como apoyo. Se generará primero la frontal; revisa que ambas fotos sean de la misma persona.':'Si los dientes no se distinguen bien, añade una intraoral de la misma persona. También puedes continuar solo con la frontal.';
+  status.textContent=photo?'Intraoral añadida como apoyo. Revisa que ambas fotos sean de la misma persona.':'Si los dientes no se distinguen bien, añade una intraoral de la misma persona. También puedes continuar solo con la frontal.';
   document.getElementById('quick-reference-add').textContent=photo?'Cambiar intraoral':'Añadir intraoral';
   document.getElementById('quick-reference-remove').hidden=!photo;
 }
@@ -4003,7 +4007,7 @@ async function cargarReferenciaOpcional(input) {
   try{
     var dataUrl=await leerFotoPropia(file);
     var b64=await redimensionarFotoB64(dataUrl,1280,.92);
-    var photo={view:'intraoral',b64:b64,mimeType:'image/jpeg'};
+    var photo={view:'intraoral',b64:b64,mimeType:'image/jpeg',referenceOnly:true};
     var index=S.photos.findIndex(function(p){return p.view==='intraoral';});
     if(index<0)S.photos.push(photo);else S.photos[index]=photo;
     S.pendingGeneratedByView={};
@@ -5227,6 +5231,9 @@ function reintentarProceso() {
 
 async function processPhotos(processOptions) {
   processOptions = processOptions || {};
+  if (S.quickGuided && SMYL_VISUAL_PREVIEW_ENABLED && !DEVICE_DIAG_ACTIVE && window.SmylPhotoBatch) {
+    return window.SmylPhotoBatch.run();
+  }
   var processRequestId=processOptions.requestId||crearIdSolicitudIA();
   var processStage='inicio_local';
   if (DEVICE_DIAG_ACTIVE) {
@@ -7042,6 +7049,7 @@ async function generarAproximacionVisualIA(foto, options) {
   var design=window.SmylSmileModes?.normalize(options.design||S.smileDesign)||{};
   var inputSource=options.alignedBase||original;
   var masterReference=options.disableMasterReference||options.materialOnly?null:referenciaDentalMaestraParaVista(view);
+  if(options.batch&&masterReference?.role==='accepted-design')masterReference=null;
   var masterGuide=null;
   if(masterReference){
     try{
@@ -7057,12 +7065,15 @@ async function generarAproximacionVisualIA(foto, options) {
     original:original,requestId:requestId,endpoint:CFG.edgeUrl,headers:headersEdgeIA,
     options:{...design,shade:S.vitaTone||'A1',current:S.vitaMode==='current',finish:S.vitaFinish,intensity:S.vitaIntensity,construction:S.vitaConstruction==='monolithic'?'monolithic':'layered',materialOnly:!!options.materialOnly,baseShade:options.baseShade||'',masterGuide:masterGuide,multiviewReference:!!masterGuide,referenceRole:masterReference?.role||'',masterView:masterReference&&masterReference.view||'',targetView:view},
     revalidate:!!options.revalidateCached,cached:cached,
+    batch:options.batch,
+    onGenerated:options.onGenerated,
     onStatus:function(status){var b=document.getElementById('btn-regenerar');if(b?.disabled)b.textContent={consent:'Esperando autorización…',generating:'Generando imagen…',review:'Revisa la propuesta…'}[status]||'Preparando…';},
     authorize:async function(){await asegurarAutorizacionIA();},
     prepare:function(){return prepararRecorteDental(inputSource,view);},
     save:function(candidate){
       if(!S.pendingGeneratedByView)S.pendingGeneratedByView={};
-      S.pendingGeneratedByView[view]={mode:'visual-preview-v3-tooth-lock',photoSignature:signature,generatedImageUrl:candidate.url,generation:candidate.meta,createdAt:Date.now()};
+      S.pendingGeneratedByView[view]={mode:'visual-preview-v3-tooth-lock',photoSignature:signature,generatedImageUrl:candidate.url,generation:candidate.meta,createdAt:Date.now(),batchKey:options.batch?.key||null};
+      if(options.batch&&options.batch.isCurrent())saveProgress('s-vita');
     },
     compose:async function(url,input,actualDesign){
       prepared=await prepararUnionVisual(original,url,input,view,actualDesign);
@@ -9101,7 +9112,7 @@ function renderResPhotos() {
     // en vez de una franja de miniaturas chicas.
     return '<div style="flex:0 0 84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
       '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (sinGenerar ? ' · sin generar' : '') + '</span></div>';
+      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (p.referenceOnly ? ' · referencia' : sinGenerar ? ' · sin generar' : '') + '</span></div>';
   }).join('');
 }
 
@@ -9168,8 +9179,7 @@ function renderControlCalidadSimulacion() {
 }
 
 // Cambia qué foto/simulación muestra el slider antes/después. Las vistas
-// que no se generaron automáticamente (solo la frontal se genera sola,
-// ver processPhotos) se pueden ver igual -- muestran la foto original de
+// que siguen pendientes o son solo referencia se pueden ver igual -- muestran la foto original de
 // "antes" en ambos lados del slider y el botón "Generar de nuevo" cambia a
 // "Generar esta vista" para dejar claro que hay que pedirla primero.
 async function cambiarVistaBA(view) {
@@ -12600,6 +12610,7 @@ function compartirConPaciente() {
 }
 
 function nuevoCaso() {
+  S.photoBatchReceipts={};
   CFG.lanaContext=null;
   try{sessionStorage.removeItem('smyl_lana_context');}catch{}
   S.lastGenerationMeta=null;

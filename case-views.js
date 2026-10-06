@@ -22,7 +22,8 @@ function renderVistasOpcionales(){
   });
 }
 function invalidarVistaCargada(view){
-  S.pendingGeneratedByView={};
+  if(S.pendingGeneratedByView)delete S.pendingGeneratedByView[view];
+  if(S.photoBatchReceipts)delete S.photoBatchReceipts[view];
   ['results','veneerBaseByView','localToneByView','visualCurrentByView','simulationQualityByView','alignedPreviewByView'].forEach(function(key){if(S[key])delete S[key][view];});
   if(S.dentalDesignMaster?.view===view)S.dentalDesignMaster=null;
 }

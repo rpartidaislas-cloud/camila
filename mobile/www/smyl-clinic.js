@@ -56,7 +56,7 @@
   function capturePatientReview(tenant, patient) {
     var ctx = current, row = ctx && ctx.row;
     function available() {
-      return current === ctx && ctx && ctx.ready && !ctx.dirty && !ctx.saving &&
+      return current === ctx && ctx && ctx.ready && document.getElementById('clinic-form') && !ctx.dirty && !ctx.saving &&
         ctx.tenant === tenant && ctx.patient === patient && tenantId === tenant &&
         pacienteActual && pacienteActual.id === patient && !pacienteActual._local &&
         miRolEquipo === 'dueño' && document.getElementById('p-paciente-detalle').classList.contains('activa') &&
@@ -83,7 +83,7 @@
     status();
   }
   function status() {
-    if (!current) return;
+    if (!current || !document.getElementById('clinic-form')) return;
     var savedReview = current.row && current.row.status === 'reviewed';
     var label = current.dirty ? 'Cambios sin guardar' : savedReview ? 'Revisado por el profesional' : current.row ? 'Borrador guardado' : 'Sin guardar';
     document.getElementById('clinic-state').textContent = label;
@@ -171,7 +171,7 @@
   }
   async function savePlan(review) {
     if (!current || !current.ready || current.saving) return;
-    var ctx = current, doc = formDocument();
+    var ctx = current, doc = formDocument(), activeForm = document.getElementById('clinic-form');
     if (review && (!document.getElementById('clinic-review-confirm').checked || model.reviewError(doc))) return;
     ctx.saving = true; document.getElementById('clinic-form').disabled = true; status();
     var confirmButton = document.getElementById('clinic-review-submit'); confirmButton.disabled = true;
@@ -184,13 +184,13 @@
       }));
       if (Array.isArray(row)) row = row[0];
       if (!row || row.patient_id !== ctx.patient || row.tenant_id !== ctx.tenant || !row.revision) throw new Error('Unconfirmed save');
-      if (current !== ctx) return;
+      if (current !== ctx || !activeForm.isConnected) return;
       ctx.row = row; ctx.saved = JSON.stringify(doc); ctx.dirty = false;
       document.getElementById('clinic-feedback').replaceChildren(notice(review ? 'Plan revisado y guardado. No se ha enviado a nadie.' : 'Borrador guardado en la clínica.'));
       document.getElementById('clinic-history').open = false;
       document.getElementById('clinic-history-list').replaceChildren();
     } catch (error) {
-      if (current === ctx) {
+      if (current === ctx && activeForm.isConnected) {
         var feedback = document.getElementById('clinic-feedback');
         feedback.replaceChildren(notice(model.errorMessage(error), true));
         if (error.code === '40001') {
@@ -200,7 +200,7 @@
       }
     } finally {
       ctx.saving = false; confirmButton.disabled = false;
-      if (current === ctx) { document.getElementById('clinic-form').disabled = !ctx.ready; status(); }
+      if (current === ctx && activeForm.isConnected) { activeForm.disabled = !ctx.ready; status(); }
     }
   }
   async function history() {
@@ -275,10 +275,10 @@
     content.append(notice('Cargando el expediente…'));
     try {
       var data = await checked(sb.from('smyl_clinical_plans').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', p.id).maybeSingle());
-      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant) return;
+      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return;
       ctx.row = data; ctx.ready = true; renderEditor();
     } catch (error) {
-      if (current !== ctx || sequence !== token) return;
+      if (current !== ctx || sequence !== token || !content.isConnected) return;
       state.textContent = 'No disponible'; content.replaceChildren();
       feedback.append(notice(model.errorMessage(error), true), button('Intentar de nuevo', function () { verPaciente(p.id); })); versions.hidden = true;
     }
@@ -370,13 +370,17 @@
         var ctx = current;
         if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient) return null;
         var review = capturePatientReview(tenant, patient);
-        return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving };
+        var doc = ctx.ready ? formDocument() : null;
+        return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving,
+          available: ctx.ready, saving: ctx.saving, saved: !!ctx.row,
+          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
       },
       focus: function (tenant, patient, resume) {
         var ctx = current;
         if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient || miRolEquipo !== 'dueño') return false;
         var host = document.getElementById('clinic-content');
         if (!host || !document.getElementById('clinic-form')) return false;
+        window.SmylCaseWorkspace?.open('plan');
         document.getElementById('clinic-portal-return')?.remove();
         var guide = el('section', 'clinic-notice'); guide.id = 'clinic-portal-return';
         guide.append(el('strong', '', '1 · Preparar la propuesta'), el('p'), button('Continuar con mySmyl', function () {

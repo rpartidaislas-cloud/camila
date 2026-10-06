@@ -21,7 +21,7 @@
   dialog.addEventListener('cancel',e=>{e.preventDefault();close(run);});dialog.addEventListener('close',()=>close(run,true));
   run.watch=setInterval(()=>{if(!valid())close(run,true);},200);
   host.append(n('p','pr-app','Abriendo las fotos originales de esta simulación…'));
-  function status(){run.review?.setSaveState({dirty:run.dirty,saving:run.saving,failed:run.failed,conflict:run.conflict,revision:run.revision,available:!!run.store,message:run.message||''});}
+  function status(){run.review?.setSaveState({dirty:run.dirty,saving:run.saving,failed:run.failed,conflict:run.conflict,revision:run.revision,available:!!run.store,savedDocument:run.savedDocument,message:run.message||''});}
   function changed(doc){
    if(!valid())return;run.doc=doc;run.dirty=true;status();clearTimeout(run.saveTimer);
    if(run.store&&!run.failed)run.saveTimer=setTimeout(()=>save(false),800);
@@ -34,7 +34,7 @@
      // Preserve an uncertain attempt for exact retry, even if the editor changed meanwhile.
      const attempt=run.attempt||(run.attempt={document:structuredClone(run.doc),revision:run.revision});
      const saved=await run.store.save(attempt.document,attempt.revision);if(!valid())return;
-     run.revision=saved.revision;run.attempt=null;run.failed=false;run.dirty=!SmylPhotoReviewModel.same(run.doc,saved.document);
+     run.revision=saved.revision;run.savedDocument=structuredClone(saved.document);run.attempt=null;run.failed=false;run.dirty=!SmylPhotoReviewModel.same(run.doc,saved.document);
      dispatchEvent(new CustomEvent('smyl:photo-review-saved',{detail:{tenant:row.tenant_id,patient:row.patient_id}}));
     }
    }catch(e){if(valid()){
@@ -44,7 +44,7 @@
   }
   function review(photos,document){
    if(!valid())return;run.doc=structuredClone(document);
-   run.review=SmylPhotoReview.mount(host,{photos,document:run.doc,current:valid,onChange:changed,onSave:()=>{if(!run.conflict)save(true);},contextNotes:()=>draft.notes()});
+   run.review=SmylPhotoReview.mount(host,{photos,document:run.doc,multiEvidence:run.store?.multiEvidence===true,current:valid,onChange:changed,onSave:()=>{if(!run.conflict)save(true);},contextNotes:()=>draft.notes()});
    status();dialog.scrollTop=0;host.querySelector('h1')?.setAttribute('tabindex','-1');host.querySelector('h1')?.focus({preventScroll:true});
   }
   function choose(){
@@ -84,7 +84,7 @@
     run.store=null;
    }
    if(!valid())return;
-   if(run.store){const saved=await run.store.load();if(!valid())return;if(saved){run.revision=saved.revision;review(run.photos.filter(p=>saved.document.photos.some(s=>s.view===p.view)),saved.document);return;}}
+   if(run.store){const saved=await run.store.load();if(!valid())return;if(saved){run.revision=saved.revision;run.savedDocument=structuredClone(saved.document);review(run.photos.filter(p=>saved.document.photos.some(s=>s.view===p.view)),saved.document);return;}}
    choose();
   }catch(_){if(valid())host.replaceChildren(n('p','pr-app','No pudimos verificar las fotos o la revisión guardada. No se reemplazó ni se envió nada a IA. Cierra y vuelve a abrir cuando tengas conexión.'));}
  }

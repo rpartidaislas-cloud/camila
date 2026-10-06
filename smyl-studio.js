@@ -82,7 +82,8 @@
     var photo=existingResultPhoto();
     ['flow-return-result','flow-return-result-bottom'].forEach(function(id){var b=byId(id);if(b){b.hidden=!photo;b.disabled=busy||generating;}});
     byId('flow-existing-note').hidden=!photo;
-    byId('flow-generate').textContent=S.results?.[S.photos[0]?.view]?'Generar nueva propuesta':'Generar mi propuesta';
+    var batch=window.SmylPhotoBatch.summary(),remaining=batch.count-batch.ready,newCount=remaining-batch.review;
+    byId('flow-generate').textContent=batch.count&&remaining===0?'Ver simulaciones':batch.review===remaining&&remaining>0?'Revisar simulaciones generadas':newCount>1?'Generar '+newCount+' fotos':batch.count>1?'Generar 1 foto pendiente':S.results?.[S.photos[0]?.view]?'Generar nueva propuesta':'Generar mi propuesta';
   }
   function pickerGroup(view){return CASE_VIEW_GROUPS.findIndex(function(g){return g.views.some(function(v){return v[0]===view;});});}
   function firstAvailable(group){return (group.views.find(function(v){return !S.photos.some(function(p){return p.view===v[0];});})||group.views[0])[0];}
@@ -102,9 +103,10 @@
     byId('flow-picker-hint').textContent=photoGuides[selected][1];
     byId('flow-picker-replace').hidden=!loaded;
   }
-  function choose(view){
+  function choose(view,referenceOnly){
     if(busy||generating)return;pickerFocus=document.activeElement;
     selected=photoGuides[view]?view:firstAvailable(CASE_VIEW_GROUPS[0]);
+    byId('flow-picker-simulate').checked=referenceOnly!==true;
     updatePicker();byId('flow-picker').showModal();
     byId('flow-picker-body').scrollTop=0;
     byId('flow-picker').querySelector('[data-photo-view="'+selected+'"]').focus({preventScroll:true});
@@ -120,7 +122,7 @@
     busy=true;render();
     try{
       var data=await leerFotoPropia(file),b64=await redimensionarFotoB64(data,1280,.92);
-      var photo={view:view,b64:b64,mimeType:'image/jpeg'},index=S.photos.findIndex(function(p){return p.view===view;});
+      var photo={view:view,b64:b64,mimeType:'image/jpeg',referenceOnly:!byId('flow-picker-simulate').checked},index=S.photos.findIndex(function(p){return p.view===view;});
       if(index<0)S.photos.push(photo);else S.photos[index]=photo;
       invalidarVistaCargada(view);S.quickGuided=true;S.independentIntraoral=S.photos.length===1&&view==='intraoral';addedView=view;saveProgress('s-vita');
     }catch(error){mostrarAvisoAplicacion('No se pudo cargar la foto','La fotografía anterior se conserva. Intenta con otro archivo.');}
@@ -187,8 +189,8 @@
   function render(){
     var stage=byId('flow-main-photo'),strip=byId('flow-photo-strip');stage.replaceChildren();strip.replaceChildren();var primary=S.photos[0];
     if(primary){
-      var image=element('img');image.src=source(primary);image.alt=label(primary.view)+(primary.adjustOriginal?' · fotografía ajustada':' · fotografía original');stage.append(image,element('span','flow-photo-caption','Foto a simular · '+label(primary.view)));
-      S.photos.forEach(function(photo){var item=button('',function(){select(photo);},'flow-thumb'+(photo===primary?' selected':''));item.setAttribute('aria-label','Seleccionar '+label(photo.view));item.setAttribute('aria-pressed',String(photo===primary));var thumb=element('img');thumb.src=source(photo);thumb.alt='';item.append(thumb,element('span','',label(photo.view)));if(photo===primary)item.append(element('small','','A simular'));strip.append(item);});
+      var image=element('img');image.src=source(primary);image.alt=label(primary.view)+(primary.adjustOriginal?' · fotografía ajustada':' · fotografía original');stage.append(image,element('span','flow-photo-caption',(primary.referenceOnly?'Solo referencia':'Incluida en la simulación')+' · '+label(primary.view)));
+      S.photos.forEach(function(photo){var item=button('',function(){select(photo);},'flow-thumb'+(photo===primary?' selected':''));item.setAttribute('aria-label','Seleccionar '+label(photo.view));item.setAttribute('aria-pressed',String(photo===primary));var thumb=element('img');thumb.src=source(photo);thumb.alt='';item.append(thumb,element('span','',label(photo.view)),element('small','',photo.referenceOnly?'Solo referencia':SmylPhotoBatch.state(photo)==='ready'?'✓ Lista':'✓ A simular'));strip.append(item);});
     }else{
       var empty=element('div','flow-empty');empty.innerHTML='<span class="flow-empty-symbol" aria-hidden="true">＋</span><h2>Empieza con una fotografía</h2><p>Del rostro o intraoral.<br>La vista que quieras trabajar primero.</p>';empty.append(button('Tomar o subir foto',function(){choose();},'flow-primary'));stage.append(empty);
     }
@@ -199,15 +201,19 @@
     byId('flow-photo-count').textContent=busy?'Preparando fotografía…':S.photos.length+' '+(S.photos.length===1?'fotografía':'fotografías')+' en este caso';
     var added=S.photos.find(function(p){return p.view===addedView;}),notice=byId('flow-photo-notice');notice.hidden=!added;
     byId('flow-photo-notice-text').textContent=added?'Foto añadida · '+label(added.view)+'. Puedes dejarla así o ajustar su encuadre.':'';
-    byId('flow-generate').disabled=busy||generating||!primary;
-    byId('flow-generation-note').textContent=primary?'Se generará solo '+label(primary.view).toLowerCase()+'. Cada foto generada consume una simulación; subir fotos no genera ni consume simulaciones.':'Añade una fotografía para generar tu propuesta.';
+    var batch=SmylPhotoBatch.summary(),remaining=batch.count-batch.ready-batch.review;
+    byId('flow-photo-role').hidden=!primary;
+    byId('flow-photo-simulate').checked=!!primary&&!primary.referenceOnly;
+    byId('flow-photo-simulate').disabled=busy||generating;
+    byId('flow-generate').disabled=busy||generating||!batch.count;
+    byId('flow-generation-note').textContent=!primary?'Añade una fotografía para generar tu propuesta.':!batch.count?'Todas las fotos son de referencia. Marca al menos una para simular.':remaining?'Se generarán todas las fotos marcadas: '+remaining+' '+(remaining===1?'nueva simulación':'nuevas simulaciones')+'. Cada foto nueva consume una simulación. Las listas se conservan. Subir o seleccionar fotos no consume cupo.':batch.review?'Hay '+batch.review+' '+(batch.review===1?'foto generada por revisar':'fotos generadas por revisar')+'. Revisarlas no consume otra simulación.':'Todas las fotos marcadas ya están listas. Verlas no consume simulaciones.';
     var ref=primary&&referenciaDentalMaestraParaVista(primary.view);
-    byId('flow-reference-status').textContent=ref?.role==='original-anatomy'?'Apoyo para esta vista: '+label(ref.view)+'. Su original ayudará a interpretar los dientes; no se generará otra imagen.':'Intraorales opcionales: añádelas como apoyo para distinguir mejor los dientes. También puedes generar su propia simulación.';
+    byId('flow-reference-status').textContent=ref?.role==='original-anatomy'?'Apoyo para esta vista: '+label(ref.view)+'. Su original ayuda a interpretar los dientes. Se simula también si está marcada.':'Intraorales opcionales: pueden apoyar las fotos del rostro y también tener su propia simulación. Usa «Solo referencia» si no quieres simularlas.';
     byId('flow-reference-add').hidden=!!(ref?.role==='original-anatomy');
     document.querySelectorAll('#flow-photo-workspace button').forEach(function(el){el.disabled=busy||generating;});syncPreferences();
     document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
   }
-  async function generate(){if(busy||generating||!S.photos.length)return;generating=true;render();try{await confirmarConfiguracionRapida();}finally{if(returnSettings&&S.results[returnSettings.view]!==returnSettings.result)returnSettings=null;generating=false;render();}}
+  async function generate(){if(busy||generating||!SmylPhotoBatch.targets().length)return;generating=true;render();try{await confirmarConfiguracionRapida();}catch(error){mostrarAvisoAplicacion('No se completó la selección',error.message+' Las fotos y las simulaciones aceptadas se conservan.');}finally{if(returnSettings&&S.results[returnSettings.view]!==returnSettings.result)returnSettings=null;generating=false;render();}}
   function init(){
     document.body.classList.add('smyl-organized');
     var intro=byId('s-intro'),hero=element('section','flow-home');
@@ -221,9 +227,10 @@
     var layout=element('div','flow-prepare-grid'),photos=element('section','flow-photo-workspace');photos.id='flow-photo-workspace';
     photos.innerHTML='<div id="flow-main-photo" class="flow-main-photo"></div><div class="flow-photo-toolbar"><span id="flow-photo-count" role="status"></span></div><div id="flow-photo-strip" class="flow-photo-strip"></div>';
     var actions=photos.querySelector('.flow-photo-toolbar'),add=button('Añadir foto',function(){choose();});add.id='flow-add-photo';
-    var edit=button('Cambiar',function(){choose(S.photos[0].view);},'flow-text');edit.id='flow-edit-photo';
+    var edit=button('Cambiar',function(){choose(S.photos[0].view,S.photos[0].referenceOnly);},'flow-text');edit.id='flow-edit-photo';
     var adjust=button('Ajustar foto',function(){adjustPhoto();});adjust.id='flow-adjust-photo';adjust.title='Ampliar, encuadrar y enderezar por grados';var restore=button('Volver al original',restorePhoto,'flow-text');restore.id='flow-restore-photo';actions.append(adjust,restore);
     var remove=button('Quitar',function(){var photo=S.photos[0];if(!window.confirm('¿Quitar '+label(photo.view).toLowerCase()+' de este caso? Se retirará también su resultado asociado.'))return;S.photos=S.photos.filter(function(p){return p!==photo;});invalidarVistaCargada(photo.view);saveProgress('s-vita');render();},'flow-text');remove.id='flow-remove-photo';actions.append(add,edit,remove);
+    var role=element('label','flow-photo-role');role.id='flow-photo-role';var simulate=element('input');simulate.type='checkbox';simulate.id='flow-photo-simulate';simulate.onchange=function(){if(busy||generating||!S.photos[0])return;S.photos[0].referenceOnly=!simulate.checked;saveProgress('s-vita');render();};role.append(simulate,element('span','','Simular esta foto'),element('small','','Desmárcala para usarla solo como referencia.'));photos.append(role);
     var analysis=element('section','flow-analysis-entry');analysis.id='flow-analysis-entry';analysis.hidden=true;
     var analysisCopy=element('div');analysisCopy.append(element('strong','','Análisis avanzado'));var analysisStatus=element('small');analysisStatus.id='flow-analysis-status';analysisStatus.setAttribute('role','status');analysisCopy.append(analysisStatus);
     var analysisOpen=button('Mostrar guías',analyzePhoto);analysisOpen.id='flow-analysis-open';analysis.append(analysisCopy,analysisOpen);
@@ -232,7 +239,7 @@
     var noticeAdjust=button('Encuadrar y enderezar',function(){var photo=S.photos.find(function(p){return p.view===addedView;});if(photo)adjustPhoto(photo);},'flow-text');noticeAdjust.id='flow-new-photo-adjust';notice.append(noticeAdjust);
     var dismiss=button('×',function(){addedView=null;render();},'flow-text');dismiss.setAttribute('aria-label','Cerrar sugerencia de ajuste');notice.append(dismiss);photos.querySelector('#flow-photo-strip').before(notice);
     var reference=element('aside','flow-reference');reference.innerHTML='<p id="flow-reference-status"></p><small>Usa fotos de la misma persona. El apoyo no garantiza exactitud anatómica.</small>';
-    var refAdd=button('Añadir intraoral',function(){choose('intraoral');},'flow-text');refAdd.id='flow-reference-add';reference.append(refAdd);photos.append(reference);layout.append(photos);
+    var refAdd=button('Añadir intraoral de referencia',function(){choose('intraoral',true);},'flow-text');refAdd.id='flow-reference-add';reference.append(refAdd);photos.append(reference);layout.append(photos);
     var config=byId('quick-config');config.querySelector('details').hidden=true;
     config.querySelector('h3').textContent='Diseña tu sonrisa';config.querySelector('h3').nextElementSibling.textContent='Elige el cambio que quieres explorar.';
     config.querySelector(':scope > .quick-choice-title').textContent='Elige el cambio';
@@ -279,7 +286,7 @@
       });panel.append(grid);pickerBody.append(panel);
     });
     pickerBody.append(element('p','flow-example-note','Ejemplos ilustrativos, no fotos de pacientes. Izquierda y derecha siempre son las del paciente.'));
-    var footer=element('footer','flow-picker-footer');footer.innerHTML='<strong id="flow-picker-selected"></strong><p id="flow-picker-hint"></p><p id="flow-picker-replace" hidden>Ya añadida. Tomar o subir otra foto reemplazará esta vista.</p>';
+    var footer=element('footer','flow-picker-footer');footer.innerHTML='<strong id="flow-picker-selected"></strong><p id="flow-picker-hint"></p><p id="flow-picker-replace" hidden>Ya añadida. Tomar o subir otra foto reemplazará esta vista.</p><label class="flow-photo-role"><input id="flow-picker-simulate" type="checkbox" checked><span>Simular esta foto</span><small>Desmárcala para usarla solo como referencia.</small></label>';
     var pickerActions=element('div','flow-picker-actions');pickerActions.append(button('Tomar foto',function(){pick(true);},'flow-primary'),button('Subir foto',function(){pick(false);}));footer.append(pickerActions,element('small','','Cargar fotos no consume simulaciones.'));picker.append(pickerBody,footer);
     picker.addEventListener('close',function(){if(pickerFocus?.isConnected)pickerFocus.focus({preventScroll:true});});
     var input=element('input');input.type='file';input.id='flow-upload';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.onchange=upload;shell.append(input);screen.append(shell);document.body.append(screen,picker);
