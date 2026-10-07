@@ -22,10 +22,13 @@
  window.SmylDentalProgress={status(tenant,patient,caseId){
   const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño')return null;
   const review=(ctx.photoReviews||[]).find(r=>r.case_id===caseId),items=review?.document.items||[];
+  const stages=review?.document.schema===3&&Array.isArray(review.document.workflow?.stages)?review.document.workflow.stages:[];
   const rxItems=(ctx.rxReviews||[]).flatMap(r=>r.document.items||[]);
   return {ready:ctx.ready,dirty:ctx.dirty,busy:ctx.busy,photoLoaded:ctx.photoLoaded===true,
    hasReview:!!review,pending:items.filter(i=>i.state==='pending').length,confirmed:items.filter(i=>i.state==='confirmed').length,
-   rejected:items.filter(i=>i.state==='rejected').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
+   rejected:items.filter(i=>i.state==='rejected').length,workflowTotal:stages.length,
+   workflowCompleted:stages.filter(s=>s.state==='completed').length,
+   workflowPending:stages.filter(s=>s.state!=='completed').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
    rxReviews:(ctx.rxReviews||[]).length,rxPending:rxItems.filter(i=>i.state==='pending').length,
    rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length};
  }};

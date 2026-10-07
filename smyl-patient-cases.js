@@ -267,9 +267,9 @@
             if(window.MySmylPortal){
               actions.append(node('strong','','Propuesta para tu paciente'),button('Preparar propuesta para el paciente',()=>window.MySmylPortal.open({api,row,current}),'pc-primary'),node('small','','1 Preparar → 2 Revisar → 3 Compartir. Te indicaremos qué falta en cada paso.'));
             }
-            const tools=node('details','pc-case-tools');tools.append(node('summary','','Revisar fotos y otras opciones'));actions.append(tools);
-            const reviewEntry=button('Revisar fotos y dientes',()=>window.SmylPhotoAnalysis?.open({api,row,current}));reviewEntry.dataset.reviewCase=row.id;tools.append(reviewEntry);
-            tools.append(button('Ver comparación', async () => {
+            const tools=node('details','pc-case-tools');tools.append(node('summary','','Ver fotos de esta sesión'));actions.append(tools);
+            const reviewEntry=button('Revisar fotos y dientes',()=>window.SmylPhotoAnalysis?.open({api,row,current}));reviewEntry.dataset.reviewCase=row.id;reviewEntry.dataset.workspaceAction='review';tools.append(reviewEntry);
+            const comparison=button('Ver antes y después', async () => {
               const token = ++viewerSequence;
               viewerContent.textContent = 'Cargando imágenes privadas…'; viewer.showModal(); revoke();
               try {
@@ -289,8 +289,9 @@
                 }
                 if (current() && viewer.open && token === viewerSequence) viewerContent.replaceChildren(...pairs);
               } catch (error) { if (current() && viewer.open && token === viewerSequence) { revoke(); viewerContent.textContent = M.message(error); } }
-            }));
-            tools.append(button('Vista previa de mySmyl',()=>openMyPreview(api,row,current)),node('small','','Consulta rápida. Para enviar la propuesta, usa el recorrido de tres pasos.'));
+            });comparison.dataset.workspaceAction='comparison';tools.append(comparison);
+            const preview=button('Vista previa de mySmyl',()=>openMyPreview(api,row,current));preview.dataset.workspaceAction='preview';
+            const previewHelp=node('small','','Consulta rápida. Para enviar la propuesta, usa la etapa Compartir.');previewHelp.dataset.workspaceAction='preview';tools.append(preview,previewHelp);
             card.append(description,actions); body.append(card);
             gallery.smylCaseEntries.push({row,card,review:()=>reviewEntry.click(),present:()=>window.MySmylPortal?.open({api,row,current}),current});
           });
