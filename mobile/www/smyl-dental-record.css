@@ -3,6 +3,9 @@
 .dr-map{aspect-ratio:520/760;max-width:460px;background:none;margin:12px auto 48px;isolation:isolate}
 .dr-photo-reviewed .dr-enamel{fill:#c4e2d5;stroke:#347764}
 .dr-map .dr-key-photo-reviewed:before{background:#c4e2d5;border-color:#347764}
+.dr-rx-reviewed .dr-enamel{fill:#d8d3ef;stroke:#62599c}
+.dr-map .dr-key-rx-reviewed:before{background:#d8d3ef;border-color:#62599c}
+.dr-rx-note{border-left:4px solid #62599c}
 .dr-arch-base{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .dr-arch-base path{fill:none;stroke:#e9ede5;stroke-width:62;stroke-linecap:round}
 .dr-map .dr-tooth{top:0;margin:0;padding:0;min-width:0;min-height:0;border:0;border-radius:35%;background:transparent;color:#294c48;box-shadow:none;transform:translate(-50%,-50%);overflow:visible;line-height:1}

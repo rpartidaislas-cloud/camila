@@ -22,9 +22,12 @@
  window.SmylDentalProgress={status(tenant,patient,caseId){
   const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño')return null;
   const review=(ctx.photoReviews||[]).find(r=>r.case_id===caseId),items=review?.document.items||[];
+  const rxItems=(ctx.rxReviews||[]).flatMap(r=>r.document.items||[]);
   return {ready:ctx.ready,dirty:ctx.dirty,busy:ctx.busy,photoLoaded:ctx.photoLoaded===true,
    hasReview:!!review,pending:items.filter(i=>i.state==='pending').length,confirmed:items.filter(i=>i.state==='confirmed').length,
-   rejected:items.filter(i=>i.state==='rejected').length,studies:ctx.doc.studies.length};
+   rejected:items.filter(i=>i.state==='rejected').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
+   rxReviews:(ctx.rxReviews||[]).length,rxPending:rxItems.filter(i=>i.state==='pending').length,
+   rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length};
  }};
  // Does not grant access or save remotely. Existing save/RLS/versioning remain authoritative.
  window.SmylDentalDraft={capture(tenant,patient){
@@ -47,6 +50,12 @@
   card.append(n('strong','','Diente '+item.tooth+' · observación confirmada'),n('p','',item.text),n('small','','Revisión fotográfica privada · '+new Date(row.updated_at).toLocaleDateString('es-MX')));
   card.append(button('Abrir revisión',()=>{if(!current(ctx))return;const target=document.querySelector('[data-review-case="'+row.case_id+'"]');if(target){closeDialog?.();target.click();}else message(ctx,'Espera a que carguen las simulaciones de esta ficha.');}));return card;
  }
+ function radiographNotes(ctx,tooth){return (ctx.rxReviews||[]).flatMap(r=>r.document.items.filter(i=>i.tooth===tooth&&i.state==='confirmed').map(i=>({item:i,row:r,study:ctx.doc.studies.find(s=>s.id===r.study_id)}))).filter(x=>x.study);}
+ function radiographCard(ctx,entry,closeDialog){
+  const {item,row,study}=entry,card=n('article','dr-note dr-rx-note');
+  card.append(n('strong','','Diente '+item.tooth+' · revisión radiográfica confirmada'),n('p','',item.text),n('small','',(study.label||types[study.type])+' · '+new Date(row.updated_at).toLocaleDateString('es-MX')));
+  card.append(button('Abrir radiografía',()=>{closeDialog?.();viewStudy(ctx,study);}));return card;
+ }
  async function loadPhotoReviews(ctx){
   const token=(ctx.photoLoad||0)+1;ctx.photoLoad=token;
   try{
@@ -56,10 +65,20 @@
    ctx.photoLoaded=true;ctx.photoReviews=rows;ctx.photoStatus.textContent=rows.length?'El mapa incluye observaciones fotográficas confirmadas. Las sugerencias pendientes permanecen en su revisión.':'';renderTeeth(ctx);
   }catch(e){if(current(ctx)&&token===ctx.photoLoad){ctx.photoLoaded=false;ctx.photoReviews=[];renderTeeth(ctx);ctx.photoStatus.textContent=['42P01','PGRST205'].includes(e.code)?'El guardado de revisiones fotográficas aún no está activado.':'No se pudieron actualizar las revisiones fotográficas; no se muestran hasta verificar su estado. Las notas manuales siguen disponibles.';}}
  }
+ async function loadRadiographReviews(ctx){
+  const token=(ctx.rxLoad||0)+1;ctx.rxLoad=token;
+  try{
+   await guard(ctx);const rows=await checked(sb.from('smyl_radiograph_reviews').select('*').eq('tenant_id',ctx.tenant).eq('patient_id',ctx.patient));
+   if(!current(ctx)||token!==ctx.rxLoad)return;
+   if(!Array.isArray(rows)||rows.some(r=>{const study=ctx.doc.studies.find(s=>s.id===r.study_id);return !study||!SmylRadiographReviewModel.validRow(r,study,ctx.tenant,ctx.patient);} ))throw new Error('Revisión radiográfica no verificada');
+   ctx.rxLoaded=true;ctx.rxReviews=rows;ctx.rxStatus.textContent=rows.length?'Las observaciones radiográficas confirmadas están vinculadas a su imagen original. Las pendientes permanecen en su revisión.':'La revisión asistida es opcional. Nada se añade al mapa sin tu confirmación.';renderTeeth(ctx);renderStudies(ctx);
+  }catch(e){if(current(ctx)&&token===ctx.rxLoad){ctx.rxLoaded=false;ctx.rxReviews=[];renderTeeth(ctx);renderStudies(ctx);ctx.rxStatus.textContent=['42P01','PGRST205','PGRST202'].includes(e.code)?'La revisión asistida está preparada, pero su guardado privado aún no está activado.':'No se pudieron verificar las revisiones radiográficas; no se muestran hasta recuperar su estado.';}}
+ }
  function toothDialog(ctx,tooth){
   if(!ctx.ready||ctx.busy)return;
   const old=ctx.doc.teeth[tooth]||{observation:'',action:'',status:'pending'},d=dialog(ctx,'Diente '+tooth);
   photoNotes(ctx,tooth).forEach(entry=>d.append(photoCard(ctx,entry,()=>d.close())));
+  radiographNotes(ctx,tooth).forEach(entry=>d.append(radiographCard(ctx,entry,()=>d.close())));
   const observation=input('Observación del dentista',old.observation,2000),action=input('Acción propuesta',old.action,2000);
   const state=n('select');state.setAttribute('aria-label','Estado');[['pending','Pendiente'],['following','En seguimiento'],['done','Realizado']].forEach(([v,t])=>state.add(new Option(t,v)));state.value=old.status;
   d.append(observation.box,action.box,state,n('p','dr-help','Se incorpora al borrador; guarda las observaciones al terminar.'));
@@ -84,29 +103,33 @@
   for(const [row,ids] of [[0,M.upper],[1,M.lower]])ids.forEach((id,i)=>{
    const unit=id%10,[px,py,angle,w,h]=positions[unit-1],left=i<8,x=left?px:520-px,y=row?760-py:py;
    const kind=unit<3?'incisor':unit===3?'canine':unit<6?'premolar':'molar';
-   const note=ctx.doc.teeth[id],reviewed=photoNotes(ctx,String(id)).length,b=button('',()=>toothDialog(ctx,String(id)));
-   b.className='dr-tooth'+(note?' dr-noted dr-'+note.status:reviewed?' dr-photo-reviewed':'');b.style.left=x/5.2+'%';b.style.top=y/7.6+'%';b.style.width=w/5.2+'%';b.style.height=h/7.6+'%';
+   const note=ctx.doc.teeth[id],reviewed=photoNotes(ctx,String(id)).length,rxReviewed=radiographNotes(ctx,String(id)).length,b=button('',()=>toothDialog(ctx,String(id)));
+   b.className='dr-tooth'+(note?' dr-noted dr-'+note.status:rxReviewed?' dr-rx-reviewed':reviewed?' dr-photo-reviewed':'');b.style.left=x/5.2+'%';b.style.top=y/7.6+'%';b.style.width=w/5.2+'%';b.style.height=h/7.6+'%';
    const crown=svgNode('svg',{viewBox:'0 0 60 60','aria-hidden':'true',class:'dr-crown'});
    crown.style.transform='rotate('+((left?angle:-angle)*(row?-1:1)+(row?180:0))+'deg) scale(1.15)';
    crown.append(svgNode('path',{d:shapes[kind][0],class:'dr-enamel'}),svgNode('path',{d:shapes[kind][1],class:'dr-fissure'}));
    b.append(crown,n('span','dr-tooth-number',String(id)));b.dataset.toothKind=kind;
-   b.setAttribute('aria-label','Diente '+id+(note||reviewed?' · con observación':' · sin observaciones'));b.disabled=!ctx.ready;
+   b.setAttribute('aria-label','Diente '+id+(note||reviewed||rxReviewed?' · con observación':' · sin observaciones'));b.disabled=!ctx.ready;
    ctx.map.append(b);
   });
   const legend=n('div','dr-map-legend');[['plain','Sin anotación'],['pending','Pendiente'],['following','En seguimiento'],['done','Realizado']].forEach(([state,label])=>{const item=n('span','dr-key dr-key-'+state,label);legend.append(item);});
   if((ctx.photoReviews||[]).some(r=>r.document.items.some(i=>i.state==='confirmed')))legend.append(n('span','dr-key dr-key-photo-reviewed','Observación fotográfica confirmada'));
+  if((ctx.rxReviews||[]).some(r=>r.document.items.some(i=>i.state==='confirmed')))legend.append(n('span','dr-key dr-key-rx-reviewed','Revisión radiográfica confirmada'));
   ctx.map.append(legend);
   ctx.notes.replaceChildren();
   for(const [id,note] of Object.entries(ctx.doc.teeth)){
    const item=n('article','dr-note');item.append(button('Diente '+id,()=>toothDialog(ctx,id)),n('p','',note.observation||'Sin observación escrita'),n('p','',note.action||'Sin acción propuesta'),n('small','',{'pending':'Pendiente','following':'En seguimiento','done':'Realizado'}[note.status]));ctx.notes.append(item);
   }
   for(const tooth of M.teeth)photoNotes(ctx,tooth).forEach(entry=>ctx.notes.append(photoCard(ctx,entry)));
+  for(const tooth of M.teeth)radiographNotes(ctx,tooth).forEach(entry=>ctx.notes.append(radiographCard(ctx,entry)));
  }
- async function imageUrl(ctx,study){
+ async function imageBlob(ctx,study){
   let blob=ctx.files.get(study.id);
   if(!blob){await guard(ctx);blob=await checked(sb.storage.from(bucket).download(study.asset.path));}
   if(!(blob instanceof Blob)||blob.size!==study.asset.bytes||await M.hash(await blob.arrayBuffer())!==study.asset.sha256)throw new Error('Imagen no verificada');
-  if(!current(ctx))throw new Error('La sesión cambió');const url=URL.createObjectURL(blob);ctx.urls.push(url);return url;
+  if(!current(ctx))throw new Error('La sesión cambió');return blob;
+ }
+ async function imageUrl(ctx,study){const blob=await imageBlob(ctx,study),url=URL.createObjectURL(blob);ctx.urls.push(url);return {blob,url};
  }
  function markDialog(ctx,study,mark,refresh){
   const d=dialog(ctx,'Anotación en la radiografía'),note=input('Observación del dentista',mark.note,2000);
@@ -122,10 +145,10 @@
  }
  async function viewStudy(ctx,study){
   const d=dialog(ctx,study.label||types[study.type]),loading=n('p','','Cargando imagen privada…');d.append(loading);d.append(button('Cerrar',()=>d.close()));d.showModal();
-  let url;
+  let url,blob;
   d.addEventListener('close',()=>{if(url){URL.revokeObjectURL(url);ctx.urls=ctx.urls.filter(u=>u!==url);}},{once:true});
   try{
-   url=await imageUrl(ctx,study);if(!current(ctx)||!d.open){URL.revokeObjectURL(url);return;}loading.remove();
+   const image=await imageUrl(ctx,study);url=image.url;blob=image.blob;if(!current(ctx)||!d.open){URL.revokeObjectURL(url);return;}loading.remove();
    const tools=n('div','dr-tools'),zoom=n('input');zoom.type='range';zoom.min=1;zoom.max=3;zoom.step=.25;zoom.value=1;zoom.setAttribute('aria-label','Ampliar radiografía');
    const viewport=n('div','dr-viewport'),stage=n('div','dr-image-stage'),img=n('img');img.src=url;img.alt='Radiografía original · '+(study.label||types[study.type]);stage.append(img);viewport.append(stage);
    const marks=n('div','dr-marks'),list=n('div','dr-mark-list');stage.append(marks);
@@ -136,7 +159,8 @@
    const add=(x,y)=>{if(study.marks.length<50)markDialog(ctx,study,{id:crypto.randomUUID(),x,y,tooth:'',note:''},refresh);};
    img.onclick=e=>{const r=img.getBoundingClientRect();add((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);};
    zoom.oninput=()=>stage.style.width=Number(zoom.value)*100+'%';
-   tools.append(n('span','','Ampliar'),zoom,button('Añadir marca',()=>add(.5,.5)));
+   const assisted=button('Revisar con apoyo de IA',()=>{if(ctx.files.has(study.id)||ctx.dirty){message(ctx,'Guarda primero la radiografía y cualquier cambio pendiente.');return;}d.close();window.SmylRadiographReview?.open({study,blob,tenant:ctx.tenant,patient:ctx.patient,current:()=>current(ctx)&&ctx.ready&&!ctx.dirty});});
+   tools.append(n('span','','Ampliar'),zoom,button('Añadir marca',()=>add(.5,.5)),assisted);
    const notes=input('Observaciones de este estudio',study.notes,4000);notes.e.oninput=()=>{study.notes=notes.e.value;dirty(ctx);};
    d.append(tools,n('p','dr-help','Toca la imagen para marcar un punto, o utiliza Añadir marca. El original no se modifica.'),viewport,list,notes.box,n('p','dr-help','Cierra el visor y pulsa Guardar observaciones para conservar tus cambios.'));refresh();
   }catch(e){loading.textContent=errorText(e);}
@@ -144,7 +168,7 @@
  function renderStudies(ctx){
   ctx.studies.replaceChildren();
   if(!ctx.doc.studies.length)ctx.studies.append(n('p','dr-help','Todavía no hay radiografías en esta ficha.'));
-  ctx.doc.studies.forEach(s=>{const card=n('article','dr-study');card.append(n('h4','',s.label||types[s.type]),n('p','',types[s.type]+(s.date?' · '+s.date:'')),n('small','',ctx.files.has(s.id)?'Pendiente de guardar':'Original privado'),button('Abrir y anotar',()=>viewStudy(ctx,s)));ctx.studies.append(card);});
+  ctx.doc.studies.forEach(s=>{const review=(ctx.rxReviews||[]).find(r=>r.study_id===s.id),items=review?.document.items||[],summary=review?items.filter(i=>i.state==='confirmed').length+' confirmadas · '+items.filter(i=>i.state==='pending').length+' por revisar':'';const card=n('article','dr-study');card.append(n('h4','',s.label||types[s.type]),n('p','',types[s.type]+(s.date?' · '+s.date:'')),n('small','',ctx.files.has(s.id)?'Pendiente de guardar':summary||'Original privado'),button('Abrir y anotar',()=>viewStudy(ctx,s)));ctx.studies.append(card);});
  }
  async function addFile(ctx,file){
   if(!file||ctx.busy||!ctx.ready||ctx.doc.studies.length>=20)return;
@@ -175,7 +199,7 @@
   const screen=document.getElementById('p-paciente-detalle'),layout=screen?.querySelector('.clinic-layout');
   if(!layout||screen.querySelector('.dr-record')||!window.pacienteActual?.id)return;
   dispose(active);
-  const host=n('section','dr-record'),ctx={host,tenant:window.tenantId,patient:pacienteActual.id,doc:M.empty(),revision:0,ready:false,busy:false,dirty:false,files:new Map(),urls:[],dialogs:[]};active=ctx;
+  const host=n('section','dr-record'),ctx={host,tenant:window.tenantId,patient:pacienteActual.id,doc:M.empty(),revision:0,ready:false,busy:false,dirty:false,files:new Map(),urls:[],dialogs:[],rxReviews:[],photoReviews:[]};active=ctx;
   host.append(n('p','dr-eyebrow','EXPEDIENTE DEL PACIENTE'),n('h2','','Mapa dental y radiografías'));
   ctx.status=n('p','dr-status','Cargando…');ctx.status.setAttribute('role','status');host.append(ctx.status);
   const form=n('fieldset','dr-form');ctx.form=form;form.disabled=true;
@@ -185,24 +209,25 @@
   ctx.map=n('div','dr-map');ctx.notes=n('div','dr-notes');details.append(ctx.map,ctx.notes);form.append(details);
   ctx.photoStatus=n('p','dr-help');details.append(ctx.photoStatus);
   const picker=n('select');picker.setAttribute('aria-label','Seleccionar diente');picker.add(new Option('Seleccionar diente…',''));M.teeth.forEach(t=>picker.add(new Option('Diente '+t,t)));picker.onchange=()=>{if(picker.value)toothDialog(ctx,picker.value);picker.value='';};details.insertBefore(picker,ctx.map);
-  const rx=n('details','dr-section');rx.open=true;rx.append(n('summary','','Radiografías'),n('p','dr-help','Originales JPG o PNG, hasta 20 MB por imagen. Sin envío a IA. PDF, DICOM y estudios 3D no se admiten en esta versión.'));
+  const rx=n('details','dr-section');rx.open=true;rx.append(n('summary','','Radiografías'),n('p','dr-help','Originales JPG o PNG, hasta 20 MB por imagen. PDF, DICOM y estudios 3D no se admiten en esta versión. El envío a IA siempre requiere autorización explícita para cada estudio.'));
   const fields=n('div','dr-upload-fields'),type=n('select');type.setAttribute('aria-label','Tipo de radiografía');Object.entries(types).forEach(([v,t])=>type.add(new Option(t,v)));ctx.type=type;
   const label=input('Nombre del estudio · opcional','',100,'input'),date=input('Fecha del estudio · opcional','',10,'input');date.e.type='date';ctx.label=label.e;ctx.date=date.e;
   const file=n('input');file.type='file';file.accept='image/png,image/jpeg';file.setAttribute('aria-label','Subir radiografía');file.onchange=()=>addFile(ctx,file.files[0]);ctx.file=file;
   fields.append(type,label.box,date.box,file);rx.append(fields);ctx.studies=n('div','dr-studies');rx.append(ctx.studies);
-  const ai=n('aside','dr-ai');ai.append(n('strong','','Interpretación con IA · pendiente de validación'),n('p','','No está activada. Tus radiografías no se enviarán a un modelo generalista para producir diagnósticos. Puedes registrar y guardar tus propias observaciones.'));rx.append(ai);form.append(rx);
+  const ai=n('aside','dr-ai');ai.append(n('strong','','Revisión asistida · bajo control del dentista'),n('p','','La IA puede sugerir zonas visibles para comprobar. Tú ubicas, corriges y confirmas cada observación; nunca se convierte automáticamente en diagnóstico ni se comparte con el paciente.'));ctx.rxStatus=n('p','dr-help','Comprobando disponibilidad del guardado privado…');ai.append(ctx.rxStatus);rx.append(ai);form.append(rx);
   ctx.save=button('Guardar observaciones',()=>save(ctx));ctx.save.classList.add('dr-primary');ctx.save.disabled=true;form.append(ctx.save);host.append(form);layout.before(host);
   if(pacienteActual._local||window.miRolEquipo!=='dueño'){message(ctx,'Disponible para la cuenta titular y pacientes guardados en la clínica.');return;}
   try{
    await guard(ctx);const row=await checked(sb.from('smyl_dental_records').select('*').eq('tenant_id',ctx.tenant).eq('patient_id',ctx.patient).maybeSingle());
    if(!current(ctx))return;if(row){if(row.tenant_id!==ctx.tenant||row.patient_id!==ctx.patient||!M.validate(row.document,ctx.tenant,ctx.patient))throw new Error('Registro no válido');ctx.doc=row.document;ctx.revision=row.revision;}
    ctx.ready=true;form.disabled=false;renderTeeth(ctx);renderStudies(ctx);message(ctx,row?'Observaciones guardadas · versión '+row.revision:'Sin anotaciones. No se guarda automáticamente.');
-   loadPhotoReviews(ctx);
+   loadPhotoReviews(ctx);loadRadiographReviews(ctx);
   }catch(e){if(current(ctx))message(ctx,errorText(e));}
  }
  function init(){
   const screen=document.getElementById('p-paciente-detalle');if(!screen)return;
   addEventListener('smyl:photo-review-saved',e=>{if(active&&current(active)&&e.detail?.tenant===active.tenant&&e.detail?.patient===active.patient)loadPhotoReviews(active);});
+  addEventListener('smyl:radiograph-review-saved',e=>{if(active&&current(active)&&e.detail?.tenant===active.tenant&&e.detail?.patient===active.patient)loadRadiographReviews(active);});
   const prior=window.verPaciente;window.verPaciente=function(id){if(!mayLeave())return;return prior(id);};
   const logout=window.cerrarSesion;if(logout)window.cerrarSesion=function(...args){if(!mayLeave())return;return logout.apply(this,args);};
   const route=window.ir;window.ir=function(target){if(target!=='paciente-detalle'&&!mayLeave())return false;const result=route(target);if(result!==false&&target!=='paciente-detalle'){dispose(active);active=null;}return result;};

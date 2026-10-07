@@ -96,7 +96,9 @@
   else if(dental.dirty){reviewLabel='Cambios sin guardar';reviewCopy='Guarda las observaciones del mapa antes de salir del expediente.';}
   else if(!dental.photoLoaded){reviewLabel='Por comprobar';reviewCopy='No se pudo confirmar el avance de la revisión fotográfica. No equivale a una revisión terminada.';}
   else if(dental.hasReview){reviewLabel=dental.pending?dental.pending+' por revisar':'Revisión guardada';reviewCopy=dental.confirmed+' observaciones confirmadas · '+dental.pending+' pendientes · '+dental.rejected+' descartadas. Esto no sustituye tu valoración clínica.';}
-  state(ctx,'review',reviewLabel,dental?.dirty||dental?.pending?'pending':'neutral');copy(ctx.reviewText,reviewCopy);ctx.reviewButton.disabled=!entry||!dental?.ready||dental.busy;
+  if(dental?.studies&&dental.rxLoaded)reviewCopy+=' Radiografías: '+dental.studies+' guardadas · '+dental.rxReviews+' revisadas · '+dental.rxConfirmed+' confirmadas · '+dental.rxPending+' pendientes.';
+  else if(dental?.studies&&!dental.rxLoaded)reviewCopy+=' El avance de radiografías aún no pudo comprobarse.';
+  state(ctx,'review',reviewLabel,dental?.dirty||dental?.pending||dental?.rxPending?'pending':'neutral');copy(ctx.reviewText,reviewCopy);ctx.reviewButton.disabled=!entry||!dental?.ready||dental.busy;
   state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready?'Revisado y guardado':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',clinical?.ready?'done':'pending');
   for(const [id,done] of [['assessment',clinical?.assessment],['treatments',clinical?.treatments],['approved',clinical?.ready]]){const item=ctx.planChecks[id];copy(item,(done?'✓ ':'○ ')+item.dataset.label);item.dataset.done=String(!!done);}
   const eligible=pairs>0&&clinical?.ready;
