@@ -1,4 +1,4 @@
-/* Professional entry: choose originals, consent, one request, dentist review. */
+/* Professional entry. Every paid specialist is preceded by a durable checkpoint. */
 (function(){
  'use strict';
  let active=null;
@@ -41,11 +41,49 @@
     run.failed=true;run.message=e.code==='40001'?'Esta revisión cambió en otra sesión. No se sobrescribió. Conserva tus cambios y abre la versión guardada en otra pestaña antes de decidir.':'No pudimos confirmar el guardado. Tus cambios siguen aquí. Pulsa Guardar revisión para reintentar, sin repetir la IA.';
     if(e.code==='40001')run.conflict=true;
    }}finally{run.saving=false;if(valid())status();}
+   return valid()&&!run.dirty&&!run.failed;
   }
   function review(photos,document){
    if(!valid())return;run.doc=structuredClone(document);
-   run.review=SmylPhotoReview.mount(host,{photos,document:run.doc,multiEvidence:run.store?.multiEvidence===true,current:valid,onChange:changed,onSave:()=>{if(!run.conflict)save(true);},contextNotes:()=>draft.notes()});
+   run.review=SmylPhotoReview.mount(host,{photos,document:run.doc,multiEvidence:run.store?.multiEvidence===true,current:valid,onChange:changed,onSave:()=>{if(!run.conflict)save(true);},onContinue:run.store?.specialistWorkflow?()=>resume(photos):null,contextNotes:()=>draft.notes()});
    status();dialog.scrollTop=0;host.querySelector('h1')?.setAttribute('tabindex','-1');host.querySelector('h1')?.focus({preventScroll:true});
+  }
+  function resume(photos){
+   if(!valid()||run.busy||run.dirty||run.saving||run.failed||run.conflict)return;
+   const W=SmylAnalysisWorkflow,count=W.summary(run.doc).ready,page=n('section','pr-app');
+   page.append(n('h1','','Retomar la revisión'),n('p','','Se conservan los resultados anteriores. Solo se enviarán los grupos pendientes: '+run.doc.workflow.stages.filter(s=>s.state==='ready').map(s=>W.groups.find(g=>g.key===s.key).label).join(', ')+'.'),n('p','pr-status',count+' solicitud'+(count===1?'':'es')+' a Claude/Anthropic. Puede generar consumo. Una solicitud sin respuesta confirmada no se repetirá; esas fotos quedan para revisión manual.'));
+   const label=n('label','pr-confirm'),consent=n('input');consent.type='checkbox';label.append(consent,document.createTextNode('Autorizo enviar las fotos de los grupos pendientes a Claude/Anthropic. Son originales del mismo paciente y tengo su autorización.'));
+   const interrupted=run.doc.workflow.stages.some(s=>s.state==='requested'),inactive=n('input');inactive.type='checkbox';inactive.checked=!interrupted;
+   const start=button('Continuar '+count+' '+(count===1?'revisión':'revisiones'),()=>{if(consent.checked&&inactive.checked&&valid())workflow(photos);},'pr-primary');start.disabled=true;
+   const sync=()=>start.disabled=!consent.checked||!inactive.checked;consent.onchange=inactive.onchange=sync;
+   page.append(label);
+   if(interrupted){const ack=n('label','pr-confirm');page.append(n('p','pr-storage-warning','Si la revisión sigue abierta en otra pestaña o dispositivo, vuelve allí y espera el resultado. Continuar aquí dejará esa solicitud como no confirmada y no incorporará su respuesta pendiente.'));ack.append(inactive,document.createTextNode('Confirmo que no tengo otra revisión en curso. Continuaré solo con los grupos aún no enviados.'));page.append(ack);}
+   page.append(button('Volver al mapa',()=>review(photos,run.doc)),start);run.review?.destroy();run.review=null;host.replaceChildren(page);dialog.scrollTop=0;
+  }
+  async function workflow(photos,initial=null){
+   if(!valid()||run.busy||!run.store?.specialistWorkflow)return;
+   const W=SmylAnalysisWorkflow;run.busy=true;run.stop=false;run.abort=new AbortController();clearTimeout(run.saveTimer);
+   run.review?.destroy();run.review=null;if(initial){run.doc=initial;run.dirty=true;}
+   const page=n('section','pr-app'),title=n('h1','','Revisando tus fotografías'),rows=n('ol','pr-workflow-steps'),feedback=n('p','pr-feedback'),stop=button('Detener después de esta revisión',()=>{run.stop=true;stop.disabled=true;feedback.textContent='Terminaremos la revisión actual y guardaremos su resultado.';});feedback.setAttribute('role','status');
+   page.append(n('p','pr-kicker','REVISIÓN PRIVADA · PASO A PASO'),title,n('p','','Cada grupo se guarda antes de pasar al siguiente. Después podrás comprobar las sugerencias en el mapa.'),rows,feedback,stop);host.replaceChildren(page);dialog.scrollTop=0;
+   function progress(){rows.replaceChildren();for(const s of run.doc.workflow.stages){const li=n('li','pr-step pr-step-'+s.state);li.append(n('strong','',W.groups.find(g=>g.key===s.key).label),n('span','',{ready:'Pendiente',requested:'Solicitud registrada · esperando respuesta',completed:'Resultado recibido · por revisar',unconfirmed:'Sin respuesta confirmada · revisión manual'}[s.state]));rows.append(li);}}
+   async function checkpoint(doc){run.doc=doc;run.dirty=true;progress();const ok=await save(true);if(!ok)throw Error('checkpoint');}
+   let notice='';
+   try{
+    progress();if(run.dirty&&!await save(true))throw Error('checkpoint');
+    // A previous interrupted request is not safe to repeat. Mark it explicitly, then continue only ready groups.
+    for(const s of [...run.doc.workflow.stages])if(s.state==='requested')await checkpoint(W.transition(run.doc,s.key,'unconfirmed'));
+    for(const key of run.doc.workflow.stages.filter(s=>s.state==='ready').map(s=>s.key)){
+     if(!valid()||run.stop)break;
+     await checkpoint(W.transition(run.doc,key,'requested'));if(!valid())break;
+     let result;
+     try{result=await SmylPhotoAnalysisClient.analyze({client:window.sb,tenant:row.tenant_id,photos:photos.filter(p=>run.doc.workflow.stages.find(s=>s.key===key).views.includes(p.view)),consent:true,current:valid,endpoint:window.EDGE_URL,publicKey:window.SUPA_KEY,signal:run.abort.signal,specialist:key});}
+     catch(e){if(!valid())break;notice=(e instanceof TypeError?'No se pudo confirmar la respuesta.':e.message)+' No repetimos la solicitud. Los demás grupos quedan pendientes.';await checkpoint(W.transition(run.doc,key,'unconfirmed'));break;}
+     if(!valid())break;
+     await checkpoint(W.transition(run.doc,key,'completed',result));
+    }
+   }catch(_){if(valid()&&!run.failed)notice='La revisión se detuvo sin repetir solicitudes. Conservamos el avance disponible para que lo compruebes.';}
+   finally{run.busy=false;if(valid()){if(notice)run.message=notice;review(photos,run.doc);}}
   }
   function choose(){
    const page=n('section','pr-app'),header=n('header','pr-heading');header.append(n('p','pr-kicker','FOTOGRAFÍAS ORIGINALES'),n('h1','','Observa. Comprueba. Decide.'),n('p','','Elige las fotos que quieres revisar. La IA puede sugerir detalles por comprobar; tú decides qué añadir al mapa dental.'));page.append(header);
@@ -57,11 +95,13 @@
    run.photos.forEach(p=>{const label=n('label','pr-choice'),img=n('img'),check=n('input');img.src=p.url;img.alt=SmylCaseModel.label(p.view)+' · original';check.type='checkbox';check.checked=true;check.value=p.view;inputs.push(check);label.append(img,check,n('span','',SmylCaseModel.label(p.view)),n('small','','Original · sin simulación'));grid.append(label);});fieldset.append(grid);
    const privacy=n('section','pr-privacy');privacy.append(n('h2','','Antes de enviar'),n('p','','Se enviará una copia de las fotos seleccionadas a Claude/Anthropic mediante el servicio Supabase de SMYL. Puede reducirse su resolución; el original guardado no cambia. Las fotos pueden identificar al paciente. No se adjuntan nombres, historia clínica ni imágenes generadas.'),n('p','','Cada análisis puede generar consumo de IA. No hay reintentos automáticos. Cerrar durante el análisis no garantiza cancelar el procesamiento.'));
    const permission=n('label','pr-confirm'),consent=n('input');consent.type='checkbox';permission.append(consent,document.createTextNode('Confirmo que las fotos son del mismo paciente, corresponden a dentición permanente y cuento con autorización para enviarlas a Claude/Anthropic.'));privacy.append(permission);fieldset.append(privacy);
+   const stages=n('p','pr-workflow-plan');fieldset.append(stages);
    const feedback=n('p','pr-feedback');feedback.setAttribute('role','status');page.append(fieldset,feedback);
    const selected=()=>run.photos.filter(p=>inputs.some(i=>i.checked&&i.value===p.view));
    const actions=n('div','pr-start-actions'),manual=button('Revisar sin IA',()=>{if(valid()&&!run.busy){review(selected(),SmylPhotoReviewModel.create(selected()));}});
    const analyze=button('Analizar fotos seleccionadas',async()=>{
     if(!valid()||!run.store||run.busy||!consent.checked||!selected().length)return;
+    if(run.store.specialistWorkflow){await workflow(selected(),SmylAnalysisWorkflow.create(selected()));return;}
     const photos=selected();run.busy=true;fieldset.disabled=true;manual.disabled=analyze.disabled=true;run.abort=new AbortController();
     feedback.textContent='Analizando los originales… Puede tardar alrededor de un minuto. No cierres esta ventana.';
     try{
@@ -70,7 +110,7 @@
     }catch(e){if(valid())feedback.textContent=e.name==='AbortError'?'Se interrumpió la espera. La solicitud pudo haberse procesado.':e instanceof TypeError?'No se pudo confirmar la respuesta. La solicitud pudo haberse procesado; no se reintentó.':e.message;}
     finally{run.busy=false;if(valid()){fieldset.disabled=false;consent.checked=false;sync();}}
    },'pr-primary');
-   function sync(){analyze.disabled=!run.store||run.busy||!consent.checked||!selected().length;manual.disabled=run.busy||!selected().length;analyze.textContent='Analizar '+selected().length+' foto'+(selected().length===1?'':'s');}
+   function sync(){analyze.disabled=!run.store||run.busy||!consent.checked||!selected().length;manual.disabled=run.busy||!selected().length;analyze.textContent='Analizar '+selected().length+' foto'+(selected().length===1?'':'s');const plan=SmylAnalysisWorkflow.plan(selected());stages.textContent=run.store?.specialistWorkflow?plan.length+' revisiones · '+plan.map(s=>SmylAnalysisWorkflow.groups.find(g=>g.key===s.key).label).join(' → ')+'. Una solicitud de IA por grupo, hasta tres.':'';}
    inputs.forEach(i=>i.onchange=()=>{consent.checked=false;sync();});consent.onchange=sync;actions.append(manual,analyze);page.append(actions,n('p','pr-footer','Las intraorales son opcionales: pueden aportar más detalle. No se envía nada al paciente; primero revisas tú.'));host.replaceChildren(page);sync();
   }
   try{

@@ -3,7 +3,7 @@
  'use strict';let seq=0;
  const n=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls||'';if(text!=null)e.textContent=text;return e;};
  const button=(text,fn,cls='pr-secondary')=>{const e=n('button',cls,text);e.type='button';e.onclick=fn;return e;};
- function mount(host,{photos,document:doc,multiEvidence=false,current=()=>true,onChange,onSave,contextNotes=()=>({})}){
+ function mount(host,{photos,document:doc,multiEvidence=false,current=()=>true,onChange,onSave,onContinue,contextNotes=()=>({})}){
   if(!SmylPhotoReviewModel.validate(doc)||!photos.length||doc.photos.some(s=>!photos.some(p=>p.view===s.view&&p.sha256===s.sha256)))throw Error('No se pudo verificar la revisión.');
   photos.forEach(p=>{const u=new URL(p.url);if(p.role!=='original'||u.protocol!=='blob:'||u.origin!==location.origin)throw Error('Solo originales locales.');});
   const F=SmylPhotoFindings,id='pr-'+(++seq),items=doc.items,analysis=doc.analysis;
@@ -12,6 +12,18 @@
   const valid=()=>!disposed&&current();
   const root=n('section','pr-app pr-workspace'),lead=n('header','pr-heading');
   lead.append(n('p','pr-kicker','EXPEDIENTE · REVISIÓN PRIVADA'),n('h1','','Tu mapa dental'),n('p','','Toca una pieza para revisar sus observaciones. Nada se comparte con el paciente.'));root.append(lead);host.replaceChildren(root);
+  let continueButton=null;
+  if(doc.schema===3){
+   const W=SmylAnalysisWorkflow,s=W.summary(doc),panel=n('details','pr-workflow-summary'),steps=n('ol','pr-workflow-steps'),heading=n('summary');panel.open=s.completed!==s.total;
+   heading.append(n('h2','',s.completed+' de '+s.total+' revisiones recibidas'));panel.append(heading,n('p','','La IA observa por grupos; tú revisas las evidencias y decides. No es un diagnóstico confirmado.'));
+   for(const stage of doc.workflow.stages){const li=n('li','pr-step pr-step-'+stage.state);li.append(n('strong','',W.groups.find(g=>g.key===stage.key).label),n('span','',stage.state==='completed'?stage.result.report.findings.length+' sugerencias por comprobar':{ready:'Pendiente',requested:'Respuesta no confirmada · no se repetirá',unconfirmed:'Respuesta no confirmada · revisar manualmente'}[stage.state]));steps.append(li);}panel.append(steps);
+   if(s.uncertain)panel.append(n('p','pr-storage-warning','Hay solicitudes sin respuesta confirmada. Pudieron generar consumo; no volveremos a enviarlas automáticamente. Revisa esas fotos manualmente.'));
+   if(s.ready&&onContinue){continueButton=button('Continuar '+s.ready+' '+(s.ready===1?'revisión pendiente':'revisiones pendientes'),()=>{if(valid())onContinue();},'pr-primary');panel.append(continueButton);}
+   const contrasts=n('details','pr-limits');contrasts.append(n('summary','','Puntos para contrastar entre fotografías'));
+   if(!s.overlaps.length)contrasts.append(n('p','','No se detectaron coincidencias de pieza y categoría entre grupos. Esto no confirma que no haya problemas.'));
+   for(const o of s.overlaps)contrasts.append(n('p','','Diente '+o.tooth+' · '+F.categories[o.category]+': aparece en '+o.sources.map(k=>W.groups.find(g=>g.key===k).label).join(' y ')+'. Contrasta los originales; se mantienen como observaciones separadas.'));
+   panel.append(contrasts);root.append(panel);
+  }
   const overview=n('p','pr-overview');root.append(overview);
   const evidenceSummary=n('p','pr-evidence-summary');root.append(evidenceSummary);
   const layout=n('div','pr-review-layout'),mapPanel=n('details','pr-map-panel');mapPanel.open=true;
@@ -31,8 +43,9 @@
   const grouping=n('div','pr-grouping');grouping.setAttribute('aria-label','Organizar observaciones');
   for(const [value,label] of [['tooth','Por diente'],['photo','Por fotografía']]){const b=button(label,()=>{groupBy=value;render();});b.dataset.groupBy=value;grouping.append(b);}
   const filters=n('div','pr-filters'),list=n('div','pr-list'),editor=n('section','pr-editor');editor.hidden=true;detail.append(grouping,filters,list,editor);
-  const limits=n('details','pr-limits');limits.append(n('summary','','Alcance y detalles de la revisión'),n('p','',analysis?'Apoyo IA experimental, con precisión clínica no validada. Una foto no confirma por sí sola caries, sarro o ausencia de piezas. La valoración corresponde al dentista.':'Revisión manual. No se enviaron fotos a IA.'));
+  const limits=n('details','pr-limits');limits.append(n('summary','','Alcance y detalles de la revisión'),n('p','',analysis||doc.schema===3?'Apoyo IA experimental, con precisión clínica no validada. Una foto no confirma por sí sola caries, sarro o ausencia de piezas. La valoración corresponde al dentista.':'Revisión manual. No se enviaron fotos a IA.'));
   for(const text of analysis?.report.limitations||[])limits.append(n('p','',text));
+  if(doc.schema===3)for(const s of doc.workflow.stages.filter(s=>s.state==='completed')){limits.append(n('h3','',SmylAnalysisWorkflow.groups.find(g=>g.key===s.key).label));for(const text of s.result.report.limitations)limits.append(n('p','',text));limits.append(n('p','',s.result.model+' · '+new Date(s.result.at).toLocaleString('es-MX')));}
   if(analysis)limits.append(n('p','',analysis.model+' · '+new Date(analysis.at).toLocaleString('es-MX')));root.append(limits);
   const saveBar=n('footer','pr-savebar'),saveStatus=n('p'),saveButton=button('Guardar revisión',onSave,'pr-primary');saveStatus.setAttribute('role','status');saveBar.append(saveStatus,saveButton);root.append(saveBar);
   const states={pending:'Por revisar',confirmed:'Confirmado por ti',rejected:'Descartado'};
@@ -55,7 +68,7 @@
   function render(){
    const evidence=SmylReviewEvidence.organize(doc,{by:groupBy,state:filter,tooth:selected});
    overview.textContent=evidence.pending+' por revisar · '+evidence.confirmed+' confirmadas · '+evidence.unassigned+' por ubicar';
-   evidenceSummary.textContent=doc.photos.length+' originales en esta revisión · '+(analysis?'IA analizó '+evidence.analyzed+' imágenes; esto no equivale a una valoración confirmada.':'Revisión manual, sin análisis de IA.')+' Las radiografías se revisan por separado en el expediente.';
+   evidenceSummary.textContent=doc.photos.length+' originales en esta revisión · '+(analysis?'IA analizó '+evidence.analyzed+' imágenes; esto no equivale a una valoración confirmada.':doc.schema===3?'Aún no hay resultados de IA confirmados como recibidos.':'Revisión manual, sin análisis de IA.')+' Las radiografías se revisan por separado en el expediente.';
    grouping.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.groupBy===groupBy)));
    for(const p of evidence.images){const b=nav.querySelector('[data-view="'+p.view+'"]');if(b){const label={usable:'Analizada',limited:'Visibilidad limitada',unusable:'No valorable'}[p.quality]||'Sin análisis IA';b.querySelector('small').textContent=label+' · '+p.pending+' pendientes · '+p.confirmed+' confirmadas';}}
    detailTitle.textContent=selected===null?'Observaciones de la revisión':selected===''?'Sin pieza asignada':'Diente '+selected;
@@ -74,12 +87,13 @@
     }list.append(block);
    }renderMap();
   }
-  function addManual(){if(!valid()||items.length>=64)return;const item={id:crypto.randomUUID(),sourceId:'',view:active,tooth:selected||'',text:'',state:'pending'};if(doc.schema===2)item.evidence=doc.photos.filter(p=>p.view===active).map(p=>({...p}));items.push(item);filter='all';changed();edit(item);}
+  function addManual(){if(!valid()||items.length>=64)return;if(doc.schema===3&&items.filter(i=>!i.sourceId).length>=34){alert('Esta revisión permite 34 notas manuales. Conservamos espacio para las sugerencias pendientes.');return;}const item={id:crypto.randomUUID(),sourceId:'',view:active,tooth:selected||'',text:'',state:'pending'};if(doc.schema>=2)item.evidence=doc.photos.filter(p=>p.view===active).map(p=>({...p}));items.push(item);filter='all';changed();edit(item);}
   function edit(item){
    if(!valid())return;syncEditor=()=>{};seen.clear();photo(item.view);editor.replaceChildren();editor.hidden=false;
    const title=n('h3','','Revisar observación');title.tabIndex=-1;editor.append(title);
    editor.append(n('p','pr-source-label','Evidencia: '+SmylCaseModel.label(item.view)+' · fotografía original de esta revisión.'),button('Ver este original',()=>{photo(item.view);photoHeader.scrollIntoView({block:'center'});}));
    const source=analysis?.report.findings.find(f=>f.id===item.sourceId);
+   if(source&&doc.schema===3){const group=SmylAnalysisWorkflow.source(doc,source.id);editor.append(n('p','pr-help','Origen de la sugerencia: '+SmylAnalysisWorkflow.groups.find(g=>g.key===group.key).label+'. Se conserva la respuesta original, aunque edites tu observación.'));}
    if(source){const evidence=n('details','pr-evidence');evidence.open=true;evidence.append(n('summary','','Qué sugirió la IA'),n('p','',source.observation),n('small','','Dónde revisar: '+source.evidence));editor.append(evidence);}
    if(item.state==='confirmed'||item.state==='rejected'){
     const originals=n('div','pr-support-links');for(const p of M.evidence(doc,item))originals.append(button('Ver '+SmylCaseModel.label(p.view),()=>photo(p.view)));
@@ -95,7 +109,7 @@
      };support.append(label);
     }editor.append(support);
    }
-   const evidenceLinks=n('div','pr-support-links');for(const p of M.evidence(doc,item)){const b=button('Revisar '+SmylCaseModel.label(p.view),()=>{photo(p.view);photoHeader.scrollIntoView({block:'center'});});b.dataset.supportView=p.view;evidenceLinks.append(b);}if(multiEvidence||doc.schema===2)editor.append(evidenceLinks);
+   const evidenceLinks=n('div','pr-support-links');for(const p of M.evidence(doc,item)){const b=button('Revisar '+SmylCaseModel.label(p.view),()=>{photo(p.view);photoHeader.scrollIntoView({block:'center'});});b.dataset.supportView=p.view;evidenceLinks.append(b);}if(multiEvidence||doc.schema>=2)editor.append(evidenceLinks);
    const toothLabel=n('label','','Diente confirmado por ti'),tooth=n('select');tooth.id=id+'-tooth';toothLabel.htmlFor=tooth.id;tooth.add(new Option('Seleccionar pieza…',''));SmylToothMap.teeth.forEach(t=>tooth.add(new Option('Diente '+t,t)));tooth.value=item.tooth;
    const textLabel=n('label','','Tu observación'),text=n('textarea');text.id=id+'-text';textLabel.htmlFor=text.id;text.rows=3;text.maxLength=600;text.value=item.text;
    const confirmLabel=n('label','pr-confirm'),check=n('input');check.type='checkbox';confirmLabel.append(check,document.createTextNode('Revisé los originales vinculados, la pieza y el texto. Confirmo esta observación con mi criterio profesional.'));
@@ -119,6 +133,7 @@
   return {destroy(){disposed=true;img.removeAttribute('src');root.remove();},setSaveState(s){
    if(disposed)return;savedDocument=s.savedDocument||null;syncEditor();saveStatus.textContent=!s.available?'Sin guardado disponible · no cierres si quieres conservar tus notas':s.message|| (s.saving?'Guardando revisión…':s.dirty?'Cambios sin guardar':s.revision?'Guardado en la nube · versión '+s.revision+' · privado':'Sin cambios guardados');
    saveBar.classList.toggle('pr-save-error',s.failed||!s.available);saveButton.disabled=!s.available||s.saving||s.conflict||!s.dirty;
+   if(continueButton)continueButton.disabled=!s.available||s.saving||s.dirty||s.failed||s.conflict;
   }};
  }
  window.SmylPhotoReview={mount};
