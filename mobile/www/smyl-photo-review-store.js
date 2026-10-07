@@ -13,9 +13,10 @@
   if(caps?.schema!==1||caps.enabled!==true||caps.tenant_id!==row.tenant_id)throw new Error('Guardado de revisiones no habilitado.');
   return {
    multiEvidence:caps.review_schema>=2&&caps.multi_evidence===true,
-   specialistWorkflow:caps.review_schema===3&&caps.specialist_workflow===1,
+   specialistWorkflow:caps.review_schema===3&&caps.specialist_workflow>=1,
+   restartUnconfirmed:caps.review_schema===3&&caps.restart_unconfirmed===1,
    async load(){await guard();const saved=await checked(client.from('smyl_photo_reviews').select('*').eq('tenant_id',row.tenant_id).eq('patient_id',row.patient_id).eq('case_id',row.id).maybeSingle());if(saved&&!M.validRow(saved,row))throw new Error('Revisión guardada no válida. No se reemplazó.');return saved;},
-   async save(document,revision){await guard();if(!M.validate(document,row)||(document.schema>=2&&!(caps.review_schema>=2&&caps.multi_evidence===true))||(document.schema===3&&!(caps.review_schema===3&&caps.specialist_workflow===1)))throw new Error('La revisión no se puede guardar.');
+   async save(document,revision){await guard();if(!M.validate(document,row)||(document.schema>=2&&!(caps.review_schema>=2&&caps.multi_evidence===true))||(document.schema===3&&!(caps.review_schema===3&&caps.specialist_workflow>=1)))throw new Error('La revisión no se puede guardar.');
     const saved=await checked(client.rpc('smyl_save_photo_review',{p_case_id:row.id,p_expected_revision:revision,p_document:document}));
     if(!M.validRow(saved,row)||saved.revision!==revision+1||!M.same(saved.document,document))throw new Error('No pudimos confirmar el guardado.');return saved;
    }

@@ -45,7 +45,7 @@
   }
   function review(photos,document){
    if(!valid())return;run.doc=structuredClone(document);
-   run.review=SmylPhotoReview.mount(host,{photos,document:run.doc,multiEvidence:run.store?.multiEvidence===true,current:valid,onChange:changed,onSave:()=>{if(!run.conflict)save(true);},onContinue:run.store?.specialistWorkflow?()=>resume(photos):null,contextNotes:()=>draft.notes()});
+   run.review=SmylPhotoReview.mount(host,{photos,document:run.doc,multiEvidence:run.store?.multiEvidence===true,current:valid,onChange:changed,onSave:()=>{if(!run.conflict)save(true);},onContinue:run.store?.specialistWorkflow?()=>resume(photos):null,onRestart:run.store?.restartUnconfirmed?()=>restart(photos):null,contextNotes:()=>draft.notes()});
    status();dialog.scrollTop=0;host.querySelector('h1')?.setAttribute('tabindex','-1');host.querySelector('h1')?.focus({preventScroll:true});
   }
   function resume(photos){
@@ -59,6 +59,15 @@
    page.append(label);
    if(interrupted){const ack=n('label','pr-confirm');page.append(n('p','pr-storage-warning','Si la revisión sigue abierta en otra pestaña o dispositivo, vuelve allí y espera el resultado. Continuar aquí dejará esa solicitud como no confirmada y no incorporará su respuesta pendiente.'));ack.append(inactive,document.createTextNode('Confirmo que no tengo otra revisión en curso. Continuaré solo con los grupos aún no enviados.'));page.append(ack);}
    page.append(button('Volver al mapa',()=>review(photos,run.doc)),start);run.review?.destroy();run.review=null;host.replaceChildren(page);dialog.scrollTop=0;
+  }
+  function restart(photos){
+   if(!valid()||run.busy||run.dirty||run.saving||run.failed||run.conflict||!run.store?.restartUnconfirmed||!SmylAnalysisWorkflow.canRestart(run.doc))return;
+   const page=n('section','pr-app');
+   page.append(n('p','pr-kicker','NUEVA REVISIÓN · MISMAS FOTOS'),n('h1','','Intentar el análisis nuevamente'),n('p','','Conservaremos tus fotografías y observaciones manuales. La revisión anterior seguirá en el historial; no reutilizaremos una respuesta incierta.'));
+   const notice=n('p','pr-storage-warning','Se enviarán nuevamente los grupos seleccionados a Claude/Anthropic. Esto crea solicitudes nuevas y puede generar consumo de IA.');
+   const label=n('label','pr-confirm'),consent=n('input');consent.type='checkbox';label.append(consent,document.createTextNode('Autorizo iniciar un análisis nuevo con estas fotografías del mismo paciente.'));
+   const start=button('Iniciar análisis nuevo',()=>{if(consent.checked&&valid())workflow(photos,SmylAnalysisWorkflow.restart(run.doc));},'pr-primary');start.disabled=true;consent.onchange=()=>start.disabled=!consent.checked;
+   page.append(notice,label,button('Volver al mapa',()=>review(photos,run.doc)),start);run.review?.destroy();run.review=null;host.replaceChildren(page);dialog.scrollTop=0;
   }
   async function workflow(photos,initial=null){
    if(!valid()||run.busy||!run.store?.specialistWorkflow)return;

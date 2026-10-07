@@ -3,7 +3,7 @@
  'use strict';let seq=0;
  const n=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls||'';if(text!=null)e.textContent=text;return e;};
  const button=(text,fn,cls='pr-secondary')=>{const e=n('button',cls,text);e.type='button';e.onclick=fn;return e;};
- function mount(host,{photos,document:doc,multiEvidence=false,current=()=>true,onChange,onSave,onContinue,contextNotes=()=>({})}){
+ function mount(host,{photos,document:doc,multiEvidence=false,current=()=>true,onChange,onSave,onContinue,onRestart,contextNotes=()=>({})}){
   if(!SmylPhotoReviewModel.validate(doc)||!photos.length||doc.photos.some(s=>!photos.some(p=>p.view===s.view&&p.sha256===s.sha256)))throw Error('No se pudo verificar la revisión.');
   photos.forEach(p=>{const u=new URL(p.url);if(p.role!=='original'||u.protocol!=='blob:'||u.origin!==location.origin)throw Error('Solo originales locales.');});
   const F=SmylPhotoFindings,id='pr-'+(++seq),items=doc.items,analysis=doc.analysis;
@@ -12,13 +12,14 @@
   const valid=()=>!disposed&&current();
   const root=n('section','pr-app pr-workspace'),lead=n('header','pr-heading');
   lead.append(n('p','pr-kicker','EXPEDIENTE · REVISIÓN PRIVADA'),n('h1','','Tu mapa dental'),n('p','','Toca una pieza para revisar sus observaciones. Nada se comparte con el paciente.'));root.append(lead);host.replaceChildren(root);
-  let continueButton=null;
+  let continueButton=null,restartButton=null;
   if(doc.schema===3){
    const W=SmylAnalysisWorkflow,s=W.summary(doc),panel=n('details','pr-workflow-summary'),steps=n('ol','pr-workflow-steps'),heading=n('summary');panel.open=s.completed!==s.total;
    heading.append(n('h2','',s.completed+' de '+s.total+' revisiones recibidas'));panel.append(heading,n('p','','La IA observa por grupos; tú revisas las evidencias y decides. No es un diagnóstico confirmado.'));
    for(const stage of doc.workflow.stages){const li=n('li','pr-step pr-step-'+stage.state);li.append(n('strong','',W.groups.find(g=>g.key===stage.key).label),n('span','',stage.state==='completed'?stage.result.report.findings.length+' sugerencias por comprobar':{ready:'Pendiente',requested:'Respuesta no confirmada · no se repetirá',unconfirmed:'Respuesta no confirmada · revisar manualmente'}[stage.state]));steps.append(li);}panel.append(steps);
-   if(s.uncertain)panel.append(n('p','pr-storage-warning','Hay solicitudes sin respuesta confirmada. Pudieron generar consumo; no volveremos a enviarlas automáticamente. Revisa esas fotos manualmente.'));
+   if(s.uncertain)panel.append(n('p','pr-storage-warning','No pudimos completar una o más revisiones. Tus fotografías y notas están guardadas; no añadimos resultados dudosos al mapa.'));
    if(s.ready&&onContinue){continueButton=button('Continuar '+s.ready+' '+(s.ready===1?'revisión pendiente':'revisiones pendientes'),()=>{if(valid())onContinue();},'pr-primary');panel.append(continueButton);}
+   if(W.canRestart(doc)&&onRestart){restartButton=button('Iniciar un análisis nuevo',()=>{if(valid())onRestart();},'pr-primary');panel.append(restartButton,n('p','pr-help','La solicitud anterior no se repetirá. Esta acción crea una revisión nueva y puede generar consumo de IA.'));}
    const contrasts=n('details','pr-limits');contrasts.append(n('summary','','Puntos para contrastar entre fotografías'));
    if(!s.overlaps.length)contrasts.append(n('p','','No se detectaron coincidencias de pieza y categoría entre grupos. Esto no confirma que no haya problemas.'));
    for(const o of s.overlaps)contrasts.append(n('p','','Diente '+o.tooth+' · '+F.categories[o.category]+': aparece en '+o.sources.map(k=>W.groups.find(g=>g.key===k).label).join(' y ')+'. Contrasta los originales; se mantienen como observaciones separadas.'));
@@ -134,6 +135,7 @@
    if(disposed)return;savedDocument=s.savedDocument||null;syncEditor();saveStatus.textContent=!s.available?'Sin guardado disponible · no cierres si quieres conservar tus notas':s.message|| (s.saving?'Guardando revisión…':s.dirty?'Cambios sin guardar':s.revision?'Guardado en la nube · versión '+s.revision+' · privado':'Sin cambios guardados');
    saveBar.classList.toggle('pr-save-error',s.failed||!s.available);saveButton.disabled=!s.available||s.saving||s.conflict||!s.dirty;
    if(continueButton)continueButton.disabled=!s.available||s.saving||s.dirty||s.failed||s.conflict;
+   if(restartButton)restartButton.disabled=!s.available||s.saving||s.dirty||s.failed||s.conflict;
   }};
  }
  window.SmylPhotoReview={mount};

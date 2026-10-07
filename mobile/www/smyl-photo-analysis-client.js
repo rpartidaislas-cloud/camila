@@ -49,7 +49,7 @@
     check();content.push({type:'text',text:'Foto original · view='+p.view+' · '+SmylCaseModel.label(p.view)},{type:'image',source:{type:'base64',media_type:'image/jpeg',data:encoded}});
    }
    content.push({type:'text',text:'Revisa únicamente estas fotografías. Devuelve el contrato JSON indicado. No se han enviado simulaciones ni historia clínica. Vistas: '+photos.map(p=>p.view).join(', ')});
-   const body=JSON.stringify({model,max_tokens:6500,system:prompt,messages:[{role:'user',content}]});
+   const body=JSON.stringify({action:'analyze_dental_photos_v1',requestId:crypto.randomUUID(),model,max_tokens:6500,system:prompt,messages:[{role:'user',content}]});
    if(body.length>14000000)throw new Error('Selecciona menos fotografías para este análisis.');
    const session=await bounded(client.auth.getSession()),s=session.data?.session;
    if(session.error||s?.user?.id!==tenant||s.user.is_anonymous!==false||!s.access_token)throw changed();

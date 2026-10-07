@@ -40,11 +40,22 @@
   if(next.items.length>64)throw Error('No hay espacio para añadir estas sugerencias.');
   return next;
  }
+ function canRestart(doc){
+  return !!doc&&doc.schema===3&&Array.isArray(doc.photos)&&Array.isArray(doc.items)&&valid(doc.workflow,doc.photos)&&same(aggregate(doc.workflow,doc.photos),doc.analysis)&&doc.analysis===null&&doc.items.every(i=>!i.sourceId)&&doc.workflow.stages.some(s=>s.state==='unconfirmed')&&doc.workflow.stages.every(s=>['ready','unconfirmed'].includes(s.state));
+ }
+ function restart(doc){
+  if(!canRestart(doc))throw Error('Esta revisión no se puede iniciar de nuevo.');
+  const next=structuredClone(doc),now=new Date().toISOString();next.workflow.at=now===doc.workflow.at?new Date(Date.parse(now)+1).toISOString():now;
+  for(const stage of next.workflow.stages){stage.state='ready';stage.attempt=null;stage.result=null;}
+  next.analysis=null;
+  if(!valid(next.workflow,next.photos)||aggregate(next.workflow,next.photos)!==null)throw Error('No se pudo preparar la nueva revisión.');
+  return next;
+ }
  function source(doc,id){if(doc.schema!==3)return null;return doc.workflow.stages.find(s=>s.state==='completed'&&s.result.report.findings.some((f,k)=>'f'+(groups.find(g=>g.key===s.key).offset+k+1)===id))||null;}
  function summary(doc){
   const stages=doc.workflow.stages,overlaps=[];
   for(const f of doc.analysis?.report.findings||[]){if(!f.tooth)continue;const key=f.tooth+':'+f.category;let group=overlaps.find(g=>g.key===key);if(!group){group={key,tooth:f.tooth,category:f.category,sources:[],ids:[]};overlaps.push(group);}const stage=source(doc,f.id);if(!group.sources.includes(stage.key))group.sources.push(stage.key);group.ids.push(f.id);}
   return {total:stages.length,completed:stages.filter(s=>s.state==='completed').length,ready:stages.filter(s=>s.state==='ready').length,uncertain:stages.filter(s=>['requested','unconfirmed'].includes(s.state)).length,overlaps:overlaps.filter(g=>g.sources.length>1)};
  }
- return {groups,plan,valid,aggregate,create,transition,source,summary};
+ return {groups,plan,valid,aggregate,create,transition,canRestart,restart,source,summary};
 });
