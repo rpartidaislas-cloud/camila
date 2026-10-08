@@ -38,7 +38,7 @@
   const nav=n('nav','cw-nav');nav.setAttribute('aria-label','Avance del caso');ctx.nav={};root.append(nav);
   const photos=module(ctx,'photos','01','Evidencias','Selecciona las fotografías y simulaciones de este caso.');photos.details.open=true;
   const review=module(ctx,'review','02','Revisión clínica','Comprueba las sugerencias y organiza el mapa dental.');
-  const plan=module(ctx,'plan','03','Plan de tratamiento','Define tu valoración y los siguientes pasos.');
+  const plan=module(ctx,'plan','03','Plan de tratamiento','La IA propone un borrador; tú corriges y apruebas.');
   const share=module(ctx,'share','04','Compartir con el paciente','Prepara mySmyl y decide si incluir el presupuesto.');
   for(const [id,label] of [['photos','Evidencias'],['review','Revisión clínica'],['plan','Plan'],['share','Compartir']]){const b=btn(label,()=>open(id));ctx.nav[id]=b;nav.append(b);}syncNav(ctx);
   const identity=screen.querySelector('.clinic-patient-card');
@@ -50,7 +50,7 @@
   reviewTop.append(ctx.reviewText,ctx.reviewButton);review.body.append(reviewTop);
   review.body.append(n('p','cw-help','Aquí se reúnen fotografías, mapa dental y radiografías. Las simulaciones nunca se utilizan como evidencia clínica.'));
   const planProgress=n('ul','cw-checklist');ctx.planChecks={};
-  for(const [id,label] of [['assessment','Escribir la valoración'],['treatments','Añadir tratamiento o indicación'],['approved','Revisar y guardar el plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
+  for(const [id,label] of [['assessment','Preparar o escribir la valoración'],['treatments','Elegir tratamientos o indicaciones'],['approved','Revisar y guardar el plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
   plan.body.prepend(planProgress);
   ctx.shareHint=n('p','cw-help');share.body.append(ctx.shareHint);
   share.body.append(n('p','cw-share-copy','El paciente verá su antes y después, tu explicación y los siguientes pasos. El presupuesto no se incluye salvo que tú lo actives.'));
@@ -70,6 +70,7 @@
  function select(ctx,entry){
   ctx.selected=entry;
   for(const item of ctx.entries||[]){item.card.classList.toggle('cw-selected',item===entry);const radio=item.card.querySelector('.cw-case-choice input');if(radio)radio.checked=item===entry;}
+  dispatchEvent(new CustomEvent('smyl:case-selection',{detail:{tenant:ctx.tenant,patient:ctx.patient,caseId:entry?.row.id||''}}));
   refresh();
  }
  function refresh(){
@@ -105,13 +106,14 @@
   if(reviewComplete){copy(ctx.reviewButton,'Continuar al plan');ctx.reviewAction=()=>open('plan');}
   else if(rxPending&&!photoPending){copy(ctx.reviewButton,'Revisar mapa y radiografías');ctx.reviewAction=()=>ctx.modules.review.body.querySelector('.dr-record')?.scrollIntoView({block:'start',behavior:'smooth'});}
   else {copy(ctx.reviewButton,dental?.hasReview?(photoPending?'Revisar '+photoPending+' observaciones':'Continuar análisis'):'Analizar fotografías');ctx.reviewAction=()=>{if(ctx.selected?.current())ctx.selected.review();};}
-  state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready?'Revisado y guardado':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',clinical?.ready?'done':'pending');
+  const planComplete=reviewComplete&&clinical?.ready;
+  state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready&&!reviewComplete?'Guardado · falta revisión clínica':clinical?.ready?'Revisado y guardado':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',planComplete?'done':'pending');
   for(const [id,done] of [['assessment',clinical?.assessment],['treatments',clinical?.treatments],['approved',clinical?.ready]]){const item=ctx.planChecks[id];copy(item,(done?'✓ ':'○ ')+item.dataset.label);item.dataset.done=String(!!done);}
-  ctx.planNext.disabled=!clinical?.ready;
-  const eligible=pairs>0&&clinical?.ready;
-  const receipt=ctx.receipts.get(entry?.row.id),created=receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision&&clinical?.ready;
+  ctx.planNext.disabled=!planComplete;
+  const eligible=pairs>0&&planComplete;
+  const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
   state(ctx,'share',created?'Enlace creado · sin enviar':eligible?'Lista para preparar':'Falta completar',created?'done':eligible?'neutral':'pending');
-  copy(ctx.shareHint,!pairs?'Falta una foto con su simulación guardada.':!clinical?.ready?'Falta revisar y guardar tu valoración y plan. No necesitas generar otra simulación.':'Fotos y plan listos. Ahora elige lo que verá el paciente y aprueba la presentación.');
+  copy(ctx.shareHint,!pairs?'Falta una foto con su simulación guardada.':!reviewComplete?'Falta terminar la revisión clínica antes de preparar una presentación nueva.':!clinical?.ready?'Falta revisar y guardar tu valoración y plan. No necesitas generar otra simulación.':'Fotos, revisión y plan listos. Ahora elige lo que verá el paciente y aprueba la presentación.');
   ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;
   ctx.history.disabled=!entry;
   if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
@@ -129,6 +131,6 @@
   addEventListener('smyl:portal-revoked',e=>{const ctx=active,d=e.detail;if(valid(ctx)&&d?.tenant===ctx.tenant&&d.patient===ctx.patient){ctx.receipts.delete(d.caseId);refresh();}});
   window.sb?.auth?.onAuthStateChange?.((event,session)=>{const ctx=active;if(ctx?.root.isConnected&&(session?.user?.id!==ctx.tenant||session.user.is_anonymous)){ctx.revoked=true;ctx.entries=null;ctx.selected=null;ctx.receipts.clear();ctx.root.replaceChildren(n('p','cw-overview','La sesión cambió. Abre nuevamente el expediente con la cuenta autorizada.'));}});
  }
- window.SmylCaseWorkspace={open};
+ window.SmylCaseWorkspace={open,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

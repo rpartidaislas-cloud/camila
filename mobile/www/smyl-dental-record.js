@@ -31,7 +31,28 @@
    workflowPending:stages.filter(s=>s.state!=='completed').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
    rxReviews:(ctx.rxReviews||[]).length,rxPending:rxItems.filter(i=>i.state==='pending').length,
    rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length};
- }};
+  },planContext(tenant,patient,caseId){
+   const ctx=active;
+   const snapshot=()=>{
+    if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño'||!SmylCaseModel.uuid(caseId))return null;
+    const review=(ctx.photoReviews||[]).find(r=>r.case_id===caseId),photoItems=review?.document.items||[];
+    const stages=review?.document.schema===3&&Array.isArray(review.document.workflow?.stages)?review.document.workflow.stages:[];
+    const rxItems=(ctx.rxReviews||[]).flatMap(r=>r.document.items||[]);
+    const pending=photoItems.filter(i=>i.state==='pending').length+stages.filter(s=>s.state!=='completed').length+rxItems.filter(i=>i.state==='pending').length;
+    const evidence=[];
+    for(const [tooth,note] of Object.entries(ctx.doc.teeth||{})){
+     const text=[note.observation&&'Observación del dentista: '+note.observation,note.action&&'Acción propuesta por el dentista: '+note.action].filter(Boolean).join('\n');
+     if(text.trim())evidence.push({source:'manual_map',tooth,text:text.slice(0,1200)});
+    }
+    for(const item of photoItems.filter(i=>i.state==='confirmed'))evidence.push({source:'photo_confirmed',tooth:item.tooth||'',text:item.text.slice(0,1200)});
+    for(const item of rxItems.filter(i=>i.state==='confirmed'))evidence.push({source:'radiograph_confirmed',tooth:item.tooth||'',text:item.text.slice(0,1200)});
+    const limitations=[...(review?.document.analysis?.report?.limitations||[]),...(ctx.rxReviews||[]).flatMap(r=>r.document.analysis?.report?.limitations||[])].filter((v,i,a)=>typeof v==='string'&&v.trim()&&a.indexOf(v)===i).slice(0,20).map(v=>v.slice(0,400));
+    const data={ready:ctx.ready&&!ctx.busy&&!ctx.dirty&&ctx.photoLoaded===true&&ctx.rxLoaded===true&&!!review&&pending===0,pending,evidence,limitations,caseId};
+    return {...data,fingerprint:JSON.stringify(data)};
+   };
+   const value=snapshot();if(!value)return null;
+   return {...value,isCurrent:()=>{const next=snapshot();return !!next&&next.fingerprint===value.fingerprint;}};
+  }};
  // Does not grant access or save remotely. Existing save/RLS/versioning remain authoritative.
  window.SmylDentalDraft={capture(tenant,patient){
   const ctx=active;
@@ -65,7 +86,7 @@
    await guard(ctx);const rows=await checked(sb.from('smyl_photo_reviews').select('*').eq('tenant_id',ctx.tenant).eq('patient_id',ctx.patient));
    if(!current(ctx)||token!==ctx.photoLoad)return;
    if(!Array.isArray(rows)||rows.some(r=>r.tenant_id!==ctx.tenant||r.patient_id!==ctx.patient||r.updated_by!==ctx.tenant||!SmylCaseModel.uuid(r.case_id)||!Number.isInteger(r.revision)||r.revision<1||!Number.isFinite(Date.parse(r.updated_at))||!SmylPhotoReviewModel.validate(r.document)))throw new Error('Revisión no verificada');
-   ctx.photoLoaded=true;ctx.photoReviews=rows;ctx.photoStatus.textContent=rows.length?'El mapa incluye observaciones fotográficas confirmadas. Las sugerencias pendientes permanecen en su revisión.':'';renderTeeth(ctx);
+    ctx.photoLoaded=true;ctx.photoReviews=rows;ctx.photoStatus.textContent=rows.length?'El mapa incluye observaciones fotográficas confirmadas. Las sugerencias pendientes permanecen en su revisión.':'';renderTeeth(ctx);dispatchEvent(new CustomEvent('smyl:dental-context-updated',{detail:{tenant:ctx.tenant,patient:ctx.patient}}));
   }catch(e){if(current(ctx)&&token===ctx.photoLoad){ctx.photoLoaded=false;ctx.photoReviews=[];renderTeeth(ctx);ctx.photoStatus.textContent=['42P01','PGRST205'].includes(e.code)?'El guardado de revisiones fotográficas aún no está activado.':'No se pudieron actualizar las revisiones fotográficas; no se muestran hasta verificar su estado. Las notas manuales siguen disponibles.';}}
  }
  async function loadRadiographReviews(ctx){
@@ -74,7 +95,7 @@
    await guard(ctx);const rows=await checked(sb.from('smyl_radiograph_reviews').select('*').eq('tenant_id',ctx.tenant).eq('patient_id',ctx.patient));
    if(!current(ctx)||token!==ctx.rxLoad)return;
    if(!Array.isArray(rows)||rows.some(r=>{const study=ctx.doc.studies.find(s=>s.id===r.study_id);return !study||!SmylRadiographReviewModel.validRow(r,study,ctx.tenant,ctx.patient);} ))throw new Error('Revisión radiográfica no verificada');
-   ctx.rxLoaded=true;ctx.rxReviews=rows;ctx.rxStatus.textContent=rows.length?'Las observaciones radiográficas confirmadas están vinculadas a su imagen original. Las pendientes permanecen en su revisión.':'La revisión asistida es opcional. Nada se añade al mapa sin tu confirmación.';renderTeeth(ctx);renderStudies(ctx);
+    ctx.rxLoaded=true;ctx.rxReviews=rows;ctx.rxStatus.textContent=rows.length?'Las observaciones radiográficas confirmadas están vinculadas a su imagen original. Las pendientes permanecen en su revisión.':'La revisión asistida es opcional. Nada se añade al mapa sin tu confirmación.';renderTeeth(ctx);renderStudies(ctx);dispatchEvent(new CustomEvent('smyl:dental-context-updated',{detail:{tenant:ctx.tenant,patient:ctx.patient}}));
   }catch(e){if(current(ctx)&&token===ctx.rxLoad){ctx.rxLoaded=false;ctx.rxReviews=[];renderTeeth(ctx);renderStudies(ctx);ctx.rxStatus.textContent=['42P01','PGRST205','PGRST202'].includes(e.code)?'La revisión asistida está preparada, pero su guardado privado aún no está activado.':'No se pudieron verificar las revisiones radiográficas; no se muestran hasta recuperar su estado.';}}
  }
  function toothDialog(ctx,tooth){
@@ -194,7 +215,7 @@
    }
    await guard(ctx);const row=await checked(sb.rpc('smyl_save_dental_record',{p_patient_id:ctx.patient,p_expected_revision:ctx.revision,p_document:doc}));
    if(!current(ctx))return;if(!row||row.patient_id!==ctx.patient||row.tenant_id!==ctx.tenant||!M.validate(row.document,ctx.tenant,ctx.patient)||!SmylCaseModel.same(row.document,doc))throw new Error('Respuesta no confirmada');
-   ctx.revision=row.revision;ctx.doc=row.document;ctx.dirty=false;ctx.files.clear();renderStudies(ctx);message(ctx,'Observaciones guardadas · versión '+row.revision+'. No se ha aprobado ningún tratamiento.');
+    ctx.revision=row.revision;ctx.doc=row.document;ctx.dirty=false;ctx.files.clear();renderStudies(ctx);message(ctx,'Observaciones guardadas · versión '+row.revision+'. No se ha aprobado ningún tratamiento.');dispatchEvent(new CustomEvent('smyl:dental-context-updated',{detail:{tenant:ctx.tenant,patient:ctx.patient}}));
   }catch(e){if(current(ctx)){if(e.code==='40001')ctx.ready=false;message(ctx,errorText(e));}}
   finally{ctx.busy=false;if(current(ctx)){ctx.form.disabled=!ctx.ready;ctx.save.disabled=!ctx.ready||!ctx.dirty;}}
  }

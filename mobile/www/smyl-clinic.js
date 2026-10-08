@@ -1,4 +1,4 @@
-/* Stage 3: patient registry and clinician-owned plan. No AI or outbound sends. */
+/* Stage 3: clinician-owned plan with explicit AI drafting. AI never saves, approves or sends. */
 (function () {
   'use strict';
   var model = window.SmylClinicalModel;
@@ -38,6 +38,7 @@
   }
   function leave() {
     if (current && current.saving) { alert('Espera a que termine el guardado.'); return false; }
+    if (current && current.aiBusy) { alert('Espera a que termine el borrador con IA o cancélalo.'); return false; }
     if (current && current.dirty && !confirm('Hay cambios sin guardar en la ficha. ¿Quieres salir y descartarlos?')) return false;
     sequence++; current = null; return true;
   }
@@ -80,6 +81,7 @@
     if (!current || !current.ready) return;
     current.dirty = JSON.stringify(formDocument()) !== current.saved;
     document.getElementById('clinic-review-confirm').checked = false;
+    if (current.aiDraft) clearAIDraft('La información cambió. Genera otro borrador si quieres volver a usar la IA.');
     status();
   }
   function status() {
@@ -100,6 +102,7 @@
       resume.querySelector('p').textContent = ready ? 'Listo. Tu valoración y plan ya están revisados.' : 'Falta completar la valoración y el tratamiento, y pulsar «Revisar plan». Después podrás continuar aquí.';
       resume.querySelector('button').disabled = !ready;
     }
+    updateAIState();
   }
   var rowSequence = 0;
   function addTreatment(item) {
@@ -113,6 +116,97 @@
     var remove = button('Quitar', function () { row.remove(); changed(); }, 'clinic-remove');
     remove.setAttribute('aria-label', 'Quitar este tratamiento'); row.append(remove);
     document.getElementById('clinic-treatments').append(row);
+  }
+  function planContext(ctx) {
+    if (!ctx || current !== ctx || !ctx.ready || ctx.saving || ctx.aiBusy) return {error:'El plan no está listo.'};
+    var selected = window.SmylCaseWorkspace?.context(ctx.tenant, ctx.patient);
+    if (!selected) return {error:'Selecciona primero una sesión en Evidencias.'};
+    var dental = window.SmylDentalProgress?.planContext(ctx.tenant, ctx.patient, selected.caseId);
+    if (!dental) return {error:'Espera a que termine de cargar la revisión clínica.'};
+    if (!dental.ready) return {error:dental.pending ? 'Termina de revisar '+dental.pending+' observaciones antes de preparar el plan con IA.' : 'Guarda el mapa y comprueba la revisión clínica antes de continuar.'};
+    var doc = formDocument(),raw=[];
+    function add(source,tooth,text){text=String(text||'').trim();if(text&&raw.length<64)raw.push({source:source,tooth:tooth||'',text:text.slice(0,1200)});}
+    add('patient_goal','',doc.reason);
+    add('clinical_history','',doc.background);
+    add('clinician_assessment','',doc.assessment);
+    doc.treatments.forEach(function(t){add('clinician_assessment',/^[1-4][1-8]$/.test(t.area)?t.area:'',['Tratamiento ya registrado: '+t.name,t.area&&'Zona: '+t.area,t.notes].filter(Boolean).join('\n'));});
+    dental.evidence.forEach(function(item){add(item.source,item.tooth,item.text);});
+    if (!raw.length) return {error:'Registra el motivo de consulta o confirma al menos una observación antes de usar la IA.'};
+    var input={schema:1,evidence:raw.map(function(item,index){return {id:'E'+(index+1),source:item.source,tooth:item.tooth,text:item.text};}),limitations:dental.limitations.slice(0,20)};
+    if (!window.SmylTreatmentPlanModel?.validateInput(input)) return {error:'La información confirmada no está lista para generar un borrador.'};
+    var formSnapshot=JSON.stringify(doc),fingerprint=dental.fingerprint;
+    return {input:input,dental:dental,selected:selected,isCurrent:function(){return current===ctx&&ctx.ready&&!ctx.saving&&selected.isCurrent()&&dental.isCurrent()&&dental.fingerprint===fingerprint&&JSON.stringify(formDocument())===formSnapshot;}};
+  }
+  function clearAIDraft(message) {
+    if (!current) return;
+    current.aiDraft=null;
+    var results=document.getElementById('clinic-ai-results');if(results)results.replaceChildren();
+    var state=document.getElementById('clinic-ai-state');if(state&&message)state.textContent=message;
+  }
+  function updateAIState() {
+    var ctx=current,generate=document.getElementById('clinic-ai-generate'),state=document.getElementById('clinic-ai-state'),consent=document.getElementById('clinic-ai-consent');
+    if (!ctx||!generate||!state||!consent) return;
+    if (ctx.aiBusy) { generate.disabled=false;generate.textContent='Cancelar';state.textContent='Preparando un borrador privado…';return; }
+    generate.textContent='Preparar borrador con IA';
+    var capture=planContext(ctx);
+    generate.disabled=!!capture.error||!consent.checked||ctx.saving;
+    if (!ctx.aiDraft) {
+      if (capture.error) state.textContent=capture.error;
+      else {
+        var count=capture.input.evidence.length;
+        state.textContent='Usará '+count+' '+(count===1?'dato confirmado':'datos confirmados')+'. No enviará nombres, fotos ni simulaciones.';
+      }
+    }
+  }
+  function sourceLabel(item) {
+    var labels={patient_goal:'Motivo del paciente',clinical_history:'Antecedente clínico',clinician_assessment:'Criterio del dentista',manual_map:'Nota del mapa',photo_confirmed:'Fotografía confirmada',radiograph_confirmed:'Radiografía confirmada'};
+    return (item.tooth?'Diente '+item.tooth+' · ':'')+(labels[item.source]||'Evidencia confirmada');
+  }
+  function renderAIDraft(ctx,result,capture) {
+    if (current!==ctx||!capture.isCurrent()) return;
+    ctx.aiDraft={result:result,capture:capture};
+    var draft=result.draft,host=document.getElementById('clinic-ai-results');host.replaceChildren();
+    var summary=el('section','clinic-ai-summary');summary.append(el('strong','','Valoración sugerida'),el('p','',draft.summary));
+    var assessment=el('label','clinic-ai-choice'),assessmentCheck=el('input');assessmentCheck.type='checkbox';assessmentCheck.dataset.aiAssessment='true';assessmentCheck.checked=!document.getElementById('clinic-assessment').value.trim();
+    assessment.append(assessmentCheck,document.createTextNode(document.getElementById('clinic-assessment').value.trim()?' Usar esta valoración y reemplazar la actual':' Usar esta valoración en el plan'));summary.append(assessment);host.append(summary);
+    if(draft.goals.length){var goals=el('section','clinic-ai-list');goals.append(el('strong','','Objetivos sugeridos'));var goalList=el('ul');draft.goals.forEach(function(v){goalList.append(el('li','',v));});goals.append(goalList);host.append(goals);}
+    var heading=el('div','clinic-ai-result-heading');heading.append(el('strong','','Opciones de tratamiento'),el('span','',draft.treatments.length+' sugeridas'));host.append(heading);
+    if(!draft.treatments.length)host.append(notice('La información no permite sugerir tratamientos responsables. Revisa las preguntas pendientes.'));
+    draft.treatments.forEach(function(item,index){
+      var card=el('article','clinic-ai-treatment'),label=el('label','clinic-ai-choice'),check=el('input');check.type='checkbox';check.dataset.aiTreatment=String(index);check.checked=true;label.append(check,el('strong','',item.name));card.append(label);
+      if(item.area)card.append(el('p','',item.area));card.append(el('p','',item.rationale));
+      if(item.prerequisites.length)card.append(el('small','','Antes de avanzar: '+item.prerequisites.join('; ')));
+      var basis=el('div','clinic-ai-basis');item.basis.forEach(function(id){var source=capture.input.evidence.find(v=>v.id===id);if(source)basis.append(el('span','',sourceLabel(source)));});card.append(basis);host.append(card);
+    });
+    if(draft.questions.length){var questions=el('section','clinic-ai-list');questions.append(el('strong','','Antes de decidir'));var questionList=el('ul');draft.questions.forEach(function(v){questionList.append(el('li','',v));});questions.append(questionList);host.append(questions);}
+    var limits=[...capture.input.limitations,...draft.limitations].filter(function(v,i,a){return a.indexOf(v)===i;});
+    if(limits.length){var limitations=el('details','clinic-ai-limitations');limitations.append(el('summary','','Limitaciones del borrador'));var limitList=el('ul');limits.forEach(function(v){limitList.append(el('li','',v));});limitations.append(limitList);host.append(limitations);}
+    var apply=button('Incorporar selección al plan',function(){applyAIDraft(ctx);},'btn btn-primary');host.append(apply);
+    document.getElementById('clinic-ai-state').textContent='Borrador listo · nada se ha guardado ni aprobado.';
+  }
+  function applyAIDraft(ctx) {
+    var prepared=ctx.aiDraft;if(current!==ctx||!prepared||!prepared.capture.isCurrent()){clearAIDraft('La evidencia cambió. Genera un borrador nuevo.');return;}
+    var host=document.getElementById('clinic-ai-results'),draft=prepared.result.draft,used=0;
+    if(host.querySelector('[data-ai-assessment]')?.checked){document.getElementById('clinic-assessment').value=draft.summary;used++;}
+    var existing=new Set(Array.from(document.querySelectorAll('.clinic-treatment')).map(function(row){return (row.querySelector('[data-field=name]').value+'|'+row.querySelector('[data-field=area]').value).trim().toLowerCase();}));
+    host.querySelectorAll('[data-ai-treatment]:checked').forEach(function(box){
+      if(document.querySelectorAll('.clinic-treatment').length>=20)return;var item=window.SmylTreatmentPlanModel.toPlanTreatment(draft.treatments[Number(box.dataset.aiTreatment)]),key=(item.name+'|'+item.area).trim().toLowerCase();if(existing.has(key))return;existing.add(key);addTreatment(item);used++;
+    });
+    if(!used){document.getElementById('clinic-ai-state').textContent='Selecciona al menos una sugerencia para incorporarla.';return;}
+    clearAIDraft();changed();document.getElementById('clinic-feedback').replaceChildren(notice('Borrador incorporado. Revísalo y edítalo antes de guardar.'));document.getElementById('clinic-assessment').focus({preventScroll:true});
+  }
+  async function generateAIDraft() {
+    var ctx=current;if(!ctx||ctx.saving)return;
+    if(ctx.aiBusy){ctx.aiAbort?.abort();return;}
+    var consent=document.getElementById('clinic-ai-consent'),state=document.getElementById('clinic-ai-state'),capture=planContext(ctx);
+    if(capture.error){state.textContent=capture.error;updateAIState();return;}
+    if(!consent.checked){state.textContent='Confirma el envío privado de estos datos antes de continuar.';return;}
+    ctx.aiBusy=true;ctx.aiAbort=new AbortController();clearAIDraft();updateAIState();
+    try{
+      var result=await window.SmylTreatmentPlanClient.suggest({client:window.sb,tenant:ctx.tenant,input:capture.input,current:capture.isCurrent,endpoint:window.EDGE_URL,publicKey:window.SUPA_KEY,signal:ctx.aiAbort.signal});
+      if(current===ctx&&capture.isCurrent())renderAIDraft(ctx,result,capture);
+    }catch(error){if(current===ctx)state.textContent=error.name==='AbortError'?'Generación cancelada. No se aplicó ningún cambio.':error.message;}
+    finally{if(current===ctx){ctx.aiBusy=false;ctx.aiAbort=null;consent.checked=false;updateAIState();}}
   }
   function renderEditor() {
     var host = document.getElementById('clinic-content'); host.replaceChildren();
@@ -129,10 +223,15 @@
     form.append(heading, field('Valoración del profesional', 'clinic-assessment', doc.assessment, 8000, true));
     form.querySelector('#clinic-assessment').placeholder = 'Tus hallazgos y valoración tras revisar al paciente. Puedes guardar un borrador y completarlo después.';
     var plan = el('div', 'clinic-section-heading');
-    plan.append(el('h3', '', 'Plan de tratamiento'), el('p', '', 'Puedes proponer lo que el paciente necesita, aunque sea distinto de la simulación.'));
+    plan.append(el('h3', '', 'Plan de tratamiento'), el('p', '', 'La IA puede organizar un borrador desde la evidencia confirmada. Tú decides qué incorporar, corriges y apruebas.'));
+    var ai=el('section','clinic-ai');ai.append(el('span','pro-eyebrow','COPILOTO CLÍNICO'),el('h4','','Borrador dirigido por IA'),el('p','','Usa únicamente el motivo de consulta, tus notas y observaciones ya confirmadas. No recibe nombres, fotografías ni simulaciones.'));
+    var consent=el('label','clinic-ai-consent'),consentCheck=el('input');consentCheck.type='checkbox';consentCheck.id='clinic-ai-consent';consent.append(consentCheck,document.createTextNode(' Autorizo enviar estos datos clínicos confirmados para preparar este borrador.'));
+    var aiState=el('p','clinic-ai-state');aiState.id='clinic-ai-state';aiState.setAttribute('role','status');
+    var generate=button('Preparar borrador con IA',generateAIDraft,'btn btn-secondary');generate.id='clinic-ai-generate';
+    var aiResults=el('div','clinic-ai-results');aiResults.id='clinic-ai-results';ai.append(consent,aiState,generate,aiResults);
     var list = el('div'); list.id = 'clinic-treatments';
     var add = button('+ Añadir tratamiento', function () { addTreatment(); changed(); document.querySelector('.clinic-treatment:last-child input').focus(); }); add.id = 'clinic-add';
-    form.append(plan, list, add);
+    form.append(plan, ai, list, add);
     var foot = el('div', 'clinic-savebar');
     var saveState = el('p'); saveState.id = 'clinic-save-status'; saveState.setAttribute('role', 'status');
     var actions = el('div', 'clinic-actions');
@@ -150,7 +249,7 @@
     proposal.id = 'clinic-proposal'; foot.append(proposal);
     host.append(form);
     doc.treatments.forEach(addTreatment);
-    form.addEventListener('input', changed);
+    form.addEventListener('input', function(event){if(event.target.closest('.clinic-ai'))updateAIState();else changed();});
     status();
   }
   function renderReview(doc) {
@@ -185,7 +284,7 @@
       if (Array.isArray(row)) row = row[0];
       if (!row || row.patient_id !== ctx.patient || row.tenant_id !== ctx.tenant || !row.revision) throw new Error('Unconfirmed save');
       if (current !== ctx || !activeForm.isConnected) return;
-      ctx.row = row; ctx.saved = JSON.stringify(doc); ctx.dirty = false;
+      ctx.row = row; ctx.saved = JSON.stringify(doc); ctx.dirty = false; clearAIDraft();
       document.getElementById('clinic-feedback').replaceChildren(notice(review ? 'Plan revisado y guardado. No se ha enviado a nadie.' : 'Borrador guardado en la clínica.'));
       document.getElementById('clinic-history').open = false;
       document.getElementById('clinic-history-list').replaceChildren();
@@ -228,7 +327,7 @@
     if (!p || !leave()) return;
     pacienteActual = p;
     window.ir('paciente-detalle');
-    var ctx = { tenant: tenantId, patient: p.id, ready: false, row: null, dirty: false, saving: false }; current = ctx;
+    var ctx = { tenant: tenantId, patient: p.id, ready: false, row: null, dirty: false, saving: false, aiBusy: false, aiAbort: null, aiDraft: null }; current = ctx;
     var token = ++sequence;
     var screen = document.getElementById('p-paciente-detalle'); screen.replaceChildren();
     screen.append(button('← Pacientes', function () { ir('pacientes'); }, 'clinic-back'));
@@ -370,9 +469,10 @@
         var ctx = current;
         if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient) return null;
         var review = capturePatientReview(tenant, patient);
-        var doc = ctx.ready ? formDocument() : null;
+        var mounted = !!document.getElementById('clinic-form');
+        var doc = ctx.ready && mounted ? formDocument() : null;
         return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving,
-          available: ctx.ready, saving: ctx.saving, saved: !!ctx.row,
+          available: ctx.ready && mounted, saving: ctx.saving, saved: !!ctx.row,
           assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
       },
       focus: function (tenant, patient, resume) {
@@ -396,6 +496,7 @@
     window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients;
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;
+    ['smyl:dental-context-updated','smyl:case-selection'].forEach(function(name){addEventListener(name,function(event){if(current&&event.detail?.tenant===current.tenant&&event.detail?.patient===current.patient)status();});});
     TITULOS['paciente-detalle'] = 'Ficha del paciente';
     var priorRoute = window.ir;
     window.ir = function (route) {
@@ -415,7 +516,7 @@
     window.cerrarModalPaciente = function () { if (!savingPatient) oldClose(); };
     var oldLogout = window.cerrarSesion;
     window.cerrarSesion = function () { if (leave()) oldLogout(); };
-    addEventListener('beforeunload', function (event) { if ((current && (current.dirty || current.saving)) || savingPatient) { event.preventDefault(); event.returnValue = ''; } });
+    addEventListener('beforeunload', function (event) { if ((current && (current.dirty || current.saving || current.aiBusy)) || savingPatient) { event.preventDefault(); event.returnValue = ''; } });
     var modal = document.getElementById('modal-paciente');
     modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','modal-pac-title');
     var fields = modal.querySelector('.form-grid'), optional = el('details', 'clinic-secondary clinic-patient-extra');
