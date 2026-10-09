@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-09 — Codex: panel clínico v18 publicado
+
+**Tocado:** `app.html`.
+
+- Se publicó el refresh visual del panel con identidad Harbor Blue y teal,
+  jerarquía clínica más clara, onboarding del dashboard y tarjetas refinadas.
+- El flujo de nuevo diseño incorpora progreso adaptable y áreas de carga con
+  prioridad clínica; la navegación móvil usa cinco destinos y acción central.
+- La integración se aplicó sobre la rama vigente de GitHub Pages y preserva
+  el expediente, revisión clínica, radiografías y demás lógica reciente.
+- QA aprobado: scripts inline, consola limpia y revisión responsive sin
+  desbordes horizontales.
+- **No se tocaron backend, Supabase, prompts, archivos nativos ni simuladores.**
+
 ## 2026-09-27 — Publicación solicitada: recorrido y laterales v112
 
 Se publica el recorrido Fotografías/Opciones/Resultado y el ajuste de región
