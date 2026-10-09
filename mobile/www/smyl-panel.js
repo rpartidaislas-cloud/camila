@@ -18,8 +18,8 @@
   function init() {
     document.body.classList.add('smyl-professional');
     var title = document.getElementById('topbar-title');
-    TITULOS.dashboard = 'Inicio'; TITULOS.historial = 'Casos';
-    TITULOS.propuestas = 'Propuestas'; TITULOS['nuevo-diseno'] = 'Valoración y diseño';
+    TITULOS.dashboard = 'Inicio'; TITULOS.historial = 'Simulaciones anteriores';
+    TITULOS.propuestas = 'Presentaciones'; TITULOS['nuevo-diseno'] = 'Valoración y diseño';
     if (title.textContent === 'Dashboard') title.textContent = 'Inicio';
     var sidebar = document.querySelector('.sidebar .nav-items');
     var old = Array.from(sidebar.querySelectorAll('.nav-item'));
@@ -35,12 +35,10 @@
       return el;
     }
     var primary = node('nav', 'pro-primary-nav'); primary.setAttribute('aria-label', 'Panel profesional');
-    primary.append(take('dashboard', 'Inicio'), take('pacientes', 'Pacientes'), take('historial', 'Casos'));
-    var proposals = navButton('Propuestas', 'propuestas');
-    proposals.append(node('small', 'pro-next', 'Próximamente')); primary.append(proposals);
-    var settings = node('details', 'pro-settings'); settings.append(node('summary', '', 'Configuración y herramientas'));
-    ['nuevo-diseno','colaboraciones','notificaciones','precios','sim-config','mi-cuenta'].forEach(function (route, index) {
-      settings.append(take(route, ['Valoración y diseño','Equipo y colaboraciones','Notificaciones','Precios de la clínica','Marca y simulación','Mi cuenta'][index]));
+    primary.append(take('dashboard', 'Inicio'), take('pacientes', 'Pacientes'), navButton('Presentaciones', 'propuestas'));
+    var settings = node('details', 'pro-settings'); settings.append(node('summary', '', 'Archivo y configuración'));
+    ['historial','nuevo-diseno','colaboraciones','notificaciones','precios','sim-config','mi-cuenta'].forEach(function (route, index) {
+      settings.append(take(route, ['Simulaciones anteriores','Valoración y diseño','Equipo y colaboraciones','Notificaciones','Precios de la clínica','Marca y simulación','Mi cuenta'][index]));
     });
     sidebar.replaceChildren(primary, settings);
     var topButton = document.querySelector('.topbar-right .btn-primary');
@@ -48,17 +46,22 @@
     document.querySelector('.sb-logo span').textContent = 'Panel profesional';
     var main = document.querySelector('.contenido');
     var mobile = node('nav', 'pro-mobile-nav'); mobile.setAttribute('aria-label', 'Panel profesional móvil');
-    [['Inicio','dashboard'],['Pacientes','pacientes'],['Casos','historial'],['Propuestas','propuestas']].forEach(function (entry) {
+    [['Inicio','dashboard'],['Pacientes','pacientes'],['Presentaciones','propuestas']].forEach(function (entry) {
       mobile.append(navButton(entry[0], entry[1]));
     });
     main.before(mobile);
     var home = document.getElementById('p-dashboard');
     var hero = node('section', 'pro-welcome');
-    hero.innerHTML = '<div><p class="pro-eyebrow">TU ESPACIO DE CONSULTA</p><h1>De una fotografía<br>a una nueva posibilidad.</h1><p>Prepara una simulación con tu paciente y continúa su caso a tu ritmo.</p><a class="btn btn-primary" href="simulacion-rapida.html?workspace=professional">Nueva simulación <span aria-hidden="true">↗</span></a></div><aside><span class="pro-step-number">01 — 02</span><h2>Prepara. Compara.</h2><p>Una foto es suficiente para empezar. Puedes añadir otras vistas e intraorales como apoyo.</p><span class="pro-welcome-note">Las decisiones clínicas siempre son tuyas.</span></aside>';
+    hero.innerHTML = '<div><p class="pro-eyebrow">TU MESA DE TRABAJO</p><h1>Continúa donde<br>lo dejaste.</h1><p>Abre la ficha del paciente y SMYL te mostrará el siguiente paso, desde las fotografías hasta la presentación.</p><a class="btn btn-primary" href="#" data-open-patients>Ver pacientes <span aria-hidden="true">→</span></a></div><aside><span class="pro-step-number">UN SOLO RECORRIDO</span><h2>Fotografías. Revisión. Plan. Compartir.</h2><p>Cada caso avanza dentro del expediente. No necesitas buscarlo en varias secciones.</p><a class="pro-welcome-note" href="simulacion-rapida.html?workspace=professional">+ Iniciar una nueva simulación</a></aside>';
+    hero.querySelector('[data-open-patients]').addEventListener('click', function (event) { event.preventDefault(); window.ir('pacientes'); });
     home.prepend(hero);
     var stats = home.querySelector('.stats-grid');
     stats.classList.add('pro-stats');
     var columns = stats.nextElementSibling; columns.classList.add('pro-dashboard-columns');
+    var recentTitle = columns.querySelector('.card-title');
+    if (recentTitle) recentTitle.textContent = 'Actividad reciente';
+    var recentLink = columns.querySelector('.card-header a');
+    if (recentLink) { recentLink.textContent = 'Abrir pacientes →'; recentLink.setAttribute('onclick', "ir('pacientes')"); }
     var future = node('section', 'pantalla'); future.id = 'p-propuestas';
     future.innerHTML = '<div class="pro-coming"><span class="pro-eyebrow">SIGUIENTE ETAPA</span><h1>Una propuesta que acompaña tu criterio.</h1><p>Aquí reunirás el tratamiento revisado, las fotografías y la cotización para presentarlos al paciente.</p><div class="pro-coming-grid"><article><h2>Preparar en SMYL</h2><p>Valorar, ajustar el tratamiento y aprobar la propuesta clínica.</p></article><article><h2>Gestionar con LANA</h2><p>Vincular al cliente, enviar la propuesta y dar seguimiento comercial.</p></article></div><p class="pro-status-note">Este espacio está en preparación. La conexión completa con LANA y los envíos aún no están habilitados aquí.</p><button type="button" class="btn btn-secondary" onclick="ir(\'historial\')">Consultar mis casos actuales</button></div>';
     main.append(future);

@@ -681,17 +681,17 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   .contenido{padding-bottom:100px!important}
 }
 </style>
-<link rel="stylesheet" href="smyl-panel.css?v=1">
-<script defer src="smyl-panel.js?v=1"></script>
+<link rel="stylesheet" href="smyl-panel.css?v=2">
+<script defer src="smyl-panel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=2">
 <script defer src="smyl-clinical-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
 <script defer src="smyl-clinic.js?v=6"></script>
-<link rel="stylesheet" href="smyl-proposals.css?v=1">
+<link rel="stylesheet" href="smyl-proposals.css?v=2">
 <script defer src="smyl-proposal-model.js?v=1"></script>
 <script defer src="smyl-proposal-print.js?v=1"></script>
-<script defer src="smyl-proposals.js?v=4"></script>
+<script defer src="smyl-proposals.js?v=5"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=2">
 <script defer src="smyl-case-model.js?v=2"></script>
 <script defer src="smyl-case-client.js?v=1"></script>
@@ -711,7 +711,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-radiograph-review-store.js?v=1"></script>
 <script defer src="smyl-radiograph-analysis-client.js?v=1"></script>
 <script defer src="smyl-radiograph-review.js?v=1"></script>
-<script defer src="smyl-dental-record.js?v=8"></script>
+<script defer src="smyl-dental-record.js?v=9"></script>
 <link rel="stylesheet" href="smyl-photo-review.css?v=3">
 <script defer src="smyl-photo-findings.js?v=1"></script>
 <script defer src="smyl-analysis-workflow.js?v=2"></script>
@@ -722,8 +722,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-photo-review.js?v=5"></script>
 <script defer src="smyl-photo-analysis-client.js?v=3"></script>
 <script defer src="smyl-photo-analysis.js?v=5"></script>
-<link rel="stylesheet" href="smyl-case-workspace.css?v=2">
-<script defer src="smyl-case-workspace.js?v=4"></script>
+<link rel="stylesheet" href="smyl-case-workspace.css?v=3">
+<script defer src="smyl-case-workspace.js?v=5"></script>
 </head>
 <body>
 <!-- The build identifier belongs in diagnostics, not over the patient's form. -->
@@ -2637,19 +2637,26 @@ function renderTablaPacientes(lista) {
     el.innerHTML = '<div class="empty"><div class="icon">👥</div><h3>Sin pacientes aún</h3><p>Agrega tu primer paciente para comenzar.</p><button class="btn btn-primary" onclick="abrirModalPaciente()">+ Agregar paciente</button></div>';
     return;
   }
-  el.innerHTML = '<table class="tabla"><thead><tr><th>Paciente</th><th>Contacto</th><th>Edad</th><th>Acciones</th></tr></thead><tbody>' +
-    lista.map(function(p) {
-      var ini = (p.nombre || '?').charAt(0).toUpperCase();
-      var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
-      return '<tr>' +
-        '<td><div style="display:flex;align-items:center;gap:10px"><div class="pac-avatar">' + ini + '</div><div><div class="pac-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</div></div></div></td>' +
-        '<td><div style="font-size:12px">' + (p.email||'-') + '</div><div style="font-size:11px;color:var(--texto3)">' + (p.telefono||'-') + '</div></td>' +
-        '<td>' + edad + '</td>' +
-        '<td><div style="display:flex;gap:6px">' +
-        '<button class="btn btn-secondary btn-sm" onclick="verPaciente(\'' + p.id + '\')">Ver expediente</button>' +
-        '<button class="btn btn-icon" onclick="abrirModalPaciente(\'' + p.id + '\')">✏️</button>' +
-        '</div></td></tr>';
-    }).join('') + '</tbody></table>';
+  var directory = document.createElement('div');
+  directory.className = 'patient-directory';
+  lista.forEach(function(p) {
+    var row = document.createElement('article'); row.className = 'patient-row';
+    var identity = document.createElement('div'); identity.className = 'patient-identity';
+    var avatar = document.createElement('div'); avatar.className = 'pac-avatar'; avatar.textContent = (p.nombre || '?').charAt(0).toUpperCase();
+    var copy = document.createElement('div'); copy.className = 'patient-copy';
+    var name = document.createElement('div'); name.className = 'patient-name'; name.textContent = ((p.nombre || '') + ' ' + (p.apellido || '')).trim() || 'Paciente sin nombre';
+    var age = document.createElement('div'); age.className = 'patient-meta'; age.textContent = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : 'Edad por completar';
+    copy.append(name, age); identity.append(avatar, copy);
+    var contact = document.createElement('div'); contact.className = 'patient-contact';
+    var contactText = document.createElement('div'); contactText.className = 'patient-meta'; contactText.textContent = p.telefono || p.email || 'Sin datos de contacto';
+    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); status.textContent = complete ? 'Datos completos' : 'Contacto por completar';
+    contact.append(contactText, status);
+    var actions = document.createElement('div'); actions.className = 'patient-actions';
+    var open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-primary btn-sm'; open.textContent = 'Continuar expediente'; open.addEventListener('click', function(){ verPaciente(p.id); });
+    var edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary btn-sm btn-icon'; edit.textContent = 'Editar'; edit.setAttribute('aria-label','Editar datos de ' + name.textContent); edit.addEventListener('click', function(){ abrirModalPaciente(p.id); });
+    actions.append(open, edit); row.append(identity, contact, actions); directory.append(row);
+  });
+  el.replaceChildren(directory);
 }
 
 function filtrarPacientes() {
