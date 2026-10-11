@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-10 — Codex: etapa 2, centro seguro LANA + Meta
+
+**Tocado:** `app.html`, `smyl-panel.js`, `smyl-connections.js/css`, `sw.js`,
+`supabase/functions/lana-connection/index.ts`, `docs/LANA_INTEGRATION.md` y
+`tests/lana-connection-stage2.test.mjs`.
+
+- Se añadió al panel el centro **LANA y canales** con estado real de enlace,
+  verificación manual y acceso a LANA para WhatsApp, Messenger e Instagram.
+- LANA permanece como única dueña de los webhooks y credenciales de Meta;
+  SMYL no duplica la bandeja ni recibe tokens de Meta.
+- El código de enlace de `camila-api` se valida servidor a servidor y se
+  guarda cifrado con AES-256-GCM dentro de la configuración del tenant. La
+  credencial nunca vuelve al navegador ni se persiste en almacenamiento web.
+- Solo el dueño puede conectar o reemplazar el código; el staff puede ver el
+  estado y verificarlo. La entrega clínica conserva aprobación humana.
+- Se reutiliza `camila-api`, ya desplegada en LANA; no se modificaron ni
+  desplegaron los webhooks de Meta/WhatsApp de LANA.
+- `lana-connection` quedó desplegada como versión 1 con verificación JWT;
+  `SMYL_LANA_ENCRYPTION_KEY` quedó configurado como secreto del proyecto.
+- PWA actualizada a `smyl-v164-lana-connection-center`.
+
 ## 2026-10-10 — Codex: cierre de producto, etapa 1
 
 **Tocado:** `app.html`, `smyl-panel.js`, `smyl-panel.css`, `sw.js` y

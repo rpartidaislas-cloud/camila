@@ -1,4 +1,4 @@
-/* Stage 2: presentation only. Existing authentication, permissions and loaders stay authoritative. */
+/* Professional product shell. Existing authentication, permissions and loaders stay authoritative. */
 (function () {
   'use strict';
   function node(tag, cls, text) {
@@ -72,7 +72,7 @@
     var recentLink = columns.querySelector('.card-header a');
     if (recentLink) { recentLink.textContent = 'Abrir pacientes →'; recentLink.setAttribute('onclick', "ir('pacientes')"); }
     var future = node('section', 'pantalla'); future.id = 'p-propuestas';
-    future.innerHTML = '<div class="pro-coming"><span class="pro-eyebrow">SIGUIENTE ETAPA</span><h1>Una propuesta que acompaña tu criterio.</h1><p>Aquí reunirás el tratamiento revisado, las fotografías y la cotización para presentarlos al paciente.</p><div class="pro-coming-grid"><article><h2>Preparar en SMYL</h2><p>Valorar, ajustar el tratamiento y aprobar la propuesta clínica.</p></article><article><h2>Gestionar con LANA</h2><p>Vincular al cliente, enviar la propuesta y dar seguimiento comercial.</p></article></div><p class="pro-status-note">Este espacio está en preparación. La conexión completa con LANA y los envíos aún no están habilitados aquí.</p><button type="button" class="btn btn-secondary" onclick="ir(\'historial\')">Consultar mis casos actuales</button></div>';
+    future.innerHTML = '<div class="pro-coming"><span class="pro-eyebrow">PRESENTACIONES</span><h1>Una propuesta que acompaña tu criterio.</h1><p>Aquí reunirás el tratamiento revisado, las fotografías y la cotización para presentarlos al paciente.</p><div class="pro-coming-grid"><article><h2>Preparar en SMYL</h2><p>Valorar, ajustar el tratamiento y aprobar la propuesta clínica.</p></article><article><h2>Continuar en LANA</h2><p>Atender el chat de Meta y dar seguimiento sin duplicar la conversación.</p></article></div><p class="pro-status-note">La conexión con LANA se administra por clínica. El envío clínico seguirá requiriendo tu revisión y aprobación.</p><div class="pro-welcome-actions"><button type="button" class="btn btn-primary" onclick="ir(\'conexiones\')">Configurar LANA</button><button type="button" class="btn btn-secondary" onclick="ir(\'historial\')">Consultar casos actuales</button></div></div>';
     main.append(future);
     var previous = window.ir;
     window.ir = function (route) {

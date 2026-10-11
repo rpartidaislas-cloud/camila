@@ -1,5 +1,40 @@
 # Integración SMYL ↔ LANA
 
+## Chat de Meta administrado por LANA
+
+LANA es la única dueña operativa de WhatsApp, Messenger e Instagram. SMYL
+no registra un segundo webhook de Meta, no solicita tokens de Meta y no
+duplica la bandeja de conversaciones.
+
+La pantalla **LANA y canales** del panel permite que el dueño de una clínica
+pegue una sola vez el `api_key` de `camila_integraciones` generado en LANA.
+La Edge Function `lana-connection` valida ese código contra el endpoint ya
+desplegado de LANA:
+
+```text
+GET https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api/conversations?limit=1
+```
+
+Después de validarlo, SMYL lo cifra con AES-256-GCM y guarda únicamente el
+ciphertext, IV y huella dentro de la configuración de la clínica. La clave
+nunca regresa al navegador ni se guarda en `localStorage`. Solo el dueño
+puede establecer o reemplazar la conexión; el staff puede consultar y
+verificar el estado.
+
+Configurar en SMYL como Edge Function Secret:
+
+```text
+SMYL_LANA_ENCRYPTION_KEY
+```
+
+Debe contener exactamente 32 bytes codificados en Base64. Esta conexión no
+autoriza envíos clínicos automáticos: una simulación, diagnóstico o propuesta
+siempre requiere revisión y aprobación profesional antes de compartirse.
+
+El alta y revocación de cada `api_key` sigue ocurriendo en LANA por su
+superadmin. El panel de SMYL no crea credenciales de LANA ni administra las
+cuentas de Meta.
+
 ## Variables privadas
 
 Configurar como Supabase Edge Function Secrets; nunca se incluyen en el
