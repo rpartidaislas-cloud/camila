@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var state = { loading: false, loaded: false, status: null };
+  var state = { loading: false, loaded: false, status: null, contextLoaded: false };
 
   function node(tag, cls, text) {
     var el = document.createElement(tag);
@@ -41,6 +41,16 @@
       '<section class="connections-card"><div class="connections-card-head"><div><span>CANALES</span><h2>Meta permanece en LANA</h2></div></div>' +
       '<div class="connections-channel-list"><div><span class="connections-channel-icon">W</span><p><strong>WhatsApp</strong><small data-channel-state>Se configura en LANA</small></p></div><div><span class="connections-channel-icon">M</span><p><strong>Messenger</strong><small data-channel-state>Se configura en LANA</small></p></div><div><span class="connections-channel-icon">I</span><p><strong>Instagram</strong><small data-channel-state>Se configura en LANA</small></p></div></div>' +
       '<p class="connections-boundary">SMYL no solicita ni almacena tokens de Meta. LANA conserva la bandeja, las respuestas y la configuración de cada canal.</p></section></div>' +
+      '<section class="connections-context" aria-labelledby="lana-context-title"><div class="connections-section-heading"><span>CONTEXTO DE ATENCIÓN</span><h2 id="lana-context-title">Enséñale a LANA cómo atender a tus pacientes</h2><p>Esta información se guarda en la cuenta LANA conectada y entra en las respuestas reales de WhatsApp, Messenger e Instagram.</p></div>' +
+      '<form data-lana-context-form><div class="connections-context-grid"><label class="full">Descripción de la clínica<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label>' +
+      '<label class="full">Servicios que puede explicar<textarea name="services" maxlength="3000" rows="4" placeholder="Ej. valoración estética, limpieza, blanqueamiento, carillas. No escribas precios que no estén confirmados."></textarea></label>' +
+      '<label>Ubicación<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label>' +
+      '<label class="full">Preguntas frecuentes confirmadas<textarea name="faq" maxlength="4000" rows="5" placeholder="Pregunta: ¿La valoración tiene costo? Respuesta: ..."></textarea></label>' +
+      '<label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. dolor agudo, urgencias, dudas clínicas, inconformidad o solicitud de hablar con el dentista."></textarea></label>' +
+      '<label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label>' +
+      '<label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Preguntas frecuentes</option><option value="3">3 · Atención asistida</option><option value="4">4 · Autónoma</option></select></label></div>' +
+      '<div class="connections-context-guard"><strong>Límites clínicos siempre activos</strong><p>LANA puede orientar sobre la clínica, servicios y citas. No diagnostica, prescribe, promete resultados ni comparte expedientes, simulaciones o propuestas clínicas sin revisión profesional.</p></div>' +
+      '<div class="connections-actions"><button type="submit" class="btn btn-primary" data-save-lana-context>Guardar y activar en LANA</button><span class="connections-context-status" data-lana-context-status role="status"></span></div></form></section>' +
       '<section class="connections-safety"><strong>Control clínico</strong><p>La conexión habilita el puente entre productos; no autoriza a enviar diagnósticos, simulaciones ni propuestas sin que el dentista los revise y apruebe.</p></section></div>';
   }
 
@@ -90,6 +100,12 @@
     connectButton.textContent = connected || attention ? 'Reemplazar código' : 'Conectar LANA';
     verifyButton.hidden = !connected && !attention;
     input.value = '';
+    var contextForm = document.querySelector('[data-lana-context-form]');
+    if (contextForm) {
+      contextForm.dataset.connected = String(connected);
+      contextForm.querySelectorAll('input,textarea,select,button').forEach(function (control) { control.disabled = !connected || !status.can_manage; });
+    }
+    if (connected) loadContext(true);
   }
 
   async function sessionToken() {
@@ -127,6 +143,51 @@
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  async function contextRequest(method, payload) {
+    var response = await fetch(SUPA_URL + '/functions/v1/lana-context', {
+      method: method,
+      headers: { 'Authorization': 'Bearer ' + await sessionToken(), 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+      body: method === 'PUT' ? JSON.stringify({ context: payload }) : undefined,
+    });
+    var data = await response.json().catch(function () { return {}; });
+    if (!response.ok) throw new Error(data.error || 'No se pudo sincronizar el contexto.');
+    return data;
+  }
+
+  function contextStatus(text, tone) {
+    var el = document.querySelector('[data-lana-context-status]');
+    if (!el) return;
+    el.textContent = text || '';
+    el.dataset.tone = tone || '';
+  }
+
+  function fillContext(context) {
+    var form = document.querySelector('[data-lana-context-form]');
+    if (!form) return;
+    ['clinic_description','services','location','hours','faq','handoff_rules','tone','autonomy_level'].forEach(function (name) {
+      if (form.elements[name]) form.elements[name].value = context && context[name] !== undefined ? context[name] : (name === 'autonomy_level' ? '2' : name === 'tone' ? 'profesional' : '');
+    });
+    if (context && context.updated_at) contextStatus('Sincronizado ' + new Date(context.updated_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }), 'success');
+  }
+
+  async function loadContext(force) {
+    if (!state.status || !state.status.connected || (state.contextLoaded && !force)) return;
+    contextStatus('Cargando contexto…', '');
+    try { var data = await contextRequest('GET'); fillContext(data.context || {}); state.contextLoaded = true; }
+    catch (error) { contextStatus(error.message, 'error'); }
+  }
+
+  async function saveContext(event) {
+    event.preventDefault();
+    var form = event.currentTarget, button = form.querySelector('[data-save-lana-context]'), context = {};
+    ['clinic_description','services','location','hours','faq','handoff_rules','tone'].forEach(function (name) { context[name] = form.elements[name].value.trim(); });
+    context.autonomy_level = Number(form.elements.autonomy_level.value);
+    button.disabled = true; contextStatus('Guardando en LANA…', '');
+    try { var data = await contextRequest('PUT', context); fillContext(data.context || context); contextStatus('Contexto activo en las respuestas de LANA.', 'success'); }
+    catch (error) { contextStatus(error.message, 'error'); }
+    finally { button.disabled = !state.status || !state.status.connected || !state.status.can_manage; }
   }
 
   async function loadStatus(force) {
@@ -208,6 +269,7 @@
     page.innerHTML = pageMarkup();
     document.querySelector('.contenido').append(page);
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
+    page.querySelector('[data-lana-context-form]').addEventListener('submit', saveContext);
     page.querySelector('[data-verify-lana]').addEventListener('click', verify);
     page.querySelector('[data-toggle-secret]').addEventListener('click', function () {
       var input = document.getElementById('lana-link-code');

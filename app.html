@@ -750,8 +750,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </style>
 <link rel="stylesheet" href="smyl-panel.css?v=4">
 <script defer src="smyl-panel.js?v=4"></script>
-<link rel="stylesheet" href="smyl-connections.css?v=1">
-<script defer src="smyl-connections.js?v=2"></script>
+<link rel="stylesheet" href="smyl-connections.css?v=2">
+<script defer src="smyl-connections.js?v=3"></script>
+<link rel="stylesheet" href="smyl-lana-handoff.css?v=1">
+<script defer src="smyl-lana-handoff.js?v=1"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=2">
 <script defer src="smyl-clinical-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
@@ -1088,6 +1090,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             </div>
           </div>
           <div class="info-grid" id="det-info-grid"></div>
+          <div id="det-lana-link"></div>
         </div>
         <div class="card">
           <div class="card-header">
@@ -2355,6 +2358,10 @@ async function continuarConUsuario(authUser) {
   if (qp.get('bienvenida') === '1' || window._recienRegistrado) {
     ir('bienvenida');
     history.replaceState(null, '', location.pathname); // que un refresh no la vuelva a mostrar
+  } else if (qp.get('ir') === 'lana-handoff' && qp.get('conversation_id')) {
+    ir('pacientes');
+    if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(qp.get('conversation_id'));
+    else window._pendingLanaHandoff = qp.get('conversation_id');
   } else if (qp.get('ir')) {
     // Accesos directos del ícono de la PWA (manifest-app.json → shortcuts)
     ir(qp.get('ir'));

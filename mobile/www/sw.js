@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v162-simplified-professional-panel';
+const CACHE_VERSION = 'smyl-v166-lana-handoff-context';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -53,8 +53,12 @@ const STATIC_FILES = [
   '/camila/smyl-case-workspace.css?v=3',
   '/camila/smyl-clinic.css?v=2',
   '/camila/smyl-clinical-model.js?v=1',
-  '/camila/smyl-panel.js?v=2',
-  '/camila/smyl-panel.css?v=2',
+  '/camila/smyl-panel.js?v=4',
+  '/camila/smyl-panel.css?v=4',
+  '/camila/smyl-connections.js?v=3',
+  '/camila/smyl-connections.css?v=2',
+  '/camila/smyl-lana-handoff.js?v=1',
+  '/camila/smyl-lana-handoff.css?v=1',
   '/camila/smyl-studio.js?v=18',
   '/camila/smyl-photo-batch.js?v=1',
   '/camila/smyl-result-viewer.js?v=1',

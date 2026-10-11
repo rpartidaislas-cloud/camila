@@ -35,6 +35,42 @@ El alta y revocación de cada `api_key` sigue ocurriendo en LANA por su
 superadmin. El panel de SMYL no crea credenciales de LANA ni administra las
 cuentas de Meta.
 
+## Expediente desde una conversación y contexto de atención
+
+LANA abre el panel profesional con una referencia opaca a la conversación:
+
+```text
+GET https://rpartidaislas-cloud.github.io/camila/app.html
+  ?ir=lana-handoff
+  &conversation_id=<uuid>
+```
+
+La Edge Function `lana-handoff` usa la conexión cifrada para consultar en
+LANA únicamente canal, nombre, correo y teléfono. El historial de mensajes no
+se copia. Antes de confirmar, SMYL muestra coincidencias de paciente por correo
+o teléfono y deja que el profesional reutilice el expediente correcto o cree
+uno nuevo. La tabla `camila_lana_handoffs` y la RPC
+`camila_confirmar_lana_handoff` hacen el enlace idempotente por tenant y
+conversación.
+
+En sentido inverso, la ficha del paciente muestra **Abrir chat** y dirige a la
+conversación exacta de LANA. Los mensajes y credenciales de Meta permanecen en
+LANA.
+
+La misma pantalla **LANA y canales** permite editar contexto de atención. La
+Edge Function `lana-context` llama `GET/PUT /context` en `camila-api`; LANA lo
+guarda dentro de `config_json.ia_config.smyl_context` y lo incorpora a los
+prompts reales de WhatsApp, Messenger e Instagram. Los límites clínicos no son
+editables: no diagnosticar, prescribir, prometer resultados, interpretar
+fotografías ni revelar expedientes, y no compartir artefactos de SMYL sin
+revisión y envío explícitos de un profesional.
+
+Aplicar también:
+
+```text
+supabase/migrations/20261011120000_lana_conversation_handoffs.sql
+```
+
 ### Estado de producción · 2026-10-10
 
 - La clínica activa de SMYL quedó vinculada con su única cuenta coincidente y

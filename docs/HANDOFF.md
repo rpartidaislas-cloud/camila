@@ -1,5 +1,33 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-11 — Codex: etapa 4, expediente desde LANA + contexto real de atención
+
+**Tocado:** `app.html`, `smyl-connections.js/css`, `smyl-lana-handoff.js/css`,
+`sw.js`, migración `20261011120000_lana_conversation_handoffs.sql`, funciones
+`lana-handoff` y `lana-context`, y el repositorio LANA (`camila-api`, webhooks
+de WhatsApp/Meta y panel admin).
+
+- Desde una conversación de LANA se puede abrir SMYL con un enlace firmado por
+  la integración servidor a servidor. SMYL solo consulta identidad y canal;
+  no copia el historial del chat ni recibe credenciales de Meta.
+- Antes de crear el expediente se muestra una revisión explícita. Se proponen
+  coincidencias por correo o últimos 10 dígitos del teléfono y el profesional
+  decide si reutiliza un paciente o crea uno nuevo.
+- `camila_confirmar_lana_handoff` serializa la confirmación con advisory lock y
+  la restricción única `(tenant_id, lana_conversation_id)`, por lo que un doble
+  clic no duplica paciente, caso ni enlace.
+- El enlace persistente conecta conversación, paciente y caso. El expediente
+  puede volver al chat en LANA y LANA puede volver al expediente en SMYL.
+- **LANA y canales** incorpora un contexto editable de clínica, servicios,
+  ubicación, horarios, FAQ, tono, reglas de escalamiento y nivel de autonomía.
+  SMYL lo sincroniza con el tenant real de LANA; no ejecuta una IA paralela.
+- Los webhooks reales de WhatsApp, Messenger e Instagram inyectan ese contexto
+  en la respuesta de LANA. Se conservan límites fijos: no diagnosticar,
+  prescribir, prometer resultados, interpretar fotos ni revelar expedientes;
+  ningún artefacto clínico de SMYL se comparte sin revisión y envío humano.
+- Solo el dueño de la clínica puede modificar el contexto; el personal puede
+  consultarlo y usar el flujo de expediente dentro de su tenant.
+
 ## 2026-10-10 — Codex: etapa 3, enlace real LANA verificado
 
 **Tocado:** `docs/LANA_INTEGRATION.md`, despliegues `lana-connection` (SMYL)
