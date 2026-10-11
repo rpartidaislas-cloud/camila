@@ -19,7 +19,9 @@
   desplegaron los webhooks de Meta/WhatsApp de LANA.
 - `lana-connection` quedó desplegada como versión 1 con verificación JWT;
   `SMYL_LANA_ENCRYPTION_KEY` quedó configurado como secreto del proyecto.
-- PWA actualizada a `smyl-v164-lana-connection-center`.
+- La comprobación pública detectó un primer arranque en frío superior a 12 s;
+  el cliente ahora espera hasta 20 s y la PWA avanzó a
+  `smyl-v165-lana-connection-cold-start`.
 
 ## 2026-10-10 — Codex: cierre de producto, etapa 1
 

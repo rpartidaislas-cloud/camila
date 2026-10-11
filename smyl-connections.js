@@ -102,7 +102,10 @@
 
   async function request(action, payload) {
     var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 12000);
+    // La primera invocación de una Edge Function recién despertada puede
+    // tardar más que las siguientes. Damos margen al arranque en frío sin
+    // dejar la pantalla esperando indefinidamente.
+    var timer = setTimeout(function () { controller.abort(); }, 20000);
     try {
       var method = action === 'status' ? 'GET' : 'POST';
       var response = await fetch(SUPA_URL + '/functions/v1/lana-connection' + (method === 'GET' ? '?action=status' : ''), {

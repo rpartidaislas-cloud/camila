@@ -12,7 +12,7 @@ const sw = read('../sw.js');
 
 test('panel exposes the LANA connection center and advances cached assets', () => {
   assert.match(app, /smyl-connections\.css\?v=1/);
-  assert.match(app, /smyl-connections\.js\?v=1/);
+  assert.match(app, /smyl-connections\.js\?v=2/);
   assert.match(app, /smyl-panel\.css\?v=4/);
   assert.match(app, /smyl-panel\.js\?v=4/);
   assert.match(connections, /LANA atiende el chat/);
@@ -20,8 +20,8 @@ test('panel exposes the LANA connection center and advances cached assets', () =
   assert.match(connections, /Messenger/);
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
-  assert.match(sw, /smyl-v164-lana-connection-center/);
-  assert.match(sw, /smyl-connections\.js\?v=1/);
+  assert.match(sw, /smyl-v165-lana-connection-cold-start/);
+  assert.match(sw, /smyl-connections\.js\?v=2/);
   assert.match(sw, /smyl-connections\.css\?v=1/);
 });
 
@@ -45,4 +45,5 @@ test('server validates the LANA link and stores only AES-GCM ciphertext', () => 
   assert.match(edge, /auth\.user\.id === auth\.tenantId/);
   assert.doesNotMatch(edge, /api_key:\s*apiKey/);
   assert.doesNotMatch(connections, /localStorage|sessionStorage/);
+  assert.match(connections, /20000/);
 });
