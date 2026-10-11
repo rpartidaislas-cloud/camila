@@ -12,7 +12,7 @@ const sw = read('../sw.js');
 
 test('panel exposes the LANA connection center and advances cached assets', () => {
   assert.match(app, /smyl-connections\.css\?v=2/);
-  assert.match(app, /smyl-connections\.js\?v=3/);
+  assert.match(app, /smyl-connections\.js\?v=4/);
   assert.match(app, /smyl-panel\.css\?v=4/);
   assert.match(app, /smyl-panel\.js\?v=4/);
   assert.match(connections, /LANA atiende el chat/);
@@ -20,8 +20,8 @@ test('panel exposes the LANA connection center and advances cached assets', () =
   assert.match(connections, /Messenger/);
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
-  assert.match(sw, /smyl-v166-lana-handoff-context/);
-  assert.match(sw, /smyl-connections\.js\?v=3/);
+  assert.match(sw, /smyl-v167-lana-context-empty-state/);
+  assert.match(sw, /smyl-connections\.js\?v=4/);
   assert.match(sw, /smyl-connections\.css\?v=2/);
 });
 

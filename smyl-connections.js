@@ -170,6 +170,7 @@
       if (form.elements[name]) form.elements[name].value = context && context[name] !== undefined ? context[name] : (name === 'autonomy_level' ? '2' : name === 'tone' ? 'profesional' : '');
     });
     if (context && context.updated_at) contextStatus('Sincronizado ' + new Date(context.updated_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }), 'success');
+    else contextStatus('Aún no hay contexto guardado. Completa lo que LANA debe conocer.', '');
   }
 
   async function loadContext(force) {

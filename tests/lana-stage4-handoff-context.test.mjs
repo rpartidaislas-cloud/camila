@@ -33,5 +33,6 @@ test('SMYL exposes a structured LANA context editor with fixed clinical limits',
   assert.match(connections, /handoff_rules/);
   assert.match(connections, /No diagnostica, prescribe, promete resultados/);
   assert.match(connections, /\/functions\/v1\/lana-context/);
+  assert.match(connections, /Aún no hay contexto guardado/);
   assert.match(contextEdge, /Solo el dueño de la clínica/);
 });
