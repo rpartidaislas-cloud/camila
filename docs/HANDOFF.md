@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-10 — Codex: etapa 3, enlace real LANA verificado
+
+**Tocado:** `docs/LANA_INTEGRATION.md`, despliegues `lana-connection` (SMYL)
+y `camila-api` (LANA), migración de LANA `20260930120000_camila_integraciones`.
+
+- La clínica autenticada se resolvió de forma única en SMYL y se emparejó con
+  una sola cuenta activa de LANA mediante la cuenta exacta, sin usar datos de
+  pacientes ni seleccionar por nombre aproximado.
+- La tabla `camila_integraciones`, sus políticas y sus dos triggers se
+  aplicaron en LANA y la versión quedó registrada en
+  `supabase_migrations.schema_migrations`.
+- Se corrigió en LANA la normalización de rutas de `camila-api`, que en
+  producción recibía `/camila-api/...` y devolvía 404. Fix publicado en el
+  `main` de `promodesk`, commit `c8c83871`, y función redeplegada.
+- Se creó una credencial LANA para esa cuenta, SMYL la validó y guardó solo
+  ciphertext AES-GCM, IV y huella. `connect` y `verify` terminaron en estado
+  `conectada`; la interfaz pública muestra **LANA conectada**.
+- La prueba fue sintética: límite 1, sin imprimir contenido clínico, sin
+  registrar webhook y con cero mensajes enviados a WhatsApp, Messenger o
+  Instagram.
+- El secreto de arranque de un solo uso se eliminó y `lana-connection` se
+  volvió a desplegar con su autenticación normal; no quedó una puerta
+  administrativa temporal en código ni en secretos.
+
 ## 2026-10-10 — Codex: etapa 2, centro seguro LANA + Meta
 
 **Tocado:** `app.html`, `smyl-panel.js`, `smyl-connections.js/css`, `sw.js`,

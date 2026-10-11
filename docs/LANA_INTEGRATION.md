@@ -35,6 +35,21 @@ El alta y revocación de cada `api_key` sigue ocurriendo en LANA por su
 superadmin. El panel de SMYL no crea credenciales de LANA ni administra las
 cuentas de Meta.
 
+### Estado de producción · 2026-10-10
+
+- La clínica activa de SMYL quedó vinculada con su única cuenta coincidente y
+  activa de LANA. La correspondencia se comprobó por cuenta exacta; no se
+  eligió un tenant por similitud de nombre.
+- `camila_integraciones` y sus dos triggers de reenvío están aplicados y
+  registrados en el historial de migraciones de LANA.
+- `camila-api` normaliza tanto la ruta completa del gateway como la ruta
+  recortada que Supabase entrega a la función en producción.
+- El código quedó cifrado en SMYL y la prueba `connect` + `verify` aprobó el
+  contrato de conversaciones con límite 1. No se envió ningún mensaje, no se
+  registró webhook entrante y no se mostró contenido de pacientes.
+- El secreto temporal utilizado para la activación inicial fue eliminado. La
+  función publicada volvió a su autenticación normal de sesión profesional.
+
 ## Variables privadas
 
 Configurar como Supabase Edge Function Secrets; nunca se incluyen en el
