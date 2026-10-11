@@ -48,9 +48,10 @@ export async function lanaRequest(
   tenantId: string,
   path: string,
   init: RequestInit = {},
+  timeoutMs = 12000,
 ): Promise<{ response: Response; body: Record<string, unknown> }> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${LANA_API_BASE}${path}`, {
       ...init,
@@ -70,4 +71,3 @@ export async function lanaRequest(
 }
 
 export { admin as smylAdmin };
-

@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-11 — Codex: etapa 5, laboratorio privado de respuestas LANA
+
+**Tocado:** `app.html`, `smyl-connections.js/css`, `sw.js`, función
+`lana-context`, helper `lana-linked.ts`, pruebas y el repositorio LANA
+(`camila-api`).
+
+- **LANA y canales** incorpora un laboratorio de conversación con escenarios
+  de precio/horario, dolor/urgencia y solicitud de diagnóstico por fotografía.
+- La respuesta la genera la IA real de LANA con el contexto actualmente
+  guardado, el nivel de autonomía y las mismas barreras clínicas. No se crea
+  una conversación, no se persiste el historial de prueba y no se envía nada
+  a WhatsApp, Messenger o Instagram.
+- El historial temporal vive solo en memoria del navegador, se limita a ocho
+  turnos y puede limpiarse. El endpoint limita tamaños de entrada y convierte
+  `SOLICITAR_ASESOR` en un estado visible, sin mostrar marcadores internos.
+- Solo el dueño de la clínica puede ejecutar pruebas. Cada respuesta respeta el
+  límite mensual y registra su consumo como `smyl_preview` en LANA.
+- La interfaz adopta el patrón de acciones sugeridas consultado en 21st.dev,
+  adaptado a los tokens y lenguaje clínico de SMYL, sin copiar dependencias.
+
 ## 2026-10-11 — Codex: etapa 4, expediente desde LANA + contexto real de atención
 
 **Tocado:** `app.html`, `smyl-connections.js/css`, `smyl-lana-handoff.js/css`,

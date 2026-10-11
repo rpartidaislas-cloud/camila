@@ -65,6 +65,19 @@ editables: no diagnosticar, prescribir, prometer resultados, interpretar
 fotografías ni revelar expedientes, y no compartir artefactos de SMYL sin
 revisión y envío explícitos de un profesional.
 
+## Laboratorio privado de respuestas
+
+La etapa 5 añade una prueba de conversación dentro de **LANA y canales**. SMYL
+envía el mensaje y hasta ocho turnos temporales a `POST /context/preview` a
+través de `lana-context`; la API key permanece cifrada y fuera del navegador.
+
+La prueba usa Anthropic desde LANA, el contexto activo del tenant, su nivel de
+autonomía y los bloques compartidos de conocimiento, horario y seguridad. No
+crea una conversación, no ejecuta marcadores, no agenda ni cancela citas y no
+envía contenido a Meta. `SOLICITAR_ASESOR` se transforma en una indicación
+visual para el profesional. Solo el dueño puede probar; la llamada cuenta en
+el límite mensual y se registra con canal `smyl_preview`.
+
 Aplicar también:
 
 ```text

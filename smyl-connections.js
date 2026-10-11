@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var state = { loading: false, loaded: false, status: null, contextLoaded: false };
+  var state = { loading: false, loaded: false, status: null, contextLoaded: false, previewHistory: [] };
 
   function node(tag, cls, text) {
     var el = document.createElement(tag);
@@ -50,7 +50,11 @@
       '<label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label>' +
       '<label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Preguntas frecuentes</option><option value="3">3 · Atención asistida</option><option value="4">4 · Autónoma</option></select></label></div>' +
       '<div class="connections-context-guard"><strong>Límites clínicos siempre activos</strong><p>LANA puede orientar sobre la clínica, servicios y citas. No diagnostica, prescribe, promete resultados ni comparte expedientes, simulaciones o propuestas clínicas sin revisión profesional.</p></div>' +
-      '<div class="connections-actions"><button type="submit" class="btn btn-primary" data-save-lana-context>Guardar y activar en LANA</button><span class="connections-context-status" data-lana-context-status role="status"></span></div></form></section>' +
+      '<div class="connections-actions"><button type="submit" class="btn btn-primary" data-save-lana-context>Guardar y activar en LANA</button><span class="connections-context-status" data-lana-context-status role="status"></span></div></form>' +
+      '<div class="connections-preview"><div class="connections-preview-head"><div><span>LABORATORIO PRIVADO · ETAPA 5</span><h3>Prueba cómo responderá LANA</h3><p>Usa la IA y el contexto reales de la cuenta conectada. Ningún mensaje sale de esta pantalla.</p></div><div class="connections-preview-badges"><span>IA real de LANA</span><span>Sin envío</span></div></div>' +
+      '<div class="connections-preview-suggestions" aria-label="Escenarios sugeridos"><button type="button" data-lana-scenario="¿Cuánto cuesta una valoración y en qué horarios atienden?">Precio y horario</button><button type="button" data-lana-scenario="Me duele mucho una muela desde anoche, ¿qué medicamento debo tomar?">Dolor y urgencia</button><button type="button" data-lana-scenario="Si les mando una foto, ¿pueden decirme si necesito carillas?">Foto y diagnóstico</button></div>' +
+      '<div class="connections-preview-chat" data-lana-preview-chat aria-live="polite"><div class="connections-preview-empty"><span>L</span><div><strong>Conversación de prueba</strong><p>Escribe como paciente para revisar el tono, la información y cuándo LANA debe pasar con una persona.</p></div></div></div>' +
+      '<form class="connections-preview-form" data-lana-preview-form><label for="lana-preview-message">Mensaje de prueba</label><div><textarea id="lana-preview-message" name="message" maxlength="1000" rows="2" placeholder="Ej. Hola, quisiera saber si manejan blanqueamiento…"></textarea><button type="submit" class="btn btn-primary" data-send-lana-preview>Probar respuesta</button></div><footer><span>Usa datos ficticios. La prueba consume IA del plan y no se guarda como conversación.</span><button type="button" data-clear-lana-preview>Limpiar prueba</button></footer><p class="connections-preview-status" data-lana-preview-status role="status"></p></form></div></section>' +
       '<section class="connections-safety"><strong>Control clínico</strong><p>La conexión habilita el puente entre productos; no autoriza a enviar diagnósticos, simulaciones ni propuestas sin que el dentista los revise y apruebe.</p></section></div>';
   }
 
@@ -105,6 +109,11 @@
       contextForm.dataset.connected = String(connected);
       contextForm.querySelectorAll('input,textarea,select,button').forEach(function (control) { control.disabled = !connected || !status.can_manage; });
     }
+    var previewForm = document.querySelector('[data-lana-preview-form]');
+    if (previewForm) {
+      previewForm.dataset.connected = String(connected);
+      previewForm.querySelectorAll('textarea,button').forEach(function (control) { control.disabled = !connected || !status.can_manage; });
+    }
     if (connected) loadContext(true);
   }
 
@@ -149,7 +158,7 @@
     var response = await fetch(SUPA_URL + '/functions/v1/lana-context', {
       method: method,
       headers: { 'Authorization': 'Bearer ' + await sessionToken(), 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
-      body: method === 'PUT' ? JSON.stringify({ context: payload }) : undefined,
+      body: method === 'PUT' ? JSON.stringify({ context: payload }) : (method === 'POST' ? JSON.stringify(payload || {}) : undefined),
     });
     var data = await response.json().catch(function () { return {}; });
     if (!response.ok) throw new Error(data.error || 'No se pudo sincronizar el contexto.');
@@ -186,9 +195,64 @@
     ['clinic_description','services','location','hours','faq','handoff_rules','tone'].forEach(function (name) { context[name] = form.elements[name].value.trim(); });
     context.autonomy_level = Number(form.elements.autonomy_level.value);
     button.disabled = true; contextStatus('Guardando en LANA…', '');
-    try { var data = await contextRequest('PUT', context); fillContext(data.context || context); contextStatus('Contexto activo en las respuestas de LANA.', 'success'); }
+    try { var data = await contextRequest('PUT', context); fillContext(data.context || context); resetPreview(); contextStatus('Contexto activo en las respuestas de LANA. Ya puedes probarlo abajo.', 'success'); }
     catch (error) { contextStatus(error.message, 'error'); }
     finally { button.disabled = !state.status || !state.status.connected || !state.status.can_manage; }
+  }
+
+  function previewStatus(text, tone) {
+    var el = document.querySelector('[data-lana-preview-status]');
+    if (!el) return;
+    el.textContent = text || '';
+    el.dataset.tone = tone || '';
+  }
+
+  function renderPreview() {
+    var chat = document.querySelector('[data-lana-preview-chat]');
+    if (!chat) return;
+    if (!state.previewHistory.length) {
+      chat.innerHTML = '<div class="connections-preview-empty"><span>L</span><div><strong>Conversación de prueba</strong><p>Escribe como paciente para revisar el tono, la información y cuándo LANA debe pasar con una persona.</p></div></div>';
+      return;
+    }
+    chat.innerHTML = '';
+    state.previewHistory.forEach(function (turn) {
+      var row = node('div', 'connections-preview-turn connections-preview-turn--' + turn.role);
+      var bubble = node('div', 'connections-preview-bubble');
+      var label = node('small', '', turn.role === 'user' ? 'Paciente de prueba' : 'LANA');
+      bubble.append(label, node('p', '', turn.content));
+      if (turn.requiresHuman) bubble.append(node('span', 'connections-preview-escalation', 'Requiere intervención humana'));
+      row.append(bubble); chat.append(row);
+    });
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function resetPreview() {
+    state.previewHistory = [];
+    var input = document.getElementById('lana-preview-message');
+    if (input) input.value = '';
+    previewStatus('', '');
+    renderPreview();
+  }
+
+  async function sendPreview(event) {
+    event.preventDefault();
+    var form = event.currentTarget;
+    var input = form.elements.message;
+    var button = form.querySelector('[data-send-lana-preview]');
+    var message = input.value.trim();
+    if (!message) { previewStatus('Escribe un mensaje de paciente para iniciar la prueba.', 'error'); input.focus(); return; }
+    var historyForRequest = state.previewHistory.slice(-8).map(function (turn) { return { role: turn.role, content: turn.content }; });
+    state.previewHistory.push({ role: 'user', content: message });
+    input.value = ''; renderPreview(); button.disabled = true; previewStatus('LANA está preparando una respuesta privada…', '');
+    try {
+      var data = await contextRequest('POST', { message: message, history: historyForRequest });
+      state.previewHistory.push({ role: 'assistant', content: data.reply || 'No se recibió una respuesta.', requiresHuman: Boolean(data.requires_human) });
+      renderPreview(); previewStatus(data.requires_human ? 'LANA escalaría este caso a una persona.' : 'Respuesta generada con el contexto activo.', 'success');
+    } catch (error) {
+      state.previewHistory.pop(); renderPreview(); input.value = message; previewStatus(error.message || 'No se pudo probar la respuesta.', 'error');
+    } finally {
+      button.disabled = !state.status || !state.status.connected || !state.status.can_manage;
+    }
   }
 
   async function loadStatus(force) {
@@ -271,6 +335,15 @@
     document.querySelector('.contenido').append(page);
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
     page.querySelector('[data-lana-context-form]').addEventListener('submit', saveContext);
+    page.querySelector('[data-lana-preview-form]').addEventListener('submit', sendPreview);
+    page.querySelector('[data-clear-lana-preview]').addEventListener('click', resetPreview);
+    page.querySelectorAll('[data-lana-scenario]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var input = document.getElementById('lana-preview-message');
+        input.value = button.dataset.lanaScenario || '';
+        input.focus(); previewStatus('Escenario listo. Presiona “Probar respuesta” cuando quieras usar IA.', '');
+      });
+    });
     page.querySelector('[data-verify-lana]').addEventListener('click', verify);
     page.querySelector('[data-toggle-secret]').addEventListener('click', function () {
       var input = document.getElementById('lana-link-code');
