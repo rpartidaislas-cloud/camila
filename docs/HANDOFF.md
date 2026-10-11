@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-10 — Codex: cierre de producto, etapa 1
+
+**Tocado:** `app.html`, `smyl-panel.js`, `smyl-panel.css`, `sw.js` y
+`tests/professional-panel-stage1.test.mjs`.
+
+- El dashboard muestra explícitamente las cuatro etapas clínicas existentes:
+  Evidencias, Revisión clínica, Plan de tratamiento y Compartir.
+- Se añadieron accesos orientados a tareas para registrar evidencia, continuar
+  expedientes y preparar propuestas, sin inventar estados ni automatizaciones.
+- Los accesos primarios de creación abren el mismo simulador profesional; el
+  formulario heredado de Valoración y diseño deja de aparecer en navegación.
+- Se retiró Colaboraciones de la navegación de producción y su lugar en móvil
+  ahora abre Marca y simulación; Presentaciones también queda accesible allí.
+- Los prompts internos de proveedores quedan ocultos al dentista. Los precios
+  se presentan como referencias que requieren revisión y aprobación profesional.
+- Caché PWA actualizado a `smyl-v163-clinical-stage-dashboard` y activos del
+  panel a `v=3`.
+- No se tocaron backend, Supabase, prompts, permisos ni archivos nativos.
+
 ## 2026-10-09 — Codex: panel clínico v18 publicado
 
 **Tocado:** `app.html`.

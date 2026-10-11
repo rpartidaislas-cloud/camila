@@ -748,8 +748,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   .contenido{padding-bottom:100px!important}
 }
 </style>
-<link rel="stylesheet" href="smyl-panel.css?v=2">
-<script defer src="smyl-panel.js?v=2"></script>
+<link rel="stylesheet" href="smyl-panel.css?v=3">
+<script defer src="smyl-panel.js?v=3"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=2">
 <script defer src="smyl-clinical-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
@@ -1010,7 +1010,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
                     <h3>Convierte fotografías en una presentación clínica</h3>
                     <p>Documenta al paciente, genera el análisis y prepara una propuesta visual lista para consulta.</p>
                     <div class="dashboard-empty-actions">
-                      <button class="btn btn-primary" onclick="ir('nuevo-diseno')">Crear primer diseño</button>
+                      <button class="btn btn-primary" onclick="window.location.href='simulacion-rapida.html?workspace=professional'">Nueva simulación</button>
                       <button class="btn btn-secondary" onclick="ir('pacientes')">Ver pacientes</button>
                     </div>
                   </div>
@@ -1591,13 +1591,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <!-- ═══ PRECIOS ═══ -->
       <div class="pantalla" id="p-precios">
         <div class="card">
-          <div class="card-title">💰 Mis Precios por Procedimiento</div>
-          <p style="font-size:12px;color:var(--texto3);margin-bottom:16px">La IA usará estos valores para generar cotizaciones automáticas para cada caso.</p>
+          <div class="card-title">Precios por procedimiento</div>
+          <p style="font-size:12px;color:var(--texto3);margin-bottom:16px">Se usarán como referencia al preparar propuestas. Tú revisas y apruebas cada importe antes de compartirlo.</p>
           <div id="precios-lista"></div>
           <button class="btn btn-primary" id="btn-guardar-precios" style="margin-top:16px" onclick="guardarPrecios()">💾 Guardar precios</button>
         </div>
         <div class="card">
-          <div class="card-title">🏥 Información del Consultorio</div>
+          <div class="card-title">Información del consultorio</div>
           <div class="form-grid">
             <div class="fg"><label>Nombre del doctor</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
             <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
@@ -1723,8 +1723,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           </div>
         </div>
 
-        <!-- Instrucciones IA -->
-        <div class="card">
+        <!-- Configuración interna: se conserva en DOM para compatibilidad, no se expone al dentista. -->
+        <div class="card advanced-ai-settings" aria-hidden="true" hidden>
           <div class="card-title">🤖 Instrucciones para la IA</div>
           <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza cómo la IA genera el diagnóstico y la simulación para tus pacientes.</p>
 
@@ -2665,7 +2665,7 @@ async function cargarDashboard() {
       '<div class="dashboard-empty-visual" aria-hidden="true"><svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#16A69B" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>' +
       '<div><div class="dashboard-empty-kicker">Tu primer caso</div><h3>Convierte fotografías en una presentación clínica</h3>' +
       '<p>Documenta al paciente, genera el análisis y prepara una propuesta visual lista para consulta.</p>' +
-      '<div class="dashboard-empty-actions"><button class="btn btn-primary" onclick="ir(\'nuevo-diseno\')">Crear primer diseño</button><button class="btn btn-secondary" onclick="ir(\'pacientes\')">Ver pacientes</button></div></div></div>';
+      '<div class="dashboard-empty-actions"><button class="btn btn-primary" onclick="window.location.href=\'simulacion-rapida.html?workspace=professional\'">Nueva simulación</button><button class="btn btn-secondary" onclick="ir(\'pacientes\')">Ver pacientes</button></div></div></div>';
   } else {
     ulEl.innerHTML = cots.slice(-5).reverse().map(function(c) {
       var score = c.score || 0;
