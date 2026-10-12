@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 0 de plataforma, frontera profesional SMYL + LANA
+
+**Decisión de producto aplicada:** SMYL es la única plataforma visible para la
+clínica. LANA permanece como proveedor interno de mensajería e IA mediante API
+servidor a servidor; no es un segundo panel para el dentista.
+
+- Se añadió `docs/SMYL_PLATFORM_BOUNDARY.md` con propiedad de dominios,
+  frontera de seguridad, núcleo técnico reutilizable y seis etapas para
+  convertir SMYL en un sistema de gestión dental completo.
+- La interfaz ahora presenta **Canales e IA**, **Mensajes** y **SMYL
+  Asistente**. Se retiró la marca LANA del copy visible de conexiones, Inbox,
+  atención, preparación de expediente y presentaciones; los nombres técnicos
+  internos se conservaron para no romper endpoints ni migraciones.
+- El inventario futuro vivirá en la base de SMYL y reutilizará el patrón de
+  movimientos inmutables de LANA, adaptado a lotes, caducidad, esterilización,
+  implantes y consumo por paciente.
+- Web y PWA móvil quedaron sincronizadas; caché actualizado a
+  `smyl-v178-product-boundary`. Se añadieron pruebas explícitas de la frontera
+  de producto.
+- No se modificaron bases de datos, Edge Functions, secretos, Meta ni el panel
+  de LANA. La siguiente etapa técnica es **Núcleo de clínica**: sucursales,
+  consultorios/sillones, horarios, miembros, roles y permisos por módulo.
+
 ## 2026-10-12 — Codex: SMYL queda separado de la interfaz de LANA
 
 **Corrección directa de producto:** Ricardo confirmó que SMYL se manejará por

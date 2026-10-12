@@ -14,9 +14,9 @@ const sw = read('sw.js');
 
 test('dashboard loads the stage 6 attention workspace', () => {
   assert.match(app, /smyl-lana-attention\.css\?v=1/);
-  assert.match(app, /smyl-lana-attention\.js\?v=2/);
+  assert.match(app, /smyl-lana-attention\.js\?v=3/);
   assert.match(app, /SmylLanaAttention\.load\(true\)/);
-  assert.match(client, /ATENCIÓN CON LANA · ETAPA 6/);
+  assert.match(client, /ATENCIÓN OMNICANAL/);
   assert.match(client, /Conversaciones que necesitan a tu equipo/);
   assert.match(client, /Abrir conversación/);
   assert.match(client, /SmylInbox\.open\(item\.id\)/);
@@ -26,7 +26,7 @@ test('dashboard loads the stage 6 attention workspace', () => {
 });
 
 test('client discloses the privacy boundary and does not render chat content', () => {
-  assert.match(client, /Los mensajes permanecen en LANA/);
+  assert.match(client, /historial se mantiene protegido en la infraestructura de mensajería/);
   assert.doesNotMatch(client, /ultimo_mensaje|resumen_asesor|whatsapp_mensajes|meta_mensajes/);
 });
 
@@ -40,7 +40,7 @@ test('SMYL edge requires a professional session and owner-only resolution', () =
 });
 
 test('PWA precaches stage 6 attention assets in the current inbox cache', () => {
-  assert.match(sw, /smyl-v177-independent-product/);
-  assert.match(sw, /smyl-lana-attention\.js\?v=2/);
+  assert.match(sw, /smyl-v178-product-boundary/);
+  assert.match(sw, /smyl-lana-attention\.js\?v=3/);
   assert.match(sw, /smyl-lana-attention\.css\?v=1/);
 });

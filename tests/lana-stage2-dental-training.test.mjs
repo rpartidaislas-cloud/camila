@@ -9,7 +9,7 @@ const edge = read('../supabase/functions/lana-training/index.ts');
 const contract = read('../supabase/functions/_shared/lana-contract.mjs');
 
 test('SMYL presents dental training as a draft-to-publish workflow', () => {
-  assert.match(connections, /CAPACITAR IA · ETAPA 2/);
+  assert.match(connections, /CAPACITAR IA/);
   assert.match(connections, /Guardar borrador/);
   assert.match(connections, /Validar/);
   assert.match(connections, /Publicar capacitación/);

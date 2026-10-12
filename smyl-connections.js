@@ -11,7 +11,7 @@
   }
 
   function connectionButton() {
-    var button = node('button', 'nav-item', 'LANA y canales');
+    var button = node('button', 'nav-item', 'Canales e IA');
     button.type = 'button';
     button.setAttribute('onclick', "ir('conexiones')");
     button.setAttribute('role', 'button');
@@ -23,40 +23,40 @@
 
   function pageMarkup() {
     return '<div class="connections-shell">' +
-      '<header class="connections-hero"><div><p class="pro-eyebrow">ETAPA 1 · LANA Y META</p>' +
-      '<h1>LANA atiende el chat.<br>SMYL cuida el caso clínico.</h1>' +
-      '<p>Activa LANA para esta clínica y conecta WhatsApp, Messenger o Instagram sin salir del flujo de SMYL. Las credenciales y los webhooks permanecen protegidos dentro de LANA.</p></div>' +
+      '<header class="connections-hero"><div><p class="pro-eyebrow">COMUNICACIÓN CON PACIENTES</p>' +
+      '<h1>Tus canales y tu asistente,<br>dentro de SMYL.</h1>' +
+      '<p>Conecta WhatsApp, Messenger e Instagram, define cómo debe responder SMYL Asistente y entrega la conversación a tu equipo cuando haga falta.</p></div>' +
       '<div class="connections-status-card" aria-live="polite"><span class="connections-status-label">ESTADO</span>' +
       '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status>Cargando…</strong></div>' +
       '<p data-lana-summary>Comprobando la configuración de esta clínica.</p><small data-lana-verified></small></div></header>' +
       '<section class="connections-flow" aria-labelledby="connections-flow-title"><div class="connections-section-heading"><span>FLUJO SEGURO</span><h2 id="connections-flow-title">Un canal, dos responsabilidades claras</h2></div>' +
-      '<ol><li><span>01</span><div><strong>El paciente escribe</strong><p>LANA recibe y organiza la conversación de Meta.</p></div></li>' +
+      '<ol><li><span>01</span><div><strong>El paciente escribe</strong><p>SMYL recibe y organiza la conversación de tus canales.</p></div></li>' +
       '<li><span>02</span><div><strong>El dentista revisa</strong><p>SMYL prepara la evidencia y el caso para revisión profesional.</p></div></li>' +
       '<li><span>03</span><div><strong>El equipo decide</strong><p>Nada clínico se entrega automáticamente sin aprobación humana.</p></div></li></ol></section>' +
-      '<div class="connections-grid"><section class="connections-card connections-card-main"><div class="connections-card-head"><div><span>CONEXIÓN</span><h2>Enlazar con LANA</h2></div><span class="connections-badge" data-lana-badge>Pendiente</span></div>' +
-      '<p data-lana-detail>SMYL puede preparar la cuenta de LANA automáticamente para esta clínica.</p>' +
-      '<div class="connections-provision" data-provision-wrap><button type="button" class="btn btn-primary" data-provision-lana>Activar LANA para mi clínica</button><p>La activación crea una cuenta técnica vinculada. No tendrás que copiar claves ni contraseñas.</p></div>' +
+      '<div class="connections-grid"><section class="connections-card connections-card-main"><div class="connections-card-head"><div><span>CONEXIÓN</span><h2>Infraestructura de canales</h2></div><span class="connections-badge" data-lana-badge>Pendiente</span></div>' +
+      '<p data-lana-detail>SMYL puede preparar automáticamente la mensajería segura de esta clínica.</p>' +
+      '<div class="connections-provision" data-provision-wrap><button type="button" class="btn btn-primary" data-provision-lana>Activar canales para mi clínica</button><p>La activación crea una conexión técnica protegida. No tendrás que copiar claves ni contraseñas.</p></div>' +
       '<div class="connections-actions connections-connected-actions" data-connected-actions hidden><button type="button" class="btn btn-secondary" data-verify-lana>Verificar conexión</button></div>' +
-      '<details class="connections-manual" data-manual-link><summary>Ya tengo un código de enlace de LANA</summary><form data-lana-form autocomplete="off"><label for="lana-link-code">Código de enlace</label><div class="connections-secret-row"><input id="lana-link-code" name="lana-link-code" type="password" inputmode="text" spellcheck="false" autocomplete="new-password" placeholder="Pega el código una sola vez"><button type="button" class="btn btn-secondary" data-toggle-secret aria-label="Mostrar código">Mostrar</button></div>' +
-      '<p class="connections-help">Se conserva esta opción para cuentas LANA existentes. El código se cifra en el servidor.</p><div class="connections-actions"><button type="submit" class="btn btn-secondary" data-connect-lana>Usar código existente</button></div></form></details><p class="connections-form-message" data-lana-message role="status"></p>' +
+      '<details class="connections-manual" data-manual-link><summary>Configuración avanzada de migración</summary><form data-lana-form autocomplete="off"><label for="lana-link-code">Código de enlace</label><div class="connections-secret-row"><input id="lana-link-code" name="lana-link-code" type="password" inputmode="text" spellcheck="false" autocomplete="new-password" placeholder="Pega el código una sola vez"><button type="button" class="btn btn-secondary" data-toggle-secret aria-label="Mostrar código">Mostrar</button></div>' +
+      '<p class="connections-help">Utiliza esta opción únicamente si soporte te proporcionó un código. Se cifra en el servidor.</p><div class="connections-actions"><button type="submit" class="btn btn-secondary" data-connect-lana>Usar código existente</button></div></form></details><p class="connections-form-message" data-lana-message role="status"></p>' +
       '<div class="connections-staff-note" data-staff-note hidden>Solo el dueño de la clínica puede cambiar esta conexión. El equipo sí puede consultar su estado.</div></section>' +
       '<section class="connections-card"><div class="connections-card-head"><div><span>CANALES</span><h2>Conecta las cuentas de la clínica</h2></div></div>' +
-      '<div class="connections-channel-list"><div data-channel-row="whatsapp"><span class="connections-channel-icon">W</span><p><strong>WhatsApp Business</strong><small data-channel-state>Activa LANA para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" disabled>Conectar</button></div><div data-channel-row="messenger"><span class="connections-channel-icon">M</span><p><strong>Messenger</strong><small data-channel-state>Activa LANA para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="messenger" disabled>Conectar</button></div><div data-channel-row="instagram"><span class="connections-channel-icon">I</span><p><strong>Instagram</strong><small data-channel-state>Activa LANA para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
-      '<p class="connections-boundary">SMYL no solicita ni almacena tokens de Meta. LANA conserva la bandeja, las respuestas y la configuración de cada canal.</p></section></div>' +
-      '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA · ETAPA 2</span><h2 id="lana-training-title">Prepara a LANA para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
+      '<div class="connections-channel-list"><div data-channel-row="whatsapp"><span class="connections-channel-icon">W</span><p><strong>WhatsApp Business</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" disabled>Conectar</button></div><div data-channel-row="messenger"><span class="connections-channel-icon">M</span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="messenger" disabled>Conectar</button></div><div data-channel-row="instagram"><span class="connections-channel-icon">I</span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
+      '<p class="connections-boundary">Los tokens de Meta se procesan en una capa privada y nunca se muestran en el navegador ni se mezclan con el expediente clínico.</p></section></div>' +
+      '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
       '<div class="connections-training-bar"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
-      '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="LANA"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy LANA. Puedo orientarte sobre la clínica y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
+      '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label>Ubicación<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label></div></fieldset>' +
       '<fieldset><legend>Servicios confirmados</legend><p class="connections-fieldset-help">Incluye solo servicios reales. Si agregas precio, debe ser información confirmada o indicar que requiere valoración.</p><div class="connections-repeat-list" data-service-list></div><button type="button" class="connections-add-row" data-add-service>+ Agregar servicio</button></fieldset>' +
-      '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">LANA respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button></fieldset>' +
-      '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. LANA nunca inventa importes."></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa</option></select></label></div></fieldset>' +
+      '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">El asistente respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button></fieldset>' +
+      '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa</option></select></label></div></fieldset>' +
       '<div class="connections-context-guard"><strong>Límites clínicos fijos · no se pueden editar</strong><ul><li>No diagnosticar, prescribir ni recomendar dosis.</li><li>No interpretar fotografías o radiografías ni prometer resultados.</li><li>No revelar expedientes ni compartir archivos clínicos sin revisión profesional.</li><li>Escalar síntomas, dolor, urgencias, incertidumbre y solicitudes clínicas.</li></ul></div>' +
       '<div class="connections-validation" data-training-validation hidden></div><div class="connections-training-actions"><button type="submit" class="btn btn-secondary" data-save-training>Guardar borrador</button><button type="button" class="btn btn-secondary" data-validate-training>Validar</button><button type="button" class="btn btn-primary" data-publish-training>Publicar capacitación</button><span class="connections-context-status" data-lana-context-status role="status"></span></div></form>' +
       '<details class="connections-versions"><summary>Historial de versiones publicadas</summary><div data-training-versions><p>Aún no hay versiones publicadas.</p></div></details>' +
-      '<div class="connections-preview"><div class="connections-preview-head"><div><span>LABORATORIO PRIVADO</span><h3>Prueba cómo responderá LANA</h3><p>Usa el mismo compilador de producción. Puedes probar el borrador sin cambiar lo que reciben los pacientes. Ningún mensaje sale de esta pantalla.</p></div><div class="connections-preview-badges"><span>IA real de LANA</span><span>Sin envío</span></div></div>' +
+      '<div class="connections-preview"><div class="connections-preview-head"><div><span>LABORATORIO PRIVADO</span><h3>Prueba cómo responderá tu asistente</h3><p>Usa el mismo motor de producción. Puedes probar el borrador sin cambiar lo que reciben los pacientes. Ningún mensaje sale de esta pantalla.</p></div><div class="connections-preview-badges"><span>IA de producción</span><span>Sin envío</span></div></div>' +
       '<div class="connections-preview-source"><label for="lana-preview-source">Versión a probar</label><select id="lana-preview-source" data-preview-source><option value="draft">Borrador actual</option><option value="published">Versión publicada</option></select><small data-preview-version>Borrador sin guardar</small></div>' +
       '<div class="connections-preview-suggestions" aria-label="Escenarios sugeridos"><button type="button" data-lana-scenario="¿Cuánto cuesta una valoración y en qué horarios atienden?">Precio y horario</button><button type="button" data-lana-scenario="Me duele mucho una muela desde anoche, ¿qué medicamento debo tomar?">Dolor y urgencia</button><button type="button" data-lana-scenario="Si les mando una foto, ¿pueden decirme si necesito carillas?">Foto y diagnóstico</button></div>' +
-      '<div class="connections-preview-chat" data-lana-preview-chat aria-live="polite"><div class="connections-preview-empty"><span>L</span><div><strong>Conversación de prueba</strong><p>Escribe como paciente para revisar el tono, la información y cuándo LANA debe pasar con una persona.</p></div></div></div>' +
+      '<div class="connections-preview-chat" data-lana-preview-chat aria-live="polite"><div class="connections-preview-empty"><span>S</span><div><strong>Conversación de prueba</strong><p>Escribe como paciente para revisar el tono, la información y cuándo el asistente debe pasar con una persona.</p></div></div></div>' +
       '<form class="connections-preview-form" data-lana-preview-form><label for="lana-preview-message">Mensaje de prueba</label><div><textarea id="lana-preview-message" name="message" maxlength="1000" rows="2" placeholder="Ej. Hola, quisiera saber si manejan blanqueamiento…"></textarea><button type="submit" class="btn btn-primary" data-send-lana-preview>Probar respuesta</button></div><footer><span>Usa datos ficticios. La prueba consume IA del plan y no se guarda como conversación.</span><button type="button" data-clear-lana-preview>Limpiar prueba</button></footer><p class="connections-preview-status" data-lana-preview-status role="status"></p></form></div></section>' +
       '<section class="connections-safety"><strong>Control clínico</strong><p>La conexión habilita el puente entre productos; no autoriza a enviar diagnósticos, simulaciones ni propuestas sin que el dentista los revise y apruebe.</p></section></div>';
   }
@@ -92,13 +92,13 @@
     var input = document.getElementById('lana-link-code');
 
     document.querySelector('.connections-status-card').dataset.state = attention ? 'attention' : (connected ? 'connected' : 'pending');
-    statusEl.textContent = attention ? 'Requiere atención' : (connected ? 'LANA conectada' : 'Pendiente de conexión');
-    summary.textContent = attention ? 'El enlace existe, pero LANA no pudo validarlo.' : (connected ? 'La clínica puede usar el puente seguro con LANA.' : 'Todavía no hay una cuenta de LANA enlazada a esta clínica.');
+    statusEl.textContent = attention ? 'Requiere atención' : (connected ? 'Mensajería activa' : 'Pendiente de conexión');
+    summary.textContent = attention ? 'La conexión existe, pero no pudo validarse.' : (connected ? 'La clínica puede usar sus canales y el asistente de forma segura.' : 'La infraestructura de mensajería aún no está activa para esta clínica.');
     badge.textContent = attention ? 'Revisar' : (connected ? 'Conectada' : 'Pendiente');
     badge.dataset.state = attention ? 'attention' : (connected ? 'connected' : 'pending');
     detail.textContent = connected
       ? 'Código verificado · ' + (status.fingerprint || 'enlace protegido')
-      : (attention ? (status.last_error || 'Vuelve a verificar o reemplaza el código de enlace.') : 'Activa LANA automáticamente; no necesitas crear ni copiar una API key.');
+      : (attention ? (status.last_error || 'Vuelve a verificar o reemplaza el código de enlace.') : 'Activa la mensajería automáticamente; no necesitas crear ni copiar una API key.');
     verified.textContent = status && status.last_verified_at
       ? 'Última verificación: ' + new Date(status.last_verified_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })
       : '';
@@ -206,8 +206,8 @@
       var button = row.querySelector('[data-connect-channel]');
       row.dataset.state = connected ? 'connected' : 'pending';
       statusText.textContent = connected
-        ? ((item.display_name || 'Cuenta conectada') + ' · Activo en LANA')
-        : (connectedToLana ? 'Listo para conectar' : 'Activa LANA para continuar');
+        ? ((item.display_name || 'Cuenta conectada') + ' · Canal activo')
+        : (connectedToLana ? 'Listo para conectar' : 'Activa la mensajería para continuar');
       button.textContent = connected ? 'Conectado' : 'Conectar';
       button.disabled = connected || !connectedToLana || !state.status.can_manage;
     });
@@ -228,9 +228,9 @@
     var popup = window.open('', 'smyl-lana-' + selected, 'width=560,height=760');
     if (!popup) { setMessage('Permite las ventanas emergentes para conectar este canal.', 'error'); return; }
     popup.document.title = 'Preparando conexión…';
-    popup.document.body.textContent = 'Preparando conexión segura con LANA…';
+    popup.document.body.textContent = 'Preparando conexión segura con el canal…';
     event.currentTarget.disabled = true;
-    setMessage('Preparando ' + selected + ' en LANA…', '');
+    setMessage('Preparando la conexión de ' + selected + '…', '');
     try {
       var data = await channelRequest('POST', { action: 'setup', channel: selected });
       var setupOrigin = new URL(data.setup_url).origin;
@@ -304,7 +304,7 @@
       fields.append(repeatInput('Información de precio', 'service_pricing', item.pricing_note, 350, 2, 'Ej. Desde $___ o requiere valoración. Solo datos confirmados.'));
     } else {
       fields.append(repeatInput('Pregunta', 'faq_question', item.question, 280, 0, '¿La valoración tiene costo?'));
-      fields.append(repeatInput('Respuesta confirmada', 'faq_answer', item.answer, 900, 2, 'Respuesta que LANA debe respetar.'));
+      fields.append(repeatInput('Respuesta confirmada', 'faq_answer', item.answer, 900, 2, 'Respuesta que el asistente debe respetar.'));
     }
     var remove = node('button', 'connections-remove-row', 'Quitar');
     remove.type = 'button'; remove.setAttribute('aria-label', type === 'service' ? 'Quitar servicio' : 'Quitar pregunta frecuente');
@@ -376,7 +376,7 @@
     state.draftRevision = Number(data.draft_revision) || 0;
     state.publishedVersion = Number(data.published_version) || 0;
     state.dirty = false;
-    form.elements.assistant_name.value = training.assistant && training.assistant.name || 'LANA';
+    form.elements.assistant_name.value = training.assistant && training.assistant.name || 'SMYL Asistente';
     form.elements.tone.value = training.assistant && training.assistant.tone || 'profesional';
     form.elements.welcome_message.value = training.assistant && training.assistant.welcome_message || '';
     form.elements.clinic_description.value = training.clinic && training.clinic.description || '';
@@ -480,8 +480,8 @@
     try {
       var validation = await runValidation();
       if (!validation.valid) return;
-      if (!window.confirm('¿Publicar esta capacitación? La versión publicada comenzará a usarse en las respuestas nuevas de LANA a pacientes.')) return;
-      contextStatus('Publicando versión en LANA…', '');
+      if (!window.confirm('¿Publicar esta capacitación? La versión publicada comenzará a usarse en las respuestas nuevas del asistente a pacientes.')) return;
+      contextStatus('Publicando la nueva versión…', '');
       var data = await trainingRequest('POST', 'publish', { expected_revision: state.draftRevision }, mutationKey());
       state.published = data.published || state.training; state.publishedVersion = Number(data.published_version) || state.publishedVersion; state.dirty = false; renderTrainingMeta(); resetPreview();
       contextStatus('Versión ' + state.publishedVersion + ' publicada. Ya es la capacitación activa con pacientes.', 'success');
@@ -539,14 +539,14 @@
     var chat = document.querySelector('[data-lana-preview-chat]');
     if (!chat) return;
     if (!state.previewHistory.length) {
-      chat.innerHTML = '<div class="connections-preview-empty"><span>L</span><div><strong>Conversación de prueba</strong><p>Escribe como paciente para revisar el tono, la información y cuándo LANA debe pasar con una persona.</p></div></div>';
+      chat.innerHTML = '<div class="connections-preview-empty"><span>S</span><div><strong>Conversación de prueba</strong><p>Escribe como paciente para revisar el tono, la información y cuándo el asistente debe pasar con una persona.</p></div></div>';
       return;
     }
     chat.innerHTML = '';
     state.previewHistory.forEach(function (turn) {
       var row = node('div', 'connections-preview-turn connections-preview-turn--' + turn.role);
       var bubble = node('div', 'connections-preview-bubble');
-      var label = node('small', '', turn.role === 'user' ? 'Paciente de prueba' : 'LANA');
+      var label = node('small', '', turn.role === 'user' ? 'Paciente de prueba' : 'SMYL Asistente');
       bubble.append(label, node('p', '', turn.content));
       if (turn.requiresHuman) bubble.append(node('span', 'connections-preview-escalation', 'Requiere intervención humana'));
       row.append(bubble); chat.append(row);
@@ -576,10 +576,10 @@
       if (mode === 'draft' && (state.dirty || !state.draftRevision)) await saveTrainingDraft(false);
       var historyForRequest = state.previewHistory.slice(-8).map(function (turn) { return { role: turn.role, content: turn.content }; });
       state.previewHistory.push({ role: 'user', content: message });
-      input.value = ''; renderPreview(); previewStatus('LANA está preparando una respuesta privada…', '');
+      input.value = ''; renderPreview(); previewStatus('El asistente está preparando una respuesta privada…', '');
       var data = await trainingRequest('POST', 'preview', { message: message, history: historyForRequest, mode: mode });
       state.previewHistory.push({ role: 'assistant', content: data.reply || 'No se recibió una respuesta.', requiresHuman: Boolean(data.requires_human) });
-      renderPreview(); previewStatus((data.requires_human ? 'LANA escalaría este caso a una persona. ' : '') + (mode === 'draft' ? 'Respuesta generada con el borrador r' + data.config_version + '.' : 'Respuesta generada con la versión publicada ' + data.config_version + '.'), 'success');
+      renderPreview(); previewStatus((data.requires_human ? 'El asistente escalaría este caso a una persona. ' : '') + (mode === 'draft' ? 'Respuesta generada con el borrador r' + data.config_version + '.' : 'Respuesta generada con la versión publicada ' + data.config_version + '.'), 'success');
     } catch (error) {
       if (state.previewHistory[state.previewHistory.length - 1] && state.previewHistory[state.previewHistory.length - 1].role === 'user') state.previewHistory.pop();
       renderPreview(); input.value = message; previewStatus(error.message || 'No se pudo probar la respuesta.', 'error');
@@ -594,7 +594,7 @@
     try {
       renderStatus(await request('status'));
     } catch (error) {
-      setMessage(error.message || 'No se pudo consultar el estado de LANA.', 'error');
+      setMessage(error.message || 'No se pudo consultar el estado de la mensajería.', 'error');
       var statusEl = document.querySelector('[data-lana-status]');
       if (statusEl) statusEl.textContent = 'No disponible';
     } finally {
@@ -606,14 +606,14 @@
     event.preventDefault();
     var input = document.getElementById('lana-link-code');
     var apiKey = input.value.trim();
-    if (!apiKey) { setMessage('Pega el código de enlace de LANA.', 'error'); input.focus(); return; }
-    setBusy(true); setMessage('Validando el enlace con LANA…', '');
+    if (!apiKey) { setMessage('Pega el código de enlace proporcionado por soporte.', 'error'); input.focus(); return; }
+    setBusy(true); setMessage('Validando el enlace seguro…', '');
     try {
       var status = await request('connect', { api_key: apiKey });
       renderStatus(status);
-      setMessage('LANA quedó conectada de forma segura.', 'success');
+      setMessage('La mensajería quedó conectada de forma segura.', 'success');
     } catch (error) {
-      setMessage(error.message || 'No se pudo conectar LANA.', 'error');
+      setMessage(error.message || 'No se pudo conectar la mensajería.', 'error');
     } finally {
       input.value = '';
       input.type = 'password';
@@ -624,20 +624,20 @@
   }
 
   async function provision() {
-    setBusy(true); setMessage('Preparando una cuenta LANA para esta clínica…', '');
+    setBusy(true); setMessage('Preparando la infraestructura de canales para esta clínica…', '');
     try {
       var status = await request('provision');
       renderStatus(status);
-      setMessage('LANA quedó activada. Ya puedes conectar los canales de la clínica.', 'success');
+      setMessage('La mensajería quedó activa. Ya puedes conectar los canales de la clínica.', 'success');
     } catch (error) {
-      setMessage(error.message || 'No se pudo activar LANA.', 'error');
+      setMessage(error.message || 'No se pudo activar la mensajería.', 'error');
     } finally {
       setBusy(false);
     }
   }
 
   async function verify() {
-    setBusy(true); setMessage('Verificando con LANA…', '');
+    setBusy(true); setMessage('Verificando la conexión segura…', '');
     try {
       var status = await request('verify');
       renderStatus(status);
@@ -661,7 +661,7 @@
     var row = reference.cloneNode(true);
     row.dataset.mobileConnections = 'true';
     row.setAttribute('onclick', "pamIr('conexiones')");
-    row.querySelector('.pam-row-label').textContent = 'LANA y canales';
+    row.querySelector('.pam-row-label').textContent = 'Canales e IA';
     var icon = row.querySelector('.pam-row-icon');
     if (icon) icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>';
     reference.after(row);
@@ -669,7 +669,7 @@
 
   function init() {
     if (!window.TITULOS || !window.ir || document.getElementById('p-conexiones')) return;
-    TITULOS.conexiones = 'LANA y canales';
+    TITULOS.conexiones = 'Canales e IA';
     var settings = document.querySelector('.pro-settings');
     var account = Array.from(settings.querySelectorAll('.nav-item')).find(function (el) { return el.getAttribute('onclick') === "ir('mi-cuenta')"; });
     var button = connectionButton();

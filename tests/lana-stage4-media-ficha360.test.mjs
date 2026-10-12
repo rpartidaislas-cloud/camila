@@ -22,7 +22,7 @@ test('the bridge keeps tenant and LANA credentials server-side for media and cli
   assert.match(edge, /camila_vincular_lana_imagen/);
   assert.match(edge, /message\.media_type !== "image"/);
   assert.match(edge, /lana_cita_id/);
-  assert.match(ui, /Cita vinculada en LANA/);
+  assert.match(ui, /Cita vinculada/);
   assert.match(ui, /Simulación disponible/);
   assert.match(ui, /Propuesta/);
   assert.match(helper, /!\(init\.body instanceof FormData\)/);

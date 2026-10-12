@@ -30,7 +30,7 @@ test('channel operations stay behind the linked LANA API key and owner check', (
 });
 
 test('SMYL presents automatic activation and per-channel connection without storing secrets in the browser', () => {
-  assert.match(ui, /Activar LANA para mi clínica/);
+  assert.match(ui, /Activar canales para mi clínica/);
   for (const channel of ['whatsapp', 'messenger', 'instagram']) {
     assert.match(ui, new RegExp(`data-connect-channel="${channel}"`));
   }

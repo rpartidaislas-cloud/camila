@@ -10,28 +10,30 @@ const styles = read('../smyl-connections.css');
 const edge = read('../supabase/functions/lana-connection/index.ts');
 const sw = read('../sw.js');
 
-test('panel exposes the LANA connection center and advances cached assets', () => {
+test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(app, /smyl-connections\.css\?v=5/);
-  assert.match(app, /smyl-connections\.js\?v=7/);
+  assert.match(app, /smyl-connections\.js\?v=9/);
   assert.match(app, /smyl-panel\.css\?v=4/);
-  assert.match(app, /smyl-panel\.js\?v=4/);
-  assert.match(connections, /LANA atiende el chat/);
+  assert.match(app, /smyl-panel\.js\?v=5/);
+  assert.match(connections, /Tus canales y tu asistente/);
   assert.match(connections, /WhatsApp/);
   assert.match(connections, /Messenger/);
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
-  assert.match(sw, /smyl-v176-inbox-hardening-stage7/);
-  assert.match(sw, /smyl-connections\.js\?v=7/);
+  assert.match(sw, /smyl-v178-product-boundary/);
+  assert.match(sw, /smyl-connections\.js\?v=9/);
   assert.match(sw, /smyl-connections\.css\?v=5/);
 });
 
-test('connection keeps Meta ownership in LANA and clinical delivery human-controlled', () => {
-  assert.match(connections, /Las credenciales y los webhooks permanecen protegidos dentro de LANA/);
-  assert.match(connections, /no solicita ni almacena tokens de Meta/);
+test('connection hides the infrastructure provider and keeps delivery human-controlled', () => {
+  assert.match(connections, /tokens de Meta se procesan en una capa privada/);
+  assert.match(connections, /nunca se muestran en el navegador/);
   assert.match(connections, /Nada clínico se entrega automáticamente sin aprobación humana/);
   assert.doesNotMatch(connections, /meta-send|camila_canales|META_TOKEN/);
-  assert.match(panel, /Configurar LANA/);
+  assert.match(panel, /Configurar canales e IA/);
   assert.match(panel, /revisión y aprobación/);
+  assert.doesNotMatch(connections, /LANA y canales|LANA atiende|LANA conectada/);
+  assert.doesNotMatch(panel, /Continuar en LANA|Configurar LANA/);
 });
 
 test('server validates the LANA link and stores only AES-GCM ciphertext', () => {

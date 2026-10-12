@@ -11,7 +11,7 @@
   }
 
   function channelName(channel) {
-    return channel === 'whatsapp' ? 'WhatsApp' : channel === 'messenger' ? 'Messenger' : channel === 'instagram' ? 'Instagram' : 'LANA';
+    return channel === 'whatsapp' ? 'WhatsApp' : channel === 'messenger' ? 'Messenger' : channel === 'instagram' ? 'Instagram' : 'Canal';
   }
 
   function channelLetter(channel) {
@@ -57,7 +57,7 @@
       }
       return data;
     } catch (error) {
-      if (error && error.name === 'AbortError') throw new Error('LANA tardó demasiado en responder. Intenta nuevamente.');
+      if (error && error.name === 'AbortError') throw new Error('El servicio de mensajes tardó demasiado en responder. Intenta nuevamente.');
       throw error;
     } finally {
       clearTimeout(timer);
@@ -68,7 +68,7 @@
     var section = node('section', 'lana-attention');
     section.id = 'lana-attention-dashboard';
     section.setAttribute('aria-labelledby', 'lana-attention-title');
-    section.innerHTML = '<header class="lana-attention-head"><div><span>ATENCIÓN CON LANA · ETAPA 6</span><h2 id="lana-attention-title">Conversaciones que necesitan a tu equipo</h2><p>Prioriza el pase a humano y continúa el caso clínico sin duplicar la bandeja de Meta.</p></div><button type="button" class="lana-attention-refresh" data-lana-attention-refresh aria-label="Actualizar conversaciones">Actualizar</button></header><div class="lana-attention-body" data-lana-attention-body><div class="lana-attention-loading"><i></i><i></i><i></i></div></div><footer class="lana-attention-privacy">SMYL recibe solo nombre, canal, estado y referencia de la conversación. Los mensajes permanecen en LANA.</footer>';
+    section.innerHTML = '<header class="lana-attention-head"><div><span>ATENCIÓN OMNICANAL</span><h2 id="lana-attention-title">Conversaciones que necesitan a tu equipo</h2><p>Prioriza el pase a humano y continúa el caso clínico desde SMYL.</p></div><button type="button" class="lana-attention-refresh" data-lana-attention-refresh aria-label="Actualizar conversaciones">Actualizar</button></header><div class="lana-attention-body" data-lana-attention-body><div class="lana-attention-loading"><i></i><i></i><i></i></div></div><footer class="lana-attention-privacy">Esta vista utiliza solo los datos operativos necesarios. El historial se mantiene protegido en la infraestructura de mensajería.</footer>';
     section.querySelector('[data-lana-attention-refresh]').addEventListener('click', function () { load(true); });
     return section;
   }
@@ -94,7 +94,7 @@
     icon.dataset.channel = item.channel;
     var copy = node('div', 'lana-attention-copy');
     var titleRow = node('div', 'lana-attention-title-row');
-    titleRow.append(node('strong', '', item.contact_name || 'Paciente de LANA'));
+    titleRow.append(node('strong', '', item.contact_name || 'Paciente'));
     titleRow.append(node('span', 'lana-attention-time', waitingLabel(item.waiting_since)));
     var reason = node('p', '', item.reason || 'Requiere atención del equipo.');
     var meta = node('div', 'lana-attention-meta');
@@ -139,7 +139,7 @@
     }
     if (state.error) {
       var error = node('div', 'lana-attention-state is-error');
-      error.append(node('strong', '', 'No pudimos consultar LANA'), node('p', '', state.error));
+      error.append(node('strong', '', 'No pudimos actualizar los mensajes'), node('p', '', state.error));
       var errorActions = node('div', 'lana-attention-state-actions');
       var retry = node('button', 'btn btn-secondary btn-sm', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { load(true); };
       var configure = node('button', 'btn btn-primary btn-sm', 'Revisar conexión'); configure.type = 'button'; configure.onclick = function () { window.ir('conexiones'); };
@@ -149,7 +149,7 @@
     renderMetrics(body);
     if (!state.items.length) {
       var empty = node('div', 'lana-attention-state is-empty');
-      empty.append(node('span', 'lana-attention-empty-mark', '✓'), node('strong', '', 'No hay conversaciones pendientes'), node('p', '', 'Cuando LANA solicite a una persona o un paciente responda durante una pausa, aparecerá aquí.'));
+      empty.append(node('span', 'lana-attention-empty-mark', '✓'), node('strong', '', 'No hay conversaciones pendientes'), node('p', '', 'Cuando el asistente solicite a una persona o un paciente responda durante una pausa, aparecerá aquí.'));
       body.append(empty);
       return;
     }
@@ -178,7 +178,7 @@
   }
 
   async function resolveItem(item, button) {
-    if (!window.confirm('¿Confirmas que esta solicitud ya fue atendida? LANA conservará la conversación y sus mensajes.')) return;
+    if (!window.confirm('¿Confirmas que esta solicitud ya fue atendida? SMYL conservará la conversación y su trazabilidad.')) return;
     button.disabled = true; button.textContent = 'Guardando…';
     try {
       await request('POST', { action: 'resolve', conversation_id: item.id });

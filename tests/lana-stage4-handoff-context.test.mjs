@@ -15,7 +15,7 @@ test('SMYL prepares the clinical record internally without navigating to LANA', 
   assert.doesNotMatch(handoff, /app\.get-lana\.com\/admin|Volver al chat de LANA|LANA → SMYL/);
   assert.doesNotMatch(connections, /app\.get-lana\.com\/admin|Abrir LANA/);
   assert.match(handoff, /Solo se copiarán nombre y datos de contacto/);
-  assert.match(handoff, /el historial del chat permanece en LANA/);
+  assert.match(handoff, /el historial de mensajes permanece protegido en su canal/);
   assert.match(handoff, /Crear el expediente no envía mensajes/);
   assert.match(handoff, /request\('confirm'/);
 });

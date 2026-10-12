@@ -10,14 +10,14 @@ const contextEdge = read('../supabase/functions/lana-context/index.ts');
 const trainingEdge = read('../supabase/functions/lana-training/index.ts');
 const linked = read('../supabase/functions/_shared/lana-linked.ts');
 
-test('SMYL includes a private LANA response laboratory with suggested clinical scenarios', () => {
+test('SMYL includes a private assistant response laboratory with suggested clinical scenarios', () => {
   assert.match(connections, /LABORATORIO PRIVADO/);
   assert.match(connections, /Ningún mensaje sale de esta pantalla/);
   assert.match(connections, /Precio y horario/);
   assert.match(connections, /Dolor y urgencia/);
   assert.match(connections, /Foto y diagnóstico/);
   assert.match(styles, /connections-preview-chat/);
-  assert.match(app, /smyl-connections\.js\?v=8/);
+  assert.match(app, /smyl-connections\.js\?v=9/);
 });
 
 test('preview stays in browser memory and labels human escalation', () => {

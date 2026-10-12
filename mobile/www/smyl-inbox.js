@@ -58,7 +58,7 @@
       }
       return data;
     } catch (error) {
-      if (error && error.name === 'AbortError') throw new Error('LANA tardó demasiado en responder. Intenta nuevamente.');
+      if (error && error.name === 'AbortError') throw new Error('El servicio de mensajes tardó demasiado en responder. Intenta nuevamente.');
       throw error;
     } finally {
       clearTimeout(timer);
@@ -117,7 +117,7 @@
     page.id = 'p-inbox';
     page.innerHTML =
       '<header class="smyl-inbox-top">' +
-        '<div><span class="smyl-inbox-eyebrow">ATENCIÓN OMNICANAL</span><h1>Mensajes</h1><p>WhatsApp, Messenger e Instagram atendidos por LANA y tu equipo.</p></div>' +
+        '<div><span class="smyl-inbox-eyebrow">ATENCIÓN OMNICANAL</span><h1>Mensajes</h1><p>WhatsApp, Messenger e Instagram atendidos por SMYL Asistente y tu equipo.</p></div>' +
         '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
       '</header>' +
       '<div class="smyl-inbox-workspace">' +
@@ -131,7 +131,7 @@
           '<button type="button" class="smyl-inbox-more" data-inbox-more hidden>Cargar más conversaciones</button>' +
         '</aside>' +
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
-          '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><h2>Selecciona una conversación</h2><p>El hilo se consulta directamente en LANA. SMYL no mantiene una copia paralela.</p></div>' +
+          '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><h2>Selecciona una conversación</h2><p>El historial se sincroniza de forma segura y se presenta aquí, dentro de SMYL.</p></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
             '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><button type="button" class="smyl-inbox-control-button" data-inbox-context>Control de atención</button></header>' +
             '<div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
@@ -143,10 +143,10 @@
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
         '<aside class="smyl-inbox-context" data-inbox-context-panel aria-label="Control de atención"><div data-inbox-context-content></div></aside>' +
         '<dialog class="smyl-inbox-forward-dialog" data-inbox-forward><form method="dialog"><span class="smyl-inbox-eyebrow">REENVIAR MENSAJE</span><h2>Elige una conversación</h2><p>El contenido se enviará de nuevo por el canal del destinatario.</p><select data-forward-target aria-label="Conversación de destino"></select><div><button value="cancel" class="btn btn-secondary">Cancelar</button><button value="confirm" class="btn btn-primary" data-forward-confirm>Reenviar</button></div></form></dialog>' +
-        '<dialog class="smyl-inbox-copilot-dialog" data-copilot-resume><form><span class="smyl-inbox-eyebrow">REANUDAR CON CONTEXTO</span><h2>Revisa lo que recibirá LANA</h2><p>Copilot resume el episodio humano. Corrige cualquier inferencia antes de reactivar el asistente.</p><textarea data-resume-summary maxlength="2000" rows="7" aria-label="Resumen para reanudar"></textarea><div class="smyl-inbox-copilot-notes" data-resume-notes></div><footer><button type="button" class="btn btn-secondary" data-resume-cancel>Cancelar</button><button type="submit" class="btn btn-primary" data-resume-confirm>Reanudar LANA</button></footer></form></dialog>' +
+        '<dialog class="smyl-inbox-copilot-dialog" data-copilot-resume><form><span class="smyl-inbox-eyebrow">REANUDAR CON CONTEXTO</span><h2>Revisa lo que recibirá el asistente</h2><p>Copilot resume el episodio humano. Corrige cualquier inferencia antes de reactivar la atención automática.</p><textarea data-resume-summary maxlength="2000" rows="7" aria-label="Resumen para reanudar"></textarea><div class="smyl-inbox-copilot-notes" data-resume-notes></div><footer><button type="button" class="btn btn-secondary" data-resume-cancel>Cancelar</button><button type="submit" class="btn btn-primary" data-resume-confirm>Reanudar asistente</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog" data-copilot-feedback><form><span class="smyl-inbox-eyebrow">CALIDAD DE IA</span><h2>Evalúa esta respuesta</h2><p>Tu comentario queda para revisión; no modifica ni publica la capacitación automáticamente.</p><label>Resultado<select data-feedback-rating required><option value="helpful">Útil</option><option value="needs_improvement">Necesita mejora</option><option value="unsafe">Insegura o fuera de límites</option></select></label><label>¿Qué mejorarías?<textarea data-feedback-comment maxlength="1000" rows="3"></textarea></label><label>Respuesta ideal · opcional<textarea data-feedback-ideal maxlength="4000" rows="4"></textarea></label><footer><button type="button" class="btn btn-secondary" data-feedback-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Guardar evaluación</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
-        '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío queda en LANA y se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
+        '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-operations-dialog" data-operations-dialog><header><div><span class="smyl-inbox-eyebrow">OPERACIÓN Y PILOTO</span><h2>Estado del Inbox</h2><p>Métricas del tenant, consumo y bloqueos que deben resolverse antes del piloto.</p></div><button type="button" data-operations-close aria-label="Cerrar estado operativo">Cerrar</button></header><div data-operations-content></div><footer><span>La activación del piloto siempre es manual.</span><button type="button" class="btn btn-secondary" data-operations-refresh>Actualizar estado</button></footer></dialog>' +
       '</div>';
     return page;
@@ -191,7 +191,7 @@
     var visible = visibleConversations();
     if (!visible.length) {
       var empty = node('div', 'smyl-inbox-list-state');
-      empty.append(node('strong', '', 'No hay conversaciones aquí'), node('p', '', 'Prueba otro filtro o espera un mensaje nuevo desde LANA.'));
+      empty.append(node('strong', '', 'No hay conversaciones aquí'), node('p', '', 'Prueba otro filtro o espera un mensaje nuevo de tus canales.'));
       list.append(empty);
     }
     visible.forEach(function (item) {
@@ -205,7 +205,7 @@
       var meta = node('span', 'smyl-inbox-row-meta');
       meta.append(node('span', 'smyl-inbox-channel', channelLabel(item.channel)));
       if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Atención humana'));
-      else meta.append(node('span', 'smyl-inbox-state', 'LANA activa'));
+      else meta.append(node('span', 'smyl-inbox-state', 'Asistente activo'));
       if (item.assignment) meta.append(node('span', 'smyl-inbox-assignee', item.assignment.name));
       if (item.needs_human) meta.append(node('span', 'smyl-inbox-attention', 'Por atender'));
       copy.append(top, preview, meta);
@@ -324,7 +324,7 @@
     try {
       var data = await request('POST', {}, { action: 'resume_with_context', conversation_id: conversation.id, summary: summary }, uuid(), 20000);
       conversation.paused = Boolean(data.paused); conversation.needs_human = Boolean(data.needs_human); delete state.copilot[conversation.id]; dialog.close(); render();
-    } catch (error) { window.alert(error.message || 'No se pudo reanudar a LANA.'); }
+    } catch (error) { window.alert(error.message || 'No se pudo reanudar el asistente.'); }
     finally { submit.disabled = false; }
   }
 
@@ -428,7 +428,7 @@
       var date = new Date(item.created_at || Date.now()); var day = date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
       if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; }
       var row = node('div', 'smyl-inbox-message is-' + (item.author_type || (item.role === 'user' ? 'patient' : 'assistant')) + (item.status === 'failed' || item.status === 'unknown' ? ' has-error' : ''));
-      var bubble = node('div', 'smyl-inbox-bubble'); var author = item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo de la clínica' : 'LANA';
+      var bubble = node('div', 'smyl-inbox-bubble'); var author = item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
       var top = node('div', 'smyl-inbox-message-top'); top.append(node('small', '', author)); if (item.starred) top.append(node('span', '', '★')); bubble.append(top); appendMessageMedia(bubble, item);
       var status = node('span', 'smyl-inbox-message-status', item.status === 'sending' ? 'Enviando…' : item.status === 'failed' ? 'No se envió' : item.status === 'unknown' ? 'Confirmación pendiente' : timeLabel(item.created_at)); bubble.append(status);
       if (item.status === 'failed') { var retryPendingButton = node('button', '', 'Reintentar'); retryPendingButton.type = 'button'; retryPendingButton.onclick = function () { retryPending(item); }; bubble.append(retryPendingButton); }
@@ -772,7 +772,7 @@
     wrap.append(status);
 
     var assistant = node('section', 'smyl-inbox-context-card'); assistant.append(node('h3', '', 'SMYL Asistente'));
-    assistant.append(node('p', '', conversation.paused ? 'Pausado. El equipo atiende este hilo.' : 'Activo. LANA puede responder según su capacitación.'));
+    assistant.append(node('p', '', conversation.paused ? 'Pausado. El equipo atiende este hilo.' : 'Activo. SMYL Asistente puede responder según su capacitación.'));
     var toggle = node('button', conversation.paused ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm', conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando contexto…' : 'Preparar reanudación') : 'Pausar y tomar control');
     toggle.type = 'button'; toggle.disabled = !conversation.can_operate || Boolean(state.copilotLoading[conversation.id]); toggle.onclick = function () { conversation.paused ? prepareResume() : mutateConversation('pause'); };
     assistant.append(toggle); wrap.append(assistant);
@@ -790,21 +790,21 @@
       waActions.append(templateButton, scheduleButton); waCard.append(waActions); wrap.append(waCard);
 
       var automation = conversation.automation || {}; var automationCard = node('section', 'smyl-inbox-context-card smyl-inbox-automation-card');
-      automationCard.append(node('h3', '', 'Reactivación controlada'), node('p', '', 'Estas excepciones solo aplican a esta conversación. “Heredar” conserva la configuración general de LANA.'));
+      automationCard.append(node('h3', '', 'Reactivación controlada'), node('p', '', 'Estas excepciones solo aplican a esta conversación. “Heredar” conserva la configuración general del asistente.'));
       var hoursLabel = node('label', '', 'Después de inactividad'); var hoursSelect = document.createElement('select');
-      [['', 'Heredar de LANA'], ['0', 'Nunca'], ['1', '1 hora'], ['2', '2 horas'], ['4', '4 horas'], ['8', '8 horas'], ['24', '24 horas']].forEach(function (optionData) { var option = document.createElement('option'); option.value = optionData[0]; option.textContent = optionData[1]; hoursSelect.append(option); });
+      [['', 'Heredar configuración'], ['0', 'Nunca'], ['1', '1 hora'], ['2', '2 horas'], ['4', '4 horas'], ['8', '8 horas'], ['24', '24 horas']].forEach(function (optionData) { var option = document.createElement('option'); option.value = optionData[0]; option.textContent = optionData[1]; hoursSelect.append(option); });
       var configuredHours = automation.auto_reactivate_hours === null || automation.auto_reactivate_hours === undefined ? '' : String(automation.auto_reactivate_hours);
       if (configuredHours && !Array.from(hoursSelect.options).some(function (option) { return option.value === configuredHours; })) {
         var customHours = document.createElement('option'); customHours.value = configuredHours; customHours.textContent = configuredHours + ' horas (configurado)'; hoursSelect.append(customHours);
       }
       hoursSelect.value = configuredHours; hoursLabel.append(hoursSelect);
       var windowLabel = node('label', '', 'Al acercarse el cierre de ventana'); var windowSelect = document.createElement('select');
-      [['', 'Heredar de LANA'], ['true', 'Reactivar si corresponde'], ['false', 'No reactivar automáticamente']].forEach(function (optionData) { var option = document.createElement('option'); option.value = optionData[0]; option.textContent = optionData[1]; windowSelect.append(option); });
+      [['', 'Heredar configuración'], ['true', 'Reactivar si corresponde'], ['false', 'No reactivar automáticamente']].forEach(function (optionData) { var option = document.createElement('option'); option.value = optionData[0]; option.textContent = optionData[1]; windowSelect.append(option); });
       windowSelect.value = automation.window_reactivation === null || automation.window_reactivation === undefined ? '' : String(automation.window_reactivation); windowLabel.append(windowSelect);
       var saveAutomationButton = node('button', 'btn btn-secondary btn-sm', 'Guardar reglas'); saveAutomationButton.type = 'button'; saveAutomationButton.disabled = !conversation.can_operate; saveAutomationButton.onclick = function () { saveAutomation(hoursSelect.value, windowSelect.value); };
       automationCard.append(hoursLabel, windowLabel, saveAutomationButton);
       if (automation.reminder_sent_at) automationCard.append(node('small', '', 'Último recordatorio automático: ' + new Date(automation.reminder_sent_at).toLocaleString('es-MX')));
-      else automationCard.append(node('small', '', 'LANA aún no ha enviado un recordatorio en esta racha.'));
+      else automationCard.append(node('small', '', 'El asistente aún no ha enviado un recordatorio en esta racha.'));
       wrap.append(automationCard);
 
       var scheduledCard = node('section', 'smyl-inbox-context-card smyl-inbox-scheduled-card'); scheduledCard.append(node('h3', '', 'Programados'));
@@ -838,7 +838,7 @@
 
     if (conversation.needs_human) {
       var attention = node('section', 'smyl-inbox-context-card is-attention');
-      attention.append(node('h3', '', 'Intervención solicitada'), node('p', '', 'LANA marcó esta conversación para seguimiento humano. Resolverla no reactiva la IA.'));
+      attention.append(node('h3', '', 'Intervención solicitada'), node('p', '', 'El asistente marcó esta conversación para seguimiento humano. Resolverla no reactiva la IA.'));
       var resolve = node('button', 'btn btn-primary btn-sm', 'Marcar solicitud resuelta'); resolve.type = 'button'; resolve.disabled = !conversation.can_operate; resolve.onclick = function () { mutateConversation('resolve'); };
       attention.append(resolve); wrap.append(attention);
     }
@@ -853,7 +853,7 @@
       var facts = node('div', 'smyl-inbox-ficha-facts');
       facts.append(node('span', '', 'Caso activo'), node('span', '', String((ficha.clinical_images || []).length) + ' fotos desde chat'));
       if (ficha.case && ficha.case.score !== null) facts.append(node('span', '', 'Score ' + ficha.case.score));
-      if (ficha.case && ficha.case.lana_appointment_id) facts.append(node('span', '', 'Cita vinculada en LANA'));
+      if (ficha.case && ficha.case.lana_appointment_id) facts.append(node('span', '', 'Cita vinculada'));
       if (ficha.case && ficha.case.simulation_url) facts.append(node('span', '', 'Simulación disponible'));
       if (ficha.case && ficha.case.quote_total !== null && ficha.case.quote_total !== undefined) {
         var quote = Number(ficha.case.quote_total);
@@ -879,7 +879,7 @@
     document.querySelector('[data-thread-avatar]').textContent = initials(conversation.contact_name);
     document.querySelector('[data-thread-avatar]').dataset.channel = conversation.channel;
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
-    document.querySelector('[data-thread-meta]').textContent = channelLabel(conversation.channel) + ' · ' + (conversation.paused ? 'Atención humana' : 'LANA activa');
+    document.querySelector('[data-thread-meta]').textContent = channelLabel(conversation.channel) + ' · ' + (conversation.paused ? 'Atención humana' : 'Asistente activo');
     var composer = document.querySelector('[data-inbox-composer]');
     Array.from(composer.elements).forEach(function (control) { control.disabled = !conversation.can_operate; });
     renderComposerContext(); renderWhatsappWindow(); renderContext();
@@ -980,7 +980,7 @@
       conversation.unread_count = Number(data.unread_count) || 0;
       conversation.assignment = data.assigned_actor_id
         ? { source: 'smyl', actor_id: data.assigned_actor_id, name: data.assigned_actor_name || 'Miembro de SMYL' }
-        : (data.legacy_assigned ? { source: 'lana', actor_id: null, name: 'Asignada en LANA' } : null);
+        : (data.legacy_assigned ? { source: 'lana', actor_id: null, name: 'Asignada previamente' } : null);
       conversation.can_operate = true;
       render();
     } catch (error) { window.alert(error.message || 'No se pudo actualizar la conversación.'); }
