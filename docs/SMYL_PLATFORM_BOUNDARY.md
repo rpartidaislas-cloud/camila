@@ -139,12 +139,17 @@ hacen con movimientos compensatorios.
 
 ### Etapa 0 — separación visible y contrato
 
+**Estado: completada.**
+
 - Eliminar la marca LANA de la experiencia del dentista.
 - Presentar `Canales e IA`, `Mensajes` y `SMYL Asistente` dentro de SMYL.
 - Mantener nombres técnicos internos para no romper endpoints ni migraciones.
 - Congelar este documento como regla de arquitectura.
 
 ### Etapa 1 — núcleo de clínica
+
+**Estado: completada y desplegada en SMYL.** Detalle técnico en
+`SMYL_CLINIC_CORE.md`.
 
 - Clínicas, sucursales, consultorios/sillones y horarios.
 - Miembros, especialidades, roles y permisos por módulo.

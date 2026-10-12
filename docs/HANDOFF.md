@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 1 de plataforma, núcleo de clínica desplegado
+
+**Publicado en Supabase SMYL:** cuatro migraciones para sucursales, espacios,
+horarios, equipo, roles, permisos, profesionales y auditoría. No se consultan ni
+comparten tablas de LANA.
+
+- Se crearon 10 tablas tenant-scoped con RLS y 29 políticas; 27 clínicas
+  existentes recibieron una sede principal y 25 propietarios su rol inicial.
+- Las asignaciones de rol/sede, el cambio de sucursal principal y el alta de
+  profesional usan RPC transaccionales. Los horarios se serializan y rechazan
+  traslapes; una restricción diferida impide dejar una clínica activa sin sede
+  principal.
+- Un integrante invitado inicia con el rol mínimo **Recepción**; los permisos
+  clínicos o administrativos requieren asignación explícita del propietario.
+- El panel incorpora **Mi clínica** para sucursales, sillones/consultorios,
+  horarios, equipo, roles, sedes y profesionales. Web y PWA están sincronizadas
+  y el caché subió a `smyl-v179-clinic-core`.
+- Validación: 11 pruebas enfocadas aprobadas, SQL compilado en PostgreSQL
+  embebido, migraciones registradas, lectura anónima sin filas y mutación
+  anónima `401`. QA visual aprobado a 1440 px y 390 px sin overflow.
+- El asesor de Supabase conserva hallazgos históricos fuera de esta etapa en
+  `landing_catalogo`, `camila_tenants_publico` y Auth; no se modificaron a
+  ciegas. Detalle en `docs/SMYL_CLINIC_CORE.md`.
+- La siguiente etapa es **Agenda diaria** sobre este núcleo: servicios,
+  disponibilidad, citas, estados, bloqueos, recordatorios y solicitudes del
+  asistente sin confirmaciones falsas.
+
 ## 2026-10-12 — Codex: etapa 0 de plataforma, frontera profesional SMYL + LANA
 
 **Decisión de producto aplicada:** SMYL es la única plataforma visible para la
