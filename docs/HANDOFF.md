@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 3, Ficha clínica 360
+
+**Desplegada en Supabase SMYL:** expediente longitudinal con
+antecedentes versionados, notas SOAP, firma inmutable, adendas, archivos privados
+y línea de tiempo de citas, notas y evidencias.
+
+- Los módulos existentes de odontograma, simulaciones/casos y plan de
+  tratamiento se conservan y ahora tienen navegación desde la Ficha 360.
+- `clinical.read`, `clinical.write` y `clinical.approve` separan lectura,
+  captura y firma. Las mutaciones clínicas pasan por RPC y control optimista.
+- El bucket `smyl-clinical-files` es privado, tenant/paciente-scoped, limita
+  tipo y tamaño y entrega URLs firmadas temporales.
+- Las notas firmadas no se editan: toda corrección posterior es una adenda.
+- Web y PWA móvil sincronizadas; caché `smyl-v181-patient-360`.
+- Migraciones `20261012270000` a `20261012290000`. Detalle en
+  `docs/SMYL_PATIENT_360.md`.
+- La siguiente etapa es **Inventario y compras dental**.
+
 ## 2026-10-12 — Codex: etapa 2, agenda diaria dental desplegada
 
 **Publicado en Supabase SMYL:** servicios, disponibilidad profesional, citas,
@@ -21,7 +39,7 @@ para confirmar, reprogramar y cambiar estados.
   recordatorios son de solo lectura para el navegador y se mutan por RPC.
 - El panel incorpora Agenda día/semana, filtros, servicios, disponibilidad,
   bloqueos, estados y solicitudes. Web/PWA sincronizadas; caché
-  `smyl-v180-daily-schedule`.
+  `smyl-v181-patient-360`.
 - Migraciones `20261012230000` a `20261012260000` aplicadas y
   registradas. Detalle en `docs/SMYL_DAILY_SCHEDULE.md`.
 - La siguiente etapa es **Ficha clínica 360**.
