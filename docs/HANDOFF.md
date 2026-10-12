@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 4, inventario y compras dental desplegado
+
+**Publicado en Supabase SMYL:** catálogo, proveedores, ubicaciones, niveles de
+reposición, compras, recepciones, lotes, movimientos y materiales por servicio.
+
+- Las existencias se derivan del libro de movimientos; no existe un saldo
+  editable. Recepciones, traslados, consumos, mermas y ajustes son atómicos.
+- Los movimientos confirmados son inmutables. Una corrección crea una
+  compensación ligada al original y, si era recepción, ajusta también el pedido.
+- Lote, caducidad, serie y trazabilidad por paciente se habilitan por insumo.
+  Un lote caducado no puede consumirse clínicamente.
+- Compras y movimientos usan idempotencia y bloqueo transaccional para evitar
+  recepciones duplicadas o existencias negativas por concurrencia.
+- `inventory.read` e `inventory.manage` gobiernan RLS y acciones; el navegador
+  no escribe directamente en compras, lotes ni movimientos.
+- Se aprovisionaron 27 almacenes principales, uno por sucursal existente. Web
+  y PWA móvil sincronizadas; caché `smyl-v182-dental-inventory`.
+- Migraciones `20261012300000` a `20261012320000`. Detalle en
+  `docs/SMYL_DENTAL_INVENTORY.md`.
+- La siguiente etapa es **Caja y facturación**.
+
 ## 2026-10-12 — Codex: etapa 3, Ficha clínica 360
 
 **Desplegada en Supabase SMYL:** expediente longitudinal con
@@ -13,7 +34,7 @@ y línea de tiempo de citas, notas y evidencias.
 - El bucket `smyl-clinical-files` es privado, tenant/paciente-scoped, limita
   tipo y tamaño y entrega URLs firmadas temporales.
 - Las notas firmadas no se editan: toda corrección posterior es una adenda.
-- Web y PWA móvil sincronizadas; caché `smyl-v181-patient-360`.
+- Web y PWA móvil sincronizadas; caché `smyl-v182-dental-inventory`.
 - Migraciones `20261012270000` a `20261012290000`. Detalle en
   `docs/SMYL_PATIENT_360.md`.
 - La siguiente etapa es **Inventario y compras dental**.
@@ -39,7 +60,7 @@ para confirmar, reprogramar y cambiar estados.
   recordatorios son de solo lectura para el navegador y se mutan por RPC.
 - El panel incorpora Agenda día/semana, filtros, servicios, disponibilidad,
   bloqueos, estados y solicitudes. Web/PWA sincronizadas; caché
-  `smyl-v181-patient-360`.
+  `smyl-v182-dental-inventory`.
 - Migraciones `20261012230000` a `20261012260000` aplicadas y
   registradas. Detalle en `docs/SMYL_DAILY_SCHEDULE.md`.
 - La siguiente etapa es **Ficha clínica 360**.

@@ -158,6 +158,8 @@ hacen con movimientos compensatorios.
 
 ### Etapa 2 — agenda diaria
 
+**Estado: completada y desplegada en SMYL.**
+
 - Profesionales, recursos, servicios y duración.
 - Día/semana, creación y reprogramación de citas.
 - Llegada, atención, ausencia, cancelación y bloqueo de horario.
@@ -165,11 +167,16 @@ hacen con movimientos compensatorios.
 
 ### Etapa 3 — expediente dental completo
 
+**Estado: completada y desplegada en SMYL.**
+
 - Historia médica, odontograma, notas, evidencias y consentimientos.
 - Plan de tratamiento, presupuestos y seguimiento por cita.
 - Línea de tiempo clínica y acceso auditado.
 
 ### Etapa 4 — inventario y compras
+
+**Estado: completada y desplegada en SMYL.** Detalle técnico en
+`SMYL_DENTAL_INVENTORY.md`.
 
 - Catálogo, proveedores, existencias, lotes y caducidad.
 - Compras, recepción, traslados, consumos y mermas.
