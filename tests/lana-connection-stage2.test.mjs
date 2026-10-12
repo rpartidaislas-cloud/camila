@@ -11,8 +11,8 @@ const edge = read('../supabase/functions/lana-connection/index.ts');
 const sw = read('../sw.js');
 
 test('panel exposes the LANA connection center and advances cached assets', () => {
-  assert.match(app, /smyl-connections\.css\?v=3/);
-  assert.match(app, /smyl-connections\.js\?v=5/);
+  assert.match(app, /smyl-connections\.css\?v=5/);
+  assert.match(app, /smyl-connections\.js\?v=7/);
   assert.match(app, /smyl-panel\.css\?v=4/);
   assert.match(app, /smyl-panel\.js\?v=4/);
   assert.match(connections, /LANA atiende el chat/);
@@ -20,13 +20,13 @@ test('panel exposes the LANA connection center and advances cached assets', () =
   assert.match(connections, /Messenger/);
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
-  assert.match(sw, /smyl-v168-lana-response-lab/);
-  assert.match(sw, /smyl-connections\.js\?v=5/);
-  assert.match(sw, /smyl-connections\.css\?v=3/);
+  assert.match(sw, /smyl-v176-inbox-hardening-stage7/);
+  assert.match(sw, /smyl-connections\.js\?v=7/);
+  assert.match(sw, /smyl-connections\.css\?v=5/);
 });
 
 test('connection keeps Meta ownership in LANA and clinical delivery human-controlled', () => {
-  assert.match(connections, /Meta permanece en LANA/);
+  assert.match(connections, /Las credenciales y los webhooks permanecen protegidos dentro de LANA/);
   assert.match(connections, /no solicita ni almacena tokens de Meta/);
   assert.match(connections, /Nada clínico se entrega automáticamente sin aprobación humana/);
   assert.doesNotMatch(connections, /meta-send|camila_canales|META_TOKEN/);

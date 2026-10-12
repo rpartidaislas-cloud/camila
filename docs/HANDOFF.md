@@ -1,5 +1,150 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-11 — Codex: etapa 7 técnica, endurecimiento y puerta de piloto
+
+**Tocado en SMYL:** `smyl-inbox.js/css` y copia móvil, `app.html`, `sw.js`,
+`lana-inbox`, arquitectura, contrato/documentación, fixture visual y pruebas.
+
+**Tocado en LANA:** `camila-api`, trabajador de mensajes programados, helper de
+WhatsApp, contrato de Inbox, migración
+`20261011260000_smyl_inbox_hardening_pilot.sql`, contexto de agente y pruebas.
+
+- El Inbox muestra salud operativa, alertas, volumen, consumo de IA, canales y
+  una lista verificable de preparación del piloto sin exponer PHI.
+- Los límites se consumen atómicamente por tenant/actor. Los envíos sólo se
+  reintentan automáticamente ante rechazo transitorio explícito de Meta; un
+  resultado ambiguo pasa a revisión humana para no duplicar mensajes.
+- La cola de fallos conserva intentos, siguiente ejecución y causa. El reintento
+  manual es autorizado, tenant-scoped e idempotente.
+- Validación específica aprobada en ambos repositorios, checks de sintaxis y
+  bundle aprobados, y revisión visual responsive en escritorio, tableta y móvil.
+  La suite amplia de SMYL conserva dos fallos preexistentes y ajenos al Inbox en
+  pruebas de simulación rápida (`lana-quick` y `quick-guided-flow`).
+- **No publicado:** falta aplicar migraciones y desplegar funciones/web en orden,
+  elegir una clínica y completar el piloto real con canales conectados. Esa
+  activación quedó como tarea separada y requiere autorización explícita.
+
+## 2026-10-11 — Codex: etapa 6, WhatsApp avanzado en el Inbox
+
+**Tocado en SMYL:** `smyl-inbox.js/css` y copia móvil, `app.html`, `sw.js`,
+`lana-inbox`, arquitectura, documentación y pruebas.
+
+**Tocado en LANA:** `camila-api`, trabajador de mensajes programados, contrato
+de Inbox, migración `20261011250000_smyl_whatsapp_advanced.sql`, contexto de
+agente y pruebas.
+
+- LANA calcula y devuelve la ventana de 24 horas; la UI avisa cuando está por
+  vencer o vencida, y el servidor bloquea contenido libre fuera de ventana.
+- Sólo plantillas `UTILITY` activas y aprobadas, pertenecientes al tenant,
+  pueden reabrir WhatsApp. Las variables se validan en LANA antes del envío.
+- Los programados guardan actor, payload, hash y clave de idempotencia. El
+  trabajador revalida la política al ejecutar y reconcilia la persistencia
+  antes de un reintento para evitar duplicados.
+- El equipo puede heredar, desactivar o ajustar por conversación la
+  reactivación y el comportamiento próximo al cierre; las reglas son
+  atómicas, auditadas e idempotentes. SMYL muestra recordatorios y permite
+  cancelar pendientes sin recibir credenciales de Meta.
+- Verificación local: Deno y sintaxis aprobados; 17 pruebas enfocadas de LANA y
+  19 regresiones de SMYL aprobadas. Revisión visual responsive aprobada en
+  escritorio, tablet y móvil con datos simulados; el QA corrigió la altura del
+  workspace y evitó que el compositor ensanchara el hilo.
+- **No publicado:** falta aplicar la migración, desplegar `camila-api`, el
+  trabajador programado y `lana-inbox`, publicar web/PWA y completar un piloto
+  con plantillas reales aprobadas por Meta.
+
+## 2026-10-11 — Codex: etapa 3, Inbox operativo SMYL sobre LANA
+
+**Tocado:** `app.html`, `smyl-inbox.js/css`, PWA móvil, `sw.js`, función
+`lana-inbox`, contrato/documentación, pruebas y el repositorio LANA
+(`camila-api` y migración `20261011220000_smyl_inbox_operational.sql`).
+
+- SMYL ofrece una bandeja responsive para WhatsApp, Messenger e Instagram,
+  con filtros, no leídos, hilo paginado, carga incremental y control de
+  atención. LANA sigue siendo la única fuente de conversaciones y mensajes.
+- El navegador usa su sesión SMYL; tenant, actor y rol se resuelven en servidor.
+  La API key vinculada, los tokens de Meta y el identificador externo del
+  contacto no salen de las Edge Functions.
+- Los envíos manuales usan una cola optimista por conversación y una clave
+  idempotente estable para reintento/reconciliación. Si el proveedor aceptó el
+  mensaje pero no pudo confirmarse la persistencia, la UI exige actualizar el
+  hilo antes de reenviar para evitar duplicados.
+- Responder pausa automáticamente a LANA. El equipo puede tomar/liberar,
+  pausar/reanudar y resolver solicitudes según su rol; las mutaciones se
+  serializan y auditan en LANA.
+- La actualización “en vivo” usa sincronización incremental segura cada cinco
+  segundos mientras la pantalla está visible; no entrega credenciales de
+  Realtime de LANA al navegador de SMYL.
+- Pruebas focalizadas de interfaz, rutas, contrato, concurrencia, idempotencia
+  y migración PostgreSQL pasan; los chequeos Deno y la revisión visual en
+  escritorio/móvil también pasan.
+- **No publicado:** falta aplicar primero la migración en LANA, desplegar
+  `camila-api`, desplegar `lana-inbox`, publicar web/PWA y ejecutar un piloto
+  real con dos usuarios y los tres canales.
+
+## 2026-10-11 — Codex: etapa 2, Capacitar IA dental versionada
+
+**Tocado:** `smyl-connections.js/css`, PWA móvil, función `lana-training`,
+documentación, pruebas y el repositorio LANA (`camila-api`, compilador dental y
+migración `20261011210000_smyl_dental_training.sql`).
+
+- El contexto inmediato se sustituyó por borrador, validación y publicación:
+  guardar ya no cambia lo que LANA responde a pacientes.
+- La capacitación estructura identidad, clínica, servicios, FAQ, citas,
+  precios, datos administrativos, escalamiento y autonomía. Los límites de no
+  diagnosticar, prescribir, interpretar imágenes, prometer resultados o
+  revelar expedientes son código fijo y no campos editables.
+- Publicar crea una versión inmutable y actualiza el runtime dentro de la misma
+  transacción, con revisión optimista, `Idempotency-Key`, RLS cerrado y bitácora
+  inmutable. Restaurar solo crea un nuevo borrador; no altera producción.
+- El laboratorio puede alternar entre borrador y publicación y usa
+  `bloqueContextoSmyl`, el mismo compilador de los webhooks reales. No envía ni
+  persiste una conversación.
+- Pruebas focalizadas de frontend, contrato, compilador y migración pasan. El
+  chequeo Deno de las nuevas funciones pasa; `camila-api` conserva cuatro
+  errores de tipos preexistentes del SDK de Anthropic y el adaptador Meta.
+- **No publicado:** falta aplicar primero la migración en LANA, desplegar
+  `camila-api`, desplegar `lana-training` en SMYL, publicar los activos y hacer
+  una prueba controlada con una clínica.
+
+## 2026-10-11 — Codex: etapa 0, contrato ejecutable SMYL ↔ LANA
+
+**Tocado:** `docs/SMYL_CHAT_ARCHITECTURE.md`,
+`docs/SMYL_LANA_CHAT_CONTRACT_V1.md`,
+`docs/LANA_INTEGRATION.md`, helper `lana-contract.mjs`, clientes Edge de LANA,
+pruebas de contrato y el repositorio LANA (`camila-api`).
+
+- Se congeló la frontera: LANA conserva canales, tokens, webhooks,
+  conversaciones y mensajes; SMYL conserva pacientes, expedientes, citas,
+  casos, simulaciones, propuestas y vínculos confirmados.
+- Las llamadas salientes de SMYL ahora normalizan rutas contra una lista
+  permitida y anuncian la versión `1.0`; no se aceptan hosts, rutas ni
+  fragmentos arbitrarios.
+- LANA expone un manifiesto autenticado sin secretos en `GET /contract` y
+  devuelve la versión del contrato en sus respuestas.
+- Se documentaron los endpoints actuales y los gates de aprovisionamiento,
+  canales y capacitación de las siguientes etapas. No hubo migración,
+  despliegue, conexión con Meta ni copia de mensajes.
+
+## 2026-10-11 — Codex: etapa 6, bandeja clínica de atención LANA
+
+**Tocado:** `app.html`, `smyl-lana-attention.js/css`, `sw.js`, nueva función
+`lana-attention`, documentación, pruebas y `camila-api` en el repositorio
+LANA.
+
+- El inicio muestra una lista real de conversaciones que LANA marcó para
+  asesor o que recibieron respuesta mientras la IA está pausada.
+- Cada fila permite abrir el chat exacto en LANA y preparar/reutilizar el
+  expediente mediante el flujo seguro de la etapa 4. Se indica si el
+  expediente ya está vinculado.
+- SMYL recibe solo metadatos operativos; no copia mensajes, resúmenes de chat,
+  teléfonos, correos ni credenciales de Meta.
+- El dueño puede marcar una solicitud como resuelta. La operación replica el
+  cierre de LANA, pero no envía mensajes, no elimina la conversación y no
+  reanuda la IA. El personal mantiene acceso de lectura y al flujo de
+  expediente.
+- Sin migraciones nuevas. La interfaz adapta el patrón compacto de lista de
+  tareas/estado consultado en 21st.dev a la identidad visual existente.
+
 ## 2026-10-11 — Codex: etapa 5, laboratorio privado de respuestas LANA
 
 **Tocado:** `app.html`, `smyl-connections.js/css`, `sw.js`, función
@@ -3866,3 +4011,95 @@ plan es una decisión de facturación y quedó pendiente de autorización.
 - Edge Function `claude` desplegada en producción como versión 78, `ACTIVE`,
   `verify_jwt=false`, con `_shared/limits.ts` y `_shared/auth.ts` incluidos.
 - No se generó ninguna simulación ni se consumió cupo durante la validación.
+
+---
+
+## 2026-10-11 — Etapa 1 del chat: activar LANA y conectar Meta desde SMYL
+
+**Tocado en SMYL:** `smyl-connections.js/.css` y copia móvil,
+`lana-connection`, nueva función `lana-channels`, migración
+`20261011200000_lana_automatic_provisioning.sql`, contrato, documentación y
+pruebas.
+
+**Tocado en LANA:** `camila-api`, nueva función `smyl-provision`, nueva función
+`smyl-channel-setup`, autorización temporal compartida para los tres conectores,
+`smyl-channel-connect.html`, migración
+`20261011190000_smyl_channel_onboarding.sql`, `config.toml` y pruebas.
+
+- El dueño de la clínica puede activar LANA automáticamente. La llamada es
+  servidor-a-servidor, usa una Idempotency-Key estable y la API key nunca llega
+  al navegador. LANA busca claves nuevas por SHA-256 y mantiene un fallback
+  exclusivo para filas legacy en texto plano.
+- SMYL muestra el estado real de WhatsApp, Messenger e Instagram y abre una
+  ventana LANA para cada conexión. El token de preparación vive diez minutos,
+  está limitado a tenant + canal, se guarda solo como hash, viaja en fragmento
+  y se consume en el primer intento.
+- OAuth, Embedded Signup, tokens, webhooks, conversaciones y mensajes continúan
+  en LANA. SMYL recibe únicamente estado público y el resultado de conexión.
+- El flujo manual por código permanece como compatibilidad para cuentas LANA
+  existentes. No se implementó una desconexión aparente: continúa pendiente
+  hasta contar con revocación autorizada y auditable.
+- No se desplegó ni se conectó una cuenta real. Antes de producción: aplicar
+  ambas migraciones, configurar los secrets en los dos proyectos, desplegar las
+  funciones/página y completar App Review, permisos, redirect URI, webhooks y
+  Unified Onboarding v4 en Meta.
+
+---
+
+## 2026-10-11 — Etapa 4 del chat: medios y Ficha clínica 360
+
+**Tocado en SMYL:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, helper de
+conexión LANA, migración `20261011230000_lana_clinical_message_links.sql`,
+contrato, arquitectura, documentación y pruebas.
+
+**Tocado en LANA:** `camila-api`, contrato de Inbox, migración
+`20261011230000_smyl_inbox_media_context.sql`, TODO/contexto de agente y pruebas.
+
+- El Inbox admite imagen, documento, audio, ubicación confirmada, respuesta
+  citada, reenvío, destacado y soft-delete, respetando capacidades del canal.
+- Los archivos permanecen privados en `salud-adjuntos`; LANA entrega URL
+  firmadas por cinco minutos y no devuelve rutas internas al navegador.
+- La Ficha 360 consulta el paciente/caso confirmado en SMYL y muestra cita,
+  simulación, propuesta y fotografías cuando existen. No copia el expediente ni
+  el historial de LANA.
+- Una fotografía sólo entra a revisión clínica tras revalidar el mensaje
+  canónico en LANA; SMYL persiste únicamente IDs de referencia con RLS e
+  idempotencia.
+- Verificación local: checks de Deno y sintaxis aprobados, 19 pruebas enfocadas
+  aprobadas y revisión visual responsive en escritorio/móvil con datos simulados.
+- No se aplicaron migraciones, no se desplegaron Edge Functions y no se publicó
+  la PWA. Las acciones clínicas deterministas de citas/propuestas/seguimientos
+  continúan en la etapa 5.
+
+---
+
+## 2026-10-11 — Etapa 5 del chat: SMYL Asistente y Copilot
+
+**Tocado en SMYL:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, versiones
+de activos web/PWA, contrato, arquitectura, documentación y pruebas.
+
+**Tocado en LANA:** `camila-api`, `whatsapp-webhook`, `meta-webhook`, helper de
+reanudación, contrato de Inbox, migración
+`20261011240000_smyl_assistant_copilot.sql`, TODO/contexto de agente y pruebas.
+
+- El Inbox agrega Copilot interno con borradores y resúmenes construidos desde
+  el hilo canónico; usar un borrador no lo envía.
+- SMYL construye en servidor un snapshot dental de sólo lectura. LANA valida
+  tenant, actor, asignación, capacitación publicada y consumo antes de llamar
+  a IA; el navegador no aporta historial confiable ni autorización clínica.
+- El catálogo de herramientas refleja humano, agenda configurada, servicios
+  publicados y resultado autorizado sólo tras una acción profesional previa.
+  Copilot no ejecuta ninguna herramienta ni modifica expediente, citas o
+  capacitación.
+- Reanudar LANA requiere revisar y confirmar un resumen; la transición se
+  guarda de forma atómica, idempotente y auditada. Los tres webhooks consumen
+  ese traspaso sólo en la primera respuesta posterior y sin tratarlo como una
+  autorización. El feedback de respuestas es atribuible e inmutable y no se
+  publica como conocimiento automáticamente.
+- Verificación local: checks de Deno de `camila-api` y los tres webhooks,
+  sintaxis del puente aprobada; 13 pruebas enfocadas de LANA, 78 regresiones
+  relacionadas de webhooks y 12 pruebas enfocadas de SMYL aprobadas, incluida
+  PostgreSQL embebida. Revisión visual responsive aprobada en escritorio y
+  móvil con datos simulados.
+- No se aplicó la migración, no se desplegaron Edge Functions y no se publicó la
+  PWA. La salida a producción requiere autorización expresa y piloto controlado.

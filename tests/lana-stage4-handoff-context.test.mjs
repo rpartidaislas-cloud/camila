@@ -27,12 +27,12 @@ test('handoff is tenant-scoped and idempotent', () => {
   assert.doesNotMatch(edge, /messages|ultimo_mensaje/);
 });
 
-test('SMYL exposes a structured LANA context editor with fixed clinical limits', () => {
-  assert.match(connections, /Contexto de atención/i);
+test('SMYL exposes structured dental training with fixed clinical limits', () => {
+  assert.match(connections, /CAPACITAR IA/i);
   assert.match(connections, /clinic_description/);
   assert.match(connections, /handoff_rules/);
-  assert.match(connections, /No diagnostica, prescribe, promete resultados/);
-  assert.match(connections, /\/functions\/v1\/lana-context/);
-  assert.match(connections, /Aún no hay contexto guardado/);
+  assert.match(connections, /No diagnosticar, prescribir ni recomendar dosis/);
+  assert.match(connections, /\/functions\/v1\/lana-training/);
+  assert.match(connections, /Completa y guarda tu primer borrador/);
   assert.match(contextEdge, /Solo el dueño de la clínica/);
 });

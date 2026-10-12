@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL Inbox etapa 7 · QA visual</title>
+  <link rel="stylesheet" href="../../smyl-inbox.css">
+  <style>
+    :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f7fa; color:#142033; font-family:Inter,system-ui,sans-serif; }
+    .contenido { min-height:100vh; padding:28px 32px 40px; }
+    .pantalla { display:none; }
+    .pantalla.activa { display:block; }
+    .smyl-inbox-page.activa { display:flex; }
+    .pro-primary-nav,.pro-mobile-nav { display:none; }
+    .btn { border:0; border-radius:10px; min-height:38px; padding:0 14px; font:inherit; font-weight:700; }
+    .btn-primary { background:#1769e0; color:white; }
+    .btn-secondary { background:#eef3f8; color:#22314a; }
+    .btn-sm { min-height:34px; font-size:13px; }
+    .qa-mobile body,.qa-mobile .contenido { width:390px; }
+    .qa-mobile body { overflow:hidden; }
+    .qa-tablet body,.qa-tablet .contenido { width:768px; }
+    .qa-tablet body { overflow:hidden; }
+    @media (max-width:760px) { .contenido { padding:12px 14px 92px; } }
+  </style>
+</head>
+<body>
+  <nav class="pro-primary-nav"></nav>
+  <nav class="pro-mobile-nav"></nav>
+  <main class="contenido"></main>
+  <script>
+    if (new URLSearchParams(location.search).has('mobile')) document.documentElement.classList.add('qa-mobile');
+    if (new URLSearchParams(location.search).has('tablet')) document.documentElement.classList.add('qa-tablet');
+    window.SUPA_URL = 'https://preview.invalid';
+    window.SUPA_KEY = 'preview';
+    window.TITULOS = {};
+    window.sb = { auth: { getSession: async function () { return { data: { session: { access_token: 'preview' } } }; } } };
+    window.ir = function (route) {
+      document.querySelectorAll('.pantalla').forEach(function (page) { page.classList.toggle('activa', page.id === 'p-' + route); });
+    };
+
+    var conversation = {
+      id:'c-preview', channel:'whatsapp', contact_name:'Ana López', last_message:'Perfecto, quiero confirmar el horario de mi valoración.',
+      last_message_at:new Date(Date.now()-38*60000).toISOString(), unread_count:2, paused:true, needs_human:true, can_operate:true,
+      assignment:{ source:'smyl', actor_id:'owner-preview', name:'Dra. Mariana' },
+      whatsapp_window:{ status:'expired', expires_at:new Date(Date.now()-25*60000).toISOString(), remaining_seconds:0, freeform_allowed:false },
+      automation:{ auto_reactivate_hours:6, window_reactivation:false, reminder_sent_at:new Date(Date.now()-26*3600000).toISOString() }
+    };
+    var messages = [
+      { id:'m1', author_type:'patient', role:'user', content:'Hola, quiero información sobre diseño de sonrisa.', status:'sent', created_at:new Date(Date.now()-27*3600000).toISOString() },
+      { id:'m2', author_type:'assistant', role:'assistant', content:'Con gusto, Ana. Puedo ayudarte a conocer el proceso y agendar una valoración con la clínica.', status:'sent', created_at:new Date(Date.now()-26.8*3600000).toISOString() },
+      { id:'m3', author_type:'patient', role:'user', content:'Perfecto, quiero confirmar el horario de mi valoración.', status:'sent', starred:true, created_at:new Date(Date.now()-25.5*3600000).toISOString() }
+    ];
+    function json(data, status) { return Promise.resolve(new Response(JSON.stringify(data), { status:status||200, headers:{'Content-Type':'application/json'} })); }
+    window.fetch = function (input, init) {
+      var url = new URL(String(input)); var action = url.searchParams.get('action'); var body = {};
+      try { body = init && typeof init.body === 'string' ? JSON.parse(init.body) : {}; } catch (_) {}
+      action = action || body.action;
+      if (action === 'list') return json({ actor:{id:'owner-preview',role:'owner',name:'Dra. Mariana'}, conversations:[conversation], page:{total:1,has_more:false}, synced_at:new Date().toISOString() });
+      if (action === 'messages') return json({ conversation:conversation, messages:messages, page:{has_more:false,before:null} });
+      if (action === 'team') return json({ members:[{id:'owner-preview',name:'Dra. Mariana'}] });
+      if (action === 'clinical_context') return json({ linked:true, patient:{name:'Ana López',phone:'+52 55 0000 1184',email:'ana@ejemplo.mx'}, case:{score:86,lana_appointment_id:'apt-1',simulation_url:null,quote_total:18500,summary:'Valoración inicial pendiente de confirmación.'}, clinical_images:[] });
+      if (action === 'scheduled') return json({ scheduled:[{id:'s1',type:'template',send_at:new Date(Date.now()+24*3600000).toISOString(),status:'retrying',content:'Recordatorio de valoración dental',attempt_count:1,max_attempts:3,next_attempt_at:new Date(Date.now()+5*60000).toISOString(),retry_safe:true},{id:'s2',type:'text',send_at:new Date(Date.now()-60*60000).toISOString(),status:'dead_letter',content:'Seguimiento de valoración',error:'Meta rechazó temporalmente el envío.',attempt_count:3,max_attempts:3,retry_safe:true}] });
+      if (action === 'operations') return json({ health:{status:'attention',alerts:[{severity:'warning',code:'queue_overdue',message:'La cola tiene un mensaje que requiere revisión.'}]}, metrics:{conversations:146,needs_human:7,paused:12,messages_sent_24h:84,copilot_requests_24h:19,scheduled_retrying:1,dead_letters:1,failed_sends:1,unknown_deliveries:0,queue_overdue:0}, channels:[{channel:'whatsapp',connected:true},{channel:'messenger',connected:true},{channel:'instagram',connected:false}], ai:{used_tokens:1248000,limit_tokens:4840000,used_percent:25.8,reached:false}, pilot:{status:'preparation',readiness:'blocked',activation_is_manual:true,checks:[{id:'channel_connected',label:'Al menos un canal conectado',passed:true},{id:'training_published',label:'Capacitación dental publicada',passed:true},{id:'delivery_confirmed',label:'Sin entregas ambiguas',passed:true},{id:'dead_letter_empty',label:'Cola de fallos revisada',passed:false},{id:'queue_current',label:'Worker sin retrasos',passed:true},{id:'ai_available',label:'IA dentro del límite mensual',passed:true}]} });
+      if (action === 'templates') return json({ templates:[{id:'t1',name:'recordatorio_valoracion',display_name:'Recordatorio de valoración',language:'es_MX',body:'Hola {{1}}, te recordamos tu valoración dental el {{2}}.',variable_count:2}] });
+      if (action === 'sync') return json({ conversations:[],removed:[],synced_at:new Date().toISOString(),truncated:false });
+      if (action === 'read') return json({ paused:true,needs_human:true,unread_count:0,assigned_actor_id:'owner-preview',assigned_actor_name:'Dra. Mariana' });
+      return json({});
+    };
+  </script>
+  <script src="../../smyl-inbox.js"></script>
+  <script>
+    window.addEventListener('load', function () {
+      window.ir('inbox');
+      setTimeout(function () {
+        var row = document.querySelector('[data-conversation-id="c-preview"]');
+        if (row) row.click();
+        setTimeout(function () {
+          if (new URLSearchParams(location.search).has('inbox')) {
+            var control = document.querySelector('[data-inbox-context]');
+            if (control) control.click();
+          } else {
+            var health = document.querySelector('[data-inbox-operations]');
+            if (health) health.click();
+          }
+          document.documentElement.dataset.previewReady = 'true';
+        }, 180);
+      }, 180);
+    });
+  </script>
+</body>
+</html>

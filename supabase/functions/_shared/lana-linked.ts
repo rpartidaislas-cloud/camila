@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { lanaContractHeaders, normalizeLanaPath } from "./lana-contract.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
@@ -12,9 +13,9 @@ type LanaConfig = {
   estado: string;
 };
 
-function base64ToBytes(value: string): Uint8Array {
+function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
   const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
@@ -53,14 +54,15 @@ export async function lanaRequest(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${LANA_API_BASE}${path}`, {
+    const safePath = normalizeLanaPath(path);
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${await linkedLanaApiKey(tenantId)}`);
+    headers.set("Accept", "application/json");
+    if (!(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+    for (const [name, value] of Object.entries(lanaContractHeaders())) headers.set(name, value);
+    const response = await fetch(`${LANA_API_BASE}${safePath}`, {
       ...init,
-      headers: {
-        Authorization: `Bearer ${await linkedLanaApiKey(tenantId)}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...(init.headers || {}),
-      },
+      headers,
       signal: controller.signal,
     });
     const body = await response.json().catch(() => ({})) as Record<string, unknown>;

@@ -7,16 +7,17 @@ const app = read('../app.html');
 const connections = read('../smyl-connections.js');
 const styles = read('../smyl-connections.css');
 const contextEdge = read('../supabase/functions/lana-context/index.ts');
+const trainingEdge = read('../supabase/functions/lana-training/index.ts');
 const linked = read('../supabase/functions/_shared/lana-linked.ts');
 
 test('SMYL includes a private LANA response laboratory with suggested clinical scenarios', () => {
-  assert.match(connections, /LABORATORIO PRIVADO · ETAPA 5/);
+  assert.match(connections, /LABORATORIO PRIVADO/);
   assert.match(connections, /Ningún mensaje sale de esta pantalla/);
   assert.match(connections, /Precio y horario/);
   assert.match(connections, /Dolor y urgencia/);
   assert.match(connections, /Foto y diagnóstico/);
   assert.match(styles, /connections-preview-chat/);
-  assert.match(app, /smyl-connections\.js\?v=5/);
+  assert.match(app, /smyl-connections\.js\?v=7/);
 });
 
 test('preview stays in browser memory and labels human escalation', () => {
@@ -29,10 +30,11 @@ test('preview stays in browser memory and labels human escalation', () => {
 });
 
 test('authenticated owner-only edge forwards previews to LANA with a bounded timeout', () => {
-  assert.match(contextEdge, /req\.method === "POST"/);
+  assert.match(trainingEdge, /req\.method !== "GET"/);
+  assert.match(trainingEdge, /`\/training\/\$\{String\(action\)\}`/);
+  assert.match(trainingEdge, /Solo el dueño de la clínica puede modificar, publicar o probar/);
+  assert.match(trainingEdge, /action === "preview" \? 30000 : 12000/);
   assert.match(contextEdge, /"\/context\/preview"/);
-  assert.match(contextEdge, /Solo el dueño de la clínica puede modificar o probar/);
-  assert.match(contextEdge, /isPreview \? 30000 : 12000/);
   assert.match(linked, /timeoutMs = 12000/);
   assert.match(linked, /setTimeout\(\(\) => controller\.abort\(\), timeoutMs\)/);
 });

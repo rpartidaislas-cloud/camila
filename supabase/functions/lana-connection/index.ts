@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { lanaContractHeaders } from "../_shared/lana-contract.mjs";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,9 @@ const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
 const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
+const LANA_PLATFORM_SECRET = (Deno.env.get("SMYL_LANA_PLATFORM_SECRET") || "").trim();
 const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
+const LANA_PROVISION_URL = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/smyl-provision";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 type LanaConfig = {
@@ -23,6 +26,8 @@ type LanaConfig = {
   connected_at: string;
   last_verified_at: string;
   last_error?: string | null;
+  lana_tenant_id?: string;
+  provisioned_automatically?: boolean;
 };
 
 function json(status: number, body: Record<string, unknown>): Response {
@@ -38,9 +43,9 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function base64ToBytes(value: string): Uint8Array {
+function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
   const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
@@ -83,6 +88,19 @@ async function readTenantConfig(tenantId: string): Promise<Record<string, unknow
   return data.config && typeof data.config === "object" ? data.config as Record<string, unknown> : {};
 }
 
+async function readTenantProfile(tenantId: string): Promise<{ config: Record<string, unknown>; name: string; email: string }> {
+  const { data, error } = await admin.from("camila_tenants")
+    .select("nombre,email,config")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (error || !data) throw new Error("No se pudo consultar la clínica.");
+  return {
+    config: data.config && typeof data.config === "object" ? data.config as Record<string, unknown> : {},
+    name: String(data.nombre || "Clínica dental").trim().slice(0, 160) || "Clínica dental",
+    email: String(data.email || "").trim().toLowerCase().slice(0, 254),
+  };
+}
+
 function readLanaConfig(config: Record<string, unknown>): LanaConfig | null {
   const integrations = config.integraciones;
   if (!integrations || typeof integrations !== "object") return null;
@@ -115,7 +133,11 @@ async function verifyLanaApiKey(apiKey: string): Promise<void> {
   try {
     const response = await fetch(`${LANA_API_BASE}/conversations?limit=1`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        ...lanaContractHeaders(),
+      },
       signal: controller.signal,
     });
     if (response.status === 401 || response.status === 403) throw new Error("El código de enlace no es válido o fue revocado.");
@@ -141,8 +163,96 @@ function publicStatus(lana: LanaConfig | null, canManage: boolean): Record<strin
     connected_at: lana.connected_at,
     last_verified_at: lana.last_verified_at,
     last_error: lana.last_error || null,
+    provisioned_automatically: lana.provisioned_automatically === true,
     can_manage: canManage,
   };
+}
+
+async function provisionRequest(
+  tenantId: string,
+  clinicName: string,
+  ownerEmail: string,
+): Promise<{ request_id: string; requested_clinic_name: string; requested_owner_email: string | null }> {
+  const { data: existing, error: selectError } = await admin.from("camila_lana_provisioning")
+    .select("request_id,requested_clinic_name,requested_owner_email")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (selectError) throw new Error("No se pudo preparar la activación de LANA.");
+  if (existing) return existing;
+
+  const row = {
+    tenant_id: tenantId,
+    requested_clinic_name: clinicName,
+    requested_owner_email: ownerEmail || null,
+    status: "pending",
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await admin.from("camila_lana_provisioning")
+    .insert(row)
+    .select("request_id,requested_clinic_name,requested_owner_email")
+    .maybeSingle();
+  if (!error && data) return data;
+
+  // Dos clics simultáneos pueden competir por la PK. Recuperar la fila
+  // ganadora conserva una sola Idempotency-Key por clínica.
+  const retry = await admin.from("camila_lana_provisioning")
+    .select("request_id,requested_clinic_name,requested_owner_email")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (retry.error || !retry.data) throw new Error("No se pudo preparar la activación de LANA.");
+  return retry.data;
+}
+
+async function provisionLana(
+  tenantId: string,
+  clinicName: string,
+  ownerEmail: string,
+): Promise<{ apiKey: string; lanaTenantId: string }> {
+  if (!LANA_PLATFORM_SECRET) throw new Error("La activación automática de LANA aún no está configurada.");
+  const request = await provisionRequest(tenantId, clinicName, ownerEmail);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(LANA_PROVISION_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LANA_PLATFORM_SECRET}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": request.request_id,
+        ...lanaContractHeaders(),
+      },
+      body: JSON.stringify({
+        smyl_tenant_id: tenantId,
+        clinic_name: request.requested_clinic_name,
+        owner_email: request.requested_owner_email || "",
+      }),
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({})) as Record<string, unknown>;
+    if (!response.ok || typeof data.api_key !== "string" || typeof data.lana_tenant_id !== "string") {
+      throw new Error(typeof data.error === "string" ? data.error : "LANA no pudo preparar la cuenta.");
+    }
+    await admin.from("camila_lana_provisioning").update({
+      status: "complete",
+      lana_tenant_id: data.lana_tenant_id,
+      last_error: null,
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("tenant_id", tenantId);
+    return { apiKey: data.api_key, lanaTenantId: data.lana_tenant_id };
+  } catch (error) {
+    const message = error instanceof DOMException && error.name === "AbortError"
+      ? "LANA tardó demasiado en preparar la cuenta."
+      : error instanceof Error ? error.message : "No se pudo preparar la cuenta de LANA.";
+    await admin.from("camila_lana_provisioning").update({
+      status: "failed",
+      last_error: message.slice(0, 500),
+      updated_at: new Date().toISOString(),
+    }).eq("tenant_id", tenantId);
+    throw new Error(message);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -167,6 +277,31 @@ Deno.serve(async (req: Request) => {
     const lana = readLanaConfig(config);
 
     if (action === "status") return json(200, publicStatus(lana, canManage));
+
+    if (action === "provision") {
+      if (!canManage) return json(403, { error: "Solo el dueño de la clínica puede activar LANA." });
+      if (lana?.estado === "conectada") return json(200, { ok: true, ...publicStatus(lana, canManage) });
+      if (lana) return json(409, { error: "La clínica ya tiene un enlace LANA. Verifícalo antes de crear otro." });
+      const profile = await readTenantProfile(auth.tenantId);
+      const provisioned = await provisionLana(auth.tenantId, profile.name, profile.email || auth.user.email || "");
+      await verifyLanaApiKey(provisioned.apiKey);
+      const encrypted = await encryptApiKey(provisioned.apiKey);
+      const now = new Date().toISOString();
+      const next: LanaConfig = {
+        version: 1,
+        api_key_ciphertext: encrypted.ciphertext,
+        api_key_iv: encrypted.iv,
+        fingerprint: await fingerprint(provisioned.apiKey),
+        estado: "conectada",
+        connected_at: now,
+        last_verified_at: now,
+        last_error: null,
+        lana_tenant_id: provisioned.lanaTenantId,
+        provisioned_automatically: true,
+      };
+      await writeLanaConfig(auth.tenantId, profile.config, next);
+      return json(200, { ok: true, created: true, ...publicStatus(next, canManage) });
+    }
 
     if (action === "connect") {
       if (!canManage) return json(403, { error: "Solo el dueño de la clínica puede conectar LANA." });
