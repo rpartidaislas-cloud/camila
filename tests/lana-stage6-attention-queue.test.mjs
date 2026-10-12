@@ -14,7 +14,7 @@ const sw = read('sw.js');
 
 test('dashboard loads the stage 6 attention workspace', () => {
   assert.match(app, /smyl-lana-attention\.css\?v=1/);
-  assert.match(app, /smyl-lana-attention\.js\?v=1/);
+  assert.match(app, /smyl-lana-attention\.js\?v=2/);
   assert.match(app, /SmylLanaAttention\.load\(true\)/);
   assert.match(client, /ATENCIÓN CON LANA · ETAPA 6/);
   assert.match(client, /Conversaciones que necesitan a tu equipo/);
@@ -40,7 +40,7 @@ test('SMYL edge requires a professional session and owner-only resolution', () =
 });
 
 test('PWA precaches stage 6 attention assets in the current inbox cache', () => {
-  assert.match(sw, /smyl-v176-inbox-hardening-stage7/);
-  assert.match(sw, /smyl-lana-attention\.js\?v=1/);
+  assert.match(sw, /smyl-v177-independent-product/);
+  assert.match(sw, /smyl-lana-attention\.js\?v=2/);
   assert.match(sw, /smyl-lana-attention\.css\?v=1/);
 });

@@ -115,7 +115,6 @@
     chat.type = 'button';
     chat.addEventListener('click', function () {
       if (window.SmylInbox) window.SmylInbox.open(item.id);
-      else window.open(item.lana_url, '_blank', 'noopener,noreferrer');
     });
     actions.append(record, chat);
     if (state.canResolve && item.attention_type === 'human_requested') {

@@ -10,8 +10,10 @@ const migration = read('../supabase/migrations/20261011120000_lana_conversation_
 const edge = read('../supabase/functions/lana-handoff/index.ts');
 const contextEdge = read('../supabase/functions/lana-context/index.ts');
 
-test('LANA deep link opens an explicit review before creating a clinical record', () => {
-  assert.match(app, /ir'\) === 'lana-handoff'/);
+test('SMYL prepares the clinical record internally without navigating to LANA', () => {
+  assert.doesNotMatch(app, /ir'\) === 'lana-handoff'/);
+  assert.doesNotMatch(handoff, /app\.get-lana\.com\/admin|Volver al chat de LANA|LANA → SMYL/);
+  assert.doesNotMatch(connections, /app\.get-lana\.com\/admin|Abrir LANA/);
   assert.match(handoff, /Solo se copiarán nombre y datos de contacto/);
   assert.match(handoff, /el historial del chat permanece en LANA/);
   assert.match(handoff, /Crear el expediente no envía mensajes/);

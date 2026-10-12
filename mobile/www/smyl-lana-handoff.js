@@ -16,7 +16,7 @@
       (existing?'<p class="lana-handoff-copy">Esta conversación ya está vinculada. Abriremos el expediente existente; no se creará ningún duplicado.</p>':'<p class="lana-handoff-copy">Revisa la identidad antes de crear el caso. Solo se copiarán nombre y datos de contacto; el historial del chat permanece en LANA.</p>')+
       (!existing&&candidates?'<div class="lana-handoff-candidates"><strong>Expediente coincidente</strong>'+candidates+'<label class="lana-handoff-candidate"><input type="radio" name="lana-patient" value=""><span><strong>Crear paciente nuevo</strong><br><small>Úsalo solo si ninguna coincidencia corresponde a esta persona.</small></span></label></div>':'')+
       '<div class="lana-handoff-note">Crear el expediente no envía mensajes ni comparte diagnósticos, simulaciones o propuestas con el paciente.</div>';
-    actions.innerHTML='<a class="btn btn-secondary" href="'+esc(c.lana_url)+'" target="_blank" rel="noopener noreferrer">Volver al chat de LANA</a><button type="button" class="btn btn-primary" data-lana-confirm>'+(existing?'Abrir expediente':'Crear o vincular expediente')+'</button>';
+    actions.innerHTML='<button type="button" class="btn btn-primary" data-lana-confirm>'+(existing?'Abrir expediente':'Crear o vincular expediente')+'</button>';
     actions.querySelector('[data-lana-confirm]').onclick=function(){confirmLink(data);};
   }
   async function confirmLink(data){
@@ -31,16 +31,8 @@
     var m=modal();m.hidden=false;document.getElementById('lana-handoff-body').innerHTML='<p class="lana-handoff-state">Consultando la identidad en LANA…</p>';document.getElementById('lana-handoff-actions').innerHTML='';history.replaceState(null,'',location.pathname);
     try{render(await request('preview',conversationId));}catch(error){document.getElementById('lana-handoff-body').innerHTML='<p class="lana-handoff-state">'+esc(error.message)+'</p>';}
   }
-  async function patientLink(patientId){
-    var box=document.getElementById('det-lana-link');if(!box)return;box.innerHTML='';
-    var r=await sb.from('camila_lana_handoffs').select('lana_conversation_id,lana_channel,created_at').eq('tenant_id',tenantId).eq('patient_id',patientId).order('created_at',{ascending:false}).limit(1).maybeSingle();
-    if(!r.data)return;var url='https://app.get-lana.com/admin.html?tab=chats&chat='+encodeURIComponent(r.data.lana_conversation_id);
-    box.innerHTML='<div class="lana-patient-link"><div><strong>Conversación vinculada en LANA</strong><small>'+esc(r.data.lana_channel)+' · la bandeja de Meta permanece en LANA</small></div><a class="btn btn-secondary btn-sm" href="'+url+'" target="_blank" rel="noopener noreferrer">Abrir chat ↗</a></div>';
-  }
   function init(){
-    var overlay=document.createElement('div');overlay.id='lana-handoff-overlay';overlay.className='lana-handoff-overlay';overlay.hidden=true;overlay.innerHTML='<section class="lana-handoff-dialog" role="dialog" aria-modal="true" aria-labelledby="lana-handoff-title"><header class="lana-handoff-head"><div><span class="lana-handoff-kicker">LANA → SMYL</span><h2 id="lana-handoff-title">Preparar expediente clínico</h2></div><button type="button" class="lana-handoff-close" aria-label="Cerrar">×</button></header><div class="lana-handoff-body" id="lana-handoff-body"></div><footer class="lana-handoff-actions" id="lana-handoff-actions"></footer></section>';document.body.appendChild(overlay);overlay.querySelector('.lana-handoff-close').onclick=close;overlay.onclick=function(e){if(e.target===overlay)close();};
-    var previous=window.verPaciente;window.verPaciente=function(id){var out=previous(id);patientLink(id).catch(function(){});return out;};
-    if(window._pendingLanaHandoff){var pending=window._pendingLanaHandoff;window._pendingLanaHandoff=null;open(pending);}
+    var overlay=document.createElement('div');overlay.id='lana-handoff-overlay';overlay.className='lana-handoff-overlay';overlay.hidden=true;overlay.innerHTML='<section class="lana-handoff-dialog" role="dialog" aria-modal="true" aria-labelledby="lana-handoff-title"><header class="lana-handoff-head"><div><span class="lana-handoff-kicker">SMYL CHAT</span><h2 id="lana-handoff-title">Preparar expediente clínico</h2></div><button type="button" class="lana-handoff-close" aria-label="Cerrar">×</button></header><div class="lana-handoff-body" id="lana-handoff-body"></div><footer class="lana-handoff-actions" id="lana-handoff-actions"></footer></section>';document.body.appendChild(overlay);overlay.querySelector('.lana-handoff-close').onclick=close;overlay.onclick=function(e){if(e.target===overlay)close();};
   }
   window.SmylLanaHandoff={open:open,close:close};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

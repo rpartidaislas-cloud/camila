@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: SMYL queda separado de la interfaz de LANA
+
+**Corrección directa de producto:** Ricardo confirmó que SMYL se manejará por
+separado de LANA. El dentista opera Inbox, expedientes, capacitación y canales
+desde SMYL; LANA queda como motor/API protegido y no como una segunda interfaz
+que el profesional deba abrir.
+
+- Se retiró de LANA el botón “Expediente SMYL” y su duplicado del menú del chat.
+- SMYL ya no acepta el deep link público `?ir=lana-handoff`, no muestra
+  “Abrir/Volver a LANA” y no enlaza desde la ficha del paciente al admin de
+  LANA.
+- **Preparar expediente** sigue disponible dentro del Inbox de SMYL y usa la
+  conexión cifrada servidor a servidor para resolver identidad y vincular el
+  caso, sin copiar el historial.
+- Se conserva la infraestructura LANA necesaria para WhatsApp, Messenger,
+  Instagram y respuestas de IA. La separación es de producto e interfaz, no
+  una duplicación del motor.
+
 ## 2026-10-12 — Codex: etapa 8, infraestructura publicada y piloto preparado
 
 **Publicado en producción:** migraciones LANA 1–7 y dependencia de programados;

@@ -61,27 +61,21 @@ sustituye App Review. La compatibilidad actual usa los conectores existentes
 por canal; la configuración de Meta debe migrarse a Unified Onboarding v4 sin
 cambiar este límite de seguridad entre SMYL y LANA.
 
-## Expediente desde una conversación y contexto de atención
+## Expediente desde SMYL y contexto de atención
 
-LANA abre el panel profesional con una referencia opaca a la conversación:
-
-```text
-GET https://rpartidaislas-cloud.github.io/camila/app.html
-  ?ir=lana-handoff
-  &conversation_id=<uuid>
-```
-
-La Edge Function `lana-handoff` usa la conexión cifrada para consultar en
-LANA únicamente canal, nombre, correo y teléfono. El historial de mensajes no
-se copia. Antes de confirmar, SMYL muestra coincidencias de paciente por correo
-o teléfono y deja que el profesional reutilice el expediente correcto o cree
-uno nuevo. La tabla `camila_lana_handoffs` y la RPC
-`camila_confirmar_lana_handoff` hacen el enlace idempotente por tenant y
+SMYL se opera como producto independiente. LANA no muestra enlaces hacia SMYL
+y el profesional no necesita abrir el panel de LANA. Desde el Inbox de SMYL,
+**Preparar expediente** abre una revisión interna de la identidad asociada a la
 conversación.
 
-En sentido inverso, la ficha del paciente muestra **Abrir chat** y dirige a la
-conversación exacta de LANA. Los mensajes y credenciales de Meta permanecen en
-LANA.
+La Edge Function `lana-handoff` usa la conexión cifrada servidor a servidor
+para consultar únicamente canal, nombre, correo y teléfono. El historial de
+mensajes no se copia. Antes de confirmar, SMYL muestra coincidencias de paciente
+por correo o teléfono y deja que el profesional reutilice el expediente
+correcto o cree uno nuevo. La tabla `camila_lana_handoffs` y la RPC
+`camila_confirmar_lana_handoff` hacen el enlace idempotente por tenant y
+conversación. Los mensajes y credenciales de Meta permanecen en el backend de
+LANA, pero toda la operación visible del dentista ocurre en SMYL.
 
 La misma pantalla **LANA y canales** permite editar contexto de atención. La
 Edge Function `lana-context` llama `GET/PUT /context` en `camila-api`; LANA lo
