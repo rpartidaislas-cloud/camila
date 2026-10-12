@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 8, infraestructura publicada y piloto preparado
+
+**Publicado en producción:** migraciones LANA 1–7 y dependencia de programados;
+migraciones SMYL de aprovisionamiento y vínculos clínicos; funciones de
+conexión, capacitación, Inbox, webhooks, conectores y trabajador; web/PWA de
+SMYL y panel de conexión alojado por LANA.
+
+- La app está disponible en
+  `https://rpartidaislas-cloud.github.io/camila/app.html`; el conector de
+  canales en `https://app.get-lana.com/smyl-channel-connect.html`.
+- Se verificaron historial de migraciones, RLS, grants de RPC, cron único,
+  respuestas `401` sin sesión y publicación de activos. Validación final:
+  LANA 34/34 y SMYL 44/44 pruebas enfocadas.
+- `Dd` tiene siete pacientes y una conexión cifrada que coincide con la
+  integración LANA heredada, pero no tiene usuario profesional activo,
+  capacitación publicada ni canales. `dr` tiene un usuario activo, datos
+  vacíos y aún no está conectado; es la recomendación para probar el
+  aprovisionamiento automático nuevo.
+- **El piloto no se declara completo:** falta que Ricardo elija la clínica,
+  conectar los tres canales con sus dueños, publicar contexto dental, ejecutar
+  mensajes sintéticos y observar una jornada controlada antes de pacientes.
+- Registro detallado en LANA:
+  `docs/agent-context/smyl-chat-piloto-real-etapa8.md`.
+
 ## 2026-10-11 — Codex: etapa 7 técnica, endurecimiento y puerta de piloto
 
 **Tocado en SMYL:** `smyl-inbox.js/css` y copia móvil, `app.html`, `sw.js`,
