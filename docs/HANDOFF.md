@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 2, agenda diaria dental desplegada
+
+**Publicado en Supabase SMYL:** servicios, disponibilidad profesional, citas,
+bloqueos, solicitudes del asistente, eventos y recordatorios; acciones atómicas
+para confirmar, reprogramar y cambiar estados.
+
+- La agenda valida sede, horario de clínica, disponibilidad, profesional,
+  servicio, sillón/consultorio, citas concurrentes y bloqueos antes de confirmar.
+- Llegada, atención, término, inasistencia y cancelación siguen una máquina de
+  estados. Reprogramar y cambiar estado usan control optimista para no pisar
+  cambios de otra sesión.
+- SMYL Asistente solo crea solicitudes pendientes. Una persona con permiso de
+  agenda debe revisarlas y convertirlas explícitamente en cita; no hay
+  confirmaciones automáticas ni autoridad clínica delegada a LANA.
+- Se agenda un recordatorio de 24 horas cuando corresponde. Reprogramar o cerrar
+  la cita invalida recordatorios anteriores; la entrega futura podrá usar el
+  motor servidor a servidor sin compartir la base clínica.
+- RLS y privilegios SQL están cerrados: citas, bloqueos, solicitudes, eventos y
+  recordatorios son de solo lectura para el navegador y se mutan por RPC.
+- El panel incorpora Agenda día/semana, filtros, servicios, disponibilidad,
+  bloqueos, estados y solicitudes. Web/PWA sincronizadas; caché
+  `smyl-v180-daily-schedule`.
+- Migraciones `20261012230000` a `20261012260000` aplicadas y
+  registradas. Detalle en `docs/SMYL_DAILY_SCHEDULE.md`.
+- La siguiente etapa es **Ficha clínica 360**.
+
 ## 2026-10-12 — Codex: etapa 1 de plataforma, núcleo de clínica desplegado
 
 **Publicado en Supabase SMYL:** cuatro migraciones para sucursales, espacios,
