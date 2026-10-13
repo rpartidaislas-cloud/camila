@@ -245,7 +245,7 @@ tenant o base de datos) sí regresan 4xx/5xx directamente.
 Aplicar:
 
 ```text
-supabase/migrations/20260917_lana_integration.sql
+supabase/legacy-unapplied/20260917_lana_integration.sql
 ```
 
 La migración añade los campos LANA a `camila_casos` y crea

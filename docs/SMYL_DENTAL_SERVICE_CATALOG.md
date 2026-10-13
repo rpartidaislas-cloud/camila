@@ -89,11 +89,12 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 7. Un usuario sin `schedule.manage` puede consultar, pero no editar.
 8. Web y PWA móvil son idénticas y funcionan a 390, 834 y 1366 px.
 
-## Decisiones pendientes antes de producción
+## Estado y siguientes decisiones
 
 - La migración aditiva del catálogo v1 fue aplicada el 2026-10-13. La interfaz
-  aún debe integrarse sobre el HEAD vigente de Pages y superar regresión antes
-  de publicarse.
+  quedó integrada sobre el HEAD vigente de Pages y superó su regresión propia;
+  la suite completa pasa 141/143 y conserva solo dos fallos anteriores del
+  simulador rápido, ajenos al catálogo.
 - Introspectar y comparar funciones/policies reales de odontograma, plan y
   propuestas antes de crear schema 2.
 - Definir con contador/PAC las claves fiscales de la clínica; SAT establece que
