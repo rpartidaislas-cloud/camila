@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v188-operational-agenda';
+const CACHE_VERSION = 'smyl-v189-patient-messages';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -75,8 +75,8 @@ const STATIC_FILES = [
   '/camila/smyl-lana-handoff.css?v=1',
   '/camila/smyl-lana-attention.js?v=3',
   '/camila/smyl-lana-attention.css?v=1',
-  '/camila/smyl-inbox.js?v=7',
-  '/camila/smyl-inbox.css?v=5',
+  '/camila/smyl-inbox.js?v=8',
+  '/camila/smyl-inbox.css?v=6',
   '/camila/smyl-navigation.js?v=1',
   '/camila/smyl-navigation.css?v=1',
   '/camila/smyl-studio.js?v=18',

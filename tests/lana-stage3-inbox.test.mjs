@@ -10,14 +10,14 @@ const app = read('../app.html');
 const worker = read('../sw.js');
 
 test('SMYL provides a responsive operational inbox and canonical LANA thread', () => {
-  assert.match(inbox, /ATENCIÓN OMNICANAL/);
-  assert.match(inbox, /WhatsApp, Messenger e Instagram/);
+  assert.match(inbox, /CENTRO DE ATENCIÓN DENTAL/);
+  assert.match(inbox, /WhatsApp.*Messenger.*Instagram/);
   assert.match(inbox, /Cargar mensajes anteriores/);
   assert.match(inbox, /Sincronización segura/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=7/);
-  assert.match(worker, /smyl-v188-operational-agenda/);
+  assert.match(app, /smyl-inbox\.js\?v=8/);
+  assert.match(worker, /smyl-v189-patient-messages/);
 });
 
 test('manual responses use an isolated optimistic queue with visible retry states', () => {

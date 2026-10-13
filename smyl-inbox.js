@@ -117,7 +117,7 @@
     page.id = 'p-inbox';
     page.innerHTML =
       '<header class="smyl-inbox-top">' +
-        '<div><span class="smyl-inbox-eyebrow">ATENCIÓN OMNICANAL</span><h1>Mensajes</h1><p>WhatsApp, Messenger e Instagram atendidos por SMYL Asistente y tu equipo.</p></div>' +
+        '<div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN DENTAL</span><h1>Mensajes</h1><p>Prioriza pacientes y continúa su caso; SMYL Asistente y tu equipo responden por WhatsApp, Messenger o Instagram.</p></div>' +
         '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
       '</header>' +
       '<div class="smyl-inbox-workspace">' +
@@ -127,17 +127,18 @@
             '<button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button>' +
           '</div>' +
           '<div class="smyl-inbox-list-tools"><select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar</button></div>' +
+          '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary aria-live="polite"></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<button type="button" class="smyl-inbox-more" data-inbox-more hidden>Cargar más conversaciones</button>' +
         '</aside>' +
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><h2>Selecciona una conversación</h2><p>El historial se sincroniza de forma segura y se presenta aquí, dentro de SMYL.</p></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><button type="button" class="smyl-inbox-control-button" data-inbox-context>Control de atención</button></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><button type="button" class="smyl-inbox-control-button" data-inbox-context>Paciente y atención</button></header>' +
             '<div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools"><button type="button" data-compose-copilot aria-label="Sugerir respuesta con SMYL Copilot">IA</button><button type="button" data-compose-template aria-label="Enviar plantilla aprobada de WhatsApp">TPL</button><button type="button" data-compose-schedule aria-label="Programar mensaje de WhatsApp">◷</button><button type="button" data-compose-attach aria-label="Adjuntar foto, documento o audio">＋</button><button type="button" data-compose-location aria-label="Enviar ubicación actual">⌖</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div><small>Copilot sólo prepara borradores. Nada se envía hasta que tú lo revises.</small></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools" aria-label="Herramientas de respuesta"><button type="button" data-compose-copilot>Sugerir con Copilot</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-location>Ubicación</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div></div><small>Copilot prepara un borrador; el equipo siempre revisa y decide el envío.</small></form>' +
           '</div>' +
         '</main>' +
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
@@ -157,6 +158,11 @@
     (items || []).forEach(function (item) { map.set(item.id, Object.assign({}, map.get(item.id) || {}, item)); });
     state.conversations = Array.from(map.values()).sort(function (a, b) {
       if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+      if (Boolean(a.needs_human) !== Boolean(b.needs_human)) return a.needs_human ? -1 : 1;
+      if (Boolean(a.unread_count) !== Boolean(b.unread_count)) return a.unread_count ? -1 : 1;
+      var mineA = Boolean(a.assignment && state.actor && a.assignment.actor_id === state.actor.id);
+      var mineB = Boolean(b.assignment && state.actor && b.assignment.actor_id === state.actor.id);
+      if (mineA !== mineB) return mineA ? -1 : 1;
       return new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0);
     });
   }
@@ -176,6 +182,7 @@
   function renderList() {
     var list = document.querySelector('[data-inbox-list]');
     var more = document.querySelector('[data-inbox-more]');
+    var summary = document.querySelector('[data-inbox-queue-summary]');
     if (!list) return;
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
@@ -189,6 +196,15 @@
       error.append(retry); list.append(error); return;
     }
     var visible = visibleConversations();
+    if (summary) {
+      var attention = visible.filter(function (item) { return item.needs_human; }).length;
+      var unread = visible.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
+      summary.dataset.state = attention ? 'attention' : unread ? 'unread' : 'clear';
+      summary.textContent = attention
+        ? attention + (attention === 1 ? ' conversación requiere' : ' conversaciones requieren') + ' al equipo ahora'
+        : unread ? unread + (unread === 1 ? ' mensaje nuevo por revisar' : ' mensajes nuevos por revisar')
+        : visible.length ? 'Esta bandeja está al día' : 'Sin conversaciones en este filtro';
+    }
     if (!visible.length) {
       var empty = node('div', 'smyl-inbox-list-state');
       empty.append(node('strong', '', 'No hay conversaciones aquí'), node('p', '', 'Prueba otro filtro o espera un mensaje nuevo de tus canales.'));
@@ -197,6 +213,7 @@
     visible.forEach(function (item) {
       var button = node('button', 'smyl-inbox-row' + (state.selectedId === item.id ? ' active' : ''));
       button.type = 'button'; button.dataset.conversationId = item.id;
+      button.dataset.priority = item.needs_human ? 'human' : item.unread_count ? 'unread' : 'normal';
       if (state.selectedId === item.id) button.setAttribute('aria-current', 'true');
       var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel;
       var copy = node('span', 'smyl-inbox-row-copy');
@@ -736,6 +753,17 @@
     } catch (error) { window.alert(error.message || 'No se pudo guardar la automatización.'); }
   }
 
+  function focusComposer() {
+    state.contextOpen = false;
+    renderContext();
+    var composer = document.querySelector('[name="message"]');
+    if (composer) composer.focus();
+  }
+
+  function openPatientContext(conversationId) {
+    if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(conversationId);
+  }
+
   function renderContext() {
     var wrap = document.querySelector('[data-inbox-context-content]');
     var page = document.getElementById('p-inbox');
@@ -751,6 +779,30 @@
     header.append(node('span', 'smyl-inbox-eyebrow', 'CONTROL DE ATENCIÓN'), node('h2', '', conversation.contact_name));
     var close = node('button', 'smyl-inbox-context-close', 'Cerrar'); close.type = 'button'; close.onclick = function () { state.contextOpen = false; renderContext(); };
     header.append(close); wrap.append(header);
+
+    var ficha = state.clinical[conversation.id];
+    var next = node('section', 'smyl-inbox-next');
+    next.append(node('span', '', 'SIGUIENTE ACCIÓN'));
+    var nextTitle = conversation.needs_human ? 'Responder y resolver la solicitud'
+      : conversation.unread_count ? 'Revisar los mensajes nuevos'
+      : conversation.paused ? 'Decidir si reanudas el asistente'
+      : 'Conversación bajo control';
+    var nextCopy = conversation.needs_human
+      ? 'El asistente pidió intervención. Atiende al paciente antes de reanudar la automatización.'
+      : conversation.unread_count ? 'Hay información nueva del paciente pendiente de revisión.'
+      : conversation.paused ? 'El equipo conserva el control hasta que revise el contexto de reanudación.'
+      : 'SMYL Asistente puede continuar dentro de la capacitación publicada.';
+    next.append(node('strong', '', nextTitle), node('p', '', nextCopy));
+    var nextActions = node('div', 'smyl-inbox-next-actions');
+    if (conversation.needs_human || conversation.unread_count) {
+      var respond = node('button', 'btn btn-primary btn-sm', 'Responder ahora'); respond.type = 'button'; respond.onclick = focusComposer; nextActions.append(respond);
+    }
+    var patientAction = node('button', 'btn btn-secondary btn-sm', ficha && ficha.linked ? 'Abrir expediente' : 'Vincular paciente');
+    patientAction.type = 'button'; patientAction.onclick = function () { openPatientContext(conversation.id); }; nextActions.append(patientAction);
+    if (ficha && ficha.case && ficha.case.lana_appointment_id) {
+      var agenda = node('button', 'btn btn-secondary btn-sm', 'Ver Agenda'); agenda.type = 'button'; agenda.onclick = function () { window.ir('agenda'); }; nextActions.append(agenda);
+    }
+    next.append(nextActions); wrap.append(next);
 
     var status = node('section', 'smyl-inbox-context-card');
     status.append(node('h3', '', 'Responsable'));
@@ -845,7 +897,6 @@
 
     var clinical = node('section', 'smyl-inbox-context-card smyl-inbox-ficha');
     clinical.append(node('h3', '', 'Ficha 360'));
-    var ficha = state.clinical[conversation.id];
     if (state.clinicalLoading[conversation.id]) clinical.append(node('p', '', 'Consultando expediente…'));
     else if (ficha && ficha.linked) {
       clinical.append(node('strong', '', ficha.patient && ficha.patient.name || conversation.contact_name));
@@ -861,10 +912,10 @@
       }
       clinical.append(facts);
       if (ficha.case && (ficha.case.summary || ficha.case.diagnosis)) clinical.append(node('p', 'smyl-inbox-ficha-summary', ficha.case.summary || ficha.case.diagnosis));
-      var openRecord = node('button', 'btn btn-secondary btn-sm', 'Abrir expediente'); openRecord.type = 'button'; openRecord.onclick = function () { if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(conversation.id); }; clinical.append(openRecord);
+      var openRecord = node('button', 'btn btn-secondary btn-sm', 'Abrir expediente'); openRecord.type = 'button'; openRecord.onclick = function () { openPatientContext(conversation.id); }; clinical.append(openRecord);
     } else {
       clinical.append(node('p', '', 'Confirma paciente y caso antes de incorporar fotografías a la revisión clínica.'));
-      var record = node('button', 'btn btn-secondary btn-sm', 'Preparar expediente'); record.type = 'button'; record.onclick = function () { if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(conversation.id); };
+      var record = node('button', 'btn btn-secondary btn-sm', 'Preparar expediente'); record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); };
       clinical.append(record);
     }
     wrap.append(clinical);
@@ -879,7 +930,11 @@
     document.querySelector('[data-thread-avatar]').textContent = initials(conversation.contact_name);
     document.querySelector('[data-thread-avatar]').dataset.channel = conversation.channel;
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
-    document.querySelector('[data-thread-meta]').textContent = channelLabel(conversation.channel) + ' · ' + (conversation.paused ? 'Atención humana' : 'Asistente activo');
+    var threadFicha = state.clinical[conversation.id];
+    var threadMeta = [channelLabel(conversation.channel), conversation.paused ? 'Atención humana' : 'Asistente activo'];
+    if (conversation.assignment) threadMeta.push(conversation.assignment.name);
+    if (threadFicha && threadFicha.linked) threadMeta.push('Expediente vinculado');
+    document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
     var composer = document.querySelector('[data-inbox-composer]');
     Array.from(composer.elements).forEach(function (control) { control.disabled = !conversation.can_operate; });
     renderComposerContext(); renderWhatsappWindow(); renderContext();

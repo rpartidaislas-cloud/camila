@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: etapa 3 de continuidad, Mensajes por paciente
+
+**Reorganizado en frontend:** Mensajes funciona ahora como centro de atención
+dental y presenta primero el trabajo que requiere al equipo.
+
+- La bandeja prioriza conversaciones fijadas, solicitudes de humano, mensajes
+  sin leer y conversaciones asignadas al usuario antes de ordenar por fecha.
+- Un resumen visible explica qué necesita atención dentro del filtro actual y
+  distingue visualmente solicitudes humanas y mensajes nuevos.
+- Cada hilo muestra una `Siguiente acción` con acceso directo a responder,
+  vincular/abrir el expediente y consultar Agenda cuando existe una cita.
+- El encabezado del hilo reúne canal, estado del asistente, responsable y
+  vínculo con expediente. Las herramientas del compositor usan nombres claros
+  en vez de abreviaturas y conservan la revisión humana antes de enviar.
+- No se cambió backend, LANA, Meta, Supabase, permisos ni contratos de envío.
+  Web y PWA móvil usan `smyl-v189-patient-messages`.
+- Validación focalizada del Inbox: 27/27. Suite amplia: 120/122; permanecen los
+  dos fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin errores de consola.
+- La siguiente etapa recomendada es convertir `Inicio` en un tablero de jornada
+  que conecte Pacientes, Agenda y Mensajes sin duplicar sus datos.
+
 ## 2026-10-13 — Codex: etapa 2 de continuidad, Agenda operativa
 
 **Reorganizado en frontend:** la Agenda incorpora una cola única de prioridades
