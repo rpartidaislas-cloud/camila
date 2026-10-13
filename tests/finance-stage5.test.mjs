@@ -29,10 +29,10 @@ test('stage 5 UI distinguishes receipts, CFDI drafts and SaaS billing',()=>{
   assert.match(ui,/Caja y cuentas/);
   assert.match(ui,/Separado de la suscripción de SMYL/);
   assert.match(ui,/Comprobante interno de pago/);
-  assert.match(ui,/no timbra ni envía un CFDI al SAT/);
+  assert.match(ui,/no consulta, timbra ni envía información al SAT o a un PAC/);
   assert.match(ui,/smyl_prepare_cfdi_draft/);
-  assert.match(app,/smyl-finance\.js\?v=1/);
-  assert.match(sw,/smyl-v197-treatment-quote-map/);
+  assert.match(app,/smyl-finance\.js\?v=2/);
+  assert.match(sw,/smyl-v198-proposal-finance/);
   assert.equal(app,read('../mobile/www/app.html'));
   assert.equal(ui,read('../mobile/www/smyl-finance.js'));
   assert.equal(read('../smyl-finance.css'),read('../mobile/www/smyl-finance.css'));

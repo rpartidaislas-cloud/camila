@@ -1,5 +1,35 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: propuesta aprobada, cargos y prevalidación CFDI
+
+**Entrega 3 terminada hasta el límite seguro previo al PAC:** una propuesta
+aprobada se convierte explícitamente en cargos y el pago puede preparar un
+borrador CFDI 4.0 con conceptos congelados.
+
+- `smyl_post_proposal_charges` bloquea y valida la revisión aprobada, crea un
+  cargo por concepto positivo y conserva snapshot de propuesta, servicio y
+  claves fiscales. La unicidad por propuesta/revisión e idempotency key evita
+  duplicados incluso ante reintentos.
+- `smyl_prepare_cfdi_draft_v2` exige pago totalmente aplicado, sin reembolsos,
+  y congela receptor y conceptos. `smyl_validate_cfdi_draft_sandbox` revisa
+  reglas locales y marca aprobado/bloqueado sin cambiar el borrador a emitido.
+- La migración aditiva `20261013020000_smyl_proposal_finance_v1.sql` fue
+  aplicada en producción tras un dry-run que confirmó que era la única
+  pendiente. No se conectó ni transmitió a SAT/PAC y no se tocaron Stripe,
+  Gmail, LANA o Meta.
+- Propuestas incorpora “Crear cargos en Caja”; Caja permite elegir propuesta,
+  sede, vencimiento y confirmación explícita. Fiscal distingue prevalidación
+  local de validación/timbrado futuro por PAC sandbox.
+- Web/PWA sincronizadas con `smyl-v198-proposal-finance`. QA sintética aprobada
+  a 1366, 834 y 390 px, sin overflow ni errores de consola. Suite completa:
+  150/152; permanecen sólo los fallos preexistentes de `lana-quick` y
+  `quick-guided-flow`.
+- Archivos principales: `smyl-finance.js/.css`, `smyl-proposals.js`, copias en
+  `mobile/www/`, la migración y `tests/proposal-finance-v1*`.
+- Siguiente decisión obligatoria: elegir proveedor PAC y credenciales de
+  sandbox, confirmar con contador las claves/impuestos y diseñar cancelación,
+  sustitución y conciliación antes de habilitar timbrado real.
+
 ## 2026-10-13 — Codex: plan clínico y cotización dental v2
 
 **Entrega 2 terminada:** catálogo, plan, odontograma y propuesta comparten un

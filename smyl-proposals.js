@@ -27,6 +27,7 @@
     document.getElementById('proposal-save').disabled=ctx.busy||ctx.stale;
     document.getElementById('proposal-preview').disabled=ctx.busy;
     document.getElementById('proposal-export').disabled=ctx.busy||!approved;
+    var charge=document.getElementById('proposal-to-charges');if(charge)charge.disabled=ctx.busy||!approved||ctx.stale;
     var followup=document.getElementById('proposal-followup');if(followup)followup.disabled=ctx.busy||!approved||!ctx.row.revision;
     document.getElementById('proposal-add').disabled=ctx.busy||doc.items.length>=20;
     document.getElementById('proposal-photo-inputs').hidden=!document.getElementById('proposal-include-photos').checked;
@@ -164,7 +165,7 @@
     var confirm=n('label','clinic-confirm'),check=n('input');check.type='checkbox';check.id='proposal-pair-check';check.checked=!!doc.photos;confirm.append(check,document.createTextNode('Verifiqué que ambas imágenes son de este paciente y de la misma vista. La segunda es una simulación.'));inputs.append(upload,confirm);photo.append(inputs);form.append(photo);
     form.append(field('Válida hasta','proposal-valid',doc.valid_until,'date'),field('Qué incluye y condiciones','proposal-terms',doc.terms,'textarea'));
     var side=n('aside','proposal-summary');side.append(n('p','pro-eyebrow','TODO EN UNA PROPUESTA'),n('h2','','Lista para conversar.'));var total=n('strong');total.id='proposal-estimate';side.append(total,n('p','','MXN · Importe estimado. Aclara en las condiciones lo incluido, impuestos y forma de pago.'));
-    var saveButton=b('Guardar borrador',function(){save(false);});saveButton.id='proposal-save';var previewButton=b('Vista previa y revisión',preview,'btn btn-primary');previewButton.id='proposal-preview';var exportButton=b('Guardar como PDF',exportPDF);exportButton.id='proposal-export';side.append(saveButton,previewButton,exportButton,n('p','proposal-privacy','El paciente solo verá la propuesta. Antecedentes y notas internas no se incluyen. No hay envío automático ni conexión activa con LANA en este espacio.'));
+    var saveButton=b('Guardar borrador',function(){save(false);});saveButton.id='proposal-save';var previewButton=b('Vista previa y revisión',preview,'btn btn-primary');previewButton.id='proposal-preview';var exportButton=b('Guardar como PDF',exportPDF);exportButton.id='proposal-export';var chargeButton=b('Crear cargos en Caja',function(){if(window.SmylFinance)SmylFinance.fromProposal(ctx.row.id);});chargeButton.id='proposal-to-charges';side.append(saveButton,previewButton,exportButton,chargeButton,n('p','proposal-privacy','El paciente solo verá la propuesta. Antecedentes y notas internas no se incluyen. Crear cargos exige una versión aprobada y no duplica movimientos.'));
     if(window.SmylLana){var followup=b('Seguimiento con LANA',function(){SmylLana.open();});followup.id='proposal-followup';side.append(followup);}
     var tools=n('details','clinic-secondary');tools.append(n('summary','','Actualizar o recargar'),b('Usar plan revisado actual',refreshPlan),b('Recargar propuesta guardada',function(){var id=ctx.row.id;if(leave())open(id);}));side.append(tools);
     layout.append(form,side);root.append(layout);doc.items.forEach(addLine);

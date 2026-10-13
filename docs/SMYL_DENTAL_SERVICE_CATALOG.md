@@ -78,9 +78,19 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 
 ### Entrega 3 — finanzas
 
-- Conversión explícita e idempotente de propuesta aprobada a cargos.
-- Validar mismo tenant, paciente, sede, cita, servicio, revisión y vigencia.
-- CFDI por conceptos y pruebas con PAC sandbox antes de cualquier timbrado real.
+- **Implementada el 2026-10-13 hasta la frontera previa al PAC.** La
+  conversión es explícita e idempotente por propuesta/revisión y crea un cargo
+  por concepto positivo después de validar tenant, paciente, sede activa y
+  total aprobado.
+- Cada lote conserva la propuesta completa; cada cargo conserva revisión,
+  renglón y snapshot de servicio. Un reintento devuelve el lote existente y no
+  duplica movimientos.
+- El borrador CFDI 4.0 congela receptor y conceptos de un pago totalmente
+  aplicado. La prevalidación local comprueba formato y presencia de claves,
+  pero no consulta catálogos, no transmite y no timbra con SAT/PAC.
+- Las pruebas con un PAC sandbox y los flujos de cancelación/sustitución quedan
+  pendientes hasta elegir proveedor y confirmar la política fiscal con el
+  contador de la clínica.
 
 ## Criterios de aceptación v1
 
@@ -109,12 +119,16 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
   cotización hereda el precio de referencia, calcula por pieza/superficie,
   congela el snapshot fiscal y genera un mini odontograma sin historia clínica.
 - QA sintética aprobada a 1366, 834 y 390 px, sin desbordamiento horizontal. La
-  suite pasa 145/147 y conserva sólo los dos fallos anteriores del simulador
-  rápido, ajenos a catálogo, plan y propuestas.
+  suite pasa 150/152 y conserva sólo los dos fallos anteriores del simulador
+  rápido, ajenos a catálogo, plan, propuestas y finanzas.
+- La migración `20261013020000_smyl_proposal_finance_v1.sql` fue aplicada el
+  2026-10-13 tras un dry-run limpio. Web/PWA usan
+  `smyl-v198-proposal-finance`; propuesta, cargos y borrador fiscal quedan
+  enlazados sin transmisión externa automática.
 - Definir con contador/PAC las claves fiscales de la clínica; SAT establece que
   la identificación es responsabilidad del emisor.
 - Acordar si los precios varían por sede, profesional, material o complejidad.
-- Siguiente entrega: conversión explícita e idempotente de propuesta aprobada a
-  cargos y CFDI sandbox. Antes conviene pilotear el flujo v2 con datos
-  sintéticos y una clínica.
+- Siguiente entrega: seleccionar PAC, configurar únicamente su sandbox y
+  probar validación de catálogos, timbrado, cancelación, sustitución y
+  conciliación con datos sintéticos antes de cualquier CFDI real.
 

@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v197-treatment-quote-map';
+const CACHE_VERSION = 'smyl-v198-proposal-finance';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -45,7 +45,7 @@ const STATIC_FILES = [
   '/camila/icons/ui/my-smyl-example-after.svg',
   '/camila/smyl-patient-cases.css?v=2',
   '/camila/smyl-proposals.css?v=4',
-  '/camila/smyl-proposals.js?v=6',
+  '/camila/smyl-proposals.js?v=7',
   '/camila/smyl-proposal-model.js?v=2',
   '/camila/smyl-proposal-print.js?v=3',
   '/camila/smyl-treatment-plan-model.js?v=1',
@@ -68,8 +68,8 @@ const STATIC_FILES = [
   '/camila/smyl-service-catalog.css?v=1',
   '/camila/smyl-inventory.js?v=1',
   '/camila/smyl-inventory.css?v=1',
-  '/camila/smyl-finance.js?v=1',
-  '/camila/smyl-finance.css?v=1',
+  '/camila/smyl-finance.js?v=2',
+  '/camila/smyl-finance.css?v=2',
   '/camila/smyl-reports.js?v=1',
   '/camila/smyl-reports.css?v=1',
   '/camila/smyl-readiness.js?v=1',
