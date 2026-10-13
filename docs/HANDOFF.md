@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 7, cierre profesional y preparación operativa
+
+**Implementado:** Centro de lanzamiento con diagnóstico tenant-scoped,
+confirmaciones auditadas y manual operativo.
+
+- `smyl_operational_readiness_report()` comprueba configuración de clínica,
+  agenda, roles y riesgos de caja/recordatorios sin devolver pacientes ni PHI.
+- Solo `settings.manage` puede consultar o confirmar controles. La aprobación
+  final se rechaza mientras exista cualquier requisito automático o manual.
+- Las confirmaciones de privacidad, capacitación, recuperación y soporte dejan
+  actor y fecha en la bitácora; pueden reabrirse sin borrar historial.
+- El manual distingue controles verificables de responsabilidades del proveedor:
+  no afirma que exista un respaldo ni monitoreo externo sin evidencia.
+- Migración `20261012360000`. Detalle en `docs/SMYL_OPERATIONS_RUNBOOK.md`.
+- Con esto concluyen las siete etapas de conversión a plataforma dental; la
+  siguiente actividad recomendada es un piloto real controlado por clínica.
+
 ## 2026-10-12 — Codex: etapa 6, reportes ejecutivos
 
 **Implementado:** tablero agregado por periodo y sucursal con indicadores de

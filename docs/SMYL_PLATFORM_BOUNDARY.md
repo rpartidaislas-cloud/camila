@@ -184,13 +184,30 @@ hacen con movimientos compensatorios.
 
 ### Etapa 5 — caja y facturación
 
+**Estado: completada y desplegada en SMYL.**
+
 - Cargos del plan, pagos parciales, saldos y cortes.
 - Recibos, devoluciones y CFDI según la operación autorizada.
 
 ### Etapa 6 — laboratorio y analítica
 
+**Estado: completada y desplegada en SMYL.** La analítica ejecutiva está en
+`SMYL_EXECUTIVE_REPORTS.md`; los flujos de casos y laboratorio permanecen en
+los módulos clínicos existentes.
+
 - Casos de laboratorio, entregas, retrabajos y costos.
 - Producción, conversión, ocupación, cobranza e inventario.
+
+### Etapa 7 — cierre profesional y preparación operativa
+
+**Estado: completada y desplegada en SMYL.**
+
+- Centro de lanzamiento tenant-scoped y restringido a administración.
+- Diez verificaciones automáticas de clínica, agenda, equipo, caja y entregas.
+- Confirmaciones auditadas de privacidad, capacitación, recuperación, soporte
+  y aprobación final.
+- Manual diario, manejo de incidentes, reversión y límites explícitos.
+- La aprobación no certifica respaldos externos ni sustituye cumplimiento legal.
 
 ## Puerta de aceptación
 
