@@ -754,6 +754,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinic-admin.js?v=1"></script>
 <link rel="stylesheet" href="smyl-schedule.css?v=2">
 <script defer src="smyl-schedule.js?v=2"></script>
+<link rel="stylesheet" href="smyl-service-catalog.css?v=1">
+<script defer src="smyl-service-catalog-model.js?v=1"></script>
+<script defer src="smyl-service-catalog.js?v=1"></script>
 <link rel="stylesheet" href="smyl-inventory.css?v=1">
 <script defer src="smyl-inventory.js?v=1"></script>
 <link rel="stylesheet" href="smyl-finance.css?v=1">
@@ -3845,7 +3848,9 @@ function getPrecios() {
 }
 function renderPrecios() {
   var precios = getPrecios();
-  document.getElementById('precios-lista').innerHTML = precios.map(function(p) {
+  var preciosLista = document.getElementById('precios-lista');
+  if (!preciosLista) return;
+  preciosLista.innerHTML = precios.map(function(p) {
     return '<div class="precio-item">' +
       '<div><div class="precio-lbl">' + p.nombre + '</div><div class="precio-desc">' + p.unidad + '</div></div>' +
       '<div class="precio-inp-wrap"><span style="font-size:12px;color:var(--texto3)">$</span>' +

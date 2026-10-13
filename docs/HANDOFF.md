@@ -62,6 +62,28 @@ novedades informativas y deja de marcar todo como leído al abrir la pantalla.
   aprobado a 1366, 834 y 390 px, sin overflow ni errores de consola.
 - La siguiente etapa es unificar carga, error, desconexión y recuperación en
   los módulos operativos para que el equipo siempre sepa qué puede hacer.
+## 2026-10-13 — Codex: catálogo dental v1 preparado, sin despliegue
+
+**Preparado en rama aislada:** se auditó el flujo servicios → agenda → plan →
+odontograma → propuesta → finanzas y se creó la primera entrega del catálogo.
+
+- Se recuperaron las migraciones clínicas históricas que faltaban en la rama
+  publicada para que el esquema sea auditable y reproducible.
+- Nuevo menú opt-in de más de 55 servicios en 13 áreas, con búsqueda,
+  activación, edición, desactivación, precio, duración, unidad clínica y estado
+  de revisión fiscal.
+- Nueva migración aditiva `20261013000000_smyl_service_catalog.sql`: amplía
+  `smyl_services` y añade snapshots inmutables en `smyl_service_versions`, con
+  RLS de agenda. Está preparada localmente y **no se aplicó a producción**.
+- Las claves SAT se muestran como sugerencias editables; no se confunde unidad
+  clínica con unidad fiscal ni se afirma que el CFDI borrador ya timbre.
+- Se documentó el contrato de schema v2 para enlazar plan, dientes FDI,
+  cotización y cargos sin autodiagnóstico ni filtración del historial médico.
+- Web/PWA usan el contrato de caché `smyl-v195-dental-catalog`. Gmail/OAuth,
+  LANA/Meta, prompts, Storage, Stripe y configuración nativa no fueron tocados.
+- Validación local: catálogo 3/3; suite amplia 127/129. Persisten únicamente
+  los dos fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobada a 1366, 834 y 390 px; web/PWA tienen hashes idénticos.
 
 ## 2026-10-13 — Codex: etapa 4 de continuidad, Inicio de jornada
 
