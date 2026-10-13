@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 5, caja y finanzas dentales
+
+**Implementado:** cuenta por paciente, cargos, pagos, anticipos, aplicaciones,
+reembolsos, recibos internos, apertura/corte de caja, ajustes y expediente fiscal.
+
+- El libro financiero es independiente de Stripe y de cualquier infraestructura
+  de LANA. Mutaciones confirmadas usan RPC idempotentes y auditadas.
+- El saldo se deriva de cargos, aplicaciones y reembolsos; no hay saldo editable.
+- Efectivo requiere sesión abierta por usuario/sucursal y el corte conserva la
+  diferencia entre esperado y contado.
+- CFDI queda en preparación: perfil fiscal y borrador congelado por pago. No se
+  anuncia timbrado ni envío SAT sin un PAC autorizado.
+- Migraciones `20261012330000` y `20261012340000`. Detalle en
+  `docs/SMYL_DENTAL_FINANCE.md`.
+- La siguiente etapa recomendada es **Reportes operativos y tablero ejecutivo**.
+
 ## 2026-10-12 — Codex: etapa 4, inventario y compras dental desplegado
 
 **Publicado en Supabase SMYL:** catálogo, proveedores, ubicaciones, niveles de
