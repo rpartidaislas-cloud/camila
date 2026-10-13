@@ -44,13 +44,17 @@
   if(active?.root.isConnected&&active.patient===window.pacienteActual?.id&&active.tenant===window.tenantId){if(!active.revoked)adopt(active);return;}
   const root=n('section','cw-workspace'),ctx={root,layout,patient:window.pacienteActual.id,tenant:window.tenantId,modules:{},selected:null,entries:null,receipts:new Map()};active=ctx;
   root.setAttribute('aria-label','Preparar el caso del paciente');layout.classList.add('cw-layout');
-  const header=n('header','cw-heading'),heading=n('div');heading.append(n('p','cw-kicker','UN SOLO RECORRIDO'),n('h2','','Prepara el caso en cuatro pasos.'),n('p','','SMYL organiza el trabajo. Tú revisas y decides qué compartir.'));
-  header.append(heading);root.append(header);
+  const header=n('header','cw-heading'),heading=n('div');heading.append(n('p','cw-kicker','UN SOLO RECORRIDO'),n('h2','','Prepara el caso en cuatro pasos.'),n('p','','Del expediente al seguimiento, sin cambiar de paciente ni perder el contexto. Tú revisas y decides qué compartir.'));
+  ctx.nextButton=btn('Continuar el caso',()=>open(ctx.nextTarget||'photos'),true);ctx.nextButton.classList.add('cw-next-action');
+  header.append(heading,ctx.nextButton);root.append(header);
   ctx.overview=n('p','cw-overview');ctx.overview.setAttribute('role','status');root.append(ctx.overview);ctx.nav={};
   const photos=module(ctx,'photos','01','Evidencias','Selecciona las fotografías y simulaciones de este caso.');photos.details.open=true;
   const review=module(ctx,'review','02','Revisión clínica','Comprueba las sugerencias y organiza el mapa dental.');
   const plan=module(ctx,'plan','03','Plan de tratamiento','La IA propone un borrador; tú corriges y apruebas.');
-  const share=module(ctx,'share','04','Compartir con el paciente','Prepara mySmyl y decide si incluir el presupuesto.');
+  const share=module(ctx,'share','04','Presentación y seguimiento','Prepara mySmyl y continúa la conversación con el paciente.');
+  const progress=n('nav','cw-nav');progress.setAttribute('aria-label','Etapas del caso');
+  [['photos','Evidencias'],['review','Revisión'],['plan','Plan'],['share','Presentación']].forEach(([id,label])=>{const step=n('button','',label);step.type='button';step.onclick=()=>open(id);ctx.nav[id]=step;progress.append(step);});
+  ctx.overview.after(progress);
   const identity=screen.querySelector('.clinic-patient-card');
   if(identity){const contact=n('details','cw-contact');contact.append(n('summary','','Datos del paciente · consultar'),identity);photos.body.append(contact);}
   const clinical=screen.querySelector('.clinic-workspace');if(clinical)plan.body.append(clinical);
@@ -65,9 +69,10 @@
   ctx.shareHint=n('p','cw-help');share.body.append(ctx.shareHint);
   share.body.append(n('p','cw-share-copy','El paciente verá su antes y después, tu explicación y los siguientes pasos. El presupuesto no se incluye salvo que tú lo actives.'));
   ctx.planNext=btn('Continuar a compartir',()=>open('share'),true);const planFoot=n('div','cw-module-footer');planFoot.append(ctx.planNext);plan.body.append(planFoot);
-  ctx.shareButton=btn('Preparar y compartir',()=>{if(ctx.selected?.current())ctx.selected.present();},true);
+  ctx.shareButton=btn('Preparar presentación',()=>{if(ctx.selected?.current())ctx.selected.present();},true);
   ctx.fixPlan=btn('Completar el plan',()=>{open('plan');document.getElementById('clinic-assessment')?.focus({preventScroll:true});});
-  const actions=n('div','cw-action-row');actions.append(ctx.shareButton,ctx.fixPlan);share.body.append(actions,n('p','cw-help','Crear el enlace no lo envía. Al terminar, tendrás el enlace y un código para compartir con el paciente.'));
+  ctx.followupButton=btn('Continuar seguimiento en Mensajes',()=>window.ir('inbox'));ctx.followupButton.hidden=true;
+  const actions=n('div','cw-action-row');actions.append(ctx.shareButton,ctx.fixPlan,ctx.followupButton);share.body.append(actions,n('p','cw-help','Crear el enlace no lo envía. Al terminar, tendrás el enlace y un código para compartir con el paciente.'));
   ctx.history=btn('Consultar enlaces y solicitudes',()=>{if(valid(ctx)&&ctx.selected?.current())ctx.selected.present();});
   const past=n('details','cw-contact');past.append(n('summary','','Presentaciones anteriores'),n('p','cw-help','Consulta su vigencia o revoca un acceso desde «Enlaces anteriores y mensajes del paciente». Abrirlo no crea ni envía una propuesta.'),ctx.history);share.body.append(past);
   layout.append(root);adopt(ctx);refresh();
@@ -126,12 +131,15 @@
   const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
   state(ctx,'share',created?'Enlace creado · sin enviar':eligible?'Lista para preparar':'Falta completar',created?'done':eligible?'neutral':'pending');
   copy(ctx.shareHint,!pairs?'Falta una foto con su simulación guardada.':!reviewComplete?'Falta terminar la revisión clínica antes de preparar una presentación nueva.':!clinical?.ready?'Falta revisar y guardar tu valoración y plan. No necesitas generar otra simulación.':'Fotos, revisión y plan listos. Ahora elige lo que verá el paciente y aprueba la presentación.');
-  ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;
+  ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!created;
   ctx.history.disabled=!entry;
   if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
   // Suggested route, not a claim that all clinical issues were evaluated.
+  const nextId=!count?'photos':!reviewComplete?'review':!clinical?.ready?'plan':'share';
+  const nextLabel=!count?'Añadir evidencias':!reviewComplete?'Continuar revisión':!clinical?.ready?'Completar plan':'Preparar presentación';
+  ctx.nextTarget=nextId;copy(ctx.nextButton,nextLabel);ctx.nextButton.onclick=()=>open(nextId);
   copy(ctx.overview,!count?'Paso 1 de 4 · Añade o selecciona las evidencias del caso.':!reviewComplete?'Paso 2 de 4 · Comprueba las fotografías, el mapa y las radiografías.':!clinical?.ready?'Paso 3 de 4 · Completa y aprueba el plan de tratamiento.':'Paso 4 de 4 · Prepara lo que verá el paciente. Nada se envía automáticamente.');
-  if(created)copy(ctx.overview,'Presentación aprobada y enlace creado en esta sesión. El envío al paciente es manual.');
+  if(created){copy(ctx.overview,'Presentación preparada. El siguiente paso es compartirla y continuar el seguimiento desde Mensajes.');copy(ctx.nextButton,'Ir a Mensajes');ctx.nextButton.onclick=()=>window.ir('inbox');}
   for(const [id,b] of Object.entries(ctx.nav)){const value=b.textContent+' · '+ctx.modules[id].badge.textContent;if(b.getAttribute('aria-label')!==value)b.setAttribute('aria-label',value);}syncNav(ctx);
  }
  function init(){

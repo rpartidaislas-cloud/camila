@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 1 de continuidad del flujo clínico
+
+**Reorganizado en frontend:** la ficha del paciente muestra ahora un recorrido
+navegable y verificable de `Evidencias → Revisión → Plan → Presentación`.
+
+- La acción principal cambia según el siguiente pendiente y abre el módulo
+  correcto sin desmontar editores ni perder borradores locales.
+- Cada paso conserva su estado existente; no se introdujo una fuente de verdad
+  nueva ni se cambió ningún criterio clínico, aprobación o contrato de backend.
+- El último paso se renombró `Presentación y seguimiento`. Después de crear un
+  enlace en la sesión aparece el acceso a `Mensajes`; SMYL sigue aclarando que
+  no confirma ni ejecuta un envío automático.
+- Se actualizó `smyl-case-workspace.js/css`, sus copias PWA, `app.html`, `sw.js`
+  y pruebas. Caché: `smyl-v187-clinical-flow`.
+- Validación focalizada: 22/22. Suite amplia: 113/115; permanecen los dos fallos
+  preexistentes documentados de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin errores de consola.
+
 ## 2026-10-12 — Codex: arquitectura de información y navegación profesional
 
 **Reorganizado:** el panel deja de presentar todos los módulos al mismo nivel y
