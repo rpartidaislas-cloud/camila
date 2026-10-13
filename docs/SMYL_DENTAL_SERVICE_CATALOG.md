@@ -42,6 +42,12 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 ### Entrega 0 — base reproducible
 
 - Recuperar al repositorio las migraciones clínicas ya aplicadas que faltaban.
+- Representar con marcadores sin SQL cinco versiones remotas antiguas cuyo
+  cuerpo original no estaba disponible; no afirmar que esos objetos legacy son
+  reconstruibles hasta recuperar su definición real.
+- Archivar fuera del directorio ejecutable tres migraciones locales antiguas
+  que no figuran como aplicadas remotamente; nunca usar `--include-all` por
+  conveniencia.
 - Mantener una rama aislada y no reescribir migraciones históricas.
 - Corregir el contrato de pruebas del service worker.
 
@@ -85,6 +91,9 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 
 ## Decisiones pendientes antes de producción
 
+- La migración aditiva del catálogo v1 fue aplicada el 2026-10-13. La interfaz
+  aún debe integrarse sobre el HEAD vigente de Pages y superar regresión antes
+  de publicarse.
 - Introspectar y comparar funciones/policies reales de odontograma, plan y
   propuestas antes de crear schema 2.
 - Definir con contador/PAC las claves fiscales de la clínica; SAT establece que

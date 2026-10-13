@@ -74,7 +74,8 @@ odontograma → propuesta → finanzas y se creó la primera entrega del catálo
   de revisión fiscal.
 - Nueva migración aditiva `20261013000000_smyl_service_catalog.sql`: amplía
   `smyl_services` y añade snapshots inmutables en `smyl_service_versions`, con
-  RLS de agenda. Está preparada localmente y **no se aplicó a producción**.
+  RLS de agenda. Se aplicó en producción el 2026-10-13 después de un dry-run
+  que confirmó que era la única migración pendiente.
 - Las claves SAT se muestran como sugerencias editables; no se confunde unidad
   clínica con unidad fiscal ni se afirma que el CFDI borrador ya timbre.
 - Se documentó el contrato de schema v2 para enlazar plan, dientes FDI,
