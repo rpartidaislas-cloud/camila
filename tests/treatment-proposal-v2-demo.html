@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMYL · QA plan y cotización</title>
+  <link rel="stylesheet" href="../smyl-dental-record.css">
+  <link rel="stylesheet" href="../smyl-clinic.css">
+  <link rel="stylesheet" href="../smyl-proposals.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fa;color:#102239;font:14px/1.5 Inter,Arial,sans-serif}.qa-shell{max-width:1440px;margin:auto;padding:28px}.qa-header{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:24px}.qa-header h1{margin:0;font-size:30px}.qa-header p{margin:5px 0 0;color:#526173}.qa-badge{background:#eaf8f6;color:#11746d;border:1px solid #b9e7e1;padding:7px 11px;border-radius:999px;font-size:12px}.qa-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:24px;align-items:start}.qa-panel{background:#fff;border:1px solid #dce4ec;border-radius:18px;padding:24px;min-width:0}.qa-panel h2{margin:0 0 6px}.qa-help{margin:0 0 22px;color:#66766e;font-size:12px}.clinic-field{display:flex;flex-direction:column;gap:6px}.clinic-field label{font-size:12px;font-weight:650;color:#38524b}.clinic-field input,.clinic-field select,.clinic-field textarea{width:100%;border:1px solid #cfd9d3;border-radius:9px;background:#fff;padding:10px 11px;color:#183c3b;font:inherit}.clinic-field textarea{resize:vertical}.btn{border:1px solid #c7d5cf;border-radius:9px;padding:9px 12px;background:#fff;color:#1f5653;font-weight:650}.btn-primary{background:#194391;border-color:#194391;color:#fff}.clinic-remove{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#7a514c}.qa-target{margin-top:18px;padding:18px;background:#f7f9f7;border:1px solid #e2e9e4;border-radius:14px}.qa-target h3{font-size:14px;margin:0 0 4px}.qa-target>p{font-size:11px;color:#60736a;margin:0 0 12px}.clinic-target-map{margin:auto}.proposal-paper{padding:30px}.proposal-paper h1{font-size:27px}.proposal-dental-map{width:180px;margin-bottom:24px}.proposal-paper-footer{margin-top:24px}@media(max-width:900px){.qa-grid{grid-template-columns:1fr}.qa-shell{padding:20px}}@media(max-width:520px){.qa-shell{padding:12px}.qa-header{align-items:start;flex-direction:column}.qa-header h1{font-size:25px}.qa-panel{padding:15px}.clinic-treatment{padding-top:38px}.proposal-paper{padding:20px 14px}.proposal-dental-map{width:160px}}
+  </style>
+</head>
+<body>
+  <main class="qa-shell">
+    <header class="qa-header">
+      <div><h1>Plan clínico y cotización</h1><p>Escenario sintético para revisión visual. No contiene datos de pacientes.</p></div>
+      <span class="qa-badge">Contrato clínico v2</span>
+    </header>
+    <div class="qa-grid">
+      <section class="qa-panel" aria-labelledby="plan-title">
+        <h2 id="plan-title">Plan de tratamiento</h2>
+        <p class="qa-help">El profesional vincula el servicio y después señala las piezas y superficies confirmadas.</p>
+        <article class="clinic-treatment" data-teeth='["11","12","21","22"]' data-surfaces='["V"]'>
+          <div class="clinic-field"><label for="service">Servicio del catálogo · opcional</label><select id="service"><option>Carilla de cerámica / disilicato</option></select></div>
+          <div class="clinic-field"><label for="phase">Fase</label><select id="phase"><option>Tratamiento</option></select></div>
+          <div class="clinic-field"><label for="treatment">Tratamiento o indicación</label><input id="treatment" value="Carillas cerámicas anteriores"></div>
+          <div class="clinic-field"><label for="area">Zona o piezas · opcional</label><input id="area" value="Sector anterior superior"></div>
+          <div class="clinic-field"><label for="details">Detalles · opcional</label><textarea id="details">Confirmar color, encía y oclusión antes de iniciar.</textarea></div>
+          <div class="clinic-treatment-targets"><p class="clinic-treatment-target-summary">Piezas FDI 11, 12, 21, 22 · Superficie V</p><button class="btn" type="button">Señalar en odontograma</button></div>
+          <button class="clinic-remove" type="button">Quitar</button>
+        </article>
+        <div class="qa-target">
+          <h3>Piezas y superficies</h3>
+          <p>La marca sólo indica dónde está planeado intervenir; las piezas no marcadas no equivalen a “sanas”.</p>
+          <div id="plan-map" class="dr-map clinic-target-map"></div>
+          <fieldset class="clinic-surface-picker"><legend>Superficies para las piezas seleccionadas</legend><label><input type="checkbox"> M · Mesial</label><label><input type="checkbox"> D · Distal</label><label><input type="checkbox" checked> V · Vestibular</label><label><input type="checkbox"> L · Lingual / palatina</label></fieldset>
+          <div class="clinic-actions"><button class="btn" type="button">Cancelar</button><button class="btn btn-primary" type="button">Aplicar selección</button></div>
+        </div>
+      </section>
+      <section class="qa-panel" aria-labelledby="proposal-title">
+        <h2 id="proposal-title">Vista para el paciente</h2>
+        <p class="qa-help">La cotización muestra sólo el tratamiento propuesto, no antecedentes ni notas clínicas internas.</p>
+        <div id="proposal"></div>
+      </section>
+    </div>
+  </main>
+  <script src="../smyl-clinical-model.js"></script>
+  <script src="../smyl-proposal-model.js"></script>
+  <script src="../smyl-tooth-map.js"></script>
+  <script src="../smyl-proposal-print.js"></script>
+  <script>
+    const selected=new Set(['11','12','21','22']);
+    SmylToothMap.render(document.getElementById('plan-map'),{state(tooth){return{selected:selected.has(tooth),className:selected.has(tooth)?'pr-proposed':'',label:selected.has(tooth)?'Seleccionado':'Sin seleccionar'};}});
+    const service={name:'Carilla de cerámica / disilicato',patient_name:'Carilla cerámica',category:'Estética',specialty:'Rehabilitación oral',scope_type:'tooth',pricing_mode:'per_tooth',reference_price:8500,currency:'MXN',sat_product_service_code:'85121600',sat_unit_code:'E48',tax_object_code:'02',fiscal_status:'reviewed'};
+    const proposal={id:'QA-SINTETICO',revision:2,plan_revision:4,status:'approved',patient_name:'Paciente de ejemplo',clinic_name:'Clínica Dental SMYL',professional_name:'Dra. Andrea López',document:{schema:2,title:'Tu propuesta de tratamiento',introduction:'Preparamos esta propuesta a partir del plan revisado contigo en consulta.',terms:'El importe incluye valoración, preparación y colocación. Los ajustes clínicos se confirmarán antes de iniciar.',valid_until:'2026-11-15',photos:null,items:[{id:'quote-item-01',treatment_id:'item-01',service_id:'00000000-0000-4000-8000-000000000001',service_revision:1,service_snapshot:service,teeth:['11','12','21','22'],surfaces:['V'],label:'Carillas cerámicas anteriores',area:'Piezas 11, 12, 21, 22 · Superficie V',quantity:4,unit_cents:850000,currency:'MXN'},{id:'quote-item-02',treatment_id:null,service_id:null,service_revision:null,service_snapshot:null,teeth:[],surfaces:[],label:'Control y ajuste final',area:'Cita de seguimiento',quantity:1,unit_cents:0,currency:'MXN'}]}};
+    document.getElementById('proposal').append(SmylProposalPrint.render(proposal,null,true));
+  </script>
+</body>
+</html>

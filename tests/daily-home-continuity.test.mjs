@@ -34,7 +34,7 @@ test('Etapa 4 se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.css\?v=1/);
   assert.match(app, /smyl-daily-home\.js\?v=2/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
-  assert.match(worker, /smyl-v195-dental-catalog/);
+  assert.match(worker, /smyl-v197-treatment-quote-map/);
   assert.match(worker, /smyl-daily-home\.js\?v=2/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /@media\(max-width:700px\)/);

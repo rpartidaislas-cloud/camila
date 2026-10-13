@@ -61,14 +61,20 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 
 ### Entrega 2 — odontograma, plan y cotización v2
 
-- Tratamientos con ID estable, fase, `service_id`, revisión de servicio, piezas
+- **Implementada y publicada el 2026-10-13.** Tratamientos con ID estable,
+  fase, `service_id`, revisión de servicio, piezas
   FDI y superficies explícitas.
-- Odontograma con capas separadas: hallazgo, existente, propuesto y realizado.
-- Dentición temporal/mixta y superficies, sin interpretar “sin marca” como sano.
-- Propuesta compatible con documentos schema 1 y nueva schema 2 con snapshot
+- El selector reutiliza el odontograma adulto existente y distingue piezas
+  propuestas sin interpretar “sin marca” como sano. La dentición temporal y
+  mixta permanece como ampliación futura; no se simula soporte que aún no existe.
+- Lectura histórica compatible con documentos schema 1 y escritura nueva en
+  schema 2 con snapshot
   comercial/fiscal y mini mapa dental.
 - Mostrar solo piezas aprobadas por el profesional; no incluir antecedentes,
   alergias ni notas internas en el documento comercial.
+- Los RPC `smyl_save_clinical_plan_v2` y `smyl_save_proposal_v2` validan en el
+  servidor la revisión del catálogo y que cada línea comercial coincida con el
+  plan clínico revisado. Los RPC anteriores se conservan para el historial.
 
 ### Entrega 3 — finanzas
 
@@ -96,10 +102,19 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
   la suite completa pasa 141/143 y conserva solo dos fallos anteriores del
   simulador rápido, ajenos al catálogo. El frontend se publicó y se comprobó
   en el panel profesional sin mutar el catálogo de la clínica.
-- Introspectar y comparar funciones/policies reales de odontograma, plan y
-  propuestas antes de crear schema 2.
+- La migración `20261013010000_smyl_treatment_proposal_v2.sql` fue aplicada el
+  2026-10-13 después de confirmar que era la única pendiente. Web y PWA usan el
+  mismo contrato v2 y el caché `smyl-v197-treatment-quote-map`.
+- El plan permite seleccionar servicio, fase, piezas FDI y superficies; la
+  cotización hereda el precio de referencia, calcula por pieza/superficie,
+  congela el snapshot fiscal y genera un mini odontograma sin historia clínica.
+- QA sintética aprobada a 1366, 834 y 390 px, sin desbordamiento horizontal. La
+  suite pasa 145/147 y conserva sólo los dos fallos anteriores del simulador
+  rápido, ajenos a catálogo, plan y propuestas.
 - Definir con contador/PAC las claves fiscales de la clínica; SAT establece que
   la identificación es responsabilidad del emisor.
 - Acordar si los precios varían por sede, profesional, material o complejidad.
-- Pilotear con datos sintéticos y una clínica; conservar rollback por bandera.
+- Siguiente entrega: conversión explícita e idempotente de propuesta aprobada a
+  cargos y CFDI sandbox. Antes conviene pilotear el flujo v2 con datos
+  sintéticos y una clínica.
 

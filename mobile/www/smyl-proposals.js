@@ -12,8 +12,8 @@
   function cleanup(){if(ctx)Object.values(ctx.files).forEach(function(f){if(f)URL.revokeObjectURL(f.url);});ctx=null;sequence++;}
   function leave(){if(ctx&&ctx.busy){alert('Espera a que termine la operación.');return false;}if(ctx&&ctx.dirty&&!confirm('Hay cambios sin guardar en la propuesta. ¿Quieres descartarlos?'))return false;cleanup();return true;}
   function rowFromForm(){
-    var doc={schema:1,title:document.getElementById('proposal-title').value.trim(),introduction:document.getElementById('proposal-intro').value.trim(),terms:document.getElementById('proposal-terms').value.trim(),valid_until:document.getElementById('proposal-valid').value,items:[],photos:null};
-    document.querySelectorAll('.proposal-item').forEach(function(row){doc.items.push({label:row.querySelector('[data-field="label"]').value.trim(),area:row.querySelector('[data-field="area"]').value.trim(),quantity:Number(row.querySelector('[data-field="quantity"]').value),unit_cents:M.cents(row.querySelector('[data-field="price"]').value)});});
+    var doc={schema:2,title:document.getElementById('proposal-title').value.trim(),introduction:document.getElementById('proposal-intro').value.trim(),terms:document.getElementById('proposal-terms').value.trim(),valid_until:document.getElementById('proposal-valid').value,items:[],photos:null};
+    document.querySelectorAll('.proposal-item').forEach(function(row){var meta=JSON.parse(row.dataset.itemMeta||'{}');doc.items.push(Object.assign(meta,{label:row.querySelector('[data-field="label"]').value.trim(),area:row.querySelector('[data-field="area"]').value.trim(),quantity:Number(row.querySelector('[data-field="quantity"]').value),unit_cents:M.cents(row.querySelector('[data-field="price"]').value),currency:'MXN'}));});
     if(document.getElementById('proposal-include-photos').checked)doc.photos={before_path:ctx.files.before?ctx.files.before.path:ctx.photoPaths?.before_path||'',simulation_path:ctx.files.simulation?ctx.files.simulation.path:ctx.photoPaths?.simulation_path||'',view:document.getElementById('proposal-view').value};
     return {...ctx.row,document:doc,plan_revision:ctx.plan.revision};
   }
@@ -34,8 +34,10 @@
   }
   function addLine(item){
     if(document.querySelectorAll('.proposal-item').length>=20)return;item=item||{label:'',area:'',quantity:1,unit_cents:null};lineSequence++;
-    var row=n('article','proposal-item');
+    var row=n('article','proposal-item'),meta=M.metadata(item,lineSequence-1);row.dataset.itemMeta=JSON.stringify(meta);
     [['Concepto','label',item.label,'text'],['Zona · opcional','area',item.area,'text'],['Cantidad','quantity',item.quantity,'number'],['Precio por unidad · MXN','price',item.unit_cents===null?'':(item.unit_cents/100).toFixed(2),'text']].forEach(function(e){var f=field(e[0],'proposal-line-'+lineSequence+'-'+e[1],e[2],e[3]);f.lastChild.dataset.field=e[1];if(e[1]==='quantity'){f.lastChild.min='1';f.lastChild.max='100';f.lastChild.step='1';}else{f.lastChild.maxLength=e[1]==='price'?10:200;}if(e[1]==='price'){f.lastChild.inputMode='decimal';f.lastChild.placeholder='Por definir';}row.append(f);});
+    if(meta.teeth.length){var target=n('p','proposal-item-target','Mapa dental · piezas '+meta.teeth.join(', ')+(meta.surfaces.length?' · superficies '+meta.surfaces.join(', '):''));row.append(target);}
+    if(meta.service_snapshot){var fiscal=n('small','proposal-item-fiscal','Catálogo v'+meta.service_revision+' · SAT '+(meta.service_snapshot.sat_product_service_code||'por definir')+' · '+(meta.service_snapshot.fiscal_status==='reviewed'?'fiscal revisado':'revisión fiscal pendiente'));row.append(fiscal);}
     row.append(b('Quitar concepto',function(){row.remove();changed();},'clinic-remove'));document.getElementById('proposal-items').append(row);
   }
   async function selectPhoto(kind,file){
@@ -90,7 +92,7 @@
     document.getElementById('proposal-preview-dialog').close();
     try{
       await uploadPhotos(current,row.document);
-      var saved=await checked(sb.rpc('smyl_save_proposal',{p_id:row.id,p_tenant_id:current.tenant,p_patient_id:row.patient_id,p_plan_revision:row.plan_revision,p_expected_revision:current.row.revision||0,p_document:row.document,p_approve:approve}));
+      var saved=await checked(sb.rpc('smyl_save_proposal_v2',{p_id:row.id,p_tenant_id:current.tenant,p_patient_id:row.patient_id,p_plan_revision:row.plan_revision,p_expected_revision:current.row.revision||0,p_document:row.document,p_approve:approve}));
       if(Array.isArray(saved))saved=saved[0];
       if(!saved||saved.id!==row.id||saved.tenant_id!==current.tenant||saved.patient_id!==row.patient_id||!saved.revision)throw new Error('Unconfirmed save');
       if(ctx!==current)return;
@@ -147,7 +149,7 @@
     var header=n('header','proposal-heading'),title=n('div');title.append(n('p','pro-eyebrow','PREPARAR PROPUESTA'),n('h1','',ctx.row.patient_name));var badge=n('span','clinic-state');badge.id='proposal-state';header.append(title,badge);root.append(header);
     var message=n('div');message.id='proposal-feedback';root.append(message);
     var layout=n('div','proposal-layout'),form=n('fieldset','proposal-editor');form.id='proposal-form';
-    var doc=ctx.row.document;
+    var doc=M.normalize(ctx.row.document);ctx.row.document=doc;
     form.append(field('Título','proposal-title',doc.title),field('Mensaje para el paciente · opcional','proposal-intro',doc.introduction,'textarea'));
     var quotation=n('div','clinic-section-heading');quotation.append(n('h2','','Tratamiento e inversión'),n('p','','Los conceptos vienen del plan revisado. Ajusta su descripción, cantidad y precio. No se copian las notas clínicas internas.'));
     var items=n('div');items.id='proposal-items';var add=b('+ Añadir concepto',function(){addLine();changed();});add.id='proposal-add';form.append(quotation,items,add);
@@ -184,7 +186,7 @@
       if(token!==sequence||tenant!==tenantId)return;
       if(!plan||(!row&&plan.status!=='reviewed')){root.replaceChildren(notice('Primero guarda y revisa el plan en la ficha del paciente.'),b('Ir a Pacientes',function(){ir('pacientes');}));return;}
       if(token!==sequence||tenant!==tenantId)return;
-      if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}
+      if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}else row.document=M.normalize(row.document);
       ctx={row:row,tenant:tenant,plan:plan,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,stale:plan.status!=='reviewed'||row.plan_revision!==plan.revision};editor();
     }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b('Volver a Presentaciones',loadList));}
   }

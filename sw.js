@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v195-dental-catalog';
+const CACHE_VERSION = 'smyl-v197-treatment-quote-map';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -44,19 +44,19 @@ const STATIC_FILES = [
   '/camila/icons/ui/my-smyl-example-before.svg',
   '/camila/icons/ui/my-smyl-example-after.svg',
   '/camila/smyl-patient-cases.css?v=2',
-  '/camila/smyl-proposals.css?v=2',
-  '/camila/smyl-proposals.js?v=5',
-  '/camila/smyl-proposal-model.js?v=1',
-  '/camila/smyl-proposal-print.js?v=1',
+  '/camila/smyl-proposals.css?v=4',
+  '/camila/smyl-proposals.js?v=6',
+  '/camila/smyl-proposal-model.js?v=2',
+  '/camila/smyl-proposal-print.js?v=3',
   '/camila/smyl-treatment-plan-model.js?v=1',
   '/camila/smyl-treatment-plan-client.js?v=1',
-  '/camila/smyl-clinic.js?v=6',
+  '/camila/smyl-clinic.js?v=7',
   '/camila/smyl-patient-360.js?v=1',
   '/camila/smyl-patient-360.css?v=1',
   '/camila/smyl-case-workspace.js?v=6',
   '/camila/smyl-case-workspace.css?v=4',
   '/camila/smyl-clinic.css?v=2',
-  '/camila/smyl-clinical-model.js?v=1',
+  '/camila/smyl-clinical-model.js?v=2',
   '/camila/smyl-panel.js?v=5',
   '/camila/smyl-panel.css?v=4',
   '/camila/smyl-clinic-admin.js?v=1',

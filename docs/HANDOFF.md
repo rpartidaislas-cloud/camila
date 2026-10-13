@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: plan clínico y cotización dental v2
+
+**Entrega 2 terminada:** catálogo, plan, odontograma y propuesta comparten un
+contrato versionado sin convertir la automatización en diagnóstico.
+
+- Cada tratamiento conserva ID, fase, servicio/revisión/snapshot, piezas FDI y
+  superficies. Los documentos schema 1 siguen normalizándose para lectura.
+- El profesional señala las piezas en el odontograma; “sin marca” significa
+  únicamente “sin pieza asociada”, nunca “sano”.
+- La propuesta toma nombre, precio y modalidad del snapshot revisado, calcula
+  cantidades por pieza o superficie y muestra al paciente un mini mapa sin
+  antecedentes, alergias ni notas internas.
+- Nueva migración aditiva
+  `20261013010000_smyl_treatment_proposal_v2.sql`, aplicada en producción tras
+  dry-run. Los RPC v2 validan snapshots y coincidencia con el plan revisado;
+  los RPC antiguos permanecen intactos para el historial.
+- Web/PWA sincronizadas con `smyl-v197-treatment-quote-map`. No se tocaron
+  LANA, Gmail, Meta, prompts de IA, Storage, Stripe ni configuración nativa.
+- QA sintética aprobada a 1366, 834 y 390 px, sin overflow; en móvil cada línea
+  de cotización se presenta como tarjeta legible. Validación focalizada 8/8;
+  suite completa 145/147, con los dos fallos preexistentes de `lana-quick` y
+  `quick-guided-flow`.
+- Archivos principales: `smyl-clinical-model.js`, `smyl-clinic.js/.css`,
+  `smyl-proposal-model.js`, `smyl-proposal-print.js`,
+  `smyl-proposals.js/.css`, sus copias en `mobile/www/`, la migración y
+  `tests/treatment-proposal-v2.test.mjs`.
+- Siguiente entrega recomendada: propuesta aprobada → cargos idempotentes →
+  CFDI en sandbox, sin afirmar timbrado real hasta integrar y probar un PAC.
+
 ## 2026-10-13 — Codex: etapa 7, cierre de navegación profesional
 
 **Reorganización terminada en frontend:** el workspace incorpora un acceso

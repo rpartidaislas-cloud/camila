@@ -32,7 +32,7 @@ assets.forEach((asset) => {
 });
 
 assert.match(simulator, /href="biblioteca-carillas\.html"/);
-assert.match(worker, /smyl-v195-dental-catalog/);
+assert.match(worker, /smyl-v197-treatment-quote-map/);
 assert.match(worker, /caches\.match\('\/camila\/simulacion-rapida\.html'\)/);
 assert.match(worker, /\/camila\/biblioteca-carillas\.html/);
 

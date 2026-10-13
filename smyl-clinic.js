@@ -48,7 +48,14 @@
       background: document.getElementById('clinic-background').value,
       assessment: document.getElementById('clinic-assessment').value,
       treatments: Array.from(document.querySelectorAll('.clinic-treatment')).map(function (row) {
-        return { name: row.querySelector('[data-field="name"]').value, area: row.querySelector('[data-field="area"]').value, notes: row.querySelector('[data-field="notes"]').value };
+        var service = row.dataset.serviceSnapshot ? JSON.parse(row.dataset.serviceSnapshot) : null;
+        return {
+          id: row.dataset.treatmentId, name: row.querySelector('[data-field="name"]').value,
+          area: row.querySelector('[data-field="area"]').value, notes: row.querySelector('[data-field="notes"]').value,
+          phase: row.querySelector('[data-field="phase"]').value, service_id: row.dataset.serviceId || null,
+          service_revision: row.dataset.serviceRevision ? Number(row.dataset.serviceRevision) : null,
+          service_snapshot: service, teeth: JSON.parse(row.dataset.teeth || '[]'), surfaces: JSON.parse(row.dataset.surfaces || '[]')
+        };
       })
     });
   }
@@ -105,14 +112,42 @@
     updateAIState();
   }
   var rowSequence = 0;
+  function treatmentSummary(row) {
+    var teeth = JSON.parse(row.dataset.teeth || '[]'), surfaces = JSON.parse(row.dataset.surfaces || '[]');
+    var summary = row.querySelector('.clinic-treatment-target-summary');
+    summary.textContent = teeth.length ? 'Piezas FDI ' + teeth.join(', ') + (surfaces.length ? ' · Superficies ' + surfaces.join(', ') : ' · Pieza completa') : 'Sin piezas seleccionadas · tratamiento general';
+  }
+  function editTreatmentTargets(row) {
+    var teeth = new Set(JSON.parse(row.dataset.teeth || '[]')), surfaces = new Set(JSON.parse(row.dataset.surfaces || '[]'));
+    var dialog = el('dialog','clinic-dialog clinic-target-dialog'), title = el('h2','','Piezas y superficies');
+    dialog.setAttribute('aria-label','Seleccionar piezas y superficies');
+    dialog.append(title,el('p','clinic-privacy','Marca únicamente lo confirmado por el profesional. Sin marca significa sin pieza asociada, no “sano”.'));
+    var map = el('div','dr-map clinic-target-map');dialog.append(map);
+    function draw(){SmylToothMap.render(map,{state:function(tooth){return {selected:teeth.has(tooth),className:teeth.has(tooth)?'pr-proposed':'',label:teeth.has(tooth)?'Seleccionado':'Sin seleccionar'};},onSelect:function(tooth){if(teeth.has(tooth))teeth.delete(tooth);else teeth.add(tooth);draw();}});}
+    draw();
+    var surfaceBox=el('fieldset','clinic-surface-picker'),legend=el('legend','','Superficies para las piezas seleccionadas');surfaceBox.append(legend);
+    model.surfaces.forEach(function(entry){var label=el('label'),input=el('input');input.type='checkbox';input.value=entry[0];input.checked=surfaces.has(entry[0]);input.onchange=function(){if(input.checked)surfaces.add(input.value);else surfaces.delete(input.value);};label.append(input,document.createTextNode(entry[0]+' · '+entry[1]));surfaceBox.append(label);});
+    var actions=el('div','clinic-actions');actions.append(button('Cancelar',function(){dialog.close();}),button('Aplicar selección',function(){row.dataset.teeth=JSON.stringify(Array.from(teeth));row.dataset.surfaces=JSON.stringify(teeth.size?Array.from(surfaces):[]);treatmentSummary(row);dialog.close();changed();},'btn btn-primary'));dialog.append(surfaceBox,actions);document.body.append(dialog);dialog.addEventListener('close',function(){dialog.remove();},{once:true});dialog.showModal();
+  }
   function addTreatment(item) {
     item = item || {};
     if (document.querySelectorAll('.clinic-treatment').length >= 20) return;
     var row = el('article', 'clinic-treatment'); rowSequence++;
+    row.dataset.treatmentId = item.id || crypto.randomUUID();
+    row.dataset.serviceId = item.service_id || '';
+    row.dataset.serviceRevision = item.service_revision || '';
+    row.dataset.serviceSnapshot = item.service_snapshot ? JSON.stringify(model.snapshot(item.service_snapshot)) : '';
+    row.dataset.teeth = JSON.stringify(item.teeth || []);row.dataset.surfaces = JSON.stringify(item.surfaces || []);
+    var serviceField=el('div','clinic-field'),serviceLabel=el('label','','Servicio del catálogo · opcional'),service=el('select');service.dataset.field='service';serviceLabel.htmlFor='clinic-item-'+rowSequence+'-service';service.id=serviceLabel.htmlFor;service.append(new Option('Indicación clínica sin concepto comercial',''));
+    (current.services||[]).forEach(function(s){var option=new Option(s.patient_name||s.name,s.id);option.disabled=!s.active;service.append(option);});
+    if(item.service_id&&!Array.from(service.options).some(function(o){return o.value===item.service_id;})){var historical=new Option((item.service_snapshot&&item.service_snapshot.patient_name)||item.name,item.service_id);historical.disabled=true;service.append(historical);}
+    service.value=item.service_id||'';service.onchange=function(){var selected=(current.services||[]).find(function(s){return s.id===service.value;});if(!selected){row.dataset.serviceId='';row.dataset.serviceRevision='';row.dataset.serviceSnapshot='';return changed();}row.dataset.serviceId=selected.id;row.dataset.serviceRevision=String(selected.catalog_revision);row.dataset.serviceSnapshot=JSON.stringify(model.snapshot(selected));row.querySelector('[data-field="name"]').value=selected.patient_name||selected.name;changed();};serviceField.append(serviceLabel,service);row.append(serviceField);
+    var phaseField=el('div','clinic-field'),phaseLabel=el('label','','Fase'),phase=el('select');phase.id='clinic-item-'+rowSequence+'-phase';phaseLabel.htmlFor=phase.id;phase.dataset.field='phase';model.phases.forEach(function(entry){phase.add(new Option(entry[1],entry[0]));});phase.value=item.phase||'treat';phaseField.append(phaseLabel,phase);row.append(phaseField);
     [['Tratamiento o indicación','name',200],['Zona o piezas · opcional','area',200],['Detalles · opcional','notes',2000]].forEach(function (entry) {
       var f = field(entry[0], 'clinic-item-' + rowSequence + '-' + entry[1], item[entry[1]], entry[2], entry[1] === 'notes');
       f.lastElementChild.dataset.field = entry[1]; row.append(f);
     });
+    var targets=el('div','clinic-treatment-targets'),summary=el('p','clinic-treatment-target-summary');targets.append(summary,button('Señalar en odontograma',function(){editTreatmentTargets(row);},'btn btn-secondary'));row.append(targets);treatmentSummary(row);
     var remove = button('Quitar', function () { row.remove(); changed(); }, 'clinic-remove');
     remove.setAttribute('aria-label', 'Quitar este tratamiento'); row.append(remove);
     document.getElementById('clinic-treatments').append(row);
@@ -263,7 +298,8 @@
     var list = el('ol');
     doc.treatments.forEach(function (t) {
       var item = el('li'); item.append(el('strong','',t.name));
-      if(t.area) item.append(el('p','',t.area));
+      item.append(el('p','',model.phases.find(function(x){return x[0]===t.phase;})[1]));
+      var target=model.areaLabel(t);if(target) item.append(el('p','',target));
       if(t.notes) item.append(el('p','',t.notes));
       list.append(item);
     }); host.append(list);
@@ -277,7 +313,7 @@
     document.getElementById('clinic-review-dialog').close();
     document.getElementById('clinic-feedback').replaceChildren();
     try {
-      var row = await checked(sb.rpc('smyl_save_clinical_plan', {
+      var row = await checked(sb.rpc('smyl_save_clinical_plan_v2', {
         p_tenant_id: ctx.tenant, p_patient_id: ctx.patient,
         p_expected_revision: ctx.row ? ctx.row.revision : 0, p_document: doc, p_review: review
       }));
@@ -316,7 +352,7 @@
         item.append(el('summary', '', 'Versión ' + row.revision + ' · ' + (row.status === 'reviewed' ? 'Revisada' : 'Borrador') + ' · ' + date(row.updated_at)));
         var doc = model.normalize(row.document);
         item.append(el('p', '', 'Motivo: ' + (doc.reason || 'Sin registrar')), el('p', '', 'Antecedentes: ' + (doc.background || 'Sin registrar')), el('p', '', 'Valoración: ' + (doc.assessment || 'Sin registrar')));
-        var list = el('ul'); doc.treatments.forEach(function (t) { list.append(el('li', '', [t.name, t.area, t.notes].filter(Boolean).join(' · '))); });
+        var list = el('ul'); doc.treatments.forEach(function (t) { list.append(el('li', '', [t.name, model.areaLabel(t), t.notes].filter(Boolean).join(' · '))); });
         item.append(list, el('small', '', 'Registro del profesional · ' + row.updated_by)); host.append(item);
       });
       host.append(el('small', '', 'Se muestran las 25 versiones más recientes. Consultar una versión no modifica el plan actual.'));
@@ -327,7 +363,7 @@
     if (!p || !leave()) return;
     pacienteActual = p;
     window.ir('paciente-detalle');
-    var ctx = { tenant: tenantId, patient: p.id, ready: false, row: null, dirty: false, saving: false, aiBusy: false, aiAbort: null, aiDraft: null }; current = ctx;
+    var ctx = { tenant: tenantId, patient: p.id, ready: false, row: null, services: [], dirty: false, saving: false, aiBusy: false, aiAbort: null, aiDraft: null }; current = ctx;
     var token = ++sequence;
     var screen = document.getElementById('p-paciente-detalle'); screen.replaceChildren();
     screen.append(button('← Pacientes', function () { ir('pacientes'); }, 'clinic-back'));
@@ -373,7 +409,10 @@
     }
     content.append(notice('Cargando el expediente…'));
     try {
-      var data = await checked(sb.from('smyl_clinical_plans').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', p.id).maybeSingle());
+      var loaded = await Promise.all([
+        checked(sb.from('smyl_clinical_plans').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', p.id).maybeSingle()),
+        checked(sb.from('smyl_services').select('*').eq('tenant_id',ctx.tenant).order('name'))
+      ]), data=loaded[0];ctx.services=loaded[1]||[];
       if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return;
       ctx.row = data; ctx.ready = true; renderEditor();
     } catch (error) {
