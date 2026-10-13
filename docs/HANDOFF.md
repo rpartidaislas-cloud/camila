@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: etapa 4 de continuidad, Inicio de jornada
+
+**Reorganizado en frontend:** Inicio deja de ser un resumen de créditos y se
+convierte en el tablero operativo diario de la clínica.
+
+- Resume citas de hoy, pacientes en clínica, solicitudes pendientes y
+  conversaciones que necesitan atención; cada indicador abre Agenda o
+  Mensajes, que siguen siendo la fuente de trabajo canónica.
+- Ordena como prioridades las llegadas, citas en atención, horarios vencidos,
+  solicitudes e inasistencias. También muestra las próximas citas del día.
+- Añade accesos directos para crear una cita, registrar un paciente, abrir la
+  bandeja y continuar expedientes, sin duplicar formularios ni decisiones.
+- Reutiliza las consultas RLS ya existentes con `tenant_id`. Mensajes publica
+  al tablero solamente totales operativos; no copia ni expone el historial.
+- No se cambió backend, LANA, Meta, migraciones, permisos ni contratos de
+  envío. Web y PWA móvil usan `smyl-v190-daily-home`.
+- Validación focalizada: 13/13. Suite amplia: 124/126; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin errores de consola.
+- La siguiente etapa recomendada es consolidar alertas y notificaciones para
+  que cada pendiente tenga un único origen, responsable y destino de acción.
+
 ## 2026-10-13 — Codex: etapa 3 de continuidad, Mensajes por paciente
 
 **Reorganizado en frontend:** Mensajes funciona ahora como centro de atención

@@ -151,11 +151,21 @@
       var empty = node('div', 'lana-attention-state is-empty');
       empty.append(node('span', 'lana-attention-empty-mark', '✓'), node('strong', '', 'No hay conversaciones pendientes'), node('p', '', 'Cuando el asistente solicite a una persona o un paciente responda durante una pausa, aparecerá aquí.'));
       body.append(empty);
+      publishSummary();
       return;
     }
     var list = node('div', 'lana-attention-list');
     state.items.forEach(function (item) { list.append(renderItem(item)); });
     body.append(list);
+    publishSummary();
+  }
+
+  function summary() {
+    return { loaded: state.loaded, total: state.total, unread: state.items.reduce(function (sum, item) { return sum + (Number(item.unread_count) || 0); }, 0), linked: state.items.filter(function (item) { return Boolean(item.linked); }).length };
+  }
+
+  function publishSummary() {
+    window.dispatchEvent(new CustomEvent('smyl:attention-updated', { detail: summary() }));
   }
 
   async function load(force) {
@@ -210,6 +220,6 @@
     }, 60000);
   }
 
-  window.SmylLanaAttention = { load: load };
+  window.SmylLanaAttention = { load: load, getSummary: summary };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
