@@ -24,6 +24,9 @@ test('architecture assigns clinical data to SMYL and messaging infrastructure to
 
 test('dentist-facing copy presents one SMYL product', () => {
   assert.match(connections, /Canales e IA/);
+  assert.match(connections, /pro-primary-nav/);
+  assert.match(connections, /mobileButton\.textContent = 'Canales'/);
+  assert.doesNotMatch(connections, /settings\.insertBefore\(button/);
   assert.match(connections, /SMYL Asistente/);
   assert.match(inbox, /SMYL Asistente y tu equipo/);
   assert.match(panel, /Dar seguimiento en Mensajes/);

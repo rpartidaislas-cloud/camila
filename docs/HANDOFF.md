@@ -1,5 +1,15 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: acceso visible a Canales e IA
+
+**Corrección de navegación:** `Canales e IA` dejó de estar oculto dentro de
+“Herramientas y configuración”. Ahora aparece en el menú principal de
+escritorio, junto a `Mensajes`, y como `Canales` en la navegación móvil.
+
+- No se cambió OAuth, Meta, LANA, secretos ni el contrato de conexión.
+- El flujo continúa limitado al propietario de la clínica y mantiene tokens en
+  LANA; este cambio solo hace visible la entrada que ya existía.
+
 ## 2026-10-12 — Codex: etapa 7, cierre profesional y preparación operativa
 
 **Implementado:** Centro de lanzamiento con diagnóstico tenant-scoped,

@@ -12,7 +12,7 @@ const sw = read('../sw.js');
 
 test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(app, /smyl-connections\.css\?v=5/);
-  assert.match(app, /smyl-connections\.js\?v=9/);
+  assert.match(app, /smyl-connections\.js\?v=10/);
   assert.match(app, /smyl-panel\.css\?v=4/);
   assert.match(app, /smyl-panel\.js\?v=5/);
   assert.match(connections, /Tus canales y tu asistente/);
@@ -21,7 +21,7 @@ test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
   assert.match(sw, /smyl-v185-operational-readiness/);
-  assert.match(sw, /smyl-connections\.js\?v=9/);
+  assert.match(sw, /smyl-connections\.js\?v=10/);
   assert.match(sw, /smyl-connections\.css\?v=5/);
 });
 

@@ -670,10 +670,19 @@
   function init() {
     if (!window.TITULOS || !window.ir || document.getElementById('p-conexiones')) return;
     TITULOS.conexiones = 'Canales e IA';
-    var settings = document.querySelector('.pro-settings');
-    var account = Array.from(settings.querySelectorAll('.nav-item')).find(function (el) { return el.getAttribute('onclick') === "ir('mi-cuenta')"; });
+    var primary = document.querySelector('.pro-primary-nav');
     var button = connectionButton();
-    if (account) settings.insertBefore(button, account); else settings.append(button);
+    if (primary) {
+      var inbox = primary.querySelector('[onclick="ir(\'inbox\')"]');
+      if (inbox) inbox.after(button); else primary.insertBefore(button, primary.children[1] || null);
+    }
+    var mobile = document.querySelector('.pro-mobile-nav');
+    if (mobile && !mobile.querySelector('[onclick="ir(\'conexiones\')"]')) {
+      var mobileButton = connectionButton();
+      mobileButton.textContent = 'Canales';
+      var mobileInbox = mobile.querySelector('[onclick="ir(\'inbox\')"]');
+      if (mobileInbox) mobileInbox.after(mobileButton); else mobile.append(mobileButton);
+    }
 
     var page = node('section', 'pantalla');
     page.id = 'p-conexiones';

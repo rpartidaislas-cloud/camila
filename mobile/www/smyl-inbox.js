@@ -1119,7 +1119,7 @@
       primary.insertBefore(nav, primary.children[1] || null);
     }
     var mobile = document.querySelector('.pro-mobile-nav');
-    if (mobile) { var mobileNav = node('button', 'nav-item', 'Mensajes'); mobileNav.type = 'button'; mobileNav.setAttribute('onclick', "ir('inbox')"); mobile.append(mobileNav); }
+    if (mobile) { var mobileNav = node('button', 'nav-item', 'Mensajes'); mobileNav.type = 'button'; mobileNav.setAttribute('onclick', "ir('inbox')"); var channelsNav = mobile.querySelector('[onclick="ir(\'conexiones\')"]'); if (channelsNav) channelsNav.before(mobileNav); else mobile.append(mobileNav); }
 
     page.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       button.addEventListener('click', function () {
