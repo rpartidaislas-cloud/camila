@@ -1,0 +1,216 @@
+/* Central information architecture for the professional workspace. */
+(function () {
+  'use strict';
+
+  var ICONS = {
+    home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/>',
+    patients: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m9 15 2 2 4-4"/>',
+    messages: '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-5A7 7 0 0 1 3 13V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/>',
+    inventory: '<path d="m21 8-9 5-9-5 9-5 9 5Z"/><path d="m3 8 9 5 9-5v8l-9 5-9-5Z"/><path d="M12 13v8"/>',
+    cash: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 15h4"/><circle cx="16" cy="14" r="2"/>',
+    reports: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
+    clinic: '<path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 10h2M13 10h2M9 14h2M13 14h2M11 21v-4h2v4"/>',
+    channels: '<path d="M10 13a5 5 0 0 0 7.1.1l2-2A5 5 0 0 0 12 4l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/>',
+    launch: '<path d="M12 2 9 9l-7 3 7 3 3 7 3-7 7-3-7-3-3-7Z"/>',
+    history: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M3 12H1"/>',
+    presentation: '<path d="M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="m8 21 4-4 4 4M8 8h8M8 12h5"/>',
+    pricing: '<circle cx="12" cy="12" r="9"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 6v12"/>',
+    brand: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+    account: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
+  };
+
+  var PRIMARY = [
+    ['Inicio', 'dashboard', 'home'],
+    ['Pacientes', 'pacientes', 'patients'],
+    ['Agenda', 'agenda', 'calendar'],
+    ['Mensajes', 'inbox', 'messages']
+  ];
+  var ADMIN = [
+    ['Inventario', 'inventario', 'inventory'],
+    ['Caja y cobros', 'caja', 'cash'],
+    ['Reportes', 'reportes', 'reports']
+  ];
+  var SETTINGS = [
+    ['Mi clínica', 'clinica', 'clinic'],
+    ['Canales y asistente', 'conexiones', 'channels'],
+    ['Preparación operativa', 'lanzamiento', 'launch'],
+    ['Simulaciones anteriores', 'historial', 'history'],
+    ['Presentaciones', 'propuestas', 'presentation'],
+    ['Precios de la clínica', 'precios', 'pricing'],
+    ['Marca y simulación', 'sim-config', 'brand'],
+    ['Mi cuenta', 'mi-cuenta', 'account']
+  ];
+
+  function icon(name, size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
+  }
+
+  function navItem(entry, mobile) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = mobile ? 'pam-row' : 'nav-item pro-nav-item';
+    button.dataset.route = entry[1];
+    button.setAttribute('onclick', mobile ? "pamIr('" + entry[1] + "')" : "ir('" + entry[1] + "')");
+    if (mobile) {
+      button.innerHTML = '<span class="pam-row-icon">' + icon(entry[2], 20) + '</span><span class="pam-row-label">' + entry[0] + '</span><span class="pam-row-chevron" aria-hidden="true">›</span>';
+    } else {
+      button.innerHTML = '<span class="pro-nav-icon">' + icon(entry[2], 18) + '</span><span>' + entry[0] + '</span>';
+    }
+    return button;
+  }
+
+  function sectionLabel(text) {
+    var label = document.createElement('div');
+    label.className = 'pro-nav-section';
+    label.textContent = text;
+    return label;
+  }
+
+  function detailsGroup(label, entries, open) {
+    var details = document.createElement('details');
+    details.className = 'pro-nav-group';
+    details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
+    details.open = Boolean(open);
+    var summary = document.createElement('summary');
+    summary.innerHTML = '<span>' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
+    details.append(summary);
+    entries.forEach(function (entry) { details.append(navItem(entry, false)); });
+    return details;
+  }
+
+  function activeRoute() {
+    var active = document.querySelector('.pantalla.activa');
+    return active && active.id ? active.id.replace(/^p-/, '') : 'dashboard';
+  }
+
+  function syncActive(route) {
+    document.querySelectorAll('.pro-app-nav [data-route],.pro-mobile-nav [data-route]').forEach(function (item) {
+      var isActive = item.dataset.route === route;
+      item.classList.toggle('activo', isActive);
+      if (isActive) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('.pro-nav-group').forEach(function (group) {
+      var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
+      group.classList.toggle('has-active', contains);
+      if (contains) group.open = true;
+    });
+  }
+
+  function organizeDesktop() {
+    var host = document.querySelector('.sidebar .nav-items');
+    if (!host) return;
+    var nav = document.createElement('nav');
+    nav.className = 'pro-app-nav pro-primary-nav';
+    nav.setAttribute('aria-label', 'Navegación principal');
+    nav.append(sectionLabel('Trabajo diario'));
+    PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
+    nav.append(detailsGroup('Administración', ADMIN, true));
+    nav.append(detailsGroup('Configuración', SETTINGS, false));
+    host.replaceChildren(nav);
+  }
+
+  function organizeMobileBar() {
+    var host = document.querySelector('.pro-mobile-nav');
+    if (!host) return;
+    host.replaceChildren();
+    PRIMARY.forEach(function (entry) { host.append(navItem(entry, false)); });
+  }
+
+  function mobileGroup(label, entries) {
+    var group = document.createElement('section');
+    group.className = 'pam-group';
+    var heading = document.createElement('div');
+    heading.className = 'pam-group-label';
+    heading.textContent = label;
+    group.append(heading);
+    entries.forEach(function (entry) { group.append(navItem(entry, true)); });
+    return group;
+  }
+
+  function organizeMobileSheet() {
+    var host = document.querySelector('.pam-scroll');
+    if (!host) return;
+    var daily = PRIMARY.slice(1);
+    var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
+    host.replaceChildren(
+      mobileGroup('Trabajo diario', daily),
+      mobileGroup('Administración', ADMIN),
+      mobileGroup('Configuración', SETTINGS),
+      mobileGroup('Acción rápida', quick)
+    );
+    var quickButton = host.querySelector('[data-route="__new_simulation"]');
+    if (quickButton) {
+      quickButton.removeAttribute('onclick');
+      quickButton.addEventListener('click', function () { window.location.href = 'simulacion-rapida.html?workspace=professional'; });
+    }
+  }
+
+  function splitConnections() {
+    var shell = document.querySelector('.connections-shell');
+    var flow = shell && shell.querySelector('.connections-flow');
+    var grid = shell && shell.querySelector('.connections-grid');
+    var training = shell && shell.querySelector('.connections-training');
+    var safety = shell && shell.querySelector('.connections-safety');
+    var preview = training && training.querySelector('.connections-preview');
+    if (!shell || !flow || !grid || !training || !safety || !preview || shell.querySelector('.connections-tabs')) return;
+
+    var intro = document.createElement('div');
+    intro.className = 'connections-workspace-intro';
+    intro.innerHTML = '<div><span>CONFIGURACIÓN DE COMUNICACIÓN</span><strong>Completa una tarea a la vez.</strong></div><p>Conecta tus cuentas, prepara al asistente y prueba sus respuestas en espacios separados.</p>';
+    var tabs = document.createElement('div');
+    tabs.className = 'connections-tabs';
+    tabs.setAttribute('role', 'tablist');
+    [['channels','Canales'],['assistant','SMYL Asistente'],['lab','Laboratorio']].forEach(function (entry, index) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.connectionTab = entry[0];
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(index === 0));
+      button.textContent = entry[1];
+      tabs.append(button);
+    });
+
+    var channelsPane = document.createElement('section');
+    channelsPane.className = 'connections-pane';
+    channelsPane.dataset.connectionPane = 'channels';
+    flow.before(intro, tabs, channelsPane);
+    channelsPane.append(flow, grid, safety);
+    training.classList.add('connections-pane');
+    training.dataset.connectionPane = 'assistant';
+    var labPane = document.createElement('section');
+    labPane.className = 'connections-context connections-pane connections-preview-panel';
+    labPane.dataset.connectionPane = 'lab';
+    training.after(labPane);
+    labPane.append(preview);
+
+    function select(name) {
+      tabs.querySelectorAll('[data-connection-tab]').forEach(function (button) {
+        var selected = button.dataset.connectionTab === name;
+        button.setAttribute('aria-selected', String(selected));
+        button.tabIndex = selected ? 0 : -1;
+      });
+      shell.querySelectorAll('[data-connection-pane]').forEach(function (pane) { pane.hidden = pane.dataset.connectionPane !== name; });
+    }
+    tabs.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-connection-tab]');
+      if (button) select(button.dataset.connectionTab);
+    });
+    select('channels');
+  }
+
+  function init() {
+    organizeDesktop();
+    organizeMobileBar();
+    organizeMobileSheet();
+    splitConnections();
+    var previous = window.ir;
+    window.ir = function (route) {
+      previous(route);
+      syncActive(route);
+    };
+    syncActive(activeRoute());
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();

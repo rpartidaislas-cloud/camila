@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: arquitectura de información y navegación profesional
+
+**Reorganizado:** el panel deja de presentar todos los módulos al mismo nivel y
+se ordena según la frecuencia real de trabajo en una clínica dental.
+
+- Primer nivel: `Inicio`, `Pacientes`, `Agenda` y `Mensajes`.
+- `Administración`: inventario, caja/cobros y reportes.
+- `Configuración`: clínica, canales/asistente, preparación operativa,
+  simulaciones, presentaciones, precios, marca y cuenta.
+- `Canales y asistente` separa ahora las tareas en tres pestañas: `Canales`,
+  `SMYL Asistente` y `Laboratorio`, sin modificar OAuth, Meta, LANA, secretos,
+  permisos ni contratos de backend.
+- La barra móvil conserva solo las cuatro tareas diarias; el resto queda en un
+  menú agrupado. Web y PWA móvil están sincronizadas con el caché
+  `smyl-v186-information-architecture`.
+- Archivos principales: `smyl-navigation.js`, `smyl-navigation.css`,
+  `app.html` y `sw.js` (más sus copias en `mobile/www`).
+- Validación: 49/49 pruebas focalizadas, sintaxis JavaScript válida y revisión
+  responsiva de escritorio/móvil sin errores de consola.
+
 ## 2026-10-12 — Codex: acceso visible a Canales e IA
 
 **Corrección de navegación:** `Canales e IA` dejó de estar oculto dentro de
