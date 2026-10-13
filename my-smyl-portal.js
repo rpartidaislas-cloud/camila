@@ -194,6 +194,8 @@
       credentials.append(f.wrap,copy);
      }
      credentials.append(n('p','portal-hint','Disponible hasta '+new Date(saved.expires_at).toLocaleString('es-MX')+'. Guarda el enlace y el código antes de cerrar; no se pueden recuperar desde aquí.'));
+     const gmailAction=window.SmylGmail?.createDeliveryAction({shareId:saved.id,token:run.secret.token});
+     if(gmailAction)credentials.append(gmailAction);
      const help=disclosure('¿Qué verá el paciente?');
      help.append(n('p','','Su comparación antes y después, tu explicación y el plan. '+(include.checked?'También el presupuesto que elegiste.':'No verá precios.')),n('p','','Podrá enviarte preguntas o solicitar una cita. Las encontrarás en «Enlaces anteriores y mensajes del paciente».'),n('p','','Un nuevo enlace reemplaza al anterior. Cualquier persona con el enlace y el código puede abrirlo: compártelos solo con el paciente.'));
      share.replaceChildren(delivery,credentials,help,button('Volver al expediente',()=>close()));
