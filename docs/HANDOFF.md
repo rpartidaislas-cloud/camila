@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: etapa 2 de continuidad, Agenda operativa
+
+**Reorganizado en frontend:** la Agenda incorpora una cola única de prioridades
+para que recepción y clínica sepan qué requiere acción ahora.
+
+- Ordena citas cuyo horario pasó sin cambio de estado, pacientes que llegaron o
+  están en atención, solicitudes pendientes, recordatorios fallidos o vencidos,
+  próximas citas e inasistencias que requieren seguimiento.
+- Añade un resumen diario de recordatorios y conecta el detalle de la cita con
+  el expediente del paciente y, para inasistencias o cancelaciones, Mensajes.
+- Se reutilizan las consultas RLS y RPC seguras existentes. No se cambiaron
+  migraciones, seguridad, transiciones ni contratos de backend, y el asistente
+  continúa sin confirmar citas automáticamente.
+- Web y PWA móvil quedan sincronizadas con el caché
+  `smyl-v188-operational-agenda`; la vista fue revisada a 1366, 834 y 390 px.
+- Validación focalizada: 15/15. Suite amplia: 116/118; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`. Sin errores de
+  consola en la vista de QA.
+- La siguiente etapa recomendada es ordenar `Mensajes` como centro de atención
+  y seguimiento, enlazado con pacientes, Agenda y canales Meta.
+
 ## 2026-10-12 — Codex: etapa 1 de continuidad del flujo clínico
 
 **Reorganizado en frontend:** la ficha del paciente muestra ahora un recorrido

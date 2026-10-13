@@ -34,6 +34,6 @@ test('Canales e IA se divide en canales, asistente y laboratorio', () => {
 test('web y PWA cargan la arquitectura centralizada', () => {
   assert.match(app, /smyl-navigation\.js\?v=1/);
   assert.match(app, /smyl-navigation\.css\?v=1/);
-  assert.match(sw, /smyl-v187-clinical-flow/);
+  assert.match(sw, /smyl-v188-operational-agenda/);
   assert.match(sw, /smyl-navigation\.js\?v=1/);
 });
