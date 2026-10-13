@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-12 — Codex: etapa 6, reportes ejecutivos
+
+**Implementado:** tablero agregado por periodo y sucursal con indicadores de
+agenda, cobranza, equipo, servicios, inventario y riesgos operativos.
+
+- `smyl_executive_dashboard()` devuelve únicamente agregados y aplica permisos
+  por dominio; no entrega pacientes, expedientes, fotografías ni notas.
+- Incluye tendencia diaria, asistencia, inasistencias, ingresos netos, saldo por
+  cobrar, demanda por servicio, actividad profesional y alertas operativas.
+- El CSV se genera localmente con datos agregados. No transmite información a
+  LANA ni a terceros.
+- Migración `20261012350000`. Detalle en `docs/SMYL_EXECUTIVE_REPORTS.md`.
+- La siguiente y última etapa es **Cierre profesional y preparación operativa**.
+
 ## 2026-10-12 — Codex: etapa 5, caja y finanzas dentales
 
 **Implementado:** cuenta por paciente, cargos, pagos, anticipos, aplicaciones,
