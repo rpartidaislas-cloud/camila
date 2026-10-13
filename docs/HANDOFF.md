@@ -62,7 +62,7 @@ novedades informativas y deja de marcar todo como leído al abrir la pantalla.
   aprobado a 1366, 834 y 390 px, sin overflow ni errores de consola.
 - La siguiente etapa es unificar carga, error, desconexión y recuperación en
   los módulos operativos para que el equipo siempre sepa qué puede hacer.
-## 2026-10-13 — Codex: catálogo dental v1 integrado y migración aplicada
+## 2026-10-13 — Codex: catálogo dental v1 publicado
 
 **Integrado sobre la versión vigente:** se auditó el flujo servicios → agenda →
 plan → odontograma → propuesta → finanzas y se creó la primera entrega del
@@ -83,6 +83,8 @@ catálogo.
   cotización y cargos sin autodiagnóstico ni filtración del historial médico.
 - Web/PWA usan el contrato de caché `smyl-v195-dental-catalog`. Gmail/OAuth,
   LANA/Meta, prompts, Storage, Stripe y configuración nativa no fueron tocados.
+- Publicado en GitHub Pages y comprobado en el panel profesional: carga las 62
+  plantillas y las 13 áreas sin activar ni modificar servicios de la clínica.
 - Validación local: catálogo y contrato LANA 5/5; suite amplia 141/143. Persisten únicamente
   los dos fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
   aprobada a 1366, 834 y 390 px; web/PWA tienen hashes idénticos.

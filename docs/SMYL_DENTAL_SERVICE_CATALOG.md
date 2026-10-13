@@ -94,7 +94,8 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 - La migración aditiva del catálogo v1 fue aplicada el 2026-10-13. La interfaz
   quedó integrada sobre el HEAD vigente de Pages y superó su regresión propia;
   la suite completa pasa 141/143 y conserva solo dos fallos anteriores del
-  simulador rápido, ajenos al catálogo.
+  simulador rápido, ajenos al catálogo. El frontend se publicó y se comprobó
+  en el panel profesional sin mutar el catálogo de la clínica.
 - Introspectar y comparar funciones/policies reales de odontograma, plan y
   propuestas antes de crear schema 2.
 - Definir con contador/PAC las claves fiscales de la clínica; SAT establece que
