@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: simulación rápida cerrada sin pendientes
+
+**La suite queda completamente verde (157/157):** se restauró el objetivo
+independiente de carillas en el flujo guiado y en los ajustes profesionales,
+sin obligar al dentista a combinarlo con alineación.
+
+- El menú rápido ofrece Carillas, Alinear y Alinear + carillas; conserva la
+  selección de arcada y tono VITA y mantiene el aviso de simulación orientativa.
+- La lógica ya no transforma silenciosamente `veneers` en `combined`; el motor
+  existente recibe la modalidad clínica elegida.
+- Las pruebas históricas de LANA/simulación se alinearon con la arquitectura
+  vigente: la frontal gobierna el diseño, la intraoral sólo aporta evidencia y
+  el cambio de tono no dispara una generación pagada.
+- Web/PWA sincronizadas con `smyl-v200-quick-veneers`. QA visual a 1366, 834 y
+  390 px: tres objetivos visibles, sin overflow ni errores de página.
+
 ## 2026-10-13 — Codex: cierre de etapas fiscales previo al PAC
 
 **Entregas 4–6 cerradas hasta sus dependencias externas:** SMYL ya separa

@@ -969,6 +969,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       </div>
       <span class="quick-choice-title">Objetivo de la simulación</span>
       <div class="quick-choice-grid" id="quick-objective-options">
+        <button type="button" class="quick-choice" data-quick-objective="veneers" onclick="seleccionarObjetivoRapido('veneers',this)">Carillas<small>Contorno y acabado cerámico</small></button>
         <button type="button" class="quick-choice" data-quick-objective="alignment" onclick="seleccionarObjetivoRapido('alignment',this)">Alinear<small>Sin carillas · tono original</small></button>
         <button type="button" class="quick-choice selected" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alinear + carillas<small>Una simulación</small></button>
       </div>
@@ -993,7 +994,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     </section>
     <fieldset class="vita-construction smile-design" id="smile-design-options">
       <legend>¿Qué quieres visualizar?</legend>
-      <label>Objetivo<select name="smile-mode" onchange="SmylSmileModes.change()"><option value="alignment">Alineación visual</option><option value="combined" selected>Alineación completa + carillas · una generación</option></select></label>
+      <label>Objetivo<select name="smile-mode" onchange="SmylSmileModes.change()"><option value="veneers">Carillas</option><option value="alignment">Alineación visual</option><option value="combined" selected>Alineación completa + carillas · una generación</option></select></label>
       <label>Arcada<select name="smile-arch" onchange="SmylSmileModes.change()"><option value="upper">Superiores</option><option value="lower">Inferiores</option><option value="both">Ambas arcadas</option></select></label>
       <div data-alignment-style hidden><label>Tipo de alineación<select name="alignment-style" onchange="SmylSmileModes.change()"><option value="complete">Alineación completa natural</option><option value="faithful">Conservadora · priorizar forma original</option><option value="idealized">Estética idealizada · anterior</option></select></label><p>Completa natural busca enderezar centrales, laterales y caninos de la arcada seleccionada, conservando tamaño, forma, desgaste, color y textura individuales. Apariencia orientativa después de brackets; revisa la fidelidad de cada diente en el antes y después.</p></div>
       <label>Indicaciones adicionales (opcional)<textarea maxlength="500" rows="2" placeholder="Por ejemplo: conservar el tamaño individual y evitar una sonrisa demasiado uniforme" oninput="SmylSmileModes.change()"></textarea></label>
@@ -3899,7 +3900,7 @@ function marcarEleccionRapida(contenedor, atributo, valor) {
 // result metadata unchanged; opening a saved result must never relabel its pixels.
 function prepararObjetivoRapido() {
   var design = window.SmylSmileModes?.normalize(S.smileDesign) || Object.assign({},S.smileDesign);
-  if (design.mode !== 'alignment' && design.mode !== 'combined') {
+  if (!['veneers','alignment','combined'].includes(design.mode)) {
     S.smileDesign = Object.assign({},design,{mode:'combined',alignmentStyle:'complete',stage:'initial'});
   }
 }
@@ -3907,7 +3908,7 @@ function prepararObjetivoRapido() {
 function seleccionarObjetivoRapido(mode, button) {
   var box = document.getElementById('smile-design-options');
   if (!box) return;
-  mode = mode === 'alignment' ? 'alignment' : 'combined';
+  mode = ['veneers','alignment','combined'].includes(mode) ? mode : 'combined';
   box.querySelector('[name=smile-mode]').value = mode;
   box.querySelector('[name=alignment-style]').value = 'complete';
   window.SmylSmileModes?.change();

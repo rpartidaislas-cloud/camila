@@ -33,6 +33,6 @@ test('el servidor verifica snapshots y que la cotización coincida con el plan r
 test('la interfaz permite señalar dientes y la propuesta imprime un mapa sin historia clínica',()=>{
   const clinic=read('smyl-clinic.js'),print=read('smyl-proposal-print.js'),app=read('app.html'),worker=read('sw.js');
   assert.match(clinic,/Señalar en odontograma/);assert.match(clinic,/SmylToothMap\.render/);assert.match(clinic,/smyl_save_clinical_plan_v2/);
-  assert.match(print,/Dónde se realizará el tratamiento/);assert.match(print,/No muestra antecedentes ni notas internas/);assert.match(app,/smyl-proposal-model\.js\?v=2/);assert.match(worker,/smyl-v199-cfdi-lifecycle/);
+  assert.match(print,/Dónde se realizará el tratamiento/);assert.match(print,/No muestra antecedentes ni notas internas/);assert.match(app,/smyl-proposal-model\.js\?v=2/);assert.match(worker,/smyl-v200-quick-veneers/);
   for(const file of ['app.html','sw.js','smyl-clinical-model.js','smyl-clinic.js','smyl-clinic.css','smyl-proposal-model.js','smyl-proposal-print.js','smyl-proposals.js','smyl-proposals.css'])assert.equal(read(file),read('mobile/www/'+file));
 });
