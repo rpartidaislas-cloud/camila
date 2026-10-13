@@ -7,6 +7,7 @@
     patients: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m9 15 2 2 4-4"/>',
     messages: '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-5A7 7 0 0 1 3 13V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/>',
+    alerts: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
     inventory: '<path d="m21 8-9 5-9-5 9-5 9 5Z"/><path d="m3 8 9 5 9-5v8l-9 5-9-5Z"/><path d="M12 13v8"/>',
     cash: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 15h4"/><circle cx="16" cy="14" r="2"/>',
     reports: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
@@ -26,6 +27,7 @@
     ['Agenda', 'agenda', 'calendar'],
     ['Mensajes', 'inbox', 'messages']
   ];
+  var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
   var ADMIN = [
     ['Inventario', 'inventario', 'inventory'],
     ['Caja y cobros', 'caja', 'cash'],
@@ -105,6 +107,7 @@
     nav.setAttribute('aria-label', 'Navegación principal');
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
+    nav.append(navItem(ALERTS, false));
     nav.append(detailsGroup('Administración', ADMIN, true));
     nav.append(detailsGroup('Configuración', SETTINGS, false));
     host.replaceChildren(nav);
@@ -131,7 +134,7 @@
   function organizeMobileSheet() {
     var host = document.querySelector('.pam-scroll');
     if (!host) return;
-    var daily = PRIMARY.slice(1);
+    var daily = PRIMARY.slice(1).concat([ALERTS]);
     var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),

@@ -32,10 +32,10 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 
 test('Etapa 4 se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.css\?v=1/);
-  assert.match(app, /smyl-daily-home\.js\?v=1/);
+  assert.match(app, /smyl-daily-home\.js\?v=2/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
-  assert.match(worker, /smyl-v190-daily-home/);
-  assert.match(worker, /smyl-daily-home\.js\?v=1/);
+  assert.match(worker, /smyl-v192-action-center-gmail/);
+  assert.match(worker, /smyl-daily-home\.js\?v=2/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /@media\(max-width:700px\)/);
   assert.match(read('./fixtures/smyl-daily-home-stage4-preview.html'), /smyl-daily-home\.js/);

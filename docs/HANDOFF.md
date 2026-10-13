@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: etapa 5 de continuidad, Centro de alertas
+
+**Reorganizado en frontend:** Notificaciones separa pendientes operativos de
+novedades informativas y deja de marcar todo como leído al abrir la pantalla.
+
+- Reúne señales de Agenda, Mensajes e Inventario como acciones agregadas, con
+  origen, rol responsable, prioridad y acceso al módulo que las resuelve.
+- Las alertas no tienen una marca falsa de “atendida”: desaparecen únicamente
+  cuando cambia el estado verificable en su fuente canónica.
+- Las novedades de SMYL conservan lectura local por clínica y ya no se mezclan
+  con citas, conversaciones, recordatorios ni existencias.
+- Alertas aparece en el menú diario de escritorio, en la hoja móvil y como
+  acceso desde Inicio; la barra móvil principal conserva sus cuatro tareas.
+- Se reutilizan RLS, permisos y RPC de lectura existentes. No se cambió
+  backend, migraciones, LANA, Meta ni datos clínicos. Caché:
+  `smyl-v192-action-center-gmail`.
+- Validación focalizada: 13/13. Suite amplia: 129/131; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin overflow ni errores de consola.
+- La siguiente etapa es unificar carga, error, desconexión y recuperación en
+  los módulos operativos para que el equipo siempre sepa qué puede hacer.
+
 ## 2026-10-13 — Codex: etapa 4 de continuidad, Inicio de jornada
 
 **Reorganizado en frontend:** Inicio deja de ser un resumen de créditos y se
