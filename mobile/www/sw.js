@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v192-action-center-gmail';
+const CACHE_VERSION = 'smyl-v193-resilient-workspace';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -81,6 +81,8 @@ const STATIC_FILES = [
   '/camila/smyl-daily-home.css?v=1',
   '/camila/smyl-task-center.js?v=1',
   '/camila/smyl-task-center.css?v=1',
+  '/camila/smyl-resilience.js?v=1',
+  '/camila/smyl-resilience.css?v=1',
   '/camila/smyl-inbox.js?v=8',
   '/camila/smyl-inbox.css?v=6',
   '/camila/smyl-navigation.js?v=2',

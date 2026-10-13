@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: etapa 6 de continuidad, recuperación del workspace
+
+**Reorganizado en frontend:** el panel conserva el contexto visible al perder
+conexión y ofrece recuperación explícita sin recargar toda la aplicación.
+
+- Una franja accesible distingue desconexión y restablecimiento; advierte no
+  repetir envíos ni cobros mientras el resultado sea incierto.
+- `Reintentar` actualiza únicamente el módulo activo mediante su API pública:
+  Inicio, Agenda, Mensajes, Alertas, Inventario, Caja, Reportes o Preparación.
+- Los indicadores de carga usan `aria-busy` y una región viva para lectores de
+  pantalla. La reconexión no borra datos que el equipo ya estaba consultando.
+- No se cambiaron mutaciones, backend, RLS, LANA, Meta ni lógica clínica. Web y
+  PWA usan `smyl-v193-resilient-workspace`.
+- Validación focalizada: 13/13; QA de desconexión aprobado en móvil, sin
+  errores de consola.
+- La etapa final es navegación global y auditoría de accesibilidad para cerrar
+  la reorganización profesional.
+
 ## 2026-10-13 — Codex: etapa 5 de continuidad, Centro de alertas
 
 **Reorganizado en frontend:** Notificaciones separa pendientes operativos de
