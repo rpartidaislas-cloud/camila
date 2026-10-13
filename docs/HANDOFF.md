@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: etapa 7, cierre de navegación profesional
+
+**Reorganización terminada en frontend:** el workspace incorpora un acceso
+global por tarea y completa el recorrido operativo sin agregar otra fuente de
+datos ni alterar los contratos clínicos.
+
+- `Ir a…` y el atajo `Ctrl/Cmd + K` reúnen Trabajo diario, Clínica,
+  Administración y Configuración; la búsqueda ocurre únicamente en memoria.
+- El selector funciona con teclado, conserva el foco, añade un salto al
+  contenido y actualiza el título de la vista para facilitar orientación y
+  accesibilidad.
+- La presentación responsive fue validada a 1366, 834 y 390 px; la búsqueda y
+  navegación por flechas funcionan y no se detectaron errores de consola.
+- Web y PWA móvil quedan sincronizadas con el caché
+  `smyl-v194-professional-close`. No se cambió backend, RLS, LANA, Meta,
+  mutaciones, seguridad ni lógica clínica.
+- Validación focalizada: 17/17. Suite completa: 137/139; permanecen únicamente
+  los dos fallos preexistentes de `lana-quick` y `quick-guided-flow` en el flujo
+  independiente de simulación rápida.
+- Con esta etapa quedan terminadas las siete etapas de reorganización. El
+  siguiente paso recomendado es un piloto controlado con una clínica real y
+  observación de uso, no otra ronda de expansión de interfaz.
+
 ## 2026-10-13 — Codex: etapa 6 de continuidad, recuperación del workspace
 
 **Reorganizado en frontend:** el panel conserva el contexto visible al perder
