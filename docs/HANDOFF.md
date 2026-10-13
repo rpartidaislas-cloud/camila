@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: cierre de etapas fiscales previo al PAC
+
+**Entregas 4–6 cerradas hasta sus dependencias externas:** SMYL ya separa
+emisor/receptor, diagnostica readiness fiscal y prepara cancelación/sustitución
+sin afirmar acciones que todavía no ocurrieron en SAT/PAC.
+
+- Nueva migración aditiva `20261013030000_smyl_cfdi_lifecycle_v1.sql`, aplicada
+  tras dry-run como única pendiente: perfiles de emisor, preparación PAC sin
+  secretos, planes de cancelación y RPC transaccionales con RLS/auditoría.
+- Los borradores v3 congelan emisor, receptor y conceptos. La prevalidación
+  local v2 revisa ambos perfiles, claves fiscales y totales, pero conserva
+  `requires_pac_catalog_validation=true`.
+- Motivos de cancelación 01–04 preparados; 01 exige UUID sustituto. Sólo un
+  CFDI con estado `issued` puede generar un plan y `planned` significa
+  exclusivamente intención local, no solicitud enviada.
+- Caja presenta una Puerta fiscal de cinco controles y enlaza la lista oficial
+  de PAC del SAT. No captura certificados, claves o contraseñas.
+- Web/PWA usan `smyl-v199-cfdi-lifecycle`. QA sintética a 1366, 834 y 390 px
+  sin overflow ni errores. Validación focalizada 17/17; suite completa 155/157,
+  conservando únicamente los dos fallos preexistentes de `lana-quick` y
+  `quick-guided-flow`. La conexión PAC real continúa bloqueada hasta que el
+  propietario elija proveedor y proporcione acceso sandbox de forma segura.
+
 ## 2026-10-13 — Codex: propuesta aprobada, cargos y prevalidación CFDI
 
 **Entrega 3 terminada hasta el límite seguro previo al PAC:** una propuesta

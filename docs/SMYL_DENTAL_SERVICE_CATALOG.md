@@ -92,6 +92,31 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
   pendientes hasta elegir proveedor y confirmar la política fiscal con el
   contador de la clínica.
 
+### Entrega 4 — centro fiscal
+
+- **Implementada y publicada el 2026-10-13.** Perfil revisable del emisor,
+  receptores por paciente y snapshot completo del borrador CFDI 4.0.
+- Puerta fiscal independiente que muestra exactamente qué falta antes de
+  conectar un PAC: claves de servicios, proveedor autorizado, sandbox y
+  revisión contable.
+- Ningún certificado, contraseña o token se captura en el navegador.
+
+### Entrega 5 — cancelación y sustitución
+
+- **Implementada hasta la frontera previa al PAC.** Plan local auditable con
+  motivos SAT 01–04; el motivo 01 exige el UUID del comprobante sustituto.
+- Sólo un CFDI realmente marcado como emitido por una futura integración puede
+  originar el plan. Guardarlo no envía ni cancela nada.
+
+### Entrega 6 — puerta de sandbox y piloto
+
+- **Implementada hasta las dependencias externas.** La interfaz conserva
+  proveedor seleccionado y confirmaciones de autorización, cuenta sandbox y
+  revisión fiscal sin almacenar secretos.
+- La conexión, timbrado, consulta y cancelación permanecen bloqueados hasta que
+  la clínica elija un PAC autorizado, entregue credenciales de sandbox por un
+  canal seguro y apruebe las pruebas con datos sintéticos.
+
 ## Criterios de aceptación v1
 
 1. La clínica puede buscar y activar una plantilla o crear un servicio propio.
@@ -128,7 +153,8 @@ servicio impide usarlo en nuevas citas, pero no borra su historial.
 - Definir con contador/PAC las claves fiscales de la clínica; SAT establece que
   la identificación es responsabilidad del emisor.
 - Acordar si los precios varían por sede, profesional, material o complejidad.
-- Siguiente entrega: seleccionar PAC, configurar únicamente su sandbox y
-  probar validación de catálogos, timbrado, cancelación, sustitución y
-  conciliación con datos sintéticos antes de cualquier CFDI real.
+- El producto ya está completo hasta la frontera externa del PAC. Falta que la
+  clínica seleccione uno de la lista oficial, contrate/active su sandbox y
+  entregue credenciales mediante secretos del servidor. Sólo entonces se puede
+  implementar y certificar el adaptador específico, nunca desde el navegador.
 

@@ -37,3 +37,18 @@ La integración real de CFDI requiere elegir proveedor PAC, credenciales,
 certificados, pruebas de timbrado/cancelación y funciones servidor a servidor.
 No debe implementarse desde el navegador ni confundirse con la facturación de la
 suscripción de SMYL.
+
+## Cierre fiscal previo al PAC — 2026-10-13
+
+- El perfil fiscal del emisor se guarda por clínica, separado de los receptores,
+  y exige confirmación explícita de revisión.
+- La puerta fiscal comprueba emisor, servicios activos con claves revisadas,
+  PAC seleccionado, autorización consultada, cuenta sandbox y política fiscal.
+- Los borradores nuevos congelan emisor, receptor y conceptos antes de la
+  prevalidación local. Esa prevalidación no consulta catálogos oficiales.
+- La cancelación se prepara como intención local auditable con motivos 01–04.
+  El motivo 01 exige UUID sustituto; el estado `planned` nunca significa que el
+  SAT o el PAC recibió o aceptó una solicitud.
+- No se almacenan certificados, contraseñas ni claves PAC en el navegador o en
+  estas tablas. La futura integración debe ser servidor a servidor y comenzar
+  únicamente en sandbox.

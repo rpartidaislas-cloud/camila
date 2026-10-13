@@ -25,6 +25,11 @@ Una clínica está lista cuando el Centro de lanzamiento muestra 100 % y la apro
 4. Revisar insumos bajo mínimo y caducidades próximas.
 5. Confirmar salud de canales antes de depender del asistente.
 
+Cuando la clínica active facturación desde SMYL, revisar además la Puerta
+fiscal: emisor vigente, servicios sin claves pendientes y conexión sandbox/PAC
+en estado verificable. Una confirmación manual nunca sustituye la respuesta del
+proveedor.
+
 ## Cierre diario
 
 1. Terminar o reclasificar citas abiertas.
@@ -65,6 +70,7 @@ Una clínica está lista cuando el Centro de lanzamiento muestra 100 % y la apro
 
 ## Límites de esta versión
 
-- El borrador CFDI no equivale a timbrado SAT; requiere un PAC autorizado.
+- El borrador y la prevalidación CFDI no equivalen a timbrado SAT; requieren un
+  PAC autorizado. Un plan de cancelación local tampoco cancela el comprobante.
 - El Centro de lanzamiento no sustituye monitoreo externo ni prueba automáticamente los respaldos de Supabase.
 - La conexión de canales y el piloto de Meta se validan desde Canales e IA e Inbox; no se aprueban falsamente desde este checklist.
