@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 5, caja y seguimiento financiero profesional
+
+**Finanzas ya permite priorizar la cobranza y confirmar cómo se aplicará cada
+pago antes de registrarlo.**
+
+- El foco financiero reúne cartera vencida, saldos a favor y cortes pendientes;
+  cada hallazgo conduce a la cuenta o acción correspondiente y deja explícito
+  que el sistema no ejecuta cargos automáticos.
+- Las cuentas por paciente muestran importe pagado, total del tratamiento,
+  porcentaje cubierto, saldo y vencimiento. Los filtros separan casos por
+  atender, con saldo, liquidados y todos.
+- Antes de confirmar un pago se presenta un control de aplicación con importe,
+  monto asignado a cargos, remanente como saldo a favor y referencia. Los pagos
+  en efectivo requieren una caja abierta en la sucursal seleccionada.
+- Todos los importes y estados se derivan de cargos, pagos, aplicaciones y
+  reembolsos existentes; no se modificaron RPC, migraciones ni reglas RLS.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v214-financial-followup-stage5`. Suite completa 215/215 y QA visual a
+  1366, 834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 4, agenda y operación clínica profesional
 
 **Agenda ya presenta cada reserva como coordinación de tiempo, profesional y

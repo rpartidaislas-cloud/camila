@@ -35,7 +35,7 @@ test('web, móvil y PWA entregan el mismo panel profesional',()=>{
   assert.match(app,/smyl-professional-v3\.css\?v=1/);
   assert.match(app,/smyl-professional-v3\.js\?v=1/);
   assert.match(app,/smyl-navigation\.js\?v=4/);
-  assert.match(worker,/smyl-v213-clinical-schedule-stage4/);
+  assert.match(worker,/smyl-v214-financial-followup-stage5/);
   assert.equal(shell,read('../mobile/www/smyl-professional-v3.js'));
   assert.equal(styles,read('../mobile/www/smyl-professional-v3.css'));
   assert.equal(navigation,read('../mobile/www/smyl-navigation.js'));

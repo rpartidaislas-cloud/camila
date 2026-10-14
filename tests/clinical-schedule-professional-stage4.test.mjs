@@ -38,7 +38,7 @@ test('el detalle presenta recordatorios y estados operativos verificables', () =
 test('web, móvil y PWA publican la etapa cuatro sincronizada', () => {
   assert.match(app, /smyl-schedule\.css\?v=3/);
   assert.match(app, /smyl-schedule\.js\?v=7/);
-  assert.match(worker, /smyl-v213-clinical-schedule-stage4/);
+  assert.match(worker, /smyl-v214-financial-followup-stage5/);
   for (const file of ['app.html', 'sw.js', 'smyl-schedule.js', 'smyl-schedule.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }
