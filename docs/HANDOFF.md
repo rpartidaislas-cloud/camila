@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 9, sistema profesional de ventanas
+
+**Las ventanas operativas de SMYL comparten una estructura visual y de
+interacción única, sin modificar sus operaciones ni validaciones de servidor.**
+
+- La capa `smyl-dialog-system` normaliza Inventario, Finanzas, Agenda,
+  Servicios, Clínica, Ficha 360, Casos, Cotizaciones, Mensajes y LANA.
+- Cada formulario obtiene encabezado con cierre visible, cuerpo desplazable,
+  acciones fijas, tamaños coherentes y presentación centrada en escritorio.
+- Los campos obligatorios se identifican, el primer campo inválido se lleva a
+  la vista y los cambios sin guardar se protegen antes de cerrar.
+- En móvil, las ventanas usan toda la pantalla con cabecera y acciones seguras;
+  los visores clínicos especializados conservan su interfaz propia.
+- No se modificaron migraciones, RLS, RPC ni Edge Functions. Web y bundle móvil
+  están sincronizados; PWA usa `smyl-v218-dialog-system-stage9`. Suite completa
+  232/232 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
 ## 2026-10-14 — Codex: Etapa 8, preparación operativa de la clínica
 
 **Mi clínica ya guía al administrador para completar sedes, espacios, horarios,
