@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var state = { loading: false, loaded: false, status: null, channels: [], trainingLoaded: false, training: null, published: null, draftRevision: 0, publishedVersion: 0, validation: null, dirty: false, previewHistory: [] };
+  var state = { loading: false, loaded: false, status: null, channels: [], disconnectingChannel: '', trainingLoaded: false, training: null, published: null, draftRevision: 0, publishedVersion: 0, validation: null, dirty: false, previewHistory: [] };
 
   function node(tag, cls, text) {
     var el = document.createElement(tag);
@@ -43,6 +43,7 @@
       '<section class="connections-card"><div class="connections-card-head"><div><span>CANALES</span><h2>Conecta las cuentas de la clínica</h2></div></div>' +
       '<div class="connections-channel-list"><div data-channel-row="whatsapp"><span class="connections-channel-icon">W</span><p><strong>WhatsApp Business</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" disabled>Conectar</button></div><div data-channel-row="messenger"><span class="connections-channel-icon">M</span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="messenger" disabled>Conectar</button></div><div data-channel-row="instagram"><span class="connections-channel-icon">I</span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
       '<p class="connections-boundary">Los tokens de Meta se procesan en una capa privada y nunca se muestran en el navegador ni se mezclan con el expediente clínico.</p></section></div>' +
+      '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
       '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
       '<div class="connections-training-bar"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
@@ -208,8 +209,11 @@
       statusText.textContent = connected
         ? ((item.display_name || 'Cuenta conectada') + ' · Canal activo')
         : (connectedToLana ? 'Listo para conectar' : 'Activa la mensajería para continuar');
-      button.textContent = connected ? 'Conectado' : 'Conectar';
-      button.disabled = connected || !connectedToLana || !state.status.can_manage;
+      var canDisconnect = connected && name !== 'whatsapp' && Boolean(state.status && state.status.can_manage);
+      button.textContent = state.disconnectingChannel === name ? 'Desconectando…' : canDisconnect ? 'Desconectar' : connected ? 'Conectado' : 'Conectar';
+      button.dataset.channelAction = canDisconnect ? 'disconnect' : 'connect';
+      button.classList.toggle('connections-channel-disconnect', canDisconnect);
+      button.disabled = state.disconnectingChannel === name || (connected ? !canDisconnect : (!connectedToLana || !state.status.can_manage));
     });
   }
 
@@ -262,6 +266,50 @@
       setMessage(error.message || 'No se pudo iniciar la conexión.', 'error');
       loadChannels();
     }
+  }
+
+  function channelName(channel) {
+    return channel === 'instagram' ? 'Instagram' : channel === 'messenger' ? 'Messenger' : 'WhatsApp Business';
+  }
+
+  function openDisconnectDialog(channel) {
+    var dialog = document.querySelector('[data-disconnect-dialog]');
+    var item = state.channels.find(function (value) { return value.channel === channel; });
+    if (!dialog || !item || !item.connected) return;
+    dialog.dataset.channel = channel;
+    dialog.querySelector('[data-disconnect-title]').textContent = '¿Desconectar ' + channelName(channel) + '?';
+    dialog.querySelector('[data-disconnect-name]').textContent = channelName(channel);
+    dialog.querySelector('[data-disconnect-icon]').textContent = channel.charAt(0).toUpperCase();
+    dialog.querySelector('[data-disconnect-account]').textContent = item.display_name || 'Cuenta conectada';
+    dialog.showModal();
+  }
+
+  async function confirmDisconnect() {
+    var dialog = document.querySelector('[data-disconnect-dialog]');
+    var channel = dialog && dialog.dataset.channel;
+    if (!channel || state.disconnectingChannel) return;
+    state.disconnectingChannel = channel;
+    dialog.close();
+    renderChannels(state.channels);
+    setMessage('Desconectando ' + channelName(channel) + ' de forma segura…', '');
+    try {
+      await channelRequest('POST', { action: 'disconnect', channel: channel });
+      setMessage(channelName(channel) + ' quedó desconectado. El historial de conversaciones se conservó.', 'success');
+      await loadChannels();
+    } catch (error) {
+      setMessage(error.message || 'No se pudo desconectar el canal.', 'error');
+    } finally {
+      state.disconnectingChannel = '';
+      renderChannels(state.channels);
+    }
+  }
+
+  function channelAction(event) {
+    if (event.currentTarget.dataset.channelAction === 'disconnect') {
+      openDisconnectDialog(event.currentTarget.dataset.connectChannel);
+      return;
+    }
+    connectChannel(event);
   }
 
   function contextStatus(text, tone) {
@@ -690,7 +738,9 @@
     document.querySelector('.contenido').append(page);
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
     page.querySelector('[data-provision-lana]').addEventListener('click', provision);
-    page.querySelectorAll('[data-connect-channel]').forEach(function (button) { button.addEventListener('click', connectChannel); });
+    page.querySelectorAll('[data-connect-channel]').forEach(function (button) { button.addEventListener('click', channelAction); });
+    page.querySelector('[data-disconnect-cancel]').addEventListener('click', function () { page.querySelector('[data-disconnect-dialog]').close(); });
+    page.querySelector('[data-disconnect-confirm]').addEventListener('click', confirmDisconnect);
     var trainingForm = page.querySelector('[data-lana-training-form]');
     trainingForm.addEventListener('submit', saveTraining);
     trainingForm.addEventListener('input', markTrainingDirty);

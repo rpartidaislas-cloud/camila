@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v218-dialog-system-stage9';
+const CACHE_VERSION = 'smyl-v219-channel-disconnect';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -81,8 +81,8 @@ const STATIC_FILES = [
   '/camila/smyl-reports.css?v=3',
   '/camila/smyl-readiness.js?v=1',
   '/camila/smyl-readiness.css?v=1',
-  '/camila/smyl-connections.js?v=10',
-  '/camila/smyl-connections.css?v=5',
+  '/camila/smyl-connections.js?v=11',
+  '/camila/smyl-connections.css?v=6',
   '/camila/smyl-lana-handoff.js?v=3',
   '/camila/smyl-lana-handoff.css?v=1',
   '/camila/smyl-lana-attention.js?v=4',

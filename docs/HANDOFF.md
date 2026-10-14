@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: desconexión segura de Meta y auditoría de paridad del chat
+
+**Canales e IA ya permite al dueño desconectar Messenger o Instagram sin
+mostrar ni copiar credenciales al navegador.**
+
+- La acción pasa por `lana-channels` y el API canónico de LANA. LANA cancela
+  primero la suscripción con Meta y después elimina la credencial local; el
+  historial de conversaciones se conserva.
+- La interfaz muestra una confirmación explícita con la cuenta afectada y no
+  habilita la operación para miembros sin permiso de administración.
+- WhatsApp permanece sin desconexión automática hasta definir la revocación de
+  su configuración específica; no se presenta una acción falsa.
+- La auditoría `docs/SMYL_LANA_CHAT_PARITY_AUDIT.md` confirma que el Inbox ya
+  utiliza LANA como motor y enumera las brechas de experiencia pendientes. La
+  dirección es ampliar el puente, no duplicar el chat ni la base de datos.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v219-channel-disconnect`.
+
 ## 2026-10-14 — Codex: Etapa 9, sistema profesional de ventanas
 
 **Las ventanas operativas de SMYL comparten una estructura visual y de

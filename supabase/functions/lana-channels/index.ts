@@ -37,9 +37,15 @@ Deno.serve(async (req: Request) => {
 
     if (!canManage) return json(403, { error: "Solo el dueño de la clínica puede conectar canales." });
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-    if (body.action !== "setup") return json(400, { error: "Acción no reconocida." });
     const selected = channel(body.channel);
     if (!selected) return json(400, { error: "Canal no soportado." });
+    if (body.action === "disconnect") {
+      if (selected === "whatsapp") return json(409, { error: "La desconexión de WhatsApp todavía requiere soporte." });
+      const remote = await lanaRequest(auth.tenantId, `/channels/${selected}`, { method: "DELETE" });
+      if (!remote.response.ok) return json(remote.response.status, { error: String(remote.body.error || "No se pudo desconectar el canal.") });
+      return json(200, { ...remote.body, can_manage: true });
+    }
+    if (body.action !== "setup") return json(400, { error: "Acción no reconocida." });
     const returnOrigin = new URL(SMYL_PUBLIC_APP_URL).origin;
     if (new URL(SMYL_PUBLIC_APP_URL).protocol !== "https:") {
       return json(500, { error: "SMYL_PUBLIC_APP_URL debe usar HTTPS." });

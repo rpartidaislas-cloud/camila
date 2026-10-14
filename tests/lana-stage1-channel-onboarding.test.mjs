@@ -25,6 +25,8 @@ test('channel operations stay behind the linked LANA API key and owner check', (
   assert.match(channels, /auth\.user\.id === auth\.tenantId/);
   assert.match(channels, /lanaRequest\(auth\.tenantId, "\/channels"/);
   assert.match(channels, /\/channels\/\$\{selected\}\/setup-session/);
+  assert.match(channels, /body\.action === "disconnect"/);
+  assert.match(channels, /`\/channels\/\$\{selected\}`[\s\S]*method: "DELETE"/);
   assert.match(channels, /return_origin: returnOrigin/);
   assert.doesNotMatch(channels, /access_token|api_key/);
 });
@@ -36,6 +38,9 @@ test('SMYL presents automatic activation and per-channel connection without stor
   }
   assert.match(ui, /window\.open\('', 'smyl-lana-'/);
   assert.match(ui, /messageEvent\.origin !== setupOrigin/);
+  assert.match(ui, /data-disconnect-dialog/);
+  assert.match(ui, /action: 'disconnect'/);
+  assert.match(ui, /El historial de conversaciones se conservó/);
   assert.doesNotMatch(ui, /localStorage|sessionStorage/);
   assert.equal(mobileUi, ui);
 });
