@@ -1,5 +1,35 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: directorio profesional, CV y solicitud pública de cita
+
+**Nueva capacidad vertical:** cada profesional de la clínica puede tener una
+ficha dental pública tipo directorio, administrada desde SMYL y compartible por
+enlace o código QR.
+
+- El panel `Directorio profesional` permite editar nombre, especialidad,
+  cédula, titular, biografía, experiencia, idiomas, tratamientos, formación,
+  asociaciones, foto y disponibilidad para nuevos pacientes.
+- El PDF del CV se guarda en el bucket privado `smyl-professional-cv` (PDF,
+  máximo 10 MB). Nunca aparece en la vista pública ni en su consulta anónima.
+- Las fichas pasan por `Borrador → En revisión → Publicado`; publicar o pausar
+  requiere administración de equipo. El dentista vinculado puede preparar su
+  propia ficha sin acceder a las de otra clínica.
+- `dentista.html?perfil=<slug>` presenta únicamente información autorizada,
+  sedes y servicios. El paciente puede compartir la ficha y enviar una
+  solicitud de cita; la solicitud entra a Agenda como `pending` y nunca crea
+  ni confirma una cita automáticamente.
+- La nueva función `public-appointment-request` valida perfil, sede y servicio,
+  aplica límite por IP y honeypot, crea/reutiliza el contacto y registra la
+  solicitud. No copia expedientes ni se integra con LANA.
+- Web y PWA móvil quedan sincronizadas con `smyl-v230-professional-directory`.
+  QA visual aprobado en escritorio y móvil, sin errores de consola.
+- Validación focalizada: 22/22. Suite completa: 143/145; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`.
+
+**Archivos clave:** `smyl-professional-directory.js/css`, `dentista.html`,
+`supabase/migrations/20261014090000_smyl_professional_directory.sql`,
+`supabase/functions/public-appointment-request/index.ts` y sus copias PWA.
+
 ## 2026-10-14 — Codex: tareas clínicas simples por paciente
 
 **Agendar, cotizar y cobrar dejan de depender de que el usuario conozca la

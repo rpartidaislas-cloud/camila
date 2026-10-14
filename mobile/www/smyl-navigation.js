@@ -12,6 +12,7 @@
     cash: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 15h4"/><circle cx="16" cy="14" r="2"/>',
     reports: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
     clinic: '<path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 10h2M13 10h2M9 14h2M13 14h2M11 21v-4h2v4"/>',
+    directory: '<circle cx="9" cy="8" r="4"/><path d="M2.5 21a6.5 6.5 0 0 1 13 0M17 8h5M19.5 5.5v5"/><path d="M17 15h4M17 18h4"/>',
     channels: '<path d="M10 13a5 5 0 0 0 7.1.1l2-2A5 5 0 0 0 12 4l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/>',
     launch: '<path d="M12 2 9 9l-7 3 7 3 3 7 3-7 7-3-7-3-3-7Z"/>',
     history: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M3 12H1"/>',
@@ -37,6 +38,7 @@
   ];
   var SETTINGS = [
     ['Mi clínica', 'clinica', 'clinic'],
+    ['Directorio profesional', 'directorio', 'directory'],
     ['Canales y asistente', 'conexiones', 'channels'],
     ['Preparación operativa', 'lanzamiento', 'launch'],
     ['Simulaciones anteriores', 'historial', 'history'],
