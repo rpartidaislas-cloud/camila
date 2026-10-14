@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 2 del recorrido de atención publicada
+
+**Agenda, expediente, odontograma, plan y cotización ahora se presentan como un
+solo recorrido del paciente:** la interfaz conserva el contexto clínico y
+separa la cotización de la presentación visual opcional.
+
+- La ficha usa una cabecera única con identidad, contacto, alertas, próxima
+  cita y accesos rápidos a resumen, antecedentes, notas clínicas y citas.
+- El recorrido profesional muestra Evidencias → Odontograma → Plan →
+  Cotización. La cotización se habilita con el plan revisado; la presentación
+  mySmyl sigue siendo opcional y requiere una simulación disponible.
+- Desde Agenda, cualquier rol con `clinical.read` puede abrir la ficha y la
+  atención del paciente. La cotización comercial conserva por ahora la política
+  existente de cuenta titular; no se debilitó RLS desde el frontend.
+- Web/PWA usan `smyl-v202-patient-care-flow`. Suite completa 165/165 y QA a
+  1366, 834 y 390 px sin overflow, errores, botones sin etiqueta ni objetivos
+  táctiles menores de 38 px.
+
 ## 2026-10-13 — Codex: Etapa 1 del panel profesional dental publicada
 
 **Servicios y tarifas ya es una función principal del negocio y los permisos

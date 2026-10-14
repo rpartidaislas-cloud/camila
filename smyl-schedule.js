@@ -4,7 +4,7 @@
   var DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   var STATUS = { confirmed:'Confirmada', arrived:'Llegó', in_progress:'En atención', completed:'Completada', no_show:'No asistió', cancelled:'Cancelada' };
   var NEXT = { confirmed:[['arrived','Registrar llegada'],['no_show','No asistió'],['cancelled','Cancelar']], arrived:[['in_progress','Iniciar atención'],['cancelled','Cancelar']], in_progress:[['completed','Completar'],['cancelled','Cancelar']] };
-  var state = { loaded:false, loading:false, tenant:null, date:startDay(new Date()), view:'week', tab:'calendar', branch:'', professional:'', canManage:false, branches:[], rooms:[], professionals:[], professionalBranches:[], services:[], professionalServices:[], hours:[], clinicHours:[], patients:[], appointments:[], blocks:[], requests:[], reminders:[], roles:[], rolePermissions:[], memberRoles:[] };
+  var state = { loaded:false, loading:false, tenant:null, date:startDay(new Date()), view:'week', tab:'calendar', branch:'', professional:'', canManage:false, canReadClinical:false, branches:[], rooms:[], professionals:[], professionalBranches:[], services:[], professionalServices:[], hours:[], clinicHours:[], patients:[], appointments:[], blocks:[], requests:[], reminders:[], roles:[], rolePermissions:[], memberRoles:[] };
 
   function startDay(value) { var d=new Date(value); d.setHours(0,0,0,0); return d; }
   function plusDays(value,n) { var d=new Date(value); d.setDate(d.getDate()+n); return d; }
@@ -24,7 +24,7 @@
   function fmtTime(d){return fmtDate(new Date(d),{hour:'2-digit',minute:'2-digit'});}
   function activeAppointments(){return state.appointments.filter(function(a){return a.status!=='cancelled';});}
 
-  function capabilities(){var owner=window.miRolEquipo==='dueño';var authId=state.actor;var ids=new Set(state.memberRoles.filter(function(r){return r.user_id===authId;}).map(function(r){return r.role_id;}));var perms=new Set(state.rolePermissions.filter(function(r){return ids.has(r.role_id);}).map(function(r){return r.permission_key;}));state.canManage=owner||perms.has('schedule.manage');}
+  function capabilities(){var owner=window.miRolEquipo==='dueño';var authId=state.actor;var ids=new Set(state.memberRoles.filter(function(r){return r.user_id===authId;}).map(function(r){return r.role_id;}));var perms=new Set(state.rolePermissions.filter(function(r){return ids.has(r.role_id);}).map(function(r){return r.permission_key;}));state.canManage=owner||perms.has('schedule.manage');state.canReadClinical=owner||perms.has('clinical.read');}
 
   function renderHeader(){var r=range(), title=state.view==='day'?fmtDate(r.start,{weekday:'long',day:'numeric',month:'long'}):fmtDate(r.start,{day:'numeric',month:'short'})+' — '+fmtDate(plusDays(r.end,-1),{day:'numeric',month:'short',year:'numeric'});document.getElementById('schedule-period').textContent=title;document.querySelectorAll('[data-schedule-view]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.scheduleView===state.view));});}
   function todayAppointments(){var today=isoDay(new Date());return activeAppointments().filter(function(a){return isoDay(a.starts_at)===today;});}
@@ -66,7 +66,7 @@
   function openAppointment(a){
     var s=byId(state.services,a.service_id),p=byId(state.professionals,a.professional_id),br=byId(state.branches,a.branch_id),room=byId(state.rooms,a.room_id);
     var actions=(NEXT[a.status]||[]).map(function(x){return '<button type="button" class="btn '+(x[0]==='cancelled'?'btn-secondary':'btn-primary')+'" data-transition="'+x[0]+'">'+x[1]+'</button>';}).join('');
-    var patientAction=window.miRolEquipo==='dueño'?'<button type="button" class="btn btn-secondary" data-open-patient>Abrir expediente</button>':'';
+    var patientAction=state.canReadClinical?'<button type="button" class="btn btn-secondary" data-open-patient>Abrir ficha y atención</button>':'';
     var followupAction=(a.status==='no_show'||a.status==='cancelled')?'<button type="button" class="btn btn-secondary" data-open-inbox>Continuar en Mensajes</button>':'';
     var d=dialog('<div class="schedule-detail"><span class="schedule-status" data-status="'+a.status+'">'+esc(STATUS[a.status])+'</span><h2>'+esc(patientName(a.patient_id))+'</h2><p>'+fmtDate(new Date(a.starts_at),{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'</p><dl><div><dt>Servicio</dt><dd>'+esc(s?s.name:'Servicio')+'</dd></div><div><dt>Profesional</dt><dd>'+esc(p?p.display_name:'Profesional')+'</dd></div><div><dt>Sucursal</dt><dd>'+esc(br?br.name:'Sucursal')+(room?' · '+esc(room.name):'')+'</dd></div></dl>'+(a.notes?'<div class="schedule-detail-note">'+esc(a.notes)+'</div>':'')+'<div class="schedule-detail-links">'+patientAction+followupAction+'</div><div class="schedule-dialog-actions"><button type="button" class="btn btn-secondary" data-close>Cerrar</button>'+(state.canManage&&a.status==='confirmed'?'<button type="button" class="btn btn-secondary" data-reschedule>Reprogramar</button>':'')+(state.canManage?actions:'')+'</div></div>');
     d.querySelector('[data-close]').onclick=close;var rs=d.querySelector('[data-reschedule]');if(rs)rs.onclick=function(){d.close();openReschedule(a);};

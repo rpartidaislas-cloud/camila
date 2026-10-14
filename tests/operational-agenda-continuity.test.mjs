@@ -20,7 +20,7 @@ test('agenda surfaces one operational priority queue without taking the final de
 
 test('operational context connects appointments with reminders, patient record and follow-up', () => {
   assert.match(script, /from\('smyl_appointment_reminders'\)/);
-  assert.match(script, /Abrir expediente/);
+  assert.match(script, /Abrir ficha y atención/);
   assert.match(script, /Continuar en Mensajes/);
   assert.match(script, /window\.verPaciente\(a\.patient_id\)/);
   assert.match(script, /window\.ir\('inbox'\)/);
@@ -30,8 +30,8 @@ test('agenda stage two ships responsive and cache-safe on web and mobile', () =>
   assert.match(styles, /\.schedule-focus/);
   assert.match(styles, /@media\(max-width:760px\)/);
   assert.match(app, /smyl-schedule\.css\?v=2/);
-  assert.match(app, /smyl-schedule\.js\?v=3/);
-assert.match(worker, /smyl-v201-professional-foundation/);
+  assert.match(app, /smyl-schedule\.js\?v=4/);
+assert.match(worker, /smyl-v202-patient-care-flow/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-schedule.js'));
   assert.equal(styles, read('../mobile/www/smyl-schedule.css'));

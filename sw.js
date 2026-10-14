@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v201-professional-foundation';
+const CACHE_VERSION = 'smyl-v202-patient-care-flow';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -51,17 +51,17 @@ const STATIC_FILES = [
   '/camila/smyl-treatment-plan-model.js?v=1',
   '/camila/smyl-treatment-plan-client.js?v=1',
   '/camila/smyl-clinic.js?v=8',
-  '/camila/smyl-patient-360.js?v=1',
+  '/camila/smyl-patient-360.js?v=2',
   '/camila/smyl-patient-360.css?v=1',
-  '/camila/smyl-case-workspace.js?v=6',
-  '/camila/smyl-case-workspace.css?v=4',
+  '/camila/smyl-case-workspace.js?v=7',
+  '/camila/smyl-case-workspace.css?v=5',
   '/camila/smyl-clinic.css?v=2',
   '/camila/smyl-clinical-model.js?v=2',
   '/camila/smyl-panel.js?v=5',
   '/camila/smyl-panel.css?v=4',
   '/camila/smyl-clinic-admin.js?v=1',
   '/camila/smyl-clinic-admin.css?v=1',
-  '/camila/smyl-schedule.js?v=3',
+  '/camila/smyl-schedule.js?v=4',
   '/camila/smyl-schedule.css?v=2',
   '/camila/smyl-service-catalog-model.js?v=1',
   '/camila/smyl-service-catalog.js?v=2',

@@ -10,7 +10,7 @@ const worker = read('../sw.js');
 
 test('el expediente presenta un recorrido clínico navegable de cuatro pasos', () => {
   assert.match(script, /aria-label','Etapas del caso/);
-  for (const label of ['Evidencias', 'Revisión', 'Plan', 'Presentación']) {
+  for (const label of ['Evidencias', 'Odontograma', 'Plan', 'Cotización']) {
     assert.match(script, new RegExp(`'${label}'`));
   }
   assert.match(script, /ctx\.nav\[id\]=step/);
@@ -19,9 +19,9 @@ test('el expediente presenta un recorrido clínico navegable de cuatro pasos', (
 
 test('la acción principal cambia según el siguiente paso pendiente', () => {
   assert.match(script, /Añadir evidencias/);
-  assert.match(script, /Continuar revisión/);
+  assert.match(script, /Continuar odontograma/);
   assert.match(script, /Completar plan/);
-  assert.match(script, /Preparar presentación/);
+  assert.match(script, /Preparar cotización/);
   assert.match(script, /ctx\.nextTarget=nextId/);
 });
 
@@ -33,10 +33,10 @@ test('el recorrido termina en seguimiento sin afirmar un envío automático', ()
 });
 
 test('web, móvil y PWA cargan la misma versión del recorrido', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=6/);
-  assert.match(app, /smyl-case-workspace\.css\?v=4/);
-assert.match(worker, /smyl-v201-professional-foundation/);
-  assert.match(worker, /smyl-case-workspace\.js\?v=6/);
+  assert.match(app, /smyl-case-workspace\.js\?v=7/);
+  assert.match(app, /smyl-case-workspace\.css\?v=5/);
+assert.match(worker, /smyl-v202-patient-care-flow/);
+  assert.match(worker, /smyl-case-workspace\.js\?v=7/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-case-workspace.js'));
   assert.equal(styles, read('../mobile/www/smyl-case-workspace.css'));
