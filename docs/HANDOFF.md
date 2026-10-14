@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: verificación profesional interna
+
+**El directorio distingue información declarada de documentación revisada.**
+
+- El profesional solicita revisión únicamente después de registrar cédula y
+  cargar su CV privado. La administración de la clínica decide verificar o
+  solicitar una corrección; cada cambio queda bajo la auditoría existente.
+- La ficha pública muestra la insignia sólo cuando el estado es `verified`.
+  El texto aclara que se trata de revisión documental interna y no de una
+  consulta automática a un registro gubernamental.
+- Cambiar la cédula o reemplazar el CV invalida la verificación previa. Los CV
+  nuevos usan una ruta versionada y el anterior se elimina después de guardar
+  correctamente la nueva referencia.
+- La vista pública sólo expone el booleano y la fecha de verificación; notas,
+  revisor, CV y datos internos permanecen privados.
+- Web y PWA móvil quedan sincronizadas con
+  `smyl-v231-professional-verification`.
+- Validación final: 267/267 pruebas aprobadas y QA visual del panel y del
+  perfil público en escritorio y móvil.
+
+**Archivos clave:** `smyl-professional-directory.js/css`, `dentista.html`,
+`supabase/migrations/20261014100000_smyl_professional_verification.sql`.
+
 ## 2026-10-14 — Codex: directorio profesional, CV y solicitud pública de cita
 
 **Nueva capacidad vertical:** cada profesional de la clínica puede tener una

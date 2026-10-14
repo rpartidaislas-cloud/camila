@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const sql=read('../supabase/migrations/20261014090000_smyl_professional_directory.sql');
+const verification=read('../supabase/migrations/20261014100000_smyl_professional_verification.sql');
 const edge=read('../supabase/functions/public-appointment-request/index.ts');
 const js=read('../smyl-professional-directory.js');
 const css=read('../smyl-professional-directory.css');
@@ -46,16 +47,35 @@ test('el dentista puede editar, subir CV y compartir enlace o QR',()=>{
   assert.match(css,/@media\(max-width:760px\)/);
 });
 
+test('la verificación profesional exige revisión humana y se invalida al cambiar documentos',()=>{
+  assert.match(verification,/verification_status in \('unverified','in_review','verified','rejected'\)/);
+  assert.match(verification,/smyl_request_professional_verification/);
+  assert.match(verification,/smyl_review_professional_verification/);
+  assert.match(verification,/Solo la administración de la clínica puede resolver verificaciones/);
+  assert.match(verification,/smyl_reset_profile_verification_on_cv/);
+  assert.match(verification,/smyl_reset_profile_verification_on_license/);
+  assert.match(verification,/no implica consulta automática a un registro gubernamental/);
+  const publicVerification=verification.slice(verification.indexOf('create or replace view public.smyl_professional_directory'),verification.indexOf('revoke all on public.smyl_professional_directory'));
+  assert.match(publicVerification,/verified_profile/);
+  assert.doesNotMatch(publicVerification,/verification_note|verified_by|cv_storage_path/);
+  assert.match(js,/Solicitar verificación/);
+  assert.match(js,/Marcar verificado/);
+  assert.match(js,/Nota privada/);
+});
+
 test('el paciente ve confianza y solicita una cita sin confirmación automática',()=>{
-  for(const token of ['PERFIL PROFESIONAL DENTAL','Cédula profesional','Formación y trayectoria','SOLICITUD DE CITA','La clínica confirma cada solicitud de cita']) assert.match(publicPage,new RegExp(token));
+  for(const token of ['PERFIL PROFESIONAL DENTAL','Cédula declarada','Formación y trayectoria','SOLICITUD DE CITA','La clínica confirma cada solicitud de cita']) assert.match(publicPage,new RegExp(token));
   assert.match(publicPage,/public-appointment-request/);
   assert.match(publicPage,/Esto es una solicitud, no una cita confirmada/);
   assert.match(publicPage,/navigator\.share/);
+  assert.match(publicPage,/Perfil y cédula revisados por la clínica/);
+  assert.match(publicPage,/Cédula declarada/);
+  assert.doesNotMatch(publicPage,/✓ Cédula profesional/);
 });
 
 test('directorio profesional se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=1/);
-  assert.match(sw,/smyl-v230-professional-directory/);
+  assert.match(app,/smyl-professional-directory\.js\?v=2/);
+  assert.match(sw,/smyl-v231-professional-verification/);
   assert.match(sw,/dentista\.html/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));
