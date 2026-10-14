@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: casos profesionales autorizados
+
+**El perfil público ya admite una galería antes/después con control clínico.**
+
+- Cada caso se vincula a una cita terminada y al profesional que la atendió.
+  El paciente y la cita permanecen exclusivamente en el panel privado.
+- Antes de enviar a revisión se exigen fotografía inicial, fotografía final,
+  autorización firmada en PDF y confirmaciones de consentimiento y
+  anonimización. La administración puede aprobar, rechazar o pausar.
+- El bucket `smyl-professional-cases` es privado. La función pública entrega
+  sólo metadatos aprobados y URLs firmadas que vencen en diez minutos; no
+  expone paciente, cita, autorización, rutas ni notas de revisión. Los archivos
+  quedan bloqueados contra reemplazo o borrado durante revisión y publicación.
+- La ficha del dentista incluye `Casos autorizados` y una advertencia clara:
+  los resultados varían y requieren valoración profesional.
+- Web y PWA móvil quedan sincronizadas con `smyl-v232-professional-cases`.
+- Validación final: 273/273 pruebas aprobadas, migraciones aplicadas, función
+  pública desplegada y QA visual en escritorio y móvil con material sintético.
+
+**Archivos clave:** `smyl-professional-directory.js/css`, `dentista.html`,
+`supabase/migrations/20261014110000_smyl_professional_cases.sql`,
+`supabase/functions/public-professional-cases/index.ts`.
+
 ## 2026-10-14 — Codex: verificación profesional interna
 
 **El directorio distingue información declarada de documentación revisada.**

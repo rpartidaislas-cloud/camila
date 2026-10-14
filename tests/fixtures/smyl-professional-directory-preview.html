@@ -102,6 +102,30 @@
             branch_id: "b1",
           },
         ],
+        smyl_professional_cases: [
+          {
+            id: "case-preview-1",
+            professional_id: "22222222-2222-4222-8222-222222222222",
+            patient_id: "patient-preview-1",
+            appointment_id: "appointment-preview-1",
+            title: "Armonización de sonrisa",
+            treatment_label: "Restauraciones estéticas",
+            summary: "Planeación conservadora para mejorar forma y proporción respetando las características naturales de la sonrisa.",
+            before_path: "preview/before.webp",
+            after_path: "preview/after.webp",
+            consent_path: "preview/authorization.pdf",
+            consent_original_name: "autorizacion.pdf",
+            consent_attested: true,
+            anonymization_attested: true,
+            status: "review",
+            created_at: "2026-10-14T12:00:00Z",
+          },
+        ],
+        smyl_appointments: [
+          { id: "appointment-preview-1", patient_id: "patient-preview-1", professional_id: "22222222-2222-4222-8222-222222222222", service_id: "service-preview-1", starts_at: "2026-10-10T16:00:00Z", status: "completed" },
+        ],
+        camila_pacientes: [{ id: "patient-preview-1", nombre: "Paciente", apellido: "Demostración" }],
+        smyl_services: [{ id: "service-preview-1", name: "Restauraciones estéticas" }],
       };
       function chain(rows) {
         return {
@@ -130,7 +154,7 @@
         storage: {
           from: () => ({
             getPublicUrl: () => ({ data: { publicUrl: "" } }),
-            createSignedUrl: async () => ({ data: { signedUrl: "#" } }),
+            createSignedUrl: async () => ({ data: { signedUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23dbe9e3'/%3E%3Cpath d='M80 170 Q200 250 320 170' fill='none' stroke='white' stroke-width='30'/%3E%3C/svg%3E" } }),
             upload: async () => ({ error: null }),
           }),
         },

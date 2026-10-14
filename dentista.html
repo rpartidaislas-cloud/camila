@@ -244,6 +244,23 @@
         position: sticky;
         top: 86px;
       }
+      .cases-card > p {
+        color: var(--muted);
+        line-height: 1.65;
+        margin: -6px 0 20px;
+      }
+      .case-gallery { display: grid; gap: 18px; }
+      .public-case { border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+      .public-case-images { display: grid; grid-template-columns: 1fr 1fr; background: #edf1ee; }
+      .public-case-images figure { margin: 0; min-width: 0; position: relative; }
+      .public-case-images figure:first-child { border-right: 2px solid white; }
+      .public-case-images img { width: 100%; aspect-ratio: 4 / 3; display: block; object-fit: cover; }
+      .public-case-images figcaption { position: absolute; left: 12px; bottom: 12px; background: rgba(18,42,39,.82); color: white; border-radius: 99px; padding: 6px 10px; font-size: 11px; }
+      .public-case-copy { padding: 18px; }
+      .public-case-copy span { color: var(--green); font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+      .public-case-copy h3 { margin: 6px 0; font-size: 20px; }
+      .public-case-copy p { margin: 0; color: var(--muted); line-height: 1.6; }
+      .cases-disclaimer { margin-top: 16px!important; font-size: 12px; background: #f6f7f4; border-radius: 10px; padding: 11px 13px; }
       .appointment header {
         margin: -28px -28px 22px;
         padding: 24px 28px;
@@ -544,6 +561,22 @@
             })
             .join("");
         }
+        function renderCases(items) {
+          var section = document.getElementById("authorized-cases"), host = document.getElementById("case-gallery");
+          if (!section || !host || !items || !items.length) return;
+          host.innerHTML = items.map(function (c) {
+            return '<article class="public-case"><div class="public-case-images"><figure><img src="'+esc(c.before_url)+'" alt="Estado inicial del caso: '+esc(c.title)+'" loading="lazy"><figcaption>Antes</figcaption></figure><figure><img src="'+esc(c.after_url)+'" alt="Resultado del caso: '+esc(c.title)+'" loading="lazy"><figcaption>Después</figcaption></figure></div><div class="public-case-copy"><span>'+esc(c.treatment)+'</span><h3>'+esc(c.title)+'</h3><p>'+esc(c.summary)+'</p></div></article>';
+          }).join("");
+          section.hidden = false;
+        }
+        async function loadCases(slug) {
+          try {
+            var response = await fetch(SUPA_URL + "/functions/v1/public-professional-cases?perfil=" + encodeURIComponent(slug), { headers: { apikey: SUPA_KEY } });
+            if (!response.ok) return;
+            var body = await response.json();
+            renderCases(body.cases || []);
+          } catch (_) { /* El perfil sigue disponible si la galería no responde. */ }
+        }
         function render(p) {
           profile = p;
           var image = photo(p.photo_path),
@@ -615,7 +648,7 @@
                 rows(p.memberships, "membership") +
                 "</div>"
               : "") +
-            '</section><section class="card"><h2>Dónde atiende</h2>' +
+            '</section><section class="card cases-card" id="authorized-cases" hidden><h2>Casos autorizados</h2><p>Resultados compartidos con autorización del paciente y revisión de la clínica.</p><div class="case-gallery" id="case-gallery"></div><p class="cases-disclaimer">Cada caso es distinto. Estas imágenes son informativas y no garantizan un resultado específico; el plan depende de una valoración profesional.</p></section><section class="card"><h2>Dónde atiende</h2>' +
             locations
               .map(function (x) {
                 return (
@@ -650,6 +683,7 @@
                   "Enlace copiado";
               });
           };
+          loadCases(p.slug);
         }
         async function submit(event) {
           event.preventDefault();
@@ -752,6 +786,8 @@
                 },
               ],
             });
+            var sample = "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#dce9e4"/><stop offset="1" stop-color="#9dbeb5"/></linearGradient></defs><rect width="600" height="450" fill="url(#g)"/><path d="M135 245 Q300 345 465 245" fill="none" stroke="#fff" stroke-width="36" stroke-linecap="round"/><circle cx="300" cy="176" r="62" fill="#f7fbf8" opacity=".78"/></svg>');
+            renderCases([{title:"Armonización de sonrisa",treatment:"Restauraciones estéticas",summary:"Planeación conservadora para mejorar forma y proporción respetando las características naturales de la sonrisa.",before_url:sample,after_url:sample}]);
             return;
           }
           if (!slug) {
