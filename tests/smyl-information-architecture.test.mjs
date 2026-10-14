@@ -12,13 +12,14 @@ test('la navegación principal prioriza el trabajo diario del dentista', () => {
   assert.match(nav, /\['Pacientes', 'pacientes'/);
   assert.match(nav, /\['Agenda', 'agenda'/);
   assert.match(nav, /\['Mensajes', 'inbox'/);
-  assert.match(nav, /detailsGroup\('Administración', ADMIN/);
+  assert.match(nav, /detailsGroup\('Negocio', BUSINESS/);
   assert.match(nav, /detailsGroup\('Configuración', SETTINGS/);
 });
 
 test('las herramientas de baja frecuencia ya no compiten en el primer nivel', () => {
   assert.match(nav, /\['Canales y asistente', 'conexiones'/);
   assert.match(nav, /\['Preparación operativa', 'lanzamiento'/);
+  assert.match(nav, /\['Servicios y tarifas', 'precios'/);
   assert.match(nav, /\['Presentaciones', 'propuestas'/);
   assert.match(nav, /var SETTINGS = \[/);
 });
@@ -32,8 +33,8 @@ test('Canales e IA se divide en canales, asistente y laboratorio', () => {
 });
 
 test('web y PWA cargan la arquitectura centralizada', () => {
-  assert.match(app, /smyl-navigation\.js\?v=2/);
+  assert.match(app, /smyl-navigation\.js\?v=3/);
   assert.match(app, /smyl-navigation\.css\?v=1/);
-  assert.match(sw, /smyl-v200-quick-veneers/);
-  assert.match(sw, /smyl-navigation\.js\?v=2/);
+  assert.match(sw, /smyl-v201-professional-foundation/);
+  assert.match(sw, /smyl-navigation\.js\?v=3/);
 });

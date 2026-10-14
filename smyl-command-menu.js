@@ -3,9 +3,9 @@
   'use strict';
   var GROUPS=[
     {label:'Trabajo diario',items:[['Inicio','dashboard','Resumen y prioridades de hoy'],['Pacientes','pacientes','Directorio y expedientes'],['Agenda','agenda','Citas, llegadas y solicitudes'],['Mensajes','inbox','WhatsApp, Messenger e Instagram'],['Alertas','notificaciones','Pendientes de toda la clínica']]},
-    {label:'Clínica',items:[['Nueva simulación','__simulation','Registrar fotografías y propuesta'],['Presentaciones','propuestas','Planes preparados para el paciente'],['Simulaciones anteriores','historial','Casos y resultados guardados']]},
-    {label:'Administración',items:[['Inventario','inventario','Existencias, lotes y compras'],['Caja y cobros','caja','Pagos, saldos y cortes'],['Reportes','reportes','Indicadores agregados de operación']]},
-    {label:'Configuración',items:[['Mi clínica','clinica','Sucursales, equipo y permisos'],['Canales y asistente','conexiones','Meta, contexto y laboratorio'],['Preparación operativa','lanzamiento','Controles antes del piloto'],['Precios de la clínica','precios','Referencias para propuestas'],['Marca y simulación','sim-config','Identidad y presentación'],['Mi cuenta','mi-cuenta','Plan y acceso']]}
+    {label:'Clínica',items:[['Nueva simulación','__simulation','Registrar fotografías y propuesta'],['Simulaciones anteriores','historial','Casos y resultados guardados']]},
+    {label:'Negocio',items:[['Servicios y tarifas','precios','Catálogo clínico, precios y claves fiscales'],['Presentaciones','propuestas','Planes preparados para el paciente'],['Inventario','inventario','Existencias, lotes y compras'],['Caja y cobros','caja','Pagos, saldos y cortes'],['Reportes','reportes','Indicadores agregados de operación']]},
+    {label:'Configuración',items:[['Mi clínica','clinica','Sucursales, equipo y permisos'],['Canales y asistente','conexiones','Meta, contexto y laboratorio'],['Preparación operativa','lanzamiento','Controles antes del piloto'],['Marca y simulación','sim-config','Identidad y presentación'],['Mi cuenta','mi-cuenta','Plan y acceso']]}
   ];
   var dialog,input,trigger,lastFocus;
   function esc(value){return String(value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}

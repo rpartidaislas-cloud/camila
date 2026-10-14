@@ -30,6 +30,17 @@
     if (response.error) throw response.error;
     return response.data;
   }
+  async function clinicalCapabilities(tenant) {
+    if (miRolEquipo === 'dueño') return { canRead: true, canWrite: true, canApprove: true };
+    var auth = await sb.auth.getUser(), actor = auth.data && auth.data.user && auth.data.user.id;
+    if (!actor) return { canRead: false, canWrite: false, canApprove: false };
+    var assignments = await checked(sb.from('smyl_member_roles').select('role_id').eq('tenant_id', tenant).eq('user_id', actor));
+    var roleIds = (assignments || []).map(function (row) { return row.role_id; });
+    if (!roleIds.length) return { canRead: false, canWrite: false, canApprove: false };
+    var rows = await checked(sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id', tenant).in('role_id', roleIds));
+    var permissions = new Set((rows || []).map(function (row) { return row.permission_key; }));
+    return { canRead: permissions.has('clinical.read'), canWrite: permissions.has('clinical.write'), canApprove: permissions.has('clinical.approve') };
+  }
   function localPatients() {
     try {
       var rows = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
@@ -67,7 +78,7 @@
       return current === ctx && ctx && ctx.ready && document.getElementById('clinic-form') && !ctx.dirty && !ctx.saving &&
         ctx.tenant === tenant && ctx.patient === patient && tenantId === tenant &&
         pacienteActual && pacienteActual.id === patient && !pacienteActual._local &&
-        miRolEquipo === 'dueño' && document.getElementById('p-paciente-detalle').classList.contains('activa') &&
+        ctx.canApprove && document.getElementById('p-paciente-detalle').classList.contains('activa') &&
         ctx.row === row && row && JSON.stringify(formDocument()) === ctx.saved && row.tenant_id === tenant && row.patient_id === patient &&
         row.status === 'reviewed' && Number.isInteger(row.revision) && row.revision > 0 &&
         row.reviewed_by && row.reviewed_at && Number.isFinite(Date.parse(row.reviewed_at));
@@ -98,11 +109,11 @@
     document.getElementById('clinic-state').textContent = label;
     document.getElementById('clinic-state').classList.toggle('clinic-reviewed', savedReview && !current.dirty);
     document.getElementById('clinic-save-status').textContent = current.saving ? 'Guardando…' : current.dirty && savedReview ? 'Al guardar, esta versión volverá a borrador. La revisión anterior permanece en el historial.' : current.row ? 'Versión ' + current.row.revision + ' · ' + date(current.row.updated_at) : 'No se guarda automáticamente. Tus notas no se envían al paciente ni a LANA.';
-    document.getElementById('clinic-save').disabled = !current.ready || current.saving || (!current.dirty && !!current.row);
-    document.getElementById('clinic-review').disabled = !current.ready || current.saving || (savedReview && !current.dirty);
-    document.getElementById('clinic-add').disabled = !current.ready || current.saving || document.querySelectorAll('.clinic-treatment').length >= 20;
+    document.getElementById('clinic-save').disabled = !current.ready || !current.canWrite || current.saving || (!current.dirty && !!current.row);
+    document.getElementById('clinic-review').disabled = !current.ready || !current.canWrite || !current.canApprove || current.saving || (savedReview && !current.dirty);
+    document.getElementById('clinic-add').disabled = !current.ready || !current.canWrite || current.saving || document.querySelectorAll('.clinic-treatment').length >= 20;
     var proposal = document.getElementById('clinic-proposal');
-    if (proposal) proposal.disabled = !savedReview || current.dirty || current.saving;
+    if (proposal) proposal.disabled = !current.canApprove || !savedReview || current.dirty || current.saving;
     var resume = document.getElementById('clinic-portal-return');
     if (resume) {
       var ready = !!capturePatientReview(current.tenant, current.patient);
@@ -247,7 +258,7 @@
     var host = document.getElementById('clinic-content'); host.replaceChildren();
     var doc = model.normalize(current.row && current.row.document);
     current.saved = JSON.stringify(doc); current.dirty = false;
-    var form = el('fieldset', 'clinic-form'); form.id = 'clinic-form'; form.disabled = !current.ready;
+    var form = el('fieldset', 'clinic-form'); form.id = 'clinic-form'; form.disabled = !current.ready || !current.canWrite;
     form.append(field('¿Qué desea mejorar el paciente?', 'clinic-reason', doc.reason, 2000, true));
     form.querySelector('#clinic-reason').placeholder = 'Escribe el motivo de la consulta.';
     var background = el('details', 'clinic-secondary');
@@ -305,7 +316,7 @@
     }); host.append(list);
   }
   async function savePlan(review) {
-    if (!current || !current.ready || current.saving) return;
+    if (!current || !current.ready || !current.canWrite || (review && !current.canApprove) || current.saving) return;
     var ctx = current, doc = formDocument(), activeForm = document.getElementById('clinic-form');
     if (review && (!document.getElementById('clinic-review-confirm').checked || model.reviewError(doc))) return;
     ctx.saving = true; document.getElementById('clinic-form').disabled = true; status();
@@ -335,7 +346,7 @@
       }
     } finally {
       ctx.saving = false; confirmButton.disabled = false;
-      if (current === ctx && activeForm.isConnected) { activeForm.disabled = !ctx.ready; status(); }
+      if (current === ctx && activeForm.isConnected) { activeForm.disabled = !ctx.ready || !ctx.canWrite; status(); }
     }
   }
   async function history() {
@@ -363,7 +374,7 @@
     if (!p || !leave()) return;
     pacienteActual = p;
     window.ir('paciente-detalle');
-    var ctx = { tenant: tenantId, patient: p.id, ready: false, row: null, services: [], dirty: false, saving: false, aiBusy: false, aiAbort: null, aiDraft: null }; current = ctx;
+    var ctx = { tenant: tenantId, patient: p.id, ready: false, canRead: false, canWrite: false, canApprove: false, row: null, services: [], dirty: false, saving: false, aiBusy: false, aiAbort: null, aiDraft: null }; current = ctx;
     var token = ++sequence;
     var screen = document.getElementById('p-paciente-detalle'); screen.replaceChildren();
     screen.append(button('← Pacientes', function () { ir('pacientes'); }, 'clinic-back'));
@@ -402,19 +413,23 @@
       feedback.append(notice('Este registro antiguo no está sincronizado. No se creará un expediente en nube ni se asociará por nombre. Su traslado requiere revisión.'));
       versions.hidden = true; return;
     }
-    if (miRolEquipo !== 'dueño') {
-      state.textContent = 'Acceso limitado';
-      feedback.append(notice('La edición clínica está habilitada para el titular de la clínica. Los permisos para otros profesionales se configurarán por separado.'));
-      versions.hidden = true; return;
-    }
     content.append(notice('Cargando el expediente…'));
     try {
+      var access = await clinicalCapabilities(ctx.tenant);
+      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return;
+      ctx.canRead = access.canRead; ctx.canWrite = access.canWrite; ctx.canApprove = access.canApprove;
+      if (!ctx.canRead) {
+        state.textContent = 'Acceso limitado'; content.replaceChildren();
+        feedback.append(notice('Tu rol no tiene permiso para consultar información clínica. Solicita acceso al administrador de la clínica.'));
+        versions.hidden = true; return;
+      }
       var loaded = await Promise.all([
         checked(sb.from('smyl_clinical_plans').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', p.id).maybeSingle()),
         checked(sb.from('smyl_services').select('*').eq('tenant_id',ctx.tenant).order('name'))
       ]), data=loaded[0];ctx.services=loaded[1]||[];
       if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return;
       ctx.row = data; ctx.ready = true; renderEditor();
+      if (!ctx.canWrite) feedback.append(notice('Consulta de solo lectura. Tu rol no puede modificar este plan.'));
     } catch (error) {
       if (current !== ctx || sequence !== token || !content.isConnected) return;
       state.textContent = 'No disponible'; content.replaceChildren();
@@ -516,7 +531,7 @@
       },
       focus: function (tenant, patient, resume) {
         var ctx = current;
-        if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient || miRolEquipo !== 'dueño') return false;
+        if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient || !ctx.canWrite) return false;
         var host = document.getElementById('clinic-content');
         if (!host || !document.getElementById('clinic-form')) return false;
         window.SmylCaseWorkspace?.open('plan');

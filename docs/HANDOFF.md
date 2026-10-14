@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 1 del panel profesional dental publicada
+
+**Servicios y tarifas ya es una función principal del negocio y los permisos
+clínicos respetan el rol configurado:** se consolidó la base para continuar la
+evolución del panel por etapas sin duplicar fuentes de verdad.
+
+- El catálogo pasó a `Negocio > Servicios y tarifas` y se eliminó de Agenda la
+  edición paralela de precio, duración y activación. Agenda conserva un acceso
+  directo al catálogo canónico.
+- El catálogo sigue cubriendo especialidades, precios, duración, unidad clínica
+  y sugerencias SAT editables, con lectura para operación y gestión reservada a
+  `settings.manage`.
+- La ficha clínica dejó de depender de `owner`: `clinical.read`,
+  `clinical.write` y `clinical.approve` gobiernan consulta, edición, revisión y
+  propuesta. La migración aditiva
+  `20261013040000_smyl_professional_permissions_v1.sql` quedó aplicada y
+  sincronizada en Supabase.
+- Web/PWA usan `smyl-v201-professional-foundation`. Suite completa 161/161 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni botones sin
+  etiqueta.
+
 ## 2026-10-13 — Codex: simulación rápida cerrada sin pendientes
 
 **La suite queda completamente verde (157/157):** se restauró el objetivo

@@ -28,7 +28,9 @@
     ['Mensajes', 'inbox', 'messages']
   ];
   var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
-  var ADMIN = [
+  var BUSINESS = [
+    ['Servicios y tarifas', 'precios', 'pricing'],
+    ['Presentaciones', 'propuestas', 'presentation'],
     ['Inventario', 'inventario', 'inventory'],
     ['Caja y cobros', 'caja', 'cash'],
     ['Reportes', 'reportes', 'reports']
@@ -38,8 +40,6 @@
     ['Canales y asistente', 'conexiones', 'channels'],
     ['Preparación operativa', 'lanzamiento', 'launch'],
     ['Simulaciones anteriores', 'historial', 'history'],
-    ['Presentaciones', 'propuestas', 'presentation'],
-    ['Precios de la clínica', 'precios', 'pricing'],
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account']
   ];
@@ -108,7 +108,7 @@
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(navItem(ALERTS, false));
-    nav.append(detailsGroup('Administración', ADMIN, true));
+    nav.append(detailsGroup('Negocio', BUSINESS, true));
     nav.append(detailsGroup('Configuración', SETTINGS, false));
     host.replaceChildren(nav);
   }
@@ -138,7 +138,7 @@
     var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),
-      mobileGroup('Administración', ADMIN),
+      mobileGroup('Negocio', BUSINESS),
       mobileGroup('Configuración', SETTINGS),
       mobileGroup('Acción rápida', quick)
     );
