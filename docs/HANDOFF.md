@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 8, preparación operativa de la clínica
+
+**Mi clínica ya guía al administrador para completar sedes, espacios, horarios,
+equipo y cobertura profesional antes de operar la agenda.**
+
+- El nuevo indicador de preparación resume cuatro áreas verificables y lleva al
+  apartado exacto que requiere atención, sin ejecutar cambios automáticamente.
+- Cada sucursal muestra espacios activos, días y bloques de atención, además de
+  un estado `Lista para agenda` o `Por completar` basado sólo en su configuración
+  visible de espacios y horarios.
+- Equipo y profesionales señalan faltantes de rol o sede. La guía de roles
+  explica sus permisos actuales antes de que el propietario los asigne.
+- El porcentaje es una guía de configuración y declara expresamente que no es
+  certificación clínica, laboral, fiscal ni sanitaria.
+- No se modificaron migraciones, RLS ni Edge Functions. Web y bundle móvil están
+  sincronizados; PWA usa `smyl-v217-clinic-readiness-stage8`. Suite completa
+  228/228 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
 ## 2026-10-14 — Codex: Etapa 7, tablero ejecutivo profesional
 
 **Reportes ya funciona como mesa de control para dirección, con prioridades

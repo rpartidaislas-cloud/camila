@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v216-executive-dashboard-stage7';
+const CACHE_VERSION = 'smyl-v217-clinic-readiness-stage8';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -63,8 +63,8 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=2',
   '/camila/smyl-panel.js?v=5',
   '/camila/smyl-panel.css?v=4',
-  '/camila/smyl-clinic-admin.js?v=1',
-  '/camila/smyl-clinic-admin.css?v=1',
+  '/camila/smyl-clinic-admin.js?v=2',
+  '/camila/smyl-clinic-admin.css?v=2',
   '/camila/smyl-schedule.js?v=7',
   '/camila/smyl-schedule.css?v=3',
   '/camila/smyl-service-catalog-model.js?v=1',
