@@ -45,8 +45,8 @@ test('caja sólo muestra cotizaciones aceptadas o lotes ya existentes',()=>{
 test('web, móvil y PWA distribuyen la activación de tratamiento',()=>{
   assert.match(app,/smyl-proposals\.css\?v=7/);
   assert.match(app,/smyl-proposals\.js\?v=11/);
-  assert.match(app,/smyl-schedule\.js\?v=6/);
+  assert.match(app,/smyl-schedule\.js\?v=7/);
   assert.match(app,/smyl-finance\.js\?v=4/);
-  assert.match(sw,/smyl-v212-treatment-quote-stage3/);
+  assert.match(sw,/smyl-v213-clinical-schedule-stage4/);
   for(const file of ['app.html','sw.js','smyl-proposals.js','smyl-proposals.css','smyl-schedule.js','smyl-finance.js'])assert.equal(read(file),read('mobile/www/'+file));
 });

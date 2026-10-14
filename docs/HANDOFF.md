@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 4, agenda y operación clínica profesional
+
+**Agenda ya presenta cada reserva como coordinación de tiempo, profesional y
+consultorio, no sólo como una cita en una lista.**
+
+- Las tarjetas muestran inicio y término reales, servicio, profesional,
+  consultorio o sillón y estado de atención; la vista también puede filtrarse
+  por espacio clínico.
+- El formulario calcula duración y hora de término desde el catálogo, muestra
+  especialidad y espacio, y advierte si el profesional no ofrece el servicio,
+  no pertenece a la sucursal o el consultorio no corresponde a la sede.
+- Estas comprobaciones sólo guían al equipo. Las RPC existentes conservan la
+  decisión final y vuelven a validar permisos, disponibilidad y traslapes.
+- El detalle de la cita separa nota operativa de información clínica y muestra
+  el estado verificable de los recordatorios sin afirmar que fueron entregados.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v213-clinical-schedule-stage4`. Suite completa 211/211 y QA visual a
+  1366, 834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 3, plan y cotización profesional
 
 **El plan revisado y la cotización ya conservan una relación comprensible entre

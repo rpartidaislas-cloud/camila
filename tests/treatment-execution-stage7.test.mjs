@@ -36,8 +36,8 @@ test('no duplica la evolución y conserva firma y adenda como controles clínico
 test('web, móvil y PWA distribuyen el seguimiento clínico',()=>{
   assert.match(app,/smyl-patient-360\.js\?v=3/);
   assert.match(app,/smyl-patient-360\.css\?v=2/);
-  assert.match(app,/smyl-schedule\.js\?v=6/);
-  assert.match(sw,/smyl-v212-treatment-quote-stage3/);
+  assert.match(app,/smyl-schedule\.js\?v=7/);
+  assert.match(sw,/smyl-v213-clinical-schedule-stage4/);
   assert.match(css,/\.p360-dialog\{overflow:auto;overscroll-behavior:contain\}/);
   for(const file of ['app.html','sw.js','smyl-patient-360.js','smyl-patient-360.css','smyl-schedule.js'])assert.equal(read(file),read('mobile/www/'+file));
 });
