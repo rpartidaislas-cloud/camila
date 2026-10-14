@@ -36,7 +36,7 @@ test('la etapa uno es responsive y se distribuye igual en web, móvil y PWA',()=
   assert.equal(app,mobile);
   assert.match(app,/smyl-service-catalog-stage1\.css\?v=1/);
   assert.match(app,/smyl-service-catalog\.js\?v=3/);
-  assert.match(worker,/smyl-v219-channel-disconnect/);
+  assert.match(worker,/smyl-v220-inbox-organization/);
   assert.match(worker,/smyl-service-catalog-stage1\.css\?v=1/);
   assert.equal(ui,read('mobile/www/smyl-service-catalog.js'));
   assert.equal(css,read('mobile/www/smyl-service-catalog-stage1.css'));

@@ -183,6 +183,7 @@ async function linkClinicalImage(
 
 function queryPath(url: URL, action: string, conversationId: string | null): string | null {
   if (action === "operations") return "/inbox/operations";
+  if (action === "stages") return "/inbox/stages";
   if (action === "templates") return "/inbox/whatsapp/templates";
   if (action === "scheduled" && conversationId) return `/inbox/conversations/${conversationId}/scheduled`;
   if (action === "sync") {
@@ -347,7 +348,7 @@ Deno.serve(async (req: Request) => {
       }, 15000);
       return json(remote.response.status, { ...remote.body, actor });
     }
-    if (!["send", "read", "assign", "release", "pause", "resume", "resolve", "star", "unstar", "delete"].includes(action)) {
+    if (!["send", "read", "assign", "release", "pause", "resume", "resolve", "pin", "unpin", "stage", "star", "unstar", "delete"].includes(action)) {
       return json(400, { error: "Acción de Inbox no reconocida." });
     }
     const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
@@ -391,6 +392,14 @@ Deno.serve(async (req: Request) => {
       if (!member) return json(404, { error: "El miembro seleccionado ya no está activo en esta clínica." });
       forwarded.target_actor_id = targetId;
       forwarded.target_actor_name = text(member.nombre, 160) || text(member.email, 160) || "Miembro del equipo";
+    }
+    if (action === "stage") {
+      if (body.target_stage_id === null || body.target_stage_id === "") forwarded.target_stage_id = null;
+      else {
+        const targetStageId = uuid(body.target_stage_id);
+        if (!targetStageId) return json(400, { error: "La etapa seleccionada no es válida." });
+        forwarded.target_stage_id = targetStageId;
+      }
     }
 
     const targetMessageId = ["star", "unstar", "delete"].includes(action) ? messageId(body.message_id) : null;

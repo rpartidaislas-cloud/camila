@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 2, organización profesional del Inbox
+
+**Mensajes ya permite organizar el trabajo del equipo desde SMYL usando las
+conversaciones, responsables y etapas canónicas de LANA, sin duplicar el chat.**
+
+- Se añadieron filtros `Fijadas` y `En atención`, indicador de conversación
+  fijada, etapa visible en cada fila y controles para fijar o quitar de fijadas.
+- El panel de atención permite asignar responsable y cambiar la etapa de la
+  conversación. Las mutaciones son idempotentes, auditadas y validadas por
+  tenant en LANA.
+- El puente privado incorpora consulta de etapas y acciones `pin`, `unpin` y
+  `stage`; las credenciales y los datos canónicos siguen fuera del navegador.
+- La migración `20261014200000_smyl_inbox_organization.sql` fue aplicada y
+  registrada únicamente en LANA. `camila-api` y `lana-inbox` quedaron
+  desplegadas.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v220-inbox-organization`. Suite completa 233/233, puente 6/6 y QA
+  visual en escritorio, tableta y móvil sin errores de consola.
+
 ## 2026-10-14 — Codex: desconexión segura de Meta y auditoría de paridad del chat
 
 **Canales e IA ya permite al dueño desconectar Messenger o Instagram sin

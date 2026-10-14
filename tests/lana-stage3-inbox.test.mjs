@@ -16,8 +16,9 @@ test('SMYL provides a responsive operational inbox and canonical LANA thread', (
   assert.match(inbox, /Sincronización segura/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=8/);
-assert.match(worker, /smyl-v219-channel-disconnect/);
+  assert.match(app, /smyl-inbox\.js\?v=9/);
+  assert.match(app, /smyl-inbox\.css\?v=7/);
+  assert.match(worker, /smyl-v220-inbox-organization/);
 });
 
 test('manual responses use an isolated optimistic queue with visible retry states', () => {
@@ -40,6 +41,18 @@ test('assignment, read, pause, resume and resolution travel through the authenti
   assert.match(edge, /requireUser\(req, CORS\)/);
   assert.match(edge, /X-SMYL-Actor-Id/);
   assert.match(edge, /Solo el dueño puede asignar conversaciones a otras personas/);
+});
+
+test('pinning, paused filters, responsibility and stages stay canonical in LANA', () => {
+  assert.match(inbox, /data-inbox-filter="pinned"/);
+  assert.match(inbox, /data-inbox-filter="paused"/);
+  assert.match(inbox, /mutateConversation\(conversation\.pinned \? 'unpin' : 'pin'\)/);
+  assert.match(inbox, /action: 'stages'/);
+  assert.match(inbox, /target_stage_id/);
+  assert.match(inbox, /Etapa de atención/);
+  assert.match(edge, /if \(action === "stages"\) return "\/inbox\/stages"/);
+  assert.match(edge, /"pin", "unpin", "stage"/);
+  assert.match(edge, /forwarded\.target_stage_id/);
 });
 
 test('the browser never receives the linked LANA credential or chooses a tenant', () => {
