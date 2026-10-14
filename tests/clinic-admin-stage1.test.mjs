@@ -50,7 +50,7 @@ test('web, mobile and offline cache include the same clinic module', () => {
   assert.equal(app, mobileApp);
   assert.equal(script, mobileScript);
   assert.equal(styles, mobileStyles);
-assert.match(worker, /smyl-v236-secure-clinical-files/);
+assert.match(worker, /smyl-v237-file-lifecycle/);
   assert.match(worker, /smyl-clinic-admin\.js\?v=2/);
   assert.match(worker, /smyl-clinic-admin\.css\?v=2/);
 });

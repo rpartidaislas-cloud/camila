@@ -31,7 +31,7 @@ test('agenda stage two ships responsive and cache-safe on web and mobile', () =>
   assert.match(styles, /@media\(max-width:760px\)/);
   assert.match(app, /smyl-schedule\.css\?v=5/);
   assert.match(app, /smyl-schedule\.js\?v=9/);
-assert.match(worker, /smyl-v236-secure-clinical-files/);
+assert.match(worker, /smyl-v237-file-lifecycle/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-schedule.js'));
   assert.equal(styles, read('../mobile/www/smyl-schedule.css'));

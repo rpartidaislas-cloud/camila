@@ -8,9 +8,9 @@ Estado al 14 de octubre de 2026.
    no usan almacenamiento persistente local como respaldo clínico.
 3. **Archivos clínicos — terminada.** Cuarentena, validación binaria y SHA-256,
    bloqueo de PDF activo, rutas por clínica y enlaces firmados de cinco minutos.
-4. **Ciclo de vida y eliminación — siguiente.** Política de retención por tipo,
-   borrado verificable, limpieza de pendientes, reescaneo de legado y respaldo.
-5. **Monitoreo y respuesta — pendiente.** Alertas, anomalías de acceso,
+4. **Ciclo de vida y eliminación — terminada.** Política de retención por tipo,
+   borrado verificable, limpieza de pendientes y reescaneo conservador de legado.
+5. **Monitoreo y respuesta — siguiente.** Alertas, anomalías de acceso,
    exportaciones trazables, runbooks e investigación de incidentes.
 6. **Validación independiente — pendiente.** Pruebas de aislamiento entre
    clínicas, revisión de dependencias y pentest antes de datos clínicos reales.
@@ -28,3 +28,23 @@ actuales y permite reescanearlos en la etapa 4. El filtro actual bloquea formato
 falsos y capacidades activas peligrosas en PDF, pero no sustituye un motor AV
 especializado. Antes de operar a gran escala conviene sumar escaneo administrado
 y una cola de reanálisis.
+
+## Alcance de la etapa 4
+
+Cada bucket privado tiene una política explícita: 24 horas para cuarentenas
+abandonadas, 7 días para cargas limpias nunca vinculadas y ningún borrado
+automático de evidencia vinculada. Antes de borrar se vuelve a comprobar que la
+ruta no aparezca en expedientes, radiografías, casos, propuestas o perfiles;
+después se confirma que Storage ya no entregue el objeto y se conserva una
+bitácora privada del resultado.
+
+El mantenimiento se inicia automáticamente después de una sesión profesional y
+se limita a una ejecución por clínica cada 12 horas. También reanaliza hasta tres
+objetos `legacy` por ciclo. Un objeto histórico dudoso cambia a
+`legacy_review`, continúa disponible y requiere decisión humana: el proceso no
+destruye evidencia antigua por una heurística nueva.
+
+La tabla de seguridad funciona como manifiesto de integridad, con MIME, tamaño y
+SHA-256 verificados. Una copia externa cifrada y una prueba periódica de
+restauración siguen siendo una dependencia operativa del proveedor; no se afirma
+que los objetos de Storage estén incluidos en los respaldos de base de datos.

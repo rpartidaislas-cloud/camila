@@ -13,6 +13,9 @@ verify_jwt = true
 [functions.sign-segmentation-masks]
 verify_jwt = true
 
+[functions.file-lifecycle-maintenance]
+verify_jwt = true
+
 # Excepciones públicas deliberadas. Cada una aplica su propio control de
 # capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
 [functions.analizar-foto]

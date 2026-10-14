@@ -17,5 +17,12 @@
     if(!result.data||result.data.ok!==true||result.data.sha256!==hash||result.data.size_bytes!==file.size||result.data.mime_type!==file.type)throw new Error('No se confirmó la seguridad del archivo.');
     return result.data;
   }
-  return {sha256:sha256,verify:verify};
+  var maintenanceStarted=false,maintenanceInvoked=false;
+  function startMaintenance(client){
+    if(maintenanceStarted||!client||!client.auth)return;maintenanceStarted=true;
+    function run(session){if(!session||maintenanceInvoked)return;maintenanceInvoked=true;setTimeout(function(){client.functions.invoke('file-lifecycle-maintenance',{body:{}}).catch(function(){});},0);}
+    client.auth.getSession().then(function(result){run(result&&result.data&&result.data.session);}).catch(function(){});
+    client.auth.onAuthStateChange(function(event,session){if(event==='SIGNED_IN')run(session);});
+  }
+  return {sha256:sha256,verify:verify,startMaintenance:startMaintenance};
 });

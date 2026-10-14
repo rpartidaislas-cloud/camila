@@ -36,10 +36,11 @@ test('database quarantines protected buckets and gates every clinical consumer',
 
 test('server verifier authenticates, checks bytes and removes rejected objects', () => {
   const source=read('supabase/functions/secure-clinical-file/index.ts');
+  const shared=read('supabase/functions/_shared/file-security.ts');
   assert.match(source,/requireUser\(req,CORS\)/);
-  assert.match(source,/detectedMime\(bytes\)/);
-  assert.match(source,/crypto\.subtle\.digest\('SHA-256',bytes\)/);
-  assert.match(source,/JavaScript\|JS\|OpenAction\|Launch\|EmbeddedFile\|RichMedia\|XFA/);
+  assert.match(source,/inspectFile\(bytes,claimedMime,claimedSize,claimedSha\)/);
+  assert.match(shared,/crypto\.subtle\.digest\('SHA-256',bytes\)/);
+  assert.match(shared,/JavaScript\|JS\|OpenAction\|Launch\|EmbeddedFile\|RichMedia\|XFA/);
   assert.match(source,/\.remove\(\[path\]\)/);
 });
 
@@ -58,8 +59,8 @@ test('segmentation URLs expire in five minutes instead of one year', () => {
 
 test('web, mobile and offline bundles ship the same security gate', () => {
   assert.equal(read('smyl-secure-files.js'),read('mobile/www/smyl-secure-files.js'));
-  assert.match(read('app.html'),/smyl-secure-files\.js\?v=1/);
-  assert.match(read('mobile/www/app.html'),/smyl-secure-files\.js\?v=1/);
-  assert.match(read('sw.js'),/smyl-v236-secure-clinical-files/);
+  assert.match(read('app.html'),/smyl-secure-files\.js\?v=2/);
+  assert.match(read('mobile/www/app.html'),/smyl-secure-files\.js\?v=2/);
+  assert.match(read('sw.js'),/smyl-v237-file-lifecycle/);
   assert.equal(read('sw.js'),read('mobile/www/sw.js'));
 });

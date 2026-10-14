@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="smyl-browser-privacy.js?v=1"></script>
-<script src="smyl-secure-files.js?v=1"></script>
+<script src="smyl-secure-files.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -2205,6 +2205,7 @@ var USE_EDGE = true;
 var sb;
 try {
   sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  window.SmylSecureFiles.startMaintenance(sb);
 } catch (e) {
   console.error('[SMYL] No se pudo inicializar Supabase (¿sin internet o CDN bloqueado?):', e);
   window.addEventListener('DOMContentLoaded', function() {

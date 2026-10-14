@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 4 de ciclo de vida
+
+**SMYL limpia cargas abandonadas sin borrar evidencia clínica vinculada.**
+
+- `20261014160000_smyl_file_lifecycle.sql` define retención por bucket: 24 h
+  para cuarentena pendiente, 1 h para residuos rechazados y 7 días para cargas
+  limpias nunca vinculadas. `linked_auto_delete=false` es obligatorio.
+- Antes de eliminar, `smyl_file_is_referenced` revisa Ficha 360, casos,
+  radiografías, propuestas, perfiles y casos profesionales. Después, la función
+  confirma que Storage ya no entregue el objeto y registra resultado, motivo,
+  actor y fecha en una bitácora privada inmutable para usuarios normales.
+- `file-lifecycle-maintenance` exige una sesión real y deriva el tenant en el
+  servidor. Se dispara al iniciar sesión, se limita a una ejecución cada 12 h
+  por clínica y procesa lotes acotados.
+- Hasta tres objetos históricos se reanalizan por ciclo. Los válidos pasan a
+  `clean`; los dudosos pasan a `legacy_review` pero permanecen disponibles para
+  revisión humana. Nunca se destruye automáticamente un archivo histórico.
+- El analizador binario se centralizó en `_shared/file-security.ts` para que la
+  carga nueva y el reescaneo apliquen exactamente las mismas reglas.
+- El manifiesto conserva MIME, tamaño y SHA-256. El respaldo externo cifrado y
+  las pruebas de restauración siguen siendo una dependencia operativa externa;
+  no se confunden los backups de PostgreSQL con los objetos de Storage.
+
+**Siguiente etapa de seguridad:** monitoreo y respuesta a incidentes: alertas de
+acceso anómalo, trazabilidad de exportaciones, tablero de seguridad y runbooks.
+
 ## 2026-10-14 — Codex: seguridad, etapa 3 de archivos clínicos
 
 **Los archivos privados quedan en cuarentena hasta que el servidor verifica su contenido.**
