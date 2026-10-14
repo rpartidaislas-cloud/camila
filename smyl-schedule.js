@@ -66,11 +66,12 @@
   function openAppointment(a){
     var s=byId(state.services,a.service_id),p=byId(state.professionals,a.professional_id),br=byId(state.branches,a.branch_id),room=byId(state.rooms,a.room_id);
     var actions=(NEXT[a.status]||[]).map(function(x){return '<button type="button" class="btn '+(x[0]==='cancelled'?'btn-secondary':'btn-primary')+'" data-transition="'+x[0]+'">'+x[1]+'</button>';}).join('');
-    var patientAction=state.canReadClinical?'<button type="button" class="btn btn-secondary" data-open-patient>Abrir ficha y atención</button>':'';
+    var patientAction=state.canReadClinical?'<button type="button" class="btn btn-secondary" data-open-patient>Abrir ficha</button>'+(['arrived','in_progress','completed'].includes(a.status)?'<button type="button" class="btn btn-primary" data-open-care>Registrar evolución</button>':''):'';
     var followupAction=(a.status==='no_show'||a.status==='cancelled')?'<button type="button" class="btn btn-secondary" data-open-inbox>Continuar en Mensajes</button>':'';
     var d=dialog('<div class="schedule-detail"><span class="schedule-status" data-status="'+a.status+'">'+esc(STATUS[a.status])+'</span><h2>'+esc(patientName(a.patient_id))+'</h2><p>'+fmtDate(new Date(a.starts_at),{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'</p><dl><div><dt>Servicio</dt><dd>'+esc(s?s.name:'Servicio')+'</dd></div><div><dt>Profesional</dt><dd>'+esc(p?p.display_name:'Profesional')+'</dd></div><div><dt>Sucursal</dt><dd>'+esc(br?br.name:'Sucursal')+(room?' · '+esc(room.name):'')+'</dd></div></dl>'+(a.notes?'<div class="schedule-detail-note">'+esc(a.notes)+'</div>':'')+'<div class="schedule-detail-links">'+patientAction+followupAction+'</div><div class="schedule-dialog-actions"><button type="button" class="btn btn-secondary" data-close>Cerrar</button>'+(state.canManage&&a.status==='confirmed'?'<button type="button" class="btn btn-secondary" data-reschedule>Reprogramar</button>':'')+(state.canManage?actions:'')+'</div></div>');
     d.querySelector('[data-close]').onclick=close;var rs=d.querySelector('[data-reschedule]');if(rs)rs.onclick=function(){d.close();openReschedule(a);};
     var patient=d.querySelector('[data-open-patient]');if(patient)patient.onclick=function(){close();window.verPaciente(a.patient_id);};
+    var care=d.querySelector('[data-open-care]');if(care)care.onclick=function(){close();if(window.SmylPatient360)SmylPatient360.forAppointment(a);};
     var inbox=d.querySelector('[data-open-inbox]');if(inbox)inbox.onclick=function(){close();window.ir('inbox');};
     d.querySelectorAll('[data-transition]').forEach(function(b){b.onclick=function(){transition(a,b.dataset.transition);};});
   }

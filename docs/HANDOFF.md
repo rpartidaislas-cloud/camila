@@ -1,5 +1,41 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 8 de cierre profesional terminada
+
+**Reportes ya muestra el recorrido operativo de los tratamientos sin exponer
+expedientes:** aceptación de cotización, creación de cargos, primera cita,
+terminación de la cita y evolución clínica firmada se resumen por periodo.
+
+- Son hitos agregados de toda la clínica, no una cohorte ni una tasa de
+  conversión. Cada cifra se cuenta por la fecha de su propio evento y puede
+  pertenecer a tratamientos distintos.
+- Cada paso respeta su permiso (`proposal.read`, `finance.read`,
+  `schedule.read` o `clinical.read`); el usuario sin acceso ve el paso
+  restringido y nunca recibe identificadores de pacientes.
+- Agenda ahora admite de forma explícita `accepted_proposal` como origen. Esto
+  cierra el defecto que impedía guardar la primera cita preparada desde una
+  cotización aceptada.
+- La migración aditiva `20261013080000_smyl_treatment_operations_v1.sql` quedó
+  aplicada y verificada en Supabase. Web/PWA usan
+  `smyl-v208-professional-pilot`; suite completa 191/191 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 7 de ejecución clínica terminada
+
+**Agenda y Ficha clínica ya continúan la atención sin perder el contexto de la
+cita:** cuando el paciente llegó, está en atención o la cita terminó, el equipo
+puede abrir una evolución SOAP vinculada al paciente, cita y profesional.
+
+- La acción `Registrar evolución` sólo aparece en estados clínicamente
+  pertinentes; `Abrir ficha` continúa disponible por separado para consulta.
+- Si la cita ya tiene un borrador, se reabre en lugar de duplicarlo. Una nota
+  firmada permanece inmutable y remite a una adenda para cualquier corrección.
+- `clinical.read`, `clinical.write` y `clinical.approve` siguen separados. La
+  interfaz no completa hallazgos ni cambia el estado de la cita por sí sola.
+- Web/PWA usan `smyl-v207-treatment-execution`. Suite completa 187/187 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni acciones
+  inaccesibles; el diálogo móvil ahora tiene desplazamiento interno seguro.
+
 ## 2026-10-13 — Codex: Etapa 6 de activación de tratamiento terminada
 
 **Una cotización aceptada ya puede convertirse de forma controlada en trabajo
