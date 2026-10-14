@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 6, inventario y trazabilidad profesional
+
+**Inventario ya prioriza faltantes, lotes de riesgo y recepciones abiertas como
+trabajo operativo, no sólo como filas de existencias.**
+
+- La bandeja `Control operativo` separa insumos bajo mínimo, lotes caducados,
+  próximas caducidades y compras por recibir. Sus acciones abren el filtro o
+  módulo correspondiente sin modificar existencias automáticamente.
+- Existencias incorpora filtros por atención, mínimo y caducidad; cada insumo
+  muestra ubicación, estado, trazabilidad por paciente y cantidad sugerida para
+  alcanzar el objetivo configurado.
+- El consumo clínico excluye lotes caducados y presenta un control previo de
+  lote, caducidad, serie y paciente. Las validaciones del servidor y el RPC
+  atómico existente continúan siendo la autoridad final.
+- Las órdenes muestran porcentaje y unidades recibidas. El libro de movimientos
+  sigue inmutable y las correcciones continúan registrándose como compensaciones.
+- No se modificaron migraciones, RLS ni Edge Functions. Web y bundle móvil están
+  sincronizados; PWA usa `smyl-v215-inventory-operations-stage6`. Suite completa
+  220/220 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 5, caja y seguimiento financiero profesional
 
 **Finanzas ya permite priorizar la cobranza y confirmar cómo se aplicará cada
