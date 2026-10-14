@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 6 de activación de tratamiento terminada
+
+**Una cotización aceptada ya puede convertirse de forma controlada en trabajo
+operativo:** desde la misma versión el equipo abre Caja para crear cargos o
+Agenda para preparar la primera cita del paciente.
+
+- Aprobar internamente ya no basta para crear cargos. El servidor exige un
+  evento `accepted` de la misma revisión vigente; conserva la idempotencia de
+  lotes anteriores y nunca duplica movimientos.
+- Presentaciones muestra una puerta de activación con estados claros. Caja y
+  Agenda mantienen permisos separados y vuelven a validar importes,
+  disponibilidad, profesional, sucursal y espacio.
+- Agenda recibe al paciente preseleccionado, pero deja al equipo elegir servicio,
+  profesional y horario. La aceptación comercial se declara distinta del
+  consentimiento informado y no agenda ni cobra automáticamente.
+- La migración aditiva `20261013070000_smyl_treatment_activation_v1.sql` quedó
+  aplicada y verificada en Supabase. Web/PWA usan
+  `smyl-v206-treatment-activation`; suite completa 183/183 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 5 de cola comercial publicada
 
 **Presentaciones ahora funciona como un tablero accionable y no sólo como

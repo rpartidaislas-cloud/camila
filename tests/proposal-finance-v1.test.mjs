@@ -37,7 +37,7 @@ test('la prevalidación permanece local y exige revisión posterior del PAC',()=
 });
 
 test('la interfaz conecta propuesta, caja y revisión fiscal sin transmisión automática',()=>{
-  assert.match(finance,/Desde propuesta/);
+  assert.match(finance,/Desde aceptada/);
   assert.match(finance,/smyl_post_proposal_charges/);
   assert.match(finance,/smyl_prepare_cfdi_draft_v3/);
   assert.match(finance,/smyl_validate_cfdi_draft_sandbox/);
