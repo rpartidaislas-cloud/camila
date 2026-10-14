@@ -2,6 +2,7 @@
 (function(){
   'use strict';
   function n(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function targetLabel(item){var parts=[];if(item.teeth.length)parts.push('Piezas '+item.teeth.join(', '));if(item.surfaces.length)parts.push('Superficies '+item.surfaces.join(', '));return parts.join(' · ')||item.area||'Tratamiento general';}
   function render(row,assets,approved){
     var model=SmylProposalModel,doc=model.normalize(row.document),paper=n('article','proposal-paper');
     var top=n('header','proposal-paper-top');top.append(n('strong','',row.clinic_name||'Tu clínica dental'),n('span','proposal-brand','smyl'));
@@ -16,7 +17,7 @@
       section.append(photos,n('p','proposal-small',model.views[doc.photos.view]+' · La imagen es orientativa. No garantiza el resultado del tratamiento.'));paper.append(section);
     }
     var mapped=doc.items.filter(function(item){return item.teeth.length;});
-    if(mapped.length&&window.SmylToothMap){var section=n('section','proposal-dental-plan');section.append(n('h2','','Dónde se realizará el tratamiento'),n('p','proposal-small','Mapa FDI preparado desde las piezas que el profesional vinculó al plan. No muestra antecedentes ni notas internas.'));var map=n('div','dr-map proposal-dental-map');var counts={};mapped.forEach(function(item){item.teeth.forEach(function(tooth){counts[tooth]=(counts[tooth]||0)+1;});});SmylToothMap.render(map,{disabled:true,state:function(tooth){return {className:counts[tooth]?'pr-proposed':'',count:counts[tooth]||0,label:counts[tooth]?counts[tooth]+' tratamiento(s) propuesto(s)':'Sin tratamiento propuesto'};}});section.append(map);paper.append(section);}
+    if(mapped.length&&window.SmylToothMap){var section=n('section','proposal-dental-plan');section.append(n('h2','','Dónde se realizará el tratamiento'),n('p','proposal-small','Mapa FDI preparado desde las piezas que el profesional vinculó al plan. No muestra antecedentes ni notas internas.'));var map=n('div','dr-map proposal-dental-map');var counts={};mapped.forEach(function(item){item.teeth.forEach(function(tooth){counts[tooth]=(counts[tooth]||0)+1;});});SmylToothMap.render(map,{disabled:true,state:function(tooth){return {className:counts[tooth]?'pr-proposed':'',count:counts[tooth]||0,label:counts[tooth]?counts[tooth]+' tratamiento(s) propuesto(s)':'Sin tratamiento propuesto'};}});var legend=n('div','proposal-dental-legend');mapped.forEach(function(item,index){var entry=n('article');entry.append(n('span','',String(index+1).padStart(2,'0')),n('div','',null));entry.lastChild.append(n('strong','',item.label),n('small','',targetLabel(item)));legend.append(entry);});section.append(map,legend);paper.append(section);}
     var heading=n('div','proposal-quote-heading');heading.append(n('h2','','Tu plan y su inversión'),n('span','','Importes en MXN'));paper.append(heading);
     var table=n('table','proposal-quote');table.append(n('caption','proposal-sr','Conceptos e importes estimados'));
     var head=n('thead'),tr=n('tr');['Concepto','Cant.','Precio unitario','Importe'].forEach(function(x){var th=n('th','',x);th.scope='col';if(x==='Cant.')th.setAttribute('aria-label','Cantidad');tr.append(th);});head.append(tr);table.append(head);

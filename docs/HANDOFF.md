@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 3, plan y cotización profesional
+
+**El plan revisado y la cotización ya conservan una relación comprensible entre
+conceptos, piezas FDI, superficies e importes.**
+
+- El editor muestra un control de propuesta con número de conceptos, conceptos
+  vinculados al mapa, precios pendientes y revisiones fiscales pendientes.
+- `Ir al pendiente` lleva al primer concepto que requiere atención, sin guardar,
+  aprobar ni enviar automáticamente.
+- La propuesta para el paciente conserva el odontograma y ahora agrega una
+  leyenda que explica qué tratamiento corresponde a cada pieza y superficie.
+- El documento compartido sigue excluyendo antecedentes, alertas, medicamentos
+  y notas clínicas internas. Las claves fiscales continúan sujetas a revisión.
+- Web, impresión y bundle móvil están sincronizados; PWA usa
+  `smyl-v212-treatment-quote-stage3`. Suite completa 207/207 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 2, expediente y odontograma profesional
 
 **La ficha del paciente ya presenta antecedentes, odontograma, plan y

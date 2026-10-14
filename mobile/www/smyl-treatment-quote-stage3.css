@@ -1,0 +1,15 @@
+/* SMYL · Etapa 3: plan y cotización comprensibles. */
+.quote-readiness-stage3{margin:0 0 16px;padding:14px;border:1px solid #ccdbe5;border-radius:12px;background:#f7fafc}
+.quote-readiness-stage3>header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:11px}
+.quote-readiness-stage3>header span{display:block;color:#0f766e;font-size:9px;font-weight:850;letter-spacing:.09em}
+.quote-readiness-stage3>header strong{display:block;margin:3px 0;font-size:14px}.quote-readiness-stage3>header p{margin:0;color:#64748b;font-size:10px}
+.quote-readiness-stage3>header button{flex:none;padding:8px 10px;border:1px solid #b9cede;border-radius:8px;background:#fff;color:#194391;font-weight:750;cursor:pointer}
+.quote-readiness-stage3>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.quote-readiness-stage3 article{padding:9px;border-top:3px solid #94a3b8;border-radius:8px;background:#fff}.quote-readiness-stage3 article[data-state=ready]{border-color:#168f88}.quote-readiness-stage3 article[data-state=pending]{border-color:#d49a32}
+.quote-readiness-stage3 article span,.quote-readiness-stage3 article strong{display:block}.quote-readiness-stage3 article span{color:#64748b;font-size:9px}.quote-readiness-stage3 article strong{margin-top:3px;font-size:15px}
+.proposal-dental-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 24px}
+.proposal-dental-legend article{display:grid;grid-template-columns:28px 1fr;gap:9px;align-items:center;padding:9px 10px;border:1px solid #dfe7e2;border-radius:9px;background:#f8faf8}
+.proposal-dental-legend article>span{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#e7e3f8;color:#514790;font-size:9px;font-weight:800}
+.proposal-dental-legend strong,.proposal-dental-legend small{display:block}.proposal-dental-legend strong{font-size:11px}.proposal-dental-legend small{margin-top:2px;color:#687b70;font-size:9px}
+@media(max-width:600px){.quote-readiness-stage3>header{align-items:stretch;flex-direction:column}.quote-readiness-stage3>header button{width:100%}.quote-readiness-stage3>div{grid-template-columns:1fr 1fr}.proposal-dental-legend{grid-template-columns:1fr}}
+@media print{#proposal-print .proposal-dental-legend{gap:6px;margin-bottom:14px}#proposal-print .proposal-dental-legend article{padding:6px 8px}}
