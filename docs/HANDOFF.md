@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 4, compositor compartido del Inbox
+
+**Mensajes ya ofrece un compositor profesional alineado con las capacidades
+canónicas de LANA, manteniendo el envío bajo revisión humana.**
+
+- Se añadió selector accesible de emoji y notas de voz para WhatsApp. La
+  grabación sólo prepara un adjunto compatible; nunca se envía al detenerla.
+- Las notas de voz respetan ventana de 24 horas, permisos, límites de archivo y
+  la misma ruta autenticada de adjuntos que LANA ya procesa.
+- Cada conversación conserva su borrador en texto cifrado AES-GCM durante la
+  sesión. No se guarda texto clínico legible ni se usa almacenamiento global.
+- Cambiar de hilo protege el borrador anterior; enviarlo o dejarlo vacío elimina
+  su copia cifrada. Los atajos y Copilot también pasan por el mismo borrador.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v222-inbox-composer`. Suite completa 242/242 y QA visual en escritorio
+  y móvil sin overflow.
+
 ## 2026-10-14 — Codex: Etapa 3, productividad diaria del Inbox
 
 **Mensajes incorpora herramientas de productividad sobre el chat canónico de

@@ -17,6 +17,8 @@
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
     sharedItems: [], sharedPage: null, sharedLoading: false,
     notificationsEnabled: false,
+    draftSaveTimer: null, draftStatus: '',
+    recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
   };
 
   function node(tag, cls, text) {
@@ -39,6 +41,81 @@
     var value = result && result.data && result.data.session && result.data.session.access_token;
     if (!value) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
     return value;
+  }
+
+  var DRAFT_STORE = 'smyl:inbox:encrypted-drafts:v1';
+
+  function draftEnvelope() {
+    try { return JSON.parse(window.sessionStorage.getItem(DRAFT_STORE) || '{}') || {}; }
+    catch (_) { return {}; }
+  }
+
+  function base64Bytes(bytes) {
+    var value = ''; bytes.forEach(function (byte) { value += String.fromCharCode(byte); }); return btoa(value);
+  }
+
+  function bytesFromBase64(value) {
+    var raw = atob(value); var bytes = new Uint8Array(raw.length);
+    for (var index = 0; index < raw.length; index += 1) bytes[index] = raw.charCodeAt(index);
+    return bytes;
+  }
+
+  async function draftKey() {
+    var material = new TextEncoder().encode('SMYL inbox draft v1|' + await token());
+    var hash = await window.crypto.subtle.digest('SHA-256', material);
+    return window.crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  }
+
+  function renderDraftStatus(value) {
+    state.draftStatus = value || '';
+    var label = document.querySelector('[data-draft-status]');
+    if (label) label.textContent = state.draftStatus ? '· ' + state.draftStatus : '';
+  }
+
+  async function persistEncryptedDraft(conversationId, content) {
+    if (!conversationId || !window.crypto || !window.crypto.subtle) return;
+    var envelope = draftEnvelope();
+    if (!content) {
+      delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope)); renderDraftStatus('Sin borrador'); return;
+    }
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    var payload = JSON.stringify({ conversation_id: conversationId, content: content.slice(0, 4000), expires_at: Date.now() + 7 * 86400000 });
+    var ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, await draftKey(), new TextEncoder().encode(payload));
+    envelope[conversationId] = { iv: base64Bytes(iv), ciphertext: base64Bytes(new Uint8Array(ciphertext)) };
+    window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
+    if (state.selectedId === conversationId) renderDraftStatus('Borrador protegido');
+  }
+
+  function scheduleDraftSave(value) {
+    var conversationId = state.selectedId; if (!conversationId) return;
+    clearTimeout(state.draftSaveTimer); renderDraftStatus(value.trim() ? 'Guardando borrador…' : 'Limpiando borrador…');
+    state.draftSaveTimer = setTimeout(function () {
+      persistEncryptedDraft(conversationId, value.trim()).catch(function () { if (state.selectedId === conversationId) renderDraftStatus('No se pudo proteger'); });
+    }, 450);
+  }
+
+  async function restoreEncryptedDraft(conversationId) {
+    var input = document.querySelector('[name="message"]'); if (!input) return;
+    input.value = ''; renderDraftStatus('');
+    var envelope = draftEnvelope(); var stored = envelope[conversationId]; if (!stored) return;
+    try {
+      var plain = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytesFromBase64(stored.iv) }, await draftKey(), bytesFromBase64(stored.ciphertext));
+      var draft = JSON.parse(new TextDecoder().decode(plain));
+      if (draft.conversation_id !== conversationId || Number(draft.expires_at) < Date.now()) throw new Error('expired');
+      if (state.selectedId === conversationId) { input.value = String(draft.content || '').slice(0, 4000); renderDraftStatus(input.value ? 'Borrador recuperado' : ''); }
+    } catch (_) {
+      delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
+    }
+  }
+
+  function clearEncryptedDraft(conversationId) {
+    clearTimeout(state.draftSaveTimer); state.draftSaveTimer = null;
+    return persistEncryptedDraft(conversationId, '').catch(function () {});
+  }
+
+  function setComposerText(value) {
+    var input = document.querySelector('[name="message"]'); if (!input) return;
+    input.value = String(value || '').slice(0, 4000); scheduleDraftSave(input.value); input.focus();
   }
 
   async function request(method, query, payload, key, timeoutMs, requestController) {
@@ -144,7 +221,7 @@
             '<div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools" aria-label="Herramientas de respuesta"><button type="button" data-compose-quick>Respuestas rápidas</button><button type="button" data-compose-copilot>Sugerir con Copilot</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-location>Ubicación</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div></div><small>Las respuestas rápidas sólo preparan texto; el equipo siempre revisa y decide el envío.</small></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo <span data-draft-status></span></label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools" aria-label="Herramientas de respuesta"><button type="button" data-compose-emoji>Emoji</button><button type="button" data-compose-record aria-pressed="false">Nota de voz</button><button type="button" data-compose-quick>Respuestas rápidas</button><button type="button" data-compose-copilot>Sugerir con Copilot</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-location>Ubicación</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div></div><small>El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío.</small></form>' +
           '</div>' +
         '</main>' +
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
@@ -155,6 +232,7 @@
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-quick-dialog><header><div><span class="smyl-inbox-eyebrow">ATAJOS DEL EQUIPO</span><h2>Respuestas rápidas</h2><p>Inserta un texto revisable; nunca se envía automáticamente.</p></div><button type="button" data-quick-close>Cerrar</button></header><div data-quick-content></div></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog><header><div><span class="smyl-inbox-eyebrow">COMPOSITOR</span><h2>Agregar emoji</h2><p>Elige un símbolo y continúa editando antes de enviar.</p></div><button type="button" data-emoji-close>Cerrar</button></header><div data-emoji-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en LANA, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-shared-dialog><header><div><span class="smyl-inbox-eyebrow">BIBLIOTECA DEL HILO</span><h2>Archivos y enlaces compartidos</h2><p>Contenido del historial real de esta conversación.</p></div><button type="button" data-shared-close>Cerrar</button></header><div data-shared-content></div></dialog>' +
         '<dialog class="smyl-inbox-operations-dialog" data-operations-dialog><header><div><span class="smyl-inbox-eyebrow">OPERACIÓN Y PILOTO</span><h2>Estado del Inbox</h2><p>Métricas del tenant, consumo y bloqueos que deben resolverse antes del piloto.</p></div><button type="button" data-operations-close aria-label="Cerrar estado operativo">Cerrar</button></header><div data-operations-content></div><footer><span>La activación del piloto siempre es manual.</span><button type="button" class="btn btn-secondary" data-operations-refresh>Actualizar estado</button></footer></dialog>' +
@@ -327,6 +405,11 @@
     var copy = node('div', '');
     copy.append(node('strong', '', state.attachment ? 'Adjunto listo' : 'Respondiendo a un mensaje'));
     copy.append(node('span', '', state.attachment ? (state.attachment.name + ' · ' + Math.max(1, Math.round(state.attachment.size / 1024)) + ' KB') : (state.replyTo.content || 'Adjunto').slice(0, 120)));
+    if (state.attachment && attachmentKind(state.attachment) === 'audio') {
+      var preview = document.createElement('audio'); preview.controls = true; preview.preload = 'metadata';
+      preview.src = URL.createObjectURL(state.attachment); preview.onloadedmetadata = function () { URL.revokeObjectURL(preview.src); };
+      copy.append(preview);
+    }
     var clear = node('button', '', 'Quitar'); clear.type = 'button'; clear.onclick = function () { state.attachment = null; state.replyTo = null; var input = document.querySelector('[data-compose-file]'); if (input) input.value = ''; renderComposerContext(); };
     box.append(copy, clear);
   }
@@ -351,7 +434,7 @@
     if (tools.childNodes.length) panel.append(tools);
     var actions = node('div', 'smyl-inbox-copilot-actions');
     var use = node('button', 'btn btn-primary btn-sm', 'Usar como borrador'); use.type = 'button';
-    use.onclick = function () { var input = document.querySelector('[name="message"]'); input.value = result.draft || ''; input.focus(); delete state.copilot[conversationId]; renderCopilotDraft(); };
+    use.onclick = function () { setComposerText(result.draft || ''); delete state.copilot[conversationId]; renderCopilotDraft(); };
     var discard = node('button', 'btn btn-secondary btn-sm', 'Descartar'); discard.type = 'button'; discard.onclick = function () { delete state.copilot[conversationId]; renderCopilotDraft(); };
     actions.append(discard, use); panel.append(actions);
   }
@@ -553,10 +636,12 @@
     var freeformAllowed = !isWhatsapp || windowState.freeform_allowed;
     var input = form.elements.message; var send = form.querySelector('[data-compose-send]');
     var attach = form.querySelector('[data-compose-attach]'); var location = form.querySelector('[data-compose-location]');
+    var record = form.querySelector('[data-compose-record]');
     var copilot = form.querySelector('[data-compose-copilot]'); var template = form.querySelector('[data-compose-template]');
     var schedule = form.querySelector('[data-compose-schedule]');
     input.disabled = !canOperate || !freeformAllowed; send.disabled = !canOperate || !freeformAllowed;
     attach.disabled = !canOperate || !freeformAllowed; location.disabled = !canOperate || !freeformAllowed || !isWhatsapp;
+    record.hidden = !isWhatsapp; record.disabled = !canOperate || !freeformAllowed;
     copilot.disabled = !canOperate || !freeformAllowed;
     template.hidden = !isWhatsapp; template.disabled = !canOperate;
     schedule.hidden = !isWhatsapp; schedule.disabled = !canOperate;
@@ -1094,9 +1179,12 @@
   }
 
   async function openConversation(id) {
+    if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true);
+    var previousId = state.selectedId; var previousInput = document.querySelector('[name="message"]');
+    if (previousId && previousInput && previousInput.value.trim()) await persistEncryptedDraft(previousId, previousInput.value.trim()).catch(function () {});
     state.selectedId = id; state.contextOpen = false; state.threadError = ''; state.replyTo = null; state.attachment = null;
     document.getElementById('p-inbox').classList.add('show-thread');
-    render();
+    render(); await restoreEncryptedDraft(id);
     loadClinicalContext(id); loadScheduled(id); await loadThread(id, false);
     var conversation = selectedConversation();
     if (conversation && conversation.unread_count) {
@@ -1153,6 +1241,70 @@
 
   function assignConversation(targetId) { return mutateConversation('assign', targetId); }
 
+  function openEmojiDialog() {
+    var dialog = document.querySelector('[data-emoji-dialog]'); var wrap = document.querySelector('[data-emoji-content]');
+    if (!dialog || !wrap) return; wrap.innerHTML = '';
+    ['🙂','😊','🙏','👍','✅','📅','⏰','📍','🦷','✨','💬','📎','📷','💙','🎉','👋'].forEach(function (emoji) {
+      var button = node('button', '', emoji); button.type = 'button'; button.setAttribute('aria-label', 'Insertar ' + emoji);
+      button.onclick = function () {
+        var input = document.querySelector('[name="message"]'); var start = input.selectionStart || input.value.length; var end = input.selectionEnd || start;
+        input.value = input.value.slice(0, start) + emoji + input.value.slice(end); input.selectionStart = input.selectionEnd = start + emoji.length;
+        scheduleDraftSave(input.value); dialog.close(); input.focus();
+      };
+      wrap.append(button);
+    });
+    dialog.showModal();
+  }
+
+  function recordingMimeType() {
+    if (!window.MediaRecorder || typeof window.MediaRecorder.isTypeSupported !== 'function') return '';
+    return ['audio/ogg;codecs=opus', 'audio/mp4', 'audio/aac', 'audio/mpeg'].find(function (type) { return window.MediaRecorder.isTypeSupported(type); }) || '';
+  }
+
+  function renderRecordingButton() {
+    var button = document.querySelector('[data-compose-record]'); if (!button) return;
+    var active = Boolean(state.recorder && state.recorder.state === 'recording'); button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.textContent = active ? 'Detener ' + Math.max(1, Math.floor((Date.now() - state.recorderStartedAt) / 1000)) + ' s' : 'Nota de voz';
+  }
+
+  function releaseRecorder() {
+    clearInterval(state.recorderTimer); state.recorderTimer = null;
+    if (state.recorderStream) state.recorderStream.getTracks().forEach(function (track) { track.stop(); });
+    state.recorderStream = null; state.recorder = null; state.recorderStartedAt = 0; renderRecordingButton();
+  }
+
+  function stopVoiceRecording(cancelled) {
+    if (!state.recorder || state.recorder.state !== 'recording') return;
+    state.recordingCancelled = Boolean(cancelled); state.recorder.stop();
+  }
+
+  async function startVoiceRecording() {
+    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !conversation.can_operate) return;
+    var windowState = liveWhatsappWindow(conversation); if (windowState && !windowState.freeform_allowed) { window.alert('La ventana de WhatsApp venció. Usa una plantilla aprobada.'); return; }
+    var mime = recordingMimeType();
+    if (!mime || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      window.alert('Este navegador no puede grabar un formato compatible con WhatsApp. Puedes adjuntar una nota de voz OGG, MP4, AAC o MP3.'); return;
+    }
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+      state.recorderStream = stream; state.recorderChunks = []; state.recordingCancelled = false;
+      var recorder = new MediaRecorder(stream, { mimeType: mime }); state.recorder = recorder;
+      recorder.ondataavailable = function (event) { if (event.data && event.data.size) state.recorderChunks.push(event.data); };
+      recorder.onstop = function () {
+        var cancelled = state.recordingCancelled; var chunks = state.recorderChunks.slice(); state.recorderChunks = []; releaseRecorder();
+        if (cancelled || !chunks.length) return;
+        var type = mime.split(';')[0]; var extension = type === 'audio/ogg' ? 'ogg' : type === 'audio/mp4' ? 'm4a' : type === 'audio/aac' ? 'aac' : 'mp3';
+        var file = new File(chunks, 'nota-de-voz-' + Date.now() + '.' + extension, { type: type });
+        chooseAttachment(file);
+      };
+      recorder.start(250); state.recorderStartedAt = Date.now(); renderRecordingButton(); state.recorderTimer = setInterval(renderRecordingButton, 1000);
+    } catch (error) { releaseRecorder(); window.alert(error && error.name === 'NotAllowedError' ? 'Permite el acceso al micrófono para grabar una nota de voz.' : 'No se pudo iniciar la grabación de audio.'); }
+  }
+
+  function toggleVoiceRecording() {
+    if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(false); else startVoiceRecording();
+  }
+
   async function submitMessage(content, key, pending, extra) {
     var conversationId = state.selectedId;
     try {
@@ -1178,13 +1330,13 @@
     if (!conversation || !conversation.can_operate) return;
     var waWindow = liveWhatsappWindow(conversation);
     if (waWindow && !waWindow.freeform_allowed) { openTemplateDialog(); return; }
-    if (state.attachment) { sendAttachment(state.attachment); input.value = ''; return; }
+    if (state.attachment) { sendAttachment(state.attachment); input.value = ''; clearEncryptedDraft(conversation.id); return; }
     if (!content) return;
     var key = uuid();
     var reply = state.replyTo;
     var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: reply.content || 'Adjunto', type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
-    input.value = ''; state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
+    input.value = ''; clearEncryptedDraft(conversation.id); state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, reply ? { reply_to_message_id: reply.id } : null);
   }
 
@@ -1315,7 +1467,7 @@
     state.quickReplies.forEach(function (item) {
       var button = node('button', 'smyl-inbox-quick-row'); button.type = 'button';
       button.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
-      button.onclick = function () { var composer = document.querySelector('[name="message"]'); composer.value = item.text; document.querySelector('[data-quick-dialog]').close(); composer.focus(); };
+      button.onclick = function () { setComposerText(item.text); document.querySelector('[data-quick-dialog]').close(); };
       content.append(button);
     });
   }
@@ -1403,6 +1555,9 @@
     page.querySelector('[data-thread-older]').addEventListener('click', function () { loadThread(state.selectedId, true); });
     page.querySelector('[data-thread-jump]').addEventListener('click', scrollThreadBottom);
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
+    page.querySelector('[name="message"]').addEventListener('input', function (event) { scheduleDraftSave(event.target.value); });
+    page.querySelector('[data-compose-emoji]').addEventListener('click', openEmojiDialog);
+    page.querySelector('[data-compose-record]').addEventListener('click', toggleVoiceRecording);
     page.querySelector('[data-compose-copilot]').addEventListener('click', function () { requestCopilot('draft'); });
     page.querySelector('[data-compose-quick]').addEventListener('click', openQuickReplies);
     page.querySelector('[data-compose-template]').addEventListener('click', openTemplateDialog);
@@ -1442,6 +1597,7 @@
     page.querySelector('[data-search-close]').addEventListener('click', function () { page.querySelector('[data-search-dialog]').close(); });
     page.querySelector('[data-shared-close]').addEventListener('click', function () { page.querySelector('[data-shared-dialog]').close(); });
     page.querySelector('[data-quick-close]').addEventListener('click', function () { page.querySelector('[data-quick-dialog]').close(); });
+    page.querySelector('[data-emoji-close]').addEventListener('click', function () { page.querySelector('[data-emoji-dialog]').close(); });
     page.querySelector('[data-context-close]').addEventListener('click', function () { state.contextOpen = false; renderContext(); });
     page.querySelector('[data-thread-body]').addEventListener('scroll', function () { if (atThreadBottom()) page.querySelector('[data-thread-jump]').hidden = true; });
 
@@ -1451,7 +1607,7 @@
       if (route === 'inbox') {
         if (!state.conversations.length) { loadList(true); loadTeam(); loadStages(); loadQuickReplies(); loadOperations(true); }
         else { sync(); loadOperations(false); }
-      } else { state.contextOpen = false; renderContext(); }
+      } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); state.contextOpen = false; renderContext(); }
     };
     renderOperationsChip(); renderNotifyButton();
     setInterval(sync, 5000);

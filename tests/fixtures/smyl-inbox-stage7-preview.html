@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SMYL Inbox etapa 7 · QA visual</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-inbox.css">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
@@ -83,7 +84,12 @@
         if (row) row.click();
         setTimeout(function () {
           var preview = new URLSearchParams(location.search);
-          if (preview.has('productivity-search')) {
+          if (preview.has('composer-draft')) {
+            // Keep the thread unobstructed so browser QA can verify encrypted draft recovery.
+          } else if (preview.has('composer-emoji')) {
+            var emoji = document.querySelector('[data-compose-emoji]');
+            if (emoji) emoji.click();
+          } else if (preview.has('productivity-search')) {
             var search = document.querySelector('[data-thread-search]');
             if (search) search.click();
           } else if (preview.has('productivity-quick')) {

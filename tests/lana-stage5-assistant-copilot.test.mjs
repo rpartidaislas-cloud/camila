@@ -29,5 +29,6 @@ test('the authenticated bridge builds dental facts server-side and never trusts 
   assert.match(edge, /\/copilot\/feedback/);
   assert.match(edge, /\/resume-context/);
   assert.doesNotMatch(ui, /tenant_id|api_key_ciphertext|SMYL_LANA_ENCRYPTION_KEY/);
-  assert.doesNotMatch(ui, /localStorage|sessionStorage/);
+  assert.doesNotMatch(ui, /localStorage/);
+  assert.match(ui, /AES-GCM/);
 });

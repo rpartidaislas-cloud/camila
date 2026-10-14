@@ -13,7 +13,9 @@ test('SMYL renders enriched messages without persisting LANA chat data in the br
   for (const feature of ['data-compose-attach', 'data-compose-location', 'smyl-inbox-quote', 'Enviar a revisión clínica', 'Ficha 360', 'data-inbox-forward']) assert.match(ui, new RegExp(feature));
   assert.match(ui, /requestForm/); assert.match(ui, /clipboardData/); assert.match(ui, /dataTransfer/);
   assert.match(css, /smyl-inbox-message-actions/); assert.match(css, /smyl-inbox-forward-dialog/);
-  assert.doesNotMatch(ui, /localStorage|sessionStorage/);
+  assert.doesNotMatch(ui, /localStorage/);
+  assert.match(ui, /AES-GCM/);
+  assert.match(ui, /ciphertext: base64Bytes/);
 });
 
 test('the bridge keeps tenant and LANA credentials server-side for media and clinical links', () => {

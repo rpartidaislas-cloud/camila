@@ -43,8 +43,8 @@ test('the UI supports idempotent scheduling, cancellation and per-chat automatio
 });
 
 test('desktop and native web bundle use the same stage 6 assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=10/);
-  assert.match(app, /smyl-inbox\.css\?v=8/);
+  assert.match(app, /smyl-inbox\.js\?v=11/);
+  assert.match(app, /smyl-inbox\.css\?v=9/);
   assert.equal(mobileApp, app);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);

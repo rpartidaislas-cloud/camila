@@ -31,13 +31,14 @@ test('reply tools are understandable and preserve human review', () => {
   for (const label of ['Sugerir con Copilot', 'Plantilla', 'Programar', 'Adjuntar', 'Ubicación']) assert.match(inbox, new RegExp(label));
   assert.match(inbox, /el equipo siempre revisa y decide el envío/);
   assert.match(styles, /smyl-inbox-message-row/);
-  assert.doesNotMatch(inbox, /localStorage|sessionStorage/);
+  assert.doesNotMatch(inbox, /localStorage/);
+  assert.match(inbox, /El borrador se cifra para esta sesión/);
 });
 
 test('web, mobile and offline bundles ship the same inbox stage', () => {
-  assert.match(app, /smyl-inbox\.css\?v=8/);
-  assert.match(app, /smyl-inbox\.js\?v=10/);
-assert.match(worker, /smyl-v221-inbox-productivity/);
+  assert.match(app, /smyl-inbox\.css\?v=9/);
+  assert.match(app, /smyl-inbox\.js\?v=11/);
+assert.match(worker, /smyl-v222-inbox-composer/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));
   assert.equal(styles, read('../mobile/www/smyl-inbox.css'));

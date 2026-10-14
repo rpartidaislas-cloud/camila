@@ -24,7 +24,7 @@ test('search and shared files stay on the authenticated LANA bridge', () => {
 test('quick replies prepare a draft and never send automatically', () => {
   assert.match(bridge, /action === "quick_replies"/);
   assert.match(inbox, /action: 'quick_replies'/);
-  assert.match(inbox, /composer\.value = item\.text/);
+  assert.match(inbox, /setComposerText\(item\.text\)/);
   assert.match(inbox, /nunca se envía automáticamente/);
   assert.doesNotMatch(inbox, /item\.text.*submitMessage/s);
 });
@@ -41,13 +41,14 @@ test('sound notices are opt-in and contain no patient persistence', () => {
   assert.match(inbox, /notificationsEnabled: false/);
   assert.match(inbox, /AudioContext/);
   assert.match(inbox, /currentUnread > previousUnread/);
-  assert.doesNotMatch(inbox, /localStorage|sessionStorage/);
+  assert.doesNotMatch(inbox, /localStorage/);
+  assert.match(inbox, /notificationsEnabled: false/);
 });
 
 test('stage 3 ships synchronized web, native and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=10/);
-  assert.match(app, /smyl-inbox\.css\?v=8/);
-  assert.match(worker, /smyl-v221-inbox-productivity/);
+  assert.match(app, /smyl-inbox\.js\?v=11/);
+  assert.match(app, /smyl-inbox\.css\?v=9/);
+  assert.match(worker, /smyl-v222-inbox-composer/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
 });
