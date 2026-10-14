@@ -65,6 +65,8 @@ propuesta dental, cita, seguimiento y consentimiento.
    tres puertas explícitas, con métricas y siguiente control para cada alerta.
 7. **Informe de cierre:** presentar un corte imprimible con decisión, evidencia,
    incidencias y límites explícitos, sin extraer conversaciones o datos clínicos.
+8. **Alertas operativas compartidas:** llevar los bloqueos y avisos del Inbox al
+   Centro de alertas de SMYL mediante un resumen seguro y accionable.
 
 La herramienta de la etapa 5 ya está implementada: el dueño controla el ciclo y
 registra evidencia de cada escenario, mientras el cierre permanece bloqueado si
@@ -80,6 +82,11 @@ clínicos que la integración todavía no mida.
 La etapa 7 añade un informe local para dirección y soporte. El documento usa
 exclusivamente métricas agregadas y la evidencia ya registrada en el piloto; no
 consulta mensajes, pacientes ni expedientes y no se almacena automáticamente.
+
+La etapa 8 integra la salud operativa del Inbox en el Centro de alertas. Los
+bloqueos críticos y los avisos se agrupan por severidad para evitar duplicados;
+al revisarlos se abre el diagnóstico canónico de Mensajes. El evento compartido
+no incluye conversaciones, evidencia del piloto, pacientes ni credenciales.
 
 ## Criterio de terminado
 

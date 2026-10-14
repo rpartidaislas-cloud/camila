@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 8, alertas operativas compartidas
+
+**El Centro de alertas ya muestra los bloqueos y avisos operativos del Inbox y
+lleva al equipo directamente al diagnóstico correspondiente.**
+
+- Los incidentes críticos y las advertencias se agrupan por severidad para que
+  una falla no produzca varias tareas repetidas.
+- La integración publica sólo código, severidad, mensaje operativo, conteo y
+  estado agregado del piloto. No transporta conversaciones, evidencia,
+  pacientes, expedientes ni credenciales.
+- La acción de cada alerta abre Mensajes y su panel de salud operativa; no
+  modifica estados ni ejecuta reintentos por sí sola.
+- No hay cambios de base de datos, migraciones ni funciones remotas en esta
+  etapa. Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v226-inbox-alerts`.
+- Pendiente deliberado: ejecutar el piloto real de clínica y documentar sus
+  cinco escenarios humanos antes de autorizar la salida.
+
 ## 2026-10-14 — Codex: Etapa 7, informe operativo del piloto
 
 **El dueño ya puede revisar e imprimir un informe del piloto preparado para

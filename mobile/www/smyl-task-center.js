@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var state={loading:false,loaded:false,tenant:null,tab:'pending',appointments:[],requests:[],reminders:[],inventory:[],messages:null,announcements:[],error:''};
+  var state={loading:false,loaded:false,tenant:null,tab:'pending',appointments:[],requests:[],reminders:[],inventory:[],messages:null,inboxOperations:null,announcements:[],error:''};
   function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;}
   function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function startDay(value){var d=new Date(value);d.setHours(0,0,0,0);return d;}
@@ -33,6 +33,11 @@
     if(clinic)list.push({rank:1,source:'Agenda',title:clinic+(clinic===1?' paciente está':' pacientes están')+' en clínica',detail:'Llegada o atención activa que requiere continuidad del equipo.',owner:'Equipo clínico',route:'agenda',action:'Abrir agenda'});
     if(overdue)list.push({rank:1,source:'Agenda',title:overdue+(overdue===1?' cita necesita':' citas necesitan')+' actualizar su estado',detail:'El horario ya pasó y la cita continúa confirmada.',owner:'Recepción',route:'agenda',action:'Revisar citas'});
     if(state.messages&&state.messages.loaded&&state.messages.total)list.push({rank:2,source:'Mensajes',title:state.messages.total+(state.messages.total===1?' conversación necesita':' conversaciones necesitan')+' atención',detail:state.messages.unread+' mensajes sin leer en la bandeja omnicanal.',owner:'Atención al paciente',route:'inbox',action:'Abrir mensajes'});
+    if(state.inboxOperations&&state.inboxOperations.loaded){
+      var inboxAlerts=state.inboxOperations.alerts||[],critical=inboxAlerts.filter(function(item){return item.severity==='critical';}),warnings=inboxAlerts.filter(function(item){return item.severity!=='critical';});
+      if(critical.length)list.push({rank:1,source:'Mensajes',title:critical.length+(critical.length===1?' bloqueo operativo':' bloqueos operativos')+' en el Inbox',detail:critical[0].message+(critical.length>1?' · '+(critical.length-1)+' adicionales.':''),owner:'Administración',route:'inbox',open:'operations',action:'Revisar operación'});
+      if(warnings.length)list.push({rank:2,source:'Mensajes',title:warnings.length+(warnings.length===1?' señal operativa requiere':' señales operativas requieren')+' revisión',detail:warnings[0].message+(warnings.length>1?' · '+(warnings.length-1)+' adicionales.':''),owner:'Administración',route:'inbox',open:'operations',action:'Ver diagnóstico'});
+    }
     if(pending)list.push({rank:2,source:'Agenda',title:pending+(pending===1?' solicitud de cita pendiente':' solicitudes de cita pendientes'),detail:'El asistente recopiló la preferencia; una persona debe confirmar.',owner:'Recepción',route:'agenda',action:'Revisar solicitudes'});
     if(reminderFailures)list.push({rank:2,source:'Agenda',title:reminderFailures+(reminderFailures===1?' recordatorio requiere':' recordatorios requieren')+' revisión',detail:'Falló el envío o venció el horario previsto.',owner:'Recepción',route:'agenda',action:'Revisar recordatorios'});
     if(noShow)list.push({rank:3,source:'Agenda',title:noShow+(noShow===1?' inasistencia requiere':' inasistencias requieren')+' seguimiento',detail:'Continúa el contacto desde la cita o desde Mensajes.',owner:'Atención al paciente',route:'agenda',action:'Dar seguimiento'});
@@ -51,8 +56,8 @@
     var host=document.querySelector('[data-task-list]');if(!host)return;
     if(state.error&&!state.loaded){host.innerHTML='<div class="task-center-state is-error"><strong>No pudimos reunir los pendientes</strong><p>'+esc(state.error)+'</p><button type="button">Intentar de nuevo</button></div>';host.querySelector('button').onclick=function(){load(true);};return;}
     if(!items.length){host.innerHTML='<div class="task-center-state"><span>✓</span><strong>No hay pendientes operativos</strong><p>Agenda, Mensajes e Inventario están al día con la información disponible para tu rol.</p></div>';return;}
-    host.innerHTML='<div class="task-center-list">'+items.map(function(item){return '<article data-priority="'+item.rank+'"><i></i><div class="task-center-copy"><div><span>'+esc(item.source)+'</span><em>Responsable: '+esc(item.owner)+'</em></div><strong>'+esc(item.title)+'</strong><p>'+esc(item.detail)+'</p></div><button type="button" data-route="'+esc(item.route)+'">'+esc(item.action)+'</button></article>';}).join('')+'</div>';
-    host.querySelectorAll('[data-route]').forEach(function(button){button.onclick=function(){route(button.dataset.route);};});
+    host.innerHTML='<div class="task-center-list">'+items.map(function(item){return '<article data-priority="'+item.rank+'"><i></i><div class="task-center-copy"><div><span>'+esc(item.source)+'</span><em>Responsable: '+esc(item.owner)+'</em></div><strong>'+esc(item.title)+'</strong><p>'+esc(item.detail)+'</p></div><button type="button" data-route="'+esc(item.route)+'"'+(item.open?' data-open="'+esc(item.open)+'"':'')+'>'+esc(item.action)+'</button></article>';}).join('')+'</div>';
+    host.querySelectorAll('[data-route]').forEach(function(button){button.onclick=function(){route(button.dataset.route);if(button.dataset.open==='operations'&&window.SmylInbox)setTimeout(window.SmylInbox.openOperations,0);};});
   }
 
   function renderAnnouncements(){
@@ -93,6 +98,10 @@
     state.appointments=results[0].status==='fulfilled'?results[0].value:[];state.requests=results[1].status==='fulfilled'?results[1].value:[];state.reminders=results[2].status==='fulfilled'?results[2].value:[];state.inventory=results[3].status==='fulfilled'?results[3].value:[];state.announcements=results[4].status==='fulfilled'?results[4].value:[];
     var coreFailed=results.slice(0,3).every(function(result){return result.status==='rejected';});if(coreFailed)state.error='Agenda no respondió. Puedes abrir cada módulo directamente o intentar nuevamente.';
     if(window.SmylLanaAttention&&typeof window.SmylLanaAttention.getSummary==='function')state.messages=window.SmylLanaAttention.getSummary();
+    if(window.SmylInbox&&typeof window.SmylInbox.getOperationsSummary==='function'){
+      state.inboxOperations=window.SmylInbox.getOperationsSummary();
+      window.SmylInbox.loadOperations(Boolean(force));
+    }
     state.loaded=true;state.loading=false;render();
     if(window.SmylLanaAttention&&state.messages&&!state.messages.loaded)window.SmylLanaAttention.load(true);
   }
@@ -105,8 +114,10 @@
   function init(){
     build();window.cargarNotificaciones=load;window.marcarTodasLeidas=markAnnouncementsRead;
     window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded)render();});
+    window.addEventListener('smyl:inbox-operations-updated',function(event){state.inboxOperations=event.detail||null;if(state.loaded)render();});
     var previous=window.ir;window.ir=function(name){var result=previous(name);if(name==='notificaciones')load(true);return result;};
     if(window.tenantId)load(false);
+    setTimeout(function(){if(window.SmylInbox&&typeof window.SmylInbox.loadOperations==='function')window.SmylInbox.loadOperations(false);},0);
   }
 
   window.SmylTaskCenter=Object.freeze({reload:function(){state.loaded=false;return load(true);}});

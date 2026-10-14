@@ -793,6 +793,24 @@
     span.textContent = status === 'healthy' ? 'Operación estable' : status === 'action_required' ? 'Requiere atención' : 'Revisar operación';
   }
 
+  function operationsSummary() {
+    var operations = state.operations;
+    if (!operations) return { loaded: false, status: state.operationsError ? 'unavailable' : 'loading', alerts: [] };
+    return {
+      loaded: true,
+      status: operations.health && operations.health.status || 'attention',
+      generated_at: operations.generated_at || null,
+      alerts: ((operations.health && operations.health.alerts) || []).map(function (item) {
+        return { code: item.code || 'operational', severity: item.severity === 'critical' ? 'critical' : 'warning', message: item.message || 'Revisa esta señal operativa.', count: Number(item.count) || 0 };
+      }),
+      pilot: { status: operations.pilot && operations.pilot.status || 'preparation', readiness: operations.pilot && operations.pilot.readiness || 'blocked', all_scenarios_passed: Boolean(operations.pilot && operations.pilot.all_scenarios_passed) },
+    };
+  }
+
+  function publishOperationsSummary() {
+    window.dispatchEvent(new CustomEvent('smyl:inbox-operations-updated', { detail: operationsSummary() }));
+  }
+
   function metricCard(label, value, note) {
     var card = node('div', 'smyl-inbox-operations-metric');
     card.append(node('span', '', label), node('strong', '', String(value)));
@@ -990,7 +1008,7 @@
     state.operationsLoading = true; state.operationsError = ''; renderOperations();
     try { state.operations = await request('GET', { action: 'operations' }, null, null, 20000); }
     catch (error) { state.operationsError = error.message || 'No se pudo calcular la salud operativa.'; }
-    finally { state.operationsLoading = false; renderOperations(); }
+    finally { state.operationsLoading = false; renderOperations(); publishOperationsSummary(); }
   }
 
   function openOperations() {
@@ -1809,6 +1827,12 @@
     setInterval(function () { if (state.selectedId) { renderWhatsappWindow(); renderContext(); } }, 60000);
   }
 
-  window.SmylInbox = { open: function (conversationId) { window.ir('inbox'); openConversation(conversationId); }, refresh: function () { loadList(true); } };
+  window.SmylInbox = {
+    open: function (conversationId) { window.ir('inbox'); openConversation(conversationId); },
+    openOperations: function () { window.ir('inbox'); openOperations(); },
+    refresh: function () { loadList(true); },
+    loadOperations: loadOperations,
+    getOperationsSummary: operationsSummary,
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
