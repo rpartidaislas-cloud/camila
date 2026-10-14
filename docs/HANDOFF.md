@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: estado vacío operativo de Agenda
+
+**La semana sin citas dejó de mostrarse como siete columnas blancas sin
+información y ahora guía a recepción con disponibilidad real.**
+
+- Cuando no hay citas ni bloqueos, Semana presenta una síntesis compacta, días
+  con cobertura, horarios configurados y una única acción principal para
+  preparar la primera cita.
+- Los días vacíos dentro de una semana ocupada distinguen `Disponible` de `Sin
+  horario`; seleccionar un horario sólo abre el formulario y conserva la
+  validación atómica al confirmar.
+- Se amplió `POLITICA_IMAGEN_SMYL.md`: los módulos operativos no usan fotografía
+  clínica, avatares fotográficos ni stock decorativo. Utilizan iniciales,
+  iconografía lineal y datos reales.
+- No hay cambios de backend. Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v228-schedule-empty-state`.
+
 ## 2026-10-14 — Codex: Agenda profesional multivista
 
 **La agenda adopta los patrones útiles del calendario de referencia sin añadir

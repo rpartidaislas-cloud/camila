@@ -39,6 +39,7 @@ const rows={
 };
 function chain(data){const api={select(){return api},eq(){return api},gte(){return api},lt(){return api},order(){return api},update(){return api},insert(){return api},then(resolve){resolve({data,error:null})}};return api;}
 window.sb={auth:{getUser:async()=>({data:{user:{id:'owner-preview'}}})},from:table=>chain(rows[table]||[]),rpc:()=>chain({})};
+if(new URLSearchParams(location.search).has('empty')){rows.smyl_appointments=[];rows.smyl_schedule_blocks=[];rows.smyl_appointment_requests=[];rows.smyl_appointment_reminders=[];}
 </script>
 <script src="../../smyl-schedule.js"></script>
 <script>addEventListener('load',()=>{ir('agenda');setTimeout(()=>{document.documentElement.dataset.previewReady='true';},220)});</script>
