@@ -235,7 +235,8 @@
         '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog><header><div><span class="smyl-inbox-eyebrow">COMPOSITOR</span><h2>Agregar emoji</h2><p>Elige un símbolo y continúa editando antes de enviar.</p></div><button type="button" data-emoji-close>Cerrar</button></header><div data-emoji-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en LANA, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-shared-dialog><header><div><span class="smyl-inbox-eyebrow">BIBLIOTECA DEL HILO</span><h2>Archivos y enlaces compartidos</h2><p>Contenido del historial real de esta conversación.</p></div><button type="button" data-shared-close>Cerrar</button></header><div data-shared-content></div></dialog>' +
-        '<dialog class="smyl-inbox-operations-dialog" data-operations-dialog><header><div><span class="smyl-inbox-eyebrow">OPERACIÓN Y PILOTO</span><h2>Estado del Inbox</h2><p>Métricas del tenant, consumo y bloqueos que deben resolverse antes del piloto.</p></div><button type="button" data-operations-close aria-label="Cerrar estado operativo">Cerrar</button></header><div data-operations-content></div><footer><span>La activación del piloto siempre es manual.</span><button type="button" class="btn btn-secondary" data-operations-refresh>Actualizar estado</button></footer></dialog>' +
+        '<dialog class="smyl-inbox-operations-dialog" data-operations-dialog><header><div><span class="smyl-inbox-eyebrow">OPERACIÓN Y PILOTO</span><h2>Estado del Inbox</h2><p>Métricas del tenant, consumo y bloqueos que deben resolverse antes del piloto.</p></div><button type="button" data-operations-close aria-label="Cerrar estado operativo">Cerrar</button></header><div data-operations-content></div><footer><span>La activación del piloto siempre es manual.</span><div><button type="button" class="btn btn-secondary" data-pilot-report disabled>Ver informe</button><button type="button" class="btn btn-secondary" data-operations-refresh>Actualizar estado</button></div></footer></dialog>' +
+        '<dialog class="smyl-inbox-report-dialog" data-pilot-report-dialog><header><div><span class="smyl-inbox-eyebrow">INFORME OPERATIVO</span><h2>Resultado del piloto</h2><p>Resumen para dirección y soporte, sin conversaciones ni datos clínicos.</p></div><button type="button" data-pilot-report-close aria-label="Cerrar informe del piloto">Cerrar</button></header><div data-pilot-report-content></div><footer><span>Revisa la evidencia antes de compartir este documento.</span><div><button type="button" class="btn btn-secondary" data-pilot-report-back>Volver al estado</button><button type="button" class="btn btn-primary" data-pilot-report-print>Imprimir o guardar PDF</button></div></footer></dialog>' +
       '</div>';
     return page;
   }
@@ -862,6 +863,7 @@
     renderOperationsChip();
     var content = document.querySelector('[data-operations-content]');
     if (!content) return;
+    var reportButton = document.querySelector('[data-pilot-report]'); if (reportButton) reportButton.disabled = !state.operations;
     content.innerHTML = '';
     if (state.operationsLoading && !state.operations) {
       content.append(node('div', 'smyl-inbox-operations-state', 'Calculando salud operativa…'));
@@ -994,6 +996,72 @@
   function openOperations() {
     var dialog = document.querySelector('[data-operations-dialog]'); if (!dialog) return;
     renderOperations(); dialog.showModal(); loadOperations(true);
+  }
+
+  function reportListItem(label, detail, passed) {
+    var row = node('li', passed ? 'is-passed' : 'is-pending');
+    row.append(node('i', '', passed ? '✓' : '!'));
+    var copy = node('div', ''); copy.append(node('strong', '', label), node('span', '', detail)); row.append(copy);
+    return row;
+  }
+
+  function renderPilotReport() {
+    var content = document.querySelector('[data-pilot-report-content]'); if (!content || !state.operations) return;
+    content.innerHTML = '';
+    var operations = state.operations; var pilot = operations.pilot || {}; var assessment = pilotDecision(operations);
+    var intro = node('section', 'smyl-inbox-report-summary');
+    intro.append(node('span', '', 'CORTE GENERADO ' + operationalTime(operations.generated_at)), node('h3', '', assessment.decision.label), node('p', '', assessment.decision.explanation));
+    var status = node('div', 'smyl-inbox-report-status is-' + assessment.decision.state, assessment.passedGates + ' de ' + assessment.gates.length + ' puertas confirmadas');
+    intro.append(status); content.append(intro);
+
+    var metrics = operations.metrics || {}; var metricGrid = node('section', 'smyl-inbox-report-metrics');
+    metricGrid.append(
+      metricCard('Conversaciones', metrics.conversations || 0, 'Total del canal canónico'),
+      metricCard('Por atender', metrics.needs_human || 0, 'Intervención humana'),
+      metricCard('Enviados', metrics.messages_sent_24h || 0, 'Últimas 24 horas'),
+      metricCard('Canales activos', (operations.channels || []).filter(function (item) { return item.connected; }).length + '/' + (operations.channels || []).length, 'Cobertura disponible'),
+      metricCard('Reintentando', metrics.scheduled_retrying || 0, 'Cola automática'),
+      metricCard('Fallos', metrics.dead_letters || 0, 'Revisión manual')
+    );
+    content.append(metricGrid);
+
+    var gatesSection = node('section', 'smyl-inbox-report-section'); gatesSection.append(node('h3', '', 'Criterios de salida'));
+    var gates = node('ul', 'smyl-inbox-report-list'); assessment.gates.forEach(function (gate) { gates.append(reportListItem(gate.label, gate.detail, gate.passed)); }); gatesSection.append(gates); content.append(gatesSection);
+
+    var evidenceSection = node('section', 'smyl-inbox-report-section'); evidenceSection.append(node('h3', '', 'Evidencia de campo'));
+    var evidence = node('ol', 'smyl-inbox-report-evidence');
+    (pilot.scenarios || []).forEach(function (scenario) {
+      var detail = scenario.passed
+        ? (scenario.evidence || 'Evidencia confirmada') + ' · ' + (scenario.checked_by || 'Equipo') + (scenario.checked_at ? ' · ' + operationalTime(scenario.checked_at) : '')
+        : 'Pendiente de realizar y documentar por el equipo.';
+      evidence.append(reportListItem(scenario.label, detail, scenario.passed));
+    });
+    evidenceSection.append(evidence); content.append(evidenceSection);
+
+    var alertsSection = node('section', 'smyl-inbox-report-section'); alertsSection.append(node('h3', '', 'Incidencias del corte'));
+    var alerts = (operations.health && operations.health.alerts) || [];
+    if (!alerts.length) alertsSection.append(node('p', 'smyl-inbox-report-empty', 'Sin alertas operativas activas en este corte.'));
+    else {
+      var alertList = node('ul', 'smyl-inbox-report-alerts'); alerts.forEach(function (item) { alertList.append(reportListItem(item.message || 'Señal operativa', alertControl(item.code), false)); }); alertsSection.append(alertList);
+    }
+    content.append(alertsSection);
+    content.append(node('p', 'smyl-inbox-report-disclaimer', 'Este informe documenta una validación operativa. No certifica resultados clínicos, cumplimiento normativo, entrega final de mensajes ni niveles de servicio. No contiene conversaciones ni datos de pacientes.'));
+  }
+
+  function openPilotReport() {
+    if (!state.operations) return;
+    renderPilotReport();
+    var operationsDialog = document.querySelector('[data-operations-dialog]'); if (operationsDialog.open) operationsDialog.close();
+    document.querySelector('[data-pilot-report-dialog]').showModal();
+  }
+
+  function printPilotReport() {
+    var content = document.querySelector('[data-pilot-report-content]'); if (!content) return;
+    var reportWindow = window.open('', '_blank');
+    if (!reportWindow) { window.alert('Permite ventanas emergentes para imprimir o guardar el informe como PDF.'); return; }
+    reportWindow.opener = null;
+    reportWindow.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · Informe operativo del piloto</title><style>body{max-width:820px;margin:0 auto;padding:36px;font-family:Arial,sans-serif;color:#173149}h1{margin:0 0 6px;font-size:26px}.meta{margin:0 0 24px;color:#607286}.smyl-inbox-report-summary{position:relative;padding:18px;border:1px solid #bfd8d2;border-radius:10px;background:#f4faf8}.smyl-inbox-report-summary>span{font-size:10px;font-weight:bold;letter-spacing:.08em;color:#5c756f}.smyl-inbox-report-summary h3{margin:7px 0 4px;font-size:20px}.smyl-inbox-report-summary p{margin:0;color:#5c6d7c}.smyl-inbox-report-status{margin-top:12px;font-weight:bold}.smyl-inbox-report-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.smyl-inbox-operations-metric{padding:12px;border:1px solid #d9e2e8;border-radius:8px}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric strong,.smyl-inbox-operations-metric small{display:block}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric small{color:#657687;font-size:11px}.smyl-inbox-operations-metric strong{margin:5px 0;font-size:20px}.smyl-inbox-report-section{margin-top:22px}.smyl-inbox-report-section h3{padding-bottom:8px;border-bottom:1px solid #dce4ea;font-size:15px}.smyl-inbox-report-list,.smyl-inbox-report-evidence,.smyl-inbox-report-alerts{padding:0;list-style:none}.smyl-inbox-report-list li,.smyl-inbox-report-evidence li,.smyl-inbox-report-alerts li{display:flex;gap:10px;margin:9px 0;padding:10px;background:#f8fafb;border-radius:7px}.smyl-inbox-report-list i,.smyl-inbox-report-evidence i,.smyl-inbox-report-alerts i{font-style:normal;font-weight:bold}.smyl-inbox-report-list strong,.smyl-inbox-report-list span,.smyl-inbox-report-evidence strong,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts strong,.smyl-inbox-report-alerts span{display:block}.smyl-inbox-report-list span,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts span{margin-top:3px;color:#657687;font-size:12px}.smyl-inbox-report-disclaimer{margin-top:24px;padding:12px;border-left:3px solid #72899a;background:#f4f7f9;color:#526474;font-size:11px;line-height:1.5}@media print{body{padding:0}@page{margin:16mm}}@media(max-width:600px){body{padding:20px}.smyl-inbox-report-metrics{grid-template-columns:1fr 1fr}}</style></head><body><h1>Informe operativo del piloto</h1><p class="meta">SMYL · Inbox conectado con LANA</p>' + content.innerHTML + '</body></html>');
+    reportWindow.document.close(); reportWindow.focus(); setTimeout(function () { reportWindow.print(); }, 250);
   }
 
   async function saveAutomation(hoursValue, windowValue) {
@@ -1708,6 +1776,10 @@
     page.querySelector('[data-inbox-notify]').addEventListener('click', toggleNotifications);
     page.querySelector('[data-operations-close]').addEventListener('click', function () { page.querySelector('[data-operations-dialog]').close(); });
     page.querySelector('[data-operations-refresh]').addEventListener('click', function () { loadOperations(true); });
+    page.querySelector('[data-pilot-report]').addEventListener('click', openPilotReport);
+    page.querySelector('[data-pilot-report-close]').addEventListener('click', function () { page.querySelector('[data-pilot-report-dialog]').close(); });
+    page.querySelector('[data-pilot-report-back]').addEventListener('click', function () { page.querySelector('[data-pilot-report-dialog]').close(); openOperations(); });
+    page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
     page.querySelector('[data-inbox-back]').addEventListener('click', function () { page.classList.remove('show-thread'); state.contextOpen = false; renderContext(); });
     page.querySelector('[data-inbox-context]').addEventListener('click', function () { state.contextOpen = true; renderContext(); });
     page.querySelector('[data-thread-pin]').addEventListener('click', function () { var conversation = selectedConversation(); if (conversation) mutateConversation(conversation.pinned ? 'unpin' : 'pin'); });

@@ -63,6 +63,8 @@ propuesta dental, cita, seguimiento y consentimiento.
    mensajes fuera de orden, pérdida de red, reconexión y verificación móvil.
 6. **Decisión operativa:** consolidar preparación, evidencia e incidentes en
    tres puertas explícitas, con métricas y siguiente control para cada alerta.
+7. **Informe de cierre:** presentar un corte imprimible con decisión, evidencia,
+   incidencias y límites explícitos, sin extraer conversaciones o datos clínicos.
 
 La herramienta de la etapa 5 ya está implementada: el dueño controla el ciclo y
 registra evidencia de cada escenario, mientras el cierre permanece bloqueado si
@@ -74,6 +76,10 @@ La etapa 6 también está implementada: SMYL calcula una lectura ejecutiva a
 partir del estado canónico de LANA y sólo muestra `listo para aprobación` cuando
 las tres puertas están confirmadas. No presenta SLA, tendencias ni resultados
 clínicos que la integración todavía no mida.
+
+La etapa 7 añade un informe local para dirección y soporte. El documento usa
+exclusivamente métricas agregadas y la evidencia ya registrada en el piloto; no
+consulta mensajes, pacientes ni expedientes y no se almacena automáticamente.
 
 ## Criterio de terminado
 

@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 7, informe operativo del piloto
+
+**El dueño ya puede revisar e imprimir un informe del piloto preparado para
+dirección o soporte sin exportar conversaciones, credenciales ni información
+clínica.**
+
+- El informe reúne el corte de operación, la decisión vigente, seis indicadores
+  agregados, las tres puertas de salida, las cinco evidencias y las incidencias
+  activas con su siguiente control.
+- La evidencia se presenta con responsable y fecha cuando LANA los proporciona;
+  las pruebas pendientes se distinguen expresamente y nunca se completan solas.
+- `Imprimir o guardar PDF` genera una vista local y revisable. No carga el
+  contenido en otro servicio ni crea una copia automática en la base de datos.
+- El documento declara sus límites: no certifica resultados clínicos,
+  cumplimiento normativo, entrega final de mensajes ni niveles de servicio.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v225-inbox-report`. El piloto real sigue pendiente de ejecución humana.
+
 ## 2026-10-14 — Codex: Etapa 6, decisión operativa del piloto
 
 **El estado del Inbox ya traduce métricas y evidencia en una decisión de salida
