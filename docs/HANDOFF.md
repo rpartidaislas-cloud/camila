@@ -23,8 +23,8 @@ enlace o código QR.
   solicitud. No copia expedientes ni se integra con LANA.
 - Web y PWA móvil quedan sincronizadas con `smyl-v230-professional-directory`.
   QA visual aprobado en escritorio y móvil, sin errores de consola.
-- Validación focalizada: 22/22. Suite completa: 143/145; permanecen los dos
-  fallos preexistentes de `lana-quick` y `quick-guided-flow`.
+- Validación final: 266/266 pruebas aprobadas. Migración y función pública
+  desplegadas; navegación publicada comprobada en GitHub Pages.
 
 **Archivos clave:** `smyl-professional-directory.js/css`, `dentista.html`,
 `supabase/migrations/20261014090000_smyl_professional_directory.sql`,
