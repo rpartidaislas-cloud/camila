@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 2, expediente y odontograma profesional
+
+**La ficha del paciente ya presenta antecedentes, odontograma, plan y
+seguimiento como un solo estado clínico operativo.**
+
+- El resumen deriva sus indicadores exclusivamente de los módulos existentes:
+  antecedentes, alertas visibles, piezas anotadas, estados en seguimiento o
+  realizados, tratamientos y evoluciones recientes. No consulta otra fuente ni
+  duplica información clínica.
+- La siguiente acción conserva un orden neutral: completar antecedentes,
+  revisar odontograma, construir plan o registrar evolución. Son accesos al
+  trabajo profesional; nunca constituyen diagnóstico o recomendación automática.
+- Cada tarjeta abre la sección correspondiente sin perder el paciente actual.
+  Las notas firmadas, permisos clínicos y controles de auditoría no cambian.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v211-patient-record-stage2`. Suite completa 203/203 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 1, Servicios y tarifas profesional
 
 **El catálogo dental ya comunica qué está listo para operar y qué requiere
