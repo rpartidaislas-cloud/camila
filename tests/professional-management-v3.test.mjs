@@ -25,17 +25,29 @@ test('el sistema visual reduce ruido y conserva jerarquía responsive',()=>{
 });
 
 test('el expediente y los tratamientos ofrecen continuidad operativa',()=>{
-  for(const action of ['Agendar cita','Tratamiento','Evolución','Cobrar','Mensaje']) assert.match(shell,new RegExp(action));
+  for(const action of ['Agendar','Cotizar','Cobrar','Evolución','Mensaje']) assert.match(shell,new RegExp(action));
   for(const step of ['Valoración','Plan','Cotización','Aceptación','Atención','Cierre']) assert.match(shell,new RegExp(step));
   assert.match(shell,/SmylSchedule\.forPatient/);
+  assert.match(shell,/SmylProposals\.forPatient/);
+  assert.match(shell,/SmylFinance\.forPatient/);
   assert.match(shell,/SmylPatient360/);
 });
 
+test('las tareas frecuentes se resuelven por proceso y paciente',()=>{
+  for(const label of ['¿Qué necesitas hacer?','Agendar cita','Preparar cotización','Registrar cobro','Selecciona al paciente','Registrar paciente nuevo']) assert.match(shell,new RegExp(label));
+  assert.match(shell,/from\('camila_pacientes'\)/);
+  assert.match(shell,/eq\('tenant_id',window\.tenantId\)/);
+  assert.match(shell,/Ninguna acción se confirma automáticamente/);
+  assert.match(styles,/\.pro-task-dialog/);
+  assert.match(styles,/\.pro-task-options/);
+  assert.match(read('./fixtures/smyl-doctor-tasks-preview.html'),/SmylCareTasks|smyl-professional-v3\.js/);
+});
+
 test('web, móvil y PWA entregan el mismo panel profesional',()=>{
-  assert.match(app,/smyl-professional-v3\.css\?v=1/);
-  assert.match(app,/smyl-professional-v3\.js\?v=1/);
+  assert.match(app,/smyl-professional-v3\.css\?v=2/);
+  assert.match(app,/smyl-professional-v3\.js\?v=2/);
   assert.match(app,/smyl-navigation\.js\?v=4/);
-  assert.match(worker,/smyl-v228-schedule-empty-state/);
+  assert.match(worker,/smyl-v229-doctor-task-flows/);
   assert.equal(shell,read('../mobile/www/smyl-professional-v3.js'));
   assert.equal(styles,read('../mobile/www/smyl-professional-v3.css'));
   assert.equal(navigation,read('../mobile/www/smyl-navigation.js'));

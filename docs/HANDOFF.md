@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: tareas clínicas simples por paciente
+
+**Agendar, cotizar y cobrar dejan de depender de que el usuario conozca la
+estructura del panel.**
+
+- Inicio y la barra superior presentan las tres tareas frecuentes en lenguaje
+  directo. El usuario elige el proceso, busca al paciente y continúa en el
+  módulo canónico con el contexto precargado.
+- El expediente ofrece accesos directos `Agendar`, `Cotizar` y `Cobrar` para el
+  paciente abierto. La cotización conserva como requisito el plan clínico
+  revisado y Caja conserva permisos, validación de saldos y confirmación.
+- El selector consulta únicamente pacientes del tenant autenticado. No copia
+  expedientes, diagnósticos ni notas dentro del lanzador y no ejecuta ninguna
+  acción automáticamente.
+- No hay cambios de backend. Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v229-doctor-task-flows`.
+
 ## 2026-10-14 — Codex: estado vacío operativo de Agenda
 
 **La semana sin citas dejó de mostrarse como siete columnas blancas sin
