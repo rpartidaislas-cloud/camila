@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 1, Servicios y tarifas profesional
+
+**El catálogo dental ya comunica qué está listo para operar y qué requiere
+atención antes de llegar a Agenda o a una cotización.**
+
+- El resumen distingue servicios listos, activos, sin precio y con revisión
+  fiscal pendiente; una barra muestra el avance real de configuración.
+- El filtro `Por completar` reúne servicios activos sin tarifa o sin revisión
+  fiscal. Cada fila etiqueta claramente `Listo para operar`, `Por completar` o
+  `Disponible`, y cambia la acción principal a `Completar` cuando corresponde.
+- La búsqueda también contempla el nombre presentado al paciente. Los usuarios
+  sin `settings.manage` reciben una vista explícita de sólo lectura.
+- No cambia el catálogo clínico, RLS ni las migraciones. Web y bundle móvil
+  están sincronizados; PWA usa `smyl-v210-service-catalog-stage1`.
+- Suite completa 199/199. QA visual a 1366, 834 y 390 px sin overflow, errores
+  de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Panel profesional de gestión v3 publicado
 
 **La experiencia completa se consolidó como un sistema de gestión dental, no
