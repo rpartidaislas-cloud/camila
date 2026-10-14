@@ -10,9 +10,9 @@ Estado al 14 de octubre de 2026.
    bloqueo de PDF activo, rutas por clínica y enlaces firmados de cinco minutos.
 4. **Ciclo de vida y eliminación — terminada.** Política de retención por tipo,
    borrado verificable, limpieza de pendientes y reescaneo conservador de legado.
-5. **Monitoreo y respuesta — siguiente.** Alertas, anomalías de acceso,
-   exportaciones trazables, runbooks e investigación de incidentes.
-6. **Validación independiente — pendiente.** Pruebas de aislamiento entre
+5. **Monitoreo y respuesta — terminada.** Señales de acceso, exportaciones
+   trazables, tablero privado, investigación documentada y runbook.
+6. **Validación independiente — siguiente.** Pruebas de aislamiento entre
    clínicas, revisión de dependencias y pentest antes de datos clínicos reales.
 
 ## Alcance de la etapa 3
@@ -48,3 +48,22 @@ La tabla de seguridad funciona como manifiesto de integridad, con MIME, tamaño 
 SHA-256 verificados. Una copia externa cifrada y una prueba periódica de
 restauración siguen siendo una dependencia operativa del proveedor; no se afirma
 que los objetos de Storage estén incluidos en los respaldos de base de datos.
+
+## Alcance de la etapa 5
+
+SMYL conserva telemetría privada y separada por clínica para cuatro familias de
+señales: nuevos entornos de acceso, volumen de exportaciones, rechazo o
+mantenimiento de archivos y cambios reiterados de privilegios. Los datos de red
+y navegador se transforman en el servidor en una huella SHA-256 con un pepper;
+no se guardan ni se devuelven direcciones IP o agentes de usuario.
+
+Los PDF clínicos, propuestas, recibos y reportes CSV de la aplicación principal
+deben registrar primero la exportación. Los identificadores se almacenan como
+huellas irreversibles y el tablero muestra únicamente conteos, severidad,
+tiempos y evidencia agregada: nunca nombres, diagnósticos o fotografías.
+
+El Centro de seguridad requiere `audit.read`. Permite poner una señal en
+investigación o resolverla con una nota, y registra esa decisión en la bitácora.
+Las alertas se presentan como indicios para verificación humana, no como una
+declaración automática de intrusión. El procedimiento operativo está en
+`docs/SMYL_SECURITY_INCIDENT_RUNBOOK.md`.

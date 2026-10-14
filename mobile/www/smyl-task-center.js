@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var state={loading:false,loaded:false,tenant:null,tab:'pending',appointments:[],requests:[],reminders:[],inventory:[],messages:null,inboxOperations:null,announcements:[],error:''};
+  var state={loading:false,loaded:false,tenant:null,tab:'pending',appointments:[],requests:[],reminders:[],inventory:[],messages:null,inboxOperations:null,security:null,announcements:[],error:''};
   function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;}
   function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function startDay(value){var d=new Date(value);d.setHours(0,0,0,0);return d;}
@@ -38,6 +38,7 @@
       if(critical.length)list.push({rank:1,source:'Mensajes',title:critical.length+(critical.length===1?' bloqueo operativo':' bloqueos operativos')+' en el Inbox',detail:critical[0].message+(critical.length>1?' · '+(critical.length-1)+' adicionales.':''),owner:'Administración',route:'inbox',open:'operations',action:'Revisar operación'});
       if(warnings.length)list.push({rank:2,source:'Mensajes',title:warnings.length+(warnings.length===1?' señal operativa requiere':' señales operativas requieren')+' revisión',detail:warnings[0].message+(warnings.length>1?' · '+(warnings.length-1)+' adicionales.':''),owner:'Administración',route:'inbox',open:'operations',action:'Ver diagnóstico'});
     }
+    if(state.security&&state.security.open){list.push({rank:state.security.high?1:2,source:'Seguridad',title:state.security.open+(state.security.open===1?' señal requiere':' señales requieren')+' revisión',detail:state.security.high?state.security.high+' de prioridad alta. Revisa y documenta la respuesta.':'Revisa la evidencia disponible y documenta la conclusión.',owner:'Administración',route:'seguridad',action:'Abrir seguridad'});}
     if(pending)list.push({rank:2,source:'Agenda',title:pending+(pending===1?' solicitud de cita pendiente':' solicitudes de cita pendientes'),detail:'El asistente recopiló la preferencia; una persona debe confirmar.',owner:'Recepción',route:'agenda',action:'Revisar solicitudes'});
     if(reminderFailures)list.push({rank:2,source:'Agenda',title:reminderFailures+(reminderFailures===1?' recordatorio requiere':' recordatorios requieren')+' revisión',detail:'Falló el envío o venció el horario previsto.',owner:'Recepción',route:'agenda',action:'Revisar recordatorios'});
     if(noShow)list.push({rank:3,source:'Agenda',title:noShow+(noShow===1?' inasistencia requiere':' inasistencias requieren')+' seguimiento',detail:'Continúa el contacto desde la cita o desde Mensajes.',owner:'Atención al paciente',route:'agenda',action:'Dar seguimiento'});
@@ -115,9 +116,11 @@
     build();window.cargarNotificaciones=load;window.marcarTodasLeidas=markAnnouncementsRead;
     window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded)render();});
     window.addEventListener('smyl:inbox-operations-updated',function(event){state.inboxOperations=event.detail||null;if(state.loaded)render();});
+    window.addEventListener('smyl:security-updated',function(event){state.security=event.detail||null;if(state.loaded)render();});
     var previous=window.ir;window.ir=function(name){var result=previous(name);if(name==='notificaciones')load(true);return result;};
     if(window.tenantId)load(false);
     setTimeout(function(){if(window.SmylInbox&&typeof window.SmylInbox.loadOperations==='function')window.SmylInbox.loadOperations(false);},0);
+    setTimeout(function(){if(window.SmylSecurity&&typeof window.SmylSecurity.loadSummary==='function')window.SmylSecurity.loadSummary();},0);
   }
 
   window.SmylTaskCenter=Object.freeze({reload:function(){state.loaded=false;return load(true);}});

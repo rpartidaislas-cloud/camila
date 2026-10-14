@@ -36,8 +36,8 @@ test('Alertas es accesible sin ocupar la barra móvil principal',()=>{
 });
 
 test('etapa 5 se distribuye en web, PWA y fixture responsive',()=>{
-  assert.match(app,/smyl-task-center\.css\?v=1/);assert.match(app,/smyl-task-center\.js\?v=2/);assert.match(app,/smyl-navigation\.js\?v=4/);assert.match(app,/smyl-daily-home\.js\?v=3/);
-assert.match(worker,/smyl-v237-file-lifecycle/);assert.match(worker,/smyl-task-center\.js\?v=2/);assert.match(styles,/@media\(max-width:700px\)/);
+  assert.match(app,/smyl-task-center\.css\?v=1/);assert.match(app,/smyl-task-center\.js\?v=3/);assert.match(app,/smyl-navigation\.js\?v=5/);assert.match(app,/smyl-daily-home\.js\?v=3/);
+assert.match(worker,/smyl-v238-security-monitoring/);assert.match(worker,/smyl-task-center\.js\?v=3/);assert.match(styles,/@media\(max-width:700px\)/);
   assert.match(read('./fixtures/smyl-task-center-stage5-preview.html'),/smyl-task-center\.js/);
   assert.equal(script,read('../mobile/www/smyl-task-center.js'));assert.equal(styles,read('../mobile/www/smyl-task-center.css'));
 });

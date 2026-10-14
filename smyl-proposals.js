@@ -128,6 +128,7 @@
     try{
       var row=await checked(sb.rpc('smyl_proposal_for_export',{p_id:current.row.id,p_revision:current.row.revision}));if(Array.isArray(row))row=row[0];
       if(!row||row.id!==current.row.id||row.tenant_id!==current.tenant||row.status!=='approved'||row.revision!==current.row.revision)throw new Error('Unconfirmed export');
+      await window.SmylSecurity.recordExport({export_type:'proposal_pdf',entity_type:'proposal',entity_id:row.id,record_count:1,purpose:'patient_copy'});
       var assets=await assetsFor(row,current,false);if(ctx!==current)return;
       var print=document.getElementById('proposal-print');print.replaceChildren(SmylProposalPrint.render(row,assets,true));
       await Promise.all(Array.from(print.querySelectorAll('img')).map(function(img){return img.decode();}));

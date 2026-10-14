@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 5 de monitoreo y respuesta
+
+**SMYL ya detecta señales, registra exportaciones y guía la respuesta sin exponer PHI.**
+
+- `20261014170000_smyl_security_monitoring.sql` crea bitácoras privadas para
+  huellas de acceso, exportaciones y señales. Todas tienen RLS, cero permisos
+  directos para navegador y operaciones exclusivas de `service_role`.
+- `security-monitor` exige sesión real y deriva actor y clínica en servidor. La
+  IP y el agente del navegador sólo se usan en memoria para una huella SHA-256
+  con pepper; nunca se persisten ni regresan al cliente.
+- Se observan varios entornos por usuario, exportaciones concentradas, archivos
+  rechazados, errores de mantenimiento, legado pendiente y cambios repetidos de
+  roles. Son señales de revisión, no afirmaciones automáticas de intrusión.
+- PDF clínico, propuesta PDF, recibo y reporte CSV registran la exportación antes
+  de crear el documento. Los identificadores de entidad se guardan como hashes.
+- `smyl-security-center.js/css` agrega Seguridad a la configuración, muestra
+  métricas y señales, y permite investigar o resolver con nota auditada. Las
+  señales abiertas también llegan al Centro de alertas.
+- `docs/SMYL_SECURITY_INCIDENT_RUNBOOK.md` documenta contención, verificación,
+  preservación, corrección, cierre y escalamiento sin copiar datos clínicos.
+- Web y móvil están sincronizados en `smyl-v238-security-monitoring`.
+
+**Siguiente etapa:** validación independiente: aislamiento entre clínicas,
+dependencias, matriz de abuso y pentest antes de usar datos clínicos reales.
+
 ## 2026-10-14 — Codex: seguridad, etapa 4 de ciclo de vida
 
 **SMYL limpia cargas abandonadas sin borrar evidencia clínica vinculada.**
