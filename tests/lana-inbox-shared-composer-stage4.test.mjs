@@ -36,9 +36,9 @@ test('voice notes require WhatsApp, a compatible recording format and explicit s
 });
 
 test('stage 4 ships synchronized web, mobile and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=11/);
-  assert.match(app, /smyl-inbox\.css\?v=9/);
-  assert.match(worker, /smyl-v222-inbox-composer/);
+  assert.match(app, /smyl-inbox\.js\?v=12/);
+  assert.match(app, /smyl-inbox\.css\?v=10/);
+  assert.match(worker, /smyl-v223-inbox-pilot/);
   assert.equal(inbox, mobileInbox);
   assert.equal(css, mobileCss);
 });

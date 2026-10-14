@@ -62,6 +62,12 @@ propuesta dental, cita, seguimiento y consentimiento.
 5. **Piloto profesional:** pruebas con tráfico real, dos usuarios simultáneos,
    mensajes fuera de orden, pérdida de red, reconexión y verificación móvil.
 
+La herramienta de la etapa 5 ya está implementada: el dueño controla el ciclo y
+registra evidencia de cada escenario, mientras el cierre permanece bloqueado si
+la salud técnica se degrada o falta alguna comprobación. La ejecución con una
+clínica y dispositivos reales sigue siendo una validación operativa pendiente;
+no se sustituye con datos simulados ni con una afirmación automática.
+
 ## Criterio de terminado
 
 La paridad se considera completa cuando una operación admitida por LANA puede

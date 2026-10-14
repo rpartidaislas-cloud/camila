@@ -24,7 +24,7 @@ test('SMYL bridge exposes tenant operations and safe scheduled retry without pro
 test('operations view surfaces alerts, consumption, channels and the manual pilot gate', () => {
   assert.match(inbox, /Estado del Inbox/);
   assert.match(inbox, /Consumo de IA/);
-  assert.match(inbox, /Puerta del piloto/);
+  assert.match(inbox, /Piloto profesional/);
   assert.match(inbox, /activación del piloto/);
   assert.match(inbox, /Operación estable/);
   assert.match(inbox, /Requiere atención/);
@@ -42,9 +42,9 @@ test('scheduled rows distinguish automatic retry, dead letter and unsafe deliver
 });
 
 test('desktop and native bundle share stage 7 assets and cache version', () => {
-  assert.match(app, /smyl-inbox\.js\?v=11/);
-  assert.match(app, /smyl-inbox\.css\?v=9/);
-assert.match(sw, /smyl-v222-inbox-composer/);
+  assert.match(app, /smyl-inbox\.js\?v=12/);
+  assert.match(app, /smyl-inbox\.css\?v=10/);
+assert.match(sw, /smyl-v223-inbox-pilot/);
   assert.equal(mobileApp, app);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
@@ -53,7 +53,8 @@ assert.match(sw, /smyl-v222-inbox-composer/);
 test('stage 7 preview contains responsive operational states without clinical filler', () => {
   assert.match(preview, /action === 'operations'/);
   assert.match(preview, /used_percent:25\.8/);
-  assert.match(preview, /readiness:'blocked'/);
+  assert.match(preview, /readiness:'ready'/);
+  assert.match(preview, /status:'active'/);
   assert.match(preview, /qa-mobile/);
   assert.match(preview, /qa-tablet/);
 });

@@ -11,7 +11,7 @@
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
     scheduled: {}, scheduledLoading: {},
-    operations: null, operationsLoading: false, operationsError: '',
+    operations: null, operationsLoading: false, operationsError: '', pilotLoading: false,
     quickReplies: [], quickRepliesLoaded: false, quickRepliesLoading: false,
     bulkMode: false, bulkSelected: new Set(), bulkRunning: false,
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
@@ -799,6 +799,22 @@
     return card;
   }
 
+  function pilotStatusLabel(status) {
+    return status === 'active' ? 'Piloto activo' : status === 'paused' ? 'Piloto pausado' : status === 'completed' ? 'Piloto completado' : 'En preparación';
+  }
+
+  async function mutatePilot(action, scenarioId, evidence) {
+    if (state.pilotLoading) return;
+    state.pilotLoading = true; renderOperations();
+    try {
+      await request('POST', {}, { action: 'pilot', pilot_action: action, scenario_id: scenarioId || null, evidence: evidence || null }, uuid(), 20000);
+      state.operations = null;
+      await loadOperations(true);
+    } catch (error) {
+      window.alert(error.message || 'No se pudo actualizar el piloto.');
+    } finally { state.pilotLoading = false; renderOperations(); }
+  }
+
   function renderOperations() {
     renderOperationsChip();
     var content = document.querySelector('[data-operations-content]');
@@ -856,11 +872,52 @@
     channels.append(channelList); content.append(channels);
 
     var pilot = operations.pilot || {}; var pilotSection = node('section', 'smyl-inbox-operations-section smyl-inbox-pilot');
-    pilotSection.append(node('h3', '', 'Puerta del piloto'));
+    var pilotHead = node('div', 'smyl-inbox-pilot-head');
+    pilotHead.append(node('h3', '', 'Piloto profesional'), node('span', 'smyl-inbox-pilot-status is-' + (pilot.status || 'preparation'), pilotStatusLabel(pilot.status)));
+    pilotSection.append(pilotHead);
     pilotSection.append(node('p', '', pilot.readiness === 'ready' ? 'La configuración técnica está lista para iniciar una validación controlada con una clínica.' : 'Resuelve los puntos pendientes antes de activar una clínica piloto.'));
+    pilotSection.append(node('small', 'smyl-inbox-pilot-safety', 'Estas comprobaciones no envían mensajes ni simulan evidencia: registra únicamente pruebas realizadas por el equipo en dispositivos reales.'));
     var checklist = node('div', 'smyl-inbox-pilot-checks');
     (pilot.checks || []).forEach(function (item) { var row = node('div', item.passed ? 'is-ready' : 'is-blocked'); row.append(node('i', '', item.passed ? 'Listo' : 'Pendiente'), node('span', '', item.label)); checklist.append(row); });
-    pilotSection.append(checklist); content.append(pilotSection);
+    pilotSection.append(checklist);
+
+    if (pilot.status !== 'preparation') {
+      var tests = node('div', 'smyl-inbox-pilot-tests');
+      (pilot.scenarios || []).forEach(function (scenario) {
+        var row = node('article', 'smyl-inbox-pilot-test' + (scenario.passed ? ' is-passed' : ''));
+        var copy = node('div', ''); copy.append(node('strong', '', scenario.label), node('p', '', scenario.description));
+        if (scenario.passed) copy.append(node('small', '', 'Confirmado por ' + (scenario.checked_by || 'el equipo') + (scenario.evidence ? ' · ' + scenario.evidence : '')));
+        row.append(copy);
+        if (operations.actor && operations.actor.role === 'owner' && pilot.status === 'active') {
+          var form = node('form', 'smyl-inbox-pilot-evidence');
+          var input = document.createElement('input'); input.type = 'text'; input.maxLength = 500; input.required = true; input.minLength = 8;
+          input.placeholder = scenario.passed ? 'Actualizar evidencia…' : 'Evidencia breve de la prueba…'; input.setAttribute('aria-label', 'Evidencia de ' + scenario.label);
+          var verify = node('button', 'btn btn-secondary btn-sm', scenario.passed ? 'Revalidar' : 'Confirmar prueba'); verify.type = 'submit'; verify.disabled = state.pilotLoading;
+          form.append(input, verify); form.onsubmit = function (event) { event.preventDefault(); mutatePilot('verify', scenario.id, input.value.trim()); };
+          row.append(form);
+        } else row.append(node('span', 'smyl-inbox-pilot-result', scenario.passed ? 'Aprobada' : 'Pendiente'));
+        tests.append(row);
+      });
+      pilotSection.append(tests);
+    }
+
+    var canManagePilot = operations.actor && operations.actor.role === 'owner';
+    if (canManagePilot) {
+      var actions = node('div', 'smyl-inbox-pilot-actions');
+      if (pilot.status === 'preparation') {
+        var start = node('button', 'btn btn-primary', state.pilotLoading ? 'Iniciando…' : 'Iniciar piloto controlado'); start.type = 'button'; start.disabled = state.pilotLoading || pilot.readiness !== 'ready'; start.onclick = function () { mutatePilot('start'); }; actions.append(start);
+      } else if (pilot.status === 'active') {
+        var pause = node('button', 'btn btn-secondary', 'Pausar piloto'); pause.type = 'button'; pause.disabled = state.pilotLoading; pause.onclick = function () { mutatePilot('pause'); };
+        var complete = node('button', 'btn btn-primary', 'Cerrar piloto aprobado'); complete.type = 'button'; complete.disabled = state.pilotLoading || !pilot.all_scenarios_passed || pilot.readiness !== 'ready'; complete.onclick = function () { if (window.confirm('¿Cerrar el piloto como aprobado?')) mutatePilot('complete'); };
+        actions.append(pause, complete);
+      } else if (pilot.status === 'paused') {
+        var resume = node('button', 'btn btn-primary', 'Reanudar piloto'); resume.type = 'button'; resume.disabled = state.pilotLoading; resume.onclick = function () { mutatePilot('resume'); }; actions.append(resume);
+      } else if (pilot.status === 'completed') {
+        var reset = node('button', 'btn btn-secondary', 'Preparar nueva validación'); reset.type = 'button'; reset.disabled = state.pilotLoading; reset.onclick = function () { if (window.confirm('¿Crear un nuevo ciclo de validación?')) mutatePilot('reset'); }; actions.append(reset);
+      }
+      pilotSection.append(actions);
+    } else pilotSection.append(node('p', 'smyl-inbox-pilot-readonly', 'Seguimiento de solo lectura. El dueño de la clínica registra y aprueba las pruebas.'));
+    content.append(pilotSection);
   }
 
   async function loadOperations(force) {
@@ -978,7 +1035,7 @@
     pinButton.onclick = function () { mutateConversation(conversation.pinned ? 'unpin' : 'pin'); };
     organization.append(pinButton);
     var sharedButton = node('button', 'btn btn-secondary btn-sm', 'Ver archivos compartidos');
-    sharedButton.type = 'button'; sharedButton.onclick = openSharedDialog;
+    sharedButton.type = 'button'; sharedButton.onclick = openSharedItems;
     organization.append(sharedButton); wrap.append(organization);
 
     var assistant = node('section', 'smyl-inbox-context-card'); assistant.append(node('h3', '', 'SMYL Asistente'));

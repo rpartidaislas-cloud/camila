@@ -268,6 +268,21 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const action = text(body.action, 30);
+    if (action === "pilot") {
+      if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede aprobar el piloto." });
+      const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
+      if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      const pilotAction = text(body.pilot_action, 20);
+      const forwarded: Record<string, unknown> = { action: pilotAction };
+      if (pilotAction === "verify") {
+        forwarded.scenario_id = text(body.scenario_id, 40);
+        forwarded.evidence = text(body.evidence, 500);
+      }
+      const remote = await lanaRequest(auth.tenantId, "/inbox/pilot", {
+        method: "POST", headers: actorHeaders(actor, idempotencyKey), body: JSON.stringify(forwarded),
+      }, 20000);
+      return json(remote.response.status, { ...remote.body, actor });
+    }
     const conversationId = uuid(body.conversation_id);
     if (!conversationId) return json(400, { error: "Conversación no válida." });
     if (action === "clinical_link") {

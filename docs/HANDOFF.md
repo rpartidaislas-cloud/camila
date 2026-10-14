@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 5, piloto profesional del Inbox
+
+**Mensajes ya incorpora un ciclo de validación controlado, persistente y
+exclusivo del dueño para llevar la integración SMYL–LANA a una clínica real sin
+confundir pruebas automáticas con evidencia humana.**
+
+- El dueño puede iniciar, pausar, reanudar, cerrar y reiniciar un piloto sólo
+  cuando la puerta técnica está lista. El resto del equipo ve el avance en modo
+  de sólo lectura.
+- El cierre exige cinco comprobaciones con evidencia breve: tráfico real,
+  operación simultánea de dos usuarios, mensajes fuera de orden, pérdida y
+  recuperación de red, y uso desde un dispositivo móvil real.
+- La interfaz declara que no envía mensajes de prueba ni fabrica evidencia. El
+  estado se guarda en la configuración privada de LANA, conserva las últimas
+  claves idempotentes y evita sobrescribir cambios concurrentes del tenant.
+- Se corrigió además el acceso contextual a Archivos compartidos, que apuntaba
+  a un nombre de función inexistente y generaba un error al abrir un hilo.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v223-inbox-pilot`. Suite SMYL 246/246, pruebas enfocadas del puente
+  LANA 26/26, build de LANA correcto y QA visual en escritorio, tableta y móvil
+  sin overflow ni errores de consola.
+- Pendiente deliberado: ejecutar y documentar las cinco pruebas con una clínica,
+  dos usuarios y dispositivos reales. El software no las marca por sí solo.
+
 ## 2026-10-14 — Codex: Etapa 4, compositor compartido del Inbox
 
 **Mensajes ya ofrece un compositor profesional alineado con las capacidades

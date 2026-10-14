@@ -29,6 +29,11 @@ test('quick replies prepare a draft and never send automatically', () => {
   assert.doesNotMatch(inbox, /item\.text.*submitMessage/s);
 });
 
+test('the context shortcut opens the same shared-files dialog as the thread header', () => {
+  assert.doesNotMatch(inbox, /openSharedDialog/);
+  assert.match(inbox, /sharedButton\.onclick = openSharedItems/);
+});
+
 test('bulk work is limited to assignment and stage changes', () => {
   assert.match(inbox, /applyBulkAction\('assign'/);
   assert.match(inbox, /applyBulkAction\('stage'/);
@@ -46,9 +51,9 @@ test('sound notices are opt-in and contain no patient persistence', () => {
 });
 
 test('stage 3 ships synchronized web, native and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=11/);
-  assert.match(app, /smyl-inbox\.css\?v=9/);
-  assert.match(worker, /smyl-v222-inbox-composer/);
+  assert.match(app, /smyl-inbox\.js\?v=12/);
+  assert.match(app, /smyl-inbox\.css\?v=10/);
+  assert.match(worker, /smyl-v223-inbox-pilot/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
 });
