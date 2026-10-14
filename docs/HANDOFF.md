@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Agenda profesional multivista
+
+**La agenda adopta los patrones útiles del calendario de referencia sin añadir
+React ni sustituir el contrato clínico existente.**
+
+- Recepción puede alternar entre Mes, Semana, Día y Lista. Mes permite saltar
+  al día; Lista agrupa las próximas dos semanas; Día organiza horarios por
+  profesional.
+- Los horarios de Día son seleccionables y preparan el formulario con fecha y
+  profesional. Ningún clic reserva directamente: la confirmación conserva el
+  RPC atómico, permisos, disponibilidad, duración y control de traslapes.
+- Las citas muestran iniciales, servicio, espacio, responsable y estado con un
+  acento visual consistente por profesional, sin imágenes externas.
+- No hay cambios de base de datos ni funciones remotas. Web y bundle móvil
+  están sincronizados; PWA usa `smyl-v227-schedule-multiview`.
+
 ## 2026-10-14 — Codex: Etapa 8, alertas operativas compartidas
 
 **El Centro de alertas ya muestra los bloqueos y avisos operativos del Inbox y

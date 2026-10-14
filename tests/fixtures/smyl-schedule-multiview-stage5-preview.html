@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Agenda multivista QA</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../smyl-schedule.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6f2;color:#203b3b;font-family:Inter,Arial,sans-serif}.shell{display:grid;grid-template-columns:218px minmax(0,1fr);min-height:100vh}.side{background:#183a39;color:#fff;padding:28px 18px}.side b{font-size:24px;letter-spacing:.12em}.side small{display:block;opacity:.55;margin-top:4px}.side nav{display:grid;gap:5px;margin-top:42px}.side span{padding:11px;border-radius:9px;font-size:13px;opacity:.7}.side .active{background:#e9f4ee;color:#173d3a;opacity:1}.main{min-width:0;padding:30px}.contenido{min-width:0}.pantalla{display:none}.pantalla.activa{display:block}.pro-eyebrow{font-size:10px;letter-spacing:.11em;color:#568078}.btn{min-height:40px;border:1px solid #c8d6cf;border-radius:9px;padding:0 15px;background:#fff;color:#315751;font-weight:650}.btn-primary{background:#255f59;color:#fff;border-color:#255f59}@media(max-width:760px){.shell{display:block}.side{display:none}.main{padding:18px 14px 72px}}
+  </style>
+</head>
+<body><div class="shell"><aside class="side"><b>SMYL</b><small>Panel profesional</small><nav class="pro-primary-nav"><span>Inicio</span><span class="active">Agenda</span><span>Pacientes</span><span>Mensajes</span></nav></aside><main class="main smyl-professional"><div class="contenido"></div></main></div><nav class="pro-mobile-nav"></nav>
+<script>
+window.tenantId='tenant-preview';window.miRolEquipo='dueño';window.TITULOS={};window.sbTimeout=x=>x;
+window.ir=function(route){document.querySelectorAll('.pantalla').forEach(x=>x.classList.toggle('activa',x.id==='p-'+route));};
+const now=new Date(),at=(offset,h,m=0)=>{const d=new Date(now);d.setDate(d.getDate()+offset);d.setHours(h,m,0,0);return d.toISOString();};
+const rows={
+  smyl_branches:[{id:'br1',name:'Clínica Centro',timezone:'America/Mexico_City',is_default:true,active:true}],
+  smyl_rooms:[{id:'room1',branch_id:'br1',name:'Consultorio 1',active:true},{id:'room2',branch_id:'br1',name:'Sillón 2',active:true}],
+  smyl_professionals:[{id:'pro1',display_name:'Dra. Elena Ruiz',specialty:'Rehabilitación oral',color_token:'teal',active:true},{id:'pro2',display_name:'Dr. Mateo León',specialty:'Ortodoncia',color_token:'blue',active:true},{id:'pro3',display_name:'Dra. Sofía Paz',specialty:'Odontología general',color_token:'violet',active:true}],
+  smyl_professional_branches:[{professional_id:'pro1',branch_id:'br1'},{professional_id:'pro2',branch_id:'br1'},{professional_id:'pro3',branch_id:'br1'}],
+  smyl_services:[{id:'svc1',name:'Valoración integral',category:'Diagnóstico',duration_minutes:60,reference_price:900,active:true},{id:'svc2',name:'Limpieza dental',category:'Prevención',duration_minutes:45,reference_price:1200,active:true},{id:'svc3',name:'Control de ortodoncia',category:'Ortodoncia',duration_minutes:30,reference_price:850,active:true}],
+  smyl_professional_services:[{professional_id:'pro1',service_id:'svc1'},{professional_id:'pro1',service_id:'svc2'},{professional_id:'pro2',service_id:'svc3'},{professional_id:'pro3',service_id:'svc1'},{professional_id:'pro3',service_id:'svc2'}],
+  smyl_professional_hours:[{id:'h1',professional_id:'pro1',branch_id:'br1',weekday:now.getDay(),starts_at:'08:00',ends_at:'18:00',active:true},{id:'h2',professional_id:'pro2',branch_id:'br1',weekday:now.getDay(),starts_at:'09:00',ends_at:'19:00',active:true}],
+  smyl_clinic_hours:[{branch_id:'br1',weekday:now.getDay(),starts_at:'08:00',ends_at:'20:00',active:true}],
+  camila_pacientes:[{id:'pat1',nombre:'Ana',apellido:'López'},{id:'pat2',nombre:'Carlos',apellido:'Méndez'},{id:'pat3',nombre:'Mariana',apellido:'Torres'},{id:'pat4',nombre:'Luis',apellido:'Vega'}],
+  smyl_appointments:[
+    {id:'a1',patient_id:'pat1',professional_id:'pro1',service_id:'svc2',branch_id:'br1',room_id:'room1',starts_at:at(0,9),ends_at:at(0,9,45),status:'confirmed',updated_at:now.toISOString()},
+    {id:'a2',patient_id:'pat2',professional_id:'pro2',service_id:'svc3',branch_id:'br1',room_id:'room2',starts_at:at(0,10,30),ends_at:at(0,11),status:'arrived',updated_at:now.toISOString()},
+    {id:'a3',patient_id:'pat3',professional_id:'pro1',service_id:'svc1',branch_id:'br1',room_id:'room1',starts_at:at(0,12),ends_at:at(0,13),status:'in_progress',updated_at:now.toISOString()},
+    {id:'a4',patient_id:'pat4',professional_id:'pro3',service_id:'svc1',branch_id:'br1',room_id:'room2',starts_at:at(0,15),ends_at:at(0,16),status:'confirmed',updated_at:now.toISOString()},
+    {id:'a5',patient_id:'pat1',professional_id:'pro2',service_id:'svc3',branch_id:'br1',room_id:'room2',starts_at:at(1,11),ends_at:at(1,11,30),status:'confirmed',updated_at:now.toISOString()},
+    {id:'a6',patient_id:'pat2',professional_id:'pro3',service_id:'svc2',branch_id:'br1',room_id:'room1',starts_at:at(3,16),ends_at:at(3,16,45),status:'confirmed',updated_at:now.toISOString()}
+  ],
+  smyl_schedule_blocks:[{id:'b1',professional_id:'pro1',branch_id:'br1',room_id:'room1',starts_at:at(1,13),ends_at:at(1,14),reason:'Reunión clínica',active:true}],
+  smyl_appointment_requests:[{id:'req1',patient_id:'pat4',service_id:'svc1',preferred_branch_id:'br1',requested_start:at(2,12),patient_message:'Prefiere horario de mediodía.',status:'pending'}],
+  smyl_appointment_reminders:[{id:'rem1',appointment_id:'a1',scheduled_for:at(0,8),status:'sent',delivery_channel:'preferred',reminder_type:'2h'}],
+  smyl_role_permissions:[],smyl_member_roles:[]
+};
+function chain(data){const api={select(){return api},eq(){return api},gte(){return api},lt(){return api},order(){return api},update(){return api},insert(){return api},then(resolve){resolve({data,error:null})}};return api;}
+window.sb={auth:{getUser:async()=>({data:{user:{id:'owner-preview'}}})},from:table=>chain(rows[table]||[]),rpc:()=>chain({})};
+</script>
+<script src="../../smyl-schedule.js"></script>
+<script>addEventListener('load',()=>{ir('agenda');setTimeout(()=>{document.documentElement.dataset.previewReady='true';},220)});</script>
+</body></html>
