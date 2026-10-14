@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 6, decisión operativa del piloto
+
+**El estado del Inbox ya traduce métricas y evidencia en una decisión de salida
+comprensible para el dueño de la clínica, sin inventar SLA ni completar pruebas
+humanas automáticamente.**
+
+- El panel separa tres puertas verificables: preparación técnica, cinco pruebas
+  reales en clínica y ausencia de incidentes críticos.
+- Una lectura ejecutiva muestra avance, fecha de actualización y estados `no
+  apto`, `en curso`, `pausado`, `listo para aprobación` o `aprobado`.
+- Los indicadores resumen conversaciones por atender, envíos recientes,
+  evidencias, canales activos, reintentos y cola de fallos usando únicamente el
+  estado canónico entregado por LANA.
+- Cada alerta incorpora el siguiente control recomendado. No reenvía mensajes,
+  resuelve incidentes ni afirma tiempos de respuesta que el sistema no mida.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v224-inbox-operations`. La ejecución real del piloto continúa pendiente
+  hasta que una clínica documente las cinco pruebas en dispositivos reales.
+
 ## 2026-10-14 — Codex: Etapa 5, piloto profesional del Inbox
 
 **Mensajes ya incorpora un ciclo de validación controlado, persistente y

@@ -803,6 +803,49 @@
     return status === 'active' ? 'Piloto activo' : status === 'paused' ? 'Piloto pausado' : status === 'completed' ? 'Piloto completado' : 'En preparación';
   }
 
+  function operationalTime(value) {
+    if (!value) return 'Sin actualización';
+    var date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Sin actualización';
+    return date.toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function pilotDecision(operations) {
+    var health = operations.health || {}; var pilot = operations.pilot || {};
+    var checks = pilot.checks || []; var scenarios = pilot.scenarios || [];
+    var technicalPassed = checks.filter(function (item) { return item.passed; }).length;
+    var evidencePassed = scenarios.filter(function (item) { return item.passed; }).length;
+    var criticalAlerts = (health.alerts || []).filter(function (item) { return item.severity === 'critical'; }).length;
+    var gates = [
+      { label: 'Puerta técnica', detail: technicalPassed + ' de ' + checks.length + ' controles', passed: checks.length > 0 && technicalPassed === checks.length },
+      { label: 'Pruebas en clínica', detail: evidencePassed + ' de ' + scenarios.length + ' evidencias', passed: scenarios.length > 0 && evidencePassed === scenarios.length },
+      { label: 'Incidentes críticos', detail: criticalAlerts ? criticalAlerts + ' por resolver' : 'Ninguno activo', passed: criticalAlerts === 0 },
+    ];
+    var passedGates = gates.filter(function (item) { return item.passed; }).length;
+    var decision = { state: 'blocked', label: 'No apto para aprobación', explanation: 'Resuelve los controles pendientes antes de cerrar el piloto.' };
+    if (pilot.status === 'completed' && gates.every(function (item) { return item.passed; })) decision = { state: 'approved', label: 'Piloto aprobado', explanation: 'Las tres puertas permanecen confirmadas por el equipo.' };
+    else if (pilot.status === 'completed') decision = { state: 'blocked', label: 'Aprobado con atención pendiente', explanation: 'El piloto fue cerrado, pero la operación actual requiere una nueva revisión.' };
+    else if (pilot.status === 'paused') decision = { state: 'paused', label: 'Validación pausada', explanation: 'Reanuda el piloto cuando el equipo pueda continuar las pruebas.' };
+    else if (gates.every(function (item) { return item.passed; })) decision = { state: 'ready', label: 'Listo para aprobación', explanation: 'El dueño puede revisar la evidencia y cerrar el piloto.' };
+    else if (pilot.status === 'active') decision = { state: 'progress', label: 'Validación en curso', explanation: 'Completa la evidencia faltante y mantén la operación sin bloqueos.' };
+    else if (pilot.readiness === 'ready') decision = { state: 'ready', label: 'Listo para iniciar', explanation: 'La puerta técnica permite comenzar la validación en clínica.' };
+    return { decision: decision, gates: gates, passedGates: passedGates, technicalPassed: technicalPassed, evidencePassed: evidencePassed };
+  }
+
+  function alertControl(code) {
+    var controls = {
+      no_channel: 'Conecta y verifica un canal de la clínica.',
+      training_missing: 'Publica la capacitación dental vigente.',
+      dead_letters: 'Revisa la cola de fallos antes de continuar.',
+      unknown_delivery: 'Confirma el resultado con el proveedor; no reenvíes a ciegas.',
+      queue_overdue: 'Comprueba el worker y actualiza nuevamente el estado.',
+      ai_limit: 'Amplía o espera la renovación del límite antes de usar IA.',
+      ai_near_limit: 'Planifica capacidad antes de ampliar el piloto.',
+      rate_limited: 'Reduce la cadencia y revisa los límites temporales.',
+    };
+    return controls[code] || 'Revisa la señal con la persona responsable de operación.';
+  }
+
   async function mutatePilot(action, scenarioId, evidence) {
     if (state.pilotLoading) return;
     state.pilotLoading = true; renderOperations();
@@ -832,15 +875,34 @@
     var operations = state.operations;
     if (!operations) return;
     var health = operations.health || {}; var alerts = health.alerts || []; var metrics = operations.metrics || {};
+    var pilot = operations.pilot || {}; var assessment = pilotDecision(operations);
     var summary = node('section', 'smyl-inbox-operations-summary is-' + (health.status || 'attention'));
     summary.append(node('strong', '', health.status === 'healthy' ? 'Operación estable' : health.status === 'action_required' ? 'Hay bloqueos antes del piloto' : 'Hay puntos por revisar'));
     summary.append(node('p', '', alerts.length ? alerts.length + (alerts.length === 1 ? ' señal operativa activa.' : ' señales operativas activas.') : 'No hay alertas operativas abiertas.'));
     content.append(summary);
 
+    var decisionPanel = node('section', 'smyl-inbox-decision is-' + assessment.decision.state);
+    var decisionCopy = node('div', 'smyl-inbox-decision-copy');
+    decisionCopy.append(node('span', '', 'DECISIÓN DE PILOTO'), node('strong', '', assessment.decision.label), node('p', '', assessment.decision.explanation));
+    var decisionProgress = node('div', 'smyl-inbox-decision-progress');
+    var progressValue = assessment.gates.length ? Math.round((assessment.passedGates / assessment.gates.length) * 100) : 0;
+    var progressRing = node('div', 'smyl-inbox-decision-ring'); progressRing.style.setProperty('--progress', progressValue + '%');
+    progressRing.append(node('strong', '', progressValue + '%'), node('span', '', 'puertas'));
+    decisionProgress.append(progressRing, node('small', '', 'Actualizado ' + operationalTime(operations.generated_at)));
+    decisionPanel.append(decisionCopy, decisionProgress);
+    var gateList = node('div', 'smyl-inbox-decision-gates');
+    assessment.gates.forEach(function (gate) {
+      var row = node('div', gate.passed ? 'is-passed' : 'is-pending');
+      row.append(node('i', '', gate.passed ? '✓' : '!'), node('span', '', gate.label), node('small', '', gate.detail)); gateList.append(row);
+    });
+    decisionPanel.append(gateList); content.append(decisionPanel);
+
     var grid = node('section', 'smyl-inbox-operations-grid');
     grid.append(
       metricCard('Por atender', metrics.needs_human || 0, (metrics.conversations || 0) + ' conversaciones'),
       metricCard('Enviados', metrics.messages_sent_24h || 0, 'Últimas 24 horas'),
+      metricCard('Evidencias', assessment.evidencePassed + '/' + ((pilot.scenarios || []).length || 5), 'Pruebas de campo'),
+      metricCard('Canales activos', (operations.channels || []).filter(function (item) { return item.connected; }).length, 'De ' + (operations.channels || []).length + ' disponibles'),
       metricCard('Reintentando', metrics.scheduled_retrying || 0, 'Automático y acotado'),
       metricCard('Cola de fallos', metrics.dead_letters || 0, 'Requieren revisión')
     );
@@ -850,7 +912,8 @@
       var alertSection = node('section', 'smyl-inbox-operations-section'); alertSection.append(node('h3', '', 'Alertas activas'));
       alerts.forEach(function (item) {
         var row = node('div', 'smyl-inbox-operation-alert is-' + item.severity);
-        row.append(node('strong', '', item.severity === 'critical' ? 'Bloqueo' : 'Revisión'), node('p', '', item.message || 'Revisa esta señal operativa.'));
+        var alertCopy = node('div', ''); alertCopy.append(node('p', '', item.message || 'Revisa esta señal operativa.'), node('small', '', 'Siguiente control: ' + alertControl(item.code)));
+        row.append(node('strong', '', item.severity === 'critical' ? 'Bloqueo' : 'Revisión'), alertCopy);
         alertSection.append(row);
       });
       content.append(alertSection);
@@ -871,7 +934,7 @@
     });
     channels.append(channelList); content.append(channels);
 
-    var pilot = operations.pilot || {}; var pilotSection = node('section', 'smyl-inbox-operations-section smyl-inbox-pilot');
+    var pilotSection = node('section', 'smyl-inbox-operations-section smyl-inbox-pilot');
     var pilotHead = node('div', 'smyl-inbox-pilot-head');
     pilotHead.append(node('h3', '', 'Piloto profesional'), node('span', 'smyl-inbox-pilot-status is-' + (pilot.status || 'preparation'), pilotStatusLabel(pilot.status)));
     pilotSection.append(pilotHead);
