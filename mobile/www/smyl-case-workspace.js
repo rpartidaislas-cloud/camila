@@ -139,7 +139,7 @@
   const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
   state(ctx,'share',created?'Seguimiento preparado':quoteReady?'Lista para cotizar':'Falta completar',created?'done':quoteReady?'neutral':'pending');
   copy(ctx.shareHint,!clinical?.ready?'Falta revisar y guardar la valoración y el plan.':!pairs?'El plan ya puede cotizarse. La presentación visual seguirá disponible cuando exista una foto con simulación guardada.':'Plan listo para cotizar y comparación visual disponible para la presentación.');
-  const canQuote=window.miRolEquipo==='dueño'&&!!window.SmylProposals;ctx.quoteButton.disabled=!quoteReady||!canQuote;ctx.quoteButton.title=canQuote?'':'La cotización comercial requiere la cuenta titular en esta etapa.';ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!created;
+  const canQuote=!!window.SmylProposals;ctx.quoteButton.disabled=!quoteReady||!canQuote;ctx.quoteButton.title=canQuote?'':'Cotizaciones todavía no está disponible.';ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!created;
   ctx.history.disabled=!entry;
   if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
   // Suggested route, not a claim that all clinical issues were evaluated.

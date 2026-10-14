@@ -7,6 +7,7 @@
   function notice(text,error){var e=n('p','clinic-notice'+(error?' clinic-error':''),text);e.setAttribute('role',error?'alert':'status');return e;}
   function field(label,id,value,type){var wrap=n('div','clinic-field'),input=n(type==='textarea'?'textarea':'input'),lbl=n('label','',label);input.id=id;lbl.htmlFor=id;if(type&&type!=='textarea')input.type=type;input.value=value==null?'':value;wrap.append(lbl,input);return wrap;}
   async function checked(query){var res=await sbTimeout(query,30000);if(res.error)throw res.error;return res.data;}
+  async function capabilities(tenant){if(window.miRolEquipo==='dueño')return {read:true,write:true,approve:true};var auth=await window.sb.auth.getUser(),actor=auth.data&&auth.data.user&&auth.data.user.id;if(!actor)return {read:false,write:false,approve:false};var assignments=await checked(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id',tenant).eq('user_id',actor)),ids=(assignments||[]).map(function(x){return x.role_id;});if(!ids.length)return {read:false,write:false,approve:false};var rows=await checked(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id',tenant).in('role_id',ids)),perms=new Set((rows||[]).map(function(x){return x.permission_key;}));return {read:perms.has('proposal.read'),write:perms.has('proposal.write'),approve:perms.has('proposal.approve')};}
   function errorText(error){if(['40001','PT409'].includes(error.code))return 'El plan o la propuesta cambió, o su vigencia terminó. Conservamos tus cambios; vuelve a cargar la propuesta o actualiza su plan y revisa de nuevo.';if(['42P01','PGRST202','PGRST205'].includes(error.code))return 'Propuestas aún no está habilitado en la base de datos. Falta activar esta etapa.';return SmylClinicalModel.errorMessage(error);}
   function feedback(text,error){var host=document.getElementById('proposal-feedback');if(host)host.replaceChildren(notice(text,error));}
   function cleanup(){if(ctx)Object.values(ctx.files).forEach(function(f){if(f)URL.revokeObjectURL(f.url);});ctx=null;sequence++;}
@@ -20,18 +21,18 @@
   function changed(){if(!ctx)return;ctx.dirty=JSON.stringify(rowFromForm().document)!==ctx.saved||ctx.plan.revision!==ctx.row.plan_revision;document.getElementById('proposal-approval-check').checked=false;controls();}
   function controls(){
     if(!ctx)return;
-    document.getElementById('proposal-form').disabled=ctx.busy;
+    document.getElementById('proposal-form').disabled=ctx.busy||!ctx.access.write;
     var doc=rowFromForm().document,approved=ctx.row.status==='approved'&&!ctx.dirty&&!ctx.stale;
     document.getElementById('proposal-state').textContent=ctx.busy?'Procesando…':ctx.stale?'Plan actualizado: requiere revisión':ctx.dirty?'Cambios sin guardar':approved?'Aprobada · no enviada':ctx.row.revision?'Borrador guardado':'Borrador nuevo';
     document.getElementById('proposal-estimate').textContent=doc.items.some(function(i){return i.unit_cents===null;})?'Total por completar':M.money(M.total(doc));
-    document.getElementById('proposal-save').disabled=ctx.busy||ctx.stale;
-    document.getElementById('proposal-preview').disabled=ctx.busy;
+    document.getElementById('proposal-save').disabled=ctx.busy||ctx.stale||!ctx.access.write;
+    document.getElementById('proposal-preview').disabled=ctx.busy||!ctx.access.write;
     document.getElementById('proposal-export').disabled=ctx.busy||!approved;
     var charge=document.getElementById('proposal-to-charges');if(charge)charge.disabled=ctx.busy||!approved||ctx.stale;
     var followup=document.getElementById('proposal-followup');if(followup)followup.disabled=ctx.busy||!approved||!ctx.row.revision;
-    document.getElementById('proposal-add').disabled=ctx.busy||doc.items.length>=20;
+    document.getElementById('proposal-add').disabled=ctx.busy||!ctx.access.write||doc.items.length>=20;
     document.getElementById('proposal-photo-inputs').hidden=!document.getElementById('proposal-include-photos').checked;
-    document.getElementById('proposal-approve').disabled=ctx.busy||ctx.stale||!document.getElementById('proposal-approval-check').checked;
+    document.getElementById('proposal-approve').disabled=ctx.busy||ctx.stale||!ctx.access.approve||!document.getElementById('proposal-approval-check').checked;
   }
   function addLine(item){
     if(document.querySelectorAll('.proposal-item').length>=20)return;item=item||{label:'',area:'',quantity:1,unit_cents:null};lineSequence++;
@@ -86,7 +87,7 @@
     return assets;
   }
   async function save(approve){
-    if(!ctx||ctx.busy||ctx.stale)return;
+    if(!ctx||ctx.busy||ctx.stale||!ctx.access.write||(approve&&!ctx.access.approve))return;
     var problem=validForm(approve);if(problem){feedback(problem,true);document.getElementById('proposal-preview-dialog').close();return;}
     if(approve&&!document.getElementById('proposal-approval-check').checked)return;
     var current=ctx,row=rowFromForm();current.busy=true;document.getElementById('proposal-form').disabled=true;controls();
@@ -176,10 +177,11 @@
     if(doc.photos){var current=ctx;assetsFor(ctx.row,ctx,false).then(function(assets){if(ctx!==current)return;Object.keys(assets).forEach(function(key){var img=document.getElementById('proposal-photo-'+key);img.src=assets[key];img.hidden=false;});}).catch(function(){if(ctx===current)feedback('No se pudieron cargar las fotos guardadas. La propuesta conserva sus referencias; vuelve a intentar antes de exportar.',true);});}
   }
   async function open(id,patientId){
-    if(!tenantId||miRolEquipo!=='dueño')return;
+    if(!tenantId)return;
     if(!leave())return;
     var tenant=tenantId,token=++sequence,root=document.getElementById('p-propuestas');root.replaceChildren(notice('Preparando propuesta…'));
     try{
+      var access=await capabilities(tenant);if(!access.read||(!id&&!access.write)){root.replaceChildren(notice(access.read?'Tu rol puede consultar cotizaciones, pero no preparar una nueva.':'Tu rol no permite consultar cotizaciones.',true),b('Volver a Presentaciones',loadList));return;}
       var row=id?await checked(sb.from('smyl_proposals').select('*').eq('tenant_id',tenant).eq('id',id).single()):null;
       var patient=await checked(sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id',tenant).eq('id',row?row.patient_id:patientId).single());
       if(!patient)throw new Error('Patient not available');
@@ -188,25 +190,25 @@
       if(!plan||(!row&&plan.status!=='reviewed')){root.replaceChildren(notice('Primero guarda y revisa el plan en la ficha del paciente.'),b('Ir a Pacientes',function(){ir('pacientes');}));return;}
       if(token!==sequence||tenant!==tenantId)return;
       if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}else row.document=M.normalize(row.document);
-      ctx={row:row,tenant:tenant,plan:plan,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,stale:plan.status!=='reviewed'||row.plan_revision!==plan.revision};editor();
+      ctx={row:row,tenant:tenant,plan:plan,access:access,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,stale:plan.status!=='reviewed'||row.plan_revision!==plan.revision};editor();
     }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b('Volver a Presentaciones',loadList));}
   }
   async function loadList(){
     var root=document.getElementById('p-propuestas');root.replaceChildren();
     var head=n('header','proposal-heading'),copy=n('div');copy.append(n('p','pro-eyebrow','HISTORIAL Y ACCESOS'),n('h1','','Presentaciones'),n('p','','Consulta lo que preparaste para tus pacientes. Para crear una nueva, continúa el recorrido desde su expediente.'));head.append(copy);root.append(head);
     if(!tenantId){root.append(notice('Inicia sesión para consultar las propuestas de tu clínica.'));return;}
-    if(miRolEquipo!=='dueño'){root.append(notice('La preparación y aprobación de propuestas está habilitada para el titular de la clínica.'));return;}
     var tenant=tenantId,token=++sequence;
     if(window.SmylLana)head.append(b('Seguimiento con LANA',function(){SmylLana.open();},'btn btn-secondary lana-entry'));
     var launch=n('div','proposal-launch proposal-from-patient'),launchCopy=n('div');
-    launchCopy.append(n('strong','','¿Quieres preparar una nueva?'),n('p','','Abre la ficha del paciente y continúa hasta el paso Compartir. Así conservarás todo el caso en un solo recorrido.'));
+    launchCopy.append(n('strong','','¿Quieres preparar una nueva?'),n('p','','Abre la ficha del paciente y continúa hasta Cotización. Así conservarás todo el caso en un solo recorrido.'));
     launch.append(launchCopy,b('Abrir pacientes',function(){ir('pacientes');},'btn btn-primary'));root.append(launch);
     var list=n('div','proposal-list');root.append(list);list.append(notice('Cargando propuestas…'));
     try{
+      var access=await capabilities(tenant);if(!access.read){list.replaceChildren(notice('Tu rol no permite consultar cotizaciones.',true));launch.hidden=true;return;}if(!access.write)launch.hidden=true;
       var rows=await checked(sb.from('smyl_proposals').select('id,patient_name,plan_revision,revision,status,total_cents,updated_at,document').eq('tenant_id',tenant).order('updated_at',{ascending:false}).limit(100));
       if(token!==sequence||tenant!==tenantId)return;list.replaceChildren();
       if(!rows.length)list.append(notice('Todavía no hay presentaciones guardadas. Abre un paciente y completa su recorrido para preparar la primera.'));
-      rows.forEach(function(row){var card=n('article','proposal-list-row'),text=n('div');text.append(n('h2','',row.patient_name),n('p','',row.document.title+' · Versión '+row.revision),n('small','',row.status==='approved'?'Aprobada al guardar · vigencia y plan se verifican al exportar':'Borrador'));card.append(text,n('strong','',row.document.items.some(function(i){return i.unit_cents===null;})?'Por completar':M.money(row.total_cents)),b('Abrir',function(){open(row.id);}));list.append(card);});
+      rows.forEach(function(row){var card=n('article','proposal-list-row'),text=n('div');text.append(n('h2','',row.patient_name),n('p','',row.document.title+' · Versión '+row.revision),n('small','',row.status==='approved'?'Aprobada al guardar · vigencia y plan se verifican al exportar':'Borrador'));var action=b(access.write?'Abrir':'Consultar',function(){open(row.id);});card.append(text,n('strong','',row.document.items.some(function(i){return i.unit_cents===null;})?'Por completar':M.money(row.total_cents)),action);list.append(card);});
       list.append(n('p','proposal-privacy','Se muestran las últimas 100 propuestas. No se han habilitado envíos automáticos desde este espacio.'));
     }catch(error){if(token===sequence){list.replaceChildren(notice(errorText(error),true),b('Volver a intentar',loadList));}}
   }

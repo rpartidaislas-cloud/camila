@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 3 de cotizaciones delegadas publicada
+
+**El equipo clínico ya puede consultar, preparar y aprobar cotizaciones sin
+compartir la cuenta titular ni recibir acceso implícito a Caja:** la autorización
+se aplica tanto en la interfaz como en Supabase.
+
+- Se agregaron los permisos independientes `proposal.read`, `proposal.write` y
+  `proposal.approve`. Titular, administración y dentista reciben el flujo
+  clínico completo; finanzas recibe lectura para mantener continuidad operativa.
+- Las políticas RLS de propuestas, versiones y fotografías privadas, además de
+  los RPC de guardado, aprobación y exportación, validan tenant y permiso en el
+  servidor. La migración aditiva
+  `20261013050000_smyl_proposal_permissions_v1.sql` quedó aplicada y sincronizada
+  en Supabase.
+- Crear cargos continúa protegido por `finance.manage`: aprobar un tratamiento
+  no concede permisos de cobro. Los perfiles de sólo lectura abren propuestas
+  guardadas sin controles de edición.
+- Web/PWA usan `smyl-v203-delegated-proposals`. Suite completa 170/170 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni botones sin
+  etiqueta; el odontograma conserva sus controles clínicos compactos.
+
 ## 2026-10-13 — Codex: Etapa 2 del recorrido de atención publicada
 
 **Agenda, expediente, odontograma, plan y cotización ahora se presentan como un
