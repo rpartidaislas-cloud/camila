@@ -176,6 +176,30 @@
     catch(error){if(ctx===current)feedback(errorText(error),true);}
     finally{current.busy=false;if(ctx===current)controls();}
   }
+  function proposalStage(row,event){
+    var valid=row.document&&row.document.valid_until,today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Mexico_City'});
+    if(row.status!=='approved')return {key:'draft',label:'Completar borrador',detail:'Falta revisar y aprobar esta versión.',priority:3,action:true};
+    if(event?.event_type==='accepted')return {key:'accepted',label:'Aceptada',detail:'Decisión registrada '+new Date(event.occurred_at).toLocaleDateString('es-MX')+'.',priority:8,action:false};
+    if(event?.event_type==='declined')return {key:'declined',label:'No aceptada',detail:'Decisión registrada; conserva el motivo en el historial.',priority:7,action:false};
+    if(event?.event_type==='changes_requested')return {key:'changes_requested',label:'Preparar cambios',detail:'El paciente solicitó cambios en esta versión.',priority:0,action:true};
+    if(valid&&valid<today)return {key:'expired',label:'Vigencia vencida',detail:'Venció el '+valid.split('-').reverse().join('/')+'. Revisa antes de presentarla.',priority:1,action:true};
+    if(event?.event_type==='presented')return {key:'awaiting',label:'Esperando decisión',detail:'Presentada el '+new Date(event.occurred_at).toLocaleDateString('es-MX')+'.',priority:4,action:true};
+    return {key:'ready',label:'Lista para presentar',detail:valid?'Vigente hasta '+valid.split('-').reverse().join('/')+'.':'Registra cómo y cuándo se presenta.',priority:2,action:true};
+  }
+  function proposalDashboard(rows,latestEvents,list,access){
+    var items=rows.map(function(row){var event=latestEvents.get(row.id+':'+row.revision);return {row:row,event:event,stage:proposalStage(row,event)};});
+    var decisions=items.filter(function(item){return ['accepted','declined','changes_requested'].includes(item.stage.key);}),accepted=items.filter(function(item){return item.stage.key==='accepted';}).length,rate=decisions.length?Math.round(accepted*100/decisions.length):null;
+    var metrics=n('section','proposal-metrics');[
+      ['Por presentar',items.filter(function(item){return item.stage.key==='ready';}).length,'versiones aprobadas'],
+      ['Esperando respuesta',items.filter(function(item){return item.stage.key==='awaiting';}).length,'presentadas sin decisión'],
+      ['Requieren acción',items.filter(function(item){return ['expired','changes_requested','draft'].includes(item.stage.key);}).length,'vencidas, cambios o borradores'],
+      ['Aceptación',rate===null?'—':rate+'%',decisions.length+' decisiones registradas']
+    ].forEach(function(metric){var card=n('article');card.append(n('span','',metric[0]),n('strong','',String(metric[1])),n('small','',metric[2]));metrics.append(card);});
+    var toolbar=n('div','proposal-list-toolbar'),filters=n('div','proposal-filters'),search=n('input');search.type='search';search.placeholder='Buscar paciente o propuesta';search.setAttribute('aria-label','Buscar cotizaciones');
+    var currentFilter='action';[['action','Por atender'],['all','Todas'],['accepted','Aceptadas'],['draft','Borradores']].forEach(function(entry){var button=b(entry[1],function(){currentFilter=entry[0];filters.querySelectorAll('button').forEach(function(item){item.setAttribute('aria-pressed',String(item===button));});render();});button.setAttribute('aria-pressed',String(entry[0]===currentFilter));filters.append(button);});toolbar.append(filters,search);
+    function render(){var term=search.value.trim().toLocaleLowerCase('es-MX'),visible=items.filter(function(item){var matches=!term||(item.row.patient_name+' '+item.row.document.title).toLocaleLowerCase('es-MX').includes(term);if(!matches)return false;if(currentFilter==='all')return true;if(currentFilter==='action')return item.stage.action;if(currentFilter==='accepted')return item.stage.key==='accepted';return item.stage.key==='draft';}).sort(function(a,b){return a.stage.priority-b.stage.priority||new Date(b.row.updated_at)-new Date(a.row.updated_at);});list.replaceChildren();if(!visible.length){list.append(notice(term?'No hay cotizaciones que coincidan con la búsqueda.':'No hay cotizaciones en este estado.'));return;}visible.forEach(function(item){var row=item.row,card=n('article','proposal-list-row'),text=n('div');text.append(n('h2','',row.patient_name),n('p','',row.document.title+' · Versión '+row.revision),n('small','proposal-list-status',item.stage.label),n('small','proposal-list-detail',item.stage.detail));text.children[2].dataset.state=item.stage.key;var action=b(access.write||access.followup?'Abrir':'Consultar',function(){open(row.id);});card.append(text,n('strong','',row.document.items.some(function(i){return i.unit_cents===null;})?'Por completar':M.money(row.total_cents)),action);list.append(card);});}
+    search.addEventListener('input',render);return {metrics:metrics,toolbar:toolbar,render:render};
+  }
   function editor(){
     var root=document.getElementById('p-propuestas');root.replaceChildren();
     root.append(b('← Presentaciones',function(){if(leave())loadList();},'clinic-back'));
@@ -239,12 +263,12 @@
     try{
       var access=await capabilities(tenant);if(!access.read){list.replaceChildren(notice('Tu rol no permite consultar cotizaciones.',true));launch.hidden=true;return;}if(!access.write)launch.hidden=true;
       var rows=await checked(sb.from('smyl_proposals').select('id,patient_name,plan_revision,revision,status,total_cents,updated_at,document').eq('tenant_id',tenant).order('updated_at',{ascending:false}).limit(100));
-      var events=rows.length?await checked(sb.from('smyl_proposal_events').select('proposal_id,proposal_revision,event_type,occurred_at,created_at').eq('tenant_id',tenant).in('proposal_id',rows.map(function(row){return row.id;})).order('occurred_at',{ascending:false}).order('created_at',{ascending:false})):[];
+      var events=rows.length?await checked(sb.from('smyl_proposal_events').select('proposal_id,proposal_revision,event_type,channel,note,occurred_at,created_at').eq('tenant_id',tenant).in('proposal_id',rows.map(function(row){return row.id;})).order('occurred_at',{ascending:false}).order('created_at',{ascending:false})):[];
       var latestEvents=new Map();(events||[]).forEach(function(event){var key=event.proposal_id+':'+event.proposal_revision;if(!latestEvents.has(key))latestEvents.set(key,event);});
       if(token!==sequence||tenant!==tenantId)return;list.replaceChildren();
-      if(!rows.length)list.append(notice('Todavía no hay presentaciones guardadas. Abre un paciente y completa su recorrido para preparar la primera.'));
-      rows.forEach(function(row){var card=n('article','proposal-list-row'),text=n('div'),event=latestEvents.get(row.id+':'+row.revision),status=row.status==='approved'?(event?eventLabels[event.event_type]:'Aprobada · pendiente de presentar'):'Borrador';text.append(n('h2','',row.patient_name),n('p','',row.document.title+' · Versión '+row.revision),n('small','proposal-list-status',status));if(event)text.lastChild.dataset.state=event.event_type;var action=b(access.write||access.followup?'Abrir':'Consultar',function(){open(row.id);});card.append(text,n('strong','',row.document.items.some(function(i){return i.unit_cents===null;})?'Por completar':M.money(row.total_cents)),action);list.append(card);});
-      list.append(n('p','proposal-privacy','Se muestran las últimas 100 propuestas y el último seguimiento de su versión actual. SMYL no interpreta este registro como firma o consentimiento y no realiza envíos automáticos.'));
+      var dashboard=proposalDashboard(rows,latestEvents,list,access);root.insertBefore(dashboard.metrics,launch);root.insertBefore(dashboard.toolbar,list);dashboard.render();
+      if(!rows.length)list.replaceChildren(notice('Todavía no hay presentaciones guardadas. Abre un paciente y completa su recorrido para preparar la primera.'));
+      root.append(n('p','proposal-privacy','Indicadores calculados sobre las últimas 100 propuestas visibles. La tasa usa únicamente decisiones registradas; no interpreta silencios como rechazo ni este seguimiento como firma o consentimiento.'));
     }catch(error){if(token===sequence){list.replaceChildren(notice(errorText(error),true),b('Volver a intentar',loadList));}}
   }
   function init(){

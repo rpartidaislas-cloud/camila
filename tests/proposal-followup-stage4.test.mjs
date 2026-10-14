@@ -36,9 +36,9 @@ test('la interfaz registra medio, nota y estado sin afirmar consentimiento',()=>
 });
 
 test('web, móvil y PWA publican la misma etapa de seguimiento',()=>{
-  assert.match(app,/smyl-proposals\.css\?v=5/);
-  assert.match(app,/smyl-proposals\.js\?v=9/);
-  assert.match(sw,/smyl-v204-proposal-followup/);
+  assert.match(app,/smyl-proposals\.css\?v=6/);
+  assert.match(app,/smyl-proposals\.js\?v=10/);
+  assert.match(sw,/smyl-v205-commercial-proposals/);
   assert.equal(app,read('mobile/www/app.html'));
   assert.equal(ui,read('mobile/www/smyl-proposals.js'));
   assert.equal(css,read('mobile/www/smyl-proposals.css'));

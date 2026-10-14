@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 5 de cola comercial publicada
+
+**Presentaciones ahora funciona como un tablero accionable y no sólo como
+historial:** el equipo identifica qué cotizaciones debe completar, presentar,
+revisar por vigencia o actualizar por petición del paciente.
+
+- Cuatro indicadores resumen versiones por presentar, respuestas pendientes,
+  cotizaciones que requieren acción y aceptación. La tasa usa exclusivamente
+  decisiones registradas y muestra su denominador; un silencio nunca se cuenta
+  como rechazo.
+- La cola distingue borrador, lista para presentar, esperando decisión,
+  vigencia vencida, cambios solicitados, aceptada y no aceptada. Las tareas se
+  ordenan por prioridad verificable y actualización, sin inventar un SLA.
+- Se añadieron búsqueda local y filtros Por atender, Todas, Aceptadas y
+  Borradores. Los indicadores declaran que corresponden a las últimas 100
+  propuestas visibles y reutilizan la lectura RLS existente, sin nueva tabla ni
+  migración.
+- Web/PWA usan `smyl-v205-commercial-proposals`. Suite completa 178/178 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni botones sin
+  etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 4 de seguimiento de cotizaciones publicada
 
 **SMYL ya distingue aprobación profesional, presentación y decisión comunicada
