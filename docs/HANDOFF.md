@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Etapa 4 de seguimiento de cotizaciones publicada
+
+**SMYL ya distingue aprobación profesional, presentación y decisión comunicada
+por el paciente:** cada versión aprobada conserva una línea de tiempo auditable
+sin presentar el registro interno como firma o consentimiento informado.
+
+- El equipo autorizado registra `presented`, `accepted`, `declined` o
+  `changes_requested`, junto con medio, fecha y una nota; rechazo y solicitud
+  de cambios exigen contexto escrito.
+- El servidor obliga a presentar primero la versión, acepta sólo la revisión
+  aprobada vigente, bloquea decisiones posteriores a un estado terminal y usa
+  un UUID del cliente para reintentos idempotentes.
+- `proposal.followup` queda separado de lectura, edición, aprobación y Caja.
+  Titular, administración y odontólogo lo reciben por defecto; RLS mantiene la
+  lectura dentro de la clínica y las inserciones directas permanecen revocadas.
+- La migración aditiva `20261013060000_smyl_proposal_followup_v1.sql` quedó
+  aplicada en Supabase. Web/PWA usan `smyl-v204-proposal-followup`; suite
+  completa 174/174 y QA visual a 1366, 834 y 390 px sin overflow, errores de
+  página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 3 de cotizaciones delegadas publicada
 
 **El equipo clínico ya puede consultar, preparar y aprobar cotizaciones sin
