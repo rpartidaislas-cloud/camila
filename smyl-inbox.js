@@ -12,6 +12,11 @@
     templates: [], templatesLoaded: false, templatesLoading: false,
     scheduled: {}, scheduledLoading: {},
     operations: null, operationsLoading: false, operationsError: '',
+    quickReplies: [], quickRepliesLoaded: false, quickRepliesLoading: false,
+    bulkMode: false, bulkSelected: new Set(), bulkRunning: false,
+    threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
+    sharedItems: [], sharedPage: null, sharedLoading: false,
+    notificationsEnabled: false,
   };
 
   function node(tag, cls, text) {
@@ -118,7 +123,7 @@
     page.innerHTML =
       '<header class="smyl-inbox-top">' +
         '<div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN DENTAL</span><h1>Mensajes</h1><p>Prioriza pacientes y continúa su caso; SMYL Asistente y tu equipo responden por WhatsApp, Messenger o Instagram.</p></div>' +
-        '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
+        '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
       '</header>' +
       '<div class="smyl-inbox-workspace">' +
         '<aside class="smyl-inbox-list-pane" aria-label="Bandeja de conversaciones">' +
@@ -126,19 +131,20 @@
           '<div class="smyl-inbox-filters" role="tablist" aria-label="Filtrar conversaciones">' +
             '<button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="pinned">Fijadas</button><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="mine">Mías</button>' +
           '</div>' +
-          '<div class="smyl-inbox-list-tools"><select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar</button></div>' +
+          '<div class="smyl-inbox-list-tools"><select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar</button></div>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary aria-live="polite"></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
+          '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
           '<button type="button" class="smyl-inbox-more" data-inbox-more hidden>Cargar más conversaciones</button>' +
         '</aside>' +
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><h2>Selecciona una conversación</h2><p>El historial se sincroniza de forma segura y se presenta aquí, dentro de SMYL.</p></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><button type="button" class="smyl-inbox-pin-button" data-thread-pin aria-label="Fijar conversación" title="Fijar conversación">Fijar</button><button type="button" class="smyl-inbox-control-button" data-inbox-context>Paciente y atención</button></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><button type="button" class="smyl-inbox-thread-tool" data-thread-search aria-label="Buscar dentro del hilo">Buscar</button><button type="button" class="smyl-inbox-thread-tool" data-thread-shared aria-label="Abrir archivos compartidos">Archivos</button><button type="button" class="smyl-inbox-pin-button" data-thread-pin aria-label="Fijar conversación" title="Fijar conversación">Fijar</button><button type="button" class="smyl-inbox-control-button" data-inbox-context>Paciente y atención</button></header>' +
             '<div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools" aria-label="Herramientas de respuesta"><button type="button" data-compose-copilot>Sugerir con Copilot</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-location>Ubicación</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div></div><small>Copilot prepara un borrador; el equipo siempre revisa y decide el envío.</small></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools" aria-label="Herramientas de respuesta"><button type="button" data-compose-quick>Respuestas rápidas</button><button type="button" data-compose-copilot>Sugerir con Copilot</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-location>Ubicación</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div></div><small>Las respuestas rápidas sólo preparan texto; el equipo siempre revisa y decide el envío.</small></form>' +
           '</div>' +
         '</main>' +
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
@@ -148,6 +154,9 @@
         '<dialog class="smyl-inbox-copilot-dialog" data-copilot-feedback><form><span class="smyl-inbox-eyebrow">CALIDAD DE IA</span><h2>Evalúa esta respuesta</h2><p>Tu comentario queda para revisión; no modifica ni publica la capacitación automáticamente.</p><label>Resultado<select data-feedback-rating required><option value="helpful">Útil</option><option value="needs_improvement">Necesita mejora</option><option value="unsafe">Insegura o fuera de límites</option></select></label><label>¿Qué mejorarías?<textarea data-feedback-comment maxlength="1000" rows="3"></textarea></label><label>Respuesta ideal · opcional<textarea data-feedback-ideal maxlength="4000" rows="4"></textarea></label><footer><button type="button" class="btn btn-secondary" data-feedback-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Guardar evaluación</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog" data-quick-dialog><header><div><span class="smyl-inbox-eyebrow">ATAJOS DEL EQUIPO</span><h2>Respuestas rápidas</h2><p>Inserta un texto revisable; nunca se envía automáticamente.</p></div><button type="button" data-quick-close>Cerrar</button></header><div data-quick-content></div></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en LANA, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog" data-shared-dialog><header><div><span class="smyl-inbox-eyebrow">BIBLIOTECA DEL HILO</span><h2>Archivos y enlaces compartidos</h2><p>Contenido del historial real de esta conversación.</p></div><button type="button" data-shared-close>Cerrar</button></header><div data-shared-content></div></dialog>' +
         '<dialog class="smyl-inbox-operations-dialog" data-operations-dialog><header><div><span class="smyl-inbox-eyebrow">OPERACIÓN Y PILOTO</span><h2>Estado del Inbox</h2><p>Métricas del tenant, consumo y bloqueos que deben resolverse antes del piloto.</p></div><button type="button" data-operations-close aria-label="Cerrar estado operativo">Cerrar</button></header><div data-operations-content></div><footer><span>La activación del piloto siempre es manual.</span><button type="button" class="btn btn-secondary" data-operations-refresh>Actualizar estado</button></footer></dialog>' +
       '</div>';
     return page;
@@ -186,11 +195,35 @@
     return stage ? stage.name : 'Sin etapa';
   }
 
+  function renderBulkBar() {
+    var bar = document.querySelector('[data-inbox-bulkbar]');
+    var toggle = document.querySelector('[data-inbox-bulk]');
+    if (!bar || !toggle) return;
+    toggle.setAttribute('aria-pressed', state.bulkMode ? 'true' : 'false');
+    toggle.textContent = state.bulkMode ? 'Cancelar' : 'Seleccionar';
+    bar.hidden = !state.bulkMode;
+    if (!state.bulkMode) { bar.innerHTML = ''; return; }
+    bar.innerHTML = '';
+    var count = node('strong', '', state.bulkSelected.size + ' seleccionadas');
+    var assignee = document.createElement('select'); assignee.setAttribute('aria-label', 'Responsable para seleccionadas');
+    assignee.append(new Option('Responsable…', ''));
+    state.team.filter(function (member) { return state.actor && (state.actor.role === 'owner' || member.id === state.actor.id); }).forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
+    var stage = document.createElement('select'); stage.setAttribute('aria-label', 'Etapa para seleccionadas');
+    stage.append(new Option('Etapa…', '')); state.stages.filter(function (item) { return !item.archived; }).forEach(function (item) { stage.append(new Option(item.name, item.id)); });
+    var assign = node('button', 'btn btn-secondary btn-sm', 'Asignar'); assign.type = 'button';
+    assign.disabled = !state.bulkSelected.size || state.bulkRunning; assign.onclick = function () { if (assignee.value) applyBulkAction('assign', assignee.value); };
+    var move = node('button', 'btn btn-secondary btn-sm', 'Mover'); move.type = 'button';
+    move.disabled = !state.bulkSelected.size || state.bulkRunning; move.onclick = function () { if (stage.value) applyBulkAction('stage', stage.value); };
+    var clear = node('button', 'smyl-inbox-bulk-clear', 'Limpiar'); clear.type = 'button'; clear.onclick = function () { state.bulkSelected.clear(); renderList(); };
+    bar.append(count, assignee, assign, stage, move, clear);
+  }
+
   function renderList() {
     var list = document.querySelector('[data-inbox-list]');
     var more = document.querySelector('[data-inbox-more]');
     var summary = document.querySelector('[data-inbox-queue-summary]');
     if (!list) return;
+    renderBulkBar();
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
       list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
@@ -218,11 +251,13 @@
       list.append(empty);
     }
     visible.forEach(function (item) {
-      var button = node('button', 'smyl-inbox-row' + (state.selectedId === item.id ? ' active' : ''));
+      var isBulkSelected = state.bulkSelected.has(item.id);
+      var button = node('button', 'smyl-inbox-row' + (state.selectedId === item.id ? ' active' : '') + (isBulkSelected ? ' is-selected' : '') + (state.bulkMode ? ' is-bulk' : ''));
       button.type = 'button'; button.dataset.conversationId = item.id;
       button.dataset.priority = item.needs_human ? 'human' : item.unread_count ? 'unread' : 'normal';
       if (state.selectedId === item.id) button.setAttribute('aria-current', 'true');
       var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel;
+      if (state.bulkMode) avatar.textContent = isBulkSelected ? '✓' : '';
       var copy = node('span', 'smyl-inbox-row-copy');
       var top = node('span', 'smyl-inbox-row-top');
       var identity = node('span', 'smyl-inbox-row-identity');
@@ -240,7 +275,13 @@
       copy.append(top, preview, meta);
       button.append(avatar, copy);
       if (item.unread_count) button.append(node('span', 'smyl-inbox-unread', String(Math.min(99, item.unread_count))));
-      button.addEventListener('click', function () { openConversation(item.id); });
+      button.addEventListener('click', function () {
+        if (state.bulkMode) {
+          if (state.bulkSelected.has(item.id)) state.bulkSelected.delete(item.id); else state.bulkSelected.add(item.id);
+          renderList(); return;
+        }
+        openConversation(item.id);
+      });
       list.append(button);
     });
     if (more) { more.hidden = !state.hasMore; more.disabled = state.loadingList; more.textContent = state.loadingList ? 'Cargando…' : 'Cargar más conversaciones'; }
@@ -850,7 +891,10 @@
     var pinButton = node('button', 'btn btn-secondary btn-sm', conversation.pinned ? 'Quitar de fijadas' : 'Fijar arriba');
     pinButton.type = 'button'; pinButton.disabled = !conversation.can_operate;
     pinButton.onclick = function () { mutateConversation(conversation.pinned ? 'unpin' : 'pin'); };
-    organization.append(pinButton); wrap.append(organization);
+    organization.append(pinButton);
+    var sharedButton = node('button', 'btn btn-secondary btn-sm', 'Ver archivos compartidos');
+    sharedButton.type = 'button'; sharedButton.onclick = openSharedDialog;
+    organization.append(sharedButton); wrap.append(organization);
 
     var assistant = node('section', 'smyl-inbox-context-card'); assistant.append(node('h3', '', 'SMYL Asistente'));
     assistant.append(node('p', '', conversation.paused ? 'Pausado. El equipo atiende este hilo.' : 'Activo. SMYL Asistente puede responder según su capacitación.'));
@@ -1002,7 +1046,7 @@
     if (reset) { state.offset = 0; state.hasMore = false; }
     renderList();
     try {
-      var data = await request('GET', { action: 'list', filter: state.filter, channel: state.channel, limit: state.limit, offset: state.offset });
+      var data = await request('GET', { action: 'list', filter: state.filter, channel: state.channel, q: state.search, limit: state.limit, offset: state.offset });
       state.actor = data.actor || state.actor;
       mergeConversations(data.conversations || [], reset);
       state.total = data.page && Number(data.page.total) || state.conversations.length;
@@ -1063,6 +1107,37 @@
     }
   }
 
+  function applyConversationResult(conversation, data) {
+    conversation.paused = Boolean(data.paused);
+    conversation.needs_human = Boolean(data.needs_human);
+    conversation.unread_count = Number(data.unread_count) || 0;
+    if (Object.prototype.hasOwnProperty.call(data, 'pinned')) conversation.pinned = Boolean(data.pinned);
+    if (Object.prototype.hasOwnProperty.call(data, 'stage_id')) conversation.stage_id = data.stage_id || null;
+    conversation.assignment = data.assigned_actor_id
+      ? { source: 'smyl', actor_id: data.assigned_actor_id, name: data.assigned_actor_name || 'Miembro de SMYL' }
+      : (data.legacy_assigned ? { source: 'lana', actor_id: null, name: 'Asignada previamente' } : null);
+    conversation.can_operate = true;
+  }
+
+  async function applyBulkAction(action, targetId) {
+    if (state.bulkRunning || !state.bulkSelected.size) return;
+    var ids = Array.from(state.bulkSelected); state.bulkRunning = true; renderList();
+    var failed = 0;
+    for (var index = 0; index < ids.length; index += 1) {
+      var conversation = state.conversations.find(function (item) { return item.id === ids[index]; });
+      if (!conversation) continue;
+      try {
+        var payload = { action: action, conversation_id: conversation.id };
+        if (action === 'stage') payload.target_stage_id = targetId || null; else payload.target_actor_id = targetId;
+        var data = await request('POST', {}, payload, uuid()); applyConversationResult(conversation, data);
+      } catch (_) { failed += 1; }
+    }
+    state.bulkRunning = false;
+    if (!failed) { state.bulkSelected.clear(); state.bulkMode = false; }
+    render();
+    if (failed) window.alert((ids.length - failed) + ' conversaciones actualizadas; ' + failed + ' no pudieron modificarse por permisos o estado.');
+  }
+
   async function mutateConversation(action, targetId) {
     var conversation = selectedConversation();
     if (!conversation) return;
@@ -1071,15 +1146,7 @@
       if (action === 'stage') payload.target_stage_id = targetId || null;
       else if (targetId) payload.target_actor_id = targetId;
       var data = await request('POST', {}, payload, uuid());
-      conversation.paused = Boolean(data.paused);
-      conversation.needs_human = Boolean(data.needs_human);
-      conversation.unread_count = Number(data.unread_count) || 0;
-      if (Object.prototype.hasOwnProperty.call(data, 'pinned')) conversation.pinned = Boolean(data.pinned);
-      if (Object.prototype.hasOwnProperty.call(data, 'stage_id')) conversation.stage_id = data.stage_id || null;
-      conversation.assignment = data.assigned_actor_id
-        ? { source: 'smyl', actor_id: data.assigned_actor_id, name: data.assigned_actor_name || 'Miembro de SMYL' }
-        : (data.legacy_assigned ? { source: 'lana', actor_id: null, name: 'Asignada previamente' } : null);
-      conversation.can_operate = true;
+      applyConversationResult(conversation, data);
       render();
     } catch (error) { window.alert(error.message || 'No se pudo actualizar la conversación.'); }
   }
@@ -1185,6 +1252,7 @@
     state.polling = true;
     var live = document.querySelector('[data-inbox-live]'); if (live) live.dataset.state = 'syncing';
     try {
+      var previousUnread = state.conversations.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
       var data = await request('GET', { action: 'sync', since: state.syncedAt }, null, null, 15000);
       mergeConversations(data.conversations || [], false);
       (data.removed_conversation_ids || []).forEach(function (id) {
@@ -1201,10 +1269,108 @@
       var latest = latestMessageTime();
       if (state.selectedId && latest) await loadThread(state.selectedId, false, latest);
       else if (state.selectedId && (data.conversations || []).some(function (item) { return item.id === state.selectedId; })) await loadThread(state.selectedId, false);
+      var currentUnread = state.conversations.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
+      if (currentUnread > previousUnread) playInboxNotice();
       if (live) { live.dataset.state = 'online'; live.querySelector('span').textContent = 'Actualizado ahora'; }
     } catch (_) {
       if (live) { live.dataset.state = 'offline'; live.querySelector('span').textContent = 'Reconectando…'; }
     } finally { state.polling = false; }
+  }
+
+  function playInboxNotice() {
+    if (!state.notificationsEnabled || document.visibilityState !== 'visible') return;
+    try {
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      var context = new AudioContext(); var oscillator = context.createOscillator(); var gain = context.createGain();
+      oscillator.frequency.value = 660; gain.gain.setValueAtTime(0.0001, context.currentTime); gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.18);
+      oscillator.connect(gain); gain.connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + 0.2); oscillator.onended = function () { context.close(); };
+    } catch (_) {}
+  }
+
+  function renderNotifyButton() {
+    var button = document.querySelector('[data-inbox-notify]'); if (!button) return;
+    button.setAttribute('aria-pressed', state.notificationsEnabled ? 'true' : 'false');
+    button.textContent = state.notificationsEnabled ? 'Avisos activos' : 'Activar avisos';
+  }
+
+  function toggleNotifications() {
+    state.notificationsEnabled = !state.notificationsEnabled;
+    renderNotifyButton(); if (state.notificationsEnabled) playInboxNotice();
+  }
+
+  async function loadQuickReplies() {
+    if (state.quickRepliesLoading || state.quickRepliesLoaded) return;
+    state.quickRepliesLoading = true;
+    try { var data = await request('GET', { action: 'quick_replies' }); state.quickReplies = data.quick_replies || []; state.quickRepliesLoaded = true; }
+    catch (_) { state.quickReplies = []; }
+    finally { state.quickRepliesLoading = false; }
+  }
+
+  function renderQuickReplies() {
+    var content = document.querySelector('[data-quick-content]'); if (!content) return;
+    content.innerHTML = '';
+    if (state.quickRepliesLoading) { content.append(node('p', 'smyl-inbox-productivity-state', 'Consultando respuestas…')); return; }
+    if (!state.quickReplies.length) { content.append(node('p', 'smyl-inbox-productivity-state', 'Aún no hay respuestas rápidas configuradas en LANA.')); return; }
+    state.quickReplies.forEach(function (item) {
+      var button = node('button', 'smyl-inbox-quick-row'); button.type = 'button';
+      button.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
+      button.onclick = function () { var composer = document.querySelector('[name="message"]'); composer.value = item.text; document.querySelector('[data-quick-dialog]').close(); composer.focus(); };
+      content.append(button);
+    });
+  }
+
+  async function openQuickReplies() {
+    var dialog = document.querySelector('[data-quick-dialog]'); if (!dialog) return;
+    dialog.showModal(); renderQuickReplies(); await loadQuickReplies(); renderQuickReplies();
+  }
+
+  function renderThreadSearchResults() {
+    var wrap = document.querySelector('[data-search-results]'); if (!wrap) return; wrap.innerHTML = '';
+    if (state.threadSearchLoading) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Buscando en el historial…')); return; }
+    if (!state.threadSearchResults.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Escribe una palabra para localizar mensajes en todo el hilo.')); return; }
+    state.threadSearchResults.forEach(function (item) {
+      var card = node('article', 'smyl-inbox-search-result');
+      card.append(node('strong', '', item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo' : 'SMYL Asistente'));
+      card.append(node('time', '', new Date(item.created_at).toLocaleString('es-MX')));
+      card.append(node('p', '', item.content || (item.media_type ? 'Adjunto compartido' : 'Mensaje sin texto'))); wrap.append(card);
+    });
+  }
+
+  function openThreadSearch() {
+    if (!state.selectedId) return; state.threadSearchResults = []; state.threadSearchPage = null; renderThreadSearchResults();
+    var dialog = document.querySelector('[data-search-dialog]'); dialog.showModal(); setTimeout(function () { dialog.querySelector('[data-thread-search-input]').focus(); }, 0);
+  }
+
+  async function searchThread(event) {
+    event.preventDefault(); var input = event.currentTarget.querySelector('[data-thread-search-input]'); var query = input.value.trim(); if (query.length < 2) return;
+    state.threadSearchLoading = true; renderThreadSearchResults();
+    try { var data = await request('GET', { action: 'search', conversation_id: state.selectedId, q: query, limit: 40 }); state.threadSearchResults = data.results || []; state.threadSearchPage = data.page || null; }
+    catch (error) { state.threadSearchResults = []; window.alert(error.message || 'No se pudo buscar en el hilo.'); }
+    finally { state.threadSearchLoading = false; renderThreadSearchResults(); }
+  }
+
+  function firstUrl(value) { var match = String(value || '').match(/https?:\/\/[^\s]+/i); return match ? match[0].replace(/[),.;]+$/, '') : ''; }
+
+  function renderSharedItems() {
+    var wrap = document.querySelector('[data-shared-content]'); if (!wrap) return; wrap.innerHTML = '';
+    if (state.sharedLoading) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Consultando biblioteca…')); return; }
+    if (!state.sharedItems.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'No hay imágenes, documentos o enlaces en este hilo.')); return; }
+    state.sharedItems.forEach(function (item) {
+      var card = node('article', 'smyl-inbox-shared-item'); var target = item.media_url || firstUrl(item.content); var label = item.media_type === 'image' ? 'Imagen' : item.media_type === 'document' ? 'Documento' : item.media_type === 'audio' ? 'Audio' : 'Enlace';
+      if (item.media_type === 'image' && target) { var image = document.createElement('img'); image.src = target; image.alt = item.content || 'Imagen compartida'; image.loading = 'lazy'; card.append(image); }
+      card.append(node('strong', '', label), node('span', '', new Date(item.created_at).toLocaleDateString('es-MX')));
+      if (item.content) card.append(node('p', '', item.content));
+      if (target) { var link = node('a', '', 'Abrir'); link.href = target; link.target = '_blank'; link.rel = 'noopener noreferrer'; card.append(link); }
+      wrap.append(card);
+    });
+  }
+
+  async function openSharedItems() {
+    if (!state.selectedId) return; var dialog = document.querySelector('[data-shared-dialog]'); dialog.showModal(); state.sharedLoading = true; state.sharedItems = []; renderSharedItems();
+    try { var data = await request('GET', { action: 'shared', conversation_id: state.selectedId, limit: 60 }); state.sharedItems = data.items || []; state.sharedPage = data.page || null; }
+    catch (error) { window.alert(error.message || 'No se pudo abrir la biblioteca.'); }
+    finally { state.sharedLoading = false; renderSharedItems(); }
   }
 
   function init() {
@@ -1226,14 +1392,19 @@
         loadList(true);
       });
     });
-    page.querySelector('[data-inbox-search]').addEventListener('input', function (event) { state.search = event.target.value; renderList(); });
+    var searchTimer = null;
+    page.querySelector('[data-inbox-search]').addEventListener('input', function (event) {
+      state.search = event.target.value; renderList(); clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadList(true); }, 320);
+    });
     page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; loadList(true); });
+    page.querySelector('[data-inbox-bulk]').addEventListener('click', function () { state.bulkMode = !state.bulkMode; if (!state.bulkMode) state.bulkSelected.clear(); renderList(); });
     page.querySelector('[data-inbox-refresh]').addEventListener('click', function () { loadList(true); loadOperations(true); if (state.selectedId) loadThread(state.selectedId, false); });
     page.querySelector('[data-inbox-more]').addEventListener('click', function () { loadList(false); });
     page.querySelector('[data-thread-older]').addEventListener('click', function () { loadThread(state.selectedId, true); });
     page.querySelector('[data-thread-jump]').addEventListener('click', scrollThreadBottom);
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
     page.querySelector('[data-compose-copilot]').addEventListener('click', function () { requestCopilot('draft'); });
+    page.querySelector('[data-compose-quick]').addEventListener('click', openQuickReplies);
     page.querySelector('[data-compose-template]').addEventListener('click', openTemplateDialog);
     page.querySelector('[data-compose-schedule]').addEventListener('click', openScheduleDialog);
     page.querySelector('[data-compose-attach]').addEventListener('click', function () { page.querySelector('[data-compose-file]').click(); });
@@ -1259,11 +1430,18 @@
     page.querySelector('[data-schedule-template]').addEventListener('change', renderScheduleMode);
     page.querySelector('[data-schedule-cancel]').addEventListener('click', function () { page.querySelector('[data-schedule-dialog]').close(); });
     page.querySelector('[data-inbox-operations]').addEventListener('click', openOperations);
+    page.querySelector('[data-inbox-notify]').addEventListener('click', toggleNotifications);
     page.querySelector('[data-operations-close]').addEventListener('click', function () { page.querySelector('[data-operations-dialog]').close(); });
     page.querySelector('[data-operations-refresh]').addEventListener('click', function () { loadOperations(true); });
     page.querySelector('[data-inbox-back]').addEventListener('click', function () { page.classList.remove('show-thread'); state.contextOpen = false; renderContext(); });
     page.querySelector('[data-inbox-context]').addEventListener('click', function () { state.contextOpen = true; renderContext(); });
     page.querySelector('[data-thread-pin]').addEventListener('click', function () { var conversation = selectedConversation(); if (conversation) mutateConversation(conversation.pinned ? 'unpin' : 'pin'); });
+    page.querySelector('[data-thread-search]').addEventListener('click', openThreadSearch);
+    page.querySelector('[data-thread-shared]').addEventListener('click', openSharedItems);
+    page.querySelector('[data-thread-search-form]').addEventListener('submit', searchThread);
+    page.querySelector('[data-search-close]').addEventListener('click', function () { page.querySelector('[data-search-dialog]').close(); });
+    page.querySelector('[data-shared-close]').addEventListener('click', function () { page.querySelector('[data-shared-dialog]').close(); });
+    page.querySelector('[data-quick-close]').addEventListener('click', function () { page.querySelector('[data-quick-dialog]').close(); });
     page.querySelector('[data-context-close]').addEventListener('click', function () { state.contextOpen = false; renderContext(); });
     page.querySelector('[data-thread-body]').addEventListener('scroll', function () { if (atThreadBottom()) page.querySelector('[data-thread-jump]').hidden = true; });
 
@@ -1271,11 +1449,11 @@
     window.ir = function (route) {
       previous(route);
       if (route === 'inbox') {
-        if (!state.conversations.length) { loadList(true); loadTeam(); loadStages(); loadOperations(true); }
+        if (!state.conversations.length) { loadList(true); loadTeam(); loadStages(); loadQuickReplies(); loadOperations(true); }
         else { sync(); loadOperations(false); }
       } else { state.contextOpen = false; renderContext(); }
     };
-    renderOperationsChip();
+    renderOperationsChip(); renderNotifyButton();
     setInterval(sync, 5000);
     setInterval(function () {
       if (document.visibilityState === 'visible' && document.getElementById('p-inbox').classList.contains('activa')) loadOperations(true);

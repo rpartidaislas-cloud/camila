@@ -62,6 +62,9 @@
       if (action === 'messages') return json({ conversation:conversation, messages:messages, page:{has_more:false,before:null} });
       if (action === 'team') return json({ members:[{id:'owner-preview',name:'Dra. Mariana'}] });
       if (action === 'stages') return json({ stages:[{id:'stage-nuevo',name:'Nuevo contacto',order:1},{id:'stage-valoracion',name:'Valoración agendada',order:2},{id:'stage-tratamiento',name:'Tratamiento activo',order:3}] });
+      if (action === 'quick_replies') return json({ quick_replies:[{id:'q1',shortcut:'valoracion',text:'Hola, con gusto te ayudamos a agendar tu valoración dental.'},{id:'q2',shortcut:'documentos',text:'Para continuar, por favor comparte los estudios indicados por tu especialista.'}] });
+      if (action === 'search') return json({ query:'valoración',results:[messages[2],messages[1]],page:{has_more:false,before:null} });
+      if (action === 'shared') return json({ items:[{id:'share1',author_type:'patient',content:'Estudios previos https://ejemplo.invalid/estudios.pdf',created_at:new Date(Date.now()-2*86400000).toISOString(),media_type:null,media_url:null}],page:{has_more:false,before:null} });
       if (action === 'clinical_context') return json({ linked:true, patient:{name:'Ana López',phone:'+52 55 0000 1184',email:'ana@ejemplo.mx'}, case:{score:86,lana_appointment_id:'apt-1',simulation_url:null,quote_total:18500,summary:'Valoración inicial pendiente de confirmación.'}, clinical_images:[] });
       if (action === 'scheduled') return json({ scheduled:[{id:'s1',type:'template',send_at:new Date(Date.now()+24*3600000).toISOString(),status:'retrying',content:'Recordatorio de valoración dental',attempt_count:1,max_attempts:3,next_attempt_at:new Date(Date.now()+5*60000).toISOString(),retry_safe:true},{id:'s2',type:'text',send_at:new Date(Date.now()-60*60000).toISOString(),status:'dead_letter',content:'Seguimiento de valoración',error:'Meta rechazó temporalmente el envío.',attempt_count:3,max_attempts:3,retry_safe:true}] });
       if (action === 'operations') return json({ health:{status:'attention',alerts:[{severity:'warning',code:'queue_overdue',message:'La cola tiene un mensaje que requiere revisión.'}]}, metrics:{conversations:146,needs_human:7,paused:12,messages_sent_24h:84,copilot_requests_24h:19,scheduled_retrying:1,dead_letters:1,failed_sends:1,unknown_deliveries:0,queue_overdue:0}, channels:[{channel:'whatsapp',connected:true},{channel:'messenger',connected:true},{channel:'instagram',connected:false}], ai:{used_tokens:1248000,limit_tokens:4840000,used_percent:25.8,reached:false}, pilot:{status:'preparation',readiness:'blocked',activation_is_manual:true,checks:[{id:'channel_connected',label:'Al menos un canal conectado',passed:true},{id:'training_published',label:'Capacitación dental publicada',passed:true},{id:'delivery_confirmed',label:'Sin entregas ambiguas',passed:true},{id:'dead_letter_empty',label:'Cola de fallos revisada',passed:false},{id:'queue_current',label:'Worker sin retrasos',passed:true},{id:'ai_available',label:'IA dentro del límite mensual',passed:true}]} });
@@ -79,7 +82,17 @@
         var row = document.querySelector('[data-conversation-id="c-preview"]');
         if (row) row.click();
         setTimeout(function () {
-          if (new URLSearchParams(location.search).has('inbox')) {
+          var preview = new URLSearchParams(location.search);
+          if (preview.has('productivity-search')) {
+            var search = document.querySelector('[data-thread-search]');
+            if (search) search.click();
+          } else if (preview.has('productivity-quick')) {
+            var quick = document.querySelector('[data-compose-quick]');
+            if (quick) quick.click();
+          } else if (preview.has('productivity-bulk')) {
+            var bulk = document.querySelector('[data-inbox-bulk]');
+            if (bulk) bulk.click();
+          } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');
             if (control) control.click();
           } else {

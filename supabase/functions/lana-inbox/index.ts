@@ -184,6 +184,7 @@ async function linkClinicalImage(
 function queryPath(url: URL, action: string, conversationId: string | null): string | null {
   if (action === "operations") return "/inbox/operations";
   if (action === "stages") return "/inbox/stages";
+  if (action === "quick_replies") return "/inbox/quick-replies";
   if (action === "templates") return "/inbox/whatsapp/templates";
   if (action === "scheduled" && conversationId) return `/inbox/conversations/${conversationId}/scheduled`;
   if (action === "sync") {
@@ -198,9 +199,17 @@ function queryPath(url: URL, action: string, conversationId: string | null): str
     }
     return `/inbox/conversations/${conversationId}/messages${params.size ? `?${params}` : ""}`;
   }
+  if ((action === "search" || action === "shared") && conversationId) {
+    const params = new URLSearchParams();
+    for (const name of ["q", "limit", "before"]) {
+      const value = text(url.searchParams.get(name), name === "q" ? 160 : 80);
+      if (value) params.set(name, value);
+    }
+    return `/inbox/conversations/${conversationId}/${action}${params.size ? `?${params}` : ""}`;
+  }
   if (action !== "list") return null;
   const params = new URLSearchParams();
-  for (const name of ["filter", "channel", "limit", "offset"]) {
+  for (const name of ["filter", "channel", "limit", "offset", "q"]) {
     const value = text(url.searchParams.get(name), 40);
     if (value) params.set(name, value);
   }

@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 3, productividad diaria del Inbox
+
+**Mensajes incorpora herramientas de productividad sobre el chat canónico de
+LANA, sin copiar conversaciones ni credenciales dentro de SMYL.**
+
+- La búsqueda de la bandeja y del historial completo se ejecuta en servidor;
+  también se añadió una biblioteca paginada de archivos y enlaces compartidos.
+- Las respuestas rápidas existentes en LANA se insertan como borrador. El
+  profesional siempre revisa y decide el envío.
+- La selección múltiple permite únicamente asignar responsable o mover etapa;
+  no admite envíos masivos ni operaciones sobre el expediente clínico.
+- Los avisos sonoros requieren activación expresa y sólo viven durante la
+  sesión; no almacenan contenido ni datos del paciente.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v221-inbox-productivity`. Suite SMYL 238/238, puente LANA 7/7, build de
+  LANA correcto y QA visual en escritorio, tableta y móvil sin overflow ni
+  errores de consola.
+
 ## 2026-10-14 — Codex: Etapa 2, organización profesional del Inbox
 
 **Mensajes ya permite organizar el trabajo del equipo desde SMYL usando las

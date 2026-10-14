@@ -16,9 +16,9 @@ test('SMYL provides a responsive operational inbox and canonical LANA thread', (
   assert.match(inbox, /Sincronización segura/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=9/);
-  assert.match(app, /smyl-inbox\.css\?v=7/);
-  assert.match(worker, /smyl-v220-inbox-organization/);
+  assert.match(app, /smyl-inbox\.js\?v=10/);
+  assert.match(app, /smyl-inbox\.css\?v=8/);
+  assert.match(worker, /smyl-v221-inbox-productivity/);
 });
 
 test('manual responses use an isolated optimistic queue with visible retry states', () => {
