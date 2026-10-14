@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 8 preparada para recuperación
+
+**El kit de respaldo/restauración está listo; no se exportaron datos de
+producción ni se simuló un proveedor antimalware inexistente.**
+
+- `create-encrypted-backup.mjs` vuelca roles, esquema y datos del proyecto
+  vinculado, copia nueve buckets mediante Storage API, cifra cuatro artefactos
+  con `age` y produce un manifiesto SHA-256 sin secretos.
+- La salida debe ser nueva, estar fuera del repositorio y contener únicamente
+  artefactos cifrados. Los temporales se crean bajo el directorio temporal
+  validado y se eliminan en `finally`.
+- `validate-restore-evidence.mjs` exige destino desechable, migraciones/lint,
+  conteos y hashes de objetos, aislamiento, URLs vencidas, JWT y RPO/RTO.
+- `SMYL_MANAGED_ANTIMALWARE_CONTRACT.md` define cuarentena fail-closed, DPA,
+  retención, evidencia mínima y pruebas limpia/EICAR/timeout. Su estado es
+  explícitamente `No aprobado` hasta contratar e integrar un proveedor.
+- El modo seco del respaldo fue verificado con las herramientas instaladas;
+  las cinco pruebas enfocadas aprobaron.
+
+**Pendiente para cerrar la etapa:** ejecutar un respaldo cifrado en estación
+dedicada, restaurarlo en un proyecto desechable, medir RPO/RTO y completar las
+pruebas con un proveedor antimalware contratado.
+
 ## 2026-10-14 — Codex: seguridad, etapa 7 preparada para dos clínicas
 
 **El arnés de aislamiento está listo, pero no se ejecutó contra producción.**

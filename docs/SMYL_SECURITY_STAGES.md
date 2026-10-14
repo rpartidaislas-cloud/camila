@@ -19,8 +19,9 @@ Estado al 14 de octubre de 2026.
 7. **Aislamiento dinámico — arnés terminado, ejecución pendiente.** La prueba
    crea datos sintéticos para dos clínicas y verifica lectura, escritura, RPC,
    Realtime y Storage. Se niega a ejecutarse contra producción.
-8. **Restauración y antimalware — pendiente externo.** Requiere respaldos y
-   servicios separados de este repositorio.
+8. **Restauración y antimalware — herramientas terminadas, ejecución externa
+   pendiente.** El paquete cifra base y Storage por separado; la puerta exige
+   integridad, RPO/RTO y un proveedor antimalware real.
 9. **Pentest y autorización — pendiente externo.** Un tercero debe evaluar la
    superficie viva y confirmar la corrección de sus hallazgos.
 
@@ -108,3 +109,16 @@ credenciales, correos ni IDs clínicos.
 La preparación del arnés está terminada, pero la etapa no se considera aprobada
 hasta obtener `PASS` en un proyecto Supabase desechable. El identificador del
 proyecto productivo está expresamente bloqueado en el ejecutor.
+
+## Alcance de la etapa 8
+
+`scripts/create-encrypted-backup.mjs` genera fuera del repositorio un paquete
+`age` con roles, esquema, datos y los nueve buckets relevantes. Cada artefacto
+cifrado recibe SHA-256 y el temporal validado se elimina incluso si falla un
+paso. La herramienta fue validada en modo seco; no se exportaron datos reales.
+
+`scripts/validate-restore-evidence.mjs` no aprueba una recuperación por el mero
+hecho de que PostgreSQL inicie: exige conteos de Storage, muestras de hashes,
+RLS, URLs firmadas, JWT, RPO/RTO medidos y la prueba de un proveedor
+antimalware administrado. La ejecución sigue pendiente de infraestructura
+externa y no debe confundirse con una restauración ya realizada.

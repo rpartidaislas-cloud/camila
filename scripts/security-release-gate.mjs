@@ -63,6 +63,14 @@ export function runSecurityReleaseGate() {
       /baseUrl\.includes\(PRODUCTION_PROJECT_REF\)/.test(isolationHarness),
     'Exige confirmación explícita y rechaza el proyecto productivo conocido.');
 
+  const backupTool = read('scripts/create-encrypted-backup.mjs');
+  const recoveryGate = read('scripts/validate-restore-evidence.mjs');
+  check('Recuperación exige cifrado, Storage e integridad',
+    /EXPORT_ENCRYPTED_CLINICAL_BACKUP/.test(backupTool) && /age-x25519/.test(backupTool) &&
+      /storage', 'cp'/.test(backupTool) && /cross_tenant_denied/.test(recoveryGate) &&
+      /eicar_blocked/.test(recoveryGate),
+    'El paquete separa base/objetos y la restauración exige hashes, RLS y antimalware real.');
+
   const parity = ['app.html','dentista.html','revision-clinica.html','simulacion.html','simulacion-rapida.html'].filter((file) => {
     const mobile = path.join('mobile', 'www', file);
     return !fs.existsSync(path.join(ROOT, mobile)) || read(file) !== read(mobile);
