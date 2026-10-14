@@ -126,6 +126,12 @@
         ],
         camila_pacientes: [{ id: "patient-preview-1", nombre: "Paciente", apellido: "Demostración" }],
         smyl_services: [{ id: "service-preview-1", name: "Restauraciones estéticas" }],
+        smyl_review_invitations: [
+          { id: "invite-preview-1", professional_id: "22222222-2222-4222-8222-222222222222", appointment_id: "appointment-preview-1", expires_at: "2026-10-28T12:00:00Z", used_at: "2026-10-14T12:00:00Z", revoked_at: null },
+        ],
+        smyl_patient_reviews: [
+          { id: "review-preview-1", professional_id: "22222222-2222-4222-8222-222222222222", appointment_id: "appointment-preview-1", rating: 5, body: "Me explicaron cada paso con claridad y la atención fue muy cuidadosa.", public_name: "Paciente verificado", status: "review", submitted_at: "2026-10-14T12:00:00Z" },
+        ],
       };
       function chain(rows) {
         return {

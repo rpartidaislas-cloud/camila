@@ -261,6 +261,14 @@
       .public-case-copy h3 { margin: 6px 0; font-size: 20px; }
       .public-case-copy p { margin: 0; color: var(--muted); line-height: 1.6; }
       .cases-disclaimer { margin-top: 16px!important; font-size: 12px; background: #f6f7f4; border-radius: 10px; padding: 11px 13px; }
+      .reviews-summary { display: flex; gap: 14px; align-items: center; margin: -4px 0 20px; }
+      .reviews-summary strong { color: #b58408; font-size: 25px; letter-spacing: .06em; }
+      .reviews-summary span { color: #647671; font-size: 12px; }
+      .reviews-list { display: grid; gap: 12px; }
+      .public-review { border: 1px solid #e0e6e2; border-radius: 14px; padding: 17px; }
+      .public-review > span { color: #ba8809; letter-spacing: .08em; }
+      .public-review blockquote { margin: 10px 0; color: #334d49; line-height: 1.65; font-size: 14px; }
+      .public-review footer { border: 0; margin: 0; padding: 0; display: flex; justify-content: space-between; font-size: 11px; color: #71817d; }
       .appointment header {
         margin: -28px -28px 22px;
         padding: 24px 28px;
@@ -577,6 +585,14 @@
             renderCases(body.cases || []);
           } catch (_) { /* El perfil sigue disponible si la galería no responde. */ }
         }
+        function renderReviews(data) {
+          var section=document.getElementById("verified-reviews"),host=document.getElementById("reviews-list"),summary=document.getElementById("reviews-summary");
+          if(!section||!host||!data||!data.reviews||!data.reviews.length)return;
+          summary.innerHTML='<strong>★ '+esc(data.average)+'</strong><span>'+esc(data.count)+' '+(data.count===1?'opinión verificada':'opiniones verificadas')+'</span>';
+          host.innerHTML=data.reviews.map(function(r){return '<article class="public-review"><span>'+esc('★★★★★'.slice(0,r.rating))+'</span><blockquote>“'+esc(r.body)+'”</blockquote><footer><strong>'+esc(r.public_name)+'</strong><time>'+esc(new Date(r.published_at).toLocaleDateString('es-MX',{month:'long',year:'numeric'}))+'</time></footer></article>';}).join('');
+          section.hidden=false;
+        }
+        async function loadReviews(slug){try{var response=await fetch(SUPA_URL+"/functions/v1/public-patient-reviews?perfil="+encodeURIComponent(slug),{headers:{apikey:SUPA_KEY}});if(!response.ok)return;renderReviews(await response.json());}catch(_){/* El perfil sigue disponible sin reseñas. */}}
         function render(p) {
           profile = p;
           var image = photo(p.photo_path),
@@ -648,7 +664,7 @@
                 rows(p.memberships, "membership") +
                 "</div>"
               : "") +
-            '</section><section class="card cases-card" id="authorized-cases" hidden><h2>Casos autorizados</h2><p>Resultados compartidos con autorización del paciente y revisión de la clínica.</p><div class="case-gallery" id="case-gallery"></div><p class="cases-disclaimer">Cada caso es distinto. Estas imágenes son informativas y no garantizan un resultado específico; el plan depende de una valoración profesional.</p></section><section class="card"><h2>Dónde atiende</h2>' +
+            '</section><section class="card" id="verified-reviews" hidden><h2>Experiencias verificadas</h2><div class="reviews-summary" id="reviews-summary"></div><div class="reviews-list" id="reviews-list"></div></section><section class="card cases-card" id="authorized-cases" hidden><h2>Casos autorizados</h2><p>Resultados compartidos con autorización del paciente y revisión de la clínica.</p><div class="case-gallery" id="case-gallery"></div><p class="cases-disclaimer">Cada caso es distinto. Estas imágenes son informativas y no garantizan un resultado específico; el plan depende de una valoración profesional.</p></section><section class="card"><h2>Dónde atiende</h2>' +
             locations
               .map(function (x) {
                 return (
@@ -684,6 +700,7 @@
               });
           };
           loadCases(p.slug);
+          loadReviews(p.slug);
         }
         async function submit(event) {
           event.preventDefault();
@@ -788,6 +805,7 @@
             });
             var sample = "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#dce9e4"/><stop offset="1" stop-color="#9dbeb5"/></linearGradient></defs><rect width="600" height="450" fill="url(#g)"/><path d="M135 245 Q300 345 465 245" fill="none" stroke="#fff" stroke-width="36" stroke-linecap="round"/><circle cx="300" cy="176" r="62" fill="#f7fbf8" opacity=".78"/></svg>');
             renderCases([{title:"Armonización de sonrisa",treatment:"Restauraciones estéticas",summary:"Planeación conservadora para mejorar forma y proporción respetando las características naturales de la sonrisa.",before_url:sample,after_url:sample}]);
+            renderReviews({average:5,count:2,reviews:[{rating:5,body:"Me explicaron cada paso con mucha claridad y la atención fue muy cuidadosa.",public_name:"Mariana",published_at:"2026-10-10T12:00:00Z"},{rating:5,body:"El equipo fue puntual, profesional y resolvió todas mis dudas antes de comenzar.",public_name:"AR.",published_at:"2026-09-28T12:00:00Z"}]});
             return;
           }
           if (!slug) {

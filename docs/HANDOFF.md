@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: reseñas verificadas por cita
+
+**El directorio ya recoge y publica opiniones originadas en atenciones reales.**
+
+- La clínica genera desde el perfil un enlace único para una cita terminada.
+  El token dura 14 días, funciona una vez y en la base sólo se conserva su
+  hash SHA-256; una cita no puede producir más de una reseña.
+- `resena.html` permite calificar, comentar y elegir primer nombre, iniciales
+  o anonimato. Paciente, cita y expediente nunca se exponen en la respuesta
+  pública.
+- Toda reseña entra como `review`. Sólo administración puede publicarla,
+  rechazarla con motivo u ocultarla; el texto del paciente no se edita.
+- La ficha pública muestra promedio global, total y las seis opiniones más
+  recientes aprobadas. Las consultas públicas pasan por la Edge Function
+  `public-patient-reviews`; las escrituras anónimas a tablas están revocadas.
+- Web y PWA móvil quedan sincronizadas con `smyl-v233-verified-reviews`.
+- Validación final: 278/278 pruebas aprobadas, migración aplicada, función
+  desplegada y QA visual del panel, formulario y ficha pública.
+
+**Archivos clave:** `resena.html`, `dentista.html`,
+`smyl-professional-directory.js/css`,
+`supabase/migrations/20261014130000_smyl_verified_patient_reviews.sql`,
+`supabase/functions/public-patient-reviews/index.ts`.
+
 ## 2026-10-14 — Codex: casos profesionales autorizados
 
 **El perfil público ya admite una galería antes/después con control clínico.**
