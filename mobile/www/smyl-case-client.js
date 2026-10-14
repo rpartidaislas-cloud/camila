@@ -51,11 +51,15 @@
           await guard();
           try { await checked(storage.upload(asset.path, asset.blob, { contentType: asset.mime, upsert: false })); }
           catch (error) {
-            // A successful upload may have lost its response. Verify bytes, never overwrite.
+            // The verifier can safely confirm a completed upload even if the
+            // browser lost the Storage response. It never trusts browser MIME.
             await guard();
-            const existing = await checked(storage.download(asset.path));
-            if (!(existing instanceof Blob) || existing.size !== asset.bytes || await M.digest(await existing.arrayBuffer()) !== asset.sha256) throw error;
+            try { await globalThis.SmylSecureFiles.verify(client,bucket,asset.path,asset.blob,asset.sha256); }
+            catch (_) { throw error; }
+            continue;
           }
+          await guard();
+          await globalThis.SmylSecureFiles.verify(client,bucket,asset.path,asset.blob,asset.sha256);
         }
         await guard();
         const row = await checked(client.rpc('smyl_save_patient_case', { p_id: attempt.id, p_patient_id: attempt.patient_id || null, p_new_patient: attempt.new_patient || null, p_document: attempt.document }));

@@ -7,6 +7,12 @@ verify_jwt = true
 [functions.segment-teeth]
 verify_jwt = true
 
+[functions.secure-clinical-file]
+verify_jwt = true
+
+[functions.sign-segmentation-masks]
+verify_jwt = true
+
 # Excepciones públicas deliberadas. Cada una aplica su propio control de
 # capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
 [functions.analizar-foto]

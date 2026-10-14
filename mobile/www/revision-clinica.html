@@ -1905,6 +1905,32 @@ async function guardarCasoCompleto(){
   }
 }
 
+async function renovarMascarasPrivadas(casoId){
+  const privadas = [...masks, ...gumMasks].filter(m => m && m.maskPath);
+  if (!privadas.length) return;
+  const fnUrl = document.getElementById('fnUrl').value.trim().replace(/segment-teeth\/?$/, 'sign-segmentation-masks');
+  const anonKey = document.getElementById('anonKey').value.trim();
+  try {
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': anonKey,
+        'Authorization': 'Bearer ' + (userToken || anonKey),
+      },
+      body: JSON.stringify({ case_id: casoId }),
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    const renovadas = [...(data.masks || []), ...(data.gum_masks || [])];
+    const porRuta = new Map(renovadas.map(m => [m.maskPath, m.maskUrl]));
+    masks = masks.map(m => porRuta.has(m.maskPath) ? { ...m, maskUrl: porRuta.get(m.maskPath) } : m);
+    gumMasks = gumMasks.map(m => porRuta.has(m.maskPath) ? { ...m, maskUrl: porRuta.get(m.maskPath) } : m);
+  } catch (error) {
+    console.warn('No se pudieron renovar las máscaras privadas del caso.', error);
+  }
+}
+
 async function cargarCasoCompleto(){
   const statusEl = document.getElementById('statusGuardado');
   const casoId = document.getElementById('casoId').value.trim();
@@ -1958,6 +1984,7 @@ async function cargarCasoCompleto(){
 
     masks = (caso.segmentacion && caso.segmentacion.masks) || [];
     gumMasks = (caso.segmentacion_encia && caso.segmentacion_encia.masks) || [];
+    await renovarMascarasPrivadas(casoId);
     formaState = (caso.editor_params_clinico && caso.editor_params_clinico.formaState) || {};
     gumFormaState = (caso.editor_params_clinico && caso.editor_params_clinico.gumFormaState) || {};
     carillasPegadas = (caso.editor_params_clinico && caso.editor_params_clinico.carillasPegadas) || [];

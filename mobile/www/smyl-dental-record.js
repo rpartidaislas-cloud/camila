@@ -211,7 +211,8 @@
    await guard(ctx);const doc=structuredClone(ctx.doc);if(!M.validate(doc,ctx.tenant,ctx.patient))throw new Error('Documento no válido');
    for(const s of doc.studies){const file=ctx.files.get(s.id);if(!file)continue;await guard(ctx);
     try{await checked(sb.storage.from(bucket).upload(s.asset.path,file,{contentType:s.asset.mime,upsert:false}));}
-    catch(e){const existing=await checked(sb.storage.from(bucket).download(s.asset.path));if(!(existing instanceof Blob)||existing.size!==s.asset.bytes||await M.hash(await existing.arrayBuffer())!==s.asset.sha256)throw e;}
+    catch(e){try{await window.SmylSecureFiles.verify(sb,bucket,s.asset.path,file,s.asset.sha256);}catch(_){throw e;}continue;}
+    await window.SmylSecureFiles.verify(sb,bucket,s.asset.path,file,s.asset.sha256);
    }
    await guard(ctx);const row=await checked(sb.rpc('smyl_save_dental_record',{p_patient_id:ctx.patient,p_expected_revision:ctx.revision,p_document:doc}));
    if(!current(ctx))return;if(!row||row.patient_id!==ctx.patient||row.tenant_id!==ctx.tenant||!M.validate(row.document,ctx.tenant,ctx.patient)||!SmylCaseModel.same(row.document,doc))throw new Error('Respuesta no confirmada');

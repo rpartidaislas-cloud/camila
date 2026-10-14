@@ -29,7 +29,7 @@ test('stage 7 approval is gated and auditable',()=>{
 
 test('stage 7 web, mobile and offline assets stay synchronized',()=>{
   assert.match(app,/smyl-readiness\.js\?v=1/);
-assert.match(sw,/smyl-v235-clinical-browser-privacy/);
+assert.match(sw,/smyl-v236-secure-clinical-files/);
   assert.match(sw,/smyl-readiness\.css\?v=1/);
   assert.equal(app,read('../mobile/www/app.html'));
   assert.equal(ui,read('../mobile/www/smyl-readiness.js'));

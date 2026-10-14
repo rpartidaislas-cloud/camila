@@ -1,12 +1,13 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v235-clinical-browser-privacy';
+const CACHE_VERSION = 'smyl-v236-secure-clinical-files';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
   '/camila/smyl-browser-privacy.js?v=1',
+  '/camila/smyl-secure-files.js?v=1',
   '/camila/smyl-dental-model.js?v=1',
   '/camila/smyl-radiograph-review-model.js?v=1',
   '/camila/smyl-radiograph-review-store.js?v=1',

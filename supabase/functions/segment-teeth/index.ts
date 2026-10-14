@@ -78,6 +78,7 @@ interface RegionMask {
   bbox: [number, number, number, number];
   pixelCount: number;
   maskUrl: string;
+  maskPath: string;
   fdi: string | null;       // null siempre para "gum"
   parentFdi: string | null; // null siempre para "gum"
 }
@@ -449,7 +450,7 @@ async function uploadAll(
     // recibe no tenga permiso directo sobre el objeto.
     const { data: signedUrlData, error: signError } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .createSignedUrl(path, 60 * 60 * 24 * 365);
+      .createSignedUrl(path, 60 * 5);
     if (signError) {
       console.error(`Error firmando ${path}:`, signError);
       continue;
@@ -460,6 +461,7 @@ async function uploadAll(
       bbox: cand.bbox,
       pixelCount: cand.pixelCount,
       maskUrl: signedUrlData.signedUrl,
+      maskPath: path,
       fdi: cand.fdi,
       parentFdi: cand.parentFdi,
     });

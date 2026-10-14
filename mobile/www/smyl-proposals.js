@@ -81,6 +81,7 @@
       var res=await sbTimeout(sb.storage.from('smyl-proposal-photos').upload(file.path,file.blob,{contentType:'image/jpeg',upsert:false}),30000);
       // UUID path is stable for this selected file; a timeout may have completed.
       if(res.error&&String(res.error.statusCode)!=='409')throw res.error;
+      await window.SmylSecureFiles.verify(sb,'smyl-proposal-photos',file.path,file.blob);
       file.uploaded=true;
     }
   }

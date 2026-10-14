@@ -1,5 +1,35 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 3 de archivos clínicos
+
+**Los archivos privados quedan en cuarentena hasta que el servidor verifica su contenido.**
+
+- La migración `20261014150000_smyl_secure_clinical_files.sql` cubre fotografías
+  de casos, radiografías, archivos de Ficha 360, comparativas de propuestas,
+  CV y casos profesionales. Cada objeto nuevo nace como `pending`; los RPC no
+  pueden vincularlo a un registro y las políticas no permiten leerlo hasta que
+  quede `clean`.
+- `secure-clinical-file` exige sesión profesional, resuelve la clínica en el
+  servidor, valida ruta, límite, firma binaria real, tamaño y SHA-256. Los PDF
+  con JavaScript, acciones automáticas, adjuntos, RichMedia o XFA se rechazan y
+  el objeto se elimina. Esto es cuarentena y análisis de contenido; no se
+  presenta como sustituto de un motor antimalware especializado.
+- Los objetos previos se etiquetan `legacy`, preservando operación sin afirmar
+  que fueron inspeccionados por el control nuevo. Quedan disponibles para una
+  campaña posterior de reescaneo.
+- `smyl-secure-files.js` integra la verificación en web y móvil antes de guardar
+  expedientes, radiografías, casos, propuestas o documentos profesionales.
+- Las máscaras privadas de segmentación dejaron de usar enlaces de un año:
+  duran cinco minutos, guardan una ruta privada y `sign-segmentation-masks`
+  renueva el acceso al reabrir el caso, con sesión y tenant verificados.
+- Producción: migración aplicada; `secure-clinical-file`,
+  `sign-segmentation-masks` y `segment-teeth` desplegadas con JWT obligatorio.
+  Smoke test sin sesión: `401`. Validación local: 294/294 pruebas aprobadas.
+
+**Siguiente etapa de seguridad:** retención y borrado verificable, reescaneo de
+objetos `legacy`, limpieza automática de cuarentenas abandonadas y respuesta a
+incidentes con alertas y trazabilidad de exportaciones.
+
 ## 2026-10-14 — Codex: seguridad, etapa 2 de privacidad en navegador
 
 **Los expedientes clínicos dejaron de persistirse en el navegador.**
