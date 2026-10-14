@@ -1,0 +1,31 @@
+project_id = "rpxshsiwoxdbuevjjpfw"
+
+# Las funciones clínicas y administrativas siempre requieren JWT de usuario.
+[functions.claude]
+verify_jwt = true
+
+[functions.segment-teeth]
+verify_jwt = true
+
+# Excepciones públicas deliberadas. Cada una aplica su propio control de
+# capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
+[functions.analizar-foto]
+verify_jwt = false
+
+[functions.meta-webhook]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.guardar-lead-prospecto]
+verify_jwt = false
+
+[functions.public-appointment-request]
+verify_jwt = false
+
+[functions.public-professional-cases]
+verify_jwt = false
+
+[functions.public-patient-reviews]
+verify_jwt = false

@@ -3379,35 +3379,18 @@ async function ejecutarAnalisisIA() {
   contentArr.push({type:'text', text:prompt});
 
   try {
-    var resp, data;
-    if (USE_EDGE) {
-      // Manda el JWT real de la sesión, no la llave anónima -- con la
-      // llave anónima el servidor trataba esta llamada como acceso sin
-      // sesión (tope genérico de 5/hora por IP) y nunca descontaba del
-      // plan real del tenant, sin importar si era Esencial o Premium.
-      var sesIA = await sb.auth.getSession();
-      var tokenIA = (sesIA.data && sesIA.data.session && sesIA.data.session.access_token) || SUPA_KEY;
-      resp = await fetch(EDGE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + tokenIA
-        },
-        body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
-      });
-      data = await resp.json();
-    } else {
-      resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': getApiKey(),
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:1500, messages:[{role:'user', content:contentArr}]})
-      });
-      data = await resp.json();
-    }
+    var sesIA = await sb.auth.getSession();
+    var tokenIA = sesIA.data && sesIA.data.session && sesIA.data.session.access_token;
+    if (!tokenIA) throw new Error('Tu sesión expiró. Inicia sesión nuevamente.');
+    var resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + tokenIA
+      },
+      body: JSON.stringify({messages:[{role:'user', content:contentArr}], max_tokens:1500})
+    });
+    var data = await resp.json();
 
     // Verificar error de la Edge Function o Anthropic
     if (data.error) {
@@ -3522,11 +3505,6 @@ function mostrarAnalisis(r, nombre) {
   }).join('');
 
   document.getElementById('analisis-resultado').style.display='block';
-}
-
-function getApiKey() {
-  // Lee de config o localStorage (no hardcodeada aquí)
-  return (tenantData.config && tenantData.config.api_key) || localStorage.getItem('camila_ak') || '';
 }
 
 function selTipo(t) {

@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 1 de contención crítica
+
+**Las funciones privadas ya no aceptan una publishable key como identidad.**
+
+- `_shared/auth.ts` rechaza todo token que no resuelva a una sesión real y
+  falla cerrado si no puede determinar la clínica del usuario.
+- `claude`, `segment-teeth`, equipo, Meta y los puentes privados de LANA se
+  redesplegaron con el helper corregido. `claude` y `segment-teeth` quedaron
+  además con `verify_jwt=true`; una prueba en vivo con la llave pública devuelve
+  `401` antes de procesar entradas o consumir IA.
+- La aplicación eliminó el fallback que enviaba una clave de Anthropic desde el
+  navegador. La migración `20261014140000_smyl_provider_secret_cleanup.sql`
+  eliminó claves de proveedor de `camila_tenants.config` y evita reinsertarlas.
+- La simulación pública sin cuenta queda pausada intencionalmente. Perfil,
+  solicitudes de cita y reseñas siguen públicos. El siguiente diseño debe usar
+  una capacidad limitada y de corta duración, nunca `tenant_id` como autoridad.
+- `supabase/config.toml` registra qué funciones exigen JWT y cuáles son
+  excepciones públicas verificadas. Stripe conserva validación de firma propia.
+- Web y PWA móvil están sincronizadas con `smyl-v234-security-containment`.
+  Validación: 283/283 pruebas aprobadas y smoke tests remotos `401` para
+  `claude`, `segment-teeth`, `lana-inbox` e `invite-staff` con llave pública.
+
+**Pendiente externo inmediato:** revocar y regenerar desde los proveedores la
+clave de Anthropic que apareció en cuatro commits históricos, revisar consumo y
+rotar cualquier otra clave que hubiera coexistido con ella.
+
 ## 2026-10-14 — Codex: reseñas verificadas por cita
 
 **El directorio ya recoge y publica opiniones originadas en atenciones reales.**

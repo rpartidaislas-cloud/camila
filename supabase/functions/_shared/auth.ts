@@ -1,15 +1,7 @@
-// Verificación de sesión para las Edge Functions que gastan dinero real
-// (Anthropic, Gemini, Replicate).
-//
-// Preferentemente hay que mandar el JWT de una sesión real de Supabase Auth
-// (el `access_token` que devuelve signInWithPassword). Por pedido explícito
-// (de nuevo -- ya se había hecho y luego revertido una vez) se vuelve a
-// aceptar también la publishable key sin sesión -- ACEPTAR ESTO SIGNIFICA
-// QUE CUALQUIERA CON LA URL PUBLICADA PUEDE GASTAR LOS CRÉDITOS DE
-// ANTHROPIC/GEMINI/REPLICATE DE ESTE PROYECTO, sin pasar por el login del
-// cliente (un `curl` a pelo funciona igual). Si se quiere volver a cerrar,
-// basta con que el fallback de "sin sesión válida" de abajo rechace (deny)
-// en vez de dejar pasar como anónimo.
+// Verificación obligatoria de sesión para Edge Functions privadas.
+// Una publishable key identifica el proyecto, pero nunca autentica a una
+// persona. Los flujos públicos deben usar funciones separadas con capacidades
+// limitadas; nunca deben reutilizar este helper ni aceptar tenant_id del cliente.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -43,17 +35,13 @@ export interface AuthResult {
 // simulacion.html, continuarConUsuario() en app.html): resuelve si quien
 // llama es staff antes de asumir que su propio auth.uid() es el tenant.
 async function resolverTenantId(userId: string): Promise<string> {
-  try {
-    const { data, error } = await admin
-      .from('camila_usuarios')
-      .select('tenant_id')
-      .eq('id', userId)
-      .maybeSingle();
-    if (!error && data?.tenant_id) return data.tenant_id;
-  } catch (_e) {
-    // Si camila_usuarios no responde, se cae al valor de siempre (dueño) --
-    // más seguro que bloquear la llamada por un problema ajeno al usuario.
-  }
+  const { data, error } = await admin
+    .from('camila_usuarios')
+    .select('tenant_id')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (data?.tenant_id) return data.tenant_id;
   return userId;
 }
 
@@ -87,15 +75,23 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
     timeout,
   ]);
   if (data?.user) {
-    const tenantId = await resolverTenantId(data.user.id);
-    return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+    try {
+      const tenantId = await resolverTenantId(data.user.id);
+      return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+    } catch (error) {
+      console.error('[auth] no se pudo resolver el tenant del usuario:', error instanceof Error ? error.message : 'error desconocido');
+      return {
+        user: null,
+        tenantId: null,
+        response: new Response(JSON.stringify({ error: 'No se pudo verificar el acceso a la clínica. Intenta de nuevo.' }), {
+          status: 503,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+        }),
+      };
+    }
   }
 
   if (seTardo) return deny('No se pudo verificar la sesión a tiempo (Supabase Auth no respondió). Intenta de nuevo.');
 
-  // El token no resolvió a una sesión real (p. ej. es la publishable key, o
-  // una key de otro proyecto) -- se deja pasar como acceso anónimo (user:
-  // null) en vez de rechazar. El caller debe manejar ese caso (p. ej. tomar
-  // tenantId del body en vez de la sesión, como hace segment-teeth).
-  return { user: null, tenantId: null, response: null };
+  return deny('No autenticado: la sesión no es válida o ya expiró.');
 }

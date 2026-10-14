@@ -4542,7 +4542,9 @@ async function leerRespuestaEdge(resp, requestId, etapa) {
 // falle al final de una espera larga. El modo prospecto usa su enlace de
 // clínica y no requiere sesión profesional.
 async function asegurarAutorizacionIA() {
-  if (CFG.modoProspecto) return;
+  if (CFG.modoProspecto) {
+    throw new Error('La simulación pública está temporalmente pausada mientras reforzamos su acceso seguro. Solicita una cita a la clínica.');
+  }
   if (!sbAuth || !sbAuth.auth) throw new Error('Sesión no disponible. Inicia sesión nuevamente.');
   var res = await sbAuth.auth.getSession();
   var session = res && res.data && res.data.session;

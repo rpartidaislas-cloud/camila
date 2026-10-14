@@ -37,7 +37,7 @@ test('reportes explica cinco hitos sin presentarlos como conversión clínica',(
 test('cierre profesional mantiene paridad web, móvil y PWA',()=>{
   assert.match(app,/smyl-reports\.js\?v=3/);
   assert.match(app,/smyl-reports\.css\?v=3/);
-  assert.match(sw,/smyl-v233-verified-reviews/);
+  assert.match(sw,/smyl-v234-security-containment/);
   assert.match(sw,/smyl-reports\.js\?v=3/);
   assert.equal(reports,read('../mobile/www/smyl-reports.js'));
   assert.equal(css,read('../mobile/www/smyl-reports.css'));
