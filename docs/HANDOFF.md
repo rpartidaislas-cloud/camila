@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: Etapa 7, tablero ejecutivo profesional
+
+**Reportes ya funciona como mesa de control para dirección, con prioridades
+accionables y límites explícitos sobre lo que cada indicador significa.**
+
+- `Resumen para dirección` reúne cartera, inasistencias, alertas de inventario
+  y cajas abiertas usando únicamente datos agregados y permisos existentes.
+  Cada prioridad abre el módulo responsable; el tablero no ejecuta acciones.
+- Se incorporaron periodos rápidos de 7, 30 y 90 días, filtro por sucursal y
+  selector de tendencia entre ingresos confirmados y citas cuando el rol tiene
+  acceso al módulo correspondiente.
+- Demanda por servicio y actividad del equipo se presentan como carga operativa,
+  no como evaluación de desempeño, calidad clínica u ocupación de sillones.
+- El recorrido de tratamientos conserva sus cinco hitos independientes y deja
+  claro que no representa una cohorte ni una tasa de conversión.
+- No se modificaron migraciones, RLS ni Edge Functions. Web y bundle móvil están
+  sincronizados; PWA usa `smyl-v216-executive-dashboard-stage7`. Suite completa
+  224/224 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 6, inventario y trazabilidad profesional
 
 **Inventario ya prioriza faltantes, lotes de riesgo y recepciones abiertas como
