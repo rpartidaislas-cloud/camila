@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 6 de validación previa al lanzamiento
+
+**La preparación técnica quedó en verde; el uso con datos clínicos reales sigue
+bloqueado hasta validación externa.**
+
+- `20261014180000_smyl_security_validation_fixes.sql` corrige tres errores
+  detectados en producción: inventario ambiguo, serie diaria inválida y hash de
+  exportación sin resolución explícita de pgcrypto.
+- `20261014181000_smyl_security_lint_cleanup.sql` elimina las advertencias de
+  tipos y variables antiguas. `supabase db lint --linked --level warning`
+  termina sin hallazgos.
+- El cliente web de Supabase quedó fijado en `2.117.3`, versión estable revisada,
+  y web/móvil permanecen sincronizados en `smyl-v239-security-validation`.
+- `scripts/security-release-gate.mjs` revisa dependencias flotantes, secretos
+  literales, JWT, cuarentena, bitácoras privadas, correcciones y paridad.
+- La matriz de abuso y la puerta de salida documentan pruebas entre dos
+  clínicas, IDOR/Storage, archivos, roles, funciones, exportaciones y LANA/Meta.
+- Validación local: 310/310 pruebas aprobadas. Migraciones aplicadas en la base
+  vinculada. Esto no equivale a un pentest externo.
+
+**Bloqueadores de lanzamiento clínico:** prueba dinámica de dos tenants en un
+proyecto desechable, pentest externo, simulacro de restauración de PostgreSQL y
+Storage, antimalware administrado y confirmación de rotación de claves
+históricamente expuestas.
+
 ## 2026-10-14 — Codex: seguridad, etapa 5 de monitoreo y respuesta
 
 **SMYL ya detecta señales, registra exportaciones y guía la respuesta sin exponer PHI.**

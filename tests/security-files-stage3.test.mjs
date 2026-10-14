@@ -61,6 +61,6 @@ test('web, mobile and offline bundles ship the same security gate', () => {
   assert.equal(read('smyl-secure-files.js'),read('mobile/www/smyl-secure-files.js'));
   assert.match(read('app.html'),/smyl-secure-files\.js\?v=2/);
   assert.match(read('mobile/www/app.html'),/smyl-secure-files\.js\?v=2/);
-  assert.match(read('sw.js'),/smyl-v238-security-monitoring/);
+  assert.match(read('sw.js'),/smyl-v239-security-validation/);
   assert.equal(read('sw.js'),read('mobile/www/sw.js'));
 });

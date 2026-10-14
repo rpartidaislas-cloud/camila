@@ -12,8 +12,10 @@ Estado al 14 de octubre de 2026.
    borrado verificable, limpieza de pendientes y reescaneo conservador de legado.
 5. **Monitoreo y respuesta — terminada.** Señales de acceso, exportaciones
    trazables, tablero privado, investigación documentada y runbook.
-6. **Validación independiente — siguiente.** Pruebas de aislamiento entre
-   clínicas, revisión de dependencias y pentest antes de datos clínicos reales.
+6. **Validación previa al lanzamiento — preparación terminada.** Base sin
+   errores de lint, dependencias web fijadas, matriz de abuso, puerta automática
+   y contrato de prueba entre clínicas. El lanzamiento con datos clínicos sigue
+   bloqueado hasta ejecutar el pentest y las pruebas externas indicadas abajo.
 
 ## Alcance de la etapa 3
 
@@ -67,3 +69,23 @@ investigación o resolverla con una nota, y registra esa decisión en la bitáco
 Las alertas se presentan como indicios para verificación humana, no como una
 declaración automática de intrusión. El procedimiento operativo está en
 `docs/SMYL_SECURITY_INCIDENT_RUNBOOK.md`.
+
+## Alcance de la etapa 6
+
+La revisión de PostgreSQL encontró y corrigió tres errores reales: una columna
+ambigua en inventario, aritmética temporal inválida en el reporte ejecutivo y
+la resolución incorrecta de `digest` en el registro de exportaciones. Después
+se limpiaron las advertencias restantes; el analizador remoto termina sin
+errores ni advertencias.
+
+El cliente Supabase del navegador quedó fijado a una versión exacta y la puerta
+automática comprueba secretos literales, JWT de funciones privadas, cuarentena,
+bitácoras privadas, correcciones versionadas y paridad web/móvil. La matriz de
+abuso y la decisión de salida están en `SMYL_SECURITY_ABUSE_MATRIX.md` y
+`SMYL_SECURITY_RELEASE_GATE.md`.
+
+Esta etapa no se presenta como validación independiente consumada: faltan la
+prueba viva con dos clínicas sintéticas, un pentest externo, restauración de
+base y objetos, análisis antimalware administrado y confirmación de rotación de
+credenciales históricas. Hasta documentar esas evidencias, no deben cargarse
+datos clínicos reales.
