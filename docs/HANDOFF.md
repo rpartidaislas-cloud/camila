@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-13 — Codex: Panel profesional de gestión v3 publicado
+
+**La experiencia completa se consolidó como un sistema de gestión dental, no
+como una colección de herramientas:** la navegación principal ahora sigue la
+jornada de la clínica con Inicio, Agenda, Pacientes, Tratamientos, Finanzas y
+Mensajes; Servicios y tarifas, Inventario y Reportes quedan como áreas de
+negocio claramente diferenciadas.
+
+- Inicio prioriza la operación del día y mantiene accesos directos a las áreas
+  canónicas. La acción global es `Nueva cita` y el móvil conserva cinco destinos
+  útiles sin saturar la barra inferior.
+- La ficha del paciente incorpora una barra de continuidad para agendar,
+  trabajar el tratamiento, registrar evolución, cobrar o escribirle sin perder
+  el contexto del paciente.
+- Tratamientos expone el recorrido completo: valoración, plan, cotización,
+  aceptación, atención y cierre. No se inventan decisiones clínicas ni estados.
+- El sistema visual usa jerarquía más compacta, superficies sobrias, navegación
+  azul marino y estados teal consistentes en escritorio, tablet y móvil.
+- Es una consolidación frontend: no modifica tablas, permisos ni migraciones.
+  Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v209-professional-management`. Suite completa 195/195 y QA visual a
+  1366, 834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
 ## 2026-10-13 — Codex: Etapa 8 de cierre profesional terminada
 
 **Reportes ya muestra el recorrido operativo de los tratamientos sin exponer

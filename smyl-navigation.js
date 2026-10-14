@@ -23,16 +23,16 @@
 
   var PRIMARY = [
     ['Inicio', 'dashboard', 'home'],
-    ['Pacientes', 'pacientes', 'patients'],
     ['Agenda', 'agenda', 'calendar'],
+    ['Pacientes', 'pacientes', 'patients'],
+    ['Tratamientos', 'propuestas', 'presentation'],
+    ['Finanzas', 'caja', 'cash'],
     ['Mensajes', 'inbox', 'messages']
   ];
   var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
   var BUSINESS = [
     ['Servicios y tarifas', 'precios', 'pricing'],
-    ['Presentaciones', 'propuestas', 'presentation'],
     ['Inventario', 'inventario', 'inventory'],
-    ['Caja y cobros', 'caja', 'cash'],
     ['Reportes', 'reportes', 'reports']
   ];
   var SETTINGS = [
@@ -117,7 +117,11 @@
     var host = document.querySelector('.pro-mobile-nav');
     if (!host) return;
     host.replaceChildren();
-    PRIMARY.forEach(function (entry) { host.append(navItem(entry, false)); });
+    PRIMARY.slice(0,4).forEach(function (entry) { host.append(navItem(entry, false)); });
+    var more=navItem(['Más','__more','account'],false);
+    more.removeAttribute('onclick');
+    more.addEventListener('click',function(){if(typeof window.openPanelAdmin==='function')window.openPanelAdmin();});
+    host.append(more);
   }
 
   function mobileGroup(label, entries) {

@@ -20,7 +20,7 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
   assert.match(nav, /\['Canales y asistente', 'conexiones'/);
   assert.match(nav, /\['Preparación operativa', 'lanzamiento'/);
   assert.match(nav, /\['Servicios y tarifas', 'precios'/);
-  assert.match(nav, /\['Presentaciones', 'propuestas'/);
+  assert.match(nav, /\['Tratamientos', 'propuestas'/);
   assert.match(nav, /var SETTINGS = \[/);
 });
 
@@ -33,8 +33,8 @@ test('Canales e IA se divide en canales, asistente y laboratorio', () => {
 });
 
 test('web y PWA cargan la arquitectura centralizada', () => {
-  assert.match(app, /smyl-navigation\.js\?v=3/);
+  assert.match(app, /smyl-navigation\.js\?v=4/);
   assert.match(app, /smyl-navigation\.css\?v=1/);
-  assert.match(sw, /smyl-v208-professional-pilot/);
-  assert.match(sw, /smyl-navigation\.js\?v=3/);
+  assert.match(sw, /smyl-v209-professional-management/);
+  assert.match(sw, /smyl-navigation\.js\?v=4/);
 });
