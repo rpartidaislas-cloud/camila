@@ -21,7 +21,9 @@ aislamiento en un entorno vivo con dos clínicas.
 
 1. **Prueba dinámica de dos clínicas.** En un proyecto desechable, intentar
    lectura, escritura, RPC, Realtime y Storage de A contra B. Debe existir un
-   informe firmado con cero cruces.
+   informe firmado con cero cruces. El arnés reproducible está preparado en
+   `scripts/two-tenant-isolation.mjs`; todavía no se ha ejecutado porque no hay
+   un proyecto de pruebas separado conectado a esta sesión.
 2. **Pentest externo.** Alcance mínimo: autenticación, RLS/IDOR, archivos,
    funciones públicas, LANA/Meta, abuso de exportaciones y sesión móvil.
 3. **Restauración real.** Restaurar base y objetos cifrados en un entorno

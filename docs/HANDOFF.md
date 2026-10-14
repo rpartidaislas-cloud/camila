@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 7 preparada para dos clínicas
+
+**El arnés de aislamiento está listo, pero no se ejecutó contra producción.**
+
+- `scripts/two-tenant-isolation.mjs` exige dos cuentas propietarias sintéticas,
+  resuelve el tenant desde sesión y prueba pacientes, inventario, RPC clínica,
+  Realtime y Storage.
+- El ejecutor rechaza explícitamente el project ref productivo y requiere la
+  confirmación literal `DISPOSABLE_TWO_TENANT_PROJECT`.
+- Realtime sólo se declara aprobado si primero recibe un evento propio de
+  control. Storage sólo se aprueba con un objeto sintético `clean` que B pueda
+  leer y A no.
+- El reporte conserva únicamente estados, códigos y una huella del proyecto;
+  no imprime URL, correos, contraseñas, tokens ni IDs clínicos.
+- `docs/SMYL_SECURITY_STAGE7_TWO_TENANTS.md` documenta preparación, variables,
+  ejecución y criterios. Las pruebas estáticas del arnés aprueban 5/5.
+
+**Pendiente para cerrar la etapa:** crear/conectar un proyecto Supabase
+desechable, provisionar dos clínicas ficticias y ejecutar hasta obtener `PASS`.
+No ejecutar este arnés contra la base productiva.
+
 ## 2026-10-14 — Codex: seguridad, etapa 6 de validación previa al lanzamiento
 
 **La preparación técnica quedó en verde; el uso con datos clínicos reales sigue

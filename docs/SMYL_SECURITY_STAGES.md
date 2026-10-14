@@ -16,6 +16,13 @@ Estado al 14 de octubre de 2026.
    errores de lint, dependencias web fijadas, matriz de abuso, puerta automática
    y contrato de prueba entre clínicas. El lanzamiento con datos clínicos sigue
    bloqueado hasta ejecutar el pentest y las pruebas externas indicadas abajo.
+7. **Aislamiento dinámico — arnés terminado, ejecución pendiente.** La prueba
+   crea datos sintéticos para dos clínicas y verifica lectura, escritura, RPC,
+   Realtime y Storage. Se niega a ejecutarse contra producción.
+8. **Restauración y antimalware — pendiente externo.** Requiere respaldos y
+   servicios separados de este repositorio.
+9. **Pentest y autorización — pendiente externo.** Un tercero debe evaluar la
+   superficie viva y confirmar la corrección de sus hallazgos.
 
 ## Alcance de la etapa 3
 
@@ -89,3 +96,15 @@ prueba viva con dos clínicas sintéticas, un pentest externo, restauración de
 base y objetos, análisis antimalware administrado y confirmación de rotación de
 credenciales históricas. Hasta documentar esas evidencias, no deben cargarse
 datos clínicos reales.
+
+## Alcance de la etapa 7
+
+`scripts/two-tenant-isolation.mjs` autentica dos propietarios ficticios y crea
+marcadores sin información real. Comprueba RLS en pacientes e inventario,
+rechazo de tenant falsificado, una RPC clínica con IDs ajenos, Realtime con
+control positivo y una descarga cruzada de Storage. El informe no contiene
+credenciales, correos ni IDs clínicos.
+
+La preparación del arnés está terminada, pero la etapa no se considera aprobada
+hasta obtener `PASS` en un proyecto Supabase desechable. El identificador del
+proyecto productivo está expresamente bloqueado en el ejecutor.

@@ -56,6 +56,13 @@ export function runSecurityReleaseGate() {
     /c\.item_id/.test(stage6) && /interval '1 day'/.test(stage6) && /extensions\.digest\(convert_to/.test(stage6),
     'Inventario, reporte diario y huella de exportación tienen corrección versionada.');
 
+  const isolationHarness = read('scripts/two-tenant-isolation.mjs');
+  check('Arnés de dos clínicas protegido contra producción',
+    /DISPOSABLE_TWO_TENANT_PROJECT/.test(isolationHarness) &&
+      /PRODUCTION_PROJECT_REF\s*=\s*'rpxshsiwoxdbuevjjpfw'/.test(isolationHarness) &&
+      /baseUrl\.includes\(PRODUCTION_PROJECT_REF\)/.test(isolationHarness),
+    'Exige confirmación explícita y rechaza el proyecto productivo conocido.');
+
   const parity = ['app.html','dentista.html','revision-clinica.html','simulacion.html','simulacion-rapida.html'].filter((file) => {
     const mobile = path.join('mobile', 'www', file);
     return !fs.existsSync(path.join(ROOT, mobile)) || read(file) !== read(mobile);
