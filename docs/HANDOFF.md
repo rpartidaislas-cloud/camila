@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: seguridad, etapa 2 de privacidad en navegador
+
+**Los expedientes clínicos dejaron de persistirse en el navegador.**
+
+- `smyl-browser-privacy.js` elimina residuos de versiones anteriores para
+  pacientes, casos, cotizaciones, vistas compartidas, avances con fotografías
+  y el IndexedDB del editor. La limpieza es selectiva: no borra la sesión de
+  Supabase ni preferencias inocuas de interfaz.
+- Panel, simulación completa, simulación rápida y editor ya no usan
+  `localStorage`, `sessionStorage` o IndexedDB como respaldo clínico. Un caso o
+  paciente sólo se anuncia como guardado después de confirmación de Supabase;
+  si falla la red, permanece únicamente en la pestaña y se ofrece reintentar.
+- El dashboard y el historial consultan la nube y muestran un error explícito
+  en vez de sustituirlo por una copia local que pudiera estar desactualizada.
+- La antigua vista pública construida con `camila_caso_preview` quedó retirada;
+  compartir debe hacerse desde Mi SMYL mediante el flujo privado y revocable.
+- Se escaparon nombres, correos, notas, resultados de IA y campos del historial
+  antes de insertarlos en HTML; las imágenes sólo aceptan fuentes controladas.
+- Web y móvil están sincronizadas con `smyl-v235-clinical-browser-privacy`.
+  Validación: 288/288 pruebas aprobadas, incluidas cinco nuevas de privacidad.
+
+**Siguiente etapa de seguridad:** endurecer subida/descarga de archivos
+clínicos: buckets privados, rutas por clínica, MIME/tamaño real, enlaces
+firmados cortos, antivirus/cuarentena y eliminación verificable.
+
 ## 2026-10-14 — Codex: seguridad, etapa 1 de contención crítica
 
 **Las funciones privadas ya no aceptan una publishable key como identidad.**

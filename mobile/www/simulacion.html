@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="smyl-browser-privacy.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>SMYL · Simula tu Sonrisa</title>
@@ -2840,19 +2841,11 @@ function progressKey() {
 }
 
 function progressStorage() {
-  // En el enlace público, las fotos sólo sobreviven dentro de la sesión de
-  // navegador actual. Así otra persona que use después el mismo dispositivo
-  // no puede recuperar por accidente las imágenes del paciente anterior.
-  return CFG.modoProspecto ? sessionStorage : localStorage;
+  return null;
 }
 
 function trySaveSnapshot(snapshot) {
-  try {
-    progressStorage().setItem(progressKey(), JSON.stringify(snapshot));
-    return true;
-  } catch (e) {
-    return false; // cuota de localStorage llena
-  }
+  return false;
 }
 
 function saveProgress(screenId) {
@@ -2889,18 +2882,14 @@ function saveProgress(screenId) {
 }
 
 function clearProgress() {
-  try { progressStorage().removeItem(progressKey()); } catch (e) {}
+  try {
+    localStorage.removeItem(progressKey());
+    sessionStorage.removeItem(progressKey());
+  } catch (e) {}
 }
 
 function loadSavedProgress() {
-  try {
-    var raw = progressStorage().getItem(progressKey());
-    if (!raw) return null;
-    var snap = JSON.parse(raw);
-    if (!snap.ts || (Date.now() - snap.ts) > PROGRESS_TTL_MS) { clearProgress(); return null; }
-    if (!snap.screen || snap.screen === 's-intro') return null;
-    return snap;
-  } catch (e) { return null; }
+  return null;
 }
 
 var SAVED_PROGRESS = null;
@@ -11491,14 +11480,6 @@ async function guardarCaso() {
     created_at: new Date().toISOString(),
   };
 
-  // Save to localStorage first (instant, works offline)
-  try {
-    var key = 'camila_casos_' + (CFG.tenantId || 'local');
-    var casos = JSON.parse(localStorage.getItem(key) || '[]');
-    casos.unshift(casoData);
-    localStorage.setItem(key, JSON.stringify(casos));
-  } catch(e) {}
-
   // Save to Supabase
   var savedToCloud = false;
   var camposCaso = {
@@ -11578,8 +11559,12 @@ async function guardarCaso() {
     console.error('[SMYL] Error de red guardando el caso:', e);
   }
 
-  // El caso ya quedó guardado (localStorage y/o Supabase) — ya no hace
-  // falta el respaldo de "avance sin terminar"
+  if (!savedToCloud) {
+    if (typeof alert === 'function') alert('No se pudo guardar el caso en la nube. El expediente sigue abierto en esta pestaña; revisa tu conexión e inténtalo de nuevo.');
+    return;
+  }
+
+  // El caso quedó confirmado en Supabase; ya no hace falta el estado en memoria.
   clearProgress();
 
   // Show success screen
@@ -11595,6 +11580,7 @@ function showCasoGuardado(caso, enNube) {
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
 
+  function safeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
   if (CFG.modoProspecto) {
     // Sin "Enviar al paciente" (el prospecto ES el paciente) ni "Ver en
     // panel admin" (requiere login que no tiene) -- solo la confirmación
@@ -11604,8 +11590,8 @@ function showCasoGuardado(caso, enNube) {
       '<div style="text-align:center;padding:8px 0">' +
       '<div style="width:56px;height:56px;border-radius:50%;background:rgba(22,163,74,.2);border:2px solid #16A34A;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">' +
       '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' +
-      '<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:4px">¡Listo, ' + caso.nombre_paciente + '!</div>' +
-      '<div style="font-size:13px;color:rgba(255,255,255,.5)">' + nombreClinica + ' recibió tus datos y se pondrá en contacto contigo pronto.</div>' +
+      '<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:4px">¡Listo, ' + safeHtml(caso.nombre_paciente) + '!</div>' +
+      '<div style="font-size:13px;color:rgba(255,255,255,.5)">' + safeHtml(nombreClinica) + ' recibió tus datos y se pondrá en contacto contigo pronto.</div>' +
       '</div>' +
       '<button onclick="nuevoCaso()" style="width:100%;height:46px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
@@ -11619,7 +11605,7 @@ function showCasoGuardado(caso, enNube) {
     '<div style="width:56px;height:56px;border-radius:50%;background:rgba(22,163,74,.2);border:2px solid #16A34A;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">' +
     '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' +
     '<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:4px">Caso guardado ✓</div>' +
-    '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">' + caso.nombre_paciente + ' · $' + total.toLocaleString() + ' MXN' +
+    '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px">' + safeHtml(caso.nombre_paciente) + ' · $' + total.toLocaleString() + ' MXN' +
     (enNube ? ' · <span style="color:#16A34A">☁ En la nube</span>' : ' · <span style="color:#F59E0B">📱 Local</span>') + '</div>' +
     '</div>' +
 

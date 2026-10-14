@@ -74,6 +74,8 @@
   var cameraStream = null;
   var cameraSlot = null;
   var cameraRequest = 0;
+  var volatilePhotos = new Map();
+  var volatileDesign = null;
 
   var svg = document.getElementById('design-svg');
   var layer = document.getElementById('teeth-layer');
@@ -92,19 +94,13 @@
   function esc(value) { return String(value).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
 
   function mediaDb() {
-    if (mediaDbPromise) return mediaDbPromise;
-    mediaDbPromise = new Promise(function (resolve, reject) {
-      var request = indexedDB.open('smyl_editor_v2_media', 1);
-      request.onupgradeneeded = function () { if (!request.result.objectStoreNames.contains('photos')) request.result.createObjectStore('photos', { keyPath: 'key' }); };
-      request.onsuccess = function () { resolve(request.result); }; request.onerror = function () { reject(request.error); };
-    });
-    return mediaDbPromise;
+    return Promise.resolve(null);
   }
 
   function photoKey(caseId, slot) { return caseId + ':' + slot; }
-  function storePhoto(slot, file) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').put({ key: photoKey(caseState.id, slot), caseId: caseState.id, slot: slot, blob: file }); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
-  function getPhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var request = db.transaction('photos').objectStore('photos').get(photoKey(caseId,slot)); request.onsuccess = function () { resolve(request.result && request.result.blob); }; request.onerror = function () { reject(request.error); }; }); }); }
-  function removePhoto(caseId, slot) { return mediaDb().then(function (db) { return new Promise(function (resolve, reject) { var tx = db.transaction('photos','readwrite'); tx.objectStore('photos').delete(photoKey(caseId,slot)); tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); }; }); }); }
+  function storePhoto(slot, file) { volatilePhotos.set(photoKey(caseState.id, slot), file); return Promise.resolve(); }
+  function getPhoto(caseId, slot) { return Promise.resolve(volatilePhotos.get(photoKey(caseId,slot)) || null); }
+  function removePhoto(caseId, slot) { volatilePhotos.delete(photoKey(caseId,slot)); return Promise.resolve(); }
   function removeCasePhotos(caseId) { return Promise.all(PHOTO_SLOTS.map(function (slot) { return removePhoto(caseId,slot.id); })); }
 
   function photoMetadata(slot, file, quality) { return { slot:slot,name:file.name || (slot + '-' + Date.now() + '.jpg'),type:file.type || 'image/jpeg',size:file.size || 0,capturedAt:new Date().toISOString(),quality:quality || null }; }
@@ -523,7 +519,7 @@
     return candidate;
   }
 
-  function persistLibrary() { localStorage.setItem(CASE_LIBRARY_KEY, JSON.stringify({ schema: 'smyl.case-library', version: 1, cases: caseLibrary })); }
+  function persistLibrary() { return true; }
 
   function availableFolio(seed) {
     var base = seed || ('SMYL-' + new Date().toISOString().slice(0,10).replace(/-/g,''));
@@ -537,8 +533,7 @@
   }
 
   function loadLibrary() {
-    try { var parsed = JSON.parse(localStorage.getItem(CASE_LIBRARY_KEY) || 'null'); if (parsed && parsed.schema === 'smyl.case-library' && parsed.version === 1 && Array.isArray(parsed.cases)) caseLibrary = parsed.cases.map(validateCase); } catch (error) { caseLibrary = []; }
-    if (!caseLibrary.length) { try { var legacy = JSON.parse(localStorage.getItem(CASE_STORAGE_KEY) || 'null'); if (legacy) { caseLibrary.push(validateCase(legacy)); persistLibrary(); } } catch (error) {} }
+    caseLibrary = [];
     caseLibrary.sort(function (a, b) { return String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')); });
   }
 
@@ -610,7 +605,7 @@
     caseState.updatedAt = new Date().toISOString(); caseState.design = clone(state);
     var index = caseLibrary.findIndex(function (item) { return item.folio === caseState.folio; });
     if (index >= 0) caseLibrary[index] = clone(caseState); else caseLibrary.unshift(clone(caseState));
-    persistLibrary(); localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(caseState));
+    persistLibrary();
   }
 
   function requirePhoto() {
@@ -1033,13 +1028,12 @@
 
   document.getElementById('save-design').addEventListener('click', function () {
     state.updatedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    setStatus('Diseño guardado localmente a las ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '.');
+    volatileDesign = clone(state);
+    setStatus('Diseño conservado sólo durante esta pestaña a las ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '.');
   });
   document.getElementById('load-design').addEventListener('click', function () {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return setStatus('Todavía no existe un diseño guardado.');
-    try { state = validate(JSON.parse(raw)); resetHistory(); render(); setStatus('Diseño recuperado sin modificar la fotografía.'); }
+    if (!volatileDesign) return setStatus('Todavía no existe un diseño guardado en esta pestaña.');
+    try { state = validate(clone(volatileDesign)); resetHistory(); render(); setStatus('Diseño recuperado sin modificar la fotografía.'); }
     catch (error) { setStatus('El diseño guardado no es compatible: ' + error.message); }
   });
   document.getElementById('export-design').addEventListener('click', function () {

@@ -42,10 +42,7 @@
     return { canRead: permissions.has('clinical.read'), canWrite: permissions.has('clinical.write'), canApprove: permissions.has('clinical.approve') };
   }
   function localPatients() {
-    try {
-      var rows = JSON.parse(localStorage.getItem('camila_pacientes_' + tenantId) || '[]');
-      return Array.isArray(rows) ? rows.map(function (p) { return Object.assign({}, p, { _local: true }); }) : [];
-    } catch (_) { return []; }
+    return [];
   }
   function leave() {
     if (current && current.saving) { alert('Espera a que termine el guardado.'); return false; }
@@ -389,15 +386,6 @@
     });
     if (p.notas) { var previousNotes = el('details', 'clinic-secondary'); previousNotes.append(el('summary', '', 'Notas del registro anterior'), el('p', '', p.notas)); aside.append(previousNotes); }
     aside.append(el('p', 'clinic-privacy', 'Información privada de la clínica.'));
-    // Preserve access to historical local entries by exact ID, never by name.
-    try {
-      var oldCases = JSON.parse(localStorage.getItem('camila_cotizaciones_' + ctx.tenant) || '[]');
-      oldCases = Array.isArray(oldCases) ? oldCases.filter(function (c) { return c.paciente_id === p.id; }) : [];
-      if (oldCases.length) {
-        var activity = el('details', 'clinic-secondary'); activity.append(el('summary', '', 'Actividad anterior · este dispositivo'));
-        oldCases.forEach(function (c) { activity.append(el('p', '', (c.nombre || 'Diseño') + ' · ' + (c.fecha || 'Sin fecha'))); }); aside.append(activity);
-      }
-    } catch (_) { /* Do not discard or rewrite an unreadable legacy archive. */ }
     var main = el('section', 'clinic-workspace');
     var heading = el('div', 'clinic-workspace-heading'); var title = el('div');
     title.append(el('p', 'pro-eyebrow', 'ESPACIO DEL DENTISTA'), el('h2', '', 'Valoración y tratamiento'));
