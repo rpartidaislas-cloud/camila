@@ -5765,3 +5765,24 @@ reanudación, contrato de Inbox, migración
   `smyl-inbox.js?v=16`, `smyl-inbox.css?v=13` y la capacitación de canales v12.
 - Verificación final: 354 de 354 pruebas aprobadas, sin crear citas ni modificar
   expedientes reales.
+
+---
+
+## 2026-10-15 — Mensajes como centro profesional de atención
+
+**Tocado:** `smyl-inbox.js/.css`, copias móviles, PWA, pruebas y documentación.
+
+- La cabecera resume conversaciones por atender, mensajes sin leer y casos que
+  ya están en atención humana; son conteos derivados de la bandeja actual.
+- En escritorio se abre una sola vez la conversación prioritaria al cargar. La
+  vista vacía conserva un botón explícito para continuar y explica el flujo en
+  tres pasos.
+- Cada hilo expone una barra de trabajo con Agenda, Expediente, Cotización y
+  Cobro. Agenda usa la disponibilidad canónica ya implementada; las demás
+  acciones reutilizan los módulos profesionales existentes y no duplican datos.
+- Se amplió el espacio de conversación y Ficha 360, con adaptación específica
+  para escritorio, tableta y celular. Web y móvil permanecen idénticos.
+- PWA: `smyl-v247-inbox-professional`, `smyl-inbox.js?v=17` y
+  `smyl-inbox.css?v=14`.
+- Verificación local: sintaxis aprobada, 18 pruebas enfocadas y 362 pruebas
+  completas aprobadas. No se modificó backend, esquema ni datos reales.

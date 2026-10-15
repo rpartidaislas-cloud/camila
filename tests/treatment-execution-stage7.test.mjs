@@ -37,7 +37,7 @@ test('web, móvil y PWA distribuyen el seguimiento clínico',()=>{
   assert.match(app,/smyl-patient-360\.js\?v=5/);
   assert.match(app,/smyl-patient-360\.css\?v=3/);
   assert.match(app,/smyl-schedule\.js\?v=10/);
-  assert.match(sw,/smyl-v246-inbox-appointments/);
+  assert.match(sw,/smyl-v247-inbox-professional/);
   assert.match(css,/\.p360-dialog\{overflow:auto;overscroll-behavior:contain\}/);
   for(const file of ['app.html','sw.js','smyl-patient-360.js','smyl-patient-360.css','smyl-schedule.js'])assert.equal(read(file),read('mobile/www/'+file));
 });

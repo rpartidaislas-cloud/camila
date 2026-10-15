@@ -41,7 +41,7 @@ test('web, móvil y PWA publican la etapa siete sincronizada', () => {
   assert.equal(styles, read('../mobile/www/smyl-reports.css'));
   assert.match(app, /smyl-reports\.js\?v=4/);
   assert.match(app, /smyl-reports\.css\?v=3/);
-  assert.match(worker, /smyl-v246-inbox-appointments/);
+  assert.match(worker, /smyl-v247-inbox-professional/);
   assert.match(worker, /smyl-reports\.js\?v=4/);
   assert.match(worker, /smyl-reports\.css\?v=3/);
 });
