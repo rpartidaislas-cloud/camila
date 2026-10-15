@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Paciente, facturación y materiales</title>
+  <link rel="stylesheet" href="../../smyl-patient-360.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f6f7;color:#14243d;font-family:Inter,system-ui,sans-serif}.top{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;border-bottom:1px solid #dde6e4;background:#fff}.brand{font-weight:900;letter-spacing:.16em}.top small{color:#687b78}.shell{max-width:1280px;margin:auto;padding:28px}.patient{display:flex;align-items:center;gap:13px;margin-bottom:18px}.avatar{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#dcece7;color:#246658;font-weight:850}.patient h1{margin:0;font-size:24px}.patient p{margin:4px 0 0;color:#6d7d7a;font-size:12px}.demo-panels{display:grid;grid-template-columns:1fr;gap:16px}.p360-tabs button{cursor:default}.mobile body{width:390px;min-height:844px;margin:auto;box-shadow:0 0 45px #17352f26}.mobile .top{padding:0 16px}.mobile .shell{padding:16px 12px}.mobile .patient h1{font-size:20px}.mobile .p360-root{margin-inline:-12px;padding:16px 13px;border-radius:18px}.mobile .p360-title{display:block}.mobile .p360-secure{display:inline-block;margin-top:10px}.mobile .p360-title h2{font-size:19px}.mobile .p360-card{padding:14px}.mobile .p360-form-grid{grid-template-columns:1fr}.mobile .p360-form-grid .wide{grid-column:auto}.mobile .p360-section-head{align-items:flex-start}.mobile .p360-appointment-list article{grid-template-columns:1fr auto}.mobile .p360-appointment-list time,.mobile .p360-appointment-actions{grid-column:1/-1}.mobile .p360-appointment-actions{justify-content:flex-start}.mobile .p360-appointment-actions button{flex:1}.mobile .p360-billing-note{grid-template-columns:1fr}@media(max-width:650px){.top{padding:0 16px}.shell{padding:16px 12px}.patient h1{font-size:20px}}
+  </style>
+</head>
+<body>
+  <script>if(new URLSearchParams(location.search).has('mobile'))document.documentElement.classList.add('mobile');</script>
+  <header class="top"><span class="brand">SMYL</span><small>Ficha del paciente</small></header>
+  <main class="shell">
+    <div class="patient"><div class="avatar">AM</div><div><h1>Ana Martínez</h1><p>Paciente de demostración · Expediente protegido</p></div></div>
+    <section class="p360-root">
+      <div class="p360-title"><div><span>FICHA 360 DEL PACIENTE</span><h2>Información clínica y administrativa, en contexto</h2><p>Cada área conserva sus permisos: expediente clínico, atención y facturación.</p></div><span class="p360-secure">Acceso por rol · auditado</span></div>
+      <nav class="p360-tabs"><button>Resumen</button><button>Antecedentes</button><button>Notas clínicas</button><button>Citas y materiales</button><button>Archivos</button><button aria-selected="true" data-p360-tab="billing">Administrativo</button></nav>
+      <div class="demo-panels">
+        <article class="p360-card p360-billing-card">
+          <div class="p360-section-head"><div><span>ADMINISTRATIVO · FACTURACIÓN</span><h2>Datos fiscales del paciente</h2><p>Estos datos pertenecen al paciente y se usan sólo al preparar su CFDI.</p></div><span class="p360-billing-status" data-complete="false">Faltan datos</span></div>
+          <form><div class="p360-form-grid"><label>RFC<input value="MARA900101AB1"></label><label>Régimen fiscal<input value="612"></label><label class="wide">Nombre o razón social<input value="ANA MARTÍNEZ RAMÍREZ"></label><label>Código postal fiscal<input value="44100"></label><label>Uso CFDI<input value="D01"></label><label class="wide">Correo de facturación<input value="ana@example.test"></label></div><div class="p360-actions"><button class="btn btn-primary" type="button">Guardar datos fiscales</button></div></form>
+          <aside class="p360-billing-note"><strong>Separación profesional</strong><span>La historia clínica permanece en sus secciones protegidas. Aquí sólo se conserva información administrativa para facturación.</span></aside>
+        </article>
+        <article class="p360-card">
+          <div class="p360-section-head"><div><span>HISTORIAL DE ATENCIÓN</span><h2>Citas y materiales</h2><p>Los insumos se registran desde la atención y quedan vinculados con paciente, profesional y lote.</p></div><button>Abrir agenda</button></div>
+          <div class="p360-appointment-list"><article><time>14 oct 2026, 11:30</time><div><strong>Restauración dental</strong><small>Dra. Sofía Hernández</small></div><div class="p360-appointment-actions"><span data-status="completed">completada</span><button type="button">Material utilizado</button></div></article></div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

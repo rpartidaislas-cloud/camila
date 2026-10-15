@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: ficha administrativa y consumo por atención
+
+**Se conectaron Pacientes, Caja e Inventario desde la experiencia web sin
+modificar esquema, RLS, funciones ni información clínica.**
+
+- `Datos fiscales` dejó de ser una acción global de Caja. El receptor se
+  consulta y actualiza en `Paciente > Administrativo`, protegido por permisos
+  `finance.read` y `finance.manage` y separado de la historia clínica.
+- La preparación de CFDI envía a la ficha correcta cuando falta información
+  del receptor. El emisor y la preparación del PAC continúan en Finanzas.
+- Las citas en curso o completadas muestran `Material utilizado` a quienes
+  tienen `inventory.manage`. El registro abre Inventario como consumo clínico
+  con paciente, cita, profesional y motivo precargados.
+- El movimiento mantiene el RPC transaccional existente, selección de lote,
+  bloqueo de caducados, trazabilidad y correcciones compensatorias.
+- Se actualizaron las copias web/móvil y la caché PWA
+  `smyl-v242-patient-operations`.
+
+**Validación:** 330/330 pruebas aprobadas, puerta de seguridad en verde y
+revisión visual completada en escritorio y composición móvil con una ficha
+demostrativa sin datos reales. Pendiente publicación en GitHub Pages.
+
 ## 2026-10-14 — Codex: directorio profesional guiado
 
 **El directorio dejó de presentarse como un formulario largo y ahora comunica

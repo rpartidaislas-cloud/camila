@@ -63,6 +63,6 @@ test('web, mobile and PWA ship the same stage 5 security center',()=>{
   assert.equal(ui,read('mobile/www/smyl-security-center.js'));
   assert.equal(css,read('mobile/www/smyl-security-center.css'));
   assert.equal(read('smyl-navigation.js'),read('mobile/www/smyl-navigation.js'));
-  assert.match(read('sw.js'),/smyl-v241-guided-directory/);
+  assert.match(read('sw.js'),/smyl-v242-patient-operations/);
   assert.match(read('sw.js'),/smyl-security-center\.js\?v=1/);
 });

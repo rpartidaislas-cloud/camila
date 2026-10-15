@@ -59,7 +59,7 @@ test('browser can manage catalog but cannot write ledger or purchases directly',
 
 test('inventory interface covers stock, movements, purchasing and configuration', () => {
   assert.match(app, /smyl-inventory\.css\?v=2/);
-  assert.match(app, /smyl-inventory\.js\?v=2/);
+  assert.match(app, /smyl-inventory\.js\?v=3/);
   assert.match(script, /Existencias/);
   assert.match(script, /Libro de movimientos/);
   assert.match(script, /Órdenes y recepciones/);
@@ -75,7 +75,15 @@ test('web, mobile and offline inventory assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-inventory.js'));
   assert.equal(styles, read('../mobile/www/smyl-inventory.css'));
-assert.match(worker, /smyl-v241-guided-directory/);
-  assert.match(worker, /smyl-inventory\.js\?v=2/);
+assert.match(worker, /smyl-v242-patient-operations/);
+  assert.match(worker, /smyl-inventory\.js\?v=3/);
   assert.match(worker, /smyl-inventory\.css\?v=2/);
+});
+
+test('clinical consumption can start from a patient appointment with context prefilled', () => {
+  assert.match(script, /openConsumption:function\(context\)/);
+  assert.match(script, /context\.patientId/);
+  assert.match(script, /context\.appointmentId/);
+  assert.match(script, /context\.professionalId/);
+  assert.match(script, /Consumo confirmado; inventario y trazabilidad actualizados/);
 });

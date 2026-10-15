@@ -24,7 +24,7 @@ test('clinical access uses explicit read, write and approve permissions', () => 
   assert.match(actions, /smyl_has_permission\(v_tenant,'clinical\.write'\)/);
   assert.match(actions, /smyl_has_permission\(v_tenant,'clinical\.approve'\)/);
   assert.match(script, /perms\.has\('clinical\.read'\)/);
-  assert.match(script, /if\(!s\.canRead\)/);
+  assert.match(script, /if\(!s\.canRead&&!s\.canFinanceRead\)/);
 });
 
 test('signed notes are immutable and corrections use append-only addenda', () => {
@@ -46,9 +46,9 @@ test('clinical files remain private and tenant-patient scoped', () => {
 });
 
 test('patient 360 unifies existing dental modules without exposing LANA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=2/);
-  assert.match(app, /smyl-patient-360\.js\?v=3/);
-  assert.match(script, /Todo el expediente, en contexto/);
+  assert.match(app, /smyl-patient-360\.css\?v=3/);
+  assert.match(app, /smyl-patient-360\.js\?v=4/);
+  assert.match(script, /Información clínica y administrativa, en contexto/);
   assert.match(script, /p360-dental/);
   assert.match(script, /p360-cases/);
   assert.match(script, /p360-plan/);
@@ -61,7 +61,17 @@ test('web, mobile and offline patient assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-patient-360.js'));
   assert.equal(styles, read('../mobile/www/smyl-patient-360.css'));
-assert.match(worker, /smyl-v241-guided-directory/);
-  assert.match(worker, /smyl-patient-360\.js\?v=3/);
-  assert.match(worker, /smyl-patient-360\.css\?v=2/);
+assert.match(worker, /smyl-v242-patient-operations/);
+  assert.match(worker, /smyl-patient-360\.js\?v=4/);
+  assert.match(worker, /smyl-patient-360\.css\?v=3/);
+});
+
+test('patient profile owns fiscal details and starts traced material use from an appointment', () => {
+  assert.match(script, /data-p360-tab="billing"/);
+  assert.match(script, /smyl_patient_fiscal_profiles/);
+  assert.match(script, /Datos fiscales del paciente/);
+  assert.match(script, /data-materials=/);
+  assert.match(script, /SmylInventory\.openConsumption/);
+  assert.match(styles, /p360-billing-status/);
+  assert.match(styles, /p360-appointment-actions/);
 });
