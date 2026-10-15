@@ -5618,3 +5618,28 @@ reanudación, contrato de Inbox, migración
   móvil con datos simulados.
 - No se aplicó la migración, no se desplegaron Edge Functions y no se publicó la
   PWA. La salida a producción requiere autorización expresa y piloto controlado.
+
+---
+
+## 2026-10-14 — Etapa 2 del chat: disponibilidad dental verificable
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, migración
+`20261014030000_smyl_inbox_availability.sql`, fixture de QA y pruebas.
+
+- El equipo puede consultar desde la conversación espacios reales por servicio,
+  sucursal y profesional. La respuesta considera duración y buffers del
+  servicio, horarios de clínica y profesional, asignación profesional-servicio,
+  citas activas y bloqueos de agenda.
+- La consulta se calcula en servidor con la agenda dental canónica, queda
+  limitada a 31 días y 30 resultados, y exige `schedule.read`. La función SQL
+  sólo está disponible para `service_role` y no crea reservas ni modifica citas.
+- Elegir un espacio únicamente agrega un texto revisable al borrador. No envía
+  mensajes, no promete disponibilidad y advierte que el horario se confirma
+  después de que el paciente elija.
+- Web y móvil quedaron sincronizados. La revisión visual automatizada no pudo
+  ejecutarse porque el navegador aislado rechazó archivos y servidor locales;
+  se agregó un escenario determinista al fixture para completar esa revisión en
+  cuanto el entorno permita abrirlo.
+- No se aplicó la migración, no se desplegó `lana-inbox` y no se publicó la PWA.
+  Antes de producción se requiere revisión visual manual, aplicar la migración,
+  desplegar la función y ejecutar una prueba real con agendas superpuestas.

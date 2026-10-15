@@ -73,6 +73,8 @@
       if (action === 'templates') return json({ templates:[{id:'t1',name:'recordatorio_valoracion',display_name:'Recordatorio de valoración',language:'es_MX',body:'Hola {{1}}, te recordamos tu valoración dental el {{2}}.',variable_count:2}] });
       if (action === 'sync') return json({ conversations:[],removed:[],synced_at:new Date().toISOString(),truncated:false });
       if (action === 'read') return json({ paused:true,needs_human:true,unread_count:0,assigned_actor_id:'owner-preview',assigned_actor_name:'Dra. Mariana' });
+      if (action === 'availability_catalog') return json({ services:[{id:'service-valuation',name:'Valoracion dental integral',duration_minutes:60}],branches:[{id:'branch-centro',name:'Clinica Centro'}],professionals:[{id:'professional-mariana',display_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral'},{id:'professional-diego',display_name:'Dr. Diego Torres',specialty:'Ortodoncia'}],professional_services:[{professional_id:'professional-mariana',service_id:'service-valuation'},{professional_id:'professional-diego',service_id:'service-valuation'}] });
+      if (action === 'availability') return json({ slots:[{starts_at:'2026-10-15T16:00:00.000Z',ends_at:'2026-10-15T17:00:00.000Z',professional_id:'professional-mariana',professional_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60},{starts_at:'2026-10-15T17:30:00.000Z',ends_at:'2026-10-15T18:30:00.000Z',professional_id:'professional-diego',professional_name:'Dr. Diego Torres',specialty:'Ortodoncia',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60}],holds_created:false });
       return json({});
     };
   </script>
@@ -102,6 +104,13 @@
           } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');
             if (control) control.click();
+          } else if (preview.has('availability')) {
+            var availability = Array.from(document.querySelectorAll('button')).find(function (button) { return button.textContent.trim() === 'Buscar horarios'; });
+            if (availability) availability.click();
+            setTimeout(function () {
+              var form = document.querySelector('[data-availability-form]');
+              if (form) form.dispatchEvent(new Event('submit', { bubbles:true, cancelable:true }));
+            }, 120);
           } else {
             var health = document.querySelector('[data-inbox-operations]');
             if (health) health.click();

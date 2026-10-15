@@ -118,6 +118,54 @@ async function listTeam(tenantId: string): Promise<Response> {
   });
 }
 
+async function availabilityCatalog(tenantId: string): Promise<Response> {
+  const [servicesResult, branchesResult, professionalsResult, linksResult] = await Promise.all([
+    admin.from("smyl_services").select("id,name,duration_minutes,category").eq("tenant_id", tenantId).eq("active", true).order("name"),
+    admin.from("smyl_branches").select("id,name,timezone").eq("tenant_id", tenantId).eq("active", true).order("name"),
+    admin.from("smyl_professionals").select("id,display_name,specialty").eq("tenant_id", tenantId).eq("active", true).order("display_name"),
+    admin.from("smyl_professional_services").select("professional_id,service_id").eq("tenant_id", tenantId),
+  ]);
+  const failed = [servicesResult, branchesResult, professionalsResult, linksResult].find((result) => result.error);
+  if (failed?.error) return json(500, { error: "No se pudo consultar la configuración de Agenda." });
+  return json(200, {
+    ok: true,
+    services: servicesResult.data || [],
+    branches: branchesResult.data || [],
+    professionals: professionalsResult.data || [],
+    professional_services: linksResult.data || [],
+  });
+}
+
+async function availableSlots(actor: Actor, tenantId: string, url: URL): Promise<Response> {
+  const serviceId = uuid(url.searchParams.get("service_id"));
+  const branchId = url.searchParams.get("branch_id") ? uuid(url.searchParams.get("branch_id")) : null;
+  const professionalId = url.searchParams.get("professional_id") ? uuid(url.searchParams.get("professional_id")) : null;
+  const from = new Date(String(url.searchParams.get("from") || ""));
+  const to = new Date(String(url.searchParams.get("to") || ""));
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 12, 1), 30);
+  if (!serviceId || !Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime())) {
+    return json(400, { error: "Selecciona un servicio y un periodo válidos." });
+  }
+  if (url.searchParams.get("branch_id") && !branchId) return json(400, { error: "Sucursal no válida." });
+  if (url.searchParams.get("professional_id") && !professionalId) return json(400, { error: "Profesional no válido." });
+  const { data, error } = await admin.rpc("smyl_inbox_available_slots", {
+    p_tenant_id: tenantId,
+    p_actor_id: actor.id,
+    p_service_id: serviceId,
+    p_from: from.toISOString(),
+    p_to: to.toISOString(),
+    p_branch_id: branchId,
+    p_professional_id: professionalId,
+    p_limit: limit,
+  });
+  if (error) {
+    console.error("[lana-inbox] availability", error.message);
+    const forbidden = error.code === "42501";
+    return json(forbidden ? 403 : 400, { error: forbidden ? "Tu rol no permite consultar disponibilidad." : "No se pudo calcular la disponibilidad solicitada." });
+  }
+  return json(200, { ok: true, slots: data || [], generated_at: new Date().toISOString(), holds_created: false });
+}
+
 function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   const headers = new Headers({
     "X-SMYL-Actor-Id": actor.id,
@@ -283,6 +331,13 @@ Deno.serve(async (req: Request) => {
       const denied = requirePermission(actor, "messages.read", "Tu rol no permite consultar las conversaciones de la clínica.");
       if (denied) return denied;
       if (action === "team") return await listTeam(auth.tenantId);
+      if (action === "availability_catalog" || action === "availability") {
+        const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar disponibilidad de Agenda.");
+        if (scheduleDenied) return scheduleDenied;
+        return action === "availability_catalog"
+          ? await availabilityCatalog(auth.tenantId)
+          : await availableSlots(actor, auth.tenantId, url);
+      }
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
       if (action === "clinical_context" && conversationId) {
