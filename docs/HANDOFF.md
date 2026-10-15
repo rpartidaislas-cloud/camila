@@ -18,9 +18,9 @@ modificar esquema, RLS, funciones ni información clínica.**
 - Se actualizaron las copias web/móvil y la caché PWA
   `smyl-v242-patient-operations`.
 
-**Validación:** 330/330 pruebas aprobadas, puerta de seguridad en verde y
+**Validación:** 330/330 pruebas aprobadas, puerta de seguridad en verde,
 revisión visual completada en escritorio y composición móvil con una ficha
-demostrativa sin datos reales. Pendiente publicación en GitHub Pages.
+demostrativa sin datos reales, y publicación confirmada en GitHub Pages.
 
 ## 2026-10-14 — Codex: directorio profesional guiado
 
