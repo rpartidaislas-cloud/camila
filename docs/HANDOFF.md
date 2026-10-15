@@ -19,9 +19,8 @@ Storage ni información clínica.**
 - Web y copia móvil usan los mismos activos v5; caché PWA
   `smyl-v241-guided-directory`.
 
-**Validación:** 327/327 pruebas aprobadas, puerta de seguridad en verde y
-revisión visual local completada en escritorio. Pendiente únicamente confirmar
-la publicación en GitHub Pages.
+**Validación:** 327/327 pruebas aprobadas, puerta de seguridad en verde,
+revisión visual local completada y publicación confirmada en GitHub Pages.
 
 ## 2026-10-14 — Codex: recuperación del acceso a SMYL
 
