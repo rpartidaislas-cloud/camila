@@ -63,17 +63,37 @@ async function catalog(smylTenantId: string): Promise<Response> {
     ok: true,
     services: servicesResult.data || [],
     branches: branchesResult.data || [],
-    permissions: { read_availability: true, create_request: false, confirm_appointment: false },
+    permissions: { read_availability: true, create_pending_request: true, confirm_appointment: false },
   });
 }
 
-async function availability(smylTenantId: string, body: Record<string, unknown>): Promise<Response> {
+async function activeOffer(
+  smylTenantId: string,
+  lanaTenantId: string,
+  conversationId: string | null,
+): Promise<Record<string, unknown> | null> {
+  if (!conversationId) return null;
+  const { data, error } = await admin.from("smyl_assistant_slot_offers")
+    .select("offer_key,service_id,slots,expires_at")
+    .eq("tenant_id", smylTenantId)
+    .eq("lana_tenant_id", lanaTenantId)
+    .eq("lana_conversation_id", conversationId)
+    .is("selected_index", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error("No se pudo consultar la oferta activa.");
+  return data || null;
+}
+
+async function availability(smylTenantId: string, lanaTenantId: string, body: Record<string, unknown>): Promise<Response> {
   const serviceId = uuid(body.service_id);
   const branchId = body.branch_id ? uuid(body.branch_id) : null;
   const professionalId = body.professional_id ? uuid(body.professional_id) : null;
   const from = isoDate(body.from);
   const to = isoDate(body.to);
-  if (!serviceId || !from || !to || (body.branch_id && !branchId) || (body.professional_id && !professionalId)) {
+  const conversationId = uuid(body.conversation_id);
+  const offerKey = uuid(body.offer_key);
+  if (!serviceId || !from || !to || !conversationId || !offerKey || (body.branch_id && !branchId) || (body.professional_id && !professionalId)) {
     return json(400, { error: "Los criterios de disponibilidad no son válidos." });
   }
   const now = Date.now();
@@ -108,6 +128,25 @@ async function availability(smylTenantId: string, body: Record<string, unknown>)
     professional_name: slot.professional_name,
     specialty: slot.specialty,
   }));
+  if (!slots.length) {
+    return json(200, { ok: true, slots: [], generated_at: new Date().toISOString(), holds_created: false, appointment_created: false });
+  }
+  const { error: offerError } = await admin.from("smyl_assistant_slot_offers").upsert({
+    tenant_id: smylTenantId,
+    lana_tenant_id: lanaTenantId,
+    lana_conversation_id: conversationId,
+    offer_key: offerKey,
+    service_id: serviceId,
+    slots,
+    expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    selected_index: null,
+    request_id: null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "tenant_id,offer_key" });
+  if (offerError) {
+    console.error("[lana-assistant-tools] offer", offerError.message);
+    return json(500, { error: "No se pudo preparar la selección de horarios." });
+  }
   const { error: auditError } = await admin.from("smyl_audit_events").insert({
     tenant_id: smylTenantId,
     actor_id: null,
@@ -129,10 +168,75 @@ async function availability(smylTenantId: string, body: Record<string, unknown>)
   }
   return json(200, {
     ok: true,
+    offer_key: offerKey,
     slots,
     generated_at: new Date().toISOString(),
     holds_created: false,
     appointment_created: false,
+  });
+}
+
+async function selectSlot(
+  smylTenantId: string,
+  lanaTenantId: string,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  const conversationId = uuid(body.conversation_id);
+  const offerKey = uuid(body.offer_key);
+  const option = Number(body.option);
+  if (!conversationId || !offerKey || !Number.isInteger(option) || option < 1 || option > 3) {
+    return json(400, { error: "La elección de horario no es válida." });
+  }
+  const { data: offer, error } = await admin.from("smyl_assistant_slot_offers")
+    .select("id,service_id,slots,expires_at,selected_index,request_id")
+    .eq("tenant_id", smylTenantId).eq("lana_tenant_id", lanaTenantId)
+    .eq("lana_conversation_id", conversationId).eq("offer_key", offerKey)
+    .maybeSingle();
+  if (error || !offer) return json(404, { error: "La oferta de horarios ya no está disponible.", code: "offer_not_found" });
+  if (offer.request_id) {
+    return json(200, { ok: true, request_id: offer.request_id, status: "pending", appointment_created: false, already_recorded: true });
+  }
+  if (new Date(offer.expires_at).getTime() <= Date.now()) {
+    return json(409, { error: "Las opciones vencieron. Consulta disponibilidad nuevamente.", code: "offer_expired" });
+  }
+  const slots = Array.isArray(offer.slots) ? offer.slots as Record<string, unknown>[] : [];
+  const slot = slots[option - 1];
+  const serviceId = uuid(offer.service_id);
+  const branchId = uuid(slot?.branch_id);
+  const professionalId = uuid(slot?.professional_id);
+  const startsAt = isoDate(slot?.starts_at);
+  if (!serviceId || !branchId || !professionalId || !startsAt) {
+    return json(409, { error: "La opción elegida ya no es válida.", code: "offer_invalid" });
+  }
+  const { data: requestId, error: requestError } = await admin.rpc("smyl_assistant_create_appointment_request", {
+    p_tenant_id: smylTenantId,
+    p_conversation_id: conversationId,
+    p_service_id: serviceId,
+    p_branch_id: branchId,
+    p_professional_id: professionalId,
+    p_starts_at: startsAt.toISOString(),
+    p_external_key: offerKey,
+  });
+  if (requestError) {
+    console.error("[lana-assistant-tools] select", requestError.message);
+    return json(409, { error: requestError.message || "No se pudo registrar la elección.", code: "slot_unavailable" });
+  }
+  const { error: updateError } = await admin.from("smyl_assistant_slot_offers").update({
+    selected_index: option,
+    request_id: requestId,
+    updated_at: new Date().toISOString(),
+  }).eq("tenant_id", smylTenantId).eq("id", offer.id).is("request_id", null);
+  if (updateError) {
+    console.error("[lana-assistant-tools] selection state", updateError.message);
+    return json(500, { error: "La solicitud se registró, pero falta reconciliar su estado.", code: "selection_reconcile" });
+  }
+  return json(200, {
+    ok: true,
+    request_id: requestId,
+    status: "pending",
+    hold_expires_in_seconds: 600,
+    appointment_created: false,
+    requires_human_confirmation: true,
   });
 }
 
@@ -152,7 +256,20 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = String(body.action || "");
-  if (action === "availability_catalog") return await catalog(smylTenantId);
-  if (action === "availability") return await availability(smylTenantId, body);
+  if (action === "availability_catalog") {
+    try {
+      const base = await catalog(smylTenantId);
+      if (!base.ok) return base;
+      const payload = await base.json() as Record<string, unknown>;
+      const conversationId = body.conversation_id ? uuid(body.conversation_id) : null;
+      payload.active_offer = await activeOffer(smylTenantId, lanaTenantId, conversationId);
+      return json(200, payload);
+    } catch (error) {
+      console.error("[lana-assistant-tools] active offer", error instanceof Error ? error.message : error);
+      return json(500, { error: "No se pudo consultar la configuración de Agenda." });
+    }
+  }
+  if (action === "availability") return await availability(smylTenantId, lanaTenantId, body);
+  if (action === "select_slot") return await selectSlot(smylTenantId, lanaTenantId, body);
   return json(400, { error: "Acción no permitida." });
 });

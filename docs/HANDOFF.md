@@ -1,5 +1,33 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: elección de horario crea solicitud pendiente
+
+**El paciente ya puede elegir una opción ofrecida por LANA y SMYL registra la
+solicitud para que recepción la revise; la IA sigue sin confirmar citas.**
+
+- La migración `20261015123000_smyl_assistant_slot_selection.sql` agrega ofertas
+  temporales sin PII y una RPC exclusiva de `service_role` que revalida el
+  espacio y crea una solicitud `pending` idempotente con protección de diez
+  minutos. No inserta en `smyl_appointments`.
+- Una oferta dura 30 minutos, contiene máximo tres opciones y está ligada a
+  tenant y conversación. La selección requiere clave opaca y número válido.
+- Si aún no hay paciente vinculado, la solicitud se conserva sin PII. El Inbox
+  muestra “Vincular paciente para confirmar”; al completar el handoff, un
+  trigger enlaza las solicitudes pendientes con el paciente confirmado.
+- LANA usa `SMYL_ELEGIR_HORARIO` en WhatsApp, Messenger e Instagram. Después de
+  registrar la solicitud, pausa y avisa al equipo mediante el escalamiento ya
+  existente.
+- Web y móvil usan Inbox JS v18 y caché PWA
+  `smyl-v248-assistant-booking-request`.
+
+**Validación y publicación:** 370/370 pruebas de SMYL, puerta de
+seguridad en verde, 16/16 pruebas focalizadas SMYL-LANA, compilación de las tres
+Edge Functions y revisión visual satisfactoria en escritorio, tableta y móvil.
+La migración quedó aplicada y confirmada en el historial remoto; se desplegaron
+`lana-assistant-tools`, `lana-inbox`, `whatsapp-webhook` y `meta-webhook`. El
+lint remoto de esquema no pudo reconectarse sin `SUPABASE_DB_PASSWORD`, aunque
+el mismo enlace sí aplicó y listó la migración correctamente.
+
 ## 2026-10-15 — Codex: LANA consulta la disponibilidad real de SMYL
 
 **El asistente de LANA ya puede preparar hasta tres opciones verificadas desde

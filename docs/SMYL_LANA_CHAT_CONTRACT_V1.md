@@ -243,10 +243,24 @@ llamada es servidor a servidor, usa un secreto dedicado y exige comprobar el
 vínculo en ambos sistemas: el tenant LANA resuelve el tenant SMYL y SMYL vuelve
 a validar que su configuración apunta exactamente al mismo tenant LANA.
 
-La herramienta es estrictamente de lectura. No crea apartados, solicitudes ni
-citas; tampoco recibe pacientes, expedientes, teléfonos o correos. El periodo
+La consulta de disponibilidad es estrictamente de lectura. No crea apartados,
+solicitudes ni citas; tampoco recibe pacientes, expedientes, teléfonos o correos. El periodo
 se limita a ocho días dentro de los próximos 31 días y cada consulta queda
 auditada sin datos del paciente. Si la persona elige una opción, LANA escala la
 conversación y el equipo confirma la cita desde SMYL. Para una clínica vinculada,
 el calendario interno de LANA queda inhabilitado de forma determinista: SMYL es
 la única fuente canónica de disponibilidad.
+
+## 10. Elección y solicitud pendiente
+
+Cada grupo de opciones se conserva en SMYL durante 30 minutos mediante una
+clave opaca, sin nombre, teléfono, correo ni expediente. LANA sólo puede enviar
+esa clave, el identificador de conversación ya vinculado y un número de opción.
+SMYL coteja la oferta, vuelve a validar servicio, sede, profesional, sillón y
+colisiones, y registra una solicitud idempotente con estado `pending`.
+
+La solicitud protege temporalmente el espacio durante diez minutos, pero no es
+una cita confirmada. Si aún no existe un handoff clínico, se guarda sin paciente
+y el Inbox exige vincularlo antes de confirmar. Al crear después el vínculo, el
+servidor enlaza las solicitudes pendientes de esa conversación. Sólo una acción
+humana con permiso `schedule.manage` puede convertir la solicitud en cita.

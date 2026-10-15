@@ -179,7 +179,6 @@ async function appointmentContext(tenantId: string, conversationId: string): Pro
   const { data: handoff, error: handoffError } = await admin.from("camila_lana_handoffs")
     .select("patient_id").eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
   if (handoffError) return json(500, { error: "No se pudo consultar la continuidad de Agenda." });
-  if (!handoff) return json(200, { ok: true, linked: false, items: [] });
   const { data: requests, error } = await admin.from("smyl_appointment_requests")
     .select("id,service_id,preferred_branch_id,preferred_professional_id,requested_start,requested_end,status,appointment_id,created_at,decided_at")
     .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId)
@@ -202,7 +201,7 @@ async function appointmentContext(tenantId: string, conversationId: string): Pro
   const branches = byId((branchesResult.data || []) as Record<string, unknown>[]);
   const professionals = byId((professionalsResult.data || []) as Record<string, unknown>[]);
   const appointments = byId((appointmentsResult.data || []) as Record<string, unknown>[]);
-  return json(200, { ok: true, linked: true, patient_id: handoff.patient_id, items: rows.map((row) => ({
+  return json(200, { ok: true, linked: Boolean(handoff), patient_id: handoff?.patient_id || null, items: rows.map((row) => ({
     ...row, service: services.get(String(row.service_id)) || null,
     branch: branches.get(String(row.preferred_branch_id)) || null,
     professional: professionals.get(String(row.preferred_professional_id)) || null,

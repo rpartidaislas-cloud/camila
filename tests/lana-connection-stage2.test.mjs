@@ -20,7 +20,7 @@ test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(connections, /Messenger/);
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
-  assert.match(sw, /smyl-v247-inbox-professional/);
+  assert.match(sw, /smyl-v248-assistant-booking-request/);
   assert.match(sw, /smyl-connections\.js\?v=12/);
   assert.match(sw, /smyl-connections\.css\?v=6/);
 });

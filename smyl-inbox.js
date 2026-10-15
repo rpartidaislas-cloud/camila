@@ -1289,9 +1289,7 @@
       appointmentCard.append(node('h3', '', 'Cita del paciente'));
       var appointmentData = state.appointmentContext[conversation.id];
       if (state.appointmentContextLoading[conversation.id]) appointmentCard.append(node('p', '', 'Consultando Agenda…'));
-      else if (!appointmentData || !appointmentData.linked) appointmentCard.append(node('p', '', 'Vincula al paciente para consultar y confirmar sus citas desde esta conversación.'));
-      else if (!(appointmentData.items || []).length) appointmentCard.append(node('p', '', 'Todavía no hay una elección de horario registrada en este chat.'));
-      else {
+      else if (appointmentData && (appointmentData.items || []).length) {
         var currentAppointment = appointmentData.items[0]; var actualAppointment = currentAppointment.appointment || {};
         var serviceName = currentAppointment.service && currentAppointment.service.name || 'Servicio dental';
         var professionalName = currentAppointment.professional && currentAppointment.professional.display_name || 'Profesional por confirmar';
@@ -1308,7 +1306,15 @@
           setComposerText((confirmed ? 'Tu cita para ' : 'Registramos tu elección para ') + serviceName + ' ' + (confirmed ? 'quedó confirmada' : 'y está pendiente de confirmación por la clínica') + ' el ' + availabilityDate(actualAppointment.starts_at || currentAppointment.requested_start) + ' con ' + professionalName + ' en ' + branchName + '.');
         };
         appointmentCard.append(draftAppointment);
+        if (!appointmentData.linked) {
+          appointmentCard.append(node('p', 'smyl-inbox-appointment-link-note', 'Solicitud recibida. Vincula al paciente antes de confirmar la cita.'));
+          var linkPatient = node('button', 'btn btn-primary btn-sm', 'Vincular paciente para confirmar');
+          linkPatient.type = 'button'; linkPatient.onclick = function () { openPatientContext(conversation.id); };
+          appointmentCard.append(linkPatient);
+        }
       }
+      else if (!appointmentData || !appointmentData.linked) appointmentCard.append(node('p', '', 'Vincula al paciente para consultar y confirmar sus citas desde esta conversación.'));
+      else appointmentCard.append(node('p', '', 'Todavía no hay una elección de horario registrada en este chat.'));
       wrap.append(appointmentCard);
 
       var availability = node('section', 'smyl-inbox-context-card smyl-inbox-availability-card');
