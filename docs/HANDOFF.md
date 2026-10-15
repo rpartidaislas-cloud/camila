@@ -1,5 +1,37 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: costeo histórico y kits auditados
+
+**Las salidas nuevas de inventario ya congelan un costo calculado en servidor
+y los materiales de un kit pueden retirarse con permiso y auditoría.**
+
+- La migración `20261015010000_smyl_inventory_costing_v1.sql` calcula costo
+  promedio ponderado por lote —o por insumo cuando no hay lote— a partir de
+  recepciones y ajustes de entrada confirmados, excluyendo entradas compensadas.
+- `smyl_post_inventory_movement` ignora cualquier costo enviado por el
+  navegador para traslados, consumos, mermas y ajustes de salida. El servidor
+  deriva el valor y lo congela en la línea; si no existe evidencia, conserva
+  `null` en lugar de inventar cero. Sólo un ajuste de entrada puede aportar un
+  costo manual.
+- No se revalorizaron ni modificaron movimientos históricos inmutables. La
+  interfaz usa el costo congelado cuando existe y marca los registros anteriores
+  con la referencia actual de compras recibidas.
+- `smyl_remove_service_material` resuelve tenant y permiso `inventory.manage`
+  en servidor, elimina únicamente la relación solicitada y escribe el estado
+  anterior en `smyl_audit_events`. No se concedió `DELETE` directo a la tabla.
+- Inventario permite retirar materiales con confirmación y aclara que los
+  consumos ya registrados no cambian. Web y móvil usan JS v6, CSS v5 y caché
+  PWA `smyl-v245-server-costing`.
+- Se recuperaron del historial remoto las migraciones ya aplicadas
+  `20261014030000` y `20261014040000`, ausentes en el checkout, para volver a
+  alinear repositorio y Supabase sin reparar ni alterar el historial remoto.
+
+**Validación:** 336/336 pruebas aprobadas, puerta de seguridad en verde,
+paridad web/móvil confirmada, migración aplicada al proyecto Supabase enlazado
+y lint remoto de esquema sin errores. La revisión automática del navegador
+local quedó limitada porque la política de la herramienta rechazó el acceso a
+loopback; no se intentó eludir esa protección.
+
 ## 2026-10-15 — Codex: costos de referencia y uso de materiales
 
 **Inventario incorpora una lectura económica operativa sin presentar

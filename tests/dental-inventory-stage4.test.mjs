@@ -59,8 +59,8 @@ test('browser can manage catalog but cannot write ledger or purchases directly',
 });
 
 test('inventory interface covers stock, movements, purchasing and configuration', () => {
-  assert.match(app, /smyl-inventory\.css\?v=4/);
-  assert.match(app, /smyl-inventory\.js\?v=5/);
+  assert.match(app, /smyl-inventory\.css\?v=5/);
+  assert.match(app, /smyl-inventory\.js\?v=6/);
   assert.match(script, /Existencias/);
   assert.match(script, /Libro de movimientos/);
   assert.match(script, /Órdenes y recepciones/);
@@ -76,9 +76,9 @@ test('web, mobile and offline inventory assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-inventory.js'));
   assert.equal(styles, read('../mobile/www/smyl-inventory.css'));
-assert.match(worker, /smyl-v244-treatment-costs/);
-  assert.match(worker, /smyl-inventory\.js\?v=5/);
-  assert.match(worker, /smyl-inventory\.css\?v=4/);
+assert.match(worker, /smyl-v245-server-costing/);
+  assert.match(worker, /smyl-inventory\.js\?v=6/);
+  assert.match(worker, /smyl-inventory\.css\?v=5/);
 });
 
 test('clinical consumption can start from a patient appointment with context prefilled', () => {
@@ -103,12 +103,13 @@ test('treatment kits can be configured without bypassing inventory permissions',
   assert.match(preview, /Una sola confirmación/);
 });
 
-test('cost visibility stays estimated until the server freezes historical consumption cost', () => {
+test('cost visibility distinguishes frozen historical cost from current references', () => {
   assert.match(script, /Costos y uso de materiales/);
   assert.match(script, /referenceCosts/);
   assert.match(script, /received_quantity/);
-  assert.match(script, /ESTIMACIÓN, NO UTILIDAD/);
-  assert.match(script, /Qué falta para costo real histórico/);
+  assert.match(script, /COSTO DE MATERIAL, NO UTILIDAD/);
+  assert.match(script, /costo histórico congelado/);
+  assert.match(script, /Los anteriores no se reescriben/);
   assert.doesNotMatch(script, /margen real|utilidad real/i);
   assert.match(styles, /inventory-cost-metrics/);
   assert.match(read('./fixtures/smyl-treatment-costs-preview.html'), /Resto antes de honorarios/);
