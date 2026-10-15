@@ -25,7 +25,9 @@ datos clínicos.**
 
 **Validación:** 332/332 pruebas aprobadas, puerta de seguridad en verde,
 paridad byte a byte entre web y móvil y vista de QA responsive revisada con
-información demostrativa no real. Publicación pendiente de cierre de etapa.
+información demostrativa no real. Publicación confirmada en GitHub Pages con
+Inventario v5, CSS v4 y caché `smyl-v244-treatment-costs` entregados por el
+sitio público.
 
 ## 2026-10-15 — Codex: kits de materiales por tratamiento
 
