@@ -175,6 +175,41 @@ async function appointmentRequests(tenantId: string, conversationId: string): Pr
   return json(200, { ok: true, requests: data || [] });
 }
 
+async function appointmentContext(tenantId: string, conversationId: string): Promise<Response> {
+  const { data: handoff, error: handoffError } = await admin.from("camila_lana_handoffs")
+    .select("patient_id").eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  if (handoffError) return json(500, { error: "No se pudo consultar la continuidad de Agenda." });
+  if (!handoff) return json(200, { ok: true, linked: false, items: [] });
+  const { data: requests, error } = await admin.from("smyl_appointment_requests")
+    .select("id,service_id,preferred_branch_id,preferred_professional_id,requested_start,requested_end,status,appointment_id,created_at,decided_at")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId)
+    .order("created_at", { ascending: false }).limit(10);
+  if (error) return json(500, { error: "No se pudo consultar la continuidad de Agenda." });
+  const rows = requests || [];
+  const serviceIds = [...new Set(rows.map((row) => row.service_id).filter(Boolean))];
+  const branchIds = [...new Set(rows.map((row) => row.preferred_branch_id).filter(Boolean))];
+  const professionalIds = [...new Set(rows.map((row) => row.preferred_professional_id).filter(Boolean))];
+  const appointmentIds = [...new Set(rows.map((row) => row.appointment_id).filter(Boolean))];
+  const [servicesResult, branchesResult, professionalsResult, appointmentsResult] = await Promise.all([
+    serviceIds.length ? admin.from("smyl_services").select("id,name,duration_minutes").eq("tenant_id", tenantId).in("id", serviceIds) : Promise.resolve({ data: [], error: null }),
+    branchIds.length ? admin.from("smyl_branches").select("id,name,timezone").eq("tenant_id", tenantId).in("id", branchIds) : Promise.resolve({ data: [], error: null }),
+    professionalIds.length ? admin.from("smyl_professionals").select("id,display_name,specialty").eq("tenant_id", tenantId).in("id", professionalIds) : Promise.resolve({ data: [], error: null }),
+    appointmentIds.length ? admin.from("smyl_appointments").select("id,status,starts_at,ends_at").eq("tenant_id", tenantId).in("id", appointmentIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if ([servicesResult, branchesResult, professionalsResult, appointmentsResult].some((result) => result.error)) return json(500, { error: "No se pudieron completar los datos de Agenda." });
+  const byId = (data: Record<string, unknown>[]) => new Map(data.map((row) => [String(row.id), row]));
+  const services = byId((servicesResult.data || []) as Record<string, unknown>[]);
+  const branches = byId((branchesResult.data || []) as Record<string, unknown>[]);
+  const professionals = byId((professionalsResult.data || []) as Record<string, unknown>[]);
+  const appointments = byId((appointmentsResult.data || []) as Record<string, unknown>[]);
+  return json(200, { ok: true, linked: true, patient_id: handoff.patient_id, items: rows.map((row) => ({
+    ...row, service: services.get(String(row.service_id)) || null,
+    branch: branches.get(String(row.preferred_branch_id)) || null,
+    professional: professionals.get(String(row.preferred_professional_id)) || null,
+    appointment: row.appointment_id ? appointments.get(String(row.appointment_id)) || null : null,
+  })) });
+}
+
 async function createAppointmentRequest(actor: Actor, tenantId: string, conversationId: string, body: Record<string, unknown>, idempotencyKey: string): Promise<Response> {
   const serviceId = uuid(body.service_id); const branchId = uuid(body.branch_id); const professionalId = uuid(body.professional_id);
   const startsAt = new Date(String(body.starts_at || ""));
@@ -379,6 +414,10 @@ Deno.serve(async (req: Request) => {
       if (action === "appointment_requests" && conversationId) {
         const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar solicitudes de Agenda.");
         return scheduleDenied || await appointmentRequests(auth.tenantId, conversationId);
+      }
+      if (action === "appointment_context" && conversationId) {
+        const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar la continuidad de Agenda.");
+        return scheduleDenied || await appointmentContext(auth.tenantId, conversationId);
       }
       if (action === "clinical_context" && conversationId) {
         const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");

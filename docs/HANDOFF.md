@@ -5668,3 +5668,27 @@ reanudación, contrato de Inbox, migración
   pruebas completas aprobadas. La revisión visual automatizada sigue pendiente
   por el bloqueo del navegador aislado a recursos locales.
 - No se aplicó la migración, no se desplegó `lana-inbox` y no se publicó la PWA.
+
+---
+
+## 2026-10-15 — Etapa 4 del chat: continuidad visible de Agenda
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, fixture y pruebas.
+
+- El panel lateral del chat muestra la última elección de Agenda con estado
+  pendiente, confirmado, cancelado o cerrado, además de servicio, fecha,
+  profesional y sede. La información se arma en servidor exclusivamente desde
+  el vínculo paciente-conversación y tablas canónicas de SMYL.
+- La consulta exige `schedule.read`, está limitada al tenant y no lee ni copia
+  conversaciones desde LANA. Los usuarios sin acceso a Agenda no reciben esa
+  continuidad.
+- `Preparar confirmación` y `Preparar seguimiento` sólo colocan texto revisable
+  en el compositor. El botón respeta `messages.respond`, la asignación del hilo
+  y las reglas existentes de WhatsApp; nunca envía por sí solo.
+- El contexto se actualiza al abrir el hilo, registrar una elección y confirmar
+  una cita. Web y móvil permanecen idénticos.
+- Verificación local: sintaxis aprobada, 9 pruebas enfocadas y 291 pruebas
+  completas aprobadas. La revisión visual automatizada continúa pendiente por
+  el aislamiento del navegador respecto de recursos locales.
+- No requiere otra migración distinta de las etapas 2 y 3. No se desplegó
+  `lana-inbox` ni se publicó la PWA.

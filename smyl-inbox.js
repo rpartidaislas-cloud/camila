@@ -19,7 +19,7 @@
     notificationsEnabled: false,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
-    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilityAction: '',
+    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilityAction: '', appointmentContext: {}, appointmentContextLoading: {},
   };
 
   function node(tag, cls, text) {
@@ -1269,6 +1269,32 @@
     copilot.append(suggest); wrap.append(copilot);
 
     if (hasPermission('schedule.read')) {
+      var appointmentCard = node('section', 'smyl-inbox-context-card smyl-inbox-appointment-card');
+      appointmentCard.append(node('h3', '', 'Cita del paciente'));
+      var appointmentData = state.appointmentContext[conversation.id];
+      if (state.appointmentContextLoading[conversation.id]) appointmentCard.append(node('p', '', 'Consultando Agenda…'));
+      else if (!appointmentData || !appointmentData.linked) appointmentCard.append(node('p', '', 'Vincula al paciente para consultar y confirmar sus citas desde esta conversación.'));
+      else if (!(appointmentData.items || []).length) appointmentCard.append(node('p', '', 'Todavía no hay una elección de horario registrada en este chat.'));
+      else {
+        var currentAppointment = appointmentData.items[0]; var actualAppointment = currentAppointment.appointment || {};
+        var serviceName = currentAppointment.service && currentAppointment.service.name || 'Servicio dental';
+        var professionalName = currentAppointment.professional && currentAppointment.professional.display_name || 'Profesional por confirmar';
+        var branchName = currentAppointment.branch && currentAppointment.branch.name || 'Sucursal por confirmar';
+        var effectiveStatus = actualAppointment.status || currentAppointment.status;
+        var statusText = effectiveStatus === 'confirmed' || effectiveStatus === 'accepted' ? 'Cita confirmada' : effectiveStatus === 'cancelled' ? 'Cita cancelada' : effectiveStatus === 'rejected' || effectiveStatus === 'expired' ? 'Elección cerrada' : 'Elección pendiente de confirmación';
+        appointmentCard.append(node('strong', 'smyl-inbox-appointment-status is-' + effectiveStatus, statusText));
+        appointmentCard.append(node('p', '', serviceName + ' · ' + availabilityDate(actualAppointment.starts_at || currentAppointment.requested_start)));
+        appointmentCard.append(node('small', '', professionalName + ' · ' + branchName));
+        var draftAppointment = node('button', 'btn btn-secondary btn-sm', effectiveStatus === 'confirmed' || effectiveStatus === 'accepted' ? 'Preparar confirmación' : 'Preparar seguimiento');
+        draftAppointment.type = 'button'; draftAppointment.disabled = !canOperate(conversation, 'messages.respond');
+        draftAppointment.onclick = function () {
+          var confirmed = effectiveStatus === 'confirmed' || effectiveStatus === 'accepted';
+          setComposerText((confirmed ? 'Tu cita para ' : 'Registramos tu elección para ') + serviceName + ' ' + (confirmed ? 'quedó confirmada' : 'y está pendiente de confirmación por la clínica') + ' el ' + availabilityDate(actualAppointment.starts_at || currentAppointment.requested_start) + ' con ' + professionalName + ' en ' + branchName + '.');
+        };
+        appointmentCard.append(draftAppointment);
+      }
+      wrap.append(appointmentCard);
+
       var availability = node('section', 'smyl-inbox-context-card smyl-inbox-availability-card');
       availability.append(node('h3', '', 'Agenda disponible'), node('p', '', 'Consulta espacios reales por servicio, profesional y sede sin salir del chat.'));
       var availabilityButton = node('button', 'btn btn-secondary btn-sm', 'Buscar horarios');
@@ -1357,6 +1383,14 @@
     finally { state.clinicalLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
   }
 
+  async function loadAppointmentContext(conversationId) {
+    if (!conversationId || !hasPermission('schedule.read')) return;
+    state.appointmentContextLoading[conversationId] = true; renderContext();
+    try { state.appointmentContext[conversationId] = await request('GET', { action: 'appointment_context', conversation_id: conversationId }); }
+    catch (_) { state.appointmentContext[conversationId] = { linked: false, unavailable: true, items: [] }; }
+    finally { state.appointmentContextLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
+  }
+
   function availabilityDate(value) {
     var date = new Date(value); if (!Number.isFinite(date.getTime())) return '';
     return date.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -1408,6 +1442,7 @@
     try {
       var data = await request('POST', {}, { action: 'appointment_request', conversation_id: state.selectedId, service_id: slot.service_id, branch_id: slot.branch_id, professional_id: slot.professional_id, starts_at: slot.starts_at }, uuid());
       state.availabilityRequests.unshift({ id: data.request_id, service_id: slot.service_id, preferred_branch_id: slot.branch_id, preferred_professional_id: slot.professional_id, requested_start: slot.starts_at, requested_end: slot.ends_at, status: 'pending', appointment_id: null });
+      loadAppointmentContext(state.selectedId);
     } catch (error) { window.alert(error.message || 'No se pudo registrar la elección.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
@@ -1418,6 +1453,7 @@
     try {
       var data = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: requestRow.id }, uuid());
       requestRow.status = 'accepted'; requestRow.appointment_id = data.appointment_id;
+      loadAppointmentContext(state.selectedId);
       window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente.');
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
@@ -1525,7 +1561,7 @@
     state.selectedId = id; state.contextOpen = false; state.threadError = ''; state.replyTo = null; state.attachment = null;
     document.getElementById('p-inbox').classList.add('show-thread');
     render(); await restoreEncryptedDraft(id);
-    loadClinicalContext(id); loadScheduled(id); await loadThread(id, false);
+    loadClinicalContext(id); loadAppointmentContext(id); loadScheduled(id); await loadThread(id, false);
     var conversation = selectedConversation();
     if (conversation && conversation.unread_count) {
       try {
