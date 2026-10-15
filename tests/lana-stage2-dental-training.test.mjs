@@ -21,10 +21,18 @@ test('SMYL presents dental training as a draft-to-publish workflow', () => {
 
 test('the editor captures structured dental knowledge and keeps clinical limits fixed', () => {
   assert.match(connections, /Identidad y voz/);
+  assert.match(connections, /Especialidades confirmadas/);
+  assert.match(connections, /Sucursales y operación/);
   assert.match(connections, /Servicios confirmados/);
   assert.match(connections, /Preguntas frecuentes/);
   assert.match(connections, /Política de citas/);
   assert.match(connections, /Política de precios/);
+  assert.match(connections, /Pagos, anticipos y financiamiento/);
+  assert.match(connections, /Facturación CFDI/);
+  assert.match(connections, /Protocolo administrativo de urgencias/);
+  assert.match(connections, /Datos que puede recordar/);
+  assert.match(connections, /Datos que nunca debe recordar ni repetir/);
+  assert.match(connections, /schema_version: 2/);
   assert.match(connections, /Límites clínicos fijos · no se pueden editar/);
   assert.match(connections, /No diagnosticar, prescribir ni recomendar dosis/);
 });
