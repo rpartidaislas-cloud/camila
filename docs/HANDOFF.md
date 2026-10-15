@@ -25,7 +25,8 @@ sin modificar migraciones, RLS, RPC ni datos clínicos.**
 
 **Validación:** 331/331 pruebas aprobadas, puerta de seguridad en verde,
 paridad byte a byte entre web y móvil y revisión visual local con datos
-demostrativos no reales.
+demostrativos no reales. Publicación confirmada en GitHub Pages con Inventario
+v4, Paciente 360 v5 y caché `smyl-v243-treatment-kits` entregados por el sitio.
 
 ## 2026-10-14 — Codex: ficha administrativa y consumo por atención
 
