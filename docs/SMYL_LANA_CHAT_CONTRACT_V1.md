@@ -234,3 +234,19 @@ el miembro revise el resumen; una RPC lo registra, elimina la solicitud humana
 y despausa al asistente dentro de la misma operación auditada. Los webhooks lo
 incorporan sólo en la primera respuesta posterior como contexto no
 autoritativo; nunca sustituye una herramienta ni confirma hechos clínicos.
+
+## 9. Herramienta privada de disponibilidad
+
+Cuando una clínica está vinculada, LANA puede consultar el catálogo mínimo de
+servicios, sedes y hasta tres espacios disponibles de la Agenda de SMYL. La
+llamada es servidor a servidor, usa un secreto dedicado y exige comprobar el
+vínculo en ambos sistemas: el tenant LANA resuelve el tenant SMYL y SMYL vuelve
+a validar que su configuración apunta exactamente al mismo tenant LANA.
+
+La herramienta es estrictamente de lectura. No crea apartados, solicitudes ni
+citas; tampoco recibe pacientes, expedientes, teléfonos o correos. El periodo
+se limita a ocho días dentro de los próximos 31 días y cada consulta queda
+auditada sin datos del paciente. Si la persona elige una opción, LANA escala la
+conversación y el equipo confirma la cita desde SMYL. Para una clínica vinculada,
+el calendario interno de LANA queda inhabilitado de forma determinista: SMYL es
+la única fuente canónica de disponibilidad.

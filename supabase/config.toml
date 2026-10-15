@@ -41,3 +41,8 @@ verify_jwt = false
 
 [functions.public-patient-reviews]
 verify_jwt = false
+
+# Entrada privada servidor-a-servidor desde el runtime de LANA. No acepta
+# JWT de navegador: valida un secreto dedicado y el vínculo exacto de tenant.
+[functions.lana-assistant-tools]
+verify_jwt = false

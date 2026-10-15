@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: LANA consulta la disponibilidad real de SMYL
+
+**El asistente de LANA ya puede preparar hasta tres opciones verificadas desde
+la Agenda canónica de SMYL, sin crear, apartar ni confirmar una cita.**
+
+- `lana-assistant-tools` expone únicamente catálogo mínimo y disponibilidad por
+  una llamada privada servidor a servidor. Comprueba el vínculo exacto de tenant
+  en ambos productos, limita tamaño y periodo, minimiza la respuesta y registra
+  una auditoría sin datos del paciente.
+- WhatsApp, Messenger e Instagram incorporan la misma herramienta. El modelo
+  reúne servicio y periodo; el código valida identificadores y sustituye el
+  marcador por un máximo de tres espacios calculados en SMYL.
+- Cuando el paciente elige una opción, LANA solicita intervención del equipo.
+  La cita continúa requiriendo confirmación humana en SMYL y el horario puede
+  cambiar mientras no exista confirmación.
+- Para clínicas vinculadas, el calendario interno de LANA se desactiva a nivel
+  de código. Esta defensa evita crear una segunda agenda aun si el modelo emite
+  por error un marcador nativo de LANA.
+- El puente usa `SMYL_LANA_TOOL_SECRET`, separado de credenciales de Meta, claves
+  del navegador y el secreto general de plataforma.
+
+**Validación y publicación:** 369/369 pruebas de SMYL aprobadas y 15/15 pruebas
+focalizadas del contrato SMYL-LANA aprobadas. `lana-assistant-tools`,
+`whatsapp-webhook` y `meta-webhook` quedaron desplegados en sus proyectos; el
+secreto dedicado quedó configurado en ambos y una prueba con tenants no
+vinculados devolvió `403`, como exige el aislamiento. La batería histórica
+completa de LANA conserva fallas preexistentes fuera de esta integración; no se
+modificaron para ocultar ese estado.
+
 ## 2026-10-15 — Codex: Agenda, integridad previa al chatbot
 
 **Agenda manual y disponibilidad conversacional ya comparten reglas clínicas
