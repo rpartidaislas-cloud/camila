@@ -862,6 +862,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="fg" style="margin-bottom:13px"><label>Correo</label><input type="email" id="ag-l-email" placeholder="tu@correo.com"></div>
       <div class="fg" style="margin-bottom:16px"><label>Contraseña</label><input type="password" id="ag-l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLoginAppGate()"></div>
       <button class="btn btn-primary btn-full" id="ag-btn-login" onclick="hacerLoginAppGate()" style="width:100%;justify-content:center;height:44px">Entrar →</button>
+      <button type="button" id="ag-btn-recovery" onclick="solicitarRecuperacionAppGate()" style="width:100%;margin-top:12px;border:0;background:transparent;color:var(--color-primary);font:inherit;font-size:13px;font-weight:600;cursor:pointer">Olvidé mi contraseña</button>
+      <div id="ag-recovery-ok" role="status" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-top:12px"></div>
     </div>
 
     <div id="ag-panel-registro" style="display:none">
@@ -2235,6 +2237,7 @@ function sbTimeout(promise, ms) {
 // ══════════════════════════════════════════
 var tenantId = null;
 var tenantData = null;
+var suscripcionVencida = false;
 // 'dueño' o 'staff' -- ver camila_usuarios (etapa 4, camila_team.sql).
 // Determina si se muestran los controles de precios/config/equipo.
 var miRolEquipo = 'dueño';
@@ -2407,7 +2410,10 @@ async function continuarConUsuario(authUser) {
     tenantData = res.data;
     tenantId = res.data.id;
     if (!tenantData.activo) { alert('Tu cuenta está suspendida. Contacta al administrador.'); cerrarSesion(); return; }
-    if (new Date(tenantData.vence_en) < new Date()) { alert('Tu suscripción venció. Contacta al administrador.'); cerrarSesion(); return; }
+    // La expiración comercial no debe expulsar al profesional de sus propios
+    // expedientes. El backend sigue bloqueando el consumo pagado; el panel se
+    // conserva disponible para consulta, exportación y renovación.
+    suscripcionVencida = Boolean(tenantData.vence_en && new Date(tenantData.vence_en) < new Date());
   } catch(e) {
     tenantData = { nombre: authUser.email, email: authUser.email };
     tenantId = miTenantId;
@@ -2434,6 +2440,18 @@ async function continuarConUsuario(authUser) {
   await cargarPacientesSelect();
   cargarEquipo();
   aplicarRestriccionesStaff();
+  mostrarAvisoSuscripcionVencida();
+}
+
+function mostrarAvisoSuscripcionVencida() {
+  var anterior = document.getElementById('smyl-expired-plan-notice');
+  if (!suscripcionVencida || anterior) return;
+  var aviso = document.createElement('div');
+  aviso.id = 'smyl-expired-plan-notice';
+  aviso.setAttribute('role', 'status');
+  aviso.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9000;width:min(560px,calc(100% - 32px));box-sizing:border-box;background:#FFF7ED;border:1px solid #FDBA74;color:#9A3412;border-radius:14px;padding:12px 16px;box-shadow:0 12px 32px rgba(15,23,42,.16);font-size:13px;line-height:1.45';
+  aviso.innerHTML = '<strong>Tu plan necesita renovación.</strong> Puedes consultar tu información y entrar a Mi cuenta; las funciones con consumo permanecerán pausadas hasta renovar.';
+  document.body.appendChild(aviso);
 }
 
 // ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══
@@ -2461,7 +2479,11 @@ async function hacerLoginAppGate() {
   try {
     var res = await sb.auth.signInWithPassword({ email: email, password: pass });
     if (res.error) {
-      errEl.textContent = res.error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : res.error.message;
+      var mensaje = String(res.error.message || 'No se pudo iniciar sesión');
+      if (mensaje === 'Invalid login credentials') mensaje = 'Correo o contraseña incorrectos. Si no la recuerdas, usa “Olvidé mi contraseña”.';
+      else if (/email not confirmed/i.test(mensaje)) mensaje = 'Primero confirma tu correo desde el mensaje que te envió SMYL.';
+      else if (/rate limit|too many requests/i.test(mensaje)) mensaje = 'Hubo demasiados intentos. Espera unos minutos o recupera tu contraseña.';
+      errEl.textContent = mensaje;
       errEl.style.display = 'block';
       return;
     }
@@ -2471,6 +2493,43 @@ async function hacerLoginAppGate() {
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false; btn.textContent = 'Entrar →';
+  }
+}
+
+async function solicitarRecuperacionAppGate() {
+  var email = document.getElementById('ag-l-email').value.trim().toLowerCase();
+  var errEl = document.getElementById('ag-login-err');
+  var okEl = document.getElementById('ag-recovery-ok');
+  var btn = document.getElementById('ag-btn-recovery');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    errEl.textContent = 'Escribe primero el correo de tu cuenta.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!sb || !sb.auth) {
+    errEl.textContent = 'No pudimos conectar con el acceso de SMYL. Revisa tu internet y vuelve a intentarlo.';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Enviando enlace...';
+  try {
+    var redirectTo = location.origin + location.pathname + '?recovery=1';
+    var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
+    if (res.error) throw res.error;
+    // Mensaje neutro para no revelar si un correo pertenece a una cuenta.
+    okEl.textContent = 'Si ese correo está registrado, recibirás un enlace para crear una contraseña nueva.';
+    okEl.style.display = 'block';
+  } catch (e) {
+    errEl.textContent = /rate limit|too many requests/i.test(String(e && e.message))
+      ? 'Espera unos minutos antes de solicitar otro enlace.'
+      : 'No se pudo enviar el enlace. Revisa tu conexión e inténtalo de nuevo.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Olvidé mi contraseña';
   }
 }
 
@@ -2551,6 +2610,10 @@ async function hacerRegistroAppGate() {
   if (!authUser) return; // el overlay de login/registro ya está visible por defecto
 
   var qp = new URLSearchParams(location.search);
+  if (qp.get('recovery') === '1') {
+    mostrarNuevaPassword(authUser);
+    return;
+  }
   if (qp.get('invite') === '1') {
     // Quien invitó puso el correo, no una contraseña -- sin este paso el
     // invitado quedaría con una sesión activa pero sin ninguna forma de
@@ -2560,6 +2623,44 @@ async function hacerRegistroAppGate() {
   }
   continuarConUsuario(authUser);
 })();
+
+function mostrarNuevaPassword(authUser) {
+  document.getElementById('auth-gate-overlay').style.display = 'none';
+  var overlay = document.createElement('div');
+  overlay.id = 'smyl-password-recovery-overlay';
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.5);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML =
+    '<div style="background:var(--color-surface,#fff);border-radius:16px;padding:28px;max-width:380px;width:100%">' +
+    '<div style="font-size:18px;font-weight:700;margin-bottom:6px">Crea una contraseña nueva</div>' +
+    '<p style="font-size:13px;color:var(--texto3);margin-bottom:16px">Usa al menos 8 caracteres. Al guardarla entrarás directamente a SMYL.</p>' +
+    '<input type="password" id="recovery-pass1" autocomplete="new-password" placeholder="Contraseña nueva" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<input type="password" id="recovery-pass2" autocomplete="new-password" placeholder="Repite la contraseña" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<div id="recovery-pass-err" role="alert" style="display:none;color:#B91C1C;font-size:12px;margin-bottom:8px"></div>' +
+    '<button id="recovery-pass-btn" class="btn btn-primary" style="width:100%;justify-content:center">Guardar y entrar →</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById('recovery-pass-btn').onclick = async function() {
+    var p1 = document.getElementById('recovery-pass1').value;
+    var p2 = document.getElementById('recovery-pass2').value;
+    var errEl = document.getElementById('recovery-pass-err');
+    errEl.style.display = 'none';
+    if (p1.length < 8) { errEl.textContent = 'Usa una contraseña de al menos 8 caracteres.'; errEl.style.display = 'block'; return; }
+    if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
+    var btn = document.getElementById('recovery-pass-btn');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    try {
+      var res = await sb.auth.updateUser({ password: p1 });
+      if (res.error) throw res.error;
+      overlay.remove();
+      history.replaceState(null, '', location.pathname);
+      continuarConUsuario(authUser);
+    } catch (e) {
+      errEl.textContent = 'El enlace expiró o no se pudo guardar. Solicita uno nuevo desde Iniciar sesión.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Guardar y entrar →';
+    }
+  };
+}
 
 function mostrarSetPasswordInvitado(authUser) {
   document.getElementById('auth-gate-overlay').style.display = 'none';
@@ -3536,7 +3637,7 @@ function mostrarAnalisis(r, nombre) {
   if (dientesEl) {
     dientesEl.innerHTML = (r.dientes||[]).map(function(d){
       var parts = d.split(' - ');
-      return '<div class="rep-item"><span class="rep-dot dot-violeta"></span><span>'+(parts[0]?'<strong>'+smylEsc(traducir(parts[0]))+'</strong>: ':')+smylEsc(traducir(parts[1]||d))+'</span></div>';
+      return '<div class="rep-item"><span class="rep-dot dot-violeta"></span><span>'+(parts[0] ? '<strong>'+smylEsc(traducir(parts[0]))+'</strong>: ' : '')+smylEsc(traducir(parts[1]||d))+'</span></div>';
     }).join('');
   }
 

@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: recuperación del acceso a SMYL
+
+**Se pausó la preparación de la etapa 9 para corregir el bloqueo de acceso
+reportado por el usuario. No se tocaron RLS, funciones, migraciones ni datos.**
+
+- La puerta de acceso de `app.html` permite solicitar un enlace seguro para
+  crear una contraseña nueva y procesa el regreso de Supabase dentro de SMYL.
+- Se corrigió un error de sintaxis previo en el render de recomendaciones que
+  detenía todo el bloque principal de JavaScript; por eso tampoco llegaban a
+  existir las funciones de inicio de sesión. Una prueba nueva compila todos los
+  scripts inline de `app.html` para impedir que vuelva a publicarse así.
+- La respuesta de recuperación es neutra: no confirma si el correo pertenece a
+  una cuenta. Los errores de credenciales, correo pendiente y límite de intentos
+  ahora se explican en español.
+- Una suscripción vencida ya no expulsa al profesional de sus expedientes. El
+  panel queda disponible para consulta y renovación, mientras los consumos de
+  pago siguen gobernados por los controles del servidor. Una cuenta suspendida
+  sí continúa cerrando la sesión.
+- Web y copia móvil se mantienen iguales; la caché PWA avanzó a
+  `smyl-v240-auth-recovery`.
+
+**Validación:** la puerta cargó completa en un origen local aislado y la ayuda
+de recuperación respondió sin enviar un correo real. La etapa 9 de seguridad
+continúa pausada hasta confirmar el acceso en producción.
+
 ## 2026-10-14 — Codex: seguridad, etapa 8 preparada para recuperación
 
 **El kit de respaldo/restauración está listo; no se exportaron datos de
