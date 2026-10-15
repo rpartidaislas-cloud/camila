@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: directorio profesional guiado
+
+**El directorio dejó de presentarse como un formulario largo y ahora comunica
+avance, próximos pasos y una recompensa visible. No se modificó backend, RLS,
+Storage ni información clínica.**
+
+- La ficha muestra porcentaje de avance, barra, pendientes concretos y cuatro
+  pasos: identidad, presentación, confianza y publicación.
+- Ficha, casos autorizados y reseñas verificadas son espacios separados; sólo
+  se muestra una tarea principal a la vez.
+- El formulario usa `Anterior` y `Siguiente`, conserva `Guardar borrador` y
+  habilita la acción final únicamente cuando están los requisitos esenciales.
+- La vista pública se actualiza mientras se escribe y permite previsualizar una
+  fotografía local antes de subirla.
+- Se renovó la imagen visual con jerarquía más clara, carga de archivos amable,
+  progreso circular, guía contextual y adaptación móvil simplificada.
+- Web y copia móvil usan los mismos activos v5; caché PWA
+  `smyl-v241-guided-directory`.
+
+**Validación:** 327/327 pruebas aprobadas, puerta de seguridad en verde y
+revisión visual local completada en escritorio. Pendiente únicamente confirmar
+la publicación en GitHub Pages.
+
 ## 2026-10-14 — Codex: recuperación del acceso a SMYL
 
 **Se pausó la preparación de la etapa 9 para corregir el bloqueo de acceso

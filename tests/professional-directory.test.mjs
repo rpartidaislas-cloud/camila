@@ -47,6 +47,23 @@ test('el dentista puede editar, subir CV y compartir enlace o QR',()=>{
   assert.match(css,/@media\(max-width:760px\)/);
 });
 
+test('la ficha se completa por avance y muestra una sola etapa a la vez',()=>{
+  for(const token of ['profileProgress','directory-progress-card','data-progress-percent','directory-stepper','data-profile-step','data-step-panel','Siguiente →']) assert.match(js,new RegExp(token));
+  assert.match(js,/state\.profileStep/);
+  assert.match(js,/activateProfileStep/);
+  assert.match(js,/Cada dato mejora la confianza del paciente/);
+  assert.match(css,/directory-progress-ring/);
+  assert.match(css,/directory-step-panel\[hidden\]\{display:none\}/);
+});
+
+test('ficha, casos y reseñas son espacios separados y la vista pública responde en vivo',()=>{
+  for(const token of ['data-directory-area="profile"','data-directory-area="cases"','data-directory-area="reviews"','renderToolPreview','updateProfileLive']) assert.match(js,new RegExp(token));
+  assert.match(js,/state\.area==='cases'\?casesPanel/);
+  assert.match(js,/URL\.createObjectURL\(file\)/);
+  assert.match(css,/directory-workspace-nav/);
+  assert.match(css,/directory-guide-card/);
+});
+
 test('la verificación profesional exige revisión humana y se invalida al cambiar documentos',()=>{
   assert.match(verification,/verification_status in \('unverified','in_review','verified','rejected'\)/);
   assert.match(verification,/smyl_request_professional_verification/);
@@ -74,8 +91,8 @@ test('el paciente ve confianza y solicita una cita sin confirmación automática
 });
 
 test('directorio profesional se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=4/);
-  assert.match(sw,/smyl-v240-auth-recovery/);
+  assert.match(app,/smyl-professional-directory\.js\?v=5/);
+  assert.match(sw,/smyl-v241-guided-directory/);
   assert.match(sw,/dentista\.html/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));

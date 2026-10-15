@@ -47,8 +47,8 @@ test('panel, paciente y perfil público cubren el flujo completo',()=>{
 });
 
 test('reseñas verificadas se distribuyen igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=4/);
-  assert.match(sw,/smyl-v240-auth-recovery/);
+  assert.match(app,/smyl-professional-directory\.js\?v=5/);
+  assert.match(sw,/smyl-v241-guided-directory/);
   assert.match(sw,/resena\.html/);
   assert.equal(admin,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(profile,read('../mobile/www/dentista.html'));
