@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: kits de materiales por tratamiento
+
+**Inventario ya prepara el consumo clínico desde el tratamiento de la cita,
+sin modificar migraciones, RLS, RPC ni datos clínicos.**
+
+- `Catálogo y configuración` incorpora `Kits por tratamiento`: el equipo con
+  `inventory.manage` puede asociar insumos y cantidades habituales a cada
+  servicio mediante la tabla existente `smyl_service_materials`.
+- Desde `Paciente > Citas y materiales`, `Material utilizado` transmite también
+  el servicio de la cita. Inventario carga el kit, paciente, cita, profesional
+  y motivo, y permite ajustar, agregar o quitar filas antes de confirmar.
+- Todos los materiales se envían juntos al RPC transaccional existente
+  `smyl_post_inventory_movement`; se siguen validando lote vigente,
+  caducidad, trazabilidad por paciente, existencia e idempotencia.
+- La interfaz explica el flujo con menos captura repetitiva, muestra controles
+  por material y responde en escritorio y móvil. Web y copia móvil usan
+  inventario JS v4, CSS v3, Paciente 360 v5 y caché PWA
+  `smyl-v243-treatment-kits`.
+- No se agregó eliminación persistente de elementos del kit: la tabla actual
+  concede `insert/update`, pero no `delete`, a `authenticated`. Retirarlos de
+  la configuración requiere una etapa posterior de backend/permisos; sí se
+  pueden omitir libremente del consumo de una atención.
+
+**Validación:** 331/331 pruebas aprobadas, puerta de seguridad en verde,
+paridad byte a byte entre web y móvil y revisión visual local con datos
+demostrativos no reales.
+
 ## 2026-10-14 — Codex: ficha administrativa y consumo por atención
 
 **Se conectaron Pacientes, Caja e Inventario desde la experiencia web sin

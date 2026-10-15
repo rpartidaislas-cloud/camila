@@ -10,6 +10,7 @@ const app = read('../app.html');
 const script = read('../smyl-inventory.js');
 const styles = read('../smyl-inventory.css');
 const worker = read('../sw.js');
+const preview = read('./fixtures/smyl-treatment-kits-preview.html');
 
 test('inventory owns the complete dental purchasing and stock domain in SMYL', () => {
   for (const table of ['smyl_inventory_suppliers','smyl_inventory_locations','smyl_inventory_items','smyl_inventory_reorder_levels','smyl_inventory_lots','smyl_purchase_orders','smyl_purchase_order_lines','smyl_inventory_movements','smyl_inventory_movement_lines','smyl_service_materials']) {
@@ -58,8 +59,8 @@ test('browser can manage catalog but cannot write ledger or purchases directly',
 });
 
 test('inventory interface covers stock, movements, purchasing and configuration', () => {
-  assert.match(app, /smyl-inventory\.css\?v=2/);
-  assert.match(app, /smyl-inventory\.js\?v=3/);
+  assert.match(app, /smyl-inventory\.css\?v=3/);
+  assert.match(app, /smyl-inventory\.js\?v=4/);
   assert.match(script, /Existencias/);
   assert.match(script, /Libro de movimientos/);
   assert.match(script, /Órdenes y recepciones/);
@@ -75,9 +76,9 @@ test('web, mobile and offline inventory assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-inventory.js'));
   assert.equal(styles, read('../mobile/www/smyl-inventory.css'));
-assert.match(worker, /smyl-v242-patient-operations/);
-  assert.match(worker, /smyl-inventory\.js\?v=3/);
-  assert.match(worker, /smyl-inventory\.css\?v=2/);
+assert.match(worker, /smyl-v243-treatment-kits/);
+  assert.match(worker, /smyl-inventory\.js\?v=4/);
+  assert.match(worker, /smyl-inventory\.css\?v=3/);
 });
 
 test('clinical consumption can start from a patient appointment with context prefilled', () => {
@@ -85,5 +86,19 @@ test('clinical consumption can start from a patient appointment with context pre
   assert.match(script, /context\.patientId/);
   assert.match(script, /context\.appointmentId/);
   assert.match(script, /context\.professionalId/);
-  assert.match(script, /Consumo confirmado; inventario y trazabilidad actualizados/);
+  assert.match(script, /openKitConsumption\(context\|\|\{\}\)/);
+  assert.match(script, /smyl_service_materials/);
+  assert.match(script, /p_lines:payload/);
+  assert.match(script, /materiales confirmados; inventario y trazabilidad actualizados/);
+});
+
+test('treatment kits can be configured without bypassing inventory permissions', () => {
+  assert.match(script, /Kits por tratamiento/);
+  assert.match(script, /Agregar o ajustar/);
+  assert.match(script, /upsert\(row,\{onConflict:'tenant_id,service_id,item_id'\}\)/);
+  assert.match(script, /inventory\.manage/);
+  assert.match(styles, /inventory-consumption-line/);
+  assert.match(styles, /inventory-kits/);
+  assert.match(preview, /Resina estética anterior/);
+  assert.match(preview, /Una sola confirmación/);
 });

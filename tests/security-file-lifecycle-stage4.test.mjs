@@ -41,5 +41,5 @@ test('web and mobile start the same opportunistic lifecycle worker',()=>{
   assert.match(read('app.html'),/SmylSecureFiles\.startMaintenance\(sb\)/);
   assert.match(read('mobile/www/app.html'),/SmylSecureFiles\.startMaintenance\(sb\)/);
   assert.equal(read('sw.js'),read('mobile/www/sw.js'));
-  assert.match(read('sw.js'),/smyl-v242-patient-operations/);
+  assert.match(read('sw.js'),/smyl-v243-treatment-kits/);
 });

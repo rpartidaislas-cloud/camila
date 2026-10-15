@@ -33,7 +33,7 @@ test('stage 5 UI distinguishes receipts, CFDI drafts and SaaS billing',()=>{
   assert.match(ui,/smyl_prepare_cfdi_draft/);
   assert.match(app,/smyl-finance\.js\?v=8/);
   assert.match(ui,/forPatient:function\(patientId\)/);
-assert.match(sw,/smyl-v242-patient-operations/);
+assert.match(sw,/smyl-v243-treatment-kits/);
   assert.equal(app,read('../mobile/www/app.html'));
   assert.equal(ui,read('../mobile/www/smyl-finance.js'));
   assert.equal(read('../smyl-finance.css'),read('../mobile/www/smyl-finance.css'));
