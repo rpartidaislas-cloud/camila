@@ -5692,3 +5692,26 @@ reanudación, contrato de Inbox, migración
   el aislamiento del navegador respecto de recursos locales.
 - No requiere otra migración distinta de las etapas 2 y 3. No se desplegó
   `lana-inbox` ni se publicó la PWA.
+
+---
+
+## 2026-10-15 — Etapa 5 del chat: alternativas para el paciente
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, documentación y pruebas.
+
+- Desde una consulta real de disponibilidad, el equipo puede elegir hasta tres
+  horarios. La selección conserva servicio, sede, profesional y hora exactos;
+  una búsqueda nueva elimina opciones anteriores para evitar sugerencias
+  obsoletas.
+- `Preparar opciones para el paciente` construye un borrador numerado que pide
+  responder con la opción preferida y aclara que la clínica confirmará después.
+  No aparta espacios, no registra solicitudes y no envía mensajes.
+- La acción exige que el usuario pueda operar la conversación y tenga
+  `messages.respond`. Después de la respuesta del paciente se utiliza el doble
+  control existente: `Paciente eligió` y luego `Confirmar cita`.
+- Web y móvil son idénticos y el pie de selección se adapta a pantallas pequeñas.
+- Verificación local: 8 pruebas enfocadas y 295 pruebas completas aprobadas. La
+  revisión visual automatizada continúa pendiente por el bloqueo de recursos
+  locales en el navegador aislado.
+- No requiere migración ni despliegue adicional de Edge Functions. No se publicó
+  la PWA.
