@@ -28,9 +28,11 @@ y los materiales de un kit pueden retirarse con permiso y auditoría.**
 
 **Validación:** 336/336 pruebas aprobadas, puerta de seguridad en verde,
 paridad web/móvil confirmada, migración aplicada al proyecto Supabase enlazado
-y lint remoto de esquema sin errores. La revisión automática del navegador
-local quedó limitada porque la política de la herramienta rechazó el acceso a
-loopback; no se intentó eludir esa protección.
+y lint remoto de esquema sin errores. GitHub Pages terminó correctamente y el
+sitio público entregó Inventario v6, CSS v5, retiro auditado y caché
+`smyl-v245-server-costing`. La revisión automática del navegador local quedó
+limitada porque la política de la herramienta rechazó el acceso a loopback; no
+se intentó eludir esa protección.
 
 ## 2026-10-15 — Codex: costos de referencia y uso de materiales
 
