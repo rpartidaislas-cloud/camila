@@ -41,7 +41,8 @@ test('assignment, read, pause, resume and resolution travel through the authenti
   assert.match(inbox, /action: 'read'/);
   assert.match(edge, /requireUser\(req, CORS\)/);
   assert.match(edge, /X-SMYL-Actor-Id/);
-  assert.match(edge, /Solo el dueño puede asignar conversaciones a otras personas/);
+  assert.match(edge, /requirePermission\(actor, permission/);
+  assert.match(edge, /"messages\.manage"/);
 });
 
 test('pinning, paused filters, responsibility and stages stay canonical in LANA', () => {

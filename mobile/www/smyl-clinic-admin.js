@@ -8,13 +8,19 @@
     rayos_x: 'Rayos X', esterilizacion: 'Esterilización', otro: 'Otro'
   };
   var PERMISSION_LABELS = {
-    'clinic.manage': 'Configurar clínica', 'team.manage': 'Gestionar profesionales',
-    'patients.read': 'Consultar pacientes', 'patients.write': 'Editar pacientes',
-    'appointments.read': 'Consultar agenda', 'appointments.write': 'Gestionar agenda',
+    'clinic.read': 'Consultar clínica', 'clinic.manage': 'Configurar clínica',
+    'team.read': 'Consultar equipo', 'team.manage': 'Gestionar profesionales', 'audit.read': 'Consultar auditoría',
+    'patients.read': 'Consultar pacientes', 'patients.manage': 'Gestionar pacientes',
+    'schedule.read': 'Consultar agenda', 'schedule.manage': 'Gestionar agenda',
     'clinical.read': 'Consultar expediente', 'clinical.write': 'Registrar atención',
-    'billing.read': 'Consultar finanzas', 'billing.write': 'Gestionar cobros',
-    'inventory.read': 'Consultar inventario', 'inventory.write': 'Gestionar inventario',
-    'reports.read': 'Consultar reportes'
+    'clinical.approve': 'Aprobar decisiones clínicas',
+    'proposal.read': 'Consultar cotizaciones', 'proposal.write': 'Preparar cotizaciones',
+    'proposal.approve': 'Aprobar cotizaciones', 'proposal.followup': 'Dar seguimiento a cotizaciones',
+    'messages.read': 'Consultar mensajes', 'messages.respond': 'Responder pacientes',
+    'messages.manage': 'Organizar chat y asistente',
+    'finance.read': 'Consultar finanzas', 'finance.manage': 'Gestionar cobros',
+    'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
+    'settings.manage': 'Administrar configuración'
   };
   var state = {
     tenant: null, actor: null, loading: false, loaded: false, mutating: false,

@@ -12,7 +12,28 @@ const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
-type Actor = { id: string; name: string; role: "owner" | "staff" };
+type Actor = {
+  id: string;
+  name: string;
+  role: "owner" | "staff";
+  role_code: string;
+  role_name: string;
+  permissions: string[];
+};
+
+const OWNER_PERMISSIONS = [
+  "messages.read", "messages.respond", "messages.manage",
+  "clinical.read", "clinical.write", "clinical.approve",
+  "schedule.read", "schedule.manage",
+];
+
+function can(actor: Actor, permission: string): boolean {
+  return actor.role === "owner" || actor.permissions.includes(permission);
+}
+
+function requirePermission(actor: Actor, permission: string, message: string): Response | null {
+  return can(actor, permission) ? null : json(403, { error: message, code: "permission_denied" });
+}
 
 function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
@@ -44,10 +65,39 @@ async function actorFor(user: { id: string; email?: string }, tenantId: string):
   if (data && data.activo === false) return null;
   const isOwner = user.id === tenantId || data?.rol === "dueño";
   const fallback = text(user.email, 160).split("@")[0] || (isOwner ? "Dueño de la clínica" : "Miembro del equipo");
+  let roleCode = isOwner ? "propietario" : "sin_rol";
+  let roleName = isOwner ? "Propietario" : "Sin rol operativo";
+  let permissions = isOwner ? [...OWNER_PERMISSIONS] : [];
+  if (!isOwner) {
+    const { data: assignments } = await admin.from("smyl_member_roles")
+      .select("role_id")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", user.id);
+    const roleIds = (assignments || []).map((row: Record<string, unknown>) => String(row.role_id || "")).filter(Boolean);
+    if (roleIds.length) {
+      const [{ data: roles }, { data: grants }] = await Promise.all([
+        admin.from("smyl_roles").select("id,code,name,active").eq("tenant_id", tenantId).in("id", roleIds).eq("active", true),
+        admin.from("smyl_role_permissions").select("role_id,permission_key").eq("tenant_id", tenantId).in("role_id", roleIds),
+      ]);
+      const activeRoles = roles || [];
+      if (activeRoles.length) {
+        roleCode = activeRoles.map((row: Record<string, unknown>) => text(row.code, 40)).filter(Boolean).join(",");
+        roleName = activeRoles.map((row: Record<string, unknown>) => text(row.name, 80)).filter(Boolean).join(" · ");
+        const activeIds = new Set(activeRoles.map((row: Record<string, unknown>) => String(row.id || "")));
+        permissions = Array.from(new Set((grants || [])
+          .filter((row: Record<string, unknown>) => activeIds.has(String(row.role_id || "")))
+          .map((row: Record<string, unknown>) => text(row.permission_key, 80))
+          .filter(Boolean)));
+      }
+    }
+  }
   return {
     id: user.id,
     name: text(data?.nombre, 160) || text(data?.email, 160) || fallback,
     role: isOwner ? "owner" : "staff",
+    role_code: roleCode,
+    role_name: roleName,
+    permissions,
   };
 }
 
@@ -230,10 +280,15 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     if (req.method === "GET") {
       const action = text(url.searchParams.get("action"), 30) || "list";
+      const denied = requirePermission(actor, "messages.read", "Tu rol no permite consultar las conversaciones de la clínica.");
+      if (denied) return denied;
       if (action === "team") return await listTeam(auth.tenantId);
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
-      if (action === "clinical_context" && conversationId) return await clinicalContext(auth.tenantId, conversationId);
+      if (action === "clinical_context" && conversationId) {
+        const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");
+        return clinicalDenied || await clinicalContext(auth.tenantId, conversationId);
+      }
       if (action === "message" && conversationId) {
         const id = messageId(url.searchParams.get("message_id"));
         if (!id) return json(400, { error: "Mensaje no válido." });
@@ -250,6 +305,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if ((req.headers.get("content-type") || "").toLowerCase().includes("multipart/form-data")) {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite enviar archivos o mensajes.");
+      if (denied) return denied;
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
       if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
       const incoming = await req.formData().catch(() => null);
@@ -286,13 +343,19 @@ Deno.serve(async (req: Request) => {
     const conversationId = uuid(body.conversation_id);
     if (!conversationId) return json(400, { error: "Conversación no válida." });
     if (action === "clinical_link") {
+      const denied = requirePermission(actor, "clinical.write", "Tu rol no permite incorporar archivos al expediente clínico.");
+      if (denied) return denied;
       const channel = text(body.channel, 20);
       if (!["whatsapp", "messenger", "instagram"].includes(channel)) return json(400, { error: "Canal no válido." });
       return await linkClinicalImage(auth.tenantId, actor, conversationId, channel, body.message_id, body.label);
     }
     if (action === "copilot") {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite preparar respuestas para pacientes.");
+      if (denied) return denied;
       const mode = body.mode === "summary" ? "summary" : "draft";
-      const clinical = await copilotClinicalSnapshot(auth.tenantId, conversationId);
+      const clinical = can(actor, "clinical.read")
+        ? await copilotClinicalSnapshot(auth.tenantId, conversationId)
+        : { patient_confirmed: false, case_confirmed: false, clinical_access: false };
       const remote = await lanaRequest(auth.tenantId, `/inbox/conversations/${conversationId}/copilot`, {
         method: "POST", headers: actorHeaders(actor),
         body: JSON.stringify({ mode, clinical_context: clinical }),
@@ -300,6 +363,8 @@ Deno.serve(async (req: Request) => {
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "feedback") {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite evaluar respuestas del asistente.");
+      if (denied) return denied;
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
       const id = messageId(body.message_id);
       const rating = text(body.rating, 30);
@@ -316,6 +381,8 @@ Deno.serve(async (req: Request) => {
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "resume_with_context") {
+      const denied = requirePermission(actor, "messages.manage", "Tu rol no permite reactivar el asistente.");
+      if (denied) return denied;
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
       const summary = text(body.summary, 2000);
       if (!idempotencyKey || !summary) return json(400, { error: "Revisa el resumen y vuelve a intentarlo." });
@@ -325,6 +392,8 @@ Deno.serve(async (req: Request) => {
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "configure_automation") {
+      const denied = requirePermission(actor, "messages.manage", "Tu rol no permite cambiar las reglas automáticas del chat.");
+      if (denied) return denied;
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
       if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
       const hours = body.auto_reactivate_hours === null ? null : Number(body.auto_reactivate_hours);
@@ -339,6 +408,8 @@ Deno.serve(async (req: Request) => {
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "schedule") {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite programar mensajes.");
+      if (denied) return denied;
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
       if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
       const type = body.type === "template" ? "template" : "text";
@@ -356,6 +427,8 @@ Deno.serve(async (req: Request) => {
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "cancel_scheduled") {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite cancelar mensajes programados.");
+      if (denied) return denied;
       const scheduledId = messageId(body.scheduled_id);
       if (!scheduledId) return json(400, { error: "Mensaje programado no válido." });
       const remote = await lanaRequest(auth.tenantId, `/inbox/conversations/${conversationId}/scheduled/${scheduledId}/cancel`, {
@@ -364,6 +437,8 @@ Deno.serve(async (req: Request) => {
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "retry_scheduled") {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite reintentar mensajes programados.");
+      if (denied) return denied;
       const scheduledId = messageId(body.scheduled_id);
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
       if (!scheduledId || !idempotencyKey) return json(400, { error: "Mensaje programado o Idempotency-Key no válido." });
@@ -377,6 +452,12 @@ Deno.serve(async (req: Request) => {
     }
     const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
     if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+
+    const permission = ["send", "read", "star", "unstar"].includes(action) ? "messages.respond" : "messages.manage";
+    const denied = requirePermission(actor, permission, permission === "messages.respond"
+      ? "Tu rol no permite responder conversaciones."
+      : "Tu rol no permite organizar ni controlar conversaciones.");
+    if (denied) return denied;
 
     const forwarded: Record<string, unknown> = {};
     if (action === "send") {
@@ -406,7 +487,6 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "assign") {
       const targetId = uuid(body.target_actor_id) || actor.id;
-      if (actor.role !== "owner" && targetId !== actor.id) return json(403, { error: "Solo el dueño puede asignar conversaciones a otras personas." });
       const { data: member } = await admin.from("camila_usuarios")
         .select("id,nombre,email,rol,activo")
         .eq("tenant_id", auth.tenantId)

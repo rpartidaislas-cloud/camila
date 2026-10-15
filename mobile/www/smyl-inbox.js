@@ -28,6 +28,15 @@
     return el;
   }
 
+  function hasPermission(permission) {
+    if (!state.actor) return false;
+    return state.actor.role === 'owner' || Array.isArray(state.actor.permissions) && state.actor.permissions.indexOf(permission) !== -1;
+  }
+
+  function canOperate(conversation, permission) {
+    return Boolean(conversation && conversation.can_operate && hasPermission(permission));
+  }
+
   function uuid() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (value) {
@@ -278,6 +287,8 @@
     var bar = document.querySelector('[data-inbox-bulkbar]');
     var toggle = document.querySelector('[data-inbox-bulk]');
     if (!bar || !toggle) return;
+    toggle.hidden = !hasPermission('messages.manage');
+    if (!hasPermission('messages.manage')) { state.bulkMode = false; state.bulkSelected.clear(); }
     toggle.setAttribute('aria-pressed', state.bulkMode ? 'true' : 'false');
     toggle.textContent = state.bulkMode ? 'Cancelar' : 'Seleccionar';
     bar.hidden = !state.bulkMode;
@@ -286,7 +297,7 @@
     var count = node('strong', '', state.bulkSelected.size + ' seleccionadas');
     var assignee = document.createElement('select'); assignee.setAttribute('aria-label', 'Responsable para seleccionadas');
     assignee.append(new Option('Responsable…', ''));
-    state.team.filter(function (member) { return state.actor && (state.actor.role === 'owner' || member.id === state.actor.id); }).forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
+    state.team.forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
     var stage = document.createElement('select'); stage.setAttribute('aria-label', 'Etapa para seleccionadas');
     stage.append(new Option('Etapa…', '')); state.stages.filter(function (item) { return !item.archived; }).forEach(function (item) { stage.append(new Option(item.name, item.id)); });
     var assign = node('button', 'btn btn-secondary btn-sm', 'Asignar'); assign.type = 'button';
@@ -442,7 +453,7 @@
 
   async function requestCopilot(mode) {
     var conversation = selectedConversation();
-    if (!conversation || !conversation.can_operate || state.copilotLoading[conversation.id]) return null;
+    if (!conversation || !canOperate(conversation, 'messages.respond') || state.copilotLoading[conversation.id]) return null;
     state.copilotLoading[conversation.id] = mode; renderCopilotDraft(); renderContext();
     try {
       var data = await request('POST', {}, { action: 'copilot', conversation_id: conversation.id, mode: mode }, null, 35000);
@@ -549,7 +560,7 @@
     var dialog = document.querySelector('[data-inbox-forward]'); var select = dialog && dialog.querySelector('[data-forward-target]');
     if (!dialog || !select) return;
     select.innerHTML = '';
-    state.conversations.filter(function (conversation) { return conversation.id !== state.selectedId && conversation.can_operate; }).forEach(function (conversation) {
+    state.conversations.filter(function (conversation) { return conversation.id !== state.selectedId && canOperate(conversation, 'messages.respond'); }).forEach(function (conversation) {
       var option = document.createElement('option'); option.value = conversation.id; option.textContent = conversation.contact_name + ' · ' + channelLabel(conversation.channel); select.append(option);
     });
     if (!select.options.length) { window.alert('No hay otra conversación disponible para reenviar.'); return; }
@@ -589,9 +600,12 @@
       else if (item.status === 'unknown') { var refresh = node('button', '', 'Actualizar hilo'); refresh.type = 'button'; refresh.onclick = function () { loadThread(state.selectedId, false); }; bubble.append(refresh); }
       else if (!item.id.toString().startsWith('pending:') && !item.deleted) {
         var actions = node('div', 'smyl-inbox-message-actions');
-        [['Responder', function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('[name="message"]').focus(); }], [item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); }], ['Reenviar', function () { openForward(item); }], ['Eliminar', function () { mutateMessage(item, 'delete'); }]].forEach(function (action) { var button = node('button', '', action[0]); button.type = 'button'; button.onclick = action[1]; actions.append(button); });
-        if (item.media_type === 'image') { var clinical = node('button', 'is-clinical', 'Enviar a revisión clínica'); clinical.type = 'button'; clinical.onclick = function () { linkClinicalImage(item); }; actions.append(clinical); }
-        if (item.author_type === 'assistant') { var feedback = node('button', 'is-copilot', 'Evaluar IA'); feedback.type = 'button'; feedback.onclick = function () { openFeedback(item); }; actions.append(feedback); }
+        if (hasPermission('messages.respond')) {
+          [['Responder', function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('[name="message"]').focus(); }], [item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); }], ['Reenviar', function () { openForward(item); }]].forEach(function (action) { var button = node('button', '', action[0]); button.type = 'button'; button.onclick = action[1]; actions.append(button); });
+        }
+        if (hasPermission('messages.manage')) { var remove = node('button', '', 'Eliminar'); remove.type = 'button'; remove.onclick = function () { mutateMessage(item, 'delete'); }; actions.append(remove); }
+        if (item.media_type === 'image' && hasPermission('clinical.write')) { var clinical = node('button', 'is-clinical', 'Enviar a revisión clínica'); clinical.type = 'button'; clinical.onclick = function () { linkClinicalImage(item); }; actions.append(clinical); }
+        if (item.author_type === 'assistant' && hasPermission('messages.respond')) { var feedback = node('button', 'is-copilot', 'Evaluar IA'); feedback.type = 'button'; feedback.onclick = function () { openFeedback(item); }; actions.append(feedback); }
         bubble.append(actions);
       }
       row.append(bubble); wrap.append(row);
@@ -624,7 +638,7 @@
     var notice = document.querySelector('[data-wa-window]');
     if (!form || !notice) return;
     var windowState = liveWhatsappWindow(conversation); var isWhatsapp = Boolean(windowState);
-    var canOperate = Boolean(conversation && conversation.can_operate);
+    var canRespond = canOperate(conversation, 'messages.respond');
     notice.hidden = !isWhatsapp;
     if (isWhatsapp) {
       notice.dataset.state = windowState.status;
@@ -640,12 +654,12 @@
     var record = form.querySelector('[data-compose-record]');
     var copilot = form.querySelector('[data-compose-copilot]'); var template = form.querySelector('[data-compose-template]');
     var schedule = form.querySelector('[data-compose-schedule]');
-    input.disabled = !canOperate || !freeformAllowed; send.disabled = !canOperate || !freeformAllowed;
-    attach.disabled = !canOperate || !freeformAllowed; location.disabled = !canOperate || !freeformAllowed || !isWhatsapp;
-    record.hidden = !isWhatsapp; record.disabled = !canOperate || !freeformAllowed;
-    copilot.disabled = !canOperate || !freeformAllowed;
-    template.hidden = !isWhatsapp; template.disabled = !canOperate;
-    schedule.hidden = !isWhatsapp; schedule.disabled = !canOperate;
+    input.disabled = !canRespond || !freeformAllowed; send.disabled = !canRespond || !freeformAllowed;
+    attach.disabled = !canRespond || !freeformAllowed; location.disabled = !canRespond || !freeformAllowed || !isWhatsapp;
+    record.hidden = !isWhatsapp; record.disabled = !canRespond || !freeformAllowed;
+    copilot.disabled = !canRespond || !freeformAllowed;
+    template.hidden = !isWhatsapp; template.disabled = !canRespond;
+    schedule.hidden = !isWhatsapp; schedule.disabled = !canRespond;
     input.placeholder = isWhatsapp && !freeformAllowed ? 'Ventana vencida: selecciona una plantilla aprobada' : 'Escribe una respuesta…';
   }
 
@@ -687,7 +701,7 @@
   }
 
   async function openTemplateDialog() {
-    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !conversation.can_operate) return;
+    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
     try { await loadTemplates(); } catch (error) { window.alert(error.message || 'No se pudieron cargar las plantillas.'); return; }
     var dialog = document.querySelector('[data-template-dialog]'); var select = dialog.querySelector('[data-template-select]');
     fillTemplateSelect(select); renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -733,7 +747,7 @@
   }
 
   async function openScheduleDialog() {
-    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !conversation.can_operate) return;
+    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
     try { await loadTemplates(); } catch (_) {}
     var dialog = document.querySelector('[data-schedule-dialog]'); var sendAt = new Date(Date.now() + 15 * 60 * 1000);
     dialog.querySelector('[data-schedule-at]').value = localDateInput(sendAt);
@@ -1150,19 +1164,19 @@
 
     var status = node('section', 'smyl-inbox-context-card');
     status.append(node('h3', '', 'Responsable'));
-    if (state.actor && state.actor.role === 'owner') {
+    if (hasPermission('messages.manage')) {
       var select = document.createElement('select'); select.setAttribute('aria-label', 'Asignar conversación');
       var none = document.createElement('option'); none.value = ''; none.textContent = 'Sin asignar'; select.append(none);
       state.team.forEach(function (member) { var option = document.createElement('option'); option.value = member.id; option.textContent = member.name; select.append(option); });
       select.value = conversation.assignment && conversation.assignment.source === 'smyl' ? conversation.assignment.actor_id : '';
-      select.disabled = !conversation.can_operate && (!state.actor || state.actor.role !== 'owner');
+      select.disabled = !canOperate(conversation, 'messages.manage');
       select.onchange = function () { if (select.value) assignConversation(select.value); else mutateConversation('release'); };
       status.append(select);
     } else {
       status.append(node('p', '', conversation.assignment ? conversation.assignment.name : 'Sin asignar'));
       var own = conversation.assignment && state.actor && conversation.assignment.actor_id === state.actor.id;
       var assignmentButton = node('button', 'btn btn-secondary btn-sm', own ? 'Liberar conversación' : 'Tomar conversación');
-      assignmentButton.type = 'button'; assignmentButton.disabled = !conversation.can_operate; assignmentButton.onclick = function () { own ? mutateConversation('release') : assignConversation(state.actor.id); };
+      assignmentButton.type = 'button'; assignmentButton.disabled = !canOperate(conversation, 'messages.manage'); assignmentButton.onclick = function () { own ? mutateConversation('release') : assignConversation(state.actor.id); };
       status.append(assignmentButton);
     }
     wrap.append(status);
@@ -1176,11 +1190,11 @@
       var option = document.createElement('option'); option.value = stage.id; option.textContent = stage.name + (stage.archived ? ' · Archivada' : ''); stageSelect.append(option);
     });
     stageSelect.value = conversation.stage_id || '';
-    stageSelect.disabled = !conversation.can_operate;
+    stageSelect.disabled = !canOperate(conversation, 'messages.manage');
     stageSelect.onchange = function () { mutateConversation('stage', stageSelect.value); };
     stageLabel.append(stageSelect); organization.append(stageLabel);
     var pinButton = node('button', 'btn btn-secondary btn-sm', conversation.pinned ? 'Quitar de fijadas' : 'Fijar arriba');
-    pinButton.type = 'button'; pinButton.disabled = !conversation.can_operate;
+    pinButton.type = 'button'; pinButton.disabled = !canOperate(conversation, 'messages.manage');
     pinButton.onclick = function () { mutateConversation(conversation.pinned ? 'unpin' : 'pin'); };
     organization.append(pinButton);
     var sharedButton = node('button', 'btn btn-secondary btn-sm', 'Ver archivos compartidos');
@@ -1190,7 +1204,7 @@
     var assistant = node('section', 'smyl-inbox-context-card'); assistant.append(node('h3', '', 'SMYL Asistente'));
     assistant.append(node('p', '', conversation.paused ? 'Pausado. El equipo atiende este hilo.' : 'Activo. SMYL Asistente puede responder según su capacitación.'));
     var toggle = node('button', conversation.paused ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm', conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando contexto…' : 'Preparar reanudación') : 'Pausar y tomar control');
-    toggle.type = 'button'; toggle.disabled = !conversation.can_operate || Boolean(state.copilotLoading[conversation.id]); toggle.onclick = function () { conversation.paused ? prepareResume() : mutateConversation('pause'); };
+    toggle.type = 'button'; toggle.disabled = !canOperate(conversation, 'messages.manage') || Boolean(state.copilotLoading[conversation.id]); toggle.onclick = function () { conversation.paused ? prepareResume() : mutateConversation('pause'); };
     assistant.append(toggle); wrap.append(assistant);
 
     if (conversation.channel === 'whatsapp') {
@@ -1201,8 +1215,8 @@
         : (windowState.status === 'expiring' ? 'Vence en ' : 'Abierta por ') + durationLabel(windowState.remaining_seconds) + '.';
       waCard.append(node('p', 'is-' + windowState.status, windowCopy));
       var waActions = node('div', 'smyl-inbox-context-actions');
-      var templateButton = node('button', 'btn btn-secondary btn-sm', 'Usar plantilla'); templateButton.type = 'button'; templateButton.disabled = !conversation.can_operate; templateButton.onclick = openTemplateDialog;
-      var scheduleButton = node('button', 'btn btn-secondary btn-sm', 'Programar'); scheduleButton.type = 'button'; scheduleButton.disabled = !conversation.can_operate; scheduleButton.onclick = openScheduleDialog;
+      var templateButton = node('button', 'btn btn-secondary btn-sm', 'Usar plantilla'); templateButton.type = 'button'; templateButton.disabled = !canOperate(conversation, 'messages.respond'); templateButton.onclick = openTemplateDialog;
+      var scheduleButton = node('button', 'btn btn-secondary btn-sm', 'Programar'); scheduleButton.type = 'button'; scheduleButton.disabled = !canOperate(conversation, 'messages.respond'); scheduleButton.onclick = openScheduleDialog;
       waActions.append(templateButton, scheduleButton); waCard.append(waActions); wrap.append(waCard);
 
       var automation = conversation.automation || {}; var automationCard = node('section', 'smyl-inbox-context-card smyl-inbox-automation-card');
@@ -1217,7 +1231,7 @@
       var windowLabel = node('label', '', 'Al acercarse el cierre de ventana'); var windowSelect = document.createElement('select');
       [['', 'Heredar configuración'], ['true', 'Reactivar si corresponde'], ['false', 'No reactivar automáticamente']].forEach(function (optionData) { var option = document.createElement('option'); option.value = optionData[0]; option.textContent = optionData[1]; windowSelect.append(option); });
       windowSelect.value = automation.window_reactivation === null || automation.window_reactivation === undefined ? '' : String(automation.window_reactivation); windowLabel.append(windowSelect);
-      var saveAutomationButton = node('button', 'btn btn-secondary btn-sm', 'Guardar reglas'); saveAutomationButton.type = 'button'; saveAutomationButton.disabled = !conversation.can_operate; saveAutomationButton.onclick = function () { saveAutomation(hoursSelect.value, windowSelect.value); };
+      var saveAutomationButton = node('button', 'btn btn-secondary btn-sm', 'Guardar reglas'); saveAutomationButton.type = 'button'; saveAutomationButton.disabled = !canOperate(conversation, 'messages.manage'); saveAutomationButton.onclick = function () { saveAutomation(hoursSelect.value, windowSelect.value); };
       automationCard.append(hoursLabel, windowLabel, saveAutomationButton);
       if (automation.reminder_sent_at) automationCard.append(node('small', '', 'Último recordatorio automático: ' + new Date(automation.reminder_sent_at).toLocaleString('es-MX')));
       else automationCard.append(node('small', '', 'El asistente aún no ha enviado un recordatorio en esta racha.'));
@@ -1243,22 +1257,23 @@
           scheduledCard.append(row);
         });
       }
-      var newScheduled = node('button', 'btn btn-secondary btn-sm', 'Programar seguimiento'); newScheduled.type = 'button'; newScheduled.disabled = !conversation.can_operate; newScheduled.onclick = openScheduleDialog; scheduledCard.append(newScheduled); wrap.append(scheduledCard);
+      var newScheduled = node('button', 'btn btn-secondary btn-sm', 'Programar seguimiento'); newScheduled.type = 'button'; newScheduled.disabled = !canOperate(conversation, 'messages.respond'); newScheduled.onclick = openScheduleDialog; scheduledCard.append(newScheduled); wrap.append(scheduledCard);
     }
 
     var copilot = node('section', 'smyl-inbox-context-card smyl-inbox-copilot-card');
     copilot.append(node('h3', '', 'SMYL Copilot'), node('p', '', 'Prepara borradores y resúmenes con la capacitación publicada. Nunca envía ni ejecuta acciones por sí solo.'));
     var suggest = node('button', 'btn btn-secondary btn-sm', state.copilotLoading[conversation.id] === 'draft' ? 'Preparando borrador…' : 'Sugerir respuesta');
-    suggest.type = 'button'; suggest.disabled = !conversation.can_operate || Boolean(state.copilotLoading[conversation.id]); suggest.onclick = function () { requestCopilot('draft'); };
+    suggest.type = 'button'; suggest.disabled = !canOperate(conversation, 'messages.respond') || Boolean(state.copilotLoading[conversation.id]); suggest.onclick = function () { requestCopilot('draft'); };
     copilot.append(suggest); wrap.append(copilot);
 
     if (conversation.needs_human) {
       var attention = node('section', 'smyl-inbox-context-card is-attention');
       attention.append(node('h3', '', 'Intervención solicitada'), node('p', '', 'El asistente marcó esta conversación para seguimiento humano. Resolverla no reactiva la IA.'));
-      var resolve = node('button', 'btn btn-primary btn-sm', 'Marcar solicitud resuelta'); resolve.type = 'button'; resolve.disabled = !conversation.can_operate; resolve.onclick = function () { mutateConversation('resolve'); };
+      var resolve = node('button', 'btn btn-primary btn-sm', 'Marcar solicitud resuelta'); resolve.type = 'button'; resolve.disabled = !canOperate(conversation, 'messages.manage'); resolve.onclick = function () { mutateConversation('resolve'); };
       attention.append(resolve); wrap.append(attention);
     }
 
+    if (!hasPermission('clinical.read')) return;
     var clinical = node('section', 'smyl-inbox-context-card smyl-inbox-ficha');
     clinical.append(node('h3', '', 'Ficha 360'));
     if (state.clinicalLoading[conversation.id]) clinical.append(node('p', '', 'Consultando expediente…'));
@@ -1296,6 +1311,7 @@
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
     var threadFicha = state.clinical[conversation.id];
     var threadMeta = [channelLabel(conversation.channel), conversation.paused ? 'Atención humana' : 'Asistente activo'];
+    if (state.actor && state.actor.role_name) threadMeta.push(state.actor.role_name);
     if (conversation.assignment) threadMeta.push(conversation.assignment.name);
     threadMeta.push(stageName(conversation.stage_id));
     if (threadFicha && threadFicha.linked) threadMeta.push('Expediente vinculado');
@@ -1304,9 +1320,9 @@
     pin.textContent = conversation.pinned ? 'Fijada' : 'Fijar';
     pin.dataset.active = conversation.pinned ? 'true' : 'false';
     pin.setAttribute('aria-label', conversation.pinned ? 'Quitar conversación de fijadas' : 'Fijar conversación');
-    pin.disabled = !conversation.can_operate;
+    pin.disabled = !canOperate(conversation, 'messages.manage');
     var composer = document.querySelector('[data-inbox-composer]');
-    Array.from(composer.elements).forEach(function (control) { control.disabled = !conversation.can_operate; });
+    Array.from(composer.elements).forEach(function (control) { control.disabled = !canOperate(conversation, 'messages.respond'); });
     renderComposerContext(); renderWhatsappWindow(); renderContext();
   }
 
@@ -1324,7 +1340,7 @@
   }
 
   async function loadClinicalContext(conversationId) {
-    if (!conversationId) return;
+    if (!conversationId || !hasPermission('clinical.read')) return;
     state.clinicalLoading[conversationId] = true; renderContext();
     try { state.clinical[conversationId] = await request('GET', { action: 'clinical_context', conversation_id: conversationId }); }
     catch (_) { state.clinical[conversationId] = { linked: false, unavailable: true }; }
@@ -1485,7 +1501,7 @@
   }
 
   async function startVoiceRecording() {
-    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !conversation.can_operate) return;
+    var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
     var windowState = liveWhatsappWindow(conversation); if (windowState && !windowState.freeform_allowed) { window.alert('La ventana de WhatsApp venció. Usa una plantilla aprobada.'); return; }
     var mime = recordingMimeType();
     if (!mime || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1533,7 +1549,7 @@
     var input = form.elements.message;
     var content = input.value.trim();
     var conversation = selectedConversation();
-    if (!conversation || !conversation.can_operate) return;
+    if (!conversation || !canOperate(conversation, 'messages.respond')) return;
     var waWindow = liveWhatsappWindow(conversation);
     if (waWindow && !waWindow.freeform_allowed) { openTemplateDialog(); return; }
     if (state.attachment) { sendAttachment(state.attachment); input.value = ''; clearEncryptedDraft(conversation.id); return; }

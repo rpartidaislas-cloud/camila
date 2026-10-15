@@ -25,7 +25,7 @@ test('SMYL bridge exposes templates, scheduled sends and controlled reactivation
 test('expired WhatsApp conversations disable free-form controls and keep approved templates available', () => {
   assert.match(inbox, /function liveWhatsappWindow/);
   assert.match(inbox, /windowState\.status === 'expired'/);
-  assert.match(inbox, /input\.disabled = !canOperate \|\| !freeformAllowed/);
+  assert.match(inbox, /input\.disabled = !canRespond \|\| !freeformAllowed/);
   assert.match(inbox, /data-compose-template/);
   assert.match(inbox, /openTemplateDialog/);
   assert.match(inbox, /type: 'template'/);
