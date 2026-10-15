@@ -5715,3 +5715,18 @@ reanudación, contrato de Inbox, migración
   locales en el navegador aislado.
 - No requiere migración ni despliegue adicional de Edge Functions. No se publicó
   la PWA.
+
+---
+
+## 2026-10-15 — Publicación del flujo de citas desde Mensajes
+
+- Se aplicaron y registraron en producción las migraciones `20261014030000` y
+  `20261014040000`.
+- Se verificaron en la base remota las operaciones privadas de disponibilidad,
+  solicitud y confirmación; `lana-inbox` quedó activa en su versión 15.
+- La entrega se integró sobre la rama pública más reciente, conservando los
+  cambios posteriores de costos, materiales y operaciones clínicas.
+- La PWA avanzó a `smyl-v245-inbox-appointments`; web y móvil cargan
+  `smyl-inbox.js?v=16`, `smyl-inbox.css?v=13` y la capacitación de canales v12.
+- Verificación final: 354 de 354 pruebas aprobadas, sin crear citas ni modificar
+  expedientes reales.

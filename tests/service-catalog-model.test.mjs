@@ -41,7 +41,7 @@ test('ships additive versioning, RLS, offline assets and mobile parity',()=>{
   const worker=readFileSync(resolve(root,'sw.js'),'utf8');
   assert.equal(app,mobile);
   assert.match(app,/smyl-service-catalog-model\.js\?v=1/);
-  assert.match(worker,/smyl-v245-server-costing/);
+  assert.match(worker,/smyl-v246-inbox-appointments/);
   for(const name of ['smyl-service-catalog-model.js','smyl-service-catalog.js','smyl-service-catalog.css']){
     assert.equal(readFileSync(resolve(root,name),'utf8'),readFileSync(resolve(root,'mobile/www',name),'utf8'));
     const version=name==='smyl-service-catalog.js'?'3':'1';
