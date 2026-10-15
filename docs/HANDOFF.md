@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: costos de referencia y uso de materiales
+
+**Inventario incorpora una lectura económica operativa sin presentar
+estimaciones como utilidad contable. No se modificaron migraciones, RLS, RPC ni
+datos clínicos.**
+
+- Se agregó la pestaña `Costos y uso`, protegida por el permiso de lectura de
+  Inventario y alimentada únicamente con compras, kits y movimientos existentes.
+- El costo de referencia por insumo usa cantidades realmente recibidas y su
+  costo unitario; los pedidos no recibidos y los precios faltantes no se
+  convierten silenciosamente en cero.
+- Cada tratamiento muestra costo estimado del kit, precio de referencia, uso
+  observado y el resto antes de honorarios, laboratorio, impuestos y otros
+  gastos. La interfaz evita llamarlo margen o utilidad.
+- La cobertura identifica materiales sin precio, consumos con costo incompleto
+  y merma estimada. Los movimientos compensados se excluyen de la lectura.
+- Web y copia móvil usan Inventario JS v5, CSS v4 y caché PWA
+  `smyl-v244-treatment-costs`.
+- Para disponer de costo real histórico, el backend debe congelar de forma
+  confiable el costo de salida al confirmar cada consumo. La función actual
+  acepta `unit_cost`, pero el cliente de consumo lo envía vacío; no se trasladó
+  esa responsabilidad sensible al navegador.
+
+**Validación:** 332/332 pruebas aprobadas, puerta de seguridad en verde,
+paridad byte a byte entre web y móvil y vista de QA responsive revisada con
+información demostrativa no real. Publicación pendiente de cierre de etapa.
+
 ## 2026-10-15 — Codex: kits de materiales por tratamiento
 
 **Inventario ya prepara el consumo clínico desde el tratamiento de la cita,

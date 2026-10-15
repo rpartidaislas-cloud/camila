@@ -47,6 +47,6 @@ test('web, móvil y PWA distribuyen la activación de tratamiento',()=>{
   assert.match(app,/smyl-proposals\.js\?v=12/);
   assert.match(app,/smyl-schedule\.js\?v=9/);
   assert.match(app,/smyl-finance\.js\?v=8/);
-  assert.match(sw,/smyl-v243-treatment-kits/);
+  assert.match(sw,/smyl-v244-treatment-costs/);
   for(const file of ['app.html','sw.js','smyl-proposals.js','smyl-proposals.css','smyl-schedule.js','smyl-finance.js'])assert.equal(read(file),read('mobile/www/'+file));
 });

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Costos y uso</title>
+  <link rel="stylesheet" href="../../smyl-inventory.css">
+  <style>*{box-sizing:border-box}body{margin:0;background:#f3f6f8;color:#16243a;font-family:Inter,ui-sans-serif,system-ui,sans-serif}.preview{max-width:1160px;margin:auto;padding:32px 22px}.inventory-tabs{margin-bottom:18px}.inventory-tabs button:last-child{background:#fff;color:#1769e0;box-shadow:0 3px 10px #182f5417}@media(max-width:560px){.preview{padding:16px 12px}}</style>
+</head>
+<body>
+  <main class="preview inventory-page">
+    <nav class="inventory-tabs"><button>Existencias</button><button>Movimientos</button><button>Compras</button><button aria-selected="true">Costos y uso</button></nav>
+    <section class="inventory-cost-intro"><div><span>LECTURA OPERATIVA</span><h2>Costos y uso de materiales</h2><p>Referencias calculadas con compras recibidas. Sirven para detectar faltantes y desviaciones; no sustituyen contabilidad.</p></div><span class="inventory-cost-label">ESTIMACIÓN, NO UTILIDAD</span></section>
+    <section class="inventory-cost-metrics"><article><span>Cobertura de costos</span><strong>18 de 22</strong><small>insumos con compra recibida y precio</small></article><article><span>Kits configurados</span><strong>6</strong><small>tratamientos con materiales previstos</small></article><article><span>Consumos visibles</span><strong>24</strong><small>entre los últimos movimientos cargados</small></article><article><span>Merma estimada</span><strong>$186.50</strong><small>con precios disponibles</small></article></section>
+    <section class="inventory-cost-grid">
+      <article class="inventory-cost-card" data-complete="true"><header><div><span>TRATAMIENTO</span><h3>Resina estética anterior</h3></div><span>3 materiales</span></header><div class="inventory-cost-values"><div><span>Kit estimado</span><strong>$284.20</strong></div><div><span>Precio de referencia</span><strong>$3,200.00</strong></div><div><span>Uso observado</span><strong>$301.80 prom.</strong></div></div><div class="inventory-cost-remainder"><span>Resto antes de honorarios, laboratorio, impuestos y otros gastos</span><strong>$2,915.80</strong></div><footer><div><strong>Kit con costo de referencia completo</strong><small>8 atenciones con consumo visible · 7 con costo completo</small></div><button>Ver kit</button></footer></article>
+      <article class="inventory-cost-card" data-complete="false"><header><div><span>TRATAMIENTO</span><h3>Profilaxis dental</h3></div><span>2 materiales</span></header><div class="inventory-cost-values"><div><span>Kit estimado</span><strong>$38.00 parcial</strong></div><div><span>Precio de referencia</span><strong>$850.00</strong></div><div><span>Uso observado</span><strong>Sin costo completo</strong></div></div><footer><div><strong>Falta precio en 1 material</strong><small>Pasta profiláctica</small></div><button>Ver kit</button></footer></article>
+    </section>
+    <aside class="inventory-cost-boundary"><strong>Qué falta para costo real histórico</strong><span>El servidor debe congelar el costo de salida al confirmar cada consumo. Hasta entonces, SMYL usa el promedio de compras recibidas visibles y evita presentar margen o utilidad contable.</span></aside>
+  </main>
+</body>
+</html>
