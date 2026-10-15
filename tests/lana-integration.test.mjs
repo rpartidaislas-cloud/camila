@@ -7,7 +7,13 @@ const entry = read('../nueva/index.html');
 const analyze = read('../supabase/functions/analizar-foto/index.ts');
 const notify = read('../supabase/functions/lana-webhook/index.ts');
 const shared = read('../supabase/functions/_shared/lana.ts');
-const migration = read('../supabase/migrations/20260917_lana_integration.sql');
+// This legacy migration exists only as a historical contract fixture. It was
+// never applied to the linked production project, so it must stay outside the
+// executable migrations directory to prevent an accidental --include-all push.
+const migration = read('../supabase/legacy-unapplied/20260917_lana_integration.sql');
+const executableLegacyMigration = new URL('../supabase/migrations/20260917_lana_integration.sql', import.meta.url);
+
+assert.equal(fs.existsSync(executableLegacyMigration), false);
 
 assert.match(entry, /smyl_lana_context/);
 assert.match(entry, /location\.replace/);

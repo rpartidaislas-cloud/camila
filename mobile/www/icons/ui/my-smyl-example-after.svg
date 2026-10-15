@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 380" role="img" aria-labelledby="title desc">
+  <title id="title">Simulación de ejemplo ilustrado</title><desc id="desc">Esquema decorativo, no generado con IA ni un resultado clínico.</desc>
+  <rect width="600" height="380" fill="#e4eeea"/>
+  <circle cx="300" cy="170" r="132" fill="#f7f3e8"/>
+  <path d="M280 50q-8 30-5 38q12 10 25 6M198 211q100 79 204-2" fill="none" stroke="#b5ae98" stroke-width="3" stroke-linecap="round"/>
+  <path d="M176 142q120-26 248 0q-24 71-124 73q-91-3-124-73Z" fill="#829b90"/>
+  <g fill="#fcfcf7" stroke="#829b90" stroke-width="3">
+    <rect x="198" y="138" width="30" height="43" rx="11"/>
+    <rect x="231" y="137" width="30" height="45" rx="10"/>
+    <rect x="264" y="136" width="37" height="48" rx="10"/>
+    <rect x="303" y="136" width="37" height="48" rx="10"/>
+    <rect x="343" y="137" width="30" height="45" rx="10"/>
+    <rect x="376" y="138" width="30" height="43" rx="11"/>
+  </g>
+  <text x="300" y="326" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" letter-spacing="2" fill="#50675c">ILUSTRACIÓN · NO ES UN TRATAMIENTO</text>
+</svg>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Servicios y tarifas</title>
+  <link rel="stylesheet" href="../../smyl-service-catalog.css">
+  <link rel="stylesheet" href="../../smyl-service-catalog-stage1.css">
+  <style>
+    :root{--color-surface:#fff;--color-text-primary:#102239;--color-text-secondary:#526173}
+    *{box-sizing:border-box}body{margin:0;background:#f3f6f9;color:#102239;font:14px Inter,Arial,sans-serif}
+    main{max-width:1180px;margin:auto;padding:32px}.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:750}.btn-primary{background:#194391;color:#fff}.pro-eyebrow{font-size:10px;font-weight:850;letter-spacing:.08em;color:#0f766e}
+    @media(max-width:600px){main{padding:20px 14px}.catalog-head h1{font-size:24px}}
+  </style>
+</head>
+<body>
+<main id="p-precios">
+  <header class="catalog-head"><div><span class="pro-eyebrow">GESTIÓN DEL NEGOCIO</span><h1>Servicios y tarifas</h1><p>Fuente única para Agenda, planes y cotizaciones.</p></div><button class="btn btn-primary">+ Servicio personalizado</button></header>
+  <section class="catalog-readiness"><div><span>CONFIGURACIÓN DEL CATÁLOGO</span><strong>14 de 18 servicios están listos para operar</strong><p>Completa precios y revisión fiscal antes de usar los servicios en nuevos tratamientos.</p></div><div class="catalog-progress"><i style="width:78%"></i></div></section>
+  <section class="catalog-summary"><article data-tone="ok"><span>Listos para operar</span><strong>14</strong><small>precio y fiscal revisados</small></article><article><span>Servicios activos</span><strong>18</strong><small>disponibles en Agenda</small></article><article data-tone="warn"><span>Sin precio</span><strong>2</strong><small>requieren tarifa</small></article><article data-tone="warn"><span>Fiscal pendiente</span><strong>3</strong><small>requieren revisión</small></article></section>
+  <section class="catalog-toolbar"><label><span>Buscar servicio</span><input value="carilla"></label><label><span>Especialidad</span><select><option>Estética y carillas</option></select></label><div class="catalog-toggle"><button>Todos</button><button>Activos</button><button aria-pressed="true">Por completar</button><button>Fiscal pendiente</button></div></section>
+  <section class="catalog-guidance"><strong>La clave SAT es una sugerencia editable.</strong><span>Debe validarse con el contador o PAC de la clínica.</span></section>
+  <details class="catalog-group" open><summary><span>Estética y carillas</span><small>3 activos</small></summary><div>
+    <article class="catalog-service" data-active="true" data-ready="true"><div class="catalog-service-main"><div><span class="catalog-category">ESTÉTICA Y CARILLAS</span><span class="catalog-status">Listo para operar</span></div><h3>Carilla cerámica</h3><p>Pieza · Por pieza · 75 min</p></div><div class="catalog-service-price"><strong>$9,500.00</strong><small>SAT 85122001 · revisado</small></div><div class="catalog-service-actions"><button>Editar</button><button>Desactivar</button></div></article>
+    <article class="catalog-service" data-active="true" data-ready="false"><div class="catalog-service-main"><div><span class="catalog-category">ESTÉTICA Y CARILLAS</span><span class="catalog-status">Por completar</span></div><h3>Carilla de resina</h3><small class="catalog-patient-name">Paciente: Restauración estética directa</small><p>Pieza · Por pieza · 75 min</p></div><div class="catalog-service-price"><strong>Precio pendiente</strong><small>SAT 85122001 · por revisar</small></div><div class="catalog-service-actions"><button>Completar</button><button>Desactivar</button></div></article>
+  </div></details>
+</main>
+</body>
+</html>

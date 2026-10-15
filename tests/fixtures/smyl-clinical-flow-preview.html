@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Recorrido clínico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../smyl-case-workspace.css?v=4">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fa;color:#102239;font-family:Inter,sans-serif}.preview-shell{min-height:100vh;padding:36px}.patient-head{max-width:1080px;margin:0 auto 24px;display:flex;align-items:center;justify-content:space-between}.patient-head span{font-size:11px;color:#687b78;letter-spacing:1.2px}.patient-head h1{margin:7px 0 0;font-size:24px}.patient-head button{min-height:40px;padding:0 14px;border:1px solid #d5dfdb;border-radius:10px;background:#fff;color:#375753}.pc-primary,.pc-secondary{min-height:40px;padding:0 15px;border-radius:10px;border:1px solid #bed3cc;background:#fff;color:#215d60;font:600 13px Inter,sans-serif}.pc-primary{border-color:#215d60;background:#215d60;color:#fff}.cw-body-demo{padding:0 22px 22px;border-top:1px solid #e0e8df}.cw-demo-line{height:10px;border-radius:8px;background:#edf1ed;margin:18px 0;width:72%}
+    @media(max-width:650px){.preview-shell{padding:22px 14px 96px}.patient-head{align-items:flex-start}.patient-head button{display:none}}
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <section class="cw-workspace" aria-label="Preparar el caso del paciente">
+      <header class="cw-patient-head"><div class="cw-patient-identity"><p class="cw-kicker">PACIENTE ACTUAL</p><h1>Paciente de demostración</h1><p class="cw-patient-meta">55 1234 5678 · paciente@ejemplo.mx</p></div><span class="cw-patient-status" data-alerts="true">1 alerta clínica · Próxima cita · 15 oct 10:30</span><div class="cw-patient-actions"><button class="pc-secondary">Abrir Agenda</button><button class="pc-secondary">Editar datos</button></div></header>
+      <nav class="cw-quick-links" aria-label="Accesos del expediente"><button class="pc-secondary">Resumen</button><button class="pc-secondary">Antecedentes</button><button class="pc-secondary">Notas clínicas</button><button class="pc-secondary">Citas</button></nav>
+      <header class="cw-heading"><div><p class="cw-kicker">UN SOLO RECORRIDO</p><h2>Atención clínica en cuatro pasos.</h2><p>De las evidencias a la cotización, sin cambiar de paciente ni perder el contexto. Tú revisas y decides qué compartir.</p></div><button class="pc-primary cw-next-action">Continuar odontograma</button></header>
+      <p class="cw-overview">Paso 2 de 4 · Comprueba las fotografías, el odontograma y las radiografías.</p>
+      <nav class="cw-nav" aria-label="Etapas del caso"><button data-state="done">Evidencias</button><button aria-current="step">Odontograma</button><button>Plan</button><button>Cotización</button></nav>
+      <details class="cw-module" data-state="done"><summary class="cw-summary"><span class="cw-number">01</span><span class="cw-module-title"><strong>Evidencias</strong><span class="cw-subtitle">Selecciona las fotografías y simulaciones de este caso.</span></span><span class="cw-badge" data-state="done">4 fotos</span><span class="cw-chevron">⌄</span></summary></details>
+      <details class="cw-module" open><summary class="cw-summary"><span class="cw-number">02</span><span class="cw-module-title"><strong>Revisión clínica</strong><span class="cw-subtitle">Comprueba las sugerencias y organiza el odontograma.</span></span><span class="cw-badge">3 por revisar</span><span class="cw-chevron">⌄</span></summary><div class="cw-body-demo"><div class="cw-demo-line"></div><p class="cw-help">Confirma únicamente las observaciones que quieras incorporar al expediente.</p><div class="cw-action-row"><button class="pc-secondary">Abrir odontograma</button><button class="pc-primary">Revisar observaciones</button></div></div></details>
+      <details class="cw-module"><summary class="cw-summary"><span class="cw-number">03</span><span class="cw-module-title"><strong>Plan de tratamiento</strong><span class="cw-subtitle">La IA propone un borrador; tú corriges y apruebas.</span></span><span class="cw-badge">Por completar</span><span class="cw-chevron">⌄</span></summary></details>
+      <details class="cw-module"><summary class="cw-summary"><span class="cw-number">04</span><span class="cw-module-title"><strong>Cotización y seguimiento</strong><span class="cw-subtitle">Prepara la inversión, la presentación y el seguimiento del paciente.</span></span><span class="cw-badge">Falta completar</span><span class="cw-chevron">⌄</span></summary></details>
+    </section>
+  </main>
+</body>
+</html>

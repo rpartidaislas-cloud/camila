@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL Ficha clínica 360 · QA visual</title>
+  <link rel="stylesheet" href="../../smyl-patient-360.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f1f4f9;color:#17233b;font-family:Inter,system-ui,sans-serif}.shell{min-height:100vh}.top{height:64px;display:flex;align-items:center;padding:0 28px;border-bottom:1px solid #e1e6ee;background:#fff;font-weight:800;letter-spacing:.18em}.content{max-width:1240px;margin:auto;padding:28px}.patient{display:flex;align-items:center;gap:14px;margin-bottom:18px}.avatar{display:grid;place-items:center;width:50px;height:50px;border-radius:16px;background:#dce6ff;color:#315ee8;font-weight:800}.patient h1{margin:0;font-size:23px}.patient p{margin:3px 0 0;color:#69758b;font-size:12px}.qa-mobile body,.qa-mobile .shell{width:390px;overflow-x:hidden}@media(max-width:600px){.top{height:54px;padding:0 16px}.content{padding:16px 12px}.patient h1{font-size:19px}}
+  </style>
+</head>
+<body>
+  <script>if(new URLSearchParams(location.search).has('mobile'))document.documentElement.classList.add('qa-mobile');</script>
+  <div class="shell"><header class="top">SMYL</header><main class="content">
+    <div class="patient"><div class="avatar">AM</div><div><h1>Ana Martínez</h1><p>Paciente demo · 34 años · Última visita 8 oct 2026</p></div></div>
+    <section class="p360-root">
+      <div class="p360-title"><div><span>FICHA CLÍNICA 360</span><h2>Todo el expediente, en contexto</h2><p>Antecedentes, notas, citas y archivos vinculados al mismo paciente.</p></div><span class="p360-secure">Acceso por rol · auditado</span></div>
+      <div class="p360-notice" data-tone="success">Ficha clínica protegida en SMYL.</div>
+      <nav class="p360-tabs"><button aria-selected="true">Resumen</button><button>Antecedentes</button><button>Notas clínicas</button><button>Citas</button><button>Archivos</button><button>Odontograma</button><button>Simulaciones</button><button>Plan</button></nav>
+      <div class="p360-alerts"><strong>Alertas clínicas</strong><div><span>Alergia: penicilina</span><span>Hipertensión controlada</span></div></div>
+      <div class="p360-metrics"><article><span>Antecedentes</span><strong>Registrados</strong><small>Versión 3</small></article><article><span>Notas clínicas</span><strong>8</strong><small>6 firmadas</small></article><article><span>Última cita</span><strong>8 oct 2026</strong><small>completada</small></article><article><span>Archivos</span><strong>12</strong><small>privados en SMYL</small></article></div>
+      <div class="p360-overview-grid">
+        <article class="p360-card"><div class="p360-section-head"><div><span>RESUMEN DE SALUD</span><h2>Información esencial</h2></div><button>Actualizar</button></div><dl><div><dt>Alergias</dt><dd>Penicilina</dd></div><div><dt>Condiciones</dt><dd>Hipertensión controlada</dd></div><div><dt>Medicamentos</dt><dd>Losartán 50 mg</dd></div><div><dt>Antecedentes dentales</dt><dd>Ortodoncia previa; sensibilidad en 24 y 25.</dd></div></dl></article>
+        <article class="p360-card"><div class="p360-section-head"><div><span>ACTIVIDAD RECIENTE</span><h2>Línea de tiempo</h2></div></div><div class="p360-timeline"><div><i data-type="clinical_note"></i><p><strong>Nota de evolución firmada</strong><small>8 oct 2026, 12:15 · signed</small></p></div><div><i></i><p><strong>Limpieza y valoración</strong><small>8 oct 2026, 11:30 · completed</small></p></div><div><i data-type="file"></i><p><strong>Archivo · panoramica-octubre.pdf</strong><small>8 oct 2026, 11:20 · active</small></p></div></div></article>
+      </div>
+    </section>
+  </main></div>
+</body>
+</html>

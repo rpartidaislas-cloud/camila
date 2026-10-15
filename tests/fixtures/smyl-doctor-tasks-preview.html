@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Tareas clínicas</title>
+  <link rel="stylesheet" href="../../smyl-professional-v3.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f6f8;color:#172b3a;font-family:Inter,Arial,sans-serif}.topbar{height:70px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d7e0e6;background:#fff}.topbar-left h2{margin:0;font-size:16px}.topbar-left p{margin:3px 0 0;color:#788894;font-size:11px}.topbar-right{display:flex;align-items:center;gap:8px}.btn{min-height:36px;padding:0 14px;border:0;border-radius:8px;font-weight:650}.btn-primary{background:#126779;color:#fff}.contenido{max-width:1100px;margin:auto;padding:34px}.pantalla{display:none}.pantalla.activa{display:block}.clinic-patient-heading{padding-bottom:20px;border-bottom:1px solid #d7e0e6}.clinic-patient-heading h1{margin:0;font-size:28px}.clinic-patient-heading p{color:#667985}.qa-note{margin-top:20px;padding:18px;border:1px solid #d7e0e6;border-radius:10px;background:#fff;color:#667985}.sr-only{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important}@media(max-width:600px){.topbar{height:62px;padding:0 14px}.contenido{padding:20px 14px}.topbar-left p{display:none}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="topbar-left"><h2 id="topbar-title">Inicio</h2><p id="topbar-sub">Resumen operativo</p></div><div class="topbar-right"><button class="btn btn-primary">Nueva cita</button></div></header>
+  <main class="contenido"><section id="p-dashboard" class="pantalla activa"><h1>Jornada clínica</h1><p class="qa-note">Escenario sintético sin información clínica real.</p></section><section id="p-paciente-detalle" class="pantalla"><header class="clinic-patient-heading"><h1>Paciente de ejemplo</h1><p>Expediente clínico de demostración</p></header></section></main>
+  <script>
+    window.TITULOS={dashboard:'Inicio','paciente-detalle':'Expediente'};window.tenantId='tenant-demo';window.pacienteActual={id:'p1'};
+    window.ir=function(name){document.querySelectorAll('.pantalla').forEach(function(page){page.classList.toggle('activa',page.id==='p-'+name);});return true;};
+    window.sb={from:function(){var chain={select:function(){return chain;},eq:function(){return chain;},order:function(){return chain;},limit:function(){return chain;},then:function(resolve){resolve({data:[{id:'p1',nombre:'María',apellido:'González'},{id:'p2',nombre:'Luis',apellido:'Ramírez'},{id:'p3',nombre:'Ana',apellido:'Torres'}]});}};return chain;}};
+    window.SmylSchedule={forPatient:function(id){document.body.dataset.result='appointment:'+id;}};window.SmylProposals={forPatient:function(id){document.body.dataset.result='quote:'+id;}};window.SmylFinance={forPatient:function(id){document.body.dataset.result='payment:'+id;}};window.SmylPatient360={open:function(){}};
+  </script>
+  <script src="../../smyl-professional-v3.js"></script>
+</body>
+</html>

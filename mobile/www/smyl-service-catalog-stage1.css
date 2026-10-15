@@ -1,0 +1,38 @@
+/* SMYL · Etapa 1: lectura profesional del catálogo dental. */
+.catalog-readiness{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,320px);
+  gap:24px;align-items:center;padding:17px 19px;border:1px solid #cdddea;
+  border-left:4px solid #168f88;border-radius:12px;background:#f5fbfa
+}
+.catalog-readiness span{display:block;font-size:10px;font-weight:850;letter-spacing:.09em;color:#0f766e}
+.catalog-readiness strong{display:block;margin:5px 0 3px;font-size:16px}
+.catalog-readiness p{margin:0;color:#526173;font-size:12px}
+.catalog-progress{height:8px;overflow:hidden;border-radius:999px;background:#dbe8e6}
+.catalog-progress i{display:block;width:0;height:100%;border-radius:inherit;background:#168f88;transition:width .25s ease}
+.catalog-summary{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.catalog-summary article{padding:15px 16px;border-radius:12px}
+.catalog-summary span{font-size:11px;font-weight:650}
+.catalog-summary strong{font-size:24px;margin-top:4px}
+.catalog-summary small{display:block;margin-top:2px;color:#7d8b9b;font-size:10px}
+.catalog-toolbar{grid-template-columns:minmax(220px,1fr) 230px auto;padding:14px;border-radius:12px}
+.catalog-service-main>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.catalog-status{padding:3px 7px;border-radius:999px;background:#fff4dc;color:#9a5b05;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.catalog-service[data-ready=true] .catalog-status{background:#e8f7f3;color:#087f6b}
+.catalog-service[data-active=false] .catalog-status{background:#eef2f6;color:#667487}
+.catalog-patient-name{margin-bottom:5px}
+.catalog-readonly{color:#7d8b9b;font-size:11px;font-weight:650}
+.catalog-service-actions button:first-child{color:#194391;border-color:#c9d8ef}
+@media(max-width:1000px){
+  .catalog-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-toolbar{grid-template-columns:1fr 1fr}
+  .catalog-toggle{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .catalog-readiness{grid-template-columns:1fr;gap:12px}
+  .catalog-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-summary article{padding:13px}
+  .catalog-summary strong{font-size:21px}
+  .catalog-toggle{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+  .catalog-guidance strong{display:block;margin-bottom:4px}
+  .catalog-service-actions:has(.catalog-readonly){display:block}
+}

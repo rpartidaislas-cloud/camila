@@ -1,5 +1,1410 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-14 — Codex: roles dentales efectivos en Mensajes
+
+**El Inbox ya no reduce al equipo a “dueño” o “personal”: aplica en servidor
+los roles y permisos operativos definidos en Mi clínica.**
+
+- El puente resuelve los roles activos del integrante y separa
+  `messages.read`, `messages.respond`, `messages.manage`, `clinical.read` y
+  `clinical.write`; el navegador no decide el permiso.
+- Consultar la Ficha 360 y aportar una fotografía al expediente requieren
+  permisos clínicos independientes. Copilot recibe contexto clínico solamente
+  cuando el actor puede leerlo.
+- Responder, adjuntar, usar plantillas o programar mensajes se distingue de
+  asignar responsables, mover etapas, controlar la IA o eliminar mensajes.
+- La interfaz oculta o desactiva cada control según el permiso efectivo y
+  muestra el rol dental activo. La guía de Mi clínica ahora traduce las claves
+  reales de agenda, pacientes, cotizaciones, mensajes, finanzas e inventario.
+- No se añadió ni aplicó una migración: se reutilizó el modelo vigente de siete
+  roles. Web y bundle móvil están sincronizados. El cambio de versión de activos
+  queda reservado para la publicación junto con la siguiente etapa.
+- Validación local: suite completa `277/277`, sintaxis web correcta y pruebas
+  dirigidas de permisos `33/33`. Deno no está instalado en esta terminal, por
+  lo que el chequeo estático de la Edge Function queda pendiente antes del
+  despliegue. No se desplegó ni publicó nada.
+
+## 2026-10-14 — Codex: capacitación dental completa v2
+
+**SMYL Asistente ya dispone localmente de una capacitación operativa dental
+ampliada y LANA queda limitada a infraestructura invisible.**
+
+- La pantalla agrega especialidades, sucursales, acceso, idiomas, menores,
+  reglas de agenda, cancelaciones, pagos, CFDI, seguros, promociones,
+  seguimiento, urgencias, escalamiento y memoria permitida/prohibida.
+- El esquema v2 conserva compatibilidad con publicaciones v1; web y bundle
+  móvil están sincronizados y la PWA usa `smyl-v232-dental-training-v2`.
+- En el runtime LANA, un tenant con capacitación SMYL fuerza vertical salud,
+  usa la identidad publicada de SMYL y excluye conocimiento, técnicas,
+  catálogo y ofertas comerciales de LANA en WhatsApp, Messenger e Instagram.
+- Validación local: suite SMYL `273/273`, pruebas dirigidas del runtime LANA
+  `11/11`, sin diferencias entre los archivos web y móvil.
+- No se aplicaron migraciones, no se desplegaron funciones y no se publicó la
+  interfaz. Falta revisar la pantalla dentro de una sesión autenticada y probar
+  conversaciones controladas antes de producción.
+
+## 2026-10-14 — Codex: Facturapi sandbox independiente por clínica
+
+**La etapa 2 de facturación dental ya tiene su base remota desplegada y mantiene
+a LANA completamente fuera del flujo fiscal.**
+
+- Se añadió una conexión privada `facturapi-connection` que acepta únicamente
+  llaves `sk_test_`, confirma la organización con `/v2/organizations/me` y
+  nunca devuelve la credencial al navegador.
+- Cada llave se cifra con AES-GCM y `additionalData` ligado al tenant usando el
+  secreto nuevo `SMYL_FACTURAPI_ENCRYPTION_KEY`. No debe reutilizarse ninguna
+  clave de Gmail o LANA.
+- `smyl_facturapi_connections` no concede lectura ni escritura a roles del
+  navegador. Su bitácora separada sólo conserva actor, acción, resultado y
+  metadatos sanitizados.
+- Caja > Preparación CFDI muestra conexión, verificación y desconexión. Sólo el
+  dueño administra credenciales; el resto del equipo recibe estado seguro.
+- Las migraciones `20261014010000` y `20261014020000` fueron aplicadas
+  manualmente y registradas como `applied`; el secreto de cifrado quedó
+  configurado y `facturapi-connection` fue desplegada con JWT verificado.
+  Todavía no se conectó una organización Facturapi Test.
+- Web y bundle móvil quedaron sincronizados; PWA usa
+  `smyl-v231-facturapi-sandbox`. Suite completa 273/273.
+- Pendiente: publicar la interfaz ya validada y conectar una organización
+  Facturapi Test. Después se implementa timbrado sandbox idempotente y
+  reconciliación.
+
+## 2026-10-14 — Codex: base fiscal dental independiente de LANA
+
+**Se descartó el puente CFDI hacia LANA. SMYL tendrá una integración propia y
+directa con Facturapi, aislada por clínica.**
+
+- El nuevo modelo fiscal sólo admite clases odontológicas y distingue atención
+  profesional, higiene, cirugía, ortodoncia, imagen, laboratorio y productos.
+- Servicios y tarifas captura tratamiento de IVA, ObjetoImp, tasa, criterio de
+  deducción, requisito de título y nota de revisión. Las sugerencias dentales
+  nunca se consideran aprobación fiscal automática.
+- La migración aditiva `20261014010000_smyl_dental_fiscal_policy.sql` reabre
+  revisiones antiguas que no distinguían exento/gravado/no objeto y bloquea
+  combinaciones inconsistentes. Está creada localmente y no fue aplicada.
+- El modelo decide PUE/PPD desde pagos confirmados, distingue parcialidad de
+  anticipo y advierte sobre D01/D02 con efectivo o receptor moral.
+- `docs/SMYL_FACTURAPI_DENTAL_ARCHITECTURE.md` fija la frontera: LANA no será
+  API, base, almacén ni intermediario; tampoco se enviará información clínica a
+  Facturapi.
+- Web y bundle móvil quedaron sincronizados; PWA usa
+  `smyl-v230-dental-fiscal-policy`. Suite completa 266/266.
+- Pendiente: organización Facturapi por clínica, secrets, funciones privadas,
+  sandbox, timbrado y ciclo posterior. No hay conexión ni despliegue real.
+
+## 2026-10-14 — Codex: tareas clínicas simples por paciente
+
+**Agendar, cotizar y cobrar dejan de depender de que el usuario conozca la
+estructura del panel.**
+
+- Inicio y la barra superior presentan las tres tareas frecuentes en lenguaje
+  directo. El usuario elige el proceso, busca al paciente y continúa en el
+  módulo canónico con el contexto precargado.
+- El expediente ofrece accesos directos `Agendar`, `Cotizar` y `Cobrar` para el
+  paciente abierto. La cotización conserva como requisito el plan clínico
+  revisado y Caja conserva permisos, validación de saldos y confirmación.
+- El selector consulta únicamente pacientes del tenant autenticado. No copia
+  expedientes, diagnósticos ni notas dentro del lanzador y no ejecuta ninguna
+  acción automáticamente.
+- No hay cambios de backend. Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v229-doctor-task-flows`.
+
+## 2026-10-14 — Codex: estado vacío operativo de Agenda
+
+**La semana sin citas dejó de mostrarse como siete columnas blancas sin
+información y ahora guía a recepción con disponibilidad real.**
+
+- Cuando no hay citas ni bloqueos, Semana presenta una síntesis compacta, días
+  con cobertura, horarios configurados y una única acción principal para
+  preparar la primera cita.
+- Los días vacíos dentro de una semana ocupada distinguen `Disponible` de `Sin
+  horario`; seleccionar un horario sólo abre el formulario y conserva la
+  validación atómica al confirmar.
+- Se amplió `POLITICA_IMAGEN_SMYL.md`: los módulos operativos no usan fotografía
+  clínica, avatares fotográficos ni stock decorativo. Utilizan iniciales,
+  iconografía lineal y datos reales.
+- No hay cambios de backend. Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v228-schedule-empty-state`.
+
+## 2026-10-14 — Codex: Agenda profesional multivista
+
+**La agenda adopta los patrones útiles del calendario de referencia sin añadir
+React ni sustituir el contrato clínico existente.**
+
+- Recepción puede alternar entre Mes, Semana, Día y Lista. Mes permite saltar
+  al día; Lista agrupa las próximas dos semanas; Día organiza horarios por
+  profesional.
+- Los horarios de Día son seleccionables y preparan el formulario con fecha y
+  profesional. Ningún clic reserva directamente: la confirmación conserva el
+  RPC atómico, permisos, disponibilidad, duración y control de traslapes.
+- Las citas muestran iniciales, servicio, espacio, responsable y estado con un
+  acento visual consistente por profesional, sin imágenes externas.
+- No hay cambios de base de datos ni funciones remotas. Web y bundle móvil
+  están sincronizados; PWA usa `smyl-v227-schedule-multiview`.
+
+## 2026-10-14 — Codex: Etapa 8, alertas operativas compartidas
+
+**El Centro de alertas ya muestra los bloqueos y avisos operativos del Inbox y
+lleva al equipo directamente al diagnóstico correspondiente.**
+
+- Los incidentes críticos y las advertencias se agrupan por severidad para que
+  una falla no produzca varias tareas repetidas.
+- La integración publica sólo código, severidad, mensaje operativo, conteo y
+  estado agregado del piloto. No transporta conversaciones, evidencia,
+  pacientes, expedientes ni credenciales.
+- La acción de cada alerta abre Mensajes y su panel de salud operativa; no
+  modifica estados ni ejecuta reintentos por sí sola.
+- No hay cambios de base de datos, migraciones ni funciones remotas en esta
+  etapa. Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v226-inbox-alerts`.
+- Pendiente deliberado: ejecutar el piloto real de clínica y documentar sus
+  cinco escenarios humanos antes de autorizar la salida.
+
+## 2026-10-14 — Codex: Etapa 7, informe operativo del piloto
+
+**El dueño ya puede revisar e imprimir un informe del piloto preparado para
+dirección o soporte sin exportar conversaciones, credenciales ni información
+clínica.**
+
+- El informe reúne el corte de operación, la decisión vigente, seis indicadores
+  agregados, las tres puertas de salida, las cinco evidencias y las incidencias
+  activas con su siguiente control.
+- La evidencia se presenta con responsable y fecha cuando LANA los proporciona;
+  las pruebas pendientes se distinguen expresamente y nunca se completan solas.
+- `Imprimir o guardar PDF` genera una vista local y revisable. No carga el
+  contenido en otro servicio ni crea una copia automática en la base de datos.
+- El documento declara sus límites: no certifica resultados clínicos,
+  cumplimiento normativo, entrega final de mensajes ni niveles de servicio.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v225-inbox-report`. El piloto real sigue pendiente de ejecución humana.
+
+## 2026-10-14 — Codex: Etapa 6, decisión operativa del piloto
+
+**El estado del Inbox ya traduce métricas y evidencia en una decisión de salida
+comprensible para el dueño de la clínica, sin inventar SLA ni completar pruebas
+humanas automáticamente.**
+
+- El panel separa tres puertas verificables: preparación técnica, cinco pruebas
+  reales en clínica y ausencia de incidentes críticos.
+- Una lectura ejecutiva muestra avance, fecha de actualización y estados `no
+  apto`, `en curso`, `pausado`, `listo para aprobación` o `aprobado`.
+- Los indicadores resumen conversaciones por atender, envíos recientes,
+  evidencias, canales activos, reintentos y cola de fallos usando únicamente el
+  estado canónico entregado por LANA.
+- Cada alerta incorpora el siguiente control recomendado. No reenvía mensajes,
+  resuelve incidentes ni afirma tiempos de respuesta que el sistema no mida.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v224-inbox-operations`. La ejecución real del piloto continúa pendiente
+  hasta que una clínica documente las cinco pruebas en dispositivos reales.
+
+## 2026-10-14 — Codex: Etapa 5, piloto profesional del Inbox
+
+**Mensajes ya incorpora un ciclo de validación controlado, persistente y
+exclusivo del dueño para llevar la integración SMYL–LANA a una clínica real sin
+confundir pruebas automáticas con evidencia humana.**
+
+- El dueño puede iniciar, pausar, reanudar, cerrar y reiniciar un piloto sólo
+  cuando la puerta técnica está lista. El resto del equipo ve el avance en modo
+  de sólo lectura.
+- El cierre exige cinco comprobaciones con evidencia breve: tráfico real,
+  operación simultánea de dos usuarios, mensajes fuera de orden, pérdida y
+  recuperación de red, y uso desde un dispositivo móvil real.
+- La interfaz declara que no envía mensajes de prueba ni fabrica evidencia. El
+  estado se guarda en la configuración privada de LANA, conserva las últimas
+  claves idempotentes y evita sobrescribir cambios concurrentes del tenant.
+- Se corrigió además el acceso contextual a Archivos compartidos, que apuntaba
+  a un nombre de función inexistente y generaba un error al abrir un hilo.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v223-inbox-pilot`. Suite SMYL 246/246, pruebas enfocadas del puente
+  LANA 26/26, build de LANA correcto y QA visual en escritorio, tableta y móvil
+  sin overflow ni errores de consola.
+- Pendiente deliberado: ejecutar y documentar las cinco pruebas con una clínica,
+  dos usuarios y dispositivos reales. El software no las marca por sí solo.
+
+## 2026-10-14 — Codex: Etapa 4, compositor compartido del Inbox
+
+**Mensajes ya ofrece un compositor profesional alineado con las capacidades
+canónicas de LANA, manteniendo el envío bajo revisión humana.**
+
+- Se añadió selector accesible de emoji y notas de voz para WhatsApp. La
+  grabación sólo prepara un adjunto compatible; nunca se envía al detenerla.
+- Las notas de voz respetan ventana de 24 horas, permisos, límites de archivo y
+  la misma ruta autenticada de adjuntos que LANA ya procesa.
+- Cada conversación conserva su borrador en texto cifrado AES-GCM durante la
+  sesión. No se guarda texto clínico legible ni se usa almacenamiento global.
+- Cambiar de hilo protege el borrador anterior; enviarlo o dejarlo vacío elimina
+  su copia cifrada. Los atajos y Copilot también pasan por el mismo borrador.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v222-inbox-composer`. Suite completa 242/242 y QA visual en escritorio
+  y móvil sin overflow.
+
+## 2026-10-14 — Codex: Etapa 3, productividad diaria del Inbox
+
+**Mensajes incorpora herramientas de productividad sobre el chat canónico de
+LANA, sin copiar conversaciones ni credenciales dentro de SMYL.**
+
+- La búsqueda de la bandeja y del historial completo se ejecuta en servidor;
+  también se añadió una biblioteca paginada de archivos y enlaces compartidos.
+- Las respuestas rápidas existentes en LANA se insertan como borrador. El
+  profesional siempre revisa y decide el envío.
+- La selección múltiple permite únicamente asignar responsable o mover etapa;
+  no admite envíos masivos ni operaciones sobre el expediente clínico.
+- Los avisos sonoros requieren activación expresa y sólo viven durante la
+  sesión; no almacenan contenido ni datos del paciente.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v221-inbox-productivity`. Suite SMYL 238/238, puente LANA 7/7, build de
+  LANA correcto y QA visual en escritorio, tableta y móvil sin overflow ni
+  errores de consola.
+
+## 2026-10-14 — Codex: Etapa 2, organización profesional del Inbox
+
+**Mensajes ya permite organizar el trabajo del equipo desde SMYL usando las
+conversaciones, responsables y etapas canónicas de LANA, sin duplicar el chat.**
+
+- Se añadieron filtros `Fijadas` y `En atención`, indicador de conversación
+  fijada, etapa visible en cada fila y controles para fijar o quitar de fijadas.
+- El panel de atención permite asignar responsable y cambiar la etapa de la
+  conversación. Las mutaciones son idempotentes, auditadas y validadas por
+  tenant en LANA.
+- El puente privado incorpora consulta de etapas y acciones `pin`, `unpin` y
+  `stage`; las credenciales y los datos canónicos siguen fuera del navegador.
+- La migración `20261014200000_smyl_inbox_organization.sql` fue aplicada y
+  registrada únicamente en LANA. `camila-api` y `lana-inbox` quedaron
+  desplegadas.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v220-inbox-organization`. Suite completa 233/233, puente 6/6 y QA
+  visual en escritorio, tableta y móvil sin errores de consola.
+
+## 2026-10-14 — Codex: desconexión segura de Meta y auditoría de paridad del chat
+
+**Canales e IA ya permite al dueño desconectar Messenger o Instagram sin
+mostrar ni copiar credenciales al navegador.**
+
+- La acción pasa por `lana-channels` y el API canónico de LANA. LANA cancela
+  primero la suscripción con Meta y después elimina la credencial local; el
+  historial de conversaciones se conserva.
+- La interfaz muestra una confirmación explícita con la cuenta afectada y no
+  habilita la operación para miembros sin permiso de administración.
+- WhatsApp permanece sin desconexión automática hasta definir la revocación de
+  su configuración específica; no se presenta una acción falsa.
+- La auditoría `docs/SMYL_LANA_CHAT_PARITY_AUDIT.md` confirma que el Inbox ya
+  utiliza LANA como motor y enumera las brechas de experiencia pendientes. La
+  dirección es ampliar el puente, no duplicar el chat ni la base de datos.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v219-channel-disconnect`.
+
+## 2026-10-14 — Codex: Etapa 9, sistema profesional de ventanas
+
+**Las ventanas operativas de SMYL comparten una estructura visual y de
+interacción única, sin modificar sus operaciones ni validaciones de servidor.**
+
+- La capa `smyl-dialog-system` normaliza Inventario, Finanzas, Agenda,
+  Servicios, Clínica, Ficha 360, Casos, Cotizaciones, Mensajes y LANA.
+- Cada formulario obtiene encabezado con cierre visible, cuerpo desplazable,
+  acciones fijas, tamaños coherentes y presentación centrada en escritorio.
+- Los campos obligatorios se identifican, el primer campo inválido se lleva a
+  la vista y los cambios sin guardar se protegen antes de cerrar.
+- En móvil, las ventanas usan toda la pantalla con cabecera y acciones seguras;
+  los visores clínicos especializados conservan su interfaz propia.
+- No se modificaron migraciones, RLS, RPC ni Edge Functions. Web y bundle móvil
+  están sincronizados; PWA usa `smyl-v218-dialog-system-stage9`. Suite completa
+  232/232 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
+## 2026-10-14 — Codex: Etapa 8, preparación operativa de la clínica
+
+**Mi clínica ya guía al administrador para completar sedes, espacios, horarios,
+equipo y cobertura profesional antes de operar la agenda.**
+
+- El nuevo indicador de preparación resume cuatro áreas verificables y lleva al
+  apartado exacto que requiere atención, sin ejecutar cambios automáticamente.
+- Cada sucursal muestra espacios activos, días y bloques de atención, además de
+  un estado `Lista para agenda` o `Por completar` basado sólo en su configuración
+  visible de espacios y horarios.
+- Equipo y profesionales señalan faltantes de rol o sede. La guía de roles
+  explica sus permisos actuales antes de que el propietario los asigne.
+- El porcentaje es una guía de configuración y declara expresamente que no es
+  certificación clínica, laboral, fiscal ni sanitaria.
+- No se modificaron migraciones, RLS ni Edge Functions. Web y bundle móvil están
+  sincronizados; PWA usa `smyl-v217-clinic-readiness-stage8`. Suite completa
+  228/228 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
+## 2026-10-14 — Codex: Etapa 7, tablero ejecutivo profesional
+
+**Reportes ya funciona como mesa de control para dirección, con prioridades
+accionables y límites explícitos sobre lo que cada indicador significa.**
+
+- `Resumen para dirección` reúne cartera, inasistencias, alertas de inventario
+  y cajas abiertas usando únicamente datos agregados y permisos existentes.
+  Cada prioridad abre el módulo responsable; el tablero no ejecuta acciones.
+- Se incorporaron periodos rápidos de 7, 30 y 90 días, filtro por sucursal y
+  selector de tendencia entre ingresos confirmados y citas cuando el rol tiene
+  acceso al módulo correspondiente.
+- Demanda por servicio y actividad del equipo se presentan como carga operativa,
+  no como evaluación de desempeño, calidad clínica u ocupación de sillones.
+- El recorrido de tratamientos conserva sus cinco hitos independientes y deja
+  claro que no representa una cohorte ni una tasa de conversión.
+- No se modificaron migraciones, RLS ni Edge Functions. Web y bundle móvil están
+  sincronizados; PWA usa `smyl-v216-executive-dashboard-stage7`. Suite completa
+  224/224 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 6, inventario y trazabilidad profesional
+
+**Inventario ya prioriza faltantes, lotes de riesgo y recepciones abiertas como
+trabajo operativo, no sólo como filas de existencias.**
+
+- La bandeja `Control operativo` separa insumos bajo mínimo, lotes caducados,
+  próximas caducidades y compras por recibir. Sus acciones abren el filtro o
+  módulo correspondiente sin modificar existencias automáticamente.
+- Existencias incorpora filtros por atención, mínimo y caducidad; cada insumo
+  muestra ubicación, estado, trazabilidad por paciente y cantidad sugerida para
+  alcanzar el objetivo configurado.
+- El consumo clínico excluye lotes caducados y presenta un control previo de
+  lote, caducidad, serie y paciente. Las validaciones del servidor y el RPC
+  atómico existente continúan siendo la autoridad final.
+- Las órdenes muestran porcentaje y unidades recibidas. El libro de movimientos
+  sigue inmutable y las correcciones continúan registrándose como compensaciones.
+- No se modificaron migraciones, RLS ni Edge Functions. Web y bundle móvil están
+  sincronizados; PWA usa `smyl-v215-inventory-operations-stage6`. Suite completa
+  220/220 y QA visual a 1366, 834 y 390 px sin overflow, errores de página ni
+  botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 5, caja y seguimiento financiero profesional
+
+**Finanzas ya permite priorizar la cobranza y confirmar cómo se aplicará cada
+pago antes de registrarlo.**
+
+- El foco financiero reúne cartera vencida, saldos a favor y cortes pendientes;
+  cada hallazgo conduce a la cuenta o acción correspondiente y deja explícito
+  que el sistema no ejecuta cargos automáticos.
+- Las cuentas por paciente muestran importe pagado, total del tratamiento,
+  porcentaje cubierto, saldo y vencimiento. Los filtros separan casos por
+  atender, con saldo, liquidados y todos.
+- Antes de confirmar un pago se presenta un control de aplicación con importe,
+  monto asignado a cargos, remanente como saldo a favor y referencia. Los pagos
+  en efectivo requieren una caja abierta en la sucursal seleccionada.
+- Todos los importes y estados se derivan de cargos, pagos, aplicaciones y
+  reembolsos existentes; no se modificaron RPC, migraciones ni reglas RLS.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v214-financial-followup-stage5`. Suite completa 215/215 y QA visual a
+  1366, 834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 4, agenda y operación clínica profesional
+
+**Agenda ya presenta cada reserva como coordinación de tiempo, profesional y
+consultorio, no sólo como una cita en una lista.**
+
+- Las tarjetas muestran inicio y término reales, servicio, profesional,
+  consultorio o sillón y estado de atención; la vista también puede filtrarse
+  por espacio clínico.
+- El formulario calcula duración y hora de término desde el catálogo, muestra
+  especialidad y espacio, y advierte si el profesional no ofrece el servicio,
+  no pertenece a la sucursal o el consultorio no corresponde a la sede.
+- Estas comprobaciones sólo guían al equipo. Las RPC existentes conservan la
+  decisión final y vuelven a validar permisos, disponibilidad y traslapes.
+- El detalle de la cita separa nota operativa de información clínica y muestra
+  el estado verificable de los recordatorios sin afirmar que fueron entregados.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v213-clinical-schedule-stage4`. Suite completa 211/211 y QA visual a
+  1366, 834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 3, plan y cotización profesional
+
+**El plan revisado y la cotización ya conservan una relación comprensible entre
+conceptos, piezas FDI, superficies e importes.**
+
+- El editor muestra un control de propuesta con número de conceptos, conceptos
+  vinculados al mapa, precios pendientes y revisiones fiscales pendientes.
+- `Ir al pendiente` lleva al primer concepto que requiere atención, sin guardar,
+  aprobar ni enviar automáticamente.
+- La propuesta para el paciente conserva el odontograma y ahora agrega una
+  leyenda que explica qué tratamiento corresponde a cada pieza y superficie.
+- El documento compartido sigue excluyendo antecedentes, alertas, medicamentos
+  y notas clínicas internas. Las claves fiscales continúan sujetas a revisión.
+- Web, impresión y bundle móvil están sincronizados; PWA usa
+  `smyl-v212-treatment-quote-stage3`. Suite completa 207/207 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 2, expediente y odontograma profesional
+
+**La ficha del paciente ya presenta antecedentes, odontograma, plan y
+seguimiento como un solo estado clínico operativo.**
+
+- El resumen deriva sus indicadores exclusivamente de los módulos existentes:
+  antecedentes, alertas visibles, piezas anotadas, estados en seguimiento o
+  realizados, tratamientos y evoluciones recientes. No consulta otra fuente ni
+  duplica información clínica.
+- La siguiente acción conserva un orden neutral: completar antecedentes,
+  revisar odontograma, construir plan o registrar evolución. Son accesos al
+  trabajo profesional; nunca constituyen diagnóstico o recomendación automática.
+- Cada tarjeta abre la sección correspondiente sin perder el paciente actual.
+  Las notas firmadas, permisos clínicos y controles de auditoría no cambian.
+- Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v211-patient-record-stage2`. Suite completa 203/203 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 1, Servicios y tarifas profesional
+
+**El catálogo dental ya comunica qué está listo para operar y qué requiere
+atención antes de llegar a Agenda o a una cotización.**
+
+- El resumen distingue servicios listos, activos, sin precio y con revisión
+  fiscal pendiente; una barra muestra el avance real de configuración.
+- El filtro `Por completar` reúne servicios activos sin tarifa o sin revisión
+  fiscal. Cada fila etiqueta claramente `Listo para operar`, `Por completar` o
+  `Disponible`, y cambia la acción principal a `Completar` cuando corresponde.
+- La búsqueda también contempla el nombre presentado al paciente. Los usuarios
+  sin `settings.manage` reciben una vista explícita de sólo lectura.
+- No cambia el catálogo clínico, RLS ni las migraciones. Web y bundle móvil
+  están sincronizados; PWA usa `smyl-v210-service-catalog-stage1`.
+- Suite completa 199/199. QA visual a 1366, 834 y 390 px sin overflow, errores
+  de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Panel profesional de gestión v3 publicado
+
+**La experiencia completa se consolidó como un sistema de gestión dental, no
+como una colección de herramientas:** la navegación principal ahora sigue la
+jornada de la clínica con Inicio, Agenda, Pacientes, Tratamientos, Finanzas y
+Mensajes; Servicios y tarifas, Inventario y Reportes quedan como áreas de
+negocio claramente diferenciadas.
+
+- Inicio prioriza la operación del día y mantiene accesos directos a las áreas
+  canónicas. La acción global es `Nueva cita` y el móvil conserva cinco destinos
+  útiles sin saturar la barra inferior.
+- La ficha del paciente incorpora una barra de continuidad para agendar,
+  trabajar el tratamiento, registrar evolución, cobrar o escribirle sin perder
+  el contexto del paciente.
+- Tratamientos expone el recorrido completo: valoración, plan, cotización,
+  aceptación, atención y cierre. No se inventan decisiones clínicas ni estados.
+- El sistema visual usa jerarquía más compacta, superficies sobrias, navegación
+  azul marino y estados teal consistentes en escritorio, tablet y móvil.
+- Es una consolidación frontend: no modifica tablas, permisos ni migraciones.
+  Web y bundle móvil están sincronizados; PWA usa
+  `smyl-v209-professional-management`. Suite completa 195/195 y QA visual a
+  1366, 834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 8 de cierre profesional terminada
+
+**Reportes ya muestra el recorrido operativo de los tratamientos sin exponer
+expedientes:** aceptación de cotización, creación de cargos, primera cita,
+terminación de la cita y evolución clínica firmada se resumen por periodo.
+
+- Son hitos agregados de toda la clínica, no una cohorte ni una tasa de
+  conversión. Cada cifra se cuenta por la fecha de su propio evento y puede
+  pertenecer a tratamientos distintos.
+- Cada paso respeta su permiso (`proposal.read`, `finance.read`,
+  `schedule.read` o `clinical.read`); el usuario sin acceso ve el paso
+  restringido y nunca recibe identificadores de pacientes.
+- Agenda ahora admite de forma explícita `accepted_proposal` como origen. Esto
+  cierra el defecto que impedía guardar la primera cita preparada desde una
+  cotización aceptada.
+- La migración aditiva `20261013080000_smyl_treatment_operations_v1.sql` quedó
+  aplicada y verificada en Supabase. Web/PWA usan
+  `smyl-v208-professional-pilot`; suite completa 191/191 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 7 de ejecución clínica terminada
+
+**Agenda y Ficha clínica ya continúan la atención sin perder el contexto de la
+cita:** cuando el paciente llegó, está en atención o la cita terminó, el equipo
+puede abrir una evolución SOAP vinculada al paciente, cita y profesional.
+
+- La acción `Registrar evolución` sólo aparece en estados clínicamente
+  pertinentes; `Abrir ficha` continúa disponible por separado para consulta.
+- Si la cita ya tiene un borrador, se reabre en lugar de duplicarlo. Una nota
+  firmada permanece inmutable y remite a una adenda para cualquier corrección.
+- `clinical.read`, `clinical.write` y `clinical.approve` siguen separados. La
+  interfaz no completa hallazgos ni cambia el estado de la cita por sí sola.
+- Web/PWA usan `smyl-v207-treatment-execution`. Suite completa 187/187 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni acciones
+  inaccesibles; el diálogo móvil ahora tiene desplazamiento interno seguro.
+
+## 2026-10-13 — Codex: Etapa 6 de activación de tratamiento terminada
+
+**Una cotización aceptada ya puede convertirse de forma controlada en trabajo
+operativo:** desde la misma versión el equipo abre Caja para crear cargos o
+Agenda para preparar la primera cita del paciente.
+
+- Aprobar internamente ya no basta para crear cargos. El servidor exige un
+  evento `accepted` de la misma revisión vigente; conserva la idempotencia de
+  lotes anteriores y nunca duplica movimientos.
+- Presentaciones muestra una puerta de activación con estados claros. Caja y
+  Agenda mantienen permisos separados y vuelven a validar importes,
+  disponibilidad, profesional, sucursal y espacio.
+- Agenda recibe al paciente preseleccionado, pero deja al equipo elegir servicio,
+  profesional y horario. La aceptación comercial se declara distinta del
+  consentimiento informado y no agenda ni cobra automáticamente.
+- La migración aditiva `20261013070000_smyl_treatment_activation_v1.sql` quedó
+  aplicada y verificada en Supabase. Web/PWA usan
+  `smyl-v206-treatment-activation`; suite completa 183/183 y QA visual a 1366,
+  834 y 390 px sin overflow, errores de página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 5 de cola comercial publicada
+
+**Presentaciones ahora funciona como un tablero accionable y no sólo como
+historial:** el equipo identifica qué cotizaciones debe completar, presentar,
+revisar por vigencia o actualizar por petición del paciente.
+
+- Cuatro indicadores resumen versiones por presentar, respuestas pendientes,
+  cotizaciones que requieren acción y aceptación. La tasa usa exclusivamente
+  decisiones registradas y muestra su denominador; un silencio nunca se cuenta
+  como rechazo.
+- La cola distingue borrador, lista para presentar, esperando decisión,
+  vigencia vencida, cambios solicitados, aceptada y no aceptada. Las tareas se
+  ordenan por prioridad verificable y actualización, sin inventar un SLA.
+- Se añadieron búsqueda local y filtros Por atender, Todas, Aceptadas y
+  Borradores. Los indicadores declaran que corresponden a las últimas 100
+  propuestas visibles y reutilizan la lectura RLS existente, sin nueva tabla ni
+  migración.
+- Web/PWA usan `smyl-v205-commercial-proposals`. Suite completa 178/178 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni botones sin
+  etiqueta.
+
+## 2026-10-13 — Codex: Etapa 4 de seguimiento de cotizaciones publicada
+
+**SMYL ya distingue aprobación profesional, presentación y decisión comunicada
+por el paciente:** cada versión aprobada conserva una línea de tiempo auditable
+sin presentar el registro interno como firma o consentimiento informado.
+
+- El equipo autorizado registra `presented`, `accepted`, `declined` o
+  `changes_requested`, junto con medio, fecha y una nota; rechazo y solicitud
+  de cambios exigen contexto escrito.
+- El servidor obliga a presentar primero la versión, acepta sólo la revisión
+  aprobada vigente, bloquea decisiones posteriores a un estado terminal y usa
+  un UUID del cliente para reintentos idempotentes.
+- `proposal.followup` queda separado de lectura, edición, aprobación y Caja.
+  Titular, administración y odontólogo lo reciben por defecto; RLS mantiene la
+  lectura dentro de la clínica y las inserciones directas permanecen revocadas.
+- La migración aditiva `20261013060000_smyl_proposal_followup_v1.sql` quedó
+  aplicada en Supabase. Web/PWA usan `smyl-v204-proposal-followup`; suite
+  completa 174/174 y QA visual a 1366, 834 y 390 px sin overflow, errores de
+  página ni botones sin etiqueta.
+
+## 2026-10-13 — Codex: Etapa 3 de cotizaciones delegadas publicada
+
+**El equipo clínico ya puede consultar, preparar y aprobar cotizaciones sin
+compartir la cuenta titular ni recibir acceso implícito a Caja:** la autorización
+se aplica tanto en la interfaz como en Supabase.
+
+- Se agregaron los permisos independientes `proposal.read`, `proposal.write` y
+  `proposal.approve`. Titular, administración y dentista reciben el flujo
+  clínico completo; finanzas recibe lectura para mantener continuidad operativa.
+- Las políticas RLS de propuestas, versiones y fotografías privadas, además de
+  los RPC de guardado, aprobación y exportación, validan tenant y permiso en el
+  servidor. La migración aditiva
+  `20261013050000_smyl_proposal_permissions_v1.sql` quedó aplicada y sincronizada
+  en Supabase.
+- Crear cargos continúa protegido por `finance.manage`: aprobar un tratamiento
+  no concede permisos de cobro. Los perfiles de sólo lectura abren propuestas
+  guardadas sin controles de edición.
+- Web/PWA usan `smyl-v203-delegated-proposals`. Suite completa 170/170 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni botones sin
+  etiqueta; el odontograma conserva sus controles clínicos compactos.
+
+## 2026-10-13 — Codex: Etapa 2 del recorrido de atención publicada
+
+**Agenda, expediente, odontograma, plan y cotización ahora se presentan como un
+solo recorrido del paciente:** la interfaz conserva el contexto clínico y
+separa la cotización de la presentación visual opcional.
+
+- La ficha usa una cabecera única con identidad, contacto, alertas, próxima
+  cita y accesos rápidos a resumen, antecedentes, notas clínicas y citas.
+- El recorrido profesional muestra Evidencias → Odontograma → Plan →
+  Cotización. La cotización se habilita con el plan revisado; la presentación
+  mySmyl sigue siendo opcional y requiere una simulación disponible.
+- Desde Agenda, cualquier rol con `clinical.read` puede abrir la ficha y la
+  atención del paciente. La cotización comercial conserva por ahora la política
+  existente de cuenta titular; no se debilitó RLS desde el frontend.
+- Web/PWA usan `smyl-v202-patient-care-flow`. Suite completa 165/165 y QA a
+  1366, 834 y 390 px sin overflow, errores, botones sin etiqueta ni objetivos
+  táctiles menores de 38 px.
+
+## 2026-10-13 — Codex: Etapa 1 del panel profesional dental publicada
+
+**Servicios y tarifas ya es una función principal del negocio y los permisos
+clínicos respetan el rol configurado:** se consolidó la base para continuar la
+evolución del panel por etapas sin duplicar fuentes de verdad.
+
+- El catálogo pasó a `Negocio > Servicios y tarifas` y se eliminó de Agenda la
+  edición paralela de precio, duración y activación. Agenda conserva un acceso
+  directo al catálogo canónico.
+- El catálogo sigue cubriendo especialidades, precios, duración, unidad clínica
+  y sugerencias SAT editables, con lectura para operación y gestión reservada a
+  `settings.manage`.
+- La ficha clínica dejó de depender de `owner`: `clinical.read`,
+  `clinical.write` y `clinical.approve` gobiernan consulta, edición, revisión y
+  propuesta. La migración aditiva
+  `20261013040000_smyl_professional_permissions_v1.sql` quedó aplicada y
+  sincronizada en Supabase.
+- Web/PWA usan `smyl-v201-professional-foundation`. Suite completa 161/161 y QA
+  visual a 1366, 834 y 390 px sin overflow, errores de página ni botones sin
+  etiqueta.
+
+## 2026-10-13 — Codex: simulación rápida cerrada sin pendientes
+
+**La suite queda completamente verde (157/157):** se restauró el objetivo
+independiente de carillas en el flujo guiado y en los ajustes profesionales,
+sin obligar al dentista a combinarlo con alineación.
+
+- El menú rápido ofrece Carillas, Alinear y Alinear + carillas; conserva la
+  selección de arcada y tono VITA y mantiene el aviso de simulación orientativa.
+- La lógica ya no transforma silenciosamente `veneers` en `combined`; el motor
+  existente recibe la modalidad clínica elegida.
+- Las pruebas históricas de LANA/simulación se alinearon con la arquitectura
+  vigente: la frontal gobierna el diseño, la intraoral sólo aporta evidencia y
+  el cambio de tono no dispara una generación pagada.
+- Web/PWA sincronizadas con `smyl-v200-quick-veneers`. QA visual a 1366, 834 y
+  390 px: tres objetivos visibles, sin overflow ni errores de página.
+
+## 2026-10-13 — Codex: cierre de etapas fiscales previo al PAC
+
+**Entregas 4–6 cerradas hasta sus dependencias externas:** SMYL ya separa
+emisor/receptor, diagnostica readiness fiscal y prepara cancelación/sustitución
+sin afirmar acciones que todavía no ocurrieron en SAT/PAC.
+
+- Nueva migración aditiva `20261013030000_smyl_cfdi_lifecycle_v1.sql`, aplicada
+  tras dry-run como única pendiente: perfiles de emisor, preparación PAC sin
+  secretos, planes de cancelación y RPC transaccionales con RLS/auditoría.
+- Los borradores v3 congelan emisor, receptor y conceptos. La prevalidación
+  local v2 revisa ambos perfiles, claves fiscales y totales, pero conserva
+  `requires_pac_catalog_validation=true`.
+- Motivos de cancelación 01–04 preparados; 01 exige UUID sustituto. Sólo un
+  CFDI con estado `issued` puede generar un plan y `planned` significa
+  exclusivamente intención local, no solicitud enviada.
+- Caja presenta una Puerta fiscal de cinco controles y enlaza la lista oficial
+  de PAC del SAT. No captura certificados, claves o contraseñas.
+- Web/PWA usan `smyl-v199-cfdi-lifecycle`. QA sintética a 1366, 834 y 390 px
+  sin overflow ni errores. Validación focalizada 17/17; suite completa 155/157,
+  conservando únicamente los dos fallos preexistentes de `lana-quick` y
+  `quick-guided-flow`. La conexión PAC real continúa bloqueada hasta que el
+  propietario elija proveedor y proporcione acceso sandbox de forma segura.
+
+## 2026-10-13 — Codex: propuesta aprobada, cargos y prevalidación CFDI
+
+**Entrega 3 terminada hasta el límite seguro previo al PAC:** una propuesta
+aprobada se convierte explícitamente en cargos y el pago puede preparar un
+borrador CFDI 4.0 con conceptos congelados.
+
+- `smyl_post_proposal_charges` bloquea y valida la revisión aprobada, crea un
+  cargo por concepto positivo y conserva snapshot de propuesta, servicio y
+  claves fiscales. La unicidad por propuesta/revisión e idempotency key evita
+  duplicados incluso ante reintentos.
+- `smyl_prepare_cfdi_draft_v2` exige pago totalmente aplicado, sin reembolsos,
+  y congela receptor y conceptos. `smyl_validate_cfdi_draft_sandbox` revisa
+  reglas locales y marca aprobado/bloqueado sin cambiar el borrador a emitido.
+- La migración aditiva `20261013020000_smyl_proposal_finance_v1.sql` fue
+  aplicada en producción tras un dry-run que confirmó que era la única
+  pendiente. No se conectó ni transmitió a SAT/PAC y no se tocaron Stripe,
+  Gmail, LANA o Meta.
+- Propuestas incorpora “Crear cargos en Caja”; Caja permite elegir propuesta,
+  sede, vencimiento y confirmación explícita. Fiscal distingue prevalidación
+  local de validación/timbrado futuro por PAC sandbox.
+- Web/PWA sincronizadas con `smyl-v198-proposal-finance`. QA sintética aprobada
+  a 1366, 834 y 390 px, sin overflow ni errores de consola. Suite completa:
+  150/152; permanecen sólo los fallos preexistentes de `lana-quick` y
+  `quick-guided-flow`.
+- Archivos principales: `smyl-finance.js/.css`, `smyl-proposals.js`, copias en
+  `mobile/www/`, la migración y `tests/proposal-finance-v1*`.
+- Siguiente decisión obligatoria: elegir proveedor PAC y credenciales de
+  sandbox, confirmar con contador las claves/impuestos y diseñar cancelación,
+  sustitución y conciliación antes de habilitar timbrado real.
+
+## 2026-10-13 — Codex: plan clínico y cotización dental v2
+
+**Entrega 2 terminada:** catálogo, plan, odontograma y propuesta comparten un
+contrato versionado sin convertir la automatización en diagnóstico.
+
+- Cada tratamiento conserva ID, fase, servicio/revisión/snapshot, piezas FDI y
+  superficies. Los documentos schema 1 siguen normalizándose para lectura.
+- El profesional señala las piezas en el odontograma; “sin marca” significa
+  únicamente “sin pieza asociada”, nunca “sano”.
+- La propuesta toma nombre, precio y modalidad del snapshot revisado, calcula
+  cantidades por pieza o superficie y muestra al paciente un mini mapa sin
+  antecedentes, alergias ni notas internas.
+- Nueva migración aditiva
+  `20261013010000_smyl_treatment_proposal_v2.sql`, aplicada en producción tras
+  dry-run. Los RPC v2 validan snapshots y coincidencia con el plan revisado;
+  los RPC antiguos permanecen intactos para el historial.
+- Web/PWA sincronizadas con `smyl-v197-treatment-quote-map`. No se tocaron
+  LANA, Gmail, Meta, prompts de IA, Storage, Stripe ni configuración nativa.
+- QA sintética aprobada a 1366, 834 y 390 px, sin overflow; en móvil cada línea
+  de cotización se presenta como tarjeta legible. Validación focalizada 8/8;
+  suite completa 145/147, con los dos fallos preexistentes de `lana-quick` y
+  `quick-guided-flow`.
+- Archivos principales: `smyl-clinical-model.js`, `smyl-clinic.js/.css`,
+  `smyl-proposal-model.js`, `smyl-proposal-print.js`,
+  `smyl-proposals.js/.css`, sus copias en `mobile/www/`, la migración y
+  `tests/treatment-proposal-v2.test.mjs`.
+- Siguiente entrega recomendada: propuesta aprobada → cargos idempotentes →
+  CFDI en sandbox, sin afirmar timbrado real hasta integrar y probar un PAC.
+
+## 2026-10-13 — Codex: etapa 7, cierre de navegación profesional
+
+**Reorganización terminada en frontend:** el workspace incorpora un acceso
+global por tarea y completa el recorrido operativo sin agregar otra fuente de
+datos ni alterar los contratos clínicos.
+
+- `Ir a…` y el atajo `Ctrl/Cmd + K` reúnen Trabajo diario, Clínica,
+  Administración y Configuración; la búsqueda ocurre únicamente en memoria.
+- El selector funciona con teclado, conserva el foco, añade un salto al
+  contenido y actualiza el título de la vista para facilitar orientación y
+  accesibilidad.
+- La presentación responsive fue validada a 1366, 834 y 390 px; la búsqueda y
+  navegación por flechas funcionan y no se detectaron errores de consola.
+- Web y PWA móvil quedan sincronizadas con el caché
+  `smyl-v194-professional-close`. No se cambió backend, RLS, LANA, Meta,
+  mutaciones, seguridad ni lógica clínica.
+- Validación focalizada: 17/17. Suite completa: 137/139; permanecen únicamente
+  los dos fallos preexistentes de `lana-quick` y `quick-guided-flow` en el flujo
+  independiente de simulación rápida.
+- Con esta etapa quedan terminadas las siete etapas de reorganización. El
+  siguiente paso recomendado es un piloto controlado con una clínica real y
+  observación de uso, no otra ronda de expansión de interfaz.
+
+## 2026-10-13 — Codex: etapa 6 de continuidad, recuperación del workspace
+
+**Reorganizado en frontend:** el panel conserva el contexto visible al perder
+conexión y ofrece recuperación explícita sin recargar toda la aplicación.
+
+- Una franja accesible distingue desconexión y restablecimiento; advierte no
+  repetir envíos ni cobros mientras el resultado sea incierto.
+- `Reintentar` actualiza únicamente el módulo activo mediante su API pública:
+  Inicio, Agenda, Mensajes, Alertas, Inventario, Caja, Reportes o Preparación.
+- Los indicadores de carga usan `aria-busy` y una región viva para lectores de
+  pantalla. La reconexión no borra datos que el equipo ya estaba consultando.
+- No se cambiaron mutaciones, backend, RLS, LANA, Meta ni lógica clínica. Web y
+  PWA usan `smyl-v193-resilient-workspace`.
+- Validación focalizada: 13/13; QA de desconexión aprobado en móvil, sin
+  errores de consola.
+- La etapa final es navegación global y auditoría de accesibilidad para cerrar
+  la reorganización profesional.
+
+## 2026-10-13 — Codex: etapa 5 de continuidad, Centro de alertas
+
+**Reorganizado en frontend:** Notificaciones separa pendientes operativos de
+novedades informativas y deja de marcar todo como leído al abrir la pantalla.
+
+- Reúne señales de Agenda, Mensajes e Inventario como acciones agregadas, con
+  origen, rol responsable, prioridad y acceso al módulo que las resuelve.
+- Las alertas no tienen una marca falsa de “atendida”: desaparecen únicamente
+  cuando cambia el estado verificable en su fuente canónica.
+- Las novedades de SMYL conservan lectura local por clínica y ya no se mezclan
+  con citas, conversaciones, recordatorios ni existencias.
+- Alertas aparece en el menú diario de escritorio, en la hoja móvil y como
+  acceso desde Inicio; la barra móvil principal conserva sus cuatro tareas.
+- Se reutilizan RLS, permisos y RPC de lectura existentes. No se cambió
+  backend, migraciones, LANA, Meta ni datos clínicos. Caché:
+  `smyl-v192-action-center-gmail`.
+- Validación focalizada: 13/13. Suite amplia: 129/131; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin overflow ni errores de consola.
+- La siguiente etapa es unificar carga, error, desconexión y recuperación en
+  los módulos operativos para que el equipo siempre sepa qué puede hacer.
+## 2026-10-13 — Codex: catálogo dental v1 publicado
+
+**Integrado sobre la versión vigente:** se auditó el flujo servicios → agenda →
+plan → odontograma → propuesta → finanzas y se creó la primera entrega del
+catálogo.
+
+- Se recuperaron las migraciones clínicas históricas que faltaban en la rama
+  publicada para que el esquema sea auditable y reproducible.
+- Nuevo menú opt-in de más de 55 servicios en 13 áreas, con búsqueda,
+  activación, edición, desactivación, precio, duración, unidad clínica y estado
+  de revisión fiscal.
+- Nueva migración aditiva `20261013000000_smyl_service_catalog.sql`: amplía
+  `smyl_services` y añade snapshots inmutables en `smyl_service_versions`, con
+  RLS de agenda. Se aplicó en producción el 2026-10-13 después de un dry-run
+  que confirmó que era la única migración pendiente.
+- Las claves SAT se muestran como sugerencias editables; no se confunde unidad
+  clínica con unidad fiscal ni se afirma que el CFDI borrador ya timbre.
+- Se documentó el contrato de schema v2 para enlazar plan, dientes FDI,
+  cotización y cargos sin autodiagnóstico ni filtración del historial médico.
+- Web/PWA usan el contrato de caché `smyl-v195-dental-catalog`. Gmail/OAuth,
+  LANA/Meta, prompts, Storage, Stripe y configuración nativa no fueron tocados.
+- Publicado en GitHub Pages y comprobado en el panel profesional: carga las 62
+  plantillas y las 13 áreas sin activar ni modificar servicios de la clínica.
+- Validación local: catálogo y contrato LANA 5/5; suite amplia 141/143. Persisten únicamente
+  los dos fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobada a 1366, 834 y 390 px; web/PWA tienen hashes idénticos.
+
+## 2026-10-13 — Codex: etapa 4 de continuidad, Inicio de jornada
+
+**Reorganizado en frontend:** Inicio deja de ser un resumen de créditos y se
+convierte en el tablero operativo diario de la clínica.
+
+- Resume citas de hoy, pacientes en clínica, solicitudes pendientes y
+  conversaciones que necesitan atención; cada indicador abre Agenda o
+  Mensajes, que siguen siendo la fuente de trabajo canónica.
+- Ordena como prioridades las llegadas, citas en atención, horarios vencidos,
+  solicitudes e inasistencias. También muestra las próximas citas del día.
+- Añade accesos directos para crear una cita, registrar un paciente, abrir la
+  bandeja y continuar expedientes, sin duplicar formularios ni decisiones.
+- Reutiliza las consultas RLS ya existentes con `tenant_id`. Mensajes publica
+  al tablero solamente totales operativos; no copia ni expone el historial.
+- No se cambió backend, LANA, Meta, migraciones, permisos ni contratos de
+  envío. Web y PWA móvil usan `smyl-v190-daily-home`.
+- Validación focalizada: 13/13. Suite amplia: 124/126; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin errores de consola.
+- La siguiente etapa recomendada es consolidar alertas y notificaciones para
+  que cada pendiente tenga un único origen, responsable y destino de acción.
+
+## 2026-10-13 — Codex: etapa 3 de continuidad, Mensajes por paciente
+
+**Reorganizado en frontend:** Mensajes funciona ahora como centro de atención
+dental y presenta primero el trabajo que requiere al equipo.
+
+- La bandeja prioriza conversaciones fijadas, solicitudes de humano, mensajes
+  sin leer y conversaciones asignadas al usuario antes de ordenar por fecha.
+- Un resumen visible explica qué necesita atención dentro del filtro actual y
+  distingue visualmente solicitudes humanas y mensajes nuevos.
+- Cada hilo muestra una `Siguiente acción` con acceso directo a responder,
+  vincular/abrir el expediente y consultar Agenda cuando existe una cita.
+- El encabezado del hilo reúne canal, estado del asistente, responsable y
+  vínculo con expediente. Las herramientas del compositor usan nombres claros
+  en vez de abreviaturas y conservan la revisión humana antes de enviar.
+- No se cambió backend, LANA, Meta, Supabase, permisos ni contratos de envío.
+  Web y PWA móvil usan `smyl-v189-patient-messages`.
+- Validación focalizada del Inbox: 27/27. Suite amplia: 120/122; permanecen los
+  dos fallos preexistentes de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin errores de consola.
+- La siguiente etapa recomendada es convertir `Inicio` en un tablero de jornada
+  que conecte Pacientes, Agenda y Mensajes sin duplicar sus datos.
+
+## 2026-10-13 — Codex: etapa 2 de continuidad, Agenda operativa
+
+**Reorganizado en frontend:** la Agenda incorpora una cola única de prioridades
+para que recepción y clínica sepan qué requiere acción ahora.
+
+- Ordena citas cuyo horario pasó sin cambio de estado, pacientes que llegaron o
+  están en atención, solicitudes pendientes, recordatorios fallidos o vencidos,
+  próximas citas e inasistencias que requieren seguimiento.
+- Añade un resumen diario de recordatorios y conecta el detalle de la cita con
+  el expediente del paciente y, para inasistencias o cancelaciones, Mensajes.
+- Se reutilizan las consultas RLS y RPC seguras existentes. No se cambiaron
+  migraciones, seguridad, transiciones ni contratos de backend, y el asistente
+  continúa sin confirmar citas automáticamente.
+- Web y PWA móvil quedan sincronizadas con el caché
+  `smyl-v188-operational-agenda`; la vista fue revisada a 1366, 834 y 390 px.
+- Validación focalizada: 15/15. Suite amplia: 116/118; permanecen los dos
+  fallos preexistentes de `lana-quick` y `quick-guided-flow`. Sin errores de
+  consola en la vista de QA.
+- La siguiente etapa recomendada es ordenar `Mensajes` como centro de atención
+  y seguimiento, enlazado con pacientes, Agenda y canales Meta.
+
+## 2026-10-12 — Codex: etapa 1 de continuidad del flujo clínico
+
+**Reorganizado en frontend:** la ficha del paciente muestra ahora un recorrido
+navegable y verificable de `Evidencias → Revisión → Plan → Presentación`.
+
+- La acción principal cambia según el siguiente pendiente y abre el módulo
+  correcto sin desmontar editores ni perder borradores locales.
+- Cada paso conserva su estado existente; no se introdujo una fuente de verdad
+  nueva ni se cambió ningún criterio clínico, aprobación o contrato de backend.
+- El último paso se renombró `Presentación y seguimiento`. Después de crear un
+  enlace en la sesión aparece el acceso a `Mensajes`; SMYL sigue aclarando que
+  no confirma ni ejecuta un envío automático.
+- Se actualizó `smyl-case-workspace.js/css`, sus copias PWA, `app.html`, `sw.js`
+  y pruebas. Caché: `smyl-v187-clinical-flow`.
+- Validación focalizada: 22/22. Suite amplia: 113/115; permanecen los dos fallos
+  preexistentes documentados de `lana-quick` y `quick-guided-flow`. QA visual
+  aprobado a 1366, 834 y 390 px, sin errores de consola.
+
+## 2026-10-12 — Codex: arquitectura de información y navegación profesional
+
+**Reorganizado:** el panel deja de presentar todos los módulos al mismo nivel y
+se ordena según la frecuencia real de trabajo en una clínica dental.
+
+- Primer nivel: `Inicio`, `Pacientes`, `Agenda` y `Mensajes`.
+- `Administración`: inventario, caja/cobros y reportes.
+- `Configuración`: clínica, canales/asistente, preparación operativa,
+  simulaciones, presentaciones, precios, marca y cuenta.
+- `Canales y asistente` separa ahora las tareas en tres pestañas: `Canales`,
+  `SMYL Asistente` y `Laboratorio`, sin modificar OAuth, Meta, LANA, secretos,
+  permisos ni contratos de backend.
+- La barra móvil conserva solo las cuatro tareas diarias; el resto queda en un
+  menú agrupado. Web y PWA móvil están sincronizadas con el caché
+  `smyl-v186-information-architecture`.
+- Archivos principales: `smyl-navigation.js`, `smyl-navigation.css`,
+  `app.html` y `sw.js` (más sus copias en `mobile/www`).
+- Validación: 49/49 pruebas focalizadas, sintaxis JavaScript válida y revisión
+  responsiva de escritorio/móvil sin errores de consola.
+
+## 2026-10-12 — Codex: acceso visible a Canales e IA
+
+**Corrección de navegación:** `Canales e IA` dejó de estar oculto dentro de
+“Herramientas y configuración”. Ahora aparece en el menú principal de
+escritorio, junto a `Mensajes`, y como `Canales` en la navegación móvil.
+
+- No se cambió OAuth, Meta, LANA, secretos ni el contrato de conexión.
+- El flujo continúa limitado al propietario de la clínica y mantiene tokens en
+  LANA; este cambio solo hace visible la entrada que ya existía.
+
+## 2026-10-12 — Codex: etapa 7, cierre profesional y preparación operativa
+
+**Implementado:** Centro de lanzamiento con diagnóstico tenant-scoped,
+confirmaciones auditadas y manual operativo.
+
+- `smyl_operational_readiness_report()` comprueba configuración de clínica,
+  agenda, roles y riesgos de caja/recordatorios sin devolver pacientes ni PHI.
+- Solo `settings.manage` puede consultar o confirmar controles. La aprobación
+  final se rechaza mientras exista cualquier requisito automático o manual.
+- Las confirmaciones de privacidad, capacitación, recuperación y soporte dejan
+  actor y fecha en la bitácora; pueden reabrirse sin borrar historial.
+- El manual distingue controles verificables de responsabilidades del proveedor:
+  no afirma que exista un respaldo ni monitoreo externo sin evidencia.
+- Migración `20261012360000`. Detalle en `docs/SMYL_OPERATIONS_RUNBOOK.md`.
+- Con esto concluyen las siete etapas de conversión a plataforma dental; la
+  siguiente actividad recomendada es un piloto real controlado por clínica.
+
+## 2026-10-12 — Codex: etapa 6, reportes ejecutivos
+
+**Implementado:** tablero agregado por periodo y sucursal con indicadores de
+agenda, cobranza, equipo, servicios, inventario y riesgos operativos.
+
+- `smyl_executive_dashboard()` devuelve únicamente agregados y aplica permisos
+  por dominio; no entrega pacientes, expedientes, fotografías ni notas.
+- Incluye tendencia diaria, asistencia, inasistencias, ingresos netos, saldo por
+  cobrar, demanda por servicio, actividad profesional y alertas operativas.
+- El CSV se genera localmente con datos agregados. No transmite información a
+  LANA ni a terceros.
+- Migración `20261012350000`. Detalle en `docs/SMYL_EXECUTIVE_REPORTS.md`.
+- La siguiente y última etapa es **Cierre profesional y preparación operativa**.
+
+## 2026-10-12 — Codex: etapa 5, caja y finanzas dentales
+
+**Implementado:** cuenta por paciente, cargos, pagos, anticipos, aplicaciones,
+reembolsos, recibos internos, apertura/corte de caja, ajustes y expediente fiscal.
+
+- El libro financiero es independiente de Stripe y de cualquier infraestructura
+  de LANA. Mutaciones confirmadas usan RPC idempotentes y auditadas.
+- El saldo se deriva de cargos, aplicaciones y reembolsos; no hay saldo editable.
+- Efectivo requiere sesión abierta por usuario/sucursal y el corte conserva la
+  diferencia entre esperado y contado.
+- CFDI queda en preparación: perfil fiscal y borrador congelado por pago. No se
+  anuncia timbrado ni envío SAT sin un PAC autorizado.
+- Migraciones `20261012330000` y `20261012340000`. Detalle en
+  `docs/SMYL_DENTAL_FINANCE.md`.
+- La siguiente etapa recomendada es **Reportes operativos y tablero ejecutivo**.
+
+## 2026-10-12 — Codex: etapa 4, inventario y compras dental desplegado
+
+**Publicado en Supabase SMYL:** catálogo, proveedores, ubicaciones, niveles de
+reposición, compras, recepciones, lotes, movimientos y materiales por servicio.
+
+- Las existencias se derivan del libro de movimientos; no existe un saldo
+  editable. Recepciones, traslados, consumos, mermas y ajustes son atómicos.
+- Los movimientos confirmados son inmutables. Una corrección crea una
+  compensación ligada al original y, si era recepción, ajusta también el pedido.
+- Lote, caducidad, serie y trazabilidad por paciente se habilitan por insumo.
+  Un lote caducado no puede consumirse clínicamente.
+- Compras y movimientos usan idempotencia y bloqueo transaccional para evitar
+  recepciones duplicadas o existencias negativas por concurrencia.
+- `inventory.read` e `inventory.manage` gobiernan RLS y acciones; el navegador
+  no escribe directamente en compras, lotes ni movimientos.
+- Se aprovisionaron 27 almacenes principales, uno por sucursal existente. Web
+  y PWA móvil sincronizadas; caché `smyl-v182-dental-inventory`.
+- Migraciones `20261012300000` a `20261012320000`. Detalle en
+  `docs/SMYL_DENTAL_INVENTORY.md`.
+- La siguiente etapa es **Caja y facturación**.
+
+## 2026-10-12 — Codex: etapa 3, Ficha clínica 360
+
+**Desplegada en Supabase SMYL:** expediente longitudinal con
+antecedentes versionados, notas SOAP, firma inmutable, adendas, archivos privados
+y línea de tiempo de citas, notas y evidencias.
+
+- Los módulos existentes de odontograma, simulaciones/casos y plan de
+  tratamiento se conservan y ahora tienen navegación desde la Ficha 360.
+- `clinical.read`, `clinical.write` y `clinical.approve` separan lectura,
+  captura y firma. Las mutaciones clínicas pasan por RPC y control optimista.
+- El bucket `smyl-clinical-files` es privado, tenant/paciente-scoped, limita
+  tipo y tamaño y entrega URLs firmadas temporales.
+- Las notas firmadas no se editan: toda corrección posterior es una adenda.
+- Web y PWA móvil sincronizadas; caché `smyl-v182-dental-inventory`.
+- Migraciones `20261012270000` a `20261012290000`. Detalle en
+  `docs/SMYL_PATIENT_360.md`.
+- La siguiente etapa es **Inventario y compras dental**.
+
+## 2026-10-12 — Codex: etapa 2, agenda diaria dental desplegada
+
+**Publicado en Supabase SMYL:** servicios, disponibilidad profesional, citas,
+bloqueos, solicitudes del asistente, eventos y recordatorios; acciones atómicas
+para confirmar, reprogramar y cambiar estados.
+
+- La agenda valida sede, horario de clínica, disponibilidad, profesional,
+  servicio, sillón/consultorio, citas concurrentes y bloqueos antes de confirmar.
+- Llegada, atención, término, inasistencia y cancelación siguen una máquina de
+  estados. Reprogramar y cambiar estado usan control optimista para no pisar
+  cambios de otra sesión.
+- SMYL Asistente solo crea solicitudes pendientes. Una persona con permiso de
+  agenda debe revisarlas y convertirlas explícitamente en cita; no hay
+  confirmaciones automáticas ni autoridad clínica delegada a LANA.
+- Se agenda un recordatorio de 24 horas cuando corresponde. Reprogramar o cerrar
+  la cita invalida recordatorios anteriores; la entrega futura podrá usar el
+  motor servidor a servidor sin compartir la base clínica.
+- RLS y privilegios SQL están cerrados: citas, bloqueos, solicitudes, eventos y
+  recordatorios son de solo lectura para el navegador y se mutan por RPC.
+- El panel incorpora Agenda día/semana, filtros, servicios, disponibilidad,
+  bloqueos, estados y solicitudes. Web/PWA sincronizadas; caché
+  `smyl-v182-dental-inventory`.
+- Migraciones `20261012230000` a `20261012260000` aplicadas y
+  registradas. Detalle en `docs/SMYL_DAILY_SCHEDULE.md`.
+- La siguiente etapa es **Ficha clínica 360**.
+
+## 2026-10-12 — Codex: etapa 1 de plataforma, núcleo de clínica desplegado
+
+**Publicado en Supabase SMYL:** cuatro migraciones para sucursales, espacios,
+horarios, equipo, roles, permisos, profesionales y auditoría. No se consultan ni
+comparten tablas de LANA.
+
+- Se crearon 10 tablas tenant-scoped con RLS y 29 políticas; 27 clínicas
+  existentes recibieron una sede principal y 25 propietarios su rol inicial.
+- Las asignaciones de rol/sede, el cambio de sucursal principal y el alta de
+  profesional usan RPC transaccionales. Los horarios se serializan y rechazan
+  traslapes; una restricción diferida impide dejar una clínica activa sin sede
+  principal.
+- Un integrante invitado inicia con el rol mínimo **Recepción**; los permisos
+  clínicos o administrativos requieren asignación explícita del propietario.
+- El panel incorpora **Mi clínica** para sucursales, sillones/consultorios,
+  horarios, equipo, roles, sedes y profesionales. Web y PWA están sincronizadas
+  y el caché subió a `smyl-v179-clinic-core`.
+- Validación: 11 pruebas enfocadas aprobadas, SQL compilado en PostgreSQL
+  embebido, migraciones registradas, lectura anónima sin filas y mutación
+  anónima `401`. QA visual aprobado a 1440 px y 390 px sin overflow.
+- El asesor de Supabase conserva hallazgos históricos fuera de esta etapa en
+  `landing_catalogo`, `camila_tenants_publico` y Auth; no se modificaron a
+  ciegas. Detalle en `docs/SMYL_CLINIC_CORE.md`.
+- La siguiente etapa es **Agenda diaria** sobre este núcleo: servicios,
+  disponibilidad, citas, estados, bloqueos, recordatorios y solicitudes del
+  asistente sin confirmaciones falsas.
+
+## 2026-10-12 — Codex: etapa 0 de plataforma, frontera profesional SMYL + LANA
+
+**Decisión de producto aplicada:** SMYL es la única plataforma visible para la
+clínica. LANA permanece como proveedor interno de mensajería e IA mediante API
+servidor a servidor; no es un segundo panel para el dentista.
+
+- Se añadió `docs/SMYL_PLATFORM_BOUNDARY.md` con propiedad de dominios,
+  frontera de seguridad, núcleo técnico reutilizable y seis etapas para
+  convertir SMYL en un sistema de gestión dental completo.
+- La interfaz ahora presenta **Canales e IA**, **Mensajes** y **SMYL
+  Asistente**. Se retiró la marca LANA del copy visible de conexiones, Inbox,
+  atención, preparación de expediente y presentaciones; los nombres técnicos
+  internos se conservaron para no romper endpoints ni migraciones.
+- El inventario futuro vivirá en la base de SMYL y reutilizará el patrón de
+  movimientos inmutables de LANA, adaptado a lotes, caducidad, esterilización,
+  implantes y consumo por paciente.
+- Web y PWA móvil quedaron sincronizadas; caché actualizado a
+  `smyl-v178-product-boundary`. Se añadieron pruebas explícitas de la frontera
+  de producto.
+- No se modificaron bases de datos, Edge Functions, secretos, Meta ni el panel
+  de LANA. La siguiente etapa técnica es **Núcleo de clínica**: sucursales,
+  consultorios/sillones, horarios, miembros, roles y permisos por módulo.
+
+## 2026-10-12 — Codex: SMYL queda separado de la interfaz de LANA
+
+**Corrección directa de producto:** Ricardo confirmó que SMYL se manejará por
+separado de LANA. El dentista opera Inbox, expedientes, capacitación y canales
+desde SMYL; LANA queda como motor/API protegido y no como una segunda interfaz
+que el profesional deba abrir.
+
+- Se retiró de LANA el botón “Expediente SMYL” y su duplicado del menú del chat.
+- SMYL ya no acepta el deep link público `?ir=lana-handoff`, no muestra
+  “Abrir/Volver a LANA” y no enlaza desde la ficha del paciente al admin de
+  LANA.
+- **Preparar expediente** sigue disponible dentro del Inbox de SMYL y usa la
+  conexión cifrada servidor a servidor para resolver identidad y vincular el
+  caso, sin copiar el historial.
+- Se conserva la infraestructura LANA necesaria para WhatsApp, Messenger,
+  Instagram y respuestas de IA. La separación es de producto e interfaz, no
+  una duplicación del motor.
+
+## 2026-10-12 — Codex: etapa 8, infraestructura publicada y piloto preparado
+
+**Publicado en producción:** migraciones LANA 1–7 y dependencia de programados;
+migraciones SMYL de aprovisionamiento y vínculos clínicos; funciones de
+conexión, capacitación, Inbox, webhooks, conectores y trabajador; web/PWA de
+SMYL y panel de conexión alojado por LANA.
+
+- La app está disponible en
+  `https://rpartidaislas-cloud.github.io/camila/app.html`; el conector de
+  canales en `https://app.get-lana.com/smyl-channel-connect.html`.
+- Se verificaron historial de migraciones, RLS, grants de RPC, cron único,
+  respuestas `401` sin sesión y publicación de activos. Validación final:
+  LANA 34/34 y SMYL 44/44 pruebas enfocadas.
+- `Dd` tiene siete pacientes y una conexión cifrada que coincide con la
+  integración LANA heredada, pero no tiene usuario profesional activo,
+  capacitación publicada ni canales. `dr` tiene un usuario activo, datos
+  vacíos y aún no está conectado; es la recomendación para probar el
+  aprovisionamiento automático nuevo.
+- **El piloto no se declara completo:** falta que Ricardo elija la clínica,
+  conectar los tres canales con sus dueños, publicar contexto dental, ejecutar
+  mensajes sintéticos y observar una jornada controlada antes de pacientes.
+- Registro detallado en LANA:
+  `docs/agent-context/smyl-chat-piloto-real-etapa8.md`.
+
+## 2026-10-11 — Codex: etapa 7 técnica, endurecimiento y puerta de piloto
+
+**Tocado en SMYL:** `smyl-inbox.js/css` y copia móvil, `app.html`, `sw.js`,
+`lana-inbox`, arquitectura, contrato/documentación, fixture visual y pruebas.
+
+**Tocado en LANA:** `camila-api`, trabajador de mensajes programados, helper de
+WhatsApp, contrato de Inbox, migración
+`20261011260000_smyl_inbox_hardening_pilot.sql`, contexto de agente y pruebas.
+
+- El Inbox muestra salud operativa, alertas, volumen, consumo de IA, canales y
+  una lista verificable de preparación del piloto sin exponer PHI.
+- Los límites se consumen atómicamente por tenant/actor. Los envíos sólo se
+  reintentan automáticamente ante rechazo transitorio explícito de Meta; un
+  resultado ambiguo pasa a revisión humana para no duplicar mensajes.
+- La cola de fallos conserva intentos, siguiente ejecución y causa. El reintento
+  manual es autorizado, tenant-scoped e idempotente.
+- Validación específica aprobada en ambos repositorios, checks de sintaxis y
+  bundle aprobados, y revisión visual responsive en escritorio, tableta y móvil.
+  La suite amplia de SMYL conserva dos fallos preexistentes y ajenos al Inbox en
+  pruebas de simulación rápida (`lana-quick` y `quick-guided-flow`).
+- **No publicado:** falta aplicar migraciones y desplegar funciones/web en orden,
+  elegir una clínica y completar el piloto real con canales conectados. Esa
+  activación quedó como tarea separada y requiere autorización explícita.
+
+## 2026-10-11 — Codex: etapa 6, WhatsApp avanzado en el Inbox
+
+**Tocado en SMYL:** `smyl-inbox.js/css` y copia móvil, `app.html`, `sw.js`,
+`lana-inbox`, arquitectura, documentación y pruebas.
+
+**Tocado en LANA:** `camila-api`, trabajador de mensajes programados, contrato
+de Inbox, migración `20261011250000_smyl_whatsapp_advanced.sql`, contexto de
+agente y pruebas.
+
+- LANA calcula y devuelve la ventana de 24 horas; la UI avisa cuando está por
+  vencer o vencida, y el servidor bloquea contenido libre fuera de ventana.
+- Sólo plantillas `UTILITY` activas y aprobadas, pertenecientes al tenant,
+  pueden reabrir WhatsApp. Las variables se validan en LANA antes del envío.
+- Los programados guardan actor, payload, hash y clave de idempotencia. El
+  trabajador revalida la política al ejecutar y reconcilia la persistencia
+  antes de un reintento para evitar duplicados.
+- El equipo puede heredar, desactivar o ajustar por conversación la
+  reactivación y el comportamiento próximo al cierre; las reglas son
+  atómicas, auditadas e idempotentes. SMYL muestra recordatorios y permite
+  cancelar pendientes sin recibir credenciales de Meta.
+- Verificación local: Deno y sintaxis aprobados; 17 pruebas enfocadas de LANA y
+  19 regresiones de SMYL aprobadas. Revisión visual responsive aprobada en
+  escritorio, tablet y móvil con datos simulados; el QA corrigió la altura del
+  workspace y evitó que el compositor ensanchara el hilo.
+- **No publicado:** falta aplicar la migración, desplegar `camila-api`, el
+  trabajador programado y `lana-inbox`, publicar web/PWA y completar un piloto
+  con plantillas reales aprobadas por Meta.
+
+## 2026-10-11 — Codex: etapa 3, Inbox operativo SMYL sobre LANA
+
+**Tocado:** `app.html`, `smyl-inbox.js/css`, PWA móvil, `sw.js`, función
+`lana-inbox`, contrato/documentación, pruebas y el repositorio LANA
+(`camila-api` y migración `20261011220000_smyl_inbox_operational.sql`).
+
+- SMYL ofrece una bandeja responsive para WhatsApp, Messenger e Instagram,
+  con filtros, no leídos, hilo paginado, carga incremental y control de
+  atención. LANA sigue siendo la única fuente de conversaciones y mensajes.
+- El navegador usa su sesión SMYL; tenant, actor y rol se resuelven en servidor.
+  La API key vinculada, los tokens de Meta y el identificador externo del
+  contacto no salen de las Edge Functions.
+- Los envíos manuales usan una cola optimista por conversación y una clave
+  idempotente estable para reintento/reconciliación. Si el proveedor aceptó el
+  mensaje pero no pudo confirmarse la persistencia, la UI exige actualizar el
+  hilo antes de reenviar para evitar duplicados.
+- Responder pausa automáticamente a LANA. El equipo puede tomar/liberar,
+  pausar/reanudar y resolver solicitudes según su rol; las mutaciones se
+  serializan y auditan en LANA.
+- La actualización “en vivo” usa sincronización incremental segura cada cinco
+  segundos mientras la pantalla está visible; no entrega credenciales de
+  Realtime de LANA al navegador de SMYL.
+- Pruebas focalizadas de interfaz, rutas, contrato, concurrencia, idempotencia
+  y migración PostgreSQL pasan; los chequeos Deno y la revisión visual en
+  escritorio/móvil también pasan.
+- **No publicado:** falta aplicar primero la migración en LANA, desplegar
+  `camila-api`, desplegar `lana-inbox`, publicar web/PWA y ejecutar un piloto
+  real con dos usuarios y los tres canales.
+
+## 2026-10-11 — Codex: etapa 2, Capacitar IA dental versionada
+
+**Tocado:** `smyl-connections.js/css`, PWA móvil, función `lana-training`,
+documentación, pruebas y el repositorio LANA (`camila-api`, compilador dental y
+migración `20261011210000_smyl_dental_training.sql`).
+
+- El contexto inmediato se sustituyó por borrador, validación y publicación:
+  guardar ya no cambia lo que LANA responde a pacientes.
+- La capacitación estructura identidad, clínica, servicios, FAQ, citas,
+  precios, datos administrativos, escalamiento y autonomía. Los límites de no
+  diagnosticar, prescribir, interpretar imágenes, prometer resultados o
+  revelar expedientes son código fijo y no campos editables.
+- Publicar crea una versión inmutable y actualiza el runtime dentro de la misma
+  transacción, con revisión optimista, `Idempotency-Key`, RLS cerrado y bitácora
+  inmutable. Restaurar solo crea un nuevo borrador; no altera producción.
+- El laboratorio puede alternar entre borrador y publicación y usa
+  `bloqueContextoSmyl`, el mismo compilador de los webhooks reales. No envía ni
+  persiste una conversación.
+- Pruebas focalizadas de frontend, contrato, compilador y migración pasan. El
+  chequeo Deno de las nuevas funciones pasa; `camila-api` conserva cuatro
+  errores de tipos preexistentes del SDK de Anthropic y el adaptador Meta.
+- **No publicado:** falta aplicar primero la migración en LANA, desplegar
+  `camila-api`, desplegar `lana-training` en SMYL, publicar los activos y hacer
+  una prueba controlada con una clínica.
+
+## 2026-10-11 — Codex: etapa 0, contrato ejecutable SMYL ↔ LANA
+
+**Tocado:** `docs/SMYL_CHAT_ARCHITECTURE.md`,
+`docs/SMYL_LANA_CHAT_CONTRACT_V1.md`,
+`docs/LANA_INTEGRATION.md`, helper `lana-contract.mjs`, clientes Edge de LANA,
+pruebas de contrato y el repositorio LANA (`camila-api`).
+
+- Se congeló la frontera: LANA conserva canales, tokens, webhooks,
+  conversaciones y mensajes; SMYL conserva pacientes, expedientes, citas,
+  casos, simulaciones, propuestas y vínculos confirmados.
+- Las llamadas salientes de SMYL ahora normalizan rutas contra una lista
+  permitida y anuncian la versión `1.0`; no se aceptan hosts, rutas ni
+  fragmentos arbitrarios.
+- LANA expone un manifiesto autenticado sin secretos en `GET /contract` y
+  devuelve la versión del contrato en sus respuestas.
+- Se documentaron los endpoints actuales y los gates de aprovisionamiento,
+  canales y capacitación de las siguientes etapas. No hubo migración,
+  despliegue, conexión con Meta ni copia de mensajes.
+
+## 2026-10-11 — Codex: etapa 6, bandeja clínica de atención LANA
+
+**Tocado:** `app.html`, `smyl-lana-attention.js/css`, `sw.js`, nueva función
+`lana-attention`, documentación, pruebas y `camila-api` en el repositorio
+LANA.
+
+- El inicio muestra una lista real de conversaciones que LANA marcó para
+  asesor o que recibieron respuesta mientras la IA está pausada.
+- Cada fila permite abrir el chat exacto en LANA y preparar/reutilizar el
+  expediente mediante el flujo seguro de la etapa 4. Se indica si el
+  expediente ya está vinculado.
+- SMYL recibe solo metadatos operativos; no copia mensajes, resúmenes de chat,
+  teléfonos, correos ni credenciales de Meta.
+- El dueño puede marcar una solicitud como resuelta. La operación replica el
+  cierre de LANA, pero no envía mensajes, no elimina la conversación y no
+  reanuda la IA. El personal mantiene acceso de lectura y al flujo de
+  expediente.
+- Sin migraciones nuevas. La interfaz adapta el patrón compacto de lista de
+  tareas/estado consultado en 21st.dev a la identidad visual existente.
+
+## 2026-10-11 — Codex: etapa 5, laboratorio privado de respuestas LANA
+
+**Tocado:** `app.html`, `smyl-connections.js/css`, `sw.js`, función
+`lana-context`, helper `lana-linked.ts`, pruebas y el repositorio LANA
+(`camila-api`).
+
+- **LANA y canales** incorpora un laboratorio de conversación con escenarios
+  de precio/horario, dolor/urgencia y solicitud de diagnóstico por fotografía.
+- La respuesta la genera la IA real de LANA con el contexto actualmente
+  guardado, el nivel de autonomía y las mismas barreras clínicas. No se crea
+  una conversación, no se persiste el historial de prueba y no se envía nada
+  a WhatsApp, Messenger o Instagram.
+- El historial temporal vive solo en memoria del navegador, se limita a ocho
+  turnos y puede limpiarse. El endpoint limita tamaños de entrada y convierte
+  `SOLICITAR_ASESOR` en un estado visible, sin mostrar marcadores internos.
+- Solo el dueño de la clínica puede ejecutar pruebas. Cada respuesta respeta el
+  límite mensual y registra su consumo como `smyl_preview` en LANA.
+- La interfaz adopta el patrón de acciones sugeridas consultado en 21st.dev,
+  adaptado a los tokens y lenguaje clínico de SMYL, sin copiar dependencias.
+
+## 2026-10-11 — Codex: etapa 4, expediente desde LANA + contexto real de atención
+
+**Tocado:** `app.html`, `smyl-connections.js/css`, `smyl-lana-handoff.js/css`,
+`sw.js`, migración `20261011120000_lana_conversation_handoffs.sql`, funciones
+`lana-handoff` y `lana-context`, y el repositorio LANA (`camila-api`, webhooks
+de WhatsApp/Meta y panel admin).
+
+- Desde una conversación de LANA se puede abrir SMYL con un enlace firmado por
+  la integración servidor a servidor. SMYL solo consulta identidad y canal;
+  no copia el historial del chat ni recibe credenciales de Meta.
+- Antes de crear el expediente se muestra una revisión explícita. Se proponen
+  coincidencias por correo o últimos 10 dígitos del teléfono y el profesional
+  decide si reutiliza un paciente o crea uno nuevo.
+- `camila_confirmar_lana_handoff` serializa la confirmación con advisory lock y
+  la restricción única `(tenant_id, lana_conversation_id)`, por lo que un doble
+  clic no duplica paciente, caso ni enlace.
+- El enlace persistente conecta conversación, paciente y caso. El expediente
+  puede volver al chat en LANA y LANA puede volver al expediente en SMYL.
+- **LANA y canales** incorpora un contexto editable de clínica, servicios,
+  ubicación, horarios, FAQ, tono, reglas de escalamiento y nivel de autonomía.
+  SMYL lo sincroniza con el tenant real de LANA; no ejecuta una IA paralela.
+- Los webhooks reales de WhatsApp, Messenger e Instagram inyectan ese contexto
+  en la respuesta de LANA. Se conservan límites fijos: no diagnosticar,
+  prescribir, prometer resultados, interpretar fotos ni revelar expedientes;
+  ningún artefacto clínico de SMYL se comparte sin revisión y envío humano.
+- Solo el dueño de la clínica puede modificar el contexto; el personal puede
+  consultarlo y usar el flujo de expediente dentro de su tenant.
+
+## 2026-10-10 — Codex: etapa 3, enlace real LANA verificado
+
+**Tocado:** `docs/LANA_INTEGRATION.md`, despliegues `lana-connection` (SMYL)
+y `camila-api` (LANA), migración de LANA `20260930120000_camila_integraciones`.
+
+- La clínica autenticada se resolvió de forma única en SMYL y se emparejó con
+  una sola cuenta activa de LANA mediante la cuenta exacta, sin usar datos de
+  pacientes ni seleccionar por nombre aproximado.
+- La tabla `camila_integraciones`, sus políticas y sus dos triggers se
+  aplicaron en LANA y la versión quedó registrada en
+  `supabase_migrations.schema_migrations`.
+- Se corrigió en LANA la normalización de rutas de `camila-api`, que en
+  producción recibía `/camila-api/...` y devolvía 404. Fix publicado en el
+  `main` de `promodesk`, commit `c8c83871`, y función redeplegada.
+- Se creó una credencial LANA para esa cuenta, SMYL la validó y guardó solo
+  ciphertext AES-GCM, IV y huella. `connect` y `verify` terminaron en estado
+  `conectada`; la interfaz pública muestra **LANA conectada**.
+- La prueba fue sintética: límite 1, sin imprimir contenido clínico, sin
+  registrar webhook y con cero mensajes enviados a WhatsApp, Messenger o
+  Instagram.
+- El secreto de arranque de un solo uso se eliminó y `lana-connection` se
+  volvió a desplegar con su autenticación normal; no quedó una puerta
+  administrativa temporal en código ni en secretos.
+
+## 2026-10-10 — Codex: etapa 2, centro seguro LANA + Meta
+
+**Tocado:** `app.html`, `smyl-panel.js`, `smyl-connections.js/css`, `sw.js`,
+`supabase/functions/lana-connection/index.ts`, `docs/LANA_INTEGRATION.md` y
+`tests/lana-connection-stage2.test.mjs`.
+
+- Se añadió al panel el centro **LANA y canales** con estado real de enlace,
+  verificación manual y acceso a LANA para WhatsApp, Messenger e Instagram.
+- LANA permanece como única dueña de los webhooks y credenciales de Meta;
+  SMYL no duplica la bandeja ni recibe tokens de Meta.
+- El código de enlace de `camila-api` se valida servidor a servidor y se
+  guarda cifrado con AES-256-GCM dentro de la configuración del tenant. La
+  credencial nunca vuelve al navegador ni se persiste en almacenamiento web.
+- Solo el dueño puede conectar o reemplazar el código; el staff puede ver el
+  estado y verificarlo. La entrega clínica conserva aprobación humana.
+- Se reutiliza `camila-api`, ya desplegada en LANA; no se modificaron ni
+  desplegaron los webhooks de Meta/WhatsApp de LANA.
+- `lana-connection` quedó desplegada como versión 1 con verificación JWT;
+  `SMYL_LANA_ENCRYPTION_KEY` quedó configurado como secreto del proyecto.
+- La comprobación pública detectó un primer arranque en frío superior a 12 s;
+  el cliente ahora espera hasta 20 s y la PWA avanzó a
+  `smyl-v165-lana-connection-cold-start`.
+
+## 2026-10-10 — Codex: cierre de producto, etapa 1
+
+**Tocado:** `app.html`, `smyl-panel.js`, `smyl-panel.css`, `sw.js` y
+`tests/professional-panel-stage1.test.mjs`.
+
+- El dashboard muestra explícitamente las cuatro etapas clínicas existentes:
+  Evidencias, Revisión clínica, Plan de tratamiento y Compartir.
+- Se añadieron accesos orientados a tareas para registrar evidencia, continuar
+  expedientes y preparar propuestas, sin inventar estados ni automatizaciones.
+- Los accesos primarios de creación abren el mismo simulador profesional; el
+  formulario heredado de Valoración y diseño deja de aparecer en navegación.
+- Se retiró Colaboraciones de la navegación de producción y su lugar en móvil
+  ahora abre Marca y simulación; Presentaciones también queda accesible allí.
+- Los prompts internos de proveedores quedan ocultos al dentista. Los precios
+  se presentan como referencias que requieren revisión y aprobación profesional.
+- Caché PWA actualizado a `smyl-v163-clinical-stage-dashboard` y activos del
+  panel a `v=3`.
+- No se tocaron backend, Supabase, prompts, permisos ni archivos nativos.
+
 ## 2026-10-09 — Codex: panel clínico v18 publicado
 
 **Tocado:** `app.html`.
@@ -8,6 +1413,8 @@
   jerarquía clínica más clara, onboarding del dashboard y tarjetas refinadas.
 - El flujo de nuevo diseño incorpora progreso adaptable y áreas de carga con
   prioridad clínica; la navegación móvil usa cinco destinos y acción central.
+- La integración se aplicó sobre la rama vigente de GitHub Pages y preserva
+  el expediente, revisión clínica, radiografías y demás lógica reciente.
 - Se preservaron los enlaces recientes hacia `simulacion-rapida.html`, la
   actualización forzada del service worker y el resto de la lógica vigente.
 - QA aprobado: scripts inline, prueba existente, consola limpia y revisión a
@@ -3752,3 +5159,207 @@ plan es una decisión de facturación y quedó pendiente de autorización.
 - Edge Function `claude` desplegada en producción como versión 78, `ACTIVE`,
   `verify_jwt=false`, con `_shared/limits.ts` y `_shared/auth.ts` incluidos.
 - No se generó ninguna simulación ni se consumió cupo durante la validación.
+
+---
+
+## 2026-10-11 — Etapa 1 del chat: activar LANA y conectar Meta desde SMYL
+
+**Tocado en SMYL:** `smyl-connections.js/.css` y copia móvil,
+`lana-connection`, nueva función `lana-channels`, migración
+`20261011200000_lana_automatic_provisioning.sql`, contrato, documentación y
+pruebas.
+
+**Tocado en LANA:** `camila-api`, nueva función `smyl-provision`, nueva función
+`smyl-channel-setup`, autorización temporal compartida para los tres conectores,
+`smyl-channel-connect.html`, migración
+`20261011190000_smyl_channel_onboarding.sql`, `config.toml` y pruebas.
+
+- El dueño de la clínica puede activar LANA automáticamente. La llamada es
+  servidor-a-servidor, usa una Idempotency-Key estable y la API key nunca llega
+  al navegador. LANA busca claves nuevas por SHA-256 y mantiene un fallback
+  exclusivo para filas legacy en texto plano.
+- SMYL muestra el estado real de WhatsApp, Messenger e Instagram y abre una
+  ventana LANA para cada conexión. El token de preparación vive diez minutos,
+  está limitado a tenant + canal, se guarda solo como hash, viaja en fragmento
+  y se consume en el primer intento.
+- OAuth, Embedded Signup, tokens, webhooks, conversaciones y mensajes continúan
+  en LANA. SMYL recibe únicamente estado público y el resultado de conexión.
+- El flujo manual por código permanece como compatibilidad para cuentas LANA
+  existentes. No se implementó una desconexión aparente: continúa pendiente
+  hasta contar con revocación autorizada y auditable.
+- No se desplegó ni se conectó una cuenta real. Antes de producción: aplicar
+  ambas migraciones, configurar los secrets en los dos proyectos, desplegar las
+  funciones/página y completar App Review, permisos, redirect URI, webhooks y
+  Unified Onboarding v4 en Meta.
+
+---
+
+## 2026-10-11 — Etapa 4 del chat: medios y Ficha clínica 360
+
+**Tocado en SMYL:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, helper de
+conexión LANA, migración `20261011230000_lana_clinical_message_links.sql`,
+contrato, arquitectura, documentación y pruebas.
+
+**Tocado en LANA:** `camila-api`, contrato de Inbox, migración
+`20261011230000_smyl_inbox_media_context.sql`, TODO/contexto de agente y pruebas.
+
+- El Inbox admite imagen, documento, audio, ubicación confirmada, respuesta
+  citada, reenvío, destacado y soft-delete, respetando capacidades del canal.
+- Los archivos permanecen privados en `salud-adjuntos`; LANA entrega URL
+  firmadas por cinco minutos y no devuelve rutas internas al navegador.
+- La Ficha 360 consulta el paciente/caso confirmado en SMYL y muestra cita,
+  simulación, propuesta y fotografías cuando existen. No copia el expediente ni
+  el historial de LANA.
+- Una fotografía sólo entra a revisión clínica tras revalidar el mensaje
+  canónico en LANA; SMYL persiste únicamente IDs de referencia con RLS e
+  idempotencia.
+- Verificación local: checks de Deno y sintaxis aprobados, 19 pruebas enfocadas
+  aprobadas y revisión visual responsive en escritorio/móvil con datos simulados.
+- No se aplicaron migraciones, no se desplegaron Edge Functions y no se publicó
+  la PWA. Las acciones clínicas deterministas de citas/propuestas/seguimientos
+  continúan en la etapa 5.
+
+---
+
+## 2026-10-11 — Etapa 5 del chat: SMYL Asistente y Copilot
+
+**Tocado en SMYL:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, versiones
+de activos web/PWA, contrato, arquitectura, documentación y pruebas.
+
+**Tocado en LANA:** `camila-api`, `whatsapp-webhook`, `meta-webhook`, helper de
+reanudación, contrato de Inbox, migración
+`20261011240000_smyl_assistant_copilot.sql`, TODO/contexto de agente y pruebas.
+
+- El Inbox agrega Copilot interno con borradores y resúmenes construidos desde
+  el hilo canónico; usar un borrador no lo envía.
+- SMYL construye en servidor un snapshot dental de sólo lectura. LANA valida
+  tenant, actor, asignación, capacitación publicada y consumo antes de llamar
+  a IA; el navegador no aporta historial confiable ni autorización clínica.
+- El catálogo de herramientas refleja humano, agenda configurada, servicios
+  publicados y resultado autorizado sólo tras una acción profesional previa.
+  Copilot no ejecuta ninguna herramienta ni modifica expediente, citas o
+  capacitación.
+- Reanudar LANA requiere revisar y confirmar un resumen; la transición se
+  guarda de forma atómica, idempotente y auditada. Los tres webhooks consumen
+  ese traspaso sólo en la primera respuesta posterior y sin tratarlo como una
+  autorización. El feedback de respuestas es atribuible e inmutable y no se
+  publica como conocimiento automáticamente.
+- Verificación local: checks de Deno de `camila-api` y los tres webhooks,
+  sintaxis del puente aprobada; 13 pruebas enfocadas de LANA, 78 regresiones
+  relacionadas de webhooks y 12 pruebas enfocadas de SMYL aprobadas, incluida
+  PostgreSQL embebida. Revisión visual responsive aprobada en escritorio y
+  móvil con datos simulados.
+- No se aplicó la migración, no se desplegaron Edge Functions y no se publicó la
+  PWA. La salida a producción requiere autorización expresa y piloto controlado.
+
+---
+
+## 2026-10-14 — Etapa 2 del chat: disponibilidad dental verificable
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, migración
+`20261014030000_smyl_inbox_availability.sql`, fixture de QA y pruebas.
+
+- El equipo puede consultar desde la conversación espacios reales por servicio,
+  sucursal y profesional. La respuesta considera duración y buffers del
+  servicio, horarios de clínica y profesional, asignación profesional-servicio,
+  citas activas y bloqueos de agenda.
+- La consulta se calcula en servidor con la agenda dental canónica, queda
+  limitada a 31 días y 30 resultados, y exige `schedule.read`. La función SQL
+  sólo está disponible para `service_role` y no crea reservas ni modifica citas.
+- Elegir un espacio únicamente agrega un texto revisable al borrador. No envía
+  mensajes, no promete disponibilidad y advierte que el horario se confirma
+  después de que el paciente elija.
+- Web y móvil quedaron sincronizados. La revisión visual automatizada no pudo
+  ejecutarse porque el navegador aislado rechazó archivos y servidor locales;
+  se agregó un escenario determinista al fixture para completar esa revisión en
+  cuanto el entorno permita abrirlo.
+- No se aplicó la migración, no se desplegó `lana-inbox` y no se publicó la PWA.
+  Antes de producción se requiere revisión visual manual, aplicar la migración,
+  desplegar la función y ejecutar una prueba real con agendas superpuestas.
+
+---
+
+## 2026-10-14 — Etapa 3 del chat: elección y confirmación de cita
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, migración
+`20261014040000_smyl_inbox_appointment_confirmation.sql`, fixture y pruebas.
+
+- Un integrante con `schedule.manage` puede marcar que el paciente eligió un
+  espacio. Esa primera acción crea una solicitud pendiente vinculada a la
+  conversación, paciente, servicio, sede y profesional; todavía no crea cita.
+- Confirmar requiere una segunda acción humana. La función privada vuelve a
+  validar el horario bajo bloqueo transaccional y crea la cita, evento y
+  recordatorio de 24 horas de forma atómica. Si el espacio cambió, rechaza la
+  operación y obliga a consultar disponibilidad nuevamente.
+- Ambos pasos son idempotentes, están limitados al tenant y exigen que la
+  conversación ya tenga un paciente canónico vinculado. Las RPC sólo se
+  conceden a `service_role`; el navegador no puede insertar solicitudes o citas
+  directamente.
+- Registrar o confirmar no envía mensajes. `Agregar al borrador` continúa como
+  acción independiente y revisable por el equipo.
+- Verificación local: sintaxis web/móvil aprobada, 10 pruebas enfocadas y 287
+  pruebas completas aprobadas. La revisión visual automatizada sigue pendiente
+  por el bloqueo del navegador aislado a recursos locales.
+- No se aplicó la migración, no se desplegó `lana-inbox` y no se publicó la PWA.
+
+---
+
+## 2026-10-15 — Etapa 4 del chat: continuidad visible de Agenda
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, fixture y pruebas.
+
+- El panel lateral del chat muestra la última elección de Agenda con estado
+  pendiente, confirmado, cancelado o cerrado, además de servicio, fecha,
+  profesional y sede. La información se arma en servidor exclusivamente desde
+  el vínculo paciente-conversación y tablas canónicas de SMYL.
+- La consulta exige `schedule.read`, está limitada al tenant y no lee ni copia
+  conversaciones desde LANA. Los usuarios sin acceso a Agenda no reciben esa
+  continuidad.
+- `Preparar confirmación` y `Preparar seguimiento` sólo colocan texto revisable
+  en el compositor. El botón respeta `messages.respond`, la asignación del hilo
+  y las reglas existentes de WhatsApp; nunca envía por sí solo.
+- El contexto se actualiza al abrir el hilo, registrar una elección y confirmar
+  una cita. Web y móvil permanecen idénticos.
+- Verificación local: sintaxis aprobada, 9 pruebas enfocadas y 291 pruebas
+  completas aprobadas. La revisión visual automatizada continúa pendiente por
+  el aislamiento del navegador respecto de recursos locales.
+- No requiere otra migración distinta de las etapas 2 y 3. No se desplegó
+  `lana-inbox` ni se publicó la PWA.
+
+---
+
+## 2026-10-15 — Etapa 5 del chat: alternativas para el paciente
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, documentación y pruebas.
+
+- Desde una consulta real de disponibilidad, el equipo puede elegir hasta tres
+  horarios. La selección conserva servicio, sede, profesional y hora exactos;
+  una búsqueda nueva elimina opciones anteriores para evitar sugerencias
+  obsoletas.
+- `Preparar opciones para el paciente` construye un borrador numerado que pide
+  responder con la opción preferida y aclara que la clínica confirmará después.
+  No aparta espacios, no registra solicitudes y no envía mensajes.
+- La acción exige que el usuario pueda operar la conversación y tenga
+  `messages.respond`. Después de la respuesta del paciente se utiliza el doble
+  control existente: `Paciente eligió` y luego `Confirmar cita`.
+- Web y móvil son idénticos y el pie de selección se adapta a pantallas pequeñas.
+- Verificación local: 8 pruebas enfocadas y 295 pruebas completas aprobadas. La
+  revisión visual automatizada continúa pendiente por el bloqueo de recursos
+  locales en el navegador aislado.
+- No requiere migración ni despliegue adicional de Edge Functions. No se publicó
+  la PWA.
+
+---
+
+## 2026-10-15 — Publicación del flujo de citas desde Mensajes
+
+- Se aplicaron en producción las migraciones `20261014030000` y
+  `20261014040000`; el historial remoto quedó registrado como aplicado.
+- Se verificó que las tres operaciones privadas de disponibilidad, solicitud y
+  confirmación de cita existen en la base remota.
+- Se desplegó `lana-inbox` versión 15 con validación de roles, disponibilidad
+  real, doble confirmación y continuidad de la cita en el chat.
+- Se actualizó la caché de la PWA a `smyl-v233-inbox-appointments` y las
+  versiones públicas de `smyl-inbox.js`/`.css`; web y móvil siguen sincronizados.
+- Verificación previa a publicación: 295 de 295 pruebas aprobadas. No se crearon
+  citas ni se modificaron expedientes reales durante la comprobación.

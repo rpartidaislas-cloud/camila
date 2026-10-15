@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Plan y cotización</title>
+  <link rel="stylesheet" href="../../smyl-dental-record.css">
+  <link rel="stylesheet" href="../../smyl-proposals.css">
+  <link rel="stylesheet" href="../../smyl-treatment-quote-stage3.css">
+  <script defer src="../../smyl-dental-model.js"></script><script defer src="../../smyl-tooth-map.js"></script>
+  <style>*{box-sizing:border-box}body{margin:0;background:#edf1f4;color:#243d3e;font:14px Inter,Arial,sans-serif}.qa{max-width:1120px;margin:auto;padding:28px}.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.proposal-editor{padding:20px}.proposal-item label{min-width:0}.proposal-item input{width:100%;max-width:100%}.proposal-paper{padding:28px}.proposal-dental-plan{margin-top:16px}.proposal-dental-map{max-width:180px}.proposal-paper h1{font-size:27px}@media(max-width:800px){.qa{padding:14px}.qa-grid{grid-template-columns:1fr}.proposal-paper{padding:20px 14px}}</style>
+</head>
+<body><main class="qa"><div class="qa-grid">
+  <section class="proposal-editor"><p class="pro-eyebrow">PREPARAR PROPUESTA</p><h1>María González</h1><section class="quote-readiness-stage3"><header><div><span>CONTROL DE PROPUESTA</span><strong>Completar precios</strong><p>Toda propuesta aprobada necesita importes definidos.</p></div><button>Ir al pendiente</button></header><div><article data-state="ready"><span>Conceptos</span><strong>3</strong></article><article data-state="ready"><span>Con mapa dental</span><strong>3</strong></article><article data-state="pending"><span>Precios pendientes</span><strong>1</strong></article><article data-state="ready"><span>Fiscal pendiente</span><strong>0</strong></article></div></section>
+    <article class="proposal-item"><label>Concepto<input value="Carilla cerámica"></label><label>Zona<input value="Piezas 11, 12"></label><p class="proposal-item-target">Mapa dental · piezas 11, 12 · superficies V</p><small class="proposal-item-fiscal">SAT 85122001 · fiscal revisado</small></article>
+  </section>
+  <article class="proposal-paper"><header class="proposal-paper-top"><strong>Clínica Dental Norte</strong><span class="proposal-brand">smyl</span></header><p class="proposal-kicker">PROPUESTA PERSONALIZADA</p><h1>Plan estético anterior</h1><div class="proposal-paper-meta"><div>Para María González</div><div>Dra. Andrea López</div></div>
+    <section class="proposal-dental-plan"><h2>Dónde se realizará el tratamiento</h2><p class="proposal-small">Mapa FDI preparado desde las piezas que el profesional vinculó al plan. No muestra antecedentes ni notas internas.</p><div id="quote-map" class="dr-map proposal-dental-map"></div><div class="proposal-dental-legend"><article><span>01</span><div><strong>Carilla cerámica</strong><small>Piezas 11, 12 · Superficie V</small></div></article><article><span>02</span><div><strong>Restauración estética</strong><small>Pieza 21 · Superficies M, V</small></div></article><article><span>03</span><div><strong>Contorneado estético</strong><small>Piezas 22, 23</small></div></article></div></section>
+    <div class="proposal-quote-heading"><h2>Tu plan y su inversión</h2><span>Importes en MXN</span></div><table class="proposal-quote"><tbody><tr><td data-label="Concepto"><strong>Carilla cerámica</strong><small>Piezas 11, 12</small></td><td data-label="Cantidad">2</td><td data-label="Precio unitario">$9,500</td><td data-label="Importe">$19,000</td></tr></tbody></table><div class="proposal-total"><span>Total estimado</span><strong>$19,000 MXN</strong></div>
+  </article>
+</div></main><script>addEventListener('DOMContentLoaded',function(){var selected=new Set(['11','12','21','22','23']);window.SmylToothMap&&SmylToothMap.render(document.getElementById('quote-map'),{disabled:true,state:function(tooth){return{className:selected.has(tooth)?'pr-proposed':'',label:selected.has(tooth)?'Tratamiento propuesto':'Sin tratamiento propuesto'};}});});</script></body></html>

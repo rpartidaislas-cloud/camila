@@ -5,3 +5,6 @@ supabase/.temp/
 # Secretos locales: nunca se versionan. El archivo .env.example sí se conserva.
 supabase/.env
 supabase/.env.local
+
+# Artefactos locales de validación y empaquetado.
+output/

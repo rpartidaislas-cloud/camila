@@ -57,6 +57,19 @@ No usar más de un color de acento dentro del mismo grupo de controles.
 - Las guías clínicas deben tener significado constante: blanco para ejes, ámbar para curva de sonrisa y verde para proporciones.
 - Las etiquetas “Antes” y “Con carillas” describen estados; no deben parecer publicidad.
 
+## Imágenes en módulos operativos
+
+- Agenda, caja, inventario y reportes no usan fotografía de stock como relleno.
+  Un estado vacío debe explicar qué falta y ofrecer una acción útil.
+- No mostrar fotografías clínicas ni avatares fotográficos en calendarios,
+  notificaciones o tableros generales. Usar iniciales, iconos lineales y color
+  funcional por profesional o estado.
+- Las ilustraciones sólo se justifican cuando enseñan un proceso que no puede
+  explicarse con texto breve, datos o iconografía. Nunca deben simular pacientes,
+  resultados clínicos o actividad inexistente.
+- Los datos de demostración pertenecen exclusivamente a fixtures de QA y deben
+  identificarse como ficticios; no se publican como contenido precargado.
+
 ## Arquitectura de controles
 
 El editor se organiza en este orden:

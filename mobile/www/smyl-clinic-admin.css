@@ -1,0 +1,121 @@
+.smyl-professional #p-clinica{max-width:1440px;margin:0 auto}
+.clinic-admin-page{color:#203b3b}
+.clinic-admin-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:14px 0 28px}
+.clinic-admin-head h1{font-size:clamp(31px,4vw,48px);font-weight:520;letter-spacing:-1.7px;line-height:1.02;margin:7px 0 11px}
+.clinic-admin-head p{max-width:680px;color:#61716b;font-size:14px;line-height:1.65}
+.clinic-admin-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.clinic-admin-status{display:inline-flex;align-items:center;gap:7px;border:1px solid #cbd9d3;border-radius:999px;padding:8px 12px;background:#f5f8f3;color:#46645c;font-size:11px;font-weight:650;white-space:nowrap}
+.clinic-admin-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#2f8174;box-shadow:0 0 0 4px #dcece5}
+.clinic-admin-feedback{min-height:0}
+.clinic-admin-notice{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border:1px solid #cbded4;background:#edf5f0;color:#31594e;border-radius:13px;padding:13px 15px;margin-bottom:16px;font-size:13px;line-height:1.55}
+.clinic-admin-notice[data-tone="error"]{background:#fff2ec;border-color:#eacabb;color:#844a37}
+.clinic-admin-notice button{border:0;background:transparent;color:inherit;cursor:pointer;font:inherit;padding:0 2px}
+.clinic-admin-readiness{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(0,1.5fr);gap:18px;border:1px solid #cdded5;background:linear-gradient(135deg,#f5faf6 0%,#fbfcf8 68%);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 8px 28px rgba(35,76,68,.04)}
+.clinic-admin-readiness-summary{min-width:0;padding:2px 4px}
+.clinic-admin-readiness-score{display:flex;align-items:baseline;gap:10px;margin:14px 0 9px}
+.clinic-admin-readiness-score strong{font-size:34px;font-weight:560;letter-spacing:-1.2px;color:#234e49}
+.clinic-admin-readiness-score span{color:#65766f;font-size:11px}
+.clinic-admin-progress{height:8px;border-radius:999px;background:#dfe9e2;overflow:hidden;margin-bottom:11px}
+.clinic-admin-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#2b786e,#52a089);transition:width .25s ease}
+.clinic-admin-readiness-summary>p{color:#65766f;font-size:11px;line-height:1.55}
+.clinic-admin-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+.clinic-admin-check{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;text-align:left;border:1px solid #d9e4dd;background:#fff;border-radius:12px;padding:11px;color:#294b47;font:inherit;cursor:pointer;min-width:0}
+.clinic-admin-check:hover{border-color:#aac9bd;background:#fbfdfb}
+.clinic-admin-check-icon{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:#fff0e8;color:#9a573e;font-size:11px;font-weight:800}
+.clinic-admin-check-icon[data-ready="true"]{background:#dceee5;color:#287062}
+.clinic-admin-check strong{display:block;font-size:11px;font-weight:680;overflow-wrap:anywhere}
+.clinic-admin-check small{display:block;color:#718079;font-size:9px;line-height:1.45;margin-top:2px;overflow-wrap:anywhere}
+.clinic-admin-check b{font-size:9px;color:#7b8983;font-weight:700}
+.clinic-admin-readiness-note{grid-column:1/-1;border-top:1px solid #dce6df;padding-top:10px;color:#78867f;font-size:9px;line-height:1.5}
+.clinic-admin-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.clinic-admin-metric{border:1px solid #dce4de;background:#fdfdf9;border-radius:15px;padding:17px 18px;min-width:0}
+.clinic-admin-metric span{display:block;color:#6c7a74;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px}
+.clinic-admin-metric strong{font-size:25px;font-weight:590;letter-spacing:-.7px}
+.clinic-admin-metric small{display:block;color:#73817a;font-size:11px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clinic-admin-tabs{display:flex;gap:5px;width:max-content;max-width:100%;padding:4px;border:1px solid #dae2dc;border-radius:12px;background:#edf1ed;margin-bottom:18px;overflow:auto}
+.clinic-admin-tab{border:0;border-radius:8px;background:transparent;color:#5c6f68;font:inherit;font-size:12px;font-weight:650;min-height:38px;padding:0 16px;cursor:pointer;white-space:nowrap}
+.clinic-admin-tab[aria-selected="true"]{background:#fff;color:#244d49;box-shadow:0 2px 9px rgba(31,67,63,.09)}
+.clinic-admin-panel[hidden]{display:none!important}
+.clinic-admin-layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;align-items:start;min-width:0;width:100%}
+.clinic-admin-sidebar,.clinic-admin-card{border:1px solid #dce4de;background:#fdfdf9;border-radius:17px}
+.clinic-admin-sidebar{padding:14px;position:sticky;top:78px;min-width:0;box-sizing:border-box}
+.clinic-admin-sidebar-head,.clinic-admin-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.clinic-admin-sidebar-head{padding:3px 3px 12px}
+.clinic-admin-sidebar-head h2,.clinic-admin-section-head h2{font-size:14px;font-weight:650}
+.clinic-admin-icon-button{width:36px;height:36px;border:1px solid #cfdbd4;border-radius:10px;background:#fff;color:#285d58;cursor:pointer;font-size:20px;line-height:1;display:grid;place-items:center}
+.clinic-admin-branch-list{display:grid;gap:7px}
+.clinic-admin-branch{width:100%;border:1px solid transparent;background:transparent;border-radius:11px;padding:12px;text-align:left;color:#34534f;cursor:pointer;font:inherit;display:grid;gap:4px}
+.clinic-admin-branch:hover{background:#f3f6f1}
+.clinic-admin-branch[aria-current="true"]{border-color:#bcd3c9;background:#eaf3ee}
+.clinic-admin-branch strong{font-size:13px;font-weight:650;overflow-wrap:anywhere}
+.clinic-admin-branch small{font-size:10px;color:#698079;display:flex;gap:5px;align-items:center}
+.clinic-admin-dot{width:6px;height:6px;border-radius:50%;background:#2e8475;display:inline-block;flex:none}
+.clinic-admin-dot[data-ready="false"]{background:#c87955}
+.clinic-admin-branch-state{width:max-content;border-radius:999px;padding:4px 7px;background:#e6f1eb;color:#347064;font-size:8px;font-weight:750;text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.clinic-admin-branch-state[data-ready="false"]{background:#fff0e8;color:#95583f}
+.clinic-admin-main{display:grid;gap:18px;min-width:0}
+.clinic-admin-card{padding:22px;min-width:0}
+.clinic-admin-card-intro{color:#687970;font-size:12px;line-height:1.6;margin:7px 0 18px}
+.clinic-admin-pill{border:1px solid #c7d9d0;background:#edf5f0;color:#356158;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:700;white-space:nowrap}
+.clinic-admin-pill[data-ready="false"]{background:#fff3ec;border-color:#ebd0c0;color:#8b5038}
+.clinic-admin-badges{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.clinic-admin-branch-overview{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 18px}
+.clinic-admin-branch-overview span{border:1px solid #e0e7e2;background:#f7f9f6;border-radius:9px;padding:7px 9px;color:#6c7a74;font-size:9px}
+.clinic-admin-branch-overview strong{color:#294f4a;font-size:12px;margin-right:3px}
+.clinic-admin-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.clinic-admin-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.clinic-admin-field-wide{grid-column:1/-1}
+.clinic-admin-field label{font-size:11px;font-weight:650;color:#48625c}
+.clinic-admin-field :is(input,select,textarea){width:100%;min-height:43px;border:1px solid #cad8d1;border-radius:9px;background:#fff;color:#203b3b;padding:9px 11px;font:inherit;font-size:13px;box-sizing:border-box}
+.clinic-admin-field textarea{min-height:76px;resize:vertical}
+.clinic-admin-field :is(input,select,textarea):focus{outline:2px solid #337e78;outline-offset:2px}
+.clinic-admin-field :is(input,select,textarea):disabled{background:#f0f3ef;color:#77837e}
+.clinic-admin-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:18px}
+.clinic-admin-actions .danger{color:#874c3a;border-color:#e1c8bb;background:#fff8f4}
+.clinic-admin-subsection{border-top:1px solid #e0e6e1;margin-top:23px;padding-top:21px}
+.clinic-admin-subsection:first-child{border-top:0;margin-top:0;padding-top:0}
+.clinic-admin-subsection h3{font-size:14px;font-weight:650;margin-bottom:4px}
+.clinic-admin-subsection>p{font-size:11px;color:#718079;line-height:1.55;margin-bottom:14px}
+.clinic-admin-list{display:grid;gap:8px}
+.clinic-admin-row{display:flex;align-items:center;gap:13px;min-height:54px;padding:10px 12px;border:1px solid #e0e6e1;border-radius:11px;background:#fff;min-width:0}
+.clinic-admin-row-main{flex:1;min-width:0}
+.clinic-admin-row strong{display:block;font-size:12px;font-weight:650;overflow-wrap:anywhere}
+.clinic-admin-row small{display:block;color:#718079;font-size:10px;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
+.clinic-admin-row button{border:0;background:transparent;color:#6d7f78;min-height:34px;padding:4px 7px;font:inherit;font-size:10px;cursor:pointer}
+.clinic-admin-compact-form{display:grid;grid-template-columns:1.2fr 1fr auto;gap:9px;align-items:end;margin-top:12px}
+.clinic-admin-compact-form.hours{grid-template-columns:1.2fr 1fr 1fr auto}
+.clinic-admin-compact-form .btn{min-height:43px}
+.clinic-admin-empty{border:1px dashed #cedbd4;border-radius:12px;padding:24px;text-align:center;color:#718079;font-size:12px;line-height:1.6}
+.clinic-admin-team-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.85fr);gap:18px;align-items:start}
+.clinic-admin-member{display:grid;grid-template-columns:minmax(150px,1fr) minmax(130px,.7fr) minmax(130px,.7fr) auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid #e3e8e4}
+.clinic-admin-member:last-child{border-bottom:0}
+.clinic-admin-member-meta{min-width:0}
+.clinic-admin-member-meta strong{display:block;font-size:13px;overflow-wrap:anywhere}
+.clinic-admin-member-meta small{font-size:10px;color:#73817a;overflow-wrap:anywhere}
+.clinic-admin-member select{width:100%;min-height:38px;border:1px solid #ced9d3;border-radius:8px;background:#fff;color:#2c4947;padding:7px 9px;font:inherit;font-size:11px}
+.clinic-admin-member .btn{min-height:38px;font-size:10px;padding:0 10px}
+.clinic-admin-role-guide{border-top:1px solid #e0e6e1;margin-top:20px;padding-top:20px}
+.clinic-admin-role-guide h3{font-size:14px;font-weight:650}
+.clinic-admin-role{border:1px solid #dfe6e1;border-radius:11px;background:#fff;margin-top:8px;overflow:hidden}
+.clinic-admin-role summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;cursor:pointer;list-style:none}
+.clinic-admin-role summary::-webkit-details-marker{display:none}
+.clinic-admin-role summary span{min-width:0}
+.clinic-admin-role summary strong{display:block;font-size:11px}
+.clinic-admin-role summary small{display:block;color:#718079;font-size:9px;line-height:1.45;margin-top:2px}
+.clinic-admin-role summary b{color:#5f756d;font-size:9px;white-space:nowrap}
+.clinic-admin-role>div{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid #e6ebe7;padding:10px 12px;background:#fafbf8}
+.clinic-admin-role>div span{border:1px solid #d6e2dc;border-radius:999px;background:#fff;color:#43645d;padding:5px 8px;font-size:9px}
+.clinic-admin-professional{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #e3e8e4}
+.clinic-admin-professional:last-child{border-bottom:0}
+.clinic-admin-avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#dcebe4;color:#295d55;font-size:12px;font-weight:750;flex:none}
+.clinic-admin-professional>div:nth-child(2){flex:1;min-width:0}
+.clinic-admin-professional strong{font-size:12px;display:block;overflow-wrap:anywhere}
+.clinic-admin-professional small{font-size:10px;color:#73817a;display:block;margin-top:3px}
+.clinic-admin-dialog{margin:auto;width:min(560px,calc(100% - 28px));max-height:90dvh;overflow:auto;border:1px solid #cbd8d1;border-radius:18px;background:#fdfdf9;color:#203b3b;padding:25px;box-shadow:0 28px 80px rgba(16,45,43,.24)}
+.clinic-admin-dialog::backdrop{background:rgba(12,36,37,.58);backdrop-filter:blur(2px)}
+.clinic-admin-dialog h2{font-size:23px;font-weight:560;letter-spacing:-.5px;margin-bottom:8px}
+.clinic-admin-dialog>p{color:#6a7b73;font-size:12px;line-height:1.6;margin-bottom:19px}
+.clinic-admin-loading{min-height:300px;display:grid;place-items:center;border:1px solid #dce4de;border-radius:17px;background:#fdfdf9;color:#6b7e75;font-size:13px}
+@media(max-width:1100px){.clinic-admin-readiness{grid-template-columns:1fr}.clinic-admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.clinic-admin-team-grid{grid-template-columns:1fr}.clinic-admin-member{grid-template-columns:minmax(150px,1fr) 1fr 1fr}.clinic-admin-member .btn{grid-column:1/-1;justify-self:end}.clinic-admin-sidebar{position:static}}
+@media(max-width:760px){.clinic-admin-head{align-items:flex-start;flex-direction:column}.clinic-admin-head-actions{justify-content:flex-start}.clinic-admin-readiness{padding:15px}.clinic-admin-checklist{grid-template-columns:1fr}.clinic-admin-metrics{grid-template-columns:1fr 1fr}.clinic-admin-layout{grid-template-columns:minmax(0,1fr)}.clinic-admin-layout>*{min-width:0}.clinic-admin-sidebar{padding:12px;max-width:100%}.clinic-admin-branch-list{display:flex;max-width:100%;overflow:auto;padding-bottom:3px}.clinic-admin-branch{min-width:180px}.clinic-admin-card{padding:18px 15px;box-sizing:border-box}.clinic-admin-form-grid,.clinic-admin-compact-form,.clinic-admin-compact-form.hours{grid-template-columns:1fr}.clinic-admin-member{grid-template-columns:1fr}.clinic-admin-member .btn{justify-self:stretch}.clinic-admin-actions .btn{flex:1}.clinic-admin-section-head{align-items:flex-start}.clinic-admin-badges{justify-content:flex-start}.clinic-admin-dialog{padding:21px}}
+@media(max-width:440px){.clinic-admin-metrics{grid-template-columns:1fr}.clinic-admin-head h1{font-size:35px}.clinic-admin-status{white-space:normal}.clinic-admin-row{align-items:flex-start;flex-wrap:wrap}.clinic-admin-row button{margin-left:auto}}

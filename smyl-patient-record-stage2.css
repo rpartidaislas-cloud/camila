@@ -1,0 +1,21 @@
+/* SMYL · Etapa 2: resumen operativo del expediente. */
+.patient-record-stage2{margin:0 0 14px;padding:17px;border:1px solid #cfdbe8;border-radius:14px;background:#f8fbfd}
+.patient-record-stage2>header{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:18px;align-items:center;margin-bottom:13px}
+.patient-record-stage2>header>div>span{color:#0f766e;font-size:10px;font-weight:850;letter-spacing:.1em}
+.patient-record-stage2 h2{margin:4px 0 3px;font-size:18px}
+.patient-record-stage2>header>div>p{margin:0;color:#64748b;font-size:12px}
+.patient-record-next{display:grid;gap:2px;padding:12px 14px;border:1px solid #bfd5e3;border-radius:11px;background:#fff;text-align:left;color:#102239;cursor:pointer}
+.patient-record-next small{color:#0f766e;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+.patient-record-next strong{font-size:13px}.patient-record-next span{color:#64748b;font-size:10px;line-height:1.35}
+.patient-record-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.patient-record-grid button{min-width:0;padding:12px;border:1px solid #dce5ed;border-radius:10px;background:#fff;text-align:left;color:#102239;cursor:pointer}
+.patient-record-grid button:hover,.patient-record-next:hover{border-color:#8fb4ca;background:#fafdff}
+.patient-record-grid span,.patient-record-grid strong,.patient-record-grid small{display:block}
+.patient-record-grid span{color:#64748b;font-size:10px;font-weight:750}
+.patient-record-grid strong{margin:5px 0 3px;font-size:13px}
+.patient-record-grid small{color:#7d8b9b;font-size:9px;line-height:1.35}
+.patient-record-grid [data-state=ready]{border-top:3px solid #168f88}
+.patient-record-grid [data-state=active]{border-top:3px solid #315ee8}
+.patient-record-grid [data-state=pending]{border-top:3px solid #d49a32}
+@media(max-width:900px){.patient-record-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.patient-record-stage2{padding:14px}.patient-record-stage2>header{grid-template-columns:1fr}.patient-record-grid{grid-template-columns:1fr}.patient-record-grid button{padding:11px}.patient-record-next{width:100%}}

@@ -1,0 +1,3 @@
+-- Registro histórico: esta versión ya está aplicada en producción.
+-- El SQL original no estaba versionado en el repositorio recuperado.
+-- Marcador intencional sin operaciones; no reconstruye el objeto legado.
