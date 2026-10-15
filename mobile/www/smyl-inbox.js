@@ -19,7 +19,7 @@
     notificationsEnabled: false,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
-    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [],
+    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilityAction: '',
   };
 
   function node(tag, cls, text) {
@@ -1376,13 +1376,51 @@
       var row = node('article', 'smyl-inbox-availability-slot');
       var copy = node('div', '');
       copy.append(node('strong', '', availabilityDate(slot.starts_at)), node('span', '', slot.professional_name + (slot.specialty ? ' · ' + slot.specialty : '')), node('small', '', slot.branch_name + ' · ' + slot.duration_minutes + ' min'));
+      var actions = node('div', 'smyl-inbox-availability-actions');
       var use = node('button', 'btn btn-secondary btn-sm', 'Agregar al borrador'); use.type = 'button';
       use.onclick = function () {
         var message = 'Tengo disponible ' + availabilityDate(slot.starts_at) + ' con ' + slot.professional_name + ' en ' + slot.branch_name + '. El horario se confirma cuando elijas la opción.';
         setComposerText(message); document.querySelector('[data-availability-dialog]').close();
       };
-      row.append(copy, use); host.append(row);
+      actions.append(use);
+      if (hasPermission('schedule.manage')) {
+        var requestRow = state.availabilityRequests.find(function (requestRow) {
+          return requestRow.service_id === slot.service_id && requestRow.preferred_branch_id === slot.branch_id && requestRow.preferred_professional_id === slot.professional_id && new Date(requestRow.requested_start).getTime() === new Date(slot.starts_at).getTime();
+        });
+        var manage = node('button', 'btn btn-primary btn-sm', requestRow && requestRow.status === 'pending' ? 'Confirmar cita' : requestRow && requestRow.status === 'accepted' ? 'Cita confirmada' : 'Paciente eligió');
+        manage.type = 'button'; manage.disabled = Boolean(state.availabilityAction) || Boolean(requestRow && requestRow.status === 'accepted');
+        manage.onclick = function () { if (requestRow && requestRow.status === 'pending') confirmAvailabilityRequest(requestRow); else recordAvailabilityChoice(slot); };
+        actions.append(manage);
+      }
+      row.append(copy, actions); host.append(row);
     });
+  }
+
+  async function loadAvailabilityRequests() {
+    if (!hasPermission('schedule.manage') || !state.selectedId) { state.availabilityRequests = []; return; }
+    var data = await request('GET', { action: 'appointment_requests', conversation_id: state.selectedId });
+    state.availabilityRequests = data.requests || [];
+  }
+
+  async function recordAvailabilityChoice(slot) {
+    if (!window.confirm('¿El paciente eligió este horario? Se registrará como solicitud pendiente; todavía no será una cita.')) return;
+    state.availabilityAction = 'request'; renderAvailabilityResults();
+    try {
+      var data = await request('POST', {}, { action: 'appointment_request', conversation_id: state.selectedId, service_id: slot.service_id, branch_id: slot.branch_id, professional_id: slot.professional_id, starts_at: slot.starts_at }, uuid());
+      state.availabilityRequests.unshift({ id: data.request_id, service_id: slot.service_id, preferred_branch_id: slot.branch_id, preferred_professional_id: slot.professional_id, requested_start: slot.starts_at, requested_end: slot.ends_at, status: 'pending', appointment_id: null });
+    } catch (error) { window.alert(error.message || 'No se pudo registrar la elección.'); }
+    finally { state.availabilityAction = ''; renderAvailabilityResults(); }
+  }
+
+  async function confirmAvailabilityRequest(requestRow) {
+    if (!window.confirm('¿Confirmar esta cita? SMYL volverá a comprobar la disponibilidad antes de guardarla.')) return;
+    state.availabilityAction = 'confirm'; renderAvailabilityResults();
+    try {
+      var data = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: requestRow.id }, uuid());
+      requestRow.status = 'accepted'; requestRow.appointment_id = data.appointment_id;
+      window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente.');
+    } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
+    finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
 
   function filterAvailabilityProfessionals() {
@@ -1399,6 +1437,7 @@
     var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
     try {
       if (!state.availabilityCatalog) state.availabilityCatalog = await request('GET', { action: 'availability_catalog' });
+      await loadAvailabilityRequests();
       var catalog = state.availabilityCatalog; var services = dialog.querySelector('[data-availability-service]'); var branches = dialog.querySelector('[data-availability-branch]');
       services.innerHTML = '<option value="">Selecciona un servicio</option>'; (catalog.services || []).forEach(function (row) { services.append(new Option(row.name + ' · ' + row.duration_minutes + ' min', row.id)); });
       branches.innerHTML = '<option value="">Cualquier sucursal</option>'; (catalog.branches || []).forEach(function (row) { branches.append(new Option(row.name, row.id)); });

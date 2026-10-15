@@ -166,6 +166,42 @@ async function availableSlots(actor: Actor, tenantId: string, url: URL): Promise
   return json(200, { ok: true, slots: data || [], generated_at: new Date().toISOString(), holds_created: false });
 }
 
+async function appointmentRequests(tenantId: string, conversationId: string): Promise<Response> {
+  const { data, error } = await admin.from("smyl_appointment_requests")
+    .select("id,service_id,preferred_branch_id,preferred_professional_id,requested_start,requested_end,status,appointment_id,created_at,decided_at")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId)
+    .order("created_at", { ascending: false }).limit(20);
+  if (error) return json(500, { error: "No se pudieron consultar las elecciones de horario." });
+  return json(200, { ok: true, requests: data || [] });
+}
+
+async function createAppointmentRequest(actor: Actor, tenantId: string, conversationId: string, body: Record<string, unknown>, idempotencyKey: string): Promise<Response> {
+  const serviceId = uuid(body.service_id); const branchId = uuid(body.branch_id); const professionalId = uuid(body.professional_id);
+  const startsAt = new Date(String(body.starts_at || ""));
+  if (!serviceId || !branchId || !professionalId || !Number.isFinite(startsAt.getTime())) return json(400, { error: "La elección de horario está incompleta." });
+  const { data, error } = await admin.rpc("smyl_inbox_create_appointment_request", {
+    p_tenant_id: tenantId, p_actor_id: actor.id, p_conversation_id: conversationId,
+    p_service_id: serviceId, p_branch_id: branchId, p_professional_id: professionalId,
+    p_starts_at: startsAt.toISOString(), p_external_key: idempotencyKey,
+  });
+  if (error) {
+    console.error("[lana-inbox] appointment request", error.message);
+    return json(error.code === "42501" ? 403 : 409, { error: error.message || "No se pudo registrar la elección." });
+  }
+  return json(200, { ok: true, request_id: data, status: "pending", appointment_created: false, message_sent: false });
+}
+
+async function confirmAppointmentRequest(actor: Actor, tenantId: string, requestId: string, appointmentId: string): Promise<Response> {
+  const { data, error } = await admin.rpc("smyl_inbox_confirm_appointment_request", {
+    p_tenant_id: tenantId, p_actor_id: actor.id, p_request_id: requestId, p_appointment_id: appointmentId,
+  });
+  if (error) {
+    console.error("[lana-inbox] appointment confirm", error.message);
+    return json(error.code === "42501" ? 403 : 409, { error: error.message || "No se pudo confirmar la cita." });
+  }
+  return json(200, { ok: true, appointment_id: data, status: "confirmed", message_sent: false });
+}
+
 function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   const headers = new Headers({
     "X-SMYL-Actor-Id": actor.id,
@@ -340,6 +376,10 @@ Deno.serve(async (req: Request) => {
       }
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
+      if (action === "appointment_requests" && conversationId) {
+        const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar solicitudes de Agenda.");
+        return scheduleDenied || await appointmentRequests(auth.tenantId, conversationId);
+      }
       if (action === "clinical_context" && conversationId) {
         const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");
         return clinicalDenied || await clinicalContext(auth.tenantId, conversationId);
@@ -397,6 +437,16 @@ Deno.serve(async (req: Request) => {
     }
     const conversationId = uuid(body.conversation_id);
     if (!conversationId) return json(400, { error: "Conversación no válida." });
+    if (action === "appointment_request" || action === "appointment_confirm") {
+      const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar citas.");
+      if (scheduleDenied) return scheduleDenied;
+      const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
+      if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      if (action === "appointment_request") return await createAppointmentRequest(actor, auth.tenantId, conversationId, body, idempotencyKey);
+      const requestId = uuid(body.request_id);
+      if (!requestId) return json(400, { error: "Solicitud no válida." });
+      return await confirmAppointmentRequest(actor, auth.tenantId, requestId, idempotencyKey);
+    }
     if (action === "clinical_link") {
       const denied = requirePermission(actor, "clinical.write", "Tu rol no permite incorporar archivos al expediente clínico.");
       if (denied) return denied;

@@ -5643,3 +5643,28 @@ reanudación, contrato de Inbox, migración
 - No se aplicó la migración, no se desplegó `lana-inbox` y no se publicó la PWA.
   Antes de producción se requiere revisión visual manual, aplicar la migración,
   desplegar la función y ejecutar una prueba real con agendas superpuestas.
+
+---
+
+## 2026-10-14 — Etapa 3 del chat: elección y confirmación de cita
+
+**Tocado:** `smyl-inbox.js/.css` y copia móvil, `lana-inbox`, migración
+`20261014040000_smyl_inbox_appointment_confirmation.sql`, fixture y pruebas.
+
+- Un integrante con `schedule.manage` puede marcar que el paciente eligió un
+  espacio. Esa primera acción crea una solicitud pendiente vinculada a la
+  conversación, paciente, servicio, sede y profesional; todavía no crea cita.
+- Confirmar requiere una segunda acción humana. La función privada vuelve a
+  validar el horario bajo bloqueo transaccional y crea la cita, evento y
+  recordatorio de 24 horas de forma atómica. Si el espacio cambió, rechaza la
+  operación y obliga a consultar disponibilidad nuevamente.
+- Ambos pasos son idempotentes, están limitados al tenant y exigen que la
+  conversación ya tenga un paciente canónico vinculado. Las RPC sólo se
+  conceden a `service_role`; el navegador no puede insertar solicitudes o citas
+  directamente.
+- Registrar o confirmar no envía mensajes. `Agregar al borrador` continúa como
+  acción independiente y revisable por el equipo.
+- Verificación local: sintaxis web/móvil aprobada, 10 pruebas enfocadas y 287
+  pruebas completas aprobadas. La revisión visual automatizada sigue pendiente
+  por el bloqueo del navegador aislado a recursos locales.
+- No se aplicó la migración, no se desplegó `lana-inbox` y no se publicó la PWA.
