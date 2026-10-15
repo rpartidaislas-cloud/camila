@@ -75,7 +75,7 @@ const STATIC_FILES = [
   '/camila/resena.html',
   '/camila/smyl-dialog-system.js?v=1',
   '/camila/smyl-dialog-system.css?v=1',
-  '/camila/smyl-schedule.js?v=9',
+  '/camila/smyl-schedule.js?v=10',
   '/camila/smyl-schedule.css?v=5',
   '/camila/smyl-service-catalog-model.js?v=1',
   '/camila/smyl-service-catalog.js?v=3',

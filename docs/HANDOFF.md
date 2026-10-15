@@ -1,5 +1,40 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: Agenda, integridad previa al chatbot
+
+**Agenda manual y disponibilidad conversacional ya comparten reglas clínicas
+para tiempos de preparación, profesionales, sucursales y sillones.**
+
+- La migración `20261015020000_smyl_schedule_integrity_v2.sql` introduce una
+  validación canónica con el servicio explícito. Compara los buffers anteriores
+  y posteriores tanto de la cita nueva como de las citas existentes, además de
+  bloqueos, horarios profesionales, horario de clínica y recursos físicos.
+- `smyl_inbox_available_slots_v2` genera espacios alineados cada 15 minutos en
+  la zona horaria de cada sede, asigna un sillón disponible cuando existen
+  espacios configurados y excluye citas, bloqueos y apartados conversacionales
+  activos. La función anterior se conserva como adaptador compatible.
+- Las solicitudes de Inbox guardan `preferred_room_id` y un apartado temporal
+  de diez minutos. El vencimiento libera el espacio, pero la solicitud continúa
+  pendiente para revisión humana; LANA no crea citas confirmadas.
+- Crear, reprogramar y aceptar solicitudes usan las mismas reglas. La interfaz
+  corrige el profesional preferido, filtra por servicio y sede, exige sillón
+  cuando corresponde, muestra el tiempo clínico protegido y usa intervalos de
+  15 minutos dentro del horario configurado.
+- Web y móvil usan Agenda JS v10. La migración fue aplicada al proyecto Supabase
+  enlazado y el lint remoto no reportó errores.
+- El puente privado `lana-inbox` ya tenía disponibles las operaciones de
+  consulta, elección y confirmación humana. El adaptador compatible conserva
+  ese contrato y hace que esas operaciones reciban las reglas reforzadas sin
+  exponer la base clínica ni credenciales de Meta al navegador.
+
+**Validación:** 362/362 pruebas aprobadas sobre la rama integrada del Inbox,
+puerta de seguridad en verde,
+paridad web/móvil confirmada y revisión visual satisfactoria en escritorio,
+tablet y celular con información demostrativa. La siguiente etapa es permitir
+que el runtime del asistente de LANA invoque únicamente la consulta de
+disponibilidad y prepare opciones; la confirmación de la cita seguirá siendo
+una acción explícita del equipo.
+
 ## 2026-10-15 — Codex: costeo histórico y kits auditados
 
 **Las salidas nuevas de inventario ya congelan un costo calculado en servidor

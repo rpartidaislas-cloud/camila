@@ -25,22 +25,22 @@ test('seleccionar un horario prepara la cita sin saltarse la validación canóni
   assert.match(schedule, /openNew\(null,null,start,b\.dataset\.professional/);
   assert.match(schedule, /smyl_create_appointment/);
   assert.match(schedule, /CONTROL DE RESERVA/);
-  assert.match(schedule, /vuelve a validar disponibilidad, horario y traslapes/);
+  assert.match(schedule, /valida nuevamente horarios, tiempos de preparación, profesional, sillón, bloqueos y apartados temporales/);
   assert.doesNotMatch(schedule, /from\('smyl_appointments'\)\.insert/);
 });
 
 test('una semana vacía comunica cobertura real sin fotografías decorativas', () => {
   assert.match(schedule, /function emptyWeek/);
-  assert.match(schedule, /SEMANA DISPONIBLE/);
+  assert.match(schedule, /SEMANA SIN CITAS/);
   assert.match(schedule, /No hay citas programadas/);
   assert.match(schedule, /function dayAvailability/);
-  assert.match(schedule, /Crear primera cita/);
+  assert.match(schedule, /Preparar primera cita/);
   assert.match(css, /schedule-week-availability/);
   assert.doesNotMatch(schedule.slice(schedule.indexOf('function emptyWeek'), schedule.indexOf('function renderWeek')), /<img|background-image|avatar/i);
 });
 
 test('la nueva agenda mantiene paridad web, móvil y PWA', () => {
-  assert.match(app, /smyl-schedule\.js\?v=9/);
+  assert.match(app, /smyl-schedule\.js\?v=10/);
   assert.match(app, /smyl-schedule\.css\?v=5/);
   assert.match(worker, /smyl-v246-inbox-appointments/);
   assert.equal(schedule, read('../mobile/www/smyl-schedule.js'));
