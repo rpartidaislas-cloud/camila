@@ -43,7 +43,7 @@
     ['Canales y asistente', 'conexiones', 'channels'],
     ['Preparación operativa', 'lanzamiento', 'launch'],
     ['Seguridad', 'seguridad', 'shield'],
-    ['Simulaciones anteriores', 'historial', 'history'],
+    ['Simulaciones', 'historial', 'history'],
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account']
   ];

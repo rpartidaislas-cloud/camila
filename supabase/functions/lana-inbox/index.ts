@@ -19,7 +19,11 @@ type Actor = {
   role_code: string;
   role_name: string;
   permissions: string[];
+  scopes: Record<string, DataScope>;
 };
+
+type DataScope = "own" | "care_team" | "branches" | "clinic";
+const SCOPE_RANK: Record<DataScope, number> = { own: 1, care_team: 2, branches: 3, clinic: 4 };
 
 const OWNER_PERMISSIONS = [
   "messages.read", "messages.respond", "messages.manage",
@@ -68,6 +72,11 @@ async function actorFor(user: { id: string; email?: string }, tenantId: string):
   let roleCode = isOwner ? "propietario" : "sin_rol";
   let roleName = isOwner ? "Propietario" : "Sin rol operativo";
   let permissions = isOwner ? [...OWNER_PERMISSIONS] : [];
+  const scopes: Record<string, DataScope> = {
+    patients: isOwner ? "clinic" : "own", schedule: isOwner ? "clinic" : "own",
+    clinical: isOwner ? "clinic" : "own", messages: isOwner ? "clinic" : "own",
+    finance: isOwner ? "clinic" : "own",
+  };
   if (!isOwner) {
     const { data: assignments } = await admin.from("smyl_member_roles")
       .select("role_id")
@@ -75,9 +84,10 @@ async function actorFor(user: { id: string; email?: string }, tenantId: string):
       .eq("user_id", user.id);
     const roleIds = (assignments || []).map((row: Record<string, unknown>) => String(row.role_id || "")).filter(Boolean);
     if (roleIds.length) {
-      const [{ data: roles }, { data: grants }] = await Promise.all([
+      const [{ data: roles }, { data: grants }, { data: roleScopes }] = await Promise.all([
         admin.from("smyl_roles").select("id,code,name,active").eq("tenant_id", tenantId).in("id", roleIds).eq("active", true),
         admin.from("smyl_role_permissions").select("role_id,permission_key").eq("tenant_id", tenantId).in("role_id", roleIds),
+        admin.from("smyl_role_scopes").select("role_id,domain,scope").eq("tenant_id", tenantId).in("role_id", roleIds),
       ]);
       const activeRoles = roles || [];
       if (activeRoles.length) {
@@ -88,6 +98,12 @@ async function actorFor(user: { id: string; email?: string }, tenantId: string):
           .filter((row: Record<string, unknown>) => activeIds.has(String(row.role_id || "")))
           .map((row: Record<string, unknown>) => text(row.permission_key, 80))
           .filter(Boolean)));
+        for (const row of roleScopes || []) {
+          if (!activeIds.has(String(row.role_id || ""))) continue;
+          const domain = text(row.domain, 30);
+          const candidate = text(row.scope, 20) as DataScope;
+          if (domain in scopes && candidate in SCOPE_RANK && SCOPE_RANK[candidate] > SCOPE_RANK[scopes[domain]]) scopes[domain] = candidate;
+        }
       }
     }
   }
@@ -98,7 +114,64 @@ async function actorFor(user: { id: string; email?: string }, tenantId: string):
     role_code: roleCode,
     role_name: roleName,
     permissions,
+    scopes,
   };
+}
+
+function assignedActorId(conversation: Record<string, unknown>): string {
+  const assignment = conversation.assignment && typeof conversation.assignment === "object"
+    ? conversation.assignment as Record<string, unknown> : {};
+  return String(conversation.assigned_actor_id || assignment.actor_id || "");
+}
+
+async function accessiblePatient(actor: Actor, tenantId: string, patientId: string): Promise<boolean> {
+  const scope = actor.scopes.messages || "own";
+  if (scope === "clinic") return true;
+  if (scope === "branches") {
+    const { data: branches } = await admin.from("smyl_member_branches").select("branch_id").eq("tenant_id", tenantId).eq("user_id", actor.id);
+    const ids = (branches || []).map((row) => row.branch_id).filter(Boolean);
+    if (!ids.length) return false;
+    const { data } = await admin.from("smyl_appointments").select("id").eq("tenant_id", tenantId).eq("patient_id", patientId).in("branch_id", ids).limit(1);
+    return Boolean(data?.length);
+  }
+  const { data: professional } = await admin.from("smyl_professionals").select("id").eq("tenant_id", tenantId).eq("user_id", actor.id).eq("active", true).maybeSingle();
+  if (!professional?.id) return false;
+  const [{ data: team }, { data: appointments }] = await Promise.all([
+    admin.from("smyl_patient_care_team").select("patient_id").eq("tenant_id", tenantId).eq("patient_id", patientId).eq("professional_id", professional.id).eq("active", true).limit(1),
+    admin.from("smyl_appointments").select("id").eq("tenant_id", tenantId).eq("patient_id", patientId).eq("professional_id", professional.id).limit(1),
+  ]);
+  return Boolean(team?.length || appointments?.length);
+}
+
+async function canAccessConversation(actor: Actor, tenantId: string, conversationId: string, conversation?: Record<string, unknown>): Promise<boolean> {
+  if ((actor.scopes.messages || "own") === "clinic") return true;
+  if (conversation && assignedActorId(conversation) === actor.id) return true;
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  if (handoff?.patient_id && await accessiblePatient(actor, tenantId, String(handoff.patient_id))) return true;
+  if (!conversation) {
+    const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/messages?limit=1`, { method: "GET", headers: actorHeaders(actor) }, 15000);
+    const candidate = remote.body.conversation && typeof remote.body.conversation === "object" ? remote.body.conversation as Record<string, unknown> : {};
+    return assignedActorId(candidate) === actor.id;
+  }
+  return false;
+}
+
+async function filterConversationPayload(actor: Actor, tenantId: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  if ((actor.scopes.messages || "own") === "clinic" || !Array.isArray(body.conversations)) return body;
+  const allowed: unknown[] = [];
+  for (const value of body.conversations.slice(0, 100)) {
+    if (!value || typeof value !== "object") continue;
+    const conversation = value as Record<string, unknown>;
+    const id = uuid(conversation.id);
+    if (id && await canAccessConversation(actor, tenantId, id, conversation)) allowed.push(value);
+  }
+  const page = body.page && typeof body.page === "object" ? { ...(body.page as Record<string, unknown>), total: allowed.length } : body.page;
+  return { ...body, conversations: allowed, removed: [], page };
+}
+
+function forbiddenConversation(): Response {
+  return json(403, { error: "Esta conversación queda fuera del alcance de tu rol.", code: "conversation_scope_denied" });
 }
 
 async function listTeam(tenantId: string): Promise<Response> {
@@ -411,6 +484,10 @@ Deno.serve(async (req: Request) => {
       }
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
+      if (conversationId && !await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+      if (action === "operations" && actor.scopes.messages !== "clinic") {
+        return json(403, { error: "Los indicadores globales requieren alcance de toda la clínica.", code: "conversation_scope_denied" });
+      }
       if (action === "appointment_requests" && conversationId) {
         const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar solicitudes de Agenda.");
         return scheduleDenied || await appointmentRequests(auth.tenantId, conversationId);
@@ -435,7 +512,10 @@ Deno.serve(async (req: Request) => {
       if (!path) return json(400, { error: "Consulta de Inbox no reconocida." });
       const headers = actorHeaders(actor);
       const remote = await lanaRequest(auth.tenantId, path, { method: "GET", headers }, 15000);
-      return json(remote.response.status, { ...remote.body, actor });
+      const scopedBody = ["list", "sync"].includes(action)
+        ? await filterConversationPayload(actor, auth.tenantId, remote.body)
+        : remote.body;
+      return json(remote.response.status, { ...scopedBody, actor });
     }
 
     if ((req.headers.get("content-type") || "").toLowerCase().includes("multipart/form-data")) {
@@ -448,6 +528,7 @@ Deno.serve(async (req: Request) => {
       const conversationId = uuid(incoming.get("conversation_id"));
       const file = incoming.get("file");
       if (!conversationId || !(file instanceof File)) return json(400, { error: "Falta la conversación o el archivo." });
+      if (!await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
       const forwarded = new FormData();
       forwarded.append("file", file, file.name);
       forwarded.append("kind", text(incoming.get("kind"), 20));
@@ -476,6 +557,7 @@ Deno.serve(async (req: Request) => {
     }
     const conversationId = uuid(body.conversation_id);
     if (!conversationId) return json(400, { error: "Conversación no válida." });
+    if (!await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
     if (action === "appointment_request" || action === "appointment_confirm") {
       const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar citas.");
       if (scheduleDenied) return scheduleDenied;
@@ -625,6 +707,7 @@ Deno.serve(async (req: Request) => {
         const sourceConversationId = uuid(body.source_conversation_id);
         const sourceMessageId = messageId(body.source_message_id);
         if (!sourceConversationId || !sourceMessageId) return json(400, { error: "Mensaje de origen no válido." });
+        if (!await canAccessConversation(actor, auth.tenantId, sourceConversationId)) return forbiddenConversation();
         forwarded.source_conversation_id = sourceConversationId;
         forwarded.source_message_id = sourceMessageId;
       } else return json(400, { error: "Tipo de mensaje no reconocido." });

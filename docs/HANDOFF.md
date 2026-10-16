@@ -1,5 +1,103 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-15 — Codex: expediente simple y simulaciones separadas
+
+**La ficha del paciente reduce su navegación a Resumen, Expediente, Tratamiento
+y Actividad; las simulaciones dejan de presentarse como evidencia clínica.**
+
+- La cabecera comunica el estado del paciente y una sola siguiente acción.
+- Expediente reúne accesos secundarios a antecedentes, odontograma,
+  evoluciones, estudios y documentos sin convertirlos en ocho pestañas iguales.
+- El recorrido usa `Documentación clínica` para fotografías originales,
+  radiografías y archivos; la galería antes/después ya no se renderiza dentro de
+  ese bloque.
+- `Simulaciones de sonrisa` conserva su ruta independiente y desde la ficha sólo
+  aparece una referencia explícitamente orientativa con accesos para consultar
+  o crear una simulación.
+- El menú y la portada dejan de llamar `Historial` a las simulaciones y separan
+  la ruta clínica de la herramienta visual.
+- No cambió el modelo de datos, los permisos, la auditoría ni los archivos
+  existentes. Web, móvil y PWA avanzan a los recursos versionados de esta etapa.
+
+**Validación:** 383/383 pruebas aprobadas, puerta de seguridad completa en
+verde y `git diff --check` sin errores. Cambios locales; no publicados todavía.
+
+## 2026-10-15 — Codex: alcances efectivos en Mensajes y Finanzas
+
+**La configuración flexible de roles ya se aplica del lado del servidor en la
+bandeja, Ficha 360, caja y CFDI; no depende de ocultar botones en la interfaz.**
+
+- `lana-inbox` resuelve el alcance más amplio de los roles activos. Con alcance
+  limitado sólo entrega conversaciones asignadas al integrante o vinculadas a
+  pacientes que pertenecen a su práctica, equipo o sucursales.
+- El mismo control bloquea enlaces directos, mensajes, archivos, Copilot,
+  Agenda desde el chat, organización y reenvíos cuyo origen no sea accesible.
+- Los indicadores globales del Inbox sólo están disponibles con alcance de
+  clínica, evitando revelar conteos de conversaciones ajenas.
+- `20261015050000_smyl_chat_finance_scopes.sql` filtra cargos, pagos,
+  devoluciones, recibos, cajas, perfiles fiscales, borradores y cancelaciones
+  por paciente o sucursal. La configuración fiscal del emisor sigue siendo de
+  alcance clínico completo.
+- Triggers impiden que operaciones privilegiadas creen o modifiquen movimientos
+  fuera del alcance del usuario; la cuenta privada de integraciones conserva su
+  funcionamiento.
+
+**Validación:** 379/379 pruebas aprobadas, pruebas específicas de alcance y
+puerta de seguridad en verde, sin errores de formato. La implementación está
+preparada localmente; migraciones `20261015030000` a `20261015050000` todavía
+no se aplican ni publican hasta un despliegue controlado.
+
+## 2026-10-15 — Codex: alcances configurables por rol
+
+**Cada rol puede combinar libremente sus funciones con un alcance de datos:
+propio, equipo tratante, sucursales asignadas o toda la clínica.**
+
+- Mi clínica v4 agrega selectores de alcance independientes para Pacientes,
+  Agenda, Expediente clínico, Mensajes y Finanzas, y resume la configuración en
+  cada tarjeta de rol.
+- `20261015040000_smyl_role_data_scopes.sql` crea los alcances, el equipo
+  tratante paciente-profesional y operaciones seguras para guardar roles y
+  asignar profesionales.
+- Los roles existentes reciben valores iniciales: administración/recepción y
+  finanzas conservan la operación amplia; odontólogos parten de acceso propio;
+  asistentes clínicos parten del equipo tratante. Todo puede editarse.
+- RLS restringe pacientes, citas, horarios, bloqueos, solicitudes, eventos,
+  recordatorios, antecedentes, notas, versiones, adendas y archivos según el
+  alcance configurado. Triggers protegen también escrituras realizadas mediante
+  funciones privilegiadas.
+- Un administrador delegado no puede conceder un alcance superior al suyo. El
+  servicio privado conserva el acceso necesario para integraciones verificadas.
+- Web y móvil permanecen sincronizados y la PWA carga Mi clínica v4.
+
+**Validación:** 374/374 pruebas aprobadas, puerta de seguridad en verde,
+sintaxis JavaScript válida y paridad web/móvil confirmada. Las migraciones
+`20261015030000` y `20261015040000` siguen preparadas, no aplicadas ni
+publicadas. Mensajes y Finanzas ya almacenan el alcance elegido, pero su filtrado
+específico se completa en sus respectivas etapas para no cambiar contratos del
+puente LANA ni del libro financiero sin pruebas dedicadas.
+
+## 2026-10-15 — Codex: roles configurables por funciones
+
+**Los perfiles dejaron de presentarse como paquetes rígidos: la clínica puede
+crear roles y activar o desactivar funciones mediante pastillas.**
+
+- `Mi clínica > Equipo, roles y profesionales` incluye un editor agrupado para
+  clínica, pacientes, agenda, cotizaciones, mensajes, caja e inventario.
+- Los siete roles iniciales continúan como plantillas editables; Propietario se
+  conserva protegido para evitar perder el control de la clínica.
+- La migración `20261015030000_smyl_custom_roles.sql` agrega una operación
+  transaccional para crear/editar roles y reemplazar sus funciones. Un
+  administrador delegado sólo puede conceder funciones que él mismo posee.
+- La asignación de roles acepta a integrantes con `team.manage`, conserva la
+  protección del propietario e impide asignar un rol con privilegios superiores.
+- Web y móvil usan Mi clínica v3 y mantienen paridad byte a byte.
+
+**Validación:** 369/369 pruebas aprobadas, puerta de seguridad en verde,
+`supabase db lint --linked --level warning` sin errores y paridad web/móvil
+confirmada. La migración está preparada pero no se aplicó ni se publicó en
+este turno. Siguiente etapa: alcances configurables por agenda, sucursal,
+profesional y equipo tratante, con RLS real sobre pacientes y citas.
+
 ## 2026-10-15 — Codex: Agenda, integridad previa al chatbot
 
 **Agenda manual y disponibilidad conversacional ya comparten reglas clínicas

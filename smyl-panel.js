@@ -18,7 +18,7 @@
   function init() {
     document.body.classList.add('smyl-professional');
     var title = document.getElementById('topbar-title');
-    TITULOS.dashboard = 'Inicio'; TITULOS.historial = 'Simulaciones anteriores';
+    TITULOS.dashboard = 'Inicio'; TITULOS.historial = 'Simulaciones';
     TITULOS.propuestas = 'Presentaciones'; TITULOS['nuevo-diseno'] = 'Valoración y diseño';
     if (title.textContent === 'Dashboard') title.textContent = 'Inicio';
     var sidebar = document.querySelector('.sidebar .nav-items');
@@ -38,7 +38,7 @@
     primary.append(take('dashboard', 'Inicio'), take('pacientes', 'Pacientes'), navButton('Presentaciones', 'propuestas'));
     var settings = node('details', 'pro-settings'); settings.append(node('summary', '', 'Herramientas y configuración'));
     ['historial','notificaciones','precios','sim-config','mi-cuenta'].forEach(function (route, index) {
-      settings.append(take(route, ['Simulaciones anteriores','Notificaciones','Precios de la clínica','Marca y simulación','Mi cuenta'][index]));
+      settings.append(take(route, ['Simulaciones','Notificaciones','Precios de la clínica','Marca y simulación','Mi cuenta'][index]));
     });
     sidebar.replaceChildren(primary, settings);
     var topButton = document.querySelector('.topbar-right .btn-primary');
@@ -52,11 +52,11 @@
     main.before(mobile);
     var home = document.getElementById('p-dashboard');
     var hero = node('section', 'pro-welcome');
-    hero.innerHTML = '<div class="pro-welcome-copy"><p class="pro-eyebrow">TU MESA DE TRABAJO</p><h1>Continúa donde<br>lo dejaste.</h1><p>Abre la ficha del paciente y SMYL te mostrará la etapa pendiente, sin perder de vista tu criterio clínico.</p><div class="pro-welcome-actions"><a class="btn btn-primary" href="#" data-open-patients>Ver pacientes <span aria-hidden="true">→</span></a><a class="btn btn-secondary" href="simulacion-rapida.html?workspace=professional">Nueva simulación</a></div></div><aside class="pro-path"><span class="pro-step-number">RUTA CLÍNICA</span><ol class="pro-path-list"><li><span>01</span><div><strong>Evidencias</strong><small>Fotografías y simulaciones del caso</small></div></li><li><span>02</span><div><strong>Revisión clínica</strong><small>Hallazgos que tú confirmas</small></div></li><li><span>03</span><div><strong>Plan de tratamiento</strong><small>Borrador revisado y aprobado</small></div></li><li><span>04</span><div><strong>Compartir</strong><small>Presentación preparada para el paciente</small></div></li></ol></aside>';
+    hero.innerHTML = '<div class="pro-welcome-copy"><p class="pro-eyebrow">TU MESA DE TRABAJO</p><h1>Continúa donde<br>lo dejaste.</h1><p>Abre la ficha del paciente y SMYL te mostrará la etapa pendiente, sin perder de vista tu criterio clínico.</p><div class="pro-welcome-actions"><a class="btn btn-primary" href="#" data-open-patients>Ver pacientes <span aria-hidden="true">→</span></a><a class="btn btn-secondary" href="simulacion-rapida.html?workspace=professional">Nueva simulación</a></div></div><aside class="pro-path"><span class="pro-step-number">RUTA CLÍNICA</span><ol class="pro-path-list"><li><span>01</span><div><strong>Documentación clínica</strong><small>Antecedentes, fotografías y estudios originales</small></div></li><li><span>02</span><div><strong>Odontograma</strong><small>Hallazgos que tú confirmas</small></div></li><li><span>03</span><div><strong>Plan de tratamiento</strong><small>Borrador revisado y aprobado</small></div></li><li><span>04</span><div><strong>Cotización</strong><small>Servicios e inversión para el paciente</small></div></li></ol></aside>';
     hero.querySelector('[data-open-patients]').addEventListener('click', function (event) { event.preventDefault(); window.ir('pacientes'); });
     home.prepend(hero);
     var actions = node('section', 'pro-action-grid'); actions.setAttribute('aria-label', 'Acciones principales');
-    actions.innerHTML = '<article class="pro-action-card"><span>EMPEZAR</span><h2>Registrar evidencias</h2><p>Abre una nueva sesión fotográfica y guárdala en la ficha del paciente.</p><a href="simulacion-rapida.html?workspace=professional">Nueva simulación →</a></article><article class="pro-action-card"><span>CONTINUAR</span><h2>Revisar expedientes</h2><p>Consulta la etapa pendiente de cada caso y continúa desde ahí.</p><button type="button" data-action-patients>Ver pacientes →</button></article><article class="pro-action-card"><span>PRESENTAR</span><h2>Preparar propuesta</h2><p>Revisa el plan, los importes y lo que verá el paciente antes de aprobar.</p><button type="button" data-action-proposals>Ver presentaciones →</button></article>';
+    actions.innerHTML = '<article class="pro-action-card"><span>EMPEZAR</span><h2>Abrir un expediente</h2><p>Consulta alertas, antecedentes y la siguiente acción del paciente.</p><button type="button" data-action-patients>Ver pacientes →</button></article><article class="pro-action-card"><span>VISUALIZAR</span><h2>Crear una simulación</h2><p>Prepara una comparación orientativa en su espacio independiente.</p><a href="simulacion-rapida.html?workspace=professional">Nueva simulación →</a></article><article class="pro-action-card"><span>PRESENTAR</span><h2>Preparar propuesta</h2><p>Revisa el plan, los importes y lo que verá el paciente antes de aprobar.</p><button type="button" data-action-proposals>Ver presentaciones →</button></article>';
     actions.querySelector('[data-action-patients]').addEventListener('click', function () { window.ir('pacientes'); });
     actions.querySelector('[data-action-proposals]').addEventListener('click', function () { window.ir('propuestas'); });
     hero.after(actions);

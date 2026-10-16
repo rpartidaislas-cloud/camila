@@ -27,17 +27,17 @@ test('cada sede muestra señales verificables antes de considerarse lista para a
 test('equipo y profesionales exponen pendientes y alcance de roles', () => {
   assert.match(script, /staffMissingRole/);
   assert.match(script, /professionalsMissingBranch/);
-  assert.match(script, /Qué permite cada rol/);
+  assert.match(script, /Roles y funciones/);
   assert.match(script, /PERMISSION_LABELS/);
-  assert.match(script, /Consulta el alcance antes de asignar responsabilidades/);
+  assert.match(script, /plantillas editables/);
 });
 
 test('web, móvil y PWA publican la etapa ocho sincronizada', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-clinic-admin.js'));
   assert.equal(styles, read('../mobile/www/smyl-clinic-admin.css'));
-  assert.match(app, /smyl-clinic-admin\.js\?v=2/);
-  assert.match(app, /smyl-clinic-admin\.css\?v=2/);
-  assert.match(worker, /smyl-v247-inbox-professional/);
+  assert.match(app, /smyl-clinic-admin\.js\?v=4/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=4/);
+  assert.match(worker, /smyl-v248-patient-record-simple/);
   assert.match(read('./fixtures/smyl-clinic-readiness-stage8-preview.html'), /Preparación operativa/);
 });

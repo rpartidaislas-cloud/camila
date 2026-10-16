@@ -46,12 +46,12 @@ test('clinical files remain private and tenant-patient scoped', () => {
 });
 
 test('patient 360 unifies existing dental modules without exposing LANA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=3/);
-  assert.match(app, /smyl-patient-360\.js\?v=5/);
-  assert.match(script, /Información clínica y administrativa, en contexto/);
+  assert.match(app, /smyl-patient-360\.css\?v=4/);
+  assert.match(app, /smyl-patient-360\.js\?v=6/);
+  assert.match(script, /Lo importante para continuar la atención/);
   assert.match(script, /p360-dental/);
-  assert.match(script, /p360-cases/);
   assert.match(script, /p360-plan/);
+  assert.doesNotMatch(script, /p360-cases/);
   assert.doesNotMatch(script, /LANA/i);
   assert.match(styles, /@media\(max-width:900px\)/);
   assert.match(styles, /@media\(max-width:600px\)/);
@@ -61,9 +61,9 @@ test('web, mobile and offline patient assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-patient-360.js'));
   assert.equal(styles, read('../mobile/www/smyl-patient-360.css'));
-assert.match(worker, /smyl-v247-inbox-professional/);
-  assert.match(worker, /smyl-patient-360\.js\?v=5/);
-  assert.match(worker, /smyl-patient-360\.css\?v=3/);
+assert.match(worker, /smyl-v248-patient-record-simple/);
+  assert.match(worker, /smyl-patient-360\.js\?v=6/);
+  assert.match(worker, /smyl-patient-360\.css\?v=4/);
 });
 
 test('patient profile owns fiscal details and starts traced material use from an appointment', () => {

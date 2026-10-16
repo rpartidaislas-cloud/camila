@@ -753,9 +753,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 }
 </style>
 <link rel="stylesheet" href="smyl-panel.css?v=4">
-<script defer src="smyl-panel.js?v=5"></script>
-<link rel="stylesheet" href="smyl-clinic-admin.css?v=2">
-<script defer src="smyl-clinic-admin.js?v=2"></script>
+<script defer src="smyl-panel.js?v=6"></script>
+<link rel="stylesheet" href="smyl-clinic-admin.css?v=4">
+<script defer src="smyl-clinic-admin.js?v=4"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=5">
 <script defer src="smyl-professional-directory.js?v=5"></script>
 <link rel="stylesheet" href="smyl-schedule.css?v=5">
@@ -787,7 +787,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-inbox.css?v=14">
 <script defer src="smyl-inbox.js?v=17"></script>
 <link rel="stylesheet" href="smyl-navigation.css?v=1">
-<script defer src="smyl-navigation.js?v=5"></script>
+<script defer src="smyl-navigation.js?v=6"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=1">
 <script defer src="smyl-command-menu.js?v=2"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=2">
@@ -795,8 +795,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
 <script defer src="smyl-clinic.js?v=8"></script>
-<link rel="stylesheet" href="smyl-patient-360.css?v=3">
-<script defer src="smyl-patient-360.js?v=5"></script>
+<link rel="stylesheet" href="smyl-patient-360.css?v=4">
+<script defer src="smyl-patient-360.js?v=6"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=1">
 <script defer src="smyl-patient-record-stage2.js?v=1"></script>
 <link rel="stylesheet" href="smyl-proposals.css?v=7">
@@ -837,8 +837,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-photo-review.js?v=5"></script>
 <script defer src="smyl-photo-analysis-client.js?v=3"></script>
 <script defer src="smyl-photo-analysis.js?v=5"></script>
-<link rel="stylesheet" href="smyl-case-workspace.css?v=5">
-<script defer src="smyl-case-workspace.js?v=8"></script>
+<link rel="stylesheet" href="smyl-case-workspace.css?v=6">
+<script defer src="smyl-case-workspace.js?v=9"></script>
 <link rel="stylesheet" href="smyl-professional-v3.css?v=2">
 <script defer src="smyl-professional-v3.js?v=2"></script>
 <link rel="stylesheet" href="smyl-dialog-system.css?v=1">
@@ -925,7 +925,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="nav-section" style="margin-top:8px">Gestión</div>
       <div class="nav-item" onclick="ir('historial')">
         <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-        Historial
+        Simulaciones
       </div>
       <div class="nav-item" onclick="ir('colaboraciones')">
         <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
@@ -1603,14 +1603,14 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="pantalla" id="p-historial">
         <div class="card">
           <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-            <div class="card-title">Historial de Casos</div>
+            <div class="card-title">Simulaciones de sonrisa</div>
             <button onclick="window.location.href='simulacion-rapida.html'" style="height:32px;padding:0 12px;border-radius:8px;background:var(--color-primary);color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nuevo caso
+              Nueva simulación
             </button>
           </div>
           <div id="historial-lista">
-            <div class="empty"><div class="icon">📁</div><h3>Sin casos aún</h3><p>Los casos guardados desde la simulación aparecerán aquí.</p></div>
+            <div class="empty"><div class="icon">✦</div><h3>Sin simulaciones aún</h3><p>Las comparaciones visuales se guardarán aquí, separadas del expediente clínico.</p></div>
           </div>
         </div>
       </div>
@@ -2728,7 +2728,7 @@ var TITULOS = {
   pacientes: 'Pacientes',
   'paciente-detalle': 'Expediente del Paciente',
   'nuevo-diseno': 'Nuevo Diseño',
-  historial: 'Historial de Casos',
+  historial: 'Simulaciones de sonrisa',
   colaboraciones: 'Colaboraciones',
   notificaciones: 'Notificaciones',
   precios: 'Servicios y tarifas',

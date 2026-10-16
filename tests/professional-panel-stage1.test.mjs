@@ -8,7 +8,7 @@ const styles = fs.readFileSync(new URL('../smyl-panel.css', import.meta.url), 'u
 const serviceWorker = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 test('dashboard presents the existing four-stage clinical path', () => {
-  for (const label of ['Evidencias', 'Revisión clínica', 'Plan de tratamiento', 'Compartir']) {
+  for (const label of ['Documentación clínica', 'Odontograma', 'Plan de tratamiento', 'Cotización']) {
     assert.match(panel, new RegExp(label));
   }
   assert.match(panel, /pro-path-list/);
@@ -36,8 +36,8 @@ test('all primary creation actions open the same professional simulator', () => 
 
 test('panel assets and PWA cache advance together', () => {
   assert.match(app, /smyl-panel\.css\?v=4/);
-  assert.match(app, /smyl-panel\.js\?v=5/);
-assert.match(serviceWorker, /smyl-v247-inbox-professional/);
+  assert.match(app, /smyl-panel\.js\?v=6/);
+assert.match(serviceWorker, /smyl-v248-patient-record-simple/);
   assert.match(serviceWorker, /smyl-panel\.css\?v=4/);
-  assert.match(serviceWorker, /smyl-panel\.js\?v=5/);
+  assert.match(serviceWorker, /smyl-panel\.js\?v=6/);
 });
