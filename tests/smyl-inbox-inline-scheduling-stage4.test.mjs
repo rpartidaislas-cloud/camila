@@ -7,6 +7,7 @@ const inbox = read('../smyl-inbox.js');
 const mobileInbox = read('../mobile/www/smyl-inbox.js');
 const app = read('../app.html');
 const worker = read('../sw.js');
+const styles = read('../smyl-inbox.css');
 
 test('todos los accesos para agendar permanecen dentro del chat', () => {
   assert.match(inbox, /'Agendar cita'\); agenda\.type = 'button'; agenda\.onclick = openAvailabilityDialog/);
@@ -22,10 +23,23 @@ test('la ventana aparece antes de consultar la agenda y conserva al paciente', (
   assert.match(flow, /conversation\.contact_name/);
   assert.match(flow, /control\.disabled = true/);
   assert.match(flow, /control\.disabled = false/);
+  assert.match(flow, /await searchAvailability/);
+});
+
+test('el espacio central muestra una agenda visual por día, profesional y especialidad', () => {
+  assert.match(inbox, /DISPONIBILIDAD DEL EQUIPO/);
+  assert.match(inbox, /Agenda por profesional y especialidad/);
+  assert.match(inbox, /smyl-inbox-availability-day/);
+  assert.match(inbox, /slot\.professional_name/);
+  assert.match(inbox, /slot\.specialty \|\| 'Profesional dental'/);
+  assert.match(styles, /availability-board>\[data-availability-results\]\{display:grid/);
+  assert.match(styles, /smyl-inbox-availability-board/);
 });
 
 test('la agenda embebida mantiene paridad móvil y una versión pública nueva', () => {
   assert.equal(mobileInbox, inbox);
-  assert.match(app, /smyl-inbox\.js\?v=20/);
-  assert.match(worker, /smyl-inbox\.js\?v=20/);
+  assert.match(app, /smyl-inbox\.js\?v=21/);
+  assert.match(app, /smyl-inbox\.css\?v=16/);
+  assert.match(worker, /smyl-inbox\.js\?v=21/);
+  assert.match(worker, /smyl-inbox\.css\?v=16/);
 });

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="../../smyl-inbox.css?focus=4">
+  <link rel="stylesheet" href="../../smyl-inbox.css?focus=7">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
     * { box-sizing:border-box; }
@@ -74,7 +74,7 @@
       if (action === 'sync') return json({ conversations:[],removed:[],synced_at:new Date().toISOString(),truncated:false });
       if (action === 'read') return json({ paused:true,needs_human:true,unread_count:0,assigned_actor_id:'owner-preview',assigned_actor_name:'Dra. Mariana' });
       if (action === 'availability_catalog') return json({ services:[{id:'service-valuation',name:'Valoracion dental integral',duration_minutes:60}],branches:[{id:'branch-centro',name:'Clinica Centro'}],professionals:[{id:'professional-mariana',display_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral'},{id:'professional-diego',display_name:'Dr. Diego Torres',specialty:'Ortodoncia'}],professional_services:[{professional_id:'professional-mariana',service_id:'service-valuation'},{professional_id:'professional-diego',service_id:'service-valuation'}] });
-      if (action === 'availability') return json({ slots:[{starts_at:'2026-10-15T16:00:00.000Z',ends_at:'2026-10-15T17:00:00.000Z',service_id:'service-valuation',professional_id:'professional-mariana',professional_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60},{starts_at:'2026-10-15T17:30:00.000Z',ends_at:'2026-10-15T18:30:00.000Z',service_id:'service-valuation',professional_id:'professional-diego',professional_name:'Dr. Diego Torres',specialty:'Ortodoncia',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60}],holds_created:false });
+      if (action === 'availability') return json({ slots:[{starts_at:'2026-10-16T16:00:00.000Z',ends_at:'2026-10-16T17:00:00.000Z',service_id:'service-valuation',professional_id:'professional-mariana',professional_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60},{starts_at:'2026-10-16T18:00:00.000Z',ends_at:'2026-10-16T19:00:00.000Z',service_id:'service-valuation',professional_id:'professional-diego',professional_name:'Dr. Diego Torres',specialty:'Ortodoncia',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60},{starts_at:'2026-10-17T15:30:00.000Z',ends_at:'2026-10-17T16:30:00.000Z',service_id:'service-valuation',professional_id:'professional-mariana',professional_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60},{starts_at:'2026-10-17T18:30:00.000Z',ends_at:'2026-10-17T19:30:00.000Z',service_id:'service-valuation',professional_id:'professional-diego',professional_name:'Dr. Diego Torres',specialty:'Ortodoncia',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60},{starts_at:'2026-10-18T17:00:00.000Z',ends_at:'2026-10-18T18:00:00.000Z',service_id:'service-valuation',professional_id:'professional-mariana',professional_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral',branch_id:'branch-centro',branch_name:'Clinica Centro',duration_minutes:60}],holds_created:false });
       if (action === 'appointment_requests') return json({ requests:[] });
       if (action === 'appointment_context') return json({ linked:true,patient_id:'patient-preview',items:[{id:'request-preview',service_id:'service-valuation',preferred_branch_id:'branch-centro',preferred_professional_id:'professional-mariana',requested_start:'2026-10-15T16:00:00.000Z',requested_end:'2026-10-15T17:00:00.000Z',status:'accepted',appointment_id:'appointment-preview',service:{id:'service-valuation',name:'Valoracion dental integral',duration_minutes:60},branch:{id:'branch-centro',name:'Clinica Centro',timezone:'America/Mexico_City'},professional:{id:'professional-mariana',display_name:'Dra. Mariana Ruiz',specialty:'Odontologia integral'},appointment:{id:'appointment-preview',status:'confirmed',starts_at:'2026-10-15T16:00:00.000Z',ends_at:'2026-10-15T17:00:00.000Z'}}] });
       if (action === 'appointment_request') return json({ request_id:'request-preview',status:'pending',appointment_created:false,message_sent:false });
@@ -82,7 +82,7 @@
       return json({});
     };
   </script>
-  <script src="../../smyl-inbox.js?focus=4"></script>
+  <script src="../../smyl-inbox.js?focus=6"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');

@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: agenda visual por profesional dentro del chat
+
+**La ventana de cita deja de mostrar un área vacía y presenta la disponibilidad
+real como agenda semanal, manteniendo al equipo dentro de la conversación.**
+
+- Al abrir, selecciona el primer servicio disponible y consulta automáticamente
+  los horarios del periodo; el botón queda como actualización manual.
+- El tablero agrupa los espacios por día y muestra hora, duración, profesional,
+  especialidad/rol dental y sucursal. Los filtros permiten limitar la vista por
+  servicio, sede o integrante del equipo sin navegar al módulo Agenda.
+- Escritorio muestra hasta cuatro días en paralelo. En celular conserva una
+  columna amplia por día con desplazamiento horizontal y acciones táctiles.
+- La acción administrativa para registrar o confirmar aparece sólo después de
+  elegir una opción o cuando ya existe una solicitud, reduciendo ruido visual.
+- Web, aplicación móvil y PWA avanzan a Inbox JS v21 y CSS v16. No se modificó
+  backend, migraciones ni el cálculo canónico de disponibilidad.
+
+**Validación:** 409/409 pruebas aprobadas, puerta de seguridad en verde y
+revisión visual satisfactoria en escritorio y celular.
+
 ## 2026-10-16 — Codex: agenda integrada dentro de Mensajes
 
 **Agendar una cita ya no saca al equipo de la conversación: ambos accesos del

@@ -47,7 +47,7 @@ test('the bridge enforces schedule management and never sends a chat message', (
 });
 
 test('the interface separates patient choice, confirmation and messaging', () => {
-  assert.match(inbox, /Paciente eligió/);
+  assert.match(inbox, /Registrar elección/);
   assert.match(inbox, /todavía no será una cita/);
   assert.match(inbox, /Confirmar cita/);
   assert.match(inbox, /volverá a comprobar la disponibilidad/);
