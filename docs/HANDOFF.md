@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: Política Visual SMYL v2 normativa
+
+**La identidad visual deja de depender de ajustes locales y queda definida como
+un sistema profesional, medible y migrable para toda la plataforma.**
+
+- Se reemplazó la política anterior, centrada principalmente en simulación, por
+  tres contextos coordinados: SMYL Operativo, SMYL Studio y SMYL Paciente.
+- Se fijaron tokens canónicos de color, tipografía, espacio, radio, borde,
+  sombra, foco y movimiento; el azul es la acción operativa, el teal comunica
+  disponibilidad/selección y el violeta queda reservado para IA y Studio.
+- La escala tipográfica limita las ventanas a títulos de 18 px y elimina pesos
+  arbitrarios, texto funcional microscópico y jerarquías basadas en tamaño.
+- El sistema de ventanas define XS/S/M/L/Workspace, altura según contenido,
+  una sola acción primaria, scroll único y comportamiento móvil accesible.
+- Agenda queda establecida como el primer Workspace de referencia: compacta
+  cuando falta configuración y amplia sólo cuando existen horarios reales.
+- Se incorporaron reglas de privacidad visual, fotografía clínica, voz,
+  responsive, WCAG 2.2 AA, gobierno técnico, migración y lista de aceptación.
+- Un contrato automatizado protege los principios esenciales de la versión 2.
+- Esta etapa modifica documentación normativa, no la interfaz publicada.
+
+**Siguiente paso recomendado:** implementar tokens y primitivas, reconstruir
+Agenda como referencia y solicitar aprobación visual antes de migrar otras
+ventanas.
+
 ## 2026-10-16 — Codex: Agenda con densidad visual equilibrada
 
 **La Agenda dentro del chat deja de sentirse sobredimensionada y conserva una
