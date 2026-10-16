@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: respuesta visible al activar el micrófono
+
+**MILA ya no queda aparentemente inmóvil cuando el navegador retiene la
+solicitud del micrófono.**
+
+- Los controles de voz se enlazan inmediatamente, sin esperar a que termine la
+  carga de sesión, pacientes y consumos.
+- Al pulsar `Activar`, la interfaz muestra `Solicitando permiso…` y confirma que
+  está esperando la autorización del dispositivo.
+- Si el navegador integrado no presenta el permiso en diez segundos, MILA
+  recupera el botón y explica dónde habilitarlo en navegador o Android.
+- Una autorización que llegue después del límite se cierra de forma segura para
+  no dejar el micrófono activo en segundo plano.
+
+**Validación:** contrato actualizado para el estado pendiente, la recuperación
+por timeout y la vinculación inmediata de la interfaz.
+
 ## 2026-10-16 — Codex: micrófono y experiencia simple de MILA
 
 **MILA queda centrada en una sola acción de voz y ahora diagnostica el acceso

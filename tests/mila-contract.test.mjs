@@ -35,6 +35,9 @@ test('MILA requests microphone access and Android declares the native permission
   assert.match(html, /id="mic-permission-panel"/);
   assert.match(html, /NotAllowedError/);
   assert.match(html, /NotReadableError/);
+  assert.match(html, /PermissionTimeoutError/);
+  assert.match(html, /Solicitando permiso/);
+  assert.match(html, /bindUI\(\);\s*init\(\)/);
   assert.match(manifest, /android\.permission\.RECORD_AUDIO/);
 });
 
