@@ -6,7 +6,7 @@
     filter: 'all', channel: '', search: '', selectedId: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
-    threadController: null, contextOpen: false, polling: false,
+    threadController: null, contextOpen: false, contextSections: {}, polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
@@ -1147,6 +1147,50 @@
     if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(conversationId);
   }
 
+  function contextSectionKey(card, heading) {
+    if (card.classList.contains('is-attention')) return 'attention';
+    if (card.classList.contains('smyl-inbox-appointment-card')) return 'appointment';
+    if (card.classList.contains('smyl-inbox-availability-card')) return 'availability';
+    if (card.classList.contains('smyl-inbox-ficha')) return 'record';
+    if (card.classList.contains('smyl-inbox-copilot-card')) return 'copilot';
+    if (card.classList.contains('smyl-inbox-wa-card')) return 'whatsapp';
+    if (card.classList.contains('smyl-inbox-automation-card')) return 'automation';
+    if (card.classList.contains('smyl-inbox-scheduled-card')) return 'scheduled';
+    if (card.classList.contains('smyl-inbox-organization')) return 'organization';
+    return String(heading.textContent || 'section').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+  }
+
+  function organizeContextSections(wrap, conversation, ficha) {
+    Array.from(wrap.children).filter(function (child) { return child.classList.contains('smyl-inbox-context-card'); }).forEach(function (card) {
+      var heading = Array.from(card.children).find(function (child) { return child.tagName === 'H3'; });
+      if (!heading) return;
+      var key = contextSectionKey(card, heading);
+      var storageKey = conversation.id + ':' + key;
+      var details = node('details', 'smyl-inbox-context-group');
+      details.dataset.section = key;
+      var summary = document.createElement('summary');
+      summary.append(node('span', '', heading.textContent));
+      var hint = '';
+      if (key === 'attention') hint = 'Requiere acción';
+      else if (key === 'appointment') hint = state.appointmentContextLoading[conversation.id] ? 'Consultando' : 'Agenda';
+      else if (key === 'record') hint = ficha && ficha.linked ? 'Vinculado' : 'Por vincular';
+      else if (key === 'whatsapp') hint = liveWhatsappWindow(conversation).status === 'expired' ? 'Ventana vencida' : 'Ventana abierta';
+      else if (key === 'responsable') hint = conversation.assignment ? conversation.assignment.name : 'Sin asignar';
+      if (hint) summary.append(node('small', '', hint));
+      heading.remove();
+      card.classList.add('smyl-inbox-context-card-body');
+      wrap.insertBefore(details, card);
+      details.append(summary, card);
+      var appointmentData = state.appointmentContext[conversation.id];
+      var urgent = key === 'attention'
+        || key === 'appointment' && appointmentData && ((appointmentData.items || []).some(function (item) { return ['confirmed', 'accepted', 'cancelled', 'rejected', 'expired'].indexOf((item.appointment && item.appointment.status) || item.status) === -1; }) || !appointmentData.linked)
+        || key === 'record' && !(ficha && ficha.linked)
+        || key === 'responsable' && !conversation.assignment;
+      details.open = state.contextSections[storageKey] === undefined ? urgent : state.contextSections[storageKey];
+      details.addEventListener('toggle', function () { state.contextSections[storageKey] = details.open; });
+    });
+  }
+
   function renderContext() {
     var wrap = document.querySelector('[data-inbox-context-content]');
     var page = document.getElementById('p-inbox');
@@ -1332,31 +1376,33 @@
       attention.append(resolve); wrap.append(attention);
     }
 
-    if (!hasPermission('clinical.read')) return;
-    var clinical = node('section', 'smyl-inbox-context-card smyl-inbox-ficha');
-    clinical.append(node('h3', '', 'Ficha 360'));
-    if (state.clinicalLoading[conversation.id]) clinical.append(node('p', '', 'Consultando expediente…'));
-    else if (ficha && ficha.linked) {
-      clinical.append(node('strong', '', ficha.patient && ficha.patient.name || conversation.contact_name));
-      clinical.append(node('p', '', [ficha.patient && ficha.patient.phone, ficha.patient && ficha.patient.email].filter(Boolean).join(' · ') || 'Paciente confirmado'));
-      var facts = node('div', 'smyl-inbox-ficha-facts');
-      facts.append(node('span', '', 'Caso activo'), node('span', '', String((ficha.clinical_images || []).length) + ' fotos desde chat'));
-      if (ficha.case && ficha.case.score !== null) facts.append(node('span', '', 'Score ' + ficha.case.score));
-      if (ficha.case && ficha.case.lana_appointment_id) facts.append(node('span', '', 'Cita vinculada'));
-      if (ficha.case && ficha.case.simulation_url) facts.append(node('span', '', 'Simulación disponible'));
-      if (ficha.case && ficha.case.quote_total !== null && ficha.case.quote_total !== undefined) {
-        var quote = Number(ficha.case.quote_total);
-        facts.append(node('span', '', Number.isFinite(quote) ? 'Propuesta ' + quote.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : 'Propuesta registrada'));
+    if (hasPermission('clinical.read')) {
+      var clinical = node('section', 'smyl-inbox-context-card smyl-inbox-ficha');
+      clinical.append(node('h3', '', 'Ficha 360'));
+      if (state.clinicalLoading[conversation.id]) clinical.append(node('p', '', 'Consultando expediente…'));
+      else if (ficha && ficha.linked) {
+        clinical.append(node('strong', '', ficha.patient && ficha.patient.name || conversation.contact_name));
+        clinical.append(node('p', '', [ficha.patient && ficha.patient.phone, ficha.patient && ficha.patient.email].filter(Boolean).join(' · ') || 'Paciente confirmado'));
+        var facts = node('div', 'smyl-inbox-ficha-facts');
+        facts.append(node('span', '', 'Caso activo'), node('span', '', String((ficha.clinical_images || []).length) + ' fotos desde chat'));
+        if (ficha.case && ficha.case.score !== null) facts.append(node('span', '', 'Score ' + ficha.case.score));
+        if (ficha.case && ficha.case.lana_appointment_id) facts.append(node('span', '', 'Cita vinculada'));
+        if (ficha.case && ficha.case.simulation_url) facts.append(node('span', '', 'Simulación disponible'));
+        if (ficha.case && ficha.case.quote_total !== null && ficha.case.quote_total !== undefined) {
+          var quote = Number(ficha.case.quote_total);
+          facts.append(node('span', '', Number.isFinite(quote) ? 'Propuesta ' + quote.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : 'Propuesta registrada'));
+        }
+        clinical.append(facts);
+        if (ficha.case && (ficha.case.summary || ficha.case.diagnosis)) clinical.append(node('p', 'smyl-inbox-ficha-summary', ficha.case.summary || ficha.case.diagnosis));
+        var openRecord = node('button', 'btn btn-secondary btn-sm', 'Abrir expediente'); openRecord.type = 'button'; openRecord.onclick = function () { openPatientContext(conversation.id); }; clinical.append(openRecord);
+      } else {
+        clinical.append(node('p', '', 'Confirma paciente y caso antes de incorporar fotografías a la revisión clínica.'));
+        var record = node('button', 'btn btn-secondary btn-sm', 'Preparar expediente'); record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); };
+        clinical.append(record);
       }
-      clinical.append(facts);
-      if (ficha.case && (ficha.case.summary || ficha.case.diagnosis)) clinical.append(node('p', 'smyl-inbox-ficha-summary', ficha.case.summary || ficha.case.diagnosis));
-      var openRecord = node('button', 'btn btn-secondary btn-sm', 'Abrir expediente'); openRecord.type = 'button'; openRecord.onclick = function () { openPatientContext(conversation.id); }; clinical.append(openRecord);
-    } else {
-      clinical.append(node('p', '', 'Confirma paciente y caso antes de incorporar fotografías a la revisión clínica.'));
-      var record = node('button', 'btn btn-secondary btn-sm', 'Preparar expediente'); record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); };
-      clinical.append(record);
+      wrap.append(clinical);
     }
-    wrap.append(clinical);
+    organizeContextSections(wrap, conversation, ficha);
   }
 
   function renderCareBar() {

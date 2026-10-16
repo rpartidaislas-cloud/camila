@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: contexto progresivo del Inbox, etapa 2
+
+**Mensajes deja de reservar una tercera columna permanente: el hilo gana espacio
+y los datos del paciente aparecen únicamente cuando el equipo los solicita.**
+
+- El escritorio usa dos columnas para bandeja y conversación. La ficha lateral
+  se convirtió en un cajón superpuesto, con fondo de enfoque y cierre explícito,
+  tanto en escritorio como en tableta y celular.
+- `Siguiente acción` permanece visible al abrir el cajón; responsable,
+  organización, asistente, ventana de WhatsApp, automatización, programados,
+  Copilot, cita, disponibilidad y Ficha 360 se agrupan en secciones desplegables.
+- SMYL abre automáticamente sólo las secciones que requieren atención: solicitud
+  humana, cita pendiente, paciente por vincular o conversación sin responsable.
+- El estado abierto de cada sección se conserva por conversación durante la
+  sesión para evitar que una actualización del hilo desarme el espacio de trabajo.
+- Web y móvil permanecen sincronizados y se añadió una prueba dedicada a la
+  distribución, al comportamiento progresivo y a la paridad de ambos paquetes.
+
+**Validación:** 378/378 pruebas aprobadas, puerta de seguridad en verde y
+revisión visual satisfactoria en escritorio, tableta y celular, incluyendo
+apertura y cierre del cajón. No se modificaron backend, migraciones, RLS, datos
+clínicos ni integraciones de Meta. La etapa 3 debe simplificar la bandeja,
+filtros y densidad móvil.
+
 ## 2026-10-16 — Codex: enfoque conversacional del Inbox, etapa 1
 
 **Mensajes reduce el ruido visible sin retirar funciones: la conversación y la

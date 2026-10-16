@@ -90,6 +90,32 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-composer>label [data-draft-status]{margin-left:4px;color:#28786D;font-weight:650}.smyl-inbox-compose-tools [data-compose-record][aria-pressed=true]{border-color:#D67C72;background:#FFF1EF;color:#9B3E35}.smyl-inbox-compose-tools [data-compose-record][aria-pressed=true]:before{content:'';width:7px;height:7px;margin-right:5px;border-radius:50%;background:#C84F43;animation:smylInboxRecord 1s ease-in-out infinite}.smyl-inbox-compose-context audio{display:block;width:min(270px,100%);height:30px;margin-top:5px}.smyl-inbox-emoji-dialog>[data-emoji-content]{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;padding:20px 23px 24px}.smyl-inbox-emoji-dialog>[data-emoji-content] button{min-width:0;aspect-ratio:1;border:1px solid #D9E2E9;border-radius:9px;background:#F9FBFC;font-size:21px;cursor:pointer}.smyl-inbox-emoji-dialog>[data-emoji-content] button:hover,.smyl-inbox-emoji-dialog>[data-emoji-content] button:focus-visible{border-color:#82B3D0;background:#EEF7FB;outline:none}.smyl-inbox-compose-tools [data-compose-emoji]{font-size:8.5px}@keyframes smylInboxRecord{50%{opacity:.32}}
 @media(max-width:760px){.smyl-inbox-emoji-dialog>[data-emoji-content]{grid-template-columns:repeat(4,1fr);padding:18px}.smyl-inbox-emoji-dialog>[data-emoji-content] button{font-size:25px}.smyl-inbox-compose-context audio{width:210px}}
 
+/* Inbox focus stage 2: two-column workspace and an on-demand patient drawer. */
+.smyl-inbox-workspace{grid-template-columns:340px minmax(0,1fr)}
+.smyl-inbox-context{position:absolute;top:0;right:0;bottom:0;z-index:20;width:min(370px,calc(100% - 48px));padding:0 18px 22px;border-left:1px solid #D8E2E8;background:#fff;box-shadow:-18px 0 42px rgba(16,34,57,.14);transform:translateX(104%);transition:transform .2s ease;overscroll-behavior:contain}
+.smyl-inbox-page.context-open .smyl-inbox-context{transform:translateX(0)}
+.smyl-inbox-context-scrim{position:absolute;inset:0;z-index:19;display:none;border:0;background:rgba(16,34,57,.24);backdrop-filter:blur(1px)}
+.smyl-inbox-page.context-open .smyl-inbox-context-scrim{display:block}
+.smyl-inbox-context-head{position:sticky;top:0;z-index:3;margin:0 -18px 10px;padding:17px 62px 14px 18px;border-bottom:1px solid #E2E9EE;background:rgba(255,255,255,.97)}
+.smyl-inbox-context-close{display:block;top:14px;right:18px;min-width:44px;min-height:34px;border:1px solid #D6E0E7;border-radius:8px;background:#fff;cursor:pointer}
+.smyl-inbox-next{margin-bottom:5px}
+.smyl-inbox-context-group{border-top:1px solid #E3E9EE}
+.smyl-inbox-context-group>summary{min-height:47px;display:flex;align-items:center;gap:8px;list-style:none;color:#26394D;font:750 10.5px Inter,sans-serif;cursor:pointer}
+.smyl-inbox-context-group>summary::-webkit-details-marker{display:none}
+.smyl-inbox-context-group>summary span{min-width:0;flex:1}
+.smyl-inbox-context-group>summary small{padding:4px 6px;border-radius:999px;background:#F0F5F6;color:#687A83;font-size:7.5px;font-weight:750;white-space:nowrap}
+.smyl-inbox-context-group>summary:after{content:'+';width:20px;height:20px;display:grid;place-content:center;border-radius:6px;background:#F1F5F7;color:#527080;font-size:14px;font-weight:500}
+.smyl-inbox-context-group[open]>summary:after{content:'−'}
+.smyl-inbox-context-group[data-section=attention]>summary small{background:#FFF0ED;color:#98483D}
+.smyl-inbox-context-group[data-section=record]>summary small{background:#EEF7F4;color:#337064}
+.smyl-inbox-context-card-body{margin:0 0 12px!important;padding:0 0 4px!important;border:0!important;border-radius:0!important;background:transparent!important}
+.smyl-inbox-context-card-body.is-attention{padding:11px!important;border:1px solid #EFD3CF!important;border-radius:8px!important;background:#FFF8F7!important}
+.smyl-inbox-context-card-body.smyl-inbox-copilot-card{padding:11px!important;border:1px solid #E4DDF0!important;border-radius:8px!important;background:#FBF9FD!important}
+.smyl-inbox-context-card-body.smyl-inbox-availability-card{padding:11px!important;border:1px solid #D5E7E1!important;border-radius:8px!important;background:linear-gradient(135deg,#F5FAF8,#F8FBFD)!important}
+@media(max-width:1320px){.smyl-inbox-workspace{grid-template-columns:310px minmax(0,1fr)}}
+@media(max-width:1080px){.smyl-inbox-workspace{grid-template-columns:300px minmax(0,1fr)}.smyl-inbox-context{width:min(360px,calc(100% - 40px))}}
+@media(max-width:760px){.smyl-inbox-workspace{display:block}.smyl-inbox-context{width:min(92vw,350px)}.smyl-inbox-context-scrim{position:absolute}.smyl-inbox-context-group>summary{min-height:52px}}
+
 /* Professional workspace v17: surface clinical priorities and common actions. */
 .smyl-inbox-top{display:grid;grid-template-columns:minmax(290px,1fr) auto auto;min-height:96px;padding:15px 22px}.smyl-inbox-top-actions{grid-column:3;grid-row:1;align-self:start}.smyl-inbox-overview{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(3,minmax(104px,1fr));gap:7px}.smyl-inbox-overview-card{display:grid;grid-template-columns:1fr auto;gap:2px 9px;min-width:112px;padding:9px 11px;border:1px solid #DDE7E3;border-radius:10px;background:#F8FBF9}.smyl-inbox-overview-card small{color:#62766F;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.smyl-inbox-overview-card strong{grid-row:1/3;grid-column:2;color:#173D39;font-size:20px;line-height:1}.smyl-inbox-overview-card em{color:#7A8984;font-size:8px;font-style:normal}
 .smyl-inbox-workspace{grid-template-columns:340px minmax(520px,1fr) 318px}.smyl-inbox-thread-head{height:62px}.smyl-inbox-carebar{display:flex;align-items:center;gap:7px;min-height:48px;padding:7px 16px;border-bottom:1px solid #DCE6E2;background:#F7FAF8}.smyl-inbox-carebar[hidden]{display:none}.smyl-inbox-carebar-label{margin-right:auto;color:#64756F;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.smyl-inbox-care-action{min-height:32px;padding:0 11px;border:1px solid #C9D8D3;border-radius:8px;background:#fff;color:#315F58;font:750 9px Inter,sans-serif;cursor:pointer}.smyl-inbox-care-action:hover{border-color:#80AAA0;background:#F0F8F5}.smyl-inbox-care-action.is-primary{border-color:#28796E;background:#28796E;color:#fff}.smyl-inbox-care-action.is-primary:hover{background:#1F675E}
@@ -97,3 +123,10 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 @media(max-width:1320px){.smyl-inbox-top{grid-template-columns:minmax(260px,1fr) auto}.smyl-inbox-top-actions{grid-column:2}.smyl-inbox-overview{display:none}.smyl-inbox-workspace{grid-template-columns:310px minmax(440px,1fr) 294px}}
 @media(max-width:1080px){.smyl-inbox-workspace{grid-template-columns:300px minmax(390px,1fr)}.smyl-inbox-carebar-label{display:none}.smyl-inbox-context{width:320px}}
 @media(max-width:760px){.smyl-inbox-top{display:flex;min-height:70px;padding:12px 15px}.smyl-inbox-overview{display:none}.smyl-inbox-top-actions{align-self:auto}.smyl-inbox-carebar{min-height:47px;padding:6px 10px;overflow-x:auto}.smyl-inbox-care-action{min-width:max-content;min-height:35px}.smyl-inbox-thread-empty{padding:24px 20px}.smyl-inbox-thread-empty h2{font-size:19px}.smyl-inbox-empty-steps{grid-template-columns:1fr;margin:18px 0}.smyl-inbox-thread-empty>.btn{width:100%}}
+
+/* Keep the stage 2 drawer authoritative over earlier workspace variants. */
+.smyl-inbox-workspace{grid-template-columns:340px minmax(0,1fr)}
+.smyl-inbox-context{padding:0 18px 22px}
+@media(max-width:1320px){.smyl-inbox-workspace{grid-template-columns:310px minmax(0,1fr)}}
+@media(max-width:1080px){.smyl-inbox-workspace{grid-template-columns:300px minmax(0,1fr)}.smyl-inbox-context{width:min(360px,calc(100% - 40px))}}
+@media(max-width:760px){.smyl-inbox-workspace{display:block}.smyl-inbox-context{width:min(92vw,350px)}}
