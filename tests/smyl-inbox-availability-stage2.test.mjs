@@ -42,7 +42,8 @@ test('the Inbox bridge enforces both messaging and schedule permissions', () => 
 
 test('the dentist can review slots and only add one to a draft', () => {
   assert.match(inbox, /Agenda disponible/);
-  assert.match(inbox, /Buscar espacios disponibles/);
+  assert.match(inbox, /AGENDA · SIN SALIR DEL CHAT/);
+  assert.match(inbox, /<h2>Agendar cita<\/h2>/);
   assert.match(inbox, /Agregar al borrador/);
   assert.match(inbox, /El horario se confirma cuando elijas la opción/);
   assert.doesNotMatch(inbox.slice(inbox.indexOf('function searchAvailability'), inbox.indexOf('async function loadList')), /smyl_create_appointment|smyl_accept_appointment_request/);

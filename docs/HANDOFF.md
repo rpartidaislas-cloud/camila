@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: agenda integrada dentro de Mensajes
+
+**Agendar una cita ya no saca al equipo de la conversación: ambos accesos del
+Inbox abren la misma ventana de disponibilidad sobre el chat activo.**
+
+- La barra de atención y la acción contextual `Agendar cita` usan el flujo
+  integrado; se eliminó la navegación inconsistente al módulo Agenda.
+- La ventana aparece inmediatamente y después consulta servicios, sedes y
+  profesionales. Mientras carga bloquea los campos para evitar acciones dobles
+  y mantiene los errores dentro de la propia ventana.
+- El encabezado identifica al paciente y explica que la conversación no se
+  cerrará, reduciendo el riesgo de preparar opciones para el hilo equivocado.
+- En escritorio funciona como ventana sobre el chat; en celular ocupa la
+  pantalla disponible y al cerrarse devuelve al mismo hilo.
+- Web, aplicación móvil y PWA avanzan a Inbox JS v20. No cambió el backend, las
+  migraciones ni la separación de datos entre SMYL y LANA.
+
+**Validación:** 408/408 pruebas aprobadas, puerta de seguridad en verde,
+JavaScript válido y revisión visual satisfactoria en escritorio y móvil.
+
 ## 2026-10-16 — Codex: bandeja enfocada del Inbox, etapa 3 final
 
 **La reorganización visual de Mensajes queda completa: la cola muestra primero
