@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: Agenda con densidad visual equilibrada
+
+**La Agenda dentro del chat deja de sentirse sobredimensionada y conserva una
+jerarquía clara en escritorio, tableta y celular.**
+
+- El título baja a 21 px, los controles a 13 px y los textos de apoyo a 10–11
+  px; el estado vacío usa 16 px para dejar de competir con la acción principal.
+- Los controles miden 38 px en escritorio y 44 px en celular, manteniendo buena
+  accesibilidad táctil sin inflar la interfaz.
+- La ventana se compacta a 1000 px de ancho y 620 px en su estado vacío, con
+  menos relleno, una sombra más ligera y una lectura más ordenada.
+- En escritorio los filtros caben en una sola línea; en tableta se redistribuyen
+  en dos y en celular ocupan el ancho disponible sin desbordarse.
+- Web, aplicación móvil y PWA avanzan a Inbox CSS v20 y caché
+  `smyl-v251-agenda-visual-density`.
+
+**Validación:** revisión visual satisfactoria en 1280×720, pruebas de Inbox y
+suite completa aprobadas, paridad web/móvil y compuerta de seguridad en verde.
+
 ## 2026-10-16 — Codex: vínculo automático seguro y jerarquía visual de Agenda
 
 **Abrir una conversación identifica al paciente sin trabajo repetitivo y la

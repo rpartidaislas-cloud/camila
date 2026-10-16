@@ -43,7 +43,7 @@ test('la presentación conserva cabecera y acciones visibles y usa pantalla comp
 test('web, móvil y PWA distribuyen el sistema unificado', () => {
   assert.match(app, /smyl-dialog-system\.css\?v=1/);
   assert.match(app, /smyl-dialog-system\.js\?v=1/);
-  assert.match(worker, /smyl-v250-chat-patient-hardening/);
+  assert.match(worker, /smyl-v251-agenda-visual-density/);
   assert.match(worker, /smyl-dialog-system\.css\?v=1/);
   assert.match(worker, /smyl-dialog-system\.js\?v=1/);
   assert.equal(app, read('../mobile/www/app.html'));

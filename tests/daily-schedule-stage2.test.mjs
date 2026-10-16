@@ -77,7 +77,7 @@ test('web, mobile and offline assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-schedule.js'));
   assert.equal(styles, read('../mobile/www/smyl-schedule.css'));
-  assert.match(worker, /smyl-v250-chat-patient-hardening/);
+  assert.match(worker, /smyl-v251-agenda-visual-density/);
   assert.match(worker, /smyl-schedule\.js\?v=10/);
   assert.match(worker, /smyl-schedule\.css\?v=5/);
 });

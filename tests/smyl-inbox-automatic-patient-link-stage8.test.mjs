@@ -90,12 +90,13 @@ test('la resolución manual ya no preselecciona un expediente ambiguo', () => {
 
 test('Agenda usa una escala tipográfica coherente y controles accesibles', () => {
   assert.match(css, /--agenda-type-eyebrow:10px/);
-  assert.match(css, /--agenda-type-label:11px/);
-  assert.match(css, /--agenda-type-control:14px/);
-  assert.match(css, /--agenda-type-display:23px/);
-  assert.match(css, /height:42px/);
-  assert.match(css, /--agenda-type-control:16px/);
-  assert.match(css, /height:46px/);
+  assert.match(css, /--agenda-type-label:10px/);
+  assert.match(css, /--agenda-type-control:13px/);
+  assert.match(css, /--agenda-type-display:21px/);
+  assert.match(css, /width:min\(1000px/);
+  assert.match(css, /height:38px/);
+  assert.match(css, /--agenda-type-control:15px/);
+  assert.match(css, /height:44px/);
   assert.match(css, /button:focus-visible/);
 });
 

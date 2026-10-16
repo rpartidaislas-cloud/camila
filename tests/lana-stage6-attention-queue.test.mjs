@@ -40,7 +40,7 @@ test('SMYL edge requires a professional session and owner-only resolution', () =
 });
 
 test('PWA precaches stage 6 attention assets in the current inbox cache', () => {
-  assert.match(sw, /smyl-v250-chat-patient-hardening/);
+  assert.match(sw, /smyl-v251-agenda-visual-density/);
   assert.match(sw, /smyl-lana-attention\.js\?v=4/);
   assert.match(sw, /smyl-lana-attention\.css\?v=1/);
 });
