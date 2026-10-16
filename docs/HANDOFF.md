@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: Agenda guiada y recuperable desde Mensajes
+
+**Agendar desde el chat ahora conduce al equipo incluso cuando falta el paciente
+o no existen espacios en el periodo consultado.**
+
+- La ventana avisa cuando la conversación todavía no está vinculada y ofrece
+  `Vincular o crear paciente` sin abandonar el Inbox.
+- Se agregaron periodos rápidos (`Esta semana`, `Próximos 15 días`, `Próxima
+  semana`) y se conserva la selección manual de fechas.
+- El estado vacío diferencia configuración incompleta de una consulta sin
+  espacios, permite ampliar a todo el equipo y busca el próximo horario en un
+  periodo posterior de 30 días.
+- Cuando no hay opciones se oculta la acción final inservible y la ventana se
+  compacta; con resultados conserva la agenda semanal y la selección de hasta
+  tres alternativas.
+- Los nombres de clínica y sucursal conservan su texto completo como ayuda, y
+  la distribución fue validada en escritorio y celular.
+- Web, aplicación móvil y PWA avanzan a Inbox JS v23 y CSS v18. No se modificó
+  backend, migraciones ni el cálculo canónico de disponibilidad.
+
+**Validación:** 409/409 pruebas aprobadas y revisión visual satisfactoria en
+escritorio y celular, con paciente vinculado/no vinculado y con horarios/estado
+vacío. Puerta automática de seguridad en verde.
+
 ## 2026-10-16 — Codex: identidad de clínica y estado vacío de Agenda
 
 **La agenda del chat queda centrada y deja de confundir el nombre de la

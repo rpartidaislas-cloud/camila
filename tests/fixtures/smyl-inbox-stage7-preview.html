@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="../../smyl-inbox.css?focus=8">
+  <link rel="stylesheet" href="../../smyl-inbox.css?focus=10">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
     * { box-sizing:border-box; }
@@ -67,7 +67,7 @@
       if (action === 'quick_replies') return json({ quick_replies:[{id:'q1',shortcut:'valoracion',text:'Hola, con gusto te ayudamos a agendar tu valoración dental.'},{id:'q2',shortcut:'documentos',text:'Para continuar, por favor comparte los estudios indicados por tu especialista.'}] });
       if (action === 'search') return json({ query:'valoración',results:[messages[2],messages[1]],page:{has_more:false,before:null} });
       if (action === 'shared') return json({ items:[{id:'share1',author_type:'patient',content:'Estudios previos https://ejemplo.invalid/estudios.pdf',created_at:new Date(Date.now()-2*86400000).toISOString(),media_type:null,media_url:null}],page:{has_more:false,before:null} });
-      if (action === 'clinical_context') return json({ linked:true, patient:{name:'Ana López',phone:'+52 55 0000 1184',email:'ana@ejemplo.mx'}, case:{score:86,lana_appointment_id:'apt-1',simulation_url:null,quote_total:18500,summary:'Valoración inicial pendiente de confirmación.'}, clinical_images:[] });
+      if (action === 'clinical_context') { if (new URLSearchParams(location.search).has('unlinked-patient')) return json({linked:false,patient:null,case:null,clinical_images:[]}); return json({ linked:true, patient:{name:'Ana López',phone:'+52 55 0000 1184',email:'ana@ejemplo.mx'}, case:{score:86,lana_appointment_id:'apt-1',simulation_url:null,quote_total:18500,summary:'Valoración inicial pendiente de confirmación.'}, clinical_images:[] }); }
       if (action === 'scheduled') return json({ scheduled:[{id:'s1',type:'template',send_at:new Date(Date.now()+24*3600000).toISOString(),status:'retrying',content:'Recordatorio de valoración dental',attempt_count:1,max_attempts:3,next_attempt_at:new Date(Date.now()+5*60000).toISOString(),retry_safe:true},{id:'s2',type:'text',send_at:new Date(Date.now()-60*60000).toISOString(),status:'dead_letter',content:'Seguimiento de valoración',error:'Meta rechazó temporalmente el envío.',attempt_count:3,max_attempts:3,retry_safe:true}] });
       if (action === 'operations') return json({ actor:{id:'owner-preview',role:'owner',name:'Dra. Mariana'}, health:{status:'healthy',alerts:[]}, metrics:{conversations:146,needs_human:7,paused:12,messages_sent_24h:84,copilot_requests_24h:19,scheduled_retrying:0,dead_letters:0,failed_sends:0,unknown_deliveries:0,queue_overdue:0}, channels:[{channel:'whatsapp',connected:true},{channel:'messenger',connected:true},{channel:'instagram',connected:false}], ai:{used_tokens:1248000,limit_tokens:4840000,used_percent:25.8,reached:false}, pilot:{status:'active',readiness:'ready',activation_is_manual:true,all_scenarios_passed:false,started_at:new Date(Date.now()-2*86400000).toISOString(),checks:[{id:'channel_connected',label:'Al menos un canal conectado',passed:true},{id:'training_published',label:'Capacitación dental publicada',passed:true},{id:'delivery_confirmed',label:'Sin entregas ambiguas',passed:true},{id:'dead_letter_empty',label:'Cola de fallos revisada',passed:true},{id:'queue_current',label:'Worker sin retrasos',passed:true},{id:'ai_available',label:'IA dentro del límite mensual',passed:true}],scenarios:[{id:'live_traffic',label:'Tráfico real de entrada y salida',description:'Confirma una conversación real recibida y una respuesta aceptada por el proveedor.',passed:true,evidence:'Conversación de prueba validada en WhatsApp',checked_by:'Dra. Mariana'},{id:'concurrent_users',label:'Dos usuarios simultáneos',description:'Dos integrantes operan al mismo tiempo sin sobrescribir asignaciones ni mensajes.',passed:false},{id:'out_of_order',label:'Mensajes fuera de orden',description:'El hilo conserva el orden correcto después de sincronizar eventos retrasados.',passed:false},{id:'reconnect',label:'Pérdida de red y reconexión',description:'La bandeja se recupera sin duplicar envíos ni perder el borrador local.',passed:false},{id:'mobile',label:'Uso en dispositivo móvil',description:'La clínica completa lectura, respuesta y seguimiento desde un teléfono real.',passed:false}]} });
       if (action === 'pilot') return json({ ok:true, action:body.pilot_action });
@@ -83,7 +83,7 @@
       return json({});
     };
   </script>
-  <script src="../../smyl-inbox.js?focus=9"></script>
+  <script src="../../smyl-inbox.js?focus=10"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');

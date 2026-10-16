@@ -38,13 +38,20 @@ test('el espacio central muestra una agenda visual por día, profesional y espec
   assert.match(styles, /position:fixed;inset:0;margin:auto/);
   assert.match(inbox, /availabilityClinicName/);
   assert.match(inbox, /todas las sucursales/);
-  assert.match(inbox, /Ver siguientes 7 días/);
+  assert.match(inbox, /Buscar próximo disponible/);
+  assert.match(inbox, /Próximos 15 días/);
+  assert.match(inbox, /data-availability-patient-alert/);
+  assert.match(inbox, /Vincular o crear paciente/);
+  assert.match(inbox, /availabilityEmptyReason = 'no_slots'/);
+  assert.match(inbox, /Este servicio no tiene profesionales asignados/);
+  assert.match(styles, /smyl-inbox-availability-dialog\.is-empty/);
+  assert.match(styles, /availability-offer\[hidden\]/);
 });
 
 test('la agenda embebida mantiene paridad móvil y una versión pública nueva', () => {
   assert.equal(mobileInbox, inbox);
-  assert.match(app, /smyl-inbox\.js\?v=22/);
-  assert.match(app, /smyl-inbox\.css\?v=17/);
-  assert.match(worker, /smyl-inbox\.js\?v=22/);
-  assert.match(worker, /smyl-inbox\.css\?v=17/);
+  assert.match(app, /smyl-inbox\.js\?v=23/);
+  assert.match(app, /smyl-inbox\.css\?v=18/);
+  assert.match(worker, /smyl-inbox\.js\?v=23/);
+  assert.match(worker, /smyl-inbox\.css\?v=18/);
 });
