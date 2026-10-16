@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: micrófono y experiencia simple de MILA
+
+**MILA queda centrada en una sola acción de voz y ahora diagnostica el acceso
+al micrófono antes de grabar o conversar.**
+
+- Se eliminó la columna explicativa y se redujo la portada a selector de
+  paciente, autorización, modos `Transcribir`/`Conversar` y botón central.
+- La interfaz distingue micrófono listo, permiso pendiente, permiso bloqueado,
+  dispositivo ausente y micrófono ocupado; muestra instrucciones específicas
+  para navegador o Android y permite volver a comprobarlo.
+- Ambos flujos de voz usan la misma validación de acceso, sin cambiar las
+  confirmaciones clínicas, la grabación privada ni las acciones de backend.
+- Android declara `android.permission.RECORD_AUDIO`, requisito que faltaba en
+  la app nativa. Web y `mobile/www` conservan paridad.
+- Se añadieron contratos para el permiso nativo, la recuperación del micrófono
+  y la reducción de ruido visual.
+
+**Validación:** 393/393 pruebas aprobadas, scripts de MILA válidos y
+`git diff --check` sin errores. La copia nativa se regenerará con el siguiente
+`npm run cap:sync` del entorno de compilación.
+
 ## 2026-10-15 — Codex: expediente simple y simulaciones separadas
 
 **La ficha del paciente reduce su navegación a Resumen, Expediente, Tratamiento

@@ -27,6 +27,25 @@ test('MILA requires consent and explicit confirmation', () => {
   assert.match(migration, /insert into public\.smyl_proposals/i);
   assert.doesNotMatch(migration, /create table public\.camila_(citas|cotizaciones)/i);
 });
+test('MILA requests microphone access and Android declares the native permission', () => {
+  const html = read('mila.html');
+  const manifest = read('mobile/android/app/src/main/AndroidManifest.xml');
+  assert.match(html, /ensureMicrophoneAccess/);
+  assert.match(html, /navigator\.mediaDevices\.getUserMedia\(MIC_CONSTRAINTS\)/);
+  assert.match(html, /id="mic-permission-panel"/);
+  assert.match(html, /NotAllowedError/);
+  assert.match(html, /NotReadableError/);
+  assert.match(manifest, /android\.permission\.RECORD_AUDIO/);
+});
+
+test('MILA keeps the initial voice interface focused', () => {
+  const html = read('mila.html');
+  assert.match(html, /Habla con MILA/);
+  assert.match(html, />Transcribir</);
+  assert.match(html, />Conversar</);
+  assert.doesNotMatch(html, /<aside class="side">/);
+  assert.doesNotMatch(html, /Qué puede hacer hoy/);
+});
 test('Realtime and action endpoints require a real authenticated user', () => {
   for (const path of [
     'supabase/functions/mila-realtime-session/index.ts',
