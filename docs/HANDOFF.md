@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: enfoque conversacional del Inbox, etapa 1
+
+**Mensajes reduce el ruido visible sin retirar funciones: la conversación y la
+acción inmediata quedan en primer plano.**
+
+- La cabecera del hilo muestra paciente, canal, responsable, estado y una sola
+  acción operativa (`Tomar control` o `Reanudar IA`). Búsqueda, archivos,
+  fijación y detalles pasan al menú `Más`.
+- El compositor deja visibles `+`, mensaje, Copilot y enviar. Adjuntos,
+  respuestas rápidas, plantilla, programación, voz, ubicación y emoji se
+  conservan en un menú colapsable que también funciona con la ventana de
+  WhatsApp vencida.
+- Cada mensaje presenta únicamente `Responder` y `Más`; destacar, reenviar,
+  eliminar, revisión clínica y evaluación de IA se revelan bajo demanda.
+- La continuidad de expediente y rol permanece disponible para tecnologías de
+  asistencia sin añadir texto visual a la cabecera.
+- Web y móvil permanecen sincronizados. Se añadió una prueba específica y el
+  fixture del Inbox admite el estado `focus` para QA sin diálogos superpuestos.
+
+**Validación:** 374/374 pruebas aprobadas, puerta de seguridad en verde y
+revisión visual satisfactoria en escritorio y celular, incluyendo apertura de
+herramientas y acciones secundarias. No se modificaron backend, migraciones,
+RLS, datos clínicos ni integraciones de Meta. La etapa 2 debe convertir el
+panel derecho en un cajón colapsable con secciones progresivas.
+
 ## 2026-10-16 — Codex: respuesta visible al activar el micrófono
 
 **MILA ya no queda aparentemente inmóvil cuando el navegador retiene la

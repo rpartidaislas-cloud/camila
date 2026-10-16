@@ -228,11 +228,11 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><button type="button" class="smyl-inbox-thread-tool" data-thread-search aria-label="Buscar dentro del hilo">Buscar</button><button type="button" class="smyl-inbox-thread-tool" data-thread-shared aria-label="Abrir archivos compartidos">Archivos</button><button type="button" class="smyl-inbox-pin-button" data-thread-pin aria-label="Fijar conversación" title="Fijar conversación">Fijar</button><button type="button" class="smyl-inbox-control-button" data-inbox-context>Paciente y atención</button></header><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Acciones del paciente"></nav>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><span class="smyl-inbox-thread-state" data-thread-state></span><button type="button" class="smyl-inbox-mode-button" data-thread-mode></button><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" data-thread-menu hidden><button type="button" data-thread-search>Buscar en el hilo</button><button type="button" data-thread-shared>Archivos compartidos</button><button type="button" data-thread-pin>Fijar conversación</button><button type="button" data-thread-details>Paciente y atención</button></div></div></header><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Acciones del paciente"></nav>' +
             '<div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo <span data-draft-status></span></label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-tools" aria-label="Herramientas de respuesta"><button type="button" data-compose-emoji>Emoji</button><button type="button" data-compose-record aria-pressed="false">Nota de voz</button><button type="button" data-compose-quick>Respuestas rápidas</button><button type="button" data-compose-copilot>Sugerir con Copilot</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-location>Ubicación</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div></div><small>El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío.</small></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo <span data-draft-status></span></label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-message-row"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-label="Abrir herramientas de respuesta">+</button><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir</button><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div><div class="smyl-inbox-compose-tools" data-compose-tools aria-label="Herramientas de respuesta" hidden><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-quick>Respuesta rápida</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-record aria-pressed="false">Nota de voz</button><button type="button" data-compose-location>Ubicación</button><button type="button" data-compose-emoji>Emoji</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div></div><small>El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío.</small></form>' +
           '</div>' +
         '</main>' +
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
@@ -618,13 +618,20 @@
       else if (item.status === 'unknown') { var refresh = node('button', '', 'Actualizar hilo'); refresh.type = 'button'; refresh.onclick = function () { loadThread(state.selectedId, false); }; bubble.append(refresh); }
       else if (!item.id.toString().startsWith('pending:') && !item.deleted) {
         var actions = node('div', 'smyl-inbox-message-actions');
+        var secondaryActions = node('div', 'smyl-inbox-message-secondary'); secondaryActions.hidden = true;
         if (hasPermission('messages.respond')) {
-          [['Responder', function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('[name="message"]').focus(); }], [item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); }], ['Reenviar', function () { openForward(item); }]].forEach(function (action) { var button = node('button', '', action[0]); button.type = 'button'; button.onclick = action[1]; actions.append(button); });
+          var reply = node('button', 'is-primary', 'Responder'); reply.type = 'button'; reply.onclick = function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('[name="message"]').focus(); }; actions.append(reply);
+          [[item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); }], ['Reenviar', function () { openForward(item); }]].forEach(function (action) { var button = node('button', '', action[0]); button.type = 'button'; button.onclick = action[1]; secondaryActions.append(button); });
         }
-        if (hasPermission('messages.manage')) { var remove = node('button', '', 'Eliminar'); remove.type = 'button'; remove.onclick = function () { mutateMessage(item, 'delete'); }; actions.append(remove); }
-        if (item.media_type === 'image' && hasPermission('clinical.write')) { var clinical = node('button', 'is-clinical', 'Enviar a revisión clínica'); clinical.type = 'button'; clinical.onclick = function () { linkClinicalImage(item); }; actions.append(clinical); }
-        if (item.author_type === 'assistant' && hasPermission('messages.respond')) { var feedback = node('button', 'is-copilot', 'Evaluar IA'); feedback.type = 'button'; feedback.onclick = function () { openFeedback(item); }; actions.append(feedback); }
-        bubble.append(actions);
+        if (hasPermission('messages.manage')) { var remove = node('button', '', 'Eliminar'); remove.type = 'button'; remove.onclick = function () { mutateMessage(item, 'delete'); }; secondaryActions.append(remove); }
+        if (item.media_type === 'image' && hasPermission('clinical.write')) { var clinical = node('button', 'is-clinical', 'Enviar a revisión clínica'); clinical.type = 'button'; clinical.onclick = function () { linkClinicalImage(item); }; secondaryActions.append(clinical); }
+        if (item.author_type === 'assistant' && hasPermission('messages.respond')) { var feedback = node('button', 'is-copilot', 'Evaluar IA'); feedback.type = 'button'; feedback.onclick = function () { openFeedback(item); }; secondaryActions.append(feedback); }
+        if (secondaryActions.childNodes.length) {
+          var moreActions = node('button', 'smyl-inbox-message-more', 'Más'); moreActions.type = 'button'; moreActions.setAttribute('aria-expanded', 'false');
+          moreActions.onclick = function () { var open = secondaryActions.hidden; secondaryActions.hidden = !open; moreActions.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+          actions.append(moreActions, secondaryActions);
+        }
+        if (actions.childNodes.length) bubble.append(actions);
       }
       row.append(bubble); wrap.append(row);
     });
@@ -1380,6 +1387,30 @@
     });
   }
 
+  function closeThreadMenu() {
+    var menu = document.querySelector('[data-thread-menu]'); var trigger = document.querySelector('[data-thread-more]');
+    if (menu) menu.hidden = true;
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleThreadMenu() {
+    var menu = document.querySelector('[data-thread-menu]'); var trigger = document.querySelector('[data-thread-more]');
+    if (!menu || !trigger) return;
+    var open = menu.hidden; menu.hidden = !open; trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function closeComposerTools() {
+    var tools = document.querySelector('[data-compose-tools]'); var trigger = document.querySelector('[data-compose-more]');
+    if (tools) tools.hidden = true;
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleComposerTools() {
+    var tools = document.querySelector('[data-compose-tools]'); var trigger = document.querySelector('[data-compose-more]');
+    if (!tools || !trigger) return;
+    var open = tools.hidden; tools.hidden = !open; trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function renderThreadHeader() {
     var conversation = selectedConversation();
     var empty = document.querySelector('[data-inbox-thread-empty]');
@@ -1395,12 +1426,19 @@
     document.querySelector('[data-thread-avatar]').dataset.channel = conversation.channel;
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
     var threadFicha = state.clinical[conversation.id];
-    var threadMeta = [channelLabel(conversation.channel), conversation.paused ? 'Atención humana' : 'Asistente activo'];
-    if (state.actor && state.actor.role_name) threadMeta.push(state.actor.role_name);
-    if (conversation.assignment) threadMeta.push(conversation.assignment.name);
-    threadMeta.push(stageName(conversation.stage_id));
-    if (threadFicha && threadFicha.linked) threadMeta.push('Expediente vinculado');
+    var actorRole = state.actor && state.actor.role_name;
+    var continuityLabel = threadFicha && threadFicha.linked ? 'Expediente vinculado' : 'Paciente sin vincular';
+    var patientSummary = document.querySelector('[data-inbox-context]');
+    patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
+    var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin asignar'];
     document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
+    var stateLabel = document.querySelector('[data-thread-state]');
+    stateLabel.textContent = conversation.needs_human ? 'Requiere atención' : conversation.paused ? 'Atención humana' : 'IA activa';
+    stateLabel.dataset.state = conversation.needs_human ? 'attention' : conversation.paused ? 'human' : 'assistant';
+    var mode = document.querySelector('[data-thread-mode]');
+    mode.textContent = conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando…' : 'Reanudar IA') : 'Tomar control';
+    mode.dataset.state = conversation.paused ? 'resume' : 'pause';
+    mode.disabled = !canOperate(conversation, 'messages.manage') || Boolean(state.copilotLoading[conversation.id]);
     var pin = document.querySelector('[data-thread-pin]');
     pin.textContent = conversation.pinned ? 'Fijada' : 'Fijar';
     pin.dataset.active = conversation.pinned ? 'true' : 'false';
@@ -1645,6 +1683,7 @@
 
   async function openConversation(id) {
     if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true);
+    closeThreadMenu(); closeComposerTools();
     var previousId = state.selectedId; var previousInput = document.querySelector('[name="message"]');
     if (previousId && previousInput && previousInput.value.trim()) await persistEncryptedDraft(previousId, previousInput.value.trim()).catch(function () {});
     state.selectedId = id; state.contextOpen = false; state.threadError = ''; state.replyTo = null; state.attachment = null;
@@ -2021,6 +2060,8 @@
     page.querySelector('[data-thread-jump]').addEventListener('click', scrollThreadBottom);
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
     page.querySelector('[name="message"]').addEventListener('input', function (event) { scheduleDraftSave(event.target.value); });
+    page.querySelector('[data-compose-more]').addEventListener('click', toggleComposerTools);
+    page.querySelector('[data-compose-tools]').addEventListener('click', function (event) { if (event.target.closest('button')) closeComposerTools(); });
     page.querySelector('[data-compose-emoji]').addEventListener('click', openEmojiDialog);
     page.querySelector('[data-compose-record]').addEventListener('click', toggleVoiceRecording);
     page.querySelector('[data-compose-copilot]').addEventListener('click', function () { requestCopilot('draft'); });
@@ -2063,9 +2104,12 @@
     page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
     page.querySelector('[data-inbox-back]').addEventListener('click', function () { page.classList.remove('show-thread'); state.contextOpen = false; renderContext(); });
     page.querySelector('[data-inbox-context]').addEventListener('click', function () { state.contextOpen = true; renderContext(); });
-    page.querySelector('[data-thread-pin]').addEventListener('click', function () { var conversation = selectedConversation(); if (conversation) mutateConversation(conversation.pinned ? 'unpin' : 'pin'); });
-    page.querySelector('[data-thread-search]').addEventListener('click', openThreadSearch);
-    page.querySelector('[data-thread-shared]').addEventListener('click', openSharedItems);
+    page.querySelector('[data-thread-details]').addEventListener('click', function () { closeThreadMenu(); state.contextOpen = true; renderContext(); });
+    page.querySelector('[data-thread-mode]').addEventListener('click', function () { var conversation = selectedConversation(); if (!conversation) return; conversation.paused ? prepareResume() : mutateConversation('pause'); });
+    page.querySelector('[data-thread-more]').addEventListener('click', toggleThreadMenu);
+    page.querySelector('[data-thread-pin]').addEventListener('click', function () { closeThreadMenu(); var conversation = selectedConversation(); if (conversation) mutateConversation(conversation.pinned ? 'unpin' : 'pin'); });
+    page.querySelector('[data-thread-search]').addEventListener('click', function () { closeThreadMenu(); openThreadSearch(); });
+    page.querySelector('[data-thread-shared]').addEventListener('click', function () { closeThreadMenu(); openSharedItems(); });
     page.querySelector('[data-thread-search-form]').addEventListener('submit', searchThread);
     page.querySelector('[data-search-close]').addEventListener('click', function () { page.querySelector('[data-search-dialog]').close(); });
     page.querySelector('[data-shared-close]').addEventListener('click', function () { page.querySelector('[data-shared-dialog]').close(); });

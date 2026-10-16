@@ -105,6 +105,8 @@
           } else if (preview.has('productivity-bulk')) {
             var bulk = document.querySelector('[data-inbox-bulk]');
             if (bulk) bulk.click();
+          } else if (preview.has('focus')) {
+            // Conversation-first state: no dialog or context drawer obscures the thread.
           } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');
             if (control) control.click();
