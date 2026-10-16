@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: bandeja enfocada del Inbox, etapa 3 final
+
+**La reorganización visual de Mensajes queda completa: la cola muestra primero
+el trabajo diario y conserva las herramientas de menor frecuencia bajo demanda.**
+
+- La bandeja deja visibles únicamente `Todas`, `Por atender` y `Mías`, cada una
+  con su conteo. `Sin leer`, `En atención`, `Fijadas`, canal, selección múltiple
+  y actualización viven en un panel `Filtros` compacto.
+- Cada conversación muestra un solo estado operativo (`Por atender`, `Con el
+  equipo` o `IA activa`), además de canal, responsable y etapa en segundo nivel;
+  se retiró la repetición de etiquetas que saturaba la lectura.
+- El panel de filtros se superpone sin reducir la cola y responde de forma
+  equivalente en escritorio y celular. La prueba visual usa una versión propia
+  para evitar falsos resultados por caché.
+- Los recursos avanzan a Inbox JS v19 y CSS v15 en web, aplicación móvil y
+  precaché PWA. No cambió el contrato de backend ni la fuente canónica de LANA.
+
+**Validación final sobre la rama vigente de producción:** 405/405 pruebas
+aprobadas, puerta de seguridad en verde y
+revisión visual satisfactoria en escritorio y celular, incluyendo apertura y
+cierre de filtros. Las tres etapas de optimización del chat están terminadas.
+
 ## 2026-10-16 — Codex: contexto progresivo del Inbox, etapa 2
 
 **Mensajes deja de reservar una tercera columna permanente: el hilo gana espacio

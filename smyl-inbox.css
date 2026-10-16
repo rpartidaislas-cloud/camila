@@ -130,3 +130,32 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 @media(max-width:1320px){.smyl-inbox-workspace{grid-template-columns:310px minmax(0,1fr)}}
 @media(max-width:1080px){.smyl-inbox-workspace{grid-template-columns:300px minmax(0,1fr)}.smyl-inbox-context{width:min(360px,calc(100% - 40px))}}
 @media(max-width:760px){.smyl-inbox-workspace{display:block}.smyl-inbox-context{width:min(92vw,350px)}}
+
+/* Inbox focus stage 3: progressive filters and a calmer conversation queue. */
+.smyl-inbox-list-pane{position:relative}
+.smyl-inbox-list-head{display:flex;align-items:center;gap:7px;padding:12px 12px 8px}
+.smyl-inbox-list-head .smyl-inbox-search{min-width:0;flex:1;margin:0}
+.smyl-inbox-filter-toggle{min-width:66px;height:38px;padding:0 9px;border:1px solid #D4DEE8;border-radius:9px;background:#fff;color:#496276;font:700 9px Inter,sans-serif;cursor:pointer}
+.smyl-inbox-filter-toggle:hover,.smyl-inbox-filter-toggle[aria-expanded=true]{border-color:#91B8CD;background:#F0F7FA;color:#17678F}
+.smyl-inbox-filter-toggle[data-active=true]{border-color:#A9CFC6;background:#F0F8F5;color:#246B5E}
+.smyl-inbox-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:0 12px 10px;overflow:visible}
+.smyl-inbox-filters button{min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px;font-size:9.5px}
+.smyl-inbox-filters button b,.smyl-inbox-secondary-filters button b{min-width:17px;height:17px;display:grid;place-content:center;padding:0 4px;border-radius:999px;background:#EDF2F5;color:#667987;font-size:7.5px}
+.smyl-inbox-filters button.active b,.smyl-inbox-secondary-filters button.active b{background:#fff;color:inherit}
+.smyl-inbox-filter-panel{position:absolute;top:98px;left:10px;right:10px;z-index:18;padding:13px;border:1px solid #D9E3E9;border-radius:11px;background:#fff;box-shadow:0 16px 38px rgba(16,34,57,.17)}
+.smyl-inbox-filter-panel[hidden]{display:none}
+.smyl-inbox-filter-label{display:block;margin-bottom:7px;color:#70808D;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.smyl-inbox-secondary-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.smyl-inbox-secondary-filters button{min-width:0;min-height:34px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 5px;border:1px solid #E0E7EC;border-radius:7px;background:#F8FAFB;color:#506577;font:650 8.5px Inter,sans-serif;cursor:pointer}
+.smyl-inbox-secondary-filters button.active{border-color:#A6C7D9;background:#EDF6FA;color:#17678F}
+.smyl-inbox-filter-panel>label{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px;margin-top:11px;color:#617482;font-size:9px;font-weight:750}
+.smyl-inbox-filter-panel>label select{min-width:0;height:36px;border:1px solid #D4DEE8;border-radius:7px;background:#fff;padding:0 8px;color:#425B6D;font:600 9px Inter,sans-serif}
+.smyl-inbox-filter-panel .smyl-inbox-list-tools{justify-content:flex-end;gap:6px;margin:11px -13px -13px;padding:9px 13px;border-top:1px solid #E5EBEF;border-bottom:0;background:#F8FAFB;border-radius:0 0 11px 11px}
+.smyl-inbox-filter-panel .smyl-inbox-list-tools button{min-height:31px;padding:0 8px;border:1px solid #D5E0E6;border-radius:7px;background:#fff;font-size:8.5px}
+.smyl-inbox-row{grid-template-columns:38px minmax(0,1fr) auto;gap:9px;padding:12px}
+.smyl-inbox-row .smyl-inbox-avatar{width:36px;height:36px}
+.smyl-inbox-row-meta{margin-top:6px;flex-wrap:nowrap;overflow:hidden}
+.smyl-inbox-row-meta>span{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;padding:3px 5px}
+.smyl-inbox-row-stage-line{display:block;margin-top:6px;color:#6C7E8C;font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.smyl-inbox-unread{margin-top:16px}
+@media(max-width:760px){.smyl-inbox-list-head{padding:10px 11px 7px}.smyl-inbox-filter-panel{top:93px;left:8px;right:8px}.smyl-inbox-filters{padding:0 11px 9px}.smyl-inbox-filters button{min-height:34px}.smyl-inbox-row{padding:12px 11px}.smyl-inbox-row-meta>span{font-size:8.5px}.smyl-inbox-row-stage-line{font-size:9px}}

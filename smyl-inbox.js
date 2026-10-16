@@ -3,7 +3,7 @@
 
   var state = {
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
-    filter: 'all', channel: '', search: '', selectedId: null,
+    filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
     threadController: null, contextOpen: false, contextSections: {}, polling: false,
@@ -215,11 +215,11 @@
       '</header>' +
       '<div class="smyl-inbox-workspace">' +
         '<aside class="smyl-inbox-list-pane" aria-label="Bandeja de conversaciones">' +
-          '<div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar en esta bandeja" aria-label="Buscar conversación" data-inbox-search></div>' +
+          '<div class="smyl-inbox-list-head"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar conversación" data-inbox-search></div><button type="button" class="smyl-inbox-filter-toggle" data-inbox-filter-more aria-expanded="false">Filtros</button></div>' +
           '<div class="smyl-inbox-filters" role="tablist" aria-label="Filtrar conversaciones">' +
-            '<button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="pinned">Fijadas</button><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="mine">Mías</button>' +
+            '<button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button>' +
           '</div>' +
-          '<div class="smyl-inbox-list-tools"><select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar</button></div>' +
+          '<div class="smyl-inbox-filter-panel" data-inbox-filter-panel hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary aria-live="polite"></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
@@ -326,12 +326,46 @@
     });
   }
 
+  function filterCount(filter) {
+    return state.conversations.filter(function (item) {
+      if (filter === 'attention') return item.needs_human;
+      if (filter === 'mine') return item.assignment && item.assignment.actor_id === (state.actor && state.actor.id);
+      if (filter === 'unread') return item.unread_count;
+      if (filter === 'paused') return item.paused;
+      if (filter === 'pinned') return item.pinned;
+      return true;
+    }).length;
+  }
+
+  function renderFilterControls() {
+    var advanced = ['unread', 'paused', 'pinned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
+    document.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
+      var filter = button.dataset.inboxFilter;
+      var labels = { all: 'Todas', attention: 'Por atender', mine: 'Mías', unread: 'Sin leer', paused: 'En atención', pinned: 'Fijadas' };
+      button.classList.toggle('active', filter === state.filter);
+      button.innerHTML = '<span>' + labels[filter] + '</span><b>' + filterCount(filter) + '</b>';
+    });
+    var toggle = document.querySelector('[data-inbox-filter-more]');
+    var panel = document.querySelector('[data-inbox-filter-panel]');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', state.filterPanelOpen ? 'true' : 'false');
+      toggle.dataset.active = advanced ? 'true' : 'false';
+      toggle.textContent = advanced ? 'Filtros · activos' : 'Filtros';
+    }
+    if (panel) panel.hidden = !state.filterPanelOpen;
+  }
+
+  function toggleInboxFilters() {
+    state.filterPanelOpen = !state.filterPanelOpen;
+    renderFilterControls();
+  }
+
   function renderList() {
     var list = document.querySelector('[data-inbox-list]');
     var more = document.querySelector('[data-inbox-more]');
     var summary = document.querySelector('[data-inbox-queue-summary]');
     if (!list) return;
-    renderBulkBar(); renderInboxOverview();
+    renderBulkBar(); renderInboxOverview(); renderFilterControls();
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
       list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
@@ -375,12 +409,13 @@
       var preview = node('span', 'smyl-inbox-preview', item.last_message || 'Conversación sin vista previa');
       var meta = node('span', 'smyl-inbox-row-meta');
       meta.append(node('span', 'smyl-inbox-channel', channelLabel(item.channel)));
-      if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Atención humana'));
-      else meta.append(node('span', 'smyl-inbox-state', 'Asistente activo'));
-      if (item.assignment) meta.append(node('span', 'smyl-inbox-assignee', item.assignment.name));
-      meta.append(node('span', 'smyl-inbox-stage', stageName(item.stage_id)));
       if (item.needs_human) meta.append(node('span', 'smyl-inbox-attention', 'Por atender'));
+      else if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Con el equipo'));
+      else meta.append(node('span', 'smyl-inbox-state', 'IA activa'));
+      if (item.assignment) meta.append(node('span', 'smyl-inbox-assignee', item.assignment.name));
+      var currentStage = stageName(item.stage_id);
       copy.append(top, preview, meta);
+      if (currentStage !== 'Sin etapa') copy.append(node('span', 'smyl-inbox-row-stage-line', currentStage));
       button.append(avatar, copy);
       if (item.unread_count) button.append(node('span', 'smyl-inbox-unread', String(Math.min(99, item.unread_count))));
       button.addEventListener('click', function () {
@@ -2090,10 +2125,12 @@
     page.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       button.addEventListener('click', function () {
         state.filter = button.dataset.inboxFilter;
-        page.querySelectorAll('[data-inbox-filter]').forEach(function (item) { item.classList.toggle('active', item === button); });
+        if (['all', 'attention', 'mine'].indexOf(state.filter) !== -1) state.filterPanelOpen = false;
+        renderFilterControls();
         loadList(true);
       });
     });
+    page.querySelector('[data-inbox-filter-more]').addEventListener('click', toggleInboxFilters);
     var searchTimer = null;
     page.querySelector('[data-inbox-search]').addEventListener('input', function (event) {
       state.search = event.target.value; renderList(); clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadList(true); }, 320);
