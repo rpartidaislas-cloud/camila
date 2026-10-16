@@ -21,6 +21,8 @@ el trabajo diario y conserva las herramientas de menor frecuencia bajo demanda.*
 aprobadas, puerta de seguridad en verde y
 revisión visual satisfactoria en escritorio y celular, incluyendo apertura y
 cierre de filtros. Las tres etapas de optimización del chat están terminadas.
+Publicación funcional confirmada en GitHub Pages desde `3bd331c`; el sitio
+público entregó Inbox JS v19, CSS v15, filtros progresivos y el cajón lateral.
 
 ## 2026-10-16 — Codex: contexto progresivo del Inbox, etapa 2
 
