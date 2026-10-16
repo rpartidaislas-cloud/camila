@@ -3,7 +3,9 @@
   function esc(value){var d=document.createElement('div');d.textContent=String(value||'');return d.innerHTML;}
   async function token(){var r=await sb.auth.getSession();var t=r&&r.data&&r.data.session&&r.data.session.access_token;if(!t)throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');return t;}
   async function request(action,conversationId,patientId){
-    var response=await fetch(SUPA_URL+'/functions/v1/lana-handoff',{method:'POST',headers:{Authorization:'Bearer '+await token(),apikey:SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:action,conversation_id:conversationId,patient_id:patientId||null})});
+    var headers={Authorization:'Bearer '+await token(),apikey:SUPA_KEY,'Content-Type':'application/json'};
+    if(action==='confirm')headers['Idempotency-Key']=crypto.randomUUID();
+    var response=await fetch(SUPA_URL+'/functions/v1/lana-inbox',{method:'POST',headers:headers,body:JSON.stringify({action:action==='preview'?'patient_link_preview':'patient_link_confirm',conversation_id:conversationId,patient_id:patientId||null})});
     var data=await response.json().catch(function(){return {};});if(!response.ok)throw new Error(data.error||'No se pudo preparar el expediente desde esta conversación.');return data;
   }
   function modal(){return document.getElementById('lana-handoff-overlay');}
@@ -11,17 +13,20 @@
   function render(data){
     var body=document.getElementById('lana-handoff-body'),actions=document.getElementById('lana-handoff-actions'),c=data.conversation||{},existing=data.existing_link;
     var contact=[c.phone,c.email].filter(Boolean).join(' · ')||'Datos de contacto no disponibles';
-    var candidates=(data.candidates||[]).map(function(p,i){return '<label class="lana-handoff-candidate"><input type="radio" name="lana-patient" value="'+esc(p.id)+'" '+(i===0?'checked':'')+'><span><strong>'+esc(p.name)+'</strong><br><small>'+esc([p.phone,p.email].filter(Boolean).join(' · '))+'</small></span></label>';}).join('');
+    var candidates=(data.candidates||[]).map(function(p){return '<label class="lana-handoff-candidate"><input type="radio" name="lana-patient" value="'+esc(p.id)+'"><span><strong>'+esc(p.name)+'</strong><br><small>'+esc([p.phone,p.email].filter(Boolean).join(' · '))+'</small></span></label>';}).join('');
     body.innerHTML='<div class="lana-handoff-person"><span class="lana-handoff-avatar">'+esc((c.name||'P').charAt(0).toUpperCase())+'</span><div><strong>'+esc(c.name||'Paciente')+'</strong><small>'+esc(c.channel||'')+' · '+esc(contact)+'</small></div></div>'+
       (existing?'<p class="lana-handoff-copy">Esta conversación ya está vinculada. Abriremos el expediente existente; no se creará ningún duplicado.</p>':'<p class="lana-handoff-copy">Revisa la identidad antes de crear el caso. Solo se copiarán nombre y datos de contacto; el historial de mensajes permanece protegido en su canal.</p>')+
       (!existing&&candidates?'<div class="lana-handoff-candidates"><strong>Expediente coincidente</strong>'+candidates+'<label class="lana-handoff-candidate"><input type="radio" name="lana-patient" value=""><span><strong>Crear paciente nuevo</strong><br><small>Úsalo solo si ninguna coincidencia corresponde a esta persona.</small></span></label></div>':'')+
       '<div class="lana-handoff-note">Crear el expediente no envía mensajes ni comparte diagnósticos, simulaciones o propuestas con el paciente.</div>';
-    actions.innerHTML='<button type="button" class="btn btn-primary" data-lana-confirm>'+(existing?'Abrir expediente':'Crear o vincular expediente')+'</button>';
-    actions.querySelector('[data-lana-confirm]').onclick=function(){confirmLink(data);};
+    actions.innerHTML='<button type="button" class="btn btn-primary" data-lana-confirm '+(!existing&&candidates?'disabled':'')+'>'+(existing?'Abrir expediente':'Crear o vincular expediente')+'</button>';
+    var confirm=actions.querySelector('[data-lana-confirm]');confirm.onclick=function(){confirmLink(data);};
+    body.querySelectorAll('input[name="lana-patient"]').forEach(function(input){input.addEventListener('change',function(){confirm.disabled=false;});});
   }
   async function confirmLink(data){
     if(data.existing_link){await openPatient(data.existing_link.patient_id);return;}
-    var button=document.querySelector('[data-lana-confirm]'),selected=document.querySelector('input[name="lana-patient"]:checked');button.disabled=true;button.textContent='Preparando expediente…';
+    var button=document.querySelector('[data-lana-confirm]'),selected=document.querySelector('input[name="lana-patient"]:checked');
+    if((data.candidates||[]).length&&!selected){return;}
+    button.disabled=true;button.textContent='Preparando expediente…';
     try{var result=await request('confirm',data.conversation.id,selected&&selected.value);await openPatient(result.link.patient_id);}
     catch(error){document.getElementById('lana-handoff-body').insertAdjacentHTML('beforeend','<p class="connections-form-message" data-tone="error">'+esc(error.message)+'</p>');button.disabled=false;button.textContent='Crear o vincular expediente';}
   }

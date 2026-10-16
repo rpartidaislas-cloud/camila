@@ -124,8 +124,8 @@ function assignedActorId(conversation: Record<string, unknown>): string {
   return String(conversation.assigned_actor_id || assignment.actor_id || "");
 }
 
-async function accessiblePatient(actor: Actor, tenantId: string, patientId: string): Promise<boolean> {
-  const scope = actor.scopes.messages || "own";
+async function accessiblePatient(actor: Actor, tenantId: string, patientId: string, domain: "messages" | "clinical" = "messages"): Promise<boolean> {
+  const scope = actor.scopes[domain] || "own";
   if (scope === "clinic") return true;
   if (scope === "branches") {
     const { data: branches } = await admin.from("smyl_member_branches").select("branch_id").eq("tenant_id", tenantId).eq("user_id", actor.id);
@@ -320,19 +320,28 @@ function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   return headers;
 }
 
-async function clinicalContext(tenantId: string, conversationId: string): Promise<Response> {
+async function clinicalContext(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const { data: handoff, error } = await admin.from("camila_lana_handoffs")
     .select("id,patient_id,case_id,lana_channel,created_at")
     .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
   if (error) return json(500, { error: "No se pudo consultar la Ficha 360." });
   if (!handoff) return json(200, { ok: true, linked: false, patient: null, case: null, clinical_images: [] });
+  if (!await accessiblePatient(actor, tenantId, String(handoff.patient_id), "clinical")) {
+    return json(403, { error: "El expediente queda fuera del alcance clínico de tu rol.", code: "patient_scope_denied" });
+  }
+  const caseQuery = handoff.case_id
+    ? admin.from("camila_casos").select("id,nombre_paciente,telefono,email,score,score_lbl,resumen,diagnostico,total_cotizacion,simulacion_url,fotos_count,lana_cita_id,created_at")
+      .eq("tenant_id", tenantId).eq("id", handoff.case_id).maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const linksQuery = handoff.case_id
+    ? admin.from("camila_lana_clinical_links").select("id,lana_message_id,media_type,status,label,created_at")
+      .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50)
+    : Promise.resolve({ data: [], error: null });
   const [{ data: patient }, { data: caseRow }, { data: links }] = await Promise.all([
     admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at")
       .eq("tenant_id", tenantId).eq("id", handoff.patient_id).maybeSingle(),
-    admin.from("camila_casos").select("id,nombre_paciente,telefono,email,score,score_lbl,resumen,diagnostico,total_cotizacion,simulacion_url,fotos_count,lana_cita_id,created_at")
-      .eq("tenant_id", tenantId).eq("id", handoff.case_id).maybeSingle(),
-    admin.from("camila_lana_clinical_links").select("id,lana_message_id,media_type,status,label,created_at")
-      .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50),
+    caseQuery,
+    linksQuery,
   ]);
   return json(200, {
     ok: true,
@@ -354,7 +363,142 @@ async function clinicalContext(tenantId: string, conversationId: string): Promis
   });
 }
 
-async function copilotClinicalSnapshot(tenantId: string, conversationId: string): Promise<Record<string, unknown>> {
+type PatientLinkIdentity = {
+  id: string;
+  channel: string;
+  name: string;
+  email: string;
+  phone: string;
+  lana_url: string;
+};
+
+async function patientLinkIdentity(actor: Actor, tenantId: string, conversationId: string): Promise<{ identity?: PatientLinkIdentity; response?: Response }> {
+  const remote = await lanaRequest(tenantId, `/conversations/${conversationId}`, {
+    method: "GET", headers: actorHeaders(actor),
+  }, 15000);
+  if (remote.response.status === 404) return { response: json(404, { error: "La conversación ya no está disponible." }) };
+  if (!remote.response.ok) return { response: json(502, { error: "No se pudo identificar al contacto de la conversación." }) };
+  const conversation = remote.body.conversacion && typeof remote.body.conversacion === "object"
+    ? remote.body.conversacion as Record<string, unknown> : null;
+  if (!conversation) return { response: json(502, { error: "El canal devolvió una identidad incompleta." }) };
+  const channel = text(conversation.canal, 20);
+  if (!["whatsapp", "messenger", "instagram"].includes(channel)) {
+    return { response: json(409, { error: "El canal de la conversación no permite vinculación con pacientes." }) };
+  }
+  return {
+    identity: {
+      id: conversationId,
+      channel,
+      name: text(conversation.nombre, 150) || "Paciente de redes sociales",
+      email: text(conversation.email, 254),
+      phone: text(conversation.telefono, 60),
+      lana_url: text(conversation.lana_url, 500) || "https://app.get-lana.com/admin.html?tab=chats",
+    },
+  };
+}
+
+async function patientLinkPreview(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
+  const resolved = await patientLinkIdentity(actor, tenantId, conversationId);
+  if (resolved.response || !resolved.identity) return resolved.response || json(502, { error: "No se pudo identificar al contacto." });
+  const identity = resolved.identity;
+  const [existingResult, candidatesResult] = await Promise.all([
+    admin.from("camila_lana_handoffs")
+      .select("patient_id,case_id,lana_channel,link_kind,created_at")
+      .eq("tenant_id", tenantId)
+      .eq("lana_conversation_id", conversationId)
+      .maybeSingle(),
+    admin.rpc("smyl_lana_patient_candidates", {
+      p_tenant_id: tenantId,
+      p_email: identity.email,
+      p_telefono: identity.phone,
+    }),
+  ]);
+  if (existingResult.error || candidatesResult.error) {
+    console.error("[lana-inbox] patient link preview", existingResult.error?.message || candidatesResult.error?.message);
+    return json(500, { error: "No se pudo revisar la identidad del paciente." });
+  }
+  return json(200, {
+    ok: true,
+    conversation: identity,
+    existing_link: existingResult.data || null,
+    candidates: candidatesResult.data || [],
+  });
+}
+
+async function confirmPatientLink(actor: Actor, tenantId: string, conversationId: string, body: Record<string, unknown>): Promise<Response> {
+  const resolved = await patientLinkIdentity(actor, tenantId, conversationId);
+  if (resolved.response || !resolved.identity) return resolved.response || json(502, { error: "No se pudo identificar al contacto." });
+  const identity = resolved.identity;
+  const selectedPatientId = body.patient_id ? uuid(body.patient_id) : null;
+  if (body.patient_id && !selectedPatientId) return json(400, { error: "El expediente elegido no es válido." });
+  const { data, error } = await admin.rpc("camila_confirmar_lana_handoff", {
+    p_tenant_id: tenantId,
+    p_actor_id: actor.id,
+    p_lana_conversation_id: conversationId,
+    p_lana_channel: identity.channel,
+    p_nombre: identity.name,
+    p_email: identity.email,
+    p_telefono: identity.phone,
+    p_patient_id: selectedPatientId,
+  });
+  if (error) {
+    console.error("[lana-inbox] patient link confirmation", error.message);
+    return json(error.code === "42501" ? 403 : 409, {
+      error: error.code === "42501" ? "Tu rol no permite crear o vincular pacientes." : "No se pudo preparar el expediente desde esta conversación.",
+    });
+  }
+  return json(200, { ok: true, conversation: identity, link: Array.isArray(data) ? data[0] : data });
+}
+
+async function autoLinkConversationPatient(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
+  const resolved = await patientLinkIdentity(actor, tenantId, conversationId);
+  if (resolved.response || !resolved.identity) return resolved.response || json(502, { error: "No se pudo identificar al contacto." });
+  const conversation = resolved.identity;
+  const { data, error } = await admin.rpc("smyl_auto_link_lana_conversation", {
+    p_tenant_id: tenantId,
+    p_actor_id: actor.id,
+    p_lana_conversation_id: conversationId,
+    p_lana_channel: conversation.channel,
+    p_nombre: conversation.name,
+    p_email: conversation.email,
+    p_telefono: conversation.phone,
+  });
+  if (error) {
+    console.error("[lana-inbox] automatic patient link", error.message);
+    return json(error.code === "42501" ? 403 : 500, {
+      error: error.code === "42501" ? "Tu rol no permite crear o vincular pacientes." : "No se pudo vincular el paciente automáticamente.",
+      code: error.code === "42501" ? "permission_denied" : "automatic_patient_link_failed",
+    });
+  }
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || ["ambiguous", "needs_identity"].includes(String(result.status || ""))) {
+    const reason = result?.status === "needs_identity" ? "needs_identity" : "ambiguous";
+    return json(200, { ok: true, linked: false, reason, needs_review: true });
+  }
+  const [{ data: patient }, { data: handoff }] = await Promise.all([
+    admin.from("camila_pacientes")
+      .select("id,nombre,apellido")
+      .eq("tenant_id", tenantId)
+      .eq("id", result.patient_id)
+      .maybeSingle(),
+    admin.from("camila_lana_handoffs")
+      .select("link_kind")
+      .eq("tenant_id", tenantId)
+      .eq("lana_conversation_id", conversationId)
+      .maybeSingle(),
+  ]);
+  return json(200, {
+    ok: true,
+    linked: true,
+    status: result.status,
+    existing_link: Boolean(result.existing_link),
+    created_patient: Boolean(result.created_patient || handoff?.link_kind === "created_contact"),
+    patient: patient ? { id: patient.id, name: `${patient.nombre || ""} ${patient.apellido || ""}`.trim() } : null,
+    case_id: result.case_id,
+  });
+}
+
+async function copilotClinicalSnapshot(actor: Actor, tenantId: string, conversationId: string): Promise<Record<string, unknown>> {
   const { data: handoff } = await admin.from("camila_lana_handoffs")
     .select("patient_id,case_id")
     .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
@@ -363,10 +507,18 @@ async function copilotClinicalSnapshot(tenantId: string, conversationId: string)
     simulation_exists: false, simulation_authorized: false,
     proposal_status: null, appointment_linked: false,
   };
-  const [{ data: caseRow }, proposalResult] = await Promise.all([
-    admin.from("camila_casos")
+  if (!await accessiblePatient(actor, tenantId, String(handoff.patient_id), "clinical")) return {
+    patient_confirmed: false, case_confirmed: false, clinical_access: false,
+    photo_count: 0, simulation_exists: false, simulation_authorized: false,
+    proposal_status: null, appointment_linked: false,
+  };
+  const caseResult = handoff.case_id
+    ? await admin.from("camila_casos")
       .select("id,score_lbl,simulacion_url,fotos_count,lana_cita_id,lana_webhook_estado")
-      .eq("tenant_id", tenantId).eq("id", handoff.case_id).maybeSingle(),
+      .eq("tenant_id", tenantId).eq("id", handoff.case_id).maybeSingle()
+    : { data: null, error: null };
+  const [{ data: caseRow }, proposalResult] = await Promise.all([
+    Promise.resolve(caseResult),
     admin.from("smyl_proposals")
       .select("status")
       .eq("tenant_id", tenantId).eq("patient_id", handoff.patient_id)
@@ -397,6 +549,12 @@ async function linkClinicalImage(
 ): Promise<Response> {
   const id = messageId(rawMessageId);
   if (!id) return json(400, { error: "Mensaje no válido." });
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  if (!handoff?.patient_id) return json(409, { error: "Primero identifica al paciente de esta conversación.", code: "handoff_required" });
+  if (!await accessiblePatient(actor, tenantId, String(handoff.patient_id), "clinical")) {
+    return json(403, { error: "El expediente queda fuera del alcance clínico de tu rol.", code: "patient_scope_denied" });
+  }
   const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/messages/${id}`, {
     method: "GET", headers: actorHeaders(actor),
   }, 15000);
@@ -498,7 +656,7 @@ Deno.serve(async (req: Request) => {
       }
       if (action === "clinical_context" && conversationId) {
         const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");
-        return clinicalDenied || await clinicalContext(auth.tenantId, conversationId);
+        return clinicalDenied || await clinicalContext(actor, auth.tenantId, conversationId);
       }
       if (action === "message" && conversationId) {
         const id = messageId(url.searchParams.get("message_id"));
@@ -558,6 +716,21 @@ Deno.serve(async (req: Request) => {
     const conversationId = uuid(body.conversation_id);
     if (!conversationId) return json(400, { error: "Conversación no válida." });
     if (!await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+    if (action === "patient_link_preview" || action === "patient_link_confirm") {
+      const denied = requirePermission(actor, "patients.manage", "Tu rol no permite crear o vincular pacientes.");
+      if (denied) return denied;
+      if (action === "patient_link_preview") return await patientLinkPreview(actor, auth.tenantId, conversationId);
+      const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
+      if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      return await confirmPatientLink(actor, auth.tenantId, conversationId, body);
+    }
+    if (action === "auto_patient_link") {
+      const denied = requirePermission(actor, "patients.manage", "Tu rol no permite crear o vincular pacientes.");
+      if (denied) return denied;
+      const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
+      if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      return await autoLinkConversationPatient(actor, auth.tenantId, conversationId);
+    }
     if (action === "appointment_request" || action === "appointment_confirm") {
       const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar citas.");
       if (scheduleDenied) return scheduleDenied;
@@ -580,7 +753,7 @@ Deno.serve(async (req: Request) => {
       if (denied) return denied;
       const mode = body.mode === "summary" ? "summary" : "draft";
       const clinical = can(actor, "clinical.read")
-        ? await copilotClinicalSnapshot(auth.tenantId, conversationId)
+        ? await copilotClinicalSnapshot(actor, auth.tenantId, conversationId)
         : { patient_confirmed: false, case_confirmed: false, clinical_access: false };
       const remote = await lanaRequest(auth.tenantId, `/inbox/conversations/${conversationId}/copilot`, {
         method: "POST", headers: actorHeaders(actor),

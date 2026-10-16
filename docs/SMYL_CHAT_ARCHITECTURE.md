@@ -270,9 +270,19 @@ SMYL diferencia:
 Reglas:
 
 - Mostrar en primer lugar el nombre del contacto.
-- Sugerir paciente por teléfono normalizado, nunca vincular automáticamente.
-- Confirmar sólo cuando exista un candidato inequívoco.
-- Si hay varias coincidencias, mostrar conflicto y búsqueda manual.
+- Al abrir una conversación, resolver la identidad en segundo plano por correo
+  exacto o teléfono canónico del país; el nombre visible nunca decide el vínculo.
+- Vincular automáticamente sólo cuando exista un candidato inequívoco.
+- Si no existe candidato pero hay correo o teléfono verificable, crear un
+  contacto provisional sin caso ni información clínica.
+- Si hay varias coincidencias o faltan identificadores estables, mostrar
+  conflicto y revisión manual sin escribir un vínculo.
+- La revisión manual debe pasar por el mismo control de alcance del Inbox antes
+  de mostrar candidatos, aunque el usuario conozca el UUID de la conversación.
+- Vínculo automático, confirmación manual y adjuntos clínicos comparten un lock
+  por tenant y conversación; sólo una acción puede crear el primer caso.
+- Conservar si el vínculo nació como contacto provisional hasta que una acción
+  clínica explícita lo confirme.
 - Permitir búsqueda por nombre, teléfono, correo o identificador de expediente.
 - Crear paciente desde el chat con control de duplicados.
 - Vincular no sobrescribe datos clínicos ni fiscales confirmados.
@@ -800,7 +810,9 @@ WhatsApp, capacitación, pausa IA/humano, alertas y recuperación.
   revisión humana para evitar duplicados.
 - Cada tipo de mensaje respeta capacidades del canal.
 - Fuera de la ventana de WhatsApp se usan plantillas autorizadas.
-- El contacto se vincula a un paciente sólo con confirmación.
+- Al abrir el hilo, el contacto se vincula de forma idempotente a un único
+  paciente o a un contacto provisional; las ambigüedades exigen confirmación.
+- La apertura del hilo nunca crea por sí sola un caso clínico.
 - La Ficha 360 diferencia inferencias y datos confirmados.
 - Una fotografía puede vincularse a un caso y entrar a revisión clínica.
 - Sólo se comparte una simulación autorizada.

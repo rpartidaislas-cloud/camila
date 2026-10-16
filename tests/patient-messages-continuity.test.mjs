@@ -21,10 +21,11 @@ test('each thread exposes a clear next action and patient continuity', () => {
   assert.match(inbox, /SIGUIENTE ACCIÓN/);
   assert.match(inbox, /Responder y resolver la solicitud/);
   assert.match(inbox, /Abrir expediente/);
-  assert.match(inbox, /Vincular paciente/);
+  assert.match(inbox, /Resolver identidad/);
+  assert.match(inbox, /Identificando paciente/);
   assert.match(inbox, /Agendar cita/);
   assert.match(inbox, /Paciente y atención/);
-  assert.match(inbox, /Expediente vinculado/);
+  assert.match(inbox, /Paciente vinculado/);
 });
 
 test('reply tools are understandable and preserve human review', () => {
@@ -36,9 +37,9 @@ test('reply tools are understandable and preserve human review', () => {
 });
 
 test('web, mobile and offline bundles ship the same inbox stage', () => {
-  assert.match(app, /smyl-inbox\.css\?v=18/);
-  assert.match(app, /smyl-inbox\.js\?v=23/);
-assert.match(worker, /smyl-v248-patient-record-simple/);
+  assert.match(app, /smyl-inbox\.css\?v=19/);
+  assert.match(app, /smyl-inbox\.js\?v=25/);
+assert.match(worker, /smyl-v250-chat-patient-hardening/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));
   assert.equal(styles, read('../mobile/www/smyl-inbox.css'));

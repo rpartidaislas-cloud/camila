@@ -64,17 +64,25 @@ cambiar este límite de seguridad entre SMYL y LANA.
 ## Expediente desde SMYL y contexto de atención
 
 SMYL se opera como producto independiente. LANA no muestra enlaces hacia SMYL
-y el profesional no necesita abrir el panel de LANA. Desde el Inbox de SMYL,
-**Preparar expediente** abre una revisión interna de la identidad asociada a la
-conversación.
+y el profesional no necesita abrir el panel de LANA. Al abrir un hilo del Inbox,
+SMYL intenta resolver su identidad de forma idempotente dentro de la clínica.
+Una coincidencia única por correo o teléfono canónico se vincula en segundo
+plano. Si no existe coincidencia, se crea únicamente un contacto provisional
+cuando hay un identificador verificable; esto no crea un caso clínico. Varias
+coincidencias o la ausencia de identificadores abren la revisión manual.
 
-La Edge Function `lana-handoff` usa la conexión cifrada servidor a servidor
-para consultar únicamente canal, nombre, correo y teléfono. El historial de
-mensajes no se copia. Antes de confirmar, SMYL muestra coincidencias de paciente
-por correo o teléfono y deja que el profesional reutilice el expediente
-correcto o cree uno nuevo. La tabla `camila_lana_handoffs` y la RPC
-`camila_confirmar_lana_handoff` hacen el enlace idempotente por tenant y
-conversación. Los mensajes y credenciales de Meta permanecen en el backend de
+La Edge Function `lana-inbox` usa la conexión cifrada servidor a servidor para
+consultar únicamente canal, nombre, correo y teléfono. El historial de mensajes
+no se copia. La tabla `camila_lana_handoffs` y la RPC
+`smyl_auto_link_lana_conversation` hacen el enlace idempotente por tenant y
+conversación, exigen permisos y no seleccionan arbitrariamente entre duplicados.
+La resolución manual también vive en `lana-inbox`: vuelve a validar el alcance
+del hilo antes de mostrar candidatos y exige una elección explícita cuando hay
+duplicados. `lana-handoff` permanece únicamente como puente compatible para
+clientes antiguos y reenvía la operación al mismo control autorizado. El origen
+provisional se conserva en `link_kind`, y la confirmación manual y los adjuntos
+clínicos comparten un solo bloqueo por tenant y conversación para impedir casos
+duplicados. Los mensajes y credenciales de Meta permanecen en el backend de
 LANA, pero toda la operación visible del dentista ocurre en SMYL.
 
 La misma pantalla **LANA y canales** permite editar contexto de atención. La
@@ -339,9 +347,10 @@ advisory lock y auditoría. Las capacidades se anuncian por canal: WhatsApp
 soporta imagen, documento, audio y ubicación; Messenger imagen/documento;
 Instagram imagen, sin fingir soporte de documento.
 
-La Ficha 360 se obtiene desde SMYL mediante el handoff confirmado. Expone un
-subconjunto de paciente y caso, y señala cita LANA, simulación, propuesta y
-fotografías vinculadas cuando esos datos existen. Para enviar una imagen a
+La Ficha 360 se obtiene desde SMYL mediante el vínculo confirmado y respeta el
+alcance clínico del rol, además del acceso a la conversación. Expone un
+subconjunto del paciente y, sólo si ya existe, del caso; señala cita LANA,
+simulación, propuesta y fotografías vinculadas cuando esos datos existen. Para enviar una imagen a
 revisión clínica, SMYL vuelve a consultar el mensaje canónico en LANA, exige
 que sea una imagen disponible y guarda sólo IDs de referencia; no copia la URL,
 el archivo ni el contenido del chat.

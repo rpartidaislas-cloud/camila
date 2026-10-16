@@ -21,7 +21,8 @@ test('la ventana aparece antes de consultar la agenda y conserva al paciente', (
   const flow = inbox.slice(start, end);
   assert.ok(flow.indexOf('dialog.showModal()') < flow.indexOf("request('GET', { action: 'availability_catalog'"));
   assert.doesNotMatch(flow, /conversation\.contact_name/);
-  assert.match(flow, /clinical\.patient\.name/);
+  assert.match(flow, /refreshAvailabilityPatientIdentity\(\)/);
+  assert.match(inbox, /clinical\.patient\.name/);
   assert.match(flow, /control\.disabled = true/);
   assert.match(flow, /control\.disabled = false/);
   assert.match(flow, /await searchAvailability/);
@@ -50,8 +51,8 @@ test('el espacio central muestra una agenda visual por día, profesional y espec
 
 test('la agenda embebida mantiene paridad móvil y una versión pública nueva', () => {
   assert.equal(mobileInbox, inbox);
-  assert.match(app, /smyl-inbox\.js\?v=23/);
-  assert.match(app, /smyl-inbox\.css\?v=18/);
-  assert.match(worker, /smyl-inbox\.js\?v=23/);
-  assert.match(worker, /smyl-inbox\.css\?v=18/);
+  assert.match(app, /smyl-inbox\.js\?v=25/);
+  assert.match(app, /smyl-inbox\.css\?v=19/);
+  assert.match(worker, /smyl-inbox\.js\?v=25/);
+  assert.match(worker, /smyl-inbox\.css\?v=19/);
 });

@@ -1,5 +1,36 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: vínculo automático seguro y jerarquía visual de Agenda
+
+**Abrir una conversación identifica al paciente sin trabajo repetitivo y la
+Agenda recupera una escala visual uniforme, legible y más tranquila.**
+
+- Al abrir el chat, SMYL compara correo y teléfono canónico dentro de la clínica:
+  vincula una coincidencia única o crea un contacto provisional cuando la
+  identidad es nueva y verificable.
+- Los duplicados o conversaciones sin correo/teléfono quedan para resolución
+  humana; no se selecciona automáticamente al primer candidato.
+- Abrir un chat nunca crea por sí solo un expediente o caso clínico. El caso se
+  genera únicamente al iniciar una acción clínica explícita.
+- La operación exige permisos, respeta tenant y alcance del paciente, usa
+  idempotencia y bloqueos transaccionales para evitar vínculos duplicados.
+- El contexto clínico vuelve a comprobar el alcance clínico aunque el usuario
+  pueda leer la conversación.
+- La Agenda usa ahora una escala tipográfica consistente de 10 a 23 px,
+  controles de 42 px (46 px en móvil), mejor contraste y una distribución
+  responsiva verificada en escritorio, tableta y celular.
+- Web, aplicación móvil y PWA avanzan a Inbox JS v25, CSS v19, handoff v5 y
+  caché `smyl-v250-chat-patient-hardening`.
+- La resolución manual pasó al mismo puente autorizado del Inbox, el origen
+  provisional persiste después de recargar y todos los flujos clínicos comparten
+  un lock por conversación para impedir casos duplicados.
+- La migración de vínculo seguro y las funciones `lana-inbox` y `lana-handoff`
+  quedaron desplegadas en Supabase.
+
+**Validación:** 418/418 pruebas aprobadas, compuerta de seguridad en verde,
+base remota sin advertencias de esquema y revisión visual satisfactoria en
+1280×720, 820×900 y 390×844.
+
 ## 2026-10-16 — Codex: Agenda guiada y recuperable desde Mensajes
 
 **Agendar desde el chat ahora conduce al equipo incluso cuando falta el paciente

@@ -19,7 +19,7 @@
     notificationsEnabled: false, didAutoOpen: false,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
-    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {},
+    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
   };
 
   function node(tag, cls, text) {
@@ -1208,7 +1208,7 @@
       var hint = '';
       if (key === 'attention') hint = 'Requiere acción';
       else if (key === 'appointment') hint = state.appointmentContextLoading[conversation.id] ? 'Consultando' : 'Agenda';
-      else if (key === 'record') hint = ficha && ficha.linked ? 'Vinculado' : 'Por vincular';
+      else if (key === 'record') hint = state.patientLinking[conversation.id] ? 'Identificando' : ficha && ficha.linked ? 'Vinculado' : 'Revisar identidad';
       else if (key === 'whatsapp') hint = liveWhatsappWindow(conversation).status === 'expired' ? 'Ventana vencida' : 'Ventana abierta';
       else if (key === 'responsable') hint = conversation.assignment ? conversation.assignment.name : 'Sin asignar';
       if (hint) summary.append(node('small', '', hint));
@@ -1259,8 +1259,9 @@
     if (conversation.needs_human || conversation.unread_count) {
       var respond = node('button', 'btn btn-primary btn-sm', 'Responder ahora'); respond.type = 'button'; respond.onclick = focusComposer; nextActions.append(respond);
     }
-    var patientAction = node('button', 'btn btn-secondary btn-sm', ficha && ficha.linked ? 'Abrir expediente' : 'Vincular paciente');
-    patientAction.type = 'button'; patientAction.onclick = function () { openPatientContext(conversation.id); }; nextActions.append(patientAction);
+    var linkingPatient = Boolean(state.patientLinking[conversation.id]);
+    var patientAction = node('button', 'btn btn-secondary btn-sm', linkingPatient ? 'Identificando paciente…' : ficha && ficha.linked ? 'Abrir paciente' : 'Resolver identidad');
+    patientAction.type = 'button'; patientAction.disabled = linkingPatient; patientAction.onclick = function () { openPatientContext(conversation.id); }; nextActions.append(patientAction);
     if (ficha && ficha.case && ficha.case.lana_appointment_id) {
       var agenda = node('button', 'btn btn-secondary btn-sm', 'Agendar cita'); agenda.type = 'button'; agenda.onclick = openAvailabilityDialog; nextActions.append(agenda);
     }
@@ -1419,7 +1420,9 @@
         clinical.append(node('strong', '', ficha.patient && ficha.patient.name || conversation.contact_name));
         clinical.append(node('p', '', [ficha.patient && ficha.patient.phone, ficha.patient && ficha.patient.email].filter(Boolean).join(' · ') || 'Paciente confirmado'));
         var facts = node('div', 'smyl-inbox-ficha-facts');
-        facts.append(node('span', '', 'Caso activo'), node('span', '', String((ficha.clinical_images || []).length) + ' fotos desde chat'));
+        facts.append(node('span', '', ficha.provisional_contact ? 'Contacto provisional' : 'Paciente identificado'));
+        if (ficha.case) facts.append(node('span', '', 'Caso activo'));
+        if ((ficha.clinical_images || []).length) facts.append(node('span', '', String(ficha.clinical_images.length) + ' fotos desde chat'));
         if (ficha.case && ficha.case.score !== null) facts.append(node('span', '', 'Score ' + ficha.case.score));
         if (ficha.case && ficha.case.lana_appointment_id) facts.append(node('span', '', 'Cita vinculada'));
         if (ficha.case && ficha.case.simulation_url) facts.append(node('span', '', 'Simulación disponible'));
@@ -1431,8 +1434,13 @@
         if (ficha.case && (ficha.case.summary || ficha.case.diagnosis)) clinical.append(node('p', 'smyl-inbox-ficha-summary', ficha.case.summary || ficha.case.diagnosis));
         var openRecord = node('button', 'btn btn-secondary btn-sm', 'Abrir expediente'); openRecord.type = 'button'; openRecord.onclick = function () { openPatientContext(conversation.id); }; clinical.append(openRecord);
       } else {
-        clinical.append(node('p', '', 'Confirma paciente y caso antes de incorporar fotografías a la revisión clínica.'));
-        var record = node('button', 'btn btn-secondary btn-sm', 'Preparar expediente'); record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); };
+        var unresolvedCopy = ficha && ficha.auto_link_reason === 'ambiguous'
+          ? 'Hay más de un expediente coincidente. Elige a la persona correcta antes de continuar.'
+          : ficha && ficha.auto_link_reason === 'needs_identity'
+            ? 'Falta teléfono o correo verificable para identificar al paciente sin riesgo de duplicarlo.'
+            : 'SMYL intentará identificar al paciente al abrir el chat. Revisa sólo si requiere confirmación.';
+        clinical.append(node('p', '', unresolvedCopy));
+        var record = node('button', 'btn btn-secondary btn-sm', 'Resolver identidad'); record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); };
         clinical.append(record);
       }
       wrap.append(clinical);
@@ -1508,7 +1516,7 @@
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
     var threadFicha = state.clinical[conversation.id];
     var actorRole = state.actor && state.actor.role_name;
-    var continuityLabel = threadFicha && threadFicha.linked ? 'Expediente vinculado' : 'Paciente sin vincular';
+    var continuityLabel = state.patientLinking[conversation.id] ? 'Identificando paciente' : threadFicha && threadFicha.linked ? 'Paciente vinculado' : 'Identidad por revisar';
     var patientSummary = document.querySelector('[data-inbox-context]');
     patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
     var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin asignar'];
@@ -1546,9 +1554,50 @@
   async function loadClinicalContext(conversationId) {
     if (!conversationId || !hasPermission('clinical.read')) return;
     state.clinicalLoading[conversationId] = true; renderContext();
-    try { state.clinical[conversationId] = await request('GET', { action: 'clinical_context', conversation_id: conversationId }); }
-    catch (_) { state.clinical[conversationId] = { linked: false, unavailable: true }; }
+    try {
+      var loaded = await request('GET', { action: 'clinical_context', conversation_id: conversationId });
+      var prior = state.clinical[conversationId] || {};
+      state.clinical[conversationId] = Object.assign({}, prior, loaded, {
+        provisional_contact: Boolean(prior.provisional_contact)
+      });
+    }
+    catch (error) {
+      var previous = state.clinical[conversationId] || {};
+      state.clinical[conversationId] = Object.assign({}, previous, {
+        linked: Boolean(previous.linked), unavailable: true,
+        clinical_restricted: error && error.code === 'patient_scope_denied'
+      });
+    }
     finally { state.clinicalLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
+  }
+
+  async function autoLinkConversationPatient(conversationId) {
+    if (!conversationId || state.patientLinkChecked[conversationId] || state.patientLinking[conversationId] || !hasPermission('patients.manage')) return;
+    state.patientLinking[conversationId] = true;
+    if (state.selectedId === conversationId) { renderCareBar(); renderContext(); }
+    try {
+      var data = await request('POST', {}, { action: 'auto_patient_link', conversation_id: conversationId }, uuid());
+      if (data.linked) {
+        state.clinical[conversationId] = Object.assign({}, state.clinical[conversationId] || {}, {
+          linked: true, patient: data.patient || null, automatic_link: true,
+          provisional_contact: Boolean(data.created_patient)
+        });
+        state.patientLinkChecked[conversationId] = true;
+      } else {
+        state.clinical[conversationId] = { linked: false, auto_link_reason: data.reason || 'needs_identity' };
+      }
+    } catch (error) {
+      state.clinical[conversationId] = Object.assign({}, state.clinical[conversationId] || {}, { linked: false, auto_link_reason: error.code === 'permission_denied' ? 'permission' : 'unavailable' });
+    } finally {
+      state.patientLinking[conversationId] = false;
+      if (state.selectedId === conversationId) { renderCareBar(); renderThreadHeader(); renderContext(); refreshAvailabilityPatientIdentity(); }
+    }
+  }
+
+  async function prepareConversationPatient(conversationId) {
+    await autoLinkConversationPatient(conversationId);
+    await Promise.all([loadClinicalContext(conversationId), loadAppointmentContext(conversationId)]);
+    if (state.selectedId === conversationId) { renderCareBar(); renderThreadHeader(); renderContext(); }
   }
 
   async function loadAppointmentContext(conversationId) {
@@ -1793,14 +1842,46 @@
     if (allowed.has(current)) select.value = current;
   }
 
+  function refreshAvailabilityPatientIdentity() {
+    var dialog = document.querySelector('[data-availability-dialog]'); var conversation = selectedConversation();
+    if (!dialog || !conversation) return;
+    var patient = dialog.querySelector('[data-availability-patient]'); var clinical = state.clinical[conversation.id];
+    var patientLinking = Boolean(state.patientLinking[conversation.id]);
+    var patientLinked = Boolean(clinical && clinical.linked && clinical.patient && clinical.patient.name);
+    if (patient) {
+      patient.textContent = patientLinked
+        ? (clinical.provisional_contact ? 'Paciente nuevo: ' : 'Paciente vinculado: ') + clinical.patient.name
+        : patientLinking ? 'Identificando paciente…' : 'Identidad por confirmar';
+    }
+    var patientAlert = dialog.querySelector('[data-availability-patient-alert]');
+    if (!patientAlert) return;
+    patientAlert.hidden = patientLinked || patientLinking;
+    var alertTitle = patientAlert.querySelector('strong'); var alertCopy = patientAlert.querySelector('span');
+    var reason = clinical && clinical.auto_link_reason;
+    var title = 'No pudimos identificar al paciente';
+    var copy = 'Revisa la identidad para crear o vincular el expediente correcto.';
+    if (reason === 'ambiguous') {
+      title = 'Encontramos más de un expediente coincidente';
+      copy = 'Confirma cuál expediente corresponde antes de registrar la cita.';
+    } else if (reason === 'needs_identity') {
+      title = 'Falta teléfono o correo verificable';
+      copy = 'Completa un dato de contacto para vincular este chat sin duplicar pacientes.';
+    } else if (reason === 'permission') {
+      title = 'Tu rol no puede vincular pacientes';
+      copy = 'Solicita apoyo a un administrador de la clínica para continuar.';
+    } else if (reason === 'unavailable') {
+      title = 'No pudimos validar al paciente ahora';
+      copy = 'Puedes consultar la agenda; confirma la identidad antes de registrar la cita.';
+    }
+    if (alertTitle) alertTitle.textContent = title;
+    if (alertCopy) alertCopy.textContent = copy;
+  }
+
   async function openAvailabilityDialog() {
     var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
     var conversation = selectedConversation(); if (!conversation) return;
     var controls = Array.from(dialog.querySelectorAll('[data-availability-form] select,[data-availability-form] input,[data-availability-form] button'));
-    var patient = dialog.querySelector('[data-availability-patient]'); var clinical = state.clinical[conversation.id];
-    var patientLinked = Boolean(clinical && clinical.linked && clinical.patient && clinical.patient.name);
-    if (patient) patient.textContent = patientLinked ? 'Paciente: ' + clinical.patient.name : 'Paciente por vincular';
-    var patientAlert = dialog.querySelector('[data-availability-patient-alert]'); if (patientAlert) patientAlert.hidden = patientLinked;
+    refreshAvailabilityPatientIdentity();
     refreshAvailabilityHeading();
     if (!dialog.open) dialog.showModal();
     controls.forEach(function (control) { control.disabled = true; });
@@ -1915,7 +1996,7 @@
     state.selectedId = id; state.contextOpen = false; state.threadError = ''; state.replyTo = null; state.attachment = null;
     document.getElementById('p-inbox').classList.add('show-thread');
     render(); await restoreEncryptedDraft(id);
-    loadClinicalContext(id); loadAppointmentContext(id); loadScheduled(id); await loadThread(id, false);
+    var patientReady = prepareConversationPatient(id); loadScheduled(id); await loadThread(id, false); await patientReady;
     var conversation = selectedConversation();
     if (conversation && conversation.unread_count) {
       try {

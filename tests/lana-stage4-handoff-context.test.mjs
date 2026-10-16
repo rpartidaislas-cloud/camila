@@ -8,6 +8,7 @@ const handoff = read('../smyl-lana-handoff.js');
 const connections = read('../smyl-connections.js');
 const migration = read('../supabase/migrations/20261011120000_lana_conversation_handoffs.sql');
 const edge = read('../supabase/functions/lana-handoff/index.ts');
+const inboxEdge = read('../supabase/functions/lana-inbox/index.ts');
 const contextEdge = read('../supabase/functions/lana-context/index.ts');
 
 test('SMYL prepares the clinical record internally without navigating to LANA', () => {
@@ -24,9 +25,12 @@ test('handoff is tenant-scoped and idempotent', () => {
   assert.match(migration, /unique \(tenant_id, lana_conversation_id\)/i);
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /camila_es_miembro\(tenant_id\)/);
-  assert.match(edge, /eq\("tenant_id", auth\.tenantId\)/);
-  assert.match(edge, /camila_confirmar_lana_handoff/);
-  assert.doesNotMatch(edge, /messages|ultimo_mensaje/);
+  assert.match(edge, /patient_link_preview/);
+  assert.match(edge, /patient_link_confirm/);
+  assert.match(edge, /\/functions\/v1\/lana-inbox/);
+  assert.doesNotMatch(edge, /camila_confirmar_lana_handoff|smyl_lana_patient_candidates/);
+  assert.match(inboxEdge, /canAccessConversation\(actor, auth\.tenantId, conversationId\)/);
+  assert.match(inboxEdge, /camila_confirmar_lana_handoff/);
 });
 
 test('SMYL exposes structured dental training with fixed clinical limits', () => {

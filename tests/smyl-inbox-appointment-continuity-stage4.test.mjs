@@ -38,7 +38,8 @@ test('appointment communication remains a reviewed draft', () => {
 
 test('continuity refreshes after choice and confirmation and stays in mobile parity', () => {
   assert.ok((inbox.match(/loadAppointmentContext\(state\.selectedId\)/g) || []).length >= 2);
-  assert.match(inbox, /loadAppointmentContext\(id\)/);
+  assert.match(inbox, /loadAppointmentContext\(conversationId\)/);
+  assert.match(inbox, /prepareConversationPatient\(id\)/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
   assert.match(preview, /action === 'appointment_context'/);
