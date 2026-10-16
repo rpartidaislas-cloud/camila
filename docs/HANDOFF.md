@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: identidad de clínica y estado vacío de Agenda
+
+**La agenda del chat queda centrada y deja de confundir el nombre de la
+conversación de Meta con la identidad clínica o del paciente.**
+
+- El encabezado toma el nombre de la clínica desde `tenantData`; cuando se
+  selecciona una sede, muestra el nombre de esa sucursal. Si hay varias y no se
+  eligió una, comunica explícitamente `todas las sucursales`.
+- El paciente aparece en una etiqueta independiente sólo desde la ficha clínica
+  vinculada; si no existe vínculo, se muestra `Paciente por vincular`.
+- La ventana usa centrado fijo, mayor ancho útil, filtros sin recortes, icono de
+  agenda y una jerarquía visual consistente con SMYL.
+- El estado sin horarios deja de ser texto suelto: ahora tiene explicación y
+  accesos para consultar los siguientes siete días o restablecer sede/equipo.
+- El estado vacío y la carga ocupan una sola columna en celular, evitando el
+  desplazamiento incorrecto heredado de la agenda semanal.
+- Web, aplicación móvil y PWA avanzan a Inbox JS v22 y CSS v17. No se modificó
+  backend ni migraciones.
+
+**Validación:** 409/409 pruebas aprobadas, puerta de seguridad en verde y
+revisión visual satisfactoria en agenda con espacios, estado vacío y celular.
+
 ## 2026-10-16 — Codex: agenda visual por profesional dentro del chat
 
 **La ventana de cita deja de mostrar un área vacía y presenta la disponibilidad

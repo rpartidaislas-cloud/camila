@@ -19,7 +19,7 @@
     notificationsEnabled: false, didAutoOpen: false,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
-    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', appointmentContext: {}, appointmentContextLoading: {},
+    availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', appointmentContext: {}, appointmentContextLoading: {},
   };
 
   function node(tag, cls, text) {
@@ -242,7 +242,7 @@
         '<dialog class="smyl-inbox-copilot-dialog" data-copilot-feedback><form><span class="smyl-inbox-eyebrow">CALIDAD DE IA</span><h2>Evalúa esta respuesta</h2><p>Tu comentario queda para revisión; no modifica ni publica la capacitación automáticamente.</p><label>Resultado<select data-feedback-rating required><option value="helpful">Útil</option><option value="needs_improvement">Necesita mejora</option><option value="unsafe">Insegura o fuera de límites</option></select></label><label>¿Qué mejorarías?<textarea data-feedback-comment maxlength="1000" rows="3"></textarea></label><label>Respuesta ideal · opcional<textarea data-feedback-ideal maxlength="4000" rows="4"></textarea></label><footer><button type="button" class="btn btn-secondary" data-feedback-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Guardar evaluación</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
-        '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-availability-dialog" data-availability-dialog><header><div><span class="smyl-inbox-eyebrow">AGENDA · SIN SALIR DEL CHAT</span><h2>Agendar cita</h2><p data-availability-patient>Consulta espacios reales y prepara la cita manteniendo esta conversación abierta.</p></div><button type="button" data-availability-close aria-label="Cerrar agenda">Cerrar</button></header><form data-availability-form><label class="is-service">Servicio<select data-availability-service required></select></label><label>Sucursal<select data-availability-branch><option value="">Todas las sucursales</option></select></label><label>Profesional<select data-availability-professional><option value="">Todo el equipo</option></select></label><label>Desde<input type="date" data-availability-from required></label><label>Hasta<input type="date" data-availability-to required></label><button class="btn btn-primary" type="submit">Actualizar agenda</button></form><section class="smyl-inbox-availability-board"><header><div><span>DISPONIBILIDAD DEL EQUIPO</span><strong data-availability-scope>Agenda por profesional</strong></div><small>Selecciona hasta 3 horarios para compartir</small></header><div data-availability-results></div></section><footer class="smyl-inbox-availability-offer"><span data-availability-selection>0 de 3 opciones</span><button type="button" class="btn btn-primary" data-availability-prepare disabled>Preparar opciones para el paciente</button></footer></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-availability-dialog" data-availability-dialog><header><div class="smyl-inbox-availability-heading"><div class="smyl-inbox-calendar-mark" aria-hidden="true"><span></span><b>17</b></div><div><span class="smyl-inbox-eyebrow">AGENDA · SIN SALIR DEL CHAT</span><h2>Agendar cita</h2><div class="smyl-inbox-availability-meta"><span data-availability-location>Tu clínica</span><span data-availability-patient>Paciente por vincular</span></div></div></div><button type="button" data-availability-close aria-label="Cerrar agenda">Cerrar</button></header><form data-availability-form><label class="is-service">Servicio<select data-availability-service required></select></label><label>Sucursal<select data-availability-branch><option value="">Todas las sucursales</option></select></label><label>Profesional<select data-availability-professional><option value="">Todo el equipo</option></select></label><label>Desde<input type="date" data-availability-from required></label><label>Hasta<input type="date" data-availability-to required></label><button class="btn btn-primary" type="submit">Actualizar</button></form><section class="smyl-inbox-availability-board"><header><div><span>DISPONIBILIDAD DEL EQUIPO</span><strong data-availability-scope>Agenda por profesional</strong></div><small>Selecciona hasta 3 horarios para compartir</small></header><div data-availability-results></div></section><footer class="smyl-inbox-availability-offer"><span data-availability-selection>0 de 3 opciones</span><button type="button" class="btn btn-primary" data-availability-prepare disabled>Preparar opciones para el paciente</button></footer></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-quick-dialog><header><div><span class="smyl-inbox-eyebrow">ATAJOS DEL EQUIPO</span><h2>Respuestas rápidas</h2><p>Inserta un texto revisable; nunca se envía automáticamente.</p></div><button type="button" data-quick-close>Cerrar</button></header><div data-quick-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog><header><div><span class="smyl-inbox-eyebrow">COMPOSITOR</span><h2>Agregar emoji</h2><p>Elige un símbolo y continúa editando antes de enviar.</p></div><button type="button" data-emoji-close>Cerrar</button></header><div data-emoji-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en LANA, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
@@ -1588,6 +1588,37 @@
     return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
   }
 
+  function availabilityClinicName() {
+    var tenant = window.tenantData || {}; var config = tenant.config || {};
+    return String(config.consultorio || tenant.nombre || 'Tu clínica dental').trim();
+  }
+
+  function refreshAvailabilityHeading() {
+    var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
+    var branchSelect = dialog.querySelector('[data-availability-branch]');
+    var clinicName = availabilityClinicName(); var location = clinicName;
+    if (branchSelect && branchSelect.value) location = branchSelect.options[branchSelect.selectedIndex].text;
+    else if (state.availabilityCatalog && (state.availabilityCatalog.branches || []).length > 1) location = clinicName + ' · todas las sucursales';
+    var locationNode = dialog.querySelector('[data-availability-location]'); if (locationNode) locationNode.textContent = location;
+  }
+
+  function moveAvailabilityPeriod(days) {
+    var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
+    var fromInput = dialog.querySelector('[data-availability-from]'); var toInput = dialog.querySelector('[data-availability-to]');
+    var from = new Date((toInput.value || fromInput.value) + 'T00:00:00');
+    if (!Number.isFinite(from.getTime())) from = new Date(); else from.setDate(from.getDate() + 1);
+    var to = new Date(from); to.setDate(to.getDate() + Number(days || 7));
+    fromInput.value = availabilityInputDate(from); toInput.value = availabilityInputDate(to);
+    dialog.querySelector('[data-availability-form]').requestSubmit();
+  }
+
+  function resetAvailabilityScope() {
+    var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
+    dialog.querySelector('[data-availability-branch]').value = '';
+    dialog.querySelector('[data-availability-professional]').value = '';
+    refreshAvailabilityHeading(); dialog.querySelector('[data-availability-form]').requestSubmit();
+  }
+
   function renderAvailabilityResults() {
     var host = document.querySelector('[data-availability-results]'); if (!host) return;
     host.innerHTML = '';
@@ -1597,13 +1628,20 @@
     var scope = dialog && dialog.querySelector('[data-availability-scope]');
     if (scope) scope.textContent = professional && professional.value ? professional.options[professional.selectedIndex].text : 'Agenda por profesional y especialidad';
     if (state.availabilityLoading) {
+      host.style.setProperty('--availability-days', 1);
       var loading = node('div', 'smyl-inbox-availability-loading');
       for (var loadingIndex = 0; loadingIndex < 4; loadingIndex += 1) loading.append(node('i'));
       host.append(loading); return;
     }
     if (!state.availabilitySlots.length) {
+      host.style.setProperty('--availability-days', 1);
       var empty = node('div', 'smyl-inbox-availability-empty');
-      empty.append(node('span', '', 'AGENDA DISPONIBLE'), node('strong', '', 'No hay espacios en este periodo'), node('p', '', 'Cambia las fechas, la sucursal o el profesional para consultar otras alternativas.'));
+      var emptyMark = node('div', 'smyl-inbox-availability-empty-mark'); emptyMark.append(node('i'), node('i'), node('i'));
+      var emptyActions = node('div', 'smyl-inbox-availability-empty-actions');
+      var nextWeek = node('button', 'btn btn-primary btn-sm', 'Ver siguientes 7 días'); nextWeek.type = 'button'; nextWeek.onclick = function () { moveAvailabilityPeriod(7); };
+      var allTeam = node('button', 'btn btn-secondary btn-sm', 'Ver todas las sucursales y equipo'); allTeam.type = 'button'; allTeam.onclick = resetAvailabilityScope;
+      emptyActions.append(nextWeek, allTeam);
+      empty.append(emptyMark, node('span', '', 'AGENDA DISPONIBLE'), node('strong', '', state.availabilityError ? 'No encontramos horarios con estos filtros' : 'Preparando la disponibilidad'), node('p', '', state.availabilityError || 'Selecciona un servicio para consultar la agenda de la clínica.'), emptyActions);
       host.append(empty); return;
     }
     var groups = {};
@@ -1723,28 +1761,30 @@
     var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
     var conversation = selectedConversation(); if (!conversation) return;
     var controls = Array.from(dialog.querySelectorAll('[data-availability-form] select,[data-availability-form] input,[data-availability-form] button'));
-    var patient = dialog.querySelector('[data-availability-patient]');
-    if (patient) patient.textContent = 'Consulta espacios reales para ' + conversation.contact_name + ' sin cerrar ni perder esta conversación.';
+    var patient = dialog.querySelector('[data-availability-patient]'); var clinical = state.clinical[conversation.id];
+    if (patient) patient.textContent = clinical && clinical.linked && clinical.patient && clinical.patient.name ? 'Paciente: ' + clinical.patient.name : 'Paciente por vincular';
+    refreshAvailabilityHeading();
     if (!dialog.open) dialog.showModal();
     controls.forEach(function (control) { control.disabled = true; });
-    state.availabilityLoading = true; state.availabilitySlots = []; state.availabilitySelected = []; renderAvailabilityResults();
+    state.availabilityLoading = true; state.availabilityError = ''; state.availabilitySlots = []; state.availabilitySelected = []; renderAvailabilityResults();
     try {
       if (!state.availabilityCatalog) state.availabilityCatalog = await request('GET', { action: 'availability_catalog' });
       await loadAvailabilityRequests();
       var catalog = state.availabilityCatalog; var services = dialog.querySelector('[data-availability-service]'); var branches = dialog.querySelector('[data-availability-branch]');
       services.innerHTML = '<option value="">Selecciona un servicio</option>'; (catalog.services || []).forEach(function (row) { services.append(new Option(row.name + ' · ' + row.duration_minutes + ' min', row.id)); });
       branches.innerHTML = '<option value="">Todas las sucursales</option>'; (catalog.branches || []).forEach(function (row) { branches.append(new Option(row.name, row.id)); });
+      if ((catalog.branches || []).length === 1) branches.value = catalog.branches[0].id;
       var start = new Date(); var end = new Date(Date.now() + 7 * 86400000);
       dialog.querySelector('[data-availability-from]').value = availabilityInputDate(start); dialog.querySelector('[data-availability-to]').value = availabilityInputDate(end);
       if ((catalog.services || []).length) services.value = catalog.services[0].id;
       filterAvailabilityProfessionals();
+      refreshAvailabilityHeading();
       state.availabilityLoading = false;
       if (services.value) await searchAvailability({ preventDefault: function () {}, currentTarget: dialog.querySelector('[data-availability-form]') });
       else renderAvailabilityResults();
     } catch (error) {
       state.availabilityLoading = false;
-      var results = dialog.querySelector('[data-availability-results]');
-      if (results) results.textContent = error.message || 'No se pudo consultar la configuración de Agenda.';
+      state.availabilityError = error.message || 'No se pudo consultar la configuración de Agenda.'; renderAvailabilityResults();
     } finally { controls.forEach(function (control) { control.disabled = false; }); }
   }
 
@@ -1752,7 +1792,7 @@
     event.preventDefault(); var form = event.currentTarget; var serviceId = form.querySelector('[data-availability-service]').value;
     if (!serviceId) { window.alert('Selecciona el servicio que necesita el paciente.'); return; }
     var from = new Date(form.querySelector('[data-availability-from]').value + 'T00:00:00'); var to = new Date(form.querySelector('[data-availability-to]').value + 'T23:59:59');
-    state.availabilityLoading = true; state.availabilitySlots = []; state.availabilitySelected = []; renderAvailabilityResults();
+    state.availabilityLoading = true; state.availabilityError = ''; state.availabilitySlots = []; state.availabilitySelected = []; renderAvailabilityResults();
     try {
       var data = await request('GET', {
         action: 'availability', service_id: serviceId,
@@ -1761,9 +1801,9 @@
         from: from.toISOString(), to: to.toISOString(), limit: '12'
       });
       state.availabilitySlots = data.slots || [];
-      if (!state.availabilitySlots.length) document.querySelector('[data-availability-results]').textContent = 'No encontramos espacios con esos criterios. Amplía el periodo o cambia de profesional.';
-    } catch (error) { document.querySelector('[data-availability-results]').textContent = error.message || 'No se pudo consultar disponibilidad.'; }
-    finally { state.availabilityLoading = false; if (state.availabilitySlots.length) renderAvailabilityResults(); }
+      if (!state.availabilitySlots.length) state.availabilityError = 'Amplía el periodo o prueba con otra sucursal o profesional.';
+    } catch (error) { state.availabilityError = error.message || 'No se pudo consultar disponibilidad.'; }
+    finally { state.availabilityLoading = false; renderAvailabilityResults(); }
   }
 
   async function loadList(reset) {
@@ -2239,7 +2279,7 @@
     page.querySelector('[data-schedule-cancel]').addEventListener('click', function () { page.querySelector('[data-schedule-dialog]').close(); });
     page.querySelector('[data-availability-form]').addEventListener('submit', searchAvailability);
     page.querySelector('[data-availability-service]').addEventListener('change', function () { filterAvailabilityProfessionals(); page.querySelector('[data-availability-form]').requestSubmit(); });
-    page.querySelector('[data-availability-branch]').addEventListener('change', function () { page.querySelector('[data-availability-form]').requestSubmit(); });
+    page.querySelector('[data-availability-branch]').addEventListener('change', function () { refreshAvailabilityHeading(); page.querySelector('[data-availability-form]').requestSubmit(); });
     page.querySelector('[data-availability-professional]').addEventListener('change', function () { page.querySelector('[data-availability-form]').requestSubmit(); });
     page.querySelector('[data-availability-close]').addEventListener('click', function () { page.querySelector('[data-availability-dialog]').close(); });
     page.querySelector('[data-availability-prepare]').addEventListener('click', prepareAvailabilityOptions);
