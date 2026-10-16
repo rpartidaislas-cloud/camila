@@ -20,7 +20,14 @@ y Actividad; las simulaciones dejan de presentarse como evidencia clínica.**
   existentes. Web, móvil y PWA avanzan a los recursos versionados de esta etapa.
 
 **Validación:** 383/383 pruebas aprobadas, puerta de seguridad completa en
-verde y `git diff --check` sin errores. Cambios locales; no publicados todavía.
+verde y `git diff --check` sin errores. Publicado en GitHub Pages mediante el
+commit `1d58f42`.
+
+**Despliegue backend:** las migraciones `20261015030000` a `20261015050000`
+quedaron aplicadas en producción y `lana-inbox` quedó activa en la versión 19.
+El historial local también incorpora las migraciones remotas concurrentes
+`20261015123000` y `20261015160000`; `supabase db lint --linked --level warning`
+terminó sin errores.
 
 ## 2026-10-15 — Codex: alcances efectivos en Mensajes y Finanzas
 
