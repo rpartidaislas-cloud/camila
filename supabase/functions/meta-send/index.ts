@@ -31,6 +31,7 @@ const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
 
 // Token PERMANENTE del System User -- el mismo para todas las clínicas.
 // NUNCA se guarda en camila_canales ni se manda al cliente.
@@ -123,7 +124,25 @@ Deno.serve(async (req: Request) => {
       .update({ ultimo_mensaje_en: new Date().toISOString(), ultimo_mensaje_texto: texto })
       .eq("id", conversacionId);
 
-    return new Response(JSON.stringify({ ok: true }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    let usage = null;
+    if (canalRow.canal === "whatsapp") {
+      const usageResult = await admin.rpc("smyl_consume", {
+        p_tenant_id: tenantId,
+        p_resource: "whatsapp_messages",
+        p_quantity_units: 1,
+        p_idempotency_key: `meta-send:${idExternoMeta || crypto.randomUUID()}`,
+        p_source_type: "meta_send",
+        p_source_id: idExternoMeta || conversacionId,
+        p_provider: "meta",
+        p_provider_model: canalRow.canal,
+        p_metadata: { conversacion_id: conversacionId },
+        p_enforce: CONSUMABLES_ENFORCED,
+      });
+      usage = usageResult.data;
+      if (usageResult.error) console.error("[meta-send] medición pendiente:", usageResult.error.message);
+    }
+
+    return new Response(JSON.stringify({ ok: true, usage: usage?.[0] || null }), { headers: { ...CORS, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[meta-send] error:", (e as Error).message);
     return jsonError(500, "No se pudo enviar el mensaje: " + (e as Error).message);

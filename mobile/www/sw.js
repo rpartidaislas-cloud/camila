@@ -10,6 +10,8 @@ const STATIC_FILES = [
   '/camila/smyl-secure-files.js?v=2',
   '/camila/smyl-security-center.js?v=1',
   '/camila/smyl-security-center.css?v=1',
+  '/camila/mila.html',
+  '/camila/consumos.html',
   '/camila/smyl-dental-model.js?v=1',
   '/camila/smyl-radiograph-review-model.js?v=1',
   '/camila/smyl-radiograph-review-store.js?v=1',

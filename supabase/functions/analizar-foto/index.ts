@@ -22,10 +22,13 @@
 //
 // Responde 200 inmediatamente y procesa en background (EdgeRuntime.waitUntil).
 
+import { createClient } from "npm:@supabase/supabase-js@2";
+
 const LANA_API_KEY = Deno.env.get("LANA_API_KEY") || "";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const SB_URL = Deno.env.get("SUPABASE_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 const OPENAI_IMAGE_MODEL =
   Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2-2026-04-21";
 const ANALISIS_BUCKET = "camila-analisis";
@@ -128,6 +131,22 @@ async function procesarFotoDental(opts: {
     } catch (e) {
       console.error(`[analizar-foto] job_id=${job_id} — simulación no disponible:`, e);
     }
+
+    // Piloto comercial: registra un crédito IA por análisis completado. Si no
+    // hay saldo aún, smyl_consume lo deja como meter_only y no interrumpe LANA.
+    const { error: usageError } = await admin.rpc("smyl_consume", {
+      p_tenant_id: tenant_id,
+      p_resource: "ai_credits",
+      p_quantity_units: 1,
+      p_idempotency_key: `analizar-foto:${job_id}`,
+      p_source_type: "analizar_foto",
+      p_source_id: job_id,
+      p_provider: "openai",
+      p_provider_model: "gpt-4o",
+      p_metadata: { canal },
+      p_enforce: false,
+    });
+    if (usageError) console.error(`[analizar-foto] job_id=${job_id} — medición pendiente:`, usageError.message);
 
     // 4. Notificar a LANA
     await notificarCallback(callback_url, callback_secret, {

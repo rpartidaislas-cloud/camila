@@ -23,6 +23,10 @@ function copyDir(src, dest) {
 
 copyFile(path.join(ROOT, 'simulacion.html'), path.join(WWW, 'simulacion.html'));
 copyFile(path.join(ROOT, 'revision-clinica.html'), path.join(WWW, 'revision-clinica.html'));
+copyFile(path.join(ROOT, 'app.html'), path.join(WWW, 'app.html'));
+copyFile(path.join(ROOT, 'sw.js'), path.join(WWW, 'sw.js'));
+copyFile(path.join(ROOT, 'mila.html'), path.join(WWW, 'mila.html'));
+copyFile(path.join(ROOT, 'consumos.html'), path.join(WWW, 'consumos.html'));
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
 
 console.log('www/ actualizado desde la raíz del repo.');

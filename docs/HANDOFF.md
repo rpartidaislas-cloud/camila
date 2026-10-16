@@ -5891,3 +5891,32 @@ reanudación, contrato de Inbox, migración
   `smyl-inbox.css?v=14`.
 - Verificación local: sintaxis aprobada, 18 pruebas enfocadas y 362 pruebas
   completas aprobadas. No se modificó backend, esquema ni datos reales.
+
+---
+
+## 2026-10-15 — MILA voz y consumibles: piloto productivo
+
+**Tocado:** `mila.html`, `consumos.html`, panel web y móvil, tres Edge
+Functions de MILA, medición de WhatsApp/IA, migración
+`20261015160000_mila_core_and_consumables.sql`, documentación y pruebas.
+
+- MILA Transcribe graba con consentimiento explícito, mantiene activa la
+  pantalla cuando el dispositivo lo permite, guarda el audio en un bucket
+  privado y produce transcripción y nota clínica estructurada para revisión.
+- MILA Conversa utiliza OpenAI Realtime desde una sesión efímera. Puede buscar
+  pacientes y opciones reales de la clínica, pero una cita o cotización sólo se
+  ejecuta después de mostrar una tarjeta de confirmación al usuario.
+- Las citas se guardan en `smyl_appointments` con validación de disponibilidad,
+  servicio y permisos. Las cotizaciones se crean únicamente como borrador en
+  `smyl_proposals`, con precios del catálogo y un plan clínico vigente revisado.
+- Se creó el módulo Consumos para minutos de MILA, mensajes de WhatsApp y
+  créditos de IA. El piloto registra el uso de forma idempotente; los productos
+  siguen inactivos y sin precio y `SMYL_CONSUMABLES_ENFORCED=false`, por lo que
+  todavía no bloquea funciones ni realiza cobros.
+- Producción: migración aplicada y registrada; bucket `mila-audio` confirmado
+  privado; `mila-realtime-session`, `mila-transcribe`, `mila-actions`,
+  `meta-send` y `analizar-foto` desplegadas y activas. Las cinco rechazaron una
+  prueba sin credenciales con HTTP 401.
+- Verificación local: 8 de 8 contratos específicos de MILA y 391 de 391 pruebas
+  del repositorio aprobadas en ejecución serial. Web, PWA y fuente móvil quedan
+  sincronizados para la publicación.
