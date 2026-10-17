@@ -44,7 +44,7 @@ test('la interfaz habilita capacidades de lectura, escritura y aprobación', () 
 test('web, móvil y PWA publican la delegación segura', () => {
   assert.match(app, /smyl-proposals\.js\?v=12/);
   assert.match(app, /smyl-case-workspace\.js\?v=9/);
-  assert.match(worker, /smyl-v251-agenda-visual-density/);
+  assert.match(worker, /smyl-v252-visual-policy-v2/);
   for (const file of ['app.html','sw.js','smyl-proposals.js','smyl-case-workspace.js']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

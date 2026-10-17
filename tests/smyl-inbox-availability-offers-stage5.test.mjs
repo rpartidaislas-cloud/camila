@@ -13,8 +13,8 @@ const mobileCss = read('../mobile/www/smyl-inbox.css');
 
 test('the team can select no more than three verified alternatives', () => {
   assert.match(inbox, /availabilitySelected/);
-  assert.match(inbox, /Elegir opción/);
-  assert.match(inbox, /Opción seleccionada/);
+  assert.match(inbox, /selected \? 'Seleccionado' : 'Seleccionar'/);
+  assert.match(inbox, /aria-pressed/);
   assert.match(inbox, /availabilitySelected\.length >= 3/);
   assert.match(inbox, /hasta tres alternativas/);
 });

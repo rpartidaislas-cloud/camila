@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v251-agenda-visual-density';
+const CACHE_VERSION = 'smyl-v252-visual-policy-v2';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -76,7 +76,7 @@ const STATIC_FILES = [
   '/camila/dentista.html',
   '/camila/resena.html',
   '/camila/smyl-dialog-system.js?v=1',
-  '/camila/smyl-dialog-system.css?v=1',
+  '/camila/smyl-dialog-system.css?v=2',
   '/camila/smyl-schedule.js?v=10',
   '/camila/smyl-schedule.css?v=5',
   '/camila/smyl-service-catalog-model.js?v=1',
@@ -103,8 +103,9 @@ const STATIC_FILES = [
   '/camila/smyl-task-center.css?v=1',
   '/camila/smyl-resilience.js?v=1',
   '/camila/smyl-resilience.css?v=1',
-  '/camila/smyl-inbox.js?v=25',
-  '/camila/smyl-inbox.css?v=20',
+  '/camila/smyl-design-system-v2.css?v=1',
+  '/camila/smyl-inbox.js?v=26',
+  '/camila/smyl-inbox.css?v=21',
   '/camila/smyl-navigation.js?v=6',
   '/camila/smyl-navigation.css?v=1',
   '/camila/smyl-professional-v3.js?v=2',

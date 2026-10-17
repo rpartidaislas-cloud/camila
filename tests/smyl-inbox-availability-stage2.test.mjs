@@ -40,12 +40,12 @@ test('the Inbox bridge enforces both messaging and schedule permissions', () => 
   assert.match(edge, /holds_created: false/);
 });
 
-test('the dentist can review slots and only add one to a draft', () => {
+test('the dentist can review slots and add a verified shortlist to the draft', () => {
   assert.match(inbox, /Agenda disponible/);
-  assert.match(inbox, /AGENDA · SIN SALIR DEL CHAT/);
-  assert.match(inbox, /<h2>Agendar cita<\/h2>/);
-  assert.match(inbox, /Agregar al borrador/);
-  assert.match(inbox, /El horario se confirma cuando elijas la opción/);
+  assert.doesNotMatch(inbox, /AGENDA · SIN SALIR DEL CHAT/);
+  assert.match(inbox, /<h2 tabindex="-1">Agendar cita<\/h2>/);
+  assert.match(inbox, /Agregar opciones al mensaje/);
+  assert.match(inbox, /La clínica confirmará el horario después de tu elección/);
   assert.doesNotMatch(inbox.slice(inbox.indexOf('function searchAvailability'), inbox.indexOf('async function loadList')), /smyl_create_appointment|smyl_accept_appointment_request/);
   assert.match(css, /smyl-inbox-availability-slot/);
 });

@@ -199,3 +199,340 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 @media(min-width:761px) and (max-width:1020px){.smyl-inbox-availability-dialog>[data-availability-form]{grid-template-columns:repeat(12,minmax(0,1fr))}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(1){grid-column:1/6}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(2){grid-column:6/10}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(3){grid-column:10/13}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(4){grid-column:4/7}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(5){grid-column:7/10}.smyl-inbox-availability-dialog>[data-availability-form] .btn{grid-column:10/13;width:100%}}
 @media(min-width:761px) and (max-height:720px){.smyl-inbox-availability-dialog{height:calc(100dvh - 20px)}.smyl-inbox-availability-dialog.is-empty{height:min(620px,calc(100dvh - 20px))}.smyl-inbox-availability-dialog>header{padding:12px 20px 10px}.smyl-inbox-availability-meta{margin-top:4px}.smyl-inbox-availability-patient-alert{padding:7px 20px}.smyl-inbox-availability-dialog>[data-availability-form]{row-gap:7px;padding:9px 20px 10px}.smyl-inbox-availability-presets button{min-height:27px}.smyl-inbox-availability-board{margin-top:8px}.smyl-inbox-availability-empty{align-content:start;min-height:160px;padding:14px 26px}.smyl-inbox-availability-empty-mark{width:38px;height:35px;margin-bottom:7px;padding:6px}.smyl-inbox-availability-empty>strong{margin-top:4px}.smyl-inbox-availability-empty>p{margin-top:3px}.smyl-inbox-availability-empty-actions{margin-top:9px}.smyl-inbox-availability-dialog>.smyl-inbox-availability-offer{margin-bottom:8px}}
 @media(max-width:760px){.smyl-inbox-availability-dialog,.smyl-inbox-availability-dialog.is-empty{--agenda-type-label:11px;--agenda-type-small:12px;--agenda-type-control:15px;--agenda-type-button:13px;--agenda-type-section:13px;--agenda-type-display:20px;width:100vw;height:100dvh;max-height:none;border:0;border-radius:0}.smyl-inbox-availability-dialog>header{padding:14px 15px 12px}.smyl-inbox-availability-dialog>header h2{font-size:var(--agenda-type-display)}.smyl-inbox-availability-dialog>header>button{min-width:50px;min-height:42px}.smyl-inbox-calendar-mark{width:36px;height:36px}.smyl-inbox-availability-meta span{min-height:24px;padding:0 8px}.smyl-inbox-availability-patient-alert{align-items:flex-start;flex-direction:column;gap:9px;padding:10px 15px}.smyl-inbox-availability-patient-alert strong{font-size:13px}.smyl-inbox-availability-patient-alert .btn{width:100%;min-height:42px;font-size:12px}.smyl-inbox-availability-dialog>[data-availability-form]{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:9px;padding:11px 15px 13px}.smyl-inbox-availability-presets{overflow-x:auto;padding:0 1px 3px;scrollbar-width:none;-ms-overflow-style:none}.smyl-inbox-availability-presets::-webkit-scrollbar{display:none}.smyl-inbox-availability-presets>span{display:none}.smyl-inbox-availability-presets button{min-height:34px;flex:0 0 auto}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(1){grid-column:1/-1}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(2){grid-column:1/2}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(3){grid-column:2/3}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(4){grid-column:1/2}.smyl-inbox-availability-dialog>[data-availability-form] label:nth-of-type(5){grid-column:2/3}.smyl-inbox-availability-dialog>[data-availability-form] select,.smyl-inbox-availability-dialog>[data-availability-form] input{height:44px;padding:0 10px}.smyl-inbox-availability-dialog>[data-availability-form] .btn{grid-column:1/-1;width:100%;min-height:44px}.smyl-inbox-availability-board{margin:9px 15px 0}.smyl-inbox-availability-board>header{padding:10px 11px}.smyl-inbox-availability-board>header small{display:none}.smyl-inbox-availability-board>[data-availability-results]{grid-template-columns:repeat(var(--availability-days,3),86vw);scrollbar-width:none;-ms-overflow-style:none}.smyl-inbox-availability-board>[data-availability-results]::-webkit-scrollbar{display:none}.smyl-inbox-availability-lane{min-height:205px}.smyl-inbox-availability-slot{align-items:initial;flex-direction:initial}.smyl-inbox-availability-slot .btn{width:100%}.smyl-inbox-availability-empty{min-height:220px;padding:20px 16px}.smyl-inbox-availability-empty>strong{font-size:16px}.smyl-inbox-availability-empty>p{font-size:12px}.smyl-inbox-availability-empty-actions{width:100%;flex-direction:column}.smyl-inbox-availability-empty-actions .btn{width:100%;min-height:42px}.smyl-inbox-availability-dialog>.smyl-inbox-availability-offer{margin:0 15px 10px;padding:10px 11px 12px}.smyl-inbox-availability-offer>span:after{display:none}}
+
+/* Política visual SMYL v2 · Agenda dentro del chat */
+.smyl-inbox-availability-dialog,
+.smyl-inbox-availability-dialog.is-empty {
+  position: fixed;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: min(680px, calc(100vw - 32px));
+  height: auto;
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: 0;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  border: 1px solid var(--smyl-border);
+  border-radius: var(--smyl-radius-dialog);
+  background: var(--smyl-surface);
+  color: var(--smyl-ink);
+  box-shadow: var(--shadow-dialog);
+  font-family: var(--smyl-font);
+}
+
+.smyl-inbox-availability-dialog.has-results { width: min(960px, calc(100vw - 32px)); }
+.smyl-inbox-availability-dialog[open] { display: flex; flex-direction: column; }
+.smyl-inbox-availability-dialog::backdrop { background: var(--smyl-backdrop); }
+
+.smyl-inbox-availability-dialog .btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--smyl-radius-control);
+  font: var(--smyl-type-button);
+  letter-spacing: 0;
+}
+
+.smyl-inbox-availability-dialog .btn-primary {
+  border-color: var(--smyl-primary);
+  background: var(--smyl-primary);
+  color: #fff;
+  box-shadow: none;
+}
+
+.smyl-inbox-availability-dialog .btn-primary:hover:not(:disabled) { border-color: var(--smyl-primary-hover); background: var(--smyl-primary-hover); box-shadow: none; }
+.smyl-inbox-availability-dialog .btn-secondary { border-color: var(--smyl-border); background: var(--smyl-surface); color: var(--smyl-ink); box-shadow: var(--shadow-control); }
+.smyl-inbox-availability-dialog .btn-secondary:hover:not(:disabled) { border-color: var(--smyl-border-strong); background: var(--smyl-surface-subtle); color: var(--smyl-ink); }
+.smyl-inbox-availability-dialog :is(button, input, select):focus-visible { outline: 2px solid var(--smyl-focus); outline-offset: 2px; }
+
+.smyl-inbox-availability-dialog > header {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--smyl-border);
+  background: var(--smyl-surface);
+}
+
+.smyl-inbox-availability-heading { min-width: 0; display: block; }
+.smyl-inbox-availability-dialog > header h2 { margin: 0; color: var(--smyl-ink); font: var(--smyl-type-dialog); letter-spacing: 0; }
+.smyl-inbox-availability-dialog > header h2:focus { outline: 0; }
+.smyl-inbox-availability-context { display: flex; min-width: 0; align-items: center; gap: 6px; margin: 2px 0 0; color: var(--smyl-text-muted); font: var(--smyl-type-help); }
+.smyl-inbox-availability-context span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.smyl-inbox-availability-context span[aria-hidden] { flex: 0 0 auto; overflow: visible; }
+.smyl-inbox-dialog-close {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--smyl-radius-control);
+  background: transparent;
+  color: var(--smyl-text-secondary);
+  font: 400 20px/1 var(--smyl-font);
+  padding: 0;
+  cursor: pointer;
+}
+.smyl-inbox-dialog-close:hover { background: var(--smyl-surface-subtle); color: var(--smyl-ink); }
+
+.smyl-inbox-availability-patient-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 10px var(--space-5);
+  border: 0;
+  border-bottom: 1px solid #E8D5AA;
+  background: #FFF9EB;
+  color: #694A00;
+}
+.smyl-inbox-availability-patient-alert[hidden] { display: none; }
+.smyl-inbox-availability-patient-alert div { display: grid; gap: 1px; }
+.smyl-inbox-availability-patient-alert strong { font: 600 12px/16px var(--smyl-font); }
+.smyl-inbox-availability-patient-alert span { color: #765C1A; font: var(--smyl-type-help); }
+.smyl-inbox-availability-patient-alert .btn { min-height: 32px; flex: 0 0 auto; border-color: #D8C28D; color: #694A00; font-size: 12px; }
+
+.smyl-inbox-availability-dialog > [data-availability-form] {
+  display: block;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--smyl-border);
+  background: var(--smyl-surface);
+}
+.smyl-inbox-availability-primary-fields { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
+.smyl-inbox-availability-dialog > [data-availability-form] label,
+.smyl-inbox-availability-dialog > [data-availability-form] label:nth-of-type(n) {
+  min-width: 0;
+  display: flex;
+  grid-column: auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--smyl-text-secondary);
+  font: var(--smyl-type-label);
+  letter-spacing: 0;
+}
+.smyl-inbox-availability-dialog > [data-availability-form] :is(select, input) {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--smyl-border);
+  border-radius: var(--smyl-radius-control);
+  background: var(--smyl-surface);
+  padding: 0 10px;
+  color: var(--smyl-ink);
+  box-shadow: var(--shadow-control);
+  font: var(--smyl-type-control);
+}
+.smyl-inbox-availability-dialog > [data-availability-form] :is(select, input):hover { border-color: var(--smyl-border-strong); }
+.smyl-inbox-availability-dialog > [data-availability-form] :is(select, input):focus { border-color: var(--smyl-focus); outline: 2px solid rgba(37, 99, 235, .16); }
+
+.smyl-inbox-availability-period {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--smyl-border);
+}
+.smyl-inbox-availability-presets { min-width: 0; display: flex; flex: 1 1 auto; align-items: center; gap: var(--space-2); grid-column: auto; }
+.smyl-inbox-availability-presets > span { margin: 0 2px 0 0; color: var(--smyl-text-secondary); font: var(--smyl-type-label); text-transform: none; letter-spacing: 0; }
+.smyl-inbox-availability-presets button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--smyl-border);
+  border-radius: 999px;
+  background: var(--smyl-surface);
+  color: var(--smyl-text-secondary);
+  font: 600 11px/16px var(--smyl-font);
+  cursor: pointer;
+}
+.smyl-inbox-availability-presets button:hover { border-color: var(--smyl-border-strong); background: var(--smyl-surface-subtle); color: var(--smyl-ink); }
+.smyl-inbox-availability-presets button.is-active { border-color: var(--smyl-accent); background: var(--smyl-accent-subtle); color: var(--smyl-accent-hover); }
+.smyl-inbox-availability-dates { display: grid; flex: 0 1 258px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.smyl-inbox-availability-dates[hidden] { display: none; }
+.smyl-inbox-availability-dialog > [data-availability-form] .smyl-inbox-availability-period > .btn { width: auto; min-width: 118px; grid-column: auto; flex: 0 0 auto; }
+.smyl-inbox-availability-dialog > [data-availability-form] .smyl-inbox-availability-period > .btn-primary { border-color: var(--smyl-primary); background: var(--smyl-primary); color: #fff; }
+.smyl-inbox-availability-dialog > [data-availability-form] .smyl-inbox-availability-period > .btn-primary:hover:not(:disabled) { border-color: var(--smyl-primary-hover); background: var(--smyl-primary-hover); }
+
+.smyl-inbox-availability-board {
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--smyl-surface);
+  overflow: hidden;
+}
+.smyl-inbox-availability-board > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 10px var(--space-5);
+  border-bottom: 1px solid var(--smyl-border);
+  background: var(--smyl-surface-subtle);
+}
+.smyl-inbox-availability-board > header div { min-width: 0; display: flex; align-items: baseline; gap: var(--space-2); }
+.smyl-inbox-availability-board > header strong { margin: 0; color: var(--smyl-ink); font: var(--smyl-type-section); }
+.smyl-inbox-availability-board > header span,
+.smyl-inbox-availability-board > header small { color: var(--smyl-text-muted); font: var(--smyl-type-help); letter-spacing: 0; }
+.smyl-inbox-availability-dialog.is-empty .smyl-inbox-availability-board > header { display: none; }
+.smyl-inbox-availability-board > [data-availability-results] {
+  min-height: 0;
+  max-height: min(440px, calc(100dvh - 280px));
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(var(--availability-days, 3), minmax(210px, 1fr));
+  overflow: auto;
+  padding: 0;
+  background: var(--smyl-surface);
+}
+
+.smyl-inbox-availability-day { min-width: 0; border-right: 1px solid var(--smyl-border); }
+.smyl-inbox-availability-day:last-child { border-right: 0; }
+.smyl-inbox-availability-day > header { min-height: 44px; height: auto; padding: 8px 10px; border-bottom: 1px solid var(--smyl-border); background: var(--smyl-surface); }
+.smyl-inbox-availability-day > header > div { gap: 4px; }
+.smyl-inbox-availability-day > header span { color: var(--smyl-text-secondary); font: 600 11px/16px var(--smyl-font); }
+.smyl-inbox-availability-day > header strong { color: var(--smyl-ink); font: 700 16px/20px var(--smyl-font); }
+.smyl-inbox-availability-day > header small,
+.smyl-inbox-availability-day > header em { color: var(--smyl-text-muted); font: var(--smyl-type-help); }
+.smyl-inbox-availability-lane { min-height: 0; display: grid; align-content: start; gap: var(--space-2); padding: 10px; background: var(--smyl-surface-subtle); }
+.smyl-inbox-availability-slot {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--smyl-border);
+  border-left: 3px solid var(--smyl-accent);
+  border-radius: var(--smyl-radius-control);
+  background: var(--smyl-surface);
+  box-shadow: none;
+  cursor: pointer;
+}
+.smyl-inbox-availability-slot:hover { border-color: var(--smyl-border-strong); box-shadow: none; }
+.smyl-inbox-availability-slot.is-selected { border-color: var(--smyl-accent); background: var(--smyl-accent-subtle); }
+.smyl-inbox-availability-time { padding-right: var(--space-2); border-right: 1px solid var(--smyl-border); }
+.smyl-inbox-availability-time strong { color: var(--smyl-ink); font: 600 13px/18px var(--smyl-font); }
+.smyl-inbox-availability-time small { margin-top: 2px; color: var(--smyl-text-muted); font: var(--smyl-type-help); }
+.smyl-inbox-availability-person strong { color: var(--smyl-ink); font: 600 12px/16px var(--smyl-font); }
+.smyl-inbox-availability-person span { margin-top: 2px; color: var(--smyl-text-secondary); font: var(--smyl-type-help); }
+.smyl-inbox-availability-person small { margin-top: 1px; color: var(--smyl-text-muted); font: var(--smyl-type-help); }
+.smyl-inbox-availability-slot > .smyl-inbox-availability-actions { width: auto; display: flex; grid-column: auto; align-items: center; justify-content: flex-end; gap: var(--space-2); padding: 0; }
+.smyl-inbox-availability-selection-mark { color: var(--smyl-text-muted); font: 600 10px/14px var(--smyl-font); }
+.smyl-inbox-availability-slot.is-selected .smyl-inbox-availability-selection-mark { color: var(--smyl-accent-hover); }
+.smyl-inbox-availability-slot.is-selected .smyl-inbox-availability-selection-mark::before { content: '✓ '; }
+.smyl-inbox-availability-actions .btn { width: auto; min-height: 32px; padding: 0 8px; font-size: 11px; }
+
+.smyl-inbox-availability-loading { min-height: 184px; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: var(--space-3); padding: var(--space-5); }
+.smyl-inbox-availability-loading i { height: 126px; border-radius: var(--smyl-radius-control); background: #EEF2F6; animation: smylAvailabilityLoad 1.25s ease infinite; }
+
+.smyl-inbox-availability-dialog.is-empty .smyl-inbox-availability-board > [data-availability-results] { max-height: none; overflow: visible; }
+.smyl-inbox-availability-empty {
+  min-height: 0;
+  display: grid;
+  grid-column: 1 / -1;
+  place-items: center;
+  align-content: center;
+  padding: var(--space-8) var(--space-5);
+  background: var(--smyl-surface);
+  text-align: center;
+}
+.smyl-inbox-availability-empty-mark { width: 32px; height: 32px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; margin-bottom: var(--space-3); padding: 7px; border: 1px solid #B9DDD8; border-radius: var(--smyl-radius-control); background: var(--smyl-accent-subtle); }
+.smyl-inbox-availability-empty-mark i { width: 3px; border-radius: 2px; background: var(--smyl-accent); }
+.smyl-inbox-availability-empty-mark i:nth-child(1) { height: 8px; }
+.smyl-inbox-availability-empty-mark i:nth-child(2) { height: 14px; }
+.smyl-inbox-availability-empty-mark i:nth-child(3) { height: 11px; }
+.smyl-inbox-availability-empty > strong { margin: 0; color: var(--smyl-ink); font: var(--smyl-type-section); }
+.smyl-inbox-availability-empty > p { max-width: 460px; margin: var(--space-1) 0 0; color: var(--smyl-text-secondary); font: var(--smyl-type-body); }
+.smyl-inbox-availability-empty-actions { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-top: var(--space-4); }
+.smyl-inbox-text-action { min-height: 32px; padding: 0 4px; border: 0; background: transparent; color: var(--smyl-primary); font: var(--smyl-type-button); cursor: pointer; }
+.smyl-inbox-text-action:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.smyl-inbox-availability-dialog > .smyl-inbox-availability-offer {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-5);
+  border: 0;
+  border-top: 1px solid var(--smyl-border);
+  border-radius: 0;
+  background: var(--smyl-surface);
+}
+.smyl-inbox-availability-dialog > .smyl-inbox-availability-offer[hidden] { display: none; }
+.smyl-inbox-availability-offer > span { color: var(--smyl-text-secondary); font: var(--smyl-type-body); }
+.smyl-inbox-availability-offer > span::after { content: ''; }
+
+@media (max-width: 900px) and (min-width: 641px) {
+  .smyl-inbox-availability-primary-fields { grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); }
+  .smyl-inbox-availability-period { align-items: stretch; flex-wrap: wrap; }
+  .smyl-inbox-availability-presets { flex-basis: 100%; }
+  .smyl-inbox-availability-dates { flex: 1 1 300px; }
+  .smyl-inbox-availability-dialog > [data-availability-form] .smyl-inbox-availability-period > .btn { margin-left: auto; }
+}
+
+@media (max-width: 640px) {
+  .smyl-inbox-availability-dialog,
+  .smyl-inbox-availability-dialog.is-empty,
+  .smyl-inbox-availability-dialog.has-results {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    transform: none;
+  }
+  .smyl-inbox-availability-dialog > header { min-height: 64px; padding: 10px var(--space-4); }
+  .smyl-inbox-availability-dialog > header h2 { font: 600 18px/24px var(--smyl-font); }
+  .smyl-inbox-dialog-close { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-basis: 44px; }
+  .smyl-inbox-availability-context { font-size: 12px; }
+  .smyl-inbox-availability-patient-alert { align-items: stretch; flex-direction: column; gap: var(--space-2); padding: 10px var(--space-4); }
+  .smyl-inbox-availability-patient-alert .btn { min-height: 44px; width: 100%; font-size: 14px; }
+  .smyl-inbox-availability-dialog > [data-availability-form] { padding: var(--space-3) var(--space-4); }
+  .smyl-inbox-availability-primary-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .smyl-inbox-availability-dialog > [data-availability-form] .smyl-inbox-availability-primary-fields label:first-child { grid-column: 1 / -1; }
+  .smyl-inbox-availability-dialog > [data-availability-form] label { font-size: 12px; }
+  .smyl-inbox-availability-dialog > [data-availability-form] :is(select, input) { height: 44px; font-size: 16px; line-height: 20px; }
+  .smyl-inbox-availability-period { align-items: stretch; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); padding-top: var(--space-3); }
+  .smyl-inbox-availability-presets { overflow-x: auto; padding: 1px 1px 3px; scrollbar-width: none; }
+  .smyl-inbox-availability-presets::-webkit-scrollbar { display: none; }
+  .smyl-inbox-availability-presets > span { display: none; }
+  .smyl-inbox-availability-presets button { min-height: 36px; flex: 0 0 auto; font-size: 12px; }
+  .smyl-inbox-availability-dates { flex: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .smyl-inbox-availability-dialog > [data-availability-form] .smyl-inbox-availability-period > .btn { width: 100%; min-height: 44px; font-size: 14px; }
+  .smyl-inbox-availability-board { min-height: 0; }
+  .smyl-inbox-availability-board > header { padding: 10px var(--space-4); }
+  .smyl-inbox-availability-board > header div { display: block; }
+  .smyl-inbox-availability-board > header small { display: none; }
+  .smyl-inbox-availability-board > [data-availability-results] { max-height: none; display: block; overflow-y: auto; }
+  .smyl-inbox-availability-day { border: 0; border-bottom: 1px solid var(--smyl-border); }
+  .smyl-inbox-availability-day > header { position: sticky; top: 0; z-index: 1; }
+  .smyl-inbox-availability-lane { min-height: 0; }
+  .smyl-inbox-availability-slot { grid-template-columns: 72px minmax(0, 1fr); }
+  .smyl-inbox-availability-slot > .smyl-inbox-availability-actions { grid-column: 1 / -1; justify-content: space-between; }
+  .smyl-inbox-availability-empty { min-height: 0; padding: var(--space-8) var(--space-4); }
+  .smyl-inbox-availability-empty > p { font-size: 14px; line-height: 20px; }
+  .smyl-inbox-availability-empty-actions { width: 100%; align-items: stretch; flex-direction: column; gap: var(--space-2); }
+  .smyl-inbox-availability-empty-actions .btn { width: 100%; min-height: 44px; font-size: 14px; }
+  .smyl-inbox-text-action { min-height: 44px; font-size: 14px; }
+  .smyl-inbox-availability-dialog > .smyl-inbox-availability-offer { min-height: 68px; padding: 10px var(--space-4) calc(10px + env(safe-area-inset-bottom)); }
+  .smyl-inbox-availability-offer > span { font-size: 12px; }
+  .smyl-inbox-availability-offer .btn { min-height: 44px; font-size: 14px; }
+}

@@ -6192,3 +6192,27 @@ Functions de MILA, medición de WhatsApp/IA, migración
 - Verificación local: 8 de 8 contratos específicos de MILA y 391 de 391 pruebas
   del repositorio aprobadas en ejecución serial. Web, PWA y fuente móvil quedan
   sincronizados para la publicación.
+
+---
+
+## 2026-10-16 — Política visual SMYL v2 aplicada
+
+**Tocado:** sistema compartido de tokens y ventanas, Agenda dentro de Mensajes,
+copias móviles, PWA, fixtures y contratos visuales.
+
+- Se creó `smyl-design-system-v2.css` como fuente canónica de color, tipografía,
+  espacio, radios, foco, elevación y movimiento reducido para SMYL Operativo.
+- El sistema compartido de ventanas adopta títulos de 18 px, controles de 36 px,
+  radio de 12 px, acción primaria azul, fondo sin desenfoque y tamaños oficiales
+  S/M/Workspace; en móvil conserva controles táctiles de 44 px y campos de 16 px.
+- “Agendar cita” quedó como patrón de referencia: cabecera sin decoración
+  redundante, contexto paciente-clínica, tres filtros esenciales, fechas bajo
+  divulgación progresiva, tamaño automático sin espacios vacíos y agenda de hasta
+  960 px sólo cuando existen resultados.
+- Cada horario es seleccionable como una unidad accesible; el pie aparece sólo
+  con selección y concentra una sola acción: agregar opciones al mensaje.
+- QA visual revisada en escritorio y 390 × 844; web y móvil están sincronizados.
+  La PWA avanzó a `smyl-v252-visual-policy-v2`, con Inbox v26/CSS v21 y sistema
+  de ventanas CSS v2.
+- Verificación final: 427 de 427 pruebas aprobadas. No se modificaron backend,
+  esquema, credenciales ni datos clínicos reales.

@@ -46,5 +46,5 @@ test('web and mobile load the same privacy boundary and cache generation', () =>
   assert.equal(read('mobile/www/simulacion-rapida.html'), quickSimulation);
   assert.equal(read('mobile/www/smyl-clinic.js'), read('smyl-clinic.js'));
   assert.equal(read('mobile/www/smyl-browser-privacy.js'), privacy);
-  assert.match(read('sw.js'), /smyl-v251-agenda-visual-density/);
+  assert.match(read('sw.js'), /smyl-v252-visual-policy-v2/);
 });

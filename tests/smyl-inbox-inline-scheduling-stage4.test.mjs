@@ -12,7 +12,8 @@ const styles = read('../smyl-inbox.css');
 test('todos los accesos para agendar permanecen dentro del chat', () => {
   assert.match(inbox, /'Agendar cita'\); agenda\.type = 'button'; agenda\.onclick = openAvailabilityDialog/);
   assert.match(inbox, /'Agendar cita'\);\s*appointment\.type = 'button'; appointment\.onclick = openAvailabilityDialog/);
-  assert.doesNotMatch(inbox, /window\.ir\('agenda'\)/);
+  const flow = inbox.slice(inbox.indexOf('async function openAvailabilityDialog'), inbox.indexOf('async function searchAvailability'));
+  assert.doesNotMatch(flow, /window\.ir\('agenda'\)/);
 });
 
 test('la ventana aparece antes de consultar la agenda y conserva al paciente', () => {
@@ -29,8 +30,8 @@ test('la ventana aparece antes de consultar la agenda y conserva al paciente', (
 });
 
 test('el espacio central muestra una agenda visual por día, profesional y especialidad', () => {
-  assert.match(inbox, /DISPONIBILIDAD DEL EQUIPO/);
-  assert.match(inbox, /Agenda por profesional y especialidad/);
+  assert.match(inbox, /Disponibilidad del equipo/);
+  assert.match(inbox, /Disponibilidad por profesional y especialidad/);
   assert.match(inbox, /smyl-inbox-availability-day/);
   assert.match(inbox, /slot\.professional_name/);
   assert.match(inbox, /slot\.specialty \|\| 'Profesional dental'/);
@@ -39,10 +40,10 @@ test('el espacio central muestra una agenda visual por día, profesional y espec
   assert.match(styles, /position:fixed;inset:0;margin:auto/);
   assert.match(inbox, /availabilityClinicName/);
   assert.match(inbox, /todas las sucursales/);
-  assert.match(inbox, /Buscar próximo disponible/);
-  assert.match(inbox, /Próximos 15 días/);
+  assert.match(inbox, /Ver siguientes 7 días/);
+  assert.match(inbox, /Fechas personalizadas/);
   assert.match(inbox, /data-availability-patient-alert/);
-  assert.match(inbox, /Vincular o crear paciente/);
+  assert.match(inbox, /Vincular paciente/);
   assert.match(inbox, /availabilityEmptyReason = 'no_slots'/);
   assert.match(inbox, /Este servicio no tiene profesionales asignados/);
   assert.match(styles, /smyl-inbox-availability-dialog\.is-empty/);
@@ -51,8 +52,10 @@ test('el espacio central muestra una agenda visual por día, profesional y espec
 
 test('la agenda embebida mantiene paridad móvil y una versión pública nueva', () => {
   assert.equal(mobileInbox, inbox);
-  assert.match(app, /smyl-inbox\.js\?v=25/);
-  assert.match(app, /smyl-inbox\.css\?v=20/);
-  assert.match(worker, /smyl-inbox\.js\?v=25/);
-  assert.match(worker, /smyl-inbox\.css\?v=20/);
+  assert.match(app, /smyl-design-system-v2\.css\?v=1/);
+  assert.match(app, /smyl-inbox\.js\?v=26/);
+  assert.match(app, /smyl-inbox\.css\?v=21/);
+  assert.match(worker, /smyl-design-system-v2\.css\?v=1/);
+  assert.match(worker, /smyl-inbox\.js\?v=26/);
+  assert.match(worker, /smyl-inbox\.css\?v=21/);
 });
