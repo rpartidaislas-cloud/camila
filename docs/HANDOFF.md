@@ -17,8 +17,8 @@ entrar, con una diferencia de composición perceptible y no sólo de tokens.**
   táctiles de 48 px.
 - Accesos, indicadores, prioridades y agenda comparten una escala de 10–24 px,
   pesos 400/500/600/700, radios de 6–12 px y bordes sin sombras decorativas.
-- Web, aplicación móvil y PWA avanzan a Inicio CSS v3, JS v4, shell v3 y caché
-  `smyl-v253-visible-shell-v3`.
+- Web, aplicación móvil y PWA avanzan a Inicio CSS v3, JS v4, shell CSS v4 y caché
+  `smyl-v254-visible-shell-v4`.
 
 **Validación:** 427/427 pruebas aprobadas y revisión visual de la portada en
 1440×1000 y composición responsive estrecha.
