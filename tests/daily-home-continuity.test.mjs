@@ -10,7 +10,7 @@ const attention = read('../smyl-lana-attention.js');
 const worker = read('../sw.js');
 
 test('Inicio resume la jornada y enlaza módulos canónicos', () => {
-  for (const label of ['JORNADA DE HOY','Citas hoy','En clínica','Solicitudes','Mensajes','Qué requiere atención','Siguiente en el día']) assert.match(script, new RegExp(label));
+  for (const label of ['Todo lo importante de tu clínica, en orden','Agendar cita','Citas hoy','En clínica','Solicitudes','Mensajes','Qué requiere atención','Siguiente en el día']) assert.match(script, new RegExp(label));
   for (const route of ["route('agenda')","route('pacientes')","data-route=\"inbox\""]) assert.match(script, new RegExp(route.replace(/[()]/g,'\\$&')));
   for (const task of ['appointment','quote','payment']) assert.match(script,new RegExp('data-home-task="'+task+'"'));
   assert.match(script,/SmylCareTasks\.open/);
@@ -33,12 +33,15 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 });
 
 test('Etapa 4 se distribuye en web, PWA y vista de QA', () => {
-  assert.match(app, /smyl-daily-home\.css\?v=2/);
-  assert.match(app, /smyl-daily-home\.js\?v=3/);
+  assert.match(app, /smyl-daily-home\.css\?v=3/);
+  assert.match(app, /smyl-daily-home\.js\?v=4/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
-assert.match(worker, /smyl-v252-visual-policy-v2/);
-  assert.match(worker, /smyl-daily-home\.js\?v=3/);
+assert.match(worker, /smyl-v253-visible-shell-v3/);
+  assert.match(worker, /smyl-daily-home\.js\?v=4/);
   assert.match(styles, /daily-home-metrics/);
+  assert.match(styles, /--smyl-primary/);
+  assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(styles, /font-size:24px/);
   assert.match(styles, /@media\(max-width:700px\)/);
   assert.match(read('./fixtures/smyl-daily-home-stage4-preview.html'), /smyl-daily-home\.js/);
   assert.equal(script, read('../mobile/www/smyl-daily-home.js'));

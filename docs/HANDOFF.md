@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-16 — Codex: política visual visible en Inicio y navegación
+
+**La segunda pasada lleva la política v2 a la superficie que el dentista ve al
+entrar, con una diferencia de composición perceptible y no sólo de tokens.**
+
+- Inicio se reconstruyó como una mesa clínica compacta: encabezado operativo de
+  24 px, una acción primaria, métricas en una sola banda y paneles sin alturas
+  vacías artificiales.
+- El azul clínico `#194391` pasa a ser la acción dominante; el teal queda
+  limitado a disponibilidad y estado operativo.
+- La barra superior se compactó, la acción global se llama “Nueva tarea” y el
+  fondo general adopta el canvas `#F4F7FA` del sistema normativo.
+- En pantallas pequeñas se elimina la segunda navegación superior: las cinco
+  áreas principales viven en una barra inferior persistente con objetivos
+  táctiles de 48 px.
+- Accesos, indicadores, prioridades y agenda comparten una escala de 10–24 px,
+  pesos 400/500/600/700, radios de 6–12 px y bordes sin sombras decorativas.
+- Web, aplicación móvil y PWA avanzan a Inicio CSS v3, JS v4, shell v3 y caché
+  `smyl-v253-visible-shell-v3`.
+
+**Validación:** 427/427 pruebas aprobadas y revisión visual de la portada en
+1440×1000 y composición responsive estrecha.
+
 ## 2026-10-16 — Codex: Política Visual SMYL v2 normativa
 
 **La identidad visual deja de depender de ajustes locales y queda definida como

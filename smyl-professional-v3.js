@@ -50,13 +50,13 @@
     var meta=ROUTES[name]||[window.TITULOS&&TITULOS[name]||name,''],title=document.getElementById('topbar-title'),sub=document.getElementById('topbar-sub');
     if(title)title.textContent=meta[0];if(sub)sub.textContent=meta[1];
     var action=document.querySelector('.topbar-right .pro-global-action');
-    if(action){action.textContent=name==='paciente-detalle'?'Nueva tarea':'Agendar · Cotizar · Cobrar';action.onclick=function(){openTask();};}
+    if(action){action.textContent='Nueva tarea';action.setAttribute('aria-label','Agendar, cotizar o cobrar');action.onclick=function(){openTask();};}
   }
   function setupTopbar(){
     if(window.TITULOS)Object.keys(ROUTES).forEach(function(key){TITULOS[key]=ROUTES[key][0];});
     var right=document.querySelector('.topbar-right');if(!right)return;
     var old=right.querySelector('.btn-primary');if(old)old.remove();
-    var action=n('button','btn btn-primary pro-global-action','Agendar · Cotizar · Cobrar');action.type='button';action.onclick=function(){openTask();};right.append(action);
+    var action=n('button','btn btn-primary pro-global-action','Nueva tarea');action.type='button';action.setAttribute('aria-label','Agendar, cotizar o cobrar');action.onclick=function(){openTask();};right.append(action);
     var clinic=n('span','pro-clinic-status','Clínica operativa');clinic.setAttribute('aria-label','Espacio de trabajo de la clínica');right.insertBefore(clinic,action);
     var logoCopy=document.querySelector('.sb-logo span');if(logoCopy)logoCopy.textContent='Gestión clínica';
   }

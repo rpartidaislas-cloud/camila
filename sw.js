@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v252-visual-policy-v2';
+const CACHE_VERSION = 'smyl-v253-visible-shell-v3';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -97,8 +97,8 @@ const STATIC_FILES = [
   '/camila/smyl-lana-handoff.css?v=1',
   '/camila/smyl-lana-attention.js?v=4',
   '/camila/smyl-lana-attention.css?v=1',
-  '/camila/smyl-daily-home.js?v=3',
-  '/camila/smyl-daily-home.css?v=2',
+  '/camila/smyl-daily-home.js?v=4',
+  '/camila/smyl-daily-home.css?v=3',
   '/camila/smyl-task-center.js?v=3',
   '/camila/smyl-task-center.css?v=1',
   '/camila/smyl-resilience.js?v=1',
@@ -108,8 +108,8 @@ const STATIC_FILES = [
   '/camila/smyl-inbox.css?v=21',
   '/camila/smyl-navigation.js?v=6',
   '/camila/smyl-navigation.css?v=1',
-  '/camila/smyl-professional-v3.js?v=2',
-  '/camila/smyl-professional-v3.css?v=2',
+  '/camila/smyl-professional-v3.js?v=3',
+  '/camila/smyl-professional-v3.css?v=3',
   '/camila/smyl-command-menu.js?v=2',
   '/camila/smyl-command-menu.css?v=1',
   '/camila/smyl-studio.js?v=18',

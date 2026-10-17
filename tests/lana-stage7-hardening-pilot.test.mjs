@@ -44,7 +44,7 @@ test('scheduled rows distinguish automatic retry, dead letter and unsafe deliver
 test('desktop and native bundle share stage 7 assets and cache version', () => {
   assert.match(app, /smyl-inbox\.js\?v=26/);
   assert.match(app, /smyl-inbox\.css\?v=21/);
-assert.match(sw, /smyl-v252-visual-policy-v2/);
+assert.match(sw, /smyl-v253-visible-shell-v3/);
   assert.equal(mobileApp, app);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
