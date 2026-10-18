@@ -60,6 +60,36 @@ estaba abierto, lo que viola la sección 11.4/20 de
 - No toqué la lógica de `hacerLoginAppGate()`/`hacerRegistroAppGate()` ni
   nada de Supabase — sólo accesibilidad de foco.
 
+### 2026-10-18 — Claude: fila del Inbox más cercana a LANA (`smyl-inbox.css`)
+
+**El usuario pidió que el chat "se pareciera más al de LANA" (misma cuenta,
+repo `promodesk`). Clonado en modo lectura para comparar código real, no solo
+la captura que mandó.**
+
+- Hallazgo clave: el Inbox de SMYL (stages 1-3, ver entradas de abajo) ya
+  iguala o supera a LANA en funcionalidad — fijado, etapas, biblioteca
+  compartida, bulk actions, ventana 24h, copilot. El audit
+  `SMYL_LANA_CHAT_PARITY_AUDIT.md` (14/10) ya está mayormente resuelto; no
+  hace falta re-auditar aquí.
+- La brecha real era visual, acotada a `.smyl-inbox-row` y sus hijos:
+  - Varios `font-size` por debajo de 10px (`7px`-`9px` en metadatos, chips de
+    etapa, hora) violaban el propio mínimo de la sección 6.4 de
+    `POLITICA_IMAGEN_SMYL.md`. Subidos a 10px donde aplica a la fila de
+    conversación (no toqué los diálogos de operaciones/piloto/reportes, que
+    son otra superficie y no la vio el usuario).
+  - `.smyl-inbox-avatar` pasó de `border-radius:9px` a `50%` (circular, como
+    WhatsApp/Messenger/Instagram nativos y como LANA).
+  - `.smyl-inbox-attention` ("Por atender") pasó de texto-sobre-tinte suave a
+    pill sólida blanco-sobre-rojo (`#B42318`, el mismo valor que
+    `--smyl-danger` en la política, aunque este archivo todavía no usa
+    variables), igualando el peso visual del badge "Necesita asesor" de LANA
+    sin tomar su violeta — sigue siendo rojo semántico de SMYL.
+- No toqué `smyl-inbox.js` (lógica, fetch, Supabase) ni los paneles de
+  operación/piloto/reporte — sólo CSS de la fila de conversación.
+- Verificado en una página aislada con Playwright (sin datos reales, porque
+  Supabase no es alcanzable desde este sandbox): se ve el resultado en
+  `inbox-row-preview.png` del scratchpad de esa sesión.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
