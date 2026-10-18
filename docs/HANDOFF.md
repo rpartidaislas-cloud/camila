@@ -40,6 +40,26 @@ tocar nada a fondo, confirmé que `smyl-navigation.js` (trabajo de Codex del
 contenido real que ve el usuario lo genera `smyl-navigation.js`, no el HTML
 estático — edita ahí (o en CSS por clase) en vez del markup inicial.
 
+### 2026-10-18 — Claude: foco inicial y trampa de foco en el gate de acceso
+
+**Mismo pulido "profesional" solicitado por el usuario, segunda pieza:
+`#auth-gate-overlay` (login/registro en `app.html`) no tenía foco inicial ni
+trampa de foco — Tab se escapaba al dashboard de fondo mientras el modal
+estaba abierto, lo que viola la sección 11.4/20 de
+`POLITICA_IMAGEN_SMYL.md`.**
+
+- `switchAuthGateTab()` ahora enfoca el primer campo del panel visible al
+  cambiar de pestaña (correo en login, nombre en registro).
+- Al cargar, el correo de login recibe foco automáticamente (el overlay se
+  muestra siempre por defecto al cargar `app.html`, no hay botón trigger que
+  lo abra, así que no aplica "devolver foco al origen" — sólo trampa + foco
+  inicial).
+- Un listener de `keydown` en el overlay cicla Tab/Shift+Tab sólo entre sus
+  controles visibles. Verificado con Playwright: ambos bordes (primer/último
+  campo) ciclan correctamente y el foco nunca sale del modal.
+- No toqué la lógica de `hacerLoginAppGate()`/`hacerRegistroAppGate()` ni
+  nada de Supabase — sólo accesibilidad de foco.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al

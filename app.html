@@ -2483,7 +2483,30 @@ function switchAuthGateTab(tab) {
   document.getElementById('ag-panel-registro').style.display = tab === 'registro' ? 'block' : 'none';
   document.getElementById('ag-tab-login').classList.toggle('activo', tab === 'login');
   document.getElementById('ag-tab-registro').classList.toggle('activo', tab === 'registro');
+  var firstField = document.getElementById(tab === 'login' ? 'ag-l-email' : 'ag-r-nombre');
+  if (firstField) firstField.focus();
 }
+
+// Trampa de foco en el gate de acceso: mientras está visible, Tab/Shift+Tab
+// cicla sólo entre sus controles — es la única ventana sin trigger (se
+// muestra al cargar, no hay botón que la abra), así que no hay foco que
+// devolver al cerrar, pero sí debe atrapar el foco mientras está activa
+// (sección 11.4/20 de la Política Visual SMYL).
+(function () {
+  var overlay = document.getElementById('auth-gate-overlay');
+  if (!overlay) return;
+  document.getElementById('ag-l-email').focus();
+  overlay.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' || overlay.style.display === 'none') return;
+    var focusables = overlay.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+    if (!focusables.length) return;
+    var list = Array.prototype.filter.call(focusables, function (el) { return !el.disabled && el.offsetParent !== null; });
+    var first = list[0];
+    var last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+})();
 
 async function hacerLoginAppGate() {
   var email = document.getElementById('ag-l-email').value.trim().toLowerCase();
