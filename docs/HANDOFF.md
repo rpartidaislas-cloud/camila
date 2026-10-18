@@ -1,5 +1,95 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-18 — Claude: pulido de accesibilidad en sidebar de app.html
+
+**Petición del usuario: hacer la UI más "profesional" en `app.html`. Antes de
+tocar nada a fondo, confirmé que `smyl-navigation.js` (trabajo de Codex del
+16/10, Política Visual v2) ya reemplaza por completo el contenido de
+`.sidebar .nav-items` en runtime (`organizeDesktop()`, línea ~107), generando
+`<button>` reales en vez de los `<div class="nav-item">` estáticos del HTML.**
+
+- Añadí `tabindex="0"`/`role="button"` a los 11 `<div class="nav-item">`
+  estáticos con un script y los revertí al descubrir que son código muerto
+  (JS los reemplaza antes de que el usuario interactúe) — no quedó rastro en
+  el HTML final.
+- Cambios que sí son efectivos porque aplican por clase compartida o tocan un
+  nodo que `smyl-navigation.js` no toca:
+  - `.nav-item` — transición explícita (`background-color,color,box-shadow`
+    en vez de `all`), `letter-spacing:.1px` y un anillo `:focus-visible`
+    (requisito de la sección 20 de `POLITICA_IMAGEN_SMYL.md`). Verificado con
+    Playwright que no duplica el `ir()` al presionar Enter sobre un botón de
+    nav real.
+  - `.sb-user` (tarjeta de cuenta del dentista, arriba del nav — no la toca
+    `smyl-navigation.js`) — ahora es interactiva: `onclick="ir('mi-cuenta')"`,
+    `tabindex`/`role="button"`, hover/focus-visible y un chevron, al estilo
+    "workspace switcher" de apps SaaS premium (referencia: componente
+    "Dashboard Sidebar" de 21st.dev). Delegación de teclado (Enter/Espacio)
+    añadida en JS sólo para `.sb-user`, no para `.nav-item`, justamente para
+    no interferir con los `<button>` nativos de Codex.
+- No toqué tokens (`--color-*`), ni until migré nada al sistema `--smyl-*` de
+  la Política v2 — la sección 26.3 de esa política indica no propagar ajustes
+  locales a otras ventanas hasta aprobar Agenda como referencia, así que esto
+  se quedó como pulido dentro del sistema legacy ya existente en `app.html`.
+- No se tocó `supabase/functions/**`, prompts de IA, ni `mobile/`. Verificado
+  localmente (servidor estático + Playwright/Chromium headless): el sidebar
+  renderiza, el foco es visible, y no hay errores de consola nuevos (los que
+  aparecen — fallo al cargar el CDN de Supabase — son del sandbox sin acceso
+  a internet externo, no del código).
+
+**Si vas a tocar `.sidebar`/`.nav-items` en `app.html`:** recuerda que el
+contenido real que ve el usuario lo genera `smyl-navigation.js`, no el HTML
+estático — edita ahí (o en CSS por clase) en vez del markup inicial.
+
+### 2026-10-18 — Claude: foco inicial y trampa de foco en el gate de acceso
+
+**Mismo pulido "profesional" solicitado por el usuario, segunda pieza:
+`#auth-gate-overlay` (login/registro en `app.html`) no tenía foco inicial ni
+trampa de foco — Tab se escapaba al dashboard de fondo mientras el modal
+estaba abierto, lo que viola la sección 11.4/20 de
+`POLITICA_IMAGEN_SMYL.md`.**
+
+- `switchAuthGateTab()` ahora enfoca el primer campo del panel visible al
+  cambiar de pestaña (correo en login, nombre en registro).
+- Al cargar, el correo de login recibe foco automáticamente (el overlay se
+  muestra siempre por defecto al cargar `app.html`, no hay botón trigger que
+  lo abra, así que no aplica "devolver foco al origen" — sólo trampa + foco
+  inicial).
+- Un listener de `keydown` en el overlay cicla Tab/Shift+Tab sólo entre sus
+  controles visibles. Verificado con Playwright: ambos bordes (primer/último
+  campo) ciclan correctamente y el foco nunca sale del modal.
+- No toqué la lógica de `hacerLoginAppGate()`/`hacerRegistroAppGate()` ni
+  nada de Supabase — sólo accesibilidad de foco.
+
+### 2026-10-18 — Claude: fila del Inbox más cercana a LANA (`smyl-inbox.css`)
+
+**El usuario pidió que el chat "se pareciera más al de LANA" (misma cuenta,
+repo `promodesk`). Clonado en modo lectura para comparar código real, no solo
+la captura que mandó.**
+
+- Hallazgo clave: el Inbox de SMYL (stages 1-3, ver entradas de abajo) ya
+  iguala o supera a LANA en funcionalidad — fijado, etapas, biblioteca
+  compartida, bulk actions, ventana 24h, copilot. El audit
+  `SMYL_LANA_CHAT_PARITY_AUDIT.md` (14/10) ya está mayormente resuelto; no
+  hace falta re-auditar aquí.
+- La brecha real era visual, acotada a `.smyl-inbox-row` y sus hijos:
+  - Varios `font-size` por debajo de 10px (`7px`-`9px` en metadatos, chips de
+    etapa, hora) violaban el propio mínimo de la sección 6.4 de
+    `POLITICA_IMAGEN_SMYL.md`. Subidos a 10px donde aplica a la fila de
+    conversación (no toqué los diálogos de operaciones/piloto/reportes, que
+    son otra superficie y no la vio el usuario).
+  - `.smyl-inbox-avatar` pasó de `border-radius:9px` a `50%` (circular, como
+    WhatsApp/Messenger/Instagram nativos y como LANA).
+  - `.smyl-inbox-attention` ("Por atender") pasó de texto-sobre-tinte suave a
+    pill sólida blanco-sobre-rojo (`#B42318`, el mismo valor que
+    `--smyl-danger` en la política, aunque este archivo todavía no usa
+    variables), igualando el peso visual del badge "Necesita asesor" de LANA
+    sin tomar su violeta — sigue siendo rojo semántico de SMYL.
+- No toqué `smyl-inbox.js` (lógica, fetch, Supabase) ni los paneles de
+  operación/piloto/reporte — sólo CSS de la fila de conversación.
+- Verificado en una página aislada con Playwright (sin datos reales, porque
+  Supabase no es alcanzable desde este sandbox): se ve el resultado en
+  `inbox-row-preview.png` del scratchpad de esa sesión.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
