@@ -30,7 +30,7 @@ test('stage 6 reports agenda, finance and inventory with explicit permission sta
 test('stage 6 web, mobile and offline assets stay synchronized',()=>{
   assert.match(app,/smyl-reports\.js\?v=4/);
   assert.match(sw,/smyl-v254-visible-shell-v4/);
-  assert.match(sw,/smyl-reports\.css\?v=3/);
+  assert.match(sw,/smyl-reports\.css\?v=4/);
   assert.equal(app,read('../mobile/www/app.html'));
   assert.equal(ui,read('../mobile/www/smyl-reports.js'));
   assert.equal(css,read('../mobile/www/smyl-reports.css'));

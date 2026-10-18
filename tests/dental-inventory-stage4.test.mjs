@@ -59,7 +59,7 @@ test('browser can manage catalog but cannot write ledger or purchases directly',
 });
 
 test('inventory interface covers stock, movements, purchasing and configuration', () => {
-  assert.match(app, /smyl-inventory\.css\?v=5/);
+  assert.match(app, /smyl-inventory\.css\?v=6/);
   assert.match(app, /smyl-inventory\.js\?v=6/);
   assert.match(script, /Existencias/);
   assert.match(script, /Libro de movimientos/);
@@ -78,7 +78,7 @@ test('web, mobile and offline inventory assets stay in lockstep', () => {
   assert.equal(styles, read('../mobile/www/smyl-inventory.css'));
 assert.match(worker, /smyl-v254-visible-shell-v4/);
   assert.match(worker, /smyl-inventory\.js\?v=6/);
-  assert.match(worker, /smyl-inventory\.css\?v=5/);
+  assert.match(worker, /smyl-inventory\.css\?v=6/);
 });
 
 test('clinical consumption can start from a patient appointment with context prefilled', () => {

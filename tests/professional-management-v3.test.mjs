@@ -46,9 +46,9 @@ test('las tareas frecuentes se resuelven por proceso y paciente',()=>{
 });
 
 test('web, móvil y PWA entregan el mismo panel profesional',()=>{
-  assert.match(app,/smyl-professional-v3\.css\?v=4/);
+  assert.match(app,/smyl-professional-v3\.css\?v=5/);
   assert.match(app,/smyl-professional-v3\.js\?v=3/);
-  assert.match(app,/smyl-navigation\.js\?v=6/);
+  assert.match(app,/smyl-navigation\.js\?v=7/);
   assert.match(worker,/smyl-v254-visible-shell-v4/);
   assert.equal(shell,read('../mobile/www/smyl-professional-v3.js'));
   assert.equal(styles,read('../mobile/www/smyl-professional-v3.css'));
