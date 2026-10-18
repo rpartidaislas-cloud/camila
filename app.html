@@ -98,11 +98,16 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
 .sb-logo span{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.2px}
 
-.sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;transition:background-color 150ms ease;outline:none}
+.sb-user:hover{background:rgba(255,255,255,.04)}
+.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(74,155,211,.45)}
 .sb-avatar{width:32px;height:32px;background:var(--gradient-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
 .sb-user-row{display:flex;align-items:center;gap:9px}
+.sb-user-info{flex:1;min-width:0}
 .sb-nombre{font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-plan{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.sb-user-chevron{flex-shrink:0;opacity:.3;transition:opacity 150ms ease,transform 150ms ease}
+.sb-user:hover .sb-user-chevron,.sb-user:focus-visible .sb-user-chevron{opacity:.7;transform:translateX(2px)}
 .plan-chip{display:none} /* replaced by sb-plan text */
 .plan-esencial{display:none}
 .plan-profesional{display:none}
@@ -114,11 +119,13 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 
 .nav-section{padding:16px 16px 4px;font-size:10px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px}
 .nav-items{flex:1;padding:6px 8px;overflow-y:auto}
-.nav-item{display:flex;align-items:center;gap:10px;padding:0 11px;height:38px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.66);font-size:13px;font-weight:500;transition:all 180ms ease-out;margin-bottom:2px;border:1px solid transparent}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0 11px;height:38px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.66);font-size:13px;font-weight:500;letter-spacing:.1px;transition:background-color 150ms ease,color 150ms ease,box-shadow 150ms ease;margin-bottom:2px;border:1px solid transparent;outline:none}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(74,155,211,.45);color:#fff}
 /* Ítem activo — degradado IA (#27D7E7 → #7A4DFF), como pide la guía para
    el estado activo de navegación */
 .nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(74,155,211,.18);color:#fff;font-weight:650;box-shadow:inset 3px 0 0 var(--color-accent)}
+.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(74,155,211,.45)}
 .nav-item .ni-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.7}
 .nav-item.activo .ni-icon{opacity:1}
 .nav-badge{margin-left:auto;background:var(--color-error);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:99px;min-width:17px;text-align:center}
@@ -895,13 +902,14 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         <span>Diseño de Sonrisa · IA</span>
       </div>
     </div>
-    <div class="sb-user">
+    <div class="sb-user" onclick="ir('mi-cuenta')" tabindex="0" role="button" aria-label="Ir a Mi Cuenta">
       <div class="sb-user-row">
         <div class="sb-avatar" id="sb-avatar">D</div>
-        <div>
+        <div class="sb-user-info">
           <div class="sb-nombre" id="sb-nombre">Dr. ...</div>
           <div class="sb-plan" id="sb-consultorio">Consultorio</div>
         </div>
+        <svg class="sb-user-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,.6)"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
       <div class="plan-chip plan-profesional" id="sb-plan-chip">✦ Profesional</div>
       <div class="uso-wrap">
@@ -2475,7 +2483,30 @@ function switchAuthGateTab(tab) {
   document.getElementById('ag-panel-registro').style.display = tab === 'registro' ? 'block' : 'none';
   document.getElementById('ag-tab-login').classList.toggle('activo', tab === 'login');
   document.getElementById('ag-tab-registro').classList.toggle('activo', tab === 'registro');
+  var firstField = document.getElementById(tab === 'login' ? 'ag-l-email' : 'ag-r-nombre');
+  if (firstField) firstField.focus();
 }
+
+// Trampa de foco en el gate de acceso: mientras está visible, Tab/Shift+Tab
+// cicla sólo entre sus controles — es la única ventana sin trigger (se
+// muestra al cargar, no hay botón que la abra), así que no hay foco que
+// devolver al cerrar, pero sí debe atrapar el foco mientras está activa
+// (sección 11.4/20 de la Política Visual SMYL).
+(function () {
+  var overlay = document.getElementById('auth-gate-overlay');
+  if (!overlay) return;
+  document.getElementById('ag-l-email').focus();
+  overlay.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' || overlay.style.display === 'none') return;
+    var focusables = overlay.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+    if (!focusables.length) return;
+    var list = Array.prototype.filter.call(focusables, function (el) { return !el.disabled && el.offsetParent !== null; });
+    var first = list[0];
+    var last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+})();
 
 async function hacerLoginAppGate() {
   var email = document.getElementById('ag-l-email').value.trim().toLowerCase();
@@ -2802,6 +2833,19 @@ function ir(p) {
     }
   }
 }
+
+// Activa la tarjeta de cuenta del sidebar con Enter/Espacio igual que con
+// click. Es un <div role="button">, no un <button> nativo, así que el
+// teclado no la activa por sí solo. (smyl-navigation.js ya genera los
+// ítems de navegación como <button> reales, que sí responden a Enter/
+// Espacio de forma nativa — no se delega aquí para no duplicar el clic.)
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var target = e.target.closest('.sb-user');
+  if (!target) return;
+  e.preventDefault();
+  target.click();
+});
 
 // ══════════════════════════════════════════
 // DASHBOARD
