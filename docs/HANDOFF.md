@@ -1,5 +1,45 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-18 — Claude: pulido de accesibilidad en sidebar de app.html
+
+**Petición del usuario: hacer la UI más "profesional" en `app.html`. Antes de
+tocar nada a fondo, confirmé que `smyl-navigation.js` (trabajo de Codex del
+16/10, Política Visual v2) ya reemplaza por completo el contenido de
+`.sidebar .nav-items` en runtime (`organizeDesktop()`, línea ~107), generando
+`<button>` reales en vez de los `<div class="nav-item">` estáticos del HTML.**
+
+- Añadí `tabindex="0"`/`role="button"` a los 11 `<div class="nav-item">`
+  estáticos con un script y los revertí al descubrir que son código muerto
+  (JS los reemplaza antes de que el usuario interactúe) — no quedó rastro en
+  el HTML final.
+- Cambios que sí son efectivos porque aplican por clase compartida o tocan un
+  nodo que `smyl-navigation.js` no toca:
+  - `.nav-item` — transición explícita (`background-color,color,box-shadow`
+    en vez de `all`), `letter-spacing:.1px` y un anillo `:focus-visible`
+    (requisito de la sección 20 de `POLITICA_IMAGEN_SMYL.md`). Verificado con
+    Playwright que no duplica el `ir()` al presionar Enter sobre un botón de
+    nav real.
+  - `.sb-user` (tarjeta de cuenta del dentista, arriba del nav — no la toca
+    `smyl-navigation.js`) — ahora es interactiva: `onclick="ir('mi-cuenta')"`,
+    `tabindex`/`role="button"`, hover/focus-visible y un chevron, al estilo
+    "workspace switcher" de apps SaaS premium (referencia: componente
+    "Dashboard Sidebar" de 21st.dev). Delegación de teclado (Enter/Espacio)
+    añadida en JS sólo para `.sb-user`, no para `.nav-item`, justamente para
+    no interferir con los `<button>` nativos de Codex.
+- No toqué tokens (`--color-*`), ni until migré nada al sistema `--smyl-*` de
+  la Política v2 — la sección 26.3 de esa política indica no propagar ajustes
+  locales a otras ventanas hasta aprobar Agenda como referencia, así que esto
+  se quedó como pulido dentro del sistema legacy ya existente en `app.html`.
+- No se tocó `supabase/functions/**`, prompts de IA, ni `mobile/`. Verificado
+  localmente (servidor estático + Playwright/Chromium headless): el sidebar
+  renderiza, el foco es visible, y no hay errores de consola nuevos (los que
+  aparecen — fallo al cargar el CDN de Supabase — son del sandbox sin acceso
+  a internet externo, no del código).
+
+**Si vas a tocar `.sidebar`/`.nav-items` en `app.html`:** recuerda que el
+contenido real que ve el usuario lo genera `smyl-navigation.js`, no el HTML
+estático — edita ahí (o en CSS por clase) en vez del markup inicial.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
