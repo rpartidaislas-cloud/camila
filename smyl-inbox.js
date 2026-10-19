@@ -2013,7 +2013,8 @@
       var data = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: requestRow.id }, uuid());
       requestRow.status = 'accepted'; requestRow.appointment_id = data.appointment_id;
       loadAppointmentContext(state.selectedId);
-      window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente.');
+      if (window.SmylReminders) window.SmylReminders.dispatch(true);
+      window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }

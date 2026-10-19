@@ -48,8 +48,8 @@ test('el tablero es horizontal en escritorio y desliza por columna en celular', 
 test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(app, /smyl-inbox\.js\?v=29/);
+  assert.match(app, /smyl-inbox\.js\?v=30/);
   assert.match(app, /smyl-inbox\.css\?v=31/);
-  assert.match(worker, /smyl-inbox\.js\?v=29/);
+  assert.match(worker, /smyl-inbox\.js\?v=30/);
   assert.match(worker, /smyl-inbox\.css\?v=31/);
 });

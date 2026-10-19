@@ -1,0 +1,106 @@
+# Recordatorios automáticos de cita por WhatsApp
+
+Fase 4 del rediseño del chat. Cada cita confirmada genera un recordatorio
+24 horas antes (esto ya existía en `smyl_appointment_reminders`). Ahora SMYL lo
+entrega a LANA como **mensaje programado de WhatsApp con una plantilla
+aprobada**. El trabajador de LANA (`whatsapp-mensajes-programados-enviar`) lo
+envía a su hora, aunque nadie tenga SMYL abierto.
+
+## Cómo funciona
+
+1. Al agendar, reprogramar o cambiar el estado de una cita (Agenda o
+   Mensajes), y al abrir la Agenda o Mensajes, el navegador llama a la Edge
+   Function `appointment-reminders` (`action: "dispatch"`).
+2. La función reclama los pendientes con `smyl_claim_appointment_reminders`
+   (solo `service_role`, `for update skip locked`). Después busca la
+   conversación de WhatsApp vinculada al paciente (`camila_lana_handoffs`) y
+   programa la plantilla en LANA con `send_at` = 24 h antes de la cita. El
+   `Idempotency-Key` es el id del recordatorio, así que un reintento nunca
+   duplica el mensaje.
+3. Si la cita se mueve, se cancela, se completa o se marca como inasistencia,
+   el trigger `smyl_appointments_reminder_sync` cancela el recordatorio y, si
+   ya estaba en LANA, lo marca con `provider_cancel_required`. La siguiente
+   ejecución lo cancela también en LANA.
+4. Cuando llega la hora, la función consulta a LANA el resultado y deja el
+   recordatorio como `sent` o `failed`. La Agenda muestra los fallidos como
+   tareas por atender.
+
+Casos especiales:
+- **Paciente sin WhatsApp vinculado:** queda en espera y se reintenta cada
+  hora. Si llega la hora sin vínculo, queda `failed` con el motivo.
+- **Cita a menos de 2 h:** se omite (`cancelled`).
+- **Error transitorio de LANA (429/5xx/sin respuesta):** hasta 5 intentos
+  con espera creciente. Un rechazo definitivo queda `failed` con el mensaje
+  de LANA.
+- **Desactivar los recordatorios:** cancela todo lo que estaba en cola,
+  también en LANA.
+
+## Configuración en la app
+
+Agenda → pestaña **Disponibilidad** → tarjeta **Recordatorios por WhatsApp**
+→ **Configurar**. Configurar requiere los permisos `schedule.manage` y
+`messages.respond`; para consultar basta `schedule.read`.
+
+Se elige una plantilla de categoría **Utilidad** aprobada por Meta en LANA y
+qué dato va en cada variable: nombre del paciente, fecha, hora, servicio,
+profesional, sucursal, teléfono de la sucursal, nombre de la clínica o texto
+fijo. Ejemplo de plantilla:
+
+> Hola {{1}}, te recordamos tu cita el {{2}} a las {{3}} en {{4}}. Responde a
+> este mensaje si necesitas cambiarla.
+
+## Despliegue (pendiente, requiere acceso al proyecto de Supabase)
+
+```bash
+supabase db push                                   # aplica 20261019010000_smyl_appointment_reminder_delivery.sql
+supabase functions deploy appointment-reminders
+```
+
+La función usa los secretos que ya existen (`SMYL_LANA_ENCRYPTION_KEY`) y las
+variables que Supabase inyecta (`SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`).
+
+Hasta que se despliegue, la Agenda muestra "El servicio de recordatorios no
+está disponible todavía" en la tarjeta. El resto de la app no cambia.
+
+## Opcional: ejecución programada (cron)
+
+Con el navegador basta, porque toda cita se crea desde una sesión de la
+clínica y LANA guarda el envío programado. Un cron cubre además a los
+pacientes que se vinculan después sin que nadie abra la Agenda.
+
+1. Define un secreto de al menos 32 caracteres:
+   `supabase secrets set SMYL_REMINDERS_CRON_SECRET=<valor-aleatorio>`.
+2. Guarda el mismo valor en Vault como `smyl_reminders_cron_secret` y
+   programa la llamada (requiere las extensiones `pg_cron` y `pg_net`):
+
+```sql
+select cron.schedule('smyl-recordatorios-cita', '*/15 * * * *', $$
+  select net.http_post(
+    url := 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/appointment-reminders',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_anon_key'),
+      'x-smyl-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_reminders_cron_secret')
+    ),
+    body := '{}'::jsonb
+  );
+$$);
+```
+
+Nunca pegues las claves en el código ni en el repositorio; léelas de Vault.
+
+## Verificación hecha
+
+- La migración se aplicó junto con las 80 migraciones del repo sobre
+  PostgreSQL 16 local. Se probaron siete casos del trigger y del reclamo:
+  - el reclamo devuelve los datos del paciente;
+  - un segundo reclamo no repite;
+  - reprogramar marca la cancelación en LANA;
+  - la reparación crea el recordatorio faltante;
+  - cancelar la cita lo cancela;
+  - una cita cancelada no se reclama;
+  - `authenticated` no puede ejecutar el reclamo.
+- La Edge Function pasa un chequeo estricto de TypeScript.
+- **No se probó contra LANA real.** Falta validar en piloto que LANA acepte
+  el programado con la plantilla y que reporte `enviado`.

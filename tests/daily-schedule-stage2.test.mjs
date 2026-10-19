@@ -63,8 +63,8 @@ test('reminders are queued independently and cancelled on terminal states', () =
 });
 
 test('agenda UI supports calendar, requests, services, availability and mobile', () => {
-  assert.match(app, /smyl-schedule\.css\?v=5/);
-  assert.match(app, /smyl-schedule\.js\?v=10/);
+  assert.match(app, /smyl-schedule\.css\?v=6/);
+  assert.match(app, /smyl-schedule\.js\?v=11/);
   assert.match(script, /window\.TITULOS\.agenda='Agenda'/);
   assert.match(script, /data-schedule-view="day"/);
   assert.match(script, /data-schedule-view="week"/);
@@ -78,6 +78,6 @@ test('web, mobile and offline assets stay in lockstep', () => {
   assert.equal(script, read('../mobile/www/smyl-schedule.js'));
   assert.equal(styles, read('../mobile/www/smyl-schedule.css'));
   assert.match(worker, /smyl-v254-visible-shell-v4/);
-  assert.match(worker, /smyl-schedule\.js\?v=10/);
-  assert.match(worker, /smyl-schedule\.css\?v=5/);
+  assert.match(worker, /smyl-schedule\.js\?v=11/);
+  assert.match(worker, /smyl-schedule\.css\?v=6/);
 });

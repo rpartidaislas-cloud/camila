@@ -26,7 +26,7 @@ test('el documento declara límites y excluye contenido clínico y conversacione
 });
 
 test('web, móvil y PWA publican el mismo informe', () => {
-  assert.match(app, /smyl-inbox\.js\?v=29/);
+  assert.match(app, /smyl-inbox\.js\?v=30/);
   assert.match(app, /smyl-inbox\.css\?v=31/);
   assert.match(worker, /smyl-v254-visible-shell-v4/);
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));

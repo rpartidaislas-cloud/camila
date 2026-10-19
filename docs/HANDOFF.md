@@ -1,5 +1,43 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-19 — Claude: fase 4, recordatorios de cita por WhatsApp + Mensajes a todo el ancho + sidebar contraíble
+
+**Detalle y despliegue en `docs/RECORDATORIOS_CITA.md`. La migración y la
+Edge Function aún NO están desplegadas en Supabase.**
+
+- Nuevos:
+  - `supabase/migrations/20261019010000_smyl_appointment_reminder_delivery.sql`:
+    columnas de proveedor en `smyl_appointment_reminders`, la tabla
+    `smyl_reminder_settings`, el trigger `smyl_appointments_reminder_sync` y la
+    RPC `smyl_claim_appointment_reminders` (solo service_role).
+  - `supabase/functions/appointment-reminders/index.ts`: acciones
+    `settings`, `save_settings` y `dispatch`, más un modo cron opcional con
+    `x-smyl-cron-secret`.
+  - `smyl-reminders.js`: la tarjeta en Agenda → Disponibilidad, el diálogo de
+    configuración y la entrega oportunista.
+  - Tests: `tests/smyl-appointment-reminders.test.mjs` y
+    `tests/smyl-sidebar-collapse.test.mjs`.
+- Cambios mínimos:
+  - `smyl-schedule.js`: etiquetas de estado; el query ahora pide
+    `reminder_type` (antes faltaba y siempre decía "Personalizado"); se
+    dispara la entrega al crear, reprogramar o cambiar el estado.
+  - `smyl-inbox.js`: dispara la entrega al confirmar una cita desde el chat.
+  - `smyl-schedule.css`: estilos de la tarjeta.
+  - `supabase/config.toml`: entrada `verify_jwt = true`.
+- **Para Codex:** el diálogo reutiliza `#schedule-dialog` y el sistema
+  `smyl-dialog-*`, que envuelve el contenido en `.smyl-dialog-body`. Por eso
+  los selectores de `.schedule-reminders-form` son de descendiente, no `>`.
+- Sidebar: `smyl-navigation.js` agrega `.pro-sidebar-toggle`. Con
+  `body.smyl-sidebar-collapsed` el sidebar queda en 72px, solo con iconos. La
+  preferencia se guarda en `localStorage` (`smyl_sidebar_collapsed`).
+  Mensajes ocupa todo el ancho en escritorio mediante
+  `.contenido:has(>.smyl-inbox-page.activa)` en `smyl-inbox.css`.
+- Versiones:
+  - `smyl-schedule.js?v=11`, `smyl-schedule.css?v=6`
+  - `smyl-reminders.js?v=1`
+  - `smyl-inbox.js?v=30`, `smyl-inbox.css?v=31`
+  - `smyl-navigation.js?v=8`, `smyl-navigation.css?v=3`
+
 ## 2026-10-19 — Claude: rediseño del chat (Mensajes) estilo LANA, fases 1–3
 
 **Archivos: `smyl-inbox.js`, `smyl-inbox.css`, `app.html` (recarga de la
