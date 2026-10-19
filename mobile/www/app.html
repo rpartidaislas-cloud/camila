@@ -2193,7 +2193,13 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (smylRefreshingForUpdate) return;
     smylRefreshingForUpdate = true;
-    window.location.reload();
+    // Aplicar la versión nueva sin interrumpir a quien está usando la pestaña.
+    if (document.visibilityState === 'hidden') { window.location.reload(); return; }
+    document.addEventListener('visibilitychange', function recargarAlOcultar() {
+      if (document.visibilityState !== 'hidden') return;
+      document.removeEventListener('visibilitychange', recargarAlOcultar);
+      window.location.reload();
+    });
   });
 }
 </script>
@@ -2466,6 +2472,10 @@ async function continuarConUsuario(authUser) {
     // Accesos directos del ícono de la PWA (manifest-app.json → shortcuts)
     ir(qp.get('ir'));
     history.replaceState(null, '', location.pathname);
+  } else {
+    var rutaGuardada = null;
+    try { rutaGuardada = sessionStorage.getItem('smyl_route'); } catch (_) {}
+    if (rutaGuardada && rutaGuardada !== 'dashboard' && rutaGuardada !== 'bienvenida' && document.getElementById('p-' + rutaGuardada)) ir(rutaGuardada);
   }
   await cargarDashboard();
   renderPrecios();
@@ -2819,6 +2829,8 @@ function hideNavLoading() {
 }
 
 function ir(p) {
+  // Una recarga (p. ej. al actualizarse la PWA) vuelve al mismo módulo en esta pestaña.
+  try { sessionStorage.setItem('smyl_route', p); } catch (_) {}
   document.querySelectorAll('.pantalla').forEach(function(el) { el.classList.remove('activa'); });
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('activo'); });
   var panel = document.getElementById('p-' + p);
