@@ -48,6 +48,15 @@ test('los permisos se validan en el servidor con las funciones de RLS', () => {
   assert.match(config, /\[functions\.appointment-reminders\]\nverify_jwt = true/);
 });
 
+test('toda consulta a LANA lleva la identidad de quien la hace', () => {
+  // Sin X-SMYL-Actor-Id, LANA responde "Falta la identidad autenticada del miembro de SMYL".
+  const calls = fn.match(/lanaRequest\(tenantId, [^;]*?\}, \d+\)/gs) || [];
+  assert.ok(calls.length >= 4);
+  for (const call of calls) assert.match(call, /headers/, call.slice(0, 90));
+  assert.match(fn, /async function templates\(tenantId: string, headers: Headers\)/);
+  assert.match(fn, /"X-SMYL-Actor-Id": user\.id/);
+});
+
 test('desactivar los recordatorios cancela lo que estaba en cola', () => {
   assert.match(fn, /async function cancelQueued/);
   assert.match(fn, /if \(!enabled\) return json\(200, \{ ok: true, cancelled_in_lana: await cancelQueued\(tenantId\) \}\)/);

@@ -318,6 +318,16 @@ function systemHeaders(tenantId: string, idempotencyKey: string): Headers {
   });
 }
 
+// LANA exige saber quién consulta, incluso en lecturas (igual que lana-inbox).
+function userHeaders(user: { id: string; email?: string }, tenantId: string): Headers {
+  const name = text(user.email, 160).split("@")[0] || "Miembro del equipo";
+  return new Headers({
+    "X-SMYL-Actor-Id": user.id,
+    "X-SMYL-Actor-Role": user.id === tenantId ? "owner" : "staff",
+    "X-SMYL-Actor-Name-Encoded": encodeURIComponent(name),
+  });
+}
+
 function validTimeZone(value: unknown): string {
   const zone = text(value, 60) || "America/Mexico_City";
   try { new Intl.DateTimeFormat("es-MX", { timeZone: zone }); return zone; } catch { return "America/Mexico_City"; }
@@ -527,7 +537,9 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
   for (const [conversationId, rows] of byConversation) {
     let items: Record<string, unknown>[] = [];
     try {
-      const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/scheduled`, { method: "GET" }, 12000);
+      const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/scheduled`, {
+        method: "GET", headers: systemHeaders(tenantId, crypto.randomUUID()),
+      }, 12000);
       if (!remote.response.ok) continue;
       items = Array.isArray(remote.body.scheduled) ? remote.body.scheduled as Record<string, unknown>[] : [];
     } catch { continue; }
@@ -546,9 +558,9 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
   return summary;
 }
 
-async function templates(tenantId: string): Promise<{ templates: Record<string, unknown>[]; error?: string }> {
+async function templates(tenantId: string, headers: Headers): Promise<{ templates: Record<string, unknown>[]; error?: string }> {
   try {
-    const remote = await lanaRequest(tenantId, "/inbox/whatsapp/templates", { method: "GET" }, 12000);
+    const remote = await lanaRequest(tenantId, "/inbox/whatsapp/templates", { method: "GET", headers }, 12000);
     if (!remote.response.ok) return { templates: [], error: text(remote.body.error, 300) || "LANA no devolvió las plantillas." };
     const list = Array.isArray(remote.body.templates) ? remote.body.templates as Record<string, unknown>[] : [];
     return {
@@ -604,7 +616,7 @@ Deno.serve(async (req) => {
     const { data: settings } = await admin.from("smyl_reminder_settings")
       .select("enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at")
       .eq("tenant_id", tenantId).maybeSingle();
-    const catalog = canConfigure ? await templates(tenantId) : { templates: [] };
+    const catalog = canConfigure ? await templates(tenantId, userHeaders(auth.user!, tenantId)) : { templates: [] };
     return json(200, {
       settings: settings || { enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null },
       can_configure: canConfigure, sources: SOURCES, overview: await overview(tenantId), ...catalog,
@@ -620,7 +632,7 @@ Deno.serve(async (req) => {
     if (enabled && !templateId) return json(400, { error: "Elige una plantilla aprobada para activar los recordatorios." });
     let templateName = ""; let templateLanguage = "";
     if (templateId) {
-      const catalog = await templates(tenantId);
+      const catalog = await templates(tenantId, userHeaders(auth.user!, tenantId));
       const template = catalog.templates.find((item) => item.id === templateId);
       if (!template) return json(400, { error: catalog.error || "La plantilla ya no está disponible en LANA." });
       if (variables.length !== Number(template.variable_count || 0)) {
