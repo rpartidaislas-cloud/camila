@@ -24,7 +24,7 @@ test('unfinished collaboration is removed from professional navigation', () => {
 test('internal prompt controls stay out of the dentist-facing product', () => {
   assert.match(app, /card advanced-ai-settings/);
   assert.match(app, /advanced-ai-settings[^>]*hidden/);
-  assert.match(styles, /\.advanced-ai-settings\{display:none!important\}/);
+  assert.match(styles, /\.advanced-ai-settings\{display:none\}/);
   assert.match(app, /Tú revisas y apruebas cada importe/);
 });
 
