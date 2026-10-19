@@ -31,3 +31,24 @@
 .connections-preview-panel .connections-preview{margin-top:0;padding-top:0;border-top:0}
 @media(max-width:600px){.connections-workspace-intro{display:grid;gap:8px;padding-top:24px}.connections-workspace-intro p{text-align:left}.connections-tabs{overflow-x:auto}.connections-tabs button{min-width:110px}.pro-mobile-nav .nav-item{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.pro-nav-chevron{transition:none}}
+/* Sidebar contraíble: la flecha lo reduce a iconos y libera espacio para el contenido */
+.pro-sidebar-toggle{display:none}
+@media(min-width:761px){
+.sidebar{transition:width 180ms ease}
+.sidebar{position:sticky}
+.pro-sidebar-toggle{position:absolute;top:22px;right:14px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.72);cursor:pointer}
+.pro-sidebar-toggle:hover{background:rgba(255,255,255,.1);color:#fff}.pro-sidebar-toggle:focus-visible{outline:2px solid #6ed8ce;outline-offset:2px}
+.pro-sidebar-toggle svg{transition:transform 180ms ease}
+body.smyl-sidebar-collapsed .sidebar{width:72px}
+body.smyl-sidebar-collapsed .pro-sidebar-toggle svg{transform:rotate(180deg)}
+body.smyl-sidebar-collapsed .sidebar :is(.sb-logo span,.sb-user-info,.sb-user-chevron,.plan-chip,.uso-wrap,.pro-nav-label,.pro-nav-group summary){display:none}
+body.smyl-sidebar-collapsed .sidebar .sb-logo img{visibility:hidden}
+body.smyl-sidebar-collapsed .pro-sidebar-toggle{right:22px}
+body.smyl-sidebar-collapsed .sidebar .sb-user-row{justify-content:center}
+body.smyl-sidebar-collapsed .pro-nav-section{height:1px;margin:10px 8px;padding:0;overflow:hidden;background:rgba(255,255,255,.08);color:transparent}
+body.smyl-sidebar-collapsed .pro-primary-nav .pro-nav-item{position:relative;justify-content:center;gap:0;padding-left:0;padding-right:0}
+body.smyl-sidebar-collapsed .pro-nav-group:not([open]) .nav-item{display:flex}
+body.smyl-sidebar-collapsed .pro-nav-item :is(.nav-badge,.pro-nav-count){position:absolute;top:4px;right:10px;margin:0}
+body.smyl-sidebar-collapsed .btn-cerrar{justify-content:center;font-size:0;gap:0}
+}
+@media(prefers-reduced-motion:reduce){.sidebar,.pro-sidebar-toggle svg{transition:none}}

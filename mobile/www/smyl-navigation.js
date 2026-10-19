@@ -70,7 +70,8 @@
     if (mobile) {
       button.innerHTML = '<span class="pam-row-icon">' + icon(entry[2], 20) + '</span><span class="pam-row-label">' + entry[0] + '</span><span class="pam-row-chevron" aria-hidden="true">›</span>';
     } else {
-      button.innerHTML = '<span class="pro-nav-icon">' + icon(entry[2], 18) + '</span><span>' + entry[0] + '</span>';
+      button.innerHTML = '<span class="pro-nav-icon">' + icon(entry[2], 18) + '</span><span class="pro-nav-label">' + entry[0] + '</span>';
+      button.title = entry[0];
     }
     return button;
   }
@@ -219,8 +220,34 @@
     select('channels');
   }
 
+  // Flecha para contraer el sidebar a solo iconos; la preferencia se recuerda en este navegador.
+  function setupCollapse() {
+    var sidebar = document.querySelector('.sidebar');
+    if (!sidebar || sidebar.querySelector('.pro-sidebar-toggle')) return;
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'pro-sidebar-toggle';
+    toggle.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+    function apply(collapsed) {
+      document.body.classList.toggle('smyl-sidebar-collapsed', collapsed);
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      toggle.setAttribute('aria-label', collapsed ? 'Expandir menú lateral' : 'Contraer menú lateral');
+      toggle.title = collapsed ? 'Expandir menú' : 'Contraer menú';
+    }
+    var saved = false;
+    try { saved = window.localStorage.getItem('smyl_sidebar_collapsed') === '1'; } catch (_) {}
+    apply(saved);
+    toggle.addEventListener('click', function () {
+      var collapsed = !document.body.classList.contains('smyl-sidebar-collapsed');
+      apply(collapsed);
+      try { window.localStorage.setItem('smyl_sidebar_collapsed', collapsed ? '1' : '0'); } catch (_) {}
+    });
+    sidebar.append(toggle);
+  }
+
   function init() {
     organizeDesktop();
+    setupCollapse();
     organizeMobileBar();
     organizeMobileSheet();
     splitConnections();
