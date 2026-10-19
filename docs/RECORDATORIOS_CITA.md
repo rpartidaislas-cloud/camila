@@ -63,6 +63,19 @@ variables que Supabase inyecta (`SUPABASE_URL`, `SUPABASE_ANON_KEY`,
 Hasta que se despliegue, la Agenda muestra "El servicio de recordatorios no
 está disponible todavía" en la tarjeta. El resto de la app no cambia.
 
+### Alternativa sin CLI: pegar la función en el panel
+
+El editor de Edge Functions del panel no puede importar `../_shared`, así que
+hay un archivo único ya generado: `docs/bundles/appointment-reminders.single-file.ts`.
+
+1. Supabase → **Edge Functions** → **Deploy a new function** → **Via Editor**.
+2. Nombre exacto: `appointment-reminders`. Pega el archivo completo.
+3. Deja **Verify JWT** activado y despliega.
+
+Si cambia la función o algún archivo de `_shared`, regenera el archivo con
+`node scripts/bundle-edge-function.mjs appointment-reminders` (una prueba falla
+si queda desactualizado) y vuelve a pegarlo.
+
 ## Opcional: ejecución programada (cron)
 
 Con el navegador basta, porque toda cita se crea desde una sesión de la

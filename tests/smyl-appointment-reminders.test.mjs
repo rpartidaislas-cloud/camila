@@ -70,3 +70,13 @@ test('web, móvil y PWA publican el módulo de recordatorios', () => {
   assert.equal(read('../mobile/www/smyl-schedule.js'), schedule);
   assert.equal(read('../mobile/www/app.html'), app);
 });
+
+test('el archivo único para el panel de Supabase está al día con la función y sus archivos compartidos', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const bundlePath = new URL('../docs/bundles/appointment-reminders.single-file.ts', import.meta.url);
+  const before = fs.readFileSync(bundlePath, 'utf8');
+  execFileSync(process.execPath, [new URL('../scripts/bundle-edge-function.mjs', import.meta.url).pathname, 'appointment-reminders'], { stdio: 'pipe' });
+  assert.equal(fs.readFileSync(bundlePath, 'utf8'), before, 'Regenera con: node scripts/bundle-edge-function.mjs appointment-reminders');
+  assert.doesNotMatch(before, /from "\.\.?\//);
+  assert.equal((before.match(/^import /gm) || []).length, 1);
+});
