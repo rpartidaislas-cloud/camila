@@ -50,7 +50,7 @@ const STATIC_FILES = [
   '/camila/icons/ui/my-smyl-example-before.svg',
   '/camila/icons/ui/my-smyl-example-after.svg',
   '/camila/smyl-patient-cases.css?v=2',
-  '/camila/smyl-proposals.css?v=8',
+  '/camila/smyl-proposals.css?v=9',
   '/camila/smyl-proposals.js?v=12',
   '/camila/smyl-proposal-model.js?v=2',
   '/camila/smyl-proposal-print.js?v=4',
