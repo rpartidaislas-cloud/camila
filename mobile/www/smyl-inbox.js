@@ -17,6 +17,7 @@
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
     sharedItems: [], sharedPage: null, sharedLoading: false,
     notificationsEnabled: false, didAutoOpen: false,
+    view: 'list', pipelineDragId: null,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
     availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
@@ -210,9 +211,13 @@
     page.innerHTML =
       '<header class="smyl-inbox-top">' +
         '<div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN DENTAL</span><h1>Mensajes</h1><p>Prioriza pacientes y continúa su caso; SMYL Asistente y tu equipo responden por WhatsApp, Messenger o Instagram.</p></div>' +
-        '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
+        '<div class="smyl-inbox-top-actions"><div class="smyl-inbox-view-toggle" role="tablist" aria-label="Vista de Mensajes"><button type="button" role="tab" data-inbox-view="list" aria-selected="true">Conversaciones</button><button type="button" role="tab" data-inbox-view="pipeline" aria-selected="false">Pipeline</button></div><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
         '<div class="smyl-inbox-overview" data-inbox-overview aria-label="Resumen de atención"></div>' +
       '</header>' +
+      '<section class="smyl-inbox-pipeline" data-inbox-pipeline aria-label="Pipeline de pacientes por etapa" hidden>' +
+        '<div class="smyl-inbox-pipeline-bar"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar en el pipeline" data-pipeline-search></div><div class="smyl-inbox-pipeline-filters" role="group" aria-label="Filtrar pipeline"><button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button></div><span class="smyl-inbox-pipeline-hint"><span class="is-pointer">Arrastra una tarjeta para cambiar su etapa</span><span class="is-touch">Usa «Mover a» en cada tarjeta para cambiar su etapa</span></span><button type="button" class="smyl-inbox-pipeline-more" data-pipeline-more hidden>Cargar más</button></div>' +
+        '<div class="smyl-inbox-pipeline-board" data-pipeline-board></div>' +
+      '</section>' +
       '<div class="smyl-inbox-workspace">' +
         '<aside class="smyl-inbox-list-pane" aria-label="Bandeja de conversaciones">' +
           '<div class="smyl-inbox-list-head"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar conversación" data-inbox-search></div><button type="button" class="smyl-inbox-filter-toggle" data-inbox-filter-more aria-expanded="false">Filtros</button></div>' +
@@ -428,6 +433,124 @@
       list.append(button);
     });
     if (more) { more.hidden = !state.hasMore; more.disabled = state.loadingList; more.textContent = state.loadingList ? 'Cargando…' : 'Cargar más conversaciones'; }
+    renderPipeline();
+  }
+
+  var PIPELINE_COLORS = ['#2F6FA3', '#28796E', '#7A5AA6', '#B7791F', '#2E8B57', '#B4536A', '#5B6B7A'];
+
+  function pipelineColumns() {
+    var stages = state.stages.slice().sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); });
+    var known = {}; stages.forEach(function (stage) { known[stage.id] = true; });
+    var visible = visibleConversations();
+    var columns = [];
+    var unstaged = visible.filter(function (item) { return !item.stage_id || !known[item.stage_id]; });
+    if (unstaged.length || !stages.length) columns.push({ id: '', name: 'Sin etapa', color: '#94A3B8', items: unstaged });
+    stages.forEach(function (stage, index) {
+      var items = visible.filter(function (item) { return item.stage_id === stage.id; });
+      if (stage.archived && !items.length) return;
+      columns.push({ id: stage.id, name: stage.name + (stage.archived ? ' · Archivada' : ''), color: PIPELINE_COLORS[index % PIPELINE_COLORS.length], items: items });
+    });
+    return columns;
+  }
+
+  function pipelineCard(item, color) {
+    var movable = canOperate(item, 'messages.manage');
+    var card = node('article', 'smyl-inbox-pipeline-card' + (item.needs_human ? ' is-attention' : ''));
+    card.dataset.conversationId = item.id; card.draggable = movable; card.style.setProperty('--stage-color', color);
+    var open = node('button', 'smyl-inbox-pipeline-open'); open.type = 'button'; open.setAttribute('aria-label', 'Abrir conversación con ' + item.contact_name);
+    var top = node('span', 'smyl-inbox-pipeline-card-top');
+    var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel;
+    top.append(avatar, node('strong', '', item.contact_name), node('time', '', timeLabel(item.last_message_at)));
+    var meta = node('span', 'smyl-inbox-pipeline-card-meta');
+    meta.append(node('span', '', channelLabel(item.channel)));
+    if (item.needs_human) meta.append(node('span', 'smyl-inbox-pipeline-badge is-attention', 'Por atender'));
+    else if (item.paused) meta.append(node('span', 'smyl-inbox-pipeline-badge is-team', 'Con el equipo'));
+    else meta.append(node('span', 'smyl-inbox-pipeline-badge is-ai', 'IA activa'));
+    if (item.assignment) meta.append(node('span', 'smyl-inbox-pipeline-assignee', item.assignment.name));
+    if (item.unread_count) meta.append(node('span', 'smyl-inbox-pipeline-unread', String(Math.min(99, item.unread_count))));
+    open.append(top, node('span', 'smyl-inbox-pipeline-preview', item.last_message || 'Conversación sin vista previa'), meta);
+    open.onclick = function () { setInboxView('list'); openConversation(item.id); };
+    card.append(open);
+    if (movable) {
+      // Alternativa al arrastre para pantallas táctiles y teclado.
+      var move = node('label', 'smyl-inbox-pipeline-move', 'Mover a');
+      var select = document.createElement('select'); select.setAttribute('aria-label', 'Cambiar etapa de ' + item.contact_name);
+      select.append(new Option('Sin etapa', ''));
+      state.stages.filter(function (stage) { return !stage.archived || stage.id === item.stage_id; }).forEach(function (stage) { select.append(new Option(stage.name, stage.id)); });
+      select.value = item.stage_id || '';
+      select.onchange = function () { moveConversationStage(item, select.value); };
+      move.append(select); card.append(move);
+      card.addEventListener('dragstart', function (event) {
+        state.pipelineDragId = item.id; card.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id);
+      });
+      card.addEventListener('dragend', function () {
+        state.pipelineDragId = null; card.classList.remove('is-dragging');
+        document.querySelectorAll('.smyl-inbox-pipeline-column.is-drop').forEach(function (column) { column.classList.remove('is-drop'); });
+      });
+    }
+    return card;
+  }
+
+  function renderPipeline() {
+    var section = document.querySelector('[data-inbox-pipeline]');
+    var board = document.querySelector('[data-pipeline-board]');
+    if (!section || !board) return;
+    section.hidden = state.view !== 'pipeline';
+    if (state.view !== 'pipeline' || state.pipelineDragId) return;
+    var more = document.querySelector('[data-pipeline-more]');
+    if (more) { more.hidden = !state.hasMore; more.disabled = state.loadingList; more.textContent = state.loadingList ? 'Cargando…' : 'Cargar más'; }
+    var scroll = board.scrollLeft; board.innerHTML = '';
+    if (state.loadingList && !state.conversations.length) { board.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>'; return; }
+    if (state.listError && !state.conversations.length) {
+      var error = node('div', 'smyl-inbox-list-state');
+      error.append(node('strong', '', 'No pudimos abrir el pipeline'), node('p', '', state.listError));
+      board.append(error); return;
+    }
+    pipelineColumns().forEach(function (column) {
+      var columnNode = node('section', 'smyl-inbox-pipeline-column'); columnNode.style.setProperty('--stage-color', column.color);
+      columnNode.setAttribute('aria-label', column.name + ': ' + column.items.length + ' conversaciones');
+      var head = node('header'); head.append(node('i'), node('strong', '', column.name), node('span', '', String(column.items.length)));
+      var cards = node('div', 'smyl-inbox-pipeline-cards');
+      if (!column.items.length) cards.append(node('p', 'smyl-inbox-pipeline-empty', 'Sin conversaciones'));
+      column.items.forEach(function (item) { cards.append(pipelineCard(item, column.color)); });
+      columnNode.addEventListener('dragover', function (event) {
+        if (!state.pipelineDragId) return;
+        event.preventDefault(); event.dataTransfer.dropEffect = 'move'; columnNode.classList.add('is-drop');
+      });
+      columnNode.addEventListener('dragleave', function (event) { if (!columnNode.contains(event.relatedTarget)) columnNode.classList.remove('is-drop'); });
+      columnNode.addEventListener('drop', function (event) {
+        event.preventDefault(); columnNode.classList.remove('is-drop');
+        var id = state.pipelineDragId; state.pipelineDragId = null;
+        var conversation = state.conversations.find(function (item) { return item.id === id; });
+        if (conversation && (conversation.stage_id || '') !== column.id) moveConversationStage(conversation, column.id);
+        else renderPipeline();
+      });
+      columnNode.append(head, cards); board.append(columnNode);
+    });
+    board.scrollLeft = scroll;
+  }
+
+  async function moveConversationStage(conversation, stageId) {
+    var previous = conversation.stage_id || null;
+    conversation.stage_id = stageId || null; render();
+    try {
+      var data = await request('POST', {}, { action: 'stage', conversation_id: conversation.id, target_stage_id: stageId || null }, uuid());
+      applyConversationResult(conversation, data); render();
+    } catch (error) {
+      conversation.stage_id = previous; render();
+      window.alert(error.message || 'No se pudo cambiar la etapa.');
+    }
+  }
+
+  function setInboxView(view) {
+    state.view = view === 'pipeline' ? 'pipeline' : 'list';
+    try { window.sessionStorage.setItem('smyl_inbox_view', state.view); } catch (_) {}
+    var page = document.getElementById('p-inbox');
+    if (page) page.classList.toggle('view-pipeline', state.view === 'pipeline');
+    document.querySelectorAll('[data-inbox-view]').forEach(function (button) { button.setAttribute('aria-selected', button.dataset.inboxView === state.view ? 'true' : 'false'); });
+    var search = document.querySelector('[data-pipeline-search]'); if (search) search.value = state.search;
+    renderPipeline();
   }
 
   function selectedConversation() {
@@ -2014,7 +2137,8 @@
       if (reset && !state.didAutoOpen) {
         state.didAutoOpen = true;
         var next = visibleConversations()[0];
-        if (next && window.innerWidth > 760) openConversation(next.id);
+        // En el pipeline no se abre en segundo plano: abrirla la marcaría como leída sin que nadie la vea.
+        if (next && window.innerWidth > 760 && state.view !== 'pipeline') openConversation(next.id);
       }
     }
   }
@@ -2424,9 +2548,15 @@
     });
     page.querySelector('[data-inbox-filter-more]').addEventListener('click', toggleInboxFilters);
     var searchTimer = null;
-    page.querySelector('[data-inbox-search]').addEventListener('input', function (event) {
-      state.search = event.target.value; renderList(); clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadList(true); }, 320);
-    });
+    function searchConversations(value) {
+      state.search = value; renderList(); clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadList(true); }, 320);
+    }
+    page.querySelector('[data-inbox-search]').addEventListener('input', function (event) { searchConversations(event.target.value); });
+    page.querySelector('[data-pipeline-search]').addEventListener('input', function (event) { page.querySelector('[data-inbox-search]').value = event.target.value; searchConversations(event.target.value); });
+    page.querySelectorAll('[data-inbox-view]').forEach(function (button) { button.addEventListener('click', function () { setInboxView(button.dataset.inboxView); }); });
+    page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(false); });
+    var savedView = null; try { savedView = window.sessionStorage.getItem('smyl_inbox_view'); } catch (_) {}
+    setInboxView(savedView);
     page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; loadList(true); });
     page.querySelector('[data-inbox-bulk]').addEventListener('click', function () { state.bulkMode = !state.bulkMode; if (!state.bulkMode) state.bulkSelected.clear(); renderList(); });
     page.querySelector('[data-inbox-refresh]').addEventListener('click', function () { loadList(true); loadOperations(true); if (state.selectedId) loadThread(state.selectedId, false); });

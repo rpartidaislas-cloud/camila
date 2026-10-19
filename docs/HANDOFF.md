@@ -1,5 +1,40 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-19 — Claude: rediseño del chat (Mensajes) estilo LANA, fases 1–3
+
+**Archivos: `smyl-inbox.js`, `smyl-inbox.css`, `app.html` (recarga de la
+PWA y ruta), `sw.js`, copias en `mobile/www/`, tests de versiones y
+`tests/smyl-inbox-pipeline.test.mjs` (nuevo). Versiones actuales:
+`smyl-inbox.js?v=29`, `smyl-inbox.css?v=30`.**
+
+- Fase 1 — tipografía según `POLITICA_IMAGEN_SMYL.md` §6 (mensajes 13px,
+  botones 600 13px, mínimo 11px; pesos solo 400/500/600/700) y cabecera del
+  hilo con las acciones del paciente en la misma fila. Con container queries
+  pasan al menú ••• cuando la cabecera es angosta.
+- Fase 2 — avisos dentro del hilo ("El paciente pidió hablar con una
+  persona" + "Marcar resuelta"; ventana de WhatsApp vencida + "Enviar
+  plantilla") y menú ••• con acciones, responsable y "Marcar solicitud
+  resuelta".
+- Fase 3 — vista **Pipeline**: selector "Conversaciones | Pipeline" en la
+  cabecera de Mensajes. Muestra columnas por etapa de LANA (`action:'stages'`),
+  ordenadas por `position`. Las tarjetas se mueven arrastrando o con «Mover a»,
+  que se ve siempre en pantallas táctiles y al pasar el cursor en escritorio.
+  Usa el mismo `POST action:'stage'` con actualización optimista y reversión.
+  Solo se mueve con `messages.manage`. La vista elegida se guarda en
+  `sessionStorage` (los tests prohíben `localStorage` en el inbox).
+- `app.html`: `ir()` guarda la ruta en `sessionStorage` y la restaura al
+  recargar. Al actualizarse el service worker se recarga en cuanto nadie
+  está escribiendo (antes esperaba a que la pestaña se ocultara y el
+  usuario no veía los cambios).
+- **Para Codex (pendiente, no tocado):** `app.html` línea ~726 tiene
+  `input,textarea,select{font-size:16px!important}` global. Fuerza 16px en
+  todos los campos también en escritorio (la política pide 13px; 16px solo
+  en móvil para evitar el zoom de iOS). Lo correcto sería limitarlo a
+  `@media(max-width:760px),(hover:none)`, pero afecta todos los módulos y
+  requiere revisión visual completa.
+- Pendiente: Fase 4 (recordatorios automáticos de cita) y ocultar
+  "Responder / Más" de cada burbuja en celular hasta tocar el mensaje.
+
 ## 2026-10-19 — Claude: limpieza de `!important` en el shell "pro" + pregunta abierta para Codex sobre la paleta teal/sage
 
 **Contexto: siguiendo el Nivel 4 del plan de alineación con
