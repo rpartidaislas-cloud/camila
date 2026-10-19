@@ -1,5 +1,69 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-19 — Claude: limpieza de `!important` en el shell "pro" + pregunta abierta para Codex sobre la paleta teal/sage
+
+**Contexto: siguiendo el Nivel 4 del plan de alineación con
+`docs/POLITICA_IMAGEN_SMYL.md` (que prohíbe `!important` "as foundation of
+the new system"), revisé y limpié los 10 archivos CSS del shell profesional
+("pro shell") que lo usaban: `smyl-finance.css`, `smyl-reports.css`,
+`smyl-readiness.css`, `smyl-inventory.css`, `smyl-clinic.css`,
+`smyl-clinic-admin.css`, `smyl-panel.css`, `smyl-proposals.css`,
+`smyl-connections.css`, `smyl-navigation.css` y `smyl-inbox.css`.**
+
+- Metodología: para cada `!important`, busqué si existía alguna regla
+  competidora con igual o mayor peso en todo el repo. Donde no había
+  competidor, lo quité sin más. Donde sí había (casi siempre: la misma clase
+  reutilizada en otro archivo con el mismo peso, o una regla más específica
+  tipo `.algo>p`), subí la especificidad del selector en vez de volver a usar
+  `!important` — por ejemplo `p.connections-form-message` en vez de
+  `.connections-form-message`, o `.pro-primary-nav .pro-nav-item` en vez de
+  `.pro-nav-item`. Cada cambio se verificó con Playwright (headless Chromium)
+  comparando el valor computado antes/después contra el HEAD sin modificar,
+  no solo leyendo el CSS.
+- Quedaron **9 `!important` genuinamente necesarios** en todo el shell pro,
+  todos documentados en los commits correspondientes, con dos patrones
+  recurrentes:
+  1. Pelean contra otro `!important` que ya existe en el `<style>` base de
+     `app.html` (p. ej. `.bottom-nav{display:flex!important}`,
+     `.btn-hamburger{display:none!important}`) — no hay especificidad que le
+     gane a un `!important` sin usar `!important` también.
+  2. Pelean contra un `style=""` en línea en el HTML (p. ej.
+     `.topbar-left{gap:8px!important}` contra un `style="gap:10px"` inline) —
+     mismo problema: lo en línea sólo pierde ante `!important`.
+  3. El bloque de `@media(prefers-reduced-motion:reduce)` y los bloques de
+     `@media print` — usos aceptados de `!important` por accesibilidad e
+     impresión.
+- Efecto colateral importante que puede interesarte para tu propio trabajo en
+  estos archivos: **cada vez que cambié el contenido de un CSS/JS, tuve que
+  subir su `?v=N` en los `<link>`/`<script>` de `app.html` y en la lista
+  `STATIC_FILES` de `sw.js`**, porque el service worker de la PWA cachea cada
+  archivo por su URL exacta (`cache-first`). Si editas estos archivos sin
+  subir el número, el navegador de un visitante que ya cargó la app antes
+  sigue viendo la versión vieja indefinidamente, sin importar cuántas veces
+  se despliegue. Vale la pena revisar esto en cualquier cambio futuro a estos
+  archivos.
+- **Pregunta abierta para que la revises tú (decisión de diseño, no técnica):**
+  al inventariar estos 10 archivos encontré que 6 de ellos —
+  `smyl-navigation.css`, `smyl-proposals.css`, `smyl-clinic-admin.css`,
+  `smyl-connections.css`, `smyl-panel.css` y `smyl-clinic.css` — comparten una
+  paleta de color propia, distinta de los tokens `--smyl-*` de
+  `smyl-design-system-v2.css` y distinta también de los `--color-*` del
+  `:root` de `app.html`: tonos teal/sage (`#dce2dd`, `#fdfdf9`, `#233c3d`,
+  `#657777`, `#526465`, `#215d60`, `#286653`, entre otros), no documentada en
+  `POLITICA_IMAGEN_SMYL.md`. Los otros 4 (`smyl-finance.css`,
+  `smyl-reports.css`, `smyl-readiness.css`, `smyl-inventory.css`) usan en
+  cambio una paleta azul-gris distinta (`#f8fafc`, `#e7edf2`, `#65758b`,
+  `#dfe6ef`). No toqué los valores de color de ninguno de los dos grupos —
+  solo until y especificidad de `!important` — porque no sé si el teal/sage es
+  una identidad visual intencional del shell profesional que debería
+  documentarse en la política, o si es deriva accidental que debería migrarse
+  a los tokens `--smyl-*`. Te lo dejo a ti para decidir y, si aplica,
+  documentar en `POLITICA_IMAGEN_SMYL.md` o planear la migración.
+- Verificación: suite completa en verde (106/106) después de cada commit;
+  todos los cambios ya están fusionados en `main`.
+
+---
+
 ## 2026-10-18 — Claude: pulido de accesibilidad en sidebar de app.html
 
 **Petición del usuario: hacer la UI más "profesional" en `app.html`. Antes de
