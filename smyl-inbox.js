@@ -228,7 +228,7 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><span class="smyl-inbox-thread-state" data-thread-state></span><button type="button" class="smyl-inbox-mode-button" data-thread-mode></button><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" data-thread-menu hidden><button type="button" data-thread-search>Buscar en el hilo</button><button type="button" data-thread-shared>Archivos compartidos</button><button type="button" data-thread-pin>Fijar conversación</button><button type="button" data-thread-details>Paciente y atención</button></div></div></header><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Acciones del paciente"></nav>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><span class="smyl-inbox-thread-state" data-thread-state></span><button type="button" class="smyl-inbox-mode-button" data-thread-mode></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Acciones del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" data-thread-menu hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care></div><button type="button" data-thread-search>Buscar en el hilo</button><button type="button" data-thread-shared>Archivos compartidos</button><button type="button" data-thread-pin>Fijar conversación</button><button type="button" data-thread-details>Paciente y atención</button></div></div></header>' +
             '<div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
@@ -1455,24 +1455,24 @@
     host.innerHTML = '';
     host.hidden = !conversation;
     if (!conversation) return;
-    var title = node('span', 'smyl-inbox-carebar-label', 'Continuar atención');
-    host.append(title);
-    if (hasPermission('schedule.read')) {
-      var appointment = node('button', 'smyl-inbox-care-action is-primary', 'Agendar cita');
-      appointment.type = 'button'; appointment.onclick = openAvailabilityDialog; host.append(appointment);
-    }
-    if (hasPermission('clinical.read')) {
-      var record = node('button', 'smyl-inbox-care-action', 'Expediente');
-      record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); }; host.append(record);
-    }
+    var menuHost = document.querySelector('[data-thread-menu-care]');
+    if (menuHost) menuHost.innerHTML = '';
+    var actions = [];
+    if (hasPermission('schedule.read')) actions.push(['Agendar cita', openAvailabilityDialog, true]);
+    if (hasPermission('clinical.read')) actions.push(['Expediente', function () { openPatientContext(conversation.id); }]);
     ['quote', 'payment'].forEach(function (type) {
-      var copy = type === 'quote' ? 'Cotizar' : 'Cobrar';
-      var button = node('button', 'smyl-inbox-care-action', copy); button.type = 'button';
-      button.onclick = function () {
+      actions.push([type === 'quote' ? 'Cotizar' : 'Cobrar', function () {
         if (window.SmylCareTasks && typeof window.SmylCareTasks.open === 'function') window.SmylCareTasks.open(type);
         else window.ir(type === 'quote' ? 'propuestas' : 'caja');
-      };
-      host.append(button);
+      }]);
+    });
+    // Las mismas acciones se repiten en el menú ••• para cuando la cabecera es angosta.
+    actions.forEach(function (action) {
+      var button = node('button', 'smyl-inbox-care-action' + (action[2] ? ' is-primary' : ''), action[0]);
+      button.type = 'button'; button.onclick = action[1]; host.append(button);
+      if (!menuHost) return;
+      var item = node('button', action[2] ? 'is-primary' : '', action[0]);
+      item.type = 'button'; item.onclick = function () { closeThreadMenu(); action[1](); }; menuHost.append(item);
     });
   }
 
