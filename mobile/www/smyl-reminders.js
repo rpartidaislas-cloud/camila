@@ -156,7 +156,7 @@
       '<label>Plantilla aprobada por Meta<select name="template"><option value="">Selecciona una plantilla</option>' +
         list.map(function (item) { return '<option value="' + esc(item.id) + '"' + (item.id === settings.template_id ? ' selected' : '') + (usable(item) ? '' : ' disabled') + '>' + esc(item.name) + (item.language ? ' · ' + esc(item.language) : '') + (usable(item) ? '' : ' (no es de utilidad)') + '</option>'; }).join('') +
       '</select></label>' +
-      (list.length ? '' : '<p class="schedule-reminders-muted">No hay plantillas aprobadas todavía. Solicita en LANA una de categoría Utilidad; en Mensajería → Plantillas de WhatsApp tienes propuestas listas para copiar, empezando por «Recordatorio de cita (24 horas antes)».</p><button type="button" class="btn btn-secondary btn-sm" data-open-templates>Ver plantillas propuestas</button>') +
+      (list.length ? '' : '<p class="schedule-reminders-muted">No hay plantillas aprobadas todavía. Solicita en tu panel de mensajería una de categoría Utilidad; en Mensajería → Plantillas de WhatsApp tienes propuestas listas para copiar, empezando por «Recordatorio de cita (24 horas antes)».</p><button type="button" class="btn btn-secondary btn-sm" data-open-templates>Ver plantillas propuestas</button>') +
       '<div data-template-variables></div>' +
       '<div class="schedule-reminders-preview" data-template-preview hidden><span>Vista previa</span><p></p></div>' +
       '<div class="schedule-dialog-actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" data-save>Guardar</button></div></form>';

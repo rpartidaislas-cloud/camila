@@ -43,11 +43,11 @@
       if (!jwt) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
       var response = await fetch(SUPA_URL + '/functions/v1/lana-inbox?action=templates', { headers: { Authorization: 'Bearer ' + jwt, apikey: SUPA_KEY } });
       var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'LANA no respondió.');
+      if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'El servicio de mensajería no respondió.');
       state.approved = new Set((data.templates || []).map(function (item) { return String(item.name || ''); }));
       state.loadedAt = Date.now();
     } catch (error) {
-      state.approved = null; state.error = error.message || 'No pudimos consultar LANA.';
+      state.approved = null; state.error = error.message || 'No pudimos consultar el servicio de mensajería.';
     } finally {
       state.loading = false; renderStatus(); renderGrid();
     }
@@ -90,7 +90,7 @@
   function statusChip(template) {
     if (!state.approved) return null;
     var approved = state.approved.has(template.id);
-    var chip = el('span', 'tpl-chip tpl-chip-status', approved ? 'Aprobada en LANA' : 'Por solicitar');
+    var chip = el('span', 'tpl-chip tpl-chip-status', approved ? 'Aprobada por Meta' : 'Por solicitar');
     chip.dataset.state = approved ? 'approved' : 'missing';
     return chip;
   }
@@ -130,7 +130,7 @@
     details.append(list); article.append(details);
 
     var actions = el('footer', 'tpl-actions');
-    actions.append(copyButton('Copiar para LANA', function () { return catalog.formatForLana(template); }, true), copyButton('Copiar solo el texto', function () { return template.body; }, false));
+    actions.append(copyButton('Copiar datos de solicitud', function () { return catalog.formatForLana(template); }, true), copyButton('Copiar solo el texto', function () { return template.body; }, false));
     article.append(actions);
     return article;
   }
@@ -139,15 +139,15 @@
     var host = document.querySelector('[data-tpl-status]');
     if (!host) return;
     host.innerHTML = '';
-    if (state.loading) { host.append(el('span', 'tpl-status-text', 'Consultando LANA…')); return; }
+    if (state.loading) { host.append(el('span', 'tpl-status-text', 'Consultando plantillas aprobadas…')); return; }
     if (state.error) {
       var retry = el('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadApproved(true); };
-      host.append(el('span', 'tpl-status-text', 'No pudimos consultar LANA, así que no sabemos cuáles están aprobadas.'), retry);
+      host.append(el('span', 'tpl-status-text', 'No pudimos consultar el servicio de mensajería, así que no sabemos cuáles están aprobadas.'), retry);
       return;
     }
     if (state.approved) {
       var count = catalog.TEMPLATES.filter(function (template) { return state.approved.has(template.id); }).length;
-      host.append(el('strong', '', count + ' de ' + catalog.TEMPLATES.length), el('span', 'tpl-status-text', 'ya están aprobadas en LANA'));
+      host.append(el('strong', '', count + ' de ' + catalog.TEMPLATES.length), el('span', 'tpl-status-text', 'ya están aprobadas por Meta'));
     }
   }
 
@@ -184,7 +184,7 @@
     var head = el('header', 'tpl-head');
     var copyBlock = el('div');
     copyBlock.append(el('span', 'pro-eyebrow', 'MENSAJERÍA'), el('h1', '', 'Plantillas de WhatsApp'),
-      el('p', '', catalog.TEMPLATES.length + ' propuestas para clínicas dentales. Meta debe aprobar cada una antes de usarla fuera de la ventana de 24 horas; se solicitan desde LANA.'));
+      el('p', '', catalog.TEMPLATES.length + ' propuestas para clínicas dentales. Meta debe aprobar cada una antes de usarla fuera de la ventana de 24 horas; se solicitan desde tu panel de mensajería.'));
     var status = el('div', 'tpl-status'); status.dataset.tplStatus = '';
     head.append(copyBlock, status);
 
@@ -192,9 +192,9 @@
     var how = el('details', 'tpl-how'); how.open = !window.matchMedia('(max-width:760px)').matches;
     how.append(el('summary', '', 'Cómo solicitarlas'));
     var steps = el('ol', 'tpl-steps');
-    [['Copia la plantilla', 'Elige una y presiona «Copiar para LANA».'],
-     ['Solicítala en LANA', 'Entra a Mensajería → Plantillas WhatsApp → Nueva plantilla y pega los datos.'],
-     ['Espera a Meta', 'Suele tardar de unos minutos a 48 horas. Cuando se apruebe, aquí dirá «Aprobada en LANA».']].forEach(function (step, index) {
+    [['Copia la plantilla', 'Elige una y presiona «Copiar datos de solicitud».'],
+     ['Solicítala en tu panel de mensajería', 'Entra a Mensajería → Plantillas WhatsApp → Nueva plantilla y pega los datos.'],
+     ['Espera a Meta', 'Suele tardar de unos minutos a 48 horas. Cuando se apruebe, aquí dirá «Aprobada por Meta».']].forEach(function (step, index) {
       var item = el('li'); item.append(el('b', '', String(index + 1)));
       var text = el('div'); text.append(el('strong', '', step[0]), el('span', '', step[1])); item.append(text); steps.append(item);
     });
