@@ -1,4 +1,4 @@
-/* SMYL · Inicio operativo v4 — política visual 2.0 */
+/* SMYL · Inicio operativo v7 — política visual 2.0 */
 #p-dashboard.has-daily-home>.pro-welcome,
 #p-dashboard.has-daily-home>.pro-action-grid,
 #p-dashboard.has-daily-home>.stats-grid,
@@ -107,7 +107,10 @@
 @media(max-width:980px){
   .daily-home-actions{justify-content:flex-start;width:100%}
   .daily-home-actions small{text-align:left}
-  .daily-home-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .daily-home-metrics,.daily-home-metrics-month{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .daily-home-metrics-month[data-count="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .daily-home-metrics-month[data-count="2"] .daily-home-metric:nth-child(-n+2){border-bottom:0}
+  .daily-home-metrics-month[data-count="3"] .daily-home-metric:nth-child(3){grid-column:1/-1;border-right:0}
   .daily-home-metric:nth-child(2){border-right:0}.daily-home-metric:nth-child(-n+2){border-bottom:1px solid var(--smyl-border,#d7e0e8)}
   .daily-home-grid{grid-template-columns:1fr}
   .daily-home-next-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.daily-home-next-list button:nth-child(2){border-top:0}.daily-home-next-list button:nth-child(odd){border-right:1px solid #e8edf2}
@@ -124,6 +127,31 @@
   .daily-home-shortcuts{grid-template-columns:1fr 1fr}.daily-home-shortcuts button{grid-template-columns:32px minmax(0,1fr) auto;min-height:64px;padding:10px}.daily-home-shortcuts button::before{width:30px;height:30px}.daily-home-shortcuts strong{white-space:normal}.daily-home-skeleton{height:74px}
 }
 @media(max-width:430px){.daily-home-shortcuts{grid-template-columns:1fr}.daily-home-metrics{grid-template-columns:1fr 1fr}.daily-home-metric{grid-template-columns:1fr;grid-template-areas:"label" "value" "detail";gap:2px}.daily-home-metric>strong{font-size:20px}}
+.daily-home-month>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px}
+.daily-home-month>header h2{margin:0;color:var(--smyl-text-secondary,#526173);font-size:12px;font-weight:600;line-height:16px}
+.daily-home-month>header button{padding:0;border:0;background:transparent;color:var(--smyl-primary,#194391);font:600 12px/16px Inter,system-ui,sans-serif;cursor:pointer}
+.daily-home-month>header button:hover{text-decoration:underline}
+.daily-home-month[hidden]{display:none}
+@media(min-width:981px){.daily-home-metrics-month{grid-template-columns:repeat(var(--cols,4),minmax(0,1fr))}}
+.daily-home-metric .trend{color:var(--smyl-text-muted,#667586)}
+.daily-home-metric .trend.up{color:#0c6b47}
+.daily-home-metric .trend.down{color:#a4281e}
+.daily-home-more{display:block;width:100%;padding:11px 18px;border:0;border-top:1px solid #e8edf2;background:transparent;color:var(--smyl-primary,#194391);font:600 12px/16px Inter,system-ui,sans-serif;text-align:left;cursor:pointer}
+.daily-home-more:hover{background:var(--smyl-surface-subtle,#f8fafc)}
+.daily-home-priority-list article[data-urgent="1"] i{background:#c43228}
+.daily-home-priority-list article[data-urgent="1"]>div>span{color:#a4281e}
+.daily-home-next-list.daily-home-timeline button{grid-template-columns:74px minmax(0,1fr) auto}.daily-home-timeline time{white-space:nowrap}
+.daily-home-timeline button em{padding:3px 7px;border-radius:999px;background:#eef2f6;color:#526173;font-size:10px;font-style:normal;font-weight:600;line-height:14px;white-space:nowrap}
+.daily-home-timeline button[data-next="1"] em{background:var(--smyl-accent-subtle,#eaf7f5);color:var(--smyl-accent,#0f766e)}
+.daily-home-timeline button[data-status="arrived"] em,.daily-home-timeline button[data-status="in_progress"] em{background:#fff1d6;color:#8a5a00}
+.daily-home-timeline button[data-status="completed"] em{background:#e3f4ea;color:#17663b}
+.daily-home-timeline button[data-status="no_show"] em{background:#fde8e6;color:#a4281e}
+.daily-home-timeline button[data-status="completed"] time,.daily-home-timeline button[data-status="no_show"] time{color:var(--smyl-text-muted,#667586)}
+.daily-home-now{display:flex;align-items:center;gap:8px;padding:2px 16px;color:#a4281e;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.daily-home-now::before,.daily-home-now::after{content:"";flex:1;height:1px;background:#e6b3ae}
+.daily-home-now span{white-space:nowrap}
+.daily-home-next-empty>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.daily-home-next-empty>div button{margin-top:0}
+
 /* Otras hojas (smyl-professional-v3) redefinen el hero con .smyl-management-v3; el id gana sin depender del orden. */
 .daily-home>*{min-width:0}
 #smyl-daily-home .daily-home-hero{padding:16px 22px}

@@ -83,7 +83,7 @@
     var items=tasks(),unread=unreadAnnouncements();renderSummary(items);renderPending(items);renderAnnouncements();renderTabs();syncBadge(items.length,unread);
     var pc=document.querySelector('[data-task-pending-count]'),nc=document.querySelector('[data-task-news-count]');if(pc)pc.textContent=items.length||'';if(nc)nc.textContent=unread||'';
     var refresh=document.querySelector('[data-task-refresh]');if(refresh){refresh.disabled=state.loading;refresh.textContent=state.loading?'Actualizando…':'Actualizar';}
-    window.dispatchEvent(new CustomEvent('smyl:task-center-updated',{detail:{pending:items.length,unread_news:unread}}));
+    window.dispatchEvent(new CustomEvent('smyl:task-center-updated',{detail:{pending:items.length,unread_news:unread,items:items}}));
   }
 
   async function load(force){
@@ -123,6 +123,6 @@
     setTimeout(function(){if(window.SmylSecurity&&typeof window.SmylSecurity.loadSummary==='function')window.SmylSecurity.loadSummary();},0);
   }
 
-  window.SmylTaskCenter=Object.freeze({reload:function(){state.loaded=false;return load(true);}});
+  window.SmylTaskCenter=Object.freeze({reload:function(){state.loaded=false;return load(true);},getTasks:function(){return state.loaded?tasks():null;}});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

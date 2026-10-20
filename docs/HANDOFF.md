@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: Inicio, paso B (indicadores del mes, alertas unificadas, agenda de hoy)
+
+- `smyl-daily-home.js` (v6) / `.css` (v8): (1) «Qué requiere atención» usa los mismos pendientes que el Centro de
+  alertas (`SmylTaskCenter.getTasks()` y el evento `smyl:task-center-updated`, que ahora trae `items`), así el
+  contador de la campana y el Inicio ya no se contradicen; con más de 5, enlace «Ver las N alertas». Si el
+  Centro aún no cargó, usa el cálculo anterior de citas y solicitudes. (2) «Hoy en la agenda» es una línea de
+  tiempo con todas las citas del día, estado de cada una y marca de «Ahora»; vacía ofrece Agendar cita / Abrir
+  agenda. (3) Sección «Este mes»: Cobrado, Por cobrar, Pacientes nuevos y Asistencia, con cambio frente al mes
+  anterior (mismos días). Cobros y asistencia salen de `smyl_executive_dashboard` (ya aplica permisos; sin permiso
+  financiero se ocultan Cobrado y Por cobrar); pacientes nuevos cuenta `camila_pacientes.created_at`.
+- `smyl-task-center.js` (v4): expone `getTasks` y agrega `items` al evento. Sin migraciones ni funciones nuevas.
+- Pendiente del paso A que no se hizo: lista «Configura tu clínica» (WhatsApp conectado, plantilla aprobada,
+  recordatorios activos, horario, primer paciente).
+
 ## 2026-10-20 — Claude: Inicio más compacto y «Chats recientes» al estilo del tablero de LANA
 
 - `smyl-daily-home.js` (v5) / `.css` (v6): cabecera compacta con botones pequeños (Agendar cita, Cotizar, Cobrar:
