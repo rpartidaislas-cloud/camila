@@ -11,7 +11,7 @@ test('cada canal muestra su logo en la esquina del avatar, en lista, encabezado 
   assert.match(js, /instagram: '<svg/);
   assert.match(js, /messenger: '<svg/);
   assert.match(js, /badge\.setAttribute\('role', 'img'\); badge\.setAttribute\('aria-label', channelLabel\(channel\)\)/);
-  assert.equal((js.match(/channelBadge\(/g) || []).length, 4);
+  assert.equal((js.match(/channelBadge\(/g) || []).length, 5); // definición, lista, encabezado, pipeline y la API del Inicio (buildAvatar)
   // Ya no hay un chip de texto con el nombre del canal en cada fila.
   assert.doesNotMatch(js, /node\('span', 'smyl-inbox-channel', channelLabel/);
   assert.match(css, /\.smyl-inbox-channel-badge\{position:absolute/);
@@ -47,7 +47,7 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=33/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=34/);
   assert.match(read('../app.html'), /smyl-inbox\.css\?v=33/);
 });
 

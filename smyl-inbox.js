@@ -2747,6 +2747,18 @@
     refresh: function () { loadList(true); },
     loadOperations: loadOperations,
     getOperationsSummary: operationsSummary,
+    // Para el Inicio: últimas conversaciones sin tocar la lista ni el filtro del buzón, y sin abrir ninguna.
+    fetchRecent: async function (limit) {
+      var data = await request('GET', { action: 'list', filter: 'all', limit: Math.max(1, Math.min(12, Number(limit) || 6)), offset: 0 }, null, null, 12000);
+      return Array.isArray(data.conversations) ? data.conversations : [];
+    },
+    buildAvatar: function (item) {
+      var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel;
+      avatar.append(channelBadge(item.channel));
+      return avatar;
+    },
+    timeLabel: timeLabel,
+    channelLabel: channelLabel,
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
