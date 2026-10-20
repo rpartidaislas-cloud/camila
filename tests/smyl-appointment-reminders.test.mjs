@@ -45,7 +45,12 @@ test('los permisos se validan en el servidor con las funciones de RLS', () => {
   assert.match(fn, /can\["schedule\.manage"\] && can\["messages\.respond"\]/);
   assert.match(fn, /if \(!can\["schedule\.read"\]\)/);
   assert.match(fn, /expected\.length < 32/);
-  assert.match(config, /\[functions\.appointment-reminders\]\nverify_jwt = true/);
+  // Verify JWT apagado a propósito (el cron no tiene sesión): el handler autentica todo.
+  assert.match(config, /\[functions\.appointment-reminders\]\nverify_jwt = false/);
+  const handler = fn.slice(fn.indexOf('Deno.serve('));
+  const firstAuth = Math.min(handler.indexOf('sameSecret('), handler.indexOf('requireUser('));
+  assert.ok(firstAuth > 0);
+  assert.doesNotMatch(handler.slice(0, firstAuth), /admin\.from|admin\.rpc|lanaRequest/, 'nada toca datos antes de autenticar');
 });
 
 test('toda consulta a LANA lleva la identidad de quien la hace', () => {

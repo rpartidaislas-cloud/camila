@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: revisión automática (cron) de recordatorios
+
+- `supabase/config.toml`: `appointment-reminders` pasa a `verify_jwt = false` (el cron no tiene
+  sesión y las claves `sb_publishable_…` no son JWT). Es seguro porque el handler autentica
+  toda petición (sesión o `x-smyl-cron-secret` en tiempo constante); una prueba verifica que nada
+  toque datos antes de autenticar. **En el panel hay que apagar «Verify JWT» de la función.**
+- Pasos completos (extensiones, secreto en Vault + secret de Edge Functions, prueba manual,
+  `cron.schedule` cada 15 min y cómo verificar) en `docs/RECORDATORIOS_CITA.md`.
+
 ## 2026-10-20 — Claude: recordatorios, simulación completa y corrección al apagarlos
 
 - Nueva `tests/appointment-reminders-dispatch.test.mjs` (16 escenarios): corre el archivo único

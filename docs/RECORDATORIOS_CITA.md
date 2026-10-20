@@ -70,38 +70,65 @@ hay un archivo único ya generado: `docs/bundles/appointment-reminders.single-fi
 
 1. Supabase → **Edge Functions** → **Deploy a new function** → **Via Editor**.
 2. Nombre exacto: `appointment-reminders`. Pega el archivo completo.
-3. Deja **Verify JWT** activado y despliega.
+3. Deja **Verify JWT** apagado (la función valida cada petición por su cuenta) y despliega.
 
 Si cambia la función o algún archivo de `_shared`, regenera el archivo con
 `node scripts/bundle-edge-function.mjs appointment-reminders` (una prueba falla
 si queda desactualizado) y vuelve a pegarlo.
 
-## Opcional: ejecución programada (cron)
+## Revisión automática cada 15 minutos (cron)
 
-Con el navegador basta, porque toda cita se crea desde una sesión de la
-clínica y LANA guarda el envío programado. Un cron cubre además a los
-pacientes que se vinculan después sin que nadie abra la Agenda.
+Sin cron, el recordatorio sale igual (LANA guarda el envío programado), pero el estado
+«Enviado» y los pacientes que se vinculan después solo se procesan cuando alguien abre SMYL.
+El cron llama a la función cada 15 minutos para todas las clínicas con recordatorios activos.
 
-1. Define un secreto de al menos 32 caracteres:
-   `supabase secrets set SMYL_REMINDERS_CRON_SECRET=<valor-aleatorio>`.
-2. Guarda el mismo valor en Vault como `smyl_reminders_cron_secret` y
-   programa la llamada (requiere las extensiones `pg_cron` y `pg_net`):
+**Verify JWT debe estar apagado en esta función.** El proyecto usa las claves nuevas
+(`sb_publishable_…`), que no son JWT, y el cron no tiene sesión de usuario. Es seguro porque la
+función autentica cada petición por su cuenta: con la sesión del usuario (`requireUser`) o con el
+secreto `x-smyl-cron-secret` comparado en tiempo constante; sin ninguna de las dos responde 401.
+(`supabase/config.toml` ya lo refleja; en el panel está en la página de la función.)
+
+1. **Extensiones:** Database → Extensions → activar `pg_cron` y `pg_net`.
+2. **Secreto** (en el SQL Editor; se genera dentro de la base y no se ve en ningún otro lado):
+
+```sql
+select vault.create_secret(encode(extensions.gen_random_bytes(24), 'hex'), 'smyl_reminders_cron_secret');
+select decrypted_secret from vault.decrypted_secrets where name = 'smyl_reminders_cron_secret';
+```
+
+   Copia el valor de la segunda consulta y guárdalo en Edge Functions → Secrets con el nombre
+   `SMYL_REMINDERS_CRON_SECRET`.
+3. **Prueba manual** (debe responder `200` en `net._http_response`):
+
+```sql
+select net.http_post(
+  url := 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/appointment-reminders',
+  headers := jsonb_build_object('Content-Type', 'application/json',
+    'x-smyl-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_reminders_cron_secret')),
+  body := '{}'::jsonb, timeout_milliseconds := 20000);
+select status_code, content::text from net._http_response order by created desc limit 1;
+```
+
+4. **Programar:**
 
 ```sql
 select cron.schedule('smyl-recordatorios-cita', '*/15 * * * *', $$
   select net.http_post(
     url := 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/appointment-reminders',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_anon_key'),
-      'x-smyl-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_reminders_cron_secret')
-    ),
-    body := '{}'::jsonb
-  );
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'x-smyl-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_reminders_cron_secret')),
+    body := '{}'::jsonb, timeout_milliseconds := 20000);
 $$);
 ```
 
-Nunca pegues las claves en el código ni en el repositorio; léelas de Vault.
+5. **Verificar:** `select jobname, schedule, active from cron.job;` y, pasados 15 minutos,
+   `select status, return_message from cron.job_run_details order by start_time desc limit 3;`.
+   Para detenerlo: `select cron.unschedule('smyl-recordatorios-cita');`.
+
+Errores comunes: `401 Invalid JWT` → Verify JWT sigue activado; `401 Secreto de cron no válido` →
+el valor del secreto de Edge Functions no coincide con el de Vault (o tiene menos de 32 caracteres).
+
+Nunca pegues el secreto en el código, en el repositorio ni en un chat.
 
 ## Verificación hecha
 

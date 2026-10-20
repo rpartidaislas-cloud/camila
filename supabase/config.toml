@@ -19,10 +19,12 @@ verify_jwt = true
 [functions.security-monitor]
 verify_jwt = true
 
-# Recordatorios de cita: JWT de usuario o, desde un cron, la anon key más el
-# header x-smyl-cron-secret (SMYL_REMINDERS_CRON_SECRET).
+# Recordatorios de cita: sin verificación en la puerta porque el cron (pg_cron/pg_net) no
+# tiene sesión y las claves nuevas (sb_publishable_…) no son JWT. El handler autentica TODAS las
+# peticiones: sesión de usuario (requireUser) o el header x-smyl-cron-secret comparado en tiempo
+# constante (SMYL_REMINDERS_CRON_SECRET); sin ninguno responde 401.
 [functions.appointment-reminders]
-verify_jwt = true
+verify_jwt = false
 
 # Excepciones públicas deliberadas. Cada una aplica su propio control de
 # capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
