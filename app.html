@@ -769,7 +769,10 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 /* ============================================
    SMYL — MEJORAS DIAGNÓSTICO IA
    ============================================ */
-html,body{touch-action:pan-x pan-y;-webkit-user-scalable:none;user-scalable:none;overflow-x:hidden}
+html,body{touch-action:pan-x pan-y;-webkit-user-scalable:none;user-scalable:none}
+html{overflow-x:hidden}
+/* clip (no hidden) en body: hidden lo vuelve contenedor de scroll y rompe el position:sticky del sidebar */
+body{overflow-x:clip}
 input,textarea,select{touch-action:manipulation;font-size:16px!important}
 .rep-header-card{background:linear-gradient(135deg,#12366F 0%,#194391 58%,#147F78 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
 .rep-header-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
