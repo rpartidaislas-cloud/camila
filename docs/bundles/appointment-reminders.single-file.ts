@@ -119,7 +119,7 @@ const ALLOWED_ROOTS = new Set([
   "training",
 ]);
 
-function normalizeLanaPath(input: unknown) {
+function normalizeLanaPath(input: any) {
   const raw = String(input || "").trim();
   if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
     throw new Error("Ruta LANA no permitida.");

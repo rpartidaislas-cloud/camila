@@ -58,7 +58,12 @@ function loadShared(file) {
   const externalImports = text.split('\n').filter((line) => /^import\s/.test(line));
   let code = stripExports(text.split('\n').filter((line) => !/^import\s/.test(line)).join('\n'));
   // Los .mjs no declaran tipos; el bundle es TypeScript estricto, así que se anotan los parámetros sueltos.
-  if (file.endsWith('.mjs')) code = code.replace(/function\s+(\w+)\((\w+)\)/g, 'function $1($2: unknown)');
+  if (file.endsWith('.mjs')) {
+    code = code.replace(/function\s*(\w*)\s*\(([^)]*)\)/g, (match, name, params) => {
+      const typed = params.split(',').map((param) => (/^\s*\w+\s*$/.test(param) ? param.trim() + ': any' : param.trim())).filter(Boolean).join(', ');
+      return 'function ' + name + '(' + typed + ')';
+    });
+  }
   const exports = exportedNames(text);
   // "admin as smylAdmin" se exporta con otro nombre: se asigna aparte.
   const aliased = [...text.matchAll(/^export\s+\{([^}]*)\}/gm)].flatMap((m) => m[1].split(',')).map((p) => p.trim().split(/\s+as\s+/)).filter((p) => p[1]);
@@ -70,6 +75,10 @@ function loadShared(file) {
 }
 
 const main = read(name, 'index.ts');
+if (/^import\s*\{[^}]*\sas\s[^}]*\}\s*from\s*["']\.\.?\/(?:_shared\/)?[\w.-]+["']/m.test(main)) {
+  console.error('index.ts importa un archivo compartido con alias ("x as y"); el generador no lo soporta. Usa el nombre original.');
+  process.exit(1);
+}
 const mainLines = main.split('\n');
 const used = [];
 const mainBody = [];

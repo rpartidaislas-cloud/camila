@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: solicitar plantillas de WhatsApp desde SMYL (LANA por detrás)
+
+- Nueva Edge Function `supabase/functions/whatsapp-templates/index.ts` (+ `docs/bundles/whatsapp-templates.single-file.ts`
+  para pegar en el panel; `verify_jwt = true` en `config.toml`). Acciones: `list` (propietario o `messages.read`)
+  y `request` (**solo propietario**, solo ids del catálogo revisado de SMYL, nunca texto libre; se vuelve a
+  validar con las reglas de Meta). Habla con LANA (`camila-api`) con identidad del actor + `Idempotency-Key`;
+  SMYL no guarda tokens de Meta y solo Meta aprueba.
+- Catálogo compartido: `scripts/sync-template-catalog.mjs` genera `_shared/whatsapp-template-catalog.mjs` desde
+  `smyl-template-catalog.js` (una prueba verifica que esté al día). `scripts/bundle-edge-function.mjs` ahora
+  tipa los parámetros de `.mjs` y falla si una importación compartida usa alias.
+- UI (`smyl-templates.js` v2, `.css` v3): estados por tarjeta (Por solicitar / En revisión de Meta / Aprobada /
+  Rechazada con el motivo traducido, aviso si Meta reclasificó la categoría), botón «Solicitar a Meta» con
+  diálogo de confirmación (una a la vez, aviso de opt-in en Marketing), deshabilitado para no propietarios.
+  «Copiar para LANA» queda como respaldo si la función aún no está desplegada.
+- Pruebas: `tests/whatsapp-templates-request.test.mjs` (simulación real del bundle) y ampliaciones en
+  `smyl-whatsapp-templates.test.mjs`. Suite completa 489/489 + nuevas.
+- **Depende de LANA** (repo `promodesk`, rama local `claude/smyl-plantillas-solicitar`): `POST
+  /inbox/whatsapp/templates` y `GET ?status=all` en `camila-api`, contrato 1.3. Hasta que se despliegue ahí,
+  la lista muestra «No pudimos consultar el estado» y funciona el respaldo manual.
+- Despliegue SMYL: crear la función `whatsapp-templates` en el panel pegando el archivo único.
+
 ## 2026-10-20 — Claude: revisión automática (cron) de recordatorios
 
 - `supabase/config.toml`: `appointment-reminders` pasa a `verify_jwt = false` (el cron no tiene

@@ -1,6 +1,7 @@
 /* SMYL · Mensajería → Plantillas de WhatsApp.
-   Muestra el catálogo de plantillas para clínicas dentales (smyl-template-catalog.js) y,
-   si LANA responde, cuáles ya están aprobadas. Las plantillas se solicitan a Meta desde LANA. */
+   Muestra el catálogo de plantillas para clínicas dentales (smyl-template-catalog.js), cómo va cada una
+   en Meta y deja al propietario solicitarlas. Todo pasa por la función whatsapp-templates, que le pide
+   a LANA que las cree: SMYL nunca guarda tokens de Meta y solo Meta las aprueba. */
 (function () {
   'use strict';
 
@@ -8,7 +9,21 @@
   if (!catalog) return;
 
   var CATEGORY = { UTILITY: 'Utilidad', MARKETING: 'Marketing' };
-  var state = { category: 'all', group: 'all', query: '', approved: null, loading: false, error: '', loadedAt: 0 };
+  var FUNCTION_NAME = 'whatsapp-templates';
+  var STATUS = {
+    NONE: ['Por solicitar', 'missing'], PENDING: ['En revisión de Meta', 'pending'], APPROVED: ['Aprobada', 'approved'],
+    REJECTED: ['Rechazada', 'rejected'], PAUSED: ['Pausada por Meta', 'rejected'], DISABLED: ['Deshabilitada por Meta', 'rejected'],
+    PENDING_DELETION: ['En eliminación', 'rejected']
+  };
+  var REASONS = {
+    INVALID_FORMAT: 'El formato no es válido para Meta (revisa variables y saltos de línea).',
+    ABUSIVE_CONTENT: 'Meta la consideró contenido abusivo o inapropiado.',
+    SCAM: 'Meta la confundió con un posible fraude o estafa.',
+    TAG_CONTENT_MISMATCH: 'El contenido no corresponde a la categoría elegida.',
+    PROMOTIONAL: 'Meta la consideró promocional, no de utilidad.',
+    NONE: ''
+  };
+  var state = { category: 'all', group: 'all', query: '', remote: null, canRequest: false, loading: false, error: '', loadedAt: 0, requesting: '', notice: null };
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -34,23 +49,43 @@
     }
   }
 
+  async function invoke(body) {
+    if (!window.sb || !window.sb.functions) throw new Error('La sesión todavía no está lista.');
+    var result = await window.sb.functions.invoke(FUNCTION_NAME, { body: body });
+    if (result.error) {
+      var detail = '';
+      try { detail = result.error.context && typeof result.error.context.json === 'function' ? ((await result.error.context.json()) || {}).error : ''; } catch (_) {}
+      throw new Error(detail || 'El servicio de plantillas no está disponible todavía.');
+    }
+    return result.data || {};
+  }
+
   async function loadApproved(force) {
     if (state.loading || (!force && state.loadedAt && Date.now() - state.loadedAt < 60 * 1000)) return;
     state.loading = true; state.error = ''; renderStatus();
     try {
-      var session = await window.sb.auth.getSession();
-      var jwt = session && session.data && session.data.session && session.data.session.access_token;
-      if (!jwt) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
-      var response = await fetch(SUPA_URL + '/functions/v1/lana-inbox?action=templates', { headers: { Authorization: 'Bearer ' + jwt, apikey: SUPA_KEY } });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'LANA no respondió.');
-      state.approved = new Set((data.templates || []).map(function (item) { return String(item.name || ''); }));
+      var data = await invoke({ action: 'list' });
+      var map = {};
+      (data.templates || []).forEach(function (item) { if (item && item.name && item.language === catalog.LANGUAGE.code) map[String(item.name)] = item; });
+      state.remote = map; state.canRequest = data.can_request === true;
       state.loadedAt = Date.now();
     } catch (error) {
-      state.approved = null; state.error = error.message || 'No pudimos consultar LANA.';
+      state.remote = null; state.canRequest = false; state.error = error.message || 'No pudimos consultar LANA.';
     } finally {
       state.loading = false; renderStatus(); renderGrid();
     }
+  }
+
+  function remoteOf(template) { return state.remote ? state.remote[template.id] || null : null; }
+  function statusKey(template) {
+    var remote = remoteOf(template);
+    if (!remote) return 'NONE';
+    return STATUS[remote.status] ? remote.status : 'PENDING';
+  }
+  function reasonText(remote) {
+    var code = String(remote.rejection_reason || '').trim();
+    if (!code) return 'Meta no indicó el motivo.';
+    return Object.prototype.hasOwnProperty.call(REASONS, code.toUpperCase()) ? REASONS[code.toUpperCase()] || 'Meta no indicó el motivo.' : code;
   }
 
   function visibleTemplates() {
@@ -88,11 +123,61 @@
   }
 
   function statusChip(template) {
-    if (!state.approved) return null;
-    var approved = state.approved.has(template.id);
-    var chip = el('span', 'tpl-chip tpl-chip-status', approved ? 'Aprobada en LANA' : 'Por solicitar');
-    chip.dataset.state = approved ? 'approved' : 'missing';
+    if (!state.remote) return null;
+    var key = statusKey(template);
+    var chip = el('span', 'tpl-chip tpl-chip-status', STATUS[key][0]);
+    chip.dataset.state = STATUS[key][1];
     return chip;
+  }
+
+  // Meta puede reclasificar una plantilla de Utilidad como Marketing; entonces no sirve para recordatorios.
+  function reclassified(template) {
+    var remote = remoteOf(template);
+    return remote && remote.category && remote.category !== template.category ? remote.category : '';
+  }
+
+  function requestButton(template) {
+    var button = el('button', 'btn btn-primary btn-sm', state.requesting === template.id ? 'Enviando…' : 'Solicitar a Meta');
+    button.type = 'button';
+    button.dataset.tplRequest = template.id;
+    var blocked = !state.canRequest || Boolean(state.requesting);
+    button.disabled = blocked;
+    if (!state.canRequest) button.title = 'Solo el propietario de la clínica puede solicitar plantillas.';
+    button.onclick = function () { confirmRequest(template); };
+    return button;
+  }
+
+  function confirmRequest(template) {
+    var dialog = el('dialog', 'tpl-dialog');
+    var form = el('div', 'tpl-dialog-body');
+    form.append(el('h3', '', 'Solicitar «' + template.title + '» a Meta'));
+    form.append(el('p', '', 'Se enviará tal cual a tu cuenta de WhatsApp Business. Meta decide si la aprueba y suele tardar de unos minutos a 48 horas.'));
+    if (template.category === 'MARKETING') form.append(el('p', 'tpl-dialog-warn', 'Es de Marketing: solo envíala a pacientes que aceptaron recibir promociones, y la plantilla ya incluye cómo darse de baja.'));
+    form.append(el('p', 'tpl-dialog-warn', 'Si Meta la rechaza muchas veces, tu cuenta puede perder reputación. Por eso solo se envía una a la vez.'));
+    var actions = el('div', 'tpl-dialog-actions');
+    var cancel = el('button', 'btn btn-secondary btn-sm', 'Cancelar'); cancel.type = 'button';
+    var ok = el('button', 'btn btn-primary btn-sm', 'Solicitar'); ok.type = 'button';
+    cancel.onclick = function () { dialog.close(); };
+    ok.onclick = function () { dialog.close(); submitRequest(template); };
+    actions.append(cancel, ok); form.append(actions); dialog.append(form);
+    dialog.addEventListener('close', function () { dialog.remove(); });
+    document.body.append(dialog);
+    if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+  }
+
+  async function submitRequest(template) {
+    if (state.requesting) return;
+    state.requesting = template.id; state.notice = null; renderGrid();
+    try {
+      var data = await invoke({ action: 'request', template_id: template.id });
+      state.notice = { kind: 'ok', text: data.existing ? 'Esa plantilla ya estaba en Meta; mostramos su estado actual.' : '«' + template.title + '» se envió a Meta. Te mostraremos aquí si la aprueba.' };
+      state.loadedAt = 0;
+    } catch (error) {
+      state.notice = { kind: 'error', text: error.message || 'No se pudo solicitar la plantilla.' };
+    } finally {
+      state.requesting = ''; renderStatus();
+      await loadApproved(true);
+    }
   }
 
   function card(template) {
@@ -117,6 +202,10 @@
       article.append(buttons);
     }
     if (template.note) article.append(el('p', 'tpl-note', template.note));
+    var remote = remoteOf(template);
+    if (remote && remote.status === 'REJECTED') article.append(el('p', 'tpl-remote-note', 'Motivo de Meta: ' + reasonText(remote) + ' Ajusta el texto y solicita una versión nueva con otro nombre en LANA.'));
+    var changed = reclassified(template);
+    if (changed) article.append(el('p', 'tpl-remote-note', 'Meta la clasificó como ' + (CATEGORY[changed] || changed) + '. Para recordatorios automáticos necesita ser de Utilidad.'));
 
     var details = el('details', 'tpl-details');
     details.append(el('summary', '', 'Variables y datos técnicos'));
@@ -130,7 +219,9 @@
     details.append(list); article.append(details);
 
     var actions = el('footer', 'tpl-actions');
-    actions.append(copyButton('Copiar para LANA', function () { return catalog.formatForLana(template); }, true), copyButton('Copiar solo el texto', function () { return template.body; }, false));
+    var key = statusKey(template);
+    if (state.remote && key === 'NONE') actions.append(requestButton(template));
+    actions.append(copyButton('Copiar para LANA', function () { return catalog.formatForLana(template); }, !(state.remote && key === 'NONE')), copyButton('Copiar solo el texto', function () { return template.body; }, false));
     article.append(actions);
     return article;
   }
@@ -139,15 +230,22 @@
     var host = document.querySelector('[data-tpl-status]');
     if (!host) return;
     host.innerHTML = '';
+    if (state.notice) { var notice = el('span', 'tpl-notice', state.notice.text); notice.dataset.kind = state.notice.kind; host.append(notice); }
     if (state.loading) { host.append(el('span', 'tpl-status-text', 'Consultando LANA…')); return; }
     if (state.error) {
       var retry = el('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadApproved(true); };
-      host.append(el('span', 'tpl-status-text', 'No pudimos consultar LANA, así que no sabemos cuáles están aprobadas.'), retry);
+      host.append(el('span', 'tpl-status-text', 'No pudimos consultar el estado en LANA. Puedes copiar las plantillas y solicitarlas allá.'), retry);
       return;
     }
-    if (state.approved) {
-      var count = catalog.TEMPLATES.filter(function (template) { return state.approved.has(template.id); }).length;
-      host.append(el('strong', '', count + ' de ' + catalog.TEMPLATES.length), el('span', 'tpl-status-text', 'ya están aprobadas en LANA'));
+    if (state.remote) {
+      var counts = { APPROVED: 0, PENDING: 0, REJECTED: 0 };
+      catalog.TEMPLATES.forEach(function (template) {
+        var key = statusKey(template);
+        if (key === 'APPROVED') counts.APPROVED += 1; else if (key === 'PENDING') counts.PENDING += 1; else if (key !== 'NONE') counts.REJECTED += 1;
+      });
+      host.append(el('strong', '', counts.APPROVED + ' de ' + catalog.TEMPLATES.length), el('span', 'tpl-status-text', 'aprobadas'));
+      if (counts.PENDING) host.append(el('span', 'tpl-status-text', '· ' + counts.PENDING + ' en revisión'));
+      if (counts.REJECTED) host.append(el('span', 'tpl-status-text', '· ' + counts.REJECTED + ' con problemas'));
     }
   }
 
@@ -184,7 +282,7 @@
     var head = el('header', 'tpl-head');
     var copyBlock = el('div');
     copyBlock.append(el('span', 'pro-eyebrow', 'MENSAJERÍA'), el('h1', '', 'Plantillas de WhatsApp'),
-      el('p', '', catalog.TEMPLATES.length + ' propuestas para clínicas dentales. Meta debe aprobar cada una antes de usarla fuera de la ventana de 24 horas; se solicitan desde LANA.'));
+      el('p', '', catalog.TEMPLATES.length + ' propuestas para clínicas dentales. Solicítalas aquí: Meta debe aprobar cada una antes de usarla fuera de la ventana de 24 horas.'));
     var status = el('div', 'tpl-status'); status.dataset.tplStatus = '';
     head.append(copyBlock, status);
 
@@ -192,9 +290,9 @@
     var how = el('details', 'tpl-how'); how.open = !window.matchMedia('(max-width:760px)').matches;
     how.append(el('summary', '', 'Cómo solicitarlas'));
     var steps = el('ol', 'tpl-steps');
-    [['Copia la plantilla', 'Elige una y presiona «Copiar para LANA».'],
-     ['Solicítala en LANA', 'Entra a Mensajería → Plantillas WhatsApp → Nueva plantilla y pega los datos.'],
-     ['Espera a Meta', 'Suele tardar de unos minutos a 48 horas. Cuando se apruebe, aquí dirá «Aprobada en LANA».']].forEach(function (step, index) {
+    [['Elige una plantilla', 'Revisa el texto y presiona «Solicitar a Meta» (solo el propietario puede hacerlo).'],
+     ['Espera a Meta', 'Suele tardar de unos minutos a 48 horas. SMYL no la aprueba: solo Meta.'],
+     ['Úsala', 'Cuando diga «Aprobada», ya puedes usarla en recordatorios y mensajes fuera de las 24 horas. Si no puedes solicitar desde aquí, copia la plantilla y créala en LANA.']].forEach(function (step, index) {
       var item = el('li'); item.append(el('b', '', String(index + 1)));
       var text = el('div'); text.append(el('strong', '', step[0]), el('span', '', step[1])); item.append(text); steps.append(item);
     });

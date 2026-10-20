@@ -48,3 +48,6 @@ verify_jwt = false
 
 [functions.public-patient-reviews]
 verify_jwt = false
+
+[functions.whatsapp-templates]
+verify_jwt = true
