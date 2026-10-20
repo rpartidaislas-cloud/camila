@@ -311,6 +311,81 @@ la captura que mandó.**
   Supabase no es alcanzable desde este sandbox): se ve el resultado en
   `inbox-row-preview.png` del scratchpad de esa sesión.
 
+### 2026-10-20 — Claude: el gate de acceso es página propia, no modal sobre el dashboard difuminado
+
+**Pedido explícito del usuario: que el login/registro sea una pantalla dedicada,
+sin ver el dashboard difuminado detrás.**
+
+- `.layout` (sidebar + contenido) ahora arranca en `display:none` y solo se
+  muestra (`.layout.is-visible`) dentro de `continuarConUsuario()`, el único
+  punto donde ya hay sesión confirmada. Antes estaba siempre montado y
+  visible detrás del overlay de login.
+- `#auth-gate-overlay` perdió el `backdrop-filter:blur(6px)` y el fondo
+  translúcido oscuro (`rgba(15,23,42,.4)`); ahora usa un fondo sólido claro
+  (`var(--color-surface-raised)`), así que se lee como una página propia, no
+  como un modal flotando sobre otra pantalla.
+- No toqué `mostrarNuevaPassword()` ni `mostrarSetPasswordInvitado()`
+  (overlays intermedios de recuperación/invitación) — ocurren antes de que
+  `.layout` se muestre, así que ya no tienen nada que difuminar detrás; no
+  hacía falta tocarlos para este pedido.
+- Verificado con Playwright en escritorio (1440×900) y móvil (390×844):
+  `.layout` confirmado en `display:none` antes de autenticar, sin errores de
+  consola nuevos.
+
+**Segunda pasada el mismo día ("se ve muy simple"): login de dos paneles.**
+
+- `#auth-gate-overlay` ahora tiene clase `ag-page` y dos hijos: `<aside
+  class="ag-brand">` (panel de identidad: eyebrow, titular, texto y tres
+  bullets con check vectorial, copy 100 % SMYL/dental, sin LANA) y
+  `.ag-form-panel > .ag-card` (logo real `icons/smyl_logo.png`, "Bienvenido
+  de nuevo", pestañas, formularios intactos y un pie `.ag-foot`).
+- Todos los IDs y handlers (`ag-tab-*`, `ag-l-*`, `ag-r-*`, `ag-btn-*`,
+  `switchAuthGateTab`, trampa de foco) se conservan sin cambios; sólo cambió
+  el contenedor visual. Los estilos salieron del inline a clases `.ag-*` junto
+  a las pestañas existentes.
+- El fondo del panel de marca es un degradado explícito navy→azul clínico
+  (`#0B1B2E → #12366F → #194391`). No usa `--gradient-primary` porque
+  `smyl-panel.css` (`.smyl-professional`) lo aplana a teal sólido `#215d60` y
+  el panel salía apagado. Es la única superficie "de marca" del gate; el resto
+  sigue plano, como pide la política.
+- Responsive: ≤840px se oculta el panel de marca y queda la columna del
+  formulario; ≤480px reduce paddings y logo. Verificado sin scroll horizontal
+  en 1440, 900 y 390 px, con la pestaña Registro (la más alta) cabiendo en
+  390×844 sin desbordar.
+- `prefers-reduced-motion` desactiva la entrada animada de la tarjeta.
+
+**Tercera pasada (propuesta aprobada visualmente por el usuario): estilo
+"dos paneles claros", tomando como referencia el login de LANA pero con
+identidad SMYL.**
+
+- Panel izquierdo claro (`#F4F6FB`) con logo real arriba, eyebrow con guion
+  azul, titular grande en tinta ("Cada paciente, del primer mensaje a la
+  cita."), tres pasos numerados con icono y línea conectora (`.ag-steps`:
+  Agenda / Asiste con IA / Da seguimiento) y pie con check de aislamiento por
+  organización. Por pedido explícito del usuario el copy **no** menciona
+  simulación de carillas; habla de agenda y del asistente con IA.
+- Divisor vertical de 3px en `--color-primary` entre paneles.
+- Tarjeta blanca con borde + `shadow-floating`, eyebrow/título/subtítulo
+  dinámicos por pestaña (`#ag-eyebrow`, `#ag-title`, `#ag-subtitle`, los
+  cambia `switchAuthGateTab`), campos de 48px, "¿Olvidaste tu contraseña?"
+  en la fila de la etiqueta (sigue siendo `#ag-btn-recovery`), botón de ojo
+  `toggleAuthGatePass()` con `aria-pressed`, botón primario "Entrar a SMYL" /
+  "Crear mi cuenta" (también actualizados los textos que el JS restaura tras
+  el loading) y pie "Conexión protegida · SMYL".
+- Las antiguas pestañas se volvieron un enlace de alternancia al pie de la
+  tarjeta ("¿Aún no tienes cuenta? Registrarme" / "¿Ya tienes cuenta? Iniciar
+  sesión"): mismos IDs `ag-tab-*` y `switchAuthGateTab`, `role="button"` en vez
+  de `tab`, la opción activa se oculta vía CSS. Se movieron físicamente al
+  final del DOM para que el orden de Tab coincida con el visual (verificado:
+  Entrar → Registrarme → vuelve al correo).
+- No se añadió "Continuar con Google": Supabase no tiene ese proveedor
+  configurado y la política prohíbe prometer lo que el servidor no respalda.
+  Si se quiere, es trabajo de backend (habilitar provider + `signInWithOAuth`).
+- En ≤840px el panel izquierdo se oculta y aparece un logo compacto arriba de
+  la tarjeta (`.ag-card-logo`). Verificado en 1600, 900 y 390 px sin scroll
+  horizontal; el logo del panel usa `align-self:flex-start` porque el `aside`
+  flex-column lo estiraba.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
