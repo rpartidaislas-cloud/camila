@@ -72,9 +72,14 @@ test('la Agenda configura los recordatorios y dispara la entrega al cambiar cita
   assert.match(inbox, /window\.SmylReminders\.dispatch\(true\)/);
 });
 
+test('sin plantillas aprobadas, el diálogo lleva a las propuestas de Mensajería', () => {
+  assert.match(ui, /data-open-templates>Ver plantillas propuestas/);
+  assert.match(ui, /window\.ir\('plantillas'\)/);
+});
+
 test('web, móvil y PWA publican el módulo de recordatorios', () => {
-  assert.match(app, /<script defer src="smyl-reminders\.js\?v=1"><\/script>/);
-  assert.match(worker, /'\/camila\/smyl-reminders\.js\?v=1'/);
+  assert.match(app, /<script defer src="smyl-reminders\.js\?v=2"><\/script>/);
+  assert.match(worker, /'\/camila\/smyl-reminders\.js\?v=2'/);
   assert.equal(read('../mobile/www/smyl-reminders.js'), ui);
   assert.equal(read('../mobile/www/smyl-schedule.js'), schedule);
   assert.equal(read('../mobile/www/app.html'), app);

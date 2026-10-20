@@ -17,7 +17,7 @@
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
     sharedItems: [], sharedPage: null, sharedLoading: false,
     notificationsEnabled: false, didAutoOpen: false,
-    view: 'list', pipelineDragId: null, actionsOpenId: null,
+    view: 'list', pipelineDragId: null, actionsOpenId: null, badgeFailures: 0,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
     availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
@@ -1687,6 +1687,26 @@
     renderComposerContext(); renderWhatsappWindow(); renderCareBar(); renderContext();
   }
 
+  // Conversaciones sin leer junto a «Mensajes» en el menú, como en LANA. Consulta solo el total, sin abrir nada.
+  function renderNavBadge(count) {
+    document.querySelectorAll('.pro-app-nav [data-route="inbox"]').forEach(function (button) {
+      var badge = button.querySelector('.pro-nav-count');
+      if (!badge) { badge = node('span', 'pro-nav-count'); button.append(badge); }
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = !count;
+      badge.setAttribute('aria-label', count + (count === 1 ? ' conversación sin leer' : ' conversaciones sin leer'));
+    });
+  }
+
+  async function refreshUnreadBadge() {
+    if (document.visibilityState !== 'visible' || state.badgeFailures >= 3 || state.loadingList) return;
+    try {
+      var data = await request('GET', { action: 'list', filter: 'unread', limit: 1, offset: 0 }, null, null, 12000);
+      state.badgeFailures = 0;
+      renderNavBadge(Number(data.page && data.page.total) || 0);
+    } catch (_) { state.badgeFailures += 1; }
+  }
+
   function dayLabel(date) {
     var startOf = function (value) { return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime(); };
     var diff = Math.round((startOf(new Date()) - startOf(date)) / 86400000);
@@ -2259,7 +2279,7 @@
     if (conversation && conversation.unread_count) {
       try {
         await request('POST', {}, { action: 'read', conversation_id: id }, uuid());
-        conversation.unread_count = 0; renderList();
+        conversation.unread_count = 0; renderList(); refreshUnreadBadge();
       } catch (_) {}
     }
   }
@@ -2712,6 +2732,8 @@
       } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); state.contextOpen = false; renderContext(); }
     };
     renderOperationsChip(); renderNotifyButton();
+    setTimeout(refreshUnreadBadge, 6000);
+    setInterval(refreshUnreadBadge, 90000);
     setInterval(sync, 5000);
     setInterval(function () {
       if (document.visibilityState === 'visible' && document.getElementById('p-inbox').classList.contains('activa')) loadOperations(true);

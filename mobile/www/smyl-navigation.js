@@ -21,6 +21,7 @@
     brand: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
     account: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+    templates: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v2.5h-5zM9 11h6M9 15h4"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
   };
 
@@ -36,10 +37,14 @@
     ['Agenda', 'agenda', 'calendar'],
     ['Pacientes', 'pacientes', 'patients'],
     ['Tratamientos', 'propuestas', 'presentation'],
-    ['Finanzas', 'caja', 'cash'],
-    ['Mensajes', 'inbox', 'messages']
+    ['Finanzas', 'caja', 'cash']
   ];
   var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
+  // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
+  var MESSAGING = [
+    ['Mensajes', 'inbox', 'messages'],
+    ['Plantillas de WhatsApp', 'plantillas', 'templates']
+  ];
   var BUSINESS = [
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
@@ -122,6 +127,8 @@
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(navItem(ALERTS, false));
+    nav.append(sectionLabel('Mensajería'));
+    MESSAGING.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(detailsGroup('Negocio', BUSINESS, true));
     nav.append(detailsGroup('Configuración', SETTINGS, false));
     host.replaceChildren(nav);
@@ -156,6 +163,7 @@
     var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),
+      mobileGroup('Mensajería', MESSAGING),
       mobileGroup('Negocio', BUSINESS),
       mobileGroup('Configuración', SETTINGS),
       mobileGroup('Acción rápida', quick)

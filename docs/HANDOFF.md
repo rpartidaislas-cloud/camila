@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: sección «Mensajería» + Plantillas de WhatsApp para dentistas
+
+**Archivos nuevos: `smyl-template-catalog.js`, `smyl-templates.js`, `smyl-templates.css`,
+`tests/smyl-whatsapp-templates.test.mjs`. Cambios: `smyl-navigation.js` (v9), `smyl-inbox.js` (v33),
+`smyl-reminders.js` (v2), `app.html`, `sw.js`, copias en `mobile/www/`.**
+
+- Menú: nueva sección **Mensajería** (como «Mensajería/Campañas» de LANA) con **Mensajes**
+  (sale de «Trabajo diario») y **Plantillas de WhatsApp**. `MESSAGING` en `smyl-navigation.js`;
+  en celular es un grupo del panel «Más». «Mensajes» muestra el total de conversaciones sin leer
+  (`refreshUnreadBadge` consulta `action=list&filter=unread&limit=1` cada 90 s; no abre nada).
+- `smyl-template-catalog.js`: 38 plantillas para clínicas dentales (27 Utilidad, 11 Marketing)
+  como datos + `validate()` con las reglas de Meta (variables, longitudes, opt-out, sin promoción
+  en Utilidad, sin datos sensibles, sin ligas). Una prueba valida cada plantilla y comprueba que
+  el validador sí rechaza 17 casos incorrectos. `recordatorio_cita_24h_v1` usa las mismas
+  variables que el recordatorio automático de la Agenda.
+- `smyl-templates.js`: pantalla con filtros, vista previa tipo WhatsApp, «Copiar para LANA» y,
+  si `lana-inbox?action=templates` responde, el estado «Aprobada en LANA» (por nombre exacto).
+- **Límite importante:** SMYL no puede crear plantillas en LANA/Meta (el proxy `lana-inbox` solo
+  lista `/inbox/whatsapp/templates`). Hay que copiarlas y solicitarlas desde LANA. Si en el futuro
+  LANA expone un endpoint de alta, se podría añadir un botón «Solicitar» (sería trabajo de
+  `supabase/functions/lana-inbox`).
+- LANA solo acepta plantillas UTILITY fuera de la ventana de 24 h, por eso las de Marketing
+  quedan marcadas y requieren opt-in del paciente.
+- **Para Codex:** `input,select{font-size:16px!important}` global (app.html ~línea 726) agranda
+  los filtros de la pantalla en escritorio; sigue pendiente.
+
 ## 2026-10-20 — Claude: chat, segunda tanda de limpieza (barra delgada, pestañas, burbujas, compositor)
 
 **Archivos: `smyl-inbox.js` (v32), `smyl-inbox.css` (v33), copias en `mobile/www/`, pruebas actualizadas.**
