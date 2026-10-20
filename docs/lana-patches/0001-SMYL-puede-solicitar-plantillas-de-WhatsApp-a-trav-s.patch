@@ -1,0 +1,1035 @@
+From ac76b947057d7b8e119757d067a960cb6c493b3a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 20 Oct 2026 09:59:07 +0000
+Subject: [PATCH] =?UTF-8?q?SMYL=20puede=20solicitar=20plantillas=20de=20Wh?=
+ =?UTF-8?q?atsApp=20a=20trav=C3=A9s=20de=20camila-api=20(contrato=201.3)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+POST /inbox/whatsapp/templates (solo propietario, idempotente, con cupo por hora y
+marcador anti-huérfanos) y GET ?status=all con estado y motivo de rechazo. SMYL no
+recibe tokens de Meta.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_017JKDfd7Q2BYhDi8eM1hDEG
+---
+ TODO.md                                       |   1 +
+ docs/agent-context/smyl-chat-contract-v1.md   |  20 +
+ .../smyl-solicitar-plantillas-whatsapp.md     |  45 ++
+ supabase/functions/camila-api/index.ts        |  42 +-
+ .../functions/camila-api/smyl-contract.mjs    |   5 +-
+ .../camila-api/wa-plantilla-smyl.mjs          | 296 ++++++++++++
+ tests/camila-api-plantillas-smyl.test.mjs     | 444 ++++++++++++++++++
+ tests/smyl-chat-contract-v1.test.mjs          |   6 +-
+ tests/smyl-inbox-hardening-stage7.test.mjs    |   4 +-
+ tests/smyl-whatsapp-advanced-stage6.test.mjs  |   2 +-
+ 10 files changed, 856 insertions(+), 9 deletions(-)
+ create mode 100644 docs/agent-context/smyl-solicitar-plantillas-whatsapp.md
+ create mode 100644 supabase/functions/camila-api/wa-plantilla-smyl.mjs
+ create mode 100644 tests/camila-api-plantillas-smyl.test.mjs
+
+diff --git a/TODO.md b/TODO.md
+index 27bae83..8665613 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -10,6 +10,7 @@
+ ## 🔴 Bloqueante
+ 
+ ## 🟡 En progreso (máx. 3)
++- [ ] 2026-10-20 — SMYL solicita plantillas de WhatsApp a través de LANA (`smyl-solicitar-plantillas`): `POST /inbox/whatsapp/templates` y `GET ?status=all` (contrato 1.3) en `camila-api`, probados localmente (39/39 seleccionadas). Pendiente: desplegar `camila-api` y probar con una plantilla real. Ver [registro](docs/agent-context/smyl-solicitar-plantillas-whatsapp.md).
+ - [ ] 2026-10-12 — Piloto real SMYL Chat etapa 8 (`smyl-chat-piloto-real-etapa8`): infraestructura de producción publicada y validada (migraciones 1–7, funciones LANA/SMYL, conectores, trabajador, web/PWA; LANA 34/34 y SMYL 44/44). **Frontera corregida por Ricardo:** SMYL se opera como producto independiente; LANA sólo presta API/motor servidor a servidor y no muestra navegación hacia SMYL. El puente privado de autorización Meta ya quedó reconciliado con `main` y preparado para publicación; pendiente elegir entre `Dd` —conexión manual heredada, sin usuario activo— y `dr` —usuario activo, ideal para probar aprovisionamiento automático—, autorizar canales reales desde SMYL, publicar capacitación dental, ejecutar matriz sintética y observar una jornada antes de atender pacientes. No declarar completo hasta cerrar esa puerta. Ver [registro de etapa 8](docs/agent-context/smyl-chat-piloto-real-etapa8.md), [puente Meta](docs/agent-context/smyl-meta-bridge-production.md) y [decisión de producto](docs/agent-context/smyl-producto-independiente.md).
+ - [ ] 2026-09-13 — Modo tienda/POS fase 2 (`modo-tienda-pos-fase2`): precio confirmado/pendiente, ajustes autorizados y trazabilidad. Solicitado: “fase 2”. Implementación local; no activar ni publicar. Dependencia operativa de fase 1 aún pendiente.
+   - Continuación: conectados localmente Consultar acuerdo/Guardar propuesta/Historial; reintento idempotente, invalidación de propuesta al editar y sustitución explícita de ajustes anteriores. Sin despliegue ni migración aplicada. El pendiente de conexión de pantalla de la nota anterior queda atendido; no el cierre financiero/operativo.
+diff --git a/docs/agent-context/smyl-chat-contract-v1.md b/docs/agent-context/smyl-chat-contract-v1.md
+index d3fea52..4f4ac91 100644
+--- a/docs/agent-context/smyl-chat-contract-v1.md
++++ b/docs/agent-context/smyl-chat-contract-v1.md
+@@ -54,3 +54,23 @@ auditada de reactivación por conversación. Texto, adjuntos y ubicación se
+ rechazan también en servidor cuando la ventana está vencida; el navegador no
+ es el control de seguridad. Esta ampliación permanece local hasta aplicar la
+ migración y desplegar las funciones de forma coordinada.
++
++## Ampliación 1.3: solicitar plantillas desde SMYL
++
++La versión `1.3` añade `POST /inbox/whatsapp/templates` y
++`GET /inbox/whatsapp/templates?status=all`.
++
++- `POST` solo acepta rol `owner`, exige `Idempotency-Key` (UUID) y valida el
++  mismo conjunto de reglas de Meta que SMYL (nombre `[a-z0-9_]`, variables
++  `{{n}}` consecutivas y con ejemplo, cuerpo ≤ 1024, pie ≤ 60, ≤ 3 botones de
++  respuesta rápida). Crea la plantilla en la cuenta de WhatsApp Business del
++  tenant con el token de LANA; **SMYL nunca recibe ni guarda tokens de Meta** y
++  Meta sigue siendo la única que aprueba. Respuestas: `201` creada, `200` ya
++  existía (idempotente), `400 invalid_template`, `403 owner_required`,
++  `409 whatsapp_not_connected | template_name_taken | template_in_progress`,
++  `422 meta_rejected`, `429 template_rate_limited` (10 pendientes o rechazadas
++  por hora), `502 meta_unreachable`, `503 meta_unavailable`.
++- `GET ?status=all` devuelve todas las plantillas activas del tenant con
++  `status` (`PENDING | APPROVED | REJECTED | PAUSED | DISABLED |
++  PENDING_DELETION`), `category` y `rejection_reason`; sin el parámetro conserva
++  el comportamiento de la versión `1.1` (solo UTILITY aprobadas).
+diff --git a/docs/agent-context/smyl-solicitar-plantillas-whatsapp.md b/docs/agent-context/smyl-solicitar-plantillas-whatsapp.md
+new file mode 100644
+index 0000000..484d52f
+--- /dev/null
++++ b/docs/agent-context/smyl-solicitar-plantillas-whatsapp.md
+@@ -0,0 +1,45 @@
++# SMYL solicita plantillas de WhatsApp a través de LANA
++
++Task-id: `smyl-solicitar-plantillas`. Pedido de Ricardo: "todo se ve y se hace en
++SMYL y LANA trabaja por detrás". SMYL no debe tener tokens de Meta; Meta es la
++única que aprueba.
++
++## Exploración
++
++- `wa-plantilla-crear` (UI de LANA) y `whatsapp-webhook` (`message_template_status_update`)
++  ya existen; el webhook mantiene `wa_plantillas.estado` al día.
++- `camila-api` solo exponía `GET /inbox/whatsapp/templates` (UTILITY aprobadas).
++- El tenant guarda su WABA en `tenants.config_json.whatsapp {connected, waba_id}`.
++
++## Implementación
++
++- `supabase/functions/camila-api/wa-plantilla-smyl.mjs`: lógica pura inyectable
++  (validación, componentes para Meta, clasificación de errores, solicitud completa).
++- `index.ts`: ruta `POST /inbox/whatsapp/templates` (delgada: dueño + Idempotency-Key)
++  y `?status=all` en el GET.
++- `smyl-contract.mjs`: versión `1.3`, `template_create`.
++- Flujo: validar → marcador `PENDING` sin `meta_template_id` (unique tenant/nombre/idioma
++  serializa y da idempotencia) → cupo de 10/hora (PENDING+REJECTED, contando el marcador)
++  → POST a Graph → registrar id/estado/categoría reales. Un conflicto con Meta adopta
++  la plantilla solo si el texto es idéntico. Solo se borran marcadores `PENDING` sin id
++  creados por esta función; las filas registradas a mano nunca se tocan.
++
++## Resultado del Tester
++
++`tests/camila-api-plantillas-smyl.test.mjs` (29 pruebas: reglas, concurrencia,
++borde del cupo, respuesta perdida, clasificación de errores, filas heredadas, token
++ausente en respuestas) + contrato 1.3 actualizado en tres pruebas existentes: 39/39.
++La suite completa tiene fallos preexistentes de entorno (idénticos sin estos cambios).
++
++## Revisión
++
++Ronda 1: 10 hallazgos (huérfanos, carrera del cupo, categoría, errores de Meta,
++`NONE`, estado fuera del CHECK, `{{ 1 }}`...) corregidos. Ronda 2: CAMBIOS
++REQUERIDOS por (1) 409 en reintento tras reclasificación y (2) borrado de filas no
++marcador; corregidos junto con el conteo del cupo, la paginación de adopción y los
++marcadores fantasma en `status=all`.
++
++## Despliegue
++
++Desplegar `camila-api`. No hay migración. Verificar con una plantilla real y revisar
++los registros: nunca deben aparecer tokens.
+diff --git a/supabase/functions/camila-api/index.ts b/supabase/functions/camila-api/index.ts
+index 29bdea5..ef4bf85 100644
+--- a/supabase/functions/camila-api/index.ts
++++ b/supabase/functions/camila-api/index.ts
+@@ -32,6 +32,8 @@
+ //   POST /inbox/conversations/:id/copilot/feedback — calidad sin auto-publicación
+ //   POST /inbox/conversations/:id/resume-context — reanuda con contexto revisado
+ //   GET  /inbox/whatsapp/templates — plantillas UTILITY aprobadas del tenant
++//        (?status=all: todas las del tenant con estado Meta y motivo de rechazo)
++//   POST /inbox/whatsapp/templates — solicita una plantilla a Meta (solo propietario de SMYL)
+ //   GET/POST /inbox/conversations/:id/scheduled — agenda idempotente de WhatsApp
+ //   POST /inbox/conversations/:id/scheduled/:scheduledId/cancel — cancela un pendiente
+ //   POST /inbox/conversations/:id/scheduled/:scheduledId/retry — reintento manual seguro
+@@ -50,6 +52,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.27.3";
+ import { camilaApiSegments } from "./route.mjs";
+ import { publicSmylContract, SMYL_LANA_CONTRACT_VERSION } from "./smyl-contract.mjs";
++import { plantillaWhatsappDto, procesarSolicitudPlantillaSmyl } from "./wa-plantilla-smyl.mjs";
+ import { bloqueConocimientoChat, bloqueHorarioAsesor, nombreIA } from "../_shared/ia-prompt.ts";
+ import { bloqueAutonomia, debeForzarAsesorInmediato, incluirConocimientoGeneral, obtenerNivelAutonomia } from "../_shared/autonomia.ts";
+ import { bloqueContextoSmyl } from "../_shared/smyl-context.ts";
+@@ -743,7 +746,22 @@ function scheduledMessageDto(row: Record<string, any>) {
+   };
+ }
+ 
+-async function listarPlantillasWhatsappInbox(tenantId: string): Promise<Response> {
++async function listarPlantillasWhatsappInbox(tenantId: string, url?: URL): Promise<Response> {
++  // ?status=all: SMYL consulta también las pendientes y rechazadas para mostrar cómo va cada solicitud.
++  if (url && url.searchParams.get("status") === "all") {
++    const { data: todas, error: errorTodas } = await sb.from("wa_plantillas")
++      .select("id,nombre,idioma,categoria,estado,motivo_rechazo,cuerpo,num_variables,variables_meta,meta_template_id,created_at,updated_at")
++      .eq("tenant_id", tenantId)
++      .eq("activo", true)
++      .order("nombre", { ascending: true })
++      .limit(200);
++    if (errorTodas) return json({ error: "No se pudieron consultar las plantillas." }, 500);
++    // Un marcador sin id de Meta de más de 10 minutos es una solicitud que nunca llegó a Meta: no se muestra como "en revisión".
++    const limiteMarcador = Date.now() - 10 * 60 * 1000;
++    const visibles = (todas || []).filter((fila: Record<string, any>) =>
++      fila.meta_template_id || fila.estado !== "PENDING" || new Date(fila.created_at || 0).getTime() > limiteMarcador);
++    return json({ ok: true, templates: visibles.map(plantillaWhatsappDto) });
++  }
+   const { data, error } = await sb.from("wa_plantillas")
+     .select("id,nombre,idioma,cuerpo,num_variables,variables_meta,updated_at")
+     .eq("tenant_id", tenantId)
+@@ -762,6 +780,23 @@ async function listarPlantillasWhatsappInbox(tenantId: string): Promise<Response
+   });
+ }
+ 
++// POST /inbox/whatsapp/templates — SMYL solicita una plantilla a Meta por nosotros.
++// Solo el propietario de SMYL: crear una plantilla real gasta cupo de revisión y los rechazos
++// repetidos pueden afectar la reputación de la cuenta (mismo criterio que wa-plantilla-crear).
++// El estado final (APPROVED/REJECTED) lo actualiza whatsapp-webhook con message_template_status_update.
++// La lógica vive en wa-plantilla-smyl.mjs (procesarSolicitudPlantillaSmyl) para poder probarla de verdad.
++async function crearPlantillaWhatsappInbox(tenantId: string, actor: SmylInboxActor, req: Request): Promise<Response> {
++  if (actor.role !== "owner") return json({ error: "Solo el propietario de la clínica puede solicitar plantillas.", code: "owner_required" }, 403);
++  if (!validUuid(req.headers.get("Idempotency-Key"))) return json({ error: "Idempotency-Key debe ser un UUID válido." }, 400);
++  let body: unknown;
++  try { body = await req.json(); } catch { return json({ error: "Body JSON inválido." }, 400); }
++  const resultado = await procesarSolicitudPlantillaSmyl(
++    { sb, fetchFn: fetch, graphVersion: GRAPH_API_VERSION, token: WHATSAPP_TOKEN, log: console.error },
++    { tenantId, actorRole: actor.role, body },
++  );
++  return json(resultado.body, resultado.status);
++}
++
+ const SCHEDULE_SELECT = "id,tipo,texto,fecha_hora,estado,error,plantilla_id,plantilla_variables,smyl_actor_name,created_at,enviado_at,cancelado_at,attempt_count,max_attempts,next_attempt_at,last_attempt_at,last_error_code,retry_safe,dead_lettered_at";
+ 
+ async function listarProgramadosInbox(
+@@ -2560,7 +2595,10 @@ serve(async (req: Request) => {
+       if (req.method === "GET" && seg1 === "sync" && !seg2) return await sincronizarInbox(tenantId, actor, url);
+       if (req.method === "GET" && seg1 === "operations" && !seg2) return await inboxOperations(tenantId);
+       if (req.method === "GET" && seg1 === "whatsapp" && seg2 === "templates" && !seg3) {
+-        return await listarPlantillasWhatsappInbox(tenantId);
++        return await listarPlantillasWhatsappInbox(tenantId, url);
++      }
++      if (req.method === "POST" && seg1 === "whatsapp" && seg2 === "templates" && !seg3) {
++        return await crearPlantillaWhatsappInbox(tenantId, actor, req);
+       }
+       if (seg1 === "conversations" && seg2 && seg3 === "scheduled") {
+         if (req.method === "GET" && !seg4) return await listarProgramadosInbox(tenantId, seg2, actor);
+diff --git a/supabase/functions/camila-api/smyl-contract.mjs b/supabase/functions/camila-api/smyl-contract.mjs
+index 714922b..4a8e346 100644
+--- a/supabase/functions/camila-api/smyl-contract.mjs
++++ b/supabase/functions/camila-api/smyl-contract.mjs
+@@ -1,4 +1,4 @@
+-export const SMYL_LANA_CONTRACT_VERSION = "1.2";
++export const SMYL_LANA_CONTRACT_VERSION = "1.3";
+ 
+ const implementedEndpoints = Object.freeze([
+   ["GET", "/contract"],
+@@ -36,6 +36,7 @@ const implementedEndpoints = Object.freeze([
+   ["POST", "/inbox/conversations/:id/copilot/feedback"],
+   ["POST", "/inbox/conversations/:id/resume-context"],
+   ["GET", "/inbox/whatsapp/templates"],
++  ["POST", "/inbox/whatsapp/templates"],
+   ["GET", "/inbox/conversations/:id/scheduled"],
+   ["POST", "/inbox/conversations/:id/scheduled"],
+   ["POST", "/inbox/conversations/:id/scheduled/:scheduledId/cancel"],
+@@ -54,7 +55,7 @@ const plannedEndpoints = Object.freeze([
+ ]);
+ 
+ const channels = Object.freeze({
+-  whatsapp: { inbox: true, send_text: true, media: true, documents: true, templates: true, scheduled: true, scheduled_retry: true, operations: true, location: true, audio: true },
++  whatsapp: { inbox: true, send_text: true, media: true, documents: true, templates: true, template_create: true, scheduled: true, scheduled_retry: true, operations: true, location: true, audio: true },
+   messenger: { inbox: true, send_text: true, media: true, documents: true, templates: false, operations: true, location: false, audio: false },
+   instagram: { inbox: true, send_text: true, media: true, documents: false, templates: false, operations: true, location: false, audio: false },
+ });
+diff --git a/supabase/functions/camila-api/wa-plantilla-smyl.mjs b/supabase/functions/camila-api/wa-plantilla-smyl.mjs
+new file mode 100644
+index 0000000..52e5468
+--- /dev/null
++++ b/supabase/functions/camila-api/wa-plantilla-smyl.mjs
+@@ -0,0 +1,296 @@
++// Reglas puras (sin Deno ni red) para que SMYL solicite plantillas de WhatsApp a través de
++// camila-api: POST /inbox/whatsapp/templates. Se mantiene en un .mjs aparte para poder
++// probarlas con `node --test` (este repo no tiene runtime de Deno en las pruebas).
++//
++// Solo valida lo que Meta exige técnicamente. Las políticas de contenido de SMYL (qué plantillas
++// se ofrecen a una clínica dental, opt-out en Marketing, etc.) las decide SMYL: nunca se manda
++// texto libre del navegador, solo plantillas de su catálogo revisado.
++
++export const CATEGORIAS_PLANTILLA_SMYL = Object.freeze(["UTILITY", "MARKETING"]);
++export const IDIOMAS_PLANTILLA_SMYL = Object.freeze(["es_MX", "es", "es_ES", "es_AR"]);
++// Crear plantillas gasta cupo de revisión y los rechazos repetidos cuentan para la reputación de la cuenta.
++export const LIMITE_CREACION_PLANTILLAS_POR_HORA = 10;
++
++const VARIABLE = /\{\{\s*(\d+)\s*\}\}/g;
++
++function numerosDeVariables(texto) {
++  const numeros = [];
++  String(texto || "").replace(VARIABLE, (_, numero) => { numeros.push(Number(numero)); return _; });
++  return Array.from(new Set(numeros)).sort((a, b) => a - b);
++}
++
++function rechazo(error) { return { ok: false, error }; }
++
++export function validarSolicitudPlantillaSmyl(body) {
++  if (!body || typeof body !== "object" || Array.isArray(body)) return rechazo("El cuerpo de la solicitud no es válido.");
++  const nombre = typeof body.name === "string" ? body.name.trim() : "";
++  const categoria = typeof body.category === "string" ? body.category.trim().toUpperCase() : "";
++  const idioma = body.language == null || body.language === "" ? "es_MX" : String(body.language).trim();
++  // Meta espera {{1}} sin espacios; {{ 1 }} se normaliza antes de validar y de enviar.
++  const cuerpo = typeof body.body === "string" ? body.body.trim().replace(/\{\{\s*(\d+)\s*\}\}/g, "{{$1}}") : "";
++  const pie = body.footer == null ? "" : typeof body.footer === "string" ? body.footer.trim() : null;
++  const botonesEntrada = body.buttons == null ? [] : body.buttons;
++  const ejemplos = body.examples == null ? [] : body.examples;
++
++  if (!/^[a-z0-9_]{1,200}$/.test(nombre)) return rechazo("El nombre solo puede tener minúsculas, números y guion bajo (_).");
++  if (!CATEGORIAS_PLANTILLA_SMYL.includes(categoria)) return rechazo("Categoría no permitida: solo UTILITY o MARKETING.");
++  if (!IDIOMAS_PLANTILLA_SMYL.includes(idioma)) return rechazo("Idioma no permitido.");
++  if (!cuerpo || cuerpo.length > 1024) return rechazo("El mensaje debe tener entre 1 y 1024 caracteres.");
++
++  const numeros = numerosDeVariables(cuerpo);
++  if (!numeros.every((numero, indice) => numero === indice + 1)) return rechazo("Las variables deben ir en orden y sin saltos: {{1}}, {{2}}, {{3}}…");
++  if (/^\{\{\s*\d+\s*\}\}/.test(cuerpo) || /\{\{\s*\d+\s*\}\}$/.test(cuerpo)) return rechazo("Meta no permite que una variable sea lo primero o lo último del mensaje.");
++  if (/\}\}\s{0,3}\{\{/.test(cuerpo)) return rechazo("Meta no permite dos variables seguidas.");
++  const palabras = cuerpo.replace(VARIABLE, " ").split(/\s+/).filter(Boolean).length;
++  if (palabras < numeros.length * 4) return rechazo("Hay demasiadas variables para la longitud del mensaje.");
++
++  if (!Array.isArray(ejemplos) || ejemplos.length !== numeros.length) return rechazo("Se necesita un ejemplo por cada variable.");
++  for (const ejemplo of ejemplos) {
++    if (typeof ejemplo !== "string" || !ejemplo.trim() || ejemplo.length > 200 || /[\n\t]| {4,}/.test(ejemplo)) return rechazo("Un ejemplo de variable no es válido.");
++  }
++
++  if (pie === null || pie.length > 60 || /\{\{/.test(pie)) return rechazo("El pie de página debe tener máximo 60 caracteres y sin variables.");
++
++  if (!Array.isArray(botonesEntrada) || botonesEntrada.length > 3) return rechazo("Se permiten máximo tres botones de respuesta rápida.");
++  const botones = [];
++  for (const boton of botonesEntrada) {
++    const texto = boton && typeof boton.text === "string" ? boton.text.trim() : "";
++    if (!boton || boton.type !== "QUICK_REPLY" || !texto || texto.length > 25) return rechazo("Cada botón debe ser de respuesta rápida y tener máximo 25 caracteres.");
++    botones.push({ type: "QUICK_REPLY", text: texto });
++  }
++
++  return {
++    ok: true,
++    valor: { nombre, categoria, idioma, cuerpo, pie, botones, ejemplos: ejemplos.map((ejemplo) => ejemplo.trim()), cantidadVariables: numeros.length },
++  };
++}
++
++// Orden que exige la API de Meta: BODY, FOOTER, BUTTONS.
++export function construirComponentesMeta(valor) {
++  const body = { type: "BODY", text: valor.cuerpo };
++  if (valor.cantidadVariables > 0) body.example = { body_text: [valor.ejemplos] };
++  const componentes = [body];
++  if (valor.pie) componentes.push({ type: "FOOTER", text: valor.pie });
++  if (valor.botones.length) componentes.push({ type: "BUTTONS", buttons: valor.botones.map((boton) => ({ type: "QUICK_REPLY", text: boton.text })) });
++  return componentes;
++}
++
++// Meta solo admite una versión por nombre + idioma; SMYL necesita nombres estables para reconocer
++// sus plantillas, así que un conflicto se informa en lugar de inventar un nombre nuevo.
++export function esConflictoNombreMeta(mensaje) {
++  const texto = String(mensaje || "").toLowerCase();
++  return texto.includes("already content") || texto.includes("ya hay contenido") || texto.includes("already exists")
++    || (texto.includes("language") && texto.includes("exist"));
++}
++
++export function mensajeErrorMeta(datos) {
++  const error = datos && datos.error ? datos.error : {};
++  return String(error.error_user_msg || error.message || "").slice(0, 400);
++}
++
++export function tituloVisibleDesdeNombre(nombre) {
++  return String(nombre || "").replace(/_/g, " ").replace(/\b\w/g, (letra) => letra.toUpperCase()).slice(0, 120);
++}
++
++// Estados que admite la restricción CHECK de wa_plantillas.
++const ESTADOS_PLANTILLA = ["PENDING", "APPROVED", "REJECTED", "PAUSED", "DISABLED", "PENDING_DELETION"];
++
++export function normalizarEstadoPlantilla(estado) {
++  const valor = String(estado || "").toUpperCase();
++  return ESTADOS_PLANTILLA.includes(valor) ? valor : "PENDING";
++}
++
++// Meta puede reclasificar una plantilla (p. ej. de UTILITY a MARKETING): se guarda lo que Meta devuelve.
++export function normalizarCategoriaPlantilla(categoriaMeta, solicitada) {
++  const valor = String(categoriaMeta || "").toUpperCase();
++  return ["UTILITY", "MARKETING", "AUTHENTICATION"].includes(valor) ? valor : solicitada;
++}
++
++// Códigos de Meta que no dependen del contenido: token vencido (190), límites de tasa (4, 17, 613, 80008, 130429)
++// o caídas del servicio. SMYL no debe presentarlos como "tu texto fue rechazado".
++const CODIGOS_META_NO_DE_CONTENIDO = [190, 4, 17, 613, 80008, 130429, 368, 2, 1];
++
++export function clasificarErrorMeta(estadoHttp, datos) {
++  const error = datos && datos.error ? datos.error : {};
++  if (esConflictoNombreMeta(mensajeErrorMeta(datos))) return "conflicto";
++  if (Number(estadoHttp) >= 500 || CODIGOS_META_NO_DE_CONTENIDO.includes(Number(error.code))) return "no_disponible";
++  return "rechazada";
++}
++
++// El motivo de rechazo de Meta llega como código (INVALID_FORMAT, ABUSIVE_CONTENT…); "NONE" significa que no hay.
++export function motivoRechazoVisible(estado, motivo) {
++  const texto = String(motivo || "").trim();
++  return String(estado || "").toUpperCase() === "REJECTED" && texto && texto.toUpperCase() !== "NONE" ? texto.slice(0, 500) : null;
++}
++
++// ── Solicitud completa (sin Deno: las dependencias se inyectan para poder probarla de verdad) ──
++
++const PLANTILLA_SELECT = "id,nombre,idioma,categoria,estado,motivo_rechazo,cuerpo,num_variables,variables_meta,meta_template_id,created_at,updated_at";
++const MARCADOR_PLANTILLA_VIGENTE_MS = 2 * 60 * 1000;
++
++function texto(valor, max) { return typeof valor === "string" ? valor.trim().slice(0, max) : ""; }
++
++export function plantillaWhatsappDto(item) {
++  return {
++    id: String(item.id || ""), name: texto(item.nombre, 180), language: texto(item.idioma, 40) || "es_MX",
++    category: texto(item.categoria, 20), status: texto(item.estado, 30),
++    rejection_reason: motivoRechazoVisible(item.estado, item.motivo_rechazo),
++    body: texto(item.cuerpo, 4000), variable_count: Math.max(0, Number(item.num_variables) || 0),
++    variable_types: Array.isArray(item.variables_meta) ? item.variables_meta : [],
++    created_at: item.created_at || null, updated_at: item.updated_at || null,
++  };
++}
++
++async function consultarPlantillaEnMeta({ fetchFn, graphVersion, token }, wabaId, nombre, idioma) {
++  const controller = new AbortController();
++  const timer = setTimeout(() => controller.abort(), 15000);
++  try {
++    const respuesta = await fetchFn(
++      `https://graph.facebook.com/${graphVersion}/${wabaId}/message_templates?name=${encodeURIComponent(nombre)}&language=${encodeURIComponent(idioma)}&limit=100&fields=id,name,language,status,category,components,rejected_reason`,
++      { headers: { "Authorization": `Bearer ${token}` }, signal: controller.signal },
++    );
++    const datos = await respuesta.json().catch(() => ({}));
++    const lista = Array.isArray(datos && datos.data) ? datos.data : [];
++    return lista.find((item) => item.name === nombre && item.language === idioma) || null;
++  } catch { return null; } finally { clearTimeout(timer); }
++}
++
++// Devuelve { status, body } para que el handler solo lo convierta en Response.
++//
++// Orden pensado para no dejar plantillas huérfanas ni saltarse el límite con solicitudes simultáneas:
++//  1. Se guarda primero un marcador (PENDING, sin meta_template_id): la restricción
++//     unique(tenant, nombre, idioma) serializa solicitudes iguales y sirve de idempotencia.
++//  2. Se cuenta el cupo DESPUÉS de insertar el marcador, así que dos solicitudes a la vez nunca
++//     se pasan del límite (a lo sumo se bloquean de más).
++//  3. Se llama a Meta; si falla se borra el marcador. Si Meta ya la tenía (respuesta perdida en un
++//     intento anterior) se adopta consultando a Meta, siempre que el texto coincida.
++export async function procesarSolicitudPlantillaSmyl(deps, entrada) {
++  const { sb, fetchFn, graphVersion, token, log, ahora } = deps;
++  const { tenantId, actorRole, body } = entrada;
++  const resp = (status, cuerpo) => ({ status, body: cuerpo });
++  const reloj = typeof ahora === "function" ? ahora : () => Date.now();
++
++  if (actorRole !== "owner") return resp(403, { error: "Solo el propietario de la clínica puede solicitar plantillas.", code: "owner_required" });
++  const solicitud = validarSolicitudPlantillaSmyl(body);
++  if (!solicitud.ok) return resp(400, { error: solicitud.error, code: "invalid_template" });
++  const valor = solicitud.valor;
++
++  const { data: existente, error: errorExistente } = await sb.from("wa_plantillas")
++    .select(PLANTILLA_SELECT)
++    .eq("tenant_id", tenantId).eq("nombre", valor.nombre).eq("idioma", valor.idioma).maybeSingle();
++  if (errorExistente) return resp(500, { error: "No se pudo consultar la plantilla.", code: "template_lookup_failed" });
++  // Un marcador es una fila que esta función creó y todavía no tiene id de Meta. Las filas con otro
++  // estado y sin id (plantillas registradas a mano) nunca se tocan ni se borran.
++  const esMarcador = Boolean(existente) && existente.estado === "PENDING" && !existente.meta_template_id;
++  if (existente) {
++    // Solo importa el texto: Meta pudo reclasificar la categoría y el reintento debe seguir siendo idempotente.
++    if (String(existente.cuerpo || "") !== valor.cuerpo) {
++      return resp(409, { error: "Ya existe una plantilla con ese nombre y otro contenido.", code: "template_name_taken" });
++    }
++    // Reintento seguro: si ya está registrada se devuelve tal cual, sin volver a llamar a Meta.
++    if (existente.meta_template_id || !esMarcador) return resp(200, { ok: true, existing: true, template: plantillaWhatsappDto(existente) });
++    // Marcador sin id de Meta: otra solicitud en curso, o una que se interrumpió hace rato.
++    if (reloj() - new Date(existente.created_at || 0).getTime() < MARCADOR_PLANTILLA_VIGENTE_MS) {
++      return resp(409, { error: "Esta plantilla ya se está enviando a Meta. Espera un momento.", code: "template_in_progress" });
++    }
++  }
++
++  const { data: tenantRow } = await sb.from("tenants").select("config_json").eq("id", tenantId).maybeSingle();
++  const wa = ((tenantRow && tenantRow.config_json) || {}).whatsapp;
++  if (!wa || wa.connected !== true || !wa.waba_id) return resp(409, { error: "WhatsApp todavía no está conectado en LANA.", code: "whatsapp_not_connected" });
++  if (!token) return resp(503, { error: "LANA no puede contactar a Meta en este momento.", code: "meta_unavailable" });
++
++  const eliminarMarcador = async () => {
++    const { error } = await sb.from("wa_plantillas").delete()
++      .eq("tenant_id", tenantId).eq("nombre", valor.nombre).eq("idioma", valor.idioma)
++      .eq("estado", "PENDING").is("meta_template_id", null);
++    if (error) log("crearPlantillaWhatsappInbox borrar marcador:", error.code);
++  };
++
++  if (esMarcador) {
++    // Marcador viejo que se reintenta: se renueva para que cuente dentro de la ventana del cupo.
++    await sb.from("wa_plantillas").update({ created_at: new Date(reloj()).toISOString() })
++      .eq("tenant_id", tenantId).eq("nombre", valor.nombre).eq("idioma", valor.idioma)
++      .eq("estado", "PENDING").is("meta_template_id", null);
++  } else if (!existente) {
++    const { error: errorMarcador } = await sb.from("wa_plantillas").insert({
++      tenant_id: tenantId, nombre: valor.nombre, titulo_visible: tituloVisibleDesdeNombre(valor.nombre), idioma: valor.idioma,
++      categoria: valor.categoria, cuerpo: valor.cuerpo, num_variables: valor.cantidadVariables, header_tipo: "NONE",
++      estado: "PENDING", variables_meta: new Array(valor.cantidadVariables).fill("texto_libre"),
++    });
++    if (errorMarcador) {
++      if (errorMarcador.code === "23505") return resp(409, { error: "Esta plantilla ya se está enviando a Meta. Espera un momento.", code: "template_in_progress" });
++      log("crearPlantillaWhatsappInbox marcador:", errorMarcador.code);
++      return resp(500, { error: "No se pudo preparar la plantilla.", code: "template_not_recorded" });
++    }
++  }
++
++  // Cupo: plantillas pendientes o rechazadas de la última hora (las que gastan revisión de Meta), contando ésta.
++  const { count: recientes, error: errorCupo } = await sb.from("wa_plantillas")
++    .select("id", { count: "exact", head: true })
++    .eq("tenant_id", tenantId)
++    .in("estado", ["PENDING", "REJECTED"])
++    .gte("created_at", new Date(reloj() - 60 * 60 * 1000).toISOString());
++  if (errorCupo || typeof recientes !== "number") {
++    await eliminarMarcador();
++    return resp(500, { error: "No se pudo revisar el límite de solicitudes.", code: "template_lookup_failed" });
++  }
++  if (recientes > LIMITE_CREACION_PLANTILLAS_POR_HORA) {
++    await eliminarMarcador();
++    return resp(429, { error: "Se alcanzó el límite de solicitudes por hora. Intenta más tarde.", code: "template_rate_limited" });
++  }
++
++  const controller = new AbortController();
++  const timer = setTimeout(() => controller.abort(), 20000);
++  let respuestaMeta; let datosMeta = {};
++  try {
++    respuestaMeta = await fetchFn(`https://graph.facebook.com/${graphVersion}/${wa.waba_id}/message_templates`, {
++      method: "POST",
++      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
++      body: JSON.stringify({ name: valor.nombre, category: valor.categoria, language: valor.idioma, components: construirComponentesMeta(valor) }),
++      signal: controller.signal,
++    });
++    datosMeta = await respuestaMeta.json().catch(() => ({}));
++  } catch {
++    // Puede que Meta sí la haya creado: se deja el marcador para que el reintento la adopte o la reintente.
++    return resp(502, { error: "Meta no respondió a tiempo. Intenta de nuevo.", code: "meta_unreachable" });
++  } finally { clearTimeout(timer); }
++
++  if (!respuestaMeta.ok || !(datosMeta && datosMeta.id)) {
++    const mensaje = mensajeErrorMeta(datosMeta) || `HTTP ${respuestaMeta.status}`;
++    const tipo = clasificarErrorMeta(respuestaMeta.status, datosMeta);
++    if (tipo === "conflicto") {
++      // Meta ya la tiene (intento anterior cuya respuesta se perdió): se adopta solo si el texto es idéntico.
++      const enMeta = await consultarPlantillaEnMeta({ fetchFn, graphVersion, token }, String(wa.waba_id), valor.nombre, valor.idioma);
++      const componenteCuerpo = enMeta && Array.isArray(enMeta.components) ? enMeta.components.find((componente) => componente.type === "BODY") : null;
++      if (enMeta && enMeta.id && String((componenteCuerpo && componenteCuerpo.text) || "") === valor.cuerpo) {
++        const estadoMeta = normalizarEstadoPlantilla(enMeta.status);
++        const { data: adoptada } = await sb.from("wa_plantillas").update({
++          meta_template_id: String(enMeta.id), estado: estadoMeta,
++          categoria: normalizarCategoriaPlantilla(enMeta.category, valor.categoria),
++          motivo_rechazo: motivoRechazoVisible(estadoMeta, enMeta.rejected_reason),
++        }).eq("tenant_id", tenantId).eq("nombre", valor.nombre).eq("idioma", valor.idioma).select(PLANTILLA_SELECT).maybeSingle();
++        if (adoptada) return resp(200, { ok: true, existing: true, template: plantillaWhatsappDto(adoptada) });
++      }
++      await eliminarMarcador();
++      return resp(409, { error: "Meta ya tiene una plantilla con ese nombre e idioma.", code: "template_name_taken" });
++    }
++    await eliminarMarcador();
++    if (tipo === "no_disponible") {
++      log("crearPlantillaWhatsappInbox meta no disponible:", respuestaMeta.status, datosMeta && datosMeta.error && datosMeta.error.code);
++      return resp(503, { error: "LANA no pudo contactar a Meta en este momento. Intenta más tarde.", code: "meta_unavailable" });
++    }
++    return resp(422, { error: "Meta rechazó la plantilla: " + mensaje, code: "meta_rejected" });
++  }
++
++  const { data: fila, error: errorActualizar } = await sb.from("wa_plantillas").update({
++    meta_template_id: String(datosMeta.id), estado: normalizarEstadoPlantilla(datosMeta.status),
++    categoria: normalizarCategoriaPlantilla(datosMeta.category, valor.categoria),
++  }).eq("tenant_id", tenantId).eq("nombre", valor.nombre).eq("idioma", valor.idioma).select(PLANTILLA_SELECT).maybeSingle();
++  if (errorActualizar || !fila) {
++    // La plantilla ya está en Meta; el marcador sin id la deja recuperable en el siguiente reintento.
++    log("crearPlantillaWhatsappInbox registro:", errorActualizar && errorActualizar.code);
++    return resp(500, { error: "La plantilla se envió a Meta, pero no se pudo registrar en LANA. Vuelve a intentar para completarla.", code: "template_not_recorded" });
++  }
++  return resp(201, { ok: true, existing: false, template: plantillaWhatsappDto(fila) });
++}
+diff --git a/tests/camila-api-plantillas-smyl.test.mjs b/tests/camila-api-plantillas-smyl.test.mjs
+new file mode 100644
+index 0000000..df5c717
+--- /dev/null
++++ b/tests/camila-api-plantillas-smyl.test.mjs
+@@ -0,0 +1,444 @@
++// task-id smyl-solicitar-plantillas-whatsapp. SMYL solicita plantillas a Meta a través de camila-api
++// (POST /inbox/whatsapp/templates) y consulta su estado (GET ...?status=all). Las reglas puras se
++// prueban de verdad; el handler (Deno) se verifica estructuralmente, igual que el resto de
++// tests sobre supabase/functions/.
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import {
++  CATEGORIAS_PLANTILLA_SMYL,
++  clasificarErrorMeta,
++  motivoRechazoVisible,
++  normalizarCategoriaPlantilla,
++  normalizarEstadoPlantilla,
++  LIMITE_CREACION_PLANTILLAS_POR_HORA,
++  construirComponentesMeta,
++  esConflictoNombreMeta,
++  mensajeErrorMeta,
++  tituloVisibleDesdeNombre,
++  plantillaWhatsappDto,
++  procesarSolicitudPlantillaSmyl,
++  validarSolicitudPlantillaSmyl,
++} from '../supabase/functions/camila-api/wa-plantilla-smyl.mjs';
++
++const source = fs.readFileSync(new URL('../supabase/functions/camila-api/index.ts', import.meta.url), 'utf8');
++
++const valida = () => ({
++  name: 'recordatorio_cita_24h_v1', category: 'UTILITY', language: 'es_MX',
++  body: 'Hola {{1}}, te recordamos tu cita el {{2}} a las {{3}} en {{4}}. Responde a este mensaje si necesitas cambiarla.',
++  examples: ['Ana', 'martes 21 de octubre', '10:30 a.m.', 'Clínica Dental Sonríe'],
++});
++
++test('una solicitud correcta se acepta y se normaliza', () => {
++  const resultado = validarSolicitudPlantillaSmyl({ ...valida(), category: 'utility', language: '' });
++  assert.equal(resultado.ok, true);
++  assert.equal(resultado.valor.categoria, 'UTILITY');
++  assert.equal(resultado.valor.idioma, 'es_MX');
++  assert.equal(resultado.valor.cantidadVariables, 4);
++  assert.deepEqual(resultado.valor.botones, []);
++  assert.equal(resultado.valor.pie, '');
++});
++
++test('rechaza lo que Meta rechazaría, con un mensaje claro y sin llegar a Meta', () => {
++  const casos = [
++    ['cuerpo no objeto', null, /no es válido/],
++    ['nombre con mayúsculas', { name: 'Cita_Hoy' }, /minúsculas/],
++    ['categoría de autenticación', { category: 'AUTHENTICATION' }, /UTILITY o MARKETING/],
++    ['idioma desconocido', { language: 'fr_FR' }, /Idioma/],
++    ['cuerpo vacío', { body: '   ' }, /entre 1 y 1024/],
++    ['cuerpo demasiado largo', { body: 'a'.repeat(1025) }, /entre 1 y 1024/],
++    ['variables con salto', { body: 'Hola {{1}}, tu cita es el {{3}} en nuestra clínica dental de siempre.', examples: ['a', 'b'] }, /en orden/],
++    ['variable al inicio', { body: '{{1}} te recordamos tu cita de mañana en nuestra clínica dental.', examples: ['Ana'] }, /primero o lo último/],
++    ['variable al final', { body: 'Te recordamos con mucho gusto tu cita de mañana, que será con {{1}}', examples: ['Ana'] }, /primero o lo último/],
++    ['variables pegadas', { body: 'Hola Ana, tu cita es el {{1}} {{2}} en nuestra clínica dental de siempre, te esperamos.', examples: ['a', 'b'] }, /dos variables/i],
++    ['demasiadas variables para el texto', { body: 'Hola {{1}}, cita {{2}} hora {{3}} lugar {{4}}.', examples: ['a', 'b', 'c', 'd'] }, /demasiadas variables/],
++    ['faltan ejemplos', { examples: ['Ana'] }, /un ejemplo por cada variable/],
++    ['ejemplo con salto de línea', { examples: ['Ana\nLópez', 'b', 'c', 'd'] }, /ejemplo/],
++    ['pie con variable', { footer: 'Clínica {{1}}' }, /pie de página/],
++    ['pie demasiado largo', { footer: 'x'.repeat(61) }, /pie de página/],
++    ['más de tres botones', { buttons: ['a', 'b', 'c', 'd'].map((text) => ({ type: 'QUICK_REPLY', text })) }, /tres botones/],
++    ['botón con liga', { buttons: [{ type: 'URL', text: 'Ver', url: 'https://x.test' }] }, /respuesta rápida/],
++    ['botón demasiado largo', { buttons: [{ type: 'QUICK_REPLY', text: 'x'.repeat(26) }] }, /25 caracteres/],
++  ];
++  for (const [nombre, cambio, esperado] of casos) {
++    const entrada = cambio === null ? null : { ...valida(), ...cambio };
++    const resultado = validarSolicitudPlantillaSmyl(entrada);
++    assert.equal(resultado.ok, false, nombre);
++    assert.match(resultado.error, esperado, nombre + ' → ' + resultado.error);
++  }
++  assert.deepEqual([...CATEGORIAS_PLANTILLA_SMYL], ['UTILITY', 'MARKETING']);
++});
++
++test('los componentes para Meta van en el orden BODY, FOOTER, BUTTONS y con ejemplos', () => {
++  const resultado = validarSolicitudPlantillaSmyl({
++    ...valida(), category: 'MARKETING', footer: 'Responde BAJA para no recibir más mensajes',
++    buttons: [{ type: 'QUICK_REPLY', text: 'Sí, quiero agendar' }, { type: 'QUICK_REPLY', text: 'Ahora no' }],
++  });
++  const componentes = construirComponentesMeta(resultado.valor);
++  assert.deepEqual(componentes.map((componente) => componente.type), ['BODY', 'FOOTER', 'BUTTONS']);
++  assert.deepEqual(componentes[0].example, { body_text: [['Ana', 'martes 21 de octubre', '10:30 a.m.', 'Clínica Dental Sonríe']] });
++  assert.equal(componentes[1].text, 'Responde BAJA para no recibir más mensajes');
++  assert.deepEqual(componentes[2].buttons, [{ type: 'QUICK_REPLY', text: 'Sí, quiero agendar' }, { type: 'QUICK_REPLY', text: 'Ahora no' }]);
++  const sinVariables = validarSolicitudPlantillaSmyl({ name: 'aviso_simple', category: 'UTILITY', body: 'Tu cita quedó confirmada. Gracias por elegirnos.', examples: [] });
++  assert.equal(construirComponentesMeta(sinVariables.valor)[0].example, undefined, 'sin variables no se manda example');
++});
++
++test('reconoce el conflicto de nombre de Meta y extrae su mensaje sin filtrar nada más', () => {
++  assert.equal(esConflictoNombreMeta('Ya hay contenido en español para esta plantilla'), true);
++  assert.equal(esConflictoNombreMeta('Template name already exists'), true);
++  assert.equal(esConflictoNombreMeta('Invalid parameter'), false);
++  assert.equal(mensajeErrorMeta({ error: { error_user_msg: 'Mensaje para el usuario', message: 'técnico', access_token: 'secreto' } }), 'Mensaje para el usuario');
++  assert.equal(mensajeErrorMeta({}), '');
++  assert.equal(tituloVisibleDesdeNombre('recordatorio_cita_24h_v1'), 'Recordatorio Cita 24h V1');
++  assert.ok(LIMITE_CREACION_PLANTILLAS_POR_HORA > 0 && LIMITE_CREACION_PLANTILLAS_POR_HORA <= 20);
++});
++
++test('normaliza {{ 1 }} a {{1}} antes de validar y de enviar a Meta', () => {
++  const resultado = validarSolicitudPlantillaSmyl({ ...valida(), body: 'Hola {{ 1 }}, te recordamos tu cita el {{2 }} a las {{ 3}} en {{4}}. Responde a este mensaje si necesitas cambiarla.' });
++  assert.equal(resultado.ok, true);
++  assert.match(resultado.valor.cuerpo, /^Hola \{\{1\}\}, .*\{\{2\}\} a las \{\{3\}\} en \{\{4\}\}\./);
++});
++
++test('clasifica los errores de Meta: conflicto, caída/credenciales y rechazo de contenido', () => {
++  assert.equal(clasificarErrorMeta(400, { error: { message: 'Template name already exists', code: 100 } }), 'conflicto');
++  assert.equal(clasificarErrorMeta(400, { error: { code: 190, message: 'Error validating access token' } }), 'no_disponible');
++  assert.equal(clasificarErrorMeta(400, { error: { code: 80008, message: 'Too many calls' } }), 'no_disponible');
++  assert.equal(clasificarErrorMeta(503, {}), 'no_disponible');
++  assert.equal(clasificarErrorMeta(400, { error: { code: 100, error_user_msg: 'Formato de variables inválido' } }), 'rechazada');
++});
++
++test('guarda el estado y la categoría que Meta devuelve, con valores seguros por omisión', () => {
++  assert.equal(normalizarEstadoPlantilla('approved'), 'APPROVED');
++  assert.equal(normalizarEstadoPlantilla('algo_raro'), 'PENDING');
++  assert.equal(normalizarEstadoPlantilla(undefined), 'PENDING');
++  assert.equal(normalizarCategoriaPlantilla('MARKETING', 'UTILITY'), 'MARKETING', 'Meta reclasificó la plantilla');
++  assert.equal(normalizarCategoriaPlantilla('utility', 'UTILITY'), 'UTILITY');
++  assert.equal(normalizarCategoriaPlantilla('', 'UTILITY'), 'UTILITY');
++  assert.equal(normalizarCategoriaPlantilla('OTRA', 'MARKETING'), 'MARKETING');
++});
++
++test('el motivo de rechazo solo se muestra en plantillas rechazadas y nunca como "NONE"', () => {
++  assert.equal(motivoRechazoVisible('REJECTED', 'INVALID_FORMAT'), 'INVALID_FORMAT');
++  assert.equal(motivoRechazoVisible('APPROVED', 'NONE'), null);
++  assert.equal(motivoRechazoVisible('APPROVED', 'INVALID_FORMAT'), null);
++  assert.equal(motivoRechazoVisible('REJECTED', 'none'), null);
++  assert.equal(motivoRechazoVisible('REJECTED', ''), null);
++});
++
++test('GET /inbox/whatsapp/templates conserva su comportamiento y ?status=all agrega estado y motivo de rechazo', () => {
++  const list = source.slice(source.indexOf('async function listarPlantillasWhatsappInbox'), source.indexOf('async function crearPlantillaWhatsappInbox'));
++  assert.match(list, /url\.searchParams\.get\("status"\) === "all"/);
++  assert.match(list, /motivo_rechazo/);
++  assert.match(list, /\.eq\("categoria", "UTILITY"\)\s*\.eq\("estado", "APPROVED"\)\s*\.eq\("activo", true\)/);
++  assert.match(source, /listarPlantillasWhatsappInbox\(tenantId, url\)/);
++  const dto = plantillaWhatsappDto({ id: 'x', nombre: 'n', idioma: 'es_MX', categoria: 'UTILITY', estado: 'APPROVED', motivo_rechazo: 'NONE', meta_template_id: 'secreto-meta', cuerpo: 'c', num_variables: 0 });
++  assert.equal(dto.rejection_reason, null);
++  assert.equal(JSON.stringify(dto).includes('secreto-meta'), false, 'no expone meta_template_id');
++  assert.deepEqual(Object.keys(dto).sort(), ['body', 'category', 'created_at', 'id', 'language', 'name', 'rejection_reason', 'status', 'updated_at', 'variable_count', 'variable_types']);
++});
++
++test('el endpoint exige propietario e Idempotency-Key antes de tocar nada y delega en el módulo probado', () => {
++  const handler = source.slice(source.indexOf('async function crearPlantillaWhatsappInbox'), source.indexOf('const SCHEDULE_SELECT'));
++  assert.match(source, /req\.method === "POST" && seg1 === "whatsapp" && seg2 === "templates" && !seg3/);
++  assert.ok(handler.indexOf('actor.role !== "owner"') < handler.indexOf('validUuid(req.headers.get("Idempotency-Key"))'));
++  assert.ok(handler.indexOf('validUuid(req.headers.get("Idempotency-Key"))') < handler.indexOf('procesarSolicitudPlantillaSmyl('));
++  assert.match(handler, /code: "owner_required"/);
++  assert.match(handler, /tenantId, actorRole: actor\.role, body/);
++  assert.doesNotMatch(handler, /json\([^)]*WHATSAPP_TOKEN/);
++});
++
++// ── Comportamiento real, con una base de datos y una Meta simuladas ──
++const MODULO_FUENTE = fs.readFileSync(new URL('../supabase/functions/camila-api/wa-plantilla-smyl.mjs', import.meta.url), 'utf8');
++const TENANT = '11111111-1111-4111-8111-111111111111';
++
++class Consulta {
++  constructor(db, tabla) { this.db = db; this.tabla = tabla; this.filtros = []; this.modo = 'select'; }
++  select(_columnas, opciones) { if (opciones && opciones.head) this.soloConteo = true; if (this.modo !== 'select') this.devolver = true; return this; }
++  insert(fila) { this.modo = 'insert'; this.fila = fila; return this; }
++  update(parche) { this.modo = 'update'; this.parche = parche; return this; }
++  delete() { this.modo = 'delete'; return this; }
++  eq(c, v) { this.filtros.push((r) => r[c] === v); return this; }
++  in(c, vs) { this.filtros.push((r) => vs.includes(r[c])); return this; }
++  gte(c, v) { this.filtros.push((r) => String(r[c]) >= String(v)); return this; }
++  is(c, v) { this.filtros.push((r) => (v === null ? r[c] == null : r[c] === v)); return this; }
++  maybeSingle() { this.unico = true; return this; }
++  then(resolver) {
++    this.db.llamadas.push(this.modo + ':' + this.tabla);
++    const filas = this.db.tablas[this.tabla] || (this.db.tablas[this.tabla] = []);
++    const fallo = this.db.fallos && this.db.fallos[this.modo + ':' + this.tabla];
++    if (fallo) return resolver({ data: null, error: fallo });
++    if (this.modo === 'insert') {
++      if (filas.some((r) => r.tenant_id === this.fila.tenant_id && r.nombre === this.fila.nombre && r.idioma === this.fila.idioma)) return resolver({ data: null, error: { code: '23505' } });
++      filas.push({ id: crypto.randomUUID(), meta_template_id: null, motivo_rechazo: null, created_at: new Date(this.db.ahora()).toISOString(), updated_at: new Date().toISOString(), ...this.fila });
++      return resolver({ data: null, error: null });
++    }
++    const coincidentes = filas.filter((r) => this.filtros.every((f) => f(r)));
++    if (this.modo === 'update') { coincidentes.forEach((r) => Object.assign(r, this.parche)); return resolver({ data: this.unico ? (coincidentes[0] ? { ...coincidentes[0] } : null) : coincidentes.map((r) => ({ ...r })), error: null }); }
++    if (this.modo === 'delete') { this.db.tablas[this.tabla] = filas.filter((r) => !coincidentes.includes(r)); return resolver({ data: null, error: null }); }
++    if (this.soloConteo) return resolver({ count: coincidentes.length, data: null, error: null });
++    return resolver({ data: this.unico ? (coincidentes[0] ? { ...coincidentes[0] } : null) : coincidentes.map((r) => ({ ...r })), error: null });
++  }
++}
++
++function mundo(opciones = {}) {
++  const db = {
++    llamadas: [], fallos: {}, ahora: () => Date.now(),
++    tablas: { tenants: [{ id: TENANT, config_json: { whatsapp: { connected: true, waba_id: '999' } } }], wa_plantillas: [] },
++    from(tabla) { return new Consulta(db, tabla); },
++  };
++  const meta = { llamadas: [], respuesta: null, lista: [], lanzar: false };
++  const fetchFn = async (url, init = {}) => {
++    const llamada = { url: String(url), metodo: (init.method || 'GET'), cuerpo: init.body ? JSON.parse(init.body) : null, autorizacion: (init.headers || {}).Authorization };
++    meta.llamadas.push(llamada);
++    if (meta.lanzar && llamada.metodo === 'POST') throw new Error('red caída');
++    if (llamada.metodo === 'GET') return new Response(JSON.stringify({ data: meta.lista }), { status: 200 });
++    const r = meta.respuesta || { status: 200, cuerpo: { id: 'meta-1', status: 'PENDING', category: 'UTILITY' } };
++    return new Response(JSON.stringify(r.cuerpo), { status: r.status });
++  };
++  const registros = [];
++  const deps = { sb: db, fetchFn, graphVersion: 'v20.0', token: opciones.sinToken ? '' : 'TOKEN-SECRETO-DE-META', log: (...a) => registros.push(a.join(' ')), ahora: () => db.ahora() };
++  return { db, meta, deps, registros, filas: () => db.tablas.wa_plantillas };
++}
++const solicitar = (m, cambios = {}, rol = 'owner') => procesarSolicitudPlantillaSmyl(m.deps, { tenantId: TENANT, actorRole: rol, body: { ...valida(), ...cambios } });
++const sembrar = (m, cantidad, estado = 'PENDING', hace = 60 * 1000) => { for (let i = 0; i < cantidad; i += 1) m.db.tablas.wa_plantillas.push({ id: 'p' + i + estado, tenant_id: TENANT, nombre: 'otra_' + estado + i, idioma: 'es_MX', categoria: 'UTILITY', estado, cuerpo: 'x', meta_template_id: 'm' + i, created_at: new Date(Date.now() - hace).toISOString() }); };
++
++test('crea la plantilla en Meta con los componentes correctos y la registra con lo que Meta devuelve', async () => {
++  const m = mundo();
++  m.meta.respuesta = { status: 200, cuerpo: { id: 'meta-123', status: 'PENDING', category: 'MARKETING' } };
++  const r = await solicitar(m);
++  assert.equal(r.status, 201);
++  assert.equal(r.body.existing, false);
++  assert.equal(r.body.template.status, 'PENDING');
++  assert.equal(r.body.template.category, 'MARKETING', 'Meta reclasificó: se guarda la categoría real');
++  assert.equal(JSON.stringify(r.body).includes('meta-123'), false);
++  const [post] = m.meta.llamadas;
++  assert.equal(post.url, 'https://graph.facebook.com/v20.0/999/message_templates');
++  assert.equal(post.autorizacion, 'Bearer TOKEN-SECRETO-DE-META');
++  assert.deepEqual(post.cuerpo, { name: 'recordatorio_cita_24h_v1', category: 'UTILITY', language: 'es_MX', components: [{ type: 'BODY', text: valida().body, example: { body_text: [valida().examples] } }] });
++  assert.equal(m.filas().length, 1);
++  assert.equal(m.filas()[0].meta_template_id, 'meta-123');
++  assert.equal(JSON.stringify(r).includes('TOKEN-SECRETO'), false, 'el token nunca sale en la respuesta');
++  assert.deepEqual(m.db.llamadas.slice(0, 4), ['select:wa_plantillas', 'select:tenants', 'insert:wa_plantillas', 'select:wa_plantillas']);
++});
++
++test('un estado desconocido de Meta se guarda como PENDING y uno en minúsculas se normaliza', async () => {
++  const raro = mundo(); raro.meta.respuesta = { status: 200, cuerpo: { id: 'm', status: 'algo_raro' } };
++  assert.equal((await solicitar(raro)).body.template.status, 'PENDING');
++  const aprobado = mundo(); aprobado.meta.respuesta = { status: 200, cuerpo: { id: 'm', status: 'approved' } };
++  assert.equal((await solicitar(aprobado)).body.template.status, 'APPROVED');
++});
++
++test('solo el propietario puede solicitar y una solicitud inválida no toca ni la base ni Meta', async () => {
++  const m = mundo();
++  assert.equal((await solicitar(m, {}, 'staff')).status, 403);
++  assert.equal((await solicitar(m, { body: '{{1}} inválida' })).status, 400);
++  assert.equal(m.meta.llamadas.length, 0);
++  assert.equal(m.db.llamadas.length, 0);
++});
++
++test('un reintento con el mismo texto devuelve la plantilla registrada sin volver a Meta; con otro texto es un conflicto', async () => {
++  const m = mundo();
++  await solicitar(m);
++  const repetida = await solicitar(m);
++  assert.equal(repetida.status, 200);
++  assert.equal(repetida.body.existing, true);
++  assert.equal(m.meta.llamadas.length, 1);
++  const distinta = await solicitar(m, { body: valida().body.replace('te recordamos', 'les recordamos') });
++  assert.equal(distinta.status, 409);
++  assert.equal(distinta.body.code, 'template_name_taken');
++  assert.equal(m.meta.llamadas.length, 1);
++});
++
++test('si Meta reclasificó la categoría, repetir la misma solicitud sigue siendo idempotente y muestra la categoría real', async () => {
++  const m = mundo();
++  m.meta.respuesta = { status: 200, cuerpo: { id: 'meta-9', status: 'PENDING', category: 'MARKETING' } };
++  assert.equal((await solicitar(m)).status, 201);
++  const repetida = await solicitar(m); // pide UTILITY otra vez
++  assert.equal(repetida.status, 200);
++  assert.equal(repetida.body.existing, true);
++  assert.equal(repetida.body.template.category, 'MARKETING');
++  assert.equal(m.meta.llamadas.length, 1);
++});
++
++test('una fila registrada a mano (sin id de Meta, no PENDING) nunca se envía ni se borra', async () => {
++  for (const respuesta of [
++    { status: 200, cuerpo: { id: 'x', status: 'PENDING' } },
++    { status: 400, cuerpo: { error: { message: 'Invalid parameter', code: 100, error_subcode: 2388023 } } },
++    { status: 503, cuerpo: {} },
++  ]) {
++    const m = mundo();
++    m.meta.respuesta = respuesta;
++    m.db.tablas.wa_plantillas.push({ id: 'legado', tenant_id: TENANT, nombre: valida().name, idioma: 'es_MX', categoria: 'UTILITY', estado: 'APPROVED', cuerpo: valida().body, meta_template_id: null, created_at: new Date(Date.now() - 86400000).toISOString() });
++    const r = await solicitar(m);
++    assert.equal(r.status, 200);
++    assert.equal(r.body.existing, true);
++    assert.equal(m.meta.llamadas.length, 0);
++    assert.equal(m.filas().length, 1);
++  }
++});
++
++test('un marcador viejo se reintenta, se renueva para el cupo y un fallo de Meta solo retira marcadores PENDING', async () => {
++  const m = mundo();
++  m.meta.respuesta = { status: 400, cuerpo: { error: { message: 'Invalid parameter', code: 100, error_subcode: 2388023 } } };
++  m.db.tablas.wa_plantillas.push({ id: 'viejo', tenant_id: TENANT, nombre: valida().name, idioma: 'es_MX', categoria: 'UTILITY', estado: 'PENDING', cuerpo: valida().body, meta_template_id: null, created_at: new Date(Date.now() - 3 * 3600000).toISOString() });
++  const r = await solicitar(m);
++  assert.equal(r.status, 422);
++  assert.equal(m.meta.llamadas.length, 1);
++  assert.equal(m.filas().length, 0, 'el marcador PENDING propio se retira');
++  const ok = mundo();
++  ok.db.tablas.wa_plantillas.push({ id: 'viejo', tenant_id: TENANT, nombre: valida().name, idioma: 'es_MX', categoria: 'UTILITY', estado: 'PENDING', cuerpo: valida().body, meta_template_id: null, created_at: new Date(Date.now() - 3 * 3600000).toISOString() });
++  sembrar(ok, 9, 'PENDING'); // con el marcador renovado son 10: permitido
++  assert.equal((await solicitar(ok)).status, 201);
++  const lleno = mundo();
++  lleno.db.tablas.wa_plantillas.push({ id: 'viejo', tenant_id: TENANT, nombre: valida().name, idioma: 'es_MX', categoria: 'UTILITY', estado: 'PENDING', cuerpo: valida().body, meta_template_id: null, created_at: new Date(Date.now() - 3 * 3600000).toISOString() });
++  sembrar(lleno, 10, 'PENDING'); // 11 contando el renovado: bloqueado
++  assert.equal((await solicitar(lleno)).status, 429);
++});
++
++test('si no se puede contar el cupo no se llama a Meta y se retira el marcador', async () => {
++  const m = mundo();
++  const original = m.db.from.bind(m.db);
++  m.db.from = (tabla) => { const q = original(tabla); const then = q.then.bind(q); q.then = (res) => (q.soloConteo ? res({ count: null, data: null, error: { code: 'XX000' } }) : then(res)); return q; };
++  const r = await solicitar(m);
++  assert.equal(r.status, 500);
++  assert.equal(m.meta.llamadas.length, 0);
++  assert.equal(m.filas().length, 0);
++});
++
++test('la consulta de adopción filtra por idioma y pide suficientes resultados', async () => {
++  const m = mundo();
++  m.meta.respuesta = { status: 400, cuerpo: { error: { message: 'Content in this language already exists', code: 100, error_subcode: 2388024 } } };
++  await solicitar(m);
++  const consulta = m.meta.llamadas.find((l) => l.metodo === 'GET');
++  assert.ok(consulta, 'consultó Meta por la plantilla existente');
++  assert.match(consulta.url, /language=es_MX/);
++  assert.match(consulta.url, /limit=100/);
++});
++
++test('el cupo por hora cuenta pendientes y rechazadas (no las aprobadas) y devuelve el marcador si se excede', async () => {
++  const lleno = mundo();
++  sembrar(lleno, 10, 'PENDING');
++  const bloqueada = await solicitar(lleno);
++  assert.equal(bloqueada.status, 429);
++  assert.equal(bloqueada.body.code, 'template_rate_limited');
++  assert.equal(lleno.meta.llamadas.length, 0);
++  assert.equal(lleno.filas().some((fila) => fila.nombre === 'recordatorio_cita_24h_v1'), false, 'el marcador se retira');
++  const aprobadas = mundo();
++  sembrar(aprobadas, 30, 'APPROVED');
++  assert.equal((await solicitar(aprobadas)).status, 201, 'las aprobadas no gastan cupo');
++  const antiguas = mundo();
++  sembrar(antiguas, 30, 'PENDING', 3 * 60 * 60 * 1000);
++  assert.equal((await solicitar(antiguas)).status, 201, 'solo cuenta la última hora');
++  const justo = mundo();
++  sembrar(justo, 9, 'REJECTED');
++  assert.equal((await solicitar(justo)).status, 201, 'la décima solicitud todavía cabe');
++});
++
++test('solicitudes simultáneas nunca superan el cupo: a lo sumo se bloquean de más', async () => {
++  const m = mundo();
++  sembrar(m, 8, 'PENDING');
++  const resultados = await Promise.all(['a', 'b', 'c', 'd', 'e'].map((letra) => solicitar(m, { name: 'plantilla_' + letra })));
++  const enviadas = m.meta.llamadas.filter((llamada) => llamada.metodo === 'POST').length;
++  assert.ok(enviadas <= 2, 'cupo restante: 2, enviadas: ' + enviadas);
++  assert.equal(resultados.filter((r) => r.status === 201).length, enviadas);
++  assert.ok(m.filas().filter((fila) => fila.estado === 'PENDING').length <= 10);
++});
++
++test('dos solicitudes iguales a la vez envían a Meta una sola vez', async () => {
++  const m = mundo();
++  const [a, b] = await Promise.all([solicitar(m), solicitar(m)]);
++  assert.equal(m.meta.llamadas.filter((llamada) => llamada.metodo === 'POST').length, 1);
++  assert.deepEqual([a.status, b.status].sort(), [201, 409]);
++  assert.ok([a, b].some((r) => r.body.code === 'template_in_progress'));
++});
++
++test('los errores de Meta se clasifican: contenido rechazado, credenciales o caída, y el marcador se retira', async () => {
++  const contenido = mundo(); contenido.meta.respuesta = { status: 400, cuerpo: { error: { code: 100, error_user_msg: 'Formato inválido' } } };
++  const r1 = await solicitar(contenido);
++  assert.equal(r1.status, 422); assert.equal(r1.body.code, 'meta_rejected'); assert.match(r1.body.error, /Formato inválido/);
++  assert.equal(contenido.filas().length, 0);
++  const token = mundo(); token.meta.respuesta = { status: 400, cuerpo: { error: { code: 190, message: 'Error validating access token' } } };
++  const r2 = await solicitar(token);
++  assert.equal(r2.status, 503); assert.equal(r2.body.code, 'meta_unavailable');
++  assert.doesNotMatch(JSON.stringify(r2), /access token|TOKEN-SECRETO/);
++  assert.equal(token.filas().length, 0);
++  const caida = mundo(); caida.meta.respuesta = { status: 500, cuerpo: {} };
++  assert.equal((await solicitar(caida)).status, 503);
++  const limite = mundo(); limite.meta.respuesta = { status: 429, cuerpo: { error: { code: 80008 } } };
++  assert.equal((await solicitar(limite)).status, 503);
++});
++
++test('si la respuesta de Meta se pierde, el reintento adopta la plantilla que Meta ya tiene (solo si el texto coincide)', async () => {
++  const m = mundo();
++  m.meta.lanzar = true;
++  const perdida = await solicitar(m);
++  assert.equal(perdida.status, 502);
++  assert.equal(perdida.body.code, 'meta_unreachable');
++  assert.equal(m.filas().length, 1, 'el marcador se conserva');
++  assert.equal(m.filas()[0].meta_template_id, null);
++  // Mientras es reciente, no se reenvía.
++  m.meta.lanzar = false;
++  const enCurso = await solicitar(m);
++  assert.equal(enCurso.body.code, 'template_in_progress');
++  // Pasado el tiempo, Meta responde "ya existe" y LANA la adopta consultando a Meta.
++  m.db.ahora = () => Date.now() + 10 * 60 * 1000;
++  m.meta.respuesta = { status: 400, cuerpo: { error: { code: 100, message: 'Template name already exists' } } };
++  m.meta.lista = [{ id: 'meta-77', name: 'recordatorio_cita_24h_v1', language: 'es_MX', status: 'APPROVED', category: 'UTILITY', components: [{ type: 'BODY', text: valida().body }] }];
++  const adoptada = await solicitar(m);
++  assert.equal(adoptada.status, 200);
++  assert.equal(adoptada.body.existing, true);
++  assert.equal(adoptada.body.template.status, 'APPROVED');
++  assert.equal(m.filas()[0].meta_template_id, 'meta-77');
++});
++
++test('un conflicto con una plantilla distinta en Meta no se adopta y retira el marcador', async () => {
++  const m = mundo();
++  m.meta.respuesta = { status: 400, cuerpo: { error: { code: 100, message: 'Template name already exists' } } };
++  m.meta.lista = [{ id: 'meta-9', name: 'recordatorio_cita_24h_v1', language: 'es_MX', status: 'APPROVED', category: 'UTILITY', components: [{ type: 'BODY', text: 'Otro texto distinto' }] }];
++  const r = await solicitar(m);
++  assert.equal(r.status, 409);
++  assert.equal(r.body.code, 'template_name_taken');
++  assert.equal(m.filas().length, 0);
++});
++
++test('sin WhatsApp conectado, sin token de Meta o con la base caída no se crea nada ni se llama a Meta', async () => {
++  const sinWhatsapp = mundo(); sinWhatsapp.db.tablas.tenants[0].config_json = {};
++  const r1 = await solicitar(sinWhatsapp);
++  assert.equal(r1.status, 409); assert.equal(r1.body.code, 'whatsapp_not_connected');
++  assert.equal(sinWhatsapp.filas().length, 0);
++  const sinToken = mundo({ sinToken: true });
++  assert.equal((await solicitar(sinToken)).status, 503);
++  assert.equal(sinToken.filas().length, 0);
++  const caida = mundo(); caida.db.fallos['select:wa_plantillas'] = { code: 'XX000' };
++  const r3 = await solicitar(caida);
++  assert.equal(r3.status, 500); assert.equal(r3.body.code, 'template_lookup_failed');
++  assert.equal(caida.meta.llamadas.length, 0);
++  const sinMarcador = mundo(); sinMarcador.db.fallos['insert:wa_plantillas'] = { code: 'XX000' };
++  assert.equal((await solicitar(sinMarcador)).status, 500);
++  assert.equal(sinMarcador.meta.llamadas.length, 0);
++});
++
++test('si Meta la crea pero LANA no puede registrarla, avisa y deja el marcador para completarla después', async () => {
++  const m = mundo();
++  m.db.fallos['update:wa_plantillas'] = { code: 'XX000' };
++  const r = await solicitar(m);
++  assert.equal(r.status, 500);
++  assert.equal(r.body.code, 'template_not_recorded');
++  assert.equal(m.filas().length, 1);
++  assert.ok(m.registros.some((linea) => linea.includes('registro')));
++  assert.equal(JSON.stringify(m.registros).includes('TOKEN-SECRETO'), false);
++});
++
++test('el módulo no menciona tokens en ninguna respuesta', () => {
++  const respuestas = MODULO_FUENTE.split('\n').filter((linea) => /resp\(/.test(linea));
++  assert.ok(respuestas.length > 10);
++  // Se examina solo lo que se devuelve (desde `resp(`), no la condición que la precede.
++  for (const linea of respuestas) assert.doesNotMatch(linea.slice(linea.indexOf('resp(')), /token|Bearer/i, linea.trim());
++});
++
++test('el contrato publica la nueva ruta y la capacidad', () => {
++  const contract = fs.readFileSync(new URL('../supabase/functions/camila-api/smyl-contract.mjs', import.meta.url), 'utf8');
++  assert.match(contract, /\["POST", "\/inbox\/whatsapp\/templates"\]/);
++  assert.match(contract, /template_create: true/);
++  assert.match(contract, /SMYL_LANA_CONTRACT_VERSION = "1\.3"/);
++});
+diff --git a/tests/smyl-chat-contract-v1.test.mjs b/tests/smyl-chat-contract-v1.test.mjs
+index 3e25453..ea6b73a 100644
+--- a/tests/smyl-chat-contract-v1.test.mjs
++++ b/tests/smyl-chat-contract-v1.test.mjs
+@@ -19,13 +19,15 @@ const document = fs.readFileSync(
+ 
+ test('the public v1 manifest exposes ownership and conservative capabilities without secrets', () => {
+   const contract = publicSmylContract();
+-  assert.equal(SMYL_LANA_CONTRACT_VERSION, '1.2');
+-  assert.equal(contract.version, '1.2');
++  assert.equal(SMYL_LANA_CONTRACT_VERSION, '1.3');
++  assert.equal(contract.version, '1.3');
+   assert.ok(contract.ownership.lana.includes('tokens'));
+   assert.ok(contract.ownership.smyl.includes('patients'));
+   assert.equal(contract.channels.whatsapp.inbox, true);
+   assert.equal(contract.channels.whatsapp.media, true);
+   assert.equal(contract.channels.whatsapp.templates, true);
++  assert.equal(contract.channels.whatsapp.template_create, true);
++  assert.ok(contract.endpoints.implemented.some((entry) => entry.method === 'POST' && entry.path === '/inbox/whatsapp/templates'));
+   assert.equal(contract.channels.whatsapp.scheduled, true);
+   assert.equal(contract.channels.messenger.location, false);
+   assert.equal(contract.channels.instagram.documents, false);
+diff --git a/tests/smyl-inbox-hardening-stage7.test.mjs b/tests/smyl-inbox-hardening-stage7.test.mjs
+index 05c81a0..c65f943 100644
+--- a/tests/smyl-inbox-hardening-stage7.test.mjs
++++ b/tests/smyl-inbox-hardening-stage7.test.mjs
+@@ -146,8 +146,8 @@ test('worker retries only explicit transient rejection and dead-letters ambiguou
+   assert.match(worker, /\.eq\("tenant_id", prog\.tenant_id\)/);
+ });
+ 
+-test('contract 1.2 exposes operations and safe scheduled retry', () => {
+-  assert.match(contract, /SMYL_LANA_CONTRACT_VERSION = "1\.2"/);
++test('contract (1.2 and later) exposes operations and safe scheduled retry', () => {
++  assert.match(contract, /SMYL_LANA_CONTRACT_VERSION = "1\.3"/);
+   assert.match(contract, /\/inbox\/operations/);
+   assert.match(contract, /scheduled\/:scheduledId\/retry/);
+   assert.match(api, /async function inboxOperations/);
+diff --git a/tests/smyl-whatsapp-advanced-stage6.test.mjs b/tests/smyl-whatsapp-advanced-stage6.test.mjs
+index 852880b..1b20375 100644
+--- a/tests/smyl-whatsapp-advanced-stage6.test.mjs
++++ b/tests/smyl-whatsapp-advanced-stage6.test.mjs
+@@ -65,7 +65,7 @@ test('per-conversation reactivation changes are atomic, attributable and replay-
+ });
+ 
+ test('current contract advertises templates, schedules and automation', () => {
+-  assert.match(contract, /SMYL_LANA_CONTRACT_VERSION = "1\.2"/);
++  assert.match(contract, /SMYL_LANA_CONTRACT_VERSION = "1\.3"/);
+   assert.match(contract, /\/inbox\/whatsapp\/templates/);
+   assert.match(contract, /\/inbox\/conversations\/:id\/scheduled/);
+   assert.match(contract, /\/inbox\/conversations\/:id\/automation/);
+-- 
+2.43.0
+
