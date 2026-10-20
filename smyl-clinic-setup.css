@@ -1,0 +1,30 @@
+/* SMYL · Inicio: lista «Configura tu clínica» */
+.clinic-setup{border:1px solid var(--smyl-border,#d7e0e8);border-radius:12px;background:#fff;color:var(--smyl-ink,#102239);overflow:hidden}
+.clinic-setup-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,220px) auto;align-items:center;gap:16px;padding:14px 20px}
+.clinic-setup-eyebrow{display:block;margin:0 0 2px;color:var(--smyl-primary,#194391);font-size:10px;font-weight:600;line-height:14px;letter-spacing:.9px;text-transform:uppercase}
+.clinic-setup-head h2{margin:0;font-size:15px;font-weight:600;line-height:20px}
+.clinic-setup-head p{margin:2px 0 0;color:var(--smyl-text-muted,#667586);font-size:12px;line-height:16px}
+.clinic-setup-bar{height:6px;border-radius:999px;background:#e6ecf2;overflow:hidden}
+.clinic-setup-bar i{display:block;height:100%;border-radius:inherit;background:var(--smyl-accent,#0f766e);transition:width .3s ease}
+.clinic-setup-toggle{padding:0;border:0;background:transparent;color:var(--smyl-primary,#194391);font:600 12px/16px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.clinic-setup-toggle:hover{text-decoration:underline}
+.clinic-setup-steps{display:grid;margin:0;padding:0;border-top:1px solid #e8edf2;list-style:none}
+.clinic-setup-steps[hidden]{display:none}
+.clinic-setup-step{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid #eef2f6}
+.clinic-setup-step:first-child{border-top:0}
+.clinic-setup-step[data-next="true"]{background:var(--smyl-primary-subtle,#edf3fc)}
+.clinic-setup-mark{display:grid;place-items:center;width:20px;height:20px;border:1.5px solid #b7c4d1;border-radius:50%;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.clinic-setup-step[data-done="true"] .clinic-setup-mark{border-color:var(--smyl-success,#087a55);background:var(--smyl-success,#087a55)}
+.clinic-setup-step[data-done="true"] strong{color:var(--smyl-text-muted,#667586);font-weight:500;text-decoration:line-through}
+.clinic-setup-text{display:grid;gap:1px;min-width:0}
+.clinic-setup-text strong{color:var(--smyl-ink,#102239);font-size:13px;font-weight:600;line-height:18px}
+.clinic-setup-text small{color:var(--smyl-text-muted,#667586);font-size:12px;line-height:17px}
+.clinic-setup-action{min-height:30px;padding:0 12px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:8px;background:#fff;color:var(--smyl-primary,#194391);font:600 12px/16px Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}
+.clinic-setup-action:hover{background:var(--smyl-primary-subtle,#edf3fc)}
+.clinic-setup-step[data-next="true"] .clinic-setup-action{border-color:var(--smyl-primary,#194391);background:var(--smyl-primary,#194391);color:#fff}
+@media(max-width:700px){
+  .clinic-setup-head{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding:14px 16px}
+  .clinic-setup-bar{grid-column:1/-1;order:3}
+  .clinic-setup-step{grid-template-columns:22px minmax(0,1fr);padding:12px 16px}
+  .clinic-setup-action{grid-column:2;justify-self:start;min-height:40px}
+}

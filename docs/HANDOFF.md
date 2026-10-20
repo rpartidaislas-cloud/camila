@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: Inicio, lista «Configura tu clínica»
+
+- Nuevo `smyl-clinic-setup.js` / `.css` (v1), cargado después de `smyl-daily-home.js`: tarjeta bajo la cabecera del
+  Inicio, solo para el propietario (`miRolEquipo === 'dueño'`), con 5 pasos verificados en solo lectura: horario
+  (`smyl_clinic_hours` activos), primer paciente (`camila_pacientes`), WhatsApp conectado (función `lana-channels`),
+  plantilla de Utilidad aprobada (función `whatsapp-templates`, `list`) y recordatorios activos
+  (`smyl_reminder_settings.enabled`). Si un dato no se puede consultar, el paso queda pendiente con el aviso «No
+  pudimos verificarlo ahora» (nunca se marca como listo por error). Se oculta sola al completar los 5 pasos.
+- «Ocultar pasos / Ver pasos» se recuerda por clínica en `localStorage` (con try/catch); sin preferencia, en celular
+  empieza plegada. Sin migraciones ni funciones nuevas.
+- El paso de plantillas necesita la función `whatsapp-templates` desplegada (ya lo está) y la ruta de LANA.
+- Pruebas: `tests/smyl-clinic-setup.test.mjs`. Suite 505/505.
+
 ## 2026-10-20 — Claude: Inicio, paso B (indicadores del mes, alertas unificadas, agenda de hoy)
 
 - `smyl-daily-home.js` (v6) / `.css` (v8): (1) «Qué requiere atención» usa los mismos pendientes que el Centro de
