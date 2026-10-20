@@ -70,7 +70,8 @@
     var code = error && error.code;
     if (code === '40001') return 'El expediente cambió en otra sesión. Conservamos tus cambios en pantalla. Recarga la ficha antes de volver a guardar.';
     if (code === '42P01' || code === 'PGRST202' || code === 'PGRST205') return 'El expediente aún no está habilitado en la base de datos. Falta activar la actualización clínica.';
-    if (code === '42501' || code === 'PGRST301') return 'Tu sesión no tiene permiso para esta acción. Revisa la cuenta con la que ingresaste.';
+    if (code === '42501') return 'Tu rol en esta clínica no permite esta acción. Pide al propietario que active el permiso correspondiente en Mi clínica → Equipo, roles y profesionales.';
+    if (code === 'PGRST301') return 'Tu sesión expiró. Vuelve a iniciar sesión y repite la acción.';
     if (code === '22023') return 'Revisa piezas, superficies y servicio antes de guardar.';
     return 'No pudimos confirmar el guardado o la carga. Revisa tu conexión; tus cambios siguen en pantalla.';
   }

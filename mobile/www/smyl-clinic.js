@@ -30,6 +30,33 @@
     if (response.error) throw response.error;
     return response.data;
   }
+  function patientClinicName() {
+    var t = window.tenantData || {};
+    return (t.config && t.config.consultorio) || t.nombre || '';
+  }
+  // Antes de llenar el formulario, pregunta a la base lo mismo que exigirá la
+  // política de camila_pacientes: que la clínica de la sesión sea la de la
+  // pantalla y que el rol tenga patients.manage. Si la base no tiene estas
+  // funciones (PGRST202) no bloquea nada.
+  async function patientPermissionCheck(tenant) {
+    try {
+      var results = await Promise.all([
+        sbTimeout(sb.rpc('smyl_current_tenant'), 10000),
+        sbTimeout(sb.rpc('smyl_has_permission', { p_tenant_id: tenant, p_permission: 'patients.manage' }), 10000)
+      ]);
+      var resolved = results[0], allowed = results[1];
+      if ((resolved.error && resolved.error.code === 'PGRST202') || (allowed.error && allowed.error.code === 'PGRST202')) return null;
+      if ((resolved.error && resolved.error.code === 'PGRST301') || (allowed.error && allowed.error.code === 'PGRST301')) return { ok: false, reason: 'session' };
+      if (resolved.error || allowed.error) return null;
+      if (resolved.data && resolved.data !== tenant) return { ok: false, reason: 'tenant' };
+      return { ok: allowed.data === true, reason: allowed.data === true ? '' : 'permission' };
+    } catch (_) { return null; }
+  }
+  function patientBlockMessage(reason) {
+    if (reason === 'session') return 'Tu sesión expiró. Vuelve a iniciar sesión para dar de alta pacientes.';
+    if (reason === 'tenant') return 'Tu cuenta está activa en una clínica distinta a la que muestra la pantalla. Cierra sesión y vuelve a entrar.';
+    return 'Tu rol en esta clínica no permite dar de alta ni editar pacientes (permiso «Pacientes · gestionar»). Pide al propietario que lo active en Mi clínica → Equipo, roles y profesionales.';
+  }
   async function clinicalCapabilities(tenant) {
     if (miRolEquipo === 'dueño') return { canRead: true, canWrite: true, canApprove: true };
     var auth = await sb.auth.getUser(), actor = auth.data && auth.data.user && auth.data.user.id;
@@ -489,7 +516,10 @@
       document.getElementById('modal-paciente').classList.remove('visible'); patientAttempt = null;
       await verPaciente(saved.id);
     } catch (error) {
-      feedback.append(notice(error.code === '23505' || error.code === 'PGRST116' ? 'No se confirmó esta operación. Cierra el formulario y vuelve a cargar Pacientes antes de reintentar para evitar duplicados o sobrescribir cambios.' : model.errorMessage(error), true));
+      feedback.append(notice(error.code === '23505' || error.code === 'PGRST116' ? 'No se confirmó esta operación. Cierra el formulario y vuelve a cargar Pacientes antes de reintentar para evitar duplicados o sobrescribir cambios.'
+        : error.code === '42501' ? patientBlockMessage('permission')
+        : error.code === 'PGRST301' ? patientBlockMessage('session')
+        : model.errorMessage(error), true));
     } finally { savingPatient = false; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; }); }
   }
   async function loadPatientSelect() {
@@ -553,6 +583,17 @@
       if (id && todosLosPacientes.some(function (p) { return p.id === id && p._local; })) return;
       oldOpen(id); patientAttempt = null; document.getElementById('patient-feedback').replaceChildren();
       document.getElementById('mp-nombre').focus();
+      var clinicLine = document.getElementById('patient-clinic-line');
+      if (clinicLine) clinicLine.textContent = patientClinicName() ? 'Se guardará en ' + patientClinicName() + '.' : '';
+      var save = document.getElementById('patient-save-button');
+      if (save) save.disabled = false;
+      var tenant = tenantId;
+      patientPermissionCheck(tenant).then(function (result) {
+        if (!result || result.ok || tenant !== tenantId || savingPatient) return;
+        if (!document.getElementById('modal-paciente').classList.contains('visible')) return;
+        document.getElementById('patient-feedback').replaceChildren(notice(patientBlockMessage(result.reason), true));
+        if (save) save.disabled = true;
+      });
     };
     var oldClose = window.cerrarModalPaciente;
     window.cerrarModalPaciente = function () { if (!savingPatient) oldClose(); };
@@ -571,6 +612,10 @@
     modal.querySelectorAll('.fg').forEach(function (f) { var input = f.querySelector('input,textarea,select'); f.querySelector('label').htmlFor = input.id; });
     document.getElementById('mp-notas').placeholder = 'Notas de contacto. Registra antecedentes en la ficha clínica.';
     var message = el('div'); message.id = 'patient-feedback'; modal.querySelector('.modal-footer').before(message);
+    var clinicLine = el('p'); clinicLine.id = 'patient-clinic-line';
+    clinicLine.style.cssText = 'margin:0 0 12px;font-size:12px;color:var(--color-text-secondary)';
+    document.getElementById('modal-pac-title').after(clinicLine);
+    var saveButton = modal.querySelector('.modal-footer .btn-primary'); if (saveButton) saveButton.id = 'patient-save-button';
     var dialog = el('dialog', 'clinic-dialog'); dialog.id = 'clinic-review-dialog'; dialog.setAttribute('aria-labelledby','clinic-review-title');
     var reviewTitle = el('h2', '', 'Revisar este plan'); reviewTitle.id = 'clinic-review-title';
     var label = el('label', 'clinic-confirm'); var check = el('input'); check.type = 'checkbox'; check.id = 'clinic-review-confirm';

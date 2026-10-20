@@ -31,6 +31,17 @@ requiere sesión real de Supabase/LANA se marca como no verificable offline.
    todas de paridad web↔móvil, porque `app.html` se rediseñó y
    `mobile/www/app.html` no se sincronizó. Corregido en el mismo PR que
    introduce este documento (`cp app.html mobile/www/app.html` → 479/479).
+3. **La mitad LANA de varias funciones "hechas" no existe** (verificado el
+   20/10 contra `origin/main` de `promodesk`, `camila-api` sin cambios desde el
+   16/10, contrato `1.2`). SMYL (`lana-inbox`) llama a `GET /inbox/stages`,
+   `GET /inbox/quick-replies`, `GET …/search`, `GET …/shared`,
+   `POST /inbox/pilot` y a las mutaciones `pin`, `unpin` y `stage`, pero
+   `camila-api` no enruta ninguna: en producción responden 404. Efecto: el
+   Pipeline sólo muestra "Sin etapa" (`smyl-inbox.js:1797` traga el error),
+   fijar/mover de etapa fallan, buscar en hilo, biblioteca compartida,
+   respuestas rápidas y la puerta de piloto no funcionan. El modelo de datos
+   sí existe en LANA (segmentos del pipeline, `conversaciones.fijado`), falta
+   exponerlo en el API. Esto reordena la prioridad del contrato v1.3.
 
 ---
 
@@ -80,9 +91,9 @@ requiere sesión real de Supabase/LANA se marca como no verificable offline.
 
 | Punto | Estado | Evidencia / qué falta |
 |---|---|---|
-| Vista visual real | **Hecho (básico)** | `renderPipeline()` 493–530; columnas = `state.stages` de LANA (`GET /inbox/stages`); drag&drop HTML5 + `<select>` "Mover a" (455–491); optimista con reversión en `moveConversationStage()` 532–542; `tests/smyl-inbox-pipeline.test.mjs`. |
-| Las 8 etapas dentales | **Falta** | Las columnas son las que devuelva LANA; no hay semilla dental por tenant. |
-| Configurar / reordenar / plegar / archivar por clínica | **Sin contrato** | `lana-inbox` sólo expone `stages` → `GET /inbox/stages` (index.ts:586). |
+| Vista visual real | **Parcial (sólo frontend + proxy)** | `renderPipeline()` 493–530; drag&drop HTML5 + `<select>` "Mover a" (455–491); optimista con reversión en `moveConversationStage()` 532–542; `tests/smyl-inbox-pipeline.test.mjs`. Pero `GET /inbox/stages` y `POST …/stage` **no existen en `camila-api` de LANA** (ver hallazgo 3): hoy el tablero sólo muestra "Sin etapa" y mover falla. |
+| Las 8 etapas dentales | **Falta** | Sin endpoint de etapas en LANA no hay columnas; tampoco hay semilla dental por tenant. |
+| Configurar / reordenar / plegar / archivar por clínica | **Sin contrato** | Ni lectura ni escritura de etapas están en el contrato 1.2 de LANA; `lana-inbox` las asume (index.ts:586, 900). |
 | Tarjeta con sucursal y tiempo sin respuesta | **Parcial** | `pipelineCard()` 455–469 tiene canal, responsable, IA, no leídos, hora; faltan sucursal y "tiempo sin respuesta". |
 | Auditoría del cambio de etapa | **Parcial** | Delegada a LANA (contrato §7); SMYL no registra evento propio. |
 | Drag accesible por teclado | **Falta** | Sólo pointer + select. |
@@ -160,8 +171,10 @@ release pause resume resolve pin unpin stage star unstar delete`.
 | Bandeja paginada, sync incremental, filtros `filter/channel/q` | **Soportado** (`/inbox`, `/inbox/sync`; index.ts:612) |
 | Filtro por responsable, etapa, sucursal, prioridad en servidor | **Sin contrato** (`priority` no está en el DTO) |
 | `sucursal`/`branch` en la conversación | **Sin contrato** — `branch_id` sólo en citas/disponibilidad |
-| Fijar, asignar, pausar/reanudar, resolver, etapa | **Soportado** (whitelist 849; `stage` 900) |
-| Etapas: leer | **Soportado** (`GET /inbox/stages`) |
+| Asignar, liberar, pausar/reanudar, resolver, leer | **Soportado** en LANA (contrato 1.2) y en el proxy (whitelist 849) |
+| Fijar / desfijar, mover de etapa | **Sin contrato en LANA** — el proxy los reenvía (849, 900) pero `camila-api` no enruta `pin`, `unpin` ni `stage` → 404 |
+| Buscar en hilo, biblioteca compartida, respuestas rápidas, puerta de piloto | **Sin contrato en LANA** — `lana-inbox` llama `…/search`, `…/shared`, `/inbox/quick-replies`, `/inbox/pilot`; ninguna existe en `camila-api` |
+| Etapas: leer | **Sin contrato en LANA** — `lana-inbox` llama `GET /inbox/stages` (index.ts:586); `camila-api` no lo implementa |
 | Etapas: crear / renombrar / reordenar / plegar / archivar por clínica | **Sin contrato** |
 | Auditoría de cambio de etapa | **Parcial** — delegada a LANA (§7); SMYL no guarda evento |
 | Ventana 24 h por conversación (`whatsapp_window.expires_at`) | **Soportado** (js 817) |
@@ -265,14 +278,21 @@ verde).
    y sus copias móviles; añadir `tests/smyl-branding-isolation.test.mjs` que
    falle si "LANA" / "Bordados" aparece en texto de UI. Investigar con sesión
    real el origen de "Bordados Express" (quick replies / team / plantillas).
-2. **Contrato v1.3** (documentar en `SMYL_LANA_CHAT_CONTRACT_V1.md` e
-   implementar en `lana-inbox`): `branch_id`/`branch_name` y `priority` en el
-   DTO; filtros `assignee`, `stage_id`, `branch_id` en `/inbox`;
-   `GET /inbox/feedback`; `GET /inbox/whatsapp/windows` (o filtro
-   `window=open|expiring|expired`); CRUD de etapas (`/inbox/stages`
-   POST/PATCH con `position`, `archived`, `collapsed`) y semilla de las 8
-   etapas dentales por tenant. Donde LANA no lo exponga, documentar la brecha
-   sin simular.
+2. **Contrato v1.3, en dos tramos.**
+   - **2a — cerrar lo que SMYL ya llama y LANA no sirve** (requiere tocar
+     `camila-api` en `promodesk`, con autorización del dueño): `GET
+     /inbox/stages` (segmentos del tenant con `position`/`archived`),
+     `POST …/stage`, `POST …/pin|unpin`, `GET …/search`, `GET …/shared`,
+     `GET /inbox/quick-replies`, `POST /inbox/pilot`; añadirlos a
+     `implementedEndpoints` y subir `SMYL_LANA_CONTRACT_VERSION`. Hasta
+     entonces, `smyl-inbox.js` debería ocultar Pipeline/fijar/buscar/compartidos
+     cuando `/contract` no anuncie la ruta, en vez de fallar en silencio.
+   - **2b — lo nuevo del spec**: `branch_id`/`branch_name` y `priority` en el
+     DTO; filtros `assignee`, `stage_id`, `branch_id` en `/inbox`;
+     `GET /inbox/feedback`; `GET /inbox/whatsapp/windows` (o filtro
+     `window=open|expiring|expired`); CRUD de etapas y semilla de las 8 etapas
+     dentales por tenant. Donde LANA no lo exponga, documentar la brecha sin
+     simular.
 3. **Matriz de capacidades por canal** consumida desde `lana-channels`
    (`/channels`), reemplazando los `if (channel === 'whatsapp')` de
    `smyl-inbox.js:856–868, 2441–2442, 2371, 2461`.
