@@ -172,7 +172,7 @@ test('traduce las respuestas de LANA a mensajes claros y no confunde errores de 
     [409, { error: 'x', code: 'template_name_taken' }, 409, /ya tiene una plantilla/],
     [429, { error: 'x', code: 'template_rate_limited' }, 429, /última hora/],
     [422, { error: 'Meta rechazó la plantilla: contenido no permitido', code: 'meta_rejected' }, 422, /Meta rechazó la plantilla: contenido no permitido/],
-    [500, { error: 'boom' }, 502, /boom|LANA/],
+    [500, { error: 'boom' }, 502, /boom|servicio de mensajería/],
     [502, { error: 'Meta no respondió a tiempo.', code: 'meta_unreachable' }, 502, /Meta no respondió/],
   ];
   for (const [lanaStatus, payload, expectedStatus, message] of cases) {
@@ -190,7 +190,7 @@ test('reconoce una solicitud repetida y avisa si LANA no está conectada o no re
   world.tables.camila_tenants[0].config.integraciones.lana = { ...globalThis.__lanaConfig, estado: 'requiere_atencion' };
   const disconnected = await call({ action: 'list' });
   assert.equal(disconnected.status, 502);
-  assert.match((await disconnected.json()).error, /LANA todavía no está conectada/);
+  assert.match((await disconnected.json()).error, /servicio de mensajería todavía no está conectado/);
   world.tables.camila_tenants[0].config.integraciones.lana = globalThis.__lanaConfig;
   globalThis.fetch = async () => { throw new Error('red caída'); };
   const down = await call({ action: 'request', template_id: 'cita_confirmada_v1' });

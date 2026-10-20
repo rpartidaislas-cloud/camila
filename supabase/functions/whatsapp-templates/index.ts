@@ -64,14 +64,14 @@ function actorHeaders(user: { id: string; email?: string }, owner: boolean, idem
 
 const REQUEST_ERRORS: Record<string, string> = {
   owner_required: "Solo el propietario de la clínica puede solicitar plantillas.",
-  whatsapp_not_connected: "Conecta WhatsApp en LANA antes de solicitar plantillas.",
+  whatsapp_not_connected: "Conecta WhatsApp en tu panel de mensajería antes de solicitar plantillas.",
   template_rate_limited: "Ya se enviaron varias plantillas en la última hora. Espera un poco y vuelve a intentar.",
   template_name_taken: "Meta ya tiene una plantilla con ese nombre; si fue rechazada, hay que solicitar una versión nueva.",
   meta_unreachable: "Meta no respondió a tiempo. Intenta de nuevo en unos minutos.",
-  meta_unavailable: "LANA no puede contactar a Meta en este momento.",
+  meta_unavailable: "El servicio de mensajería no puede contactar a Meta en este momento.",
   template_in_progress: "Esta plantilla ya se está enviando a Meta. Espera un momento y actualiza.",
-  template_not_recorded: "La plantilla se envió a Meta pero LANA no pudo registrarla. Vuelve a intentar para completarla.",
-  template_lookup_failed: "LANA no pudo revisar la plantilla. Intenta de nuevo.",
+  template_not_recorded: "La plantilla se envió a Meta pero el servicio de mensajería no pudo registrarla. Vuelve a intentar para completarla.",
+  template_lookup_failed: "El servicio de mensajería no pudo revisar la plantilla. Intenta de nuevo.",
 };
 
 Deno.serve(async (req) => {
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
   if (action === "list") {
     try {
       const remote = await lanaRequest(tenantId, "/inbox/whatsapp/templates?status=all", { method: "GET", headers: actorHeaders(auth.user, owner) }, 15000);
-      if (!remote.response.ok) return json(502, { error: text(remote.body.error, 300) || "LANA no devolvió las plantillas.", code: "lana_error" });
+      if (!remote.response.ok) return json(502, { error: text(remote.body.error, 300) || "El servicio de mensajería no devolvió las plantillas.", code: "lana_error" });
       const list = Array.isArray(remote.body.templates) ? remote.body.templates as Record<string, unknown>[] : [];
       return json(200, {
         can_request: owner,
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         })).filter((item) => item.name),
       });
     } catch (error) {
-      return json(502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? error.message : "No pudimos consultar LANA.", code: "lana_unreachable" });
+      return json(502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? "El servicio de mensajería todavía no está conectado." : "No pudimos consultar el servicio de mensajería.", code: "lana_unreachable" });
     }
   }
 
@@ -128,10 +128,10 @@ Deno.serve(async (req) => {
         return json(200, { ok: true, existing: remote.body.existing === true, status: text(item.status, 30) || "PENDING" });
       }
       const code = text(remote.body.code, 60);
-      const message = REQUEST_ERRORS[code] || text(remote.body.error, 400) || "LANA no pudo enviar la plantilla.";
+      const message = REQUEST_ERRORS[code] || text(remote.body.error, 400) || "El servicio de mensajería no pudo enviar la plantilla.";
       return json(remote.response.status >= 400 && remote.response.status < 500 ? remote.response.status : 502, { error: message, code: code || "lana_error" });
     } catch (error) {
-      return json(502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? error.message : "No pudimos contactar a LANA.", code: "lana_unreachable" });
+      return json(502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? "El servicio de mensajería todavía no está conectado." : "No pudimos contactar al servicio de mensajería.", code: "lana_unreachable" });
     }
   }
 

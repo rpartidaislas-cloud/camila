@@ -332,6 +332,135 @@ la captura que mandó.**
   Supabase no es alcanzable desde este sandbox): se ve el resultado en
   `inbox-row-preview.png` del scratchpad de esa sesión.
 
+### 2026-10-20 — Claude: el gate de acceso es página propia, no modal sobre el dashboard difuminado
+
+**Pedido explícito del usuario: que el login/registro sea una pantalla dedicada,
+sin ver el dashboard difuminado detrás.**
+
+- `.layout` (sidebar + contenido) ahora arranca en `display:none` y solo se
+  muestra (`.layout.is-visible`) dentro de `continuarConUsuario()`, el único
+  punto donde ya hay sesión confirmada. Antes estaba siempre montado y
+  visible detrás del overlay de login.
+- `#auth-gate-overlay` perdió el `backdrop-filter:blur(6px)` y el fondo
+  translúcido oscuro (`rgba(15,23,42,.4)`); ahora usa un fondo sólido claro
+  (`var(--color-surface-raised)`), así que se lee como una página propia, no
+  como un modal flotando sobre otra pantalla.
+- No toqué `mostrarNuevaPassword()` ni `mostrarSetPasswordInvitado()`
+  (overlays intermedios de recuperación/invitación) — ocurren antes de que
+  `.layout` se muestre, así que ya no tienen nada que difuminar detrás; no
+  hacía falta tocarlos para este pedido.
+- Verificado con Playwright en escritorio (1440×900) y móvil (390×844):
+  `.layout` confirmado en `display:none` antes de autenticar, sin errores de
+  consola nuevos.
+
+**Segunda pasada el mismo día ("se ve muy simple"): login de dos paneles.**
+
+- `#auth-gate-overlay` ahora tiene clase `ag-page` y dos hijos: `<aside
+  class="ag-brand">` (panel de identidad: eyebrow, titular, texto y tres
+  bullets con check vectorial, copy 100 % SMYL/dental, sin LANA) y
+  `.ag-form-panel > .ag-card` (logo real `icons/smyl_logo.png`, "Bienvenido
+  de nuevo", pestañas, formularios intactos y un pie `.ag-foot`).
+- Todos los IDs y handlers (`ag-tab-*`, `ag-l-*`, `ag-r-*`, `ag-btn-*`,
+  `switchAuthGateTab`, trampa de foco) se conservan sin cambios; sólo cambió
+  el contenedor visual. Los estilos salieron del inline a clases `.ag-*` junto
+  a las pestañas existentes.
+- El fondo del panel de marca es un degradado explícito navy→azul clínico
+  (`#0B1B2E → #12366F → #194391`). No usa `--gradient-primary` porque
+  `smyl-panel.css` (`.smyl-professional`) lo aplana a teal sólido `#215d60` y
+  el panel salía apagado. Es la única superficie "de marca" del gate; el resto
+  sigue plano, como pide la política.
+- Responsive: ≤840px se oculta el panel de marca y queda la columna del
+  formulario; ≤480px reduce paddings y logo. Verificado sin scroll horizontal
+  en 1440, 900 y 390 px, con la pestaña Registro (la más alta) cabiendo en
+  390×844 sin desbordar.
+- `prefers-reduced-motion` desactiva la entrada animada de la tarjeta.
+
+**Tercera pasada (propuesta aprobada visualmente por el usuario): estilo
+"dos paneles claros", tomando como referencia el login de LANA pero con
+identidad SMYL.**
+
+- Panel izquierdo claro (`#F4F6FB`) con logo real arriba, eyebrow con guion
+  azul, titular grande en tinta ("Cada paciente, del primer mensaje a la
+  cita."), tres pasos numerados con icono y línea conectora (`.ag-steps`:
+  Agenda / Asiste con IA / Da seguimiento) y pie con check de aislamiento por
+  organización. Por pedido explícito del usuario el copy **no** menciona
+  simulación de carillas; habla de agenda y del asistente con IA.
+- Divisor vertical de 3px en `--color-primary` entre paneles.
+- Tarjeta blanca con borde + `shadow-floating`, eyebrow/título/subtítulo
+  dinámicos por pestaña (`#ag-eyebrow`, `#ag-title`, `#ag-subtitle`, los
+  cambia `switchAuthGateTab`), campos de 48px, "¿Olvidaste tu contraseña?"
+  en la fila de la etiqueta (sigue siendo `#ag-btn-recovery`), botón de ojo
+  `toggleAuthGatePass()` con `aria-pressed`, botón primario "Entrar a SMYL" /
+  "Crear mi cuenta" (también actualizados los textos que el JS restaura tras
+  el loading) y pie "Conexión protegida · SMYL".
+- Las antiguas pestañas se volvieron un enlace de alternancia al pie de la
+  tarjeta ("¿Aún no tienes cuenta? Registrarme" / "¿Ya tienes cuenta? Iniciar
+  sesión"): mismos IDs `ag-tab-*` y `switchAuthGateTab`, `role="button"` en vez
+  de `tab`, la opción activa se oculta vía CSS. Se movieron físicamente al
+  final del DOM para que el orden de Tab coincida con el visual (verificado:
+  Entrar → Registrarme → vuelve al correo).
+- No se añadió "Continuar con Google": Supabase no tiene ese proveedor
+  configurado y la política prohíbe prometer lo que el servidor no respalda.
+  Si se quiere, es trabajo de backend (habilitar provider + `signInWithOAuth`).
+- En ≤840px el panel izquierdo se oculta y aparece un logo compacto arriba de
+  la tarjeta (`.ag-card-logo`). Verificado en 1600, 900 y 390 px sin scroll
+  horizontal; el logo del panel usa `align-self:flex-start` porque el `aside`
+  flex-column lo estiraba.
+
+### 2026-10-20 — Claude (sesión login): regresión de paridad corregida + diagnóstico de Mensajes
+
+- **Regresión mía:** el PR #21 rediseñó `app.html` (gate de acceso de dos
+  paneles, `.layout.is-visible`) sin copiar a `mobile/www/app.html`; 44/479
+  pruebas de paridad web↔móvil quedaron rojas en `main`. Corregido con
+  `cp app.html mobile/www/app.html` → 479/479 (`node --test tests/*.test.mjs`).
+- Nuevo `docs/SMYL_MENSAJES_DIAGNOSTICO.md`: auditoría del módulo Mensajes
+  contra el spec de 7 etapas del usuario sobre `main` = c671911 (estado por
+  etapa con evidencia, higiene multi-tenant, contratos, deuda CSS, pruebas,
+  riesgos de colisión y propuesta de reparto). Punto clave: hay **otra sesión
+  de Claude** rediseñando el chat en paralelo (fases 1–4), así que el reparto
+  propuesto es: esta sesión → backend / contratos / tenant / permisos /
+  pruebas; la otra → visual/UX en `smyl-inbox.js/css`. Una sola sesión toca
+  `smyl-inbox.*` por día.
+- Sin cambios de lógica en este commit.
+
+### 2026-10-20 — Claude (sesión login/backend): P0 branding — sin "LANA" en la interfaz de SMYL
+
+**Primer ítem del reparto acordado en `SMYL_MENSAJES_DIAGNOSTICO.md` §G.**
+
+- Reemplazadas las 17 cadenas visibles con "LANA" en `smyl-inbox.js` (búsqueda
+  en hilo, informe del piloto, respuestas rápidas), `smyl-templates.js` (×11),
+  `smyl-template-catalog.js`, `smyl-reminders.js`, `smyl-clinic.js`,
+  `smyl-proposals.js` (×2) y `smyl-readiness.js`. Criterio: la aprobación la
+  da **Meta** ("Aprobada por Meta"), el lugar donde se solicita es "tu panel de
+  mensajería", los errores hablan de "el servicio de mensajería" y el botón de
+  copia pasa a "Copiar datos de solicitud". Botón de propuestas: "Seguimiento
+  por mensajería". No se tocaron identificadores (`lana-inbox`, `SmylLana`,
+  `formatForLana`, clase `lana-entry`) ni comentarios de código.
+- "Bordados Express" **no existe en el código**; si reaparece en pantalla, la
+  fuente es un dato devuelto por el motor (respuestas rápidas, plantillas,
+  nombre de asignado) — pendiente de rastrear con sesión real.
+- Nueva prueba `tests/smyl-branding-isolation.test.mjs`: inspecciona literales
+  de cadena con texto de UI en `smyl-*.js` (raíz y `mobile/www`) y nodos de
+  texto de `app.html`, `index.html`, `revision-clinica.html`,
+  `simulacion.html`; falla ante `\bLANA\b`, `\bLana\b` o "Bordados Express".
+  Permite identificadores sin espacios.
+- Actualizadas dos pruebas que esperaban el copy antiguo
+  (`lana-inbox-productivity-stage3`, `smyl-whatsapp-templates`). Suite:
+  **481/481**.
+- **Cache-busting diferido a propósito.** Intenté subir los `?v=` de los 7
+  activos y `CACHE_VERSION`, pero 55 archivos de prueba fijan
+  `smyl-v254-visible-shell-v4` y ~28 fijan los `?v=` actuales (62 fallos).
+  Actualizarlos es territorio de la sesión visual, que lo hace en cada
+  entrega; por eso **no** se tocaron `app.html`, `sw.js` ni sus copias en este
+  commit. Consecuencia: las PWA ya instaladas verán el copy nuevo hasta el
+  siguiente bump. Petición a la sesión visual: en su próxima entrega incluir
+  `smyl-inbox.js`, `smyl-templates.js`, `smyl-template-catalog.js`,
+  `smyl-reminders.js`, `smyl-readiness.js`, `smyl-clinic.js` y
+  `smyl-proposals.js` en el bump.
+- Copias en `mobile/www/` de esos 7 archivos sincronizadas.
+- Nota para la sesión visual: este commit toca `smyl-inbox.js` sólo en tres
+  cadenas de texto; si hay conflicto, conservar el copy sin "LANA".
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al

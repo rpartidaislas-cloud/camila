@@ -1,7 +1,7 @@
 /* SMYL · Mensajería → Plantillas de WhatsApp.
    Muestra el catálogo de plantillas para clínicas dentales (smyl-template-catalog.js), cómo va cada una
    en Meta y deja al propietario solicitarlas. Todo pasa por la función whatsapp-templates, que le pide
-   a LANA que las cree: SMYL nunca guarda tokens de Meta y solo Meta las aprueba. */
+   al servicio de mensajería que las cree: SMYL nunca guarda tokens de Meta y solo Meta las aprueba. */
 (function () {
   'use strict';
 
@@ -70,7 +70,7 @@
       state.remote = map; state.canRequest = data.can_request === true;
       state.loadedAt = Date.now();
     } catch (error) {
-      state.remote = null; state.canRequest = false; state.error = error.message || 'No pudimos consultar LANA.';
+      state.remote = null; state.canRequest = false; state.error = error.message || 'No pudimos consultar el servicio de mensajería.';
     } finally {
       state.loading = false; renderStatus(); renderGrid();
     }
@@ -203,7 +203,7 @@
     }
     if (template.note) article.append(el('p', 'tpl-note', template.note));
     var remote = remoteOf(template);
-    if (remote && remote.status === 'REJECTED') article.append(el('p', 'tpl-remote-note', 'Motivo de Meta: ' + reasonText(remote) + ' Ajusta el texto y solicita una versión nueva con otro nombre en LANA.'));
+    if (remote && remote.status === 'REJECTED') article.append(el('p', 'tpl-remote-note', 'Motivo de Meta: ' + reasonText(remote) + ' Ajusta el texto y solicita una versión nueva con otro nombre en tu panel de mensajería.'));
     var changed = reclassified(template);
     if (changed) article.append(el('p', 'tpl-remote-note', 'Meta la clasificó como ' + (CATEGORY[changed] || changed) + '. Para recordatorios automáticos necesita ser de Utilidad.'));
 
@@ -221,7 +221,7 @@
     var actions = el('footer', 'tpl-actions');
     var key = statusKey(template);
     if (state.remote && key === 'NONE') actions.append(requestButton(template));
-    actions.append(copyButton('Copiar para LANA', function () { return catalog.formatForLana(template); }, !(state.remote && key === 'NONE')), copyButton('Copiar solo el texto', function () { return template.body; }, false));
+    actions.append(copyButton('Copiar datos de solicitud', function () { return catalog.formatForLana(template); }, !(state.remote && key === 'NONE')), copyButton('Copiar solo el texto', function () { return template.body; }, false));
     article.append(actions);
     return article;
   }
@@ -231,10 +231,10 @@
     if (!host) return;
     host.innerHTML = '';
     if (state.notice) { var notice = el('span', 'tpl-notice', state.notice.text); notice.dataset.kind = state.notice.kind; host.append(notice); }
-    if (state.loading) { host.append(el('span', 'tpl-status-text', 'Consultando LANA…')); return; }
+    if (state.loading) { host.append(el('span', 'tpl-status-text', 'Consultando plantillas…')); return; }
     if (state.error) {
       var retry = el('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadApproved(true); };
-      host.append(el('span', 'tpl-status-text', 'No pudimos consultar el estado en LANA. Puedes copiar las plantillas y solicitarlas allá.'), retry);
+      host.append(el('span', 'tpl-status-text', 'No pudimos consultar el estado en el servicio de mensajería. Puedes copiar los datos y solicitarlas desde tu panel de mensajería.'), retry);
       return;
     }
     if (state.remote) {
@@ -292,7 +292,7 @@
     var steps = el('ol', 'tpl-steps');
     [['Elige una plantilla', 'Revisa el texto y presiona «Solicitar a Meta» (solo el propietario puede hacerlo).'],
      ['Espera a Meta', 'Suele tardar de unos minutos a 48 horas. SMYL no la aprueba: solo Meta.'],
-     ['Úsala', 'Cuando diga «Aprobada», ya puedes usarla en recordatorios y mensajes fuera de las 24 horas. Si no puedes solicitar desde aquí, copia la plantilla y créala en LANA.']].forEach(function (step, index) {
+     ['Úsala', 'Cuando diga «Aprobada», ya puedes usarla en recordatorios y mensajes fuera de las 24 horas. Si no puedes solicitar desde aquí, copia los datos de solicitud y créala en tu panel de mensajería.']].forEach(function (step, index) {
       var item = el('li'); item.append(el('b', '', String(index + 1)));
       var text = el('div'); text.append(el('strong', '', step[0]), el('span', '', step[1])); item.append(text); steps.append(item);
     });

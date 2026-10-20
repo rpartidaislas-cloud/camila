@@ -16,7 +16,7 @@ test('search and shared files stay on the authenticated LANA bridge', () => {
   assert.match(bridge, /\/inbox\/conversations\/\$\{conversationId\}\/\$\{action\}/);
   assert.match(inbox, /action: 'search'/);
   assert.match(inbox, /action: 'shared'/);
-  assert.match(inbox, /La búsqueda se realiza en LANA/);
+  assert.match(inbox, /La búsqueda se realiza en el historial completo/);
   assert.match(inbox, /Contenido del historial real/);
   assert.doesNotMatch(inbox, /tenant_id|SMYL_LANA_ENCRYPTION_KEY/);
 });

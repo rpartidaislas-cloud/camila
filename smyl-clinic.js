@@ -105,7 +105,7 @@
     var label = current.dirty ? 'Cambios sin guardar' : savedReview ? 'Revisado por el profesional' : current.row ? 'Borrador guardado' : 'Sin guardar';
     document.getElementById('clinic-state').textContent = label;
     document.getElementById('clinic-state').classList.toggle('clinic-reviewed', savedReview && !current.dirty);
-    document.getElementById('clinic-save-status').textContent = current.saving ? 'Guardando…' : current.dirty && savedReview ? 'Al guardar, esta versión volverá a borrador. La revisión anterior permanece en el historial.' : current.row ? 'Versión ' + current.row.revision + ' · ' + date(current.row.updated_at) : 'No se guarda automáticamente. Tus notas no se envían al paciente ni a LANA.';
+    document.getElementById('clinic-save-status').textContent = current.saving ? 'Guardando…' : current.dirty && savedReview ? 'Al guardar, esta versión volverá a borrador. La revisión anterior permanece en el historial.' : current.row ? 'Versión ' + current.row.revision + ' · ' + date(current.row.updated_at) : 'No se guarda automáticamente. Tus notas no se envían al paciente ni al servicio de mensajería.';
     document.getElementById('clinic-save').disabled = !current.ready || !current.canWrite || current.saving || (!current.dirty && !!current.row);
     document.getElementById('clinic-review').disabled = !current.ready || !current.canWrite || !current.canApprove || current.saving || (savedReview && !current.dirty);
     document.getElementById('clinic-add').disabled = !current.ready || !current.canWrite || current.saving || document.querySelectorAll('.clinic-treatment').length >= 20;
