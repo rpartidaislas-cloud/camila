@@ -581,8 +581,39 @@ async function linkClinicalImage(
   return json(200, { ok: true, link: data });
 }
 
+const INBOX_PRIORITIES = ["low", "normal", "high", "urgent"];
+const INBOX_AI_FILTERS = ["ai", "human"];
+const INBOX_WINDOW_FILTERS = ["open", "expiring", "expired", "none"];
+const AI_FEEDBACK_RATINGS = ["helpful", "needs_improvement", "unsafe"];
+
+// Contrato 1.6: los filtros avanzados se validan aquí para no reenviar a LANA
+// valores que ella rechazaría, y para responder con un mensaje claro.
+function invalidInboxFilter(url: URL): string | null {
+  const assignee = url.searchParams.get("assignee");
+  if (assignee && !["me", "unassigned"].includes(assignee) && !uuid(assignee)) return "El responsable indicado no es válido.";
+  const stage = url.searchParams.get("stage_id");
+  if (stage && stage !== "none" && !uuid(stage)) return "La etapa indicada no es válida.";
+  const branch = url.searchParams.get("branch_id");
+  if (branch && branch !== "none" && !uuid(branch)) return "La sucursal indicada no es válida.";
+  const priority = url.searchParams.get("priority");
+  if (priority && !INBOX_PRIORITIES.includes(priority)) return "La prioridad indicada no es válida.";
+  const ai = url.searchParams.get("ai");
+  if (ai && !INBOX_AI_FILTERS.includes(ai)) return "El filtro IA/humano no es válido.";
+  const windowFilter = url.searchParams.get("window");
+  if (windowFilter && !INBOX_WINDOW_FILTERS.includes(windowFilter)) return "El filtro de ventana de 24 h no es válido.";
+  return null;
+}
+
 function queryPath(url: URL, action: string, conversationId: string | null): string | null {
   if (action === "operations") return "/inbox/operations";
+  if (action === "ai_feedback") {
+    const params = new URLSearchParams();
+    for (const name of ["days", "limit", "rating"]) {
+      const value = text(url.searchParams.get(name), 20);
+      if (value) params.set(name, value);
+    }
+    return `/inbox/feedback${params.size ? `?${params}` : ""}`;
+  }
   if (action === "stages") return "/inbox/stages";
   if (action === "quick_replies") return "/inbox/quick-replies";
   if (action === "templates") return "/inbox/whatsapp/templates";
@@ -609,7 +640,7 @@ function queryPath(url: URL, action: string, conversationId: string | null): str
   }
   if (action !== "list") return null;
   const params = new URLSearchParams();
-  for (const name of ["filter", "channel", "limit", "offset", "q"]) {
+  for (const name of ["filter", "channel", "limit", "offset", "q", "assignee", "stage_id", "branch_id", "priority", "ai", "window"]) {
     const value = text(url.searchParams.get(name), 40);
     if (value) params.set(name, value);
   }
@@ -666,6 +697,15 @@ Deno.serve(async (req: Request) => {
         }, 15000);
         return json(remote.response.status, { ...remote.body, actor });
       }
+      if (action === "ai_feedback") {
+        if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede revisar la calidad de las respuestas de IA.", code: "permission_denied" });
+        const rating = url.searchParams.get("rating");
+        if (rating && !AI_FEEDBACK_RATINGS.includes(rating)) return json(400, { error: "La evaluación indicada no es válida." });
+      }
+      if (action === "list") {
+        const invalid = invalidInboxFilter(url);
+        if (invalid) return json(400, { error: invalid });
+      }
       const path = queryPath(url, action, conversationId);
       if (!path) return json(400, { error: "Consulta de Inbox no reconocida." });
       const headers = actorHeaders(actor);
@@ -711,6 +751,46 @@ Deno.serve(async (req: Request) => {
       const remote = await lanaRequest(auth.tenantId, "/inbox/pilot", {
         method: "POST", headers: actorHeaders(actor, idempotencyKey), body: JSON.stringify(forwarded),
       }, 20000);
+      return json(remote.response.status, { ...remote.body, actor });
+    }
+    if (action === "stage_create" || action === "stage_update" || action === "stage_reorder" || action === "stage_seed_dental") {
+      if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede configurar las etapas del Pipeline.", code: "permission_denied" });
+      let path = "/inbox/stages";
+      let method = "POST";
+      let forwarded: Record<string, unknown> = {};
+      if (action === "stage_create") {
+        const name = text(body.name, 60);
+        if (!name) return json(400, { error: "Escribe un nombre para la etapa." });
+        forwarded = { name };
+      } else if (action === "stage_update") {
+        const stageId = uuid(body.stage_id);
+        if (!stageId) return json(400, { error: "La etapa seleccionada no es válida." });
+        if (body.name !== undefined) {
+          const name = text(body.name, 60);
+          if (!name) return json(400, { error: "Escribe un nombre para la etapa." });
+          forwarded.name = name;
+        }
+        if (body.archived !== undefined) {
+          if (typeof body.archived !== "boolean") return json(400, { error: "El estado archivado no es válido." });
+          forwarded.archived = body.archived;
+        }
+        if (!Object.keys(forwarded).length) return json(400, { error: "No hay cambios que guardar." });
+        path = `/inbox/stages/${stageId}`;
+        method = "PUT";
+      } else if (action === "stage_reorder") {
+        const ids = Array.isArray(body.stage_ids) ? body.stage_ids.map((value) => uuid(value)) : [];
+        if (!ids.length || ids.length > 24 || ids.some((value) => !value) || new Set(ids).size !== ids.length) {
+          return json(400, { error: "El orden de etapas no es válido." });
+        }
+        forwarded = { stage_ids: ids };
+        path = "/inbox/stages/order";
+        method = "PUT";
+      } else {
+        path = "/inbox/stages/seed-dental";
+      }
+      const remote = await lanaRequest(auth.tenantId, path, {
+        method, headers: actorHeaders(actor), body: JSON.stringify(forwarded),
+      }, 15000);
       return json(remote.response.status, { ...remote.body, actor });
     }
     const conversationId = uuid(body.conversation_id);
@@ -846,7 +926,7 @@ Deno.serve(async (req: Request) => {
       }, 15000);
       return json(remote.response.status, { ...remote.body, actor });
     }
-    if (!["send", "read", "assign", "release", "pause", "resume", "resolve", "pin", "unpin", "stage", "star", "unstar", "delete"].includes(action)) {
+    if (!["send", "read", "assign", "release", "pause", "resume", "resolve", "pin", "unpin", "stage", "priority", "branch", "star", "unstar", "delete"].includes(action)) {
       return json(400, { error: "Acción de Inbox no reconocida." });
     }
     const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
@@ -903,6 +983,33 @@ Deno.serve(async (req: Request) => {
         const targetStageId = uuid(body.target_stage_id);
         if (!targetStageId) return json(400, { error: "La etapa seleccionada no es válida." });
         forwarded.target_stage_id = targetStageId;
+      }
+    }
+
+    if (action === "priority") {
+      const priority = text(body.priority, 20);
+      if (!INBOX_PRIORITIES.includes(priority)) return json(400, { error: "La prioridad indicada no es válida." });
+      forwarded.priority = priority;
+    }
+    if (action === "branch") {
+      // La sucursal es de SMYL: el nombre sale de la base, nunca del navegador.
+      if (body.branch_id === null || body.branch_id === "") forwarded.branch_id = null;
+      else {
+        const branchId = uuid(body.branch_id);
+        if (!branchId) return json(400, { error: "La sucursal indicada no es válida." });
+        const { data: branch } = await admin.from("smyl_branches")
+          .select("id,name,active")
+          .eq("tenant_id", auth.tenantId)
+          .eq("id", branchId)
+          .maybeSingle();
+        if (!branch || branch.active === false) return json(404, { error: "La sucursal ya no está activa en esta clínica." });
+        if ((actor.scopes.messages || "own") !== "clinic") {
+          const { data: member } = await admin.from("smyl_member_branches").select("branch_id")
+            .eq("tenant_id", auth.tenantId).eq("user_id", actor.id).eq("branch_id", branchId).maybeSingle();
+          if (!member) return json(403, { error: "Esa sucursal queda fuera del alcance de tu rol.", code: "conversation_scope_denied" });
+        }
+        forwarded.branch_id = branchId;
+        forwarded.branch_name = text(branch.name, 160) || "Sucursal";
       }
     }
 

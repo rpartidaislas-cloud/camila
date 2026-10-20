@@ -1,4 +1,4 @@
-export const SMYL_LANA_CONTRACT_VERSION = "1.5";
+export const SMYL_LANA_CONTRACT_VERSION = "1.6";
 
 const ALLOWED_ROOTS = new Set([
   "attention",

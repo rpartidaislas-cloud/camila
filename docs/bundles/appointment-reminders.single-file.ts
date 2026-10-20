@@ -107,7 +107,7 @@ return { requireUser };
 
 // ── _shared/lana-contract.mjs ──
 const { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders } = (() => {
-const SMYL_LANA_CONTRACT_VERSION = "1.5";
+const SMYL_LANA_CONTRACT_VERSION = "1.6";
 
 const ALLOWED_ROOTS = new Set([
   "attention",

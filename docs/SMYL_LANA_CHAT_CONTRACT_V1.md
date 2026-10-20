@@ -1,7 +1,7 @@
 # Contrato SMYL ↔ LANA para Chat v1
 
 **Estado:** implementación local completa hasta la puerta de piloto  
-**Versión de protocolo:** `1.5`  
+**Versión de protocolo:** `1.6`  
 **Fecha:** 20 de octubre de 2026
 
 Este documento convierte la arquitectura funcional del Chat de SMYL en una
@@ -57,7 +57,7 @@ Las solicitudes incluyen:
 
 ```http
 Authorization: Bearer <api-key-cifrada-en-reposo>
-X-SMYL-LANA-Contract-Version: 1.5
+X-SMYL-LANA-Contract-Version: 1.6
 ```
 
 ## 3. Contrato de API
@@ -139,9 +139,38 @@ de 2026 (promodesk #1234 y #1235):
 | `POST` | `/inbox/pilot` | Puerta de piloto del Inbox. |
 | `DELETE` | `/channels/:channel` | Desconectar un canal (sustituye a `disconnect`). |
 
-Pendiente para la 1.6: sucursal y prioridad en el DTO, filtros por responsable,
-etapa y sucursal, lectura de `copilot/feedback`, ventanas de 24 h y CRUD de
-etapas con semilla dental.
+Extensiones de la versión 1.6 (promodesk #1239 y #1240):
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/inbox` | Nuevos filtros `assignee` (`uuid`, `me`, `unassigned`), `stage_id` y `branch_id` (`uuid` o `none`), `priority` (`low`, `normal`, `high`, `urgent`), `ai` (`ai`, `human`) y `window` (`open`, `expiring`, `expired`, `none`). El filtro de acceso por rol se aplica antes que cualquiera de ellos. |
+| `POST` | `/inbox/conversations/:id/priority` | Cambia la prioridad. Idempotente y auditado (`priority_changed`). |
+| `POST` | `/inbox/conversations/:id/branch` | Asigna o quita la sucursal. LANA guarda sólo el identificador y el nombre que SMYL envía; las sucursales son de SMYL. |
+| `GET` | `/inbox/feedback` | Resumen y detalle de la evaluación del copiloto. Sólo propietario. |
+| `POST` | `/inbox/stages` | Crea una etapa del Pipeline. Sólo propietario. |
+| `PUT` | `/inbox/stages/:id` | Renombra o archiva una etapa. Sólo propietario. |
+| `PUT` | `/inbox/stages/order` | Reordena las etapas. Sólo propietario. |
+| `POST` | `/inbox/stages/seed-dental` | Crea las ocho etapas iniciales que falten: Nuevo, Por identificar, Valoración solicitada, Cita propuesta, Cita confirmada, En atención, Seguimiento y Cerrado. Sólo propietario. |
+
+Cada conversación del DTO incluye ahora `priority`, `branch_id` y
+`branch_name`. El manifiesto `GET /contract` anuncia `inbox.filters`,
+`inbox.priorities` e `inbox.window_filters` para que SMYL detecte capacidades.
+
+`lana-inbox` expone estas funciones al navegador sin cambiar el método HTTP:
+
+| Acción de `lana-inbox` | Método | Permiso en SMYL | Hacia LANA |
+|---|---|---|---|
+| `list` con filtros | `GET` | `messages.read` y alcance del rol | `GET /inbox?…` |
+| `ai_feedback` | `GET` | propietario | `GET /inbox/feedback` |
+| `priority`, `branch` | `POST` | `messages.manage` y alcance de la conversación | `POST /inbox/conversations/:id/{priority,branch}` |
+| `stage_create`, `stage_update`, `stage_reorder`, `stage_seed_dental` | `POST` | propietario | `POST`/`PUT /inbox/stages…` |
+
+El nombre de la sucursal sale siempre de `smyl_branches` y nunca del
+navegador; un rol con alcance limitado sólo puede usar sus propias sucursales.
+
+Brechas conocidas de la 1.6: la configuración de etapas no se audita (el
+historial de eventos exige una conversación) y plegar una etapa es una
+preferencia de pantalla que no se guarda en LANA.
 
 La identidad del actor no procede del navegador: `lana-inbox` la resuelve de
 la sesión de SMYL y LANA sólo acepta las cabeceras internas enviadas por esa

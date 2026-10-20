@@ -536,6 +536,43 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-20 — Claude (sesión backend): contrato 1.6, lado de SMYL
+
+**LANA ya sirve el contrato 1.6 (promodesk #1239 y #1240). Este cambio lo expone
+a través del proxy `lana-inbox`; la interfaz es de la sesión visual.**
+
+- `supabase/functions/lana-inbox/index.ts`:
+  - `GET ?action=list` reenvía y valida `assignee` (`me`, `unassigned`, uuid),
+    `stage_id` y `branch_id` (uuid o `none`), `priority`, `ai` (`ai|human`) y
+    `window` (`open|expiring|expired|none`). Valor inválido → 400 con mensaje.
+    La respuesta sigue pasando por `filterConversationPayload` (alcance por rol).
+  - `GET ?action=ai_feedback&days&limit&rating` → feedback del copiloto, sólo
+    propietario.
+  - `POST action=priority` y `action=branch` (`messages.manage` + alcance de la
+    conversación). La sucursal se valida contra `smyl_branches` del tenant y su
+    nombre sale de la base, nunca del navegador; un rol con alcance limitado sólo
+    usa sus sucursales (`smyl_member_branches`). `branch_id: null` la quita.
+  - `POST action=stage_create | stage_update | stage_reorder | stage_seed_dental`
+    (sólo propietario) → rutas `/inbox/stages…` de LANA. `stage_update` acepta
+    `name` y `archived`; `stage_reorder` recibe `stage_ids`.
+- `_shared/lana-contract.mjs`: cabecera `X-SMYL-LANA-Contract-Version` 1.6.
+  **Hay que redesplegar** `lana-inbox`, `lana-connection` y `claude`.
+- `docs/SMYL_LANA_CHAT_CONTRACT_V1.md` documenta 1.6 y la tabla de acciones.
+- Pruebas: `tests/lana-inbox-contract-1-6.test.mjs`; la validación de filtros se
+  ejercitó además con Bun sobre el código real.
+
+**Para la sesión visual** (no toqué `smyl-inbox.js` ni `smyl-inbox.css`):
+- El DTO de cada conversación trae `priority`, `branch_id` y `branch_name`.
+- Ya hay contrato para: panel de filtros avanzados (responsable, etapa,
+  sucursal, prioridad, IA/humano, ventana 24 h), selector de prioridad y de
+  sucursal en el encabezado, tarjeta del Pipeline con sucursal, vista de calidad
+  de IA para el propietario y administración de etapas (crear, renombrar,
+  archivar, reordenar, «Usar etapas dentales»).
+- Detectar capacidad con `GET /contract` (`inbox.filters`, `inbox.priorities`)
+  en vez de asumirla; con LANA < 1.6 las acciones nuevas devuelven 404.
+- Plegar una etapa es preferencia de pantalla: guardarla en el navegador.
+- La configuración de etapas no queda auditada (brecha conocida).
+
 ### 2026-10-20 — Claude (sesión backend): contrato SMYL↔LANA sube a 1.5
 
 - LANA fusionó en `main` promodesk #1234 (rutas 1.5: `DELETE /channels/:channel`,
