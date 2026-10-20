@@ -90,6 +90,27 @@ la captura que mandó.**
   Supabase no es alcanzable desde este sandbox): se ve el resultado en
   `inbox-row-preview.png` del scratchpad de esa sesión.
 
+### 2026-10-20 — Claude: el gate de acceso es página propia, no modal sobre el dashboard difuminado
+
+**Pedido explícito del usuario: que el login/registro sea una pantalla dedicada,
+sin ver el dashboard difuminado detrás.**
+
+- `.layout` (sidebar + contenido) ahora arranca en `display:none` y solo se
+  muestra (`.layout.is-visible`) dentro de `continuarConUsuario()`, el único
+  punto donde ya hay sesión confirmada. Antes estaba siempre montado y
+  visible detrás del overlay de login.
+- `#auth-gate-overlay` perdió el `backdrop-filter:blur(6px)` y el fondo
+  translúcido oscuro (`rgba(15,23,42,.4)`); ahora usa un fondo sólido claro
+  (`var(--color-surface-raised)`), así que se lee como una página propia, no
+  como un modal flotando sobre otra pantalla.
+- No toqué `mostrarNuevaPassword()` ni `mostrarSetPasswordInvitado()`
+  (overlays intermedios de recuperación/invitación) — ocurren antes de que
+  `.layout` se muestre, así que ya no tienen nada que difuminar detrás; no
+  hacía falta tocarlos para este pedido.
+- Verificado con Playwright en escritorio (1440×900) y móvil (390×844):
+  `.layout` confirmado en `display:none` antes de autenticar, sin errores de
+  consola nuevos.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
