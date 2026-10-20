@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: Inicio más compacto y «Chats recientes» al estilo del tablero de LANA
+
+- `smyl-daily-home.js` (v5) / `.css` (v6): cabecera compacta con botones pequeños (Agendar cita, Cotizar, Cobrar:
+  32 px en escritorio, 40 px en celular) y nueva tira «Chats recientes» (hasta 6 tarjetas: avatar con logo del
+  canal, último mensaje, hora, «Necesita asesor» o «N sin leer»; clic abre la conversación). En celular la tira
+  se desliza en horizontal.
+- `smyl-inbox.js` (v34): `SmylInbox.fetchRecent(limit)`, `buildAvatar`, `timeLabel`, `channelLabel`. `fetchRecent`
+  pide la lista sin tocar el estado ni los filtros del buzón y sin abrir ninguna conversación (abrirla la marcaría
+  como leída).
+- El panel grande «Conversaciones que necesitan a tu equipo» (`#lana-attention-dashboard`) ya no se muestra en el
+  Inicio; su módulo sigue cargando porque alimenta el contador «Mensajes».
+- Bug real encontrado: `smyl-professional-v3.css` redefine el hero con `.smyl-management-v3 …` (padding 5px 0 y
+  título de 40 px), por eso el saludo salía pegado al borde («uenas»). Las reglas nuevas usan `#smyl-daily-home` para no
+  depender del orden de las hojas.
+- Pruebas: `daily-home-continuity` ampliada; `smyl-inbox-clean-header` cuenta 5 `channelBadge(` (la API nueva).
+
 ## 2026-10-20 — Claude: solicitar plantillas de WhatsApp desde SMYL (LANA por detrás)
 
 - Nueva Edge Function `supabase/functions/whatsapp-templates/index.ts` (+ `docs/bundles/whatsapp-templates.single-file.ts`

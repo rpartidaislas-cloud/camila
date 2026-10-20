@@ -33,11 +33,11 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 });
 
 test('Etapa 4 se distribuye en web, PWA y vista de QA', () => {
-  assert.match(app, /smyl-daily-home\.css\?v=3/);
-  assert.match(app, /smyl-daily-home\.js\?v=4/);
+  assert.match(app, /smyl-daily-home\.css\?v=6/);
+  assert.match(app, /smyl-daily-home\.js\?v=5/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
 assert.match(worker, /smyl-v254-visible-shell-v4/);
-  assert.match(worker, /smyl-daily-home\.js\?v=4/);
+  assert.match(worker, /smyl-daily-home\.js\?v=5/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /--smyl-primary/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
@@ -46,4 +46,18 @@ assert.match(worker, /smyl-v254-visible-shell-v4/);
   assert.match(read('./fixtures/smyl-daily-home-stage4-preview.html'), /smyl-daily-home\.js/);
   assert.equal(script, read('../mobile/www/smyl-daily-home.js'));
   assert.equal(styles, read('../mobile/www/smyl-daily-home.css'));
+});
+
+test('Inicio muestra los chats recientes como tarjetas compactas y los botones de acción son pequeños', () => {
+  assert.match(script, /Chats recientes/);
+  assert.match(script, /fetchRecent\(6\)/);
+  assert.match(script, /Necesita asesor/);
+  assert.match(script, /inbox\.open\(item\.id\)/);
+  assert.doesNotMatch(script, /loadList|openConversation|insert\(|update\(/);
+  assert.match(styles, /#lana-attention-dashboard\{display:none!important\}/);
+  assert.match(styles, /\.daily-home-actions \.btn\{width:auto;min-height:32px;height:32px/);
+  assert.match(styles, /\.daily-home-chat-strip\{display:grid;grid-template-columns:repeat\(auto-fill,minmax\(220px,1fr\)\)/);
+  const inbox = read('../smyl-inbox.js');
+  assert.match(inbox, /fetchRecent: async function \(limit\)/);
+  assert.match(inbox, /filter: 'all', limit: Math\.max\(1, Math\.min\(12/);
 });
