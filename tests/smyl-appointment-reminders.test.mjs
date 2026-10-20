@@ -59,7 +59,11 @@ test('toda consulta a LANA lleva la identidad de quien la hace', () => {
 
 test('desactivar los recordatorios cancela lo que estaba en cola', () => {
   assert.match(fn, /async function cancelQueued/);
-  assert.match(fn, /if \(!enabled\) return json\(200, \{ ok: true, cancelled_in_lana: await cancelQueued\(tenantId\) \}\)/);
+  assert.match(fn, /if \(!enabled\) \{/);
+  assert.match(fn, /enabled: false, updated_by: auth\.user!\.id/);
+  assert.match(fn, /cancelled_in_lana: await cancelQueued\(tenantId\)/);
+  // Apagar no debe depender de LANA: la validación de plantilla va después.
+  assert.ok(fn.indexOf('enabled: false, updated_by') < fn.indexOf('La plantilla ya no está disponible en LANA'));
 });
 
 test('la Agenda configura los recordatorios y dispara la entrega al cambiar citas', () => {

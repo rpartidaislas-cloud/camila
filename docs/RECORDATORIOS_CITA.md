@@ -115,5 +115,12 @@ Nunca pegues las claves en el código ni en el repositorio; léelas de Vault.
   - una cita cancelada no se reclama;
   - `authenticated` no puede ejecutar el reclamo.
 - La Edge Function pasa un chequeo estricto de TypeScript.
+- `tests/appointment-reminders-dispatch.test.mjs` ejecuta el archivo único desplegable con una
+  base en memoria y una LANA simulada (con el cifrado real de la clave). Cubre: envío con la
+  identidad, plantilla y datos correctos; reintentos con la misma clave de idempotencia; rechazos
+  definitivos; paciente sin WhatsApp; citas a menos de 2 h; cancelación en LANA al mover o
+  cancelar la cita (y reintento si LANA falla); sincronización de enviado / fallido / cancelado;
+  carrera si la cita se mueve mientras LANA responde; apagar sin depender de LANA; permisos; y
+  modo cron.
 - **No se probó contra LANA real.** Falta validar en piloto que LANA acepte
   el programado con la plantilla y que reporte `enviado`.

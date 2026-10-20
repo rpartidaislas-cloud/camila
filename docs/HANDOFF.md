@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: recordatorios, simulación completa y corrección al apagarlos
+
+- Nueva `tests/appointment-reminders-dispatch.test.mjs` (16 escenarios): corre el archivo único
+  `docs/bundles/appointment-reminders.single-file.ts` con una base en memoria y una LANA falsa.
+- **Bug corregido en `supabase/functions/appointment-reminders/index.ts`:** `save_settings` con
+  `enabled:false` validaba la plantilla contra LANA, así que no se podía apagar si LANA fallaba o
+  la plantilla ya no existía. Ahora apagar solo marca `enabled=false`, cancela lo que estaba en
+  cola (también en LANA) y conserva la plantilla elegida. **Hay que volver a desplegar la función**
+  (pegar el archivo único actualizado en Supabase → Edge Functions → appointment-reminders → Code).
+- Pendiente fuera del repo: tener una plantilla aprobada en LANA, configurarla en Agenda →
+  Disponibilidad y validar con una cita real que LANA acepte el programado y reporte «enviado».
+
 ## 2026-10-20 — Claude: sección «Mensajería» + Plantillas de WhatsApp para dentistas
 
 **Archivos nuevos: `smyl-template-catalog.js`, `smyl-templates.js`, `smyl-templates.css`,

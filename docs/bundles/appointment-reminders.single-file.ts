@@ -626,6 +626,12 @@ Deno.serve(async (req) => {
   if (action === "save_settings") {
     if (!canConfigure) return json(403, { error: "Tu rol no permite configurar recordatorios.", code: "permission_denied" });
     const enabled = body.enabled === true;
+    // Apagar siempre debe funcionar, aunque LANA no responda o la plantilla ya no exista.
+    if (!enabled) {
+      const { error } = await admin.from("smyl_reminder_settings").upsert({ tenant_id: tenantId, enabled: false, updated_by: auth.user!.id }, { onConflict: "tenant_id" });
+      if (error) return json(500, { error: "No se pudo guardar la configuración." });
+      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId) });
+    }
     const templateId = body.template_id == null || body.template_id === "" ? null : uuid(body.template_id);
     const variables = normalizeVariables(body.variables);
     if (variables === null) return json(400, { error: "Las variables de la plantilla no son válidas." });
@@ -645,7 +651,6 @@ Deno.serve(async (req) => {
       template_language: templateLanguage, variables, updated_by: auth.user!.id,
     }, { onConflict: "tenant_id" });
     if (error) return json(500, { error: "No se pudo guardar la configuración." });
-    if (!enabled) return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId) });
     return json(200, { ok: true, summary: await dispatchTenant(tenantId) });
   }
 
