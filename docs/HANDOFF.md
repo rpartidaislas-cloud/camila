@@ -386,6 +386,22 @@ identidad SMYL.**
   horizontal; el logo del panel usa `align-self:flex-start` porque el `aside`
   flex-column lo estiraba.
 
+### 2026-10-20 — Claude (sesión login): regresión de paridad corregida + diagnóstico de Mensajes
+
+- **Regresión mía:** el PR #21 rediseñó `app.html` (gate de acceso de dos
+  paneles, `.layout.is-visible`) sin copiar a `mobile/www/app.html`; 44/479
+  pruebas de paridad web↔móvil quedaron rojas en `main`. Corregido con
+  `cp app.html mobile/www/app.html` → 479/479 (`node --test tests/*.test.mjs`).
+- Nuevo `docs/SMYL_MENSAJES_DIAGNOSTICO.md`: auditoría del módulo Mensajes
+  contra el spec de 7 etapas del usuario sobre `main` = c671911 (estado por
+  etapa con evidencia, higiene multi-tenant, contratos, deuda CSS, pruebas,
+  riesgos de colisión y propuesta de reparto). Punto clave: hay **otra sesión
+  de Claude** rediseñando el chat en paralelo (fases 1–4), así que el reparto
+  propuesto es: esta sesión → backend / contratos / tenant / permisos /
+  pruebas; la otra → visual/UX en `smyl-inbox.js/css`. Una sola sesión toca
+  `smyl-inbox.*` por día.
+- Sin cambios de lógica en este commit.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
