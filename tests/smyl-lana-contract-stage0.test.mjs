@@ -15,8 +15,8 @@ const contract = read('../docs/SMYL_LANA_CHAT_CONTRACT_V1.md');
 const architecture = read('../docs/SMYL_CHAT_ARCHITECTURE.md');
 
 test('SMYL only calls versioned LANA server endpoints through a fixed host', () => {
-  assert.equal(SMYL_LANA_CONTRACT_VERSION, '1.0');
-  assert.deepEqual(lanaContractHeaders(), { 'X-SMYL-LANA-Contract-Version': '1.0' });
+  assert.equal(SMYL_LANA_CONTRACT_VERSION, '1.5');
+  assert.deepEqual(lanaContractHeaders(), { 'X-SMYL-LANA-Contract-Version': '1.5' });
   assert.equal(normalizeLanaPath('/conversations?limit=1'), '/conversations?limit=1');
   assert.equal(normalizeLanaPath('/attention/123/resolve'), '/attention/123/resolve');
   assert.equal(normalizeLanaPath('/context/preview'), '/context/preview');

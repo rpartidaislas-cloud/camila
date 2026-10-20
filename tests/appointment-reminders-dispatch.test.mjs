@@ -188,7 +188,7 @@ test('programa el recordatorio en LANA con la identidad de la clínica, la plant
   assert.equal(call.headers.authorization, 'Bearer clave-de-lana-de-prueba');
   assert.equal(call.headers['x-smyl-actor-id'], T);
   assert.equal(call.headers['x-smyl-actor-role'], 'owner');
-  assert.equal(call.headers['x-smyl-lana-contract-version'], '1.0');
+  assert.equal(call.headers['x-smyl-lana-contract-version'], '1.5');
   assert.equal(call.headers['idempotency-key'], reminder.id);
   assert.equal(call.body.type, 'template');
   assert.equal(call.body.template_id, TEMPLATE);
