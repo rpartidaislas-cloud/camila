@@ -41,7 +41,7 @@ test('web, móvil y PWA publican la misma corrección del alta de pacientes', ()
   }
   for (const file of ['app.html', 'sw.js']) {
     const source = read(file);
-    assert.match(source, /smyl-clinic\.js\?v=9/, `${file} debe cargar smyl-clinic.js v9`);
+    assert.match(source, /smyl-clinic\.js\?v=1[0-9]/, `${file} debe cargar smyl-clinic.js v10 o posterior`);
     assert.match(source, /smyl-clinical-model\.js\?v=3/, `${file} debe cargar smyl-clinical-model.js v3`);
     assert.equal(read(path.join('mobile', 'www', file)), source, `${file} difiere en mobile/www`);
   }

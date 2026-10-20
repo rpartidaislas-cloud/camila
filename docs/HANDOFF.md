@@ -493,6 +493,50 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-20 — Claude (sesión backend): alta de pacientes v2 (entrega b)
+
+**Objetivo del usuario: un alta de pacientes "profesional" que no deje crear
+duplicados y capture lo que la clínica necesita.**
+
+- Migración **preparada, no aplicada**
+  `20261020150000_smyl_patient_intake_v2.sql`: columnas `origen`, `branch_id`,
+  `professional_id` (FK compuestas a sucursal/profesional, `on delete set
+  null`), `alertas_medicas text[]`, `consentimiento_whatsapp` +
+  `consentimiento_whatsapp_at` (trigger que sella/borra la fecha); RPC
+  `smyl_patient_duplicates(tenant,email,telefono,exclude)` para `authenticated`,
+  que reutiliza `smyl_normalize_contact_phone()` (misma regla que la
+  vinculación automática del chat) y respeta `patients.read` +
+  `smyl_can_access_patient`.
+- `app.html` (modal `#modal-paciente`): teléfono con prefijo de país
+  (`#mp-tel-cc`, MX +52 por defecto) + número, correo, aviso de duplicados
+  (`#mp-duplicados`), sección de atención (sucursal —oculta si hay <2—,
+  profesional responsable, cómo nos conoció), alertas médicas como etiquetas
+  (`#mp-alerta-input` → `#mp-alertas`), consentimiento de WhatsApp
+  (`#mp-consent-wa`) y "Más datos · opcional" plegado (nacimiento, sexo,
+  notas). Botón sin emoji. IDs originales conservados.
+- `smyl-clinic.js`: `phoneKey()`/`composePhone()`/`splitPhone()` (guarda
+  `+52 3312345678`; al editar separa prefijo y número), `findDuplicates()` con
+  debounce al escribir teléfono/correo y **antes de guardar** (bloquea hasta
+  "Abrir su ficha" o "Es otra persona, continuar"); si la RPC no existe
+  (`PGRST202`) compara contra la lista cargada. Catálogos de sucursales y
+  profesionales por RLS (`smyl_branches`, `smyl_professionals`, activos).
+  Guardado con `Object.assign(data, extra)`; si la base responde `PGRST204`
+  (columnas inexistentes) reintenta sólo con los campos básicos y deja aviso
+  en la lista de Pacientes. Se quitó la recolocación por JS de la sección
+  opcional: ya viene en el markup.
+- `smyl-clinic.css`: `.modal-paciente`, `.mp-phone`, `.mp-chip(s)`,
+  `.mp-check`, `.mp-dup*`, una columna en ≤600px. Columnas del modal con
+  `minmax(0,1fr)` (el campo de teléfono las ensanchaba) y márgenes propios para
+  el aviso de duplicados y «Más datos», porque `smyl-dialog-system.css` deja
+  el padding del modal en 0 y sólo da 20px a los `.form-grid` directos.
+  Verificado en Chromium (1280 y 390 px) con Supabase simulado.
+- Pruebas: `tests/smyl-patient-intake-v2.test.mjs` (migración, markup, lógica,
+  paridad y versiones); la de permisos acepta `smyl-clinic.js` v10+. Versiones
+  `smyl-clinic.js?v=10`, `smyl-clinic.css?v=5` en `app.html` y `sw.js`.
+- Pendiente de esta línea: tira de "siguiente acción" al abrir la Ficha 360
+  tras guardar (agendar valoración / bienvenida por WhatsApp) — corresponde a
+  la sesión visual junto con el Paciente 360 por pestañas; importación CSV.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
