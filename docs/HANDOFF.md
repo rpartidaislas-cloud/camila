@@ -111,6 +111,28 @@ sin ver el dashboard difuminado detrás.**
   `.layout` confirmado en `display:none` antes de autenticar, sin errores de
   consola nuevos.
 
+**Segunda pasada el mismo día ("se ve muy simple"): login de dos paneles.**
+
+- `#auth-gate-overlay` ahora tiene clase `ag-page` y dos hijos: `<aside
+  class="ag-brand">` (panel de identidad: eyebrow, titular, texto y tres
+  bullets con check vectorial, copy 100 % SMYL/dental, sin LANA) y
+  `.ag-form-panel > .ag-card` (logo real `icons/smyl_logo.png`, "Bienvenido
+  de nuevo", pestañas, formularios intactos y un pie `.ag-foot`).
+- Todos los IDs y handlers (`ag-tab-*`, `ag-l-*`, `ag-r-*`, `ag-btn-*`,
+  `switchAuthGateTab`, trampa de foco) se conservan sin cambios; sólo cambió
+  el contenedor visual. Los estilos salieron del inline a clases `.ag-*` junto
+  a las pestañas existentes.
+- El fondo del panel de marca es un degradado explícito navy→azul clínico
+  (`#0B1B2E → #12366F → #194391`). No usa `--gradient-primary` porque
+  `smyl-panel.css` (`.smyl-professional`) lo aplana a teal sólido `#215d60` y
+  el panel salía apagado. Es la única superficie "de marca" del gate; el resto
+  sigue plano, como pide la política.
+- Responsive: ≤840px se oculta el panel de marca y queda la columna del
+  formulario; ≤480px reduce paddings y logo. Verificado sin scroll horizontal
+  en 1440, 900 y 390 px, con la pestaña Registro (la más alta) cabiendo en
+  390×844 sin desbordar.
+- `prefers-reduced-motion` desactiva la entrada animada de la tarjeta.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
