@@ -2,8 +2,9 @@
 -- WhatsApp y detección de duplicados con la misma regla de teléfono que usa la
 -- vinculación automática del chat (smyl_normalize_contact_phone).
 --
--- PREPARADA: revisar en staging y aplicar en un despliegue controlado. Mientras
--- no se aplique, el cliente guarda los datos básicos y avisa (PGRST204).
+-- Se aplica con el flujo manual .github/workflows/smyl-pacientes-alta-v2-migracion.yml
+-- (Actions > Run workflow). Mientras no se aplique, el cliente guarda los datos
+-- básicos y avisa (PGRST204). Es idempotente.
 
 begin;
 
