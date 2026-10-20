@@ -57,6 +57,120 @@
     if (reason === 'tenant') return 'Tu cuenta está activa en una clínica distinta a la que muestra la pantalla. Cierra sesión y vuelve a entrar.';
     return 'Tu rol en esta clínica no permite dar de alta ni editar pacientes (permiso «Pacientes · gestionar»). Pide al propietario que lo active en Mi clínica → Equipo, roles y profesionales.';
   }
+  var intakeCatalogs = { tenant: null, branches: [], professionals: [] };
+  var duplicateTimer = null, duplicateAck = false, duplicateHits = [];
+  // Misma regla que smyl_normalize_contact_phone() en la base, para que el aviso
+  // de duplicado coincida con lo que luego usa la vinculación automática del chat.
+  function phoneKey(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 10) return digits;
+    if (digits.length === 12 && digits.slice(0, 2) === '52') return digits.slice(2);
+    if (digits.length === 13 && digits.slice(0, 3) === '521') return digits.slice(3);
+    return digits.length >= 8 && digits.length <= 15 ? digits : '';
+  }
+  function composePhone(cc, national) {
+    var digits = String(national || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (!cc) return String(national || '').trim();
+    return '+' + cc + ' ' + digits;
+  }
+  function splitPhone(value) {
+    var raw = String(value || '').trim();
+    var select = document.getElementById('mp-tel-cc');
+    var codes = Array.prototype.map.call(select.options, function (option) { return option.value; });
+    var match = raw.match(/^\+(\d{1,3})[\s-]*(.*)$/);
+    if (match && codes.indexOf(match[1]) >= 0) return { cc: match[1], national: match[2].replace(/\D/g, '') };
+    if (match) return { cc: '', national: raw };
+    var digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) return { cc: '52', national: digits };
+    return { cc: raw ? '' : '52', national: raw };
+  }
+  function readAlerts() {
+    return Array.prototype.map.call(document.querySelectorAll('#mp-alertas .mp-chip'), function (chip) { return chip.dataset.value; });
+  }
+  function renderAlerts(values) {
+    var host = document.getElementById('mp-alertas'); host.replaceChildren();
+    (values || []).slice(0, 20).forEach(function (value) {
+      var chip = el('span', 'mp-chip', value); chip.dataset.value = value;
+      var remove = el('button', '', '×'); remove.type = 'button'; remove.setAttribute('aria-label', 'Quitar ' + value);
+      remove.addEventListener('click', function () { chip.remove(); });
+      chip.append(remove); host.append(chip);
+    });
+  }
+  function addAlert(value) {
+    var text = String(value || '').trim().slice(0, 60);
+    if (!text) return;
+    var existing = readAlerts();
+    if (existing.length >= 20 || existing.some(function (item) { return item.toLowerCase() === text.toLowerCase(); })) return;
+    renderAlerts(existing.concat([text]));
+  }
+  async function loadIntakeCatalogs(tenant) {
+    if (intakeCatalogs.tenant === tenant) return intakeCatalogs;
+    var result = { tenant: tenant, branches: [], professionals: [] };
+    try {
+      var rows = await Promise.all([
+        checked(sb.from('smyl_branches').select('id,name,is_default').eq('tenant_id', tenant).eq('active', true).order('name')),
+        checked(sb.from('smyl_professionals').select('id,display_name').eq('tenant_id', tenant).eq('active', true).order('display_name'))
+      ]);
+      result.branches = rows[0] || []; result.professionals = rows[1] || [];
+    } catch (_) { /* sin catálogos el alta sigue funcionando, solo sin sucursal ni profesional */ }
+    intakeCatalogs = result; return result;
+  }
+  function fillIntakeSelects(catalogs, patient) {
+    var branch = document.getElementById('mp-sucursal'), professional = document.getElementById('mp-profesional');
+    branch.replaceChildren(new Option('Sin sucursal', ''));
+    catalogs.branches.forEach(function (item) { branch.append(new Option(item.name, item.id)); });
+    professional.replaceChildren(new Option('Por asignar', ''));
+    catalogs.professionals.forEach(function (item) { professional.append(new Option(item.display_name, item.id)); });
+    var preferred = catalogs.branches.find(function (item) { return item.is_default; }) || catalogs.branches[0];
+    branch.value = (patient && patient.branch_id) || (catalogs.branches.length === 1 && preferred ? preferred.id : '');
+    if (patient && patient.branch_id && branch.value !== patient.branch_id) branch.value = '';
+    document.getElementById('mp-sucursal-fg').hidden = catalogs.branches.length < 2;
+    professional.value = (patient && patient.professional_id) || '';
+    if (patient && patient.professional_id && professional.value !== patient.professional_id) professional.value = '';
+  }
+  function renderDuplicates(hits) {
+    var host = document.getElementById('mp-duplicados'); host.replaceChildren();
+    duplicateHits = hits || [];
+    if (!duplicateHits.length) return;
+    var first = duplicateHits[0];
+    var box = el('div', 'clinic-notice clinic-error mp-dup'); box.setAttribute('role', 'alert');
+    box.append(el('strong', '', duplicateHits.length === 1 ? 'Ya existe un paciente con estos datos' : 'Ya existen ' + duplicateHits.length + ' pacientes con estos datos'));
+    box.append(el('p', '', [first.name, first.match === 'telefono' ? 'mismo teléfono' : 'mismo correo', first.phone, first.email].filter(Boolean).join(' · ')));
+    var actions = el('div', 'mp-dup-actions');
+    actions.append(button('Abrir su ficha', function () { window.cerrarModalPaciente(); verPaciente(first.id); }, 'btn btn-primary btn-sm'));
+    actions.append(button('Es otra persona, continuar', function () { duplicateAck = true; host.replaceChildren(); }, 'btn btn-secondary btn-sm'));
+    box.append(actions); host.append(box);
+  }
+  async function findDuplicates(tenant, email, phone, excludeId) {
+    var emailKey = String(email || '').trim().toLowerCase(), key = phoneKey(phone);
+    if (!emailKey && !key) return [];
+    var response = await sbTimeout(sb.rpc('smyl_patient_duplicates', { p_tenant_id: tenant, p_email: emailKey, p_telefono: phone, p_exclude_id: excludeId || null }), 10000);
+    if (response.error && (response.error.code === 'PGRST202' || response.error.code === '42883')) {
+      // La base aún no tiene la RPC: comparar con la lista ya cargada en pantalla.
+      return todosLosPacientes.filter(function (p) {
+        if (p._local || p.id === excludeId) return false;
+        return (emailKey && String(p.email || '').trim().toLowerCase() === emailKey) || (key && phoneKey(p.telefono) === key);
+      }).slice(0, 5).map(function (p) {
+        return { id: p.id, name: fullName(p), email: p.email, phone: p.telefono, match: key && phoneKey(p.telefono) === key ? 'telefono' : 'email' };
+      });
+    }
+    if (response.error) return [];
+    return response.data || [];
+  }
+  function scheduleDuplicateCheck() {
+    clearTimeout(duplicateTimer);
+    duplicateAck = false;
+    duplicateTimer = setTimeout(async function () {
+      var tenant = tenantId, editing = editandoPacienteId;
+      var email = document.getElementById('mp-email').value.trim();
+      var phone = composePhone(document.getElementById('mp-tel-cc').value, document.getElementById('mp-tel').value);
+      try {
+        var hits = await findDuplicates(tenant, email, phone, editing);
+        if (tenant === tenantId && document.getElementById('modal-paciente').classList.contains('visible')) renderDuplicates(hits);
+      } catch (_) {}
+    }, 450);
+  }
   async function clinicalCapabilities(tenant) {
     if (miRolEquipo === 'dueño') return { canRead: true, canWrite: true, canApprove: true };
     var auth = await sb.auth.getUser(), actor = auth.data && auth.data.user && auth.data.user.id;
@@ -497,18 +611,44 @@
     var tenant = tenantId, editing = editandoPacienteId;
     var original = todosLosPacientes.find(function (p) { return p.id === editing; });
     if (editing && (!original || original._local)) { feedback.append(notice('Este registro no está disponible para editar en nube.', true)); return; }
-    var data = { tenant_id: tenant, nombre: document.getElementById('mp-nombre').value.trim(), apellido: document.getElementById('mp-apellido').value.trim(), email: document.getElementById('mp-email').value.trim(), telefono: document.getElementById('mp-tel').value.trim(), fecha_nacimiento: document.getElementById('mp-fnac').value || null, genero: document.getElementById('mp-genero').value || null, notas: document.getElementById('mp-notas').value.trim() };
+    addAlert(document.getElementById('mp-alerta-input').value); document.getElementById('mp-alerta-input').value = '';
+    var phone = composePhone(document.getElementById('mp-tel-cc').value, document.getElementById('mp-tel').value);
+    var data = { tenant_id: tenant, nombre: document.getElementById('mp-nombre').value.trim(), apellido: document.getElementById('mp-apellido').value.trim(), email: document.getElementById('mp-email').value.trim(), telefono: phone, fecha_nacimiento: document.getElementById('mp-fnac').value || null, genero: document.getElementById('mp-genero').value || null, notas: document.getElementById('mp-notas').value.trim() };
     if (!data.nombre) { feedback.append(notice('Escribe el nombre del paciente.', true)); return; }
+    if (document.getElementById('mp-tel').value.trim() && !phoneKey(phone)) { feedback.append(notice('Revisa el teléfono: debe tener entre 8 y 15 dígitos.', true)); return; }
+    var extra = {
+      origen: document.getElementById('mp-origen').value || '',
+      branch_id: document.getElementById('mp-sucursal').value || null,
+      professional_id: document.getElementById('mp-profesional').value || null,
+      alertas_medicas: readAlerts(),
+      consentimiento_whatsapp: document.getElementById('mp-consent-wa').checked
+    };
+    if (!duplicateAck) {
+      var hits = [];
+      try { hits = await findDuplicates(tenant, data.email, data.telefono, editing); } catch (_) { hits = []; }
+      if (hits.length) { renderDuplicates(hits); feedback.append(notice('Revisa el posible duplicado antes de guardar.', true)); return; }
+    }
     patientAttempt = patientAttempt || crypto.randomUUID();
     savingPatient = true; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = true; });
     try {
-      var q;
-      if (editing) {
-        q = sb.from('camila_pacientes').update(data).eq('tenant_id', tenant).eq('id', editing);
-        if (original.updated_at) q = q.eq('updated_at', original.updated_at);
-      } else { data.id = patientAttempt; q = sb.from('camila_pacientes').insert([data]); }
-      var saved = await checked(q.select('*').single());
+      var buildQuery = function (payload) {
+        if (editing) {
+          var q = sb.from('camila_pacientes').update(payload).eq('tenant_id', tenant).eq('id', editing);
+          if (original.updated_at) q = q.eq('updated_at', original.updated_at);
+          return q.select('*').single();
+        }
+        return sb.from('camila_pacientes').insert([Object.assign({ id: patientAttempt }, payload)]).select('*').single();
+      };
+      var saved, legacySchema = false;
+      try { saved = await checked(buildQuery(Object.assign({}, data, extra))); }
+      catch (error) {
+        // PGRST204: la base aún no tiene las columnas de la alta v2 (migración
+        // 20261020150000). Se guardan los datos básicos y se avisa.
+        if (error.code !== 'PGRST204') throw error;
+        legacySchema = true; saved = await checked(buildQuery(data));
+      }
       if (!saved || !saved.id || saved.tenant_id !== tenant) throw new Error('Unconfirmed patient save');
+      if (legacySchema) { patientMessage = 'Origen, sucursal, profesional, alertas y consentimiento se guardarán cuando se active la actualización de la base de pacientes (migración 20261020150000).'; patientFailure = false; }
       if (tenantId !== tenant) return;
       if (current) current.dirty = false;
       var index = todosLosPacientes.findIndex(function (p) { return p.id === saved.id; });
@@ -587,6 +727,18 @@
       if (clinicLine) clinicLine.textContent = patientClinicName() ? 'Se guardará en ' + patientClinicName() + '.' : '';
       var save = document.getElementById('patient-save-button');
       if (save) save.disabled = false;
+      var patient = id ? todosLosPacientes.find(function (p) { return p.id === id; }) : null;
+      var parts = splitPhone(patient ? patient.telefono : '');
+      document.getElementById('mp-tel-cc').value = parts.cc; document.getElementById('mp-tel').value = parts.national;
+      document.getElementById('mp-origen').value = (patient && patient.origen) || '';
+      document.getElementById('mp-consent-wa').checked = !!(patient && patient.consentimiento_whatsapp);
+      document.getElementById('mp-alerta-input').value = '';
+      renderAlerts((patient && patient.alertas_medicas) || []);
+      document.getElementById('mp-duplicados').replaceChildren(); clearTimeout(duplicateTimer); duplicateAck = false; duplicateHits = [];
+      fillIntakeSelects(intakeCatalogs.tenant === tenantId ? intakeCatalogs : { tenant: tenantId, branches: [], professionals: [] }, patient);
+      loadIntakeCatalogs(tenantId).then(function (catalogs) {
+        if (catalogs.tenant === tenantId && document.getElementById('modal-paciente').classList.contains('visible')) fillIntakeSelects(catalogs, patient);
+      });
       var tenant = tenantId;
       patientPermissionCheck(tenant).then(function (result) {
         if (!result || result.ok || tenant !== tenantId || savingPatient) return;
@@ -602,15 +754,16 @@
     addEventListener('beforeunload', function (event) { if ((current && (current.dirty || current.saving || current.aiBusy)) || savingPatient) { event.preventDefault(); event.returnValue = ''; } });
     var modal = document.getElementById('modal-paciente');
     modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','modal-pac-title');
-    var fields = modal.querySelector('.form-grid'), optional = el('details', 'clinic-secondary clinic-patient-extra');
-    optional.append(el('summary', '', 'Más datos · opcional'));
-    var extra = el('div', 'form-grid');
-    ['mp-fnac','mp-genero','mp-notas'].forEach(function (id) { extra.append(document.getElementById(id).closest('.fg')); });
-    optional.append(extra); fields.after(optional);
     document.getElementById('mp-nombre').required = true;
-    [['mp-nombre',150],['mp-apellido',150],['mp-email',254],['mp-tel',60],['mp-notas',8000]].forEach(function (pair) { document.getElementById(pair[0]).maxLength = pair[1]; });
-    modal.querySelectorAll('.fg').forEach(function (f) { var input = f.querySelector('input,textarea,select'); f.querySelector('label').htmlFor = input.id; });
-    document.getElementById('mp-notas').placeholder = 'Notas de contacto. Registra antecedentes en la ficha clínica.';
+    [['mp-nombre',150],['mp-apellido',150],['mp-email',254],['mp-tel',40],['mp-notas',8000]].forEach(function (pair) { document.getElementById(pair[0]).maxLength = pair[1]; });
+    modal.querySelectorAll('.fg').forEach(function (f) { var label = f.querySelector('label'), input = f.querySelector('input,textarea,select'); if (label && input && !label.htmlFor) label.htmlFor = input.id; });
+    ['mp-tel', 'mp-email'].forEach(function (id) { document.getElementById(id).addEventListener('input', scheduleDuplicateCheck); });
+    document.getElementById('mp-tel-cc').addEventListener('change', scheduleDuplicateCheck);
+    var alertInput = document.getElementById('mp-alerta-input');
+    alertInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addAlert(alertInput.value); alertInput.value = ''; }
+    });
+    alertInput.addEventListener('blur', function () { addAlert(alertInput.value); alertInput.value = ''; });
     var message = el('div'); message.id = 'patient-feedback'; modal.querySelector('.modal-footer').before(message);
     var clinicLine = el('p'); clinicLine.id = 'patient-clinic-line';
     clinicLine.style.cssText = 'margin:0 0 12px;font-size:12px;color:var(--color-text-secondary)';
