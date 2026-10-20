@@ -169,31 +169,55 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .btn-icon{width:34px;height:34px;padding:0;justify-content:center;border:1px solid var(--color-border);background:var(--color-surface);border-radius:8px;color:var(--color-text-secondary)}
 .btn-icon:hover{border-color:var(--color-border-hover);background:var(--color-surface-raised);color:var(--color-text-primary)}
 
-/* ── AUTH GATE (página de acceso de dos paneles) ── */
-.ag-page{background:var(--color-surface)}
-.ag-brand{flex:0 0 44%;max-width:560px;display:flex;flex-direction:column;justify-content:center;padding:56px 52px;color:#fff;background:linear-gradient(155deg,#0B1B2E 0%,#12366F 52%,#194391 100%);position:relative;overflow:hidden}
-.ag-brand::after{content:"";position:absolute;right:-120px;bottom:-160px;width:420px;height:420px;border-radius:50%;border:1px solid rgba(255,255,255,.16);pointer-events:none}
-.ag-brand-inner{position:relative;max-width:400px}
-.ag-eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.4px;color:rgba(255,255,255,.78);margin-bottom:18px}
-.ag-brand h2{font-size:32px;line-height:1.15;font-weight:700;letter-spacing:-.4px;margin:0 0 14px;color:#fff}
-.ag-brand p{font-size:15px;line-height:1.55;color:rgba(255,255,255,.84);margin:0 0 28px}
-.ag-brand ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.ag-brand li{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;color:rgba(255,255,255,.92)}
-.ag-brand li svg{flex:0 0 auto;width:18px;height:18px;margin-top:1px;border-radius:50%;background:rgba(255,255,255,.16);padding:3px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.ag-form-panel{flex:1;min-width:0;display:flex;overflow-y:auto;padding:40px 24px;background:var(--color-surface)}
-.ag-card{width:100%;max-width:400px;margin:auto;animation:agIn 260ms ease-out both}
-.ag-logo{display:block;height:30px;width:auto;margin-bottom:26px}
-.ag-title{font-size:22px;font-weight:700;letter-spacing:-.3px;color:var(--color-text-primary);margin:0 0 4px}
-.ag-subtitle{font-size:13.5px;color:var(--color-text-secondary);margin:0 0 22px}
-.ag-tabs{display:flex;background:var(--color-surface-raised);border-radius:12px;padding:4px;margin-bottom:20px}
-.ag-tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;color:var(--color-text-secondary);transition:background 150ms,color 150ms,box-shadow 150ms;outline:none}
-.ag-tab.activo{background:var(--color-surface);color:var(--color-text-primary);box-shadow:0 1px 2px rgba(15,23,42,.06)}
-.ag-tab:focus-visible{box-shadow:0 0 0 2px rgba(25,67,145,.35)}
-.ag-foot{margin-top:26px;font-size:12px;color:var(--color-text-tertiary);text-align:center}
+/* ── AUTH GATE (página de acceso de dos paneles claros) ── */
+.ag-page{background:#FAFBFC}
+.ag-brand{flex:0 0 46%;max-width:640px;display:flex;flex-direction:column;padding:48px 56px 40px;background:#F4F6FB;border-right:3px solid var(--color-primary)}
+.ag-brand-logo{display:block;align-self:flex-start;height:34px;width:auto;max-width:160px;object-fit:contain}
+.ag-brand-inner{max-width:470px;margin:auto 0;padding:36px 0}
+.ag-eyebrow{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;color:var(--color-primary);margin-bottom:18px}
+.ag-eyebrow::before{content:"";flex:0 0 auto;width:22px;height:2px;border-radius:2px;background:var(--color-primary)}
+.ag-brand h2{font-size:52px;line-height:1.04;font-weight:700;letter-spacing:-1.4px;margin:0 0 20px;color:var(--color-text-primary)}
+.ag-brand-inner>p{font-size:16px;line-height:1.55;color:var(--color-text-secondary);margin:0 0 36px;max-width:430px}
+.ag-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:22px;position:relative}
+.ag-steps::before{content:"";position:absolute;left:21px;top:44px;bottom:44px;width:1px;background:var(--color-border)}
+.ag-steps li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:0 16px;align-items:center}
+.ag-steps li i{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-primary);font-style:normal;position:relative;z-index:1}
+.ag-steps li i svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ag-steps strong{display:block;font-size:14px;font-weight:600;color:var(--color-text-primary)}
+.ag-steps span{display:block;margin-top:2px;font-size:12.5px;line-height:1.4;color:var(--color-text-secondary)}
+.ag-steps small{font-size:12px;font-weight:600;color:var(--color-text-tertiary);opacity:.75}
+.ag-brand-foot{display:flex;align-items:center;gap:8px;padding-top:22px;border-top:1px solid var(--color-border);font-size:12.5px;color:var(--color-text-secondary)}
+.ag-brand-foot svg{flex:0 0 auto;width:16px;height:16px;fill:none;stroke:var(--color-accent);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ag-form-panel{flex:1;min-width:0;display:flex;overflow-y:auto;padding:40px 24px;background:#FAFBFC}
+.ag-card{width:100%;max-width:460px;margin:auto;display:flex;flex-direction:column;padding:44px 48px 32px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:16px;box-shadow:0 8px 24px rgba(16,34,57,.08);animation:agIn 260ms ease-out both}
+.ag-card-logo{display:none;align-self:flex-start;height:28px;width:auto;object-fit:contain;margin-bottom:20px}
+.ag-card .ag-eyebrow{margin-bottom:12px}
+.ag-title{font-size:30px;font-weight:700;letter-spacing:-.6px;color:var(--color-text-primary);margin:0 0 8px}
+.ag-subtitle{font-size:14px;line-height:1.5;color:var(--color-text-secondary);margin:0 0 26px}
+.ag-card .fg label{font-size:12.5px;font-weight:600;color:var(--color-text-primary);letter-spacing:0}
+.ag-card .fg input,.ag-card .fg select{height:48px;padding:0 14px;border-radius:10px;background:var(--color-surface);font-size:14px}
+.ag-label-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ag-link{border:0;background:transparent;padding:0;color:var(--color-primary);font:600 12.5px Inter,sans-serif;cursor:pointer}
+.ag-link:hover{text-decoration:underline}
+.ag-pass-wrap{position:relative}
+.ag-pass-wrap input{width:100%;padding-right:46px;box-sizing:border-box}
+.ag-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:8px;background:transparent;color:var(--color-text-tertiary);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ag-eye:hover{color:var(--color-text-primary);background:var(--color-surface-raised)}
+.ag-eye svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ag-card .btn-primary{height:48px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:none}
+.ag-switch{order:5;display:flex;justify-content:center;margin-top:22px;padding-top:20px;border-top:1px solid var(--color-border);font-size:13px;color:var(--color-text-secondary)}
+.ag-tab{display:none;cursor:pointer;outline:none}
+.ag-tab:not(.activo){display:inline}
+.ag-tab b{color:var(--color-primary);font-weight:600}
+.ag-tab:hover b{text-decoration:underline}
+.ag-tab:focus-visible b{border-radius:3px;box-shadow:0 0 0 2px rgba(25,67,145,.35)}
+.ag-foot{order:6;display:flex;align-items:center;gap:8px;margin:18px 0 0;font-size:12px;color:var(--color-text-secondary)}
+.ag-foot i{width:8px;height:8px;border-radius:50%;background:var(--color-success)}
 @keyframes agIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ag-card{animation:none}}
-@media(max-width:840px){.ag-brand{display:none}.ag-form-panel{padding:32px 20px}}
-@media(max-width:480px){.ag-form-panel{padding:24px 16px}.ag-logo{height:26px;margin-bottom:20px}.ag-title{font-size:20px}}
+@media(max-width:1180px){.ag-brand{padding:40px 40px 32px}.ag-brand h2{font-size:42px}}
+@media(max-width:840px){.ag-brand{display:none}.ag-card-logo{display:block}.ag-form-panel{padding:32px 20px}.ag-card{padding:32px 28px 26px}}
+@media(max-width:480px){.ag-form-panel{padding:16px 12px}.ag-card{padding:28px 20px 22px;border-radius:14px}.ag-title{font-size:26px}}
 
 /* ── FORMS ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -881,33 +905,30 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <!-- ══ LOGIN / REGISTRO — puerta de entrada obligatoria, visible por defecto ══ -->
 <div id="auth-gate-overlay" class="ag-page" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear cuenta" style="display:flex;position:fixed;inset:0;z-index:9999">
   <aside class="ag-brand">
+    <img src="icons/smyl_logo.png" alt="SMYL" class="ag-brand-logo">
     <div class="ag-brand-inner">
-      <span class="ag-eyebrow">Diseño de Sonrisa · IA</span>
-      <h2>Tu clínica, con criterio clínico e inteligencia artificial.</h2>
-      <p>Simula sonrisas, diagnostica, cotiza y agenda desde una sola plataforma pensada para dentistas.</p>
-      <ul>
-        <li><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Simulación de carillas en minutos, con guía de color VITA.</span></li>
-        <li><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Expediente, agenda y cotización en un solo flujo.</span></li>
-        <li><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Mensajería con pacientes por WhatsApp, Messenger e Instagram.</span></li>
-      </ul>
+      <span class="ag-eyebrow">Consulta conectada</span>
+      <h2>Cada paciente, del primer mensaje a la cita.</h2>
+      <p>Agenda, expediente, mensajería y un asistente con IA que atiende a tus pacientes, en un solo lugar.</p>
+      <ol class="ag-steps">
+        <li><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m9 15 2 2 4-4"/></svg></i><div><strong>Agenda</strong><span>Organiza citas, sillones y responsables sin fricción.</span></div><small>01</small></li>
+        <li><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/><path d="M5 16l.6 1.4L7 18l-1.4.6L5 20l-.6-1.4L3 18l1.4-.6z"/></svg></i><div><strong>Asiste con IA</strong><span>SMYL Asistente responde a tus pacientes por WhatsApp, Messenger e Instagram.</span></div><small>02</small></li>
+        <li><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-5A7 7 0 0 1 3 13V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg></i><div><strong>Da seguimiento</strong><span>Confirma, recuerda y cierra cada caso desde la misma conversación.</span></div><small>03</small></li>
+      </ol>
     </div>
+    <div class="ag-brand-foot"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>La información de cada clínica permanece separada por organización.</span></div>
   </aside>
   <div class="ag-form-panel">
   <div class="ag-card">
-    <img src="icons/smyl_logo.png" alt="SMYL" class="ag-logo">
-    <h1 class="ag-title">Bienvenido de nuevo</h1>
-    <p class="ag-subtitle">Accede a tu cuenta para continuar.</p>
-    <div class="ag-tabs" role="tablist" aria-label="Iniciar sesión o registrarme">
-      <div id="ag-tab-login" class="ag-tab activo" role="tab" tabindex="0" onclick="switchAuthGateTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('login')}">Iniciar sesión</div>
-      <div id="ag-tab-registro" class="ag-tab" role="tab" tabindex="0" onclick="switchAuthGateTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('registro')}">Registrarme</div>
-    </div>
-
+    <img src="icons/smyl_logo.png" alt="SMYL" class="ag-card-logo">
+    <span class="ag-eyebrow" id="ag-eyebrow">Acceso a la clínica</span>
+    <h1 class="ag-title" id="ag-title">Bienvenido de nuevo</h1>
+    <p class="ag-subtitle" id="ag-subtitle">Ingresa a tu espacio de trabajo para continuar con la consulta.</p>
     <div id="ag-panel-login">
       <div id="ag-login-err" style="display:none;background:var(--color-error-subtle);border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
-      <div class="fg" style="margin-bottom:13px"><label>Correo</label><input type="email" id="ag-l-email" placeholder="tu@correo.com"></div>
-      <div class="fg" style="margin-bottom:16px"><label>Contraseña</label><input type="password" id="ag-l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLoginAppGate()"></div>
-      <button class="btn btn-primary btn-full" id="ag-btn-login" onclick="hacerLoginAppGate()" style="width:100%;justify-content:center;height:44px">Entrar →</button>
-      <button type="button" id="ag-btn-recovery" onclick="solicitarRecuperacionAppGate()" style="width:100%;margin-top:12px;border:0;background:transparent;color:var(--color-primary);font:inherit;font-size:13px;font-weight:600;cursor:pointer">Olvidé mi contraseña</button>
+      <div class="fg" style="margin-bottom:16px"><label for="ag-l-email">Correo electrónico</label><input type="email" id="ag-l-email" placeholder="tu@clinica.com" autocomplete="username"></div>
+      <div class="fg" style="margin-bottom:20px"><div class="ag-label-row"><label for="ag-l-pass">Contraseña</label><button type="button" id="ag-btn-recovery" class="ag-link" onclick="solicitarRecuperacionAppGate()">¿Olvidaste tu contraseña?</button></div><div class="ag-pass-wrap"><input type="password" id="ag-l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')hacerLoginAppGate()"><button type="button" class="ag-eye" aria-label="Mostrar contraseña" aria-pressed="false" onclick="toggleAuthGatePass(this,'ag-l-pass')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <button class="btn btn-primary btn-full" id="ag-btn-login" onclick="hacerLoginAppGate()" style="width:100%;justify-content:center;margin-top:0">Entrar a SMYL</button>
       <div id="ag-recovery-ok" role="status" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-top:12px"></div>
     </div>
 
@@ -915,7 +936,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div id="ag-reg-err" style="display:none;background:var(--color-error-subtle);border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
       <div id="ag-reg-ok" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
       <div class="fg" style="margin-bottom:13px"><label>Nombre completo</label><input type="text" id="ag-r-nombre" placeholder="Dr. / Dra. ..."></div>
-      <div class="fg" style="margin-bottom:13px"><label>Correo</label><input type="email" id="ag-r-email" placeholder="tu@correo.com"></div>
+      <div class="fg" style="margin-bottom:13px"><label for="ag-r-email">Correo electrónico</label><input type="email" id="ag-r-email" placeholder="tu@clinica.com" autocomplete="email"></div>
       <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 6 caracteres"></div>
       <div class="fg" style="margin-bottom:13px"><label>Código de acceso</label><input type="text" id="ag-r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
       <div class="fg" style="margin-bottom:16px"><label>Plan</label>
@@ -925,9 +946,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <option value="premium:100:1499">Premium — $1,499/mes · 100 diagnósticos</option>
         </select>
       </div>
-      <button class="btn btn-primary btn-full" id="ag-btn-registro" onclick="hacerRegistroAppGate()" style="width:100%;justify-content:center;height:44px">Crear mi cuenta →</button>
+      <button class="btn btn-primary btn-full" id="ag-btn-registro" onclick="hacerRegistroAppGate()" style="width:100%;justify-content:center;margin-top:0">Crear mi cuenta</button>
     </div>
-    <p class="ag-foot">Plataforma para profesionales de la odontología.</p>
+    <div class="ag-switch">
+      <div id="ag-tab-login" class="ag-tab activo" role="button" tabindex="0" onclick="switchAuthGateTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('login')}">¿Ya tienes cuenta? <b>Iniciar sesión</b></div>
+      <div id="ag-tab-registro" class="ag-tab" role="button" tabindex="0" onclick="switchAuthGateTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('registro')}">¿Aún no tienes cuenta? <b>Registrarme</b></div>
+    </div>
+    <p class="ag-foot"><i aria-hidden="true"></i>Conexión protegida · SMYL</p>
   </div>
   </div>
 </div>
@@ -2524,8 +2549,24 @@ function switchAuthGateTab(tab) {
   document.getElementById('ag-panel-registro').style.display = tab === 'registro' ? 'block' : 'none';
   document.getElementById('ag-tab-login').classList.toggle('activo', tab === 'login');
   document.getElementById('ag-tab-registro').classList.toggle('activo', tab === 'registro');
-  var firstField = document.getElementById(tab === 'login' ? 'ag-l-email' : 'ag-r-nombre');
+  var isLogin = tab === 'login';
+  var copy = {
+    'ag-eyebrow': isLogin ? 'Acceso a la clínica' : 'Nueva clínica',
+    'ag-title': isLogin ? 'Bienvenido de nuevo' : 'Crea tu cuenta',
+    'ag-subtitle': isLogin ? 'Ingresa a tu espacio de trabajo para continuar con la consulta.' : 'Registra tu clínica para empezar a agendar y atender con tu asistente de IA.'
+  };
+  Object.keys(copy).forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = copy[id]; });
+  var firstField = document.getElementById(isLogin ? 'ag-l-email' : 'ag-r-nombre');
   if (firstField) firstField.focus();
+}
+
+function toggleAuthGatePass(btn, inputId) {
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  var show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
 }
 
 // Trampa de foco en el gate de acceso: mientras está visible, Tab/Shift+Tab
@@ -2574,7 +2615,7 @@ async function hacerLoginAppGate() {
     errEl.textContent = 'Error de red: ' + e.message;
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.textContent = 'Entrar →';
+    btn.disabled = false; btn.textContent = 'Entrar a SMYL';
   }
 }
 
@@ -2675,7 +2716,7 @@ async function hacerRegistroAppGate() {
     errEl.textContent = 'Error de red: ' + e.message;
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.textContent = 'Crear mi cuenta →';
+    btn.disabled = false; btn.textContent = 'Crear mi cuenta';
   }
 }
 

@@ -133,6 +133,38 @@ sin ver el dashboard difuminado detrás.**
   390×844 sin desbordar.
 - `prefers-reduced-motion` desactiva la entrada animada de la tarjeta.
 
+**Tercera pasada (propuesta aprobada visualmente por el usuario): estilo
+"dos paneles claros", tomando como referencia el login de LANA pero con
+identidad SMYL.**
+
+- Panel izquierdo claro (`#F4F6FB`) con logo real arriba, eyebrow con guion
+  azul, titular grande en tinta ("Cada paciente, del primer mensaje a la
+  cita."), tres pasos numerados con icono y línea conectora (`.ag-steps`:
+  Agenda / Asiste con IA / Da seguimiento) y pie con check de aislamiento por
+  organización. Por pedido explícito del usuario el copy **no** menciona
+  simulación de carillas; habla de agenda y del asistente con IA.
+- Divisor vertical de 3px en `--color-primary` entre paneles.
+- Tarjeta blanca con borde + `shadow-floating`, eyebrow/título/subtítulo
+  dinámicos por pestaña (`#ag-eyebrow`, `#ag-title`, `#ag-subtitle`, los
+  cambia `switchAuthGateTab`), campos de 48px, "¿Olvidaste tu contraseña?"
+  en la fila de la etiqueta (sigue siendo `#ag-btn-recovery`), botón de ojo
+  `toggleAuthGatePass()` con `aria-pressed`, botón primario "Entrar a SMYL" /
+  "Crear mi cuenta" (también actualizados los textos que el JS restaura tras
+  el loading) y pie "Conexión protegida · SMYL".
+- Las antiguas pestañas se volvieron un enlace de alternancia al pie de la
+  tarjeta ("¿Aún no tienes cuenta? Registrarme" / "¿Ya tienes cuenta? Iniciar
+  sesión"): mismos IDs `ag-tab-*` y `switchAuthGateTab`, `role="button"` en vez
+  de `tab`, la opción activa se oculta vía CSS. Se movieron físicamente al
+  final del DOM para que el orden de Tab coincida con el visual (verificado:
+  Entrar → Registrarme → vuelve al correo).
+- No se añadió "Continuar con Google": Supabase no tiene ese proveedor
+  configurado y la política prohíbe prometer lo que el servidor no respalda.
+  Si se quiere, es trabajo de backend (habilitar provider + `signInWithOAuth`).
+- En ≤840px el panel izquierdo se oculta y aparece un logo compacto arriba de
+  la tarjeta (`.ag-card-logo`). Verificado en 1600, 900 y 390 px sin scroll
+  horizontal; el logo del panel usa `align-self:flex-start` porque el `aside`
+  flex-column lo estiraba.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
