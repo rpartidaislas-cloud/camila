@@ -596,3 +596,34 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 @media(max-width:760px){.smyl-inbox-top{flex-wrap:wrap;row-gap:10px}.smyl-inbox-top>div:first-child{margin-right:auto}.smyl-inbox-top-actions{display:contents}.smyl-inbox-view-toggle{order:3;flex:1 1 100%}.smyl-inbox-view-toggle button{flex:1}.smyl-inbox-page.show-thread .smyl-inbox-view-toggle{display:none}}
 /* Mensajes usa todo el ancho disponible junto al sidebar */
 @media(min-width:761px){.smyl-management-v3 .contenido:has(>.smyl-inbox-page.activa){max-width:none;margin:0;padding:0}.smyl-management-v3 .contenido>.smyl-inbox-page.activa{margin:0}}
+/* Chat más limpio (estilo LANA): logos de canal, interruptor de IA y barra «SMYL te pone al día» */
+.smyl-inbox-avatar{position:relative;overflow:visible}
+.smyl-inbox-channel-badge{position:absolute;right:-6px;bottom:-4px;display:block;width:14px;height:14px;border:2px solid #fff;border-radius:50%;background:#fff;line-height:0;box-sizing:content-box}
+.smyl-inbox-channel-badge svg{display:block;width:100%;height:100%}
+.smyl-inbox-row.active .smyl-inbox-channel-badge{border-color:#EAF3FA}
+.smyl-inbox-pipeline-card-top .smyl-inbox-channel-badge{right:-5px;bottom:-3px;width:11px;height:11px;border-width:1.5px}
+.smyl-inbox-mode-button,.smyl-inbox-mode-button[data-state]{display:inline-flex;align-items:center;gap:9px;min-width:0;min-height:36px;padding:0 12px 0 9px;border:1px solid #D4DEE8;border-radius:8px;background:#fff;color:#1F7A5C;font-size:13px;font-weight:600;white-space:nowrap}
+.smyl-inbox-mode-button[data-state=resume]{color:#526477}
+.smyl-inbox-mode-button:after,.smyl-inbox-mode-button[data-state]:after{content:none}
+.smyl-inbox-mode-button:hover:not(:disabled){background:#F7F9FB}
+.smyl-inbox-switch{position:relative;flex:0 0 34px;width:34px;height:20px;border-radius:999px;background:#2B776D;transition:background .15s}
+.smyl-inbox-switch i{position:absolute;top:2px;left:16px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.25);transition:left .15s}
+.smyl-inbox-mode-button[data-state=resume] .smyl-inbox-switch{background:#CBD5E1}
+.smyl-inbox-mode-button[data-state=resume] .smyl-inbox-switch i{left:2px}
+.smyl-inbox-carebar .smyl-inbox-care-action:not(.is-primary){display:none}
+.smyl-inbox-thread-menu-care{display:block;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #E6EDF2}
+.smyl-inbox-thread-menu-care .is-primary{display:none}
+@container smyl-thread-head (max-width:600px){.smyl-inbox-thread-menu-care .is-primary{display:block}.smyl-inbox-mode-button [data-thread-state]{display:none}.smyl-inbox-mode-button,.smyl-inbox-mode-button[data-state]{padding:0 9px}}
+.smyl-inbox-thread-notices{flex-shrink:0;padding:0;background:#fff;border-bottom:1px solid #DCE4EC}
+.smyl-inbox-briefing{display:flex;align-items:center;gap:10px;min-height:50px;padding:8px 17px;border-left:3px solid transparent}
+.smyl-inbox-briefing[data-state=attention]{border-left-color:#D92D20;background:#FFFAF9}
+.smyl-inbox-briefing-icon{flex:0 0 auto;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#F1F5F9;color:#526477}
+.smyl-inbox-briefing[data-state=attention] .smyl-inbox-briefing-icon{background:#FEE4E2;color:#B42318}
+.smyl-inbox-briefing-icon svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.smyl-inbox-briefing-copy{flex:1;min-width:0;display:grid;gap:1px}
+.smyl-inbox-briefing-copy strong{color:#16324F;font:600 13px Inter,sans-serif}
+.smyl-inbox-briefing-copy span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#526477;font:400 12px/1.4 Inter,sans-serif}
+.smyl-inbox-briefing-resolve,.smyl-inbox-briefing-files{flex-shrink:0;min-height:32px;padding:0 12px;border-radius:8px;font:600 12px Inter,sans-serif;white-space:nowrap;cursor:pointer}
+.smyl-inbox-briefing-resolve{border:1px solid #D92D20;background:#fff;color:#B42318}
+.smyl-inbox-briefing-files{border:1px solid #D4DEE8;background:#fff;color:#26394D}
+@media(max-width:760px){.smyl-inbox-briefing{gap:8px;padding:8px 12px}.smyl-inbox-briefing-copy span{display:-webkit-box;white-space:normal;-webkit-line-clamp:2;-webkit-box-orient:vertical}.smyl-inbox-briefing-files{display:none}.smyl-inbox-briefing-resolve{min-height:36px}}

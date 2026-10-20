@@ -180,6 +180,20 @@
     return channel === 'whatsapp' ? 'WhatsApp' : channel === 'instagram' ? 'Instagram' : channel === 'messenger' ? 'Messenger' : 'Canal';
   }
 
+  var CHANNEL_MARKS = {
+    whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#25D366"/><path fill="#fff" d="M12.04 5.2a6.8 6.8 0 0 0-5.84 10.3L5.3 18.8l3.4-.9a6.8 6.8 0 1 0 3.34-12.7Zm3.9 9.6c-.17.47-.97.9-1.35.95-.35.05-.78.07-1.26-.08-.29-.09-.66-.22-1.14-.43-2-.87-3.3-2.9-3.4-3.04-.1-.13-.81-1.08-.81-2.06 0-.98.51-1.46.7-1.66.18-.2.39-.25.52-.25h.38c.12 0 .29-.05.45.35.17.4.57 1.38.62 1.48.05.1.08.22.02.35-.07.13-.1.22-.2.33-.1.12-.2.26-.29.35-.1.1-.2.2-.09.4.12.2.52.86 1.12 1.39.77.69 1.42.9 1.62 1 .2.1.32.08.44-.05.12-.14.5-.58.64-.78.13-.2.27-.17.45-.1.18.07 1.17.55 1.37.65.2.1.33.15.38.23.05.09.05.5-.12.97Z"/></svg>',
+    instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ig-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEC053"/><stop offset=".35" stop-color="#F2203E"/><stop offset=".7" stop-color="#B729A8"/><stop offset="1" stop-color="#5342D6"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ig-gradient)"/><rect x="6.3" y="6.3" width="11.4" height="11.4" rx="3.4" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="2.7" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="15.6" cy="8.4" r="1" fill="#fff"/></svg>',
+    messenger: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ms-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0099FF"/><stop offset="1" stop-color="#A033FF"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ms-gradient)"/><path fill="#fff" d="M12 5.2c-3.9 0-6.8 2.86-6.8 6.73 0 2 .8 3.7 2.12 4.9v2.17l1.98-1.1c.8.23 1.6.34 2.7.34 3.9 0 6.8-2.86 6.8-6.7S15.9 5.2 12 5.2Z"/><path fill="#7B3CFF" d="m7.6 13.6 2.7-2.9 1.5 1.5 2.6-1.5-2.7 2.9-1.5-1.5-2.6 1.5Z"/></svg>'
+  };
+
+  // Insignia con la marca del canal; se coloca en la esquina del avatar.
+  function channelBadge(channel) {
+    var badge = node('span', 'smyl-inbox-channel-badge'); badge.dataset.channel = channel;
+    badge.setAttribute('role', 'img'); badge.setAttribute('aria-label', channelLabel(channel)); badge.title = channelLabel(channel);
+    badge.innerHTML = CHANNEL_MARKS[channel] || '';
+    return badge;
+  }
+
   function initials(value) {
     var parts = String(value || 'P').trim().split(/\s+/).slice(0, 2);
     return parts.map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'P';
@@ -233,7 +247,7 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><span class="smyl-inbox-thread-state" data-thread-state></span><button type="button" class="smyl-inbox-mode-button" data-thread-mode></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Acciones del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" data-thread-menu hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" data-thread-search>Buscar en el hilo</button><button type="button" data-thread-shared>Archivos compartidos</button><button type="button" data-thread-pin>Fijar conversación</button><button type="button" data-thread-details>Paciente y atención</button><button type="button" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Acciones del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" data-thread-menu hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" data-thread-search>Buscar en el hilo</button><button type="button" data-thread-shared>Archivos compartidos</button><button type="button" data-thread-pin>Fijar conversación</button><button type="button" data-thread-details>Paciente y atención</button><button type="button" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
             '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
@@ -405,6 +419,7 @@
       if (state.selectedId === item.id) button.setAttribute('aria-current', 'true');
       var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel;
       if (state.bulkMode) avatar.textContent = isBulkSelected ? '✓' : '';
+      avatar.append(channelBadge(item.channel));
       var copy = node('span', 'smyl-inbox-row-copy');
       var top = node('span', 'smyl-inbox-row-top');
       var identity = node('span', 'smyl-inbox-row-identity');
@@ -413,7 +428,6 @@
       top.append(identity, node('time', '', timeLabel(item.last_message_at)));
       var preview = node('span', 'smyl-inbox-preview', item.last_message || 'Conversación sin vista previa');
       var meta = node('span', 'smyl-inbox-row-meta');
-      meta.append(node('span', 'smyl-inbox-channel', channelLabel(item.channel)));
       if (item.needs_human) meta.append(node('span', 'smyl-inbox-attention', 'Por atender'));
       else if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Con el equipo'));
       else meta.append(node('span', 'smyl-inbox-state', 'IA activa'));
@@ -459,10 +473,9 @@
     card.dataset.conversationId = item.id; card.draggable = movable; card.style.setProperty('--stage-color', color);
     var open = node('button', 'smyl-inbox-pipeline-open'); open.type = 'button'; open.setAttribute('aria-label', 'Abrir conversación con ' + item.contact_name);
     var top = node('span', 'smyl-inbox-pipeline-card-top');
-    var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel;
+    var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel; avatar.append(channelBadge(item.channel));
     top.append(avatar, node('strong', '', item.contact_name), node('time', '', timeLabel(item.last_message_at)));
     var meta = node('span', 'smyl-inbox-pipeline-card-meta');
-    meta.append(node('span', '', channelLabel(item.channel)));
     if (item.needs_human) meta.append(node('span', 'smyl-inbox-pipeline-badge is-attention', 'Por atender'));
     else if (item.paused) meta.append(node('span', 'smyl-inbox-pipeline-badge is-team', 'Con el equipo'));
     else meta.append(node('span', 'smyl-inbox-pipeline-badge is-ai', 'IA activa'));
@@ -795,6 +808,7 @@
     });
     var page = state.pages[state.selectedId] || {}; if (older) { older.hidden = !page.hasMore; older.disabled = state.loadingThread; }
     if (keepPosition) body.scrollTop = body.scrollHeight - oldHeight;
+    refreshBriefing();
   }
 
   function liveWhatsappWindow(conversation) {
@@ -1640,8 +1654,10 @@
       renderCareBar(); renderContext(); return;
     }
     empty.hidden = true; thread.hidden = false;
-    document.querySelector('[data-thread-avatar]').textContent = initials(conversation.contact_name);
-    document.querySelector('[data-thread-avatar]').dataset.channel = conversation.channel;
+    var headerAvatar = document.querySelector('[data-thread-avatar]');
+    headerAvatar.textContent = initials(conversation.contact_name);
+    headerAvatar.dataset.channel = conversation.channel;
+    headerAvatar.append(channelBadge(conversation.channel));
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
     var threadFicha = state.clinical[conversation.id];
     var actorRole = state.actor && state.actor.role_name;
@@ -1650,12 +1666,13 @@
     patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
     var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin asignar'];
     document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
+    // Un solo interruptor sustituye al chip de estado y al botón Tomar control / Reanudar IA.
     var stateLabel = document.querySelector('[data-thread-state]');
-    stateLabel.textContent = conversation.needs_human ? 'Requiere atención' : conversation.paused ? 'Atención humana' : 'IA activa';
-    stateLabel.dataset.state = conversation.needs_human ? 'attention' : conversation.paused ? 'human' : 'assistant';
     var mode = document.querySelector('[data-thread-mode]');
-    mode.textContent = conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando…' : 'Reanudar IA') : 'Tomar control';
+    stateLabel.textContent = conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando…' : 'IA pausada') : 'IA activa';
     mode.dataset.state = conversation.paused ? 'resume' : 'pause';
+    mode.setAttribute('aria-checked', conversation.paused ? 'false' : 'true');
+    mode.setAttribute('aria-label', conversation.paused ? 'IA pausada: activar para que SMYL Asistente vuelva a responder' : 'IA activa: desactivar para tomar el control de la conversación');
     mode.disabled = !canOperate(conversation, 'messages.manage') || Boolean(state.copilotLoading[conversation.id]);
     var pin = document.querySelector('[data-thread-pin]');
     pin.textContent = conversation.pinned ? 'Fijada' : 'Fijar';
@@ -1668,19 +1685,59 @@
     renderComposerContext(); renderWhatsappWindow(); renderCareBar(); renderContext();
   }
 
+  function waitingLabel(since) {
+    var minutes = Math.max(1, Math.round((Date.now() - new Date(since).getTime()) / 60000));
+    if (minutes < 60) return minutes + ' min';
+    var hours = Math.round(minutes / 60);
+    if (hours < 24) return hours + ' h';
+    var days = Math.round(hours / 24);
+    return days + (days === 1 ? ' día' : ' días');
+  }
+
+  // Lo pendiente de esta conversación en una línea, con datos que SMYL ya tiene (sin IA ni consultas extra).
+  function briefingFacts(conversation) {
+    var facts = [];
+    if (conversation.needs_human) facts.push('Pidió hablar con una persona');
+    var messages = state.messages[conversation.id] || [];
+    var last = messages[messages.length - 1];
+    if (last && last.author_type === 'patient' && last.created_at && (conversation.needs_human || conversation.paused)) facts.push('Sin respuesta hace ' + waitingLabel(last.created_at));
+    var appointments = state.appointmentContext[conversation.id];
+    var next = appointments && (appointments.items || [])[0];
+    var actual = next && next.appointment || {};
+    var status = actual.status || (next && next.status);
+    if ((status === 'confirmed' || status === 'accepted') && actual.starts_at && new Date(actual.starts_at) > new Date()) facts.push('Cita ' + availabilityDate(actual.starts_at));
+    var stage = stageName(conversation.stage_id);
+    if (stage !== 'Sin etapa') facts.push('Etapa: ' + stage);
+    return facts;
+  }
+
   function renderThreadNotices(conversation) {
     var host = document.querySelector('[data-thread-notices]');
     if (!host) return;
     host.innerHTML = '';
-    host.hidden = !conversation.needs_human;
-    if (!conversation.needs_human) return;
-    var notice = node('div', 'smyl-inbox-thread-notice is-attention');
-    notice.append(node('span', '', 'El paciente pidió hablar con una persona del equipo.'));
-    if (canOperate(conversation, 'messages.manage')) {
-      var resolve = node('button', '', 'Marcar resuelta'); resolve.type = 'button';
-      resolve.onclick = function () { mutateConversation('resolve'); }; notice.append(resolve);
+    host.hidden = !conversation;
+    if (!conversation) return;
+    var facts = briefingFacts(conversation);
+    var bar = node('div', 'smyl-inbox-briefing'); bar.dataset.state = conversation.needs_human ? 'attention' : 'calm';
+    var icon = node('span', 'smyl-inbox-briefing-icon'); icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>';
+    var copy = node('div', 'smyl-inbox-briefing-copy');
+    var text = facts.length ? facts.join(' · ') : 'Sin pendientes por ahora.';
+    var detail = node('span', '', text); detail.title = text;
+    copy.append(node('strong', '', 'SMYL te pone al día'), detail);
+    bar.append(icon, copy);
+    if (conversation.needs_human && canOperate(conversation, 'messages.manage')) {
+      var resolve = node('button', 'smyl-inbox-briefing-resolve', 'Marcar resuelta'); resolve.type = 'button';
+      resolve.onclick = function () { mutateConversation('resolve'); }; bar.append(resolve);
     }
-    host.append(notice);
+    var files = node('button', 'smyl-inbox-briefing-files', 'Archivos'); files.type = 'button';
+    files.onclick = openSharedItems; bar.append(files);
+    host.append(bar);
+  }
+
+  function refreshBriefing() {
+    var conversation = selectedConversation();
+    if (conversation) renderThreadNotices(conversation);
   }
 
   function renderThreadMenuState(conversation) {
@@ -1764,7 +1821,7 @@
     state.appointmentContextLoading[conversationId] = true; renderContext();
     try { state.appointmentContext[conversationId] = await request('GET', { action: 'appointment_context', conversation_id: conversationId }); }
     catch (_) { state.appointmentContext[conversationId] = { linked: false, unavailable: true, items: [] }; }
-    finally { state.appointmentContextLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
+    finally { state.appointmentContextLoading[conversationId] = false; if (state.selectedId === conversationId) { renderContext(); refreshBriefing(); } }
   }
 
   function availabilityDate(value) {

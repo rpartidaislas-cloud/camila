@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: encabezado del chat más limpio (logos de canal, interruptor de IA, barra «te pone al día»)
+
+**Archivos: `smyl-inbox.js` (v31), `smyl-inbox.css` (v32), copias en `mobile/www/`, `tests/smyl-inbox-clean-header.test.mjs`.**
+
+- Logos de canal (WhatsApp, Instagram, Messenger) como SVG propios en `CHANNEL_MARKS`,
+  en una insignia (`.smyl-inbox-channel-badge`) en la esquina del avatar de la lista,
+  del encabezado y del Pipeline. Se quitó el chip de texto con el nombre del canal.
+- Encabezado: el chip de estado y el botón Tomar control / Reanudar IA pasan a un
+  interruptor (`[data-thread-mode]`, `role="switch"`). Solo «Agendar cita» queda
+  visible; Expediente, Cotizar y Cobrar están en el menú ⋯. En anchos angostos
+  el interruptor muestra solo el control, sin texto.
+- `renderThreadNotices` ahora pinta la barra «SMYL te pone al día» con datos que ya
+  existen (pidió persona, tiempo sin respuesta, próxima cita, etapa); no llama a la
+  API. Reemplaza el recuadro rojo.
+- **Para Codex:** la siguiente tanda propuesta (no hecha) es quitar el bloque
+  grande «CENTRO DE ATENCIÓN DENTAL / Mensajes», limpiar las etiquetas de las
+  burbujas y mostrar «Responder / Más» solo al pasar el cursor.
+
 ## 2026-10-19 — Claude: fase 4, recordatorios de cita por WhatsApp + Mensajes a todo el ancho + sidebar contraíble
 
 **Detalle y despliegue en `docs/RECORDATORIOS_CITA.md`. La migración y la
