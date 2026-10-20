@@ -440,6 +440,38 @@ identidad SMYL.**
 - Nota para la sesión visual: este commit toca `smyl-inbox.js` sólo en tres
   cadenas de texto; si hay conflicto, conservar el copy sin "LANA".
 
+### 2026-10-20 — Claude (sesión backend): alta de pacientes — permiso verificado al abrir y errores separados
+
+**Reporte del usuario: "Guardar paciente" fallaba con "Tu sesión no tiene
+permiso para esta acción. Revisa la cuenta con la que ingresaste."**
+
+- Causa: la política `pacientes_create` (migración `20261015040000`) exige
+  `tenant_id = smyl_current_tenant()` **y** `smyl_has_permission(tenant_id,
+  'patients.manage')`; Postgres responde `42501` y
+  `smyl-clinical-model.js` lo traducía al mismo texto que `PGRST301`
+  (sesión caducada). `camila_usuarios.id` es PK, así que no hay ambigüedad de
+  clínica; el rechazo viene de una cuenta sin rol con «Pacientes · gestionar»
+  (o membresía inactiva) o de sesión vencida. No se pudo consultar la base
+  desde esta sesión; el usuario puede confirmar en consola con
+  `sb.rpc('smyl_current_tenant')` y `sb.rpc('smyl_has_permission',{p_tenant_id:
+  tenantId,p_permission:'patients.manage'})`.
+- `smyl-clinical-model.js`: `42501` → "Tu rol en esta clínica no permite esta
+  acción…"; `PGRST301` → "Tu sesión expiró…" (antes era un solo mensaje).
+- `smyl-clinic.js`: `patientPermissionCheck()` llama a esas dos RPC al abrir el
+  modal; si la base rechazaría el alta, muestra el motivo (permiso / clínica
+  distinta / sesión) en `#patient-feedback` y deshabilita `#patient-save-button`.
+  Si las RPC no existen (`PGRST202`) no bloquea. Nueva línea
+  `#patient-clinic-line` bajo el título: "Se guardará en <clínica>." El
+  `catch` de `savePatient` también distingue `42501`/`PGRST301`.
+- Nueva prueba `tests/smyl-patient-intake-permissions.test.mjs`. Versiones:
+  `smyl-clinic.js?v=9`, `smyl-clinical-model.js?v=3` en `app.html` y `sw.js`
+  (no las fijan otras pruebas; `CACHE_VERSION` no se tocó). Copias móviles
+  sincronizadas.
+- Pendiente (siguiente entrega acordada): rediseño del alta — duplicados por
+  teléfono/correo, teléfono normalizado con prefijo, origen del paciente,
+  sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
+  Ficha 360 con siguiente acción al guardar.
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al
