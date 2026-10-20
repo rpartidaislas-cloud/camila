@@ -1,8 +1,8 @@
 # Contrato SMYL ↔ LANA para Chat v1
 
 **Estado:** implementación local completa hasta la puerta de piloto  
-**Versión de protocolo:** `1.2`  
-**Fecha:** 11 de octubre de 2026
+**Versión de protocolo:** `1.5`  
+**Fecha:** 20 de octubre de 2026
 
 Este documento convierte la arquitectura funcional del Chat de SMYL en una
 frontera técnica verificable. Complementa `SMYL_CHAT_ARCHITECTURE.md` y
@@ -57,7 +57,7 @@ Las solicitudes incluyen:
 
 ```http
 Authorization: Bearer <api-key-cifrada-en-reposo>
-X-SMYL-LANA-Contract-Version: 1.2
+X-SMYL-LANA-Contract-Version: 1.5
 ```
 
 ## 3. Contrato de API
@@ -76,15 +76,14 @@ Endpoints existentes que continúan durante la transición:
 | `GET/PUT` | `/context` | Contexto dental actual compatible. |
 | `POST` | `/context/preview` | Prueba sin envío ni persistencia de conversación. |
 
-Endpoints de las etapas 1 y 2 con implementación local. La desconexión
-explícita permanece pendiente y no se presenta todavía en la UI:
+Endpoints de las etapas 1 y 2 con implementación local:
 
 | Método | Ruta | Uso |
 |---|---|---|
 | `POST` | `/provision` | Crear o vincular tenant LANA de forma idempotente (credencial de plataforma). |
 | `GET` | `/channels` | Estado sanitario de los tres canales, sin tokens. |
 | `POST` | `/channels/:channel/setup-session` | URL firmada, de un uso y corta duración. |
-| `POST` | `/channels/:channel/disconnect` | Pendiente: desconexión explícita, autorizada y auditable. |
+| `DELETE` | `/channels/:channel` | Desconexión explícita, autorizada y auditable (1.5). |
 | `GET` | `/training` | Borrador y versión publicada. |
 | `PUT` | `/training/draft` | Guardar sin afectar producción. |
 | `POST` | `/training/validate` | Validación clínica y estructural. |
@@ -123,6 +122,26 @@ Extensiones implementadas localmente en las etapas 4 a 7:
 | `POST` | `/inbox/conversations/:id/scheduled/:scheduledId/retry` | Recupera un fallo sólo cuando Meta confirmó que es seguro. |
 | `POST` | `/inbox/conversations/:id/automation` | Excepción de reactivación por conversación. |
 | `GET` | `/inbox/operations` | Métricas, consumo, alertas, límites y puerta del piloto. |
+
+Extensiones de las versiones 1.3 a 1.5, desplegadas en LANA el 20 de octubre
+de 2026 (promodesk #1234 y #1235):
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `POST` | `/inbox/whatsapp/templates` | Solicitar una plantilla de WhatsApp a Meta (1.3, capacidad `template_create`). |
+| `GET` | `/inbox/stages` | Etapas del embudo del tenant (`chat_segmentos`) para el Pipeline. |
+| `POST` | `/inbox/conversations/:id/pin` | Fijar una conversación. |
+| `POST` | `/inbox/conversations/:id/unpin` | Quitar la fijación. |
+| `POST` | `/inbox/conversations/:id/stage` | Mover a una etapa del tenant; registra `stage_changed`. |
+| `GET` | `/inbox/conversations/:id/search` | Búsqueda dentro de un hilo. |
+| `GET` | `/inbox/conversations/:id/shared` | Archivos y enlaces compartidos en el hilo. |
+| `GET` | `/inbox/quick-replies` | Respuestas rápidas del tenant. |
+| `POST` | `/inbox/pilot` | Puerta de piloto del Inbox. |
+| `DELETE` | `/channels/:channel` | Desconectar un canal (sustituye a `disconnect`). |
+
+Pendiente para la 1.6: sucursal y prioridad en el DTO, filtros por responsable,
+etapa y sucursal, lectura de `copilot/feedback`, ventanas de 24 h y CRUD de
+etapas con semilla dental.
 
 La identidad del actor no procede del navegador: `lana-inbox` la resuelve de
 la sesión de SMYL y LANA sólo acepta las cabeceras internas enviadas por esa
