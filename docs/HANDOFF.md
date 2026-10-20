@@ -509,6 +509,26 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-20 — Claude (sesión backend): contrato SMYL↔LANA sube a 1.5
+
+- LANA fusionó en `main` promodesk #1234 (rutas 1.5: `DELETE /channels/:channel`,
+  `GET /inbox/stages`, `pin`/`unpin`/`stage`, `search`, `shared`,
+  `quick-replies`, `pilot`) y #1235 (plantillas, 1.3); #1238 añade el flujo
+  manual de Actions que aplica la migración `20261020200000` (renombrada desde
+  `20261014200000` para no quedar fuera de orden). El usuario lo ejecutó; no
+  pude verlo desde la API, así que conviene comprobarlo con `GET /contract`
+  (debe anunciar 1.5).
+- Este cambio: `supabase/functions/_shared/lana-contract.mjs` pasa de `"1.0"` a
+  `"1.5"` (cabecera `X-SMYL-LANA-Contract-Version`; LANA sólo la devuelve, no la
+  valida), pruebas actualizadas, bundles de `docs/bundles` regenerados y
+  `SMYL_LANA_CHAT_CONTRACT_V1.md` documenta 1.3–1.5.
+- **Requiere redesplegar** las Edge Functions de SMYL que importan el módulo
+  (`lana-connection`, `lana-inbox`, `claude`) para que la cabecera cambie.
+- Siguiente tramo (1.6, en LANA): sucursal y prioridad en el DTO, filtros por
+  responsable/etapa/sucursal, lectura de feedback del copiloto, ventanas de
+  24 h y CRUD de etapas con semilla dental. Quedan fuera los commits de agenda
+  en `meta-webhook`/`whatsapp-webhook` de `codex/smyl-meta-bridge`.
+
 ### 2026-10-20 — Claude (sesión backend): alta de pacientes v2 (entrega b)
 
 **Objetivo del usuario: un alta de pacientes "profesional" que no deje crear
