@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: chat, segunda tanda de limpieza (barra delgada, pestañas, burbujas, compositor)
+
+**Archivos: `smyl-inbox.js` (v32), `smyl-inbox.css` (v33), copias en `mobile/www/`, pruebas actualizadas.**
+
+- Se quitó el bloque grande «CENTRO DE ATENCIÓN DENTAL / Mensajes / descripción / contadores».
+  Quedó una barra delgada con el selector Conversaciones | Pipeline y Avisos /
+  Operación / Sincronización. El `<h1>` se conserva oculto (`.smyl-inbox-sr`). En celular
+  la barra se oculta dentro de un hilo. Las pruebas que afirmaban ese texto se
+  actualizaron: ya no existe `renderInboxOverview` ni `data-inbox-overview`.
+- Pestañas como LANA: Todas · Sin leer · Por atender · Mías («Sin leer» salió del panel Filtros).
+- Burbujas: ya no llevan «Paciente» / «Equipo de la clínica» (solo «SMYL Asistente»);
+  el rótulo queda como texto para lectores de pantalla. La fecha es una píldora con Hoy / Ayer.
+  En celular «Responder / Más» aparece al tocar la burbuja (`state.actionsOpenId`).
+- Compositor: una fila con Adjuntar · Respuesta rápida · Sugerir arriba del campo; el
+  estado del borrador va a la derecha, y la nota de cifrado pasó a tooltip. El aviso de
+  ventana de WhatsApp solo se muestra si está por vencer o ya venció.
+- **Para Codex:** si quieres retocar el diseño, los estilos nuevos están al final de
+  `smyl-inbox.css` bajo «Segunda tanda de limpieza».
+
 ## 2026-10-20 — Claude: encabezado del chat más limpio (logos de canal, interruptor de IA, barra «te pone al día»)
 
 **Archivos: `smyl-inbox.js` (v31), `smyl-inbox.css` (v32), copias en `mobile/www/`, `tests/smyl-inbox-clean-header.test.mjs`.**

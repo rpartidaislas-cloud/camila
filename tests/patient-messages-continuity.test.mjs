@@ -9,7 +9,7 @@ const styles = read('../smyl-inbox.css');
 const worker = read('../sw.js');
 
 test('Mensajes prioritizes the conversations that need the dental team', () => {
-  assert.match(inbox, /CENTRO DE ATENCIÓN DENTAL/);
+  assert.match(inbox, /<h1 class="smyl-inbox-sr">Mensajes<\/h1>/);
   assert.match(inbox, /requieren.*al equipo ahora/);
   assert.match(inbox, /Boolean\(a\.needs_human\).*Boolean\(b\.needs_human\)/);
   assert.match(inbox, /Boolean\(a\.unread_count\).*Boolean\(b\.unread_count\)/);
@@ -37,8 +37,8 @@ test('reply tools are understandable and preserve human review', () => {
 });
 
 test('web, mobile and offline bundles ship the same inbox stage', () => {
-  assert.match(app, /smyl-inbox\.css\?v=32/);
-  assert.match(app, /smyl-inbox\.js\?v=31/);
+  assert.match(app, /smyl-inbox\.css\?v=33/);
+  assert.match(app, /smyl-inbox\.js\?v=32/);
 assert.match(worker, /smyl-v254-visible-shell-v4/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));

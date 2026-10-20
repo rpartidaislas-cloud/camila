@@ -47,6 +47,29 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=31/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=32/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=32/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=33/);
+});
+
+test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
+  assert.doesNotMatch(js, /CENTRO DE ATENCIÓN DENTAL|data-inbox-overview|function renderInboxOverview/);
+  assert.match(js, /<h1 class="smyl-inbox-sr">Mensajes<\/h1>/);
+  assert.match(js, /data-inbox-filter="all" class="active">Todas<\/button><button type="button" data-inbox-filter="unread">Sin leer<\/button><button type="button" data-inbox-filter="attention">Por atender<\/button><button type="button" data-inbox-filter="mine">Mías/);
+  assert.match(css, /\.smyl-inbox-page\.show-thread \.smyl-inbox-top\{display:none\}/);
+});
+
+test('las burbujas no repiten Paciente / Equipo de la clínica y Responder / Más aparece al tocar en celular', () => {
+  assert.match(js, /bubble\.append\(node\('span', 'smyl-inbox-sr', author \+ ': '\)\)/);
+  assert.match(js, /function dayLabel\(date\)/);
+  assert.match(js, /return 'Hoy'/);
+  assert.match(js, /state\.actionsOpenId/);
+  assert.match(css, /\.smyl-inbox-message\.show-actions \.smyl-inbox-message-actions\{display:flex\}/);
+  assert.match(css, /\.smyl-inbox-day\{width:max-content[^}]*border-radius:999px/);
+});
+
+test('el compositor tiene una sola fila de herramientas y el aviso de ventana solo aparece si vence', () => {
+  assert.match(js, /smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión/);
+  assert.match(js, /<button type="button" data-compose-attach>Adjuntar<\/button><button type="button" data-compose-quick>Respuesta rápida<\/button><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir<\/button>/);
+  assert.equal((js.match(/data-compose-file accept/g) || []).length, 1);
+  assert.match(js, /notice\.hidden = !isWhatsapp \|\| windowState\.status === 'open'/);
 });

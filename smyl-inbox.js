@@ -17,7 +17,7 @@
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
     sharedItems: [], sharedPage: null, sharedLoading: false,
     notificationsEnabled: false, didAutoOpen: false,
-    view: 'list', pipelineDragId: null,
+    view: 'list', pipelineDragId: null, actionsOpenId: null,
     draftSaveTimer: null, draftStatus: '',
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
     availabilityCatalog: null, availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
@@ -80,7 +80,7 @@
   function renderDraftStatus(value) {
     state.draftStatus = value || '';
     var label = document.querySelector('[data-draft-status]');
-    if (label) label.textContent = state.draftStatus ? '· ' + state.draftStatus : '';
+    if (label) label.textContent = state.draftStatus || '';
   }
 
   async function persistEncryptedDraft(conversationId, content) {
@@ -224,21 +224,21 @@
     page.id = 'p-inbox';
     page.innerHTML =
       '<header class="smyl-inbox-top">' +
-        '<div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN DENTAL</span><h1>Mensajes</h1><p>Prioriza pacientes y continúa su caso; SMYL Asistente y tu equipo responden por WhatsApp, Messenger o Instagram.</p></div>' +
-        '<div class="smyl-inbox-top-actions"><div class="smyl-inbox-view-toggle" role="tablist" aria-label="Vista de Mensajes"><button type="button" role="tab" data-inbox-view="list" aria-selected="true">Conversaciones</button><button type="button" role="tab" data-inbox-view="pipeline" aria-selected="false">Pipeline</button></div><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
-        '<div class="smyl-inbox-overview" data-inbox-overview aria-label="Resumen de atención"></div>' +
+        '<h1 class="smyl-inbox-sr">Mensajes</h1>' +
+        '<div class="smyl-inbox-view-toggle" role="tablist" aria-label="Vista de Mensajes"><button type="button" role="tab" data-inbox-view="list" aria-selected="true">Conversaciones</button><button type="button" role="tab" data-inbox-view="pipeline" aria-selected="false">Pipeline</button></div>' +
+        '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
       '</header>' +
       '<section class="smyl-inbox-pipeline" data-inbox-pipeline aria-label="Pipeline de pacientes por etapa" hidden>' +
-        '<div class="smyl-inbox-pipeline-bar"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar en el pipeline" data-pipeline-search></div><div class="smyl-inbox-pipeline-filters" role="group" aria-label="Filtrar pipeline"><button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button></div><span class="smyl-inbox-pipeline-hint"><span class="is-pointer">Arrastra una tarjeta para cambiar su etapa</span><span class="is-touch">Usa «Mover a» en cada tarjeta para cambiar su etapa</span></span><button type="button" class="smyl-inbox-pipeline-more" data-pipeline-more hidden>Cargar más</button></div>' +
+        '<div class="smyl-inbox-pipeline-bar"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar en el pipeline" data-pipeline-search></div><div class="smyl-inbox-pipeline-filters" role="group" aria-label="Filtrar pipeline"><button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button></div><span class="smyl-inbox-pipeline-hint"><span class="is-pointer">Arrastra una tarjeta para cambiar su etapa</span><span class="is-touch">Usa «Mover a» en cada tarjeta para cambiar su etapa</span></span><button type="button" class="smyl-inbox-pipeline-more" data-pipeline-more hidden>Cargar más</button></div>' +
         '<div class="smyl-inbox-pipeline-board" data-pipeline-board></div>' +
       '</section>' +
       '<div class="smyl-inbox-workspace">' +
         '<aside class="smyl-inbox-list-pane" aria-label="Bandeja de conversaciones">' +
           '<div class="smyl-inbox-list-head"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar conversación" data-inbox-search></div><button type="button" class="smyl-inbox-filter-toggle" data-inbox-filter-more aria-expanded="false">Filtros</button></div>' +
           '<div class="smyl-inbox-filters" role="tablist" aria-label="Filtrar conversaciones">' +
-            '<button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button>' +
+            '<button type="button" data-inbox-filter="all" class="active">Todas</button><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="attention">Por atender</button><button type="button" data-inbox-filter="mine">Mías</button>' +
           '</div>' +
-          '<div class="smyl-inbox-filter-panel" data-inbox-filter-panel hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unread">Sin leer</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
+          '<div class="smyl-inbox-filter-panel" data-inbox-filter-panel hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary aria-live="polite"></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
@@ -251,7 +251,7 @@
             '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label for="smyl-inbox-message">Responder como equipo <span data-draft-status></span></label><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-message-row"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-label="Abrir herramientas de respuesta">+</button><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir</button><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div><div class="smyl-inbox-compose-tools" data-compose-tools aria-label="Herramientas de respuesta" hidden><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-quick>Respuesta rápida</button><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-record aria-pressed="false">Nota de voz</button><button type="button" data-compose-location>Ubicación</button><button type="button" data-compose-emoji>Emoji</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden></div></div><small>El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío.</small></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío."><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-quick>Respuesta rápida</button><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><span class="smyl-inbox-draft-status" data-draft-status></span></div><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-message-row"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-label="Abrir herramientas de respuesta">+</button><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div><div class="smyl-inbox-compose-tools" data-compose-tools aria-label="Herramientas de respuesta" hidden><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-record aria-pressed="false">Nota de voz</button><button type="button" data-compose-location>Ubicación</button><button type="button" data-compose-emoji>Emoji</button></div></div></form>' +
           '</div>' +
         '</main>' +
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
@@ -330,21 +330,6 @@
     bar.append(count, assignee, assign, stage, move, clear);
   }
 
-  function renderInboxOverview() {
-    var host = document.querySelector('[data-inbox-overview]');
-    if (!host) return;
-    var items = state.conversations || [];
-    var attention = items.filter(function (item) { return item.needs_human; }).length;
-    var unread = items.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
-    var active = items.filter(function (item) { return item.paused; }).length;
-    host.innerHTML = '';
-    [['Por atender', attention, 'Requieren respuesta'], ['Sin leer', unread, 'Mensajes nuevos'], ['En atención', active, 'Con el equipo']].forEach(function (metric) {
-      var card = node('span', 'smyl-inbox-overview-card');
-      card.append(node('small', '', metric[0]), node('strong', '', String(metric[1])), node('em', '', metric[2]));
-      host.append(card);
-    });
-  }
-
   function filterCount(filter) {
     return state.conversations.filter(function (item) {
       if (filter === 'attention') return item.needs_human;
@@ -357,7 +342,7 @@
   }
 
   function renderFilterControls() {
-    var advanced = ['unread', 'paused', 'pinned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
+    var advanced = ['paused', 'pinned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
     document.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       var filter = button.dataset.inboxFilter;
       var labels = { all: 'Todas', attention: 'Por atender', mine: 'Mías', unread: 'Sin leer', paused: 'En atención', pinned: 'Fijadas' };
@@ -384,7 +369,7 @@
     var more = document.querySelector('[data-inbox-more]');
     var summary = document.querySelector('[data-inbox-queue-summary]');
     if (!list) return;
-    renderBulkBar(); renderInboxOverview(); renderFilterControls();
+    renderBulkBar(); renderFilterControls();
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
       list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
@@ -779,11 +764,19 @@
     } else if (!items.length) wrap.append(node('div', 'smyl-inbox-thread-state', 'Todavía no hay mensajes en esta conversación.'));
     var lastDay = '';
     items.forEach(function (item) {
-      var date = new Date(item.created_at || Date.now()); var day = date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+      var date = new Date(item.created_at || Date.now()); var day = dayLabel(date);
       if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; }
       var row = node('div', 'smyl-inbox-message is-' + (item.author_type || (item.role === 'user' ? 'patient' : 'assistant')) + (item.status === 'failed' || item.status === 'unknown' ? ' has-error' : ''));
       var bubble = node('div', 'smyl-inbox-bubble'); var author = item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
-      var top = node('div', 'smyl-inbox-message-top'); top.append(node('small', '', author)); if (item.starred) top.append(node('span', '', '★')); bubble.append(top); appendMessageMedia(bubble, item);
+      // El lado y el color ya dicen quién escribió; solo se rotula a SMYL Asistente (y se deja el nombre para lectores de pantalla).
+      if (item.author_type === 'patient' || item.author_type === 'team') bubble.append(node('span', 'smyl-inbox-sr', author + ': '));
+      if (!(item.author_type === 'patient' || item.author_type === 'team') || item.starred) {
+        var top = node('div', 'smyl-inbox-message-top');
+        if (!(item.author_type === 'patient' || item.author_type === 'team')) top.append(node('small', '', author));
+        if (item.starred) top.append(node('span', '', '★'));
+        bubble.append(top);
+      }
+      appendMessageMedia(bubble, item);
       var status = node('span', 'smyl-inbox-message-status', item.status === 'sending' ? 'Enviando…' : item.status === 'failed' ? 'No se envió' : item.status === 'unknown' ? 'Confirmación pendiente' : timeLabel(item.created_at)); bubble.append(status);
       if (item.status === 'failed') { var retryPendingButton = node('button', '', 'Reintentar'); retryPendingButton.type = 'button'; retryPendingButton.onclick = function () { retryPending(item); }; bubble.append(retryPendingButton); }
       else if (item.status === 'unknown') { var refresh = node('button', '', 'Actualizar hilo'); refresh.type = 'button'; refresh.onclick = function () { loadThread(state.selectedId, false); }; bubble.append(refresh); }
@@ -804,6 +797,14 @@
         }
         if (actions.childNodes.length) bubble.append(actions);
       }
+      if (String(item.id) === state.actionsOpenId) row.classList.add('show-actions');
+      bubble.addEventListener('click', function (event) {
+        if (!window.matchMedia('(max-width:760px)').matches || event.target.closest('button,a,input,textarea,select')) return;
+        var open = row.classList.contains('show-actions');
+        wrap.querySelectorAll('.smyl-inbox-message.show-actions').forEach(function (other) { other.classList.remove('show-actions'); });
+        state.actionsOpenId = open ? null : String(item.id);
+        if (!open) row.classList.add('show-actions');
+      });
       row.append(bubble); wrap.append(row);
     });
     var page = state.pages[state.selectedId] || {}; if (older) { older.hidden = !page.hasMore; older.disabled = state.loadingThread; }
@@ -836,7 +837,8 @@
     if (!form || !notice) return;
     var windowState = liveWhatsappWindow(conversation); var isWhatsapp = Boolean(windowState);
     var canRespond = canOperate(conversation, 'messages.respond');
-    notice.hidden = !isWhatsapp;
+    // Con la ventana abierta no hay nada que avisar; solo molesta cuando vence o está por vencer.
+    notice.hidden = !isWhatsapp || windowState.status === 'open';
     if (isWhatsapp) {
       notice.dataset.state = windowState.status;
       notice.innerHTML = '';
@@ -1683,6 +1685,14 @@
     Array.from(composer.elements).forEach(function (control) { control.disabled = !canOperate(conversation, 'messages.respond'); });
     renderThreadNotices(conversation); renderThreadMenuState(conversation);
     renderComposerContext(); renderWhatsappWindow(); renderCareBar(); renderContext();
+  }
+
+  function dayLabel(date) {
+    var startOf = function (value) { return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime(); };
+    var diff = Math.round((startOf(new Date()) - startOf(date)) / 86400000);
+    if (diff === 0) return 'Hoy';
+    if (diff === 1) return 'Ayer';
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   function waitingLabel(since) {
@@ -2599,7 +2609,7 @@
     page.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       button.addEventListener('click', function () {
         state.filter = button.dataset.inboxFilter;
-        if (['all', 'attention', 'mine'].indexOf(state.filter) !== -1) state.filterPanelOpen = false;
+        if (['all', 'unread', 'attention', 'mine'].indexOf(state.filter) !== -1) state.filterPanelOpen = false;
         renderFilterControls();
         loadList(true);
       });

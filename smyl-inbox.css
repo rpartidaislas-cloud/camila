@@ -627,3 +627,27 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-briefing-resolve{border:1px solid #D92D20;background:#fff;color:#B42318}
 .smyl-inbox-briefing-files{border:1px solid #D4DEE8;background:#fff;color:#26394D}
 @media(max-width:760px){.smyl-inbox-briefing{gap:8px;padding:8px 12px}.smyl-inbox-briefing-copy span{display:-webkit-box;white-space:normal;-webkit-line-clamp:2;-webkit-box-orient:vertical}.smyl-inbox-briefing-files{display:none}.smyl-inbox-briefing-resolve{min-height:36px}}
+/* Segunda tanda de limpieza (estilo LANA): barra superior delgada, pestañas, burbujas, fecha y compositor */
+.smyl-inbox-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.smyl-inbox-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:9px 17px;grid-template-columns:none}
+.smyl-inbox-top .smyl-inbox-top-actions{grid-column:auto;grid-row:auto;align-self:auto;margin-left:auto}
+.smyl-inbox-filters{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:2px;overflow:visible}
+.smyl-inbox-filters button{min-width:0;padding:0 7px;font-size:12px}
+.smyl-inbox-day{width:max-content;max-width:100%;margin:14px auto;padding:3px 12px;border:1px solid #E3EAF0;border-radius:999px;background:#fff;color:#64748B;font:500 12px Inter,sans-serif}
+.smyl-inbox-composer>.smyl-inbox-compose-bar{display:flex;align-items:center;gap:2px;min-height:30px;margin:0 0 6px}
+.smyl-inbox-compose-bar button,.smyl-inbox-compose-bar .smyl-inbox-compose-copilot{flex:0 0 auto;width:auto;height:auto;min-width:0;min-height:30px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#526477;font:600 12px Inter,sans-serif;cursor:pointer}
+.smyl-inbox-compose-bar .smyl-inbox-compose-copilot{color:#6653A2}
+.smyl-inbox-compose-bar .smyl-inbox-compose-copilot:after{content:none}
+.smyl-inbox-compose-bar button:hover:not(:disabled){background:#F1F5F9;color:#26394D}
+.smyl-inbox-compose-bar button:disabled{opacity:.45;cursor:not-allowed}
+.smyl-inbox-draft-status{margin-left:auto;color:#28786D;font:600 11px Inter,sans-serif}
+@media(max-width:760px){
+.smyl-inbox-top{flex-wrap:nowrap;gap:8px;min-height:52px;padding:8px 12px}
+.smyl-inbox-top>.smyl-inbox-view-toggle{order:0;flex:1 1 auto;margin:0}
+.smyl-inbox-top .smyl-inbox-top-actions{display:flex;gap:6px;margin-left:0}
+.smyl-inbox-page.show-thread .smyl-inbox-top{display:none}
+.smyl-inbox-message-actions{display:none}
+.smyl-inbox-message.show-actions .smyl-inbox-message-actions{display:flex}
+.smyl-inbox-draft-status{display:none}
+.smyl-inbox-compose-bar button,.smyl-inbox-compose-bar .smyl-inbox-compose-copilot{min-height:36px}
+}
