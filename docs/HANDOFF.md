@@ -1,5 +1,217 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-20 — Claude: recordatorios, simulación completa y corrección al apagarlos
+
+- Nueva `tests/appointment-reminders-dispatch.test.mjs` (16 escenarios): corre el archivo único
+  `docs/bundles/appointment-reminders.single-file.ts` con una base en memoria y una LANA falsa.
+- **Bug corregido en `supabase/functions/appointment-reminders/index.ts`:** `save_settings` con
+  `enabled:false` validaba la plantilla contra LANA, así que no se podía apagar si LANA fallaba o
+  la plantilla ya no existía. Ahora apagar solo marca `enabled=false`, cancela lo que estaba en
+  cola (también en LANA) y conserva la plantilla elegida. **Hay que volver a desplegar la función**
+  (pegar el archivo único actualizado en Supabase → Edge Functions → appointment-reminders → Code).
+- Pendiente fuera del repo: tener una plantilla aprobada en LANA, configurarla en Agenda →
+  Disponibilidad y validar con una cita real que LANA acepte el programado y reporte «enviado».
+
+## 2026-10-20 — Claude: sección «Mensajería» + Plantillas de WhatsApp para dentistas
+
+**Archivos nuevos: `smyl-template-catalog.js`, `smyl-templates.js`, `smyl-templates.css`,
+`tests/smyl-whatsapp-templates.test.mjs`. Cambios: `smyl-navigation.js` (v9), `smyl-inbox.js` (v33),
+`smyl-reminders.js` (v2), `app.html`, `sw.js`, copias en `mobile/www/`.**
+
+- Menú: nueva sección **Mensajería** (como «Mensajería/Campañas» de LANA) con **Mensajes**
+  (sale de «Trabajo diario») y **Plantillas de WhatsApp**. `MESSAGING` en `smyl-navigation.js`;
+  en celular es un grupo del panel «Más». «Mensajes» muestra el total de conversaciones sin leer
+  (`refreshUnreadBadge` consulta `action=list&filter=unread&limit=1` cada 90 s; no abre nada).
+- `smyl-template-catalog.js`: 38 plantillas para clínicas dentales (27 Utilidad, 11 Marketing)
+  como datos + `validate()` con las reglas de Meta (variables, longitudes, opt-out, sin promoción
+  en Utilidad, sin datos sensibles, sin ligas). Una prueba valida cada plantilla y comprueba que
+  el validador sí rechaza 17 casos incorrectos. `recordatorio_cita_24h_v1` usa las mismas
+  variables que el recordatorio automático de la Agenda.
+- `smyl-templates.js`: pantalla con filtros, vista previa tipo WhatsApp, «Copiar para LANA» y,
+  si `lana-inbox?action=templates` responde, el estado «Aprobada en LANA» (por nombre exacto).
+- **Límite importante:** SMYL no puede crear plantillas en LANA/Meta (el proxy `lana-inbox` solo
+  lista `/inbox/whatsapp/templates`). Hay que copiarlas y solicitarlas desde LANA. Si en el futuro
+  LANA expone un endpoint de alta, se podría añadir un botón «Solicitar» (sería trabajo de
+  `supabase/functions/lana-inbox`).
+- LANA solo acepta plantillas UTILITY fuera de la ventana de 24 h, por eso las de Marketing
+  quedan marcadas y requieren opt-in del paciente.
+- **Para Codex:** `input,select{font-size:16px!important}` global (app.html ~línea 726) agranda
+  los filtros de la pantalla en escritorio; sigue pendiente.
+
+## 2026-10-20 — Claude: chat, segunda tanda de limpieza (barra delgada, pestañas, burbujas, compositor)
+
+**Archivos: `smyl-inbox.js` (v32), `smyl-inbox.css` (v33), copias en `mobile/www/`, pruebas actualizadas.**
+
+- Se quitó el bloque grande «CENTRO DE ATENCIÓN DENTAL / Mensajes / descripción / contadores».
+  Quedó una barra delgada con el selector Conversaciones | Pipeline y Avisos /
+  Operación / Sincronización. El `<h1>` se conserva oculto (`.smyl-inbox-sr`). En celular
+  la barra se oculta dentro de un hilo. Las pruebas que afirmaban ese texto se
+  actualizaron: ya no existe `renderInboxOverview` ni `data-inbox-overview`.
+- Pestañas como LANA: Todas · Sin leer · Por atender · Mías («Sin leer» salió del panel Filtros).
+- Burbujas: ya no llevan «Paciente» / «Equipo de la clínica» (solo «SMYL Asistente»);
+  el rótulo queda como texto para lectores de pantalla. La fecha es una píldora con Hoy / Ayer.
+  En celular «Responder / Más» aparece al tocar la burbuja (`state.actionsOpenId`).
+- Compositor: una fila con Adjuntar · Respuesta rápida · Sugerir arriba del campo; el
+  estado del borrador va a la derecha, y la nota de cifrado pasó a tooltip. El aviso de
+  ventana de WhatsApp solo se muestra si está por vencer o ya venció.
+- **Para Codex:** si quieres retocar el diseño, los estilos nuevos están al final de
+  `smyl-inbox.css` bajo «Segunda tanda de limpieza».
+
+## 2026-10-20 — Claude: encabezado del chat más limpio (logos de canal, interruptor de IA, barra «te pone al día»)
+
+**Archivos: `smyl-inbox.js` (v31), `smyl-inbox.css` (v32), copias en `mobile/www/`, `tests/smyl-inbox-clean-header.test.mjs`.**
+
+- Logos de canal (WhatsApp, Instagram, Messenger) como SVG propios en `CHANNEL_MARKS`,
+  en una insignia (`.smyl-inbox-channel-badge`) en la esquina del avatar de la lista,
+  del encabezado y del Pipeline. Se quitó el chip de texto con el nombre del canal.
+- Encabezado: el chip de estado y el botón Tomar control / Reanudar IA pasan a un
+  interruptor (`[data-thread-mode]`, `role="switch"`). Solo «Agendar cita» queda
+  visible; Expediente, Cotizar y Cobrar están en el menú ⋯. En anchos angostos
+  el interruptor muestra solo el control, sin texto.
+- `renderThreadNotices` ahora pinta la barra «SMYL te pone al día» con datos que ya
+  existen (pidió persona, tiempo sin respuesta, próxima cita, etapa); no llama a la
+  API. Reemplaza el recuadro rojo.
+- **Para Codex:** la siguiente tanda propuesta (no hecha) es quitar el bloque
+  grande «CENTRO DE ATENCIÓN DENTAL / Mensajes», limpiar las etiquetas de las
+  burbujas y mostrar «Responder / Más» solo al pasar el cursor.
+
+## 2026-10-19 — Claude: fase 4, recordatorios de cita por WhatsApp + Mensajes a todo el ancho + sidebar contraíble
+
+**Detalle y despliegue en `docs/RECORDATORIOS_CITA.md`. La migración y la
+Edge Function aún NO están desplegadas en Supabase.**
+
+- Nuevos:
+  - `supabase/migrations/20261019010000_smyl_appointment_reminder_delivery.sql`:
+    columnas de proveedor en `smyl_appointment_reminders`, la tabla
+    `smyl_reminder_settings`, el trigger `smyl_appointments_reminder_sync` y la
+    RPC `smyl_claim_appointment_reminders` (solo service_role).
+  - `supabase/functions/appointment-reminders/index.ts`: acciones
+    `settings`, `save_settings` y `dispatch`, más un modo cron opcional con
+    `x-smyl-cron-secret`.
+  - `smyl-reminders.js`: la tarjeta en Agenda → Disponibilidad, el diálogo de
+    configuración y la entrega oportunista.
+  - Tests: `tests/smyl-appointment-reminders.test.mjs` y
+    `tests/smyl-sidebar-collapse.test.mjs`.
+- Cambios mínimos:
+  - `smyl-schedule.js`: etiquetas de estado; el query ahora pide
+    `reminder_type` (antes faltaba y siempre decía "Personalizado"); se
+    dispara la entrega al crear, reprogramar o cambiar el estado.
+  - `smyl-inbox.js`: dispara la entrega al confirmar una cita desde el chat.
+  - `smyl-schedule.css`: estilos de la tarjeta.
+  - `supabase/config.toml`: entrada `verify_jwt = true`.
+- **Para Codex:** el diálogo reutiliza `#schedule-dialog` y el sistema
+  `smyl-dialog-*`, que envuelve el contenido en `.smyl-dialog-body`. Por eso
+  los selectores de `.schedule-reminders-form` son de descendiente, no `>`.
+- Sidebar: `smyl-navigation.js` agrega `.pro-sidebar-toggle`. Con
+  `body.smyl-sidebar-collapsed` el sidebar queda en 72px, solo con iconos. La
+  preferencia se guarda en `localStorage` (`smyl_sidebar_collapsed`).
+  Mensajes ocupa todo el ancho en escritorio mediante
+  `.contenido:has(>.smyl-inbox-page.activa)` en `smyl-inbox.css`.
+- Versiones:
+  - `smyl-schedule.js?v=11`, `smyl-schedule.css?v=6`
+  - `smyl-reminders.js?v=1`
+  - `smyl-inbox.js?v=30`, `smyl-inbox.css?v=31`
+  - `smyl-navigation.js?v=8`, `smyl-navigation.css?v=3`
+
+## 2026-10-19 — Claude: rediseño del chat (Mensajes) estilo LANA, fases 1–3
+
+**Archivos: `smyl-inbox.js`, `smyl-inbox.css`, `app.html` (recarga de la
+PWA y ruta), `sw.js`, copias en `mobile/www/`, tests de versiones y
+`tests/smyl-inbox-pipeline.test.mjs` (nuevo). Versiones actuales:
+`smyl-inbox.js?v=29`, `smyl-inbox.css?v=30`.**
+
+- Fase 1 — tipografía según `POLITICA_IMAGEN_SMYL.md` §6 (mensajes 13px,
+  botones 600 13px, mínimo 11px; pesos solo 400/500/600/700) y cabecera del
+  hilo con las acciones del paciente en la misma fila. Con container queries
+  pasan al menú ••• cuando la cabecera es angosta.
+- Fase 2 — avisos dentro del hilo ("El paciente pidió hablar con una
+  persona" + "Marcar resuelta"; ventana de WhatsApp vencida + "Enviar
+  plantilla") y menú ••• con acciones, responsable y "Marcar solicitud
+  resuelta".
+- Fase 3 — vista **Pipeline**: selector "Conversaciones | Pipeline" en la
+  cabecera de Mensajes. Muestra columnas por etapa de LANA (`action:'stages'`),
+  ordenadas por `position`. Las tarjetas se mueven arrastrando o con «Mover a»,
+  que se ve siempre en pantallas táctiles y al pasar el cursor en escritorio.
+  Usa el mismo `POST action:'stage'` con actualización optimista y reversión.
+  Solo se mueve con `messages.manage`. La vista elegida se guarda en
+  `sessionStorage` (los tests prohíben `localStorage` en el inbox).
+- `app.html`: `ir()` guarda la ruta en `sessionStorage` y la restaura al
+  recargar. Al actualizarse el service worker se recarga en cuanto nadie
+  está escribiendo (antes esperaba a que la pestaña se ocultara y el
+  usuario no veía los cambios).
+- **Para Codex (pendiente, no tocado):** `app.html` línea ~726 tiene
+  `input,textarea,select{font-size:16px!important}` global. Fuerza 16px en
+  todos los campos también en escritorio (la política pide 13px; 16px solo
+  en móvil para evitar el zoom de iOS). Lo correcto sería limitarlo a
+  `@media(max-width:760px),(hover:none)`, pero afecta todos los módulos y
+  requiere revisión visual completa.
+- Pendiente: Fase 4 (recordatorios automáticos de cita) y ocultar
+  "Responder / Más" de cada burbuja en celular hasta tocar el mensaje.
+
+## 2026-10-19 — Claude: limpieza de `!important` en el shell "pro" + pregunta abierta para Codex sobre la paleta teal/sage
+
+**Contexto: siguiendo el Nivel 4 del plan de alineación con
+`docs/POLITICA_IMAGEN_SMYL.md` (que prohíbe `!important` "as foundation of
+the new system"), revisé y limpié los 10 archivos CSS del shell profesional
+("pro shell") que lo usaban: `smyl-finance.css`, `smyl-reports.css`,
+`smyl-readiness.css`, `smyl-inventory.css`, `smyl-clinic.css`,
+`smyl-clinic-admin.css`, `smyl-panel.css`, `smyl-proposals.css`,
+`smyl-connections.css`, `smyl-navigation.css` y `smyl-inbox.css`.**
+
+- Metodología: para cada `!important`, busqué si existía alguna regla
+  competidora con igual o mayor peso en todo el repo. Donde no había
+  competidor, lo quité sin más. Donde sí había (casi siempre: la misma clase
+  reutilizada en otro archivo con el mismo peso, o una regla más específica
+  tipo `.algo>p`), subí la especificidad del selector en vez de volver a usar
+  `!important` — por ejemplo `p.connections-form-message` en vez de
+  `.connections-form-message`, o `.pro-primary-nav .pro-nav-item` en vez de
+  `.pro-nav-item`. Cada cambio se verificó con Playwright (headless Chromium)
+  comparando el valor computado antes/después contra el HEAD sin modificar,
+  no solo leyendo el CSS.
+- Quedaron **9 `!important` genuinamente necesarios** en todo el shell pro,
+  todos documentados en los commits correspondientes, con dos patrones
+  recurrentes:
+  1. Pelean contra otro `!important` que ya existe en el `<style>` base de
+     `app.html` (p. ej. `.bottom-nav{display:flex!important}`,
+     `.btn-hamburger{display:none!important}`) — no hay especificidad que le
+     gane a un `!important` sin usar `!important` también.
+  2. Pelean contra un `style=""` en línea en el HTML (p. ej.
+     `.topbar-left{gap:8px!important}` contra un `style="gap:10px"` inline) —
+     mismo problema: lo en línea sólo pierde ante `!important`.
+  3. El bloque de `@media(prefers-reduced-motion:reduce)` y los bloques de
+     `@media print` — usos aceptados de `!important` por accesibilidad e
+     impresión.
+- Efecto colateral importante que puede interesarte para tu propio trabajo en
+  estos archivos: **cada vez que cambié el contenido de un CSS/JS, tuve que
+  subir su `?v=N` en los `<link>`/`<script>` de `app.html` y en la lista
+  `STATIC_FILES` de `sw.js`**, porque el service worker de la PWA cachea cada
+  archivo por su URL exacta (`cache-first`). Si editas estos archivos sin
+  subir el número, el navegador de un visitante que ya cargó la app antes
+  sigue viendo la versión vieja indefinidamente, sin importar cuántas veces
+  se despliegue. Vale la pena revisar esto en cualquier cambio futuro a estos
+  archivos.
+- **Pregunta abierta para que la revises tú (decisión de diseño, no técnica):**
+  al inventariar estos 10 archivos encontré que 6 de ellos —
+  `smyl-navigation.css`, `smyl-proposals.css`, `smyl-clinic-admin.css`,
+  `smyl-connections.css`, `smyl-panel.css` y `smyl-clinic.css` — comparten una
+  paleta de color propia, distinta de los tokens `--smyl-*` de
+  `smyl-design-system-v2.css` y distinta también de los `--color-*` del
+  `:root` de `app.html`: tonos teal/sage (`#dce2dd`, `#fdfdf9`, `#233c3d`,
+  `#657777`, `#526465`, `#215d60`, `#286653`, entre otros), no documentada en
+  `POLITICA_IMAGEN_SMYL.md`. Los otros 4 (`smyl-finance.css`,
+  `smyl-reports.css`, `smyl-readiness.css`, `smyl-inventory.css`) usan en
+  cambio una paleta azul-gris distinta (`#f8fafc`, `#e7edf2`, `#65758b`,
+  `#dfe6ef`). No toqué los valores de color de ninguno de los dos grupos —
+  solo until y especificidad de `!important` — porque no sé si el teal/sage es
+  una identidad visual intencional del shell profesional que debería
+  documentarse en la política, o si es deriva accidental que debería migrarse
+  a los tokens `--smyl-*`. Te lo dejo a ti para decidir y, si aplica,
+  documentar en `POLITICA_IMAGEN_SMYL.md` o planear la migración.
+- Verificación: suite completa en verde (106/106) después de cada commit;
+  todos los cambios ya están fusionados en `main`.
+
+---
+
 ## 2026-10-18 — Claude: pulido de accesibilidad en sidebar de app.html
 
 **Petición del usuario: hacer la UI más "profesional" en `app.html`. Antes de

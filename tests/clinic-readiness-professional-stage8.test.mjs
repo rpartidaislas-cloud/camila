@@ -37,7 +37,7 @@ test('web, móvil y PWA publican la etapa ocho sincronizada', () => {
   assert.equal(script, read('../mobile/www/smyl-clinic-admin.js'));
   assert.equal(styles, read('../mobile/www/smyl-clinic-admin.css'));
   assert.match(app, /smyl-clinic-admin\.js\?v=4/);
-  assert.match(app, /smyl-clinic-admin\.css\?v=4/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=5/);
   assert.match(worker, /smyl-v254-visible-shell-v4/);
   assert.match(read('./fixtures/smyl-clinic-readiness-stage8-preview.html'), /Preparación operativa/);
 });

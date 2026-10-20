@@ -35,7 +35,7 @@
 .clinic-admin-tabs{display:flex;gap:5px;width:max-content;max-width:100%;padding:4px;border:1px solid #dae2dc;border-radius:12px;background:#edf1ed;margin-bottom:18px;overflow:auto}
 .clinic-admin-tab{border:0;border-radius:8px;background:transparent;color:#5c6f68;font:inherit;font-size:12px;font-weight:650;min-height:38px;padding:0 16px;cursor:pointer;white-space:nowrap}
 .clinic-admin-tab[aria-selected="true"]{background:#fff;color:#244d49;box-shadow:0 2px 9px rgba(31,67,63,.09)}
-.clinic-admin-panel[hidden]{display:none!important}
+.clinic-admin-panel[hidden]{display:none}
 .clinic-admin-layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;align-items:start;min-width:0;width:100%}
 .clinic-admin-sidebar,.clinic-admin-card{border:1px solid #dce4de;background:#fdfdf9;border-radius:17px}
 .clinic-admin-sidebar{padding:14px;position:sticky;top:78px;min-width:0;box-sizing:border-box}

@@ -24,7 +24,7 @@ test('unfinished collaboration is removed from professional navigation', () => {
 test('internal prompt controls stay out of the dentist-facing product', () => {
   assert.match(app, /card advanced-ai-settings/);
   assert.match(app, /advanced-ai-settings[^>]*hidden/);
-  assert.match(styles, /\.advanced-ai-settings\{display:none!important\}/);
+  assert.match(styles, /\.advanced-ai-settings\{display:none\}/);
   assert.match(app, /Tú revisas y apruebas cada importe/);
 });
 
@@ -35,9 +35,9 @@ test('all primary creation actions open the same professional simulator', () => 
 });
 
 test('panel assets and PWA cache advance together', () => {
-  assert.match(app, /smyl-panel\.css\?v=4/);
+  assert.match(app, /smyl-panel\.css\?v=5/);
   assert.match(app, /smyl-panel\.js\?v=6/);
 assert.match(serviceWorker, /smyl-v254-visible-shell-v4/);
-  assert.match(serviceWorker, /smyl-panel\.css\?v=4/);
+  assert.match(serviceWorker, /smyl-panel\.css\?v=5/);
   assert.match(serviceWorker, /smyl-panel\.js\?v=6/);
 });

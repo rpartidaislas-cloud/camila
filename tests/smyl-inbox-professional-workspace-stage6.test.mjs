@@ -11,7 +11,7 @@ const mobileApp = fs.readFileSync(new URL('../mobile/www/app.html', import.meta.
 const worker = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 test('Mensajes expone prioridades y acciones clínicas sin ocultarlas en el panel lateral', () => {
-  assert.match(js, /data-inbox-overview/);
+  assert.match(js, /data-inbox-filter="unread">Sin leer/);
   assert.match(js, /Por atender/);
   assert.match(js, /data-thread-carebar/);
   assert.match(js, /Agendar cita/);
@@ -38,8 +38,8 @@ test('la distribución profesional mantiene contexto amplio y respuesta móvil',
 test('web, móvil y PWA entregan exactamente la misma optimización', () => {
   assert.equal(mobileJs, js);
   assert.equal(mobileCss, css);
-  assert.match(app, /smyl-inbox\.js\?v=26/);
-  assert.match(app, /smyl-inbox\.css\?v=21/);
-  assert.equal(mobileApp.includes('smyl-inbox.js?v=26'), true);
+  assert.match(app, /smyl-inbox\.js\?v=33/);
+  assert.match(app, /smyl-inbox\.css\?v=33/);
+  assert.equal(mobileApp.includes('smyl-inbox.js?v=33'), true);
   assert.match(worker, /smyl-v254-visible-shell-v4/);
 });

@@ -11,8 +11,8 @@ const app = read('../app.html');
 const mobileApp = read('../mobile/www/app.html');
 const worker = read('../sw.js');
 
-test('la bandeja deja visibles sólo los tres filtros de trabajo diario', () => {
-  assert.match(inbox, /data-inbox-filter="all" class="active">Todas<\/button><button type="button" data-inbox-filter="attention">Por atender<\/button><button type="button" data-inbox-filter="mine">Mías/);
+test('la bandeja deja visibles sólo los cuatro filtros de trabajo diario', () => {
+  assert.match(inbox, /data-inbox-filter="all" class="active">Todas<\/button><button type="button" data-inbox-filter="unread">Sin leer<\/button><button type="button" data-inbox-filter="attention">Por atender<\/button><button type="button" data-inbox-filter="mine">Mías/);
   assert.match(inbox, /data-inbox-filter-more aria-expanded="false">Filtros/);
   assert.match(inbox, /data-inbox-filter-panel hidden/);
   assert.match(inbox, /data-inbox-filter="unread">Sin leer/);
@@ -37,7 +37,7 @@ test('la etapa final publica recursos nuevos con paridad web y móvil', () => {
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
   assert.equal(mobileApp, app);
-  assert.match(app, /smyl-inbox\.css\?v=21/);
-  assert.match(app, /smyl-inbox\.js\?v=26/);
-  assert.match(worker, /smyl-inbox\.js\?v=26/);
+  assert.match(app, /smyl-inbox\.css\?v=33/);
+  assert.match(app, /smyl-inbox\.js\?v=33/);
+  assert.match(worker, /smyl-inbox\.js\?v=33/);
 });

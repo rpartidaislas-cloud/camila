@@ -19,6 +19,11 @@ verify_jwt = true
 [functions.security-monitor]
 verify_jwt = true
 
+# Recordatorios de cita: JWT de usuario o, desde un cron, la anon key más el
+# header x-smyl-cron-secret (SMYL_REMINDERS_CRON_SECRET).
+[functions.appointment-reminders]
+verify_jwt = true
+
 # Excepciones públicas deliberadas. Cada una aplica su propio control de
 # capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
 [functions.analizar-foto]

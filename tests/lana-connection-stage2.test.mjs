@@ -11,9 +11,9 @@ const edge = read('../supabase/functions/lana-connection/index.ts');
 const sw = read('../sw.js');
 
 test('panel exposes the SMYL channel center and advances cached assets', () => {
-  assert.match(app, /smyl-connections\.css\?v=6/);
+  assert.match(app, /smyl-connections\.css\?v=7/);
   assert.match(app, /smyl-connections\.js\?v=12/);
-  assert.match(app, /smyl-panel\.css\?v=4/);
+  assert.match(app, /smyl-panel\.css\?v=5/);
   assert.match(app, /smyl-panel\.js\?v=6/);
   assert.match(connections, /Tus canales y tu asistente/);
   assert.match(connections, /WhatsApp/);
@@ -22,7 +22,7 @@ test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(styles, /connections-status-card/);
   assert.match(sw, /smyl-v254-visible-shell-v4/);
   assert.match(sw, /smyl-connections\.js\?v=12/);
-  assert.match(sw, /smyl-connections\.css\?v=6/);
+  assert.match(sw, /smyl-connections\.css\?v=7/);
 });
 
 test('connection hides the infrastructure provider and keeps delivery human-controlled', () => {
