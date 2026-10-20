@@ -402,6 +402,44 @@ identidad SMYL.**
   `smyl-inbox.*` por día.
 - Sin cambios de lógica en este commit.
 
+### 2026-10-20 — Claude (sesión login/backend): P0 branding — sin "LANA" en la interfaz de SMYL
+
+**Primer ítem del reparto acordado en `SMYL_MENSAJES_DIAGNOSTICO.md` §G.**
+
+- Reemplazadas las 17 cadenas visibles con "LANA" en `smyl-inbox.js` (búsqueda
+  en hilo, informe del piloto, respuestas rápidas), `smyl-templates.js` (×11),
+  `smyl-template-catalog.js`, `smyl-reminders.js`, `smyl-clinic.js`,
+  `smyl-proposals.js` (×2) y `smyl-readiness.js`. Criterio: la aprobación la
+  da **Meta** ("Aprobada por Meta"), el lugar donde se solicita es "tu panel de
+  mensajería", los errores hablan de "el servicio de mensajería" y el botón de
+  copia pasa a "Copiar datos de solicitud". Botón de propuestas: "Seguimiento
+  por mensajería". No se tocaron identificadores (`lana-inbox`, `SmylLana`,
+  `formatForLana`, clase `lana-entry`) ni comentarios de código.
+- "Bordados Express" **no existe en el código**; si reaparece en pantalla, la
+  fuente es un dato devuelto por el motor (respuestas rápidas, plantillas,
+  nombre de asignado) — pendiente de rastrear con sesión real.
+- Nueva prueba `tests/smyl-branding-isolation.test.mjs`: inspecciona literales
+  de cadena con texto de UI en `smyl-*.js` (raíz y `mobile/www`) y nodos de
+  texto de `app.html`, `index.html`, `revision-clinica.html`,
+  `simulacion.html`; falla ante `\bLANA\b`, `\bLana\b` o "Bordados Express".
+  Permite identificadores sin espacios.
+- Actualizadas dos pruebas que esperaban el copy antiguo
+  (`lana-inbox-productivity-stage3`, `smyl-whatsapp-templates`). Suite:
+  **481/481**.
+- **Cache-busting diferido a propósito.** Intenté subir los `?v=` de los 7
+  activos y `CACHE_VERSION`, pero 55 archivos de prueba fijan
+  `smyl-v254-visible-shell-v4` y ~28 fijan los `?v=` actuales (62 fallos).
+  Actualizarlos es territorio de la sesión visual, que lo hace en cada
+  entrega; por eso **no** se tocaron `app.html`, `sw.js` ni sus copias en este
+  commit. Consecuencia: las PWA ya instaladas verán el copy nuevo hasta el
+  siguiente bump. Petición a la sesión visual: en su próxima entrega incluir
+  `smyl-inbox.js`, `smyl-templates.js`, `smyl-template-catalog.js`,
+  `smyl-reminders.js`, `smyl-readiness.js`, `smyl-clinic.js` y
+  `smyl-proposals.js` en el bump.
+- Copias en `mobile/www/` de esos 7 archivos sincronizadas.
+- Nota para la sesión visual: este commit toca `smyl-inbox.js` sólo en tres
+  cadenas de texto; si hay conflicto, conservar el copy sin "LANA".
+
 ## 2026-10-16 — Codex: política visual visible en Inicio y navegación
 
 **La segunda pasada lleva la política v2 a la superficie que el dentista ve al

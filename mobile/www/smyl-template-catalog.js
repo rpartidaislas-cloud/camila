@@ -192,7 +192,7 @@
       'Hola {{1}}, gracias por confiar en {{2}}. Si recomiendas nuestro consultorio a un familiar o amigo, tenemos un beneficio para ti: {{3}}. Responde a este mensaje para conocerlo.',
       [V.nombre, V.clinica, text('Beneficio', 'una limpieza dental de cortesía')]),
     marketing('solicitud_resena_v1', 'Solicitud de reseña',
-      'Después de una buena experiencia. Agrega en LANA un botón con la liga a tu perfil de Google.',
+      'Después de una buena experiencia. Agrega en tu panel de mensajería un botón con la liga a tu perfil de Google.',
       'Hola {{1}}, gracias por tu visita a {{2}}. Tu opinión nos ayuda a mejorar y a que más personas nos encuentren. ¿Nos regalas un minuto para contarnos tu experiencia?',
       pick('nombre', 'clinica'), { buttons: quick('Con gusto', 'Ahora no') }),
     marketing('revision_fin_de_anio_v1', 'Revisión de fin de año',

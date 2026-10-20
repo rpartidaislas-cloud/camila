@@ -84,8 +84,8 @@ test('formatForLana entrega todo lo necesario para solicitar la plantilla', () =
 
 test('la pantalla consulta a LANA qué plantillas están aprobadas y permite copiarlas', () => {
   assert.match(page, /lana-inbox\?action=templates/);
-  assert.match(page, /Aprobada en LANA/);
-  assert.match(page, /Copiar para LANA/);
+  assert.match(page, /Aprobada por Meta/);
+  assert.match(page, /Copiar datos de solicitud/);
   assert.match(page, /navigator\.clipboard\.writeText/);
   assert.match(page, /window\.TITULOS\.plantillas = 'Plantillas de WhatsApp'/);
   assert.doesNotMatch(page, /localStorage|sessionStorage/);
