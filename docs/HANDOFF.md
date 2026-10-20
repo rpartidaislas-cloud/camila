@@ -536,6 +536,25 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-20 — Claude (sesión backend): flujo manual de la migración de pacientes
+
+- Nuevo `.github/workflows/smyl-pacientes-alta-v2-migracion.yml` (sólo
+  `workflow_dispatch`) para aplicar `20261020150000_smyl_patient_intake_v2.sql`
+  en el proyecto de SMYL (`rpxshsiwoxdbuevjjpfw`, el de `supabase/config.toml`).
+  Comprueba que existan las tablas y funciones de las que depende y se detiene
+  sin cambiar nada si falta alguna; aplica, verifica columnas, llaves, trigger,
+  función y permisos, y registra la versión con `supabase migration repair`.
+- **Requiere el secreto de repositorio `SUPABASE_ACCESS_TOKEN`** en este repo
+  (Settings > Secrets and variables > Actions); el repo no tenía flujos antes.
+- La migración se ejecutó antes en un Postgres real (PGlite) con la función de
+  teléfono auténtica: idempotencia, sellado y borrado de la fecha de
+  consentimiento, restricciones de origen y alertas, llaves compuestas por
+  clínica (otra clínica rechazada, borrar sucursal deja el campo nulo), y la
+  búsqueda de duplicados (formatos 521 y +52, correo en mayúsculas, exclusión
+  del propio paciente, sin permiso, otra clínica, fuera de alcance, límite de 5,
+  `authenticated` sí y `anon` no). El JavaScript del flujo se ejecutó contra ese
+  mismo Postgres en tres escenarios: completo, sin prerrequisitos y ya aplicada.
+
 ### 2026-10-20 — Claude (sesión backend): contrato 1.6, lado de SMYL
 
 **LANA ya sirve el contrato 1.6 (promodesk #1239 y #1240). Este cambio lo expone
