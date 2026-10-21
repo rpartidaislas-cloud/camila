@@ -104,3 +104,5 @@
 .schedule-patient #schedule-patient-search:focus-visible,.schedule-patient-new input:focus-visible{outline:2px solid #194391;outline-offset:1px}
 .schedule-dialog-error{margin:14px 0 0;padding:11px 13px;border:1px solid #e1b8b0;border-radius:9px;background:#fdf0ed;color:#8a3324;font-size:13px;line-height:1.45}
 @media(max-width:640px){.schedule-patient-new-grid{grid-template-columns:1fr}.schedule-patient-new-actions .btn{width:100%}}
+
+.schedule-patient-combo #schedule-patient-list li.schedule-patient-status{min-height:0;padding:7px 11px;font-size:11px;color:#5a6f69;cursor:default;background:transparent}
