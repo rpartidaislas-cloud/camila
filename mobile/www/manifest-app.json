@@ -2,8 +2,8 @@
   "name": "SMYL · Panel del Doctor",
   "short_name": "SMYL Panel",
   "description": "Administra tus casos, pacientes, precios y simulaciones de diseño de sonrisa",
-  "start_url": "/camila/app.html",
-  "scope": "/camila/",
+  "start_url": "app.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F8FAFC",
@@ -25,14 +25,14 @@
       "name": "Simulación rápida",
       "short_name": "Simular",
       "description": "Tomar fotos y generar una simulación rápida de sonrisa",
-      "url": "/camila/simulacion-rapida.html",
+      "url": "simulacion-rapida.html",
       "icons": [{ "src": "icons/smyl_pwa.png", "sizes": "96x96" }]
     },
     {
       "name": "Nuevo diseño",
       "short_name": "Nuevo",
       "description": "Registrar un nuevo caso y cotización",
-      "url": "/camila/app.html?ir=nuevo-diseno",
+      "url": "app.html?ir=nuevo-diseno",
       "icons": [{ "src": "icons/smyl_pwa.png", "sizes": "96x96" }]
     }
   ]

@@ -34,7 +34,7 @@ const STATIC_FILES = [
   '/camila/smyl-case-client.js?v=1',
   '/camila/smyl-patient-cases.js?v=9',
   '/camila/my-smyl-document.js?v=1',
-  '/camila/my-smyl-portal.js?v=3',
+  '/camila/my-smyl-portal.js?v=4',
   '/camila/my-smyl-portal.css?v=2',
   '/camila/my-smyl.html',
   '/camila/my-smyl.js?v=3',
@@ -172,6 +172,13 @@ const STATIC_FILES = [
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
 ];
 
+// Las rutas de STATIC_FILES se escriben con el prefijo /camila/ (GitHub Pages). En un dominio propio la app vive en
+// la raíz, así que el prefijo se sustituye por el alcance real del service worker.
+var SCOPE_PATH = new URL(self.registration.scope).pathname;
+function scoped(url) {
+  return url.indexOf('/camila/') === 0 ? SCOPE_PATH + url.slice('/camila/'.length) : url;
+}
+
 // ── INSTALL ──
 self.addEventListener('install', function(e) {
   console.log('[SW] Installing SMYL PWA update...');
@@ -179,7 +186,7 @@ self.addEventListener('install', function(e) {
     caches.open(STATIC_CACHE).then(function(cache) {
       // Un recurso externo no debe impedir que se actualice toda la PWA.
       return Promise.all(STATIC_FILES.map(function(url) {
-        return cache.add(new Request(url, { cache: 'reload' })).catch(function(err) {
+        return cache.add(new Request(scoped(url), { cache: 'reload' })).catch(function(err) {
           console.warn('[SW] File not cached:', url, err);
         });
       }));
@@ -243,7 +250,7 @@ self.addEventListener('fetch', function(e) {
         return response;
       }).catch(function() {
         return caches.match(e.request).then(function(cached) {
-          return cached || caches.match('/camila/simulacion-rapida.html');
+          return cached || caches.match('/camila/simulacion-rapida.html').then(function(fallback) { return fallback || caches.match(scoped('/camila/simulacion-rapida.html')); });
         });
       })
     );

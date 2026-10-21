@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: preparación para app.smyldesign.ai (dominio propio)
+
+- Dominio `smyldesign.ai` en Hostinger; el panel irá en `app.smyldesign.ai` (GitHub Pages con dominio propio, donde la app
+  vive en la raíz y no en `/camila/`).
+- `sw.js`: `scoped()` sustituye el prefijo `/camila/` de la precarga por el alcance real del service worker (sirve en
+  ambos hosts; los literales `/camila/` se conservan porque muchas pruebas los fijan).
+- `manifest-app.json`, `manifestapp.json`, `manifest.json`: `start_url`, `scope` y atajos relativos (antes `/camila/...`).
+- `index.html`: en `app.smyldesign.ai` redirige a `app.html` (otros hosts conservan la página).
+- `my-smyl-portal.js` (v4): el enlace privado del paciente usa el dominio desde el que se abre el panel; en la app
+  nativa o en localhost conserva la URL de producción de respaldo.
+- **Falta (no está hecho a propósito):** el archivo `CNAME` en la raíz del repo. Se agrega solo cuando el registro DNS
+  `app` ya resuelve; si se publica antes, `rpartidaislas-cloud.github.io/camila` redirige a un dominio que aún no existe.
+  Pasos del lado de Supabase (URL del sitio y de redirección de Auth) y variables `APP_URL` / `SMYL_PUBLIC_APP_URL`
+  de las funciones `invite-staff`, `stripe-checkout` y `lana-channels`: ver la respuesta al usuario.
+
 ## 2026-10-21 — Claude: menos «brincos» al cargar el panel y al entrar a Mensajes
 
 - Medí los saltos de diseño (layout-shift) en un navegador de pruebas. Entrar a Mensajes, Agenda o Pacientes casi no

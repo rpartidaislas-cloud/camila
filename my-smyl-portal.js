@@ -185,7 +185,8 @@
      if(!valid())return;
      const saved=await rpc('smyl_portal_publish',run.attempt);
      if(saved.id!==run.attempt.p_id||!Number.isInteger(saved.version)||!Number.isFinite(Date.parse(saved.expires_at))||saved.revoked_at)throw Error('No confirmed access');
-     const link='https://rpartidaislas-cloud.github.io/camila/my-smyl-private.html#access='+saved.id+'.'+run.secret.token;
+     const base=/^https?:$/.test(location.protocol)&&!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?new URL('my-smyl-private.html',location.href).href:'https://rpartidaislas-cloud.github.io/camila/my-smyl-private.html';
+     const link=base+'#access='+saved.id+'.'+run.secret.token;
      const credentials=n('section','portal-credentials'),delivery=n('p','portal-delivery','Pendiente: envía el enlace y el código a tu paciente.');
      credentials.append(n('h2','','Solo falta enviarla.'),n('p','','Copia el enlace y pégalo en WhatsApp o correo. Entrega el código por separado para que el paciente pueda abrirla.'));
      for(const [label,value,kind] of [['Enlace privado',link,'enlace'],['Código · entregar por separado',run.secret.pin,'código']]){
