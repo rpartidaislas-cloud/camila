@@ -48,8 +48,20 @@ test('el tablero es horizontal en escritorio y desliza por columna en celular', 
 test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(app, /smyl-inbox\.js\?v=34/);
-  assert.match(app, /smyl-inbox\.css\?v=33/);
-  assert.match(worker, /smyl-inbox\.js\?v=34/);
-  assert.match(worker, /smyl-inbox\.css\?v=33/);
+  assert.match(app, /smyl-inbox\.js\?v=35/);
+  assert.match(app, /smyl-inbox\.css\?v=34/);
+  assert.match(worker, /smyl-inbox\.js\?v=35/);
+  assert.match(worker, /smyl-inbox\.css\?v=34/);
+});
+
+test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {
+  const js = read('../smyl-inbox.js');
+  const css = read('../smyl-inbox.css');
+  assert.match(js, /function renderOffline\(host\)/);
+  assert.match(js, /workspace\.dataset\.state = 'offline'/);
+  assert.match(js, /Conecta tus canales para atender mensajes aquí/);
+  assert.match(js, /window\.ir\('conexiones'\)/);
+  assert.match(js, /replace\(\/\\bde LANA\\b\/g, 'del servicio de mensajería'\)/);
+  assert.match(css, /#p-inbox \[hidden\]\{display:none!important\}/);
+  assert.match(css, /\.smyl-inbox-workspace\[data-state="offline"\]>main/);
 });

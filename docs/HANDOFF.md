@@ -1,5 +1,16 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: Mensajes sin canales conectados
+
+- Bug: con el Inbox sin respuesta se veían a la vez la lista vacía, el panel «Continúa el siguiente caso» y un hilo
+  fantasma (avatar vacío, «IA activa», compositor), desalineados. Causa: `.smyl-inbox-thread{display:flex}` ganaba al
+  atributo `hidden`. `smyl-inbox.css` (v34) agrega `#p-inbox [hidden]{display:none!important}`.
+- `smyl-inbox.js` (v35): cuando la lista falla y no hay conversaciones, el espacio de trabajo pasa a
+  `data-state="offline"` y muestra una sola tarjeta centrada: logos de WhatsApp/Instagram/Messenger, «Conecta tus
+  canales para atender mensajes aquí», botones «Conectar canales» (`ir('conexiones')`) e «Intentar de nuevo» y el
+  detalle técnico sin el nombre del motor. Se quita solo al cargar conversaciones. El Pipeline conserva su mensaje.
+- Prueba nueva en `tests/smyl-inbox-pipeline.test.mjs`. Suite 516/516.
+
 ## 2026-10-20 — Claude: Inicio, lista «Configura tu clínica»
 
 - Nuevo `smyl-clinic-setup.js` / `.css` (v1), cargado después de `smyl-daily-home.js`: tarjeta bajo la cabecera del

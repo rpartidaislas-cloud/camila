@@ -254,6 +254,7 @@
             '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío."><button type="button" data-compose-attach>Adjuntar</button><button type="button" data-compose-quick>Respuesta rápida</button><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir</button><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><span class="smyl-inbox-draft-status" data-draft-status></span></div><div class="smyl-inbox-window" data-wa-window hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-main"><div class="smyl-inbox-message-row"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-label="Abrir herramientas de respuesta">+</button><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea><button type="submit" class="btn btn-primary" data-compose-send>Enviar</button></div><div class="smyl-inbox-compose-tools" data-compose-tools aria-label="Herramientas de respuesta" hidden><button type="button" data-compose-template>Plantilla</button><button type="button" data-compose-schedule>Programar</button><button type="button" data-compose-record aria-pressed="false">Nota de voz</button><button type="button" data-compose-location>Ubicación</button><button type="button" data-compose-emoji>Emoji</button></div></div></form>' +
           '</div>' +
         '</main>' +
+        '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
         '<button type="button" class="smyl-inbox-context-scrim" data-context-close aria-label="Cerrar control de atención"></button>' +
         '<aside class="smyl-inbox-context" data-inbox-context-panel aria-label="Control de atención"><div data-inbox-context-content></div></aside>' +
         '<dialog class="smyl-inbox-forward-dialog" data-inbox-forward><form method="dialog"><span class="smyl-inbox-eyebrow">REENVIAR MENSAJE</span><h2>Elige una conversación</h2><p>El contenido se enviará de nuevo por el canal del destinatario.</p><select data-forward-target aria-label="Conversación de destino"></select><div><button value="cancel" class="btn btn-secondary">Cancelar</button><button value="confirm" class="btn btn-primary" data-forward-confirm>Reenviar</button></div></form></dialog>' +
@@ -364,6 +365,32 @@
     renderFilterControls();
   }
 
+  // Sin canales conectados (o sin respuesta del servicio de mensajería) no hay conversaciones ni hilo que mostrar:
+  // se reemplaza todo el espacio de trabajo por una sola explicación con la acción para resolverlo.
+  function renderOffline(host) {
+    host.innerHTML = '';
+    var card = node('div', 'smyl-inbox-offline-card');
+    var marks = node('div', 'smyl-inbox-offline-channels');
+    ['whatsapp', 'instagram', 'messenger'].forEach(function (channel) {
+      var mark = node('span', 'smyl-inbox-offline-mark'); mark.title = channelLabel(channel); mark.innerHTML = CHANNEL_MARKS[channel] || ''; marks.append(mark);
+    });
+    var detail = String(state.listError || '').replace(/\bde LANA\b/g, 'del servicio de mensajería').replace(/\bLANA\b/g, 'el servicio de mensajería').trim();
+    card.append(
+      marks,
+      node('span', 'smyl-inbox-eyebrow', 'MENSAJES'),
+      node('h2', '', 'Conecta tus canales para atender mensajes aquí'),
+      node('p', '', 'Cuando conectes WhatsApp, Instagram o Messenger, las conversaciones de tus pacientes aparecerán en este espacio y podrás responderlas sin salir de SMYL.')
+    );
+    var actions = node('div', 'smyl-inbox-offline-actions');
+    var connect = node('button', 'btn btn-primary', 'Conectar canales'); connect.type = 'button';
+    connect.onclick = function () { if (typeof window.ir === 'function') window.ir('conexiones'); };
+    var retry = node('button', 'btn btn-secondary', 'Intentar de nuevo'); retry.type = 'button';
+    retry.onclick = function () { loadList(true); };
+    actions.append(connect, retry); card.append(actions);
+    if (detail) card.append(node('small', 'smyl-inbox-offline-detail', 'Detalle: ' + detail));
+    host.append(card);
+  }
+
   function renderList() {
     var list = document.querySelector('[data-inbox-list]');
     var more = document.querySelector('[data-inbox-more]');
@@ -375,12 +402,12 @@
       list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
       return;
     }
-    if (state.listError && !state.conversations.length) {
-      var error = node('div', 'smyl-inbox-list-state');
-      error.append(node('strong', '', 'No pudimos abrir el Inbox'), node('p', '', state.listError));
-      var retry = node('button', 'btn btn-secondary btn-sm', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadList(true); };
-      error.append(retry); list.append(error); return;
-    }
+    var workspace = document.querySelector('.smyl-inbox-workspace');
+    var offlinePane = document.querySelector('[data-inbox-offline]');
+    var offline = Boolean(state.listError && !state.conversations.length);
+    if (workspace) { if (offline) workspace.dataset.state = 'offline'; else delete workspace.dataset.state; }
+    if (offlinePane) { offlinePane.hidden = !offline; if (offline) renderOffline(offlinePane); }
+    if (offline) return;
     var visible = visibleConversations();
     if (summary) {
       var attention = visible.filter(function (item) { return item.needs_human; }).length;

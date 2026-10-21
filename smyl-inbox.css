@@ -651,3 +651,19 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-draft-status{display:none}
 .smyl-inbox-compose-bar button,.smyl-inbox-compose-bar .smyl-inbox-compose-copilot{min-height:36px}
 }
+
+/* El atributo hidden debe ganar a los display de los paneles del Inbox. */
+#p-inbox [hidden]{display:none!important}
+/* Sin canales conectados: una sola explicación en lugar de lista, hilo y compositor vacíos. */
+.smyl-inbox-workspace[data-state="offline"]{display:flex;align-items:center;justify-content:center;background:#F6F9FC}
+.smyl-inbox-workspace[data-state="offline"]>aside,.smyl-inbox-workspace[data-state="offline"]>main,.smyl-inbox-workspace[data-state="offline"]>.smyl-inbox-context-scrim{display:none!important}
+.smyl-inbox-offline{display:flex;flex:1;align-items:center;justify-content:center;min-width:0;padding:32px 20px}
+.smyl-inbox-offline-card{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:460px;text-align:center}
+.smyl-inbox-offline-card h2{margin:0;color:#16324F;font-size:20px;font-weight:650;line-height:28px;letter-spacing:-.2px}
+.smyl-inbox-offline-card p{margin:0;color:#526477;font-size:14px;line-height:22px}
+.smyl-inbox-offline-channels{display:flex;gap:10px;margin-bottom:6px}
+.smyl-inbox-offline-mark{display:grid;place-items:center;width:44px;height:44px;border:1px solid #DCE4EC;border-radius:12px;background:#fff}
+.smyl-inbox-offline-mark svg{display:block;width:24px;height:24px}
+.smyl-inbox-offline-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
+.smyl-inbox-offline-detail{max-width:100%;color:#7A8A9B;font-size:11px;line-height:16px;overflow-wrap:anywhere}
+@media(max-width:760px){.smyl-inbox-workspace[data-state="offline"]{display:flex}.smyl-inbox-offline{padding:24px 16px}.smyl-inbox-offline-actions{width:100%}.smyl-inbox-offline-actions .btn{flex:1 1 100%;min-height:44px}}
