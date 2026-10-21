@@ -23,7 +23,7 @@ test('la migración amplía camila_pacientes y expone la búsqueda de duplicados
   assert.match(sql, /public\.smyl_can_access_patient\(p_tenant_id, p\.id, 'patients'\)/);
   assert.match(sql, /p_tenant_id = public\.smyl_current_tenant\(\)/);
   assert.match(sql, /grant execute on function public\.smyl_patient_duplicates\(uuid, text, text, uuid\) to authenticated/);
-  assert.match(sql, /create trigger smyl_patient_consent_stamp/);
+  assert.match(sql, /create or replace trigger smyl_patient_consent_stamp/);
 });
 
 test('el modal pide teléfono con prefijo, correo, atención, alertas y consentimiento', () => {

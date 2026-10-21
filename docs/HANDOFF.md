@@ -564,6 +564,26 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-21 — Claude (sesión backend): migración del alta de pacientes v2 aplicada en producción
+
+- `20261020150000_smyl_patient_intake_v2` quedó **aplicada** en el proyecto
+  `rpxshsiwoxdbuevjjpfw` con la herramienta de Supabase, en tres tramos
+  independientes (columnas y llaves, disparador de consentimiento, búsqueda de
+  duplicados) y registrada en el historial con esa versión. Las 18 fichas
+  existentes quedaron intactas.
+- El ensayo completo en una sola transacción se colgó tres veces en la herramienta
+  (60 s) sin dejar sesiones ni bloqueos en la base; por partes, todo pasó. La causa
+  no se confirmó. Sólo cambió el disparador: `search_path = pg_catalog` en vez de
+  `''` y `create or replace trigger`; el archivo del repo ya refleja eso.
+- Verificado con la identidad del titular dentro de una transacción deshecha:
+  origen, sucursal, profesional y alertas se guardan, el consentimiento sella su
+  fecha, el duplicado por correo y por teléfono en formato 52 se detecta, y otra
+  clínica no ve nada. No quedó ninguna fila de prueba.
+- Efecto: el alta de `app.html` deja de caer al modo básico y avisa de duplicados con
+  la búsqueda real. El flujo manual de #28 sigue siendo válido y no repite nada:
+  detecta el esquema completo.
+- **Sigue pendiente en producción:** `20261019010000_smyl_appointment_reminder_delivery`.
+
 ### 2026-10-21 — Claude (sesión backend): el titular no podía dar de alta ni ver pacientes
 
 **Síntoma:** en la clínica «Dd», `r.partida.islas@gmail.com` no podía guardar
