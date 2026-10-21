@@ -536,6 +536,41 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-21 — Claude (sesión backend): el titular no podía dar de alta ni ver pacientes
+
+**Síntoma:** en la clínica «Dd», `r.partida.islas@gmail.com` no podía guardar
+pacientes (42501) y no veía ninguno de los 8 existentes, aunque la pantalla decía
+que faltaba el permiso «Pacientes · gestionar».
+
+**Causa (comprobada en producción, proyecto `rpxshsiwoxdbuevjjpfw`):**
+`smyl_effective_scope` sólo devolvía `clinic` a quien tuviera una fila activa de
+`dueño` en `camila_usuarios`. Esa cuenta es el titular por identificador
+(id = clínica) y es anterior a la etapa 4 del equipo: no tiene fila. Caía en
+`own` sin ficha de profesional, así que `smyl_can_access_patient` era falso y
+la política de lectura rechazaba toda fila, incluida la recién insertada (por
+eso fallaba sólo al pedirla de vuelta). El permiso (`smyl_has_permission`) sí lo
+tenía. Sólo dos clínicas estaban así: «Dd» y una vacía sin usuarios.
+
+**Aplicado en producción (con el usuario de acuerdo):**
+1. Migración `20261021004700_smyl_titular_effective_scope` (aplicada con la
+   herramienta de Supabase; el archivo del repo lleva la misma versión): el
+   titular de una clínica activa recibe `clinic` en todos los dominios, igual que
+   ya recibe todos los permisos y la clínica en las otras dos funciones. Probada
+   antes dentro de una transacción deshecha: alta permitida, 9 pacientes
+   visibles (8 + el de prueba) y 0 de otras clínicas.
+2. Fila de `dueño` para esa cuenta en `camila_usuarios` (nombre «Dd», correo de
+   su cuenta). El trigger de equipo le asignó el rol Propietario y su sucursal.
+   Verificado después con su identidad.
+
+**Código:** `smyl-clinic.js` v11: ante un 42501 vuelve a preguntar el permiso y,
+si existe, dice que falla el alcance de datos y no el permiso. Pruebas en
+`tests/smyl-titular-scope.test.mjs`.
+
+**Pendiente de producción (no aplicado):** el esquema de producción llega a
+`20261016193000` más la de hoy. Faltan `20261019010000_smyl_appointment_reminder_delivery`
+y `20261020150000_smyl_patient_intake_v2` (esta última con su flujo manual).
+Mientras tanto el alta guarda sólo los datos básicos.
+
 ### 2026-10-20 — Claude (sesión backend): flujo manual de la migración de pacientes
 
 - Nuevo `.github/workflows/smyl-pacientes-alta-v2-migracion.yml` (sólo

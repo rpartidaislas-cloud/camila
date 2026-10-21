@@ -29,7 +29,7 @@ test('los errores 42501 y PGRST301 se explican por separado', () => {
   assert.match(model, /code === '42501'\) return 'Tu rol en esta clínica no permite esta acción/);
   assert.match(model, /code === 'PGRST301'\) return 'Tu sesión expiró/);
   const clinic = read('smyl-clinic.js');
-  assert.match(clinic, /error\.code === '42501' \? patientBlockMessage\('permission'\)/);
+  assert.match(clinic, /if \(error\.code === '42501'\) \{[\s\S]*?patientBlockMessage\(recheck && recheck\.ok \? 'scope' : recheck && recheck\.reason \? recheck\.reason : 'permission'\)/);
   assert.match(clinic, /error\.code === 'PGRST301' \? patientBlockMessage\('session'\)/);
   assert.match(clinic, /permiso «Pacientes · gestionar»/);
   assert.match(clinic, /Mi clínica → Equipo, roles y profesionales/);
