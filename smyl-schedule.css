@@ -77,3 +77,30 @@
 .schedule-reminders-preview span{color:#28796e;font-size:11px;font-weight:600}
 .schedule-reminders-preview p{margin:4px 0 0;color:#203b3b;font-size:13px;line-height:1.5;white-space:pre-wrap}
 @media(max-width:760px){.schedule-reminders-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-reminders-variable:has(label[data-variable-text]:not([hidden])){grid-template-columns:1fr}.schedule-reminders-form select,.schedule-reminders-form input:not([type=checkbox]){min-height:44px}}
+
+/* Paciente: búsqueda con alta rápida y errores dentro del diálogo */
+.schedule-patient{display:flex;flex-direction:column;gap:7px;min-width:0}
+.schedule-patient.wide{grid-column:1/-1}
+.schedule-patient-combo{position:relative}
+.schedule-patient-combo #schedule-patient-list{position:absolute;z-index:6;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;max-height:272px;overflow:auto;border:1px solid #cad8d1;border-radius:10px;background:#fff;box-shadow:0 12px 28px rgba(16,45,43,.14)}
+.schedule-patient-combo #schedule-patient-list[hidden]{display:none}
+.schedule-patient-combo #schedule-patient-list li{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}
+.schedule-patient-combo #schedule-patient-list li strong{font-size:13px;color:#203b3b;font-weight:650}
+.schedule-patient-combo #schedule-patient-list li small{font-size:11px;color:#5a6f69}
+.schedule-patient-combo #schedule-patient-list li[aria-selected="true"],.schedule-patient-combo #schedule-patient-list li:hover{background:#e9f2ed}
+.schedule-patient-combo #schedule-patient-list li[data-kind="new"]{border-top:1px solid #dbe6e0;margin-top:4px;border-radius:0 0 7px 7px}
+.schedule-patient-combo #schedule-patient-list li[data-kind="new"] strong{color:#194391}
+.schedule-patient-hint{margin:0;font-size:11px;color:#48625c}
+.schedule-patient-hint:empty{display:none}
+.schedule-patient-new{margin-top:4px;padding:14px;border:1px solid #c7d9d0;border-radius:12px;background:#f2f7f3}
+.schedule-patient-new[hidden]{display:none}
+.schedule-patient-new-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13px;color:#203b3b}
+.schedule-patient-new-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.schedule-patient-new-grid label{display:flex;flex-direction:column;gap:7px;color:#48625c;font-size:11px;font-weight:650}
+.schedule-patient-new-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.schedule-patient-dups{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:12px;border:1px solid #e4cfb3;border-radius:10px;background:#fff8ed;color:#6b4a1c;font-size:13px}
+.schedule-patient-dups>div{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.schedule-patient-dups .btn{min-height:44px}
+.schedule-patient #schedule-patient-search:focus-visible,.schedule-patient-new input:focus-visible{outline:2px solid #194391;outline-offset:1px}
+.schedule-dialog-error{margin:14px 0 0;padding:11px 13px;border:1px solid #e1b8b0;border-radius:9px;background:#fdf0ed;color:#8a3324;font-size:13px;line-height:1.45}
+@media(max-width:640px){.schedule-patient-new-grid{grid-template-columns:1fr}.schedule-patient-new-actions .btn{width:100%}}
