@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: feedback en "Enviar a revisión" y fallback Safari (v9)
+
+### Qué se hizo
+- **Feedback visual en "Enviar a revisión"** (`smyl-professional-directory.js`, `save()`): el botón `[data-profile-finish]` ahora muestra "Enviando…" y se deshabilita durante el guardado; se restaura en el `finally`.
+- **Fallback cross-browser para `event.submitter`** (Safari < 15.4 no lo soporta): en `bindForm()` se añade un click handler en cada `[data-save-status]` que guarda `form.dataset.pendingStatus` antes del submit; `save()` lee ese valor como fallback.
+- **`console.error`** en el catch de `save()` para que los errores sean visibles en DevTools.
+- **Scroll al feedback** después de guardar, para que el mensaje sea visible aunque el formulario sea largo.
+- **Versión bumpeada a v9** en `app.html` y `mobile/www/app.html`.
+
+### Archivos tocados
+- `smyl-professional-directory.js`
+- `app.html` (v9)
+- `mobile/www/app.html`
+
+---
+
+## 2026-10-21 — Claude: checklist se actualiza en tiempo real (v8)
+
+### Qué se hizo
+- **`updateProfileLive` extiende actualización al checklist DOM** (`smyl-professional-directory.js`): antes el anillo/porcentaje se actualizaba en vivo pero el checklist leía solo del perfil guardado en BD. Ahora `updateProfileLive` también actualiza los íconos ✓/●, la etiqueta "requerido", y el encabezado del checklist en tiempo real conforme el usuario escribe.
+- **Versión bumpeada a v8** en `app.html` y `mobile/www/app.html`.
+
+### Archivos tocados
+- `smyl-professional-directory.js`
+- `app.html` (v8)
+- `mobile/www/app.html`
+
+---
+
 ## 2026-10-21 — Claude: mejoras UX en formulario de ficha profesional (v7)
 
 ### Qué se hizo
