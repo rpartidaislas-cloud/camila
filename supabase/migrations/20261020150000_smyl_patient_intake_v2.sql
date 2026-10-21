@@ -5,6 +5,12 @@
 -- Se aplica con el flujo manual .github/workflows/smyl-pacientes-alta-v2-migracion.yml
 -- (Actions > Run workflow). Mientras no se aplique, el cliente guarda los datos
 -- básicos y avisa (PGRST204). Es idempotente.
+--
+-- Aplicada en producción el 2026-10-21 por tramos con la herramienta de Supabase
+-- (columnas y llaves, disparador, búsqueda de duplicados); el SQL es el mismo. El
+-- disparador usa search_path = pg_catalog, que para esta función equivale al vacío
+-- original. El ensayo completo con search_path = '' se colgó en la herramienta; la
+-- causa no se confirmó.
 
 begin;
 
@@ -43,7 +49,7 @@ comment on column public.camila_pacientes.consentimiento_whatsapp is 'El pacient
 create or replace function public.smyl_patient_consent_stamp()
 returns trigger
 language plpgsql
-set search_path = ''
+set search_path = pg_catalog
 as $$
 begin
   if new.consentimiento_whatsapp and (tg_op = 'INSERT' or not coalesce(old.consentimiento_whatsapp, false)) then
@@ -55,8 +61,7 @@ begin
 end;
 $$;
 
-drop trigger if exists smyl_patient_consent_stamp on public.camila_pacientes;
-create trigger smyl_patient_consent_stamp
+create or replace trigger smyl_patient_consent_stamp
   before insert or update of consentimiento_whatsapp on public.camila_pacientes
   for each row execute function public.smyl_patient_consent_stamp();
 
