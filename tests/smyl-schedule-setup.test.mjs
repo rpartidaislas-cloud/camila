@@ -31,6 +31,8 @@ const api = {
   assess: (data) => plain(raw.assess(plain(data))),
   plan: (data, options, can) => plain(raw.plan(plain(data), plain(options), plain(can))),
   dayRange: (days) => raw.dayRange(plain(days)),
+  planServices: (data, selected, presets, options, can) => plain(raw.planServices(plain(data), plain(selected), plain(presets), { ...options }, plain(can))),
+  planRooms: (data, count) => plain(raw.planRooms(plain(data), count)),
 };
 
 const base = () => ({
@@ -38,9 +40,10 @@ const base = () => ({
   professionals: [{ id: 'p1', display_name: 'Dr Hernan Partida' }],
   professionalBranches: [{ professional_id: 'p1', branch_id: 'b1' }],
   professionalServices: [{ professional_id: 'p1', service_id: 's1' }],
-  services: [{ id: 's1' }],
+  services: [{ id: 's1', name: 'Consulta y valoración inicial', template_key: 'diagnostic-initial' }],
   clinicHours: [],
   professionalHours: [],
+  rooms: [],
 });
 const both = { clinic: true, schedule: true };
 const standard = { days: [1, 2, 3, 4, 5], start: '09:00', end: '18:00' };
@@ -48,7 +51,7 @@ const standard = { days: [1, 2, 3, 4, 5], start: '09:00', end: '18:00' };
 test('la clínica de la captura: sólo faltan los dos horarios', () => {
   const a = api.assess(base());
   assert.equal(a.ready, false);
-  assert.deepEqual(a.steps.filter((s) => !s.done).map((s) => s.id), ['clinicHours', 'professionalHours']);
+  assert.deepEqual(a.steps.filter((s) => !s.done && !s.optional).map((s) => s.id), ['clinicHours', 'professionalHours']);
   assert.match(a.steps[1].detail, /Circulo Medico Dental/);
   assert.match(a.steps[3].detail, /Dr Hernan Partida/);
 });
@@ -125,11 +128,12 @@ test('varias sucursales y profesionales: cada uno sólo en sus sucursales', () =
 });
 
 test('los pasos detectan sucursal, profesional y servicio faltantes', () => {
-  const a = api.assess({ branches: [], professionals: [], professionalBranches: [], professionalServices: [], services: [], clinicHours: [], professionalHours: [] });
-  assert.deepEqual(a.steps.filter((s) => !s.done).map((s) => s.id), ['branch', 'clinicHours', 'professional', 'professionalHours', 'services']);
+  const a = api.assess({ branches: [], professionals: [], professionalBranches: [], professionalServices: [], services: [], clinicHours: [], professionalHours: [], rooms: [] });
+  assert.deepEqual(a.steps.filter((s) => !s.done && !s.optional).map((s) => s.id), ['branch', 'clinicHours', 'professional', 'professionalHours', 'services']);
   const sinServicio = base(); sinServicio.professionalServices = [];
   assert.equal(api.assess(sinServicio).steps.find((s) => s.id === 'services').done, false);
   const inactivo = base(); inactivo.services = [];
+  assert.match(api.assess(inactivo).steps.find((s) => s.id === 'services').detail, /Aún no hay servicios/);
   assert.equal(api.assess(inactivo).steps.find((s) => s.id === 'services').done, false);
 });
 
@@ -155,11 +159,93 @@ test('web, móvil y PWA publican el asistente', () => {
   for (const file of ['smyl-schedule-setup.js', 'smyl-schedule-setup.css', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /<script defer src="smyl-schedule-setup\.js\?v=1"><\/script>/);
-  assert.match(read('app.html'), /<link rel="stylesheet" href="smyl-schedule-setup\.css\?v=1">/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-setup\.js\?v=1/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-setup\.css\?v=1/);
+  assert.match(read('app.html'), /<script defer src="smyl-schedule-setup\.js\?v=2"><\/script>/);
+  assert.match(read('app.html'), /<link rel="stylesheet" href="smyl-schedule-setup\.css\?v=2">/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-setup\.js\?v=2/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-setup\.css\?v=2/);
   const css = read('smyl-schedule-setup.css');
   assert.doesNotMatch(css, /font-size:\s*(?:[0-9]|10)px/, 'texto de al menos 11 px');
   assert.doesNotMatch(css, /border-radius:\s*(?:1[3-9]|[2-9][0-9])px/, 'radios de hasta 12 px en superficies operativas');
+});
+
+const presets = [
+  { key: 'diagnostic-initial', name: 'Consulta y valoración inicial' },
+  { key: 'diagnostic-periodic', name: 'Revisión periódica' },
+  { key: 'preventive-prophylaxis', name: 'Limpieza dental / profilaxis' },
+];
+const allCan = { clinic: true, schedule: true, services: true };
+let counter = 0;
+const newId = () => `id-${++counter}`;
+const empty = () => ({ ...base(), services: [], professionalServices: [] });
+
+test('clínica nueva: crea los servicios elegidos y los asigna a los profesionales', () => {
+  const p = api.planServices(empty(), ['diagnostic-initial', 'diagnostic-periodic'], presets, { newId }, allCan);
+  assert.deepEqual(p.create.map((c) => c.preset.key), ['diagnostic-initial', 'diagnostic-periodic']);
+  assert.equal(p.assignments.length, 2);
+  assert.ok(p.assignments.every((a) => a.professional_id === 'p1' && a.isNew));
+  assert.deepEqual(p.create.map((c) => c.id), p.assignments.map((a) => a.service_id), 'las asignaciones apuntan a los ids nuevos');
+});
+
+test('no repite servicios: ni por plantilla ni por nombre sin acentos ni mayúsculas', () => {
+  const data = empty();
+  data.services = [{ id: 'x1', name: 'REVISION PERIODICA', template_key: null }, { id: 'x2', name: 'Otro', template_key: 'preventive-prophylaxis' }];
+  data.professionalServices = [{ professional_id: 'p1', service_id: 'x1' }, { professional_id: 'p1', service_id: 'x2' }];
+  const p = api.planServices(data, ['diagnostic-initial', 'diagnostic-periodic', 'preventive-prophylaxis'], presets, { newId }, allCan);
+  assert.deepEqual(p.create.map((c) => c.preset.key), ['diagnostic-initial']);
+  assert.deepEqual(p.already.map((x) => x.key).sort(), ['diagnostic-periodic', 'preventive-prophylaxis']);
+});
+
+test('asigna también servicios existentes que ningún profesional realiza, sin duplicar pares', () => {
+  const data = empty();
+  data.services = [{ id: 'x1', name: 'Blanqueamiento', template_key: null }, { id: 'x2', name: 'Limpieza', template_key: null }];
+  data.professionalServices = [{ professional_id: 'p1', service_id: 'x2' }];
+  const p = api.planServices(data, [], presets, { newId }, allCan);
+  assert.equal(p.create.length, 0);
+  assert.deepEqual(p.assignments.map((a) => a.service_id), ['x1'], 'x2 ya tiene profesional');
+  data.professionals.push({ id: 'p2', display_name: 'Dra Ruiz' });
+  const q = api.planServices(data, [], presets, { newId }, allCan);
+  assert.deepEqual(q.assignments.map((a) => a.professional_id + ':' + a.service_id).sort(), ['p1:x1', 'p2:x1']);
+});
+
+test('sin permisos: sin configuración no se crean servicios y sin Agenda no se asigna', () => {
+  const sinConfig = api.planServices(empty(), ['diagnostic-initial'], presets, { newId }, { schedule: true, services: false });
+  assert.equal(sinConfig.create.length + sinConfig.assignments.length, 0);
+  const sinAgenda = api.planServices(empty(), ['diagnostic-initial'], presets, { newId }, { schedule: false, services: true });
+  assert.equal(sinAgenda.create.length, 1);
+  assert.equal(sinAgenda.assignments.length, 0);
+  const sinAsignar = api.planServices(empty(), ['diagnostic-initial'], presets, { newId, assign: false }, allCan);
+  assert.equal(sinAsignar.create.length, 1);
+  assert.equal(sinAsignar.assignments.length, 0);
+});
+
+test('sillones: sólo en sucursales que no tienen, con nombres numerados y límites', () => {
+  const data = base();
+  data.branches.push({ id: 'b2', name: 'Norte' });
+  data.rooms = [{ id: 'r1', branch_id: 'b1', name: 'Sillón 1' }];
+  const p = api.planRooms(data, 2);
+  assert.deepEqual(p.map((r) => r.branch_id + ':' + r.name), ['b2:Sillón 1', 'b2:Sillón 2']);
+  assert.equal(api.planRooms(base(), 0).length, 1, 'mínimo uno');
+  assert.equal(api.planRooms(base(), 99).length, 10, 'máximo diez');
+  assert.equal(api.planRooms({ ...base(), rooms: [{ id: 'r', branch_id: 'b1', name: 'Sala' }] }, 3).length, 0, 'ya tiene sillones');
+});
+
+test('los sillones son opcionales: no bloquean que la agenda esté lista', () => {
+  const data = base();
+  const p = api.plan(data, standard, both);
+  data.clinicHours = p.clinic; data.professionalHours = p.professional;
+  const a = api.assess(data);
+  assert.equal(a.ready, true);
+  assert.equal(a.steps.find((s) => s.id === 'rooms').done, false);
+  assert.equal(a.steps.find((s) => s.id === 'rooms').optional, true);
+});
+
+test('el asistente escribe servicios y sillones con las llaves y permisos de la base', () => {
+  const source = read('smyl-schedule-setup.js');
+  assert.match(source, /ask\('settings\.manage'\)/);
+  assert.match(source, /model\.presetInsert\(c\.preset, tenant, actor\)/, 'reutiliza el catálogo dental, que deja lo fiscal en revisión');
+  assert.match(source, /from\('smyl_services'\)\.insert\(rows\)/);
+  assert.match(source, /from\('smyl_professional_services'\)\.upsert\(.*onConflict: 'tenant_id,professional_id,service_id', ignoreDuplicates: true/);
+  assert.match(source, /from\('smyl_rooms'\)\.insert\(.*room_type: 'sillon'/);
+  assert.match(source, /Con sillones configurados, cada cita debe elegir uno/, 'avisa del efecto de configurar sillones');
+  assert.doesNotMatch(source, /reference_price/, 'no inventa precios');
 });
