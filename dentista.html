@@ -512,7 +512,17 @@
       (function () {
         "use strict";
         var SUPA_URL = "https://rpxshsiwoxdbuevjjpfw.supabase.co",
-          SUPA_KEY = "sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo";
+          SUPA_KEY = "sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo",
+          // Cloudflare Turnstile — reemplaza con tu site key de https://dash.cloudflare.com/?to=/:account/turnstile
+          // Deja vacío ("") para deshabilitar el widget; el backend también
+          // requiere TURNSTILE_SECRET_KEY en los secrets de Supabase para validar.
+          TURNSTILE_SITE_KEY = "";
+        if (TURNSTILE_SITE_KEY) {
+          var _ts = document.createElement("script");
+          _ts.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+          _ts.async = true; _ts.defer = true;
+          document.head.appendChild(_ts);
+        }
         var sb = window.supabase.createClient(SUPA_URL, SUPA_KEY),
           app = document.getElementById("app"),
           profile = null;
@@ -682,7 +692,9 @@
             selectOptions(services) +
             '</select></label><label>Ubicación<select name="branch_id" required><option value="">Selecciona</option>' +
             selectOptions(locations) +
-            '</select></label><label>Fecha y hora preferida<input name="requested_start" type="datetime-local"></label><label>¿Cómo podemos ayudarte?<textarea name="message" maxlength="1200" placeholder="Cuéntanos brevemente el motivo de tu visita. No compartas información sensible."></textarea></label><label class="honeypot">Sitio web<input name="website" tabindex="-1" autocomplete="off"></label><div id="form-error" aria-live="polite"></div><button type="submit">Enviar solicitud</button><div class="fine">Esto es una solicitud, no una cita confirmada. Tus datos se compartirán únicamente con esta clínica para contactarte.</div></form></aside></div></div>';
+            '</select></label><label>Fecha y hora preferida<input name="requested_start" type="datetime-local"></label><label>¿Cómo podemos ayudarte?<textarea name="message" maxlength="1200" placeholder="Cuéntanos brevemente el motivo de tu visita. No compartas información sensible."></textarea></label><label class="honeypot">Sitio web<input name="website" tabindex="-1" autocomplete="off"></label>' +
+            (TURNSTILE_SITE_KEY ? '<div class="cf-turnstile" data-sitekey="' + TURNSTILE_SITE_KEY + '" data-theme="auto" data-size="normal" style="margin:8px 0"></div>' : '') +
+            '<div id="form-error" aria-live="polite"></div><button type="submit">Enviar solicitud</button><div class="fine">Esto es una solicitud, no una cita confirmada. Tus datos se compartirán únicamente con esta clínica para contactarte.</div></form></aside></div></div>';
           document
             .getElementById("appointment-form")
             .addEventListener("submit", submit);
@@ -735,6 +747,7 @@
                     requested_start: data.get("requested_start"),
                     message: data.get("message"),
                     website: data.get("website"),
+                    cf_turnstile_response: TURNSTILE_SITE_KEY ? (data.get("cf-turnstile-response") || "") : undefined,
                   }),
                 },
               ),
@@ -754,6 +767,7 @@
             error.innerHTML = '<div class="error">' + esc(e.message) + "</div>";
             button.disabled = false;
             button.textContent = "Enviar solicitud";
+            if (TURNSTILE_SITE_KEY && window.turnstile) window.turnstile.reset();
           }
         }
         async function init() {

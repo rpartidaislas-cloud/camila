@@ -12,6 +12,7 @@ const CORS = {
 };
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+const TURNSTILE_SECRET = Deno.env.get("TURNSTILE_SECRET_KEY") || "";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 function response(status: number, body: Record<string, unknown>): Response {
@@ -37,6 +38,21 @@ Deno.serve(async (req: Request) => {
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return response(400, { error: "Solicitud inválida." }); }
   if (clean(body.website, 120)) return response(200, { ok: true }); // honeypot
+
+  // Cloudflare Turnstile — solo activo cuando TURNSTILE_SECRET_KEY está configurado.
+  // Fail-open intencionalmente: si el secret no está, el endpoint sigue funcionando
+  // para no romper clínicas que aún no lo han configurado.
+  if (TURNSTILE_SECRET) {
+    const token = clean(body.cf_turnstile_response, 2048);
+    if (!token) return response(400, { error: "Completa el desafío de seguridad." });
+    const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "";
+    const form = new URLSearchParams({ secret: TURNSTILE_SECRET, response: token });
+    if (ip) form.set("remoteip", ip);
+    const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST", body: form,
+    }).then((r) => r.json()).catch(() => ({ success: false }));
+    if (!verify.success) return response(403, { error: "Verificación fallida. Recarga la página e intenta de nuevo." });
+  }
 
   const slug = clean(body.profile_slug, 80).toLowerCase();
   const fullName = clean(body.name, 150);
