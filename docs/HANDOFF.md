@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: mejoras UX en formulario de ficha profesional (v7)
+
+### Qué se hizo
+- **Checklist de completitud en Step 4** (`smyl-professional-directory.js`): nueva función `readinessChecklist(progress)` que reemplaza el mensaje vago "Estás muy cerca" con un checklist visual agrupado por paso (Identidad, Presentación, Confianza). Cada ítem muestra ✓/● con etiqueta "requerido" en los obligatorios y botón "Ir a completar →" por grupo si faltan campos.
+- **Contadores de caracteres** en bio (mínimo 40 / máximo 1600) y headline (máximo 160). Se actualizan en tiempo real con `input`/`change`. El contador pone el número en rojo cuando no llega al mínimo, verde cuando lo cumple.
+- **Feedback visual en "Guardar borrador"**: botón cambia texto a "Guardando…" y se deshabilita durante el guardado; se restaura en el `finally` independientemente del resultado.
+- **CSS nuevos** (`smyl-professional-directory.css`): `.directory-checklist-*`, `.directory-char-hint`, `.btn:active`.
+- **Versión bumpeada a v7** en `app.html`.
+- `mobile/www/app.html` sincronizado.
+
+### Nota para el usuario
+El checklist del Step 4 lee del perfil guardado en la BD, no del formulario en vivo. Si se llena la bio en Step 2 y parece que el checklist no actualiza, hay que hacer clic en "Guardar borrador" primero — después del guardado, el panel recarga y el checklist refleja el estado real.
+
+### Archivos tocados
+- `smyl-professional-directory.js`
+- `smyl-professional-directory.css`
+- `app.html` (v7)
+- `mobile/www/app.html`
+
+
+
 ## 2026-10-21 — Claude: auditoría de seguridad y CORS restrictivo en Edge Functions
 
 ### Qué se hizo
