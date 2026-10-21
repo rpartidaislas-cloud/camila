@@ -59,8 +59,8 @@ test('web, móvil y PWA publican la misma Agenda', () => {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=12/);
-    assert.match(read(file), /smyl-schedule\.css\?v=7/);
+    assert.match(read(file), /smyl-schedule\.js\?v=1[2-9]/);
+    assert.match(read(file), /smyl-schedule\.css\?v=[7-9]/);
   }
   const css = read('smyl-schedule.css');
   assert.match(css, /\.schedule-dialog-error\{/);

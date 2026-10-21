@@ -579,6 +579,38 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-21 — Claude (sesión backend): la Agenda busca pacientes en el servidor
+
+`smyl-schedule.js?v=13` / `smyl-schedule.css?v=8`. **Aviso a la sesión visual:** toqué
+`smyl-schedule.js` (carga de pacientes y el combobox de Nueva cita).
+
+- **Problema:** la Agenda descargaba a todos los pacientes y filtraba en el navegador. PostgREST
+  corta en 1000 filas sin avisar, así que a partir de ahí había pacientes inalcanzables.
+- **Carga:** ahora trae sólo los 200 más recientes (`updated_at desc`) y `ensurePatients()` completa
+  por id, en lotes de 100, los pacientes de las citas y solicitudes visibles. También lo usa
+  `SmylSchedule.forPatient()`. Reprogramar y revisar solicitud ofrecen sólo al paciente de la cita.
+- **Búsqueda:** `smyl_search_patients(p_tenant_id, p_query, p_limit)` (migración
+  `20261021120000_smyl_search_patients.sql`, **SECURITY INVOKER**): nombre, apellido, correo y
+  teléfono sin distinguir acentos ni mayúsculas, todos los términos deben coincidir, máximo 6
+  términos y 20 resultados, `%` `_` `\` literales y un teléfono con espacios o guiones se busca
+  completo. Como es invoker, la política de lectura y el alcance del rol deciden qué ve cada
+  persona; además exige el tenant de la sesión. Sin texto devuelve los más recientes.
+- **Cliente:** espera de 250 ms, secuencia para descartar respuestas tardías, estado «Buscando…»
+  y aviso si la búsqueda falla.
+- **Degradación:** si la función aún no existe (`PGRST202`/`42883`) hace una consulta directa con
+  `ilike` sobre el texto con y sin acentos (40 candidatos, filtrados en el navegador). En ese
+  modo **no** encuentra «dona» si el nombre es «Doña»; la función de la base sí.
+- **Pendiente de producción:** aplicar la migración con el flujo manual
+  `.github/workflows/smyl-buscar-pacientes-migracion.yml` (necesita el secreto
+  `SUPABASE_ACCESS_TOKEN`) o con el conector de Supabase. El conector de la sesión perdió el
+  permiso, así que no se aplicó ni se ensayó en la base real.
+- **Verificado:** la función en un Postgres de prueba con RLS (acentos, comodines, teléfono,
+  límites, otra clínica, paciente fuera del alcance); la interfaz en Chromium con 1500 pacientes
+  simulados (alguien fuera de los 200 recientes se encuentra, una sola consulta al teclear
+  «doña», el nombre de una cita antigua se resuelve) y también sin la función.
+- **No cubierto:** la pantalla Pacientes (`todosLosPacientes`) y el selector de casos siguen
+  cargando y filtrando en el navegador.
+
 ### 2026-10-21 — Claude (sesión backend): el asistente de la Agenda crea servicios y sillones
 
 `smyl-schedule-setup.js?v=2` / `smyl-schedule-setup.css?v=2`. Amplía el asistente de la entrada
