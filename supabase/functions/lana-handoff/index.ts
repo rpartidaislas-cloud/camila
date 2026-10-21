@@ -1,20 +1,8 @@
 import { requireUser } from "../_shared/auth.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
-
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
 
 function uuid(value: unknown): string | null {
   const candidate = String(value || "").trim();
@@ -27,6 +15,9 @@ function uuid(value: unknown): string | null {
 // Toda la autorización y resolución se ejecuta en lana-inbox, que valida el
 // alcance de la conversación antes de mostrar candidatos o crear un caso.
 Deno.serve(async (req: Request) => {
+  const CORS = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+  const json = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "Método no permitido." });
 

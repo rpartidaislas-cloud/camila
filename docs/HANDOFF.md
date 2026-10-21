@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: auditoría de seguridad y CORS restrictivo en Edge Functions
+
+### Qué se hizo
+- **`_shared/cors.ts`** reescrito: exporta `makeCors(req)` que refleja el `Origin` del request solo si está en la lista permitida (`https://app.smyldesign.ai`, `https://rpartidaislas-cloud.github.io`); incluye `Vary: Origin`. Para endpoints públicos o server-to-server exporta `corsPublic` (sigue siendo `*`).
+- **`_shared/limits.ts`**: añadido `Retry-After: 60` en respuestas HTTP 429.
+- **22 Edge Functions privadas migradas** de `const CORS = { "Access-Control-Allow-Origin": "*", ... }` a módulo a `const CORS = makeCors(req)` dentro de `Deno.serve`, eliminando el wildcard en endpoints autenticados:
+  - `whatsapp-templates`, `security-monitor`, `file-lifecycle-maintenance`, `invite-staff`, `lana-channels`
+  - `lana-webhook`, `lana-attention`, `lana-connection`, `lana-handoff`, `lana-context`, `lana-training`
+  - `secure-clinical-file`, `sign-segmentation-masks`, `meta-send`, `appointment-reminders`
+  - `mila-actions`, `mila-realtime-session`, `mila-transcribe`
+  - `claude` (x-tenant-id en allowed headers para modo prospecto), `lana-inbox` (requirePermission movido dentro del handler), `segment-teeth` (usa `corsHeaders`; usa `serve` de deno.land/std)
+- **5 funciones mantenidas con `*`** (legítimamente públicas/server-to-server): `public-appointment-request`, `public-patient-reviews`, `public-professional-cases`, `guardar-lead-prospecto`, `analizar-foto`.
+- **Bundles regenerados** en `docs/bundles/` para todas las funciones modificadas.
+
+### Casos especiales de CORS
+- `lana-handoff`, `lana-training`, `lana-inbox`: añaden `idempotency-key` a `Access-Control-Allow-Headers`.
+- `claude`, `segment-teeth`: añaden `x-tenant-id` (modo prospecto anónimo).
+- `lana-attention`, `lana-connection`, `lana-context`, `lana-training`, `lana-inbox`: métodos `GET, POST, PUT, OPTIONS`.
+
+### Para desplegar
+Cada función modificada necesita redesplegarse en Supabase. Usar los bundles de `docs/bundles/` o los archivos fuente en `supabase/functions/`. No hay cambios de esquema ni de migraciones.
+
+
+
 ## 2026-10-21 — Claude: preparación para app.smyldesign.ai (dominio propio)
 
 - Dominio `smyldesign.ai` en Hostinger; el panel irá en `app.smyldesign.ai` (GitHub Pages con dominio propio, donde la app

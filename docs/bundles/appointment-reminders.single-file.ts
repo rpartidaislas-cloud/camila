@@ -233,6 +233,40 @@ async function lanaRequest(
 return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
+// ── _shared/cors.ts ──
+const { makeCors, corsPublic, corsHeaders } = (() => {
+// Orígenes autorizados para funciones privadas (autenticadas).
+// Las funciones públicas (webhooks, portales de paciente) usan corsPublic o "*" directamente.
+const ALLOWED_ORIGINS = new Set([
+  'https://app.smyldesign.ai',
+  'https://rpartidaislas-cloud.github.io',
+]);
+
+// Para funciones privadas: refleja el origen si está en la lista; si no, bloquea con el origen
+// principal. Siempre incluye Vary:Origin para que las cachés no reutilicen respuestas entre orígenes.
+function makeCors(req: Request, methods = 'POST, OPTIONS'): Record<string, string> {
+  const origin = req.headers.get('origin') || '';
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.has(origin) ? origin : 'https://app.smyldesign.ai',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': methods,
+    'Vary': 'Origin',
+  };
+}
+
+// Para endpoints públicos que legítimamente necesitan "*" (portales de paciente, formularios públicos).
+const corsPublic: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+// Alias de compatibilidad hacia atrás (stripe-checkout, stripe-portal).
+const corsHeaders = corsPublic;
+
+return { makeCors, corsPublic, corsHeaders };
+})();
+
 // ── appointment-reminders/index.ts ──
 // Recordatorios automáticos de cita por WhatsApp (fase 4 del chat).
 //
@@ -247,12 +281,6 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 // Todas las operaciones son idempotentes: la clave hacia LANA es el id del
 // recordatorio, así que un reintento nunca duplica el mensaje.
 
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
@@ -272,13 +300,6 @@ const MIN_NOTICE_MS = 2 * 60 * 60 * 1000;
 const WAIT_LINK_MS = 60 * 60 * 1000;
 const MAX_TRANSIENT_ATTEMPTS = 5;
 const NO_WHATSAPP = "El paciente no tiene una conversación de WhatsApp vinculada en Mensajes.";
-
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
 
 function uuid(value: unknown): string | null {
   const text = String(value || "").trim();
@@ -590,6 +611,9 @@ async function overview(tenantId: string): Promise<Record<string, number>> {
 }
 
 Deno.serve(async (req) => {
+  const CORS = makeCors(req);
+  const json = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "Método no permitido." });
 

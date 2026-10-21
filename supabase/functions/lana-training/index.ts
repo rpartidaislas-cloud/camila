@@ -1,18 +1,6 @@
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-};
-
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
+import { makeCors } from "../_shared/cors.ts";
 
 function actionPath(method: string, action: unknown): string | null {
   if (method === "GET") return action === "versions" ? "/training/versions" : "/training";
@@ -24,6 +12,9 @@ function actionPath(method: string, action: unknown): string | null {
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = { ...makeCors(req, "GET, POST, PUT, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+  const json = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!['GET', 'POST', 'PUT'].includes(req.method)) return json(405, { error: "Método no permitido." });
 

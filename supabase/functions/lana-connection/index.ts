@@ -1,12 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { lanaContractHeaders } from "../_shared/lana-contract.mjs";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY =
@@ -29,13 +24,6 @@ type LanaConfig = {
   lana_tenant_id?: string;
   provisioned_automatically?: boolean;
 };
-
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -256,6 +244,9 @@ async function provisionLana(
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = makeCors(req, "GET, POST, OPTIONS");
+  const json = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "GET" && req.method !== "POST") return json(405, { error: "Método no permitido." });
 

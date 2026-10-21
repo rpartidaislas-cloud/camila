@@ -23,6 +23,7 @@ import {
   checkLimitPorIpProspecto,
   checkLimitSinConsumir,
 } from "../_shared/limits.ts";
+import { makeCors } from "../_shared/cors.ts";
 import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import {
   calculateGptCanvas,
@@ -57,11 +58,6 @@ const SB_SERVICE_ROLE_KEY =
 const STORAGE_BUCKET = "camila-masks";
 
 const IOU_THRESHOLD = 0.3;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id",
-};
 
 type Target = "tooth" | "gum" | "treatment";
 
@@ -471,6 +467,7 @@ async function uploadAll(
 }
 
 serve(async (req) => {
+  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // Falta de configuración, no del usuario: sin esto el fallo salía como

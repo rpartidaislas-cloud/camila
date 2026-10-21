@@ -20,12 +20,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY =
@@ -38,13 +33,6 @@ const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "fals
 const META_TOKEN = Deno.env.get("META_TOKEN") || "";
 
 const GRAPH_VERSION = "v21.0";
-
-function jsonError(status: number, msg: string): Response {
-  return new Response(JSON.stringify({ error: msg }), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
 
 async function enviarWhatsApp(phoneNumberId: string, para: string, texto: string): Promise<string | null> {
   const resp = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`, {
@@ -69,6 +57,9 @@ async function enviarMessengerOInstagram(pageOrIgId: string, para: string, texto
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = makeCors(req);
+  const jsonError = (status: number, msg: string): Response =>
+    new Response(JSON.stringify({ error: msg }), { status, headers: { ...CORS, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return jsonError(405, "Método no permitido.");
 
