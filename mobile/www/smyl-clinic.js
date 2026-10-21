@@ -55,6 +55,7 @@
   function patientBlockMessage(reason) {
     if (reason === 'session') return 'Tu sesión expiró. Vuelve a iniciar sesión para dar de alta pacientes.';
     if (reason === 'tenant') return 'Tu cuenta está activa en una clínica distinta a la que muestra la pantalla. Cierra sesión y vuelve a entrar.';
+    if (reason === 'scope') return 'Tu cuenta tiene permiso para dar de alta pacientes, pero el alcance de datos de tu rol no incluye la ficha nueva y la base la rechazó. Pide al propietario que revise el alcance de «Pacientes» de tu rol en Mi clínica → Equipo, roles y profesionales.';
     return 'Tu rol en esta clínica no permite dar de alta ni editar pacientes (permiso «Pacientes · gestionar»). Pide al propietario que lo active en Mi clínica → Equipo, roles y profesionales.';
   }
   var intakeCatalogs = { tenant: null, branches: [], professionals: [] };
@@ -656,8 +657,16 @@
       document.getElementById('modal-paciente').classList.remove('visible'); patientAttempt = null;
       await verPaciente(saved.id);
     } catch (error) {
+      var failure;
+      if (error.code === '42501') {
+        // 42501 puede ser falta de permiso o de alcance de datos: la base rechaza
+        // la fila si el rol no puede leerla de vuelta. Se vuelve a preguntar el
+        // permiso para no culpar al permiso cuando sí existe.
+        var recheck = await patientPermissionCheck(tenantId);
+        failure = patientBlockMessage(recheck && recheck.ok ? 'scope' : recheck && recheck.reason ? recheck.reason : 'permission');
+      }
       feedback.append(notice(error.code === '23505' || error.code === 'PGRST116' ? 'No se confirmó esta operación. Cierra el formulario y vuelve a cargar Pacientes antes de reintentar para evitar duplicados o sobrescribir cambios.'
-        : error.code === '42501' ? patientBlockMessage('permission')
+        : failure ? failure
         : error.code === 'PGRST301' ? patientBlockMessage('session')
         : model.errorMessage(error), true));
     } finally { savingPatient = false; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; }); }
