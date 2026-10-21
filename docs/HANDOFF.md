@@ -13,6 +13,7 @@
   - `claude` (x-tenant-id en allowed headers para modo prospecto), `lana-inbox` (requirePermission movido dentro del handler), `segment-teeth` (usa `corsHeaders`; usa `serve` de deno.land/std)
 - **5 funciones mantenidas con `*`** (legítimamente públicas/server-to-server): `public-appointment-request`, `public-patient-reviews`, `public-professional-cases`, `guardar-lead-prospecto`, `analizar-foto`.
 - **Bundles regenerados** en `docs/bundles/` para todas las funciones modificadas.
+- **`stripe-checkout`, `stripe-portal`**: migradas por separado a `makeCors(req)` + `Cache-Control: no-store` en respuestas de facturación (no usan `requireUser` sino autenticación directa por JWT). Total: **24 funciones privadas migradas**.
 
 ### Casos especiales de CORS
 - `lana-handoff`, `lana-training`, `lana-inbox`: añaden `idempotency-key` a `Access-Control-Allow-Headers`.
@@ -22,6 +23,20 @@
 ### Para desplegar
 Cada función modificada necesita redesplegarse en Supabase. Usar los bundles de `docs/bundles/` o los archivos fuente en `supabase/functions/`. No hay cambios de esquema ni de migraciones.
 
+### Pendiente (sin código — requiere acción en Cloudflare)
+1. **Headers de seguridad** vía Cloudflare → Rules → Transform Rules → Modify Response Header:
+   - `X-Content-Type-Options: nosniff`
+   - `X-Frame-Options: SAMEORIGIN`
+   - `Referrer-Policy: strict-origin-when-cross-origin`
+   - `Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=()`
+   - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+   - `Content-Security-Policy` (ver notas abajo)
+2. **Cloudflare Turnstile** en `public-appointment-request` — requiere site key de Cloudflare Dashboard.
+
+**CSP recomendada** (requiere validación manual en dev — tiene `unsafe-inline` porque la app usa muchos scripts inline):
+```
+default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self' blob:; frame-src https://checkout.stripe.com https://billing.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'
+```
 
 
 ## 2026-10-21 — Claude: preparación para app.smyldesign.ai (dominio propio)
