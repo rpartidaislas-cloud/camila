@@ -44,10 +44,9 @@ export interface LimitResult {
 }
 
 function limitDeny(cors: Record<string, string>, status: number, msg: string): Response {
-  return new Response(JSON.stringify({ error: msg }), {
-    status,
-    headers: { ...cors, 'Content-Type': 'application/json' },
-  });
+  const headers: Record<string, string> = { ...cors, 'Content-Type': 'application/json' };
+  if (status === 429) headers['Retry-After'] = '60';
+  return new Response(JSON.stringify({ error: msg }), { status, headers });
 }
 
 function ipDelRequest(req: Request): string {

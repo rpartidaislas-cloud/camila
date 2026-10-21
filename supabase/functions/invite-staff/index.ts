@@ -15,12 +15,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY =
@@ -39,14 +34,11 @@ const LIMITE_USUARIOS_POR_PLAN: Record<string, number> = {
   // premium: sin tope (no aparece aquí a propósito, ver chequeo abajo).
 };
 
-function jsonError(status: number, msg: string): Response {
-  return new Response(JSON.stringify({ error: msg }), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
-
 Deno.serve(async (req: Request) => {
+  const CORS = makeCors(req);
+  const jsonError = (status: number, msg: string): Response =>
+    new Response(JSON.stringify({ error: msg }), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return jsonError(405, "Método no permitido.");
 

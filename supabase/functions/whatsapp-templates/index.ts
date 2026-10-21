@@ -12,17 +12,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest, smylAdmin } from "../_shared/lana-linked.ts";
 import { TEMPLATES, LANGUAGE, validate } from "../_shared/whatsapp-template-catalog.mjs";
+import { makeCors } from "../_shared/cors.ts";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(status: number, body: Record<string, unknown>): Response {
+function json(cors: Record<string, string>, status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 }
 
@@ -75,26 +70,27 @@ const REQUEST_ERRORS: Record<string, string> = {
 };
 
 Deno.serve(async (req) => {
+  const CORS = makeCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json(405, { error: "Método no permitido." });
+  if (req.method !== "POST") return json(CORS, 405, { error: "Método no permitido." });
 
   const auth = await requireUser(req, CORS);
   if (auth.response) return auth.response;
-  if (!auth.user || !auth.tenantId) return json(401, { error: "Se requiere una sesión profesional válida." });
+  if (!auth.user || !auth.tenantId) return json(CORS, 401, { error: "Se requiere una sesión profesional válida." });
   const tenantId = auth.tenantId;
   const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const action = text(body.action, 30);
 
   const owner = await isOwner(auth.user, tenantId);
-  if (!owner && !await canRead(jwt, tenantId)) return json(403, { error: "Tu rol no permite consultar las plantillas.", code: "permission_denied" });
+  if (!owner && !await canRead(jwt, tenantId)) return json(CORS, 403, { error: "Tu rol no permite consultar las plantillas.", code: "permission_denied" });
 
   if (action === "list") {
     try {
       const remote = await lanaRequest(tenantId, "/inbox/whatsapp/templates?status=all", { method: "GET", headers: actorHeaders(auth.user, owner) }, 15000);
-      if (!remote.response.ok) return json(502, { error: text(remote.body.error, 300) || "El servicio de mensajería no devolvió las plantillas.", code: "lana_error" });
+      if (!remote.response.ok) return json(CORS, 502, { error: text(remote.body.error, 300) || "El servicio de mensajería no devolvió las plantillas.", code: "lana_error" });
       const list = Array.isArray(remote.body.templates) ? remote.body.templates as Record<string, unknown>[] : [];
-      return json(200, {
+      return json(CORS, 200, {
         can_request: owner,
         templates: list.map((item) => ({
           name: text(item.name, 200), language: text(item.language, 20), category: text(item.category, 20),
@@ -102,17 +98,17 @@ Deno.serve(async (req) => {
         })).filter((item) => item.name),
       });
     } catch (error) {
-      return json(502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? "El servicio de mensajería todavía no está conectado." : "No pudimos consultar el servicio de mensajería.", code: "lana_unreachable" });
+      return json(CORS, 502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? "El servicio de mensajería todavía no está conectado." : "No pudimos consultar el servicio de mensajería.", code: "lana_unreachable" });
     }
   }
 
   if (action === "request") {
-    if (!owner) return json(403, { error: REQUEST_ERRORS.owner_required, code: "owner_required" });
+    if (!owner) return json(CORS, 403, { error: REQUEST_ERRORS.owner_required, code: "owner_required" });
     const id = text(body.template_id, 80);
     const template = (TEMPLATES as Template[]).find((item) => item.id === id);
-    if (!template) return json(400, { error: "Esa plantilla no está en el catálogo de SMYL.", code: "unknown_template" });
+    if (!template) return json(CORS, 400, { error: "Esa plantilla no está en el catálogo de SMYL.", code: "unknown_template" });
     const issues = validate(template);
-    if (issues.length) return json(500, { error: "La plantilla del catálogo no cumple las reglas de Meta.", code: "invalid_catalog_template" });
+    if (issues.length) return json(CORS, 500, { error: "La plantilla del catálogo no cumple las reglas de Meta.", code: "invalid_catalog_template" });
     try {
       const remote = await lanaRequest(tenantId, "/inbox/whatsapp/templates", {
         method: "POST",
@@ -125,15 +121,15 @@ Deno.serve(async (req) => {
       }, 25000);
       if (remote.response.ok) {
         const item = (remote.body.template || {}) as Record<string, unknown>;
-        return json(200, { ok: true, existing: remote.body.existing === true, status: text(item.status, 30) || "PENDING" });
+        return json(CORS, 200, { ok: true, existing: remote.body.existing === true, status: text(item.status, 30) || "PENDING" });
       }
       const code = text(remote.body.code, 60);
       const message = REQUEST_ERRORS[code] || text(remote.body.error, 400) || "El servicio de mensajería no pudo enviar la plantilla.";
-      return json(remote.response.status >= 400 && remote.response.status < 500 ? remote.response.status : 502, { error: message, code: code || "lana_error" });
+      return json(CORS, remote.response.status >= 400 && remote.response.status < 500 ? remote.response.status : 502, { error: message, code: code || "lana_error" });
     } catch (error) {
-      return json(502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? "El servicio de mensajería todavía no está conectado." : "No pudimos contactar al servicio de mensajería.", code: "lana_unreachable" });
+      return json(CORS, 502, { error: error instanceof Error && /LANA todavía no está conectada/.test(error.message) ? "El servicio de mensajería todavía no está conectado." : "No pudimos contactar al servicio de mensajería.", code: "lana_unreachable" });
     }
   }
 
-  return json(400, { error: "Acción no reconocida." });
+  return json(CORS, 400, { error: "Acción no reconocida." });
 });

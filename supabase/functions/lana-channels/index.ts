@@ -1,25 +1,20 @@
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
+import { makeCors } from "../_shared/cors.ts";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
 const SMYL_PUBLIC_APP_URL = Deno.env.get("SMYL_PUBLIC_APP_URL") || "https://rpartidaislas-cloud.github.io/camila/app.html";
-
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
 
 function channel(value: unknown): "whatsapp" | "messenger" | "instagram" | null {
   return value === "whatsapp" || value === "messenger" || value === "instagram" ? value : null;
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = makeCors(req, "GET, POST, OPTIONS");
+  const json = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "GET" && req.method !== "POST") return json(405, { error: "Método no permitido." });
 
