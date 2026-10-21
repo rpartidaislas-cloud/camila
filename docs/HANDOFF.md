@@ -579,6 +579,38 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-21 — Claude (sesión backend): asistente de puesta en marcha de la Agenda
+
+**Aviso a la sesión visual:** módulo nuevo `smyl-schedule-setup.js` + `.css` (v1), cargado
+justo después de `smyl-schedule.js`. No modifica `smyl-schedule.js`; sólo se engancha a
+`ir('agenda')` y observa `#schedule-hours-list` y `#schedule-services-list` para refrescarse.
+
+- **Qué hace:** tarjeta «Prepara tu Agenda para recibir citas» bajo `#schedule-feedback`,
+  visible sólo con `schedule.manage` y mientras falte algo. Cinco comprobaciones con datos
+  reales: sucursal activa, horario de la clínica por sucursal, profesional asignado a una
+  sucursal, horario de cada profesional y servicio con profesional asignado. Cada pendiente
+  lleva a donde se arregla (Mi clínica o la pestaña Servicios y disponibilidad).
+- **Horario estándar:** botón y diálogo (reutiliza `#schedule-dialog`) con días (Lun–Vie por
+  defecto), apertura y cierre, y vista previa de lo que se creará. Crea el horario de cada
+  sucursal y de cada profesional en bloque.
+  - Respeta lo existente: sólo rellena los días sin bloque activo; repetirlo no crea nada.
+  - El horario del profesional se recorta al de la clínica ese día (la base exige ambos).
+    Si la sucursal no abre en ese rango se omite y se avisa.
+  - Permisos como la base: clínica requiere `clinic.manage`, profesional `schedule.manage`.
+    Sin el primero sólo se crea lo del profesional.
+  - Escribe con `upsert` por la llave única (reactiva un bloque quitado antes) y sin borrar
+    nada. Son dos tablas, así que dos llamadas atómicas; si la segunda falla se dice y
+    reintentar es seguro.
+- **Verificado contra producción** (clínica «Dd», identidad del titular, transacción
+  deshecha): las mismas sentencias insertan 5 + 5 horarios y `smyl_create_appointment`
+  acepta después una cita el viernes a las 12:00. No quedó nada guardado.
+- Pruebas: `tests/smyl-schedule-setup.test.mjs` (lógica en Node con `vm`) y la interfaz real en
+  Chromium con Supabase simulado (escritorio y móvil).
+- La tarjeta «Configura tu clínica» de Inicio (`smyl-clinic-setup.js`) sigue igual: su paso
+  «Define tu horario de atención» lleva a Agenda, donde ahora está este asistente.
+- Límites: el asistente no crea sucursal, profesional ni servicio (sólo los señala), y no
+  gestiona sillones.
+
 ### 2026-10-21 — Claude (sesión backend): Nueva cita con búsqueda de paciente y alta rápida
 
 **Aviso a la sesión visual:** toqué `smyl-schedule.js` y `smyl-schedule.css` a petición
