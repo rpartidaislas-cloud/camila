@@ -2232,6 +2232,17 @@
     finally { state.availabilityLoading = false; renderAvailabilityResults(); }
   }
 
+  // Abre la primera conversación solo cuando el Inbox está a la vista: abrirla marca como leída y no debe pasar
+  // en segundo plano (pipeline, o precarga mientras la persona sigue en otro módulo).
+  function autoOpenFirst() {
+    if (state.didAutoOpen) return;
+    var page = document.getElementById('p-inbox');
+    if (!page || !page.classList.contains('activa')) return;
+    state.didAutoOpen = true;
+    var next = visibleConversations()[0];
+    if (next && window.innerWidth > 760 && state.view !== 'pipeline') openConversation(next.id);
+  }
+
   async function loadList(reset) {
     if (state.loadingList) return;
     state.loadingList = true; state.listError = '';
@@ -2249,12 +2260,7 @@
     } catch (error) { state.listError = error.message; }
     finally {
       state.loadingList = false; renderList(); renderContext();
-      if (reset && !state.didAutoOpen) {
-        state.didAutoOpen = true;
-        var next = visibleConversations()[0];
-        // En el pipeline no se abre en segundo plano: abrirla la marcaría como leída sin que nadie la vea.
-        if (next && window.innerWidth > 760 && state.view !== 'pipeline') openConversation(next.id);
-      }
+      if (reset) autoOpenFirst();
     }
   }
 
@@ -2755,10 +2761,15 @@
       previous(route);
       if (route === 'inbox') {
         if (!state.conversations.length) { loadList(true); loadTeam(); loadStages(); loadQuickReplies(); loadOperations(true); }
-        else { sync(); loadOperations(false); }
+        else { sync(); loadOperations(false); autoOpenFirst(); }
       } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); state.contextOpen = false; renderContext(); }
     };
     renderOperationsChip(); renderNotifyButton();
+    // Precarga en segundo plano para que, al entrar a Mensajes, la bandeja ya esté lista y no se arme a la vista.
+    setTimeout(function () {
+      if (state.conversations.length || state.loadingList || document.visibilityState !== 'visible') return;
+      loadList(true); loadTeam(); loadStages(); loadQuickReplies();
+    }, 2500);
     setTimeout(refreshUnreadBadge, 6000);
     setInterval(refreshUnreadBadge, 90000);
     setInterval(sync, 5000);

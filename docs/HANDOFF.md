@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: menos «brincos» al cargar el panel y al entrar a Mensajes
+
+- Medí los saltos de diseño (layout-shift) en un navegador de pruebas. Entrar a Mensajes, Agenda o Pacientes casi no
+  mueve nada; los saltos reales estaban al arrancar y en el Inicio:
+  1. `app.html`: `<body class="smyl-professional smyl-management-v3">` y el estado del menú contraído se aplican
+     antes del primer pintado. Antes los ponían scripts diferidos, y todo el panel se re-estilizaba (barra lateral
+     12→14 px de relleno, 8 px de salto en el menú): salto de 0.135.
+  2. `smyl-clinic-setup.js` (v2): guarda su última altura y reserva el hueco desde el primer cuadro; antes la
+     tarjeta «Configura tu clínica» empujaba todo el Inicio ~380 px al llegar (0.15).
+  3. `smyl-daily-home.js` (v7) / `.css` (v10): ya no vuelve a mostrar esqueletos si hay datos (solo la primera vez),
+     «Este mes» reserva su espacio si ya se mostró antes, y los esqueletos de chats y prioridades miden lo mismo que
+     su contenido.
+- `smyl-inbox.js` (v36): precarga la bandeja a los 2.5 s en segundo plano (lista, equipo, etapas, respuestas rápidas)
+  para que Mensajes no se arme a la vista. `autoOpenFirst()` abre la primera conversación solo cuando el Inbox está
+  activo (abrirla la marca como leída), también al entrar si la precarga terminó antes.
+- Resultado medido en el Inicio con datos de prueba: 0.45 → ~0.01 de salto acumulado. Pruebas 518/518.
+
 ## 2026-10-21 — Claude: Mensajes sin canales conectados
 
 - Bug: con el Inbox sin respuesta se veían a la vez la lista vacía, el panel «Continúa el siguiente caso» y un hilo

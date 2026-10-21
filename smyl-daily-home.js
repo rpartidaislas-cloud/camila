@@ -19,6 +19,10 @@
   var STATUS={confirmed:'Confirmada',arrived:'Llegó',in_progress:'En atención',completed:'Completada',no_show:'No asistió'};
   function ymd(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   function money(v) { return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Number(v)||0); }
+  function flag(key,value) {
+    try { var k='smyl_home_'+key+'_'+(window.tenantId||''); if(value===undefined)return window.localStorage.getItem(k); window.localStorage.setItem(k,value); } catch(_) {}
+    return null;
+  }
   function route(name) { if(typeof window.ir==='function')window.ir(name); }
 
   function greeting() {
@@ -31,7 +35,9 @@
     if(!home||document.getElementById('smyl-daily-home'))return;
     home.classList.add('has-daily-home');
     var section=el('section','daily-home'); section.id='smyl-daily-home';
-    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">Hoy · <b data-home-date></b></span><h1><span data-home-greeting></span>. Todo lo importante de tu clínica, en orden.</h1></div><div class="daily-home-actions" role="group" aria-label="Acciones rápidas"><button type="button" class="btn btn-primary btn-sm" data-home-task="appointment">Agendar cita</button><button type="button" class="btn btn-secondary btn-sm" data-home-task="quote">Cotizar</button><button type="button" class="btn btn-secondary btn-sm" data-home-task="payment">Cobrar</button><button type="button" class="daily-home-patient-link" data-home-patient>Registrar paciente</button><small data-home-updated aria-live="polite">Preparando la jornada…</small></div></header><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div><section class="daily-home-chats" aria-labelledby="daily-home-chats-title"><header><h2 id="daily-home-chats-title">Chats recientes</h2><button type="button" data-home-open-inbox>Ver todos <span aria-hidden="true">→</span></button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section><div class="daily-home-grid"><section class="daily-home-card daily-home-priorities"><header><div><span>Prioridades</span><h2>Qué requiere atención</h2></div><button type="button" data-home-open-agenda>Ver agenda</button></header><div data-home-priorities></div></section><aside class="daily-home-card daily-home-next"><header><div><span>Agenda</span><h2>Hoy en la agenda</h2></div><button type="button" data-home-open-agenda-2>Abrir</button></header><div data-home-next></div></aside></div><section class="daily-home-month" aria-labelledby="daily-home-month-title" hidden><header><h2 id="daily-home-month-title">Este mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section><nav class="daily-home-shortcuts" aria-label="Continuar la jornada"><button type="button" data-route="agenda"><span>Agenda</span><strong>Organizar citas y llegadas</strong><small aria-hidden="true">→</small></button><button type="button" data-route="inbox"><span>Mensajes</span><strong>Atender conversaciones</strong><small aria-hidden="true">→</small></button><button type="button" data-route="pacientes"><span>Pacientes</span><strong>Continuar expedientes</strong><small aria-hidden="true">→</small></button><button type="button" data-route="notificaciones"><span>Alertas</span><strong>Revisar pendientes</strong><small aria-hidden="true">→</small></button></nav>';
+    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">Hoy · <b data-home-date></b></span><h1><span data-home-greeting></span>. Todo lo importante de tu clínica, en orden.</h1></div><div class="daily-home-actions" role="group" aria-label="Acciones rápidas"><button type="button" class="btn btn-primary btn-sm" data-home-task="appointment">Agendar cita</button><button type="button" class="btn btn-secondary btn-sm" data-home-task="quote">Cotizar</button><button type="button" class="btn btn-secondary btn-sm" data-home-task="payment">Cobrar</button><button type="button" class="daily-home-patient-link" data-home-patient>Registrar paciente</button><small data-home-updated aria-live="polite">Preparando la jornada…</small></div></header><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div><section class="daily-home-chats" aria-labelledby="daily-home-chats-title"><header><h2 id="daily-home-chats-title">Chats recientes</h2><button type="button" data-home-open-inbox>Ver todos <span aria-hidden="true">→</span></button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section><div class="daily-home-grid"><section class="daily-home-card daily-home-priorities"><header><div><span>Prioridades</span><h2>Qué requiere atención</h2></div><button type="button" data-home-open-agenda>Ver agenda</button></header><div data-home-priorities></div></section><aside class="daily-home-card daily-home-next"><header><div><span>Agenda</span><h2>Hoy en la agenda</h2></div><button type="button" data-home-open-agenda-2>Abrir</button></header><div data-home-next></div></aside></div><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Este mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section><nav class="daily-home-shortcuts" aria-label="Continuar la jornada"><button type="button" data-route="agenda"><span>Agenda</span><strong>Organizar citas y llegadas</strong><small aria-hidden="true">→</small></button><button type="button" data-route="inbox"><span>Mensajes</span><strong>Atender conversaciones</strong><small aria-hidden="true">→</small></button><button type="button" data-route="pacientes"><span>Pacientes</span><strong>Continuar expedientes</strong><small aria-hidden="true">→</small></button><button type="button" data-route="notificaciones"><span>Alertas</span><strong>Revisar pendientes</strong><small aria-hidden="true">→</small></button></nav>';
+    var monthSection=section.querySelector('.daily-home-month');
+    if(flag('month')==='1')section.querySelector('[data-home-month]').innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>'; else monthSection.hidden=true;
     section.querySelector('[data-home-date]').textContent=capitalize(fmtDate(new Date()));
     section.querySelector('[data-home-greeting]').textContent=greeting();
     section.querySelector('[data-home-open-agenda]').onclick=function(){route('agenda');};
@@ -183,7 +189,8 @@
   function renderMonth() {
     var section=document.querySelector('.daily-home-month'), host=document.querySelector('[data-home-month]'); if(!section||!host)return;
     var data=state.month;
-    if(!data){section.hidden=true;return;}
+    if(!data){section.hidden=true;flag('month','0');return;}
+    flag('month','1');
     var tiles=[];
     if(data.finance){
       tiles.push(monthTile('Cobrado este mes',money(data.collected),trend(data.collected,data.prevCollected)||'Ingresos confirmados','caja'));
@@ -255,7 +262,7 @@
 
   async function load(force) {
     if(!window.tenantId||!window.sb||state.loading||(state.loaded&&state.tenant===window.tenantId&&!force))return;
-    state.loading=true; state.error=''; state.tenant=window.tenantId; renderLoading();
+    state.loading=true; state.error=''; state.tenant=window.tenantId; if(!state.loaded)renderLoading();
     var start=startDay(new Date()), end=new Date(start); end.setDate(end.getDate()+1);
     try {
       var rows=await Promise.all([

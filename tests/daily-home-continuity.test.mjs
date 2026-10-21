@@ -33,11 +33,11 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 });
 
 test('Etapa 4 se distribuye en web, PWA y vista de QA', () => {
-  assert.match(app, /smyl-daily-home\.css\?v=8/);
-  assert.match(app, /smyl-daily-home\.js\?v=6/);
+  assert.match(app, /smyl-daily-home\.css\?v=10/);
+  assert.match(app, /smyl-daily-home\.js\?v=7/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
 assert.match(worker, /smyl-v254-visible-shell-v4/);
-  assert.match(worker, /smyl-daily-home\.js\?v=6/);
+  assert.match(worker, /smyl-daily-home\.js\?v=7/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /--smyl-primary/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
@@ -79,4 +79,21 @@ test('Inicio comparte pendientes con el Centro de alertas y calcula los indicado
   assert.match(script, /class="daily-home-now"/);
   assert.match(script, /STATUS=\{confirmed:'Confirmada',arrived:'Llegó'/);
   assert.match(styles, /\.daily-home-timeline button\[data-status="no_show"\] em/);
+});
+
+test('el Inicio y el panel reservan su espacio para no «saltar» mientras cargan', () => {
+  assert.match(app, /<body class="smyl-professional smyl-management-v3">/);
+  assert.match(app, /smyl_sidebar_collapsed[^<]*smyl-sidebar-collapsed/);
+  assert.match(script, /if\(!state\.loaded\)renderLoading\(\);/);
+  assert.match(script, /flag\('month'\)==='1'/);
+  assert.match(styles, /\.daily-home-chat-skeleton\{height:104px/);
+  assert.match(read('../smyl-clinic-setup.js'), /function reserveSpace\(\)/);
+});
+
+test('la bandeja de Mensajes se precarga y no abre una conversación en segundo plano', () => {
+  const inbox = read('../smyl-inbox.js');
+  assert.match(inbox, /function autoOpenFirst\(\)/);
+  assert.match(inbox, /classList\.contains\('activa'\)/);
+  assert.match(inbox, /loadList\(true\); loadTeam\(\); loadStages\(\); loadQuickReplies\(\);\s*\}, 2500\)/);
+  assert.match(inbox, /else \{ sync\(\); loadOperations\(false\); autoOpenFirst\(\); \}/);
 });

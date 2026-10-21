@@ -21,6 +21,10 @@
     return Boolean(window.matchMedia && window.matchMedia('(max-width:700px)').matches);
   }
   function saveCollapsed(value) { try { window.localStorage.setItem(storageKey(), value ? '1' : '0'); } catch (_) {} }
+  // Altura de la última vez: se reserva el espacio desde el primer cuadro para que la tarjeta no empuje el Inicio al llegar.
+  var HEIGHT_KEY = 'smyl_clinic_setup_height';
+  function readHeight() { try { return Math.max(0, Math.min(900, Number(window.localStorage.getItem(HEIGHT_KEY)) || 0)); } catch (_) { return 0; } }
+  function saveHeight(value) { try { window.localStorage.setItem(HEIGHT_KEY, String(Math.round(value))); } catch (_) {} }
   function isOwner() { return window.miRolEquipo === 'dueño'; }
 
   async function count(builder) {
@@ -102,10 +106,10 @@
     var existing = document.getElementById('smyl-clinic-setup');
     var results = state.results;
     var pending = results ? STEPS.filter(function (step) { return !results[step.id].done; }) : [];
-    if (!host || !isOwner() || !results || !pending.length) { if (existing) existing.remove(); return; }
+    if (!host || !isOwner() || !results || !pending.length) { if (existing) existing.remove(); if (host && results) saveHeight(0); return; }
     var done = STEPS.length - pending.length;
     var section = existing || el('section', 'clinic-setup');
-    section.id = 'smyl-clinic-setup'; section.setAttribute('aria-labelledby', 'clinic-setup-title');
+    section.id = 'smyl-clinic-setup'; section.setAttribute('aria-labelledby', 'clinic-setup-title'); section.style.minHeight = ''; section.style.visibility = ''; section.removeAttribute('aria-hidden');
     section.dataset.collapsed = String(state.collapsed);
     section.innerHTML = '';
 
@@ -148,6 +152,18 @@
       var hero = host.querySelector('.daily-home-hero');
       if (hero) hero.after(section); else host.prepend(section);
     }
+    saveHeight(section.offsetHeight);
+  }
+
+  // Marcador de posición sincrónico: ocupa el hueco de la tarjeta antes de que lleguen los datos.
+  function reserveSpace() {
+    var host = document.getElementById('smyl-daily-home');
+    var height = readHeight();
+    if (!host || !height || document.getElementById('smyl-clinic-setup') || !isOwner()) return Boolean(host);
+    var spacer = el('section', 'clinic-setup'); spacer.id = 'smyl-clinic-setup'; spacer.setAttribute('aria-hidden', 'true'); spacer.style.minHeight = height + 'px'; spacer.style.visibility = 'hidden';
+    var hero = host.querySelector('.daily-home-hero');
+    if (hero) hero.after(spacer); else host.prepend(spacer);
+    return true;
   }
 
   function init() {
@@ -161,13 +177,18 @@
       };
     }
     window.SmylClinicSetup = Object.freeze({ reload: function () { return load(true); } });
-    // El Inicio se arma después de que carga la sesión; se reintenta unos segundos.
+    // El Inicio se arma al cargar la página; si todavía no existe se espera, sin demorar la reserva de espacio.
+    if (!reserveSpace()) {
+      var observer = new MutationObserver(function () { if (reserveSpace()) observer.disconnect(); });
+      observer.observe(document.body, { childList: true, subtree: true });
+      setTimeout(function () { observer.disconnect(); }, 15000);
+    }
     var tries = 0;
     var timer = setInterval(function () {
       tries += 1;
       if (document.getElementById('smyl-daily-home') && window.tenantId) { clearInterval(timer); state.collapsed = readCollapsed(); load(false); }
       else if (tries > 40) clearInterval(timer);
-    }, 500);
+    }, 250);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

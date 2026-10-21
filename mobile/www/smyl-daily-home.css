@@ -53,7 +53,7 @@
 .daily-home-chat-channel{color:var(--smyl-text-muted,#667586);font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
 .daily-home-chat-flag{padding:1px 7px;border-radius:999px;background:#fde8e6;color:#a4281e;font-size:10px;font-weight:700;letter-spacing:.3px;line-height:16px;text-transform:uppercase}
 .daily-home-chat-flag.is-unread{background:#e8eefb;color:#194391}
-.daily-home-chat-skeleton{height:92px;border-radius:10px;background:linear-gradient(90deg,#eef2f6 25%,#f8fafc 50%,#eef2f6 75%);background-size:200% 100%;animation:daily-home-pulse 1.25s linear infinite}
+.daily-home-chat-skeleton{height:104px;border-radius:10px;background:linear-gradient(90deg,#eef2f6 25%,#f8fafc 50%,#eef2f6 75%);background-size:200% 100%;animation:daily-home-pulse 1.25s linear infinite}
 .daily-home-chats-note{display:flex;align-items:center;flex-wrap:wrap;gap:10px;grid-column:1/-1;padding:14px 16px;border:1px dashed var(--smyl-border,#d7e0e8);border-radius:10px;color:var(--smyl-text-muted,#667586);font-size:12px;line-height:18px}
 .daily-home-chats-note button{min-height:28px;padding:0 10px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:6px;background:#fff;color:var(--smyl-primary,#194391);font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
 
@@ -152,6 +152,8 @@
 .daily-home-now span{white-space:nowrap}
 .daily-home-next-empty>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.daily-home-next-empty>div button{margin-top:0}
 
+/* El esqueleto de prioridades se parece a su caso más común (nada pendiente) para no mover el resto del Inicio. */
+.daily-home-priorities .daily-home-loading{padding:14px 18px}.daily-home-priorities .daily-home-loading i{height:26px}.daily-home-priorities .daily-home-loading i:nth-child(n+2){display:none}
 /* Otras hojas (smyl-professional-v3) redefinen el hero con .smyl-management-v3; el id gana sin depender del orden. */
 .daily-home>*{min-width:0}
 #smyl-daily-home .daily-home-hero{padding:16px 22px}
