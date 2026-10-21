@@ -2,19 +2,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
 import { FILE_RULES, inspectFile } from '../_shared/file-security.ts';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { makeCors } from '../_shared/cors.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('SB_URL') || '';
 const SB_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SB_SERVICE_ROLE_KEY') || '';
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
-function reply(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
-}
 async function mark(bucket: string,path: string,tenant: string,status: 'clean'|'rejected',details: Record<string, unknown>) {
   const checkedAt=new Date().toISOString();
   const row = { bucket_id: bucket, object_path: path, tenant_id: tenant, status, ...details, verified_at: checkedAt,last_checked_at:checkedAt,check_attempts:1 };
@@ -23,6 +15,9 @@ async function mark(bucket: string,path: string,tenant: string,status: 'clean'|'
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = makeCors(req);
+  const reply = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   if (req.method === 'OPTIONS') return new Response('ok',{ headers:CORS });
   if (req.method !== 'POST') return reply(405,{ error:'Método no permitido.' });
   const auth = await requireUser(req,CORS);

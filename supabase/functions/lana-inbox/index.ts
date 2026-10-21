@@ -1,12 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
@@ -33,17 +28,6 @@ const OWNER_PERMISSIONS = [
 
 function can(actor: Actor, permission: string): boolean {
   return actor.role === "owner" || actor.permissions.includes(permission);
-}
-
-function requirePermission(actor: Actor, permission: string, message: string): Response | null {
-  return can(actor, permission) ? null : json(403, { error: message, code: "permission_denied" });
-}
-
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
 }
 
 function uuid(value: unknown): string | null {
@@ -648,6 +632,11 @@ function queryPath(url: URL, action: string, conversationId: string | null): str
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+  const json = (status: number, body: Record<string, unknown>): Response =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  const requirePermission = (actor: Actor, permission: string, message: string): Response | null =>
+    can(actor, permission) ? null : json(403, { error: message, code: "permission_denied" });
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!['GET', 'POST'].includes(req.method)) return json(405, { error: "Método no permitido." });
 

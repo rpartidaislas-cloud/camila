@@ -1,5 +1,65 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-21 — Claude: mejoras UX en formulario de ficha profesional (v7)
+
+### Qué se hizo
+- **Checklist de completitud en Step 4** (`smyl-professional-directory.js`): nueva función `readinessChecklist(progress)` que reemplaza el mensaje vago "Estás muy cerca" con un checklist visual agrupado por paso (Identidad, Presentación, Confianza). Cada ítem muestra ✓/● con etiqueta "requerido" en los obligatorios y botón "Ir a completar →" por grupo si faltan campos.
+- **Contadores de caracteres** en bio (mínimo 40 / máximo 1600) y headline (máximo 160). Se actualizan en tiempo real con `input`/`change`. El contador pone el número en rojo cuando no llega al mínimo, verde cuando lo cumple.
+- **Feedback visual en "Guardar borrador"**: botón cambia texto a "Guardando…" y se deshabilita durante el guardado; se restaura en el `finally` independientemente del resultado.
+- **CSS nuevos** (`smyl-professional-directory.css`): `.directory-checklist-*`, `.directory-char-hint`, `.btn:active`.
+- **Versión bumpeada a v7** en `app.html`.
+- `mobile/www/app.html` sincronizado.
+
+### Nota para el usuario
+El checklist del Step 4 lee del perfil guardado en la BD, no del formulario en vivo. Si se llena la bio en Step 2 y parece que el checklist no actualiza, hay que hacer clic en "Guardar borrador" primero — después del guardado, el panel recarga y el checklist refleja el estado real.
+
+### Archivos tocados
+- `smyl-professional-directory.js`
+- `smyl-professional-directory.css`
+- `app.html` (v7)
+- `mobile/www/app.html`
+
+
+
+## 2026-10-21 — Claude: auditoría de seguridad y CORS restrictivo en Edge Functions
+
+### Qué se hizo
+- **`_shared/cors.ts`** reescrito: exporta `makeCors(req)` que refleja el `Origin` del request solo si está en la lista permitida (`https://app.smyldesign.ai`, `https://rpartidaislas-cloud.github.io`); incluye `Vary: Origin`. Para endpoints públicos o server-to-server exporta `corsPublic` (sigue siendo `*`).
+- **`_shared/limits.ts`**: añadido `Retry-After: 60` en respuestas HTTP 429.
+- **22 Edge Functions privadas migradas** de `const CORS = { "Access-Control-Allow-Origin": "*", ... }` a módulo a `const CORS = makeCors(req)` dentro de `Deno.serve`, eliminando el wildcard en endpoints autenticados:
+  - `whatsapp-templates`, `security-monitor`, `file-lifecycle-maintenance`, `invite-staff`, `lana-channels`
+  - `lana-webhook`, `lana-attention`, `lana-connection`, `lana-handoff`, `lana-context`, `lana-training`
+  - `secure-clinical-file`, `sign-segmentation-masks`, `meta-send`, `appointment-reminders`
+  - `mila-actions`, `mila-realtime-session`, `mila-transcribe`
+  - `claude` (x-tenant-id en allowed headers para modo prospecto), `lana-inbox` (requirePermission movido dentro del handler), `segment-teeth` (usa `corsHeaders`; usa `serve` de deno.land/std)
+- **5 funciones mantenidas con `*`** (legítimamente públicas/server-to-server): `public-appointment-request`, `public-patient-reviews`, `public-professional-cases`, `guardar-lead-prospecto`, `analizar-foto`.
+- **Bundles regenerados** en `docs/bundles/` para todas las funciones modificadas.
+- **`stripe-checkout`, `stripe-portal`**: migradas por separado a `makeCors(req)` + `Cache-Control: no-store` en respuestas de facturación (no usan `requireUser` sino autenticación directa por JWT). Total: **24 funciones privadas migradas**.
+
+### Casos especiales de CORS
+- `lana-handoff`, `lana-training`, `lana-inbox`: añaden `idempotency-key` a `Access-Control-Allow-Headers`.
+- `claude`, `segment-teeth`: añaden `x-tenant-id` (modo prospecto anónimo).
+- `lana-attention`, `lana-connection`, `lana-context`, `lana-training`, `lana-inbox`: métodos `GET, POST, PUT, OPTIONS`.
+
+### Para desplegar
+Cada función modificada necesita redesplegarse en Supabase. Usar los bundles de `docs/bundles/` o los archivos fuente en `supabase/functions/`. No hay cambios de esquema ni de migraciones.
+
+### Pendiente (sin código — requiere acción en Cloudflare)
+1. **Headers de seguridad** vía Cloudflare → Rules → Transform Rules → Modify Response Header:
+   - `X-Content-Type-Options: nosniff`
+   - `X-Frame-Options: SAMEORIGIN`
+   - `Referrer-Policy: strict-origin-when-cross-origin`
+   - `Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=()`
+   - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+   - `Content-Security-Policy` (ver notas abajo)
+2. **Cloudflare Turnstile** en `public-appointment-request` — requiere site key de Cloudflare Dashboard.
+
+**CSP recomendada** (requiere validación manual en dev — tiene `unsafe-inline` porque la app usa muchos scripts inline):
+```
+default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self' blob:; frame-src https://checkout.stripe.com https://billing.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'
+```
+
+
 ## 2026-10-21 — Claude: preparación para app.smyldesign.ai (dominio propio)
 
 - Dominio `smyldesign.ai` en Hostinger; el panel irá en `app.smyldesign.ai` (GitHub Pages con dominio propio, donde la app

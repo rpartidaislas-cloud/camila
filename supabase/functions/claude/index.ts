@@ -5,16 +5,7 @@ import {
   checkLimitSinConsumir,
   checkLimitPorIpProspecto,
 } from "../_shared/limits.ts";
-
-const CORS = {
-  // x-tenant-id lo manda simulacion.html en modo prospecto (ver
-  // headersEdgeIA). Sin declararlo aquí, el navegador corta la llamada en
-  // el preflight de CORS y el paciente ve un "problema de conexión" que no
-  // tiene nada que ver con su conexión.
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { makeCors } from "../_shared/cors.ts";
 
 const PHOTO_ANALYSIS_ACTION = "analyze_dental_photos_v1";
 const PHOTO_ANALYSIS_SCHEMA = {
@@ -207,6 +198,7 @@ async function fetchConTimeout(url: string, opciones: RequestInit, ms: number): 
 }
 
 Deno.serve(async (req: Request) => {
+  const CORS = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
   // Diagnóstico: esta es la PRIMERA línea de todo el código, antes de
   // revisar la sesión o leer el body. Si ni esto aparece en los logs de una
   // invocación real (POST), la función está muriendo por el tamaño del

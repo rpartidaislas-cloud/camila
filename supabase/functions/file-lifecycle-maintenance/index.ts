@@ -2,14 +2,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
 import { FILE_RULES, inspectFile } from '../_shared/file-security.ts';
+import { makeCors } from '../_shared/cors.ts';
 
-const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
 const URL=Deno.env.get('SUPABASE_URL')||Deno.env.get('SB_URL')||'';
 const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||Deno.env.get('SB_SERVICE_ROLE_KEY')||'';
 const admin=createClient(URL,SERVICE);
-const reply=(status:number,body:Record<string,unknown>)=>new Response(JSON.stringify(body),{status,headers:{...CORS,'Content-Type':'application/json','Cache-Control':'no-store'}});
 
 Deno.serve(async(req:Request)=>{
+  const CORS=makeCors(req);
+  const reply=(status:number,body:Record<string,unknown>)=>new Response(JSON.stringify(body),{status,headers:{...CORS,'Content-Type':'application/json','Cache-Control':'no-store'}});
   if(req.method==='OPTIONS')return new Response('ok',{headers:CORS});
   if(req.method!=='POST')return reply(405,{error:'Método no permitido.'});
   const auth=await requireUser(req,CORS);if(auth.response)return auth.response;
