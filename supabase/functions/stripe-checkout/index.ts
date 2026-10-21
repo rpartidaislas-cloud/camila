@@ -60,9 +60,9 @@ Deno.serve(async (req) => {
       cancel_url: `${APP_URL}/app.html?checkout=cancel`,
     });
 
-    return new Response(JSON.stringify({ url: session.url }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ url: session.url }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('[stripe-checkout] error:', e);
-    return new Response(JSON.stringify({ error: e.message || 'Error interno' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: e.message || 'Error interno' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   }
 });
