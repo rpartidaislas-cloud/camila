@@ -564,6 +564,42 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-21 — Claude (sesión backend): Nueva cita con búsqueda de paciente y alta rápida
+
+**Aviso a la sesión visual:** toqué `smyl-schedule.js` y `smyl-schedule.css` a petición
+del usuario (el formulario «Nueva cita»). Si había algo en curso ahí, conviene
+rebasar sobre esto.
+
+- **Causa de «no me deja confirmar»:** la clínica «Dd» no tiene ningún horario
+  semanal (`smyl_clinic_hours` ni `smyl_professional_hours` vacías), así que la RPC
+  rechaza toda cita con «fuera del horario de la clínica». El mensaje se mostraba
+  en la página *detrás* del diálogo modal, de modo que parecía que el botón no hacía
+  nada. **Acción pendiente del usuario:** configurar horarios en Agenda → Disponibilidad.
+- Errores dentro del diálogo: `notify(…, 'error')` ahora también pinta el mensaje en
+  `[data-dialog-error]` (con `role="alert"`) encima de los botones si hay un diálogo
+  abierto; se limpia al editar el formulario.
+- Control de reserva: `hoursIssues()` replica la regla de la base en la hora local
+  de la sucursal (`Intl` con `branch.timezone`): avisa si la sucursal o el profesional
+  no tienen horario semanal y si la cita cae fuera. Esos avisos bloquean el envío,
+  igual que los que ya existían.
+- Paciente: `patientField()` sustituye el desplegable (sólo en cita nueva; reprogramar
+  y revisar solicitud siguen con paciente fijo). Combobox accesible (`role=combobox`,
+  flechas, Enter, Escape), búsqueda sin acentos por nombre, correo y teléfono, hasta 8
+  resultados. La consulta de pacientes de la Agenda ahora trae `telefono,email`.
+- Alta rápida: última opción de la lista, «Registrar “texto” como paciente nuevo»,
+  abre un panel con nombre, apellido, teléfono y correo (prellenado según lo escrito).
+  Antes de guardar consulta `smyl_patient_duplicates` (con respaldo local) y ofrece
+  «Usar este paciente» o «Es otra persona»; inserta en `camila_pacientes` con
+  `tenant_id` de la sesión y deja al paciente seleccionado. Un 42501 explica que el
+  rol no puede registrar pacientes.
+- Versiones: `smyl-schedule.js?v=12`, `smyl-schedule.css?v=7`; siete pruebas antiguas
+  que fijaban v11/v6 ahora aceptan versiones posteriores.
+- Pruebas: `tests/smyl-schedule-patient-search.test.mjs`. Además se ejecutó la interfaz
+  real en Chromium con Supabase simulado (zona de México): búsqueda, teclado, duplicado,
+  alta, fuera de horario, confirmación con los parámetros correctos y vista móvil.
+- Límite conocido: la Agenda carga todos los pacientes de la clínica y busca en el
+  navegador; con más de 1000 habría que buscar en el servidor.
+
 ### 2026-10-21 — Claude (sesión backend): migración del alta de pacientes v2 aplicada en producción
 
 - `20261020150000_smyl_patient_intake_v2` quedó **aplicada** en el proyecto

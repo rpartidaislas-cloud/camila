@@ -40,8 +40,8 @@ test('una semana vacía comunica cobertura real sin fotografías decorativas', (
 });
 
 test('la nueva agenda mantiene paridad web, móvil y PWA', () => {
-  assert.match(app, /smyl-schedule\.js\?v=11/);
-  assert.match(app, /smyl-schedule\.css\?v=6/);
+  assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
+  assert.match(app, /smyl-schedule\.css\?v=(?:[6-9]|1[0-9])/);
   assert.match(worker, /smyl-v254-visible-shell-v4/);
   assert.equal(schedule, read('../mobile/www/smyl-schedule.js'));
   assert.equal(css, read('../mobile/www/smyl-schedule.css'));
