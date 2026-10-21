@@ -27,7 +27,7 @@ Abre `app.html` y reemplaza `TU_API_KEY_AQUI` con tu API Key de Anthropic.
   server-side todavía.
 
 ## GitHub Pages
-- URL: `https://rpartidaislas-cloud.github.io/camila/`
+- URL: `https://app.smyldesign.ai/` (dominio propio en Hostinger, `CNAME` apuntando a `rpartidaislas-cloud.github.io`; el archivo `CNAME` de la raíz fija el dominio en GitHub Pages)
 
 ## Superadmin
 - Producto: `camila` en columna `producto` de tabla `tenants`
