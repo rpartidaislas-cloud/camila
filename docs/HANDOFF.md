@@ -579,6 +579,35 @@ permiso para esta acción. Revisa la cuenta con la que ingresaste."**
   sucursal/profesional, alertas médicas, consentimiento WhatsApp, y abrir la
   Ficha 360 con siguiente acción al guardar.
 
+### 2026-10-21 — Claude (sesión backend): el asistente de la Agenda crea servicios y sillones
+
+`smyl-schedule-setup.js?v=2` / `smyl-schedule-setup.css?v=2`. Amplía el asistente de la entrada
+siguiente; sigue sin tocar `smyl-schedule.js`.
+
+- **Servicios** (paso obligatorio «Un servicio con profesional asignado»): botón «Crear servicios»
+  abre un diálogo con diez servicios comunes del catálogo dental
+  (`SmylServiceCatalogModel.presets`), tres marcados si la clínica no tiene ninguno. Inserta con
+  `presetInsert`, así que `fiscal_status` queda `pending`, no inventa precios y el trigger de
+  versionado del catálogo actúa igual que en Servicios y tarifas. Omite los que ya existen por
+  plantilla o por nombre (índices únicos `smyl_services_template_idx` y `smyl_services_name_idx`,
+  que ignoran acentos y mayúsculas en el plan). Con la casilla «Asignarlos a todos los
+  profesionales activos» también asigna los servicios existentes que nadie realiza.
+- **Sillones** (paso opcional): crea «Sillón 1…N» sólo en sucursales que no tienen ninguno. Es
+  opcional porque, con sillones configurados, la RPC exige elegir uno en cada cita; el diálogo lo
+  advierte. Cuando lo obligatorio está completo queda un aviso compacto «Tu Agenda ya acepta
+  citas» con «Agregar sillones» y «Ahora no»; descartarlo se guarda en `localStorage`
+  (`smyl_schedule_rooms_hint_<tenant>`).
+- **Permisos distintos por escritura**, como las políticas: servicios `settings.manage`, asignación
+  `schedule.manage`, sillones `clinic.manage`. Sin alguno se omite esa parte y se explica.
+- Dos llamadas por flujo de servicios (insertar y asignar), cada una atómica; si la segunda falla
+  se avisa y reintentar es seguro (el plan se recalcula y `ignoreDuplicates` evita pares repetidos).
+- Pruebas: `tests/smyl-schedule-setup.test.mjs` (19) y la interfaz real en Chromium con Supabase
+  simulado (servicios con y sin asignación, sillones, aviso opcional).
+- **No verificado contra producción:** al terminar, el conector de Supabase de la sesión perdió el
+  permiso (error -32600, también en lecturas), así que las inserciones de servicios y sillones no
+  se ensayaron en la base real como sí se hizo con los horarios. Las políticas y los índices únicos
+  se leyeron antes de escribir el código.
+
 ### 2026-10-21 — Claude (sesión backend): asistente de puesta en marcha de la Agenda
 
 **Aviso a la sesión visual:** módulo nuevo `smyl-schedule-setup.js` + `.css` (v1), cargado

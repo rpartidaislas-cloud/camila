@@ -48,14 +48,19 @@
     (data.professionals || []).forEach(function (p) { activeProfessionals[p.id] = true; });
     var assigned = (data.professionalServices || []).some(function (l) { return activeServices[l.service_id] && activeProfessionals[l.professional_id]; });
     var names = function (rows, field) { return rows.map(function (r) { return r[field]; }).join(', '); };
+    var roomsByBranch = {};
+    (data.rooms || []).forEach(function (r) { roomsByBranch[r.branch_id] = true; });
+    var missingRooms = branches.filter(function (b) { return !roomsByBranch[b.id]; });
+    var hasServices = (data.services || []).length > 0;
     var steps = [
       { id: 'branch', title: 'Una sucursal activa', done: branches.length > 0, detail: 'Agrégala en Mi clínica.' },
       { id: 'clinicHours', title: 'Horario de atención de la clínica', done: branches.length > 0 && !missingClinic.length, detail: 'Falta en: ' + names(missingClinic, 'name') + '.', needsHours: true },
       { id: 'professional', title: 'Un profesional asignado a una sucursal', done: professionals.length > 0, detail: 'Agrégalo o asígnalo en Mi clínica.' },
       { id: 'professionalHours', title: 'Horario de cada profesional', done: professionals.length > 0 && !missingProfessional.length, detail: 'Falta para: ' + names(missingProfessional, 'display_name') + '.', needsHours: true },
-      { id: 'services', title: 'Un servicio con profesional asignado', done: assigned, detail: 'Créalo y asígnalo en Servicios y disponibilidad.' }
+      { id: 'services', title: 'Un servicio con profesional asignado', done: assigned, detail: hasServices ? 'Hay servicios, pero ningún profesional los realiza.' : 'Aún no hay servicios. Puedes crear los más comunes del catálogo dental.', needsServices: true },
+      { id: 'rooms', title: 'Sillones o consultorios', done: branches.length > 0 && !missingRooms.length, optional: true, detail: 'Sin sillones, las citas no ocupan espacio. Con sillones, cada cita debe elegir uno. Falta en: ' + names(missingRooms, 'name') + '.', needsRooms: true }
     ];
-    return { steps: steps, ready: steps.every(function (s) { return s.done; }), missingClinic: missingClinic, missingProfessional: missingProfessional };
+    return { steps: steps, ready: steps.every(function (s) { return s.done || s.optional; }), missingClinic: missingClinic, missingProfessional: missingProfessional, missingRooms: missingRooms };
   }
 
   function plan(data, options, can) {
@@ -95,6 +100,44 @@
     return { clinic: clinicRows, professional: profRows, skipped: skipped, error: '' };
   }
 
+  function norm(v) { return String(v == null ? '' : v).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase(); }
+  // Servicios del catálogo dental: no se repite nombre ni plantilla (índices únicos de la base)
+  // y se asignan a los profesionales activos que aún no los realizan.
+  function planServices(data, selected, presets, options, can) {
+    options = options || {}; can = can || {};
+    var newId = options.newId || function () { return 'new-' + Math.random().toString(36).slice(2); };
+    var names = {}, keys = {}, existingActive = [], assignedService = {}, pair = {};
+    (data.services || []).forEach(function (sv) { names[norm(sv.name)] = true; if (sv.template_key) keys[sv.template_key] = true; existingActive.push(sv); });
+    (data.professionalServices || []).forEach(function (l) { assignedService[l.service_id] = true; pair[key(l.professional_id, l.service_id)] = true; });
+    var create = [], already = [];
+    if (can.services) {
+      (presets || []).filter(function (x) { return (selected || []).indexOf(x.key) >= 0; }).forEach(function (x) {
+        if (keys[x.key] || names[norm(x.name)]) already.push(x); else create.push({ preset: x, id: newId() });
+      });
+    }
+    var targets = create.map(function (c) { return { id: c.id, name: c.preset.name, isNew: true }; });
+    existingActive.forEach(function (sv) { if (!assignedService[sv.id]) targets.push({ id: sv.id, name: sv.name, isNew: false }); });
+    var assignments = [];
+    if (options.assign !== false && can.schedule) {
+      (data.professionals || []).forEach(function (pr) {
+        targets.forEach(function (t) { if (!pair[key(pr.id, t.id)]) assignments.push({ professional_id: pr.id, professional: pr.display_name, service_id: t.id, service: t.name, isNew: t.isNew }); });
+      });
+    }
+    return { create: create, already: already, assignments: assignments, existingTargets: targets.filter(function (t) { return !t.isNew; }) };
+  }
+  // Sillones: sólo en sucursales que aún no tienen ninguno; el nombre nunca repite uno activo.
+  function planRooms(data, count) {
+    var n = Math.max(1, Math.min(10, Math.floor(Number(count) || 1))), rows = [], taken = {};
+    (data.rooms || []).forEach(function (r) { taken[key(r.branch_id, norm(r.name))] = true; });
+    var haveRooms = {};
+    (data.rooms || []).forEach(function (r) { haveRooms[r.branch_id] = true; });
+    (data.branches || []).forEach(function (b) {
+      if (haveRooms[b.id]) return;
+      for (var i = 1; i <= n; i++) rows.push({ branch_id: b.id, branch: b.name, name: 'Sillón ' + i });
+    });
+    return rows;
+  }
+
   // ── Interfaz ──
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -105,13 +148,17 @@
     });
   }
   function settle(promise) { return promise.then(function (v) { return { ok: true, value: v }; }, function () { return { ok: false }; }); }
+  function dismissKey() { return 'smyl_schedule_rooms_hint_' + (state.tenant || ''); }
+  function dismissed() { try { return window.localStorage.getItem(dismissKey()) === '1'; } catch (_) { return false; } }
+  function dismiss() { try { window.localStorage.setItem(dismissKey(), '1'); } catch (_) {} }
   function route(name) { if (typeof window.ir === 'function') window.ir(name); }
   function openSettingsTab() { var tab = document.querySelector('[data-schedule-tab="settings"]'); if (tab) tab.click(); }
 
   async function permissions(tenant) {
     var ask = function (permission) { return settle(window.sb.rpc('smyl_has_permission', { p_tenant_id: tenant, p_permission: permission })); };
-    var rows = await Promise.all([ask('schedule.manage'), ask('clinic.manage')]);
-    return { schedule: rows[0].ok && rows[0].value && rows[0].value.data === true, clinic: rows[1].ok && rows[1].value && rows[1].value.data === true };
+    var rows = await Promise.all([ask('schedule.manage'), ask('clinic.manage'), ask('settings.manage')]);
+    var yes = function (r) { return Boolean(r.ok && r.value && r.value.data === true); };
+    return { schedule: yes(rows[0]), clinic: yes(rows[1]), services: yes(rows[2]) };
   }
 
   async function load() {
@@ -126,19 +173,20 @@
         settle(run(t('smyl_professionals', 'id,display_name', active))),
         settle(run(t('smyl_professional_branches', 'professional_id,branch_id'))),
         settle(run(t('smyl_professional_services', 'professional_id,service_id'))),
-        settle(run(t('smyl_services', 'id', active))),
+        settle(run(t('smyl_services', 'id,name,template_key', active))),
         settle(run(t('smyl_clinic_hours', 'branch_id,weekday,starts_at,ends_at', active))),
         settle(run(t('smyl_professional_hours', 'professional_id,branch_id,weekday', active))),
+        settle(run(t('smyl_rooms', 'id,branch_id,name', active))),
         permissions(tenant)
       ]);
       if (state.tenant !== null && state.tenant !== tenant) state.data = null;
       state.tenant = tenant;
-      if (rows.slice(0, 7).some(function (r) { return !r.ok; })) { state.data = null; state.assessed = null; return; }
+      if (rows.slice(0, 8).some(function (r) { return !r.ok; })) { state.data = null; state.assessed = null; return; }
       state.data = {
         branches: rows[0].value || [], professionals: rows[1].value || [], professionalBranches: rows[2].value || [],
-        professionalServices: rows[3].value || [], services: rows[4].value || [], clinicHours: rows[5].value || [], professionalHours: rows[6].value || []
+        professionalServices: rows[3].value || [], services: rows[4].value || [], clinicHours: rows[5].value || [], professionalHours: rows[6].value || [], rooms: rows[7].value || []
       };
-      state.can = rows[7];
+      state.can = rows[8];
       state.assessed = assess(state.data);
     } finally { state.loading = false; render(); }
   }
@@ -146,32 +194,50 @@
   function render() {
     var page = document.getElementById('p-agenda');
     var existing = document.getElementById('schedule-setup');
-    if (!page || !state.assessed || !state.can || !state.can.schedule || state.assessed.ready) { if (existing) existing.remove(); return; }
+    if (!page || !state.assessed || !state.can || !state.can.schedule) { if (existing) existing.remove(); return; }
     var feedback = document.getElementById('schedule-feedback');
     if (!feedback) return;
-    var a = state.assessed, done = a.steps.filter(function (s) { return s.done; }).length;
+    if (state.assessed.ready) {
+      // Lo obligatorio está completo: sólo se ofrece, sin insistir, lo opcional que falte.
+      var optional = state.assessed.steps.filter(function (x) { return x.optional && !x.done; })[0];
+      if (!optional || dismissed()) { if (existing) existing.remove(); return; }
+      var hint = existing || el('section', 'schedule-setup');
+      hint.id = 'schedule-setup'; hint.dataset.compact = 'true'; hint.setAttribute('aria-labelledby', 'schedule-setup-title'); hint.innerHTML = '';
+      var box = el('div', 'schedule-setup-copy'), heading = el('h2', '', 'Tu Agenda ya acepta citas'); heading.id = 'schedule-setup-title';
+      box.append(el('span', 'schedule-setup-eyebrow', 'OPCIONAL'), heading, el('p', '', 'Agrega sillones o consultorios para que la agenda evite dobles reservas del mismo espacio. Con ellos, cada cita debe elegir uno.'));
+      var actions = el('div', 'schedule-setup-actions'), add = el('button', 'btn btn-primary', 'Agregar sillones'), later = el('button', 'btn btn-secondary', 'Ahora no');
+      add.type = 'button'; later.type = 'button';
+      add.onclick = openRoomsWizard;
+      later.onclick = function () { dismiss(); render(); };
+      actions.append(add, later); hint.append(box, actions);
+      if (!existing) feedback.after(hint);
+      return;
+    }
+    if (existing) delete existing.dataset.compact;
+    var a = state.assessed, required = a.steps.filter(function (s) { return !s.optional; }), done = required.filter(function (s) { return s.done; }).length;
     var section = existing || el('section', 'schedule-setup');
     section.id = 'schedule-setup'; section.setAttribute('aria-labelledby', 'schedule-setup-title');
     section.innerHTML = '';
     var head = el('header', 'schedule-setup-head'), copy = el('div', 'schedule-setup-copy');
     copy.append(el('span', 'schedule-setup-eyebrow', 'PUESTA EN MARCHA'));
     var title = el('h2', '', 'Prepara tu Agenda para recibir citas'); title.id = 'schedule-setup-title';
-    copy.append(title, el('p', '', done + ' de ' + a.steps.length + ' pasos listos. Mientras falte alguno, la Agenda rechaza las citas.'));
+    copy.append(title, el('p', '', done + ' de ' + required.length + ' pasos listos. Mientras falte alguno, la Agenda rechaza las citas.'));
     var bar = el('div', 'schedule-setup-bar'); bar.setAttribute('role', 'progressbar');
-    bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(a.steps.length)); bar.setAttribute('aria-valuenow', String(done));
-    var fill = el('i'); fill.style.width = Math.round(done * 100 / a.steps.length) + '%'; bar.append(fill);
+    bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(required.length)); bar.setAttribute('aria-valuenow', String(done));
+    var fill = el('i'); fill.style.width = Math.round(done * 100 / required.length) + '%'; bar.append(fill);
     head.append(copy, bar); section.append(head);
 
-    var list = el('ol', 'schedule-setup-steps'), firstPending = a.steps.filter(function (s) { return !s.done; })[0];
+    var list = el('ol', 'schedule-setup-steps'), firstPending = a.steps.filter(function (s) { return !s.done && !s.optional; })[0];
     a.steps.forEach(function (step) {
-      var item = el('li', 'schedule-setup-step'); item.dataset.done = String(step.done); item.dataset.next = String(step === firstPending);
+      var item = el('li', 'schedule-setup-step'); item.dataset.done = String(step.done); item.dataset.next = String(step === firstPending); if (step.optional) item.dataset.optional = 'true';
       item.append(el('span', 'schedule-setup-mark', step.done ? '✓' : ''));
-      var text = el('div', 'schedule-setup-text'); text.append(el('strong', '', step.title));
+      var text = el('div', 'schedule-setup-text'); text.append(el('strong', '', step.title + (step.optional ? ' (opcional)' : '')));
       if (!step.done) text.append(el('small', '', step.detail));
       item.append(text);
       if (!step.done) {
-        var button = el('button', 'schedule-setup-action', step.needsHours ? 'Crear horario' : step.id === 'services' ? 'Ir a Servicios' : 'Ir a Mi clínica'); button.type = 'button';
-        button.onclick = function () { if (step.needsHours) openWizard(); else if (step.id === 'services') openSettingsTab(); else route('clinica'); };
+        var label = step.needsHours ? 'Crear horario' : step.needsServices ? 'Crear servicios' : step.needsRooms ? 'Agregar sillones' : 'Ir a Mi clínica';
+        var button = el('button', 'schedule-setup-action', label); button.type = 'button';
+        button.onclick = function () { if (step.needsHours) openWizard(); else if (step.needsServices) openServicesWizard(); else if (step.needsRooms) openRoomsWizard(); else route('clinica'); };
         item.append(button);
       }
       list.append(item);
@@ -276,6 +342,130 @@
     refresh();
   }
 
+  var STARTER_KEYS = ['diagnostic-initial', 'diagnostic-periodic', 'preventive-prophylaxis', 'restorative-resin-multi', 'surgery-extraction', 'endodontic-root-canal', 'aesthetic-whitening', 'prostho-crown', 'ortho-control', 'emergency-consult'];
+  var STARTER_DEFAULT = ['diagnostic-initial', 'diagnostic-periodic', 'preventive-prophylaxis'];
+  function catalog() { return window.SmylServiceCatalogModel || null; }
+  function saveError(error, savedFirst, what) {
+    var code = error && error.code, text = String(error && (error.message || error) || '');
+    var message = code === '42501' ? 'Tu rol no permite esta acción. Pide al propietario que active el permiso correspondiente.'
+      : code === 'PGRST301' ? 'Tu sesión expiró. Vuelve a iniciar sesión y repite la acción.'
+      : code === '23505' ? 'Ya existe un registro con ese nombre. Cierra este diálogo y revisa lo que ya está creado.'
+      : (text || 'No se pudo guardar.');
+    return (savedFirst ? what + ' ' : '') + message + (savedFirst ? ' Puedes volver a intentarlo: no se duplicará nada.' : '');
+  }
+  function finish(dialog, text) {
+    dialog.close();
+    if (window.SmylSchedule && typeof window.SmylSchedule.reload === 'function') window.SmylSchedule.reload();
+    return load().then(function () {
+      var feedback = document.getElementById('schedule-feedback');
+      if (!feedback) return;
+      feedback.innerHTML = '<div class="schedule-notice" data-tone="success"><span>' + esc(text) + '</span><button type="button">Cerrar</button></div>';
+      var close = feedback.querySelector('button'); if (close) close.onclick = function () { feedback.replaceChildren(); };
+    });
+  }
+
+  function openServicesWizard() {
+    var dialog = dialogEl(), model = catalog();
+    if (!dialog || !state.data || !state.can) return;
+    if (!model) { var f = document.getElementById('schedule-feedback'); if (f) f.textContent = 'El catálogo de servicios aún no cargó. Recarga la página e inténtalo de nuevo.'; return; }
+    var presets = STARTER_KEYS.map(function (k) { return model.presets.filter(function (p) { return p.key === k; })[0]; }).filter(Boolean);
+    var existingNames = {}, existingKeys = {};
+    state.data.services.forEach(function (sv) { existingNames[norm(sv.name)] = true; if (sv.template_key) existingKeys[sv.template_key] = true; });
+    var items = presets.map(function (p) {
+      var exists = existingKeys[p.key] || existingNames[norm(p.name)], on = !exists && STARTER_DEFAULT.indexOf(p.key) >= 0 && state.data.services.length === 0;
+      return '<label class="schedule-setup-option"' + (exists ? ' data-exists="true"' : '') + '><input type="checkbox" name="preset" value="' + esc(p.key) + '"' + (exists ? ' disabled' : on ? ' checked' : '') + '><span><strong>' + esc(p.name) + '</strong><small>' + p.duration_minutes + ' min' + (exists ? ' · ya existe' : '') + '</small></span></label>';
+    }).join('');
+    dialog.innerHTML = '<form id="schedule-setup-form"><h2>Servicios iniciales</h2><p>Elige lo que ofreces. Salen del catálogo dental de SMYL; el precio y los datos fiscales los completas después en Servicios y tarifas.</p>' +
+      '<fieldset class="schedule-setup-days"><legend>Servicios del catálogo</legend><div class="schedule-setup-options">' + items + '</div></fieldset>' +
+      '<label class="schedule-setup-check"><input type="checkbox" name="assign" checked' + (state.can.schedule ? '' : ' disabled') + '><span>Asignarlos a todos los profesionales activos</span></label>' +
+      '<section class="schedule-setup-result" data-setup-preview aria-live="polite"></section>' +
+      '<div class="schedule-dialog-actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" type="submit" data-setup-submit>Crear servicios</button></div></form>';
+    dialog.showModal();
+    var form = dialog.querySelector('form'), preview = dialog.querySelector('[data-setup-preview]'), submit = dialog.querySelector('[data-setup-submit]'), current = null, saving = false, ids = {};
+    function newId() { var id = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/[x]/g, function () { return Math.floor(Math.random() * 16).toString(16); }); return id; }
+    function selected() { return Array.prototype.map.call(form.querySelectorAll('input[name=preset]:checked'), function (i) { return i.value; }); }
+    function refresh() {
+      current = planServices(state.data, selected(), presets, { assign: form.elements.assign.checked, newId: function () { return newId(); } }, state.can);
+      var parts = [];
+      if (!state.can.services) parts.push('<p class="schedule-setup-note" data-tone="warn">Tu rol no puede crear servicios (requiere el permiso de configuración). Pide al propietario que los cree; la asignación a profesionales sí puedes hacerla.</p>');
+      if (current.create.length) parts.push('<p class="schedule-setup-note">Se crearán ' + current.create.length + ' servicio' + (current.create.length === 1 ? '' : 's') + ': ' + esc(current.create.map(function (c) { return c.preset.name; }).join(', ')) + '.</p>');
+      if (current.existingTargets.length) parts.push('<p class="schedule-setup-note">También se asignarán servicios que ya existen y nadie realiza: ' + esc(current.existingTargets.map(function (t) { return t.name; }).join(', ')) + '.</p>');
+      if (current.assignments.length) { var who = {}; current.assignments.forEach(function (a) { who[a.professional] = true; }); parts.push('<p class="schedule-setup-note">Los realizará: ' + esc(Object.keys(who).join(', ')) + '.</p>'); }
+      if (!parts.length || (!current.create.length && !current.assignments.length)) parts.push('<p class="schedule-setup-note">No hay nada nuevo que crear con esta selección.</p>');
+      preview.innerHTML = parts.join('');
+      submit.disabled = saving || (!current.create.length && !current.assignments.length);
+      notifyIn(dialog, '');
+    }
+    form.addEventListener('change', refresh);
+    dialog.querySelector('[data-close]').onclick = function () { dialog.close(); };
+    form.onsubmit = async function (event) {
+      event.preventDefault();
+      if (saving) return;
+      refresh();
+      if (submit.disabled) return;
+      saving = true; submit.disabled = true; submit.textContent = 'Creando…';
+      var tenant = state.tenant, savedServices = false;
+      try {
+        var auth = await window.sb.auth.getUser(), actor = auth && auth.data && auth.data.user && auth.data.user.id || null;
+        if (current.create.length) {
+          var rows = current.create.map(function (c) { var row = model.presetInsert(c.preset, tenant, actor); row.id = c.id; return row; });
+          var invalid = rows.map(function (r) { return model.validate(r); }).filter(function (e) { return e.length; })[0];
+          if (invalid) throw new Error(invalid[0]);
+          await run(window.sb.from('smyl_services').insert(rows).select('id'));
+          savedServices = true;
+        }
+        if (current.assignments.length) {
+          await run(window.sb.from('smyl_professional_services').upsert(current.assignments.map(function (a) { return { tenant_id: tenant, professional_id: a.professional_id, service_id: a.service_id }; }), { onConflict: 'tenant_id,professional_id,service_id', ignoreDuplicates: true }).select('service_id'));
+        }
+        await finish(dialog, current.create.length ? 'Servicios creados y asignados. Completa precio y datos fiscales en Servicios y tarifas.' : 'Servicios asignados a los profesionales.');
+      } catch (error) {
+        notifyIn(dialog, saveError(error, savedServices, 'Se crearon los servicios, pero no se asignaron a los profesionales:'));
+        saving = false; submit.textContent = 'Crear servicios'; submit.disabled = false;
+        if (savedServices) load();
+      }
+    };
+    refresh();
+  }
+
+  function openRoomsWizard() {
+    var dialog = dialogEl();
+    if (!dialog || !state.data || !state.can) return;
+    dialog.innerHTML = '<form id="schedule-setup-form"><h2>Sillones o consultorios</h2><p>Crea los espacios de las sucursales que aún no tienen ninguno. Con sillones configurados, cada cita debe elegir uno; con ellos la agenda también evita dobles reservas del mismo sillón.</p>' +
+      '<div class="schedule-form-grid"><label>Sillones por sucursal<input name="count" type="number" min="1" max="10" step="1" value="1" required></label></div>' +
+      '<section class="schedule-setup-result" data-setup-preview aria-live="polite"></section>' +
+      '<div class="schedule-dialog-actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" type="submit" data-setup-submit>Crear sillones</button></div></form>';
+    dialog.showModal();
+    var form = dialog.querySelector('form'), preview = dialog.querySelector('[data-setup-preview]'), submit = dialog.querySelector('[data-setup-submit]'), current = [], saving = false;
+    function refresh() {
+      current = planRooms(state.data, form.elements.count.value);
+      var parts = [];
+      if (!state.can.clinic) parts.push('<p class="schedule-setup-note" data-tone="warn">Tu rol no puede crear sillones. Pide al propietario que active el permiso de Mi clínica.</p>');
+      if (!current.length) parts.push('<p class="schedule-setup-note">Todas las sucursales ya tienen sillones.</p>');
+      else { var byBranch = {}; current.forEach(function (r) { (byBranch[r.branch] = byBranch[r.branch] || []).push(r.name); }); parts.push('<p class="schedule-setup-note">Se van a crear:</p><ul class="schedule-setup-preview">' + Object.keys(byBranch).map(function (b) { return '<li><strong>' + esc(b) + '</strong><span>' + esc(byBranch[b].join(', ')) + '</span></li>'; }).join('') + '</ul>'); }
+      preview.innerHTML = parts.join('');
+      submit.disabled = saving || !state.can.clinic || !current.length;
+      notifyIn(dialog, '');
+    }
+    form.addEventListener('input', refresh);
+    dialog.querySelector('[data-close]').onclick = function () { dialog.close(); };
+    form.onsubmit = async function (event) {
+      event.preventDefault();
+      if (saving) return;
+      refresh();
+      if (submit.disabled) return;
+      saving = true; submit.disabled = true; submit.textContent = 'Creando…';
+      try {
+        var auth = await window.sb.auth.getUser(), actor = auth && auth.data && auth.data.user && auth.data.user.id || null, tenant = state.tenant;
+        await run(window.sb.from('smyl_rooms').insert(current.map(function (r) { return { tenant_id: tenant, branch_id: r.branch_id, name: r.name, room_type: 'sillon', created_by: actor }; })).select('id'));
+        await finish(dialog, 'Sillones creados. Al agendar, cada cita elegirá uno.');
+      } catch (error) {
+        notifyIn(dialog, saveError(error, false, ''));
+        saving = false; submit.textContent = 'Crear sillones'; submit.disabled = false;
+      }
+    };
+    refresh();
+  }
+
   function watch() {
     var page = document.getElementById('p-agenda');
     if (!page || state.observer) return;
@@ -296,7 +486,7 @@
         return result;
       };
     }
-    window.SmylScheduleSetup = Object.freeze({ reload: load, assess: assess, plan: plan, dayRange: dayRange });
+    window.SmylScheduleSetup = Object.freeze({ reload: load, assess: assess, plan: plan, planServices: planServices, planRooms: planRooms, dayRange: dayRange });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
