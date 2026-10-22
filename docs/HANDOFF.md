@@ -1,5 +1,70 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude → Codex: revisión UX del módulo Agenda (aprobada por el usuario)
+
+Revisión de `smyl-schedule.js` / `.css` con el usuario. Todo lo de abajo es maquetación/UX
+(Codex); Claude deja los datos listos donde se indica. Orden = prioridad.
+
+### A. Pestaña "Horarios y servicios" → renombrar a "Horarios" y dejar solo eso
+Hoy mezcla tres bloques sin relación y el único crítico (Disponibilidad) está al final.
+1. **Quitar "Recordatorios por WhatsApp"** de Agenda. Vive en Mensajes/Conexiones. Si se
+   conserva un acceso aquí, una sola línea: "Recordatorios desactivados · [Activar]"; nunca las
+   cuatro cajas de contadores cuando está desactivado.
+2. **Reducir "Servicios activos"** a una línea: "5 servicios activos · Editar catálogo →"
+   (`window.ir('precios')`). Es solo lectura; no merece una tarjeta.
+3. **Disponibilidad como semana, no como tarjetas repetidas**: una fila por profesional con
+   Lun–Dom y el rango en cada celda (`09:00–18:00`); clic en celda = editar/agregar ese día.
+   Hoy "Dr. Hernán Partida · Lun 09:00–18:00" ×5 parece un error.
+4. **Horario de la clínica en la misma pantalla**, arriba del de profesionales
+   (`state.clinicHours`, tabla `smyl_clinic_hours`), para que se vea "la clínica abre 9–18,
+   yo atiendo 10–17" sin ir a Mi clínica. Mi clínica puede seguir mostrándolo.
+5. **Vacío útil**: profesional sin horario → fila en rojo "Sin horario — no se le pueden
+   agendar citas · [Agregar]". Es la causa #1 del error al crear cita (`hoursIssues()`).
+
+### B. Arranque en vacío (clínica nueva)
+Checklist arriba del calendario cuando falte algo; desaparece al completarse:
+`1 Horario de la clínica · 2 Horario del profesional · 3 Al menos un servicio · 4 Comparte tu perfil`.
+Se calcula desde `state` sin consultas nuevas: `state.clinicHours.some(h=>h.active)`,
+`state.hours.some(h=>h.active)`, `state.services.some(s=>s.active)`. Para "perfil publicado"
+consultar `smyl_professional_profiles` (`status='published'`) una vez al cargar; si Codex prefiere
+que Claude lo agregue a `load()`, avisar en esta bitácora.
+
+### C. Chips de métricas en cero
+`0 citas hoy · 0 faltan por llegar · 0 en consulta` no informa. Si `todayAppointments()` está
+vacío: un solo texto "Sin citas hoy · próxima: jueves 10:00" (buscar la siguiente `confirmed`
+en `state.appointments`). Chips solo cuando hay algo que contar (`renderMetrics`).
+
+### D. Pestaña "Por aprobar" — hablar como humano
+Quitar "Solicitud, no confirmación" y "Apartado vencido; volver a validar" (jerga de backend).
+Cada tarjeta: nombre · **origen** (`source`: `patient_portal` = "Desde tu perfil público",
+`assistant` = "Pidió por el asistente") · tratamiento · "Prefiere jue 10:00" · **teléfono con
+botón WhatsApp** (`state.patients[].telefono`, `https://wa.me/52<10 dígitos>`) · un solo botón
+primario "Agendar". El apartado temporal se muestra solo si está vigente, como "Horario
+apartado hasta 10:45".
+
+### E. Cabecera
+"Bloquear horario" no debe pesar igual que "Nueva cita". Pasarlo a secundario o a un menú "···"
+junto con "Agregar horario".
+
+### F. Feedback que no se va
+`#schedule-feedback` ("Cita ampliada: +15 min en total · Cerrar") se queda hasta que el usuario
+lo cierra. Auto-ocultar a los 5 s (errores se quedan). Ver `notify()`.
+
+### G. Móvil
+La semana de 7 columnas con eje de horas (v17) no cabe en 390 px. En `<720px` vista **Día** por
+defecto, con ‹ › para moverse; Semana disponible pero no inicial.
+
+### H. Leyenda de colores
+Las citas ya usan `color_token` del profesional, pero no hay leyenda. Con 2+ profesionales,
+fila "● Dr. Partida ● Dra. X" arriba del calendario; clic filtra (`state.professional`).
+
+### Lo que NO se toca (está bien)
+Panel "Pendientes de hoy" y sus prioridades, ficha de cita con transiciones de estado, motivos de
+cancelación en chips, validación de choques (`bookingSnapshot`) antes de guardar, horas libres
+como botones (v17).
+
+---
+
 ## 2026-10-22 — Claude: semana compacta (ajuste tras el comentario del usuario)
 
 - El usuario no quedó convencido con la semana con eje de horas: ocupaba mucha pantalla casi vacía y la cita de las 5 pm
