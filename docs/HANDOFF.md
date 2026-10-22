@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: Agenda, semana con eje de horas
+
+- `smyl-schedule-grid.js` (v1, nuevo): funciones puras de la cuadrícula (`bounds`, `lanes`, `slotAt`, `size`, `toMinutes`),
+  probadas en `tests/smyl-schedule-grid.test.mjs`.
+- `smyl-schedule.js` (v15) / `.css` (v10): la semana ahora es un calendario con eje de horas (`renderWeekGrid`): citas con la
+  altura de su duración (1.4 px por minuto, constante `WK_PX`; el fondo de líneas horarias del CSS usa 84 px por hora y debe
+  seguir a esa constante), citas encimadas lado a lado, bloqueos rayados, horas cerradas en gris, días y horas pasadas
+  atenuados, línea roja de «ahora» que se mueve cada minuto, y clic en un hueco para abrir Nueva cita (con vista previa
+  «+ 12:30 pm» al pasar el cursor, ajustada a 15 min). La semana sin citas conserva su pantalla vacía con «Agendar una cita».
+  Si `SmylScheduleGrid` no cargó, se usa la vista de tarjetas anterior (`renderWeekCards`).
+- En celular (ancho ≤ 700 px) la Agenda abre en vista Día; la semana sigue disponible con desplazamiento horizontal.
+- Las etiquetas de hora de la vista Día usan el mismo formato («9 am»). El título del periodo en Día y Mes ya no pone
+  mayúscula en «De».
+- `app.html`/`sw.js` y `mobile/www/` sincronizados. Siguen fallando 3 pruebas que ya fallaban en `main` (directorio, casos y
+  reseñas, por versiones de assets del directorio).
+
 ## 2026-10-22 — Claude: Agenda con lenguaje claro, ficha de cita nueva y mensajes desde la ficha
 
 - Pedido del usuario: la Agenda se sentía complicada (mucho texto, lenguaje técnico), mejorar la ficha de la cita y poder

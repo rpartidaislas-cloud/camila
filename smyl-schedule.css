@@ -182,3 +182,37 @@
 .sched-msg .sched-msg-more{font:600 13px Inter,sans-serif;height:36px;min-height:36px;width:auto;padding:0 30px 0 13px}
 .sched-reason .schedule-dialog-actions .btn{min-height:44px}
 .schedule-form-grid label[hidden]{display:none}
+
+/* Semana con eje de horas. */
+.schedule-calendar.week.has-grid{display:block;overflow-x:auto;min-height:0}
+.schedule-wk{--wk-px:1.4;display:grid;grid-template-columns:58px repeat(7,minmax(118px,1fr));grid-template-rows:56px var(--wk-h);min-width:860px;background:#fff}
+.schedule-wk-corner{border-right:1px solid #e3e8e4;border-bottom:1px solid #e3e8e4;background:#f8faf7}
+.schedule-wk>header{display:flex;align-items:center;justify-content:center;gap:7px;border-right:1px solid #e3e8e4;border-bottom:1px solid #e3e8e4;background:#f8faf7;color:#6d7d76}
+.schedule-wk>header span{font-size:12px;font-weight:700;text-transform:uppercase}.schedule-wk>header strong{font-size:18px;font-weight:570}
+.schedule-wk>header[data-today=true]{background:#e7f2ec;color:#295f56}.schedule-wk>header[data-today=true] strong{background:#2f6a5e;color:#fff;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:15px}
+.schedule-wk>aside{position:relative;border-right:1px solid #e3e8e4;background:#fbfcfa}
+.schedule-wk>aside span{position:absolute;right:8px;transform:translateY(-8px);color:#6f7f78;font-size:11px;white-space:nowrap}
+.schedule-wk>aside span:first-child{transform:translateY(2px)}
+.schedule-wk-lane{position:relative;height:var(--wk-h);border-right:1px solid #e3e8e4;cursor:pointer;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(84px - 1px),#e4eae6 calc(84px - 1px),#e4eae6 84px)}
+.schedule-wk-lane:last-child{border-right:0}
+.schedule-wk-lane[data-today=true]{background-color:#fbfdfb}
+.schedule-wk-closed{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,#f3f5f3 0,#f3f5f3 6px,#eef1ee 6px,#eef1ee 12px);pointer-events:none}
+.schedule-wk-past{position:absolute;left:0;right:0;background:rgba(240,243,241,.62);pointer-events:none;z-index:1}
+.schedule-wk-block{position:absolute;left:3px;right:3px;z-index:1;border-radius:8px;background:repeating-linear-gradient(135deg,#eceeed 0,#eceeed 7px,#e4e7e5 7px,#e4e7e5 14px);border:1px solid #d3d9d5;padding:4px 7px;overflow:hidden;color:#5b6a64;pointer-events:none;display:grid;align-content:start;gap:1px}
+.schedule-wk-block span{font-size:11px;font-weight:700}.schedule-wk-block strong{font-size:12px;font-weight:600}
+.schedule-wk-event{position:absolute;z-index:2;display:grid;align-content:start;gap:1px;padding:4px 7px 4px 9px;min-height:0;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(32,69,63,.1)}
+.schedule-calendar.week .schedule-wk-event{padding:4px 7px 4px 9px}
+.schedule-wk-event span{font-size:11px;font-weight:700;color:var(--schedule-accent);white-space:nowrap}
+.schedule-wk-event strong{font-size:13px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schedule-wk-event em{font-style:normal;font-size:12px;color:#4e6b64;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schedule-wk-event small{font-size:11px;color:#6b7e77;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schedule-wk-event i{justify-self:start;margin-top:2px}
+.schedule-wk-event[data-size=s]{display:flex;align-items:center;gap:6px;padding-block:2px}.schedule-wk-event[data-size=s] em,.schedule-wk-event[data-size=s] small,.schedule-wk-event[data-size=s] i{display:none}
+.schedule-wk-event[data-size=m] small,.schedule-wk-event[data-size=m] i{display:none}
+.schedule-wk-now{position:absolute;left:0;right:0;z-index:3;height:0;border-top:2px solid #d4483b;pointer-events:none}
+.schedule-wk-now i{position:absolute;left:-1px;top:-6px;width:10px;height:10px;border-radius:50%;background:#d4483b}
+.schedule-wk-ghost{position:absolute;left:3px;right:3px;z-index:1;height:30px;border:1px dashed color-mix(in srgb,#2f6a5e 55%,white);border-radius:8px;background:color-mix(in srgb,#2f6a5e 8%,white);color:#2f6a5e;font-size:12px;font-weight:650;padding:4px 8px;pointer-events:none}
+.schedule-wk-ghost[hidden]{display:none}
+@media(max-width:760px){.schedule-wk{grid-template-columns:50px repeat(7,minmax(104px,1fr));min-width:780px}}
+.schedule-wk-event:not([data-lanes="1"]) i,.schedule-wk-event:not([data-lanes="1"]) small{display:none}
+#schedule-period[data-long=true]{text-transform:none}#schedule-period[data-long=true]::first-letter{text-transform:uppercase}
