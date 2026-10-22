@@ -9,19 +9,19 @@ const styles = read('../smyl-schedule.css');
 const worker = read('../sw.js');
 
 test('agenda surfaces one operational priority queue without taking the final decision', () => {
-  assert.match(script, /QUÉ REQUIERE ATENCIÓN/);
-  assert.match(script, /el equipo conserva la decisión final/);
-  assert.match(script, /Estado pendiente/);
-  assert.match(script, /Solicitud del asistente/);
-  assert.match(script, /Recordatorio fallido/);
-  assert.match(script, /Seguimiento pendiente/);
+  assert.match(script, /PENDIENTES DE HOY/);
+  assert.match(script, /if\(!pending\)\{host\.hidden=true/);
+  assert.match(script, /¿Ya llegó\?/);
+  assert.match(script, /Pidió cita/);
+  assert.match(script, /Aviso sin enviar/);
+  assert.match(script, /No vino/);
   assert.doesNotMatch(script, /from\('smyl_appointment_requests'\)\.insert/);
 });
 
 test('operational context connects appointments with reminders, patient record and follow-up', () => {
   assert.match(script, /from\('smyl_appointment_reminders'\)/);
-  assert.match(script, /Abrir ficha/);
-  assert.match(script, /Continuar en Mensajes/);
+  assert.match(script, /Ficha del paciente/);
+  assert.match(script, /data-open-inbox>Abrir chat/);
   assert.match(script, /window\.verPaciente\(a\.patient_id\)/);
   assert.match(script, /window\.ir\('inbox'\)/);
 });

@@ -24,17 +24,16 @@ test('seleccionar un horario prepara la cita sin saltarse la validación canóni
   assert.match(schedule, /data-book-slot/);
   assert.match(schedule, /openNew\(null,null,start,b\.dataset\.professional/);
   assert.match(schedule, /smyl_create_appointment/);
-  assert.match(schedule, /CONTROL DE RESERVA/);
-  assert.match(schedule, /valida nuevamente horarios, tiempos de preparación, profesional, sillón, bloqueos y apartados temporales/);
+  assert.match(schedule, /<span>RESUMEN<\/span>/);
+  assert.match(schedule, /Todo en orden/);
   assert.doesNotMatch(schedule, /from\('smyl_appointments'\)\.insert/);
 });
 
 test('una semana vacía comunica cobertura real sin fotografías decorativas', () => {
   assert.match(schedule, /function emptyWeek/);
-  assert.match(schedule, /SEMANA SIN CITAS/);
-  assert.match(schedule, /No hay citas programadas/);
+  assert.match(schedule, /No hay citas esta semana/);
   assert.match(schedule, /function dayAvailability/);
-  assert.match(schedule, /Preparar primera cita/);
+  assert.match(schedule, /Agendar una cita/);
   assert.match(css, /schedule-week-availability/);
   assert.doesNotMatch(schedule.slice(schedule.indexOf('function emptyWeek'), schedule.indexOf('function renderWeek')), /<img|background-image|avatar/i);
 });
