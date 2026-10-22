@@ -60,7 +60,7 @@ test('los demás módulos tampoco se quedan en 1,000 pacientes', () => {
   // Los selectores que sí necesitan la lista completa la piden por páginas.
   for (const file of ['smyl-inventory.js', 'smyl-clinic.js', 'smyl-case-client.js']) {
     const source = read(file);
-    assert.match(source, /\.range\(page ?\* ?1000, page ?\* ?1000 ?\+ ?999\)/, `${file} debe paginar`);
+    assert.match(source, /\.range\(page ?\* ?1000,\s*page ?\* ?1000 ?\+ ?999\)/, `${file} debe paginar`);
     assert.match(source, /page ?< ?10/, `${file} debe limitar las páginas`);
   }
   assert.doesNotMatch(read('smyl-case-client.js'), /\.limit\(1000\)/);
