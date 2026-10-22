@@ -7249,3 +7249,10 @@ copias móviles, PWA, fixtures y contratos visuales.
   de ventanas CSS v2.
 - Verificación final: 427 de 427 pruebas aprobadas. No se modificaron backend,
   esquema, credenciales ni datos clínicos reales.
+
+## 2026-10-22 — Claude — Agenda: hueco clicable, línea de ahora, hora a 15 min
+- `smyl-schedule.js` v15 / `.css` v10 (web + `mobile/www`): etiqueta "+ Nueva cita · hora" al pasar
+  sobre un hueco de la vista Día, línea roja de la hora actual, bloques con color del profesional,
+  y la hora precargada en Nueva cita se redondea a 15 min (antes `17:02` fallaba el `step=900`).
+- Pendiente (requiere backend): tiempo adicional por cita (+15/+30/+60). `smyl_create_appointment`
+  y `smyl_validate_service_appointment_slot` fuerzan `fin = inicio + duración del servicio`.

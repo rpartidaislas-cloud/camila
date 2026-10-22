@@ -182,3 +182,11 @@
 .sched-msg .sched-msg-more{font:600 13px Inter,sans-serif;height:36px;min-height:36px;width:auto;padding:0 30px 0 13px}
 .sched-reason .schedule-dialog-actions .btn{min-height:44px}
 .schedule-form-grid label[hidden]{display:none}
+/* Agenda v2: clic en hueco, línea de ahora y resumen de horario */
+.schedule-resource-lane>[data-book-slot]::after{content:"+ Nueva cita · " attr(data-label);position:absolute;left:6px;top:50%;transform:translateY(-50%);padding:3px 9px;border-radius:999px;background:var(--schedule-accent);color:#fff;font-size:10px;font-weight:650;opacity:0;pointer-events:none;transition:opacity .12s}
+.schedule-resource-lane>[data-book-slot]:hover::after,.schedule-resource-lane>[data-book-slot]:focus-visible::after{opacity:1}
+.schedule-timeline-event .schedule-appointment{border-radius:10px;border-left-width:4px;background:color-mix(in srgb,var(--schedule-accent) 9%,white);transition:transform .12s,box-shadow .12s}
+.schedule-timeline-event .schedule-appointment:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,69,63,.16)}
+.schedule-now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid #e5484d;z-index:3;pointer-events:none}
+.schedule-now-line::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:#e5484d}
+.schedule-now-line span{position:absolute;right:4px;top:-17px;padding:1px 6px;border-radius:6px;background:#e5484d;color:#fff;font-size:9px;font-weight:700}
