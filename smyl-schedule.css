@@ -224,3 +224,14 @@
 .schedule-now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid #e5484d;z-index:3;pointer-events:none}
 .schedule-now-line::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:#e5484d}
 .schedule-now-line span{position:absolute;right:4px;top:-17px;padding:1px 6px;border-radius:6px;background:#e5484d;color:#fff;font-size:9px;font-weight:700}
+
+/* Horas libres en Nueva cita. */
+.schedule-slots{display:grid;gap:8px}
+.schedule-slot-days,.schedule-slot-times{display:flex;flex-wrap:wrap;gap:6px}
+.schedule-slot-day,.schedule-slot-time{border:1px solid #cbd8d1;background:#fff;color:#2f5d54;border-radius:999px;padding:7px 13px;font:600 13px Inter,sans-serif;cursor:pointer;min-height:36px}
+.schedule-slot-time{min-width:78px;text-align:center}
+.schedule-slot-day:hover:not(:disabled),.schedule-slot-time:hover{border-color:#7fa99d}
+.schedule-slot-day[aria-pressed=true],.schedule-slot-time[aria-pressed=true]{background:#2f6a5e;border-color:#2f6a5e;color:#fff}
+.schedule-slot-day:disabled{opacity:.4;cursor:not-allowed;background:#f3f5f3}
+.schedule-slots-hint{margin:0;color:#74837d;font-size:12px;line-height:1.45}
+dialog[data-smyl-dialog-system="true"] .schedule-form-grid .schedule-slots,.schedule-form-grid .schedule-slots{grid-column:1/-1!important}

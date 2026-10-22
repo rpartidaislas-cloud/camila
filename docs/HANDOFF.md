@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: Nueva cita con horas libres como botones
+
+- `smyl-schedule-slots.js` (v1, nuevo): cálculo puro de horas libres. Copia la regla de
+  `smyl_validate_service_appointment_slot`: horario de la clínica y del profesional, citas confirmadas/llegó/en consulta con
+  su preparación antes y después, sillón, bloqueos activos y apartados vigentes de solicitudes; no cruza la medianoche y
+  respeta la zona horaria de la sucursal (probado con Ciudad de México y Tijuana).
+- `smyl-schedule.js` (v17) / `.css` (v12): en Nueva cita y Cambiar horario aparecen 7 días (cerrados deshabilitados) y los
+  horarios libres cada 30 min (15 si no hay ninguno). Un toque pone la hora y, si no hay sillón elegido, el primero libre.
+  Consulta citas, bloqueos y apartados de la sucursal para el día elegido (caché de 30 s); si falla, avisa y deja escribir la
+  hora a mano.
+- **Son sugerencias.** El servidor sigue validando al confirmar (`smyl_create_appointment`). Con alcance de datos «propio» la
+  consulta no ve citas de otros profesionales, así que un choque de sillón puede aparecer libre y el servidor lo rechazará.
+  La versión definitiva sería una función SQL `security invoker` por usuario (la existente, `smyl_inbox_available_slots`, solo
+  está abierta a `service_role`); requiere migración y no se hizo porque el conector de Supabase no tiene permiso.
+- `app.html`/`sw.js`/`mobile/www/` sincronizados. Siguen fallando 3 pruebas que ya fallaban en `main`.
+
 ## 2026-10-22 — Claude: Agenda, semana con eje de horas
 
 - `smyl-schedule-grid.js` (v1, nuevo): funciones puras de la cuadrícula (`bounds`, `lanes`, `slotAt`, `size`, `toMinutes`),
