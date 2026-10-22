@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: Pacientes con próxima cita, «Agendar cita» y carga completa
+
+- `smyl-clinic.js` (v12) / `.css` (v6): la lista de Pacientes pide los registros por páginas de 1,000 (`fetchAllPatients`, hasta
+  10,000); PostgREST corta cada respuesta a 1,000 filas y a partir de ahí los pacientes desaparecían en silencio. Los demás
+  módulos que listan pacientes (`smyl-daily-home`, `smyl-inventory`, `smyl-clinic.js` `loadPatientSelect`) siguen con ese tope.
+- Cada fila muestra «Próxima cita: jue 22 oct · 11:30 am», «Última visita: …» o «Sin citas todavía» (dos consultas de solo
+  lectura a `smyl_appointments`; si fallan, la lista queda sin esa línea) y un botón «Agendar cita».
+- `window.filtrarPacientes` ahora la define `smyl-clinic.js`: sin acentos, varias palabras, teléfono con espacios o guiones.
+  La búsqueda de la pantalla de Pacientes sigue siendo del lado del cliente (sobre todo lo cargado).
+- `smyl-schedule.js` (v18): `SmylSchedule.bookFor(paciente)` abre Nueva cita con el paciente elegido y origen `manual`
+  (`forPatient` sigue siendo solo para cotizaciones aceptadas).
+- `app.html`: placeholder de la búsqueda más corto. `sw.js` y `mobile/www/` sincronizados. Siguen fallando 3 pruebas que ya
+  fallaban en `main`.
+
 ## 2026-10-22 — Claude → Codex: rediseño del perfil profesional (mockup aprobado)
 
 ### Para Codex: maquetar a partir de los mockups

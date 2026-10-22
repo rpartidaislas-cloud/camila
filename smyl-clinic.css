@@ -86,3 +86,12 @@
 @media(max-width:600px){#modal-paciente .modal>#mp-duplicados:not(:empty),#modal-paciente .modal>.clinic-patient-extra{margin-left:16px;margin-right:16px}#modal-paciente .form-grid{grid-template-columns:minmax(0,1fr)}.mp-phone{grid-template-columns:116px minmax(0,1fr)}.mp-dup-actions .btn{flex:1}}
 @media(max-width:1150px){.clinic-layout{grid-template-columns:1fr}.clinic-patient-card{display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:20px}.clinic-patient-card>.clinic-avatar{grid-row:1/3}.clinic-patient-card h2{margin:4px 0}.clinic-patient-card>.clinic-caption{grid-column:1}.clinic-patient-card>p:not(.clinic-privacy){grid-column:2;align-self:end}.clinic-patient-card .clinic-secondary,.clinic-patient-card .clinic-privacy{grid-column:1/-1}.clinic-caption{margin-top:12px}}
 @media(max-width:600px){.clinic-patient-heading{align-items:start;flex-direction:column;gap:14px;margin-top:16px}.clinic-patient-heading h1{font-size:30px}.clinic-patient-card{padding:20px;grid-template-columns:105px minmax(0,1fr)}.clinic-workspace{padding:20px 16px;border-radius:14px}.clinic-workspace-heading{flex-direction:column;padding-bottom:22px}.clinic-workspace-heading h2{font-size:25px}.clinic-ai{padding:16px}.clinic-ai-result-heading{align-items:flex-start;flex-direction:column}.clinic-ai-results>.btn,#clinic-ai-generate{width:100%}.clinic-treatment{grid-template-columns:1fr;padding:14px}.clinic-treatment-targets{align-items:stretch;flex-direction:column}.clinic-actions .btn{flex:1;white-space:normal}.clinic-patient-row{flex-wrap:wrap;padding:16px}.clinic-patient-row .btn{width:100%;margin-top:4px}.clinic-dialog{padding:22px}.clinic-dialog .clinic-actions{flex-direction:column}}
+
+/* Pacientes: línea de agenda, acciones y búsqueda completa. */
+.clinic-patient-agenda{display:block;margin-top:4px;font-size:12px;font-weight:600;color:#6c7a74}
+.clinic-patient-agenda[data-tone=next]{color:#2b6a4f}.clinic-patient-agenda[data-tone=none]{font-weight:500;color:#8a9690}
+.clinic-patient-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.clinic-patient-actions .btn{flex-shrink:0}
+#p-pacientes .search-bar,#p-pacientes .search-wrap{max-width:none}
+#p-pacientes .search-inp{width:100%}
+@media(max-width:600px){.clinic-patient-row{flex-wrap:wrap}.clinic-patient-actions{width:100%;justify-content:stretch}.clinic-patient-actions .btn{flex:1}}
