@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: fix error 42501 al guardar ficha ya publicada
+
+### Qué se hizo
+- **Nueva migración** `20261022000000_smyl_fix_published_profile_save.sql`: reemplaza `smyl_save_professional_profile` con una versión que solo exige `team.manage` para PUBLICAR por primera vez o para PAUSAR un perfil. Si el perfil ya está en estado `published`, cualquier usuario con `smyl_can_edit_professional_profile` puede seguir guardando cambios sin necesitar `team.manage`.
+- **Raíz del problema**: la versión anterior bloqueaba cualquier guardado con `status='published'` independientemente de si era un cambio de estado o solo una actualización de contenido. El frontend siempre devuelve el estado actual del perfil, por lo que cada click en "Guardar cambios" en un perfil publicado disparaba la excepción 42501 → los datos nunca se escribían en BD → se perdían al recargar.
+
+### Archivos tocados
+- `supabase/migrations/20261022000000_smyl_fix_published_profile_save.sql` (nueva)
+- `docs/HANDOFF.md`
+
+### Pendiente
+- Aplicar la migración en producción (`rpxshsiwoxdbuevjjpfw`) via Supabase Dashboard → SQL Editor (igual que la migración de backfill anterior).
+
+---
+
 ## 2026-10-22 — Claude: Nueva cita con horas libres como botones
 
 - `smyl-schedule-slots.js` (v1, nuevo): cálculo puro de horas libres. Copia la regla de
