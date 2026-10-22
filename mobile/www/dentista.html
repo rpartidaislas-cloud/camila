@@ -725,10 +725,19 @@
             (TURNSTILE_SITE_KEY ? '<div id="appointment-turnstile" aria-label="Verificación de seguridad"></div>' : '') +
             '<div id="form-error" tabindex="-1" role="alert" aria-live="assertive"></div><div class="booking-actions"><button class="button-secondary" type="button" data-booking-back>Volver</button><button class="button-primary" type="submit">Enviar solicitud</button></div><p class="fine">Enviar una solicitud no confirma la cita. La clínica verificará disponibilidad antes de contactarte.</p></section></form>' + urgentMarkup(phone) + '</aside>';
         }
+        // Mismos requisitos que smyl_create_public_appointment_intake: la ficha
+        // publicada basta; la verificación interna es insignia, no condición.
+        function requestReady(p, services, locations) {
+          return Boolean(
+            p.accepts_new_patients && services.length && locations.length && p.photo_path &&
+            String(p.headline || "").trim().length >= 12 && String(p.bio || "").trim().length >= 80 &&
+            String(p.specialty || "").trim() && String(p.license_number || "").trim()
+          );
+        }
         function render(p) {
           profile = p;
           track("view");
-          var image = photo(p.photo_path), locations = Array.isArray(p.locations) ? p.locations : [], services = Array.isArray(p.services) ? p.services : [], phone = phoneData(p.public_phone), canRequest = Boolean(p.verified_profile && p.accepts_new_patients && services.length && locations.length), link = updateMetadata(p, image, locations), firstLocation = locations[0] || {}, city = [firstLocation.city, firstLocation.state].filter(Boolean).join(", ");
+          var image = photo(p.photo_path), locations = Array.isArray(p.locations) ? p.locations : [], services = Array.isArray(p.services) ? p.services : [], phone = phoneData(p.public_phone), canRequest = requestReady(p, services, locations), link = updateMetadata(p, image, locations), firstLocation = locations[0] || {}, city = [firstLocation.city, firstLocation.state].filter(Boolean).join(", ");
           var verificationCopy = p.verified_profile
             ? "Documentación profesional revisada internamente" + (p.verified_at ? " · " + new Date(p.verified_at).toLocaleDateString("es-MX", { month: "short", year: "numeric" }) : "")
             : "Cédula declarada; revisión documental pendiente";

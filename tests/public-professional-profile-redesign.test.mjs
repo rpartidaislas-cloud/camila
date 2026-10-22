@@ -65,8 +65,13 @@ test('la política visual clínica evita recursos decorativos prohibidos', () =>
     'los campos móviles deben evitar el zoom automático');
 });
 
-test('el formulario sólo aparece cuando el perfil está verificado y tiene profesional, servicios y sedes disponibles', () => {
-  assert.match(profile, /canRequest\s*=\s*Boolean\(p\.verified_profile\s*&&\s*p\.accepts_new_patients\s*&&\s*services\.length\s*&&\s*locations\.length\)/);
+test('el formulario aparece con ficha publicada y completa (foto, presentación, bio, especialidad, cédula, servicios y sedes), sin exigir verificación', () => {
+  assert.match(profile, /canRequest\s*=\s*requestReady\(p, services, locations\)/);
+  const ready = profile.match(/function requestReady\(p, services, locations\) \{([\s\S]*?)\n        \}/);
+  assert.ok(ready, 'falta requestReady()');
+  assert.match(ready[1], /p\.accepts_new_patients && services\.length && locations\.length && p\.photo_path/);
+  assert.match(ready[1], /headline[\s\S]*?>= 12[\s\S]*?bio[\s\S]*?>= 80/);
+  assert.doesNotMatch(ready[1], /verified_profile/, 'la ficha publicada basta para solicitar; verified_profile es solo insignia');
   assert.match(profile, /function bookingMarkup\(p, services, locations, phone, canRequest\)/);
   assert.match(profile, /if \(!canRequest\)[\s\S]*?request-unavailable/);
   assert.match(profile, /Servicios en actualización/);
