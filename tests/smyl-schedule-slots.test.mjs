@@ -71,6 +71,8 @@ test('Nueva cita ofrece días y horas libres y deja la validación final al serv
   assert.match(schedule, /from\('smyl_appointments'\)\.select\('id,professional_id,room_id,service_id,status,starts_at,ends_at'\)/);
   assert.match(schedule, /from\('smyl_appointment_requests'\)/);
   assert.match(schedule, /el sistema la revisa al confirmar/);
+  // El tiempo extra elegido (+15/+30/+60) alarga la cita, así que también cuenta al buscar horas libres.
+  assert.match(schedule, /duration:snap\.duration\+\(snap\.extra\|\|0\),before:snap\.before/);
   assert.match(schedule, /rpc\('smyl_create_appointment'/);
   assert.doesNotMatch(schedule, /from\('smyl_appointments'\)\.insert/);
   assert.match(schedule, /data-slots aria-live="polite"/);

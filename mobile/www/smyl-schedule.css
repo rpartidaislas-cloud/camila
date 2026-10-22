@@ -193,7 +193,7 @@
 .schedule-wk>aside{position:relative;border-right:1px solid #e3e8e4;background:#fbfcfa}
 .schedule-wk>aside span{position:absolute;right:8px;transform:translateY(-8px);color:#6f7f78;font-size:11px;white-space:nowrap}
 .schedule-wk>aside span:first-child{transform:translateY(2px)}
-.schedule-wk-lane{position:relative;height:var(--wk-h);border-right:1px solid #e3e8e4;cursor:pointer;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(84px - 1px),#e4eae6 calc(84px - 1px),#e4eae6 84px)}
+.schedule-wk-lane{position:relative;height:var(--wk-h);border-right:1px solid #e3e8e4;cursor:pointer;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wk-hour,72px) - 1px),#e4eae6 calc(var(--wk-hour,72px) - 1px),#e4eae6 var(--wk-hour,72px))}
 .schedule-wk-lane:last-child{border-right:0}
 .schedule-wk-lane[data-today=true]{background-color:#fbfdfb}
 .schedule-wk-closed{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,#f3f5f3 0,#f3f5f3 6px,#eef1ee 6px,#eef1ee 12px);pointer-events:none}
@@ -235,6 +235,9 @@
 .schedule-slot-day:disabled{opacity:.4;cursor:not-allowed;background:#f3f5f3}
 .schedule-slots-hint{margin:0;color:#74837d;font-size:12px;line-height:1.45}
 dialog[data-smyl-dialog-system="true"] .schedule-form-grid .schedule-slots,.schedule-form-grid .schedule-slots{grid-column:1/-1!important}
+.schedule-wk-foot{display:flex;justify-content:center;padding:10px;border-top:1px solid #e3e8e4;background:#fbfcfa}
+.schedule-wk-foot button{border:0;background:transparent;color:#2f6a5e;font:650 13px Inter,sans-serif;padding:6px 10px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.schedule-wk-event[data-size=m]{padding-block:3px;gap:0}.schedule-wk-event[data-size=m] strong{line-height:1.2}.schedule-wk-event[data-size=m] span,.schedule-wk-event[data-size=m] em{line-height:1.2}
 
 /* Tiempo extra desde la ficha de la cita */
 .sched-extra strong{display:flex;flex-wrap:wrap;align-items:center;gap:8px}

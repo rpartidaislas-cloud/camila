@@ -53,7 +53,9 @@
   function renderWeek(host,r){var days=[];for(var i=0;i<7;i++)days.push(plusDays(r.start,i));var apps=visibleAppointments(),blocks=state.blocks.filter(function(b){return b.active&&filterRow(b);});if(!apps.length&&!blocks.length){emptyWeek(host,days);return;}if(window.SmylScheduleGrid)renderWeekGrid(host,days,apps,blocks);else renderWeekCards(host,days,apps,blocks);}
   function renderWeekCards(host,days,apps,blocks){host.className='schedule-calendar week';host.innerHTML=days.map(function(day){var key=isoDay(day),dayApps=apps.filter(function(a){return isoDay(a.starts_at)===key;}),dayBlocks=blocks.filter(function(b){return isoDay(b.starts_at)===key;}),availability=dayAvailability(day),emptyStart=new Date(day);emptyStart.setHours(Number(availability.start.slice(0,2))||9,Number(availability.start.slice(3,5))||0,0,0);return '<section class="schedule-day" data-today="'+(key===isoDay(new Date()))+'"><header><span>'+DAYS[day.getDay()]+'</span><strong>'+day.getDate()+'</strong></header><div class="schedule-day-body">'+(dayApps.map(appointmentCard).join('')+dayBlocks.map(blockCard).join('')||(availability.count?'<button type="button" class="schedule-day-empty" data-book-slot="'+emptyStart.toISOString()+'" data-professional="'+esc(availability.professional)+'"><span>Sin citas</span><small>'+clock(availability.start)+' a '+clock(availability.end)+'</small><strong>+ Agendar</strong></button>':'<button type="button" class="schedule-day-empty" data-empty-settings data-closed="true"><span>Cerrado</span><small>Definir horario</small></button>'))+'</div></section>';}).join('');}
   // Semana como calendario: eje de horas, citas con la altura de su duración, horas cerradas en gris y línea de «ahora».
-  var WK_PX=1.4;
+  var WK_PX=1.2;
+  function weekFull(){try{return window.localStorage.getItem('smyl_schedule_week_full')==='1';}catch(_){return false;}}
+  function setWeekFull(value){try{window.localStorage.setItem('smyl_schedule_week_full',value?'1':'0');}catch(_){}}
   function hourLabel(h){return (h%12||12)+' '+(h<12?'am':'pm');}
   function minuteOfDay(value){var d=new Date(value);return d.getHours()*60+d.getMinutes();}
   function weekEvent(a,top,height,lane,lanes){var G=window.SmylScheduleGrid,s=byId(state.services,a.service_id),p=byId(state.professionals,a.professional_id),room=byId(state.rooms,a.room_id),name=patientName(a.patient_id),who=[state.professionals.length>1&&p?p.display_name:'',room?room.name:''].filter(Boolean).join(' · ');return '<button type="button" class="schedule-appointment schedule-wk-event" data-status="'+a.status+'" data-accent="'+accent(p&&p.color_token)+'" data-size="'+G.size(height)+'" data-lanes="'+lanes+'" data-appointment="'+a.id+'" style="top:'+top+'px;height:'+height+'px;left:calc('+(lane*100/lanes)+'% + 2px);width:calc('+(100/lanes)+'% - 4px)"><span>'+fmtTime(a.starts_at)+'</span><strong>'+esc(name)+'</strong><em>'+esc(s?s.name:'Tratamiento')+'</em><small>'+esc(who)+'</small><i>'+esc(STATUS[a.status]||a.status)+'</i></button>';}
@@ -61,7 +63,7 @@
     var G=window.SmylScheduleGrid,avail=days.map(dayAvailability),windows=[],spans=[];
     avail.forEach(function(a){if(a.count)windows.push([G.toMinutes(a.start),G.toMinutes(a.end)]);});
     apps.concat(blocks).forEach(function(x){spans.push([minuteOfDay(x.starts_at),minuteOfDay(x.ends_at)||1440]);});
-    var b=G.bounds(windows,spans),height=Math.round((b.end-b.start)*WK_PX),todayKey=isoDay(new Date()),now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
+    var whole=G.bounds(windows,spans),b=weekFull()?whole:G.compact(windows,spans),trimmed=b.start>whole.start||b.end<whole.end,height=Math.round((b.end-b.start)*WK_PX),todayKey=isoDay(new Date()),now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
     var labels='';for(var h=b.start/60;h<b.end/60;h++)labels+='<span style="top:'+Math.round((h*60-b.start)*WK_PX)+'px">'+hourLabel(h)+'</span>';
     var heads=days.map(function(day){var key=isoDay(day);return '<header data-today="'+(key===todayKey)+'"><span>'+DAYS[day.getDay()]+'</span><strong>'+day.getDate()+'</strong></header>';}).join('');
     var lanes=days.map(function(day,index){
@@ -76,11 +78,12 @@
       return '<section class="schedule-wk-lane" data-day="'+key+'" data-today="'+(key===todayKey)+'" data-professional="'+esc(a.professional)+'">'+shade+past+blockRows+events+marker+(state.canManage?'<b class="schedule-wk-ghost" hidden></b>':'')+'</section>';
     }).join('');
     host.className='schedule-calendar week has-grid';
-    host.innerHTML='<div class="schedule-wk" data-start="'+b.start+'" data-end="'+b.end+'" style="--wk-h:'+height+'px"><div class="schedule-wk-corner"></div>'+heads+'<aside>'+labels+'</aside>'+lanes+'</div>';
+    host.innerHTML='<div class="schedule-wk" data-start="'+b.start+'" data-end="'+b.end+'" style="--wk-h:'+height+'px;--wk-hour:'+(60*WK_PX)+'px"><div class="schedule-wk-corner"></div>'+heads+'<aside>'+labels+'</aside>'+lanes+'</div>'+((trimmed||weekFull())?'<div class="schedule-wk-foot"><button type="button" data-wk-toggle>'+(weekFull()?'Mostrar solo las citas':'Ver todo el horario ('+hourLabel(whole.start/60)+' a '+hourLabel(whole.end/60)+')')+'</button></div>':'');
     bindWeekGrid(host,days,b);
   }
   function bindWeekGrid(host,days,b){
-    var G=window.SmylScheduleGrid;
+    var G=window.SmylScheduleGrid,toggle=host.querySelector('[data-wk-toggle]');
+    if(toggle)toggle.onclick=function(){setWeekFull(!weekFull());renderCalendar();};
     host.querySelectorAll('.schedule-wk-lane').forEach(function(lane){
       function slot(e){var rect=lane.getBoundingClientRect(),min=G.slotAt(e.clientY-rect.top,WK_PX,b.start,b.end),day=new Date(lane.dataset.day+'T00:00:00');day.setHours(Math.floor(min/60),min%60,0,0);return {min:min,date:day};}
       lane.addEventListener('mousemove',function(e){var ghost=lane.querySelector('.schedule-wk-ghost');if(!ghost)return;if(e.target.closest('[data-appointment]')){ghost.hidden=true;return;}var x=slot(e);ghost.hidden=false;ghost.style.top=Math.round((x.min-b.start)*WK_PX)+'px';ghost.textContent='+ '+fmtTime(x.date);});
@@ -198,7 +201,7 @@
   }
   function slotsFor(snap,day,busy,appointment,step){
     var rooms=state.rooms.filter(function(r){return r.branch_id===snap.branch.id;}).map(function(r){return r.id;});
-    return window.SmylScheduleSlots.freeSlots({day:day,tz:snap.branch.timezone,duration:snap.duration,before:snap.before,after:snap.after,step:step,clinic:state.clinicHours.filter(function(h){return h.branch_id===snap.branch.id;}),pro:state.hours.filter(function(h){return h.professional_id===snap.professional.id&&h.branch_id===snap.branch.id;}),professionalId:snap.professional.id,roomIds:snap.room?[snap.room.id]:rooms,now:new Date(),appointments:busy.appointments,blocks:busy.blocks,holds:busy.holds,excludeId:appointment&&appointment.id});
+    return window.SmylScheduleSlots.freeSlots({day:day,tz:snap.branch.timezone,duration:snap.duration+(snap.extra||0),before:snap.before,after:snap.after,step:step,clinic:state.clinicHours.filter(function(h){return h.branch_id===snap.branch.id;}),pro:state.hours.filter(function(h){return h.professional_id===snap.professional.id&&h.branch_id===snap.branch.id;}),professionalId:snap.professional.id,roomIds:snap.room?[snap.room.id]:rooms,now:new Date(),appointments:busy.appointments,blocks:busy.blocks,holds:busy.holds,excludeId:appointment&&appointment.id});
   }
   function renderSlots(form,appointment){
     var host=form.querySelector('[data-slots]');if(!host||!window.SmylScheduleSlots)return;
