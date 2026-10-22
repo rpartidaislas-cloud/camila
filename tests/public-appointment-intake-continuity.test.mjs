@@ -74,11 +74,13 @@ test('el archivo único de la Edge Function contiene exactamente el handler vige
   assert.equal(bundled.slice(markerIndex + marker.length).trimEnd(), sourceMain);
 });
 
-test('el endpoint público falla cerrado si Turnstile no está configurado', () => {
-  assert.match(edge, /if \(!TURNSTILE_SECRET\)/);
-  assert.match(edge, /return response\(503,/);
-  assert.ok(edge.indexOf('if (!TURNSTILE_SECRET)') < edge.indexOf('admin.rpc("smyl_create_public_appointment_intake"'),
-    'la configuración de seguridad debe validarse antes de guardar la captación');
+test('el endpoint público verifica Turnstile cuando está configurado y nunca guarda sin validarlo', () => {
+  assert.match(edge, /if \(TURNSTILE_SECRET\) \{/);
+  assert.match(edge, /turnstile\/v0\/siteverify/);
+  assert.match(edge, /if \(!verify\.success\) return response\(403,/);
+  assert.doesNotMatch(edge, /return response\(503,/, 'sin clave configurada el formulario sigue protegido por honeypot y tope por IP, no se apaga');
+  assert.ok(edge.indexOf('if (TURNSTILE_SECRET) {') < edge.indexOf('admin.rpc("smyl_create_public_appointment_intake"'),
+    'la verificación de seguridad debe ocurrir antes de guardar la captación');
 });
 
 test('la retención puede borrar PII vencida sin dejar solicitudes pendientes huérfanas', () => {

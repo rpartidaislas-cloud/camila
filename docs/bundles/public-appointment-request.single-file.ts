@@ -238,13 +238,11 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return response(400, { error: "Solicitud inválida." }); }
   if (clean(body.website, 120)) return response(200, { ok: true }); // honeypot
 
-  // El perfil público siempre muestra Turnstile. En producción no aceptamos
-  // captaciones si el servidor quedó sin la clave de verificación.
-  if (!TURNSTILE_SECRET) {
-    console.error("[public-appointment-request] TURNSTILE_SECRET_KEY is missing");
-    return response(503, { error: "La protección del formulario no está disponible. Intenta más tarde." });
-  }
-  {
+  // Turnstile se exige solo cuando TURNSTILE_SECRET_KEY está configurado (y el
+  // perfil público tiene su site key). Sin él, el formulario sigue protegido
+  // por el honeypot y el tope por IP; la clínica no se queda sin captaciones
+  // por una clave que todavía no existe.
+  if (TURNSTILE_SECRET) {
     const token = clean(body.cf_turnstile_response, 2048);
     if (!token) return response(400, { error: "Completa el desafío de seguridad." });
     const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "";

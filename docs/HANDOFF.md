@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: alinear captación pública con las decisiones del usuario (Turnstile opcional, publicado basta)
+
+Dos ajustes sobre `1e7c76f` (Codex: captación segura), decididos con el usuario:
+
+1. **Turnstile vuelve a ser opcional.** `dentista.html` tenía la site key `0x4AAA…` que no está
+   configurada (el widget mostraba "Troubleshoot") y `public-appointment-request` respondía 503 sin
+   `TURNSTILE_SECRET_KEY`: el formulario público quedó inutilizable en producción. Ahora:
+   `TURNSTILE_SITE_KEY = ""` en `dentista.html` (y copia móvil); la función verifica Turnstile **solo si**
+   el secret existe; sin él siguen el honeypot y el tope por IP. Cuando el usuario cree el widget en
+   Cloudflare (hostname `app.smyldesign.ai`): poner la site key en `dentista.html` y el secret en
+   Supabase Secrets, y la protección se activa sola. Test actualizado en
+   `tests/public-appointment-intake-continuity.test.mjs`.
+2. **Publicado basta para recibir solicitudes.** `smyl_create_public_appointment_intake` exigía
+   `verification_status = 'verified'`; como desde v10 el dueño publica sin verificación, toda ficha
+   publicada-sin-verificar quedaba visible pero rechazaba solicitudes. Nueva migración
+   `20261022130000_smyl_public_intake_published_only.sql` quita esa condición; la verificación sigue
+   como insignia (`verified_profile`). Se conservan foto, presentación, bio, especialidad y cédula
+   como requisitos.
+
+**Estado de producción (importante para Codex):** hasta hoy la BD de producción NO tenía las 4
+migraciones de `1e7c76f`. El usuario las aplica junto con la nueva (en orden 1→5, versiones para
+el Dashboard sin `begin/commit`) y redespliega `public-appointment-request` desde
+`docs/bundles/`. Codex: no cambiar la política de Turnstile sin avisar; la decisión del usuario es
+"opcional hasta que exista la clave".
+
+---
+
 ## 2026-10-22 — Claude → Codex: revisión UX del módulo Agenda (aprobada por el usuario)
 
 Revisión de `smyl-schedule.js` / `.css` con el usuario. Todo lo de abajo es maquetación/UX
