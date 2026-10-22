@@ -572,15 +572,67 @@
     var host = document.getElementById('tabla-pacientes-wrap'); host.replaceChildren(notice('Cargando pacientes…'));
     patientMessage = ''; patientFailure = false;
     try {
-      var data = await checked(sb.from('camila_pacientes').select('*').eq('tenant_id', tenant).order('created_at', { ascending: false }));
+      var all = await fetchAllPatients(tenant);
       if (token !== patientSequence || tenantId !== tenant) return;
-      todosLosPacientes = data || [];
+      todosLosPacientes = all.rows;
+      if (all.truncated) patientMessage = 'La clínica tiene más de 10,000 pacientes. Mostramos los más recientes.';
     } catch (error) {
       if (token !== patientSequence || tenantId !== tenant) return;
       todosLosPacientes = localPatients(); patientMessage = model.errorMessage(error); patientFailure = true;
       if (todosLosPacientes.length) patientMessage += ' Mostramos registros antiguos de este dispositivo, solo para consulta.';
     }
     renderTablaPacientes(todosLosPacientes);
+    if (!patientFailure) loadAgendaInfo(tenant);
+  }
+  // PostgREST corta cada respuesta a 1,000 filas: se pide por páginas para no perder pacientes en silencio.
+  async function fetchAllPatients(tenant) {
+    var rows = [], size = 1000;
+    for (var page = 0; page < 10; page += 1) {
+      var chunk = await checked(sb.from('camila_pacientes').select('*').eq('tenant_id', tenant).order('created_at', { ascending: false }).order('id').range(page * size, page * size + size - 1)) || [];
+      rows = rows.concat(chunk);
+      if (chunk.length < size) return { rows: rows, truncated: false };
+    }
+    return { rows: rows, truncated: true };
+  }
+  // Próxima cita y última visita de cada paciente, solo lectura: si la agenda no está disponible, la lista funciona igual.
+  var agendaInfo = { tenant: '', next: {}, last: {} };
+  async function loadAgendaInfo(tenant) {
+    try {
+      var nowIso = new Date().toISOString();
+      var parts = await Promise.all([
+        checked(sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).in('status', ['confirmed', 'arrived', 'in_progress']).gte('starts_at', nowIso).order('starts_at', { ascending: true }).limit(1000)),
+        checked(sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).eq('status', 'completed').order('starts_at', { ascending: false }).limit(1000))
+      ]);
+      if (tenant !== tenantId) return;
+      var next = {}, last = {};
+      (parts[0] || []).forEach(function (r) { if (r.patient_id && !next[r.patient_id]) next[r.patient_id] = r.starts_at; });
+      (parts[1] || []).forEach(function (r) { if (r.patient_id && !last[r.patient_id]) last[r.patient_id] = r.starts_at; });
+      agendaInfo = { tenant: tenant, next: next, last: last };
+      if (typeof window.filtrarPacientes === 'function') window.filtrarPacientes();
+    } catch (_) { /* sin permiso de agenda o sin conexión: la lista queda sin esa línea */ }
+  }
+  function shortTime(value) {
+    return new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(value)).replace(/\s*([ap])\.?\s?m\.?/i, function (m, x) { return ' ' + x.toLowerCase() + 'm'; });
+  }
+  function shortDay(value) { return new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(value)).replace(/\./g, '').replace(',', '').replace(/ de /g, ' '); }
+  function agendaLine(p) {
+    if (agendaInfo.tenant !== tenantId || p._local) return null;
+    if (agendaInfo.next[p.id]) return { text: 'Próxima cita: ' + shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), tone: 'next' };
+    if (agendaInfo.last[p.id]) return { text: 'Última visita: ' + shortDay(agendaInfo.last[p.id]), tone: 'last' };
+    return { text: 'Sin citas todavía', tone: 'none' };
+  }
+  function plain(value) { return String(value == null ? '' : value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  // Búsqueda tolerante: sin acentos, por varias palabras y por teléfono aunque se escriba con espacios o guiones.
+  function filterPatients() {
+    var input = document.getElementById('buscar-pac'), q = input ? input.value : '';
+    var tokens = plain(q).split(/\s+/).filter(Boolean), digits = q.replace(/\D/g, '');
+    var phone = /^[0-9\s()+.-]+$/.test(q.trim()) && digits.length >= 3;
+    renderTablaPacientes(todosLosPacientes.filter(function (p) {
+      if (!tokens.length) return true;
+      if (phone) return String(p.telefono || '').replace(/\D/g, '').indexOf(digits) !== -1;
+      var hay = plain([p.nombre, p.apellido, p.email, p.telefono].join(' '));
+      return tokens.every(function (t) { return hay.indexOf(t) !== -1; });
+    }));
   }
   function renderPatients(list) {
     var host = document.getElementById('tabla-pacientes-wrap'); host.replaceChildren();
@@ -592,7 +644,11 @@
       var avatar = el('div', 'clinic-avatar', (p.nombre || '?').slice(0, 1).toUpperCase());
       var name = el('div'); name.append(el('h3', '', fullName(p)), el('p', '', p.telefono || p.email || 'Contacto pendiente'));
       if (p._local) name.append(el('small', '', 'Solo en este dispositivo'));
-      card.append(avatar, name, button('Abrir ficha', function () { verPaciente(p.id); })); grid.append(card);
+      var line = agendaLine(p); if (line) { var info = el('small', 'clinic-patient-agenda', line.text); info.dataset.tone = line.tone; name.append(info); }
+      var actions = el('div', 'clinic-patient-actions');
+      if (!p._local && window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') actions.append(button('Agendar cita', function () { window.SmylSchedule.bookFor(p); }));
+      actions.append(button('Abrir ficha', function () { verPaciente(p.id); }));
+      card.append(avatar, name, actions); grid.append(card);
     });
     host.append(grid);
     var legacy = localPatients();
@@ -714,7 +770,7 @@
         return true;
       }
     });
-    window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients;
+    window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients; window.filtrarPacientes = filterPatients;
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;
     ['smyl:dental-context-updated','smyl:case-selection'].forEach(function(name){addEventListener(name,function(event){if(current&&event.detail?.tenant===current.tenant&&event.detail?.patient===current.patient)status();});});

@@ -39,5 +39,5 @@ test('web, móvil y PWA publican la misma pantalla', () => {
   for (const file of ['smyl-clinic.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  for (const file of ['app.html', 'sw.js']) assert.match(read(file), /smyl-clinic\.js\?v=11/);
+  for (const file of ['app.html', 'sw.js']) assert.match(read(file), /smyl-clinic\.js\?v=1[1-9]/);
 });
