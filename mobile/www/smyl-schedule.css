@@ -235,3 +235,10 @@
 .schedule-slot-day:disabled{opacity:.4;cursor:not-allowed;background:#f3f5f3}
 .schedule-slots-hint{margin:0;color:#74837d;font-size:12px;line-height:1.45}
 dialog[data-smyl-dialog-system="true"] .schedule-form-grid .schedule-slots,.schedule-form-grid .schedule-slots{grid-column:1/-1!important}
+
+/* Tiempo extra desde la ficha de la cita */
+.sched-extra strong{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sched-extra-chips{display:inline-flex;gap:6px;flex-wrap:wrap}
+.sched-extra-chips button{border:1px solid #c7d9d0;background:#f2f7f3;color:#255c52;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:650;cursor:pointer}
+.sched-extra-chips button:hover:not(:disabled){background:#147f78;border-color:#147f78;color:#fff}
+.sched-extra-chips button:disabled{opacity:.45;cursor:not-allowed}

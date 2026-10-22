@@ -7389,3 +7389,11 @@ copias móviles, PWA, fixtures y contratos visuales.
   y la hora precargada en Nueva cita se redondea a 15 min (antes `17:02` fallaba el `step=900`).
 - Pendiente (requiere backend): tiempo adicional por cita (+15/+30/+60). `smyl_create_appointment`
   y `smyl_validate_service_appointment_slot` fuerzan `fin = inicio + duración del servicio`.
+
+## 2026-10-22 — Claude — Tiempo extra por cita (UI + migración pendiente de aplicar)
+- `smyl-schedule.js` v19 / `.css` v13: selector "Tiempo extra" en Nueva cita (envía `p_extra_minutes` sólo si > 0) y
+  chips +15/+30/+60/Quitar en la ficha de la cita (`smyl_set_appointment_extra`).
+- Migración `supabase/migrations/20261022120000_smyl_appointment_extra_time.sql` **sin aplicar ni probada contra Postgres**.
+  Proyecto SMYL = `rpxshsiwoxdbuevjjpfw` (la herramienta de Supabase de la sesión no tiene acceso a él).
+  Se aplica con el workflow manual `.github/workflows/smyl-agenda-tiempo-extra-migracion.yml`
+  (Actions > Run workflow; requiere el secreto `SUPABASE_ACCESS_TOKEN`). Hasta entonces, usar el extra da error.
