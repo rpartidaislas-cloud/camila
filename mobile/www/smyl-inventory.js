@@ -17,6 +17,8 @@
   function options(rows,label,selected){return rows.map(function(x){var v=typeof label==='function'?label(x):x[label];return '<option value="'+x.id+'"'+(x.id===selected?' selected':'')+'>'+esc(v)+'</option>';}).join('');}
   function dialog(html){var d=document.getElementById('inventory-dialog');d.innerHTML=html;d.showModal();var c=d.querySelector('[data-close]');if(c)c.onclick=function(){d.close();};return d;}
   function close(){document.getElementById('inventory-dialog').close();}
+  // PostgREST corta cada respuesta a 1,000 filas: se pide por páginas para que el selector no pierda pacientes.
+  async function patientPages(){var rows=[];for(var page=0;page<10;page++){var chunk=await q(window.sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id',state.tenant).order('nombre').order('id').range(page*1000,page*1000+999))||[];rows=rows.concat(chunk);if(chunk.length<1000)break;}return rows;}
   function patientName(id){var p=by(state.patients,id);return p?[p.nombre,p.apellido].filter(Boolean).join(' '):'Sin paciente';}
   function renderMetrics(){var rows=state.snapshot,low=rows.filter(function(x){return x.below_minimum;}),exp=rows.filter(function(x){return x.days_to_expiry!=null&&x.days_to_expiry<=30&&Number(x.on_hand)>0;}),open=state.orders.filter(function(x){return x.status==='ordered'||x.status==='partially_received';});document.getElementById('inventory-metrics').innerHTML=[['Insumos',state.items.filter(function(x){return x.active;}).length,'en catálogo'],['Bajo mínimo',low.length,low.length?'requieren reposición':'sin alertas'],['Caducidad ≤ 30 días',exp.length,exp.length?'revisar lotes':'sin riesgo inmediato'],['Compras abiertas',open.length,open.length?'por recibir':'sin pendientes']].map(function(x){return '<article><span>'+x[0]+'</span><strong>'+x[1]+'</strong><small>'+x[2]+'</small></article>';}).join('');}
   function reorderTarget(x){var r=state.reorders.find(function(level){return level.item_id===x.item_id&&level.location_id===x.location_id;});return Number(r&&r.target_quantity||x.minimum_quantity||0);}
@@ -94,7 +96,7 @@
         Promise.resolve([]),
         q(window.sb.from('smyl_inventory_movements').select('*').eq('tenant_id',state.tenant).order('occurred_at',{ascending:false}).limit(100)),
         Promise.resolve([]),
-        q(window.sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id',state.tenant).order('nombre')),
+        patientPages(),
         q(window.sb.from('smyl_appointments').select('id,patient_id,professional_id,service_id,starts_at,status').eq('tenant_id',state.tenant).in('status',['in_progress','completed']).order('starts_at',{ascending:false}).limit(100)),
         q(window.sb.from('smyl_professionals').select('id,display_name').eq('tenant_id',state.tenant).eq('active',true)),
         q(window.sb.from('smyl_services').select('id,name,active,reference_price').eq('tenant_id',state.tenant).order('name')),

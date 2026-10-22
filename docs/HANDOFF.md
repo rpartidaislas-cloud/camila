@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: ningún módulo se queda en 1,000 pacientes
+
+- `smyl-daily-home.js` (v8): Inicio ya no descarga a todos los pacientes; pide solo los nombres de las citas y solicitudes de
+  hoy (`namesFor`, lotes de 100 con `.in('id', …)`).
+- `smyl-inventory.js` (v7), `smyl-clinic.js` (v13, selector de pacientes del caso) y `smyl-case-client.js` (v2): piden la lista
+  por páginas de 1,000 (hasta 10,000) con `.range()`; antes PostgREST la cortaba en 1,000 sin avisar.
+- Con esto queda resuelto el pendiente anotado en la entrada de «Pacientes con próxima cita». `app.html`, `sw.js` y
+  `mobile/www/` sincronizados.
+
 ## 2026-10-22 — Claude: alinear captación pública con las decisiones del usuario (Turnstile opcional, publicado basta)
 
 Dos ajustes sobre `1e7c76f` (Codex: captación segura), decididos con el usuario:

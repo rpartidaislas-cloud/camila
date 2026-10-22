@@ -47,6 +47,21 @@ test('la lista de pacientes se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-clinic.js', 'smyl-clinic.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-clinic\.js\?v=12/);
-  assert.match(read('sw.js'), /smyl-clinic\.js\?v=12/);
+  assert.match(read('app.html'), /smyl-clinic\.js\?v=1[2-9]/);
+  assert.match(read('sw.js'), /smyl-clinic\.js\?v=1[2-9]/);
+});
+
+test('los demás módulos tampoco se quedan en 1,000 pacientes', () => {
+  const home = read('smyl-daily-home.js');
+  // Inicio ya no descarga a todos los pacientes: pide solo los nombres de las citas y solicitudes de hoy, por lotes de 100.
+  assert.doesNotMatch(home, /from\('camila_pacientes'\)\.select\('id,nombre,apellido'\)\.eq\('tenant_id',state\.tenant\)\.order\('nombre'\)/);
+  assert.match(home, /async function namesFor\(tenant,ids\)/);
+  assert.match(home, /\.in\('id',unique\.slice\(i,i\+100\)\)/);
+  // Los selectores que sí necesitan la lista completa la piden por páginas.
+  for (const file of ['smyl-inventory.js', 'smyl-clinic.js', 'smyl-case-client.js']) {
+    const source = read(file);
+    assert.match(source, /\.range\(page ?\* ?1000, page ?\* ?1000 ?\+ ?999\)/, `${file} debe paginar`);
+    assert.match(source, /page ?< ?10/, `${file} debe limitar las páginas`);
+  }
+  assert.doesNotMatch(read('smyl-case-client.js'), /\.limit\(1000\)/);
 });

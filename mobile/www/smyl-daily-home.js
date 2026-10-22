@@ -260,6 +260,13 @@
     var updated=document.querySelector('[data-home-updated]'); if(updated)updated.textContent='Actualizado '+new Intl.DateTimeFormat('es-MX',{hour:'2-digit',minute:'2-digit'}).format(new Date());
   }
 
+  // Solo los nombres que hacen falta hoy (por lotes): no depende de cuántos pacientes tenga la clínica.
+  async function namesFor(tenant,ids) {
+    var unique=Array.from(new Set(ids.filter(Boolean))), out=[];
+    for(var i=0;i<unique.length;i+=100)out=out.concat(await query(window.sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id',tenant).in('id',unique.slice(i,i+100))));
+    return out;
+  }
+
   async function load(force) {
     if(!window.tenantId||!window.sb||state.loading||(state.loaded&&state.tenant===window.tenantId&&!force))return;
     state.loading=true; state.error=''; state.tenant=window.tenantId; if(!state.loaded)renderLoading();
@@ -268,10 +275,11 @@
       var rows=await Promise.all([
         query(window.sb.from('smyl_appointments').select('id,patient_id,service_id,starts_at,ends_at,status').eq('tenant_id',state.tenant).gte('starts_at',iso(start)).lt('starts_at',iso(end)).order('starts_at')),
         query(window.sb.from('smyl_appointment_requests').select('id,patient_id,requested_start,status').eq('tenant_id',state.tenant).eq('status','pending').order('created_at')),
-        query(window.sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id',state.tenant).order('nombre')),
         query(window.sb.from('smyl_services').select('id,name').eq('tenant_id',state.tenant).eq('active',true).order('name'))
       ]);
-      state.appointments=rows[0]||[]; state.requests=rows[1]||[]; state.patients=rows[2]||[]; state.services=rows[3]||[]; state.loaded=true;
+      state.appointments=rows[0]||[]; state.requests=rows[1]||[]; state.services=rows[2]||[];
+      state.patients=await namesFor(state.tenant,state.appointments.concat(state.requests).map(function(r){return r.patient_id;}));
+      state.loaded=true;
       if(window.SmylLanaAttention&&typeof window.SmylLanaAttention.getSummary==='function')state.messages=window.SmylLanaAttention.getSummary();
       render();
     } catch(error) { state.error=(error&&error.message)||'Revisa tu conexión e intenta nuevamente.'; renderError(); }
