@@ -1,5 +1,43 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: Agenda con lenguaje claro, ficha de cita nueva y mensajes desde la ficha
+
+- Pedido del usuario: la Agenda se sentía complicada (mucho texto, lenguaje técnico), mejorar la ficha de la cita y poder
+  enviar plantillas de Meta desde ahí. Es trabajo visual que normalmente es de Codex; el usuario lo pidió expresamente
+  aquí. Si Codex tenía algo en curso en `smyl-schedule.js`, hay que reconciliar con este cambio.
+- `smyl-schedule.js` (v14) / `.css` (v9):
+  - Resumen del día en una franja de chips (citas hoy, faltan por llegar, en consulta; «por aprobar» y avisos solo si
+    hay). «Pendientes de hoy» se oculta cuando no hay nada. Encabezado sin texto de relleno.
+  - Filtros de sucursal, equipo y sillón se ocultan solos cuando solo hay una opción. En Nueva cita la sucursal se
+    oculta si hay una sola (el valor sigue preseleccionado).
+  - Horas como «5:00 pm» y rangos «5:00 a 5:45 pm»; la semana muestra «Sin citas / 9:00 am a 6:00 pm / + Agendar» y
+    «Cerrado»; tarjetas de cita con letra más grande y sin avatar en semana.
+  - Lenguaje: Tratamiento, Atiende, Sillón, Nota para recepción, Citas por aprobar, Horarios y servicios, No vino, Ya
+    llegó, En consulta, Terminada. Se quitó el texto técnico de «Control de reserva» (ahora «Resumen»).
+  - Ficha de la cita rediseñada (`openAppointment`): encabezado con avatar, estado y fecha; datos en filas; una sola
+    acción principal según el estado; «No vino» y «Cancelar cita» como acciones secundarias.
+  - Cancelar ya no usa `window.prompt`: cuadro con motivos rápidos (`openCancel`); el motivo se manda igual a
+    `smyl_transition_appointment`.
+- Nuevo `smyl-schedule-message.js` (v1): «Escribirle al paciente» dentro de la ficha. Sin backend nuevo:
+  - Chat del paciente: `camila_lana_handoffs` (lectura por RLS de miembro), el mismo vínculo que usa el recordatorio.
+  - WhatsApp: plantillas aprobadas de `lana-inbox?action=templates`; se cruzan por nombre con `SmylTemplateCatalog`
+    para llenar las variables con datos de la cita (mismo formato que `appointment-reminders`). Datos libres o
+    faltantes (cómo llegar, teléfono de la sucursal) se piden al equipo, nunca se envían vacíos. Envío:
+    `lana-inbox` `action:'send'`, `type:'template'`, con `Idempotency-Key`. Requiere `messages.respond` (si no, la
+    sección se oculta; el servidor lo vuelve a validar).
+  - Instagram y Messenger: texto libre (con el catálogo como punto de partida) por `type:'text'`; LANA decide si la
+    ventana de 24 h lo permite y el error se muestra tal cual. No probado contra LANA real.
+  - Si el paciente no tiene chat vinculado o no hay plantillas aprobadas, la sección lo dice y lleva a Mensajes o
+    Plantillas.
+- `app.html`/`sw.js`: scripts `smyl-schedule.js?v=14`, `smyl-schedule.css?v=9`, `smyl-schedule-message.js?v=1`; copias
+  en `mobile/www/` sincronizadas. Pruebas: `tests/smyl-schedule-message.test.mjs` y varias pruebas de copy actualizadas.
+- Pendiente conocido (no mío): 3 pruebas fallan ya en `main` (`professional-directory`, `professional-cases-stage2`,
+  `verified-patient-reviews-stage3`): fijan versiones viejas de assets del directorio. Además
+  `mobile/www/smyl-professional-directory.{js,css}` están desincronizados con la raíz.
+- Nota: `appointment-reminders` (backend) formatea la hora como «5:00 p.m.» y las plantillas ya traen punto después,
+  así que el recordatorio automático puede salir con «p.m..». La ficha lo corrige al enviar; el recordatorio
+  automático queda igual.
+
 ## 2026-10-21 — Claude: feedback en "Enviar a revisión" y fallback Safari (v9)
 
 ### Qué se hizo

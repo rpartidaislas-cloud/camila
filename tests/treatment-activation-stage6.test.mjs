@@ -32,7 +32,7 @@ test('agenda recibe al paciente pero vuelve a validar permiso y disponibilidad',
   assert.match(schedule,/forPatient:function\(patientId\)/);
   assert.match(schedule,/if\(!state\.canManage\)return notify\('Tu rol no permite confirmar citas/);
   assert.match(schedule,/p_source:patientId\?'accepted_proposal':'manual'/);
-  assert.match(schedule,/la agenda validará disponibilidad antes de confirmar/);
+  assert.match(schedule,/Viene de una cotización aceptada/);
 });
 
 test('caja sólo muestra cotizaciones aceptadas o lotes ya existentes',()=>{

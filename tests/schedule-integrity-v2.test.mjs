@@ -43,6 +43,6 @@ test('agenda UI guides fifteen-minute booking with compatible professionals and 
   assert.match(schedule, /preferred_room_id/);
   assert.match(schedule, /professionalCanService/);
   assert.match(schedule, /professionalCanBranch/);
-  assert.match(schedule, /Tiempo protegido/);
+  assert.match(schedule, /\['Reserva'/);
   assert.match(schedule, /Selecciona un sillón o consultorio/);
 });

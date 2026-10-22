@@ -12,9 +12,9 @@ const sw=read('sw.js');
 
 test('la agenda abre una evolución sólo durante o después de la atención',()=>{
   assert.match(schedule,/\['arrived','in_progress','completed'\]\.includes\(a\.status\)/);
-  assert.match(schedule,/Registrar evolución/);
+  assert.match(schedule,/Registrar la consulta/);
   assert.match(schedule,/SmylPatient360\.forAppointment\(a\)/);
-  assert.match(schedule,/Abrir ficha/);
+  assert.match(schedule,/Ficha del paciente/);
 });
 
 test('la evolución queda vinculada a paciente, cita y profesional',()=>{

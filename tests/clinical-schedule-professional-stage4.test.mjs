@@ -11,23 +11,22 @@ const styles = read('../smyl-schedule.css');
 test('la agenda comunica tiempo, profesional y consultorio como recursos clínicos', () => {
   assert.match(schedule, /fmtRange\(a\)/);
   assert.match(schedule, /durationLabel\(a,s\)/);
-  assert.match(schedule, /Consultorio o sillón/);
-  assert.match(schedule, /Todos los consultorios/);
-  assert.match(schedule, /Espacio por asignar/);
+  assert.match(schedule, /Atiende/);
+  assert.match(schedule, /Todos los sillones/);
+  assert.match(schedule, /Sin sillón/);
 });
 
 test('la reserva guía al equipo sin sustituir la validación del servidor', () => {
-  assert.match(schedule, /CONTROL DE RESERVA/);
+  assert.match(schedule, /<span>RESUMEN<\/span>/);
   assert.match(schedule, /El profesional no tiene este servicio asignado/);
   assert.match(schedule, /El profesional no está asignado a esta sucursal/);
   assert.match(schedule, /appointment\|\|request\?'disabled'/);
-  assert.match(schedule, /SMYL valida nuevamente horarios, tiempos de preparación, profesional, sillón, bloqueos y apartados temporales/);
   assert.match(schedule, /rpc\('smyl_create_appointment'/);
   assert.doesNotMatch(schedule, /from\('smyl_appointments'\)\.insert/);
 });
 
 test('el detalle presenta recordatorios y estados operativos verificables', () => {
-  assert.match(schedule, /RECORDATORIOS/);
+  assert.match(schedule, /sched-ficha-reminders/);
   assert.match(schedule, /Requiere atención/);
   assert.match(schedule, /duration_minutes/);
   assert.match(schedule, /smyl_appointment_reminders/);

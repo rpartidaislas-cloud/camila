@@ -106,3 +106,79 @@
 @media(max-width:640px){.schedule-patient-new-grid{grid-template-columns:1fr}.schedule-patient-new-actions .btn{width:100%}}
 
 .schedule-patient-combo #schedule-patient-list li.schedule-patient-status{min-height:0;padding:7px 11px;font-size:11px;color:#5a6f69;cursor:default;background:transparent}
+
+/* Agenda más clara: franja de resumen, tarjetas legibles, ficha de la cita y cancelación con motivos. */
+.schedule-head{margin:10px 0 16px}.schedule-head h1{margin:0}
+.schedule-focus[hidden]{display:none}
+.schedule-focus-head h2{font-size:17px}
+.schedule-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.schedule-metrics>span{display:inline-flex;align-items:baseline;gap:6px;border:1px solid #dce4de;border-radius:999px;background:#fdfdf9;color:#52645d;padding:7px 14px;font-size:13px;font-weight:500;letter-spacing:0;text-transform:none}
+.schedule-metrics>span strong{display:inline;margin:0;color:#203b3b;font-size:16px;font-weight:650;letter-spacing:0}
+.schedule-metrics>span[data-tone=alert]{border-color:#e4c3b8;background:#fff4ef;color:#8e4f3d}.schedule-metrics>span[data-tone=alert] strong{color:#8e4f3d}
+.schedule-filters select{min-width:0;max-width:210px;text-overflow:ellipsis;padding-right:30px}.schedule-filters select[hidden]{display:none}
+.schedule-appointment span{font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}
+.schedule-appointment strong{font-size:13px}
+.schedule-appointment em{font-style:normal;color:#4e6b64;font-size:12px;line-height:1.3}
+.schedule-appointment small{font-size:11px}
+.schedule-appointment i{font-size:10px;letter-spacing:0;padding:3px 8px}
+.schedule-day-empty span{font-size:11px;letter-spacing:.02em;text-transform:none;font-weight:700}
+.schedule-day-empty small{font-size:11px}.schedule-day-empty strong{font-size:12px;color:#2d6b60}
+.schedule-day-empty[data-closed=true]{background:transparent;border-color:#e4e9e6;color:#9aa6a0;min-height:84px}
+.schedule-day-empty[data-closed=true] span{font-weight:600}
+
+.sched-ficha{display:grid;gap:16px}
+.sched-ficha-head{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px}
+.sched-ficha-head>b{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--schedule-accent) 16%,white);color:var(--schedule-accent);font-size:15px;font-weight:650}
+.sched-ficha-head h2{font-size:21px;margin:0 0 2px;line-height:1.2}.sched-ficha-head p{margin:0;color:#5d706a;font-size:14px}.sched-ficha-head p::first-letter{text-transform:uppercase}
+.sched-ficha-head .schedule-status{align-self:start;font-size:12px}
+.sched-ficha-x{border:0;background:transparent;color:#6c7a74;width:34px;height:34px;border-radius:50%;font-size:24px;line-height:1;cursor:pointer}.sched-ficha-x:hover{background:#eef2ef;color:#203b3b}
+.sched-ficha-facts{list-style:none;margin:0;padding:4px 0;border-block:1px solid #e3e9e5;display:grid}
+.sched-ficha-facts li{display:grid;grid-template-columns:104px 1fr;gap:12px;padding:9px 0;align-items:baseline}
+.sched-ficha-facts li+li{border-top:1px solid #eef2ef}
+.sched-ficha-facts span{color:#74837d;font-size:13px}.sched-ficha-facts strong{font-size:15px;font-weight:550;color:#203b3b}.sched-ficha-facts small{color:#74837d;font-size:13px;font-weight:400;margin-left:6px}
+.sched-ficha-reminders{list-style:none;margin:-4px 0 0;padding:0;display:grid;gap:4px}
+.sched-ficha-reminders li{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#5d706a}
+.sched-ficha-reminders strong{font-weight:600;color:#32675e}.sched-ficha-reminders li[data-status=failed] strong{color:#a1442e}
+.sched-ficha-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:4px}
+.sched-ficha-main{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}.sched-ficha-main .btn{min-height:42px}
+.sched-ficha-minors{display:flex;gap:4px;flex-wrap:wrap}
+.sched-ficha-minor{border:0;background:transparent;color:#47635c;font:600 13px Inter,sans-serif;padding:10px 10px;border-radius:8px;cursor:pointer;min-height:40px}.sched-ficha-minor:hover{background:#eef3f0}.sched-ficha-minor.is-danger{color:#a1442e}.sched-ficha-minor.is-danger:hover{background:#fbeeea}
+
+.sched-msg{border:1px solid #dce6e0;border-radius:14px;background:#f8fbf8;padding:14px;display:grid;gap:10px}
+.sched-msg-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.sched-msg-head h3{font-size:15px;font-weight:620;margin:0}
+.sched-msg-channel{border-radius:999px;background:#e2f1e8;color:#2b6a4f;padding:3px 10px;font-size:12px;font-weight:650}
+.sched-msg-tabs{display:flex;gap:4px;padding:3px;border-radius:999px;background:#e9efeb}.sched-msg-tabs button{border:0;background:transparent;border-radius:999px;padding:5px 11px;font:600 12px Inter,sans-serif;color:#52645d;cursor:pointer}.sched-msg-tabs button[aria-selected=true]{background:#fff;color:#203b3b;box-shadow:0 1px 3px rgba(32,59,59,.14)}
+.sched-msg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sched-msg-chip{border:1px solid #c9dad1;background:#fff;color:#2f5d54;border-radius:999px;padding:7px 13px;font:600 13px Inter,sans-serif;cursor:pointer;min-height:36px}.sched-msg-chip:hover{border-color:#7fa99d}.sched-msg-chip[aria-pressed=true]{background:#2f6a5e;border-color:#2f6a5e;color:#fff}
+.sched-msg-more{justify-self:start;border:1px solid #c9dad1;border-radius:999px;background:#fff;color:#47635c;padding:6px 12px;font:600 13px Inter,sans-serif;min-height:36px}
+.sched-msg-composer{display:grid;gap:10px}.sched-msg-composer[hidden]{display:none}
+.sched-msg-bubble{white-space:pre-wrap;border-radius:4px 14px 14px 14px;background:#dcf2d8;color:#1d3a21;padding:12px 14px;font-size:14px;line-height:1.5}
+.sched-msg-field{display:grid;gap:4px;font-size:13px;color:#52645d}.sched-msg-field input,.sched-msg-text{border:1px solid #cbd8d1;border-radius:9px;padding:9px 11px;font:400 14px Inter,sans-serif;background:#fff;color:#203b3b}
+.sched-msg-text{width:100%;resize:vertical;min-height:90px}
+.sched-msg-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.sched-msg-actions small,.sched-msg-hint{color:#74837d;font-size:12px;line-height:1.4;flex:1;min-width:180px}.sched-msg-hint{margin:0}
+.sched-msg-send{min-height:42px;margin-left:auto}
+.sched-msg-note{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.sched-msg-note p{margin:0;color:#5d706a;font-size:13px;line-height:1.5;flex:1;min-width:200px}.sched-msg-note[data-tone=warn] p{color:#8a5a1f}
+.sched-msg-link{border:0;background:transparent;color:#2f6a5e;font:650 13px Inter,sans-serif;padding:6px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.sched-msg-loading{margin:0;color:#74837d;font-size:13px}
+.sched-msg-error{margin:0;padding:10px 12px;border-radius:9px;background:#fdf0ed;border:1px solid #e1b8b0;color:#8a3324;font-size:13px}
+.sched-msg-sent{display:flex;align-items:center;gap:10px}.sched-msg-sent>span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#2f6a5e;color:#fff;font-size:14px}.sched-msg-sent p{margin:0;flex:1;font-size:14px;font-weight:550}
+
+.sched-reason{display:grid;gap:14px}.sched-reason h2{margin:0}.sched-reason p{margin:0;color:#5d706a;font-size:14px}
+.sched-reason-chips{display:flex;flex-wrap:wrap;gap:8px}.sched-reason-chips label{cursor:pointer}.sched-reason-chips input{position:absolute;opacity:0;pointer-events:none}
+.sched-reason-chips span{display:inline-block;border:1px solid #cbd8d1;background:#fff;border-radius:999px;padding:9px 15px;font:600 14px Inter,sans-serif;color:#42584f}
+.sched-reason-chips input:checked+span{background:#2f6a5e;border-color:#2f6a5e;color:#fff}.sched-reason-chips input:focus-visible+span{outline:2px solid #2f6a5e;outline-offset:2px}
+.sched-reason-more{display:grid;gap:5px;font-size:13px;color:#52645d}.sched-reason-more[hidden]{display:none}.sched-reason-more input{border:1px solid #cbd8d1;border-radius:9px;padding:10px 12px;font:400 14px Inter,sans-serif}
+
+@media(max-width:640px){
+  .schedule-dialog:has(.sched-ficha){margin:auto 0 0;width:100%;max-width:none;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .sched-ficha-head{grid-template-columns:auto 1fr auto}.sched-ficha-head .schedule-status{grid-column:2;justify-self:start}.sched-ficha-x{grid-column:3;grid-row:1}
+  .sched-ficha-facts li{grid-template-columns:90px 1fr}
+  .sched-ficha-actions{flex-direction:column-reverse;align-items:stretch}.sched-ficha-main{margin-left:0}.sched-ficha-main .btn{flex:1}.sched-ficha-minors{justify-content:center}
+  .sched-msg-send{width:100%}
+}
+
+.schedule-calendar.week .schedule-appointment{padding-left:11px}.schedule-calendar.week .schedule-appointment>b{display:none}
+.schedule-appointment>span{white-space:nowrap}
+.sched-msg .sched-msg-more{font:600 13px Inter,sans-serif;height:36px;min-height:36px;width:auto;padding:0 30px 0 13px}
+.sched-reason .schedule-dialog-actions .btn{min-height:44px}
+.schedule-form-grid label[hidden]{display:none}

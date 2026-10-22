@@ -31,7 +31,7 @@ test('el recorrido muestra odontograma, plan y cotización como pasos explícito
 
 test('Agenda abre la ficha para cualquier rol con clinical.read', () => {
   assert.match(schedule, /state\.canReadClinical=owner\|\|perms\.has\('clinical\.read'\)/);
-  assert.match(schedule, /Abrir ficha/);
+  assert.match(schedule, /Ficha del paciente/);
   assert.doesNotMatch(flow, /window\.miRolEquipo==='dueño'&&document\.getElementById/);
 });
 
