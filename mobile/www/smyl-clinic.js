@@ -731,7 +731,12 @@
     var select = document.getElementById('f-caso-paciente'), tenant = tenantId, selected = select.value;
     select.disabled = true;
     try {
-      var rows = await checked(sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', tenant).order('nombre'));
+      var rows = [];
+      for (var page = 0; page < 10; page += 1) {
+        var chunk = await checked(sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', tenant).order('nombre').order('id').range(page * 1000, page * 1000 + 999)) || [];
+        rows = rows.concat(chunk);
+        if (chunk.length < 1000) break;
+      }
       if (tenant !== tenantId) return;
       select.replaceChildren(new Option('Seleccionar paciente…',''));
       rows.forEach(function (p) { select.append(new Option(fullName(p), p.id)); });

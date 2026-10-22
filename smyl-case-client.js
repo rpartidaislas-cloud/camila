@@ -30,7 +30,13 @@
     return {
       async patients() {
         await guard();
-        const rows = await checked(client.from('camila_pacientes').select('id,tenant_id,nombre,apellido').eq('tenant_id', tenant).order('nombre').limit(1000));
+        let rows = [];
+        for (let page = 0; page < 10; page += 1) {
+          const chunk = await checked(client.from('camila_pacientes').select('id,tenant_id,nombre,apellido').eq('tenant_id', tenant).order('nombre').order('id').range(page * 1000, page * 1000 + 999));
+          if (!Array.isArray(chunk)) M.fail('CASE_INVALID');
+          rows = rows.concat(chunk);
+          if (chunk.length < 1000) break;
+        }
         await guard();
         if (!Array.isArray(rows) || rows.some(p => p.tenant_id !== tenant || !M.uuid(p.id))) M.fail('CASE_INVALID');
         return rows;
