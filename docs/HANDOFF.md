@@ -13,6 +13,8 @@
 - En celular (ancho ≤ 700 px) la Agenda abre en vista Día; la semana sigue disponible con desplazamiento horizontal.
 - Las etiquetas de hora de la vista Día usan el mismo formato («9 am»). El título del periodo en Día y Mes ya no pone
   mayúscula en «De».
+- Conciliado con el cambio de otra sesión (hueco clicable y línea de ahora en la vista Día, `b40c881`): se conservó su vista Día
+  y se sumó la cuadrícula semanal; las versiones quedaron en `smyl-schedule.js?v=16` y `smyl-schedule.css?v=11`.
 - `app.html`/`sw.js` y `mobile/www/` sincronizados. Siguen fallando 3 pruebas que ya fallaban en `main` (directorio, casos y
   reseñas, por versiones de assets del directorio).
 
@@ -7265,3 +7267,10 @@ copias móviles, PWA, fixtures y contratos visuales.
   de ventanas CSS v2.
 - Verificación final: 427 de 427 pruebas aprobadas. No se modificaron backend,
   esquema, credenciales ni datos clínicos reales.
+
+## 2026-10-22 — Claude — Agenda: hueco clicable, línea de ahora, hora a 15 min
+- `smyl-schedule.js` v15 / `.css` v10 (web + `mobile/www`): etiqueta "+ Nueva cita · hora" al pasar
+  sobre un hueco de la vista Día, línea roja de la hora actual, bloques con color del profesional,
+  y la hora precargada en Nueva cita se redondea a 15 min (antes `17:02` fallaba el `step=900`).
+- Pendiente (requiere backend): tiempo adicional por cita (+15/+30/+60). `smyl_create_appointment`
+  y `smyl_validate_service_appointment_slot` fuerzan `fin = inicio + duración del servicio`.
