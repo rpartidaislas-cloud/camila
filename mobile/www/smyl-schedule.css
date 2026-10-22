@@ -257,3 +257,12 @@ dialog[data-smyl-dialog-system="true"] .schedule-form-grid .schedule-slots,.sche
 .schedule-intake-summary p{margin:6px 0 0;color:#405b55;font-size:12px;line-height:1.55;white-space:pre-wrap}
 .schedule-intake-privacy{margin:14px 0 0!important;padding:11px 13px;border-left:3px solid #6f968b;border-radius:0 9px 9px 0;background:#eef5f1;color:#49635c!important;font-size:11px!important;line-height:1.55!important}
 @media(max-width:640px){.schedule-intake-summary{grid-template-columns:1fr}.schedule-intake-summary>div.wide{grid-column:auto}.schedule-intake-summary strong{font-size:14px}.schedule-intake-summary small,.schedule-intake-summary p,.schedule-intake-privacy{font-size:12px!important}}
+
+/* Vista Día: estirar y mover citas arrastrando */
+.schedule-timeline-event .schedule-resize{position:absolute;left:12px;right:12px;bottom:1px;height:9px;border-radius:5px;cursor:ns-resize;touch-action:none;z-index:4;opacity:0;transition:opacity .12s}
+.schedule-timeline-event .schedule-resize::after{content:"";position:absolute;left:50%;top:3px;width:26px;height:3px;margin-left:-13px;border-radius:2px;background:var(--schedule-accent,#2f8174)}
+.schedule-timeline-event:hover .schedule-resize,.schedule-timeline-event.is-dragging .schedule-resize{opacity:1}
+.schedule-timeline-event.is-dragging{z-index:6;box-shadow:0 12px 28px rgba(18,54,111,.28);user-select:none}
+.schedule-timeline-event.is-dragging .schedule-appointment{cursor:grabbing}
+.schedule-timeline-event[data-event-id]{touch-action:pan-y}
+.schedule-drag-tip{position:absolute;right:8px;top:-26px;padding:3px 9px;border-radius:7px;background:#12366f;color:#fff;font-size:11px;font-weight:650;white-space:nowrap;pointer-events:none;z-index:7}

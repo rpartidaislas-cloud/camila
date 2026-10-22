@@ -34,3 +34,14 @@ test('la ficha de la cita ofrece +15/+30/+60 y usa smyl_set_appointment_extra', 
     assert.match(js, /rpc\('smyl_set_appointment_extra'/);
   }
 });
+
+test('vista Día: arrastrar el borde estira (tiempo extra) y arrastrar el cuerpo reprograma', () => {
+  for (const f of ['smyl-schedule.js', 'mobile/www/smyl-schedule.js']) {
+    const js = read(f);
+    assert.match(js, /function bindTimelineDrag\(host\)/);
+    assert.match(js, /data-resize/);
+    assert.match(js, /Math\.round\(dy\/15\)\*15/);
+    assert.match(js, /rpc\('smyl_reschedule_appointment',\{p_appointment_id:a\.id/);
+    assert.match(js, /pointerType==='touch'/);
+  }
+});

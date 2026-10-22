@@ -7558,3 +7558,11 @@ copias móviles, PWA, fixtures y contratos visuales.
   Proyecto SMYL = `rpxshsiwoxdbuevjjpfw` (la herramienta de Supabase de la sesión no tiene acceso a él).
   Se aplica con el workflow manual `.github/workflows/smyl-agenda-tiempo-extra-migracion.yml`
   (Actions > Run workflow; requiere el secreto `SUPABASE_ACCESS_TOKEN`). Hasta entonces, usar el extra da error.
+
+## 2026-10-22 — Claude — Agenda (vista Día): arrastrar para estirar y mover citas
+- `smyl-schedule.js` v21 / `.css` v15: en la vista Día, el asa del borde inferior de cada cita vigente estira
+  el tiempo (bloques de 15 min, nunca menos que la duración del tratamiento, máx. +240) con
+  `smyl_set_appointment_extra`; arrastrar el cuerpo de una cita confirmada la mueve de hora con
+  `smyl_reschedule_appointment` (misma columna/profesional; sólo mouse, en táctil se usa "Cambiar horario").
+  Etiqueta en vivo con la duración u hora nueva. Errores del servidor (choques, horario) se muestran y la cita vuelve a su lugar.
+- Sin probar en navegador real todavía (sólo sintaxis y pruebas de texto).
