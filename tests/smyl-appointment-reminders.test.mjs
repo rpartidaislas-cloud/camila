@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 const sql = read('../supabase/migrations/20261019010000_smyl_appointment_reminder_delivery.sql');
@@ -46,7 +49,7 @@ test('los permisos se validan en el servidor con las funciones de RLS', () => {
   assert.match(fn, /if \(!can\["schedule\.read"\]\)/);
   assert.match(fn, /expected\.length < 32/);
   // Verify JWT apagado a propósito (el cron no tiene sesión): el handler autentica todo.
-  assert.match(config, /\[functions\.appointment-reminders\]\nverify_jwt = false/);
+  assert.match(config, /\[functions\.appointment-reminders\]\r?\nverify_jwt = false/);
   const handler = fn.slice(fn.indexOf('Deno.serve('));
   const firstAuth = Math.min(handler.indexOf('sameSecret('), handler.indexOf('requireUser('));
   assert.ok(firstAuth > 0);
@@ -98,8 +101,17 @@ test('el archivo único para el panel de Supabase está al día con la función 
   const { execFileSync } = await import('node:child_process');
   const bundlePath = new URL('../docs/bundles/appointment-reminders.single-file.ts', import.meta.url);
   const before = fs.readFileSync(bundlePath, 'utf8');
-  execFileSync(process.execPath, [new URL('../scripts/bundle-edge-function.mjs', import.meta.url).pathname, 'appointment-reminders'], { stdio: 'pipe' });
-  assert.equal(fs.readFileSync(bundlePath, 'utf8'), before, 'Regenera con: node scripts/bundle-edge-function.mjs appointment-reminders');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'smyl-reminders-bundle-'));
+  try {
+    fs.mkdirSync(path.join(tempRoot, 'scripts'), { recursive: true });
+    fs.copyFileSync(fileURLToPath(new URL('../scripts/bundle-edge-function.mjs', import.meta.url)), path.join(tempRoot, 'scripts', 'bundle-edge-function.mjs'));
+    fs.cpSync(fileURLToPath(new URL('../supabase/functions', import.meta.url)), path.join(tempRoot, 'supabase', 'functions'), { recursive: true });
+    execFileSync(process.execPath, [path.join(tempRoot, 'scripts', 'bundle-edge-function.mjs'), 'appointment-reminders'], { stdio: 'pipe' });
+    const generated = fs.readFileSync(path.join(tempRoot, 'docs', 'bundles', 'appointment-reminders.single-file.ts'), 'utf8');
+    assert.equal(generated.replace(/\r\n/g, '\n'), before.replace(/\r\n/g, '\n'), 'Regenera con: node scripts/bundle-edge-function.mjs appointment-reminders');
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
   assert.doesNotMatch(before, /from "\.\.?\//);
   assert.equal((before.match(/^import /gm) || []).length, 1);
 });

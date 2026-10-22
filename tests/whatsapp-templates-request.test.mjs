@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const catalog = require('../smyl-template-catalog.js');
@@ -82,7 +83,7 @@ async function load() {
       .replace('import { createClient } from "npm:@supabase/supabase-js@2";', 'const createClient = globalThis.__createClient;');
     const file = path.join(os.tmpdir(), 'whatsapp-templates-' + process.pid + '.mts');
     fs.writeFileSync(file, source);
-    await import(file);
+    await import(pathToFileURL(file).href);
     fs.rmSync(file, { force: true });
   } catch (error) { loadError = error; }
 }

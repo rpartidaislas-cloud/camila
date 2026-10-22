@@ -10,6 +10,8 @@
   («Ver todo el horario (9 am a 6 pm)» / «Mostrar solo las citas») cambia al horario completo y se recuerda en
   `localStorage` (`smyl_schedule_week_full`). La altura de la hora viaja al CSS como `--wk-hour`, ya no hay constantes
   duplicadas. Tarjetas de 45 min con menos relleno para que quepan tres líneas.
+- Conciliado con `bff1adf` (tiempo extra por cita): las versiones quedaron en `smyl-schedule.js?v=21` y `.css?v=15`, y las horas
+  libres ahora cuentan el tiempo extra elegido (`duration + extra`), porque sin eso sugerían horas que el servidor rechazaba.
 - Pendiente (no subido): rama local `wip/inicio` con el repaso de lenguaje del Inicio (saludo coherente con los pendientes,
   textos del centro de tareas, primeros pasos plegados mostrando el siguiente). Falta revisar con el usuario.
 
@@ -183,6 +185,51 @@ Mostrar `missing` como lista de pendientes bajo el texto generado; los botones "
 - Nota: `appointment-reminders` (backend) formatea la hora como «5:00 p.m.» y las plantillas ya traen punto después,
   así que el recordatorio automático puede salir con «p.m..». La ficha lo corrige al enviar; el recordatorio
   automático queda igual.
+
+## 2026-10-22 — Codex: perfil público profesional y captación segura de citas (v255)
+
+### Qué se hizo
+- **Perfil público rediseñado** (`dentista.html`, `smyl-public-profile.css`): jerarquía editorial clínica, retrato y credenciales, servicios, sedes, opiniones verificadas, casos autorizados, datos estructurados y solicitud de cita en tres pasos. La solicitud se presenta como preferencia, nunca como cita confirmada.
+- **Responsive y accesibilidad**: escritorio en dos columnas; tableta y móvil en una; contenido de confianza antes del formulario; credenciales colapsables en móvil; controles táctiles de al menos 44 px; CTA móvil contextual que desaparece cuando el formulario está visible; sin desbordamiento horizontal a 1440, 834, 390 y 320 px.
+- **Publicación profesional protegida** (`smyl-professional-directory.js`): sólo cuentan servicios activos, cambiar cédula o CV retira la ficha de publicación y la pasa a revisión, y un CV recién subido se elimina si el guardado falla.
+- **Captación pública aislada** (`20261021170000_smyl_public_appointment_intake.sql`): nombre, contacto, preferencias y mensaje viven fuera de `camila_pacientes`; una RPC de servicio valida perfil, servicio y sede en la misma transacción. RLS permite que sólo el equipo con alcance operativo lea la captación.
+- **Revisión humana en Agenda** (`smyl-schedule.js`, `smyl-schedule.css`): la solicitud pública muestra sus preferencias, obliga a buscar o registrar al paciente, exige `schedule.manage` + `patients.manage`, llama `smyl_link_public_appointment_intake` y sólo entonces abre la confirmación de horario.
+- **Publicación gradual segura** (`20261021180000_smyl_professional_publication_guard.sql`): una ficha heredada publicada permanece visible durante su actualización, pero sólo obtiene `verified_profile=true` y puede captar solicitudes cuando tiene verificación humana, foto, contenido mínimo, especialidad, cédula, sede y servicio activos. Cambiar CV o cédula sí la devuelve a revisión.
+- **Retención preparada** (`20261022121000_smyl_public_intake_retention.sql`): función privada `service_role` para expirar solicitudes y borrar PII vencida por lotes; la auditoría conserva trazabilidad y consentimiento sin duplicar datos de contacto.
+- **Decisiones de Agenda dentro del alcance** (`20261022122000_smyl_appointment_request_scope_guard.sql`): aceptar o rechazar exige acceso a la solicitud original; aceptar también valida el profesional y la sede de destino antes de crear la cita. Conocer una UUID no permite tomar solicitudes de otro dentista o sucursal.
+- **Protección antiabuso cerrada** (`public-appointment-request`): si falta `TURNSTILE_SECRET_KEY`, el endpoint responde 503 y no guarda captaciones. El bundle de despliegue fue regenerado desde la fuente vigente.
+- **Paridad web/PWA**: HTML, CSS, JS y service worker quedaron sincronizados; Agenda publica `smyl-schedule.js?v=14` y `smyl-schedule.css?v=9`; el sistema visual usa `smyl-design-system-v2.css?v=2`.
+
+### Verificación
+- Turnstile se monta de forma explícita al abrir el paso de contacto, evitando la carrera entre la carga del script y el perfil dinámico.
+- 38/38 pruebas focalizadas de perfil público, captación, Agenda, búsqueda de pacientes, sistema visual y paridad pasan.
+- Suite completa: 571/571 pruebas pasan en Windows; los harnesses de Edge Functions ya manejan rutas y finales de línea de forma portable.
+- QA visual aprobada en 1440, 834, 390 y 320 px; sin overflow, formulario ordenado y CTA contextual.
+- `node --check` aprobado para `smyl-schedule.js` y `smyl-professional-directory.js`.
+- El bundle `docs/bundles/public-appointment-request.single-file.ts` coincide con el handler actual.
+
+### Archivos principales
+- `dentista.html`, `smyl-public-profile.css`
+- `smyl-professional-directory.js`, `smyl-professional-directory.css`
+- `smyl-schedule.js`, `smyl-schedule.css`
+- `app.html`, `sw.js` y copias equivalentes en `mobile/www/`
+- `supabase/functions/public-appointment-request/index.ts`
+- `docs/bundles/public-appointment-request.single-file.ts`
+- `supabase/migrations/20261021170000_smyl_public_appointment_intake.sql`
+- `supabase/migrations/20261021180000_smyl_professional_publication_guard.sql`
+- `supabase/migrations/20261022121000_smyl_public_intake_retention.sql`
+- `supabase/migrations/20261022122000_smyl_appointment_request_scope_guard.sql`
+- `tests/appointment-request-scope-guard.test.mjs`
+- `tests/public-professional-profile-redesign.test.mjs`
+- `tests/public-appointment-intake-continuity.test.mjs`
+
+### Pendiente antes de producción
+1. Aplicar las cuatro migraciones en orden (`20261021170000`, `20261021180000`, `20261022121000`, `20261022122000`) y desplegar `public-appointment-request` con `--no-verify-jwt`.
+2. Configurar y comprobar `TURNSTILE_SECRET_KEY`; el formulario falla cerrado a propósito si falta.
+3. Aprobar formalmente el plazo de retención (actualmente 90 días) antes de programar la ejecución diaria de `smyl_purge_expired_public_appointment_intakes`.
+4. Publicar los archivos web sólo después de completar los tres puntos anteriores.
+
+---
 
 ## 2026-10-21 — Claude: feedback en "Enviar a revisión" y fallback Safari (v9)
 
@@ -7402,3 +7449,11 @@ copias móviles, PWA, fixtures y contratos visuales.
   y la hora precargada en Nueva cita se redondea a 15 min (antes `17:02` fallaba el `step=900`).
 - Pendiente (requiere backend): tiempo adicional por cita (+15/+30/+60). `smyl_create_appointment`
   y `smyl_validate_service_appointment_slot` fuerzan `fin = inicio + duración del servicio`.
+
+## 2026-10-22 — Claude — Tiempo extra por cita (UI + migración pendiente de aplicar)
+- `smyl-schedule.js` v19 / `.css` v13: selector "Tiempo extra" en Nueva cita (envía `p_extra_minutes` sólo si > 0) y
+  chips +15/+30/+60/Quitar en la ficha de la cita (`smyl_set_appointment_extra`).
+- Migración `supabase/migrations/20261022120000_smyl_appointment_extra_time.sql` **sin aplicar ni probada contra Postgres**.
+  Proyecto SMYL = `rpxshsiwoxdbuevjjpfw` (la herramienta de Supabase de la sesión no tiene acceso a él).
+  Se aplica con el workflow manual `.github/workflows/smyl-agenda-tiempo-extra-migracion.yml`
+  (Actions > Run workflow; requiere el secreto `SUPABASE_ACCESS_TOKEN`). Hasta entonces, usar el extra da error.

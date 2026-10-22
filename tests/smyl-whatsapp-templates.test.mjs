@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const catalog = require('../smyl-template-catalog.js');
@@ -139,15 +142,28 @@ test('la copia del catálogo para las Edge Functions está al día y la función
   const { execFileSync } = await import('node:child_process');
   const target = new URL('../supabase/functions/_shared/whatsapp-template-catalog.mjs', import.meta.url);
   const before = fs.readFileSync(target, 'utf8');
-  execFileSync(process.execPath, [new URL('../scripts/sync-template-catalog.mjs', import.meta.url).pathname], { stdio: 'pipe' });
-  assert.equal(fs.readFileSync(target, 'utf8'), before, 'Regenera con: node scripts/sync-template-catalog.mjs');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'smyl-template-catalog-'));
+  try {
+    fs.mkdirSync(path.join(tempRoot, 'scripts'), { recursive: true });
+    fs.copyFileSync(fileURLToPath(new URL('../scripts/sync-template-catalog.mjs', import.meta.url)), path.join(tempRoot, 'scripts', 'sync-template-catalog.mjs'));
+    fs.copyFileSync(fileURLToPath(new URL('../scripts/bundle-edge-function.mjs', import.meta.url)), path.join(tempRoot, 'scripts', 'bundle-edge-function.mjs'));
+    fs.cpSync(fileURLToPath(new URL('../supabase/functions', import.meta.url)), path.join(tempRoot, 'supabase', 'functions'), { recursive: true });
+    const browserCatalog = fs.readFileSync(new URL('../smyl-template-catalog.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    fs.writeFileSync(path.join(tempRoot, 'smyl-template-catalog.js'), browserCatalog);
+    execFileSync(process.execPath, [path.join(tempRoot, 'scripts', 'sync-template-catalog.mjs')], { stdio: 'pipe' });
+    const generatedCatalog = fs.readFileSync(path.join(tempRoot, 'supabase', 'functions', '_shared', 'whatsapp-template-catalog.mjs'), 'utf8');
+    assert.equal(generatedCatalog.replace(/\r\n/g, '\n'), before.replace(/\r\n/g, '\n'), 'Regenera con: node scripts/sync-template-catalog.mjs');
+    const bundlePath = new URL('../docs/bundles/whatsapp-templates.single-file.ts', import.meta.url);
+    const bundle = fs.readFileSync(bundlePath, 'utf8');
+    execFileSync(process.execPath, [path.join(tempRoot, 'scripts', 'bundle-edge-function.mjs'), 'whatsapp-templates'], { stdio: 'pipe' });
+    const generatedBundle = fs.readFileSync(path.join(tempRoot, 'docs', 'bundles', 'whatsapp-templates.single-file.ts'), 'utf8');
+    assert.equal(generatedBundle.replace(/\r\n/g, '\n'), bundle.replace(/\r\n/g, '\n'), 'Regenera con: node scripts/bundle-edge-function.mjs whatsapp-templates');
+    assert.doesNotMatch(bundle, /from "\.\.?\//);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
   const shared = await import(target.href);
   assert.deepEqual(shared.TEMPLATES.map((item) => item.id), catalog.TEMPLATES.map((item) => item.id));
   for (const item of shared.TEMPLATES) assert.deepEqual(shared.validate(item), []);
-  const bundlePath = new URL('../docs/bundles/whatsapp-templates.single-file.ts', import.meta.url);
-  const bundle = fs.readFileSync(bundlePath, 'utf8');
-  execFileSync(process.execPath, [new URL('../scripts/bundle-edge-function.mjs', import.meta.url).pathname, 'whatsapp-templates'], { stdio: 'pipe' });
-  assert.equal(fs.readFileSync(bundlePath, 'utf8'), bundle, 'Regenera con: node scripts/bundle-edge-function.mjs whatsapp-templates');
-  assert.doesNotMatch(bundle, /from "\.\.?\//);
-  assert.match(fs.readFileSync(new URL('../supabase/config.toml', import.meta.url), 'utf8'), /\[functions\.whatsapp-templates\]\nverify_jwt = true/);
+  assert.match(fs.readFileSync(new URL('../supabase/config.toml', import.meta.url), 'utf8'), /\[functions\.whatsapp-templates\]\r?\nverify_jwt = true/);
 });

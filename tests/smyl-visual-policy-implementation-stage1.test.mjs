@@ -17,8 +17,8 @@ test('la política visual v2 tiene una fuente canónica de tokens operativos', (
   assert.match(tokens, /--smyl-radius-dialog:\s*12px/);
   assert.match(tokens, /--shadow-dialog:/);
   assert.match(tokens, /prefers-reduced-motion:\s*reduce/);
-  assert.match(app, /smyl-design-system-v2\.css\?v=1/);
-  assert.match(worker, /smyl-design-system-v2\.css\?v=1/);
+  assert.match(app, /smyl-design-system-v2\.css\?v=2/);
+  assert.match(worker, /smyl-design-system-v2\.css\?v=2/);
   assert.equal(tokens, read('../mobile/www/smyl-design-system-v2.css'));
 });
 

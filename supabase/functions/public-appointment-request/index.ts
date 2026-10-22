@@ -1,6 +1,6 @@
 // Solicitud pública desde la ficha profesional de SMYL.
-// Crea o reutiliza al paciente y agrega una solicitud pendiente; nunca
-// confirma una cita ni elige un horario clínico por cuenta de la clínica.
+// Guarda el contacto como captación aislada y agrega una solicitud pendiente.
+// Nunca crea/reutiliza pacientes ni confirma una cita por cuenta de la clínica.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkLimitPorIpProspecto } from "../_shared/limits.ts";
@@ -28,6 +28,13 @@ function email(value: unknown): string {
 function phone(value: unknown): string {
   return clean(value, 60).replace(/[^\d+()\-\s]/g, "");
 }
+function isoDate(value: unknown): string {
+  const out = clean(value, 10);
+  if (!out) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(out)) return "";
+  const parsed = new Date(out + "T00:00:00Z");
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === out ? out : "";
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -39,10 +46,13 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return response(400, { error: "Solicitud inválida." }); }
   if (clean(body.website, 120)) return response(200, { ok: true }); // honeypot
 
-  // Cloudflare Turnstile — solo activo cuando TURNSTILE_SECRET_KEY está configurado.
-  // Fail-open intencionalmente: si el secret no está, el endpoint sigue funcionando
-  // para no romper clínicas que aún no lo han configurado.
-  if (TURNSTILE_SECRET) {
+  // El perfil público siempre muestra Turnstile. En producción no aceptamos
+  // captaciones si el servidor quedó sin la clave de verificación.
+  if (!TURNSTILE_SECRET) {
+    console.error("[public-appointment-request] TURNSTILE_SECRET_KEY is missing");
+    return response(503, { error: "La protección del formulario no está disponible. Intenta más tarde." });
+  }
+  {
     const token = clean(body.cf_turnstile_response, 2048);
     if (!token) return response(400, { error: "Completa el desafío de seguridad." });
     const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "";
@@ -58,13 +68,39 @@ Deno.serve(async (req: Request) => {
   const fullName = clean(body.name, 150);
   const mail = email(body.email);
   const mobile = phone(body.phone);
-  const message = clean(body.message, 1200);
+  const message = clean(body.message, 600);
   const serviceId = clean(body.service_id, 40);
   const branchId = clean(body.branch_id, 40);
-  const requestedStart = clean(body.requested_start, 40);
+  const requestedDateRaw = clean(body.requested_date, 10);
+  const requestedDate = isoDate(requestedDateRaw);
+  const periodRaw = clean(body.requested_period, 40).toLowerCase();
+  const periodMap: Record<string, string> = {
+    "": "any",
+    "por la mañana": "morning",
+    "por la tarde": "afternoon",
+  };
+  const contactRaw = clean(body.preferred_contact, 30).toLowerCase();
+  const contactMap: Record<string, string> = {
+    "": "any",
+    "teléfono": "phone",
+    "telefono": "phone",
+    "whatsapp": "whatsapp",
+    "correo": "email",
+  };
+  const preferredPeriod = periodMap[periodRaw];
+  const preferredContact = contactMap[contactRaw];
+  const privacyConsent = body.privacy_consent === true;
   if (!slug || fullName.length < 2) return response(400, { error: "Escribe tu nombre." });
   if (!mail && mobile.replace(/\D/g, "").length < 10) return response(400, { error: "Escribe un correo o teléfono válido." });
   if (!serviceId || !branchId) return response(400, { error: "Selecciona tratamiento y ubicación." });
+  if (requestedDateRaw && !requestedDate) return response(400, { error: "La fecha preferida no es válida." });
+  if (preferredPeriod === undefined) return response(400, { error: "El horario preferido no es válido." });
+  if (preferredContact === undefined) return response(400, { error: "El medio de contacto no es válido." });
+  if ((preferredContact === "phone" || preferredContact === "whatsapp") && mobile.replace(/\D/g, "").length < 10) {
+    return response(400, { error: "Agrega un teléfono válido para ese medio de contacto." });
+  }
+  if (preferredContact === "email" && !mail) return response(400, { error: "Agrega un correo válido para ese medio de contacto." });
+  if (!privacyConsent) return response(400, { error: "Autoriza el uso de tus datos para enviar la solicitud." });
 
   const { data: directory, error: directoryError } = await admin
     .from("smyl_professional_directory")
@@ -95,52 +131,28 @@ Deno.serve(async (req: Request) => {
     .single();
   if (profileError || !profile) return response(404, { error: "Este perfil no está disponible." });
 
-  let patient: { id: string } | null = null;
-  if (mail) {
-    const found = await admin.from("camila_pacientes").select("id")
-      .eq("tenant_id", directory.tenant_id).ilike("email", mail).limit(1).maybeSingle();
-    patient = found.data;
-  }
-  if (!patient && mobile.replace(/\D/g, "").length >= 10) {
-    const found = await admin.from("camila_pacientes").select("id")
-      .eq("tenant_id", directory.tenant_id).eq("telefono", mobile).limit(1).maybeSingle();
-    patient = found.data;
-  }
-  if (!patient) {
-    const parts = fullName.split(/\s+/);
-    const created = await admin.from("camila_pacientes").insert({
-      tenant_id: directory.tenant_id,
-      nombre: parts.shift() || fullName,
-      apellido: parts.join(" "),
-      email: mail,
-      telefono: mobile,
-      notas: "Contacto creado desde ficha profesional pública de SMYL.",
-    }).select("id").single();
-    if (created.error) {
-      console.error("[public-appointment-request] patient", created.error.message);
-      return response(500, { error: "No pudimos registrar tus datos. Intenta de nuevo." });
-    }
-    patient = created.data;
-  }
-
-  let preferred: string | null = null;
-  if (requestedStart) {
-    const parsed = new Date(requestedStart);
-    if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) preferred = parsed.toISOString();
-  }
-  const inserted = await admin.from("smyl_appointment_requests").insert({
-    tenant_id: directory.tenant_id,
-    patient_id: patient!.id,
-    service_id: serviceId,
-    professional_id: profile.professional_id,
-    preferred_branch_id: branchId,
-    requested_start: preferred,
-    source: "patient_portal",
-    patient_message: message,
-    status: "pending",
-  }).select("id").single();
+  const requestId = crypto.randomUUID();
+  const intakeId = crypto.randomUUID();
+  const inserted = await admin.rpc("smyl_create_public_appointment_intake", {
+    p_request_id: requestId,
+    p_intake_id: intakeId,
+    p_tenant_id: directory.tenant_id,
+    p_profile_slug: slug,
+    p_professional_id: profile.professional_id,
+    p_service_id: serviceId,
+    p_branch_id: branchId,
+    p_requested_date: requestedDate || null,
+    p_requested_period: preferredPeriod,
+    p_contact_name: fullName,
+    p_email: mail,
+    p_phone: mobile,
+    p_preferred_contact: preferredContact,
+    p_message: message,
+    p_privacy_consent: privacyConsent,
+    p_privacy_notice_version: "public-appointment-v1",
+  });
   if (inserted.error) {
-    console.error("[public-appointment-request] request", inserted.error.message);
+    console.error("[public-appointment-request] intake", inserted.error.message);
     return response(500, { error: "No pudimos enviar la solicitud. Intenta de nuevo." });
   }
 
@@ -154,7 +166,7 @@ Deno.serve(async (req: Request) => {
 
   return response(200, {
     ok: true,
-    request_id: inserted.data.id,
+    request_id: inserted.data || requestId,
     message: "Tu solicitud fue enviada. La clínica confirmará disponibilidad contigo.",
   });
 });

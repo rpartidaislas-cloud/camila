@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 
 const T = '11111111-1111-4111-8111-111111111111';          // clínica (cuenta propietaria)
 const STAFF = '99999999-9999-4999-8999-999999999999';
@@ -153,7 +154,7 @@ async function load() {
     };
     const file = path.join(os.tmpdir(), 'appointment-reminders-' + process.pid + '.mts');
     fs.writeFileSync(file, source);
-    await import(file);
+    await import(pathToFileURL(file).href);
     fs.rmSync(file, { force: true });
   } catch (error) { loadError = error; }
 }

@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v254-visible-shell-v4';
+const CACHE_VERSION = 'smyl-v256-professional-profile-release';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -71,22 +71,24 @@ const STATIC_FILES = [
   '/camila/smyl-panel.css?v=5',
   '/camila/smyl-clinic-admin.js?v=4',
   '/camila/smyl-clinic-admin.css?v=5',
-  '/camila/smyl-professional-directory.js?v=5',
-  '/camila/smyl-professional-directory.css?v=5',
+  '/camila/smyl-professional-directory.js?v=10',
+  '/camila/smyl-professional-directory.css?v=9',
+  '/camila/smyl-design-system-v2.css?v=2',
+  '/camila/smyl-public-profile.css?v=1',
   '/camila/dentista.html',
   '/camila/resena.html',
   '/camila/smyl-dialog-system.js?v=1',
   '/camila/smyl-dialog-system.css?v=2',
   '/camila/smyl-schedule-grid.js?v=2',
   '/camila/smyl-schedule-slots.js?v=1',
-  '/camila/smyl-schedule.js?v=19',
+  '/camila/smyl-schedule.js?v=21',
   '/camila/smyl-schedule-message.js?v=1',
   '/camila/smyl-schedule-setup.js?v=2',
   '/camila/smyl-reminders.js?v=2',
   '/camila/smyl-templates.css?v=3',
   '/camila/smyl-template-catalog.js?v=1',
   '/camila/smyl-templates.js?v=3',
-  '/camila/smyl-schedule.css?v=13',
+  '/camila/smyl-schedule.css?v=15',
   '/camila/smyl-schedule-setup.css?v=2',
   '/camila/smyl-service-catalog-model.js?v=1',
   '/camila/smyl-service-catalog.js?v=3',
@@ -114,7 +116,6 @@ const STATIC_FILES = [
   '/camila/smyl-task-center.css?v=1',
   '/camila/smyl-resilience.js?v=1',
   '/camila/smyl-resilience.css?v=1',
-  '/camila/smyl-design-system-v2.css?v=1',
   '/camila/smyl-inbox.js?v=36',
   '/camila/smyl-inbox.css?v=34',
   '/camila/smyl-navigation.js?v=9',

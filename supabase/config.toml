@@ -43,6 +43,9 @@ verify_jwt = false
 [functions.public-appointment-request]
 verify_jwt = false
 
+[functions.public-profile-event]
+verify_jwt = false
+
 [functions.public-professional-cases]
 verify_jwt = false
 
