@@ -266,3 +266,24 @@ dialog[data-smyl-dialog-system="true"] .schedule-form-grid .schedule-slots,.sche
 .schedule-timeline-event.is-dragging .schedule-appointment{cursor:grabbing}
 .schedule-timeline-event[data-event-id]{touch-action:pan-y}
 .schedule-drag-tip{position:absolute;right:8px;top:-26px;padding:3px 9px;border-radius:7px;background:#12366f;color:#fff;font-size:11px;font-weight:650;white-space:nowrap;pointer-events:none;z-index:7}
+
+/* Ficha de la cita v2: el sistema de ventanas deja el dialog sin relleno, así que cada franja lo trae */
+dialog.schedule-dialog .sched-ficha{display:flex;flex-direction:column;gap:0;max-height:calc(100dvh - 50px);overflow-y:auto;background:#fff}
+.sched-ficha-head{padding:20px 24px 16px;background:color-mix(in srgb,var(--schedule-accent,#2f8174) 9%,#fff);border-bottom:1px solid color-mix(in srgb,var(--schedule-accent,#2f8174) 18%,#e3e9e5);align-items:center}
+.sched-ficha-head>b{width:48px;height:48px;font-size:16px;background:var(--schedule-accent,#2f8174);color:#fff}
+.sched-ficha-head h2{font-size:20px;font-weight:650;letter-spacing:-.2px}
+.sched-ficha-head p{font-size:13px}
+.sched-ficha-when{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:16px 24px 0;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#12366f,#147f78);color:#fff}
+.sched-ficha-when strong{font-size:24px;font-weight:650;letter-spacing:-.4px}
+.sched-ficha-when span{font-size:13px;opacity:.85}
+.sched-ficha-facts{margin:16px 24px 0;padding:0;border:0;grid-template-columns:1fr 1fr;gap:10px}
+.sched-ficha-facts li,.sched-ficha-facts li+li{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid #e3e9e5;border-radius:12px;background:#fafcfb}
+.sched-ficha-facts span{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:#7a8a84}
+.sched-ficha-facts strong{font-size:15px}
+.sched-ficha-facts small{display:block;margin:2px 0 0}
+.sched-ficha-facts li.is-note{grid-column:1/-1}
+.sched-ficha-reminders{margin:12px 24px 0;padding:10px 14px;border-radius:10px;background:#f4f7f5}
+.sched-ficha [data-ficha-messages]:not([hidden]){margin:16px 24px 0}
+.sched-ficha-actions{position:sticky;bottom:0;margin-top:20px;padding:14px 24px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #e3e9e5;background:#fff;gap:10px}
+.sched-ficha-minors{gap:2px}
+@media(max-width:640px){.sched-ficha-facts{grid-template-columns:1fr}.sched-ficha-head,.sched-ficha-actions{padding-left:16px;padding-right:16px}.sched-ficha-when,.sched-ficha-facts,.sched-ficha-reminders,.sched-ficha [data-ficha-messages]:not([hidden]){margin-left:16px;margin-right:16px}}
