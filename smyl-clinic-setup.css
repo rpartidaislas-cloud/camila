@@ -28,3 +28,4 @@
   .clinic-setup-step{grid-template-columns:22px minmax(0,1fr);padding:12px 16px}
   .clinic-setup-action{grid-column:2;justify-self:start;min-height:40px}
 }
+.clinic-setup-step[hidden]{display:none}

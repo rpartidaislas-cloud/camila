@@ -27,11 +27,11 @@ test('solo la ve el propietario, se oculta al completarse y un fallo no cuenta c
   assert.match(script, /Meta la está revisando/);
 });
 
-test('el plegado se recuerda por clínica con almacenamiento tolerante a fallos y en celular empieza plegada', () => {
+test('el plegado se recuerda por clínica con almacenamiento tolerante a fallos y empieza plegada y muestra el siguiente paso', () => {
   assert.match(script, /smyl_clinic_setup_collapsed_/);
   assert.match(script, /smyl_clinic_setup_height/);
   assert.equal((script.match(/try \{/g) || []).length >= 2, true);
-  assert.match(script, /\(max-width:700px\)/);
+  assert.match(script, /item\.hidden = state\.collapsed && step\.id !== firstPending/);
 });
 
 test('no muestra el nombre del motor de mensajería y el CSS cubre celular', () => {
@@ -41,8 +41,8 @@ test('no muestra el nombre del motor de mensajería y el CSS cubre celular', () 
 });
 
 test('web, móvil y PWA publican el módulo', () => {
-  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=1">\s*<script defer src="smyl-clinic-setup\.js\?v=2"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=2">\s*<script defer src="smyl-clinic-setup\.js\?v=3"><\/script>/);
   assert.ok(app.indexOf('smyl-clinic-setup.js') > app.indexOf('smyl-daily-home.js'), 'carga después del Inicio');
-  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=2'") && worker.includes("'/camila/smyl-clinic-setup.css?v=1'"));
+  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=3'") && worker.includes("'/camila/smyl-clinic-setup.css?v=2'"));
   for (const file of ['smyl-clinic-setup.js', 'smyl-clinic-setup.css', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
 });

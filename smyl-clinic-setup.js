@@ -15,10 +15,10 @@
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
   function route(name) { if (typeof window.ir === 'function') window.ir(name); }
   function storageKey() { return 'smyl_clinic_setup_collapsed_' + (window.tenantId || ''); }
-  // Sin preferencia guardada, en celular los pasos empiezan plegados para llegar antes a la operación del día.
+  // Sin preferencia guardada, la lista empieza plegada y muestra solo el siguiente paso, para llegar antes a la operación del día.
   function readCollapsed() {
     try { var saved = window.localStorage.getItem(storageKey()); if (saved === '1' || saved === '0') return saved === '1'; } catch (_) {}
-    return Boolean(window.matchMedia && window.matchMedia('(max-width:700px)').matches);
+    return true;
   }
   function saveCollapsed(value) { try { window.localStorage.setItem(storageKey(), value ? '1' : '0'); } catch (_) {} }
   // Altura de la última vez: se reserva el espacio desde el primer cuadro para que la tarjeta no empuje el Inicio al llegar.
@@ -121,17 +121,17 @@
     var bar = el('div', 'clinic-setup-bar'); bar.setAttribute('role', 'progressbar');
     bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(STEPS.length)); bar.setAttribute('aria-valuenow', String(done));
     var fill = el('i'); fill.style.width = Math.round(done * 100 / STEPS.length) + '%'; bar.append(fill);
-    var toggle = el('button', 'clinic-setup-toggle', state.collapsed ? 'Ver pasos' : 'Ocultar pasos'); toggle.type = 'button';
+    var toggle = el('button', 'clinic-setup-toggle', state.collapsed ? 'Ver los ' + STEPS.length + ' pasos' : 'Mostrar solo el siguiente'); toggle.type = 'button';
     toggle.setAttribute('aria-expanded', String(!state.collapsed));
     toggle.onclick = function () { state.collapsed = !state.collapsed; saveCollapsed(state.collapsed); render(); };
     head.append(copy, bar, toggle);
     section.append(head);
 
-    var list = el('ol', 'clinic-setup-steps'); list.hidden = state.collapsed;
+    var list = el('ol', 'clinic-setup-steps');
     var firstPending = pending[0].id;
     STEPS.forEach(function (step) {
       var result = results[step.id];
-      var item = el('li', 'clinic-setup-step'); item.dataset.done = String(Boolean(result.done)); item.dataset.next = String(step.id === firstPending);
+      var item = el('li', 'clinic-setup-step'); item.dataset.done = String(Boolean(result.done)); item.dataset.next = String(step.id === firstPending); item.hidden = state.collapsed && step.id !== firstPending;
       item.append(el('span', 'clinic-setup-mark', result.done ? '✓' : ''));
       var text = el('div', 'clinic-setup-text');
       text.append(el('strong', '', step.title));
