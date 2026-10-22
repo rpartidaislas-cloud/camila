@@ -12,6 +12,9 @@
       content="Conoce el perfil profesional de tu dentista y solicita una cita de forma segura."
     />
     <meta name="theme-color" content="#173f3d" />
+    <meta property="og:site_name" content="SMYL" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:locale" content="es_MX" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -603,8 +606,21 @@
           section.hidden=false;
         }
         async function loadReviews(slug){try{var response=await fetch(SUPA_URL+"/functions/v1/public-patient-reviews?perfil="+encodeURIComponent(slug),{headers:{apikey:SUPA_KEY}});if(!response.ok)return;renderReviews(await response.json());}catch(_){/* El perfil sigue disponible sin reseñas. */}}
+        function track(kind) {
+          if (!profile || !profile.slug || profile.tenant_id === "preview") return;
+          try {
+            fetch(SUPA_URL + "/functions/v1/public-profile-event", {
+              method: "POST",
+              keepalive: true,
+              headers: { "Content-Type": "application/json", apikey: SUPA_KEY },
+              body: JSON.stringify({ profile_slug: profile.slug, event: kind, referrer: document.referrer || "" }),
+            }).catch(function () {});
+          } catch (_) { /* la métrica nunca bloquea la página */ }
+        }
+        window.smylTrack = track;
         function render(p) {
           profile = p;
+          track("view");
           var image = photo(p.photo_path),
             locations = p.locations || [],
             services = p.services || [],
@@ -699,6 +715,7 @@
             .getElementById("appointment-form")
             .addEventListener("submit", submit);
           document.getElementById("share-profile").onclick = function () {
+            track("share_click");
             if (navigator.share)
               navigator.share({
                 title: "Perfil de " + p.display_name,

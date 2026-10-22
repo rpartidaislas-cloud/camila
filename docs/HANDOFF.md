@@ -40,11 +40,33 @@ WhatsApp `#DDF5E6`/`#0B3D1F`, estrellas `#B8892B`. Tipografía: Fraunces (títul
 6. Vista previa derecha = hero del perfil público, idéntico.
 7. Slug pre-llenado desde el nombre; guardado automático de borrador.
 
-### Lo que Claude está haciendo (backend, en curso)
-- Edge Function `smyl-profile-copy` (headline + bio con Claude).
-- Métricas del perfil público (vistas, clics WhatsApp/cita).
-- Open Graph dinámico para que el enlace compartido muestre foto/nombre en WhatsApp.
-- Anti-spam: ya existe honeypot + límite por IP en `public-appointment-request`; no requiere cambios.
+### Backend listo (Claude) — contratos para el frontend
+
+**1. Redactar con IA — `POST /functions/v1/smyl-profile-copy`** (sesión requerida, `Authorization: Bearer <jwt>` + `apikey`)
+```json
+{ "professional_id": "<uuid>", "display_name": "…", "specialty": "…", "clinic_name": "…", "city": "…",
+  "years_experience": 5, "languages": ["Español"], "treatment_focus": ["Carillas"],
+  "education": ["2018 · Cirujano Dentista · UNAM"], "memberships": [],
+  "accepts_new_patients": true, "tone": "cercano|equilibrado|formal",
+  "current_headline": "…", "current_bio": "…", "instructions": "más corto" }
+```
+Respuesta `200`: `{ "headline": "…", "bio": "…", "missing": ["Agrega la universidad…"] }`.
+Errores: `400` (faltan nombre y especialidad/tratamiento), `403` (no puede editar ese perfil), `422` (no se pudo redactar), `429/502/504`.
+Requiere el secret `ANTHROPIC_API_KEY` en Supabase (ya existe para la función `claude`).
+Mostrar `missing` como lista de pendientes bajo el texto generado; los botones "Más cercano/Más formal" solo cambian `tone`.
+
+**2. Métricas — eventos anónimos + resumen**
+- Migración `20261022010000_smyl_profile_events.sql`: tabla `smyl_profile_events` + RPC `smyl_profile_metrics(p_professional_id, p_days)`.
+- `dentista.html` ya registra `view` al pintar y `share_click` al compartir; expone `window.smylTrack(kind)` para que el nuevo diseño llame `smylTrack('whatsapp_click')` y `smylTrack('cta_click')` en los botones. `request_sent` lo registra el backend al enviar una solicitud.
+- Editor: `sb.rpc('smyl_profile_metrics', { p_professional_id, p_days: 30 })` devuelve
+  `{ views, unique_visitors, whatsapp_clicks, cta_clicks, share_clicks, requests, by_day:[{day,views,requests}], top_referrers:[{host,views}] }`.
+  Pintarlo como tarjeta "Tu perfil esta semana" en el editor.
+
+**3. Open Graph al compartir** — `infra/cloudflare/og-perfil-worker.js` (ver README ahí). Requiere que el usuario lo despliegue en Cloudflare (no es código del repo en runtime). Falta subir `og-default.png` (1200×630) a la raíz para perfiles sin foto — Codex puede generarlo.
+
+**4. Anti-spam** — ya existía honeypot (`website`) + límite por IP en `public-appointment-request`; no se tocó. El campo honeypot DEBE conservarse en el rediseño del formulario.
+
+**Despliegue pendiente (usuario)**: aplicar migración en producción (SQL Editor), desplegar `smyl-profile-copy`, `public-profile-event` y `public-appointment-request` (bundles en `docs/bundles/` si se generan, o `supabase functions deploy`), y el Worker de Cloudflare.
 
 ---
 
