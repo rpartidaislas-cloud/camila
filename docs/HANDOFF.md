@@ -1,5 +1,53 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude → Codex: rediseño del perfil profesional (mockup aprobado)
+
+### Para Codex: maquetar a partir de los mockups
+El usuario aprobó un rediseño visual del módulo de perfil profesional. Los mockups
+aprobados están en `docs/mockups/perfil-dentista/` (HTML autocontenido; abrir en
+navegador o leer el markup). Canvas original: https://claude.ai/artifact/NKC5nnTjayCDH1rLdNLCpJ
+
+- `perfil-escritorio.html` → rediseño de `dentista.html` (perfil público, escritorio)
+- `perfil-movil.html` → el mismo perfil a 390px (barra fija inferior con WhatsApp + Solicitar cita)
+- `editor-ficha.html` → rediseño del editor en `smyl-professional-directory.js/.css`
+
+**Tokens visuales del mockup**: fondo `#F5F4EF`, tinta `#16211E`, verde `#1E5C4E`
+(oscuro `#163F36`, tinte `#E8F1EE`), muted `#5B6B66`, borde `#E3E6E2`,
+WhatsApp `#DDF5E6`/`#0B3D1F`, estrellas `#B8892B`. Tipografía: Fraunces (títulos)
++ Manrope (texto), ambas en Google Fonts.
+
+**Perfil público (`dentista.html`)** — en orden de impacto:
+1. Hero oscuro: foto grande circular, sello "Cédula verificada" (usar `verified_profile`),
+   nombre serif 52px, especialidad · clínica, estrellas + conteo (de `public-patient-reviews`),
+   botones WhatsApp (usar `public_phone`, mensaje prellenado) y Solicitar cita.
+2. Franja de confianza (4 celdas): experiencia · idiomas · acepta pacientes · sede.
+3. Tratamientos como tarjetas con ícono (de `services`), con "desde $X" opcional.
+4. Formación como línea de tiempo (año a la izquierda).
+5. Casos antes/después con control deslizable (los datos ya llegan de `public-professional-cases`).
+6. Reseñas como tarjetas con estrellas y avatar de inicial.
+7. Aside derecho: formulario de cita reducido a 3 campos visibles (nombre, teléfono, tratamiento);
+   ubicación y fecha pueden ir colapsados o inferirse si hay una sola sede. El honeypot
+   `website` DEBE conservarse. Debajo, tarjeta "Dónde atiende" con mapa y horarios.
+8. Móvil: barra fija inferior WhatsApp + Solicitar cita.
+
+**Editor (`smyl-professional-directory.js`)**:
+1. Un solo bloque de progreso (anillo + checklist con enlaces "Subir"/"Agregar").
+2. Foto se sube haciendo clic en el avatar (preview circular inmediato).
+3. Idiomas y enfoque como chips con autocompletado (catálogo sugerido en el mockup).
+4. Botón "Redactar con IA" en Presentación → Claude está haciendo la Edge Function
+   `smyl-profile-copy` (ver abajo); la UI puede dejar el botón listo con un stub.
+5. Formación/membresías como entradas estructuradas (año · título · institución).
+6. Vista previa derecha = hero del perfil público, idéntico.
+7. Slug pre-llenado desde el nombre; guardado automático de borrador.
+
+### Lo que Claude está haciendo (backend, en curso)
+- Edge Function `smyl-profile-copy` (headline + bio con Claude).
+- Métricas del perfil público (vistas, clics WhatsApp/cita).
+- Open Graph dinámico para que el enlace compartido muestre foto/nombre en WhatsApp.
+- Anti-spam: ya existe honeypot + límite por IP en `public-appointment-request`; no requiere cambios.
+
+---
+
 ## 2026-10-22 — Claude: fix error 42501 al guardar ficha ya publicada
 
 ### Qué se hizo
