@@ -30,6 +30,22 @@
     return { start: start, end: end };
   }
 
+  // Rango compacto: solo lo que ocupan las citas y bloqueos de la semana con una hora de margen (nunca fuera del rango
+  // completo) y al menos `hours` horas (5 por omisión). Sin citas devuelve el rango completo.
+  function compact(windows, spans, hours) {
+    var all = bounds(windows, spans), min = (hours || 5) * 60;
+    var used = (spans || []).filter(function (w) { return w && isFinite(w[0]) && isFinite(w[1]) && w[1] > w[0]; });
+    if (!used.length) return all;
+    var s = Math.min.apply(null, used.map(function (w) { return w[0]; })), e = Math.max.apply(null, used.map(function (w) { return w[1]; }));
+    var start = Math.max(all.start, Math.floor((s - 60) / 60) * 60), end = Math.min(all.end, Math.ceil((e + 60) / 60) * 60);
+    if (end - start < min) {
+      end = Math.min(all.end, start + min);
+      start = Math.max(all.start, end - min);
+      end = Math.min(all.end, start + min);
+    }
+    return { start: start, end: end };
+  }
+
   // Reparte las citas que se encieman en columnas lado a lado. Devuelve cada elemento con su carril y los carriles
   // del grupo al que pertenece (las citas que no se tocan ocupan todo el ancho).
   function lanes(items) {
@@ -61,5 +77,5 @@
 
   function size(heightPx) { return heightPx < 46 ? 's' : heightPx < 84 ? 'm' : 'l'; }
 
-  return { STEP: STEP, toMinutes: toMinutes, bounds: bounds, lanes: lanes, slotAt: slotAt, size: size };
+  return { STEP: STEP, toMinutes: toMinutes, bounds: bounds, compact: compact, lanes: lanes, slotAt: slotAt, size: size };
 });

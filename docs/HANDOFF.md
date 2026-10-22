@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude: semana compacta (ajuste tras el comentario del usuario)
+
+- El usuario no quedó convencido con la semana con eje de horas: ocupaba mucha pantalla casi vacía y la cita de las 5 pm
+  quedaba fuera de la vista. Eligió «calendario compacto».
+- `smyl-schedule-grid.js` (v2): `compact(windows, spans, horas)` limita el rango a lo que ocupan las citas y bloqueos con una
+  hora de margen, mínimo 5 horas y sin salir del horario completo; sin citas devuelve todo el horario.
+- `smyl-schedule.js` (v19) / `.css` (v13): escala de 1.2 px por minuto (antes 1.4); la semana abre compacta y un enlace al pie
+  («Ver todo el horario (9 am a 6 pm)» / «Mostrar solo las citas») cambia al horario completo y se recuerda en
+  `localStorage` (`smyl_schedule_week_full`). La altura de la hora viaja al CSS como `--wk-hour`, ya no hay constantes
+  duplicadas. Tarjetas de 45 min con menos relleno para que quepan tres líneas.
+- Pendiente (no subido): rama local `wip/inicio` con el repaso de lenguaje del Inicio (saludo coherente con los pendientes,
+  textos del centro de tareas, primeros pasos plegados mostrando el siguiente). Falta revisar con el usuario.
+
 ## 2026-10-22 — Claude: Pacientes con próxima cita, «Agendar cita» y carga completa
 
 - `smyl-clinic.js` (v12) / `.css` (v6): la lista de Pacientes pide los registros por páginas de 1,000 (`fetchAllPatients`, hasta

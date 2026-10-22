@@ -21,6 +21,19 @@ test('el rango de horas cubre el horario abierto y lo que quede fuera de él', (
   assert.ok(Number.isNaN(grid.toMinutes('')));
 });
 
+test('el rango compacto se limita a las citas con una hora de margen y puede crecer a todo el horario', () => {
+  const open = [[540, 1080]];
+  assert.deepEqual({ ...grid.compact(open, [[600, 645], [840, 900]]) }, { start: 540, end: 960 });
+  assert.deepEqual({ ...grid.compact(open, []) }, { start: 540, end: 1080 }, 'sin citas muestra todo');
+  // Una sola cita al final del día no deja una cuadrícula diminuta: mínimo 5 horas, sin salir del horario.
+  const late = grid.compact(open, [[1020, 1065]]);
+  assert.equal(late.end, 1080);
+  assert.equal(late.end - late.start, 300);
+  // Una cita fuera del horario abierto amplía el rango completo y el compacto la incluye.
+  const early = grid.compact(open, [[480, 520]]);
+  assert.ok(early.start <= 480);
+});
+
 test('las citas encimadas se reparten en columnas y las que no se tocan usan todo el ancho', () => {
   const placed = grid.lanes([
     { id: 'a', start: 540, end: 600 }, { id: 'b', start: 560, end: 620 },
@@ -54,15 +67,20 @@ test('la semana usa la cuadrícula y conserva la vista de tarjetas como respaldo
   assert.match(schedule, /openNew\(null,null,x\.date,prof\)/);
   assert.match(schedule, /matchMedia\('\(max-width:700px\)'\)\.matches\)state\.view='day'/);
   assert.match(schedule, /setInterval\(placeNow,60000\)/);
-  // El fondo de las líneas horarias (84px = 60 min × 1.4) debe seguir a la escala del JS.
-  assert.match(schedule, /var WK_PX=1\.4;/);
-  assert.match(read('smyl-schedule.css'), /calc\(84px - 1px\)/);
+  // La escala (px por minuto) viaja al CSS como --wk-hour para que las líneas horarias sigan a las citas.
+  assert.match(schedule, /var WK_PX=1\.2;/);
+  assert.match(schedule, /--wk-hour:'\+\(60\*WK_PX\)\+'px/);
+  assert.match(read('smyl-schedule.css'), /var\(--wk-hour,72px\)/);
+  // La semana abre compacta y recuerda si se pidió el horario completo.
+  assert.match(schedule, /G\.compact\(windows,spans\)/);
+  assert.match(schedule, /smyl_schedule_week_full/);
+  assert.match(schedule, /data-wk-toggle/);
 });
 
 test('la cuadrícula se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-schedule-grid.js', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-schedule-grid\.js\?v=1/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-grid\.js\?v=1/);
+  assert.match(read('app.html'), /smyl-schedule-grid\.js\?v=2/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-grid\.js\?v=2/);
 });
