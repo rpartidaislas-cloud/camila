@@ -46,15 +46,15 @@ test('el panel permite preparar, revisar, publicar y pausar casos autorizados',(
 });
 
 test('la ficha pública explica límites clínicos y carga sólo casos aprobados',()=>{
-  assert.match(profile,/Casos autorizados/);
-  assert.match(profile,/no garantizan un resultado específico/);
+  assert.match(profile,/Casos compartidos con autorización/);
+  assert.match(profile,/no predicen ni garantizan un resultado/);
   assert.match(profile,/public-professional-cases/);
   assert.match(profile,/loading="lazy"/);
 });
 
 test('la etapa se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=5/);
-  assert.match(sw,/smyl-v254-visible-shell-v4/);
+  assert.match(app,/smyl-professional-directory\.js\?v=10/);
+  assert.match(sw,/smyl-v255-professional-profile-v1/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));
   assert.equal(profile,read('../mobile/www/dentista.html'));

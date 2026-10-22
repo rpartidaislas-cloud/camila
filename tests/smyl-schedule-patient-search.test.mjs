@@ -13,7 +13,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const schedule = read('smyl-schedule.js');
 
 test('la cita nueva usa una caja de búsqueda accesible en lugar de un desplegable', () => {
-  assert.match(schedule, /function patientField\(selectedId\)/);
+  assert.match(schedule, /function patientField\(selectedId,seed\)/);
   assert.match(schedule, /role="combobox" aria-expanded="false" aria-controls="schedule-patient-list" aria-autocomplete="list"/);
   assert.match(schedule, /role="listbox" aria-label="Pacientes encontrados"/);
   assert.match(schedule, /placeholder="Buscar por nombre, teléfono o correo"/);

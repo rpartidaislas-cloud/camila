@@ -11,18 +11,22 @@
       name="description"
       content="Conoce el perfil profesional de tu dentista y solicita una cita de forma segura."
     />
-    <meta name="theme-color" content="#173f3d" />
+    <meta name="theme-color" content="#194391" />
     <meta property="og:site_name" content="SMYL" />
     <meta property="og:type" content="profile" />
     <meta property="og:locale" content="es_MX" />
+    <meta property="og:title" content="Perfil profesional dental · SMYL" />
+    <meta property="og:description" content="Conoce al profesional y solicita una valoración dental." />
+    <meta property="og:image" content="" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap"
-      rel="stylesheet"
-    />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
-    <style>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./smyl-design-system-v2.css?v=2" />
+    <link rel="stylesheet" href="./smyl-public-profile.css?v=1" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
+    <style id="smyl-public-profile-legacy" media="not all">
       * {
         box-sizing: border-box;
       }
@@ -493,15 +497,23 @@
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#app">Saltar al perfil profesional</a>
     <div class="shell">
       <header class="top">
         <div class="brand">SMYL</div>
-        <button id="share-profile" type="button">Compartir perfil</button>
+        <div class="top-actions">
+          <a href="#servicios">Servicios</a>
+          <a href="#experiencia">Experiencia</a>
+          <a href="#ubicaciones">Ubicaciones</a>
+          <button id="share-profile" type="button">Compartir perfil</button>
+          <span id="share-status" class="sr-only" role="status" aria-live="polite"></span>
+          <a class="top-cta" href="#solicitar">Solicitar cita</a>
+        </div>
       </header>
       <main id="app">
-        <section class="loading">
+        <section class="loading" role="status" aria-live="polite">
           <div>
-            <span></span>
+            <span aria-hidden="true"></span>
             <p>Preparando el perfil profesional…</p>
           </div>
         </section>
@@ -519,11 +531,24 @@
           // Cloudflare Turnstile — reemplaza con tu site key de https://dash.cloudflare.com/?to=/:account/turnstile
           // Deja vacío ("") para deshabilitar el widget; el backend también
           // requiere TURNSTILE_SECRET_KEY en los secrets de Supabase para validar.
-          TURNSTILE_SITE_KEY = "";
+          TURNSTILE_SITE_KEY = "0x4AAAAAAF5alWoQ40szrUNG",
+          turnstileWidgetId = null;
+        function renderTurnstile() {
+          var container = document.getElementById("appointment-turnstile");
+          if (!TURNSTILE_SITE_KEY || !container || !window.turnstile || container.dataset.rendered === "true" || container.offsetParent === null) return;
+          turnstileWidgetId = window.turnstile.render(container, {
+            sitekey: TURNSTILE_SITE_KEY,
+            theme: "light",
+            size: "flexible",
+            appearance: "interaction-only",
+          });
+          container.dataset.rendered = "true";
+        }
         if (TURNSTILE_SITE_KEY) {
           var _ts = document.createElement("script");
-          _ts.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+          _ts.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
           _ts.async = true; _ts.defer = true;
+          _ts.onload = renderTurnstile;
           document.head.appendChild(_ts);
         }
         var sb = window.supabase.createClient(SUPA_URL, SUPA_KEY),
@@ -586,7 +611,7 @@
           var section = document.getElementById("authorized-cases"), host = document.getElementById("case-gallery");
           if (!section || !host || !items || !items.length) return;
           host.innerHTML = items.map(function (c) {
-            return '<article class="public-case"><div class="public-case-images"><figure><img src="'+esc(c.before_url)+'" alt="Estado inicial del caso: '+esc(c.title)+'" loading="lazy"><figcaption>Antes</figcaption></figure><figure><img src="'+esc(c.after_url)+'" alt="Resultado del caso: '+esc(c.title)+'" loading="lazy"><figcaption>Después</figcaption></figure></div><div class="public-case-copy"><span>'+esc(c.treatment)+'</span><h3>'+esc(c.title)+'</h3><p>'+esc(c.summary)+'</p></div></article>';
+            return '<article class="public-case"><div class="public-case-images"><figure><img src="'+esc(c.before_url)+'" alt="Estado inicial documentado del caso: '+esc(c.title)+'" loading="lazy"><figcaption>Estado inicial</figcaption></figure><figure><img src="'+esc(c.after_url)+'" alt="Resultado documentado del caso: '+esc(c.title)+'" loading="lazy"><figcaption>Resultado documentado</figcaption></figure></div><div class="public-case-copy"><span>'+esc(c.treatment)+'</span><h3>'+esc(c.title)+'</h3><p>'+esc(c.summary)+'</p></div></article>';
           }).join("");
           section.hidden = false;
         }
@@ -601,8 +626,8 @@
         function renderReviews(data) {
           var section=document.getElementById("verified-reviews"),host=document.getElementById("reviews-list"),summary=document.getElementById("reviews-summary");
           if(!section||!host||!data||!data.reviews||!data.reviews.length)return;
-          summary.innerHTML='<strong>★ '+esc(data.average)+'</strong><span>'+esc(data.count)+' '+(data.count===1?'opinión verificada':'opiniones verificadas')+'</span>';
-          host.innerHTML=data.reviews.map(function(r){return '<article class="public-review"><span>'+esc('★★★★★'.slice(0,r.rating))+'</span><blockquote>“'+esc(r.body)+'”</blockquote><footer><strong>'+esc(r.public_name)+'</strong><time>'+esc(new Date(r.published_at).toLocaleDateString('es-MX',{month:'long',year:'numeric'}))+'</time></footer></article>';}).join('');
+          summary.innerHTML='<strong>'+esc(data.average)+' de 5</strong><span>'+esc(data.count)+' '+(data.count===1?'opinión de paciente con cita completada':'opiniones de pacientes con cita completada')+'</span>';
+          host.innerHTML=data.reviews.map(function(r){return '<article class="public-review"><span class="review-rating" aria-label="'+esc(r.rating)+' de 5 estrellas">'+esc('★★★★★'.slice(0,r.rating))+'</span><blockquote>“'+esc(r.body)+'”</blockquote><footer><strong>'+esc(r.public_name)+'</strong><time>'+esc(new Date(r.published_at).toLocaleDateString('es-MX',{month:'long',year:'numeric'}))+'</time></footer></article>';}).join('');
           section.hidden=false;
         }
         async function loadReviews(slug){try{var response=await fetch(SUPA_URL+"/functions/v1/public-patient-reviews?perfil="+encodeURIComponent(slug),{headers:{apikey:SUPA_KEY}});if(!response.ok)return;renderReviews(await response.json());}catch(_){/* El perfil sigue disponible sin reseñas. */}}
@@ -618,118 +643,177 @@
           } catch (_) { /* la métrica nunca bloquea la página */ }
         }
         window.smylTrack = track;
+        function phoneData(value) {
+          var raw = String(value || "").trim(), digits = raw.replace(/\D/g, "");
+          return digits.length >= 10 && digits.length <= 15
+            ? { label: raw, tel: "tel:+" + digits, whatsapp: "https://wa.me/" + digits }
+            : null;
+        }
+        function updateMetadata(p, image, locations) {
+          var description = p.headline || "Conoce el perfil de " + p.display_name + " y solicita una valoración dental.";
+          var canonical = new URL(location.href);
+          canonical.search = "?perfil=" + encodeURIComponent(p.slug || "");
+          canonical.hash = "";
+          document.title = p.display_name + " · Perfil profesional dental en SMYL";
+          document.querySelector('meta[name="description"]').content = description;
+          document.querySelector('meta[property="og:title"]').content = document.title;
+          document.querySelector('meta[property="og:description"]').content = description;
+          document.querySelector('meta[property="og:image"]').content = image || "";
+          document.querySelector('link[rel="canonical"]').href = canonical.href;
+          var previous = document.getElementById("profile-structured-data");
+          if (previous) previous.remove();
+          var structured = document.createElement("script");
+          structured.id = "profile-structured-data";
+          structured.type = "application/ld+json";
+          structured.textContent = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Dentist",
+            name: p.display_name,
+            description: description,
+            image: image || undefined,
+            medicalSpecialty: p.specialty || "Dentistry",
+            telephone: p.public_phone || undefined,
+            url: canonical.href,
+            address: (locations || []).map(function (x) {
+              return { "@type": "PostalAddress", streetAddress: x.address || undefined, addressLocality: x.city || undefined, addressRegion: x.state || undefined, name: x.name || undefined };
+            }),
+          });
+          document.head.appendChild(structured);
+          return canonical.href;
+        }
+        function servicesMarkup(services, canRequest) {
+          if (!services.length) return '<div class="clinical-note"><strong>Servicios en actualización.</strong> La clínica todavía no ha publicado su oferta para este perfil.</div>';
+          return '<div class="service-list">' + services.map(function (service) {
+            var duration = Number(service.duration_minutes) > 0 ? "Duración aproximada: " + Number(service.duration_minutes) + " min" : "La duración se confirma durante la valoración";
+            return '<div class="service-row"><div><strong>' + esc(service.name) + '</strong><span>' + esc(duration) + '</span></div>' +
+              (canRequest ? '<button type="button" data-request-service="' + esc(service.id) + '" aria-label="Solicitar valoración para ' + esc(service.name) + '">Solicitar valoración</button>' : '') + '</div>';
+          }).join("") + '</div><p class="clinical-note">La pertinencia de cada tratamiento se determina después de una valoración profesional. Esta página no constituye un diagnóstico ni una indicación de tratamiento.</p>';
+        }
+        function locationsMarkup(locations, phone, canRequest) {
+          if (!locations.length) return '<div class="clinical-note"><strong>Ubicación por confirmar.</strong> La clínica compartirá la sede disponible al responder.</div>';
+          return locations.map(function (x) {
+            var address = [x.address, x.city, x.state].filter(Boolean).join(" · ");
+            var maps = address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address) : "";
+            return '<div class="location"><strong>' + esc(x.name) + '</strong><span>' + esc(address || "Dirección en actualización") + '</span><div class="location-actions">' +
+              (maps ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">Ver cómo llegar</a>' : '') +
+              (phone ? '<a href="' + esc(phone.tel) + '">Llamar a la clínica</a>' : '') +
+              (canRequest ? '<a href="#solicitar" data-request-location="' + esc(x.id) + '">Solicitar en esta sede</a>' : '') +
+              '</div></div>';
+          }).join("");
+        }
+        function urgentMarkup(phone) {
+          return '<div class="urgent-note"><strong>¿Necesitas atención urgente?</strong><p>Este formulario no se monitorea continuamente. Si presentas sangrado que no se controla, traumatismo facial grave o dificultad para respirar o tragar, solicita atención médica de emergencia.</p>' +
+            (phone ? '<a href="' + esc(phone.tel) + '">Llamar a la clínica</a>' : '') + '</div>';
+        }
+        function bookingMarkup(p, services, locations, phone, canRequest) {
+          if (!canRequest) {
+            var reason = !p.verified_profile
+              ? "Este perfil está en revisión documental."
+              : !p.accepts_new_patients
+              ? "Este profesional no está recibiendo solicitudes nuevas en este momento."
+              : !services.length
+                ? "La lista de servicios está en actualización."
+                : "La ubicación de atención está por confirmarse.";
+            return '<aside class="card request-unavailable" id="solicitar" aria-labelledby="request-unavailable-title"><strong id="request-unavailable-title">Solicitudes temporalmente no disponibles</strong><p>' + esc(reason) + '</p>' + urgentMarkup(phone) + '</aside>';
+          }
+          return '<aside class="card appointment" id="solicitar" aria-labelledby="booking-title"><header><span>Solicitud de cita</span><h2 id="booking-title">Solicita una valoración</h2><p>Cuéntanos qué necesitas. La clínica revisará tu solicitud antes de confirmar.</p></header>' +
+            '<div class="booking-progress" aria-hidden="true"><span data-booking-progress="0" data-active="true">1</span><span data-booking-progress="1">2</span><span data-booking-progress="2">3</span></div><p class="booking-progress-label" id="booking-progress-label">Paso 1 de 3 · Motivo</p>' +
+            '<form id="appointment-form" novalidate>' +
+            '<section class="booking-step" data-booking-step="0" aria-labelledby="booking-step-1"><h3 id="booking-step-1" tabindex="-1">¿Cómo podemos ayudarte?</h3><label>Servicio<select name="service_id" required><option value="">Selecciona una opción</option>' + selectOptions(services) + '</select></label><label>Motivo de la visita <span class="field-help">Opcional</span><textarea name="message" maxlength="600" placeholder="Por ejemplo: Quiero una valoración para mejorar mi sonrisa."></textarea></label><p class="field-help">No incluyas fotografías, estudios, diagnósticos ni información médica detallada.</p><div class="booking-actions"><button class="button-primary" type="button" data-booking-next>Elegir sede y fecha</button></div></section>' +
+            '<section class="booking-step" data-booking-step="1" aria-labelledby="booking-step-2" hidden><h3 id="booking-step-2" tabindex="-1">¿Dónde y cuándo podrías asistir?</h3><label>Sede preferida<select name="branch_id" required><option value="">Selecciona una sede</option>' + selectOptions(locations) + '</select></label><label>Fecha preferida<input name="requested_date" type="date"></label><label>Horario preferido<select name="requested_period"><option value="">Sin preferencia</option><option value="Por la mañana">Por la mañana</option><option value="Por la tarde">Por la tarde</option></select></label><p class="field-help">Estas opciones expresan tu preferencia; todavía no reservan un espacio.</p><div class="booking-actions"><button class="button-secondary" type="button" data-booking-back>Volver</button><button class="button-primary" type="button" data-booking-next>Agregar mis datos</button></div></section>' +
+            '<section class="booking-step" data-booking-step="2" aria-labelledby="booking-step-3" hidden><h3 id="booking-step-3" tabindex="-1">¿Cómo debe contactarte la clínica?</h3><label>Nombre completo<input name="name" autocomplete="name" maxlength="150" required></label><div class="booking-contact-grid"><label>Teléfono<input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="60"></label><label>Correo<input name="email" type="email" inputmode="email" autocomplete="email" maxlength="254"></label></div><label>Medio preferido<select name="preferred_contact"><option value="">Cualquiera</option><option value="Teléfono">Llamada</option><option value="WhatsApp">WhatsApp</option><option value="Correo">Correo</option></select></label><label class="privacy-check"><input name="privacy_consent" type="checkbox" required><span>Autorizo que mis datos se compartan con esta clínica exclusivamente para atender esta solicitud.</span></label><details class="privacy-note"><summary>Cómo se usarán tus datos</summary><p>Se utilizarán para revisar disponibilidad y contactarte. Este formulario no realiza una valoración clínica ni confirma una cita.</p></details><label class="honeypot" aria-hidden="true">Sitio web<input name="website" tabindex="-1" autocomplete="off"></label>' +
+            (TURNSTILE_SITE_KEY ? '<div id="appointment-turnstile" aria-label="Verificación de seguridad"></div>' : '') +
+            '<div id="form-error" tabindex="-1" role="alert" aria-live="assertive"></div><div class="booking-actions"><button class="button-secondary" type="button" data-booking-back>Volver</button><button class="button-primary" type="submit">Enviar solicitud</button></div><p class="fine">Enviar una solicitud no confirma la cita. La clínica verificará disponibilidad antes de contactarte.</p></section></form>' + urgentMarkup(phone) + '</aside>';
+        }
         function render(p) {
           profile = p;
           track("view");
-          var image = photo(p.photo_path),
-            locations = p.locations || [],
-            services = p.services || [],
-            link = location.href;
-          document.title = p.display_name + " · Dentista en SMYL";
-          document.querySelector("meta[name=description]").content =
-            p.headline ||
-            "Conoce el perfil de " + p.display_name + " y solicita una cita.";
+          var image = photo(p.photo_path), locations = Array.isArray(p.locations) ? p.locations : [], services = Array.isArray(p.services) ? p.services : [], phone = phoneData(p.public_phone), canRequest = Boolean(p.verified_profile && p.accepts_new_patients && services.length && locations.length), link = updateMetadata(p, image, locations), firstLocation = locations[0] || {}, city = [firstLocation.city, firstLocation.state].filter(Boolean).join(", ");
+          var verificationCopy = p.verified_profile
+            ? "Documentación profesional revisada internamente" + (p.verified_at ? " · " + new Date(p.verified_at).toLocaleDateString("es-MX", { month: "short", year: "numeric" }) : "")
+            : "Cédula declarada; revisión documental pendiente";
+          var languages = Array.isArray(p.languages) ? p.languages.filter(Boolean) : [], focus = Array.isArray(p.treatment_focus) ? p.treatment_focus.filter(Boolean).slice(0, 6) : [];
+          var topCta = document.querySelector(".top-cta");
+          if (topCta) topCta.hidden = !canRequest;
           app.innerHTML =
-            '<section class="hero"><div class="hero-inner"><div><span class="eyebrow">PERFIL PROFESIONAL DENTAL</span><h1>' +
-            esc(p.display_name) +
-            '</h1><div class="specialty">' +
-            esc(p.specialty || "Odontología general") +
-            '</div><p class="headline">' +
-            esc(p.headline || "Atención dental profesional y cercana.") +
-            '</p><div class="trust"><span data-verified="' +
-            String(Boolean(p.verified_profile)) +
-            '" title="' +
-            esc(
-              p.verified_profile
-                ? "Revisión documental interna de la clínica; no es una consulta automática a un registro gubernamental."
-                : "Esta información todavía no tiene revisión documental interna.",
-            ) +
-            '">' +
-            (p.verified_profile
-              ? "✓ Perfil y cédula revisados por la clínica"
-              : "Cédula declarada: " + (esc(p.license_number) || "por completar")) +
-            "</span>" +
-            (p.accepts_new_patients
-              ? "<span>Recibe nuevos pacientes</span>"
-              : "") +
-            '<span>Solicitud protegida por SMYL</span></div></div><div class="portrait">' +
-            (image
-              ? '<img src="' +
-                esc(image) +
-                '" alt="Foto profesional de ' +
-                esc(p.display_name) +
-                '">'
-              : "<span>" + esc(initials(p.display_name)) + "</span>") +
-            '</div></div></section><div class="content"><div class="main-grid"><div><section class="card"><h2>Acerca de mi práctica</h2><p>' +
-            esc(
-              p.bio ||
-                "La información profesional se encuentra en actualización.",
-            ) +
-            '</p><div class="facts"><div class="fact"><span>Experiencia</span><strong>' +
-            (Number(p.years_experience) || "—") +
-            (p.years_experience ? " años" : "") +
-            '</strong></div><div class="fact"><span>Idiomas</span><strong>' +
-            esc((p.languages || []).join(", ") || "—") +
-            '</strong></div><div class="fact"><span>Modalidad</span><strong>' +
-            esc(
-              p.accepts_new_patients
-                ? "Nuevos pacientes"
-                : "Pacientes actuales",
-            ) +
-            '</strong></div></div><div class="chips">' +
-            (p.treatment_focus || [])
-              .map(function (x) {
-                return "<span>" + esc(x) + "</span>";
-              })
-              .join("") +
-            '</div></section><section class="card"><h2>Formación y trayectoria</h2><div class="timeline">' +
-            rows(p.education, "education") +
-            "</div>" +
-            (p.memberships && p.memberships.length
-              ? '<h2 style="margin-top:28px">Asociaciones</h2><div class="timeline">' +
-                rows(p.memberships, "membership") +
-                "</div>"
-              : "") +
-            '</section><section class="card" id="verified-reviews" hidden><h2>Experiencias verificadas</h2><div class="reviews-summary" id="reviews-summary"></div><div class="reviews-list" id="reviews-list"></div></section><section class="card cases-card" id="authorized-cases" hidden><h2>Casos autorizados</h2><p>Resultados compartidos con autorización del paciente y revisión de la clínica.</p><div class="case-gallery" id="case-gallery"></div><p class="cases-disclaimer">Cada caso es distinto. Estas imágenes son informativas y no garantizan un resultado específico; el plan depende de una valoración profesional.</p></section><section class="card"><h2>Dónde atiende</h2>' +
-            locations
-              .map(function (x) {
-                return (
-                  '<div class="location"><strong>' +
-                  esc(x.name) +
-                  "</strong><span>" +
-                  esc(
-                    [x.address, x.city, x.state].filter(Boolean).join(" · "),
-                  ) +
-                  "</span></div>"
-                );
-              })
-              .join("") +
-            '</section></div><aside class="card appointment" id="solicitar"><header><span>SOLICITUD DE CITA</span><h2>Da el primer paso</h2><p>Comparte tu preferencia. El equipo revisará la agenda y te contactará para confirmar.</p></header><form id="appointment-form"><label>Nombre completo<input name="name" autocomplete="name" maxlength="150" required></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label>Teléfono<input name="phone" type="tel" autocomplete="tel" maxlength="60"></label><label>Correo<input name="email" type="email" autocomplete="email" maxlength="254"></label></div><label>Tratamiento<select name="service_id" required><option value="">Selecciona</option>' +
-            selectOptions(services) +
-            '</select></label><label>Ubicación<select name="branch_id" required><option value="">Selecciona</option>' +
-            selectOptions(locations) +
-            '</select></label><label>Fecha y hora preferida<input name="requested_start" type="datetime-local"></label><label>¿Cómo podemos ayudarte?<textarea name="message" maxlength="1200" placeholder="Cuéntanos brevemente el motivo de tu visita. No compartas información sensible."></textarea></label><label class="honeypot">Sitio web<input name="website" tabindex="-1" autocomplete="off"></label>' +
-            (TURNSTILE_SITE_KEY ? '<div class="cf-turnstile" data-sitekey="' + TURNSTILE_SITE_KEY + '" data-theme="auto" data-size="normal" style="margin:8px 0"></div>' : '') +
-            '<div id="form-error" aria-live="polite"></div><button type="submit">Enviar solicitud</button><div class="fine">Esto es una solicitud, no una cita confirmada. Tus datos se compartirán únicamente con esta clínica para contactarte.</div></form></aside></div></div>';
-          document
-            .getElementById("appointment-form")
-            .addEventListener("submit", submit);
-          document.getElementById("share-profile").onclick = function () {
-            track("share_click");
-            if (navigator.share)
-              navigator.share({
-                title: "Perfil de " + p.display_name,
-                text: p.headline || "Conoce mi perfil profesional",
-                url: link,
-              });
-            else
-              navigator.clipboard.writeText(link).then(function () {
-                document.getElementById("share-profile").textContent =
-                  "Enlace copiado";
-              });
-          };
+            '<section class="hero" aria-labelledby="profile-name"><div class="hero-inner"><div class="portrait">' +
+            (image ? '<img src="' + esc(image) + '" alt="Fotografía profesional de ' + esc(p.display_name) + '">' : '<span aria-label="Perfil profesional de ' + esc(p.display_name) + '">' + esc(initials(p.display_name)) + '</span>') +
+            '</div><div><span class="eyebrow">Perfil profesional dental</span><h1 id="profile-name">' + esc(p.display_name) + '</h1><div class="specialty">' + esc(p.specialty || "Odontología general") + (city ? " · " + esc(city) : "") + '</div><p class="headline">' + esc(p.headline || "Atención dental basada en una valoración cuidadosa y un plan explicado con claridad.") + '</p><div class="trust"><span data-verified="' + String(Boolean(p.verified_profile)) + '">' + esc(verificationCopy) + '</span>' +
+            (p.license_number ? '<span>Cédula: ' + esc(p.license_number) + '</span>' : '') +
+            (p.accepts_new_patients ? '<span>Recibe nuevos pacientes</span>' : '<span>Atención a pacientes actuales</span>') +
+            (languages.length ? '<span>Atención en ' + esc(languages.join(", ")) + '</span>' : '') +
+            '</div></div><div class="hero-cta-panel" data-available="' + canRequest + '"><strong>' + (canRequest ? "Solicita tu primera valoración" : "Disponibilidad en actualización") + '</strong><p>' + (canRequest ? "Comparte tu preferencia y el equipo confirmará el espacio contigo." : "Consulta directamente con la clínica antes de acudir.") + '</p>' +
+            (canRequest ? '<a class="button-primary" href="#solicitar">Solicitar cita</a><small>La solicitud no confirma una cita.</small>' : (phone ? '<a class="button-secondary" href="' + esc(phone.tel) + '">Llamar a la clínica</a>' : '')) +
+            '</div></div></section>' +
+            '<nav class="section-nav" aria-label="Secciones del perfil"><div><a href="#resumen">Resumen</a><a href="#servicios">Servicios</a><a href="#experiencia">Trayectoria</a><a href="#ubicaciones">Ubicaciones</a></div></nav>' +
+            '<div class="content"><div class="main-grid"><div class="profile-flow">' +
+            '<section class="profile-section" id="resumen"><span class="section-kicker">Atención profesional</span><h2>Acerca de mi práctica</h2><p>' + esc(p.bio || "La información profesional se encuentra en actualización.") + '</p><div class="facts"><div class="fact"><span>Experiencia</span><strong>' + (Number(p.years_experience) > 0 ? Number(p.years_experience) + " años" : "Por actualizar") + '</strong></div><div class="fact"><span>Idiomas</span><strong>' + esc(languages.join(", ") || "Por actualizar") + '</strong></div><div class="fact"><span>Atención</span><strong>' + esc(p.accepts_new_patients ? "Nuevos pacientes" : "Pacientes actuales") + '</strong></div></div>' + (focus.length ? '<div class="chips">' + focus.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join("") + '</div>' : '') + '</section>' +
+            '<section class="profile-section" id="servicios"><span class="section-kicker">Servicios</span><h2>Cómo puede ayudarte</h2><p class="section-intro">Explora las áreas de atención disponibles. Si no sabes cuál elegir, la clínica puede orientarte después de revisar tu solicitud.</p>' + servicesMarkup(services, canRequest) + '</section>' +
+            '<section class="profile-section"><span class="section-kicker">Primera visita</span><h2>Qué puedes esperar</h2><div class="visit-steps"><div class="visit-step"><strong>Escuchamos tu motivo</strong><p>Comparte qué te preocupa y qué esperas de la atención.</p></div><div class="visit-step"><strong>Realizamos una valoración</strong><p>El alcance depende del motivo de consulta y los estudios necesarios.</p></div><div class="visit-step"><strong>Revisamos las opciones</strong><p>Si corresponde, conocerás alternativas, etapas y costos antes de decidir.</p></div></div></section>' +
+            '<section class="profile-section" id="verified-reviews" hidden><span class="section-kicker">Pacientes atendidos</span><h2 id="opiniones">Experiencias de pacientes</h2><div class="reviews-summary" id="reviews-summary"></div><div class="reviews-list" id="reviews-list"></div><p class="reviews-transparency">Las opiniones provienen de invitaciones asociadas a citas completadas. Se moderan únicamente para proteger datos personales, información clínica sensible y convivencia.</p></section>' +
+            '<section class="profile-section cases-card" id="authorized-cases" hidden><span class="section-kicker">Evidencia autorizada</span><h2 id="casos">Casos compartidos con autorización</h2><p>Ejemplos publicados con autorización del paciente y revisión de la clínica.</p><div class="case-gallery" id="case-gallery"></div><p class="cases-disclaimer">Cada paciente presenta condiciones diferentes. Estas imágenes son informativas, no predicen ni garantizan un resultado. La viabilidad de cualquier tratamiento requiere valoración clínica.</p></section>' +
+            '<section class="profile-section" id="experiencia"><span class="section-kicker">Credenciales declaradas</span><h2>Formación y trayectoria</h2><details class="credentials-details" open><summary>Ver formación y asociaciones</summary><div class="credentials-body"><div class="timeline">' + rows(p.education, "education") + '</div>' +
+            (p.memberships && p.memberships.length ? '<h3 class="subsection-title">Asociaciones profesionales</h3><div class="timeline">' + rows(p.memberships, "membership") + '</div>' : '') +
+            '</div></details><p class="clinical-note">' + esc(p.verified_profile ? "Este perfil cuenta con una revisión documental interna. Esto no sustituye la consulta de registros oficiales ni garantiza resultados clínicos." : "Esta información fue declarada por el profesional o la clínica y su revisión documental está pendiente.") + '</p></section>' +
+            '<section class="profile-section" id="ubicaciones"><span class="section-kicker">Atención presencial</span><h2>Dónde atiende</h2>' + locationsMarkup(locations, phone, canRequest) + '</section></div>' +
+            bookingMarkup(p, services, locations, phone, canRequest) + '</div></div>' +
+            (canRequest ? '<div class="mobile-booking-bar"><a class="button-primary" href="#solicitar">Solicitar cita</a>' + (phone ? '<a class="button-secondary" href="' + esc(phone.tel) + '">Llamar</a>' : '') + '</div>' : '');
+          wireProfileInteractions(p, canRequest, link);
           loadCases(p.slug);
           loadReviews(p.slug);
+        }
+        function wireProfileInteractions(p, canRequest, link) {
+          var share = document.getElementById("share-profile"), shareStatus = document.getElementById("share-status");
+          share.onclick = function () {
+            track("share_click");
+            if (navigator.share) navigator.share({ title: "Perfil de " + p.display_name, text: p.headline || "Conoce este perfil profesional dental", url: link }).catch(function () {});
+            else navigator.clipboard.writeText(link).then(function () { share.textContent = "Enlace copiado"; if (shareStatus) shareStatus.textContent = "El enlace del perfil se copió al portapapeles."; setTimeout(function () { share.textContent = "Compartir perfil"; }, 2400); });
+          };
+          document.querySelectorAll('a[href="#solicitar"], [data-request-service], [data-request-location]').forEach(function (control) {
+            control.addEventListener("click", function () { track("cta_click"); });
+          });
+          var credentials = document.querySelector(".credentials-details");
+          if (credentials && window.matchMedia("(max-width: 520px)").matches) credentials.open = false;
+          if (!canRequest) return;
+          var form = document.getElementById("appointment-form"), steps = Array.from(form.querySelectorAll("[data-booking-step]")), labels = ["Paso 1 de 3 · Motivo", "Paso 2 de 3 · Lugar y fecha", "Paso 3 de 3 · Tus datos"], current = 0;
+          var mobileBar = document.querySelector(".mobile-booking-bar"), requestCard = document.getElementById("solicitar");
+          if (mobileBar && requestCard && "IntersectionObserver" in window) {
+            new IntersectionObserver(function (entries) {
+              mobileBar.hidden = entries.some(function (entry) { return entry.isIntersecting; });
+            }, { threshold: 0.08 }).observe(requestCard);
+          }
+          function showStep(next, focusHeading) {
+            current = Math.max(0, Math.min(2, next));
+            form.dataset.currentStep = String(current);
+            steps.forEach(function (step, index) { step.hidden = index !== current; });
+            document.querySelectorAll("[data-booking-progress]").forEach(function (item, index) { item.dataset.active = String(index <= current); });
+            document.getElementById("booking-progress-label").textContent = labels[current];
+            if (current === 2) renderTurnstile();
+            if (focusHeading) steps[current].querySelector("h3").focus({ preventScroll: true });
+          }
+          function validateStep(index) {
+            var controls = Array.from(steps[index].querySelectorAll("input,select,textarea")).filter(function (control) { return control.required; });
+            for (var i = 0; i < controls.length; i += 1) if (!controls[i].reportValidity()) return false;
+            return true;
+          }
+          form.querySelectorAll("[data-booking-next]").forEach(function (button) { button.onclick = function () { if (validateStep(current)) showStep(current + 1, true); }; });
+          form.querySelectorAll("[data-booking-back]").forEach(function (button) { button.onclick = function () { showStep(current - 1, true); }; });
+          document.querySelectorAll("[data-request-service]").forEach(function (button) { button.onclick = function () { form.elements.service_id.value = button.dataset.requestService; showStep(0, false); document.getElementById("solicitar").scrollIntoView({ behavior: "smooth", block: "start" }); setTimeout(function () { form.elements.service_id.focus(); }, 400); }; });
+          document.querySelectorAll("[data-request-location]").forEach(function (button) { button.onclick = function () { form.elements.branch_id.value = button.dataset.requestLocation; showStep(1, false); }; });
+          var date = form.elements.requested_date, tomorrow = new Date(Date.now() + 86400000); date.min = tomorrow.getFullYear() + "-" + String(tomorrow.getMonth() + 1).padStart(2, "0") + "-" + String(tomorrow.getDate()).padStart(2, "0");
+          form.dataset.currentStep = "0";
+          form.addEventListener("submit", function (event) {
+            if (current < 2) {
+              event.preventDefault();
+              if (validateStep(current)) showStep(current + 1, true);
+              return;
+            }
+            if (!validateStep(2)) {
+              event.preventDefault();
+              return;
+            }
+            submit(event);
+          });
         }
         async function submit(event) {
           event.preventDefault();
@@ -738,9 +822,26 @@
             error = document.getElementById("form-error"),
             data = new FormData(form);
           error.innerHTML = "";
+          if (TURNSTILE_SITE_KEY && !data.get("cf-turnstile-response")) {
+            renderTurnstile();
+            error.innerHTML = '<div class="error">Completa la verificación de seguridad antes de enviar.</div>';
+            error.focus();
+            return;
+          }
           if (!data.get("email") && !data.get("phone")) {
             error.innerHTML =
               '<div class="error">Escribe un teléfono o correo para que la clínica pueda contactarte.</div>';
+            error.focus();
+            return;
+          }
+          if ((data.get("preferred_contact") === "Teléfono" || data.get("preferred_contact") === "WhatsApp") && !data.get("phone")) {
+            error.innerHTML = '<div class="error">Agrega un teléfono para el medio de contacto seleccionado.</div>';
+            error.focus();
+            return;
+          }
+          if (data.get("preferred_contact") === "Correo" && !data.get("email")) {
+            error.innerHTML = '<div class="error">Agrega un correo para el medio de contacto seleccionado.</div>';
+            error.focus();
             return;
           }
           button.disabled = true;
@@ -761,7 +862,10 @@
                     email: data.get("email"),
                     service_id: data.get("service_id"),
                     branch_id: data.get("branch_id"),
-                    requested_start: data.get("requested_start"),
+                    requested_date: data.get("requested_date"),
+                    requested_period: data.get("requested_period"),
+                    preferred_contact: data.get("preferred_contact"),
+                    privacy_consent: data.get("privacy_consent") === "on",
                     message: data.get("message"),
                     website: data.get("website"),
                     cf_turnstile_response: TURNSTILE_SITE_KEY ? (data.get("cf-turnstile-response") || "") : undefined,
@@ -774,17 +878,19 @@
             if (!response.ok)
               throw new Error(body.error || "No pudimos enviar la solicitud.");
             form.innerHTML =
-              '<div class="result"><strong>Solicitud enviada</strong><p>' +
+              '<div class="result" role="status" tabindex="-1"><strong>Recibimos tu solicitud</strong><p>' +
               esc(
                 body.message ||
                   "La clínica te contactará para confirmar disponibilidad.",
               ) +
-              "</p></div>";
+              '</p>' + (body.request_id ? '<p><strong>Folio:</strong> ' + esc(body.request_id) + '</p>' : '') + '<p>Tu cita aún no está confirmada. Espera el mensaje de la clínica con la fecha y hora definitivas.</p></div>';
+            form.querySelector(".result").focus();
           } catch (e) {
             error.innerHTML = '<div class="error">' + esc(e.message) + "</div>";
+            error.focus();
             button.disabled = false;
             button.textContent = "Enviar solicitud";
-            if (TURNSTILE_SITE_KEY && window.turnstile) window.turnstile.reset();
+            if (TURNSTILE_SITE_KEY && window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
           }
         }
         async function init() {

@@ -4,6 +4,8 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const sql=read('../supabase/migrations/20261014090000_smyl_professional_directory.sql');
 const verification=read('../supabase/migrations/20261014100000_smyl_professional_verification.sql');
+const publicIntake=read('../supabase/migrations/20261021170000_smyl_public_appointment_intake.sql');
+const publishGuard=read('../supabase/migrations/20261021180000_smyl_professional_publication_guard.sql');
 const edge=read('../supabase/functions/public-appointment-request/index.ts');
 const js=read('../smyl-professional-directory.js');
 const css=read('../smyl-professional-directory.css');
@@ -32,11 +34,87 @@ test('el CV queda privado y nunca forma parte del directorio público',()=>{
 test('la ficha pública genera solicitudes pendientes, nunca citas',()=>{
   assert.match(edge,/checkLimitPorIpProspecto/);
   assert.match(edge,/smyl_professional_directory/);
-  assert.match(edge,/smyl_appointment_requests/);
-  assert.match(edge,/source: "patient_portal"/);
-  assert.match(edge,/status: "pending"/);
+  assert.match(edge,/smyl_create_public_appointment_intake/);
+  assert.doesNotMatch(edge,/\.from\("camila_pacientes"\)/);
   assert.doesNotMatch(edge,/smyl_appointments|smyl_create_appointment|status:\s*"confirmed"/);
   assert.match(edge,/honeypot/);
+});
+
+test('la captación anónima queda separada del expediente hasta revisión humana',()=>{
+  assert.match(publicIntake,/create table public\.smyl_public_appointment_intakes/);
+  assert.match(publicIntake,/patient_id, service_id, professional_id,[\s\S]*?p_request_id, p_tenant_id, null,/);
+  assert.match(publicIntake,/Solicitud pública pendiente de validar contacto/);
+  assert.match(publicIntake,/create or replace function public\.smyl_link_public_appointment_intake/);
+  assert.match(publicIntake,/public\.smyl_has_permission\(v_tenant, 'schedule\.manage'\)/);
+  assert.match(publicIntake,/public\.smyl_has_permission\(v_tenant, 'patients\.manage'\)/);
+  assert.match(publicIntake,/linked_patient_id = p_patient_id/);
+  assert.doesNotMatch(publicIntake,/insert into public\.camila_pacientes/);
+  assert.match(publicIntake,/revoke all on public\.smyl_public_appointment_intakes from public, anon, authenticated/);
+  assert.match(publicIntake,/smyl_audit_public_appointment_intake/);
+  const audit=publicIntake.slice(publicIntake.indexOf('create or replace function public.smyl_audit_public_appointment_intake'),publicIntake.indexOf('create trigger smyl_public_appointment_intakes_audit'));
+  assert.doesNotMatch(audit,/contact_name|patient_message|\bemail\b|\bphone\b/, 'la auditoría no debe copiar PII del prospecto');
+  assert.match(publicIntake,/grant execute on function public\.smyl_create_public_appointment_intake\([\s\S]*?\) to service_role/);
+  assert.doesNotMatch(publicIntake,/grant execute on function public\.smyl_create_public_appointment_intake\([\s\S]*?\) to (?:anon|authenticated)/);
+});
+
+test('la captación conserva preferencias y consentimiento sin inventar una hora de cita',()=>{
+  for(const column of ['preferred_contact','requested_date','requested_period','privacy_consent','privacy_consent_at','privacy_notice_version']) {
+    assert.match(publicIntake,new RegExp(`\\b${column}\\b`),`falta ${column}`);
+  }
+  assert.match(publicIntake,/privacy_consent boolean not null check \(privacy_consent\)/);
+  assert.match(publicIntake,/privacy_notice_version ~ '\^public-appointment-v\[0-9\]\+\$'/);
+  assert.match(publicIntake,/p_requested_date is not null and p_requested_date < current_date/);
+  assert.match(publicIntake,/preferred_professional_id, preferred_branch_id, requested_start,[\s\S]*?p_professional_id, p_branch_id, null,/);
+  for(const field of ['body.requested_date','body.requested_period','body.preferred_contact','body.privacy_consent']) {
+    assert.match(edge,new RegExp(field.replace('.', '\\.')));
+  }
+  assert.match(edge,/p_privacy_notice_version: "public-appointment-v1"/);
+  assert.doesNotMatch(edge,/body\.requested_start/);
+  assert.doesNotMatch(publicIntake,/consentimiento_whatsapp/, 'la preferencia de contacto no concede consentimiento de WhatsApp');
+});
+
+test('la base impide presentar como verificadas fichas incompletas',()=>{
+  assert.match(publishGuard,/create or replace function public\.smyl_guard_professional_profile_publication/);
+  assert.match(publishGuard,/new\.status <> 'published'/);
+  assert.match(publishGuard,/new\.verification_status <> 'verified'/);
+  assert.match(publishGuard,/new\.photo_path/);
+  assert.match(publishGuard,/new\.headline[\s\S]*?< 12/);
+  assert.match(publishGuard,/new\.bio[\s\S]*?< 80/);
+  assert.match(publishGuard,/v_specialty/);
+  assert.match(publishGuard,/v_license/);
+  assert.match(publishGuard,/smyl_professional_branches[\s\S]*?branch\.active/);
+  assert.match(publishGuard,/smyl_professional_services[\s\S]*?service\.active/);
+  assert.match(publishGuard,/smyl_professional_profiles_z_publication_guard/);
+  assert.doesNotMatch(publishGuard,/update public\.smyl_professional_profiles profile\s+set status = 'review'/,
+    'la transición no debe ocultar perfiles heredados antes de que la clínica pueda completarlos');
+});
+
+test('cambiar CV o cédula retira la publicación y la vista distingue la verificación',()=>{
+  const cvReset=publishGuard.slice(publishGuard.indexOf('create or replace function public.smyl_reset_profile_verification_on_cv'),publishGuard.indexOf('create or replace function public.smyl_reset_profile_verification_on_license'));
+  const licenseReset=publishGuard.slice(publishGuard.indexOf('create or replace function public.smyl_reset_profile_verification_on_license'),publishGuard.indexOf('create or replace function public.smyl_guard_professional_profile_publication'));
+  assert.match(cvReset,/new\.status := 'review'/);
+  assert.match(cvReset,/new\.published_at := null/);
+  assert.match(licenseReset,/status = case when status = 'published' then 'review'/);
+  assert.match(licenseReset,/published_at = case when status = 'published' then null/);
+  const directory=publishGuard.slice(publishGuard.indexOf('create or replace view public.smyl_professional_directory'),publishGuard.indexOf('revoke all on public.smyl_professional_directory'));
+  assert.match(directory,/profile\.status = 'published'/);
+  assert.match(directory,/profile\.verification_status = 'verified'/);
+  assert.match(directory,/\) as verified_profile/);
+  assert.match(directory,/profile\.photo_path/);
+  assert.match(directory,/exists \([\s\S]*?smyl_professional_branches/);
+  assert.match(directory,/exists \([\s\S]*?smyl_professional_services/);
+  const directoryFilter=directory.slice(directory.indexOf("where profile.status = 'published'"));
+  assert.doesNotMatch(directoryFilter,/profile\.verification_status = 'verified'/,
+    'un perfil publicado heredado permanece visible, aunque no obtenga la insignia ni el formulario');
+});
+
+test('la RPC pública exige perfil verificado que acepte pacientes nuevos',()=>{
+  const intakeRpc=publishGuard.slice(publishGuard.indexOf('create or replace function public.smyl_create_public_appointment_intake'),publishGuard.indexOf('comment on function public.smyl_guard_professional_profile_publication'));
+  assert.match(intakeRpc,/profile\.status = 'published'/);
+  assert.match(intakeRpc,/profile\.verification_status = 'verified'/);
+  assert.match(intakeRpc,/profile\.accepts_new_patients/);
+  assert.match(intakeRpc,/p_tenant_id, null, p_service_id/);
+  assert.doesNotMatch(intakeRpc,/insert into public\.camila_pacientes/);
 });
 
 test('el dentista puede editar, subir CV y compartir enlace o QR',()=>{
@@ -81,18 +159,18 @@ test('la verificación profesional exige revisión humana y se invalida al cambi
 });
 
 test('el paciente ve confianza y solicita una cita sin confirmación automática',()=>{
-  for(const token of ['PERFIL PROFESIONAL DENTAL','Cédula declarada','Formación y trayectoria','SOLICITUD DE CITA','La clínica confirma cada solicitud de cita']) assert.match(publicPage,new RegExp(token));
+  for(const token of ['Perfil profesional dental','Cédula declarada','Formación y trayectoria','Solicitud de cita','La clínica confirma cada solicitud de cita']) assert.match(publicPage,new RegExp(token));
   assert.match(publicPage,/public-appointment-request/);
-  assert.match(publicPage,/Esto es una solicitud, no una cita confirmada/);
+  assert.match(publicPage,/Enviar una solicitud no confirma la cita/);
   assert.match(publicPage,/navigator\.share/);
-  assert.match(publicPage,/Perfil y cédula revisados por la clínica/);
+  assert.match(publicPage,/Documentación profesional revisada internamente/);
   assert.match(publicPage,/Cédula declarada/);
   assert.doesNotMatch(publicPage,/✓ Cédula profesional/);
 });
 
 test('directorio profesional se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=5/);
-  assert.match(sw,/smyl-v254-visible-shell-v4/);
+  assert.match(app,/smyl-professional-directory\.js\?v=10/);
+  assert.match(sw,/smyl-v256-professional-profile-release/);
   assert.match(sw,/dentista\.html/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));

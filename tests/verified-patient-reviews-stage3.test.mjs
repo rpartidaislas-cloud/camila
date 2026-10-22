@@ -42,13 +42,13 @@ test('la moderación es administrativa y el público no recibe identidad clínic
 test('panel, paciente y perfil público cubren el flujo completo',()=>{
   for(const token of ['RESEÑAS VERIFICADAS','Generar enlace privado','smyl_create_review_invitation','smyl_moderate_patient_review']) assert.match(admin,new RegExp(token));
   for(const token of ['TU EXPERIENCIA IMPORTA','¿Cómo quieres aparecer?','Paciente verificado','Este enlace ya fue utilizado']) assert.match(patient,new RegExp(token));
-  assert.match(profile,/Experiencias verificadas/);
+  assert.match(profile,/Experiencias de pacientes/);
   assert.match(profile,/public-patient-reviews/);
 });
 
 test('reseñas verificadas se distribuyen igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=5/);
-  assert.match(sw,/smyl-v254-visible-shell-v4/);
+  assert.match(app,/smyl-professional-directory\.js\?v=10/);
+  assert.match(sw,/smyl-v255-professional-profile-v1/);
   assert.match(sw,/resena\.html/);
   assert.equal(admin,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(profile,read('../mobile/www/dentista.html'));

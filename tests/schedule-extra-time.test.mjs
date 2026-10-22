@@ -7,7 +7,7 @@ const sql = read('supabase/migrations/20261022120000_smyl_appointment_extra_time
 
 test('migración de tiempo extra limita 0-240 min en bloques de 15 y lo valida en servidor', () => {
   assert.match(sql, /extra_minutes between 0 and 240 and extra_minutes%15=0/);
-  assert.match(sql, /p_extra_minutes integer default 0\n\) returns void/);
+  assert.match(sql, /p_extra_minutes integer default 0\r?\n\) returns void/);
   assert.match(sql, /v_duration\+coalesce\(p_extra_minutes,0\)/);
   assert.match(sql, /'extra_time_changed'/);
 });

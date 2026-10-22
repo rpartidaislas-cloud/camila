@@ -242,3 +242,15 @@ dialog[data-smyl-dialog-system="true"] .schedule-form-grid .schedule-slots,.sche
 .sched-extra-chips button{border:1px solid #c7d9d0;background:#f2f7f3;color:#255c52;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:650;cursor:pointer}
 .sched-extra-chips button:hover:not(:disabled){background:#147f78;border-color:#147f78;color:#fff}
 .sched-extra-chips button:disabled{opacity:.45;cursor:not-allowed}
+
+/* Solicitudes del perfil público: revisión humana antes de crear expediente o cita. */
+.schedule-request[data-public="true"]{border-left:3px solid #194391}
+.schedule-intake-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.schedule-intake-summary>div{min-width:0;border:1px solid #d8e3dd;border-radius:11px;background:#f7faf8;padding:13px}
+.schedule-intake-summary>div.wide{grid-column:1/-1}
+.schedule-intake-summary span{display:block;color:#637972;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.schedule-intake-summary strong{display:block;margin-top:6px;color:#203b3b;font-size:13px;line-height:1.4}
+.schedule-intake-summary small{display:block;margin-top:4px;color:#60736c;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.schedule-intake-summary p{margin:6px 0 0;color:#405b55;font-size:12px;line-height:1.55;white-space:pre-wrap}
+.schedule-intake-privacy{margin:14px 0 0!important;padding:11px 13px;border-left:3px solid #6f968b;border-radius:0 9px 9px 0;background:#eef5f1;color:#49635c!important;font-size:11px!important;line-height:1.55!important}
+@media(max-width:640px){.schedule-intake-summary{grid-template-columns:1fr}.schedule-intake-summary>div.wide{grid-column:auto}.schedule-intake-summary strong{font-size:14px}.schedule-intake-summary small,.schedule-intake-summary p,.schedule-intake-privacy{font-size:12px!important}}
