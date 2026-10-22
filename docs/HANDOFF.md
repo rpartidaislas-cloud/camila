@@ -19,6 +19,12 @@ Dos ajustes sobre `1e7c76f` (Codex: captación segura), decididos con el usuario
    como insignia (`verified_profile`). Se conservan foto, presentación, bio, especialidad y cédula
    como requisitos.
 
+3. **El perfil público también exigía verificación para mostrar el formulario.** `dentista.html`
+   calculaba `canRequest` con `verified_profile`, así que una ficha publicada-sin-verificar mostraba
+   "Disponibilidad en actualización" sin formulario. Ahora `requestReady()` replica los requisitos de
+   la RPC (acepta pacientes, servicio, sede, foto, presentación ≥12, bio ≥80, especialidad, cédula).
+   Si falta alguno, se mantiene el estado "Disponibilidad en actualización" + "Llamar a la clínica".
+
 **Estado de producción (importante para Codex):** hasta hoy la BD de producción NO tenía las 4
 migraciones de `1e7c76f`. El usuario las aplica junto con la nueva (en orden 1→5, versiones para
 el Dashboard sin `begin/commit`) y redespliega `public-appointment-request` desde
