@@ -1,0 +1,13 @@
+name = "smyl-og-perfil"
+main = "og-perfil-worker.js"
+compatibility_date = "2026-10-01"
+
+routes = [
+  { pattern = "app.smyldesign.ai/dentista.html*", zone_name = "smyldesign.ai" }
+]
+
+[vars]
+SUPABASE_URL = "https://rpxshsiwoxdbuevjjpfw.supabase.co"
+SITE_NAME = "SMYL"
+# SUPABASE_ANON_KEY se define como variable en el panel de Cloudflare
+# (Workers → smyl-og-perfil → Settings → Variables), no en este archivo.

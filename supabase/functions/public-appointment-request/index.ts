@@ -144,6 +144,14 @@ Deno.serve(async (req: Request) => {
     return response(500, { error: "No pudimos enviar la solicitud. Intenta de nuevo." });
   }
 
+  // Métrica del perfil: la solicitud ya quedó guardada, el evento es secundario.
+  const metric = await admin.from("smyl_profile_events").insert({
+    tenant_id: directory.tenant_id,
+    professional_id: profile.professional_id,
+    event_kind: "request_sent",
+  });
+  if (metric.error) console.error("[public-appointment-request] metric", metric.error.message);
+
   return response(200, {
     ok: true,
     request_id: inserted.data.id,

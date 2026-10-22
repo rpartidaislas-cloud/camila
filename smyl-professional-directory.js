@@ -57,7 +57,7 @@
       ['Revisar y publicar','Todo listo para compartir']
     ];
     var stepper='<div class="directory-stepper" role="tablist" aria-label="Pasos para completar la ficha">'+stepMeta.map(function(step,index){var done=index===3?progress.complete:progress.items.filter(function(x){return x.step===index;}).every(function(x){return x.done;});return '<button type="button" role="tab" data-profile-step="'+index+'" aria-selected="'+(index===state.profileStep)+'" data-complete="'+done+'"><i>'+(done?'✓':index+1)+'</i><span><strong>'+step[0]+'</strong><small>'+step[1]+'</small></span></button>';}).join('')+'</div>';
-    var primaryStatus=p.status==='published'?'published':canPublish&&p.verification_status==='verified'?'published':'review';
+    var primaryStatus=p.status==='published'?'published':canPublish?'published':'review';
     var primaryLabel=p.status==='published'?'Guardar cambios':primaryStatus==='published'?'Publicar ficha':'Enviar a revisión';
     return '<div class="directory-editor-head"><div><span>FICHA PROFESIONAL</span><h2>'+esc(pro.display_name)+'</h2><p>'+esc(locations.length?locations.join(' · '):'Falta asignar una sede desde Mi clínica.')+'</p></div><span class="directory-status" data-status="'+esc(p.status||'draft')+'">'+esc(statusLabel(p.status))+'</span></div>'+progressHero(pro,p)+stepper+
       '<form id="directory-profile-form" data-active-step="'+state.profileStep+'">'+

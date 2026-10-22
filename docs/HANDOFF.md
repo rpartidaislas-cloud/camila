@@ -1,5 +1,90 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude → Codex: rediseño del perfil profesional (mockup aprobado)
+
+### Para Codex: maquetar a partir de los mockups
+El usuario aprobó un rediseño visual del módulo de perfil profesional. Los mockups
+aprobados están en `docs/mockups/perfil-dentista/` (HTML autocontenido; abrir en
+navegador o leer el markup). Canvas original: https://claude.ai/artifact/NKC5nnTjayCDH1rLdNLCpJ
+
+- `perfil-escritorio.html` → rediseño de `dentista.html` (perfil público, escritorio)
+- `perfil-movil.html` → el mismo perfil a 390px (barra fija inferior con WhatsApp + Solicitar cita)
+- `editor-ficha.html` → rediseño del editor en `smyl-professional-directory.js/.css`
+
+**Tokens visuales del mockup**: fondo `#F5F4EF`, tinta `#16211E`, verde `#1E5C4E`
+(oscuro `#163F36`, tinte `#E8F1EE`), muted `#5B6B66`, borde `#E3E6E2`,
+WhatsApp `#DDF5E6`/`#0B3D1F`, estrellas `#B8892B`. Tipografía: Fraunces (títulos)
++ Manrope (texto), ambas en Google Fonts.
+
+**Perfil público (`dentista.html`)** — en orden de impacto:
+1. Hero oscuro: foto grande circular, sello "Cédula verificada" (usar `verified_profile`),
+   nombre serif 52px, especialidad · clínica, estrellas + conteo (de `public-patient-reviews`),
+   botones WhatsApp (usar `public_phone`, mensaje prellenado) y Solicitar cita.
+2. Franja de confianza (4 celdas): experiencia · idiomas · acepta pacientes · sede.
+3. Tratamientos como tarjetas con ícono (de `services`), con "desde $X" opcional.
+4. Formación como línea de tiempo (año a la izquierda).
+5. Casos antes/después con control deslizable (los datos ya llegan de `public-professional-cases`).
+6. Reseñas como tarjetas con estrellas y avatar de inicial.
+7. Aside derecho: formulario de cita reducido a 3 campos visibles (nombre, teléfono, tratamiento);
+   ubicación y fecha pueden ir colapsados o inferirse si hay una sola sede. El honeypot
+   `website` DEBE conservarse. Debajo, tarjeta "Dónde atiende" con mapa y horarios.
+8. Móvil: barra fija inferior WhatsApp + Solicitar cita.
+
+**Editor (`smyl-professional-directory.js`)**:
+1. Un solo bloque de progreso (anillo + checklist con enlaces "Subir"/"Agregar").
+2. Foto se sube haciendo clic en el avatar (preview circular inmediato).
+3. Idiomas y enfoque como chips con autocompletado (catálogo sugerido en el mockup).
+4. Botón "Redactar con IA" en Presentación → Claude está haciendo la Edge Function
+   `smyl-profile-copy` (ver abajo); la UI puede dejar el botón listo con un stub.
+5. Formación/membresías como entradas estructuradas (año · título · institución).
+6. Vista previa derecha = hero del perfil público, idéntico.
+7. Slug pre-llenado desde el nombre; guardado automático de borrador.
+
+### Backend listo (Claude) — contratos para el frontend
+
+**1. Redactar con IA — `POST /functions/v1/smyl-profile-copy`** (sesión requerida, `Authorization: Bearer <jwt>` + `apikey`)
+```json
+{ "professional_id": "<uuid>", "display_name": "…", "specialty": "…", "clinic_name": "…", "city": "…",
+  "years_experience": 5, "languages": ["Español"], "treatment_focus": ["Carillas"],
+  "education": ["2018 · Cirujano Dentista · UNAM"], "memberships": [],
+  "accepts_new_patients": true, "tone": "cercano|equilibrado|formal",
+  "current_headline": "…", "current_bio": "…", "instructions": "más corto" }
+```
+Respuesta `200`: `{ "headline": "…", "bio": "…", "missing": ["Agrega la universidad…"] }`.
+Errores: `400` (faltan nombre y especialidad/tratamiento), `403` (no puede editar ese perfil), `422` (no se pudo redactar), `429/502/504`.
+Requiere el secret `ANTHROPIC_API_KEY` en Supabase (ya existe para la función `claude`).
+Mostrar `missing` como lista de pendientes bajo el texto generado; los botones "Más cercano/Más formal" solo cambian `tone`.
+
+**2. Métricas — eventos anónimos + resumen**
+- Migración `20261022010000_smyl_profile_events.sql`: tabla `smyl_profile_events` + RPC `smyl_profile_metrics(p_professional_id, p_days)`.
+- `dentista.html` ya registra `view` al pintar y `share_click` al compartir; expone `window.smylTrack(kind)` para que el nuevo diseño llame `smylTrack('whatsapp_click')` y `smylTrack('cta_click')` en los botones. `request_sent` lo registra el backend al enviar una solicitud.
+- Editor: `sb.rpc('smyl_profile_metrics', { p_professional_id, p_days: 30 })` devuelve
+  `{ views, unique_visitors, whatsapp_clicks, cta_clicks, share_clicks, requests, by_day:[{day,views,requests}], top_referrers:[{host,views}] }`.
+  Pintarlo como tarjeta "Tu perfil esta semana" en el editor.
+
+**3. Open Graph al compartir** — `infra/cloudflare/og-perfil-worker.js` (ver README ahí). Requiere que el usuario lo despliegue en Cloudflare (no es código del repo en runtime). Falta subir `og-default.png` (1200×630) a la raíz para perfiles sin foto — Codex puede generarlo.
+
+**4. Anti-spam** — ya existía honeypot (`website`) + límite por IP en `public-appointment-request`; no se tocó. El campo honeypot DEBE conservarse en el rediseño del formulario.
+
+**Despliegue pendiente (usuario)**: aplicar migración en producción (SQL Editor), desplegar `smyl-profile-copy`, `public-profile-event` y `public-appointment-request` (bundles en `docs/bundles/` si se generan, o `supabase functions deploy`), y el Worker de Cloudflare.
+
+---
+
+## 2026-10-22 — Claude: fix error 42501 al guardar ficha ya publicada
+
+### Qué se hizo
+- **Nueva migración** `20261022000000_smyl_fix_published_profile_save.sql`: reemplaza `smyl_save_professional_profile` con una versión que solo exige `team.manage` para PUBLICAR por primera vez o para PAUSAR un perfil. Si el perfil ya está en estado `published`, cualquier usuario con `smyl_can_edit_professional_profile` puede seguir guardando cambios sin necesitar `team.manage`.
+- **Raíz del problema**: la versión anterior bloqueaba cualquier guardado con `status='published'` independientemente de si era un cambio de estado o solo una actualización de contenido. El frontend siempre devuelve el estado actual del perfil, por lo que cada click en "Guardar cambios" en un perfil publicado disparaba la excepción 42501 → los datos nunca se escribían en BD → se perdían al recargar.
+
+### Archivos tocados
+- `supabase/migrations/20261022000000_smyl_fix_published_profile_save.sql` (nueva)
+- `docs/HANDOFF.md`
+
+### Pendiente
+- Aplicar la migración en producción (`rpxshsiwoxdbuevjjpfw`) via Supabase Dashboard → SQL Editor (igual que la migración de backfill anterior).
+
+---
+
 ## 2026-10-22 — Claude: Nueva cita con horas libres como botones
 
 - `smyl-schedule-slots.js` (v1, nuevo): cálculo puro de horas libres. Copia la regla de
