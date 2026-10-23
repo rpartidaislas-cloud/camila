@@ -1,5 +1,61 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Claude → Codex: asistente del perfil público, fase 1 (backend listo)
+
+El usuario aprobó un asistente de IA dentro de la ficha pública: responde con la ficha publicada,
+ofrece huecos reales y crea la solicitud desde la conversación. Backend hecho; falta la UI.
+
+### Backend (Claude)
+- Migración `20261022140000_smyl_public_profile_assistant.sql`:
+  - `smyl_public_available_slots(tenant, professional, branch, service, from, days, step, limit)` →
+    jsonb `[{starts_at, ends_at}]`. Reutiliza `smyl_validate_service_appointment_slot` por candidato
+    (clínica, profesional, citas con preparación, sillón, bloqueos, apartados). Solo `service_role`.
+  - `smyl_public_assistant_conversations` (transcript, `visitor_key`, `appointment_request_id`,
+    caduca a 30 días). Lectura: equipo con `smyl_can_edit_professional_profile` o `schedule.manage`.
+  - `smyl_assistant_conversation_for_request(p_request_id)` → `{id, status, created_at, messages}`
+    para Agenda (requiere `schedule.read`).
+- Edge Function `public-profile-assistant` (anónima, Verify JWT OFF, tope 60 msg/h por IP, 40 turnos
+  por conversación). Modelo con la ficha en system prompt cacheado; herramientas
+  `consultar_disponibilidad` y `crear_solicitud` (misma RPC que el formulario, exige consentimiento
+  explícito). Registra `request_sent` en métricas.
+
+### Contrato para la UI (`POST /functions/v1/public-profile-assistant`, header `apikey`)
+```json
+// abrir:   { "profile_slug": "dr-hernan-partida", "action": "start", "visitor_id": "<uuid localStorage>" }
+// mensaje: { "profile_slug": "…", "conversation_id": "<uuid>", "visitor_id": "…", "message": "¿Cuánto cuestan las carillas?" }
+```
+Respuesta: `{ conversation_id, reply, blocks, can_book, request_id?, resumed?, history? }`
+- `blocks[]`: `{type:"slots", branch_id, service_id, options:[{starts_at, label}]}` → pintar como
+  **botones**; al tocar uno, enviar como mensaje "Quiero el <label>" (el modelo recibe el texto).
+  `{type:"request_created", request_id}` → tarjeta "Solicitud enviada · la clínica te contactará".
+- `can_book=false` → la ficha no habilita solicitudes (mismo `requestReady` del formulario); el
+  asistente solo responde dudas y remite al teléfono.
+- `resumed=true` en `start` → hay historial (`history[]` con `{role,text,at,blocks?}`): pintarlo y
+  saludar con "Hola de nuevo".
+- Errores: `429` (tope), `503` (sin ANTHROPIC_API_KEY), `502` (modelo), `404` (perfil no publicado).
+
+### UI a maquetar (Codex)
+1. Burbuja flotante abajo-derecha en `dentista.html` con foto/inicial y "Pregúntale al consultorio";
+   en móvil convive con la barra fija (botón "Chat" a la izquierda de WhatsApp).
+2. Panel de chat (ancho 380, alto 560; móvil pantalla completa): cabecera con nombre + "Asistente
+   automático · la clínica confirma", lista de mensajes, chips de inicio ("¿Qué tratamientos hay?",
+   "¿Dónde está la clínica?", "Quiero una valoración"), input con botón enviar, aviso fijo
+   "No sustituye una valoración profesional".
+3. Bloques: horarios como botones (2–3 por fila), tarjeta de solicitud creada, tarjetas de
+   tratamiento cuando el texto mencione uno (opcional, v2).
+4. `visitor_id`: uuid en `localStorage` (`smyl_visitor`) para retomar en 24 h; `conversation_id`
+   en `sessionStorage`.
+5. Agenda → Por aprobar: si `source='patient_portal'` y existe conversación
+   (`sb.rpc('smyl_assistant_conversation_for_request', {p_request_id})`), botón "Ver conversación"
+   que abre el transcript en un diálogo de solo lectura.
+6. Métrica: llamar `smylTrack('cta_click')` al abrir el chat (ya existe en `dentista.html`).
+
+### Despliegue (usuario)
+Migración en SQL Editor (sin `begin/commit`, `$$`→`$body$`), función `public-profile-assistant`
+con Verify JWT **OFF**; usa el secret `ANTHROPIC_API_KEY` ya existente.
+
+---
+
 ## 2026-10-22 — Claude: ningún módulo se queda en 1,000 pacientes
 
 - `smyl-daily-home.js` (v8): Inicio ya no descarga a todos los pacientes; pide solo los nombres de las citas y solicitudes de
