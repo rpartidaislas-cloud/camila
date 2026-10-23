@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Codex: sistema visual unificado del expediente
+
+**La ficha deja de apilar el resumen nuevo sobre el workspace clínico anterior.**
+
+- La cabecera del expediente ahora contiene una sola identidad del paciente,
+  datos de contacto, acceso protegido y una única entrada al asistente.
+- Resumen, Historia clínica, Tratamiento y Archivos se comportan como áreas
+  excluyentes: sólo se muestra una a la vez. El workspace de tratamiento ya no
+  aparece debajo del resumen.
+- Se ocultaron dentro de Tratamiento la segunda cabecera, los accesos rápidos,
+  el texto introductorio y la navegación duplicada del workspace legado; se
+  conservan sus editores, estados y protecciones clínicas.
+- Se normalizó la tipografía a una escala legible de 11, 12, 14, 17 y 24 px;
+  desaparecen los textos operativos de 8–9 px y el asistente duplicado del
+  bloque de siguiente paso.
+- Web y móvil avanzan a Patient 360 JS v8/CSS v6. Las nuevas URLs versionadas
+  actualizan los recursos sin cambiar el identificador general de caché PWA.
+
+**Alcance:** frontend/UX únicamente. No se modificaron Supabase, RLS, prompts,
+secretos ni datos clínicos.
+
 ## 2026-10-22 — Codex: expediente clínico compacto y asistente de ficha
 
 **El expediente deja de repetir tableros y abre con una lectura clínica breve,
