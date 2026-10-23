@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-  <link rel="stylesheet" href="smyl-consumption.css?v=2">
+  <link rel="stylesheet" href="smyl-consumption.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 </head>
 <body>
@@ -62,6 +62,7 @@
             <div class="usage-plan-copy"><span>Tu plan</span><strong id="plan-name">SMYL Clínica</strong><small id="clinic-name">Cargando clínica…</small></div>
             <div class="usage-plan-mode"><span>Estado de cobro</span><strong>Modo de medición</strong><small id="usage-data-source">Preparando lectura segura…</small></div>
           </article>
+          <div class="usage-alert-stack" id="usage-alerts" aria-live="polite" hidden></div>
           <div class="usage-summary-grid" id="usage-summary" aria-live="polite"><article class="usage-summary-card is-loading"></article><article class="usage-summary-card is-loading"></article><article class="usage-summary-card is-loading"></article><article class="usage-summary-card is-loading"></article></div>
           <div class="usage-overview-grid">
             <article class="usage-section-card"><header class="usage-card-header"><div><span class="usage-kicker">ESTADO DEL SISTEMA</span><h3>Qué se está midiendo</h3></div></header><div class="usage-readiness" id="usage-readiness"></div></article>
@@ -113,6 +114,6 @@
   </div>
   <div class="usage-nav-scrim" id="usage-scrim"></div>
   <div class="usage-toast" id="usage-toast" role="status" aria-live="polite"></div>
-  <script src="smyl-consumption.js?v=2"></script>
+  <script src="smyl-consumption.js?v=3"></script>
 </body>
 </html>

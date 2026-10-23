@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: avisos de consumo confirmados, etapa 4
+
+**El centro de consumo ya traduce límites reales en avisos útiles sin llenar la
+pantalla ni bloquear el trabajo clínico.**
+
+- Los avisos permanecen ocultos si el servidor no entrega una cuota real.
+- Con lectura consolidada aparecen a 70 %, 85 % y 100 %, distinguiendo aviso,
+  prioridad y límite alcanzado.
+- En `billing_mode = meter_only` la interfaz aclara que el servicio no será
+  bloqueado durante el piloto.
+- Cada aviso enlaza al detalle del recurso y funciona también en móvil.
+- La política y sus umbrales quedaron incorporados al contrato técnico.
+- Web y móvil avanzan a consumo JS/CSS v3 y PWA
+  `smyl-v259-usage-alerts`.
+
+**Pendiente para Claude Code:** devolver `limit_units`, `used_units`, `status`
+y `plan.billing_mode` desde `smyl_usage_overview`. No se modificaron backend,
+RLS, funciones, saldos ni enforcement.
+
 ## 2026-10-23 — Codex: cliente preparado para medición centralizada, etapa 3
 
 **Plan y consumo ya puede adoptar las lecturas consolidadas sin romper el

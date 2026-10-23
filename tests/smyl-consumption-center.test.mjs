@@ -43,6 +43,20 @@ test('Consumption center prefers consolidated RPCs and preserves the legacy fall
   assert.match(script, /meta_messages/);
 });
 
+test('Usage warnings require a confirmed server quota and remain non-blocking in pilot mode', () => {
+  const html = read('consumos.html');
+  const script = read('smyl-consumption.js');
+  const css = read('smyl-consumption.css');
+  assert.match(html, /id="usage-alerts"[^>]*hidden/);
+  assert.match(script, /item\.limit_units==null/);
+  assert.match(script, /percent>=70/);
+  assert.match(script, /percent>=85/);
+  assert.match(script, /percent>=100/);
+  assert.match(script, /modo de medición no bloqueará el servicio/i);
+  assert.match(script, /params\.has\('usage-alerts'\)/);
+  assert.match(css, /usage-consumption-alert\.is-exhausted/);
+});
+
 test('Web and mobile consumption assets stay identical', () => {
   for (const path of ['consumos.html', 'smyl-consumption.js', 'smyl-consumption.css']) {
     assert.equal(read(path), read(`mobile/www/${path}`), path);

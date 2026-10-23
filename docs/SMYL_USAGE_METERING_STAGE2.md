@@ -266,6 +266,19 @@ historial.
 
 `SMYL_CONSUMABLES_ENFORCED=true` queda expresamente fuera de esta etapa.
 
+### Semántica visual de los avisos
+
+- Menos de 70 %: no mostrar alerta; la tarjeta conserva el progreso.
+- Desde 70 %: aviso preventivo.
+- Desde 85 %: advertencia prioritaria.
+- Desde 100 % o estado `exhausted`: límite alcanzado.
+- Sin `limit_units` confirmado: no calcular porcentaje ni mostrar alerta.
+- En `billing_mode = meter_only`: explicar expresamente que no se bloqueará el
+  servicio.
+
+Los umbrales se evalúan con la cuota y el uso devueltos por
+`smyl_usage_overview`; el navegador nunca crea límites propios.
+
 ## 11. Matriz mínima de aceptación
 
 - El mismo evento recibido 2 o 20 veces produce un solo movimiento.
