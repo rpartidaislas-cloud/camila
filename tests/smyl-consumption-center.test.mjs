@@ -72,6 +72,21 @@ test('History supports server filters, cursor pagination and a safe clinical-fre
   assert.doesNotMatch(exporter, /patient|prompt|transcript|provider_cost|source_id/);
 });
 
+test('Package checkout trusts only an active server product and a signed webhook', () => {
+  const html = read('consumos.html');
+  const script = read('smyl-consumption.js');
+  assert.match(html, /id="usage-purchase-dialog"/);
+  assert.match(html, /webhook seguro/);
+  assert.match(script, /row\.active&&row\.price_minor!=null&&row\.id/);
+  assert.match(script, /crypto\.randomUUID\(\)/);
+  assert.match(script, /functions\.invoke\('smyl-consumables-checkout'/);
+  assert.match(script, /url\.protocol!==\'https:\'/);
+  const checkout = script.slice(script.indexOf('async function requestCheckout'), script.indexOf('function renderCloud'));
+  assert.match(checkout, /product_id:product\.id/);
+  assert.match(checkout, /idempotency_key:state\.checkoutKey/);
+  assert.doesNotMatch(checkout, /tenant_id|price_minor:|currency:/);
+});
+
 test('Web and mobile consumption assets stay identical', () => {
   for (const path of ['consumos.html', 'smyl-consumption.js', 'smyl-consumption.css']) {
     assert.equal(read(path), read(`mobile/www/${path}`), path);

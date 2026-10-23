@@ -39,7 +39,7 @@ test('reply tools are understandable and preserve human review', () => {
 test('web, mobile and offline bundles ship the same inbox stage', () => {
   assert.match(app, /smyl-inbox\.css\?v=34/);
   assert.match(app, /smyl-inbox\.js\?v=36/);
-assert.match(worker, /smyl-v260-usage-history/);
+assert.match(worker, /smyl-v261-secure-checkout/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));
   assert.equal(styles, read('../mobile/www/smyl-inbox.css'));

@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: compra segura de paquetes preparada, etapa 6
+
+**La interfaz de paquetes está lista para habilitar compras sin confiar en
+precios ni tenants enviados por el navegador.**
+
+- Sólo productos activos, con precio e identificador entregados por servidor,
+  muestran la acción Comprar.
+- La revisión previa resume paquete y total en un diálogo accesible y
+  responsive; los productos no configurados continúan como “Próximamente”.
+- El cliente llama a `smyl-consumables-checkout` enviando exclusivamente
+  `product_id` e `idempotency_key` y acepta únicamente una URL HTTPS.
+- La interfaz declara que el saldo se acredita por webhook seguro, nunca por
+  regresar del checkout, cerrar la ventana o recargarla.
+- El contrato de servidor, expiración, reembolso e idempotencia quedó
+  documentado.
+- Web y móvil avanzan a consumo JS/CSS v5 y PWA
+  `smyl-v261-secure-checkout`.
+
+**Pendiente para Claude Code:** implementar la Edge Function, proveedor de
+pago, tabla de sesiones, webhook firmado, acreditación y reembolsos. Mantener
+productos inactivos hasta completar pruebas. Codex no modificó backend,
+secretos, precios ni saldos.
+
 ## 2026-10-23 — Codex: historial conciliable y exportación segura, etapa 5
 
 **El historial de consumo ya está preparado para revisión administrativa sin

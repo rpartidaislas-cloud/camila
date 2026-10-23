@@ -170,7 +170,7 @@ test('el paciente ve confianza y solicita una cita sin confirmación automática
 
 test('directorio profesional se distribuye igual en web y PWA',()=>{
   assert.match(app,/smyl-professional-directory\.js\?v=10/);
-  assert.match(sw,/smyl-v260-usage-history/);
+  assert.match(sw,/smyl-v261-secure-checkout/);
   assert.match(sw,/dentista\.html/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));

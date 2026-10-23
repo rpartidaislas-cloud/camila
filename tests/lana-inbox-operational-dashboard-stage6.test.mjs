@@ -35,7 +35,7 @@ test('las métricas y alertas indican cobertura, evidencia y siguiente control',
 test('la etapa 6 se distribuye igual en web y PWA', () => {
   assert.match(app, /smyl-inbox\.js\?v=36/);
   assert.match(app, /smyl-inbox\.css\?v=34/);
-  assert.match(worker, /smyl-v260-usage-history/);
+  assert.match(worker, /smyl-v261-secure-checkout/);
   assert.equal(inbox, mobileInbox);
   assert.equal(css, mobileCss);
   assert.equal(app, mobileApp);

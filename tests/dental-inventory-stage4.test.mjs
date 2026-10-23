@@ -76,7 +76,7 @@ test('web, mobile and offline inventory assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-inventory.js'));
   assert.equal(styles, read('../mobile/www/smyl-inventory.css'));
-assert.match(worker, /smyl-v260-usage-history/);
+assert.match(worker, /smyl-v261-secure-checkout/);
   assert.match(worker, /smyl-inventory\.js\?v=(?:[6-9]|1[0-9])/);
   assert.match(worker, /smyl-inventory\.css\?v=6/);
 });

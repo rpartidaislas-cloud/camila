@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-  <link rel="stylesheet" href="smyl-consumption.css?v=4">
+  <link rel="stylesheet" href="smyl-consumption.css?v=5">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 </head>
 <body>
@@ -116,7 +116,13 @@
     </main>
   </div>
   <div class="usage-nav-scrim" id="usage-scrim"></div>
+  <dialog class="usage-purchase-dialog" id="usage-purchase-dialog" aria-labelledby="purchase-title">
+    <div class="usage-purchase-head"><span class="usage-purchase-icon" data-icon="wallet"></span><div><span class="usage-kicker">PAQUETE ADICIONAL</span><h2 id="purchase-title">Revisar compra</h2></div><button class="usage-dialog-close" id="purchase-close" type="button" aria-label="Cerrar">×</button></div>
+    <div class="usage-purchase-summary"><div><span>Paquete</span><strong id="purchase-name">—</strong><small id="purchase-description">—</small></div><div><span>Total</span><strong id="purchase-price">—</strong><small>El servidor volverá a validar el precio</small></div></div>
+    <div class="usage-purchase-trust"><span data-icon="shield"></span><p>El saldo se acreditará únicamente cuando el proveedor confirme el pago mediante un webhook seguro. Cerrar o recargar esta ventana no duplica la compra.</p></div>
+    <div class="usage-purchase-actions"><button class="usage-button usage-button-secondary" id="purchase-cancel" type="button">Cancelar</button><button class="usage-button usage-button-primary" id="purchase-confirm" type="button">Continuar al pago seguro</button></div>
+  </dialog>
   <div class="usage-toast" id="usage-toast" role="status" aria-live="polite"></div>
-  <script src="smyl-consumption.js?v=4"></script>
+  <script src="smyl-consumption.js?v=5"></script>
 </body>
 </html>

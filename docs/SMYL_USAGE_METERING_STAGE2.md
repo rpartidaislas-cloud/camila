@@ -260,6 +260,33 @@ reportar huérfanos, duplicados, cantidades discordantes, sesiones MILA sin
 cierre y webhooks pendientes. La reparación genera nuevas entradas; no edita el
 historial.
 
+### Contrato de compra de paquetes
+
+La Edge Function `smyl-consumables-checkout` recibe una sesión autenticada y:
+
+```json
+{ "product_id": "uuid", "idempotency_key": "uuid" }
+```
+
+El navegador no envía tenant, precio, moneda, cantidad de unidades ni saldo.
+El servidor resuelve el tenant desde la sesión, vuelve a consultar el producto
+activo y crea o reutiliza una sesión de pago con la misma clave idempotente.
+Respuesta mínima:
+
+```json
+{ "checkout_url": "https://proveedor.example/…", "checkout_id": "safe-id" }
+```
+
+Reglas obligatorias:
+
+- aceptar sólo URL HTTPS emitida por el proveedor configurado;
+- no acreditar por redirección de éxito ni por respuesta del navegador;
+- acreditar una sola vez desde webhook firmado y verificado;
+- asociar pago, movimiento y producto sin guardar datos de tarjeta;
+- si el pago expira o falla, no crear crédito;
+- reembolso confirmado genera una entrada `refund` o reverso comercial
+  explícito según la política, nunca elimina el movimiento original.
+
 ## 10. Despliegue por fases
 
 1. **Medición sombra:** todos los servicios emiten eventos; no cobran.
