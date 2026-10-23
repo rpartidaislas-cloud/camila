@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: paquete ejecutable para backend de consumibles, etapa 8
+
+**Se auditó el punto de partida y se dejó una especificación de implementación
+cerrada para Claude Code en `docs/CLAUDE_CONSUMABLES_STAGE8.md`.**
+
+- Las funciones de suscripción `stripe-checkout` y `stripe-webhook` no deben
+  mezclarse con las compras de minutos, créditos o mensajes.
+- La etapa define tres funciones separadas, persistencia mínima, RLS, estados,
+  conciliación atómica, reembolsos y pruebas multi-tenant/idempotentes.
+- El fallo actual de `appointment-request-scope-guard.test.mjs` es un falso
+  negativo por CRLF: la validación SQL de destino sí existe antes de crear la
+  cita. Claude debe robustecer la prueba, no retirar la defensa.
+- Los productos deben permanecer inactivos y
+  `SMYL_CONSUMABLES_ENFORCED=false` hasta completar pruebas y dos ciclos de
+  medición conciliada.
+
+**Pendiente para Claude Code:** ejecutar la especificación completa. Codex no
+modificó Edge Functions, migraciones, RLS, secretos, Stripe ni saldos.
+
 ## 2026-10-23 — Codex: regreso de pago verificable, etapa 7
 
 **El centro de consumo ya maneja el regreso del checkout sin confiar en la
