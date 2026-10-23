@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v259-usage-alerts';
+const CACHE_VERSION = 'smyl-v260-usage-history';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -12,8 +12,8 @@ const STATIC_FILES = [
   '/camila/smyl-security-center.css?v=1',
   '/camila/mila.html',
   '/camila/consumos.html',
-  '/camila/smyl-consumption.js?v=3',
-  '/camila/smyl-consumption.css?v=3',
+  '/camila/smyl-consumption.js?v=4',
+  '/camila/smyl-consumption.css?v=4',
   '/camila/smyl-dental-model.js?v=1',
   '/camila/smyl-radiograph-review-model.js?v=1',
   '/camila/smyl-radiograph-review-store.js?v=1',

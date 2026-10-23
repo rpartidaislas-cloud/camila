@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-  <link rel="stylesheet" href="smyl-consumption.css?v=3">
+  <link rel="stylesheet" href="smyl-consumption.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 </head>
 <body>
@@ -104,9 +104,12 @@
             <div class="usage-history-toolbar">
               <div class="usage-filter-group"><label for="history-resource">Recurso</label><select id="history-resource"><option value="all">Todos</option><option value="mila_seconds">MILA</option><option value="ai_credits">IA</option><option value="meta_messages">Meta</option><option value="whatsapp_messages">WhatsApp histórico</option></select></div>
               <div class="usage-filter-group"><label for="history-kind">Movimiento</label><select id="history-kind"><option value="all">Todos</option><option value="debit">Consumo</option><option value="meter_only">Medición piloto</option><option value="credit">Crédito</option><option value="refund">Reembolso</option><option value="adjustment">Ajuste</option></select></div>
+              <div class="usage-filter-group"><label for="history-period">Periodo</label><select id="history-period"><option value="current">Mes actual</option><option value="90d">Últimos 90 días</option><option value="all">Todo lo cargado</option></select></div>
+              <button class="usage-button usage-button-secondary usage-export-button" id="history-export" type="button">Exportar CSV</button>
               <div class="usage-history-count" id="history-count">—</div>
             </div>
             <div class="usage-history" id="usage-history"><div class="usage-empty">Cargando movimientos…</div></div>
+            <div class="usage-history-footer" id="history-footer" hidden><button class="usage-button usage-button-secondary" id="history-more" type="button">Cargar más movimientos</button></div>
           </article>
         </section>
       </div>
@@ -114,6 +117,6 @@
   </div>
   <div class="usage-nav-scrim" id="usage-scrim"></div>
   <div class="usage-toast" id="usage-toast" role="status" aria-live="polite"></div>
-  <script src="smyl-consumption.js?v=3"></script>
+  <script src="smyl-consumption.js?v=4"></script>
 </body>
 </html>

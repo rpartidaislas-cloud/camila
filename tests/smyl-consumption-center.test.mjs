@@ -57,6 +57,21 @@ test('Usage warnings require a confirmed server quota and remain non-blocking in
   assert.match(css, /usage-consumption-alert\.is-exhausted/);
 });
 
+test('History supports server filters, cursor pagination and a safe clinical-free CSV', () => {
+  const html = read('consumos.html');
+  const script = read('smyl-consumption.js');
+  assert.match(html, /id="history-period"/);
+  assert.match(html, /id="history-export"/);
+  assert.match(html, /id="history-more"/);
+  assert.match(script, /p_cursor:reset\?null:state\.nextCursor/);
+  assert.match(script, /p_filters:historyFilters\(\)/);
+  assert.match(script, /new Blob\(/);
+  assert.match(script, /smyl-consumo-/);
+  assert.match(script, /\^\[=\+\\-@\]/);
+  const exporter = script.slice(script.indexOf('function exportHistory'), script.indexOf('function renderCloud'));
+  assert.doesNotMatch(exporter, /patient|prompt|transcript|provider_cost|source_id/);
+});
+
 test('Web and mobile consumption assets stay identical', () => {
   for (const path of ['consumos.html', 'smyl-consumption.js', 'smyl-consumption.css']) {
     assert.equal(read(path), read(`mobile/www/${path}`), path);

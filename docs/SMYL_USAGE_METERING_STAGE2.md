@@ -207,8 +207,15 @@ Contrato de respuesta:
 
 Argumentos RPC acordados: `p_period text`, y para historial
 `p_cursor text, p_filters jsonb`. La primera versión acepta
-`p_filters.limit = 100`; los filtros remotos y “cargar más” pueden añadirse sin
-romper este contrato.
+`p_filters.limit`, `resource`, `entry_type` y `period`. `period` acepta
+`current`, `90d` o `all`. El cursor debe ser opaco, estable y scoped al tenant;
+no puede contener datos clínicos.
+
+La exportación CSV se genera únicamente con las filas seguras ya devueltas al
+usuario: fecha, recurso, origen, movimiento, cantidad y saldo posterior. No
+incluye `source_id`, tokens, coste de proveedor, prompts, transcripciones ni
+datos del paciente. Si existe `next_cursor`, la interfaz informa que la
+exportación contiene sólo las filas cargadas.
 
 ### `smyl_usage_breakdown(period, group_by)`
 

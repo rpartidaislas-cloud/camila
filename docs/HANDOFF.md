@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: historial conciliable y exportación segura, etapa 5
+
+**El historial de consumo ya está preparado para revisión administrativa sin
+exponer telemetría interna ni información clínica.**
+
+- Añade filtros por recurso, movimiento y periodo: mes actual, 90 días o todo
+  lo cargado.
+- Con las RPC consolidadas, los filtros se procesan en servidor y el cursor
+  permite cargar más movimientos sin repetir filas.
+- Durante la transición, los filtros siguen funcionando sobre las 100 filas
+  seguras del libro mayor actual.
+- La exportación CSV contiene únicamente fecha, recurso, origen, movimiento,
+  cantidad y saldo posterior; neutraliza fórmulas y excluye identificadores,
+  tokens, costes, prompts y datos clínicos.
+- Si existen más páginas, la interfaz aclara que se exportó sólo lo cargado.
+- Web y móvil avanzan a consumo JS/CSS v4 y PWA
+  `smyl-v260-usage-history`.
+
+**Pendiente para Claude Code:** implementar filtros y cursor opaco en
+`smyl_usage_history` conforme al contrato. No se modificaron backend, RLS,
+funciones ni cobros.
+
 ## 2026-10-23 — Codex: avisos de consumo confirmados, etapa 4
 
 **El centro de consumo ya traduce límites reales en avisos útiles sin llenar la

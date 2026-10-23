@@ -41,7 +41,7 @@ test('web, móvil, impresión y PWA distribuyen la etapa tres',()=>{
   assert.match(app,/smyl-proposal-print\.js\?v=4/);
   assert.match(app,/smyl-treatment-quote-stage3\.js\?v=1/);
   assert.match(app,/smyl-treatment-quote-stage3\.css\?v=1/);
-  assert.match(worker,/smyl-v259-usage-alerts/);
+  assert.match(worker,/smyl-v260-usage-history/);
   assert.equal(control,read('mobile/www/smyl-treatment-quote-stage3.js'));
   assert.equal(print,read('mobile/www/smyl-proposal-print.js'));
   assert.equal(css,read('mobile/www/smyl-treatment-quote-stage3.css'));
