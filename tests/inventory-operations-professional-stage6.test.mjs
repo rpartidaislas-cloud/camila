@@ -56,7 +56,7 @@ test('web, móvil y PWA distribuyen la etapa seis sincronizada', () => {
   assert.equal(styles, mobileStyles);
   assert.match(app, /smyl-inventory\.js\?v=(?:[6-9]|1[0-9])/);
   assert.match(app, /smyl-inventory\.css\?v=6/);
-  assert.match(worker, /smyl-v257-plan-consumption/);
+  assert.match(worker, /smyl-v258-usage-api-ready/);
   assert.match(worker, /smyl-inventory\.js\?v=(?:[6-9]|1[0-9])/);
   assert.match(worker, /smyl-inventory\.css\?v=6/);
 });

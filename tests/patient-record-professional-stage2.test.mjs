@@ -36,7 +36,7 @@ test('web, móvil y PWA distribuyen la etapa dos con diseño responsive',()=>{
   assert.equal(app,mobile);
   assert.match(app,/smyl-patient-record-stage2\.css\?v=2/);
   assert.match(app,/smyl-patient-record-stage2\.js\?v=2/);
-  assert.match(worker,/smyl-v257-plan-consumption/);
+  assert.match(worker,/smyl-v258-usage-api-ready/);
   assert.match(worker,/smyl-patient-record-stage2\.js\?v=2/);
   assert.equal(ui,read('mobile/www/smyl-patient-record-stage2.js'));
   assert.equal(css,read('mobile/www/smyl-patient-record-stage2.css'));

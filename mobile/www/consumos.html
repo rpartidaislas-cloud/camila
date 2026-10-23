@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-  <link rel="stylesheet" href="smyl-consumption.css?v=1">
+  <link rel="stylesheet" href="smyl-consumption.css?v=2">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 </head>
 <body>
@@ -60,7 +60,7 @@
           <article class="usage-plan-card">
             <div class="usage-plan-mark" data-icon="wallet"></div>
             <div class="usage-plan-copy"><span>Tu plan</span><strong id="plan-name">SMYL Clínica</strong><small id="clinic-name">Cargando clínica…</small></div>
-            <div class="usage-plan-mode"><span>Estado de cobro</span><strong>Modo de medición</strong><small>Aún no bloquea funciones ni realiza cargos</small></div>
+            <div class="usage-plan-mode"><span>Estado de cobro</span><strong>Modo de medición</strong><small id="usage-data-source">Preparando lectura segura…</small></div>
           </article>
           <div class="usage-summary-grid" id="usage-summary" aria-live="polite"><article class="usage-summary-card is-loading"></article><article class="usage-summary-card is-loading"></article><article class="usage-summary-card is-loading"></article><article class="usage-summary-card is-loading"></article></div>
           <div class="usage-overview-grid">
@@ -89,7 +89,7 @@
 
         <section class="usage-pane" data-usage-pane="cloud">
           <div class="usage-page-intro"><div><span class="usage-eyebrow">ALMACENAMIENTO</span><h2>Nube clínica de SMYL</h2><p>Una lectura transparente del espacio utilizado por fotografías, radiografías, documentos y audios temporales.</p></div></div>
-          <article class="usage-cloud-hero"><div class="usage-cloud-visual" data-icon="cloud"></div><div><span class="usage-kicker">MEDIDOR EN PREPARACIÓN</span><h3>El almacenamiento todavía no está conectado al centro de consumo</h3><p>No mostraremos un “0 GB” engañoso. La medición aparecerá cuando el servidor pueda atribuir cada archivo a su clínica y aplicar la política de conservación correspondiente.</p></div><span class="usage-chip pending">Conexión pendiente</span></article>
+          <article class="usage-cloud-hero" id="cloud-meter"><div class="usage-cloud-visual" data-icon="cloud"></div><div><span class="usage-kicker">MEDIDOR EN PREPARACIÓN</span><h3>El almacenamiento todavía no está conectado al centro de consumo</h3><p>No mostraremos un “0 GB” engañoso. La medición aparecerá cuando el servidor pueda atribuir cada archivo a su clínica y aplicar la política de conservación correspondiente.</p></div><span class="usage-chip pending">Conexión pendiente</span></article>
           <div class="usage-storage-grid">
             <article><span data-icon="image"></span><strong>Fotografías y radiografías</strong><small>Originales, revisiones clínicas y resultados autorizados.</small></article>
             <article><span data-icon="file"></span><strong>Documentos clínicos</strong><small>Consentimientos, autorizaciones y archivos del expediente.</small></article>
@@ -101,7 +101,7 @@
           <div class="usage-page-intro"><div><span class="usage-eyebrow">TRAZABILIDAD</span><h2>Historial de consumo</h2><p>Créditos, consumos, mediciones piloto, reembolsos y ajustes registrados por el servidor.</p></div></div>
           <article class="usage-section-card usage-history-card">
             <div class="usage-history-toolbar">
-              <div class="usage-filter-group"><label for="history-resource">Recurso</label><select id="history-resource"><option value="all">Todos</option><option value="mila_seconds">MILA</option><option value="ai_credits">IA</option><option value="whatsapp_messages">WhatsApp</option></select></div>
+              <div class="usage-filter-group"><label for="history-resource">Recurso</label><select id="history-resource"><option value="all">Todos</option><option value="mila_seconds">MILA</option><option value="ai_credits">IA</option><option value="meta_messages">Meta</option><option value="whatsapp_messages">WhatsApp histórico</option></select></div>
               <div class="usage-filter-group"><label for="history-kind">Movimiento</label><select id="history-kind"><option value="all">Todos</option><option value="debit">Consumo</option><option value="meter_only">Medición piloto</option><option value="credit">Crédito</option><option value="refund">Reembolso</option><option value="adjustment">Ajuste</option></select></div>
               <div class="usage-history-count" id="history-count">—</div>
             </div>
@@ -113,6 +113,6 @@
   </div>
   <div class="usage-nav-scrim" id="usage-scrim"></div>
   <div class="usage-toast" id="usage-toast" role="status" aria-live="polite"></div>
-  <script src="smyl-consumption.js?v=1"></script>
+  <script src="smyl-consumption.js?v=2"></script>
 </body>
 </html>

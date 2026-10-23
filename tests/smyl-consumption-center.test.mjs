@@ -33,6 +33,16 @@ test('History is server-backed, filterable and mobile-ready', () => {
   assert.match(css, /@media\(max-width:580px\)/);
 });
 
+test('Consumption center prefers consolidated RPCs and preserves the legacy fallback', () => {
+  const script = read('smyl-consumption.js');
+  assert.match(script, /rpc\('smyl_usage_overview'/);
+  assert.match(script, /rpc\('smyl_usage_history'/);
+  assert.match(script, /dataSource='consolidated'/);
+  assert.match(script, /from\('smyl_wallets'\)/);
+  assert.match(script, /from\('smyl_usage_ledger'\)/);
+  assert.match(script, /meta_messages/);
+});
+
 test('Web and mobile consumption assets stay identical', () => {
   for (const path of ['consumos.html', 'smyl-consumption.js', 'smyl-consumption.css']) {
     assert.equal(read(path), read(`mobile/www/${path}`), path);

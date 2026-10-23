@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: cliente preparado para medición centralizada, etapa 3
+
+**Plan y consumo ya puede adoptar las lecturas consolidadas sin romper el
+panel mientras el backend está pendiente.**
+
+- El cliente intenta primero `smyl_usage_overview` y `smyl_usage_history` con
+  los argumentos y respuestas documentados en el contrato de etapa 2.
+- Si las RPC todavía no existen o fallan, vuelve de manera segura a
+  `smyl_wallets` y `smyl_usage_ledger`; el estado visual informa que se trata
+  de una lectura compatible durante la transición.
+- Se añadió compatibilidad con `meta_messages` y se conserva
+  `whatsapp_messages` como recurso histórico sin perder saldos.
+- Almacenamiento acepta snapshots reales cuando el servidor los entregue y
+  sigue mostrando estado pendiente, nunca `0 GB`, mientras no existan.
+- Web y móvil comparten la misma implementación. PWA avanza a
+  `smyl-v258-usage-api-ready`.
+
+**Pendiente para Claude Code:** crear las RPC con el contrato exacto de
+`docs/SMYL_USAGE_METERING_STAGE2.md`. Hasta entonces la interfaz permanece
+operativa con las tablas existentes. No se modificaron funciones, migraciones,
+RLS, secretos ni cobros.
+
 ## 2026-10-23 — Codex: contrato de medición centralizada, etapa 2
 
 **Se dejó lista la especificación de servidor para consolidar MILA, IA, Meta y

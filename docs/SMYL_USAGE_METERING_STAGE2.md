@@ -176,10 +176,39 @@ Devuelve por recurso:
 - fecha de renovación cuando esté configurada;
 - estado `available`, `pending`, `unlimited`, `warning` o `exhausted`.
 
+Contrato de respuesta consumido por la interfaz:
+
+```json
+{
+  "period": { "key": "2026-10", "label": "octubre de 2026", "starts_at": "…", "ends_at": "…" },
+  "plan": { "name": "SMYL Clínica", "billing_mode": "meter_only" },
+  "resources": [
+    { "resource": "mila_seconds", "status": "available", "balance_units": 3600, "used_units": 900, "limit_units": 4500, "renews_at": null }
+  ],
+  "storage": { "status": "pending", "used_bytes": null, "quota_bytes": null, "measured_at": null, "breakdown": [] }
+}
+```
+
 ### `smyl_usage_history(cursor, filters)`
 
 Devuelve movimientos paginados con recurso, tipo, cantidad, saldo posterior,
 operación, fecha y etiqueta segura. Nunca devuelve metadata técnica sensible.
+
+Contrato de respuesta:
+
+```json
+{
+  "items": [
+    { "resource": "ai_credits", "entry_type": "debit", "quantity_units": 1, "balance_before": 100, "balance_after": 99, "source_type": "photo_analysis", "source_id": "safe-reference", "created_at": "…" }
+  ],
+  "next_cursor": null
+}
+```
+
+Argumentos RPC acordados: `p_period text`, y para historial
+`p_cursor text, p_filters jsonb`. La primera versión acepta
+`p_filters.limit = 100`; los filtros remotos y “cargar más” pueden añadirse sin
+romper este contrato.
 
 ### `smyl_usage_breakdown(period, group_by)`
 
