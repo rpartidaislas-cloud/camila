@@ -27,7 +27,7 @@ test('el sistema visual reduce ruido y conserva jerarquía responsive',()=>{
 });
 
 test('el expediente y los tratamientos ofrecen continuidad operativa',()=>{
-  for(const action of ['Agendar','Cotizar','Cobrar','Evolución','Mensaje']) assert.match(shell,new RegExp(action));
+  for(const action of ['Agendar cita','Nueva evolución','Más acciones','Cotizar','Cobrar','Enviar mensaje']) assert.match(shell,new RegExp(action));
   for(const step of ['Valoración','Plan','Cotización','Aceptación','Atención','Cierre']) assert.match(shell,new RegExp(step));
   assert.match(shell,/SmylSchedule\.forPatient/);
   assert.match(shell,/SmylProposals\.forPatient/);
@@ -46,8 +46,8 @@ test('las tareas frecuentes se resuelven por proceso y paciente',()=>{
 });
 
 test('web, móvil y PWA entregan el mismo panel profesional',()=>{
-  assert.match(app,/smyl-professional-v3\.css\?v=6/);
-  assert.match(app,/smyl-professional-v3\.js\?v=3/);
+  assert.match(app,/smyl-professional-v3\.css\?v=7/);
+  assert.match(app,/smyl-professional-v3\.js\?v=4/);
   assert.match(app,/smyl-navigation\.js\?v=9/);
   assert.match(worker,/smyl-v256-professional-profile-release/);
   assert.equal(shell,read('../mobile/www/smyl-professional-v3.js'));

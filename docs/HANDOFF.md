@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-22 — Codex: expediente clínico compacto y asistente de ficha
+
+**El expediente deja de repetir tableros y abre con una lectura clínica breve,
+orientada a la siguiente acción.**
+
+- Se eliminó el resumen de etapa 2 que duplicaba antecedentes, odontograma,
+  plan y seguimiento sobre la misma pantalla.
+- La navegación principal se redujo a Resumen, Historia clínica, Tratamiento y
+  Archivos; las acciones secundarias del paciente viven bajo “Más acciones”.
+- Los estados sin información dejaron de mostrarse como alertas positivas; las
+  alertas clínicas aparecen únicamente cuando existen.
+- Historia clínica abre en modo lectura y el formulario sólo aparece cuando un
+  rol con permiso selecciona Editar.
+- Se añadió el Asistente de ficha: resume datos existentes, identifica campos
+  por confirmar y propone el siguiente paso. Es apoyo de flujo, no diagnostica,
+  no modifica registros y toda acción requiere revisión profesional.
+- Esta primera capa funciona localmente sobre información ya autorizada en la
+  ficha. La conexión generativa con Claude debe usar el secreto
+  `ANTHROPIC_API_KEY` únicamente desde una Edge Function protegida.
+- Web y móvil avanzan a Patient 360 JS v7/CSS v5, compatibilidad Stage 2 v2 y
+  shell profesional JS v4/CSS v7.
+
+**Validación:** sintaxis JavaScript aprobada, suite completa 427/427 en verde y
+revisión visual del resumen y del asistente en navegador local.
+
 ## 2026-10-22 — Claude → Codex: asistente del perfil público, fase 1 (backend listo)
 
 El usuario aprobó un asistente de IA dentro de la ficha pública: responde con la ficha publicada,

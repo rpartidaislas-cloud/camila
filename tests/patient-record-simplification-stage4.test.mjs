@@ -9,10 +9,10 @@ const record = read('../smyl-patient-360.js');
 const app = read('../app.html');
 
 test('la ficha reduce la navegación principal a cuatro áreas clínicas', () => {
-  for (const label of ['Resumen','Expediente','Tratamiento','Actividad']) assert.match(record, new RegExp(`>${label}<`));
+  for (const label of ['Resumen','Historia clínica','Tratamiento','Archivos']) assert.match(record, new RegExp(`>${label}<`));
   assert.doesNotMatch(record, /data-p360-scroll="p360-cases"/);
   assert.match(record, /data-record-tab="notes"/);
-  assert.match(record, /data-record-tab="files"/);
+  assert.match(record, /data-p360-tab="files"/);
 });
 
 test('la documentación clínica no presenta simulaciones como evidencia', () => {
@@ -32,7 +32,7 @@ test('simulaciones tiene un espacio independiente y una advertencia visual clara
 });
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
-  assert.match(app, /smyl-patient-360\.js\?v=6/);
+  assert.match(app, /smyl-patient-360\.js\?v=7/);
   assert.match(app, /smyl-case-workspace\.js\?v=9/);
   assert.match(read('../sw.js'), /smyl-v256-professional-profile-release/);
   assert.equal(app, read('../mobile/www/app.html'));

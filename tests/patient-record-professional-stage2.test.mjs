@@ -6,40 +6,39 @@ import { resolve } from 'node:path';
 const root=resolve(import.meta.dirname,'..');
 const read=(name)=>readFileSync(resolve(root,name),'utf8');
 const ui=read('smyl-patient-record-stage2.js');
+const patient=read('smyl-patient-360.js');
 const css=read('smyl-patient-record-stage2.css');
 
-test('el expediente presenta una lectura clínica única sin interpretar hallazgos',()=>{
-  for(const label of ['ESTADO CLÍNICO ACTUAL','Antecedentes','Odontograma','Plan de tratamiento','Seguimiento']){
-    assert.match(ui,new RegExp(label));
-  }
-  assert.match(ui,/El profesional confirma cada hallazgo y decisión/);
-  assert.doesNotMatch(ui,/diagnóstico automático|tratamiento recomendado/i);
+test('el expediente elimina el tablero duplicado y presenta una lectura única',()=>{
+  assert.match(ui,/retira el resumen clínico duplicado/);
+  assert.match(ui,/\.patient-record-stage2/);
+  assert.match(css,/display:none!important/);
+  assert.match(patient,/SIGUIENTE PASO/);
+  assert.match(patient,/Resumen clínico/);
 });
 
-test('la siguiente acción conserva el orden antecedentes, mapa, plan y evolución',()=>{
-  const order=['Completar antecedentes','Revisar odontograma','Construir plan','Registrar evolución'];
-  let previous=-1;
-  for(const label of order){const current=ui.indexOf(label);assert.ok(current>previous,label);previous=current;}
-  assert.match(ui,/SmylPatient360&&window\.SmylPatient360\.open/);
-  assert.match(ui,/scrollIntoView/);
+test('el asistente organiza datos sin diagnosticar ni modificar el expediente',()=>{
+  for(const label of ['ASISTENTE DE FICHA','Resumen previo a la atención','Por confirmar','Siguiente paso sugerido']) assert.match(patient,new RegExp(label));
+  assert.match(patient,/Apoyo, no diagnóstico/);
+  assert.match(patient,/no modifica registros/);
+  assert.doesNotMatch(patient,/fetch\(|openai|anthropic/i);
 });
 
-test('el resumen deriva estados del expediente existente sin otra fuente clínica',()=>{
-  assert.match(ui,/\.p360-metrics article:first-child strong/);
-  assert.match(ui,/\.dr-map \.dr-tooth\.dr-noted/);
-  assert.match(ui,/\.clinic-treatment/);
-  assert.match(ui,/\.p360-timeline i\[data-type="clinical_note"\]/);
-  assert.doesNotMatch(ui,/\.from\(|fetch\(/);
+test('la historia clínica abre en lectura y edita sólo bajo demanda',()=>{
+  assert.match(patient,/function historyForm\(s,editing\)/);
+  assert.match(patient,/data-history-edit/);
+  assert.match(patient,/data-history-cancel/);
+  assert.match(patient,/historyForm\(s,false\)/);
 });
 
 test('web, móvil y PWA distribuyen la etapa dos con diseño responsive',()=>{
   const app=read('app.html'),mobile=read('mobile/www/app.html'),worker=read('sw.js');
   assert.equal(app,mobile);
-  assert.match(app,/smyl-patient-record-stage2\.css\?v=1/);
-  assert.match(app,/smyl-patient-record-stage2\.js\?v=1/);
+  assert.match(app,/smyl-patient-record-stage2\.css\?v=2/);
+  assert.match(app,/smyl-patient-record-stage2\.js\?v=2/);
   assert.match(worker,/smyl-v256-professional-profile-release/);
-  assert.match(worker,/smyl-patient-record-stage2\.js\?v=1/);
+  assert.match(worker,/smyl-patient-record-stage2\.js\?v=2/);
   assert.equal(ui,read('mobile/www/smyl-patient-record-stage2.js'));
   assert.equal(css,read('mobile/www/smyl-patient-record-stage2.css'));
-  assert.match(css,/@media\(max-width:600px\)/);
+  assert.match(read('smyl-patient-360.css'),/@media\(max-width:600px\)/);
 });
