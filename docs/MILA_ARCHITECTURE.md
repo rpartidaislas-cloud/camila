@@ -139,6 +139,11 @@ SMYL_CONSUMABLES_ENFORCED=false
 7. **Expansión:** recordatorios, tareas, búsqueda clínica y más acciones,
    cada una con permisos y confirmación definidos.
 
+La centralización de consumo de MILA, funciones de IA, canales Meta y nube se
+rige por `docs/SMYL_USAGE_METERING_STAGE2.md`. Ese contrato separa telemetría
+técnica, saldo comercial y almacenamiento, y debe implementarse antes de
+activar cobro duro.
+
 ## 8. Límites de esta entrega
 
 - “Hola MILA” no escucha con la app cerrada ni el teléfono bloqueado. Eso

@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: contrato de medición centralizada, etapa 2
+
+**Se dejó lista la especificación de servidor para consolidar MILA, IA, Meta y
+nube sin activar cobros.**
+
+- Nuevo contrato: `docs/SMYL_USAGE_METERING_STAGE2.md`.
+- Se separan cartera comercial, telemetría técnica y almacenamiento por cuota.
+- Se define transición segura de `whatsapp_messages` a `meta_messages`, con
+  canal explícito y sin perder saldos históricos.
+- Se especifican eventos firmados LANA → SMYL sin cuerpo de mensajes ni datos
+  del paciente, junto con idempotencia, conciliación y mapeo seguro de tenants.
+- Tokens y coste de proveedor quedan en auditoría interna; la clínica continúa
+  viendo minutos, créditos, mensajes y GB.
+- Se detallan lecturas para el frontend, permisos por rol, tarifas versionadas,
+  snapshots de Storage, fases de despliegue y matriz de aceptación.
+
+**Pendiente para Claude Code:** implementar migraciones, RLS, funciones,
+adaptadores de IA, receptor firmado de LANA, snapshots de nube y pruebas. Debe
+mantener `SMYL_CONSUMABLES_ENFORCED=false` hasta completar dos ciclos de
+conciliación. Codex no modificó backend, secretos, saldos ni producción.
+
 ## 2026-10-23 — Codex: Plan y consumo, etapa visual y de lectura
 
 **La pantalla aislada de consumibles se convirtió en un centro de control inspirado en la claridad de LANA, adaptado al vertical dental de SMYL.**
