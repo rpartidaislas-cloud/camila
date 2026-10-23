@@ -1,5 +1,33 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: Plan y consumo, etapa visual y de lectura
+
+**La pantalla aislada de consumibles se convirtió en un centro de control inspirado en la claridad de LANA, adaptado al vertical dental de SMYL.**
+
+- `Consumos` pasa a llamarse `Plan y consumo` en el panel y en MILA.
+- La nueva navegación contextual separa Resumen, MILA e IA, Canales de Meta,
+  Almacenamiento e Historial sin mezclar saldos de recursos distintos.
+- Resumen conserva como fuente real `smyl_wallets`, `smyl_consumable_products`
+  y `smyl_usage_ledger`; calcula actividad del periodo con movimientos del
+  servidor y no inventa límites ni precios.
+- El historial muestra hasta 100 movimientos, permite filtrar por recurso y
+  tipo, distingue consumo, medición piloto, crédito, reembolso y ajuste, y
+  conserva el saldo posterior.
+- WhatsApp aparece como medición disponible; Instagram y Messenger se marcan
+  pendientes de consolidación desde LANA. Nube aparece pendiente y no como
+  `0 GB`, evitando una cifra falsa antes del medidor por tenant.
+- La vista explica que la escritura manual no consume, que el dentista opera
+  con créditos y que tokens de entrada/salida/caché pertenecen a la auditoría
+  administrativa del servidor.
+- Web y móvil comparten `smyl-consumption.js` v1 y
+  `smyl-consumption.css` v1. PWA avanza a `smyl-v257-plan-consumption`.
+
+**Pendiente para Claude Code:** ampliar el contrato de recursos para nube y
+canales Meta; centralizar tokens de todas las funciones de IA; firmar eventos
+LANA → SMYL; definir límites/periodos/paquetes y mantener
+`SMYL_CONSUMABLES_ENFORCED=false` hasta validar dos ciclos. No se modificaron
+Edge Functions, migraciones, RLS, secretos ni cobros.
+
 ## 2026-10-22 — Codex: sistema visual unificado del expediente
 
 **La ficha deja de apilar el resumen nuevo sobre el workspace clínico anterior.**

@@ -101,7 +101,7 @@ test('The admin shell exposes MILA and consumables', () => {
 });
 
 test('MILA browser scripts parse successfully', () => {
-  for (const path of ['mila.html', 'consumos.html']) {
+  for (const path of ['mila.html']) {
     const html = read(path);
     const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
       .map((match) => match[1])
@@ -109,5 +109,6 @@ test('MILA browser scripts parse successfully', () => {
     assert.ok(scripts.length > 0, `${path} should include an inline application script`);
     for (const source of scripts) assert.doesNotThrow(() => new Function(source), path);
   }
+  assert.doesNotThrow(() => new Function(read('smyl-consumption.js')), 'smyl-consumption.js');
 });
 // End of MILA contract tests.

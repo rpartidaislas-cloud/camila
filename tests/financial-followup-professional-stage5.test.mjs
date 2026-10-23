@@ -39,7 +39,7 @@ test('el pago se revisa antes de enviarse a la operación atómica', () => {
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
   assert.match(app, /smyl-finance\.css\?v=6/);
   assert.match(app, /smyl-finance\.js\?v=8/);
-  assert.match(worker, /smyl-v256-professional-profile-release/);
+  assert.match(worker, /smyl-v257-plan-consumption/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

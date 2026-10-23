@@ -40,7 +40,7 @@ test('web, móvil y PWA publican la misma etapa', () => {
   assert.match(app, /smyl-case-workspace\.css\?v=6/);
   assert.match(app, /smyl-patient-360\.js\?v=8/);
   assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
-  assert.match(worker, /smyl-v256-professional-profile-release/);
+  assert.match(worker, /smyl-v257-plan-consumption/);
   for (const file of ['app.html','sw.js','smyl-case-workspace.js','smyl-case-workspace.css','smyl-patient-360.js','smyl-schedule.js']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

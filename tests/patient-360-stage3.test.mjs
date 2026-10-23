@@ -62,7 +62,7 @@ test('web, mobile and offline patient assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-patient-360.js'));
   assert.equal(styles, read('../mobile/www/smyl-patient-360.css'));
-assert.match(worker, /smyl-v256-professional-profile-release/);
+assert.match(worker, /smyl-v257-plan-consumption/);
   assert.match(worker, /smyl-patient-360\.js\?v=8/);
   assert.match(worker, /smyl-patient-360\.css\?v=6/);
 });
