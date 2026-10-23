@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-23 — Codex: regreso de pago verificable, etapa 7
+
+**El centro de consumo ya maneja el regreso del checkout sin confiar en la
+URL ni acreditar saldo desde el navegador.**
+
+- `checkout=success` inicia una consulta autenticada a
+  `smyl-consumables-checkout-status`; no representa un pago confirmado.
+- La interfaz distingue confirmación, conciliación pendiente, cancelación,
+  fallo, expiración y reembolso con mensajes compactos dentro de la misma
+  pantalla.
+- Sólo el estado `completed` confirmado por servidor actualiza la lectura de
+  saldo; los pendientes se revisan manualmente, sin sondeo continuo.
+- La referencia opaca del checkout se conserva temporalmente en
+  `sessionStorage`; nunca se guardan tenant, precio, paciente, producto ni
+  saldo.
+- Los parámetros de regreso se limpian de la barra de dirección después de
+  leerlos y el flujo cancelado declara que no hubo cargo.
+- Web y móvil avanzan a consumo JS/CSS v6 y PWA
+  `smyl-v262-checkout-return`.
+
+**Pendiente para Claude Code:** implementar y probar la Edge Function de
+estado, propiedad multi-tenant, webhook firmado y conciliación idempotente.
+Codex no modificó backend, secretos, saldos ni proveedor de pago.
+
 ## 2026-10-23 — Codex: compra segura de paquetes preparada, etapa 6
 
 **La interfaz de paquetes está lista para habilitar compras sin confiar en

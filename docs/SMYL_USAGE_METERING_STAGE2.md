@@ -287,6 +287,40 @@ Reglas obligatorias:
 - reembolso confirmado genera una entrada `refund` o reverso comercial
   explícito según la política, nunca elimina el movimiento original.
 
+### Contrato de regreso y verificación
+
+La URL de regreso del proveedor sólo puede indicar que debe iniciarse una
+consulta; `checkout=success` nunca es prueba de pago ni autorización para
+modificar un saldo. La Edge Function `smyl-consumables-checkout-status` recibe
+una sesión autenticada y:
+
+```json
+{ "checkout_id": "safe-id" }
+```
+
+El servidor resuelve tenant y usuario desde la sesión, comprueba que el
+checkout les pertenece y devuelve únicamente un estado comercial seguro:
+
+```json
+{
+  "status": "pending | completed | failed | expired | refunded",
+  "credited_resource": "ai_credits",
+  "credited_units": 100,
+  "confirmed_at": "2026-10-23T18:00:00Z"
+}
+```
+
+- `completed` sólo se devuelve después de conciliar el webhook firmado y el
+  movimiento idempotente del ledger.
+- `pending` no acredita ni reserva saldo; el cliente ofrece revisión manual y
+  evita sondeo continuo.
+- `failed` y `expired` no crean movimiento de crédito.
+- `refunded` requiere un movimiento rastreable y conserva el original.
+- La respuesta no expone sesión del proveedor, secretos, coste interno,
+  identidad de otro tenant ni datos clínicos.
+- El identificador guardado por el navegador es sólo una referencia opaca de
+  checkout; no se guardan precio, producto, tenant, paciente o saldo.
+
 ## 10. Despliegue por fases
 
 1. **Medición sombra:** todos los servicios emiten eventos; no cobran.

@@ -87,6 +87,22 @@ test('Package checkout trusts only an active server product and a signed webhook
   assert.doesNotMatch(checkout, /tenant_id|price_minor:|currency:/);
 });
 
+test('Checkout return is verified by the server before any balance refresh', () => {
+  const html = read('consumos.html');
+  const script = read('smyl-consumption.js');
+  assert.match(html, /id="usage-payment-result"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(script, /functions\.invoke\('smyl-consumables-checkout-status'/);
+  assert.match(script, /body:\{checkout_id:id\}/);
+  assert.match(script, /sessionStorage\.setItem\('smyl_checkout_pending',String\(checkout\)\)/);
+  assert.match(script, /history\.replaceState/);
+  assert.match(script, /status==='completed'/);
+  assert.match(script, /status==='failed'\|\|status==='expired'/);
+  assert.match(script, /status==='refunded'/);
+  const handler = script.slice(script.indexOf('async function handleCheckoutReturn'), script.indexOf('function icon'));
+  assert.doesNotMatch(handler, /balance_units\s*=|wallets\.push|from\('smyl_wallets'\).*update/);
+  assert.match(handler, /await verifyCheckout\(id\)/);
+});
+
 test('Web and mobile consumption assets stay identical', () => {
   for (const path of ['consumos.html', 'smyl-consumption.js', 'smyl-consumption.css']) {
     assert.equal(read(path), read(`mobile/www/${path}`), path);

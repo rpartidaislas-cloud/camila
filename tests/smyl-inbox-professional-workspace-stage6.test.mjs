@@ -41,5 +41,5 @@ test('web, móvil y PWA entregan exactamente la misma optimización', () => {
   assert.match(app, /smyl-inbox\.js\?v=36/);
   assert.match(app, /smyl-inbox\.css\?v=34/);
   assert.equal(mobileApp.includes('smyl-inbox.js?v=36'), true);
-  assert.match(worker, /smyl-v261-secure-checkout/);
+  assert.match(worker, /smyl-v262-checkout-return/);
 });
