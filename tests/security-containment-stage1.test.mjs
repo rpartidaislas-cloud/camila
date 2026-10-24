@@ -14,7 +14,9 @@ test('critical and intentionally public functions have explicit JWT policy', () 
   const config = read('supabase/config.toml');
   assert.match(config, /\[functions\.claude\][\s\S]*?verify_jwt = true/);
   assert.match(config, /\[functions\.segment-teeth\][\s\S]*?verify_jwt = true/);
-  for (const name of ['meta-webhook', 'stripe-webhook', 'public-appointment-request', 'public-profile-event', 'public-professional-cases', 'public-patient-reviews']) {
+  assert.match(config, /\[functions\.smyl-consumables-checkout\]\s*\nverify_jwt = true/);
+  assert.match(config, /\[functions\.smyl-consumables-checkout-status\]\s*\nverify_jwt = true/);
+  for (const name of ['meta-webhook', 'stripe-webhook', 'smyl-consumables-webhook', 'public-appointment-request', 'public-profile-event', 'public-professional-cases', 'public-patient-reviews']) {
     assert.match(config, new RegExp(`\\[functions\\.${name}\\][\\s\\S]*?verify_jwt = false`));
   }
 });

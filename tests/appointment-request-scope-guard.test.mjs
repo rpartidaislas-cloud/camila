@@ -6,10 +6,13 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(here, '..', 'supabase', 'migrations');
+// Se normalizan los saltos de línea: un checkout con autocrlf entrega el archivo
+// con \r\n y las búsquedas literales con \n daban un falso negativo sin que la
+// validación SQL hubiera cambiado.
 const migration = fs.readFileSync(
   path.join(migrationsDir, '20261022122000_smyl_appointment_request_scope_guard.sql'),
   'utf8',
-);
+).replace(/\r\n?/g, '\n');
 
 function sqlFunction(name, nextName) {
   const start = migration.indexOf(`create or replace function public.${name}`);

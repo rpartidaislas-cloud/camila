@@ -1,5 +1,92 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-24 — Claude: backend seguro de compras consumibles, etapa 8 (implementada, sin cobros reales)
+
+Implementa `docs/CLAUDE_CONSUMABLES_STAGE8.md`. Productos siguen `active=false` y
+`SMYL_CONSUMABLES_ENFORCED=false`. **No se activaron cobros reales**: la matriz de
+Stripe test mode (paso 5 de la secuencia) requiere las claves que configura Ricardo.
+
+### Puerta cero
+- `tests/appointment-request-scope-guard.test.mjs`: normaliza `\r\n` → `\n` al leer la
+  migración. La validación SQL de `20261022122000` no se tocó.
+
+### Migración `20261024090000_smyl_consumables_checkout.sql` (reversible; bloque ROLLBACK al final)
+- `smyl_checkout_sessions`: `public_ref` opaco (`chk_` + 32 hex) distinto del id de Stripe,
+  snapshot inmutable (recurso, unidades, `price_minor`, moneda) congelado por trigger, estados
+  `created|pending|completed|failed|expired|refunded` con trigger de transiciones, únicos por
+  `(tenant_id, idempotency_key)` y `(provider, provider_checkout_id)`, enlace a
+  `ledger_entry_id` / `refund_ledger_entry_id`, `refunded_units`, `refund_shortfall_units`.
+- `smyl_payment_events`: único por `(provider, provider_event_id)`, `process_status`
+  `processed|duplicate|ignored|rejected|error`, `attempt`, hash de conciliación, error ≤300.
+- RLS en ambas **sin políticas** para `anon/authenticated` (revoke all): el navegador no lee ni
+  escribe nada directo.
+- RPC `service_role`: `smyl_consumables_checkout_begin` (idempotente con advisory lock),
+  `smyl_consumables_checkout_attach`, `smyl_payment_event_record`,
+  `smyl_consumables_confirm_payment` (una transacción: `for update`, verifica importe, moneda,
+  metadata checkout/tenant, registra evento, acredita con `smyl_credit` y clave
+  `purchase:<checkout_id>`, marca `completed`; repetido → `already_completed`),
+  `smyl_consumables_mark_closed` (failed/expired sin movimiento; ignora si ya es terminal),
+  `smyl_consumables_refund` (reverso `adjustment` con `source_type='package_refund'`, clave
+  `refund:<checkout>:<event>`, proporcional al importe devuelto; si la clínica ya consumió,
+  lo no reversible queda en `refund_shortfall_units` para conciliación manual).
+- RPC `authenticated`: `smyl_consumables_can_purchase(tenant)` (`finance.manage` o
+  `clinic.manage`) y `smyl_consumables_checkout_status(public_ref)` (solo tenant propio con
+  permiso; devuelve `status, credited_resource, credited_units, confirmed_at`).
+
+### Edge Functions
+- `smyl-consumables-checkout` (JWT ON): `requireUser` → permiso → `begin` → Stripe Checkout
+  `mode=payment` con `price_data` del snapshot, `metadata {smyl_checkout_id, smyl_tenant_id,
+  smyl_product_id, smyl_kind:'consumable'}`, `idempotencyKey` por checkout, expira a 30 min,
+  URLs de regreso desde `APP_URL` validado (HTTPS + host en lista). Reintento con la misma
+  clave devuelve la misma URL si sigue abierta; estados terminales → 409 con `status`.
+  Respuesta: `{checkout_url, checkout_id}`.
+- `smyl-consumables-checkout-status` (JWT ON): valida `chk_…`, llama la RPC con el JWT del
+  usuario, `Cache-Control: no-store`, 404 genérico para inexistente/ajeno.
+- `smyl-consumables-webhook` (JWT OFF, sin CORS): verifica `stripe-signature` sobre el cuerpo
+  crudo con `STRIPE_CONSUMABLES_WEBHOOK_SECRET`; sólo `checkout.session.completed` (acredita
+  únicamente si `payment_status='paid'`), `async_payment_succeeded`, `async_payment_failed`,
+  `checkout.session.expired`, `charge.refunded`; ignora sesiones sin `smyl_kind='consumable'`.
+  Error de RPC → 500 para que Stripe reintente.
+- `supabase/config.toml` actualizado; `tests/security-containment-stage1.test.mjs` lo verifica.
+
+### Pruebas
+- `tests/consumables-checkout-stage8.test.mjs` (13 pruebas estáticas sobre migración y funciones:
+  separación comercial, JWT/firma, entrada mínima del navegador, idempotencia, snapshot
+  inmutable, acreditación sólo por webhook, duplicados/fuera de orden, reembolso append-only,
+  RLS/grants, metadata sin PHI, URLs de regreso, rollback, enforcement apagado).
+- Suite completa en verde: `node --test tests/*.test.mjs`.
+- **Pendiente (requiere Stripe test mode y claves):** pago exitoso, cancelado, expirado, webhook
+  duplicado ×20, reembolso repetido, conciliación ledger↔sesión↔evento. Criterio de salida de
+  la etapa NO cumplido hasta correr esa matriz; por eso productos y cobros siguen apagados.
+
+### Secretos que debe configurar Ricardo (Supabase → Edge Functions → Secrets)
+- `STRIPE_SECRET_KEY` — ya existe (usar `sk_test_…` para la matriz).
+- `STRIPE_CONSUMABLES_WEBHOOK_SECRET` — **nuevo**, `whsec_…` del endpoint
+  `/functions/v1/smyl-consumables-webhook` (distinto de `STRIPE_WEBHOOK_SECRET`).
+- `APP_URL` — ya existe; debe ser `https://app.smyldesign.ai` (o el host de GitHub Pages).
+- `SMYL_CONSUMABLES_ENFORCED` — mantener `false`.
+
+### Despliegue exacto
+1. SQL Editor: `20261024090000_smyl_consumables_checkout.sql` (versión Dashboard sin
+   `begin/commit`, `$$`→`$body$`; el bloque ROLLBACK es comentario).
+2. Verificar RLS: `select * from smyl_checkout_sessions` con un usuario autenticado debe fallar
+   por permisos; `select smyl_consumables_checkout_status('chk_x')` debe devolver null.
+3. Edge Functions desde `docs/bundles/*.single-file.ts`: `smyl-consumables-checkout` (Verify
+   JWT ON), `smyl-consumables-checkout-status` (ON), `smyl-consumables-webhook` (OFF).
+4. Stripe → Webhooks → endpoint nuevo con los 5 eventos → copiar `whsec_` a
+   `STRIPE_CONSUMABLES_WEBHOOK_SECRET`.
+5. Activar **un** producto sintético (`update smyl_consumable_products set active=true,
+   price_minor=1000 where id='ai-100'`) sólo para la clínica piloto y correr la matriz en test
+   mode (tarjeta 4242…, `stripe trigger checkout.session.completed` repetido, reembolso desde
+   el Dashboard). Conciliar `smyl_usage_ledger` ↔ `smyl_checkout_sessions` ↔
+   `smyl_payment_events`.
+6. Volver a `active=false` hasta aprobar dos ciclos conciliados.
+
+**Para Codex:** `source_type='package_refund'` es nuevo en el ledger; agregar etiqueta en
+`sourceLabels` ("Reembolso de paquete"). El reverso aparece como `adjustment` (signo −).
+
+---
+
 ## 2026-10-23 — Codex: paquete ejecutable para backend de consumibles, etapa 8
 
 **Se auditó el punto de partida y se dejó una especificación de implementación

@@ -19,6 +19,17 @@ verify_jwt = true
 [functions.security-monitor]
 verify_jwt = true
 
+# Compras de paquetes consumibles (etapa 8): checkout y estado exigen sesión.
+[functions.smyl-consumables-checkout]
+verify_jwt = true
+
+[functions.smyl-consumables-checkout-status]
+verify_jwt = true
+
+# Webhook de consumibles: sólo Stripe, autenticado por firma (STRIPE_CONSUMABLES_WEBHOOK_SECRET).
+[functions.smyl-consumables-webhook]
+verify_jwt = false
+
 # Recordatorios de cita: sin verificación en la puerta porque el cron (pg_cron/pg_net) no
 # tiene sesión y las claves nuevas (sb_publishable_…) no son JWT. El handler autentica TODAS las
 # peticiones: sesión de usuario (requireUser) o el header x-smyl-cron-secret comparado en tiempo
