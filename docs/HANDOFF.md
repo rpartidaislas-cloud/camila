@@ -1,5 +1,16 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Política visual v3.2 publicada
+
+- Commit funcional `1ce5e06` integrado en `main` y en la rama configurada de
+  GitHub Pages `claude/camila-claude-clinical-analysis-sywxjv`.
+- El despliegue `40339508746` terminó correctamente. Producción respondió `200`
+  y confirmó `smyl-ui-template-v3.css?v=4`, el primario `#0B1B2E`,
+  `smyl-navigation.js?v=12`, tooltips y la acción rápida `Nueva cita`.
+- La entrega se rebasó sobre `f2fc45f`, conservando el nuevo Inicio, y la suite
+  completa posterior a la integración terminó con **660/660 pruebas**.
+- No se desplegaron funciones, migraciones, secretos ni cambios de backend.
+
 ## 2026-10-26 — Claude: Inicio más claro (lenguaje de la Agenda, saludo coherente, primeros pasos plegados)
 
 - Se sube la propuesta que estaba en la rama `wip/inicio`, unida con el `main` actual. El usuario vio el antes y el después en capturas.
