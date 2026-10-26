@@ -134,6 +134,17 @@ test('la ficha se completa por avance y muestra una sola etapa a la vez',()=>{
   assert.match(css,/directory-step-panel\[hidden\]\{display:none\}/);
 });
 
+test('el formulario profesional agrupa la identidad y ofrece una vista previa útil',()=>{
+  for(const token of ['directory-builder-overview','directory-photo-picker','data-photo-preview','directory-form-section','directory-field-label','directory-preview-hero','directory-preview-stats','directory-preview-details']) assert.match(js,new RegExp(token));
+  for(const field of ['display_name','specialty','license_number','slug','headline']) assert.match(js,new RegExp(`name="${field}"`));
+  assert.match(js,/dataset\.single/);
+  assert.match(js,/Construye un perfil que inspire confianza/);
+  assert.match(css,/directory-layout\[data-single=true\]/);
+  assert.match(css,/directory-photo-section/);
+  assert.match(css,/directory-form-section/);
+  assert.match(css,/directory-preview-hero/);
+});
+
 test('ficha, casos y reseñas son espacios separados y la vista pública responde en vivo',()=>{
   for(const token of ['data-directory-area="profile"','data-directory-area="cases"','data-directory-area="reviews"','renderToolPreview','updateProfileLive']) assert.match(js,new RegExp(token));
   assert.match(js,/state\.area==='cases'\?casesPanel/);
@@ -169,7 +180,8 @@ test('el paciente ve confianza y solicita una cita sin confirmación automática
 });
 
 test('directorio profesional se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=10/);
+  assert.match(app,/smyl-professional-directory\.js\?v=11/);
+  assert.match(app,/smyl-professional-directory\.css\?v=11/);
   assert.match(sw,/smyl-v262-checkout-return/);
   assert.match(sw,/dentista\.html/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));

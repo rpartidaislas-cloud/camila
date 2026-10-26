@@ -7949,3 +7949,25 @@ copias móviles, PWA, fixtures y contratos visuales.
 - Se reforzó la actualización en segundo plano: continúa consultando novedades mientras el usuario escribe, pero difiere el repintado visual para no interrumpir la respuesta.
 - Web y fuente móvil quedaron sincronizadas en `smyl-inbox.js?v=37` y `smyl-inbox.css?v=35`; no hubo cambios de base de datos, funciones, credenciales ni datos clínicos.
 - Verificación: 71/71 contratos de Mensajes y 46/46 contratos adyacentes aprobados; revisión visual en 1440, 1024, 768, 390 y 320 px sin desbordamiento. La suite completa aprobó 609/610; el único fallo corresponde a un contrato previo de MILA sobre `mobile/www/index.html`, archivo ajeno a esta entrega y ya modificado antes de iniciarla.
+
+## 2026-10-25 — Codex — Formulario profesional y vista previa refinados
+
+**Tocado:** `smyl-professional-directory.js/.css`, carga web/PWA, sincronización
+móvil, pruebas de contrato y QA visual.
+
+- El paso Identidad se reorganizó en fotografía, identidad profesional,
+  credenciales/enlace y mensaje principal. Conserva los mismos nombres de campo
+  y la RPC de guardado; no cambia esquema ni backend.
+- Cuando sólo existe un profesional se eliminan la columna lateral y el resumen
+  de equipo redundantes, dejando más espacio al formulario y a la vista previa.
+- La fotografía se elige desde un avatar accesible y aparece inmediatamente en
+  el formulario y en la vista previa.
+- La vista previa ahora reproduce una ficha pública completa con hero, acciones,
+  experiencia, idiomas, disponibilidad, tratamientos y presentación; nombre,
+  especialidad, titular, bio y datos clave responden mientras se escribe.
+- Se añadió una adaptación específica para tableta y móvil sin desbordamiento
+  horizontal. QA visual aprobada a 1440, 1024 y 390 px.
+- Web y `mobile/www` usan `smyl-professional-directory.js/.css?v=11`. El script
+  `mobile/scripts/sync-web.js` ya incluye este módulo y `dentista.html` para evitar
+  divergencias futuras.
+- Verificación local: sintaxis aprobada y 15 de 15 pruebas enfocadas aprobadas.
