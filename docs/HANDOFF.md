@@ -22,7 +22,8 @@
   aviso al profesional omite nombre, diagnóstico y tratamiento del paciente.
 - Revisión visual aprobada a 390, 820 y 1180 px. Se corrigió la tarjeta de
   confirmación para apilar acciones en tableta y conservar texto legible. Web y
-  fuente móvil usan Agenda JS v26 e Inbox JS v38. Suite completa: **688/688**.
+  fuente móvil usan Agenda JS v26 e Inbox JS v38. Tras integrar la seguridad P0
+  y el ajuste de recordatorios, la suite completa quedó en **695/695**.
 - Las migraciones `20261026190000`, `20261026200000` y `20261026210000` ya
   están aplicadas en producción. `invite-staff`, `appointment-negotiations` y
   `whatsapp-templates` quedaron desplegadas en SMYL. Las migraciones antiguas
@@ -37,6 +38,11 @@
   Smoke tests: SMYL sin sesión `401`, firma falsa `403`, LANA sin firma Meta
   `403`. Pendiente para la prueba real: solicitar/aprobar las dos plantillas en
   Meta, vincular el WhatsApp del profesional y ejecutar una cita de prueba.
+- Las migraciones de seguridad `20261026220000` y `20261026230000` también se
+  aplicaron en producción. La segunda endurece el trigger usando la misma tabla
+  `smyl_staff_invitations`: tenant, UUID de invitación y correo deben coincidir.
+  `invite-staff` y `appointment-reminders` fueron desplegadas después; el
+  recordatorio ya usa `am/pm` sin el doble punto.
 
 ## 2026-10-26 — Codex — Motor de confirmación de citas por capas
 
@@ -83,6 +89,17 @@
   una invitación de prueba. El motor de negociación y el webhook de botones son
   la siguiente etapa; todavía no se envían estos avisos automáticamente.
 
+## 2026-10-26 — Claude: recordatorios sin el doble punto «p.m..»
+
+- `supabase/functions/appointment-reminders/index.ts`: la variable `time` ahora sale como «5:00 pm» (antes «5:00 p.m.»). Las plantillas
+  ponen un punto después de la hora (por ejemplo «…a las {{4}}. Si necesitas…»), así que el paciente recibía «p.m..». Archivo único
+  regenerado en `docs/bundles/appointment-reminders.single-file.ts`.
+- **Desplegado 2026-10-26:** `appointment-reminders` ya usa esta versión en el proyecto SMYL; los recordatorios automáticos salen sin «p.m..».
+- `smyl-schedule-message.js` (v2): el envío desde la ficha de la cita usa el mismo formato, así que ambos caminos dicen lo mismo.
+- Pruebas actualizadas: `10:30 am` en el despacho de recordatorios y `5:00 pm` en el módulo de mensajes.
+- Nota de contexto: el flujo manual `smyl-buscar-pacientes-migracion.yml` volvió a fallar el 26/10 en 2 segundos, sin pasos ni registro
+  (el trabajo ni llega a arrancar). El flujo `smyl-agenda-tiempo-extra-migracion.yml` sí corrió bien el 22/10, lo que indica que el secreto
+  `SUPABASE_ACCESS_TOKEN` existe. Falta ver el aviso en la página del trabajo (puede ser un tema de la cuenta de GitHub Actions).
 ## 2026-10-26 — Codex — Sincronización bidireccional de Google Calendar
 
 - Se implementó el modelo acordado: SMYL→Google automático y Google→SMYL bajo
@@ -8350,3 +8367,21 @@ móvil, pruebas de contrato y QA visual.
   `smyl-connections.css?v=8`; PWA `smyl-v263-lana-connection-recovery`.
 - Verificación: sintaxis aprobada, 13/13 pruebas enfocadas y 645/645 pruebas del
   repositorio aprobadas.
+
+## 2026-10-26 — Claude — Seguridad P0 de la auditoría (alta de staff, XSS del Historial, vista pública)
+Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md`.
+- **P0-1 alta como staff de otra clínica:** migración `20261026230000_smyl_security_staff_invitations.sql`
+  (usa `smyl_staff_invitations` + trigger `camila_crear_tenant_en_signup` que solo une como staff
+  con invitación vigente, un solo uso, 14 días) y `invite-staff` actualizada (registra la invitación antes de
+  invitar y la retira si el correo falla). **Aplicada en producción** junto con el despliegue de `invite-staff`.
+- **P0-3 vista pública:** migración `20261026220000_smyl_security_public_tenant_view.sql`; `camila_tenants_publico`
+  entrega solo `config.sim` y `config.precios` (lo único que leen `simulacion*.html`). Sigue listando id+nombre.
+- **P0-2 XSS almacenado:** `app.html` (Historial, detalle del caso, "últimos casos" y PDF) escapa `telefono` y
+  pasa score/totales/piezas por `smylNum`; `guardar-lead-prospecto` valida tipos y tamaños, limita el body
+  (12 MB) y no deja pisar un caso existente de otra clínica (409). Copia móvil sincronizada.
+- El workflow manual `.github/workflows/smyl-seguridad-p0-migracion.yml` conserva el procedimiento de recuperación/reaplicación.
+- Verificación: ambas migraciones y la lógica del trigger se probaron en un Postgres real en memoria (PGlite):
+  con el trigger original un atacante quedaba como staff de la clínica víctima; con el nuevo queda como dueño de
+  su propia clínica; la invitación legítima funciona, es de un solo uso y vence. Pruebas en
+  `tests/security-p0-audit-2026-10-26.test.mjs` (**695/695** en la suite integrada).
+- Pendiente (siguiente fase de la auditoría): S1 (el dueño edita su cuota/plan), S2-S10, CSP, CI, etc.

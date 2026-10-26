@@ -838,7 +838,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-schedule-slots.js?v=1"></script>
 <script defer src="smyl-schedule.js?v=26"></script>
 <script defer src="smyl-google-calendar.js?v=2"></script>
-<script defer src="smyl-schedule-message.js?v=1"></script>
+<script defer src="smyl-schedule-message.js?v=2"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
 <script defer src="smyl-reminders.js?v=2"></script>
 <link rel="stylesheet" href="smyl-templates.css?v=3">
@@ -2179,6 +2179,12 @@ function smylEsc(value) {
     return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[character];
   });
 }
+// Número seguro para interpolar en HTML: cualquier cosa que no sea un número finito se vuelve 0.
+// Los casos de prospectos llegan por una función pública, así que sus campos numéricos pueden traer texto.
+function smylNum(value) {
+  var n = Number(value);
+  return isFinite(n) ? n : 0;
+}
 function smylImageSrc(value, rawBase64) {
   var source = String(value || '');
   if (rawBase64) return /^[A-Za-z0-9+/=]+$/.test(source) ? 'data:image/jpeg;base64,' + source : '';
@@ -3081,7 +3087,7 @@ async function cargarDashboard() {
       '<div class="dashboard-empty-actions"><button class="btn btn-primary" onclick="window.location.href=\'simulacion-rapida.html?workspace=professional\'">Nueva simulación</button><button class="btn btn-secondary" onclick="ir(\'pacientes\')">Ver pacientes</button></div></div></div>';
   } else {
     ulEl.innerHTML = cots.slice(-5).reverse().map(function(c) {
-      var score = c.score || 0;
+      var score = smylNum(c.score);
       var scoreColor = score >= 7 ? 'var(--color-success)' : score >= 5 ? 'var(--color-warning)' : 'var(--color-error)';
       var scoreBg = score >= 7 ? 'var(--color-success-subtle)' : score >= 5 ? 'var(--color-warning-subtle)' : 'var(--color-error-subtle)';
       var ini = (c.nombre||'?').charAt(0).toUpperCase();
@@ -3092,7 +3098,7 @@ async function cargarDashboard() {
         '<div style="font-size:12px;color:var(--color-text-tertiary);margin-top:1px">' + smylEsc(c.fecha) + ' · <span style="background:' + scoreBg + ';color:' + scoreColor + ';padding:1px 6px;border-radius:99px;font-size:11px;font-weight:500">' + score + '/10</span></div>' +
         '</div>' +
         '<div style="text-align:right;flex-shrink:0">' +
-        '<div style="font-size:14px;font-weight:600;font-family:monospace;color:var(--color-text-primary)">$' + (c.total||0).toLocaleString() + '</div>' +
+        '<div style="font-size:14px;font-weight:600;font-family:monospace;color:var(--color-text-primary)">$' + smylNum(c.total).toLocaleString() + '</div>' +
         '<div style="font-size:11px;color:var(--color-text-tertiary)">MXN</div>' +
         '</div></div>';
     }).join('') + '<div style="padding-bottom:2px"></div>';
@@ -3678,8 +3684,8 @@ async function irAPaso4() {
     cotBody.innerHTML = cots.map(function(c) {
       total += c.subtotal || 0;
       return '<tr><td>' + smylEsc(c.procedimiento) + '</td><td style="color:var(--texto3)">' + (Number(c.piezas)||0) + '</td>' +
-        '<td class="td-num">$' + (c.precio_unit||0).toLocaleString() + '</td>' +
-        '<td class="td-num">$' + (c.subtotal||0).toLocaleString() + '</td></tr>';
+        '<td class="td-num">$' + smylNum(c.precio_unit).toLocaleString() + '</td>' +
+        '<td class="td-num">$' + smylNum(c.subtotal).toLocaleString() + '</td></tr>';
     }).join('');
     document.getElementById('cot-total').textContent = '$' + total.toLocaleString() + ' MXN';
     document.getElementById('r-texto-px').textContent = analisisResultado.texto_paciente || '';
@@ -3943,8 +3949,8 @@ async function cargarHistorial() {
     var diag = {};
     try { diag = typeof c.diagnostico === 'string' ? JSON.parse(c.diagnostico) : (c.diagnostico || {}); } catch(e) {}
     var fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-    var score = c.score || 0;
-    var total = c.total_cotizacion || 0;
+    var score = smylNum(c.score);
+    var total = smylNum(c.total_cotizacion);
     var scoreColor = score >= 80 ? '#16A34A' : score >= 60 ? '#D97706' : '#DC2626';
     var hasSim = !!c.simulacion_url;
     var hasFoto = !!c.foto_frontal;
@@ -3970,7 +3976,7 @@ async function cargarHistorial() {
       '<div style="font-size:11px;font-weight:700;color:' + scoreColor + '">' + score + '/100</div>' +
       '<div style="font-size:11px;color:var(--color-text-tertiary)">·</div>' +
       '<div style="font-size:11px;font-weight:600;color:var(--color-text-secondary)">$' + total.toLocaleString() + ' MXN</div>' +
-      (c.telefono ? '<div style="font-size:11px;color:var(--color-text-tertiary)">· ' + c.telefono + '</div>' : '') +
+      (c.telefono ? '<div style="font-size:11px;color:var(--color-text-tertiary)">· ' + smylEsc(c.telefono) + '</div>' : '') +
       '</div>' +
       '</div>' +
 
@@ -4014,7 +4020,7 @@ async function verCaso(i) {
   try { df = typeof c.diagnostico_claude === 'string' ? JSON.parse(c.diagnostico_claude) : (c.diagnostico_claude || null); } catch(e) { df = null; }
 
   var fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-  var total = c.total_cotizacion || 0;
+  var total = smylNum(c.total_cotizacion);
   var hallazgos = (diag.hallazgos || c.hallazgos || []);
   var plan = (diag.plan || c.plan || []);
   var cot = (diag.cotizacion || c.cotizacion || []);
@@ -4084,7 +4090,7 @@ async function verCaso(i) {
     // Score
     '<div style="background:linear-gradient(135deg,rgba(91,71,224,.12),rgba(44,107,237,.12));border:1px solid rgba(91,71,224,.2);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">' +
     '<div style="width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:rgba(91,71,224,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">' +
-    '<div style="font-size:18px;font-weight:800;color:var(--color-text-primary);line-height:1">' + (c.score||0) + '</div>' +
+    '<div style="font-size:18px;font-weight:800;color:var(--color-text-primary);line-height:1">' + smylNum(c.score) + '</div>' +
     '<div style="font-size:8px;color:var(--color-text-tertiary)">/100</div>' +
     '</div>' +
     '<div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary);margin-bottom:2px">Score Estético · ' + smylEsc(diag.scoreLbl||c.score_lbl||'') + '</div>' +
@@ -4133,8 +4139,8 @@ async function verCaso(i) {
     cot.map(function(item){
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)">' +
         '<div><div style="font-size:13px;color:var(--color-text-primary)">' + smylEsc(item.procedimiento) + '</div>' +
-        '<div style="font-size:11px;color:var(--color-text-tertiary)">' + (item.piezas||1) + ' pza · $' + (item.precio_unit||0).toLocaleString() + '</div></div>' +
-        '<div style="font-size:13px;font-weight:700;color:var(--color-text-primary);font-family:monospace">$' + (item.subtotal||0).toLocaleString() + '</div>' +
+        '<div style="font-size:11px;color:var(--color-text-tertiary)">' + (smylNum(item.piezas) || 1) + ' pza · $' + smylNum(item.precio_unit).toLocaleString() + '</div></div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--color-text-primary);font-family:monospace">$' + smylNum(item.subtotal).toLocaleString() + '</div>' +
         '</div>';
     }).join('') +
     '<div style="background:rgba(91,71,224,.1);border-radius:8px;padding:10px;text-align:center;margin-top:10px">' +
@@ -4474,7 +4480,7 @@ async function generarPDF() {
     cotHTML = '<div class="seccion"><div class="sec-titulo">💰 Cotización del Tratamiento</div>' +
       '<table class="cot-pdf"><thead><tr><th>Procedimiento</th><th>Piezas</th><th>Precio unit.</th><th>Subtotal</th></tr></thead><tbody>' +
       cots.map(function(c) {
-        return '<tr><td>' + c.procedimiento + '</td><td style="text-align:center">' + c.piezas + '</td><td style="text-align:right">$' + (c.precio_unit||0).toLocaleString() + '</td><td style="text-align:right;font-weight:700">$' + (c.subtotal||0).toLocaleString() + '</td></tr>';
+        return '<tr><td>' + smylEsc(c.procedimiento) + '</td><td style="text-align:center">' + smylNum(c.piezas) + '</td><td style="text-align:right">$' + smylNum(c.precio_unit).toLocaleString() + '</td><td style="text-align:right;font-weight:700">$' + smylNum(c.subtotal).toLocaleString() + '</td></tr>';
       }).join('') +
       '</tbody></table>' +
       '<div class="total-pdf"><span>Total estimado del tratamiento</span><span class="total-num">$' + total.toLocaleString() + ' MXN</span></div></div>';

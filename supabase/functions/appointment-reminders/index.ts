@@ -104,7 +104,8 @@ function renderVariable(variable: Variable, row: Claimed, clinicName: string): s
     case "patient_name": return [first, text(row.patient_last_name, 120)].filter(Boolean).join(" ") || "paciente";
     // "miércoles 21 de octubre": sin la coma que agrega Intl, para que se lea bien dentro de la frase.
     case "date": return new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: zone }).format(start).replace(",", "");
-    case "time": return new Intl.DateTimeFormat("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: zone }).format(start);
+    // «5:00 pm» sin puntos: las plantillas ponen un punto después de la hora y «p.m.» + «.» salía como «p.m..».
+    case "time": return new Intl.DateTimeFormat("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: zone }).format(start).replace(/\s*([ap])\.?\s?m\.?/i, (_m, x) => ` ${x.toLowerCase()}m`);
     case "service": return text(row.service_name, 120) || "tu cita";
     case "professional": return text(row.professional_name, 120) || clinicName;
     case "branch": return text(row.branch_name, 120) || clinicName;

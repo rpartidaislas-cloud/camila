@@ -8,10 +8,11 @@
 // (ver el manejo de ?invite=1 en app.html).
 //
 // El vínculo con la clínica del dueño viaja en los metadatos del usuario
-// invitado (tenant_id_invitado) -- el trigger camila_crear_tenant_en_signup
-// (ver camila_team.sql) lo lee al crearse la cuenta y, en vez de montar una
-// clínica nueva, inserta una fila en camila_usuarios con rol 'staff'
-// apuntando a esa clínica.
+// invitado (tenant_id_invitado), PERO ese dato por sí solo no basta: lo manda el
+// navegador y cualquiera podría falsificarlo en un signUp. La invitación trazable
+// se registra en smyl_staff_invitations y su UUID viaja como smyl_invitation_id.
+// El trigger solo une la cuenta al equipo si ambos datos coinciden con una fila
+// pendiente, vigente y emitida para el mismo correo.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
@@ -155,7 +156,7 @@ Deno.serve(async (req: Request) => {
 
   const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: {
-      tenant_id_invitado: user.id,
+      tenant_id_invitado: tenant.id,
       nombre: nombre || undefined,
       smyl_invitation_id: invitation.id,
       smyl_member_kind: memberKind,
