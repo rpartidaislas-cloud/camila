@@ -33,7 +33,7 @@ test('la plantilla incluye los patrones operativos comunes',()=>{
 });
 
 test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
-  assert.match(app,/smyl-ui-template-v3\.css\?v=4/);
+  assert.match(app,/smyl-ui-template-v3\.css\?v=5/);
   assert.match(directory,/SMYL UI v3 pilot/);
   assert.match(directory,/--directory-type-meta:var\(--smyl-ui-text-meta,12px\)/);
   assert.match(directory,/::file-selector-button/);
@@ -41,7 +41,7 @@ test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
 
 test('SMYL UI v3 gobierna el shell después de los estilos históricos',()=>{
   assert.match(app,/<body class="[^"]*smyl-ui-governed[^"]*">/);
-  const governance=app.indexOf('smyl-ui-template-v3.css?v=4');
+  const governance=app.indexOf('smyl-ui-template-v3.css?v=5');
   assert.ok(governance>app.indexOf('smyl-professional-v3.css?v=7'));
   assert.ok(governance>app.indexOf('smyl-dialog-system.css?v=2'));
   assert.match(template,/Gobierno del panel · etapa 2/);
@@ -59,6 +59,16 @@ test('el sidebar adapta el patrón expandido y compacto leído desde Figma',()=>
   assert.match(template,/--smyl-ui-primary:\s*#0b1b2e/);
   assert.match(template,/\.pro-nav-flyout/);
   assert.match(template,/content:\s*attr\(data-tooltip\)/);
+});
+
+test('la política v3.2 gobierna también los módulos heredados y el Inicio',()=>{
+  for(const alias of ['--color-primary:','--azul:','--violeta:','--bg:','--radius:']) {
+    assert.match(template,new RegExp(alias));
+  }
+  assert.match(template,/:is\(#smyl-daily-home, \.daily-home\) \.daily-home-hero/);
+  assert.match(template,/:is\(#smyl-daily-home, \.daily-home\) \.daily-home-metrics/);
+  assert.match(template,/\.sidebar \.sb-user :is\(\.plan-chip, \.uso-wrap\).*display:\s*none !important/);
+  assert.match(app,/class="smyl-sidebar-quick"/);
 });
 
 test('la deuda tipográfica queda medida y no puede crecer silenciosamente',()=>{

@@ -283,7 +283,14 @@
     button.dataset.tooltip = 'Nueva cita';
     button.setAttribute('aria-label', 'Nueva cita');
     button.innerHTML = '<span aria-hidden="true">' + icon('calendar', 18) + '</span><span class="smyl-sidebar-quick-label">Nueva cita</span>';
-    button.addEventListener('click', function () { if (typeof window.ir === 'function') window.ir('agenda'); });
+    button.addEventListener('click', function () {
+      if (typeof window.ir !== 'function') return;
+      window.ir('agenda');
+      window.setTimeout(function () {
+        var create = document.getElementById('schedule-new');
+        if (create) create.click();
+      }, 0);
+    });
     foot.prepend(button);
   }
 

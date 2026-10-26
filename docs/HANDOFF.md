@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Política visual v3.2 aplicada a todo el producto
+
+- La revisión en producción confirmó que la primera entrega sólo cambiaba con
+  claridad el shell y los componentes nuevos. Esta pasada conecta las variables
+  históricas (`--azul`, `--violeta`, `--bg`, `--radius` y `--color-*`) con los
+  tokens v3.2 para que la política alcance también los módulos heredados.
+- Inicio incorpora un hero azul marino, métricas tipo bento y mayor contraste
+  entre niveles. Cards, formularios, tablas, tabs y estados de foco comparten
+  ahora bordes, radios, superficies y profundidad.
+- Plan y consumo dejan de competir con la navegación en todo el producto. La
+  acción `Nueva cita` queda en el HTML base y abre directamente el flujo de
+  agenda, incluso antes de que termine la mejora progresiva por JavaScript.
+- Web y `mobile/www` quedan sincronizados con
+  `smyl-ui-template-v3.css?v=5`, `smyl-navigation.js?v=13` y una nueva caché
+  PWA. No se modificaron backend, funciones, migraciones ni datos clínicos.
+
 ## 2026-10-26 — Codex — Política visual v3.2 publicada
 
 - Commit funcional `1ce5e06` integrado en `main` y en la rama configurada de

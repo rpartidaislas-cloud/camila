@@ -474,6 +474,45 @@ body.smyl-ui-governed {
   --smyl-primary-hover: var(--smyl-ui-primary-hover);
   --smyl-primary-subtle: var(--smyl-ui-primary-soft);
   --smyl-focus: var(--smyl-ui-focus);
+
+  /* Puente con el sistema histórico. Todos los módulos, incluso los que aún
+     usan --color-*, --azul o --violeta, reciben la política v3.2. */
+  --color-primary: var(--smyl-ui-primary);
+  --color-primary-hover: var(--smyl-ui-primary-hover);
+  --color-primary-subtle: var(--smyl-ui-primary-soft);
+  --color-primary-border: #cbd6e2;
+  --color-accent: var(--smyl-ui-accent);
+  --color-accent-hover: #278c82;
+  --color-accent-subtle: var(--smyl-ui-accent-soft);
+  --color-surface: var(--smyl-ui-surface);
+  --color-surface-raised: var(--smyl-ui-canvas);
+  --color-border: var(--smyl-ui-border);
+  --color-border-hover: var(--smyl-ui-border-strong);
+  --color-text-primary: var(--smyl-ui-ink);
+  --color-text-secondary: var(--smyl-ui-ink-secondary);
+  --color-text-tertiary: var(--smyl-ui-ink-muted);
+  --bg: var(--smyl-ui-canvas);
+  --bg2: var(--smyl-ui-surface);
+  --bg3: var(--smyl-ui-surface-soft);
+  --borde: var(--smyl-ui-border);
+  --borde2: var(--smyl-ui-border-strong);
+  --texto: var(--smyl-ui-ink);
+  --texto2: var(--smyl-ui-ink-secondary);
+  --texto3: var(--smyl-ui-ink-muted);
+  --azul: var(--smyl-ui-primary);
+  --azul-s: var(--smyl-ui-primary-soft);
+  --azul-b: #cbd6e2;
+  --violeta: var(--smyl-ui-primary);
+  --violeta-s: var(--smyl-ui-primary-soft);
+  --violeta-b: #cbd6e2;
+  --teal: var(--smyl-ui-accent);
+  --teal-s: var(--smyl-ui-accent-soft);
+  --radius: var(--smyl-ui-radius-card);
+  --radius-s: var(--smyl-ui-radius-card);
+  --radius-l: var(--smyl-ui-radius-panel);
+  --shadow: var(--smyl-ui-shadow-card);
+  --shadow-md: var(--smyl-ui-shadow-card);
+  --shadow-lg: var(--smyl-ui-shadow-float);
   background: var(--smyl-ui-canvas);
   color: var(--smyl-ui-ink);
   font: 400 var(--smyl-ui-text-body-sm)/var(--smyl-ui-line-body) var(--smyl-ui-font);
@@ -482,6 +521,123 @@ body.smyl-ui-governed {
 body.smyl-ui-governed .layout {
   background: var(--smyl-ui-canvas);
 }
+
+/* Gobierno transversal: anatomía compartida para módulos heredados. */
+body.smyl-ui-governed .contenido :is(
+  .card,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "]
+) {
+  border-color: var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+}
+
+body.smyl-ui-governed .contenido :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea
+) {
+  border-color: var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-control);
+  background: var(--smyl-ui-surface);
+  color: var(--smyl-ui-ink);
+}
+
+body.smyl-ui-governed .contenido :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea,
+  button
+) { font-family: var(--smyl-ui-font); }
+
+body.smyl-ui-governed .contenido :is(input, select, textarea):focus-visible,
+body.smyl-ui-governed .contenido :is(button, [role="button"], [role="tab"]):focus-visible {
+  outline: 2px solid var(--smyl-ui-focus);
+  outline-offset: 2px;
+}
+
+body.smyl-ui-governed .contenido :is([role="tab"][aria-selected="true"], [role="tab"].activo, [role="tab"].active) {
+  border-color: var(--smyl-ui-primary);
+  background: var(--smyl-ui-primary);
+  color: #fff;
+}
+
+body.smyl-ui-governed .contenido :is(table, .data-table, [class$="-table"], [class*="-table "]) {
+  border-color: var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+}
+
+body.smyl-ui-governed .contenido :is(th, [class$="-table-head"], [class*="-table-head "]) {
+  background: var(--smyl-ui-surface-soft);
+  color: var(--smyl-ui-ink-secondary);
+}
+
+/* Inicio funciona como portada del sistema: una superficie navy y métricas
+   bento hacen visible la política sin oscurecer el área de trabajo completa. */
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero {
+  padding: 1.4rem 1.5rem;
+  border-color: transparent;
+  border-radius: var(--smyl-ui-radius-panel);
+  background:
+    radial-gradient(circle at 88% 5%, rgba(56, 169, 157, .3), transparent 15rem),
+    linear-gradient(135deg, #0b1b2e, #132c47);
+  box-shadow: 0 1.4rem 3rem -2rem rgba(11, 27, 46, .68);
+}
+
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero::before { background: var(--smyl-ui-accent); }
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero :is(h1, .daily-home-eyebrow) { color: #fff; }
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero .daily-home-eyebrow { opacity: .78; }
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero p { color: rgba(255,255,255,.72); }
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero .daily-home-actions small { color: rgba(255,255,255,.62); }
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero .btn-primary {
+  border-color: #fff !important;
+  background: #fff !important;
+  color: var(--smyl-ui-primary) !important;
+}
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero .btn-secondary {
+  border-color: rgba(255,255,255,.24) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+}
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-patient-link { color: #9ce7df; }
+
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-metrics,
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-metrics-month {
+  gap: .75rem;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-metric {
+  min-height: 5.75rem;
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+  background: var(--smyl-ui-surface);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-metric:last-child { border-right: 1px solid var(--smyl-ui-border); }
+
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) :is(.daily-home-card, .daily-home-chat, .daily-home-chats-note) {
+  border-radius: var(--smyl-ui-radius-card);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+
+body.smyl-ui-governed #smyl-clinic-setup {
+  overflow: hidden;
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+  background: var(--smyl-ui-surface);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+
+body.smyl-ui-governed #smyl-clinic-setup button { border-radius: var(--smyl-ui-radius-control); }
+
+/* El consumo pertenece a Mi cuenta; no compite con la navegación. */
+body.smyl-ui-governed .sidebar .sb-user :is(.plan-chip, .uso-wrap) { display: none !important; }
 
 /* Shell y navegación primaria. */
 body.smyl-ui-governed.smyl-management-v3 .sidebar {
