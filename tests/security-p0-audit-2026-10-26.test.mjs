@@ -103,3 +103,50 @@ test('P0-2: guardar-lead-prospecto limita el tamaño y no deja pisar casos de ot
   assert.match(lead, /UUID_RE\.test\(tenantId\)/);
   assert.match(lead, /existente\.tenant_id !== tenantId \|\| existente\.es_prospecto !== true[\s\S]{0,80}jsonError\(409/);
 });
+
+const cuota = read('supabase/migrations/20261026240000_smyl_security_tenant_quota_guard.sql');
+const altaSegura = read('supabase/migrations/20261026250000_smyl_security_signup_plan_guard.sql');
+const workflow = read('.github/workflows/smyl-seguridad-p0-migracion.yml');
+
+test('S1: el cliente no puede editar plan, cuota ni vencimiento de su clínica', () => {
+  assert.match(cuota, /create trigger camila_proteger_cuota_tenant\s+before insert or update on public\.camila_tenants/);
+  // Solo restringe a authenticated/anon: service_role, postgres y funciones SECURITY DEFINER pasan
+  assert.match(cuota, /if current_user not in \('authenticated', 'anon'\) then\s+return new;/);
+  for (const col of ['plan', 'limite_diagnosticos', 'diagnosticos_usados', 'activo', 'vence_en', 'stripe_customer_id', 'stripe_subscription_id']) {
+    assert.match(cuota, new RegExp(`new\\.${col} := old\\.${col};`), col + ' se conserva en UPDATE');
+  }
+  // INSERT: plan canónico, límite derivado del plan, sin stripe_* y vencimiento acotado
+  assert.match(cuota, /'\{"esencial":15,"profesional":40,"premium":100\}'/);
+  assert.match(cuota, /new\.limite_diagnosticos := \(v_limites ->> new\.plan\)::integer;/);
+  assert.match(cuota, /new\.vence_en > now\(\) \+ interval '32 days'/);
+  // lo que la app sí escribe sigue permitido
+  assert.doesNotMatch(cuota, /new\.(nombre|config|email) := old\./);
+});
+
+test('S1: los límites canónicos coinciden con los de stripe-webhook', () => {
+  const stripe = read('supabase/functions/stripe-webhook/index.ts');
+  assert.match(stripe, /LIMITES: Record<string, number> = \{ esencial: 15, profesional: 40, premium: 100 \}/);
+});
+
+test('S1: el trigger de alta ya no confía en plan ni limite_diagnosticos del metadato', () => {
+  const alta = altaSegura;
+  assert.doesNotMatch(alta, /meta->>'limite_diagnosticos'/);
+  assert.match(alta, /v_limites \? coalesce\(meta->>'plan', ''\)/);
+  assert.match(alta, /\(v_limites ->> v_plan\)::integer/);
+  // conserva la invitación verificada por el servidor
+  assert.match(alta, /from public\.smyl_staff_invitations i/);
+  assert.match(alta, /i\.id = invitation_id[\s\S]*i\.tenant_id = tenant_invitado[\s\S]*lower\(i\.email\) = lower\(new\.email\)/);
+});
+
+test('S1: el cliente solo actualiza nombre y config de camila_tenants', () => {
+  const escrituras = [...app.matchAll(/from\('camila_tenants'\)\.update\(\{([^}]*)\}\)/g)].map((m) => m[1].trim());
+  assert.ok(escrituras.length >= 4);
+  for (const campos of escrituras) assert.match(campos, /^(config: config|nombre: tenantData\.nombre, config: config)$/);
+});
+
+test('workflow de seguridad aplica y verifica las cuatro migraciones conciliadas', () => {
+  for (const v of ['20261026220000', '20261026230000', '20261026240000', '20261026250000']) assert.match(workflow, new RegExp(v));
+  assert.match(workflow, /camila_proteger_cuota_tenant/);
+  assert.match(workflow, /cuotaCompleta\(despues\)/);
+  assert.match(workflow, /signupCompleto\(despues\)/);
+});
