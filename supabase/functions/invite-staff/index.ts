@@ -8,10 +8,12 @@
 // (ver el manejo de ?invite=1 en app.html).
 //
 // El vínculo con la clínica del dueño viaja en los metadatos del usuario
-// invitado (tenant_id_invitado) -- el trigger camila_crear_tenant_en_signup
-// (ver camila_team.sql) lo lee al crearse la cuenta y, en vez de montar una
-// clínica nueva, inserta una fila en camila_usuarios con rol 'staff'
-// apuntando a esa clínica.
+// invitado (tenant_id_invitado), PERO ese dato por sí solo no basta: lo manda el
+// navegador y cualquiera podría falsificarlo en un signUp. Por eso, antes de
+// invitar, esta función (con service role) registra la invitación en
+// camila_invitaciones (migración 20261026210000). El trigger
+// camila_crear_tenant_en_signup solo une a la cuenta como 'staff' si encuentra
+// una invitación vigente para ese correo y esa clínica; si no, ignora el metadato.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
@@ -91,6 +93,27 @@ Deno.serve(async (req: Request) => {
   const nombre = String(body?.nombre || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError(400, "Correo inválido.");
 
+  // Invitación del lado del servidor: es lo único que autoriza al trigger a unir la cuenta al equipo.
+  const { error: limpiarErr } = await admin
+    .from("camila_invitaciones")
+    .delete()
+    .eq("tenant_id", user.id)
+    .eq("email", email)
+    .is("consumed_at", null);
+  if (limpiarErr) {
+    console.error("[invite-staff] error limpiando invitación previa:", limpiarErr.message);
+    return jsonError(500, "No se pudo registrar la invitación. Intenta de nuevo.");
+  }
+  const { data: invitacion, error: registroErr } = await admin
+    .from("camila_invitaciones")
+    .insert({ tenant_id: user.id, email, nombre: nombre || null })
+    .select("id")
+    .single();
+  if (registroErr || !invitacion) {
+    console.error("[invite-staff] error registrando invitación:", registroErr?.message);
+    return jsonError(500, "No se pudo registrar la invitación. Intenta de nuevo.");
+  }
+
   const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: {
       tenant_id_invitado: user.id,
@@ -101,6 +124,8 @@ Deno.serve(async (req: Request) => {
 
   if (inviteErr) {
     console.error("[invite-staff] error invitando:", inviteErr.message);
+    // Si el correo no salió, la invitación registrada no debe quedar vigente.
+    await admin.from("camila_invitaciones").delete().eq("id", invitacion.id);
     // Supabase regresa este mensaje cuando el correo ya tiene cuenta --
     // vale la pena distinguirlo del resto para no confundir al dueño.
     const yaExiste = /already.*registered|already exists/i.test(inviteErr.message);

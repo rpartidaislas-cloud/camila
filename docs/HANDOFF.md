@@ -8267,3 +8267,21 @@ móvil, pruebas de contrato y QA visual.
   `smyl-connections.css?v=8`; PWA `smyl-v263-lana-connection-recovery`.
 - Verificación: sintaxis aprobada, 13/13 pruebas enfocadas y 645/645 pruebas del
   repositorio aprobadas.
+
+## 2026-10-26 — Claude — Seguridad P0 de la auditoría (alta de staff, XSS del Historial, vista pública)
+Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md`.
+- **P0-1 alta como staff de otra clínica:** migración `20261026210000_smyl_security_staff_invitations.sql`
+  (tabla `camila_invitaciones` sin políticas + trigger `camila_crear_tenant_en_signup` que solo une como staff
+  con invitación vigente, un solo uso, 14 días) y `invite-staff` actualizada (registra la invitación antes de
+  invitar y la retira si el correo falla). **Orden:** aplicar la migración y desplegar `invite-staff` enseguida.
+- **P0-3 vista pública:** migración `20261026200000_smyl_security_public_tenant_view.sql`; `camila_tenants_publico`
+  entrega solo `config.sim` y `config.precios` (lo único que leen `simulacion*.html`). Sigue listando id+nombre.
+- **P0-2 XSS almacenado:** `app.html` (Historial, detalle del caso, "últimos casos" y PDF) escapa `telefono` y
+  pasa score/totales/piezas por `smylNum`; `guardar-lead-prospecto` valida tipos y tamaños, limita el body
+  (12 MB) y no deja pisar un caso existente de otra clínica (409). Copia móvil sincronizada.
+- Aplicar: workflow manual `.github/workflows/smyl-seguridad-p0-migracion.yml` (mismo patrón que los anteriores).
+- Verificación: ambas migraciones y la lógica del trigger se probaron en un Postgres real en memoria (PGlite):
+  con el trigger original un atacante quedaba como staff de la clínica víctima; con el nuevo queda como dueño de
+  su propia clínica; la invitación legítima funciona, es de un solo uso y vence. Pruebas en
+  `tests/security-p0-audit-2026-10-26.test.mjs` (679/679 en la suite).
+- Pendiente (siguiente fase de la auditoría): S1 (el dueño edita su cuota/plan), S2-S10, CSP, CI, etc.
