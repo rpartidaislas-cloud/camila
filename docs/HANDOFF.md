@@ -15,6 +15,9 @@
 - Web y `mobile/www` quedan sincronizados con
   `smyl-ui-template-v3.css?v=5`, `smyl-navigation.js?v=13` y una nueva caché
   PWA. No se modificaron backend, funciones, migraciones ni datos clínicos.
+- Commit funcional `b37ef80` publicado en `main` y en la fuente de GitHub
+  Pages. El despliegue `40341112395` terminó correctamente y producción se
+  verificó tanto por recursos servidos como mediante inspección visual.
 
 ## 2026-10-26 — Codex — Política visual v3.2 publicada
 
