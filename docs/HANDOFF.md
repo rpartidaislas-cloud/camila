@@ -11,8 +11,8 @@
   archivos. Fixture visual nuevo en
   `tests/fixtures/smyl-agenda-visual-v3-preview.html`.
 - La suite completa terminó con **668/668 pruebas** y la revisión visual de
-  escritorio fue satisfactoria. Estos cambios quedan locales hasta que el
-  usuario pida publicación.
+  escritorio fue satisfactoria. Los commits `5619f37` y `f9494c6` quedaron
+  publicados; GitHub Pages `40356048562` terminó correctamente.
 - Google Calendar incorpora OAuth servidor con scope mínimo `calendar.events`,
   `state` de un solo uso, PKCE, tokens cifrados, estado y desconexión. La
   migración `20261026160000` y `google-calendar-oauth` están desplegadas; el
@@ -20,7 +20,9 @@
 - Se reutiliza el cliente OAuth existente de Gmail y se creó una clave de
   cifrado independiente. La activación queda bloqueada por
   `GOOGLE_CALENDAR_OAUTH_READY` hasta que el usuario verifique la cuenta de
-  Google Cloud, habilite Calendar API y registre el callback documentado.
+  Google Cloud, habilite Calendar API y registre el callback documentado. La
+  pestaña de Google Cloud quedó abierta en la pantalla de verificación de
+  `apps@smyldesign.ai`; no se solicitó ni manipuló la contraseña.
 
 ## 2026-10-26 — Codex — Política visual v3.2 aplicada a todo el producto
 
