@@ -43,8 +43,7 @@
   var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
   // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
   var MESSAGING = [
-    ['Mensajes', 'inbox', 'messages'],
-    ['Plantillas de WhatsApp', 'plantillas', 'templates']
+    ['Mensajes', 'inbox', 'messages']
   ];
   var BUSINESS = [
     ['Servicios y tarifas', 'precios', 'pricing'],
@@ -54,7 +53,7 @@
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta', 'plantillas'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -66,7 +65,9 @@
     ['Preparación operativa', 'lanzamiento', 'launch'],
     ['Seguridad', 'seguridad', 'shield'],
     ['Marca y simulación', 'sim-config', 'brand'],
-    ['Mi cuenta', 'mi-cuenta', 'account']
+    ['Mi cuenta', 'mi-cuenta', 'account'],
+    // Las plantillas de WhatsApp son parte de Canales: se llega desde Configuración o desde Mensajes.
+    ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
 
   function icon(name, size) {
