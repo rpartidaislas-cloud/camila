@@ -30,6 +30,7 @@ copyFile(path.join(ROOT, 'consumos.html'), path.join(WWW, 'consumos.html'));
 copyFile(path.join(ROOT, 'dentista.html'), path.join(WWW, 'dentista.html'));
 copyFile(path.join(ROOT, 'smyl-professional-directory.js'), path.join(WWW, 'smyl-professional-directory.js'));
 copyFile(path.join(ROOT, 'smyl-professional-directory.css'), path.join(WWW, 'smyl-professional-directory.css'));
+copyFile(path.join(ROOT, 'smyl-ui-template-v3.css'), path.join(WWW, 'smyl-ui-template-v3.css'));
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
 
 console.log('www/ actualizado desde la raíz del repo.');

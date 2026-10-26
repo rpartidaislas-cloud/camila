@@ -1,0 +1,51 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+const here=path.dirname(fileURLToPath(import.meta.url));
+const root=path.resolve(here,'..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const template=read('smyl-ui-template-v3.css');
+const directory=read('smyl-professional-directory.css');
+const app=read('app.html');
+const audit=read('docs/AUDITORIA_VISUAL_SMYL_2026-10-25.md');
+
+test('SMYL UI v3 define una escala tipográfica cerrada y legible',()=>{
+  for(const token of [
+    '--smyl-ui-text-page','--smyl-ui-text-section','--smyl-ui-text-title',
+    '--smyl-ui-text-body','--smyl-ui-text-body-sm','--smyl-ui-text-label','--smyl-ui-text-meta'
+  ]) assert.match(template,new RegExp(token));
+  const tiny=[...template.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)px/gi)]
+    .filter(match=>Number(match[1])<12);
+  assert.equal(tiny.length,0,'la plantilla nueva no debe introducir texto menor de 12 px');
+});
+
+test('la plantilla incluye los patrones operativos comunes',()=>{
+  for(const component of [
+    '.smyl-ui-page-header','.smyl-ui-tabs','.smyl-ui-card','.smyl-ui-field',
+    '.smyl-ui-upload','.smyl-ui-button','.smyl-ui-notice','.smyl-ui-empty','.smyl-ui-list-item'
+  ]) assert.match(template,new RegExp(component.replace('.','\\.')));
+  assert.match(template,/prefers-reduced-motion/);
+  assert.match(template,/focus-visible/);
+  assert.match(template,/@media \(max-width: 42rem\)/);
+});
+
+test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
+  assert.match(app,/smyl-ui-template-v3\.css\?v=1/);
+  assert.match(directory,/SMYL UI v3 pilot/);
+  assert.match(directory,/--directory-type-meta:var\(--smyl-ui-text-meta,12px\)/);
+  assert.match(directory,/::file-selector-button/);
+});
+
+test('la deuda tipográfica queda medida y no puede crecer silenciosamente',()=>{
+  const files=fs.readdirSync(root).filter(name=>name.endsWith('.css')).map(name=>read(name));
+  files.push(app);
+  const tiny=files.flatMap(source=>[...source.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)px/gi)])
+    .filter(match=>Number(match[1])<12);
+  assert.ok(tiny.length<=888,`la deuda de microtexto subió de 888 a ${tiny.length}`);
+  assert.match(audit,/2,202/);
+  assert.match(audit,/40/);
+  assert.match(audit,/888/);
+});

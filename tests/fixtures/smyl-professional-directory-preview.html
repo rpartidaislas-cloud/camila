@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>SMYL · Directorio profesional QA</title>
+    <link rel="stylesheet" href="../../smyl-ui-template-v3.css" />
     <link rel="stylesheet" href="../../smyl-professional-directory.css" />
     <style>
       * {
@@ -35,7 +36,7 @@
         color: #fff;
       }
       .pro-eyebrow {
-        font-size: 10px;
+        font-size: 12px;
         letter-spacing: 0.11em;
         color: #64817d;
       }
@@ -123,8 +124,12 @@
         ],
         smyl_appointments: [
           { id: "appointment-preview-1", patient_id: "patient-preview-1", professional_id: "22222222-2222-4222-8222-222222222222", service_id: "service-preview-1", starts_at: "2026-10-10T16:00:00Z", status: "completed" },
+          { id: "appointment-preview-2", patient_id: "patient-preview-2", professional_id: "22222222-2222-4222-8222-222222222222", service_id: "service-preview-1", starts_at: "2026-10-18T16:00:00Z", status: "completed" },
         ],
-        camila_pacientes: [{ id: "patient-preview-1", nombre: "Paciente", apellido: "Demostración" }],
+        camila_pacientes: [
+          { id: "patient-preview-1", nombre: "Paciente", apellido: "Demostración" },
+          { id: "patient-preview-2", nombre: "Paciente", apellido: "Prueba" },
+        ],
         smyl_services: [{ id: "service-preview-1", name: "Restauraciones estéticas" }],
         smyl_review_invitations: [
           { id: "invite-preview-1", professional_id: "22222222-2222-4222-8222-222222222222", appointment_id: "appointment-preview-1", expires_at: "2026-10-28T12:00:00Z", used_at: "2026-10-14T12:00:00Z", revoked_at: null },

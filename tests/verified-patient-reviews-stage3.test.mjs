@@ -47,7 +47,7 @@ test('panel, paciente y perfil público cubren el flujo completo',()=>{
 });
 
 test('reseñas verificadas se distribuyen igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=11/);
+  assert.match(app,/smyl-professional-directory\.js\?v=12/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   assert.match(sw,/resena\.html/);
   assert.equal(admin,read('../mobile/www/smyl-professional-directory.js'));

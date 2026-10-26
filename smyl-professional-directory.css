@@ -52,3 +52,59 @@
 @media(max-width:1320px){.directory-layout[data-single=true]{grid-template-columns:minmax(560px,1fr) 330px}}
 @media(max-width:1180px){.directory-layout[data-single=true]{grid-template-columns:minmax(0,1fr)}.directory-layout[data-single=true] .directory-preview{grid-column:1;max-width:520px;width:100%;margin:18px auto 0}.directory-layout[data-single=true] .directory-profile-card{display:block}.directory-layout[data-single=true] .directory-profile-body{grid-column:auto}}
 @media(max-width:760px){.directory-page{padding:20px 14px 96px}.directory-head{margin-bottom:20px}.directory-head h1{font-size:29px}.directory-head p{font-size:12px}.directory-editor{padding:16px;border-radius:17px}.directory-editor-head h2{font-size:23px}.directory-builder-overview{border-radius:15px}.directory-builder-overview .directory-progress-card{padding:15px}.directory-builder-overview .directory-stepper{overflow:auto;padding-left:9px;padding-right:9px}.directory-photo-section{grid-template-columns:1fr;gap:16px;padding:20px;text-align:center}.directory-photo-picker{margin:0 auto}.directory-photo-section p{margin-left:auto;margin-right:auto}.directory-photo-section small{display:block;margin:8px 0 0}.directory-form-section{padding:16px}.directory-form-section-head{align-items:flex-start}.directory-field-label{align-items:flex-start}.directory-slug span{display:none}.directory-preview{padding:0}.directory-profile-card{display:block}.directory-preview-hero .directory-profile-photo{position:relative;left:auto;top:auto;margin:0 auto 13px}.directory-profile-body{padding:0}.directory-wizard-actions{bottom:74px}}
+
+/* Case library · explicit add and safe hide controls. */
+.directory-cases{margin-top:6px;padding-top:0;border-top:0}.directory-cases-head{align-items:center;margin-bottom:20px}.directory-cases-head h3{font-size:24px;letter-spacing:-.025em}.directory-cases-head p{font-size:13px}.directory-case-toolbar{display:flex;align-items:center;gap:10px;flex-shrink:0}.directory-case-toolbar>span{padding:7px 10px;border-radius:99px;background:#eef5f2;color:#4c6d66;font-size:11px;white-space:nowrap}.directory-case-toolbar .btn{display:inline-flex;align-items:center;gap:7px;min-height:40px}.directory-case-toolbar svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.directory-case-form-shell{margin-bottom:22px;overflow:hidden;border:1px solid #cfe0d9;border-radius:16px;background:#fff;box-shadow:0 12px 28px rgba(25,64,56,.07)}.directory-case-form-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:18px 20px;background:linear-gradient(120deg,#edf7f3,#fbfdfc);border-bottom:1px solid #dfe9e4}.directory-case-form-head span{display:block;color:#4d796f;font-size:10px;font-weight:750;letter-spacing:.11em}.directory-case-form-head h4{margin:4px 0 5px;font-size:18px;letter-spacing:-.02em}.directory-case-form-head p{margin:0;color:#657772;font-size:12px;line-height:1.45}.directory-case-form-head>button{width:34px;height:34px;flex:0 0 auto;border:1px solid #d5e1dc;border-radius:9px;background:#fff;color:#536a65;font-size:21px;line-height:1;cursor:pointer}.directory-case-form-head>button:hover{border-color:#aebfb9;color:#193f36}.directory-case-form-shell form{border:0;border-radius:0;background:#fff;padding:20px}.directory-case-form-shell .directory-actions{align-items:center}.directory-case-form-shell .directory-actions .btn{min-width:130px}.directory-case-form-shell select:disabled{color:#7a8985;background:#f2f5f3}
+.directory-case-library{padding-top:2px}.directory-case-library-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:11px}.directory-case-library-head strong,.directory-case-library-head small{display:block}.directory-case-library-head strong{font-size:15px;color:#253d37}.directory-case-library-head small{margin-top:3px;color:#71807c;font-size:11px}.directory-case-list{margin-top:0}.directory-case-card{border-color:#dce5e1;box-shadow:0 7px 20px rgba(26,58,52,.045)}.directory-case-copy>div:first-child{grid-template-columns:auto 1fr}.directory-case-copy strong{font-size:15px}.directory-case-copy small{font-size:11px}.directory-case-copy p{font-size:13px}.directory-case-actions .btn{min-height:34px;padding:7px 11px;font-size:11px}.directory-case-actions .btn-danger{margin-left:auto;background:#fff5f3;border:1px solid #f0d1ca;color:#9f3528}.directory-case-actions .btn-danger:hover{background:#a83d30;border-color:#a83d30;color:#fff}.directory-case-empty{border:1px dashed #c9d9d3;border-radius:14px;background:#fafcfb}.directory-case-empty .btn{margin-top:2px}
+@media(max-width:760px){.directory-cases-head{display:grid;gap:14px}.directory-case-toolbar{justify-content:space-between}.directory-case-toolbar .btn{min-height:44px}.directory-case-form-head{padding:16px}.directory-case-form-shell form{padding:16px}.directory-case-form-shell .directory-actions{grid-template-columns:1fr}.directory-case-form-shell .directory-actions .btn{width:100%}.directory-case-library-head small{font-size:12px}.directory-case-actions .btn{min-height:40px}.directory-case-actions .btn-danger{margin-left:0}.directory-case-copy p{font-size:13px}}
+
+/* SMYL UI v3 pilot · one readable type scale for the complete directory. */
+.directory-page{
+  --directory-type-page:var(--smyl-ui-text-page,clamp(28px,3vw,36px));
+  --directory-type-section:var(--smyl-ui-text-section,22px);
+  --directory-type-title:var(--smyl-ui-text-title,16px);
+  --directory-type-body:var(--smyl-ui-text-body-sm,14px);
+  --directory-type-label:var(--smyl-ui-text-label,13px);
+  --directory-type-meta:var(--smyl-ui-text-meta,12px);
+  font-size:var(--directory-type-body);
+  line-height:1.55;
+}
+.directory-head h1{font-size:var(--directory-type-page)}
+.directory-head p,.directory-editor-head p,.directory-step-panel legend small,.directory-photo-section p,.directory-progress-copy p,.directory-guide-card p,.directory-guide-card li,.directory-checklist-header p,.directory-cases-head p,.directory-case-copy p,.directory-review-card blockquote{font-size:var(--directory-type-body)!important;line-height:1.55}
+.directory-editor-head h2,.directory-cases-head h3{font-size:var(--directory-type-section)!important;line-height:1.3}
+.directory-photo-section h3,.directory-progress-copy h3,.directory-guide-card h3,.directory-case-form-head h4,.directory-empty strong{font-size:var(--directory-type-title)!important;line-height:1.35}
+.directory-form-grid label,.directory-reviews form label,.directory-field-label,.directory-check,.directory-checklist-item,.directory-case-copy strong,.directory-case-library-head strong{font-size:var(--directory-type-label)!important;line-height:1.45}
+.directory-form-grid input,.directory-form-grid textarea,.directory-form-grid select,.directory-reviews form select,.directory-review-link input{font-size:var(--directory-type-body)!important;line-height:1.45}
+.directory-form-grid input,.directory-form-grid select,.directory-reviews form select,.directory-review-link input{min-height:48px}
+.directory-page .btn,.directory-case-actions .btn,.directory-wizard-actions .btn{min-height:42px;font-size:var(--directory-type-label)!important;font-weight:680}
+.directory-page :is(
+  .directory-metrics span,.directory-sidebar>div:first-child button,.directory-person small,.directory-person i,
+  .directory-editor-head>div>span,.directory-share span,.directory-preview-label span,.directory-preview-label small,.directory-qr>span,
+  .directory-status,.directory-slug span,.directory-privacy p,.directory-verification span,.directory-verification p,.directory-verified,
+  .directory-tags span,.directory-profile-body dt,.directory-profile-body dd,.directory-profile-body>small,.directory-cases-head>div>span,
+  .directory-cases-head>span,.directory-case-compare span,.directory-case-copy em,.directory-review-link small,.directory-review-meta small,
+  .directory-review-card>em,.directory-workspace-nav button>span,.directory-workspace-nav small,.directory-progress-ring span,
+  .directory-progress-copy>span,.directory-progress-reward span,.directory-progress-reward small,.directory-stepper i,.directory-stepper strong,
+  .directory-stepper small,.directory-step-panel legend span,.directory-form-grid label>em,.directory-upload>div>i,.directory-upload p small,
+  .directory-upload input[type=file],.directory-branch-state p,.directory-branch-state button,.directory-ready-card p,
+  .directory-checklist-group-head>span,.directory-checklist-go,.directory-checklist-icon,.directory-checklist-item em,.directory-char-hint,
+  .directory-section-kicker,.directory-file-cta,.directory-photo-section small,.directory-form-section-head>span,.directory-form-section-head small,
+  .directory-field-label b,.directory-form-grid small,.directory-field>small,.directory-preview-hero .directory-specialty,
+  .directory-preview-hero>.directory-specialty+p,.directory-preview-actions span,.directory-profile-body .directory-preview-stats dt,
+  .directory-profile-body .directory-preview-stats dd,.directory-preview-details>strong,.directory-preview-details>p,.directory-preview-note,
+  .directory-case-toolbar>span,.directory-case-form-head span,.directory-case-library-head small,.directory-case-copy small
+){font-size:var(--directory-type-meta)!important;line-height:1.45}
+.directory-section-kicker,.directory-editor-head>div>span,.directory-cases-head>div>span,.directory-case-form-head span,.directory-form-section-head>span{letter-spacing:.075em}
+.directory-upload>div{display:grid;grid-template-columns:44px minmax(0,1fr) auto;min-height:76px;gap:12px;align-items:center;padding:14px}
+.directory-upload p{min-width:0}.directory-upload p strong{font-size:var(--directory-type-label)!important;overflow-wrap:anywhere}
+.directory-upload input[type=file]{width:136px;max-width:100%;padding:0!important;border:0!important;background:transparent!important;color:transparent!important;font-size:0!important;box-shadow:none!important}
+.directory-upload input[type=file]::file-selector-button{min-height:38px;margin-right:8px;padding:8px 11px;border:1px solid #bfd1ca;border-radius:8px;background:#fff;color:var(--directory-green);font:680 var(--directory-type-meta)/1.2 var(--smyl-ui-font,Inter,sans-serif);cursor:pointer}
+.directory-upload input[type=file]::file-selector-button:hover{border-color:#8eb4a8;background:#f3f8f6}
+.directory-profile-body .directory-preview-stats{padding-block:16px}.directory-profile-body .directory-preview-stats dt{font-weight:700}.directory-profile-body .directory-preview-stats dd{margin-top:5px}.directory-preview-details{padding:20px}.directory-preview-note{margin-top:13px}
+@media(max-width:760px){
+  .directory-head p{font-size:var(--directory-type-body)!important}
+  .directory-page .btn,.directory-case-actions .btn,.directory-wizard-actions .btn{min-height:44px}
+  .directory-upload>div{grid-template-columns:44px minmax(0,1fr)}
+  .directory-upload input[type=file]{grid-column:1/-1;width:100%}
+}

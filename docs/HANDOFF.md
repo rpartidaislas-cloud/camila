@@ -1,5 +1,38 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-25 — Codex — Auditoría visual, SMYL UI v3 y biblioteca de casos
+
+**Tocado:** auditoría/documentación visual, plantilla CSS compartida, Directorio
+profesional, administrador de casos, carga web/PWA, sincronización móvil,
+fixtures y pruebas de contrato.
+
+- La auditoría de 54 archivos midió 2,202 declaraciones tipográficas, 40
+  tamaños distintos y 888 declaraciones menores de 12 px tras integrar la recuperación de LANA. El informe completo
+  y el plan por etapas quedaron en `docs/AUDITORIA_VISUAL_SMYL_2026-10-25.md`.
+- `smyl-ui-template-v3.css` define la plantilla operativa nueva: siete niveles
+  tipográficos (mínimo visible 12 px), campos de 48 px, botones consistentes,
+  shell, pestañas, tarjetas, listas, carga de archivos, avisos y estados vacíos.
+- Directorio profesional es el piloto: normaliza tipografía efectiva, ayudas,
+  vista previa y CV; el nombre del PDF se actualiza al seleccionarlo y el control
+  nativo deja de mostrar texto truncado redundante.
+- Casos se convierte en biblioteca: formulario oculto hasta `Agregar caso`,
+  lista de casos existentes, edición de borradores y `Quitar del perfil` para
+  propietarios. Esta acción reutiliza `smyl_review_professional_case(...,
+  'paused', ...)`; conserva fotos y autorización. No se agregó una eliminación
+  definitiva ni una RPC inexistente.
+- Web y `mobile/www` usan Directorio JS/CSS v12; PWA precarga
+  `smyl-ui-template-v3.css?v=1`. Se agregó una prueba que impide aumentar la
+  deuda base de microtexto y otra que valida componentes/accesibilidad de v3.
+- QA visual aprobada a 1440, 1024 y 390 px para Ficha, Confianza/CV y Casos, sin
+  desbordamiento horizontal. No se modificaron migraciones, Edge Functions,
+  RLS, secretos, prompts ni datos clínicos.
+
+**Siguiente etapa recomendada:** migrar shell/navegación de `app.html` y retirar
+estilos tipográficos incrustados. Mantener la línea base ≤888 hasta que cada
+módulo sustituya sus reglas heredadas por los tokens v3.
+
+---
+
 ## 2026-10-24 — Claude: backend seguro de compras consumibles, etapa 8 (implementada, sin cobros reales)
 
 Implementa `docs/CLAUDE_CONSUMABLES_STAGE8.md`. Productos siguen `active=false` y
