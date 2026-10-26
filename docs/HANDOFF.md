@@ -7939,3 +7939,13 @@ copias móviles, PWA, fixtures y contratos visuales.
   `smyl_reschedule_appointment` (misma columna/profesional; sólo mouse, en táctil se usa "Cambiar horario").
   Etiqueta en vivo con la duración u hora nueva. Errores del servidor (choques, horario) se muestran y la cita vuelve a su lugar.
 - Sin probar en navegador real todavía (sólo sintaxis y pruebas de texto).
+
+## 2026-10-25 — Codex — Mensajes: espacio de trabajo clínico simplificado
+
+- Se reorganizó Mensajes como una superficie de tres zonas: bandeja priorizada, conversación principal y Ficha 360 bajo demanda. La información secundaria queda oculta hasta solicitarla para reducir carga visual.
+- La cola muestra estado y responsable como señales operativas principales; la conversación amplía su ancho, mejora la lectura de mensajes y unifica herramientas, redacción y envío en un solo compositor.
+- La acción principal cambia según el contexto del paciente y el menú “Nueva acción” concentra agenda, expediente, cotización y cobro respetando las capacidades activas del rol y el alcance operativo.
+- Ficha 360 abre como panel lateral accesible, conserva foco y contexto entre actualizaciones, se cierra con Escape y en móvil ocupa la pantalla completa sin generar desplazamiento horizontal.
+- Se reforzó la actualización en segundo plano: continúa consultando novedades mientras el usuario escribe, pero difiere el repintado visual para no interrumpir la respuesta.
+- Web y fuente móvil quedaron sincronizadas en `smyl-inbox.js?v=37` y `smyl-inbox.css?v=35`; no hubo cambios de base de datos, funciones, credenciales ni datos clínicos.
+- Verificación: 71/71 contratos de Mensajes y 46/46 contratos adyacentes aprobados; revisión visual en 1440, 1024, 768, 390 y 320 px sin desbordamiento. La suite completa aprobó 609/610; el único fallo corresponde a un contrato previo de MILA sobre `mobile/www/index.html`, archivo ajeno a esta entrega y ya modificado antes de iniciarla.

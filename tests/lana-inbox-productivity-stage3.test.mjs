@@ -22,11 +22,12 @@ test('search and shared files stay on the authenticated LANA bridge', () => {
 });
 
 test('quick replies prepare a draft and never send automatically', () => {
+  const quickReplyFlow = inbox.slice(inbox.indexOf('function renderQuickReplies'), inbox.indexOf('async function openQuickReplies'));
   assert.match(bridge, /action === "quick_replies"/);
   assert.match(inbox, /action: 'quick_replies'/);
-  assert.match(inbox, /setComposerText\(item\.text\)/);
+  assert.match(quickReplyFlow, /setComposerText\(item\.text\)/);
   assert.match(inbox, /nunca se envía automáticamente/);
-  assert.doesNotMatch(inbox, /item\.text.*submitMessage/s);
+  assert.doesNotMatch(quickReplyFlow, /submitMessage/);
 });
 
 test('the context shortcut opens the same shared-files dialog as the thread header', () => {
@@ -51,8 +52,8 @@ test('sound notices are opt-in and contain no patient persistence', () => {
 });
 
 test('stage 3 ships synchronized web, native and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=36/);
-  assert.match(app, /smyl-inbox\.css\?v=34/);
+  assert.match(app, /smyl-inbox\.js\?v=37/);
+  assert.match(app, /smyl-inbox\.css\?v=35/);
   assert.match(worker, /smyl-v262-checkout-return/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);

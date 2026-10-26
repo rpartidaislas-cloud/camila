@@ -11,7 +11,10 @@ const styles = read('../smyl-inbox.css');
 
 test('todos los accesos para agendar permanecen dentro del chat', () => {
   assert.match(inbox, /'Agendar cita'\); agenda\.type = 'button'; agenda\.onclick = openAvailabilityDialog/);
-  assert.match(inbox, /\['Agendar cita', openAvailabilityDialog, true\]/);
+  const actions = inbox.slice(inbox.indexOf('function permittedCareActions'), inbox.indexOf('function primaryCareAction'));
+  assert.match(actions, /hasPermission\('schedule\.manage'\)/);
+  assert.match(actions, /id: 'schedule', label: 'Agendar cita', run: openAvailabilityDialog/);
+  assert.match(inbox, /primaryButton\.dataset\.threadPrimaryAction = primary\.id/);
   const flow = inbox.slice(inbox.indexOf('async function openAvailabilityDialog'), inbox.indexOf('async function searchAvailability'));
   assert.doesNotMatch(flow, /window\.ir\('agenda'\)/);
 });
@@ -53,9 +56,9 @@ test('el espacio central muestra una agenda visual por día, profesional y espec
 test('la agenda embebida mantiene paridad móvil y una versión pública nueva', () => {
   assert.equal(mobileInbox, inbox);
   assert.match(app, /smyl-design-system-v2\.css\?v=2/);
-  assert.match(app, /smyl-inbox\.js\?v=36/);
-  assert.match(app, /smyl-inbox\.css\?v=34/);
+  assert.match(app, /smyl-inbox\.js\?v=37/);
+  assert.match(app, /smyl-inbox\.css\?v=35/);
   assert.match(worker, /smyl-design-system-v2\.css\?v=2/);
-  assert.match(worker, /smyl-inbox\.js\?v=36/);
-  assert.match(worker, /smyl-inbox\.css\?v=34/);
+  assert.match(worker, /smyl-inbox\.js\?v=37/);
+  assert.match(worker, /smyl-inbox\.css\?v=35/);
 });

@@ -12,10 +12,18 @@ const mobileApp = read('../mobile/www/app.html');
 const worker = read('../sw.js');
 
 test('la bandeja deja visibles sólo los cuatro filtros de trabajo diario', () => {
-  assert.match(inbox, /data-inbox-filter="all" class="active">Todas<\/button><button type="button" data-inbox-filter="unread">Sin leer<\/button><button type="button" data-inbox-filter="attention">Por atender<\/button><button type="button" data-inbox-filter="mine">Mías/);
-  assert.match(inbox, /data-inbox-filter-more aria-expanded="false">Filtros/);
-  assert.match(inbox, /data-inbox-filter-panel hidden/);
-  assert.match(inbox, /data-inbox-filter="unread">Sin leer/);
+  const start = inbox.indexOf('<div class="smyl-inbox-filters"');
+  const end = inbox.indexOf('smyl-inbox-filter-panel', start);
+  const filters = inbox.slice(start, end);
+  assert.equal((filters.match(/data-inbox-filter=/g) || []).length, 4);
+  assert.equal((filters.match(/role="tab"/g) || []).length, 4);
+  assert.equal((filters.match(/aria-selected="(?:true|false)"/g) || []).length, 4);
+  for (const filter of ['all', 'unread', 'attention', 'mine']) assert.match(filters, new RegExp(`data-inbox-filter="${filter}"`));
+  assert.match(inbox, /data-inbox-filter-more[^>]+aria-expanded="false"[^>]+aria-controls="smyl-inbox-filter-panel"/);
+  assert.match(inbox, /id="smyl-inbox-filter-panel"[^>]+data-inbox-filter-panel[^>]+hidden/);
+  const controls = inbox.slice(inbox.indexOf('function renderFilterControls'), inbox.indexOf('function toggleInboxFilters'));
+  assert.match(controls, /setAttribute\('aria-selected'/);
+  assert.match(controls, /button\.tabIndex = selected \? 0 : -1/);
 });
 
 test('los filtros comunican conteos y conservan canales y selección múltiple', () => {
@@ -37,7 +45,7 @@ test('la etapa final publica recursos nuevos con paridad web y móvil', () => {
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
   assert.equal(mobileApp, app);
-  assert.match(app, /smyl-inbox\.css\?v=34/);
-  assert.match(app, /smyl-inbox\.js\?v=36/);
-  assert.match(worker, /smyl-inbox\.js\?v=36/);
+  assert.match(app, /smyl-inbox\.css\?v=35/);
+  assert.match(app, /smyl-inbox\.js\?v=37/);
+  assert.match(worker, /smyl-inbox\.js\?v=37/);
 });

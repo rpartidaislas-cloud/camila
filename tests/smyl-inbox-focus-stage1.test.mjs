@@ -13,7 +13,11 @@ test('la cabecera prioriza paciente, estado y una sola acción operativa', () =>
   assert.match(inbox, /data-thread-state/);
   assert.match(inbox, /data-thread-mode/);
   assert.match(inbox, /conversation\.paused \? prepareResume\(\) : mutateConversation\('pause'\)/);
-  assert.match(inbox, /data-thread-menu hidden/);
+  assert.match(inbox, /data-thread-carebar aria-label="Siguiente acción del paciente"/);
+  assert.equal((inbox.match(/host\.append\(primaryButton\)/g) || []).length, 1);
+  assert.match(inbox, /primaryButton\.dataset\.threadPrimaryAction/);
+  assert.match(inbox, /data-thread-menu role="menu"[^>]+hidden/);
+  assert.match(inbox, /data-thread-action-menu/);
 });
 
 test('el compositor deja visibles únicamente herramientas primarias', () => {
