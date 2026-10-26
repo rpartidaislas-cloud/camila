@@ -4,12 +4,15 @@
 
 La primera entrega usa el siguiente alcance:
 
-1. **Espejo SMYL → Google.** SMYL sigue
-   siendo la fuente clínica de verdad. Crear, reprogramar o cancelar una cita
-   actualiza su evento en Google; editar ese evento en Google no modifica SMYL.
-2. **Sincronización bidireccional.** También recibe cambios desde Google. Exige
-   reglas de conflicto, webhooks, renovación de canales y una política explícita
-   para impedir que un cambio externo eluda disponibilidad, permisos o auditoría.
+1. **SMYL → Google automático.** Crear, reprogramar o cancelar una cita genera
+   un trabajo idempotente que crea, actualiza o elimina el evento del calendario
+   del dentista asignado.
+2. **Google → SMYL con revisión.** Mover o eliminar un evento vinculado produce
+   una propuesta en `Agenda > Por revisar`. Aceptarla usa las RPC canónicas de
+   SMYL; rechazarla restaura Google desde la agenda clínica.
+3. **Eventos nuevos de Google.** Nunca crean una cita clínica incompleta. Abren
+   el formulario de SMYL para elegir paciente, servicio, sede y sillón; al
+   confirmar se vincula la cita con el evento existente.
 
 La etapa OAuth ya está implementada: inicio autenticado, callback público con
 `state` de un solo uso y PKCE, cifrado AES-GCM del refresh token, consulta de
@@ -41,16 +44,28 @@ habilitar Google Calendar API, definir `GOOGLE_CALENDAR_OAUTH_READY=true`.
 - Estado visible en Agenda: `No conectado`, `Conectado`, `Sincronizando` o
   `Requiere atención`, con conectar, reintentar y desconectar según corresponda.
 
-## Si se aprueba sincronización bidireccional
+## Sincronización bidireccional implementada
 
-- Endpoint HTTPS para notificaciones de Google Calendar.
-- Un canal `watch` por calendario, renovación antes de expiración y verificación
+- Endpoint HTTPS `google-calendar-webhook` para notificaciones de Google.
+- Un canal `watch` por calendario, renovación automática antes de expirar y verificación
   de `X-Goog-Channel-ID`, `X-Goog-Resource-ID` y token de canal.
 - Sincronización incremental de eventos como respaldo, porque Google advierte
   que algunas notificaciones pueden perderse.
+- Sincronización incremental con `nextSyncToken`; una respuesta `410` reinicia
+  de forma segura la lectura completa.
 - Los cambios externos se guardan primero como solicitud de revisión; no crean
   ni alteran automáticamente una cita clínica hasta pasar las validaciones
   canónicas de SMYL.
+- El evento de Google no incluye nombre del paciente ni notas clínicas. Sólo
+  horario, sede, servicio y referencias internas privadas.
+
+## Activación pendiente en Google Cloud
+
+El código, la migración y las funciones quedan preparados, pero el flujo real
+permanece cerrado hasta terminar la verificación de la cuenta en Google Cloud,
+habilitar Calendar API, registrar el callback OAuth y definir
+`GOOGLE_CALENDAR_OAUTH_READY=true`. También se requiere el secreto interno
+`GOOGLE_CALENDAR_SYNC_SECRET`, usado exclusivamente entre webhook y worker.
 
 ## Referencias oficiales
 

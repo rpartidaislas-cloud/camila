@@ -19,6 +19,7 @@ type OAuthState = {
   id: string;
   tenant_id: string;
   user_id: string;
+  professional_id: string;
   code_verifier_ciphertext: string;
   code_verifier_iv: string;
   return_url: string;
@@ -109,16 +110,27 @@ async function hasPermission(jwt: string, tenantId: string): Promise<boolean> {
   const client = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { data, error } = await client.rpc("smyl_has_permission", {
     p_tenant_id: tenantId,
-    p_permission: "settings.manage",
+    p_permission: "schedule.manage",
   });
   return !error && data === true;
+}
+
+async function activeProfessional(tenantId: string, userId: string): Promise<string | null> {
+  const { data, error } = await admin.from("smyl_professionals")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", userId)
+    .eq("active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
 }
 
 function configured(): boolean {
   return Boolean(OAUTH_READY && SB_URL && SB_SERVICE_ROLE_KEY && CLIENT_ID && CLIENT_SECRET && ENCRYPTION_KEY);
 }
 
-async function start(req: Request, tenantId: string, userId: string, returnUrl: unknown): Promise<Response> {
+async function start(req: Request, tenantId: string, userId: string, professionalId: string, returnUrl: unknown): Promise<Response> {
   if (!configured()) return json(req, { error: "Google Calendar todavía no está configurado para esta instalación." }, 503);
 
   const state = randomUrlSafe(32);
@@ -132,6 +144,7 @@ async function start(req: Request, tenantId: string, userId: string, returnUrl: 
   const { error } = await admin.from("smyl_google_calendar_oauth_states").insert({
     tenant_id: tenantId,
     user_id: userId,
+    professional_id: professionalId,
     state_hash: stateHash,
     code_verifier_ciphertext: sealed.ciphertext,
     code_verifier_iv: sealed.iv,
@@ -160,7 +173,7 @@ async function callback(req: Request): Promise<Response> {
   if (!stateValue || !configured()) return redirect(APP_URL, "error");
   const stateHash = base64Url(await sha256(stateValue));
   const { data, error } = await admin.from("smyl_google_calendar_oauth_states")
-    .select("id,tenant_id,user_id,code_verifier_ciphertext,code_verifier_iv,return_url,expires_at,used_at")
+    .select("id,tenant_id,user_id,professional_id,code_verifier_ciphertext,code_verifier_iv,return_url,expires_at,used_at")
     .eq("state_hash", stateHash)
     .maybeSingle();
   const row = data as OAuthState | null;
@@ -211,9 +224,10 @@ async function callback(req: Request): Promise<Response> {
 
     const sealed = await encrypt(refreshToken);
     const scopes = String(tokens.scope || SCOPE).split(/\s+/).filter(Boolean);
-    const { error: saveError } = await admin.from("smyl_google_calendar_connections").upsert({
+    const { data: savedConnection, error: saveError } = await admin.from("smyl_google_calendar_connections").upsert({
       tenant_id: row.tenant_id,
       user_id: row.user_id,
+      professional_id: row.professional_id,
       calendar_id: "primary",
       calendar_name: calendarName,
       calendar_timezone: calendarTimezone,
@@ -225,8 +239,26 @@ async function callback(req: Request): Promise<Response> {
       last_verified_at: new Date().toISOString(),
       last_error: null,
       updated_at: new Date().toISOString(),
-    }, { onConflict: "tenant_id,user_id" });
+    }, { onConflict: "tenant_id,user_id" }).select("id").single();
     if (saveError) throw new Error("No se pudo guardar la conexión.");
+    const { data: appointments } = await admin.from("smyl_appointments")
+      .select("id,status")
+      .eq("tenant_id", row.tenant_id)
+      .eq("professional_id", row.professional_id)
+      .gte("ends_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    if (savedConnection && appointments?.length) {
+      await admin.from("smyl_google_calendar_sync_jobs").upsert(appointments.map((appointment) => ({
+        tenant_id: row.tenant_id,
+        connection_id: savedConnection.id,
+        appointment_id: appointment.id,
+        operation: appointment.status === "cancelled" ? "delete" : "upsert",
+        status: "pending",
+        attempts: 0,
+        next_attempt_at: new Date().toISOString(),
+        last_error: "",
+        updated_at: new Date().toISOString(),
+      })), { onConflict: "connection_id,appointment_id" });
+    }
     return redirect(row.return_url, "connected");
   } catch (error) {
     console.error("[google-calendar-oauth] callback:", error instanceof Error ? error.message : "error inesperado");
@@ -236,7 +268,7 @@ async function callback(req: Request): Promise<Response> {
 
 async function status(req: Request, tenantId: string, userId: string): Promise<Response> {
   const { data, error } = await admin.from("smyl_google_calendar_connections")
-    .select("calendar_id,calendar_name,calendar_timezone,status,connected_at,last_verified_at,last_error")
+    .select("calendar_id,calendar_name,calendar_timezone,status,connected_at,last_verified_at,last_sync_at,last_error,professional_id")
     .eq("tenant_id", tenantId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -280,13 +312,21 @@ Deno.serve(async (req: Request) => {
   if (auth.response) return auth.response;
   const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!auth.user || !auth.tenantId || !await hasPermission(jwt, auth.tenantId)) {
-    return json(req, { error: "No tienes permiso para configurar conexiones." }, 403);
+    return json(req, { error: "No tienes permiso para sincronizar la agenda." }, 403);
   }
+
+  let professionalId: string | null = null;
+  try {
+    professionalId = await activeProfessional(auth.tenantId, auth.user.id);
+  } catch {
+    return json(req, { error: "No se pudo validar tu perfil profesional." }, 500);
+  }
+  if (!professionalId) return json(req, { error: "Tu usuario necesita un perfil profesional activo para conectar su calendario." }, 403);
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const action = String(body.action || "status");
   if (action === "status") return status(req, auth.tenantId, auth.user.id);
-  if (action === "start") return start(req, auth.tenantId, auth.user.id, body.return_url);
+  if (action === "start") return start(req, auth.tenantId, auth.user.id, professionalId, body.return_url);
   if (action === "disconnect") return disconnect(req, auth.tenantId, auth.user.id);
   return json(req, { error: "Acción no válida." }, 400);
 });

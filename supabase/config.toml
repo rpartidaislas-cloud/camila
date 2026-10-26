@@ -42,6 +42,14 @@ verify_jwt = false
 [functions.google-calendar-oauth]
 verify_jwt = false
 
+# La sesion se valida dentro del handler. El webhook autentica los canales de
+# Google por id, resource id y hash de un token aleatorio.
+[functions.google-calendar-sync]
+verify_jwt = false
+
+[functions.google-calendar-webhook]
+verify_jwt = false
+
 # Excepciones públicas deliberadas. Cada una aplica su propio control de
 # capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
 [functions.analizar-foto]

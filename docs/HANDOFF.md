@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Sincronización bidireccional de Google Calendar
+
+- Se implementó el modelo acordado: SMYL→Google automático y Google→SMYL bajo
+  revisión humana. Cada conexión pertenece a una clínica, usuario y profesional
+  activo; exige `schedule.manage` y nunca mezcla citas entre tenants.
+- La migración `20261026170000_smyl_google_calendar_sync.sql` añade vínculos
+  cita↔evento, cola idempotente, solicitudes `reschedule/cancel/create`, trigger
+  de agenda, tokens incrementales y estado de canales `watch`.
+- Nuevas funciones `google-calendar-sync` y `google-calendar-webhook`: refresh
+  token sólo en servidor, reintentos, `nextSyncToken`, recuperación de `410`,
+  validación del canal y renovación. Google recibe horario, sede y servicio,
+  pero no paciente ni notas clínicas.
+- Agenda añade `Por revisar`: aceptar mover/cancelar usa las RPC canónicas;
+  rechazar restaura Google. Un evento nuevo abre Nueva cita y sólo se vincula
+  después de completar paciente, servicio, sede y profesional.
+- Web y `mobile/www` usan `smyl-schedule.js?v=24` y
+  `smyl-google-calendar.{js,css}?v=2`; la caché PWA conserva su prefijo v263 y
+  añade el sufijo `google-calendar-bidirectional-review`.
+- Sigue pendiente la verificación manual de Google Cloud y activar
+  `GOOGLE_CALENDAR_OAUTH_READY=true`.
+- Migración `20261026170000` aplicada y marcada en remoto. El secreto interno
+  fue creado y las tres funciones (`oauth`, `sync`, `webhook`) quedaron
+  desplegadas; los smoke tests anónimos devolvieron `401` como corresponde.
+- Suite completa: **672/672 pruebas**. Fixture visual de `Por revisar` comprobado
+  en escritorio y reglas responsive revisadas para móvil.
+
 ## 2026-10-26 — Codex — Agenda visual v3 y OAuth de Google Calendar
 
 - Agenda adopta la política v3.2: portada navy, copy breve, tres métricas tipo

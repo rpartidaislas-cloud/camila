@@ -36,10 +36,12 @@ test('tokens y credenciales quedan fuera del navegador', () => {
   assert.doesNotMatch(client, /localStorage|sessionStorage/);
 });
 
-test('la conexión exige sesión y permiso de configuración aunque el callback sea público', () => {
+test('la conexión exige sesión, permiso de agenda y un perfil profesional activo', () => {
   assert.match(config, /\[functions\.google-calendar-oauth\][\s\S]*verify_jwt = false/);
   assert.match(fn, /const auth = await requireUser\(req, cors\)/);
-  assert.match(fn, /p_permission: "settings\.manage"/);
+  assert.match(fn, /p_permission: "schedule\.manage"/);
+  assert.match(fn, /activeProfessional/);
+  assert.match(fn, /professional_id/);
   assert.match(fn, /if \(req\.method === "GET"\) return callback\(req\)/);
   assert.match(fn, /safeReturnUrl/);
 });
@@ -50,21 +52,21 @@ test('la primera autorización pide el scope mínimo de eventos', () => {
   assert.match(fn, /calendar_id: "primary"/);
 });
 
-test('Agenda muestra una conexión verificable, accesible y sin prometer sincronización antes de tiempo', () => {
+test('Agenda muestra una conexión verificable y explica el control clínico', () => {
   assert.match(client, /schedule-google-calendar/);
   assert.match(client, /aria-haspopup/);
-  assert.match(client, /Acceso autorizado/);
-  assert.match(client, /preparar la sincronización segura/);
-  assert.match(client, /No se enviarán notas clínicas a Google/);
+  assert.match(client, /Listo para sincronizar/);
+  assert.match(client, /Los cambios de Google esperan tu revisión/);
+  assert.match(client, /No se comparten pacientes ni notas clínicas/);
   assert.match(styles, /\.google-calendar-dialog::backdrop/);
   assert.match(styles, /@media\(max-width:560px\)/);
 });
 
 test('web, PWA y caché cargan la misma integración', () => {
-  assert.match(app, /smyl-google-calendar\.css\?v=1/);
-  assert.match(app, /smyl-google-calendar\.js\?v=1/);
-  assert.match(worker, /smyl-google-calendar\.css\?v=1/);
-  assert.match(worker, /smyl-google-calendar\.js\?v=1/);
+  assert.match(app, /smyl-google-calendar\.css\?v=2/);
+  assert.match(app, /smyl-google-calendar\.js\?v=2/);
+  assert.match(worker, /smyl-google-calendar\.css\?v=2/);
+  assert.match(worker, /smyl-google-calendar\.js\?v=2/);
   assert.equal(client, read('../mobile/www/smyl-google-calendar.js'));
   assert.equal(styles, read('../mobile/www/smyl-google-calendar.css'));
   assert.equal(app, read('../mobile/www/app.html'));
