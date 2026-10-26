@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Claude: recordatorios sin el doble punto «p.m..»
+
+- `supabase/functions/appointment-reminders/index.ts`: la variable `time` ahora sale como «5:00 pm» (antes «5:00 p.m.»). Las plantillas
+  ponen un punto después de la hora (por ejemplo «…a las {{4}}. Si necesitas…»), así que el paciente recibía «p.m..». Archivo único
+  regenerado en `docs/bundles/appointment-reminders.single-file.ts`.
+- **Despliegue pendiente (usuario):** pegar ese archivo único en la función `appointment-reminders` del panel de Supabase (o
+  `supabase functions deploy appointment-reminders`). Hasta entonces los recordatorios automáticos siguen saliendo con «p.m..».
+- `smyl-schedule-message.js` (v2): el envío desde la ficha de la cita usa el mismo formato, así que ambos caminos dicen lo mismo.
+- Pruebas actualizadas: `10:30 am` en el despacho de recordatorios y `5:00 pm` en el módulo de mensajes.
+- Nota de contexto: el flujo manual `smyl-buscar-pacientes-migracion.yml` volvió a fallar el 26/10 en 2 segundos, sin pasos ni registro
+  (el trabajo ni llega a arrancar). El flujo `smyl-agenda-tiempo-extra-migracion.yml` sí corrió bien el 22/10, lo que indica que el secreto
+  `SUPABASE_ACCESS_TOKEN` existe. Falta ver el aviso en la página del trabajo (puede ser un tema de la cuenta de GitHub Actions).
+
 ## 2026-10-26 — Codex — Sincronización bidireccional de Google Calendar
 
 - Se implementó el modelo acordado: SMYL→Google automático y Google→SMYL bajo
