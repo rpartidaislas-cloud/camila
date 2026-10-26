@@ -86,6 +86,8 @@
     } else {
       button.innerHTML = '<span class="pro-nav-icon">' + icon(entry[2], 18) + '</span><span class="pro-nav-label">' + entry[0] + '</span>';
       button.title = entry[0];
+      button.dataset.tooltip = entry[0];
+      button.setAttribute('aria-label', entry[0]);
     }
     return button;
   }
@@ -103,9 +105,15 @@
     details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
     details.open = Boolean(open);
     var summary = document.createElement('summary');
-    summary.innerHTML = '<span>' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
+    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon('reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
+    summary.dataset.tooltip = label;
+    summary.setAttribute('aria-label', label);
     details.append(summary);
-    entries.forEach(function (entry) { details.append(navItem(entry, false)); });
+    var flyout = document.createElement('div');
+    flyout.className = 'pro-nav-flyout';
+    flyout.setAttribute('aria-label', label);
+    entries.forEach(function (entry) { flyout.append(navItem(entry, false)); });
+    details.append(flyout);
     return details;
   }
 
@@ -266,9 +274,23 @@
     sidebar.append(toggle);
   }
 
+  function setupQuickAction() {
+    var foot = document.querySelector('.sidebar .sb-foot');
+    if (!foot || foot.querySelector('.smyl-sidebar-quick')) return;
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'smyl-sidebar-quick';
+    button.dataset.tooltip = 'Nueva cita';
+    button.setAttribute('aria-label', 'Nueva cita');
+    button.innerHTML = '<span aria-hidden="true">' + icon('calendar', 18) + '</span><span class="smyl-sidebar-quick-label">Nueva cita</span>';
+    button.addEventListener('click', function () { if (typeof window.ir === 'function') window.ir('agenda'); });
+    foot.prepend(button);
+  }
+
   function init() {
     organizeDesktop();
     setupCollapse();
+    setupQuickAction();
     organizeMobileBar();
     organizeMobileSheet();
     splitConnections();

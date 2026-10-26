@@ -13,6 +13,55 @@
   la preferencia sigue guardándose por clínica.
 - Se conserva lo de PR #48: Inicio pide solo los nombres de los pacientes de hoy (`namesFor`). `app.html`, `sw.js` y `mobile/www/`
   sincronizados; se actualizaron las pruebas que fijaban textos y versiones.
+## 2026-10-25 — Codex — Implementación visual v3.2
+
+- La política v3.2 ya gobierna el shell compartido: azul marino `#0B1B2E`
+  como primario, superficies claras, turquesa sólo como acento y radios,
+  bordes y sombras normalizados.
+- Botones, cards y campos heredados reciben los mismos tokens. Los botones
+  incorporan hover, foco, presión, deshabilitado y carga con movimiento
+  reducido cuando el sistema lo solicita.
+- El sidebar conserva 256 px expandido y pasa a 88 px compacto. La identidad
+  se reduce a una fila; plan y consumo quedan fuera de la navegación
+  persistente y siguen disponibles en Mi cuenta.
+- Se añadió la acción contextual `Nueva cita`, tooltips accesibles por hover o
+  teclado y un flyout para `Negocio` en modo compacto. Las rutas y la
+  preferencia guardada no cambian.
+- Se simplificó el shell a `Inicio`, `Nueva tarea` y `Nueva simulación`, sin
+  cambiar reglas clínicas ni lógica de datos.
+- Web y `mobile/www` usan `smyl-ui-template-v3.css?v=4`,
+  `smyl-navigation.js?v=12` y la caché PWA incluye el sufijo
+  `visual-policy-32`. El script de sincronización ahora incluye navegación.
+- Figma no expone keyframes en el frame de referencia; se conservó una
+  transición CSS de 260 ms con la curva normativa y soporte para
+  `prefers-reduced-motion`, sin inventar una animación ajena al diseño.
+- Pruebas de contrato específicas: **24 aprobadas**. Suite completa:
+  **660 pruebas aprobadas**, sin fallos.
+
+## 2026-10-25 — Codex — Política visual SMYL v3.2
+
+- Se creó `docs/POLITICA_VISUAL_SMYL_V3.md` como normativa visual vigente,
+  basada en los patrones de los frames `Dark` (`105:1897`) y `Light`
+  (`105:2295`) del sidebar de referencia en Figma.
+- El azul marino (`#0B1B2E`) queda definido como color principal de SMYL; el
+  turquesa pasa a ser acento funcional para selección, continuidad y foco.
+- La política normaliza paleta, proporción de color, tipografía, radios,
+  profundidad, sidebar expandido/compacto, tooltips, flyouts, iconografía,
+  movimiento, responsive, accesibilidad y puerta de aprobación visual.
+- La revisión de las guías oficiales de 21st.dev añadió contratos canónicos
+  para botones, cards, métricas, tablas, formularios, tabs, overlays,
+  notificaciones y estados de carga/vacío/error. La fuente se usa como
+  referencia; no se instalaron componentes externos.
+- Se añadió una política de lenguaje breve: límites de palabras por componente,
+  instrucciones de una idea, botones con verbo y objeto, errores accionables,
+  divulgación progresiva y una prueba explícita para simplificar sin perder
+  identidad, alcance o seguridad clínica.
+- `docs/POLITICA_IMAGEN_SMYL.md` se conserva como normativa heredada para sus
+  reglas clínicas, de privacidad y autenticidad de imagen, pero deja de gobernar
+  la dirección visual cuando contradice v3.
+- Cambio exclusivamente documental: no modifica interfaz, datos, backend ni
+  despliegue.
+
 ## 2026-10-25 — Codex — Sidebar inspirado en Figma, expandido y compacto
 
 **Tocado:** shell de `app.html`, plantilla visual compartida, caché PWA,

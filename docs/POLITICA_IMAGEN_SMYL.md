@@ -2,7 +2,7 @@
 
 **Versión:** 2.0
 
-**Estado:** normativa
+**Estado:** normativa heredada
 
 **Ámbito:** web, PWA, aplicación móvil, superficies públicas y herramientas
 internas de SMYL
@@ -10,6 +10,12 @@ internas de SMYL
 **Propietario:** Producto y Diseño SMYL
 
 **Última actualización:** 16 de octubre de 2026
+
+> La dirección de interfaz, navegación, color, profundidad y movimiento fue
+> sustituida el 25 de octubre de 2026 por la
+> [Política visual SMYL v3.2](POLITICA_VISUAL_SMYL_V3.md). Las reglas clínicas,
+> de privacidad y de autenticidad de imagen de este documento continúan
+> vigentes cuando no contradicen la política v3.
 
 ## 1. Propósito
 

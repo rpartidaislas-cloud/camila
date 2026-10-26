@@ -13,6 +13,8 @@ test('el sidebar se contrae a iconos con una flecha y recuerda la preferencia', 
   assert.match(nav, /smyl-sidebar-collapsed/);
   assert.match(nav, /aria-expanded/);
   assert.match(nav, /button\.title = entry\[0\]/);
+  assert.match(nav, /button\.dataset\.tooltip = entry\[0\]/);
+  assert.match(nav, /pro-nav-flyout/);
   assert.match(navCss, /body\.smyl-sidebar-collapsed \.sidebar\{width:72px\}/);
 });
 

@@ -874,7 +874,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-inbox.css?v=35">
 <script defer src="smyl-inbox.js?v=37"></script>
 <link rel="stylesheet" href="smyl-navigation.css?v=3">
-<script defer src="smyl-navigation.js?v=11"></script>
+<script defer src="smyl-navigation.js?v=12"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=1">
 <script defer src="smyl-command-menu.js?v=2"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=6">
@@ -932,7 +932,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-dialog-system.js?v=1"></script>
 <!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
      sin depender del orden histórico de cada módulo. -->
-<link rel="stylesheet" href="smyl-ui-template-v3.css?v=3">
+<link rel="stylesheet" href="smyl-ui-template-v3.css?v=4">
 </head>
 <body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
@@ -1021,7 +1021,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="nav-section">Principal</div>
       <div class="nav-item activo" onclick="ir('dashboard')">
         <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
-        Dashboard
+        Inicio
       </div>
       <div class="nav-item" onclick="ir('pacientes')">
         <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
@@ -1081,7 +1081,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="topbar-left" style="display:flex;align-items:center;gap:10px">
         <button class="btn-hamburger" onclick="toggleMobileNav()" id="btn-hamburger">☰</button>
         <div>
-          <h2 id="topbar-title">Dashboard</h2>
+          <h2 id="topbar-title">Inicio</h2>
           <p id="topbar-sub"></p>
         </div>
       </div>
@@ -1091,7 +1091,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="noti-dot" id="noti-dot" style="display:none"></span>
         </button>
-        <button class="btn btn-primary" id="topbar-new-design" onclick="ir('nuevo-diseno')">+ Nuevo Diseño</button>
+        <button class="btn btn-primary" id="topbar-new-design" onclick="ir('nuevo-diseno')">Nueva simulación</button>
       </div>
     </div>
 
@@ -1126,7 +1126,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           </div>
         </div>
 
-        <button class="btn btn-primary btn-full" onclick="ir('dashboard')" style="max-width:280px;margin:0 auto;display:flex">Ir a mi Dashboard →</button>
+        <button class="btn btn-primary btn-full" onclick="ir('dashboard')" style="max-width:280px;margin:0 auto;display:flex">Ir a Inicio</button>
       </div>
 
       <!-- ═══ DASHBOARD ═══ -->
@@ -2933,7 +2933,7 @@ function renderSidebar() {
 // ══════════════════════════════════════════
 var TITULOS = {
   bienvenida: 'Bienvenida',
-  dashboard: 'Dashboard',
+  dashboard: 'Inicio',
   pacientes: 'Pacientes',
   'paciente-detalle': 'Expediente del Paciente',
   'nuevo-diseno': 'Nuevo Diseño',

@@ -1,5 +1,5 @@
 /*
- * SMYL UI v3 · plantilla operativa compartida
+ * SMYL UI v3.2 · política visual operativa compartida
  * Escala legible, componentes previsibles y una sola jerarquía visual.
  * Las clases están aisladas con el prefijo smyl-ui para permitir una migración gradual.
  */
@@ -18,18 +18,20 @@
   --smyl-ui-line-title: 1.35;
   --smyl-ui-line-body: 1.55;
 
-  --smyl-ui-canvas: #f5f8fa;
+  --smyl-ui-canvas: #f4f7fb;
   --smyl-ui-surface: #ffffff;
-  --smyl-ui-surface-soft: #f8faf9;
-  --smyl-ui-surface-accent: #eef7f4;
-  --smyl-ui-ink: #10231f;
-  --smyl-ui-ink-secondary: #536660;
-  --smyl-ui-ink-muted: #71807b;
-  --smyl-ui-border: #d8e3df;
-  --smyl-ui-border-strong: #b8cac4;
-  --smyl-ui-primary: #0e695d;
-  --smyl-ui-primary-hover: #0a554c;
-  --smyl-ui-primary-soft: #e4f3ee;
+  --smyl-ui-surface-soft: #f8fafc;
+  --smyl-ui-surface-accent: #edf4f7;
+  --smyl-ui-ink: #0b1b2e;
+  --smyl-ui-ink-secondary: #526174;
+  --smyl-ui-ink-muted: #738094;
+  --smyl-ui-border: #d9e2ec;
+  --smyl-ui-border-strong: #bac7d5;
+  --smyl-ui-primary: #0b1b2e;
+  --smyl-ui-primary-hover: #132c47;
+  --smyl-ui-primary-soft: #e9eef5;
+  --smyl-ui-accent: #38a99d;
+  --smyl-ui-accent-soft: #e8f7f4;
   --smyl-ui-danger: #a73b30;
   --smyl-ui-danger-soft: #fff2ef;
   --smyl-ui-warning: #8a5a05;
@@ -47,11 +49,11 @@
   --smyl-ui-space-10: 2.5rem;
   --smyl-ui-space-12: 3rem;
 
-  --smyl-ui-radius-control: .625rem;
-  --smyl-ui-radius-card: .875rem;
-  --smyl-ui-radius-panel: 1rem;
-  --smyl-ui-shadow-card: 0 1px 2px rgba(16, 35, 31, .04), 0 8px 24px rgba(16, 35, 31, .05);
-  --smyl-ui-shadow-float: 0 18px 48px rgba(16, 35, 31, .12);
+  --smyl-ui-radius-control: .75rem;
+  --smyl-ui-radius-card: 1rem;
+  --smyl-ui-radius-panel: 1.25rem;
+  --smyl-ui-shadow-card: 0 1px 2px rgba(11, 27, 46, .035), 0 10px 28px rgba(11, 27, 46, .055);
+  --smyl-ui-shadow-float: 0 20px 56px rgba(11, 27, 46, .16);
   --smyl-ui-page-width: 75rem;
   --smyl-ui-reading-width: 48rem;
   --smyl-ui-field-height: 3rem;
@@ -307,6 +309,20 @@
 .smyl-ui-button-secondary:hover { border-color: var(--smyl-ui-border-strong); background: var(--smyl-ui-surface-soft); }
 .smyl-ui-button-danger { border-color: #efc9c3; background: var(--smyl-ui-danger-soft); color: var(--smyl-ui-danger); }
 
+.smyl-ui-button:active { transform: translateY(1px); }
+.smyl-ui-button[aria-busy="true"] { position: relative; cursor: wait; color: transparent; }
+.smyl-ui-button[aria-busy="true"]::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  color: #fff;
+  animation: smyl-ui-spin .7s linear infinite;
+}
+
 .smyl-ui-button:focus-visible,
 .smyl-ui-tab:focus-visible,
 .smyl-ui-upload:focus-within {
@@ -315,9 +331,12 @@
 }
 
 .smyl-ui-button:disabled,
+.smyl-ui-button[aria-disabled="true"],
 .smyl-ui-input:disabled,
 .smyl-ui-select:disabled,
 .smyl-ui-textarea:disabled { cursor: not-allowed; opacity: .55; }
+
+@keyframes smyl-ui-spin { to { transform: rotate(360deg); } }
 
 .smyl-ui-badge {
   display: inline-flex;
@@ -536,6 +555,41 @@ body.smyl-ui-governed .layout .btn {
   font-size: var(--smyl-ui-text-label);
   font-weight: 680;
   line-height: 1.25;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+body.smyl-ui-governed .layout .btn-primary {
+  border-color: var(--smyl-ui-primary);
+  background: var(--smyl-ui-primary);
+  color: #fff;
+  box-shadow: 0 .45rem 1rem -.75rem rgba(11, 27, 46, .75);
+}
+
+body.smyl-ui-governed .layout .btn-primary:hover {
+  border-color: var(--smyl-ui-primary-hover);
+  background: var(--smyl-ui-primary-hover);
+}
+
+body.smyl-ui-governed .layout .btn-secondary {
+  border-color: var(--smyl-ui-border);
+  background: var(--smyl-ui-surface);
+  color: var(--smyl-ui-ink);
+}
+
+body.smyl-ui-governed .layout .btn-secondary:hover {
+  border-color: var(--smyl-ui-border-strong);
+  background: var(--smyl-ui-surface-soft);
+}
+
+body.smyl-ui-governed .layout .btn:active { transform: translateY(1px); }
+body.smyl-ui-governed .layout .btn:focus-visible {
+  outline: 2px solid var(--smyl-ui-focus);
+  outline-offset: 2px;
+}
+body.smyl-ui-governed .layout .btn:is(:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+  opacity: .52;
+  box-shadow: none;
 }
 
 body.smyl-ui-governed .layout .btn-sm {
@@ -667,13 +721,13 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 @media (min-width: 48.0625rem) {
   body.smyl-ui-governed.smyl-management-v3 {
     --smyl-sidebar-expanded: 16rem;
-    --smyl-sidebar-collapsed: 5rem;
+    --smyl-sidebar-collapsed: 5.5rem;
     --smyl-sidebar-radius: 1.75rem;
     --smyl-sidebar-ease: cubic-bezier(.22, 1, .36, 1);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .layout {
-    gap: .75rem;
+    gap: 1.25rem;
     padding: .75rem 0 .75rem .75rem;
     background:
       radial-gradient(circle at 4rem 8rem, rgba(74, 184, 173, .08), transparent 18rem),
@@ -689,8 +743,8 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border: 1px solid rgba(138, 208, 201, .18);
     border-radius: var(--smyl-sidebar-radius);
     background:
-      linear-gradient(180deg, rgba(20, 51, 72, .97), rgba(7, 24, 38, .985)),
-      #0b2132;
+      linear-gradient(180deg, rgba(19, 44, 71, .98), rgba(7, 20, 36, .99)),
+      #0b1b2e;
     -webkit-backdrop-filter: blur(24px) saturate(140%);
     backdrop-filter: blur(24px) saturate(140%);
     box-shadow:
@@ -762,6 +816,9 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border-radius: 1rem;
     background: rgba(255, 255, 255, .025);
   }
+
+  /* La identidad ocupa una sola línea; el consumo vive en Mi cuenta. */
+  body.smyl-ui-governed.smyl-management-v3 .sb-user :is(.plan-chip, .uso-wrap) { display: none; }
 
   body.smyl-ui-governed.smyl-management-v3 .sb-user:hover {
     background: rgba(255, 255, 255, .055);
@@ -884,6 +941,10 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     color: rgba(215, 235, 238, .5);
   }
 
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-icon { display: none; place-items: center; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-label { flex: 1; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-flyout { display: grid; }
+
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary:hover,
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-group.has-active summary {
     background: rgba(255, 255, 255, .045);
@@ -895,6 +956,29 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border: 1px solid rgba(255, 255, 255, .07);
     border-radius: .95rem;
     background: rgba(255, 255, 255, .02);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick {
+    display: flex;
+    width: 100%;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    margin-bottom: .35rem;
+    padding: .65rem .75rem;
+    border: 1px solid rgba(133, 225, 216, .3);
+    border-radius: .72rem;
+    background: #e8f7f4;
+    color: #0b3b40;
+    font: 700 var(--smyl-ui-text-label)/1.2 var(--smyl-ui-font);
+    cursor: pointer;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick:hover { background: #d6f1ed; }
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick:focus-visible {
+    outline: 2px solid #8fe1d8;
+    outline-offset: 2px;
   }
 
   body.smyl-ui-governed.smyl-management-v3 .btn-cerrar {
@@ -964,6 +1048,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .nav-items {
     padding-inline: .55rem;
+    overflow: visible;
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-section {
@@ -978,6 +1063,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     min-height: 3rem;
     padding-inline: .7rem;
     gap: 0;
+    overflow: visible;
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-label {
@@ -987,6 +1073,83 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     transform: translateX(-.5rem);
     transition-delay: 0ms;
   }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group {
+    position: relative;
+    margin-top: .55rem;
+    padding-top: .55rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group summary {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    list-style: none;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group-icon { display: grid; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group :is(.pro-nav-group-label, .pro-nav-chevron) { display: none; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout {
+    position: absolute;
+    z-index: 30;
+    top: -.35rem;
+    left: calc(100% + .9rem);
+    display: none;
+    width: 13.5rem;
+    padding: .55rem;
+    border: 1px solid rgba(186, 199, 213, .45);
+    border-radius: 1rem;
+    background: #0b1b2e;
+    box-shadow: var(--smyl-ui-shadow-float);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group:is(:hover, :focus-within) .pro-nav-flyout { display: grid; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .nav-item {
+    display: flex;
+    justify-content: flex-start;
+    padding-inline: .75rem;
+  }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .pro-nav-label {
+    max-width: 10rem;
+    opacity: 1;
+    transform: none;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-item::after,
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .smyl-sidebar-quick::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    z-index: 40;
+    left: calc(100% + .75rem);
+    top: 50%;
+    width: max-content;
+    max-width: 13rem;
+    padding: .45rem .65rem;
+    border: 1px solid rgba(186, 199, 213, .32);
+    border-radius: .6rem;
+    background: #0b1b2e;
+    color: #fff;
+    font: 650 var(--smyl-ui-text-meta)/1.25 var(--smyl-ui-font);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(.2rem, -50%);
+    transition: opacity 120ms ease, transform 120ms ease;
+    box-shadow: 0 .75rem 2rem rgba(5, 14, 27, .24);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-item:is(:hover, :focus-visible)::after,
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .smyl-sidebar-quick:is(:hover, :focus-visible)::after {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .smyl-sidebar-quick {
+    position: relative;
+    padding-inline: 0;
+  }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .smyl-sidebar-quick-label { display: none; }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sidebar .nav-item:hover {
     transform: none;
@@ -1016,6 +1179,16 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item {
     min-height: 2.65rem;
     padding-block: .58rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .nav-items {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-item::after,
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .smyl-sidebar-quick::after {
+    display: none;
   }
 }
 
