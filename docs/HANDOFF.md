@@ -7971,3 +7971,23 @@ móvil, pruebas de contrato y QA visual.
   `mobile/scripts/sync-web.js` ya incluye este módulo y `dentista.html` para evitar
   divergencias futuras.
 - Verificación local: sintaxis aprobada y 15 de 15 pruebas enfocadas aprobadas.
+
+## 2026-10-25 — Codex — Recuperación robusta del enlace LANA
+
+- Se corrigió el falso bloqueo de Canales e IA: la verificación ya no consulta
+  conversaciones; usa el endpoint autenticado y ligero `/contract`, con 25 s de
+  margen para arranque en frío.
+- `lana-connection` distingue credencial rechazada de incidencia transitoria.
+  Sólo un 401/403 cambia el enlace a `requiere_atencion`; timeout, 429, 5xx o
+  transporte conservan el estado previo y permiten reintentar sin crear otra
+  integración.
+- La función `lana-connection` fue desplegada en el proyecto SMYL
+  `rpxshsiwoxdbuevjjpfw`. No hubo migraciones ni cambios de secretos.
+- La interfaz ya no muestra “Activar” junto con “Verificar”. En estado de
+  atención ofrece Verificar y, bajo divulgación progresiva, Reemplazar enlace.
+  También agrega timeouts por operación, reconciliación tras una demora,
+  cancelación de consultas obsoletas y reintento explícito de canales.
+- Web y móvil quedaron sincronizados en `smyl-connections.js?v=13` y
+  `smyl-connections.css?v=8`; PWA `smyl-v263-lana-connection-recovery`.
+- Verificación: sintaxis aprobada, 13/13 pruebas enfocadas y 645/645 pruebas del
+  repositorio aprobadas.

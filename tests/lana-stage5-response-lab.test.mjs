@@ -17,7 +17,7 @@ test('SMYL includes a private assistant response laboratory with suggested clini
   assert.match(connections, /Dolor y urgencia/);
   assert.match(connections, /Foto y diagnóstico/);
   assert.match(styles, /connections-preview-chat/);
-  assert.match(app, /smyl-connections\.js\?v=12/);
+  assert.match(app, /smyl-connections\.js\?v=13/);
 });
 
 test('preview stays in browser memory and labels human escalation', () => {

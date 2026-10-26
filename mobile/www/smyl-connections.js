@@ -1,7 +1,9 @@
 (function () {
   'use strict';
 
-  var state = { loading: false, loaded: false, status: null, channels: [], disconnectingChannel: '', trainingLoaded: false, training: null, published: null, draftRevision: 0, publishedVersion: 0, validation: null, dirty: false, previewHistory: [] };
+  var REQUEST_TIMEOUTS = { status: 20000, connect: 40000, verify: 40000, provision: 50000 };
+  var CHANNEL_TIMEOUT_MS = 30000;
+  var state = { loading: false, loaded: false, status: null, channels: [], disconnectingChannel: '', channelLoadGeneration: 0, channelLoadController: null, trainingLoaded: false, training: null, published: null, draftRevision: 0, publishedVersion: 0, validation: null, dirty: false, previewHistory: [] };
 
   function node(tag, cls, text) {
     var el = document.createElement(tag);
@@ -42,6 +44,7 @@
       '<div class="connections-staff-note" data-staff-note hidden>Solo el dueño de la clínica puede cambiar esta conexión. El equipo sí puede consultar su estado.</div></section>' +
       '<section class="connections-card"><div class="connections-card-head"><div><span>CANALES</span><h2>Conecta las cuentas de la clínica</h2></div></div>' +
       '<div class="connections-channel-list"><div data-channel-row="whatsapp"><span class="connections-channel-icon">W</span><p><strong>WhatsApp Business</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" disabled>Conectar</button></div><div data-channel-row="messenger"><span class="connections-channel-icon">M</span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="messenger" disabled>Conectar</button></div><div data-channel-row="instagram"><span class="connections-channel-icon">I</span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
+      '<div class="connections-channel-retry" data-channel-retry hidden role="status"><span>No pudimos consultar los canales.</span><button type="button" class="btn btn-secondary" data-retry-channels>Reintentar</button></div>' +
       '<p class="connections-boundary">Los tokens de Meta se procesan en una capa privada y nunca se muestran en el navegador ni se mezclan con el expediente clínico.</p></section></div>' +
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
       '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
@@ -106,7 +109,9 @@
       ? 'Última verificación: ' + new Date(status.last_verified_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })
       : '';
     provisionWrap.hidden = linked || !status.can_manage;
-    manualLink.hidden = linked || !status.can_manage;
+    manualLink.hidden = connected || !status.can_manage;
+    manualLink.open = false;
+    manualLink.querySelector('summary').textContent = attention ? 'Reemplazar enlace' : 'Configuración avanzada de migración';
     connectedActions.hidden = !linked || !status.can_manage;
     form.hidden = false;
     staffNote.hidden = Boolean(status.can_manage);
@@ -127,6 +132,7 @@
       loadTraining(true);
       loadChannels();
     } else {
+      cancelChannelLoad();
       renderChannels([]);
     }
   }
@@ -144,7 +150,8 @@
     // La primera invocación de una Edge Function recién despertada puede
     // tardar más que las siguientes. Damos margen al arranque en frío sin
     // dejar la pantalla esperando indefinidamente.
-    var timer = setTimeout(function () { controller.abort(); }, 20000);
+    var timeout = REQUEST_TIMEOUTS[action] || REQUEST_TIMEOUTS.connect;
+    var timer = setTimeout(function () { controller.abort(); }, timeout);
     try {
       var method = action === 'status' ? 'GET' : 'POST';
       var response = await fetch(SUPA_URL + '/functions/v1/lana-connection' + (method === 'GET' ? '?action=status' : ''), {
@@ -161,7 +168,12 @@
       }
       return data;
     } catch (error) {
-      if (error && error.name === 'AbortError') throw new Error('La conexión tardó demasiado. Intenta de nuevo.');
+      if (error && error.name === 'AbortError') {
+        var timeoutError = new Error('La conexión tardó demasiado. Comprobaremos si la operación sí terminó.');
+        timeoutError.isTimeout = true;
+        timeoutError.action = action;
+        throw timeoutError;
+      }
       throw error;
     } finally {
       clearTimeout(timer);
@@ -187,19 +199,54 @@
     return data;
   }
 
-  async function channelRequest(method, payload) {
-    var response = await fetch(SUPA_URL + '/functions/v1/lana-channels', {
-      method: method,
-      headers: { 'Authorization': 'Bearer ' + await sessionToken(), 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
-      body: method === 'POST' ? JSON.stringify(payload || {}) : undefined,
-    });
-    var data = await response.json().catch(function () { return {}; });
-    if (!response.ok) throw new Error(data.error || 'No se pudo completar la operación del canal.');
-    return data;
+  async function channelRequest(method, payload, options) {
+    var controller = new AbortController();
+    var externalSignal = options && options.signal;
+    var cancelledByCaller = false;
+    var abortFromCaller = function () { cancelledByCaller = true; controller.abort(); };
+    if (externalSignal) {
+      if (externalSignal.aborted) abortFromCaller();
+      else externalSignal.addEventListener('abort', abortFromCaller, { once: true });
+    }
+    var timer = setTimeout(function () { controller.abort(); }, CHANNEL_TIMEOUT_MS);
+    try {
+      var response = await fetch(SUPA_URL + '/functions/v1/lana-channels', {
+        method: method,
+        headers: { 'Authorization': 'Bearer ' + await sessionToken(), 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+        body: method === 'POST' ? JSON.stringify(payload || {}) : undefined,
+        signal: controller.signal,
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || 'No se pudo completar la operación del canal.');
+      return data;
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        var channelError = new Error(cancelledByCaller ? 'Consulta reemplazada por una más reciente.' : 'Los canales tardaron demasiado en responder. Reintenta.');
+        channelError.cancelled = cancelledByCaller;
+        channelError.isTimeout = !cancelledByCaller;
+        throw channelError;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      if (externalSignal) externalSignal.removeEventListener('abort', abortFromCaller);
+    }
+  }
+
+  function cancelChannelLoad() {
+    state.channelLoadGeneration += 1;
+    if (state.channelLoadController) state.channelLoadController.abort();
+    state.channelLoadController = null;
+  }
+
+  function showChannelRetry(show) {
+    var retry = document.querySelector('[data-channel-retry]');
+    if (retry) retry.hidden = !show;
   }
 
   function renderChannels(channels) {
     state.channels = Array.isArray(channels) ? channels : [];
+    showChannelRetry(false);
     var connectedToLana = Boolean(state.status && state.status.connected);
     document.querySelectorAll('[data-channel-row]').forEach(function (row) {
       var name = row.dataset.channelRow;
@@ -220,22 +267,34 @@
   }
 
   async function loadChannels() {
+    var generation = state.channelLoadGeneration + 1;
+    state.channelLoadGeneration = generation;
+    if (state.channelLoadController) state.channelLoadController.abort();
+    var controller = new AbortController();
+    state.channelLoadController = controller;
+    showChannelRetry(false);
     try {
-      var data = await channelRequest('GET');
+      var data = await channelRequest('GET', null, { signal: controller.signal });
+      if (generation !== state.channelLoadGeneration) return;
       renderChannels(data.channels || []);
     } catch (error) {
-      document.querySelectorAll('[data-channel-state]').forEach(function (el) { el.textContent = 'No se pudo consultar'; });
+      if (generation !== state.channelLoadGeneration || error.cancelled) return;
+      document.querySelectorAll('[data-channel-state]').forEach(function (el) { el.textContent = 'No se pudo consultar · reintenta'; });
+      showChannelRetry(true);
       setMessage(error.message || 'No se pudo consultar el estado de los canales.', 'error');
+    } finally {
+      if (generation === state.channelLoadGeneration) state.channelLoadController = null;
     }
   }
 
   async function connectChannel(event) {
     var selected = event.currentTarget.dataset.connectChannel;
+    var button = event.currentTarget;
     var popup = window.open('', 'smyl-lana-' + selected, 'width=560,height=760');
     if (!popup) { setMessage('Permite las ventanas emergentes para conectar este canal.', 'error'); return; }
     popup.document.title = 'Preparando conexión…';
     popup.document.body.textContent = 'Preparando conexión segura con el canal…';
-    event.currentTarget.disabled = true;
+    button.disabled = true;
     setMessage('Preparando la conexión de ' + selected + '…', '');
     try {
       var data = await channelRequest('POST', { action: 'setup', channel: selected });
@@ -267,6 +326,8 @@
       popup.close();
       setMessage(error.message || 'No se pudo iniciar la conexión.', 'error');
       loadChannels();
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -665,6 +726,17 @@
     }
   }
 
+  async function reconcileConnectionStatus() {
+    setMessage('La operación tardó, estamos comprobando el estado real…', '');
+    try {
+      var status = await request('status');
+      renderStatus(status);
+      return status;
+    } catch (_) {
+      return null;
+    }
+  }
+
   async function connect(event) {
     event.preventDefault();
     var input = document.getElementById('lana-link-code');
@@ -693,6 +765,13 @@
       renderStatus(status);
       setMessage('La mensajería quedó activa. Ya puedes conectar los canales de la clínica.', 'success');
     } catch (error) {
+      if (error.isTimeout) {
+        var reconciled = await reconcileConnectionStatus();
+        if (reconciled && reconciled.connected) {
+          setMessage('La mensajería sí quedó activa. Ya puedes conectar los canales de la clínica.', 'success');
+          return;
+        }
+      }
       setMessage(error.message || 'No se pudo activar la mensajería.', 'error');
     } finally {
       setBusy(false);
@@ -706,6 +785,13 @@
       renderStatus(status);
       setMessage('Conexión verificada.', 'success');
     } catch (error) {
+      if (error.isTimeout) {
+        var reconciled = await reconcileConnectionStatus();
+        if (reconciled && reconciled.connected) {
+          setMessage('Conexión verificada.', 'success');
+          return;
+        }
+      }
       if (error.statusData && error.statusData.estado) renderStatus(error.statusData);
       setMessage(error.message || 'La conexión requiere atención.', 'error');
     } finally {
@@ -753,6 +839,7 @@
     document.querySelector('.contenido').append(page);
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
     page.querySelector('[data-provision-lana]').addEventListener('click', provision);
+    page.querySelector('[data-retry-channels]').addEventListener('click', loadChannels);
     page.querySelectorAll('[data-connect-channel]').forEach(function (button) { button.addEventListener('click', channelAction); });
     page.querySelector('[data-disconnect-cancel]').addEventListener('click', function () { page.querySelector('[data-disconnect-dialog]').close(); });
     page.querySelector('[data-disconnect-confirm]').addEventListener('click', confirmDisconnect);

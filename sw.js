@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v262-checkout-return';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -104,8 +104,8 @@ const STATIC_FILES = [
   '/camila/smyl-reports.css?v=4',
   '/camila/smyl-readiness.js?v=1',
   '/camila/smyl-readiness.css?v=2',
-  '/camila/smyl-connections.js?v=12',
-  '/camila/smyl-connections.css?v=7',
+  '/camila/smyl-connections.js?v=13',
+  '/camila/smyl-connections.css?v=8',
   '/camila/smyl-lana-handoff.js?v=5',
   '/camila/smyl-lana-handoff.css?v=1',
   '/camila/smyl-lana-attention.js?v=4',

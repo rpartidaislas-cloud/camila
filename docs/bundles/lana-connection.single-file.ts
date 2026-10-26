@@ -197,7 +197,22 @@ const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
 const LANA_PLATFORM_SECRET = (Deno.env.get("SMYL_LANA_PLATFORM_SECRET") || "").trim();
 const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
 const LANA_PROVISION_URL = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/smyl-provision";
+const LANA_VERIFY_TIMEOUT_MS = 25000;
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+type LanaVerificationFailure = "invalid_credentials" | "temporary";
+
+class LanaVerificationError extends Error {
+  readonly failure: LanaVerificationFailure;
+  readonly httpStatus: number;
+
+  constructor(message: string, failure: LanaVerificationFailure, httpStatus: number) {
+    super(message);
+    this.name = "LanaVerificationError";
+    this.failure = failure;
+    this.httpStatus = httpStatus;
+  }
+}
 
 type LanaConfig = {
   version: number;
@@ -304,9 +319,11 @@ async function writeLanaConfig(
 
 async function verifyLanaApiKey(apiKey: string): Promise<void> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 9000);
+  const timer = setTimeout(() => controller.abort(), LANA_VERIFY_TIMEOUT_MS);
   try {
-    const response = await fetch(`${LANA_API_BASE}/conversations?limit=1`, {
+    // /contract autentica la API key sin consultar conversaciones ni cargar el
+    // buzón. Es la comprobación más pequeña y estable para un arranque en frío.
+    const response = await fetch(`${LANA_API_BASE}/contract`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -315,15 +332,45 @@ async function verifyLanaApiKey(apiKey: string): Promise<void> {
       },
       signal: controller.signal,
     });
-    if (response.status === 401 || response.status === 403) throw new Error("El código de enlace no es válido o fue revocado.");
-    if (!response.ok) throw new Error("LANA no pudo confirmar la conexión en este momento.");
-    const body = await response.json().catch(() => null);
-    if (!body || !Array.isArray(body.conversaciones)) throw new Error("LANA devolvió una respuesta inesperada.");
+    if (response.status === 401 || response.status === 403) {
+      throw new LanaVerificationError(
+        "El código de enlace no es válido o fue revocado.",
+        "invalid_credentials",
+        401,
+      );
+    }
+    if (!response.ok) {
+      const retryableStatus = response.status === 408 || response.status === 429 || response.status >= 500;
+      throw new LanaVerificationError(
+        retryableStatus
+          ? "LANA está tardando más de lo habitual. Tu enlace se conserva; intenta verificar de nuevo."
+          : "LANA no pudo confirmar la conexión en este momento. Tu enlace se conserva.",
+        "temporary",
+        retryableStatus ? 503 : 502,
+      );
+    }
+    const body = await response.json().catch(() => null) as Record<string, unknown> | null;
+    if (!body || body.ok !== true || !body.contract || typeof body.contract !== "object") {
+      throw new LanaVerificationError(
+        "LANA devolvió una respuesta inesperada. Tu enlace se conserva.",
+        "temporary",
+        502,
+      );
+    }
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("LANA tardó demasiado en responder. Intenta de nuevo.");
+      throw new LanaVerificationError(
+        "LANA tardó demasiado en responder. Tu enlace se conserva; intenta verificar de nuevo.",
+        "temporary",
+        504,
+      );
     }
-    throw error;
+    if (error instanceof LanaVerificationError) throw error;
+    throw new LanaVerificationError(
+      "No fue posible contactar a LANA. Tu enlace se conserva; intenta verificar de nuevo.",
+      "temporary",
+      503,
+    );
   } finally {
     clearTimeout(timer);
   }
@@ -511,20 +558,39 @@ Deno.serve(async (req: Request) => {
         await verifyLanaApiKey(await decryptApiKey(lana));
         next = { ...lana, estado: "conectada", last_verified_at: new Date().toISOString(), last_error: null };
       } catch (error) {
+        const verification = error instanceof LanaVerificationError ? error : null;
+        const invalidCredentials = verification?.failure === "invalid_credentials";
         next = {
           ...lana,
-          estado: "requiere_atencion",
-          last_error: error instanceof Error ? error.message : "No se pudo verificar la conexión.",
+          // Un timeout, 429 o 5xx no revoca una credencial. Conservar el estado
+          // previo evita que una incidencia temporal bloquee todos los canales.
+          estado: invalidCredentials ? "requiere_atencion" : lana.estado,
+          last_error: error instanceof Error
+            ? error.message
+            : "No se pudo verificar la conexión. Tu enlace se conserva.",
         };
+        await writeLanaConfig(auth.tenantId, config, next);
+        return json(verification?.httpStatus || 500, {
+          error: next.last_error,
+          error_code: invalidCredentials ? "invalid_credentials" : "verification_temporary",
+          retryable: !invalidCredentials,
+          ...publicStatus(next, canManage),
+        });
       }
       await writeLanaConfig(auth.tenantId, config, next);
-      if (next.estado !== "conectada") return json(502, { error: next.last_error, ...publicStatus(next, canManage) });
       return json(200, { ok: true, ...publicStatus(next, canManage) });
     }
 
     return json(400, { error: "Acción no reconocida." });
   } catch (error) {
     console.error("[lana-connection]", error instanceof Error ? error.message : error);
+    if (error instanceof LanaVerificationError) {
+      return json(error.httpStatus, {
+        error: error.message,
+        error_code: error.failure === "invalid_credentials" ? "invalid_credentials" : "verification_temporary",
+        retryable: error.failure === "temporary",
+      });
+    }
     return json(500, { error: "No se pudo completar la operación de LANA." });
   }
 });
