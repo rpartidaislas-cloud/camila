@@ -70,10 +70,10 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=2/);
-  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=2/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=2/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=2/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=3/);
+  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=3/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=3/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=3/);
 });
 
 test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrecen volver a Configuración', () => {
@@ -83,7 +83,6 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   assert.equal(targets['Facturación'], '[data-finance-tab="fiscal"]');
   assert.equal(targets['Asistente de mensajes'], '[data-connection-tab="assistant"]');
   assert.equal(targets['Probar al asistente'], '[data-connection-tab="lab"]');
-  assert.equal(targets['Recordatorios de cita'], '[data-schedule-tab="settings"]');
   // Cada selector existe de verdad en el código de su pantalla.
   assert.match(read('smyl-clinic-admin.js'), /data-ca-tab/);
   assert.match(read('smyl-finance.js'), /data-finance-tab="fiscal"/);
@@ -93,4 +92,22 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   assert.match(source, /Volver a Configuración/);
   assert.match(source, /if \(route !== state\.from\) \{ back\.hidden = true; state\.from = ''; return; \}/);
   assert.match(read('smyl-navigation.js'), /'plantillas'\]/);
+});
+
+test('Equipo, Facturación, Plantillas y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
+  const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
+  assert.deepEqual(Object.keys(embedded).sort(), ['Cobros y pagos', 'Corte de caja', 'Equipo y roles', 'Facturación', 'Plantillas de WhatsApp', 'Recordatorios de cita', 'Sucursales, sillones y horario']);
+  assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
+  assert.equal(embedded['Equipo y roles'].route, 'clinica');
+  const source = read('smyl-settings-hub.js');
+  // Se reubica el mismo elemento y una marca de posición guarda su lugar para devolverlo al salir.
+  assert.match(source, /document\.createComment\('settings-hub'\)/);
+  assert.match(source, /d\.mark\.parentNode\.insertBefore\(d\.node, d\.mark\)/);
+  assert.match(source, /if \(route !== 'configuracion'\) restoreDetail\(\);/);
+  assert.match(source, /if \(!node\) return go\(item\);/);
+  assert.match(source, /host\.append\(d\.node\)/);
+  assert.doesNotMatch(source, /cloneNode|innerHTML\s*=/);
+  // El módulo de recordatorios solo vuelve a montar su tarjeta si no existe: al estar reubicada no se duplica.
+  assert.match(read('smyl-reminders.js'), /document\.getElementById\('schedule-reminders-card'\)\) return Boolean\(grid\)/);
+  assert.match(read('smyl-settings-hub.css'), /\.settings-hub-embed>\.pantalla/);
 });

@@ -13,14 +13,14 @@
   // `check` enlaza una tarjeta con una verificación; `soon` marca lo que todavía no existe en SMYL.
   var SECTIONS = [
     { id: 'negocio', title: 'Negocio', blurb: 'Los datos de tu clínica, tu equipo y tu plan.', items: [
-      { title: 'Sucursales, sillones y horario', desc: 'Dónde atiendes, en qué espacios y a qué hora.', route: 'clinica', target: '[data-ca-tab="operacion"]', check: 'hours' },
-      { title: 'Equipo y roles', desc: 'Quién entra a tu cuenta y qué puede ver o hacer cada persona.', route: 'clinica', target: '[data-ca-tab="equipo"]' },
+      { title: 'Sucursales, sillones y horario', desc: 'Dónde atiendes, en qué espacios y a qué hora.', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
+      { title: 'Equipo y roles', desc: 'Quién entra a tu cuenta y qué puede ver o hacer cada persona.', route: 'clinica', embed: true, target: '[data-ca-tab="equipo"]' },
       { title: 'Mi cuenta y plan', desc: 'Tus datos personales y cuánto llevas usado de tu plan.', route: 'mi-cuenta' },
-      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas. Se administra dentro de Finanzas.', route: 'caja', target: '[data-finance-tab="fiscal"]' }
+      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas. Se administra dentro de Finanzas.', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' }
     ] },
     { id: 'cobros', title: 'Ventas y cobros', blurb: 'Cómo cobras y cómo ves lo que te deben.', items: [
-      { title: 'Cobros y pagos', desc: 'Pagos recibidos, recibos y reembolsos.', route: 'caja', target: '[data-finance-tab="payments"]' },
-      { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', route: 'caja', target: '[data-finance-tab="cash"]' },
+      { title: 'Cobros y pagos', desc: 'Pagos recibidos, recibos y reembolsos.', route: 'caja', embed: true, target: '[data-finance-tab="payments"]' },
+      { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
       { title: 'Formas de pago y anticipo', desc: 'Qué formas de pago aceptas y cuánto pides por adelantado.', soon: true }
     ] },
     { id: 'catalogo', title: 'Catálogo', blurb: 'Lo que ofreces: tratamientos, precios y materiales.', items: [
@@ -32,8 +32,8 @@
       { title: 'WhatsApp, Instagram y Messenger', desc: 'Conecta las cuentas con las que hablas con tus pacientes.', route: 'conexiones', target: '[data-connection-tab="channels"]', check: 'whatsapp' },
       { title: 'Asistente de mensajes', desc: 'Cómo atiende tu asistente y qué sabe de tu clínica.', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
       { title: 'Probar al asistente', desc: 'Escribe como paciente y revisa cómo responde antes de activarlo.', route: 'conexiones', target: '[data-connection-tab="lab"]' },
-      { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados por Meta para escribirle primero a un paciente.', route: 'plantillas', check: 'template' },
-      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', target: '[data-schedule-tab="settings"]', check: 'reminders' },
+      { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados por Meta para escribirle primero a un paciente.', route: 'plantillas', embed: true, check: 'template' },
+      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' },
       { title: 'Perfil público de WhatsApp', desc: 'Descripción, dirección y foto con las que te ven tus pacientes.', soon: true }
     ] },
     { id: 'experiencia', title: 'Experiencia', blurb: 'Cómo te ven tus pacientes.', items: [
@@ -68,7 +68,7 @@
   function save(value) { try { win.localStorage.setItem(STORE_KEY, value); } catch (_) {} }
 
   function mount() {
-    var state = { section: read() || 'negocio', services: null, loadedAt: 0, from: '' };
+    var state = { section: read() || 'negocio', services: null, loadedAt: 0, from: '', detail: null };
     if (!SECTIONS.some(function (s) { return s.id === state.section; })) state.section = 'negocio';
     var page = el('section', 'pantalla settings-hub'); page.id = 'p-configuracion';
     var head = el('header', 'settings-hub-head');
@@ -80,6 +80,51 @@
     document.querySelector('.contenido').append(page);
 
     function results() { var s = win.SmylClinicSetup; return s && typeof s.results === 'function' ? s.results() : null; }
+
+    // Muestra una pantalla existente (o una tarjeta suya) dentro de Configuración, sin copiarla: se reubica el mismo elemento y,
+    // al salir, vuelve a su lugar exacto (una marca de posición guarda dónde estaba). Los módulos siguen encontrándolo por su id.
+    function detailNode(item) { return item.element ? document.querySelector(item.element) : document.getElementById('p-' + item.route); }
+
+    function restoreDetail() {
+      var d = state.detail; if (!d) return;
+      state.detail = null;
+      if (d.page) d.node.classList.remove('activa');
+      if (d.mark.parentNode) { d.mark.parentNode.insertBefore(d.node, d.mark); d.mark.remove(); }
+    }
+
+    function openDetail(item) {
+      restoreDetail();
+      state.from = '';
+      if (!item.element) win.ir(item.route);
+      var node = detailNode(item);
+      if (!node) return go(item);
+      var mark = document.createComment('settings-hub');
+      node.parentNode.insertBefore(mark, node);
+      state.detail = { item: item, node: node, mark: mark, page: !item.element };
+      win.ir('configuracion');
+      if (item.element && win.SmylReminders && typeof win.SmylReminders.reload === 'function') Promise.resolve(win.SmylReminders.reload()).catch(function () {});
+      if (item.target) {
+        var tries = 0;
+        (function ready() {
+          var tab = node.querySelector(item.target);
+          if (tab) return tab.click();
+          if (tries++ < 80) setTimeout(ready, 50);
+        })();
+      }
+    }
+
+    function renderDetail(current) {
+      var d = state.detail;
+      var bar = el('div', 'settings-hub-detail-bar');
+      var back = el('button', 'settings-hub-detail-back'); back.type = 'button';
+      back.append(el('span', '', '←'), document.createTextNode(' ' + current.title));
+      back.addEventListener('click', function () { restoreDetail(); render(); });
+      bar.append(back, el('h2', '', d.item.title));
+      var host = el('div', 'settings-hub-embed');
+      panel.append(bar, host);
+      host.append(d.node);
+      if (d.page) d.node.classList.add('activa');
+    }
 
     function go(item) {
       if (item.soon || !item.route) return;
@@ -104,7 +149,7 @@
       if (item.soon) top.append(el('em', 'settings-hub-chip', 'Próximamente'));
       else if (s) { var chip = el('em', 'settings-hub-chip', s.text); chip.dataset.tone = s.tone; top.append(chip); }
       node.append(top, el('span', 'settings-hub-card-desc', item.desc));
-      if (!item.soon) { node.append(el('span', 'settings-hub-card-go', 'Abrir')); node.addEventListener('click', function () { go(item); }); }
+      if (!item.soon) { node.append(el('span', 'settings-hub-card-go', 'Abrir')); node.addEventListener('click', function () { if (item.embed) openDetail(item); else go(item); }); }
       return node;
     }
 
@@ -117,10 +162,11 @@
         b.append(el('span', '', section.title));
         var open = pendingCount(section, res, state.services);
         if (open) { var badge = el('i', 'settings-hub-badge', String(open)); badge.setAttribute('aria-label', open + (open === 1 ? ' pendiente' : ' pendientes')); b.append(badge); }
-        b.addEventListener('click', function () { state.section = section.id; save(section.id); render(); });
+        b.addEventListener('click', function () { restoreDetail(); state.section = section.id; save(section.id); render(); });
         nav.append(b);
       });
       panel.replaceChildren();
+      if (state.detail) { renderDetail(current); return; }
       var title = el('div', 'settings-hub-panel-head'); title.append(el('h2', '', current.title), el('p', '', current.blurb));
       var grid = el('div', 'settings-hub-grid');
       current.items.forEach(function (item) { grid.append(card(item)); });
@@ -137,7 +183,7 @@
       }
       await Promise.all(jobs);
       state.loadedAt = Date.now();
-      if (page.classList.contains('activa')) render();
+      if (page.classList.contains('activa') && !state.detail) render();
     }
 
     // «Volver a Configuración»: aparece arriba de la pantalla a la que llegaste desde aquí y desaparece al ir a otra.
@@ -159,6 +205,7 @@
     });
     var previous = win.ir;
     win.ir = function (route) {
+      if (route !== 'configuracion') restoreDetail();
       var out = previous.apply(this, arguments);
       if (route === 'configuracion') { render(); if (Date.now() - state.loadedAt > 30000) refresh(); }
       placeBack(route);

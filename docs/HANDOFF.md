@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Claude: Configuración fase 2b (contenido dentro de Configuración)
+
+- `smyl-settings-hub.js` (v3) / `.css` (v3): las tarjetas con `embed` (Sucursales y horario, Equipo y roles, Facturación, Cobros y pagos,
+  Corte de caja, Plantillas de WhatsApp y Recordatorios de cita) se muestran dentro del panel de Configuración, con un botón para volver a
+  la sección. No se copia ni se reescribe nada: se **reubica el mismo elemento** (la pantalla `#p-<ruta>` o la tarjeta
+  `#schedule-reminders-card`) y una marca de posición (`<!--settings-hub-->`) guarda dónde estaba; al volver a la lista, al cambiar de
+  sección o al ir a cualquier otra ruta (`ir()` restaura antes de navegar) regresa a su lugar. Los módulos lo siguen encontrando por su id,
+  así que `smyl-reminders.js` no vuelve a montar su tarjeta (solo lo hace si no existe) y ninguna pantalla se duplica.
+- Si el elemento no existe (módulo sin cargar o sin permiso), la tarjeta cae al comportamiento anterior: navega a la pantalla.
+- CSS: el título grande de la pantalla incrustada se oculta (ya lo muestra la barra de Configuración) y en celular la columna usa
+  `minmax(0,1fr)` para que Finanzas no se salga por la derecha.
+- Siguen navegando a su pantalla (sin incrustar): Servicios y tarifas, Inventario, Horarios de la agenda, Canales/Asistente/Probar (OAuth y
+  flujos propios), Mi cuenta, Marca, Directorio, Lanzamiento y Seguridad. Fase 3 (lo «Próximamente») y `wip/inicio` siguen pendientes.
+
 ## 2026-10-26 — Claude: Configuración fase 2 (enlaces directos, volver y Plantillas dentro de Canales)
 
 - `smyl-settings-hub.js` (v2) / `.css` (v2): cada tarjeta abre la pestaña exacta de su pantalla con `target` (selector que se
