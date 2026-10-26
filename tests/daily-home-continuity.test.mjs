@@ -82,7 +82,7 @@ test('Inicio comparte pendientes con el Centro de alertas y calcula los indicado
 });
 
 test('el Inicio y el panel reservan su espacio para no «saltar» mientras cargan', () => {
-  assert.match(app, /<body class="smyl-professional smyl-management-v3">/);
+  assert.match(app, /<body class="smyl-professional smyl-management-v3 smyl-ui-governed">/);
   assert.match(app, /smyl_sidebar_collapsed[^<]*smyl-sidebar-collapsed/);
   assert.match(script, /if\(!state\.loaded\)renderLoading\(\);/);
   assert.match(script, /flag\('month'\)==='1'/);

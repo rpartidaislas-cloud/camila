@@ -13,6 +13,58 @@
   la preferencia sigue guardándose por clínica.
 - Se conserva lo de PR #48: Inicio pide solo los nombres de los pacientes de hoy (`namesFor`). `app.html`, `sw.js` y `mobile/www/`
   sincronizados; se actualizaron las pruebas que fijaban textos y versiones.
+## 2026-10-25 — Codex — Sidebar inspirado en Figma, expandido y compacto
+
+**Tocado:** shell de `app.html`, plantilla visual compartida, caché PWA,
+copia móvil, vista de QA y pruebas de contrato.
+
+- Se leyó con el MCP de Figma el nodo `80:1461` del archivo comunitario
+  “Sidebar Navigation Menu for Dashboard” y se usó el frame oscuro
+  `105:1897` como referencia visual.
+- El sidebar conserva la arquitectura y todas las rutas reales de SMYL, pero
+  adopta una superficie flotante translúcida, radio amplio, perfil encapsulado,
+  estado activo luminoso y botón lateral como en la referencia.
+- El modo expandido mide 256 px y el compacto 80 px. La preferencia existente
+  en `smyl_sidebar_collapsed` se mantiene; etiquetas e iconos ahora transicionan
+  con una curva suave y `prefers-reduced-motion` desactiva el movimiento.
+- En compacto aparece una marca `S`, permanecen visibles avatar, iconos,
+  alertas y cierre de sesión; títulos nativos conservan el nombre de cada ruta.
+- La navegación móvil no cambia: debajo de 768 px el sidebar se retira y sigue
+  gobernando la barra inferior existente.
+- `smyl-ui-template-v3.css` avanza a `?v=3` en web y PWA. `mobile/www` quedó
+  sincronizado mediante `npm run sync:web`.
+- QA visual aprobada a 1440 px (expandido y compacto), 1024 px y 390 px. La
+  suite completa terminó con **660 pruebas aprobadas** tras integrar `main`.
+- No se tocaron backend, migraciones, RLS, secretos, lógica clínica ni rutas.
+
+## 2026-10-25 — Codex — SMYL UI v3 gobierna shell, controles e Inbox
+
+**Tocado:** `app.html`, plantilla visual compartida, shell/navegación,
+componentes heredados, Inbox, PWA, copia móvil y pruebas visuales.
+
+- `smyl-ui-template-v3.css` deja de cargarse entre hojas históricas y pasa al
+  final del `<head>`, por lo que ahora es la fuente normativa efectiva del
+  panel en vez de ser sobrescrita por cada módulo.
+- El opt-in `smyl-ui-governed` unifica tokens, navegación, barra superior,
+  botones, iconos de acción, tarjetas, etiquetas, campos y focos sin cambiar
+  la composición funcional de cada módulo.
+- Navegación primaria usa 14 px y 44 px de alto; etiquetas y controles heredan
+  la escala oficial. En móvil, botones alcanzan 44 px y campos usan 16 px para
+  preservar lectura y evitar zoom automático.
+- Mensajes conserva su workspace especializado, pero comparte tipografía de
+  conversación, búsqueda, títulos y compositor con la plantilla general.
+- Se añadió QA reproducible del shell a 1440, 1024 y 390 px. No hubo
+  desbordamiento horizontal y las medidas canónicas se comprobaron sobre el
+  CSS computado.
+- Suite completa: **651 pruebas aprobadas**. Web, PWA y `mobile/www` quedaron
+  sincronizados. No se tocaron backend, migraciones, RLS, secretos ni lógica
+  clínica.
+
+**Siguiente etapa recomendada:** migrar Trabajo diario por módulo, empezando
+por Agenda y Pacientes 360, retirando gradualmente reglas tipográficas locales
+en vez de agregar nuevas excepciones.
+
+---
 
 ## 2026-10-26 — Claude: Configuración fase 2b (contenido dentro de Configuración)
 

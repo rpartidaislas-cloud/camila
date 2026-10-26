@@ -55,7 +55,7 @@ test('la ficha pública explica límites clínicos y carga sólo casos aprobados
 
 test('la etapa se distribuye igual en web y PWA',()=>{
   assert.match(app,/smyl-professional-directory\.js\?v=12/);
-  assert.match(app,/smyl-ui-template-v3\.css\?v=1/);
+  assert.match(app,/smyl-ui-template-v3\.css\?v=3/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));
