@@ -26,3 +26,6 @@
   .settings-hub-nav-item{flex:0 0 auto;width:auto;white-space:nowrap}
   .settings-hub-grid{grid-template-columns:1fr}.settings-hub-card{min-height:0}
 }
+
+.settings-back{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:8px 14px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:999px;background:#fff;color:var(--smyl-primary,#194391);font:600 13px Inter,sans-serif;cursor:pointer;min-height:36px}
+.settings-back:hover{background:var(--smyl-primary-subtle,#edf3fc)}.settings-back[hidden]{display:none}

@@ -70,8 +70,27 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=1/);
-  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=1/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=1/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=1/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=2/);
+  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=2/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=2/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=2/);
+});
+
+test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrecen volver a Configuración', () => {
+  const targets = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.target).map(i => [i.title, i.target]));
+  assert.equal(targets['Equipo y roles'], '[data-ca-tab="equipo"]');
+  assert.equal(targets['Sucursales, sillones y horario'], '[data-ca-tab="operacion"]');
+  assert.equal(targets['Facturación'], '[data-finance-tab="fiscal"]');
+  assert.equal(targets['Asistente de mensajes'], '[data-connection-tab="assistant"]');
+  assert.equal(targets['Probar al asistente'], '[data-connection-tab="lab"]');
+  assert.equal(targets['Recordatorios de cita'], '[data-schedule-tab="settings"]');
+  // Cada selector existe de verdad en el código de su pantalla.
+  assert.match(read('smyl-clinic-admin.js'), /data-ca-tab/);
+  assert.match(read('smyl-finance.js'), /data-finance-tab="fiscal"/);
+  assert.match(read('smyl-navigation.js'), /dataset\.connectionTab = entry\[0\]/);
+  assert.match(read('smyl-schedule.js'), /data-schedule-tab="settings"/);
+  const source = read('smyl-settings-hub.js');
+  assert.match(source, /Volver a Configuración/);
+  assert.match(source, /if \(route !== state\.from\) \{ back\.hidden = true; state\.from = ''; return; \}/);
+  assert.match(read('smyl-navigation.js'), /'plantillas'\]/);
 });

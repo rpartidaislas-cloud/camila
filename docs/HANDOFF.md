@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Claude: Configuración fase 2 (enlaces directos, volver y Plantillas dentro de Canales)
+
+- `smyl-settings-hub.js` (v2) / `.css` (v2): cada tarjeta abre la pestaña exacta de su pantalla con `target` (selector que se
+  pulsa al llegar): Sucursales y horario / Equipo y roles (`[data-ca-tab]` de Mi clínica), Facturación / Cobros y pagos / Corte de
+  caja (`[data-finance-tab]` de Finanzas), Canales / Asistente / Probar al asistente (`[data-connection-tab]`) y Recordatorios
+  (`[data-schedule-tab="settings"]`). Tarjetas nuevas: Equipo y roles, Corte de caja, Asistente de mensajes y Probar al asistente.
+- Botón «Volver a Configuración» arriba de la pantalla destino cuando se llegó desde Configuración; se oculta al ir a otra ruta.
+- `smyl-navigation.js` (v11): «Plantillas de WhatsApp» sale del grupo Mensajería (ahora solo Mensajes) y vive en Configuración >
+  Canales; la ruta sigue registrada en el contenedor oculto y cuenta como destino de Configuración en el menú.
+- `app.html`, `sw.js`, `mobile/www/` sincronizados. Pruebas: se actualizó la de Mensajería (`smyl-whatsapp-templates`).
+- Falta la fase 3 (lo «Próximamente»: formas de pago y anticipo, perfil público de WhatsApp, colaboraciones), que necesita migración y
+  contrato con LANA. Rama local `wip/inicio` sin subir.
+
 ## 2026-10-26 — Claude: Configuración fase 1 (pantalla con el orden de LANA)
 
 - Pedido del usuario: ordenar el configurador de SMYL como el panel de LANA (Negocio, Ventas y cobros, Catálogo, Canales,

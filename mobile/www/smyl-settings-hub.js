@@ -13,23 +13,27 @@
   // `check` enlaza una tarjeta con una verificación; `soon` marca lo que todavía no existe en SMYL.
   var SECTIONS = [
     { id: 'negocio', title: 'Negocio', blurb: 'Los datos de tu clínica, tu equipo y tu plan.', items: [
-      { title: 'Mi clínica', desc: 'Sucursales, sillones, horario de atención y equipo con sus permisos.', route: 'clinica', check: 'hours' },
+      { title: 'Sucursales, sillones y horario', desc: 'Dónde atiendes, en qué espacios y a qué hora.', route: 'clinica', target: '[data-ca-tab="operacion"]', check: 'hours' },
+      { title: 'Equipo y roles', desc: 'Quién entra a tu cuenta y qué puede ver o hacer cada persona.', route: 'clinica', target: '[data-ca-tab="equipo"]' },
       { title: 'Mi cuenta y plan', desc: 'Tus datos personales y cuánto llevas usado de tu plan.', route: 'mi-cuenta' },
-      { title: 'Facturación', desc: 'Datos fiscales de la clínica y facturas de tus pacientes. Por ahora se administra dentro de Finanzas.', route: 'caja' }
+      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas. Se administra dentro de Finanzas.', route: 'caja', target: '[data-finance-tab="fiscal"]' }
     ] },
     { id: 'cobros', title: 'Ventas y cobros', blurb: 'Cómo cobras y cómo ves lo que te deben.', items: [
-      { title: 'Cobros y pagos', desc: 'Pagos recibidos, saldos pendientes y reembolsos.', route: 'caja' },
+      { title: 'Cobros y pagos', desc: 'Pagos recibidos, recibos y reembolsos.', route: 'caja', target: '[data-finance-tab="payments"]' },
+      { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', route: 'caja', target: '[data-finance-tab="cash"]' },
       { title: 'Formas de pago y anticipo', desc: 'Qué formas de pago aceptas y cuánto pides por adelantado.', soon: true }
     ] },
     { id: 'catalogo', title: 'Catálogo', blurb: 'Lo que ofreces: tratamientos, precios y materiales.', items: [
       { title: 'Servicios y tarifas', desc: 'Tratamientos, duración, precio y claves fiscales.', route: 'precios', check: 'services' },
       { title: 'Materiales e inventario', desc: 'Existencias, compras y el material que usa cada tratamiento.', route: 'inventario' },
-      { title: 'Horarios y servicios de la agenda', desc: 'Quién atiende cada tratamiento y en qué horarios.', route: 'agenda', tab: 'settings' }
+      { title: 'Horarios y servicios de la agenda', desc: 'Quién atiende cada tratamiento y en qué horarios.', route: 'agenda', target: '[data-schedule-tab="settings"]' }
     ] },
     { id: 'canales', title: 'Canales', blurb: 'Por dónde hablas con tus pacientes y cómo los atiende tu asistente.', items: [
-      { title: 'WhatsApp, Instagram y Messenger', desc: 'Conecta tus cuentas y prepara a tu asistente.', route: 'conexiones', check: 'whatsapp' },
+      { title: 'WhatsApp, Instagram y Messenger', desc: 'Conecta las cuentas con las que hablas con tus pacientes.', route: 'conexiones', target: '[data-connection-tab="channels"]', check: 'whatsapp' },
+      { title: 'Asistente de mensajes', desc: 'Cómo atiende tu asistente y qué sabe de tu clínica.', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
+      { title: 'Probar al asistente', desc: 'Escribe como paciente y revisa cómo responde antes de activarlo.', route: 'conexiones', target: '[data-connection-tab="lab"]' },
       { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados por Meta para escribirle primero a un paciente.', route: 'plantillas', check: 'template' },
-      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', tab: 'settings', check: 'reminders' },
+      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', target: '[data-schedule-tab="settings"]', check: 'reminders' },
       { title: 'Perfil público de WhatsApp', desc: 'Descripción, dirección y foto con las que te ven tus pacientes.', soon: true }
     ] },
     { id: 'experiencia', title: 'Experiencia', blurb: 'Cómo te ven tus pacientes.', items: [
@@ -64,7 +68,7 @@
   function save(value) { try { win.localStorage.setItem(STORE_KEY, value); } catch (_) {} }
 
   function mount() {
-    var state = { section: read() || 'negocio', services: null, loadedAt: 0 };
+    var state = { section: read() || 'negocio', services: null, loadedAt: 0, from: '' };
     if (!SECTIONS.some(function (s) { return s.id === state.section; })) state.section = 'negocio';
     var page = el('section', 'pantalla settings-hub'); page.id = 'p-configuracion';
     var head = el('header', 'settings-hub-head');
@@ -79,11 +83,12 @@
 
     function go(item) {
       if (item.soon || !item.route) return;
+      state.from = item.route;
       win.ir(item.route);
-      if (item.tab) {
+      if (item.target) {
         var tries = 0;
         (function ready() {
-          var tab = document.querySelector('[data-schedule-tab="' + item.tab + '"]');
+          var tab = document.querySelector('.pantalla.activa ' + item.target) || document.querySelector(item.target);
           if (tab) return tab.click();
           if (tries++ < 80) setTimeout(ready, 50);
         })();
@@ -135,6 +140,17 @@
       if (page.classList.contains('activa')) render();
     }
 
+    // «Volver a Configuración»: aparece arriba de la pantalla a la que llegaste desde aquí y desaparece al ir a otra.
+    var back = el('button', 'settings-back'); back.type = 'button'; back.hidden = true;
+    back.append(el('span', '', '←'), document.createTextNode(' Volver a Configuración'));
+    back.addEventListener('click', function () { win.ir('configuracion'); });
+    function placeBack(route) {
+      if (route !== state.from) { back.hidden = true; state.from = ''; return; }
+      var host = document.getElementById('p-' + route);
+      if (!host) { back.hidden = true; return; }
+      host.prepend(back); back.hidden = false;
+    }
+
     render();
     win.SmylSettingsHub = Object.freeze({
       open: function (section) { if (section && SECTIONS.some(function (s) { return s.id === section; })) { state.section = section; save(section); } win.ir('configuracion'); },
@@ -145,6 +161,7 @@
     win.ir = function (route) {
       var out = previous.apply(this, arguments);
       if (route === 'configuracion') { render(); if (Date.now() - state.loadedAt > 30000) refresh(); }
+      placeBack(route);
       return out;
     };
   }
