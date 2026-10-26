@@ -45,19 +45,22 @@ test('Agenda consulta la captación pública sin convertirla automáticamente en
 });
 
 test('una persona del equipo debe vincular la captación antes de poder agendar', () => {
-  const review = functionBody(schedule, 'reviewPublicIntake', 'openNew');
+  const review = functionBody(schedule, 'reviewPublicIntake', 'negotiationById');
+  const negotiation = functionBody(schedule, 'openNegotiation', 'professionalDecision');
   const open = functionBody(schedule, 'openNew', 'openAppointment');
 
   assert.match(review, /state\.canManagePatients/);
   assert.match(review, /rpc\('smyl_link_public_appointment_intake',\{p_request_id:request\.id,p_patient_id:patientId\}\)/);
-  assert.ok(review.indexOf("smyl_link_public_appointment_intake") < review.indexOf('openNew(linked'),
-    'la vinculación debe completarse antes de abrir el formulario de cita');
+  assert.ok(review.indexOf("smyl_link_public_appointment_intake") < review.indexOf('openNegotiation(linked'),
+    'la vinculación debe completarse antes de preparar la confirmación');
+  assert.match(negotiation, /if\(!request\|\|!request\.patient_id\)/);
+  assert.match(negotiation, /smyl_start_appointment_negotiation/);
   assert.match(open, /if\(request&&!request\.patient_id\)/);
   assert.match(open, /return reviewPublicIntake\(request,intake\)/);
   assert.match(open, /Primero vincula esta solicitud con un paciente verificado/);
   assert.ok(open.indexOf('if(request&&!request.patient_id)') < open.indexOf('appointmentForm('),
     'el guard debe ejecutarse antes de construir la cita');
-  assert.match(open, /smyl_accept_appointment_request/);
+  assert.match(schedule, /smyl_confirm_appointment_negotiation/);
 });
 
 test('el archivo único de la Edge Function contiene exactamente el handler vigente', () => {

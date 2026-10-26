@@ -117,8 +117,8 @@ test('Mensajes muestra cuántas conversaciones sin leer hay, sin abrir ninguna',
 
 test('web, móvil y PWA publican las plantillas', () => {
   assert.match(app, /<link rel="stylesheet" href="smyl-templates\.css\?v=3">/);
-  assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=1"><\/script>\s*<script defer src="smyl-templates\.js\?v=3"><\/script>/);
-  for (const file of ['smyl-templates.css?v=3', 'smyl-template-catalog.js?v=1', 'smyl-templates.js?v=3']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
+  assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=2"><\/script>\s*<script defer src="smyl-templates\.js\?v=3"><\/script>/);
+  for (const file of ['smyl-templates.css?v=3', 'smyl-template-catalog.js?v=2', 'smyl-templates.js?v=3']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
   for (const file of ['smyl-templates.js', 'smyl-templates.css', 'smyl-template-catalog.js', 'smyl-navigation.js', 'smyl-inbox.js', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
 });
 

@@ -48,8 +48,8 @@ test('direct writes are denied for operational and immutable schedule records', 
 
 test('assistant requests cannot silently become confirmed appointments', () => {
   assert.match(schema, /status text not null default 'pending'/);
-  assert.match(script, /Solicitud, no confirmación/);
-  assert.match(script, /Tú decides si se agenda/);
+  assert.match(script, /Por confirmar/);
+  assert.match(script, /Coordina profesional, paciente y espacio antes de crear la cita/);
   assert.match(actions, /smyl_accept_appointment_request/);
   assert.match(actions, /v_req\.status<>'pending'/);
   assert.doesNotMatch(script, /from\('smyl_appointment_requests'\)\.insert/);

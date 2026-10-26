@@ -12,8 +12,8 @@ const mobileScript = read('../mobile/www/smyl-clinic-admin.js');
 const mobileStyles = read('../mobile/www/smyl-clinic-admin.css');
 
 test('Mi clínica is loaded as a first-class panel module', () => {
-  assert.match(app, /smyl-clinic-admin\.css\?v=5/);
-  assert.match(app, /smyl-clinic-admin\.js\?v=4/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=6/);
+  assert.match(app, /smyl-clinic-admin\.js\?v=5/);
   assert.match(script, /window\.TITULOS\.clinica = 'Mi clínica'/);
   assert.match(script, /navButton\('Mi clínica', 'clinica'\)/);
   assert.match(script, /Sucursales y horarios/);
@@ -24,7 +24,7 @@ test('clinic admin reads only SMYL-owned operational tables', () => {
   for (const table of [
     'smyl_branches', 'smyl_rooms', 'smyl_clinic_hours', 'smyl_roles',
     'smyl_role_permissions', 'smyl_member_roles', 'smyl_member_branches',
-    'smyl_professionals', 'smyl_professional_branches'
+    'smyl_professionals', 'smyl_professional_branches', 'smyl_staff_invitations'
   ]) assert.match(script, new RegExp(`from\\('${table}'\\)`));
   assert.doesNotMatch(script, /from\(['"](?:conversaciones|mensajes|clientes|camila_integraciones)['"]\)/);
   assert.doesNotMatch(script, /LANA/);
@@ -34,7 +34,9 @@ test('sensitive multi-row changes use atomic RPC functions', () => {
   assert.match(script, /rpc\('smyl_set_default_branch'/);
   assert.match(script, /rpc\('smyl_set_member_role'/);
   assert.match(script, /rpc\('smyl_set_member_primary_branch'/);
-  assert.match(script, /rpc\('smyl_create_professional'/);
+  assert.match(script, /member_kind: 'professional'/);
+  assert.match(script, /functions\/v1\/invite-staff/);
+  assert.doesNotMatch(script, /rpc\('smyl_create_professional'/);
   assert.match(script, /eq\('tenant_id', state\.tenant\)/);
 });
 
@@ -50,7 +52,7 @@ test('web, mobile and offline cache include the same clinic module', () => {
   assert.equal(app, mobileApp);
   assert.equal(script, mobileScript);
   assert.equal(styles, mobileStyles);
-assert.match(worker, /smyl-v263-lana-connection-recovery/);
-  assert.match(worker, /smyl-clinic-admin\.js\?v=4/);
-  assert.match(worker, /smyl-clinic-admin\.css\?v=5/);
+assert.match(worker, /professional-invitations/);
+  assert.match(worker, /smyl-clinic-admin\.js\?v=5/);
+  assert.match(worker, /smyl-clinic-admin\.css\?v=6/);
 });

@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -71,8 +71,8 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=3',
   '/camila/smyl-panel.js?v=6',
   '/camila/smyl-panel.css?v=5',
-  '/camila/smyl-clinic-admin.js?v=4',
-  '/camila/smyl-clinic-admin.css?v=5',
+  '/camila/smyl-clinic-admin.js?v=5',
+  '/camila/smyl-clinic-admin.css?v=6',
   '/camila/smyl-professional-directory.js?v=12',
   '/camila/smyl-professional-directory.css?v=12',
   '/camila/smyl-design-system-v2.css?v=2',
@@ -84,15 +84,15 @@ const STATIC_FILES = [
   '/camila/smyl-dialog-system.css?v=2',
   '/camila/smyl-schedule-grid.js?v=2',
   '/camila/smyl-schedule-slots.js?v=1',
-  '/camila/smyl-schedule.js?v=24',
+  '/camila/smyl-schedule.js?v=26',
   '/camila/smyl-google-calendar.js?v=2',
   '/camila/smyl-schedule-message.js?v=1',
   '/camila/smyl-schedule-setup.js?v=2',
   '/camila/smyl-reminders.js?v=2',
   '/camila/smyl-templates.css?v=3',
-  '/camila/smyl-template-catalog.js?v=1',
+  '/camila/smyl-template-catalog.js?v=2',
   '/camila/smyl-templates.js?v=3',
-  '/camila/smyl-schedule.css?v=17',
+  '/camila/smyl-schedule.css?v=18',
   '/camila/smyl-google-calendar.css?v=2',
   '/camila/smyl-schedule-setup.css?v=2',
   '/camila/smyl-service-catalog-model.js?v=1',
@@ -123,7 +123,7 @@ const STATIC_FILES = [
   '/camila/smyl-task-center.css?v=1',
   '/camila/smyl-resilience.js?v=1',
   '/camila/smyl-resilience.css?v=1',
-  '/camila/smyl-inbox.js?v=37',
+  '/camila/smyl-inbox.js?v=38',
   '/camila/smyl-inbox.css?v=35',
   '/camila/smyl-navigation.js?v=13',
   '/camila/smyl-navigation.css?v=3',

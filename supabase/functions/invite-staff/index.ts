@@ -64,16 +64,24 @@ Deno.serve(async (req: Request) => {
 
   const limiteUsuarios = LIMITE_USUARIOS_POR_PLAN[tenant.plan as string];
   if (limiteUsuarios !== undefined) {
-    const { count, error: countErr } = await admin
+    const [{ count, error: countErr }, { count: pendingCount, error: pendingErr }] = await Promise.all([
+      admin
       .from("camila_usuarios")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", user.id)
-      .eq("activo", true);
-    if (countErr) {
-      console.error("[invite-staff] error contando equipo:", countErr.message);
+      .eq("activo", true),
+      admin
+        .from("smyl_staff_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", user.id)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString()),
+    ]);
+    if (countErr || pendingErr) {
+      console.error("[invite-staff] error contando equipo:", countErr?.message || pendingErr?.message);
       return jsonError(500, "No se pudo verificar tu equipo actual. Intenta de nuevo.");
     }
-    if ((count || 0) >= limiteUsuarios) {
+    if ((count || 0) + (pendingCount || 0) >= limiteUsuarios) {
       return jsonError(
         403,
         `Tu plan (${tenant.plan}) permite hasta ${limiteUsuarios} usuario${limiteUsuarios === 1 ? "" : "s"}. Sube de plan para invitar a más personas.`
@@ -89,17 +97,74 @@ Deno.serve(async (req: Request) => {
   }
   const email = String(body?.email || "").trim().toLowerCase();
   const nombre = String(body?.nombre || "").trim();
+  const memberKind = body?.member_kind === "professional" ? "professional" : "staff";
+  const specialty = String(body?.specialty || "").trim();
+  const licenseNumber = String(body?.license_number || "").trim();
+  const branchId = String(body?.branch_id || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError(400, "Correo inválido.");
+  if (memberKind === "professional" && nombre.length < 2) {
+    return jsonError(400, "Escribe el nombre del profesional.");
+  }
+  if (specialty.length > 120 || licenseNumber.length > 80) {
+    return jsonError(400, "Revisa la especialidad o la cédula profesional.");
+  }
+  if (memberKind === "professional" && !branchId) {
+    return jsonError(400, "Selecciona la primera sucursal del profesional.");
+  }
+
+  if (branchId) {
+    const { data: branch, error: branchErr } = await admin
+      .from("smyl_branches")
+      .select("id")
+      .eq("tenant_id", tenant.id)
+      .eq("id", branchId)
+      .eq("active", true)
+      .maybeSingle();
+    if (branchErr) {
+      console.error("[invite-staff] error verificando sucursal:", branchErr.message);
+      return jsonError(500, "No se pudo verificar la sucursal.");
+    }
+    if (!branch) return jsonError(400, "La sucursal no existe o está inactiva.");
+  }
+
+  const { data: invitation, error: invitationErr } = await admin
+    .from("smyl_staff_invitations")
+    .insert({
+      tenant_id: tenant.id,
+      email,
+      display_name: nombre || email,
+      member_kind: memberKind,
+      specialty,
+      license_number: licenseNumber,
+      branch_id: branchId || null,
+      invited_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (invitationErr || !invitation) {
+    const duplicate = invitationErr?.code === "23505";
+    console.error("[invite-staff] error registrando invitación:", invitationErr?.message);
+    return jsonError(
+      duplicate ? 409 : 500,
+      duplicate
+        ? "Ya existe una invitación pendiente para ese correo."
+        : "No se pudo preparar la invitación. Intenta de nuevo."
+    );
+  }
 
   const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: {
       tenant_id_invitado: user.id,
       nombre: nombre || undefined,
+      smyl_invitation_id: invitation.id,
+      smyl_member_kind: memberKind,
     },
     redirectTo: `${APP_URL}/app.html?invite=1`,
   });
 
   if (inviteErr) {
+    await admin.from("smyl_staff_invitations").delete().eq("id", invitation.id).eq("tenant_id", tenant.id);
     console.error("[invite-staff] error invitando:", inviteErr.message);
     // Supabase regresa este mensaje cuando el correo ya tiene cuenta --
     // vale la pena distinguirlo del resto para no confundir al dueño.
@@ -112,7 +177,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  return new Response(JSON.stringify({ ok: true, email }), {
+  return new Response(JSON.stringify({ ok: true, email, invitation_id: invitation.id, member_kind: memberKind }), {
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 });

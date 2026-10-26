@@ -1,5 +1,88 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Confirmaciones de citas por WhatsApp desplegadas
+
+- Agenda envía la plantilla Utility al profesional al preparar una confirmación
+  y, cuando acepta, envía la propuesta al paciente. Cada tarjeta distingue
+  `enviado`, `respuesta recibida`, `fallido` o `pendiente` y conserva botones
+  explícitos para registrar una respuesta manual si el canal falla.
+- La nueva función `appointment-negotiations` valida permisos, plantilla
+  aprobada e idempotencia. El callback público exige HMAC SHA-256 sobre el cuerpo
+  original, una antigüedad máxima de cinco minutos y correlación exacta con la
+  entrega; no guarda texto del mensaje, teléfono ni identidad del paciente.
+- La migración `20261026210000_smyl_negotiation_whatsapp_delivery.sql` agrega
+  vínculos profesional↔conversación LANA, entregas y deduplicación de eventos.
+  Las decisiones de WhatsApp son sólo para `service_role` y vuelven a validar
+  disponibilidad antes de avanzar la negociación.
+- Cada profesional vincula voluntariamente su propia conversación desde
+  Mensajes con `Usar como mi WhatsApp profesional`; no se presupone que su correo
+  de SMYL y su cuenta de Google o WhatsApp sean iguales.
+- El catálogo incluye botones exactos: profesional `Confirmar / Cambiar horario /
+  Rechazar`; paciente `Aceptar / Ver otras opciones / Hablar con clínica`. El
+  aviso al profesional omite nombre, diagnóstico y tratamiento del paciente.
+- Revisión visual aprobada a 390, 820 y 1180 px. Se corrigió la tarjeta de
+  confirmación para apilar acciones en tableta y conservar texto legible. Web y
+  fuente móvil usan Agenda JS v26 e Inbox JS v38. Suite completa: **688/688**.
+- Las migraciones `20261026190000`, `20261026200000` y `20261026210000` ya
+  están aplicadas en producción. `invite-staff`, `appointment-negotiations` y
+  `whatsapp-templates` quedaron desplegadas en SMYL. Las migraciones antiguas
+  `20261022130000`, `20261022140000` y `20261024090000` siguen pendientes y no
+  se aplicaron durante este despliegue.
+- LANA incorpora `_shared/smyl-negotiation-callback.ts` en
+  `promodesk-smyl-meta-bridge`: sólo reenvía quick replies si el `wamid`
+  original pertenece a una solicitud SMYL, resuelve `external_tenant_id` y
+  firma el cuerpo. `whatsapp-webhook` quedó desplegado en el proyecto LANA.
+- El mismo `SMYL_NEGOTIATION_WEBHOOK_SECRET` generado localmente quedó
+  configurado en ambos proyectos; no se guardó en archivos ni se mostró.
+  Smoke tests: SMYL sin sesión `401`, firma falsa `403`, LANA sin firma Meta
+  `403`. Pendiente para la prueba real: solicitar/aprobar las dos plantillas en
+  Meta, vincular el WhatsApp del profesional y ejecutar una cita de prueba.
+
+## 2026-10-26 — Codex — Motor de confirmación de citas por capas
+
+- Agenda cambia `Por aprobar` por `Por confirmar` y separa cada decisión:
+  profesional, paciente y confirmación final. La tarjeta muestra estado, ronda,
+  horario propuesto, vencimiento y sólo las acciones pertinentes.
+- La migración `20261026200000_smyl_appointment_negotiations.sql` agrega estado
+  canónico, propuestas y eventos auditables por tenant. Hay una sola propuesta
+  abierta por destinatario, reservas de 5–30 minutos y un máximo de tres rondas;
+  después se escala a coordinación manual.
+- El profesional sólo puede responder por su propio perfil salvo que el usuario
+  tenga `schedule.manage`. Las tablas son de lectura para usuarios autenticados;
+  las escrituras pasan por RPC con validación de permisos y disponibilidad.
+- La confirmación final reutiliza `smyl_accept_appointment_request`, por lo que
+  conserva las mismas reglas de sucursal, servicio, profesional, espacio y
+  traslapes. Al crear la cita dispara recordatorios y sincronización con Google.
+- Esta entrega registra respuestas manuales desde Agenda y lo dice explícitamente.
+  Todavía no envía ni procesa botones reales de WhatsApp; el siguiente paso es
+  conectar las plantillas Utility con un callback firmado e idempotente.
+- Web y fuente móvil usan Agenda JS v25/CSS v18. Revisión local en escritorio,
+  tablet y móvil aprobada; suite completa: **681/681**.
+- **No desplegado ni publicado.** Falta aplicar la migración y desplegar la capa
+  de transporte de WhatsApp antes de una prueba real de punta a punta.
+
+## 2026-10-26 — Codex — Profesionales sólo por invitación (base del flujo inteligente)
+
+- Mi clínica deja de crear perfiles profesionales sin cuenta. `Invitar profesional`
+  solicita nombre, correo, especialidad, cédula y primera sucursal; la persona
+  aparece como invitación pendiente hasta aceptar el correo.
+- La migración `20261026190000_smyl_professional_invitations.sql` crea un registro
+  trazable con vencimiento y RLS. Al aceptar, el trigger de Auth vincula la cuenta,
+  crea el profesional, asigna sucursal principal y rol odontólogo en una sola
+  transacción. El correo de acceso no obliga a usar la misma cuenta de Google.
+- `invite-staff` valida que la sucursal pertenezca al tenant, guarda la invitación
+  antes de enviar y la elimina si Supabase Auth rechaza el envío.
+- El catálogo añade las plantillas Utility `cita_confirmacion_profesional_v1`
+  (Confirmar / Cambiar horario / Rechazar) y `cita_propuesta_paciente_v1`
+  (Aceptar / Ver otras opciones / Hablar con clínica), sin datos clínicos en el
+  aviso al profesional.
+- Web, PWA y fuente móvil avanzan a clinic-admin JS v5/CSS v6 y catálogo v2.
+  Revisión visual local aprobada en escritorio; suite completa: **676/676**.
+- **No desplegado ni publicado.** Antes de producción: aplicar la migración,
+  desplegar `invite-staff`, solicitar/aprobar las plantillas en Meta y realizar
+  una invitación de prueba. El motor de negociación y el webhook de botones son
+  la siguiente etapa; todavía no se envían estos avisos automáticamente.
+
 ## 2026-10-26 — Codex — Sincronización bidireccional de Google Calendar
 
 - Se implementó el modelo acordado: SMYL→Google automático y Google→SMYL bajo

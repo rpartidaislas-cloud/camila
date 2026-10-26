@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Citas por confirmar</title>
+  <link rel="stylesheet" href="../../smyl-schedule.css?v=2">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#16283d;font-family:Inter,Arial,sans-serif}.shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}.side{background:#0b1b2e;color:#fff;padding:28px 20px}.side b{font-size:24px;letter-spacing:.12em}.side small{display:block;margin-top:5px;color:#9fb1c5}.side nav{display:grid;gap:6px;margin-top:40px}.side span{padding:12px;border-radius:10px;color:#b8c6d5;font-size:13px}.side .active{background:#173451;color:#fff}.main{padding:38px 44px}.schedule-head h1{margin:5px 0}.schedule-eyebrow{color:#47749d;font-size:12px;letter-spacing:.09em;font-weight:800}.schedule-section-title{margin-top:28px}.btn{min-height:40px;border-radius:9px;border:1px solid #cbd7e4;padding:0 14px;background:#fff;color:#173451;font-weight:700}.btn-primary{background:#0b1b2e;color:#fff;border-color:#0b1b2e}.cards{max-width:940px}@media(max-width:760px){.shell{display:block}.side{display:none}.main{padding:22px 16px}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side"><b>SMYL</b><small>Clínica Centro</small><nav><span>Inicio</span><span class="active">Agenda</span><span>Pacientes</span><span>Mensajes</span></nav></aside>
+  <main class="main" id="p-agenda">
+    <header class="schedule-head"><div><span class="schedule-eyebrow">AGENDA CLÍNICA</span><h1>Organiza tu día</h1><p>Citas, llegadas y disponibilidad.</p></div></header>
+    <div class="schedule-tabs"><button>Agenda</button><button aria-selected="true">Por confirmar <span id="schedule-request-count">3</span></button><button>Horarios y servicios</button></div>
+    <section class="cards">
+      <div class="schedule-section-title"><div><h2>Citas por confirmar</h2><p>Coordina profesional, paciente y espacio antes de crear la cita.</p></div></div>
+      <article class="schedule-request" data-stage="waiting_professional"><div><div class="schedule-request-stage"><span>Espera al profesional · Ronda 1 de 3</span></div><strong>Ana Torres</strong><small>Limpieza · mar, 27 oct, 10:00 a.m.</small><small>Dra. Valeria Ruiz · Consultorio 2</small><p>Prefiere por la mañana.</p><small class="schedule-request-note">WhatsApp enviado · esperando respuesta · Apartado temporalmente</small></div><div><button class="btn btn-primary">Registrar confirmación</button><button class="btn">Cambiar horario</button><button class="schedule-request-link">Registrar rechazo</button></div></article>
+      <article class="schedule-request" data-stage="waiting_patient"><div><div class="schedule-request-stage"><span>Espera al paciente · Ronda 2 de 3</span></div><strong>Carlos Medina</strong><small>Valoración · jue, 29 oct, 4:30 p.m.</small><small>Dr. Javier Soto · Sucursal Norte</small><p>Puede asistir después de las 4.</p><small class="schedule-request-note">WhatsApp no enviado: el paciente no tiene una conversación vinculada.</small></div><div><button class="btn btn-primary">Registrar aceptación</button><button class="btn">Pidió opciones</button></div></article>
+      <article class="schedule-request" data-stage="ready_to_confirm"><div><div class="schedule-request-stage"><span>Listo para confirmar · Ronda 1 de 3</span></div><strong>Mariana López</strong><small>Ortodoncia · vie, 30 oct, 12:00 p.m.</small><small>Dra. Valeria Ruiz · Consultorio 1</small><p>Profesional y paciente aceptaron.</p><small class="schedule-request-note">SMYL volverá a validar el horario antes de crear la cita.</small></div><div><button class="btn btn-primary">Confirmar cita</button></div></article>
+    </section>
+  </main>
+</div>
+</body>
+</html>

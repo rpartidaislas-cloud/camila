@@ -37,6 +37,11 @@ verify_jwt = false
 [functions.appointment-reminders]
 verify_jwt = false
 
+# El POST del navegador se autentica dentro del handler. El callback público de
+# LANA exige HMAC-SHA256, ventana de cinco minutos e idempotencia por event_id.
+[functions.appointment-negotiations]
+verify_jwt = false
+
 # OAuth de Google Calendar: el POST exige sesión dentro del handler; el GET es
 # el callback público de Google y se autentica con state de un solo uso + PKCE.
 [functions.google-calendar-oauth]

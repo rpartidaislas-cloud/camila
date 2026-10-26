@@ -10,7 +10,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const source = fs.readFileSync(path.join(root, 'smyl-template-catalog.js'), 'utf8');
+// Normaliza saltos para que la generación sea idéntica en Windows y CI.
+const source = fs.readFileSync(path.join(root, 'smyl-template-catalog.js'), 'utf8').replace(/\r\n/g, '\n');
 const start = source.indexOf("function () {\n  'use strict';");
 const end = source.lastIndexOf('return { LANGUAGE');
 if (start < 0 || end < 0) throw new Error('No se reconoce la estructura de smyl-template-catalog.js');

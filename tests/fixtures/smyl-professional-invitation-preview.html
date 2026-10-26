@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Invitación profesional</title>
+  <link rel="stylesheet" href="../../smyl-clinic-admin.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#0b1b2e;font-family:Inter,system-ui,sans-serif}.contenido{max-width:1080px;margin:auto;padding:32px}.btn{min-height:42px;border:1px solid #cbd8e3;border-radius:10px;padding:0 15px;background:#fff;color:#0b1b2e;font:inherit;font-weight:700}.btn-primary{background:#0b1b2e;border-color:#0b1b2e;color:#fff}.clinic-admin-page{display:block}.clinic-admin-main{max-width:680px}@media(max-width:600px){.contenido{padding:16px}}
+  </style>
+</head>
+<body>
+  <main class="contenido">
+    <section class="clinic-admin-page">
+      <header class="clinic-admin-head"><div><span class="pro-eyebrow">EQUIPO</span><h1>Profesionales</h1><p>Acceso, sucursales y agenda.</p></div><button class="btn btn-primary">Invitar profesional</button></header>
+      <div class="clinic-admin-main">
+        <article class="clinic-admin-card">
+          <div class="clinic-admin-section-head"><div><h2>Profesionales</h2><p class="clinic-admin-card-intro">Cada profesional entra por invitación y conecta su propio calendario.</p></div></div>
+          <article class="clinic-admin-professional"><div class="clinic-admin-avatar">HP</div><div><strong>Dr. Hernán Partida</strong><small>Odontología general · Sucursal Centro</small><span class="clinic-admin-link-state" data-linked="true">Acceso vinculado</span></div></article>
+          <article class="clinic-admin-professional is-pending"><div class="clinic-admin-avatar">AL</div><div><strong>Dra. Ana López</strong><small>ana@clinica.com · Ortodoncia · Sucursal Norte</small><span class="clinic-admin-link-state" data-linked="false">Invitación pendiente</span></div><span class="clinic-admin-invite-expiry">Vence 2 nov</span></article>
+        </article>
+        <dialog class="clinic-admin-dialog" open>
+          <form><h2>Invitar profesional</h2><p>Recibirá un correo para crear su acceso. Al aceptarlo quedará vinculado a su perfil y podrá conectar su Google Calendar.</p><div class="clinic-admin-form-grid"><div class="clinic-admin-field clinic-admin-field-wide"><label>Nombre profesional</label><input value="Dra. Ana López"></div><div class="clinic-admin-field clinic-admin-field-wide"><label>Correo de acceso</label><input value="ana@clinica.com"></div><div class="clinic-admin-field"><label>Especialidad</label><input value="Ortodoncia"></div><div class="clinic-admin-field"><label>Cédula profesional</label><input value=""></div><div class="clinic-admin-field clinic-admin-field-wide"><label>Primera sucursal</label><select><option>Sucursal Norte</option></select></div></div><div class="clinic-admin-invite-note"><strong>Después de aceptar</strong><span>Configura sus servicios y horarios. El correo de Google Calendar podrá ser diferente.</span></div><div class="clinic-admin-actions"><button class="btn">Cancelar</button><button class="btn btn-primary">Enviar invitación</button></div></form>
+        </dialog>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

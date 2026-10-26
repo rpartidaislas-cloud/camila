@@ -42,7 +42,7 @@
     tenant: null, actor: null, loading: false, loaded: false, mutating: false,
     tab: 'operacion', selectedBranch: null, branches: [], rooms: [], hours: [],
     users: [], roles: [], permissions: [], roleScopes: [], memberRoles: [], memberBranches: [],
-    professionals: [], professionalBranches: [], canClinic: false, canTeam: false,
+    professionals: [], professionalBranches: [], invitations: [], canClinic: false, canTeam: false,
     canAssignRoles: false
   };
 
@@ -328,7 +328,7 @@
         var branch = state.branches.find(function (candidate) { return candidate.id === item.branch_id; });
         return branch ? branch.name : '';
       }).filter(Boolean);
-      info.innerHTML = '<strong>' + esc(professional.display_name) + '</strong><small>' + esc([professional.specialty || 'Odontología general', professional.license_number ? 'Céd. ' + professional.license_number : '', locations.join(', ')].filter(Boolean).join(' · ')) + '</small>';
+      info.innerHTML = '<strong>' + esc(professional.display_name) + '</strong><small>' + esc([professional.specialty || 'Odontología general', professional.license_number ? 'Céd. ' + professional.license_number : '', locations.join(', ')].filter(Boolean).join(' · ')) + '</small><span class="clinic-admin-link-state" data-linked="' + Boolean(professional.user_id) + '">' + (professional.user_id ? 'Acceso vinculado' : 'Requiere invitación') + '</span>';
       row.append(info);
       if (state.canTeam) {
         var off = el('button', 'btn btn-secondary', 'Desactivar'); off.type = 'button';
@@ -336,7 +336,16 @@
       }
       professionals.append(row);
     });
-    if (!professionals.childElementCount) professionals.append(el('div', 'clinic-admin-empty', 'Registra a quienes podrán aparecer como profesionales en la agenda.'));
+    state.invitations.filter(function (row) { return row.member_kind === 'professional' && row.status === 'pending'; }).forEach(function (invitation) {
+      var pending = el('article', 'clinic-admin-professional is-pending');
+      pending.append(el('div', 'clinic-admin-avatar', initials(invitation.display_name)));
+      var pendingInfo = el('div');
+      var branch = state.branches.find(function (candidate) { return candidate.id === invitation.branch_id; });
+      pendingInfo.innerHTML = '<strong>' + esc(invitation.display_name) + '</strong><small>' + esc([invitation.email, invitation.specialty, branch && branch.name].filter(Boolean).join(' · ')) + '</small><span class="clinic-admin-link-state" data-linked="false">Invitación pendiente</span>';
+      pending.append(pendingInfo, el('span', 'clinic-admin-invite-expiry', 'Vence ' + new Date(invitation.expires_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })));
+      professionals.append(pending);
+    });
+    if (!professionals.childElementCount) professionals.append(el('div', 'clinic-admin-empty', 'Invita a un profesional para vincular su acceso, agenda y calendario.'));
 
     invite.hidden = !state.canAssignRoles;
     var professionalButton = document.getElementById('clinic-admin-add-professional');
@@ -447,13 +456,14 @@
         query(window.sb.from('smyl_member_roles').select('user_id,role_id').eq('tenant_id', tenant)),
         query(window.sb.from('smyl_member_branches').select('user_id,branch_id,is_primary').eq('tenant_id', tenant)),
         query(window.sb.from('smyl_professionals').select('id,tenant_id,user_id,display_name,specialty,license_number,color_token,active').eq('tenant_id', tenant).order('display_name')),
-        query(window.sb.from('smyl_professional_branches').select('professional_id,branch_id').eq('tenant_id', tenant))
+        query(window.sb.from('smyl_professional_branches').select('professional_id,branch_id').eq('tenant_id', tenant)),
+        query(window.sb.from('smyl_staff_invitations').select('id,email,display_name,member_kind,specialty,license_number,branch_id,status,expires_at,invited_at').eq('tenant_id', tenant).in('status', ['pending', 'accepted']).order('invited_at', { ascending: false }))
       ]);
       if (tenant !== window.tenantId) return;
       state.branches = results[0] || []; state.rooms = results[1] || []; state.hours = results[2] || [];
       state.users = results[3] || []; state.roles = results[4] || []; state.permissions = results[5] || [];
       state.roleScopes = results[6] || []; state.memberRoles = results[7] || []; state.memberBranches = results[8] || [];
-      state.professionals = results[9] || []; state.professionalBranches = results[10] || [];
+      state.professionals = results[9] || []; state.professionalBranches = results[10] || []; state.invitations = results[11] || [];
       var active = state.branches.filter(function (row) { return row.active; });
       if (!active.some(function (row) { return row.id === state.selectedBranch; })) {
         var defaultBranch = active.find(function (row) { return row.is_default; });
@@ -548,15 +558,14 @@
 
   function openProfessionalDialog() {
     var dialog = document.getElementById('clinic-admin-dialog');
-    var linkedUsers = new Set(state.professionals.filter(function (row) { return row.active && row.user_id; }).map(function (row) { return row.user_id; }));
-    var users = state.users.filter(function (row) { return row.activo && !linkedUsers.has(row.id); });
     var branches = state.branches.filter(function (row) { return row.active; });
-    dialog.innerHTML = '<form id="clinic-admin-create-professional"><h2>Agregar profesional</h2><p>Podrá aparecer en la agenda y asociarse a tratamientos, citas y resultados clínicos.</p><div class="clinic-admin-form-grid"><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-name">Nombre profesional</label><input id="ca-prof-name" name="display_name" maxlength="120" required placeholder="Dra. Ana López"></div><div class="clinic-admin-field"><label for="ca-prof-specialty">Especialidad</label><input id="ca-prof-specialty" name="specialty" maxlength="120" placeholder="Ortodoncia"></div><div class="clinic-admin-field"><label for="ca-prof-license">Cédula profesional</label><input id="ca-prof-license" name="license_number" maxlength="80"></div><div class="clinic-admin-field"><label for="ca-prof-user">Cuenta de acceso</label><select id="ca-prof-user" name="user_id"><option value="">Sin vincular</option>' + users.map(function (user) { return '<option value="' + user.id + '">' + esc(user.nombre || user.email) + '</option>'; }).join('') + '</select></div><div class="clinic-admin-field"><label for="ca-prof-branch">Primera sede</label><select id="ca-prof-branch" name="branch_id"><option value="">Sin sede</option>' + branches.map(function (branch) { return '<option value="' + branch.id + '">' + esc(branch.name) + '</option>'; }).join('') + '</select></div></div><div class="clinic-admin-actions"><button type="button" class="btn btn-secondary" data-ca-close>Cancelar</button><button type="submit" class="btn btn-primary">Agregar profesional</button></div></form>';
+    if (!branches.length) { feedback('Crea una sucursal antes de invitar profesionales.', 'error'); return; }
+    dialog.innerHTML = '<form id="clinic-admin-create-professional"><h2>Invitar profesional</h2><p>Recibirá un correo para crear su acceso. Al aceptarlo quedará vinculado a su perfil y podrá conectar su Google Calendar.</p><div class="clinic-admin-form-grid"><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-name">Nombre profesional</label><input id="ca-prof-name" name="display_name" maxlength="120" required placeholder="Dra. Ana López"></div><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-email">Correo de acceso</label><input id="ca-prof-email" name="email" type="email" maxlength="254" required placeholder="ana@clinica.com"></div><div class="clinic-admin-field"><label for="ca-prof-specialty">Especialidad</label><input id="ca-prof-specialty" name="specialty" maxlength="120" placeholder="Ortodoncia"></div><div class="clinic-admin-field"><label for="ca-prof-license">Cédula profesional</label><input id="ca-prof-license" name="license_number" maxlength="80"></div><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-branch">Primera sucursal</label><select id="ca-prof-branch" name="branch_id" required><option value="">Selecciona</option>' + branches.map(function (branch) { return '<option value="' + branch.id + '">' + esc(branch.name) + '</option>'; }).join('') + '</select></div></div><div class="clinic-admin-invite-note"><strong>Después de aceptar</strong><span>Configura sus servicios y horarios. El correo de Google Calendar podrá ser diferente.</span></div><div class="clinic-admin-actions"><button type="button" class="btn btn-secondary" data-ca-close>Cancelar</button><button type="submit" class="btn btn-primary">Enviar invitación</button></div></form>';
     dialog.querySelector('[data-ca-close]').addEventListener('click', function () { dialog.close(); });
     dialog.querySelector('form').addEventListener('submit', async function (event) {
       event.preventDefault(); var data = new FormData(event.currentTarget);
-      var ok = await mutate(function () { return query(window.sb.rpc('smyl_create_professional', { p_display_name: String(data.get('display_name') || '').trim(), p_specialty: String(data.get('specialty') || '').trim(), p_license_number: String(data.get('license_number') || '').trim(), p_user_id: data.get('user_id') || null, p_branch_id: data.get('branch_id') || null })); }, 'Profesional agregado.');
-      if (ok) dialog.close();
+      var ok = await sendInvitation({ email: data.get('email'), nombre: data.get('display_name'), member_kind: 'professional', specialty: data.get('specialty'), license_number: data.get('license_number'), branch_id: data.get('branch_id') });
+      if (ok) { dialog.close(); state.loaded = false; await load(true); }
     });
     dialog.showModal(); dialog.querySelector('input').focus();
   }
@@ -566,26 +575,31 @@
     await mutate(function () { return query(window.sb.from('smyl_professionals').update({ active: false }).eq('tenant_id', state.tenant).eq('id', id).select('id').single()); }, 'Profesional desactivado.');
   }
 
-  async function inviteMember(event) {
-    event.preventDefault();
-    var form = event.currentTarget; var data = new FormData(form);
-    var email = String(data.get('email') || '').trim().toLowerCase();
-    var name = String(data.get('name') || '').trim();
+  async function sendInvitation(input) {
+    var email = String(input.email || '').trim().toLowerCase();
+    var name = String(input.nombre || '').trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { feedback('Escribe un correo válido.', 'error'); return; }
-    if (state.mutating) return; state.mutating = true;
+    if (state.mutating) return false; state.mutating = true;
     try {
       var session = await window.sb.auth.getSession();
       var token = session.data && session.data.session && session.data.session.access_token;
       if (!token) throw new Error('Tu sesión terminó. Vuelve a iniciar sesión.');
       var response = await fetch(window.SUPA_URL + '/functions/v1/invite-staff', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: window.SUPA_KEY },
-        body: JSON.stringify({ email: email, nombre: name })
+        body: JSON.stringify({ email: email, nombre: name, member_kind: input.member_kind || 'staff', specialty: input.specialty || '', license_number: input.license_number || '', branch_id: input.branch_id || null })
       });
       var body = await response.json().catch(function () { return {}; });
       if (!response.ok) throw new Error(body.error || 'No se pudo enviar la invitación.');
-      form.reset(); feedback('Invitación enviada a ' + email + '. El rol podrá ajustarse cuando acepte.');
-    } catch (error) { feedback(errorMessage(error), 'error'); }
+      feedback('Invitación enviada a ' + email + '. El acceso se activará cuando la acepte.'); return true;
+    } catch (error) { feedback(errorMessage(error), 'error'); return false; }
     finally { state.mutating = false; }
+  }
+
+  async function inviteMember(event) {
+    event.preventDefault();
+    var form = event.currentTarget; var data = new FormData(form);
+    var ok = await sendInvitation({ email: data.get('email'), nombre: data.get('name'), member_kind: 'staff' });
+    if (ok) { form.reset(); state.loaded = false; await load(true); }
   }
 
   function setTab(tab) {
@@ -601,7 +615,7 @@
 
   function buildPage() {
     var page = el('section', 'pantalla clinic-admin-page'); page.id = 'p-clinica';
-    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-selected="false">Equipo, roles y profesionales</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel" data-ca-panel="equipo" hidden><div class="clinic-admin-team-grid"><article class="clinic-admin-card"><div class="clinic-admin-section-head"><div><h2>Equipo y responsabilidades</h2><p class="clinic-admin-card-intro">Cada integrante debe tener un rol operativo y una sede principal.</p></div></div><div id="clinic-admin-members"></div><div class="clinic-admin-role-guide"><div class="clinic-admin-section-head"><div><h3>Roles y funciones</h3><p class="clinic-admin-card-intro">Los roles son plantillas editables. Activa o desactiva cada función con sus pastillas.</p></div><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div><div id="clinic-admin-role-guide"></div></div></article><div class="clinic-admin-main"><article class="clinic-admin-card"><div class="clinic-admin-section-head"><div><h2>Profesionales</h2><p class="clinic-admin-card-intro">Quienes aparecerán en agenda y expedientes, con su cobertura por sede.</p></div><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-professional" aria-label="Agregar profesional">+</button></div><div id="clinic-admin-professionals"></div></article><article class="clinic-admin-card" id="clinic-admin-invite"><h2>Invitar integrante</h2><p class="clinic-admin-card-intro">Recibirá su propio acceso. Después podrás asignarle rol y sede.</p><form id="clinic-admin-invite-form"><div class="clinic-admin-form-grid"><div class="clinic-admin-field"><label for="ca-invite-name">Nombre</label><input id="ca-invite-name" name="name" maxlength="120" placeholder="Dra. Ana López"></div><div class="clinic-admin-field"><label for="ca-invite-email">Correo</label><input id="ca-invite-email" name="email" type="email" maxlength="254" required placeholder="ana@clinica.com"></div></div><div class="clinic-admin-actions"><button type="submit" class="btn btn-primary">Enviar invitación</button></div></form></article></div></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog"></dialog>';
+    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-selected="false">Equipo, roles y profesionales</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel" data-ca-panel="equipo" hidden><div class="clinic-admin-team-grid"><article class="clinic-admin-card"><div class="clinic-admin-section-head"><div><h2>Equipo y responsabilidades</h2><p class="clinic-admin-card-intro">Cada integrante debe tener un rol operativo y una sede principal.</p></div></div><div id="clinic-admin-members"></div><div class="clinic-admin-role-guide"><div class="clinic-admin-section-head"><div><h3>Roles y funciones</h3><p class="clinic-admin-card-intro">Los roles son plantillas editables. Activa o desactiva cada función con sus pastillas.</p></div><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div><div id="clinic-admin-role-guide"></div></div></article><div class="clinic-admin-main"><article class="clinic-admin-card"><div class="clinic-admin-section-head"><div><h2>Profesionales</h2><p class="clinic-admin-card-intro">Cada profesional entra por invitación y conecta su propio calendario.</p></div><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Invitar profesional</button></div><div id="clinic-admin-professionals"></div></article><article class="clinic-admin-card" id="clinic-admin-invite"><h2>Invitar integrante</h2><p class="clinic-admin-card-intro">Para recepción, administración u otros miembros que no atienden citas.</p><form id="clinic-admin-invite-form"><div class="clinic-admin-form-grid"><div class="clinic-admin-field"><label for="ca-invite-name">Nombre</label><input id="ca-invite-name" name="name" maxlength="120" placeholder="Ana López"></div><div class="clinic-admin-field"><label for="ca-invite-email">Correo</label><input id="ca-invite-email" name="email" type="email" maxlength="254" required placeholder="ana@clinica.com"></div></div><div class="clinic-admin-actions"><button type="submit" class="btn btn-primary">Enviar invitación</button></div></form></article></div></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog"></dialog>';
     document.querySelector('.contenido').append(page);
     page.querySelectorAll('[data-ca-tab]').forEach(function (button) { button.addEventListener('click', function () { setTab(button.dataset.caTab); }); });
     page.querySelector('#clinic-admin-refresh').addEventListener('click', function () { load(true); });

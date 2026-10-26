@@ -33,10 +33,15 @@ copyFile(path.join(ROOT, 'smyl-professional-directory.css'), path.join(WWW, 'smy
 copyFile(path.join(ROOT, 'smyl-ui-template-v3.css'), path.join(WWW, 'smyl-ui-template-v3.css'));
 copyFile(path.join(ROOT, 'smyl-navigation.js'), path.join(WWW, 'smyl-navigation.js'));
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
+copyFile(path.join(ROOT, 'smyl-clinic-admin.js'), path.join(WWW, 'smyl-clinic-admin.js'));
+copyFile(path.join(ROOT, 'smyl-clinic-admin.css'), path.join(WWW, 'smyl-clinic-admin.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js'));
 copyFile(path.join(ROOT, 'smyl-schedule.css'), path.join(WWW, 'smyl-schedule.css'));
+copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
+copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.js'), path.join(WWW, 'smyl-google-calendar.js'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.css'), path.join(WWW, 'smyl-google-calendar.css'));
+copyFile(path.join(ROOT, 'smyl-template-catalog.js'), path.join(WWW, 'smyl-template-catalog.js'));
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
 
 console.log('www/ actualizado desde la raíz del repo.');
