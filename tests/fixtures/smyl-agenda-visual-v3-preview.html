@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Agenda visual v3</title>
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css">
+  <link rel="stylesheet" href="../../smyl-schedule.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif}
+    .fixture{display:grid;grid-template-columns:240px 1fr;min-height:100vh}.fixture aside{padding:30px 22px;background:#0b1b2e;color:#fff}.fixture aside b{font-size:24px}.fixture nav{display:grid;gap:8px;margin-top:44px}.fixture nav span{padding:11px 13px;border-radius:10px;color:#9dafc2}.fixture nav .active{background:#19334f;color:#fff}.fixture main{min-width:0;padding:28px}
+    .btn{min-height:42px;padding:0 16px;border:1px solid #d9e2ec;border-radius:12px;background:#fff;color:#0b1b2e;font-weight:680}.btn-primary{background:#0b1b2e;color:#fff}
+    @media(max-width:760px){.fixture{display:block}.fixture aside{display:none}.fixture main{padding:14px}}
+  </style>
+</head>
+<body class="smyl-ui-governed">
+  <div class="fixture">
+    <aside><b>smyl</b><nav><span>Inicio</span><span class="active">Agenda</span><span>Pacientes</span><span>Tratamientos</span><span>Finanzas</span></nav></aside>
+    <main class="smyl-professional">
+      <section id="p-agenda">
+        <header class="schedule-head">
+          <div><span class="schedule-eyebrow">AGENDA CLÍNICA</span><h1>Organiza tu día</h1><p>Citas, llegadas y disponibilidad.</p></div>
+          <div class="schedule-head-actions"><button class="btn btn-secondary">Bloquear horario</button><button class="btn btn-primary">Nueva cita</button></div>
+        </header>
+        <section class="schedule-metrics"><span><strong>0</strong> citas hoy</span><span><strong>0</strong> faltan por llegar</span><span><strong>0</strong> en consulta</span></section>
+        <div class="schedule-tabs"><button aria-selected="true">Agenda</button><button>Por aprobar</button><button>Horarios y servicios</button></div>
+        <div class="schedule-toolbar">
+          <div class="schedule-period-nav"><button>‹</button><button>Hoy</button><button>›</button><strong>26 oct — 1 nov 2026</strong></div>
+          <div class="schedule-view-toggle"><button>Mes</button><button aria-pressed="true">Semana</button><button>Día</button><button>Lista</button></div>
+        </div>
+        <div class="schedule-calendar week is-empty">
+          <section class="schedule-week-empty">
+            <div class="schedule-week-empty-copy"><span class="schedule-empty-icon" aria-hidden="true">▣</span><div><h3>No hay citas esta semana</h3><p>Elige un día para agendar.</p></div></div>
+            <div class="schedule-week-empty-actions"><button class="btn btn-primary">Agendar una cita</button><button class="btn">Ver horarios</button></div>
+            <div class="schedule-week-availability">
+              <button><span>Lun 26</span><strong>9:00 am a 6:00 pm</strong><small>Agendar</small></button><button><span>Mar 27</span><strong>9:00 am a 6:00 pm</strong><small>Agendar</small></button><button><span>Mié 28</span><strong>9:00 am a 6:00 pm</strong><small>Agendar</small></button><button><span>Jue 29</span><strong>9:00 am a 6:00 pm</strong><small>Agendar</small></button><button><span>Vie 30</span><strong>9:00 am a 6:00 pm</strong><small>Agendar</small></button><button><span>Sáb 31</span><strong>Cerrado</strong><small>Definir horario</small></button><button><span>Dom 1</span><strong>Cerrado</strong><small>Definir horario</small></button>
+            </div>
+            <footer><span>Atiendes 5 de 7 días</span></footer>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

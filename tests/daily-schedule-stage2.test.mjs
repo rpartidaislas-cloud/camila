@@ -73,6 +73,17 @@ test('agenda UI supports calendar, requests, services, availability and mobile',
   assert.match(styles, /@media\(max-width:440px\)/);
 });
 
+test('agenda adopts the SMYL visual policy without duplicating the shell title', () => {
+  assert.match(script, /class="schedule-eyebrow">AGENDA CLÍNICA/);
+  assert.match(script, /<h1>Organiza tu día<\/h1>/);
+  assert.match(script, /Citas, llegadas y disponibilidad\./);
+  assert.match(styles, /Agenda v3 · adopción de la política visual SMYL/);
+  assert.match(styles, /linear-gradient\(135deg,#0b1b2e,#132c47\)/);
+  assert.match(styles, /#p-agenda \.schedule-metrics\{[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(styles, /#p-agenda \.schedule-tabs>button\[aria-selected=true\]/);
+  assert.match(styles, /#p-agenda :is\(button,select,input,textarea\):focus-visible/);
+});
+
 test('web, mobile and offline assets stay in lockstep', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-schedule.js'));

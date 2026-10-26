@@ -33,6 +33,8 @@ copyFile(path.join(ROOT, 'smyl-professional-directory.css'), path.join(WWW, 'smy
 copyFile(path.join(ROOT, 'smyl-ui-template-v3.css'), path.join(WWW, 'smyl-ui-template-v3.css'));
 copyFile(path.join(ROOT, 'smyl-navigation.js'), path.join(WWW, 'smyl-navigation.js'));
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
+copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js'));
+copyFile(path.join(ROOT, 'smyl-schedule.css'), path.join(WWW, 'smyl-schedule.css'));
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
 
 console.log('www/ actualizado desde la raíz del repo.');
