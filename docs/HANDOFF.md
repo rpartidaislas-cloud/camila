@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Claude: Inicio más claro (lenguaje de la Agenda, saludo coherente, primeros pasos plegados)
+
+- Se sube la propuesta que estaba en la rama `wip/inicio`, unida con el `main` actual. El usuario vio el antes y el después en capturas.
+- `smyl-daily-home.js` (v9) / `.css` (v11): el saludo ya no dice «todo en orden» cuando hay pendientes: «Buenas noches. Tienes 3 pendientes
+  hoy.» / «Todo al día por hoy.» (sale de la misma fuente que el panel de Pendientes). Estados con el vocabulario de la Agenda (Ya llegó,
+  En consulta, Terminada, No vino) y horas como «5:00 pm». Tarjetas: «En la clínica» (ya llegaron o en consulta) y «Por aprobar». Títulos
+  «Pendientes de hoy» y «Citas de hoy». Los cuatro atajos de abajo solo se ven en pantallas sin menú lateral (< 1024 px).
+- `smyl-task-center.js` (v5): textos de agenda más simples (también en la campana y en Alertas): «N pacientes en la clínica», «N citas sin
+  marcar», «N citas por aprobar», «N avisos sin enviar», «N pacientes no vinieron».
+- `smyl-clinic-setup.js` (v4) / `.css` (v2): «Configura tu clínica» empieza plegada y muestra solo el siguiente paso con «Ver los N pasos»;
+  la preferencia sigue guardándose por clínica.
+- Se conserva lo de PR #48: Inicio pide solo los nombres de los pacientes de hoy (`namesFor`). `app.html`, `sw.js` y `mobile/www/`
+  sincronizados; se actualizaron las pruebas que fijaban textos y versiones.
 ## 2026-10-25 — Codex — Sidebar inspirado en Figma, expandido y compacto
 
 **Tocado:** shell de `app.html`, plantilla visual compartida, caché PWA,
