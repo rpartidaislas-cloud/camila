@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-25 — Codex — Sidebar inspirado en Figma, expandido y compacto
+
+**Tocado:** shell de `app.html`, plantilla visual compartida, caché PWA,
+copia móvil, vista de QA y pruebas de contrato.
+
+- Se leyó con el MCP de Figma el nodo `80:1461` del archivo comunitario
+  “Sidebar Navigation Menu for Dashboard” y se usó el frame oscuro
+  `105:1897` como referencia visual.
+- El sidebar conserva la arquitectura y todas las rutas reales de SMYL, pero
+  adopta una superficie flotante translúcida, radio amplio, perfil encapsulado,
+  estado activo luminoso y botón lateral como en la referencia.
+- El modo expandido mide 256 px y el compacto 80 px. La preferencia existente
+  en `smyl_sidebar_collapsed` se mantiene; etiquetas e iconos ahora transicionan
+  con una curva suave y `prefers-reduced-motion` desactiva el movimiento.
+- En compacto aparece una marca `S`, permanecen visibles avatar, iconos,
+  alertas y cierre de sesión; títulos nativos conservan el nombre de cada ruta.
+- La navegación móvil no cambia: debajo de 768 px el sidebar se retira y sigue
+  gobernando la barra inferior existente.
+- `smyl-ui-template-v3.css` avanza a `?v=3` en web y PWA. `mobile/www` quedó
+  sincronizado mediante `npm run sync:web`.
+- QA visual aprobada a 1440 px (expandido y compacto), 1024 px y 390 px. La
+  suite completa terminó con **652 pruebas aprobadas**.
+- No se tocaron backend, migraciones, RLS, secretos, lógica clínica ni rutas.
+
 ## 2026-10-25 — Codex — SMYL UI v3 gobierna shell, controles e Inbox
 
 **Tocado:** `app.html`, plantilla visual compartida, shell/navegación,

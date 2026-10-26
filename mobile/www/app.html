@@ -930,7 +930,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-dialog-system.js?v=1"></script>
 <!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
      sin depender del orden histórico de cada módulo. -->
-<link rel="stylesheet" href="smyl-ui-template-v3.css?v=2">
+<link rel="stylesheet" href="smyl-ui-template-v3.css?v=3">
 </head>
 <body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
@@ -993,7 +993,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
 <div class="layout">
   <!-- ═══ SIDEBAR ═══ -->
-  <div class="sidebar">
+  <aside class="sidebar" aria-label="Navegación principal de SMYL">
     <div class="sb-logo">
       <div>
         <img src="icons/smyl_logo.png" alt="SMYL" style="height:20px;width:auto;display:block;margin-bottom:3px">
@@ -1071,7 +1071,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         Cerrar sesión
       </button>
     </div>
-  </div>
+  </aside>
 
   <!-- ═══ MAIN ═══ -->
   <div class="main">

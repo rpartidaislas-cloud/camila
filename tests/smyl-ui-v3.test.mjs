@@ -33,7 +33,7 @@ test('la plantilla incluye los patrones operativos comunes',()=>{
 });
 
 test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
-  assert.match(app,/smyl-ui-template-v3\.css\?v=2/);
+  assert.match(app,/smyl-ui-template-v3\.css\?v=3/);
   assert.match(directory,/SMYL UI v3 pilot/);
   assert.match(directory,/--directory-type-meta:var\(--smyl-ui-text-meta,12px\)/);
   assert.match(directory,/::file-selector-button/);
@@ -41,13 +41,21 @@ test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
 
 test('SMYL UI v3 gobierna el shell después de los estilos históricos',()=>{
   assert.match(app,/<body class="[^"]*smyl-ui-governed[^"]*">/);
-  const governance=app.indexOf('smyl-ui-template-v3.css?v=2');
+  const governance=app.indexOf('smyl-ui-template-v3.css?v=3');
   assert.ok(governance>app.indexOf('smyl-professional-v3.css?v=7'));
   assert.ok(governance>app.indexOf('smyl-dialog-system.css?v=2'));
   assert.match(template,/Gobierno del panel · etapa 2/);
   assert.match(template,/body\.smyl-ui-governed \.sidebar \.nav-item/);
   assert.match(template,/body\.smyl-ui-governed \.layout \.fg :is\(input, select, textarea\)/);
   assert.match(template,/body\.smyl-ui-governed \.smyl-inbox-page/);
+});
+
+test('el sidebar adapta el patrón expandido y compacto leído desde Figma',()=>{
+  assert.match(template,/Sidebar Figma · adaptación SMYL/);
+  assert.match(template,/--smyl-sidebar-expanded:\s*16rem/);
+  assert.match(template,/--smyl-sidebar-collapsed:\s*5rem/);
+  assert.match(template,/backdrop-filter:\s*blur\(24px\) saturate\(140%\)/);
+  assert.match(template,/body\.smyl-ui-governed\.smyl-management-v3\.smyl-sidebar-collapsed \.sidebar/);
 });
 
 test('la deuda tipográfica queda medida y no puede crecer silenciosamente',()=>{

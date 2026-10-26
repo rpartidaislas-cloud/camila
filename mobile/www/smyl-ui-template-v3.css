@@ -655,3 +655,376 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     font-size: 1rem;
   }
 }
+
+/* ========================================================================== 
+   Sidebar Figma · adaptación SMYL
+
+   Referencia: "Sidebar Navigation Menu for Dashboard" (nodo oscuro). Se
+   conserva la arquitectura, las rutas y la identidad clínica de SMYL; del
+   patrón se adoptan la superficie flotante, el estado activo luminoso y la
+   transición expandido ↔ compacto.
+   ========================================================================== */
+@media (min-width: 48.0625rem) {
+  body.smyl-ui-governed.smyl-management-v3 {
+    --smyl-sidebar-expanded: 16rem;
+    --smyl-sidebar-collapsed: 5rem;
+    --smyl-sidebar-radius: 1.75rem;
+    --smyl-sidebar-ease: cubic-bezier(.22, 1, .36, 1);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .layout {
+    gap: .75rem;
+    padding: .75rem 0 .75rem .75rem;
+    background:
+      radial-gradient(circle at 4rem 8rem, rgba(74, 184, 173, .08), transparent 18rem),
+      var(--smyl-ui-canvas);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar {
+    width: var(--smyl-sidebar-expanded);
+    height: calc(100vh - 1.5rem);
+    top: .75rem;
+    overflow: visible;
+    isolation: isolate;
+    border: 1px solid rgba(138, 208, 201, .18);
+    border-radius: var(--smyl-sidebar-radius);
+    background:
+      linear-gradient(180deg, rgba(20, 51, 72, .97), rgba(7, 24, 38, .985)),
+      #0b2132;
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
+    box-shadow:
+      0 2rem 4rem -2rem rgba(5, 22, 34, .72),
+      inset 0 1px rgba(255, 255, 255, .035);
+    transition:
+      width 260ms var(--smyl-sidebar-ease),
+      border-radius 260ms var(--smyl-sidebar-ease),
+      box-shadow 260ms ease;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 42% -5%, rgba(97, 211, 201, .16), transparent 12rem),
+      linear-gradient(120deg, rgba(255, 255, 255, .018), transparent 48%);
+    pointer-events: none;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo {
+    position: relative;
+    min-height: 4.75rem;
+    padding: 1.35rem 1.25rem 1rem;
+    border-color: rgba(255, 255, 255, .075);
+    border-radius: var(--smyl-sidebar-radius) var(--smyl-sidebar-radius) 0 0;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo > div {
+    min-width: 0;
+    transition: opacity 160ms ease, transform 220ms var(--smyl-sidebar-ease);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo img {
+    height: 1.35rem !important;
+    filter: brightness(0) invert(1);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo span {
+    display: block;
+    margin-top: .25rem;
+    color: rgba(219, 237, 240, .5);
+    white-space: nowrap;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo::before {
+    content: 'S';
+    display: none;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid rgba(138, 208, 201, .32);
+    border-radius: .9rem;
+    background: linear-gradient(145deg, rgba(74, 184, 173, .25), rgba(31, 93, 116, .4));
+    color: #effffe;
+    font-size: 1rem;
+    font-weight: 780;
+    box-shadow: inset 0 1px rgba(255, 255, 255, .1);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-user {
+    margin: .65rem .75rem .35rem;
+    padding: .75rem;
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, .025);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-user:hover {
+    background: rgba(255, 255, 255, .055);
+    border-color: rgba(138, 208, 201, .16);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid rgba(138, 208, 201, .24);
+    background: linear-gradient(145deg, #1e5369, #15374e);
+    box-shadow: 0 .5rem 1.2rem -.8rem rgba(74, 184, 173, .7);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .nav-items {
+    padding: .35rem .75rem .9rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(138, 208, 201, .22) transparent;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-app-nav {
+    padding: .15rem 0 .75rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-section {
+    padding: 1rem .75rem .45rem;
+    color: rgba(215, 235, 238, .42);
+    font-size: var(--smyl-ui-text-meta);
+    font-weight: 700;
+    letter-spacing: .08em;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item {
+    position: relative;
+    width: 100%;
+    min-height: 3rem;
+    margin-bottom: .2rem;
+    padding: .72rem .85rem;
+    gap: .75rem;
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: .8rem;
+    background: transparent;
+    color: rgba(224, 238, 241, .66);
+    text-align: left;
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 220ms ease,
+      transform 160ms ease;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item:hover {
+    border-color: rgba(255, 255, 255, .06);
+    background: rgba(255, 255, 255, .055);
+    color: #fff;
+    transform: translateX(.1rem);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item:is(.activo, [aria-current='page']) {
+    border-color: rgba(138, 208, 201, .22);
+    background:
+      radial-gradient(circle at 12% 50%, rgba(115, 224, 214, .14), transparent 60%),
+      rgba(255, 255, 255, .065);
+    color: #fff;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, .025),
+      0 .8rem 1.8rem -1.35rem rgba(91, 210, 200, .9);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item:is(.activo, [aria-current='page'])::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 22%;
+    bottom: 22%;
+    width: .18rem;
+    border-radius: 99px;
+    background: linear-gradient(180deg, #9ce7df, #4ab8ad);
+    box-shadow: 0 0 1rem rgba(112, 221, 211, .75);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-basis: 1.5rem;
+    color: rgba(190, 215, 221, .66);
+    transition: color 160ms ease, transform 220ms var(--smyl-sidebar-ease);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .nav-item:is(.activo, [aria-current='page']) .pro-nav-icon {
+    color: #91e0d8;
+    filter: drop-shadow(0 0 .45rem rgba(93, 205, 195, .38));
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-label {
+    display: block;
+    max-width: 11rem;
+    overflow: hidden;
+    opacity: 1;
+    white-space: nowrap;
+    transform: translateX(0);
+    transition:
+      max-width 240ms var(--smyl-sidebar-ease),
+      opacity 140ms ease 70ms,
+      transform 220ms var(--smyl-sidebar-ease);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group {
+    margin-top: .55rem;
+    padding-top: .55rem;
+    border-color: rgba(255, 255, 255, .075);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
+    min-height: 2.65rem;
+    padding: 0 .8rem;
+    border-radius: .75rem;
+    color: rgba(215, 235, 238, .5);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary:hover,
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group.has-active summary {
+    background: rgba(255, 255, 255, .045);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-foot {
+    margin: .2rem .75rem .75rem;
+    padding: .55rem;
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: .95rem;
+    background: rgba(255, 255, 255, .02);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .btn-cerrar {
+    min-height: 2.5rem;
+    padding: 0 .55rem;
+    border-radius: .65rem;
+    color: rgba(216, 233, 236, .55);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .btn-cerrar:hover {
+    background: rgba(248, 113, 113, .08);
+    color: #fca5a5;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle {
+    top: 3.45rem;
+    right: -.9rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-color: rgba(138, 208, 201, .28);
+    border-radius: 50%;
+    background: #15384d;
+    color: #dff9f6;
+    box-shadow: 0 .65rem 1.35rem -.65rem rgba(3, 17, 27, .95);
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 220ms var(--smyl-sidebar-ease);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle:hover {
+    background: #1d5062;
+    transform: scale(1.06);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sidebar {
+    width: var(--smyl-sidebar-collapsed);
+    border-radius: 1.5rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-logo {
+    justify-content: center;
+    min-height: 4.75rem;
+    padding-inline: 0;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-logo > div {
+    position: absolute;
+    width: 0;
+    opacity: 0;
+    transform: translateX(-.5rem);
+    pointer-events: none;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-logo::before {
+    display: grid;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-user {
+    margin-inline: .55rem;
+    padding: .6rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-user-row {
+    justify-content: center;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .nav-items {
+    padding-inline: .55rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-section {
+    height: 1px;
+    margin: .7rem .45rem;
+    padding: 0;
+    background: linear-gradient(90deg, transparent, rgba(138, 208, 201, .24), transparent);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-primary-nav .pro-nav-item {
+    justify-content: center;
+    min-height: 3rem;
+    padding-inline: .7rem;
+    gap: 0;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-label {
+    display: block;
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(-.5rem);
+    transition-delay: 0ms;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sidebar .nav-item:hover {
+    transform: none;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-sidebar-toggle {
+    right: -.9rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-foot {
+    margin-inline: .55rem;
+    padding-inline: .35rem;
+  }
+}
+
+@media (min-width: 48.0625rem) and (max-height: 46rem) {
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo {
+    min-height: 4rem;
+    padding-block: 1rem .75rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sb-user {
+    margin-top: .45rem;
+    padding-block: .6rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item {
+    min-height: 2.65rem;
+    padding-block: .58rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.smyl-ui-governed.smyl-management-v3 .sidebar,
+  body.smyl-ui-governed.smyl-management-v3 .sidebar *,
+  body.smyl-ui-governed.smyl-management-v3 .sidebar *::before,
+  body.smyl-ui-governed.smyl-management-v3 .sidebar *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
