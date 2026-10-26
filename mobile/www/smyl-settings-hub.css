@@ -21,7 +21,7 @@
 .settings-hub-chip{flex-shrink:0;padding:3px 9px;border-radius:999px;background:#eef2f6;color:#52667a;font:600 11px Inter,sans-serif;font-style:normal;white-space:nowrap}
 .settings-hub-chip[data-tone=ok]{background:#e3f3ea;color:#256a45}.settings-hub-chip[data-tone=todo]{background:#fff1e6;color:#a34c0e}.settings-hub-chip[data-tone=wait]{background:#eaf1fb;color:#2c5a96}
 @media(max-width:900px){
-  .settings-hub-layout{grid-template-columns:1fr;gap:14px}
+  .settings-hub-layout{grid-template-columns:minmax(0,1fr);gap:14px}
   .settings-hub-nav{position:static;display:flex;gap:6px;overflow-x:auto;padding:6px;scrollbar-width:thin}
   .settings-hub-nav-item{flex:0 0 auto;width:auto;white-space:nowrap}
   .settings-hub-grid{grid-template-columns:1fr}.settings-hub-card{min-height:0}
@@ -29,3 +29,14 @@
 
 .settings-back{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:8px 14px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:999px;background:#fff;color:var(--smyl-primary,#194391);font:600 13px Inter,sans-serif;cursor:pointer;min-height:36px}
 .settings-back:hover{background:var(--smyl-primary-subtle,#edf3fc)}.settings-back[hidden]{display:none}
+
+/* Pantallas mostradas dentro de Configuración. */
+.settings-hub-detail-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.settings-hub-detail-bar h2{font-size:20px;font-weight:600;margin:0}
+.settings-hub-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:8px 14px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:999px;background:#fff;color:var(--smyl-primary,#194391);font:600 13px Inter,sans-serif;cursor:pointer}
+.settings-hub-detail-back:hover{background:var(--smyl-primary-subtle,#edf3fc)}
+.settings-hub-embed{min-width:0}
+.settings-hub-embed>.pantalla{display:block;max-width:none;margin:0;padding:0;animation:none}
+.settings-hub-embed>.pantalla .pro-eyebrow{display:none}
+.settings-hub-embed>.pantalla h1{display:none}
+.settings-hub-panel{min-width:0}.settings-hub-embed{overflow-x:auto}
