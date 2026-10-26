@@ -13,7 +13,9 @@ test('la navegación principal prioriza el trabajo diario del dentista', () => {
   assert.match(nav, /\['Agenda', 'agenda'/);
   assert.match(nav, /\['Mensajes', 'inbox'/);
   assert.match(nav, /detailsGroup\('Negocio', BUSINESS/);
-  assert.match(nav, /detailsGroup\('Configuración', SETTINGS/);
+  // Todos los ajustes viven en la pantalla Configuración: el menú solo tiene ese acceso.
+  assert.match(nav, /var SETTINGS = \[\['Configuración', 'configuracion', 'settings'\]\]/);
+  assert.match(nav, /SETTINGS\.forEach\(function \(entry\) \{ nav\.append\(navItem\(entry, false\)\); \}\);/);
 });
 
 test('las herramientas de baja frecuencia ya no compiten en el primer nivel', () => {
@@ -33,8 +35,8 @@ test('Canales e IA se divide en canales, asistente y laboratorio', () => {
 });
 
 test('web y PWA cargan la arquitectura centralizada', () => {
-  assert.match(app, /smyl-navigation\.js\?v=9/);
+  assert.match(app, /smyl-navigation\.js\?v=(?:9|1[0-9])/);
   assert.match(app, /smyl-navigation\.css\?v=3/);
   assert.match(sw, /smyl-v263-lana-connection-recovery/);
-  assert.match(sw, /smyl-navigation\.js\?v=9/);
+  assert.match(sw, /smyl-navigation\.js\?v=(?:9|1[0-9])/);
 });

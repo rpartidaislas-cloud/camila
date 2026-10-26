@@ -97,8 +97,10 @@ test('la pantalla consulta el estado en Meta por la función whatsapp-templates 
   assert.doesNotMatch(page, /action: *'schedule'|type: *'template'/);
 });
 
-test('Mensajería es una sección propia del menú con Mensajes y Plantillas de WhatsApp', () => {
-  assert.match(nav, /var MESSAGING = \[\s*\['Mensajes', 'inbox', 'messages'\],\s*\['Plantillas de WhatsApp', 'plantillas', 'templates'\]\s*\]/);
+test('Mensajería es una sección propia del menú con Mensajes; las plantillas viven en Configuración > Canales', () => {
+  assert.match(nav, /var MESSAGING = \[\s*\['Mensajes', 'inbox', 'messages'\]\s*\]/);
+  // La ruta sigue registrada (oculta) para que ningún módulo vuelva a agregar su botón suelto.
+  assert.match(nav, /\['Plantillas de WhatsApp', 'plantillas', 'templates'\]/);
   assert.match(nav, /nav\.append\(sectionLabel\('Mensajería'\)\)/);
   assert.match(nav, /mobileGroup\('Mensajería', MESSAGING\)/);
   const primary = nav.slice(nav.indexOf('var PRIMARY = ['), nav.indexOf('var ALERTS'));

@@ -21,7 +21,7 @@ copia móvil, vista de QA y pruebas de contrato.
 - `smyl-ui-template-v3.css` avanza a `?v=3` en web y PWA. `mobile/www` quedó
   sincronizado mediante `npm run sync:web`.
 - QA visual aprobada a 1440 px (expandido y compacto), 1024 px y 390 px. La
-  suite completa terminó con **652 pruebas aprobadas**.
+  suite completa terminó con **660 pruebas aprobadas** tras integrar `main`.
 - No se tocaron backend, migraciones, RLS, secretos, lógica clínica ni rutas.
 
 ## 2026-10-25 — Codex — SMYL UI v3 gobierna shell, controles e Inbox
@@ -53,6 +53,54 @@ en vez de agregar nuevas excepciones.
 
 ---
 
+## 2026-10-26 — Claude: Configuración fase 2b (contenido dentro de Configuración)
+
+- `smyl-settings-hub.js` (v3) / `.css` (v3): las tarjetas con `embed` (Sucursales y horario, Equipo y roles, Facturación, Cobros y pagos,
+  Corte de caja, Plantillas de WhatsApp y Recordatorios de cita) se muestran dentro del panel de Configuración, con un botón para volver a
+  la sección. No se copia ni se reescribe nada: se **reubica el mismo elemento** (la pantalla `#p-<ruta>` o la tarjeta
+  `#schedule-reminders-card`) y una marca de posición (`<!--settings-hub-->`) guarda dónde estaba; al volver a la lista, al cambiar de
+  sección o al ir a cualquier otra ruta (`ir()` restaura antes de navegar) regresa a su lugar. Los módulos lo siguen encontrando por su id,
+  así que `smyl-reminders.js` no vuelve a montar su tarjeta (solo lo hace si no existe) y ninguna pantalla se duplica.
+- Si el elemento no existe (módulo sin cargar o sin permiso), la tarjeta cae al comportamiento anterior: navega a la pantalla.
+- CSS: el título grande de la pantalla incrustada se oculta (ya lo muestra la barra de Configuración) y en celular la columna usa
+  `minmax(0,1fr)` para que Finanzas no se salga por la derecha.
+- Siguen navegando a su pantalla (sin incrustar): Servicios y tarifas, Inventario, Horarios de la agenda, Canales/Asistente/Probar (OAuth y
+  flujos propios), Mi cuenta, Marca, Directorio, Lanzamiento y Seguridad. Fase 3 (lo «Próximamente») y `wip/inicio` siguen pendientes.
+
+## 2026-10-26 — Claude: Configuración fase 2 (enlaces directos, volver y Plantillas dentro de Canales)
+
+- `smyl-settings-hub.js` (v2) / `.css` (v2): cada tarjeta abre la pestaña exacta de su pantalla con `target` (selector que se
+  pulsa al llegar): Sucursales y horario / Equipo y roles (`[data-ca-tab]` de Mi clínica), Facturación / Cobros y pagos / Corte de
+  caja (`[data-finance-tab]` de Finanzas), Canales / Asistente / Probar al asistente (`[data-connection-tab]`) y Recordatorios
+  (`[data-schedule-tab="settings"]`). Tarjetas nuevas: Equipo y roles, Corte de caja, Asistente de mensajes y Probar al asistente.
+- Botón «Volver a Configuración» arriba de la pantalla destino cuando se llegó desde Configuración; se oculta al ir a otra ruta.
+- `smyl-navigation.js` (v11): «Plantillas de WhatsApp» sale del grupo Mensajería (ahora solo Mensajes) y vive en Configuración >
+  Canales; la ruta sigue registrada en el contenedor oculto y cuenta como destino de Configuración en el menú.
+- `app.html`, `sw.js`, `mobile/www/` sincronizados. Pruebas: se actualizó la de Mensajería (`smyl-whatsapp-templates`).
+- Falta la fase 3 (lo «Próximamente»: formas de pago y anticipo, perfil público de WhatsApp, colaboraciones), que necesita migración y
+  contrato con LANA. Rama local `wip/inicio` sin subir.
+
+## 2026-10-26 — Claude: Configuración fase 1 (pantalla con el orden de LANA)
+
+- Pedido del usuario: ordenar el configurador de SMYL como el panel de LANA (Negocio, Ventas y cobros, Catálogo, Canales,
+  Experiencia). Es trabajo de navegación y de pantalla; se hizo a petición expresa.
+- Nuevo `smyl-settings-hub.js` / `.css` (v1): ruta `configuracion` con las 5 secciones de LANA más «Seguridad y
+  lanzamiento». Cada tarjeta lleva a la pantalla que ya existe (Mi clínica, Mi cuenta, Finanzas, Servicios y tarifas,
+  Inventario, Agenda > Horarios y servicios, Canales, Plantillas, Recordatorios, Marca, Directorio, Lanzamiento,
+  Seguridad). Lo que aún no existe sale como «Próximamente»: formas de pago y anticipo, perfil público de WhatsApp,
+  colaboraciones. Solo navega: no escribe datos ni toca secretos.
+- Avisos de estado de solo lectura (horario, WhatsApp, plantilla, recordatorios, servicios) con las mismas verificaciones de
+  «Configura tu clínica»; `SmylClinicSetup.results()` es el nuevo accesorio (`smyl-clinic-setup.js` v3). Si no se puede
+  verificar, la tarjeta no muestra aviso. Para quien no es propietario no hay avisos.
+- `smyl-navigation.js` (v10): el grupo «Configuración» de nueve entradas pasó a un solo acceso. «Simulaciones» (es un
+  historial de trabajo) se movió al grupo Negocio. Las rutas que ya no tienen botón (clinica, directorio, colaboraciones,
+  conexiones, lanzamiento, seguridad, sim-config, mi-cuenta) quedan registradas en un contenedor oculto
+  (`.pro-nav-registry`): otros módulos (`smyl-clinic-admin`, `smyl-connections`, `smyl-readiness`) agregan su botón al menú
+  si no lo encuentran, y sin ese registro reaparecerían sueltos. «Configuración» se marca mientras estás en cualquiera de esas
+  pantallas (`data-also`).
+- `smyl-professional-v3.js` (v5): título y subtítulo de la nueva ruta. `app.html`, `sw.js` y `mobile/www/` sincronizados.
+- Siguen las fases 2 (juntar recordatorios, plantillas, facturación y equipo dentro de sus secciones) y 3 (lo «Próximamente»,
+  con migración y contrato con LANA). Rama local `wip/inicio` sin subir, a la espera del usuario.
 ## 2026-10-25 — Codex — Auditoría visual, SMYL UI v3 y biblioteca de casos
 
 **Tocado:** auditoría/documentación visual, plantilla CSS compartida, Directorio

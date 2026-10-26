@@ -22,6 +22,7 @@
     account: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
     templates: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v2.5h-5zM9 11h6M9 15h4"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
   };
 
@@ -42,24 +43,31 @@
   var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
   // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
   var MESSAGING = [
-    ['Mensajes', 'inbox', 'messages'],
-    ['Plantillas de WhatsApp', 'plantillas', 'templates']
+    ['Mensajes', 'inbox', 'messages']
   ];
   var BUSINESS = [
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
-    ['Reportes', 'reportes', 'reports']
+    ['Reportes', 'reportes', 'reports'],
+    ['Simulaciones', 'historial', 'history']
   ];
-  var SETTINGS = [
+  // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
+  // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta', 'plantillas'];
+  var SETTINGS = [['Configuración', 'configuracion', 'settings']];
+  // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
+  // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
+  var REGISTRY = [
     ['Mi clínica', 'clinica', 'clinic'],
     ['Directorio profesional', 'directorio', 'directory'],
     ['Colaboraciones', 'colaboraciones', 'patients'],
     ['Canales y asistente', 'conexiones', 'channels'],
     ['Preparación operativa', 'lanzamiento', 'launch'],
     ['Seguridad', 'seguridad', 'shield'],
-    ['Simulaciones', 'historial', 'history'],
     ['Marca y simulación', 'sim-config', 'brand'],
-    ['Mi cuenta', 'mi-cuenta', 'account']
+    ['Mi cuenta', 'mi-cuenta', 'account'],
+    // Las plantillas de WhatsApp son parte de Canales: se llega desde Configuración o desde Mensajes.
+    ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
 
   function icon(name, size) {
@@ -71,6 +79,7 @@
     button.type = 'button';
     button.className = mobile ? 'pam-row' : 'nav-item pro-nav-item';
     button.dataset.route = entry[1];
+    if (entry[1] === 'configuracion') button.dataset.also = SETTINGS_ROUTES.join(' ');
     button.setAttribute('onclick', mobile ? "pamIr('" + entry[1] + "')" : "ir('" + entry[1] + "')");
     if (mobile) {
       button.innerHTML = '<span class="pam-row-icon">' + icon(entry[2], 20) + '</span><span class="pam-row-label">' + entry[0] + '</span><span class="pam-row-chevron" aria-hidden="true">›</span>';
@@ -107,7 +116,7 @@
 
   function syncActive(route) {
     document.querySelectorAll('.pro-app-nav [data-route],.pro-mobile-nav [data-route]').forEach(function (item) {
-      var isActive = item.dataset.route === route;
+      var isActive = item.dataset.route === route || (' ' + (item.dataset.also || '') + ' ').indexOf(' ' + route + ' ') !== -1;
       item.classList.toggle('activo', isActive);
       if (isActive) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
@@ -130,7 +139,11 @@
     nav.append(sectionLabel('Mensajería'));
     MESSAGING.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(detailsGroup('Negocio', BUSINESS, true));
-    nav.append(detailsGroup('Configuración', SETTINGS, false));
+    SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
+    var registry = document.createElement('div');
+    registry.className = 'pro-nav-registry'; registry.hidden = true; registry.style.display = 'none'; registry.setAttribute('aria-hidden', 'true');
+    REGISTRY.forEach(function (entry) { registry.append(navItem(entry, false)); });
+    nav.append(registry);
     host.replaceChildren(nav);
   }
 
