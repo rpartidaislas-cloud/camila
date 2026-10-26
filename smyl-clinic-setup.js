@@ -176,7 +176,7 @@
         return result;
       };
     }
-    window.SmylClinicSetup = Object.freeze({ reload: function () { return load(true); } });
+    window.SmylClinicSetup = Object.freeze({ reload: function () { return load(true); }, results: function () { return state.results; } });
     // El Inicio se arma al cargar la página; si todavía no existe se espera, sin demorar la reserva de espacio.
     if (!reserveSpace()) {
       var observer = new MutationObserver(function () { if (reserveSpace()) observer.disconnect(); });

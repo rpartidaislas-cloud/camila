@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Claude: Configuración fase 1 (pantalla con el orden de LANA)
+
+- Pedido del usuario: ordenar el configurador de SMYL como el panel de LANA (Negocio, Ventas y cobros, Catálogo, Canales,
+  Experiencia). Es trabajo de navegación y de pantalla; se hizo a petición expresa.
+- Nuevo `smyl-settings-hub.js` / `.css` (v1): ruta `configuracion` con las 5 secciones de LANA más «Seguridad y
+  lanzamiento». Cada tarjeta lleva a la pantalla que ya existe (Mi clínica, Mi cuenta, Finanzas, Servicios y tarifas,
+  Inventario, Agenda > Horarios y servicios, Canales, Plantillas, Recordatorios, Marca, Directorio, Lanzamiento,
+  Seguridad). Lo que aún no existe sale como «Próximamente»: formas de pago y anticipo, perfil público de WhatsApp,
+  colaboraciones. Solo navega: no escribe datos ni toca secretos.
+- Avisos de estado de solo lectura (horario, WhatsApp, plantilla, recordatorios, servicios) con las mismas verificaciones de
+  «Configura tu clínica»; `SmylClinicSetup.results()` es el nuevo accesorio (`smyl-clinic-setup.js` v3). Si no se puede
+  verificar, la tarjeta no muestra aviso. Para quien no es propietario no hay avisos.
+- `smyl-navigation.js` (v10): el grupo «Configuración» de nueve entradas pasó a un solo acceso. «Simulaciones» (es un
+  historial de trabajo) se movió al grupo Negocio. Las rutas que ya no tienen botón (clinica, directorio, colaboraciones,
+  conexiones, lanzamiento, seguridad, sim-config, mi-cuenta) quedan registradas en un contenedor oculto
+  (`.pro-nav-registry`): otros módulos (`smyl-clinic-admin`, `smyl-connections`, `smyl-readiness`) agregan su botón al menú
+  si no lo encuentran, y sin ese registro reaparecerían sueltos. «Configuración» se marca mientras estás en cualquiera de esas
+  pantallas (`data-also`).
+- `smyl-professional-v3.js` (v5): título y subtítulo de la nueva ruta. `app.html`, `sw.js` y `mobile/www/` sincronizados.
+- Siguen las fases 2 (juntar recordatorios, plantillas, facturación y equipo dentro de sus secciones) y 3 (lo «Próximamente»,
+  con migración y contrato con LANA). Rama local `wip/inicio` sin subir, a la espera del usuario.
 ## 2026-10-25 — Codex — Auditoría visual, SMYL UI v3 y biblioteca de casos
 
 **Tocado:** auditoría/documentación visual, plantilla CSS compartida, Directorio
