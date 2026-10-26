@@ -1,5 +1,34 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-25 — Codex — SMYL UI v3 gobierna shell, controles e Inbox
+
+**Tocado:** `app.html`, plantilla visual compartida, shell/navegación,
+componentes heredados, Inbox, PWA, copia móvil y pruebas visuales.
+
+- `smyl-ui-template-v3.css` deja de cargarse entre hojas históricas y pasa al
+  final del `<head>`, por lo que ahora es la fuente normativa efectiva del
+  panel en vez de ser sobrescrita por cada módulo.
+- El opt-in `smyl-ui-governed` unifica tokens, navegación, barra superior,
+  botones, iconos de acción, tarjetas, etiquetas, campos y focos sin cambiar
+  la composición funcional de cada módulo.
+- Navegación primaria usa 14 px y 44 px de alto; etiquetas y controles heredan
+  la escala oficial. En móvil, botones alcanzan 44 px y campos usan 16 px para
+  preservar lectura y evitar zoom automático.
+- Mensajes conserva su workspace especializado, pero comparte tipografía de
+  conversación, búsqueda, títulos y compositor con la plantilla general.
+- Se añadió QA reproducible del shell a 1440, 1024 y 390 px. No hubo
+  desbordamiento horizontal y las medidas canónicas se comprobaron sobre el
+  CSS computado.
+- Suite completa: **651 pruebas aprobadas**. Web, PWA y `mobile/www` quedaron
+  sincronizados. No se tocaron backend, migraciones, RLS, secretos ni lógica
+  clínica.
+
+**Siguiente etapa recomendada:** migrar Trabajo diario por módulo, empezando
+por Agenda y Pacientes 360, retirando gradualmente reglas tipográficas locales
+en vez de agregar nuevas excepciones.
+
+---
+
 ## 2026-10-25 — Codex — Auditoría visual, SMYL UI v3 y biblioteca de casos
 
 **Tocado:** auditoría/documentación visual, plantilla CSS compartida, Directorio

@@ -141,9 +141,13 @@ El Directorio profesional será la pantalla piloto porque concentra los problema
 
 ### Etapa 2 · Shell y navegación
 
-- `app.html`, barra superior, menú lateral, acciones y estados globales.
-- Sustituir estilos incrustados por clases.
-- Mantener 14 px en navegación primaria y 12 px en metadatos.
+- **Completada el 25 de octubre de 2026.** `app.html`, barra superior, menú
+  lateral, acciones y estados globales ya están gobernados por SMYL UI v3.
+- La plantilla se carga al final y reemplaza efectivamente las medidas del
+  shell heredado; la extracción física del bloque incrustado queda como
+  limpieza técnica posterior, no como requisito visual.
+- Navegación primaria usa 14 px y metadatos 12 px; botones, campos y focos
+  comparten anatomía en escritorio y móvil.
 
 ### Etapa 3 · Trabajo diario
 

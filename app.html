@@ -869,7 +869,6 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
 <script defer src="smyl-resilience.js?v=1"></script>
 <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-<link rel="stylesheet" href="smyl-ui-template-v3.css?v=1">
 <link rel="stylesheet" href="smyl-inbox.css?v=35">
 <script defer src="smyl-inbox.js?v=37"></script>
 <link rel="stylesheet" href="smyl-navigation.css?v=3">
@@ -929,8 +928,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-professional-v3.js?v=4"></script>
 <link rel="stylesheet" href="smyl-dialog-system.css?v=2">
 <script defer src="smyl-dialog-system.js?v=1"></script>
+<!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
+     sin depender del orden histórico de cada módulo. -->
+<link rel="stylesheet" href="smyl-ui-template-v3.css?v=2">
 </head>
-<body class="smyl-professional smyl-management-v3">
+<body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
 <!-- The build identifier belongs in diagnostics, not over the patient's form. -->
 

@@ -33,10 +33,21 @@ test('la plantilla incluye los patrones operativos comunes',()=>{
 });
 
 test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
-  assert.match(app,/smyl-ui-template-v3\.css\?v=1/);
+  assert.match(app,/smyl-ui-template-v3\.css\?v=2/);
   assert.match(directory,/SMYL UI v3 pilot/);
   assert.match(directory,/--directory-type-meta:var\(--smyl-ui-text-meta,12px\)/);
   assert.match(directory,/::file-selector-button/);
+});
+
+test('SMYL UI v3 gobierna el shell después de los estilos históricos',()=>{
+  assert.match(app,/<body class="[^"]*smyl-ui-governed[^"]*">/);
+  const governance=app.indexOf('smyl-ui-template-v3.css?v=2');
+  assert.ok(governance>app.indexOf('smyl-professional-v3.css?v=7'));
+  assert.ok(governance>app.indexOf('smyl-dialog-system.css?v=2'));
+  assert.match(template,/Gobierno del panel · etapa 2/);
+  assert.match(template,/body\.smyl-ui-governed \.sidebar \.nav-item/);
+  assert.match(template,/body\.smyl-ui-governed \.layout \.fg :is\(input, select, textarea\)/);
+  assert.match(template,/body\.smyl-ui-governed \.smyl-inbox-page/);
 });
 
 test('la deuda tipográfica queda medida y no puede crecer silenciosamente',()=>{

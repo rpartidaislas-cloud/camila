@@ -433,3 +433,225 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* ==========================================================================
+   Gobierno del panel · etapa 2
+
+   Esta es la única capa normativa del shell. Los módulos conservan su layout,
+   pero ya no pueden redefinir la anatomía básica de navegación, botones,
+   campos y tarjetas con escalas tipográficas incompatibles.
+   ========================================================================== */
+body.smyl-ui-governed {
+  --smyl-font: var(--smyl-ui-font);
+  --smyl-canvas: var(--smyl-ui-canvas);
+  --smyl-surface: var(--smyl-ui-surface);
+  --smyl-surface-subtle: var(--smyl-ui-surface-soft);
+  --smyl-ink: var(--smyl-ui-ink);
+  --smyl-text-secondary: var(--smyl-ui-ink-secondary);
+  --smyl-text-muted: var(--smyl-ui-ink-muted);
+  --smyl-border: var(--smyl-ui-border);
+  --smyl-border-strong: var(--smyl-ui-border-strong);
+  --smyl-primary: var(--smyl-ui-primary);
+  --smyl-primary-hover: var(--smyl-ui-primary-hover);
+  --smyl-primary-subtle: var(--smyl-ui-primary-soft);
+  --smyl-focus: var(--smyl-ui-focus);
+  background: var(--smyl-ui-canvas);
+  color: var(--smyl-ui-ink);
+  font: 400 var(--smyl-ui-text-body-sm)/var(--smyl-ui-line-body) var(--smyl-ui-font);
+}
+
+body.smyl-ui-governed .layout {
+  background: var(--smyl-ui-canvas);
+}
+
+/* Shell y navegación primaria. */
+body.smyl-ui-governed.smyl-management-v3 .sidebar {
+  width: 15.75rem;
+}
+
+body.smyl-ui-governed .sb-logo h1 {
+  font-size: var(--smyl-ui-text-title);
+  line-height: var(--smyl-ui-line-title);
+}
+
+body.smyl-ui-governed :is(.sb-logo span, .sb-plan, .uso-txt) {
+  font-size: var(--smyl-ui-text-meta);
+  line-height: 1.4;
+}
+
+body.smyl-ui-governed .sb-nombre {
+  font-size: var(--smyl-ui-text-body-sm);
+  line-height: 1.4;
+}
+
+body.smyl-ui-governed :is(.nav-section, .pro-nav-section, .pro-nav-group > summary) {
+  font-size: var(--smyl-ui-text-meta);
+  line-height: 1.35;
+  letter-spacing: .075em;
+}
+
+body.smyl-ui-governed .sidebar .nav-item {
+  min-height: 2.75rem;
+  height: auto;
+  padding-block: .625rem;
+  font-size: var(--smyl-ui-text-body-sm);
+  line-height: 1.35;
+}
+
+body.smyl-ui-governed :is(.nav-badge, .patient-status, .pro-clinic-status) {
+  font-size: var(--smyl-ui-text-meta);
+  line-height: 1.2;
+}
+
+body.smyl-ui-governed .topbar {
+  min-height: 4.25rem;
+  height: auto;
+  padding-block: .625rem;
+}
+
+body.smyl-ui-governed .topbar-left h2 {
+  font-size: 1.125rem;
+  line-height: var(--smyl-ui-line-title);
+}
+
+body.smyl-ui-governed .topbar-left p {
+  margin-top: .125rem;
+  font-size: var(--smyl-ui-text-label);
+  line-height: 1.4;
+}
+
+body.smyl-ui-governed .contenido {
+  color: var(--smyl-ui-ink);
+  font-size: var(--smyl-ui-text-body-sm);
+  line-height: var(--smyl-ui-line-body);
+}
+
+/* Componentes heredados que aún usan .btn, .card y .fg. */
+body.smyl-ui-governed .layout .btn {
+  min-height: var(--smyl-ui-button-height);
+  height: auto;
+  padding: .625rem 1rem;
+  border-radius: var(--smyl-ui-radius-control);
+  font-family: var(--smyl-ui-font);
+  font-size: var(--smyl-ui-text-label);
+  font-weight: 680;
+  line-height: 1.25;
+}
+
+body.smyl-ui-governed .layout .btn-sm {
+  min-height: 2.25rem;
+  padding: .5rem .75rem;
+  font-size: var(--smyl-ui-text-meta);
+}
+
+body.smyl-ui-governed .layout :is(.btn-icon, .btn-noti, .btn-hamburger) {
+  width: 2.625rem;
+  min-width: 2.625rem;
+  min-height: 2.625rem;
+  padding: 0;
+}
+
+body.smyl-ui-governed .layout .card {
+  border-color: var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+  background: var(--smyl-ui-surface);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+
+body.smyl-ui-governed .layout .card-title {
+  color: var(--smyl-ui-ink-secondary);
+  font-size: var(--smyl-ui-text-label);
+  line-height: 1.35;
+  letter-spacing: .075em;
+}
+
+body.smyl-ui-governed .layout .fg {
+  gap: .4375rem;
+}
+
+body.smyl-ui-governed .layout .fg label {
+  color: var(--smyl-ui-ink);
+  font-size: var(--smyl-ui-text-label);
+  font-weight: 680;
+  line-height: 1.4;
+}
+
+body.smyl-ui-governed .layout .fg :is(input, select, textarea) {
+  width: 100%;
+  min-height: var(--smyl-ui-field-height);
+  padding: .75rem .875rem;
+  border-color: var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-control);
+  background: var(--smyl-ui-surface);
+  color: var(--smyl-ui-ink);
+  font-family: var(--smyl-ui-font);
+  font-size: var(--smyl-ui-text-body-sm);
+  line-height: 1.45;
+}
+
+body.smyl-ui-governed .layout .fg textarea {
+  min-height: 7rem;
+}
+
+body.smyl-ui-governed .layout :is(.fg input, .fg select, .fg textarea):focus {
+  border-color: var(--smyl-ui-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--smyl-ui-focus) 16%, transparent);
+}
+
+/* El Inbox ya tiene composición propia; comparte únicamente escala y controles. */
+body.smyl-ui-governed .smyl-inbox-page {
+  --smyl-inbox-font-message: var(--smyl-ui-text-body-sm);
+  --smyl-inbox-font-meta: var(--smyl-ui-text-meta);
+}
+
+body.smyl-ui-governed .smyl-inbox-top h1 {
+  font-size: var(--smyl-ui-text-section);
+  line-height: var(--smyl-ui-line-title);
+}
+
+body.smyl-ui-governed .smyl-inbox-top p,
+body.smyl-ui-governed .smyl-inbox-offline-detail {
+  font-size: var(--smyl-ui-text-meta);
+  line-height: 1.5;
+}
+
+body.smyl-ui-governed .smyl-inbox-search input {
+  min-height: 2.625rem;
+  font-size: var(--smyl-ui-text-label);
+}
+
+body.smyl-ui-governed .smyl-inbox-row-top strong,
+body.smyl-ui-governed .smyl-inbox-thread-person strong {
+  font-size: var(--smyl-ui-text-body-sm);
+}
+
+body.smyl-ui-governed .smyl-inbox-preview,
+body.smyl-ui-governed .smyl-inbox-bubble p,
+body.smyl-ui-governed .smyl-inbox-composer textarea {
+  font-size: var(--smyl-ui-text-body-sm);
+}
+
+body.smyl-ui-governed .smyl-inbox-composer textarea {
+  min-height: 3rem;
+  border-radius: var(--smyl-ui-radius-control);
+}
+
+/* La navegación móvil nunca reduce la legibilidad para ganar espacio. */
+@media (max-width: 48rem) {
+  body.smyl-ui-governed.smyl-management-v3 .pro-mobile-nav .nav-item {
+    min-height: 3rem;
+    padding: .5rem .25rem;
+    font-size: var(--smyl-ui-text-meta);
+    line-height: 1.25;
+  }
+
+  body.smyl-ui-governed .layout .btn {
+    min-height: 2.75rem;
+  }
+
+  body.smyl-ui-governed .layout .fg :is(input, select, textarea),
+  body.smyl-ui-governed .smyl-inbox-search input,
+  body.smyl-ui-governed .smyl-inbox-composer textarea {
+    font-size: 1rem;
+  }
+}
