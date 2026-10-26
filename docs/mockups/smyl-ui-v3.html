@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL UI v3 · plantilla general</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;750&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:var(--smyl-ui-canvas);font-family:var(--smyl-ui-font)}
+    .specimen-layout{display:grid;grid-template-columns:minmax(0,1fr) 21rem;gap:var(--smyl-ui-space-5);align-items:start}
+    .specimen-preview{position:sticky;top:1.25rem}.specimen-profile{overflow:hidden}.specimen-hero{padding:2rem 1.5rem;background:linear-gradient(145deg,#0c4f46,#176f62);color:#fff;text-align:center}.specimen-avatar{display:grid;width:4.5rem;height:4.5rem;margin:0 auto 1rem;place-items:center;border:3px solid rgba(255,255,255,.9);border-radius:50%;background:#dfece8;color:#15584f;font-size:1.25rem;font-weight:750}.specimen-hero h2{margin:0;font-size:1.25rem}.specimen-hero p{margin:.375rem 0 0;font-size:var(--smyl-ui-text-body-sm);opacity:.86}.specimen-preview-body{padding:1.25rem}.specimen-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.25rem;text-align:center}.specimen-stats strong,.specimen-stats span{display:block}.specimen-stats strong{font-size:var(--smyl-ui-text-label)}.specimen-stats span{font-size:var(--smyl-ui-text-meta);color:var(--smyl-ui-ink-muted)}
+    .specimen-form{display:grid;gap:var(--smyl-ui-space-5)}.specimen-progress{display:flex;align-items:center;gap:.75rem;padding:1rem;border-radius:var(--smyl-ui-radius-card);background:var(--smyl-ui-surface-accent)}.specimen-progress-meter{width:3rem;height:3rem;border-radius:50%;display:grid;place-items:center;border:5px solid #aed7cd;color:var(--smyl-ui-primary);font-weight:750}.specimen-cases{margin-top:var(--smyl-ui-space-5)}
+    @media(max-width:56rem){.specimen-layout{grid-template-columns:1fr}.specimen-preview{position:static}}
+  </style>
+</head>
+<body>
+  <main class="smyl-ui-page">
+    <header class="smyl-ui-page-header">
+      <div>
+        <p class="smyl-ui-eyebrow">Tu presencia profesional</p>
+        <h1 class="smyl-ui-page-title">Construye un perfil que inspire confianza</h1>
+        <p class="smyl-ui-page-description">Una sola jerarquía para formularios, casos, configuración y trabajo diario.</p>
+      </div>
+      <button class="smyl-ui-button smyl-ui-button-secondary">Guardar borrador</button>
+    </header>
+
+    <div class="specimen-layout">
+      <section>
+        <nav class="smyl-ui-tabs" aria-label="Secciones del perfil">
+          <button class="smyl-ui-tab" aria-selected="true">Ficha profesional</button>
+          <button class="smyl-ui-tab" aria-selected="false">Casos</button>
+          <button class="smyl-ui-tab" aria-selected="false">Reseñas</button>
+        </nav>
+
+        <article class="smyl-ui-card specimen-cases">
+          <header class="smyl-ui-card-header">
+            <div>
+              <p class="smyl-ui-eyebrow">Paso 3 de 4</p>
+              <h2 class="smyl-ui-section-title">Agrega señales de confianza</h2>
+              <p class="smyl-ui-supporting">La documentación permanece privada y sólo la revisa la clínica.</p>
+            </div>
+            <span class="smyl-ui-badge">Borrador guardado</span>
+          </header>
+
+          <div class="smyl-ui-card-body specimen-form">
+            <div class="specimen-progress">
+              <div class="specimen-progress-meter">64%</div>
+              <div><h3 class="smyl-ui-card-title">Cada dato mejora la confianza</h3><p class="smyl-ui-supporting">Completa formación, membresías y CV para solicitar la revisión.</p></div>
+            </div>
+
+            <div class="smyl-ui-grid">
+              <label class="smyl-ui-field smyl-ui-span-12">
+                <span class="smyl-ui-label">Formación académica</span>
+                <textarea class="smyl-ui-textarea" placeholder="Universidad, posgrados y certificaciones relevantes"></textarea>
+                <span class="smyl-ui-help">Separa cada antecedente con una línea nueva.</span>
+              </label>
+
+              <label class="smyl-ui-field smyl-ui-span-12">
+                <span class="smyl-ui-label">Asociaciones y membresías</span>
+                <textarea class="smyl-ui-textarea" placeholder="Colegio, asociación o sociedad profesional"></textarea>
+              </label>
+
+              <label class="smyl-ui-field smyl-ui-span-6">
+                <span class="smyl-ui-label">WhatsApp público</span>
+                <input class="smyl-ui-input" value="+52 331 344 5614">
+                <span class="smyl-ui-help">Opcional. Aparecerá en la ficha pública.</span>
+              </label>
+
+              <div class="smyl-ui-field smyl-ui-span-6">
+                <span class="smyl-ui-label">CV para revisión</span>
+                <label class="smyl-ui-upload">
+                  <span class="smyl-ui-upload-icon">PDF</span>
+                  <span><strong>Sube tu CV privado</strong><small>PDF · máximo 10 MB</small></span>
+                  <input type="file" hidden>
+                  <span class="smyl-ui-button smyl-ui-button-secondary">Elegir archivo</span>
+                </label>
+              </div>
+            </div>
+
+            <aside class="smyl-ui-notice"><span>✓</span><div><strong>Sede y servicio asignados</strong><p>La ficha sólo mostrará sedes y servicios activos confirmados por la clínica.</p></div></aside>
+          </div>
+
+          <footer class="smyl-ui-card-footer">
+            <button class="smyl-ui-button smyl-ui-button-secondary">Anterior</button>
+            <button class="smyl-ui-button smyl-ui-button-primary">Siguiente</button>
+          </footer>
+        </article>
+
+        <section class="smyl-ui-card specimen-cases">
+          <header class="smyl-ui-card-header">
+            <div><p class="smyl-ui-eyebrow">Casos autorizados</p><h2 class="smyl-ui-section-title">Resultados antes y después</h2><p class="smyl-ui-supporting">Agrega varios casos y decide cuáles mostrar en tu perfil.</p></div>
+            <button class="smyl-ui-button smyl-ui-button-primary">+ Agregar caso</button>
+          </header>
+          <div class="smyl-ui-card-body">
+            <div class="smyl-ui-list">
+              <article class="smyl-ui-list-item"><div><span class="smyl-ui-badge">Publicado</span><h3>Rehabilitación estética anterior</h3><p>Restauraciones cerámicas · autorización verificada</p></div><button class="smyl-ui-button smyl-ui-button-secondary">Quitar del perfil</button></article>
+              <article class="smyl-ui-list-item"><div><span class="smyl-ui-badge">Borrador</span><h3>Armonización de sonrisa</h3><p>Pendiente de enviar a revisión</p></div><button class="smyl-ui-button smyl-ui-button-secondary">Editar</button></article>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="specimen-preview">
+        <p class="smyl-ui-eyebrow">Vista previa en vivo</p>
+        <article class="smyl-ui-card specimen-profile">
+          <div class="specimen-hero"><div class="specimen-avatar">DH</div><h2>Dr. Hernán Partida</h2><p>Diseño de Sonrisas</p></div>
+          <div class="specimen-preview-body">
+            <div class="specimen-stats"><div><strong>5 años</strong><span>Experiencia</span></div><div><strong>2</strong><span>Idiomas</span></div><div><strong>Sí</strong><span>Disponible</span></div></div>
+            <h3 class="smyl-ui-card-title">Acerca de mi práctica</h3>
+            <p class="smyl-ui-supporting">Atención personalizada con planeación digital y resultados naturales.</p>
+          </div>
+        </article>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

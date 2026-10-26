@@ -39,10 +39,11 @@ test('las imágenes permanecen privadas y el público recibe enlaces temporales 
   assert.match(edge,/limit\(12\)/);
 });
 
-test('el panel permite preparar, revisar, publicar y pausar casos autorizados',()=>{
-  for(const token of ['CASOS AUTORIZADOS','Autorización firmada','Confirmo que el paciente autorizó','smyl_save_professional_case','smyl_submit_professional_case','smyl_review_professional_case']) assert.match(js,new RegExp(token));
+test('el panel permite agregar varios casos y controlar cuáles se publican',()=>{
+  for(const token of ['CASOS AUTORIZADOS','Agregar caso','Tus casos','Quitar del perfil','Autorización firmada','Confirmo que el paciente autorizó','smyl_save_professional_case','smyl_submit_professional_case','smyl_review_professional_case']) assert.match(js,new RegExp(token));
   assert.match(js,/smyl-professional-cases/);
   assert.match(css,/directory-case-compare/);
+  assert.match(css,/directory-case-form-shell/);
 });
 
 test('la ficha pública explica límites clínicos y carga sólo casos aprobados',()=>{
@@ -53,7 +54,8 @@ test('la ficha pública explica límites clínicos y carga sólo casos aprobados
 });
 
 test('la etapa se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=11/);
+  assert.match(app,/smyl-professional-directory\.js\?v=12/);
+  assert.match(app,/smyl-ui-template-v3\.css\?v=1/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   assert.equal(js,read('../mobile/www/smyl-professional-directory.js'));
   assert.equal(css,read('../mobile/www/smyl-professional-directory.css'));
