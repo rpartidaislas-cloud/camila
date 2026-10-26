@@ -1,6 +1,6 @@
 # Bitácora compartida — SMYL
 
-## 2026-10-26 — Codex — Agenda visual v3 y auditoría de Google Calendar
+## 2026-10-26 — Codex — Agenda visual v3 y OAuth de Google Calendar
 
 - Agenda adopta la política v3.2: portada navy, copy breve, tres métricas tipo
   bento, tabs y selector de vista con estados navy, foco accesible y estado vacío
@@ -10,13 +10,17 @@
   mantienen sincronizadas y el script de sincronización ya incluye ambos
   archivos. Fixture visual nuevo en
   `tests/fixtures/smyl-agenda-visual-v3-preview.html`.
-- La suite completa terminó con **662/662 pruebas** y la revisión visual de
+- La suite completa terminó con **668/668 pruebas** y la revisión visual de
   escritorio fue satisfactoria. Estos cambios quedan locales hasta que el
   usuario pida publicación.
-- Google Calendar no tiene integración existente. Se documentó en
-  `docs/GOOGLE_CALENDAR_INTEGRATION.md` el contrato seguro y la decisión
-  pendiente entre espejo SMYL → Google (recomendado) y sincronización
-  bidireccional. No se añadieron OAuth, secretos, migraciones ni botones falsos.
+- Google Calendar incorpora OAuth servidor con scope mínimo `calendar.events`,
+  `state` de un solo uso, PKCE, tokens cifrados, estado y desconexión. La
+  migración `20261026160000` y `google-calendar-oauth` están desplegadas; el
+  frontend añade una conexión verificable en Agenda y no almacena tokens.
+- Se reutiliza el cliente OAuth existente de Gmail y se creó una clave de
+  cifrado independiente. La activación queda bloqueada por
+  `GOOGLE_CALENDAR_OAUTH_READY` hasta que el usuario verifique la cuenta de
+  Google Cloud, habilite Calendar API y registre el callback documentado.
 
 ## 2026-10-26 — Codex — Política visual v3.2 aplicada a todo el producto
 

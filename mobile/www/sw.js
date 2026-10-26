@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-agenda-visual-v3';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-oauth';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -85,6 +85,7 @@ const STATIC_FILES = [
   '/camila/smyl-schedule-grid.js?v=2',
   '/camila/smyl-schedule-slots.js?v=1',
   '/camila/smyl-schedule.js?v=23',
+  '/camila/smyl-google-calendar.js?v=1',
   '/camila/smyl-schedule-message.js?v=1',
   '/camila/smyl-schedule-setup.js?v=2',
   '/camila/smyl-reminders.js?v=2',
@@ -92,6 +93,7 @@ const STATIC_FILES = [
   '/camila/smyl-template-catalog.js?v=1',
   '/camila/smyl-templates.js?v=3',
   '/camila/smyl-schedule.css?v=17',
+  '/camila/smyl-google-calendar.css?v=1',
   '/camila/smyl-schedule-setup.css?v=2',
   '/camila/smyl-service-catalog-model.js?v=1',
   '/camila/smyl-service-catalog.js?v=3',

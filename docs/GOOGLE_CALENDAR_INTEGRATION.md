@@ -1,19 +1,26 @@
 # Integración de SMYL con Google Calendar
 
-## Decisión pendiente
+## Alcance aprobado
 
-Antes de implementar hay que elegir el alcance:
+La primera entrega usa el siguiente alcance:
 
-1. **Espejo SMYL → Google (recomendado para la primera entrega).** SMYL sigue
+1. **Espejo SMYL → Google.** SMYL sigue
    siendo la fuente clínica de verdad. Crear, reprogramar o cancelar una cita
    actualiza su evento en Google; editar ese evento en Google no modifica SMYL.
 2. **Sincronización bidireccional.** También recibe cambios desde Google. Exige
    reglas de conflicto, webhooks, renovación de canales y una política explícita
    para impedir que un cambio externo eluda disponibilidad, permisos o auditoría.
 
-No debe añadirse una conexión simulada en frontend. La integración comienza
-cuando exista el flujo OAuth servidor y termina cuando el estado se pueda
-verificar desde la Agenda.
+La etapa OAuth ya está implementada: inicio autenticado, callback público con
+`state` de un solo uso y PKCE, cifrado AES-GCM del refresh token, consulta de
+estado y revocación. La activación queda cerrada por
+`GOOGLE_CALENDAR_OAUTH_READY` hasta registrar el callback en Google Cloud:
+
+`https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/google-calendar-oauth`
+
+El proyecto reutiliza el cliente OAuth existente de Gmail y mantiene una clave
+de cifrado independiente para Calendar. Después de registrar el callback y
+habilitar Google Calendar API, definir `GOOGLE_CALENDAR_OAUTH_READY=true`.
 
 ## Contrato recomendado
 

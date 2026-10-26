@@ -37,6 +37,11 @@ verify_jwt = false
 [functions.appointment-reminders]
 verify_jwt = false
 
+# OAuth de Google Calendar: el POST exige sesión dentro del handler; el GET es
+# el callback público de Google y se autentica con state de un solo uso + PKCE.
+[functions.google-calendar-oauth]
+verify_jwt = false
+
 # Excepciones públicas deliberadas. Cada una aplica su propio control de
 # capacidad, firma, token de un solo uso o límite de abuso dentro del handler.
 [functions.analizar-foto]
