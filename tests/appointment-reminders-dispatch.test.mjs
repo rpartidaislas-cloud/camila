@@ -196,7 +196,7 @@ test('programa el recordatorio en LANA con la identidad de la clínica, la plant
   assert.equal(call.body.send_at, new Date(start - 24 * HOUR).toISOString());
   assert.equal(call.body.template_variables[0], 'Ana');
   assert.match(call.body.template_variables[1], /^[a-zñáéíóú]+ 4 de marzo$/);
-  assert.equal(call.body.template_variables[2], '10:30 a.m.');
+  assert.equal(call.body.template_variables[2], '10:30 am');
   assert.equal(call.body.template_variables[3], 'Clínica Dental Sonríe');
   const saved = world.reminder(reminder.id);
   assert.equal(saved.status, 'processing');

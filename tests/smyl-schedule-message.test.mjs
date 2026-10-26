@@ -22,7 +22,7 @@ const ctx = {
 test('las variables salen de la cita con el mismo formato del recordatorio automático', () => {
   assert.equal(message.render('patient_first_name', ctx), 'Ricardo');
   assert.equal(message.render('date', ctx), 'viernes 23 de octubre');
-  assert.match(message.render('time', ctx), /^5:00\s?p\.\s?m\.$/);
+  assert.equal(message.render('time', ctx), '5:00 pm');
   assert.equal(message.render('service', ctx), 'Extracción simple');
   assert.equal(message.render('branch_phone', ctx), '33 1234 5678');
   assert.equal(message.render('clinic', { ...ctx, clinic: '' }), 'tu clínica');
@@ -101,6 +101,6 @@ test('el módulo de mensajes se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-schedule-message.js', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=1/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=1/);
+  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=2/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=2/);
 });

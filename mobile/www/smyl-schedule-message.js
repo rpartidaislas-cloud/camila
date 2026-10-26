@@ -33,7 +33,7 @@
       case 'patient_first_name': return first || 'paciente';
       case 'patient_name': return [first, text(ctx.patient && ctx.patient.last, 120)].filter(Boolean).join(' ') || 'paciente';
       case 'date': return new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }).format(start).replace(',', '');
-      case 'time': return new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz }).format(start);
+      case 'time': return new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz }).format(start).replace(/\s*([ap])\.?\s?m\.?/i, function (m, x) { return ' ' + x.toLowerCase() + 'm'; });
       case 'service': return text(ctx.service, 120) || 'tu cita';
       case 'professional': return text(ctx.professional, 120) || text(ctx.clinic, 120);
       case 'branch': return text(ctx.branch && ctx.branch.name, 120) || text(ctx.clinic, 120);
