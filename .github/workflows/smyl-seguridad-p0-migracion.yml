@@ -1,12 +1,15 @@
-name: SMYL Seguridad P0 - alta de staff y vista pública (migración)
+name: SMYL Seguridad - alta de staff, vista pública y cuota (migración)
 
-# Aplica en el proyecto de producción de SMYL las dos migraciones de seguridad de la auditoría
+# Aplica en el proyecto de producción de SMYL las migraciones de seguridad de la auditoría
 # del 2026-10-26:
 #   1) 20261026200000_smyl_security_public_tenant_view.sql
 #      La vista pública camila_tenants_publico deja de exponer `config` completo (solo `sim` y `precios`).
 #   2) 20261026210000_smyl_security_staff_invitations.sql
 #      Tabla camila_invitaciones + trigger camila_crear_tenant_en_signup: solo se une como staff quien
 #      tiene una invitación vigente creada por el servidor.
+#   3) 20261026220000_smyl_security_tenant_quota_guard.sql
+#      Trigger que impide que el dueño edite su cuota/plan/vencimiento desde el cliente y sanea el plan
+#      y el límite del alta (el servicio, Stripe y las funciones de consumo no se ven afectados).
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN.
 # Ambas migraciones son idempotentes; antes de aplicar se comprueban los prerrequisitos.
 #
@@ -35,6 +38,8 @@ jobs:
       VISTA_FILE: supabase/migrations/20261026200000_smyl_security_public_tenant_view.sql
       INVITACIONES_VERSION: "20261026210000"
       INVITACIONES_FILE: supabase/migrations/20261026210000_smyl_security_staff_invitations.sql
+      CUOTA_VERSION: "20261026220000"
+      CUOTA_FILE: supabase/migrations/20261026220000_smyl_security_tenant_quota_guard.sql
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -86,11 +91,15 @@ jobs:
               and not has_table_privilege('anon', 'public.camila_invitaciones', 'select')
               and not has_table_privilege('authenticated', 'public.camila_invitaciones', 'select')
               and not has_table_privilege('authenticated', 'public.camila_invitaciones', 'insert'), false) as permisos_ok,
+            exists(select 1 from pg_trigger t where t.tgrelid = 'public.camila_tenants'::regclass and t.tgname = 'camila_proteger_cuota_tenant' and not t.tgisinternal) as cuota_trigger_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'camila_crear_tenant_en_signup' and p.prosrc like '%v_limites%') as alta_saneada_ok,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.VISTA_VERSION}') as historial_vista,
-            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.INVITACIONES_VERSION}') as historial_invitaciones`))?.[0] || {};
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.INVITACIONES_VERSION}') as historial_invitaciones,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.CUOTA_VERSION}') as historial_cuota`))?.[0] || {};
 
           const vistaCompleta = e => e.vista_ok;
           const invitacionesCompletas = e => e.trigger_ok && e.tabla_ok && e.rls_ok && e.permisos_ok;
+          const cuotaCompleta = e => e.cuota_trigger_ok && e.alta_saneada_ok;
 
           const req = await prerequisitos();
           console.log('Prerrequisitos:', JSON.stringify(req));
@@ -114,17 +123,25 @@ jobs:
             console.log('Las invitaciones de staff ya estaban aplicadas.');
           }
 
+          if (!cuotaCompleta(antes)) {
+            await consultar(fs.readFileSync(process.env.CUOTA_FILE, 'utf8'));
+            console.log('Guarda de cuota aplicada.');
+          } else {
+            console.log('La guarda de cuota ya estaba aplicada.');
+          }
+
           const despues = await estado();
           console.log('Después:', JSON.stringify(despues));
-          if (!vistaCompleta(despues) || !invitacionesCompletas(despues)) {
+          if (!vistaCompleta(despues) || !invitacionesCompletas(despues) || !cuotaCompleta(despues)) {
             throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
           }
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_vista=${!despues.historial_vista}\n`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_invitaciones=${!despues.historial_invitaciones}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar_cuota=${!despues.historial_cuota}\n`);
           NODE
 
       - name: Registrar versiones aplicadas
-        if: steps.esquema.outputs.reparar_vista == 'true' || steps.esquema.outputs.reparar_invitaciones == 'true'
+        if: steps.esquema.outputs.reparar_vista == 'true' || steps.esquema.outputs.reparar_invitaciones == 'true' || steps.esquema.outputs.reparar_cuota == 'true'
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
@@ -133,4 +150,7 @@ jobs:
           fi
           if [ "${{ steps.esquema.outputs.reparar_invitaciones }}" = "true" ]; then
             supabase migration repair --status applied "$INVITACIONES_VERSION"
+          fi
+          if [ "${{ steps.esquema.outputs.reparar_cuota }}" = "true" ]; then
+            supabase migration repair --status applied "$CUOTA_VERSION"
           fi

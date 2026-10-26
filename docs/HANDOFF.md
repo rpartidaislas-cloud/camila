@@ -8298,3 +8298,21 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md`.
   su propia clínica; la invitación legítima funciona, es de un solo uso y vence. Pruebas en
   `tests/security-p0-audit-2026-10-26.test.mjs` (679/679 en la suite).
 - Pendiente (siguiente fase de la auditoría): S1 (el dueño edita su cuota/plan), S2-S10, CSP, CI, etc.
+
+## 2026-10-26 — Claude — S1: el dueño ya no puede editar su cuota/plan (auditoría)
+- Migración `20261026220000_smyl_security_tenant_quota_guard.sql`: trigger `camila_proteger_cuota_tenant` sobre
+  `camila_tenants` (BEFORE INSERT OR UPDATE). Solo restringe a las peticiones con rol `authenticated`/`anon`:
+  UPDATE conserva plan, limite_diagnosticos, diagnosticos_usados, activo, vence_en, stripe_*, id y created_at
+  (`nombre`, `email` y `config` siguen editables, que es lo único que escribe la app). INSERT desde el cliente:
+  plan canónico (esencial/profesional/premium; otro -> profesional), límite derivado del plan (15/40/100),
+  usados=0, vencimiento <= 1 mes, sin stripe_*. No afecta a `service_role` (stripe-webhook, Edge Functions), a
+  `postgres` ni a las funciones SECURITY DEFINER (consumo de cuota de `camila_limits.sql`, trigger de alta).
+- El trigger de alta `camila_crear_tenant_en_signup` ya no toma `limite_diagnosticos` del metadato del signup y
+  valida `plan`; conserva la invitación verificada por el servidor.
+- Se probó en un Postgres real en memoria (PGlite): PATCH malicioso bloqueado, `nombre`/`config` editables, webhook
+  de Stripe (service_role) y consumo definer funcionan, INSERT malicioso saneado, RLS intacta, migración reaplicable.
+- Workflow `smyl-seguridad-p0-migracion.yml` ahora aplica y verifica las tres migraciones (idempotente).
+- Decisión de producto que NO cambió: al registrarse se puede elegir cualquier plan (incluido premium) con un mes de
+  prueba, igual que antes. Si no se desea, limitar el plan de entrada a 'profesional' en el trigger de alta.
+- Pendiente de la auditoría: S2-S10 (segment-teeth, analizar-foto, permisos por rol en Edge Functions, URLs de 1 año,
+  bucket público, Stripe priceId, retención), CSP, CI.
