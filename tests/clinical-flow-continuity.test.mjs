@@ -24,7 +24,7 @@ test('la acción principal cambia según el siguiente paso pendiente', () => {
   assert.match(script, /Abrir odontograma/);
   assert.match(script, /Completar plan/);
   assert.match(script, /Preparar cotización/);
-  assert.match(script, /ctx\.nextTarget=nextId/);
+  assert.doesNotMatch(script, /ctx\.nextButton|cw-next-action/);
 });
 
 test('el recorrido termina en seguimiento sin afirmar un envío automático', () => {
@@ -35,10 +35,10 @@ test('el recorrido termina en seguimiento sin afirmar un envío automático', ()
 });
 
 test('web, móvil y PWA cargan la misma versión del recorrido', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=17/);
-  assert.match(app, /smyl-case-workspace\.css\?v=14/);
+  assert.match(app, /smyl-case-workspace\.js\?v=18/);
+  assert.match(app, /smyl-case-workspace\.css\?v=15/);
   assert.match(worker, /treatment-ux-v32/);
-  assert.match(worker, /smyl-case-workspace\.js\?v=17/);
+  assert.match(worker, /smyl-case-workspace\.js\?v=18/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-case-workspace.js'));
   assert.equal(styles, read('../mobile/www/smyl-case-workspace.css'));

@@ -262,9 +262,11 @@
   const picker=n('select');picker.setAttribute('aria-label','Seleccionar diente');picker.add(new Option('Seleccionar diente…',''));M.teeth.forEach(t=>picker.add(new Option('Diente '+t,t)));picker.onchange=()=>{if(picker.value)toothDialog(ctx,picker.value);picker.value='';};details.insertBefore(picker,ctx.map);
   const rx=n('details','dr-section');rx.append(n('summary','','Radiografías'),n('p','dr-help','Originales JPG o PNG, hasta 20 MB por imagen. PDF, DICOM y estudios 3D no se admiten en esta versión. El envío a IA siempre requiere autorización explícita para cada estudio.'));
   const fields=n('div','dr-upload-fields'),type=n('select');type.setAttribute('aria-label','Tipo de radiografía');Object.entries(types).forEach(([v,t])=>type.add(new Option(t,v)));ctx.type=type;
+  const typeField=n('label','dr-field dr-study-type');typeField.append(n('span','','Tipo de estudio'),type);
   const label=input('Nombre del estudio · opcional','',100,'input'),date=input('Fecha del estudio · opcional','',10,'input');date.e.type='date';ctx.label=label.e;ctx.date=date.e;
   const file=n('input');file.type='file';file.accept='image/png,image/jpeg';file.setAttribute('aria-label','Subir radiografía');file.onchange=()=>addFile(ctx,file.files[0]);ctx.file=file;
-  fields.append(type,label.box,date.box,file);rx.append(fields);ctx.studies=n('div','dr-studies');rx.append(ctx.studies);
+  const fileField=n('label','dr-file-field'),fileCopy=n('span','dr-file-copy');fileCopy.append(n('strong','','Archivo del estudio'),n('small','','JPG o PNG · máximo 20 MB'));fileField.append(fileCopy,file);
+  fields.append(typeField,label.box,date.box,fileField);rx.append(fields);ctx.studies=n('div','dr-studies');rx.append(ctx.studies);
   const ai=n('aside','dr-ai');ai.append(n('strong','','Revisión asistida · bajo control del dentista'),n('p','','La IA puede sugerir zonas visibles para comprobar. Tú ubicas, corriges y confirmas cada observación; nunca se convierte automáticamente en diagnóstico ni se comparte con el paciente.'));ctx.rxStatus=n('p','dr-help','Comprobando disponibilidad del guardado privado…');ai.append(ctx.rxStatus);rx.append(ai);form.append(rx);
   ctx.save=button('Guardar observaciones',()=>save(ctx));ctx.save.classList.add('dr-primary');ctx.save.disabled=true;form.append(ctx.save);host.append(form);layout.before(host);
   if(pacienteActual._local||window.miRolEquipo!=='dueño'){message(ctx,'Disponible para la cuenta titular y pacientes guardados en la clínica.');return;}

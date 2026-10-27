@@ -29,8 +29,9 @@ test('radiografías usa un flujo breve y no repite el mapa dental', () => {
 
 test('la política visual conserva jerarquía, una acción navy y estado turquesa', () => {
   assert.match(styles, /\.cw-advanced-guide\{display:grid/);
-  assert.match(styles, /background:#102a43;color:#fff/);
-  assert.match(styles, /border-left:4px solid #2f8b82/);
+  assert.match(styles, /background:var\(--cw-primary\);color:#fff/);
+  assert.match(styles, /\.dr-file-field\{display:grid/);
+  assert.match(styles, /\.dr-ai::before\{content:'IA'/);
   assert.match(styles, /input\[type=file\]::file-selector-button/);
 });
 
@@ -40,9 +41,10 @@ test('los controles móviles mantienen 44 px y el flujo se apila', () => {
 });
 
 test('web, PWA y fuente móvil distribuyen la tarea clínica v3.8', () => {
-  assert.match(app, /smyl-case-workspace\.css\?v=14/);
-  assert.match(app, /smyl-case-workspace\.js\?v=17/);
+  assert.match(app, /smyl-case-workspace\.css\?v=15/);
+  assert.match(app, /smyl-case-workspace\.js\?v=18/);
   assert.match(worker, /clinical-task-panel-v38/);
   assert.match(worker, /single-odontogram-v39/);
+  assert.match(worker, /radiograph-ui-v40/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

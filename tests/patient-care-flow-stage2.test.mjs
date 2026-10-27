@@ -36,8 +36,8 @@ test('Agenda abre la ficha para cualquier rol con clinical.read', () => {
 });
 
 test('web, móvil y PWA publican la misma etapa', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=17/);
-  assert.match(app, /smyl-case-workspace\.css\?v=14/);
+  assert.match(app, /smyl-case-workspace\.js\?v=18/);
+  assert.match(app, /smyl-case-workspace\.css\?v=15/);
   assert.match(app, /smyl-patient-360\.js\?v=12/);
   assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);

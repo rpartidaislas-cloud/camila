@@ -8686,3 +8686,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - Seleccionar una pieza en el mapa principal continúa abriendo el diálogo canónico de esa pieza, por lo que se conservan observaciones, conducta, estado, versionado y guardado sin duplicar la arcada.
 - El editor canónico completo permanece montado y oculto sólo para reutilizar el flujo de carga de radiografías. No puede abrirse en modo odontograma; al agregar un estudio muestra exclusivamente la sección radiográfica.
 - Web y `mobile/www` quedan sincronizados en `smyl-case-workspace.js?v=17`, `smyl-case-workspace.css?v=14` y caché `single-odontogram-v39`. No hubo cambios de esquema, RLS, funciones, prompts ni datos clínicos.
+
+## 2026-10-27 — Codex — Tratamiento v4.0: tarea radiográfica alineada a SMYL
+
+- Se retiró la acción duplicada de la tarjeta “Siguiente acción”; la navegación y las acciones contextuales permanecen dentro de las tres etapas clínicas.
+- “Agregar estudio radiográfico” adopta la política visual SMYL con encabezado turquesa discreto, pasos compactos, campos etiquetados, área de archivo delimitada y acción primaria navy.
+- Tipo de estudio y archivo ahora tienen etiquetas visibles; el selector conserva los tipos existentes y la carga sigue aceptando únicamente JPG/PNG de hasta 20 MB.
+- La revisión asistida se presenta como apoyo diferenciado con insignia IA y conserva el control profesional, consentimiento y guardado canónico existentes.
+- Web y `mobile/www` quedan sincronizados en `smyl-dental-record.js?v=14`, `smyl-case-workspace.js?v=18`, `smyl-case-workspace.css?v=15` y caché `radiograph-ui-v40`. No hubo cambios de esquema, RLS, funciones ni datos clínicos.

@@ -164,11 +164,10 @@
   const command=n('section','cw-command'),commandCopy=n('div','cw-command-copy');
   commandCopy.append(n('p','cw-kicker','SIGUIENTE ACCIÓN'));
   ctx.commandTitle=n('h2','','Preparando el tratamiento');ctx.commandCopy=n('p','','Revisaremos el estado clínico antes de continuar.');commandCopy.append(ctx.commandTitle,ctx.commandCopy);
-  ctx.nextButton=btn('Continuar tratamiento',()=>open(ctx.nextTarget||'evaluation'),true);ctx.nextButton.classList.add('cw-next-action');
   ctx.commandStage=n('strong','','Evaluación');ctx.commandPlan=n('strong','','Sin plan guardado');ctx.commandAppointment=n('strong','','Sin próxima cita');
   const commandMeta=n('dl','cw-command-meta');
   [['Etapa actual',ctx.commandStage],['Estado del plan',ctx.commandPlan],['Próxima cita',ctx.commandAppointment]].forEach(([label,value])=>{const item=n('div');item.append(n('dt','',label),value);commandMeta.append(item);});
-  command.append(commandCopy,ctx.nextButton,commandMeta);root.append(command);
+  command.append(commandCopy,commandMeta);root.append(command);
   ctx.safety=n('aside','cw-treatment-safety');ctx.safety.setAttribute('role','status');ctx.safety.innerHTML='<span aria-hidden="true">!</span><div><strong>Contexto clínico</strong><p>Consulta las alertas de la historia antes de preparar el plan.</p></div><button type="button">Revisar historia</button>';ctx.safety.querySelector('button').onclick=()=>window.SmylPatient360?.open('history');root.append(ctx.safety);
   ctx.overview=n('p','cw-overview');ctx.overview.setAttribute('role','status');root.append(ctx.overview);ctx.nav={};
   const evaluation=module(ctx,'evaluation','01','Evaluación clínica','Documentación, hallazgos confirmados y odontograma.');evaluation.details.open=true;
@@ -277,15 +276,14 @@
   ctx.history.disabled=!entry;
   if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
   // Suggested route, not a claim that all clinical issues were evaluated.
-  const nextId=!reviewComplete?'evaluation':!clinical?.ready?'plan':'followup';
   const nextLabel=!entry?'Revisar documentación':!reviewComplete?(count?'Continuar evaluación':'Abrir odontograma'):!clinical?.ready?'Completar plan':'Preparar cotización';
   const nextCopy=!entry?'Consulta antecedentes, estudios y archivos clínicos disponibles.':!reviewComplete?(count?'Confirma sólo los hallazgos que deban incorporarse al mapa dental.':'Puedes comenzar por el odontograma aunque todavía no existan fotografías clínicas.'):!clinical?.ready?'Registra la valoración y organiza los procedimientos antes de aprobar.':'El plan está listo para preparar la inversión y el seguimiento.';
-  ctx.nextTarget=nextId;copy(ctx.nextButton,nextLabel);ctx.nextButton.onclick=()=>open(nextId);copy(ctx.commandTitle,nextLabel);copy(ctx.commandCopy,nextCopy);
+  copy(ctx.commandTitle,nextLabel);copy(ctx.commandCopy,nextCopy);
   copy(ctx.commandStage,!reviewComplete?'Evaluación clínica':!clinical?.ready?'Plan de tratamiento':'Seguimiento');
   copy(ctx.commandPlan,clinical?.ready?'Plan aprobado':clinical?.saved?'Borrador guardado':'Sin plan aprobado');
   copy(ctx.commandAppointment,ctx.summary?.nextAppointment?new Date(ctx.summary.nextAppointment).toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+new Date(ctx.summary.nextAppointment).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}):'Sin próxima cita');
   copy(ctx.overview,!reviewComplete?'Etapa 1 de 3 · Completa la evaluación clínica.':!clinical?.ready?'Etapa 2 de 3 · Revisa y aprueba el plan de tratamiento.':'Etapa 3 de 3 · Prepara la cotización y la continuidad del caso.');
-  if(created){copy(ctx.overview,'Seguimiento preparado. Continúa la conversación desde Mensajes.');copy(ctx.commandTitle,'Continuar seguimiento');copy(ctx.commandCopy,'El enlace ya fue preparado; SMYL no asume que se haya enviado.');copy(ctx.nextButton,'Ir a Mensajes');ctx.nextButton.onclick=()=>window.ir('inbox');}
+  if(created){copy(ctx.overview,'Seguimiento preparado. Continúa la conversación desde Mensajes.');copy(ctx.commandTitle,'Continuar seguimiento');copy(ctx.commandCopy,'El enlace ya fue preparado; SMYL no asume que se haya enviado.');}
   for(const [id,b] of Object.entries(ctx.nav)){const value=b.textContent+' · '+ctx.modules[id].badge.textContent;if(b.getAttribute('aria-label')!==value)b.setAttribute('aria-label',value);}syncNav(ctx);
  }
  function init(){
