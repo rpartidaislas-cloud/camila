@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Historia clínica v3.2 · QA visual</title>
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
+  <link rel="stylesheet" href="../../smyl-patient-360.css?v=7">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;font-family:Inter,system-ui,sans-serif;color:#0b1b2e}.contenido{width:min(1160px,calc(100% - 32px));margin:auto;padding:32px 0 56px}.page-head{margin-bottom:18px}.page-head span{color:#17685f;font-size:12px;font-weight:750;letter-spacing:.07em}.page-head h1{margin:5px 0 4px;font-size:28px;letter-spacing:-.03em}.page-head p{margin:0;color:#526174;font-size:13px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:1px solid #cdd8e4;border-radius:10px;background:#fff;color:#0b1b2e;font:700 12px/1 Inter,system-ui,sans-serif}.btn-primary{border-color:#0b1b2e;background:#0b1b2e;color:#fff}.p360-root{margin:0;padding:0;border:0;background:transparent;box-shadow:none}.p360-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.p360-form-grid .wide{grid-column:1/-1}[hidden]{display:none!important}@media(max-width:760px){.contenido{width:min(100% - 24px,680px);padding-top:20px}}
+  </style>
+</head>
+<body>
+  <main class="contenido">
+    <header class="page-head"><span>EXPEDIENTE CLÍNICO</span><h1>Historia clínica</h1><p>Vista sintética para validar lectura y edición.</p></header>
+    <section class="p360-root">
+      <article class="p360-history-workspace p360-history-read" data-mode="read">
+        <header class="p360-history-header"><div><span>HISTORIA CLÍNICA</span><h2>Antecedentes médicos y dentales</h2><p>Una lectura breve para decidir qué revisar antes de atender.</p></div><button class="btn btn-primary">Actualizar historia</button></header>
+        <section class="p360-history-safety" data-has-alerts="true"><span class="p360-history-safety-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2.8 19a1.5 1.5 0 0 0 1.3 2.2h15.8a1.5 1.5 0 0 0 1.3-2.2L12 3Z"/><path d="M12 9v4M12 17h.01"/></svg></span><div><span>ALERTAS PARA LA ATENCIÓN</span><strong>Revisar antes de atender</strong><p>La historia contiene información que puede modificar la atención.</p><div class="p360-history-chips"><span>Alergia: penicilina</span><span>Anticoagulante</span></div></div></section>
+        <div class="p360-history-meta"><div><span>Última actualización</span><strong>24 oct 2026 · 10:30</strong></div><div><span>Información registrada</span><strong>6 de 8 apartados</strong></div><div><span>Versión</span><strong>4</strong></div></div>
+        <div class="p360-history-groups">
+          <details class="p360-history-group" open><summary><span><strong>Salud médica</strong><small>Alergias, condiciones, medicamentos y cirugías.</small></span><span class="p360-history-count">3 de 4</span></summary><dl><div class="p360-history-item"><dt>Alergias</dt><dd>Penicilina</dd></div><div class="p360-history-item"><dt>Condiciones médicas</dt><dd>Hipertensión controlada</dd></div><div class="p360-history-item"><dt>Medicamentos actuales</dt><dd>Losartán 50 mg</dd></div><div class="p360-history-item" data-empty="true"><dt>Cirugías y hospitalizaciones</dt><dd>Por confirmar</dd></div></dl></details>
+          <details class="p360-history-group" open><summary><span><strong>Antecedentes dentales</strong><small>Información previa que orienta la atención odontológica.</small></span><span class="p360-history-count">1 de 1</span></summary><dl><div class="p360-history-item"><dt>Antecedentes dentales</dt><dd>Ortodoncia previa y sensibilidad en molares inferiores.</dd></div></dl></details>
+          <details class="p360-history-group"><summary><span><strong>Hábitos y factores de riesgo</strong><small>Contexto relevante referido por el paciente.</small></span><span class="p360-history-count">1 de 1</span></summary></details>
+        </div>
+        <footer class="p360-history-footer"><p>La información se conserva versionada dentro del expediente.</p><div class="p360-history-links"><button>Ver evoluciones</button><button>Abrir odontograma</button></div></footer>
+      </article>
+
+      <article class="p360-history-workspace p360-history-edit" data-mode="edit" hidden>
+        <header class="p360-history-header"><div><span>ACTUALIZAR HISTORIA CLÍNICA</span><h2>Revisa una sección a la vez</h2><p>Guarda únicamente información confirmada por el paciente.</p></div><button class="btn">Cancelar</button></header>
+        <form>
+          <section class="p360-history-safety-editor"><div class="p360-history-editor-title"><span class="p360-history-step">01</span><div><strong>Alertas para la atención</strong><small>Se mantienen visibles para el equipo clínico.</small></div><span class="p360-history-required">Prioritario</span></div><div class="p360-form-grid"><label class="p360-history-field wide"><span>Alertas importantes</span><input value="Anticoagulante" placeholder="Ej. riesgo hemorrágico, marcapasos"><small>Registra sólo información confirmada.</small></label><label class="p360-history-field wide"><span>Alergias</span><input value="Penicilina" placeholder="Medicamentos, materiales o sustancias"><small>Incluye la reacción conocida cuando sea relevante.</small></label></div></section>
+          <div class="p360-history-form-sections">
+            <details class="p360-history-form-section" open><summary><span class="p360-history-step">02</span><span><strong>Salud médica</strong><small>Condiciones, medicamentos y eventos médicos relevantes.</small></span><span class="p360-history-chevron"></span></summary><div class="p360-form-grid"><label class="p360-history-field"><span>Condiciones médicas</span><input value="Hipertensión controlada"></label><label class="p360-history-field"><span>Medicamentos actuales</span><input value="Losartán 50 mg"></label><label class="p360-history-field wide"><span>Cirugías y hospitalizaciones</span><input placeholder="Procedimiento y fecha aproximada"></label></div></details>
+            <details class="p360-history-form-section"><summary><span class="p360-history-step">03</span><span><strong>Antecedentes dentales</strong><small>Historia odontológica previa del paciente.</small></span><span class="p360-history-chevron"></span></summary></details>
+            <details class="p360-history-form-section"><summary><span class="p360-history-step">04</span><span><strong>Hábitos y factores de riesgo</strong><small>Contexto que puede influir en la atención.</small></span><span class="p360-history-chevron"></span></summary></details>
+            <details class="p360-history-form-section"><summary><span class="p360-history-step">05</span><span><strong>Información complementaria</strong><small>Datos de apoyo y observaciones adicionales.</small></span><span class="p360-history-chevron"></span></summary></details>
+          </div>
+          <div class="p360-actions p360-history-actions"><p>Los cambios crearán una nueva versión del expediente.</p><button type="button" class="btn">Cancelar</button><button class="btn btn-primary">Guardar historia</button></div>
+        </form>
+      </article>
+    </section>
+  </main>
+  <script>var edit=new URLSearchParams(location.search).get('mode')==='edit';document.querySelector('[data-mode="read"]').hidden=edit;document.querySelector('[data-mode="edit"]').hidden=!edit;</script>
+</body>
+</html>

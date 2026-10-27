@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Historia clínica alineada a la política visual v3.2
+
+- La pestaña abre en lectura clínica, no en un formulario: muestra primero las
+  alertas que pueden modificar la atención, fecha de actualización, cobertura
+  del expediente y versión. El resto se agrupa por salud médica, antecedentes
+  dentales, hábitos e información complementaria mediante revelado progresivo.
+- `Actualizar historia` abre una edición guiada por secciones. Alertas y
+  alergias permanecen visibles; los demás apartados se expanden sólo cuando el
+  médico los necesita. Hay una sola acción primaria y se explica que guardar
+  crea una nueva versión.
+- En móvil los controles alcanzan 44–48 px, los datos se apilan sin overflow y
+  la barra de acciones pasa al flujo normal para no cubrir campos. En escritorio
+  permanece accesible al final de la ventana durante la edición.
+- Se conserva el mismo documento clínico versionado, sus permisos y todos los
+  campos existentes. No hubo migraciones, cambios de RLS ni automatización de
+  decisiones clínicas.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-patient-360.js?v=9`, `smyl-patient-360.css?v=7` y cache
+  `history-ux-v32`. QA: **28/28** pruebas enfocadas, **711/711** suite completa
+  y revisión Chrome a 1280, 390 y 320 px, sin overflow horizontal y con una sola
+  acción primaria visible.
+
 ## 2026-10-26 — Codex — Pacientes alineado a la política visual v3.2
 
 - El directorio deja la tarjeta exterior con tarjetas repetidas y usa una sola
