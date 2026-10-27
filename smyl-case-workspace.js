@@ -94,6 +94,26 @@
   dental.dataset.workspaceOrganized='true';
   dental.querySelectorAll(':scope>.dr-form>.dr-section').forEach(section=>{section.open=false;});
  }
+ function shortDate(value){
+  const when=Date.parse(value);return Number.isFinite(when)?new Date(when).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}):'Sin registro';
+ }
+ function renderEvolution(ctx,progress,dental,clinical){
+  if(!ctx.evolution)return;
+  const data={progress,dental:dental?.teeth||null,confirmed:(dental?.confirmed||0)+(dental?.rxConfirmed||0),plan:!!clinical?.ready};
+  const fingerprint=JSON.stringify(data);if(ctx.evolutionFingerprint===fingerprint)return;ctx.evolutionFingerprint=fingerprint;ctx.evolution.replaceChildren();
+  const notes=progress?.notes||{},appointments=progress?.appointments||{},teeth=dental?.teeth||{},confirmed=data.confirmed;
+  const head=n('header','cw-evolution-head'),copyBox=n('div');copyBox.append(n('span','cw-kicker','SEGUIMIENTO LONGITUDINAL'),n('strong','','Evolución clínica del caso'),n('p','','Cada control queda fechado. El historial anterior no se reemplaza.'));
+  const ready=!!clinical?.ready&&!dental?.dirty&&!((dental?.pending||0)+(dental?.workflowPending||0)+(dental?.rxPending||0))&&!!notes.signed;
+  const readiness=n('span','cw-evolution-readiness',ready?'Listo para documentar cierre':notes.drafts?'Evolución en borrador':notes.signed?'Seguimiento activo':'Primer control pendiente');readiness.dataset.state=ready?'done':notes.drafts?'pending':'neutral';head.append(copyBox,readiness);ctx.evolution.append(head);
+  const metrics=n('dl','cw-evolution-metrics');[['Evoluciones',notes.total||0,(notes.signed||0)+' firmadas'],['Citas completadas',appointments.completed||0,appointments.upcoming?(appointments.upcoming+' próximas'):'Sin próxima cita'],['Piezas en seguimiento',teeth.following||0,(teeth.done||0)+' realizadas'],['Hallazgos confirmados',confirmed,'Revisión profesional']].forEach(([label,value,detail])=>{const item=n('div');item.append(n('dt','',label),n('dd','',String(value)),n('small','',detail));metrics.append(item);});ctx.evolution.append(metrics);
+  const body=n('div','cw-evolution-body'),latest=n('section','cw-evolution-latest');latest.append(n('span','cw-kicker','ÚLTIMO CONTROL'),n('strong','',notes.latest?notes.latest.label:'Sin evolución registrada'),n('p','',notes.latest?shortDate(notes.latest.createdAt)+' · '+(notes.latest.status==='signed'?'Firmada e inmutable':'Borrador pendiente de firma'):'Registra la primera evolución para iniciar el historial clínico del caso.'));
+  const route=n('ol','cw-evolution-route');[['Evaluación',dental?.ready?'Odontograma disponible':'Mapa pendiente',!!dental?.ready],['Plan',clinical?.ready?'Plan aprobado':'Plan por completar',!!clinical?.ready],['Seguimiento',notes.signed?'Historial iniciado':'Registrar evolución',!!notes.signed]].forEach(([title,detail,done])=>{const item=n('li');item.dataset.done=String(done);item.append(n('span','',done?'✓':'○'),n('div','',null));item.lastChild.append(n('strong','',title),n('small','',detail));route.append(item);});body.append(latest,route);ctx.evolution.append(body);
+  const actions=n('div','cw-evolution-actions');
+  const evolve=btn(notes.drafts?'Continuar evolución':'Registrar evolución',()=>window.SmylPatientProgress?.newEvolution(),true);evolve.disabled=!progress?.ready||progress.canWrite===false;
+  const map=btn('Actualizar odontograma',()=>{open('evaluation');reviewPart(ctx,0);});
+  const history=btn('Ver historial clínico',()=>window.SmylPatient360?.open('notes'));
+  actions.append(evolve,map,history);ctx.evolution.append(actions,n('p','cw-evolution-note',ready?'El cierre se documenta con una evolución firmada y el odontograma actualizado; SMYL no cierra casos automáticamente.':'Completa los pendientes clínicos antes de documentar el cierre.'));
+ }
  function mount(){
   const screen=document.getElementById('p-paciente-detalle'),layout=screen?.querySelector('.clinic-layout');
   if(!layout||window.pacienteActual?._local)return;
@@ -145,6 +165,7 @@
   const planProgress=n('ul','cw-checklist');ctx.planChecks={};
   for(const [id,label] of [['assessment','Preparar o escribir la valoración'],['treatments','Elegir tratamientos o indicaciones'],['approved','Revisar y guardar el plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
   plan.body.prepend(planProgress);
+  ctx.evolution=n('section','cw-evolution');followup.body.append(ctx.evolution);
   ctx.shareHint=n('p','cw-help');followup.body.append(ctx.shareHint);
   followup.body.append(n('p','cw-share-copy','La cotización toma los servicios, piezas y superficies del plan revisado. La presentación visual es opcional y nunca incluye antecedentes ni notas internas.'));
   ctx.planNext=btn('Continuar a seguimiento',()=>open('followup'),true);const planFoot=n('div','cw-module-footer');planFoot.append(ctx.planNext);plan.body.append(planFoot);
@@ -184,7 +205,7 @@
   if(!ctx.selected&&ctx.entries.length){select(ctx,ctx.entries[0]);return;}
   const entry=ctx.selected,views=entry?.row.document.views||[],count=views.length,pairs=views.filter(v=>v.result).length;
   const load=gallery?.dataset.loadState;
-  const files=window.SmylPatient360?.files?.(ctx.tenant,ctx.patient),clinical=window.SmylClinicalWorkflow?.status(ctx.tenant,ctx.patient),dental=window.SmylDentalProgress?.status(ctx.tenant,ctx.patient,entry?.row.id),evidenceTotal=count+(dental?.studies||0)+(files?.total||0);
+  const files=window.SmylPatient360?.files?.(ctx.tenant,ctx.patient),progress=window.SmylPatientProgress?.status?.(ctx.tenant,ctx.patient),clinical=window.SmylClinicalWorkflow?.status(ctx.tenant,ctx.patient),dental=window.SmylDentalProgress?.status(ctx.tenant,ctx.patient,entry?.row.id),evidenceTotal=count+(dental?.studies||0)+(files?.total||0);
   const evidenceLabel=evidenceTotal?evidenceTotal+(evidenceTotal===1?' evidencia':' evidencias'):load==='ready'?'Sin evidencia':'Cargando documentación';
   partState(ctx.evidencePart,evidenceLabel,evidenceTotal?'done':load==='error'||load==='unavailable'?'neutral':'pending');
   copy(ctx.photoHint,count?count+' fotografías originales disponibles para la revisión. Las simulaciones relacionadas se consultan en su espacio independiente.':'Aún no hay fotografías clínicas vinculadas. Puedes agregar archivos o continuar con antecedentes y odontograma.');
@@ -213,6 +234,7 @@
   if(clinical?.ready&&!reviewComplete){copy(ctx.planNext,'Terminar revisión clínica');ctx.planNext.disabled=false;ctx.planNext.onclick=()=>open('review');}
   else {copy(ctx.planNext,'Continuar a seguimiento');ctx.planNext.disabled=!planComplete;ctx.planNext.onclick=()=>open('followup');}
   const quoteReady=!!clinical?.ready,eligible=pairs>0&&planComplete;
+  renderEvolution(ctx,progress,dental,clinical);
   const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
   state(ctx,'followup',created?'Seguimiento preparado':quoteReady?'Lista para cotizar':'Falta completar',created?'done':quoteReady?'neutral':'pending');
   copy(ctx.shareHint,!clinical?.ready?'Falta revisar y guardar la valoración y el plan.':!pairs?'El plan ya puede cotizarse. La presentación visual seguirá disponible cuando exista una foto con simulación guardada.':'Plan listo para cotizar y comparación visual disponible para la presentación.');
