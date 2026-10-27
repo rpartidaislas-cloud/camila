@@ -15,7 +15,7 @@
 <body class="smyl-professional smyl-management-v3">
   <div class="shell">
     <aside class="sidebar-preview"><div class="brand">smyl<small>Panel profesional</small></div><nav><button class="active">Inicio</button><button>Agenda</button><button>Mi clínica</button><button>Pacientes</button><button>Mensajes</button></nav></aside>
-    <main><header class="top">Inicio</header><div class="contenido"><section class="pantalla" id="p-dashboard"><div class="pro-welcome"></div><div class="pro-action-grid"></div><div class="stats-grid"></div><div class="pro-dashboard-columns"></div><section class="lana-attention-preview"><span>ATENCIÓN OMNICANAL</span><h2>Conversaciones que necesitan a tu equipo</h2><p>2 conversaciones pendientes · 3 mensajes sin leer</p></section></section></div></main>
+    <main><header class="top">Inicio</header><div class="contenido"><section class="pantalla" id="p-dashboard"><div class="pro-welcome"></div><div class="pro-action-grid"></div><div class="stats-grid"></div><div class="pro-dashboard-columns"></div></section></div></main>
   </div>
   <script>
     window.tenantId='00000000-0000-0000-0000-000000000001';
@@ -31,9 +31,22 @@
       camila_pacientes:[{id:'p1',nombre:'Paciente',apellido:'Prueba'},{id:'p2',nombre:'Paciente',apellido:'Demo'},{id:'p3',nombre:'Paciente',apellido:'Ejemplo'},{id:'p4',nombre:'Paciente',apellido:'Muestra'}],
       smyl_services:[{id:'s1',name:'Valoración dental'},{id:'s2',name:'Limpieza preventiva'}]
     };
-    function builder(table){const api={select(){return api},eq(){return api},gte(){return api},lt(){return api},order(){return api},then(resolve){resolve({data:rows[table]||[],error:null})}};return api;}
+    function builder(table){const api={select(){return api},eq(){return api},gte(){return api},lt(){return api},order(){return api},in(){return api},then(resolve){resolve({data:rows[table]||[],error:null})}};return api;}
     window.sb={from:builder};
     window.SmylLanaAttention={getSummary:()=>({loaded:true,total:2,unread:3,linked:1})};
+    window.SmylTaskCenter={getTasks:()=>[
+      {source:'agenda',title:'1 cita por confirmar',detail:'El paciente espera respuesta.',action:'Revisar',route:'agenda',rank:1},
+      {source:'mensajes',title:'2 conversaciones requieren respuesta',detail:'Prioriza las que solicitaron atención.',action:'Responder',route:'inbox',open:'operations',rank:2}
+    ]};
+    window.SmylInbox={
+      fetchRecent:async()=>[
+        {id:'c1',contact_name:'Paciente de ejemplo',channel:'whatsapp',last_message_at:new Date().toISOString(),needs_human:true,unread_count:2},
+        {id:'c2',contact_name:'Paciente de muestra',channel:'instagram',last_message_at:new Date(Date.now()-3600000).toISOString(),needs_human:false,unread_count:1},
+        {id:'c3',contact_name:'Conversación resuelta',channel:'whatsapp',last_message_at:new Date(Date.now()-7200000).toISOString(),needs_human:false,unread_count:0}
+      ],
+      buildAvatar:item=>{const avatar=document.createElement('span');avatar.className='smyl-inbox-avatar';avatar.textContent=item.contact_name.charAt(0);return avatar},
+      timeLabel:()=> 'hoy',channelLabel:value=>value==='whatsapp'?'WhatsApp':'Instagram',open:id=>{document.body.dataset.chat=id}
+    };
   </script>
   <script src="../../smyl-daily-home.js"></script>
 </body>

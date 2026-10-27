@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Inicio como mesa de trabajo diaria v12
+
+- El Inicio deja de repetir acciones del menú y se ordena por la jornada real:
+  primero `Ahora y después`, después los indicadores con actividad,
+  `Requiere atención`, conversaciones `Por responder` y al final el resumen
+  mensual.
+- Los cuatro indicadores ya no muestran ruido en cero. Cuando no existe
+  actividad aparece una sola confirmación `Todo al día por ahora`; cuando sí
+  existe, sólo se muestran las señales relevantes.
+- Las tarjetas de Meta permanecen siempre a la vista con las conversaciones
+  recientes de WhatsApp, Instagram y Messenger. Las que requieren atención o
+  están sin leer se ordenan primero; el dashboard no expone el texto del mensaje.
+- `Configura tu clínica` sigue siendo exclusivo del propietario, comienza
+  plegado y ahora vive al final del Inicio para no desplazar el trabajo diario.
+- No cambian consultas, alcance de tenant, permisos ni escritura de datos. Web,
+  fuente móvil y PWA quedan sincronizadas en Inicio JS v10, CSS v12,
+  configuración v5 y cache `daily-workbench-v12-meta-cards-v13`.
+- QA: **757/757** pruebas; revisión visual a 1440, 820 y 390 px sin overflow,
+  tarjetas en cero ni accesos redundantes.
+
 ## 2026-10-26 — Codex — Revisión asistida por evidencia v3.5
 
 - La historia de evidencia muestra ahora el estado de interpretación de cada

@@ -45,6 +45,10 @@ copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js')
 copyFile(path.join(ROOT, 'smyl-schedule.css'), path.join(WWW, 'smyl-schedule.css'));
 copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
 copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
+copyFile(path.join(ROOT, 'smyl-daily-home.js'), path.join(WWW, 'smyl-daily-home.js'));
+copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home.css'));
+copyFile(path.join(ROOT, 'smyl-clinic-setup.js'), path.join(WWW, 'smyl-clinic-setup.js'));
+copyFile(path.join(ROOT, 'smyl-clinic-setup.css'), path.join(WWW, 'smyl-clinic-setup.css'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.js'), path.join(WWW, 'smyl-google-calendar.js'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.css'), path.join(WWW, 'smyl-google-calendar.css'));
 copyFile(path.join(ROOT, 'smyl-template-catalog.js'), path.join(WWW, 'smyl-template-catalog.js'));
