@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-27 — Claude — Horas libres calculadas en el servidor
+
+- Migración nueva `20261027120000_smyl_schedule_free_slots.sql`: función
+  `smyl_schedule_free_slots` (SECURITY DEFINER, solo `authenticated`, exige
+  `schedule.manage` en la clínica de la sesión). Usa la misma regla que
+  `smyl_validate_service_appointment_slot` (horario de la clínica y del
+  profesional, citas con preparación, bloqueos y apartados de solicitudes
+  pendientes). Devuelve solo horarios, nunca datos de citas ni pacientes.
+- `smyl-schedule.js` v27: Nueva cita y Cambiar horario piden las horas a la
+  función. Si no está aplicada (`PGRST202`) vuelven al cálculo del navegador,
+  así que nada se rompe antes de aplicar la migración.
+- Con alcance de datos «propio» ya no aparecen libres horas ocupadas por otro
+  profesional en el mismo sillón. `smyl_create_appointment` sigue siendo la
+  autoridad final al guardar.
+- Verificado en PGlite: 400 escenarios comparados contra el cálculo del
+  navegador sin diferencias, y pruebas de permisos y aislamiento entre clínicas.
+  Prueba nueva: `tests/smyl-schedule-free-slots.test.mjs`.
+- Pendiente de quien tenga acceso: pegar la migración en el SQL Editor de
+  Supabase.
+
 ## 2026-10-26 — Codex — Revisión asistida por evidencia v3.5
 
 - La historia de evidencia muestra ahora el estado de interpretación de cada
