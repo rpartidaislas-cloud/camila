@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-source-workspace-v37';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -61,12 +61,12 @@ const STATIC_FILES = [
   '/camila/smyl-treatment-plan-model.js?v=1',
   '/camila/smyl-treatment-plan-client.js?v=1',
   '/camila/smyl-clinic.js?v=15',
-  '/camila/smyl-patient-360.js?v=11',
+  '/camila/smyl-patient-360.js?v=12',
   '/camila/smyl-patient-360.css?v=8',
   '/camila/smyl-patient-record-stage2.js?v=2',
   '/camila/smyl-patient-record-stage2.css?v=2',
-  '/camila/smyl-case-workspace.js?v=14',
-  '/camila/smyl-case-workspace.css?v=11',
+  '/camila/smyl-case-workspace.js?v=15',
+  '/camila/smyl-case-workspace.css?v=12',
   '/camila/smyl-clinic.css?v=8',
   '/camila/smyl-clinical-model.js?v=3',
   '/camila/smyl-panel.js?v=6',

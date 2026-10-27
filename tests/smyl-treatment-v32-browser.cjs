@@ -42,6 +42,8 @@ const fs = require('node:fs');
         evolution: visible('.cw-evolution').length,
         evolutionMetrics: visible('.cw-evolution-metrics > div').length,
         evolutionActions: visible('.cw-evolution-actions button').length
+        ,sourceWorkspace: visible('.cw-source-workspace').length
+        ,sourceStats: visible('.cw-source-stats > span').length
       };
     });
     const requiredHeight = item.width <= 760 ? 44 : 42;
@@ -52,9 +54,17 @@ const fs = require('node:fs');
       requiredHeight
     });
     await page.screenshot({ path: path.join(output, `${item.name}.png`), fullPage: true });
+    await page.locator('[data-filter="photo"]').click();
+    const photoMode = await page.evaluate(() => ({
+      selected: document.querySelector('[data-filter="photo"]')?.getAttribute('aria-pressed'),
+      title: document.querySelector('.cw-source-intro strong')?.textContent,
+      actions: Array.from(document.querySelectorAll('.cw-source-actions button')).map(button => button.textContent.trim())
+    }));
+    report[report.length - 1].photoMode = photoMode;
+    if (item.name === 'desktop') await page.screenshot({ path: path.join(output, 'desktop-photo.png'), fullPage: true });
     await page.close();
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  if (report.some(item => item.horizontalOverflow || item.commandActions !== 1 || item.stages !== 3 || !item.commandVisible || !item.safetyVisible || !item.odontogramVisible || item.odontogramTeeth !== 32 || item.odontogramFilters !== 4 || item.evidenceHistory !== 1 || item.evidenceMetrics !== 3 || item.evidenceAssistant !== 1 || item.evidenceReviewStates !== 3 || item.evolution !== 1 || item.evolutionMetrics !== 4 || item.evolutionActions !== 3 || item.minButtonHeight < item.requiredHeight)) process.exitCode = 1;
+  if (report.some(item => item.horizontalOverflow || item.commandActions !== 1 || item.stages !== 3 || !item.commandVisible || !item.safetyVisible || !item.odontogramVisible || item.odontogramTeeth !== 32 || item.odontogramFilters !== 4 || item.evidenceHistory !== 1 || item.evidenceMetrics !== 3 || item.evidenceAssistant !== 1 || item.evidenceReviewStates !== 3 || item.evolution !== 1 || item.evolutionMetrics !== 4 || item.evolutionActions !== 3 || item.sourceWorkspace !== 1 || item.sourceStats !== 3 || item.photoMode.selected !== 'true' || item.photoMode.title !== 'Archivo visual y revisión asistida' || !item.photoMode.actions.includes('Agregar fotografías') || item.minButtonHeight < item.requiredHeight)) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

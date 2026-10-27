@@ -8620,3 +8620,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - `SmylPatientProgress` expone únicamente metadatos seguros de notas, citas y línea de tiempo; no entrega texto clínico. `SmylDentalProgress` añade conteos agregados del odontograma.
 - Web y `mobile/www` quedaron sincronizados en `smyl-patient-360.js?v=11`, `smyl-dental-record.js?v=13`, `smyl-case-workspace.js?v=14` y `smyl-case-workspace.css?v=11`; PWA `evolution-closure-v36`.
 - No hubo migraciones, funciones, credenciales ni cambios de esquema. QA enfocada: 27/27; revisión visual a 1280, 820, 390 y 320 px sin desbordamiento horizontal y con controles táctiles de 44 px en móvil.
+
+## 2026-10-26 — Codex — Tratamiento v3.7: odontograma único y herramientas por fuente
+
+- El mapa principal dejó de ser un filtro pasivo: Todo, Clínica, Fotografías y Rayos X activan un espacio contextual con métricas, explicación y acciones propias.
+- Fotografías permite abrir directamente la carga de archivo clínico y la revisión asistida del caso; Rayos X abre el flujo canónico de carga, tipo, fecha e interpretación asistida.
+- La IA se presenta como “Valoración asistida, no diagnóstico” y conserva el circuito confirmar/editar/descartar antes de incorporar observaciones al mapa.
+- El segundo odontograma ya no compite con el principal. El editor canónico completo se conserva, sin duplicar datos, dentro de “Edición clínica avanzada” bajo divulgación progresiva.
+- Se amplió la jerarquía visual del mapa, pestañas, métricas y panel contextual; en móvil las acciones se apilan y mantienen objetivos táctiles de 44 px.
+- Web y `mobile/www` quedaron sincronizados en `smyl-patient-360.js?v=12`, `smyl-case-workspace.js?v=15` y `smyl-case-workspace.css?v=12`; PWA `source-workspace-v37`.
+- No hubo migraciones, Edge Functions, prompts ni cambios de modelo clínico. Se reutilizan permisos, archivos, análisis, odontograma y guardado existentes.
