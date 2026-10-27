@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../smyl-dental-record.css?v=4">
-  <link rel="stylesheet" href="../../smyl-case-workspace.css?v=8">
+  <link rel="stylesheet" href="../../smyl-case-workspace.css?v=9">
   <style>
     *{box-sizing:border-box}body{margin:0;background:#f4f7fa;color:#102239;font-family:Inter,sans-serif}.preview-shell{min-height:100vh;padding:36px}.patient-head{max-width:1080px;margin:0 auto 24px;display:flex;align-items:center;justify-content:space-between}.patient-head span{font-size:11px;color:#687b78;letter-spacing:1.2px}.patient-head h1{margin:7px 0 0;font-size:24px}.patient-head button{min-height:40px;padding:0 14px;border:1px solid #d5dfdb;border-radius:10px;background:#fff;color:#375753}.pc-primary,.pc-secondary{min-height:40px;padding:0 15px;border-radius:10px;border:1px solid #bed3cc;background:#fff;color:#215d60;font:600 13px Inter,sans-serif}.pc-primary{border-color:#215d60;background:#215d60;color:#fff}.cw-body-demo{padding:0 22px 22px;border-top:1px solid #e0e8df}.cw-demo-line{height:10px;border-radius:8px;background:#edf1ed;margin:18px 0;width:72%}
     @media(max-width:650px){.preview-shell{padding:22px 14px 96px}.patient-head{align-items:flex-start}.patient-head button{display:none}}
@@ -30,6 +30,8 @@
   </main>
   <script src="../../smyl-tooth-map.js?v=2"></script>
   <script>
+    const previewEvidence=document.createElement('section');previewEvidence.className='cw-evidence-history';previewEvidence.innerHTML='<header class="cw-evidence-history-head"><div><span class="cw-kicker">HISTORIA DE EVIDENCIA</span><strong>Archivos clínicos por fecha</strong><p>Consulta el origen y la evolución sin mezclar simulaciones de sonrisa.</p></div><span class="cw-part-badge">5 registros</span></header><dl class="cw-evidence-metrics"><div><dt>Fotografías del caso</dt><dd>2</dd></div><div><dt>Radiografías dentales</dt><dd>1</dd></div><div><dt>Archivos del expediente</dt><dd>2</dd></div></dl><div class="cw-evidence-list"><article class="cw-evidence-item" data-kind="photo"><span class="cw-evidence-icon">F</span><div><span>Sesión fotográfica</span><strong>2 fotografías clínicas</strong><small>14 oct 2026</small></div><button class="cw-evidence-open">Revisar sesión</button></article><article class="cw-evidence-item" data-kind="radiograph"><span class="cw-evidence-icon">RX</span><div><span>Radiografía dental</span><strong>Panorámica inicial</strong><small>12 oct 2026 · 1 por revisar</small></div><button class="cw-evidence-open">Revisar estudio</button></article><article class="cw-evidence-item" data-kind="file"><span class="cw-evidence-icon">A</span><div><span>Laboratorio</span><strong>Escaneo intraoral</strong><small>10 oct 2026 · 840 KB</small></div><button class="cw-evidence-open">Abrir</button></article></div><footer class="cw-evidence-history-foot"><p>Los originales permanecen en el archivo privado del paciente.</p><button class="pc-secondary">Ver todos los archivos</button></footer>';
+    document.querySelector('.cw-evaluation-part .cw-evaluation-body').prepend(previewEvidence);
     const previewDental={11:{manual:true,status:'following',photo:1,pending:0},16:{manual:false,radiograph:1,pending:1},21:{manual:true,status:'pending',pending:0},36:{manual:false,photo:0,pending:1}};
     const previewMap=document.getElementById('preview-clinical-odontogram');
     function drawPreviewMap(filter='all'){
