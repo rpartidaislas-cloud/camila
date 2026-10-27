@@ -8650,3 +8650,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - Se amplió la jerarquía visual del mapa, pestañas, métricas y panel contextual; en móvil las acciones se apilan y mantienen objetivos táctiles de 44 px.
 - Web y `mobile/www` quedaron sincronizados en `smyl-patient-360.js?v=12`, `smyl-case-workspace.js?v=15` y `smyl-case-workspace.css?v=12`; PWA `source-workspace-v37`.
 - No hubo migraciones, Edge Functions, prompts ni cambios de modelo clínico. Se reutilizan permisos, archivos, análisis, odontograma y guardado existentes.
+
+## 2026-10-26 — Codex — Tratamiento v3.8: tarea clínica enfocada
+
+- El odontograma principal queda como el único mapa dental visible. Al agregar una radiografía se oculta por completo el editor odontológico redundante y se muestra sólo la tarea radiográfica.
+- La carga de estudios se organiza en tres pasos: describir el estudio, seleccionar el archivo y revisar/confirmar. Tipo, nombre, fecha, original privado y controles existentes se conservan sin crear otra fuente de datos.
+- El panel cambia de título y contenido según la tarea activa. Las secciones canónicas continúan montadas para conservar borradores, guardado y protecciones, pero sólo una permanece visible a la vez.
+- Se eliminó el acceso visual redundante a “Edición avanzada” desde el mapa y desde los modos Todo/Clínica. La pieza se edita directamente al seleccionarla en el odontograma principal.
+- La superficie adopta la política visual SMYL: tarjeta blanca, acción primaria navy, turquesa sólo como estado, carga de archivo delimitada, revisión asistida separada y controles táctiles de 44 px en móvil.
+- Web y `mobile/www` quedan sincronizados en `smyl-case-workspace.js?v=16`, `smyl-case-workspace.css?v=13` y caché `clinical-task-panel-v38`. No hubo migraciones, funciones, prompts ni cambios de datos clínicos.

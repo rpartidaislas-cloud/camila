@@ -35,10 +35,10 @@ test('el recorrido termina en seguimiento sin afirmar un envío automático', ()
 });
 
 test('web, móvil y PWA cargan la misma versión del recorrido', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=15/);
-  assert.match(app, /smyl-case-workspace\.css\?v=12/);
+  assert.match(app, /smyl-case-workspace\.js\?v=16/);
+  assert.match(app, /smyl-case-workspace\.css\?v=13/);
   assert.match(worker, /treatment-ux-v32/);
-  assert.match(worker, /smyl-case-workspace\.js\?v=15/);
+  assert.match(worker, /smyl-case-workspace\.js\?v=16/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-case-workspace.js'));
   assert.equal(styles, read('../mobile/www/smyl-case-workspace.css'));

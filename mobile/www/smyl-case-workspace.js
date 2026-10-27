@@ -38,12 +38,19 @@
  function syncNav(ctx){for(const [id,b] of Object.entries(ctx.nav||{})){if(ctx.modules[id].details.open)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');}}
  function state(ctx,id,label,tone='pending'){const m=ctx.modules[id];copy(m.badge,label);m.badge.dataset.state=tone;m.details.dataset.state=tone;if(ctx.nav?.[id])ctx.nav[id].dataset.state=tone;}
  function partState(part,label,tone='pending'){if(!part)return;copy(part.badge,label);part.badge.dataset.state=tone;part.root.dataset.state=tone;}
+ function advancedPart(ctx,index){
+  const sections=ctx.advancedSections||[];if(!ctx.advancedEditor||!sections[index])return false;
+  const radiograph=index===1,key=radiograph?'radiograph':'odontogram',content=radiograph?{title:'Agregar estudio radiográfico',subtitle:'Completa sólo los datos necesarios y conserva el original en el expediente.',steps:['Describe el estudio','Selecciona el archivo','Revisa y confirma']}:{title:'Registrar observación por pieza',subtitle:'El odontograma principal permanece como referencia; aquí sólo editas la pieza seleccionada.',steps:['Selecciona la pieza','Registra el hallazgo','Guarda la versión']};
+  ctx.advancedEditor.dataset.activePart=key;copy(ctx.advancedTitle,content.title);copy(ctx.advancedSubtitle,content.subtitle);ctx.advancedGuide.replaceChildren();
+  content.steps.forEach((label,step)=>{const item=n('span','');item.append(n('b','',String(step+1)),n('small','',label));ctx.advancedGuide.append(item);});
+  sections.forEach((section,current)=>{section.hidden=current!==index;section.open=current===index;});return true;
+ }
  function reviewPart(ctx,index){
   const sections=ctx.reviewPart?.body.querySelectorAll('.dr-record>.dr-form>.dr-section')||[];
   if(!sections.length)return false;
+  advancedPart(ctx,index);
   if(ctx.advancedEditor)ctx.advancedEditor.open=true;
-  sections.forEach((section,current)=>{section.open=current===index;});
-  sections[index]?.scrollIntoView({block:'start',behavior:'smooth'});
+  ctx.advancedEditor?.scrollIntoView({block:'start',behavior:'smooth'});
   return true;
  }
  function renderEvidenceHistory(ctx,files,dental,entry){
@@ -75,7 +82,7 @@
    if(item.manual)totals.manual++;totals.photo+=item.photo||0;totals.radiograph+=item.radiograph||0;totals.pending+=item.pending||0;
   }
   window.SmylToothMap.render(ctx.mapHost,{disabled:!snapshot?.ready,onSelect:tooth=>{
-   if(!window.SmylDentalProgress?.openTooth(ctx.tenant,ctx.patient,tooth))reviewPart(ctx,0);
+   window.SmylDentalProgress?.openTooth(ctx.tenant,ctx.patient,tooth);
   },state:tooth=>{
    const item=snapshot?.teeth?.[tooth]||{},showManual=!!item.manual&&(filter==='all'||filter==='manual'),showPhoto=!!item.photo&&(filter==='all'||filter==='photo'),showRadiograph=!!item.radiograph&&(filter==='all'||filter==='radiograph'),sourcePending=filter==='photo'?item.photoPending:filter==='radiograph'?item.radiographPending:filter==='manual'?0:item.pending;
    if(!showManual&&!showPhoto&&!showRadiograph&&!sourcePending)return {label:'Sin anotación confirmada'};
@@ -110,15 +117,15 @@
    actions.append(btn('Agregar radiografía',()=>reviewPart(ctx,1),true));
    if(data.firstStudy)actions.append(btn('Abrir último estudio',()=>window.SmylDentalProgress?.openStudy?.(ctx.tenant,ctx.patient,data.firstStudy)));
   }else if(filter==='manual'){
-   actions.append(btn('Seleccionar una pieza',()=>ctx.mapHost.scrollIntoView({block:'center',behavior:'smooth'}),true),btn('Edición clínica avanzada',()=>reviewPart(ctx,0)));
-  }else actions.append(btn('Ver archivos clínicos',()=>window.SmylPatient360?.open('files'),true),btn('Edición clínica avanzada',()=>reviewPart(ctx,0)));
+   actions.append(btn('Seleccionar una pieza',()=>ctx.mapHost.scrollIntoView({block:'center',behavior:'smooth'}),true));
+  }else actions.append(btn('Ver archivos clínicos',()=>window.SmylPatient360?.open('files'),true));
   mode.append(actions);ctx.sourceWorkspace.append(mode);
  }
  function organizeReview(ctx,dental){
   if(!dental||dental.dataset.workspaceOrganized==='true')return;
   dental.dataset.workspaceOrganized='true';
-  dental.querySelectorAll(':scope>.dr-form>.dr-section').forEach(section=>{section.open=false;});
-  const advanced=n('details','cw-advanced-editor'),summary=n('summary','');summary.append(n('span','cw-source-icon','⚙'),n('span','',null),n('span','cw-chevron','⌄'));summary.children[1].append(n('strong','','Edición clínica avanzada'),n('small','','Carga radiografías, guarda observaciones y consulta el editor completo.'));advanced.append(summary);dental.before(advanced);advanced.append(dental);ctx.advancedEditor=advanced;
+  ctx.advancedSections=[...dental.querySelectorAll(':scope>.dr-form>.dr-section')];ctx.advancedSections.forEach((section,index)=>{section.open=false;section.dataset.cwPart=index===1?'radiograph':'odontogram';});
+  const advanced=n('details','cw-advanced-editor'),summary=n('summary','');ctx.advancedTitle=n('strong','','Herramienta clínica');ctx.advancedSubtitle=n('small','','Se mostrará únicamente la tarea que selecciones.');const summaryCopy=n('span','');summaryCopy.append(ctx.advancedTitle,ctx.advancedSubtitle);summary.append(n('span','cw-source-icon','✦'),summaryCopy,n('span','cw-advanced-toggle','Abrir'));ctx.advancedGuide=n('div','cw-advanced-guide');advanced.append(summary,ctx.advancedGuide);dental.before(advanced);advanced.append(dental);ctx.advancedEditor=advanced;advanced.addEventListener('toggle',()=>{ctx.advancedEditor.classList.toggle('is-open',advanced.open);ctx.advancedEditor.querySelector('.cw-advanced-toggle').textContent=advanced.open?'Cerrar':'Abrir';});advancedPart(ctx,0);
  }
  function shortDate(value){
   const when=Date.parse(value);return Number.isFinite(when)?new Date(when).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}):'Sin registro';
@@ -185,9 +192,9 @@
   const filters=n('div','cw-map-filters');filters.setAttribute('role','group');filters.setAttribute('aria-label','Filtrar anotaciones del odontograma');ctx.mapFilters={};
   [['all','Todo'],['manual','Clínica'],['photo','Fotografías'],['radiograph','Rayos X']].forEach(([id,label])=>{const control=btn(label,()=>{ctx.mapFilter=id;ctx.mapFingerprint='';renderClinicalMap(ctx,ctx.mapSnapshot);});control.classList.add('cw-map-filter');ctx.mapFilters[id]=control;filters.append(control);});clinicalMap.append(filters);ctx.sourceWorkspace=n('div','cw-source-workspace');clinicalMap.append(ctx.sourceWorkspace);
   const mapLayout=n('div','cw-clinical-map-layout'),mapStage=n('div','cw-map-stage');mapStage.append(n('div','dr-orientation',''));mapStage.firstChild.append(n('span','','Derecha del paciente'),n('span','','Izquierda del paciente'));ctx.mapHost=n('div','cw-clinical-odontogram');ctx.mapHost.setAttribute('aria-label','Odontograma FDI interactivo');mapStage.append(ctx.mapHost);
-  const mapAside=n('aside','cw-map-aside');ctx.mapSummary=n('strong','','Preparando el mapa');ctx.mapDetail=n('p','','Comprobando anotaciones clínicas y evidencia confirmada.');ctx.reviewText=n('p','cw-help');ctx.reviewButton=btn('Analizar fotografías',()=>{if(valid(ctx)&&ctx.reviewAction)ctx.reviewAction();},true);ctx.mapFull=btn('Edición avanzada',()=>reviewPart(ctx,0));mapAside.append(n('span','cw-kicker','VISTA ACTUAL'),ctx.mapSummary,ctx.mapDetail,ctx.reviewText,ctx.reviewButton,ctx.mapFull);mapLayout.append(mapStage,mapAside);clinicalMap.append(mapLayout);
+  const mapAside=n('aside','cw-map-aside');ctx.mapSummary=n('strong','','Preparando el mapa');ctx.mapDetail=n('p','','Comprobando anotaciones clínicas y evidencia confirmada.');ctx.reviewText=n('p','cw-help');ctx.reviewButton=btn('Analizar fotografías',()=>{if(valid(ctx)&&ctx.reviewAction)ctx.reviewAction();},true);ctx.mapFull=btn('Herramienta clínica',()=>reviewPart(ctx,0));ctx.mapFull.hidden=true;mapAside.append(n('span','cw-kicker','VISTA ACTUAL'),ctx.mapSummary,ctx.mapDetail,ctx.reviewText,ctx.reviewButton);mapLayout.append(mapStage,mapAside);clinicalMap.append(mapLayout);
   const mapLegend=n('div','cw-map-legend');[['manual','Clínica'],['photo','Fotografía confirmada'],['radiograph','Rayos X confirmado'],['pending','IA por revisar']].forEach(([tone,label])=>mapLegend.append(n('span','cw-map-key cw-map-key-'+tone,label)));clinicalMap.append(mapLegend);ctx.reviewPart.body.append(clinicalMap);
-  ctx.reviewHelp=n('p','cw-help','Abre el mapa para registrar observaciones. Las radiografías son opcionales y las simulaciones nunca se utilizan como evidencia clínica.');ctx.reviewPart.body.append(ctx.reviewHelp);
+  ctx.reviewHelp=n('p','cw-help','El odontograma superior es el único mapa clínico. Las radiografías son opcionales; las herramientas inferiores sólo sirven para registrar una observación o agregar un estudio, y las simulaciones nunca se utilizan como evidencia clínica.');ctx.reviewPart.body.append(ctx.reviewHelp);
   const planProgress=n('ul','cw-checklist');ctx.planChecks={};
   for(const [id,label] of [['assessment','Preparar o escribir la valoración'],['treatments','Elegir tratamientos o indicaciones'],['approved','Revisar y guardar el plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
   plan.body.prepend(planProgress);
