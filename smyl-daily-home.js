@@ -35,18 +35,14 @@
     if(!home||document.getElementById('smyl-daily-home'))return;
     home.classList.add('has-daily-home');
     var section=el('section','daily-home'); section.id='smyl-daily-home';
-    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">Hoy · <b data-home-date></b></span><h1><span data-home-greeting></span>.<span data-home-summary></span></h1></div><div class="daily-home-actions" role="group" aria-label="Acciones rápidas"><button type="button" class="btn btn-primary btn-sm" data-home-task="appointment">Agendar cita</button><button type="button" class="btn btn-secondary btn-sm" data-home-task="quote">Cotizar</button><button type="button" class="btn btn-secondary btn-sm" data-home-task="payment">Cobrar</button><button type="button" class="daily-home-patient-link" data-home-patient>Registrar paciente</button><small data-home-updated aria-live="polite">Preparando la jornada…</small></div></header><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div><section class="daily-home-chats" aria-labelledby="daily-home-chats-title"><header><h2 id="daily-home-chats-title">Chats recientes</h2><button type="button" data-home-open-inbox>Ver todos <span aria-hidden="true">→</span></button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section><div class="daily-home-grid"><section class="daily-home-card daily-home-priorities"><header><div><h2>Pendientes de hoy</h2></div><button type="button" data-home-open-agenda>Ver agenda</button></header><div data-home-priorities></div></section><aside class="daily-home-card daily-home-next"><header><div><h2>Citas de hoy</h2></div><button type="button" data-home-open-agenda-2>Abrir</button></header><div data-home-next></div></aside></div><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Este mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section><nav class="daily-home-shortcuts" aria-label="Continuar la jornada"><button type="button" data-route="agenda"><span>Agenda</span><strong>Organizar citas y llegadas</strong><small aria-hidden="true">→</small></button><button type="button" data-route="inbox"><span>Mensajes</span><strong>Atender conversaciones</strong><small aria-hidden="true">→</small></button><button type="button" data-route="pacientes"><span>Pacientes</span><strong>Continuar expedientes</strong><small aria-hidden="true">→</small></button><button type="button" data-route="notificaciones"><span>Alertas</span><strong>Revisar pendientes</strong><small aria-hidden="true">→</small></button></nav>';
+    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">Hoy · <b data-home-date></b></span><h1><span data-home-greeting></span>.</h1><p data-home-summary>Preparando lo importante de tu clínica…</p></div><small data-home-updated aria-live="polite">Actualizando…</small></header><section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title"><header><div><span>JORNADA</span><h2 id="daily-home-now-title">Ahora y después</h2></div><button type="button" data-home-open-agenda>Abrir agenda</button></header><div data-home-next></div></section><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div><div class="daily-home-grid"><section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title"><header><div><span>PRIORIDAD</span><h2 id="daily-home-priorities-title" data-home-priority-title>Requiere atención</h2></div></header><div data-home-priorities></div></section><section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title"><header><div><span>MENSAJES</span><h2 id="daily-home-chats-title">Por responder</h2></div><button type="button" data-home-open-inbox>Abrir mensajes</button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section></div><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Resumen del mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section>';
     var monthSection=section.querySelector('.daily-home-month');
     if(flag('month')==='1')section.querySelector('[data-home-month]').innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>'; else monthSection.hidden=true;
     section.querySelector('[data-home-date]').textContent=capitalize(fmtDate(new Date()));
     section.querySelector('[data-home-greeting]').textContent=greeting();
     section.querySelector('[data-home-open-agenda]').onclick=function(){route('agenda');};
     section.querySelector('[data-home-open-inbox]').onclick=function(){route('inbox');};
-    section.querySelector('[data-home-open-agenda-2]').onclick=function(){route('agenda');};
     section.querySelector('[data-home-open-reports]').onclick=function(){route('reportes');};
-    section.querySelectorAll('[data-home-task]').forEach(function(button){button.onclick=function(){if(window.SmylCareTasks)return window.SmylCareTasks.open(button.dataset.homeTask);route(button.dataset.homeTask==='appointment'?'agenda':button.dataset.homeTask==='quote'?'propuestas':'caja');};});
-    section.querySelector('[data-home-patient]').onclick=function(){route('pacientes');setTimeout(function(){if(typeof window.abrirModalPaciente==='function')window.abrirModalPaciente();},0);};
-    section.querySelectorAll('[data-route]').forEach(function(button){button.onclick=function(){route(button.dataset.route);};});
     home.prepend(section);
     renderLoading();
   }
@@ -78,9 +74,15 @@
 
   function renderMetrics() {
     var rows=activeAppointments(), clinic=rows.filter(function(a){return a.status==='arrived'||a.status==='in_progress';}).length, pending=state.requests.filter(function(r){return r.status==='pending';}).length;
-    var messageValue=state.messages&&state.messages.loaded?state.messages.total:'—';
+    var unread=state.messages&&state.messages.loaded?Number(state.messages.unread||state.messages.total||0):0;
     var host=document.querySelector('[data-home-metrics]'); if(!host)return;
-    host.innerHTML=metric(rows.length,'Citas hoy',rows.filter(function(a){return a.status==='confirmed';}).length+' faltan por llegar','agenda')+metric(clinic,'En la clínica',clinic?'ya llegaron o en consulta':'nadie por ahora','agenda',clinic?'active':'neutral')+metric(pending,'Por aprobar',pending?'citas que pidieron':'nada pendiente','agenda',pending?'attention':'neutral')+metric(messageValue,'Mensajes',state.messages&&state.messages.loaded?(state.messages.unread+' sin leer'):'cargando…','inbox',state.messages&&state.messages.total?'attention':'neutral');
+    var tiles=[];
+    if(rows.length)tiles.push(metric(rows.length,'Citas hoy',rows.filter(function(a){return a.status==='confirmed';}).length+' por llegar','agenda'));
+    if(clinic)tiles.push(metric(clinic,'En la clínica','llegaron o están en consulta','agenda','active'));
+    if(pending)tiles.push(metric(pending,'Por confirmar','solicitudes de cita','agenda','attention'));
+    if(unread)tiles.push(metric(unread,'Mensajes','sin leer o por atender','inbox','attention'));
+    host.dataset.count=String(tiles.length);
+    host.innerHTML=tiles.length?tiles.join(''):'<div class="daily-home-clear"><span>✓</span><div><strong>Todo al día por ahora</strong><small>No hay indicadores que requieran atención.</small></div></div>';
     host.querySelectorAll('[data-route]').forEach(function(button){button.onclick=function(){route(button.dataset.route);};});
   }
 
@@ -96,17 +98,19 @@
     // Misma fuente que el contador de Alertas, para que el Inicio y la campana nunca se contradigan.
     if(shared)tasks=shared.map(function(item){return {label:item.source.toUpperCase(),name:item.title,detail:item.detail,action:item.action,route:item.route,open:item.open,urgent:item.rank===1};});
     else tasks=priorityRows().map(function(item){return {label:item.label,name:item.name,detail:item.detail,action:item.action,route:'agenda',urgent:false};});
-    var summary=document.querySelector('[data-home-summary]');if(summary)summary.textContent=tasks.length?' Tienes '+tasks.length+(tasks.length===1?' pendiente':' pendientes')+' hoy.':' Todo al día por hoy.';
+    var summary=document.querySelector('[data-home-summary]'),title=document.querySelector('[data-home-priority-title]');
+    if(summary)summary.textContent=tasks.length?(shared?tasks.length+(tasks.length===1?' área requiere':' áreas requieren')+' atención.':tasks.length+(tasks.length===1?' acción pendiente.':' acciones pendientes.')):'Todo al día por hoy.';
+    if(title)title.textContent=tasks.length?(shared?tasks.length+(tasks.length===1?' área requiere':' áreas requieren')+' atención':tasks.length+(tasks.length===1?' acción pendiente':' acciones pendientes')):'Requiere atención';
     if(!tasks.length){host.innerHTML='<div class="daily-home-empty"><span>✓</span><div><strong>Todo al día</strong><p>No tienes pendientes por ahora.</p></div></div>';return;}
     var shown=tasks.slice(0,5);
-    host.innerHTML='<div class="daily-home-priority-list">'+shown.map(function(task,index){return '<article data-urgent="'+(task.urgent?'1':'0')+'"><i></i><div><span>'+esc(task.label)+'</span><strong>'+esc(task.name)+'</strong><small>'+esc(task.detail)+'</small></div><button type="button" data-index="'+index+'">'+esc(task.action)+'</button></article>';}).join('')+(tasks.length>shown.length?'<button type="button" class="daily-home-more" data-home-more-alerts>Ver las '+tasks.length+' alertas <span aria-hidden="true">→</span></button>':'')+'</div>';
+    host.innerHTML='<div class="daily-home-priority-list">'+shown.map(function(task,index){return '<article data-urgent="'+(task.urgent?'1':'0')+'"><i></i><div><span>'+esc(task.label)+'</span><strong>'+esc(task.name)+'</strong><small>'+esc(task.detail)+'</small></div><button type="button" data-index="'+index+'">'+esc(task.action)+'</button></article>';}).join('')+(tasks.length>shown.length?'<button type="button" class="daily-home-more" data-home-more-alerts>Ver todas las acciones <span aria-hidden="true">→</span></button>':'')+'</div>';
     host.querySelectorAll('button[data-index]').forEach(function(button){button.onclick=function(){var task=shown[Number(button.dataset.index)];route(task.route||'agenda');if(task.open==='operations'&&window.SmylInbox)setTimeout(window.SmylInbox.openOperations,0);};});
     var more=host.querySelector('[data-home-more-alerts]'); if(more)more.onclick=function(){route('notificaciones');};
   }
 
   function renderNext() {
     var host=document.querySelector('[data-home-next]'); if(!host)return;
-    var now=Date.now(), rows=activeAppointments().slice().sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at);});
+    var now=Date.now(), rows=activeAppointments().filter(function(a){return a.status==='arrived'||a.status==='in_progress'||(a.status==='confirmed'&&new Date(a.ends_at||a.starts_at).getTime()>=now);}).sort(function(a,b){var pa=a.status==='in_progress'?0:a.status==='arrived'?1:2,pb=b.status==='in_progress'?0:b.status==='arrived'?1:2;return pa-pb||new Date(a.starts_at)-new Date(b.starts_at);});
     if(!rows.length){
       host.innerHTML='<div class="daily-home-next-empty"><strong>Sin citas hoy</strong><p>Agenda una cita o revisa tu horario para que los pacientes puedan reservar.</p><div><button type="button" data-go="new">Agendar cita</button><button type="button" data-go="agenda">Abrir agenda</button></div></div>';
       host.querySelector('[data-go="new"]').onclick=function(){if(window.SmylCareTasks)window.SmylCareTasks.open('appointment');else route('agenda');};
@@ -114,14 +118,14 @@
       return;
     }
     var upcoming=rows.find(function(a){return new Date(a.starts_at).getTime()>=now&&a.status==='confirmed';});
-    var shown=rows.slice(0,7), marked=false, html='';
+    var shown=rows.slice(0,4), marked=false, html='';
     shown.forEach(function(a){
       var start=new Date(a.starts_at).getTime();
       if(!marked&&start>=now){marked=true;html+='<div class="daily-home-now" role="separator"><span>Ahora · '+esc(fmtTime(now))+'</span></div>';}
       html+='<button type="button" data-status="'+esc(a.status)+'"'+(upcoming&&upcoming.id===a.id?' data-next="1"':'')+'><time>'+esc(fmtTime(a.starts_at))+'</time><span><strong>'+esc(patientName(a.patient_id))+'</strong><small>'+esc(serviceName(a.service_id))+'</small></span><em>'+esc(upcoming&&upcoming.id===a.id?'Próxima':(STATUS[a.status]||'Programada'))+'</em></button>';
     });
     if(!marked)html+='<div class="daily-home-now" role="separator"><span>Ahora · '+esc(fmtTime(now))+'</span></div>';
-    if(rows.length>shown.length)html+='<button type="button" class="daily-home-more" data-go-agenda>Ver las '+rows.length+' citas de hoy <span aria-hidden="true">→</span></button>';
+    if(rows.length>shown.length)html+='<button type="button" class="daily-home-more" data-go-agenda>Ver toda la agenda <span aria-hidden="true">→</span></button>';
     host.innerHTML='<div class="daily-home-next-list daily-home-timeline">'+html+'</div>';
     host.querySelectorAll('button').forEach(function(button){button.onclick=function(){route('agenda');};});
   }
@@ -132,12 +136,11 @@
     var avatar=inbox&&inbox.buildAvatar?inbox.buildAvatar(item):el('span','smyl-inbox-avatar',String(item.contact_name||'P').charAt(0).toUpperCase());
     var top=el('span','daily-home-chat-top');
     top.append(el('strong','',item.contact_name||'Paciente'),el('time','',inbox&&inbox.timeLabel?inbox.timeLabel(item.last_message_at):''));
-    var preview=el('span','daily-home-chat-preview',item.last_message||'Conversación sin vista previa');
     var meta=el('span','daily-home-chat-meta');
     meta.append(el('span','daily-home-chat-channel',inbox&&inbox.channelLabel?inbox.channelLabel(item.channel):'Canal'));
     if(urgent)meta.append(el('span','daily-home-chat-flag','Necesita asesor'));
     else if(unread)meta.append(el('span','daily-home-chat-flag is-unread',unread+(unread===1?' sin leer':' sin leer')));
-    var copy=el('span','daily-home-chat-copy'); copy.append(top,preview,meta);
+    var copy=el('span','daily-home-chat-copy'); copy.append(top,meta);
     card.append(avatar,copy);
     card.onclick=function(){if(inbox&&inbox.open)inbox.open(item.id);else route('inbox');};
     return card;
@@ -152,7 +155,7 @@
       var retry=el('button','','Reintentar'); retry.type='button'; retry.onclick=function(){loadChats(true);}; box.append(retry); host.append(box); return;
     }
     if(!state.chats||!state.chats.length){
-      var empty=el('div','daily-home-chats-note'); empty.append(el('span','','Cuando un paciente escriba por WhatsApp, Messenger o Instagram, su chat aparecerá aquí.'));
+      var empty=el('div','daily-home-empty'); empty.append(el('span','','✓'));var emptyCopy=el('div');emptyCopy.append(el('strong','','Mensajes al día'),el('p','','No hay conversaciones que requieran atención.'));empty.append(emptyCopy);
       host.append(empty); return;
     }
     state.chats.forEach(function(item){host.append(chatCard(item));});
@@ -164,11 +167,11 @@
     if(!force&&state.chats&&Date.now()-state.chatsAt<30000)return;
     state.chatsLoading=true; state.chatsError=false; if(!state.chats)renderChats();
     try {
-      var rows=await inbox.fetchRecent(6);
-      state.chats=rows.slice().sort(function(a,b){
+      var rows=await inbox.fetchRecent(12);
+      state.chats=rows.filter(function(item){return Boolean(item.needs_human)||(Number(item.unread_count)||0)>0;}).sort(function(a,b){
         if(Boolean(a.needs_human)!==Boolean(b.needs_human))return a.needs_human?-1:1;
         return new Date(b.last_message_at||0)-new Date(a.last_message_at||0);
-      }).slice(0,6);
+      }).slice(0,4);
       state.chatsAt=Date.now();
     } catch(_) { state.chatsError=true; }
     finally { state.chatsLoading=false; renderChats(); }
@@ -250,7 +253,7 @@
     var priorities=document.querySelector('[data-home-priorities]'), next=document.querySelector('[data-home-next]'), updated=document.querySelector('[data-home-updated]');
     if(priorities)priorities.innerHTML='<div class="daily-home-error"><strong>No pudimos actualizar la jornada</strong><p>'+esc(state.error||'Revisa tu conexión e intenta nuevamente.')+'</p><button type="button">Intentar de nuevo</button></div>';
     if(priorities&&priorities.querySelector('button'))priorities.querySelector('button').onclick=function(){load(true);};
-    if(next)next.innerHTML='<div class="daily-home-next-empty"><strong>Agenda no disponible</strong><p>Los módulos siguen disponibles desde los accesos inferiores.</p></div>';
+    if(next)next.innerHTML='<div class="daily-home-next-empty"><strong>Agenda no disponible</strong><p>Ábrela desde el menú para continuar.</p></div>';
     if(updated)updated.textContent='Actualización pendiente';
     renderMetrics(); loadChats(false); loadMonth(false);
   }

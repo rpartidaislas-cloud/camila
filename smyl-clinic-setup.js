@@ -148,10 +148,8 @@
       list.append(item);
     });
     section.append(list);
-    if (!existing) {
-      var hero = host.querySelector('.daily-home-hero');
-      if (hero) hero.after(section); else host.prepend(section);
-    }
+    // La configuración acompaña al propietario sin desplazar la operación del día.
+    if (!existing) host.append(section);
     saveHeight(section.offsetHeight);
   }
 
@@ -161,8 +159,7 @@
     var height = readHeight();
     if (!host || !height || document.getElementById('smyl-clinic-setup') || !isOwner()) return Boolean(host);
     var spacer = el('section', 'clinic-setup'); spacer.id = 'smyl-clinic-setup'; spacer.setAttribute('aria-hidden', 'true'); spacer.style.minHeight = height + 'px'; spacer.style.visibility = 'hidden';
-    var hero = host.querySelector('.daily-home-hero');
-    if (hero) hero.after(spacer); else host.prepend(spacer);
+    host.append(spacer);
     return true;
   }
 
