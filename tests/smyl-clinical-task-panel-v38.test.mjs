@@ -45,6 +45,6 @@ test('web, PWA y fuente móvil distribuyen la tarea clínica v3.8', () => {
   assert.match(app, /smyl-case-workspace\.js\?v=18/);
   assert.match(worker, /clinical-task-panel-v38/);
   assert.match(worker, /single-odontogram-v39/);
-  assert.match(worker, /radiograph-ui-v40/);
+assert.match(worker, /reading-workbench-v42/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

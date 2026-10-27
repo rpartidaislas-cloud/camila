@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Anotación radiográfica</title>
+  <link rel="stylesheet" href="../../smyl-dental-record.css?v=4">
+  <link rel="stylesheet" href="../../smyl-radiograph-review.css?v=1">
+  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=2">
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
+  <style>body{margin:0;background:#f4f7fb;font-family:Inter,system-ui,sans-serif}.clinic-layout{min-height:1px}#p-paciente-detalle{padding:24px}</style>
+</head>
+<body>
+  <section id="p-paciente-detalle" class="activa"><div class="clinic-layout"></div></section>
+  <script>
+    window.tenantId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    window.pacienteActual={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'};
+    window.miRolEquipo='dueño';
+    const teeth=['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48'];
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620"><rect width="1200" height="620" fill="#151b22"/><ellipse cx="600" cy="320" rx="480" ry="230" fill="#3f4852"/><path d="M180 330 Q600 70 1020 330" fill="none" stroke="#d9dde0" stroke-width="120" opacity=".68"/><path d="M190 350 Q600 590 1010 350" fill="none" stroke="#c9cdd1" stroke-width="115" opacity=".62"/><circle cx="600" cy="300" r="85" fill="#202832"/></svg>';
+    const imageBlob=new Blob([svg],{type:'image/svg+xml'}),studyId='11111111-1111-4111-8111-111111111111',sha='a'.repeat(64);
+    const record={schema:1,tenant:tenantId,patient:pacienteActual.id,teeth:{},studies:[{id:studyId,type:'panoramic',label:'Panorámica inicial',date:'2026-10-27',asset:{path:'fixture.svg',bytes:imageBlob.size,sha256:sha,mime:'image/svg+xml'},notes:'Estudio inicial de referencia.',marks:[{id:'21111111-1111-4111-8111-111111111111',x:.34,y:.42,tooth:'16',note:'Material restaurador visible.'},{id:'22222222-2222-4222-8222-222222222222',x:.62,y:.58,tooth:'46',note:'Cambio de densidad por comprobar.'}]}]};
+    window.SmylDentalModel={teeth,upper:teeth.slice(0,16),lower:teeth.slice(16),empty:()=>({schema:1,tenant:tenantId,patient:pacienteActual.id,teeth:{},studies:[]}),validate:()=>true,hash:async()=>sha};
+    window.SmylCaseModel={uuid:value=>typeof value==='string',same:()=>true};
+    window.SmylRadiographReviewModel={validRow:()=>true};window.SmylPhotoReviewModel={validate:()=>true};window.SmylSecureFiles={};
+    window.verPaciente=()=>{};window.ir=()=>true;window.cerrarSesion=()=>{};
+    const dataFor=table=>table==='smyl_dental_records'?{tenant_id:tenantId,patient_id:pacienteActual.id,revision:1,document:record}:[];
+    const query=table=>{const value=dataFor(table);const chain={select(){return chain},eq(){return chain},maybeSingle(){return Promise.resolve({data:value,error:null})},then(resolve){return Promise.resolve({data:value,error:null}).then(resolve)}};return chain;};
+    window.sb={auth:{getUser:async()=>({data:{user:{id:tenantId,is_anonymous:false}},error:null}),onAuthStateChange:()=>{}},from:query,storage:{from:()=>({download:async()=>({data:imageBlob,error:null})})}};
+    window.sbTimeout=async promise=>await promise;
+    window.SmylRadiographReview={open:()=>{}};
+  </script>
+  <script src="../../smyl-dental-record.js?v=15"></script>
+</body>
+</html>

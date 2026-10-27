@@ -182,37 +182,38 @@
  async function imageUrl(ctx,study){const blob=await imageBlob(ctx,study),url=URL.createObjectURL(blob);ctx.urls.push(url);return {blob,url};
  }
  function markDialog(ctx,study,mark,refresh){
-  const d=dialog(ctx,'Anotación en la radiografía'),note=input('Observación del dentista',mark.note,2000);
+  const d=dialog(ctx,'Registrar señal clínica'),note=input('Valoración profesional',mark.note,2000);d.classList.add('dr-mark-dialog');note.e.required=true;note.e.placeholder='Describe únicamente lo observado en esta imagen.';
   const tooth=n('select');tooth.setAttribute('aria-label','Diente relacionado');tooth.add(new Option('Observación general',''));M.teeth.forEach(t=>tooth.add(new Option('Diente '+t,t)));tooth.value=mark.tooth;
-  const xpos=input('Posición horizontal (%)',String(Math.round(mark.x*100)),3,'input'),ypos=input('Posición vertical (%)',String(Math.round(mark.y*100)),3,'input');
-  [xpos,ypos].forEach(f=>{f.e.type='number';f.e.min=0;f.e.max=100;});
-  d.append(note.box,tooth,xpos.box,ypos.box,button('Cancelar',()=>d.close()),button('Aplicar al borrador',()=>{
-   if(!current(ctx)||!xpos.e.reportValidity()||!ypos.e.reportValidity())return;
-   const next={...mark,note:note.e.value,tooth:tooth.value,x:Number(xpos.e.value)/100,y:Number(ypos.e.value)/100};
+  const toothField=n('label','dr-field','Pieza relacionada');toothField.append(tooth);const actions=n('div','dr-dialog-actions');
+  actions.append(button('Cancelar',()=>d.close()),button('Agregar al borrador',()=>{
+   if(!current(ctx)||!note.e.reportValidity())return;
+   const next={...mark,note:note.e.value.trim(),tooth:tooth.value};
    const index=study.marks.findIndex(m=>m.id===mark.id);if(index<0){if(study.marks.length>=50)return;study.marks.push(next);}else study.marks[index]=next;
    dirty(ctx);refresh();d.close();
-  }));d.showModal();note.e.focus();
+  }));actions.lastChild.classList.add('dr-primary');d.append(n('p','dr-help','La ubicación proviene del punto marcado en la imagen.'),toothField,note.box,actions);d.showModal();note.e.focus();
  }
  async function viewStudy(ctx,study){
-  const d=dialog(ctx,study.label||types[study.type]),loading=n('p','','Cargando imagen privada…');d.append(loading);d.append(button('Cerrar',()=>d.close()));d.showModal();
+  const d=dialog(ctx,study.label||types[study.type]),title=d.querySelector('h2'),header=n('header','dr-viewer-header'),identity=n('div'),loading=n('p','dr-viewer-loading','Cargando imagen privada…'),closeButton=button('Volver al expediente',()=>d.close());d.classList.add('dr-radiograph-dialog');identity.append(n('span','dr-viewer-eyebrow','SMYL · RADIOGRAFÍA'),title,n('span','dr-viewer-meta',types[study.type]+(study.date?' · '+study.date:'')));header.append(identity,closeButton);d.replaceChildren(header,loading);d.showModal();
   let url,blob;
   d.addEventListener('close',()=>{if(url){URL.revokeObjectURL(url);ctx.urls=ctx.urls.filter(u=>u!==url);}},{once:true});
   try{
    const image=await imageUrl(ctx,study);url=image.url;blob=image.blob;if(!current(ctx)||!d.open){URL.revokeObjectURL(url);return;}loading.remove();
-   const tools=n('div','dr-tools'),zoom=n('input');zoom.type='range';zoom.min=1;zoom.max=3;zoom.step=.25;zoom.value=1;zoom.setAttribute('aria-label','Ampliar radiografía');
-   const viewport=n('div','dr-viewport'),stage=n('div','dr-image-stage'),img=n('img');img.src=url;img.alt='Radiografía original · '+(study.label||types[study.type]);stage.append(img);viewport.append(stage);
-   const marks=n('div','dr-marks'),list=n('div','dr-mark-list');stage.append(marks);
+   const workspace=n('div','dr-reading-workspace'),viewer=n('section','dr-viewer-pane'),panel=n('aside','dr-signal-pane'),tools=n('div','dr-tools'),zoom=n('input'),contrast=n('input'),brightness=n('input');
+   Object.assign(zoom,{type:'range',min:1,max:3,step:.25,value:1});zoom.setAttribute('aria-label','Ampliar radiografía');Object.assign(contrast,{type:'range',min:60,max:180,step:5,value:100});contrast.setAttribute('aria-label','Contraste');Object.assign(brightness,{type:'range',min:60,max:160,step:5,value:100});brightness.setAttribute('aria-label','Brillo');
+   const viewport=n('div','dr-viewport'),stage=n('div','dr-image-stage'),img=n('img'),marks=n('div','dr-marks'),list=n('div','dr-mark-list'),mode=n('div','dr-placement-mode'),panelHead=n('header','dr-signal-head'),panelCount=n('span','dr-signal-count'),notes=input('Notas generales del estudio',study.notes,4000);let adding=false,selected=null,inverted=false;
+   img.src=url;img.alt='Radiografía original · '+(study.label||types[study.type]);stage.append(img,marks);viewport.append(stage);panelHead.append(n('div','',null),panelCount);panelHead.firstChild.append(n('span','dr-viewer-eyebrow','SEÑALES MANUALES'),n('h3','','Anotaciones clínicas'),n('p','','Selecciona una señal para editarla.'));
+   const applyView=()=>{stage.style.width=Number(zoom.value)*100+'%';img.style.filter='brightness('+brightness.value+'%) contrast('+contrast.value+'%) invert('+(inverted?1:0)+')';};zoom.oninput=applyView;contrast.oninput=applyView;brightness.oninput=applyView;
+   const control=(label,input)=>{const box=n('label','dr-tool-range');box.append(n('span','',label),input);return box;};const invert=button('Invertir',()=>{inverted=!inverted;invert.setAttribute('aria-pressed',String(inverted));applyView();});invert.setAttribute('aria-pressed','false');const reset=button('Vista original',()=>{zoom.value=1;contrast.value=100;brightness.value=100;inverted=false;invert.setAttribute('aria-pressed','false');applyView();});
+   const addButton=button('Marcar zona',()=>{adding=!adding;selected=null;refresh();});addButton.classList.add('dr-primary');tools.append(control('Zoom',zoom),control('Contraste',contrast),control('Brillo',brightness),invert,reset,addButton);
    function refresh(){marks.replaceChildren();list.replaceChildren();study.marks.forEach((m,i)=>{
-    const b=button(String(i+1),()=>markDialog(ctx,study,m,refresh));b.className='dr-mark';b.style.left=m.x*100+'%';b.style.top=m.y*100+'%';b.setAttribute('aria-label','Anotación '+(i+1));marks.append(b);
-    const item=n('article','dr-note');item.append(n('strong','',(i+1)+'. '+(m.tooth?'Diente '+m.tooth:'General')),n('p','',m.note||'Sin texto'),button('Editar',()=>markDialog(ctx,study,m,refresh)),button('Quitar marca',()=>{study.marks=study.marks.filter(x=>x.id!==m.id);dirty(ctx);refresh();}));list.append(item);
-   });}
-   const add=(x,y)=>{if(study.marks.length<50)markDialog(ctx,study,{id:crypto.randomUUID(),x,y,tooth:'',note:''},refresh);};
-   img.onclick=e=>{const r=img.getBoundingClientRect();add((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);};
-   zoom.oninput=()=>stage.style.width=Number(zoom.value)*100+'%';
+    const b=button(String(i+1),()=>{selected=m.id;adding=false;refresh();});b.className='dr-mark'+(selected===m.id?' is-selected':'');b.style.left=m.x*100+'%';b.style.top=m.y*100+'%';b.setAttribute('aria-label','Anotación manual '+(i+1)+(m.tooth?' · diente '+m.tooth:''));b.setAttribute('aria-pressed',String(selected===m.id));marks.append(b);
+    const item=n('article','dr-note dr-signal-card'+(selected===m.id?' is-selected':'')),head=n('button','dr-signal-card-head');head.type='button';head.append(n('span','dr-signal-number',String(i+1)),n('span','',null));head.lastChild.append(n('strong','',m.tooth?'Pieza FDI '+m.tooth:'Región general'),n('small','','Anotación manual'));head.onclick=()=>{selected=m.id;adding=false;refresh();};item.append(head,n('p','',m.note||'Pendiente de describir'));
+    if(selected===m.id){const actions=n('div','dr-signal-actions');actions.append(button('Editar valoración',()=>markDialog(ctx,study,m,refresh)),button('Quitar del borrador',()=>{study.marks=study.marks.filter(x=>x.id!==m.id);selected=null;dirty(ctx);refresh();}));item.append(actions);}list.append(item);
+   });panelCount.textContent=study.marks.length+' '+(study.marks.length===1?'señal':'señales');addButton.textContent=adding?'Cancelar marca':'Marcar zona';addButton.setAttribute('aria-pressed',String(adding));mode.replaceChildren();if(adding){mode.append(n('strong','','Marca una zona'),n('span','','Toca el punto que deseas registrar en la imagen.'));mode.hidden=false;}else mode.hidden=true;}
+   img.onclick=e=>{if(!adding)return;const r=img.getBoundingClientRect();adding=false;markDialog(ctx,study,{id:crypto.randomUUID(),x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height)),tooth:'',note:''},refresh);};
    const assisted=button('Revisar con apoyo de IA',()=>{if(ctx.files.has(study.id)||ctx.dirty){message(ctx,'Guarda primero la radiografía y cualquier cambio pendiente.');return;}d.close();window.SmylRadiographReview?.open({study,blob,tenant:ctx.tenant,patient:ctx.patient,current:()=>current(ctx)&&ctx.ready&&!ctx.dirty});});
-   tools.append(n('span','','Ampliar'),zoom,button('Añadir marca',()=>add(.5,.5)),assisted);
-   const notes=input('Observaciones de este estudio',study.notes,4000);notes.e.oninput=()=>{study.notes=notes.e.value;dirty(ctx);};
-   d.append(tools,n('p','dr-help','Toca la imagen para marcar un punto, o utiliza Añadir marca. El original no se modifica.'),viewport,list,notes.box,n('p','dr-help','Cierra el visor y pulsa Guardar observaciones para conservar tus cambios.'));refresh();
+   assisted.classList.add('dr-assisted-action');notes.e.oninput=()=>{study.notes=notes.e.value;dirty(ctx);};const safety=n('div','dr-viewer-safety');safety.append(n('strong','','Original protegido'),n('span','','Los ajustes de vista y las señales no modifican la imagen.'));
+   viewer.append(tools,mode,viewport,safety);panel.append(panelHead,list,notes.box,assisted,n('p','dr-help','Los cambios se conservan al guardar el expediente.'));workspace.append(viewer,panel);d.append(workspace);refresh();
   }catch(e){loading.textContent=errorText(e);}
  }
  function renderStudies(ctx){

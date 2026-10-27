@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Mesa radiográfica</title>
+  <link rel="stylesheet" href="../../smyl-radiograph-review.css?v=1">
+  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=2">
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
+  <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f7fb;font-family:Inter,system-ui,sans-serif}#open{min-height:44px;padding:0 18px;border:0;border-radius:10px;background:#0b1b2e;color:#fff;font-weight:700}</style>
+</head>
+<body>
+  <button id="open" type="button">Abrir mesa radiográfica</button>
+  <script>
+    window.miRolEquipo='dueño';
+    window.tenantId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    window.pacienteActual={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'};
+    window.SmylDentalModel={teeth:['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48']};
+    const observations=[
+      {id:'r1',category:'density',tooth:'46',observation:'Cambio de densidad por comprobar.',evidence:'Zona radiolúcida delimitada en región posterior.'},
+      {id:'r2',category:'restoration',tooth:'16',observation:'Material restaurador visible.',evidence:'Contorno radiopaco sobre corona clínica.'},
+      {id:'r3',category:'support',tooth:null,observation:'Estructura de soporte por valorar.',evidence:'Cambio de altura aparente en región interproximal.'}
+    ];
+    const documentValue={schema:1,study:{id:'11111111-1111-4111-8111-111111111111',type:'panoramic',sha256:'a'.repeat(64)},workflow:{state:'completed',attempt:1},analysis:{model:'claude-sonnet-4-6',at:'2026-10-27T12:00:00.000Z',requestId:'msg_fixture',report:{schema:1,quality:'limited',qualityNote:'La superposición limita una región; revisa el original.',observations,limitations:['Superposición en la región anterior.','La panorámica no sustituye una serie intraoral cuando esté indicada.']}},items:[
+      {id:'21111111-1111-4111-8111-111111111111',sourceId:'r1',tooth:'46',text:'Cambio de densidad por comprobar.',x:null,y:null,state:'pending'},
+      {id:'22222222-2222-4222-8222-222222222222',sourceId:'r2',tooth:'16',text:'Material restaurador visible.',x:.34,y:.42,state:'confirmed'},
+      {id:'23333333-3333-4333-8333-333333333333',sourceId:'r3',tooth:'',text:'Estructura de soporte por valorar.',x:.61,y:.58,state:'rejected'}
+    ]};
+    window.SmylRadiographReviewStore={connect:async()=>({load:async()=>({document:structuredClone(documentValue),revision:1}),save:async(value,revision)=>({document:structuredClone(value),revision:revision+1})})};
+    window.SmylRadiographReviewModel={};
+    window.SmylRadiographAnalysisClient={};
+  </script>
+  <script src="../../smyl-radiograph-review.js?v=3"></script>
+  <script>
+    const study={id:'11111111-1111-4111-8111-111111111111',type:'panoramic',label:'Panorámica inicial',asset:{sha256:'a'.repeat(64)}};
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620"><rect width="1200" height="620" fill="#151b22"/><ellipse cx="600" cy="320" rx="480" ry="230" fill="#3f4852"/><path d="M180 330 Q600 70 1020 330" fill="none" stroke="#d9dde0" stroke-width="120" opacity=".68"/><path d="M190 350 Q600 590 1010 350" fill="none" stroke="#c9cdd1" stroke-width="115" opacity=".62"/><circle cx="600" cy="300" r="85" fill="#202832"/></svg>';
+    document.querySelector('#open').onclick=()=>SmylRadiographReview.open({study,blob:new Blob([svg],{type:'image/svg+xml'}),tenant:tenantId,patient:pacienteActual.id,current:()=>true});
+  </script>
+</body>
+</html>

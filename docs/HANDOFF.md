@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-27 — Codex — Mesa profesional de lectura radiográfica v4.2
+
+- Los visores manual y asistido comparten ahora una anatomía clínica coherente
+  con la política visual SMYL: imagen original protegida, herramientas de
+  visualización, señales estructuradas y una sola tarea activa a la vez.
+- En escritorio, la revisión asistida utiliza una mesa 70/30; en tablet y móvil
+  se ordena como imagen → señales → guardado. Las señales son alcanzables a
+  320 px, no se superponen y los controles táctiles miden al menos 44 px.
+- Zoom, contraste, brillo e inversión sólo afectan la vista. La marcación manual
+  requiere activar `Marcar zona`; tocar la imagen pasivamente ya no crea
+  observaciones. Los marcadores y las tarjetas conservan numeración estable.
+- Las sugerencias de IA permanecen ámbar hasta decisión profesional; las
+  confirmadas usan teal y las anotaciones manuales del dentista se distinguen
+  como información clínica verificada. Los diálogos nativos se reemplazaron por
+  confirmaciones SMYL accesibles y el original nunca se modifica.
+- Se añadieron pruebas de modelo, contratos y navegador para 1280, 820, 390 y
+  320 px, además de paridad exacta entre web y `mobile/www`. QA final:
+  **775/775** pruebas, sin overflow horizontal ni regresiones de interacción.
+- Entrega exclusivamente frontend: no cambian esquema, RLS, almacenamiento,
+  Edge Functions ni prompts/modelos clínicos. Un diagnóstico radiográfico
+  validado requiere una etapa backend y regulatoria independiente.
+- Web/PWA quedan sincronizadas con `smyl-radiograph-review.js?v=3`,
+  `smyl-dental-record.js?v=15`, `smyl-radiograph-workbench.css?v=2` y cache
+  `reading-workbench-v42`.
+
 ## 2026-10-27 — Claude — Horas libres calculadas en el servidor
 
 - Migración nueva `20261027120000_smyl_schedule_free_slots.sql`: función
