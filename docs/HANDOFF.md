@@ -8514,3 +8514,29 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md`.
   prueba, igual que antes. Si no se desea, limitar el plan de entrada a 'profesional' en el trigger de alta.
 - Pendiente de la auditoría: S2-S10 (segment-teeth, analizar-foto, permisos por rol en Edge Functions, URLs de 1 año,
   bucket público, Stripe priceId, retención), CSP, CI.
+
+## 2026-10-27 — Claude — Auditoría P1: membresía activa, permisos por rol, SSRF y máscaras (Edge Functions)
+Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2, S3, S4). **Solo Edge Functions: sin migraciones.**
+- `_shared/auth.ts` + `_shared/auth-membership.ts`: `requireUser` ya respeta `camila_usuarios.activo`; una persona de staff
+  desactivada recibe 403 (antes seguía resolviendo la clínica y usaba las funciones con service role). Nuevo
+  `requirePermission(auth, cors, permiso)`: el dueño pasa; el staff solo si su rol activo tiene el permiso
+  (`smyl_actor_has_permission_explicit`); falla cerrado (503 si la consulta falla).
+- Permisos exigidos: `meta-send` → `messages.respond` (Recepción lo tiene); `mila-transcribe` y `mila-realtime-session` →
+  `clinical.write`; `lana-webhook` → `clinical.write`; `sign-segmentation-masks` → `clinical.read`.
+  **Efecto:** Recepción (sin permisos clínicos) ya no puede usar MILA, ver máscaras ni compartir simulaciones con LANA.
+  `mila-actions` ya tenía su propia verificación; `secure-clinical-file` queda protegido por las políticas de Storage.
+- `segment-teeth`: la imagen solo puede ser data URL de imagen o https de un host permitido (por defecto `*.supabase.co`;
+  más con `SEGMENT_TEETH_ALLOWED_HOSTS`); sin redirecciones y con tope de 25 MB. `casoId` debe ser UUID y no puede ser de otra
+  clínica; un prospecto anónimo no puede tocar casos reales (solo `es_prospecto=true` o inexistentes).
+- `analizar-foto`: secreto de LANA comparado en tiempo constante; `tenant_id` validado como UUID (la ruta de Storage lo
+  usa); `imagen_url` y `callback_url` solo https de hosts permitidos (`*.supabase.co` + `ANALIZAR_FOTO_ALLOWED_HOSTS`);
+  la simulación se entrega con enlace **firmado de 7 días** (si firmar falla, cae a la URL pública anterior).
+  **Si LANA usa un dominio propio en vez de `*.supabase.co`, hay que añadirlo en `ANALIZAR_FOTO_ALLOWED_HOSTS` o el análisis
+  fallará con 400.** Conviene volver privado el bucket `camila-analisis` en el panel una vez desplegado.
+- Bundles regenerados (`docs/bundles/`): todas las funciones que importan `_shared/auth.ts`, más nuevos `guardar-lead-prospecto`
+  y `analizar-foto`. El bundle de `invite-staff` estaba desactualizado respecto de su código.
+- **Pendiente (decisión de diseño): enlaces firmados de 1 año** (`firmarUrlStorage`, `expiresIn: 31536000`, en
+  `simulacion.html`, `simulacion-rapida.html` y `revision-clinica.html`). Se guardan en `camila_casos.imagen_url` y la revisión
+  clínica los reutiliza al reabrir un caso; acortarlos rompería los casos existentes. Requiere guardar la ruta y firmar al
+  leer (revision-clinica: reapertura y lista de 50 miniaturas; app.html: Historial). No se tocó para no romper casos.
+- Pruebas: `tests/security-functions-p1-2026-10-27.test.mjs` (ejecuta los validadores reales; suite 734/734).

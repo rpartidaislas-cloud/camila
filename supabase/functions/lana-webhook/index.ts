@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireUser } from "../_shared/auth.ts";
+import { requirePermission, requireUser } from "../_shared/auth.ts";
 import { enviarWebhookLana } from "../_shared/lana.ts";
 import { makeCors } from "../_shared/cors.ts";
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -15,9 +15,11 @@ Deno.serve(async (req: Request) => {
 
   const auth = await requireUser(req, CORS);
   if (auth.response) return auth.response;
-  // requireUser conserva un fallback anónimo para funciones históricas; esta
-  // integración nunca lo acepta porque expone datos de una cita concreta.
+  // requireUser ya devuelve 401 sin una sesión válida (no existe fallback anónimo); aquí además se
+  // exige tener el permiso de escribir en el expediente, porque la función comparte datos de una cita.
   if (!auth.user || !auth.tenantId) return json(401, { error: "Se requiere una sesión profesional válida." });
+  const sinPermiso = await requirePermission(auth, CORS, "clinical.write");
+  if (sinPermiso) return sinPermiso;
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return json(400, { error: "Body JSON inválido." }); }
