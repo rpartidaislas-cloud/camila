@@ -26,15 +26,10 @@
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
   };
 
-  // 'Nuevo Diseño' y 'Colaboraciones' faltaban aquí -- organizeDesktop()
-  // reemplaza TODO el contenido de .nav-items (ver abajo), así que una ruta
-  // ausente de esta lista desaparecía del sidebar por completo, aunque su
-  // panel (#p-nuevo-diseno, #p-colaboraciones) y su lógica siguieran
-  // intactos. En escritorio sólo quedaba alcanzable por el FAB; en el
-  // #bottom-nav de móvil nunca se perdió (es un elemento aparte).
+  // PRIMARY contiene únicamente módulos persistentes. La simulación se abre
+  // como acción contextual y desde Simulaciones; no ocupa un módulo propio.
   var PRIMARY = [
     ['Inicio', 'dashboard', 'home'],
-    ['Nuevo diseño', 'nuevo-diseno', 'plus'],
     ['Agenda', 'agenda', 'calendar'],
     ['Pacientes', 'pacientes', 'patients'],
     ['Finanzas', 'caja', 'cash']

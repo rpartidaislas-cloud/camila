@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Nuevo diseño sale de la navegación principal
+
+- `Nuevo diseño` deja de mostrarse como módulo persistente en el sidebar y la
+  barra móvil. La simulación conserva su ruta y sus datos, y se abre desde la
+  acción contextual `Nueva simulación` o desde el historial de Simulaciones.
+- Navegación web/PWA avanza a v15; no hay cambios de modelo, permisos ni datos.
+
 ## 2026-10-26 — Codex — Navegación principal simplificada
 
 - `Tratamientos` y `Alertas` dejan de aparecer como módulos independientes en

@@ -24,6 +24,8 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
   assert.match(nav, /\['Servicios y tarifas', 'precios'/);
   assert.doesNotMatch(nav, /\['Tratamientos', 'propuestas'/);
   assert.doesNotMatch(nav, /\['Alertas', 'notificaciones'/);
+  assert.doesNotMatch(nav, /\['Nuevo diseño', 'nuevo-diseno'/);
+  assert.match(nav, /\['Nueva simulación', '__new_simulation'/);
   assert.match(nav, /var SETTINGS = \[/);
 });
 

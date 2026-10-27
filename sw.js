@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -125,7 +125,7 @@ const STATIC_FILES = [
   '/camila/smyl-resilience.css?v=1',
   '/camila/smyl-inbox.js?v=38',
   '/camila/smyl-inbox.css?v=35',
-  '/camila/smyl-navigation.js?v=14',
+  '/camila/smyl-navigation.js?v=15',
   '/camila/smyl-navigation.css?v=3',
   '/camila/smyl-professional-v3.js?v=6',
   '/camila/smyl-professional-v3.css?v=7',
