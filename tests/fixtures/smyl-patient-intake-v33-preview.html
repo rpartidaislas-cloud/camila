@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>QA · Nuevo paciente SMYL</title>
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css">
+  <link rel="stylesheet" href="../../smyl-dialog-system.css">
+  <link rel="stylesheet" href="../../smyl-clinic.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#eef3f8;font-family:Inter,system-ui,sans-serif}.qa-page{min-height:100vh;padding:48px;background:linear-gradient(135deg,#edf3f7,#f8fafc)}
+    .qa-page h1{margin:0;color:#102239;font-size:32px}.qa-page p{color:#667586}.modal-bg{position:fixed;inset:0;z-index:20;display:none;background:rgba(10,24,38,.54)}.modal-bg.visible{display:flex}.modal{background:#fff}.form-grid{display:grid}.fg{display:flex;flex-direction:column}.fg.full{grid-column:1/-1}.modal-footer{display:flex}.btn{border:1px solid #d7e0e8;background:#fff;color:#102239;font:600 13px Inter,system-ui,sans-serif}.btn-primary{background:#102239;color:#fff}.clinic-notice{padding:12px}
+  </style>
+</head>
+<body>
+  <main class="qa-page"><h1>Directorio de pacientes</h1><p>Fixture visual con datos sintéticos.</p></main>
+  <script>
+    fetch('../../app.html').then(r=>r.text()).then(html=>{
+      const start=html.indexOf('<div class="modal-bg" id="modal-paciente">');
+      const end=html.indexOf('<!-- ═══ MODAL CAMBIAR DE PLAN ═══ -->',start);
+      document.body.insertAdjacentHTML('beforeend',html.slice(start,end));
+      const modal=document.querySelector('#modal-paciente');
+      modal.dataset.smylLegacyDialog='true';
+      modal.classList.add('visible');
+      modal.querySelector('#patient-clinic-line').textContent='Se guardará en Clínica de prueba.';
+      modal.querySelectorAll('button').forEach(button=>button.removeAttribute('onclick'));
+    });
+  </script>
+</body>
+</html>

@@ -867,7 +867,7 @@
       var clinicLine = document.getElementById('patient-clinic-line');
       if (clinicLine) clinicLine.textContent = patientClinicName() ? 'Se guardará en ' + patientClinicName() + '.' : '';
       var save = document.getElementById('patient-save-button');
-      if (save) save.disabled = false;
+      if (save) { save.disabled = false; save.textContent = id ? 'Guardar cambios' : 'Crear paciente'; }
       var patient = id ? todosLosPacientes.find(function (p) { return p.id === id; }) : null;
       var parts = splitPhone(patient ? patient.telefono : '');
       document.getElementById('mp-tel-cc').value = parts.cc; document.getElementById('mp-tel').value = parts.national;
@@ -906,9 +906,8 @@
     });
     alertInput.addEventListener('blur', function () { addAlert(alertInput.value); alertInput.value = ''; });
     var message = el('div'); message.id = 'patient-feedback'; modal.querySelector('.modal-footer').before(message);
-    var clinicLine = el('p'); clinicLine.id = 'patient-clinic-line';
-    clinicLine.style.cssText = 'margin:0 0 12px;font-size:12px;color:var(--color-text-secondary)';
-    document.getElementById('modal-pac-title').after(clinicLine);
+    var clinicLine = document.getElementById('patient-clinic-line');
+    if (!clinicLine) { clinicLine = el('p'); clinicLine.id = 'patient-clinic-line'; document.getElementById('modal-pac-title').after(clinicLine); }
     var saveButton = modal.querySelector('.modal-footer .btn-primary'); if (saveButton) saveButton.id = 'patient-save-button';
     var dialog = el('dialog', 'clinic-dialog'); dialog.id = 'clinic-review-dialog'; dialog.setAttribute('aria-labelledby','clinic-review-title');
     var reviewTitle = el('h2', '', 'Revisar este plan'); reviewTitle.id = 'clinic-review-title';

@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   var GROUPS=[
-    {label:'Trabajo diario',items:[['Inicio','dashboard','Resumen y prioridades de hoy'],['Pacientes','pacientes','Directorio y expedientes'],['Agenda','agenda','Citas, llegadas y solicitudes'],['Mensajes','inbox','WhatsApp, Messenger e Instagram'],['Alertas','notificaciones','Pendientes de toda la clínica']]},
+    {label:'Trabajo diario',items:[['Inicio','dashboard','Resumen y prioridades de hoy'],['Pacientes','pacientes','Directorio y expedientes'],['Agenda','agenda','Citas, llegadas y solicitudes'],['Mensajes','inbox','WhatsApp, Messenger e Instagram']]},
     {label:'Clínica',items:[['Nueva simulación','__simulation','Registrar fotografías y propuesta'],['Simulaciones anteriores','historial','Casos y resultados guardados']]},
-    {label:'Negocio',items:[['Servicios y tarifas','precios','Catálogo clínico, precios y claves fiscales'],['Presentaciones','propuestas','Planes preparados para el paciente'],['Inventario','inventario','Existencias, lotes y compras'],['Caja y cobros','caja','Pagos, saldos y cortes'],['Reportes','reportes','Indicadores agregados de operación']]},
+    {label:'Negocio',items:[['Servicios y tarifas','precios','Catálogo clínico, precios y claves fiscales'],['Inventario','inventario','Existencias, lotes y compras'],['Caja y cobros','caja','Pagos, saldos y cortes'],['Reportes','reportes','Indicadores agregados de operación']]},
     {label:'Configuración',items:[['Mi clínica','clinica','Sucursales, equipo y permisos'],['Directorio profesional','directorio','Perfil, CV, enlace y QR'],['Canales y asistente','conexiones','Meta, contexto y laboratorio'],['Preparación operativa','lanzamiento','Controles antes del piloto'],['Marca y simulación','sim-config','Identidad y presentación'],['Mi cuenta','mi-cuenta','Plan y acceso']]}
   ];
   var dialog,input,trigger,lastFocus;

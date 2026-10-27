@@ -313,11 +313,49 @@
 }
 @keyframes patient-shimmer{to{background-position:-220% 0}}
 
-/* Alta de paciente: controles legibles y táctiles según v3.2. */
-#modal-paciente .fg label{font-size:12px;color:var(--smyl-ui-ink-secondary,#526174)}
-#modal-paciente .fg :is(input,select,textarea){min-height:48px;font-size:14px}
-#modal-paciente .modal-header h3{font-size:20px;letter-spacing:-.015em}
-#patient-clinic-line{font-size:12px!important;line-height:1.5}
+/* Alta de paciente: una tarea breve, ordenada y sin tarjetas anidadas. */
+#modal-paciente[data-smyl-legacy-dialog=true] .modal-paciente{display:flex;flex-direction:column;width:min(680px,calc(100vw - 32px))!important;overflow:hidden!important}
+#modal-paciente .modal-header{align-items:flex-start!important;padding:20px 24px!important}
+#modal-paciente .mp-heading{display:grid;gap:3px;min-width:0}
+#modal-paciente .mp-heading>span{color:var(--smyl-ui-accent,#157c78);font-size:12px;font-weight:750;letter-spacing:.08em}
+#modal-paciente .modal-header h3{font-size:22px!important;font-weight:650!important;letter-spacing:-.02em!important}
+#patient-clinic-line{min-height:18px;margin:0;color:var(--smyl-ui-ink-secondary,#526174);font-size:13px;line-height:18px}
+#modal-paciente .mp-body{display:grid;gap:22px;min-height:0;padding:22px 24px 24px;overflow-y:auto;overscroll-behavior:contain}
+#modal-paciente .mp-block{display:grid;gap:14px}
+#modal-paciente .mp-block-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0}
+#modal-paciente .mp-block-head>div{display:flex;align-items:center;gap:9px;min-width:0}
+#modal-paciente .mp-block-head>div>span{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--smyl-ui-surface-soft,#f3f6f9);color:var(--smyl-ui-primary,#0b1b2e);font-size:12px;font-weight:750}
+#modal-paciente .mp-block-head h4{margin:0;color:var(--smyl-ui-ink,#0b1b2e);font-size:15px;font-weight:650;line-height:22px}
+#modal-paciente .mp-block-head p{margin:3px 0 0;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;line-height:18px;text-align:right}
+#modal-paciente .form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 12px;margin:0;padding:0!important}
+#modal-paciente .form-grid>*{min-width:0}
+#modal-paciente .fg{gap:6px}
+#modal-paciente .fg label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;font-weight:600}
+#modal-paciente .fg label em{color:var(--smyl-ui-accent,#157c78);font-size:12px;font-style:normal;font-weight:650}
+#modal-paciente .fg :is(input,select,textarea){min-height:48px;border-color:var(--smyl-ui-border,#d9e2ec);border-radius:10px;background:#fff;color:var(--smyl-ui-ink,#0b1b2e);font-size:14px;box-shadow:0 1px 2px rgba(11,27,46,.03)}
+#modal-paciente .fg :is(input,select,textarea):focus{border-color:var(--smyl-ui-focus,#2563eb);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+#modal-paciente .fg>small{margin-top:-1px;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;line-height:17px}
+#modal-paciente .mp-alert-field{padding:12px;border:1px solid #e8d8cf;border-radius:12px;background:#fffaf6}
+#modal-paciente .mp-alert-field label{color:#70483b}
+#modal-paciente .mp-consent{padding:14px 16px;border:1px solid var(--smyl-ui-border,#d9e2ec);border-radius:12px;background:var(--smyl-ui-surface-soft,#f8fafc)}
+#modal-paciente .mp-check{align-items:center;margin:0;color:var(--smyl-ui-ink,#0b1b2e)}
+#modal-paciente .mp-check input{width:20px;height:20px;margin:0}
+#modal-paciente .mp-check span{display:grid;gap:2px}
+#modal-paciente .mp-check strong{font-size:13px;font-weight:650;line-height:19px}
+#modal-paciente .mp-check small{color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;line-height:18px}
+#modal-paciente .clinic-patient-extra{margin:0;padding:0;border:1px solid var(--smyl-ui-border,#d9e2ec);border-radius:12px;background:#fff;overflow:hidden}
+#modal-paciente .clinic-patient-extra summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 14px;color:var(--smyl-ui-ink,#0b1b2e);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
+#modal-paciente .clinic-patient-extra summary::-webkit-details-marker{display:none}
+#modal-paciente .clinic-patient-extra summary::after{content:'+';order:3;color:var(--smyl-ui-ink-secondary,#526174);font-size:18px;font-weight:400}
+#modal-paciente .clinic-patient-extra[open] summary::after{content:'−'}
+#modal-paciente .clinic-patient-extra summary small{margin-left:auto;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;font-weight:500}
+#modal-paciente .clinic-patient-extra .form-grid{padding:16px!important;border-top:1px solid var(--smyl-ui-border,#d9e2ec)}
+#modal-paciente .modal-footer{padding:14px 24px!important}
+#modal-paciente .modal-footer .btn{min-height:42px;padding:0 16px;border-radius:9px}
+#modal-paciente .modal-footer .btn-primary{min-width:132px;background:var(--smyl-ui-primary,#0b1b2e);border-color:var(--smyl-ui-primary,#0b1b2e)}
+#modal-paciente #patient-feedback:not(:empty){padding:0 24px 16px}
+#modal-paciente #mp-duplicados:not(:empty){margin-top:12px}
+@media(max-width:640px){#modal-paciente[data-smyl-legacy-dialog=true] .modal-paciente{width:100vw!important}#modal-paciente .modal-header{padding:max(16px,env(safe-area-inset-top)) 16px 14px!important}#modal-paciente .mp-body{gap:20px;padding:18px 16px 22px}#modal-paciente .mp-block-head{display:grid;gap:3px}#modal-paciente .mp-block-head p{text-align:left;padding-left:35px}#modal-paciente .form-grid{grid-template-columns:1fr}#modal-paciente .modal-footer{padding:12px 16px max(12px,env(safe-area-inset-bottom))!important}#modal-paciente .modal-footer .btn{min-height:48px}#modal-paciente #patient-feedback:not(:empty){padding:0 16px 14px}}
 
 /* Ficha 360: el root deja de ser una tarjeta para evitar superficies anidadas. */
 #p-paciente-detalle .p360-root{

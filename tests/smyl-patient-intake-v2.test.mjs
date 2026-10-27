@@ -33,7 +33,7 @@ test('el modal pide teléfono con prefijo, correo, atención, alertas y consenti
   }
   assert.match(app, /<option value="52" selected>MX \+52<\/option>/);
   assert.match(app, /acepta recibir recordatorios y mensajes de la clínica por WhatsApp/);
-  assert.match(app, /<summary>Más datos · opcional<\/summary>/);
+  assert.match(app, /<summary><span>Datos adicionales<\/span><small>Opcional<\/small><\/summary>/);
   assert.doesNotMatch(app, /💾 Guardar paciente/, 'sin emojis en controles (política visual)');
 });
 

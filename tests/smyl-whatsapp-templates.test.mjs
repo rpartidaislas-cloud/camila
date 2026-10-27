@@ -103,7 +103,7 @@ test('Mensajería es una sección propia del menú con Mensajes; las plantillas 
   assert.match(nav, /\['Plantillas de WhatsApp', 'plantillas', 'templates'\]/);
   assert.match(nav, /nav\.append\(sectionLabel\('Mensajería'\)\)/);
   assert.match(nav, /mobileGroup\('Mensajería', MESSAGING\)/);
-  const primary = nav.slice(nav.indexOf('var PRIMARY = ['), nav.indexOf('var ALERTS'));
+  const primary = nav.slice(nav.indexOf('var PRIMARY = ['), nav.indexOf('var MESSAGING'));
   assert.doesNotMatch(primary, /'inbox'/);
 });
 

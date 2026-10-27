@@ -3,7 +3,7 @@
   'use strict';
   var ROUTES={
     dashboard:['Inicio','Resumen operativo de la clínica'],agenda:['Agenda','Citas, llegadas y disponibilidad'],pacientes:['Pacientes','Directorio y expedientes clínicos'],
-    'paciente-detalle':['Expediente','Atención clínica del paciente'],propuestas:['Tratamientos','Planes, cotizaciones y seguimiento'],caja:['Finanzas','Cargos, cobros y facturación'],
+    'paciente-detalle':['Expediente','Atención clínica del paciente'],propuestas:['Propuesta del paciente','Plan, cotización y seguimiento del expediente'],caja:['Finanzas','Cargos, cobros y facturación'],
     inbox:['Mensajes','Conversaciones que requieren atención'],precios:['Servicios y tarifas','Catálogo clínico, precios y claves fiscales'],inventario:['Inventario','Existencias, compras y trazabilidad'],
     reportes:['Reportes','Indicadores operativos del negocio'],configuracion:['Configuración','Todo lo que puedes ajustar en tu clínica'],clinica:['Mi clínica','Sucursales, equipo y permisos'],conexiones:['Canales y asistente','Conexiones y automatización supervisada']
   };

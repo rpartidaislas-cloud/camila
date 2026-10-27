@@ -9,7 +9,9 @@ const app=read('../app.html');
 const worker=read('../sw.js');
 
 test('la navegación principal refleja el trabajo completo de una clínica dental',()=>{
-  for(const area of ['Inicio','Agenda','Pacientes','Tratamientos','Finanzas','Mensajes']) assert.match(navigation,new RegExp("\\['"+area+"'"));
+  for(const area of ['Inicio','Agenda','Pacientes','Finanzas','Mensajes']) assert.match(navigation,new RegExp("\\['"+area+"'"));
+  assert.doesNotMatch(navigation,/\['Tratamientos', 'propuestas'/);
+  assert.doesNotMatch(navigation,/\['Alertas', 'notificaciones'/);
   assert.match(navigation,/Servicios y tarifas/);
   assert.match(navigation,/Inventario/);
   assert.match(navigation,/Reportes/);
@@ -33,6 +35,7 @@ test('el expediente y los tratamientos ofrecen continuidad operativa',()=>{
   assert.match(shell,/SmylProposals\.forPatient/);
   assert.match(shell,/SmylFinance\.forPatient/);
   assert.match(shell,/SmylPatient360/);
+  assert.match(shell,/propuestas:\['Propuesta del paciente'/);
 });
 
 test('las tareas frecuentes se resuelven por proceso y paciente',()=>{

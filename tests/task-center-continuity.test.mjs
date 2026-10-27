@@ -28,9 +28,9 @@ test('las fuentes operativas siguen protegidas por tenant y permisos existentes'
   assert.match(script,/SmylLanaAttention\.getSummary/);
 });
 
-test('Alertas es accesible sin ocupar la barra móvil principal',()=>{
-  assert.match(nav,/var ALERTS = \['Alertas', 'notificaciones', 'alerts'\]/);
-  assert.match(nav,/PRIMARY\.slice\(1\)\.concat\(\[ALERTS\]\)/);
+test('los pendientes siguen accesibles desde Inicio sin ocupar un módulo del menú',()=>{
+  assert.doesNotMatch(nav,/\['Alertas', 'notificaciones', 'alerts'\]/);
+  assert.match(nav,/var daily = PRIMARY\.slice\(1\)/);
   assert.match(home,/data-route="notificaciones"/);
   assert.match(styles,/pro-nav-count/);
 });

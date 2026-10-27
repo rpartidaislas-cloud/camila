@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Navegación principal simplificada
+
+- `Tratamientos` y `Alertas` dejan de aparecer como módulos independientes en
+  el sidebar, la hoja móvil y el buscador global `Ir a…`.
+- El plan y la propuesta conservan su modelo y sus permisos, pero se abren como
+  una tarea contextual desde el expediente del paciente. Al entrar, el encabezado
+  dice `Propuesta del paciente` en lugar de presentar un módulo global.
+- El centro de pendientes no se elimina: continúa disponible desde la campana
+  superior y el Inicio sigue mostrando las prioridades de la clínica.
+- La ventana `Nuevo paciente` se reordenó en Datos esenciales, Atención,
+  consentimiento y datos adicionales. Usa una sola superficie, controles de
+  48 px, alerta clínica diferenciada, texto breve y acción contextual
+  `Crear paciente` / `Guardar cambios`.
+- Web, fuente móvil y PWA quedan sincronizadas en navegación v14, buscador v3,
+  shell profesional v6, pacientes JS v15/CSS v8 y caché
+  vigente con sufijo `simplified-navigation-patient-intake-v33`.
+- QA: **714/714** pruebas; revisión visual a 1280, 820 y 390 px sin overflow
+  horizontal, con controles de 48 px y acciones siempre visibles.
+
 ## 2026-10-26 — Codex — Plantillas de WhatsApp organizadas por uso
 
 - El catálogo pasó de una lista plana a seis categorías operativas: Citas,

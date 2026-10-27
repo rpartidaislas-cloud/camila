@@ -46,9 +46,30 @@ test('Ficha 360 hereda navy, controles legibles y root sin tarjeta exterior', ()
   assert.match(css, /p360-form-grid :is\(input,select,textarea\)\{min-height:48px/);
 });
 
+test('Nuevo paciente sigue la política visual y revela lo opcional al final', () => {
+  const modal = app.match(/<!-- ═══ MODAL PACIENTE ═══ -->([\s\S]*?)<!-- ═══ MODAL CAMBIAR DE PLAN ═══ -->/)?.[1] || '';
+  assert.match(modal, /Datos esenciales/);
+  assert.match(modal, /Atención/);
+  assert.match(modal, /Mensajes por WhatsApp/);
+  assert.match(modal, /<details class="clinic-secondary clinic-patient-extra">/);
+  assert.match(modal, />Crear paciente</);
+  assert.match(clinic, /id \? 'Guardar cambios' : 'Crear paciente'/);
+  assert.match(css, /width:min\(680px,calc\(100vw - 32px\)\)/);
+  assert.match(css, /#modal-paciente \.mp-body/);
+  assert.match(css, /#modal-paciente \.fg :is\(input,select,textarea\)\{min-height:48px/);
+});
+
 test('la fixture visual del directorio sólo usa datos sintéticos', () => {
   const fixture = read('tests/fixtures/smyl-patients-v32-preview.html');
   assert.match(fixture, /Directorio de pacientes/);
   assert.match(fixture, /example\.test/);
+  assert.doesNotMatch(fixture, /Bordados Express|Doña|Pepe/);
+});
+
+test('la fixture de alta reutiliza la ventana real sin datos clínicos', () => {
+  const fixture = read('tests/fixtures/smyl-patient-intake-v33-preview.html');
+  assert.match(fixture, /fetch\('\.\.\/\.\.\/app\.html'\)/);
+  assert.match(fixture, /insertAdjacentHTML/);
+  assert.match(fixture, /Clínica de prueba/);
   assert.doesNotMatch(fixture, /Bordados Express|Doña|Pepe/);
 });

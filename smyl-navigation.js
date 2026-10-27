@@ -37,10 +37,8 @@
     ['Nuevo diseño', 'nuevo-diseno', 'plus'],
     ['Agenda', 'agenda', 'calendar'],
     ['Pacientes', 'pacientes', 'patients'],
-    ['Tratamientos', 'propuestas', 'presentation'],
     ['Finanzas', 'caja', 'cash']
   ];
-  var ALERTS = ['Alertas', 'notificaciones', 'alerts'];
   // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
   var MESSAGING = [
     ['Mensajes', 'inbox', 'messages']
@@ -143,7 +141,6 @@
     nav.setAttribute('aria-label', 'Navegación principal');
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
-    nav.append(navItem(ALERTS, false));
     nav.append(sectionLabel('Mensajería'));
     MESSAGING.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(detailsGroup('Negocio', BUSINESS, true));
@@ -180,7 +177,7 @@
   function organizeMobileSheet() {
     var host = document.querySelector('.pam-scroll');
     if (!host) return;
-    var daily = PRIMARY.slice(1).concat([ALERTS]);
+    var daily = PRIMARY.slice(1);
     var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),

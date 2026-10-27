@@ -33,6 +33,12 @@ copyFile(path.join(ROOT, 'smyl-professional-directory.css'), path.join(WWW, 'smy
 copyFile(path.join(ROOT, 'smyl-ui-template-v3.css'), path.join(WWW, 'smyl-ui-template-v3.css'));
 copyFile(path.join(ROOT, 'smyl-navigation.js'), path.join(WWW, 'smyl-navigation.js'));
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
+copyFile(path.join(ROOT, 'smyl-command-menu.js'), path.join(WWW, 'smyl-command-menu.js'));
+copyFile(path.join(ROOT, 'smyl-command-menu.css'), path.join(WWW, 'smyl-command-menu.css'));
+copyFile(path.join(ROOT, 'smyl-professional-v3.js'), path.join(WWW, 'smyl-professional-v3.js'));
+copyFile(path.join(ROOT, 'smyl-professional-v3.css'), path.join(WWW, 'smyl-professional-v3.css'));
+copyFile(path.join(ROOT, 'smyl-clinic.js'), path.join(WWW, 'smyl-clinic.js'));
+copyFile(path.join(ROOT, 'smyl-clinic.css'), path.join(WWW, 'smyl-clinic.css'));
 copyFile(path.join(ROOT, 'smyl-clinic-admin.js'), path.join(WWW, 'smyl-clinic-admin.js'));
 copyFile(path.join(ROOT, 'smyl-clinic-admin.css'), path.join(WWW, 'smyl-clinic-admin.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js'));
