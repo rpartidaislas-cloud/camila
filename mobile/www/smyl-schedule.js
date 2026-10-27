@@ -268,6 +268,28 @@
     var rooms=state.rooms.filter(function(r){return r.branch_id===snap.branch.id;}).map(function(r){return r.id;});
     return window.SmylScheduleSlots.freeSlots({day:day,tz:snap.branch.timezone,duration:snap.duration+(snap.extra||0),before:snap.before,after:snap.after,step:step,clinic:state.clinicHours.filter(function(h){return h.branch_id===snap.branch.id;}),pro:state.hours.filter(function(h){return h.professional_id===snap.professional.id&&h.branch_id===snap.branch.id;}),professionalId:snap.professional.id,roomIds:snap.room?[snap.room.id]:rooms,now:new Date(),appointments:busy.appointments,blocks:busy.blocks,holds:busy.holds,excludeId:appointment&&appointment.id});
   }
+  // Horas libres del servidor (smyl_schedule_free_slots): misma regla que valida al confirmar y ve la agenda de toda la clínica.
+  // Si la función todavía no está aplicada o falla, se usa el cálculo del navegador de arriba.
+  var slotRpcOff=false,slotRpcCache={};
+  async function serverSlots(snap,day,appointment){
+    var W=window.SmylScheduleSlots,tz=snap.branch.timezone,next=isoDay(plusDays(new Date(day+'T12:00:00'),1));
+    var key=[snap.service.id,snap.branch.id,snap.professional.id,snap.room?snap.room.id:'',snap.extra||0,appointment&&appointment.id||'',day].join('|'),hit=slotRpcCache[key];
+    if(hit&&Date.now()-hit.at<20000)return hit.rows;
+    var rows=await rpc('smyl_schedule_free_slots',{p_service_id:snap.service.id,p_from:W.instant(day,0,tz).toISOString(),p_to:W.instant(next,0,tz).toISOString(),p_branch_id:snap.branch.id,p_professional_id:snap.professional.id,p_room_id:snap.room?snap.room.id:null,p_extra_minutes:snap.extra||0,p_exclude_appointment_id:appointment&&appointment.id||null,p_limit:200});
+    rows=(rows||[]).map(function(r){return {start:new Date(r.slot_start),end:new Date(r.slot_end),roomId:r.slot_room_id||''};});
+    slotRpcCache[key]={at:Date.now(),rows:rows};return rows;
+  }
+  async function loadSlots(snap,day,appointment){
+    if(!slotRpcOff){
+      try{
+        var all=await serverSlots(snap,day,appointment),tz=snap.branch.timezone,half=all.filter(function(x){return window.SmylScheduleSlots.zoneParts(x.start,tz).min%30===0;});
+        return {list:half.length?half:all,step:half.length?30:15,server:true};
+      }catch(err){if(missingRpc(err))slotRpcOff=true;}
+    }
+    var busy=await dayBusy(snap.branch.id,day),step=30,list=slotsFor(snap,day,busy,appointment,step);
+    if(!list.length){step=15;list=slotsFor(snap,day,busy,appointment,step);}
+    return {list:list,step:step,server:false};
+  }
   function renderSlots(form,appointment){
     var host=form.querySelector('[data-slots]');if(!host||!window.SmylScheduleSlots)return;
     var snap=bookingSnapshot(form,appointment);
@@ -280,12 +302,12 @@
     function bindDays(){host.querySelectorAll('[data-slot-day]').forEach(function(b){b.onclick=function(){setStart(b.dataset.slotDay+'T'+(time||'09:00'));};});}
     function setStart(value){var input=form.elements.starts;input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}
     bindDays();
-    dayBusy(snap.branch.id,day).then(function(busy){
+    loadSlots(snap,day,appointment).then(function(res){
       if(host._token!==token)return;
-      var step=30,list=slotsFor(snap,day,busy,appointment,step);if(!list.length){step=15;list=slotsFor(snap,day,busy,appointment,step);}
+      var list=res.list,step=res.step;
       var picked=snap.start?snap.start.getTime():0,body;
       if(!list.length)body='<p class="schedule-slots-hint">No hay horarios libres este día con '+esc(snap.professional.display_name)+'. Prueba otro día.</p>';
-      else body='<div class="schedule-slot-times" role="group" aria-label="Horarios libres">'+list.map(function(x){return '<button type="button" class="schedule-slot-time" data-slot-start="'+x.start.toISOString()+'" data-slot-room="'+esc(x.roomId||'')+'" aria-pressed="'+(x.start.getTime()===picked)+'">'+esc(fmtTime(x.start))+'</button>';}).join('')+'</div><p class="schedule-slots-hint">Horarios libres cada '+step+' min. Puedes escribir otra hora arriba; el sistema la revisa al confirmar.</p>';
+      else body='<div class="schedule-slot-times" role="group" aria-label="Horarios libres">'+list.map(function(x){return '<button type="button" class="schedule-slot-time" data-slot-start="'+x.start.toISOString()+'" data-slot-room="'+esc(x.roomId||'')+'" aria-pressed="'+(x.start.getTime()===picked)+'">'+esc(fmtTime(x.start))+'</button>';}).join('')+'</div><p class="schedule-slots-hint">'+(res.server?'Revisados con la agenda de toda la clínica. ':'')+'Horarios libres cada '+step+' min. Puedes escribir otra hora arriba; el sistema la revisa al confirmar.</p>';
       host.innerHTML=head+body;bindDays();
       host.querySelectorAll('[data-slot-start]').forEach(function(b){b.onclick=function(){if(b.dataset.slotRoom&&!form.elements.room.value)form.elements.room.value=b.dataset.slotRoom;setStart(localInput(new Date(b.dataset.slotStart)));};});
     }).catch(function(){if(host._token!==token)return;host.innerHTML=head+'<p class="schedule-slots-hint">No pudimos revisar los horarios libres. Escribe la hora; el sistema la revisa al confirmar.</p>';bindDays();});
