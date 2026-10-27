@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Tratamiento alineado a la política visual v3.2
+
+- Tratamiento pasa de cuatro pasos técnicos a tres decisiones clínicas:
+  `Evaluación`, `Plan` y `Seguimiento`. Las rutas internas anteriores se
+  conservan como alias para no romper accesos desde Agenda, Pacientes o
+  cotizaciones.
+- Un panel superior muestra la siguiente acción, etapa, estado del plan y
+  próxima cita. Una banda clínica separada lleva a alertas y antecedentes antes
+  de preparar el tratamiento.
+- Evaluación reúne documentación y odontograma como apartados distintos. Ya no
+  presenta `Sin fotos` junto a `Analizar fotografías`: permite continuar sin
+  imágenes o abrir el odontograma; si existen fotografías, conserva el análisis
+  asistido y exige confirmación profesional.
+- El plan existente, sus permisos y su fuente de datos no cambiaron. Cotización,
+  presentación mySmyl y continuidad del caso quedan en `Autorización y
+  seguimiento`; ninguna acción afirma envío automático.
+- La interfaz usa superficies blancas, acción primaria navy, turquesa sólo para
+  selección/estado y controles de 42 px en escritorio y 44 px en móvil. Se
+  revisó a 1280, 820, 390 y 320 px sin overflow horizontal.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-case-workspace.js?v=10`, `smyl-case-workspace.css?v=7`,
+  `smyl-patient-360.css?v=8` y cache `treatment-ux-v32`. No hubo migraciones,
+  cambios de RLS ni cambios de esquema. QA: **718/718** pruebas y control visual
+  responsivo aprobado.
+
 ## 2026-10-26 — Codex — Plantillas de WhatsApp organizadas por uso
 
 - El catálogo pasó de una lista plana a seis categorías operativas: Citas,

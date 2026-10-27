@@ -20,8 +20,8 @@ test('la ficha conserva una sola identidad y accesos rápidos del paciente', () 
   assert.match(flowCss, /\.cw-enhanced>\.clinic-patient-heading\{display:none\}/);
 });
 
-test('el recorrido muestra odontograma, plan y cotización como pasos explícitos', () => {
-  for (const label of ['Odontograma', 'Plan', 'Cotización y seguimiento', 'Preparar cotización']) {
+test('el recorrido muestra evaluación, plan y seguimiento como etapas explícitas', () => {
+  for (const label of ['Evaluación clínica', 'Plan de tratamiento', 'Autorización y seguimiento', 'Preparar cotización']) {
     assert.match(flow, new RegExp(label));
   }
   assert.match(flow, /const quoteReady=!!clinical\?\.ready,eligible=pairs>0&&planComplete/);
@@ -36,8 +36,8 @@ test('Agenda abre la ficha para cualquier rol con clinical.read', () => {
 });
 
 test('web, móvil y PWA publican la misma etapa', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=9/);
-  assert.match(app, /smyl-case-workspace\.css\?v=6/);
+  assert.match(app, /smyl-case-workspace\.js\?v=10/);
+  assert.match(app, /smyl-case-workspace\.css\?v=7/);
   assert.match(app, /smyl-patient-360\.js\?v=9/);
   assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);

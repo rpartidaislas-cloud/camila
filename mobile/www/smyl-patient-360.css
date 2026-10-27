@@ -49,7 +49,7 @@
 .p360-form-grid label,.p360-form-grid input,.p360-form-grid select,.p360-form-grid textarea,.p360-note p{font-size:var(--p360-text-sm)}
 .p360-note h3{font-size:var(--p360-text-md)}.p360-note small,.p360-file-grid small,.p360-appointment-list small{font-size:var(--p360-text-xs)}
 .p360-dialog h2{font-size:20px}.p360-assistant-head small,.p360-assistant-head p,.p360-assistant-grid h3,.p360-assistant-grid p,.p360-assistant-grid li,.p360-assistant>aside{font-size:var(--p360-text-sm)}
-.cw-enhanced .cw-workspace{max-width:none;margin:0}.cw-enhanced .cw-workspace>.cw-patient-head,.cw-enhanced .cw-workspace>.cw-quick-links,.cw-enhanced .cw-workspace>.cw-simulation-link,.cw-enhanced .cw-workspace>.cw-heading,.cw-enhanced .cw-workspace>.cw-overview,.cw-enhanced .cw-workspace>.cw-nav{display:none!important}
+.cw-enhanced .cw-workspace{max-width:none;margin:0}.cw-enhanced .cw-workspace>.cw-patient-head,.cw-enhanced .cw-workspace>.cw-quick-links,.cw-enhanced .cw-workspace>.cw-simulation-link{display:none!important}
 .cw-enhanced .cw-workspace>.cw-module{margin:0 0 12px}.cw-enhanced .cw-summary{min-height:72px}.cw-enhanced .cw-module-title strong{font-size:16px}.cw-enhanced .cw-subtitle,.cw-enhanced .cw-help,.cw-enhanced .cw-badge{font-size:12px}
 @media(max-width:700px){.p360-root{padding:18px 16px}.p360-title{grid-template-columns:40px minmax(0,1fr)}.p360-avatar{width:40px;height:40px}.p360-title-tools{grid-column:1/-1;margin:4px 0 0}.p360-patient-copy h1{font-size:21px}.p360-tabs{gap:18px}.p360-overview-grid{grid-template-columns:1fr}}
 
