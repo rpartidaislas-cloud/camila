@@ -30,7 +30,7 @@
    workflowCompleted:stages.filter(s=>s.state==='completed').length,
    workflowPending:stages.filter(s=>s.state!=='completed').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
    rxReviews:(ctx.rxReviews||[]).length,rxPending:rxItems.filter(i=>i.state==='pending').length,
-   studyItems:ctx.doc.studies.map(study=>{const review=(ctx.rxReviews||[]).find(row=>row.study_id===study.id),items=review?.document.items||[];return {id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',confirmed:items.filter(item=>item.state==='confirmed').length,pending:items.filter(item=>item.state==='pending').length};}),
+   studyItems:ctx.doc.studies.map(study=>{const review=(ctx.rxReviews||[]).find(row=>row.study_id===study.id),items=review?.document.items||[],workflow=review?.document.workflow?.state||'ready';return {id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',reviewed:!!review,workflow,quality:review?.document.analysis?.report?.quality||'',confirmed:items.filter(item=>item.state==='confirmed').length,pending:items.filter(item=>item.state==='pending').length,rejected:items.filter(item=>item.state==='rejected').length};}),
    rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length};
   },map(tenant,patient,caseId){
    const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño')return null;
@@ -52,6 +52,9 @@
   },openTooth(tenant,patient,tooth){
    const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño'||!M.teeth.includes(String(tooth))||!ctx.ready||ctx.busy)return false;
    toothDialog(ctx,String(tooth));return true;
+  },openStudy(tenant,patient,studyId){
+   const ctx=active,study=ctx?.doc?.studies?.find(item=>item.id===studyId);if(!ctx||!study||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño'||!ctx.ready||ctx.busy)return false;
+   viewStudy(ctx,study);return true;
   },planContext(tenant,patient,caseId){
    const ctx=active;
    const snapshot=()=>{

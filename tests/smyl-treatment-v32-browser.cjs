@@ -36,7 +36,9 @@ const fs = require('node:fs');
         odontogramTeeth: odontogram[0]?.querySelectorAll('.dr-tooth').length || 0,
         odontogramFilters: visible('.cw-map-filter').length,
         evidenceHistory: visible('.cw-evidence-history').length,
-        evidenceMetrics: visible('.cw-evidence-metrics > div').length
+        evidenceMetrics: visible('.cw-evidence-metrics > div').length,
+        evidenceAssistant: visible('.cw-evidence-assistant').length,
+        evidenceReviewStates: visible('.cw-evidence-review').length
       };
     });
     const requiredHeight = item.width <= 760 ? 44 : 42;
@@ -51,5 +53,5 @@ const fs = require('node:fs');
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  if (report.some(item => item.horizontalOverflow || item.commandActions !== 1 || item.stages !== 3 || !item.commandVisible || !item.safetyVisible || !item.odontogramVisible || item.odontogramTeeth !== 32 || item.odontogramFilters !== 4 || item.evidenceHistory !== 1 || item.evidenceMetrics !== 3 || item.minButtonHeight < item.requiredHeight)) process.exitCode = 1;
+  if (report.some(item => item.horizontalOverflow || item.commandActions !== 1 || item.stages !== 3 || !item.commandVisible || !item.safetyVisible || !item.odontogramVisible || item.odontogramTeeth !== 32 || item.odontogramFilters !== 4 || item.evidenceHistory !== 1 || item.evidenceMetrics !== 3 || item.evidenceAssistant !== 1 || item.evidenceReviewStates !== 3 || item.minButtonHeight < item.requiredHeight)) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

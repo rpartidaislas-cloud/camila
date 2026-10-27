@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Revisión asistida por evidencia v3.5
+
+- La historia de evidencia muestra ahora el estado de interpretación de cada
+  sesión fotográfica y cada radiografía compatible: `IA disponible`,
+  sugerencias `por confirmar`, revisión completada o respuesta no confirmada.
+  Escaneos, PDF y demás archivos se identifican como `Revisión profesional`
+  porque el analizador clínico actual no admite esos formatos.
+- Una franja de control resume pendientes y observaciones confirmadas. El copy
+  deja explícito que la IA sólo propone zonas por comprobar y que nada pasa al
+  odontograma hasta que el profesional lo confirma.
+- Cada radiografía abre ahora su estudio exacto mediante el visor canónico; las
+  fotografías reutilizan su revisión profesional existente. No se creó un
+  segundo analizador, fuente de datos ni mecanismo de guardado.
+- Se conserva el consentimiento explícito ya existente para enviar cada
+  estudio compatible, la separación entre sugerencias y hallazgos confirmados,
+  y la revisión privada. No se modificaron prompts, Edge Functions, esquema,
+  RLS ni almacenamiento.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-dental-record.js?v=12`, `smyl-case-workspace.js?v=13`,
+  `smyl-case-workspace.css?v=10` y cache `evidence-ai-v35`. QA:
+  **751/751** pruebas y revisión responsiva a 1280, 820, 390 y 320 px.
+
 ## 2026-10-26 — Codex — Nuevo diseño sale de la navegación principal
 
 - `Nuevo diseño` deja de mostrarse como módulo persistente en el sidebar y la
