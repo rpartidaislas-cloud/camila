@@ -1,6 +1,6 @@
 // Renueva enlaces breves de máscaras dentales privadas al reabrir un caso.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { requireUser } from '../_shared/auth.ts';
+import { requirePermission, requireUser } from '../_shared/auth.ts';
 import { makeCors } from '../_shared/cors.ts';
 const SB_URL=Deno.env.get('SUPABASE_URL')||Deno.env.get('SB_URL')||'';
 const SERVICE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||Deno.env.get('SB_SERVICE_ROLE_KEY')||'';
@@ -29,6 +29,7 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:CORS});
   if(req.method!=='POST')return reply(405,{error:'Método no permitido.'});
   const auth=await requireUser(req,CORS);if(auth.response)return auth.response;
+  const sinPermiso=await requirePermission(auth,CORS,'clinical.read');if(sinPermiso)return sinPermiso;
   try{
     const body=await req.json();const caseId=String(body?.case_id||'');
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(caseId))return reply(400,{error:'Caso no válido.'});

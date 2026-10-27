@@ -23,6 +23,7 @@
 // Responde 200 inmediatamente y procesa en background (EdgeRuntime.waitUntil).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { constantTimeEqual, isAllowedRemoteUrl, parseAllowedHostSuffixes, readBodyWithLimit } from "../_shared/request-safety.ts";
 
 const LANA_API_KEY = Deno.env.get("LANA_API_KEY") || "";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
@@ -32,6 +33,13 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 const OPENAI_IMAGE_MODEL =
   Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2-2026-04-21";
 const ANALISIS_BUCKET = "camila-analisis";
+// Hosts desde los que se acepta descargar la imagen y a los que se acepta devolver el callback:
+// por defecto solo Supabase (el Storage y las funciones de LANA); más hosts con
+// ANALIZAR_FOTO_ALLOWED_HOSTS (lista separada por comas).
+const SUFIJOS_PERMITIDOS = parseAllowedHostSuffixes(Deno.env.get("ANALIZAR_FOTO_ALLOWED_HOSTS"));
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Las simulaciones de pacientes se entregan con enlace firmado de 7 días, no con una URL pública permanente.
+const SIMULACION_URL_SEGUNDOS = 7 * 24 * 3600;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -54,7 +62,7 @@ Deno.serve(async (req: Request) => {
   const tokenEntrante = (req.headers.get("Authorization") || "")
     .replace(/^Bearer\s+/i, "")
     .trim();
-  if (!LANA_API_KEY || tokenEntrante !== LANA_API_KEY) {
+  if (!LANA_API_KEY || !constantTimeEqual(tokenEntrante, LANA_API_KEY)) {
     return jsonResp({ error: "No autorizado" }, 401);
   }
 
@@ -71,6 +79,27 @@ Deno.serve(async (req: Request) => {
     return jsonResp({
       error: "Faltan campos requeridos: tenant_id, canal, sender_id, imagen_url, callback_url, callback_secret",
     }, 400);
+  }
+
+  // Esta función corre con service role y hace peticiones salientes con datos del body:
+  // se valida todo antes de usarlo (ruta de Storage, hosts de descarga y de callback).
+  if (typeof tenant_id !== "string" || !UUID_RE.test(tenant_id)) {
+    return jsonResp({ error: "tenant_id inválido" }, 400);
+  }
+  if (typeof canal !== "string" || canal.length > 40 || typeof sender_id !== "string" || sender_id.length > 120) {
+    return jsonResp({ error: "canal o sender_id inválido" }, 400);
+  }
+  if (nombre_paciente != null && (typeof nombre_paciente !== "string" || nombre_paciente.length > 200)) {
+    return jsonResp({ error: "nombre_paciente inválido" }, 400);
+  }
+  if (!isAllowedRemoteUrl(imagen_url, SUFIJOS_PERMITIDOS)) {
+    return jsonResp({ error: "imagen_url no es una URL permitida" }, 400);
+  }
+  if (!isAllowedRemoteUrl(callback_url, SUFIJOS_PERMITIDOS)) {
+    return jsonResp({ error: "callback_url no es una URL permitida" }, 400);
+  }
+  if (typeof callback_secret !== "string" || callback_secret.length > 500) {
+    return jsonResp({ error: "callback_secret inválido" }, 400);
   }
 
   const job_id = crypto.randomUUID();
@@ -113,12 +142,12 @@ async function procesarFotoDental(opts: {
 
   try {
     // 1. Descargar la imagen dental
-    const imagenRes = await fetch(imagen_url);
+    const imagenRes = await fetch(imagen_url, { redirect: "error" });
     if (!imagenRes.ok) {
       throw new Error(`No se pudo descargar la imagen: HTTP ${imagenRes.status}`);
     }
     const mimeType = (imagenRes.headers.get("content-type") || "image/jpeg").split(";")[0];
-    const imagenBytes = new Uint8Array(await imagenRes.arrayBuffer());
+    const imagenBytes = await readBodyWithLimit(imagenRes);
     const imagenBase64 = bytesABase64(imagenBytes);
 
     // 2. Diagnóstico con GPT-4o Vision
@@ -325,6 +354,11 @@ async function generarSimulacion(
     throw new Error(`Storage upload error (${uploadRes.status}): ${err.slice(0, 200)}`);
   }
 
+  // Enlace firmado y con vencimiento. Si el bucket sigue siendo público (o la firma falla), se cae a la
+  // URL pública anterior para no romper la entrega; conviene volver privado el bucket en el panel.
+  const firmada = await admin.storage.from(ANALISIS_BUCKET).createSignedUrl(path, SIMULACION_URL_SEGUNDOS);
+  if (!firmada.error && firmada.data?.signedUrl) return firmada.data.signedUrl;
+  console.error("[analizar-foto] no se pudo firmar la simulación; se usa la URL pública:", firmada.error?.message);
   return `${SB_URL}/storage/v1/object/public/${ANALISIS_BUCKET}/${path}`;
 }
 
@@ -335,6 +369,7 @@ async function generarSimulacion(
 async function notificarCallback(url: string, secret: string, payload: Record<string, unknown>): Promise<void> {
   const res = await fetch(url, {
     method: "POST",
+    redirect: "error",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${secret}`,

@@ -3,8 +3,34 @@
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// ── _shared/auth-membership.ts ──
+const { decidirMembresia } = (() => {
+// Decisión pura (sin red) sobre la membresía de quien llama a una Edge Function privada.
+// Vive aparte de auth.ts para poder probarla sin Deno ni Supabase.
+//
+// `row` es la fila de camila_usuarios de la persona (o null si no tiene: el dueño de siempre
+// es una cuenta cuyo id = tenant_id y puede no tener fila). Si la fila existe pero está
+// desactivada, la persona ya no pertenece al equipo: no se le resuelve ninguna clínica
+// (antes se ignoraba `activo` y un staff dado de baja seguía usando las funciones con el
+// service role).
+interface FilaMembresia {
+  tenant_id?: string | null;
+  activo?: boolean | null;
+}
+
+type DecisionMembresia = { tenantId: string } | { inactivo: true };
+
+function decidirMembresia(row: FilaMembresia | null | undefined, userId: string): DecisionMembresia {
+  if (row && row.activo === false) return { inactivo: true };
+  if (row?.tenant_id) return { tenantId: row.tenant_id };
+  return { tenantId: userId };
+}
+
+return { decidirMembresia };
+})();
+
 // ── _shared/auth.ts ──
-const { requireUser } = (() => {
+const { requireUser, requirePermission } = (() => {
 // Verificación obligatoria de sesión para Edge Functions privadas.
 // Una publishable key identifica el proyecto, pero nunca autentica a una
 // persona. Los flujos públicos deben usar funciones separadas con capacidades
@@ -40,15 +66,16 @@ interface AuthResult {
 // Mismo patrón que ya usa el cliente (cargarTenantConfig() en
 // simulacion.html, continuarConUsuario() en app.html): resuelve si quien
 // llama es staff antes de asumir que su propio auth.uid() es el tenant.
-async function resolverTenantId(userId: string): Promise<string> {
+// Si la persona tiene fila en camila_usuarios pero está desactivada, ya no pertenece al equipo y no
+// se le resuelve ninguna clínica (decidirMembresia, _shared/auth-membership.ts).
+async function resolverMembresia(userId: string): Promise<DecisionMembresia> {
   const { data, error } = await admin
     .from('camila_usuarios')
-    .select('tenant_id')
+    .select('tenant_id, activo')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
-  if (data?.tenant_id) return data.tenant_id;
-  return userId;
+  return decidirMembresia(data, userId);
 }
 
 async function requireUser(req: Request, cors: Record<string, string>): Promise<AuthResult> {
@@ -82,8 +109,18 @@ async function requireUser(req: Request, cors: Record<string, string>): Promise<
   ]);
   if (data?.user) {
     try {
-      const tenantId = await resolverTenantId(data.user.id);
-      return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+      const membresia = await resolverMembresia(data.user.id);
+      if ('inactivo' in membresia) {
+        return {
+          user: null,
+          tenantId: null,
+          response: new Response(JSON.stringify({ error: 'Tu acceso a esta clínica está desactivado. Pide al dueño que lo reactive.' }), {
+            status: 403,
+            headers: { ...cors, 'Content-Type': 'application/json' },
+          }),
+        };
+      }
+      return { user: { id: data.user.id, email: data.user.email }, tenantId: membresia.tenantId, response: null };
     } catch (error) {
       console.error('[auth] no se pudo resolver el tenant del usuario:', error instanceof Error ? error.message : 'error desconocido');
       return {
@@ -102,7 +139,33 @@ async function requireUser(req: Request, cors: Record<string, string>): Promise<
   return deny('No autenticado: la sesión no es válida o ya expiró.');
 }
 
-return { requireUser };
+// Exige un permiso del modelo de roles de SMYL (smyl_member_roles / smyl_role_permissions) además de
+// la sesión. El dueño (user.id === tenantId) siempre pasa; el staff solo si su rol activo tiene el
+// permiso. Falla cerrado: si la consulta falla, se niega. Devuelve una Response para regresar tal
+// cual, o null si se puede continuar.
+async function requirePermission(
+  auth: AuthResult,
+  cors: Record<string, string>,
+  permission: string,
+): Promise<Response | null> {
+  const reply = (status: number, error: string) =>
+    new Response(JSON.stringify({ error }), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!auth.user || !auth.tenantId) return reply(401, 'Necesitas iniciar sesión.');
+  if (auth.user.id === auth.tenantId) return null;
+  const { data, error } = await admin.rpc('smyl_actor_has_permission_explicit', {
+    p_actor: auth.user.id,
+    p_tenant: auth.tenantId,
+    p_permission: permission,
+  });
+  if (error) {
+    console.error('[auth] no se pudo verificar el permiso:', error.message);
+    return reply(503, 'No se pudo verificar tu permiso. Intenta de nuevo.');
+  }
+  if (data !== true) return reply(403, 'Tu rol no tiene permiso para esta acción.');
+  return null;
+}
+
+return { requireUser, requirePermission };
 })();
 
 // ── _shared/cors.ts ──
@@ -150,10 +213,11 @@ return { makeCors, corsPublic, corsHeaders };
 // (ver el manejo de ?invite=1 en app.html).
 //
 // El vínculo con la clínica del dueño viaja en los metadatos del usuario
-// invitado (tenant_id_invitado) -- el trigger camila_crear_tenant_en_signup
-// (ver camila_team.sql) lo lee al crearse la cuenta y, en vez de montar una
-// clínica nueva, inserta una fila en camila_usuarios con rol 'staff'
-// apuntando a esa clínica.
+// invitado (tenant_id_invitado), PERO ese dato por sí solo no basta: lo manda el
+// navegador y cualquiera podría falsificarlo en un signUp. La invitación trazable
+// se registra en smyl_staff_invitations y su UUID viaja como smyl_invitation_id.
+// El trigger solo une la cuenta al equipo si ambos datos coinciden con una fila
+// pendiente, vigente y emitida para el mismo correo.
 
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -203,16 +267,24 @@ Deno.serve(async (req: Request) => {
 
   const limiteUsuarios = LIMITE_USUARIOS_POR_PLAN[tenant.plan as string];
   if (limiteUsuarios !== undefined) {
-    const { count, error: countErr } = await admin
+    const [{ count, error: countErr }, { count: pendingCount, error: pendingErr }] = await Promise.all([
+      admin
       .from("camila_usuarios")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", user.id)
-      .eq("activo", true);
-    if (countErr) {
-      console.error("[invite-staff] error contando equipo:", countErr.message);
+      .eq("activo", true),
+      admin
+        .from("smyl_staff_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", user.id)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString()),
+    ]);
+    if (countErr || pendingErr) {
+      console.error("[invite-staff] error contando equipo:", countErr?.message || pendingErr?.message);
       return jsonError(500, "No se pudo verificar tu equipo actual. Intenta de nuevo.");
     }
-    if ((count || 0) >= limiteUsuarios) {
+    if ((count || 0) + (pendingCount || 0) >= limiteUsuarios) {
       return jsonError(
         403,
         `Tu plan (${tenant.plan}) permite hasta ${limiteUsuarios} usuario${limiteUsuarios === 1 ? "" : "s"}. Sube de plan para invitar a más personas.`
@@ -228,17 +300,74 @@ Deno.serve(async (req: Request) => {
   }
   const email = String(body?.email || "").trim().toLowerCase();
   const nombre = String(body?.nombre || "").trim();
+  const memberKind = body?.member_kind === "professional" ? "professional" : "staff";
+  const specialty = String(body?.specialty || "").trim();
+  const licenseNumber = String(body?.license_number || "").trim();
+  const branchId = String(body?.branch_id || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError(400, "Correo inválido.");
+  if (memberKind === "professional" && nombre.length < 2) {
+    return jsonError(400, "Escribe el nombre del profesional.");
+  }
+  if (specialty.length > 120 || licenseNumber.length > 80) {
+    return jsonError(400, "Revisa la especialidad o la cédula profesional.");
+  }
+  if (memberKind === "professional" && !branchId) {
+    return jsonError(400, "Selecciona la primera sucursal del profesional.");
+  }
+
+  if (branchId) {
+    const { data: branch, error: branchErr } = await admin
+      .from("smyl_branches")
+      .select("id")
+      .eq("tenant_id", tenant.id)
+      .eq("id", branchId)
+      .eq("active", true)
+      .maybeSingle();
+    if (branchErr) {
+      console.error("[invite-staff] error verificando sucursal:", branchErr.message);
+      return jsonError(500, "No se pudo verificar la sucursal.");
+    }
+    if (!branch) return jsonError(400, "La sucursal no existe o está inactiva.");
+  }
+
+  const { data: invitation, error: invitationErr } = await admin
+    .from("smyl_staff_invitations")
+    .insert({
+      tenant_id: tenant.id,
+      email,
+      display_name: nombre || email,
+      member_kind: memberKind,
+      specialty,
+      license_number: licenseNumber,
+      branch_id: branchId || null,
+      invited_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (invitationErr || !invitation) {
+    const duplicate = invitationErr?.code === "23505";
+    console.error("[invite-staff] error registrando invitación:", invitationErr?.message);
+    return jsonError(
+      duplicate ? 409 : 500,
+      duplicate
+        ? "Ya existe una invitación pendiente para ese correo."
+        : "No se pudo preparar la invitación. Intenta de nuevo."
+    );
+  }
 
   const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: {
-      tenant_id_invitado: user.id,
+      tenant_id_invitado: tenant.id,
       nombre: nombre || undefined,
+      smyl_invitation_id: invitation.id,
+      smyl_member_kind: memberKind,
     },
     redirectTo: `${APP_URL}/app.html?invite=1`,
   });
 
   if (inviteErr) {
+    await admin.from("smyl_staff_invitations").delete().eq("id", invitation.id).eq("tenant_id", tenant.id);
     console.error("[invite-staff] error invitando:", inviteErr.message);
     // Supabase regresa este mensaje cuando el correo ya tiene cuenta --
     // vale la pena distinguirlo del resto para no confundir al dueño.
@@ -251,7 +380,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  return new Response(JSON.stringify({ ok: true, email }), {
+  return new Response(JSON.stringify({ ok: true, email, invitation_id: invitation.id, member_kind: memberKind }), {
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 });

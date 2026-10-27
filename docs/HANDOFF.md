@@ -16,8 +16,56 @@
 - Web, fuente móvil y PWA quedan sincronizadas en navegación v14, buscador v3,
   shell profesional v6, pacientes JS v15/CSS v8 y caché
   vigente con sufijo `simplified-navigation-patient-intake-v33`.
-- QA: **714/714** pruebas; revisión visual a 1280, 820 y 390 px sin overflow
+- QA combinada: **742/742** pruebas; revisión visual a 1280, 820 y 390 px sin overflow
   horizontal, con controles de 48 px y acciones siempre visibles.
+
+## 2026-10-26 — Codex — Odontograma clínico longitudinal v3.3
+
+- Tratamiento incorpora un odontograma FDI interactivo de 32 piezas dentro de
+  `Evaluación clínica`. Resume el expediente dental vigente sin crear una
+  segunda fuente de verdad; al seleccionar una pieza abre el editor canónico
+  existente para revisar o registrar su evolución.
+- El mapa distingue por origen las anotaciones clínicas, fotografías
+  confirmadas y radiografías confirmadas. Los filtros `Todo`, `Clínica`,
+  `Fotografías` y `Rayos X` permiten aislar cada capa sin perder el contexto.
+- Las sugerencias de IA se muestran con trazo discontinuo y estado
+  `IA por revisar`; nunca se convierten automáticamente en hallazgos ni se
+  mezclan visualmente con evidencia confirmada. La decisión continúa bajo
+  control del profesional.
+- La tarjeta informa piezas relacionadas, conteos por fuente y pendientes. En
+  móvil se apila, conserva acciones táctiles de 44 px y ofrece acceso explícito
+  al odontograma completo. Se validaron 1280, 820, 390 y 320 px, 32 piezas y
+  cuatro filtros, sin overflow horizontal.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-dental-record.js?v=10`, `smyl-case-workspace.js?v=11`,
+  `smyl-case-workspace.css?v=8` y cache `smart-odontogram-v33`. No hubo
+  migraciones, cambios de RLS ni cambios de esquema. QA: **722/722** pruebas y
+  control visual responsivo aprobado.
+
+## 2026-10-26 — Codex — Tratamiento alineado a la política visual v3.2
+
+- Tratamiento pasa de cuatro pasos técnicos a tres decisiones clínicas:
+  `Evaluación`, `Plan` y `Seguimiento`. Las rutas internas anteriores se
+  conservan como alias para no romper accesos desde Agenda, Pacientes o
+  cotizaciones.
+- Un panel superior muestra la siguiente acción, etapa, estado del plan y
+  próxima cita. Una banda clínica separada lleva a alertas y antecedentes antes
+  de preparar el tratamiento.
+- Evaluación reúne documentación y odontograma como apartados distintos. Ya no
+  presenta `Sin fotos` junto a `Analizar fotografías`: permite continuar sin
+  imágenes o abrir el odontograma; si existen fotografías, conserva el análisis
+  asistido y exige confirmación profesional.
+- El plan existente, sus permisos y su fuente de datos no cambiaron. Cotización,
+  presentación mySmyl y continuidad del caso quedan en `Autorización y
+  seguimiento`; ninguna acción afirma envío automático.
+- La interfaz usa superficies blancas, acción primaria navy, turquesa sólo para
+  selección/estado y controles de 42 px en escritorio y 44 px en móvil. Se
+  revisó a 1280, 820, 390 y 320 px sin overflow horizontal.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-case-workspace.js?v=10`, `smyl-case-workspace.css?v=7`,
+  `smyl-patient-360.css?v=8` y cache `treatment-ux-v32`. No hubo migraciones,
+  cambios de RLS ni cambios de esquema. QA: **718/718** pruebas y control visual
+  responsivo aprobado.
 
 ## 2026-10-26 — Codex — Plantillas de WhatsApp organizadas por uso
 
@@ -8485,3 +8533,29 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md`.
   prueba, igual que antes. Si no se desea, limitar el plan de entrada a 'profesional' en el trigger de alta.
 - Pendiente de la auditoría: S2-S10 (segment-teeth, analizar-foto, permisos por rol en Edge Functions, URLs de 1 año,
   bucket público, Stripe priceId, retención), CSP, CI.
+
+## 2026-10-27 — Claude — Auditoría P1: membresía activa, permisos por rol, SSRF y máscaras (Edge Functions)
+Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2, S3, S4). **Solo Edge Functions: sin migraciones.**
+- `_shared/auth.ts` + `_shared/auth-membership.ts`: `requireUser` ya respeta `camila_usuarios.activo`; una persona de staff
+  desactivada recibe 403 (antes seguía resolviendo la clínica y usaba las funciones con service role). Nuevo
+  `requirePermission(auth, cors, permiso)`: el dueño pasa; el staff solo si su rol activo tiene el permiso
+  (`smyl_actor_has_permission_explicit`); falla cerrado (503 si la consulta falla).
+- Permisos exigidos: `meta-send` → `messages.respond` (Recepción lo tiene); `mila-transcribe` y `mila-realtime-session` →
+  `clinical.write`; `lana-webhook` → `clinical.write`; `sign-segmentation-masks` → `clinical.read`.
+  **Efecto:** Recepción (sin permisos clínicos) ya no puede usar MILA, ver máscaras ni compartir simulaciones con LANA.
+  `mila-actions` ya tenía su propia verificación; `secure-clinical-file` queda protegido por las políticas de Storage.
+- `segment-teeth`: la imagen solo puede ser data URL de imagen o https de un host permitido (por defecto `*.supabase.co`;
+  más con `SEGMENT_TEETH_ALLOWED_HOSTS`); sin redirecciones y con tope de 25 MB. `casoId` debe ser UUID y no puede ser de otra
+  clínica; un prospecto anónimo no puede tocar casos reales (solo `es_prospecto=true` o inexistentes).
+- `analizar-foto`: secreto de LANA comparado en tiempo constante; `tenant_id` validado como UUID (la ruta de Storage lo
+  usa); `imagen_url` y `callback_url` solo https de hosts permitidos (`*.supabase.co` + `ANALIZAR_FOTO_ALLOWED_HOSTS`);
+  la simulación se entrega con enlace **firmado de 7 días** (si firmar falla, cae a la URL pública anterior).
+  **Si LANA usa un dominio propio en vez de `*.supabase.co`, hay que añadirlo en `ANALIZAR_FOTO_ALLOWED_HOSTS` o el análisis
+  fallará con 400.** Conviene volver privado el bucket `camila-analisis` en el panel una vez desplegado.
+- Bundles regenerados (`docs/bundles/`): todas las funciones que importan `_shared/auth.ts`, más nuevos `guardar-lead-prospecto`
+  y `analizar-foto`. El bundle de `invite-staff` estaba desactualizado respecto de su código.
+- **Pendiente (decisión de diseño): enlaces firmados de 1 año** (`firmarUrlStorage`, `expiresIn: 31536000`, en
+  `simulacion.html`, `simulacion-rapida.html` y `revision-clinica.html`). Se guardan en `camila_casos.imagen_url` y la revisión
+  clínica los reutiliza al reabrir un caso; acortarlos rompería los casos existentes. Requiere guardar la ruta y firmar al
+  leer (revision-clinica: reapertura y lista de 50 miniaturas; app.html: Historial). No se tocó para no romper casos.
+- Pruebas: `tests/security-functions-p1-2026-10-27.test.mjs` (ejecuta los validadores reales; suite 734/734).

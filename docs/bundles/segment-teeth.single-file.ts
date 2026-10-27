@@ -7,8 +7,34 @@ import {;
 import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// ── _shared/auth-membership.ts ──
+const { decidirMembresia } = (() => {
+// Decisión pura (sin red) sobre la membresía de quien llama a una Edge Function privada.
+// Vive aparte de auth.ts para poder probarla sin Deno ni Supabase.
+//
+// `row` es la fila de camila_usuarios de la persona (o null si no tiene: el dueño de siempre
+// es una cuenta cuyo id = tenant_id y puede no tener fila). Si la fila existe pero está
+// desactivada, la persona ya no pertenece al equipo: no se le resuelve ninguna clínica
+// (antes se ignoraba `activo` y un staff dado de baja seguía usando las funciones con el
+// service role).
+interface FilaMembresia {
+  tenant_id?: string | null;
+  activo?: boolean | null;
+}
+
+type DecisionMembresia = { tenantId: string } | { inactivo: true };
+
+function decidirMembresia(row: FilaMembresia | null | undefined, userId: string): DecisionMembresia {
+  if (row && row.activo === false) return { inactivo: true };
+  if (row?.tenant_id) return { tenantId: row.tenant_id };
+  return { tenantId: userId };
+}
+
+return { decidirMembresia };
+})();
+
 // ── _shared/auth.ts ──
-const { requireUser } = (() => {
+const { requireUser, requirePermission } = (() => {
 // Verificación obligatoria de sesión para Edge Functions privadas.
 // Una publishable key identifica el proyecto, pero nunca autentica a una
 // persona. Los flujos públicos deben usar funciones separadas con capacidades
@@ -44,15 +70,16 @@ interface AuthResult {
 // Mismo patrón que ya usa el cliente (cargarTenantConfig() en
 // simulacion.html, continuarConUsuario() en app.html): resuelve si quien
 // llama es staff antes de asumir que su propio auth.uid() es el tenant.
-async function resolverTenantId(userId: string): Promise<string> {
+// Si la persona tiene fila en camila_usuarios pero está desactivada, ya no pertenece al equipo y no
+// se le resuelve ninguna clínica (decidirMembresia, _shared/auth-membership.ts).
+async function resolverMembresia(userId: string): Promise<DecisionMembresia> {
   const { data, error } = await admin
     .from('camila_usuarios')
-    .select('tenant_id')
+    .select('tenant_id, activo')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
-  if (data?.tenant_id) return data.tenant_id;
-  return userId;
+  return decidirMembresia(data, userId);
 }
 
 async function requireUser(req: Request, cors: Record<string, string>): Promise<AuthResult> {
@@ -86,8 +113,18 @@ async function requireUser(req: Request, cors: Record<string, string>): Promise<
   ]);
   if (data?.user) {
     try {
-      const tenantId = await resolverTenantId(data.user.id);
-      return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+      const membresia = await resolverMembresia(data.user.id);
+      if ('inactivo' in membresia) {
+        return {
+          user: null,
+          tenantId: null,
+          response: new Response(JSON.stringify({ error: 'Tu acceso a esta clínica está desactivado. Pide al dueño que lo reactive.' }), {
+            status: 403,
+            headers: { ...cors, 'Content-Type': 'application/json' },
+          }),
+        };
+      }
+      return { user: { id: data.user.id, email: data.user.email }, tenantId: membresia.tenantId, response: null };
     } catch (error) {
       console.error('[auth] no se pudo resolver el tenant del usuario:', error instanceof Error ? error.message : 'error desconocido');
       return {
@@ -106,7 +143,99 @@ async function requireUser(req: Request, cors: Record<string, string>): Promise<
   return deny('No autenticado: la sesión no es válida o ya expiró.');
 }
 
-return { requireUser };
+// Exige un permiso del modelo de roles de SMYL (smyl_member_roles / smyl_role_permissions) además de
+// la sesión. El dueño (user.id === tenantId) siempre pasa; el staff solo si su rol activo tiene el
+// permiso. Falla cerrado: si la consulta falla, se niega. Devuelve una Response para regresar tal
+// cual, o null si se puede continuar.
+async function requirePermission(
+  auth: AuthResult,
+  cors: Record<string, string>,
+  permission: string,
+): Promise<Response | null> {
+  const reply = (status: number, error: string) =>
+    new Response(JSON.stringify({ error }), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!auth.user || !auth.tenantId) return reply(401, 'Necesitas iniciar sesión.');
+  if (auth.user.id === auth.tenantId) return null;
+  const { data, error } = await admin.rpc('smyl_actor_has_permission_explicit', {
+    p_actor: auth.user.id,
+    p_tenant: auth.tenantId,
+    p_permission: permission,
+  });
+  if (error) {
+    console.error('[auth] no se pudo verificar el permiso:', error.message);
+    return reply(503, 'No se pudo verificar tu permiso. Intenta de nuevo.');
+  }
+  if (data !== true) return reply(403, 'Tu rol no tiene permiso para esta acción.');
+  return null;
+}
+
+return { requireUser, requirePermission };
+})();
+
+// ── _shared/request-safety.ts ──
+const { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit } = (() => {
+// Utilidades de seguridad para Edge Functions que reciben URLs o secretos del exterior.
+
+// Comparación de secretos en tiempo (casi) constante: no se corta en el primer byte distinto.
+function constantTimeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  // La longitud sí se compara, pero se recorre siempre el máximo para no filtrar dónde difieren.
+  let diff = x.length ^ y.length;
+  const len = Math.max(x.length, y.length);
+  for (let i = 0; i < len; i += 1) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}
+
+// Sufijos de host permitidos para descargar imágenes o llamar callbacks. Por defecto solo
+// Supabase (Storage y Edge Functions); se pueden añadir hosts con una lista separada por comas.
+function parseAllowedHostSuffixes(extra: string | null | undefined): string[] {
+  const base = [".supabase.co"];
+  const more = String(extra || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => /^\.?[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s))
+    .map((s) => (s.startsWith(".") ? s : "." + s));
+  return Array.from(new Set([...base, ...more]));
+}
+
+// Solo https, sin credenciales, puerto estándar, nombre de host (no IP ni localhost) y dentro de la
+// lista permitida. Evita que una función con service role haga peticiones a hosts internos (SSRF).
+function isAllowedRemoteUrl(raw: unknown, suffixes: string[]): boolean {
+  if (typeof raw !== "string" || raw.length > 4096) return false;
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  if (u.username || u.password) return false;
+  if (u.port && u.port !== "443") return false;
+  const host = u.hostname.toLowerCase();
+  if (!host.includes(".") || host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return false;
+  return suffixes.some((s) => host.endsWith(s) || host === s.slice(1));
+}
+
+const DATA_IMAGE_RE = /^data:image\/(?:png|jpe?g|webp);base64,[A-Za-z0-9+/=\s]+$/i;
+
+// Una imagen de entrada puede venir como data URL de imagen o como https permitido.
+function isAllowedImageSource(raw: unknown, suffixes: string[], maxDataChars = 34_000_000): boolean {
+  if (typeof raw !== "string") return false;
+  if (raw.startsWith("data:")) return raw.length <= maxDataChars && DATA_IMAGE_RE.test(raw);
+  return isAllowedRemoteUrl(raw, suffixes);
+}
+
+const MAX_REMOTE_IMAGE_BYTES = 25 * 1024 * 1024;
+
+// Lee una respuesta con tope de tamaño (Content-Length y bytes reales) para no cargar archivos enormes.
+async function readBodyWithLimit(res: Response, maxBytes = MAX_REMOTE_IMAGE_BYTES): Promise<Uint8Array> {
+  const declared = Number(res.headers.get("content-length") || 0);
+  if (declared > maxBytes) throw new Error("La imagen es demasiado grande.");
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.byteLength > maxBytes) throw new Error("La imagen es demasiado grande.");
+  return buf;
+}
+
+return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit };
 })();
 
 // ── _shared/cors.ts ──
@@ -261,6 +390,11 @@ function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
+// Hosts desde los que se acepta descargar la imagen de entrada (por defecto solo Supabase Storage);
+// se pueden añadir más con SEGMENT_TEETH_ALLOWED_HOSTS (lista separada por comas).
+const SUFIJOS_IMAGEN_PERMITIDOS = parseAllowedHostSuffixes(Deno.env.get("SEGMENT_TEETH_ALLOWED_HOSTS"));
+const UUID_CASO_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function loadSourceImage(imageUrl: string) {
   let bytes: Uint8Array;
   let mimeType = "image/jpeg";
@@ -269,10 +403,11 @@ async function loadSourceImage(imageUrl: string) {
     mimeType = dataMatch[1] || mimeType;
     bytes = base64ToBytes(dataMatch[2]);
   } else {
-    const response = await fetch(imageUrl);
+    // Sin redirecciones (un 3xx podría llevar a un host interno) y con tope de tamaño.
+    const response = await fetch(imageUrl, { redirect: "error" });
     if (!response.ok) throw new Error(`No se pudo leer la imagen dental (${response.status}).`);
     mimeType = (response.headers.get("content-type") || mimeType).split(";")[0];
-    bytes = new Uint8Array(await response.arrayBuffer());
+    bytes = await readBodyWithLimit(response);
   }
   if (!mimeType.startsWith("image/") || !bytes.byteLength) {
     throw new Error("La entrada de segmentación no es una imagen válida.");
@@ -671,6 +806,44 @@ serve(async (req) => {
   // requireUser ya garantiza que hay una sesión real llegados a este punto.
   // tenantIdSesion mantiene unidos los casos creados por dueño y staff.
   const tenantId = tenantIdSesion || tenantIdBody || null;
+
+  // La imagen solo puede venir como data URL de imagen o como https de un host permitido
+  // (esta función corre con service role: no debe poder pedirle URLs internas).
+  if (!isAllowedImageSource(imageUrl, SUFIJOS_IMAGEN_PERMITIDOS)) {
+    return new Response(JSON.stringify({ error: "imageUrl no es una imagen permitida." }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  // Las máscaras se guardan en camila-masks/<casoId>/ con service role y upsert: el caso no puede ser
+  // de otra clínica (ni, para un prospecto anónimo, un caso real de la clínica) o se pisarían sus máscaras.
+  if (casoId !== undefined && casoId !== null && casoId !== "") {
+    if (typeof casoId !== "string" || !UUID_CASO_RE.test(casoId)) {
+      return new Response(JSON.stringify({ error: "casoId inválido." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: casoExistente, error: casoExistenteError } = await createClient(SB_URL, SB_SERVICE_ROLE_KEY)
+      .from("camila_casos")
+      .select("tenant_id, es_prospecto")
+      .eq("id", casoId)
+      .maybeSingle();
+    if (casoExistenteError) {
+      return new Response(JSON.stringify({ error: "No se pudo verificar el caso. Intenta de nuevo." }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const ajeno = casoExistente && casoExistente.tenant_id !== tenantId;
+    const realParaAnonimo = casoExistente && !user && casoExistente.es_prospecto !== true;
+    if (ajeno || realParaAnonimo) {
+      return new Response(JSON.stringify({ error: "Ese caso no está disponible para esta solicitud." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
   const requestId = typeof body?.requestId === "string" && body.requestId.trim()
     ? body.requestId.trim().slice(0, 120)
     : crypto.randomUUID();

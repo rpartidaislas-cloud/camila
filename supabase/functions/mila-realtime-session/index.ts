@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireUser } from "../_shared/auth.ts";
+import { requirePermission, requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -112,9 +112,13 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "Método no permitido." });
 
-  const { user, tenantId, response: authError } = await requireUser(req, CORS);
-  if (authError) return authError;
+  const auth = await requireUser(req, CORS);
+  if (auth.response) return auth.response;
+  const { user, tenantId } = auth;
   if (!user || !tenantId) return json(401, { error: "Necesitas iniciar sesión para usar MILA." });
+  // MILA graba y transcribe consultas: es una acción clínica, no basta con ser miembro del equipo.
+  const sinPermiso = await requirePermission(auth, CORS, "clinical.write");
+  if (sinPermiso) return sinPermiso;
   if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
 
   let body: Record<string, unknown>;

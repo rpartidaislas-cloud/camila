@@ -3,8 +3,34 @@
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// ── _shared/auth-membership.ts ──
+const { decidirMembresia } = (() => {
+// Decisión pura (sin red) sobre la membresía de quien llama a una Edge Function privada.
+// Vive aparte de auth.ts para poder probarla sin Deno ni Supabase.
+//
+// `row` es la fila de camila_usuarios de la persona (o null si no tiene: el dueño de siempre
+// es una cuenta cuyo id = tenant_id y puede no tener fila). Si la fila existe pero está
+// desactivada, la persona ya no pertenece al equipo: no se le resuelve ninguna clínica
+// (antes se ignoraba `activo` y un staff dado de baja seguía usando las funciones con el
+// service role).
+interface FilaMembresia {
+  tenant_id?: string | null;
+  activo?: boolean | null;
+}
+
+type DecisionMembresia = { tenantId: string } | { inactivo: true };
+
+function decidirMembresia(row: FilaMembresia | null | undefined, userId: string): DecisionMembresia {
+  if (row && row.activo === false) return { inactivo: true };
+  if (row?.tenant_id) return { tenantId: row.tenant_id };
+  return { tenantId: userId };
+}
+
+return { decidirMembresia };
+})();
+
 // ── _shared/auth.ts ──
-const { requireUser } = (() => {
+const { requireUser, requirePermission } = (() => {
 // Verificación obligatoria de sesión para Edge Functions privadas.
 // Una publishable key identifica el proyecto, pero nunca autentica a una
 // persona. Los flujos públicos deben usar funciones separadas con capacidades
@@ -40,15 +66,16 @@ interface AuthResult {
 // Mismo patrón que ya usa el cliente (cargarTenantConfig() en
 // simulacion.html, continuarConUsuario() en app.html): resuelve si quien
 // llama es staff antes de asumir que su propio auth.uid() es el tenant.
-async function resolverTenantId(userId: string): Promise<string> {
+// Si la persona tiene fila en camila_usuarios pero está desactivada, ya no pertenece al equipo y no
+// se le resuelve ninguna clínica (decidirMembresia, _shared/auth-membership.ts).
+async function resolverMembresia(userId: string): Promise<DecisionMembresia> {
   const { data, error } = await admin
     .from('camila_usuarios')
-    .select('tenant_id')
+    .select('tenant_id, activo')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
-  if (data?.tenant_id) return data.tenant_id;
-  return userId;
+  return decidirMembresia(data, userId);
 }
 
 async function requireUser(req: Request, cors: Record<string, string>): Promise<AuthResult> {
@@ -82,8 +109,18 @@ async function requireUser(req: Request, cors: Record<string, string>): Promise<
   ]);
   if (data?.user) {
     try {
-      const tenantId = await resolverTenantId(data.user.id);
-      return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+      const membresia = await resolverMembresia(data.user.id);
+      if ('inactivo' in membresia) {
+        return {
+          user: null,
+          tenantId: null,
+          response: new Response(JSON.stringify({ error: 'Tu acceso a esta clínica está desactivado. Pide al dueño que lo reactive.' }), {
+            status: 403,
+            headers: { ...cors, 'Content-Type': 'application/json' },
+          }),
+        };
+      }
+      return { user: { id: data.user.id, email: data.user.email }, tenantId: membresia.tenantId, response: null };
     } catch (error) {
       console.error('[auth] no se pudo resolver el tenant del usuario:', error instanceof Error ? error.message : 'error desconocido');
       return {
@@ -102,7 +139,33 @@ async function requireUser(req: Request, cors: Record<string, string>): Promise<
   return deny('No autenticado: la sesión no es válida o ya expiró.');
 }
 
-return { requireUser };
+// Exige un permiso del modelo de roles de SMYL (smyl_member_roles / smyl_role_permissions) además de
+// la sesión. El dueño (user.id === tenantId) siempre pasa; el staff solo si su rol activo tiene el
+// permiso. Falla cerrado: si la consulta falla, se niega. Devuelve una Response para regresar tal
+// cual, o null si se puede continuar.
+async function requirePermission(
+  auth: AuthResult,
+  cors: Record<string, string>,
+  permission: string,
+): Promise<Response | null> {
+  const reply = (status: number, error: string) =>
+    new Response(JSON.stringify({ error }), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!auth.user || !auth.tenantId) return reply(401, 'Necesitas iniciar sesión.');
+  if (auth.user.id === auth.tenantId) return null;
+  const { data, error } = await admin.rpc('smyl_actor_has_permission_explicit', {
+    p_actor: auth.user.id,
+    p_tenant: auth.tenantId,
+    p_permission: permission,
+  });
+  if (error) {
+    console.error('[auth] no se pudo verificar el permiso:', error.message);
+    return reply(503, 'No se pudo verificar tu permiso. Intenta de nuevo.');
+  }
+  if (data !== true) return reply(403, 'Tu rol no tiene permiso para esta acción.');
+  return null;
+}
+
+return { requireUser, requirePermission };
 })();
 
 // ── _shared/cors.ts ──
@@ -168,6 +231,7 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:CORS});
   if(req.method!=='POST')return reply(405,{error:'Método no permitido.'});
   const auth=await requireUser(req,CORS);if(auth.response)return auth.response;
+  const sinPermiso=await requirePermission(auth,CORS,'clinical.read');if(sinPermiso)return sinPermiso;
   try{
     const body=await req.json();const caseId=String(body?.case_id||'');
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(caseId))return reply(400,{error:'Caso no válido.'});

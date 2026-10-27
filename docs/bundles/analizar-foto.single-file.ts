@@ -1,0 +1,472 @@
+// ARCHIVO GENERADO por scripts/bundle-edge-function.mjs — no lo edites a mano.
+// Es supabase/functions/analizar-foto/index.ts con sus archivos de _shared incluidos,
+// para pegarlo en el editor de Edge Functions del panel de Supabase.
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+// ── _shared/request-safety.ts ──
+const { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit } = (() => {
+// Utilidades de seguridad para Edge Functions que reciben URLs o secretos del exterior.
+
+// Comparación de secretos en tiempo (casi) constante: no se corta en el primer byte distinto.
+function constantTimeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  // La longitud sí se compara, pero se recorre siempre el máximo para no filtrar dónde difieren.
+  let diff = x.length ^ y.length;
+  const len = Math.max(x.length, y.length);
+  for (let i = 0; i < len; i += 1) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}
+
+// Sufijos de host permitidos para descargar imágenes o llamar callbacks. Por defecto solo
+// Supabase (Storage y Edge Functions); se pueden añadir hosts con una lista separada por comas.
+function parseAllowedHostSuffixes(extra: string | null | undefined): string[] {
+  const base = [".supabase.co"];
+  const more = String(extra || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => /^\.?[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s))
+    .map((s) => (s.startsWith(".") ? s : "." + s));
+  return Array.from(new Set([...base, ...more]));
+}
+
+// Solo https, sin credenciales, puerto estándar, nombre de host (no IP ni localhost) y dentro de la
+// lista permitida. Evita que una función con service role haga peticiones a hosts internos (SSRF).
+function isAllowedRemoteUrl(raw: unknown, suffixes: string[]): boolean {
+  if (typeof raw !== "string" || raw.length > 4096) return false;
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  if (u.username || u.password) return false;
+  if (u.port && u.port !== "443") return false;
+  const host = u.hostname.toLowerCase();
+  if (!host.includes(".") || host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return false;
+  return suffixes.some((s) => host.endsWith(s) || host === s.slice(1));
+}
+
+const DATA_IMAGE_RE = /^data:image\/(?:png|jpe?g|webp);base64,[A-Za-z0-9+/=\s]+$/i;
+
+// Una imagen de entrada puede venir como data URL de imagen o como https permitido.
+function isAllowedImageSource(raw: unknown, suffixes: string[], maxDataChars = 34_000_000): boolean {
+  if (typeof raw !== "string") return false;
+  if (raw.startsWith("data:")) return raw.length <= maxDataChars && DATA_IMAGE_RE.test(raw);
+  return isAllowedRemoteUrl(raw, suffixes);
+}
+
+const MAX_REMOTE_IMAGE_BYTES = 25 * 1024 * 1024;
+
+// Lee una respuesta con tope de tamaño (Content-Length y bytes reales) para no cargar archivos enormes.
+async function readBodyWithLimit(res: Response, maxBytes = MAX_REMOTE_IMAGE_BYTES): Promise<Uint8Array> {
+  const declared = Number(res.headers.get("content-length") || 0);
+  if (declared > maxBytes) throw new Error("La imagen es demasiado grande.");
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.byteLength > maxBytes) throw new Error("La imagen es demasiado grande.");
+  return buf;
+}
+
+return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit };
+})();
+
+// ── analizar-foto/index.ts ──
+// supabase/functions/analizar-foto/index.ts
+//
+// Endpoint server-to-server llamado por LANA cuando un paciente envía una
+// foto dental por WhatsApp/Instagram (vertical = salud).
+//
+// Recibe la URL de la imagen + datos del paciente, genera diagnóstico con
+// GPT-4o Vision y simulación de sonrisa con GPT Image 2, sube la simulación
+// al bucket "camila-analisis", y notifica de vuelta a LANA vía callback_url.
+//
+// Auth entrante:  Authorization: Bearer <LANA_API_KEY>
+// Auth saliente:  Authorization: Bearer <callback_secret>  (al notificar)
+//
+// Body de entrada (POST JSON):
+//   { tenant_id, canal, sender_id, nombre_paciente?,
+//     imagen_url, callback_url, callback_secret }
+//
+// Body de notificación saliente (POST JSON a callback_url):
+//   { tenant_id, canal, sender_id, nombre_paciente?,
+//     diagnostico, tratamientos_sugeridos, zona_afectada, requiere_urgente,
+//     imagen_original_url, imagen_simulacion_url? }
+//   En error: { tenant_id, canal, sender_id, error: true, error_message }
+//
+// Responde 200 inmediatamente y procesa en background (EdgeRuntime.waitUntil).
+
+
+const LANA_API_KEY = Deno.env.get("LANA_API_KEY") || "";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const SB_URL = Deno.env.get("SUPABASE_URL") || "";
+const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const OPENAI_IMAGE_MODEL =
+  Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2-2026-04-21";
+const ANALISIS_BUCKET = "camila-analisis";
+// Hosts desde los que se acepta descargar la imagen y a los que se acepta devolver el callback:
+// por defecto solo Supabase (el Storage y las funciones de LANA); más hosts con
+// ANALIZAR_FOTO_ALLOWED_HOSTS (lista separada por comas).
+const SUFIJOS_PERMITIDOS = parseAllowedHostSuffixes(Deno.env.get("ANALIZAR_FOTO_ALLOWED_HOSTS"));
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Las simulaciones de pacientes se entregan con enlace firmado de 7 días, no con una URL pública permanente.
+const SIMULACION_URL_SEGUNDOS = 7 * 24 * 3600;
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function jsonResp(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return jsonResp({ error: "Método no permitido" }, 405);
+
+  // Autenticación: secreto compartido LANA → CAMILA
+  const tokenEntrante = (req.headers.get("Authorization") || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+  if (!LANA_API_KEY || !constantTimeEqual(tokenEntrante, LANA_API_KEY)) {
+    return jsonResp({ error: "No autorizado" }, 401);
+  }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResp({ error: "Body inválido (se esperaba JSON)" }, 400);
+  }
+
+  const { tenant_id, canal, sender_id, nombre_paciente, imagen_url, callback_url, callback_secret } = body;
+
+  if (!tenant_id || !canal || !sender_id || !imagen_url || !callback_url || !callback_secret) {
+    return jsonResp({
+      error: "Faltan campos requeridos: tenant_id, canal, sender_id, imagen_url, callback_url, callback_secret",
+    }, 400);
+  }
+
+  // Esta función corre con service role y hace peticiones salientes con datos del body:
+  // se valida todo antes de usarlo (ruta de Storage, hosts de descarga y de callback).
+  if (typeof tenant_id !== "string" || !UUID_RE.test(tenant_id)) {
+    return jsonResp({ error: "tenant_id inválido" }, 400);
+  }
+  if (typeof canal !== "string" || canal.length > 40 || typeof sender_id !== "string" || sender_id.length > 120) {
+    return jsonResp({ error: "canal o sender_id inválido" }, 400);
+  }
+  if (nombre_paciente != null && (typeof nombre_paciente !== "string" || nombre_paciente.length > 200)) {
+    return jsonResp({ error: "nombre_paciente inválido" }, 400);
+  }
+  if (!isAllowedRemoteUrl(imagen_url, SUFIJOS_PERMITIDOS)) {
+    return jsonResp({ error: "imagen_url no es una URL permitida" }, 400);
+  }
+  if (!isAllowedRemoteUrl(callback_url, SUFIJOS_PERMITIDOS)) {
+    return jsonResp({ error: "callback_url no es una URL permitida" }, 400);
+  }
+  if (typeof callback_secret !== "string" || callback_secret.length > 500) {
+    return jsonResp({ error: "callback_secret inválido" }, 400);
+  }
+
+  const job_id = crypto.randomUUID();
+  console.log(`[analizar-foto] job_id=${job_id} tenant=${tenant_id} canal=${canal} sender=${sender_id}`);
+
+  const tarea = procesarFotoDental({
+    job_id, tenant_id, canal, sender_id,
+    nombre_paciente: nombre_paciente || null,
+    imagen_url,
+    callback_url,
+    callback_secret,
+  });
+
+  // EdgeRuntime.waitUntil mantiene viva la función hasta que termina el
+  // procesamiento aunque la respuesta ya fue enviada.
+  try {
+    (globalThis as any).EdgeRuntime.waitUntil(tarea);
+  } catch {
+    tarea.catch((e: Error) => console.error("[analizar-foto] tarea de fondo:", e));
+  }
+
+  return jsonResp({ ok: true, job_id, message: "Procesando..." });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Procesamiento asíncrono
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function procesarFotoDental(opts: {
+  job_id: string;
+  tenant_id: string;
+  canal: string;
+  sender_id: string;
+  nombre_paciente: string | null;
+  imagen_url: string;
+  callback_url: string;
+  callback_secret: string;
+}): Promise<void> {
+  const { job_id, tenant_id, canal, sender_id, nombre_paciente, imagen_url, callback_url, callback_secret } = opts;
+
+  try {
+    // 1. Descargar la imagen dental
+    const imagenRes = await fetch(imagen_url, { redirect: "error" });
+    if (!imagenRes.ok) {
+      throw new Error(`No se pudo descargar la imagen: HTTP ${imagenRes.status}`);
+    }
+    const mimeType = (imagenRes.headers.get("content-type") || "image/jpeg").split(";")[0];
+    const imagenBytes = await readBodyWithLimit(imagenRes);
+    const imagenBase64 = bytesABase64(imagenBytes);
+
+    // 2. Diagnóstico con GPT-4o Vision
+    const diagnostico = await diagnosticarFoto(imagenBase64, mimeType);
+
+    // 3. Simulación de sonrisa (se intenta; si falla no bloquea el callback)
+    let imagen_simulacion_url: string | null = null;
+    try {
+      imagen_simulacion_url = await generarSimulacion(imagenBase64, mimeType, job_id, tenant_id);
+    } catch (e) {
+      console.error(`[analizar-foto] job_id=${job_id} — simulación no disponible:`, e);
+    }
+
+    // Piloto comercial: registra un crédito IA por análisis completado. Si no
+    // hay saldo aún, smyl_consume lo deja como meter_only y no interrumpe LANA.
+    const { error: usageError } = await admin.rpc("smyl_consume", {
+      p_tenant_id: tenant_id,
+      p_resource: "ai_credits",
+      p_quantity_units: 1,
+      p_idempotency_key: `analizar-foto:${job_id}`,
+      p_source_type: "analizar_foto",
+      p_source_id: job_id,
+      p_provider: "openai",
+      p_provider_model: "gpt-4o",
+      p_metadata: { canal },
+      p_enforce: false,
+    });
+    if (usageError) console.error(`[analizar-foto] job_id=${job_id} — medición pendiente:`, usageError.message);
+
+    // 4. Notificar a LANA
+    await notificarCallback(callback_url, callback_secret, {
+      tenant_id, canal, sender_id,
+      nombre_paciente: nombre_paciente || undefined,
+      diagnostico: diagnostico.diagnostico,
+      tratamientos_sugeridos: diagnostico.tratamientos_sugeridos,
+      zona_afectada: diagnostico.zona_afectada,
+      requiere_urgente: diagnostico.requiere_urgente,
+      imagen_original_url: imagen_url,
+      imagen_simulacion_url: imagen_simulacion_url || undefined,
+    });
+
+    console.log(`[analizar-foto] job_id=${job_id} completado`);
+  } catch (e) {
+    console.error(`[analizar-foto] job_id=${job_id} error:`, e);
+    // Callback de error para que LANA sepa que falló y pueda responder al paciente
+    try {
+      await notificarCallback(callback_url, callback_secret, {
+        tenant_id, canal, sender_id,
+        error: true,
+        error_message: String(e),
+      });
+    } catch (_e2) { /* ignorar si el callback mismo falla */ }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GPT-4o Vision: diagnóstico estructurado
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DiagnosticoResult {
+  diagnostico: string;
+  tratamientos_sugeridos: string[];
+  zona_afectada: string;
+  requiere_urgente: boolean;
+}
+
+async function diagnosticarFoto(imagenBase64: string, mimeType: string): Promise<DiagnosticoResult> {
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY no configurada");
+
+  const instruccion = [
+    "Eres un asistente dental. Analiza esta fotografía dental y devuelve ÚNICAMENTE JSON válido con el siguiente esquema exacto:",
+    '{"diagnostico":"descripción clínica breve del estado dental observado (máx. 200 caracteres)",',
+    '"tratamientos_sugeridos":["tratamiento1","tratamiento2"],',
+    '"zona_afectada":"descripción de la zona (ej: incisivos superiores, molares inferiores)",',
+    '"requiere_urgente":false}',
+    "Si la imagen no muestra claramente la dentadura, escribe diagnostico: 'Foto no analizable — no se distingue la dentadura' y deja los arreglos vacíos.",
+    "Responde SOLO con el JSON, sin markdown ni texto adicional.",
+  ].join(" ");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: instruccion },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${imagenBase64}`,
+                detail: "high",
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`GPT-4o Vision error (${res.status}): ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const texto = data.choices?.[0]?.message?.content || "";
+
+  try {
+    const limpio = texto.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(limpio);
+    return {
+      diagnostico: String(parsed.diagnostico || "Sin diagnóstico disponible").slice(0, 500),
+      tratamientos_sugeridos: Array.isArray(parsed.tratamientos_sugeridos)
+        ? parsed.tratamientos_sugeridos.map(String).slice(0, 10)
+        : [],
+      zona_afectada: String(parsed.zona_afectada || "").slice(0, 200),
+      requiere_urgente: Boolean(parsed.requiere_urgente),
+    };
+  } catch {
+    return {
+      diagnostico: texto.slice(0, 500) || "No se pudo generar diagnóstico.",
+      tratamientos_sugeridos: [],
+      zona_afectada: "",
+      requiere_urgente: false,
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GPT Image 2: simulación de sonrisa → sube a Supabase Storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function generarSimulacion(
+  imagenBase64: string,
+  mimeType: string,
+  jobId: string,
+  tenantId: string,
+): Promise<string> {
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY no configurada");
+  if (!SB_URL || !SB_SERVICE_ROLE_KEY) throw new Error("Supabase no configurado");
+
+  const promptSimulacion = [
+    "You are a dental smile simulation tool.",
+    "Generate a photorealistic simulation showing natural veneers that improve the patient smile.",
+    "Keep the patient's real features, lighting, background, and jaw structure exactly as they are.",
+    "Only modify the visible upper teeth: whiten, align, and add natural-looking ceramic veneers.",
+    "Do NOT alter skin, hair, lips, eyes, or any other part of the image.",
+    "The result must look like a real dental before/after photo.",
+  ].join(" ");
+
+  const formData = new FormData();
+  formData.append(
+    "image",
+    new Blob([base64ABytes(imagenBase64)], { type: mimeType }),
+    "dental.jpg",
+  );
+  formData.append("prompt", promptSimulacion);
+  formData.append("model", OPENAI_IMAGE_MODEL);
+  formData.append("size", "1024x1024");
+  formData.append("quality", "medium");
+  formData.append("n", "1");
+  formData.append("response_format", "b64_json");
+
+  const res = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${OPENAI_API_KEY}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`GPT Image edits error (${res.status}): ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const b64 = data.data?.[0]?.b64_json;
+  if (!b64) throw new Error("GPT Image no devolvió imagen en b64_json");
+
+  const pngBytes = base64ABytes(b64);
+  const path = `${tenantId}/${jobId}.png`;
+
+  const uploadRes = await fetch(
+    `${SB_URL}/storage/v1/object/${ANALISIS_BUCKET}/${path}`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SB_SERVICE_ROLE_KEY}`,
+        "Content-Type": "image/png",
+        "x-upsert": "true",
+      },
+      body: pngBytes,
+    },
+  );
+
+  if (!uploadRes.ok) {
+    const err = await uploadRes.text().catch(() => "");
+    throw new Error(`Storage upload error (${uploadRes.status}): ${err.slice(0, 200)}`);
+  }
+
+  // Enlace firmado y con vencimiento. Si el bucket sigue siendo público (o la firma falla), se cae a la
+  // URL pública anterior para no romper la entrega; conviene volver privado el bucket en el panel.
+  const firmada = await admin.storage.from(ANALISIS_BUCKET).createSignedUrl(path, SIMULACION_URL_SEGUNDOS);
+  if (!firmada.error && firmada.data?.signedUrl) return firmada.data.signedUrl;
+  console.error("[analizar-foto] no se pudo firmar la simulación; se usa la URL pública:", firmada.error?.message);
+  return `${SB_URL}/storage/v1/object/public/${ANALISIS_BUCKET}/${path}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Callback a LANA
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function notificarCallback(url: string, secret: string, payload: Record<string, unknown>): Promise<void> {
+  const res = await fetch(url, {
+    method: "POST",
+    redirect: "error",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${secret}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const texto = await res.text().catch(() => "");
+    throw new Error(`Callback error (${res.status}): ${texto.slice(0, 200)}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilidades
+// ─────────────────────────────────────────────────────────────────────────────
+
+function bytesABase64(bytes: Uint8Array): string {
+  let binario = "";
+  for (let i = 0; i < bytes.length; i++) binario += String.fromCharCode(bytes[i]);
+  return btoa(binario);
+}
+
+function base64ABytes(base64: string): Uint8Array {
+  const limpio = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
+  const binario = atob(limpio);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return bytes;
+}

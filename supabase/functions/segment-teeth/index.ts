@@ -18,6 +18,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { isAllowedImageSource, parseAllowedHostSuffixes, readBodyWithLimit } from "../_shared/request-safety.ts";
 import {
   checkAndConsumeLimit,
   checkLimitPorIpProspecto,
@@ -122,6 +123,11 @@ function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
+// Hosts desde los que se acepta descargar la imagen de entrada (por defecto solo Supabase Storage);
+// se pueden añadir más con SEGMENT_TEETH_ALLOWED_HOSTS (lista separada por comas).
+const SUFIJOS_IMAGEN_PERMITIDOS = parseAllowedHostSuffixes(Deno.env.get("SEGMENT_TEETH_ALLOWED_HOSTS"));
+const UUID_CASO_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function loadSourceImage(imageUrl: string) {
   let bytes: Uint8Array;
   let mimeType = "image/jpeg";
@@ -130,10 +136,11 @@ async function loadSourceImage(imageUrl: string) {
     mimeType = dataMatch[1] || mimeType;
     bytes = base64ToBytes(dataMatch[2]);
   } else {
-    const response = await fetch(imageUrl);
+    // Sin redirecciones (un 3xx podría llevar a un host interno) y con tope de tamaño.
+    const response = await fetch(imageUrl, { redirect: "error" });
     if (!response.ok) throw new Error(`No se pudo leer la imagen dental (${response.status}).`);
     mimeType = (response.headers.get("content-type") || mimeType).split(";")[0];
-    bytes = new Uint8Array(await response.arrayBuffer());
+    bytes = await readBodyWithLimit(response);
   }
   if (!mimeType.startsWith("image/") || !bytes.byteLength) {
     throw new Error("La entrada de segmentación no es una imagen válida.");
@@ -532,6 +539,44 @@ serve(async (req) => {
   // requireUser ya garantiza que hay una sesión real llegados a este punto.
   // tenantIdSesion mantiene unidos los casos creados por dueño y staff.
   const tenantId = tenantIdSesion || tenantIdBody || null;
+
+  // La imagen solo puede venir como data URL de imagen o como https de un host permitido
+  // (esta función corre con service role: no debe poder pedirle URLs internas).
+  if (!isAllowedImageSource(imageUrl, SUFIJOS_IMAGEN_PERMITIDOS)) {
+    return new Response(JSON.stringify({ error: "imageUrl no es una imagen permitida." }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  // Las máscaras se guardan en camila-masks/<casoId>/ con service role y upsert: el caso no puede ser
+  // de otra clínica (ni, para un prospecto anónimo, un caso real de la clínica) o se pisarían sus máscaras.
+  if (casoId !== undefined && casoId !== null && casoId !== "") {
+    if (typeof casoId !== "string" || !UUID_CASO_RE.test(casoId)) {
+      return new Response(JSON.stringify({ error: "casoId inválido." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: casoExistente, error: casoExistenteError } = await createClient(SB_URL, SB_SERVICE_ROLE_KEY)
+      .from("camila_casos")
+      .select("tenant_id, es_prospecto")
+      .eq("id", casoId)
+      .maybeSingle();
+    if (casoExistenteError) {
+      return new Response(JSON.stringify({ error: "No se pudo verificar el caso. Intenta de nuevo." }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const ajeno = casoExistente && casoExistente.tenant_id !== tenantId;
+    const realParaAnonimo = casoExistente && !user && casoExistente.es_prospecto !== true;
+    if (ajeno || realParaAnonimo) {
+      return new Response(JSON.stringify({ error: "Ese caso no está disponible para esta solicitud." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
   const requestId = typeof body?.requestId === "string" && body.requestId.trim()
     ? body.requestId.trim().slice(0, 120)
     : crypto.randomUUID();

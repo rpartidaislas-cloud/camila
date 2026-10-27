@@ -19,7 +19,7 @@
 // No probado en vivo -- necesita credenciales reales de Meta.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireUser } from "../_shared/auth.ts";
+import { requirePermission, requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -63,9 +63,13 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return jsonError(405, "Método no permitido.");
 
-  const { user, tenantId, response: authError } = await requireUser(req, CORS);
-  if (authError) return authError;
+  const auth = await requireUser(req, CORS);
+  if (auth.response) return auth.response;
+  const { user, tenantId } = auth;
   if (!user || !tenantId) return jsonError(401, "Necesitas iniciar sesión.");
+  // Enviar mensajes como la clínica exige el permiso de responder, no solo ser miembro.
+  const sinPermiso = await requirePermission(auth, CORS, "messages.respond");
+  if (sinPermiso) return sinPermiso;
 
   let body: Record<string, unknown> = {};
   try {

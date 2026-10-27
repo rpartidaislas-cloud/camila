@@ -4,6 +4,7 @@
 // limitadas; nunca deben reutilizar este helper ni aceptar tenant_id del cliente.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { decidirMembresia, type DecisionMembresia } from './auth-membership.ts';
 
 // SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY vienen inyectadas automáticamente
 // en el entorno de toda Edge Function. `segment-teeth` usa nombres propios
@@ -34,15 +35,16 @@ export interface AuthResult {
 // Mismo patrón que ya usa el cliente (cargarTenantConfig() en
 // simulacion.html, continuarConUsuario() en app.html): resuelve si quien
 // llama es staff antes de asumir que su propio auth.uid() es el tenant.
-async function resolverTenantId(userId: string): Promise<string> {
+// Si la persona tiene fila en camila_usuarios pero está desactivada, ya no pertenece al equipo y no
+// se le resuelve ninguna clínica (decidirMembresia, _shared/auth-membership.ts).
+async function resolverMembresia(userId: string): Promise<DecisionMembresia> {
   const { data, error } = await admin
     .from('camila_usuarios')
-    .select('tenant_id')
+    .select('tenant_id, activo')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
-  if (data?.tenant_id) return data.tenant_id;
-  return userId;
+  return decidirMembresia(data, userId);
 }
 
 export async function requireUser(req: Request, cors: Record<string, string>): Promise<AuthResult> {
@@ -76,8 +78,18 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   ]);
   if (data?.user) {
     try {
-      const tenantId = await resolverTenantId(data.user.id);
-      return { user: { id: data.user.id, email: data.user.email }, tenantId, response: null };
+      const membresia = await resolverMembresia(data.user.id);
+      if ('inactivo' in membresia) {
+        return {
+          user: null,
+          tenantId: null,
+          response: new Response(JSON.stringify({ error: 'Tu acceso a esta clínica está desactivado. Pide al dueño que lo reactive.' }), {
+            status: 403,
+            headers: { ...cors, 'Content-Type': 'application/json' },
+          }),
+        };
+      }
+      return { user: { id: data.user.id, email: data.user.email }, tenantId: membresia.tenantId, response: null };
     } catch (error) {
       console.error('[auth] no se pudo resolver el tenant del usuario:', error instanceof Error ? error.message : 'error desconocido');
       return {
@@ -94,4 +106,30 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   if (seTardo) return deny('No se pudo verificar la sesión a tiempo (Supabase Auth no respondió). Intenta de nuevo.');
 
   return deny('No autenticado: la sesión no es válida o ya expiró.');
+}
+
+// Exige un permiso del modelo de roles de SMYL (smyl_member_roles / smyl_role_permissions) además de
+// la sesión. El dueño (user.id === tenantId) siempre pasa; el staff solo si su rol activo tiene el
+// permiso. Falla cerrado: si la consulta falla, se niega. Devuelve una Response para regresar tal
+// cual, o null si se puede continuar.
+export async function requirePermission(
+  auth: AuthResult,
+  cors: Record<string, string>,
+  permission: string,
+): Promise<Response | null> {
+  const reply = (status: number, error: string) =>
+    new Response(JSON.stringify({ error }), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (!auth.user || !auth.tenantId) return reply(401, 'Necesitas iniciar sesión.');
+  if (auth.user.id === auth.tenantId) return null;
+  const { data, error } = await admin.rpc('smyl_actor_has_permission_explicit', {
+    p_actor: auth.user.id,
+    p_tenant: auth.tenantId,
+    p_permission: permission,
+  });
+  if (error) {
+    console.error('[auth] no se pudo verificar el permiso:', error.message);
+    return reply(503, 'No se pudo verificar tu permiso. Intenta de nuevo.');
+  }
+  if (data !== true) return reply(403, 'Tu rol no tiene permiso para esta acción.');
+  return null;
 }
