@@ -21,12 +21,12 @@ const fs = require('node:fs');
       documentOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
       dashboardOverflow: document.querySelector('#smyl-daily-home').scrollWidth > document.querySelector('#smyl-daily-home').clientWidth + 1,
       zeroCards: [...document.querySelectorAll('[data-home-metrics] .daily-home-metric strong')].some(node => node.textContent.trim() === '0'),
-      leakedPreview: document.querySelector('[data-home-chats]').textContent.includes('Conversación resuelta'),
+      resolvedCardVisible: document.querySelector('[data-home-chats]').textContent.includes('Conversación resuelta'),
       shortcuts: document.querySelectorAll('.daily-home-shortcuts').length,
     }));
     if (result.documentOverflow || result.dashboardOverflow) throw new Error(`Desbordamiento detectado a ${width}px`);
     if (result.zeroCards) throw new Error(`El Inicio muestra indicadores en cero a ${width}px`);
-    if (result.leakedPreview) throw new Error('Se mostró una conversación que no requiere atención');
+    if (!result.resolvedCardVisible) throw new Error('No se conservaron a la vista los mensajes recientes de Meta');
     if (result.shortcuts) throw new Error('El Inicio duplicó accesos del menú');
     await page.screenshot({ path: path.join(output, `dashboard-workbench-${width}.png`), fullPage: true });
     await page.close();

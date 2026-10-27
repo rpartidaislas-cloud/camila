@@ -35,7 +35,7 @@
     if(!home||document.getElementById('smyl-daily-home'))return;
     home.classList.add('has-daily-home');
     var section=el('section','daily-home'); section.id='smyl-daily-home';
-    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">Hoy · <b data-home-date></b></span><h1><span data-home-greeting></span>.</h1><p data-home-summary>Preparando lo importante de tu clínica…</p></div><small data-home-updated aria-live="polite">Actualizando…</small></header><section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title"><header><div><span>JORNADA</span><h2 id="daily-home-now-title">Ahora y después</h2></div><button type="button" data-home-open-agenda>Abrir agenda</button></header><div data-home-next></div></section><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div><div class="daily-home-grid"><section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title"><header><div><span>PRIORIDAD</span><h2 id="daily-home-priorities-title" data-home-priority-title>Requiere atención</h2></div></header><div data-home-priorities></div></section><section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title"><header><div><span>MENSAJES</span><h2 id="daily-home-chats-title">Por responder</h2></div><button type="button" data-home-open-inbox>Abrir mensajes</button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section></div><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Resumen del mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section>';
+    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">Hoy · <b data-home-date></b></span><h1><span data-home-greeting></span>.</h1><p data-home-summary>Preparando lo importante de tu clínica…</p></div><small data-home-updated aria-live="polite">Actualizando…</small></header><section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title"><header><div><span>JORNADA</span><h2 id="daily-home-now-title">Ahora y después</h2></div><button type="button" data-home-open-agenda>Abrir agenda</button></header><div data-home-next></div></section><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div><div class="daily-home-grid"><section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title"><header><div><span>PRIORIDAD</span><h2 id="daily-home-priorities-title" data-home-priority-title>Requiere atención</h2></div></header><div data-home-priorities></div></section><section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title"><header><div><span>META</span><h2 id="daily-home-chats-title">Mensajes recientes</h2></div><button type="button" data-home-open-inbox>Abrir mensajes</button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section></div><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Resumen del mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section>';
     var monthSection=section.querySelector('.daily-home-month');
     if(flag('month')==='1')section.querySelector('[data-home-month]').innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>'; else monthSection.hidden=true;
     section.querySelector('[data-home-date]').textContent=capitalize(fmtDate(new Date()));
@@ -155,7 +155,7 @@
       var retry=el('button','','Reintentar'); retry.type='button'; retry.onclick=function(){loadChats(true);}; box.append(retry); host.append(box); return;
     }
     if(!state.chats||!state.chats.length){
-      var empty=el('div','daily-home-empty'); empty.append(el('span','','✓'));var emptyCopy=el('div');emptyCopy.append(el('strong','','Mensajes al día'),el('p','','No hay conversaciones que requieran atención.'));empty.append(emptyCopy);
+      var empty=el('div','daily-home-empty'); empty.append(el('span','','✓'));var emptyCopy=el('div');emptyCopy.append(el('strong','','Sin conversaciones recientes'),el('p','','Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.'));empty.append(emptyCopy);
       host.append(empty); return;
     }
     state.chats.forEach(function(item){host.append(chatCard(item));});
@@ -168,8 +168,9 @@
     state.chatsLoading=true; state.chatsError=false; if(!state.chats)renderChats();
     try {
       var rows=await inbox.fetchRecent(12);
-      state.chats=rows.filter(function(item){return Boolean(item.needs_human)||(Number(item.unread_count)||0)>0;}).sort(function(a,b){
+      state.chats=rows.slice().sort(function(a,b){
         if(Boolean(a.needs_human)!==Boolean(b.needs_human))return a.needs_human?-1:1;
+        if(Boolean(Number(a.unread_count))!==Boolean(Number(b.unread_count)))return Number(a.unread_count)?-1:1;
         return new Date(b.last_message_at||0)-new Date(a.last_message_at||0);
       }).slice(0,4);
       state.chatsAt=Date.now();

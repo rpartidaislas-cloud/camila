@@ -10,7 +10,7 @@ const attention = read('../smyl-lana-attention.js');
 const worker = read('../sw.js');
 
 test('Inicio prioriza la jornada, atención y mensajes sin duplicar el menú', () => {
-  for (const label of ['Todo al día por hoy','Ahora y después','Citas hoy','En la clínica','Por confirmar','Mensajes','Requiere atención','Por responder','Resumen del mes']) assert.match(script, new RegExp(label));
+  for (const label of ['Todo al día por hoy','Ahora y después','Citas hoy','En la clínica','Por confirmar','Mensajes recientes','Requiere atención','META','Resumen del mes']) assert.match(script, new RegExp(label));
   for (const route of ["route('agenda')","route('inbox')","route('reportes')"]) assert.match(script, new RegExp(route.replace(/[()]/g,'\\$&')));
   assert.match(script,/SmylCareTasks\.open/);
   assert.doesNotMatch(script, /data-home-task=|daily-home-shortcuts|window\.abrirModalPaciente/);
@@ -33,11 +33,11 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 
 test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.css\?v=12/);
-  assert.match(app, /smyl-daily-home\.js\?v=10/);
+  assert.match(app, /smyl-daily-home\.js\?v=11/);
   assert.match(app, /smyl-clinic-setup\.js\?v=5/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
-  assert.match(worker, /daily-workbench-v12/);
-  assert.match(worker, /smyl-daily-home\.js\?v=10/);
+  assert.match(worker, /meta-cards-v13/);
+  assert.match(worker, /smyl-daily-home\.js\?v=11/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /--smyl-primary/);
   assert.match(styles, /daily-home-clear/);
@@ -48,11 +48,12 @@ test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
   assert.equal(styles, read('../mobile/www/smyl-daily-home.css'));
 });
 
-test('Inicio muestra solo conversaciones que requieren atención y no expone su contenido', () => {
-  assert.match(script, /Por responder/);
+test('Inicio conserva a la vista las conversaciones recientes de Meta y prioriza atención', () => {
+  assert.match(script, /Mensajes recientes/);
   assert.match(script, /fetchRecent\(12\)/);
   assert.match(script, /needs_human/);
   assert.match(script, /unread_count/);
+  assert.doesNotMatch(script, /rows\.filter\(function\(item\)/);
   assert.match(script, /Necesita asesor/);
   assert.match(script, /inbox\.open\(item\.id\)/);
   assert.doesNotMatch(script, /last_message\|\|/);
