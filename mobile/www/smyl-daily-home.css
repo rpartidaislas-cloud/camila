@@ -169,3 +169,68 @@
 /* Inicio más claro: los atajos repiten el menú lateral, así que solo se muestran donde no hay menú lateral. */
 @media(min-width:1024px){.daily-home-shortcuts{display:none}}
 .daily-home-hero h1{font-size:clamp(22px,2.4vw,28px)}
+
+/* Inicio operativo v12 — una mesa de trabajo, no un tablero de indicadores. */
+#smyl-daily-home{gap:16px;margin-bottom:32px}
+#smyl-daily-home .daily-home-hero{padding:18px 22px;background:linear-gradient(110deg,#fff 0%,#fff 72%,#f1f8f7 100%);box-shadow:none}
+#smyl-daily-home .daily-home-hero::before{width:4px;background:var(--smyl-accent,#0f766e)}
+#smyl-daily-home .daily-home-hero-copy{display:grid;gap:3px}
+#smyl-daily-home .daily-home-eyebrow{margin:0;font-size:12px;line-height:16px;letter-spacing:.55px}
+#smyl-daily-home .daily-home-hero h1{font-size:24px;line-height:30px}
+#smyl-daily-home .daily-home-hero p{margin:0;color:var(--smyl-text-secondary,#526173);font-size:13px;line-height:19px}
+#smyl-daily-home .daily-home-hero>small{align-self:flex-end;color:var(--smyl-text-muted,#667586);font-size:12px;line-height:18px}
+
+#smyl-daily-home .daily-home-card{border-radius:12px;box-shadow:none}
+#smyl-daily-home .daily-home-card>header{min-height:64px;padding:14px 18px}
+#smyl-daily-home .daily-home-card>header span{font-size:12px;line-height:16px;letter-spacing:.55px}
+#smyl-daily-home .daily-home-card>header h2{font-size:15px;line-height:21px}
+#smyl-daily-home .daily-home-card>header>button{min-height:36px;padding:0 12px;border-radius:8px;font-size:12px}
+#smyl-daily-home .daily-home-now-card{order:0}
+#smyl-daily-home .daily-home-now-card .daily-home-next-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+#smyl-daily-home .daily-home-now-card .daily-home-next-list>button{border-right:1px solid #e8edf2}
+#smyl-daily-home .daily-home-now-card .daily-home-next-list>button:nth-of-type(even){border-right:0}
+#smyl-daily-home .daily-home-now-card .daily-home-now{grid-column:1/-1}
+#smyl-daily-home .daily-home-next-list time,#smyl-daily-home .daily-home-next-list strong,#smyl-daily-home .daily-home-next-list small,#smyl-daily-home .daily-home-timeline button em{font-size:12px}
+
+#smyl-daily-home>.daily-home-metrics{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));border-radius:12px}
+#smyl-daily-home>.daily-home-metrics[data-count="0"]{display:block;border:0;background:transparent}
+#smyl-daily-home .daily-home-clear{display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid #cfe2de;border-radius:12px;background:#f4faf8}
+#smyl-daily-home .daily-home-clear>span{display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:#dff2ed;color:var(--smyl-success,#087a55);font-weight:800}
+#smyl-daily-home .daily-home-clear strong,#smyl-daily-home .daily-home-clear small{display:block}
+#smyl-daily-home .daily-home-clear strong{color:var(--smyl-ink,#102239);font-size:13px;line-height:18px}
+#smyl-daily-home .daily-home-clear small{margin-top:1px;color:var(--smyl-text-muted,#667586);font-size:12px;line-height:18px}
+#smyl-daily-home .daily-home-metric>span,#smyl-daily-home .daily-home-metric>small{font-size:12px}
+
+#smyl-daily-home .daily-home-grid{grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:16px}
+#smyl-daily-home .daily-home-priority-list span,#smyl-daily-home .daily-home-priority-list small{font-size:12px}
+#smyl-daily-home .daily-home-priority-list strong{font-size:13px}
+#smyl-daily-home .daily-home-priority-list article>button{min-height:36px;border-radius:8px}
+#smyl-daily-home .daily-home-chats>header{margin:0;padding:14px 18px;border-bottom:1px solid var(--smyl-border,#d7e0e8)}
+#smyl-daily-home .daily-home-chats>header h2{font-size:15px;line-height:21px}
+#smyl-daily-home .daily-home-chats>header button{min-height:36px;padding:0 12px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:8px}
+#smyl-daily-home .daily-home-chats .daily-home-chat-strip{display:grid;grid-template-columns:1fr;gap:0}
+#smyl-daily-home .daily-home-chats .daily-home-chat{min-height:66px;padding:13px 18px;border:0;border-top:1px solid #e8edf2;border-radius:0;background:#fff}
+#smyl-daily-home .daily-home-chats .daily-home-chat:first-child{border-top:0}
+#smyl-daily-home .daily-home-chat-top time,#smyl-daily-home .daily-home-chat-channel,#smyl-daily-home .daily-home-chat-flag{font-size:12px}
+#smyl-daily-home .daily-home-chats .daily-home-empty{min-height:108px}
+
+#smyl-daily-home .daily-home-month{padding-top:2px}
+#smyl-daily-home .daily-home-month>header h2,#smyl-daily-home .daily-home-month>header button{font-size:12px}
+#smyl-daily-home+.clinic-setup{margin-top:4px}
+
+@media(max-width:980px){
+  #smyl-daily-home .daily-home-grid{grid-template-columns:1fr}
+  #smyl-daily-home .daily-home-now-card .daily-home-next-list{grid-template-columns:1fr}
+  #smyl-daily-home .daily-home-now-card .daily-home-next-list>button{border-right:0}
+}
+@media(max-width:700px){
+  #smyl-daily-home{gap:12px}
+  #smyl-daily-home .daily-home-hero{padding:15px 16px}
+  #smyl-daily-home .daily-home-hero h1{font-size:21px;line-height:27px}
+  #smyl-daily-home .daily-home-hero>small{width:100%}
+  #smyl-daily-home>.daily-home-metrics{grid-template-columns:1fr}
+  #smyl-daily-home .daily-home-metric{border-right:0;border-bottom:1px solid var(--smyl-border,#d7e0e8)}
+  #smyl-daily-home .daily-home-metric:last-child{border-bottom:0}
+  #smyl-daily-home .daily-home-chats .daily-home-chat-strip{display:grid;margin:0;padding:0;overflow:visible}
+  #smyl-daily-home .daily-home-chats .daily-home-chat{max-width:none;flex-basis:auto}
+}

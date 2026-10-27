@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-daily-workbench-v12';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -113,9 +113,9 @@ const STATIC_FILES = [
   '/camila/smyl-lana-handoff.css?v=1',
   '/camila/smyl-lana-attention.js?v=4',
   '/camila/smyl-lana-attention.css?v=1',
-  '/camila/smyl-daily-home.js?v=9',
-  '/camila/smyl-daily-home.css?v=11',
-  '/camila/smyl-clinic-setup.js?v=4',
+  '/camila/smyl-daily-home.js?v=10',
+  '/camila/smyl-daily-home.css?v=12',
+  '/camila/smyl-clinic-setup.js?v=5',
   '/camila/smyl-clinic-setup.css?v=2',
   '/camila/smyl-settings-hub.js?v=3',
   '/camila/smyl-settings-hub.css?v=3',
