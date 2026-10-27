@@ -45,6 +45,18 @@ const fs = require('node:fs');
     const expectedSameRow = item.width >= 960;
     report.push({ name: item.name, width: item.width, ...metrics, expectedSameRow });
     if (item.name === 'desktop') {
+      const zoom = page.locator('.rr-tool-range input[aria-label="Ampliar radiografía"]');
+      const viewport = page.locator('.rr-image-wrap');
+      await zoom.fill('2');
+      await page.waitForTimeout(40);
+      const centered = await viewport.evaluate(element => ({left:element.scrollLeft,center:(element.scrollLeft+element.clientWidth/2)/element.scrollWidth,zoomed:element.classList.contains('is-zoomed')}));
+      if (!centered.zoomed || centered.left <= 0 || Math.abs(centered.center-.5) > .04) throw new Error(`Assisted-review zoom did not remain centered: ${JSON.stringify(centered)}`);
+      const box = await viewport.boundingBox();
+      await page.mouse.move(box.x+box.width*.62,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.38,box.y+box.height*.5,{steps:4});await page.mouse.up();
+      if (await viewport.evaluate(element=>element.scrollLeft) <= centered.left+5) throw new Error('Assisted-review horizontal drag did not pan');
+      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.waitForTimeout(40);
+      if (await viewport.evaluate(element=>element.scrollLeft>2||element.classList.contains('is-zoomed'))) throw new Error('Assisted-review original view did not reset');
       await page.locator('.rr-mark').click();
       const selected = await page.locator('.rr-item[aria-current="true"] .rr-number').textContent();
       if (selected.trim() !== '2') throw new Error('Marker and signal card are not correlated');
@@ -58,6 +70,14 @@ const fs = require('node:fs');
       if (!style.includes('brightness(100%)') || !style.includes('contrast(100%)') || !style.includes('invert(0)')) throw new Error('Original view reset failed');
     }
     if (item.width < 960) {
+      if (item.name === 'mobile') {
+        const viewport=page.locator('.rr-image-wrap'),zoom=page.locator('.rr-tool-range input[aria-label="Ampliar radiografía"]');
+        await viewport.evaluate(element=>{const event=(type,touches)=>{const value=new Event(type,{bubbles:true,cancelable:true});Object.defineProperty(value,'touches',{value:touches});element.dispatchEvent(value);};event('touchstart',[{clientX:100,clientY:320},{clientX:210,clientY:320}]);event('touchmove',[{clientX:65,clientY:320},{clientX:245,clientY:320}]);event('touchend',[]);});
+        await page.waitForTimeout(40);
+        const pinch=await viewport.evaluate(element=>({left:element.scrollLeft,zoomed:element.classList.contains('is-zoomed')}));
+        if (!pinch.zoomed||Number(await zoom.inputValue())<=1||pinch.left<=0) throw new Error('Assisted-review pinch gesture did not zoom');
+        await page.getByRole('button',{name:'Vista original',exact:true}).click();
+      }
       const last = page.locator('.rr-item').last();
       await last.scrollIntoViewIfNeeded();
       const reachable = await page.evaluate(() => {

@@ -6,7 +6,7 @@
   <title>SMYL · Anotación radiográfica</title>
   <link rel="stylesheet" href="../../smyl-dental-record.css?v=4">
   <link rel="stylesheet" href="../../smyl-radiograph-review.css?v=1">
-  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=2">
+  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=3">
   <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
   <style>body{margin:0;background:#f4f7fb;font-family:Inter,system-ui,sans-serif}.clinic-layout{min-height:1px}#p-paciente-detalle{padding:24px}</style>
 </head>
@@ -28,8 +28,8 @@
     const query=table=>{const value=dataFor(table);const chain={select(){return chain},eq(){return chain},maybeSingle(){return Promise.resolve({data:value,error:null})},then(resolve){return Promise.resolve({data:value,error:null}).then(resolve)}};return chain;};
     window.sb={auth:{getUser:async()=>({data:{user:{id:tenantId,is_anonymous:false}},error:null}),onAuthStateChange:()=>{}},from:query,storage:{from:()=>({download:async()=>({data:imageBlob,error:null})})}};
     window.sbTimeout=async promise=>await promise;
-    window.SmylRadiographReview={open:()=>{}};
+    window.__aiOpened=false;window.SmylRadiographReview={open:()=>{window.__aiOpened=true;}};
   </script>
-  <script src="../../smyl-dental-record.js?v=15"></script>
+  <script src="../../smyl-dental-record.js?v=16"></script>
 </body>
 </html>

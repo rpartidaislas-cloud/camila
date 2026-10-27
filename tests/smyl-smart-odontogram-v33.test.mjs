@@ -45,7 +45,7 @@ test('la interacción es legible, filtrable y adaptativa', () => {
 });
 
 test('web, móvil y PWA publican la misma versión', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=15/);
+  assert.match(app, /smyl-dental-record\.js\?v=16/);
   assert.match(app, /smyl-case-workspace\.css\?v=15/);
   assert.match(app, /smyl-case-workspace\.js\?v=18/);
   assert.match(worker, /smart-odontogram-v33/);

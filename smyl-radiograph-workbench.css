@@ -85,7 +85,10 @@
 .rr-tool-range input { accent-color: var(--rr-primary); }
 .rr-primary:disabled, .rr-secondary:disabled, .rr-tool:disabled { opacity: .48; cursor: not-allowed; }
 
-.rr-image-wrap { min-height: 0; max-height: none; margin: 0; overflow: auto; border-radius: 0; background: #0b1320; overscroll-behavior: contain; }
+.rr-image-wrap { min-height: 0; max-height: none; margin: 0; overflow: auto; border-radius: 0; background: #0b1320; overscroll-behavior: contain; touch-action: pan-y; }
+.rr-image-wrap.is-zoomed { cursor: grab; touch-action: none; }
+.rr-image-wrap.is-panning { cursor: grabbing; user-select: none; }
+.rr-image-wrap:focus-visible { outline: 3px solid var(--rr-focus); outline-offset: -3px; }
 .rr-image-stage { width: 100%; min-width: 280px; margin: auto; }
 .rr-image-stage > img { display: block; width: 100%; height: auto; cursor: default; transition: filter .12s ease; }
 .rr-workspace[data-mode="placing"] .rr-image-stage > img { cursor: crosshair; }
@@ -97,6 +100,7 @@
 .rr-key { display: inline-flex; align-items: center; gap: 6px; }
 .rr-key::before { width: 9px; height: 9px; border-radius: 50%; background: #f1b93e; content: ''; }
 .rr-key-confirmed::before { background: var(--rr-accent); }
+.rr-gesture-hint { margin-left: auto; color: var(--rr-meta); }
 
 .rr-signal-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); }
 .rr-counts { display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; }
@@ -199,6 +203,8 @@
   .rr-save > div strong, .rr-save > div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rr-save button { width: auto; margin-left: auto; }
   .rr-safety-note { text-align: left; }
+  .rr-image-legend { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
+  .rr-gesture-hint { margin-left: 0; }
   .rr-confirm-dialog { padding: 20px; }
   .rr-confirm-actions { align-items: stretch; flex-direction: column-reverse; }
   .rr-confirm-actions > * { width: 100%; min-height: 44px; }
@@ -249,7 +255,10 @@
 .dr-radiograph-dialog .dr-tools .dr-primary[aria-pressed="true"] { background: var(--smyl-ui-warning-soft, #fff8e7); color: var(--smyl-ui-warning, #8a5a05); }
 .dr-placement-mode { position: absolute; z-index: 5; top: 66px; left: 50%; display: flex; gap: 3px; padding: 10px 14px; transform: translateX(-50%); border: 1px solid #d4a733; border-radius: 999px; background: var(--smyl-ui-warning-soft, #fff8e7); color: var(--smyl-ui-warning, #8a5a05); box-shadow: 0 10px 28px rgba(11, 27, 46, .16); flex-direction: column; font-size: 12px; text-align: center; }
 .dr-placement-mode[hidden] { display: none; }
-.dr-radiograph-dialog .dr-viewport { min-height: 0; max-height: none; overflow: auto; background: #0b1320; overscroll-behavior: contain; }
+.dr-radiograph-dialog .dr-viewport { min-height: 0; max-height: none; overflow: auto; background: #0b1320; overscroll-behavior: contain; touch-action: pan-y; }
+.dr-radiograph-dialog .dr-viewport.is-zoomed { cursor: grab; touch-action: none; }
+.dr-radiograph-dialog .dr-viewport.is-panning { cursor: grabbing; user-select: none; }
+.dr-radiograph-dialog .dr-viewport:focus-visible { outline: 3px solid var(--smyl-ui-focus, #2563eb); outline-offset: -3px; }
 .dr-radiograph-dialog .dr-image-stage > img { cursor: default; transition: filter .12s ease; }
 .dr-radiograph-dialog .dr-tools:has(.dr-primary[aria-pressed="true"]) + .dr-placement-mode + .dr-viewport .dr-image-stage > img { cursor: crosshair; }
 .dr-radiograph-dialog .dr-mark { width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; border: 3px solid #fff; background: var(--smyl-ui-accent, #38a99d); color: var(--smyl-ui-primary, #0b1b2e); font-size: 13px; box-shadow: 0 2px 10px rgba(7, 24, 38, .55); }
@@ -276,6 +285,10 @@
 .dr-signal-actions .dr-button { flex: 1 1 auto; margin: 0; }
 .dr-signal-pane > .dr-field { margin: 0; padding: 12px; border-top: 1px solid var(--smyl-ui-border, #d9e2ec); }
 .dr-signal-pane > .dr-assisted-action { margin: 0 12px 8px; border-color: var(--smyl-ui-primary, #0b1b2e); background: var(--smyl-ui-primary, #0b1b2e); color: #fff; }
+.dr-action-feedback { margin: 0 12px 8px; padding: 10px 12px; border: 1px solid var(--smyl-ui-border, #d9e2ec); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--smyl-ui-surface-soft, #f8fafc); color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; line-height: 18px; }
+.dr-action-feedback:empty { display: none; }
+.dr-action-feedback.is-warning { border-color: #e7c36e; background: var(--smyl-ui-warning-soft, #fff8e7); color: var(--smyl-ui-warning, #8a5a05); }
+.dr-action-feedback.is-error { border-color: #e7a5a5; background: var(--smyl-ui-danger-soft, #fff0f0); color: var(--smyl-ui-danger, #a12626); }
 .dr-signal-pane > .dr-help { margin: 0; padding: 0 12px 12px; color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; }
 .dr-mark-dialog { width: min(560px, calc(100% - 24px)); padding: 0; overflow: hidden; border-color: var(--smyl-ui-border, #d9e2ec); background: var(--smyl-ui-surface, #fff); color: var(--smyl-ui-ink, #0b1b2e); box-shadow: var(--smyl-ui-shadow-float, 0 20px 56px rgba(11, 27, 46, .16)); }
 .dr-mark-dialog > h2 { margin: 0; padding: 18px 24px; border-bottom: 1px solid #24405c; background: var(--smyl-ui-primary, #0b1b2e); color: #fff; font-size: 20px; font-weight: 700; line-height: 26px; }

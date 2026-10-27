@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-27 — Codex — Navegación radiográfica centrada v4.3
+
+- El zoom de los visores manual y asistido conserva el punto observado en vez
+  de crecer desde la esquina superior izquierda. Al volver a la vista original
+  se restablecen escala, centro, brillo, contraste e inversión.
+- Con la imagen ampliada se puede recorrer horizontal y verticalmente mediante
+  arrastre con mouse o lápiz, gesto táctil de un dedo y teclado. En móvil, el
+  gesto estándar de separar dos dedos amplía y juntarlos reduce el zoom.
+- El botón `Revisar con apoyo de IA` deja de fallar en silencio: abre la mesa
+  asistida cuando el expediente está guardado y muestra dentro del visor una
+  explicación concreta cuando faltan guardar cambios, permiso clínico o carga
+  del módulo. No se ampliaron permisos ni se modificó la validación profesional.
+- Se añadieron pruebas de navegador para centro focal, paneo, reinicio, gesto
+  táctil y los estados del acceso a IA en 1280, 820, 390 y 320 px. La política
+  visual SMYL se conserva y web/PWA quedan sincronizadas.
+- Entrega frontend sin cambios de esquema, RLS, almacenamiento, Edge Functions
+  ni modelos clínicos: `smyl-radiograph-review.js?v=4`,
+  `smyl-dental-record.js?v=16`, `smyl-radiograph-workbench.css?v=3` y cache
+  `radiograph-navigation-v43`.
+
 ## 2026-10-27 — Codex — Mesa profesional de lectura radiográfica v4.2
 
 - Los visores manual y asistido comparten ahora una anatomía clínica coherente
