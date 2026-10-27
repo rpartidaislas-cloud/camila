@@ -1,5 +1,28 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Odontograma clínico longitudinal v3.3
+
+- Tratamiento incorpora un odontograma FDI interactivo de 32 piezas dentro de
+  `Evaluación clínica`. Resume el expediente dental vigente sin crear una
+  segunda fuente de verdad; al seleccionar una pieza abre el editor canónico
+  existente para revisar o registrar su evolución.
+- El mapa distingue por origen las anotaciones clínicas, fotografías
+  confirmadas y radiografías confirmadas. Los filtros `Todo`, `Clínica`,
+  `Fotografías` y `Rayos X` permiten aislar cada capa sin perder el contexto.
+- Las sugerencias de IA se muestran con trazo discontinuo y estado
+  `IA por revisar`; nunca se convierten automáticamente en hallazgos ni se
+  mezclan visualmente con evidencia confirmada. La decisión continúa bajo
+  control del profesional.
+- La tarjeta informa piezas relacionadas, conteos por fuente y pendientes. En
+  móvil se apila, conserva acciones táctiles de 44 px y ofrece acceso explícito
+  al odontograma completo. Se validaron 1280, 820, 390 y 320 px, 32 piezas y
+  cuatro filtros, sin overflow horizontal.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-dental-record.js?v=10`, `smyl-case-workspace.js?v=11`,
+  `smyl-case-workspace.css?v=8` y cache `smart-odontogram-v33`. No hubo
+  migraciones, cambios de RLS ni cambios de esquema. QA: **722/722** pruebas y
+  control visual responsivo aprobado.
+
 ## 2026-10-26 — Codex — Tratamiento alineado a la política visual v3.2
 
 - Tratamiento pasa de cuatro pasos técnicos a tres decisiones clínicas:

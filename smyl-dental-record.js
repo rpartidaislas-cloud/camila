@@ -31,6 +31,26 @@
    workflowPending:stages.filter(s=>s.state!=='completed').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
    rxReviews:(ctx.rxReviews||[]).length,rxPending:rxItems.filter(i=>i.state==='pending').length,
    rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length};
+  },map(tenant,patient,caseId){
+   const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño')return null;
+   const review=(ctx.photoReviews||[]).find(r=>r.case_id===caseId),photoItems=review?.document.items||[];
+   const rxItems=(ctx.rxReviews||[]).flatMap(r=>r.document.items||[]),teeth={};
+   for(const tooth of M.teeth){
+    const note=ctx.doc.teeth[tooth],photos=photoItems.filter(i=>i.tooth===tooth),radiographs=rxItems.filter(i=>i.tooth===tooth);
+    teeth[tooth]={
+     manual:!!note,
+     status:note?.status||'',
+     photo:photos.filter(i=>i.state==='confirmed').length,
+     radiograph:radiographs.filter(i=>i.state==='confirmed').length,
+     photoPending:photos.filter(i=>i.state==='pending').length,
+     radiographPending:radiographs.filter(i=>i.state==='pending').length,
+     pending:photos.filter(i=>i.state==='pending').length+radiographs.filter(i=>i.state==='pending').length
+    };
+   }
+   return {ready:ctx.ready&&!ctx.busy,revision:ctx.revision,teeth};
+  },openTooth(tenant,patient,tooth){
+   const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||window.miRolEquipo!=='dueño'||!M.teeth.includes(String(tooth))||!ctx.ready||ctx.busy)return false;
+   toothDialog(ctx,String(tooth));return true;
   },planContext(tenant,patient,caseId){
    const ctx=active;
    const snapshot=()=>{
