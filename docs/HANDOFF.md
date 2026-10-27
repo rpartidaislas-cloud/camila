@@ -16,8 +16,30 @@
 - Web, fuente móvil y PWA quedan sincronizadas en navegación v14, buscador v3,
   shell profesional v6, pacientes JS v15/CSS v8 y caché
   vigente con sufijo `simplified-navigation-patient-intake-v33`.
-- QA combinada: **742/742** pruebas; revisión visual a 1280, 820 y 390 px sin overflow
+- QA combinada: **747/747** pruebas; revisión visual a 1280, 820 y 390 px sin overflow
   horizontal, con controles de 48 px y acciones siempre visibles.
+
+## 2026-10-26 — Codex — Historia compacta de evidencia clínica v3.4
+
+- Tratamiento incorpora una historia de evidencia cronológica dentro de
+  `Evaluación clínica`: reúne fotografías del caso, estudios radiográficos y
+  archivos clínicos recientes sin duplicarlos ni convertir la simulación de
+  sonrisa en evidencia diagnóstica.
+- La vista resume los tres orígenes, ordena los registros por fecha y abre cada
+  elemento mediante su visor canónico. `Ver todos los archivos` lleva al
+  expediente privado del paciente, que continúa siendo la única fuente de
+  verdad y conserva sus controles de acceso.
+- La API de lectura para el tratamiento entrega únicamente metadatos seguros;
+  no expone rutas de almacenamiento, huellas, notas ni contenido clínico al
+  componente visual. La apertura vuelve a validar paciente, clínica y permiso.
+- En móvil se muestran los tres indicadores y los registros más recientes en
+  una composición compacta; el resto permanece disponible en Archivos. Se
+  validaron 1280, 820, 390 y 320 px, con acciones de 42/44 px y sin overflow.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-patient-360.js?v=10`, `smyl-dental-record.js?v=11`,
+  `smyl-case-workspace.js?v=12`, `smyl-case-workspace.css?v=9` y cache
+  `evidence-history-v34`. No hubo migraciones, cambios de RLS, esquema o
+  almacenamiento. QA: **744/744** pruebas y control visual responsivo aprobado.
 
 ## 2026-10-26 — Codex — Odontograma clínico longitudinal v3.3
 
