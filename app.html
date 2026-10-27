@@ -879,13 +879,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-navigation.js?v=13"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=1">
 <script defer src="smyl-command-menu.js?v=2"></script>
-<link rel="stylesheet" href="smyl-clinic.css?v=6">
+<link rel="stylesheet" href="smyl-clinic.css?v=7">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=13"></script>
-<link rel="stylesheet" href="smyl-patient-360.css?v=6">
-<script defer src="smyl-patient-360.js?v=8"></script>
+<script defer src="smyl-clinic.js?v=14"></script>
+<link rel="stylesheet" href="smyl-patient-360.css?v=7">
+<script defer src="smyl-patient-360.js?v=9"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=2">
 <script defer src="smyl-patient-record-stage2.js?v=2"></script>
 <link rel="stylesheet" href="smyl-proposals.css?v=9">
@@ -1231,21 +1231,32 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
       <!-- ═══ PACIENTES ═══ -->
       <div class="pantalla" id="p-pacientes">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Mis Pacientes</div>
-            <button class="btn btn-primary btn-sm" onclick="abrirModalPaciente()">+ Nuevo paciente</button>
-          </div>
-          <div class="search-bar">
-            <div class="search-wrap">
-              <span class="search-icon">🔍</span>
-              <input class="search-inp" type="text" id="buscar-pac" placeholder="Buscar por nombre, teléfono o correo" oninput="filtrarPacientes()">
+        <section class="patient-directory-v3" aria-labelledby="patient-directory-title">
+          <header class="patient-directory-header">
+            <div>
+              <p class="smyl-ui-eyebrow">Atención clínica</p>
+              <h2 id="patient-directory-title">Directorio de pacientes</h2>
+              <p>Consulta expedientes y continúa la atención sin perder el contexto.</p>
             </div>
+            <button class="btn btn-primary" type="button" onclick="abrirModalPaciente()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Nuevo paciente</span>
+            </button>
+          </header>
+          <div class="patient-directory-toolbar">
+            <label for="buscar-pac">Buscar pacientes</label>
+            <div class="patient-search-field">
+              <svg class="patient-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input class="search-inp" type="search" id="buscar-pac" placeholder="Buscar por nombre, teléfono o correo" autocomplete="off" oninput="filtrarPacientes()">
+            </div>
+            <p class="patient-directory-summary" id="patient-directory-summary" role="status" aria-live="polite">Cargando pacientes…</p>
           </div>
           <div id="tabla-pacientes-wrap">
-            <div class="empty"><div class="icon">👥</div><h3>Sin pacientes aún</h3><p>Agrega tu primer paciente para comenzar.</p><button class="btn btn-primary" onclick="abrirModalPaciente()">+ Agregar paciente</button></div>
+            <div class="patient-loading" role="status" aria-label="Cargando pacientes">
+              <span></span><span></span><span></span>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- ═══ DETALLE PACIENTE ═══ -->
@@ -1966,7 +1977,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <div class="modal-bg" id="modal-paciente">
   <div class="modal modal-paciente">
     <div class="modal-header">
-      <h3 id="modal-pac-title">Nuevo Paciente</h3>
+      <h3 id="modal-pac-title">Nuevo paciente</h3>
       <button class="modal-close" onclick="cerrarModalPaciente()" aria-label="Cerrar">✕</button>
     </div>
     <div class="form-grid">
@@ -3264,7 +3275,7 @@ function editarPacienteActual() {
 // ── Modal Paciente ──
 function abrirModalPaciente(id) {
   editandoPacienteId = id || null;
-  document.getElementById('modal-pac-title').textContent = id ? 'Editar Paciente' : 'Nuevo Paciente';
+  document.getElementById('modal-pac-title').textContent = id ? 'Editar paciente' : 'Nuevo paciente';
   ['mp-nombre','mp-apellido','mp-email','mp-tel','mp-notas'].forEach(function(f) { document.getElementById(f).value = ''; });
   document.getElementById('mp-fnac').value = '';
   document.getElementById('mp-genero').value = '';
