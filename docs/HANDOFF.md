@@ -16,7 +16,7 @@
 - No cambian consultas, alcance de tenant, permisos ni escritura de datos. Web,
   fuente móvil y PWA quedan sincronizadas en Inicio JS v10, CSS v12,
   configuración v5 y cache `daily-workbench-v12`.
-- QA: **751/751** pruebas; revisión visual a 1440, 820 y 390 px sin overflow,
+- QA: **757/757** pruebas; revisión visual a 1440, 820 y 390 px sin overflow,
   tarjetas en cero ni accesos redundantes.
 
 ## 2026-10-26 — Codex — Revisión asistida por evidencia v3.5
@@ -8629,3 +8629,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
   clínica los reutiliza al reabrir un caso; acortarlos rompería los casos existentes. Requiere guardar la ruta y firmar al
   leer (revision-clinica: reapertura y lista de 50 miniaturas; app.html: Historial). No se tocó para no romper casos.
 - Pruebas: `tests/security-functions-p1-2026-10-27.test.mjs` (ejecuta los validadores reales; suite 734/734).
+
+## 2026-10-26 — Codex — Tratamiento v3.6: evolución longitudinal y cierre documentado
+
+- La etapa Seguimiento ahora resume evoluciones, citas completadas, piezas en seguimiento y hallazgos confirmados sin exponer el contenido SOAP de las notas.
+- Se añadió una ruta compacta Evaluación → Plan → Seguimiento y accesos directos para registrar una evolución, actualizar el odontograma y consultar el historial clínico.
+- “Registrar evolución” abre el formulario canónico de la Ficha 360 preseleccionado como Evolución; conserva borradores, firma inmutable y adendas existentes.
+- El estado “Listo para documentar cierre” sólo aparece cuando hay plan aprobado, odontograma sin cambios/pedientes y al menos una evolución firmada. No cambia estados de base de datos ni cierra casos automáticamente.
+- `SmylPatientProgress` expone únicamente metadatos seguros de notas, citas y línea de tiempo; no entrega texto clínico. `SmylDentalProgress` añade conteos agregados del odontograma.
+- Web y `mobile/www` quedaron sincronizados en `smyl-patient-360.js?v=11`, `smyl-dental-record.js?v=13`, `smyl-case-workspace.js?v=14` y `smyl-case-workspace.css?v=11`; PWA `evolution-closure-v36`.
+- No hubo migraciones, funciones, credenciales ni cambios de esquema. QA enfocada: 27/27; revisión visual a 1280, 820, 390 y 320 px sin desbordamiento horizontal y con controles táctiles de 44 px en móvil.
