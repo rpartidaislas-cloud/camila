@@ -33,7 +33,7 @@ test('la IA se presenta como valoración sugerida y requiere confirmación profe
 
 test('el editor completo queda bajo divulgación progresiva y no duplica el mapa principal', () => {
   assert.match(workspace, /cw-advanced-editor/);
-  assert.match(workspace, /Herramienta clínica/);
+  assert.match(workspace, /advanced\.hidden=true/);
   assert.match(workspace, /advanced\.append\(dental\)/);
   assert.match(styles, /\.cw-advanced-editor>\.dr-record/);
 });
@@ -47,8 +47,8 @@ test('la nueva superficie amplía jerarquía y respuesta móvil', () => {
 
 test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=12/);
-  assert.match(app, /smyl-case-workspace\.css\?v=13/);
-  assert.match(app, /smyl-case-workspace\.js\?v=16/);
+  assert.match(app, /smyl-case-workspace\.css\?v=14/);
+  assert.match(app, /smyl-case-workspace\.js\?v=17/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

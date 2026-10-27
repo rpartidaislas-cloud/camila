@@ -8659,3 +8659,10 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - Se eliminó el acceso visual redundante a “Edición avanzada” desde el mapa y desde los modos Todo/Clínica. La pieza se edita directamente al seleccionarla en el odontograma principal.
 - La superficie adopta la política visual SMYL: tarjeta blanca, acción primaria navy, turquesa sólo como estado, carga de archivo delimitada, revisión asistida separada y controles táctiles de 44 px en móvil.
 - Web y `mobile/www` quedan sincronizados en `smyl-case-workspace.js?v=16`, `smyl-case-workspace.css?v=13` y caché `clinical-task-panel-v38`. No hubo migraciones, funciones, prompts ni cambios de datos clínicos.
+
+## 2026-10-27 — Codex — Tratamiento v3.9: un solo odontograma visible
+
+- Se eliminó el último acceso que todavía abría el odontograma canónico heredado debajo del mapa longitudinal. `Actualizar odontograma` ahora vuelve al único mapa visible en vez de desplegar una segunda representación.
+- Seleccionar una pieza en el mapa principal continúa abriendo el diálogo canónico de esa pieza, por lo que se conservan observaciones, conducta, estado, versionado y guardado sin duplicar la arcada.
+- El editor canónico completo permanece montado y oculto sólo para reutilizar el flujo de carga de radiografías. No puede abrirse en modo odontograma; al agregar un estudio muestra exclusivamente la sección radiográfica.
+- Web y `mobile/www` quedan sincronizados en `smyl-case-workspace.js?v=17`, `smyl-case-workspace.css?v=14` y caché `single-odontogram-v39`. No hubo cambios de esquema, RLS, funciones, prompts ni datos clínicos.

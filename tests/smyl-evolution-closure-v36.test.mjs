@@ -30,7 +30,8 @@ test('el médico puede registrar evolución, actualizar el mapa y abrir el histo
   for (const copy of ['Registrar evolución', 'Actualizar odontograma', 'Ver historial clínico']) assert.match(workspace, new RegExp(copy));
   assert.match(patient, /select\.value='progress'/);
   assert.match(workspace, /SmylPatient360\?\.open\('notes'\)/);
-  assert.match(workspace, /reviewPart\(ctx,0\)/);
+  assert.match(workspace, /ctx\.mapHost\?\.scrollIntoView/);
+  assert.doesNotMatch(workspace, /reviewPart\(ctx,0\)/);
 });
 
 test('el cierre permanece documentado y nunca se automatiza', () => {
@@ -51,8 +52,8 @@ test('la política visual cubre escritorio y móvil sin saturar el flujo', () =>
 test('web, móvil y PWA publican la etapa 3.6', () => {
   assert.match(app, /smyl-patient-360\.js\?v=12/);
   assert.match(app, /smyl-dental-record\.js\?v=13/);
-  assert.match(app, /smyl-case-workspace\.css\?v=13/);
-  assert.match(app, /smyl-case-workspace\.js\?v=16/);
+  assert.match(app, /smyl-case-workspace\.css\?v=14/);
+  assert.match(app, /smyl-case-workspace\.js\?v=17/);
   assert.match(worker, /evolution-closure-v36/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });
