@@ -6,11 +6,12 @@ const catalog = (function () {
   var OPT_OUT_FOOTER = 'Responde BAJA para no recibir más mensajes';
 
   var GROUPS = [
-    { id: 'citas', label: 'Citas y recordatorios' },
-    { id: 'tratamiento', label: 'Seguimiento del tratamiento' },
-    { id: 'pagos', label: 'Pagos y cotizaciones' },
-    { id: 'datos', label: 'Datos y documentos' },
-    { id: 'marketing', label: 'Reactivación y promociones' }
+    { id: 'citas', label: 'Citas', description: 'Confirmaciones, recordatorios, cambios y asistencia.' },
+    { id: 'tratamiento', label: 'Tratamientos y seguimiento', description: 'Indicaciones, controles y continuidad después de la consulta.' },
+    { id: 'pagos', label: 'Pagos y facturación', description: 'Cotizaciones, saldos, comprobantes y CFDI.' },
+    { id: 'datos', label: 'Documentos y expediente', description: 'Datos de contacto, formatos y documentos pendientes.' },
+    { id: 'equipo', label: 'Equipo y operación', description: 'Avisos internos para profesionales y coordinación de agenda.' },
+    { id: 'marketing', label: 'Reactivación y campañas', description: 'Mensajes promocionales únicamente para pacientes con autorización.' }
   ];
 
   // Qué dato de SMYL va en cada variable (coincide con las fuentes del recordatorio automático).
@@ -39,7 +40,7 @@ const catalog = (function () {
     utility('recordatorio_cita_24h_v1', 'citas', 'Recordatorio de cita (24 horas antes)',
       'Es la que usa el recordatorio automático de la Agenda. Solicítala primero.',
       'Hola {{1}}, te recordamos tu cita el {{2}} a las {{3}} en {{4}}. Responde a este mensaje si necesitas cambiarla.',
-      pick('nombre', 'fecha', 'hora', 'clinica'), { automatic: true }),
+      pick('nombre', 'fecha', 'hora', 'clinica'), { automatic: true, recommended: true }),
     utility('recordatorio_cita_confirmar_v1', 'citas', 'Recordatorio con botones para confirmar',
       'Igual que el recordatorio de 24 horas, pero el paciente responde con un toque.',
       'Hola {{1}}, te recordamos tu cita el {{2}} a las {{3}} en {{4}}. Elige una opción para que podamos organizar la agenda.',
@@ -56,16 +57,16 @@ const catalog = (function () {
       'Cuando el paciente pide una cita y el equipo aún debe confirmarla.',
       'Hola {{1}}, recibimos tu solicitud de cita para {{2}}. Nuestro equipo la revisará y te confirmará el horario por este medio en breve.',
       pick('nombre', 'servicio')),
-    utility('cita_confirmacion_profesional_v1', 'citas', 'Nueva cita para confirmar',
+    utility('cita_confirmacion_profesional_v1', 'equipo', 'Nueva cita para confirmar',
       'Cuando SMYL necesita que el profesional confirme una solicitud antes de ofrecerla al paciente.',
       'Nueva cita por confirmar para el {{1}} a las {{2}} en {{3}}. El espacio solicitado dura {{4}}. Revisa tu agenda y elige una opción para que SMYL pueda continuar con la solicitud.',
       [V.fecha, V.hora, V.sucursal, text('Duración', '60 minutos')],
-      { buttons: quick('Confirmar', 'Cambiar horario', 'Rechazar'), note: 'No incluye nombre, diagnóstico ni tratamiento del paciente.' }),
+      { buttons: quick('Confirmar', 'Cambiar horario', 'Rechazar'), note: 'No incluye nombre, diagnóstico ni tratamiento del paciente.', recommended: true }),
     utility('cita_propuesta_paciente_v1', 'citas', 'Propuesta de horario al paciente',
       'Después de que el profesional elige un horario disponible.',
       'Hola {{1}}, el profesional propone atenderte en {{2}} el {{3}} a las {{4}}. El horario estará apartado durante {{5}} mientras respondes. Elige una opción para continuar con tu solicitud.',
       [V.nombre, V.sucursal, V.fecha, V.hora, text('Tiempo de reserva', '10 minutos')],
-      { buttons: quick('Aceptar', 'Ver otras opciones', 'Hablar con clínica') }),
+      { buttons: quick('Aceptar', 'Ver otras opciones', 'Hablar con clínica'), recommended: true }),
     utility('cita_opciones_horario_v1', 'citas', 'Opciones de horario',
       'Para proponer horarios disponibles desde Mensajes.',
       'Hola {{1}}, tenemos disponibles estos horarios para tu cita en {{2}}: {{3}}. Responde con la opción que prefieras y la reservamos.',
@@ -98,6 +99,10 @@ const catalog = (function () {
       'Después de una inasistencia, para ofrecer reagendar.',
       'Hola {{1}}, notamos que no pudiste asistir a tu cita del {{2}} en {{3}}. Si deseas reagendarla, responde a este mensaje y con gusto te ayudamos.',
       pick('nombre', 'fecha', 'clinica')),
+    utility('cita_confirmar_llegada_v1', 'citas', 'Confirma si vienes en camino',
+      'Poco antes de la cita, cuando el equipo necesita organizar la recepción.',
+      'Hola {{1}}, tu cita en {{2}} comienza hoy a las {{3}}. Indícanos si vienes en camino o si necesitas ayuda con tu horario.',
+      pick('nombre', 'clinica', 'hora'), { buttons: quick('Voy en camino', 'Necesito ayuda') }),
 
     // ── Utilidad · Seguimiento del tratamiento ───────────────────────────
     utility('seguimiento_postcita_v1', 'tratamiento', 'Seguimiento después de tu cita',
@@ -124,6 +129,14 @@ const catalog = (function () {
     utility('plan_tratamiento_listo_v1', 'tratamiento', 'Tu plan de tratamiento está listo',
       'Después de la valoración, para agendar la explicación del plan.',
       'Hola {{1}}, ya preparamos el plan de tratamiento que revisamos en tu valoración en {{2}}. Responde a este mensaje para agendar una cita y explicártelo con calma.',
+      pick('nombre', 'clinica')),
+    utility('trabajo_laboratorio_listo_v1', 'tratamiento', 'Trabajo de laboratorio listo',
+      'Cuando un trabajo solicitado para el paciente ya llegó a la clínica.',
+      'Hola {{1}}, el trabajo de laboratorio relacionado con tu atención en {{2}} ya está disponible. Responde a este mensaje para coordinar tu siguiente cita.',
+      pick('nombre', 'clinica')),
+    utility('seguimiento_control_pendiente_v1', 'tratamiento', 'Control pendiente',
+      'Cuando el equipo indicó una revisión posterior y todavía falta agendarla.',
+      'Hola {{1}}, está pendiente programar tu cita de control en {{2}}. Responde a este mensaje y te compartimos horarios disponibles.',
       pick('nombre', 'clinica')),
 
     // ── Utilidad · Pagos y cotizaciones ──────────────────────────────────
@@ -152,6 +165,14 @@ const catalog = (function () {
       'Cuando se genera el CFDI.',
       'Hola {{1}}, tu factura {{2}} de {{3}} ya fue generada. Responde a este mensaje con el correo donde quieres recibirla y te la enviamos.',
       [V.nombre, text('Folio de la factura', 'A-2381'), V.clinica]),
+    utility('datos_facturacion_pendientes_v1', 'pagos', 'Faltan datos para tu factura',
+      'Cuando el paciente solicitó factura y faltan datos para prepararla.',
+      'Hola {{1}}, recibimos tu solicitud de factura en {{2}}, pero todavía faltan algunos datos fiscales. Responde a este mensaje para completar la información.',
+      pick('nombre', 'clinica')),
+    utility('saldo_actualizado_v1', 'pagos', 'Saldo actualizado',
+      'Después de registrar un pago parcial o un ajuste revisado por el equipo.',
+      'Hola {{1}}, actualizamos el saldo de tu cuenta en {{2}}. El saldo pendiente es de {{3}}. Si tienes dudas, responde a este mensaje.',
+      [V.nombre, V.clinica, text('Saldo pendiente', '$1,500.00')]),
 
     // ── Utilidad · Datos y documentos ────────────────────────────────────
     utility('documento_por_firmar_v1', 'datos', 'Documento pendiente de firma',
@@ -162,6 +183,28 @@ const catalog = (function () {
       'Para mantener al día teléfono y correo del expediente.',
       'Hola {{1}}, para mantener tu expediente al día en {{2}}, ¿puedes confirmarnos si tu teléfono y tu correo siguen siendo los mismos? Responde a este mensaje.',
       pick('nombre', 'clinica')),
+    utility('documentos_recibidos_v1', 'datos', 'Documentos recibidos',
+      'Para confirmar que la clínica recibió los archivos enviados por el paciente.',
+      'Hola {{1}}, recibimos correctamente los documentos que enviaste a {{2}}. Nuestro equipo los revisará antes de tu próxima cita.',
+      pick('nombre', 'clinica')),
+    utility('documento_incompleto_v1', 'datos', 'Documento incompleto',
+      'Cuando falta completar un formato solicitado para la atención.',
+      'Hola {{1}}, el documento que recibimos en {{2}} necesita información adicional. Responde a este mensaje y te indicamos qué dato falta.',
+      pick('nombre', 'clinica')),
+
+    // ── Utilidad · Equipo y operación ───────────────────────────────────
+    utility('agenda_cambio_profesional_v1', 'equipo', 'Cambio en tu agenda',
+      'Cuando una cita asignada al profesional cambia de fecha u hora.',
+      'Tu agenda en {{1}} cambió: la cita del {{2}} ahora está programada para el {{3}} a las {{4}}. Revisa SMYL para ver el contexto completo.',
+      [V.sucursal, text('Horario anterior', 'martes 21 a las 10:00'), V.fecha, V.hora]),
+    utility('agenda_cancelacion_profesional_v1', 'equipo', 'Cita retirada de tu agenda',
+      'Cuando una cita asignada al profesional fue cancelada.',
+      'Se retiró de tu agenda en {{1}} la cita programada para el {{2}} a las {{3}}. Revisa SMYL si necesitas consultar el registro.',
+      pick('sucursal', 'fecha', 'hora')),
+    utility('agenda_resumen_profesional_v1', 'equipo', 'Resumen de agenda del día',
+      'Al inicio del día, si el profesional activó este aviso.',
+      'Tu agenda de hoy en {{1}} tiene {{2}} citas y comienza a las {{3}}. Abre SMYL para revisar horarios y pendientes.',
+      [V.sucursal, text('Número de citas', '6'), V.hora]),
 
     // ── Marketing · Reactivación y promociones (requieren opt-in del paciente) ──
     marketing('limpieza_semestral_v1', 'Recordatorio de limpieza (cada 6 meses)',
@@ -207,7 +250,11 @@ const catalog = (function () {
     marketing('felicitacion_cumpleanos_v1', 'Felicitación de cumpleaños',
       'El día del cumpleaños del paciente.',
       'Hola {{1}}, todo el equipo de {{2}} te desea un feliz cumpleaños. Gracias por confiarnos el cuidado de tu sonrisa.',
-      pick('nombre', 'clinica'))
+      pick('nombre', 'clinica')),
+    marketing('revision_anual_v1', 'Invitación a revisión anual',
+      'Para pacientes que autorizaron mensajes y llevan cerca de un año sin revisión.',
+      'Hola {{1}}, ha pasado cerca de un año desde tu última revisión en {{2}}. Si quieres programar una nueva valoración, responde a este mensaje y te compartimos horarios.',
+      pick('nombre', 'clinica'), { buttons: quick('Quiero agendar', 'Ahora no') })
   ];
 
   // Reglas de Meta que el catálogo respeta; se muestran en la pantalla y se verifican en las pruebas.

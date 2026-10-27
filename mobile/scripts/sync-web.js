@@ -42,6 +42,8 @@ copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.js'), path.join(WWW, 'smyl-google-calendar.js'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.css'), path.join(WWW, 'smyl-google-calendar.css'));
 copyFile(path.join(ROOT, 'smyl-template-catalog.js'), path.join(WWW, 'smyl-template-catalog.js'));
+copyFile(path.join(ROOT, 'smyl-templates.js'), path.join(WWW, 'smyl-templates.js'));
+copyFile(path.join(ROOT, 'smyl-templates.css'), path.join(WWW, 'smyl-templates.css'));
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
 
 console.log('www/ actualizado desde la raíz del repo.');

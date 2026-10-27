@@ -186,6 +186,7 @@
     var chips = el('div', 'tpl-chips');
     var category = el('span', 'tpl-chip', CATEGORY[template.category]); category.dataset.category = template.category;
     chips.append(category);
+    if (template.recommended) chips.append(el('span', 'tpl-chip tpl-chip-recommended', 'Recomendada'));
     var status = statusChip(template); if (status) chips.append(status);
     if (template.automatic) chips.append(el('span', 'tpl-chip tpl-chip-auto', 'Recordatorio automático'));
     head.append(chips, el('h3', '', template.title), el('p', 'tpl-when', template.when));
@@ -263,6 +264,20 @@
     });
   }
 
+  function renderGroupToolbar() {
+    var host = document.querySelector('[data-tpl-groups]');
+    if (!host) return;
+    host.innerHTML = '';
+    [{ id: 'all', label: 'Todas' }].concat(catalog.GROUPS).forEach(function (entry) {
+      var total = catalog.TEMPLATES.filter(function (template) { return entry.id === 'all' || template.group === entry.id; }).length;
+      var button = el('button', '', entry.label); button.type = 'button';
+      button.setAttribute('aria-pressed', String(state.group === entry.id));
+      button.append(el('b', '', String(total)));
+      button.onclick = function () { state.group = entry.id; renderGroupToolbar(); renderGrid(); };
+      host.append(button);
+    });
+  }
+
   function renderGrid() {
     var grid = document.querySelector('[data-tpl-grid]');
     var count = document.querySelector('[data-tpl-count]');
@@ -274,7 +289,17 @@
       var empty = el('div', 'tpl-empty'); empty.append(el('strong', '', 'No hay plantillas con esos filtros'), el('p', '', 'Prueba con otra categoría o borra la búsqueda.'));
       grid.append(empty); return;
     }
-    items.forEach(function (template) { grid.append(card(template)); });
+    catalog.GROUPS.forEach(function (group) {
+      var groupItems = items.filter(function (template) { return template.group === group.id; });
+      if (!groupItems.length) return;
+      var section = el('section', 'tpl-group-section');
+      var heading = el('div', 'tpl-group-head');
+      var title = el('h2', '', group.label); title.append(el('span', '', String(groupItems.length)));
+      heading.append(title, el('p', '', group.description || ''));
+      var cards = el('div', 'tpl-group-grid');
+      groupItems.forEach(function (template) { cards.append(card(template)); });
+      section.append(heading, cards); grid.append(section);
+    });
   }
 
   function build() {
@@ -307,18 +332,15 @@
     var tabs = el('div', 'tpl-tabs'); tabs.dataset.tplTabs = ''; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Categoría');
     var search = el('input'); search.type = 'search'; search.placeholder = 'Buscar plantilla'; search.setAttribute('aria-label', 'Buscar plantilla');
     search.oninput = function () { state.query = search.value; renderGrid(); };
-    var group = el('select'); group.setAttribute('aria-label', 'Tipo de mensaje');
-    group.append(new Option('Todos los tipos', 'all'));
-    catalog.GROUPS.forEach(function (entry) { group.append(new Option(entry.label, entry.id)); });
-    group.onchange = function () { state.group = group.value; renderGrid(); };
-    toolbar.append(tabs, group, search);
+    var groups = el('div', 'tpl-group-tabs'); groups.dataset.tplGroups = ''; groups.setAttribute('aria-label', 'Uso de la plantilla');
+    toolbar.append(tabs, groups, search);
 
     var count = el('p', 'tpl-count'); count.dataset.tplCount = '';
     var grid = el('div', 'tpl-grid'); grid.dataset.tplGrid = '';
     how.append(steps);
     page.append(head, how, rules, toolbar, count, grid);
     document.querySelector('.contenido').append(page);
-    renderToolbar(); renderStatus(); renderGrid();
+    renderToolbar(); renderGroupToolbar(); renderStatus(); renderGrid();
   }
 
   function init() {

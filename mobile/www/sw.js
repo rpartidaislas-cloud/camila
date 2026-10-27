@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-whatsapp-template-categories';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -89,9 +89,9 @@ const STATIC_FILES = [
   '/camila/smyl-schedule-message.js?v=2',
   '/camila/smyl-schedule-setup.js?v=2',
   '/camila/smyl-reminders.js?v=2',
-  '/camila/smyl-templates.css?v=3',
-  '/camila/smyl-template-catalog.js?v=2',
-  '/camila/smyl-templates.js?v=3',
+  '/camila/smyl-templates.css?v=4',
+  '/camila/smyl-template-catalog.js?v=3',
+  '/camila/smyl-templates.js?v=4',
   '/camila/smyl-schedule.css?v=18',
   '/camila/smyl-google-calendar.css?v=2',
   '/camila/smyl-schedule-setup.css?v=2',

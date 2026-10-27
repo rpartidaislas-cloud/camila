@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-26 — Codex — Plantillas de WhatsApp organizadas por uso
+
+- El catálogo pasó de una lista plana a seis categorías operativas: Citas,
+  Tratamientos y seguimiento, Pagos y facturación, Documentos y expediente,
+  Equipo y operación, y Reactivación y campañas.
+- La pantalla muestra filtros horizontales con conteos y agrupa las tarjetas
+  bajo títulos y descripciones breves. Las tres plantillas iniciales del flujo
+  de agenda llevan la marca `Recomendada`.
+- Se añadieron propuestas para confirmar llegada, laboratorio listo, control
+  pendiente, datos fiscales, saldo actualizado, documentos y coordinación de
+  la agenda profesional. El catálogo suma 51 plantillas y conserva la separación
+  estricta Utility/Marketing, baja para Marketing y validación de Meta.
+- Web, fuente móvil, caché PWA, catálogo de Edge Functions y bundle manual
+  quedaron sincronizados en catálogo v3 y pantalla/CSS v4. El sincronizador
+  móvil ahora incluye también `smyl-templates.js/.css`.
+- QA visual revisada en el navegador integrado con filtros desplazables y
+  tarjetas de una columna en ancho reducido; pruebas enfocadas aprobadas.
+
 ## 2026-10-26 — Codex — Confirmaciones de citas por WhatsApp desplegadas
 
 - Agenda envía la plantilla Utility al profesional al preparar una confirmación

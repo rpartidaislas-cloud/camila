@@ -116,10 +116,20 @@ test('Mensajes muestra cuántas conversaciones sin leer hay, sin abrir ninguna',
 });
 
 test('web, móvil y PWA publican las plantillas', () => {
-  assert.match(app, /<link rel="stylesheet" href="smyl-templates\.css\?v=3">/);
-  assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=2"><\/script>\s*<script defer src="smyl-templates\.js\?v=3"><\/script>/);
-  for (const file of ['smyl-templates.css?v=3', 'smyl-template-catalog.js?v=2', 'smyl-templates.js?v=3']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
+  assert.match(app, /<link rel="stylesheet" href="smyl-templates\.css\?v=4">/);
+  assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=3"><\/script>\s*<script defer src="smyl-templates\.js\?v=4"><\/script>/);
+  for (const file of ['smyl-templates.css?v=4', 'smyl-template-catalog.js?v=3', 'smyl-templates.js?v=4']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
   for (const file of ['smyl-templates.js', 'smyl-templates.css', 'smyl-template-catalog.js', 'smyl-navigation.js', 'smyl-inbox.js', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
+});
+
+test('el catálogo se organiza por trabajo clínico y destaca las esenciales', () => {
+  assert.deepEqual(catalog.GROUPS.map((group) => group.id), ['citas', 'tratamiento', 'pagos', 'datos', 'equipo', 'marketing']);
+  assert.ok(catalog.GROUPS.every((group) => group.description));
+  for (const id of ['recordatorio_cita_24h_v1', 'cita_confirmacion_profesional_v1', 'cita_propuesta_paciente_v1']) {
+    assert.equal(catalog.TEMPLATES.find((item) => item.id === id)?.recommended, true, id);
+  }
+  assert.match(page, /groups\.dataset\.tplGroups/);
+  assert.match(page, /tpl-group-section/);
 });
 
 test('el propietario solicita una plantilla del catálogo con confirmación y sin texto libre', () => {
