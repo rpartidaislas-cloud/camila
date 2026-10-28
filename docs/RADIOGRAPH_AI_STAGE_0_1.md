@@ -31,7 +31,8 @@ smyl_radiograph_ai_runs (requested) ── idempotency_key = sha256(hash|proveed
 smyl_radiograph_candidates (salida del modelo, inmutable) ──► smyl_radiograph_decisions (pending)
    │ smyl_radiograph_decide_candidate(rev, confirmed|corrected|rejected) [clinical.write, PT409]
    ▼
-smyl_radiograph_reports (draft → signed con hash; después sólo adendas) [sign: clinical.approve]
+smyl_radiograph_reports (draft → signed con hash + snapshot de decisiones; después sólo adendas)
+   [sign: clinical.approve + ficha de profesional; bloquea las decisiones; luego no se reconsideran sin adenda]
    │ smyl_radiograph_export_report  [clinical.read; sólo firmados; audita 'export']
    ▼
 smyl_radiograph_access_events (register/open/send_to_engine/engine_result/correct/decide/report_draft/sign_report/addendum/export)
@@ -57,7 +58,11 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 | Informe firmado con hallazgos pendientes o descartados | `sign_report` cuenta hallazgos cuya decisión no sea `confirmed|corrected` → 23514. |
 | Edición silenciosa de un informe firmado | Trigger bloquea cualquier UPDATE/DELETE de un informe firmado (incluso service_role); sólo adendas. Hash sha256 del documento. |
 | Conflicto de edición concurrente | Revisión esperada en decisiones e informes → `PT409`; advisory locks por fuente/candidato/informe. |
-| Exportación sin rastro | `export_report` registra `export` y nunca expone `storage_path`. |
+| Decisión cambiada después de firmar (o en carrera con la firma) | `sign_report` toma `for update` las decisiones referenciadas y guarda `signed_decisions`; `decide_candidate` rechaza (23514) un candidato incluido en un informe firmado → adenda. |
+| Oráculo de existencia de ids entre clínicas | Las búsquedas iniciales filtran por `smyl_current_tenant()`; un uuid ajeno y uno inexistente responden igual. Ids propuestos por el cliente que ya existan → "Identificador no disponible". |
+| `TRUNCATE` con llave de servicio (no dispara triggers de fila) | `revoke truncate … from service_role` en todas las tablas nuevas. |
+| Exportación sin rastro | `export_report` registra `export` (el cliente sólo puede registrar `open`) y nunca expone `storage_path`. |
+| Divergencia navegador/servidor/SQL en textos | Recorte Unicode (`smyl_radiograph_trim` ≡ `String.prototype.trim`) y longitud por code points en los tres; vectores con saltos de línea, NBSP/BOM y emojis. |
 
 ## Despliegue (cuando se autorice) y rollback
 
@@ -98,8 +103,15 @@ está disponible la suite se omite sin fallar.
 - **Inventario de producción (Etapa 0.3):** desde esta sesión el MCP de Supabase no tiene permiso
   sobre `rpxshsiwoxdbuevjjpfw`; confirmar manualmente qué migraciones están aplicadas (la última
   registrada en HANDOFF es `20261027130000`) y las versiones de las Edge Functions antes de aplicar.
-- **Retención y eliminación:** las tablas heredan `on delete cascade` del paciente; falta la
-  política de retención de originales/derivados/logs antes de producción (plan §8).
+- **Retención y eliminación:** decisión tomada en esta entrega: la evidencia sigue el ciclo de
+  vida del expediente — borrar al paciente o a la clínica arrastra fuentes, ejecuciones, candidatos,
+  decisiones e informes (cascada permitida por `pg_trigger_depth() > 1`); cualquier `UPDATE`/`DELETE`
+  directo sigue bloqueado. Falta la política de retención temporal de originales/derivados/logs y
+  del archivo en Storage antes de producción (plan §8).
+- **Firma:** requiere `clinical.approve` **y** ficha activa en `smyl_professionals`; una dueña o
+  administradora sin ficha de profesional no puede firmar (23514).
+- **Límite de frecuencia de `open`:** `smyl_radiograph_log_access` no deduplica; un usuario con
+  `clinical.read` podría inflar `smyl_radiograph_access_events`. Evaluar dedupe por ventana en Etapa 4.
 - **Vínculos longitudinales:** `smyl_radiograph_study_links` existe con RLS pero sin RPC de
   escritura (Etapa 6).
 - **Bucket:** las fuentes v2 fijan `bucket='smyl-radiographs'` (el del flujo v1). La Etapa 2 debe

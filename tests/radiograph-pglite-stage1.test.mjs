@@ -105,6 +105,9 @@ test('Etapa 0: con las banderas apagadas el flujo v2 no existe para nadie, ni pa
   await rejects(sql('select * from public.smyl_radiograph_feature_flags'), '42501');
   await rejects(sql('select * from public.smyl_radiograph_engines'), '42501');
   await rejects(sql(`select * from public.smyl_radiograph_active_engine('qc')`), '42501');
+  await rejects(sql(`select public.smyl_radiograph_flag_enabled('radiograph.qc_v2','${U.ownerB}')`), '42501', /permission denied/);
+  await asServer();
+  await rejects(sql(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,config) values ('qc','other','x','3',1,'{"auth":{"token":"nope"}}')`), '23514');
 });
 
 test('Etapa 0: piloto por clínica — encender qc_v2 para A no lo enciende para B', { skip }, async () => {
@@ -125,6 +128,7 @@ test('Etapa 1: registrar la fuente copia ruta/hash del expediente y es idempoten
   const again = await register(P1, STUDY, '99999999-9999-4999-8999-999999999999');
   assert.equal(again.id, SRC, 'misma fuente, sin duplicado');
   await rejects(register(P1, '00000000-0000-4000-8000-000000000000'), '42501', /no pertenece al expediente/);
+  await rejects(one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'panoramic','{"version":1,"acceptedAt":"ayer"}'::jsonb)`, [SRC, P1, STUDY]), '22023', /Consentimiento/);
   await rejects(sql(`update public.smyl_radiograph_sources set sha256='${'cd'.repeat(32)}' where id=$1`, [SRC]), '42501');
   await asServer();
   await rejects(sql(`update public.smyl_radiograph_sources set sha256='${'cd'.repeat(32)}' where id=$1`, [SRC]), '42501', /inmutable/);
@@ -140,6 +144,11 @@ test('Aislamiento: otra clínica, miembro inactivo y rol sin alcance no ven ni t
     await rejects(sql(`select public.smyl_radiograph_log_access($1::uuid,'open')`, [SRC]), '42501', undefined);
     await rejects(sql(`select * from public.smyl_radiograph_correct_study_type($1::uuid,'bitewing','x')`, [SRC]), '42501');
   }
+  // Sin oráculo de existencia: desde otra clínica, un uuid real y uno inexistente responden igual.
+  await as(U.ownerB);
+  const msg = async id => { try { await sql(`select * from public.smyl_radiograph_correct_study_type($1::uuid,'bitewing','x')`, [id]); } catch (e) { return e.message; } };
+  assert.equal(await msg(SRC), await msg('00000000-0000-4000-8000-000000000000'));
+  await rejects(register(P3, STUDY, SRC), '42501', /no está habilitada/); // B no tiene la bandera: se rechaza antes de mirar expedientes
   await as(U.dentist);
   assert.equal((await rows('select id from public.smyl_radiograph_sources')).length, 1, 'odontóloga del equipo tratante sí ve P1');
   await as(U.reception);
@@ -147,6 +156,7 @@ test('Aislamiento: otra clínica, miembro inactivo y rol sin alcance no ven ni t
   await rejects(sql(`select * from public.smyl_radiograph_correct_study_type($1::uuid,'bitewing','x')`, [SRC]), '42501', /permiso/);
   await rejects(sql(`insert into public.smyl_radiograph_sources(id,tenant_id,patient_id,study_id,storage_path,sha256,mime_type,size_bytes,study_type_declared,consent,created_by)
     values (gen_random_uuid(),'${U.ownerA}','${P1}','${STUDY}','x/y/z/w.jpeg','${SHA}','image/jpeg',100,'panoramic','{"version":1,"acceptedAt":"x"}','${U.reception}')`), '42501');
+  await rejects(sql(`select public.smyl_radiograph_log_access($1::uuid,'export')`, [SRC]), '22023', /no permitida desde el cliente/);
 });
 
 test('Corrección del tipo de estudio: append-only y auditada; la fuente no cambia', { skip }, async () => {
@@ -234,7 +244,12 @@ test('Decisión profesional: confirmar/corregir/descartar con concurrencia optim
   assert.equal(rejected.state, 'rejected'); assert.deepEqual(rejected.payload, {});
   const versions = await rows('select revision,snapshot->>\'state\' as state from public.smyl_radiograph_decision_versions where candidate_id=$1 order by revision', [cand46]);
   assert.deepEqual(versions.map(v => [v.revision, v.state]), [[2, 'corrected'], [3, 'rejected']]);
+  // Para el informe: 46 vuelve a 'rejected' en la revisión 5 (después de la confirmación de prueba en la 4).
   assert.equal((await one('select payload->>\'fdiCandidate\' as fdi from public.smyl_radiograph_candidates where id=$1', [cand46])).fdi, '46', 'el candidato original se conserva');
+  assert.equal((await decide(cand46, 3, 'confirmed', null)).revision, 4, 'payload JSON null equivale a {}');
+  await asServer();
+  await rejects(sql(`update public.smyl_radiograph_decisions set state='rejected' where candidate_id=$1`, [cand46]), '42501', /revisión nueva/);
+  await rejects(sql(`delete from public.smyl_radiograph_decisions where candidate_id=$1`, [cand46]), '42501');
   await as(U.ownerB);
   assert.equal((await rows('select * from public.smyl_radiograph_decisions')).length, 0);
   assert.equal((await rows('select * from public.smyl_radiograph_decision_versions')).length, 0);
@@ -259,6 +274,12 @@ test('QC no utilizable bloquea análisis; un timeout incierto nunca se reintenta
   await complete(retry.id, 'completed', Object.assign(structuredClone(vectors('qc').valid[2].value), { model: structuredClone(ENGINE) }));
   await as(U.ownerA);
   await rejects(sql(`select * from public.smyl_radiograph_request_ai_run($1::uuid,'tooth_localization',false)`, [src2]), '23514', /control de calidad no habilita/);
+  // Ciclo de vida: borrar al paciente arrastra su evidencia (cascada), pero el borrado directo sigue bloqueado.
+  await asServer();
+  await rejects(sql(`delete from public.smyl_radiograph_ai_runs where source_id=$1`, [src2]), '42501');
+  await exec(`delete from public.camila_pacientes where id='${P2}'`);
+  assert.equal((await rows('select id from public.smyl_radiograph_sources where id=$1', [src2])).length, 0);
+  assert.equal((await rows('select id from public.smyl_radiograph_ai_runs where source_id=$1', [src2])).length, 0);
 });
 
 test('Informe: borrador versionado, firma sólo con hallazgos confirmados/corregidos, hash inmutable, adendas y exportación', { skip }, async () => {
@@ -272,33 +293,45 @@ test('Informe: borrador versionado, firma sólo con hallazgos confirmados/correg
   await exec(`update public.smyl_radiograph_feature_flags set enabled=true where key='radiograph.report_v1'`);
   await as(U.dentist);
   await rejects(save(0, doc([Object.assign({}, f36, { candidateId: '0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a' })])), '22023', /otra fuente/);
+  await decide(cand46, 4, 'rejected');
   const draft = await save(0, doc([f36, f46]));
   assert.equal(draft.status, 'draft'); assert.equal(draft.revision, 1);
   await rejects(save(0, doc([f36])), 'PT409');
   await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,1)`, [RPT]), '23514', /confirmados o corregidos/);
   const draft2 = await save(1, doc([f36]));
   assert.equal(draft2.revision, 2);
-  await as(U.reception);
-  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,2)`, [RPT]), '42501', /permiso/);
-  await as(U.ownerB);
-  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,2)`, [RPT]), '42501');
+  await as(U.ownerA);
+  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,2)`, [RPT]), '23514', /profesional registrado/);
+  const blank = Object.assign(doc([f36]), { sections: Object.assign({}, doc([]).sections, { description: '\n\n\n' }) });
+  assert.equal((await save(2, blank)).revision, 3, 'borrador con descripción vacía se guarda');
+  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,3)`, [RPT]), '23514', /antes de firmar/);
   await as(U.dentist);
-  const signed = await one(`select * from public.smyl_radiograph_sign_report($1::uuid,2)`, [RPT]);
-  assert.equal(signed.status, 'signed'); assert.equal(signed.revision, 3); assert.match(signed.signed_hash, /^[a-f0-9]{64}$/);
+  assert.equal((await save(3, doc([f36]))).revision, 4);
+  await as(U.reception);
+  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,4)`, [RPT]), '42501', /permiso/);
+  await as(U.ownerB);
+  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,4)`, [RPT]), '42501');
+  await as(U.dentist);
+  const signed = await one(`select * from public.smyl_radiograph_sign_report($1::uuid,4)`, [RPT]);
+  assert.equal(signed.status, 'signed'); assert.equal(signed.revision, 5); assert.match(signed.signed_hash, /^[a-f0-9]{64}$/);
   assert.equal(signed.signed_professional_id, 'b0000000-0000-4000-8000-000000000001');
-  assert.equal((await one(`select * from public.smyl_radiograph_sign_report($1::uuid,2)`, [RPT])).signed_hash, signed.signed_hash, 'firma repetida: idempotente');
-  await rejects(save(3, doc([])), '42501', /sólo admite adendas/);
+  assert.deepEqual(signed.signed_decisions.map(d => [d.candidateId, d.state, d.revision]), [[cand36, 'confirmed', 2]], 'snapshot de decisiones firmadas');
+  assert.equal((await one(`select * from public.smyl_radiograph_sign_report($1::uuid,4)`, [RPT])).signed_hash, signed.signed_hash, 'firma repetida: idempotente');
+  await rejects(save(5, doc([])), '42501', /sólo admite adendas/);
+  await rejects(decide(cand36, 2, 'rejected'), '23514', /informe firmado; registra una adenda/);
+  assert.equal((await decide(cand46, 5, 'confirmed')).revision, 6, 'un candidato fuera del informe sí puede reconsiderarse');
   await asServer();
   await rejects(sql(`update public.smyl_radiograph_reports set document='{}' where id=$1`, [RPT]), '42501', /sólo admite adendas/);
   await rejects(sql(`delete from public.smyl_radiograph_reports where id=$1`, [RPT]), '42501');
   assert.equal((await one(`select public.smyl_radiograph_report_hash(document) = signed_hash as ok from public.smyl_radiograph_reports where id=$1`, [RPT])).ok, true);
-  assert.deepEqual((await rows('select revision from public.smyl_radiograph_report_versions where report_id=$1 order by revision', [RPT])).map(r => r.revision), [1, 2, 3]);
+  assert.deepEqual((await rows('select revision from public.smyl_radiograph_report_versions where report_id=$1 order by revision', [RPT])).map(r => r.revision), [1, 2, 3, 4, 5]);
   await as(U.dentist);
   const addendum = await one(`select * from public.smyl_radiograph_add_report_addendum($1::uuid,'Se complementa con hallazgo clínico posterior.','Correlación clínica')`, [RPT]);
   assert.equal(addendum.report_id, RPT);
   await as(U.reception);
   const exported = (await one(`select public.smyl_radiograph_export_report($1::uuid) as e`, [RPT])).e;
   assert.equal(exported.report.signed_hash, signed.signed_hash);
+  assert.equal(exported.signedDecisions[0].state, 'confirmed');
   assert.equal(exported.source.sha256, SHA); assert.equal(exported.source.studyTypeCurrent, 'bitewing');
   assert.equal(exported.runs.length, 2); assert.deepEqual(exported.runs[0].engine, ENGINE);
   assert.equal(exported.addenda.length, 1); assert.match(exported.notice, /No constituye diagnóstico/);
@@ -308,8 +341,8 @@ test('Informe: borrador versionado, firma sólo con hallazgos confirmados/correg
   await rejects(sql(`select public.smyl_radiograph_export_report($1::uuid)`, [RPT]), '42501');
   await as(U.ownerA);
   const actions = (await rows(`select action,count(*)::int as n from public.smyl_radiograph_access_events where source_id=$1 group by action order by action`, [SRC])).map(r => `${r.action}:${r.n}`);
-  // decide:3 — la repetición idempotente de una decisión no genera evento.
-  assert.deepEqual(actions, ['addendum:1', 'correct:1', 'decide:3', 'engine_result:2', 'export:1', 'register:1', 'report_draft:2', 'send_to_engine:2', 'sign_report:1']);
+  // decide:6 — la repetición idempotente de una decisión no genera evento.
+  assert.deepEqual(actions, ['addendum:1', 'correct:1', 'decide:6', 'engine_result:2', 'export:1', 'register:1', 'report_draft:4', 'send_to_engine:2', 'sign_report:1']);
   await as(U.dentist);
   assert.equal((await rows('select * from public.smyl_radiograph_access_events')).length, 0, 'sin audit.read no se lee la auditoría');
 });

@@ -46,7 +46,8 @@ type Dict = Record<string, unknown>;
 const fail = (m: string): never => { throw new Error(m); };
 const isObj = (v: unknown): v is Dict => !!v && typeof v === "object" && !Array.isArray(v);
 const exact = (o: unknown, keys: readonly string[]): o is Dict => isObj(o) && Object.keys(o).length === keys.length && keys.every((k) => Object.hasOwn(o, k));
-const text = (v: unknown, min: number, max: number): v is string => typeof v === "string" && v.length <= max && v.trim().length >= min && v.trim().length <= max;
+const cp = (s: string): number => [...s].length; // code points, igual que char_length en SQL
+const text = (v: unknown, min: number, max: number): v is string => typeof v === "string" && cp(v) <= max && cp(v.trim()) >= min && cp(v.trim()) <= max;
 const prob = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
 const fdi = (v: unknown): v is string => typeof v === "string" && FDI.test(v);
 const candidateId = (v: unknown): v is string => typeof v === "string" && CANDIDATE_ID.test(v);

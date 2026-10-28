@@ -96,6 +96,12 @@ test('Etapa 1: validadores SQL con enumeraciones cerradas y prohibición de afir
 
 test('Etapa 1: informe firmado sólo con hallazgos confirmados/corregidos, hash y adendas', () => {
   assert.match(reports, /where d\.candidate_id is null or d\.state not in \('confirmed','corrected'\)/);
+  assert.match(reports, /jsonb_array_elements\(v_old\.document->'findings'\) f\) for update/, 'las decisiones se bloquean al firmar');
+  assert.match(reports, /signed_decisions = v_decisions/);
+  assert.match(reports, /Sólo un profesional registrado en la clínica puede firmar/);
+  assert.match(runs, /forma parte de un informe firmado; registra una adenda/);
+  assert.match(flags, /revoke all on function public\.smyl_radiograph_flag_enabled\(text, uuid\) from public, anon, authenticated/);
+  for (const sql of all) assert.match(sql, /revoke truncate on [\s\S]*? from service_role/);
   assert.match(reports, /signed_hash = public\.smyl_radiograph_report_hash\(v_old\.document\)/);
   assert.match(reports, /if old\.status = 'signed' then raise exception using errcode = '42501', message = 'Un informe firmado sólo admite adendas\.'/);
   assert.match(reports, /if v_report\.status <> 'signed' then raise exception using errcode = '23514', message = 'Las adendas sólo se agregan a informes firmados\.'/);

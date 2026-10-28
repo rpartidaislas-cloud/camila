@@ -25,7 +25,8 @@
  const fail=m=>{throw new Error(m);};
  const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const exact=(o,keys)=>isObj(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
- const text=(v,min,max)=>typeof v==='string'&&v.length<=max&&v.trim().length>=min&&v.trim().length<=max;
+ const cp=s=>[...s].length; // code points, igual que char_length en SQL
+ const text=(v,min,max)=>typeof v==='string'&&cp(v)<=max&&cp(v.trim())>=min&&cp(v.trim())<=max;
  const prob=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1;
  const fdi=v=>typeof v==='string'&&FDI.test(v);
  const candidateId=v=>typeof v==='string'&&CANDIDATE_ID.test(v);

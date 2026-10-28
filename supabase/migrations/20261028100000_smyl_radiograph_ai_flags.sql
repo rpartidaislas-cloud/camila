@@ -42,6 +42,7 @@ create table if not exists public.smyl_radiograph_engines (
   config jsonb not null default '{}'::jsonb check (
     jsonb_typeof(config) = 'object' and octet_length(config::text) <= 8192
     and not (config ?| array['apiKey','api_key','secret','token','authorization','password','credential'])
+    and config::text !~* '"(api_?key|secret|token|authorization|password|credential)"\s*:'
   ),
   note text not null default '' check (char_length(note) <= 300),
   created_at timestamptz not null default now(),
@@ -57,6 +58,8 @@ alter table public.smyl_radiograph_flag_tenants enable row level security;
 alter table public.smyl_radiograph_engines enable row level security;
 revoke all on public.smyl_radiograph_feature_flags, public.smyl_radiograph_flag_tenants,
   public.smyl_radiograph_engines from public, anon, authenticated;
+revoke truncate on public.smyl_radiograph_feature_flags, public.smyl_radiograph_flag_tenants,
+  public.smyl_radiograph_engines from service_role;
 -- Sin políticas ni grants: sólo service_role lee/escribe. Las lecturas del navegador pasan
 -- por las funciones de abajo, que exponen únicamente booleanos.
 
@@ -70,8 +73,8 @@ returns boolean language sql stable security definer set search_path = pg_catalo
     from public.smyl_radiograph_feature_flags f where f.key = p_key
   ), false);
 $$;
-revoke all on function public.smyl_radiograph_flag_enabled(text, uuid) from public, anon;
-grant execute on function public.smyl_radiograph_flag_enabled(text, uuid) to authenticated;
+-- Sólo la usan las funciones SECURITY DEFINER: el navegador consulta smyl_radiograph_ai_capabilities().
+revoke all on function public.smyl_radiograph_flag_enabled(text, uuid) from public, anon, authenticated;
 
 -- Motor activo para un tipo de análisis. Sólo servidor: devuelve id y versión, nunca config.
 create or replace function public.smyl_radiograph_active_engine(p_kind text)

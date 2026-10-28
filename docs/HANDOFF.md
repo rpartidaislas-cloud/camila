@@ -23,6 +23,12 @@
   (contrato estático) y `tests/radiograph-pglite-stage1.test.mjs` (Postgres real en memoria:
   aislamiento entre clínicas, miembro desactivado, rol sin alcance, idempotencia, inmutabilidad,
   firma; se omite si falta `@electric-sql/pglite`). Suite completa **824/824**.
+- Revisión adversarial independiente (segunda ronda, mismo día): decisiones bloqueadas y
+  congeladas al firmar (`for update` + `signed_decisions`; reconsiderar exige adenda), recorte y
+  longitud de texto alineados JS/TS/SQL (Unicode, code points), cascada de borrado de
+  paciente/clínica permitida y borrado directo bloqueado, `revoke truncate` a `service_role`,
+  sin oráculo de existencia de ids entre clínicas, trigger de revisión en decisiones, firma sólo
+  con ficha de profesional, cliente sólo registra `open`, CHECK anti-secretos profundo en motores.
 - No se tocó `segment-teeth`, el flujo v1 (`smyl_radiograph_reviews`), Edge Functions
   desplegadas, UI, `sw.js` ni `mobile/**`. Detalle, amenazas, despliegue/rollback y pendientes en
   `docs/RADIOGRAPH_AI_STAGE_0_1.md`.

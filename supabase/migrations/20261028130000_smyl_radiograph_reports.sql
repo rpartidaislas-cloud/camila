@@ -19,13 +19,15 @@ create table if not exists public.smyl_radiograph_reports (
   signed_professional_id uuid,
   signed_at timestamptz,
   signed_hash text check (signed_hash is null or signed_hash ~ '^[a-f0-9]{64}$'),
+  signed_decisions jsonb check (signed_decisions is null or jsonb_typeof(signed_decisions) = 'array'),
   unique (tenant_id, id),
   unique (tenant_id, source_id),
   foreign key (tenant_id, patient_id) references public.camila_pacientes(tenant_id, id) on delete cascade,
   foreign key (tenant_id, source_id) references public.smyl_radiograph_sources(tenant_id, id) on delete cascade,
   foreign key (tenant_id, signed_professional_id) references public.smyl_professionals(tenant_id, id),
-  check ((status = 'signed') = (signed_by is not null and signed_at is not null and signed_hash is not null))
+  check ((status = 'signed') = (signed_by is not null and signed_at is not null and signed_hash is not null and signed_professional_id is not null and signed_decisions is not null))
 );
+alter table public.smyl_radiograph_reports add column if not exists signed_decisions jsonb check (signed_decisions is null or jsonb_typeof(signed_decisions) = 'array');
 create table if not exists public.smyl_radiograph_report_versions (
   tenant_id uuid not null references public.camila_tenants(id) on delete cascade,
   report_id uuid not null,
@@ -51,7 +53,10 @@ create table if not exists public.smyl_radiograph_report_addenda (
 create or replace function public.smyl_radiograph_guard_report_change()
 returns trigger language plpgsql set search_path = pg_catalog, public as $$
 begin
-  if tg_op = 'DELETE' then raise exception using errcode = '42501', message = 'Los informes radiográficos no se borran.'; end if;
+  if tg_op = 'DELETE' then
+    if pg_trigger_depth() > 1 then return old; end if;
+    raise exception using errcode = '42501', message = 'Los informes radiográficos no se borran.';
+  end if;
   if old.status = 'signed' then raise exception using errcode = '42501', message = 'Un informe firmado sólo admite adendas.'; end if;
   if new.id <> old.id or new.tenant_id <> old.tenant_id or new.source_id <> old.source_id or new.created_by <> old.created_by or new.created_at <> old.created_at then
     raise exception using errcode = '42501', message = 'La identidad del informe es inmutable.'; end if;
@@ -75,6 +80,7 @@ alter table public.smyl_radiograph_reports enable row level security;
 alter table public.smyl_radiograph_report_versions enable row level security;
 alter table public.smyl_radiograph_report_addenda enable row level security;
 revoke all on public.smyl_radiograph_reports, public.smyl_radiograph_report_versions, public.smyl_radiograph_report_addenda from public, anon, authenticated;
+revoke truncate on public.smyl_radiograph_reports, public.smyl_radiograph_report_versions, public.smyl_radiograph_report_addenda from service_role;
 grant select on public.smyl_radiograph_reports, public.smyl_radiograph_report_versions, public.smyl_radiograph_report_addenda to authenticated;
 drop policy if exists smyl_radiograph_reports_scoped_read on public.smyl_radiograph_reports;
 create policy smyl_radiograph_reports_scoped_read on public.smyl_radiograph_reports for select to authenticated
@@ -106,7 +112,7 @@ begin
   for k in select jsonb_object_keys(s) loop
     if not public.smyl_radiograph_text_valid(s->k, 0, 4000) then raise exception using errcode = '22023', message = 'Sección del informe demasiado larga.'; end if;
   end loop;
-  if p_strict and char_length(btrim(s->>'description')) < 2 then raise exception using errcode = '23514', message = 'Completa la descripción radiográfica antes de firmar.'; end if;
+  if p_strict and char_length(public.smyl_radiograph_trim(s->>'description')) < 2 then raise exception using errcode = '23514', message = 'Completa la descripción radiográfica antes de firmar.'; end if;
   for f in select value from jsonb_array_elements(p->'findings') loop
     if jsonb_typeof(f) is distinct from 'object' or f - array['candidateId','tooth','text','priority'] <> '{}'::jsonb or not (f ?& array['candidateId','tooth','text','priority'])
        or coalesce(f->>'candidateId','') !~ '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' or f->>'candidateId' = any(ids)
@@ -126,7 +132,7 @@ returns public.smyl_radiograph_reports
 language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_source public.smyl_radiograph_sources; v_tenant uuid; v_old public.smyl_radiograph_reports; v_row public.smyl_radiograph_reports;
 begin
-  select * into v_source from public.smyl_radiograph_sources where id = p_source_id;
+  select * into v_source from public.smyl_radiograph_sources where id = p_source_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_source.patient_id, 'clinical.write');
   if v_source.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
@@ -140,6 +146,7 @@ begin
   select * into v_old from public.smyl_radiograph_reports where tenant_id = v_tenant and source_id = p_source_id for update;
   if not found then
     if p_expected_revision <> 0 then raise exception using errcode = 'PT409', message = 'El informe no existe con esa revisión.'; end if;
+    if exists (select 1 from public.smyl_radiograph_reports where id = p_report_id) then raise exception using errcode = '22023', message = 'Identificador no disponible.'; end if;
     insert into public.smyl_radiograph_reports(id, tenant_id, patient_id, source_id, document, created_by, updated_by)
     values (p_report_id, v_tenant, v_source.patient_id, p_source_id, p_document, auth.uid(), auth.uid()) returning * into v_row;
   else
@@ -163,9 +170,9 @@ grant execute on function public.smyl_radiograph_save_report_draft(uuid, uuid, i
 create or replace function public.smyl_radiograph_sign_report(p_report_id uuid, p_expected_revision integer)
 returns public.smyl_radiograph_reports
 language plpgsql security definer set search_path = pg_catalog, public as $$
-declare v_old public.smyl_radiograph_reports; v_tenant uuid; v_row public.smyl_radiograph_reports; v_bad integer;
+declare v_old public.smyl_radiograph_reports; v_tenant uuid; v_row public.smyl_radiograph_reports; v_bad integer; v_professional uuid; v_decisions jsonb;
 begin
-  select * into v_old from public.smyl_radiograph_reports where id = p_report_id;
+  select * into v_old from public.smyl_radiograph_reports where id = p_report_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_old.patient_id, 'clinical.approve');
   if v_old.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
@@ -178,12 +185,23 @@ begin
     raise exception using errcode = '42501', message = 'Un informe firmado sólo admite adendas.'; end if;
   if v_old.revision <> p_expected_revision then raise exception using errcode = 'PT409', message = 'El informe cambió en otra sesión. Actualiza la revisión.'; end if;
   perform public.smyl_radiograph_validate_report(v_old.document, true);
+  v_professional := public.smyl_current_professional_id(v_tenant);
+  if v_professional is null then raise exception using errcode = '23514', message = 'Sólo un profesional registrado en la clínica puede firmar el informe.'; end if;
+  -- Bloquea las decisiones referenciadas para que ninguna cambie entre la comprobación y la firma.
+  perform 1 from public.smyl_radiograph_decisions d
+  where d.tenant_id = v_tenant and d.source_id = v_old.source_id
+    and d.candidate_id in (select (f.value->>'candidateId')::uuid from jsonb_array_elements(v_old.document->'findings') f) for update;
   select count(*) into v_bad from jsonb_array_elements(v_old.document->'findings') f
   left join public.smyl_radiograph_decisions d on d.tenant_id = v_tenant and d.candidate_id = (f.value->>'candidateId')::uuid and d.source_id = v_old.source_id
   where d.candidate_id is null or d.state not in ('confirmed','corrected');
   if v_bad > 0 then raise exception using errcode = '23514', message = 'Sólo se firman hallazgos confirmados o corregidos; retira los pendientes o descartados.'; end if;
+  -- Snapshot de las decisiones firmadas: la exportación nunca contradice al documento.
+  select coalesce(jsonb_agg(jsonb_build_object('candidateId', d.candidate_id, 'state', d.state, 'revision', d.revision, 'payload', d.payload, 'decidedBy', d.decided_by, 'decidedAt', d.decided_at) order by d.candidate_id), '[]'::jsonb)
+  into v_decisions from public.smyl_radiograph_decisions d
+  where d.tenant_id = v_tenant and d.source_id = v_old.source_id
+    and d.candidate_id in (select (f.value->>'candidateId')::uuid from jsonb_array_elements(v_old.document->'findings') f);
   update public.smyl_radiograph_reports set status = 'signed', revision = v_old.revision + 1, signed_by = auth.uid(),
-    signed_professional_id = public.smyl_current_professional_id(v_tenant), signed_at = clock_timestamp(),
+    signed_professional_id = v_professional, signed_at = clock_timestamp(), signed_decisions = v_decisions,
     signed_hash = public.smyl_radiograph_report_hash(v_old.document), updated_by = auth.uid(), updated_at = clock_timestamp()
   where tenant_id = v_tenant and id = p_report_id returning * into v_row;
   insert into public.smyl_radiograph_report_versions(tenant_id, report_id, revision, snapshot, actor_id)
@@ -200,7 +218,7 @@ returns public.smyl_radiograph_report_addenda
 language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_report public.smyl_radiograph_reports; v_tenant uuid; v_row public.smyl_radiograph_report_addenda;
 begin
-  select * into v_report from public.smyl_radiograph_reports where id = p_report_id;
+  select * into v_report from public.smyl_radiograph_reports where id = p_report_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_report.patient_id, 'clinical.approve');
   if v_report.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
@@ -219,7 +237,7 @@ create or replace function public.smyl_radiograph_export_report(p_report_id uuid
 returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_report public.smyl_radiograph_reports; v_tenant uuid; v_source public.smyl_radiograph_sources;
 begin
-  select * into v_report from public.smyl_radiograph_reports where id = p_report_id;
+  select * into v_report from public.smyl_radiograph_reports where id = p_report_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_report.patient_id, 'clinical.read');
   if v_report.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
@@ -234,6 +252,7 @@ begin
       'studyTypeCurrent', coalesce((select c.value from public.smyl_radiograph_source_corrections c where c.tenant_id = v_tenant and c.source_id = v_source.id order by c.created_at desc limit 1), v_source.study_type_declared)),
     'runs', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'kind', r.kind, 'engine', r.engine, 'contractVersion', r.contract_version, 'status', r.status, 'completedAt', r.completed_at) order by r.requested_at)
       from public.smyl_radiograph_ai_runs r where r.tenant_id = v_tenant and r.source_id = v_source.id), '[]'::jsonb),
+    'signedDecisions', v_report.signed_decisions,
     'decisions', coalesce((select jsonb_agg(jsonb_build_object('candidateId', d.candidate_id, 'state', d.state, 'revision', d.revision, 'payload', d.payload, 'decidedBy', d.decided_by, 'decidedAt', d.decided_at))
       from public.smyl_radiograph_decisions d where d.tenant_id = v_tenant and d.source_id = v_source.id), '[]'::jsonb),
     'addenda', coalesce((select jsonb_agg(to_jsonb(a) - 'tenant_id' order by a.created_at) from public.smyl_radiograph_report_addenda a where a.tenant_id = v_tenant and a.report_id = v_report.id), '[]'::jsonb),

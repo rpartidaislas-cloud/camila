@@ -4,12 +4,21 @@
 -- navegador; se copian desde el expediente al registrar. Nada se aplica sin autorización.
 begin;
 
--- Reutilizable: bloquea UPDATE/DELETE en tablas de evidencia inmutable.
+-- Reutilizable: bloquea UPDATE/DELETE directos en tablas de evidencia inmutable. El DELETE en
+-- cascada (borrado del paciente o de la clínica) sí pasa: la evidencia sigue el ciclo de vida
+-- del expediente al que pertenece (pg_trigger_depth() > 1 sólo ocurre dentro de la cascada RI).
 create or replace function public.smyl_radiograph_forbid_change()
 returns trigger language plpgsql set search_path = pg_catalog, public as $$
 begin
+  if tg_op = 'DELETE' and pg_trigger_depth() > 1 then return old; end if;
   raise exception using errcode = '42501', message = format('%s es inmutable.', tg_table_name);
 end;
+$$;
+
+-- Recorte alineado con String.prototype.trim (espacios, saltos, NBSP, BOM y espacios Unicode).
+create or replace function public.smyl_radiograph_trim(p text) returns text
+language sql immutable set search_path = pg_catalog as $$
+  select regexp_replace(p, '^[\t\n\v\f\r    -     　﻿]+|[\t\n\v\f\r    -     　﻿]+$', '', 'g');
 $$;
 
 create table if not exists public.smyl_radiograph_sources (
@@ -114,6 +123,9 @@ alter table public.smyl_radiograph_study_links enable row level security;
 alter table public.smyl_radiograph_access_events enable row level security;
 revoke all on public.smyl_radiograph_sources, public.smyl_radiograph_source_corrections,
   public.smyl_radiograph_study_links, public.smyl_radiograph_access_events from public, anon, authenticated;
+-- TRUNCATE no dispara triggers de fila: ni una llave de servicio comprometida vacía la evidencia.
+revoke truncate on public.smyl_radiograph_sources, public.smyl_radiograph_source_corrections,
+  public.smyl_radiograph_study_links, public.smyl_radiograph_access_events from service_role;
 grant select on public.smyl_radiograph_sources, public.smyl_radiograph_source_corrections,
   public.smyl_radiograph_study_links, public.smyl_radiograph_access_events to authenticated;
 
@@ -169,6 +181,8 @@ begin
     raise exception using errcode = '42501', message = 'La revisión radiográfica v2 no está habilitada para esta clínica.';
   end if;
   if p_source_id is null or p_study_id is null then raise exception using errcode = '22023', message = 'Faltan identificadores.'; end if;
+  if p_consent is null or jsonb_typeof(p_consent->'acceptedAt') is distinct from 'string' then raise exception using errcode = '22023', message = 'Consentimiento no válido.'; end if;
+  begin perform (p_consent->>'acceptedAt')::timestamptz; exception when others then raise exception using errcode = '22023', message = 'Consentimiento no válido.'; end;
   select value into v_study from public.smyl_dental_records d, jsonb_array_elements(d.document->'studies')
   where d.tenant_id = v_tenant and d.patient_id = p_patient_id and value->>'id' = p_study_id::text;
   if v_study is null then raise exception using errcode = '42501', message = 'El estudio no pertenece al expediente.'; end if;
@@ -176,6 +190,8 @@ begin
   select * into v_row from public.smyl_radiograph_sources
   where tenant_id = v_tenant and patient_id = p_patient_id and study_id = p_study_id and sha256 = v_study->'asset'->>'sha256';
   if found then return v_row; end if;
+  -- El id lo propone el cliente: nunca se reutiliza uno existente (evita oráculo/reserva de ids ajenos).
+  if exists (select 1 from public.smyl_radiograph_sources where id = p_source_id) then raise exception using errcode = '22023', message = 'Identificador no disponible.'; end if;
   insert into public.smyl_radiograph_sources(id, tenant_id, patient_id, study_id, storage_path, sha256, mime_type, size_bytes,
     study_type_declared, captured_at, consent, provenance, created_by)
   values (p_source_id, v_tenant, p_patient_id, p_study_id, v_study->'asset'->>'path', v_study->'asset'->>'sha256',
@@ -194,7 +210,8 @@ returns public.smyl_radiograph_source_corrections
 language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_source public.smyl_radiograph_sources; v_tenant uuid; v_row public.smyl_radiograph_source_corrections;
 begin
-  select * into v_source from public.smyl_radiograph_sources where id = p_source_id;
+  -- Un solo mensaje para "no existe" y "es de otra clínica": sin oráculo de existencia.
+  select * into v_source from public.smyl_radiograph_sources where id = p_source_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_source.patient_id, 'clinical.write');
   if v_source.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
@@ -207,13 +224,13 @@ $$;
 revoke all on function public.smyl_radiograph_correct_study_type(uuid, text, text) from public, anon;
 grant execute on function public.smyl_radiograph_correct_study_type(uuid, text, text) to authenticated;
 
--- El navegador registra aperturas/exportaciones; las demás acciones las registra el servidor.
+-- El navegador sólo registra aperturas; el resto (incluida la exportación) lo registra el servidor.
 create or replace function public.smyl_radiograph_log_access(p_source_id uuid, p_action text)
 returns void language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_source public.smyl_radiograph_sources; v_tenant uuid;
 begin
-  if p_action not in ('open','export') then raise exception using errcode = '22023', message = 'Acción no permitida desde el cliente.'; end if;
-  select * into v_source from public.smyl_radiograph_sources where id = p_source_id;
+  if p_action not in ('open') then raise exception using errcode = '22023', message = 'Acción no permitida desde el cliente.'; end if;
+  select * into v_source from public.smyl_radiograph_sources where id = p_source_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_source.patient_id, 'clinical.read');
   if v_source.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;

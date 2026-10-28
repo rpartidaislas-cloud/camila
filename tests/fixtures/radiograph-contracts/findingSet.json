@@ -83,6 +83,48 @@
    }
   },
   {
+   "name": "etiqueta de 120 emojis (code points, no unidades UTF-16)",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
    "name": "cuatro regiones",
    "value": {
     "schema": 1,
@@ -410,6 +452,132 @@
        }
       ],
       "explanation": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "etiqueta de 121 emojis",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "explicación sólo con saltos de línea y tabuladores",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "\n\t\n",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "etiqueta sólo con espacios duros y BOM",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": " ﻿　",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
       "limitations": [
        "Superposición parcial con pieza vecina."
       ]

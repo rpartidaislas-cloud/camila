@@ -254,6 +254,48 @@
      }
     ]
    }
+  },
+  {
+   "name": "descripción sólo con saltos de línea: borrador sí, firma no",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "\n\n\n",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "descripción sólo con espacio duro: borrador sí, firma no",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "   ",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
   }
  ]
 }

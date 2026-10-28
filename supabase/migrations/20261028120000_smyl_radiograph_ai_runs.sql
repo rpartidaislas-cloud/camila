@@ -91,7 +91,10 @@ create trigger smyl_radiograph_decision_versions_immutable before update or dele
 create or replace function public.smyl_radiograph_guard_run_change()
 returns trigger language plpgsql set search_path = pg_catalog, public as $$
 begin
-  if tg_op = 'DELETE' then raise exception using errcode = '42501', message = 'Las ejecuciones del motor no se borran.'; end if;
+  if tg_op = 'DELETE' then
+    if pg_trigger_depth() > 1 then return old; end if;
+    raise exception using errcode = '42501', message = 'Las ejecuciones del motor no se borran.';
+  end if;
   if old.status <> 'requested' then raise exception using errcode = '42501', message = 'La salida original del motor es inmutable.'; end if;
   if new.status = 'requested' or new.id <> old.id or new.tenant_id <> old.tenant_id or new.source_id <> old.source_id
      or new.kind <> old.kind or new.engine_id <> old.engine_id or new.engine <> old.engine
@@ -102,6 +105,25 @@ begin
   return new;
 end;
 $$;
+-- Decisiones: sólo avanzan de una en una revisión, conservan identidad y no se borran directo.
+create or replace function public.smyl_radiograph_guard_decision_change()
+returns trigger language plpgsql set search_path = pg_catalog, public as $$
+begin
+  if tg_op = 'DELETE' then
+    if pg_trigger_depth() > 1 then return old; end if;
+    raise exception using errcode = '42501', message = 'Las decisiones profesionales no se borran.';
+  end if;
+  if new.revision <> old.revision + 1 or new.candidate_id <> old.candidate_id or new.tenant_id <> old.tenant_id
+     or new.patient_id <> old.patient_id or new.source_id <> old.source_id or new.state = 'pending' then
+    raise exception using errcode = '42501', message = 'Las decisiones sólo cambian con una revisión nueva.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists smyl_radiograph_decisions_guard on public.smyl_radiograph_decisions;
+create trigger smyl_radiograph_decisions_guard before update or delete on public.smyl_radiograph_decisions
+  for each row execute function public.smyl_radiograph_guard_decision_change();
+
 drop trigger if exists smyl_radiograph_ai_runs_guard on public.smyl_radiograph_ai_runs;
 create trigger smyl_radiograph_ai_runs_guard before update or delete on public.smyl_radiograph_ai_runs
   for each row execute function public.smyl_radiograph_guard_run_change();
@@ -112,6 +134,8 @@ alter table public.smyl_radiograph_decisions enable row level security;
 alter table public.smyl_radiograph_decision_versions enable row level security;
 revoke all on public.smyl_radiograph_ai_runs, public.smyl_radiograph_candidates,
   public.smyl_radiograph_decisions, public.smyl_radiograph_decision_versions from public, anon, authenticated;
+revoke truncate on public.smyl_radiograph_ai_runs, public.smyl_radiograph_candidates,
+  public.smyl_radiograph_decisions, public.smyl_radiograph_decision_versions from service_role;
 grant select on public.smyl_radiograph_ai_runs, public.smyl_radiograph_candidates,
   public.smyl_radiograph_decisions, public.smyl_radiograph_decision_versions to authenticated;
 
@@ -155,9 +179,10 @@ language sql immutable set search_path = pg_catalog as $$
   select jsonb_typeof(p) = 'number' and (p#>>'{}')::numeric between 0 and 1;
 $$;
 
+-- Longitud en code points y recorte Unicode, igual que [...s].length / s.trim() en JS/TS.
 create or replace function public.smyl_radiograph_text_valid(p jsonb, p_min integer, p_max integer) returns boolean
-language sql immutable set search_path = pg_catalog as $$
-  select jsonb_typeof(p) = 'string' and char_length(btrim(p#>>'{}')) between p_min and p_max and char_length(p#>>'{}') <= p_max;
+language sql immutable set search_path = pg_catalog, public as $$
+  select jsonb_typeof(p) = 'string' and char_length(public.smyl_radiograph_trim(p#>>'{}')) between p_min and p_max and char_length(p#>>'{}') <= p_max;
 $$;
 
 -- Afirmaciones no permitidas en texto del modelo: no es diagnóstico ni certeza clínica.
@@ -345,7 +370,7 @@ language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_source public.smyl_radiograph_sources; v_tenant uuid; v_engine record; v_flag text; v_key text; v_row public.smyl_radiograph_ai_runs; v_qc jsonb;
 begin
   if p_kind not in ('qc','tooth_localization','finding_candidates') then raise exception using errcode = '22023', message = 'Tipo de análisis desconocido.'; end if;
-  select * into v_source from public.smyl_radiograph_sources where id = p_source_id;
+  select * into v_source from public.smyl_radiograph_sources where id = p_source_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_source.patient_id, 'clinical.write');
   if v_source.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
@@ -426,13 +451,18 @@ revoke all on function public.smyl_radiograph_complete_ai_run(uuid, text, jsonb,
 create or replace function public.smyl_radiograph_decide_candidate(p_candidate_id uuid, p_expected_revision integer, p_state text, p_payload jsonb default '{}'::jsonb, p_note text default '')
 returns public.smyl_radiograph_decisions
 language plpgsql security definer set search_path = pg_catalog, public as $$
-declare v_candidate public.smyl_radiograph_candidates; v_tenant uuid; v_old public.smyl_radiograph_decisions; v_row public.smyl_radiograph_decisions; v_payload jsonb := coalesce(p_payload, '{}'::jsonb); v_geometry jsonb;
+declare v_candidate public.smyl_radiograph_candidates; v_tenant uuid; v_old public.smyl_radiograph_decisions; v_row public.smyl_radiograph_decisions;
+  v_payload jsonb := case when p_payload is null or p_payload = 'null'::jsonb then '{}'::jsonb else p_payload end;
 begin
   if p_state not in ('confirmed','corrected','rejected') then raise exception using errcode = '22023', message = 'Estado de decisión no válido.'; end if;
-  select * into v_candidate from public.smyl_radiograph_candidates where id = p_candidate_id;
+  select * into v_candidate from public.smyl_radiograph_candidates where id = p_candidate_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'El candidato no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_candidate.patient_id, 'clinical.write');
   if v_candidate.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'El candidato no está disponible.'; end if;
+  -- Un hallazgo incluido en un informe firmado queda congelado: cualquier reconsideración va por adenda.
+  if exists (select 1 from public.smyl_radiograph_reports r where r.tenant_id = v_tenant and r.source_id = v_candidate.source_id and r.status = 'signed'
+             and r.document->'findings' @> jsonb_build_array(jsonb_build_object('candidateId', p_candidate_id::text))) then
+    raise exception using errcode = '23514', message = 'El hallazgo forma parte de un informe firmado; registra una adenda.'; end if;
   if p_state <> 'corrected' then
     if v_payload <> '{}'::jsonb then raise exception using errcode = '22023', message = 'Sólo una corrección lleva datos.'; end if;
   else
