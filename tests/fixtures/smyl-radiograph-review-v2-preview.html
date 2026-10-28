@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../../smyl-radiograph-review.css?v=1">
   <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=3">
   <link rel="stylesheet" href="../../smyl-radiograph-review-v2.css?v=1">
+  <link rel="stylesheet" href="../../smyl-radiograph-report.css?v=1">
   <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
   <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f7fb;font-family:Inter,system-ui,sans-serif}#open{min-height:44px;padding:0 18px;border:0;border-radius:10px;background:#0b1b2e;color:#fff;font-weight:600}</style>
 </head>
@@ -15,7 +16,8 @@
   <script src="../../smyl-radiograph-contracts.js?v=1"></script>
   <script src="../../smyl-radiograph-review-model-v2.js?v=1"></script>
   <script src="../../smyl-radiograph-review.js?v=5"></script>
-  <script src="../../smyl-radiograph-review-v2.js?v=1"></script>
+  <script src="../../smyl-radiograph-report.js?v=1"></script>
+  <script src="../../smyl-radiograph-review-v2.js?v=2"></script>
   <script>
     // Cliente Supabase falso con la misma semántica que los RPC (sin red). Datos sintéticos, sin paciente real.
     window.tenantId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -23,18 +25,23 @@
     window.SmylDentalModel={teeth:['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28','48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38']};
     window.sbTimeout=(p)=>p;
     const STUDY='11111111-1111-4111-8111-111111111111',SHA='a'.repeat(64),ENGINE={provider:'simulated',name:'smyl-sim-dental',version:'0.1.0'};
-    const db={sources:[],runs:[],candidates:[],decisions:[],corrections:[]};
+    const db={sources:[],runs:[],candidates:[],decisions:[],corrections:[],reports:[],report_addenda:[]};
+    window.SUPA_URL='https://example.supabase.co';window.EDGE_URL=window.SUPA_URL+'/functions/v1/claude';window.SUPA_KEY='sb_publishable_test';
     window.__db=db;window.__calls=[];
     const uuid=()=>crypto.randomUUID();
     const box=(x0,y0,x1,y1)=>({kind:'polygon',coordinateSpace:'source-normalized',points:[[x0,y0],[x1,y0],[x1,y1],[x0,y1]]});
     const err=(code,message)=>({data:null,error:{code,message}});
-    function query(table){const f=[];let single=false;const q={select(){return q;},eq(k,v){f.push([k,v]);return q;},maybeSingle(){single=true;return q;},then(res,rej){const rows=db[table.replace('smyl_radiograph_','').replace('ai_runs','runs').replace('source_corrections','corrections')].filter(r=>f.every(([k,v])=>r[k]===v));return Promise.resolve({data:single?(rows[0]||null):rows,error:null}).then(res,rej);}};return q;}
+    function query(table){const f=[];let single=false;const q={select(){return q;},eq(k,v){f.push([k,v]);return q;},maybeSingle(){single=true;return q;},then(res,rej){const rows=db[table.replace('smyl_radiograph_','').replace('ai_runs','runs').replace('source_corrections','corrections')]||[].filter(r=>f.every(([k,v])=>r[k]===v));return Promise.resolve({data:single?(rows[0]||null):rows,error:null}).then(res,rej);}};return q;}
     const rpc={
-      smyl_radiograph_ai_capabilities:()=>({data:{schema:1,tenant_id:tenantId,clinicalRead:true,clinicalWrite:true,clinicalApprove:true,flags:{'radiograph.qc_v2':true,'radiograph.tooth_ai_v1':true,'radiograph.report_v1':false,'radiograph.longitudinal_v1':false,'radiograph.cbct_v1':false}},error:null}),
+      smyl_radiograph_ai_capabilities:()=>({data:{schema:1,tenant_id:tenantId,clinicalRead:true,clinicalWrite:true,clinicalApprove:true,flags:{'radiograph.qc_v2':true,'radiograph.tooth_ai_v1':true,'radiograph.report_v1':true,'radiograph.longitudinal_v1':false,'radiograph.cbct_v1':false}},error:null}),
       smyl_radiograph_register_source:a=>{if(!a.p_consent?.acceptedAt)return err('22023','Consentimiento no válido.');const row={id:a.p_source_id,tenant_id:tenantId,patient_id:a.p_patient_id,study_id:a.p_study_id,bucket:'smyl-radiographs',storage_path:'x/y/z',sha256:SHA,mime_type:'image/png',size_bytes:1000,study_type_declared:a.p_study_type,created_at:new Date().toISOString()};db.sources.push(row);return {data:row,error:null};},
       smyl_radiograph_decide_candidate:a=>{const d=db.decisions.find(x=>x.candidate_id===a.p_candidate_id);if(!d)return err('42501','El candidato no está disponible.');if(d.revision!==a.p_expected_revision)return err('PT409','La decisión cambió en otra sesión.');if(a.p_state!=='corrected'&&Object.keys(a.p_payload||{}).length)return err('22023','Sólo una corrección lleva datos.');Object.assign(d,{revision:d.revision+1,state:a.p_state,payload:a.p_payload||{},note:a.p_note||'',decided_by:tenantId,decided_at:new Date().toISOString()});return {data:structuredClone(d),error:null};},
       smyl_radiograph_correct_study_type:a=>{const row={id:uuid(),source_id:a.p_source_id,field:'study_type',value:a.p_value,reason:a.p_reason,created_at:new Date().toISOString()};db.corrections.push(row);return {data:row,error:null};},
-      smyl_radiograph_log_access:()=>({data:null,error:null})
+      smyl_radiograph_log_access:()=>({data:null,error:null}),
+      smyl_radiograph_save_report_draft:a=>{let r=db.reports.find(x=>x.source_id===a.p_source_id);if(r&&r.status==='signed')return err('42501','Un informe firmado sólo admite adendas.');if(!r){if(a.p_expected_revision!==0)return err('PT409','El informe no existe con esa revisión.');r={id:a.p_report_id,source_id:a.p_source_id,status:'draft',revision:1,document:a.p_document,signed_by:null,signed_at:null,signed_hash:null,signed_professional_id:null,signed_decisions:null};db.reports.push(r);}else{if(r.revision!==a.p_expected_revision)return err('PT409','El informe cambió en otra sesión.');r.revision+=1;r.document=a.p_document;}return {data:structuredClone(r),error:null};},
+      smyl_radiograph_sign_report:a=>{const r=db.reports.find(x=>x.id===a.p_report_id);if(!r)return err('42501','El informe no está disponible.');if(r.status==='signed')return {data:structuredClone(r),error:null};if(r.revision!==a.p_expected_revision)return err('PT409','El informe cambió en otra sesión.');if(!(r.document.sections.description||'').trim())return err('23514','Completa la descripción radiográfica antes de firmar.');const bad=r.document.findings.filter(f=>{const d=db.decisions.find(x=>x.candidate_id===f.candidateId);return !d||!['confirmed','corrected'].includes(d.state);});if(bad.length)return err('23514','Sólo se firman hallazgos confirmados o corregidos; retira los pendientes o descartados.');Object.assign(r,{status:'signed',revision:r.revision+1,signed_by:tenantId,signed_professional_id:'b0000000-0000-4000-8000-000000000001',signed_at:new Date().toISOString(),signed_hash:'f'.repeat(64),signed_decisions:[]});return {data:structuredClone(r),error:null};},
+      smyl_radiograph_add_report_addendum:a=>{const r=db.reports.find(x=>x.id===a.p_report_id);if(!r||r.status!=='signed')return err('23514','Las adendas sólo se agregan a informes firmados.');const row={id:uuid(),report_id:r.id,content:a.p_content,reason:a.p_reason,created_by:tenantId,created_at:new Date().toISOString()};db.report_addenda.push(row);return {data:row,error:null};},
+      smyl_radiograph_export_report:a=>{const r=db.reports.find(x=>x.id===a.p_report_id);if(!r||r.status!=='signed')return err('23514','Sólo se exportan informes firmados.');window.__calls.push(['export',r.id]);return {data:{schema:1,report:structuredClone(r),source:{id:r.source_id,sha256:SHA,mimeType:'image/png',studyTypeCurrent:'panoramic'},runs:db.runs.map(x=>({id:x.id,kind:x.kind,engine:x.engine,contractVersion:1,status:x.status})),decisions:[],signedDecisions:[],addenda:db.report_addenda.filter(x=>x.report_id===r.id),notice:'Revisión asistida: los hallazgos provienen de decisiones profesionales confirmadas. No constituye diagnóstico automático.'},error:null};}
     };
     const functions={
       'radiograph-qc':({sourceId})=>{const src=db.sources.find(s=>s.id===sourceId);if(!src)return {error:{message:'no source'}};const run={id:uuid(),source_id:sourceId,kind:'qc',status:'completed',engine:{provider:'simulated',name:'smyl-sim-xray',version:'0.1.0'},requested_at:new Date().toISOString(),output:{schema:1,studyClass:{value:'panoramic',probability:.9,alternatives:[]},quality:{status:'limited',flags:[{code:'anterior_blur',severity:'moderate',region:null,explanation:'Desenfoque anterior leve.'}]},applicableAnalyses:['tooth_localization','finding_candidates'],blockedAnalyses:[],model:{provider:'simulated',name:'smyl-sim-xray',version:'0.1.0'}}};db.runs.push(run);return {data:{run},error:null};},
@@ -44,8 +51,11 @@
         else add('finding','f-1',{candidateId:'f-1',toothCandidate:'16',category:'restoration',label:'Restauración radiopaca aparente',confidence:.82,evidenceLevel:'model_candidate',regions:[box(.11,.31,.16,.40)],explanation:'Patrón visual que requiere comprobación profesional.',limitations:['Proveedor simulado: sin validación clínica.']});
         return {data:{run},error:null};}
     };
+    // Proxy claude simulado: la primera respuesta intenta añadir una pieza (25) y una certeza; la segunda es limpia.
+    window.__assistResponses=[];const realFetch=window.fetch.bind(window);
+    window.fetch=async(url,init)=>{if(String(url).startsWith(window.EDGE_URL)){const req=JSON.parse(init.body);const payload=JSON.parse(req.messages[0].content[0].text.split('\n').slice(1).join('\n'));const ids=payload.findings.map(f=>f.candidateId);const scripted=window.__assistResponses.shift();const text=scripted?scripted(ids,payload):JSON.stringify({findingsOrder:ids.slice().reverse(),sections:{description:'Se observan los hallazgos verificados por el profesional en '+payload.allowedTeeth.map(t=>'pieza '+t).join(' y ')+'.',technicalLimitations:payload.sections.technicalLimitations||'Sin limitaciones registradas.',clinicalCorrelation:'Correlacionar con exploración clínica.',missingInformation:'Sin datos faltantes registrados.'}});window.__calls.push(['claude',req.model]);return new Response(JSON.stringify({id:'msg_1',stop_reason:'end_turn',content:[{type:'text',text}]}),{status:200,headers:{'content-type':'application/json'}});}return realFetch(url,init);};
     window.sb={
-      auth:{getUser:async()=>({data:{user:{id:tenantId,is_anonymous:false}},error:null})},
+      auth:{getUser:async()=>({data:{user:{id:tenantId,is_anonymous:false}},error:null}),getSession:async()=>({data:{session:{access_token:'t',user:{id:tenantId,is_anonymous:false}}},error:null})},
       rpc:async(name,args)=>{window.__calls.push([name,args]);const h=rpc[name];return h?h(args||{}):err('42883','rpc desconocido '+name);},
       from:table=>query(table),
       functions:{invoke:async(name,{body})=>{window.__calls.push([name,body]);if(window.__offline)throw new TypeError('Failed to fetch');return functions[name](body);}}

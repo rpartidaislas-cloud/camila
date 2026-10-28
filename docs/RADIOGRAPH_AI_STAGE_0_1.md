@@ -1,4 +1,4 @@
-# SMYL — Radiografía asistida: Etapas 0–4 (baseline, esquema v2, contratos, control de calidad, localización dental y revisión por pieza)
+# SMYL — Radiografía asistida: Etapas 0–5 (baseline, esquema v2, contratos, control de calidad, localización, revisión por pieza e informe firmado)
 
 **Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
 **Estado:** código y pruebas listos; **nada aplicado ni desplegado**. Con las banderas apagadas el
@@ -8,7 +8,7 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 
 | Incluido | Excluido (etapas posteriores) |
 | --- | --- |
-| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Informe clínico asistido y firma en pantalla — Etapa 5 |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Historia longitudinal y comparador (Etapa 6), validación clínica (7), CBCT (8) |
 | Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
 | Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | UI de revisión por pieza, odontograma asistido, informe en pantalla (Etapas 3-5) |
 | Ejecuciones IA idempotentes, candidatos inmutables, decisiones versionadas (`20261028120000`) | Comparador longitudinal (Etapa 6), validación clínica (7), CBCT/DICOM (8) |
@@ -17,7 +17,8 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 | Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | Motor dental real (`DentalXrayProvider` http genérico; ningún proveedor elegido) |
 | Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | Comparador longitudinal (Etapa 6): el botón «Comparar con anterior» existe deshabilitado con motivo |
 | Mesa de revisión por pieza `smyl-radiograph-review-v2.js/.css` + botón en el expediente (Etapa 4) | |
-| Pruebas estáticas (24), PGlite en Postgres real (11), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320) | |
+| Informe clínico asistido `smyl-radiograph-report.js/.css`: borrador sólo con confirmadas, redacción asistida con guarda, diferencias, firma, adendas, exportación (Etapa 5) | |
+| Pruebas estáticas (24), PGlite en Postgres real (11), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320), Etapa 5 (6 + navegador en 1280/390) | |
 
 ## Etapa 2 — `radiograph-qc` (control de calidad)
 
@@ -124,6 +125,39 @@ Navegador ──POST {sourceId, kind: tooth_localization | finding_candidates}�
   `smyl-radiograph-review-v2.js?v=1`, `.css?v=1`; caché PWA `radiograph-review-v2-v47`;
   `mobile/www` sincronizado y `mobile/scripts/sync-web.js` ampliado.
 
+## Etapa 5 — Informe clínico asistido y firma (`smyl-radiograph-report.js`)
+
+- **Acceso:** botón «Informe radiográfico (N confirmados)» en la cabecera de la mesa v2, sólo con
+  la bandera `radiograph.report_v1`. Abre un diálogo propio sobre la mesa.
+- **Borrador sólo con decisiones confirmadas/corregidas** (`buildDraft`): piezas evaluables y
+  señales; `apparently_missing` se redacta como "aparentemente no visible; no implica ausencia".
+  Limitaciones técnicas se prellenan desde el QC (tipo, calidad, banderas, análisis no aplicados).
+  Al reabrir se conservan texto y prioridad del profesional por candidato y se retiran, con aviso,
+  los hallazgos que dejaron de estar confirmados.
+- **Cinco secciones separadas** (descripción radiográfica, limitaciones técnicas, correlación
+  clínica por realizar, preguntas/datos faltantes, estudios complementarios considerados por el
+  profesional) y prioridades por hallazgo (rutina / pronto / urgente) configurables por el dentista.
+- **Redacción asistida** («Ordenar y redactar con apoyo de IA»): usa el proxy `claude` existente
+  con **texto estructurado, nunca la imagen**; el modelo sólo puede devolver un orden de los
+  hallazgos (permutación exacta) y redactar cuatro secciones (nunca estudios complementarios).
+  `parseAssist` descarta la respuesta completa si añade o quita hallazgos, menciona piezas sin
+  hallazgo o usa afirmaciones de certeza/diagnóstico (`hasForbiddenClaim`), y explica por qué.
+- **Previsualización de diferencias** (`diff`): piezas mencionadas en el texto sin hallazgo
+  confirmado (aviso para el profesional, bloqueo para la IA), afirmaciones de certeza (sólo IA) y
+  descripción vacía (la firma la exige). Se actualiza en vivo (`aria-live`).
+- **Firma:** confirmación explícita; requiere `clinicalApprove`; el servidor valida de nuevo que
+  todos los hallazgos sigan confirmados/corregidos, guarda usuario, profesional, fecha, versión,
+  hash SHA-256 y snapshot de decisiones; después el documento es de sólo lectura y únicamente se
+  agregan **adendas** (contenido + motivo). **Exportación** JSON (auditada como `export`) y **vista
+  para imprimir** con hallazgos, secciones, firma, trazabilidad del motor, adendas y aviso de
+  no-diagnóstico.
+- **Aceptación de la etapa (probada):** ningún candidato pendiente o descartado aparece
+  (modelo + navegador + PGlite); la firma es inmutable (trigger + UI de sólo lectura); la adenda
+  conserva la versión anterior (`smyl_radiograph_report_versions`); la exportación muestra autoría
+  y limitaciones.
+- Publicación: `smyl-radiograph-report.js?v=1`, `.css?v=1`, `smyl-radiograph-review-v2.js?v=2`;
+  caché PWA `radiograph-report-v48`; `mobile/www` y `sync-web.js` sincronizados.
+
 ## Flujo de datos (Etapa 1)
 
 ```text
@@ -194,11 +228,15 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 ## Cómo probar
 
 ```bash
-node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs
+node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs tests/radiograph-report-stage5.test.mjs
 ```
 
 ```bash
 node tests/smyl-radiograph-review-v2-browser.cjs
+```
+
+```bash
+node tests/smyl-radiograph-report-browser.cjs
 ```
 
 ```bash
@@ -247,3 +285,6 @@ está disponible la suite se omite sin fallar.
   presentarse como localización anatómica real hasta la Etapa 7.
 - **Comparar con anterior:** deshabilitado hasta que exista emparejamiento de estudios comparables
   (Etapa 6).
+- **Redacción asistida y consumo:** pasa por el proxy `claude` y su control de cupo/plan; si la
+  clínica no tiene `ANTHROPIC_API_KEY` o cupo, el botón devuelve el error del servicio y el borrador
+  no cambia. La guarda es determinista pero no sustituye la lectura del profesional del texto final.

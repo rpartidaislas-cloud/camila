@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 5 (informe clínico asistido y firma)
+
+- Nuevo `smyl-radiograph-report.js` + `.css`: borrador construido sólo con decisiones confirmadas o
+  corregidas (pendientes, descartadas y no evaluables fuera), cinco secciones separadas, prioridades
+  por hallazgo, previsualización en vivo de diferencias entre datos estructurados y texto, firma con
+  confirmación (usuario, profesional, fecha, versión y hash en el servidor), adendas y exportación
+  JSON + vista para imprimir con autoría, limitaciones, trazabilidad del motor y aviso.
+- Redacción asistida por el proxy `claude` existente **con texto estructurado, nunca la imagen**; el
+  modelo sólo ordena y redacta: `parseAssist` descarta toda la respuesta si añade/quita hallazgos,
+  menciona piezas sin hallazgo o usa certezas/diagnósticos, y explica el motivo. Estudios
+  complementarios nunca los redacta la IA.
+- `smyl-radiograph-review-v2.js?v=2` añade «Informe radiográfico (N confirmados)» detrás de la
+  bandera `radiograph.report_v1`. Web, PWA (`radiograph-report-v48`) y `mobile/www` sincronizados.
+- QA: `tests/radiograph-report-stage5.test.mjs` (6) y `tests/smyl-radiograph-report-browser.cjs`
+  (1280/390): sólo los confirmados aparecen, la redacción que añade pieza 25 y una certeza se
+  descarta y la limpia se aplica sin tocar estudios complementarios, borrador rev. 1, firma rev. 2
+  inmutable con hash, adenda, exportación auditada e impresión. Suite **860/860**. Sin migraciones ni
+  Edge Functions nuevas; nada aplicado ni desplegado.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 4 (mesa de revisión por pieza v2)
 
 - Nuevo `smyl-radiograph-review-v2.js` + `smyl-radiograph-review-v2.css`: una tarjeta por

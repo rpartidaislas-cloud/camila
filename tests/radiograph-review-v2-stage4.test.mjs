@@ -64,13 +64,14 @@ test('integración mínima en el expediente: botón oculto hasta que la clínica
 });
 
 test('cableado web, PWA y copia móvil sincronizados', () => {
-  for (const tag of ['smyl-radiograph-review-v2.css?v=1', 'smyl-radiograph-contracts.js?v=1', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=1', 'smyl-radiograph-review.js?v=5', 'smyl-dental-record.js?v=17']) {
+  for (const tag of ['smyl-radiograph-review-v2.css?v=1', 'smyl-radiograph-contracts.js?v=1', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=2', 'smyl-radiograph-review.js?v=5', 'smyl-dental-record.js?v=17']) {
     assert.ok(app.includes(tag), 'app.html ' + tag);
     assert.ok(sw.includes('/camila/' + tag), 'sw.js ' + tag);
   }
   assert.match(sw, /radiograph-review-v2-v47/);
+  assert.match(sw, /radiograph-report-v48/);
   assert.doesNotMatch(app, /smyl-radiograph-review\.js\?v=4|smyl-dental-record\.js\?v=16/);
-  for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-radiograph-review.js', 'smyl-radiograph-contracts.js', 'smyl-radiograph-review-model-v2.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css']) {
+  for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-radiograph-review.js', 'smyl-radiograph-contracts.js', 'smyl-radiograph-review-model-v2.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css', 'smyl-radiograph-report.js', 'smyl-radiograph-report.css']) {
     assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
   }
   assert.match(read('mobile/scripts/sync-web.js'), /'smyl-radiograph-review-v2\.js', 'smyl-radiograph-review-v2\.css'/);

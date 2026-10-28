@@ -208,7 +208,10 @@
     intro.append(privacy,permission,start,n('p','rr-note rr-safety-note','Revisión privada. No se comparte ni se convierte automáticamente en diagnóstico.'));host.append(intro);return;
    }
    const list=entries(),top=n('section','rr-review rv2-review'),head=n('header','rr-review-head'),title=n('div');
-   title.append(n('p','rr-step',list.length?'3 de 3 · Decidir por pieza':'2 de 3 · Analizar'),n('h1','','Revisión por pieza'),n('p','rr-lead','Candidatos del modelo, decisiones tuyas. Sólo lo confirmado o corregido llega al odontograma y al informe.'));head.append(title);top.append(head,qcCard());
+   title.append(n('p','rr-step',list.length?'3 de 4 · Decidir por pieza':'2 de 4 · Analizar'),n('h1','','Revisión por pieza'),n('p','rr-lead','Candidatos del modelo, decisiones tuyas. Sólo lo confirmado o corregido llega al odontograma y al informe.'));head.append(title);
+   // Etapa 5: informe construido sólo con decisiones confirmadas; detrás de la bandera report_v1.
+   if(run.api.caps.flags['radiograph.report_v1']===true&&typeof window.SmylRadiographReport?.open==='function'){const verified=list.filter(e=>['confirmed','corrected'].includes(e.state)).length;const report=button('Informe radiográfico'+(verified?' ('+verified+' confirmados)':''),()=>{if(isDirty(run)){status('Guarda o deshaz el borrador de la tarjeta antes de abrir el informe.','rr-error');return;}window.SmylRadiographReport.open({source:run.source,study,entries:entries(),findings:run.findings,qc:run.qc,tenant,patient,current:valid,client,caps:run.api.caps});},'rr-tool');report.classList.add('rv2-report-button');report.disabled=run.busy;head.append(report);}
+   top.append(head,qcCard());
    const ws=n('div','rr-workspace');ws.dataset.mode=run.editing?'editing':'review';ws.append(imagePanel(list),cardsPanel(list));top.append(ws);
    if(run.qc&&!list.length&&!run.busy)top.append(n('p','rr-note','Aún no hay candidatos. Ejecuta los análisis habilitados arriba; si el motor no propone nada, continúa con tu valoración clínica.'));
    top.append(n('p','rr-note rr-safety-note','Revisión asistida privada. Las decisiones quedan versionadas con tu autoría y pueden reconsiderarse; un informe firmado las congela.'));host.append(top);

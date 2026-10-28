@@ -58,7 +58,7 @@ copyFile(path.join(ROOT, 'smyl-templates.js'), path.join(WWW, 'smyl-templates.js
 copyFile(path.join(ROOT, 'smyl-templates.css'), path.join(WWW, 'smyl-templates.css'));
 for (const file of ['smyl-dental-record.js', 'smyl-dental-record.css', 'smyl-radiograph-review.js', 'smyl-radiograph-review.css', 'smyl-radiograph-workbench.css',
   'smyl-radiograph-review-model.js', 'smyl-radiograph-review-store.js', 'smyl-radiograph-analysis-client.js',
-  'smyl-radiograph-contracts.js', 'smyl-radiograph-review-model-v2.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css']) {
+  'smyl-radiograph-contracts.js', 'smyl-radiograph-review-model-v2.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css', 'smyl-radiograph-report.js', 'smyl-radiograph-report.css']) {
   copyFile(path.join(ROOT, file), path.join(WWW, file));
 }
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
