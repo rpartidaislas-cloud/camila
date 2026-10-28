@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 2 (control de calidad) y workflow de migración
+
+- Edge Function **nueva** `supabase/functions/radiograph-qc/` (bundle en
+  `docs/bundles/radiograph-qc.single-file.ts`) con módulos `_shared/radiograph-image.ts`
+  (MIME real, dimensiones PNG/JPEG, orientación EXIF, sin decodificar), `_shared/radiograph-provider.ts`
+  (interfaz `RadiographQcProvider`, proveedor `simulated` determinista, adaptador `http` sin
+  redirecciones y con hosts permitidos) y `_shared/radiograph-qc-core.ts` (núcleo sin Deno, probado en Node).
+- Orden de seguridad: la base autoriza con la sesión del usuario (`smyl_radiograph_request_ai_run`)
+  antes de cualquier uso de `service_role`; el archivo se descarga por la ruta conocida de la fuente;
+  se verifican tamaño, sha256, MIME por firma, dimensiones y orientación; la respuesta se valida con el
+  contrato y se guarda completa e inmutable. Timeout incierto → `unconfirmed`, sin reintento automático.
+- `20261028120000` (no aplicada) añade el código de falla `source_invalid`. Workflow manual
+  `.github/workflows/smyl-radiografia-ia-etapa-1-migracion.yml` listo para aplicar las cuatro
+  migraciones con verificación; **no se ha disparado**. Nada aplicado ni desplegado.
+- Pruebas `tests/radiograph-qc-stage2.test.mjs` (14): panorámica, periapical, bitewing, rotada,
+  borrosa, recortada, sub/sobreexpuesta, no utilizable, archivo falso, hash/tamaño distintos,
+  respuesta incompleta, motor con otra versión, timeout, duplicado, sin motor, logs sin datos.
+  Suite completa **838/838**. No se tocó `segment-teeth`, flujo v1, UI ni `mobile/**`.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapas 0 y 1 (banderas, esquema v2, contratos)
 
 - Entrega de datos y contratos sin cambios de comportamiento: cuatro migraciones **nuevas e

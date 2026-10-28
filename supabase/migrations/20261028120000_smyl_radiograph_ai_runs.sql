@@ -17,7 +17,7 @@ create table if not exists public.smyl_radiograph_ai_runs (
   idempotency_key text not null check (idempotency_key ~ '^[a-f0-9]{64}$'),
   status text not null default 'requested' check (status in ('requested','completed','failed','unconfirmed')),
   output jsonb check (output is null or octet_length(output::text) <= 262144),
-  failure_code text not null default '' check (failure_code in ('','timeout','provider_error','invalid_output','blocked_by_qc','size_limit','disabled')),
+  failure_code text not null default '' check (failure_code in ('','timeout','provider_error','invalid_output','blocked_by_qc','size_limit','source_invalid','disabled')),
   cost jsonb not null default '{}'::jsonb check (jsonb_typeof(cost) = 'object' and octet_length(cost::text) <= 1024),
   requested_by uuid not null references auth.users(id),
   requested_at timestamptz not null default now(),

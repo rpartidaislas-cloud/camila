@@ -119,7 +119,7 @@ test('Etapas 0-1: todo es idempotente, aditivo y no toca el flujo v1 ni segment-
     for (const m of sql.matchAll(/create trigger (\w+)/g)) assert.match(sql, new RegExp(`drop trigger if exists ${m[1]} on`));
   }
   assert.match(v1, /create table public\.smyl_radiograph_reviews/, 'la migración v1 aplicada no se edita');
-  assert.equal(fs.existsSync(new URL('../supabase/functions/radiograph-qc', import.meta.url)), false, 'la Edge Function de QC es Etapa 2');
+  assert.equal(fs.existsSync(new URL('../supabase/functions/radiograph-qc/index.ts', import.meta.url)), true, 'la Edge Function de QC (Etapa 2) existe aparte de segment-teeth');
 });
 
 test('la UI y la PWA publicadas no cambian en esta entrega', () => {

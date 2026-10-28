@@ -1,4 +1,4 @@
-# SMYL — Radiografía asistida: Etapas 0 y 1 (baseline, banderas, esquema y contratos v2)
+# SMYL — Radiografía asistida: Etapas 0, 1 y 2 (baseline, esquema v2, contratos y control de calidad)
 
 **Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
 **Estado:** código y pruebas listos; **nada aplicado ni desplegado**. Con las banderas apagadas el
@@ -8,13 +8,45 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 
 | Incluido | Excluido (etapas posteriores) |
 | --- | --- |
-| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Edge Function `radiograph-qc` / `radiograph-analyze` (Etapa 2) |
-| Registro de motores sin credenciales, un motor activo por tipo | Adaptador de proveedor y llamada real a un motor (Etapa 2-3) |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | `radiograph-analyze` y adaptador de localización dental (Etapa 3) |
+| Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
 | Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | UI de revisión por pieza, odontograma asistido, informe en pantalla (Etapas 3-5) |
 | Ejecuciones IA idempotentes, candidatos inmutables, decisiones versionadas (`20261028120000`) | Comparador longitudinal (Etapa 6), validación clínica (7), CBCT/DICOM (8) |
 | Informes: borrador, firma con hash, adendas, exportación (`20261028130000`) | Cualquier cambio en `segment-teeth`, flujo v1 o `mobile/**` |
 | Contratos v2 JS/TS + validadores SQL + 86 vectores canónicos | |
-| Pruebas estáticas (24) y PGlite en Postgres real (11) | |
+| Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | |
+| Pruebas estáticas (24), PGlite en Postgres real (11) y Etapa 2 (14) | |
+
+## Etapa 2 — `radiograph-qc` (control de calidad)
+
+```text
+Navegador ──POST {sourceId} + JWT──► radiograph-qc
+  1. requireUser (sesión, miembro activo)
+  2. asUser.rpc smyl_radiograph_request_ai_run(source,'qc')   ← la base decide: tenant, clinical.write,
+     alcance del paciente, bandera qc_v2, motor activo, idempotencia (devuelve la ejecución viva)
+  3. [service_role] lee smyl_radiograph_sources y descarga Storage por storage_path (nunca una URL del cliente)
+  4. verifica tamaño, sha256, MIME por firma binaria, dimensiones (64–12000) y orientación EXIF
+  5. provider.analyze(fuente verificada, AbortSignal)          ← timeout 5–120 s (RADIOGRAPH_QC_TIMEOUT_MS)
+  6. parseRadiographQc + modelo == motor registrado            ← falla cerrado
+  7. [service_role] smyl_radiograph_complete_ai_run(completed | failed | unconfirmed)
+```
+
+- **Proveedor:** `RADIOGRAPH_QC_PROVIDER=simulated` (determinista: clase por relación de aspecto,
+  `orientation_suspect` por EXIF, `compression_artifacts` por bytes/píxel; pistas de prueba sólo
+  vía chunk PNG `tEXt smyl.sim`) o `http` (URL https en hosts permitidos, `redirect:'error'`,
+  tope de respuesta 256 KB, credencial sólo en secretos). Sin variable → 503 y no se registra nada.
+- **Timeout incierto** → ejecución `unconfirmed/timeout`, respuesta 504; una nueva solicitud se
+  bloquea (409) hasta reconocimiento explícito. **Nunca** reintenta sola.
+- **Archivo falso / hash distinto / tamaño distinto / dimensiones fuera de rango** → ejecución
+  `failed/source_invalid` (422) sin llamar al motor. **Respuesta incompleta** → `failed/invalid_output`
+  (502) sin guardar salida parcial. **Duplicado** → reutiliza la ejecución completada sin coste.
+- Logs: sólo ids, códigos y conteos (probado: nunca bytes, base64, explicaciones ni rutas).
+- Despliegue: `supabase functions deploy radiograph-qc` o pegar `docs/bundles/radiograph-qc.single-file.ts`
+  en el panel. Secretos necesarios: `RADIOGRAPH_QC_PROVIDER` (y, para `http`, `RADIOGRAPH_QC_URL`,
+  `RADIOGRAPH_QC_API_KEY`, `RADIOGRAPH_QC_PROVIDER_NAME`, `RADIOGRAPH_QC_MODEL_NAME`,
+  `RADIOGRAPH_QC_MODEL_VERSION`, `RADIOGRAPH_PROVIDER_HOSTS`). El motor también debe existir y estar
+  `enabled` en `smyl_radiograph_engines` con el mismo proveedor/nombre/versión, si no el RPC rechaza.
+- **No desplegada.** Con la bandera `radiograph.qc_v2` apagada la función responde 403 aunque se despliegue.
 
 ## Flujo de datos (Etapa 1)
 
@@ -66,13 +98,16 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 
 ## Despliegue (cuando se autorice) y rollback
 
-1. Aplicar en orden `20261028100000` → `110000` → `120000` → `130000` con el patrón de los
-   workflows manuales existentes (`.github/workflows/smyl-*-migracion.yml`). Son idempotentes:
-   `if not exists`, `drop ... if exists`, `create or replace`.
+1. Aplicar en orden `20261028100000` → `110000` → `120000` → `130000` con el workflow manual
+   `.github/workflows/smyl-radiografia-ia-etapa-1-migracion.yml` (`workflow_dispatch`; corre las
+   pruebas de contrato, comprueba prerrequisitos, aplica sólo lo que falta, verifica banderas en
+   `false`, ACL cerrada y RLS, y registra las versiones). Son idempotentes.
 2. Verificar: 5 filas en `smyl_radiograph_feature_flags` con `enabled=false`; cero filas en
    `smyl_radiograph_engines`; `smyl_radiograph_ai_capabilities()` devuelve todas las banderas en
    `false` para cualquier usuario.
-3. Nada que desplegar en Edge Functions ni frontend en esta entrega.
+3. Edge Function `radiograph-qc`: desplegar sólo después de las migraciones y con `RADIOGRAPH_QC_PROVIDER=simulated`
+   para el piloto; registrar el motor `simulated / smyl-sim-xray / 0.1.0` (kind `qc`, contrato 1) y encender
+   `radiograph.qc_v2` para la clínica piloto en `smyl_radiograph_flag_tenants`. Sin frontend todavía.
 4. **Rollback:** las migraciones son aditivas. Para revertir basta con no encender banderas; si se
    desea retirar el esquema, eliminar en orden inverso las tablas `smyl_radiograph_report_addenda`,
    `…_report_versions`, `…_reports`, `…_decision_versions`, `…_decisions`, `…_candidates`,
@@ -83,7 +118,7 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 ## Cómo probar
 
 ```bash
-node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs
+node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs
 ```
 
 ```bash
@@ -116,7 +151,13 @@ está disponible la suite se omite sin fallar.
   escritura (Etapa 6).
 - **Bucket:** las fuentes v2 fijan `bucket='smyl-radiographs'` (el del flujo v1). La Etapa 2 debe
   leer el archivo desde Storage por esa ruta y validar hash/MIME/dimensiones reales.
-- **`width/height`** quedan `null` hasta que QC (Etapa 2) los mida en servidor.
+- **`width/height`** de la fuente siguen `null`: QC los verifica en servidor pero la fuente es inmutable;
+  si se quieren persistir, irán en una tabla derivada en Etapa 3.
+- **Proveedor real de QC:** no se ha elegido ninguno (plan §7: licencia, residencia de datos, evidencia de
+  validación). El adaptador HTTP es genérico y debe ajustarse al contrato del proveedor elegido.
+- **Doble ejecución concurrente:** dos peticiones simultáneas sobre la misma fuente comparten la ejecución
+  `requested`; ambas llaman al motor y la segunda que cierra es rechazada como inmutable si difiere. Coste
+  duplicado posible sólo en esa carrera; se mitigará con un estado `running` en Etapa 3 si el proveedor cobra.
 - **Permiso de firma:** se reutiliza `clinical.approve` (el mismo que firma notas clínicas);
   recepción/asistente no lo tienen por defecto. Si se quiere un permiso específico de firma
   radiográfica hay que ampliar el CHECK de `smyl_role_permissions` en una migración nueva.
