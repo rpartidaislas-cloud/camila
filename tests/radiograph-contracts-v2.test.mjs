@@ -74,6 +74,11 @@ test('decisiones: pendiente -> confirmar | corregir | descartar; sólo la correc
   assert.throws(() => browser.parseDecisionPayload('corrected', {}), /Corrección no válida/);
   assert.throws(() => browser.parseDecisionPayload('corrected', { fdi: '99' }), /Corrección no válida/);
   assert.deepEqual(browser.parseDecisionPayload('corrected', { fdi: '37', label: 'Pieza renumerada' }), { fdi: '37', label: 'Pieza renumerada' });
+  for (const [state, payload] of [['confirmed', {}], ['confirmed', null], ['corrected', { fdi: '37' }], ['corrected', { visibility: 'not_evaluable' }], ['corrected', { visibility: 'hidden' }], ['corrected', {}], ['rejected', { fdi: '1' }], ['pending', {}]]) {
+    const a = (() => { try { return JSON.stringify(browser.parseDecisionPayload(state, payload)); } catch (e) { return e.message; } })();
+    const b = (() => { try { return JSON.stringify(server.parseDecisionPayload(state, payload)); } catch (e) { return e.message; } })();
+    assert.equal(a, b, `${state} ${JSON.stringify(payload)}`);
+  }
 });
 
 test('el texto del modelo no puede presentarse como diagnóstico', () => {

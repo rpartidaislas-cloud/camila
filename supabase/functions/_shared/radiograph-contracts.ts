@@ -160,5 +160,16 @@ export function parseRadiographOutput(kind: "qc" | "tooth_localization" | "findi
   return fail("Tipo de análisis desconocido.");
 }
 
+// Decisión profesional: sólo una corrección lleva datos (fdi, label, geometry, visibility).
+export function parseDecisionPayload(state: string, payload: unknown): Record<string, unknown> {
+  if (!includes(DECISION_STATES, state) || state === "pending") fail("Estado de decisión no válido.");
+  const p = payload == null ? {} : payload;
+  if (state !== "corrected") { if (!isObj(p) || Object.keys(p).length) fail("Sólo una corrección lleva datos."); return {}; }
+  if (!isObj(p) || !Object.keys(p).length || !Object.keys(p).every((k) => ["fdi", "label", "geometry", "visibility"].includes(k))
+    || (Object.hasOwn(p, "fdi") && !(p.fdi === null || fdi(p.fdi))) || (Object.hasOwn(p, "label") && !text(p.label, 1, 200))
+    || (Object.hasOwn(p, "geometry") && !isGeometry(p.geometry, false)) || (Object.hasOwn(p, "visibility") && !includes(VISIBILITIES, p.visibility))) fail("Corrección no válida.");
+  return structuredClone(p);
+}
+
 export const hasForbiddenClaim = (v: unknown): boolean => FORBIDDEN_CLAIM.test(String(v));
 export const isFdi = fdi;

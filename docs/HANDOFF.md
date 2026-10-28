@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 3 (localización dental y odontograma asistido)
+
+- Edge Function **nueva** `supabase/functions/radiograph-analyze/` (`kind: tooth_localization |
+  finding_candidates`; bundle en `docs/bundles/`). Mismo orden de seguridad que QC; la base exige
+  además QC completado con el análisis aplicable y la bandera `radiograph.tooth_ai_v1`.
+- `_shared/radiograph-provider.ts`: `DentalXrayProvider` (interfaz), `SimulatedDentalXrayProvider`
+  determinista (polígonos normalizados por clase de estudio; no afirma ausencias ni inventa señales)
+  y `HttpDentalXrayProvider` sobre el adaptador http común. `_shared/radiograph-qc-core.ts` pasa a
+  `runRadiographAnalysis(kind, …)`; `runRadiographQc` se conserva.
+- Corrección profesional admite `visibility` (migración **no aplicada** `20261028120000`, JS y TS).
+- Nuevo `smyl-radiograph-review-model-v2.js` (solo modelo, sin UI/red): `toothMap` (FDI efectivo,
+  banda de confianza, estado, conflictos), `renumberPayload`, `notEvaluablePayload`, `geometryPayload`,
+  `splitOrMerge` (rechazado) y `odontogramEvidence` (solo confirmadas/corregidas; `apparently_missing`
+  nunca se vuelve "ausente"; no escribe `doc.teeth`). No se carga aún en páginas ni `sw.js`/`mobile/www`.
+- Pruebas `tests/radiograph-analyze-stage3.test.mjs` (9) + paridad JS/TS de `parseDecisionPayload`
+  y caso `visibility` en PGlite. Suite **847/847**. Nada aplicado ni desplegado; `segment-teeth`,
+  v1, UI y `mobile/**` intactos. Detalle en `docs/RADIOGRAPH_AI_STAGE_0_1.md`.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 2 (control de calidad) y workflow de migración
 
 - Edge Function **nueva** `supabase/functions/radiograph-qc/` (bundle en

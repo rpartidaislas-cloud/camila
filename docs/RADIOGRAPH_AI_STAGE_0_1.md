@@ -1,4 +1,4 @@
-# SMYL — Radiografía asistida: Etapas 0, 1 y 2 (baseline, esquema v2, contratos y control de calidad)
+# SMYL — Radiografía asistida: Etapas 0–3 (baseline, esquema v2, contratos, control de calidad y localización dental)
 
 **Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
 **Estado:** código y pruebas listos; **nada aplicado ni desplegado**. Con las banderas apagadas el
@@ -8,14 +8,15 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 
 | Incluido | Excluido (etapas posteriores) |
 | --- | --- |
-| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | `radiograph-analyze` y adaptador de localización dental (Etapa 3) |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | UI de revisión por pieza (tarjetas, overlay editable) — Etapa 4 |
 | Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
 | Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | UI de revisión por pieza, odontograma asistido, informe en pantalla (Etapas 3-5) |
 | Ejecuciones IA idempotentes, candidatos inmutables, decisiones versionadas (`20261028120000`) | Comparador longitudinal (Etapa 6), validación clínica (7), CBCT/DICOM (8) |
 | Informes: borrador, firma con hash, adendas, exportación (`20261028130000`) | Cualquier cambio en `segment-teeth`, flujo v1 o `mobile/**` |
 | Contratos v2 JS/TS + validadores SQL + 86 vectores canónicos | |
-| Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | |
-| Pruebas estáticas (24), PGlite en Postgres real (11) y Etapa 2 (14) | |
+| Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | Motor dental real (`DentalXrayProvider` http genérico; ningún proveedor elegido) |
+| Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | |
+| Pruebas estáticas (24), PGlite en Postgres real (11), Etapa 2 (14) y Etapa 3 (9) | |
 
 ## Etapa 2 — `radiograph-qc` (control de calidad)
 
@@ -47,6 +48,39 @@ Navegador ──POST {sourceId} + JWT──► radiograph-qc
   `RADIOGRAPH_QC_MODEL_VERSION`, `RADIOGRAPH_PROVIDER_HOSTS`). El motor también debe existir y estar
   `enabled` en `smyl_radiograph_engines` con el mismo proveedor/nombre/versión, si no el RPC rechaza.
 - **No desplegada.** Con la bandera `radiograph.qc_v2` apagada la función responde 403 aunque se despliegue.
+
+## Etapa 3 — `radiograph-analyze`, odontograma asistido
+
+```text
+Navegador ──POST {sourceId, kind: tooth_localization | finding_candidates}──► radiograph-analyze
+  mismo orden que QC: requireUser → RPC como usuario (bandera tooth_ai_v1, permiso, alcance,
+  motor activo y **QC completado con el análisis en applicableAnalyses**) → service_role → verificación
+  del archivo → DentalXrayProvider.localizeTeeth / analyzeCandidates → contrato (sourceId y modelo
+  deben coincidir) → smyl_radiograph_complete_ai_run → candidatos inmutables + decisiones `pending`.
+```
+
+- **Proveedor dental simulado** (`RADIOGRAPH_DENTAL_PROVIDER=simulated`): polígonos normalizados
+  deterministas por clase de estudio (32 piezas en panorámica, 8 en bitewing, 3 en periapical),
+  probabilidad FDI 0.92 / 0.8 anteriores (con alternativa vecina), terceros molares `partial`.
+  Una pieza que "no ve" simplemente no se emite: **nunca afirma ausencia**. No inventa señales
+  clínicas: sólo emite las que piden pistas de prueba (`finding:<categoría>@<fdi>`).
+- **Decisión profesional ampliada:** la corrección admite `visibility` (`complete|partial|not_evaluable`)
+  además de `fdi`, `label`, `geometry` (SQL/JS/TS alineados). Renumerar = `corrected{fdi}`;
+  no evaluable = `corrected{visibility:'not_evaluable'}`; dividir/unir **no está soportado** y el
+  modelo lo rechaza explícitamente. Cada decisión conserva autor, fecha, revisión, candidato y
+  motor (vía `run.engine`).
+- **Odontograma canónico:** igual que v1 (`radiographNotes` en `smyl-dental-record.js`), la
+  evidencia se deriva **en tiempo de lectura** con `SmylRadiographReviewModelV2.odontogramEvidence`
+  sólo de decisiones `confirmed|corrected`; `not_evaluable` no entra; `apparently_missing` produce
+  el texto "no implica ausencia: confirmar clínicamente" y `neverAutoAbsent:true`. Nada escribe
+  `doc.teeth` ni cambia su `status`. `toothMap` entrega por candidato FDI efectivo, banda de
+  confianza (alta ≥0.85 / media ≥0.6 / baja), estado, visibilidad y conflictos (dos candidatos
+  vivos en la misma pieza).
+- Despliegue: `supabase functions deploy radiograph-analyze` o `docs/bundles/radiograph-analyze.single-file.ts`;
+  secretos `RADIOGRAPH_DENTAL_PROVIDER` (+ `RADIOGRAPH_DENTAL_URL/API_KEY/PROVIDER_NAME/MODEL_NAME/MODEL_VERSION`
+  para `http`), motor `tooth_localization` y `finding_candidates` registrados y `enabled`, bandera
+  `radiograph.tooth_ai_v1`. **No desplegada.** `smyl-radiograph-review-model-v2.js` aún no se carga
+  en ninguna página ni en `sw.js`/`mobile/www` (Etapa 4).
 
 ## Flujo de datos (Etapa 1)
 
@@ -118,7 +152,7 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 ## Cómo probar
 
 ```bash
-node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs
+node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs
 ```
 
 ```bash
@@ -153,6 +187,7 @@ está disponible la suite se omite sin fallar.
   leer el archivo desde Storage por esa ruta y validar hash/MIME/dimensiones reales.
 - **`width/height`** de la fuente siguen `null`: QC los verifica en servidor pero la fuente es inmutable;
   si se quieren persistir, irán en una tabla derivada en Etapa 3.
+- **Proveedor dental real:** `DentalXrayProvider` http es genérico; el motor especializado (plan §7) no está elegido ni validado. Sin él, el piloto sólo ve el simulado (geometrías sintéticas, no anatomía).
 - **Proveedor real de QC:** no se ha elegido ninguno (plan §7: licencia, residencia de datos, evidencia de
   validación). El adaptador HTTP es genérico y debe ajustarse al contrato del proveedor elegido.
 - **Doble ejecución concurrente:** dos peticiones simultáneas sobre la misma fuente comparten la ejecución

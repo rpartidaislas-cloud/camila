@@ -2,7 +2,7 @@
 // Es supabase/functions/radiograph-qc/index.ts con sus archivos de _shared incluidos,
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import type { RadiographQcProvider, VerifiedRadiographSource } from "./radiograph-provider.ts";
+import type { AnalysisKind, DentalXrayProvider, RadiographQcProvider, VerifiedRadiographSource } from "./radiograph-provider.ts";
 
 // ── _shared/auth-membership.ts ──
 const { decidirMembresia } = (() => {
@@ -270,7 +270,7 @@ return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllo
 })();
 
 // ── _shared/radiograph-contracts.ts ──
-const { RADIOGRAPH_CONTRACT_VERSION, STUDY_CLASSES, QUALITY_STATES, QC_FLAG_CODES, SEVERITIES, ANALYSES, VISIBILITIES, FINDING_CATEGORIES, EVIDENCE_LEVELS, DECISION_STATES, REPORT_PRIORITIES, REPORT_SECTIONS, isGeometry, parseRadiographQc, parseToothCandidateSet, parseFindingCandidateSet, parseRadiographReport, parseRadiographOutput, hasForbiddenClaim, isFdi } = (() => {
+const { RADIOGRAPH_CONTRACT_VERSION, STUDY_CLASSES, QUALITY_STATES, QC_FLAG_CODES, SEVERITIES, ANALYSES, VISIBILITIES, FINDING_CATEGORIES, EVIDENCE_LEVELS, DECISION_STATES, REPORT_PRIORITIES, REPORT_SECTIONS, isGeometry, parseRadiographQc, parseToothCandidateSet, parseFindingCandidateSet, parseRadiographReport, parseRadiographOutput, parseDecisionPayload, hasForbiddenClaim, isFdi } = (() => {
 // SMYL radiografía asistida — contratos v2 (schema 1) para Edge Functions.
 // Espejo tipado de smyl-radiograph-contracts.js; ambos se comprueban contra los mismos
 // vectores (tests/fixtures/radiograph-contracts) junto con los validadores SQL.
@@ -433,14 +433,25 @@ function parseRadiographOutput(kind: "qc" | "tooth_localization" | "finding_cand
   return fail("Tipo de análisis desconocido.");
 }
 
+// Decisión profesional: sólo una corrección lleva datos (fdi, label, geometry, visibility).
+function parseDecisionPayload(state: string, payload: unknown): Record<string, unknown> {
+  if (!includes(DECISION_STATES, state) || state === "pending") fail("Estado de decisión no válido.");
+  const p = payload == null ? {} : payload;
+  if (state !== "corrected") { if (!isObj(p) || Object.keys(p).length) fail("Sólo una corrección lleva datos."); return {}; }
+  if (!isObj(p) || !Object.keys(p).length || !Object.keys(p).every((k) => ["fdi", "label", "geometry", "visibility"].includes(k))
+    || (Object.hasOwn(p, "fdi") && !(p.fdi === null || fdi(p.fdi))) || (Object.hasOwn(p, "label") && !text(p.label, 1, 200))
+    || (Object.hasOwn(p, "geometry") && !isGeometry(p.geometry, false)) || (Object.hasOwn(p, "visibility") && !includes(VISIBILITIES, p.visibility))) fail("Corrección no válida.");
+  return structuredClone(p);
+}
+
 const hasForbiddenClaim = (v: unknown): boolean => FORBIDDEN_CLAIM.test(String(v));
 const isFdi = fdi;
 
-return { RADIOGRAPH_CONTRACT_VERSION, STUDY_CLASSES, QUALITY_STATES, QC_FLAG_CODES, SEVERITIES, ANALYSES, VISIBILITIES, FINDING_CATEGORIES, EVIDENCE_LEVELS, DECISION_STATES, REPORT_PRIORITIES, REPORT_SECTIONS, isGeometry, parseRadiographQc, parseToothCandidateSet, parseFindingCandidateSet, parseRadiographReport, parseRadiographOutput, hasForbiddenClaim, isFdi };
+return { RADIOGRAPH_CONTRACT_VERSION, STUDY_CLASSES, QUALITY_STATES, QC_FLAG_CODES, SEVERITIES, ANALYSES, VISIBILITIES, FINDING_CATEGORIES, EVIDENCE_LEVELS, DECISION_STATES, REPORT_PRIORITIES, REPORT_SECTIONS, isGeometry, parseRadiographQc, parseToothCandidateSet, parseFindingCandidateSet, parseRadiographReport, parseRadiographOutput, parseDecisionPayload, hasForbiddenClaim, isFdi };
 })();
 
 // ── _shared/radiograph-provider.ts ──
-const { SIMULATED_MODEL, SimulatedQcProvider, simulateQc, HttpQcProvider, createQcProvider } = (() => {
+const { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, HttpRadiographProvider, HttpQcProvider, HttpDentalXrayProvider, SIMULATED_DENTAL_MODEL, simulatedToothLayout, simulateTeeth, simulateFindings, SimulatedDentalXrayProvider, createDentalProvider, createQcProvider } = (() => {
 // Adaptador de proveedor para el control de calidad radiográfico (plan §7). La UI nunca habla con
 // un proveedor: el núcleo recibe un RadiographQcProvider y valida su respuesta con el contrato.
 // Reglas del adaptador: credenciales ocultas, timeout y tamaño impuestos, sin redirecciones,
@@ -480,9 +491,14 @@ class SimulatedQcProvider implements RadiographQcProvider {
   }
 }
 
-function simulateQc(input: VerifiedRadiographSource): RadiographQcResultV1 {
+// Clase de estudio simulada a partir de la relación de aspecto (misma regla en QC y localización).
+function simulatedStudyClass(input: VerifiedRadiographSource): 'panoramic' | 'bitewing' | 'periapical' | 'unknown' {
   const ratio = input.width / input.height;
-  const derived = ratio >= 1.8 ? 'panoramic' : ratio >= 1.15 && input.width <= 1600 ? 'bitewing' : ratio < 1.15 ? 'periapical' : 'unknown';
+  return ratio >= 1.8 ? 'panoramic' : ratio >= 1.15 && input.width <= 1600 ? 'bitewing' : ratio < 1.15 ? 'periapical' : 'unknown';
+}
+
+function simulateQc(input: VerifiedRadiographSource): RadiographQcResultV1 {
+  const derived = simulatedStudyClass(input);
   const declared = input.studyTypeDeclared;
   const agrees = declared === derived || declared === 'unknown';
   const studyClass: RadiographQcResultV1['studyClass'] = agrees
@@ -519,8 +535,11 @@ interface HttpQcProviderConfig {
   allowedHostSuffixes: string[];
 }
 
+type AnalysisKind = 'qc' | 'tooth_localization' | 'finding_candidates';
+
 // Adaptador HTTP genérico: https permitido, sin redirecciones, tope de respuesta, salida cruda.
-class HttpQcProvider implements RadiographQcProvider {
+// El tipo de análisis viaja en los metadatos; cada proveedor real necesitará su propio mapeo.
+class HttpRadiographProvider {
   readonly model: ModelRef;
   private readonly cfg: HttpQcProviderConfig;
   constructor(cfg: HttpQcProviderConfig, isAllowedUrl: (u: string, s: string[]) => boolean) {
@@ -528,9 +547,9 @@ class HttpQcProvider implements RadiographQcProvider {
     this.cfg = cfg;
     this.model = { ...cfg.model };
   }
-  async analyze(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> {
+  async request(kind: AnalysisKind, input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> {
     const body = new FormData();
-    body.set('metadata', JSON.stringify({ sourceId: input.sourceId, sha256: input.sha256, mimeType: input.mimeType, width: input.width, height: input.height, studyTypeDeclared: input.studyTypeDeclared, model: this.model }));
+    body.set('metadata', JSON.stringify({ kind, sourceId: input.sourceId, sha256: input.sha256, mimeType: input.mimeType, width: input.width, height: input.height, studyTypeDeclared: input.studyTypeDeclared, model: this.model }));
     body.set('image', new Blob([input.bytes], { type: input.mimeType }), 'radiograph');
     const res = await fetch(this.cfg.url, { method: 'POST', headers: { authorization: `Bearer ${this.cfg.apiKey}` }, body, redirect: 'error', signal });
     if (!res.ok) throw new Error(`provider_http_${res.status}`);
@@ -540,6 +559,111 @@ class HttpQcProvider implements RadiographQcProvider {
     if (text.length > this.cfg.maxResponseBytes) throw new Error('provider_response_too_large');
     return JSON.parse(text);
   }
+}
+
+class HttpQcProvider extends HttpRadiographProvider implements RadiographQcProvider {
+  analyze(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> { return this.request('qc', input, signal); }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Etapa 3: localización dental y señales candidatas (plan §7, DentalXrayProvider).
+// ---------------------------------------------------------------------------------------------
+interface DentalXrayProvider {
+  readonly model: ModelRef;
+  localizeTeeth(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
+  analyzeCandidates(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
+}
+
+class HttpDentalXrayProvider extends HttpRadiographProvider implements DentalXrayProvider {
+  localizeTeeth(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> { return this.request('tooth_localization', input, signal); }
+  analyzeCandidates(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> { return this.request('finding_candidates', input, signal); }
+}
+
+const SIMULATED_DENTAL_MODEL: ModelRef = { provider: 'simulated', name: 'smyl-sim-dental', version: '0.1.0' };
+const UPPER_FDI = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28'];
+const LOWER_FDI = ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38'];
+const THIRD_MOLARS = new Set(['18','28','38','48']);
+const r3 = (n: number) => Math.round(n * 1000) / 1000;
+const box = (x0: number, y0: number, x1: number, y1: number): ToothCandidateSetV1['candidates'][number]['geometry'] =>
+  ({ kind: 'polygon', coordinateSpace: 'source-normalized', points: [[r3(x0), r3(y0)], [r3(x1), r3(y0)], [r3(x1), r3(y1)], [r3(x0), r3(y1)]] });
+
+// Geometrías deterministas por clase de estudio. Un diente "missing:<fdi>" simplemente no se
+// emite (el modelo no lo ve): nunca se produce una afirmación de ausencia.
+function simulatedToothLayout(input: VerifiedRadiographSource): { fdi: string; geometry: ToothCandidateSetV1['candidates'][number]['geometry']; anterior: boolean }[] {
+  const cls = simulatedStudyClass(input);
+  const row = (list: string[], y0: number, y1: number, x0: number, span: number) =>
+    list.map((fdi, i) => ({ fdi, geometry: box(x0 + i * (span / list.length), y0, x0 + (i + 0.92) * (span / list.length), y1), anterior: ['3','2','1'].includes(fdi[1]) }));
+  if (cls === 'panoramic') return [...row(UPPER_FDI, 0.30, 0.48, 0.08, 0.84), ...row(LOWER_FDI, 0.52, 0.70, 0.08, 0.84)];
+  if (cls === 'bitewing') return [...row(['17','16','15','14'], 0.12, 0.48, 0.10, 0.80), ...row(['47','46','45','44'], 0.52, 0.88, 0.10, 0.80)];
+  if (cls === 'periapical') return row(['37','36','35'], 0.25, 0.80, 0.12, 0.76);
+  return [];
+}
+
+const hintArg = (hints: string[], key: string): string[] => hints.filter((h) => h.startsWith(key + ':')).map((h) => h.slice(key.length + 1));
+
+function simulateTeeth(input: VerifiedRadiographSource): ToothCandidateSetV1 {
+  const missing = new Set(hintArg(input.hints, 'missing'));
+  const uncertain = new Set(hintArg(input.hints, 'uncertain'));
+  const candidates = simulatedToothLayout(input).filter((t) => !missing.has(t.fdi)).map((t) => {
+    const neighbour = String(Number(t.fdi) + (Number(t.fdi) % 10 === 8 ? -1 : 1));
+    const unsure = uncertain.has(t.fdi);
+    return {
+      candidateId: `t-${t.fdi}`,
+      fdiCandidate: t.fdi,
+      fdiProbability: unsure ? 0.55 : t.anterior ? 0.8 : 0.92,
+      geometry: t.geometry,
+      visibility: (THIRD_MOLARS.has(t.fdi) ? 'partial' : 'complete') as 'partial' | 'complete',
+      alternatives: unsure ? [{ fdi: neighbour, probability: 0.35 }] : t.anterior ? [{ fdi: neighbour, probability: 0.12 }] : [],
+    };
+  });
+  return { schema: 1, sourceId: input.sourceId, model: { ...SIMULATED_DENTAL_MODEL }, candidates };
+}
+
+// El modelo simulado NO inventa señales clínicas: sólo emite las que piden las pistas de prueba
+// (`finding:<categoría>@<fdi>`), siempre como candidato con región y limitaciones.
+function simulateFindings(input: VerifiedRadiographSource): FindingCandidateSetV1 {
+  const layout = new Map(simulatedToothLayout(input).map((t) => [t.fdi, t.geometry]));
+  const candidates: FindingCandidateSetV1['candidates'] = [];
+  for (const spec of hintArg(input.hints, 'finding')) {
+    const [category, fdi] = spec.split('@');
+    if (!(FINDING_CATEGORIES as readonly string[]).includes(category)) continue;
+    const geometry = (fdi && layout.get(fdi)) || box(0.4, 0.4, 0.6, 0.6);
+    candidates.push({
+      candidateId: `f-${category}-${fdi || 'na'}`,
+      toothCandidate: fdi && layout.has(fdi) ? fdi : null,
+      category: category as FindingCandidateSetV1['candidates'][number]['category'],
+      label: category === 'apparently_missing' ? 'Pieza aparentemente no visible' : `Patrón compatible con ${category.replace(/_/g, ' ')} (candidato)`,
+      confidence: 0.7,
+      evidenceLevel: 'model_candidate',
+      regions: [geometry],
+      explanation: 'Señal visual simulada que requiere comprobación profesional.',
+      limitations: ['Proveedor simulado: sin validación clínica.'],
+    });
+  }
+  return { schema: 1, sourceId: input.sourceId, model: { ...SIMULATED_DENTAL_MODEL }, candidates };
+}
+
+class SimulatedDentalXrayProvider implements DentalXrayProvider {
+  readonly model = SIMULATED_DENTAL_MODEL;
+  localizeTeeth(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> {
+    if (input.hints.includes('malformed')) return Promise.resolve({ schema: 1, sourceId: input.sourceId, candidates: [{ candidateId: 'x' }] });
+    if (input.hints.includes('hang')) return new Promise((_, reject) => signal.addEventListener('abort', () => reject(new DOMException('abort', 'AbortError'))));
+    return Promise.resolve(simulateTeeth(input));
+  }
+  analyzeCandidates(input: VerifiedRadiographSource): Promise<unknown> {
+    if (input.hints.includes('malformed')) return Promise.resolve({ schema: 1, sourceId: input.sourceId, candidates: [{ candidateId: 'x' }] });
+    return Promise.resolve(simulateFindings(input));
+  }
+}
+
+function createDentalProvider(env: ProviderEnv, isAllowedUrl: (u: string, s: string[]) => boolean, parseSuffixes: (extra: string | undefined) => string[]): DentalXrayProvider | null {
+  const kind = (env.RADIOGRAPH_DENTAL_PROVIDER || '').trim();
+  if (kind === 'simulated') return new SimulatedDentalXrayProvider();
+  if (kind !== 'http') return null;
+  const url = env.RADIOGRAPH_DENTAL_URL || '', apiKey = env.RADIOGRAPH_DENTAL_API_KEY || '';
+  const model = { provider: env.RADIOGRAPH_DENTAL_PROVIDER_NAME || '', name: env.RADIOGRAPH_DENTAL_MODEL_NAME || '', version: env.RADIOGRAPH_DENTAL_MODEL_VERSION || '' };
+  if (!url || !apiKey || !model.provider || !model.name || !model.version) return null;
+  return new HttpDentalXrayProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHostSuffixes: parseSuffixes(env.RADIOGRAPH_PROVIDER_HOSTS) }, isAllowedUrl);
 }
 
 type ProviderEnv = Record<string, string | undefined>;
@@ -555,7 +679,7 @@ function createQcProvider(env: ProviderEnv, isAllowedUrl: (u: string, s: string[
   return new HttpQcProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHostSuffixes: parseSuffixes(env.RADIOGRAPH_PROVIDER_HOSTS) }, isAllowedUrl);
 }
 
-return { SIMULATED_MODEL, SimulatedQcProvider, simulateQc, HttpQcProvider, createQcProvider };
+return { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, HttpRadiographProvider, HttpQcProvider, HttpDentalXrayProvider, SIMULATED_DENTAL_MODEL, simulatedToothLayout, simulateTeeth, simulateFindings, SimulatedDentalXrayProvider, createDentalProvider, createQcProvider };
 })();
 
 // ── _shared/radiograph-image.ts ──
@@ -663,8 +787,8 @@ return { detectRadiographMime, probeRadiograph, sha256Hex };
 })();
 
 // ── _shared/radiograph-qc-core.ts ──
-const { runRadiographQc } = (() => {
-// Núcleo de la Edge Function radiograph-qc, sin Deno ni Supabase: recibe dependencias y devuelve
+const { runRadiographQc, runRadiographAnalysis } = (() => {
+// Núcleo de las Edge Functions radiograph-qc y radiograph-analyze, sin Deno ni Supabase: recibe dependencias y devuelve
 // {status, body}. Así se prueba cada escenario (tipo falso, hash distinto, respuesta incompleta,
 // timeout, duplicado) de forma determinista en Node.
 //
@@ -686,11 +810,12 @@ interface SourceRow {
 }
 interface DbResult<T> { data: T | null; error: { code?: string; message: string } | null }
 interface QcDeps {
-  requestRun(sourceId: string): Promise<DbResult<AiRunRow>>;            // como usuario (JWT)
+  requestRun(sourceId: string, kind: AnalysisKind): Promise<DbResult<AiRunRow>>; // como usuario (JWT)
   loadSource(sourceId: string): Promise<SourceRow | null>;               // service_role
   download(bucket: string, path: string): Promise<Uint8Array | null>;    // service_role, ruta conocida
   completeRun(runId: string, status: 'completed' | 'failed' | 'unconfirmed', output: unknown, failureCode: string): Promise<DbResult<AiRunRow>>; // service_role
-  provider: RadiographQcProvider | null;
+  provider: RadiographQcProvider | null;          // QC
+  dentalProvider?: DentalXrayProvider | null;      // localización y señales (Etapa 3)
   timeoutMs: number;
   log(event: Record<string, string | number | boolean | null>): void;    // sólo ids y códigos
 }
@@ -711,27 +836,43 @@ function dbStatus(code: string | undefined): number {
   return 500;
 }
 
-async function runRadiographQc(rawBody: unknown, deps: QcDeps): Promise<QcReply> {
+interface Engine { model: ModelRef; call(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>; parse(raw: unknown): { model: ModelRef; sourceId?: string } & Record<string, unknown> }
+
+function selectEngine(kind: AnalysisKind, deps: QcDeps): Engine | null {
+  if (kind === 'qc') return deps.provider ? { model: deps.provider.model, call: (i, s) => deps.provider!.analyze(i, s), parse: parseRadiographQc } : null;
+  const d = deps.dentalProvider;
+  if (!d) return null;
+  if (kind === 'tooth_localization') return { model: d.model, call: (i, s) => d.localizeTeeth(i, s), parse: parseToothCandidateSet };
+  if (kind === 'finding_candidates') return { model: d.model, call: (i, s) => d.analyzeCandidates(i, s), parse: parseFindingCandidateSet };
+  return null;
+}
+
+function runRadiographQc(rawBody: unknown, deps: QcDeps): Promise<QcReply> { return runRadiographAnalysis('qc', rawBody, deps); }
+
+async function runRadiographAnalysis(kind: AnalysisKind, rawBody: unknown, deps: QcDeps): Promise<QcReply> {
   const body = (rawBody && typeof rawBody === 'object' ? rawBody : {}) as Record<string, unknown>;
   const sourceId = typeof body.sourceId === 'string' ? body.sourceId.toLowerCase() : '';
   if (!UUID.test(sourceId)) return { status: 400, body: { error: 'Indica la fuente radiográfica.' } };
-  if (!deps.provider) return { status: 503, body: { error: 'El control de calidad radiográfico no está configurado en el servidor.', code: 'disabled' } };
+  if (!['qc', 'tooth_localization', 'finding_candidates'].includes(kind)) return { status: 400, body: { error: 'Tipo de análisis desconocido.' } };
+  const engine = selectEngine(kind, deps);
+  if (!engine) return { status: 503, body: { error: 'Este análisis radiográfico no está configurado en el servidor.', code: 'disabled' } };
 
-  const requested = await deps.requestRun(sourceId);
+  const requested = await deps.requestRun(sourceId, kind);
   if (requested.error || !requested.data) {
-    deps.log({ event: 'qc_request_rejected', sourceId, code: requested.error?.code || '' });
+    deps.log({ event: 'run_request_rejected', kind, sourceId, code: requested.error?.code || '' });
     return { status: dbStatus(requested.error?.code), body: { error: requested.error?.message || 'No se pudo registrar la solicitud.', code: requested.error?.code || '' } };
   }
   const run = requested.data;
+  if (run.kind !== kind) return { status: 409, body: { error: 'La ejecución registrada no corresponde a este análisis.', code: 'kind_mismatch' } };
   if (run.status === 'completed') {
-    deps.log({ event: 'qc_reused', runId: run.id, sourceId });
+    deps.log({ event: 'run_reused', kind, runId: run.id, sourceId });
     return { status: 200, body: { run: publicRun(run), reused: true } };
   }
   if (run.status !== 'requested') return { status: 409, body: { error: 'La ejecución no está en un estado que permita continuar.', code: run.status } };
 
   const fail = async (status: number, failureCode: string, error: string, runStatus: 'failed' | 'unconfirmed' = 'failed') => {
     const closed = await deps.completeRun(run.id, runStatus, null, failureCode);
-    deps.log({ event: 'qc_closed', runId: run.id, sourceId, status: runStatus, code: failureCode, persisted: !closed.error });
+    deps.log({ event: 'run_closed', kind, runId: run.id, sourceId, status: runStatus, code: failureCode, persisted: !closed.error });
     return { status, body: { error, code: failureCode, run: closed.data ? publicRun(closed.data) : { id: run.id, status: runStatus, failureCode } } };
   };
 
@@ -755,35 +896,39 @@ async function runRadiographQc(rawBody: unknown, deps: QcDeps): Promise<QcReply>
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
   let raw: unknown;
   try {
-    raw = await deps.provider.analyze(verified, controller.signal);
+    raw = await engine.call(verified, controller.signal);
   } catch (error) {
     clearTimeout(timer);
     if (controller.signal.aborted) return fail(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
-    deps.log({ event: 'qc_provider_error', runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
+    deps.log({ event: 'run_provider_error', kind, runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
     return fail(502, 'provider_error', 'El motor devolvió un error.');
   }
   clearTimeout(timer);
   if (controller.signal.aborted) return fail(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
 
-  let output;
-  try { output = parseRadiographQc(raw); } catch (error) {
-    deps.log({ event: 'qc_invalid_output', runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
+  let output: ReturnType<Engine['parse']>;
+  try { output = engine.parse(raw); } catch (error) {
+    deps.log({ event: 'run_invalid_output', kind, runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
     return fail(502, 'invalid_output', 'La respuesta del motor no cumple el contrato.');
   }
-  const m = output.model, e = run.engine, p = deps.provider.model;
+  if (kind !== 'qc' && output.sourceId !== source.id) return fail(502, 'invalid_output', 'La respuesta no corresponde a la fuente.');
+  const m = output.model, e = run.engine, p = engine.model;
   if (m.provider !== e.provider || m.name !== e.name || m.version !== e.version || m.provider !== p.provider || m.name !== p.name || m.version !== p.version) {
     return fail(502, 'invalid_output', 'La respuesta no identifica el motor registrado.');
   }
   const closed = await deps.completeRun(run.id, 'completed', output, '');
   if (closed.error || !closed.data) {
-    deps.log({ event: 'qc_persist_failed', runId: run.id, sourceId, code: closed.error?.code || '' });
+    deps.log({ event: 'run_persist_failed', kind, runId: run.id, sourceId, code: closed.error?.code || '' });
     return { status: dbStatus(closed.error?.code), body: { error: closed.error?.message || 'No se pudo guardar el resultado.', code: closed.error?.code || '' } };
   }
-  deps.log({ event: 'qc_completed', runId: run.id, sourceId, quality: output.quality.status, studyClass: output.studyClass.value, flags: output.quality.flags.length });
+  const summary = kind === 'qc'
+    ? { quality: String((output.quality as { status: string }).status), studyClass: String((output.studyClass as { value: string }).value) }
+    : { candidates: (output.candidates as unknown[]).length };
+  deps.log({ event: 'run_completed', kind, runId: run.id, sourceId, ...summary });
   return { status: 200, body: { run: publicRun(closed.data), reused: false } };
 }
 
-return { runRadiographQc };
+return { runRadiographQc, runRadiographAnalysis };
 })();
 
 // ── radiograph-qc/index.ts ──
@@ -819,8 +964,8 @@ Deno.serve(async (req: Request) => {
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } });
   try {
     const result = await runRadiographQc(body, {
-      requestRun: async (sourceId) => {
-        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: 'qc', p_acknowledge_unconfirmed: false });
+      requestRun: async (sourceId, kind) => {
+        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: false });
         return { data: (data as AiRunRow) ?? null, error: error ? { code: error.code, message: error.message } : null };
       },
       loadSource: async (sourceId) => {

@@ -36,8 +36,8 @@ Deno.serve(async (req: Request) => {
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } });
   try {
     const result = await runRadiographQc(body, {
-      requestRun: async (sourceId) => {
-        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: 'qc', p_acknowledge_unconfirmed: false });
+      requestRun: async (sourceId, kind) => {
+        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: false });
         return { data: (data as AiRunRow) ?? null, error: error ? { code: error.code, message: error.message } : null };
       },
       loadSource: async (sourceId) => {

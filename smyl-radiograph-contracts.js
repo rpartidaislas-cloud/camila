@@ -120,9 +120,9 @@
   if(!DECISION_STATES.includes(state)||state==='pending')fail('Estado de decisión no válido.');
   const p=payload==null?{}:payload;
   if(state!=='corrected'){if(!isObj(p)||Object.keys(p).length)fail('Sólo una corrección lleva datos.');return {};}
-  if(!isObj(p)||!Object.keys(p).length||!Object.keys(p).every(k=>['fdi','label','geometry'].includes(k))
+  if(!isObj(p)||!Object.keys(p).length||!Object.keys(p).every(k=>['fdi','label','geometry','visibility'].includes(k))
    ||(Object.hasOwn(p,'fdi')&&!(p.fdi===null||fdi(p.fdi)))||(Object.hasOwn(p,'label')&&!text(p.label,1,200))
-   ||(Object.hasOwn(p,'geometry')&&!geometry(p.geometry,false)))fail('Corrección no válida.');
+   ||(Object.hasOwn(p,'geometry')&&!geometry(p.geometry,false))||(Object.hasOwn(p,'visibility')&&!VISIBILITIES.includes(p.visibility)))fail('Corrección no válida.');
   return structuredClone(p);
  }
  const canTransition=(from,to)=>DECISION_STATES.includes(from)&&['confirmed','corrected','rejected'].includes(to);

@@ -1,4 +1,4 @@
-// Núcleo de la Edge Function radiograph-qc, sin Deno ni Supabase: recibe dependencias y devuelve
+// Núcleo de las Edge Functions radiograph-qc y radiograph-analyze, sin Deno ni Supabase: recibe dependencias y devuelve
 // {status, body}. Así se prueba cada escenario (tipo falso, hash distinto, respuesta incompleta,
 // timeout, duplicado) de forma determinista en Node.
 //
@@ -9,9 +9,9 @@
 // timeout; (5) la respuesta se valida con el contrato y se guarda completa e inmutable.
 // Un timeout incierto cierra la ejecución como `unconfirmed` y NO reintenta.
 
-import { parseRadiographQc } from './radiograph-contracts.ts';
+import { parseFindingCandidateSet, parseRadiographQc, parseToothCandidateSet, type ModelRef } from './radiograph-contracts.ts';
 import { probeRadiograph, sha256Hex } from './radiograph-image.ts';
-import type { RadiographQcProvider, VerifiedRadiographSource } from './radiograph-provider.ts';
+import type { AnalysisKind, DentalXrayProvider, RadiographQcProvider, VerifiedRadiographSource } from './radiograph-provider.ts';
 
 export interface AiRunRow {
   id: string; tenant_id: string; patient_id: string; source_id: string; kind: string; status: string;
@@ -23,11 +23,12 @@ export interface SourceRow {
 }
 export interface DbResult<T> { data: T | null; error: { code?: string; message: string } | null }
 export interface QcDeps {
-  requestRun(sourceId: string): Promise<DbResult<AiRunRow>>;            // como usuario (JWT)
+  requestRun(sourceId: string, kind: AnalysisKind): Promise<DbResult<AiRunRow>>; // como usuario (JWT)
   loadSource(sourceId: string): Promise<SourceRow | null>;               // service_role
   download(bucket: string, path: string): Promise<Uint8Array | null>;    // service_role, ruta conocida
   completeRun(runId: string, status: 'completed' | 'failed' | 'unconfirmed', output: unknown, failureCode: string): Promise<DbResult<AiRunRow>>; // service_role
-  provider: RadiographQcProvider | null;
+  provider: RadiographQcProvider | null;          // QC
+  dentalProvider?: DentalXrayProvider | null;      // localización y señales (Etapa 3)
   timeoutMs: number;
   log(event: Record<string, string | number | boolean | null>): void;    // sólo ids y códigos
 }
@@ -48,27 +49,43 @@ function dbStatus(code: string | undefined): number {
   return 500;
 }
 
-export async function runRadiographQc(rawBody: unknown, deps: QcDeps): Promise<QcReply> {
+interface Engine { model: ModelRef; call(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>; parse(raw: unknown): { model: ModelRef; sourceId?: string } & Record<string, unknown> }
+
+function selectEngine(kind: AnalysisKind, deps: QcDeps): Engine | null {
+  if (kind === 'qc') return deps.provider ? { model: deps.provider.model, call: (i, s) => deps.provider!.analyze(i, s), parse: parseRadiographQc } : null;
+  const d = deps.dentalProvider;
+  if (!d) return null;
+  if (kind === 'tooth_localization') return { model: d.model, call: (i, s) => d.localizeTeeth(i, s), parse: parseToothCandidateSet };
+  if (kind === 'finding_candidates') return { model: d.model, call: (i, s) => d.analyzeCandidates(i, s), parse: parseFindingCandidateSet };
+  return null;
+}
+
+export function runRadiographQc(rawBody: unknown, deps: QcDeps): Promise<QcReply> { return runRadiographAnalysis('qc', rawBody, deps); }
+
+export async function runRadiographAnalysis(kind: AnalysisKind, rawBody: unknown, deps: QcDeps): Promise<QcReply> {
   const body = (rawBody && typeof rawBody === 'object' ? rawBody : {}) as Record<string, unknown>;
   const sourceId = typeof body.sourceId === 'string' ? body.sourceId.toLowerCase() : '';
   if (!UUID.test(sourceId)) return { status: 400, body: { error: 'Indica la fuente radiográfica.' } };
-  if (!deps.provider) return { status: 503, body: { error: 'El control de calidad radiográfico no está configurado en el servidor.', code: 'disabled' } };
+  if (!['qc', 'tooth_localization', 'finding_candidates'].includes(kind)) return { status: 400, body: { error: 'Tipo de análisis desconocido.' } };
+  const engine = selectEngine(kind, deps);
+  if (!engine) return { status: 503, body: { error: 'Este análisis radiográfico no está configurado en el servidor.', code: 'disabled' } };
 
-  const requested = await deps.requestRun(sourceId);
+  const requested = await deps.requestRun(sourceId, kind);
   if (requested.error || !requested.data) {
-    deps.log({ event: 'qc_request_rejected', sourceId, code: requested.error?.code || '' });
+    deps.log({ event: 'run_request_rejected', kind, sourceId, code: requested.error?.code || '' });
     return { status: dbStatus(requested.error?.code), body: { error: requested.error?.message || 'No se pudo registrar la solicitud.', code: requested.error?.code || '' } };
   }
   const run = requested.data;
+  if (run.kind !== kind) return { status: 409, body: { error: 'La ejecución registrada no corresponde a este análisis.', code: 'kind_mismatch' } };
   if (run.status === 'completed') {
-    deps.log({ event: 'qc_reused', runId: run.id, sourceId });
+    deps.log({ event: 'run_reused', kind, runId: run.id, sourceId });
     return { status: 200, body: { run: publicRun(run), reused: true } };
   }
   if (run.status !== 'requested') return { status: 409, body: { error: 'La ejecución no está en un estado que permita continuar.', code: run.status } };
 
   const fail = async (status: number, failureCode: string, error: string, runStatus: 'failed' | 'unconfirmed' = 'failed') => {
     const closed = await deps.completeRun(run.id, runStatus, null, failureCode);
-    deps.log({ event: 'qc_closed', runId: run.id, sourceId, status: runStatus, code: failureCode, persisted: !closed.error });
+    deps.log({ event: 'run_closed', kind, runId: run.id, sourceId, status: runStatus, code: failureCode, persisted: !closed.error });
     return { status, body: { error, code: failureCode, run: closed.data ? publicRun(closed.data) : { id: run.id, status: runStatus, failureCode } } };
   };
 
@@ -92,30 +109,34 @@ export async function runRadiographQc(rawBody: unknown, deps: QcDeps): Promise<Q
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
   let raw: unknown;
   try {
-    raw = await deps.provider.analyze(verified, controller.signal);
+    raw = await engine.call(verified, controller.signal);
   } catch (error) {
     clearTimeout(timer);
     if (controller.signal.aborted) return fail(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
-    deps.log({ event: 'qc_provider_error', runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
+    deps.log({ event: 'run_provider_error', kind, runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
     return fail(502, 'provider_error', 'El motor devolvió un error.');
   }
   clearTimeout(timer);
   if (controller.signal.aborted) return fail(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
 
-  let output;
-  try { output = parseRadiographQc(raw); } catch (error) {
-    deps.log({ event: 'qc_invalid_output', runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
+  let output: ReturnType<Engine['parse']>;
+  try { output = engine.parse(raw); } catch (error) {
+    deps.log({ event: 'run_invalid_output', kind, runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
     return fail(502, 'invalid_output', 'La respuesta del motor no cumple el contrato.');
   }
-  const m = output.model, e = run.engine, p = deps.provider.model;
+  if (kind !== 'qc' && output.sourceId !== source.id) return fail(502, 'invalid_output', 'La respuesta no corresponde a la fuente.');
+  const m = output.model, e = run.engine, p = engine.model;
   if (m.provider !== e.provider || m.name !== e.name || m.version !== e.version || m.provider !== p.provider || m.name !== p.name || m.version !== p.version) {
     return fail(502, 'invalid_output', 'La respuesta no identifica el motor registrado.');
   }
   const closed = await deps.completeRun(run.id, 'completed', output, '');
   if (closed.error || !closed.data) {
-    deps.log({ event: 'qc_persist_failed', runId: run.id, sourceId, code: closed.error?.code || '' });
+    deps.log({ event: 'run_persist_failed', kind, runId: run.id, sourceId, code: closed.error?.code || '' });
     return { status: dbStatus(closed.error?.code), body: { error: closed.error?.message || 'No se pudo guardar el resultado.', code: closed.error?.code || '' } };
   }
-  deps.log({ event: 'qc_completed', runId: run.id, sourceId, quality: output.quality.status, studyClass: output.studyClass.value, flags: output.quality.flags.length });
+  const summary = kind === 'qc'
+    ? { quality: String((output.quality as { status: string }).status), studyClass: String((output.studyClass as { value: string }).value) }
+    : { candidates: (output.candidates as unknown[]).length };
+  deps.log({ event: 'run_completed', kind, runId: run.id, sourceId, ...summary });
   return { status: 200, body: { run: publicRun(closed.data), reused: false } };
 }

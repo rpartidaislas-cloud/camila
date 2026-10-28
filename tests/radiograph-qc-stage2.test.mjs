@@ -214,7 +214,7 @@ test('los logs sólo llevan ids y códigos: nunca imagen, base64, salida del mot
   const text = JSON.stringify(h.logs);
   assert.ok(text.length < 1500, text.length);
   assert.doesNotMatch(text, /bytes|base64|explanation|flags":\[|storage_path|sha256/);
-  assert.deepEqual(h.logs.map(l => l.event), ['qc_completed', 'qc_reused']);
+  assert.deepEqual(h.logs.map(l => l.event), ['run_completed', 'run_reused']);
 });
 
 test('contrato estático: función dedicada, autorización en la base con la sesión del usuario, sin redirecciones ni URLs del cliente', () => {
@@ -229,6 +229,6 @@ test('contrato estático: función dedicada, autorización en la base con la ses
   assert.match(prov, /redirect: 'error'/);
   assert.match(prov, /isAllowedUrl\(cfg\.url, cfg\.allowedHostSuffixes\)/);
   assert.doesNotMatch(coreSrc, /Deno\.|console\./, 'el núcleo no depende de Deno ni escribe logs por su cuenta');
-  assert.match(coreSrc, /const requested = await deps\.requestRun\(sourceId\);[\s\S]*await deps\.loadSource\(run\.source_id\)/, 'la base autoriza antes de usar service_role');
+  assert.match(coreSrc, /const requested = await deps\.requestRun\(sourceId, kind\);[\s\S]*await deps\.loadSource\(run\.source_id\)/, 'la base autoriza antes de usar service_role');
   assert.equal(fs.existsSync(new URL('../mobile/www/radiograph-qc', import.meta.url)), false);
 });

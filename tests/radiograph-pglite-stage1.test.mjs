@@ -247,6 +247,9 @@ test('Decisión profesional: confirmar/corregir/descartar con concurrencia optim
   // Para el informe: 46 vuelve a 'rejected' en la revisión 5 (después de la confirmación de prueba en la 4).
   assert.equal((await one('select payload->>\'fdiCandidate\' as fdi from public.smyl_radiograph_candidates where id=$1', [cand46])).fdi, '46', 'el candidato original se conserva');
   assert.equal((await decide(cand46, 3, 'confirmed', null)).revision, 4, 'payload JSON null equivale a {}');
+  await rejects(decide(cand36, 2, 'corrected', { visibility: 'hidden' }), '22023', /Corrección no válida/);
+  assert.deepEqual((await decide(cand36, 2, 'corrected', { visibility: 'not_evaluable', label: 'Superposición' })).payload, { visibility: 'not_evaluable', label: 'Superposición' });
+  assert.equal((await decide(cand36, 3, 'confirmed')).revision, 4, 'vuelve a confirmada para el informe');
   await asServer();
   await rejects(sql(`update public.smyl_radiograph_decisions set state='rejected' where candidate_id=$1`, [cand46]), '42501', /revisión nueva/);
   await rejects(sql(`delete from public.smyl_radiograph_decisions where candidate_id=$1`, [cand46]), '42501');
@@ -315,10 +318,10 @@ test('Informe: borrador versionado, firma sólo con hallazgos confirmados/correg
   const signed = await one(`select * from public.smyl_radiograph_sign_report($1::uuid,4)`, [RPT]);
   assert.equal(signed.status, 'signed'); assert.equal(signed.revision, 5); assert.match(signed.signed_hash, /^[a-f0-9]{64}$/);
   assert.equal(signed.signed_professional_id, 'b0000000-0000-4000-8000-000000000001');
-  assert.deepEqual(signed.signed_decisions.map(d => [d.candidateId, d.state, d.revision]), [[cand36, 'confirmed', 2]], 'snapshot de decisiones firmadas');
+  assert.deepEqual(signed.signed_decisions.map(d => [d.candidateId, d.state, d.revision]), [[cand36, 'confirmed', 4]], 'snapshot de decisiones firmadas');
   assert.equal((await one(`select * from public.smyl_radiograph_sign_report($1::uuid,4)`, [RPT])).signed_hash, signed.signed_hash, 'firma repetida: idempotente');
   await rejects(save(5, doc([])), '42501', /sólo admite adendas/);
-  await rejects(decide(cand36, 2, 'rejected'), '23514', /informe firmado; registra una adenda/);
+  await rejects(decide(cand36, 4, 'rejected'), '23514', /informe firmado; registra una adenda/);
   assert.equal((await decide(cand46, 5, 'confirmed')).revision, 6, 'un candidato fuera del informe sí puede reconsiderarse');
   await asServer();
   await rejects(sql(`update public.smyl_radiograph_reports set document='{}' where id=$1`, [RPT]), '42501', /sólo admite adendas/);
@@ -342,7 +345,7 @@ test('Informe: borrador versionado, firma sólo con hallazgos confirmados/correg
   await as(U.ownerA);
   const actions = (await rows(`select action,count(*)::int as n from public.smyl_radiograph_access_events where source_id=$1 group by action order by action`, [SRC])).map(r => `${r.action}:${r.n}`);
   // decide:6 — la repetición idempotente de una decisión no genera evento.
-  assert.deepEqual(actions, ['addendum:1', 'correct:1', 'decide:6', 'engine_result:2', 'export:1', 'register:1', 'report_draft:4', 'send_to_engine:2', 'sign_report:1']);
+  assert.deepEqual(actions, ['addendum:1', 'correct:1', 'decide:8', 'engine_result:2', 'export:1', 'register:1', 'report_draft:4', 'send_to_engine:2', 'sign_report:1']);
   await as(U.dentist);
   assert.equal((await rows('select * from public.smyl_radiograph_access_events')).length, 0, 'sin audit.read no se lee la auditoría');
 });

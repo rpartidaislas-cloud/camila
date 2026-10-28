@@ -466,10 +466,11 @@ begin
   if p_state <> 'corrected' then
     if v_payload <> '{}'::jsonb then raise exception using errcode = '22023', message = 'Sólo una corrección lleva datos.'; end if;
   else
-    if jsonb_typeof(v_payload) is distinct from 'object' or v_payload = '{}'::jsonb or v_payload - array['fdi','label','geometry'] <> '{}'::jsonb
+    if jsonb_typeof(v_payload) is distinct from 'object' or v_payload = '{}'::jsonb or v_payload - array['fdi','label','geometry','visibility'] <> '{}'::jsonb
        or (v_payload ? 'fdi' and not (v_payload->'fdi' = 'null'::jsonb or (jsonb_typeof(v_payload->'fdi') = 'string' and public.smyl_radiograph_fdi_valid(v_payload->>'fdi'))))
        or (v_payload ? 'label' and not public.smyl_radiograph_text_valid(v_payload->'label', 1, 200))
-       or (v_payload ? 'geometry' and not public.smyl_radiograph_geometry_valid(v_payload->'geometry', false)) then
+       or (v_payload ? 'geometry' and not public.smyl_radiograph_geometry_valid(v_payload->'geometry', false))
+       or (v_payload ? 'visibility' and coalesce(v_payload->>'visibility', '') not in ('complete','partial','not_evaluable')) then
       raise exception using errcode = '22023', message = 'Corrección no válida.'; end if;
   end if;
   if coalesce(p_note, '') <> '' and not public.smyl_radiograph_text_valid(to_jsonb(p_note), 0, 600) then raise exception using errcode = '22023', message = 'Nota demasiado larga.'; end if;
