@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Ficha conectada v4.5 · QA visual</title>
+  <link rel="stylesheet" href="../../smyl-patient-360.css">
+  <style>
+    *{box-sizing:border-box}
+    :root{color-scheme:light}
+    body{margin:0;background:#f3f6f9;color:#0b1b2e;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    button{font-family:inherit}
+    [hidden]{display:none!important}
+    .qa-shell{min-height:100vh}
+    .qa-bar{display:flex;align-items:center;justify-content:space-between;min-height:62px;padding:0 28px;border-bottom:1px solid #d9e2ec;background:#fff}
+    .qa-brand{color:#0b1b2e;font-size:16px;font-weight:800;letter-spacing:.18em}
+    .qa-bar span:last-child{color:#738094;font-size:12px}
+    .qa-main{width:min(1220px,calc(100% - 40px));margin:0 auto;padding:28px 0 48px}
+    .p360-root{margin:0}
+    .p360-title-tools{flex-wrap:wrap;justify-content:flex-end}
+    .p360-title-tools button{border:1px solid #cbd7e2;border-radius:9px;background:#fff;color:#31465a;font-weight:700}
+    .p360-title-tools button:first-child{border-color:#b7d8d2;background:#f0f8f6;color:#17685f}
+    .p360-tabs button{cursor:pointer}
+    .p360-section-head button{min-width:92px}
+    @media(max-width:700px){
+      .qa-bar{min-height:54px;padding:0 16px}.qa-bar span:last-child{display:none}
+      .qa-main{width:100%;padding:16px 12px 36px}
+      .p360-title-tools{justify-content:flex-start}
+    }
+    @media(max-width:600px){
+      .p360-title-tools button,.p360-tabs button,.p360-priority-actions button,.p360-section-head button,.p360-timeline-filters button,.p360-timeline-more{min-height:44px}
+    }
+  </style>
+</head>
+<body>
+  <div class="qa-shell">
+    <header class="qa-bar"><span class="qa-brand">SMYL</span><span>Fixture sintética · sin datos reales</span></header>
+    <main class="qa-main">
+      <section class="p360-root" aria-label="Ficha conectada del paciente">
+        <header class="p360-title">
+          <span class="p360-avatar" aria-hidden="true">AM</span>
+          <div class="p360-patient-copy">
+            <span>EXPEDIENTE CLÍNICO</span>
+            <h1>Ana Martínez</h1>
+            <p>55 5555 0184 · ana.martinez@example.test</p>
+          </div>
+          <div class="p360-title-tools">
+            <button type="button"><span aria-hidden="true">✦</span> Asistente IA</button>
+            <button type="button">Datos administrativos</button>
+            <span class="p360-secure">Acceso protegido</span>
+          </div>
+        </header>
+
+        <nav class="p360-tabs" aria-label="Áreas principales de la ficha">
+          <button type="button" aria-selected="true">Resumen</button>
+          <button type="button">Historia clínica</button>
+          <button type="button">Tratamiento</button>
+          <button type="button">Archivos</button>
+        </nav>
+
+        <div class="p360-alerts">
+          <strong>Revisar antes de atender</strong>
+          <div><span>Alergia: penicilina</span><span>Hipertensión controlada</span></div>
+        </div>
+
+        <section class="p360-priority">
+          <div>
+            <span>SIGUIENTE PASO</span>
+            <h2>Completar evaluación clínica</h2>
+            <p>Confirma los hallazgos pendientes antes de aprobar el plan.</p>
+          </div>
+          <div class="p360-priority-actions"><button type="button" class="btn btn-primary">Continuar</button></div>
+        </section>
+
+        <section class="p360-record-map" aria-labelledby="qa-map-title">
+          <header>
+            <div>
+              <span>FICHA CONECTADA</span>
+              <h2 id="qa-map-title">Todo el paciente, ordenado por área</h2>
+              <p>Cada bloque abre el área correspondiente; la información clínica no se duplica.</p>
+            </div>
+            <strong>6 áreas vinculadas</strong>
+          </header>
+          <div class="p360-domain-grid">
+            <button type="button" class="p360-domain-card" data-tone="ready"><span class="p360-domain-number" aria-hidden="true">01</span><span class="p360-domain-copy"><small>Historia clínica</small><strong>Versión 4</strong><em>7 de 8 apartados registrados</em></span><span class="p360-domain-arrow" aria-hidden="true">→</span></button>
+            <button type="button" class="p360-domain-card" data-tone="pending"><span class="p360-domain-number" aria-hidden="true">02</span><span class="p360-domain-copy"><small>Evoluciones</small><strong>8 registros</strong><em>7 firmadas · 1 en borrador</em></span><span class="p360-domain-arrow" aria-hidden="true">→</span></button>
+            <button type="button" class="p360-domain-card" data-tone="progress"><span class="p360-domain-number" aria-hidden="true">03</span><span class="p360-domain-copy"><small>Tratamiento</small><strong>Evaluación en curso</strong><em>5 piezas documentadas · 2 por revisar</em></span><span class="p360-domain-arrow" aria-hidden="true">→</span></button>
+            <button type="button" class="p360-domain-card" data-tone="ready"><span class="p360-domain-number" aria-hidden="true">04</span><span class="p360-domain-copy"><small>Estudios y archivos</small><strong>9 archivos · 3 estudios</strong><em>Originales y revisiones permanecen vinculados</em></span><span class="p360-domain-arrow" aria-hidden="true">→</span></button>
+            <button type="button" class="p360-domain-card" data-tone="ready"><span class="p360-domain-number" aria-hidden="true">05</span><span class="p360-domain-copy"><small>Atención y citas</small><strong>Próxima · 29 oct 2026</strong><em>6 atenciones completadas</em></span><span class="p360-domain-arrow" aria-hidden="true">→</span></button>
+            <button type="button" class="p360-domain-card" data-tone="ready"><span class="p360-domain-number" aria-hidden="true">06</span><span class="p360-domain-copy"><small>Administrativo</small><strong>Datos fiscales completos</strong><em>Separado del expediente clínico</em></span><span class="p360-domain-arrow" aria-hidden="true">→</span></button>
+          </div>
+        </section>
+
+        <div class="p360-overview-grid">
+          <article class="p360-card p360-health-card">
+            <div class="p360-section-head"><div><span>INFORMACIÓN ESENCIAL</span><h2>Resumen clínico</h2><p>Datos confirmados que pueden orientar la siguiente atención.</p></div><button type="button">Ver historia</button></div>
+            <dl>
+              <div><dt>Alergias</dt><dd>Penicilina</dd></div>
+              <div><dt>Condiciones</dt><dd>Hipertensión controlada</dd></div>
+              <div><dt>Medicamentos</dt><dd>Losartán 50 mg</dd></div>
+              <div><dt>Antecedentes dentales</dt><dd>Ortodoncia previa; sensibilidad en piezas 24 y 25.</dd></div>
+            </dl>
+          </article>
+
+          <article class="p360-card p360-activity-card">
+            <div class="p360-section-head"><div><span>HISTORIA LONGITUDINAL</span><h2>Actividad del paciente</h2><p>Una sola secuencia de atención, evidencia, planes y movimientos autorizados.</p></div></div>
+            <div class="p360-timeline-filters" role="group" aria-label="Filtrar actividad">
+              <button type="button" data-filter="all" aria-pressed="true">Todo</button>
+              <button type="button" data-filter="clinical" aria-pressed="false">Clínica</button>
+              <button type="button" data-filter="appointments" aria-pressed="false">Citas</button>
+              <button type="button" data-filter="files" aria-pressed="false">Archivos</button>
+              <button type="button" data-filter="proposals" aria-pressed="false">Cotizaciones</button>
+              <button type="button" data-filter="finance" aria-pressed="false">Administrativo</button>
+              <button type="button" data-filter="messages" aria-pressed="false">Conversaciones</button>
+            </div>
+            <div class="p360-timeline">
+              <button type="button" class="p360-timeline-row" data-event="appointments"><i data-type="appointment" aria-hidden="true"></i><span><small>Atención</small><strong>Cita registrada</strong><em>24 oct 2026, 10:30 · Completada</em></span><b aria-hidden="true">→</b></button>
+              <button type="button" class="p360-timeline-row" data-event="clinical"><i data-type="clinical_note" aria-hidden="true"></i><span><small>Evolución</small><strong>Evolución clínica</strong><em>24 oct 2026, 11:20 · Firmada</em></span><b aria-hidden="true">→</b></button>
+              <button type="button" class="p360-timeline-row" data-event="files"><i data-type="file" aria-hidden="true"></i><span><small>Archivo</small><strong>Archivo clínico registrado</strong><em>24 oct 2026, 11:36 · Disponible</em></span><b aria-hidden="true">→</b></button>
+              <button type="button" class="p360-timeline-row" data-event="proposals"><i data-type="proposal" aria-hidden="true"></i><span><small>Cotización</small><strong>Cotización presentada</strong><em>23 oct 2026, 17:10 · Presentada</em></span><b aria-hidden="true">→</b></button>
+              <button type="button" class="p360-timeline-row" data-event="finance"><i data-type="finance_payment" aria-hidden="true"></i><span><small>Administrativo</small><strong>Pago registrado</strong><em>22 oct 2026, 16:40 · Pagado</em></span><b aria-hidden="true">→</b></button>
+              <button type="button" class="p360-timeline-row" data-event="messages"><i data-type="conversation_link" aria-hidden="true"></i><span><small>Conversación</small><strong>Conversación vinculada</strong><em>21 oct 2026, 09:05 · Vinculada</em></span><b aria-hidden="true">→</b></button>
+              <button type="button" class="p360-timeline-row" data-event="clinical"><i data-type="dental_record" aria-hidden="true"></i><span><small>Odontograma</small><strong>Odontograma actualizado</strong><em>20 oct 2026, 12:10 · Actualizado</em></span><b aria-hidden="true">→</b></button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-filter]').forEach(function(button){
+      button.addEventListener('click',function(){
+        var filter=button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach(function(item){item.setAttribute('aria-pressed',String(item===button));});
+        document.querySelectorAll('[data-event]').forEach(function(row){row.hidden=filter!=='all'&&row.dataset.event!==filter;});
+      });
+    });
+  </script>
+</body>
+</html>

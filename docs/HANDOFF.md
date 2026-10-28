@@ -1,5 +1,62 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-27 — Codex — Ficha 360 v4.5 y cronología segura
+
+- La actividad longitudinal de la Ficha 360 integra, en una sola secuencia y
+  sin duplicar fuentes, citas, evoluciones, archivos, odontograma, revisiones
+  fotográficas y radiográficas, planes, cotizaciones, movimientos
+  administrativos/CFDI y vínculos de conversación. La interfaz agrupa sólo los
+  dominios disponibles y cada movimiento abre su módulo canónico.
+- El RPC `smyl_patient_timeline` conserva su contrato de seis columnas y añade
+  límites, orden determinista y controles explícitos por tenant, permiso y
+  alcance del paciente. El resultado nunca devuelve cuerpos clínicos, mensajes,
+  direcciones de archivos, conceptos, importes, RFC, datos fiscales ni errores
+  del proveedor.
+- La migración
+  `20261027130000_smyl_patient_timeline_v2.sql` corrige también las lecturas
+  directas históricamente amplias de odontograma, evidencia, planes,
+  cotizaciones y vínculos LANA. Los perfiles con alcance propio o por equipo
+  tratante sólo pueden consultar a sus pacientes; agenda, finanzas y mensajes
+  conservan además sus permisos y alcances específicos.
+- La aplicación es aditiva sobre los datos: no transforma, elimina ni copia
+  expedientes. El workflow manual
+  `smyl-ficha-360-timeline-migracion.yml` comprueba dependencias, aplica de forma
+  idempotente, valida `SECURITY DEFINER`, `search_path`, ACL, índices y políticas,
+  y registra la versión únicamente después de verificar el resultado.
+- Web, `mobile/www` y PWA quedan sincronizados en
+  `smyl-patient-360.js?v=14`, `smyl-patient-360.css?v=9` y caché
+  `patient-timeline-v45`. QA: **785/785** pruebas, **9/9** controles del release
+  gate y navegador en 1440, 1024, 768, 390, 320 px y reflujo equivalente al
+  200 %, sin overflow y con objetivos táctiles de 44 px.
+
+## 2026-10-27 — Codex — Ficha conectada del paciente v4.4
+
+- El Resumen del expediente se convierte en una portada 360 legible: una sola
+  siguiente acción y seis áreas enlazadas a sus fuentes canónicas — Historia
+  clínica, Evoluciones, Tratamiento, Estudios y archivos, Atención y citas y,
+  sólo con permiso financiero, Administrativo. Ningún registro se copia ni se
+  crea una segunda fuente de verdad.
+- Tratamiento consume únicamente los estados de lectura existentes de
+  `SmylCaseWorkspace`, `SmylDentalProgress` y `SmylClinicalWorkflow`. La ficha
+  distingue evaluación disponible, evaluación en curso y borrador guardado;
+  no presenta ningún plan como aprobado sin una confirmación real.
+- La actividad longitudinal permite filtrar Citas, Evoluciones y Archivos y
+  abre cada registro en su visor o módulo original. Este primer alcance conserva
+  el contrato actual de `smyl_patient_timeline`; planes, odontograma, cobros y
+  mensajes requerirán una ampliación backend posterior antes de aparecer en la
+  misma cronología.
+- La política visual usa jerarquía navy/teal/ámbar, texto mínimo de 12 px,
+  foco visible, una acción primaria y objetivos táctiles de 44 px en móvil. Se
+  validaron 1440, 1024, 768, 390, 320 px y reflujo equivalente a zoom 200 %, sin
+  overflow horizontal.
+- Web, `mobile/www` y PWA quedan sincronizados en
+  `smyl-patient-360.js?v=13`, `smyl-patient-360.css?v=9` y caché
+  `patient-summary-v44`. `mobile/scripts/sync-web.js` incorpora ahora ambos
+  archivos para evitar divergencias futuras.
+- Entrega exclusivamente frontend: sin cambios de esquema, RLS, Storage, Edge
+  Functions ni prompts/modelos clínicos. QA: **778/778** pruebas, **9/9**
+  controles de seguridad y prueba de navegador de la nueva portada aprobada.
+
 ## 2026-10-27 — Codex — Navegación radiográfica centrada v4.3
 
 - El zoom de los visores manual y asistido conserva el punto observado en vez
