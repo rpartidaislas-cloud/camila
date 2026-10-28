@@ -1,0 +1,1154 @@
+{
+ "valid": [
+  {
+   "name": "restauración aparente",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "sin pieza asignada y sin limitaciones",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": null,
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "etiqueta de 120 emojis (code points, no unidades UTF-16)",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "cuatro regiones",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       },
+       {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0,
+          0
+         ],
+         [
+          1,
+          1
+         ]
+        ]
+       },
+       {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.5,
+          0.5
+         ],
+         [
+          0.6,
+          0.5
+         ],
+         [
+          0.6,
+          0.6
+         ],
+         [
+          0.5,
+          0.6
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "invalid": [
+  {
+   "name": "sin regiones (candidato sin evidencia geométrica)",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "categoría desconocida",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "caries",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "nivel de evidencia clínico no permitido",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "clinical_finding",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "etiqueta con afirmación diagnóstica",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Diagnóstico: caries confirmada",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "explicación con certeza",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Lesión definitiva sin duda alguna.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "explicación demasiado larga",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "etiqueta de 121 emojis",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷🦷",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "explicación sólo con saltos de línea y tabuladores",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "\n\t\n",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "etiqueta sólo con espacios duros y BOM",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": " ﻿　",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "confianza fuera de rango",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "pieza inválida",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "00",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "limitación vacía",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       ""
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "región con punto",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "point",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.5,
+          0.5
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "candidateId duplicado",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     },
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "candidateId numérico",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": 1,
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "pieza numérica",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": 36,
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "modelo faltante",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Restauración radiopaca aparente",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación con descomposición NFD",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Diagnosticó probable",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación con espacio de ancho cero",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Radiopacidad candidata",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "certe​za total",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación en ancho completo",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "ｄｉａｇｎóｓｔｉｃｏ",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación en una limitación",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Radiopacidad candidata",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Sin duda es una restauración."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación en inglés",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Radiopacidad candidata",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "This is definitive.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

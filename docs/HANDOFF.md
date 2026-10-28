@@ -21,6 +21,185 @@
 - QA: **790/790** pruebas. La fixture específica se revisó a 1785, 1280, 820 y
   390 px: cero empalmes, cero overflow horizontal, todos los selectores dentro
   de su ficha y acciones de al menos 42 px.
+## 2026-10-28 — Claude Code — Radiografía asistida: revisión adversarial final y correcciones
+
+- Cuatro revisiones independientes (SQL, Edge, interfaz, flujo clínico) pidieron cambios; todo corregido en
+  **código y pruebas**, **sin aplicar ni desplegar nada** (migraciones y Edge Functions siguen pendientes de
+  autorización expresa). Detalle en `docs/RADIOGRAPH_AI_STAGE_0_1.md` → «Revisión adversarial final».
+- Migraciones editadas (aún no aplicadas en ningún entorno): `20261028100000` (piloto vs pausa, ajustes de
+  plataforma, motor simulado cerrado), `110000`, `120000` (reclamo atómico, topes, filtro normalizado), `130000`,
+  `140000`, `150000` (métricas por universo completo, bloqueos de validación). **Nueva** e independiente:
+  `20261028090000_smyl_patient_timeline_alias_fix.sql`. Atención: ella y `140000` cambian la cronología de la
+  Ficha 360 de todas las clínicas.
+- Edge: `radiograph-qc`, `radiograph-analyze`, `_shared/radiograph-{qc-core,provider,image,contracts}.ts`
+  endurecidos; bundles regenerados con `scripts/bundle-edge-function.mjs` (ahora soporta `import type`, sin
+  alterar los bundles ajenos).
+- Web/PWA/`mobile/www` sincronizados (`review-v2.js?v=5`, contratos/informe/longitudinal/validación `?v=2`, cache
+  `…-radiograph-hardening-v51`). Workflow manual actualizado (prerrequisitos, humo de cronología, PGlite en CI).
+- Tests: suite completa y navegador (1280/820/390/320) verdes; PGlite 17 pruebas. Nuevo ajuste `SMYL_REQUIRE_PGLITE=1`.
+- Pendiente humano: proveedor real, retención/borrado, revisión regulatoria, sincronización al odontograma.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 7 (infraestructura de validación clínica)
+
+- Migración **nueva, no aplicada** `20261028150000_smyl_radiograph_validation.sql`: conjuntos de
+  evaluación con `training_exposure` (un informe se rechaza si hay exposición), referencia anotada
+  por varios profesionales (inmutable; consenso por mayoría, empate excluido, adjudicación con
+  aprobación), `smyl_radiograph_validation_metrics` (TP/FP/FN, sensibilidad, especificidad de piezas
+  sobre 32 FDI, precisión, calibración, desacuerdo, operación, `truthSource`),
+  `smyl_radiograph_monitoring`, incidentes, `smyl_radiograph_record_validation_report` (snapshot
+  inmutable, criterios evaluados por el peor grupo, veredicto, hash, bloquea el conjunto),
+  `smyl_radiograph_set_tenant_flag` (pausa por clínica con `clinic.manage`; la fila del tenant ahora
+  gana sobre la bandera global) y `smyl_radiograph_model_disclosure`.
+- Nuevo `smyl-radiograph-validation.js` + `.css` (panel sólo con `clinical.approve`) y divulgación de
+  motor/validación/límites en la mesa v2 (v=4). Protocolo en `docs/RADIOGRAPH_VALIDATION_PROTOCOL.md`
+  (borrador para revisión profesional y regulatoria; COFEPRIS / NOM-004 / LFPDPPP pendientes).
+- Workflow manual actualizado para aplicar también `140000` y `150000` (16 políticas).
+- QA: PGlite (15: métricas con valores conocidos, empate 0.5 / 0.9677 → adjudicación 1.0,
+  informe rechazado por exposición, veredicto, inmutabilidad, pausa que bloquea el RPC de ejecución,
+  divulgación por clínica), `tests/radiograph-validation-stage7.test.mjs` (5) y navegador
+  `tests/smyl-radiograph-validation-browser.cjs` (1280/390). Nada aplicado ni desplegado.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 6 (historia longitudinal)
+
+- Migración **nueva, no aplicada** `20261028140000_smyl_radiograph_longitudinal.sql`:
+  `smyl_radiograph_comparable_sources` (veredicto comparable/incompatible con motivo por tipo
+  efectivo, QC faltante o no utilizable; bandera `radiograph.longitudinal_v1`),
+  `smyl_radiograph_link_studies` (vínculo profesional idempotente y revocable, audita `compare`) y
+  `smyl_patient_timeline` re-creada con eventos resumidos `radiograph_source` / `radiograph_report`
+  sin texto clínico. La migración **no aplicada** `20261028110000` pasa a índice único parcial
+  para vínculos revocables y admite la acción `compare`.
+- **Hallazgo preexistente:** en Postgres real (PGlite) el texto original de `smyl_patient_timeline`
+  (`20261027130000`) falla con «column timeline.event_at does not exist» porque la primera rama del
+  `union` no tiene alias. La re-creación de `20261028140000` los añade. Conviene verificar en
+  producción si la cronología de la Ficha 360 está respondiendo.
+- Nuevo `smyl-radiograph-longitudinal.js` + `.css`: compatibilidad (misma regla que el servidor),
+  diferencias de adquisición, emparejamiento por pieza en tres categorías (adquisición / propuesto
+  por IA / confirmado por el profesional) sin mediciones, comparador con dos visores (zoom compartido,
+  desplazamiento sincronizado, alternancia) y registro del par. `smyl-radiograph-review-v2.js?v=3`
+  activa «Comparar con anterior» sólo con estudios comparables y explica los demás;
+  `smyl-patient-360.js?v=15` etiqueta y abre los nuevos eventos en Tratamiento.
+- Web, PWA (`radiograph-longitudinal-v49`) y `mobile/www` sincronizados; pines actualizados en
+  pruebas históricas (`smyl-patient-360.js?v=15`, lista de tipos de la cronología).
+- QA: PGlite (13: veredictos, bandera, vínculo idempotente/revocado, cronología sin texto y con
+  alcance), `tests/radiograph-longitudinal-stage6.test.mjs` (5) y navegador
+  `tests/smyl-radiograph-longitudinal-browser.cjs` (1280/390). Suite **867/867**. Nada aplicado ni
+  desplegado.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 5 (informe clínico asistido y firma)
+
+- Nuevo `smyl-radiograph-report.js` + `.css`: borrador construido sólo con decisiones confirmadas o
+  corregidas (pendientes, descartadas y no evaluables fuera), cinco secciones separadas, prioridades
+  por hallazgo, previsualización en vivo de diferencias entre datos estructurados y texto, firma con
+  confirmación (usuario, profesional, fecha, versión y hash en el servidor), adendas y exportación
+  JSON + vista para imprimir con autoría, limitaciones, trazabilidad del motor y aviso.
+- Redacción asistida por el proxy `claude` existente **con texto estructurado, nunca la imagen**; el
+  modelo sólo ordena y redacta: `parseAssist` descarta toda la respuesta si añade/quita hallazgos,
+  menciona piezas sin hallazgo o usa certezas/diagnósticos, y explica el motivo. Estudios
+  complementarios nunca los redacta la IA.
+- `smyl-radiograph-review-v2.js?v=2` añade «Informe radiográfico (N confirmados)» detrás de la
+  bandera `radiograph.report_v1`. Web, PWA (`radiograph-report-v48`) y `mobile/www` sincronizados.
+- QA: `tests/radiograph-report-stage5.test.mjs` (6) y `tests/smyl-radiograph-report-browser.cjs`
+  (1280/390): sólo los confirmados aparecen, la redacción que añade pieza 25 y una certeza se
+  descarta y la limpia se aplica sin tocar estudios complementarios, borrador rev. 1, firma rev. 2
+  inmutable con hash, adenda, exportación auditada e impresión. Suite **860/860**. Sin migraciones ni
+  Edge Functions nuevas; nada aplicado ni desplegado.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 4 (mesa de revisión por pieza v2)
+
+- Nuevo `smyl-radiograph-review-v2.js` + `smyl-radiograph-review-v2.css`: una tarjeta por
+  candidato (pieza o señal) con Base visual sugerida, Confianza del modelo, Limitaciones y
+  Valoración profesional; recorte derivado al vuelo; overlay SVG normalizado con contorno editable
+  (vértices) y reversible; acciones Confirmar / Guardar corrección / Descartar / Comparar con
+  anterior (deshabilitado con motivo hasta Etapa 6). Estado siempre con símbolo + texto + patrón de
+  trazo; `listbox` con teclado; `aria-live`; objetivos de 42–44 px.
+- Flujo en pantalla: consentimiento explícito → `smyl_radiograph_register_source` → `radiograph-qc`
+  → tarjeta de calidad con corrección profesional del tipo → `radiograph-analyze` (localización /
+  señales, deshabilitados si QC bloquea o falta la bandera) → decisiones vía
+  `smyl_radiograph_decide_candidate` (revisión esperada; `PT409` recarga y explica; sin conexión el
+  borrador se conserva). Detrás de la bandera `radiograph.qc_v2`; el permiso lo decide la base.
+- `smyl-radiograph-review.js?v=5` sólo exporta `viewportNavigation` (visor único: zoom al centro,
+  paneo, pellizco, teclado). `smyl-dental-record.js?v=17` añade el botón «Revisión por pieza (v2)»,
+  oculto hasta que `smyl_radiograph_ai_capabilities()` lo habilite; «Revisar con apoyo de IA» (v1)
+  no cambia.
+- Web, `mobile/www` y PWA sincronizados: nuevos `smyl-radiograph-contracts.js?v=1`,
+  `smyl-radiograph-review-model-v2.js?v=1`, `smyl-radiograph-review-v2.js?v=1`, `.css?v=1`; caché
+  `radiograph-review-v2-v47`; `mobile/scripts/sync-web.js` ahora copia también los módulos
+  radiográficos. Pines de versión actualizados en las pruebas históricas (v33–v41).
+- QA: suite **854/854**; navegador real (Playwright) en 1280, 820, 390 y 320 px sin overflow:
+  registro con consentimiento, QC, localización + señales (7 tarjetas / 7 contornos), teclado,
+  confirmar, renumerar (original intacto, revisión 2), descartar y reconsiderar (revisión 3),
+  contorno editable y deshacer, pérdida de red con borrador conservado, cierre con confirmación,
+  zoom centrado. Sin migraciones ni Edge Functions nuevas; nada aplicado ni desplegado.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 3 (localización dental y odontograma asistido)
+
+- Edge Function **nueva** `supabase/functions/radiograph-analyze/` (`kind: tooth_localization |
+  finding_candidates`; bundle en `docs/bundles/`). Mismo orden de seguridad que QC; la base exige
+  además QC completado con el análisis aplicable y la bandera `radiograph.tooth_ai_v1`.
+- `_shared/radiograph-provider.ts`: `DentalXrayProvider` (interfaz), `SimulatedDentalXrayProvider`
+  determinista (polígonos normalizados por clase de estudio; no afirma ausencias ni inventa señales)
+  y `HttpDentalXrayProvider` sobre el adaptador http común. `_shared/radiograph-qc-core.ts` pasa a
+  `runRadiographAnalysis(kind, …)`; `runRadiographQc` se conserva.
+- Corrección profesional admite `visibility` (migración **no aplicada** `20261028120000`, JS y TS).
+- Nuevo `smyl-radiograph-review-model-v2.js` (solo modelo, sin UI/red): `toothMap` (FDI efectivo,
+  banda de confianza, estado, conflictos), `renumberPayload`, `notEvaluablePayload`, `geometryPayload`,
+  `splitOrMerge` (rechazado) y `odontogramEvidence` (solo confirmadas/corregidas; `apparently_missing`
+  nunca se vuelve "ausente"; no escribe `doc.teeth`). No se carga aún en páginas ni `sw.js`/`mobile/www`.
+- Pruebas `tests/radiograph-analyze-stage3.test.mjs` (9) + paridad JS/TS de `parseDecisionPayload`
+  y caso `visibility` en PGlite. Suite **847/847**. Nada aplicado ni desplegado; `segment-teeth`,
+  v1, UI y `mobile/**` intactos. Detalle en `docs/RADIOGRAPH_AI_STAGE_0_1.md`.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 2 (control de calidad) y workflow de migración
+
+- Edge Function **nueva** `supabase/functions/radiograph-qc/` (bundle en
+  `docs/bundles/radiograph-qc.single-file.ts`) con módulos `_shared/radiograph-image.ts`
+  (MIME real, dimensiones PNG/JPEG, orientación EXIF, sin decodificar), `_shared/radiograph-provider.ts`
+  (interfaz `RadiographQcProvider`, proveedor `simulated` determinista, adaptador `http` sin
+  redirecciones y con hosts permitidos) y `_shared/radiograph-qc-core.ts` (núcleo sin Deno, probado en Node).
+- Orden de seguridad: la base autoriza con la sesión del usuario (`smyl_radiograph_request_ai_run`)
+  antes de cualquier uso de `service_role`; el archivo se descarga por la ruta conocida de la fuente;
+  se verifican tamaño, sha256, MIME por firma, dimensiones y orientación; la respuesta se valida con el
+  contrato y se guarda completa e inmutable. Timeout incierto → `unconfirmed`, sin reintento automático.
+- `20261028120000` (no aplicada) añade el código de falla `source_invalid`. Workflow manual
+  `.github/workflows/smyl-radiografia-ia-etapa-1-migracion.yml` listo para aplicar las cuatro
+  migraciones con verificación; **no se ha disparado**. Nada aplicado ni desplegado.
+- Pruebas `tests/radiograph-qc-stage2.test.mjs` (14): panorámica, periapical, bitewing, rotada,
+  borrosa, recortada, sub/sobreexpuesta, no utilizable, archivo falso, hash/tamaño distintos,
+  respuesta incompleta, motor con otra versión, timeout, duplicado, sin motor, logs sin datos.
+  Suite completa **838/838**. No se tocó `segment-teeth`, flujo v1, UI ni `mobile/**`.
+
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapas 0 y 1 (banderas, esquema v2, contratos)
+
+- Entrega de datos y contratos sin cambios de comportamiento: cuatro migraciones **nuevas e
+  idempotentes** `20261028100000_smyl_radiograph_ai_flags`, `…110000_smyl_radiograph_sources_v2`,
+  `…120000_smyl_radiograph_ai_runs` y `…130000_smyl_radiograph_reports`. **No aplicadas.**
+- Banderas `radiograph.qc_v2`, `tooth_ai_v1`, `report_v1`, `longitudinal_v1`, `cbct_v1`
+  apagadas por defecto, con piloto por clínica; registro de motores (proveedor/modelo/versión/
+  contrato) sin credenciales y con interruptor global. El navegador sólo ve booleanos vía
+  `smyl_radiograph_ai_capabilities()`.
+- Esquema: fuentes inmutables (ruta/hash copiados del expediente v1, nunca del cliente),
+  correcciones append-only, vínculos longitudinales, auditoría de acceso/exportación, ejecuciones
+  IA idempotentes con salida original inmutable, candidatos y decisiones profesionales
+  versionadas (`pending → confirmed | corrected | rejected`, conflicto `PT409`), informes con
+  firma por hash y adendas. RLS por `clinical.read` + `smyl_can_access_patient`; escritura sólo
+  por RPC `SECURITY DEFINER`; el cierre del motor es exclusivo de `service_role`.
+- Contratos v2 (`smyl-radiograph-contracts.js`, `supabase/functions/_shared/radiograph-contracts.ts`
+  y validadores SQL) con 86 vectores canónicos en `tests/fixtures/radiograph-contracts/`.
+  Rechazan campos extra, enumeraciones abiertas, probabilidades fuera de [0,1], FDI inválida,
+  geometrías degeneradas, candidatos sin región y texto con afirmaciones diagnósticas.
+- Pruebas: `tests/radiograph-contracts-v2.test.mjs` (paridad JS/TS), `tests/radiograph-migrations-stage1.test.mjs`
+  (contrato estático) y `tests/radiograph-pglite-stage1.test.mjs` (Postgres real en memoria:
+  aislamiento entre clínicas, miembro desactivado, rol sin alcance, idempotencia, inmutabilidad,
+  firma; se omite si falta `@electric-sql/pglite`). Suite completa **824/824**.
+- Revisión adversarial independiente (segunda ronda, mismo día): decisiones bloqueadas y
+  congeladas al firmar (`for update` + `signed_decisions`; reconsiderar exige adenda), recorte y
+  longitud de texto alineados JS/TS/SQL (Unicode, code points), cascada de borrado de
+  paciente/clínica permitida y borrado directo bloqueado, `revoke truncate` a `service_role`,
+  sin oráculo de existencia de ids entre clínicas, trigger de revisión en decisiones, firma sólo
+  con ficha de profesional, cliente sólo registra `open`, CHECK anti-secretos profundo en motores.
+- No se tocó `segment-teeth`, el flujo v1 (`smyl_radiograph_reviews`), Edge Functions
+  desplegadas, UI, `sw.js` ni `mobile/**`. Detalle, amenazas, despliegue/rollback y pendientes en
+  `docs/RADIOGRAPH_AI_STAGE_0_1.md`.
 
 ## 2026-10-27 — Codex — Ficha 360 v4.5 y cronología segura
 

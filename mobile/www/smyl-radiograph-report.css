@@ -1,0 +1,37 @@
+/* SMYL UI v3 · informe radiográfico asistido (Etapa 5). Hereda tokens de smyl-radiograph-workbench.css. */
+.rp-host { overflow: auto; }
+/* El mensaje de estado heredado tiene min-height:0 y se encogería como hijo flex: aquí nunca se comprime. */
+.rp-host > .rr-feedback { flex: none; }
+/* El informe es más alto que la ventana: no se encoge como hijo flex del host (que hace scroll) y sus filas siguen al contenido. */
+.rp-review { flex: none; grid-template-rows: auto auto auto auto auto auto; height: auto; min-height: 0; }
+.rp-workspace { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 16px; }
+.rp-findings, .rp-sections, .rp-diff, .rp-signature { display: grid; gap: 10px; padding: 12px 14px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-card, 16px); background: var(--rr-surface); align-content: start; }
+.rp-findings .rr-panel-head, .rp-sections .rr-panel-head { padding: 0 0 8px; }
+.rp-finding-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.rp-finding { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--rr-soft); }
+.rp-finding-head { display: flex; align-items: center; gap: 8px; }
+.rp-finding-head strong { flex: 1 1 auto; font-size: 13px; }
+.rp-finding-head select, .rp-finding textarea, .rp-sections textarea, .rp-addendum-form textarea, .rp-addendum-form input { min-height: 44px; padding: 8px 10px; border: 1px solid var(--rr-line-strong); border-radius: var(--smyl-ui-radius-control, 10px); background: var(--rr-surface); color: var(--rr-ink); font: 14px/20px var(--smyl-ui-font, Inter, system-ui, sans-serif); }
+.rp-finding textarea[readonly], .rp-sections textarea[readonly] { background: var(--rr-soft); color: var(--rr-muted); }
+.rp-sections .rr-field { display: grid; gap: 4px; color: var(--rr-muted); font-size: 12px; font-weight: 600; }
+.rp-diff ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.rp-diff-ok { margin: 0; color: var(--rr-success); font-size: 13px; }
+.rp-diff-extra_tooth { color: var(--rr-warning); }
+.rp-diff-claim { color: var(--rr-danger); font-weight: 600; }
+.rp-diff-empty_description { color: var(--rr-muted); }
+.rp-signature p { margin: 0; font-size: 13px; }
+.rp-signature h3 { margin: 6px 0 0; font-size: 13px; }
+.rp-hash { display: block; overflow-wrap: anywhere; padding: 6px 8px; border-radius: 8px; background: var(--rr-soft); font-size: 12px; }
+.rp-addenda { margin: 0; padding-left: 18px; font-size: 13px; }
+.rp-addendum-form { display: grid; gap: 8px; }
+.rp-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.rp-action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.rp-action-buttons button { min-height: 44px; }
+.rp-print { width: min(900px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 20px; border: 1px solid var(--rr-line, #d9e2ec); border-radius: 16px; font-family: var(--smyl-ui-font, Inter, system-ui, sans-serif); }
+.rp-print-doc h1 { margin: 4px 0 8px; font-size: 22px; }
+.rp-print-doc h2 { margin: 16px 0 4px; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; color: #526174; }
+.rp-print-doc p, .rp-print-doc li { font-size: 13px; line-height: 1.55; }
+.rp-print-kicker { color: #38a99d; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.rp-print-notice { padding: 8px 10px; border-left: 4px solid #8a5a05; background: #fff8e7; }
+@media (max-width: 959px) { .rp-workspace { grid-template-columns: 1fr; } .rp-action-buttons button { flex: 1 1 100%; } }
+@media print { body > *:not(.rp-print) { display: none !important; } .rp-print { position: static; width: auto; max-height: none; border: 0; } .rp-print .rr-confirm-actions { display: none; } }

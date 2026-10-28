@@ -1,0 +1,427 @@
+# SMYL — Radiografía asistida: Etapas 0–7 (baseline, esquema v2, contratos, control de calidad, localización, revisión por pieza, informe firmado, historia longitudinal y validación clínica)
+
+**Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
+**Estado:** código y pruebas listos tras la revisión adversarial final; **nada aplicado ni desplegado**.
+Con las banderas apagadas el flujo radiográfico v1 no cambia. **Excepción declarada:** la corrección
+`20261028090000` y la migración `20261028140000` re-crean `smyl_patient_timeline`, que sirve a la Ficha 360
+de **todas** las clínicas (alias del primer `UNION` y dos tipos de evento nuevos); no es un cambio
+exclusivo de la radiografía.
+
+**Lo que esta entrega es y no es (leer antes de decidir):**
+
+- Control de calidad y localización son **infraestructura**: el único motor incluido es **simulado**
+  (geometría sintética, no anatomía). Un motor simulado no se puede activar salvo que la plataforma ponga
+  `allow_simulated=true` (demostración) y nunca puede validarse. Sin un proveedor real elegido,
+  licenciado y validado, ninguna clínica debe usar esto con pacientes reales.
+- Lo confirmado por el profesional **no escribe el odontograma**: la evidencia se deriva en lectura y
+  puede incluirse en el informe radiográfico; la sincronización al odontograma queda pendiente.
+- El consentimiento es una **atestación del profesional** (versión + huella del texto mostrado, fecha y
+  persona selladas por el servidor), no una prueba del consentimiento del paciente.
+- Lectura de originales en Storage: el flujo v1 solo permite al dueño de la clínica; para **firmar**, el
+  dueño además necesita ficha activa en `smyl_professionals`.
+- Retención y eliminación de originales, derivados y logs siguen **pendientes** (ver «Pendientes»).
+- La validación clínica (muestras, anotadores, criterios, revisión regulatoria COFEPRIS/privacidad) la
+  decide la clínica; el sistema solo produce evidencia versionada.
+
+## Alcance de esta entrega
+
+| Incluido | Excluido (etapas posteriores) |
+| --- | --- |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | CBCT/DICOM (Etapa 8, proyecto independiente) |
+| Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
+| Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | Escritura automática del odontograma (la evidencia solo se deriva en lectura) |
+| Ejecuciones IA idempotentes con reclamo atómico, candidatos inmutables, decisiones versionadas (`20261028120000`) | CBCT/DICOM (Etapa 8) |
+| Informes: borrador, firma con hash, adendas, exportación (`20261028130000`) | Cualquier cambio en `segment-teeth`, flujo v1 o `mobile/**` |
+| Contratos v2 JS/TS + validadores SQL + vectores canónicos (incluye evasiones Unicode del filtro de certeza) | |
+| Corrección de `smyl_patient_timeline` (`20261028090000`, independiente) | |
+| Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | Motor dental real (`DentalXrayProvider` http genérico; ningún proveedor elegido) |
+| Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | |
+| Mesa de revisión por pieza `smyl-radiograph-review-v2.js/.css` + botón en el expediente (Etapa 4) | |
+| Informe clínico asistido `smyl-radiograph-report.js/.css`: borrador sólo con confirmadas, redacción asistida con guarda, diferencias, firma, adendas, exportación (Etapa 5) | Mediciones de nivel óseo / distancias (bloqueadas hasta validar técnica y calibración) |
+| Historia longitudinal: migración `20261028140000` (fuentes comparables con veredicto, vínculo profesional, cronología 360) + `smyl-radiograph-longitudinal.js/.css` (Etapa 6) | La validación clínica en sí (anotadores, muestra, criterios finales, revisión regulatoria): la decide la clínica con el protocolo |
+| Validación clínica: migración `20261028150000` (conjuntos independientes, referencia multi-profesional, métricas, monitoreo, incidentes, informe versionado, pausa por clínica, divulgación) + `smyl-radiograph-validation.js/.css` + `docs/RADIOGRAPH_VALIDATION_PROTOCOL.md` (Etapa 7) | |
+| Pruebas estáticas (24), PGlite en Postgres real (15), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320), Etapa 5 (6 + navegador en 1280/390), Etapa 6 (5 + navegador en 1280/390), Etapa 7 (5 + navegador en 1280/390) | |
+
+## Etapa 2 — `radiograph-qc` (control de calidad)
+
+```text
+Navegador ──POST {sourceId} + JWT──► radiograph-qc
+  1. requireUser (sesión, miembro activo)
+  2. asUser.rpc smyl_radiograph_request_ai_run(source,'qc')   ← la base decide: tenant, clinical.write,
+     alcance del paciente, bandera qc_v2, motor activo, idempotencia (devuelve la ejecución viva)
+  3. [service_role] lee smyl_radiograph_sources y descarga Storage por storage_path (nunca una URL del cliente)
+  4. verifica tamaño, sha256, MIME por firma binaria, dimensiones (64–12000) y orientación EXIF
+  5. provider.analyze(fuente verificada, AbortSignal)          ← timeout 5–120 s (RADIOGRAPH_QC_TIMEOUT_MS)
+  6. parseRadiographQc + modelo == motor registrado            ← falla cerrado
+  7. [service_role] smyl_radiograph_complete_ai_run(completed | failed | unconfirmed)
+```
+
+- **Proveedor:** `RADIOGRAPH_QC_PROVIDER=simulated` (determinista: clase por relación de aspecto,
+  `orientation_suspect` por EXIF, `compression_artifacts` por bytes/píxel; pistas de prueba sólo
+  vía chunk PNG `tEXt smyl.sim`) o `http` (URL https en hosts permitidos, `redirect:'error'`,
+  tope de respuesta 256 KB, credencial sólo en secretos). Sin variable → 503 y no se registra nada.
+- **Timeout incierto** → ejecución `unconfirmed/timeout`, respuesta 504; una nueva solicitud se
+  bloquea (409) hasta reconocimiento explícito. **Nunca** reintenta sola.
+- **Archivo falso / hash distinto / tamaño distinto / dimensiones fuera de rango** → ejecución
+  `failed/source_invalid` (422) sin llamar al motor. **Respuesta incompleta** → `failed/invalid_output`
+  (502) sin guardar salida parcial. **Duplicado** → reutiliza la ejecución completada sin coste.
+- Logs: sólo ids, códigos y conteos (probado: nunca bytes, base64, explicaciones ni rutas).
+- Despliegue: `supabase functions deploy radiograph-qc` o pegar `docs/bundles/radiograph-qc.single-file.ts`
+  en el panel. Secretos necesarios: `RADIOGRAPH_QC_PROVIDER` (y, para `http`, `RADIOGRAPH_QC_URL`,
+  `RADIOGRAPH_QC_API_KEY`, `RADIOGRAPH_QC_PROVIDER_NAME`, `RADIOGRAPH_QC_MODEL_NAME`,
+  `RADIOGRAPH_QC_MODEL_VERSION`, `RADIOGRAPH_PROVIDER_HOSTS`). El motor también debe existir y estar
+  `enabled` en `smyl_radiograph_engines` con el mismo proveedor/nombre/versión, si no el RPC rechaza.
+- **No desplegada.** Con la bandera `radiograph.qc_v2` apagada la función responde 403 aunque se despliegue.
+
+## Etapa 3 — `radiograph-analyze`, odontograma asistido
+
+```text
+Navegador ──POST {sourceId, kind: tooth_localization | finding_candidates}──► radiograph-analyze
+  mismo orden que QC: requireUser → RPC como usuario (bandera tooth_ai_v1, permiso, alcance,
+  motor activo y **QC completado con el análisis en applicableAnalyses**) → service_role → verificación
+  del archivo → DentalXrayProvider.localizeTeeth / analyzeCandidates → contrato (sourceId y modelo
+  deben coincidir) → smyl_radiograph_complete_ai_run → candidatos inmutables + decisiones `pending`.
+```
+
+- **Proveedor dental simulado** (`RADIOGRAPH_DENTAL_PROVIDER=simulated`): polígonos normalizados
+  deterministas por clase de estudio (32 piezas en panorámica, 8 en bitewing, 3 en periapical),
+  probabilidad FDI 0.92 / 0.8 anteriores (con alternativa vecina), terceros molares `partial`.
+  Una pieza que "no ve" simplemente no se emite: **nunca afirma ausencia**. No inventa señales
+  clínicas: sólo emite las que piden pistas de prueba (`finding:<categoría>@<fdi>`).
+- **Decisión profesional ampliada:** la corrección admite `visibility` (`complete|partial|not_evaluable`)
+  además de `fdi`, `label`, `geometry` (SQL/JS/TS alineados). Renumerar = `corrected{fdi}`;
+  no evaluable = `corrected{visibility:'not_evaluable'}`; dividir/unir **no está soportado** y el
+  modelo lo rechaza explícitamente. Cada decisión conserva autor, fecha, revisión, candidato y
+  motor (vía `run.engine`).
+- **Odontograma canónico:** igual que v1 (`radiographNotes` en `smyl-dental-record.js`), la
+  evidencia se deriva **en tiempo de lectura** con `SmylRadiographReviewModelV2.odontogramEvidence`
+  sólo de decisiones `confirmed|corrected`; `not_evaluable` no entra; `apparently_missing` produce
+  el texto "no implica ausencia: confirmar clínicamente" y `neverAutoAbsent:true`. Nada escribe
+  `doc.teeth` ni cambia su `status`. `toothMap` entrega por candidato FDI efectivo, banda de
+  confianza (alta ≥0.85 / media ≥0.6 / baja), estado, visibilidad y conflictos (dos candidatos
+  vivos en la misma pieza).
+- Despliegue: `supabase functions deploy radiograph-analyze` o `docs/bundles/radiograph-analyze.single-file.ts`;
+  secretos `RADIOGRAPH_DENTAL_PROVIDER` (+ `RADIOGRAPH_DENTAL_URL/API_KEY/PROVIDER_NAME/MODEL_NAME/MODEL_VERSION`
+  para `http`), motor `tooth_localization` y `finding_candidates` registrados y `enabled`, bandera
+  `radiograph.tooth_ai_v1`. **No desplegada.** `smyl-radiograph-review-model-v2.js` aún no se carga
+  en ninguna página ni en `sw.js`/`mobile/www` (Etapa 4).
+
+## Etapa 4 — Mesa de revisión por pieza (`smyl-radiograph-review-v2.js`)
+
+- **Acceso:** botón «Revisión por pieza (v2)» en el visor de radiografías del expediente
+  (`smyl-dental-record.js`), oculto hasta que `smyl_radiograph_ai_capabilities()` devuelva
+  `radiograph.qc_v2=true` y lectura clínica. No asume que sólo la dueña revisa: cada acción la
+  autoriza la base (`clinical.write`, alcance del paciente, revisión esperada). El flujo v1
+  («Revisar con apoyo de IA») sigue intacto.
+- **Pasos en pantalla:** 1) registrar fuente con consentimiento explícito + `radiograph-qc`;
+  2) tarjeta de calidad (tipo sugerido con probabilidad, banderas con severidad, análisis
+  bloqueados, corrección profesional del tipo) y botones «Localizar piezas» / «Buscar señales»
+  (deshabilitados si QC los bloquea o la bandera `tooth_ai_v1` está apagada); 3) una tarjeta por
+  candidato con **Base visual sugerida**, **Confianza del modelo** (banda + % + motor/versión),
+  **Limitaciones** (del candidato y de la calidad) y **Valoración profesional** (pieza FDI,
+  visibilidad, nota). Acciones: **Confirmar**, **Guardar corrección** (sólo con cambios; pasa por
+  `parseDecisionPayload`), **Descartar**, **Editar contorno** (vértices arrastrables sobre SVG
+  normalizado) / **Deshacer contorno**, y **Comparar con anterior** deshabilitado con motivo
+  hasta la Etapa 6.
+- **Recortes** derivados al vuelo del original en `<canvas>` (no se guardan). **Overlay** SVG en
+  coordenadas normalizadas sobre la imagen; seleccionar, editar y deshacer sólo reemplazan el
+  overlay (la imagen no se recarga ni salta el scroll). El visor (zoom al centro, paneo, pellizco,
+  teclado) es el mismo `viewportNavigation` de v1, ahora exportado.
+- **Nunca color como único indicador:** símbolo + texto en tarjetas (`○ Por confirmar`,
+  `✓ Confirmada`, `✎ Corregida`, `✕ Descartada`), etiqueta `símbolo + número` en el overlay y
+  patrón de trazo por estado (discontinuo / continuo / punteado); leyenda textual.
+- **Accesibilidad:** lista `role=listbox` con `aria-current`/`aria-selected`, navegación
+  ↑/↓/Inicio/Fin, estado `aria-live`, recorte con `role=img`, objetivos ≥ 42 px (44 px en móvil).
+- **Robustez:** borradores (nota, renumeración, contorno) viven en memoria hasta decidir; cerrar con
+  borrador pide confirmación; sin conexión el borrador se conserva y se explica; `PT409` recarga y
+  explica; un timeout del motor queda `unconfirmed` y no se reintenta solo.
+- **Aceptación de la etapa:** ninguna señal pendiente entra al odontograma ni al informe (modelo
+  v2 + RPC de firma); la corrección no borra el candidato (probado: `fdiCandidate` original
+  intacto, decisión `corrected{fdi}` revisión 2); cada acción es auditable
+  (`smyl_radiograph_decision_versions`, `smyl_radiograph_access_events`) y recuperable
+  (reconsiderar crea otra revisión; probado descartar → confirmar = revisión 3).
+- **Evidencia visual:** `node tests/smyl-radiograph-review-v2-browser.cjs` genera
+  `artifacts/radiograph-review-v2-v47/{desktop,tablet,mobile,mobile-320}.png` con datos sintéticos
+  (no se versionan). Publicación: `smyl-radiograph-review.js?v=5`, `smyl-dental-record.js?v=17`,
+  nuevos `smyl-radiograph-contracts.js?v=1`, `smyl-radiograph-review-model-v2.js?v=1`,
+  `smyl-radiograph-review-v2.js?v=1`, `.css?v=1`; caché PWA `radiograph-review-v2-v47`;
+  `mobile/www` sincronizado y `mobile/scripts/sync-web.js` ampliado.
+
+## Etapa 5 — Informe clínico asistido y firma (`smyl-radiograph-report.js`)
+
+- **Acceso:** botón «Informe radiográfico (N confirmados)» en la cabecera de la mesa v2, sólo con
+  la bandera `radiograph.report_v1`. Abre un diálogo propio sobre la mesa.
+- **Borrador sólo con decisiones confirmadas/corregidas** (`buildDraft`): piezas evaluables y
+  señales; `apparently_missing` se redacta como "aparentemente no visible; no implica ausencia".
+  Limitaciones técnicas se prellenan desde el QC (tipo, calidad, banderas, análisis no aplicados).
+  Al reabrir se conservan texto y prioridad del profesional por candidato y se retiran, con aviso,
+  los hallazgos que dejaron de estar confirmados.
+- **Cinco secciones separadas** (descripción radiográfica, limitaciones técnicas, correlación
+  clínica por realizar, preguntas/datos faltantes, estudios complementarios considerados por el
+  profesional) y prioridades por hallazgo (rutina / pronto / urgente) configurables por el dentista.
+- **Redacción asistida** («Ordenar y redactar con apoyo de IA»): usa el proxy `claude` existente
+  con **texto estructurado, nunca la imagen**; el modelo sólo puede devolver un orden de los
+  hallazgos (permutación exacta) y redactar cuatro secciones (nunca estudios complementarios).
+  `parseAssist` descarta la respuesta completa si añade o quita hallazgos, menciona piezas sin
+  hallazgo o usa afirmaciones de certeza/diagnóstico (`hasForbiddenClaim`), y explica por qué.
+- **Previsualización de diferencias** (`diff`): piezas mencionadas en el texto sin hallazgo
+  confirmado (aviso para el profesional, bloqueo para la IA), afirmaciones de certeza (sólo IA) y
+  descripción vacía (la firma la exige). Se actualiza en vivo (`aria-live`).
+- **Firma:** confirmación explícita; requiere `clinicalApprove`; el servidor valida de nuevo que
+  todos los hallazgos sigan confirmados/corregidos, guarda usuario, profesional, fecha, versión,
+  hash SHA-256 y snapshot de decisiones; después el documento es de sólo lectura y únicamente se
+  agregan **adendas** (contenido + motivo). **Exportación** JSON (auditada como `export`) y **vista
+  para imprimir** con hallazgos, secciones, firma, trazabilidad del motor, adendas y aviso de
+  no-diagnóstico.
+- **Aceptación de la etapa (probada):** ningún candidato pendiente o descartado aparece
+  (modelo + navegador + PGlite); la firma es inmutable (trigger + UI de sólo lectura); la adenda
+  conserva la versión anterior (`smyl_radiograph_report_versions`); la exportación muestra autoría
+  y limitaciones.
+- Publicación: `smyl-radiograph-report.js?v=1`, `.css?v=1`, `smyl-radiograph-review-v2.js?v=2`;
+  caché PWA `radiograph-report-v48`; `mobile/www` y `sync-web.js` sincronizados.
+
+## Etapa 6 — Historia longitudinal (`20261028140000` + `smyl-radiograph-longitudinal.js`)
+
+- **Emparejamiento explícito, nunca silencioso.** `smyl_radiograph_comparable_sources(source)` lista las
+  demás fuentes del mismo paciente con veredicto `comparable` / `incompatible` y motivo
+  (`different_study_type` por tipo efectivo —última corrección profesional—, `missing_qc`,
+  `unusable_quality`), más el vínculo profesional vigente. Requiere `clinical.read`, alcance del
+  paciente y la bandera `radiograph.longitudinal_v1`. La misma regla vive en el navegador
+  (`compatibility`) para que la UI explique lo mismo que el servidor.
+- **Vínculo profesional** `smyl_radiograph_link_studies(a,b,kind,reason)`: `comparable` o
+  `incompatible`, idempotente; cambiar de opinión revoca el anterior y conserva el historial
+  (índice único parcial `where revoked_at is null`); audita `compare`.
+- **Comparador** desde «Comparar con anterior» en la mesa v2 (habilitado sólo si hay un estudio
+  comparable; si no, el título explica por qué). Selector con cada estudio y su motivo; los
+  incompatibles no se abren. Dos visores (el anterior se descarga por su ruta conocida) con zoom
+  compartido, desplazamiento sincronizado, alternancia anterior/actual y contornos confirmados.
+- **Tres categorías separadas** (`pairByTooth`): diferencias de adquisición (QC: clase, calidad,
+  banderas), cambios propuestos por la IA (dependen de candidatos pendientes), cambios confirmados
+  por el profesional (ambos lados decididos y distintos), además de "sin cambio confirmado" y
+  "sin decisión en uno de los estudios". **Sin mediciones** de nivel óseo ni distancias
+  (`measurements:null` + aviso visible) hasta validar técnica, calibración y repetibilidad.
+- **Ficha 360:** `smyl_patient_timeline` se re-crea con dos eventos resumidos —`radiograph_source`
+  (tipo efectivo, id de estudio) y `radiograph_report` (estado, revisión)— sin documento, rutas,
+  hashes ni consentimiento; mismas puertas por permiso y alcance. `smyl-patient-360.js?v=15` los
+  etiqueta y los abre en la sección canónica de Tratamiento.
+- **Corrección heredada:** al re-crear `smyl_patient_timeline` se añaden alias a la primera rama del
+  `union` (`event_at`, `event_type`, …). Sin ellos, Postgres responde «column timeline.event_at does
+  not exist»; el texto original de `20261027130000` no los tiene (ver pendientes).
+- **Aceptación (probada):** estudios incompatibles no se comparan y el usuario ve por qué (PGlite +
+  navegador); la cronología no expone texto clínico y rechaza roles sin alcance (PGlite).
+
+## Etapa 7 — Validación clínica (`20261028150000` + `smyl-radiograph-validation.js` + protocolo)
+
+- **Conjuntos de evaluación** (`smyl_radiograph_eval_sets/members`): uso previsto, población,
+  exclusiones, `split`; cada fuente declara `training_exposure`. **Un informe no se registra si
+  alguna fuente tiene exposición** (conjunto de prueba independiente). Al registrar un informe el
+  conjunto se bloquea.
+- **Referencia anotada por varios profesionales** (`smyl_radiograph_reference_annotations`,
+  inmutable): consenso por mayoría, empate = desacuerdo excluido y contado, adjudicación con
+  `clinical.approve` prevalece. Probado en PGlite: con empate la precisión cae a 0.5 y la
+  especificidad a 0.9677; con adjudicación vuelven a 1.0.
+- **Métricas** (`smyl_radiograph_validation_metrics`) por tarea × tipo de estudio efectivo × motor:
+  TP/FP/FN, sensibilidad, especificidad (sólo piezas, universo FDI 32), precisión, calibración en 5
+  franjas, desacuerdo profesional, ejecuciones/fallos/timeouts/latencia, `truthSource`
+  (`reference` | `professional_decisions` | `mixed`) y limitaciones explícitas.
+- **Informe de validación** (`smyl_radiograph_record_validation_report`): snapshot inmutable con
+  criterios de salida evaluados en el servidor sobre el **peor grupo** de cada tarea, veredicto
+  `approved_for_pilot` | `not_approved`, motor/versión, aprobador (usuario + profesional), fecha y
+  hash. Cambiar de motor exige otro informe.
+- **Monitoreo e incidentes** (`smyl_radiograph_monitoring`, `report_incident`, `close_incident`):
+  series semanales por motor (volumen, fallos, timeouts, latencia, desacuerdo).
+- **Botón de desactivación por clínica** (`smyl_radiograph_set_tenant_flag`, `clinic.manage`): la
+  fila del tenant ahora gana sobre la bandera global (`smyl_radiograph_flag_enabled` re-creada), así
+  una clínica puede pausar sin despliegue; sólo puede reanudar lo que la plataforma habilitó.
+- **Divulgación en la UI** (`smyl_radiograph_model_disclosure`): la mesa v2 muestra motor
+  (y si es simulado), último informe de validación, fecha e incidentes abiertos junto a la calidad; el
+  panel «Validación del motor» sólo aparece con `clinical.approve`.
+- **Protocolo:** `docs/RADIOGRAPH_VALIDATION_PROTOCOL.md` (uso previsto, separación
+  entrenamiento/prueba, anotación multi-odontólogo, métricas, prueba con/sin asistencia, criterios
+  de salida propuestos, monitoreo, regulatorio México — COFEPRIS/NOM-004/LFPDPPP — pendiente de
+  revisión legal).
+
+## Flujo de datos (Etapa 1)
+
+```text
+Estudio v1 (smyl_dental_records.document.studies[])      ← ya existe; archivo privado en smyl-radiographs
+   │ smyl_radiograph_register_source(ids)  [clinical.write + alcance + bandera qc_v2]
+   ▼
+smyl_radiograph_sources (inmutable: ruta copiada del expediente, sha256, MIME, consentimiento)
+   │ smyl_radiograph_request_ai_run(source, kind) [bandera + motor activo + QC previo aplicable]
+   ▼
+smyl_radiograph_ai_runs (requested) ── idempotency_key = sha256(hash|proveedor|modelo|versión|contrato)
+   │ smyl_radiograph_complete_ai_run(...)  [SÓLO service_role; valida contrato; inmutable después]
+   ▼
+smyl_radiograph_candidates (salida del modelo, inmutable) ──► smyl_radiograph_decisions (pending)
+   │ smyl_radiograph_decide_candidate(rev, confirmed|corrected|rejected) [clinical.write, PT409]
+   ▼
+smyl_radiograph_reports (draft → signed con hash + snapshot de decisiones; después sólo adendas)
+   [sign: clinical.approve + ficha de profesional; bloquea las decisiones; luego no se reconsideran sin adenda]
+   │ smyl_radiograph_export_report  [clinical.read; sólo firmados; audita 'export']
+   ▼
+smyl_radiograph_access_events (register/open/send_to_engine/engine_result/correct/decide/report_draft/sign_report/addendum/export)
+```
+
+Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **salida del modelo**
+(`ai_runs.output`, `candidates`), **decisión profesional** (`decisions`, `source_corrections`) y
+**documento clínico** (`reports`, `addenda`). La salida del modelo nunca sobrescribe una decisión.
+
+## Amenazas consideradas y control
+
+| Amenaza | Control |
+| --- | --- |
+| Cliente envía una URL/ruta arbitraria para que el servidor la descargue | El RPC sólo acepta ids; ruta, hash, MIME y tamaño se copian del expediente guardado. CHECK rechaza esquemas `xx://`, `..`, rutas absolutas. |
+| Lectura cruzada entre clínicas / miembro desactivado / rol sin alcance | RLS `clinical.read` + `smyl_can_access_patient(...,'clinical')` en todas las tablas; RPCs pasan por `smyl_radiograph_guard`. Probado en PGlite con dueña de otra clínica, miembro inactivo, odontólogo fuera del equipo tratante y recepción. |
+| Navegador encendiendo banderas o leyendo motores/credenciales | Tablas de banderas y motores sin grants ni políticas; CHECK rechaza llaves de secretos en `config`; `smyl_radiograph_ai_capabilities()` devuelve sólo booleanos. |
+| Navegador cerrando una ejecución con una salida inventada | `smyl_radiograph_complete_ai_run` revocada para `authenticated`; sólo service_role. |
+| Salida del modelo alterada después del hecho | Trigger: `requested → terminal` una sola vez; luego UPDATE/DELETE → 42501. Candidatos y versiones inmutables. |
+| Doble cobro / duplicado por reintento | Índice único parcial por `(fuente, tipo, idempotency_key)` entre ejecuciones vivas; repetir devuelve la misma fila. |
+| Reintento automático tras timeout incierto | `unconfirmed` bloquea una nueva solicitud salvo `p_acknowledge_unconfirmed=true` explícito. |
+| Análisis sobre imagen no utilizable | `request_ai_run` exige QC completado con `status<>'unusable'` y el análisis en `applicableAnalyses`. |
+| Candidato sin evidencia / texto diagnóstico | Contrato exige ≥1 región geométrica y rechaza `diagnós*`, `confirmad*`, `certeza`, `definitiv*`… en etiqueta/explicación. |
+| Informe firmado con hallazgos pendientes o descartados | `sign_report` cuenta hallazgos cuya decisión no sea `confirmed|corrected` → 23514. |
+| Edición silenciosa de un informe firmado | Trigger bloquea cualquier UPDATE/DELETE de un informe firmado (incluso service_role); sólo adendas. Hash sha256 del documento. |
+| Conflicto de edición concurrente | Revisión esperada en decisiones e informes → `PT409`; advisory locks por fuente/candidato/informe. |
+| Decisión cambiada después de firmar (o en carrera con la firma) | `sign_report` toma `for update` las decisiones referenciadas y guarda `signed_decisions`; `decide_candidate` rechaza (23514) un candidato incluido en un informe firmado → adenda. |
+| Oráculo de existencia de ids entre clínicas | Las búsquedas iniciales filtran por `smyl_current_tenant()`; un uuid ajeno y uno inexistente responden igual. Ids propuestos por el cliente que ya existan → "Identificador no disponible". |
+| `TRUNCATE` con llave de servicio (no dispara triggers de fila) | `revoke truncate … from service_role` en todas las tablas nuevas. |
+| Exportación sin rastro | `export_report` registra `export` (el cliente sólo puede registrar `open`) y nunca expone `storage_path`. |
+| Divergencia navegador/servidor/SQL en textos | Recorte Unicode (`smyl_radiograph_trim` ≡ `String.prototype.trim`) y longitud por code points en los tres; vectores con saltos de línea, NBSP/BOM y emojis. |
+
+## Despliegue (cuando se autorice) y rollback
+
+1. Aplicar en orden `20261028090000` (corrección de la cronología) → `100000` → `110000` → `120000` →
+   `130000` → `140000` → `150000` con el workflow manual
+   `.github/workflows/smyl-radiografia-ia-etapa-1-migracion.yml` (`workflow_dispatch`). El workflow:
+   instala PGlite y corre **todas** las pruebas radiográficas (falla si PGlite no está disponible,
+   `SMYL_REQUIRE_PGLITE=1`), comprueba prerrequisitos (helpers de autorización **y** las tablas/funciones que
+   consulta la cronología de `20261027130000`), aplica solo lo que falta, ejecuta una **prueba de humo de
+   `smyl_patient_timeline`** como dueña real (lectura), verifica ACL/RLS/ajustes y registra versiones. Es
+   re-ejecutable: «flags apagadas» y «sin motores» solo se exigen cuando la migración de banderas se aplicó en
+   esa corrida.
+2. Verificar: 5 filas en `smyl_radiograph_feature_flags` con `enabled=false`; cero motores;
+   `smyl_radiograph_settings.allow_simulated = false`; `smyl_radiograph_ai_capabilities()` con todas las
+   banderas en `false`.
+3. **Semántica de banderas:** efectivo = (global **o** piloto concedido por la plataforma en
+   `smyl_radiograph_flag_tenants.enabled`) **y no pausada** (`paused`, la única columna que la clínica puede
+   cambiar con `smyl_radiograph_set_tenant_flag`, permiso `clinic.manage`). `tooth_ai` exige `qc_v2`,
+   `report` exige `tooth_ai`, `longitudinal` exige `qc_v2`. La clínica nunca concede ni retira un piloto.
+4. Edge Functions: desplegar solo después de las migraciones. Secretos: `RADIOGRAPH_*_PROVIDER`, URL, llave,
+   nombre/versión del modelo y `RADIOGRAPH_PROVIDER_HOSTS` con **hosts exactos** (no hereda `.supabase.co`).
+   `simulated` solo funciona con `RADIOGRAPH_ALLOW_SIMULATED=1` **y** `allow_simulated=true` en la base.
+5. **Topes de plataforma** (`smyl_radiograph_settings`, solo `service_role`): `daily_run_cap` (500),
+   `failed_retry_cap` (3), `validation_min_sources` (30), `validation_min_annotators` (2).
+6. **Rollback.** Apagar banderas (o pausar) revierte el comportamiento sin tocar datos. Para retirar el esquema:
+   **primero exportar** lo que deba conservarse (informes firmados y su hash, decisiones, auditoría), después
+   eliminar en orden inverso: tablas de la Etapa 7 (`…_validation_reports`, `…_incidents`,
+   `…_reference_annotations`, `…_eval_members`, `…_eval_sets`), `…_report_addenda`, `…_report_versions`,
+   `…_reports`, `…_decision_versions`, `…_decisions`, `…_candidates`, `…_ai_runs`, `…_access_events`,
+   `…_study_links`, `…_source_corrections`, `…_sources`, `…_settings`, `…_flag_tenants`, `…_engines`,
+   `…_feature_flags` y las funciones `smyl_radiograph_*`. `smyl_patient_timeline` se restaura re-aplicando
+   `20261028090000` (versión sin eventos radiográficos). El flujo v1 (`smyl_radiograph_reviews`) no depende de nada de esto.
+
+## Cómo probar
+
+```bash
+node --test tests/radiograph-*.test.mjs
+```
+
+```bash
+node tests/smyl-radiograph-validation-browser.cjs
+```
+
+```bash
+node tests/smyl-radiograph-longitudinal-browser.cjs
+```
+
+```bash
+node tests/smyl-radiograph-review-v2-browser.cjs
+```
+
+```bash
+node tests/smyl-radiograph-report-browser.cjs
+```
+
+```bash
+npm install --no-save --no-package-lock @electric-sql/pglite
+```
+
+```bash
+node --test tests/radiograph-pglite-stage1.test.mjs
+```
+
+La suite PGlite aplica `tests/fixtures/radiograph-contracts/pglite-base.sql` (réplica de los helpers
+de autorización desplegados) y las seis migraciones radiográficas dos veces (idempotencia). Si la librería no
+está disponible la suite se omite localmente; con `SMYL_REQUIRE_PGLITE=1` (CI) falla.
+
+## Pendientes explícitos
+
+- **Inventario de producción (Etapa 0.3):** desde esta sesión el MCP de Supabase no tiene permiso
+  sobre `rpxshsiwoxdbuevjjpfw`; confirmar manualmente qué migraciones están aplicadas (la última
+  registrada en HANDOFF es `20261027130000`) y las versiones de las Edge Functions antes de aplicar.
+- **Retención y eliminación:** decisión tomada en esta entrega: la evidencia sigue el ciclo de
+  vida del expediente — borrar al paciente o a la clínica arrastra fuentes, ejecuciones, candidatos,
+  decisiones e informes (cascada permitida por `pg_trigger_depth() > 1`); cualquier `UPDATE`/`DELETE`
+  directo sigue bloqueado. Falta la política de retención temporal de originales/derivados/logs y
+  del archivo en Storage antes de producción (plan §8).
+- **Firma:** requiere `clinical.approve` **y** ficha activa en `smyl_professionals`; una dueña o
+  administradora sin ficha de profesional no puede firmar (23514).
+- **Límite de frecuencia de `open`:** `smyl_radiograph_log_access` no deduplica; un usuario con
+  `clinical.read` podría inflar `smyl_radiograph_access_events`. Evaluar dedupe por ventana en Etapa 4.
+- **Bucket y archivo:** las fuentes v2 fijan `bucket='smyl-radiographs'` y la ruta debe empezar por `tenant/paciente/`
+  (se copia del expediente y se vuelve a comprobar en la Edge Function). `smyl_file_security` (escaneo del bucket
+  clínico) **no** cubre este bucket: la inspección de contenido es la propia sonda de cabecera, no un antivirus.
+- **`width/height`** de la fuente siguen `null`: QC los verifica en servidor pero la fuente es inmutable;
+  si se quieren persistir, irán en una tabla derivada en Etapa 3.
+- **Proveedor dental real:** `DentalXrayProvider` http es genérico; el motor especializado (plan §7) no está elegido ni validado. Sin él, el piloto sólo ve el simulado (geometrías sintéticas, no anatomía).
+- **Proveedor real de QC:** no se ha elegido ninguno (plan §7: licencia, residencia de datos, evidencia de
+  validación). El adaptador HTTP es genérico y debe ajustarse al contrato del proveedor elegido.
+- **Permiso de firma:** se reutiliza `clinical.approve` (el mismo que firma notas clínicas);
+  recepción/asistente no lo tienen por defecto. Si se quiere un permiso específico de firma
+  radiográfica hay que ampliar el CHECK de `smyl_role_permissions` en una migración nueva.
+- **UI:** la mesa v2 muestra candidatos del proveedor **simulado** mientras no haya motor real; la
+  pantalla lo etiqueta como candidato del modelo con su nombre/versión, pero el piloto no debe
+  presentarse como localización anatómica real hasta la Etapa 7.
+- **Redacción asistida y consumo:** pasa por el proxy `claude` y su control de cupo/plan; si la
+  clínica no tiene `ANTHROPIC_API_KEY` o cupo, el botón devuelve el error del servicio y el borrador
+  no cambia. La guarda es determinista pero no sustituye la lectura del profesional del texto final.
+
+## Revisión adversarial final (2026-10-28)
+
+Cuatro revisiones independientes (SQL, Edge, interfaz, flujo clínico) devolvieron «cambios requeridos»; se
+corrigió lo siguiente y se dejaron explícitos los límites que no son de código.
+
+- **Banderas y ajustes:** piloto vs pausa separados; dependencias encadenadas; ajustes solo de plataforma; motor
+  simulado cerrado por defecto; denylist de credenciales a cualquier profundidad.
+- **Integridad SQL:** `p_expected_revision` nulo se rechaza; decidir y firmar se serializan por candidato;
+  consentimiento sellado por el servidor (versión + huella; sin fecha/persona del cliente); auditoría ligera (sin
+  documento clínico ni rutas); `actor_id` sin FK (la auditoría no se reescribe); vínculos, conjuntos de evaluación,
+  miembros e incidentes inmutables salvo su transición permitida; ruta del archivo con prefijo tenant/paciente;
+  funciones auxiliares sin `EXECUTE` para clientes; `service_role` con permisos explícitos; filtro de
+  afirmaciones con NFKD/marcas/caracteres invisibles y léxico ampliado (igual en SQL, JS y TS, con vectores).
+- **Métricas y validación:** universo = fuentes del conjunto × ejecuciones completadas (los falsos negativos de
+  fuentes sin propuestas cuentan); un informe aprobable exige referencia multi-profesional en todas las fuentes,
+  mínimos de fuentes y anotadores (ajustes), ningún motor simulado, conjunto bloqueado con ids registrados, y
+  adjudicaciones contradictorias cuentan como desacuerdo; la divulgación avisa si el informe no corresponde al
+  motor activo.
+- **Edge:** reclamo atómico antes de llamar al proveedor (`409 in_progress`), cierre de la ejecución ante
+  cualquier fallo (`unconfirmed` si la imagen pudo salir), identidad del motor comprobada antes de enviar,
+  límites en bytes UTF-8 y surrogates sueltos, sonda de imagen estricta (CRC del IHDR, un solo IHDR/cuadro, ≤ 50 MP),
+  respuesta del proveedor leída por flujo con tope, hosts exactos, mensajes de error en lista blanca, logs sin
+  mensajes del proveedor, `service_role` creado dentro del manejador y tope de cuerpo. Reintentos fallidos y tope
+  diario por clínica; ejecuciones reclamadas que no cerraron pasan a «sin confirmar» a los 5 min.
+- **Interfaz:** la corrección se envía con payload **absoluto** y «Confirmar» sobre una tarjeta corregida ya no
+  descarta la corrección; las flechas dentro de un campo no cambian la tarjeta; lista (no `listbox`) con
+  `aria-expanded`; región `aria-live` estable; guarda de piezas con NFKC, listas y cifras sueltas (aproximada: el
+  tooltip lo dice) y que solo juzga lo que la IA cambió; redacción asistida con confirmación de privacidad,
+  cancelación y vencimiento; lo escrito no se pierde si una acción falla; recarga tras firma fallida; comparador
+  con zoom único, categorías honestas (no compara contra lo no analizado; descartados, no evaluables, conflictos y
+  región general) y foco devuelto; confirmación antes de pausar; contraste AA verificado en navegador; copy que
+  ya no promete odontograma.
+- **Despliegue:** workflow con prerrequisitos completos, prueba de humo de la cronología, PGlite obligatorio en CI,
+  verificación re-ejecutable, bundler con `import type`, y rollback documentado.
+- **Hotfix independiente:** `20261028090000_smyl_patient_timeline_alias_fix.sql` (cronología original con alias).
+
+**No resuelto por código (decisión humana/regulatoria):** proveedor real y su validación; retención y borrado;
+revisión COFEPRIS/privacidad; sincronización al odontograma; permisos de Storage para personal no dueño.
