@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 6 (historia longitudinal)
+
+- Migración **nueva, no aplicada** `20261028140000_smyl_radiograph_longitudinal.sql`:
+  `smyl_radiograph_comparable_sources` (veredicto comparable/incompatible con motivo por tipo
+  efectivo, QC faltante o no utilizable; bandera `radiograph.longitudinal_v1`),
+  `smyl_radiograph_link_studies` (vínculo profesional idempotente y revocable, audita `compare`) y
+  `smyl_patient_timeline` re-creada con eventos resumidos `radiograph_source` / `radiograph_report`
+  sin texto clínico. La migración **no aplicada** `20261028110000` pasa a índice único parcial
+  para vínculos revocables y admite la acción `compare`.
+- **Hallazgo preexistente:** en Postgres real (PGlite) el texto original de `smyl_patient_timeline`
+  (`20261027130000`) falla con «column timeline.event_at does not exist» porque la primera rama del
+  `union` no tiene alias. La re-creación de `20261028140000` los añade. Conviene verificar en
+  producción si la cronología de la Ficha 360 está respondiendo.
+- Nuevo `smyl-radiograph-longitudinal.js` + `.css`: compatibilidad (misma regla que el servidor),
+  diferencias de adquisición, emparejamiento por pieza en tres categorías (adquisición / propuesto
+  por IA / confirmado por el profesional) sin mediciones, comparador con dos visores (zoom compartido,
+  desplazamiento sincronizado, alternancia) y registro del par. `smyl-radiograph-review-v2.js?v=3`
+  activa «Comparar con anterior» sólo con estudios comparables y explica los demás;
+  `smyl-patient-360.js?v=15` etiqueta y abre los nuevos eventos en Tratamiento.
+- Web, PWA (`radiograph-longitudinal-v49`) y `mobile/www` sincronizados; pines actualizados en
+  pruebas históricas (`smyl-patient-360.js?v=15`, lista de tipos de la cronología).
+- QA: PGlite (13: veredictos, bandera, vínculo idempotente/revocado, cronología sin texto y con
+  alcance), `tests/radiograph-longitudinal-stage6.test.mjs` (5) y navegador
+  `tests/smyl-radiograph-longitudinal-browser.cjs` (1280/390). Suite **867/867**. Nada aplicado ni
+  desplegado.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 5 (informe clínico asistido y firma)
 
 - Nuevo `smyl-radiograph-report.js` + `.css`: borrador construido sólo con decisiones confirmadas o

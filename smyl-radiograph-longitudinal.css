@@ -1,0 +1,24 @@
+/* SMYL UI v3 · comparación longitudinal (Etapa 6). Hereda tokens del workbench radiográfico. */
+.rl-host { overflow: auto; }
+.rl-host > .rr-feedback { flex: none; }
+.rl-review { flex: none; grid-template-rows: auto auto auto auto auto; height: auto; min-height: 0; }
+.rl-tools { border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-card, 16px); }
+.rl-workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rl-canvas { grid-template-rows: auto minmax(220px, 1fr); }
+.rl-wrap { min-height: 220px; max-height: 46vh; }
+.rl-workspace[data-flip="true"] .rl-canvas:first-child { order: 2; }
+.rl-panel { display: grid; gap: 10px; padding: 12px 14px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-card, 16px); background: var(--rr-surface); }
+.rl-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.rl-empty { color: var(--rr-meta); list-style: none; margin-left: -18px; }
+.rl-confirmed > span:first-child { color: var(--rr-success); }
+.rl-ai > span:first-child { color: var(--rr-warning); }
+.rl-acq > span:first-child { color: var(--rr-rx); }
+.rl-measure { margin: 0; padding: 8px 10px; border-left: 4px solid var(--rr-warning); background: var(--rr-warning-soft); color: var(--rr-warning); font-size: 12px; }
+.rl-blocked { display: grid; gap: 6px; border-left: 4px solid var(--rr-danger); background: var(--rr-danger-soft); }
+.rl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rl-actions button, .rl-tools button { min-height: 44px; }
+.rl-picker { display: grid; gap: 8px; }
+.rl-picker-item { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--rr-soft); font-size: 13px; }
+.rl-picker-item[data-verdict="incompatible"] { border-style: dashed; }
+.rl-picker-item small { color: var(--rr-muted); }
+@media (max-width: 959px) { .rl-workspace { grid-template-columns: 1fr; } .rl-wrap { max-height: 34vh; } .rl-tools { flex-wrap: wrap; } .rl-actions button { flex: 1 1 100%; } }

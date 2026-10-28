@@ -23,7 +23,7 @@ test('la mesa v2 sólo abre con la bandera qc_v2 y lectura clínica; el servidor
 test('una tarjeta por candidato con los cuatro bloques, acciones explícitas y comparación sólo cuando sea compatible', () => {
   for (const label of ['Base visual sugerida', 'Confianza del modelo', 'Limitaciones', 'Valoración profesional']) assert.match(ui, new RegExp(`block\\('${label}'`));
   for (const action of ['Confirmar', 'Guardar corrección', 'Descartar', 'Editar contorno', 'Deshacer contorno', 'Comparar con anterior']) assert.ok(ui.includes(`'${action}`), action);
-  assert.match(ui, /compare\.disabled=true;compare\.title='Disponible cuando exista un estudio anterior comparable/);
+  assert.match(ui, /if\(!hasComparable\)\{compare\.disabled=true;compare\.setAttribute\('aria-disabled','true'\);compare\.title=/, 'sin estudio comparable el botón queda deshabilitado y explica por qué');
   assert.match(ui, /C\(\)\.parseDecisionPayload\('corrected',payload\)/, 'la corrección pasa por el contrato antes de enviarse');
   assert.match(ui, /const cropEl=crop\(entry\)/, 'recorte derivado al vuelo');
   assert.match(ui, /no se guarda/);
@@ -64,7 +64,7 @@ test('integración mínima en el expediente: botón oculto hasta que la clínica
 });
 
 test('cableado web, PWA y copia móvil sincronizados', () => {
-  for (const tag of ['smyl-radiograph-review-v2.css?v=1', 'smyl-radiograph-contracts.js?v=1', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=2', 'smyl-radiograph-review.js?v=5', 'smyl-dental-record.js?v=17']) {
+  for (const tag of ['smyl-radiograph-review-v2.css?v=1', 'smyl-radiograph-contracts.js?v=1', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=3', 'smyl-radiograph-review.js?v=5', 'smyl-dental-record.js?v=17']) {
     assert.ok(app.includes(tag), 'app.html ' + tag);
     assert.ok(sw.includes('/camila/' + tag), 'sw.js ' + tag);
   }

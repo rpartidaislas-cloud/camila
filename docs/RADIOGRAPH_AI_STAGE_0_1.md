@@ -1,4 +1,4 @@
-# SMYL — Radiografía asistida: Etapas 0–5 (baseline, esquema v2, contratos, control de calidad, localización, revisión por pieza e informe firmado)
+# SMYL — Radiografía asistida: Etapas 0–6 (baseline, esquema v2, contratos, control de calidad, localización, revisión por pieza, informe firmado e historia longitudinal)
 
 **Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
 **Estado:** código y pruebas listos; **nada aplicado ni desplegado**. Con las banderas apagadas el
@@ -8,7 +8,7 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 
 | Incluido | Excluido (etapas posteriores) |
 | --- | --- |
-| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Historia longitudinal y comparador (Etapa 6), validación clínica (7), CBCT (8) |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Validación clínica (Etapa 7) y CBCT/DICOM (Etapa 8) |
 | Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
 | Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | UI de revisión por pieza, odontograma asistido, informe en pantalla (Etapas 3-5) |
 | Ejecuciones IA idempotentes, candidatos inmutables, decisiones versionadas (`20261028120000`) | Comparador longitudinal (Etapa 6), validación clínica (7), CBCT/DICOM (8) |
@@ -17,8 +17,9 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 | Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | Motor dental real (`DentalXrayProvider` http genérico; ningún proveedor elegido) |
 | Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | Comparador longitudinal (Etapa 6): el botón «Comparar con anterior» existe deshabilitado con motivo |
 | Mesa de revisión por pieza `smyl-radiograph-review-v2.js/.css` + botón en el expediente (Etapa 4) | |
-| Informe clínico asistido `smyl-radiograph-report.js/.css`: borrador sólo con confirmadas, redacción asistida con guarda, diferencias, firma, adendas, exportación (Etapa 5) | |
-| Pruebas estáticas (24), PGlite en Postgres real (11), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320), Etapa 5 (6 + navegador en 1280/390) | |
+| Informe clínico asistido `smyl-radiograph-report.js/.css`: borrador sólo con confirmadas, redacción asistida con guarda, diferencias, firma, adendas, exportación (Etapa 5) | Mediciones de nivel óseo / distancias (bloqueadas hasta validar técnica y calibración) |
+| Historia longitudinal: migración `20261028140000` (fuentes comparables con veredicto, vínculo profesional, cronología 360) + `smyl-radiograph-longitudinal.js/.css` (Etapa 6) | |
+| Pruebas estáticas (24), PGlite en Postgres real (13), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320), Etapa 5 (6 + navegador en 1280/390), Etapa 6 (5 + navegador en 1280/390) | |
 
 ## Etapa 2 — `radiograph-qc` (control de calidad)
 
@@ -158,6 +159,36 @@ Navegador ──POST {sourceId, kind: tooth_localization | finding_candidates}�
 - Publicación: `smyl-radiograph-report.js?v=1`, `.css?v=1`, `smyl-radiograph-review-v2.js?v=2`;
   caché PWA `radiograph-report-v48`; `mobile/www` y `sync-web.js` sincronizados.
 
+## Etapa 6 — Historia longitudinal (`20261028140000` + `smyl-radiograph-longitudinal.js`)
+
+- **Emparejamiento explícito, nunca silencioso.** `smyl_radiograph_comparable_sources(source)` lista las
+  demás fuentes del mismo paciente con veredicto `comparable` / `incompatible` y motivo
+  (`different_study_type` por tipo efectivo —última corrección profesional—, `missing_qc`,
+  `unusable_quality`), más el vínculo profesional vigente. Requiere `clinical.read`, alcance del
+  paciente y la bandera `radiograph.longitudinal_v1`. La misma regla vive en el navegador
+  (`compatibility`) para que la UI explique lo mismo que el servidor.
+- **Vínculo profesional** `smyl_radiograph_link_studies(a,b,kind,reason)`: `comparable` o
+  `incompatible`, idempotente; cambiar de opinión revoca el anterior y conserva el historial
+  (índice único parcial `where revoked_at is null`); audita `compare`.
+- **Comparador** desde «Comparar con anterior» en la mesa v2 (habilitado sólo si hay un estudio
+  comparable; si no, el título explica por qué). Selector con cada estudio y su motivo; los
+  incompatibles no se abren. Dos visores (el anterior se descarga por su ruta conocida) con zoom
+  compartido, desplazamiento sincronizado, alternancia anterior/actual y contornos confirmados.
+- **Tres categorías separadas** (`pairByTooth`): diferencias de adquisición (QC: clase, calidad,
+  banderas), cambios propuestos por la IA (dependen de candidatos pendientes), cambios confirmados
+  por el profesional (ambos lados decididos y distintos), además de "sin cambio confirmado" y
+  "sin decisión en uno de los estudios". **Sin mediciones** de nivel óseo ni distancias
+  (`measurements:null` + aviso visible) hasta validar técnica, calibración y repetibilidad.
+- **Ficha 360:** `smyl_patient_timeline` se re-crea con dos eventos resumidos —`radiograph_source`
+  (tipo efectivo, id de estudio) y `radiograph_report` (estado, revisión)— sin documento, rutas,
+  hashes ni consentimiento; mismas puertas por permiso y alcance. `smyl-patient-360.js?v=15` los
+  etiqueta y los abre en la sección canónica de Tratamiento.
+- **Corrección heredada:** al re-crear `smyl_patient_timeline` se añaden alias a la primera rama del
+  `union` (`event_at`, `event_type`, …). Sin ellos, Postgres responde «column timeline.event_at does
+  not exist»; el texto original de `20261027130000` no los tiene (ver pendientes).
+- **Aceptación (probada):** estudios incompatibles no se comparan y el usuario ve por qué (PGlite +
+  navegador); la cronología no expone texto clínico y rechaza roles sin alcance (PGlite).
+
 ## Flujo de datos (Etapa 1)
 
 ```text
@@ -208,7 +239,7 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 
 ## Despliegue (cuando se autorice) y rollback
 
-1. Aplicar en orden `20261028100000` → `110000` → `120000` → `130000` con el workflow manual
+1. Aplicar en orden `20261028100000` → `110000` → `120000` → `130000` → `140000` con el workflow manual
    `.github/workflows/smyl-radiografia-ia-etapa-1-migracion.yml` (`workflow_dispatch`; corre las
    pruebas de contrato, comprueba prerrequisitos, aplica sólo lo que falta, verifica banderas en
    `false`, ACL cerrada y RLS, y registra las versiones). Son idempotentes.
@@ -228,7 +259,11 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 ## Cómo probar
 
 ```bash
-node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs tests/radiograph-report-stage5.test.mjs
+node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs tests/radiograph-report-stage5.test.mjs tests/radiograph-longitudinal-stage6.test.mjs
+```
+
+```bash
+node tests/smyl-radiograph-longitudinal-browser.cjs
 ```
 
 ```bash
@@ -265,8 +300,9 @@ está disponible la suite se omite sin fallar.
   administradora sin ficha de profesional no puede firmar (23514).
 - **Límite de frecuencia de `open`:** `smyl_radiograph_log_access` no deduplica; un usuario con
   `clinical.read` podría inflar `smyl_radiograph_access_events`. Evaluar dedupe por ventana en Etapa 4.
-- **Vínculos longitudinales:** `smyl_radiograph_study_links` existe con RLS pero sin RPC de
-  escritura (Etapa 6).
+- **`smyl_patient_timeline` desplegada (`20261027130000`):** verificar en producción si la función
+  responde o falla con «column timeline.event_at does not exist»; PGlite reproduce el fallo con el
+  texto original. La migración `20261028140000` la re-crea corregida; si se aplica, el problema desaparece.
 - **Bucket:** las fuentes v2 fijan `bucket='smyl-radiographs'` (el del flujo v1). La Etapa 2 debe
   leer el archivo desde Storage por esa ruta y validar hash/MIME/dimensiones reales.
 - **`width/height`** de la fuente siguen `null`: QC los verifica en servidor pero la fuente es inmutable;
@@ -283,8 +319,6 @@ está disponible la suite se omite sin fallar.
 - **UI:** la mesa v2 muestra candidatos del proveedor **simulado** mientras no haya motor real; la
   pantalla lo etiqueta como candidato del modelo con su nombre/versión, pero el piloto no debe
   presentarse como localización anatómica real hasta la Etapa 7.
-- **Comparar con anterior:** deshabilitado hasta que exista emparejamiento de estudios comparables
-  (Etapa 6).
 - **Redacción asistida y consumo:** pasa por el proxy `claude` y su control de cupo/plan; si la
   clínica no tiene `ANTHROPIC_API_KEY` o cupo, el botón devuelve el error del servicio y el borrador
   no cambia. La guarda es determinista pero no sustituye la lectura del profesional del texto final.

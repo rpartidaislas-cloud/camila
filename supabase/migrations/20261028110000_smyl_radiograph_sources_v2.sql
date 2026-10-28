@@ -82,11 +82,13 @@ create table if not exists public.smyl_radiograph_study_links (
   revoked_at timestamptz,
   revoked_by uuid references auth.users(id),
   check (source_a < source_b),
-  unique (tenant_id, source_a, source_b),
   foreign key (tenant_id, patient_id) references public.camila_pacientes(tenant_id, id) on delete cascade,
   foreign key (tenant_id, source_a) references public.smyl_radiograph_sources(tenant_id, id) on delete cascade,
   foreign key (tenant_id, source_b) references public.smyl_radiograph_sources(tenant_id, id) on delete cascade
 );
+-- Un solo vínculo vigente por par; los revocados se conservan como historial.
+create unique index if not exists smyl_radiograph_study_links_active_idx
+  on public.smyl_radiograph_study_links(tenant_id, source_a, source_b) where revoked_at is null;
 
 -- Auditoría de acceso y exportación (quién abrió, envió al motor, decidió, firmó, exportó).
 create table if not exists public.smyl_radiograph_access_events (
@@ -94,7 +96,7 @@ create table if not exists public.smyl_radiograph_access_events (
   tenant_id uuid not null references public.camila_tenants(id) on delete cascade,
   patient_id uuid not null,
   source_id uuid not null,
-  action text not null check (action in ('register','open','send_to_engine','engine_result','correct','decide','report_draft','sign_report','addendum','export')),
+  action text not null check (action in ('register','open','send_to_engine','engine_result','correct','decide','report_draft','sign_report','addendum','export','compare')),
   actor_id uuid references auth.users(id) on delete set null,
   reference_id uuid,
   request_id uuid not null default gen_random_uuid(),

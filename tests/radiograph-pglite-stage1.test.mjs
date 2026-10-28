@@ -1,6 +1,6 @@
 // Radiografía asistida — Etapas 0 y 1 en un Postgres real en memoria (PGlite).
 // Aplica tests/fixtures/radiograph-contracts/pglite-base.sql (helpers de autorización ya
-// desplegados) y las cuatro migraciones nuevas, y verifica: banderas apagadas, aislamiento
+// desplegados) y las cinco migraciones nuevas, y verifica: banderas apagadas, aislamiento
 // entre clínicas, miembro desactivado, rol sin acceso, conflicto de revisión, idempotencia,
 // inmutabilidad de la salida del modelo e informe firmado, y los vectores de contrato en SQL.
 //
@@ -51,13 +51,14 @@ async function rejects(promise, code, pattern) {
   if (pattern) assert.match(err.message, pattern);
 }
 const rows = async (q, params) => (await sql(q, params)).rows;
+const rows_ = rows;
 const one = async (q, params) => (await rows(q, params))[0];
 
 test.before(async () => {
   if (skip) return;
   db = new pglite.PGlite();
   await exec(read('tests/fixtures/radiograph-contracts/pglite-base.sql'));
-  for (const file of ['20261028100000_smyl_radiograph_ai_flags', '20261028110000_smyl_radiograph_sources_v2', '20261028120000_smyl_radiograph_ai_runs', '20261028130000_smyl_radiograph_reports']) {
+  for (const file of ['20261028100000_smyl_radiograph_ai_flags', '20261028110000_smyl_radiograph_sources_v2', '20261028120000_smyl_radiograph_ai_runs', '20261028130000_smyl_radiograph_reports', '20261028140000_smyl_radiograph_longitudinal']) {
     const migration = read(`supabase/migrations/${file}.sql`);
     await exec(migration);
     await exec(migration); // idempotente: la segunda aplicación no falla ni cambia nada
@@ -348,6 +349,69 @@ test('Informe: borrador versionado, firma sólo con hallazgos confirmados/correg
   assert.deepEqual(actions, ['addendum:1', 'correct:1', 'decide:8', 'engine_result:2', 'export:1', 'register:1', 'report_draft:4', 'send_to_engine:2', 'sign_report:1']);
   await as(U.dentist);
   assert.equal((await rows('select * from public.smyl_radiograph_access_events')).length, 0, 'sin audit.read no se lee la auditoría');
+});
+
+test('Etapa 6: fuentes comparables con veredicto y motivo; vínculo profesional idempotente y revocable; bandera obligatoria', { skip }, async () => {
+  // P1 tiene la fuente SRC (bitewing por corrección, QC completado) y P2 (borrado) ya no cuenta. Añadimos dos fuentes más a P1.
+  await asServer();
+  const SRC2 = '20000000-0000-4000-8000-000000000002', SRC3 = '20000000-0000-4000-8000-000000000003', STUDY2 = '30000000-0000-4000-8000-000000000002', STUDY3 = '30000000-0000-4000-8000-000000000003';
+  await exec(`update public.smyl_dental_records set document = jsonb_set(document, '{studies}', document->'studies' || '[{"id":"${STUDY2}","type":"bitewing","asset":{"path":"${U.ownerA}/${P1}/${STUDY2}/${'11'.repeat(32)}.png","sha256":"${'11'.repeat(32)}","bytes":2048,"mime":"image/png"}},{"id":"${STUDY3}","type":"panoramic","asset":{"path":"${U.ownerA}/${P1}/${STUDY3}/${'22'.repeat(32)}.png","sha256":"${'22'.repeat(32)}","bytes":2048,"mime":"image/png"}}]'::jsonb) where patient_id='${P1}'`);
+  await as(U.ownerA);
+  await rejects(sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]), '42501', /no está habilitada/);
+  await asServer();
+  await exec(`update public.smyl_radiograph_feature_flags set enabled=true where key='radiograph.longitudinal_v1'`);
+  await as(U.ownerA);
+  await one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'bitewing','{"version":1,"acceptedAt":"2026-10-28T00:00:00Z"}'::jsonb,'2025-10-01T00:00:00Z')`, [SRC2, P1, STUDY2]);
+  await one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'panoramic','{"version":1,"acceptedAt":"2026-10-28T00:00:00Z"}'::jsonb,'2025-06-01T00:00:00Z')`, [SRC3, P1, STUDY3]);
+  let rows = await sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]);
+  assert.deepEqual(rows.rows.map(r => [r.source_id, r.study_type, r.verdict, r.reason]), [[SRC2, 'bitewing', 'incompatible', 'missing_qc'], [SRC3, 'panoramic', 'incompatible', 'different_study_type']]);
+  // QC completado en SRC2 → comparable con SRC (bitewing efectivo por corrección); QC no utilizable → incompatible
+  const run2 = await one(`select * from public.smyl_radiograph_request_ai_run($1::uuid,'qc',false)`, [SRC2]);
+  await asServer();
+  await complete(run2.id, 'completed', Object.assign(structuredClone(vectors('qc').valid[1].value), { model: structuredClone(ENGINE) }));
+  await as(U.ownerA);
+  rows = await sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]);
+  assert.deepEqual(rows.rows.map(r => [r.source_id, r.verdict, r.reason, r.qc_status]), [[SRC2, 'comparable', '', 'usable'], [SRC3, 'incompatible', 'different_study_type', null]]);
+  const run3 = await one(`select * from public.smyl_radiograph_request_ai_run($1::uuid,'qc',false)`, [SRC3]);
+  await asServer();
+  await complete(run3.id, 'completed', Object.assign(structuredClone(vectors('qc').valid[2].value), { model: structuredClone(ENGINE) }));
+  await exec(`insert into public.smyl_radiograph_source_corrections(tenant_id,source_id,field,value,created_by) values ('${U.ownerA}','${SRC3}','study_type','bitewing','${U.ownerA}')`);
+  await as(U.ownerA);
+  rows = await sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]);
+  assert.deepEqual(rows.rows.find(r => r.source_id === SRC3).reason, 'unusable_quality', 'mismo tipo efectivo pero QC no utilizable');
+  // vínculo profesional: idempotente, cambiar de opinión revoca y conserva historial; audita 'compare'
+  await as(U.reception);
+  await rejects(sql(`select * from public.smyl_radiograph_link_studies($1::uuid,$2::uuid,'comparable','x')`, [SRC, SRC2]), '42501', /permiso/);
+  await as(U.dentist);
+  const link = await one(`select * from public.smyl_radiograph_link_studies($1::uuid,$2::uuid,'comparable','Comparados')`, [SRC2, SRC]);
+  assert.equal(link.source_a < link.source_b, true);
+  assert.equal((await one(`select * from public.smyl_radiograph_link_studies($1::uuid,$2::uuid,'comparable','otra vez')`, [SRC, SRC2])).id, link.id, 'idempotente');
+  const changed = await one(`select * from public.smyl_radiograph_link_studies($1::uuid,$2::uuid,'incompatible','Distinta angulación')`, [SRC, SRC2]);
+  assert.notEqual(changed.id, link.id);
+  assert.deepEqual((await rows_(`select link_kind, revoked_at is not null as revoked from public.smyl_radiograph_study_links where source_a=$1 order by created_at`, [SRC2])), [{ link_kind: 'comparable', revoked: true }, { link_kind: 'incompatible', revoked: false }]);
+  rows = await sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]);
+  assert.deepEqual([rows.rows[0].verdict, rows.rows[0].link_kind], ['comparable', 'incompatible'], 'el veredicto técnico se mantiene y el vínculo profesional viaja aparte');
+  await rejects(sql(`select * from public.smyl_radiograph_link_studies($1::uuid,$1::uuid,'comparable','x')`, [SRC]), '22023', /consigo mismo/);
+  await as(U.ownerB);
+  await rejects(sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]), '42501');
+  await as(U.ownerA);
+  assert.equal((await one(`select count(*)::int as n from public.smyl_radiograph_access_events where action='compare'`)).n, 2);
+});
+
+test('Etapa 6: la cronología de la Ficha 360 resume fuentes e informes v2 sin exponer texto clínico y respeta alcance', { skip }, async () => {
+  await as(U.reception);
+  const events = await rows_(`select event_type, title, status, metadata from public.smyl_patient_timeline($1::uuid, 100) where event_type in ('radiograph_source','radiograph_report') order by event_type, title`, [P1]);
+  assert.deepEqual(events.map(e => e.event_type), ['radiograph_report', 'radiograph_source', 'radiograph_source', 'radiograph_source']);
+  const report = events[0];
+  assert.deepEqual([report.title, report.status, report.metadata.revision, typeof report.metadata.sourceId], ['Informe radiográfico firmado', 'signed', 5, 'string']);
+  assert.deepEqual(Object.keys(report.metadata).sort(), ['revision', 'sourceId']);
+  assert.deepEqual(events.filter(e => e.event_type === 'radiograph_source').map(e => e.metadata.studyType).sort(), ['bitewing', 'bitewing', 'bitewing'], 'tipo efectivo tras corrección');
+  const text = JSON.stringify(events);
+  assert.doesNotMatch(text, /description|findings|storage_path|sha256|signed_hash|document/, 'nunca texto clínico, rutas ni hashes');
+  await as(U.outsider);
+  await rejects(sql(`select * from public.smyl_patient_timeline($1::uuid, 10)`, [P1]), '42501', /no está disponible para tu rol/);
+  await as(U.ownerB);
+  await rejects(sql(`select * from public.smyl_patient_timeline($1::uuid, 10)`, [P1]), '42501');
 });
 
 test('Vectores de contrato: los validadores SQL dan el mismo veredicto que navegador y servidor', { skip }, async () => {

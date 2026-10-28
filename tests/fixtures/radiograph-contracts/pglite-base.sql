@@ -91,3 +91,24 @@ begin
 end; $$;
 revoke all on function public.smyl_current_tenant(), public.smyl_has_permission(uuid, text), public.smyl_can_access_patient(uuid, uuid, text) from public, anon;
 grant execute on function public.smyl_current_tenant(), public.smyl_has_permission(uuid, text), public.smyl_can_access_patient(uuid, uuid, text), public.smyl_current_professional_id(uuid), public.smyl_effective_scope(uuid, text), public.smyl_scope_rank(text) to authenticated;
+
+-- Stubs mínimos para ejecutar smyl_patient_timeline (Etapa 6) en PGlite: sólo las columnas que la
+-- función lee; en producción estas tablas y funciones ya existen con su esquema completo.
+create table public.smyl_clinical_notes (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, status text, revision integer default 1, created_at timestamptz default now());
+create table public.smyl_patient_files (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, status text, created_at timestamptz default now());
+create table public.smyl_dental_versions (tenant_id uuid, patient_id uuid, revision integer, updated_at timestamptz default now());
+create table public.smyl_photo_reviews (tenant_id uuid, patient_id uuid, case_id uuid, revision integer, updated_at timestamptz default now());
+create table public.smyl_radiograph_reviews (tenant_id uuid, patient_id uuid, study_id uuid, revision integer, updated_at timestamptz default now());
+create table public.smyl_clinical_versions (tenant_id uuid, patient_id uuid, status text, revision integer, updated_at timestamptz default now());
+create table public.smyl_proposals (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, status text, revision integer, updated_at timestamptz default now());
+create table public.smyl_proposal_events (id uuid primary key default gen_random_uuid(), tenant_id uuid, proposal_id uuid, event_type text, proposal_revision integer, channel text, occurred_at timestamptz default now());
+create table public.smyl_finance_charges (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, branch_id uuid, status text, voided_at timestamptz, created_at timestamptz default now());
+create table public.smyl_finance_payments (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, branch_id uuid, paid_at timestamptz default now());
+create table public.smyl_finance_refunds (id uuid primary key default gen_random_uuid(), tenant_id uuid, payment_id uuid, refunded_at timestamptz default now());
+create table public.smyl_finance_receipts (id uuid primary key default gen_random_uuid(), tenant_id uuid, payment_id uuid, issued_at timestamptz default now());
+create table public.smyl_cfdi_drafts (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, status text, created_at timestamptz default now());
+create table public.camila_lana_handoffs (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, lana_channel text, created_at timestamptz default now());
+create table public.camila_lana_clinical_links (id uuid primary key default gen_random_uuid(), tenant_id uuid, patient_id uuid, status text, lana_channel text, created_at timestamptz default now());
+alter table public.smyl_appointments add column if not exists starts_at timestamptz default now(), add column if not exists status text default 'scheduled';
+create or replace function public.smyl_can_access_schedule_row(p_tenant uuid, p_branch uuid, p_professional uuid, p_patient uuid default null) returns boolean language sql stable as $$ select true $$;
+create or replace function public.smyl_can_access_finance_patient(p_tenant uuid, p_patient uuid, p_branch uuid) returns boolean language sql stable as $$ select true $$;
