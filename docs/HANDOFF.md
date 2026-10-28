@@ -8806,3 +8806,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - La superficie completa se alinea a SMYL UI v3: texto funcional de al menos 12 px en estilos efectivos, controles de 42–48 px, tarjetas blancas, acción primaria navy, estados semánticos y reordenamiento responsive a 1200, 900, 760 y 440 px.
 - Web y `mobile/www` quedan sincronizados en `smyl-clinic-admin.js?v=6`, `smyl-clinic-admin.css?v=7` y caché PWA `team-roles-v46`.
 - No hubo migraciones ni cambios en Edge Functions. Se reutilizan RPC, RLS, membresías e invitaciones ya desplegadas; la corrección es de orquestación y UX del frontend.
+
+## 2026-10-27 — Codex — Plan de implementación radiográfica para Claude Code
+
+- Se documentó en `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md` la brecha entre la revisión 2D actual y un sistema radiográfico avanzado.
+- El plan separa baseline, contratos, control de calidad, segmentación/FDI, revisión por pieza, informe firmado, historia longitudinal, validación clínica y CBCT/DICOM en nueve etapas (0–8) con criterios de aceptación.
+- Se prohíbe reutilizar `segment-teeth` para rayos X: ese servicio corresponde a fotografías. La geometría radiográfica exige un adaptador y motor especializado.
+- La Etapa 0 y 1 son el inicio recomendado: banderas cerradas, contratos v2, esquema versionado, RLS, auditoría e idempotencia, manteniendo compatibilidad con el flujo v1 publicado.
+- No se modificó código clínico, migraciones, Edge Functions, datos ni producción en esta entrega; es un handoff de arquitectura y ejecución para Claude Code.
