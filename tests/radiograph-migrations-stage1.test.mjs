@@ -122,8 +122,8 @@ test('Etapas 0-1: todo es idempotente, aditivo y no toca el flujo v1 ni segment-
   assert.equal(fs.existsSync(new URL('../supabase/functions/radiograph-qc/index.ts', import.meta.url)), true, 'la Edge Function de QC (Etapa 2) existe aparte de segment-teeth');
 });
 
-test('la UI y la PWA publicadas no cambian en esta entrega', () => {
+test('los contratos v2 se publican en web, PWA y copia móvil (Etapa 4)', () => {
   const sw = read('sw.js');
-  assert.doesNotMatch(sw, /smyl-radiograph-contracts\.js/);
-  assert.equal(fs.existsSync(new URL('../mobile/www/smyl-radiograph-contracts.js', import.meta.url)), false);
+  assert.match(sw, /smyl-radiograph-contracts\.js\?v=1/);
+  assert.equal(read('mobile/www/smyl-radiograph-contracts.js'), read('smyl-radiograph-contracts.js'));
 });

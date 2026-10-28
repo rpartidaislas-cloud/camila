@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 4 (mesa de revisión por pieza v2)
+
+- Nuevo `smyl-radiograph-review-v2.js` + `smyl-radiograph-review-v2.css`: una tarjeta por
+  candidato (pieza o señal) con Base visual sugerida, Confianza del modelo, Limitaciones y
+  Valoración profesional; recorte derivado al vuelo; overlay SVG normalizado con contorno editable
+  (vértices) y reversible; acciones Confirmar / Guardar corrección / Descartar / Comparar con
+  anterior (deshabilitado con motivo hasta Etapa 6). Estado siempre con símbolo + texto + patrón de
+  trazo; `listbox` con teclado; `aria-live`; objetivos de 42–44 px.
+- Flujo en pantalla: consentimiento explícito → `smyl_radiograph_register_source` → `radiograph-qc`
+  → tarjeta de calidad con corrección profesional del tipo → `radiograph-analyze` (localización /
+  señales, deshabilitados si QC bloquea o falta la bandera) → decisiones vía
+  `smyl_radiograph_decide_candidate` (revisión esperada; `PT409` recarga y explica; sin conexión el
+  borrador se conserva). Detrás de la bandera `radiograph.qc_v2`; el permiso lo decide la base.
+- `smyl-radiograph-review.js?v=5` sólo exporta `viewportNavigation` (visor único: zoom al centro,
+  paneo, pellizco, teclado). `smyl-dental-record.js?v=17` añade el botón «Revisión por pieza (v2)»,
+  oculto hasta que `smyl_radiograph_ai_capabilities()` lo habilite; «Revisar con apoyo de IA» (v1)
+  no cambia.
+- Web, `mobile/www` y PWA sincronizados: nuevos `smyl-radiograph-contracts.js?v=1`,
+  `smyl-radiograph-review-model-v2.js?v=1`, `smyl-radiograph-review-v2.js?v=1`, `.css?v=1`; caché
+  `radiograph-review-v2-v47`; `mobile/scripts/sync-web.js` ahora copia también los módulos
+  radiográficos. Pines de versión actualizados en las pruebas históricas (v33–v41).
+- QA: suite **854/854**; navegador real (Playwright) en 1280, 820, 390 y 320 px sin overflow:
+  registro con consentimiento, QC, localización + señales (7 tarjetas / 7 contornos), teclado,
+  confirmar, renumerar (original intacto, revisión 2), descartar y reconsiderar (revisión 3),
+  contorno editable y deshacer, pérdida de red con borrador conservado, cierre con confirmación,
+  zoom centrado. Sin migraciones ni Edge Functions nuevas; nada aplicado ni desplegado.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 3 (localización dental y odontograma asistido)
 
 - Edge Function **nueva** `supabase/functions/radiograph-analyze/` (`kind: tooth_localization |

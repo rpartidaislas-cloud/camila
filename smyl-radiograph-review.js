@@ -109,5 +109,5 @@
   try{run.store=await SmylRadiographReviewStore.connect(window.sb,{tenant,patient,study,current:valid});const row=await run.store.load();if(!valid())return;run.doc=row?.document||null;run.revision=row?.revision||0;render();}catch(e){if(valid()){run.store=null;render();status(['42P01','PGRST205','PGRST202','42883'].includes(e.code)||e.message.includes('no habilitada')?'Esta fase está preparada localmente, pero el guardado aún no está activado en la clínica.':e.message,'rr-error');}}
  }
  addEventListener('pagehide',()=>close(active,true));
- window.SmylRadiographReview={open,close:()=>close(active,true)};
+ window.SmylRadiographReview={open,close:()=>close(active,true),viewportNavigation};
 })();

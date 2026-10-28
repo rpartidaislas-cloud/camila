@@ -1,4 +1,4 @@
-# SMYL — Radiografía asistida: Etapas 0–3 (baseline, esquema v2, contratos, control de calidad y localización dental)
+# SMYL — Radiografía asistida: Etapas 0–4 (baseline, esquema v2, contratos, control de calidad, localización dental y revisión por pieza)
 
 **Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
 **Estado:** código y pruebas listos; **nada aplicado ni desplegado**. Con las banderas apagadas el
@@ -8,15 +8,16 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 
 | Incluido | Excluido (etapas posteriores) |
 | --- | --- |
-| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | UI de revisión por pieza (tarjetas, overlay editable) — Etapa 4 |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Informe clínico asistido y firma en pantalla — Etapa 5 |
 | Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
 | Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | UI de revisión por pieza, odontograma asistido, informe en pantalla (Etapas 3-5) |
 | Ejecuciones IA idempotentes, candidatos inmutables, decisiones versionadas (`20261028120000`) | Comparador longitudinal (Etapa 6), validación clínica (7), CBCT/DICOM (8) |
 | Informes: borrador, firma con hash, adendas, exportación (`20261028130000`) | Cualquier cambio en `segment-teeth`, flujo v1 o `mobile/**` |
 | Contratos v2 JS/TS + validadores SQL + 86 vectores canónicos | |
 | Edge Function `radiograph-qc` + `_shared/radiograph-image.ts`, `radiograph-provider.ts`, `radiograph-qc-core.ts` (Etapa 2) | Motor dental real (`DentalXrayProvider` http genérico; ningún proveedor elegido) |
-| Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | |
-| Pruebas estáticas (24), PGlite en Postgres real (11), Etapa 2 (14) y Etapa 3 (9) | |
+| Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | Comparador longitudinal (Etapa 6): el botón «Comparar con anterior» existe deshabilitado con motivo |
+| Mesa de revisión por pieza `smyl-radiograph-review-v2.js/.css` + botón en el expediente (Etapa 4) | |
+| Pruebas estáticas (24), PGlite en Postgres real (11), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320) | |
 
 ## Etapa 2 — `radiograph-qc` (control de calidad)
 
@@ -81,6 +82,47 @@ Navegador ──POST {sourceId, kind: tooth_localization | finding_candidates}�
   para `http`), motor `tooth_localization` y `finding_candidates` registrados y `enabled`, bandera
   `radiograph.tooth_ai_v1`. **No desplegada.** `smyl-radiograph-review-model-v2.js` aún no se carga
   en ninguna página ni en `sw.js`/`mobile/www` (Etapa 4).
+
+## Etapa 4 — Mesa de revisión por pieza (`smyl-radiograph-review-v2.js`)
+
+- **Acceso:** botón «Revisión por pieza (v2)» en el visor de radiografías del expediente
+  (`smyl-dental-record.js`), oculto hasta que `smyl_radiograph_ai_capabilities()` devuelva
+  `radiograph.qc_v2=true` y lectura clínica. No asume que sólo la dueña revisa: cada acción la
+  autoriza la base (`clinical.write`, alcance del paciente, revisión esperada). El flujo v1
+  («Revisar con apoyo de IA») sigue intacto.
+- **Pasos en pantalla:** 1) registrar fuente con consentimiento explícito + `radiograph-qc`;
+  2) tarjeta de calidad (tipo sugerido con probabilidad, banderas con severidad, análisis
+  bloqueados, corrección profesional del tipo) y botones «Localizar piezas» / «Buscar señales»
+  (deshabilitados si QC los bloquea o la bandera `tooth_ai_v1` está apagada); 3) una tarjeta por
+  candidato con **Base visual sugerida**, **Confianza del modelo** (banda + % + motor/versión),
+  **Limitaciones** (del candidato y de la calidad) y **Valoración profesional** (pieza FDI,
+  visibilidad, nota). Acciones: **Confirmar**, **Guardar corrección** (sólo con cambios; pasa por
+  `parseDecisionPayload`), **Descartar**, **Editar contorno** (vértices arrastrables sobre SVG
+  normalizado) / **Deshacer contorno**, y **Comparar con anterior** deshabilitado con motivo
+  hasta la Etapa 6.
+- **Recortes** derivados al vuelo del original en `<canvas>` (no se guardan). **Overlay** SVG en
+  coordenadas normalizadas sobre la imagen; seleccionar, editar y deshacer sólo reemplazan el
+  overlay (la imagen no se recarga ni salta el scroll). El visor (zoom al centro, paneo, pellizco,
+  teclado) es el mismo `viewportNavigation` de v1, ahora exportado.
+- **Nunca color como único indicador:** símbolo + texto en tarjetas (`○ Por confirmar`,
+  `✓ Confirmada`, `✎ Corregida`, `✕ Descartada`), etiqueta `símbolo + número` en el overlay y
+  patrón de trazo por estado (discontinuo / continuo / punteado); leyenda textual.
+- **Accesibilidad:** lista `role=listbox` con `aria-current`/`aria-selected`, navegación
+  ↑/↓/Inicio/Fin, estado `aria-live`, recorte con `role=img`, objetivos ≥ 42 px (44 px en móvil).
+- **Robustez:** borradores (nota, renumeración, contorno) viven en memoria hasta decidir; cerrar con
+  borrador pide confirmación; sin conexión el borrador se conserva y se explica; `PT409` recarga y
+  explica; un timeout del motor queda `unconfirmed` y no se reintenta solo.
+- **Aceptación de la etapa:** ninguna señal pendiente entra al odontograma ni al informe (modelo
+  v2 + RPC de firma); la corrección no borra el candidato (probado: `fdiCandidate` original
+  intacto, decisión `corrected{fdi}` revisión 2); cada acción es auditable
+  (`smyl_radiograph_decision_versions`, `smyl_radiograph_access_events`) y recuperable
+  (reconsiderar crea otra revisión; probado descartar → confirmar = revisión 3).
+- **Evidencia visual:** `node tests/smyl-radiograph-review-v2-browser.cjs` genera
+  `artifacts/radiograph-review-v2-v47/{desktop,tablet,mobile,mobile-320}.png` con datos sintéticos
+  (no se versionan). Publicación: `smyl-radiograph-review.js?v=5`, `smyl-dental-record.js?v=17`,
+  nuevos `smyl-radiograph-contracts.js?v=1`, `smyl-radiograph-review-model-v2.js?v=1`,
+  `smyl-radiograph-review-v2.js?v=1`, `.css?v=1`; caché PWA `radiograph-review-v2-v47`;
+  `mobile/www` sincronizado y `mobile/scripts/sync-web.js` ampliado.
 
 ## Flujo de datos (Etapa 1)
 
@@ -152,7 +194,11 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 ## Cómo probar
 
 ```bash
-node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs
+node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs
+```
+
+```bash
+node tests/smyl-radiograph-review-v2-browser.cjs
 ```
 
 ```bash
@@ -196,5 +242,8 @@ está disponible la suite se omite sin fallar.
 - **Permiso de firma:** se reutiliza `clinical.approve` (el mismo que firma notas clínicas);
   recepción/asistente no lo tienen por defecto. Si se quiere un permiso específico de firma
   radiográfica hay que ampliar el CHECK de `smyl_role_permissions` en una migración nueva.
-- **UI:** `smyl-radiograph-contracts.js` no se carga en ninguna página ni en `sw.js`/`mobile/www`
-  todavía; se incorporará cuando exista pantalla (Etapa 4) y entonces se sincronizará la copia móvil.
+- **UI:** la mesa v2 muestra candidatos del proveedor **simulado** mientras no haya motor real; la
+  pantalla lo etiqueta como candidato del modelo con su nombre/versión, pero el piloto no debe
+  presentarse como localización anatómica real hasta la Etapa 7.
+- **Comparar con anterior:** deshabilitado hasta que exista emparejamiento de estudios comparables
+  (Etapa 6).

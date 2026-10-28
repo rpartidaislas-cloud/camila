@@ -1,0 +1,60 @@
+/* SMYL UI v3 · revisión radiográfica por pieza (v2). Hereda tokens y layout de smyl-radiograph-workbench.css. */
+.rv2-stage { position: relative; }
+.rv2-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.rv2-overlay .rv2-shape { fill: rgba(241, 185, 62, .08); stroke: #f1b93e; stroke-width: 2.5px; stroke-dasharray: 8 5; cursor: pointer; pointer-events: auto; }
+.rv2-overlay .rv2-shape-confirmed { fill: rgba(56, 169, 157, .12); stroke: #38a99d; stroke-dasharray: none; stroke-width: 3px; }
+.rv2-overlay .rv2-shape-corrected { fill: rgba(102, 86, 168, .12); stroke: #b9a7ff; stroke-dasharray: 2 5; stroke-width: 3px; }
+.rv2-overlay .rv2-shape-rejected { fill: none; stroke: #9aa7b5; stroke-dasharray: 1 6; stroke-width: 2px; }
+.rv2-overlay .rv2-shape-finding { stroke-linejoin: round; }
+.rv2-overlay .rv2-shape.is-selected { stroke-width: 4.5px; filter: drop-shadow(0 0 4px #fff); }
+.rv2-overlay .rv2-shape-label { fill: #fff; font: 700 28px/1 var(--smyl-ui-font, Inter, system-ui, sans-serif); paint-order: stroke; stroke: #0b1320; stroke-width: 6px; pointer-events: none; }
+.rv2-overlay .rv2-vertex { fill: #fff; stroke: #0b1b2e; stroke-width: 2px; cursor: grab; pointer-events: auto; vector-effect: non-scaling-stroke; }
+.rv2-overlay .rv2-vertex:active { cursor: grabbing; }
+.rr-workspace[data-mode="editing"] .rr-image-wrap { touch-action: none; }
+.rv2-key::before { display: none; }
+/* Bloque de calidad compacto: resumen, tipo y pasos en una fila para que la mesa de trabajo conserve altura. */
+.rv2-review { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.rv2-review .rr-review-head h1 { margin: 2px 0 2px; font-size: 20px; line-height: 26px; }
+.rv2-qc { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 10px 14px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-card, 16px); background: var(--rr-surface); }
+.rv2-qc .rr-quality-card { flex: 1 1 320px; min-width: 0; max-width: none; padding: 8px 12px; }
+.rv2-qc .rr-quality-card p { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.rv2-qc > p { flex: 1 1 100%; margin: 0; color: var(--rr-muted); font-size: 13px; }
+.rv2-type { flex: 0 1 240px; }
+.rv2-steps { flex: 0 0 auto; }
+.rv2-filters { grid-template-columns: repeat(5, minmax(max-content, 1fr)); }
+/* Las tarjetas tienen overflow:hidden (mínimo 0 para el grid): fijar filas a su contenido evita que la lista las aplaste. */
+.rv2-items { grid-auto-rows: max-content; }
+.rv2-blocked { margin: 0; color: var(--rr-warning); font-size: 12px; }
+.rv2-type { display: grid; gap: 4px; color: var(--rr-muted); font-size: 12px; font-weight: 600; }
+.rv2-type select, .rv2-form select, .rv2-form textarea { min-height: 44px; padding: 8px 10px; border: 1px solid var(--rr-line-strong); border-radius: var(--smyl-ui-radius-control, 10px); background: var(--rr-surface); color: var(--rr-ink); font: 14px/20px var(--smyl-ui-font, Inter, system-ui, sans-serif); }
+.rv2-steps { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv2-steps button, .rv2-actions button, .rv2-qc .rr-primary { min-height: 44px; }
+.rv2-body { display: grid; gap: 10px; }
+.rv2-figure { margin: 0; display: grid; gap: 4px; justify-items: start; }
+.rv2-crop { display: block; max-width: 100%; height: auto; border: 1px solid var(--rr-line); border-radius: 8px; background: #0b1320; }
+.rv2-figure figcaption { color: var(--rr-meta); font-size: 12px; }
+.rv2-block { display: grid; gap: 4px; }
+.rv2-block > span:first-child { color: var(--rr-meta); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.rv2-block p { margin: 0; color: var(--rr-ink); font-size: 13px; }
+.rv2-limits { margin: 0; padding-left: 18px; color: var(--rr-muted); font-size: 12px; line-height: 1.5; }
+.rv2-form { display: grid; gap: 8px; }
+.rv2-form .rr-field { display: grid; gap: 4px; color: var(--rr-muted); font-size: 12px; font-weight: 600; }
+.rv2-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv2-actions button[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+.rv2-state { white-space: nowrap; }
+.rr-state-corrected { background: #ece8ff; color: #4b3f8f; }
+.rr-item-corrected { border-color: #b9a7ff; background: #f6f3ff; }
+.rv2-conflict { margin: 0 12px 8px; padding: 8px 10px; border: 1px solid #d4a733; border-radius: 10px; background: var(--rr-warning-soft); color: var(--rr-warning); font-size: 12px; }
+.rv2-items:focus-within .rr-item[aria-current="true"] { outline: 3px solid var(--rr-focus); outline-offset: 1px; }
+.rv2-items .rr-item:focus-visible { outline: 3px solid var(--rr-focus); outline-offset: 1px; }
+@media (max-width: 959px) {
+  .rv2-qc { align-items: stretch; }
+  .rv2-type, .rv2-steps { flex: 1 1 100%; }
+  .rv2-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rv2-steps button { flex: 1 1 100%; }
+  .rv2-actions button { flex: 1 1 calc(50% - 4px); }
+}
+@media (max-width: 440px) {
+  .rv2-actions button { flex-basis: 100%; }
+  .rv2-overlay .rv2-shape-label { font-size: 36px; }
+}

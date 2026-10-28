@@ -175,5 +175,5 @@ test('contrato estático: función dedicada, QC previo en la base, sin segment-t
   assert.doesNotMatch(model, /fetch\(|\.rpc\(|doc\.teeth\[[^\]]*\]\s*=|status:\s*'(pending|following|done)'|=\s*'ausente'/i, 'el modelo no escribe el odontograma ni usa red');
   const runs = read('supabase/migrations/20261028120000_smyl_radiograph_ai_runs.sql');
   assert.match(runs, /coalesce\(v_payload->>'visibility', ''\) not in \('complete','partial','not_evaluable'\)/);
-  assert.doesNotMatch(read('sw.js'), /smyl-radiograph-review-model-v2\.js/);
+  assert.match(read('sw.js'), /smyl-radiograph-review-model-v2\.js\?v=1/, 'el modelo v2 se publica con la mesa de revisión (Etapa 4)');
 });

@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-radiograph-review-v2-v47';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -18,10 +18,14 @@ const STATIC_FILES = [
   '/camila/smyl-radiograph-review-model.js?v=1',
   '/camila/smyl-radiograph-review-store.js?v=1',
   '/camila/smyl-radiograph-analysis-client.js?v=1',
-  '/camila/smyl-radiograph-review.js?v=4',
+  '/camila/smyl-radiograph-review.js?v=5',
   '/camila/smyl-radiograph-review.css?v=1',
   '/camila/smyl-radiograph-workbench.css?v=3',
-  '/camila/smyl-dental-record.js?v=16',
+  '/camila/smyl-radiograph-contracts.js?v=1',
+  '/camila/smyl-radiograph-review-model-v2.js?v=1',
+  '/camila/smyl-radiograph-review-v2.js?v=1',
+  '/camila/smyl-radiograph-review-v2.css?v=1',
+  '/camila/smyl-dental-record.js?v=17',
   '/camila/smyl-analysis-workflow.js?v=2',
   '/camila/smyl-photo-review-model.js?v=3',
   '/camila/smyl-photo-review-store.js?v=4',
