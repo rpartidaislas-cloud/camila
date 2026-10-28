@@ -21,6 +21,22 @@ language sql immutable set search_path = pg_catalog as $$
   select regexp_replace(p, '^[\t\n\v\f\r    -     　﻿]+|[\t\n\v\f\r    -     　﻿]+$', '', 'g');
 $$;
 
+-- Auditoría ligera: sólo ids, estado y revisión. Nunca copia el documento clínico, el consentimiento
+-- ni rutas de Storage a smyl_audit_events (smyl_audit_row copia la fila completa).
+create or replace function public.smyl_radiograph_audit_lean()
+returns trigger language plpgsql security definer set search_path = pg_catalog, public as $$
+declare v_row jsonb := to_jsonb(new);
+begin
+  insert into public.smyl_audit_events(tenant_id, actor_id, action, entity_type, entity_id, after_data)
+  values ((v_row->>'tenant_id')::uuid, auth.uid(), lower(tg_op), tg_table_name, coalesce(v_row->>'id', ''),
+    jsonb_strip_nulls(jsonb_build_object('status', v_row->'status', 'revision', v_row->'revision', 'patient_id', v_row->'patient_id', 'source_id', coalesce(v_row->'source_id', v_row->'id'))));
+  return new;
+end;
+$$;
+revoke all on function public.smyl_radiograph_audit_lean() from public, anon, authenticated;
+
+revoke all on function public.smyl_radiograph_trim(text), public.smyl_radiograph_forbid_change() from public, anon, authenticated;
+
 create table if not exists public.smyl_radiograph_sources (
   id uuid primary key,
   tenant_id uuid not null references public.camila_tenants(id) on delete cascade,
@@ -97,7 +113,7 @@ create table if not exists public.smyl_radiograph_access_events (
   patient_id uuid not null,
   source_id uuid not null,
   action text not null check (action in ('register','open','send_to_engine','engine_result','correct','decide','report_draft','sign_report','addendum','export','compare')),
-  actor_id uuid references auth.users(id) on delete set null,
+  actor_id uuid, -- sin FK: la evidencia de auditoría no se reescribe si se elimina al usuario
   reference_id uuid,
   request_id uuid not null default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -117,7 +133,22 @@ create trigger smyl_radiograph_access_events_immutable before update or delete o
   for each row execute function public.smyl_radiograph_forbid_change();
 drop trigger if exists smyl_radiograph_sources_audit on public.smyl_radiograph_sources;
 create trigger smyl_radiograph_sources_audit after insert on public.smyl_radiograph_sources
-  for each row execute function public.smyl_audit_row();
+  for each row execute function public.smyl_radiograph_audit_lean();
+-- Vínculos: sólo se puede revocar (una vez); nada más cambia ni se borra directamente.
+create or replace function public.smyl_radiograph_guard_link_change()
+returns trigger language plpgsql set search_path = pg_catalog, public as $$
+begin
+  if tg_op = 'DELETE' then
+    if pg_trigger_depth() > 1 then return old; end if;
+    raise exception using errcode = '42501', message = 'Los vínculos entre estudios no se borran.';
+  end if;
+  if old.revoked_at is null and new.revoked_at is not null and (to_jsonb(new) - 'revoked_at' - 'revoked_by') = (to_jsonb(old) - 'revoked_at' - 'revoked_by') then return new; end if;
+  raise exception using errcode = '42501', message = 'Un vínculo sólo puede revocarse.';
+end;
+$$;
+drop trigger if exists smyl_radiograph_study_links_guard on public.smyl_radiograph_study_links;
+create trigger smyl_radiograph_study_links_guard before update or delete on public.smyl_radiograph_study_links
+  for each row execute function public.smyl_radiograph_guard_link_change();
 
 alter table public.smyl_radiograph_sources enable row level security;
 alter table public.smyl_radiograph_source_corrections enable row level security;
@@ -183,11 +214,15 @@ begin
     raise exception using errcode = '42501', message = 'La revisión radiográfica v2 no está habilitada para esta clínica.';
   end if;
   if p_source_id is null or p_study_id is null then raise exception using errcode = '22023', message = 'Faltan identificadores.'; end if;
-  if p_consent is null or jsonb_typeof(p_consent->'acceptedAt') is distinct from 'string' then raise exception using errcode = '22023', message = 'Consentimiento no válido.'; end if;
-  begin perform (p_consent->>'acceptedAt')::timestamptz; exception when others then raise exception using errcode = '22023', message = 'Consentimiento no válido.'; end;
+  -- El cliente sólo atestigua la versión y el hash del texto mostrado; fecha y persona las sella el servidor.
+  if jsonb_typeof(p_consent) is distinct from 'object' or p_consent->'version' is distinct from '1'::jsonb
+     or coalesce(p_consent->>'textHash', '') !~ '^[a-f0-9]{64}$' then
+    raise exception using errcode = '22023', message = 'Consentimiento no válido.'; end if;
   select value into v_study from public.smyl_dental_records d, jsonb_array_elements(d.document->'studies')
   where d.tenant_id = v_tenant and d.patient_id = p_patient_id and value->>'id' = p_study_id::text;
   if v_study is null then raise exception using errcode = '42501', message = 'El estudio no pertenece al expediente.'; end if;
+  if coalesce(v_study->'asset'->>'path', '') not like (v_tenant::text || '/' || p_patient_id::text || '/%') then
+    raise exception using errcode = '42501', message = 'La ruta del archivo no pertenece a este paciente.'; end if;
   perform pg_advisory_xact_lock(hashtextextended('radiograph-source:' || p_patient_id::text || p_study_id::text, 31));
   select * into v_row from public.smyl_radiograph_sources
   where tenant_id = v_tenant and patient_id = p_patient_id and study_id = p_study_id and sha256 = v_study->'asset'->>'sha256';
@@ -197,7 +232,8 @@ begin
   insert into public.smyl_radiograph_sources(id, tenant_id, patient_id, study_id, storage_path, sha256, mime_type, size_bytes,
     study_type_declared, captured_at, consent, provenance, created_by)
   values (p_source_id, v_tenant, p_patient_id, p_study_id, v_study->'asset'->>'path', v_study->'asset'->>'sha256',
-    v_study->'asset'->>'mime', (v_study->'asset'->>'bytes')::bigint, p_study_type, p_captured_at, p_consent,
+    v_study->'asset'->>'mime', (v_study->'asset'->>'bytes')::bigint, p_study_type, p_captured_at,
+    jsonb_build_object('version', 1, 'textHash', p_consent->>'textHash', 'acceptedAt', to_char(clock_timestamp() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'acceptedBy', auth.uid()),
     jsonb_build_object('origin', 'dental_record_v1', 'studyType', v_study->>'type'), auth.uid())
   returning * into v_row;
   perform public.smyl_radiograph_log_event(v_tenant, p_patient_id, v_row.id, 'register', v_row.id);

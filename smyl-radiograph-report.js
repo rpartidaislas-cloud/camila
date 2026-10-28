@@ -12,7 +12,17 @@
  const PRIORITY_LABELS={routine:'Rutina',soon:'Pronto',urgent:'Urgente'};
  const FLAG_LABELS={motion_blur:'movimiento / desenfoque',anterior_blur:'desenfoque anterior',anatomical_cropping:'recorte anatómico',underexposure:'subexposición',overexposure:'sobreexposición',low_contrast:'bajo contraste',overlap:'superposición',compression_artifacts:'artefactos de compresión',orientation_suspect:'orientación sospechosa',foreign_object:'objeto extraño',unknown_study_class:'tipo de estudio incierto'};
  const STUDY_LABELS={panoramic:'panorámica',periapical:'periapical',bitewing:'aleta de mordida',intraoral_series:'serie intraoral',unknown:'tipo por confirmar'};
- const FDI_MENTION=/(?:pieza|diente|fdi|molar|premolar|canino|incisivo)\s*(?:n[°º.]?\s*)?#?\s*(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])\b/gi;
+ // Heurística (reduce, no garantiza): menciones con palabra clave (singular, plural y listas) y números FDI sueltos de dos cifras.
+ // Se normaliza NFKC para que cifras de ancho completo o con compatibilidad Unicode no escapen. Las unidades y fechas no cuentan.
+ const FDI_NUMBER='(?:1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])';
+ const FDI_KEYWORD=new RegExp('(?:piezas?|dientes?|dentales?|fdi|molares?|premolares?|caninos?|incisivos?)\\s*(?:n[°º.]?|nos?\\.?)?\\s*#?\\s*((?:'+FDI_NUMBER+'(?![\\d]))(?:\\s*(?:,|;|/|-|–|y|e|o|u|and)\\s*#?'+FDI_NUMBER+'(?![\\d]))*)','gi');
+ const FDI_STANDALONE=new RegExp('(?<![\\d.,/:\\-–#])('+FDI_NUMBER+')(?![\\d]|[.,]\\d|\\s*%|\\s*(?:mm|cm|años?|meses|mes|días?|d[ií]as|semanas?|veces|x|kv|ma|ms|s)\\b|[/:\\-–]\\d)','gi');
+ function mentionedTeeth(text){
+  const t=String(text).normalize('NFKC'),found=new Set();
+  for(const m of t.matchAll(FDI_KEYWORD))for(const x of m[1].match(new RegExp(FDI_NUMBER,'g'))||[])found.add(x);
+  for(const m of t.matchAll(FDI_STANDALONE))found.add(m[1]);
+  return [...found];
+ }
  const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const clean=v=>typeof v==='string'?v:'';
  const emptySections=()=>({description:'',technicalLimitations:'',clinicalCorrelation:'',missingInformation:'',complementaryStudies:''});
@@ -20,7 +30,7 @@
  function allowedFindings({entries=[],findings=[]}){
   const out=[];
   for(const e of entries){if(!['confirmed','corrected'].includes(e.state)||!e.fdi||e.evaluable===false)continue;
-   out.push({candidateId:e.candidateId,tooth:e.fdi,kind:'tooth',text:'Pieza '+e.fdi+' localizada y verificada por el profesional'+(e.renumbered?' (renumerada; el modelo proponía '+e.fdiModel+')':'')+'.'+(e.note?' '+e.note:'')});}
+   out.push({candidateId:e.candidateId,tooth:e.fdi,kind:'tooth',text:'Pieza '+e.fdi+' localizada y verificada por el profesional'+(e.renumbered?' (renumerada por el profesional; la numeración original del modelo queda en la trazabilidad)':'')+'.'+(e.note?' '+e.note:'')});}
   for(const f of findings){if(!['confirmed','corrected'].includes(f.state))continue;const missing=f.payload?.category==='apparently_missing';
    out.push({candidateId:f.candidateId,tooth:f.fdi||null,kind:'finding',text:(f.label||f.payload?.label||'Señal verificada')+(missing?' — aparentemente no visible en la radiografía; no implica ausencia, confirmar clínicamente.':'.')+(f.note?' '+f.note:'')});}
   return out;
@@ -40,10 +50,11 @@
   return {doc,removed,allowed};
  }
  // Diferencias entre datos estructurados y texto: piezas no sustentadas y afirmaciones de certeza.
- function diff(doc,{strict=false}={}){
+ function diff(doc,{strict=false,baseline=null}={}){
   const warnings=[],teeth=new Set((doc.findings||[]).map(f=>f.tooth).filter(Boolean)),texts=Object.entries(doc.sections||{}).map(([k,v])=>[SECTION_LABELS[k]||k,clean(v)]).concat((doc.findings||[]).map((f,i)=>['Hallazgo '+(i+1),clean(f.text)]));
   for(const [where,text] of texts){
-   for(const m of text.matchAll(FDI_MENTION)){if(!teeth.has(m[1]))warnings.push({code:'extra_tooth',where,tooth:m[1],text:where+' menciona la pieza '+m[1]+', que no está entre los hallazgos confirmados.'});}
+   if(baseline&&baseline.has(where)&&baseline.get(where)===text)continue; // sólo lo que cambió respecto al texto del profesional
+   for(const tooth of mentionedTeeth(text)){if(!teeth.has(tooth))warnings.push({code:'extra_tooth',where,tooth,text:where+' menciona la pieza '+tooth+', que no está entre los hallazgos confirmados.'});}
    if(strict&&C.hasForbiddenClaim(text))warnings.push({code:'claim',where,text:where+' contiene una afirmación de certeza o diagnóstico que el modelo no puede hacer.'});
   }
   if(!clean(doc.sections?.description).trim())warnings.push({code:'empty_description',where:SECTION_LABELS.description,text:'La descripción radiográfica está vacía; la firma la exige.'});
@@ -60,7 +71,9 @@
   for(const key of ['description','technicalLimitations','clinicalCorrelation','missingInformation']){const v=value.sections[key];if(v===undefined)continue;if(typeof v!=='string'||v.length>1500)throw Error('La sección "'+SECTION_LABELS[key]+'" devuelta no es válida.');sections[key]=v;}
   if(Object.keys(value.sections).some(k=>!['description','technicalLimitations','clinicalCorrelation','missingInformation'].includes(k)))throw Error('La redacción asistida devolvió secciones no permitidas.');
   const candidate={schema:1,sections,findings:order.map(id=>doc.findings.find(f=>f.candidateId===id))};
-  const check=diff(candidate,{strict:true});
+  // La guarda estricta sólo juzga lo que la IA cambió: el texto que escribió el profesional no se rechaza por sus propias palabras.
+  const before=new Map(Object.entries(doc.sections).map(([k,v])=>[SECTION_LABELS[k]||k,clean(v)]).concat(doc.findings.map((f,i)=>['Hallazgo '+(i+1),clean(f.text)])));
+  const check=diff(candidate,{strict:true,baseline:before});
   if(check.blocking)throw Error('Se descartó la redacción asistida: '+check.warnings.filter(w=>w.code!=='empty_description').map(w=>w.text).join(' '));
   return candidate;
  }
@@ -72,10 +85,13 @@
   const session=await client.auth.getSession(),s=session.data?.session;if(session.error||!s?.access_token||s.user?.is_anonymous!==false)throw Error('Tu sesión venció. Vuelve a entrar.');
   const payload={findings:doc.findings,sections:{description:doc.sections.description,technicalLimitations:doc.sections.technicalLimitations,clinicalCorrelation:doc.sections.clinicalCorrelation,missingInformation:doc.sections.missingInformation},allowedTeeth:[...new Set(doc.findings.map(f=>f.tooth).filter(Boolean))]};
   const body=JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,system:ASSIST_SYSTEM,messages:[{role:'user',content:[{type:'text',text:'Datos estructurados del informe (sólo ordenar y redactar, sin añadir nada):\n'+JSON.stringify(payload)}]}]});
-  const response=await fetch(url.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.access_token,apikey:publicKey},body,signal,cache:'no-store',credentials:'omit',redirect:'error'});
+  let response;
+  try{response=await fetch(url.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.access_token,apikey:publicKey},body,signal,cache:'no-store',credentials:'omit',redirect:'error'});}
+  catch(e){if(e?.name==='AbortError')throw Error('La redacción asistida se canceló o tardó demasiado. No se reintentó y tu texto no cambió.');throw e;}
   if(!current())throw Error('La ficha cambió.');
   if(!response.ok)throw Error(({401:'Tu sesión venció. Vuelve a entrar.',403:'Tu cuenta no tiene permiso para esta redacción.',402:'El plan no permite esta redacción ahora.',429:'El servicio está ocupado. Espera antes de intentar de nuevo.'})[response.status]||'El servicio no devolvió la redacción. No se reintentó automáticamente.');
-  const raw=await response.text();if(raw.length>60000)throw Error('Respuesta demasiado extensa; se descartó.');const result=JSON.parse(raw);
+  let raw;try{raw=await response.text();}catch(e){if(e?.name==='AbortError')throw Error('La redacción asistida se canceló o tardó demasiado. No se reintentó y tu texto no cambió.');throw e;}
+  if(raw.length>60000)throw Error('Respuesta demasiado extensa; se descartó.');const result=JSON.parse(raw);
   if(result.stop_reason!=='end_turn'||!Array.isArray(result.content)||result.content.length!==1||result.content[0].type!=='text')throw Error('La redacción quedó incompleta; se descartó.');
   return parseAssist(result.content[0].text,doc);
  }
@@ -98,7 +114,7 @@
    export:reportId=>checked(client.rpc('smyl_radiograph_export_report',{p_report_id:reportId}))
   };
  }
- const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+ const esc=s=>String(s).replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'})[c]);
  function printable(exported,study){
   const r=exported.report,d=r.document,when=r.signed_at?new Date(r.signed_at).toLocaleString('es-MX'):'';
   const secs=Object.entries(SECTION_LABELS).map(([k,l])=>'<h2>'+esc(l)+'</h2><p>'+esc(d.sections[k]||'—')+'</p>').join('');
@@ -116,7 +132,7 @@
   if(active){close();if(active)return;}
   client=client||window.sb;
   if(!source||typeof current!=='function'||!current()||!C){return;}
-  const dialog=n('dialog','rr-dialog rv2-dialog rp-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host rp-host'),run={dialog,host,source,study,tenant,patient,current,client,caps,api:connect(client,{current:()=>!run.closed&&current()}),row:null,addenda:[],doc:null,dirty:false,busy:false,closed:false,focus:document.activeElement,removedNotice:[]};
+  const dialog=n('dialog','rr-dialog rv2-dialog rp-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host rp-host'),run={dialog,host,source,study,tenant,patient,current,client,caps,api:connect(client,{current:()=>!run.closed&&current()}),row:null,addenda:[],doc:null,dirty:false,busy:false,closed:false,focus:document.activeElement,removedNotice:[],addendumDraft:{content:'',reason:''},abort:null};
   active=run;
   const valid=()=>!run.closed&&current();
   const titleId='rp-title-'+(++seq),t=n('strong','','Informe radiográfico');t.id=titleId;dialog.setAttribute('aria-labelledby',titleId);
@@ -139,13 +155,16 @@
    if(!signed()){const restore=button('Restaurar hallazgos confirmados',()=>{run.doc=buildDraft({entries,findings,qc,previous:{sections:run.doc.sections,findings:run.doc.findings}}).doc;run.dirty=true;render();},'rr-tool');panel.append(restore);}
    return panel;
   }
-  function diffPanel(){
-   const box=n('section','rp-diff');box.setAttribute('aria-live','polite');const d=diff(run.doc);box.append(n('span','rr-section-label','DIFERENCIAS ENTRE DATOS Y TEXTO'));
-   if(!d.warnings.length)box.append(n('p','rp-diff-ok','✓ El texto sólo menciona piezas con hallazgo confirmado y la descripción está completa.'));
+  // El nodo con aria-live es estable: sólo cambia su contenido, para que el lector de pantalla anuncie las diferencias nuevas.
+  function fillDiff(box){
+   const d=diff(run.doc);box.replaceChildren(n('span','rr-section-label','DIFERENCIAS ENTRE DATOS Y TEXTO'));
+   if(!d.warnings.length)box.append(n('p','rp-diff-ok','✓ El texto sólo menciona piezas con hallazgo confirmado y la descripción está completa. (Revisión automática aproximada: lee el texto antes de firmar.)'));
    else{const ul=n('ul');d.warnings.forEach(w=>ul.append(n('li','rp-diff-'+w.code,(w.code==='claim'?'✕ ':'⚠ ')+w.text)));box.append(ul);}
    return box;
   }
-  function refreshDiff(){const old=host.querySelector('.rp-diff');if(old)old.replaceWith(diffPanel());}
+  function diffPanel(){const box=n('section','rp-diff');box.setAttribute('aria-live','polite');box.setAttribute('aria-atomic','false');return fillDiff(box);}
+  let diffTimer=0;
+  function refreshDiff(){const old=host.querySelector('.rp-diff');if(!old)return;clearTimeout(diffTimer);diffTimer=setTimeout(()=>{if(!run.closed)fillDiff(old);},250);}
   function sectionsPanel(){
    const panel=n('section','rp-sections'),head=n('header','rr-panel-head');head.append(n('span','rr-section-label','TEXTO DEL INFORME'),n('h2','',signed()?'Informe firmado':'Redacción profesional'),n('p','',signed()?'Inmutable. Cualquier cambio va en una adenda.':'Puedes redactar tú o pedir apoyo para ordenar y redactar; la IA no añade contenido.'));panel.append(head);
    Object.entries(SECTION_LABELS).forEach(([key,label])=>{const field=n('label','rr-field',label),ta=n('textarea');ta.rows=key==='description'?5:3;ta.maxLength=4000;ta.value=run.doc.sections[key]||'';ta.readOnly=signed();ta.dataset.rpSection=key;ta.oninput=()=>{run.doc.sections[key]=ta.value;run.dirty=true;refreshDiff();};field.append(ta);panel.append(field);});
@@ -154,8 +173,8 @@
   function signaturePanel(){
    const box=n('section','rp-signature');if(!signed())return box;const r=run.row;box.append(n('span','rr-section-label','FIRMA'),n('p','','Firmado el '+new Date(r.signed_at).toLocaleString('es-MX')+' · versión '+r.revision+' · usuario '+r.signed_by+(r.signed_professional_id?' · profesional '+r.signed_professional_id:'')),n('code','rp-hash','SHA-256 '+r.signed_hash));
    const list=n('ul','rp-addenda');run.addenda.slice().sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))).forEach(a=>list.append(n('li','',new Date(a.created_at).toLocaleString('es-MX')+' — '+a.reason+': '+a.content)));box.append(n('h3','','Adendas ('+run.addenda.length+')'),list);
-   if(run.caps?.clinicalApprove){const form=n('div','rp-addendum-form'),content=n('textarea'),reason=n('input');content.rows=3;content.maxLength=8000;content.placeholder='Contenido de la adenda';content.setAttribute('aria-label','Contenido de la adenda');reason.maxLength=500;reason.placeholder='Motivo';reason.setAttribute('aria-label','Motivo de la adenda');
-    form.append(content,reason,button('Agregar adenda',()=>{if(content.value.trim().length<2||reason.value.trim().length<2){status('Escribe contenido y motivo de la adenda.','rr-error');return;}act('Adenda registrada',async()=>{await run.api.addendum(r.id,content.value,reason.value);await reload();});},'rr-primary'));box.append(form);}
+   if(run.caps?.clinicalApprove){const form=n('div','rp-addendum-form'),content=n('textarea'),reason=n('input');content.value=run.addendumDraft.content;reason.value=run.addendumDraft.reason;content.oninput=()=>{run.addendumDraft.content=content.value;};reason.oninput=()=>{run.addendumDraft.reason=reason.value;};content.rows=3;content.maxLength=8000;content.placeholder='Contenido de la adenda';content.setAttribute('aria-label','Contenido de la adenda');reason.maxLength=500;reason.placeholder='Motivo';reason.setAttribute('aria-label','Motivo de la adenda');
+    form.append(content,reason,button('Agregar adenda',()=>{if(content.value.trim().length<2||reason.value.trim().length<2){status('Escribe contenido y motivo de la adenda.','rr-error');return;}act('Adenda registrada',async()=>{await run.api.addendum(r.id,content.value,reason.value);run.addendumDraft={content:'',reason:''};await reload();});},'rr-primary'));box.append(form);}
    return box;
   }
   function actionsBar(){
@@ -163,8 +182,11 @@
    const acts=n('div','rp-action-buttons');
    if(!signed()){
     const save=button('Guardar borrador',()=>act('Borrador guardado',async()=>{const id=run.row?.id||crypto.randomUUID();await run.api.save(id,source.id,run.row?.revision||0,run.doc);await reload();}),'rr-secondary');save.disabled=run.busy;acts.append(save);
-    const assistBtn=button('Ordenar y redactar con apoyo de IA',()=>{if(!run.doc.findings.length){status('No hay hallazgos confirmados que redactar.','rr-error');return;}act('Redacción asistida aplicada',async()=>{const next=await assist({client,tenant,doc:run.doc,endpoint:window.EDGE_URL,publicKey:window.SUPA_KEY,current:valid});run.doc=Object.assign(next,{sections:Object.assign(next.sections,{complementaryStudies:run.doc.sections.complementaryStudies})});run.dirty=true;});},'rr-tool');assistBtn.disabled=run.busy||!window.EDGE_URL;assistBtn.title='Sólo ordena y redacta lo confirmado; cualquier adición se descarta automáticamente.';acts.append(assistBtn);
-    const sign=button('Firmar informe',async()=>{if(!run.caps?.clinicalApprove){status('Tu rol no puede firmar informes.','rr-error');return;}const check=diff(run.doc);if(check.warnings.some(w=>w.code==='empty_description')){status('Completa la descripción radiográfica antes de firmar.','rr-error');return;}if(check.warnings.some(w=>w.code==='extra_tooth')&&!await confirmDialog('El texto menciona piezas sin hallazgo','Hay piezas mencionadas en el texto que no tienen hallazgo confirmado. ¿Firmar de todos modos bajo tu responsabilidad?','Firmar de todos modos'))return;if(!await confirmDialog('Firmar informe','La firma es inmutable: queda con tu usuario, profesional, fecha, versión y hash. Después sólo podrás agregar adendas.','Firmar'))return;act('Informe firmado',async()=>{const id=run.row?.id||crypto.randomUUID();let row=run.row;if(run.dirty||!row){row=await run.api.save(id,source.id,row?.revision||0,run.doc);}await run.api.sign(row.id,row.revision);await reload();});},'rr-primary');sign.disabled=run.busy||!run.caps?.clinicalApprove;if(!run.caps?.clinicalApprove)sign.title='Requiere permiso de aprobación clínica.';acts.append(sign);
+    const assistBtn=button('Ordenar y redactar con apoyo de IA',async()=>{if(!run.doc.findings.length){status('No hay hallazgos confirmados que redactar.','rr-error');return;}
+     if(!await confirmDialog('Enviar texto a la redacción asistida','Se enviarán al servicio de IA de la plataforma los hallazgos confirmados y el texto de las secciones. No se envía la imagen, el nombre ni datos de contacto del paciente. Puede generar consumo y tarda hasta un minuto.','Enviar'))return;
+     act('Redacción asistida aplicada',async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);run.abort=controller;try{const next=await assist({client,tenant,doc:run.doc,endpoint:window.EDGE_URL,publicKey:window.SUPA_KEY,current:valid,signal:controller.signal});run.doc=Object.assign(next,{sections:Object.assign(next.sections,{complementaryStudies:run.doc.sections.complementaryStudies})});run.dirty=true;}finally{clearTimeout(timer);run.abort=null;}});},'rr-tool');assistBtn.disabled=run.busy||!window.EDGE_URL;assistBtn.title='Ordena y redacta lo confirmado. Una revisión automática busca piezas o afirmaciones nuevas, pero es aproximada: lee el texto antes de firmar.';acts.append(assistBtn);
+    if(run.abort){const cancel=button('Cancelar redacción',()=>run.abort?.abort(),'rr-tertiary');cancel.classList.add('rp-cancel');acts.append(cancel);}
+    const sign=button('Firmar informe',async()=>{if(!run.caps?.clinicalApprove){status('Tu rol no puede firmar informes.','rr-error');return;}const check=diff(run.doc);if(check.warnings.some(w=>w.code==='empty_description')){status('Completa la descripción radiográfica antes de firmar.','rr-error');return;}if(check.warnings.some(w=>w.code==='extra_tooth')&&!await confirmDialog('El texto menciona piezas sin hallazgo','Hay piezas mencionadas en el texto que no tienen hallazgo confirmado. ¿Firmar de todos modos bajo tu responsabilidad?','Firmar de todos modos'))return;if(!await confirmDialog('Firmar informe','La firma es inmutable: queda con tu usuario, profesional, fecha, versión y hash. Después sólo podrás agregar adendas.','Firmar'))return;act('Informe firmado',async()=>{const id=run.row?.id||crypto.randomUUID();let row=run.row;if(run.dirty||!row){row=await run.api.save(id,source.id,row?.revision||0,run.doc);}try{await run.api.sign(row.id,row.revision);}catch(e){try{await reload();}catch(_){}throw e;}await reload();});},'rr-primary');sign.disabled=run.busy||!run.caps?.clinicalApprove;if(!run.caps?.clinicalApprove)sign.title='Requiere permiso de aprobación clínica.';acts.append(sign);
    }else{
     acts.append(button('Exportar (JSON)',()=>act('Exportación registrada',async()=>{const data=await run.api.export(run.row.id);const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),url=URL.createObjectURL(blob),a=n('a');a.href=url;a.download='informe-radiografico-'+run.row.id.slice(0,8)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}),'rr-secondary'));
     acts.append(button('Vista para imprimir',()=>act('Vista generada',async()=>{const data=await run.api.export(run.row.id);const d=n('dialog','rp-print'),wrap=n('div','rp-print-wrap');wrap.innerHTML=printable(data,study);const actions=n('div','rr-confirm-actions');actions.append(button('Cerrar',()=>d.close()),button('Imprimir',()=>window.print(),'rr-primary'));d.append(wrap,actions);document.body.append(d);d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();}),'rr-primary'));
@@ -177,12 +199,12 @@
    const top=n('section','rr-review rp-review'),head=n('header','rr-review-head'),title=n('div');
    title.append(n('p','rr-step',signed()?'Informe firmado':'4 de 4 · Informe'),n('h1','','Informe radiográfico asistido'),n('p','rr-lead','Documento profesional construido sólo con tus decisiones. La IA puede ordenar y redactar; no añade hallazgos, diagnósticos ni estudios.'));head.append(title);top.append(head);
    const ws=n('div','rp-workspace');ws.append(findingsPanel(),sectionsPanel());top.append(ws,diffPanel(),signaturePanel(),actionsBar(),n('p','rr-note rr-safety-note','Revisión asistida: no es un diagnóstico automático. La firma registra usuario, profesional, fecha, versión y hash; después sólo adendas.'));host.append(top);
-   if(run.busy)host.querySelectorAll('button,select,textarea,input').forEach(b=>{if(!b.closest('.rr-bar'))b.disabled=true;});
+   if(run.busy)host.querySelectorAll('button,select,textarea,input').forEach(b=>{if(!b.closest('.rr-bar')&&!b.classList.contains('rp-cancel'))b.disabled=true;});
   }
   render();
   try{await reload();if(!valid())return;render();status(signed()?'Informe firmado el '+new Date(run.row.signed_at).toLocaleDateString('es-MX')+'. Sólo admite adendas.':run.row?'Borrador guardado · revisión '+run.row.revision+'.':'Borrador construido sólo con tus decisiones confirmadas.','rr-ok');}catch(e){if(valid()){status(errText(e),'rr-error');}}
  }
- const api={SECTION_LABELS,PRIORITY_LABELS,allowedFindings,technicalLimitations,buildDraft,diff,parseAssist,assist,ASSIST_SYSTEM,printable};
+ const api={SECTION_LABELS,PRIORITY_LABELS,allowedFindings,technicalLimitations,buildDraft,diff,parseAssist,assist,ASSIST_SYSTEM,printable,mentionedTeeth,esc};
  if(typeof document!=='undefined'){api.open=open;api.close=()=>close(active,true);addEventListener('pagehide',()=>close(active,true));}
  return Object.freeze(api);
 });

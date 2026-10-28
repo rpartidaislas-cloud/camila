@@ -104,6 +104,53 @@ drop trigger if exists smyl_radiograph_reference_annotations_immutable on public
 create trigger smyl_radiograph_reference_annotations_immutable before update or delete on public.smyl_radiograph_reference_annotations
   for each row execute function public.smyl_radiograph_forbid_change();
 
+-- Conjunto de evaluación: sólo cambia al bloquearse (locked_at) y nunca se borra directo; los miembros
+-- no cambian ni se quitan una vez bloqueado; los incidentes sólo pasan de abiertos a cerrados.
+create or replace function public.smyl_radiograph_guard_eval_set_change()
+returns trigger language plpgsql set search_path = pg_catalog, public as $$
+begin
+  if tg_op = 'DELETE' then
+    if pg_trigger_depth() > 1 then return old; end if;
+    raise exception using errcode = '42501', message = 'Los conjuntos de evaluación no se borran.';
+  end if;
+  if old.locked_at is null and new.locked_at is not null and (to_jsonb(new) - 'locked_at') = (to_jsonb(old) - 'locked_at') then return new; end if;
+  raise exception using errcode = '42501', message = 'El conjunto de evaluación es inmutable.';
+end;
+$$;
+drop trigger if exists smyl_radiograph_eval_sets_guard on public.smyl_radiograph_eval_sets;
+create trigger smyl_radiograph_eval_sets_guard before update or delete on public.smyl_radiograph_eval_sets
+  for each row execute function public.smyl_radiograph_guard_eval_set_change();
+create or replace function public.smyl_radiograph_guard_eval_member_change()
+returns trigger language plpgsql set search_path = pg_catalog, public as $$
+begin
+  if tg_op = 'DELETE' and pg_trigger_depth() > 1 then return old; end if;
+  if exists (select 1 from public.smyl_radiograph_eval_sets s where s.tenant_id = old.tenant_id and s.id = old.set_id and s.locked_at is not null) then
+    raise exception using errcode = '42501', message = 'El conjunto está bloqueado por un informe de validación.'; end if;
+  if tg_op = 'DELETE' then raise exception using errcode = '42501', message = 'Los miembros del conjunto no se quitan directamente.'; end if;
+  if new.tenant_id <> old.tenant_id or new.set_id <> old.set_id or new.source_id <> old.source_id then
+    raise exception using errcode = '42501', message = 'La identidad del miembro es inmutable.'; end if;
+  return new;
+end;
+$$;
+drop trigger if exists smyl_radiograph_eval_members_guard on public.smyl_radiograph_eval_members;
+create trigger smyl_radiograph_eval_members_guard before update or delete on public.smyl_radiograph_eval_members
+  for each row execute function public.smyl_radiograph_guard_eval_member_change();
+create or replace function public.smyl_radiograph_guard_incident_change()
+returns trigger language plpgsql set search_path = pg_catalog, public as $$
+begin
+  if tg_op = 'DELETE' then
+    if pg_trigger_depth() > 1 then return old; end if;
+    raise exception using errcode = '42501', message = 'Los incidentes no se borran.';
+  end if;
+  if pg_trigger_depth() > 1 and new.source_id is null and old.source_id is not null and (to_jsonb(new) - 'source_id') = (to_jsonb(old) - 'source_id') then return new; end if;
+  if old.status = 'open' and new.status = 'closed' and (to_jsonb(new) - 'status' - 'resolution' - 'closed_by' - 'closed_at') = (to_jsonb(old) - 'status' - 'resolution' - 'closed_by' - 'closed_at') then return new; end if;
+  raise exception using errcode = '42501', message = 'El incidente sólo puede cerrarse una vez.';
+end;
+$$;
+drop trigger if exists smyl_radiograph_incidents_guard on public.smyl_radiograph_incidents;
+create trigger smyl_radiograph_incidents_guard before update or delete on public.smyl_radiograph_incidents
+  for each row execute function public.smyl_radiograph_guard_incident_change();
+
 alter table public.smyl_radiograph_eval_sets enable row level security;
 alter table public.smyl_radiograph_eval_members enable row level security;
 alter table public.smyl_radiograph_reference_annotations enable row level security;
@@ -155,17 +202,18 @@ $$;
 revoke all on function public.smyl_radiograph_create_eval_set(text, text, text, text, text) from public, anon;
 grant execute on function public.smyl_radiograph_create_eval_set(text, text, text, text, text) to authenticated;
 
-create or replace function public.smyl_radiograph_add_eval_member(p_set_id uuid, p_source_id uuid, p_training_exposure boolean default false)
+create or replace function public.smyl_radiograph_add_eval_member(p_set_id uuid, p_source_id uuid, p_training_exposure boolean)
 returns public.smyl_radiograph_eval_members language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_tenant uuid := public.smyl_radiograph_validation_guard(); v_set public.smyl_radiograph_eval_sets; v_row public.smyl_radiograph_eval_members;
 begin
-  select * into v_set from public.smyl_radiograph_eval_sets where tenant_id = v_tenant and id = p_set_id;
+  if p_training_exposure is null then raise exception using errcode = '22023', message = 'Declara si la fuente pudo haber sido vista por el proveedor al entrenar.'; end if;
+  select * into v_set from public.smyl_radiograph_eval_sets where tenant_id = v_tenant and id = p_set_id for update;
   if not found then raise exception using errcode = '42501', message = 'El conjunto de evaluación no está disponible.'; end if;
   if v_set.locked_at is not null then raise exception using errcode = '23514', message = 'El conjunto está bloqueado por un informe de validación.'; end if;
   if not exists (select 1 from public.smyl_radiograph_sources s where s.tenant_id = v_tenant and s.id = p_source_id and public.smyl_can_access_patient(v_tenant, s.patient_id, 'clinical')) then
     raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   insert into public.smyl_radiograph_eval_members(tenant_id, set_id, source_id, training_exposure, added_by)
-  values (v_tenant, p_set_id, p_source_id, coalesce(p_training_exposure, false), auth.uid())
+  values (v_tenant, p_set_id, p_source_id, p_training_exposure, auth.uid())
   on conflict (tenant_id, set_id, source_id) do update set training_exposure = excluded.training_exposure returning * into v_row;
   return v_row;
 end;
@@ -182,6 +230,7 @@ begin
   select * into v_source from public.smyl_radiograph_sources s where s.id = p_source_id and s.tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_source.patient_id, 'clinical.write');
+  if public.smyl_current_professional_id(v_tenant) is null then raise exception using errcode = '42501', message = 'Sólo un profesional registrado en la clínica puede anotar la referencia.'; end if;
   if p_adjudicated and not public.smyl_has_permission(v_tenant, 'clinical.approve') then raise exception using errcode = '42501', message = 'Adjudicar requiere permiso de aprobación clínica.'; end if;
   if exists (select 1 from public.smyl_radiograph_reference_annotations a where a.tenant_id = v_tenant and a.source_id = p_source_id and a.annotator_id = auth.uid() and a.kind = p_kind and a.fdi = p_fdi and a.category = coalesce(p_category, '') and a.adjudicated = coalesce(p_adjudicated, false)) then
     raise exception using errcode = '23505', message = 'Ya anotaste esta pieza; la referencia es inmutable. Usa una adjudicación para resolver.'; end if;
@@ -201,15 +250,15 @@ language sql stable security definer set search_path = pg_catalog, public as $$
   with votes as (
     select a.kind, a.fdi, a.category,
       bool_or(a.adjudicated) as adjudicated,
-      bool_or(a.adjudicated and a.present) as adjudicated_present,
+      bool_or(a.adjudicated and a.present) as adjudicated_present, bool_or(a.adjudicated and not a.present) as adjudicated_absent,
       count(*) filter (where a.present) as yes, count(*) filter (where not a.present) as no, count(distinct a.annotator_id) as annotators
     from public.smyl_radiograph_reference_annotations a
     where a.tenant_id = p_tenant and a.source_id = p_source_id
     group by a.kind, a.fdi, a.category)
   select v.kind, v.fdi, v.category,
-    case when v.adjudicated then v.adjudicated_present when v.yes > v.no then true when v.no > v.yes then false else null end,
+    case when v.adjudicated then (v.adjudicated_present and not v.adjudicated_absent) when v.yes > v.no then true when v.no > v.yes then false else null end,
     v.annotators::integer,
-    (not v.adjudicated and v.yes = v.no)
+    ((not v.adjudicated and v.yes = v.no) or (v.adjudicated_present and v.adjudicated_absent))
   from votes v;
 $$;
 revoke all on function public.smyl_radiograph_reference_truth(uuid, uuid) from public, anon, authenticated;
@@ -234,7 +283,7 @@ begin
   -- Candidatos del modelo (positivos) con su decisión
   cand as (
     select c.source_id, r.kind as task, r.engine, c.kind as ckind, c.id as candidate_id,
-      case when c.kind = 'tooth' then c.payload->>'fdiCandidate' else c.payload->>'toothCandidate' end as fdi,
+      case when c.kind = 'tooth' then c.payload->>'fdiCandidate' else coalesce(c.payload->>'toothCandidate', '') end as fdi,
       case when c.kind = 'tooth' then '' else c.payload->>'category' end as category,
       coalesce((c.payload->>'fdiProbability')::numeric, (c.payload->>'confidence')::numeric) as confidence,
       d.state, d.payload as decision_payload
@@ -251,9 +300,12 @@ begin
   truth as (
     select source_id, ckind, fdi, category from ref where present and not disagreement
     union
-    select c.source_id, c.ckind, coalesce(c.decision_payload->>'fdi', c.fdi), c.category from cand c
+    select c.source_id, c.ckind, case when c.decision_payload ? 'fdi' then coalesce(c.decision_payload->>'fdi', '') else c.fdi end, c.category from cand c
     where c.state in ('confirmed','corrected') and c.source_id not in (select source_id from ref_sources)),
-  source_engine as (select distinct source_id, task, engine, ckind from model_pos),
+  -- Universo = fuentes del conjunto × ejecuciones completadas: una fuente donde el modelo no propuso
+  -- nada también cuenta (sus omisiones son falsos negativos), no sólo donde acertó o falló.
+  source_engine as (select distinct r.source_id, r.kind as task, r.engine, case when r.kind = 'tooth_localization' then 'tooth' else 'finding' end as ckind
+    from runs r where r.status = 'completed'),
   joined as (
     select se.source_id, se.task, se.engine, se.ckind, m.study_type,
       (select count(*) from model_pos p join truth t on t.source_id = p.source_id and t.ckind = p.ckind and t.fdi = p.fdi and t.category = p.category where p.source_id = se.source_id and p.task = se.task and p.engine = se.engine) as tp,
@@ -285,6 +337,7 @@ begin
   select jsonb_build_object(
     'schema', 1, 'setId', v_set.id, 'setName', v_set.name, 'split', v_set.split, 'intendedUse', v_set.intended_use,
     'sources', (select count(*) from members),
+    'sourceIds', coalesce((select jsonb_agg(source_id order by source_id) from members), '[]'::jsonb),
     'trainingExposure', (select count(*) from members where training_exposure),
     'referenceDisagreements', (select count(*) from ref where disagreement),
     'groups', coalesce((select jsonb_agg(jsonb_build_object(
@@ -332,7 +385,7 @@ begin
         'decided', coalesce(d.decided, 0), 'disagreed', coalesce(d.disagreed, 0), 'disagreementRate', case when coalesce(d.decided, 0) > 0 then round(d.disagreed::numeric / d.decided, 4) else null end) order by w.week, w.kind)
       from weekly w left join decided d on d.kind = w.kind and d.engine = w.engine and d.week = w.week), '[]'::jsonb),
     'openIncidents', (select count(*) from public.smyl_radiograph_incidents i where i.tenant_id = v_tenant and i.status = 'open'),
-    'engines', coalesce((select jsonb_agg(jsonb_build_object('kind', e.kind, 'provider', e.provider, 'name', e.name, 'version', e.version, 'enabled', e.enabled) order by e.kind) from public.smyl_radiograph_engines e), '[]'::jsonb),
+    'engines', coalesce((select jsonb_agg(jsonb_build_object('kind', e.kind, 'provider', e.provider, 'name', e.name, 'version', e.version, 'enabled', e.enabled) order by e.kind) from public.smyl_radiograph_engines e where e.enabled), '[]'::jsonb),
     'flags', (select jsonb_object_agg(f.key, public.smyl_radiograph_flag_enabled(f.key, v_tenant)) from public.smyl_radiograph_feature_flags f)
   ) into v_result;
   return v_result;
@@ -348,6 +401,9 @@ begin
   if v_tenant is null or not public.smyl_has_permission(v_tenant, 'clinical.write') then raise exception using errcode = '42501', message = 'No tienes permiso para registrar incidentes.'; end if;
   if p_source_id is not null and not exists (select 1 from public.smyl_radiograph_sources s where s.tenant_id = v_tenant and s.id = p_source_id and public.smyl_can_access_patient(v_tenant, s.patient_id, 'clinical')) then
     raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
+  if p_run_id is not null and not exists (select 1 from public.smyl_radiograph_ai_runs r where r.tenant_id = v_tenant and r.id = p_run_id and (p_source_id is null or r.source_id = p_source_id)
+       and public.smyl_can_access_patient(v_tenant, r.patient_id, 'clinical')) then
+    raise exception using errcode = '42501', message = 'La ejecución no está disponible.'; end if;
   insert into public.smyl_radiograph_incidents(tenant_id, source_id, run_id, severity, category, description, created_by)
   values (v_tenant, p_source_id, p_run_id, p_severity, p_category, p_description, auth.uid()) returning * into v_row;
   return v_row;
@@ -378,9 +434,20 @@ begin
   if jsonb_typeof(p_exit_criteria) is distinct from 'array' or jsonb_array_length(p_exit_criteria) not between 1 and 20 then raise exception using errcode = '22023', message = 'Define entre 1 y 20 criterios de salida.'; end if;
   v_professional := public.smyl_current_professional_id(v_tenant);
   if v_professional is null then raise exception using errcode = '23514', message = 'Sólo un profesional registrado puede aprobar un informe de validación.'; end if;
+  perform 1 from public.smyl_radiograph_eval_sets where tenant_id = v_tenant and id = p_set_id for update;
   v_metrics := public.smyl_radiograph_validation_metrics(p_set_id);
   if (v_metrics->>'sources')::integer = 0 then raise exception using errcode = '23514', message = 'El conjunto no tiene fuentes.'; end if;
   if (v_metrics->>'trainingExposure')::integer > 0 then raise exception using errcode = '23514', message = 'El conjunto contiene fuentes con posible exposición al entrenamiento; no es un conjunto de prueba independiente.'; end if;
+  if (v_metrics->>'sources')::integer < coalesce((public.smyl_radiograph_setting('validation_min_sources'))::integer, 30) then
+    raise exception using errcode = '23514', message = format('Un informe de validación requiere al menos %s fuentes independientes.', coalesce((public.smyl_radiograph_setting('validation_min_sources'))::integer, 30)); end if;
+  if exists (select 1 from jsonb_array_elements(v_metrics->'groups') g where g->>'truthSource' is distinct from 'reference') then
+    raise exception using errcode = '23514', message = 'Todas las fuentes necesitan referencia multi-profesional: las decisiones del propio revisor no validan al motor.'; end if;
+  if exists (select 1 from jsonb_array_elements(v_metrics->'groups') g where g->'engine'->>'provider' = 'simulated') then
+    raise exception using errcode = '23514', message = 'Un motor simulado no puede validarse: produce geometría sintética.'; end if;
+  if exists (select 1 from jsonb_array_elements_text(v_metrics->'sourceIds') sid(id) where (
+      select count(distinct a.annotator_id) from public.smyl_radiograph_reference_annotations a where a.tenant_id = v_tenant and a.source_id = sid.id::uuid and not a.adjudicated)
+      < coalesce((public.smyl_radiograph_setting('validation_min_annotators'))::integer, 2)) then
+    raise exception using errcode = '23514', message = 'Cada fuente necesita referencia de al menos el mínimo de profesionales independientes.'; end if;
   for v_c in select value from jsonb_array_elements(p_exit_criteria) loop
     if jsonb_typeof(v_c) is distinct from 'object' or coalesce(v_c->>'metric','') not in ('sensitivity','specificity','precision','disagreementRate','unconfirmedRate') or coalesce(v_c->>'task','') not in ('tooth_localization','finding_candidates')
        or not ((v_c ? 'min') or (v_c ? 'max')) then raise exception using errcode = '22023', message = 'Criterio de salida no válido.'; end if;
@@ -401,42 +468,14 @@ begin
   insert into public.smyl_radiograph_validation_reports(tenant_id, set_id, version, engines, metrics, exit_criteria, criteria_met, verdict, notes, approved_by, approved_professional_id, content_hash)
   values (v_tenant, p_set_id, v_version, v_engines, v_metrics, p_exit_criteria, v_met and v_any, case when v_met and v_any then 'approved_for_pilot' else 'not_approved' end, coalesce(p_notes, ''), auth.uid(), v_professional,
     encode(sha256(convert_to((v_metrics::text || p_exit_criteria::text), 'UTF8')), 'hex')) returning * into v_row;
-  update public.smyl_radiograph_eval_sets set locked_at = coalesce(locked_at, clock_timestamp()) where tenant_id = v_tenant and id = p_set_id;
+  update public.smyl_radiograph_eval_sets set locked_at = clock_timestamp() where tenant_id = v_tenant and id = p_set_id and locked_at is null;
   return v_row;
 end;
 $$;
 revoke all on function public.smyl_radiograph_record_validation_report(uuid, jsonb, text) from public, anon;
 grant execute on function public.smyl_radiograph_record_validation_report(uuid, jsonb, text) to authenticated;
 
--- Botón de desactivación por clínica: una clínica con clinic.manage apaga/enciende su piloto sin
--- esperar un despliegue. Sólo puede encender lo que la plataforma ya habilitó a nivel global o
--- piloto; apagar siempre es posible. El interruptor global sigue siendo de service_role.
-create or replace function public.smyl_radiograph_set_tenant_flag(p_key text, p_enabled boolean)
-returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
-declare v_tenant uuid := public.smyl_current_tenant();
-begin
-  if v_tenant is null or not public.smyl_has_permission(v_tenant, 'clinic.manage') then raise exception using errcode = '42501', message = 'Sólo quien administra la clínica puede pausar o reanudar el motor.'; end if;
-  if not exists (select 1 from public.smyl_radiograph_feature_flags f where f.key = p_key) then raise exception using errcode = '22023', message = 'Bandera desconocida.'; end if;
-  if p_enabled and not exists (select 1 from public.smyl_radiograph_flag_tenants t where t.key = p_key and t.tenant_id = v_tenant) and not (select enabled from public.smyl_radiograph_feature_flags where key = p_key) then
-    raise exception using errcode = '42501', message = 'Esta función no está habilitada por la plataforma para tu clínica.'; end if;
-  insert into public.smyl_radiograph_flag_tenants(key, tenant_id, enabled, updated_by, updated_at) values (p_key, v_tenant, p_enabled, auth.uid(), clock_timestamp())
-  on conflict (key, tenant_id) do update set enabled = excluded.enabled, updated_by = excluded.updated_by, updated_at = excluded.updated_at;
-  return public.smyl_radiograph_ai_capabilities();
-end;
-$$;
-revoke all on function public.smyl_radiograph_set_tenant_flag(text, boolean) from public, anon;
-grant execute on function public.smyl_radiograph_set_tenant_flag(text, boolean) to authenticated;
--- Nota: una pausa por clínica sobre una bandera global encendida queda registrada como enabled=false
--- en smyl_radiograph_flag_tenants; smyl_radiograph_flag_enabled hace OR (global, tenant), así que
--- para que la pausa tenga efecto se evalúa primero la fila del tenant cuando existe:
-create or replace function public.smyl_radiograph_flag_enabled(p_key text, p_tenant uuid)
-returns boolean language sql stable security definer set search_path = pg_catalog, public as $$
-  select coalesce(
-    (select t.enabled from public.smyl_radiograph_flag_tenants t where t.key = p_key and t.tenant_id = p_tenant),
-    (select f.enabled from public.smyl_radiograph_feature_flags f where f.key = p_key),
-    false);
-$$;
-revoke all on function public.smyl_radiograph_flag_enabled(text, uuid) from public, anon, authenticated;
+-- (La bandera efectiva y la pausa por clínica viven en 20261028100000.)
 
 -- Divulgación para la interfaz: motor activo por tarea, último informe de validación de la clínica,
 -- fecha de actualización y límites. Nunca credenciales ni config.
@@ -449,7 +488,9 @@ begin
     'schema', 1,
     'engines', coalesce((select jsonb_agg(jsonb_build_object('kind', e.kind, 'provider', e.provider, 'name', e.name, 'version', e.version, 'updatedAt', e.updated_at,
         'simulated', e.provider = 'simulated') order by e.kind) from public.smyl_radiograph_engines e where e.enabled), '[]'::jsonb),
-    'validation', (select jsonb_build_object('version', r.version, 'verdict', r.verdict, 'criteriaMet', r.criteria_met, 'approvedAt', r.approved_at, 'setName', s.name, 'engines', r.engines)
+    'validation', (select jsonb_build_object('version', r.version, 'verdict', r.verdict, 'criteriaMet', r.criteria_met, 'approvedAt', r.approved_at, 'setName', s.name, 'engines', r.engines,
+        'matchesActiveEngines', not exists (select 1 from public.smyl_radiograph_engines e where e.enabled and e.kind <> 'qc'
+          and not (r.engines @> jsonb_build_array(jsonb_build_object('provider', e.provider, 'name', e.name, 'version', e.version)))))
       from public.smyl_radiograph_validation_reports r join public.smyl_radiograph_eval_sets s on s.tenant_id = r.tenant_id and s.id = r.set_id
       where r.tenant_id = v_tenant order by r.approved_at desc limit 1),
     'openIncidents', (select count(*) from public.smyl_radiograph_incidents i where i.tenant_id = v_tenant and i.status = 'open'),

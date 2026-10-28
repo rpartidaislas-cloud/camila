@@ -6,20 +6,22 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
 import { makeCors } from '../_shared/cors.ts';
-import { isAllowedRemoteUrl, parseAllowedHostSuffixes } from '../_shared/request-safety.ts';
 import { createQcProvider } from '../_shared/radiograph-provider.ts';
 import { runRadiographQc, type AiRunRow, type SourceRow } from '../_shared/radiograph-qc-core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('SB_URL') || '';
 const SB_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SB_SERVICE_ROLE_KEY') || '';
 const SB_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SB_ANON_KEY') || '';
-const PROVIDER_TIMEOUT_MS = Math.min(Math.max(Number(Deno.env.get('RADIOGRAPH_QC_TIMEOUT_MS') || 45000), 5000), 120000);
-const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const configuredTimeout = Number(Deno.env.get('RADIOGRAPH_QC_TIMEOUT_MS'));
+// Siempre finito: un valor ausente o mal escrito usa el predeterminado en vez de producir NaN (sin timeout).
+const PROVIDER_TIMEOUT_MS = Math.min(Math.max(Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 45000, 5000), 120000);
+const MAX_BODY_BYTES = 4096;
+// service_role se crea dentro del manejador: un fallo de configuración se responde, no tumba el módulo.
+const adminClient = () => createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 const provider = createQcProvider(
   { RADIOGRAPH_QC_PROVIDER: Deno.env.get('RADIOGRAPH_QC_PROVIDER'), RADIOGRAPH_QC_URL: Deno.env.get('RADIOGRAPH_QC_URL'), RADIOGRAPH_QC_API_KEY: Deno.env.get('RADIOGRAPH_QC_API_KEY'),
     RADIOGRAPH_QC_PROVIDER_NAME: Deno.env.get('RADIOGRAPH_QC_PROVIDER_NAME'), RADIOGRAPH_QC_MODEL_NAME: Deno.env.get('RADIOGRAPH_QC_MODEL_NAME'),
-    RADIOGRAPH_QC_MODEL_VERSION: Deno.env.get('RADIOGRAPH_QC_MODEL_VERSION'), RADIOGRAPH_PROVIDER_HOSTS: Deno.env.get('RADIOGRAPH_PROVIDER_HOSTS') },
-  isAllowedRemoteUrl, parseAllowedHostSuffixes,
+    RADIOGRAPH_QC_MODEL_VERSION: Deno.env.get('RADIOGRAPH_QC_MODEL_VERSION'), RADIOGRAPH_PROVIDER_HOSTS: Deno.env.get('RADIOGRAPH_PROVIDER_HOSTS'), RADIOGRAPH_ALLOW_SIMULATED: Deno.env.get('RADIOGRAPH_ALLOW_SIMULATED') },
 );
 
 Deno.serve(async (req: Request) => {
@@ -31,13 +33,23 @@ Deno.serve(async (req: Request) => {
   const auth = await requireUser(req, CORS);
   if (auth.response) return auth.response;
   let body: unknown;
-  try { body = await req.json(); } catch { return reply(400, { error: 'Cuerpo no válido.' }); }
+  try {
+    if (Number(req.headers.get('content-length') || 0) > MAX_BODY_BYTES) return reply(413, { error: 'Cuerpo demasiado grande.' });
+    const text = await req.text();
+    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return reply(413, { error: 'Cuerpo demasiado grande.' });
+    body = JSON.parse(text);
+  } catch { return reply(400, { error: 'Cuerpo no válido.' }); }
   // Cliente con la sesión de la persona: el RPC aplica tenant, permiso, alcance, bandera y motor.
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } });
   try {
+    const admin = adminClient();
     const result = await runRadiographQc(body, {
-      requestRun: async (sourceId, kind) => {
-        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: false });
+      requestRun: async (sourceId, kind, acknowledgeUnconfirmed) => {
+        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: acknowledgeUnconfirmed });
+        return { data: (data as AiRunRow) ?? null, error: error ? { code: error.code, message: error.message } : null };
+      },
+      claimRun: async (runId) => {
+        const { data, error } = await admin.rpc('smyl_radiograph_claim_ai_run', { p_run_id: runId });
         return { data: (data as AiRunRow) ?? null, error: error ? { code: error.code, message: error.message } : null };
       },
       loadSource: async (sourceId) => {
@@ -59,7 +71,7 @@ Deno.serve(async (req: Request) => {
     });
     return reply(result.status, result.body);
   } catch (error) {
-    console.error('[radiograph-qc]', error instanceof Error ? error.message : 'error desconocido');
+    
     return reply(500, { error: 'No se pudo completar el control de calidad. Intenta de nuevo.' });
   }
 });

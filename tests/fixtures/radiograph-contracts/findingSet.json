@@ -939,6 +939,216 @@
      }
     ]
    }
+  },
+  {
+   "name": "afirmación con descomposición NFD",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Diagnosticó probable",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación con espacio de ancho cero",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Radiopacidad candidata",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "certe​za total",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación en ancho completo",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "ｄｉａｇｎóｓｔｉｃｏ",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación en una limitación",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Radiopacidad candidata",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "Patrón visual que requiere comprobación profesional.",
+      "limitations": [
+       "Sin duda es una restauración."
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "afirmación en inglés",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "f-1",
+      "toothCandidate": "36",
+      "category": "restoration",
+      "label": "Radiopacidad candidata",
+      "confidence": 0.82,
+      "evidenceLevel": "model_candidate",
+      "regions": [
+       {
+        "kind": "bbox",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.3,
+          0.4
+         ]
+        ]
+       }
+      ],
+      "explanation": "This is definitive.",
+      "limitations": [
+       "Superposición parcial con pieza vecina."
+      ]
+     }
+    ]
+   }
   }
  ]
 }

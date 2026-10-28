@@ -28,6 +28,7 @@ create table if not exists public.smyl_radiograph_ai_runs (
   check ((status = 'completed') = (output is not null)),
   check ((status in ('completed','failed','unconfirmed')) = (completed_at is not null))
 );
+alter table public.smyl_radiograph_ai_runs add column if not exists claimed_at timestamptz;
 -- Idempotencia: una sola ejecución viva (solicitada o completada) por fuente+motor+contrato.
 create unique index if not exists smyl_radiograph_ai_runs_idempotent_idx
   on public.smyl_radiograph_ai_runs(tenant_id, source_id, kind, idempotency_key) where status in ('requested','completed');
@@ -96,7 +97,12 @@ begin
     raise exception using errcode = '42501', message = 'Las ejecuciones del motor no se borran.';
   end if;
   if old.status <> 'requested' then raise exception using errcode = '42501', message = 'La salida original del motor es inmutable.'; end if;
-  if new.status = 'requested' or new.id <> old.id or new.tenant_id <> old.tenant_id or new.source_id <> old.source_id
+  -- Reclamar la ejecución (claimed_at) es lo único que puede cambiar sin cerrarla, y sólo una vez.
+  if new.status = 'requested' then
+    if old.claimed_at is null and new.claimed_at is not null and to_jsonb(new) - 'claimed_at' = to_jsonb(old) - 'claimed_at' then return new; end if;
+    raise exception using errcode = '42501', message = 'Sólo se puede cerrar una ejecución solicitada.';
+  end if;
+  if new.id <> old.id or new.tenant_id <> old.tenant_id or new.source_id <> old.source_id
      or new.kind <> old.kind or new.engine_id <> old.engine_id or new.engine <> old.engine
      or new.contract_version <> old.contract_version or new.idempotency_key <> old.idempotency_key
      or new.requested_by <> old.requested_by or new.requested_at <> old.requested_at then
@@ -188,7 +194,10 @@ $$;
 -- Afirmaciones no permitidas en texto del modelo: no es diagnóstico ni certeza clínica.
 create or replace function public.smyl_radiograph_claim_forbidden(p text) returns boolean
 language sql immutable set search_path = pg_catalog as $$
-  select p ~* '(diagn[oó]s|confirmad[oa]|certeza|definitiv|inequ[ií]voc|sin duda|diagnosis|confirmed|definite)';
+  -- Normaliza antes de buscar (NFKD, sin marcas ni caracteres invisibles, minúsculas) para que
+  -- "Diagnóstico", "d​iagnóstico" o "ｄｉａｇｎóｓｔｉｃｏ" no evadan el filtro. Idéntico en JS/TS.
+  select regexp_replace(lower(normalize(coalesce(p, ''), NFKD)), '[\u0300-\u036f\u00ad\u200b-\u200f\u2060-\u2064\ufeff]', '', 'g')
+    ~ '(diagnos|confirmad|confirmed|confirm[ao]\y|certeza|certain|certitud|definitiv|definite|inequivoc|unequivocal|sin duda|without doubt|concluyente|conclusive|patognomon|pathognomon|seguro de|es una caries|is a caries)';
 $$;
 
 create or replace function public.smyl_radiograph_model_valid(p jsonb) returns boolean
@@ -227,7 +236,7 @@ begin
     x1 := (p->'points'->((i+1) % v_n)->>0)::numeric; y1 := (p->'points'->((i+1) % v_n)->>1)::numeric;
     area := area + (x0 * y1 - x1 * y0);
   end loop;
-  return abs(area) / 2 >= 0.000001;
+  return abs(area) / 2 >= 0.000001 - 0.000000000001;
 end;
 $$;
 
@@ -277,6 +286,12 @@ begin
        or not public.smyl_radiograph_text_valid(v->'reason', 1, 300) then
       raise exception using errcode = '22023', message = 'Análisis bloqueado no válido.'; end if;
     seen := array_append(seen, v->>'code');
+  end loop;
+  for v in select value from jsonb_array_elements(p->'quality'->'flags') loop
+    if public.smyl_radiograph_claim_forbidden(v->>'explanation') then raise exception using errcode = '22023', message = 'El modelo no puede presentar una señal como diagnóstico o certeza.'; end if;
+  end loop;
+  for v in select value from jsonb_array_elements(p->'blockedAnalyses') loop
+    if public.smyl_radiograph_claim_forbidden(v->>'reason') then raise exception using errcode = '22023', message = 'El modelo no puede presentar una señal como diagnóstico o certeza.'; end if;
   end loop;
   if p->'quality'->>'status' = 'unusable' and cardinality(applicable) > 0 then
     raise exception using errcode = '22023', message = 'Una imagen no utilizable no habilita análisis.'; end if;
@@ -342,6 +357,7 @@ begin
     end loop;
     for r in select value from jsonb_array_elements(c->'limitations') loop
       if not public.smyl_radiograph_text_valid(r, 1, 200) then raise exception using errcode = '22023', message = 'Limitación de señal no válida.'; end if;
+      if public.smyl_radiograph_claim_forbidden(r#>>'{}') then raise exception using errcode = '22023', message = 'El modelo no puede presentar una señal como diagnóstico o certeza.'; end if;
     end loop;
   end loop;
 end;
@@ -357,6 +373,11 @@ begin
 end;
 $$;
 revoke all on function public.smyl_radiograph_validate_output(text, jsonb) from public, anon, authenticated;
+-- Los validadores y utilidades puras sólo las ejecutan las funciones del propio módulo (security definer).
+revoke all on function public.smyl_radiograph_fdi_valid(text), public.smyl_radiograph_fdi_valid(jsonb), public.smyl_radiograph_id_valid(jsonb),
+  public.smyl_radiograph_prob_valid(jsonb), public.smyl_radiograph_text_valid(jsonb, integer, integer), public.smyl_radiograph_claim_forbidden(text),
+  public.smyl_radiograph_model_valid(jsonb), public.smyl_radiograph_geometry_valid(jsonb, boolean), public.smyl_radiograph_validate_qc(jsonb),
+  public.smyl_radiograph_validate_tooth_set(jsonb), public.smyl_radiograph_validate_finding_set(jsonb) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------------------
 -- RPCs
@@ -388,9 +409,21 @@ begin
   end if;
   v_key := encode(sha256(convert_to(v_source.sha256 || '|' || v_engine.provider || '|' || v_engine.name || '|' || v_engine.version || '|' || v_engine.contract_version::text, 'UTF8')), 'hex');
   perform pg_advisory_xact_lock(hashtextextended('radiograph-run:' || p_source_id::text || p_kind, 31));
+  -- Una ejecución reclamada que nunca cerró pudo haber llegado al proveedor: queda "sin confirmar".
+  -- Una solicitada que nadie reclamó nunca salió: se cierra como fallida (sin costo ni envío).
+  update public.smyl_radiograph_ai_runs set status = 'unconfirmed', failure_code = 'timeout', completed_at = clock_timestamp()
+  where tenant_id = v_tenant and source_id = p_source_id and kind = p_kind and status = 'requested' and claimed_at is not null and claimed_at < clock_timestamp() - interval '5 minutes';
+  update public.smyl_radiograph_ai_runs set status = 'failed', failure_code = 'provider_error', completed_at = clock_timestamp()
+  where tenant_id = v_tenant and source_id = p_source_id and kind = p_kind and status = 'requested' and claimed_at is null and requested_at < clock_timestamp() - interval '30 minutes';
   select * into v_row from public.smyl_radiograph_ai_runs
   where tenant_id = v_tenant and source_id = p_source_id and kind = p_kind and idempotency_key = v_key and status in ('requested','completed');
   if found then return v_row; end if;
+  if (select count(*) from public.smyl_radiograph_ai_runs r where r.tenant_id = v_tenant and r.requested_at > clock_timestamp() - interval '24 hours')
+       >= coalesce((public.smyl_radiograph_setting('daily_run_cap'))::integer, 500) then
+    raise exception using errcode = '23514', message = 'La clínica alcanzó el tope diario de ejecuciones del motor.'; end if;
+  if (select count(*) from public.smyl_radiograph_ai_runs r where r.tenant_id = v_tenant and r.source_id = p_source_id and r.kind = p_kind and r.idempotency_key = v_key
+        and r.status = 'failed' and r.requested_at > clock_timestamp() - interval '24 hours') >= coalesce((public.smyl_radiograph_setting('failed_retry_cap'))::integer, 3) then
+    raise exception using errcode = '23514', message = 'Esta imagen falló varias veces con el motor; revisa la calidad o contacta a soporte antes de reintentar.'; end if;
   if not p_acknowledge_unconfirmed and exists (
     select 1 from public.smyl_radiograph_ai_runs where tenant_id = v_tenant and source_id = p_source_id and kind = p_kind and idempotency_key = v_key and status = 'unconfirmed') then
     raise exception using errcode = '23514', message = 'Hay una ejecución sin confirmar; revísala antes de solicitar otra.'; end if;
@@ -404,6 +437,25 @@ end;
 $$;
 revoke all on function public.smyl_radiograph_request_ai_run(uuid, text, boolean) from public, anon;
 grant execute on function public.smyl_radiograph_request_ai_run(uuid, text, boolean) to authenticated;
+
+-- Reclamo atómico antes de llamar al proveedor (sólo servidor): una sola invocación gana. Si otra ya
+-- reclamó la ejecución, no se vuelve a enviar nada (409 in_progress en la Edge Function).
+create or replace function public.smyl_radiograph_claim_ai_run(p_run_id uuid)
+returns public.smyl_radiograph_ai_runs
+language plpgsql security definer set search_path = pg_catalog, public as $$
+declare v_row public.smyl_radiograph_ai_runs;
+begin
+  perform pg_advisory_xact_lock(hashtextextended('radiograph-run-close:' || p_run_id::text, 31));
+  select * into v_row from public.smyl_radiograph_ai_runs where id = p_run_id for update;
+  if not found then raise exception using errcode = '42501', message = 'Ejecución desconocida.'; end if;
+  if v_row.status <> 'requested' then raise exception using errcode = 'PT409', message = 'in_progress: la ejecución ya está cerrada.'; end if;
+  if v_row.claimed_at is not null then raise exception using errcode = 'PT409', message = 'in_progress: la ejecución ya fue reclamada.'; end if;
+  update public.smyl_radiograph_ai_runs set claimed_at = clock_timestamp() where id = p_run_id returning * into v_row;
+  return v_row;
+end;
+$$;
+revoke all on function public.smyl_radiograph_claim_ai_run(uuid) from public, anon, authenticated;
+grant execute on function public.smyl_radiograph_claim_ai_run(uuid) to service_role;
 
 -- Cierre (sólo servidor / service_role). Valida con el contrato, guarda el original completo
 -- y siembra candidatos con decisión pendiente. Idempotente si se repite con el mismo cierre.
@@ -446,6 +498,7 @@ begin
 end;
 $$;
 revoke all on function public.smyl_radiograph_complete_ai_run(uuid, text, jsonb, text, jsonb) from public, anon, authenticated;
+grant execute on function public.smyl_radiograph_complete_ai_run(uuid, text, jsonb, text, jsonb) to service_role;
 
 -- Decisión profesional. Conserva el candidato original; cada cambio crea una versión.
 create or replace function public.smyl_radiograph_decide_candidate(p_candidate_id uuid, p_expected_revision integer, p_state text, p_payload jsonb default '{}'::jsonb, p_note text default '')
@@ -454,11 +507,16 @@ language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_candidate public.smyl_radiograph_candidates; v_tenant uuid; v_old public.smyl_radiograph_decisions; v_row public.smyl_radiograph_decisions;
   v_payload jsonb := case when p_payload is null or p_payload = 'null'::jsonb then '{}'::jsonb else p_payload end;
 begin
-  if p_state not in ('confirmed','corrected','rejected') then raise exception using errcode = '22023', message = 'Estado de decisión no válido.'; end if;
+  if p_state is null or p_state not in ('confirmed','corrected','rejected') then raise exception using errcode = '22023', message = 'Estado de decisión no válido.'; end if;
+  if p_expected_revision is null then raise exception using errcode = '22023', message = 'Indica la revisión que estás decidiendo.'; end if;
   select * into v_candidate from public.smyl_radiograph_candidates where id = p_candidate_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'El candidato no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_candidate.patient_id, 'clinical.write');
   if v_candidate.tenant_id <> v_tenant then raise exception using errcode = '42501', message = 'El candidato no está disponible.'; end if;
+  -- Bloqueo antes de revisar la firma: firmar y decidir se serializan por candidato (ver sign_report).
+  perform pg_advisory_xact_lock(hashtextextended('radiograph-decision:' || p_candidate_id::text, 31));
+  select * into v_old from public.smyl_radiograph_decisions where tenant_id = v_tenant and candidate_id = p_candidate_id for update;
+  if not found then raise exception using errcode = '42501', message = 'El candidato no está disponible.'; end if;
   -- Un hallazgo incluido en un informe firmado queda congelado: cualquier reconsideración va por adenda.
   if exists (select 1 from public.smyl_radiograph_reports r where r.tenant_id = v_tenant and r.source_id = v_candidate.source_id and r.status = 'signed'
              and r.document->'findings' @> jsonb_build_array(jsonb_build_object('candidateId', p_candidate_id::text))) then
@@ -474,11 +532,8 @@ begin
       raise exception using errcode = '22023', message = 'Corrección no válida.'; end if;
   end if;
   if coalesce(p_note, '') <> '' and not public.smyl_radiograph_text_valid(to_jsonb(p_note), 0, 600) then raise exception using errcode = '22023', message = 'Nota demasiado larga.'; end if;
-  perform pg_advisory_xact_lock(hashtextextended('radiograph-decision:' || p_candidate_id::text, 31));
-  select * into v_old from public.smyl_radiograph_decisions where tenant_id = v_tenant and candidate_id = p_candidate_id for update;
-  if not found then raise exception using errcode = '42501', message = 'El candidato no está disponible.'; end if;
-  if v_old.revision = p_expected_revision + 1 and v_old.state = p_state and v_old.payload = v_payload and v_old.note = coalesce(p_note, '') then return v_old; end if;
-  if v_old.revision <> p_expected_revision then raise exception using errcode = 'PT409', message = 'La decisión cambió en otra sesión. Actualiza la revisión.'; end if;
+  if p_expected_revision is not null and v_old.revision = p_expected_revision + 1 and v_old.state = p_state and v_old.payload = v_payload and v_old.note = coalesce(p_note, '') then return v_old; end if;
+  if v_old.revision is distinct from p_expected_revision then raise exception using errcode = 'PT409', message = 'La decisión cambió en otra sesión. Actualiza la revisión.'; end if;
   update public.smyl_radiograph_decisions set revision = v_old.revision + 1, state = p_state, payload = v_payload, note = coalesce(p_note, ''),
     decided_by = auth.uid(), decided_at = clock_timestamp() where tenant_id = v_tenant and candidate_id = p_candidate_id returning * into v_row;
   insert into public.smyl_radiograph_decision_versions(tenant_id, candidate_id, revision, snapshot, actor_id)

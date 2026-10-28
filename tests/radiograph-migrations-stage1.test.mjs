@@ -17,13 +17,16 @@ const v1 = read('supabase/migrations/20261006010000_smyl_radiograph_reviews.sql'
 test('Etapa 0: las cinco banderas existen y nacen apagadas; sólo service_role las toca', () => {
   for (const key of ['radiograph.qc_v2', 'radiograph.tooth_ai_v1', 'radiograph.report_v1', 'radiograph.longitudinal_v1', 'radiograph.cbct_v1']) assert.match(flags, new RegExp(`'${key.replace('.', '\\.')}'`));
   assert.match(flags, /enabled boolean not null default false/);
-  assert.match(flags, /revoke all on public\.smyl_radiograph_feature_flags, public\.smyl_radiograph_flag_tenants,\s*public\.smyl_radiograph_engines from public, anon, authenticated/);
+  assert.match(flags, /revoke all on public\.smyl_radiograph_feature_flags, public\.smyl_radiograph_flag_tenants,\s*public\.smyl_radiograph_engines, public\.smyl_radiograph_settings from public, anon, authenticated/);
+  assert.match(flags, /default 'false'|'allow_simulated', 'false'::jsonb/, 'el motor simulado está prohibido por defecto');
+  assert.match(flags, /not coalesce\(t\.paused, false\)/, 'la clínica sólo pausa; el piloto lo concede la plataforma');
   assert.doesNotMatch(flags, /grant (select|insert|update|all) on public\.smyl_radiograph_(feature_flags|flag_tenants|engines)/);
   assert.doesNotMatch(flags, /create policy/);
 });
 
 test('Etapa 0: el registro de motores rechaza credenciales y sólo permite un motor activo por tipo', () => {
-  assert.match(flags, /not \(config \?\| array\['apiKey','api_key','secret','token','authorization','password','credential'\]\)/);
+  assert.match(flags, /config::text !~\* '"\[\^"\]\*\(api\[_-\]\?key\|secret\|token\|authori\[sz\]ation\|password\|credential\)\[\^"\]\*"\\s\*:'/, 'el denylist mira llaves en cualquier nivel');
+  assert.match(flags, /create trigger smyl_radiograph_engines_guard before insert or update/);
   assert.match(flags, /create unique index if not exists smyl_radiograph_engines_one_active_idx[\s\S]*where enabled/);
   assert.match(flags, /revoke all on function public\.smyl_radiograph_active_engine\(text\) from public, anon, authenticated/);
   assert.doesNotMatch(flags, /'engines'|e\.config/, 'las capacidades del navegador no exponen motores ni config');
@@ -63,7 +66,9 @@ test('Etapa 1: cada RPC del navegador pasa por la guardia tenant + permiso + alc
 
 test('Etapa 1: el cierre del motor es sólo de servidor y la salida original es inmutable', () => {
   assert.match(runs, /revoke all on function public\.smyl_radiograph_complete_ai_run\(uuid, text, jsonb, text, jsonb\) from public, anon, authenticated/);
-  assert.doesNotMatch(runs, /grant execute on function public\.smyl_radiograph_complete_ai_run/);
+  assert.match(runs, /grant execute on function public\.smyl_radiograph_complete_ai_run\(uuid, text, jsonb, text, jsonb\) to service_role;/, 'sólo service_role (no authenticated)');
+  assert.doesNotMatch(runs, /grant execute on function public\.smyl_radiograph_(complete|claim)_ai_run[^;]*to (authenticated|anon|public)/);
+  assert.match(runs, /create or replace function public\.smyl_radiograph_claim_ai_run/);
   assert.match(runs, /if old\.status <> 'requested' then raise exception using errcode = '42501', message = 'La salida original del motor es inmutable\.'/);
   assert.match(runs, /create trigger smyl_radiograph_candidates_immutable before update or delete/);
   assert.match(runs, /perform public\.smyl_radiograph_validate_output\(v_row\.kind, p_output\)/);
@@ -90,7 +95,8 @@ test('Etapa 1: validadores SQL con enumeraciones cerradas y prohibición de afir
   assert.match(runs, /'restoration','crown','implant','endodontic','apparently_missing','density','contour','support','development','other'/);
   assert.match(runs, /c->>'evidenceLevel' is distinct from 'model_candidate'/);
   assert.match(runs, /jsonb_array_length\(c->'regions'\) not between 1 and 4/, 'un candidato sin geometría se rechaza');
-  assert.match(runs, /diagn\[oó\]s\|confirmad\[oa\]\|certeza\|definitiv/);
+  assert.ok(runs.includes('(diagnos|confirmad|confirmed|confirm[ao]'), 'filtro de afirmaciones normalizado (NFKD) en SQL');
+  assert.match(runs, /normalize\(coalesce\(p, ''\), NFKD\)/);
   assert.match(runs, /return abs\(area\) \/ 2 >= 0\.000001/, 'polígonos degenerados rechazados');
 });
 
@@ -124,6 +130,6 @@ test('Etapas 0-1: todo es idempotente, aditivo y no toca el flujo v1 ni segment-
 
 test('los contratos v2 se publican en web, PWA y copia móvil (Etapa 4)', () => {
   const sw = read('sw.js');
-  assert.match(sw, /smyl-radiograph-contracts\.js\?v=1/);
+  assert.match(sw, /smyl-radiograph-contracts\.js\?v=2/);
   assert.equal(read('mobile/www/smyl-radiograph-contracts.js'), read('smyl-radiograph-contracts.js'));
 });

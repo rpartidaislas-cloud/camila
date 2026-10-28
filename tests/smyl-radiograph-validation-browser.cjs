@@ -71,6 +71,7 @@ let browser = null;
       await page.waitForFunction(() => document.querySelector('.rv-dialog .rr-feedback')?.textContent.includes('Incidente cerrado'));
       // pausa por clínica
       await page.getByRole('button', { name: 'Pausar tooth_ai_v1' }).click();
+      await page.locator('dialog.rr-confirm-dialog[open]').getByRole('button', { name: 'Pausar', exact: true }).click(); // confirmación de la pausa por clínica
       await page.waitForFunction(() => document.querySelector('.rv-dialog .rr-feedback')?.textContent.includes('Pausado'));
       const flag = await page.evaluate(() => window.__calls.filter((c) => c[0] === 'flag').pop());
       if (!flag || flag[1] !== 'radiograph.tooth_ai_v1' || flag[2] !== false) fail('pause flag call: ' + JSON.stringify(flag));

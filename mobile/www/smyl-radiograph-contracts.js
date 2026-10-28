@@ -21,7 +21,9 @@
  const FDI=/^(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/;
  const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
  const CANDIDATE_ID=/^[a-z0-9][a-z0-9_-]{0,63}$/;
- const FORBIDDEN_CLAIM=/(diagn[oó]s|confirmad[oa]|certeza|definitiv|inequ[ií]voc|sin duda|diagnosis|confirmed|definite)/i;
+ /* Se normaliza antes de buscar (NFKD, sin marcas ni caracteres invisibles, minúsculas): idéntico en SQL y TS. */
+const FORBIDDEN_CLAIM=/(diagnos|confirmad|confirmed|confirm[ao]\b|certeza|certain|certitud|definitiv|definite|inequivoc|unequivocal|sin duda|without doubt|concluyente|conclusive|patognomon|pathognomon|seguro de|es una caries|is a caries)/;
+const forbidden=v=>FORBIDDEN_CLAIM.test(String(v).normalize('NFKD').toLowerCase().replace(/[\u0300-\u036f\u00ad\u200b-\u200f\u2060-\u2064\ufeff]/g,''));
  const fail=m=>{throw new Error(m);};
  const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const exact=(o,keys)=>isObj(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
@@ -47,7 +49,7 @@
   if(g.points[0][0]===g.points[n-1][0]&&g.points[0][1]===g.points[n-1][1])return false;
   let area=0;
   for(let i=0;i<n;i++){const a=g.points[i],b=g.points[(i+1)%n];area+=a[0]*b[1]-b[0]*a[1];}
-  return Math.abs(area)/2>=0.000001;
+  return Math.abs(area)/2>=0.000001-0.000000000001;
  }
  function parseQc(value){
   if(!exact(value,['schema','studyClass','quality','applicableAnalyses','blockedAnalyses','model'])||value.schema!==1||!model(value.model))fail('Resultado de control de calidad no válido.');
@@ -71,6 +73,7 @@
    if(!exact(b,['code','reason'])||!ANALYSES.includes(b.code)||applicable.has(b.code)||blocked.has(b.code)||!text(b.reason,1,300))fail('Análisis bloqueado no válido.');
    blocked.add(b.code);
   }
+  if(q.flags.some(f=>forbidden(f.explanation))||value.blockedAnalyses.some(b=>forbidden(b.reason)))fail('El modelo no puede presentar una señal como diagnóstico o certeza.');
   if(q.status==='unusable'&&applicable.size)fail('Una imagen no utilizable no habilita análisis.');
   return structuredClone(value);
  }
@@ -97,7 +100,7 @@
     ||!(c.toothCandidate===null||fdi(c.toothCandidate))||!FINDING_CATEGORIES.includes(c.category)||!text(c.label,1,120)||!prob(c.confidence)
     ||!EVIDENCE_LEVELS.includes(c.evidenceLevel)||!Array.isArray(c.regions)||c.regions.length<1||c.regions.length>4||!text(c.explanation,1,300)
     ||!Array.isArray(c.limitations)||c.limitations.length>6)fail('Señal candidata no válida.');
-   if(FORBIDDEN_CLAIM.test(c.label)||FORBIDDEN_CLAIM.test(c.explanation))fail('El modelo no puede presentar una señal como diagnóstico o certeza.');
+   if(forbidden(c.label)||forbidden(c.explanation)||c.limitations.some(forbidden))fail('El modelo no puede presentar una señal como diagnóstico o certeza.');
    ids.add(c.candidateId);
    for(const r of c.regions)if(!geometry(r,false))fail('Región de señal no válida.');
    for(const l of c.limitations)if(!text(l,1,200))fail('Limitación de señal no válida.');
@@ -129,7 +132,7 @@
  const wrap=fn=>value=>{try{return {ok:true,value:fn(value)};}catch(e){return {ok:false,error:e.message};}};
  return Object.freeze({
   CONTRACT_VERSION,STUDY_CLASSES,QUALITY_STATES,QC_FLAG_CODES,SEVERITIES,ANALYSES,VISIBILITIES,FINDING_CATEGORIES,EVIDENCE_LEVELS,DECISION_STATES,REPORT_PRIORITIES,REPORT_SECTIONS,
-  isFdi:fdi,isGeometry:geometry,hasForbiddenClaim:v=>FORBIDDEN_CLAIM.test(String(v)),
+  isFdi:fdi,isGeometry:geometry,hasForbiddenClaim:forbidden,
   parseQc,parseToothSet,parseFindingSet,parseReport,parseDecisionPayload,canTransition,
   validateQc:wrap(parseQc),validateToothSet:wrap(parseToothSet),validateFindingSet:wrap(parseFindingSet),
   validateReportDraft:wrap(v=>parseReport(v,false)),validateReportForSignature:wrap(v=>parseReport(v,true))

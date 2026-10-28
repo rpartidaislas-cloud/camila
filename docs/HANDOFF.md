@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: revisión adversarial final y correcciones
+
+- Cuatro revisiones independientes (SQL, Edge, interfaz, flujo clínico) pidieron cambios; todo corregido en
+  **código y pruebas**, **sin aplicar ni desplegar nada** (migraciones y Edge Functions siguen pendientes de
+  autorización expresa). Detalle en `docs/RADIOGRAPH_AI_STAGE_0_1.md` → «Revisión adversarial final».
+- Migraciones editadas (aún no aplicadas en ningún entorno): `20261028100000` (piloto vs pausa, ajustes de
+  plataforma, motor simulado cerrado), `110000`, `120000` (reclamo atómico, topes, filtro normalizado), `130000`,
+  `140000`, `150000` (métricas por universo completo, bloqueos de validación). **Nueva** e independiente:
+  `20261028090000_smyl_patient_timeline_alias_fix.sql`. Atención: ella y `140000` cambian la cronología de la
+  Ficha 360 de todas las clínicas.
+- Edge: `radiograph-qc`, `radiograph-analyze`, `_shared/radiograph-{qc-core,provider,image,contracts}.ts`
+  endurecidos; bundles regenerados con `scripts/bundle-edge-function.mjs` (ahora soporta `import type`, sin
+  alterar los bundles ajenos).
+- Web/PWA/`mobile/www` sincronizados (`review-v2.js?v=5`, contratos/informe/longitudinal/validación `?v=2`, cache
+  `…-radiograph-hardening-v51`). Workflow manual actualizado (prerrequisitos, humo de cronología, PGlite en CI).
+- Tests: suite completa y navegador (1280/820/390/320) verdes; PGlite 17 pruebas. Nuevo ajuste `SMYL_REQUIRE_PGLITE=1`.
+- Pendiente humano: proveedor real, retención/borrado, revisión regulatoria, sincronización al odontograma.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 7 (infraestructura de validación clínica)
 
 - Migración **nueva, no aplicada** `20261028150000_smyl_radiograph_validation.sql`: conjuntos de

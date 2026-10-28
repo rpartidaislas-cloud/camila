@@ -2,7 +2,133 @@
 // Es supabase/functions/radiograph-analyze/index.ts con sus archivos de _shared incluidos,
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import type { AnalysisKind, DentalXrayProvider, RadiographQcProvider, VerifiedRadiographSource } from "./radiograph-provider.ts";
+
+// ── tipos compartidos ──
+interface FilaMembresia {
+  tenant_id?: string | null;
+  activo?: boolean | null;
+}
+
+type DecisionMembresia = { tenantId: string } | { inactivo: true };
+
+interface AuthResult {
+  user: { id: string; email?: string } | null;
+  // La clínica real de quien llama -- NO uses user.id para topes de gasto,
+  // RPCs ni escrituras con tenant_id, usa siempre este campo. Para el dueño
+  // coincide con user.id (de siempre); para staff invitado (etapa 4, ver
+  // camila_team.sql/camila_usuarios) es la clínica de quien lo invitó.
+  // Antes de esto, claude/index.ts y segment-teeth/index.ts usaban user.id
+  // directo: camila_consumir_diagnostico nunca encontraba la fila de un
+  // staff en camila_tenants (rechazo 402, "no se encontró tu clínica"), y
+  // segment-teeth guardaba la segmentación con un tenant_id que no
+  // pertenecía a ningún caso real -- se perdía en silencio. null si no hay
+  // sesión.
+  tenantId: string | null;
+  response: Response | null; // si no es null, devuélvela tal cual y no sigas
+}
+
+type StudyClass = typeof STUDY_CLASSES[number];
+
+type QualityState = typeof QUALITY_STATES[number];
+
+type Analysis = typeof ANALYSES[number];
+
+type GeometryKind = "point" | "bbox" | "polygon";
+
+interface Geometry { kind: GeometryKind; coordinateSpace: "source-normalized"; points: [number, number][] }
+
+interface ModelRef { provider: string; name: string; version: string }
+
+interface RadiographQcResultV1 {
+  schema: 1;
+  studyClass: { value: StudyClass; probability: number; alternatives: { value: StudyClass; probability: number }[] };
+  quality: { status: QualityState; flags: { code: typeof QC_FLAG_CODES[number]; severity: typeof SEVERITIES[number]; region: Geometry | null; explanation: string }[] };
+  applicableAnalyses: Analysis[];
+  blockedAnalyses: { code: Analysis; reason: string }[];
+  model: ModelRef;
+}
+
+interface ToothCandidateV1 { candidateId: string; fdiCandidate: string; fdiProbability: number; geometry: Geometry; visibility: typeof VISIBILITIES[number]; alternatives: { fdi: string; probability: number }[] }
+
+interface ToothCandidateSetV1 { schema: 1; sourceId: string; model: ModelRef; candidates: ToothCandidateV1[] }
+
+interface FindingCandidateV1 { candidateId: string; toothCandidate: string | null; category: typeof FINDING_CATEGORIES[number]; label: string; confidence: number; evidenceLevel: "model_candidate"; regions: Geometry[]; explanation: string; limitations: string[] }
+
+interface FindingCandidateSetV1 { schema: 1; sourceId: string; model: ModelRef; candidates: FindingCandidateV1[] }
+
+interface RadiographReportV1 { schema: 1; sections: Record<typeof REPORT_SECTIONS[number], string>; findings: { candidateId: string; tooth: string | null; text: string; priority: typeof REPORT_PRIORITIES[number] }[] }
+
+interface VerifiedRadiographSource {
+  sourceId: string;
+  sha256: string;
+  mimeType: 'image/jpeg' | 'image/png';
+  width: number;
+  height: number;
+  orientation: number;
+  studyTypeDeclared: string;
+  bytes: Uint8Array;
+  hints: string[]; // sólo las usa el proveedor simulado
+}
+
+interface RadiographQcProvider {
+  readonly model: ModelRef;
+  // Devuelve la respuesta cruda; el núcleo la valida con parseRadiographQc. Debe respetar `signal`.
+  analyze(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
+}
+
+interface HttpQcProviderConfig {
+  url: string;
+  apiKey: string;
+  model: ModelRef;
+  timeoutMs: number;
+  maxResponseBytes: number;
+  allowedHosts: string[];
+}
+
+type AnalysisKind = 'qc' | 'tooth_localization' | 'finding_candidates';
+
+interface DentalXrayProvider {
+  readonly model: ModelRef;
+  localizeTeeth(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
+  analyzeCandidates(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
+}
+
+type ProviderEnv = Record<string, string | undefined>;
+
+interface ImageProbe {
+  mime: 'image/jpeg' | 'image/png' | null;
+  width: number | null;
+  height: number | null;
+  orientation: number; // EXIF 1..8; 1 = normal; 0 = desconocida
+  hints: string[];
+  reason: string | null; // motivo de rechazo, o null si la cabecera es coherente
+}
+
+interface AiRunRow {
+  id: string; tenant_id: string; patient_id: string; source_id: string; kind: string; status: string;
+  engine: { provider: string; name: string; version: string }; contract_version: number; output: unknown; failure_code: string;
+}
+
+interface SourceRow {
+  id: string; tenant_id: string; patient_id: string; bucket: string; storage_path: string; sha256: string;
+  mime_type: string; size_bytes: number; study_type_declared: string;
+}
+
+interface DbResult<T> { data: T | null; error: { code?: string; message: string } | null }
+
+interface QcDeps {
+  requestRun(sourceId: string, kind: AnalysisKind, acknowledgeUnconfirmed: boolean): Promise<DbResult<AiRunRow>>; // como usuario (JWT)
+  claimRun(runId: string): Promise<DbResult<AiRunRow>>;                  // service_role: una sola invocación gana antes de llamar al proveedor
+  loadSource(sourceId: string): Promise<SourceRow | null>;               // service_role
+  download(bucket: string, path: string): Promise<Uint8Array | null>;    // service_role, ruta conocida
+  completeRun(runId: string, status: 'completed' | 'failed' | 'unconfirmed', output: unknown, failureCode: string): Promise<DbResult<AiRunRow>>; // service_role
+  provider: RadiographQcProvider | null;          // QC
+  dentalProvider?: DentalXrayProvider | null;      // localización y señales (Etapa 3)
+  timeoutMs: number;
+  log(event: Record<string, string | number | boolean | null>): void;    // sólo ids y códigos
+}
+
+interface QcReply { status: number; body: Record<string, unknown> }
 
 // ── _shared/auth-membership.ts ──
 const { decidirMembresia } = (() => {
@@ -14,12 +140,7 @@ const { decidirMembresia } = (() => {
 // desactivada, la persona ya no pertenece al equipo: no se le resuelve ninguna clínica
 // (antes se ignoraba `activo` y un staff dado de baja seguía usando las funciones con el
 // service role).
-interface FilaMembresia {
-  tenant_id?: string | null;
-  activo?: boolean | null;
-}
 
-type DecisionMembresia = { tenantId: string } | { inactivo: true };
 
 function decidirMembresia(row: FilaMembresia | null | undefined, userId: string): DecisionMembresia {
   if (row && row.activo === false) return { inactivo: true };
@@ -48,21 +169,6 @@ const SB_SERVICE_ROLE_KEY =
 
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
-interface AuthResult {
-  user: { id: string; email?: string } | null;
-  // La clínica real de quien llama -- NO uses user.id para topes de gasto,
-  // RPCs ni escrituras con tenant_id, usa siempre este campo. Para el dueño
-  // coincide con user.id (de siempre); para staff invitado (etapa 4, ver
-  // camila_team.sql/camila_usuarios) es la clínica de quien lo invitó.
-  // Antes de esto, claude/index.ts y segment-teeth/index.ts usaban user.id
-  // directo: camila_consumir_diagnostico nunca encontraba la fila de un
-  // staff en camila_tenants (rechazo 402, "no se encontró tu clínica"), y
-  // segment-teeth guardaba la segmentación con un tenant_id que no
-  // pertenecía a ningún caso real -- se perdía en silencio. null si no hay
-  // sesión.
-  tenantId: string | null;
-  response: Response | null; // si no es null, devuélvela tal cual y no sigas
-}
 
 // Mismo patrón que ya usa el cliente (cargarTenantConfig() en
 // simulacion.html, continuarConUsuario() en app.html): resuelve si quien
@@ -203,72 +309,6 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
-// ── _shared/request-safety.ts ──
-const { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit } = (() => {
-// Utilidades de seguridad para Edge Functions que reciben URLs o secretos del exterior.
-
-// Comparación de secretos en tiempo (casi) constante: no se corta en el primer byte distinto.
-function constantTimeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder();
-  const x = enc.encode(a);
-  const y = enc.encode(b);
-  // La longitud sí se compara, pero se recorre siempre el máximo para no filtrar dónde difieren.
-  let diff = x.length ^ y.length;
-  const len = Math.max(x.length, y.length);
-  for (let i = 0; i < len; i += 1) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
-  return diff === 0;
-}
-
-// Sufijos de host permitidos para descargar imágenes o llamar callbacks. Por defecto solo
-// Supabase (Storage y Edge Functions); se pueden añadir hosts con una lista separada por comas.
-function parseAllowedHostSuffixes(extra: string | null | undefined): string[] {
-  const base = [".supabase.co"];
-  const more = String(extra || "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter((s) => /^\.?[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s))
-    .map((s) => (s.startsWith(".") ? s : "." + s));
-  return Array.from(new Set([...base, ...more]));
-}
-
-// Solo https, sin credenciales, puerto estándar, nombre de host (no IP ni localhost) y dentro de la
-// lista permitida. Evita que una función con service role haga peticiones a hosts internos (SSRF).
-function isAllowedRemoteUrl(raw: unknown, suffixes: string[]): boolean {
-  if (typeof raw !== "string" || raw.length > 4096) return false;
-  let u: URL;
-  try { u = new URL(raw); } catch { return false; }
-  if (u.protocol !== "https:") return false;
-  if (u.username || u.password) return false;
-  if (u.port && u.port !== "443") return false;
-  const host = u.hostname.toLowerCase();
-  if (!host.includes(".") || host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return false;
-  return suffixes.some((s) => host.endsWith(s) || host === s.slice(1));
-}
-
-const DATA_IMAGE_RE = /^data:image\/(?:png|jpe?g|webp);base64,[A-Za-z0-9+/=\s]+$/i;
-
-// Una imagen de entrada puede venir como data URL de imagen o como https permitido.
-function isAllowedImageSource(raw: unknown, suffixes: string[], maxDataChars = 34_000_000): boolean {
-  if (typeof raw !== "string") return false;
-  if (raw.startsWith("data:")) return raw.length <= maxDataChars && DATA_IMAGE_RE.test(raw);
-  return isAllowedRemoteUrl(raw, suffixes);
-}
-
-const MAX_REMOTE_IMAGE_BYTES = 25 * 1024 * 1024;
-
-// Lee una respuesta con tope de tamaño (Content-Length y bytes reales) para no cargar archivos enormes.
-async function readBodyWithLimit(res: Response, maxBytes = MAX_REMOTE_IMAGE_BYTES): Promise<Uint8Array> {
-  const declared = Number(res.headers.get("content-length") || 0);
-  if (declared > maxBytes) throw new Error("La imagen es demasiado grande.");
-  const buf = new Uint8Array(await res.arrayBuffer());
-  if (buf.byteLength > maxBytes) throw new Error("La imagen es demasiado grande.");
-  return buf;
-}
-
-return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit };
-})();
-
 // ── _shared/radiograph-contracts.ts ──
 const { RADIOGRAPH_CONTRACT_VERSION, STUDY_CLASSES, QUALITY_STATES, QC_FLAG_CODES, SEVERITIES, ANALYSES, VISIBILITIES, FINDING_CATEGORIES, EVIDENCE_LEVELS, DECISION_STATES, REPORT_PRIORITIES, REPORT_SECTIONS, isGeometry, parseRadiographQc, parseToothCandidateSet, parseFindingCandidateSet, parseRadiographReport, parseRadiographOutput, parseDecisionPayload, hasForbiddenClaim, isFdi } = (() => {
 // SMYL radiografía asistida — contratos v2 (schema 1) para Edge Functions.
@@ -290,30 +330,13 @@ const DECISION_STATES = ["pending", "confirmed", "corrected", "rejected"] as con
 const REPORT_PRIORITIES = ["routine", "soon", "urgent"] as const;
 const REPORT_SECTIONS = ["description", "technicalLimitations", "clinicalCorrelation", "missingInformation", "complementaryStudies"] as const;
 
-type StudyClass = typeof STUDY_CLASSES[number];
-type QualityState = typeof QUALITY_STATES[number];
-type Analysis = typeof ANALYSES[number];
-type GeometryKind = "point" | "bbox" | "polygon";
-interface Geometry { kind: GeometryKind; coordinateSpace: "source-normalized"; points: [number, number][] }
-interface ModelRef { provider: string; name: string; version: string }
-interface RadiographQcResultV1 {
-  schema: 1;
-  studyClass: { value: StudyClass; probability: number; alternatives: { value: StudyClass; probability: number }[] };
-  quality: { status: QualityState; flags: { code: typeof QC_FLAG_CODES[number]; severity: typeof SEVERITIES[number]; region: Geometry | null; explanation: string }[] };
-  applicableAnalyses: Analysis[];
-  blockedAnalyses: { code: Analysis; reason: string }[];
-  model: ModelRef;
-}
-interface ToothCandidateV1 { candidateId: string; fdiCandidate: string; fdiProbability: number; geometry: Geometry; visibility: typeof VISIBILITIES[number]; alternatives: { fdi: string; probability: number }[] }
-interface ToothCandidateSetV1 { schema: 1; sourceId: string; model: ModelRef; candidates: ToothCandidateV1[] }
-interface FindingCandidateV1 { candidateId: string; toothCandidate: string | null; category: typeof FINDING_CATEGORIES[number]; label: string; confidence: number; evidenceLevel: "model_candidate"; regions: Geometry[]; explanation: string; limitations: string[] }
-interface FindingCandidateSetV1 { schema: 1; sourceId: string; model: ModelRef; candidates: FindingCandidateV1[] }
-interface RadiographReportV1 { schema: 1; sections: Record<typeof REPORT_SECTIONS[number], string>; findings: { candidateId: string; tooth: string | null; text: string; priority: typeof REPORT_PRIORITIES[number] }[] }
 
 const FDI = /^(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const CANDIDATE_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-const FORBIDDEN_CLAIM = /(diagn[oó]s|confirmad[oa]|certeza|definitiv|inequ[ií]voc|sin duda|diagnosis|confirmed|definite)/i;
+// Se normaliza antes de buscar (NFKD, sin marcas ni caracteres invisibles, minúsculas): idéntico en SQL y JS.
+const FORBIDDEN_CLAIM = /(diagnos|confirmad|confirmed|confirm[ao]\b|certeza|certain|certitud|definitiv|definite|inequivoc|unequivocal|sin duda|without doubt|concluyente|conclusive|patognomon|pathognomon|seguro de|es una caries|is a caries)/;
+const forbidden = (v: unknown): boolean => FORBIDDEN_CLAIM.test(String(v).normalize("NFKD").toLowerCase().replace(/[\u0300-\u036f\u00ad\u200b-\u200f\u2060-\u2064\ufeff]/g, ""));
 
 type Dict = Record<string, unknown>;
 const fail = (m: string): never => { throw new Error(m); };
@@ -345,7 +368,7 @@ function isGeometry(g: unknown, allowPoint: boolean): g is Geometry {
   if (pts[0][0] === pts[n - 1][0] && pts[0][1] === pts[n - 1][1]) return false;
   let area = 0;
   for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; }
-  return Math.abs(area) / 2 >= 0.000001;
+  return Math.abs(area) / 2 >= 0.000001 - 0.000000000001;
 }
 
 function parseRadiographQc(value: unknown): RadiographQcResultV1 {
@@ -373,6 +396,7 @@ function parseRadiographQc(value: unknown): RadiographQcResultV1 {
     if (!exact(b, ["code", "reason"]) || !includes(ANALYSES, b.code) || applicable.has(b.code) || blocked.has(b.code) || !text(b.reason, 1, 300)) fail("Análisis bloqueado no válido.");
     blocked.add(String((b as Dict).code));
   }
+  if ((qd.flags as Dict[]).some((f) => forbidden(f.explanation)) || (v.blockedAnalyses as Dict[]).some((b) => forbidden(b.reason))) fail("El modelo no puede presentar una señal como diagnóstico o certeza.");
   if (qd.status === "unusable" && applicable.size) fail("Una imagen no utilizable no habilita análisis.");
   return structuredClone(value) as RadiographQcResultV1;
 }
@@ -403,7 +427,7 @@ function parseFindingCandidateSet(value: unknown): FindingCandidateSetV1 {
       || !includes(EVIDENCE_LEVELS, c.evidenceLevel) || !Array.isArray(c.regions) || c.regions.length < 1 || c.regions.length > 4 || !text(c.explanation, 1, 300)
       || !Array.isArray(c.limitations) || c.limitations.length > 6) fail("Señal candidata no válida.");
     const cd = c as Dict;
-    if (FORBIDDEN_CLAIM.test(String(cd.label)) || FORBIDDEN_CLAIM.test(String(cd.explanation))) fail("El modelo no puede presentar una señal como diagnóstico o certeza.");
+    if (forbidden(cd.label) || forbidden(cd.explanation) || (cd.limitations as unknown[]).some(forbidden)) fail("El modelo no puede presentar una señal como diagnóstico o certeza.");
     ids.add(String(cd.candidateId));
     for (const r of cd.regions as unknown[]) if (!isGeometry(r, false)) fail("Región de señal no válida.");
     for (const l of cd.limitations as unknown[]) if (!text(l, 1, 200)) fail("Limitación de señal no válida.");
@@ -444,14 +468,14 @@ function parseDecisionPayload(state: string, payload: unknown): Record<string, u
   return structuredClone(p);
 }
 
-const hasForbiddenClaim = (v: unknown): boolean => FORBIDDEN_CLAIM.test(String(v));
+const hasForbiddenClaim = forbidden;
 const isFdi = fdi;
 
 return { RADIOGRAPH_CONTRACT_VERSION, STUDY_CLASSES, QUALITY_STATES, QC_FLAG_CODES, SEVERITIES, ANALYSES, VISIBILITIES, FINDING_CATEGORIES, EVIDENCE_LEVELS, DECISION_STATES, REPORT_PRIORITIES, REPORT_SECTIONS, isGeometry, parseRadiographQc, parseToothCandidateSet, parseFindingCandidateSet, parseRadiographReport, parseRadiographOutput, parseDecisionPayload, hasForbiddenClaim, isFdi };
 })();
 
 // ── _shared/radiograph-provider.ts ──
-const { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, HttpRadiographProvider, HttpQcProvider, HttpDentalXrayProvider, SIMULATED_DENTAL_MODEL, simulatedToothLayout, simulateTeeth, simulateFindings, SimulatedDentalXrayProvider, createDentalProvider, createQcProvider } = (() => {
+const { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, parseProviderHosts, isAllowedProviderUrl, HttpRadiographProvider, HttpQcProvider, HttpDentalXrayProvider, SIMULATED_DENTAL_MODEL, simulatedToothLayout, simulateTeeth, simulateFindings, SimulatedDentalXrayProvider, createDentalProvider, createQcProvider } = (() => {
 // Adaptador de proveedor para el control de calidad radiográfico (plan §7). La UI nunca habla con
 // un proveedor: el núcleo recibe un RadiographQcProvider y valida su respuesta con el contrato.
 // Reglas del adaptador: credenciales ocultas, timeout y tamaño impuestos, sin redirecciones,
@@ -459,23 +483,7 @@ const { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, H
 // simulado determinista para pruebas y pilotos sin motor real.
 
 
-interface VerifiedRadiographSource {
-  sourceId: string;
-  sha256: string;
-  mimeType: 'image/jpeg' | 'image/png';
-  width: number;
-  height: number;
-  orientation: number;
-  studyTypeDeclared: string;
-  bytes: Uint8Array;
-  hints: string[]; // sólo las usa el proveedor simulado
-}
 
-interface RadiographQcProvider {
-  readonly model: ModelRef;
-  // Devuelve la respuesta cruda; el núcleo la valida con parseRadiographQc. Debe respetar `signal`.
-  analyze(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
-}
 
 const SIMULATED_MODEL: ModelRef = { provider: 'simulated', name: 'smyl-sim-xray', version: '0.1.0' };
 
@@ -526,24 +534,29 @@ function simulateQc(input: VerifiedRadiographSource): RadiographQcResultV1 {
   return { schema: 1, studyClass, quality: { status, flags }, applicableAnalyses: applicable as RadiographQcResultV1['applicableAnalyses'], blockedAnalyses: blocked, model: { ...SIMULATED_MODEL } };
 }
 
-interface HttpQcProviderConfig {
-  url: string;
-  apiKey: string;
-  model: ModelRef;
-  timeoutMs: number;
-  maxResponseBytes: number;
-  allowedHostSuffixes: string[];
+
+// Lista EXACTA de hosts (no sufijos): el proveedor de IA nunca hereda el comodín .supabase.co ni subdominios.
+function parseProviderHosts(raw: string | null | undefined): string[] {
+  return Array.from(new Set(String(raw || '').split(',').map((s) => s.trim().toLowerCase()).filter((s) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s))));
+}
+function isAllowedProviderUrl(raw: unknown, hosts: string[]): boolean {
+  if (typeof raw !== 'string' || raw.length > 2048) return false;
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== 'https:' || u.username || u.password || (u.port && u.port !== '443')) return false;
+  const host = u.hostname.toLowerCase();
+  if (!host.includes('.') || host.includes(':') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') || host.endsWith('.local')) return false;
+  return hosts.includes(host);
 }
 
-type AnalysisKind = 'qc' | 'tooth_localization' | 'finding_candidates';
 
 // Adaptador HTTP genérico: https permitido, sin redirecciones, tope de respuesta, salida cruda.
 // El tipo de análisis viaja en los metadatos; cada proveedor real necesitará su propio mapeo.
 class HttpRadiographProvider {
   readonly model: ModelRef;
   private readonly cfg: HttpQcProviderConfig;
-  constructor(cfg: HttpQcProviderConfig, isAllowedUrl: (u: string, s: string[]) => boolean) {
-    if (!isAllowedUrl(cfg.url, cfg.allowedHostSuffixes)) throw new Error('URL del proveedor no permitida.');
+  constructor(cfg: HttpQcProviderConfig) {
+    if (!isAllowedProviderUrl(cfg.url, cfg.allowedHosts)) throw new Error('URL del proveedor no permitida.');
     this.cfg = cfg;
     this.model = { ...cfg.model };
   }
@@ -555,9 +568,22 @@ class HttpRadiographProvider {
     if (!res.ok) throw new Error(`provider_http_${res.status}`);
     const declared = Number(res.headers.get('content-length') || 0);
     if (declared > this.cfg.maxResponseBytes) throw new Error('provider_response_too_large');
-    const text = await res.text();
-    if (text.length > this.cfg.maxResponseBytes) throw new Error('provider_response_too_large');
-    return JSON.parse(text);
+    // Lectura por flujo con tope: un proveedor que no declara longitud no puede llenar la memoria.
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('provider_empty_response');
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > this.cfg.maxResponseBytes) { await reader.cancel().catch(() => undefined); throw new Error('provider_response_too_large'); }
+      chunks.push(value);
+    }
+    const all = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) { all.set(c, offset); offset += c.byteLength; }
+    return JSON.parse(new TextDecoder().decode(all));
   }
 }
 
@@ -568,11 +594,6 @@ class HttpQcProvider extends HttpRadiographProvider implements RadiographQcProvi
 // ---------------------------------------------------------------------------------------------
 // Etapa 3: localización dental y señales candidatas (plan §7, DentalXrayProvider).
 // ---------------------------------------------------------------------------------------------
-interface DentalXrayProvider {
-  readonly model: ModelRef;
-  localizeTeeth(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
-  analyzeCandidates(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>;
-}
 
 class HttpDentalXrayProvider extends HttpRadiographProvider implements DentalXrayProvider {
   localizeTeeth(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown> { return this.request('tooth_localization', input, signal); }
@@ -656,30 +677,32 @@ class SimulatedDentalXrayProvider implements DentalXrayProvider {
   }
 }
 
-function createDentalProvider(env: ProviderEnv, isAllowedUrl: (u: string, s: string[]) => boolean, parseSuffixes: (extra: string | undefined) => string[]): DentalXrayProvider | null {
+// Un proveedor simulado genera geometría sintética: sólo se instancia con RADIOGRAPH_ALLOW_SIMULATED=1 (demostración).
+const simulatedAllowed = (env: ProviderEnv): boolean => env.RADIOGRAPH_ALLOW_SIMULATED === '1';
+
+function createDentalProvider(env: ProviderEnv): DentalXrayProvider | null {
   const kind = (env.RADIOGRAPH_DENTAL_PROVIDER || '').trim();
-  if (kind === 'simulated') return new SimulatedDentalXrayProvider();
+  if (kind === 'simulated') return simulatedAllowed(env) ? new SimulatedDentalXrayProvider() : null;
   if (kind !== 'http') return null;
   const url = env.RADIOGRAPH_DENTAL_URL || '', apiKey = env.RADIOGRAPH_DENTAL_API_KEY || '';
   const model = { provider: env.RADIOGRAPH_DENTAL_PROVIDER_NAME || '', name: env.RADIOGRAPH_DENTAL_MODEL_NAME || '', version: env.RADIOGRAPH_DENTAL_MODEL_VERSION || '' };
   if (!url || !apiKey || !model.provider || !model.name || !model.version) return null;
-  return new HttpDentalXrayProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHostSuffixes: parseSuffixes(env.RADIOGRAPH_PROVIDER_HOSTS) }, isAllowedUrl);
+  try { return new HttpDentalXrayProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHosts: parseProviderHosts(env.RADIOGRAPH_PROVIDER_HOSTS) }); } catch { return null; }
 }
 
-type ProviderEnv = Record<string, string | undefined>;
 
 // Falla cerrado: sin RADIOGRAPH_QC_PROVIDER no hay motor. Las credenciales sólo viven en env.
-function createQcProvider(env: ProviderEnv, isAllowedUrl: (u: string, s: string[]) => boolean, parseSuffixes: (extra: string | undefined) => string[]): RadiographQcProvider | null {
+function createQcProvider(env: ProviderEnv): RadiographQcProvider | null {
   const kind = (env.RADIOGRAPH_QC_PROVIDER || '').trim();
-  if (kind === 'simulated') return new SimulatedQcProvider();
+  if (kind === 'simulated') return simulatedAllowed(env) ? new SimulatedQcProvider() : null;
   if (kind !== 'http') return null;
   const url = env.RADIOGRAPH_QC_URL || '', apiKey = env.RADIOGRAPH_QC_API_KEY || '';
   const model = { provider: env.RADIOGRAPH_QC_PROVIDER_NAME || '', name: env.RADIOGRAPH_QC_MODEL_NAME || '', version: env.RADIOGRAPH_QC_MODEL_VERSION || '' };
   if (!url || !apiKey || !model.provider || !model.name || !model.version) return null;
-  return new HttpQcProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHostSuffixes: parseSuffixes(env.RADIOGRAPH_PROVIDER_HOSTS) }, isAllowedUrl);
+  try { return new HttpQcProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHosts: parseProviderHosts(env.RADIOGRAPH_PROVIDER_HOSTS) }); } catch { return null; }
 }
 
-return { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, HttpRadiographProvider, HttpQcProvider, HttpDentalXrayProvider, SIMULATED_DENTAL_MODEL, simulatedToothLayout, simulateTeeth, simulateFindings, SimulatedDentalXrayProvider, createDentalProvider, createQcProvider };
+return { SIMULATED_MODEL, SimulatedQcProvider, simulatedStudyClass, simulateQc, parseProviderHosts, isAllowedProviderUrl, HttpRadiographProvider, HttpQcProvider, HttpDentalXrayProvider, SIMULATED_DENTAL_MODEL, simulatedToothLayout, simulateTeeth, simulateFindings, SimulatedDentalXrayProvider, createDentalProvider, createQcProvider };
 })();
 
 // ── _shared/radiograph-image.ts ──
@@ -689,14 +712,6 @@ const { detectRadiographMime, probeRadiograph, sha256Hex } = (() => {
 // ejecuta igual en pruebas de Node. Las "pistas" (chunk PNG tEXt `smyl.sim`) sólo las lee el
 // proveedor simulado; un proveedor real las ignora.
 
-interface ImageProbe {
-  mime: 'image/jpeg' | 'image/png' | null;
-  width: number | null;
-  height: number | null;
-  orientation: number; // EXIF 1..8; 1 = normal; 0 = desconocida
-  hints: string[];
-  reason: string | null; // motivo de rechazo, o null si la cabecera es coherente
-}
 
 const td = new TextDecoder();
 const u16 = (b: Uint8Array, i: number, le: boolean) => (le ? b[i] | (b[i + 1] << 8) : (b[i] << 8) | b[i + 1]);
@@ -710,26 +725,42 @@ function detectRadiographMime(b: Uint8Array): 'image/jpeg' | 'image/png' | null 
   return null;
 }
 
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b: Uint8Array, from: number, to: number): number {
+  let c = 0xffffffff;
+  for (let i = from; i < to; i++) c = CRC_TABLE[(c ^ b[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+const MAX_HINTS = 8, MAX_HINT_LENGTH = 48;
+const bad = (mime: 'image/jpeg' | 'image/png', reason: string): ImageProbe => ({ mime, width: null, height: null, orientation: 0, hints: [], reason });
+
 function probePng(b: Uint8Array): ImageProbe {
   const hints: string[] = [];
   let width: number | null = null, height: number | null = null;
-  let i = 8;
-  while (i + 8 <= b.length) {
+  let i = 8, first = true, ended = false;
+  while (i + 12 <= b.length) {
     const len = u32(b, i, false);
     const type = td.decode(b.slice(i + 4, i + 8));
     const start = i + 8;
-    if (start + len > b.length) break;
-    if (type === 'IHDR' && len >= 8) { width = u32(b, start, false); height = u32(b, start + 4, false); }
+    if (start + len + 4 > b.length) return bad('image/png', 'La estructura PNG está truncada.');
+    if (first && (type !== 'IHDR' || len !== 13)) return bad('image/png', 'El primer bloque PNG debe ser un IHDR válido.');
+    if (type === 'IHDR') {
+      if (!first) return bad('image/png', 'El PNG tiene más de una cabecera.');
+      if (crc32(b, i + 4, start + len) !== u32(b, start + len, false)) return bad('image/png', 'La cabecera PNG está dañada.');
+      width = u32(b, start, false); height = u32(b, start + 4, false);
+    }
+    first = false;
     if (type === 'tEXt') {
       const text = td.decode(b.slice(start, start + len));
       const sep = text.indexOf('\0');
-      if (sep > 0 && text.slice(0, sep) === 'smyl.sim') hints.push(...text.slice(sep + 1).split(',').map((h) => h.trim()).filter(Boolean));
+      if (sep > 0 && text.slice(0, sep) === 'smyl.sim') hints.push(...text.slice(sep + 1).split(',').map((h) => h.trim()).filter((h) => h && h.length <= MAX_HINT_LENGTH).slice(0, MAX_HINTS));
     }
-    if (type === 'IEND') break;
+    if (type === 'IEND') { ended = true; break; }
     i = start + len + 4; // + CRC
   }
-  if (width === null || height === null) return { mime: 'image/png', width, height, orientation: 0, hints, reason: 'La cabecera PNG no declara dimensiones.' };
-  return { mime: 'image/png', width, height, orientation: 1, hints, reason: null };
+  if (!ended) return bad('image/png', 'El PNG no termina correctamente.');
+  if (width === null || height === null || width < 1 || height < 1) return bad('image/png', 'La cabecera PNG no declara dimensiones.');
+  return { mime: 'image/png', width, height, orientation: 1, hints: hints.slice(0, MAX_HINTS), reason: null };
 }
 
 function exifOrientation(app1: Uint8Array): number {
@@ -756,6 +787,7 @@ function probeJpeg(b: Uint8Array): ImageProbe {
   while (i + 4 <= b.length) {
     if (b[i] !== 0xff) { i++; continue; }
     const marker = b[i + 1];
+    if (marker === 0xff) { i++; continue; } // bytes de relleno 0xFF antes de un marcador
     if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
     if (marker === 0xd9 || marker === 0xda) break; // EOI o inicio de scan: ya no hay cabeceras
     const len = u16(b, i + 2, false);
@@ -763,11 +795,12 @@ function probeJpeg(b: Uint8Array): ImageProbe {
     const seg = b.slice(i + 4, i + 2 + len);
     if (marker === 0xe1) { const o = exifOrientation(seg); if (o) orientation = o; }
     if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+      if (width !== null) return bad('image/jpeg', 'El JPEG declara más de un cuadro.');
       if (seg.length >= 5) { height = u16(seg, 1, false); width = u16(seg, 3, false); }
     }
     i += 2 + len;
   }
-  if (width === null || height === null) return { mime: 'image/jpeg', width, height, orientation, hints: [], reason: 'La cabecera JPEG no declara dimensiones.' };
+  if (width === null || height === null || width < 1 || height < 1) return bad('image/jpeg', 'La cabecera JPEG no declara dimensiones.');
   return { mime: 'image/jpeg', width, height, orientation, hints: [], reason: null };
 }
 
@@ -800,30 +833,21 @@ const { runRadiographQc, runRadiographAnalysis } = (() => {
 // Un timeout incierto cierra la ejecución como `unconfirmed` y NO reintenta.
 
 
-interface AiRunRow {
-  id: string; tenant_id: string; patient_id: string; source_id: string; kind: string; status: string;
-  engine: { provider: string; name: string; version: string }; contract_version: number; output: unknown; failure_code: string;
-}
-interface SourceRow {
-  id: string; tenant_id: string; patient_id: string; bucket: string; storage_path: string; sha256: string;
-  mime_type: string; size_bytes: number; study_type_declared: string;
-}
-interface DbResult<T> { data: T | null; error: { code?: string; message: string } | null }
-interface QcDeps {
-  requestRun(sourceId: string, kind: AnalysisKind): Promise<DbResult<AiRunRow>>; // como usuario (JWT)
-  loadSource(sourceId: string): Promise<SourceRow | null>;               // service_role
-  download(bucket: string, path: string): Promise<Uint8Array | null>;    // service_role, ruta conocida
-  completeRun(runId: string, status: 'completed' | 'failed' | 'unconfirmed', output: unknown, failureCode: string): Promise<DbResult<AiRunRow>>; // service_role
-  provider: RadiographQcProvider | null;          // QC
-  dentalProvider?: DentalXrayProvider | null;      // localización y señales (Etapa 3)
-  timeoutMs: number;
-  log(event: Record<string, string | number | boolean | null>): void;    // sólo ids y códigos
-}
-interface QcReply { status: number; body: Record<string, unknown> }
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const MAX_BYTES = 20 * 1024 * 1024;
-const MIN_DIM = 64, MAX_DIM = 12000;
+const MIN_DIM = 64, MAX_DIM = 12000, MAX_PIXELS = 50_000_000;
+const MAX_OUTPUT_BYTES = 250_000, MAX_CANDIDATE_BYTES = 15_000;
+// Surrogate suelto: JSON.stringify lo escapa pero PostgreSQL rechaza el \ud800 aislado al convertir a jsonb.
+const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+const utf8Bytes = (v: unknown): number => new TextEncoder().encode(JSON.stringify(v)).length;
+// JSON.stringify escapa el surrogate suelto (lo hace "válido"), así que se busca en las cadenas reales, claves incluidas.
+function hasLoneSurrogate(v: unknown): boolean {
+  if (typeof v === 'string') return LONE_SURROGATE.test(v);
+  if (Array.isArray(v)) return v.some(hasLoneSurrogate);
+  if (v && typeof v === 'object') return Object.entries(v as Record<string, unknown>).some(([k, x]) => LONE_SURROGATE.test(k) || hasLoneSurrogate(x));
+  return false;
+}
 
 function publicRun(run: AiRunRow) {
   return { id: run.id, sourceId: run.source_id, kind: run.kind, status: run.status, engine: run.engine, contractVersion: run.contract_version, output: run.output, failureCode: run.failure_code };
@@ -835,6 +859,11 @@ function dbStatus(code: string | undefined): number {
   if (code === '22023') return 400;
   return 500;
 }
+// Sólo mensajes escritos por nuestras funciones SQL llegan al navegador; cualquier otro error de la base es genérico.
+const dbMessage = (error: { code?: string; message: string } | null, fallback: string): string =>
+  error && ['42501', '23514', 'PT409', '22023'].includes(error.code || '') ? error.message : fallback;
+
+class ProviderTimeout extends Error {}
 
 interface Engine { model: ModelRef; call(input: VerifiedRadiographSource, signal: AbortSignal): Promise<unknown>; parse(raw: unknown): { model: ModelRef; sourceId?: string } & Record<string, unknown> }
 
@@ -857,10 +886,10 @@ async function runRadiographAnalysis(kind: AnalysisKind, rawBody: unknown, deps:
   const engine = selectEngine(kind, deps);
   if (!engine) return { status: 503, body: { error: 'Este análisis radiográfico no está configurado en el servidor.', code: 'disabled' } };
 
-  const requested = await deps.requestRun(sourceId, kind);
+  const requested = await deps.requestRun(sourceId, kind, body.acknowledgeUnconfirmed === true);
   if (requested.error || !requested.data) {
     deps.log({ event: 'run_request_rejected', kind, sourceId, code: requested.error?.code || '' });
-    return { status: dbStatus(requested.error?.code), body: { error: requested.error?.message || 'No se pudo registrar la solicitud.', code: requested.error?.code || '' } };
+    return { status: dbStatus(requested.error?.code), body: { error: dbMessage(requested.error, 'No se pudo registrar la solicitud.'), code: requested.error?.code || '' } };
   }
   const run = requested.data;
   if (run.kind !== kind) return { status: 409, body: { error: 'La ejecución registrada no corresponde a este análisis.', code: 'kind_mismatch' } };
@@ -870,62 +899,104 @@ async function runRadiographAnalysis(kind: AnalysisKind, rawBody: unknown, deps:
   }
   if (run.status !== 'requested') return { status: 409, body: { error: 'La ejecución no está en un estado que permita continuar.', code: run.status } };
 
-  const fail = async (status: number, failureCode: string, error: string, runStatus: 'failed' | 'unconfirmed' = 'failed') => {
-    const closed = await deps.completeRun(run.id, runStatus, null, failureCode);
+  // Reclamo atómico: si otra invocación ya envió (o está enviando) esta ejecución, esta no vuelve a enviar nada.
+  const claimed = await deps.claimRun(run.id);
+  if (claimed.error || !claimed.data) {
+    deps.log({ event: 'run_claim_rejected', kind, runId: run.id, sourceId, code: claimed.error?.code || '' });
+    if (claimed.error?.code === 'PT409') return { status: 409, body: { error: 'Esta imagen ya se está analizando; espera el resultado.', code: 'in_progress', run: { id: run.id, status: run.status } } };
+    return { status: dbStatus(claimed.error?.code), body: { error: dbMessage(claimed.error, 'No se pudo iniciar el análisis.'), code: claimed.error?.code || '' } };
+  }
+
+  let sent = false;
+  const close = async (status: number, failureCode: string, error: string, runStatus: 'failed' | 'unconfirmed' = 'failed') => {
+    let closed: DbResult<AiRunRow> = { data: null, error: { message: 'not_closed' } };
+    try { closed = await deps.completeRun(run.id, runStatus, null, failureCode); } catch { /* se registra abajo; la ejecución caduca sola como "sin confirmar" */ }
     deps.log({ event: 'run_closed', kind, runId: run.id, sourceId, status: runStatus, code: failureCode, persisted: !closed.error });
     return { status, body: { error, code: failureCode, run: closed.data ? publicRun(closed.data) : { id: run.id, status: runStatus, failureCode } } };
   };
+  const timeoutReply = () => close(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
 
-  const source = await deps.loadSource(run.source_id);
-  if (!source || source.tenant_id !== run.tenant_id) return fail(422, 'source_invalid', 'La fuente radiográfica no está disponible.');
-  if (source.bucket !== 'smyl-radiographs' || source.size_bytes > MAX_BYTES) return fail(422, 'size_limit', 'El archivo excede el tamaño permitido.');
-  const bytes = await deps.download(source.bucket, source.storage_path);
-  if (!bytes) return fail(422, 'source_invalid', 'No se encontró el archivo privado.');
-  if (bytes.length !== source.size_bytes || bytes.length > MAX_BYTES) return fail(422, 'source_invalid', 'El tamaño real no coincide con la fuente.');
-  if ((await sha256Hex(bytes)) !== source.sha256) return fail(422, 'source_invalid', 'La huella del archivo no coincide con la fuente.');
-  const probe = probeRadiograph(bytes);
-  if (probe.mime !== source.mime_type) return fail(422, 'source_invalid', 'El tipo real del archivo no coincide con la fuente.');
-  if (probe.reason || probe.width === null || probe.height === null) return fail(422, 'source_invalid', probe.reason || 'La imagen no declara dimensiones.');
-  if (probe.width < MIN_DIM || probe.height < MIN_DIM || probe.width > MAX_DIM || probe.height > MAX_DIM) return fail(422, 'source_invalid', 'Las dimensiones de la imagen están fuera de rango.');
-
-  const verified: VerifiedRadiographSource = {
-    sourceId: source.id, sha256: source.sha256, mimeType: probe.mime, width: probe.width, height: probe.height,
-    orientation: probe.orientation, studyTypeDeclared: source.study_type_declared, bytes, hints: probe.hints,
-  };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
-  let raw: unknown;
   try {
-    raw = await engine.call(verified, controller.signal);
-  } catch (error) {
-    clearTimeout(timer);
-    if (controller.signal.aborted) return fail(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
-    deps.log({ event: 'run_provider_error', kind, runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
-    return fail(502, 'provider_error', 'El motor devolvió un error.');
-  }
-  clearTimeout(timer);
-  if (controller.signal.aborted) return fail(504, 'timeout', 'El motor no respondió a tiempo; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
+    const source = await deps.loadSource(run.source_id);
+    if (!source || source.tenant_id !== run.tenant_id || source.patient_id !== run.patient_id) return await close(422, 'source_invalid', 'La fuente radiográfica no está disponible.');
+    if (source.bucket !== 'smyl-radiographs' || source.size_bytes > MAX_BYTES) return await close(422, 'size_limit', 'El archivo excede el tamaño permitido.');
+    // La ruta debe seguir el prefijo tenant/paciente: ni una fuente mal registrada puede apuntar al archivo de otra persona.
+    if (!source.storage_path.startsWith(`${source.tenant_id}/${source.patient_id}/`) || source.storage_path.split('/').some((part) => part === '..' || part === '.')) {
+      return await close(422, 'source_invalid', 'La ruta del archivo no pertenece a este paciente.');
+    }
+    const bytes = await deps.download(source.bucket, source.storage_path);
+    if (!bytes) return await close(422, 'source_invalid', 'No se encontró el archivo privado.');
+    if (bytes.length !== source.size_bytes || bytes.length > MAX_BYTES) return await close(422, 'source_invalid', 'El tamaño real no coincide con la fuente.');
+    if ((await sha256Hex(bytes)) !== source.sha256) return await close(422, 'source_invalid', 'La huella del archivo no coincide con la fuente.');
+    const probe = probeRadiograph(bytes);
+    if (probe.mime !== source.mime_type) return await close(422, 'source_invalid', 'El tipo real del archivo no coincide con la fuente.');
+    if (probe.reason || probe.width === null || probe.height === null) return await close(422, 'source_invalid', probe.reason || 'La imagen no declara dimensiones.');
+    if (probe.width < MIN_DIM || probe.height < MIN_DIM || probe.width > MAX_DIM || probe.height > MAX_DIM || probe.width * probe.height > MAX_PIXELS) {
+      return await close(422, 'source_invalid', 'Las dimensiones de la imagen están fuera de rango.');
+    }
+    // La identidad del motor se comprueba ANTES de enviar la imagen: si cambió el motor activo, no sale nada.
+    const reg = run.engine, cfg = engine.model;
+    if (reg.provider !== cfg.provider || reg.name !== cfg.name || reg.version !== cfg.version) {
+      return await close(503, 'disabled', 'El motor configurado no coincide con el motor registrado para esta ejecución.');
+    }
 
-  let output: ReturnType<Engine['parse']>;
-  try { output = engine.parse(raw); } catch (error) {
-    deps.log({ event: 'run_invalid_output', kind, runId: run.id, sourceId, message: error instanceof Error ? error.message.slice(0, 120) : 'unknown' });
-    return fail(502, 'invalid_output', 'La respuesta del motor no cumple el contrato.');
+    const verified: VerifiedRadiographSource = {
+      sourceId: source.id, sha256: source.sha256, mimeType: probe.mime, width: probe.width, height: probe.height,
+      orientation: probe.orientation, studyTypeDeclared: source.study_type_declared, bytes, hints: probe.hints,
+    };
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new ProviderTimeout()); }, deps.timeoutMs); });
+    let raw: unknown;
+    sent = true; // desde aquí el proveedor pudo recibir la imagen
+    try {
+      const call = engine.call(verified, controller.signal);
+      call.catch(() => undefined); // si pierde la carrera, su rechazo tardío no debe quedar sin atender
+      raw = await Promise.race([call, deadline]);
+    } catch (error) {
+      clearTimeout(timer);
+      if (error instanceof ProviderTimeout || controller.signal.aborted) return await timeoutReply();
+      const message = error instanceof Error ? error.message : '';
+      const http = /^provider_http_(\d{3})$/.exec(message);
+      deps.log({ event: 'run_provider_error', kind, runId: run.id, sourceId, code: http ? `http_${http[1]}` : 'network' });
+      // Un rechazo 4xx definitivo (salvo 408) prueba que el proveedor no procesó nada; el resto es incierto.
+      if (http && Number(http[1]) >= 400 && Number(http[1]) < 500 && http[1] !== '408') return await close(502, 'provider_error', 'El motor devolvió un error.');
+      return await close(502, 'provider_error', 'El motor no confirmó el resultado; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed');
+    }
+    clearTimeout(timer);
+    if (controller.signal.aborted) return await timeoutReply();
+
+    let output: ReturnType<Engine['parse']>;
+    try { output = engine.parse(raw); } catch (error) {
+      deps.log({ event: 'run_invalid_output', kind, runId: run.id, sourceId, code: error instanceof Error ? 'contract' : 'unknown' });
+      return await close(502, 'invalid_output', 'La respuesta del motor no cumple el contrato.');
+    }
+    if (kind !== 'qc' && output.sourceId !== source.id) return await close(502, 'invalid_output', 'La respuesta no corresponde a la fuente.');
+    const m = output.model;
+    if (m.provider !== reg.provider || m.name !== reg.name || m.version !== reg.version) return await close(502, 'invalid_output', 'La respuesta no identifica el motor registrado.');
+    // La base guarda jsonb con topes en bytes UTF-8: se comprueban aquí para no perder un resultado ya pagado.
+    if (hasLoneSurrogate(output)) return await close(502, 'invalid_output', 'La respuesta contiene texto no válido.');
+    if (utf8Bytes(output) > MAX_OUTPUT_BYTES || (kind !== 'qc' && (output.candidates as unknown[]).some((c) => utf8Bytes(c) > MAX_CANDIDATE_BYTES))) {
+      return await close(502, 'invalid_output', 'La respuesta del motor excede el tamaño permitido.');
+    }
+    const closed = await deps.completeRun(run.id, 'completed', output, '');
+    if (closed.error || !closed.data) {
+      deps.log({ event: 'run_persist_failed', kind, runId: run.id, sourceId, code: closed.error?.code || '' });
+      // La respuesta ya existe pero no se guardó: se intenta cerrar como "sin confirmar" para no dejarla abierta.
+      return await close(dbStatus(closed.error?.code), 'invalid_output', dbMessage(closed.error, 'No se pudo guardar el resultado.'), closed.error?.code === '22023' ? 'failed' : 'unconfirmed');
+    }
+    const summary = kind === 'qc'
+      ? { quality: String((output.quality as { status: string }).status), studyClass: String((output.studyClass as { value: string }).value) }
+      : { candidates: (output.candidates as unknown[]).length };
+    deps.log({ event: 'run_completed', kind, runId: run.id, sourceId, ...summary });
+    return { status: 200, body: { run: publicRun(closed.data), reused: false } };
+  } catch (error) {
+    // Cualquier fallo inesperado después del reclamo cierra la ejecución: nunca queda "solicitada" para siempre.
+    deps.log({ event: 'run_unexpected', kind, runId: run.id, sourceId, sent, code: error instanceof Error ? error.name : 'unknown' });
+    return sent
+      ? await close(500, 'provider_error', 'El análisis se interrumpió; la ejecución quedó sin confirmar y no se reintenta sola.', 'unconfirmed')
+      : await close(500, 'provider_error', 'No se pudo completar el análisis.');
   }
-  if (kind !== 'qc' && output.sourceId !== source.id) return fail(502, 'invalid_output', 'La respuesta no corresponde a la fuente.');
-  const m = output.model, e = run.engine, p = engine.model;
-  if (m.provider !== e.provider || m.name !== e.name || m.version !== e.version || m.provider !== p.provider || m.name !== p.name || m.version !== p.version) {
-    return fail(502, 'invalid_output', 'La respuesta no identifica el motor registrado.');
-  }
-  const closed = await deps.completeRun(run.id, 'completed', output, '');
-  if (closed.error || !closed.data) {
-    deps.log({ event: 'run_persist_failed', kind, runId: run.id, sourceId, code: closed.error?.code || '' });
-    return { status: dbStatus(closed.error?.code), body: { error: closed.error?.message || 'No se pudo guardar el resultado.', code: closed.error?.code || '' } };
-  }
-  const summary = kind === 'qc'
-    ? { quality: String((output.quality as { status: string }).status), studyClass: String((output.studyClass as { value: string }).value) }
-    : { candidates: (output.candidates as unknown[]).length };
-  deps.log({ event: 'run_completed', kind, runId: run.id, sourceId, ...summary });
-  return { status: 200, body: { run: publicRun(closed.data), reused: false } };
 }
 
 return { runRadiographQc, runRadiographAnalysis };
@@ -941,13 +1012,16 @@ return { runRadiographQc, runRadiographAnalysis };
 const SB_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('SB_URL') || '';
 const SB_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SB_SERVICE_ROLE_KEY') || '';
 const SB_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SB_ANON_KEY') || '';
-const PROVIDER_TIMEOUT_MS = Math.min(Math.max(Number(Deno.env.get('RADIOGRAPH_DENTAL_TIMEOUT_MS') || 60000), 5000), 120000);
-const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const configuredTimeout = Number(Deno.env.get('RADIOGRAPH_DENTAL_TIMEOUT_MS'));
+// Siempre finito: un valor ausente o mal escrito usa el predeterminado en vez de producir NaN (sin timeout).
+const PROVIDER_TIMEOUT_MS = Math.min(Math.max(Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 60000, 5000), 120000);
+const MAX_BODY_BYTES = 4096;
+// service_role se crea dentro del manejador: un fallo de configuración se responde, no tumba el módulo.
+const adminClient = () => createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 const dentalProvider = createDentalProvider(
   { RADIOGRAPH_DENTAL_PROVIDER: Deno.env.get('RADIOGRAPH_DENTAL_PROVIDER'), RADIOGRAPH_DENTAL_URL: Deno.env.get('RADIOGRAPH_DENTAL_URL'), RADIOGRAPH_DENTAL_API_KEY: Deno.env.get('RADIOGRAPH_DENTAL_API_KEY'),
     RADIOGRAPH_DENTAL_PROVIDER_NAME: Deno.env.get('RADIOGRAPH_DENTAL_PROVIDER_NAME'), RADIOGRAPH_DENTAL_MODEL_NAME: Deno.env.get('RADIOGRAPH_DENTAL_MODEL_NAME'),
-    RADIOGRAPH_DENTAL_MODEL_VERSION: Deno.env.get('RADIOGRAPH_DENTAL_MODEL_VERSION'), RADIOGRAPH_PROVIDER_HOSTS: Deno.env.get('RADIOGRAPH_PROVIDER_HOSTS') },
-  isAllowedRemoteUrl, parseAllowedHostSuffixes,
+    RADIOGRAPH_DENTAL_MODEL_VERSION: Deno.env.get('RADIOGRAPH_DENTAL_MODEL_VERSION'), RADIOGRAPH_PROVIDER_HOSTS: Deno.env.get('RADIOGRAPH_PROVIDER_HOSTS'), RADIOGRAPH_ALLOW_SIMULATED: Deno.env.get('RADIOGRAPH_ALLOW_SIMULATED') },
 );
 
 Deno.serve(async (req: Request) => {
@@ -959,15 +1033,25 @@ Deno.serve(async (req: Request) => {
   const auth = await requireUser(req, CORS);
   if (auth.response) return auth.response;
   let body: unknown;
-  try { body = await req.json(); } catch { return reply(400, { error: 'Cuerpo no válido.' }); }
+  try {
+    if (Number(req.headers.get('content-length') || 0) > MAX_BODY_BYTES) return reply(413, { error: 'Cuerpo demasiado grande.' });
+    const text = await req.text();
+    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return reply(413, { error: 'Cuerpo demasiado grande.' });
+    body = JSON.parse(text);
+  } catch { return reply(400, { error: 'Cuerpo no válido.' }); }
   // Cliente con la sesión de la persona: el RPC aplica tenant, permiso, alcance, bandera y motor.
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } });
   const kind = body && typeof body === 'object' ? String((body as Record<string, unknown>).kind || '') : '';
   if (kind !== 'tooth_localization' && kind !== 'finding_candidates') return reply(400, { error: 'Indica el análisis: tooth_localization o finding_candidates.' });
   try {
+    const admin = adminClient();
     const result = await runRadiographAnalysis(kind, body, {
-      requestRun: async (sourceId, kind) => {
-        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: false });
+      requestRun: async (sourceId, kind, acknowledgeUnconfirmed) => {
+        const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: acknowledgeUnconfirmed });
+        return { data: (data as AiRunRow) ?? null, error: error ? { code: error.code, message: error.message } : null };
+      },
+      claimRun: async (runId) => {
+        const { data, error } = await admin.rpc('smyl_radiograph_claim_ai_run', { p_run_id: runId });
         return { data: (data as AiRunRow) ?? null, error: error ? { code: error.code, message: error.message } : null };
       },
       loadSource: async (sourceId) => {
@@ -990,7 +1074,7 @@ Deno.serve(async (req: Request) => {
     });
     return reply(result.status, result.body);
   } catch (error) {
-    console.error('[radiograph-analyze]', error instanceof Error ? error.message : 'error desconocido');
+    
     return reply(500, { error: 'No se pudo completar el análisis radiográfico. Intenta de nuevo.' });
   }
 });

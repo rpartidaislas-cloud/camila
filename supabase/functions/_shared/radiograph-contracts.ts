@@ -40,7 +40,9 @@ export interface RadiographReportV1 { schema: 1; sections: Record<typeof REPORT_
 const FDI = /^(1[1-8]|2[1-8]|3[1-8]|4[1-8]|5[1-5]|6[1-5]|7[1-5]|8[1-5])$/;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const CANDIDATE_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-const FORBIDDEN_CLAIM = /(diagn[oó]s|confirmad[oa]|certeza|definitiv|inequ[ií]voc|sin duda|diagnosis|confirmed|definite)/i;
+// Se normaliza antes de buscar (NFKD, sin marcas ni caracteres invisibles, minúsculas): idéntico en SQL y JS.
+const FORBIDDEN_CLAIM = /(diagnos|confirmad|confirmed|confirm[ao]\b|certeza|certain|certitud|definitiv|definite|inequivoc|unequivocal|sin duda|without doubt|concluyente|conclusive|patognomon|pathognomon|seguro de|es una caries|is a caries)/;
+const forbidden = (v: unknown): boolean => FORBIDDEN_CLAIM.test(String(v).normalize("NFKD").toLowerCase().replace(/[\u0300-\u036f\u00ad\u200b-\u200f\u2060-\u2064\ufeff]/g, ""));
 
 type Dict = Record<string, unknown>;
 const fail = (m: string): never => { throw new Error(m); };
@@ -72,7 +74,7 @@ export function isGeometry(g: unknown, allowPoint: boolean): g is Geometry {
   if (pts[0][0] === pts[n - 1][0] && pts[0][1] === pts[n - 1][1]) return false;
   let area = 0;
   for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; }
-  return Math.abs(area) / 2 >= 0.000001;
+  return Math.abs(area) / 2 >= 0.000001 - 0.000000000001;
 }
 
 export function parseRadiographQc(value: unknown): RadiographQcResultV1 {
@@ -100,6 +102,7 @@ export function parseRadiographQc(value: unknown): RadiographQcResultV1 {
     if (!exact(b, ["code", "reason"]) || !includes(ANALYSES, b.code) || applicable.has(b.code) || blocked.has(b.code) || !text(b.reason, 1, 300)) fail("Análisis bloqueado no válido.");
     blocked.add(String((b as Dict).code));
   }
+  if ((qd.flags as Dict[]).some((f) => forbidden(f.explanation)) || (v.blockedAnalyses as Dict[]).some((b) => forbidden(b.reason))) fail("El modelo no puede presentar una señal como diagnóstico o certeza.");
   if (qd.status === "unusable" && applicable.size) fail("Una imagen no utilizable no habilita análisis.");
   return structuredClone(value) as RadiographQcResultV1;
 }
@@ -130,7 +133,7 @@ export function parseFindingCandidateSet(value: unknown): FindingCandidateSetV1 
       || !includes(EVIDENCE_LEVELS, c.evidenceLevel) || !Array.isArray(c.regions) || c.regions.length < 1 || c.regions.length > 4 || !text(c.explanation, 1, 300)
       || !Array.isArray(c.limitations) || c.limitations.length > 6) fail("Señal candidata no válida.");
     const cd = c as Dict;
-    if (FORBIDDEN_CLAIM.test(String(cd.label)) || FORBIDDEN_CLAIM.test(String(cd.explanation))) fail("El modelo no puede presentar una señal como diagnóstico o certeza.");
+    if (forbidden(cd.label) || forbidden(cd.explanation) || (cd.limitations as unknown[]).some(forbidden)) fail("El modelo no puede presentar una señal como diagnóstico o certeza.");
     ids.add(String(cd.candidateId));
     for (const r of cd.regions as unknown[]) if (!isGeometry(r, false)) fail("Región de señal no válida.");
     for (const l of cd.limitations as unknown[]) if (!text(l, 1, 200)) fail("Limitación de señal no válida.");
@@ -171,5 +174,5 @@ export function parseDecisionPayload(state: string, payload: unknown): Record<st
   return structuredClone(p);
 }
 
-export const hasForbiddenClaim = (v: unknown): boolean => FORBIDDEN_CLAIM.test(String(v));
+export const hasForbiddenClaim = forbidden;
 export const isFdi = fdi;

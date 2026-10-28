@@ -79,7 +79,21 @@ export interface HttpQcProviderConfig {
   model: ModelRef;
   timeoutMs: number;
   maxResponseBytes: number;
-  allowedHostSuffixes: string[];
+  allowedHosts: string[];
+}
+
+// Lista EXACTA de hosts (no sufijos): el proveedor de IA nunca hereda el comodín .supabase.co ni subdominios.
+export function parseProviderHosts(raw: string | null | undefined): string[] {
+  return Array.from(new Set(String(raw || '').split(',').map((s) => s.trim().toLowerCase()).filter((s) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s))));
+}
+export function isAllowedProviderUrl(raw: unknown, hosts: string[]): boolean {
+  if (typeof raw !== 'string' || raw.length > 2048) return false;
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== 'https:' || u.username || u.password || (u.port && u.port !== '443')) return false;
+  const host = u.hostname.toLowerCase();
+  if (!host.includes('.') || host.includes(':') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') || host.endsWith('.local')) return false;
+  return hosts.includes(host);
 }
 
 export type AnalysisKind = 'qc' | 'tooth_localization' | 'finding_candidates';
@@ -89,8 +103,8 @@ export type AnalysisKind = 'qc' | 'tooth_localization' | 'finding_candidates';
 export class HttpRadiographProvider {
   readonly model: ModelRef;
   private readonly cfg: HttpQcProviderConfig;
-  constructor(cfg: HttpQcProviderConfig, isAllowedUrl: (u: string, s: string[]) => boolean) {
-    if (!isAllowedUrl(cfg.url, cfg.allowedHostSuffixes)) throw new Error('URL del proveedor no permitida.');
+  constructor(cfg: HttpQcProviderConfig) {
+    if (!isAllowedProviderUrl(cfg.url, cfg.allowedHosts)) throw new Error('URL del proveedor no permitida.');
     this.cfg = cfg;
     this.model = { ...cfg.model };
   }
@@ -102,9 +116,22 @@ export class HttpRadiographProvider {
     if (!res.ok) throw new Error(`provider_http_${res.status}`);
     const declared = Number(res.headers.get('content-length') || 0);
     if (declared > this.cfg.maxResponseBytes) throw new Error('provider_response_too_large');
-    const text = await res.text();
-    if (text.length > this.cfg.maxResponseBytes) throw new Error('provider_response_too_large');
-    return JSON.parse(text);
+    // Lectura por flujo con tope: un proveedor que no declara longitud no puede llenar la memoria.
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('provider_empty_response');
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > this.cfg.maxResponseBytes) { await reader.cancel().catch(() => undefined); throw new Error('provider_response_too_large'); }
+      chunks.push(value);
+    }
+    const all = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) { all.set(c, offset); offset += c.byteLength; }
+    return JSON.parse(new TextDecoder().decode(all));
   }
 }
 
@@ -203,25 +230,28 @@ export class SimulatedDentalXrayProvider implements DentalXrayProvider {
   }
 }
 
-export function createDentalProvider(env: ProviderEnv, isAllowedUrl: (u: string, s: string[]) => boolean, parseSuffixes: (extra: string | undefined) => string[]): DentalXrayProvider | null {
+// Un proveedor simulado genera geometría sintética: sólo se instancia con RADIOGRAPH_ALLOW_SIMULATED=1 (demostración).
+const simulatedAllowed = (env: ProviderEnv): boolean => env.RADIOGRAPH_ALLOW_SIMULATED === '1';
+
+export function createDentalProvider(env: ProviderEnv): DentalXrayProvider | null {
   const kind = (env.RADIOGRAPH_DENTAL_PROVIDER || '').trim();
-  if (kind === 'simulated') return new SimulatedDentalXrayProvider();
+  if (kind === 'simulated') return simulatedAllowed(env) ? new SimulatedDentalXrayProvider() : null;
   if (kind !== 'http') return null;
   const url = env.RADIOGRAPH_DENTAL_URL || '', apiKey = env.RADIOGRAPH_DENTAL_API_KEY || '';
   const model = { provider: env.RADIOGRAPH_DENTAL_PROVIDER_NAME || '', name: env.RADIOGRAPH_DENTAL_MODEL_NAME || '', version: env.RADIOGRAPH_DENTAL_MODEL_VERSION || '' };
   if (!url || !apiKey || !model.provider || !model.name || !model.version) return null;
-  return new HttpDentalXrayProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHostSuffixes: parseSuffixes(env.RADIOGRAPH_PROVIDER_HOSTS) }, isAllowedUrl);
+  try { return new HttpDentalXrayProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHosts: parseProviderHosts(env.RADIOGRAPH_PROVIDER_HOSTS) }); } catch { return null; }
 }
 
 export type ProviderEnv = Record<string, string | undefined>;
 
 // Falla cerrado: sin RADIOGRAPH_QC_PROVIDER no hay motor. Las credenciales sólo viven en env.
-export function createQcProvider(env: ProviderEnv, isAllowedUrl: (u: string, s: string[]) => boolean, parseSuffixes: (extra: string | undefined) => string[]): RadiographQcProvider | null {
+export function createQcProvider(env: ProviderEnv): RadiographQcProvider | null {
   const kind = (env.RADIOGRAPH_QC_PROVIDER || '').trim();
-  if (kind === 'simulated') return new SimulatedQcProvider();
+  if (kind === 'simulated') return simulatedAllowed(env) ? new SimulatedQcProvider() : null;
   if (kind !== 'http') return null;
   const url = env.RADIOGRAPH_QC_URL || '', apiKey = env.RADIOGRAPH_QC_API_KEY || '';
   const model = { provider: env.RADIOGRAPH_QC_PROVIDER_NAME || '', name: env.RADIOGRAPH_QC_MODEL_NAME || '', version: env.RADIOGRAPH_QC_MODEL_VERSION || '' };
   if (!url || !apiKey || !model.provider || !model.name || !model.version) return null;
-  return new HttpQcProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHostSuffixes: parseSuffixes(env.RADIOGRAPH_PROVIDER_HOSTS) }, isAllowedUrl);
+  try { return new HttpQcProvider({ url, apiKey, model, timeoutMs: 0, maxResponseBytes: 262_144, allowedHosts: parseProviderHosts(env.RADIOGRAPH_PROVIDER_HOSTS) }); } catch { return null; }
 }

@@ -79,6 +79,13 @@ begin
   v_tenant := public.smyl_radiograph_guard(v_sa.patient_id, 'clinical.write');
   if not public.smyl_radiograph_flag_enabled('radiograph.longitudinal_v1', v_tenant) then
     raise exception using errcode = '42501', message = 'La historia longitudinal no está habilitada para esta clínica.'; end if;
+  -- Declarar comparable un par que el sistema marca incompatible (otro tipo, sin QC, imagen no utilizable)
+  -- es una decisión de criterio clínico: exige clinical.approve.
+  if p_link_kind = 'comparable' and not public.smyl_has_permission(v_tenant, 'clinical.approve') and (
+       public.smyl_radiograph_effective_study_type(v_tenant, v_a) is distinct from public.smyl_radiograph_effective_study_type(v_tenant, v_b)
+       or public.smyl_radiograph_qc_status(v_tenant, v_a) is null or public.smyl_radiograph_qc_status(v_tenant, v_b) is null
+       or public.smyl_radiograph_qc_status(v_tenant, v_a) = 'unusable' or public.smyl_radiograph_qc_status(v_tenant, v_b) = 'unusable') then
+    raise exception using errcode = '42501', message = 'Declarar comparable un par que el sistema marca incompatible requiere aprobación clínica.'; end if;
   perform pg_advisory_xact_lock(hashtextextended('radiograph-link:' || v_a::text || v_b::text, 31));
   select * into v_row from public.smyl_radiograph_study_links l where l.tenant_id = v_tenant and l.source_a = v_a and l.source_b = v_b and l.revoked_at is null;
   if found then

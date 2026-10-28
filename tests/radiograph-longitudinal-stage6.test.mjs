@@ -81,7 +81,42 @@ test('cableado: mesa v2 compara sólo con comparables y explica los demás; Fich
   assert.match(ui, /'Alternar anterior \/ actual'/);
   assert.match(p360, /radiograph_source:'Radiografía',radiograph_report:'Informe radiográfico'/);
   assert.match(p360, /'radiograph_source','radiograph_report','clinical_plan'/);
-  for (const tag of ['smyl-radiograph-longitudinal.css?v=1', 'smyl-radiograph-longitudinal.js?v=1', 'smyl-radiograph-review-v2.js?v=4', 'smyl-patient-360.js?v=15']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
+  for (const tag of ['smyl-radiograph-longitudinal.css?v=1', 'smyl-radiograph-longitudinal.js?v=2', 'smyl-radiograph-review-v2.js?v=5', 'smyl-patient-360.js?v=15']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
   assert.match(sw, /radiograph-longitudinal-v49/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-longitudinal.js', 'smyl-radiograph-longitudinal.css', 'smyl-patient-360.js']) assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
+});
+
+test('emparejamiento honesto: sin análisis en un lado, descartados, no evaluables, conflictos y señales generales', () => {
+  const done = (...kinds) => kinds.map((k, i) => ({ id: 'r' + i, kind: k, status: 'completed' }));
+  const withRuns = (st, ...kinds) => Object.assign(st, { runs: done(...kinds) });
+  // Señal confirmada sólo en el actual, pero el anterior nunca buscó señales → no es "cambio confirmado".
+  const prev = withRuns(state(tooth(1, '36', 'confirmed')), 'tooth_localization');
+  const cur = withRuns(state(tooth(2, '36', 'confirmed'), finding(3, '36', 'restoration', 'confirmed')), 'tooth_localization', 'finding_candidates');
+  const p = L.pairByTooth(prev, cur);
+  assert.equal(p.confirmed.length, 0, 'no se compara contra lo que no se buscó');
+  assert.match(p.rows.find(r => r.fdi === '36').detail.join(' '), /sólo se analizaron en el actual/);
+  // Con análisis en ambos lados, la señal nueva sí es un cambio confirmado.
+  const both = L.pairByTooth(withRuns(state(tooth(1, '36', 'confirmed')), 'tooth_localization', 'finding_candidates'), cur);
+  assert.deepEqual(both.confirmed.map(r => r.fdi), ['36']);
+  // Descartar una señal es una decisión: confirmada antes y descartada ahora aparece como cambio con su detalle.
+  const rej = L.pairByTooth(withRuns(state(tooth(1, '36', 'confirmed'), finding(4, '36', 'restoration', 'confirmed')), 'tooth_localization', 'finding_candidates'),
+    withRuns(state(tooth(2, '36', 'confirmed'), finding(5, '36', 'restoration', 'rejected')), 'tooth_localization', 'finding_candidates'));
+  assert.deepEqual(rej.confirmed.map(r => r.fdi), ['36']);
+  assert.match(rej.rows[0].detail.join(' '), /descartadas/);
+  // No evaluable y conflicto quedan "sin verificar" con motivo.
+  const ne = tooth(6, '46', 'confirmed'); ne.candidate.payload.visibility = 'not_evaluable';
+  const nev = L.pairByTooth(withRuns(state(tooth(7, '46', 'confirmed')), 'tooth_localization'), withRuns(state(ne), 'tooth_localization'));
+  assert.deepEqual(nev.unverified.map(r => r.fdi), ['46']); assert.match(nev.unverified[0].detail.join(' '), /no evaluable/);
+  const conflict = L.pairByTooth(withRuns(state(tooth(8, '16', 'confirmed')), 'tooth_localization'), withRuns(state(tooth(9, '16', 'confirmed'), tooth(10, '16', 'pending')), 'tooth_localization'));
+  assert.deepEqual(conflict.unverified.map(r => r.fdi), ['16']); assert.match(conflict.unverified[0].detail.join(' '), /Conflicto/);
+  // Señales sin pieza se agrupan como región general.
+  const gen = L.pairByTooth(withRuns(state(finding(11, null, 'density', 'confirmed')), 'finding_candidates'), withRuns(state(finding(12, null, 'density', 'confirmed')), 'finding_candidates'));
+  assert.deepEqual(gen.rows.map(r => r.fdi), ['general']);
+});
+
+test('comparador: zoom único para ambos visores, foco devuelto al botón y sin doble envío (estático)', () => {
+  const src = read('smyl-radiograph-longitudinal.js');
+  assert.match(src, /apply:\(\)=>\{const centers=run\.wraps[\s\S]*run\.stages\.forEach\(st=>\{st\.style\.width/);
+  assert.match(src, /returnFocus/); assert.match(src, /run\.linking/);
+  assert.match(read('smyl-radiograph-review-v2.js'), /returnFocus:\(\)=>host\.querySelector\('\.rv2-compare'\)/);
 });

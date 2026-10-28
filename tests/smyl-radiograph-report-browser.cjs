@@ -48,6 +48,7 @@ let browser = null;
       // redacción asistida: la primera respuesta intenta añadir la pieza 25 y una certeza → se descarta
       await page.evaluate(() => { window.__assistResponses.push((ids) => JSON.stringify({ findingsOrder: ids, sections: { description: 'Caries confirmada en pieza 25 y pieza 16.' } })); });
       await page.getByRole('button', { name: 'Ordenar y redactar con apoyo de IA' }).click();
+      await page.locator('dialog.rr-confirm-dialog[open]').getByRole('button', { name: 'Enviar', exact: true }).click(); // confirmación de privacidad
       await page.waitForFunction(() => document.querySelector('.rp-dialog .rr-feedback')?.textContent.includes('Se descartó la redacción asistida'));
       const fb = await page.locator('.rp-dialog .rr-feedback').textContent();
       if (!fb.includes('pieza 25') || !fb.includes('certeza')) fail('guard explanation incomplete: ' + fb);
@@ -55,6 +56,7 @@ let browser = null;
       // segunda respuesta limpia → se aplica (reordena) y no toca estudios complementarios
       await page.locator('[data-rp-section="complementaryStudies"]').fill('CBCT considerado por el profesional.');
       await page.getByRole('button', { name: 'Ordenar y redactar con apoyo de IA' }).click();
+      await page.locator('dialog.rr-confirm-dialog[open]').getByRole('button', { name: 'Enviar', exact: true }).click(); // confirmación de privacidad
       await page.waitForFunction(() => document.querySelector('.rp-dialog .rr-feedback')?.textContent.includes('Redacción asistida aplicada'));
       const after = await page.evaluate(() => ({ desc: document.querySelector('[data-rp-section="description"]').value, comp: document.querySelector('[data-rp-section="complementaryStudies"]').value, order: Array.from(document.querySelectorAll('.rp-finding strong')).map((e) => e.textContent), ok: !!document.querySelector('.rp-diff-ok') }));
       if (!after.desc.includes('pieza 16') || after.comp !== 'CBCT considerado por el profesional.' || JSON.stringify(after.order) !== JSON.stringify(['Pieza FDI 15', 'Pieza FDI 16']) || !after.ok) fail('clean assist not applied: ' + JSON.stringify(after));

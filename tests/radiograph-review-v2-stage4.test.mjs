@@ -40,7 +40,7 @@ test('el estado nunca se indica sólo con color: símbolo + texto en tarjetas, o
 });
 
 test('teclado, lector de pantalla y cierre seguro', () => {
-  assert.match(ui, /items\.setAttribute\('role','listbox'\)/);
+  assert.match(ui, /items\.setAttribute\('role','list'\)/);
   assert.match(ui, /\['ArrowDown','ArrowUp','Home','End'\]/);
   assert.match(ui, /e\.setAttribute\('aria-live','polite'\)/);
   assert.match(ui, /c\.setAttribute\('role','img'\)/);
@@ -64,7 +64,7 @@ test('integración mínima en el expediente: botón oculto hasta que la clínica
 });
 
 test('cableado web, PWA y copia móvil sincronizados', () => {
-  for (const tag of ['smyl-radiograph-review-v2.css?v=2', 'smyl-radiograph-contracts.js?v=1', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=4', 'smyl-radiograph-review.js?v=5', 'smyl-dental-record.js?v=17']) {
+  for (const tag of ['smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=5', 'smyl-radiograph-review.js?v=5', 'smyl-dental-record.js?v=17']) {
     assert.ok(app.includes(tag), 'app.html ' + tag);
     assert.ok(sw.includes('/camila/' + tag), 'sw.js ' + tag);
   }
@@ -75,4 +75,17 @@ test('cableado web, PWA y copia móvil sincronizados', () => {
     assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
   }
   assert.match(read('mobile/scripts/sync-web.js'), /'smyl-radiograph-review-v2\.js', 'smyl-radiograph-review-v2\.css'/);
+});
+
+test('endurecimiento de la mesa v2: payload absoluto, flechas sólo en la tarjeta, consentimiento con huella, fallos de capacidades sin caché', () => {
+  const ui = fs.readFileSync(new URL('../smyl-radiograph-review-v2.js', import.meta.url), 'utf8');
+  assert.match(ui, /function absolutePayload\(entry,useDraft=true\)/);
+  assert.match(ui, /if\(state==='confirmed'&&entry\.state==='corrected'\)\{state='corrected';payload=absolutePayload\(entry,false\);\}/);
+  assert.match(ui, /e\.target\.matches\?\.\('\[data-rv2-card\]'\)/);
+  assert.match(ui, /p_consent:\{version:1,textHash\}/);
+  assert.doesNotMatch(ui, /acceptedAt|acceptedBy/, 'fecha y persona del consentimiento las sella el servidor');
+  assert.match(ui, /availability\.delete\(client\)/);
+  assert.match(ui, /role','listitem'/);
+  assert.doesNotMatch(ui, /aria-selected|role','option'/);
+  assert.doesNotMatch(ui, /llega al odontograma/);
 });

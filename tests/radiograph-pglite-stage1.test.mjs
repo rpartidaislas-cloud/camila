@@ -23,6 +23,8 @@ async function loadPglite() {
   try { return await import(pathToFileURL(createRequire(path.join(dir, 'noop.js')).resolve('@electric-sql/pglite')).href); } catch (e) { return null; }
 }
 const pglite = await loadPglite();
+// En CI (SMYL_REQUIRE_PGLITE=1) la ausencia de PGlite es un fallo, no una omisión silenciosa.
+if (!pglite && process.env.SMYL_REQUIRE_PGLITE === '1') throw new Error('SMYL_REQUIRE_PGLITE=1 pero @electric-sql/pglite no está disponible.');
 const skip = pglite ? false : 'Instala @electric-sql/pglite o define SMYL_PGLITE_DIR para correr esta suite.';
 
 const U = {
@@ -33,7 +35,7 @@ const U = {
 const P1 = '11111111-1111-4111-8111-111111111111', P2 = '22222222-2222-4222-8222-222222222222', P3 = '33333333-3333-4333-8333-333333333333';
 const STUDY = '44444444-4444-4444-8444-444444444444', SRC = '55555555-5555-4555-8555-555555555555', RPT = '66666666-6666-4666-8666-666666666666';
 const SHA = 'ab'.repeat(32);
-const ENGINE = { provider: 'simulated', name: 'smyl-sim-xray', version: '0.1.0' };
+const ENGINE = { provider: 'fixture-lab', name: 'smyl-sim-xray', version: '0.1.0' };
 const vectors = name => JSON.parse(read(`tests/fixtures/radiograph-contracts/${name}.json`));
 const withSource = v => Object.assign(structuredClone(v), { sourceId: SRC, model: structuredClone(ENGINE) });
 
@@ -63,6 +65,7 @@ test.before(async () => {
     await exec(migration);
     await exec(migration); // idempotente: la segunda aplicación no falla ni cambia nada
   }
+  await exec(`update public.smyl_radiograph_settings set value='1'::jsonb where key='validation_min_sources'`); // las pruebas usan pocas fuentes; el valor real es 30
   await exec(`
     insert into auth.users(id) values ('${Object.values(U).join("'),('")}');
     insert into public.camila_tenants(id,nombre) values ('${U.ownerA}','Clínica A'),('${U.ownerB}','Clínica B');
@@ -83,7 +86,8 @@ test.before(async () => {
       ('${U.ownerA}','${U.dentist}','a0000000-0000-4000-8000-000000000001'),('${U.ownerA}','${U.outsider}','a0000000-0000-4000-8000-000000000001'),
       ('${U.ownerA}','${U.reception}','a0000000-0000-4000-8000-000000000002'),('${U.ownerA}','${U.inactive}','a0000000-0000-4000-8000-000000000001');
     insert into public.smyl_professionals(id,tenant_id,user_id,display_name) values
-      ('b0000000-0000-4000-8000-000000000001','${U.ownerA}','${U.dentist}','Dra. D'),('b0000000-0000-4000-8000-000000000002','${U.ownerA}','${U.outsider}','Dr. O');
+      ('b0000000-0000-4000-8000-000000000001','${U.ownerA}','${U.dentist}','Dra. D'),('b0000000-0000-4000-8000-000000000002','${U.ownerA}','${U.outsider}','Dr. O'),
+      ('b0000000-0000-4000-8000-000000000003','${U.ownerA}','${U.ownerA}','Dra. Dueña');
     insert into public.smyl_patient_care_team(tenant_id,patient_id,professional_id) values ('${U.ownerA}','${P1}','b0000000-0000-4000-8000-000000000001');
     insert into public.smyl_dental_records(patient_id,tenant_id,revision,document,updated_by) values ('${P1}','${U.ownerA}',1,
       '{"studies":[{"id":"${STUDY}","type":"panoramic","asset":{"path":"${U.ownerA}/${P1}/${STUDY}/${SHA}.jpeg","sha256":"${SHA}","bytes":123456,"mime":"image/jpeg"}}]}','${U.ownerA}');
@@ -92,7 +96,7 @@ test.before(async () => {
 test.after(async () => { if (db) await db.close(); });
 
 const register = (patient = P1, study = STUDY, source = SRC) => one(
-  `select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'panoramic','{"version":1,"acceptedAt":"2026-10-28T00:00:00Z"}'::jsonb)`, [source, patient, study]);
+  `select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'panoramic',('{"version":1,"textHash":"'||repeat('a',64)||'"}')::jsonb)`, [source, patient, study]);
 const request = (kind, ack = false) => one(`select * from public.smyl_radiograph_request_ai_run($1::uuid,$2,$3::boolean)`, [SRC, kind, ack]);
 const complete = (runId, status, output, failure = '') => one(`select * from public.smyl_radiograph_complete_ai_run($1::uuid,$2,$3::jsonb,$4)`, [runId, status, output ? JSON.stringify(output) : null, failure]);
 const decide = (candidate, rev, state, payload = {}, note = '') => one(`select * from public.smyl_radiograph_decide_candidate($1::uuid,$2::int,$3,$4::jsonb,$5)`, [candidate, rev, state, JSON.stringify(payload), note]);
@@ -109,6 +113,19 @@ test('Etapa 0: con las banderas apagadas el flujo v2 no existe para nadie, ni pa
   await rejects(sql(`select public.smyl_radiograph_flag_enabled('radiograph.qc_v2','${U.ownerB}')`), '42501', /permission denied/);
   await asServer();
   await rejects(sql(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,config) values ('qc','other','x','3',1,'{"auth":{"token":"nope"}}')`), '23514');
+});
+
+test('Etapa 0: un motor simulado no puede activarse salvo que la plataforma lo permita; el mínimo de fuentes viene de ajustes', { skip }, async () => {
+  await asServer();
+  await exec(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version) values ('qc','simulated','demo','1',1)`);
+  await rejects(sql(`update public.smyl_radiograph_engines set enabled=true where provider='simulated'`), '42501', /simulado/);
+  await exec(`update public.smyl_radiograph_settings set value='true'::jsonb where key='allow_simulated'`);
+  await exec(`update public.smyl_radiograph_engines set enabled=true where provider='simulated'`);
+  await exec(`update public.smyl_radiograph_engines set enabled=false where provider='simulated'`);
+  await exec(`update public.smyl_radiograph_settings set value='false'::jsonb where key='allow_simulated'`);
+  await rejects(sql(`update public.smyl_radiograph_engines set enabled=true where provider='simulated'`), '42501', /simulado/);
+  await exec(`delete from public.smyl_radiograph_engines where provider='simulated'`);
+  assert.equal((await one(`select public.smyl_radiograph_setting('validation_min_sources') as v`)).v, 1);
 });
 
 test('Etapa 0: piloto por clínica — encender qc_v2 para A no lo enciende para B', { skip }, async () => {
@@ -174,7 +191,7 @@ test('Ejecución QC: exige motor activo, es idempotente y el cierre válido sól
   await as(U.ownerA);
   await rejects(request('qc'), '42501', /motor activo/);
   await asServer();
-  await exec(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,enabled) values ('qc','simulated','smyl-sim-xray','0.1.0',1,true)`);
+  await exec(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,enabled) values ('qc','fixture-lab','smyl-sim-xray','0.1.0',1,true)`);
   await rejects(sql(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,enabled) values ('qc','other','x','1',1,true)`), '23505', undefined);
   await rejects(sql(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,config) values ('qc','other','x','2',1,'{"api_key":"nope"}')`), '23514');
   await as(U.reception);
@@ -188,7 +205,7 @@ test('Ejecución QC: exige motor activo, es idempotente y el cierre válido sól
   await asServer();
   await rejects(complete(qcRun.id, 'completed', vectors('qc').invalid[0].value), '22023');
   assert.equal((await one('select status from public.smyl_radiograph_ai_runs where id=$1', [qcRun.id])).status, 'requested');
-  const wrongModel = Object.assign(structuredClone(vectors('qc').valid[1].value), { model: { provider: 'simulated', name: 'smyl-sim-xray', version: '9.9.9' } });
+  const wrongModel = Object.assign(structuredClone(vectors('qc').valid[1].value), { model: { provider: 'fixture-lab', name: 'smyl-sim-xray', version: '9.9.9' } });
   await rejects(complete(qcRun.id, 'completed', wrongModel), '22023', /no identifica el motor/);
   const done = await complete(qcRun.id, 'completed', Object.assign(structuredClone(vectors('qc').valid[1].value), { model: structuredClone(ENGINE) }));
   assert.equal(done.status, 'completed');
@@ -205,7 +222,7 @@ test('Localización dental: bandera propia, QC previo, candidatos inmutables con
   await rejects(request('tooth_localization'), '42501', /no está habilitado/);
   await asServer();
   await exec(`update public.smyl_radiograph_feature_flags set enabled=true where key='radiograph.tooth_ai_v1'`);
-  await exec(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,enabled) values ('tooth_localization','simulated','smyl-sim-xray','0.1.0',1,true),('finding_candidates','simulated','smyl-sim-xray','0.1.0',1,true)`);
+  await exec(`insert into public.smyl_radiograph_engines(kind,provider,name,version,contract_version,enabled) values ('tooth_localization','fixture-lab','smyl-sim-xray','0.1.0',1,true),('finding_candidates','fixture-lab','smyl-sim-xray','0.1.0',1,true)`);
   await as(U.dentist);
   toothRun = await request('tooth_localization');
   assert.equal(toothRun.kind, 'tooth_localization');
@@ -304,8 +321,13 @@ test('Informe: borrador versionado, firma sólo con hallazgos confirmados/correg
   await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,1)`, [RPT]), '23514', /confirmados o corregidos/);
   const draft2 = await save(1, doc([f36]));
   assert.equal(draft2.revision, 2);
+  await asServer();
+  await exec(`update public.smyl_professionals set active=false where user_id='${U.ownerA}'`);
   await as(U.ownerA);
   await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,2)`, [RPT]), '23514', /profesional registrado/);
+  await asServer();
+  await exec(`update public.smyl_professionals set active=true where user_id='${U.ownerA}'`);
+  await as(U.ownerA);
   const blank = Object.assign(doc([f36]), { sections: Object.assign({}, doc([]).sections, { description: '\n\n\n' }) });
   assert.equal((await save(2, blank)).revision, 3, 'borrador con descripción vacía se guarda');
   await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,3)`, [RPT]), '23514', /antes de firmar/);
@@ -361,8 +383,8 @@ test('Etapa 6: fuentes comparables con veredicto y motivo; vínculo profesional 
   await asServer();
   await exec(`update public.smyl_radiograph_feature_flags set enabled=true where key='radiograph.longitudinal_v1'`);
   await as(U.ownerA);
-  await one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'bitewing','{"version":1,"acceptedAt":"2026-10-28T00:00:00Z"}'::jsonb,'2025-10-01T00:00:00Z')`, [SRC2, P1, STUDY2]);
-  await one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'panoramic','{"version":1,"acceptedAt":"2026-10-28T00:00:00Z"}'::jsonb,'2025-06-01T00:00:00Z')`, [SRC3, P1, STUDY3]);
+  await one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'bitewing',('{"version":1,"textHash":"'||repeat('a',64)||'"}')::jsonb,'2025-10-01T00:00:00Z')`, [SRC2, P1, STUDY2]);
+  await one(`select * from public.smyl_radiograph_register_source($1::uuid,$2::uuid,$3::uuid,'panoramic',('{"version":1,"textHash":"'||repeat('a',64)||'"}')::jsonb,'2025-06-01T00:00:00Z')`, [SRC3, P1, STUDY3]);
   let rows = await sql('select * from public.smyl_radiograph_comparable_sources($1::uuid)', [SRC]);
   assert.deepEqual(rows.rows.map(r => [r.source_id, r.study_type, r.verdict, r.reason]), [[SRC2, 'bitewing', 'incompatible', 'missing_qc'], [SRC3, 'panoramic', 'incompatible', 'different_study_type']]);
   // QC completado en SRC2 → comparable con SRC (bitewing efectivo por corrección); QC no utilizable → incompatible
@@ -495,7 +517,7 @@ test('Etapa 7: informe de validación (exposición al entrenamiento bloquea; ver
   // Divulgación para cualquier lector clínico: motor, último informe, incidentes abiertos, límites; sin config
   await as(U.reception);
   const d = (await one('select public.smyl_radiograph_model_disclosure() as d')).d;
-  assert.deepEqual(d.engines.map(e => [e.kind, e.provider, e.simulated]), [['finding_candidates', 'simulated', true], ['qc', 'simulated', true], ['tooth_localization', 'simulated', true]]);
+  assert.deepEqual(d.engines.map(e => [e.kind, e.provider, e.simulated]), [['finding_candidates', 'fixture-lab', false], ['qc', 'fixture-lab', false], ['tooth_localization', 'fixture-lab', false]]);
   assert.deepEqual([d.validation.version, d.validation.verdict, d.validation.setName, d.openIncidents], [2, 'not_approved', 'Piloto', 0]);
   assert.equal(JSON.stringify(d).includes('config'), false);
   await as(U.ownerB);
@@ -517,4 +539,23 @@ test('Vectores de contrato: los validadores SQL dan el mismo veredicto que naveg
   for (const { name: label, value } of report.valid) assert.equal(await checkReport(value, true), 'valid', label);
   for (const { name: label, value } of report.invalid) assert.notEqual(await checkReport(value, false), 'valid', label);
   for (const { value } of report.strictOnly) { assert.equal(await checkReport(value, false), 'valid'); assert.notEqual(await checkReport(value, true), 'valid'); }
+});
+
+test('Endurecimiento: revisión nula, consentimiento sellado por el servidor, auditoría ligera y filtro de afirmaciones normalizado', { skip }, async () => {
+  await as(U.dentist);
+  await rejects(sql(`select * from public.smyl_radiograph_decide_candidate($1::uuid,null,'confirmed','{}'::jsonb,'')`, [cand36]), '22023', /revisión/);
+  await rejects(sql(`select * from public.smyl_radiograph_save_report_draft($1::uuid,$2::uuid,null,'{}'::jsonb)`, [RPT, SRC]), '22023', /revisión/);
+  await as(U.ownerA);
+  await rejects(sql(`select * from public.smyl_radiograph_sign_report($1::uuid,null)`, [RPT]), '22023', /revisión/);
+  await asServer();
+  const consent = (await one(`select consent from public.smyl_radiograph_sources where id=$1`, [SRC])).consent;
+  assert.deepEqual(Object.keys(consent).sort(), ['acceptedAt', 'acceptedBy', 'textHash', 'version']);
+  assert.match(consent.acceptedAt, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/);
+  assert.equal(consent.acceptedBy, U.ownerA);
+  const audits = await rows(`select entity_type, after_data from public.smyl_audit_events where entity_type in ('smyl_radiograph_reports','smyl_radiograph_sources')`);
+  assert.ok(audits.length > 0);
+  for (const a of audits) assert.equal(JSON.stringify(a.after_data).match(/document|consent|storage_path|findings/), null, 'la auditoría no copia texto clínico ni rutas');
+  const forbidden = async t => (await one(`select public.smyl_radiograph_claim_forbidden($1) as f`, [t])).f;
+  for (const t of ['Diagnóstico de caries', 'DIAGNÓSTICO', 'd\u200biagnóstico', 'diagnostico', 'ｄｉａｇｎóｓｔｉｃｏ', 'Hallazgo confirmado', 'certeza total', 'sin duda alguna', 'It is definitive', 'Concluyente']) assert.equal(await forbidden(t), true, t);
+  for (const t of ['Posible zona radiolúcida para revisar', 'Señal candidata en 36']) assert.equal(await forbidden(t), false, t);
 });

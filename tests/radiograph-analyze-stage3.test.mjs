@@ -26,8 +26,10 @@ const Model = require('../smyl-radiograph-review-model-v2.js');
 
 const be32 = n => [n >>> 24 & 255, n >>> 16 & 255, n >>> 8 & 255, n & 255];
 const ascii = s => [...Buffer.from(s, 'latin1')];
+const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+const crc32 = bytes => { let c = 0xffffffff; for (const b of bytes) c = crcTable[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
 function png({ width, height, hints = [] }) {
-  const chunk = (type, data) => [...be32(data.length), ...ascii(type), ...data, 0, 0, 0, 0];
+  const chunk = (type, data) => [...be32(data.length), ...ascii(type), ...data, ...be32(crc32([...ascii(type), ...data]))];
   return Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...chunk('IHDR', [...be32(width), ...be32(height), 8, 0, 0, 0, 0]),
     ...(hints.length ? chunk('tEXt', [...ascii('smyl.sim'), 0, ...ascii(hints.join(','))]) : []), ...chunk('IDAT', new Array(2048).fill(7)), ...chunk('IEND', [])]);
 }
@@ -69,7 +71,13 @@ function harness({ bytes, qc = { status: 'usable', applicable: ['tooth_localizat
       const run = { id: `run-${runs.size + 1}`, tenant_id: 't-a', patient_id: 'p-1', source_id: id, kind, status: 'requested', engine: { ...providers.SIMULATED_DENTAL_MODEL }, contract_version: 1, output: null, failure_code: '' };
       runs.set(run.id, run); return { data: structuredClone(run), error: null };
     },
-    loadSource: async id => ({ id, tenant_id: 't-a', patient_id: 'p-1', bucket: 'smyl-radiographs', storage_path: 'x', sha256: await ready, mime_type: 'image/png', size_bytes: bytes.length, study_type_declared: 'panoramic' }),
+    claimRun: async id => {
+      const run = runs.get(id);
+      if (!run) return { data: null, error: { code: '42501', message: 'Ejecución desconocida.' } };
+      if (run.status !== 'requested' || run.claimed) return { data: null, error: { code: 'PT409', message: 'in_progress' } };
+      run.claimed = true; return { data: structuredClone(run), error: null };
+    },
+    loadSource: async id => ({ id, tenant_id: 't-a', patient_id: 'p-1', bucket: 'smyl-radiographs', storage_path: 't-a/p-1/s/x.png', sha256: await ready, mime_type: 'image/png', size_bytes: bytes.length, study_type_declared: 'panoramic' }),
     download: async () => bytes,
     completeRun: async (id, status, output, failureCode) => { const run = runs.get(id); if (run.status !== 'requested') return { data: null, error: { code: '42501', message: 'inmutable' } }; Object.assign(run, { status, output, failure_code: failureCode }); return { data: structuredClone(run), error: null }; },
     provider: null, dentalProvider: wrapped, timeoutMs, log: e => logs.push(e),
@@ -176,4 +184,17 @@ test('contrato estático: función dedicada, QC previo en la base, sin segment-t
   const runs = read('supabase/migrations/20261028120000_smyl_radiograph_ai_runs.sql');
   assert.match(runs, /coalesce\(v_payload->>'visibility', ''\) not in \('complete','partial','not_evaluable'\)/);
   assert.match(read('sw.js'), /smyl-radiograph-review-model-v2\.js\?v=1/, 'el modelo v2 se publica con la mesa de revisión (Etapa 4)');
+});
+
+test('los bundles de un solo archivo están sincronizados con las funciones, sin imports locales y se pueden analizar', async () => {
+  const { execFileSync } = await import('node:child_process');
+  for (const name of ['radiograph-qc', 'radiograph-analyze']) {
+    const file = new URL(`../docs/bundles/${name}.single-file.ts`, import.meta.url);
+    const before = fs.readFileSync(file, 'utf8');
+    execFileSync('node', ['scripts/bundle-edge-function.mjs', name], { cwd: new URL('..', import.meta.url) });
+    assert.equal(fs.readFileSync(file, 'utf8'), before, `${name}: regenera el bundle con scripts/bundle-edge-function.mjs`);
+    assert.deepEqual(before.split('\n').filter(l => /^import\s/.test(l)), ['import { createClient } from "npm:@supabase/supabase-js@2";']);
+    const { stripTypeScriptTypes } = await import('node:module');
+    assert.doesNotThrow(() => stripTypeScriptTypes(before, { mode: 'strip' }));
+  }
 });

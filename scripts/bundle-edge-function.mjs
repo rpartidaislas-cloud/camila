@@ -23,6 +23,8 @@ if (!name || !/^[a-z0-9-]+$/.test(name)) {
 const functionsDir = path.join(root, 'supabase', 'functions');
 const read = (...parts) => fs.readFileSync(path.join(functionsDir, ...parts), 'utf8');
 const SHARED_IMPORT = /^import\s+(?:\{([^}]*)\}|(\w+))\s+from\s+["'](?:\.\.\/_shared\/|\.\/)([\w.-]+)["'];?\s*$/;
+// `import type { X } from './archivo.ts'`: sólo ordena la carga; los tipos se elevan al nivel superior (ver hoistTypes).
+const SHARED_TYPE_IMPORT = /^import\s+type\s+\{[^}]*\}\s+from\s+["'](?:\.\.\/_shared\/|\.\/)([\w.-]+)["'];?\s*$/;
 // Los imports externos se deduplican aunque cambie el tipo de comillas.
 const normalizeImport = (line) => line.trim().replace(/'/g, '"').replace(/;$/, '') + ';';
 
@@ -44,6 +46,36 @@ function exportedNames(source) {
   return [...names];
 }
 
+// Las interfaces y tipos exportados de un módulo compartido se sacan de su bloque para que los demás módulos los vean.
+const hoisted = [];
+// Sólo se elevan tipos cuando algún archivo alcanzable usa `import type` de un módulo compartido; así los bundles
+// existentes (sin ese patrón) salen byte a byte iguales que antes.
+function usesSharedTypeImports(file, seen = new Set()) {
+  if (seen.has(file)) return false;
+  seen.add(file);
+  const source = file === 'index.ts' ? read(name, 'index.ts') : read('_shared', file);
+  const lines = source.split('\n');
+  if (lines.some((line) => SHARED_TYPE_IMPORT.test(line))) return true;
+  return lines.some((line) => { const m = line.match(SHARED_IMPORT); return m ? usesSharedTypeImports(m[3], seen) : false; });
+}
+const hoistEnabled = usesSharedTypeImports('index.ts');
+function hoistTypes(code) {
+  if (!hoistEnabled) return code;
+  const lines = code.split('\n');
+  const kept = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!/^export\s+(?:interface|type)\s/.test(line)) { kept.push(line); continue; }
+    const block = [line.replace(/^export\s+/, '')];
+    const balance = (text) => (text.match(/[{(\[]/g) || []).length - (text.match(/[})\]]/g) || []).length;
+    let depth = balance(line);
+    // Un bloque termina cuando se cierran todos los paréntesis/llaves y la línea acaba en ; o }.
+    while ((depth > 0 || !/[;}]\s*$/.test(block[block.length - 1])) && ++i < lines.length) { block.push(lines[i]); depth += balance(lines[i]); }
+    hoisted.push(block.join('\n'));
+  }
+  return kept.join('\n');
+}
+
 const modules = new Map();
 function loadShared(file) {
   if (modules.has(file)) return;
@@ -52,9 +84,11 @@ function loadShared(file) {
   const body = [];
   for (const line of source.split('\n')) {
     const match = line.match(SHARED_IMPORT);
-    if (match) { loadShared(match[3]); imports.push(line); } else body.push(line);
+    const typeMatch = line.match(SHARED_TYPE_IMPORT);
+    if (typeMatch) { loadShared(typeMatch[1]); imports.push(line); }
+    else if (match) { loadShared(match[3]); imports.push(line); } else body.push(line);
   }
-  const text = body.join('\n');
+  const text = hoistTypes(body.join('\n'));
   const externalImports = text.split('\n').filter((line) => /^import\s/.test(line));
   let code = stripExports(text.split('\n').filter((line) => !/^import\s/.test(line)).join('\n'));
   // Los .mjs no declaran tipos; el bundle es TypeScript estricto, así que se anotan los parámetros sueltos.
@@ -85,7 +119,9 @@ const mainBody = [];
 const externalImports = new Set();
 for (const line of mainLines) {
   const match = line.match(SHARED_IMPORT);
-  if (match) { loadShared(match[3]); used.push({ names: (match[1] || match[2]).split(',').map((n) => n.trim()).filter(Boolean), file: match[3] }); }
+  const typeMatch = line.match(SHARED_TYPE_IMPORT);
+  if (typeMatch) { loadShared(typeMatch[1]); used.push({ names: [], file: typeMatch[1] }); }
+  else if (match) { loadShared(match[3]); used.push({ names: (match[1] || match[2]).split(',').map((n) => n.trim()).filter(Boolean), file: match[3] }); }
   else if (/^import\s/.test(line)) externalImports.add(normalizeImport(line));
   else mainBody.push(line);
 }
@@ -95,10 +131,10 @@ const bundled = new Set();
 function emit(file) {
   if (bundled.has(file)) return;
   const mod = modules.get(file);
-  for (const dependency of mod.imports) emit(dependency.match(SHARED_IMPORT)[3]);
+  for (const dependency of mod.imports) emit((dependency.match(SHARED_TYPE_IMPORT) || dependency.match(SHARED_IMPORT)).at(dependency.match(SHARED_TYPE_IMPORT) ? 1 : 3));
   bundled.add(file);
   mod.externalImports.forEach((line) => externalImports.add(normalizeImport(line)));
-  const wanted = mod.imports.flatMap((line) => (line.match(SHARED_IMPORT)[1] || '').split(',').map((n) => n.trim()).filter(Boolean));
+  const wanted = mod.imports.flatMap((line) => ((line.match(SHARED_IMPORT) || [])[1] || '').split(',').map((n) => n.trim()).filter(Boolean));
   const header = `// ── _shared/${file} ──`;
   if (mod.returns.length) {
     parts.push(`${header}\nconst { ${mod.exports.join(', ')} } = (() => {\n${mod.code}\nreturn { ${mod.returns.join(', ')} };\n})();`);
@@ -111,7 +147,8 @@ const banner = `// ARCHIVO GENERADO por scripts/bundle-edge-function.mjs — no 
 // Es supabase/functions/${name}/index.ts con sus archivos de _shared incluidos,
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 `;
-const output = `${banner}${[...externalImports].join('\n')}\n\n${parts.join('\n\n')}\n\n// ── ${name}/index.ts ──\n${mainBody.join('\n').replace(/^\s+/, '')}`;
+const typesBlock = hoisted.length ? `// ── tipos compartidos ──\n${hoisted.join('\n\n')}\n\n` : '';
+const output = `${banner}${[...externalImports].join('\n')}\n\n${typesBlock}${parts.join('\n\n')}\n\n// ── ${name}/index.ts ──\n${mainBody.join('\n').replace(/^\s+/, '')}`;
 
 const outDir = path.join(root, 'docs', 'bundles');
 fs.mkdirSync(outDir, { recursive: true });

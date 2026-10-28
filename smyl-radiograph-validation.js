@@ -15,8 +15,9 @@
  function disclosureSummary(d){
   if(!d)return {engines:'Motor: sin información.',validation:'Validación: sin informe.',limits:[]};
   const engines=(d.engines||[]).length?(d.engines||[]).map(e=>TASK_LABELS[e.kind]+': '+engineText(e)+(e.updatedAt?' · actualizado '+String(e.updatedAt).slice(0,10):'')).join(' · '):'Sin motor activo registrado.';
-  const v=d.validation;const validation=v?('Validación v'+v.version+' ('+v.setName+'): '+(v.verdict==='approved_for_pilot'?'aprobada para piloto':'no aprobada')+' · '+String(v.approvedAt).slice(0,10)):'Sin informe de validación aprobado: uso piloto bajo supervisión profesional.';
-  return {engines,validation,limits:d.limits||[],openIncidents:d.openIncidents||0,simulated:(d.engines||[]).some(e=>e.simulated||e.provider==='simulated')};
+  const v=d.validation,stale=!!v&&v.matchesActiveEngines===false;
+  const validation=v?('Validación v'+v.version+' ('+v.setName+'): '+(v.verdict==='approved_for_pilot'?'aprobada para piloto':'no aprobada')+' · '+String(v.approvedAt).slice(0,10)+(stale?' · ⚠ no corresponde al motor activo: se requiere una validación nueva':'')):'Sin informe de validación aprobado: uso piloto bajo supervisión profesional.';
+  return {engines,validation,stale,limits:d.limits||[],openIncidents:d.openIncidents||0,simulated:(d.engines||[]).some(e=>e.simulated||e.provider==='simulated')};
  }
  // Evaluación local de criterios (mismo criterio que el servidor: el peor grupo de la tarea decide).
  function evaluateCriteria(metrics,criteria){
@@ -59,28 +60,34 @@
  const table=(headers,rows)=>{const t=n('table','rp-table'),thead=n('thead'),tr=n('tr');headers.forEach(h=>tr.append(n('th','',h)));thead.append(tr);const tb=n('tbody');rows.forEach(r=>{const x=n('tr');r.forEach(c=>x.append(n('td','',c)));tb.append(x);});if(!rows.length){const x=n('tr'),td=n('td','rp-empty','Sin datos.');td.colSpan=headers.length;x.append(td);tb.append(x);}t.append(thead,tb);return t;};
  async function open({client,caps,source,tenant}){
   if(active){close();}client=client||window.sb;
-  const dialog=n('dialog','rr-dialog rv2-dialog rp-dialog rv-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host rp-host'),run={dialog,host,api:connect(client),caps,source,closed:false,focus:document.activeElement,busy:false,data:{disclosure:null,sets:[],metrics:null,metricsSet:null,monitoring:null,incidents:[],reports:[]}};active=run;
+  const dialog=n('dialog','rr-dialog rv2-dialog rp-dialog rv-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host rp-host'),run={dialog,host,api:connect(client),caps,source,closed:false,focus:document.activeElement,busy:false,draft:{},data:{disclosure:null,sets:[],metrics:null,metricsSet:null,monitoring:null,incidents:[],reports:[]}};active=run;
   const titleId='rv-title-'+(++seq),t=n('strong','','Validación del motor radiográfico');t.id=titleId;dialog.setAttribute('aria-labelledby',titleId);
   bar.append(n('div','rr-identity',null),button('Volver',()=>close(run)));bar.firstChild.append(n('span','rr-kicker','SMYL · RADIOGRAFÍA · VALIDACIÓN Y MONITOREO'),t,n('span','rr-study-meta','Evidencia versionada, no autorización de uso diagnóstico'));
   dialog.append(bar,host);document.body.append(dialog);dialog.showModal();dialog.addEventListener('cancel',e=>{e.preventDefault();close(run);});dialog.addEventListener('close',()=>close(run,true));
   const status=(text,kind='')=>{let e=host.querySelector('.rr-feedback');if(!e){e=n('p','rr-feedback');e.setAttribute('role','status');e.setAttribute('aria-live','polite');host.prepend(e);}e.className='rr-feedback '+kind;e.textContent=text;};
   async function reload(){const d=run.data;[d.disclosure,d.sets,d.monitoring,d.incidents,d.reports]=await Promise.all([run.api.disclosure(),run.api.sets().then(x=>x||[]),run.api.monitoring().catch(()=>null),run.api.incidents().then(x=>x||[]),run.api.reports().then(x=>x||[])]);if(d.metricsSet)d.metrics=await run.api.metrics(d.metricsSet).catch(()=>null);}
   async function act(label,fn){if(run.busy)return;run.busy=true;let text,kind;try{await fn();await reload();text=label+': listo.';kind='rr-ok';}catch(e){text=e?.message||'No se pudo completar la acción.';kind='rr-error';}finally{run.busy=false;render();status(text,kind);}}
+  // Lo escrito no se pierde si la acción falla: cada campo guarda su valor en run.draft y sólo se limpia al tener éxito.
+  const keep=(el,key,fallback='')=>{const stored=run.draft[key];if(el.type==='checkbox')el.checked=stored!==undefined?stored:!!fallback;else el.value=stored!==undefined?stored:fallback;const save=()=>{run.draft[key]=el.type==='checkbox'?el.checked:el.value;};el.addEventListener('input',save);el.addEventListener('change',save);return el;};
+  const clear=(...keys)=>keys.forEach(k=>{delete run.draft[k];});
+  function confirmAction(title,message,okLabel){return new Promise(resolve=>{const d=n('dialog','rr-confirm-dialog'),id='rv-confirm-'+(++seq),h=n('h2','',title),a=n('div','rr-confirm-actions');h.id=id;d.setAttribute('aria-labelledby',id);a.append(button('Cancelar',()=>{d.close();resolve(false);}),button(okLabel,()=>{d.close();resolve(true);},'rr-primary'));d.append(h,n('p','',message),a);document.body.append(d);d.addEventListener('close',()=>d.remove(),{once:true});d.addEventListener('cancel',()=>resolve(false));d.showModal();a.lastChild.focus();});}
   const section=(label,title,hint)=>{const s=n('section','rv-section'),h=n('header','rr-panel-head');h.append(n('span','rr-section-label',label),n('h2','',title),n('p','',hint));s.append(h);return s;};
   function disclosureSection(){
    const s=section('1 · DIVULGACIÓN','Motor, validación y límites','Lo mismo que ve el profesional en la mesa de revisión.'),d=disclosureSummary(run.data.disclosure);
    s.append(n('p','rv-engines',d.engines),n('p','rv-validation',d.validation));const ul=n('ul','rv2-limits');d.limits.forEach(l=>ul.append(n('li','',l)));s.append(ul);
    if(d.openIncidents)s.append(n('p','rv2-blocked','⚠ '+d.openIncidents+' incidente(s) abierto(s).'));
-   const flags=run.data.monitoring?.flags||{};const fl=n('div','rr-actions rv-flags');Object.entries(flags).forEach(([key,on])=>{const b=button((on?'Pausar ':'Reanudar ')+key.replace('radiograph.',''),()=>act(on?'Pausado':'Reanudado',()=>run.api.setFlag(key,!on)),on?'rr-tertiary':'rr-tool');b.title='Botón de desactivación por clínica (requiere administrar la clínica).';fl.append(b);});if(Object.keys(flags).length){s.append(n('p','rr-note','Interruptor por clínica: pausar no requiere despliegue. El interruptor global es de la plataforma.'),fl);}
+   const flags=run.data.monitoring?.flags||{};const fl=n('div','rr-actions rv-flags');Object.entries(flags).forEach(([key,on])=>{const b=button((on?'Pausar ':'Reanudar ')+key.replace('radiograph.',''),async()=>{if(!await confirmAction(on?'Pausar para toda la clínica':'Reanudar para toda la clínica',on?'Pausar "'+key.replace('radiograph.','')+'" desactiva esta función para todo el personal de la clínica hasta que alguien con permiso de administración la reanude. Lo ya decidido se conserva.':'Reanudar "'+key.replace('radiograph.','')+'" la vuelve a activar para todo el personal de la clínica, sólo si la plataforma la mantiene habilitada.',on?'Pausar':'Reanudar'))return;act(on?'Pausado':'Reanudado',()=>run.api.setFlag(key,!on));},on?'rr-tertiary':'rr-tool');b.title='Botón de desactivación por clínica (requiere administrar la clínica).';fl.append(b);});if(Object.keys(flags).length){s.append(n('p','rr-note','Interruptor por clínica: pausar no requiere despliegue. El interruptor global es de la plataforma.'),fl);}
    return s;
   }
   function setsSection(){
    const s=section('2 · CONJUNTOS DE EVALUACIÓN','Conjunto de prueba independiente','Las fuentes con posible exposición al entrenamiento invalidan el conjunto como prueba.');
    s.append(table(['Nombre','Uso previsto','Tipo','Bloqueado'],run.data.sets.map(x=>[x.name,x.intended_use,x.split,x.locked_at?'sí':'no'])));
    const form=n('div','rv-form'),name=n('input'),use=n('input');name.placeholder='Nombre del conjunto';name.setAttribute('aria-label','Nombre del conjunto');use.placeholder='Uso previsto (≥ 10 caracteres)';use.setAttribute('aria-label','Uso previsto');
-   form.append(name,use,button('Crear conjunto',()=>act('Conjunto creado',()=>run.api.createSet(name.value.trim(),use.value.trim())),'rr-primary'));s.append(form);
+   keep(name,'setName');keep(use,'setUse');
+   form.append(name,use,button('Crear conjunto',()=>act('Conjunto creado',async()=>{await run.api.createSet(name.value.trim(),use.value.trim());clear('setName','setUse');}),'rr-primary'));s.append(form);
    if(run.source&&run.data.sets.length){const add=n('div','rv-form'),sel=n('select'),exposure=n('input'),lab=n('label','rr-consent');run.data.sets.forEach(x=>sel.add(new Option(x.name,x.id)));sel.setAttribute('aria-label','Conjunto al que añadir esta fuente');exposure.type='checkbox';exposure.id='rv-exposure';lab.htmlFor='rv-exposure';lab.append(exposure,document.createTextNode('Esta imagen pudo usarse para entrenar el motor'));
-    add.append(sel,lab,button('Añadir esta radiografía al conjunto',()=>act('Fuente añadida',()=>run.api.addMember(sel.value,run.source.id,exposure.checked))));s.append(add);}
+    keep(sel,'memberSet',run.data.sets[0]?.id);keep(exposure,'memberExposure');
+    add.append(sel,lab,button('Añadir esta radiografía al conjunto',()=>act('Fuente añadida',async()=>{await run.api.addMember(sel.value,run.source.id,exposure.checked);clear('memberSet','memberExposure');})));s.append(add);}
    return s;
   }
   function referenceSection(){
@@ -92,7 +99,8 @@
    cat.add(new Option('— sin categoría (pieza) —',''));['restoration','crown','implant','endodontic','apparently_missing','density','contour','support','development','other'].forEach(c=>cat.add(new Option(c,c)));cat.setAttribute('aria-label','Categoría de señal');
    [['true','Presente'],['false','Ausente / no visible']].forEach(([v,l])=>present.add(new Option(l,v)));present.setAttribute('aria-label','Presencia');
    adj.type='checkbox';adj.id='rv-adj';adjLab.htmlFor='rv-adj';adjLab.append(adj,document.createTextNode('Adjudicación (resuelve desacuerdos)'));
-   form.append(kind,fdi,cat,present,adjLab,button('Registrar anotación',()=>act('Anotación registrada',()=>run.api.annotate(run.source.id,kind.value,fdi.value,kind.value==='finding'?cat.value:'',present.value==='true',adj.checked)),'rr-primary'));s.append(form);return s;
+   keep(kind,'annKind','tooth');keep(fdi,'annFdi',fdi.options[0]?.value);keep(cat,'annCat');keep(present,'annPresent','true');keep(adj,'annAdj');
+   form.append(kind,fdi,cat,present,adjLab,button('Registrar anotación',()=>act('Anotación registrada',async()=>{await run.api.annotate(run.source.id,kind.value,fdi.value,kind.value==='finding'?cat.value:'',present.value==='true',adj.checked);clear('annKind','annFdi','annCat','annPresent','annAdj');}),'rr-primary'));s.append(form);return s;
   }
   function metricsSection(){
    const s=section('4 · MÉTRICAS','Por tarea, tipo de estudio y motor','Sensibilidad, especificidad (sólo piezas), precisión, FP/FN, calibración y desacuerdo profesional.');
@@ -109,18 +117,19 @@
    const s=section('5 · INFORME DE VALIDACIÓN','Criterios de salida y veredicto','El servidor evalúa el peor grupo de cada tarea; el informe es inmutable y versiona por conjunto.');
    s.append(table(['Versión','Conjunto','Veredicto','Criterios','Aprobado','Hash'],run.data.reports.map(r=>[r.version,(run.data.sets.find(x=>x.id===r.set_id)||{}).name||r.set_id,r.verdict==='approved_for_pilot'?'Aprobado para piloto':'No aprobado',r.criteria_met?'cumplidos':'no cumplidos',String(r.approved_at).slice(0,10),String(r.content_hash).slice(0,12)+'…'])));
    if(!run.data.metricsSet||!run.data.metrics){s.append(n('p','rr-note','Calcula primero las métricas de un conjunto.'));return s;}
-   const crit=n('textarea');crit.rows=6;crit.value=JSON.stringify(run.data.criteria||DEFAULT_CRITERIA,null,1);crit.setAttribute('aria-label','Criterios de salida (JSON)');crit.oninput=()=>{try{run.data.criteria=parseCriteria(crit.value);preview.replaceWith(previewEl());}catch(_){}};
+   const crit=n('textarea');crit.rows=6;keep(crit,'criteria',JSON.stringify(DEFAULT_CRITERIA,null,1));crit.setAttribute('aria-label','Criterios de salida (JSON)');crit.addEventListener('input',()=>{preview.replaceWith(preview=previewEl());});
    let preview=previewEl();function previewEl(){const p=n('div','rv-preview');let list;try{list=parseCriteria(crit?.value||JSON.stringify(DEFAULT_CRITERIA));}catch(e){p.append(n('p','rv2-blocked',e.message));return p;}const ev=evaluateCriteria(run.data.metrics,list);p.append(table(['Métrica','Tarea','Umbral','Valor (peor grupo)','Cumple'],ev.map(c=>[METRIC_LABELS[c.metric],TASK_LABELS[c.task],c.min!=null?'≥ '+pct(c.min):'≤ '+pct(c.max),pct(c.value),c.met?'✓ sí':'✕ no'])));p.append(n('p',ev.every(c=>c.met)?'rp-diff-ok':'rv2-blocked',ev.every(c=>c.met)?'✓ Todos los criterios se cumplen con las métricas actuales.':'✕ Hay criterios sin cumplir: el informe quedaría como "no aprobado".'));return p;}
-   const notes=n('textarea');notes.rows=3;notes.placeholder='Notas: prueba del equipo humano + IA, tamaño muestral, limitaciones.';notes.setAttribute('aria-label','Notas del informe');
-   s.append(n('label','rr-field','Criterios de salida (JSON)'),crit,preview,notes,button('Registrar informe de validación',()=>{let list;try{list=parseCriteria(crit.value);}catch(e){status(e.message,'rr-error');return;}act('Informe registrado',()=>run.api.recordReport(run.data.metricsSet,list,notes.value));},'rr-primary'));return s;
+   const notes=n('textarea');notes.rows=3;notes.placeholder='Notas: prueba del equipo humano + IA, tamaño muestral, limitaciones.';notes.setAttribute('aria-label','Notas del informe');keep(notes,'reportNotes');
+   s.append(n('label','rr-field','Criterios de salida (JSON)'),crit,preview,notes,button('Registrar informe de validación',()=>{let list;try{list=parseCriteria(crit.value);}catch(e){status(e.message,'rr-error');return;}act('Informe registrado',async()=>{await run.api.recordReport(run.data.metricsSet,list,notes.value);clear('criteria','reportNotes');});},'rr-primary'));return s;
   }
   function monitoringSection(){
    const s=section('6 · MONITOREO E INCIDENTES','Deriva del motor desplegado','Series semanales de volumen, fallos, timeouts, latencia y desacuerdo; incidentes reportados por el equipo.'),mo=run.data.monitoring;
    if(mo)s.append(table(['Semana','Tarea','Ejecuciones','Fallidas','Sin confirmar','Latencia','Decididas','Desacuerdo'],(mo.weekly||[]).map(w=>[w.week,TASK_LABELS[w.task]||w.task,w.runs,w.failed,w.unconfirmed,w.meanLatencyMs!=null?w.meanLatencyMs+' ms':'—',w.decided,pct(w.disagreementRate)])));
    s.append(n('h3','','Incidentes'),table(['Fecha','Severidad','Categoría','Descripción','Estado'],run.data.incidents.map(i=>[String(i.created_at).slice(0,10),i.severity,i.category,i.description,i.status==='open'?'abierto':'cerrado'])));
-   const open=run.data.incidents.filter(i=>i.status==='open');if(open.length){const sel=n('select'),res=n('input');open.forEach(i=>sel.add(new Option(i.description.slice(0,60),i.id)));sel.setAttribute('aria-label','Incidente a cerrar');res.placeholder='Resolución';res.setAttribute('aria-label','Resolución');const f=n('div','rv-form');f.append(sel,res,button('Cerrar incidente',()=>act('Incidente cerrado',()=>run.api.closeIncident(sel.value,res.value))));s.append(f);}
+   const open=run.data.incidents.filter(i=>i.status==='open');if(open.length){const sel=n('select'),res=n('input');open.forEach(i=>sel.add(new Option(i.description.slice(0,60),i.id)));sel.setAttribute('aria-label','Incidente a cerrar');res.placeholder='Resolución';res.setAttribute('aria-label','Resolución');keep(sel,'closeId',open[0].id);keep(res,'closeRes');const f=n('div','rv-form');f.append(sel,res,button('Cerrar incidente',()=>act('Incidente cerrado',async()=>{await run.api.closeIncident(sel.value,res.value);clear('closeId','closeRes');})));s.append(f);}
    const form=n('div','rv-form'),sev=n('select'),cat=n('select'),desc=n('input');['low','moderate','high','critical'].forEach(v=>sev.add(new Option(v,v)));['wrong_numbering','missed_structure','false_signal','quality_misjudged','ui_error','latency','other'].forEach(v=>cat.add(new Option(v,v)));desc.placeholder='Descripción (≥ 5 caracteres)';sev.setAttribute('aria-label','Severidad');cat.setAttribute('aria-label','Categoría del incidente');desc.setAttribute('aria-label','Descripción del incidente');
-   form.append(sev,cat,desc,button('Reportar incidente',()=>act('Incidente reportado',()=>run.api.reportIncident(sev.value,cat.value,desc.value,run.source?.id||null)),'rr-primary'));s.append(form);return s;
+   keep(sev,'incSev','low');keep(cat,'incCat','wrong_numbering');keep(desc,'incDesc');
+   form.append(sev,cat,desc,button('Reportar incidente',()=>act('Incidente reportado',async()=>{await run.api.reportIncident(sev.value,cat.value,desc.value,run.source?.id||null);clear('incSev','incCat','incDesc');}),'rr-primary'));s.append(form);return s;
   }
   function render(){
    if(run.closed)return;const fb=host.querySelector('.rr-feedback');host.replaceChildren();if(fb)host.prepend(fb);
@@ -129,7 +138,7 @@
    top.append(disclosureSection(),setsSection(),referenceSection(),metricsSection(),reportSection(),monitoringSection(),n('p','rr-note rr-safety-note','Cambiar de motor o versión exige un nuevo informe de validación. Las métricas sin referencia multi-profesional usan las decisiones del propio revisor.'));host.append(top);
    if(run.busy)host.querySelectorAll('button,select,textarea,input').forEach(b=>{if(!b.closest('.rr-bar'))b.disabled=true;});
   }
-  host.append(n('p','rr-feedback','Cargando validación…'));
+  status('Cargando validación…');
   try{await reload();render();status('Panel de validación listo.','rr-ok');}catch(e){render();status(e?.message||'No se pudo cargar el panel.','rr-error');}
  }
  const api={TASK_LABELS,METRIC_LABELS,DEFAULT_CRITERIA,disclosureSummary,evaluateCriteria,parseCriteria};

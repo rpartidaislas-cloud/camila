@@ -37,12 +37,14 @@ let browser = null;
     await page.locator('.rl-dialog[open] .rl-workspace').waitFor();
     const metrics = await page.evaluate(() => {
       const t = (s) => Array.from(document.querySelectorAll(s)).map((e) => e.textContent);
-      return { viewers: document.querySelectorAll('.rl-canvas').length, overlays: document.querySelectorAll('.rl-canvas .rv2-shape').length, lead: document.querySelector('.rl-dialog .rr-lead').textContent, confirmed: t('.rl-confirmed li'), ai: t('.rl-ai li'), stable: t('.rl-stable li'), acq: t('.rl-acq li'), measure: document.querySelector('.rl-measure').textContent, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, minBtn: Math.min(...Array.from(document.querySelectorAll('.rl-tools button, .rl-actions button')).map((b) => b.getBoundingClientRect().height)) };
+      return { viewers: document.querySelectorAll('.rl-canvas').length, overlays: document.querySelectorAll('.rl-canvas .rv2-shape').length, lead: document.querySelector('.rl-dialog .rr-lead').textContent, confirmed: t('.rl-confirmed li'), ai: t('.rl-ai li'), unverified: t('.rl-unverified li'), stable: t('.rl-stable li'), acq: t('.rl-acq li'), measure: document.querySelector('.rl-measure').textContent, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, minBtn: Math.min(...Array.from(document.querySelectorAll('.rl-tools button, .rl-actions button')).map((b) => b.getBoundingClientRect().height)) };
     });
     if (metrics.viewers !== 2 || metrics.overlays < 3) fail('viewers/overlays ' + JSON.stringify(metrics));
     if (!metrics.lead.includes('Estudios comparables')) fail('lead ' + metrics.lead);
     if (!metrics.stable.some((s) => s.includes('Pieza 16'))) fail('16 should be stable: ' + metrics.stable);
-    if (!metrics.ai.some((s) => s.includes('Pieza 15'))) fail('15 should be ai_proposed (pending now): ' + metrics.ai);
+    // El estudio anterior buscó señales y el actual no: la pieza 15 no se compara contra lo que no se buscó.
+    if (!metrics.unverified.some((s) => s.includes('Pieza 15') && /sólo se analizaron en el anterior/.test(s))) fail('15 should be unverified (findings analyzed on one side): ' + metrics.unverified);
+    if (!metrics.ai.some((s) => s.includes('Pieza 13') && s.includes('Localización pendiente'))) fail('pending localizations stay AI-proposed: ' + metrics.ai);
     if (metrics.confirmed.length !== 1 || !metrics.confirmed[0].includes('Ninguno')) fail('no confirmed change expected: ' + metrics.confirmed);
     if (!metrics.acq.some((s) => s.includes('usable → limited')) || !metrics.acq.some((s) => s.includes('desenfoque anterior'))) fail('acquisition differences: ' + metrics.acq);
     if (!metrics.measure.includes('Sin mediciones')) fail('measurement note missing');

@@ -3,7 +3,7 @@
    visible/editable/reversible, y cuatro bloques por tarjeta: Base visual sugerida, Confianza del
    modelo, Limitaciones y Valoración profesional. Acciones explícitas: Confirmar, Guardar corrección,
    Descartar, Comparar con anterior (sólo cuando exista un estudio comparable; Etapa 6).
-   Ninguna señal pendiente llega al odontograma ni al informe; cada decisión la registra el servidor
+   Esta mesa no escribe en el odontograma (la evidencia se deriva en lectura) y ninguna señal pendiente puede entrar al informe; cada decisión la registra el servidor
    con revisión, autor y fecha (smyl_radiograph_decide_candidate). El estado nunca se indica sólo
    con color: siempre texto + símbolo + patrón de trazo. Detrás de la bandera radiograph.qc_v2. */
 (function(){
@@ -18,6 +18,8 @@
  const severityLabel={low:'leve',moderate:'moderada',high:'alta'};
  const analysisLabel={tooth_localization:'Localizar piezas',finding_candidates:'Buscar señales'};
  const categoryLabel={restoration:'Restauración aparente',crown:'Corona aparente',implant:'Implante aparente',endodontic:'Tratamiento endodóntico aparente',apparently_missing:'Pieza aparentemente no visible',density:'Cambio de densidad',contour:'Cambio de contorno',support:'Soporte periodontal',development:'Desarrollo dental',other:'Señal por revisar'};
+ const CONSENT_TEXT='Confirmo la autorización del paciente y revisaré cada candidato.';
+ const sha256Hex=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(b=>b.toString(16).padStart(2,'0')).join('');
  const stateLabel={pending:'Por confirmar',confirmed:'Confirmada',corrected:'Corregida',rejected:'Descartada'};
  const stateMark={pending:'○',confirmed:'✓',corrected:'✎',rejected:'✕'};
  const visibilityLabel={complete:'Completa',partial:'Parcial',not_evaluable:'No evaluable'};
@@ -28,7 +30,8 @@
  const availability=new Map();
  function available(client){
   if(!client)return Promise.resolve(false);if(availability.has(client))return availability.get(client);
-  const p=(async()=>{try{const r=await window.sbTimeout(client.rpc('smyl_radiograph_ai_capabilities'),15000);const caps=r?.data;return !r.error&&caps?.schema===1&&caps.flags?.['radiograph.qc_v2']===true&&caps.clinicalRead===true;}catch(_){return false;}})();
+  // Sólo se cachea una respuesta del servidor; un fallo de red o un error del RPC se vuelve a intentar la próxima vez.
+  const p=(async()=>{try{const r=await window.sbTimeout(client.rpc('smyl_radiograph_ai_capabilities'),15000);if(r.error){availability.delete(client);return false;}const caps=r?.data;return caps?.schema===1&&caps.flags?.['radiograph.qc_v2']===true&&caps.clinicalRead===true;}catch(_){availability.delete(client);return false;}})();
   availability.set(client,p);return p;
  }
  // --- acceso a datos: el servidor decide permisos, banderas, idempotencia y versiones ----------
@@ -40,7 +43,8 @@
   const rows=(table,sourceId)=>checked(client.from(table).select('*').eq('source_id',sourceId));
   return {caps,userId:user.user.id,
    source:()=>checked(client.from('smyl_radiograph_sources').select('*').eq('patient_id',patient).eq('study_id',study.id).eq('sha256',study.asset.sha256).maybeSingle()),
-   register:acceptedAt=>checked(client.rpc('smyl_radiograph_register_source',{p_source_id:crypto.randomUUID(),p_patient_id:patient,p_study_id:study.id,p_study_type:toV2Type(study.type),p_consent:{version:1,acceptedAt,acceptedBy:user.user.id},p_captured_at:study.date?study.date+'T00:00:00Z':null})),
+   // El cliente sólo atestigua versión y huella del texto que vio; fecha y persona las sella el servidor.
+   register:textHash=>checked(client.rpc('smyl_radiograph_register_source',{p_source_id:crypto.randomUUID(),p_patient_id:patient,p_study_id:study.id,p_study_type:toV2Type(study.type),p_consent:{version:1,textHash},p_captured_at:study.date?study.date+'T00:00:00Z':null})),
    async state(sourceId){const [runs,candidates,decisions,corrections]=await Promise.all([rows('smyl_radiograph_ai_runs',sourceId),rows('smyl_radiograph_candidates',sourceId),rows('smyl_radiograph_decisions',sourceId),rows('smyl_radiograph_source_corrections',sourceId)]);return {runs:runs||[],candidates:candidates||[],decisions:decisions||[],corrections:corrections||[]};},
    async invoke(name,body){const r=await window.sbTimeout(client.functions.invoke(name,{body}),130000);if(!current())throw Error('La ficha cambió.');if(r.error){let detail=null;try{detail=await r.error.context?.json?.();}catch(_){}throw Object.assign(Error(detail?.error||r.error.message||'El servidor no respondió.'),{code:detail?.code||''});}return r.data;},
    decide:(candidateId,revision,state,payload,note)=>checked(client.rpc('smyl_radiograph_decide_candidate',{p_candidate_id:candidateId,p_expected_revision:revision,p_state:state,p_payload:payload,p_note:note})),
@@ -135,22 +139,34 @@
   }
   // --- tarjetas --------------------------------------------------------------------------------
   function selectEntry(id){run.selected=id;run.editing=null;renderWorkspace();requestAnimationFrame(()=>host.querySelector('[data-rv2-card="'+id+'"]')?.focus({preventScroll:true}));}
-  function correctionPayload(entry){
-   const d=run.drafts.get(entry.candidateId)||{},p={};
-   if(d.fdi!==undefined&&d.fdi!==entry.fdi)p.fdi=d.fdi;if(d.visibility&&d.visibility!==entry.visibility)p.visibility=d.visibility;if(d.geometry)p.geometry=d.geometry;if(d.label&&d.label!==entry.label)p.label=d.label;
+  // La decisión 'corrected' REEMPLAZA la anterior: el payload siempre es absoluto (todo lo que difiere del modelo,
+  // incluidas correcciones ya guardadas), nunca sólo lo que cambió en este borrador.
+  const sameJson=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  function absolutePayload(entry,useDraft=true){
+   const d=useDraft?(run.drafts.get(entry.candidateId)||{}):{},p={};
+   const fdi=d.fdi!==undefined?d.fdi:entry.fdi;if(fdi!==entry.fdiModel)p.fdi=fdi;
+   if(entry.kind==='tooth'){const visibility=d.visibility||entry.visibility;if(visibility!==entry.visibilityModel)p.visibility=visibility;}
+   const geometry=d.geometry||entry.geometry;if(geometry&&!sameJson(geometry,entry.geometryModel))p.geometry=geometry;
+   const label=d.label!==undefined?d.label:entry.label;if(label)p.label=label;
    return p;
   }
+  const correctionPayload=entry=>absolutePayload(entry,true);
+  // Hay algo nuevo que guardar si el payload absoluto no está vacío y difiere de lo ya decidido.
+  const hasCorrectionChanges=entry=>{const next=absolutePayload(entry,true);return Object.keys(next).length>0&&!(entry.state==='corrected'&&sameJson(next,absolutePayload(entry,false)));};
   async function decide(entry,state){
    if(run.busy||!valid())return;const d=run.drafts.get(entry.candidateId)||{};let payload={};
-   if(state==='corrected'){payload=correctionPayload(entry);if(!Object.keys(payload).length){status('No hay cambios que corregir. Si la propuesta es correcta, confírmala.','rr-error');return;}try{payload=C().parseDecisionPayload('corrected',payload);}catch(e){status(e.message,'rr-error');return;}}
+   if(state==='confirmed'&&hasCorrectionChanges(entry)){status('Tienes cambios sin guardar en esta tarjeta. Guarda la corrección o deshaz los cambios antes de confirmar.','rr-error');return;}
+   // Confirmar una tarjeta ya corregida reafirma la corrección vigente: se reenvía íntegra para no perderla.
+   if(state==='confirmed'&&entry.state==='corrected'){state='corrected';payload=absolutePayload(entry,false);}
+   else if(state==='corrected'){payload=correctionPayload(entry);if(!Object.keys(payload).length){status('No hay cambios que corregir. Si la propuesta es correcta, confírmala.','rr-error');return;}try{payload=C().parseDecisionPayload('corrected',payload);}catch(e){status(e.message,'rr-error');return;}}
    run.busy=true;renderWorkspace();
    try{await run.api.decide(entry.candidateId,entry.revision,state,payload,d.note||'');run.drafts.delete(entry.candidateId);run.editing=null;await reload();status(({confirmed:'Confirmada y registrada con tu autoría.',corrected:'Corrección registrada. La propuesta original del modelo se conserva.',rejected:'Descartada. Puedes reconsiderarla; cada cambio queda versionado.'})[state],'rr-ok');dispatchEvent(new CustomEvent('smyl:radiograph-v2-decided',{detail:{tenant,patient,study:study.id}}));}
    catch(e){if(e?.code==='PT409'){try{await reload();}catch(_){}}status(errText(e),'rr-error');}
    finally{run.busy=false;renderWorkspace();}
   }
   function card(entry,index){
-   const selected=run.selected===entry.candidateId,el=n('article','rr-item rr-item-'+entry.state+(selected?' is-selected':'')+(entry.kind==='finding'?' rv2-item-finding':''));el.dataset.rv2Card=entry.candidateId;el.dataset.state=entry.state;el.tabIndex=selected?0:-1;el.setAttribute('aria-current',String(selected));el.setAttribute('role','option');el.setAttribute('aria-selected',String(selected));
-   const head=n('button','rr-item-head'),title=n('span','rr-item-title');head.type='button';head.tabIndex=-1;
+   const selected=run.selected===entry.candidateId,el=n('article','rr-item rr-item-'+entry.state+(selected?' is-selected':'')+(entry.kind==='finding'?' rv2-item-finding':''));el.dataset.rv2Card=entry.candidateId;el.dataset.state=entry.state;el.tabIndex=selected?0:-1;el.setAttribute('aria-current',String(selected));el.setAttribute('role','listitem');
+   const head=n('button','rr-item-head'),title=n('span','rr-item-title');head.type='button';head.tabIndex=-1;head.setAttribute('aria-expanded',String(selected));
    const name=entry.kind==='tooth'?'Pieza FDI '+entry.fdi+(entry.renumbered?' (modelo: '+entry.fdiModel+')':''):categoryLabel[entry.payload.category]||'Señal';
    title.append(n('span','rr-number',String(index+1)),n('span','',null));title.lastChild.append(n('strong','',name),n('span','rr-item-location',entry.kind==='tooth'?'Visibilidad: '+(visibilityLabel[entry.visibility]||entry.visibility):(entry.fdi?'Pieza FDI '+entry.fdi:'Región general')));
    const badge=n('span','rr-state rr-state-'+entry.state+' rv2-state',stateMark[entry.state]+' '+stateLabel[entry.state]);badge.setAttribute('aria-label','Estado: '+stateLabel[entry.state]);head.append(title,badge);head.onclick=()=>selectEntry(entry.candidateId);el.append(head);
@@ -167,14 +183,14 @@
    if(entry.kind==='tooth'){const visLabel=n('label','rr-field','Visibilidad'),vis=n('select');Object.entries(visibilityLabel).forEach(([v,l])=>vis.add(new Option(l,v)));vis.value=d.visibility||entry.visibility;vis.onchange=()=>{run.drafts.set(entry.candidateId,Object.assign(run.drafts.get(entry.candidateId)||{},{visibility:vis.value}));renderCards();};visLabel.append(vis);form.append(visLabel);}
    const noteLabel=n('label','rr-field','Valoración profesional'),note=n('textarea');note.rows=3;note.maxLength=600;note.value=d.note!==undefined?d.note:entry.note;note.placeholder='Describe únicamente lo que comprobaste en la imagen.';note.oninput=()=>{run.drafts.set(entry.candidateId,Object.assign(run.drafts.get(entry.candidateId)||{},{note:note.value}));};noteLabel.append(note);form.append(noteLabel);
    const history=n('small','rr-location',entry.state==='pending'?'Sin decisión profesional todavía.':'Decisión registrada · revisión '+entry.revision+(entry.decidedAt?' · '+new Date(entry.decidedAt).toLocaleString('es-MX'):''));form.append(history);body.append(block('Valoración profesional',form));
-   const actions=n('div','rr-actions rv2-actions'),changes=Object.keys(correctionPayload(entry)).length>0;
+   const actions=n('div','rr-actions rv2-actions'),changes=hasCorrectionChanges(entry);
    actions.append(button('Confirmar',()=>decide(entry,'confirmed'),'rr-primary'));
    const save=button(changes?'Guardar corrección':'Guardar corrección (sin cambios)',()=>decide(entry,'corrected'));save.disabled=!changes;actions.append(save);
    actions.append(button('Descartar',()=>decide(entry,'rejected'),'rr-tertiary'));
    if(draftGeometry(entry)?.kind!=='bbox'){const edit=button(run.editing===entry.candidateId?'Terminar edición de contorno':'Editar contorno',()=>{run.editing=run.editing===entry.candidateId?null:entry.candidateId;renderWorkspace();},'rr-tool');edit.setAttribute('aria-pressed',String(run.editing===entry.candidateId));actions.append(edit);}
    if(d.geometry){actions.append(button('Deshacer contorno',()=>{const x=run.drafts.get(entry.candidateId);delete x.geometry;if(!Object.keys(x).length)run.drafts.delete(entry.candidateId);renderWorkspace();},'rr-tool'));}
    const comparableList=Array.isArray(run.comparable)?run.comparable:null,hasComparable=!!comparableList?.some(c=>c.verdict==='comparable'&&c.link_kind!=='incompatible');
-   const compare=button('Comparar con anterior'+(comparableList?.length?' ('+comparableList.length+')':''),()=>openComparePicker(),'rr-tool');
+   const compare=button('Comparar con anterior'+(comparableList?.length?' ('+comparableList.length+')':''),()=>openComparePicker(),'rr-tool');compare.classList.add('rv2-compare');
    if(!hasComparable){compare.disabled=true;compare.setAttribute('aria-disabled','true');compare.title=!comparableList?'Disponible cuando la historia longitudinal esté habilitada y exista un estudio anterior del mismo paciente.':comparableList.length?'Hay estudios anteriores pero ninguno comparable: '+comparableList.map(c=>(window.SmylRadiographLongitudinal?.reasonText(c.link_kind==='incompatible'?'professional_incompatible':c.reason)||c.reason)).join(' ')
     :'No hay estudios anteriores registrados para este paciente.';}
    actions.append(compare);
@@ -182,14 +198,14 @@
    body.append(actions,n('small','rr-location','Confirmar y corregir registran tu autoría; descartar conserva el candidato original.'));el.append(body);return el;
   }
   function cardsPanel(list){
-   const panel=n('aside','rr-signal-panel'),head=n('header','rr-panel-head'),counts=n('div','rr-counts'),filters=n('div','rr-filters rv2-filters'),items=n('div','rr-items rv2-items');items.setAttribute('role','listbox');items.setAttribute('aria-label','Candidatos por pieza y señal');
+   const panel=n('aside','rr-signal-panel'),head=n('header','rr-panel-head'),counts=n('div','rr-counts'),filters=n('div','rr-filters rv2-filters'),items=n('div','rr-items rv2-items');items.setAttribute('role','list');items.setAttribute('aria-label','Candidatos por pieza y señal');
    const count=s=>list.filter(e=>e.state===s).length;head.append(n('span','rr-section-label','CANDIDATOS DEL MODELO'),n('h2','','Revisión por pieza'),n('p','','Confirma, corrige o descarta cada candidato. Nada pendiente entra al expediente.'));
    counts.append(n('span','rr-count rr-count-pending',stateMark.pending+' '+count('pending')+' por confirmar'),n('span','rr-count rr-count-confirmed',stateMark.confirmed+' '+(count('confirmed')+count('corrected'))+' verificadas'),n('span','rr-count',list.length+' totales'));
    [['all','Todas'],['pending','Por confirmar'],['confirmed','Confirmadas'],['corrected','Corregidas'],['rejected','Descartadas']].forEach(([v,l])=>{const f=button(l,()=>{run.filter=v;run.selected=null;renderWorkspace();},'rr-filter');f.setAttribute('aria-pressed',String(run.filter===v));filters.append(f);});
    const visible=list.filter(e=>run.filter==='all'||e.state===run.filter);if(visible.length&&!visible.some(e=>e.candidateId===run.selected))run.selected=visible[0].candidateId;
    visible.forEach((e,i)=>items.append(card(e,list.indexOf(e))));
    if(!visible.length){const empty=n('div','rr-panel-empty');empty.append(n('strong','','No hay candidatos en este estado'),n('p','','Cambia el filtro para revisar los demás.'));items.append(empty);}
-   items.addEventListener('keydown',e=>{if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;e.preventDefault();const idx=visible.findIndex(x=>x.candidateId===run.selected),next=e.key==='Home'?0:e.key==='End'?visible.length-1:Math.max(0,Math.min(visible.length-1,idx+(e.key==='ArrowDown'?1:-1)));if(visible[next])selectEntry(visible[next].candidateId);});
+   items.addEventListener('keydown',e=>{if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;if(!e.target.matches?.('[data-rv2-card]'))return; /* flechas dentro de un campo (select, textarea) son del campo */e.preventDefault();const idx=visible.findIndex(x=>x.candidateId===run.selected),next=e.key==='Home'?0:e.key==='End'?visible.length-1:Math.max(0,Math.min(visible.length-1,idx+(e.key==='ArrowDown'?1:-1)));if(visible[next])selectEntry(visible[next].candidateId);});
    if(run.map?.conflicts?.length){const warn=n('p','rr-note rv2-conflict');warn.setAttribute('role','status');warn.textContent='⚠ Conflicto: '+run.map.conflicts.map(c=>'pieza '+c.fdi+' tiene '+c.candidateIds.length+' candidatos vivos').join('; ')+'. Descarta o renumera uno.';panel.append(head,counts,filters,warn,items);}else panel.append(head,counts,filters,items);
    return panel;
   }
@@ -232,7 +248,7 @@
     const previous={source:prevSource,state:prevState,qc:prevQc,blob:prevBlob,study:prevStudy,studyType:c.study_type,qcStatus:c.qc_status,linkKind:c.link_kind};
     const currentSide={source:run.source,state:run.state,qc:run.qc,blob:run.blob,study,studyType:(run.state.corrections.filter(x=>x.field==='study_type').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)))[0]?.value)||run.source.study_type_declared,qcStatus:run.qc?.quality?.status||null,linkKind:c.link_kind};
     status('');
-    await L.open({previous,current:currentSide,compatibility:{verdict:c.verdict,reason:c.reason,text:L.reasonText(c.reason)||'Mismo tipo de estudio y control de calidad completado en ambos.'},client,tenant,patient,currentCheck:valid,caps:run.api.caps,onLink:async(kind,reason)=>{await run.api.link(run.source.id,prevSource.id,kind,reason);await reload();renderWorkspace();}});
+    await L.open({previous,current:currentSide,compatibility:{verdict:c.verdict,reason:c.reason,text:L.reasonText(c.reason)||'Mismo tipo de estudio y control de calidad completado en ambos.'},client,tenant,patient,currentCheck:valid,caps:run.api.caps,returnFocus:()=>host.querySelector('.rv2-compare'),onLink:async(kind,reason)=>{await run.api.link(run.source.id,prevSource.id,kind,reason);await reload();renderWorkspace();}});
    }catch(e){status(errText(e),'rr-error');}
    finally{run.busy=false;renderWorkspace();}
   }
@@ -242,12 +258,12 @@
    if(!run.source){
     const intro=n('section','rr-intro');intro.append(n('p','rr-step','1 de 3 · Registrar fuente'),n('h1','','Revisión asistida por pieza'),n('p','rr-lead','El servidor registra esta radiografía como fuente inmutable, comprueba su calidad y propone piezas y señales como candidatos. Nada se convierte en diagnóstico sin tu decisión.'),imagePanel([]));
     const privacy=n('div','rr-privacy');privacy.append(n('strong','','Datos enviados'),n('p','','El archivo privado ya guardado, su huella y el tipo de estudio. Sin nombre, notas ni fotografías. Puede generar consumo.'));
-    const consent=n('input');consent.type='checkbox';consent.id='rv2-consent';const permission=n('label','rr-consent');permission.htmlFor='rv2-consent';permission.append(consent,document.createTextNode('Confirmo la autorización del paciente y revisaré cada candidato.'));
-    const start=button('Registrar y comprobar calidad',()=>{if(!consent.checked){status('Marca la autorización del paciente antes de continuar.','rr-error');return;}runStep('Registrando y comprobando calidad',async()=>{const src=await run.api.register(new Date().toISOString());await run.api.invoke('radiograph-qc',{sourceId:src.id});});},'rr-primary');start.disabled=run.busy;
+    const consent=n('input');consent.type='checkbox';consent.id='rv2-consent';const permission=n('label','rr-consent');permission.htmlFor='rv2-consent';permission.append(consent,document.createTextNode(CONSENT_TEXT));
+    const start=button('Registrar y comprobar calidad',()=>{if(!consent.checked){status('Marca la autorización del paciente antes de continuar.','rr-error');return;}runStep('Registrando y comprobando calidad',async()=>{const src=await run.api.register(await sha256Hex(CONSENT_TEXT));await run.api.invoke('radiograph-qc',{sourceId:src.id});});},'rr-primary');start.disabled=run.busy;
     intro.append(privacy,permission,start,n('p','rr-note rr-safety-note','Revisión privada. No se comparte ni se convierte automáticamente en diagnóstico.'));host.append(intro);return;
    }
    const list=entries(),top=n('section','rr-review rv2-review'),head=n('header','rr-review-head'),title=n('div');
-   title.append(n('p','rr-step',list.length?'3 de 4 · Decidir por pieza':'2 de 4 · Analizar'),n('h1','','Revisión por pieza'),n('p','rr-lead','Candidatos del modelo, decisiones tuyas. Sólo lo confirmado o corregido llega al odontograma y al informe.'));head.append(title);
+   title.append(n('p','rr-step',list.length?'3 de 4 · Decidir por pieza':'2 de 4 · Analizar'),n('h1','','Revisión por pieza'),n('p','rr-lead','Candidatos del modelo, decisiones tuyas. Sólo lo confirmado o corregido puede incluirse en el informe radiográfico.'));head.append(title);
    // Etapa 5: informe construido sólo con decisiones confirmadas; detrás de la bandera report_v1.
    if(run.api.caps.flags['radiograph.report_v1']===true&&typeof window.SmylRadiographReport?.open==='function'){const verified=list.filter(e=>['confirmed','corrected'].includes(e.state)).length;const report=button('Informe radiográfico'+(verified?' ('+verified+' confirmados)':''),()=>{if(isDirty(run)){status('Guarda o deshaz el borrador de la tarjeta antes de abrir el informe.','rr-error');return;}window.SmylRadiographReport.open({source:run.source,study,entries:entries(),findings:run.findings,qc:run.qc,tenant,patient,current:valid,client,caps:run.api.caps});},'rr-tool');report.classList.add('rv2-report-button');report.disabled=run.busy;head.append(report);}
    top.append(head,qcCard());
@@ -255,7 +271,7 @@
    if(run.qc&&!list.length&&!run.busy)top.append(n('p','rr-note','Aún no hay candidatos. Ejecuta los análisis habilitados arriba; si el motor no propone nada, continúa con tu valoración clínica.'));
    top.append(n('p','rr-note rr-safety-note','Revisión asistida privada. Las decisiones quedan versionadas con tu autoría y pueden reconsiderarse; un informe firmado las congela.'));host.append(top);
   }
-  host.append(n('p','rr-feedback','Abriendo la revisión por pieza…'));
+  status('Abriendo la revisión por pieza…');
   try{run.api=await connect(client,{tenant,patient,study,current:valid});await reload();if(!valid())return;if(run.source)run.api.logOpen(run.source.id);render();}
   catch(e){if(valid()){run.api=null;render();status(e.code==='disabled'?e.message:errText(e),'rr-error');}}
  }

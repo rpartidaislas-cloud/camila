@@ -74,7 +74,7 @@ create trigger smyl_radiograph_report_addenda_immutable before update or delete 
   for each row execute function public.smyl_radiograph_forbid_change();
 drop trigger if exists smyl_radiograph_reports_audit on public.smyl_radiograph_reports;
 create trigger smyl_radiograph_reports_audit after insert or update on public.smyl_radiograph_reports
-  for each row execute function public.smyl_audit_row();
+  for each row execute function public.smyl_radiograph_audit_lean();
 
 alter table public.smyl_radiograph_reports enable row level security;
 alter table public.smyl_radiograph_report_versions enable row level security;
@@ -124,6 +124,8 @@ begin
 end;
 $$;
 
+revoke all on function public.smyl_radiograph_validate_report(jsonb, boolean) from public, anon, authenticated;
+
 create or replace function public.smyl_radiograph_report_hash(p jsonb) returns text
 language sql immutable set search_path = pg_catalog as $$ select encode(sha256(convert_to(p::text, 'UTF8')), 'hex'); $$;
 
@@ -132,6 +134,7 @@ returns public.smyl_radiograph_reports
 language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_source public.smyl_radiograph_sources; v_tenant uuid; v_old public.smyl_radiograph_reports; v_row public.smyl_radiograph_reports;
 begin
+  if p_expected_revision is null then raise exception using errcode = '22023', message = 'Indica la revisión del informe.'; end if;
   select * into v_source from public.smyl_radiograph_sources where id = p_source_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'La fuente radiográfica no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_source.patient_id, 'clinical.write');
@@ -172,6 +175,7 @@ returns public.smyl_radiograph_reports
 language plpgsql security definer set search_path = pg_catalog, public as $$
 declare v_old public.smyl_radiograph_reports; v_tenant uuid; v_row public.smyl_radiograph_reports; v_bad integer; v_professional uuid; v_decisions jsonb;
 begin
+  if p_expected_revision is null then raise exception using errcode = '22023', message = 'Indica la revisión del informe.'; end if;
   select * into v_old from public.smyl_radiograph_reports where id = p_report_id and tenant_id = public.smyl_current_tenant();
   if not found then raise exception using errcode = '42501', message = 'El informe no está disponible.'; end if;
   v_tenant := public.smyl_radiograph_guard(v_old.patient_id, 'clinical.approve');
@@ -252,6 +256,15 @@ begin
       'studyTypeCurrent', coalesce((select c.value from public.smyl_radiograph_source_corrections c where c.tenant_id = v_tenant and c.source_id = v_source.id order by c.created_at desc limit 1), v_source.study_type_declared)),
     'runs', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'kind', r.kind, 'engine', r.engine, 'contractVersion', r.contract_version, 'status', r.status, 'completedAt', r.completed_at) order by r.requested_at)
       from public.smyl_radiograph_ai_runs r where r.tenant_id = v_tenant and r.source_id = v_source.id), '[]'::jsonb),
+    'signer', (select jsonb_build_object('displayName', p.display_name, 'licenseNumber', p.license_number) from public.smyl_professionals p where p.tenant_id = v_tenant and p.id = v_report.signed_professional_id),
+    'documentText', concat_ws(E'\n\n',
+      'Descripción: ' || (v_report.document->'sections'->>'description'),
+      'Limitaciones técnicas: ' || (v_report.document->'sections'->>'technicalLimitations'),
+      'Correlación clínica: ' || (v_report.document->'sections'->>'clinicalCorrelation'),
+      'Información faltante: ' || (v_report.document->'sections'->>'missingInformation'),
+      'Estudios complementarios: ' || (v_report.document->'sections'->>'complementaryStudies')),
+    'warnings', case when exists (select 1 from public.smyl_radiograph_ai_runs r where r.tenant_id = v_tenant and r.source_id = v_source.id and r.engine->>'provider' = 'simulated')
+      then jsonb_build_array('Este estudio fue procesado con un motor simulado de demostración: las geometrías no son anatomía.') else '[]'::jsonb end,
     'signedDecisions', v_report.signed_decisions,
     'decisions', coalesce((select jsonb_agg(jsonb_build_object('candidateId', d.candidate_id, 'state', d.state, 'revision', d.revision, 'payload', d.payload, 'decidedBy', d.decided_by, 'decidedAt', d.decided_at))
       from public.smyl_radiograph_decisions d where d.tenant_id = v_tenant and d.source_id = v_source.id), '[]'::jsonb),

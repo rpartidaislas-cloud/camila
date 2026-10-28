@@ -43,7 +43,7 @@ test('migración 150000: conjuntos independientes, referencia inmutable con cons
   assert.match(migration, /El conjunto contiene fuentes con posible exposición al entrenamiento; no es un conjunto de prueba independiente\./);
   assert.match(migration, /create trigger smyl_radiograph_reference_annotations_immutable before update or delete/);
   assert.match(migration, /create trigger smyl_radiograph_validation_reports_immutable before update or delete/);
-  assert.match(migration, /case when v\.adjudicated then v\.adjudicated_present when v\.yes > v\.no then true when v\.no > v\.yes then false else null end/, 'adjudicación > mayoría; empate = desacuerdo');
+  assert.match(migration, /case when v\.adjudicated then \(v\.adjudicated_present and not v\.adjudicated_absent\) when v\.yes > v\.no then true when v\.no > v\.yes then false else null end/, 'adjudicación > mayoría; empate o adjudicaciones contradictorias = desacuerdo');
   assert.match(migration, /'sensitivity', case when g\.tp \+ g\.fn > 0/);
   assert.match(migration, /'specificity', case when g\.tn is not null and g\.tn \+ g\.fp > 0/);
   assert.match(migration, /sum\(32 - \(positives \+ fn\)\)/, 'universo FDI permanente de 32 para especificidad de piezas');
@@ -52,11 +52,15 @@ test('migración 150000: conjuntos independientes, referencia inmutable con cons
   assert.match(migration, /Sin mediciones de nivel óseo ni distancias: método no validado\./);
   assert.match(migration, /select min\(\(g->>\(v_c->>'metric'\)\)::numeric\) into v_value/, 'el peor grupo decide');
   assert.match(migration, /encode\(sha256\(convert_to\(\(v_metrics::text \|\| p_exit_criteria::text\), 'UTF8'\)\), 'hex'\)/);
-  assert.match(migration, /smyl_has_permission\(v_tenant, 'clinic\.manage'\)/, 'la pausa por clínica es de quien administra');
-  assert.match(migration, /\(select t\.enabled from public\.smyl_radiograph_flag_tenants t where t\.key = p_key and t\.tenant_id = p_tenant\),\s*\(select f\.enabled from public\.smyl_radiograph_feature_flags f where f\.key = p_key\)/, 'la fila del tenant gana para que la pausa funcione');
+  const flagsMigration = fs.readFileSync(new URL('../supabase/migrations/20261028100000_smyl_radiograph_ai_flags.sql', import.meta.url), 'utf8');
+  assert.match(flagsMigration, /smyl_has_permission\(v_tenant, 'clinic\.manage'\)/, 'la pausa por clínica es de quien administra');
+  assert.match(flagsMigration, /\(f\.enabled or coalesce\(t\.enabled, false\)\) and not coalesce\(t\.paused, false\)/, 'efectivo = (global o piloto) y no pausada');
+  assert.doesNotMatch(migration, /create or replace function public\.smyl_radiograph_(flag_enabled|set_tenant_flag)/, 'las banderas viven sólo en 100000');
+  assert.match(migration, /set locked_at = clock_timestamp\(\) where tenant_id = v_tenant and id = p_set_id and locked_at is null/);
+  assert.match(migration, /validation_min_sources/); assert.match(migration, /Un motor simulado no puede validarse/); assert.match(migration, /truthSource'? ?->>?.*is distinct from 'reference'|g->>'truthSource' is distinct from 'reference'/);
   assert.doesNotMatch(migration, /e\.config|api_key/, 'la divulgación nunca expone config ni credenciales');
   for (const fn of ['smyl_radiograph_validation_guard()', 'smyl_radiograph_reference_truth(uuid, uuid)']) assert.match(migration, new RegExp(`revoke all on function public\\.${fn.replace(/[()]/g, '\\$&')} from public, anon, authenticated`));
-  for (const fn of ['smyl_radiograph_validation_metrics(uuid)', 'smyl_radiograph_monitoring(integer)', 'smyl_radiograph_record_validation_report(uuid, jsonb, text)', 'smyl_radiograph_set_tenant_flag(text, boolean)', 'smyl_radiograph_model_disclosure()']) assert.match(migration, new RegExp(`grant execute on function public\\.${fn.replace(/[()]/g, '\\$&')} to authenticated`));
+  for (const fn of ['smyl_radiograph_validation_metrics(uuid)', 'smyl_radiograph_monitoring(integer)', 'smyl_radiograph_record_validation_report(uuid, jsonb, text)', 'smyl_radiograph_model_disclosure()']) assert.match(migration, new RegExp(`grant execute on function public\\.${fn.replace(/[()]/g, '\\$&')} to authenticated`));
 });
 
 test('protocolo: uso previsto, separación entrenamiento/prueba, referencia multi-odontólogo, métricas, equipo humano+IA, criterios, monitoreo, regulatorio', () => {
@@ -70,7 +74,7 @@ test('cableado: divulgación en la mesa, panel sólo con aprobación clínica, w
   assert.match(mesa, /client\.rpc\('smyl_radiograph_model_disclosure'\)/);
   assert.match(mesa, /d\.simulated\?'Motor simulado · sin validación clínica':'Motor y validación'/);
   assert.match(mesa, /run\.api\.caps\.clinicalApprove===true&&typeof V\.open==='function'/);
-  for (const tag of ['smyl-radiograph-validation.css?v=1', 'smyl-radiograph-validation.js?v=1', 'smyl-radiograph-review-v2.js?v=4', 'smyl-radiograph-review-v2.css?v=2']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
+  for (const tag of ['smyl-radiograph-validation.css?v=1', 'smyl-radiograph-validation.js?v=2', 'smyl-radiograph-review-v2.js?v=5', 'smyl-radiograph-review-v2.css?v=3']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
   assert.match(sw, /radiograph-validation-v50/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css', 'smyl-radiograph-validation.js', 'smyl-radiograph-validation.css']) assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
 });

@@ -27,7 +27,7 @@ const qc = { studyClass: { value: 'panoramic' }, quality: { status: 'limited', f
 test('el borrador nace sólo con decisiones confirmadas/corregidas; pendientes, descartadas y no evaluables quedan fuera', () => {
   const { doc, removed } = R.buildDraft({ entries, findings, qc, previous: null });
   assert.deepEqual(doc.findings.map(f => [f.candidateId, f.tooth, f.priority]), [[cid(1), '16', 'routine'], [cid(2), '24', 'routine'], [cid(90), '12', 'routine']]);
-  assert.match(doc.findings[1].text, /renumerada; el modelo proponía 14/);
+  assert.match(doc.findings[1].text, /renumerada por el profesional/);
   assert.match(doc.findings[2].text, /no implica ausencia, confirmar clínicamente/);
   assert.match(doc.sections.technicalLimitations, /panorámica.*limitada.*desenfoque anterior \(moderada\).*Análisis no aplicado: finding_candidates/);
   assert.equal(doc.sections.description, '');
@@ -94,8 +94,37 @@ test('cableado: botón en la mesa v2 detrás de report_v1, proxy claude existent
   assert.match(ui, /client\.rpc\('smyl_radiograph_sign_report'/);
   assert.match(ui, /client\.rpc\('smyl_radiograph_add_report_addendum'/);
   assert.match(ui, /client\.rpc\('smyl_radiograph_export_report'/);
-  for (const tag of ['smyl-radiograph-report.css?v=1', 'smyl-radiograph-report.js?v=1', 'smyl-radiograph-review-v2.js?v=4']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
+  for (const tag of ['smyl-radiograph-report.css?v=1', 'smyl-radiograph-report.js?v=2', 'smyl-radiograph-review-v2.js?v=5']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
   assert.match(sw, /radiograph-report-v48/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-report.js', 'smyl-radiograph-report.css']) assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
   assert.match(read('mobile/scripts/sync-web.js'), /'smyl-radiograph-report\.js', 'smyl-radiograph-report\.css'/);
+});
+
+test('guarda de piezas: plurales, listas, cifras sueltas y ancho completo; unidades y fechas no cuentan', () => {
+  const m = t => R.mentionedTeeth(t).sort();
+  assert.deepEqual(m('Piezas 36, 46 y 47 con cambio'), ['36', '46', '47']);
+  assert.deepEqual(m('dientes 11-12'), ['11', '12']);
+  assert.deepEqual(m('radiopacidad en 36 y también en 26'), ['26', '36']);
+  assert.deepEqual(m('ｐieza ３６'), ['36'], 'NFKC');
+  for (const text of ['12 meses', 'control 10/12', 'el 18% del área', '2.36 mm', 'fecha 12-11-2025', '36 mm']) assert.deepEqual(m(text), [], text);
+});
+
+test('la guarda estricta sólo juzga lo que la IA cambió; el texto del profesional no se rechaza por sus propias palabras', () => {
+  const { doc } = R.buildDraft({ entries, findings, qc });
+  doc.sections.clinicalCorrelation = 'Diagnóstico previo del profesional: ya confirmado en consulta.';
+  const ids = doc.findings.map(f => f.candidateId);
+  const ok = R.parseAssist(JSON.stringify({ findingsOrder: ids, sections: { description: 'Pieza 16 y pieza 24 localizadas.' } }), doc);
+  assert.equal(ok.sections.clinicalCorrelation, doc.sections.clinicalCorrelation, 'sección no tocada por la IA se conserva');
+  assert.throws(() => R.parseAssist(JSON.stringify({ findingsOrder: ids, sections: { clinicalCorrelation: 'Diagnóstico previo del profesional: ya confirmado en consulta. Certeza total.' } }), doc), /afirmación|certeza|descart/i);
+});
+
+test('esc escapa comillas simples y acentos graves; la redacción asistida pide confirmación, se puede cancelar y vence (estático)', () => {
+  assert.equal(R.esc(`<a href="x" onclick='y'>\``), '&lt;a href=&quot;x&quot; onclick=&#39;y&#39;&gt;&#96;');
+  const src = fs.readFileSync(new URL('../smyl-radiograph-report.js', import.meta.url), 'utf8');
+  assert.match(src, /confirmDialog\('Enviar texto a la redacción asistida'/);
+  assert.match(src, /setTimeout\(\(\)=>controller\.abort\(\),60000\)/);
+  assert.match(src, /Cancelar redacción/);
+  assert.match(src, /addendumDraft/, 'la adenda escrita no se pierde si falla');
+  assert.match(src, /box\.setAttribute\('aria-live','polite'\)/);
+  assert.match(src, /catch\(e\)\{try\{await reload\(\);\}catch\(_\)\{\}throw e;\}/, 'recarga si la firma falla tras guardar');
 });

@@ -1,8 +1,11 @@
 name: SMYL Radiografía IA - Etapas 0 a 7 (migración)
 
-# Aplica manualmente las seis migraciones del flujo radiográfico asistido (banderas apagadas,
-# fuentes v2, ejecuciones IA, informes, historia longitudinal, validación). Es aditivo e idempotente: no transforma datos, no toca el
-# flujo v1 y deja todas las banderas en false. Requiere SUPABASE_ACCESS_TOKEN con acceso al
+# Aplica manualmente la corrección de la cronología de la Ficha 360 y las seis migraciones del flujo
+# radiográfico asistido (banderas apagadas, fuentes v2, ejecuciones IA, informes, historia longitudinal,
+# validación). Es aditivo e idempotente: no transforma datos, no toca el flujo v1 y deja todas las
+# banderas en false. ATENCIÓN: 20261028090000 y 20261028140000 re-crean smyl_patient_timeline y por tanto
+# cambian la cronología de TODAS las clínicas (la corrección de alias y, en 140000, dos tipos de evento
+# nuevos); no es un cambio aislado de la radiografía. Requiere SUPABASE_ACCESS_TOKEN con acceso al
 # proyecto de producción. Se dispara a mano; nunca se ejecuta en push.
 on:
   workflow_dispatch:
@@ -38,9 +41,14 @@ jobs:
             exit 1
           fi
 
-      - name: Pruebas del contrato antes de tocar producción
+      - name: Pruebas antes de tocar producción (incluye Postgres real en memoria)
         shell: bash
-        run: node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs
+        env:
+          SMYL_REQUIRE_PGLITE: "1"
+        run: |
+          # PGlite ejecuta las migraciones en un Postgres real; si no se puede instalar, el paso falla (no se omite).
+          npm install --no-save --no-package-lock @electric-sql/pglite
+          node --test tests/radiograph-*.test.mjs
 
       - name: Aplicar y verificar las migraciones radiográficas
         id: esquema
@@ -52,6 +60,8 @@ jobs:
 
           // Orden obligatorio; cada una se aplica sólo si su objeto centinela no existe todavía.
           const MIGRATIONS = [
+            // Corrección de smyl_patient_timeline (alias del primer UNION). Se reconoce aplicada por su definición.
+            { version: '20261028090000', file: 'supabase/migrations/20261028090000_smyl_patient_timeline_alias_fix.sql', sentinel: null, definition: ['smyl_patient_timeline(uuid,integer)', 'as event_at'] },
             { version: '20261028100000', file: 'supabase/migrations/20261028100000_smyl_radiograph_ai_flags.sql', sentinel: 'smyl_radiograph_engines' },
             { version: '20261028110000', file: 'supabase/migrations/20261028110000_smyl_radiograph_sources_v2.sql', sentinel: 'smyl_radiograph_access_events' },
             { version: '20261028120000', file: 'supabase/migrations/20261028120000_smyl_radiograph_ai_runs.sql', sentinel: 'smyl_radiograph_decision_versions' },
@@ -59,8 +69,13 @@ jobs:
             { version: '20261028140000', file: 'supabase/migrations/20261028140000_smyl_radiograph_longitudinal.sql', sentinel: null, fn: 'smyl_radiograph_comparable_sources' },
             { version: '20261028150000', file: 'supabase/migrations/20261028150000_smyl_radiograph_validation.sql', sentinel: 'smyl_radiograph_validation_reports' },
           ];
-          const TABLES = ['camila_tenants','camila_usuarios','camila_pacientes','smyl_professionals','smyl_dental_records','smyl_audit_events'];
-          const FUNCTIONS = ['smyl_current_tenant','smyl_has_permission','smyl_can_access_patient','smyl_current_professional_id','smyl_audit_row'];
+          // Prerrequisitos: helpers de autorización + lo que consulta la cronología (20261027130000 y la Ficha 360).
+          const TABLES = ['camila_tenants','camila_usuarios','camila_pacientes','smyl_professionals','smyl_dental_records','smyl_audit_events',
+            'smyl_appointments','smyl_clinical_notes','smyl_patient_files','smyl_dental_versions','smyl_photo_reviews','smyl_radiograph_reviews',
+            'smyl_clinical_versions','smyl_proposals','smyl_proposal_events','smyl_finance_charges','smyl_finance_payments','smyl_finance_refunds',
+            'smyl_finance_receipts','smyl_cfdi_drafts','camila_lana_handoffs','camila_lana_clinical_links'];
+          const FUNCTIONS = ['smyl_current_tenant','smyl_has_permission','smyl_can_access_patient','smyl_current_professional_id','smyl_audit_row',
+            'smyl_can_access_schedule_row','smyl_can_access_finance_patient','smyl_patient_timeline'];
 
           const consultar = async query => {
             const response = await fetch(`https://api.supabase.com/v1/projects/${process.env.PROJECT_REF}/database/query`, {
@@ -82,24 +97,48 @@ jobs:
 
           const existe = async name => (await consultar(`select to_regclass('public.${name}') is not null as ok`))[0].ok === true;
           const repair = [];
+          let fresh = false; // ¿se aplicó ahora la migración de banderas? Sólo entonces tiene sentido exigir "todo apagado y sin motores".
           for (const m of MIGRATIONS) {
-            const presente = m.sentinel ? await existe(m.sentinel) : (await consultar(`select to_regprocedure('public.${m.fn}(uuid)') is not null as ok`))[0].ok === true;
+            let presente;
+            if (m.definition) presente = (await consultar(`select coalesce(pg_get_functiondef(to_regprocedure('public.${m.definition[0]}')) like '%${m.definition[1]}%', false) as ok`))[0].ok === true;
+            else if (m.sentinel) presente = await existe(m.sentinel);
+            else presente = (await consultar(`select to_regprocedure('public.${m.fn}(uuid)') is not null as ok`))[0].ok === true;
             if (presente) { console.log(`${m.version}: ya estaba aplicada.`); }
-            else { await consultar(fs.readFileSync(m.file, 'utf8')); console.log(`${m.version}: aplicada.`); }
+            else { await consultar(fs.readFileSync(m.file, 'utf8')); console.log(`${m.version}: aplicada.`); if (m.version === '20261028100000') fresh = true; }
             const registrada = (await consultar(`select exists(select 1 from supabase_migrations.schema_migrations where version='${m.version}') as ok`))[0].ok;
             if (!registrada) repair.push(m.version);
           }
 
-          // Verificación: banderas apagadas, sin motores, ACL cerrada y cierre del motor sólo de servidor.
+          // Prueba de humo de la cronología: se ejecuta como una dueña real de clínica con un paciente (sólo lectura,
+          // dentro de un DO que no escribe). Si la clínica no tiene pacientes todavía, se omite con aviso.
+          const humo = (await consultar(`do $$
+            declare v_t uuid; v_p uuid;
+            begin
+              select p.tenant_id, p.id into v_t, v_p from public.camila_pacientes p join public.camila_tenants t on t.id = p.tenant_id limit 1;
+              if v_p is null then raise notice 'sin pacientes: humo omitido'; return; end if;
+              perform set_config('request.jwt.claim.sub', v_t::text, true);
+              perform set_config('request.jwt.claims', json_build_object('sub', v_t, 'role', 'authenticated')::text, true);
+              perform set_config('role', 'authenticated', true);
+              perform * from public.smyl_patient_timeline(v_p, 5);
+            end $$;
+            select true as ok`))[0];
+          console.log('Cronología (humo):', JSON.stringify(humo));
+
+          // Verificación. La ACL, las políticas y el motor simulado cerrado se exigen siempre; "flags apagadas" y
+          // "sin motores" sólo cuando la migración se aplicó ahora (después un administrador puede haberlos encendido).
           const estado = (await consultar(`select
-            (select count(*)=5 and bool_and(not enabled) from public.smyl_radiograph_feature_flags) as flags_off,
-            (select count(*)=0 from public.smyl_radiograph_engines) as no_engines,
+            ${fresh ? "(select count(*)=5 and bool_and(not enabled) from public.smyl_radiograph_feature_flags) as flags_off," : "true as flags_off,"}
+            ${fresh ? "(select count(*)=0 from public.smyl_radiograph_engines) as no_engines," : "true as no_engines,"}
+            (select value = 'false'::jsonb from public.smyl_radiograph_settings where key = 'allow_simulated') as simulated_closed,
+            not has_table_privilege('authenticated','public.smyl_radiograph_settings','select') as settings_hidden,
+            has_function_privilege('service_role','public.smyl_radiograph_claim_ai_run(uuid)','execute') as claim_for_server,
+            not has_function_privilege('authenticated','public.smyl_radiograph_claim_ai_run(uuid)','execute') as claim_server_only,
             not has_table_privilege('authenticated','public.smyl_radiograph_feature_flags','select') as flags_hidden,
             not has_table_privilege('authenticated','public.smyl_radiograph_engines','select') as engines_hidden,
             not has_function_privilege('authenticated','public.smyl_radiograph_complete_ai_run(uuid,text,jsonb,text,jsonb)','execute') as complete_server_only,
             not has_function_privilege('authenticated','public.smyl_radiograph_flag_enabled(text,uuid)','execute') as flag_fn_hidden,
             has_function_privilege('authenticated','public.smyl_radiograph_ai_capabilities()','execute') as capabilities_ok,
-            (select count(*)=16 from pg_policies where schemaname='public' and policyname like 'smyl_radiograph_%' and policyname not in ('smyl_radiograph_reviews_scoped_read','smyl_radiograph_review_versions_scoped_read')) as policies_ok,
+            (select count(*)>=16 from pg_policies where schemaname='public' and policyname like 'smyl_radiograph_%' and policyname not in ('smyl_radiograph_reviews_scoped_read','smyl_radiograph_review_versions_scoped_read')) as policies_ok,
             (select bool_and(relrowsecurity) from pg_class where relnamespace='public'::regnamespace and relname like 'smyl_radiograph_%' and relkind='r') as rls_ok`))[0];
           console.log('Estado final:', JSON.stringify(estado));
           if (!Object.values(estado).every(v => v === true)) throw new Error(`Verificación incompleta: ${JSON.stringify(estado)}`);

@@ -24,26 +24,42 @@ export function detectRadiographMime(b: Uint8Array): 'image/jpeg' | 'image/png' 
   return null;
 }
 
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b: Uint8Array, from: number, to: number): number {
+  let c = 0xffffffff;
+  for (let i = from; i < to; i++) c = CRC_TABLE[(c ^ b[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+const MAX_HINTS = 8, MAX_HINT_LENGTH = 48;
+const bad = (mime: 'image/jpeg' | 'image/png', reason: string): ImageProbe => ({ mime, width: null, height: null, orientation: 0, hints: [], reason });
+
 function probePng(b: Uint8Array): ImageProbe {
   const hints: string[] = [];
   let width: number | null = null, height: number | null = null;
-  let i = 8;
-  while (i + 8 <= b.length) {
+  let i = 8, first = true, ended = false;
+  while (i + 12 <= b.length) {
     const len = u32(b, i, false);
     const type = td.decode(b.slice(i + 4, i + 8));
     const start = i + 8;
-    if (start + len > b.length) break;
-    if (type === 'IHDR' && len >= 8) { width = u32(b, start, false); height = u32(b, start + 4, false); }
+    if (start + len + 4 > b.length) return bad('image/png', 'La estructura PNG está truncada.');
+    if (first && (type !== 'IHDR' || len !== 13)) return bad('image/png', 'El primer bloque PNG debe ser un IHDR válido.');
+    if (type === 'IHDR') {
+      if (!first) return bad('image/png', 'El PNG tiene más de una cabecera.');
+      if (crc32(b, i + 4, start + len) !== u32(b, start + len, false)) return bad('image/png', 'La cabecera PNG está dañada.');
+      width = u32(b, start, false); height = u32(b, start + 4, false);
+    }
+    first = false;
     if (type === 'tEXt') {
       const text = td.decode(b.slice(start, start + len));
       const sep = text.indexOf('\0');
-      if (sep > 0 && text.slice(0, sep) === 'smyl.sim') hints.push(...text.slice(sep + 1).split(',').map((h) => h.trim()).filter(Boolean));
+      if (sep > 0 && text.slice(0, sep) === 'smyl.sim') hints.push(...text.slice(sep + 1).split(',').map((h) => h.trim()).filter((h) => h && h.length <= MAX_HINT_LENGTH).slice(0, MAX_HINTS));
     }
-    if (type === 'IEND') break;
+    if (type === 'IEND') { ended = true; break; }
     i = start + len + 4; // + CRC
   }
-  if (width === null || height === null) return { mime: 'image/png', width, height, orientation: 0, hints, reason: 'La cabecera PNG no declara dimensiones.' };
-  return { mime: 'image/png', width, height, orientation: 1, hints, reason: null };
+  if (!ended) return bad('image/png', 'El PNG no termina correctamente.');
+  if (width === null || height === null || width < 1 || height < 1) return bad('image/png', 'La cabecera PNG no declara dimensiones.');
+  return { mime: 'image/png', width, height, orientation: 1, hints: hints.slice(0, MAX_HINTS), reason: null };
 }
 
 function exifOrientation(app1: Uint8Array): number {
@@ -70,6 +86,7 @@ function probeJpeg(b: Uint8Array): ImageProbe {
   while (i + 4 <= b.length) {
     if (b[i] !== 0xff) { i++; continue; }
     const marker = b[i + 1];
+    if (marker === 0xff) { i++; continue; } // bytes de relleno 0xFF antes de un marcador
     if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
     if (marker === 0xd9 || marker === 0xda) break; // EOI o inicio de scan: ya no hay cabeceras
     const len = u16(b, i + 2, false);
@@ -77,11 +94,12 @@ function probeJpeg(b: Uint8Array): ImageProbe {
     const seg = b.slice(i + 4, i + 2 + len);
     if (marker === 0xe1) { const o = exifOrientation(seg); if (o) orientation = o; }
     if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+      if (width !== null) return bad('image/jpeg', 'El JPEG declara más de un cuadro.');
       if (seg.length >= 5) { height = u16(seg, 1, false); width = u16(seg, 3, false); }
     }
     i += 2 + len;
   }
-  if (width === null || height === null) return { mime: 'image/jpeg', width, height, orientation, hints: [], reason: 'La cabecera JPEG no declara dimensiones.' };
+  if (width === null || height === null || width < 1 || height < 1) return bad('image/jpeg', 'La cabecera JPEG no declara dimensiones.');
   return { mime: 'image/jpeg', width, height, orientation, hints: [], reason: null };
 }
 

@@ -6,6 +6,32 @@ const { chromium } = require('playwright');
 const path = require('node:path');
 const fs = require('node:fs');
 
+// Auditoría de contraste AA (≥ 4.5:1 texto normal, 3:1 grande) del contenido visible del diálogo abierto.
+const AUDIT = () => {
+  const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const lum = ({ r, g, b }) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
+  const over = (top, bot) => ({ r: top.r * top.a + bot.r * (1 - top.a), g: top.g * top.a + bot.g * (1 - top.a), b: top.b * top.a + bot.b * (1 - top.a), a: 1 });
+  const bgOf = (el) => { const stack = []; for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { stack.push(c); if (c.a === 1) break; } } let base = { r: 255, g: 255, b: 255, a: 1 }; for (const c of stack.reverse()) base = over(c, base); return base; };
+  const out = [];
+  const root = document.querySelector('dialog[open]') || document.body;
+  for (const el of root.querySelectorAll('*')) {
+    if (!el.getClientRects().length) continue;
+    const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim());
+    if (!own) continue;
+    if (el.closest('svg')) continue;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || Number(cs.opacity) === 0) continue;
+    const disabled = el.disabled || el.closest('button:disabled');
+    const fg = parse(cs.color); if (!fg) continue;
+    const bg = bgOf(el); const f = over(fg, bg);
+    const L1 = lum(f), L2 = lum(bg); const ratio = (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05);
+    const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700;
+    const need = size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5;
+    if (ratio < need && !disabled) out.push({ tag: el.tagName.toLowerCase(), cls: String(el.className).slice(0, 40), text: el.textContent.trim().slice(0, 40), ratio: Math.round(ratio * 100) / 100, need, color: cs.color });
+  }
+  return out;
+};
+
 let browser = null;
 (async () => {
   browser = await chromium.launch({ headless: true });
@@ -41,6 +67,8 @@ let browser = null;
     await page.locator('.rr-item').first().waitFor();
     await page.getByRole('button', { name: 'Buscar señales', exact: true }).click();
     await page.waitForFunction(() => document.querySelectorAll('.rr-item').length === 7);
+    const lowContrast = await page.evaluate(AUDIT);
+    if (lowContrast.length) fail('contraste insuficiente: ' + JSON.stringify(lowContrast.slice(0, 5)));
     const metrics = await page.evaluate(() => {
       const visible = (s) => Array.from(document.querySelectorAll(s)).filter((e) => e.getClientRects().length);
       const dialog = document.querySelector('.rv2-dialog');
@@ -70,12 +98,12 @@ let browser = null;
     if (!metrics.labels.every((l) => /^[○✓✎✕] \d+$/.test(l))) fail('overlay labels: ' + metrics.labels);
     if (metrics.minButtonHeight < 42) fail(`button height ${metrics.minButtonHeight} at ${item.width}`);
     if (metrics.compareDisabled !== 'Comparar con anterior') fail('compare must be disabled with reason');
-    if (metrics.listbox !== 'listbox') fail('cards list lacks listbox role');
+    if (metrics.listbox !== 'list') fail('cards list lacks list role');
     if (metrics.sameRow !== item.width >= 960) fail(`layout ${item.width}: sameRow=${metrics.sameRow}`);
     report.push({ name: item.name, width: item.width, cards: metrics.cards, shapes: metrics.shapes, minButtonHeight: metrics.minButtonHeight, sameRow: metrics.sameRow });
 
     if (item.name === 'desktop') {
-      // teclado: ArrowDown mueve la selección en el listbox
+      // teclado: ArrowDown mueve la selección en la lista
       await page.locator('.rr-item[aria-current="true"]').focus();
       await page.keyboard.press('ArrowDown');
       const second = await page.locator('.rr-item[aria-current="true"] .rr-number').textContent();
@@ -96,6 +124,23 @@ let browser = null;
       const corrected = await page.evaluate(() => { const d = window.__db; const c = d.candidates[2]; const dec = d.decisions.find((x) => x.candidate_id === c.id); return { original: c.payload.fdiCandidate, state: dec.state, payload: dec.payload, revision: dec.revision }; });
       if (corrected.original !== '14' || corrected.state !== 'corrected' || corrected.payload.fdi !== '24' || corrected.revision !== 2) fail('correction wrong: ' + JSON.stringify(corrected));
       if (!(await page.locator('.rr-item').nth(2).textContent()).includes('Pieza FDI 24 (modelo: 14)')) fail('card does not show renumbering with model origin');
+      // re-corregir una tarjeta ya corregida: el payload es absoluto (conserva la renumeración) y "Confirmar" no la pierde
+      const originalVisibility = await page.evaluate(() => window.__db.candidates[2].payload.visibility);
+      const visibilityTarget = originalVisibility === 'partial' ? 'not_evaluable' : 'partial';
+      await page.locator('.rr-item[aria-current="true"] select').nth(1).selectOption(visibilityTarget);
+      await page.getByRole('button', { name: 'Guardar corrección', exact: true }).click();
+      await page.waitForFunction(() => window.__db.decisions[2].revision === 3);
+      const recorrected = await page.evaluate(() => window.__db.decisions[2].payload);
+      if (recorrected.fdi !== '24' || recorrected.visibility === undefined) fail('re-correction dropped the earlier renumbering: ' + JSON.stringify(recorrected));
+      await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
+      await page.waitForFunction(() => window.__db.decisions[2].revision === 4);
+      const reaffirmed = await page.evaluate(() => ({ state: window.__db.decisions[2].state, payload: window.__db.decisions[2].payload }));
+      if (reaffirmed.state !== 'corrected' || reaffirmed.payload.fdi !== '24') fail('confirming a corrected card lost its correction: ' + JSON.stringify(reaffirmed));
+      // flechas dentro de un campo (textarea / select) no cambian la tarjeta seleccionada
+      const keptCard = await page.locator('.rr-item[aria-current="true"]').getAttribute('data-rv2-card');
+      await page.locator('.rr-item[aria-current="true"] textarea').focus();
+      await page.keyboard.press('ArrowDown');
+      if ((await page.locator('.rr-item[aria-current="true"]').getAttribute('data-rv2-card')) !== keptCard) fail('arrow key inside a field moved the selection');
       // descartar + reconsiderar (versionado)
       await page.locator('.rr-item').nth(3).locator('.rr-item-head').click();
       await page.getByRole('button', { name: 'Descartar', exact: true }).click();
