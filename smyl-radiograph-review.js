@@ -93,7 +93,12 @@
    }
    if(run.doc.workflow.state!=='completed'){
     const message=run.doc.workflow.state==='unconfirmed'?'La solicitud anterior no tuvo una respuesta confirmada. Para evitar un segundo cobro o resultados duplicados, no se repetirá desde esta revisión.':'La solicitud quedó registrada y aún no tiene una respuesta confirmada.';
-    host.append(n('section','rr-empty',null));host.firstChild.append(n('h1','','Revisión sin resultado confirmado'),n('p','',message),n('p','rr-note','Continúa con las anotaciones manuales sobre la imagen original.'));return;
+    host.append(n('section','rr-empty',null));host.firstChild.append(n('h1','','Revisión sin resultado confirmado'),n('p','',message),n('p','rr-note','Puedes continuar con las anotaciones manuales sobre la imagen original o, si lo decides, volver a intentar el análisis.'));
+    // Reintento explícito: la solicitud anterior pudo haberse procesado, así que un nuevo intento puede generar otro consumo.
+    const retry=button('Volver a intentar',()=>{if(run.busy||!valid())return;const d=n('dialog','rr-confirm-dialog'),id='rr-retry-title-'+(++dialogSequence),h=n('h2','','Volver a intentar el análisis'),acts=n('div','rr-confirm-actions');h.id=id;d.setAttribute('aria-labelledby',id);
+     acts.append(button('Cancelar',()=>d.close()),button('Volver a intentar',async()=>{d.close();if(run.busy||!valid())return;run.busy=true;retry.disabled=true;try{const row=await run.store.retry(run.revision);if(!valid())return;run.doc=row.document;run.revision=row.revision;run.dirty=false;render();status('Listo para un nuevo intento. La solicitud anterior queda en el historial.','rr-ok');}catch(e){status(e.code==='40001'||e.code==='PT409'?'La revisión cambió en otra sesión. Vuelve a abrirla.':e.code==='23514'?'Esta revisión ya no se puede reintentar.':'No se pudo reiniciar la revisión. No se envió nada.','rr-error');}finally{run.busy=false;retry.disabled=false;}},'rr-primary'));
+     d.append(h,n('p','','La solicitud anterior no tuvo una respuesta confirmada y pudo haberse procesado. Un nuevo intento puede generar otro consumo del plan de IA. La solicitud anterior se conserva en el historial; no se borra nada.'),acts);document.body.append(d);d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();acts.firstChild.focus();},'rr-primary');
+    retry.classList.add('rr-retry');host.firstChild.append(retry);return;
    }
    const report=run.doc.analysis.report,top=n('section','rr-review'),overview=n('header','rr-review-head'),title=n('div'),quality=n('div','rr-quality-card rr-quality-'+report.quality);
    if(!run.selected&&run.doc.items.length)run.selected=(run.doc.items.find(item=>item.state==='pending')||run.doc.items[0]).id;
