@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.whatsapp-templates]
 verify_jwt = true
+
+[functions.radiograph-qc]
+verify_jwt = true
+
+[functions.radiograph-analyze]
+verify_jwt = true

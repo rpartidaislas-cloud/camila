@@ -3,7 +3,7 @@ name: SMYL Cronologia 360 - correccion de alias (migracion 20261028090000)
 # Aplica SOLA la migracion 20261028090000_smyl_patient_timeline_alias_fix.sql: re-crea
 # smyl_patient_timeline con los alias que le faltaban al primer UNION (en PostgreSQL 16 la version de
 # 20261027130000 falla). No agrega eventos radiograficos ni toca ninguna tabla. Cambia la cronologia de la
-# Ficha 360 de TODAS las clinicas. Requiere SUPABASE_ACCESS_TOKEN. Se dispara a mano; nunca en push.
+# Ficha 360 de TODAS las clinicas. La verificacion y la prueba de humo corren contra la base, no hay pruebas locales. Requiere SUPABASE_ACCESS_TOKEN. Se dispara a mano; nunca en push.
 on:
   workflow_dispatch:
 
@@ -37,12 +37,6 @@ jobs:
             echo "::error::Falta SUPABASE_ACCESS_TOKEN en los secretos del repositorio."
             exit 1
           fi
-
-      - name: Pruebas antes de tocar produccion
-        shell: bash
-        run: |
-          npm install --no-save --no-package-lock @electric-sql/pglite
-          SMYL_REQUIRE_PGLITE=1 node --test tests/radiograph-pglite-stage1.test.mjs tests/radiograph-longitudinal-stage6.test.mjs
 
       - name: Aplicar y verificar la correccion de la cronologia
         id: esquema

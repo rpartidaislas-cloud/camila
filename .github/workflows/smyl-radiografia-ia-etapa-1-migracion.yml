@@ -6,7 +6,8 @@ name: SMYL Radiografía IA - Etapas 0 a 7 (migración)
 # banderas en false. ATENCIÓN: 20261028090000 y 20261028140000 re-crean smyl_patient_timeline y por tanto
 # cambian la cronología de TODAS las clínicas (la corrección de alias y, en 140000, dos tipos de evento
 # nuevos); no es un cambio aislado de la radiografía. Requiere SUPABASE_ACCESS_TOKEN con acceso al
-# proyecto de producción. Se dispara a mano; nunca se ejecuta en push.
+# proyecto de producción. Las pruebas (PGlite, estáticas y de navegador) corren en la rama de desarrollo; este
+# workflow solo aplica, verifica contra la base y hace la prueba de humo. Se dispara a mano; nunca se ejecuta en push.
 on:
   workflow_dispatch:
 
@@ -40,15 +41,6 @@ jobs:
             echo "::error::Falta SUPABASE_ACCESS_TOKEN en los secretos del repositorio."
             exit 1
           fi
-
-      - name: Pruebas antes de tocar producción (incluye Postgres real en memoria)
-        shell: bash
-        env:
-          SMYL_REQUIRE_PGLITE: "1"
-        run: |
-          # PGlite ejecuta las migraciones en un Postgres real; si no se puede instalar, el paso falla (no se omite).
-          npm install --no-save --no-package-lock @electric-sql/pglite
-          node --test tests/radiograph-*.test.mjs
 
       - name: Aplicar y verificar las migraciones radiográficas
         id: esquema

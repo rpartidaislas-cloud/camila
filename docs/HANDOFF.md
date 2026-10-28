@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-27 — Codex — Equipo y roles sin empalmes v47
+
+- `Equipo, roles y profesionales` responde ahora al ancho real del módulo con
+  container queries. La tarjeta `Por completar` sólo ocupa una columna lateral
+  cuando existe espacio suficiente; en la composición habitual se apila sin
+  cubrir los selectores de rol o sede.
+- Cada integrante conserva una sola ficha, pero `Rol` y `Sede principal` viven
+  dentro de un bloque de controles acotado. Los selectores tienen ancho máximo,
+  la acción de activar/desactivar ocupa una columna propia y el diseño baja de
+  cuatro a dos y una columnas según el espacio disponible.
+- El encabezado mantiene juntas `Invitar integrante` y `Agregar doctor`, la
+  pestaña compacta se llama `Equipo y roles` en pantalla y conserva su nombre
+  accesible completo. El estado vacío de pendientes comunica `Todo al día` sin
+  una tarjeta sobredimensionada ni texto repetitivo.
+- Web, fuente móvil y PWA quedan sincronizadas con
+  `smyl-clinic-admin.js?v=7`, `smyl-clinic-admin.css?v=8` y cache
+  `team-layout-v47`. No se modificaron datos, permisos, RLS, migraciones ni
+  funciones de backend.
+- QA: **790/790** pruebas. La fixture específica se revisó a 1785, 1280, 820 y
+  390 px: cero empalmes, cero overflow horizontal, todos los selectores dentro
+  de su ficha y acciones de al menos 42 px.
 ## 2026-10-28 — Claude Code — Radiografía asistida: revisión adversarial final y correcciones
 
 - Cuatro revisiones independientes (SQL, Edge, interfaz, flujo clínico) pidieron cambios; todo corregido en

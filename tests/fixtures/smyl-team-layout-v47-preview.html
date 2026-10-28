@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Equipo de la clínica</title>
+  <link rel="stylesheet" href="../../smyl-clinic-admin.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#0b1b2e;font-family:Inter,system-ui,sans-serif}.shell{display:grid;grid-template-columns:186px minmax(0,1fr);min-height:100vh}.side{background:#0f2944;color:#fff;padding:28px 18px}.side strong{font-size:20px}.side span{display:block;margin-top:34px;color:#c7d5e5}.side .active{margin-inline:-8px;padding:12px 10px;border-radius:10px;background:#244f7b;color:#fff}.contenido{min-width:0;padding:42px 44px}.clinic-admin-page{display:block!important;max-width:1000px;margin:auto}.btn{display:inline-flex;align-items:center;border:1px solid #d9e2ec;border-radius:12px;background:#fff;color:#0b1b2e;padding:0 16px;font:inherit;font-weight:700}.btn-primary{background:#0b1b2e;border-color:#0b1b2e;color:#fff}.pro-eyebrow{font-size:12px;font-weight:800;letter-spacing:.1em;color:#087064}
+    @media(max-width:760px){.shell{display:block}.side{display:none}.contenido{padding:22px 14px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="side"><strong>smyl</strong><span>Agenda</span><span>Pacientes</span><span>Mensajes</span><span class="active">Configuración</span></aside>
+    <main class="contenido">
+      <section class="clinic-admin-page">
+        <div class="clinic-admin-tabs"><button class="clinic-admin-tab">Sucursales y horarios</button><button class="clinic-admin-tab" aria-label="Equipo, roles y profesionales" aria-selected="true">Equipo y roles</button></div>
+        <section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo">
+          <header class="clinic-admin-team-hero">
+            <div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div>
+            <div class="clinic-admin-team-actions"><button class="btn">Invitar integrante</button><button class="btn btn-primary">Agregar doctor</button></div>
+          </header>
+          <div class="clinic-admin-team-grid">
+            <article class="clinic-admin-card clinic-admin-people-card">
+              <div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Los cambios de rol y sede se guardan directamente en cada ficha.</p></div></div>
+              <div class="clinic-admin-people-list">
+                <article class="clinic-admin-member" data-active="true">
+                  <div class="clinic-admin-avatar">DH</div>
+                  <div class="clinic-admin-member-meta"><div class="clinic-admin-member-title"><strong>Ana Torres</strong><span class="clinic-admin-person-kind is-team">Equipo</span></div><small>ana@clinica.test</small></div>
+                  <div class="clinic-admin-member-controls"><label class="clinic-admin-member-field is-role"><span>Rol</span><select><option>Recepción</option></select></label><label class="clinic-admin-member-field is-branch"><span>Sede principal</span><select><option>Círculo Médico Dental</option></select></label></div>
+                </article>
+                <article class="clinic-admin-member" data-active="true">
+                  <div class="clinic-admin-avatar">D</div>
+                  <div class="clinic-admin-member-meta"><div class="clinic-admin-member-title"><strong>Dra. Elena Ruiz</strong><span class="clinic-admin-person-kind">Doctor</span></div><small>elena@clinica.test</small><p>Diseño de sonrisas · Céd. DEMO-001</p></div>
+                  <div class="clinic-admin-member-controls"><label class="clinic-admin-member-field is-role"><span>Rol</span><select disabled><option>Propietario</option></select></label><label class="clinic-admin-member-field is-branch"><span>Sede principal</span><select><option>Círculo Médico Dental</option></select></label></div>
+                </article>
+              </div>
+            </article>
+            <aside class="clinic-admin-card clinic-admin-pending-card">
+              <div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div></div>
+              <div class="clinic-admin-pending-empty"><span aria-hidden="true"></span><strong>Todo al día</strong><p>No hay invitaciones ni perfiles pendientes de vincular.</p></div>
+            </aside>
+            <article class="clinic-admin-card clinic-admin-role-card">
+              <div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Configura qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><button class="btn">Crear rol</button></div>
+              <details class="clinic-admin-role"><summary><span><strong>Administrador</strong><small>Operación general sin gestión de suscripción.</small></span><b>24 funciones</b></summary></details>
+              <details class="clinic-admin-role"><summary><span><strong>Asistente clínico</strong><small>Apoyo clínico y operativo.</small></span><b>8 funciones</b></summary></details>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
