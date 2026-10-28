@@ -12,8 +12,8 @@ const mobileScript = read('../mobile/www/smyl-clinic-admin.js');
 const mobileStyles = read('../mobile/www/smyl-clinic-admin.css');
 
 test('Mi clínica is loaded as a first-class panel module', () => {
-  assert.match(app, /smyl-clinic-admin\.css\?v=6/);
-  assert.match(app, /smyl-clinic-admin\.js\?v=5/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=7/);
+  assert.match(app, /smyl-clinic-admin\.js\?v=6/);
   assert.match(script, /window\.TITULOS\.clinica = 'Mi clínica'/);
   assert.match(script, /navButton\('Mi clínica', 'clinica'\)/);
   assert.match(script, /Sucursales y horarios/);
@@ -36,7 +36,9 @@ test('sensitive multi-row changes use atomic RPC functions', () => {
   assert.match(script, /rpc\('smyl_set_member_primary_branch'/);
   assert.match(script, /member_kind: 'professional'/);
   assert.match(script, /functions\/v1\/invite-staff/);
-  assert.doesNotMatch(script, /rpc\('smyl_create_professional'/);
+  assert.match(script, /rpc\('smyl_create_professional'/);
+  assert.match(script, /memberByEmail/);
+  assert.match(script, /Doctor ya vinculado/);
   assert.match(script, /eq\('tenant_id', state\.tenant\)/);
 });
 
@@ -53,6 +55,6 @@ test('web, mobile and offline cache include the same clinic module', () => {
   assert.equal(script, mobileScript);
   assert.equal(styles, mobileStyles);
 assert.match(worker, /professional-invitations/);
-  assert.match(worker, /smyl-clinic-admin\.js\?v=5/);
-  assert.match(worker, /smyl-clinic-admin\.css\?v=6/);
+  assert.match(worker, /smyl-clinic-admin\.js\?v=6/);
+  assert.match(worker, /smyl-clinic-admin\.css\?v=7/);
 });

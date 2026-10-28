@@ -29,10 +29,12 @@ test('la invitación valida tenant y sucursal antes de enviar el correo', () => 
   assert.match(edge, /\(count \|\| 0\) \+ \(pendingCount \|\| 0\) >= limiteUsuarios/);
 });
 
-test('Mi clínica separa invitaciones profesionales de otros integrantes', () => {
-  assert.match(admin, /Invitar profesional/);
+test('Mi clínica agrega doctores sin duplicar cuentas existentes', () => {
+  assert.match(admin, /Agregar doctor/);
   assert.match(admin, /member_kind: 'professional'/);
-  assert.match(admin, /El correo de Google Calendar podrá ser diferente/);
+  assert.match(admin, /No enviaremos otro correo/);
+  assert.match(admin, /rpc\('smyl_create_professional'/);
+  assert.match(admin, /roleByCode\('odontologo'\)/);
   assert.match(admin, /Invitación pendiente/);
   assert.doesNotMatch(admin, /<option value="">Sin vincular<\/option>/);
 });

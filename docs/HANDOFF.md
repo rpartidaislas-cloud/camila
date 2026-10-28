@@ -8796,3 +8796,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - Tipo de estudio y archivo ahora tienen etiquetas visibles; el selector conserva los tipos existentes y la carga sigue aceptando únicamente JPG/PNG de hasta 20 MB.
 - La revisión asistida se presenta como apoyo diferenciado con insignia IA y conserva el control profesional, consentimiento y guardado canónico existentes.
 - Web y `mobile/www` quedan sincronizados en `smyl-dental-record.js?v=14`, `smyl-case-workspace.js?v=18`, `smyl-case-workspace.css?v=15` y caché `radiograph-ui-v40`. No hubo cambios de esquema, RLS, funciones ni datos clínicos.
+
+## 2026-10-27 — Codex — Equipo y roles v4.6: alta de doctores sin cuentas duplicadas
+
+- “Invitar profesional” cambia a “Agregar doctor”. El correo se contrasta primero con los integrantes de la clínica: si ya existe, no se vuelve a llamar a `invite-staff` ni se muestra el error técnico de reinvitación.
+- Una cuenta existente puede completar su perfil mediante la RPC segura `smyl_create_professional`; el flujo asigna el rol activo `odontologo`, la sede principal y reactiva el acceso sólo cuando el operador tiene los permisos existentes.
+- Si el doctor ya estaba vinculado, el mismo diálogo actualiza nombre, especialidad, cédula, rol y sede y explica que no enviará otro correo. Los correos nuevos conservan la invitación segura por Edge Function.
+- Equipo y profesionales dejan de duplicarse visualmente: cada persona tiene una sola fila con identidad, correo, etiqueta Doctor/Equipo, rol y sede. El panel secundario se reserva para invitaciones pendientes y perfiles sin acceso.
+- La superficie completa se alinea a SMYL UI v3: texto funcional de al menos 12 px en estilos efectivos, controles de 42–48 px, tarjetas blancas, acción primaria navy, estados semánticos y reordenamiento responsive a 1200, 900, 760 y 440 px.
+- Web y `mobile/www` quedan sincronizados en `smyl-clinic-admin.js?v=6`, `smyl-clinic-admin.css?v=7` y caché PWA `team-roles-v46`.
+- No hubo migraciones ni cambios en Edge Functions. Se reutilizan RPC, RLS, membresías e invitaciones ya desplegadas; la corrección es de orquestación y UX del frontend.
