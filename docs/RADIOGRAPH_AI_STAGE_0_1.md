@@ -1,4 +1,4 @@
-# SMYL — Radiografía asistida: Etapas 0–6 (baseline, esquema v2, contratos, control de calidad, localización, revisión por pieza, informe firmado e historia longitudinal)
+# SMYL — Radiografía asistida: Etapas 0–7 (baseline, esquema v2, contratos, control de calidad, localización, revisión por pieza, informe firmado, historia longitudinal y validación clínica)
 
 **Fecha:** 2026-10-28 · **Autor:** Claude Code · **Plan:** `docs/CLAUDE_RADIOGRAPH_AI_IMPLEMENTATION_PLAN.md`
 **Estado:** código y pruebas listos; **nada aplicado ni desplegado**. Con las banderas apagadas el
@@ -8,7 +8,7 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 
 | Incluido | Excluido (etapas posteriores) |
 | --- | --- |
-| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | Validación clínica (Etapa 7) y CBCT/DICOM (Etapa 8) |
+| 5 banderas cerradas por defecto + piloto por clínica (`20261028100000`) | CBCT/DICOM (Etapa 8, proyecto independiente) |
 | Registro de motores sin credenciales, un motor activo por tipo | Proveedor real de QC (hoy sólo `simulated` y un adaptador HTTP genérico sin proveedor elegido) |
 | Fuentes inmutables, correcciones, vínculos, auditoría de acceso (`20261028110000`) | UI de revisión por pieza, odontograma asistido, informe en pantalla (Etapas 3-5) |
 | Ejecuciones IA idempotentes, candidatos inmutables, decisiones versionadas (`20261028120000`) | Comparador longitudinal (Etapa 6), validación clínica (7), CBCT/DICOM (8) |
@@ -18,8 +18,9 @@ comportamiento publicado es idéntico al actual (sólo existen tablas/funciones 
 | Edge Function `radiograph-analyze` + `DentalXrayProvider` simulado + `smyl-radiograph-review-model-v2.js` (Etapa 3) | Comparador longitudinal (Etapa 6): el botón «Comparar con anterior» existe deshabilitado con motivo |
 | Mesa de revisión por pieza `smyl-radiograph-review-v2.js/.css` + botón en el expediente (Etapa 4) | |
 | Informe clínico asistido `smyl-radiograph-report.js/.css`: borrador sólo con confirmadas, redacción asistida con guarda, diferencias, firma, adendas, exportación (Etapa 5) | Mediciones de nivel óseo / distancias (bloqueadas hasta validar técnica y calibración) |
-| Historia longitudinal: migración `20261028140000` (fuentes comparables con veredicto, vínculo profesional, cronología 360) + `smyl-radiograph-longitudinal.js/.css` (Etapa 6) | |
-| Pruebas estáticas (24), PGlite en Postgres real (13), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320), Etapa 5 (6 + navegador en 1280/390), Etapa 6 (5 + navegador en 1280/390) | |
+| Historia longitudinal: migración `20261028140000` (fuentes comparables con veredicto, vínculo profesional, cronología 360) + `smyl-radiograph-longitudinal.js/.css` (Etapa 6) | La validación clínica en sí (anotadores, muestra, criterios finales, revisión regulatoria): la decide la clínica con el protocolo |
+| Validación clínica: migración `20261028150000` (conjuntos independientes, referencia multi-profesional, métricas, monitoreo, incidentes, informe versionado, pausa por clínica, divulgación) + `smyl-radiograph-validation.js/.css` + `docs/RADIOGRAPH_VALIDATION_PROTOCOL.md` (Etapa 7) | |
+| Pruebas estáticas (24), PGlite en Postgres real (15), Etapa 2 (14), Etapa 3 (9), Etapa 4 (7 + navegador en 1280/820/390/320), Etapa 5 (6 + navegador en 1280/390), Etapa 6 (5 + navegador en 1280/390), Etapa 7 (5 + navegador en 1280/390) | |
 
 ## Etapa 2 — `radiograph-qc` (control de calidad)
 
@@ -189,6 +190,37 @@ Navegador ──POST {sourceId, kind: tooth_localization | finding_candidates}�
 - **Aceptación (probada):** estudios incompatibles no se comparan y el usuario ve por qué (PGlite +
   navegador); la cronología no expone texto clínico y rechaza roles sin alcance (PGlite).
 
+## Etapa 7 — Validación clínica (`20261028150000` + `smyl-radiograph-validation.js` + protocolo)
+
+- **Conjuntos de evaluación** (`smyl_radiograph_eval_sets/members`): uso previsto, población,
+  exclusiones, `split`; cada fuente declara `training_exposure`. **Un informe no se registra si
+  alguna fuente tiene exposición** (conjunto de prueba independiente). Al registrar un informe el
+  conjunto se bloquea.
+- **Referencia anotada por varios profesionales** (`smyl_radiograph_reference_annotations`,
+  inmutable): consenso por mayoría, empate = desacuerdo excluido y contado, adjudicación con
+  `clinical.approve` prevalece. Probado en PGlite: con empate la precisión cae a 0.5 y la
+  especificidad a 0.9677; con adjudicación vuelven a 1.0.
+- **Métricas** (`smyl_radiograph_validation_metrics`) por tarea × tipo de estudio efectivo × motor:
+  TP/FP/FN, sensibilidad, especificidad (sólo piezas, universo FDI 32), precisión, calibración en 5
+  franjas, desacuerdo profesional, ejecuciones/fallos/timeouts/latencia, `truthSource`
+  (`reference` | `professional_decisions` | `mixed`) y limitaciones explícitas.
+- **Informe de validación** (`smyl_radiograph_record_validation_report`): snapshot inmutable con
+  criterios de salida evaluados en el servidor sobre el **peor grupo** de cada tarea, veredicto
+  `approved_for_pilot` | `not_approved`, motor/versión, aprobador (usuario + profesional), fecha y
+  hash. Cambiar de motor exige otro informe.
+- **Monitoreo e incidentes** (`smyl_radiograph_monitoring`, `report_incident`, `close_incident`):
+  series semanales por motor (volumen, fallos, timeouts, latencia, desacuerdo).
+- **Botón de desactivación por clínica** (`smyl_radiograph_set_tenant_flag`, `clinic.manage`): la
+  fila del tenant ahora gana sobre la bandera global (`smyl_radiograph_flag_enabled` re-creada), así
+  una clínica puede pausar sin despliegue; sólo puede reanudar lo que la plataforma habilitó.
+- **Divulgación en la UI** (`smyl_radiograph_model_disclosure`): la mesa v2 muestra motor
+  (y si es simulado), último informe de validación, fecha e incidentes abiertos junto a la calidad; el
+  panel «Validación del motor» sólo aparece con `clinical.approve`.
+- **Protocolo:** `docs/RADIOGRAPH_VALIDATION_PROTOCOL.md` (uso previsto, separación
+  entrenamiento/prueba, anotación multi-odontólogo, métricas, prueba con/sin asistencia, criterios
+  de salida propuestos, monitoreo, regulatorio México — COFEPRIS/NOM-004/LFPDPPP — pendiente de
+  revisión legal).
+
 ## Flujo de datos (Etapa 1)
 
 ```text
@@ -239,7 +271,7 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 
 ## Despliegue (cuando se autorice) y rollback
 
-1. Aplicar en orden `20261028100000` → `110000` → `120000` → `130000` → `140000` con el workflow manual
+1. Aplicar en orden `20261028100000` → `110000` → `120000` → `130000` → `140000` → `150000` con el workflow manual
    `.github/workflows/smyl-radiografia-ia-etapa-1-migracion.yml` (`workflow_dispatch`; corre las
    pruebas de contrato, comprueba prerrequisitos, aplica sólo lo que falta, verifica banderas en
    `false`, ACL cerrada y RLS, y registra las versiones). Son idempotentes.
@@ -259,7 +291,11 @@ Cuatro clases de datos separadas, como pide el plan: **fuente** (`sources`), **s
 ## Cómo probar
 
 ```bash
-node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs tests/radiograph-report-stage5.test.mjs tests/radiograph-longitudinal-stage6.test.mjs
+node --test tests/radiograph-contracts-v2.test.mjs tests/radiograph-migrations-stage1.test.mjs tests/radiograph-qc-stage2.test.mjs tests/radiograph-analyze-stage3.test.mjs tests/radiograph-review-v2-stage4.test.mjs tests/radiograph-report-stage5.test.mjs tests/radiograph-longitudinal-stage6.test.mjs tests/radiograph-validation-stage7.test.mjs
+```
+
+```bash
+node tests/smyl-radiograph-validation-browser.cjs
 ```
 
 ```bash

@@ -48,6 +48,7 @@
    logOpen:sourceId=>client.rpc('smyl_radiograph_log_access',{p_source_id:sourceId,p_action:'open'}).catch(()=>{}),
    // Etapa 6: fuentes comparables (veredicto y motivo del servidor), estado de otra fuente y su archivo privado.
    comparable:sourceId=>checked(client.rpc('smyl_radiograph_comparable_sources',{p_source_id:sourceId})),
+   disclosure:()=>checked(client.rpc('smyl_radiograph_model_disclosure')),
    sourceById:sourceId=>checked(client.from('smyl_radiograph_sources').select('*').eq('id',sourceId).maybeSingle()),
    link:(a,b,kind,reason)=>checked(client.rpc('smyl_radiograph_link_studies',{p_source_a:a,p_source_b:b,p_link_kind:kind,p_reason:reason})),
    async download(source){const r=await window.sbTimeout(client.storage.from(source.bucket||'smyl-radiographs').download(source.storage_path),60000);if(!current())throw Error('La ficha cambió.');if(r.error||!r.data)throw Error('No se pudo abrir el archivo privado del estudio anterior.');return r.data;}
@@ -67,7 +68,7 @@
   if(active){close();if(active)return;}
   client=client||window.sb;
   if(!(blob instanceof Blob)||typeof current!=='function'||!current()||!C()||!M2()||!window.SmylRadiographReview?.viewportNavigation){notice('No pudimos abrir la revisión','Vuelve a abrir la radiografía desde la ficha del paciente.');return;}
-  const dialog=n('dialog','rr-dialog rv2-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host'),run={dialog,host,study,blob,tenant,patient,current,client,url:URL.createObjectURL(blob),api:null,source:null,state:null,map:null,findings:[],qc:null,qcRun:null,selected:null,filter:'all',drafts:new Map(),editing:null,busy:false,closed:false,focus:document.activeElement,view:{zoom:1,brightness:100,contrast:100,invert:false,centerX:.5,centerY:.5},img:null,comparable:null};
+  const dialog=n('dialog','rr-dialog rv2-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host'),run={dialog,host,study,blob,tenant,patient,current,client,url:URL.createObjectURL(blob),api:null,source:null,state:null,map:null,findings:[],qc:null,qcRun:null,selected:null,filter:'all',drafts:new Map(),editing:null,busy:false,closed:false,focus:document.activeElement,view:{zoom:1,brightness:100,contrast:100,invert:false,centerX:.5,centerY:.5},img:null,comparable:null,disclosure:null};
   active=run;
   const valid=()=>!run.closed&&current()&&window.tenantId===tenant&&window.pacienteActual?.id===patient;
   const titleId='rv2-title-'+(++seq),dialogTitle=n('strong','',study.label||typeLabel[study.type]||'Revisión por pieza');dialogTitle.id=titleId;dialog.setAttribute('aria-labelledby',titleId);
@@ -80,6 +81,8 @@
    run.state=await run.api.state(run.source.id);
    const qcRuns=run.state.runs.filter(r=>r.kind==='qc').sort((a,b)=>String(b.requested_at).localeCompare(String(a.requested_at)));run.qcRun=qcRuns[0]||null;run.qc=qcRuns.find(r=>r.status==='completed')?.output||null;
    run.map=M2().toothMap(run.state);
+   // Etapa 7: motor, validación y límites visibles junto a la calidad (si el RPC existe).
+   try{run.disclosure=await run.api.disclosure();}catch(_){run.disclosure=null;}
    run.comparable=null;if(run.api.caps.flags['radiograph.longitudinal_v1']===true){try{run.comparable=await run.api.comparable(run.source.id);}catch(_){run.comparable=null;}}
    const decisions=new Map(run.state.decisions.map(d=>[d.candidate_id,d]));
    run.findings=run.state.candidates.filter(c=>c.kind==='finding').map(c=>{const d=decisions.get(c.id)||{state:'pending',revision:1,payload:{}};const corr=d.state==='corrected'?d.payload:{};return {candidateId:c.id,kind:'finding',payload:c.payload,fdi:Object.hasOwn(corr,'fdi')?corr.fdi:c.payload.toothCandidate,fdiModel:c.payload.toothCandidate,geometry:corr.geometry||c.payload.regions[0],geometryModel:c.payload.regions[0],label:corr.label||'',state:d.state,revision:d.revision,decidedBy:d.decided_by||null,decidedAt:d.decided_at||null,note:d.note||'',band:M2().band(c.payload.confidence),confidence:c.payload.confidence,engine:(run.state.runs.find(r=>r.id===c.run_id)||{}).engine||null,evaluable:true};});
@@ -205,7 +208,11 @@
    if(q.blockedAnalyses.length)summary.append(n('p','rv2-blocked','Bloqueado: '+q.blockedAnalyses.map(b=>analysisLabel[b.code]+' — '+b.reason).join(' · ')));
    const typeLabelEl=n('label','rr-field rv2-type','Tipo de estudio (corrección profesional)'),typeSelect=n('select');['panoramic','periapical','bitewing','intraoral_series','unknown'].forEach(t=>typeSelect.add(new Option(typeLabel[t],t)));typeSelect.value=current;typeSelect.onchange=()=>runStep('Registrando el tipo de estudio',()=>run.api.correctType(run.source.id,typeSelect.value,'Corregido desde la revisión por pieza'));typeLabelEl.append(typeSelect);
    const steps=n('div','rv2-steps');['tooth_localization','finding_candidates'].forEach(kind=>{const done=completedRun(kind),live=liveRun(kind),ok=q.applicableAnalyses.includes(kind)&&run.api.caps.flags['radiograph.tooth_ai_v1']===true;const b=button(done?analysisLabel[kind]+' · listo ('+(done.output?.candidates?.length||0)+')':live?analysisLabel[kind]+' · sin confirmar':analysisLabel[kind],()=>runStep(analysisLabel[kind],()=>run.api.invoke('radiograph-analyze',{sourceId:run.source.id,kind})),done?'rr-tool':'rr-primary');b.disabled=run.busy||!!done||!ok;if(!ok)b.title=q.applicableAnalyses.includes(kind)?'La localización asistida no está habilitada en esta clínica.':'Bloqueado por la calidad de la imagen.';steps.append(b);});
-   box.append(summary,typeLabelEl,steps);return box;
+   box.append(summary,typeLabelEl,steps);
+   // Divulgación (Etapa 7): qué motor, si es simulado, último informe de validación y fecha. Nunca credenciales.
+   const V=window.SmylRadiographValidation;if(run.disclosure&&V?.disclosureSummary){const d=V.disclosureSummary(run.disclosure),disc=n('div','rv2-disclosure');disc.setAttribute('role','note');disc.append(n('strong','',d.simulated?'Motor simulado · sin validación clínica':'Motor y validación'),n('span','',d.engines),n('span','',d.validation));if(d.openIncidents)disc.append(n('span','rv2-blocked','⚠ '+d.openIncidents+' incidente(s) abierto(s)'));
+    if(run.api.caps.clinicalApprove===true&&typeof V.open==='function'){disc.append(button('Validación del motor',()=>V.open({client,caps:run.api.caps,source:run.source,tenant}),'rr-tool'));}box.append(disc);}
+   return box;
   }
   // Etapa 6: el usuario elige con qué estudio comparar; los incompatibles se listan con su motivo y no se abren.
   function openComparePicker(){

@@ -1,7 +1,7 @@
-name: SMYL Radiografía IA - Etapas 0 y 1 (migración)
+name: SMYL Radiografía IA - Etapas 0 a 7 (migración)
 
-# Aplica manualmente las cuatro migraciones del flujo radiográfico asistido (banderas apagadas,
-# fuentes v2, ejecuciones IA, informes). Es aditivo e idempotente: no transforma datos, no toca el
+# Aplica manualmente las seis migraciones del flujo radiográfico asistido (banderas apagadas,
+# fuentes v2, ejecuciones IA, informes, historia longitudinal, validación). Es aditivo e idempotente: no transforma datos, no toca el
 # flujo v1 y deja todas las banderas en false. Requiere SUPABASE_ACCESS_TOKEN con acceso al
 # proyecto de producción. Se dispara a mano; nunca se ejecuta en push.
 on:
@@ -56,6 +56,8 @@ jobs:
             { version: '20261028110000', file: 'supabase/migrations/20261028110000_smyl_radiograph_sources_v2.sql', sentinel: 'smyl_radiograph_access_events' },
             { version: '20261028120000', file: 'supabase/migrations/20261028120000_smyl_radiograph_ai_runs.sql', sentinel: 'smyl_radiograph_decision_versions' },
             { version: '20261028130000', file: 'supabase/migrations/20261028130000_smyl_radiograph_reports.sql', sentinel: 'smyl_radiograph_report_addenda' },
+            { version: '20261028140000', file: 'supabase/migrations/20261028140000_smyl_radiograph_longitudinal.sql', sentinel: null, fn: 'smyl_radiograph_comparable_sources' },
+            { version: '20261028150000', file: 'supabase/migrations/20261028150000_smyl_radiograph_validation.sql', sentinel: 'smyl_radiograph_validation_reports' },
           ];
           const TABLES = ['camila_tenants','camila_usuarios','camila_pacientes','smyl_professionals','smyl_dental_records','smyl_audit_events'];
           const FUNCTIONS = ['smyl_current_tenant','smyl_has_permission','smyl_can_access_patient','smyl_current_professional_id','smyl_audit_row'];
@@ -81,7 +83,8 @@ jobs:
           const existe = async name => (await consultar(`select to_regclass('public.${name}') is not null as ok`))[0].ok === true;
           const repair = [];
           for (const m of MIGRATIONS) {
-            if (await existe(m.sentinel)) { console.log(`${m.version}: ya estaba aplicada.`); }
+            const presente = m.sentinel ? await existe(m.sentinel) : (await consultar(`select to_regprocedure('public.${m.fn}(uuid)') is not null as ok`))[0].ok === true;
+            if (presente) { console.log(`${m.version}: ya estaba aplicada.`); }
             else { await consultar(fs.readFileSync(m.file, 'utf8')); console.log(`${m.version}: aplicada.`); }
             const registrada = (await consultar(`select exists(select 1 from supabase_migrations.schema_migrations where version='${m.version}') as ok`))[0].ok;
             if (!registrada) repair.push(m.version);
@@ -96,7 +99,7 @@ jobs:
             not has_function_privilege('authenticated','public.smyl_radiograph_complete_ai_run(uuid,text,jsonb,text,jsonb)','execute') as complete_server_only,
             not has_function_privilege('authenticated','public.smyl_radiograph_flag_enabled(text,uuid)','execute') as flag_fn_hidden,
             has_function_privilege('authenticated','public.smyl_radiograph_ai_capabilities()','execute') as capabilities_ok,
-            (select count(*)=12 from pg_policies where schemaname='public' and policyname like 'smyl_radiograph_%' and policyname not in ('smyl_radiograph_reviews_scoped_read','smyl_radiograph_review_versions_scoped_read')) as policies_ok,
+            (select count(*)=16 from pg_policies where schemaname='public' and policyname like 'smyl_radiograph_%' and policyname not in ('smyl_radiograph_reviews_scoped_read','smyl_radiograph_review_versions_scoped_read')) as policies_ok,
             (select bool_and(relrowsecurity) from pg_class where relnamespace='public'::regnamespace and relname like 'smyl_radiograph_%' and relkind='r') as rls_ok`))[0];
           console.log('Estado final:', JSON.stringify(estado));
           if (!Object.values(estado).every(v => v === true)) throw new Error(`Verificación incompleta: ${JSON.stringify(estado)}`);

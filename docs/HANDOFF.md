@@ -1,5 +1,25 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 7 (infraestructura de validación clínica)
+
+- Migración **nueva, no aplicada** `20261028150000_smyl_radiograph_validation.sql`: conjuntos de
+  evaluación con `training_exposure` (un informe se rechaza si hay exposición), referencia anotada
+  por varios profesionales (inmutable; consenso por mayoría, empate excluido, adjudicación con
+  aprobación), `smyl_radiograph_validation_metrics` (TP/FP/FN, sensibilidad, especificidad de piezas
+  sobre 32 FDI, precisión, calibración, desacuerdo, operación, `truthSource`),
+  `smyl_radiograph_monitoring`, incidentes, `smyl_radiograph_record_validation_report` (snapshot
+  inmutable, criterios evaluados por el peor grupo, veredicto, hash, bloquea el conjunto),
+  `smyl_radiograph_set_tenant_flag` (pausa por clínica con `clinic.manage`; la fila del tenant ahora
+  gana sobre la bandera global) y `smyl_radiograph_model_disclosure`.
+- Nuevo `smyl-radiograph-validation.js` + `.css` (panel sólo con `clinical.approve`) y divulgación de
+  motor/validación/límites en la mesa v2 (v=4). Protocolo en `docs/RADIOGRAPH_VALIDATION_PROTOCOL.md`
+  (borrador para revisión profesional y regulatoria; COFEPRIS / NOM-004 / LFPDPPP pendientes).
+- Workflow manual actualizado para aplicar también `140000` y `150000` (16 políticas).
+- QA: PGlite (15: métricas con valores conocidos, empate 0.5 / 0.9677 → adjudicación 1.0,
+  informe rechazado por exposición, veredicto, inmutabilidad, pausa que bloquea el RPC de ejecución,
+  divulgación por clínica), `tests/radiograph-validation-stage7.test.mjs` (5) y navegador
+  `tests/smyl-radiograph-validation-browser.cjs` (1280/390). Nada aplicado ni desplegado.
+
 ## 2026-10-28 — Claude Code — Radiografía asistida: Etapa 6 (historia longitudinal)
 
 - Migración **nueva, no aplicada** `20261028140000_smyl_radiograph_longitudinal.sql`:

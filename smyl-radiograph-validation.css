@@ -1,0 +1,19 @@
+/* SMYL UI v3 · validación clínica y monitoreo del motor radiográfico (Etapa 7). */
+.rv-review { gap: 12px; }
+.rv-section { display: grid; gap: 10px; padding: 12px 14px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-card, 16px); background: var(--rr-surface); }
+.rv-section .rr-panel-head { padding: 0 0 6px; }
+.rv-section h3 { margin: 4px 0 0; font-size: 13px; }
+.rv-engines, .rv-validation { margin: 0; font-size: 13px; }
+.rv-validation { font-weight: 600; }
+.rp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rp-table th, .rp-table td { padding: 6px 8px; border-bottom: 1px solid var(--rr-line); text-align: left; vertical-align: top; }
+.rp-table th { color: var(--rr-meta); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 12px; }
+.rp-empty { color: var(--rr-meta); }
+.rv-section > .rp-table, .rv-section > .rv-preview { overflow-x: auto; display: block; }
+.rv-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rv-form input, .rv-form select, .rv-section textarea { min-height: 44px; padding: 8px 10px; border: 1px solid var(--rr-line-strong); border-radius: var(--smyl-ui-radius-control, 10px); background: var(--rr-surface); color: var(--rr-ink); font: 14px/20px var(--smyl-ui-font, Inter, system-ui, sans-serif); }
+.rv-form input { flex: 1 1 200px; }
+.rv-form button, .rv-flags button { min-height: 44px; }
+.rv-flags { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv-preview { display: grid; gap: 6px; }
+@media (max-width: 959px) { .rv-form > * { flex: 1 1 100%; } }

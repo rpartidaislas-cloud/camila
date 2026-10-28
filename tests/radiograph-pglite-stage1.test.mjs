@@ -1,6 +1,6 @@
 // Radiografía asistida — Etapas 0 y 1 en un Postgres real en memoria (PGlite).
 // Aplica tests/fixtures/radiograph-contracts/pglite-base.sql (helpers de autorización ya
-// desplegados) y las cinco migraciones nuevas, y verifica: banderas apagadas, aislamiento
+// desplegados) y las seis migraciones nuevas, y verifica: banderas apagadas, aislamiento
 // entre clínicas, miembro desactivado, rol sin acceso, conflicto de revisión, idempotencia,
 // inmutabilidad de la salida del modelo e informe firmado, y los vectores de contrato en SQL.
 //
@@ -58,7 +58,7 @@ test.before(async () => {
   if (skip) return;
   db = new pglite.PGlite();
   await exec(read('tests/fixtures/radiograph-contracts/pglite-base.sql'));
-  for (const file of ['20261028100000_smyl_radiograph_ai_flags', '20261028110000_smyl_radiograph_sources_v2', '20261028120000_smyl_radiograph_ai_runs', '20261028130000_smyl_radiograph_reports', '20261028140000_smyl_radiograph_longitudinal']) {
+  for (const file of ['20261028100000_smyl_radiograph_ai_flags', '20261028110000_smyl_radiograph_sources_v2', '20261028120000_smyl_radiograph_ai_runs', '20261028130000_smyl_radiograph_reports', '20261028140000_smyl_radiograph_longitudinal', '20261028150000_smyl_radiograph_validation']) {
     const migration = read(`supabase/migrations/${file}.sql`);
     await exec(migration);
     await exec(migration); // idempotente: la segunda aplicación no falla ni cambia nada
@@ -412,6 +412,96 @@ test('Etapa 6: la cronología de la Ficha 360 resume fuentes e informes v2 sin e
   await rejects(sql(`select * from public.smyl_patient_timeline($1::uuid, 10)`, [P1]), '42501', /no está disponible para tu rol/);
   await as(U.ownerB);
   await rejects(sql(`select * from public.smyl_patient_timeline($1::uuid, 10)`, [P1]), '42501');
+});
+
+test('Etapa 7: conjunto independiente, referencia multi-profesional con empate y adjudicación, métricas con valores conocidos', { skip }, async () => {
+  await as(U.reception);
+  await rejects(sql(`select * from public.smyl_radiograph_create_eval_set('Piloto','Localización de piezas en panorámicas.')`), '42501', /aprobación clínica/);
+  await as(U.dentist);
+  const set = await one(`select * from public.smyl_radiograph_create_eval_set('Piloto','Localización de piezas en panorámicas.')`);
+  assert.equal((await one(`select * from public.smyl_radiograph_create_eval_set('Piloto','otro texto de uso previsto')`)).id, set.id, 'idempotente por nombre');
+  await one(`select * from public.smyl_radiograph_add_eval_member($1::uuid,$2::uuid,true)`, [set.id, SRC]);
+  // Sin referencia: la verdad son las decisiones (36 y 46 confirmadas) → métricas perfectas pero truthSource lo declara
+  let m = (await one(`select public.smyl_radiograph_validation_metrics($1::uuid) as m`, [set.id])).m;
+  assert.deepEqual([m.sources, m.trainingExposure, m.referenceDisagreements], [1, 1, 0]);
+  let g = m.groups.find(x => x.task === 'tooth_localization');
+  const num = v => v == null ? null : Number(v);
+  assert.deepEqual([g.tp, g.fp, g.fn, g.tn, num(g.sensitivity), num(g.specificity), num(g.precision), g.truthSource, g.studyType], [2, 0, 0, 30, 1, 1, 1, 'professional_decisions', 'bitewing']);
+  assert.deepEqual(m.calibration.map(c => [c.bin, c.n, num(c.confirmedRate)]), [[5, 2, 1]]);
+  assert.deepEqual(m.disagreement.map(d => [d.decided, d.disagreed, d.pending, num(d.rate)]), [[2, 0, 0, 0]]);
+  assert.deepEqual(m.runs.map(r => [r.task, r.runs, r.failed, r.unconfirmed]), [['tooth_localization', 1, 0, 0]]);
+  // Referencia: dos anotadores; 36 presente para ambos, 46 en empate → desacuerdo excluido; recepción no anota
+  await as(U.reception);
+  await rejects(sql(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','36','',true)`, [SRC]), '42501');
+  await as(U.dentist);
+  await one(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','36','',true)`, [SRC]);
+  await one(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','46','',true)`, [SRC]);
+  await rejects(sql(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','46','',false)`, [SRC]), '23505', /inmutable/);
+  await as(U.ownerA);
+  await one(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','36','',true)`, [SRC]);
+  await one(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','46','',false)`, [SRC]);
+  await as(U.dentist);
+  m = (await one(`select public.smyl_radiograph_validation_metrics($1::uuid) as m`, [set.id])).m;
+  g = m.groups.find(x => x.task === 'tooth_localization');
+  assert.equal(m.referenceDisagreements, 1);
+  assert.deepEqual([g.tp, g.fp, g.fn, g.tn, num(g.sensitivity), num(g.specificity), num(g.precision), g.truthSource], [1, 1, 0, 30, 1, 0.9677, 0.5, 'reference']);
+  // Adjudicación (aprobación clínica) resuelve el empate; la odontóloga no puede adjudicar sin ese permiso → aquí sí lo tiene
+  await one(`select * from public.smyl_radiograph_annotate_reference($1::uuid,'tooth','46','',true,null,'Visible en el original',true)`, [SRC]);
+  m = (await one(`select public.smyl_radiograph_validation_metrics($1::uuid) as m`, [set.id])).m;
+  g = m.groups.find(x => x.task === 'tooth_localization');
+  assert.deepEqual([m.referenceDisagreements, g.tp, g.fp, num(g.specificity), num(g.precision)], [0, 2, 0, 1, 1]);
+  await asServer();
+  await rejects(sql(`update public.smyl_radiograph_reference_annotations set present=false where source_id=$1`, [SRC]), '42501', /inmutable/);
+});
+
+test('Etapa 7: informe de validación (exposición al entrenamiento bloquea; veredicto por el peor grupo; inmutable), pausa por clínica y divulgación', { skip }, async () => {
+  await as(U.dentist);
+  const set = (await rows('select id from public.smyl_radiograph_eval_sets'))[0];
+  const tooth = JSON.stringify([{ metric: 'sensitivity', task: 'tooth_localization', min: .95 }, { metric: 'specificity', task: 'tooth_localization', min: .98 }, { metric: 'unconfirmedRate', task: 'tooth_localization', max: .02 }]);
+  await rejects(sql(`select * from public.smyl_radiograph_record_validation_report($1::uuid,$2::jsonb,'')`, [set.id, tooth]), '23514', /exposición al entrenamiento/);
+  await one(`select * from public.smyl_radiograph_add_eval_member($1::uuid,$2::uuid,false)`, [set.id, SRC]);
+  await rejects(sql(`select * from public.smyl_radiograph_record_validation_report($1::uuid,'[{"metric":"accuracy","task":"tooth_localization","min":1}]'::jsonb,'')`, [set.id]), '22023', /Criterio de salida no válido/);
+  const r1 = await one(`select * from public.smyl_radiograph_record_validation_report($1::uuid,$2::jsonb,'Prueba con y sin asistencia: pendiente.')`, [set.id, tooth]);
+  assert.deepEqual([r1.version, r1.verdict, r1.criteria_met, r1.approved_professional_id], [1, 'approved_for_pilot', true, 'b0000000-0000-4000-8000-000000000001']);
+  assert.match(r1.content_hash, /^[a-f0-9]{64}$/);
+  assert.deepEqual(r1.engines, [ENGINE]);
+  assert.equal((await one('select locked_at is not null as locked from public.smyl_radiograph_eval_sets where id=$1', [set.id])).locked, true);
+  await rejects(sql(`select * from public.smyl_radiograph_add_eval_member($1::uuid,$2::uuid,false)`, [set.id, SRC]), '23514', /bloqueado/);
+  const r2 = await one(`select * from public.smyl_radiograph_record_validation_report($1::uuid,$2::jsonb,'')`, [set.id, JSON.stringify([{ metric: 'sensitivity', task: 'finding_candidates', min: .8 }])]);
+  assert.deepEqual([r2.version, r2.verdict, r2.criteria_met], [2, 'not_approved', false], 'sin datos de señales el criterio no se cumple');
+  await asServer();
+  await rejects(sql(`update public.smyl_radiograph_validation_reports set verdict='approved_for_pilot' where id=$1`, [r2.id]), '42501', /inmutable/);
+  await rejects(sql(`delete from public.smyl_radiograph_validation_reports where id=$1`, [r2.id]), '42501');
+  // Monitoreo e incidentes
+  await as(U.dentist);
+  const inc = await one(`select * from public.smyl_radiograph_report_incident('high','wrong_numbering','Numeración incorrecta en 46.',$1::uuid,null)`, [SRC]);
+  const mo = (await one('select public.smyl_radiograph_monitoring(90) as m')).m;
+  assert.equal(mo.openIncidents, 1);
+  assert.ok(mo.weekly.some(w => w.task === 'tooth_localization' && w.runs >= 1));
+  assert.deepEqual(Object.keys(mo.flags).sort(), ['radiograph.cbct_v1', 'radiograph.longitudinal_v1', 'radiograph.qc_v2', 'radiograph.report_v1', 'radiograph.tooth_ai_v1']);
+  await one(`select * from public.smyl_radiograph_close_incident($1::uuid,'Corregido.')`, [inc.id]);
+  await rejects(sql(`select * from public.smyl_radiograph_close_incident($1::uuid,'otra vez')`, [inc.id]), '23514');
+  // Pausa por clínica: la odontóloga no administra la clínica; la dueña sí. La pausa bloquea el RPC de ejecución.
+  await rejects(sql(`select public.smyl_radiograph_set_tenant_flag('radiograph.tooth_ai_v1',false)`), '42501', /administra la clínica/);
+  await as(U.ownerA);
+  const caps = (await one(`select public.smyl_radiograph_set_tenant_flag('radiograph.tooth_ai_v1',false) as c`)).c;
+  assert.equal(caps.flags['radiograph.tooth_ai_v1'], false, 'la fila del tenant gana sobre la bandera global');
+  await as(U.dentist);
+  await rejects(sql(`select * from public.smyl_radiograph_request_ai_run($1::uuid,'finding_candidates',false)`, [SRC]), '42501', /no está habilitado/);
+  await as(U.ownerA);
+  assert.equal((await one(`select public.smyl_radiograph_set_tenant_flag('radiograph.tooth_ai_v1',true) as c`)).c.flags['radiograph.tooth_ai_v1'], true);
+  await rejects(sql(`select public.smyl_radiograph_set_tenant_flag('radiograph.cbct_v1',true)`), '42501', /no está habilitada por la plataforma/);
+  await rejects(sql(`select public.smyl_radiograph_set_tenant_flag('radiograph.nope',true)`), '22023');
+  // Divulgación para cualquier lector clínico: motor, último informe, incidentes abiertos, límites; sin config
+  await as(U.reception);
+  const d = (await one('select public.smyl_radiograph_model_disclosure() as d')).d;
+  assert.deepEqual(d.engines.map(e => [e.kind, e.provider, e.simulated]), [['finding_candidates', 'simulated', true], ['qc', 'simulated', true], ['tooth_localization', 'simulated', true]]);
+  assert.deepEqual([d.validation.version, d.validation.verdict, d.validation.setName, d.openIncidents], [2, 'not_approved', 'Piloto', 0]);
+  assert.equal(JSON.stringify(d).includes('config'), false);
+  await as(U.ownerB);
+  assert.equal((await one('select public.smyl_radiograph_model_disclosure() as d')).d.validation, null, 'otra clínica no ve el informe');
+  await rejects(sql('select * from public.smyl_radiograph_eval_sets'), undefined).catch(() => {});
+  assert.equal((await rows('select * from public.smyl_radiograph_validation_reports')).length, 0, 'RLS por clínica');
 });
 
 test('Vectores de contrato: los validadores SQL dan el mismo veredicto que navegador y servidor', { skip }, async () => {

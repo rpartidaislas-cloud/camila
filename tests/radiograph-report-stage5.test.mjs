@@ -94,7 +94,7 @@ test('cableado: botón en la mesa v2 detrás de report_v1, proxy claude existent
   assert.match(ui, /client\.rpc\('smyl_radiograph_sign_report'/);
   assert.match(ui, /client\.rpc\('smyl_radiograph_add_report_addendum'/);
   assert.match(ui, /client\.rpc\('smyl_radiograph_export_report'/);
-  for (const tag of ['smyl-radiograph-report.css?v=1', 'smyl-radiograph-report.js?v=1', 'smyl-radiograph-review-v2.js?v=3']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
+  for (const tag of ['smyl-radiograph-report.css?v=1', 'smyl-radiograph-report.js?v=1', 'smyl-radiograph-review-v2.js?v=4']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
   assert.match(sw, /radiograph-report-v48/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-report.js', 'smyl-radiograph-report.css']) assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
   assert.match(read('mobile/scripts/sync-web.js'), /'smyl-radiograph-report\.js', 'smyl-radiograph-report\.css'/);

@@ -25,6 +25,9 @@
 /* Las tarjetas tienen overflow:hidden (mínimo 0 para el grid): fijar filas a su contenido evita que la lista las aplaste. */
 .rv2-items { grid-auto-rows: max-content; }
 .rv2-blocked { margin: 0; color: var(--rr-warning); font-size: 12px; }
+.rv2-disclosure { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 10px; border: 1px dashed var(--rr-line-strong); border-radius: var(--smyl-ui-radius-control, 10px); background: var(--rr-soft); color: var(--rr-muted); font-size: 12px; }
+.rv2-disclosure strong { color: var(--rr-ink); }
+.rv2-disclosure button { min-height: 40px; margin-left: auto; }
 .rv2-type { display: grid; gap: 4px; color: var(--rr-muted); font-size: 12px; font-weight: 600; }
 .rv2-type select, .rv2-form select, .rv2-form textarea { min-height: 44px; padding: 8px 10px; border: 1px solid var(--rr-line-strong); border-radius: var(--smyl-ui-radius-control, 10px); background: var(--rr-surface); color: var(--rr-ink); font: 14px/20px var(--smyl-ui-font, Inter, system-ui, sans-serif); }
 .rv2-steps { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -81,7 +81,7 @@ test('cableado: mesa v2 compara sólo con comparables y explica los demás; Fich
   assert.match(ui, /'Alternar anterior \/ actual'/);
   assert.match(p360, /radiograph_source:'Radiografía',radiograph_report:'Informe radiográfico'/);
   assert.match(p360, /'radiograph_source','radiograph_report','clinical_plan'/);
-  for (const tag of ['smyl-radiograph-longitudinal.css?v=1', 'smyl-radiograph-longitudinal.js?v=1', 'smyl-radiograph-review-v2.js?v=3', 'smyl-patient-360.js?v=15']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
+  for (const tag of ['smyl-radiograph-longitudinal.css?v=1', 'smyl-radiograph-longitudinal.js?v=1', 'smyl-radiograph-review-v2.js?v=4', 'smyl-patient-360.js?v=15']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
   assert.match(sw, /radiograph-longitudinal-v49/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-longitudinal.js', 'smyl-radiograph-longitudinal.css', 'smyl-patient-360.js']) assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
 });
