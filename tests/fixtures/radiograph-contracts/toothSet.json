@@ -1,0 +1,3287 @@
+{
+ "valid": [
+  {
+   "name": "dos piezas con alternativa",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "sin candidatos",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": []
+   }
+  },
+  {
+   "name": "pieza temporal",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "55",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": []
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "no evaluable",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "not_evaluable",
+      "alternatives": []
+     }
+    ]
+   }
+  }
+ ],
+ "invalid": [
+  {
+   "name": "sourceId no es uuid",
+   "value": {
+    "schema": 1,
+    "sourceId": "study-1",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "candidateId duplicado",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "candidateId con mayúsculas",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "T-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "candidateId numérico",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": 36,
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "alternativa FDI numérica",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": 37,
+        "probability": 0.1
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "FDI inválida 19",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "19",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "FDI numérica",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": 36,
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "probabilidad negativa",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": -0.1,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "geometría punto no permitida",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "point",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.5,
+         0.5
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "bbox invertido",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.3,
+         0.4
+        ],
+        [
+         0.1,
+         0.1
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "polígono con dos puntos",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.2,
+         0.2
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "polígono cerrado explícitamente",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ],
+        [
+         0.1,
+         0.2
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "puntos consecutivos iguales",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ],
+        [
+         0.3,
+         0.1
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "visibilidad desconocida",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "missing",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "alternativa repite la FDI principal",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "36",
+        "probability": 0.1
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "más de tres alternativas",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "35",
+        "probability": 0.1
+       },
+       {
+        "fdi": "37",
+        "probability": 0.1
+       },
+       {
+        "fdi": "38",
+        "probability": 0.1
+       },
+       {
+        "fdi": "34",
+        "probability": 0.1
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "campo extra en candidato",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ],
+      "diagnosis": "caries"
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "46",
+      "fdiProbability": 0.88,
+      "geometry": {
+       "kind": "bbox",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.1
+        ],
+        [
+         0.3,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "partial",
+      "alternatives": []
+     }
+    ]
+   }
+  },
+  {
+   "name": "más de 64 candidatos",
+   "value": {
+    "schema": 1,
+    "sourceId": "0b3a7b6e-3a0f-4b7e-9d7c-1f2e3d4c5b6a",
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "candidates": [
+     {
+      "candidateId": "t-0",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-1",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-2",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-3",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-4",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-5",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-6",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-7",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-8",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-9",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-10",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-11",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-12",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-13",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-14",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-15",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-16",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-17",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-18",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-19",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-20",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-21",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-22",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-23",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-24",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-25",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-26",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-27",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-28",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-29",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-30",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-31",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-32",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-33",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-34",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-35",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-36",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-37",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-38",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-39",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-40",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-41",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-42",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-43",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-44",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-45",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-46",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-47",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-48",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-49",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-50",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-51",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-52",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-53",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-54",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-55",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-56",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-57",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-58",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-59",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-60",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-61",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-62",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-63",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     },
+     {
+      "candidateId": "t-64",
+      "fdiCandidate": "36",
+      "fdiProbability": 0.91,
+      "geometry": {
+       "kind": "polygon",
+       "coordinateSpace": "source-normalized",
+       "points": [
+        [
+         0.1,
+         0.2
+        ],
+        [
+         0.2,
+         0.2
+        ],
+        [
+         0.2,
+         0.4
+        ]
+       ]
+      },
+      "visibility": "complete",
+      "alternatives": [
+       {
+        "fdi": "37",
+        "probability": 0.07
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

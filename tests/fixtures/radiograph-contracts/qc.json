@@ -1,0 +1,1415 @@
+{
+ "valid": [
+  {
+   "name": "panorámica limitada con análisis bloqueado",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "usable sin banderas",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "usable",
+     "flags": []
+    },
+    "applicableAnalyses": [
+     "tooth_localization",
+     "finding_candidates"
+    ],
+    "blockedAnalyses": [],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "no utilizable sin análisis",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "unusable",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [],
+    "blockedAnalyses": [
+     {
+      "code": "tooth_localization",
+      "reason": "Movimiento severo."
+     },
+     {
+      "code": "finding_candidates",
+      "reason": "Movimiento severo."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "bandera con región punto",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "point",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.5,
+          0.5
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "bandera sin región",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": null,
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "probabilidades en los extremos",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 1,
+     "alternatives": [
+      {
+       "value": "bitewing",
+       "probability": 0
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  }
+ ],
+ "invalid": [
+  {
+   "name": "campo extra en raíz",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    },
+    "extra": true
+   }
+  },
+  {
+   "name": "schema distinto",
+   "value": {
+    "schema": 2,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "clase de estudio desconocida",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "cbct",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "probabilidad mayor a 1",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 1.2,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "probabilidad como porcentaje string",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": "98%",
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "alternativa repite la clase principal",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "panoramic",
+       "probability": 0.5
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "estado de calidad desconocido",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "perfect",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "código de bandera desconocido",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "ghosting",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "severidad fuera de enumeración",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "critical",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "explicación vacía",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "   "
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "región fuera de rango",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          1.5,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "polígono degenerado colineal",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.1
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.3,
+          0.3
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "análisis aplicable desconocido",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "restoration_candidates"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "análisis aplicable duplicado",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization",
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "análisis a la vez aplicable y bloqueado",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "tooth_localization",
+      "reason": "x"
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "no utilizable con análisis aplicable",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "unusable",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "modelo sin versión",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray"
+    }
+   }
+  },
+  {
+   "name": "modelo con credencial",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "source-normalized",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0",
+     "apiKey": "x"
+    }
+   }
+  },
+  {
+   "name": "espacio de coordenadas distinto",
+   "value": {
+    "schema": 1,
+    "studyClass": {
+     "value": "panoramic",
+     "probability": 0.98,
+     "alternatives": [
+      {
+       "value": "unknown",
+       "probability": 0.02
+      }
+     ]
+    },
+    "quality": {
+     "status": "limited",
+     "flags": [
+      {
+       "code": "anterior_blur",
+       "severity": "moderate",
+       "region": {
+        "kind": "polygon",
+        "coordinateSpace": "pixels",
+        "points": [
+         [
+          0.1,
+          0.2
+         ],
+         [
+          0.2,
+          0.2
+         ],
+         [
+          0.2,
+          0.4
+         ]
+        ]
+       },
+       "explanation": "Desenfoque anterior leve; revisar incisivos con cautela."
+      }
+     ]
+    },
+    "applicableAnalyses": [
+     "tooth_localization"
+    ],
+    "blockedAnalyses": [
+     {
+      "code": "finding_candidates",
+      "reason": "El desenfoque anterior impide evaluar señales finas."
+     }
+    ],
+    "model": {
+     "provider": "simulated",
+     "name": "smyl-sim-xray",
+     "version": "0.1.0"
+    }
+   }
+  },
+  {
+   "name": "null",
+   "value": null
+  },
+  {
+   "name": "arreglo",
+   "value": []
+  }
+ ]
+}

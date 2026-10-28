@@ -1,0 +1,259 @@
+{
+ "valid": [
+  {
+   "name": "informe con un hallazgo",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "sin hallazgos",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": []
+   }
+  },
+  {
+   "name": "hallazgo sin pieza",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": null,
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  }
+ ],
+ "invalid": [
+  {
+   "name": "sección extra",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": "",
+     "diagnosis": "x"
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "sección faltante",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "sección demasiado larga",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "hallazgo con candidateId no uuid",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "f-1",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "hallazgo duplicado",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     },
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "prioridad desconocida",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "critical"
+     }
+    ]
+   }
+  },
+  {
+   "name": "texto vacío",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": " ",
+      "priority": "routine"
+     }
+    ]
+   }
+  },
+  {
+   "name": "pieza inválida",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "Radiografía panorámica con restauración en 36 confirmada por el profesional.",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "49",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  }
+ ],
+ "strictOnly": [
+  {
+   "name": "descripción vacía: válido como borrador, no para firma",
+   "value": {
+    "schema": 1,
+    "sections": {
+     "description": "",
+     "technicalLimitations": "Desenfoque anterior.",
+     "clinicalCorrelation": "Correlacionar con exploración.",
+     "missingInformation": "",
+     "complementaryStudies": ""
+    },
+    "findings": [
+     {
+      "candidateId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "tooth": "36",
+      "text": "Restauración radiopaca en 36.",
+      "priority": "routine"
+     }
+    ]
+   }
+  }
+ ]
+}

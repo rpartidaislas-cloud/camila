@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-28 — Claude Code — Radiografía asistida: Etapas 0 y 1 (banderas, esquema v2, contratos)
+
+- Entrega de datos y contratos sin cambios de comportamiento: cuatro migraciones **nuevas e
+  idempotentes** `20261028100000_smyl_radiograph_ai_flags`, `…110000_smyl_radiograph_sources_v2`,
+  `…120000_smyl_radiograph_ai_runs` y `…130000_smyl_radiograph_reports`. **No aplicadas.**
+- Banderas `radiograph.qc_v2`, `tooth_ai_v1`, `report_v1`, `longitudinal_v1`, `cbct_v1`
+  apagadas por defecto, con piloto por clínica; registro de motores (proveedor/modelo/versión/
+  contrato) sin credenciales y con interruptor global. El navegador sólo ve booleanos vía
+  `smyl_radiograph_ai_capabilities()`.
+- Esquema: fuentes inmutables (ruta/hash copiados del expediente v1, nunca del cliente),
+  correcciones append-only, vínculos longitudinales, auditoría de acceso/exportación, ejecuciones
+  IA idempotentes con salida original inmutable, candidatos y decisiones profesionales
+  versionadas (`pending → confirmed | corrected | rejected`, conflicto `PT409`), informes con
+  firma por hash y adendas. RLS por `clinical.read` + `smyl_can_access_patient`; escritura sólo
+  por RPC `SECURITY DEFINER`; el cierre del motor es exclusivo de `service_role`.
+- Contratos v2 (`smyl-radiograph-contracts.js`, `supabase/functions/_shared/radiograph-contracts.ts`
+  y validadores SQL) con 86 vectores canónicos en `tests/fixtures/radiograph-contracts/`.
+  Rechazan campos extra, enumeraciones abiertas, probabilidades fuera de [0,1], FDI inválida,
+  geometrías degeneradas, candidatos sin región y texto con afirmaciones diagnósticas.
+- Pruebas: `tests/radiograph-contracts-v2.test.mjs` (paridad JS/TS), `tests/radiograph-migrations-stage1.test.mjs`
+  (contrato estático) y `tests/radiograph-pglite-stage1.test.mjs` (Postgres real en memoria:
+  aislamiento entre clínicas, miembro desactivado, rol sin alcance, idempotencia, inmutabilidad,
+  firma; se omite si falta `@electric-sql/pglite`). Suite completa **824/824**.
+- No se tocó `segment-teeth`, el flujo v1 (`smyl_radiograph_reviews`), Edge Functions
+  desplegadas, UI, `sw.js` ni `mobile/**`. Detalle, amenazas, despliegue/rollback y pendientes en
+  `docs/RADIOGRAPH_AI_STAGE_0_1.md`.
+
 ## 2026-10-27 — Codex — Ficha 360 v4.5 y cronología segura
 
 - La actividad longitudinal de la Ficha 360 integra, en una sola secuencia y

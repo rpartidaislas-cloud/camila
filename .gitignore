@@ -8,3 +8,6 @@ supabase/.env.local
 
 # Artefactos locales de validación y empaquetado.
 output/
+
+# Dependencias locales de pruebas (por ejemplo @electric-sql/pglite para tests/radiograph-pglite-stage1.test.mjs).
+node_modules/
