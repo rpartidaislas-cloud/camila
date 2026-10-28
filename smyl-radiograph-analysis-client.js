@@ -8,6 +8,15 @@
  Alcance por tipo: una panorámica sirve para una revisión global prudente, no para confirmar detalles finos; una periapical muestra una zona localizada; una aleta de mordida muestra coronas y crestas visibles; other exige cautela adicional. No interpretes CBCT, tomografía, resonancia, DICOM, reconstrucciones 3D ni estudios no dentales.
  Como máximo 12 observaciones no duplicadas. evidence dice dónde debe mirar el dentista sin diagnosticar. Categorías permitidas: density, contour, restoration, support, development, other.
  Contrato exacto: {"schema":1,"quality":"usable|limited|unusable","qualityNote":"máximo 400 caracteres","observations":[{"id":"r1","category":"density|contour|restoration|support|development|other","tooth":"11 o cualquier FDI permanente, o null JSON","observation":"descripción prudente, máximo 500 caracteres","evidence":"zona visible donde comprobar, máximo 300 caracteres"}],"limitations":["máximo 8 textos de 300 caracteres"]}. Usa ids r1, r2... No añadas campos.`;
+ // El modelo a veces envuelve el JSON en ```json ... ``` o antepone una frase pese a la instrucción. Se extrae el objeto;
+ // parseReport sigue validando el contrato completo (campos exactos, límites, categorías), así que esto no relaja la seguridad.
+ function parseModelJson(text){
+  const t=String(text).trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  if(t.startsWith('{'))return JSON.parse(t);
+  const start=t.indexOf('{'),end=t.lastIndexOf('}');
+  if(start<0||end<=start)throw new SyntaxError('Sin objeto JSON');
+  return JSON.parse(t.slice(start,end+1));
+ }
  const changed=()=>Error('La sesión o la ficha cambió. Vuelve a abrir la revisión.');
  async function analyze({client,tenant,study,blob,consent,current,endpoint,publicKey,signal}){
   if(consent!==true||typeof current!=='function'||!current())throw changed();
@@ -30,9 +39,9 @@
    const response=await fetch(url.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.access_token,apikey:publicKey},body,signal:controller.signal,cache:'no-store',credentials:'omit',redirect:'error'});check();
    if(!response.ok){const messages={401:'Tu sesión venció. Vuelve a entrar antes de revisar.',403:'Tu cuenta no tiene permiso para revisar.',402:'El servicio rechazó la disponibilidad del plan. Revisa su estado antes de intentar de nuevo.',429:'El servicio está ocupado. Espera antes de intentar de nuevo.'};throw Error(messages[response.status]||'El servicio no devolvió la revisión. No se reintentó automáticamente; la solicitud pudo haberse procesado.');}
    const raw=await bounded(response.text());if(raw.length>70000)throw Error('Respuesta demasiado extensa. No se añadió nada al expediente.');const result=JSON.parse(raw);if(result.stop_reason!=='end_turn'||!Array.isArray(result.content)||result.content.length!==1||result.content[0].type!=='text')throw Error('La revisión quedó incompleta. No se añadió nada al expediente.');
-   const report=SmylRadiographReviewModel.parseReport(JSON.parse(result.content[0].text));const after=await bounded(client.auth.getSession());if(after.error||after.data?.session?.user?.id!==tenant||after.data.session.user.is_anonymous!==false)throw changed();
+   const report=SmylRadiographReviewModel.parseReport(parseModelJson(result.content[0].text));const after=await bounded(client.auth.getSession());if(after.error||after.data?.session?.user?.id!==tenant||after.data.session.user.is_anonymous!==false)throw changed();
    return {report,model,at:new Date().toISOString(),requestId:typeof result.id==='string'&&/^msg_[a-zA-Z0-9_-]{1,100}$/.test(result.id)?result.id:''};
   }catch(e){if(timedOut)throw Error('La espera terminó. La solicitud pudo haberse procesado y generar consumo. No se reintentó automáticamente.');if(e.name==='SyntaxError')throw Error('No pudimos interpretar una respuesta segura. No se añadió nada al expediente.');throw e;}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
  }
- window.SmylRadiographAnalysisClient={analyze};
+ window.SmylRadiographAnalysisClient={analyze,parseModelJson};
 })();
