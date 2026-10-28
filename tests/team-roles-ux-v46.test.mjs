@@ -41,3 +41,15 @@ test('el módulo aplica escala legible, controles táctiles y composición respo
   assert.match(styles, /@media\(max-width:760px\)/);
   assert.match(styles, /@media\(max-width:440px\)/);
 });
+
+test('la composición v47 responde al ancho real del módulo y no empalma tarjetas', () => {
+  assert.match(script, /clinic-admin-team-panel/);
+  assert.match(script, /clinic-admin-member-controls/);
+  assert.match(script, /Todo al día/);
+  assert.match(styles, /container:clinic-team \/ inline-size/);
+  assert.match(styles, /\.clinic-admin-member-controls\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.clinic-admin-member select\{[^}]*max-width:100%[^}]*min-width:0/);
+  assert.match(styles, /@container clinic-team \(min-width:1220px\)/);
+  assert.match(styles, /@container clinic-team \(max-width:860px\)/);
+  assert.match(styles, /@container clinic-team \(max-width:460px\)/);
+});
