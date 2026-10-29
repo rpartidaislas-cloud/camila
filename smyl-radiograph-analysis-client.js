@@ -39,9 +39,12 @@
    const response=await fetch(url.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.access_token,apikey:publicKey},body,signal:controller.signal,cache:'no-store',credentials:'omit',redirect:'error'});check();
    if(!response.ok){const messages={401:'Tu sesión venció. Vuelve a entrar antes de revisar.',403:'Tu cuenta no tiene permiso para revisar.',402:'El servicio rechazó la disponibilidad del plan. Revisa su estado antes de intentar de nuevo.',429:'El servicio está ocupado. Espera antes de intentar de nuevo.'};throw Error(messages[response.status]||'El servicio no devolvió la revisión. No se reintentó automáticamente; la solicitud pudo haberse procesado.');}
    const raw=await bounded(response.text());if(raw.length>70000)throw Error('Respuesta demasiado extensa. No se añadió nada al expediente.');const result=JSON.parse(raw);if(result.stop_reason!=='end_turn'||!Array.isArray(result.content)||result.content.length!==1||result.content[0].type!=='text')throw Error('La revisión quedó incompleta. No se añadió nada al expediente.');
-   const report=SmylRadiographReviewModel.parseReport(parseModelJson(result.content[0].text));const after=await bounded(client.auth.getSession());if(after.error||after.data?.session?.user?.id!==tenant||after.data.session.user.is_anonymous!==false)throw changed();
+   const modelText=result.content[0].text;let report;
+   // Diagnóstico: si la respuesta no se puede leer o no cumple el contrato, se adjuntan al error los primeros 300 caracteres
+   // (y el motivo) SOLO para mostrarlos en pantalla; nunca se guardan en el expediente.
+   try{report=SmylRadiographReviewModel.parseReport(parseModelJson(modelText));}catch(e){e.detail=(e.name==='SyntaxError'?'':'Motivo: '+e.message+'\n')+String(modelText).slice(0,300);throw e;}const after=await bounded(client.auth.getSession());if(after.error||after.data?.session?.user?.id!==tenant||after.data.session.user.is_anonymous!==false)throw changed();
    return {report,model,at:new Date().toISOString(),requestId:typeof result.id==='string'&&/^msg_[a-zA-Z0-9_-]{1,100}$/.test(result.id)?result.id:''};
-  }catch(e){if(timedOut)throw Error('La espera terminó. La solicitud pudo haberse procesado y generar consumo. No se reintentó automáticamente.');if(e.name==='SyntaxError')throw Error('No pudimos interpretar una respuesta segura. No se añadió nada al expediente.');throw e;}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+  }catch(e){if(timedOut)throw Error('La espera terminó. La solicitud pudo haberse procesado y generar consumo. No se reintentó automáticamente.');if(e.name==='SyntaxError'){const readable=Error('No pudimos interpretar una respuesta segura. No se añadió nada al expediente.');readable.detail=e.detail||'';throw readable;}throw e;}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
  }
  window.SmylRadiographAnalysisClient={analyze,parseModelJson};
 })();
