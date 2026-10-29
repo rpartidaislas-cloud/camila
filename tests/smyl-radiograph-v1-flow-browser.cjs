@@ -47,6 +47,10 @@ let browser = null;
   await page.getByRole('heading', { name: 'Revisión sin resultado confirmado' }).waitFor();
   const unconfirmed = await page.evaluate(() => ({ items: window.__rows.row.document.items.length, analysis: window.__rows.row.document.analysis, retry: !!document.querySelector('.rr-retry') }));
   if (unconfirmed.items !== 0 || unconfirmed.analysis !== null || !unconfirmed.retry) fail('unconfirmed state wrong: ' + JSON.stringify(unconfirmed));
+  // diagnóstico plegado: muestra lo recibido, y nunca se guardó en la revisión
+  const diag = await page.locator('details.rr-diagnostic').first().evaluate((e) => e.textContent);
+  if (!diag.includes('Lo siento, no puedo ayudar')) fail('diagnostic missing: ' + diag);
+  if ((await page.evaluate(() => JSON.stringify(window.__rows.row))).includes('Lo siento')) fail('diagnostic text must not be stored');
   if (analyses !== 2) fail('no automatic retry expected, analyses=' + analyses);
 
   // 3) volver a intentar: pide confirmación, cancelar no hace nada
