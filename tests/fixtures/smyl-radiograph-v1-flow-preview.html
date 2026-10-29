@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Flujo v1 de revisión radiográfica</title>
+  <link rel="stylesheet" href="../../smyl-radiograph-review.css?v=1">
+  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=3">
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
+  <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f7fb;font-family:Inter,system-ui,sans-serif}#open{min-height:44px;padding:0 18px;border:0;border-radius:10px;background:#0b1b2e;color:#fff;font-weight:700}</style>
+</head>
+<body>
+<button id="open" type="button">Abrir revisión</button>
+<script>
+  // Datos sintéticos. Usa el modelo, el store, el cliente de análisis y el visor REALES; sólo el servidor es falso
+  // (misma máquina de estados que smyl_save_radiograph_review y smyl_retry_radiograph_review).
+  window.miRolEquipo='dueño';
+  const T='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',P='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',S='11111111-1111-4111-8111-111111111111';
+  window.tenantId=T;window.pacienteActual={id:P};window.SUPA_URL='https://example.supabase.co';window.EDGE_URL='https://example.supabase.co/functions/v1/claude';window.SUPA_KEY='anon';
+  window.sbTimeout=p=>p;
+  window.SmylDentalModel={teeth:['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48'],
+    hash:async buffer=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buffer))).map(b=>b.toString(16).padStart(2,'0')).join('')};
+  window.__rows={row:null,versions:[]};window.__calls=[];
+  const err=(code,message)=>({data:null,error:{code,message}});
+  const state=()=>window.__rows.row?.document.workflow.state;
+  const put=(doc,revision)=>{const row={patient_id:P,study_id:S,tenant_id:T,revision,document:structuredClone(doc),updated_at:new Date().toISOString(),updated_by:T};window.__rows.row=row;window.__rows.versions.push(structuredClone(row));return row;};
+  const rpc={
+    smyl_radiograph_review_capabilities:()=>({data:{schema:1,enabled:true,tenant_id:T,review_schema:1},error:null}),
+    smyl_save_radiograph_review:a=>{const old=window.__rows.row,expected=a.p_expected_revision;if((old?.revision||0)!==expected)return err('PT409','conflict');const next=a.p_document.workflow.state;
+      if(!old){if(next!=='ready')return err('22023','Save an empty review first');}
+      else if(old.document.workflow.state==='ready'){if(next!=='requested')return err('22023','Start one recorded request');}
+      else if(old.document.workflow.state==='requested'){if(!['completed','unconfirmed'].includes(next))return err('22023','Finish the recorded request once');}
+      else if(old.document.workflow.state!==next)return err('22023','Terminal review state is immutable');
+      return {data:put(a.p_document,expected+1),error:null};},
+    smyl_retry_radiograph_review:a=>{const old=window.__rows.row;if(!old)return err('42501','not available');if(old.revision!==a.p_expected_revision)return err('PT409','conflict');
+      if(old.document.workflow.state!=='unconfirmed')return err('23514','Only an unconfirmed review can be retried');
+      const fresh={schema:1,study:old.document.study,workflow:{state:'ready',attempt:0},analysis:null,items:[]};return {data:put(fresh,old.revision+1),error:null};}
+  };
+  window.sb={
+    auth:{getUser:async()=>({data:{user:{id:T,is_anonymous:false}},error:null}),getSession:async()=>({data:{session:{access_token:'t',user:{id:T,is_anonymous:false}}},error:null})},
+    rpc:async(name,args)=>{window.__calls.push(name);return rpc[name](args||{});},
+    from:()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:window.__rows.row?structuredClone(window.__rows.row):null,error:null})};return q;}
+  };
+</script>
+<script src="../../smyl-radiograph-review-model.js?v=1"></script>
+<script src="../../smyl-radiograph-review-store.js?v=2"></script>
+<script src="../../smyl-radiograph-analysis-client.js?v=2"></script>
+<script src="../../smyl-radiograph-review.js?v=7"></script>
+<script>
+  document.querySelector('#open').onclick=async()=>{
+    if(!window.__blob){const c=document.createElement('canvas');c.width=900;c.height=450;const x=c.getContext('2d');x.fillStyle='#222';x.fillRect(0,0,900,450);x.fillStyle='#bbb';x.fillRect(120,120,660,200);
+      window.__blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.92));window.__sha=await SmylDentalModel.hash(await window.__blob.arrayBuffer());}
+    const study={id:S,type:'panoramic',label:'Panorámica de prueba',asset:{sha256:window.__sha,bytes:window.__blob.size}};
+    SmylRadiographReview.open({study,blob:window.__blob,tenant:T,patient:P,current:()=>true});
+  };
+</script>
+</body>
+</html>
