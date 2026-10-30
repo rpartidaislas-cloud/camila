@@ -9015,3 +9015,31 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S2
 - Se prohíbe reutilizar `segment-teeth` para rayos X: ese servicio corresponde a fotografías. La geometría radiográfica exige un adaptador y motor especializado.
 - La Etapa 0 y 1 son el inicio recomendado: banderas cerradas, contratos v2, esquema versionado, RLS, auditoría e idempotencia, manteniendo compatibilidad con el flujo v1 publicado.
 - No se modificó código clínico, migraciones, Edge Functions, datos ni producción en esta entrega; es un handoff de arquitectura y ejecución para Claude Code.
+
+## 2026-10-30 — Claude — Auditoría P1 restantes: Stripe, retención, lecturas por permiso
+Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5, S8, S9, S7). Dos migraciones + Edge Functions.
+- **S8 Stripe** (`_shared/stripe-plans.ts`): el plan sale SOLO del Price ID configurado en el servidor
+  (`STRIPE_PRICE_ESENCIAL/PROFESIONAL/PREMIUM`). `stripe-checkout` ignora el `priceId` del navegador (resuelve el precio desde
+  el `planKey` validado; 400 si el plan es inválido, 503 si ese plan no tiene Price ID configurado) y solo el dueño puede
+  contratar/abrir el portal (`requireUser` + `user.id === tenantId`). `stripe-webhook` ya no cae a `metadata.plan_key` ni a un
+  límite por defecto: un precio desconocido registra la suscripción pero NO cambia el plan. Los errores ya no filtran `e.message`.
+  Nota: `STRIPE_PRICE_IDS` del cliente (app.html) sigue vacío, o sea que el cobro aún no está activo del lado del navegador.
+- **S9 retención** — migración `20261030100000_smyl_retention_purge_schedule.sql`: programa con pg_cron (03:17 y 03:23) las purgas
+  `smyl_purge_expired_public_appointment_intakes` y `smyl_purge_expired_assistant_conversations`; idempotente; NO falla si
+  pg_cron no está habilitado (avisa). El audio de MILA vencido (`mila_recordings.retention_until`, 30 días) lo purga
+  `file-lifecycle-maintenance` (borra el archivo de `mila-audio` y luego la fila) cuando la clínica ejecuta su mantenimiento
+  (oportunista, cada 12 h por clínica): **no es una garantía si una clínica nunca abre la app**; para garantía total haría falta
+  un cron que invoque la función con un secreto.
+- **S5 lecturas por permiso** — migración `20261030110000_smyl_membership_reads_to_permissions.sql`: chat
+  (`camila_conversaciones/mensajes`, `camila_lana_handoffs`, `camila_lana_clinical_links`) exige `messages.read` (actualizar conversación:
+  `messages.respond`); MILA (`mila_sessions/recordings/transcripts/clinical_notes/confirmations/tool_calls`) exige `clinical.read`.
+  Probado en Postgres (PGlite) con roles reales: antes finanzas leía todos los chats y transcripciones de MILA; ahora solo quien
+  tiene el permiso (dueño, odontólogo, administrador; recepción conserva el chat y pierde MILA). `camila_casos` y `camila_pacientes`
+  NO se tocan (decisión de producto pendiente para casos: el flujo histórico de simulación lo usa el staff).
+  Efecto: `smyl_has_permission` exige clínica activa incluso para el dueño (como el resto de tablas `smyl_*`).
+- **S7 bucket `camila-analisis`**: `analizar-foto` ya entrega enlaces firmados (ver entrada del 2026-10-27). **Paso manual**: en el panel de
+  Supabase → Storage → `camila-analisis` → Edit → desmarcar *Public*, DESPUÉS de desplegar `analizar-foto`. Las URLs públicas antiguas
+  dejarán de abrir.
+- Aplicar migraciones: workflow manual `.github/workflows/smyl-seguridad-p1-migracion.yml`.
+- Bundles regenerados: `stripe-checkout`, `stripe-portal`, `stripe-webhook` (nuevo) y `file-lifecycle-maintenance`.
+- **Sigue pendiente**: enlaces firmados de 1 año (necesita guardar ruta y firmar al leer) y los P1 de robustez/escalabilidad del informe.

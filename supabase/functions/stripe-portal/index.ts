@@ -6,6 +6,7 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { makeCors } from '../_shared/cors.ts';
+import { requireUser } from '../_shared/auth.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { httpClient: Stripe.createFetchHttpClient() });
 const supabaseAdmin = createClient(
@@ -19,13 +20,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
-    const authHeader = req.headers.get('Authorization') || '';
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(jwt);
-    if (userErr || !userData.user) {
-      return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const auth = await requireUser(req, CORS);
+    if (auth.response) return auth.response;
+    const authUser = auth.user!;
+    // El portal de facturación es de la clínica: solo su dueño puede abrirlo.
+    if (authUser.id !== auth.tenantId) {
+      return new Response(JSON.stringify({ error: 'Solo el dueño de la clínica puede gestionar la suscripción.' }), { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
-    const authUser = userData.user;
 
     const { data: tenant } = await supabaseAdmin.from('camila_tenants').select('stripe_customer_id').eq('id', authUser.id).single();
     if (!tenant?.stripe_customer_id) {
@@ -40,6 +41,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ url: portalSession.url }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('[stripe-portal] error:', e);
-    return new Response(JSON.stringify({ error: e.message || 'Error interno' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+    return new Response(JSON.stringify({ error: 'No se pudo abrir el portal de facturación. Intenta de nuevo.' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   }
 });
