@@ -10,9 +10,25 @@
  const tooth=v=>v===''||(D?.teeth||[]).includes(String(v));
  function canonical(v){return Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;}
  const same=(a,b)=>JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
+
+ // Motivo concreto por el que una observación no cumple el contrato. Solo se muestra en pantalla (diagnóstico); lo que
+ // devuelve la IA se recorta y se limpia antes de citarlo, y nunca se guarda en el expediente.
+ const shown=v=>typeof v==='string'?'"'+v.replace(/[^\p{L}\p{N} .,;:()/+_-]/gu,'').slice(0,40)+'"':v===null?'null':typeof v;
+ function observationProblem(o,ids){
+  const ok=o&&typeof o==='object'&&!Array.isArray(o);
+  const id=ok&&typeof o.id==='string'&&/^r([1-9]|1[0-2])$/.test(o.id)?o.id:'';
+  if(!exact(o,['id','category','tooth','observation','evidence']))return {id,reason:'tiene campos distintos de los esperados ('+(ok?Object.keys(o).slice(0,8).map(k=>shown(k).replace(/"/g,'')).join(', '):typeof o)+')'};
+  if(!id)return {id,reason:'id '+shown(o.id)+' fuera de r1 a r12'};
+  if(ids.has(o.id))return {id,reason:'id repetido'};
+  if(!categories.includes(o.category))return {id,reason:'categoría '+shown(o.category)+' no permitida'};
+  if(!(o.tooth===null||tooth(o.tooth)&&o.tooth!==''))return {id,reason:'diente '+shown(o.tooth)+' no es un número FDI válido ni null'};
+  if(!text(o.observation,500,1))return {id,reason:'observación vacía o de más de 500 caracteres ('+(typeof o.observation==='string'?o.observation.length:typeof o.observation)+')'};
+  if(!text(o.evidence,300,1))return {id,reason:'evidencia vacía o de más de 300 caracteres ('+(typeof o.evidence==='string'?o.evidence.length:typeof o.evidence)+')'};
+  return null;
+ }
  function parseReport(value){
   if(!exact(value,['schema','quality','qualityNote','observations','limitations'])||value.schema!==1||!['usable','limited','unusable'].includes(value.quality)||!text(value.qualityNote,400,1)||!Array.isArray(value.observations)||value.observations.length>12||!Array.isArray(value.limitations)||value.limitations.length>8)throw Error('Informe radiográfico no válido.');
-  const ids=new Set();value.observations.forEach(o=>{if(!exact(o,['id','category','tooth','observation','evidence'])||!/^r([1-9]|1[0-2])$/.test(o.id)||ids.has(o.id)||!categories.includes(o.category)||!(o.tooth===null||tooth(o.tooth)&&o.tooth!=='')||!text(o.observation,500,1)||!text(o.evidence,300,1))throw Error('Observación radiográfica no válida.');ids.add(o.id);});
+  const ids=new Set();value.observations.forEach(o=>{const why=observationProblem(o,ids);if(why)throw Error('Observación radiográfica no válida'+(why.id?' ('+why.id+')':'')+': '+why.reason+'.');ids.add(o.id);});
   value.limitations.forEach(v=>{if(!text(v,300,1))throw Error('Limitación radiográfica no válida.');});
   if(value.quality==='unusable'&&value.observations.length)throw Error('Una imagen no utilizable no puede producir observaciones.');
   return structuredClone(value);

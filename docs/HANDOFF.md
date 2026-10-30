@@ -9043,3 +9043,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Aplicar migraciones: workflow manual `.github/workflows/smyl-seguridad-p1-migracion.yml`.
 - Bundles regenerados: `stripe-checkout`, `stripe-portal`, `stripe-webhook` (nuevo) y `file-lifecycle-maintenance`.
 - **Sigue pendiente**: enlaces firmados de 1 año (necesita guardar ruta y firmar al leer) y los P1 de robustez/escalabilidad del informe.
+
+## 2026-10-30 — Claude — Visor de radiografía v1: el diagnóstico dice qué campo falló
+- `smyl-radiograph-review-model.js` (v2, web + `mobile/www`): `parseReport` ya no dice solo "Observación radiográfica no válida."; ahora cita la
+  observación (r#) y el motivo concreto: diente que no es FDI ni null, categoría no permitida, observación > 500 o evidencia > 300 caracteres
+  (con su longitud), campos distintos de los esperados, id fuera de r1–r12 o repetido. Los valores que cita la IA se limpian y recortan a 40
+  caracteres y solo se muestran en pantalla. **El contrato NO se relajó**: se rechaza lo mismo que antes.
+- Pruebas: `tests/radiograph-v1-observation-reason.test.mjs`.
+- Siguiente paso: con el motivo real de la panorámica, decidir si se corrige el prompt, se fuerza un esquema JSON en la función `claude`
+  (como ya se hace con las fotografías) o se tolera algún caso inofensivo (p. ej. `tooth: ""` como null).
