@@ -6,6 +6,9 @@
  const states=['ready','requested','completed','unconfirmed'];
  // Modelos con los que se guardó un análisis: las revisiones anteriores usan Sonnet 4.6; las nuevas, Opus 5.5.
  const models=['claude-sonnet-4-6','claude-opus-5-5'];
+ // Cada señal puede traer el tamaño (ancho y alto, de 0 a 1 sobre la imagen) del cuadro que propone la IA; las revisiones anteriores no lo traen.
+ const itemKeys=['id','sourceId','tooth','text','x','y','state'];
+ const boxSize=v=>typeof v==='number'&&Number.isFinite(v)&&v>=.02&&v<=.6;
  const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v);
  const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
  const text=(v,n,min=0)=>typeof v==='string'&&v.length<=n&&v.trim().length>=min;
@@ -47,8 +50,9 @@
     report=parseReport(doc.analysis.report);if(!same(report,doc.analysis.report))return false;
    }else if(doc.analysis!==null)return false;
    const ids=new Set(),sources=new Set();for(const item of doc.items){
-    if(!exact(item,['id','sourceId','tooth','text','x','y','state'])||!uuid(item.id)||ids.has(item.id)||!/^r([1-9]|1[0-2])$/.test(item.sourceId)||sources.has(item.sourceId)||!tooth(item.tooth)||!text(item.text,600)||!['pending','confirmed','rejected'].includes(item.state))return false;
+    if(!(exact(item,itemKeys)||exact(item,[...itemKeys,'w','h']))||!uuid(item.id)||ids.has(item.id)||!/^r([1-9]|1[0-2])$/.test(item.sourceId)||sources.has(item.sourceId)||!tooth(item.tooth)||!text(item.text,600)||!['pending','confirmed','rejected'].includes(item.state))return false;
     if(!((item.x===null&&item.y===null)||(typeof item.x==='number'&&Number.isFinite(item.x)&&item.x>=0&&item.x<=1&&typeof item.y==='number'&&Number.isFinite(item.y)&&item.y>=0&&item.y<=1)))return false;
+    if(Object.hasOwn(item,'w')&&(item.x===null||![item.w,item.h].every(boxSize)))return false;
     if(item.state==='confirmed'&&(!item.text.trim()||item.x===null))return false;
     const source=report?.observations.find(o=>o.id===item.sourceId);if(!source)return false;
     ids.add(item.id);sources.add(item.sourceId);
@@ -59,7 +63,7 @@
  function create(study){return {schema:1,study:{id:study.id,type:study.type,sha256:study.asset.sha256},workflow:{state:'ready',attempt:0},analysis:null,items:[]};}
  function requested(doc){if(!validate(doc)||doc.workflow.state!=='ready')throw Error('La revisión ya fue iniciada.');const next=structuredClone(doc);next.workflow={state:'requested',attempt:1};return next;}
  function completed(doc,result){if(!validate(doc)||doc.workflow.state!=='requested')throw Error('La solicitud no está registrada.');const next=structuredClone(doc),analysis={model:result.model,at:result.at,requestId:result.requestId,report:parseReport(result.report)};next.workflow.state='completed';next.analysis=analysis;const at=o=>{const l=result.locations&&result.locations[o.id];return l&&[l.x,l.y].every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1)?l:null;};
-  next.items=analysis.report.observations.map(o=>{const l=at(o);return {id:crypto.randomUUID(),sourceId:o.id,tooth:o.tooth||'',text:o.observation,x:l?l.x:null,y:l?l.y:null,state:'pending'};});if(!validate(next))throw Error('La respuesta no cumple el contrato.');return next;}
+  next.items=analysis.report.observations.map(o=>{const l=at(o);const item={id:crypto.randomUUID(),sourceId:o.id,tooth:o.tooth||'',text:o.observation,x:l?l.x:null,y:l?l.y:null,state:'pending'};if(l&&[l.w,l.h].every(boxSize)){item.w=l.w;item.h=l.h;}return item;});if(!validate(next))throw Error('La respuesta no cumple el contrato.');return next;}
  function unconfirmed(doc){if(!validate(doc)||doc.workflow.state!=='requested')throw Error('La solicitud no está registrada.');const next=structuredClone(doc);next.workflow.state='unconfirmed';return next;}
  function validRow(row,study,tenant,patient){return !!row&&row.tenant_id===tenant&&row.patient_id===patient&&row.study_id===study.id&&row.updated_by===tenant&&Number.isInteger(row.revision)&&row.revision>0&&Number.isFinite(Date.parse(row.updated_at))&&validate(row.document,study);}
  return {types,categories,parseReport,validate,create,requested,completed,unconfirmed,validRow,same};

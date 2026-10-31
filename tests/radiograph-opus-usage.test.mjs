@@ -20,14 +20,14 @@ test('el servidor fija modelo, esfuerzo y esquema; el navegador solo manda promp
   assert.match(client, /2576\/Math\.max/);
 });
 
-test('el esquema fuerza null real en diente y coordenadas, con los campos exactos del contrato', () => {
+test('el esquema obliga a dar ubicación y cuadro, y deja el diente como null real si no se puede situar', () => {
   const s = mod.RADIOGRAPH_SCHEMA;
   assert.deepEqual(s.required, ['schema', 'quality', 'qualityNote', 'observations', 'limitations']);
   const o = s.properties.observations.items;
-  assert.deepEqual(o.required, ['id', 'category', 'tooth', 'observation', 'evidence', 'x', 'y']);
+  assert.deepEqual(o.required, ['id', 'category', 'tooth', 'observation', 'evidence', 'x', 'y', 'w', 'h']);
   assert.equal(o.additionalProperties, false);
   assert.deepEqual(o.properties.tooth.anyOf.map(x => x.type), ['string', 'null']);
-  assert.deepEqual(o.properties.x.anyOf.map(x => x.type), ['number', 'null']);
+  for (const k of ['x', 'y', 'w', 'h']) assert.equal(o.properties[k].type, 'number', k + ' sin null: siempre una estimación');
 });
 
 test('la respuesta al navegador solo lleva bloques de texto (sin razonamiento)', () => {

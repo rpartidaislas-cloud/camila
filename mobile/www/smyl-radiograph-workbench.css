@@ -335,3 +335,14 @@
 @media (prefers-reduced-motion: reduce) {
   .dr-radiograph-dialog .dr-image-stage > img { transition: none; }
 }
+
+/* Dos vistas de la radiografía y cuadros punteados sobre las zonas observadas. */
+.rr-view-switch { display: inline-flex; margin-left: auto; gap: 4px; }
+.rr-box { position: absolute; z-index: 1; box-sizing: border-box; border: 2px dashed #efb742; border-radius: 6px; background: rgba(239, 183, 66, .08); pointer-events: none; }
+.rr-box-confirmed { border-color: #73d3c2; background: rgba(115, 211, 194, .08); }
+.rr-box.is-selected { border-style: solid; border-width: 3px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 0 14px rgba(0, 0, 0, .45); }
+.rr-box-tooth { position: absolute; left: 3px; bottom: 3px; min-width: 22px; padding: 0 6px; border-radius: 999px; background: rgba(7, 25, 32, .86); color: #fff; font: 700 12px/18px var(--smyl-ui-font, Inter, system-ui, sans-serif); text-align: center; }
+.rr-image-stage > .rr-mark { z-index: 2; width: 26px; height: 26px; font-size: 12px; }
+.rr-marks-off > .rr-box, .rr-marks-off > .rr-mark { display: none; }
+.rr-image-stage.is-placing > .rr-mark { pointer-events: none; }
+@media (max-width: 760px) { .rr-view-switch { margin-left: 0; } .rr-image-stage > .rr-mark { width: 20px; height: 20px; font-size: 12px; } }

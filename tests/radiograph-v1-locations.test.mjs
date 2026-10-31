@@ -61,13 +61,22 @@ test('completed() ignora ubicaciones corruptas y sigue funcionando sin locations
   assert.deepEqual([mala.items[0].x, mala.items[1].x], [null, 0.2]);
 });
 
-test('el prompt ya no prohíbe coordenadas y las pide normalizadas con null permitido', () => {
+test('el prompt pide diente, ubicación y cuadro siempre, normalizados, sin null', () => {
   const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /No inventes coordenadas/);
-  assert.match(src, /normalizado de 0 a 1 desde la esquina superior izquierda/);
-  assert.match(src, /usa null en ambos/);
-  assert.match(src, /"x":"0 a 1 o null","y":"0 a 1 o null"/);
+  assert.match(src, /todo normalizado de 0 a 1 respecto a la imagen recibida desde la esquina superior izquierda/);
+  assert.match(src, /SIEMPRE tu mejor estimación de ubicación/);
+  assert.match(src, /no uses null/);
+  assert.match(src, /"x":"0 a 1","y":"0 a 1","w":"0\.03 a 0\.5","h":"0\.03 a 0\.5"/);
+  assert.match(src, /cuadrante 1 superior derecho del paciente/);
   assert.match(src, /return \{report,locations,model,at:/);
+});
+
+test('separa también el cuadro (w, h) de las ubicaciones y descarta tamaños inválidos', () => {
+  const { report, locations } = splitLocations(base([{ x: 0.3, y: 0.5, w: 0.08123, h: 0.14 }, { x: 0.6, y: 0.5, w: 0.9, h: 0.1 }]));
+  assert.deepEqual(locations, { r1: { x: 0.3, y: 0.5, w: 0.081, h: 0.14 }, r2: { x: 0.6, y: 0.5 } });
+  assert.ok(report.observations.every(o => !('w' in o) && !('h' in o)));
+  assert.doesNotThrow(() => M.parseReport(report));
 });
 
 test('el texto "null" en tooth se trata como null, y un diente inválido sigue rechazándose', () => {

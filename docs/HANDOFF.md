@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-31 — Claude — Radiografía: diente en cada señal, cuadros punteados y dos vistas
+
+- **Dos vistas** en el visor (`smyl-radiograph-review.js` v11, `smyl-radiograph-workbench.css` v6): «Sin marcas»
+  (imagen limpia) y «Con observaciones» (un cuadro punteado por señal con su número y su diente; ámbar = por
+  revisar, verde = confirmada, trazo sólido = señal abierta). Las descartadas no se dibujan; los cuadros no capturan
+  clics, y «Ubicar señal» fuerza la vista con marcas. La vista es solo de pantalla (no entra al informe/PDF).
+- **Diente**: donde decía «Región general» ahora dice «Diente por indicar» (lista y selector «Pieza relacionada»).
+  El prompt pide la pieza FDI principal por su posición (con la regla de cuadrantes) y deja `tooth:null` solo si no se
+  puede situar.
+- **Ubicación siempre**: el prompt y el esquema del servidor (`_shared/radiograph-claude.ts`) exigen x, y, w, h
+  numéricos (sin null). Antes Opus respondía `null` y no se veía ningún punto. El dentista sigue moviendo cada señal
+  («Cambiar ubicación»); las señales ubicadas a mano usan un cuadro estándar (7 % × 12 %).
+- **Contrato**: cada `item` puede traer `w` y `h` (0.02–0.6), juntos y solo con `x,y`. `smyl-radiograph-review-model.js`
+  v5 los valida y los copia desde `locations`; migración `20261031140000_smyl_radiograph_item_box.sql` redefine
+  `smyl_validate_radiograph_review` (misma validación que la de Opus + esa ampliación). Revisiones anteriores siguen válidas.
+- **Panel de señales**: al abrir una señal el panel baja solo hasta sus botones (antes quedaban ocultos bajo el
+  desplazamiento del panel y parecía que el clic no hacía nada).
+- **Para activar:** aplicar la migración `20261031140000` en el SQL Editor y volver a desplegar `claude`
+  (`docs/bundles/claude.single-file.ts`). Sin la migración, guardar una revisión con cuadros fallará; sin el
+  despliegue, la IA seguirá sin dar cuadros y se verán cuadros estándar en las señales que se ubiquen a mano.
+- Archivos: visor, modelo, cliente (`smyl-radiograph-analysis-client.js` v7), CSS, esquema del servidor, bundle,
+  migración, copias móviles, `app.html`/`sw.js` (caché `radiograph-boxes-v59`), `tests/radiograph-boxes-views.test.mjs`
+  y ajustes a pruebas con versiones fijas. Verificado en navegador a 1680×900 y 390×844.
+
 ## 2026-10-31 — Claude — Radiografía con Claude Opus 5.5 y medición del consumo
 
 - **Modelo fijado por el servidor.** Nueva acción `analyze_dental_radiograph_v1` en la Edge Function `claude`
