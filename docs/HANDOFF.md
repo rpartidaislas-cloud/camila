@@ -1,5 +1,29 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-31 — Claude — Radiografía con Claude Opus 5.5 y medición del consumo
+
+- **Modelo fijado por el servidor.** Nueva acción `analyze_dental_radiograph_v1` en la Edge Function `claude`
+  (módulo `_shared/radiograph-claude.ts`): modelo `claude-opus-5-5`, esfuerzo `medium` (Opus 5.5 lo trae por
+  defecto; subir a `high` en `RADIOGRAPH_EFFORT` cuando la medición muestre que cabe en el tiempo), `max_tokens`
+  12000, corte a 100 s y esquema JSON forzado (`output_config.format`), con `tooth`/`x`/`y` como `null` real.
+  Solo sesión profesional (`user.id === tenant`). La respuesta al navegador lleva solo bloques de texto.
+- **Cliente** (`smyl-radiograph-analysis-client.js` v6): usa la acción, ya no manda modelo ni `max_tokens`, y
+  envía la imagen hasta 2576 px / 3.75 MP (antes 1568 px / 1.15 MP). La normalización del texto `"null"` del PR
+  anterior se conserva como segunda red.
+- **Revisión guardada**: `analysis.model` acepta `claude-sonnet-4-6` (revisiones anteriores) y `claude-opus-5-5`
+  tanto en `smyl-radiograph-review-model.js` (v4) como en la base (migración `20261031130000`, que redefine
+  `smyl_validate_radiograph_review` con una sola condición cambiada).
+- **Medición**: tabla `smyl_ai_usage_log` (migración `20261031120000`) con tokens reales, tiempo, resultado y costo
+  estimado por análisis; sin imágenes ni datos de pacientes. Solo escribe la Edge Function; la clínica lee el
+  resumen con `smyl_ai_usage_summary()` (permiso `clinic.manage`). Tarjeta nueva «Análisis de radiografía» en
+  Plan y consumo → MILA e IA (`consumos.html`, `smyl-consumption.js/css` v7).
+- **Para activar (a mano):** 1) aplicar las dos migraciones en el SQL Editor, en ese orden; 2) volver a desplegar
+  `claude` (pegar `docs/bundles/claude.single-file.ts` en el dashboard). Hasta aplicar la migración de modelo,
+  guardar una revisión hecha con Opus fallaría en la base.
+- Archivos: `supabase/functions/claude/index.ts`, `supabase/functions/_shared/radiograph-claude.ts`,
+  `docs/bundles/claude.single-file.ts`, 2 migraciones, cliente/modelo/consumo + copias móviles,
+  `app.html`/`sw.js` (caché `radiograph-opus-v58`), `tests/radiograph-opus-usage.test.mjs`.
+
 ## 2026-10-31 — Claude — Radiografía: «diente "null" no es un número FDI válido»
 
 - Causa: el análisis de radiografías usa Claude (`claude-sonnet-4-6`, API de Anthropic, vía la

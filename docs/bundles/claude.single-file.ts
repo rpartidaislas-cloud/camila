@@ -209,6 +209,20 @@ checkAndConsumeLimit,
   checkLimitSinConsumir,
   checkLimitPorIpProspecto,
 } from "../_shared/limits.ts";
+  RADIOGRAPH_ACTION,
+  RADIOGRAPH_EFFORT,
+  RADIOGRAPH_MAX_TOKENS,
+  RADIOGRAPH_MODEL,
+  RADIOGRAPH_SCHEMA,
+  RADIOGRAPH_TIMEOUT_MS,
+  textOnly,
+  usageRow,
+} from "../_shared/radiograph-claude.ts";
+
+const usageAdmin = createClient(
+  Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "",
+);
 
 const PHOTO_ANALYSIS_ACTION = "analyze_dental_photos_v1";
 const PHOTO_ANALYSIS_SCHEMA = {
@@ -449,6 +463,18 @@ Deno.serve(async (req: Request) => {
     }
     if (!validTreatmentPlanContext(body.context)) {
       return new Response(JSON.stringify({ error: "Contexto clínico inválido." }), {
+        status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+  }
+  if (body?.action === RADIOGRAPH_ACTION) {
+    if (!user || user.id !== tenantEfectivo) {
+      return new Response(JSON.stringify({ error: "Disponible solo para la cuenta profesional autorizada." }), {
+        status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof body.system !== "string" || !Array.isArray(body.messages)) {
+      return new Response(JSON.stringify({ error: "Solicitud de radiografía inválida." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
@@ -1247,6 +1273,15 @@ Deno.serve(async (req: Request) => {
       // The professional photo-review client needs a machine-readable result.
       // The schema is fixed server-side: callers cannot weaken it or inject a
       // larger grammar. Browser validation remains a second, independent gate.
+      // Radiografía: modelo, esfuerzo y formato los decide el servidor, no el navegador.
+      if (body.action === RADIOGRAPH_ACTION) {
+        anthropicBody.model = RADIOGRAPH_MODEL;
+        anthropicBody.max_tokens = RADIOGRAPH_MAX_TOKENS;
+        anthropicBody.output_config = {
+          effort: RADIOGRAPH_EFFORT,
+          format: { type: "json_schema", schema: RADIOGRAPH_SCHEMA },
+        };
+      }
       if (body.action === PHOTO_ANALYSIS_ACTION) {
         anthropicBody.model = "claude-sonnet-4-6";
         anthropicBody.max_tokens = 6500;
@@ -1275,22 +1310,51 @@ Deno.serve(async (req: Request) => {
     console.log("Claude — modelo:", anthropicBody.model);
     const cuerpoSerializado = JSON.stringify(anthropicBody);
     marca(`después de serializar el body para Anthropic (${(cuerpoSerializado.length / 1024).toFixed(0)}KB)`);
-    const cResp = await fetchConTimeout("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": CLAUDE_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: cuerpoSerializado,
-    }, 90000);
+    const esRadiografia = body.action === RADIOGRAPH_ACTION;
+    const claudeStartedAt = performance.now();
+    // Mide lo que consume el análisis de radiografía (tokens reales, tiempo y costo estimado). Si el registro falla,
+    // el análisis no se pierde: solo queda un aviso en los logs.
+    const medirRadiografia = async (outcome: "ok" | "incomplete" | "error", usage: any, stopReason: unknown) => {
+      if (!esRadiografia || !user) return;
+      try {
+        const { error } = await usageAdmin.from("smyl_ai_usage_log").insert(usageRow({
+          tenantId: tenantEfectivo as string, requestId, outcome, usage,
+          durationMs: performance.now() - claudeStartedAt, stopReason,
+        }));
+        if (error) console.warn("No se pudo registrar el consumo de IA:", error.message);
+      } catch (medicionError: any) {
+        console.warn("No se pudo registrar el consumo de IA:", medicionError?.message);
+      }
+    };
+    let cResp: Response;
+    try {
+      cResp = await fetchConTimeout("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": CLAUDE_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: cuerpoSerializado,
+      }, esRadiografia ? RADIOGRAPH_TIMEOUT_MS : 90000);
+    } catch (fetchError) {
+      await medirRadiografia("error", null, null);
+      throw fetchError;
+    }
     marca("después de recibir respuesta de Anthropic (fetch)");
     const cData = await cResp.json();
     marca("después de parsear la respuesta de Anthropic");
     if (!cResp.ok) {
       console.error("Claude error:", JSON.stringify(cData));
+      await medirRadiografia("error", cData?.usage, null);
       return new Response(JSON.stringify({ error: cData.error?.message || "Claude error" }), {
         headers: { ...CORS, "Content-Type": "application/json" }, status: 500
+      });
+    }
+    if (esRadiografia) {
+      await medirRadiografia(cData?.stop_reason === "end_turn" ? "ok" : "incomplete", cData?.usage, cData?.stop_reason);
+      return new Response(JSON.stringify(textOnly(cData)), {
+        headers: { ...CORS, "Content-Type": "application/json" }
       });
     }
     return new Response(JSON.stringify(cData), {
