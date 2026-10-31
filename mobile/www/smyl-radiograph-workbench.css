@@ -129,6 +129,10 @@
 .rr-source { display: grid; gap: 3px; margin: 0; padding: 10px; border-left: 3px solid var(--rr-rx); border-radius: 8px; background: #f7f5ff; color: var(--rr-muted); font-size: 12px; }
 .rr-source > span { color: var(--rr-rx); font-weight: 700; }
 .rr-source p { margin: 0; font-size: 13px; }
+.rr-detected { display: grid; gap: 3px; margin: 0; padding: 10px; border-left: 3px solid var(--rr-accent); border-radius: 8px; background: var(--rr-soft); color: var(--rr-ink); font-size: 12px; }
+.rr-detected > span { color: var(--rr-muted); font-weight: 700; }
+.rr-detected p { margin: 0; font-size: 13px; }
+.rr-item-detected { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--rr-muted); font-size: 12px; line-height: 16px; }
 .rr-field { display: grid; gap: 6px; color: var(--rr-ink); font-size: 13px; font-weight: 600; }
 .rr-field select, .rr-field textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--rr-line-strong); border-radius: 10px; background: var(--rr-surface); color: var(--rr-ink); font: 400 14px/20px var(--smyl-ui-font, Inter, system-ui, sans-serif); }
 .rr-field textarea { resize: vertical; }
