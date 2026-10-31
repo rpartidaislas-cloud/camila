@@ -1,7 +1,6 @@
 // ARCHIVO GENERADO por scripts/bundle-edge-function.mjs — no lo edites a mano.
 // Es supabase/functions/claude/index.ts con sus archivos de _shared incluidos,
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
-import {;
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // ── _shared/auth-membership.ts ──
@@ -169,6 +168,194 @@ async function requirePermission(
 return { requireUser, requirePermission };
 })();
 
+// ── _shared/limits.ts ──
+const { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto } = (() => {
+// Tope de gasto server-side para las Edge Functions que llaman APIs de
+// pago (Anthropic, Gemini, Replicate). Antes el límite de plan
+// (limite_diagnosticos/diagnosticos_usados) solo se checaba en el cliente
+// -- cualquiera que llamara al Edge Function directo, sin pasar por la UI,
+// generaba simulaciones sin ningún tope real. Ver migración
+// camila_limits.sql para las funciones de Postgres que hacen el chequeo
+// atómico (RPC, SECURITY DEFINER, solo invocables por el service_role).
+//
+// Mientras _shared/auth.ts siga aceptando llamadas sin sesión (pedido
+// explícito del usuario), este módulo también aplica un tope duro por
+// IP/hora a esas llamadas anónimas -- no reemplaza el login, solo evita
+// que un link compartido genere gasto sin límite.
+
+
+const SB_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('SB_URL') || '';
+const SB_SERVICE_ROLE_KEY =
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SB_SERVICE_ROLE_KEY') || '';
+
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+// 20/hora ≈ 5 simulaciones por IP por hora. Estaba en 5, que sonaba a "5
+// simulaciones" pero en realidad era ~1: una sola simulación hace ~4
+// llamadas a la Edge Function (validar encuadre, analizar proporciones,
+// diagnóstico, generar imagen), así que la segunda simulación de cada hora
+// se bloqueaba con "Demasiadas solicitudes" -- y como ese error no era ni
+// caída de red ni timeout, la pantalla lo mostraba como "problema de
+// conexión", mandando a reintentar algo que solo se arregla esperando.
+// Sigue siendo un techo real contra abuso; el gasto de un dentista con
+// sesión no pasa por aquí, lo limita el cupo de su plan.
+const ANON_LIMITE_POR_HORA = Number(Deno.env.get('ANON_HOURLY_LIMIT') || '20');
+const ANON_VENTANA_SEG = 3600;
+
+// Perilla aparte para el modo prospecto (paciente que entra por el link
+// público de una clínica). Hoy vale lo mismo que el anónimo, pero se deja
+// separada a propósito: son dos poblaciones distintas y probablemente
+// haya que ajustar una sin tocar la otra -- un prospecto además está
+// respaldado por el cupo del plan de SU clínica, un anónimo puro no.
+const PROSPECTO_LIMITE_POR_HORA = Number(Deno.env.get('PROSPECTO_HOURLY_LIMIT') || '20');
+
+interface LimitResult {
+  allowed: boolean;
+  response: Response | null;
+}
+
+function limitDeny(cors: Record<string, string>, status: number, msg: string): Response {
+  const headers: Record<string, string> = { ...cors, 'Content-Type': 'application/json' };
+  if (status === 429) headers['Retry-After'] = '60';
+  return new Response(JSON.stringify({ error: msg }), { status, headers });
+}
+
+function ipDelRequest(req: Request): string {
+  const fwd = req.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'sin-ip';
+}
+
+const MENSAJES_TENANT: Record<string, string> = {
+  tenant_no_encontrado: 'No se encontró tu cuenta de clínica.',
+  plan_inactivo: 'Tu plan no está activo. Revisa tu suscripción.',
+  plan_vencido: 'Tu plan venció. Renueva tu suscripción para seguir generando simulaciones.',
+  limite_alcanzado: 'Alcanzaste el límite de diagnósticos de tu plan en este periodo.',
+};
+
+// Verifica que la clínica pueda seguir generando, SIN descontarle nada.
+// Existe porque una sola simulación hace VARIAS llamadas a la Edge
+// Function `claude` (validar encuadre + analizar proporciones + analizar
+// fotos + generar imagen, más los reintentos automáticos de conReintento):
+// si cada una descontara un "diagnóstico", un plan de 40 daría ~10
+// simulaciones reales en vez de 40, que no es lo que el dentista compró ni
+// lo que dice su plan. Solo la generación de imagen descuenta (ver
+// claude/index.ts); el resto pasa por aquí.
+async function checkLimitSinConsumir(
+  tenantId: string | null,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  if (!tenantId) return { allowed: true, response: null };
+
+  const { data, error } = await admin
+    .from('camila_tenants')
+    .select('activo, vence_en, diagnosticos_usados, limite_diagnosticos')
+    .eq('id', tenantId)
+    .maybeSingle();
+
+  // Falla de infraestructura ajena al usuario -- mismo criterio que el
+  // resto de este archivo: no bloquear por eso, dejar rastro en los logs.
+  if (error) {
+    console.error('[limits] error verificando tenant:', error.message);
+    return { allowed: true, response: null };
+  }
+  if (!data) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.tenant_no_encontrado) };
+  if (!data.activo) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_inactivo) };
+  if (data.vence_en && new Date(data.vence_en as string) < new Date()) {
+    return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_vencido) };
+  }
+  if ((data.diagnosticos_usados as number) >= (data.limite_diagnosticos as number)) {
+    return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.limite_alcanzado) };
+  }
+  return { allowed: true, response: null };
+}
+
+// Llamar UNA vez por request, antes de gastar en la API externa. Si
+// allowed=false, response ya trae el error listo para devolver tal cual.
+async function checkAndConsumeLimit(
+  req: Request,
+  tenantId: string | null, // el tenantId resuelto por requireUser() -- NUNCA user.id crudo, ver _shared/auth.ts
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  if (tenantId) {
+    const { data, error } = await admin.rpc('camila_consumir_diagnostico', { p_tenant_id: tenantId });
+    if (error) {
+      // Falla de infraestructura ajena al usuario (RPC no desplegada,
+      // conexión a la BD caída, etc.) -- no lo bloqueamos por eso, mejor
+      // dejar pasar y que quede en los logs.
+      console.error('[limits] error RPC camila_consumir_diagnostico:', error.message);
+      return { allowed: true, response: null };
+    }
+    const fila = Array.isArray(data) ? data[0] : data;
+    if (!fila?.permitido) {
+      const motivo = fila?.motivo || 'limite_alcanzado';
+      return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT[motivo] || MENSAJES_TENANT.limite_alcanzado) };
+    }
+    return { allowed: true, response: null };
+  }
+
+  // Sin sesión (acceso anónimo temporalmente permitido, ver auth.ts).
+  return checkLimitPorIp(req, ANON_LIMITE_POR_HORA, cors);
+}
+
+async function checkLimitPorIp(
+  req: Request,
+  limitePorHora: number,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  const ip = ipDelRequest(req);
+  const { data, error } = await admin.rpc('camila_anon_rate_check', {
+    p_ip: ip,
+    p_limite: limitePorHora,
+    p_ventana_seg: ANON_VENTANA_SEG,
+  });
+  if (error) {
+    console.error('[limits] error RPC camila_anon_rate_check:', error.message);
+    return { allowed: true, response: null };
+  }
+  if (!data) {
+    return {
+      allowed: false,
+      response: limitDeny(cors, 429, 'Demasiadas solicitudes desde esta conexión. Intenta de nuevo en un rato.'),
+    };
+  }
+  return { allowed: true, response: null };
+}
+
+// Camino especial para el modo "prospecto" de simulacion.html (paciente
+// sin cuenta, entra por un link público con el tenant_id de la clínica en
+// la URL, ver ?clinica=<id> y entrarComoProspecto()). A diferencia del
+// resto de este archivo, aquí el tenant_id NO viene de una sesión
+// verificada -- lo manda el cliente sin más prueba que "conoce el link
+// público de esa clínica". Por eso se exigen los DOS controles, no uno
+// solo: el tope real de la clínica (protege su cupo pagado, y de paso
+// confirma que el tenant_id es real) Y el tope genérico por IP (protege
+// contra que alguien intente drenar el cupo de una clínica ajena a punta
+// de scripts, ahora que conoce su tenant_id).
+async function checkAndConsumeLimitProspecto(
+  req: Request,
+  tenantIdCliente: string,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  const porIp = await checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
+  if (!porIp.allowed) return porIp;
+  return checkAndConsumeLimit(req, tenantIdCliente, cors);
+}
+
+// Tope por IP para las llamadas de prospecto que NO descuentan del plan
+// (los análisis previos a la imagen). Sin esto, alguien podría spamear
+// análisis con Anthropic gratis usando el link público de una clínica sin
+// tocar nunca su contador.
+async function checkLimitPorIpProspecto(
+  req: Request,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  return checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
+}
+
+return { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto };
+})();
+
 // ── _shared/cors.ts ──
 const { makeCors, corsPublic, corsHeaders } = (() => {
 // Orígenes autorizados para funciones privadas (autenticadas).
@@ -203,22 +390,128 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
-// ── claude/index.ts ──
-checkAndConsumeLimit,
-  checkAndConsumeLimitProspecto,
-  checkLimitSinConsumir,
-  checkLimitPorIpProspecto,
-} from "../_shared/limits.ts";
-  RADIOGRAPH_ACTION,
-  RADIOGRAPH_EFFORT,
-  RADIOGRAPH_MAX_TOKENS,
-  RADIOGRAPH_MODEL,
-  RADIOGRAPH_SCHEMA,
-  RADIOGRAPH_TIMEOUT_MS,
-  textOnly,
-  usageRow,
-} from "../_shared/radiograph-claude.ts";
+// ── _shared/radiograph-claude.ts ──
+const { RADIOGRAPH_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, estimateCostUsd, usageRow, textOnly } = (() => {
+// Análisis de radiografías con Claude (revisión asistida; nunca diagnóstico automático).
+//
+// El modelo, el esfuerzo y el esquema de salida los fija el SERVIDOR: el navegador solo manda el prompt y la
+// imagen. Así un cliente no puede pedir otro modelo, y la respuesta llega siempre con el formato exacto que
+// valida la app (se acabaron los "null" escritos como texto).
+//
+// Cada análisis deja una fila en smyl_ai_usage_log con los tokens reales que informa Anthropic y un costo
+// estimado. No se guarda la imagen ni el texto de la respuesta.
 
+const RADIOGRAPH_ACTION = "analyze_dental_radiograph_v1";
+const RADIOGRAPH_MODEL = "claude-opus-5-5";
+// Opus 5.5 usa "medium" por defecto. Se sube a "high" cuando la medición confirme que cabe en el tiempo de espera.
+const RADIOGRAPH_EFFORT = "medium";
+const RADIOGRAPH_MAX_TOKENS = 12000;
+const RADIOGRAPH_TIMEOUT_MS = 100_000;
+
+// Dólares por millón de tokens (entrada, salida, lectura de caché, escritura de caché). Solo para estimar.
+const PRICES_USD_PER_MTOK: Record<string, [number, number, number, number]> = {
+  "claude-opus-5-5": [4, 20, 0.2, 5],
+};
+
+const RADIOGRAPH_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["schema", "quality", "qualityNote", "observations", "limitations"],
+  properties: {
+    schema: { type: "integer", enum: [1] },
+    quality: { type: "string", enum: ["usable", "limited", "unusable"] },
+    qualityNote: { type: "string", description: "Límite de la imagen, máximo 400 caracteres." },
+    observations: {
+      type: "array",
+      description: "Máximo 12 observaciones por comprobar; vacío si la imagen no es utilizable.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "category", "tooth", "observation", "evidence", "x", "y"],
+        properties: {
+          id: { type: "string", pattern: "^r([1-9]|1[0-2])$" },
+          category: { type: "string", enum: ["density", "contour", "restoration", "support", "development", "other"] },
+          tooth: { anyOf: [{ type: "string", pattern: "^[1-4][1-8]$" }, { type: "null" }] },
+          observation: { type: "string", description: "Descripción prudente, máximo 500 caracteres." },
+          evidence: { type: "string", description: "Zona visible donde comprobar, máximo 300 caracteres." },
+          x: { anyOf: [{ type: "number" }, { type: "null" }] },
+          y: { anyOf: [{ type: "number" }, { type: "null" }] },
+        },
+      },
+    },
+    limitations: { type: "array", items: { type: "string" } },
+  },
+} as const;
+
+interface AnthropicUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+}
+
+const count = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
+
+function estimateCostUsd(model: string, usage: AnthropicUsage | null | undefined): number | null {
+  const price = PRICES_USD_PER_MTOK[model];
+  if (!price || !usage) return null;
+  const [input, output, cacheRead, cacheWrite] = price;
+  const cost = ((count(usage.input_tokens) ?? 0) * input + (count(usage.output_tokens) ?? 0) * output +
+    (count(usage.cache_read_input_tokens) ?? 0) * cacheRead + (count(usage.cache_creation_input_tokens) ?? 0) * cacheWrite) / 1_000_000;
+  return Math.round(cost * 100000) / 100000;
+}
+
+interface UsageRow {
+  tenant_id: string;
+  feature: "radiograph_analysis";
+  model: string;
+  request_id: string | null;
+  outcome: "ok" | "incomplete" | "error";
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cache_read_tokens: number | null;
+  cache_write_tokens: number | null;
+  duration_ms: number | null;
+  stop_reason: string | null;
+  estimated_cost_usd: number | null;
+}
+
+function usageRow(opts: {
+  tenantId: string;
+  requestId: string | null;
+  outcome: UsageRow["outcome"];
+  usage: AnthropicUsage | null | undefined;
+  durationMs: number;
+  stopReason: unknown;
+}): UsageRow {
+  const u = opts.usage || null;
+  return {
+    tenant_id: opts.tenantId,
+    feature: "radiograph_analysis",
+    model: RADIOGRAPH_MODEL,
+    request_id: opts.requestId ? opts.requestId.slice(0, 120) : null,
+    outcome: opts.outcome,
+    input_tokens: count(u?.input_tokens),
+    output_tokens: count(u?.output_tokens),
+    cache_read_tokens: count(u?.cache_read_input_tokens),
+    cache_write_tokens: count(u?.cache_creation_input_tokens),
+    duration_ms: count(opts.durationMs),
+    stop_reason: typeof opts.stopReason === "string" ? opts.stopReason.slice(0, 40) : null,
+    estimated_cost_usd: estimateCostUsd(RADIOGRAPH_MODEL, u),
+  };
+}
+
+// La app solo lee bloques de texto: se quitan los de razonamiento antes de responder al navegador.
+function textOnly(message: any): any {
+  if (!message || !Array.isArray(message.content)) return message;
+  return { ...message, content: message.content.filter((block: any) => block?.type === "text") };
+}
+
+return { RADIOGRAPH_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, estimateCostUsd, usageRow, textOnly };
+})();
+
+// ── claude/index.ts ──
 const usageAdmin = createClient(
   Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "",

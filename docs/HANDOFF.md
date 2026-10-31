@@ -20,6 +20,11 @@
 - **Para activar (a mano):** 1) aplicar las dos migraciones en el SQL Editor, en ese orden; 2) volver a desplegar
   `claude` (pegar `docs/bundles/claude.single-file.ts` en el dashboard). Hasta aplicar la migración de modelo,
   guardar una revisión hecha con Opus fallaría en la base.
+- **Generador de bundles** (`scripts/bundle-edge-function.mjs`): no entendía `import { a,\n b } from "../_shared/x.ts"`
+  repartido en varias líneas, así que `docs/bundles/claude.single-file.ts` salía con `import {;` y líneas sueltas y no
+  compilaba (ya en `main`). Ahora junta esos imports y resuelve `./x.ts` junto al `index.ts` de la función. El bundle de
+  `claude` se verificó con el compilador de TypeScript (sin errores de sintaxis). Aviso: `segment-teeth` también cambió y
+  su bundle tiene `createClient` importado dos veces (esm.sh y npm); ya fallaba antes, no se tocó la función.
 - Archivos: `supabase/functions/claude/index.ts`, `supabase/functions/_shared/radiograph-claude.ts`,
   `docs/bundles/claude.single-file.ts`, 2 migraciones, cliente/modelo/consumo + copias móviles,
   `app.html`/`sw.js` (caché `radiograph-opus-v58`), `tests/radiograph-opus-usage.test.mjs`.
