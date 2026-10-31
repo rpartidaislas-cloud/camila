@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-31 — Claude Code — Radiografía v1: la IA propone la ubicación de cada señal
+
+- El prompt del visor v1 (`smyl-radiograph-analysis-client.js`) ya no prohíbe coordenadas: pide `x`, `y` por
+  observación (centro aproximado de la zona, normalizado 0–1 desde la esquina superior izquierda de la imagen
+  recibida, `null` si no puede ubicarla con prudencia). Es solo una propuesta.
+- **Sin migración:** la base valida con claves exactas el informe (`observations`), así que `splitLocations` separa
+  `x`/`y` antes de `parseReport` y `completed()` los copia a `items[].x/y` (la base ya acepta pendientes con
+  ubicación en 0..1). Valores inválidos se descartan. El informe guardado no cambia.
+- UI: la señal pendiente con ubicación muestra su marcador amarillo y "Ubicación propuesta: compruébala…". El dentista
+  sigue moviendo y confirmando cada señal; confirmar exige notas.
+- **No verificado con el modelo real:** la precisión de las coordenadas de un LLM sobre una panorámica es limitada;
+  hay que probar con una radiografía real. Solo aplica a análisis NUEVOS (los ya guardados no tienen ubicación).
+- Cachés: `analysis-client.js?v=4`, `review-model.js?v=3`, `review.js?v=10`. Pruebas: 898/898.
+- Recordatorio: GitHub Pages publica desde `claude/camila-claude-clinical-analysis-sywxjv`, no desde `main`.
+
 ## 2026-10-27 — Codex — Equipo y roles sin empalmes v47
 
 - `Equipo, roles y profesionales` responde ahora al ancho real del módulo con
