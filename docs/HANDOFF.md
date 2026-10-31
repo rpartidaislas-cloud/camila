@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-31 — Claude — Adiós al «brinco» al entrar y a la expulsión del expediente
+
+- Causa: cuando salía una versión nueva, `app.html` recargaba la página en cuanto el
+  service worker tomaba el control. Pasaba unos segundos después de entrar (el «brinco») y,
+  si estabas en un expediente, la recarga volvía al módulo Pacientes sin el expediente abierto.
+  En la primera visita `clients.claim()` también disparaba esa recarga.
+- Ahora: la primera visita no recarga; con una versión nueva y la pestaña visible aparece un
+  aviso «Hay una versión nueva de SMYL» con **Actualizar** / **Después**; si la pestaña queda
+  oculta, se actualiza sola sin que se note.
+- Archivos: `app.html` y `mobile/www/app.html`, `sw.js` y `mobile/www/sw.js` (caché
+  `quiet-update-v56`), `tests/pwa-quiet-update.test.mjs`. Sin cambios de datos ni de backend.
+
 ## 2026-10-31 — Claude Code — Radiografía v1: la IA propone la ubicación de cada señal
 
 - El prompt del visor v1 (`smyl-radiograph-analysis-client.js`) ya no prohíbe coordenadas: pide `x`, `y` por

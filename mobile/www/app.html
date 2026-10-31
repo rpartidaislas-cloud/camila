@@ -2361,17 +2361,34 @@ if ('serviceWorker' in navigator) {
       console.warn('[SMYL PWA] SW failed:', err);
     });
   });
-  var smylRefreshingForUpdate = false;
+  // Una versión nueva se aplica sin interrumpir: si la pestaña está oculta se recarga sola; si estás
+  // trabajando (por ejemplo dentro de un expediente) aparece un aviso y tú eliges cuándo actualizar.
+  // En la primera visita clients.claim() también dispara controllerchange: ahí no hay nada que actualizar.
+  var smylHadController = Boolean(navigator.serviceWorker.controller);
+  var smylUpdatePending = false;
+  function smylApplyUpdate() { window.location.reload(); }
+  function smylShowUpdateNotice() {
+    if (document.getElementById('smyl-update-notice')) return;
+    var aviso = document.createElement('div');
+    aviso.id = 'smyl-update-notice';
+    aviso.setAttribute('role', 'status');
+    aviso.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9000;width:min(420px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #D7DDE5;border-radius:12px;box-shadow:0 8px 28px rgba(15,23,42,.16);padding:10px 12px;font:13px/1.4 system-ui,sans-serif;color:#1F2937';
+    aviso.innerHTML = '<span style="flex:1;min-width:150px">Hay una versión nueva de SMYL.</span>' +
+      '<button type="button" data-update-later style="border:0;background:none;color:#64748B;font:inherit;cursor:pointer;padding:6px 8px">Después</button>' +
+      '<button type="button" data-update-now style="border:0;background:#0F766E;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
+    aviso.querySelector('[data-update-now]').addEventListener('click', smylApplyUpdate);
+    aviso.querySelector('[data-update-later]').addEventListener('click', function () { aviso.remove(); });
+    document.body.appendChild(aviso);
+  }
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (smylRefreshingForUpdate) return;
-    smylRefreshingForUpdate = true;
-    // Recarga en cuanto nadie esté escribiendo; la ruta y el borrador del chat se restauran tras recargar.
-    function escribiendo() { var el = document.activeElement; return Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))); }
-    function recargarCuandoSePueda() {
-      if (document.visibilityState === 'hidden' || !escribiendo()) { window.location.reload(); return; }
-      document.addEventListener('focusout', function () { setTimeout(recargarCuandoSePueda, 300); }, { once: true });
-    }
-    recargarCuandoSePueda();
+    if (!smylHadController) { smylHadController = true; return; }
+    if (smylUpdatePending) return;
+    smylUpdatePending = true;
+    if (document.visibilityState === 'hidden') { smylApplyUpdate(); return; }
+    smylShowUpdateNotice();
+  });
+  document.addEventListener('visibilitychange', function() {
+    if (smylUpdatePending && document.visibilityState === 'hidden') smylApplyUpdate();
   });
 }
 </script>
