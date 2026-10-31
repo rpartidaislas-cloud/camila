@@ -124,8 +124,10 @@ test('S1: el cliente no puede editar plan, cuota ni vencimiento de su clínica',
 });
 
 test('S1: los límites canónicos coinciden con los de stripe-webhook', () => {
-  const stripe = read('supabase/functions/stripe-webhook/index.ts');
-  assert.match(stripe, /LIMITES: Record<string, number> = \{ esencial: 15, profesional: 40, premium: 100 \}/);
+  // Los límites por plan viven ahora en _shared/stripe-plans.ts y stripe-webhook los importa.
+  const planes = read('supabase/functions/_shared/stripe-plans.ts');
+  assert.match(planes, /PLAN_LIMITES: Record<string, number> = \{ esencial: 15, profesional: 40, premium: 100 \}/);
+  assert.match(read('supabase/functions/stripe-webhook/index.ts'), /const LIMITES = PLAN_LIMITES;/);
 });
 
 test('S1: el trigger de alta ya no confía en plan ni limite_diagnosticos del metadato', () => {

@@ -11,6 +11,8 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { makeCors } from '../_shared/cors.ts';
+import { requireUser } from '../_shared/auth.ts';
+import { resolverPlanCheckout } from '../_shared/stripe-plans.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { httpClient: Stripe.createFetchHttpClient() });
 const supabaseAdmin = createClient(
@@ -24,18 +26,31 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
-    const authHeader = req.headers.get('Authorization') || '';
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(jwt);
-    if (userErr || !userData.user) {
-      return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const auth = await requireUser(req, CORS);
+    if (auth.response) return auth.response;
+    const authUser = auth.user!;
+    // La suscripción pertenece a la clínica: solo el dueño (cuenta cuyo id = tenant) puede contratarla.
+    if (authUser.id !== auth.tenantId) {
+      return new Response(JSON.stringify({ error: 'Solo el dueño de la clínica puede gestionar la suscripción.' }), { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
-    const authUser = userData.user;
 
-    const { priceId, planKey } = await req.json();
-    if (!priceId || !planKey) {
-      return new Response(JSON.stringify({ error: 'Falta priceId o planKey' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    let body: Record<string, unknown> = {};
+    try { body = await req.json(); } catch { /* body vacío: se rechaza abajo */ }
+    // El Price ID NUNCA viene del navegador: se resuelve en el servidor a partir del plan pedido
+    // (si el cliente manda `priceId`, se ignora).
+    const plan = resolverPlanCheckout(body?.planKey, {
+      esencial: Deno.env.get('STRIPE_PRICE_ESENCIAL'),
+      profesional: Deno.env.get('STRIPE_PRICE_PROFESIONAL'),
+      premium: Deno.env.get('STRIPE_PRICE_PREMIUM'),
+    });
+    if ('error' in plan) {
+      const sinConfigurar = plan.error === 'plan_no_configurado';
+      return new Response(JSON.stringify({ error: sinConfigurar ? 'Este plan todavía no está disponible para contratar.' : 'Plan inválido.' }), {
+        status: sinConfigurar ? 503 : 400,
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
     }
+    const { planKey, priceId } = plan;
 
     const { data: tenant } = await supabaseAdmin.from('camila_tenants').select('*').eq('id', authUser.id).single();
 
@@ -63,6 +78,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ url: session.url }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('[stripe-checkout] error:', e);
-    return new Response(JSON.stringify({ error: e.message || 'Error interno' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+    return new Response(JSON.stringify({ error: 'No se pudo iniciar el pago. Intenta de nuevo.' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   }
 });

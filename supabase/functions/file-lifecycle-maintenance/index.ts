@@ -36,6 +36,19 @@ Deno.serve(async(req:Request)=>{
       }catch(error){errors++;console.error('[file-lifecycle] cleanup',item.bucket_id,error instanceof Error?error.message:'error');}
     }
 
+    // Retención del audio de MILA (mila_recordings.retention_until, 30 días): se borra el archivo del Storage y luego
+    // la fila. Si el archivo ya no existe, remove() no falla y la fila se limpia igual en la siguiente pasada.
+    const expiredAudio=await admin.from('mila_recordings').select('id,object_path').eq('tenant_id',tenant).lte('retention_until',new Date().toISOString()).limit(50);
+    if(expiredAudio.error)throw expiredAudio.error;
+    for(const recording of expiredAudio.data||[]){
+      try{
+        const removedAudio=await admin.storage.from('mila-audio').remove([recording.object_path]);
+        if(removedAudio.error)throw removedAudio.error;
+        const removedRow=await admin.from('mila_recordings').delete().eq('id',recording.id).eq('tenant_id',tenant);
+        if(removedRow.error)throw removedRow.error;deleted++;
+      }catch(error){errors++;console.error('[file-lifecycle] mila-audio',error instanceof Error?error.message:'error');}
+    }
+
     const legacy=await admin.rpc('smyl_file_legacy_candidates',{p_tenant:tenant,p_limit:3});
     if(legacy.error)throw legacy.error;
     for(const item of legacy.data||[]){
