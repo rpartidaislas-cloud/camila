@@ -7,7 +7,7 @@
  Evalúa primero si la imagen es usable, limited o unusable y explica el límite. Rotación, recorte, desenfoque, superposición, exposición y compresión pueden impedir la revisión. Si es unusable devuelve observations:[]. Si es limited limita cada observación a lo realmente visible. La etiqueta del tipo de estudio puede ser incorrecta. Usa FDI permanente solo cuando la pieza sea inequívoca; de lo contrario tooth:null. Para cada observación indica x e y: el centro aproximado de la zona a comprobar, normalizado de 0 a 1 desde la esquina superior izquierda de la imagen recibida (x crece hacia la derecha, y hacia abajo), con como máximo tres decimales. Si no puedes ubicarla con prudencia, usa null en ambos. Es solo una propuesta de ubicación: el dentista comprobará y moverá cada punto.
  Alcance por tipo: una panorámica sirve para una revisión global prudente, no para confirmar detalles finos; una periapical muestra una zona localizada; una aleta de mordida muestra coronas y crestas visibles; other exige cautela adicional. No interpretes CBCT, tomografía, resonancia, DICOM, reconstrucciones 3D ni estudios no dentales.
  Como máximo 12 observaciones no duplicadas. evidence dice dónde debe mirar el dentista sin diagnosticar. Categorías permitidas: density, contour, restoration, support, development, other.
- Contrato exacto: {"schema":1,"quality":"usable|limited|unusable","qualityNote":"máximo 400 caracteres","observations":[{"id":"r1","category":"density|contour|restoration|support|development|other","tooth":"11 o cualquier FDI permanente, o null JSON","observation":"descripción prudente, máximo 500 caracteres","evidence":"zona visible donde comprobar, máximo 300 caracteres","x":"0 a 1 o null","y":"0 a 1 o null"}],"limitations":["máximo 8 textos de 300 caracteres"]}. Usa ids r1, r2... No añadas otros campos.`;
+ Contrato exacto: {"schema":1,"quality":"usable|limited|unusable","qualityNote":"máximo 400 caracteres","observations":[{"id":"r1","category":"density|contour|restoration|support|development|other","tooth":"11 o cualquier FDI permanente; si no es inequívoco, el literal JSON null sin comillas (nunca el texto 'null')","observation":"descripción prudente, máximo 500 caracteres","evidence":"zona visible donde comprobar, máximo 300 caracteres","x":"0 a 1 o null","y":"0 a 1 o null"}],"limitations":["máximo 8 textos de 300 caracteres"]}. Usa ids r1, r2... No añadas otros campos.`;
  // El modelo a veces envuelve el JSON en ```json ... ``` o antepone una frase pese a la instrucción. Se extrae el objeto;
  // parseReport sigue validando el contrato completo (campos exactos, límites, categorías), así que esto no relaja la seguridad.
  function parseModelJson(text){
@@ -26,6 +26,9 @@
    if(!o||typeof o!=='object'||Array.isArray(o))return o;
    const {x,y,...rest}=o,ok=[x,y].every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1);
    if(ok&&typeof rest.id==='string')locations[rest.id]={x:Math.round(x*1000)/1000,y:Math.round(y*1000)/1000};
+   // El modelo a veces escribe el texto "null" en lugar del null de JSON cuando no ubica la pieza. Es el mismo significado,
+   // así que se normaliza aquí; cualquier otro valor sigue pasando por la validación estricta de FDI.
+   if(typeof rest.tooth==='string'&&/^\s*(null|none|n\/a)?\s*$/i.test(rest.tooth))rest.tooth=null;
    return rest;
   });
   return {report:Object.assign({},value,{observations}),locations};

@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-31 — Claude — Radiografía: «diente "null" no es un número FDI válido»
+
+- Causa: el análisis de radiografías usa Claude (`claude-sonnet-4-6`, API de Anthropic, vía la
+  Edge Function `claude`) sin esquema JSON forzado. El contrato del prompt decía
+  `"tooth":"... o null JSON"` y el modelo respondía a veces el **texto** `"null"` en vez del
+  `null` de JSON; la validación estricta lo rechazaba y la revisión quedaba «sin resultado».
+- `smyl-radiograph-analysis-client.js` v5: `splitLocations` convierte el texto `null`/`none`/`n/a`
+  o vacío en `null` antes de validar; cualquier otro diente inválido sigue rechazándose. El
+  prompt aclara «el literal JSON null sin comillas (nunca el texto 'null')».
+- Idea pendiente (no hecha, requiere desplegar la Edge Function): forzar un esquema JSON en el
+  servidor como ya se hace con el análisis de fotos (`output_config` + `json_schema`).
+- Archivos: cliente y copia móvil, `app.html`/`sw.js` (+ copias, caché `radiograph-null-v57`),
+  `tests/radiograph-v1-locations.test.mjs`.
+
 ## 2026-10-31 — Claude — Adiós al «brinco» al entrar y a la expulsión del expediente
 
 - Causa: cuando salía una versión nueva, `app.html` recargaba la página en cuanto el
