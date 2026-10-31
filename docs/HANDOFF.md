@@ -1,5 +1,48 @@
 # Bitácora compartida — SMYL
 
+## 2026-10-31 — Claude — Radiografía con Claude Opus 5.5 y medición del consumo
+
+- **Modelo fijado por el servidor.** Nueva acción `analyze_dental_radiograph_v1` en la Edge Function `claude`
+  (módulo `_shared/radiograph-claude.ts`): modelo `claude-opus-5-5`, esfuerzo `medium` (Opus 5.5 lo trae por
+  defecto; subir a `high` en `RADIOGRAPH_EFFORT` cuando la medición muestre que cabe en el tiempo), `max_tokens`
+  12000, corte a 100 s y esquema JSON forzado (`output_config.format`), con `tooth`/`x`/`y` como `null` real.
+  Solo sesión profesional (`user.id === tenant`). La respuesta al navegador lleva solo bloques de texto.
+- **Cliente** (`smyl-radiograph-analysis-client.js` v6): usa la acción, ya no manda modelo ni `max_tokens`, y
+  envía la imagen hasta 2576 px / 3.75 MP (antes 1568 px / 1.15 MP). La normalización del texto `"null"` del PR
+  anterior se conserva como segunda red.
+- **Revisión guardada**: `analysis.model` acepta `claude-sonnet-4-6` (revisiones anteriores) y `claude-opus-5-5`
+  tanto en `smyl-radiograph-review-model.js` (v4) como en la base (migración `20261031130000`, que redefine
+  `smyl_validate_radiograph_review` con una sola condición cambiada).
+- **Medición**: tabla `smyl_ai_usage_log` (migración `20261031120000`) con tokens reales, tiempo, resultado y costo
+  estimado por análisis; sin imágenes ni datos de pacientes. Solo escribe la Edge Function; la clínica lee el
+  resumen con `smyl_ai_usage_summary()` (permiso `clinic.manage`). Tarjeta nueva «Análisis de radiografía» en
+  Plan y consumo → MILA e IA (`consumos.html`, `smyl-consumption.js/css` v7).
+- **Para activar (a mano):** 1) aplicar las dos migraciones en el SQL Editor, en ese orden; 2) volver a desplegar
+  `claude` (pegar `docs/bundles/claude.single-file.ts` en el dashboard). Hasta aplicar la migración de modelo,
+  guardar una revisión hecha con Opus fallaría en la base.
+- **Generador de bundles** (`scripts/bundle-edge-function.mjs`): no entendía `import { a,\n b } from "../_shared/x.ts"`
+  repartido en varias líneas, así que `docs/bundles/claude.single-file.ts` salía con `import {;` y líneas sueltas y no
+  compilaba (ya en `main`). Ahora junta esos imports y resuelve `./x.ts` junto al `index.ts` de la función. El bundle de
+  `claude` se verificó con el compilador de TypeScript (sin errores de sintaxis). Aviso: `segment-teeth` también cambió y
+  su bundle tiene `createClient` importado dos veces (esm.sh y npm); ya fallaba antes, no se tocó la función.
+- Archivos: `supabase/functions/claude/index.ts`, `supabase/functions/_shared/radiograph-claude.ts`,
+  `docs/bundles/claude.single-file.ts`, 2 migraciones, cliente/modelo/consumo + copias móviles,
+  `app.html`/`sw.js` (caché `radiograph-opus-v58`), `tests/radiograph-opus-usage.test.mjs`.
+
+## 2026-10-31 — Claude — Radiografía: «diente "null" no es un número FDI válido»
+
+- Causa: el análisis de radiografías usa Claude (`claude-sonnet-4-6`, API de Anthropic, vía la
+  Edge Function `claude`) sin esquema JSON forzado. El contrato del prompt decía
+  `"tooth":"... o null JSON"` y el modelo respondía a veces el **texto** `"null"` en vez del
+  `null` de JSON; la validación estricta lo rechazaba y la revisión quedaba «sin resultado».
+- `smyl-radiograph-analysis-client.js` v5: `splitLocations` convierte el texto `null`/`none`/`n/a`
+  o vacío en `null` antes de validar; cualquier otro diente inválido sigue rechazándose. El
+  prompt aclara «el literal JSON null sin comillas (nunca el texto 'null')».
+- Idea pendiente (no hecha, requiere desplegar la Edge Function): forzar un esquema JSON en el
+  servidor como ya se hace con el análisis de fotos (`output_config` + `json_schema`).
+- Archivos: cliente y copia móvil, `app.html`/`sw.js` (+ copias, caché `radiograph-null-v57`),
+  `tests/radiograph-v1-locations.test.mjs`.
+
 ## 2026-10-31 — Claude — Adiós al «brinco» al entrar y a la expulsión del expediente
 
 - Causa: cuando salía una versión nueva, `app.html` recargaba la página en cuanto el

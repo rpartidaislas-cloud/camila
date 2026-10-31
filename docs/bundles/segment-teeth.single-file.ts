@@ -3,7 +3,6 @@
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {;
 import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -238,6 +237,194 @@ async function readBodyWithLimit(res: Response, maxBytes = MAX_REMOTE_IMAGE_BYTE
 return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit };
 })();
 
+// ── _shared/limits.ts ──
+const { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto } = (() => {
+// Tope de gasto server-side para las Edge Functions que llaman APIs de
+// pago (Anthropic, Gemini, Replicate). Antes el límite de plan
+// (limite_diagnosticos/diagnosticos_usados) solo se checaba en el cliente
+// -- cualquiera que llamara al Edge Function directo, sin pasar por la UI,
+// generaba simulaciones sin ningún tope real. Ver migración
+// camila_limits.sql para las funciones de Postgres que hacen el chequeo
+// atómico (RPC, SECURITY DEFINER, solo invocables por el service_role).
+//
+// Mientras _shared/auth.ts siga aceptando llamadas sin sesión (pedido
+// explícito del usuario), este módulo también aplica un tope duro por
+// IP/hora a esas llamadas anónimas -- no reemplaza el login, solo evita
+// que un link compartido genere gasto sin límite.
+
+
+const SB_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('SB_URL') || '';
+const SB_SERVICE_ROLE_KEY =
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SB_SERVICE_ROLE_KEY') || '';
+
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+// 20/hora ≈ 5 simulaciones por IP por hora. Estaba en 5, que sonaba a "5
+// simulaciones" pero en realidad era ~1: una sola simulación hace ~4
+// llamadas a la Edge Function (validar encuadre, analizar proporciones,
+// diagnóstico, generar imagen), así que la segunda simulación de cada hora
+// se bloqueaba con "Demasiadas solicitudes" -- y como ese error no era ni
+// caída de red ni timeout, la pantalla lo mostraba como "problema de
+// conexión", mandando a reintentar algo que solo se arregla esperando.
+// Sigue siendo un techo real contra abuso; el gasto de un dentista con
+// sesión no pasa por aquí, lo limita el cupo de su plan.
+const ANON_LIMITE_POR_HORA = Number(Deno.env.get('ANON_HOURLY_LIMIT') || '20');
+const ANON_VENTANA_SEG = 3600;
+
+// Perilla aparte para el modo prospecto (paciente que entra por el link
+// público de una clínica). Hoy vale lo mismo que el anónimo, pero se deja
+// separada a propósito: son dos poblaciones distintas y probablemente
+// haya que ajustar una sin tocar la otra -- un prospecto además está
+// respaldado por el cupo del plan de SU clínica, un anónimo puro no.
+const PROSPECTO_LIMITE_POR_HORA = Number(Deno.env.get('PROSPECTO_HOURLY_LIMIT') || '20');
+
+interface LimitResult {
+  allowed: boolean;
+  response: Response | null;
+}
+
+function limitDeny(cors: Record<string, string>, status: number, msg: string): Response {
+  const headers: Record<string, string> = { ...cors, 'Content-Type': 'application/json' };
+  if (status === 429) headers['Retry-After'] = '60';
+  return new Response(JSON.stringify({ error: msg }), { status, headers });
+}
+
+function ipDelRequest(req: Request): string {
+  const fwd = req.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'sin-ip';
+}
+
+const MENSAJES_TENANT: Record<string, string> = {
+  tenant_no_encontrado: 'No se encontró tu cuenta de clínica.',
+  plan_inactivo: 'Tu plan no está activo. Revisa tu suscripción.',
+  plan_vencido: 'Tu plan venció. Renueva tu suscripción para seguir generando simulaciones.',
+  limite_alcanzado: 'Alcanzaste el límite de diagnósticos de tu plan en este periodo.',
+};
+
+// Verifica que la clínica pueda seguir generando, SIN descontarle nada.
+// Existe porque una sola simulación hace VARIAS llamadas a la Edge
+// Function `claude` (validar encuadre + analizar proporciones + analizar
+// fotos + generar imagen, más los reintentos automáticos de conReintento):
+// si cada una descontara un "diagnóstico", un plan de 40 daría ~10
+// simulaciones reales en vez de 40, que no es lo que el dentista compró ni
+// lo que dice su plan. Solo la generación de imagen descuenta (ver
+// claude/index.ts); el resto pasa por aquí.
+async function checkLimitSinConsumir(
+  tenantId: string | null,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  if (!tenantId) return { allowed: true, response: null };
+
+  const { data, error } = await admin
+    .from('camila_tenants')
+    .select('activo, vence_en, diagnosticos_usados, limite_diagnosticos')
+    .eq('id', tenantId)
+    .maybeSingle();
+
+  // Falla de infraestructura ajena al usuario -- mismo criterio que el
+  // resto de este archivo: no bloquear por eso, dejar rastro en los logs.
+  if (error) {
+    console.error('[limits] error verificando tenant:', error.message);
+    return { allowed: true, response: null };
+  }
+  if (!data) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.tenant_no_encontrado) };
+  if (!data.activo) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_inactivo) };
+  if (data.vence_en && new Date(data.vence_en as string) < new Date()) {
+    return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_vencido) };
+  }
+  if ((data.diagnosticos_usados as number) >= (data.limite_diagnosticos as number)) {
+    return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.limite_alcanzado) };
+  }
+  return { allowed: true, response: null };
+}
+
+// Llamar UNA vez por request, antes de gastar en la API externa. Si
+// allowed=false, response ya trae el error listo para devolver tal cual.
+async function checkAndConsumeLimit(
+  req: Request,
+  tenantId: string | null, // el tenantId resuelto por requireUser() -- NUNCA user.id crudo, ver _shared/auth.ts
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  if (tenantId) {
+    const { data, error } = await admin.rpc('camila_consumir_diagnostico', { p_tenant_id: tenantId });
+    if (error) {
+      // Falla de infraestructura ajena al usuario (RPC no desplegada,
+      // conexión a la BD caída, etc.) -- no lo bloqueamos por eso, mejor
+      // dejar pasar y que quede en los logs.
+      console.error('[limits] error RPC camila_consumir_diagnostico:', error.message);
+      return { allowed: true, response: null };
+    }
+    const fila = Array.isArray(data) ? data[0] : data;
+    if (!fila?.permitido) {
+      const motivo = fila?.motivo || 'limite_alcanzado';
+      return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT[motivo] || MENSAJES_TENANT.limite_alcanzado) };
+    }
+    return { allowed: true, response: null };
+  }
+
+  // Sin sesión (acceso anónimo temporalmente permitido, ver auth.ts).
+  return checkLimitPorIp(req, ANON_LIMITE_POR_HORA, cors);
+}
+
+async function checkLimitPorIp(
+  req: Request,
+  limitePorHora: number,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  const ip = ipDelRequest(req);
+  const { data, error } = await admin.rpc('camila_anon_rate_check', {
+    p_ip: ip,
+    p_limite: limitePorHora,
+    p_ventana_seg: ANON_VENTANA_SEG,
+  });
+  if (error) {
+    console.error('[limits] error RPC camila_anon_rate_check:', error.message);
+    return { allowed: true, response: null };
+  }
+  if (!data) {
+    return {
+      allowed: false,
+      response: limitDeny(cors, 429, 'Demasiadas solicitudes desde esta conexión. Intenta de nuevo en un rato.'),
+    };
+  }
+  return { allowed: true, response: null };
+}
+
+// Camino especial para el modo "prospecto" de simulacion.html (paciente
+// sin cuenta, entra por un link público con el tenant_id de la clínica en
+// la URL, ver ?clinica=<id> y entrarComoProspecto()). A diferencia del
+// resto de este archivo, aquí el tenant_id NO viene de una sesión
+// verificada -- lo manda el cliente sin más prueba que "conoce el link
+// público de esa clínica". Por eso se exigen los DOS controles, no uno
+// solo: el tope real de la clínica (protege su cupo pagado, y de paso
+// confirma que el tenant_id es real) Y el tope genérico por IP (protege
+// contra que alguien intente drenar el cupo de una clínica ajena a punta
+// de scripts, ahora que conoce su tenant_id).
+async function checkAndConsumeLimitProspecto(
+  req: Request,
+  tenantIdCliente: string,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  const porIp = await checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
+  if (!porIp.allowed) return porIp;
+  return checkAndConsumeLimit(req, tenantIdCliente, cors);
+}
+
+// Tope por IP para las llamadas de prospecto que NO descuentan del plan
+// (los análisis previos a la imagen). Sin esto, alguien podría spamear
+// análisis con Anthropic gratis usando el link público de una clínica sin
+// tocar nunca su contador.
+async function checkLimitPorIpProspecto(
+  req: Request,
+  cors: Record<string, string>
+): Promise<LimitResult> {
+  return checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
+}
+
+return { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto };
+})();
+
 // ── _shared/cors.ts ──
 const { makeCors, corsPublic, corsHeaders } = (() => {
 // Orígenes autorizados para funciones privadas (autenticadas).
@@ -272,6 +459,268 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
+// ── _shared/mask-utils.ts ──
+const { calculateGptCanvas, calculateOutputSize, cropBitmapToSource, extractMaskComponents } = (() => {
+interface MaskComponent {
+  bbox: [number, number, number, number];
+  pixelCount: number;
+  fileData: Uint8Array;
+  contentType: "image/svg+xml";
+  fileExtension: "svg";
+}
+
+interface OutputSize {
+  width: number;
+  height: number;
+  value: string;
+}
+
+interface GptCanvas {
+  width: number;
+  height: number;
+  sourceX: number;
+  sourceY: number;
+  padded: boolean;
+}
+
+interface CroppedBitmap {
+  width: number;
+  height: number;
+  bitmap: Uint8Array;
+}
+
+const MIN_OUTPUT_PIXELS = 655_360;
+const MAX_OUTPUT_PIXELS = 8_294_400;
+const MAX_OUTPUT_EDGE = 3_840;
+
+function multipleOf16(value: number): number {
+  return Math.max(16, Math.ceil(value / 16) * 16);
+}
+
+function assertDimensions(width: number, height: number): void {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    throw new Error("Dimensiones de imagen inválidas.");
+  }
+}
+
+// Los recortes clínicos pueden ser panorámicos, especialmente cuando se
+// comparan original y propuesta lado a lado. En vez de deformarlos o
+// recortarlos, se centran sobre un lienzo negro con relación máxima 3:1.
+function calculateGptCanvas(sourceWidth: number, sourceHeight: number): GptCanvas {
+  assertDimensions(sourceWidth, sourceHeight);
+  const width = Math.round(sourceWidth);
+  const height = Math.round(sourceHeight);
+  let canvasWidth = width;
+  let canvasHeight = height;
+
+  if (width / height > 3) canvasHeight = Math.ceil(width / 3);
+  if (height / width > 3) canvasWidth = Math.ceil(height / 3);
+
+  return {
+    width: canvasWidth,
+    height: canvasHeight,
+    sourceX: Math.floor((canvasWidth - width) / 2),
+    sourceY: Math.floor((canvasHeight - height) / 2),
+    padded: canvasWidth !== width || canvasHeight !== height,
+  };
+}
+
+// GPT Image 2 admite tamaños flexibles, pero exige múltiplos de 16, un
+// mínimo de píxeles y una relación máxima 3:1. La app ya manda un recorte de
+// sonrisa; sólo se escala el lienzo de salida, nunca se recorta ni deforma.
+function calculateOutputSize(sourceWidth: number, sourceHeight: number): OutputSize {
+  assertDimensions(sourceWidth, sourceHeight);
+  const ratio = sourceWidth / sourceHeight;
+  if (ratio > 3 || ratio < 1 / 3) {
+    throw new Error("El recorte dental excede la relación 3:1 admitida por GPT Image.");
+  }
+
+  let scale = Math.max(1, Math.sqrt(MIN_OUTPUT_PIXELS / (sourceWidth * sourceHeight)));
+  let width = multipleOf16(sourceWidth * scale);
+  let height = multipleOf16(sourceHeight * scale);
+
+  if (width > MAX_OUTPUT_EDGE || height > MAX_OUTPUT_EDGE || width * height > MAX_OUTPUT_PIXELS) {
+    scale = Math.min(
+      MAX_OUTPUT_EDGE / sourceWidth,
+      MAX_OUTPUT_EDGE / sourceHeight,
+      Math.sqrt(MAX_OUTPUT_PIXELS / (sourceWidth * sourceHeight)),
+    );
+    width = Math.max(16, Math.floor(sourceWidth * scale / 16) * 16);
+    height = Math.max(16, Math.floor(sourceHeight * scale / 16) * 16);
+  }
+
+  return { width, height, value: `${width}x${height}` };
+}
+
+// Recorta del bitmap devuelto por GPT el margen agregado antes de enviarlo.
+// El cálculo usa proporciones porque GPT puede devolver una resolución distinta
+// a la del lienzo de entrada, pero conserva el mismo sistema de coordenadas.
+function cropBitmapToSource(
+  bitmapWidth: number,
+  bitmapHeight: number,
+  bitmap: Uint8Array,
+  inputWidth: number,
+  inputHeight: number,
+  sourceX: number,
+  sourceY: number,
+  sourceWidth: number,
+  sourceHeight: number,
+): CroppedBitmap {
+  assertDimensions(bitmapWidth, bitmapHeight);
+  assertDimensions(inputWidth, inputHeight);
+  assertDimensions(sourceWidth, sourceHeight);
+  if (bitmap.byteLength !== bitmapWidth * bitmapHeight * 4) {
+    throw new Error("La máscara GPT tiene un tamaño de bitmap inválido.");
+  }
+
+  const scaleX = bitmapWidth / inputWidth;
+  const scaleY = bitmapHeight / inputHeight;
+  const left = Math.max(0, Math.min(bitmapWidth - 1, Math.round(sourceX * scaleX)));
+  const top = Math.max(0, Math.min(bitmapHeight - 1, Math.round(sourceY * scaleY)));
+  const right = Math.max(left + 1, Math.min(bitmapWidth, Math.round((sourceX + sourceWidth) * scaleX)));
+  const bottom = Math.max(top + 1, Math.min(bitmapHeight, Math.round((sourceY + sourceHeight) * scaleY)));
+  const width = right - left;
+  const height = bottom - top;
+  const cropped = new Uint8Array(width * height * 4);
+
+  for (let row = 0; row < height; row++) {
+    const sourceStart = ((top + row) * bitmapWidth + left) * 4;
+    const sourceEnd = sourceStart + width * 4;
+    cropped.set(bitmap.subarray(sourceStart, sourceEnd), row * width * 4);
+  }
+
+  return { width, height, bitmap: cropped };
+}
+
+function componentSvg(width: number, height: number, pixels: number[]): Uint8Array {
+  pixels.sort((a, b) => a - b);
+  let path = "";
+  let cursor = 0;
+  while (cursor < pixels.length) {
+    const first = pixels[cursor];
+    const y = Math.floor(first / width);
+    const startX = first - y * width;
+    let endX = startX;
+    cursor++;
+    while (cursor < pixels.length) {
+      const next = pixels[cursor];
+      const nextY = Math.floor(next / width);
+      const nextX = next - nextY * width;
+      if (nextY !== y || nextX !== endX + 1) break;
+      endX = nextX;
+      cursor++;
+    }
+    const runWidth = endX - startX + 1;
+    path += `M${startX} ${y}h${runWidth}v1h-${runWidth}z`;
+  }
+
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges">` +
+    `<path fill="#fff" d="${path}"/></svg>`;
+  return new TextEncoder().encode(svg);
+}
+
+function isForeground(bitmap: Uint8Array, offset: number): boolean {
+  const red = bitmap[offset];
+  const green = bitmap[offset + 1];
+  const blue = bitmap[offset + 2];
+  const alpha = bitmap[offset + 3];
+  if (alpha < 72) return false;
+  const minimum = Math.min(red, green, blue);
+  const maximum = Math.max(red, green, blue);
+  const luminance = red * 0.299 + green * 0.587 + blue * 0.114;
+  // El prompt pide blanco puro sobre negro. Esta tolerancia conserva el
+  // antialias de los bordes, pero excluye fondos, sombras y colores espurios.
+  return luminance >= 150 && minimum >= 118 && maximum - minimum <= 90;
+}
+
+function extractMaskComponents(
+  width: number,
+  height: number,
+  bitmap: Uint8Array,
+  sourceWidth = width,
+  sourceHeight = height,
+): MaskComponent[] {
+  if (bitmap.byteLength !== width * height * 4) {
+    throw new Error("La máscara GPT tiene un tamaño de bitmap inválido.");
+  }
+
+  const foreground = new Uint8Array(width * height);
+  let foregroundCount = 0;
+  for (let index = 0; index < foreground.length; index++) {
+    if (!isForeground(bitmap, index * 4)) continue;
+    foreground[index] = 1;
+    foregroundCount++;
+  }
+
+  const coverage = foregroundCount / foreground.length;
+  if (coverage < 0.0004 || coverage > 0.24) {
+    throw new Error("GPT devolvió una máscara dental con cobertura inválida.");
+  }
+
+  const visited = new Uint8Array(foreground.length);
+  const queue = new Int32Array(foreground.length);
+  const minimumArea = Math.max(40, Math.round(foreground.length * 0.000035));
+  const rawComponents: Array<{ pixels: number[]; bbox: [number, number, number, number] }> = [];
+
+  for (let seed = 0; seed < foreground.length; seed++) {
+    if (!foreground[seed] || visited[seed]) continue;
+    let head = 0;
+    let tail = 0;
+    queue[tail++] = seed;
+    visited[seed] = 1;
+    const pixels: number[] = [];
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+
+    while (head < tail) {
+      const current = queue[head++];
+      pixels.push(current);
+      const y = Math.floor(current / width);
+      const x = current - y * width;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+
+      const left = current - 1;
+      const right = current + 1;
+      const up = current - width;
+      const down = current + width;
+      if (x > 0 && foreground[left] && !visited[left]) { visited[left] = 1; queue[tail++] = left; }
+      if (x + 1 < width && foreground[right] && !visited[right]) { visited[right] = 1; queue[tail++] = right; }
+      if (y > 0 && foreground[up] && !visited[up]) { visited[up] = 1; queue[tail++] = up; }
+      if (y + 1 < height && foreground[down] && !visited[down]) { visited[down] = 1; queue[tail++] = down; }
+    }
+
+    if (pixels.length < minimumArea) continue;
+    rawComponents.push({ pixels, bbox: [minX, minY, maxX - minX + 1, maxY - minY + 1] });
+  }
+
+  const scaleX = sourceWidth / width;
+  const scaleY = sourceHeight / height;
+  return rawComponents
+    .sort((a, b) => b.pixels.length - a.pixels.length)
+    .slice(0, 64)
+    .map((component) => ({
+      bbox: [
+        component.bbox[0] * scaleX,
+        component.bbox[1] * scaleY,
+        component.bbox[2] * scaleX,
+        component.bbox[3] * scaleY,
+      ] as [number, number, number, number],
+      pixelCount: component.pixels.length,
+      fileData: componentSvg(width, height, component.pixels),
+      contentType: "image/svg+xml" as const,
+      fileExtension: "svg" as const,
+    }));
+}
+
+return { calculateGptCanvas, calculateOutputSize, cropBitmapToSource, extractMaskComponents };
+})();
+
 // ── segment-teeth/index.ts ──
 // supabase/functions/segment-teeth/index.ts
 //
@@ -290,15 +739,6 @@ return { makeCors, corsPublic, corsHeaders };
 // índice y se guardan en una columna separada (segmentacion_encia) para
 // no pisar la segmentación de dientes ya guardada.
 
-  checkAndConsumeLimit,
-  checkLimitPorIpProspecto,
-  checkLimitSinConsumir,
-} from "../_shared/limits.ts";
-  calculateGptCanvas,
-  calculateOutputSize,
-  cropBitmapToSource,
-  extractMaskComponents,
-} from "./mask-utils.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const OPENAI_SEGMENTATION_MODEL =

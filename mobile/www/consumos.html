@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-  <link rel="stylesheet" href="smyl-consumption.css?v=6">
+  <link rel="stylesheet" href="smyl-consumption.css?v=7">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 </head>
 <body>
@@ -78,6 +78,7 @@
         <section class="usage-pane" data-usage-pane="mila">
           <div class="usage-page-intro"><div><span class="usage-eyebrow">MILA E INTELIGENCIA ARTIFICIAL</span><h2>Voz y funciones clínicas asistidas</h2><p>MILA se mide por tiempo de uso; los análisis y generaciones se administran mediante créditos.</p></div></div>
           <div class="usage-resource-layout"><article class="usage-resource-card" id="mila-detail"></article><article class="usage-resource-card" id="ai-detail"></article></div>
+          <article class="usage-resource-card usage-resource-wide usage-ai-measure" id="radiograph-usage" aria-live="polite"><div class="usage-ai-measure-head"><span class="usage-eyebrow">MEDICIÓN REAL · ÚLTIMOS 30 DÍAS</span><h3>Análisis de radiografía</h3></div><p class="usage-ai-measure-empty">Leyendo la medición…</p></article>
           <article class="usage-section-card usage-boundary"><span class="usage-boundary-icon" data-icon="shield"></span><div><strong>La escritura manual no consume créditos</strong><p>Solamente se mide cuando el equipo activa MILA, dicta, transcribe o solicita una función de IA. El consumo técnico de tokens se conservará en servidor; la clínica opera con créditos fáciles de entender.</p></div></article>
           <section class="usage-package-section"><header><span class="usage-kicker">PAQUETES</span><h3>Minutos y créditos adicionales</h3><p>El catálogo ya está preparado; compra y precios se habilitarán después de validar dos ciclos completos de medición.</p></header><div class="usage-packages" id="mila-packages"></div></section>
         </section>
@@ -128,6 +129,6 @@
     <div class="usage-purchase-actions"><button class="usage-button usage-button-secondary" id="purchase-cancel" type="button">Cancelar</button><button class="usage-button usage-button-primary" id="purchase-confirm" type="button">Continuar al pago seguro</button></div>
   </dialog>
   <div class="usage-toast" id="usage-toast" role="status" aria-live="polite"></div>
-  <script src="smyl-consumption.js?v=6"></script>
+  <script src="smyl-consumption.js?v=7"></script>
 </body>
 </html>

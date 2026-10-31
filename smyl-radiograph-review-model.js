@@ -4,6 +4,8 @@
  const types=['panoramic','periapical','bitewing','other'];
  const categories=['density','contour','restoration','support','development','other'];
  const states=['ready','requested','completed','unconfirmed'];
+ // Modelos con los que se guardó un análisis: las revisiones anteriores usan Sonnet 4.6; las nuevas, Opus 5.5.
+ const models=['claude-sonnet-4-6','claude-opus-5-5'];
  const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v);
  const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
  const text=(v,n,min=0)=>typeof v==='string'&&v.length<=n&&v.trim().length>=min;
@@ -41,7 +43,7 @@
    if(['requested','unconfirmed'].includes(doc.workflow.state)&&(doc.workflow.attempt!==1||doc.analysis!==null||doc.items.length))return false;
    let report=null;
    if(doc.workflow.state==='completed'){
-    if(doc.workflow.attempt!==1||!exact(doc.analysis,['model','at','requestId','report'])||doc.analysis.model!=='claude-sonnet-4-6'||!text(doc.analysis.at,40,1)||!Number.isFinite(Date.parse(doc.analysis.at))||!text(doc.analysis.requestId,104)||doc.analysis.requestId&&!/^msg_[a-zA-Z0-9_-]{1,100}$/.test(doc.analysis.requestId))return false;
+    if(doc.workflow.attempt!==1||!exact(doc.analysis,['model','at','requestId','report'])||!models.includes(doc.analysis.model)||!text(doc.analysis.at,40,1)||!Number.isFinite(Date.parse(doc.analysis.at))||!text(doc.analysis.requestId,104)||doc.analysis.requestId&&!/^msg_[a-zA-Z0-9_-]{1,100}$/.test(doc.analysis.requestId))return false;
     report=parseReport(doc.analysis.report);if(!same(report,doc.analysis.report))return false;
    }else if(doc.analysis!==null)return false;
    const ids=new Set(),sources=new Set();for(const item of doc.items){

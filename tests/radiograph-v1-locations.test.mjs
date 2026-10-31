@@ -69,3 +69,11 @@ test('el prompt ya no prohíbe coordenadas y las pide normalizadas con null perm
   assert.match(src, /"x":"0 a 1 o null","y":"0 a 1 o null"/);
   assert.match(src, /return \{report,locations,model,at:/);
 });
+
+test('el texto "null" en tooth se trata como null, y un diente inválido sigue rechazándose', () => {
+  const { report } = splitLocations(base([{ tooth: 'null' }, { tooth: 'NULL' }]));
+  assert.deepEqual(report.observations.map(o => o.tooth), [null, null]);
+  assert.doesNotThrow(() => M.parseReport(report));
+  assert.throws(() => M.parseReport(splitLocations(base([{ tooth: '99' }, {}])).report), /diente "99"/);
+  assert.throws(() => M.parseReport(splitLocations(base([{ tooth: 'molar' }, {}])).report), /diente "molar"/);
+});

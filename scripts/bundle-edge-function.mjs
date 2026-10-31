@@ -22,6 +22,12 @@ if (!name || !/^[a-z0-9-]+$/.test(name)) {
 
 const functionsDir = path.join(root, 'supabase', 'functions');
 const read = (...parts) => fs.readFileSync(path.join(functionsDir, ...parts), 'utf8');
+// Un `import { a,\n b,\n } from "../_shared/x.ts";` repartido en varias líneas se junta en una sola, que es lo único que
+// reconoce el generador; si no, quedaban líneas sueltas y el bundle no compilaba.
+const joinImports = (source) => source.replace(/^import\s+(?:type\s+)?\{[^}]*\}\s*from\s*["'][^"']+["'];?[ \t]*$/gm, (statement) => statement.replace(/\s+/g, ' ').replace(/\{\s*,/, '{').replace(/,\s*\}/, ' }'));
+const readSource = (...parts) => joinImports(read(...parts));
+// `./x.ts` puede ser un archivo de la propia función (junto a su index.ts) o uno de _shared.
+const sharedParts = (file) => (fs.existsSync(path.join(functionsDir, name, file)) ? [name, file] : ['_shared', file]);
 const SHARED_IMPORT = /^import\s+(?:\{([^}]*)\}|(\w+))\s+from\s+["'](?:\.\.\/_shared\/|\.\/)([\w.-]+)["'];?\s*$/;
 // `import type { X } from './archivo.ts'`: sólo ordena la carga; los tipos se elevan al nivel superior (ver hoistTypes).
 const SHARED_TYPE_IMPORT = /^import\s+type\s+\{[^}]*\}\s+from\s+["'](?:\.\.\/_shared\/|\.\/)([\w.-]+)["'];?\s*$/;
@@ -53,7 +59,7 @@ const hoisted = [];
 function usesSharedTypeImports(file, seen = new Set()) {
   if (seen.has(file)) return false;
   seen.add(file);
-  const source = file === 'index.ts' ? read(name, 'index.ts') : read('_shared', file);
+  const source = file === 'index.ts' ? readSource(name, 'index.ts') : readSource(...sharedParts(file));
   const lines = source.split('\n');
   if (lines.some((line) => SHARED_TYPE_IMPORT.test(line))) return true;
   return lines.some((line) => { const m = line.match(SHARED_IMPORT); return m ? usesSharedTypeImports(m[3], seen) : false; });
@@ -79,7 +85,7 @@ function hoistTypes(code) {
 const modules = new Map();
 function loadShared(file) {
   if (modules.has(file)) return;
-  const source = read('_shared', file);
+  const source = readSource(...sharedParts(file));
   const imports = [];
   const body = [];
   for (const line of source.split('\n')) {
@@ -108,7 +114,7 @@ function loadShared(file) {
   modules.set(file, { code, exports, returns, externalImports, imports });
 }
 
-const main = read(name, 'index.ts');
+const main = readSource(name, 'index.ts');
 if (/^import\s*\{[^}]*\sas\s[^}]*\}\s*from\s*["']\.\.?\/(?:_shared\/)?[\w.-]+["']/m.test(main)) {
   console.error('index.ts importa un archivo compartido con alias ("x as y"); el generador no lo soporta. Usa el nombre original.');
   process.exit(1);
