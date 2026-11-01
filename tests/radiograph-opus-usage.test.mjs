@@ -9,7 +9,7 @@ const mod = await import('../supabase/functions/_shared/radiograph-claude.ts');
 test('el servidor fija modelo, esfuerzo y esquema; el navegador solo manda prompt e imagen', () => {
   assert.equal(mod.RADIOGRAPH_ACTION, 'analyze_dental_radiograph_v1');
   assert.equal(mod.RADIOGRAPH_MODEL, 'claude-opus-5-5');
-  assert.ok(mod.RADIOGRAPH_TIMEOUT_MS < 110000, 'debe cortar antes que el navegador (110 s)');
+  assert.ok(mod.RADIOGRAPH_TIMEOUT_MS < 130000, 'debe cortar antes que el navegador (130 s)');
   const fn = read('supabase/functions/claude/index.ts');
   assert.match(fn, /body\.action === RADIOGRAPH_ACTION[\s\S]{0,400}anthropicBody\.model = RADIOGRAPH_MODEL/);
   assert.match(fn, /output_config = \{\s*effort: RADIOGRAPH_EFFORT,\s*format: \{ type: "json_schema", schema: RADIOGRAPH_SCHEMA \}/);

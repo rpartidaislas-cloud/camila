@@ -9,10 +9,12 @@
 
 export const RADIOGRAPH_ACTION = "analyze_dental_radiograph_v1";
 export const RADIOGRAPH_MODEL = "claude-opus-5-5";
-// Opus 5.5 usa "medium" por defecto. Se sube a "high" cuando la medición confirme que cabe en el tiempo de espera.
-export const RADIOGRAPH_EFFORT = "medium";
+// "high" razona más antes de ubicar y nombrar cada pieza. Si la medición (Plan y consumo) muestra tiempos cercanos al límite
+// o errores de espera, volver a "medium".
+export const RADIOGRAPH_EFFORT = "high";
 export const RADIOGRAPH_MAX_TOKENS = 12000;
-export const RADIOGRAPH_TIMEOUT_MS = 100_000;
+// El navegador espera 130 s; el servidor corta antes para responder con un error claro.
+export const RADIOGRAPH_TIMEOUT_MS = 120_000;
 
 // Dólares por millón de tokens (entrada, salida, lectura de caché, escritura de caché). Solo para estimar.
 const PRICES_USD_PER_MTOK: Record<string, [number, number, number, number]> = {
@@ -42,8 +44,8 @@ export const RADIOGRAPH_SCHEMA = {
           evidence: { type: "string", description: "Zona visible donde comprobar, máximo 300 caracteres." },
           x: { type: "number", description: "Centro de la zona, de 0 a 1 desde la izquierda de la imagen." },
           y: { type: "number", description: "Centro de la zona, de 0 a 1 desde arriba de la imagen." },
-          w: { type: "number", description: "Ancho del cuadro que encierra la zona, de 0.03 a 0.5." },
-          h: { type: "number", description: "Alto del cuadro que encierra la zona, de 0.03 a 0.5." },
+          w: { type: "number", description: "Ancho del cuadro que encierra la zona, de 0.03 a 0.10 (una o dos piezas)." },
+          h: { type: "number", description: "Alto del cuadro que encierra la zona, de 0.04 a 0.20." },
         },
       },
     },

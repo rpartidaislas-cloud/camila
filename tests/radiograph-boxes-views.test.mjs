@@ -70,3 +70,51 @@ test('las copias móviles siguen idénticas', () => {
     assert.equal(read('mobile/www/' + f), read(f), f);
   }
 });
+
+test('coherencia entre la pieza y su ubicación en una panorámica (derecha del paciente = izquierda de la imagen)', () => {
+  const check = M.positionIssue;
+  assert.equal(check('panoramic', '18', 0.1, 0.2), '', 'derecha superior: izquierda arriba');
+  assert.equal(check('panoramic', '28', 0.9, 0.2), '');
+  assert.equal(check('panoramic', '38', 0.9, 0.8), '');
+  assert.equal(check('panoramic', '48', 0.1, 0.8), '');
+  assert.equal(check('panoramic', '31', 0.44, 0.7), '', 'cerca de la línea media no avisa');
+  assert.equal(check('panoramic', '18', 0.9, 0.2), 'side', 'lado equivocado');
+  assert.equal(check('panoramic', '38', 0.1, 0.8), 'side');
+  assert.equal(check('panoramic', '18', 0.1, 0.9), 'arch', 'arcada equivocada');
+  assert.equal(check('panoramic', '48', 0.1, 0.1), 'arch');
+  // no aplica fuera de panorámicas ni sin diente o sin ubicación
+  assert.equal(check('periapical', '18', 0.9, 0.2), '');
+  assert.equal(check('panoramic', '', 0.9, 0.2), '');
+  assert.equal(check('panoramic', '18', null, null), '');
+  assert.equal(check('panoramic', '99', 0.9, 0.2), '');
+});
+
+test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar los datos', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /SmylRadiographReviewModel\.positionIssue\(study\.type,item\.tooth,item\.x,item\.y\)/);
+  assert.match(js, /rr-box-warn/);
+  assert.match(js, /Comprobar: la posición en la imagen no coincide con el lado de esta pieza\./);
+  assert.match(js, /Comprobar: la posición en la imagen no coincide con la arcada de esta pieza\./);
+});
+
+test('ventana ordenada: la calidad vive en un chip y la nota de privacidad en la barra de guardado', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /n\('details','rr-qpop rr-qpop-'\+report\.quality\)/);
+  assert.match(js, /LIMITACIONES DEL ANÁLISIS/);
+  assert.doesNotMatch(js, /rr-safety-note/);
+  assert.doesNotMatch(js, /Ver limitaciones del análisis/);
+  assert.match(js, /n\('p','rr-save-note','Revisión privada: no se comparte/);
+  assert.match(js, /head\.append\(copy,marksToggle\(stage\)\)/, 'el interruptor de vista va en la cabecera de la imagen');
+  assert.match(js, /if\(report\.quality==='unusable'\)quality\.open=true;/);
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(css, /\.rr-review \{ grid-template-rows: auto minmax\(0, 1fr\);/);
+  assert.match(css, /\.rr-canvas-head > \.rr-view-switch \{ display: inline-flex;/);
+  for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, 'Texto menor de 12 px: ' + match[0]);
+});
+
+test('el servidor razona más y espera más antes de cortar', () => {
+  const ts = read('supabase/functions/_shared/radiograph-claude.ts');
+  assert.match(ts, /export const RADIOGRAPH_EFFORT = "high";/);
+  assert.match(ts, /export const RADIOGRAPH_TIMEOUT_MS = 120_000;/);
+  assert.match(ts, /de 0\.03 a 0\.10 \(una o dos piezas\)/);
+});
