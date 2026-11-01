@@ -31,6 +31,102 @@
   revisión visual de escritorio, tableta y móvil sin desbordamiento. Publicado
   en producción desde la rama de trabajo de Codex.
 
+## 2026-11-01 — Codex — Clinical Workspace v3.3, quinta etapa clínica
+
+- Se completó la migración profunda de `Studio`, simulación clásica,
+  simulación rápida, revisión clínica fotográfica y lectura radiográfica. La
+  entrega es exclusivamente visual, responsive y semántica: no modifica
+  prompts, modelos, generación de imágenes, análisis, persistencia, Supabase,
+  RLS, permisos ni decisiones clínicas.
+- Studio y los dos recorridos de simulación comparten ahora una capa clínica
+  oscura y coherente. La tarea principal, la fotografía, las decisiones de
+  diseño, la comparación y el editor se ordenan como
+  `tarea → decisión → resultado → detalle`, con texto funcional mínimo de
+  12 px, controles de 42 px en escritorio y 44 px en móvil y foco visible.
+- La revisión fotográfica separa evidencia y decisiones, añade regiones y
+  pestañas accesibles, navegación por Flechas, `Home` y `End`, estados
+  explícitos de carga/vacío/error y reflujo completo en móvil. Las listas
+  extensas no se convierten en regiones vivas para evitar anuncios excesivos.
+- La lectura radiográfica conserva el visor como superficie dominante y
+  separa señales, filtros y decisión profesional. La revisión asistida y la
+  anotación manual comparten jerarquía, objetivos táctiles y foco visible sin
+  alterar análisis, señales, guardado ni expediente.
+- Web, PWA y `mobile/www` quedan sincronizados en Studio CSS v23/JS v21,
+  Simulation Workspace CSS v1, Clinical Review CSS/JS v1, Radiograph Review
+  JS v17 y Radiograph Workbench CSS v11. `revision-clinica.html` y todos los
+  recursos nuevos quedaron incluidos en precaché y sincronización móvil.
+- QA final integrada: **988/988** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas según el entorno. La validación visual aprobó
+  **35/35** escenarios: seis del laboratorio de simulación, veinte superficies
+  reales de simulación, tres de revisión fotográfica y seis de radiografía en
+  1440, 1024 y 390 px. No hubo overflow, empalmes, texto visible menor de
+  12 px, objetivos insuficientes, errores de página ni fallos de foco. La
+  entrega queda preparada para publicación después de integrarse sobre la
+  versión remota más reciente.
+
+## 2026-11-01 — Codex — Clinical Workspace v3.3, tercera ola operativa
+
+- Se completó la migración visual profunda de `Inventario`, `Plan y consumo`,
+  `Finanzas`, `Reportes`, `Conexiones y asistente` y `Seguridad`. La entrega
+  conserva las fuentes de datos, permisos, RLS, RPC, conciliación de pagos,
+  credenciales y lógica de negocio existentes.
+- Las seis áreas comparten ahora la escala tipográfica canónica, texto funcional
+  mínimo de 12 px, controles de 42 px en escritorio y 44 px en móvil, foco
+  visible, estados de carga/vacío/error persistentes y reflujo sin empalmes.
+  Tablas y listas se convierten en tarjetas legibles únicamente cuando el ancho
+  lo requiere.
+- Inventario prioriza faltantes, caducidades y recepciones antes del detalle.
+  Sus pestañas publican semántica completa y navegación por Flechas,
+  `Home` y `End`; no se modificaron movimientos, lotes, compras ni trazabilidad.
+- Plan y consumo protege la lectura anterior cuando una actualización falla y
+  evita reintentos simultáneos tanto en la carga general como en el historial.
+  El flujo de checkout, la verificación servidor y el ledger permanecen
+  intactos.
+- Finanzas separa prioridad diaria, métricas y seguimiento por paciente;
+  Reportes ordena periodo, decisiones y detalle ejecutivo. Conexiones muestra
+  estados explícitos de cada canal y Seguridad traduce prioridad, estado y
+  origen sin cambiar las acciones operativas ni las funciones de backend.
+- Web, PWA y `mobile/www` quedan sincronizados en Inventario CSS v7/JS v8,
+  Consumo CSS v7/JS v7, Finanzas CSS v7/JS v8, Reportes CSS v5/JS v4,
+  Conexiones CSS v9/JS v14 y Seguridad CSS v2/JS v2. El script de sincronización
+  móvil incorpora ahora los doce recursos para impedir divergencias futuras.
+- QA final: **827/827** pruebas aprobadas. La matriz visual aprobó **15/15**
+  escenarios en 1440, 1024 y 390 px: cero overflow horizontal, cero empalmes,
+  cero texto visible menor de 12 px, cero objetivos táctiles insuficientes,
+  foco visible y cero errores de página. Esta entrega todavía no fue publicada.
+
+## 2026-11-01 — Codex — Clinical Workspace v3.3, segunda ola profunda
+
+- Se migraron al sistema visual canónico los recorridos de `Mensajes`,
+  `Ficha 360`, `Cotizaciones` y `Mi clínica > Equipo y roles`. Las mejoras son
+  de presentación y usabilidad: no cambian datos, permisos, RLS, funciones de
+  backend, prompts ni decisiones clínicas.
+- Mensajes conserva su lógica y sus contratos con LANA, pero ahora usa una
+  escala legible, filtros de dos columnas sin empalmes, acciones táctiles,
+  foco visible y estados vacío/error con una acción clara.
+- Ficha 360 prioriza identidad, siguiente paso y fuentes canónicas en una sola
+  superficie. Cotizaciones separa documento, decisión y seguimiento, mantiene
+  una sola acción primaria y refluye de dos columnas a una en móvil sin alterar
+  la impresión A4.
+- Equipo y roles queda contenido en el ancho real disponible. La columna de
+  pendientes sólo aparece al costado cuando caben ambas superficies; las
+  fichas de integrantes, selectores y roles se apilan sin cubrirse en tableta y
+  móvil. Se añadieron conteos y semántica de lista sin cambiar las RPC.
+- La revisión encontró y corrigió también microtexto nuevo en el simulador
+  simplificado y en `Preparación operativa`. La ruta principal de simulación,
+  sus cuatro opciones de claridad y el ajuste profesional VITA permanecen
+  intactos; sólo se elevó el texto funcional al mínimo de 12 px.
+- Web, PWA y `mobile/www` quedan sincronizados en Inbox CSS v36/JS v38,
+  Ficha 360 CSS v10/JS v14, Propuestas CSS v10/JS v12, preparación de
+  cotización CSS v2/JS v1, Equipo CSS v9/JS v8 y preparación operativa CSS
+  v3/JS v5. `mobile/scripts/sync-web.js` incorpora ahora también simulación
+  rápida, Studio, propuestas y preparación de cotización para evitar futuras
+  divergencias.
+- QA final: **811/811** pruebas aprobadas. La matriz visual aprobó **18/18**
+  vistas en 1440 × 960, 1024 × 900 y 390 × 844: cero overflow, cero empalmes,
+  cero texto visible menor de 12 px, cero objetivos táctiles insuficientes y
+  cero errores de página. Esta entrega todavía no fue publicada.
+
 ## 2026-11-01 — Codex — Simulador rápido, decisiones simples
 
 - Se corrigió el arranque del espacio guiado: la opción `Carillas` no tenía
@@ -48,7 +144,8 @@
   sincronizados en Studio JS v19 y CSS v20.
 - QA: sintaxis JavaScript válida, **6/6** contratos focalizados aprobados y
   revisión visual en 390 × 844, 820 × 900 y escritorio sin desbordamiento; los
-  controles interactivos conservan un mínimo de 44 px.
+  controles interactivos conservan un mínimo de 44 px. Esta entrega aún no fue
+  publicada.
 
 ## 2026-11-01 — Claude — Radiografía: análisis en dos pasadas (mapa de piezas + lectura)
 
@@ -232,6 +329,39 @@
   hay que probar con una radiografía real. Solo aplica a análisis NUEVOS (los ya guardados no tienen ubicación).
 - Cachés: `analysis-client.js?v=4`, `review-model.js?v=3`, `review.js?v=10`. Pruebas: 898/898.
 - Recordatorio: GitHub Pages publica desde `claude/camila-claude-clinical-analysis-sywxjv`, no desde `main`.
+
+## 2026-11-01 — Codex — Clinical Workspace v3.3, primera ola profunda
+
+- Se creó una fuente de verdad visual portable en
+  `design/tokens/smyl.tokens.json` y se amplió `smyl-ui-template-v3.css` con
+  pesos autorizados, controles, tablas/listas, filtros, formularios,
+  workspaces, configuración, estados, skeletons y composición responsive.
+- La navegación móvil queda reducida a `Inicio`, `Agenda`, `Pacientes`,
+  `Mensajes` y `Más`. La hoja `Más` es modal, contiene el foco, cierra con
+  `Escape` o backdrop y devuelve el foco al origen. La barra superior móvil
+  elimina acciones de baja prioridad.
+- Inicio usa la misma fuente de prioridades para métricas y tareas, por lo que
+  ya no puede afirmar `Todo al día` mientras muestra pendientes. Se retiró el
+  segundo acceso duplicado a Agenda.
+- Agenda muestra filtros con etiquetas visibles, oculta el contenedor completo
+  cuando un filtro no aporta elección, prioriza el periodo y mantiene el
+  desplazamiento del calendario dentro de su propia región.
+- Pacientes convierte toda la fila en acceso al expediente mediante clic o
+  teclado, conserva `Agendar cita` como única acción visible y da mayor ancho a
+  identidad y contacto.
+- Se añadió el laboratorio sintético
+  `tests/fixtures/smyl-ui-v33-clinical-workspace.html` y contratos específicos
+  en `tests/smyl-clinical-workspace-v33.test.mjs`. Web y `mobile/www` están
+  sincronizados en UI v6, navegación CSS v5/JS v16, comando global CSS v2,
+  Inicio CSS v14/JS v12, Agenda CSS v19/JS v28 y Pacientes CSS v9/JS v16.
+- QA automatizada: **798/798** pruebas aprobadas, sintaxis JavaScript válida y
+  paridad web/móvil verificada. La matriz visual aprobó **12/12** vistas del
+  shell real, laboratorio, Agenda y Pacientes en 1440 × 960, 1024 × 900 y
+  390 × 844: sin overflow del documento, sin texto visible menor de 12 px, sin
+  objetivos táctiles menores de 44 px y sin errores de página. El menú superior
+  móvil deja la configuración a `Más` y evita duplicar el acceso con un botón
+  hamburguesa. No se modificaron datos, RLS, migraciones, funciones de backend
+  ni prompts; esta entrega no fue publicada.
 
 ## 2026-10-27 — Codex — Equipo y roles sin empalmes v47
 

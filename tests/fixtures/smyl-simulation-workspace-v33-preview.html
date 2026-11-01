@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Simulation Workspace v3.3 QA</title>
+  <link rel="stylesheet" href="../../smyl-studio.css">
+  <link rel="stylesheet" href="../../smyl-simulation-workspace-v33.css">
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,sans-serif}.qa-hidden{display:none!important}.qa-shell{min-height:100vh;padding:28px}.qa-stage{width:min(1180px,100%);margin:auto}.qa-kicker{display:block;margin-bottom:7px;color:#247e7a;font-size:12px;font-weight:800;letter-spacing:.08em}.qa-title{margin:0;font-size:32px;line-height:1.15;letter-spacing:-.035em}.qa-copy{margin:8px 0 0;font-size:14px;line-height:1.55}.qa-studio{background:#f4f7f5;color:#162b2d}.qa-studio-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:20px;margin-top:24px}.qa-photo,.qa-config{border:1px solid #d4e0dc;border-radius:18px;background:#fff;padding:20px;box-shadow:0 16px 42px rgba(27,72,76,.07)}.qa-photo-frame{position:relative;aspect-ratio:4/3;display:grid;place-items:center;margin-top:14px;border-radius:14px;background:linear-gradient(145deg,#0c1930,#182a45);color:#d9e8f5;font-size:14px}.qa-photo-actions,.qa-action-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.qa-btn{min-height:42px;padding:0 16px;border:1px solid #b7cac4;border-radius:10px;background:#fff;color:#17474a;font-size:12px;font-weight:750}.qa-btn.primary{border-color:#247e7a;background:#247e7a;color:#fff}.quick-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.quick-choice{min-height:112px;border:1px solid #ccd9d4;border-radius:12px;background:#f6f8f5;color:#1a4142}.quick-choice strong,.quick-choice small{display:block}.quick-choice strong{font-size:13px}.quick-choice small{margin-top:6px}.flow-tone-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.flow-tone-preset{min-height:76px;border:1px solid #ccd9d4;border-radius:11px;background:#fff;font-size:12px}.qa-clinical{background:#080f24;color:#f4f7ff}.qa-clinical .qa-kicker{color:#8ae0d1}.qa-clinical .qa-copy{color:#b4c3d8}.res-header{display:flex;align-items:center;justify-content:space-between;margin-top:22px}.res-logo{font-size:18px;font-weight:800}.qa-result{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:18px;margin-top:18px}.qa-comparison,.qa-decision,.qa-editor{border:1px solid #30415d;border-radius:16px;background:#111c34}.qa-comparison{min-height:360px;display:grid;place-items:center;background:linear-gradient(145deg,#0b1529,#17253f);font-size:14px}.qa-decision{padding:18px}.res-sec-title{margin-bottom:12px}.qa-decision h2{margin:0;font-size:20px}.qa-decision p{color:#b4c3d8;font-size:13px;line-height:1.55}.qa-editor{margin-top:18px;overflow:hidden}.ed-topbar,.ed-workspace-head,.ed-guides-row,.ed-contour-bar{display:flex;align-items:center}.ed-topbar{justify-content:space-between;padding:10px 14px}.ed-topbar-inner{display:flex;align-items:center;justify-content:space-between}.ed-workspace-head{justify-content:space-between}.ed-body{display:grid;grid-template-columns:minmax(0,1fr) 340px}.ed-center{min-width:0}.ed-workspace-head,.ed-guides-row,.ed-contour-bar{padding:9px 12px}.ed-canvas-wrap{min-height:340px;display:grid;place-items:center;background:radial-gradient(circle,#24334b,#090e17 72%);font-size:14px}.ed-panel{padding:0}.ed-settings-section{margin:10px 0;border:1px solid #2d3948;border-radius:10px}.ed-settings-section>summary{padding:12px}.ed-panel-inner{padding:16px}.qa-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qa-fields button{min-height:42px;border:1px solid #3c4b5d;border-radius:9px;background:#17212d;color:#dce6f1;font-size:12px}.qa-state-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}.qa-state{min-height:100px;padding:15px;border:1px solid #30415d;border-radius:13px;background:#111c34}.qa-state strong{display:block;font-size:13px}.qa-state p{margin:5px 0 0;color:#b4c3d8;font-size:12px;line-height:1.45}@media(max-width:1024px){.qa-studio-grid,.qa-result{grid-template-columns:1fr}.ed-body{grid-template-columns:minmax(0,1fr) 320px}}@media(max-width:700px){.qa-shell{padding:16px}.qa-title{font-size:27px}.qa-studio-grid{grid-template-columns:1fr}.quick-choice-grid,.flow-tone-presets,.qa-state-grid{grid-template-columns:1fr}.qa-photo,.qa-config{padding:15px}.res-header{align-items:flex-start}.res-header>div:last-child{display:flex;max-width:70vw;overflow:auto}.ed-body{grid-template-columns:1fr}.ed-panel{width:100%!important;max-height:none!important}.ed-workspace-copy{display:none}.qa-fields{grid-template-columns:1fr}.qa-btn,.qa-fields button{min-height:44px}}
+  </style>
+</head>
+<body class="sim-workspace-v33 smyl-organized" data-surface="studio">
+  <main id="fixture-studio" class="qa-shell qa-studio">
+    <div class="qa-stage">
+      <span class="qa-kicker">TAREA ACTUAL</span>
+      <h1 class="qa-title">Prepara una simulación clara</h1>
+      <p class="qa-copy">Confirma la fotografía, toma dos decisiones clínicas y genera la propuesta.</p>
+      <div class="qa-studio-grid">
+        <section class="qa-photo" aria-label="Fotografía del caso">
+          <span class="flow-eyebrow">1 · FOTOGRAFÍA PRINCIPAL</span>
+          <div class="qa-photo-frame">Vista frontal seleccionada<p class="flow-photo-caption">La identidad y el encuadre permanecen sin cambios.</p></div>
+          <div class="qa-photo-actions"><button class="qa-btn" type="button">Cambiar foto</button><button class="qa-btn" type="button">Ajustar encuadre</button></div>
+        </section>
+        <section id="quick-config" class="qa-config" aria-label="Decisiones de diseño">
+          <span class="flow-eyebrow">2 · DECISIÓN</span>
+          <h2>¿Qué quieres mejorar?</h2>
+          <p class="flow-reference">Elige una intención principal. <small>Podrás revisar el detalle después.</small></p>
+          <div class="quick-choice-grid">
+            <button class="quick-choice selected" type="button"><strong>Alinear</strong><small>Orden visual conservador</small></button>
+            <button class="quick-choice" type="button"><strong>Carillas</strong><small>Forma y proporción</small></button>
+            <button class="quick-choice" type="button"><strong>Completo</strong><small>Armonía integral</small></button>
+          </div>
+          <h3 class="quick-choice-title">Tono de referencia</h3>
+          <div class="flow-tone-presets"><button class="flow-tone-preset selected" type="button">Natural</button><button class="flow-tone-preset" type="button">Luminoso</button><button class="flow-tone-preset" type="button">VITA</button></div>
+          <p class="flow-tone-help">La selección orienta el resultado; no sustituye la toma clínica del color.</p>
+          <button class="qa-btn primary quick-generate" type="button">Generar simulación</button>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <main id="fixture-clinical" class="qa-shell qa-clinical qa-hidden">
+    <div class="qa-stage">
+      <span class="qa-kicker">DECISIÓN CLÍNICA</span>
+      <h1 class="qa-title">Revisa la propuesta antes de compartir</h1>
+      <p class="qa-copy">Compara, valida el tono y abre el detalle sólo cuando sea necesario.</p>
+      <header class="res-header">
+        <div class="res-logo">SMYL</div>
+        <div><button class="res-vita-btn" type="button">Tono VITA A1</button><button class="redo-btn" type="button">Generar otra</button></div>
+      </header>
+      <section class="qa-result">
+        <div class="qa-comparison">Comparación clínica antes / propuesta</div>
+        <aside class="qa-decision">
+          <div class="res-sec-title">SIGUIENTE DECISIÓN</div>
+          <h2>La propuesta está lista para revisión</h2>
+          <p>Confirma contornos, transición gingival y naturalidad antes de guardarla.</p>
+          <div class="qa-action-row"><button class="qa-btn primary" type="button">Guardar caso</button><button class="qa-btn" type="button">Abrir editor</button></div>
+        </aside>
+      </section>
+      <section class="ed-screen qa-editor" aria-label="Editor profesional">
+        <div class="ed-topbar"><div class="ed-title">Editor de diseño</div><div><button class="ed-btn-icon" type="button">Cerrar</button><button class="ed-btn-aplicar" type="button">Aplicar</button></div></div>
+        <div class="ed-body">
+          <div class="ed-center">
+            <div class="ed-workspace-head"><div><div class="ed-workspace-title">Contornos y guías</div><div class="ed-workspace-copy">Ajusta límites sin alterar la identidad del paciente.</div></div></div>
+            <div class="ed-guides-row"><span class="ed-toolbar-label">GUÍAS</span><button class="ed-contour-toggle" type="button">Contornos</button><button class="ed-guide-chip" type="button">Línea media</button><button class="ed-guide-more" type="button">Más guías</button></div>
+            <div class="ed-contour-bar"><span class="ed-contour-label">DIENTE</span><button class="ed-contour-chip" type="button">11</button><button class="ed-contour-chip" type="button">21</button><span class="ed-contour-status">Edición local activa</span></div>
+            <div class="ed-canvas-wrap">Lienzo clínico protegido</div>
+          </div>
+          <aside class="ed-panel">
+            <div class="ed-panel-inner">
+              <p class="ed-panel-intro">Empieza con la decisión principal y abre el detalle óptico al final.</p>
+              <details class="ed-settings-section" open><summary>Forma dental <small>Proporción y simetría</small></summary><div class="qa-fields"><button type="button">Natural</button><button type="button">Suave</button></div></details>
+              <details class="ed-settings-section"><summary>Tono y textura <small>Detalle óptico</small></summary></details>
+            </div>
+          </aside>
+        </div>
+      </section>
+      <section class="qa-state-grid" aria-label="Estados accesibles"><article class="qa-state"><strong>Listo</strong><p>La revisión terminó correctamente.</p></article><article class="qa-state"><strong>Procesando</strong><p>Conservamos tu trabajo mientras esperas.</p></article><article class="qa-state" role="alert"><strong>No pudimos completar</strong><p>Reintenta sin perder la fotografía.</p></article></section>
+    </div>
+  </main>
+  <script>
+    const surface = new URLSearchParams(location.search).get('surface') || 'studio';
+    document.body.dataset.surface = surface;
+    document.querySelector('#fixture-studio').classList.toggle('qa-hidden', surface !== 'studio');
+    document.querySelector('#fixture-clinical').classList.toggle('qa-hidden', surface !== 'clinical');
+  </script>
+</body>
+</html>

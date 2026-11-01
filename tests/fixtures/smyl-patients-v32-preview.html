@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pacientes v3.2 · QA visual</title>
-  <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=5">
-  <link rel="stylesheet" href="../../smyl-clinic.css?v=7">
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=6">
+  <link rel="stylesheet" href="../../smyl-clinic.css?v=9">
   <style>
-    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;font-family:Inter,system-ui,sans-serif;color:#0b1b2e}.layout{min-height:100vh}.contenido{width:min(1180px,calc(100% - 32px));margin:auto;padding:40px 0 64px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border:1px solid #d9e2ec;border-radius:10px;background:#fff;color:#0b1b2e;font:700 13px/1 Inter,system-ui,sans-serif}.btn-primary{border-color:#0b1b2e;background:#0b1b2e;color:#fff}.btn-sm{min-height:42px}.page-context{margin-bottom:22px}.page-context p{margin:0 0 5px;color:#0f766e;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.page-context h1{margin:0;font-size:32px;letter-spacing:-.035em}.page-context span{display:block;margin-top:6px;color:#526174;font-size:14px}@media(max-width:760px){.contenido{width:min(100% - 24px,680px);padding:24px 0}.page-context h1{font-size:28px}}
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;font-family:Inter,system-ui,sans-serif;color:#0b1b2e}.layout{min-height:100vh}.contenido{width:min(1180px,calc(100% - 32px));margin:auto;padding:40px 0 64px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border:1px solid #d9e2ec;border-radius:10px;background:#fff;color:#0b1b2e;font:700 13px/1 Inter,system-ui,sans-serif}.btn-primary{border-color:#0b1b2e;background:#0b1b2e;color:#fff}.btn-sm{min-height:42px}.page-context{margin-bottom:22px}.page-context p{margin:0 0 5px;color:#0f766e;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.page-context h1{margin:0;font-size:32px;letter-spacing:-.035em}.page-context span{display:block;margin-top:6px;color:#526174;font-size:14px}@media(max-width:760px){.contenido{width:min(100% - 24px,680px);padding:24px 0}.page-context h1{font-size:28px}}
   </style>
 </head>
 <body class="smyl-ui-governed">
@@ -27,28 +27,28 @@
           </div>
           <div id="tabla-pacientes-wrap">
             <table class="clinic-patient-table" aria-label="Directorio de pacientes">
-              <thead><tr><th>Paciente</th><th>Contacto</th><th>Próxima atención</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>Paciente</th><th>Contacto</th><th>Próxima atención</th><th>Estado</th><th>Acción</th></tr></thead>
               <tbody>
-                <tr class="clinic-patient-row">
+                <tr class="clinic-patient-row" tabindex="0" aria-label="Abrir expediente de Ana Soto">
                   <td class="clinic-patient-identity" data-label="Paciente"><div class="clinic-patient-identity-inner"><div class="clinic-avatar">AS</div><div class="clinic-patient-name"><strong>Ana Soto</strong></div></div></td>
                   <td class="clinic-patient-contact" data-label="Contacto"><span>33 5555 0101</span><small>ana.soto@example.test</small></td>
                   <td class="clinic-patient-attention" data-label="Próxima atención"><span class="clinic-patient-agenda" data-tone="next">Mañana · 10:30 am</span></td>
                   <td class="clinic-patient-state" data-label="Estado"><span class="clinic-patient-status" data-complete="true">Datos completos</span></td>
-                  <td class="clinic-patient-actions" data-label="Acciones"><button class="btn btn-secondary btn-sm">Agendar</button><button class="btn btn-secondary btn-sm clinic-patient-open">Abrir expediente</button></td>
+                  <td class="clinic-patient-actions" data-label="Acción"><button class="btn btn-secondary btn-sm">Agendar cita</button></td>
                 </tr>
-                <tr class="clinic-patient-row">
+                <tr class="clinic-patient-row" tabindex="0" aria-label="Abrir expediente de Luis Reyes">
                   <td class="clinic-patient-identity" data-label="Paciente"><div class="clinic-patient-identity-inner"><div class="clinic-avatar">LR</div><div class="clinic-patient-name"><strong>Luis Reyes</strong></div></div></td>
                   <td class="clinic-patient-contact" data-label="Contacto"><span>Por completar</span></td>
                   <td class="clinic-patient-attention" data-label="Próxima atención"><span class="clinic-patient-agenda" data-tone="none">Sin citas todavía</span></td>
                   <td class="clinic-patient-state" data-label="Estado"><span class="clinic-patient-status" data-complete="false">Contacto pendiente</span></td>
-                  <td class="clinic-patient-actions" data-label="Acciones"><button class="btn btn-secondary btn-sm">Agendar</button><button class="btn btn-secondary btn-sm clinic-patient-open">Abrir expediente</button></td>
+                  <td class="clinic-patient-actions" data-label="Acción"><button class="btn btn-secondary btn-sm">Agendar cita</button></td>
                 </tr>
-                <tr class="clinic-patient-row">
+                <tr class="clinic-patient-row" tabindex="0" aria-label="Abrir expediente de María Cruz">
                   <td class="clinic-patient-identity" data-label="Paciente"><div class="clinic-patient-identity-inner"><div class="clinic-avatar">MC</div><div class="clinic-patient-name"><strong>María Cruz</strong></div></div></td>
                   <td class="clinic-patient-contact" data-label="Contacto"><span>55 5555 0142</span><small>maria.cruz@example.test</small></td>
                   <td class="clinic-patient-attention" data-label="Próxima atención"><span class="clinic-patient-agenda" data-tone="last">Última visita: 18 oct</span></td>
                   <td class="clinic-patient-state" data-label="Estado"><span class="clinic-patient-status" data-complete="true">Datos completos</span></td>
-                  <td class="clinic-patient-actions" data-label="Acciones"><button class="btn btn-secondary btn-sm">Agendar</button><button class="btn btn-secondary btn-sm clinic-patient-open">Abrir expediente</button></td>
+                  <td class="clinic-patient-actions" data-label="Acción"><button class="btn btn-secondary btn-sm">Agendar cita</button></td>
                 </tr>
               </tbody>
             </table>

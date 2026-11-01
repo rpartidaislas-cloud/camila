@@ -1,5 +1,5 @@
 /*
- * SMYL UI v3.2 · política visual operativa compartida
+ * SMYL UI v3.3 · Clinical Workspace
  * Escala legible, componentes previsibles y una sola jerarquía visual.
  * Las clases están aisladas con el prefijo smyl-ui para permitir una migración gradual.
  */
@@ -13,6 +13,13 @@
   --smyl-ui-text-body-sm: .875rem;
   --smyl-ui-text-label: .8125rem;
   --smyl-ui-text-meta: .75rem;
+
+  /* Cuatro pesos autorizados. Cualquier módulo debe resolver su jerarquía con
+     tamaño, espacio y color antes de inventar otro peso. */
+  --smyl-ui-weight-regular: 400;
+  --smyl-ui-weight-medium: 500;
+  --smyl-ui-weight-semibold: 600;
+  --smyl-ui-weight-bold: 700;
 
   --smyl-ui-line-tight: 1.2;
   --smyl-ui-line-title: 1.35;
@@ -58,6 +65,8 @@
   --smyl-ui-reading-width: 48rem;
   --smyl-ui-field-height: 3rem;
   --smyl-ui-button-height: 2.625rem;
+  --smyl-ui-touch-target: 2.75rem;
+  --smyl-ui-table-row-height: 4.5rem;
 }
 
 .smyl-ui-page {
@@ -82,7 +91,7 @@
   margin: 0 0 var(--smyl-ui-space-2);
   color: var(--smyl-ui-primary);
   font-size: var(--smyl-ui-text-meta);
-  font-weight: 750;
+  font-weight: var(--smyl-ui-weight-bold);
   letter-spacing: .08em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -92,7 +101,7 @@
   margin: 0;
   color: var(--smyl-ui-ink);
   font-size: var(--smyl-ui-text-page);
-  font-weight: 750;
+  font-weight: var(--smyl-ui-weight-bold);
   letter-spacing: -.035em;
   line-height: var(--smyl-ui-line-tight);
 }
@@ -132,7 +141,7 @@
   border-radius: var(--smyl-ui-radius-control);
   background: transparent;
   color: var(--smyl-ui-ink-secondary);
-  font: 650 var(--smyl-ui-text-body-sm)/1.35 var(--smyl-ui-font);
+  font: var(--smyl-ui-weight-semibold) var(--smyl-ui-text-body-sm)/1.35 var(--smyl-ui-font);
   text-align: left;
   white-space: nowrap;
 }
@@ -179,7 +188,7 @@
   margin: 0;
   color: var(--smyl-ui-ink);
   font-size: var(--smyl-ui-text-section);
-  font-weight: 720;
+  font-weight: var(--smyl-ui-weight-bold);
   letter-spacing: -.025em;
   line-height: var(--smyl-ui-line-title);
 }
@@ -219,7 +228,7 @@
 .smyl-ui-label {
   color: var(--smyl-ui-ink);
   font-size: var(--smyl-ui-text-label);
-  font-weight: 680;
+  font-weight: var(--smyl-ui-weight-semibold);
   line-height: 1.4;
 }
 
@@ -297,7 +306,7 @@
   padding: .625rem 1rem;
   border: 1px solid transparent;
   border-radius: var(--smyl-ui-radius-control);
-  font: 680 var(--smyl-ui-text-label)/1.25 var(--smyl-ui-font);
+  font: var(--smyl-ui-weight-semibold) var(--smyl-ui-text-label)/1.25 var(--smyl-ui-font);
   text-decoration: none;
   cursor: pointer;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
@@ -405,10 +414,244 @@
   gap: var(--smyl-ui-space-3);
 }
 
+/* ==========================================================================
+   Patrones canónicos · v3.3
+
+   No son otra colección decorativa. Son los cinco esqueletos que deben
+   resolver el panel: portada, lista/detalle, espacio clínico, formulario y
+   configuración. Los módulos pueden extender contenido, no su anatomía.
+   ========================================================================== */
+.smyl-ui-view {
+  display: grid;
+  width: min(100% - 2rem, var(--smyl-ui-page-width));
+  margin-inline: auto;
+  padding-block: var(--smyl-ui-space-8) var(--smyl-ui-space-12);
+  gap: var(--smyl-ui-space-6);
+}
+
+.smyl-ui-view-heading,
+.smyl-ui-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--smyl-ui-space-5);
+}
+
+.smyl-ui-view-heading-copy,
+.smyl-ui-section-heading-copy {
+  min-width: 0;
+  max-width: var(--smyl-ui-reading-width);
+}
+
+.smyl-ui-view-heading h1,
+.smyl-ui-section-heading h2,
+.smyl-ui-section-heading h3 {
+  margin: 0;
+  color: var(--smyl-ui-ink);
+  letter-spacing: -.025em;
+}
+
+.smyl-ui-view-heading h1 {
+  font-size: var(--smyl-ui-text-page);
+  font-weight: var(--smyl-ui-weight-bold);
+  line-height: var(--smyl-ui-line-tight);
+}
+
+.smyl-ui-section-heading h2,
+.smyl-ui-section-heading h3 {
+  font-size: var(--smyl-ui-text-section);
+  font-weight: var(--smyl-ui-weight-bold);
+  line-height: var(--smyl-ui-line-title);
+}
+
+.smyl-ui-view-heading p,
+.smyl-ui-section-heading p {
+  margin: var(--smyl-ui-space-2) 0 0;
+  color: var(--smyl-ui-ink-secondary);
+  font-size: var(--smyl-ui-text-body);
+  line-height: var(--smyl-ui-line-body);
+}
+
+.smyl-ui-filter-bar {
+  display: flex;
+  align-items: end;
+  gap: var(--smyl-ui-space-3);
+  padding: var(--smyl-ui-space-4);
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+  background: var(--smyl-ui-surface);
+}
+
+.smyl-ui-filter {
+  display: grid;
+  min-width: 9rem;
+  gap: var(--smyl-ui-space-1);
+}
+
+.smyl-ui-filter > span {
+  color: var(--smyl-ui-ink-secondary);
+  font-size: var(--smyl-ui-text-meta);
+  font-weight: var(--smyl-ui-weight-semibold);
+  line-height: 1.35;
+}
+
+.smyl-ui-filter :is(input, select) {
+  min-height: var(--smyl-ui-touch-target);
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-control);
+  background: var(--smyl-ui-surface);
+  color: var(--smyl-ui-ink);
+  font: var(--smyl-ui-weight-medium) var(--smyl-ui-text-body-sm)/1.4 var(--smyl-ui-font);
+}
+
+.smyl-ui-data-region {
+  overflow: hidden;
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-card);
+  background: var(--smyl-ui-surface);
+}
+
+.smyl-ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: var(--smyl-ui-ink);
+  font-size: var(--smyl-ui-text-body-sm);
+}
+
+.smyl-ui-table th {
+  padding: var(--smyl-ui-space-3) var(--smyl-ui-space-4);
+  border-bottom: 1px solid var(--smyl-ui-border);
+  background: var(--smyl-ui-surface-soft);
+  color: var(--smyl-ui-ink-secondary);
+  font-size: var(--smyl-ui-text-meta);
+  font-weight: var(--smyl-ui-weight-semibold);
+  line-height: 1.35;
+  text-align: left;
+}
+
+.smyl-ui-table td {
+  min-height: var(--smyl-ui-table-row-height);
+  padding: var(--smyl-ui-space-4);
+  border-bottom: 1px solid var(--smyl-ui-border);
+  vertical-align: middle;
+}
+
+.smyl-ui-table tbody tr:last-child td { border-bottom: 0; }
+.smyl-ui-table tbody tr:hover { background: var(--smyl-ui-surface-soft); }
+
+.smyl-ui-split-layout,
+.smyl-ui-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, .8fr) minmax(0, 1.5fr);
+  min-height: 34rem;
+  overflow: hidden;
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-panel);
+  background: var(--smyl-ui-surface);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+
+.smyl-ui-split-list,
+.smyl-ui-workspace-context {
+  min-width: 0;
+  border-right: 1px solid var(--smyl-ui-border);
+  background: var(--smyl-ui-surface-soft);
+}
+
+.smyl-ui-split-detail,
+.smyl-ui-workspace-main {
+  min-width: 0;
+  background: var(--smyl-ui-surface);
+}
+
+.smyl-ui-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  align-items: start;
+  gap: var(--smyl-ui-space-6);
+}
+
+.smyl-ui-form-main {
+  display: grid;
+  gap: var(--smyl-ui-space-5);
+}
+
+.smyl-ui-form-aside {
+  position: sticky;
+  top: calc(4.25rem + var(--smyl-ui-space-4));
+  display: grid;
+  gap: var(--smyl-ui-space-4);
+}
+
+.smyl-ui-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--smyl-ui-space-6);
+}
+
+.smyl-ui-settings-nav {
+  position: sticky;
+  top: calc(4.25rem + var(--smyl-ui-space-4));
+  display: grid;
+  gap: var(--smyl-ui-space-1);
+}
+
+.smyl-ui-status {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: var(--smyl-ui-space-1);
+  padding: .25rem .625rem;
+  border-radius: 999px;
+  background: var(--smyl-ui-primary-soft);
+  color: var(--smyl-ui-primary);
+  font-size: var(--smyl-ui-text-meta);
+  font-weight: var(--smyl-ui-weight-semibold);
+  line-height: 1.2;
+}
+
+.smyl-ui-status[data-tone="success"] { background: var(--smyl-ui-accent-soft); color: var(--smyl-ui-success); }
+.smyl-ui-status[data-tone="warning"] { background: var(--smyl-ui-warning-soft); color: var(--smyl-ui-warning); }
+.smyl-ui-status[data-tone="danger"] { background: var(--smyl-ui-danger-soft); color: var(--smyl-ui-danger); }
+
+.smyl-ui-icon-button {
+  display: inline-grid;
+  width: var(--smyl-ui-touch-target);
+  min-width: var(--smyl-ui-touch-target);
+  height: var(--smyl-ui-touch-target);
+  place-items: center;
+  border: 1px solid var(--smyl-ui-border);
+  border-radius: var(--smyl-ui-radius-control);
+  background: var(--smyl-ui-surface);
+  color: var(--smyl-ui-ink-secondary);
+  cursor: pointer;
+}
+
+.smyl-ui-icon-button:hover { border-color: var(--smyl-ui-border-strong); color: var(--smyl-ui-ink); }
+.smyl-ui-icon-button:focus-visible { outline: 2px solid var(--smyl-ui-focus); outline-offset: 2px; }
+
+.smyl-ui-skeleton {
+  min-height: 1rem;
+  border-radius: .5rem;
+  background: linear-gradient(90deg, #e8edf2 0%, #f5f7f9 45%, #e8edf2 100%);
+  background-size: 200% 100%;
+  animation: smyl-ui-skeleton 1.2s ease-in-out infinite;
+}
+
+@keyframes smyl-ui-skeleton { to { background-position: -200% 0; } }
+
 @media (max-width: 60rem) {
   .smyl-ui-span-8,
   .smyl-ui-span-6,
   .smyl-ui-span-4 { grid-column: span 12; }
+
+  .smyl-ui-form-layout,
+  .smyl-ui-settings-layout { grid-template-columns: 1fr; }
+
+  .smyl-ui-form-aside,
+  .smyl-ui-settings-nav { position: static; }
 }
 
 @media (max-width: 42rem) {
@@ -422,7 +665,15 @@
     padding-block: var(--smyl-ui-space-6) 5rem;
   }
 
+  .smyl-ui-view {
+    width: min(100% - 1.5rem, var(--smyl-ui-page-width));
+    padding-block: var(--smyl-ui-space-5) 5.5rem;
+    gap: var(--smyl-ui-space-5);
+  }
+
   .smyl-ui-page-header,
+  .smyl-ui-view-heading,
+  .smyl-ui-section-heading,
   .smyl-ui-card-header,
   .smyl-ui-toolbar,
   .smyl-ui-list-item {
@@ -440,6 +691,19 @@
   .smyl-ui-button { width: 100%; }
   .smyl-ui-upload { grid-template-columns: 2.75rem minmax(0, 1fr); }
   .smyl-ui-upload .smyl-ui-button { grid-column: 1 / -1; }
+
+  .smyl-ui-filter-bar { display: grid; grid-template-columns: 1fr; }
+  .smyl-ui-filter { min-width: 0; }
+  .smyl-ui-split-layout,
+  .smyl-ui-workspace-layout { grid-template-columns: 1fr; min-height: 0; }
+  .smyl-ui-split-list,
+  .smyl-ui-workspace-context { border-right: 0; border-bottom: 1px solid var(--smyl-ui-border); }
+
+  .smyl-ui-data-region { overflow-x: auto; }
+  .smyl-ui-table { min-width: 42rem; }
+
+  .smyl-ui-icon-button,
+  .smyl-ui-button { min-height: var(--smyl-ui-touch-target); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -709,7 +973,7 @@ body.smyl-ui-governed .layout .btn {
   border-radius: var(--smyl-ui-radius-control);
   font-family: var(--smyl-ui-font);
   font-size: var(--smyl-ui-text-label);
-  font-weight: 680;
+  font-weight: var(--smyl-ui-weight-semibold);
   line-height: 1.25;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
@@ -755,10 +1019,28 @@ body.smyl-ui-governed .layout .btn-sm {
 }
 
 body.smyl-ui-governed .layout :is(.btn-icon, .btn-noti, .btn-hamburger) {
-  width: 2.625rem;
-  min-width: 2.625rem;
-  min-height: 2.625rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0;
+}
+
+body.smyl-ui-governed #app-copyright {
+  position: fixed;
+  right: 14px;
+  bottom: 8px;
+  z-index: 9999;
+  color: var(--smyl-ui-ink-muted);
+  font-family: var(--smyl-ui-font);
+  font-size: var(--smyl-ui-text-meta);
+  font-weight: var(--smyl-ui-weight-regular);
+  letter-spacing: .02em;
+  opacity: .78;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  body.smyl-ui-governed #app-copyright { display: none; }
 }
 
 body.smyl-ui-governed .layout .card {
@@ -782,7 +1064,7 @@ body.smyl-ui-governed .layout .fg {
 body.smyl-ui-governed .layout .fg label {
   color: var(--smyl-ui-ink);
   font-size: var(--smyl-ui-text-label);
-  font-weight: 680;
+  font-weight: var(--smyl-ui-weight-semibold);
   line-height: 1.4;
 }
 
@@ -961,7 +1243,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     background: linear-gradient(145deg, rgba(74, 184, 173, .25), rgba(31, 93, 116, .4));
     color: #effffe;
     font-size: 1rem;
-    font-weight: 780;
+    font-weight: var(--smyl-ui-weight-bold);
     box-shadow: inset 0 1px rgba(255, 255, 255, .1);
   }
 
@@ -1287,7 +1569,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border-radius: .6rem;
     background: #0b1b2e;
     color: #fff;
-    font: 650 var(--smyl-ui-text-meta)/1.25 var(--smyl-ui-font);
+    font: var(--smyl-ui-weight-semibold) var(--smyl-ui-text-meta)/1.25 var(--smyl-ui-font);
     opacity: 0;
     pointer-events: none;
     transform: translate(.2rem, -50%);

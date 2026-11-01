@@ -211,8 +211,9 @@
   .dp-label{color:var(--text-faint);font:600 11px Inter,sans-serif;letter-spacing:.4px;text-transform:uppercase}
   body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 </style>
+<link rel="stylesheet" href="smyl-clinical-review-v33.css?v=1">
 </head>
-<body>
+<body class="clinical-review-v33">
   <!-- ══ LOGIN OPCIONAL — mismo Supabase Auth que simulacion.html/app.html ══
        Por pedido explícito, el login YA NO es obligatorio: si no inicias
        sesión, la app funciona igual con acceso anónimo (RLS abierta con
@@ -4379,5 +4380,6 @@ function abrirCasoDesdeLista(casoId){
   cargarCasoCompleto();
 }
 </script>
+<script src="smyl-clinical-review-v33.js?v=1"></script>
 </body>
 </html>

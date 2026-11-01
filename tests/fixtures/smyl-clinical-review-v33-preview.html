@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Revisión clínica v3.3</title>
+  <link rel="stylesheet" href="../../smyl-clinical-review-v33.css">
+  <style>
+    :root {
+      --p: #5b47e0;
+      --p2: #2c6bed;
+      --grad: linear-gradient(135deg, var(--p), var(--p2));
+      --ok: #34d399;
+      --err: #f87171;
+      --warn: #f59e0b;
+      --bg: #0a0a0f;
+      --card: #14121f;
+      --card-b: rgba(255,255,255,.09);
+      --field: rgba(255,255,255,.05);
+      --text: #fff;
+      --text-dim: rgba(255,255,255,.72);
+      --text-faint: rgba(255,255,255,.54);
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body { margin: 0; overflow: hidden; color: var(--text); background: var(--bg); font-family: Inter, system-ui, sans-serif; }
+    button, input, textarea { color: inherit; }
+    .app-shell { display: flex; width: 100%; height: 100vh; }
+    .sidenav { flex: 0 0 auto; display: flex; flex-direction: column; }
+    .sidenav-logo { font-size: 22px; font-weight: 800; }
+    .sidenav-items { display: flex; flex-direction: column; overflow: auto; }
+    .nav-item { display: flex; align-items: center; gap: 9px; border: 0; color: var(--text-dim); background: transparent; text-align: left; }
+    .nav-item.active { color: #fff; background: rgba(91,71,224,.3); box-shadow: inset 0 0 0 1px rgba(167,153,255,.42); }
+    .nav-icon { width: 18px; text-align: center; }
+    .app-main { display: flex; flex: 1; min-width: 0; height: 100vh; flex-direction: column; overflow: hidden; }
+    .app-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; flex: 0 0 auto; }
+    .header-center { text-align: center; }
+    .header-center h2 { margin: 0; }
+    .header-center p { margin: 4px 0 0; color: var(--text-faint); }
+    .header-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-pill, .float-pill, .float-icon { border: 1px solid var(--card-b); border-radius: 999px; background: var(--field); color: var(--text-dim); font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-pill { padding: 0 16px; }
+    .btn-pill.primary, .float-pill.active { border-color: transparent; color: #fff; background: var(--grad); }
+    .status { color: var(--text-dim); font-size: 12px; }
+    .canvas-col2, .panel-col2 { overflow: auto; }
+    .canvas-wrap { position: relative; overflow: hidden; background: #02040a; }
+    .qa-photo { position: relative; width: min(100%, 720px); aspect-ratio: 16/10; overflow: hidden; background: radial-gradient(ellipse at 50% 82%, #d6a083 0 7%, #7d4f48 8% 17%, transparent 18%), radial-gradient(ellipse at 50% 67%, #f4f0e8 0 10%, #a66c69 11% 19%, transparent 20%), radial-gradient(circle at 44% 35%, #35465b 0 2%, transparent 3%), radial-gradient(circle at 56% 35%, #35465b 0 2%, transparent 3%), linear-gradient(145deg, #704a3f, #bd8269 48%, #6b433d); }
+    .qa-photo::after { content: "Vista clínica · fotografía de demostración"; position: absolute; right: 14px; bottom: 14px; padding: 8px 12px; border-radius: 999px; color: #fff; background: rgba(0,0,0,.62); font-size: 12px; }
+    .float-group { display: flex; align-items: center; }
+    .canvas-wrap > .float-group { position: absolute; right: 12px; bottom: 12px; }
+    .float-pill { padding: 0 13px; }
+    .float-icon { position: absolute; top: 12px; padding: 0 13px; }
+    .float-icon:first-of-type { right: 12px; }
+    .float-icon:nth-of-type(2) { left: 12px; }
+    #toothSelectorBlock, #panelObjetos { padding: 14px; }
+    .panel-title { margin: 0; }
+    .tooth-select, .chips3 { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tooth-chip, .chip { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--card-b); color: var(--text-dim); background: var(--field); cursor: pointer; }
+    .tooth-chip.selected, .chip.active { color: #fff; background: var(--grad); }
+    .tab-content { color: var(--text); }
+    .sec-lbl { margin: 18px 0 10px; }
+    .slider-row { margin: 14px 0; }
+    .slider-row label { display: flex; justify-content: space-between; gap: 12px; color: var(--text-dim); font-size: 13px; }
+    .slider-row input { width: 100%; accent-color: var(--p); }
+    .field-label { display: block; margin: 14px 0 6px; color: var(--text-faint); }
+    .field-input { width: 100%; padding: 10px 12px; border: 1px solid var(--card-b); background: var(--field); color: #fff; }
+    .review-state-gallery { margin-top: 16px; }
+    .bottom-bar { display: flex; align-items: center; justify-content: space-between; }
+    #selectorVista { position: static; }
+  </style>
+</head>
+<body class="clinical-review-v33">
+  <div class="app-shell">
+    <aside class="sidenav">
+      <div class="sidenav-logo">smyl</div>
+      <div class="sidenav-items">
+        <button class="nav-item active" data-tab="color" onclick="mostrarTab('color')"><span class="nav-icon">◈</span><span>Color</span></button>
+        <button class="nav-item" data-tab="forma" onclick="mostrarTab('forma')"><span class="nav-icon">◇</span><span>Forma</span></button>
+        <button class="nav-item disabled" data-tab="textura" onclick="mostrarTab('textura')"><span class="nav-icon">✎</span><span>Textura</span></button>
+        <button class="nav-item" data-tab="encia" onclick="mostrarTab('encia')"><span class="nav-icon">◠</span><span>Encía</span></button>
+        <button class="nav-item" data-tab="diseno" onclick="mostrarTab('diseno')"><span class="nav-icon">◎</span><span>Diseño</span></button>
+        <button class="nav-item" data-tab="foto" onclick="mostrarTab('foto')"><span class="nav-icon">▣</span><span>Fotografía</span></button>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="app-header">
+        <div class="header-side"></div>
+        <div class="header-center">
+          <h2 id="tabTitle">Color del diente</h2>
+          <p id="tabSubtitle">Personaliza el resultado y comprueba cada decisión sobre la evidencia.</p>
+        </div>
+        <div class="header-actions"><button class="btn-pill">Ayuda</button></div>
+      </header>
+      <div id="statusGuardado"></div>
+      <div id="status" class="status" style="font-size:10px">Revisión lista para continuar</div>
+
+      <div class="workspace2">
+        <div class="canvas-col2">
+          <div class="canvas-wrap">
+            <div class="qa-photo" role="img" aria-label="Fotografía clínica ficticia de demostración"></div>
+            <button class="float-icon" aria-label="Mostrar guías">Guías</button>
+            <button class="float-icon" aria-label="Mostrar números">FDI</button>
+            <div class="float-group">
+              <button class="float-pill" aria-label="Alejar fotografía">−</button>
+              <button class="float-pill" aria-label="Acercar fotografía">+</button>
+              <button class="float-pill">100%</button>
+            </div>
+          </div>
+
+          <div id="toothSelectorBlock">
+            <h4 class="panel-title">Selecciona dientes</h4>
+            <div class="tooth-select">
+              <button class="tooth-chip selected">11</button>
+              <button class="tooth-chip selected">21</button>
+              <button class="tooth-chip">12</button>
+              <button class="tooth-chip">22</button>
+            </div>
+          </div>
+
+          <div id="panelObjetos">
+            <h4 class="panel-title">Objetos de la propuesta</h4>
+            <div id="objetosListaVacia">Todavía no hay carillas pegadas.</div>
+            <div id="objetosLista"></div>
+          </div>
+        </div>
+
+        <div class="panel-col2">
+          <div class="tab-content" id="tab-color">
+            <h4 class="panel-title">Guía de color</h4>
+            <div class="sec-lbl">Tono de referencia</div>
+            <div class="chips3">
+              <div class="chip active">A1</div>
+              <div class="chip">A2</div>
+              <div class="chip">B1</div>
+            </div>
+            <div class="slider-row">
+              <label><span>Translucidez incisal</span><span>55%</span></label>
+              <input type="range" value="55" aria-label="Translucidez incisal">
+            </div>
+            <div class="slider-row">
+              <label><span>Brillo superficial</span><span>48%</span></label>
+              <input type="range" value="48" aria-label="Brillo superficial">
+            </div>
+            <div class="review-state-gallery" aria-label="Estados del sistema">
+              <div data-review-state="loading">Analizando contornos</div>
+              <div data-review-state="empty">Sin observaciones todavía</div>
+              <div data-review-state="error">No se pudo cargar una referencia</div>
+            </div>
+          </div>
+          <div class="tab-content" id="tab-forma" style="display:none"><div class="sec-lbl">Forma dental</div></div>
+          <div class="tab-content" id="tab-textura" style="display:none"><div class="sec-lbl">Textura</div></div>
+          <div class="tab-content" id="tab-diseno" style="display:none"><div class="sec-lbl">Diseño de sonrisa</div></div>
+          <div class="tab-content" id="tab-foto" style="display:none">
+            <label class="field-label" for="nombre">Nombre del paciente</label>
+            <input class="field-input" id="nombre" value="Paciente de demostración">
+            <label class="field-label" for="notas">Notas de revisión</label>
+            <textarea class="field-input" id="notas">Validar el resultado con el paciente antes de autorizar.</textarea>
+          </div>
+          <div class="tab-content" id="panelEncia" style="display:none"><div id="gumStatus">Sin segmentación gingival.</div></div>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <div id="selectorVista" class="float-group">
+          <button class="float-pill active" data-vista="foto" onclick="setVista('foto')">Dientes</button>
+          <button class="float-pill" data-vista="lineas" onclick="setVista('lineas')">Líneas</button>
+          <button class="float-pill" data-vista="lineas_foto" onclick="setVista('lineas_foto')">Líneas + foto</button>
+        </div>
+        <button class="btn-pill primary">Aplicar y guardar imagen</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function mostrarTab(name) {
+      document.querySelectorAll('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === name));
+      document.querySelectorAll('.tab-content').forEach(panel => panel.style.display = 'none');
+      const panel = name === 'encia' ? document.querySelector('#panelEncia') : document.querySelector('#tab-' + name);
+      if (panel) panel.style.display = 'block';
+      document.querySelector('#tabTitle').textContent = document.querySelector('[data-tab="' + name + '"] span:last-child').textContent;
+    }
+    function setVista(name) {
+      document.querySelectorAll('[data-vista]').forEach(button => button.classList.toggle('active', button.dataset.vista === name));
+    }
+  </script>
+  <script src="../../smyl-clinical-review-v33.js"></script>
+</body>
+</html>

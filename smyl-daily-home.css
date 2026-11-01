@@ -234,3 +234,55 @@
   #smyl-daily-home .daily-home-chats .daily-home-chat-strip{display:grid;margin:0;padding:0;overflow:visible}
   #smyl-daily-home .daily-home-chats .daily-home-chat{max-width:none;flex-basis:auto}
 }
+
+/* Clinical Workspace v13 · lectura operativa: estado, siguiente, pendientes. */
+#smyl-daily-home{
+  --daily-body:var(--smyl-ui-text-body-sm,14px);
+  --daily-meta:var(--smyl-ui-text-meta,12px);
+  --daily-title:var(--smyl-ui-text-title,16px);
+  max-width:var(--smyl-ui-page-width,1200px);
+  margin-inline:auto;
+}
+#smyl-daily-home .daily-home-hero p,
+#smyl-daily-home .daily-home-next-empty p,
+#smyl-daily-home .daily-home-empty p,
+#smyl-daily-home .daily-home-chat-preview,
+#smyl-daily-home .daily-home-chats-note{font-size:var(--daily-body);line-height:1.55}
+#smyl-daily-home .daily-home-card>header h2,
+#smyl-daily-home .daily-home-chats>header h2{font-size:var(--daily-title);font-weight:700;line-height:1.35}
+#smyl-daily-home .daily-home-card>header span,
+#smyl-daily-home .daily-home-eyebrow,
+#smyl-daily-home .daily-home-month>header h2,
+#smyl-daily-home .daily-home-month>header button,
+#smyl-daily-home .daily-home-chat-top time,
+#smyl-daily-home .daily-home-chat-channel,
+#smyl-daily-home .daily-home-chat-flag,
+#smyl-daily-home .daily-home-priority-list span,
+#smyl-daily-home .daily-home-priority-list small,
+#smyl-daily-home .daily-home-next-list :is(time,strong,small),
+#smyl-daily-home .daily-home-next-list i,
+#smyl-daily-home .daily-home-timeline button em,
+#smyl-daily-home .daily-home-metric>span,
+#smyl-daily-home .daily-home-metric>small{font-size:var(--daily-meta);line-height:1.45}
+#smyl-daily-home .daily-home-priority-list strong,
+#smyl-daily-home .daily-home-chat-top strong{font-size:var(--daily-body);line-height:1.45}
+#smyl-daily-home .daily-home-chat .smyl-inbox-avatar{font-size:var(--daily-meta)}
+#smyl-daily-home .daily-home-card>header>button,
+#smyl-daily-home .daily-home-chats>header button,
+#smyl-daily-home .daily-home-priority-list article>button,
+#smyl-daily-home .daily-home-next-empty button,
+#smyl-daily-home .daily-home-more{min-height:42px;font-size:13px;font-weight:600}
+#smyl-daily-home .daily-home-clear>span{font-weight:700}
+#smyl-daily-home .daily-home-priorities .daily-home-empty{min-height:9rem}
+
+@media(max-width:700px){
+  #smyl-daily-home .daily-home-card>header>button,
+  #smyl-daily-home .daily-home-chats>header button,
+  #smyl-daily-home .daily-home-priority-list article>button,
+  #smyl-daily-home .daily-home-next-empty button,
+  #smyl-daily-home .daily-home-more,
+  #smyl-daily-home .daily-home-metric,
+  #smyl-daily-home .daily-home-chat{min-height:44px}
+  #smyl-daily-home .daily-home-card>header{align-items:flex-start}
+  #smyl-daily-home .daily-home-card>header>button{flex:0 0 auto}
+}

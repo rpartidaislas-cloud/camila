@@ -39,3 +39,207 @@
   #proposal-print .proposal-quote th:nth-child(2){width:12%}
   #proposal-print .proposal-quote td,#proposal-print .proposal-quote th{padding:8px}
 }
+
+/* Clinical Workspace v3.3 · Cotizaciones como documento de decisión. */
+@media screen{
+  #p-propuestas{
+    --proposal-ink:var(--smyl-ui-ink,#0b1b2e);
+    --proposal-muted:var(--smyl-ui-ink-secondary,#526174);
+    --proposal-border:var(--smyl-ui-border,#d9e2ec);
+    --proposal-soft:var(--smyl-ui-surface-soft,#f8fafc);
+    --proposal-accent:var(--smyl-ui-accent,#38a99d);
+    color:var(--proposal-ink);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    overflow-x:clip;
+    box-sizing:border-box;
+  }
+  .proposal-heading,.proposal-launch,.proposal-metrics,.proposal-list-toolbar,
+  .proposal-list,.proposal-layout,.proposal-editor,.proposal-summary,.proposal-item{min-width:0;max-width:100%;box-sizing:border-box}
+  #clinic-proposal,.proposal-heading .btn,.proposal-launch .btn,
+  .proposal-filters .btn,.proposal-list-row>.btn,.proposal-summary>.btn,
+  .proposal-summary details .btn,.proposal-tracking>.btn,
+  .proposal-activation-actions .btn,.proposal-preview-toolbar .btn,
+  .proposal-preview-footer .btn{
+    min-height:42px;
+    border-radius:var(--smyl-ui-radius-control,12px);
+    font-size:var(--smyl-ui-text-label,13px);
+    font-weight:600;
+  }
+  #p-propuestas :is(button,input,select,textarea,summary):focus-visible,
+  .proposal-preview-dialog :is(button,input,select,textarea):focus-visible{
+    outline:3px solid rgba(56,169,157,.24);
+    outline-offset:2px;
+  }
+  .proposal-heading{align-items:flex-end;margin:28px 0 24px}
+  .proposal-heading h1{
+    margin:0;
+    color:var(--proposal-ink);
+    font-size:var(--smyl-ui-text-page,clamp(28px,3vw,36px));
+    font-weight:700;
+    letter-spacing:-.035em;
+  }
+  .proposal-heading p:not(.pro-eyebrow){max-width:720px;margin-top:8px;color:var(--proposal-muted);font-size:var(--smyl-ui-text-body,15px);line-height:1.55}
+  #p-propuestas .pro-eyebrow,.proposal-summary .pro-eyebrow{margin-bottom:7px;color:#17685f;font-size:var(--smyl-ui-text-meta,12px);font-weight:700;letter-spacing:.08em}
+  .proposal-launch{
+    gap:20px;
+    padding:20px 22px;
+    border-color:var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-card,16px);
+    background:var(--smyl-ui-surface,#fff);
+  }
+  .proposal-launch label{font-size:var(--smyl-ui-text-label,13px);font-weight:600}
+  .proposal-launch select,.proposal-editor select,
+  .proposal-editor input:not([type=checkbox]),.proposal-editor textarea{
+    min-height:46px;
+    border-color:var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-control,12px);
+    color:var(--proposal-ink);
+    font-size:var(--smyl-ui-text-body-sm,14px);
+  }
+  .proposal-editor textarea{min-height:104px}
+  .proposal-editor .clinic-field,.proposal-editor input:not([type=checkbox]),
+  .proposal-editor select,.proposal-editor textarea{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+  .proposal-from-patient strong{font-size:var(--smyl-ui-text-title,16px);font-weight:700}
+  .proposal-from-patient p{font-size:var(--smyl-ui-text-body-sm,14px);line-height:1.55}
+  .proposal-metrics{gap:12px;margin-bottom:20px}
+  .proposal-metrics article{
+    padding:18px;
+    border-color:var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-card,16px);
+    background:var(--smyl-ui-surface,#fff);
+  }
+  .proposal-metrics span{font-size:var(--smyl-ui-text-label,13px);font-weight:600}
+  .proposal-metrics strong{margin:7px 0 3px;color:var(--proposal-ink);font-size:26px;font-weight:700;letter-spacing:-.03em}
+  .proposal-metrics small{font-size:var(--smyl-ui-text-meta,12px);line-height:1.45}
+  .proposal-list-toolbar{align-items:flex-end;gap:14px;margin:10px 0 18px}
+  .proposal-filters{gap:8px}
+  .proposal-filters .btn{min-height:42px;padding:9px 13px}
+  .proposal-list-toolbar input{min-height:44px;border-color:var(--proposal-border);border-radius:var(--smyl-ui-radius-control,12px);font-size:var(--smyl-ui-text-body-sm,14px)}
+  .proposal-list-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto minmax(112px,auto);
+    gap:18px;
+    min-height:96px;
+    padding:18px 20px;
+    border-color:var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-card,16px);
+    background:var(--smyl-ui-surface,#fff);
+  }
+  .proposal-list-row h2{font-size:var(--smyl-ui-text-title,16px);font-weight:700}
+  .proposal-list-row p,.proposal-list-row small{font-size:var(--smyl-ui-text-meta,12px)}
+  .proposal-list-row>strong{font-size:var(--smyl-ui-text-title,16px);font-weight:700}
+  .proposal-list-row>.btn{justify-self:end;min-width:112px}
+  .proposal-list-status{min-height:28px;font-weight:600}
+  .proposal-layout{grid-template-columns:minmax(0,1fr) minmax(320px,360px);gap:20px}
+  .proposal-editor{
+    padding:24px;
+    border-color:var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-panel,20px);
+    background:var(--smyl-ui-surface,#fff);
+  }
+  .proposal-editor>.clinic-field{margin-bottom:20px}
+  .proposal-editor .clinic-field>label,.proposal-editor .clinic-field>span{font-size:var(--smyl-ui-text-label,13px);font-weight:600}
+  .proposal-editor .clinic-section-heading h2{font-size:var(--smyl-ui-text-section,22px);font-weight:700}
+  .proposal-editor .clinic-section-heading p{color:var(--proposal-muted);font-size:var(--smyl-ui-text-body-sm,14px);line-height:1.55}
+  .proposal-item{
+    gap:16px;
+    padding:18px;
+    border-color:var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-card,16px);
+    background:var(--proposal-soft);
+  }
+  .proposal-item-target,.proposal-item-fiscal,.proposal-privacy{font-size:var(--smyl-ui-text-meta,12px);line-height:1.55}
+  .proposal-upload-pair{gap:16px}
+  .proposal-upload-pair input{min-height:48px;padding:9px;font-size:var(--smyl-ui-text-meta,12px)}
+  .proposal-upload-pair img{height:170px;border:1px solid var(--proposal-border);border-radius:var(--smyl-ui-radius-control,12px)}
+  .proposal-summary{
+    position:static;
+    padding:22px;
+    border:1px solid var(--proposal-border);
+    border-radius:var(--smyl-ui-radius-panel,20px);
+    background:var(--smyl-ui-surface,#fff);
+    box-shadow:var(--smyl-ui-shadow-card,0 8px 26px rgba(11,27,46,.055));
+  }
+  .proposal-summary h2{font-size:var(--smyl-ui-text-section,22px);font-weight:700;letter-spacing:-.025em}
+  .proposal-summary>strong{margin:20px 0 8px;font-size:28px;font-weight:700;letter-spacing:-.03em}
+  .proposal-summary>p{font-size:var(--smyl-ui-text-body-sm,14px);line-height:1.55}
+  .proposal-summary>.btn{width:100%;margin-top:10px}
+  #proposal-save,#proposal-export{border-color:var(--proposal-border);background:var(--smyl-ui-surface,#fff);color:var(--proposal-ink)}
+  #proposal-preview{min-height:46px}
+  #proposal-export{margin-top:4px;border-color:transparent;background:transparent;color:var(--proposal-muted)}
+  .proposal-summary details>summary{display:flex;align-items:center;min-height:44px;font-size:var(--smyl-ui-text-label,13px);font-weight:600}
+  .proposal-tracking,.proposal-activation{margin-top:24px;padding-top:22px;border-color:var(--proposal-border)}
+  .proposal-tracking h2,.proposal-activation h2{font-size:var(--smyl-ui-text-title,16px);font-weight:700}
+  .proposal-tracking .clinic-field>span{font-size:var(--smyl-ui-text-label,13px);font-weight:600}
+  .proposal-tracking select,.proposal-tracking textarea{min-height:44px;border-color:var(--proposal-border);border-radius:var(--smyl-ui-radius-control,12px);font-size:var(--smyl-ui-text-body-sm,14px)}
+  .proposal-decision-state{font-size:var(--smyl-ui-text-meta,12px);font-weight:600}
+  .proposal-event{padding:11px 12px;border-radius:0 var(--smyl-ui-radius-control,12px) var(--smyl-ui-radius-control,12px) 0}
+  .proposal-event strong,.proposal-event small,.proposal-event p,.proposal-event-empty,.proposal-activation-copy{font-size:var(--smyl-ui-text-meta,12px)}
+  .proposal-event p,.proposal-event-empty,.proposal-activation-copy{line-height:1.55}
+  .proposal-activation{padding:18px;border:1px solid #bfd5ca;border-radius:var(--smyl-ui-radius-card,16px);background:#f7faf9}
+  .proposal-activation-actions{gap:10px}
+  .proposal-preview-dialog{width:min(980px,calc(100% - 32px));border-color:var(--proposal-border);border-radius:var(--smyl-ui-radius-panel,20px);background:var(--proposal-soft)}
+  .proposal-preview-toolbar,.proposal-preview-footer{padding:16px 22px;background:var(--smyl-ui-surface,#fff)}
+  .proposal-preview-toolbar strong{font-size:var(--smyl-ui-text-title,16px)}
+  #proposal-preview-paper{padding:24px}
+  .proposal-paper{padding:40px;border-color:var(--proposal-border);border-radius:var(--smyl-ui-radius-card,16px)}
+  .proposal-kicker,.proposal-photo-pair figcaption,.proposal-small,
+  .proposal-quote-heading>span,.proposal-quote,.proposal-quote th,
+  .proposal-quote td small,.proposal-terms,.proposal-paper-footer,
+  .proposal-paper-footer small,.proposal-quote td::before{
+    font-size:var(--smyl-ui-text-meta,12px);
+  }
+  .proposal-quote{font-size:var(--smyl-ui-text-label,13px)}
+  .proposal-quote th{padding:12px 9px;font-weight:600}
+  .proposal-quote td{padding:14px 9px}
+  .proposal-terms,.proposal-paper-footer{line-height:1.65}
+}
+
+@media screen and (max-width:1150px){
+  .proposal-layout{grid-template-columns:1fr}
+  .proposal-summary{position:static}
+  .proposal-summary>.btn{width:100%;margin-right:0}
+  .proposal-summary details .btn{width:100%}
+}
+@media screen and (max-width:700px){
+  .proposal-heading{align-items:flex-start;flex-direction:column}
+  .proposal-heading h1{font-size:28px}
+  .proposal-metrics{grid-template-columns:1fr 1fr}
+  .proposal-list-toolbar{align-items:stretch;flex-direction:column}
+  .proposal-list-toolbar input{width:100%}
+  .proposal-filters{display:grid;grid-template-columns:1fr 1fr}
+  .proposal-filters .btn,.proposal-launch .btn,.proposal-list-row>.btn,
+  .proposal-summary>.btn,.proposal-summary details .btn,
+  .proposal-tracking>.btn,.proposal-activation-actions .btn,
+  .proposal-preview-toolbar .btn,.proposal-preview-footer .btn{min-height:44px}
+  .proposal-launch,.proposal-from-patient{align-items:stretch;flex-direction:column}
+  .proposal-layout{gap:16px}
+  .proposal-editor,.proposal-summary{padding:18px 16px}
+  .proposal-item{grid-template-columns:1fr;padding:16px}
+  .proposal-item>.clinic-field{grid-column:1!important}
+  .proposal-list-row{grid-template-columns:minmax(0,1fr) auto;padding:16px}
+  .proposal-list-row>div{grid-column:1/-1}
+  .proposal-list-row>.btn{justify-self:end}
+  .proposal-preview-dialog{width:100%;max-height:100dvh;border-radius:0}
+  .proposal-preview-toolbar{padding:12px 14px}
+  #proposal-preview-paper{padding:10px}
+  .proposal-paper{padding:24px 16px;border-radius:12px}
+  .proposal-paper-meta{flex-direction:column;gap:8px}
+  .proposal-photo-pair{grid-template-columns:1fr}
+  .proposal-photo-pair img{height:auto;max-height:240px}
+  .proposal-quote tr{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .proposal-quote td:first-child{grid-column:1/-1}
+  .proposal-preview-footer{padding:16px}
+  .proposal-preview-footer>.btn{width:100%}
+}
+@media screen and (max-width:420px){
+  .proposal-metrics,.proposal-filters{grid-template-columns:1fr}
+  .proposal-metrics article{padding:15px}
+  .proposal-list-row{grid-template-columns:1fr}
+  .proposal-list-row>.btn{width:100%;justify-self:stretch}
+  .proposal-list-row>strong{white-space:normal}
+  .proposal-activation>header,.proposal-tracking>header{align-items:flex-start;flex-direction:column}
+  .proposal-quote tr{grid-template-columns:1fr}
+}

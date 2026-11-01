@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL Clinical Workspace v3.3</title>
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css">
+  <link rel="stylesheet" href="../../smyl-patient-360.css">
+  <link rel="stylesheet" href="../../smyl-proposals.css">
+  <link rel="stylesheet" href="../../smyl-treatment-quote-stage3.css">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0}
+    .lab-shell{min-height:100vh;background:var(--smyl-ui-canvas);font-family:var(--smyl-ui-font);color:var(--smyl-ui-ink)}
+    .lab-nav{display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:0 24px;background:#0b1b2e;color:#fff}
+    .lab-brand{font-size:20px;font-weight:700;letter-spacing:-.04em}.lab-brand span{color:#83ded5}
+    .lab-nav small{color:rgba(255,255,255,.68);font-size:12px}
+    .lab-kicker{margin:0 0 8px;color:var(--smyl-ui-accent);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .lab-type{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}
+    .lab-type div{display:grid;align-content:space-between;min-height:112px;padding:16px;border:1px solid var(--smyl-ui-border);border-radius:var(--smyl-ui-radius-card);background:#fff}
+    .lab-type strong{display:block}.lab-type small{color:var(--smyl-ui-ink-muted);font-size:12px}
+    .lab-type div:nth-child(1) strong{font-size:32px}.lab-type div:nth-child(2) strong{font-size:22px}.lab-type div:nth-child(3) strong{font-size:16px}.lab-type div:nth-child(4) strong{font-size:15px}.lab-type div:nth-child(5) strong{font-size:14px}.lab-type div:nth-child(6) strong{font-size:13px}.lab-type div:nth-child(7) strong{font-size:12px}
+    .lab-stack{display:grid;gap:16px}.lab-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .lab-form{display:grid;grid-template-columns:1fr 1fr;gap:16px}.lab-form .wide{grid-column:1/-1}
+    .lab-avatar{display:grid;width:40px;height:40px;place-items:center;border-radius:50%;background:var(--smyl-ui-accent-soft);color:#17685f;font-weight:700}
+    .lab-person{display:flex;align-items:center;gap:12px}.lab-person strong,.lab-person small{display:block}.lab-person small{margin-top:3px;color:var(--smyl-ui-ink-muted);font-size:12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border:1px solid var(--smyl-ui-border);border-radius:var(--smyl-ui-radius-control);background:#fff;color:var(--smyl-ui-ink);font:600 var(--smyl-ui-text-label)/1.2 var(--smyl-ui-font)}
+    .btn-primary{border-color:#173e68;background:#173e68;color:#fff}
+    @media(max-width:900px){.lab-type{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:680px){.lab-nav{padding:0 16px}.lab-form{grid-template-columns:1fr}.lab-form .wide{grid-column:auto}.lab-type{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="smyl-ui-governed">
+  <div class="lab-shell">
+    <header class="lab-nav"><div class="lab-brand">smyl<span>.</span></div><small>Clinical Workspace · v3.3</small></header>
+    <main class="smyl-ui-view">
+      <header class="smyl-ui-view-heading">
+        <div class="smyl-ui-view-heading-copy">
+          <p class="lab-kicker">Sistema visual operativo</p>
+          <h1>Una interfaz clínica clara y uniforme</h1>
+          <p>Esta vista utiliza los mismos tokens y patrones que gobiernan el panel. No contiene datos reales.</p>
+        </div>
+        <div class="smyl-ui-actions">
+          <button class="smyl-ui-button smyl-ui-button-secondary">Vista previa</button>
+          <button class="smyl-ui-button smyl-ui-button-primary">Nueva cita</button>
+        </div>
+      </header>
+
+      <section class="lab-stack" aria-labelledby="type-title">
+        <div class="smyl-ui-section-heading"><div><h2 id="type-title">Escala tipográfica cerrada</h2><p>Siete roles y cuatro pesos; ningún texto funcional menor de 12 px.</p></div></div>
+        <div class="lab-type">
+          <div><strong>Aa</strong><small>Página · 32</small></div><div><strong>Aa</strong><small>Sección · 22</small></div>
+          <div><strong>Aa</strong><small>Título · 16</small></div><div><strong>Aa</strong><small>Cuerpo · 15</small></div>
+          <div><strong>Aa</strong><small>Cuerpo S · 14</small></div><div><strong>Aa</strong><small>Etiqueta · 13</small></div>
+          <div><strong>Aa</strong><small>Metadato · 12</small></div>
+        </div>
+      </section>
+
+      <section class="smyl-ui-card" aria-labelledby="controls-title">
+        <header class="smyl-ui-card-header"><div><h2 class="smyl-ui-section-title" id="controls-title">Controles y estados</h2><p class="smyl-ui-supporting">Una acción primaria por contexto y estados semánticos discretos.</p></div></header>
+        <div class="smyl-ui-card-body lab-stack">
+          <div class="lab-inline"><button class="smyl-ui-button smyl-ui-button-primary">Guardar cambios</button><button class="smyl-ui-button smyl-ui-button-secondary">Cancelar</button><button class="smyl-ui-button smyl-ui-button-danger">Eliminar</button><button class="smyl-ui-icon-button" aria-label="Más opciones">•••</button></div>
+          <div class="lab-inline"><span class="smyl-ui-status" data-tone="success">Confirmada</span><span class="smyl-ui-status" data-tone="warning">Por confirmar</span><span class="smyl-ui-status" data-tone="danger">Requiere atención</span></div>
+        </div>
+      </section>
+
+      <section class="lab-stack" aria-labelledby="list-title">
+        <div class="smyl-ui-section-heading"><div><h2 id="list-title">Patrón de lista clínica</h2><p>La identidad recibe prioridad; los filtros siempre tienen nombre visible.</p></div></div>
+        <div class="smyl-ui-filter-bar">
+          <label class="smyl-ui-filter"><span>Buscar paciente</span><input class="smyl-ui-input" value="" placeholder="Nombre, teléfono o correo"></label>
+          <label class="smyl-ui-filter"><span>Estado</span><select><option>Todos</option><option>Con cita próxima</option></select></label>
+          <button class="smyl-ui-button smyl-ui-button-secondary">Limpiar filtros</button>
+        </div>
+        <div class="smyl-ui-data-region">
+          <table class="smyl-ui-table">
+            <thead><tr><th>Paciente</th><th>Contacto</th><th>Próxima atención</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody>
+              <tr><td><div class="lab-person"><span class="lab-avatar">AM</span><span><strong>Ana Martínez</strong><small>Expediente de demostración</small></span></div></td><td>+52 33 0000 0000</td><td>Mar 3 nov · 10:30 am</td><td><span class="smyl-ui-status" data-tone="success">Datos completos</span></td><td><button class="smyl-ui-button smyl-ui-button-secondary">Agendar cita</button></td></tr>
+              <tr><td><div class="lab-person"><span class="lab-avatar">LR</span><span><strong>Luis Rivera</strong><small>Expediente de demostración</small></span></div></td><td>contacto@example.test</td><td>Sin citas todavía</td><td><span class="smyl-ui-status" data-tone="warning">Contacto pendiente</span></td><td><button class="smyl-ui-button smyl-ui-button-secondary">Agendar cita</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="smyl-ui-form-layout" aria-labelledby="form-title">
+        <div class="smyl-ui-card smyl-ui-form-main">
+          <header class="smyl-ui-card-header"><div><h2 class="smyl-ui-section-title" id="form-title">Formulario guiado</h2><p class="smyl-ui-supporting">Sólo lo necesario; lo opcional se revela después.</p></div></header>
+          <div class="smyl-ui-card-body lab-form">
+            <label class="smyl-ui-field"><span class="smyl-ui-label">Nombre</span><input class="smyl-ui-input" value="Paciente de prueba"><small class="smyl-ui-help">Como aparece en su expediente.</small></label>
+            <label class="smyl-ui-field"><span class="smyl-ui-label">Teléfono</span><input class="smyl-ui-input" value="+52 33 0000 0000"></label>
+            <label class="smyl-ui-field wide"><span class="smyl-ui-label">Nota clínica</span><textarea class="smyl-ui-textarea" placeholder="Información relevante para la atención"></textarea></label>
+          </div>
+          <footer class="smyl-ui-card-footer"><button class="smyl-ui-button smyl-ui-button-secondary">Guardar borrador</button><button class="smyl-ui-button smyl-ui-button-primary">Continuar</button></footer>
+        </div>
+        <aside class="smyl-ui-form-aside">
+          <div class="smyl-ui-notice"><span aria-hidden="true">✓</span><div><strong>Información privada</strong><p>Los datos clínicos no se publican ni aparecen en perfiles.</p></div></div>
+          <div class="smyl-ui-empty"><div><h3>Vista previa</h3><p>El resumen aparecerá cuando completes los datos esenciales.</p><button class="smyl-ui-button smyl-ui-button-secondary">Revisar campos</button></div></div>
+        </aside>
+      </section>
+
+      <section aria-labelledby="p360-lab-title">
+        <div class="smyl-ui-section-heading"><div><h2 id="p360-lab-title">Ficha 360</h2><p>Identidad, siguiente tarea y fuentes clínicas en una sola superficie.</p></div></div>
+        <div class="p360-root">
+          <header class="p360-title">
+            <span class="p360-avatar" aria-hidden="true">AM</span>
+            <div class="p360-patient-copy"><span>EXPEDIENTE CLÍNICO</span><h1>Ana Martínez</h1><p>+52 33 0000 0000 · paciente@example.test</p></div>
+            <div class="p360-title-tools"><button type="button">Asistente IA</button><button type="button">Datos administrativos</button><span class="p360-secure">Acceso protegido</span></div>
+          </header>
+          <nav class="p360-tabs" aria-label="Áreas principales de la ficha"><button type="button" aria-selected="true">Resumen</button><button type="button">Historia clínica</button><button type="button">Tratamiento</button><button type="button">Archivos</button></nav>
+          <section class="p360-priority"><div><span>SIGUIENTE PASO</span><h2>Revisar plan clínico</h2><p>La evaluación está completa y el plan espera revisión profesional.</p></div><div class="p360-priority-actions"><button type="button" class="btn btn-primary">Continuar</button></div></section>
+          <section class="p360-record-map">
+            <header><div><span>FICHA CONECTADA</span><h2>Todo el paciente, ordenado por área</h2><p>Cada bloque abre su fuente canónica sin duplicar información.</p></div><strong>3 áreas vinculadas</strong></header>
+            <div class="p360-domain-grid">
+              <button type="button" class="p360-domain-card" data-tone="ready"><span class="p360-domain-number">01</span><span class="p360-domain-copy"><small>Historia clínica</small><strong>Datos actualizados</strong><em>Sin alertas pendientes</em></span><b class="p360-domain-arrow">›</b></button>
+              <button type="button" class="p360-domain-card" data-tone="progress"><span class="p360-domain-number">02</span><span class="p360-domain-copy"><small>Tratamiento</small><strong>Plan en revisión</strong><em>Último cambio hoy</em></span><b class="p360-domain-arrow">›</b></button>
+              <button type="button" class="p360-domain-card" data-tone="pending"><span class="p360-domain-number">03</span><span class="p360-domain-copy"><small>Cotización</small><strong>Pendiente de preparar</strong><em>Continúa desde el plan</em></span><b class="p360-domain-arrow">›</b></button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="p-propuestas" aria-labelledby="proposal-lab-title">
+        <header class="proposal-heading"><div><p class="pro-eyebrow">PROPUESTA DEL PACIENTE</p><h1 id="proposal-lab-title">Cotización clara y revisable</h1><p>El documento, la decisión y el seguimiento conservan una jerarquía explícita.</p></div></header>
+        <section class="quote-readiness-stage3">
+          <header><div><span>CONTROL DE PROPUESTA</span><strong>Revisa un precio pendiente</strong><p>Completa el concepto antes de presentar esta versión.</p></div><button type="button">Ir al pendiente</button></header>
+          <div><article data-state="ready"><span>Conceptos</span><strong>3</strong></article><article data-state="ready"><span>Con mapa dental</span><strong>2</strong></article><article data-state="pending"><span>Precios pendientes</span><strong>1</strong></article><article data-state="ready"><span>Fiscal pendiente</span><strong>0</strong></article></div>
+        </section>
+        <div class="proposal-layout">
+          <fieldset class="proposal-editor">
+            <label class="clinic-field"><span>Título</span><input value="Diseño de sonrisa personalizado"></label>
+            <div class="clinic-section-heading"><h2>Tratamiento e inversión</h2><p>Los conceptos provienen del plan revisado. Las notas clínicas internas no se comparten.</p></div>
+            <article class="proposal-item"><label class="clinic-field"><span>Concepto</span><input value="Restauraciones cerámicas"></label><label class="clinic-field"><span>Descripción</span><textarea>Diseño y colocación según plan aprobado.</textarea></label><label class="clinic-field"><span>Cantidad</span><input value="6"></label><label class="clinic-field"><span>Precio unitario</span><input value="$4,500"></label><p class="proposal-item-target">Zona del plan: incisivos superiores.</p></article>
+            <button type="button" class="btn">Añadir concepto</button>
+          </fieldset>
+          <aside class="proposal-summary"><p class="pro-eyebrow">RESUMEN DE ESTA VERSIÓN</p><h2>Lista para conversar.</h2><strong>$27,000 MXN</strong><p>Importe estimado. Las condiciones aclaran lo incluido, impuestos y forma de pago.</p><button id="proposal-save" type="button" class="btn">Guardar borrador</button><button id="proposal-preview" type="button" class="btn btn-primary">Vista previa y revisión</button><button id="proposal-export" type="button" class="btn">Guardar como PDF</button><p class="proposal-privacy">El paciente sólo verá esta propuesta; las notas internas permanecen privadas.</p></aside>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

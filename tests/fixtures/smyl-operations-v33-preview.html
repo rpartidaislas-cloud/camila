@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Operaciones v3.3 QA</title>
+  <link rel="stylesheet" href="../../smyl-inventory.css">
+  <link rel="stylesheet" href="../../smyl-consumption.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7f9;color:#16243a;font-family:Inter,system-ui,sans-serif}.qa-shell{max-width:1240px;margin:auto;padding:28px}.qa-shell .inventory-page{display:block}.qa-state-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.qa-state-grid>div{min-height:112px}.qa-loading{background:linear-gradient(100deg,#fff 20%,#eef2f5 42%,#fff 62%);background-size:220% 100%}.qa-error{border-color:#e7c5c8;background:#fff7f7}.qa-hidden{display:none!important}@media(max-width:700px){.qa-shell{padding:14px}.qa-state-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body data-surface="inventory">
+  <main id="fixture-inventory" class="qa-shell">
+    <section class="inventory-page" aria-label="Inventario dental">
+      <header class="inventory-head">
+        <div><span class="pro-eyebrow">CONTROL DE INSUMOS</span><h1>Inventario y trazabilidad</h1><p>Prioriza faltantes, caducidades y recepciones sin perder el detalle clínico.</p></div>
+        <div class="inventory-head-actions"><button class="btn btn-secondary" type="button">Nueva compra</button><button class="btn btn-primary" type="button">Registrar movimiento</button></div>
+      </header>
+      <div class="inventory-notice" data-tone="error" role="alert"><span>No pudimos actualizar una ubicación. Conservamos la última lectura.</span><button type="button">Cerrar</button></div>
+      <section class="inventory-focus">
+        <div class="inventory-focus-head"><div><span>CONTROL OPERATIVO</span><h2>3 pendientes</h2><p>Actúa primero sobre los insumos que afectan la continuidad clínica.</p></div><button type="button">Ver inventario</button></div>
+        <div class="inventory-focus-list">
+          <article data-tone="danger"><div><span>REPONER AHORA</span><strong>2 insumos bajo mínimo</strong><small>18 unidades sugeridas</small></div><button type="button">Ver faltantes</button></article>
+          <article data-tone="warning"><div><span>CADUCIDAD PRÓXIMA</span><strong>1 lote vence en 30 días</strong><small>Priorizar consumo seguro</small></div><button type="button">Ver caducidades</button></article>
+        </div>
+      </section>
+      <section class="inventory-metrics" aria-label="Indicadores"><article><span>Insumos</span><strong>64</strong><small>en catálogo</small></article><article><span>Bajo mínimo</span><strong>2</strong><small>requieren reposición</small></article><article><span>Caducidad</span><strong>1</strong><small>revisar lote</small></article><article><span>Compras abiertas</span><strong>3</strong><small>por recibir</small></article></section>
+      <nav class="inventory-tabs" role="tablist" aria-label="Secciones"><button role="tab" aria-selected="true">Existencias</button><button role="tab">Movimientos</button><button role="tab">Compras</button><button role="tab">Costos y uso</button></nav>
+      <div class="inventory-toolbar"><input type="search" value="Resina" aria-label="Buscar insumo"><select aria-label="Ubicación"><option>Gabinete principal</option></select></div>
+      <div class="inventory-stock-filters" role="group" aria-label="Estado"><button aria-selected="true">Por atender</button><button>Bajo mínimo</button><button>Caducidad</button><button>Todo</button></div>
+      <section class="inventory-table" aria-label="Existencias">
+        <div class="inventory-row inventory-row-head"><span>Insumo</span><span>Ubicación</span><span>Existencia</span><span>Caducidad</span><span>Control</span></div>
+        <article class="inventory-row" data-tone="low"><div><strong>Resina compuesta A2</strong><small>RES-A2 · Material · Trazabilidad por paciente</small></div><span>Gabinete principal</span><div><strong>3 jeringas</strong><small>Sugerido pedir 9 · Mínimo 6</small></div><span>18 nov 2026 · 17 días</span><div><span class="inventory-badge" data-tone="low">Reponer</span><button type="button">Mínimos</button></div></article>
+      </section>
+      <section class="qa-state-grid" aria-label="Estados del módulo"><div class="inventory-empty"><strong>Sin resultados</strong><p>Prueba otra ubicación o término.</p></div><div class="inventory-empty qa-loading"><strong>Cargando existencias</strong><p>Consultando movimientos confirmados.</p></div><div class="inventory-empty qa-error"><strong>No pudimos cargar</strong><p>Reintenta sin perder tu contexto.</p></div></section>
+    </section>
+  </main>
+
+  <div id="fixture-consumption" class="usage-app qa-hidden">
+    <aside class="usage-nav" aria-label="Navegación de consumo">
+      <a class="usage-brand" href="#"><strong>SMYL</strong><span>Gestión clínica</span></a>
+      <div class="usage-nav-context"><span>Configuración</span><strong>Plan y consumo</strong><small>Clínica SMYL QA</small></div>
+      <nav class="usage-nav-list"><button class="usage-nav-item is-active" type="button"><span class="usage-nav-icon">◎</span><span><strong>Resumen</strong><small>Plan, saldo y estado</small></span></button><button class="usage-nav-item" type="button"><span class="usage-nav-icon">◈</span><span><strong>MILA e IA</strong><small>Voz, dictado y análisis</small></span></button><button class="usage-nav-item" type="button"><span class="usage-nav-icon">▤</span><span><strong>Historial</strong><small>Movimientos y ajustes</small></span></button></nav>
+      <div class="usage-nav-foot"><span class="usage-secure-dot"></span><span>Medición protegida por clínica</span></div>
+    </aside>
+    <main class="usage-main">
+      <header class="usage-topbar"><button class="usage-mobile-menu" type="button" aria-label="Abrir navegación"><span></span><span></span><span></span></button><div><span class="usage-breadcrumb">Configuración / Plan y consumo</span><h1>Resumen de consumo</h1></div><div class="usage-top-actions"><span class="usage-status"><i></i><span>Medición activa</span></span><button class="usage-button usage-button-secondary" type="button">Volver a SMYL</button></div></header>
+      <div class="usage-content">
+        <section class="usage-pane is-active">
+          <div class="usage-page-intro"><div><span class="usage-eyebrow">CONTROL DE LA CLÍNICA</span><h2>Todo el consumo en un solo lugar</h2><p>Entiende primero el saldo y decide después qué revisar o comprar.</p></div><span class="usage-period">Periodo · <strong>noviembre 2026</strong></span></div>
+          <article class="usage-consumption-alert is-error" role="alert"><span class="usage-consumption-alert-icon">!</span><div><strong>No pudimos actualizar todos los consumos</strong><p>Conservamos la última lectura disponible.</p></div><button class="usage-link-button" type="button">Reintentar</button></article>
+          <article class="usage-plan-card"><div class="usage-plan-mark">$</div><div class="usage-plan-copy"><span>Tu plan</span><strong>SMYL Clínica</strong><small>Clínica SMYL QA</small></div><div class="usage-plan-mode"><span>Estado de cobro</span><strong>Modo de medición</strong><small>Lectura consolidada</small></div></article>
+          <section class="usage-summary-grid"><article class="usage-summary-card"><div class="usage-summary-head"><span class="usage-summary-icon">M</span><span class="usage-chip success">Medido</span></div><span class="usage-summary-label">Minutos MILA</span><div class="usage-summary-value">42 <small>min disponibles</small></div><div class="usage-summary-meta">18 minutos consumidos este mes</div><div class="usage-meter"><span style="width:30%"></span></div><div class="usage-summary-foot"><span>30% utilizado</span><button class="usage-link-button">Ver detalle</button></div></article><article class="usage-summary-card"><div class="usage-summary-head"><span class="usage-summary-icon">IA</span><span class="usage-chip pilot">Piloto</span></div><span class="usage-summary-label">Créditos de IA</span><div class="usage-summary-value">380 <small>disponibles</small></div><div class="usage-summary-meta">120 medidos este mes</div><div class="usage-meter"><span style="width:24%"></span></div><div class="usage-summary-foot"><span>24% utilizado</span><button class="usage-link-button">Ver detalle</button></div></article></section>
+          <article class="usage-section-card usage-history-card"><div class="usage-history-toolbar"><div class="usage-filter-group"><label>Recurso</label><select><option>Todos</option></select></div><div class="usage-filter-group"><label>Movimiento</label><select><option>Todos</option></select></div><button class="usage-button usage-button-secondary">Exportar CSV</button><div class="usage-history-count">2 movimientos</div></div><div class="usage-history"><table class="usage-table"><thead><tr><th>Fecha</th><th>Recurso y origen</th><th>Movimiento</th><th>Cantidad</th><th>Saldo</th></tr></thead><tbody><tr><td><strong>01 nov 2026</strong><small>09:40</small></td><td><strong>Minutos MILA</strong><small>MILA · Consulta</small></td><td><span class="usage-movement debit">Consumo</span></td><td><strong>−4.8</strong><small>minutos</small></td><td><strong>42</strong><small>saldo posterior</small></td></tr><tr><td><strong>31 oct 2026</strong><small>16:25</small></td><td><strong>Créditos de IA</strong><small>Análisis fotográfico</small></td><td><span class="usage-movement meter_only">Medición</span></td><td><strong>−12</strong><small>unidades</small></td><td><strong>380</strong><small>saldo posterior</small></td></tr></tbody></table></div></article>
+          <section class="qa-state-grid"><div class="usage-empty">Aún no hay movimientos registrados.</div><div class="usage-empty qa-loading">Cargando actividad…</div><div class="usage-empty usage-empty-error"><div><strong>No pudimos actualizar</strong><span>La lectura anterior sigue intacta.</span><button class="usage-button usage-button-secondary">Reintentar</button></div></div></section>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    const surface = new URLSearchParams(location.search).get('surface') || 'inventory';
+    document.body.dataset.surface = surface;
+    document.querySelector('#fixture-inventory').classList.toggle('qa-hidden', surface !== 'inventory');
+    document.querySelector('#fixture-consumption').classList.toggle('qa-hidden', surface !== 'consumption');
+  </script>
+</body>
+</html>

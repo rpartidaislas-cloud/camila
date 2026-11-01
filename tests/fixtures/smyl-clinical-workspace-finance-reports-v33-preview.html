@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · QA Finanzas y Reportes v3.3</title>
+  <link rel="stylesheet" href="../../smyl-finance.css">
+  <link rel="stylesheet" href="../../smyl-reports.css">
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#12233f;background:#eef3f7}
+    *{box-sizing:border-box}
+    body{margin:0;min-width:320px;background:#eef3f7}
+    button,input,select{font:inherit}
+    button{border:1px solid #cdd9e5;background:#fff;color:#193650;cursor:pointer}
+    .btn-primary{border-color:#174f75;background:#174f75!important;color:#fff!important}
+    .pro-eyebrow{display:block;color:#2d7380;font-size:12px;font-weight:800;letter-spacing:.08em}
+    .fixture-shell{width:100%;min-height:100vh;background:#f4f7fa}
+    .fixture-only-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+    .fixture-chart-bars{display:flex;align-items:end;gap:7px;width:100%;height:100%}
+    .fixture-chart-bars .reports-bar-wrap:nth-child(1) .reports-bar{height:42%}
+    .fixture-chart-bars .reports-bar-wrap:nth-child(2) .reports-bar{height:58%}
+    .fixture-chart-bars .reports-bar-wrap:nth-child(3) .reports-bar{height:48%}
+    .fixture-chart-bars .reports-bar-wrap:nth-child(4) .reports-bar{height:72%}
+    .fixture-chart-bars .reports-bar-wrap:nth-child(5) .reports-bar{height:64%}
+    .fixture-chart-bars .reports-bar-wrap:nth-child(6) .reports-bar{height:84%}
+  </style>
+</head>
+<body>
+  <main class="fixture-shell">
+    <h1 class="fixture-only-title">Contrato visual sintético de Finanzas y Reportes</h1>
+
+    <section class="pantalla finance-page" id="fixture-finance">
+      <header class="finance-head">
+        <div>
+          <span class="pro-eyebrow">CONTROL FINANCIERO DENTAL</span>
+          <h1>Caja y cuentas por cobrar</h1>
+          <p>Cargos, cobros y recibos confirmados por paciente, con trazabilidad para el equipo.</p>
+        </div>
+        <div class="finance-head-actions">
+          <button type="button">Nuevo cargo</button>
+          <button type="button">Importar cotización</button>
+          <button class="btn btn-primary" type="button">Registrar pago</button>
+        </div>
+      </header>
+
+      <div class="finance-notice" data-tone="success">
+        <span>Saldos actualizados con movimientos confirmados.</span>
+        <button type="button">Cerrar</button>
+      </div>
+
+      <section class="finance-focus" aria-label="Prioridades de cobranza">
+        <header class="finance-focus-head">
+          <div>
+            <span>PRIORIDAD DEL DÍA</span>
+            <h2>Seguimiento financiero</h2>
+            <p>Dos cuentas requieren una acción del equipo antes del cierre.</p>
+          </div>
+          <button type="button">Ver pendientes</button>
+        </header>
+        <div class="finance-focus-list">
+          <article data-tone="warning">
+            <div><span>VENCE HOY</span><strong>Ana Torres</strong><small>Ortodoncia · saldo pendiente</small></div>
+            <button type="button">Abrir cuenta</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="finance-metrics" aria-label="Indicadores financieros">
+        <article><span>Cartera abierta</span><strong>$84,620</strong><small>18 cuentas</small></article>
+        <article><span>Cobrado este mes</span><strong>$126,400</strong><small>+12% vs. periodo anterior</small></article>
+        <article><span>Vencido</span><strong>$9,850</strong><small>3 cuentas por atender</small></article>
+        <article><span>Saldo a favor</span><strong>$3,200</strong><small>2 pacientes</small></article>
+      </section>
+
+      <nav class="finance-tabs" aria-label="Vistas de finanzas">
+        <button type="button" aria-selected="true">Cuentas por cobrar</button>
+        <button type="button">Pagos y recibos</button>
+        <button type="button">Corte de caja</button>
+        <button type="button">Preparación CFDI</button>
+      </nav>
+
+      <article class="finance-card">
+        <header>
+          <div><h2>Seguimiento por paciente</h2><p>Los importes se calculan desde cargos, pagos y reembolsos confirmados.</p></div>
+        </header>
+        <div class="finance-toolbar">
+          <input type="search" aria-label="Buscar paciente" placeholder="Buscar paciente">
+          <div class="finance-account-filters" role="group" aria-label="Filtrar cuentas">
+            <button type="button" aria-pressed="true">Por atender</button>
+            <button type="button">Con saldo</button>
+            <button type="button">Liquidadas</button>
+            <button type="button">Todas</button>
+          </div>
+        </div>
+        <div class="finance-table">
+          <div class="finance-row finance-row-head"><span>Paciente</span><span>Tratamiento</span><span>Saldo</span><span>Acción</span></div>
+          <div class="finance-row">
+            <div><strong>Ana Torres</strong><small>Último pago: 24 oct 2026</small></div>
+            <span class="finance-badge" data-tone="due">En seguimiento</span>
+            <div class="finance-account-progress"><span><b>$12,400</b><b>60%</b></span><i><u style="width:60%"></u></i><small>$7,440 cubiertos</small></div>
+            <button type="button">Ver cuenta</button>
+          </div>
+          <div class="finance-row">
+            <div><strong>Luis Robles</strong><small>Vence: 04 nov 2026</small></div>
+            <span class="finance-badge" data-tone="paid">Al corriente</span>
+            <div class="finance-account-progress"><span><b>$8,900</b><b>85%</b></span><i><u style="width:85%"></u></i><small>$7,565 cubiertos</small></div>
+            <button type="button">Ver cuenta</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="pantalla reports-page" id="fixture-reports" hidden>
+      <header class="reports-head">
+        <div>
+          <span class="pro-eyebrow">DIRECCIÓN DE LA CLÍNICA</span>
+          <h1>Tablero ejecutivo</h1>
+          <p>Ingresos, agenda, tratamientos y cartera en una lectura operativa protegida.</p>
+        </div>
+        <div class="reports-filter-shell">
+          <div class="reports-presets" role="group" aria-label="Periodos rápidos">
+            <button type="button">7 días</button><button type="button" aria-selected="true">30 días</button><button type="button">90 días</button>
+          </div>
+          <div class="reports-filters">
+            <label>Desde<input type="date" value="2026-10-01"></label>
+            <label>Hasta<input type="date" value="2026-10-31"></label>
+            <label>Sucursal<select><option>Clínica Centro</option></select></label>
+            <button type="button">Actualizar</button>
+            <button class="btn btn-primary" type="button">Exportar CSV</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="reports-notice" data-tone="success"><span>Tablero actualizado con datos agregados.</span><button type="button">Cerrar</button></div>
+
+      <section class="reports-brief">
+        <header><div><span class="pro-eyebrow">LECTURA EJECUTIVA</span><h2>Qué requiere atención</h2><p>Resumen accionable del periodo seleccionado.</p></div><span class="reports-brief-period">01–31 octubre</span></header>
+        <div class="reports-brief-list">
+          <article data-tone="warning"><div><span>CARTERA</span><strong>3 cuentas vencidas</strong><small>$9,850 requieren seguimiento.</small></div><button type="button">Revisar cartera</button></article>
+          <article><div><span>AGENDA</span><strong>Ocupación estable</strong><small>82% de citas confirmadas.</small></div><button type="button">Ver agenda</button></article>
+        </div>
+      </section>
+
+      <section class="reports-metrics" aria-label="Indicadores ejecutivos">
+        <article><span>Ingresos confirmados</span><strong>$126,400</strong><small>+12% vs. periodo anterior</small></article>
+        <article><span>Citas atendidas</span><strong>148</strong><small>84% de asistencia</small></article>
+        <article><span>Tratamientos activos</span><strong>46</strong><small>12 próximos a cierre</small></article>
+        <article><span>Cartera vencida</span><strong>$9,850</strong><small>3 cuentas</small></article>
+      </section>
+
+      <section class="reports-grid">
+        <article class="reports-card reports-trend-card">
+          <header><div><h2>Tendencia de ingresos</h2><p>Movimientos confirmados por semana.</p></div><div><div class="reports-chart-toggle" role="group" aria-label="Indicador"><button type="button" aria-selected="true">Ingresos</button><button type="button">Citas</button></div><small class="reports-updated">Actualizado hoy, 09:30</small></div></header>
+          <div class="reports-chart"><div class="fixture-chart-bars"><div class="reports-bar-wrap"><i class="reports-bar"></i></div><div class="reports-bar-wrap"><i class="reports-bar"></i></div><div class="reports-bar-wrap"><i class="reports-bar"></i></div><div class="reports-bar-wrap"><i class="reports-bar"></i></div><div class="reports-bar-wrap"><i class="reports-bar"></i></div><div class="reports-bar-wrap"><i class="reports-bar"></i></div></div></div>
+          <div class="reports-legend"><span><i></i>Datos confirmados</span><span>Actividad agregada del periodo.</span></div>
+        </article>
+        <aside class="reports-card">
+          <header><div><h2>Estado operativo</h2><p>Conteos que requieren seguimiento.</p></div></header>
+          <div class="reports-risk-list"><div class="reports-risk" data-alert="true"><span>Citas por confirmar</span><strong>9</strong></div><div class="reports-risk"><span>Inventario bajo</span><strong>4</strong></div><div class="reports-risk"><span>Casos por revisar</span><strong>6</strong></div></div>
+        </aside>
+      </section>
+
+      <article class="reports-card">
+        <header><div><h2>Demanda por servicio</h2><p>Volumen y terminación del periodo; no mide calidad clínica.</p></div></header>
+        <div class="reports-table">
+          <div class="reports-row reports-row-head"><span>Servicio</span><span>Citas</span><span>Terminación</span><span>Inasistencia</span></div>
+          <div class="reports-row"><div><strong>Diseño de sonrisa</strong><div class="reports-progress"><i style="width:76%"></i></div></div><strong>52</strong><strong>76%</strong><strong>6%</strong></div>
+          <div class="reports-row"><div><strong>Ortodoncia</strong><div class="reports-progress"><i style="width:68%"></i></div></div><strong>44</strong><strong>68%</strong><strong>8%</strong></div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script>
+    const selected=new URLSearchParams(location.search).get('module')||'finance';
+    document.getElementById('fixture-finance').hidden=selected!=='finance';
+    document.getElementById('fixture-reports').hidden=selected!=='reports';
+  </script>
+</body>
+</html>

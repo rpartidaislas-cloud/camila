@@ -70,6 +70,7 @@
   }
   function viewToolbar(stage,img,viewport){
    const tools=n('div','rr-view-tools'),zoom=n('input'),contrast=n('input'),brightness=n('input');
+   tools.setAttribute('role','group');tools.setAttribute('aria-label','Herramientas de imagen radiográfica');
    Object.assign(zoom,{type:'range',min:1,max:3,step:.25,value:run.view.zoom});zoom.setAttribute('aria-label','Ampliar radiografía');
    Object.assign(contrast,{type:'range',min:60,max:180,step:5,value:run.view.contrast});contrast.setAttribute('aria-label','Contraste');
    Object.assign(brightness,{type:'range',min:60,max:160,step:5,value:run.view.brightness});brightness.setAttribute('aria-label','Brillo');
@@ -119,6 +120,7 @@
   }
   function imagePanel(doc,clickable=false){
    const unlocated=(doc?.items||[]).filter(i=>i.x===null&&i.state!=='rejected').length,canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
+   canvas.setAttribute('aria-label','Imagen radiográfica original y señales ubicadas');
    const noteText=clickable?(unlocated?unlocated+(unlocated===1?' señal sin ubicación. ':' señales sin ubicación. ')+'Ábrelas y usa «Ubicar señal».':'Selecciona una señal para ubicarla.'):'El original se conserva sin modificaciones.',note=n('small','rr-canvas-note'+(clickable&&unlocated?' is-alert':''),noteText);copy.append(note);head.append(copy,marksToggle(stage));img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);img.addEventListener('load',()=>applyImageView(stage,img));if(window.ResizeObserver)new ResizeObserver(()=>applyImageView(stage,img)).observe(wrap);canvas.append(head,viewToolbar(stage,img,wrap),wrap);
    if(run.placing)run.view.marks=true;
    stage.classList.toggle('rr-marks-off',!run.view.marks);stage.classList.toggle('is-placing',!!run.placing);
@@ -145,6 +147,7 @@
   }
   function editItem(item,index){
    const source=run.doc.analysis.report.observations.find(o=>o.id===item.sourceId),selected=run.selected===item.id,card=n('article','rr-item rr-item-'+item.state+(selected?' is-selected':''));if(item.state==='pending'&&source&&item.text===source.observation)item.text='';card.dataset.rrItem=item.id;card.dataset.state=item.state;card.tabIndex=-1;card.setAttribute('aria-current',String(selected));
+   card.setAttribute('role','listitem');
    const head=n('button','rr-item-head'),title=n('span','rr-item-title');head.type='button';title.append(n('span','rr-number',String(index+1)),n('span','',null));title.lastChild.append(n('strong','',categoryLabel[source?.category]||'Señal por revisar'),n('span','rr-item-location',item.tooth?'Pieza FDI '+item.tooth:'Diente por indicar'));{const issue=SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);if(issue)title.lastChild.append(n('span','rr-item-warn',issue==='side'?'Comprobar: la posición en la imagen no coincide con el lado de esta pieza.':'Comprobar: la posición en la imagen no coincide con la arcada de esta pieza.'));};if(source?.observation)title.lastChild.append(n('span','rr-item-detected',source.observation));head.append(title,n('span','rr-state rr-state-'+item.state,stateLabel[item.state]));head.onclick=()=>selectItem(item.id);card.append(head);
    if(!selected)return card;
    const body=n('div','rr-item-body'),detectedBox=n('div','rr-detected'),sourceBox=n('div','rr-source');detectedBox.append(n('span','','Detectado por la IA'),n('p','',source?.observation||'Señal visual pendiente de comprobar.'));body.append(detectedBox);sourceBox.append(n('span','','Base visual sugerida'),n('p','',source?.evidence||'Señal visual pendiente de comprobar.'));body.append(sourceBox);
@@ -156,6 +159,7 @@
   }
   function signalPanel(){
    const panel=n('aside','rr-signal-panel'),head=n('header','rr-panel-head'),tabs=n('div','rr-filters rr-tabs'),list=n('div','rr-items');
+   panel.setAttribute('aria-label','Decisiones sobre señales clínicas');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Filtrar señales por estado');list.setAttribute('role','list');list.setAttribute('aria-label','Señales clínicas por revisar');
    head.append(n('span','rr-section-label','SEÑALES CLÍNICAS'),n('h2','','Revisión profesional'),n('p','','Comprueba, ubica y decide cada señal. Solo las confirmadas pasan al expediente.'));
    [['all','Todas','total'],['pending','Por revisar','pending'],['confirmed','Confirmadas','confirmed'],['rejected','Descartadas','rejected']].forEach(([value,label,key])=>{const tab=button(label,()=>{run.filter=value;render();},'rr-filter rr-tab');if(value!=='all'){const badge=n('b','',String(countOf(key)));badge.dataset.rrCount=key;tab.append(badge);}tab.setAttribute('aria-pressed',String(run.filter===value));tabs.append(tab);});
    const visible=run.doc.items.map((item,index)=>({item,index})).filter(({item})=>run.filter==='all'||item.state===run.filter);if(visible.length&&!visible.some(({item})=>item.id===run.selected))run.selected=visible[0].item.id;visible.forEach(({item,index})=>list.append(editItem(item,index)));if(!visible.length){const empty=n('div','rr-panel-empty');empty.append(n('strong','','No hay señales en este estado'),n('p','','Cambia la pestaña para revisar las demás.'));list.append(empty);}panel.append(head,tabs,list);return panel;

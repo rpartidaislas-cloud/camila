@@ -681,13 +681,22 @@
     if (list.length) {
       var table = el('table', 'clinic-patient-table'); table.setAttribute('aria-label', 'Directorio de pacientes');
       var thead = el('thead'), headRow = el('tr');
-      ['Paciente', 'Contacto', 'Próxima atención', 'Estado', 'Acciones'].forEach(function (label) {
+      ['Paciente', 'Contacto', 'Próxima atención', 'Estado', 'Acción'].forEach(function (label) {
         var th = el('th', '', label); th.scope = 'col'; headRow.append(th);
       });
       thead.append(headRow); table.append(thead);
       var body = el('tbody');
     list.forEach(function (p) {
       var row = el('tr', 'clinic-patient-row');
+      var patientName = fullName(p) || 'paciente';
+      row.tabIndex = 0;
+      row.setAttribute('aria-label', 'Abrir expediente de ' + patientName);
+      row.onclick = function (event) { if (!event.target.closest('button,a,input,select,textarea')) verPaciente(p.id); };
+      row.onkeydown = function (event) {
+        if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('button,a,input,select,textarea')) {
+          event.preventDefault(); verPaciente(p.id);
+        }
+      };
       var patientCell = el('td', 'clinic-patient-identity'); patientCell.dataset.label = 'Paciente';
       var avatar = el('div', 'clinic-avatar', (p.nombre || '?').slice(0, 1).toUpperCase());
       avatar.setAttribute('aria-hidden', 'true');
@@ -710,14 +719,11 @@
       var complete = !!(p.telefono && p.email), status = el('span', 'clinic-patient-status', complete ? 'Datos completos' : 'Contacto pendiente');
       status.dataset.complete = String(complete); state.append(status);
 
-      var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acciones';
-      var patientName = fullName(p) || 'paciente';
+      var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acción';
       if (!p._local && window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') {
-        var schedule = button('Agendar', function () { window.SmylSchedule.bookFor(p); }, 'btn btn-secondary btn-sm');
+        var schedule = button('Agendar cita', function () { window.SmylSchedule.bookFor(p); }, 'btn btn-secondary btn-sm');
         schedule.setAttribute('aria-label', 'Agendar cita para ' + patientName); actions.append(schedule);
       }
-      var open = button('Abrir expediente', function () { verPaciente(p.id); }, 'btn btn-secondary btn-sm clinic-patient-open');
-      open.setAttribute('aria-label', 'Abrir expediente de ' + patientName); actions.append(open);
       row.append(patientCell, contact, attention, state, actions); body.append(row);
     });
       table.append(body); host.append(table);

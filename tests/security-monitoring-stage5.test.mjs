@@ -57,12 +57,12 @@ test('the security center includes alerts, investigation and a response runbook'
 });
 
 test('web, mobile and PWA ship the same stage 5 security center',()=>{
-  assert.match(app,/smyl-security-center\.js\?v=1/);
+  assert.match(app,/smyl-security-center\.js\?v=2/);
   assert.match(app,/window\.SmylSecurity\.start\(sb\)/);
   assert.equal(app,mobile);
   assert.equal(ui,read('mobile/www/smyl-security-center.js'));
   assert.equal(css,read('mobile/www/smyl-security-center.css'));
   assert.equal(read('smyl-navigation.js'),read('mobile/www/smyl-navigation.js'));
   assert.match(read('sw.js'),/smyl-v263-lana-connection-recovery/);
-  assert.match(read('sw.js'),/smyl-security-center\.js\?v=1/);
+  assert.match(read('sw.js'),/smyl-security-center\.js\?v=2/);
 });

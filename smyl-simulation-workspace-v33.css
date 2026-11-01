@@ -1,0 +1,503 @@
+/*
+ * SMYL Clinical Workspace v3.3 · Simulation surfaces
+ * Presentation-only contract shared by simulacion.html and simulacion-rapida.html.
+ * This layer must not contain model, generation, prompt, persistence or clinical logic.
+ */
+
+.sim-workspace-v33 {
+  --sim-v33-bg: #080f24;
+  --sim-v33-surface: #111c34;
+  --sim-v33-surface-2: #17253f;
+  --sim-v33-line: #30415d;
+  --sim-v33-text: #f4f7ff;
+  --sim-v33-muted: #b4c3d8;
+  --sim-v33-accent: #8ae0d1;
+  --sim-v33-accent-ink: #082c35;
+  --sim-v33-danger: #ffb5ab;
+  --sim-v33-warning: #ffd38a;
+  --sim-v33-control: 42px;
+  --sim-v33-radius: 14px;
+  --sim-v33-focus: #9ae7da;
+  color-scheme: dark;
+}
+
+.sim-workspace-v33 :is(button, input, select, textarea, summary, a, [tabindex]):focus-visible {
+  outline: 3px solid var(--sim-v33-focus) !important;
+  outline-offset: 3px !important;
+}
+
+.sim-workspace-v33 :is(button, input, select, textarea) {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.sim-workspace-v33 :is(button, select, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), a[role="button"], summary) {
+  min-height: var(--sim-v33-control);
+}
+
+.sim-workspace-v33 :is(button, [role="button"], summary, label[for], input[type="checkbox"], input[type="radio"]) {
+  touch-action: manipulation;
+}
+
+.sim-workspace-v33 :is(button, input, select, textarea):disabled,
+.sim-workspace-v33 [aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+/* Visible text contract: all functional copy is at least 12 px. */
+.sim-workspace-v33 :is(
+  .intro-tag, .ps-lbl, .pill, .intro-note,
+  .native-capture-kicker, .native-tips-heading, .native-tip-copy strong,
+  .native-tip-copy span, .native-badge, .native-gallery-link, .ind-badge,
+  .photo-adjust-help, .proc-bar-msg, .ba-tag, .ba-tip, .res-thumb-lbl,
+  .score-lbl, .res-sec-title, .plan-circle, .cot-detail, .cot-total-lbl,
+  .cot-total-sub, .fg label, .dp-label, .ib-sub, .ios-step-num,
+  .diag-badge, .diag-privacy span, .diag-check small, .diag-current span,
+  .diag-view b, .diag-view span, .diag-event-row span, .diag-state-pill,
+  .diag-report-status span, .diag-report-list li,
+  .quick-step span, .advanced-entry-copy, .quick-choice small,
+  .quick-professional-link, .quick-safety, .smile-criteria-flow span
+) {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+
+.sim-workspace-v33 [style*="font-size\:8px"],
+.sim-workspace-v33 [style*="font-size\:8.5px"],
+.sim-workspace-v33 [style*="font-size\:9px"],
+.sim-workspace-v33 [style*="font-size\:9.5px"],
+.sim-workspace-v33 [style*="font-size\:10px"],
+.sim-workspace-v33 [style*="font-size\:10.5px"],
+.sim-workspace-v33 [style*="font-size\:11px"],
+.sim-workspace-v33 [style*="font-size\:11.5px"],
+.sim-workspace-v33 [style*="font-size\: 8px"],
+.sim-workspace-v33 [style*="font-size\: 8.5px"],
+.sim-workspace-v33 [style*="font-size\: 9px"],
+.sim-workspace-v33 [style*="font-size\: 9.5px"],
+.sim-workspace-v33 [style*="font-size\: 10px"],
+.sim-workspace-v33 [style*="font-size\: 10.5px"],
+.sim-workspace-v33 [style*="font-size\: 11px"],
+.sim-workspace-v33 [style*="font-size\: 11.5px"] {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+
+/* Task · start with one clear action and progressively disclose detail. */
+.sim-workspace-v33 #s-intro {
+  background:
+    radial-gradient(circle at 50% -16%, rgba(54, 127, 153, .25), transparent 40%),
+    linear-gradient(160deg, #081328, #080d1c 72%);
+  padding: max(52px, calc(env(safe-area-inset-top) + 30px)) 24px max(30px, env(safe-area-inset-bottom));
+}
+
+.sim-workspace-v33 .intro-logo { margin-bottom: 10px; }
+.sim-workspace-v33 .intro-tag {
+  margin-bottom: 20px;
+  color: var(--sim-v33-accent);
+  font-weight: 750;
+  letter-spacing: 1.25px;
+}
+.sim-workspace-v33 .intro-title {
+  max-width: 560px;
+  margin-bottom: 10px;
+  font-size: clamp(26px, 4vw, 38px);
+  line-height: 1.12;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.sim-workspace-v33 .intro-sub {
+  max-width: 520px;
+  margin-bottom: 26px;
+  color: var(--sim-v33-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.sim-workspace-v33 .photo-steps {
+  max-width: 560px;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.sim-workspace-v33 .ps-item {
+  gap: 9px;
+  min-width: 0;
+}
+.sim-workspace-v33 .ps-icon {
+  width: clamp(72px, 9vw, 94px);
+  height: clamp(72px, 9vw, 94px);
+  border: 1px solid rgba(138, 224, 209, .2);
+  border-radius: 16px;
+  background: rgba(17, 28, 52, .72);
+}
+.sim-workspace-v33 .ps-lbl {
+  color: var(--sim-v33-muted);
+  font-weight: 650;
+}
+.sim-workspace-v33 .intro-btn {
+  min-height: 50px;
+  border-radius: 13px;
+  box-shadow: 0 12px 30px rgba(37, 118, 243, .22);
+}
+.sim-workspace-v33 .intro-note {
+  max-width: 480px;
+  color: rgba(220, 230, 245, .68);
+}
+.sim-workspace-v33 .pill {
+  min-height: 34px;
+  padding: 7px 12px;
+  color: rgba(235, 242, 252, .78);
+}
+
+/* Capture · camera remains visually dominant, guidance stays legible. */
+.sim-workspace-v33 #s-cam { background: #020713; }
+.sim-workspace-v33 .cam-top {
+  min-height: 62px;
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.sim-workspace-v33 :is(.cam-close-btn, .cam-side-btn, .cam-gallery) {
+  min-width: 44px;
+  min-height: 44px;
+}
+.sim-workspace-v33 .cam-photo-ind,
+.sim-workspace-v33 .cam-indicators {
+  font-size: 12px;
+}
+.sim-workspace-v33 .ind-badge {
+  min-height: 32px;
+  padding: 7px 12px;
+}
+.sim-workspace-v33 .native-tips-card {
+  max-width: 460px;
+  border-radius: 14px;
+  background: rgba(9, 16, 33, .88);
+  border-color: rgba(138, 224, 209, .22);
+}
+.sim-workspace-v33 .native-tip {
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+}
+.sim-workspace-v33 .native-tip-emoji {
+  width: 36px;
+  height: 36px;
+}
+.sim-workspace-v33 .photo-adjust-head :is(button, .photo-adjust-use),
+.sim-workspace-v33 .photo-adjust-actions button,
+.sim-workspace-v33 .photo-adjust-format-options button {
+  min-height: 42px;
+  font-size: 12px;
+}
+.sim-workspace-v33 #photo-adjust-format-note {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Progress · a calm status hierarchy instead of competing indicators. */
+.sim-workspace-v33 #s-proc {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(91, 71, 224, .16), transparent 38%),
+    var(--sim-v33-bg);
+}
+.sim-workspace-v33 .proc-title {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.sim-workspace-v33 .proc-sub {
+  max-width: 520px;
+  color: var(--sim-v33-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.sim-workspace-v33 .proc-bar-wrap,
+.sim-workspace-v33 .proc-list { width: min(100%, 520px); }
+.sim-workspace-v33 .proc-bar-msg { min-height: 20px; color: var(--sim-v33-muted); }
+.sim-workspace-v33 .proc-list > * { font-size: 12px; line-height: 1.45; }
+.sim-workspace-v33 #proc-error-diagnostics {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+/* Decision · result and comparison tools read as one workspace. */
+.sim-workspace-v33 #s-res {
+  background: var(--sim-v33-bg);
+  color: var(--sim-v33-text);
+}
+.sim-workspace-v33 .res-header {
+  min-height: 64px;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) clamp(14px, 2vw, 26px) 10px;
+  background: rgba(8, 15, 36, .94);
+  border-bottom: 1px solid var(--sim-v33-line);
+  backdrop-filter: blur(16px);
+}
+.sim-workspace-v33 .res-header > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.sim-workspace-v33 :is(.res-vita-btn, .redo-btn, .res-header button) {
+  min-height: 42px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.sim-workspace-v33 .res-body {
+  width: min(100%, 1180px);
+  margin-inline: auto;
+  padding-inline: clamp(14px, 3vw, 30px);
+}
+.sim-workspace-v33 .res-section {
+  border-color: var(--sim-v33-line);
+}
+.sim-workspace-v33 .res-sec-title {
+  margin-bottom: 14px;
+  color: var(--sim-v33-accent);
+  font-weight: 750;
+  letter-spacing: .7px;
+}
+.sim-workspace-v33 :is(.ba-tag, .ba-tip) {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+}
+.sim-workspace-v33 .res-thumb-lbl,
+.sim-workspace-v33 .score-lbl { color: var(--sim-v33-muted); }
+.sim-workspace-v33 .fg :is(input, textarea, select) {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* VITA · decision first, optical detail second. */
+.sim-workspace-v33 .vita-screen { background: var(--sim-v33-bg); }
+.sim-workspace-v33 .vita-shell {
+  width: min(100%, 1180px);
+  padding-inline: clamp(14px, 3vw, 30px);
+}
+.sim-workspace-v33 .vita-head {
+  min-height: 62px;
+  border-bottom-color: var(--sim-v33-line);
+}
+.sim-workspace-v33 .vita-guide-card,
+.sim-workspace-v33 .vita-quick-action,
+.sim-workspace-v33 .vita-preview,
+.sim-workspace-v33 .vita-selected-card,
+.sim-workspace-v33 .vita-option-card,
+.sim-workspace-v33 .vita-advanced {
+  border-color: var(--sim-v33-line);
+  background: var(--sim-v33-surface);
+}
+.sim-workspace-v33 :is(
+  .vita-tab-sim, .vita-stick > strong, .vita-selected-copy, .vita-note,
+  .vita-quick-copy small, .vita-quick-copy span, .vita-detail-hint,
+  .vita-advanced > summary, .vita-compare-kicker, .vita-compare-code,
+  .vita-compare-vs, .vita-compare-select, .vita-compare,
+  .vita-option-card label, .vita-segment, .vita-lighting, .vita-status,
+  .vita-preview-info p, .vita-preview-zoom, .vita-preview-tag,
+  .vita-preview-warning, .vita-construction-note, .vita-construction-choice
+) {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+.sim-workspace-v33 :is(
+  .vita-current-btn, .vita-confirm, .vita-segment, .vita-preview-zoom,
+  .vita-compare-select, .vita-construction-choice
+) { min-height: 42px; }
+.sim-workspace-v33 .vita-quick-copy strong { font-size: 17px; line-height: 1.3; }
+.sim-workspace-v33 .vita-quick-action {
+  gap: 18px;
+  padding: 17px 18px;
+}
+.sim-workspace-v33 .vita-confirm {
+  border-radius: 11px;
+  background: linear-gradient(110deg, #247e7a, #2c6bed);
+}
+.sim-workspace-v33 .vita-preview-warning,
+.sim-workspace-v33 .vita-note,
+.sim-workspace-v33 .vita-detail-hint { color: var(--sim-v33-muted) !important; }
+
+/* Detail · professional editor stays dense, but never miniature. */
+.sim-workspace-v33 .ed-screen {
+  --ed-bg: #080d15;
+  --ed-surface: #111821;
+  --ed-surface-2: #171f29;
+  --ed-border: #2d3948;
+  --ed-text: #f2f6fb;
+  --ed-muted: #aab8c8;
+  background: var(--ed-bg);
+}
+.sim-workspace-v33 .ed-topbar {
+  min-height: 62px;
+  background: #0d141d;
+  border-bottom-color: var(--ed-border);
+}
+.sim-workspace-v33 .ed-topbar-inner {
+  width: 100%;
+  gap: 10px;
+  padding-inline: clamp(10px, 2vw, 20px);
+}
+.sim-workspace-v33 :is(.ed-btn-icon, .ed-btn-aplicar) {
+  min-width: 42px;
+  min-height: 42px;
+}
+.sim-workspace-v33 .ed-title { font-size: 15px; font-weight: 750; }
+.sim-workspace-v33 .ed-body { min-width: 0; background: var(--ed-bg); }
+.sim-workspace-v33 .ed-center { min-width: 0; }
+.sim-workspace-v33 .ed-canvas-toolbar { scrollbar-width: thin; }
+.sim-workspace-v33 .ed-workspace-head {
+  min-height: 62px;
+  padding: 10px 14px;
+  background: #0d141d;
+  border-bottom-color: var(--ed-border);
+}
+.sim-workspace-v33 .ed-workspace-title { font-size: 13px; }
+.sim-workspace-v33 .ed-workspace-copy { font-size: 12px; line-height: 1.45; }
+.sim-workspace-v33 :is(.ed-guides-row, .ed-contour-bar) {
+  min-height: 52px;
+  gap: 7px;
+  padding-block: 5px;
+  background: #0d1219;
+  border-bottom-color: var(--ed-border);
+  scrollbar-width: thin;
+}
+.sim-workspace-v33 :is(
+  .ed-photo-toggle, .ed-guide-chip, .ed-guide-add, .ed-group-chip,
+  .ed-guide-more, .ed-contour-toggle, .ed-contour-chip, .ed-contour-action,
+  .ed-photo-zoom button, .ed-vita-current, .ed-clinical-apply,
+  .ed-chip, .ed-tooth-chip, .ed-incisal-reset,
+  .ed-curve-move, .ed-arc-main, .ed-curve-ends, .ed-remote-toggle
+) {
+  min-height: 42px;
+  height: auto;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.sim-workspace-v33 .ed-line-remove { width: 42px; height: 42px; }
+.sim-workspace-v33 :is(.ed-contour-chip, .ed-tooth-chip) { min-width: 42px; }
+.sim-workspace-v33 :is(.ed-photo-zoom button, .ed-zoom-btn) { min-width: 42px; }
+.sim-workspace-v33 :is(
+  .ed-zone-hint, .ed-photo-zoom-value, .ed-sec-label, .ed-label,
+  .ed-vita-head span, .ed-vita-head strong, .ed-vita-stick > strong,
+  .ed-clinical-title, .ed-clinical-kicker, .ed-clinical-badge,
+  .ed-clinical-tag, .ed-clinical-copy, .ed-proportion-title,
+  .ed-proportion-kicker, .ed-proportion-summary, .ed-proportion-note,
+  .ed-incisal-title, .ed-incisal-badge, .ed-incisal-copy,
+  .ed-incisal-note, .ed-remote-status, .ed-pad-title, .ed-pad-copy,
+  .ed-toolbar-label, .ed-panel-intro, .ed-panel-toggle,
+  .ed-panel-toggle-state, .ed-sec-label.ed-section-title,
+  .ed-sec-label.ed-section-title small, .ed-contour-label,
+  .ed-contour-status, .ed-settings-section > summary,
+  .ed-settings-section > summary small
+) {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.sim-workspace-v33 .ed-panel {
+  width: min(360px, 100%);
+  background: var(--ed-surface);
+  border-left-color: var(--ed-border);
+}
+.sim-workspace-v33 .ed-panel-inner { padding: 16px; }
+.sim-workspace-v33 .ed-settings-section {
+  border-color: var(--ed-border);
+  background: var(--ed-surface-2);
+}
+.sim-workspace-v33 .ed-settings-section > summary { min-height: 52px; }
+.sim-workspace-v33 .ed-remote-pad { min-height: 148px; }
+
+/* Accessible status language, including camera diagnostics. */
+.sim-workspace-v33 :is([role="status"], [role="alert"], [aria-live]) {
+  overflow-wrap: anywhere;
+}
+.sim-workspace-v33 :is(.diag-card, .diag-check, .diag-report-status) {
+  border-color: var(--sim-v33-line);
+  background: var(--sim-v33-surface);
+}
+.sim-workspace-v33 .diag-btn { min-height: 42px; font-size: 12px; }
+.sim-workspace-v33 .diag-check { min-height: 72px; }
+
+@media (max-width: 1024px) {
+  .sim-workspace-v33 .res-header { align-items: flex-start; }
+  .sim-workspace-v33 .res-header > div:last-child {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: calc(100vw - 92px);
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+  .sim-workspace-v33 .vita-selected-card {
+    grid-template-columns: minmax(240px, 1fr) minmax(180px, 1fr);
+  }
+  .sim-workspace-v33 .vita-selected-card > .vita-confirm { grid-column: 1 / -1; width: 100%; }
+  .sim-workspace-v33 .ed-panel { width: min(340px, 42vw); }
+}
+
+@media (max-width: 760px) {
+  .sim-workspace-v33 { --sim-v33-control: 44px; }
+  .sim-workspace-v33 #s-intro { padding-inline: 16px; }
+  .sim-workspace-v33 .intro-title { font-size: clamp(25px, 8vw, 32px); }
+  .sim-workspace-v33 .photo-steps { gap: 8px; }
+  .sim-workspace-v33 .ps-icon { width: min(24vw, 82px); height: min(24vw, 82px); }
+  .sim-workspace-v33 :is(.cam-close-btn, .cam-side-btn, .cam-gallery) { min-width: 48px; min-height: 48px; }
+  .sim-workspace-v33 .res-header { min-height: 62px; padding-inline: 10px; }
+  .sim-workspace-v33 :is(.res-vita-btn, .redo-btn, .res-header button) { min-height: 44px; }
+  .sim-workspace-v33 .res-body { padding-inline: 12px; }
+  .sim-workspace-v33 .vita-shell { padding-inline: 12px; }
+  .sim-workspace-v33 .vita-quick-action { grid-template-columns: 1fr; }
+  .sim-workspace-v33 .vita-quick-action .vita-confirm { width: 100%; min-height: 48px; }
+  .sim-workspace-v33 .vita-preview { grid-template-columns: 1fr; gap: 14px; }
+  .sim-workspace-v33 .vita-preview-stage { min-height: 190px; }
+  .sim-workspace-v33 .vita-selected-card { grid-template-columns: 1fr; }
+  .sim-workspace-v33 .vita-options { grid-template-columns: 1fr; }
+  .sim-workspace-v33 .vita-segments { display: grid; grid-template-columns: 1fr; }
+  .sim-workspace-v33 .vita-comparison { gap: 6px; }
+  .sim-workspace-v33 .ed-topbar,
+  .sim-workspace-v33 .ed-workspace-head { min-height: 58px; }
+  .sim-workspace-v33 .ed-workspace-copy { display: none; }
+  .sim-workspace-v33 :is(.ed-btn-icon, .ed-btn-aplicar) { min-width: 44px; min-height: 44px; }
+  .sim-workspace-v33 :is(
+    .ed-photo-toggle, .ed-guide-chip, .ed-guide-add, .ed-group-chip,
+    .ed-guide-more, .ed-contour-toggle, .ed-contour-chip, .ed-contour-action,
+    .ed-photo-zoom button, .ed-vita-current, .ed-clinical-apply,
+    .ed-chip, .ed-tooth-chip, .ed-incisal-reset,
+    .ed-curve-move, .ed-arc-main, .ed-curve-ends, .ed-remote-toggle
+  ) { min-height: 44px; }
+  .sim-workspace-v33 .ed-line-remove { width: 44px; height: 44px; }
+  .sim-workspace-v33 :is(.ed-contour-chip, .ed-tooth-chip) { min-width: 44px; }
+  .sim-workspace-v33 :is(.ed-photo-zoom button, .ed-zoom-btn) { min-width: 44px; }
+  .sim-workspace-v33 .ed-guides-row { overflow-x: auto; }
+  .sim-workspace-v33 .ed-panel {
+    width: 100%;
+    max-height: min(68dvh, 620px);
+    border-left: 0;
+    border-top: 1px solid var(--ed-border);
+  }
+}
+
+@media (max-width: 420px) {
+  .sim-workspace-v33 .intro-sub { font-size: 13px; }
+  .sim-workspace-v33 .photo-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sim-workspace-v33 .ps-lbl { overflow-wrap: anywhere; }
+  .sim-workspace-v33 .res-header > div:last-child { max-width: calc(100vw - 62px); }
+  .sim-workspace-v33 .vita-comparison { grid-template-columns: 1fr; align-items: center; }
+  .sim-workspace-v33 .vita-compare-vs { justify-self: center; }
+  .sim-workspace-v33 .ed-title { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sim-workspace-v33 .ed-panel-inner { padding: 14px 12px max(18px, env(safe-area-inset-bottom)); }
+  .sim-workspace-v33 .diag-grid,
+  .sim-workspace-v33 .diag-views { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim-workspace-v33 *,
+  .sim-workspace-v33 *::before,
+  .sim-workspace-v33 *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

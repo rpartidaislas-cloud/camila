@@ -47,7 +47,7 @@ test('agenda exposes each human decision without pretending WhatsApp was sent', 
 
 test('negotiation release is versioned and synchronized to mobile', () => {
   assert.match(app, /smyl-schedule\.js\?v=(?:2[6-9]|[3-9][0-9])/);
-  assert.match(app, /smyl-schedule\.css\?v=18/);
+  assert.match(app, /smyl-schedule\.css\?v=19/);
   assert.match(worker, /appointment-negotiations/);
   assert.equal(script, read('../mobile/www/smyl-schedule.js'));
   assert.equal(styles, read('../mobile/www/smyl-schedule.css'));

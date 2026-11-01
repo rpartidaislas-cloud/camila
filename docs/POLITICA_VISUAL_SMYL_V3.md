@@ -1,8 +1,8 @@
 # Política visual SMYL v3
 
-**Versión:** 3.2
+**Versión:** 3.3 · Clinical Workspace
 **Estado:** normativa
-**Fecha de entrada en vigor:** 25 de octubre de 2026
+**Fecha de entrada en vigor:** 1 de noviembre de 2026
 **Ámbito:** web, PWA, aplicación móvil y superficies públicas de SMYL
 **Propietario:** Producto y Diseño SMYL
 
@@ -22,6 +22,48 @@ Los patrones de componentes se apoyan además en las guías de 21st.dev sobre
 dashboards, botones, tarjetas, formularios, tablas y estados. 21st.dev se usa
 como catálogo de referencias y contratos de interacción, no como una fuente de
 componentes que deban instalarse o copiarse sin revisión.
+
+### Actualización 3.3 · Clinical Workspace
+
+La versión 3.3 convierte la política en un sistema ejecutable y verificable:
+
+- los tokens portables viven en `design/tokens/smyl.tokens.json`, con formato
+  DTCG, y su representación web en `smyl-ui-template-v3.css`;
+- sólo se autorizan siete roles tipográficos: 32, 22, 16, 15, 14, 13 y 12 px;
+- sólo se autorizan los pesos 400, 500, 600 y 700;
+- toda pantalla adopta una de cinco composiciones: trabajo diario, tabla/lista,
+  formulario guiado, workspace dividido o configuración;
+- en móvil, la barra principal contiene exactamente `Inicio`, `Agenda`,
+  `Pacientes`, `Mensajes` y `Más`; el resto vive en una hoja accesible;
+- 21st.dev y otras bibliotecas sirven como referencia visual, nunca como una
+  capa adicional de CSS ni como autorización para crear otro sistema paralelo.
+
+La segunda ola aplica esos contratos a Mensajes, Ficha 360, Cotizaciones y
+Equipo y roles. En estas superficies también son obligatorios el mínimo visible
+de 12 px, objetivos de 42 px en escritorio y 44 px en móvil, una sola acción
+primaria por contexto, foco visible y reflujo sin empalmes. Las cotizaciones
+conservan separadas la edición, la decisión del paciente y el seguimiento; la
+Ficha 360 siempre abre las fuentes canónicas en vez de duplicar información; y
+los cambios visuales de Equipo no pueden alterar permisos ni alcance de datos.
+
+La tercera ola extiende el mismo contrato a Inventario, Plan y consumo,
+Finanzas, Reportes, Conexiones y Seguridad. En estas superficies la lectura se
+ordena como `prioridad → decisión → detalle`; las tablas se transforman en
+tarjetas sólo cuando el ancho lo exige; una actualización fallida conserva la
+última lectura disponible; y los reintentos no pueden generar solicitudes
+simultáneas. La semántica accesible y las traducciones de estado nunca pueden
+alterar movimientos, cobros, conciliación, credenciales, permisos ni fuentes
+de verdad del servidor.
+
+La cuarta ola gobierna Studio, simulación, revisión clínica fotográfica y
+radiografías. Estas superficies pueden conservar un entorno oscuro e inmersivo
+cuando mejora la lectura de fotografía, lienzo o estudio, pero deben mantener
+la misma escala, foco y geometría del producto. La jerarquía clínica obligatoria
+es `evidencia → decisión → detalle`: el visor o la fotografía permanece como
+superficie dominante, la decisión profesional queda separada y las opciones
+ópticas avanzadas se revelan sólo cuando se necesitan. Una capa visual o
+semántica nunca puede modificar prompts, modelos, análisis, contornos,
+generación, persistencia ni decisiones clínicas.
 
 Referencia de dirección visual:
 [Sidebar Navigation Menu for Dashboard](https://www.figma.com/design/RPnW9PDDz8lo6VKU3fkVSA/Sidebar-Navigation-Menu-for-Dashboard-%E2%80%93-Animation--Dark---Light-Versions---Community-?node-id=80-1461&m=dev),
@@ -547,7 +589,9 @@ Reglas:
 
 - **1280 px o más:** sidebar expandido por defecto.
 - **768–1279 px:** sidebar compacto por defecto, expandible.
-- **Menos de 768 px:** drawer lateral o navegación móvil equivalente.
+- **Menos de 768 px:** barra inferior con `Inicio`, `Agenda`, `Pacientes`,
+  `Mensajes` y `Más`. `Más` abre una hoja modal con foco contenido, cierre con
+  `Escape` y retorno del foco al control de origen.
 - **Menos de 480 px:** una columna y acciones prioritarias de ancho completo.
 
 La navegación nunca se oculta sin una alternativa. El contenido se reordena
@@ -598,7 +642,8 @@ No se copia:
 
 ## 15. Arquitectura técnica
 
-- Los tokens canónicos viven en una hoja compartida.
+- Los tokens fuente viven en `design/tokens/smyl.tokens.json`; la hoja
+  compartida consume sus valores semánticos.
 - Los componentes consumen tokens semánticos; no usan hexadecimales locales
   cuando existe un token.
 - Un módulo puede definir geometría funcional, no una identidad paralela.
@@ -644,6 +689,17 @@ Un cambio visual sólo puede publicarse cuando cumple lo siguiente:
 5. Páginas de trabajo diario: Inicio, Agenda, Pacientes y Mensajes.
 6. Operación y configuración.
 7. Superficies públicas y SMYL Studio, conservando sus necesidades específicas.
+
+### Cinco plantillas obligatorias
+
+1. **Trabajo diario:** cabecera breve, prioridades, siguiente evento y actividad.
+2. **Tabla o lista:** cabecera, filtros etiquetados, región de datos y detalle.
+3. **Formulario guiado:** progreso, tarea actual, ayuda contextual y acciones.
+4. **Workspace dividido:** lista, contenido principal y contexto secundario.
+5. **Configuración:** navegación local, formulario o lista y estado de guardado.
+
+Una pantalla puede combinar regiones internas, pero debe declarar una plantilla
+principal. No se autoriza inventar una sexta composición dentro de un módulo.
 
 Las pantallas heredadas se migran por etapas. No se corrigen creando otra
 paleta, otro tamaño local o una nueva familia de componentes.

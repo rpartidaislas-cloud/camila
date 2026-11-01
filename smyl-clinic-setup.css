@@ -1,7 +1,7 @@
 /* SMYL · Inicio: lista «Configura tu clínica» */
 .clinic-setup{border:1px solid var(--smyl-border,#d7e0e8);border-radius:12px;background:#fff;color:var(--smyl-ink,#102239);overflow:hidden}
 .clinic-setup-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,220px) auto;align-items:center;gap:16px;padding:14px 20px}
-.clinic-setup-eyebrow{display:block;margin:0 0 2px;color:var(--smyl-primary,#194391);font-size:10px;font-weight:600;line-height:14px;letter-spacing:.9px;text-transform:uppercase}
+.clinic-setup-eyebrow{display:block;margin:0 0 2px;color:var(--smyl-primary,#194391);font-size:12px;font-weight:600;line-height:16px;letter-spacing:.8px;text-transform:uppercase}
 .clinic-setup-head h2{margin:0;font-size:15px;font-weight:600;line-height:20px}
 .clinic-setup-head p{margin:2px 0 0;color:var(--smyl-text-muted,#667586);font-size:12px;line-height:16px}
 .clinic-setup-bar{height:6px;border-radius:999px;background:#e6ecf2;overflow:hidden}

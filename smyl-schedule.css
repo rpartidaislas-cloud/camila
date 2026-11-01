@@ -472,3 +472,133 @@ body.smyl-ui-governed #p-agenda :is(button,select,input,textarea):focus-visible{
   body.smyl-ui-governed #p-agenda .schedule-metrics{grid-template-columns:1fr}
   body.smyl-ui-governed #p-agenda .schedule-tabs{display:grid;grid-template-columns:1fr}
 }
+
+/* Agenda Clinical Workspace v4 · filtros identificables y calendario legible. */
+body.smyl-ui-governed #p-agenda{
+  --schedule-type-body:var(--smyl-ui-text-body-sm,14px);
+  --schedule-type-label:var(--smyl-ui-text-label,13px);
+  --schedule-type-meta:var(--smyl-ui-text-meta,12px);
+  min-width:0;
+  overflow-x:hidden;
+}
+body.smyl-ui-governed #p-agenda .schedule-eyebrow,
+body.smyl-ui-governed #p-agenda .schedule-metrics>span strong{font-weight:700}
+body.smyl-ui-governed #p-agenda .schedule-head h1{font-weight:700}
+body.smyl-ui-governed #p-agenda .schedule-head p{font-size:var(--schedule-type-body)}
+body.smyl-ui-governed #p-agenda .schedule-toolbar{
+  display:grid;
+  grid-template-columns:minmax(17rem,auto) minmax(0,1fr);
+  align-items:end;
+  gap:14px;
+}
+body.smyl-ui-governed #p-agenda .schedule-period-nav{align-items:center;min-height:48px}
+body.smyl-ui-governed #p-agenda .schedule-period-nav strong{
+  min-width:10rem;
+  font-size:var(--schedule-type-body);
+  font-weight:600;
+  line-height:1.35;
+}
+body.smyl-ui-governed #p-agenda .schedule-filters{
+  display:flex;
+  min-width:0;
+  align-items:end;
+  justify-content:flex-end;
+  gap:8px;
+}
+body.smyl-ui-governed #p-agenda .schedule-filter{
+  display:grid;
+  min-width:8.75rem;
+  gap:4px;
+  color:var(--smyl-ui-ink-secondary,#526174);
+  font-size:var(--schedule-type-meta);
+  font-weight:600;
+  line-height:1.35;
+}
+body.smyl-ui-governed #p-agenda .schedule-filter[hidden]{display:none}
+body.smyl-ui-governed #p-agenda .schedule-filter select{
+  width:100%;
+  min-height:44px;
+  max-width:none;
+  padding:0 34px 0 11px;
+  border:1px solid var(--smyl-ui-border,#d9e2ec);
+  border-radius:var(--smyl-ui-radius-control,12px);
+  background-color:var(--smyl-ui-surface,#fff);
+  color:var(--smyl-ui-ink,#0b1b2e);
+  font-size:var(--schedule-type-label);
+  font-weight:500;
+}
+body.smyl-ui-governed #p-agenda :is(.schedule-period-nav>button,.schedule-view-toggle button,.schedule-tabs>button){min-height:44px;font-size:var(--schedule-type-label);font-weight:600}
+body.smyl-ui-governed #p-agenda .schedule-view-toggle{flex:0 0 auto;min-height:44px;padding:3px}
+
+body.smyl-ui-governed #p-agenda :is(
+  .schedule-day>header span,
+  .schedule-appointment span,
+  .schedule-appointment strong,
+  .schedule-appointment small,
+  .schedule-block span,
+  .schedule-block strong,
+  .schedule-block small,
+  .schedule-day-empty,
+  .schedule-section-title p,
+  .schedule-request>div:first-child>span,
+  .schedule-request strong,
+  .schedule-request small,
+  .schedule-request p,
+  .schedule-service strong,
+  .schedule-service small,
+  .schedule-hour strong,
+  .schedule-hour small,
+  .schedule-service>span,
+  .schedule-status,
+  .schedule-detail dt,
+  .schedule-detail dd,
+  .schedule-detail-note,
+  .schedule-focus-head span,
+  .schedule-wk>aside span,
+  .schedule-wk-block span,
+  .schedule-wk-block strong,
+  .schedule-wk-event span,
+  .schedule-wk-event strong,
+  .schedule-wk-event em,
+  .schedule-wk-event small,
+  .schedule-now-line span,
+  .schedule-intake-summary span,
+  .schedule-intake-summary small,
+  .schedule-intake-privacy,
+  .schedule-drag-tip
+){font-size:var(--schedule-type-meta)!important}
+
+body.smyl-ui-governed #p-agenda :is(.schedule-appointment,.schedule-block){min-height:72px;padding:10px;gap:4px}
+body.smyl-ui-governed #p-agenda :is(.schedule-appointment strong,.schedule-wk-event strong){font-size:var(--schedule-type-label)!important;font-weight:600}
+body.smyl-ui-governed #p-agenda :is(.schedule-appointment span,.schedule-block span,.schedule-wk-event span){font-weight:700}
+body.smyl-ui-governed #p-agenda .schedule-day-empty{min-height:96px;line-height:1.45}
+body.smyl-ui-governed #p-agenda .schedule-calendar{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+body.smyl-ui-governed #p-agenda .schedule-calendar.week{grid-template-columns:repeat(7,minmax(132px,1fr))}
+body.smyl-ui-governed #p-agenda .schedule-dialog :is(label,.schedule-form-grid label){font-size:var(--schedule-type-label);font-weight:600}
+body.smyl-ui-governed #p-agenda .schedule-dialog :is(input,select,textarea){min-height:48px;font-size:var(--schedule-type-body)}
+
+@media(max-width:1024px){
+  body.smyl-ui-governed #p-agenda .schedule-toolbar{grid-template-columns:1fr}
+  body.smyl-ui-governed #p-agenda .schedule-filters{justify-content:flex-start;flex-wrap:wrap}
+}
+@media(max-width:760px){
+  body.smyl-ui-governed #p-agenda .schedule-head-actions{display:flex;flex-wrap:wrap}
+  body.smyl-ui-governed #p-agenda .schedule-head-actions .btn{min-height:44px}
+  body.smyl-ui-governed #p-agenda .schedule-head-actions #schedule-new{order:-1;flex:1 1 100%}
+  body.smyl-ui-governed #p-agenda .schedule-head-actions #schedule-block{flex:1 1 auto}
+  body.smyl-ui-governed #p-agenda .schedule-period-nav{display:grid;grid-template-columns:44px auto 44px minmax(0,1fr);width:100%}
+  body.smyl-ui-governed #p-agenda .schedule-period-nav>button:first-child,
+  body.smyl-ui-governed #p-agenda .schedule-period-nav>button:nth-child(3){width:44px;min-width:44px}
+  body.smyl-ui-governed #p-agenda .schedule-period-nav strong{min-width:0;margin-left:2px}
+  body.smyl-ui-governed #p-agenda .schedule-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  body.smyl-ui-governed #p-agenda .schedule-filter{min-width:0}
+  body.smyl-ui-governed #p-agenda .schedule-view-toggle{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+  body.smyl-ui-governed #p-agenda .schedule-view-toggle button{padding-inline:8px}
+  body.smyl-ui-governed #p-agenda .schedule-calendar{min-height:22rem}
+}
+@media(max-width:440px){
+  body.smyl-ui-governed #p-agenda .schedule-filters{grid-template-columns:1fr}
+  body.smyl-ui-governed #p-agenda .schedule-view-toggle{grid-column:auto}
+  body.smyl-ui-governed #p-agenda .schedule-tabs{display:flex;overflow-x:auto}
+  body.smyl-ui-governed #p-agenda .schedule-tabs>button{flex:0 0 auto}
+}

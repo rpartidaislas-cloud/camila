@@ -29,15 +29,15 @@ test('equipo y profesionales exponen pendientes y alcance de roles', () => {
   assert.match(script, /professionalsMissingBranch/);
   assert.match(script, /Roles y funciones/);
   assert.match(script, /PERMISSION_LABELS/);
-  assert.match(script, /plantillas editables/);
+  assert.match(script, /plantillas editables/i);
 });
 
 test('web, móvil y PWA publican la etapa ocho sincronizada', () => {
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-clinic-admin.js'));
   assert.equal(styles, read('../mobile/www/smyl-clinic-admin.css'));
-  assert.match(app, /smyl-clinic-admin\.js\?v=7/);
-  assert.match(app, /smyl-clinic-admin\.css\?v=8/);
+  assert.match(app, /smyl-clinic-admin\.js\?v=8/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=9/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.match(read('./fixtures/smyl-clinic-readiness-stage8-preview.html'), /Preparación operativa/);
 });

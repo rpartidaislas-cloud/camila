@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Conexiones y Seguridad v3.3 QA</title>
+  <link rel="stylesheet" href="../../smyl-connections.css">
+  <link rel="stylesheet" href="../../smyl-security-center.css">
+  <style>
+    *{box-sizing:border-box}html{background:#eef3f1}body{margin:0;color:#203b3b;background:#eef3f1;font-family:Inter,Arial,sans-serif}.qa-shell{width:min(100% - 48px,1240px);margin:0 auto;padding:32px 0 72px}.qa-label{margin:0 0 18px;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em}.contenido{display:grid;gap:64px}.pantalla{display:block}.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid #c8d5d0;border-radius:9px;background:#fff;color:#254c49;font-weight:750;cursor:pointer}.btn-primary{border-color:#0f766e;background:#0f766e;color:#fff}.btn-secondary{background:#fff}.pro-primary-nav,.pro-mobile-nav{display:none}.security-page{padding-top:12px}.security-page:before{content:"SEGURIDAD OPERATIVA";display:block;margin-bottom:18px;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em}
+    @media(max-width:620px){.qa-shell{width:min(100% - 28px,1240px);padding-top:18px}.contenido{gap:44px}}
+  </style>
+  <script>window.TITULOS={};window.ir=function(){};</script>
+  <script defer src="../../smyl-connections.js"></script>
+  <script defer src="../../smyl-security-center.js"></script>
+</head>
+<body>
+  <main class="qa-shell">
+    <p class="qa-label">CONEXIONES Y ASISTENTE</p>
+    <nav class="pro-primary-nav" aria-hidden="true"></nav>
+    <nav class="pro-mobile-nav" aria-hidden="true"></nav>
+    <div class="contenido"></div>
+  </main>
+  <script>
+    window.addEventListener('load',function(){
+      var connections=document.querySelector('.connections-shell');
+      var security=document.querySelector('.security-page');
+      if(!connections||!security)return;
+
+      var status=connections.querySelector('.connections-status-card');
+      status.dataset.state='connected';
+      status.setAttribute('aria-label','Estado: mensajería activa');
+      connections.querySelector('[data-lana-status]').textContent='Mensajería activa';
+      connections.querySelector('[data-lana-summary]').textContent='La clínica puede usar sus canales y el asistente de forma segura.';
+      connections.querySelector('[data-lana-verified]').textContent='Última verificación: 1 nov 2026, 10:30';
+      var badge=connections.querySelector('[data-lana-badge]');badge.dataset.state='connected';badge.textContent='Conectada';
+      connections.querySelector('[data-provision-wrap]').hidden=true;
+      connections.querySelector('[data-connected-actions]').hidden=false;
+      [['whatsapp','Clínica SMYL · Canal activo',false],['messenger','Listo para conectar',false],['instagram','@smyl.clinic · Canal activo',true]].forEach(function(item){
+        var row=connections.querySelector('[data-channel-row="'+item[0]+'"]');
+        row.dataset.state=item[2]||item[0]==='whatsapp'?'connected':'pending';
+        row.querySelector('[data-channel-state]').textContent=item[1];
+        var button=row.querySelector('button');button.disabled=item[0]==='whatsapp';button.textContent=item[2]?'Desconectar':item[0]==='whatsapp'?'Conectado':'Conectar';
+      });
+      connections.querySelector('[data-training-state]').dataset.state='dirty';
+      connections.querySelector('[data-training-state]').textContent='Cambios sin guardar';
+      connections.querySelector('[data-training-version]').textContent='Versión 4 activa con pacientes';
+      connections.querySelector('[data-training-score]').textContent='82%';
+      connections.querySelector('[data-service-list]').innerHTML='<div class="connections-repeat-row" data-row-id="qa-service"><div class="connections-repeat-fields"><label>Servicio<input value="Valoración estética"></label><label>Descripción<textarea rows="2">Revisión inicial y plan sugerido por el profesional.</textarea></label><label>Precio confirmado<input value="Requiere valoración"></label></div><button type="button" class="connections-remove-row">Quitar</button></div>';
+
+      security.querySelector('[data-security-metrics]').innerHTML='<article><span>Señales abiertas</span><strong>3</strong><small>requieren revisión</small></article><article data-alert="true"><span>Prioridad alta</span><strong>1</strong><small>atender primero</small></article><article><span>Exportaciones 24 h</span><strong>12</strong><small>acciones registradas</small></article><article><span>Trazas auditadas 24 h</span><strong>48</strong><small>cambios operativos</small></article>';
+      security.querySelector('[data-security-events]').innerHTML='<div class="security-events" role="list" aria-label="Señales de seguridad"><article role="listitem" data-severity="high" data-status="open"><i aria-hidden="true"></i><div><div class="security-event-meta"><div><span class="security-source">Exportaciones</span><span class="security-severity">Prioridad alta</span><span class="security-state">Abierta</span></div><time>1 nov 2026, 10:24</time></div><strong>Volumen inusual de exportaciones</strong><p>Confirma que la actividad corresponda al trabajo autorizado de la clínica.</p><div class="security-evidence"><span>exportaciones 15 min: <b>21</b></span></div></div><button type="button" aria-label="Revisar señal: Volumen inusual de exportaciones">Revisar</button></article><article role="listitem" data-severity="warning" data-status="investigating"><i aria-hidden="true"></i><div><div class="security-event-meta"><div><span class="security-source">Permisos</span><span class="security-severity">Prioridad media</span><span class="security-state">En investigación</span></div><time>1 nov 2026, 09:18</time></div><strong>Varios cambios de acceso en una hora</strong><p>Contrasta el actor y la operación con la administración de la clínica.</p><div class="security-evidence"><span>cambios 1 h: <b>4</b></span></div></div><button type="button" aria-label="Actualizar señal: Varios cambios de acceso">Actualizar</button></article><article role="listitem" data-severity="info" data-status="resolved"><i aria-hidden="true"></i><div><div class="security-event-meta"><div><span class="security-source">Accesos</span><span class="security-severity">Prioridad informativa</span><span class="security-state">Resuelta</span></div><time>31 oct 2026, 18:06</time></div><strong>Acceso verificado por el propietario</strong><p>La revisión confirmó una operación autorizada.</p><small>Registro: confirmado con el equipo responsable.</small></div><button type="button" disabled aria-label="Resuelta señal: Acceso verificado">Resuelta</button></article></div>';
+      security.querySelector('[data-security-exports]').innerHTML='<div class="security-export-list"><article><div><strong>Propuesta PDF</strong><span>Copia para paciente</span></div><b>8</b><time>1 nov 2026, 10:20</time></article><article><div><strong>Reporte CSV</strong><span>Administración</span></div><b>4</b><time>1 nov 2026, 09:05</time></article></div>';
+      document.documentElement.dataset.qaReady='true';
+    });
+  </script>
+</body>
+</html>

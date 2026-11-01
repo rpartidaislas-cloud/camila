@@ -4,6 +4,14 @@
 **Alcance medido:** `app.html` y 53 hojas CSS web de la raíz del proyecto.  
 **Objetivo:** sustituir la acumulación de tamaños, tarjetas y controles aislados por una plantilla operativa única para todo el panel.
 
+**Actualización de ejecución:** 1 de noviembre de 2026 · cuatro olas de Clinical
+Workspace v3.3 completadas. La primera cubre fundamentos, navegación, Inicio,
+Agenda y Pacientes; la segunda cubre Mensajes, Ficha 360, Cotizaciones y Equipo
+y roles; la tercera cubre Inventario, Consumo, Finanzas, Reportes, Conexiones y
+Seguridad; la cuarta cubre Studio, simulación, revisión clínica fotográfica y
+radiografías. Las cifras históricas siguientes se conservan como línea base;
+no se reinterpretan como el estado final de cada módulo migrado.
+
 ## Resumen ejecutivo
 
 El problema principal no es una pantalla concreta. SMYL tiene varios sistemas visuales superpuestos. Cada módulo resolvió por separado tipografía, densidad, botones, campos, tarjetas y estados. Esto produce una interfaz que funciona, pero pierde jerarquía y se percibe irregular.
@@ -21,6 +29,87 @@ La medición encontró:
 | Estilos tipográficos incrustados en `app.html` | 136 |
 
 **Diagnóstico:** cerca del 40 % de las declaraciones tipográficas medidas son menores de 12 px. La interfaz utiliza microtexto como recurso de organización y luego compensa con títulos grandes, generando saltos visuales entre 8, 9, 10, 11, 12, 13, 18, 24 y más píxeles dentro de la misma tarea.
+
+## Ejecución v3.3 · primera ola
+
+La auditoría técnica posterior encontró cuatro capas visuales superpuestas, 57
+hojas CSS y 607 declaraciones `!important`. La respuesta no fue agregar otra
+plantilla descargada: se amplió la fuente canónica y se migraron recorridos
+completos.
+
+| Área | Cambio aplicado | Resultado esperado |
+| --- | --- | --- |
+| Fundamentos | Tokens DTCG, siete roles y cuatro pesos | Jerarquía aprendible y portable |
+| Plantillas | Página, filtros, datos, formulario, workspace y configuración | Menos layouts improvisados |
+| Navegación móvil | Cinco destinos y hoja `Más` accesible | Prioridad clara sin saturación |
+| Inicio | Un solo cálculo para métricas y prioridades | Sin estados contradictorios |
+| Agenda | Filtros etiquetados, periodo dominante y overflow interno | Lectura y control del calendario |
+| Pacientes | Fila navegable y una sola acción visible | Mayor densidad sin acciones repetidas |
+
+La migración no elimina todavía toda la deuda histórica: las reglas heredadas
+permanecen debajo de las capas gobernadas hasta que cada módulo sea retirado de
+forma segura. La puerta de calidad impide que los módulos ya migrados vuelvan a
+introducir microtexto, pesos arbitrarios o controles táctiles insuficientes.
+
+El laboratorio sintético de revisión vive en
+`tests/fixtures/smyl-ui-v33-clinical-workspace.html`; no utiliza pacientes ni
+fotografías reales.
+
+El gate de navegador incluye además un shell autenticado sintético y ejecuta
+doce combinaciones en 1440, 1024 y 390 px. Exige cero overflow del documento,
+cero texto funcional visible menor de 12 px, cero objetivos táctiles móviles
+menores de 44 px y cero errores JavaScript en las vistas controladas.
+
+## Ejecución v3.3 · segunda ola
+
+| Área | Cambio aplicado | Resultado verificado |
+| --- | --- | --- |
+| Mensajes | Escala legible, filtros 2 × 2, controles táctiles y estados claros | Sin solapes ni microtexto en 1440, 1024 y 390 px |
+| Ficha 360 | Identidad, siguiente tarea y fuentes canónicas en una superficie | Reflujo completo sin perder contexto ni acciones |
+| Cotizaciones | Documento, decisión y seguimiento con prioridad explícita | Una acción primaria y editor/summary responsive |
+| Equipo y roles | Container queries, fichas acotadas, conteos y lista plana de roles | Cero empalmes en escritorio, tableta y móvil |
+| Shell y simulador | Corrección del último texto visible de 9–11 px | Mínimo funcional de 12 px en las vistas auditadas |
+
+La validación acumulada queda en **811/811** pruebas. La matriz final reúne
+**18/18** vistas aprobadas: doce del shell, fundamentos, Agenda y Pacientes;
+tres de Mensajes; y tres de Equipo. Todas registran cero overflow, cero
+empalmes, cero texto visible menor de 12 px, cero objetivos táctiles
+insuficientes y cero errores de página.
+
+## Ejecución v3.3 · tercera ola
+
+| Área | Cambio aplicado | Resultado verificado |
+| --- | --- | --- |
+| Inventario | Prioridad operativa, pestañas accesibles, tablas adaptables y estados persistentes | Navegación completa por teclado y cero desbordamientos |
+| Plan y consumo | Resumen accionable, historial adaptable, error recuperable y reintentos protegidos | La lectura previa se conserva y no se duplican solicitudes |
+| Finanzas | Prioridad diaria, métricas consistentes y seguimiento por paciente | Acciones y saldos legibles en escritorio y móvil |
+| Reportes | Periodo dominante, lectura ejecutiva y detalle progresivo | Decisiones visibles antes de gráficos y tablas |
+| Conexiones | Estado explícito por canal, semántica de lista y formularios legibles | Sin exponer credenciales ni alterar el puente de mensajería |
+| Seguridad | Prioridades y estados en español, señales como lista y acciones claras | Sin cambiar monitoreo, permisos ni exportaciones |
+
+La validación acumulada queda en **827/827** pruebas. La matriz específica de
+esta ola aprobó **15/15** escenarios en 1440, 1024 y 390 px: seis de
+Inventario/Consumo, seis de Finanzas/Reportes y tres vistas combinadas de
+Conexiones/Seguridad. Todas registran cero overflow horizontal, cero empalmes,
+cero texto visible menor de 12 px, cero objetivos táctiles insuficientes, foco
+visible y cero errores de página.
+
+## Ejecución v3.3 · cuarta ola clínica
+
+| Área | Cambio aplicado | Resultado verificado |
+| --- | --- | --- |
+| Studio y simulación rápida | Tarea, fotografía y dos decisiones antes del detalle profesional | Recorrido claro sin alterar generación, prompts ni modelos |
+| Simulación clásica | Resultado, comparación y editor bajo una sola jerarquía clínica | Reflujo completo y herramientas contenidas en su propia región |
+| Revisión fotográfica | Evidencia a la izquierda, decisión a la derecha y pestañas accesibles | Teclado, estados y foco verificables en tres anchos |
+| Revisión radiográfica | Visor dominante, señales filtrables y decisión profesional separada | Lectura asistida y manual sin comprimir la imagen ni cambiar análisis |
+
+La validación acumulada queda en **837/837** pruebas. La matriz específica de
+esta ola aprobó **35/35** escenarios: seis vistas del laboratorio de
+simulación, veinte superficies reales del recorrido, tres vistas de revisión
+fotográfica y seis vistas radiográficas, siempre en 1440, 1024 y 390 px.
+Todas registran cero overflow, cero empalmes, cero texto funcional menor de
+12 px, cero objetivos táctiles insuficientes, foco visible y cero errores de
+página. Web, PWA y la copia móvil comparten las mismas versiones.
 
 ## Hallazgos por prioridad
 
@@ -151,18 +240,26 @@ El Directorio profesional será la pantalla piloto porque concentra los problema
 
 ### Etapa 3 · Trabajo diario
 
-- Mensajes, Agenda, Pacientes 360 y Cotizaciones.
-- Normalizar tablas/listas, filtros, formularios y paneles laterales.
+- **Completada en dos olas el 1 de noviembre de 2026:** Inicio, Agenda,
+  directorio de Pacientes, Mensajes, Ficha 360 y Cotizaciones.
+- Los workspaces, paneles laterales, formularios y estados asíncronos de estos
+  recorridos ya están gobernados por la escala y los controles canónicos.
 
 ### Etapa 4 · Operación y configuración
 
-- Inventario, Finanzas, Consumo, Conexiones, Reportes y Seguridad.
-- Reducir anidamiento de tarjetas y alinear estados vacíos/error/carga.
+- **Completada el 1 de noviembre de 2026:** Equipo y roles, Inventario,
+  Finanzas, Consumo, Conexiones, Reportes y Seguridad.
+- Conserva las mismas RPC, permisos, RLS, credenciales y contratos de backend.
+- Los módulos operativos ya comparten escala, controles, estados
+  vacío/error/carga, foco visible y composición responsive.
 
 ### Etapa 5 · Studio y superficies clínicas
 
-- Mantener la identidad inmersiva de Studio, pero compartir controles, accesibilidad y escala mínima.
-- Revisar Simulación y Revisión clínica sin alterar lógica ni prompts.
+- **Completada el 1 de noviembre de 2026:** Studio, simulación clásica,
+  simulación rápida, revisión clínica fotográfica y lectura radiográfica.
+- Conserva la identidad inmersiva, pero comparte controles, accesibilidad,
+  escala mínima y la jerarquía `evidencia → decisión → detalle`.
+- No altera lógica clínica, prompts, modelos, análisis ni persistencia.
 
 ## Criterios de aceptación
 

@@ -47,9 +47,9 @@ test('la composición v47 responde al ancho real del módulo y no empalma tarjet
   assert.match(script, /clinic-admin-member-controls/);
   assert.match(script, /Todo al día/);
   assert.match(styles, /container:clinic-team \/ inline-size/);
-  assert.match(styles, /\.clinic-admin-member-controls\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.clinic-admin-member-controls\{[^}]*grid-template-columns:minmax\(130px,\.8fr\) minmax\(180px,1\.2fr\)/);
   assert.match(styles, /\.clinic-admin-member select\{[^}]*max-width:100%[^}]*min-width:0/);
-  assert.match(styles, /@container clinic-team \(min-width:1220px\)/);
+  assert.match(styles, /@container clinic-team \(min-width:1120px\)/);
   assert.match(styles, /@container clinic-team \(max-width:860px\)/);
   assert.match(styles, /@container clinic-team \(max-width:460px\)/);
 });

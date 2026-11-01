@@ -23,6 +23,7 @@
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
     templates: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v2.5h-5zM9 11h6M9 15h4"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
+    more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
   };
 
@@ -38,6 +39,7 @@
   var MESSAGING = [
     ['Mensajes', 'inbox', 'messages']
   ];
+  var MOBILE_PRIMARY = [PRIMARY[0], PRIMARY[1], PRIMARY[2], MESSAGING[0]];
   var BUSINESS = [
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
@@ -73,6 +75,7 @@
     button.className = mobile ? 'pam-row' : 'nav-item pro-nav-item';
     button.dataset.route = entry[1];
     if (entry[1] === 'configuracion') button.dataset.also = SETTINGS_ROUTES.join(' ');
+    if (entry[1] === 'pacientes') button.dataset.also = ((button.dataset.also || '') + ' paciente-detalle').trim();
     button.setAttribute('onclick', mobile ? "pamIr('" + entry[1] + "')" : "ir('" + entry[1] + "')");
     if (mobile) {
       button.innerHTML = '<span class="pam-row-icon">' + icon(entry[2], 20) + '</span><span class="pam-row-label">' + entry[0] + '</span><span class="pam-row-chevron" aria-hidden="true">›</span>';
@@ -116,8 +119,14 @@
   }
 
   function syncActive(route) {
-    document.querySelectorAll('.pro-app-nav [data-route],.pro-mobile-nav [data-route]').forEach(function (item) {
-      var isActive = item.dataset.route === route || (' ' + (item.dataset.also || '') + ' ').indexOf(' ' + route + ' ') !== -1;
+    var primaryRoute = MOBILE_PRIMARY.some(function (entry) {
+      return entry[1] === route || (entry[1] === 'pacientes' && route === 'paciente-detalle');
+    });
+    document.querySelectorAll('.pro-app-nav [data-route],.pro-mobile-nav [data-route],.pam-scroll [data-route]').forEach(function (item) {
+      var isMore = item.dataset.mobileMore === 'true';
+      var isActive = isMore
+        ? !primaryRoute
+        : item.dataset.route === route || (' ' + (item.dataset.also || '') + ' ').indexOf(' ' + route + ' ') !== -1;
       item.classList.toggle('activo', isActive);
       if (isActive) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
@@ -150,11 +159,24 @@
   function organizeMobileBar() {
     var host = document.querySelector('.pro-mobile-nav');
     if (!host) return;
+    host.classList.add('pro-mobile-navigation');
+    host.setAttribute('aria-label', 'Navegación móvil principal');
     host.replaceChildren();
-    PRIMARY.slice(0,4).forEach(function (entry) { host.append(navItem(entry, false)); });
-    var more=navItem(['Más','__more','account'],false);
+    MOBILE_PRIMARY.forEach(function (entry) {
+      var item = navItem(entry, false);
+      item.dataset.mobilePrimary = 'true';
+      host.append(item);
+    });
+    var more = navItem(['Más', '__more', 'more'], false);
     more.removeAttribute('onclick');
-    more.addEventListener('click',function(){if(typeof window.openPanelAdmin==='function')window.openPanelAdmin();});
+    more.dataset.mobilePrimary = 'true';
+    more.dataset.mobileMore = 'true';
+    more.setAttribute('aria-haspopup', 'dialog');
+    more.setAttribute('aria-controls', 'panel-admin-mobile');
+    more.setAttribute('aria-expanded', 'false');
+    more.addEventListener('click', function () {
+      if (typeof window.openPanelAdmin === 'function') window.openPanelAdmin();
+    });
     host.append(more);
   }
 
@@ -186,6 +208,88 @@
       quickButton.removeAttribute('onclick');
       quickButton.addEventListener('click', function () { window.location.href = 'simulacion-rapida.html?workspace=professional'; });
     }
+  }
+
+  function setupMobileSheetModal() {
+    var panel = document.getElementById('panel-admin-mobile');
+    var sheet = document.getElementById('pam-sheet');
+    var more = document.querySelector('.pro-mobile-nav [data-mobile-more="true"]');
+    if (!panel || !sheet || panel.dataset.navigationModalReady === 'true') return;
+    panel.dataset.navigationModalReady = 'true';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Más opciones');
+    panel.setAttribute('aria-hidden', 'true');
+    sheet.tabIndex = -1;
+
+    var closeButton = panel.querySelector('.pam-close');
+    var backdrop = panel.querySelector('.pam-backdrop');
+    if (closeButton) closeButton.setAttribute('aria-label', 'Cerrar menú');
+    if (backdrop) backdrop.setAttribute('aria-hidden', 'true');
+
+    var previousOpen = window.openPanelAdmin;
+    var previousClose = window.closePanelAdmin;
+    var returnFocus = null;
+    var closeTimer = null;
+
+    function focusableElements() {
+      return Array.prototype.slice.call(panel.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+        .filter(function (element) { return element.getAttribute('aria-hidden') !== 'true'; });
+    }
+
+    window.openPanelAdmin = function () {
+      returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : more;
+      if (closeTimer) window.clearTimeout(closeTimer);
+      if (typeof previousOpen === 'function') previousOpen.apply(this, arguments);
+      panel.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('smyl-mobile-sheet-open');
+      if (more) more.setAttribute('aria-expanded', 'true');
+      syncActive(activeRoute());
+      var defer = window.requestAnimationFrame || function (callback) { window.setTimeout(callback, 0); };
+      defer(function () {
+        var target = closeButton || focusableElements()[0] || sheet;
+        if (target && typeof target.focus === 'function') target.focus();
+      });
+    };
+
+    window.closePanelAdmin = function () {
+      if (typeof previousClose === 'function') previousClose.apply(this, arguments);
+      if (more) more.setAttribute('aria-expanded', 'false');
+      if (closeTimer) window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(function () {
+        panel.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('smyl-mobile-sheet-open');
+        var target = returnFocus && returnFocus.isConnected ? returnFocus : more;
+        if (target && typeof target.focus === 'function') target.focus();
+        returnFocus = null;
+      }, 260);
+    };
+
+    panel.addEventListener('keydown', function (event) {
+      if (!panel.classList.contains('visible')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        window.closePanelAdmin();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var focusable = focusableElements();
+      if (!focusable.length) {
+        event.preventDefault();
+        sheet.focus();
+        return;
+      }
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
   }
 
   function splitConnections() {
@@ -292,10 +396,11 @@
     setupQuickAction();
     organizeMobileBar();
     organizeMobileSheet();
+    setupMobileSheetModal();
     splitConnections();
     var previous = window.ir;
     window.ir = function (route) {
-      previous(route);
+      if (typeof previous === 'function') previous(route);
       syncActive(route);
     };
     syncActive(activeRoute());

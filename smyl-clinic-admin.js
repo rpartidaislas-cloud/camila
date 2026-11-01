@@ -59,6 +59,12 @@
     return node;
   }
 
+  function updateSectionCount(id, count, singular, plural) {
+    var node = document.getElementById(id);
+    if (!node) return;
+    node.textContent = count + ' ' + (count === 1 ? singular : plural);
+  }
+
   function navButton(text, route) {
     var button = el('button', 'nav-item', text);
     button.type = 'button';
@@ -307,12 +313,16 @@
     if (!members || !professionals) return;
     var activeBranches = state.branches.filter(function (row) { return row.active; });
     members.replaceChildren();
+    members.setAttribute('role', 'list');
+    members.setAttribute('aria-label', 'Personas con acceso a la clínica');
     state.users.forEach(function (user) {
       var currentRole = roleFor(user.id);
       var currentBranch = branchForMember(user.id);
       var professional = professionalForMember(user.id);
       var row = el('article', 'clinic-admin-member');
       row.dataset.active = String(Boolean(user.activo));
+      row.setAttribute('role', 'listitem');
+      row.setAttribute('aria-label', (user.nombre || user.email || 'Integrante') + (user.activo ? '' : ', acceso inactivo'));
       row.append(el('div', 'clinic-admin-avatar', initials(user.nombre || user.email)));
       var meta = el('div', 'clinic-admin-member-meta');
       meta.innerHTML = '<div class="clinic-admin-member-title"><strong>' + esc(user.nombre || user.email || 'Integrante') + '</strong>' +
@@ -344,16 +354,25 @@
       row.append(meta, controls);
       if (state.canAssignRoles && user.rol !== 'dueño') {
         var toggle = el('button', 'btn btn-secondary clinic-admin-member-action', user.activo ? 'Desactivar' : 'Reactivar');
-        toggle.type = 'button'; toggle.addEventListener('click', function () { toggleMember(user.id, !user.activo); });
+        toggle.type = 'button';
+        toggle.setAttribute('aria-label', (user.activo ? 'Desactivar acceso de ' : 'Reactivar acceso de ') + (user.nombre || user.email || 'integrante'));
+        toggle.addEventListener('click', function () { toggleMember(user.id, !user.activo); });
         row.append(toggle);
       }
       members.append(row);
     });
-    if (!state.users.length) members.append(el('div', 'clinic-admin-empty', 'Todavía no hay integrantes en la clínica.'));
+    if (!state.users.length) {
+      members.removeAttribute('role');
+      members.append(el('div', 'clinic-admin-empty', 'Todavía no hay integrantes en la clínica.'));
+    }
+    updateSectionCount('clinic-admin-member-count', state.users.length, 'persona', 'personas');
 
     professionals.replaceChildren();
+    professionals.setAttribute('role', 'list');
+    professionals.setAttribute('aria-label', 'Accesos y perfiles por completar');
     state.professionals.filter(function (row) { return row.active && !row.user_id; }).forEach(function (professional) {
       var row = el('article', 'clinic-admin-professional');
+      row.setAttribute('role', 'listitem');
       row.append(el('div', 'clinic-admin-avatar', initials(professional.display_name)));
       var info = el('div');
       var locations = state.professionalBranches.filter(function (item) { return item.professional_id === professional.id; }).map(function (item) {
@@ -370,6 +389,7 @@
     });
     state.invitations.filter(function (row) { return row.member_kind === 'professional' && row.status === 'pending'; }).forEach(function (invitation) {
       var pending = el('article', 'clinic-admin-professional is-pending');
+      pending.setAttribute('role', 'listitem');
       pending.append(el('div', 'clinic-admin-avatar', initials(invitation.display_name)));
       var pendingInfo = el('div');
       var branch = state.branches.find(function (candidate) { return candidate.id === invitation.branch_id; });
@@ -378,10 +398,13 @@
       professionals.append(pending);
     });
     if (!professionals.childElementCount) {
+      professionals.removeAttribute('role');
       var empty = el('div', 'clinic-admin-pending-empty');
+      empty.setAttribute('role', 'status');
       empty.innerHTML = '<span aria-hidden="true"></span><strong>Todo al día</strong><p>No hay invitaciones ni perfiles pendientes de vincular.</p>';
       professionals.append(empty);
     }
+    updateSectionCount('clinic-admin-pending-count', professionals.querySelectorAll('.clinic-admin-professional').length, 'pendiente', 'pendientes');
 
     var professionalButton = document.getElementById('clinic-admin-add-professional');
     if (professionalButton) professionalButton.hidden = !state.canTeam;
@@ -396,6 +419,7 @@
     var host = document.getElementById('clinic-admin-role-guide');
     if (!host) return;
     var roles = state.roles.filter(function (role) { return role.active; });
+    updateSectionCount('clinic-admin-role-count-summary', roles.length, 'rol', 'roles');
     if (!roles.length) {
       host.innerHTML = '<div class="clinic-admin-empty">Los permisos de cada rol aparecerán cuando estén disponibles.</div>';
       return;
@@ -741,7 +765,7 @@
 
   function buildPage() {
     var page = el('section', 'pantalla clinic-admin-page'); page.id = 'p-clinica';
-    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-label="Equipo, roles y profesionales" aria-selected="false">Equipo y roles</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo" hidden><header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div><div class="clinic-admin-team-actions"><button type="button" class="btn btn-secondary" id="clinic-admin-add-member">Invitar integrante</button><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Agregar doctor</button></div></header><div class="clinic-admin-team-grid"><article class="clinic-admin-card clinic-admin-people-card"><div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Los cambios de rol y sede se guardan directamente. Los doctores vinculados se identifican en la misma lista.</p></div></div><div id="clinic-admin-members" class="clinic-admin-people-list"></div></article><aside class="clinic-admin-card clinic-admin-pending-card"><div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div></div><div id="clinic-admin-professionals"></div></aside><article class="clinic-admin-card clinic-admin-role-card"><div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Son plantillas editables: configura qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div><div id="clinic-admin-role-guide"></div></article></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog smyl-v2-dialog"></dialog>';
+    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-label="Equipo, roles y profesionales" aria-selected="false">Equipo y roles</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo" hidden><header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div><div class="clinic-admin-team-actions"><button type="button" class="btn btn-secondary" id="clinic-admin-add-member">Invitar integrante</button><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Agregar doctor</button></div></header><div class="clinic-admin-team-grid"><article class="clinic-admin-card clinic-admin-people-card"><div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Rol y sede se guardan al cambiarlos. Los doctores vinculados se identifican en la misma lista.</p></div><span class="clinic-admin-section-count" id="clinic-admin-member-count" aria-live="polite">0 personas</span></div><div id="clinic-admin-members" class="clinic-admin-people-list"></div></article><aside class="clinic-admin-card clinic-admin-pending-card"><div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div><span class="clinic-admin-section-count" id="clinic-admin-pending-count" aria-live="polite">0 pendientes</span></div><div id="clinic-admin-professionals"></div></aside><article class="clinic-admin-card clinic-admin-role-card"><div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Plantillas editables para configurar qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><div class="clinic-admin-role-actions"><span class="clinic-admin-section-count" id="clinic-admin-role-count-summary" aria-live="polite">0 roles</span><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div></div><div id="clinic-admin-role-guide"></div></article></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog smyl-v2-dialog"></dialog>';
     document.querySelector('.contenido').append(page);
     page.querySelectorAll('[data-ca-tab]').forEach(function (button) { button.addEventListener('click', function () { setTab(button.dataset.caTab); }); });
     page.querySelector('#clinic-admin-refresh').addEventListener('click', function () { load(true); });

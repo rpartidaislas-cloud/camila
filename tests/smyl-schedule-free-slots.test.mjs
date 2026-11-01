@@ -57,5 +57,5 @@ test('las horas libres del servidor se distribuyen igual en web, móvil y PWA', 
   for (const file of ['smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-schedule\.js\?v=27/);
+  assert.match(read('app.html'), /smyl-schedule\.js\?v=28/);
 });

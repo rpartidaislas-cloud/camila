@@ -72,7 +72,7 @@
     return tasks.sort(function(a,b){return a.rank-b.rank;});
   }
 
-  function renderMetrics() {
+  function renderMetrics(priorityTasks) {
     var rows=activeAppointments(), clinic=rows.filter(function(a){return a.status==='arrived'||a.status==='in_progress';}).length, pending=state.requests.filter(function(r){return r.status==='pending';}).length;
     var unread=state.messages&&state.messages.loaded?Number(state.messages.unread||state.messages.total||0):0;
     var host=document.querySelector('[data-home-metrics]'); if(!host)return;
@@ -81,6 +81,7 @@
     if(clinic)tiles.push(metric(clinic,'En la clínica','llegaron o están en consulta','agenda','active'));
     if(pending)tiles.push(metric(pending,'Por confirmar','solicitudes de cita','agenda','attention'));
     if(unread)tiles.push(metric(unread,'Mensajes','sin leer o por atender','inbox','attention'));
+    if(!tiles.length&&priorityTasks&&priorityTasks.length)tiles.push(metric(priorityTasks.length,'Requiere atención',priorityTasks.length===1?'1 pendiente operativo':'pendientes operativos','notificaciones','attention'));
     host.dataset.count=String(tiles.length);
     host.innerHTML=tiles.length?tiles.join(''):'<div class="daily-home-clear"><span>✓</span><div><strong>Todo al día por ahora</strong><small>No hay indicadores que requieran atención.</small></div></div>';
     host.querySelectorAll('[data-route]').forEach(function(button){button.onclick=function(){route(button.dataset.route);};});
@@ -92,12 +93,17 @@
     return center&&typeof center.getTasks==='function'?center.getTasks():null;
   }
 
-  function renderPriorities() {
-    var host=document.querySelector('[data-home-priorities]'); if(!host)return;
+  function resolvePriorityTasks() {
     var shared=taskItems(), tasks;
     // Misma fuente que el contador de Alertas, para que el Inicio y la campana nunca se contradigan.
     if(shared)tasks=shared.map(function(item){return {label:item.source.toUpperCase(),name:item.title,detail:item.detail,action:item.action,route:item.route,open:item.open,urgent:item.rank===1};});
     else tasks=priorityRows().map(function(item){return {label:item.label,name:item.name,detail:item.detail,action:item.action,route:'agenda',urgent:false};});
+    return tasks;
+  }
+
+  function renderPriorities(tasks) {
+    var host=document.querySelector('[data-home-priorities]'); if(!host)return;
+    tasks=tasks||resolvePriorityTasks();
     var summary=document.querySelector('[data-home-summary]'),title=document.querySelector('[data-home-priority-title]');
     if(summary)summary.textContent=tasks.length?(shared?tasks.length+(tasks.length===1?' área requiere':' áreas requieren')+' atención.':tasks.length+(tasks.length===1?' acción pendiente.':' acciones pendientes.')):'Todo al día por hoy.';
     if(title)title.textContent=tasks.length?(shared?tasks.length+(tasks.length===1?' área requiere':' áreas requieren')+' atención':tasks.length+(tasks.length===1?' acción pendiente':' acciones pendientes')):'Requiere atención';
@@ -112,9 +118,8 @@
     var host=document.querySelector('[data-home-next]'); if(!host)return;
     var now=Date.now(), rows=activeAppointments().filter(function(a){return a.status==='arrived'||a.status==='in_progress'||(a.status==='confirmed'&&new Date(a.ends_at||a.starts_at).getTime()>=now);}).sort(function(a,b){var pa=a.status==='in_progress'?0:a.status==='arrived'?1:2,pb=b.status==='in_progress'?0:b.status==='arrived'?1:2;return pa-pb||new Date(a.starts_at)-new Date(b.starts_at);});
     if(!rows.length){
-      host.innerHTML='<div class="daily-home-next-empty"><strong>Sin citas hoy</strong><p>Agenda una cita o revisa tu horario para que los pacientes puedan reservar.</p><div><button type="button" data-go="new">Agendar cita</button><button type="button" data-go="agenda">Abrir agenda</button></div></div>';
+      host.innerHTML='<div class="daily-home-next-empty"><strong>Sin citas hoy</strong><p>Agenda una cita o revisa tu horario para que los pacientes puedan reservar.</p><div><button type="button" data-go="new">Agendar cita</button></div></div>';
       host.querySelector('[data-go="new"]').onclick=function(){if(window.SmylCareTasks)window.SmylCareTasks.open('appointment');else route('agenda');};
-      host.querySelector('[data-go="agenda"]').onclick=function(){route('agenda');};
       return;
     }
     var upcoming=rows.find(function(a){return new Date(a.starts_at).getTime()>=now&&a.status==='confirmed';});
@@ -261,7 +266,8 @@
 
   function render() {
     if(state.error){renderError();return;}
-    renderMetrics(); renderPriorities(); renderNext(); loadChats(false); loadMonth(false);
+    var tasks=resolvePriorityTasks();
+    renderMetrics(tasks); renderPriorities(tasks); renderNext(); loadChats(false); loadMonth(false);
     var updated=document.querySelector('[data-home-updated]'); if(updated)updated.textContent='Actualizado '+new Intl.DateTimeFormat('es-MX',{hour:'2-digit',minute:'2-digit'}).format(new Date());
   }
 
@@ -293,8 +299,8 @@
 
   function init() {
     build();
-    window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded){renderMetrics();loadChats(false);}});
-    window.addEventListener('smyl:task-center-updated',function(event){state.tasks=event.detail&&Array.isArray(event.detail.items)?event.detail.items:null;if(state.loaded)renderPriorities();});
+    window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);loadChats(false);}});
+    window.addEventListener('smyl:task-center-updated',function(event){state.tasks=event.detail&&Array.isArray(event.detail.items)?event.detail.items:null;if(state.loaded){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);}});
     var previous=window.ir;
     window.ir=function(routeName){var result=previous(routeName);if(routeName==='dashboard'){load(true);loadMonth(true);}return result;};
     var originalDashboard=window.cargarDashboard;

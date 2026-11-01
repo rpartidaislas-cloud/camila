@@ -1,4 +1,5 @@
 /* SMYL UI v3.2 · professional radiograph reading workspace. */
+/* Clinical Workspace v3.3 · evidence -> decision -> detail. */
 .rr-dialog {
   --rr-canvas: var(--smyl-ui-canvas, #f4f7fb);
   --rr-surface: var(--smyl-ui-surface, #fff);
@@ -20,6 +21,7 @@
   --rr-danger-soft: var(--smyl-ui-danger-soft, #fff2ef);
   --rr-focus: var(--smyl-ui-focus, #2563eb);
   --rr-rx: #6656a8;
+  --rr-v33-control: 42px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(1440px, calc(100vw - 24px));
@@ -81,7 +83,7 @@
 .rr-tertiary { border: 1px solid transparent; background: transparent; color: var(--rr-danger); }
 .rr-primary { border: 1px solid var(--rr-primary); background: var(--rr-primary); color: #fff; }
 .rr-primary:hover { background: var(--rr-primary-hover); }
-.rr-tool-range { display: grid; min-width: 118px; gap: 2px; color: var(--rr-muted); font-size: 12px; font-weight: 600; }
+.rr-tool-range { display: grid; min-width: 118px; min-height: var(--rr-v33-control); align-content: center; gap: 2px; color: var(--rr-muted); font-size: 12px; font-weight: 600; }
 .rr-tool-range input { accent-color: var(--rr-primary); }
 .rr-primary:disabled, .rr-secondary:disabled, .rr-tool:disabled { opacity: .48; cursor: not-allowed; }
 
@@ -93,7 +95,7 @@
 .rr-image-stage > img { display: block; width: 100%; height: auto; cursor: default; transition: filter .12s ease; }
 .rr-workspace[data-mode="placing"] .rr-image-stage > img { cursor: crosshair; }
 .rr-place { position: absolute; z-index: 5; top: 122px; left: 50%; display: flex; gap: 4px; padding: 10px 14px; transform: translateX(-50%); border: 1px solid #d4a733; border-radius: 999px; background: var(--rr-warning-soft); color: var(--rr-warning); box-shadow: 0 10px 28px rgba(11, 27, 46, .16); flex-direction: column; font-size: 12px; text-align: center; }
-.rr-mark { width: 40px; height: 40px; min-height: 40px; padding: 0; border: 3px solid #fff; background: #f1b93e; color: var(--rr-ink); font-size: 13px; box-shadow: 0 2px 10px rgba(7, 24, 38, .55); }
+.rr-mark { width: var(--rr-v33-control); height: var(--rr-v33-control); min-height: var(--rr-v33-control); padding: 0; border: 3px solid #fff; background: #f1b93e; color: var(--rr-ink); font-size: 13px; box-shadow: 0 2px 10px rgba(7, 24, 38, .55); }
 .rr-mark-confirmed { background: var(--rr-accent); color: var(--rr-primary); }
 .rr-mark.is-selected { outline: 3px solid var(--rr-primary); outline-offset: 2px; }
 .rr-image-legend { display: flex; justify-content: center; gap: 16px; padding: 8px 12px; border-top: 1px solid var(--rr-line); background: var(--rr-soft); color: var(--rr-muted); font-size: 12px; }
@@ -108,7 +110,7 @@
 .rr-count-pending { background: var(--rr-warning-soft); color: var(--rr-warning); }
 .rr-count-confirmed { background: var(--rr-accent-soft); color: var(--rr-success); }
 .rr-filters { display: grid; padding: 0 12px 10px; overflow-x: auto; grid-template-columns: repeat(4, minmax(max-content, 1fr)); gap: 4px; }
-.rr-filter { min-height: 38px; padding: 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--rr-muted); font: 600 12px/16px var(--smyl-ui-font, Inter, system-ui, sans-serif); cursor: pointer; }
+.rr-filter { min-height: var(--rr-v33-control); padding: 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--rr-muted); font: 600 12px/16px var(--smyl-ui-font, Inter, system-ui, sans-serif); cursor: pointer; }
 .rr-filter[aria-pressed="true"] { border-color: var(--rr-line); background: var(--rr-primary-soft); color: var(--rr-primary); }
 .rr-items { display: grid; margin: 0; padding: 0 12px 14px; overflow: auto; align-content: start; grid-template-columns: 1fr; grid-auto-rows: max-content; gap: 8px; overscroll-behavior: contain; }
 .rr-item { display: block; padding: 0; overflow: hidden; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--rr-surface); }
@@ -142,7 +144,7 @@
 .rr-panel-empty { display: grid; gap: 4px; padding: 20px; border: 1px dashed var(--rr-line-strong); border-radius: 12px; background: var(--rr-soft); text-align: center; }
 .rr-panel-empty p { margin: 0; color: var(--rr-muted); font-size: 13px; }
 
-.rr-save { display: flex; margin: 0; padding: 10px 14px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--rr-surface); }
+.rr-save { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 10px 14px; border: 1px solid var(--rr-line); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--rr-surface); }
 .rr-save[data-dirty="true"] > div strong { color: var(--rr-warning); }
 .rr-save[data-dirty="false"] > div strong { color: var(--rr-success); }
 .rr-save span { color: var(--rr-muted); font-size: 12px; }
@@ -176,6 +178,12 @@
 .rr-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .rr-confirm-dialog :is(button):focus-visible { outline: 3px solid var(--smyl-ui-focus, #2563eb); outline-offset: 2px; }
 
+/* The radiograph stays dominant; the decision panel never compresses the image into a thumbnail. */
+@media (min-width: 960px) {
+  .rr-workspace { grid-template-columns: minmax(0, 72fr) minmax(336px, 28fr); }
+  .rr-canvas { min-height: 460px; }
+}
+
 @media (max-width: 959px) {
   .rr-dialog { width: calc(100vw - 16px); height: calc(100dvh - 16px); }
   .rr-host { overflow: auto; }
@@ -190,6 +198,7 @@
 }
 
 @media (max-width: 639px) {
+  .rr-dialog { --rr-v33-control: 44px; }
   .rr-dialog { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
   .rr-bar { min-height: 64px; padding: 10px 12px; }
   .rr-bar .rr-secondary { min-width: 44px; padding-inline: 10px; }
@@ -229,6 +238,7 @@
 
 /* Manual viewer uses the same visual anatomy without sharing persistence. */
 .dr-radiograph-dialog {
+  --rr-v33-control: 42px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: min(1380px, calc(100vw - 24px));
@@ -257,7 +267,7 @@
 .dr-viewer-pane { position: relative; display: grid; align-self: start; grid-template-rows: auto auto auto auto; }
 .dr-radiograph-dialog .dr-tools { flex-wrap: nowrap; gap: 8px; padding: 8px 12px; overflow-x: auto; border-bottom: 1px solid var(--smyl-ui-border, #d9e2ec); background: var(--smyl-ui-surface-soft, #f8fafc); }
 .dr-radiograph-dialog .dr-tools .dr-button { flex: none; }
-.dr-tool-range { display: grid; min-width: 118px; gap: 2px; color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; font-weight: 600; }
+.dr-tool-range { display: grid; min-width: 118px; min-height: var(--rr-v33-control); align-content: center; gap: 2px; color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; font-weight: 600; }
 .dr-tool-range input { accent-color: var(--smyl-ui-primary, #0b1b2e); }
 .dr-radiograph-dialog .dr-primary { border-color: var(--smyl-ui-primary, #0b1b2e); background: var(--smyl-ui-primary, #0b1b2e); color: #fff; }
 .dr-radiograph-dialog .dr-button[aria-pressed="true"] { border-color: var(--smyl-ui-primary, #0b1b2e); background: var(--smyl-ui-primary-soft, #e9eef5); color: var(--smyl-ui-primary, #0b1b2e); }
@@ -270,7 +280,7 @@
 .dr-radiograph-dialog .dr-viewport:focus-visible { outline: 3px solid var(--smyl-ui-focus, #2563eb); outline-offset: -3px; }
 .dr-radiograph-dialog .dr-image-stage > img { cursor: default; transition: filter .12s ease; }
 .dr-radiograph-dialog .dr-tools:has(.dr-primary[aria-pressed="true"]) + .dr-placement-mode + .dr-viewport .dr-image-stage > img { cursor: crosshair; }
-.dr-radiograph-dialog .dr-mark { width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; border: 3px solid #fff; background: var(--smyl-ui-accent, #38a99d); color: var(--smyl-ui-primary, #0b1b2e); font-size: 13px; box-shadow: 0 2px 10px rgba(7, 24, 38, .55); }
+.dr-radiograph-dialog .dr-mark { width: var(--rr-v33-control); min-width: var(--rr-v33-control); height: var(--rr-v33-control); min-height: var(--rr-v33-control); padding: 0; border: 3px solid #fff; background: var(--smyl-ui-accent, #38a99d); color: var(--smyl-ui-primary, #0b1b2e); font-size: 13px; box-shadow: 0 2px 10px rgba(7, 24, 38, .55); }
 .dr-radiograph-dialog .dr-mark.is-selected { outline: 3px solid var(--smyl-ui-primary, #0b1b2e); outline-offset: 2px; }
 .dr-viewer-safety { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; border-top: 1px solid var(--smyl-ui-border, #d9e2ec); background: var(--smyl-ui-surface-soft, #f8fafc); color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; }
 .dr-viewer-safety strong { color: var(--smyl-ui-success, #087a55); }
@@ -305,6 +315,8 @@
 .dr-mark-dialog > .dr-help { margin-top: 18px; }
 .dr-mark-dialog .dr-field { color: var(--smyl-ui-ink, #0b1b2e); }
 .dr-mark-dialog :is(select, textarea) { border-color: var(--smyl-ui-border-strong, #bac7d5); border-radius: var(--smyl-ui-radius-control, 12px); background: var(--smyl-ui-surface, #fff); color: var(--smyl-ui-ink, #0b1b2e); }
+.dr-radiograph-dialog :is(button, select, textarea, input):focus-visible,
+.dr-mark-dialog :is(button, select, textarea, input):focus-visible { outline: 3px solid var(--smyl-ui-focus, #2563eb); outline-offset: 2px; }
 .dr-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .dr-mark-dialog > .dr-dialog-actions { margin-bottom: 24px; }
 
@@ -318,7 +330,7 @@
 }
 
 @media (max-width: 639px) {
-  .dr-radiograph-dialog { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
+  .dr-radiograph-dialog { --rr-v33-control: 44px; width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
   .dr-viewer-header { min-height: 64px; padding: 10px 12px; }
   .dr-reading-workspace { padding: 10px; gap: 10px; }
   .dr-viewer-pane { min-height: 0; }
@@ -467,3 +479,32 @@
 .rr-handle[data-handle="e"] { top: calc(50% - 6px); right: -7px; cursor: ew-resize; }
 @media (pointer: coarse) { .rr-handle { width: 20px; height: 20px; } .rr-handle::after { inset: -12px; } .rr-handle[data-handle="nw"] { top: -11px; left: -11px; } .rr-handle[data-handle="ne"] { top: -11px; right: -11px; } .rr-handle[data-handle="sw"] { bottom: -11px; left: -11px; } .rr-handle[data-handle="se"] { right: -11px; bottom: -11px; } .rr-handle[data-handle="n"], .rr-handle[data-handle="s"] { left: calc(50% - 10px); } .rr-handle[data-handle="w"], .rr-handle[data-handle="e"] { top: calc(50% - 10px); } .rr-handle[data-handle="n"] { top: -11px; } .rr-handle[data-handle="s"] { bottom: -11px; } .rr-handle[data-handle="w"] { left: -11px; } .rr-handle[data-handle="e"] { right: -11px; } }
 .rr-image-stage > .rr-mark.is-selected { pointer-events: none; }
+
+/* Clinical Workspace v3.3 · tamaño funcional y táctil consistente.
+   Mantiene compacta la mesa de luz sin reducir acciones por debajo del mínimo accesible. */
+.rr-dialog .rr-bar > button,
+.rr-view-switch .rr-tool,
+.rr-view-tools .rr-tool {
+  min-height: 42px;
+}
+.rr-hint kbd {
+  font-size: 12px;
+}
+.rr-image-stage > .rr-mark {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+}
+
+@media (max-width: 639px) {
+  .rr-dialog .rr-bar > button,
+  .rr-view-switch .rr-tool,
+  .rr-view-tools .rr-tool,
+  .rr-image-stage > .rr-mark {
+    min-height: 44px;
+  }
+  .rr-image-stage > .rr-mark {
+    width: 44px;
+    height: 44px;
+  }
+}

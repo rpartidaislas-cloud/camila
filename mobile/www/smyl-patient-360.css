@@ -430,3 +430,110 @@
   .p360-timeline-row{min-height:68px;padding-block:12px}
 }
 @media(prefers-reduced-motion:reduce){.p360-domain-arrow{transition:none}}
+
+/* Clinical Workspace v3.3 · Ficha 360 legible y orientada a tareas. */
+.p360-root{
+  --p360-text-xs:var(--smyl-ui-text-meta,12px);
+  --p360-text-sm:var(--smyl-ui-text-body-sm,14px);
+  --p360-text-md:var(--smyl-ui-text-body,15px);
+  --p360-text-lg:var(--smyl-ui-text-title,16px);
+  --p360-text-xl:clamp(22px,2vw,28px);
+  padding:var(--smyl-ui-space-6,24px);
+  border-color:var(--smyl-ui-border,#d9e2ec);
+  border-radius:var(--smyl-ui-radius-panel,20px);
+  background:var(--smyl-ui-surface,#fff);
+  box-shadow:var(--smyl-ui-shadow-card,0 8px 26px rgba(11,27,46,.055));
+  min-width:0;
+  max-width:100%;
+  overflow-x:clip;
+  box-sizing:border-box;
+}
+.p360-title{grid-template-columns:48px minmax(0,1fr) auto;gap:16px}
+.p360-avatar{width:48px;height:48px;border-radius:14px;font-size:14px}
+.p360-patient-copy>span,
+.p360-title>div>span,
+.p360-section-head>div>span,
+.p360-priority>div>span{font-size:var(--p360-text-xs);font-weight:700;letter-spacing:.06em}
+.p360-patient-copy h1{font-size:var(--p360-text-xl);font-weight:700}
+.p360-patient-copy p,.p360-title p,.p360-section-head p,.p360-priority p{font-size:var(--p360-text-sm)}
+.p360-title-tools{min-width:0;flex-wrap:wrap;justify-content:flex-end}
+.p360-title-tools>*{min-width:0;max-width:100%}
+.p360-title-tools button{white-space:normal}
+.p360-root button,.p360-root summary{min-height:42px;font-size:var(--p360-text-xs)}
+.p360-title-tools button,.p360-secure,.p360-tabs button,.p360-priority-actions button,
+.p360-section-head button,.p360-record-tools button,.p360-history-links button,
+.p360-inline-actions button,.p360-appointment-actions button,.p360-timeline-more{
+  min-height:42px;
+  font-size:var(--p360-text-xs);
+}
+.p360-secure{display:inline-flex;align-items:center;min-height:32px;padding:6px 10px}
+.p360-tabs{width:100%;min-width:0;max-width:100%;gap:8px;margin:20px 0;padding:4px;border-bottom:1px solid var(--smyl-ui-border,#d9e2ec);box-sizing:border-box;contain:inline-size}
+.p360-tabs button{padding:9px 13px;border-radius:var(--smyl-ui-radius-control,12px);font-size:var(--p360-text-sm)}
+.p360-tabs button[aria-selected=true]{border-color:var(--smyl-ui-border,#d9e2ec);background:var(--smyl-ui-surface-soft,#f8fafc)}
+.p360-priority{min-height:88px;padding:18px 20px;border-radius:var(--smyl-ui-radius-card,16px)}
+.p360-priority h2,.p360-section-head h2{font-size:var(--smyl-ui-text-title,16px);font-weight:700}
+.p360-priority-actions{flex-wrap:wrap;justify-content:flex-end}
+.p360-alerts>strong,.p360-alerts span,.p360-alerts small,
+.p360-metrics span,.p360-metrics small,.p360-snapshot span,.p360-snapshot strong,
+.p360-card dt,.p360-card dd,.p360-timeline strong,.p360-timeline small,
+.p360-note small,.p360-file-grid small,.p360-appointment-list small,
+.p360-appointment-list time,.p360-appointment-list [data-status],.p360-file-grid span,
+.p360-status,.p360-version,.p360-addenda>strong,.p360-billing-status,.p360-billing-note,
+.p360-assistant-head small,.p360-assistant-head p,.p360-assistant-grid h3,
+.p360-assistant-grid p,.p360-assistant-grid li,.p360-assistant>aside,
+.p360-domain-copy small,.p360-domain-copy em,.p360-timeline-row small,
+.p360-timeline-row strong,.p360-timeline-row em{font-size:var(--p360-text-xs)}
+.p360-metrics strong,.p360-snapshot strong{font-size:var(--p360-text-md)}
+.p360-card dd,.p360-note p{font-size:var(--p360-text-sm)}
+.p360-card,.p360-record-map{border-radius:var(--smyl-ui-radius-card,16px)}
+.p360-card dl div{padding:12px 13px}
+.p360-form-grid{gap:16px}
+.p360-form-grid label{gap:7px;font-size:var(--smyl-ui-text-label,13px)}
+.p360-form-grid input,.p360-form-grid select{min-height:46px;font-size:var(--p360-text-sm)}
+.p360-form-grid textarea{min-height:104px;font-size:var(--p360-text-sm)}
+.p360-form-grid :is(input,select,textarea):focus-visible,
+.p360-root button:focus-visible,.p360-root summary:focus-visible{
+  outline:3px solid rgba(56,169,157,.24);
+  outline-offset:2px;
+}
+.p360-note,.p360-appointment-list article,.p360-file-grid article{padding:15px;border-radius:var(--smyl-ui-radius-control,12px)}
+.p360-overview-grid{grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:16px}
+.p360-record-map>header{padding:18px 20px}
+.p360-domain-grid{gap:1px}
+.p360-domain-card{min-height:112px;padding:16px}
+.p360-timeline-filters{gap:8px;margin:16px 0 8px}
+.p360-timeline-filters button{min-height:42px;padding-inline:13px}
+.p360-timeline-more{font:700 var(--p360-text-xs)/1.2 inherit}
+.p360-dialog{border-radius:var(--smyl-ui-radius-panel,20px)}
+.p360-dialog :is(button,input,select){min-height:42px}
+
+@media(max-width:1000px){
+  .p360-overview-grid{grid-template-columns:1fr}
+  .p360-domain-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .p360-root{padding:18px 16px}
+  .p360-title{grid-template-columns:44px minmax(0,1fr)}
+  .p360-avatar{width:44px;height:44px}
+  .p360-title-tools{grid-column:1/-1;justify-content:flex-start;width:100%}
+  .p360-title-tools button{flex:1 1 180px}
+  .p360-root button,.p360-root summary,.p360-root :is(input,select){min-height:44px}
+  .p360-tabs{gap:6px;margin-inline:0;overflow-x:auto}
+  .p360-tabs button{flex:0 0 auto;padding-inline:12px}
+  .p360-priority,.p360-section-head{align-items:flex-start;flex-direction:column}
+  .p360-priority-actions,.p360-section-head button{width:100%}
+  .p360-priority-actions button{flex:1 1 150px}
+  .p360-appointment-list article{grid-template-columns:1fr}
+  .p360-appointment-list time{grid-column:auto}
+  .p360-appointment-actions{justify-content:stretch}
+  .p360-appointment-actions button{flex:1 1 140px}
+  .p360-domain-grid{grid-template-columns:1fr}
+  .p360-record-map>header{padding:16px}
+  .p360-domain-card{min-height:96px}
+}
+@media(max-width:420px){
+  .p360-root{width:100%;max-width:100%;margin-inline:0;padding:16px 12px;border-radius:16px;box-sizing:border-box}
+  .p360-snapshot,.p360-metrics{grid-template-columns:1fr}
+  .p360-priority-actions{display:grid;grid-template-columns:1fr}
+  .p360-title-tools button,.p360-priority-actions button{width:100%}
+}

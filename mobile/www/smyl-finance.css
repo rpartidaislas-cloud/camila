@@ -14,3 +14,147 @@
 @media(max-width:900px){.finance-focus-list article{align-items:flex-start;flex-direction:column}.finance-focus-list article>div{width:100%;grid-template-columns:minmax(110px,.7fr) minmax(130px,1fr) minmax(130px,1fr)}.finance-focus-list button{width:100%}}
 @media(max-width:620px){.finance-focus-head{align-items:flex-start;flex-direction:column}.finance-focus-head button{width:100%}.finance-focus-list article>div{grid-template-columns:1fr}.finance-toolbar>input{max-width:none}.finance-account-filters{width:100%}.finance-account-filters button{flex:1}.finance-account-progress{display:none}.finance-payment-check{grid-column:auto}.finance-payment-summary{grid-template-columns:1fr 1fr}.finance-account-total{grid-template-columns:1fr}.finance-account-head>div:last-child{width:62px;height:62px}.finance-payment-charges label{grid-template-columns:auto 1fr}.finance-payment-charges b{grid-column:2}}
 .finance-section-copy{margin:-7px 0 12px;color:#718096;font-size:12px}
+
+/* Clinical Workspace v3.3 · Finanzas
+   Capa visual aislada: no modifica saldos, RPC, permisos ni estados contables. */
+@media screen{
+  .finance-page{
+    container:finance-workspace/inline-size;
+    width:100%;max-width:1440px;min-width:0;overflow:clip;
+    padding:32px clamp(18px,2.5vw,36px) 72px;
+  }
+  .finance-page *{box-sizing:border-box;min-width:0}
+  .finance-head{align-items:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #dfe7ef}
+  .finance-head>div:first-child{max-width:780px}
+  .finance-head .pro-eyebrow,.finance-focus-head span,.finance-account-head>div:first-child>span{font-size:12px;line-height:1.35;letter-spacing:.08em}
+  .finance-head h1{font-size:clamp(26px,2.2vw,32px);line-height:1.12;margin:7px 0 8px}
+  .finance-head p{font-size:14px;line-height:1.55}
+  .finance-head-actions{justify-content:flex-end;max-width:520px}
+  .finance-head-actions .btn-primary{box-shadow:0 7px 18px rgba(27,77,119,.16)}
+
+  .finance-page :where(button,.btn,input:not([type="checkbox"]):not([type="radio"]),select,textarea,[role="button"]){min-height:42px;font-size:13px}
+  .finance-page :where(button,.btn,[role="button"]){padding-inline:14px;border-radius:10px;font-weight:700}
+  .finance-page :where(button,.btn,input,select,textarea,a,[tabindex]):focus-visible{outline:3px solid rgba(31,120,167,.3);outline-offset:2px}
+  .finance-page :where(button,.btn,input,select,textarea):disabled{cursor:not-allowed;opacity:.55}
+  .finance-page textarea{min-height:96px;resize:vertical}
+
+  .finance-metrics{gap:14px;margin:20px 0 22px}
+  .finance-metrics article{min-height:112px;padding:18px 20px;border-radius:15px;box-shadow:0 5px 18px rgba(26,47,79,.045)}
+  .finance-metrics span,.finance-metrics small{font-size:12px;line-height:1.4}
+  .finance-metrics strong{font-size:clamp(22px,2vw,27px);line-height:1.15}
+
+  .finance-tabs{gap:4px;margin-bottom:20px;padding:5px;border:1px solid #dfe7ee;background:#f0f4f7;scrollbar-width:thin}
+  .finance-tabs button{flex:0 0 auto;min-height:42px;padding:0 15px;font-size:13px}
+  .finance-tabs button[aria-selected=true]{color:#123f5f;box-shadow:0 2px 9px rgba(20,55,82,.1)}
+
+  .finance-grid{gap:18px}
+  .finance-card{padding:22px;border-radius:16px;box-shadow:0 6px 20px rgba(26,47,79,.045)}
+  .finance-card header{margin-bottom:18px}
+  .finance-card h2,.finance-session h2{font-size:19px;line-height:1.3}
+  .finance-card>p,.finance-card header p,.finance-session p{font-size:14px;line-height:1.55}
+
+  .finance-table{border-radius:12px;overflow-x:auto}
+  .finance-row{min-height:64px;padding:13px 16px;font-size:13px;line-height:1.4}
+  .finance-row-head{min-height:42px;font-size:12px;letter-spacing:.045em}
+  .finance-row small,.finance-badge{font-size:12px;line-height:1.35}
+  .finance-badge{min-height:28px;align-items:center;padding:5px 9px}
+  .finance-row button{min-width:96px}
+
+  .finance-ledger{gap:0;border:1px solid #e2e8ef;border-radius:12px;overflow:hidden}
+  .finance-ledger article{min-height:72px;border:0;border-top:1px solid #e5eaf1;border-radius:0;padding:14px 16px}
+  .finance-ledger article:first-child{border-top:0}
+  .finance-ledger p,.finance-ledger small,.finance-ledger aside small{font-size:12px;line-height:1.4}
+  .finance-ledger aside strong{font-size:14px}
+  .finance-ledger-icon{width:42px;height:42px}
+
+  .finance-empty,.finance-restricted{display:grid;place-items:center;align-content:center;min-height:152px;padding:28px;text-align:center;font-size:13px;line-height:1.5}
+  .finance-empty strong,.finance-restricted strong{font-size:15px}
+  .finance-empty p,.finance-restricted p{max-width:540px;margin:4px auto 14px;font-size:13px;line-height:1.5}
+  .finance-notice{min-height:50px;gap:14px;padding:11px 14px;font-size:13px;line-height:1.4}
+  .finance-notice button{flex:none;min-width:72px}
+
+  .finance-toolbar{gap:12px;margin-bottom:16px}
+  .finance-toolbar>input{max-width:360px}
+  .finance-account-filters{gap:4px;padding:4px;border:1px solid #e0e7ef}
+  .finance-account-filters button{min-height:42px;padding:0 13px;font-size:12px}
+  .finance-account-progress>span,.finance-account-progress small{font-size:12px;line-height:1.35}
+  .finance-account-progress i,.finance-account-ledger i{height:6px}
+
+  .finance-focus{margin:18px 0;border-radius:16px;box-shadow:0 5px 18px rgba(26,47,79,.04)}
+  .finance-focus-head{padding:20px 22px}
+  .finance-focus-head h2{font-size:20px;line-height:1.25}
+  .finance-focus-head p{font-size:13px;line-height:1.5}
+  .finance-focus-head button,.finance-focus-list button{min-height:42px;font-size:13px}
+  .finance-focus-list article{min-height:68px;padding:14px 22px}
+  .finance-focus-list span,.finance-focus-list strong,.finance-focus-list small,.finance-focus-empty{font-size:12px;line-height:1.4}
+  .finance-focus-empty{min-height:58px;padding:14px 22px}
+
+  .finance-form-grid{gap:16px}
+  .finance-form-grid label{gap:7px;font-size:12px;line-height:1.4}
+  .finance-form-grid input,.finance-form-grid select,.finance-form-grid textarea,.finance-toolbar input,.finance-toolbar select{padding:10px 12px;font-size:14px}
+  .finance-dialog form{padding:26px}
+  .finance-dialog h2{font-size:22px;line-height:1.25}
+  .finance-dialog form>p{font-size:14px;line-height:1.5}
+  .finance-confirm{gap:10px;font-size:13px!important;line-height:1.45!important}
+  .finance-confirm input,.finance-payment-charges input{flex:none;width:20px;height:20px;min-height:20px;margin-top:1px}
+
+  .finance-proposal-review>span,.finance-proposal-review li,.finance-drafts small,.finance-fiscal-readiness p,.finance-fiscal-readiness article strong,.finance-fiscal-readiness article small,.finance-fiscal-readiness footer a,.finance-issuer-card small,.finance-fiscal-warning,.finance-section-copy{font-size:12px;line-height:1.4}
+  .finance-drafts h3{font-size:14px}
+  .finance-drafts article{min-height:64px}
+  .finance-fiscal-readiness article{min-height:68px;padding:11px}
+  .finance-fiscal-readiness article>span{width:24px;height:24px}
+
+  .finance-payment-charges label{min-height:58px;gap:10px;padding:10px 12px}
+  .finance-payment-charges span small,.finance-payment-charges b{font-size:12px;line-height:1.35}
+  .finance-payment-check{padding:16px}
+  .finance-payment-check-head span,.finance-payment-check-head strong,.finance-payment-summary span,.finance-payment-summary strong,.finance-payment-check>p,.finance-payment-check ul{font-size:12px;line-height:1.45}
+  .finance-payment-summary div{min-height:62px;padding:10px}
+  .finance-account-head>div:last-child small,.finance-account-total span{font-size:12px;line-height:1.35}
+  .finance-account-total>div{min-height:70px;padding:11px 12px}
+  .finance-account-total strong{font-size:15px}
+}
+
+@media screen and (max-width:980px){
+  .finance-head{align-items:flex-start}
+  .finance-head-actions{max-width:440px}
+  .finance-row{grid-template-columns:minmax(180px,1fr) 130px 116px}
+}
+
+@media screen and (max-width:720px){
+  .finance-page{padding:22px 14px 92px}
+  .finance-head{display:grid;gap:18px;padding-bottom:18px}
+  .finance-head-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;width:100%}
+  .finance-head-actions .btn-primary{grid-column:1/-1;grid-row:1}
+  .finance-page :where(button,.btn,input:not([type="checkbox"]):not([type="radio"]),select,textarea,[role="button"]){min-height:44px}
+  .finance-page :where(button,.btn,[role="button"]){min-width:44px}
+  .finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .finance-metrics article{min-height:104px;padding:15px}
+  .finance-card{padding:16px}
+  .finance-card header{display:grid;gap:10px}
+  .finance-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;overflow:visible}
+  .finance-tabs button{width:100%;min-height:44px;white-space:normal;line-height:1.3}
+  .finance-toolbar{display:grid}
+  .finance-toolbar>input{max-width:none}
+  .finance-account-filters{width:100%}
+  .finance-account-filters button{min-height:44px;flex:1}
+  .finance-table>.finance-row:not(.finance-row-head){grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"identity action" "amount amount";gap:9px 12px}
+  .finance-table>.finance-row:not(.finance-row-head)>*:nth-child(1){grid-area:identity}
+  .finance-table>.finance-row:not(.finance-row-head)>*:nth-child(3){display:block;grid-area:amount}
+  .finance-table>.finance-row:not(.finance-row-head)>*:nth-child(4){grid-area:action;align-self:start}
+  .finance-row button{min-width:88px}
+  .finance-ledger article{grid-template-columns:42px minmax(0,1fr)}
+  .finance-ledger aside{grid-column:2;text-align:left}
+  .finance-focus-head{padding:18px}
+  .finance-focus-head button,.finance-focus-list button{min-height:44px}
+  .finance-focus-list article{padding:15px 18px}
+  .finance-payment-summary{grid-template-columns:1fr 1fr}
+  .finance-dialog form{padding:22px 18px}
+}
+
+@media screen and (max-width:420px){
+  .finance-head-actions{grid-template-columns:1fr}
+  .finance-head-actions .btn-primary{grid-column:auto}
+  .finance-metrics{grid-template-columns:1fr}
+  .finance-account-filters{display:grid;grid-template-columns:1fr 1fr}
+  .finance-payment-summary{grid-template-columns:1fr}
+}

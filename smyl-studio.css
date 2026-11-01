@@ -344,3 +344,59 @@
  .smyl-organized .photo-adjust-panel{grid-column:2;grid-row:3;max-height:none;min-height:0;padding:12px;border-left:1px solid #30415d}
  .smyl-organized .photo-adjust-format-options button{font-size:11px}
 }
+
+/* Clinical Workspace v3.3 · Studio presentation contract. */
+.smyl-organized{
+ --studio-v33-control:42px;
+ --studio-v33-focus:#247e7a;
+}
+.smyl-organized :is(button,input,select,textarea,summary,a,[tabindex]):focus-visible{
+ outline:3px solid var(--studio-v33-focus)!important;
+ outline-offset:3px!important;
+}
+.smyl-organized :is(button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),summary){
+ min-height:var(--studio-v33-control);
+}
+.smyl-organized :is(
+ .flow-eyebrow,.flow-photo-caption,.flow-reference small,
+ #quick-config .quick-choice small,.flow-notes summary span,.flow-note-help,
+ .flow-generation-note,.quick-safety,.flow-tone-help,
+ .flow-visual-choice>small,.flow-view-state,.flow-example-note,
+ .flow-picker-footer #flow-picker-replace,.flow-picker-footer>small,
+ .flow-thumb small,.flow-photo-role small,.smyl-batch-photo small,
+ .smyl-batch-references figcaption,#photo-adjust-format-note
+){font-size:12px!important;line-height:1.45}
+.smyl-organized #s-photos{
+ background:
+  radial-gradient(circle at 16% 0,rgba(36,126,122,.08),transparent 30%),
+  var(--flow-bg);
+}
+.smyl-organized #s-photos .flow-shell{width:min(1240px,100%);margin-inline:auto}
+.smyl-organized #s-photos #quick-config{
+ border-radius:18px;
+ box-shadow:0 18px 52px rgba(20,55,62,.08);
+}
+.smyl-organized #quick-config .quick-choice,
+.smyl-organized #quick-config .flow-visual-choice{
+ min-height:112px;
+}
+.smyl-organized #quick-config .quick-generate{
+ min-height:50px;
+ border-radius:12px;
+}
+.smyl-organized .flow-photo-role input,
+.smyl-organized .smyl-batch-consent input{min-width:22px;min-height:22px}
+.smyl-organized .flow-view-card>strong{font-size:12px;line-height:1.4}
+.smyl-organized .flow-picker-head>button,
+.smyl-organized .flow-photo-notice>button:last-child{min-width:44px;min-height:44px}
+.smyl-organized .flow-picker-actions button,
+.smyl-organized .smyl-batch-actions button,
+.smyl-organized .photo-adjust-actions button{min-height:44px}
+@media(max-width:760px){
+ .smyl-organized{--studio-v33-control:44px;--studio-v33-focus:#8ae0d1}
+ .smyl-organized #s-photos #quick-config{border-radius:16px}
+ .smyl-organized #quick-config .quick-choice,
+ .smyl-organized #quick-config .flow-visual-choice{min-height:118px}
+ .smyl-organized #quick-config .quick-generate{min-height:50px}
+ .smyl-organized .flow-picker-actions{grid-template-columns:1fr}
+}

@@ -90,9 +90,10 @@ test('cancelar pide un motivo con opciones y ya no usa ventanas del navegador', 
 
 test('la agenda oculta los filtros con una sola opción y la franja de pendientes sin nada que hacer', () => {
   const schedule = read('smyl-schedule.js');
-  assert.match(schedule, /branch\.hidden=state\.branches\.filter\(function\(x\)\{return x\.active;\}\)\.length<2/);
-  assert.match(schedule, /prof\.hidden=state\.professionals\.length<2/);
-  assert.match(schedule, /room\.hidden=/);
+  assert.match(schedule, /\[\[branch,state\.branches\.filter\(function\(x\)\{return x\.active;\}\)\.length<2\]/);
+  assert.match(schedule, /\[prof,state\.professionals\.length<2\]/);
+  assert.match(schedule, /\[room,state\.rooms\.filter/);
+  assert.match(schedule, /closest\('\.schedule-filter'\)/);
   assert.match(schedule, /if\(!pending\)\{host\.hidden=true/);
   assert.match(read('smyl-schedule.css'), /\.schedule-focus\[hidden\]\{display:none\}/);
 });

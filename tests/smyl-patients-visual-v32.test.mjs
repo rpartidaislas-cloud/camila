@@ -23,7 +23,7 @@ test('Pacientes usa una superficie v3.2 con búsqueda etiquetada y una acción p
 test('el directorio crea una tabla clínica y nombres accesibles por paciente', () => {
   assert.match(clinic, /el\('table', 'clinic-patient-table'\)/);
   assert.match(clinic, /el\('div', 'clinic-patient-identity-inner'\)/);
-  assert.match(clinic, /\['Paciente', 'Contacto', 'Próxima atención', 'Estado', 'Acciones'\]/);
+  assert.match(clinic, /\['Paciente', 'Contacto', 'Próxima atención', 'Estado', 'Acción'\]/);
   assert.match(clinic, /Agendar cita para /);
   assert.match(clinic, /Abrir expediente de /);
   assert.match(clinic, /patientEmptyState\('Sin resultados'/);

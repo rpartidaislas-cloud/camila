@@ -1,0 +1,597 @@
+/*
+ * Clinical Workspace v3.3 · Revisión clínica fotográfica
+ * Capa visual y accesible: no modifica dibujo, datos ni decisiones clínicas.
+ */
+
+body.clinical-review-v33 {
+  --review-control: 42px;
+  --review-space-1: 6px;
+  --review-space-2: 10px;
+  --review-space-3: 14px;
+  --review-space-4: 18px;
+  --review-space-5: 24px;
+  --review-radius-sm: 10px;
+  --review-radius-md: 16px;
+  --review-radius-lg: 22px;
+  --review-evidence: #0d1018;
+  --review-decision: #151321;
+  --review-line: rgba(196, 202, 255, .16);
+  --review-line-strong: rgba(167, 153, 255, .42);
+  --review-focus: #b7adff;
+  --review-empty: #9aa2b8;
+  --review-loading: #7ac7ff;
+  --review-error: #ff9d9d;
+  font-size: 14px;
+}
+
+.clinical-review-v33 .app-shell,
+.clinical-review-v33 .config-overlay,
+.clinical-review-v33 #dp-overlay {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Ningún texto operativo visible debe caer por debajo de 12 px, incluso si
+   proviene de estilos inline históricos o de filas creadas dinámicamente. */
+.clinical-review-v33 :where(
+  .brand-sub,
+  .status,
+  #statusGuardado,
+  .config-modal p.hint-top,
+  .config-modal label,
+  .field-label,
+  .caso-card-fecha,
+  .float-pill,
+  .tooth-chip,
+  .chip,
+  .sec-lbl,
+  .seg-processing-copy,
+  .hint,
+  details.acc summary::after,
+  .vita-swatch span,
+  .tab-content h4.panel-title,
+  .header-center p,
+  .dp-label
+) {
+  font-size: 12px;
+}
+
+.clinical-review-v33 [style*="font-size\:9px"],
+.clinical-review-v33 [style*="font-size\:9.5px"],
+.clinical-review-v33 [style*="font-size\:10px"],
+.clinical-review-v33 [style*="font-size\:10.5px"],
+.clinical-review-v33 [style*="font-size\:11px"],
+.clinical-review-v33 [style*="font-size\:11.5px"],
+.clinical-review-v33 [style*="font-size\: 9px"],
+.clinical-review-v33 [style*="font-size\: 9.5px"],
+.clinical-review-v33 [style*="font-size\: 10px"],
+.clinical-review-v33 [style*="font-size\: 10.5px"],
+.clinical-review-v33 [style*="font-size\: 11px"],
+.clinical-review-v33 [style*="font-size\: 11.5px"] {
+  font-size: 12px !important;
+}
+
+/* Objetivos táctiles y ritmo de formulario. */
+.clinical-review-v33 :where(
+  button,
+  input:not([type="hidden"]):not([type="file"]),
+  select,
+  summary,
+  [role="button"],
+  .chip,
+  .tooth-chip,
+  .forma-chip,
+  .vita-swatch
+) {
+  min-height: var(--review-control);
+}
+
+.clinical-review-v33 :where(
+  .btn-icon,
+  .float-icon,
+  .tooth-chip-remove,
+  button[aria-label]
+) {
+  min-width: var(--review-control);
+}
+
+.clinical-review-v33 :where(input, select, textarea, button) {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.clinical-review-v33 :where(.field-input, .config-modal input, .num-fino) {
+  min-height: var(--review-control);
+  border-radius: var(--review-radius-sm);
+}
+
+.clinical-review-v33 textarea.field-input {
+  min-height: 104px;
+  line-height: 1.55;
+}
+
+.clinical-review-v33 .slider-row input[type="range"],
+.clinical-review-v33 input[type="range"] {
+  min-height: var(--review-control);
+  margin: 0;
+  cursor: pointer;
+}
+
+.clinical-review-v33 :where(
+  button,
+  input:not([type="hidden"]),
+  textarea,
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"]),
+  [role="button"]
+):focus-visible {
+  outline: 3px solid var(--review-focus) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 5px rgba(91, 71, 224, .22) !important;
+}
+
+.clinical-review-v33 :where(button, [role="button"], summary, .chip, .forma-chip, .vita-swatch) {
+  touch-action: manipulation;
+}
+
+.clinical-review-v33 :where(button, [role="button"])[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .46;
+}
+
+/* Arquitectura: evidencia a la izquierda, decisiones a la derecha. */
+.clinical-review-v33 .sidenav {
+  width: 208px;
+  padding: var(--review-space-5) var(--review-space-3);
+  background: #0b0c12;
+  border-right-color: var(--review-line);
+}
+
+.clinical-review-v33 .sidenav-logo {
+  padding: var(--review-space-1) var(--review-space-2) var(--review-space-5);
+}
+
+.clinical-review-v33 .sidenav-items {
+  gap: var(--review-space-1);
+}
+
+.clinical-review-v33 .nav-item {
+  min-height: var(--review-control);
+  padding: 10px 12px;
+  border-radius: 11px;
+  font-size: 13px;
+}
+
+.clinical-review-v33 .app-header {
+  min-height: 86px;
+  padding: 18px 24px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .04);
+}
+
+.clinical-review-v33 .header-center h2 {
+  font-size: clamp(19px, 1.6vw, 23px);
+  line-height: 1.2;
+}
+
+.clinical-review-v33 .review-workspace-label,
+.clinical-review-v33 .review-region-kicker {
+  color: #a9b2cb;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.clinical-review-v33 .review-workspace-label {
+  margin-bottom: 5px;
+}
+
+.clinical-review-v33 #statusGuardado,
+.clinical-review-v33 #status {
+  margin: 0 24px;
+  padding-inline: 0 !important;
+}
+
+.clinical-review-v33 #statusGuardado:empty,
+.clinical-review-v33 #status:empty {
+  display: none;
+}
+
+.clinical-review-v33 .workspace2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  align-items: start;
+  gap: 20px;
+  padding: 12px 24px 18px;
+  overflow: hidden;
+}
+
+.clinical-review-v33 .canvas-col2,
+.clinical-review-v33 .panel-col2 {
+  min-width: 0;
+  max-width: none;
+  padding: 16px;
+  border: 1px solid var(--review-line);
+  border-radius: var(--review-radius-lg);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, .22);
+  scrollbar-gutter: stable;
+}
+
+.clinical-review-v33 .canvas-col2 {
+  gap: var(--review-space-3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .025), transparent 34%), var(--review-evidence);
+}
+
+.clinical-review-v33 .panel-col2 {
+  background: linear-gradient(180deg, rgba(91, 71, 224, .07), transparent 28%), var(--review-decision);
+}
+
+.clinical-review-v33 .review-region-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 2px;
+}
+
+.clinical-review-v33 .review-region-heading h3 {
+  margin: 3px 0 0;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.clinical-review-v33 .review-region-heading p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.clinical-review-v33 .canvas-wrap {
+  width: 100%;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  border-color: rgba(255, 255, 255, .14);
+  border-radius: 18px;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, .38);
+}
+
+.clinical-review-v33 .canvas-wrap canvas {
+  margin: auto;
+}
+
+.clinical-review-v33 #toothSelectorBlock,
+.clinical-review-v33 #panelObjetos {
+  border-color: var(--review-line) !important;
+  border-radius: var(--review-radius-md) !important;
+  background: rgba(255, 255, 255, .035) !important;
+}
+
+.clinical-review-v33 .tab-content h4.panel-title {
+  margin-bottom: 10px;
+  color: #bdc5da;
+  letter-spacing: .09em;
+}
+
+.clinical-review-v33 .sec-lbl {
+  margin-top: 4px;
+  padding-bottom: 8px;
+  border-bottom-color: var(--review-line);
+  color: #aeb7ce;
+  letter-spacing: .09em;
+}
+
+.clinical-review-v33 .controls,
+.clinical-review-v33 details.acc,
+.clinical-review-v33 .placeholder-tab {
+  border-color: var(--review-line);
+}
+
+.clinical-review-v33 details.acc summary {
+  padding: 12px 14px;
+}
+
+.clinical-review-v33 .tooth-select,
+.clinical-review-v33 :where(.chips3, .chips4) {
+  gap: 8px;
+}
+
+.clinical-review-v33 :where(.tooth-chip, .chip, .forma-chip) {
+  padding: 8px 10px !important;
+  border-radius: var(--review-radius-sm) !important;
+}
+
+.clinical-review-v33 .tooth-chip-remove {
+  width: var(--review-control);
+  height: var(--review-control);
+  flex-basis: var(--review-control);
+  margin: -8px -9px -8px 0;
+}
+
+.clinical-review-v33 .vita-swatch {
+  min-width: var(--review-control);
+  padding: 4px;
+  border-radius: var(--review-radius-sm);
+}
+
+.clinical-review-v33 .float-group {
+  gap: 4px;
+  padding: 4px;
+}
+
+.clinical-review-v33 :where(.float-pill, .float-icon, .btn-pill, .btn-icon, .dp-btn) {
+  min-height: var(--review-control);
+}
+
+.clinical-review-v33 .bottom-bar {
+  min-height: 74px;
+  padding: 12px 24px;
+  border-top-color: var(--review-line);
+  background: rgba(9, 9, 15, .96);
+  backdrop-filter: blur(18px);
+}
+
+/* Estados operativos consistentes. La clasificación es sólo de presentación. */
+.clinical-review-v33 [data-review-state="loading"],
+.clinical-review-v33 [data-review-state="empty"],
+.clinical-review-v33 [data-review-state="error"] {
+  border: 1px solid var(--review-line);
+  border-radius: var(--review-radius-sm);
+  padding: 10px 12px !important;
+  line-height: 1.5;
+}
+
+.clinical-review-v33 [data-review-state="loading"] {
+  color: var(--review-loading) !important;
+  background: rgba(50, 152, 255, .08);
+}
+
+.clinical-review-v33 [data-review-state="empty"] {
+  color: var(--review-empty) !important;
+  border-style: dashed;
+  background: rgba(255, 255, 255, .025);
+}
+
+.clinical-review-v33 [data-review-state="error"] {
+  color: var(--review-error) !important;
+  border-color: rgba(248, 113, 113, .34);
+  background: rgba(248, 113, 113, .09);
+}
+
+.clinical-review-v33 [data-review-state="loading"]::before,
+.clinical-review-v33 [data-review-state="empty"]::before,
+.clinical-review-v33 [data-review-state="error"]::before {
+  display: inline-block;
+  margin-right: 8px;
+  font-weight: 800;
+}
+
+.clinical-review-v33 [data-review-state="loading"]::before { content: "···"; }
+.clinical-review-v33 [data-review-state="empty"]::before { content: "○"; }
+.clinical-review-v33 [data-review-state="error"]::before { content: "!"; }
+
+.clinical-review-v33 .review-state-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 1120px) {
+  .clinical-review-v33 .sidenav {
+    width: 176px;
+    padding-inline: 10px;
+  }
+
+  .clinical-review-v33 .workspace2 {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+    gap: 14px;
+    padding-inline: 16px;
+  }
+
+  .clinical-review-v33 .app-header {
+    padding-inline: 16px;
+  }
+
+  .clinical-review-v33 #statusGuardado,
+  .clinical-review-v33 #status {
+    margin-inline: 16px;
+  }
+
+  .clinical-review-v33 .canvas-col2,
+  .clinical-review-v33 .panel-col2 {
+    padding: 14px;
+  }
+
+  .clinical-review-v33 .review-region-heading {
+    display: block;
+  }
+
+  .clinical-review-v33 .review-region-heading p {
+    margin-top: 4px;
+    text-align: left;
+  }
+}
+
+@media (max-width: 820px) {
+  body.clinical-review-v33 {
+    --review-control: 44px;
+    overflow: auto;
+  }
+
+  .clinical-review-v33 .app-shell {
+    display: flex;
+    min-height: 100vh;
+    height: auto;
+    flex-direction: column;
+  }
+
+  .clinical-review-v33 .sidenav {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    width: 100%;
+    height: auto;
+    padding: 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--review-line);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .28);
+  }
+
+  .clinical-review-v33 .sidenav-logo {
+    display: none;
+  }
+
+  .clinical-review-v33 .sidenav-items {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .clinical-review-v33 .sidenav-items::-webkit-scrollbar {
+    display: none;
+  }
+
+  .clinical-review-v33 .nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .clinical-review-v33 .nav-item .nav-icon {
+    font-size: 14px;
+  }
+
+  .clinical-review-v33 .app-main {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .clinical-review-v33 .app-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    min-height: 0;
+    padding: 18px 14px 12px;
+  }
+
+  .clinical-review-v33 .header-side {
+    display: none;
+  }
+
+  .clinical-review-v33 .header-center {
+    text-align: left;
+  }
+
+  .clinical-review-v33 .header-actions {
+    align-self: start;
+  }
+
+  .clinical-review-v33 .workspace2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 10px 12px 18px;
+    overflow: visible;
+  }
+
+  .clinical-review-v33 .canvas-col2,
+  .clinical-review-v33 .panel-col2 {
+    width: 100%;
+    overflow: visible;
+    border-radius: 18px;
+  }
+
+  .clinical-review-v33 .canvas-wrap {
+    min-height: 240px;
+  }
+
+  .clinical-review-v33 .bottom-bar {
+    position: static;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .clinical-review-v33 #selectorVista {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .clinical-review-v33 #selectorVista + .btn-pill {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .clinical-review-v33 .review-state-gallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .clinical-review-v33 .app-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .clinical-review-v33 .header-actions {
+    justify-content: flex-start;
+  }
+
+  .clinical-review-v33 .header-center h2 {
+    font-size: 20px;
+  }
+
+  .clinical-review-v33 .canvas-col2,
+  .clinical-review-v33 .panel-col2 {
+    padding: 12px;
+  }
+
+  .clinical-review-v33 .canvas-wrap {
+    min-height: 220px;
+    border-radius: 14px;
+  }
+
+  .clinical-review-v33 .float-group {
+    max-width: calc(100% - 16px);
+  }
+
+  .clinical-review-v33 .chips4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clinical-review-v33 .review-region-heading h3 {
+    font-size: 16px;
+  }
+
+  .clinical-review-v33 .config-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .clinical-review-v33 .config-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 92vh;
+    border-radius: 22px 22px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clinical-review-v33 *,
+  .clinical-review-v33 *::before,
+  .clinical-review-v33 *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

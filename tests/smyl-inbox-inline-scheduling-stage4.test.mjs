@@ -57,8 +57,8 @@ test('la agenda embebida mantiene paridad móvil y una versión pública nueva',
   assert.equal(mobileInbox, inbox);
   assert.match(app, /smyl-design-system-v2\.css\?v=2/);
   assert.match(app, /smyl-inbox\.js\?v=38/);
-  assert.match(app, /smyl-inbox\.css\?v=35/);
+  assert.match(app, /smyl-inbox\.css\?v=36/);
   assert.match(worker, /smyl-design-system-v2\.css\?v=2/);
   assert.match(worker, /smyl-inbox\.js\?v=38/);
-  assert.match(worker, /smyl-inbox\.css\?v=35/);
+  assert.match(worker, /smyl-inbox\.css\?v=36/);
 });

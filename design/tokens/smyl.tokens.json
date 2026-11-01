@@ -1,0 +1,71 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "smyl": {
+    "color": {
+      "$type": "color",
+      "canvas": { "$value": "#F4F7FB" },
+      "surface": { "$value": "#FFFFFF" },
+      "surfaceSoft": { "$value": "#F8FAFC" },
+      "ink": { "$value": "#0B1B2E" },
+      "inkSecondary": { "$value": "#526174" },
+      "inkMuted": { "$value": "#738094" },
+      "border": { "$value": "#D9E2EC" },
+      "borderStrong": { "$value": "#BAC7D5" },
+      "primary": { "$value": "#0B1B2E" },
+      "primaryHover": { "$value": "#132C47" },
+      "primarySoft": { "$value": "#E9EEF5" },
+      "accent": { "$value": "#38A99D" },
+      "accentSoft": { "$value": "#E8F7F4" },
+      "success": { "$value": "#087A55" },
+      "warning": { "$value": "#8A5A05" },
+      "warningSoft": { "$value": "#FFF8E7" },
+      "danger": { "$value": "#A73B30" },
+      "dangerSoft": { "$value": "#FFF2EF" },
+      "focus": { "$value": "#2563EB" }
+    },
+    "space": {
+      "$type": "dimension",
+      "1": { "$value": { "value": 4, "unit": "px" } },
+      "2": { "$value": { "value": 8, "unit": "px" } },
+      "3": { "$value": { "value": 12, "unit": "px" } },
+      "4": { "$value": { "value": 16, "unit": "px" } },
+      "5": { "$value": { "value": 20, "unit": "px" } },
+      "6": { "$value": { "value": 24, "unit": "px" } },
+      "8": { "$value": { "value": 32, "unit": "px" } },
+      "10": { "$value": { "value": 40, "unit": "px" } },
+      "12": { "$value": { "value": 48, "unit": "px" } }
+    },
+    "radius": {
+      "$type": "dimension",
+      "control": { "$value": { "value": 12, "unit": "px" } },
+      "card": { "$value": { "value": 16, "unit": "px" } },
+      "panel": { "$value": { "value": 20, "unit": "px" } }
+    },
+    "type": {
+      "family": { "$type": "fontFamily", "$value": ["Inter", "system-ui", "sans-serif"] },
+      "size": {
+        "$type": "dimension",
+        "page": { "$value": { "value": 32, "unit": "px" } },
+        "section": { "$value": { "value": 22, "unit": "px" } },
+        "title": { "$value": { "value": 16, "unit": "px" } },
+        "body": { "$value": { "value": 15, "unit": "px" } },
+        "bodySmall": { "$value": { "value": 14, "unit": "px" } },
+        "label": { "$value": { "value": 13, "unit": "px" } },
+        "meta": { "$value": { "value": 12, "unit": "px" } }
+      },
+      "weight": {
+        "$type": "fontWeight",
+        "regular": { "$value": 400 },
+        "medium": { "$value": 500 },
+        "semibold": { "$value": 600 },
+        "bold": { "$value": 700 }
+      }
+    },
+    "control": {
+      "$type": "dimension",
+      "fieldHeight": { "$value": { "value": 48, "unit": "px" } },
+      "buttonHeight": { "$value": { "value": 42, "unit": "px" } },
+      "touchTarget": { "$value": { "value": 44, "unit": "px" } }
+    }
+  }
+}

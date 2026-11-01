@@ -1493,3 +1493,182 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
     transition-duration: .01ms !important;
   }
 }
+
+/* ================================================================
+   Clinical Workspace v3.3 · Inbox
+   Legibility, predictable targets and collision-free workspace UI.
+   ================================================================ */
+
+.smyl-inbox-page {
+  --smyl-inbox-control-target: 42px;
+}
+
+/* Keep every visible Inbox action usable without changing API or behavior. */
+#p-inbox :is(
+  button:not([hidden]),
+  input:not([type="file"]):not([type="hidden"]),
+  select,
+  textarea,
+  summary
+) {
+  min-height: var(--smyl-inbox-control-target);
+}
+
+#p-inbox button:not([hidden]) {
+  min-width: var(--smyl-inbox-control-target);
+}
+
+.smyl-inbox-search input {
+  height: var(--smyl-inbox-control-target);
+}
+
+.smyl-inbox-top-actions {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.smyl-inbox-carebar,
+.smyl-inbox-carebar > * {
+  min-width: 0;
+}
+
+/* Four narrow columns truncated labels and merged counts. Two columns stay
+   scannable at every supported desktop queue width. */
+.smyl-inbox-filters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.smyl-inbox-filters button {
+  min-width: 0;
+  justify-content: center;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.smyl-inbox-filters button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smyl-inbox-filters button b {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+/* Message actions remain compact visually while retaining a full target. */
+.smyl-inbox-message-actions {
+  min-height: var(--smyl-inbox-control-target);
+  padding-top: 4px;
+}
+
+.smyl-inbox-bubble .smyl-inbox-message-actions > button,
+.smyl-inbox-message-more,
+.smyl-inbox-compose-more,
+.smyl-inbox-thread-more,
+.smyl-inbox-briefing-resolve,
+.smyl-inbox-briefing-files,
+.smyl-inbox-window-action {
+  min-width: var(--smyl-inbox-control-target);
+  min-height: var(--smyl-inbox-control-target);
+}
+
+/* A single readable floor for secondary information across all Inbox states. */
+.smyl-inbox-avatar,
+.smyl-inbox-filter-label,
+.smyl-inbox-secondary-filters button,
+.smyl-inbox-list-tools :is(button, select),
+.smyl-inbox-more,
+.smyl-inbox-list-state p,
+.smyl-inbox-thread-state,
+.smyl-inbox-bubble small,
+.smyl-inbox-message-top > span,
+.smyl-inbox-quote :is(strong, span),
+.smyl-inbox-forwarded,
+.smyl-inbox-compose-context :is(strong, span, button),
+.smyl-inbox-context-zone-label,
+.smyl-inbox-context-card :is(h3, p),
+.smyl-inbox-context-empty,
+.smyl-inbox-context-group > summary small,
+.smyl-inbox-ficha > strong,
+.smyl-inbox-ficha-facts span,
+.smyl-inbox-copilot-head span,
+.smyl-inbox-copilot-tools span,
+.smyl-inbox-automation-card :is(label, small),
+.smyl-inbox-scheduled-row :is(span, small, button),
+.smyl-inbox-scheduled-actions :is(span, button),
+.smyl-inbox-operations-state,
+.smyl-inbox-decision-copy > span,
+.smyl-inbox-decision-progress > small,
+.smyl-inbox-decision-ring span,
+.smyl-inbox-decision-gates :is(span, small, i),
+.smyl-inbox-operations-metric :is(span, small),
+.smyl-inbox-organization label,
+.smyl-inbox-next > span,
+.smyl-inbox-productivity-state,
+.smyl-inbox-productivity-dialog input,
+.smyl-inbox-search-result time,
+.smyl-inbox-shared-item span,
+.smyl-inbox-appointment-status,
+.smyl-inbox-availability-slot :is(strong, small),
+.smyl-inbox-pipeline-filters b,
+.smyl-inbox-pipeline-column > header span,
+.smyl-inbox-pipeline-card-top :is(.smyl-inbox-avatar, time),
+.smyl-inbox-pipeline-card-meta,
+.smyl-inbox-pipeline-move,
+.smyl-inbox-draft-status,
+.smyl-inbox-offline-detail,
+.smyl-inbox-notify::after {
+  font-size: 12px;
+}
+
+/* Empty and error states should explain the next action, not look disabled. */
+.smyl-inbox-list-state,
+.smyl-inbox-thread-state {
+  padding: 32px 20px;
+}
+
+.smyl-inbox-list-state strong,
+.smyl-inbox-thread-state strong,
+.smyl-inbox-thread-empty strong {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.smyl-inbox-list-state p,
+.smyl-inbox-thread-state p,
+.smyl-inbox-thread-empty p {
+  max-width: 46ch;
+  margin-inline: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* Visual state follows the semantic selected state, including keyboard use. */
+.smyl-inbox-filters button[aria-selected="true"] {
+  border-color: var(--inbox-accent);
+  color: var(--inbox-accent-strong);
+  background: var(--inbox-accent-subtle);
+}
+
+.smyl-inbox-page :is(button, [href], input, select, textarea, summary):focus-visible {
+  outline-width: 3px;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .smyl-inbox-page {
+    --smyl-inbox-control-target: 44px;
+  }
+
+  .smyl-inbox-message-actions,
+  .smyl-inbox-bubble .smyl-inbox-message-actions > button {
+    min-height: var(--smyl-inbox-control-target);
+  }
+
+  .smyl-inbox-compose-bar {
+    gap: 4px;
+  }
+}
