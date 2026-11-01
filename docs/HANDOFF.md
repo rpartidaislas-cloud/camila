@@ -9425,3 +9425,7 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se adaptaron patrones de stepper, upload y compare slider al stack HTML/CSS/JS existente; no se añadió React, Tailwind ni una dependencia de 21st.dev.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=21`, `smyl-studio.css?v=22` y caché PWA `premium-v3`.
 - Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6). Sin migraciones, cambios de backend, Edge Functions ni datos clínicos.
+
+## 2026-11-01 — Claude: menú lateral con iconos en baldosa y letra más grande
+- `smyl-ui-template-v3.css` (v7): bloque final `@media (min-width:761px)` — iconos de línea (ya existían en `smyl-navigation.js`) ahora en baldosa de 2rem con SVG de 1.3rem; etiquetas a 15px/560 con mejor contraste; secciones en mayúsculas 12px; sidebar expandido 17rem; botón «Nueva cita» más legible. Modo colapsado intacto.
+- `app.html`, `sw.js` (CACHE `...-sidebar-v68`), copias en `mobile/www/`. Sin cambios en JS.
