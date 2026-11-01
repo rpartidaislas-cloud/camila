@@ -342,7 +342,7 @@
 .rr-box-confirmed { border-color: #73d3c2; background: rgba(115, 211, 194, .08); }
 .rr-box.is-selected { border-style: solid; border-width: 3px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 0 14px rgba(0, 0, 0, .45); }
 .rr-box-tooth { position: absolute; left: 3px; bottom: 3px; min-width: 22px; padding: 0 6px; border-radius: 999px; background: rgba(7, 25, 32, .86); color: #fff; font: 700 12px/18px var(--smyl-ui-font, Inter, system-ui, sans-serif); text-align: center; }
-.rr-image-stage > .rr-mark { z-index: 2; width: 26px; height: 26px; font-size: 12px; }
+.rr-image-stage > .rr-mark { z-index: 2; width: 26px; height: 26px; min-height: 26px; font-size: 12px; }
 .rr-marks-off > .rr-box, .rr-marks-off > .rr-mark { display: none; }
 .rr-image-stage.is-placing > .rr-mark { pointer-events: none; }
 @media (max-width: 760px) { .rr-view-switch { margin-left: 0; } .rr-image-stage > .rr-mark { width: 20px; height: 20px; font-size: 12px; } }
@@ -450,3 +450,20 @@
 .rr-box-warn { border-color: #e0584c; background: rgba(224, 88, 76, .1); }
 .rr-box-warn .rr-box-tooth { background: #a73b30; }
 .rr-item-warn { color: var(--rr-danger); font-size: 12px; font-weight: 600; line-height: 16px; white-space: normal; }
+
+/* Cuadro editable de la señal abierta: se arrastra y sus ocho asas cambian el tamaño. */
+.rr-box.is-editable { z-index: 3; cursor: move; pointer-events: auto; touch-action: none; }
+.rr-box.is-editable:focus-visible { outline: 3px solid var(--rr-focus); outline-offset: 3px; }
+.rr-box.is-dragging { box-shadow: 0 0 0 3px rgba(255, 255, 255, .95), 0 0 30px rgba(255, 200, 90, .6); }
+.rr-handle { position: absolute; width: 12px; height: 12px; border: 2px solid #0b1b2e; border-radius: 3px; background: #fff; touch-action: none; }
+.rr-handle::after { position: absolute; inset: -9px; content: ''; }
+.rr-handle[data-handle="nw"] { top: -7px; left: -7px; cursor: nwse-resize; }
+.rr-handle[data-handle="ne"] { top: -7px; right: -7px; cursor: nesw-resize; }
+.rr-handle[data-handle="sw"] { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.rr-handle[data-handle="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.rr-handle[data-handle="n"] { top: -7px; left: calc(50% - 6px); cursor: ns-resize; }
+.rr-handle[data-handle="s"] { bottom: -7px; left: calc(50% - 6px); cursor: ns-resize; }
+.rr-handle[data-handle="w"] { top: calc(50% - 6px); left: -7px; cursor: ew-resize; }
+.rr-handle[data-handle="e"] { top: calc(50% - 6px); right: -7px; cursor: ew-resize; }
+@media (pointer: coarse) { .rr-handle { width: 20px; height: 20px; } .rr-handle::after { inset: -12px; } .rr-handle[data-handle="nw"] { top: -11px; left: -11px; } .rr-handle[data-handle="ne"] { top: -11px; right: -11px; } .rr-handle[data-handle="sw"] { bottom: -11px; left: -11px; } .rr-handle[data-handle="se"] { right: -11px; bottom: -11px; } .rr-handle[data-handle="n"], .rr-handle[data-handle="s"] { left: calc(50% - 10px); } .rr-handle[data-handle="w"], .rr-handle[data-handle="e"] { top: calc(50% - 10px); } .rr-handle[data-handle="n"] { top: -11px; } .rr-handle[data-handle="s"] { bottom: -11px; } .rr-handle[data-handle="w"] { left: -11px; } .rr-handle[data-handle="e"] { right: -11px; } }
+.rr-image-stage > .rr-mark.is-selected { pointer-events: none; }

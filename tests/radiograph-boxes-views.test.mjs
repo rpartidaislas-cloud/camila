@@ -159,3 +159,31 @@ test('la imagen se ajusta al área libre entre los controles flotantes y el zoom
 test('al ampliar, el contenedor no encoge la imagen (el escenario no se contrae)', () => {
   assert.match(read('smyl-radiograph-workbench.css'), /\.rr-image-stage \{ flex: none; margin: auto; \}/);
 });
+
+test('el cuadro de la señal abierta se mueve y cambia de tamaño (ratón, tacto y teclado) dentro del contrato', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /function makeBoxEditable\(item,index,view\)/);
+  assert.match(js, /if\(clickable&&selected&&!run\.placing&&run\.view\.marks\)makeBoxEditable\(/, 'solo la señal abierta, fuera del modo ubicar y con marcas visibles');
+  assert.match(js, /\['nw','n','ne','e','se','s','sw','w'\]\.forEach/, 'ocho asas');
+  assert.match(js, /MIN=\.02,MAX=\.6/, 'mismos límites que el contrato guardado');
+  assert.match(js, /setPointerCapture/);
+  assert.match(js, /event\.stopPropagation\(\)/, 'arrastrar el cuadro no desplaza la imagen');
+  assert.match(js, /event\.key==='ArrowLeft'/);
+  assert.match(js, /event\.shiftKey\)apply\(/, 'Mayús + flechas cambian el tamaño');
+  assert.match(js, /item\.x=round\(rect\.left\+rect\.width\/2\);item\.y=round\(rect\.top\+rect\.height\/2\);item\.w=round\(rect\.width\);item\.h=round\(rect\.height\)/);
+  assert.match(js, /markDirty\(item\);if\(issue!==issueBefore\)/, 'queda como cambio del dentista y se revisa la coherencia pieza-posición');
+  assert.match(js, /arrastra el cuadro en la imagen o sus asas para ajustarla/);
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(css, /\.rr-box\.is-editable \{[^}]*pointer-events: auto;[^}]*touch-action: none;/);
+  assert.match(css, /\.rr-handle\[data-handle="se"\] \{[^}]*cursor: nwse-resize;/);
+  assert.match(css, /@media \(pointer: coarse\) \{ \.rr-handle \{ width: 20px; height: 20px; \}/, 'asas más grandes al tacto');
+  assert.match(css, /\.rr-image-stage > \.rr-mark \{[^}]*min-height: 26px;/, 'el número es un círculo, no un óvalo');
+});
+
+test('un cuadro editado sigue siendo una revisión válida', () => {
+  const doc = run({ r1: { x: 0.3, y: 0.6, w: 0.08, h: 0.16 }, r2: { x: 0.7, y: 0.5 } });
+  doc.items[1].x = 0.72; doc.items[1].y = 0.52; doc.items[1].w = 0.12; doc.items[1].h = 0.24; doc.items[1].state = 'pending';
+  assert.ok(M.validate(doc, study), 'una señal sin cuadro que el dentista dibuja con asas pasa a tener w y h');
+  doc.items[0].w = 0.7;
+  assert.equal(M.validate(doc, study), false, 'más allá del máximo del contrato se rechaza');
+});
