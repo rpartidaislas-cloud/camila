@@ -404,7 +404,7 @@
   .rr-workspace { height: 100%; grid-template-columns: minmax(0, 1fr) clamp(432px, 28vw, 480px); gap: 0; }
   .rr-canvas { position: relative; display: block; border: 0; border-radius: 0; background: radial-gradient(120% 90% at 50% 42%, #13273d 0%, #0a1624 62%, #07111c 100%); }
   .rr-image-wrap { position: absolute; inset: 0; display: flex; background: transparent; scrollbar-color: #3a5775 transparent; }
-  .rr-image-stage { margin: auto; }
+  .rr-image-stage { flex: none; margin: auto; }
   .rr-image-stage > img { border-radius: 6px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .08); }
   .rr-canvas-head { position: absolute; z-index: 6; top: 20px; left: 24px; justify-content: flex-start; padding: 0; border: 0; background: transparent; }
   .rr-canvas-head > .rr-view-switch { order: -1; padding: 4px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 12px; background: rgba(10, 22, 36, .66); backdrop-filter: blur(12px); }

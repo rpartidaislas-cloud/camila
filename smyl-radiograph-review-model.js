@@ -39,7 +39,10 @@
   if(studyType!=='panoramic'||!/^[1-4][1-8]$/.test(String(toothNumber||''))||typeof x!=='number'||typeof y!=='number')return '';
   const q=Number(String(toothNumber)[0]),right=q===1||q===4,upper=q<=2;
   if(right?x>.58:x<.42)return 'side';
-  if(upper?y>.62:y<.38)return 'arch';
+  // El plano de mordida de una panorámica se curva hacia arriba en los extremos (curva de sonrisa): los terceros molares
+  // quedan más altos que los incisivos. El margen se mide contra esa curva, no contra una línea recta.
+  const occlusal=.5-.2*Math.pow(2*x-1,2);
+  if(upper?y>occlusal+.16:y<occlusal-.16)return 'arch';
   return '';
  }
  function parseReport(value){

@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Claude — Radiografía: avisos falsos, imagen bajo los controles y zoom en escritorio
+
+- **Avisos falsos de arcada** (`positionIssue`, modelo v7): el plano de mordida de una panorámica se curva hacia arriba en los
+  extremos, así que los terceros molares inferiores quedan altos. La regla ahora mide contra esa curva
+  (`.5 − .2·(2x−1)²`, margen ±.16) y no contra una línea recta. Caso real: 48 y 38 salían marcados sin motivo.
+- **La imagen se ajusta al área libre** entre los controles flotantes (`fitWidth`, visor v15): en escritorio el ancho es
+  `min(ancho − 48, (alto − 176) · proporción)` y el zoom multiplica ese ajuste. Antes una panorámica casi cuadrada llegaba hasta el
+  borde y los atajos quedaban encima. Un `ResizeObserver` lo recalcula al cambiar el tamaño. En pantallas angostas no cambia.
+- **Zoom en escritorio**: desde la «Mesa de Luz» el contenedor de la imagen era `display:flex` y encogía el escenario ampliado;
+  ahora `.rr-image-stage` es `flex: none` (CSS v9).
+- Archivos: modelo, visor, CSS, copias móviles, `app.html`/`sw.js` (caché `radiograph-fit-v63`),
+  `tests/radiograph-boxes-views.test.mjs`. Verificado a 1680×1000, 1280×720 y 390×844 (sin solapes; zoom 2× = doble ancho).
+
 ## 2026-11-01 — Claude — Radiografía: ventana «Mesa de Luz»
 
 - Propuesta visual llevada a la app (`smyl-radiograph-review.js` v14, `smyl-radiograph-workbench.css` v8; solo ≥ 960 px, en pantallas
