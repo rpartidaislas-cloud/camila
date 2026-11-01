@@ -60,8 +60,8 @@
   }
   function selectItem(id){run.selected=id;run.placing=null;render();requestAnimationFrame(()=>{const card=host.querySelector('[data-rr-item="'+id+'"]');if(!card)return;card.focus({preventScroll:true});card.scrollIntoView({block:'nearest',inline:'nearest'});card.querySelector('.rr-actions')?.scrollIntoView({block:'nearest',inline:'nearest'});});}
   function imagePanel(doc,clickable=false){
-   const canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
-   copy.append(n('span','rr-section-label','IMAGEN ORIGINAL'),n('strong','',study.label||typeLabel[study.type]||'Radiografía'),n('small','',clickable?'Selecciona una señal para ubicarla.':'El original se conserva sin modificaciones.'));head.append(copy);img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);canvas.append(head,viewToolbar(stage,img,wrap),wrap);
+   const unlocated=(doc?.items||[]).filter(i=>i.x===null&&i.state!=='rejected').length,canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
+   copy.append(n('span','rr-section-label','IMAGEN ORIGINAL'),n('strong','',study.label||typeLabel[study.type]||'Radiografía'),n('small','',clickable?(unlocated?unlocated+(unlocated===1?' señal sin ubicación. ':' señales sin ubicación. ')+'Ábrelas y usa «Ubicar señal».':'Selecciona una señal para ubicarla.'):'El original se conserva sin modificaciones.'));head.append(copy);img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);canvas.append(head,viewToolbar(stage,img,wrap),wrap);
    if(run.placing)run.view.marks=true;
    stage.classList.toggle('rr-marks-off',!run.view.marks);stage.classList.toggle('is-placing',!!run.placing);
    // Cuadros punteados sobre las zonas observadas (solo señales ubicadas; las descartadas no se dibujan). El tamaño lo propone la IA;
