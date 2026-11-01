@@ -8,6 +8,8 @@
 // estimado. No se guarda la imagen ni el texto de la respuesta.
 
 export const RADIOGRAPH_ACTION = "analyze_dental_radiograph_v1";
+// Primera pasada: mapa de piezas (número FDI y caja) sobre una copia con rejilla de referencia.
+export const RADIOGRAPH_MAP_ACTION = "analyze_dental_radiograph_map_v1";
 export const RADIOGRAPH_MODEL = "claude-opus-5-5";
 // "high" razona más antes de ubicar y nombrar cada pieza. Si la medición (Plan y consumo) muestra tiempos cercanos al límite
 // o errores de espera, volver a "medium".
@@ -53,6 +55,32 @@ export const RADIOGRAPH_SCHEMA = {
   },
 } as const;
 
+export const RADIOGRAPH_MAP_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["schema", "teeth"],
+  properties: {
+    schema: { type: "integer", enum: [1] },
+    teeth: {
+      type: "array",
+      description: "Piezas permanentes visibles, como máximo 32; sin repetir números.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["fdi", "x", "y", "w", "h", "confidence"],
+        properties: {
+          fdi: { type: "string", pattern: "^[1-4][1-8]$" },
+          x: { type: "number", description: "Centro de la pieza, de 0 a 1 desde la izquierda de la imagen." },
+          y: { type: "number", description: "Centro de la pieza, de 0 a 1 desde arriba de la imagen." },
+          w: { type: "number", description: "Ancho de la caja que encierra corona y raíz, de 0.02 a 0.12." },
+          h: { type: "number", description: "Alto de la caja que encierra corona y raíz, de 0.05 a 0.30." },
+          confidence: { type: "string", enum: ["high", "medium", "low"] },
+        },
+      },
+    },
+  },
+} as const;
+
 export interface AnthropicUsage {
   input_tokens?: number;
   output_tokens?: number;
@@ -74,7 +102,7 @@ export function estimateCostUsd(model: string, usage: AnthropicUsage | null | un
 
 export interface UsageRow {
   tenant_id: string;
-  feature: "radiograph_analysis";
+  feature: "radiograph_analysis" | "radiograph_toothmap";
   model: string;
   request_id: string | null;
   outcome: "ok" | "incomplete" | "error";
@@ -94,11 +122,12 @@ export function usageRow(opts: {
   usage: AnthropicUsage | null | undefined;
   durationMs: number;
   stopReason: unknown;
+  feature?: UsageRow["feature"];
 }): UsageRow {
   const u = opts.usage || null;
   return {
     tenant_id: opts.tenantId,
-    feature: "radiograph_analysis",
+    feature: opts.feature || "radiograph_analysis",
     model: RADIOGRAPH_MODEL,
     request_id: opts.requestId ? opts.requestId.slice(0, 120) : null,
     outcome: opts.outcome,

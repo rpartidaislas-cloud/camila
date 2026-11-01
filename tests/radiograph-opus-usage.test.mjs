@@ -13,9 +13,10 @@ test('el servidor fija modelo, esfuerzo y esquema; el navegador solo manda promp
   const fn = read('supabase/functions/claude/index.ts');
   assert.match(fn, /body\.action === RADIOGRAPH_ACTION[\s\S]{0,400}anthropicBody\.model = RADIOGRAPH_MODEL/);
   assert.match(fn, /output_config = \{\s*effort: RADIOGRAPH_EFFORT,\s*format: \{ type: "json_schema", schema: RADIOGRAPH_SCHEMA \}/);
-  assert.match(fn, /body\?\.action === RADIOGRAPH_ACTION\) \{\s*if \(!user \|\| user\.id !== tenantEfectivo\)/, 'solo sesión profesional');
+  assert.match(fn, /body\?\.action === RADIOGRAPH_ACTION \|\| body\?\.action === RADIOGRAPH_MAP_ACTION\) \{\s*if \(!user \|\| user\.id !== tenantEfectivo\)/, 'solo sesión profesional');
   const client = read('smyl-radiograph-analysis-client.js');
-  assert.match(client, /action:'analyze_dental_radiograph_v1'/);
+  assert.match(client, /ask\('analyze_dental_radiograph_v1'/);
+  assert.match(client, /JSON\.stringify\(\{action,requestId,system:promptSystem,messages:/, 'solo manda acción, prompt e imagen');
   assert.doesNotMatch(client, /JSON\.stringify\(\{model,/, 'el navegador no elige modelo');
   assert.match(client, /2576\/Math\.max/);
 });
@@ -97,4 +98,28 @@ test('las copias móviles siguen idénticas', () => {
   for (const f of ['app.html', 'sw.js', 'consumos.html', 'smyl-consumption.js', 'smyl-consumption.css', 'smyl-radiograph-analysis-client.js', 'smyl-radiograph-review-model.js']) {
     assert.equal(read('mobile/www/' + f), read(f), f);
   }
+});
+
+test('mapa de piezas: acción propia, esquema fijo en el servidor y registro como parte del mismo análisis', () => {
+  assert.equal(mod.RADIOGRAPH_MAP_ACTION, 'analyze_dental_radiograph_map_v1');
+  const schema = mod.RADIOGRAPH_MAP_SCHEMA, tooth = schema.properties.teeth.items;
+  assert.deepEqual(tooth.required, ['fdi', 'x', 'y', 'w', 'h', 'confidence']);
+  assert.equal(tooth.properties.fdi.pattern, '^[1-4][1-8]$');
+  assert.equal(tooth.additionalProperties, false);
+  const fn = read('supabase/functions/claude/index.ts');
+  assert.match(fn, /body\?\.action === RADIOGRAPH_ACTION \|\| body\?\.action === RADIOGRAPH_MAP_ACTION/, 'misma regla de sesión profesional');
+  assert.match(fn, /body\.action === RADIOGRAPH_MAP_ACTION\) \{\s*anthropicBody\.model = RADIOGRAPH_MODEL;[\s\S]{0,260}schema: RADIOGRAPH_MAP_SCHEMA/);
+  assert.match(fn, /feature: body\.action === RADIOGRAPH_MAP_ACTION \? "radiograph_toothmap" : "radiograph_analysis"/);
+  assert.equal(mod.usageRow({ tenantId: 't', requestId: 'r', outcome: 'ok', usage: null, durationMs: 1, stopReason: 'end_turn', feature: 'radiograph_toothmap' }).feature, 'radiograph_toothmap');
+  assert.equal(mod.usageRow({ tenantId: 't', requestId: 'r', outcome: 'ok', usage: null, durationMs: 1, stopReason: 'end_turn' }).feature, 'radiograph_analysis');
+});
+
+test('migración del mapa: acepta la nueva función y cuenta un análisis por request_id', () => {
+  const sql = read('supabase/migrations/20261101120000_smyl_ai_usage_toothmap.sql');
+  assert.match(sql, /check \(feature in \('radiograph_analysis', 'radiograph_toothmap'\)\)/);
+  assert.match(sql, /group by 1/);
+  assert.match(sql, /coalesce\(l\.request_id, l\.id::text\)/);
+  assert.match(sql, /smyl_has_permission\(v_tenant, 'clinic\.manage'\)/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /revoke all on function public\.smyl_ai_usage_summary\(text, integer\) from public, anon/);
 });
