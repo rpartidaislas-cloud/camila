@@ -20,7 +20,7 @@ test('estático: solo dueña, solo "unconfirmed" o "requested" abandonada, conse
   const store = read('smyl-radiograph-review-store.js'), ui = read('smyl-radiograph-review.js');
   assert.match(store, /smyl_retry_radiograph_review/);
   assert.match(ui, /Volver a intentar/); assert.match(ui, /otro consumo del plan de IA/); assert.match(ui, /run\.store\.retry\(run\.revision\)/);
-  for (const f of ['app.html', 'sw.js', 'mobile/www/app.html', 'mobile/www/sw.js']) { const t = read(f); assert.match(t, /smyl-radiograph-review\.js\?v=13/, f); assert.match(t, /smyl-radiograph-review-store\.js\?v=2/, f); }
+  for (const f of ['app.html', 'sw.js', 'mobile/www/app.html', 'mobile/www/sw.js']) { const t = read(f); assert.match(t, /smyl-radiograph-review\.js\?v=14/, f); assert.match(t, /smyl-radiograph-review-store\.js\?v=2/, f); }
   for (const f of ['smyl-radiograph-review.js', 'smyl-radiograph-review-store.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 

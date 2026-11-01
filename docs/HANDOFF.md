@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Claude — Radiografía: ventana «Mesa de Luz»
+
+- Propuesta visual llevada a la app (`smyl-radiograph-review.js` v14, `smyl-radiograph-workbench.css` v8; solo ≥ 960 px, en pantallas
+  angostas se conserva el flujo anterior):
+  - **Barra superior** de una línea con indicador de pasos (Imagen ✓ · Señales · Resumen) y «Volver al expediente».
+  - **Campo oscuro** a pantalla completa para la imagen; sobre ella flotan, con cristal esmerilado, el interruptor
+    «Sin marcas / Con observaciones» (arriba izquierda), el chip de calidad y limitaciones (arriba derecha), la leyenda y los
+    atajos (arriba al centro) y la barra de zoom/contraste/brillo (abajo al centro). Si hay señales sin ubicar, aparece un aviso ámbar.
+  - **Panel de señales** de 432–480 px con pestañas con conteo (Todas · Por revisar · Confirmadas · Descartadas) que se
+    actualizan al editar, y la barra de guardado dentro del panel con avance «N / M revisadas» (decididas = no pendientes).
+  - **Atajos**: J/K recorren las señales, C confirma la abierta, V cambia de vista; no actúan al escribir ni al ubicar, y se
+    retiran al cerrar la ventana.
+- La nota de privacidad se acorta a «Revisión privada: no se convierte automáticamente en diagnóstico.».
+- Sin cambios de datos, servidor ni migraciones.
+- Archivos: visor, CSS, copias móviles, `app.html`/`sw.js` (caché `radiograph-lightbox-v62`), `tests/radiograph-boxes-views.test.mjs`
+  y ajustes a pruebas con versiones fijas. Verificado en navegador a 1680×1000, 1280×720, 1024×768 y 390×844.
+
 ## 2026-11-01 — Claude — Radiografía: propuestas más fiables y ventana de lectura ordenada
 
 - **Cuadros acotados**: el cliente (`smyl-radiograph-analysis-client.js` v9) limita cada cuadro a 10 % × 20 % de la imagen
