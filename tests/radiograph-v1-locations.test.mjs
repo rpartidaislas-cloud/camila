@@ -107,3 +107,16 @@ test('lo que sigue fuera de rango tras convertir no se acepta', () => {
   // centro válido pero cuadro absurdo: se conserva solo el centro
   assert.deepEqual(run([{ x: 0.3, y: 0.5, w: 0.9, h: 0.9 }, {}]), { r1: { x: 0.3, y: 0.5 } });
 });
+
+test('los cuadros se acotan a una o dos piezas alrededor del mismo centro', () => {
+  const { locations } = splitLocations(base([{ x: 0.5, y: 0.5, w: 0.4, h: 0.5 }, { x: 0.3, y: 0.6, w: 0.05, h: 0.1 }]));
+  assert.deepEqual(locations, { r1: { x: 0.5, y: 0.5, w: 0.1, h: 0.2 }, r2: { x: 0.3, y: 0.6, w: 0.05, h: 0.1 } });
+});
+
+test('el prompt pide pocas observaciones concretas y cuadros pequeños', () => {
+  const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
+  assert.match(src, /w entre 0\.03 y 0\.10 y h entre 0\.04 y 0\.20/);
+  assert.match(src, /No conviertas en observación la anatomía normal, la superposición ni las limitaciones de calidad/);
+  assert.match(src, /no rellenes/);
+  assert.match(src, /\},130000\);/, 'el navegador espera 130 s');
+});

@@ -31,6 +31,17 @@
   if(!text(o.evidence,300,1))return {id,reason:'evidencia vacía o de más de 300 caracteres ('+(typeof o.evidence==='string'?o.evidence.length:typeof o.evidence)+')'};
   return null;
  }
+ // Coherencia entre la pieza y su ubicación en una panorámica: la derecha del paciente queda a la izquierda de la imagen.
+ // Cuadrantes 1 y 4 = derecha del paciente (izquierda de la imagen), 2 y 3 = izquierda; 1 y 2 = arcada superior, 3 y 4 = inferior.
+ // Devuelve '' si es coherente o no aplica, 'side' si el lado no coincide y 'arch' si la arcada no coincide. Es solo un aviso:
+ // los márgenes son amplios para no avisar de más cerca de la línea media o del plano oclusal.
+ function positionIssue(studyType,toothNumber,x,y){
+  if(studyType!=='panoramic'||!/^[1-4][1-8]$/.test(String(toothNumber||''))||typeof x!=='number'||typeof y!=='number')return '';
+  const q=Number(String(toothNumber)[0]),right=q===1||q===4,upper=q<=2;
+  if(right?x>.58:x<.42)return 'side';
+  if(upper?y>.62:y<.38)return 'arch';
+  return '';
+ }
  function parseReport(value){
   if(!exact(value,['schema','quality','qualityNote','observations','limitations'])||value.schema!==1||!['usable','limited','unusable'].includes(value.quality)||!text(value.qualityNote,400,1)||!Array.isArray(value.observations)||value.observations.length>12||!Array.isArray(value.limitations)||value.limitations.length>8)throw Error('Informe radiográfico no válido.');
   const ids=new Set();value.observations.forEach(o=>{const why=observationProblem(o,ids);if(why)throw Error('Observación radiográfica no válida'+(why.id?' ('+why.id+')':'')+': '+why.reason+'.');ids.add(o.id);});
@@ -66,5 +77,5 @@
   next.items=analysis.report.observations.map(o=>{const l=at(o);const item={id:crypto.randomUUID(),sourceId:o.id,tooth:o.tooth||'',text:o.observation,x:l?l.x:null,y:l?l.y:null,state:'pending'};if(l&&[l.w,l.h].every(boxSize)){item.w=l.w;item.h=l.h;}return item;});if(!validate(next))throw Error('La respuesta no cumple el contrato.');return next;}
  function unconfirmed(doc){if(!validate(doc)||doc.workflow.state!=='requested')throw Error('La solicitud no está registrada.');const next=structuredClone(doc);next.workflow.state='unconfirmed';return next;}
  function validRow(row,study,tenant,patient){return !!row&&row.tenant_id===tenant&&row.patient_id===patient&&row.study_id===study.id&&row.updated_by===tenant&&Number.isInteger(row.revision)&&row.revision>0&&Number.isFinite(Date.parse(row.updated_at))&&validate(row.document,study);}
- return {types,categories,parseReport,validate,create,requested,completed,unconfirmed,validRow,same};
+ return {types,categories,parseReport,validate,create,requested,completed,unconfirmed,validRow,same,positionIssue};
 });

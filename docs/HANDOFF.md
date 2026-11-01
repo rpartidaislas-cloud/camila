@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Claude — Radiografía: propuestas más fiables y ventana de lectura ordenada
+
+- **Cuadros acotados**: el cliente (`smyl-radiograph-analysis-client.js` v9) limita cada cuadro a 10 % × 20 % de la imagen
+  alrededor del mismo centro; el prompt pide cuadros de una o dos piezas.
+- **Menos señales vagas**: el prompt pide solo observaciones con una zona concreta por comprobar, deja la anatomía normal,
+  la superposición y los límites de calidad en `limitations`, y permite devolver pocas observaciones.
+- **Coherencia pieza-posición** (`positionIssue` en `smyl-radiograph-review-model.js` v6): en panorámicas, la derecha del
+  paciente es la izquierda de la imagen (cuadrantes 1 y 4) y 1/2 son superiores. Si la pieza no coincide con el lado o la
+  arcada de la ubicación, el visor avisa («Comprobar…», cuadro rojo y «!») sin cambiar ningún dato; márgenes amplios cerca de
+  la línea media y del plano oclusal.
+- **Esfuerzo `high`** en el servidor (`RADIOGRAPH_EFFORT`), `RADIOGRAPH_TIMEOUT_MS` a 120 s y espera del navegador a 130 s.
+  Es una apuesta: si «Plan y consumo» muestra tiempos cercanos al límite o errores de espera, volver a `"medium"`.
+  **Hay que volver a desplegar `claude`** (`docs/bundles/claude.single-file.ts`); sin eso siguen `medium` y 100 s.
+- **Ventana de lectura ordenada** (`smyl-radiograph-review.js` v13, `smyl-radiograph-workbench.css` v7): cabecera de una línea
+  con la calidad del estudio y las limitaciones dentro de un chip desplegable («Imagen limitada ▾»; abierto si no es
+  utilizable), título y subtítulo de la imagen en una línea, interruptor «Sin marcas / Con observaciones» en la cabecera de
+  la imagen y la nota de privacidad dentro de la barra de guardado. La imagen gana ~100 px de alto a 1280×720.
+- Archivos: cliente, modelo, visor, CSS, servidor (`_shared/radiograph-claude.ts`), bundle, copias móviles, `app.html`/`sw.js`
+  (caché `radiograph-order-v61`), `tests/radiograph-v1-locations.test.mjs`, `tests/radiograph-boxes-views.test.mjs`, ajustes
+  a pruebas con versiones fijas. Verificado en navegador a 1280×720, 1680×900 y 390×844.
+
 ## 2026-11-01 — Claude — Radiografía: la ubicación de la IA ya no se pierde en silencio
 
 - Síntoma: la IA devolvía señales pero ninguna aparecía marcada en la imagen. Hipótesis (no confirmada con una respuesta
