@@ -14,6 +14,42 @@
 - Archivos: visor, CSS, copias móviles, `app.html`/`sw.js` (caché `radiograph-drag-v65`), `tests/radiograph-boxes-views.test.mjs`.
   Verificado en navegador: mover (+10 %/+5 % exactos), agrandar desde la esquina, límites de la imagen, teclado, tamaño mínimo y guardado.
 
+## 2026-11-01 — Codex — Simulador rápido, recorrido progresivo
+
+- La preparación dejó de presentar todas las decisiones simultáneamente. El
+  paciente avanza por una sola pregunta a la vez: fotografía, cambio, zona,
+  claridad y revisión final.
+- Cada paso explica brevemente qué elegir, muestra el avance y permite volver
+  sin perder las decisiones anteriores. La revisión final resume la propuesta
+  y ofrece accesos directos para corregir cada elección antes de generar.
+- El objetivo `Alinear` omite automáticamente la claridad y adapta el progreso
+  a cuatro pasos, porque ese dato no interviene en esa propuesta.
+- Se conservaron sin cambios el motor de generación, la identidad dental, los
+  prompts, Supabase y las reglas clínicas. Web y PWA usan Studio JS v20 y CSS
+  v21; `mobile/www` quedó sincronizado con los mismos archivos.
+- QA: sintaxis JavaScript válida, **6/6** contratos focalizados aprobados y
+  revisión visual de escritorio, tableta y móvil sin desbordamiento. Publicado
+  en producción desde la rama de trabajo de Codex.
+
+## 2026-11-01 — Codex — Simulador rápido, decisiones simples
+
+- Se corrigió el arranque del espacio guiado: la opción `Carillas` no tenía
+  representación visual en `smyl-studio.js` y detenía la construcción de la
+  pantalla, por lo que producción terminaba mostrando el formulario técnico
+  anterior con los 16 códigos VITA.
+- La preparación conserva una sola fotografía inicial y reduce el diseño a
+  tres decisiones comprensibles: cambio deseado, zona (`Arriba`, `Abajo` o
+  `Ambos`) y claridad aproximada.
+- Los 16 códigos VITA dejaron de competir en la ruta principal. El paciente ve
+  `Mi tono actual`, `Natural`, `Claro natural` y `Muy claro`; la guía VITA
+  completa se conserva dentro de `Ajuste profesional de tono` para uso clínico.
+- Se mantuvieron sin cambios el motor de generación, la identidad dental, los
+  prompts, Supabase y las reglas clínicas. Web, PWA y `mobile/www` quedaron
+  sincronizados en Studio JS v19 y CSS v20.
+- QA: sintaxis JavaScript válida, **6/6** contratos focalizados aprobados y
+  revisión visual en 390 × 844, 820 × 900 y escritorio sin desbordamiento; los
+  controles interactivos conservan un mínimo de 44 px.
+
 ## 2026-11-01 — Claude — Radiografía: análisis en dos pasadas (mapa de piezas + lectura)
 
 - **Por qué:** Claude solo, en una pasada, mezclaba «qué pieza es» y «dónde está» con el texto clínico. No se promete exactitud (la
@@ -9249,3 +9285,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Pruebas: `tests/radiograph-v1-observation-reason.test.mjs`.
 - Siguiente paso: con el motivo real de la panorámica, decidir si se corrige el prompt, se fuerza un esquema JSON en la función `claude`
   (como ya se hace con las fotografías) o se tolera algún caso inofensivo (p. ej. `tooth: ""` como null).
+
+## 2026-11-01 — Codex — Simulador progresivo v3: captura guiada y resultado premium
+
+- La entrada de fotografía ahora permite tomar una frontal o elegir un archivo directamente, conserva el selector de vistas avanzadas y muestra una guía visual de encuadre sin presentar el checklist como validación clínica automática.
+- Las decisiones siguen un flujo progresivo de una tarea por pantalla. La revisión final incorpora miniatura, resumen editable, aviso orientativo y estado de generación; no cambia prompts, consumo de simulaciones ni persistencia.
+- El resultado incorpora encabezado editorial, resumen de objetivo/zona/claridad y tres modos accesibles: Comparación, Original y Propuesta. Todos reutilizan el comparador canónico existente; no se creó un segundo resultado ni se alteraron sus píxeles.
+- “Otras vistas” y “Explora otra versión” ordenan las miniaturas y la selección de claridad. Las herramientas profesionales permanecen bajo divulgación progresiva.
+- Se adaptaron patrones de stepper, upload y compare slider al stack HTML/CSS/JS existente; no se añadió React, Tailwind ni una dependencia de 21st.dev.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=21`, `smyl-studio.css?v=22` y caché PWA `premium-v3`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6). Sin migraciones, cambios de backend, Edge Functions ni datos clínicos.

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMYL · Opciones simples del simulador</title>
+<link rel="stylesheet" href="../../smyl-studio.css?v=22">
+<style>
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,sans-serif}
+  body{overflow:auto}.screen{display:none}.screen.active{display:block}.quick-config{display:block}
+  .fixture-photo{width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(circle at 50% 38%,#d6e5df 0 10%,transparent 10.5%),linear-gradient(145deg,#d9e6e0,#b7cec5);color:#315e58;text-align:center}.fixture-photo strong,.fixture-photo span{display:block}.fixture-photo strong{font-size:21px}.fixture-photo span{margin-top:8px;font-size:13px}
+</style>
+<body class="smyl-organized">
+  <main class="screen active quick-guided-active" id="s-photos">
+    <div class="flow-shell">
+      <header class="flow-heading"><img src="../../icons/smyl_logo.png" alt="SMYL"><span>Vista de prueba · no genera imágenes</span></header>
+      <nav class="flow-steps"><span class="current">1&nbsp; Preparar</span><span>2&nbsp; Comparar</span></nav>
+      <div class="flow-title"><h1>Prepara tu simulación</h1><p class="flow-muted">Una foto y tres decisiones sencillas.</p></div>
+      <div class="flow-prepare-grid">
+        <section class="flow-photo-workspace">
+          <div class="flow-main-photo"><div class="fixture-photo"><div><strong>Fotografía preparada</strong><span>Frontal · original conservado</span></div></div></div>
+          <aside class="flow-reference"><p>✓ Fotografía lista. Ahora elige el cambio que quieres comparar.</p><small>Puedes cambiarla antes de generar.</small></aside>
+        </section>
+        <section class="quick-config" id="quick-config">
+          <div class="flow-progress">
+            <div class="flow-progress-line"><span>Paso 2 de 5 · Cambio</span><button type="button">← Atrás</button></div>
+            <div class="flow-progress-track"><span class="done"></span><span class="current"></span><span></span><span></span><span></span></div>
+          </div>
+          <h3 id="quick-config-title">¿Qué quieres explorar?</h3><p>Elige la opción que más se parezca al cambio que quieres comparar.</p>
+          <section class="flow-guided-section">
+            <span class="quick-choice-title">Elige una opción</span>
+            <div class="quick-choice-grid" id="quick-objective-options">
+              <button class="quick-choice flow-visual-choice"><span class="flow-choice-check">✓</span><span class="flow-choice-art">◡</span><strong>Mejorar forma y tono</strong><small>Sin mover los dientes</small></button>
+              <button class="quick-choice flow-visual-choice"><span class="flow-choice-check">✓</span><span class="flow-choice-art">◡</span><strong>Alinear</strong><small>Conserva tu tono</small></button>
+              <button class="quick-choice flow-visual-choice selected"><span class="flow-choice-check">✓</span><span class="flow-choice-art">◡</span><strong>Alinear y mejorar</strong><small>Forma y tono en una propuesta</small></button>
+            </div>
+          </section>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

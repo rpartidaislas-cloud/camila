@@ -1,7 +1,13 @@
 /* Two-moment workspace. Existing consent, persistence and generation remain authoritative. */
 (function () {
   'use strict';
-  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousel=null, returnSettings=null;
+  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousel=null, returnSettings=null, guidedStage=0;
+  var patientToneChoices=[
+    {code:'current',label:'Mi tono actual',detail:'Sin cambiar el color'},
+    {code:'A2',label:'Natural',detail:'Cambio discreto'},
+    {code:'A1',label:'Claro natural',detail:'Más luminoso'},
+    {code:'B1',label:'Muy claro',detail:'El más brillante natural'}
+  ];
   // Framing examples only. Never inserted into S.photos or sent to generation.
   var photoGuides={
     frontal:['icons/capture-frontal-v2.webp','Rostro de frente, sonrisa visible y cabeza recta.'],
@@ -47,12 +53,79 @@
     void control.offsetWidth;control.classList.add('flow-choice-playing');
     control._flowMotionTimer=setTimeout(function(){control.classList.remove('flow-choice-playing');},850);
   }
+  function patientToneLabel(code){
+    var choice=patientToneChoices.find(function(item){return item.code===code;});
+    return choice?choice.label:'Tono personalizado';
+  }
+  function guidedObjectiveLabel(mode){return {veneers:'Mejorar forma y tono',alignment:'Alinear',combined:'Alinear y mejorar'}[mode]||'Alinear y mejorar';}
+  function guidedArchLabel(arch){return {upper:'Arriba',lower:'Abajo',both:'Ambos'}[arch]||'Arriba';}
+  function guidedMeta(stage){
+    return [
+      ['Paso 1 de 5 · Fotografía','Empieza con una fotografía','Te recomendamos una foto frontal sonriendo y con buena luz.'],
+      ['Paso 2 de 5 · Cambio','¿Qué quieres explorar?','Elige la opción que más se parezca al cambio que quieres comparar.'],
+      ['Paso 3 de 5 · Zona','¿Dónde quieres verlo?','Puedes aplicarlo arriba, abajo o en ambas arcadas.'],
+      ['Paso 4 de 5 · Claridad','¿Qué tan claro lo imaginas?','Natural suele ser un buen punto de partida; podrás cambiarlo después.'],
+      ['Paso 5 de 5 · Revisión','Revisa tu propuesta','Comprueba tus elecciones antes de generar la comparación.']
+    ][stage]||[];
+  }
+  function previousGuidedStage(){
+    var design=SmylSmileModes.normalize(S.smileDesign);
+    if(guidedStage===4)return design.mode==='alignment'?2:3;
+    return Math.max(1,guidedStage-1);
+  }
+  function advanceGuided(stage,moveFocus){
+    guidedStage=stage;
+    renderProgressive();
+    if(moveFocus)requestAnimationFrame(function(){
+      var config=byId('quick-config');
+      config?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+      byId('quick-config-title')?.focus({preventScroll:true});
+    });
+  }
+  function renderProgressive(){
+    var config=byId('quick-config');if(!config||!byId('flow-progress'))return;
+    if(!S.photos.length)guidedStage=0;else if(guidedStage===0)guidedStage=1;
+    var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';
+    if(design.mode==='alignment'&&guidedStage===3)guidedStage=4;
+    var meta=guidedMeta(guidedStage);
+    var alignmentFlow=design.mode==='alignment';
+    if(alignmentFlow&&guidedStage===2)meta=['Paso 3 de 4 · Zona',meta[1],meta[2]];
+    if(alignmentFlow&&guidedStage===4)meta=['Paso 4 de 4 · Revisión',meta[1],'Comprueba tus elecciones antes de generar la comparación.'];
+    byId('flow-progress-kicker').textContent=meta[0];
+    byId('quick-config-title').textContent=meta[1];
+    byId('flow-progress-copy').textContent=meta[2];
+    byId('flow-progress-back').hidden=guidedStage<2;
+    config.dataset.guidedStage=String(guidedStage);
+    var panels=[byId('flow-stage-photo'),byId('flow-stage-objective'),byId('flow-stage-arch'),byId('flow-tone-group'),byId('flow-stage-review')];
+    panels.forEach(function(panel,index){if(panel)panel.hidden=index!==guidedStage;});
+    if(byId('flow-original-tone'))byId('flow-original-tone').hidden=true;
+    byId('flow-progress-track').classList.toggle('is-alignment',alignmentFlow);
+    document.querySelectorAll('#flow-progress-track span').forEach(function(dot,index){
+      dot.classList.toggle('done',index<guidedStage);dot.classList.toggle('current',index===guidedStage);dot.classList.toggle('skipped',design.mode==='alignment'&&index===3);
+    });
+    byId('flow-review-objective').textContent=guidedObjectiveLabel(design.mode);
+    byId('flow-review-arch').textContent=guidedArchLabel(design.arch);
+    byId('flow-review-tone').textContent=design.mode==='alignment'?'Conservar tono actual':patientToneLabel(tone);
+    byId('flow-review-tone-row').hidden=design.mode==='alignment';
+  }
   function illustrateChoices(){
-    var groups=[{id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{alignment:['Alinear','Conserva el tono'],combined:['Alinear + carillas','En una simulación']}},{id:'quick-arch-options',label:'¿Dónde aplicamos el cambio?',key:'quickArch',options:{upper:['Arriba',''],lower:['Abajo',''],both:['Ambos','']}}];
+    var groups=[
+      {id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{
+        veneers:['Mejorar forma y tono','Sin mover los dientes'],
+        alignment:['Alinear','Conserva tu tono'],
+        combined:['Alinear y mejorar','Forma y tono en una propuesta']
+      }},
+      {id:'quick-arch-options',label:'¿Dónde aplicamos el cambio?',key:'quickArch',options:{
+        upper:['Arriba',''],
+        lower:['Abajo',''],
+        both:['Ambos','']
+      }}
+    ];
     groups.forEach(function(group){
       var root=byId(group.id);root.setAttribute('role','group');root.setAttribute('aria-label',group.label);
       root.querySelectorAll('button').forEach(function(b){
         var kind=b.dataset[group.key],copy=group.options[kind];
+        if(!copy)return;
         b.classList.add('flow-visual-choice');b.setAttribute('aria-label',copy[0]);
         b.innerHTML='<span class="flow-choice-check" aria-hidden="true">✓</span>'+realDentalArt(kind)+'<strong>'+copy[0]+'</strong>';
         if(copy[1]){var detail=element('small','',copy[1]);detail.id='flow-choice-detail-'+kind;b.append(detail);b.setAttribute('aria-describedby',detail.id);}
@@ -66,7 +139,7 @@
     var nav=element('nav','flow-steps');nav.setAttribute('aria-label','Momentos de la simulación');
     ['Preparar','Comparar'].forEach(function(text,index){var item=element('span',index===active?'current':'',(index+1)+'  '+text);if(index===active)item.setAttribute('aria-current','step');nav.append(item);});return nav;
   }
-  function openPhotos(){if(busy||generating)return;S.quickGuided=true;abrirConfiguracionRapida();}
+  function openPhotos(){if(busy||generating)return;S.quickGuided=true;window.abrirConfiguracionRapida();}
   function existingResultPhoto(){return S.photos.find(function(p){return p.view===S.baVistaActual&&S.results?.[p.view];})||S.photos.find(function(p){return S.results?.[p.view];});}
   async function returnToResult(){
     if(busy||generating)return;
@@ -115,8 +188,15 @@
     byId('flow-picker').close();var input=byId('flow-upload');
     if(camera)input.setAttribute('capture','environment');else input.removeAttribute('capture');input.click();
   }
+  function pickPrimary(camera){
+    if(busy||generating)return;
+    selected='frontal';
+    var input=byId('flow-upload');
+    if(camera)input.setAttribute('capture','user');else input.removeAttribute('capture');
+    input.click();
+  }
   async function upload(){
-    var input=byId('flow-upload'),file=input.files[0],view=selected;if(!file||busy||generating)return;
+    var input=byId('flow-upload'),file=input.files[0],view=selected,firstPhoto=!S.photos.length;if(!file||busy||generating)return;
     if(!fotoPropiaPermitida(file)){input.value='';mostrarAvisoAplicacion('Fotografía no válida','Usa JPG, PNG o WebP de hasta 20 MB.');return;}
     if(S.photos.some(function(p){return p.view===view;})&&!window.confirm('Ya hay una foto de '+label(view).toLowerCase()+'. ¿Reemplazarla? Su simulación anterior se retirará de este caso.')){input.value='';return;}
     busy=true;render();
@@ -126,7 +206,7 @@
       if(index<0)S.photos.push(photo);else S.photos[index]=photo;
       invalidarVistaCargada(view);S.quickGuided=true;S.independentIntraoral=S.photos.length===1&&view==='intraoral';addedView=view;saveProgress('s-vita');
     }catch(error){mostrarAvisoAplicacion('No se pudo cargar la foto','La fotografía anterior se conserva. Intenta con otro archivo.');}
-    finally{busy=false;input.value='';render();}
+    finally{busy=false;input.value='';render();if(firstPhoto&&S.photos.length)advanceGuided(1,true);}
   }
   function select(photo){if(busy||generating)return;S.photos=[photo].concat(S.photos.filter(function(p){return p!==photo;}));S.baVistaActual=photo.view;saveProgress('s-vita');render();}
   function professionalAnalysis(){return !CFG.modoProspecto&&(new URLSearchParams(location.search).get('workspace')==='professional'||(!!CFG.userId&&CFG.userId===CFG.tenantId));}
@@ -181,15 +261,17 @@
     byId('flow-instructions').value=design.instructions;byId('flow-instruction-count').textContent=design.instructions.length+'/500';
     byId('flow-tone-group').hidden=design.mode==='alignment';byId('flow-original-tone').hidden=design.mode!=='alignment';
     var tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';
-    byId('flow-tone-selected').textContent=tone==='current'?'Color original':'VITA '+tone;
+    byId('flow-tone-selected').textContent='Selección: '+patientToneLabel(tone)+(patientToneChoices.some(function(item){return item.code===tone;})?'':' · VITA '+tone);
     document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
     shadeCarousel?.sync(tone);
     document.querySelectorAll('#quick-config .quick-choice').forEach(function(el){el.setAttribute('aria-pressed',String(el.classList.contains('selected')));});
+    renderProgressive();
   }
   function render(){
     var stage=byId('flow-main-photo'),strip=byId('flow-photo-strip');stage.replaceChildren();strip.replaceChildren();var primary=S.photos[0];
     if(primary){
       var image=element('img');image.src=source(primary);image.alt=label(primary.view)+(primary.adjustOriginal?' · fotografía ajustada':' · fotografía original');stage.append(image,element('span','flow-photo-caption',(primary.referenceOnly?'Solo referencia':'Incluida en la simulación')+' · '+label(primary.view)));
+      var readiness=element('div','flow-photo-readiness');readiness.innerHTML='<strong>Comprueba antes de seguir</strong><span>Sonrisa visible</span><span>Buena luz</span><span>Rostro centrado</span>';stage.append(readiness);
       S.photos.forEach(function(photo){var item=button('',function(){select(photo);},'flow-thumb'+(photo===primary?' selected':''));item.setAttribute('aria-label','Seleccionar '+label(photo.view));item.setAttribute('aria-pressed',String(photo===primary));var thumb=element('img');thumb.src=source(photo);thumb.alt='';item.append(thumb,element('span','',label(photo.view)),element('small','',photo.referenceOnly?'Solo referencia':SmylPhotoBatch.state(photo)==='ready'?'✓ Lista':'✓ A simular'));strip.append(item);});
     }else{
       var empty=element('div','flow-empty');empty.innerHTML='<span class="flow-empty-symbol" aria-hidden="true">＋</span><h2>Empieza con una fotografía</h2><p>Del rostro o intraoral.<br>La vista que quieras trabajar primero.</p>';empty.append(button('Tomar o subir foto',function(){choose();},'flow-primary'));stage.append(empty);
@@ -206,12 +288,16 @@
     byId('flow-photo-simulate').checked=!!primary&&!primary.referenceOnly;
     byId('flow-photo-simulate').disabled=busy||generating;
     byId('flow-generate').disabled=busy||generating||!batch.count;
-    byId('flow-generation-note').textContent=!primary?'Añade una fotografía para generar tu propuesta.':!batch.count?'Todas las fotos son de referencia. Marca al menos una para simular.':remaining?'Se generarán todas las fotos marcadas: '+remaining+' '+(remaining===1?'nueva simulación':'nuevas simulaciones')+'. Cada foto nueva consume una simulación. Las listas se conservan. Subir o seleccionar fotos no consume cupo.':batch.review?'Hay '+batch.review+' '+(batch.review===1?'foto generada por revisar':'fotos generadas por revisar')+'. Revisarlas no consume otra simulación.':'Todas las fotos marcadas ya están listas. Verlas no consume simulaciones.';
+    byId('flow-generate').classList.toggle('is-loading',generating);
+    byId('flow-generate').setAttribute('aria-busy',String(generating));
+    byId('flow-generation-note').textContent=!primary?'Añadir la fotografía no consume simulaciones.':!batch.count?'Marca al menos una fotografía para simular.':remaining?(remaining===1?'Generar esta propuesta usa 1 simulación.':'Se generarán '+remaining+' fotos marcadas; cada una usa 1 simulación.'):batch.review?'Hay resultados listos para revisar. Abrirlos no consume otra simulación.':'Tus simulaciones están listas. Volver a verlas no consume otra simulación.';
     var ref=primary&&referenciaDentalMaestraParaVista(primary.view);
     byId('flow-reference-status').textContent=ref?.role==='original-anatomy'?'Apoyo para esta vista: '+label(ref.view)+'. Su original ayuda a interpretar los dientes. Se simula también si está marcada.':'Intraorales opcionales: pueden apoyar las fotos del rostro y también tener su propia simulación. Usa «Solo referencia» si no quieres simularlas.';
     byId('flow-reference-add').hidden=!!(ref?.role==='original-anatomy');
+    var reviewPhoto=byId('flow-review-photo');if(reviewPhoto){reviewPhoto.hidden=!primary;if(primary)reviewPhoto.src=source(primary);}
     document.querySelectorAll('#flow-photo-workspace button').forEach(function(el){el.disabled=busy||generating;});syncPreferences();
     document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
+    renderProgressive();
   }
   async function generate(){if(busy||generating||!SmylPhotoBatch.targets().length)return;generating=true;render();try{await confirmarConfiguracionRapida();}catch(error){mostrarAvisoAplicacion('No se completó la selección',error.message+' Las fotos y las simulaciones aceptadas se conservan.');}finally{if(returnSettings&&S.results[returnSettings.view]!==returnSettings.result)returnSettings=null;generating=false;render();}}
   function init(){
@@ -241,28 +327,42 @@
     var reference=element('aside','flow-reference');reference.innerHTML='<p id="flow-reference-status"></p><small>Usa fotos de la misma persona. El apoyo no garantiza exactitud anatómica.</small>';
     var refAdd=button('Añadir intraoral de referencia',function(){choose('intraoral',true);},'flow-text');refAdd.id='flow-reference-add';reference.append(refAdd);photos.append(reference);layout.append(photos);
     var config=byId('quick-config');config.querySelector('details').hidden=true;
-    config.querySelector('h3').textContent='Diseña tu sonrisa';config.querySelector('h3').nextElementSibling.textContent='Elige el cambio que quieres explorar.';
-    config.querySelector(':scope > .quick-choice-title').textContent='Elige el cambio';
-    byId('quick-arch-options').previousElementSibling.textContent='¿Dónde aplicamos el cambio?';
+    var progress=element('div','flow-progress');progress.id='flow-progress';progress.innerHTML='<div class="flow-progress-line"><span id="flow-progress-kicker"></span><button id="flow-progress-back" type="button">← Atrás</button></div><div id="flow-progress-track" class="flow-progress-track" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>';config.prepend(progress);
+    byId('flow-progress-back').onclick=function(){advanceGuided(previousGuidedStage(),true);};
+    var configTitle=config.querySelector('h3'),configCopy=configTitle.nextElementSibling;configTitle.tabIndex=-1;configCopy.id='flow-progress-copy';
+    var photoPrompt=element('section','flow-guided-photo');photoPrompt.id='flow-stage-photo';photoPrompt.innerHTML='<div class="flow-photo-coach" aria-hidden="true"><span class="flow-coach-frame"><i></i><b></b></span></div><div class="flow-guided-photo-copy"><span class="flow-stage-badge">PRIMER PASO</span><strong>Usa una foto frontal sonriendo</strong><p>De frente, con buena luz y sin filtros. Conservamos siempre el original.</p><ul><li>Rostro centrado</li><li>Dientes visibles</li><li>Imagen nítida</li></ul></div>';
+    var photoActions=element('div','flow-guided-photo-actions');photoActions.append(button('Tomar foto',function(){pickPrimary(true);},'flow-primary'),button('Elegir archivo',function(){pickPrimary(false);},'flow-secondary'),button('Usar otra vista',function(){choose();},'flow-text'));photoPrompt.append(photoActions,element('small','flow-upload-help','JPG, PNG o WebP · máximo 20 MB · subirla no consume simulaciones'));configCopy.after(photoPrompt);
+    var objectiveTitle=config.querySelector(':scope > .quick-choice-title'),objectiveOptions=byId('quick-objective-options'),objectiveStage=element('section','flow-guided-section');objectiveStage.id='flow-stage-objective';objectiveTitle.textContent='Elige una opción';objectiveTitle.before(objectiveStage);objectiveStage.append(objectiveTitle,objectiveOptions);
+    var archOptions=byId('quick-arch-options'),archTitle=archOptions.previousElementSibling,archStage=element('section','flow-guided-section');archStage.id='flow-stage-arch';archTitle.textContent='Selecciona la zona';archTitle.before(archStage);archStage.append(archTitle,archOptions);
     illustrateChoices();
+    objectiveOptions.querySelectorAll('button').forEach(function(control){control.addEventListener('click',function(){setTimeout(function(){advanceGuided(2,true);},0);});});
+    archOptions.querySelectorAll('button').forEach(function(control){control.addEventListener('click',function(){setTimeout(function(){advanceGuided(SmylSmileModes.normalize(S.smileDesign).mode==='alignment'?4:3,true);},0);});});
     var appearanceLabel=byId('quick-appearance-options').previousElementSibling,tones=element('div');tones.id='flow-tone-group';appearanceLabel.before(tones);
-    appearanceLabel.textContent='Elige el tono';tones.append(appearanceLabel);
+    appearanceLabel.textContent='¿Qué tan claro lo imaginas?';tones.append(appearanceLabel);
     byId('quick-appearance-options').hidden=true;config.querySelector('label[for="quick-vita-tone"]').hidden=true;byId('quick-vita-tone').hidden=true;
-    var shadeHeader=element('div','flow-shade-header'),selectedTone=element('strong');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');shadeHeader.append(selectedTone);
+    var presetGrid=element('div','flow-tone-presets');presetGrid.setAttribute('role','group');presetGrid.setAttribute('aria-label','Claridad de la sonrisa');
+    var selectedTone=element('strong','flow-tone-selected');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');
     var track=element('div','flow-vita-track');track.id='flow-vita-track';track.setAttribute('aria-label','Tonos VITA Classical');
     function chooseTone(code){seleccionarAparienciaRapida(code,null,false);syncPreferences();}
-    [-1,1].forEach(function(direction){var b=button(direction<0?'‹':'›',function(){shadeCarousel.step(direction);},'flow-shade-arrow');b.setAttribute('aria-label',direction<0?'Ver tonos anteriores':'Ver más tonos');shadeHeader.append(b);});
-    VITA_CLASSICAL.forEach(function(shade){var b=button('',function(){shadeCarousel.pick(shade.code);},'flow-vita-card');b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar tono VITA '+shade.code);
+    patientToneChoices.forEach(function(choice){
+      var preset=button('',function(){chooseTone(choice.code);advanceGuided(4,true);},'flow-tone-preset');preset.dataset.flowTone=choice.code;var sample=element('span','flow-tone-sample');
+      if(choice.code==='current')sample.classList.add('is-current');else SmylVitaSamples.attachFilter(sample,choice.code);
+      preset.append(sample,element('span','flow-tone-preset-copy'));preset.lastElementChild.append(element('strong','',choice.label),element('small','',choice.detail));presetGrid.append(preset);
+    });
+    VITA_CLASSICAL.forEach(function(shade){var b=button('',function(){shadeCarousel.pick(shade.code);advanceGuided(4,true);},'flow-vita-card');b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar tono VITA '+shade.code);
       b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>VITA '+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
       SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);
       b.append(element('strong','',shade.code));track.append(b);
     });
-    var currentTone=button('Conservar color original',function(){chooseTone('current');},'flow-keep-tone');currentTone.dataset.flowTone='current';
-    tones.append(shadeHeader,track,currentTone,element('p','flow-tone-help','Desliza: la carilla del centro queda seleccionada. También puedes tocarla. Tonos aproximados en pantalla; confirma con la guía VITA física.'));
+    var professional=element('details','flow-professional-tones');professional.innerHTML='<summary>Ajuste profesional de tono <span>Guía VITA</span></summary><p>Si el odontólogo ya definió un tono, puede elegir aquí el código exacto.</p>';professional.append(track);
+    tones.append(presetGrid,selectedTone,professional,element('p','flow-tone-help','Estas opciones son una aproximación visual. El tono clínico definitivo se confirma con una guía física.'));
+    tones.classList.add('flow-guided-section');tones.dataset.stage='tone';
     shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
     var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
-    var gen=config.querySelector('.quick-generate');gen.before(notes);gen.id='flow-generate';gen.textContent='Generar mi propuesta';gen.removeAttribute('onclick');gen.onclick=generate;
+    var review=element('section','flow-review');review.id='flow-stage-review';review.innerHTML='<div class="flow-review-ready"><img id="flow-review-photo" alt="Fotografía que se utilizará" hidden><span aria-hidden="true">✓</span><div><strong>Todo listo para comparar</strong><small>Revisa la propuesta. Podrás volver y cambiar cualquier elección.</small></div></div><div class="flow-review-list"><div><span>Cambio</span><strong id="flow-review-objective"></strong><button type="button" data-edit-stage="1">Cambiar</button></div><div><span>Zona</span><strong id="flow-review-arch"></strong><button type="button" data-edit-stage="2">Cambiar</button></div><div id="flow-review-tone-row"><span>Claridad</span><strong id="flow-review-tone"></strong><button type="button" data-edit-stage="3">Cambiar</button></div></div><p class="flow-review-safety"><span aria-hidden="true">i</span> Es una comparación visual orientativa, no un diagnóstico ni una predicción clínica.</p>';
+    review.querySelectorAll('[data-edit-stage]').forEach(function(control){control.onclick=function(){advanceGuided(Number(control.dataset.editStage),true);};});
+    var gen=config.querySelector('.quick-generate');gen.before(review);review.append(notes,gen);gen.id='flow-generate';gen.textContent='Generar mi propuesta';gen.removeAttribute('onclick');gen.onclick=generate;
     var genNote=element('p','flow-muted');genNote.id='flow-generation-note';gen.after(genNote);
     var existingNote=element('p','flow-muted','Puedes volver sin generar. Al volver se conservan la simulación y sus opciones anteriores; los cambios de esta pantalla no se aplican.');existingNote.id='flow-existing-note';existingNote.hidden=true;gen.before(existingNote);
     var returnBottom=button('Volver a mi simulación',returnToResult,'flow-secondary');returnBottom.id='flow-return-result-bottom';returnBottom.hidden=true;genNote.after(returnBottom);layout.append(config);shell.append(layout);
@@ -299,6 +399,7 @@
         ['vitaTone','vitaMode','vitaFinish','vitaIntensity','vitaConstruction'].forEach(function(key){settings[key]=S[key];});
         returnSettings={owner:progressKey(),caseId:S.casoId,view:photo.view,result:S.results[photo.view],settings:settings};
       }
+      guidedStage=photo?4:(S.photos.length?1:0);
       previousOpen();render();show('s-photos');
     };
     var previousQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=previousQuality.apply(this,arguments);renderAnalysis();return result;};
@@ -310,7 +411,15 @@
     ['btn-editor-diseno','btn-revision-clinica','diag-request-box'].forEach(function(id){if(byId(id))toolBody.append(byId(id));});byId('s-res').querySelector('.res-body').prepend(tools);
     var alignment=byId('ba-align-btn');
     if(alignment){alignment.removeAttribute('style');alignment.className='flow-secondary';alignment.textContent='Ajustar encuadre';toolBody.append(alignment);}
-    resHeader.append(button('Ajustar propuesta',openPhotos,'flow-secondary'));byId('s-res').querySelector('.res-logo').after(steps(1));render();
+    var resultIntro=element('section','flow-result-intro');resultIntro.innerHTML='<div class="flow-result-kicker">TU PROPUESTA VISUAL</div><div class="flow-result-heading"><div><h1>Compara el cambio a tu ritmo</h1><p>Desliza sobre la imagen o elige una vista rápida.</p></div><button type="button" class="flow-secondary" id="flow-result-adjust">Ajustar propuesta</button></div><div class="flow-result-summary" aria-label="Resumen de la propuesta"><span id="flow-result-objective"></span><span id="flow-result-arch"></span><span id="flow-result-tone"></span></div><div class="flow-result-modes" role="tablist" aria-label="Modo de comparación"><button type="button" role="tab" data-result-mode="compare" aria-selected="true">Comparación</button><button type="button" role="tab" data-result-mode="original" aria-selected="false">Original</button><button type="button" role="tab" data-result-mode="proposal" aria-selected="false">Propuesta</button></div>';
+    var baWrap=byId('ba-wrap');baWrap.before(resultIntro);byId('flow-result-adjust').onclick=openPhotos;
+    function setResultMode(mode){var position=mode==='original'?100:mode==='proposal'?0:50,over=byId('ba-over'),line=byId('ba-line');if(over)over.style.clipPath='inset(0 0 0 '+position+'%)';if(line)line.style.left=position+'%';document.querySelectorAll('[data-result-mode]').forEach(function(control){control.setAttribute('aria-selected',String(control.dataset.resultMode===mode));});}
+    resultIntro.querySelectorAll('[data-result-mode]').forEach(function(control){control.onclick=function(){setResultMode(control.dataset.resultMode);};});
+    var viewsHead=element('div','flow-result-section-head');viewsHead.innerHTML='<div><span>OTRAS VISTAS</span><strong>Cambia de fotografía sin perder tu comparación</strong></div>';byId('res-photos').before(viewsHead);
+    var variant=element('section','flow-result-variant');variant.innerHTML='<div><span>EXPLORA OTRA VERSIÓN</span><strong>¿Quieres probar otra claridad?</strong><p>Conserva esta propuesta y elige una alternativa cuando quieras.</p></div>';variant.append(button('Cambiar claridad',function(){window.abrirGuiaVitaDesdeResultado();},'flow-secondary'));byId('res-photos').after(variant);
+    function renderResultExperience(){var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';byId('flow-result-objective').textContent=guidedObjectiveLabel(design.mode);byId('flow-result-arch').textContent='Zona: '+guidedArchLabel(design.arch);byId('flow-result-tone').textContent=design.mode==='alignment'?'Tono original':patientToneLabel(tone);}
+    var resultQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=resultQuality.apply(this,arguments);renderResultExperience();return result;};
+    resHeader.append(button('Ajustar propuesta',openPhotos,'flow-secondary flow-header-adjust'));byId('s-res').querySelector('.res-logo').after(steps(1));renderResultExperience();render();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
