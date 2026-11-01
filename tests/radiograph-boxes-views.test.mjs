@@ -97,19 +97,43 @@ test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar l
   assert.match(js, /Comprobar: la posición en la imagen no coincide con la arcada de esta pieza\./);
 });
 
-test('ventana ordenada: la calidad vive en un chip y la nota de privacidad en la barra de guardado', () => {
+test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima', () => {
   const js = read('smyl-radiograph-review.js');
-  assert.match(js, /n\('details','rr-qpop rr-qpop-'\+report\.quality\)/);
+  assert.match(js, /n\('details','rr-qpop rr-qpop-'\+report\.quality\)/, 'la calidad vive en un chip');
+  assert.match(js, /canvas\.append\(quality\)/, 'el chip flota sobre la imagen');
   assert.match(js, /LIMITACIONES DEL ANÁLISIS/);
-  assert.doesNotMatch(js, /rr-safety-note/);
-  assert.doesNotMatch(js, /Ver limitaciones del análisis/);
-  assert.match(js, /n\('p','rr-save-note','Revisión privada: no se comparte/);
+  assert.doesNotMatch(js, /rr-safety-note|rr-review-head|Ver limitaciones del análisis/);
   assert.match(js, /head\.append\(copy,marksToggle\(stage\)\)/, 'el interruptor de vista va en la cabecera de la imagen');
   assert.match(js, /if\(report\.quality==='unusable'\)quality\.open=true;/);
+  assert.match(js, /panel\.append\(footer\)/, 'la barra de guardado vive dentro del panel de señales');
   const css = read('smyl-radiograph-workbench.css');
-  assert.match(css, /\.rr-review \{ grid-template-rows: auto minmax\(0, 1fr\);/);
-  assert.match(css, /\.rr-canvas-head > \.rr-view-switch \{ display: inline-flex;/);
+  assert.match(css, /\.rr-image-wrap \{ position: absolute; inset: 0;/);
+  assert.match(css, /\.rr-view-tools \{ position: absolute;[^}]*width: max-content;/);
+  assert.match(css, /\.rr-canvas \.rr-qpop \{ position: absolute;/);
+  assert.match(css, /clamp\(432px, 28vw, 480px\)/);
+  assert.match(css, /@media \(min-width: 960px\)/);
   for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, 'Texto menor de 12 px: ' + match[0]);
+});
+
+test('barra superior con pasos y panel con pestañas con conteo', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /\['Imagen','Señales','Resumen'\]/);
+  assert.match(js, /setStep\(run\.doc&&run\.doc\.workflow\.state==='completed'\?2:1\)/);
+  assert.match(js, /'rr-filter rr-tab'/);
+  assert.match(js, /badge\.dataset\.rrCount=key/);
+  assert.match(js, /host\.querySelectorAll\('\[data-rr-count\]'\)\.forEach/, 'los conteos se actualizan sin recargar');
+  assert.match(js, /' revisadas'|'\s*\/\s*'\+items\.length\+' revisadas'/);
+  assert.match(js, /n\('p','rr-save-note','Revisión privada: no se convierte automáticamente en diagnóstico\.'\)/);
+});
+
+test('atajos de teclado: J/K recorren, C confirma, V cambia de vista, y no actúan al escribir', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /document\.addEventListener\('keydown',run\.keyHandler\)/);
+  assert.match(js, /document\.removeEventListener\('keydown',run\.keyHandler\)/, 'se retira al cerrar');
+  assert.match(js, /\/\^\(INPUT\|TEXTAREA\|SELECT\)\$\/\.test\(target\.tagName\)/);
+  assert.match(js, /key==='j'\|\|key==='k'/);
+  assert.match(js, /key==='c'/);
+  assert.match(js, /key==='v'/);
 });
 
 test('el servidor razona más y espera más antes de cortar', () => {
