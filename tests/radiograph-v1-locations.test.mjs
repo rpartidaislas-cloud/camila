@@ -10,7 +10,8 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 globalThis.window = {};
 const M = globalThis.SmylRadiographReviewModel = require('../smyl-radiograph-review-model.js');
 require('../smyl-radiograph-analysis-client.js');
-const { splitLocations, parseModelJson } = window.SmylRadiographAnalysisClient;
+window.SmylRadiographReviewModel = M;
+const { splitLocations, parseModelJson, cleanToothMap, applyToothMap } = window.SmylRadiographAnalysisClient;
 
 const study = { id: '11111111-1111-4111-8111-111111111111', type: 'panoramic', asset: { sha256: 'a'.repeat(64) } };
 const base = (extra) => ({ schema: 1, quality: 'limited', qualityNote: 'Revisión con limitaciones.', limitations: ['Superposición anterior.'],
@@ -118,5 +119,73 @@ test('el prompt pide pocas observaciones concretas y cuadros pequeños', () => {
   assert.match(src, /w entre 0\.03 y 0\.10 y h entre 0\.04 y 0\.20/);
   assert.match(src, /No conviertas en observación la anatomía normal, la superposición ni las limitaciones de calidad/);
   assert.match(src, /no rellenes/);
-  assert.match(src, /\},130000\);/, 'el navegador espera 130 s');
+  assert.match(src, /\},270000\);/, 'el navegador espera hasta 270 s por las dos llamadas');
+});
+
+const tooth = (fdi, x, y, extra = {}) => Object.assign({ fdi, x, y, w: 0.04, h: 0.14, confidence: 'high' }, extra);
+const fdis = (map) => map.teeth.map(t => t.fdi);
+
+test('mapa de piezas: conserva lo coherente y descarta lo imposible', () => {
+  const ok = cleanToothMap({ schema: 1, teeth: [tooth('18', 0.2, 0.3), tooth('17', 0.27, 0.3), tooth('28', 0.8, 0.3), tooth('48', 0.2, 0.7), tooth('38', 0.8, 0.7)] }, null, 'panoramic');
+  assert.deepEqual(fdis(ok), ['17', '18', '28', '38', '48']);
+  assert.equal(ok.dropped, 0);
+  // número inválido, caja imposible y duplicado
+  const bad = cleanToothMap({ schema: 1, teeth: [tooth('19', 0.2, 0.3), tooth('17', 0.27, 0.3, { w: 0.9 }), tooth('16', 0.34, 0.3), tooth('16', 0.34, 0.31, { confidence: 'low' })] }, null, 'panoramic');
+  assert.deepEqual(fdis(bad), ['16']);
+  assert.equal(bad.dropped, 3);
+  assert.deepEqual(cleanToothMap(null, null, 'panoramic'), { teeth: [], dropped: 0 });
+});
+
+test('mapa de piezas: el duplicado se queda con la identificación más segura', () => {
+  const map = cleanToothMap({ schema: 1, teeth: [tooth('26', 0.7, 0.3, { confidence: 'low' }), tooth('26', 0.7, 0.32, { confidence: 'high' })] }, null, 'panoramic');
+  assert.equal(map.teeth.length, 1);
+  assert.equal(map.teeth[0].confidence, 'high');
+});
+
+test('mapa de piezas: el orden por cuadrante debe alejarse de la línea media', () => {
+  // En el cuadrante 1 (izquierda de la imagen) el 16 debe quedar a la izquierda del 15; aquí el 16 está invertido.
+  const map = cleanToothMap({ schema: 1, teeth: [tooth('14', 0.4, 0.3), tooth('15', 0.35, 0.3), tooth('16', 0.43, 0.3), tooth('17', 0.25, 0.3)] }, null, 'panoramic');
+  assert.deepEqual(fdis(map), ['14', '15', '17'], 'la pieza fuera de secuencia se descarta');
+  assert.equal(map.dropped, 1);
+  // Cuadrante 3 (izquierda del paciente, derecha de la imagen): el número crece hacia la derecha.
+  const right = cleanToothMap({ schema: 1, teeth: [tooth('34', 0.6, 0.7), tooth('35', 0.66, 0.7), tooth('36', 0.72, 0.7), tooth('37', 0.78, 0.7)] }, null, 'panoramic');
+  assert.equal(right.teeth.length, 4);
+});
+
+test('mapa de piezas: lado o arcada que no coinciden con la posición se descartan solo en panorámicas', () => {
+  const entries = [tooth('18', 0.9, 0.3), tooth('48', 0.2, 0.05)];
+  assert.deepEqual(fdis(cleanToothMap({ schema: 1, teeth: entries }, null, 'panoramic')), []);
+  assert.deepEqual(fdis(cleanToothMap({ schema: 1, teeth: entries }, null, 'periapical')).sort(), ['18', '48']);
+});
+
+test('mapa de piezas: acepta porcentajes o píxeles como el resto de las ubicaciones', () => {
+  const pct = cleanToothMap({ schema: 1, teeth: [{ fdi: '46', x: 20, y: 70, w: 5, h: 15, confidence: 'high' }] }, null, 'panoramic');
+  assert.deepEqual([pct.teeth[0].x, pct.teeth[0].y, pct.teeth[0].w, pct.teeth[0].h], [0.2, 0.7, 0.05, 0.15]);
+  const px = cleanToothMap({ schema: 1, teeth: [{ fdi: '46', x: 400, y: 700, w: 100, h: 150, confidence: 'high' }] }, { width: 2000, height: 1000 }, 'panoramic');
+  assert.deepEqual([px.teeth[0].x, px.teeth[0].y, px.teeth[0].w, px.teeth[0].h], [0.2, 0.7, 0.05, 0.15]);
+});
+
+test('las observaciones que nombran una pieza del mapa usan su caja; las demás conservan la del modelo', () => {
+  const map = cleanToothMap({ schema: 1, teeth: [tooth('46', 0.2, 0.7, { w: 0.06, h: 0.15 }), tooth('36', 0.8, 0.7, { w: 0.3, h: 0.5 })] }, null, 'panoramic');
+  const report = { observations: [{ id: 'r1', tooth: '46' }, { id: 'r2', tooth: '36' }, { id: 'r3', tooth: null }, { id: 'r4', tooth: '11' }] };
+  const locations = { r1: { x: 0.5, y: 0.5 }, r3: { x: 0.5, y: 0.2, w: 0.06, h: 0.12 } };
+  const result = applyToothMap(report, locations, map);
+  assert.deepEqual(result.r1, { x: 0.2, y: 0.7, w: 0.06, h: 0.15 });
+  assert.deepEqual(result.r2, { x: 0.8, y: 0.7, w: 0.1, h: 0.2 }, 'caja acotada a una o dos piezas');
+  assert.deepEqual(result.r3, locations.r3);
+  assert.equal(result.r4, undefined);
+  assert.equal(applyToothMap(report, locations, null), locations, 'sin mapa no cambia nada');
+});
+
+test('el análisis son dos pasadas: mapa con rejilla y lectura con el mapa', () => {
+  const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
+  assert.match(src, /ask\('analyze_dental_radiograph_map_v1',mapSystem,gridEncoded/);
+  assert.match(src, /ask\('analyze_dental_radiograph_v1',toothMap\?system\+mapAddendum:system,encoded/);
+  assert.match(src, /function drawGrid\(ctx,width,height\)/);
+  assert.match(src, /gridEncoded=canvas\.toDataURL/);
+  assert.match(src, /const requestId=crypto\.randomUUID\(\);/, 'las dos llamadas comparten requestId');
+  assert.match(src, /if\(e\.fatal\|\|e\.name==='AbortError'\|\|timedOut\)throw e;toothMap=null;/, 'si el mapa falla por otra causa, la lectura sigue sin mapa');
+  assert.match(src, /nunca inventes una/);
+  assert.match(src, /usa exactamente ese número y copia su x, y, w, h/);
+  assert.match(src, /locations=applyToothMap\(report,locations,toothMap\)/);
 });

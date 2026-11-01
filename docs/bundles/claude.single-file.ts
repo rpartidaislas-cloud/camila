@@ -391,7 +391,7 @@ return { makeCors, corsPublic, corsHeaders };
 })();
 
 // ── _shared/radiograph-claude.ts ──
-const { RADIOGRAPH_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, estimateCostUsd, usageRow, textOnly } = (() => {
+const { RADIOGRAPH_ACTION, RADIOGRAPH_MAP_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, RADIOGRAPH_MAP_SCHEMA, estimateCostUsd, usageRow, textOnly } = (() => {
 // Análisis de radiografías con Claude (revisión asistida; nunca diagnóstico automático).
 //
 // El modelo, el esfuerzo y el esquema de salida los fija el SERVIDOR: el navegador solo manda el prompt y la
@@ -402,6 +402,8 @@ const { RADIOGRAPH_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_T
 // estimado. No se guarda la imagen ni el texto de la respuesta.
 
 const RADIOGRAPH_ACTION = "analyze_dental_radiograph_v1";
+// Primera pasada: mapa de piezas (número FDI y caja) sobre una copia con rejilla de referencia.
+const RADIOGRAPH_MAP_ACTION = "analyze_dental_radiograph_map_v1";
 const RADIOGRAPH_MODEL = "claude-opus-5-5";
 // "high" razona más antes de ubicar y nombrar cada pieza. Si la medición (Plan y consumo) muestra tiempos cercanos al límite
 // o errores de espera, volver a "medium".
@@ -447,6 +449,32 @@ const RADIOGRAPH_SCHEMA = {
   },
 } as const;
 
+const RADIOGRAPH_MAP_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["schema", "teeth"],
+  properties: {
+    schema: { type: "integer", enum: [1] },
+    teeth: {
+      type: "array",
+      description: "Piezas permanentes visibles, como máximo 32; sin repetir números.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["fdi", "x", "y", "w", "h", "confidence"],
+        properties: {
+          fdi: { type: "string", pattern: "^[1-4][1-8]$" },
+          x: { type: "number", description: "Centro de la pieza, de 0 a 1 desde la izquierda de la imagen." },
+          y: { type: "number", description: "Centro de la pieza, de 0 a 1 desde arriba de la imagen." },
+          w: { type: "number", description: "Ancho de la caja que encierra corona y raíz, de 0.02 a 0.12." },
+          h: { type: "number", description: "Alto de la caja que encierra corona y raíz, de 0.05 a 0.30." },
+          confidence: { type: "string", enum: ["high", "medium", "low"] },
+        },
+      },
+    },
+  },
+} as const;
+
 interface AnthropicUsage {
   input_tokens?: number;
   output_tokens?: number;
@@ -468,7 +496,7 @@ function estimateCostUsd(model: string, usage: AnthropicUsage | null | undefined
 
 interface UsageRow {
   tenant_id: string;
-  feature: "radiograph_analysis";
+  feature: "radiograph_analysis" | "radiograph_toothmap";
   model: string;
   request_id: string | null;
   outcome: "ok" | "incomplete" | "error";
@@ -488,11 +516,12 @@ function usageRow(opts: {
   usage: AnthropicUsage | null | undefined;
   durationMs: number;
   stopReason: unknown;
+  feature?: UsageRow["feature"];
 }): UsageRow {
   const u = opts.usage || null;
   return {
     tenant_id: opts.tenantId,
-    feature: "radiograph_analysis",
+    feature: opts.feature || "radiograph_analysis",
     model: RADIOGRAPH_MODEL,
     request_id: opts.requestId ? opts.requestId.slice(0, 120) : null,
     outcome: opts.outcome,
@@ -512,7 +541,7 @@ function textOnly(message: any): any {
   return { ...message, content: message.content.filter((block: any) => block?.type === "text") };
 }
 
-return { RADIOGRAPH_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, estimateCostUsd, usageRow, textOnly };
+return { RADIOGRAPH_ACTION, RADIOGRAPH_MAP_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, RADIOGRAPH_MAP_SCHEMA, estimateCostUsd, usageRow, textOnly };
 })();
 
 // ── claude/index.ts ──
@@ -764,7 +793,7 @@ Deno.serve(async (req: Request) => {
       });
     }
   }
-  if (body?.action === RADIOGRAPH_ACTION) {
+  if (body?.action === RADIOGRAPH_ACTION || body?.action === RADIOGRAPH_MAP_ACTION) {
     if (!user || user.id !== tenantEfectivo) {
       return new Response(JSON.stringify({ error: "Disponible solo para la cuenta profesional autorizada." }), {
         status: 403, headers: { ...CORS, "Content-Type": "application/json" },
@@ -1579,6 +1608,15 @@ Deno.serve(async (req: Request) => {
           format: { type: "json_schema", schema: RADIOGRAPH_SCHEMA },
         };
       }
+      // Mapa de piezas: misma regla (modelo, esfuerzo y formato los fija el servidor), con su propio esquema.
+      if (body.action === RADIOGRAPH_MAP_ACTION) {
+        anthropicBody.model = RADIOGRAPH_MODEL;
+        anthropicBody.max_tokens = RADIOGRAPH_MAX_TOKENS;
+        anthropicBody.output_config = {
+          effort: RADIOGRAPH_EFFORT,
+          format: { type: "json_schema", schema: RADIOGRAPH_MAP_SCHEMA },
+        };
+      }
       if (body.action === PHOTO_ANALYSIS_ACTION) {
         anthropicBody.model = "claude-sonnet-4-6";
         anthropicBody.max_tokens = 6500;
@@ -1607,7 +1645,7 @@ Deno.serve(async (req: Request) => {
     console.log("Claude — modelo:", anthropicBody.model);
     const cuerpoSerializado = JSON.stringify(anthropicBody);
     marca(`después de serializar el body para Anthropic (${(cuerpoSerializado.length / 1024).toFixed(0)}KB)`);
-    const esRadiografia = body.action === RADIOGRAPH_ACTION;
+    const esRadiografia = body.action === RADIOGRAPH_ACTION || body.action === RADIOGRAPH_MAP_ACTION;
     const claudeStartedAt = performance.now();
     // Mide lo que consume el análisis de radiografía (tokens reales, tiempo y costo estimado). Si el registro falla,
     // el análisis no se pierde: solo queda un aviso en los logs.
@@ -1617,6 +1655,7 @@ Deno.serve(async (req: Request) => {
         const { error } = await usageAdmin.from("smyl_ai_usage_log").insert(usageRow({
           tenantId: tenantEfectivo as string, requestId, outcome, usage,
           durationMs: performance.now() - claudeStartedAt, stopReason,
+          feature: body.action === RADIOGRAPH_MAP_ACTION ? "radiograph_toothmap" : "radiograph_analysis",
         }));
         if (error) console.warn("No se pudo registrar el consumo de IA:", error.message);
       } catch (medicionError: any) {

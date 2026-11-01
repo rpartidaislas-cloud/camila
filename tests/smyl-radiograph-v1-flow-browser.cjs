@@ -18,6 +18,10 @@ let browser = null;
   const replies = [];
   let analyses = 0;
   await page.route('**/functions/v1/claude', async (route) => {
+    // Primera pasada (mapa de piezas): respuesta fija; no consume la cola de respuestas de la lectura.
+    if (route.request().postDataJSON()?.action === 'analyze_dental_radiograph_map_v1') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'msg_map', stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify({ schema: 1, teeth: [{ fdi: '46', x: 0.3, y: 0.7, w: 0.06, h: 0.15, confidence: 'high' }] }) }] }) });
+    }
     analyses += 1;
     const text = replies.shift();
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'msg_test' + analyses, stop_reason: 'end_turn', content: [{ type: 'text', text }] }) });

@@ -1,5 +1,31 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Claude — Radiografía: análisis en dos pasadas (mapa de piezas + lectura)
+
+- **Por qué:** Claude solo, en una pasada, mezclaba «qué pieza es» y «dónde está» con el texto clínico. No se promete exactitud (la
+  vía de exactitud real es un detector dental especializado, pendiente de elegir proveedor; el flujo «Revisión por pieza (v2)» y
+  `radiograph-analyze` ya tienen el enchufe). Esto es la mejora mientras tanto.
+- **Pasada 1 — mapa de piezas** (`analyze_dental_radiograph_map_v1`): se envía una copia con **rejilla amarilla** cada 10 % con la
+  fracción escrita en los bordes (`drawGrid`) y se pide un JSON con cada pieza permanente visible (FDI, centro, caja, confianza),
+  con reglas de numeración por cuadrante. Esquema fijo en el servidor (`RADIOGRAPH_MAP_SCHEMA`).
+- **Validación determinista del mapa** (`cleanToothMap`, cliente v10): descarta números inválidos, cajas imposibles, duplicados (se
+  queda el más seguro), piezas fuera de secuencia dentro de su cuadrante (subsecuencia creciente más larga desde la línea media hacia
+  atrás) y lado/arcada incoherentes en panorámicas (`positionIssue`). Mejor «Diente por indicar» que un número equivocado.
+- **Pasada 2 — lectura** (`analyze_dental_radiograph_v1`, imagen limpia): recibe el mapa en el texto y un apéndice del prompt que
+  obliga a usar solo piezas del mapa. Las observaciones que nombran una pieza del mapa usan **la caja del mapa** (acotada a una o dos
+  piezas, `applyToothMap`); las demás conservan la ubicación del modelo.
+- **Resiliencia:** si el mapa falla por algo que no sea sesión, permiso, cupo o cancelación, la lectura sigue sin mapa (como antes).
+  Esos errores sí se muestran y no gastan la segunda llamada. Las dos llamadas comparten `requestId`; espera total del navegador 270 s.
+- **Medición:** migración `20261101120000_smyl_ai_usage_toothmap.sql` acepta la feature `radiograph_toothmap` y el resumen de
+  Plan y consumo cuenta **un análisis por request_id** sumando costo, tokens y tiempo de las dos llamadas. El costo por análisis
+  sube (≈ el doble); la tarjeta lo mostrará.
+- **Para activar (a mano, en este orden):** 1) aplicar la migración; 2) volver a desplegar `claude`
+  (`docs/bundles/claude.single-file.ts`). Sin el paso 2 el servidor rechaza la acción del mapa con un error 4xx/5xx no fatal y la
+  lectura sigue sin mapa; sin el paso 1 solo falla el registro de la primera llamada (aviso en logs).
+- Archivos: cliente (v10), servidor (`_shared/radiograph-claude.ts`, `claude/index.ts`), bundle, migración, copias móviles,
+  `app.html`/`sw.js` (caché `radiograph-map-v64`), `tests/radiograph-v1-locations.test.mjs`, `tests/radiograph-opus-usage.test.mjs`,
+  `tests/smyl-radiograph-v1-flow-browser.cjs`. Verificado en navegador: mapa válido, mapa ilegible (sigue sin mapa) y error 429.
+
 ## 2026-11-01 — Claude — Radiografía: avisos falsos, imagen bajo los controles y zoom en escritorio
 
 - **Avisos falsos de arcada** (`positionIssue`, modelo v7): el plano de mordida de una panorámica se curva hacia arriba en los

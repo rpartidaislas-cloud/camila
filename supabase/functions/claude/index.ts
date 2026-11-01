@@ -9,6 +9,8 @@ import { makeCors } from "../_shared/cors.ts";
 import {
   RADIOGRAPH_ACTION,
   RADIOGRAPH_EFFORT,
+  RADIOGRAPH_MAP_ACTION,
+  RADIOGRAPH_MAP_SCHEMA,
   RADIOGRAPH_MAX_TOKENS,
   RADIOGRAPH_MODEL,
   RADIOGRAPH_SCHEMA,
@@ -266,7 +268,7 @@ Deno.serve(async (req: Request) => {
       });
     }
   }
-  if (body?.action === RADIOGRAPH_ACTION) {
+  if (body?.action === RADIOGRAPH_ACTION || body?.action === RADIOGRAPH_MAP_ACTION) {
     if (!user || user.id !== tenantEfectivo) {
       return new Response(JSON.stringify({ error: "Disponible solo para la cuenta profesional autorizada." }), {
         status: 403, headers: { ...CORS, "Content-Type": "application/json" },
@@ -1081,6 +1083,15 @@ Deno.serve(async (req: Request) => {
           format: { type: "json_schema", schema: RADIOGRAPH_SCHEMA },
         };
       }
+      // Mapa de piezas: misma regla (modelo, esfuerzo y formato los fija el servidor), con su propio esquema.
+      if (body.action === RADIOGRAPH_MAP_ACTION) {
+        anthropicBody.model = RADIOGRAPH_MODEL;
+        anthropicBody.max_tokens = RADIOGRAPH_MAX_TOKENS;
+        anthropicBody.output_config = {
+          effort: RADIOGRAPH_EFFORT,
+          format: { type: "json_schema", schema: RADIOGRAPH_MAP_SCHEMA },
+        };
+      }
       if (body.action === PHOTO_ANALYSIS_ACTION) {
         anthropicBody.model = "claude-sonnet-4-6";
         anthropicBody.max_tokens = 6500;
@@ -1109,7 +1120,7 @@ Deno.serve(async (req: Request) => {
     console.log("Claude — modelo:", anthropicBody.model);
     const cuerpoSerializado = JSON.stringify(anthropicBody);
     marca(`después de serializar el body para Anthropic (${(cuerpoSerializado.length / 1024).toFixed(0)}KB)`);
-    const esRadiografia = body.action === RADIOGRAPH_ACTION;
+    const esRadiografia = body.action === RADIOGRAPH_ACTION || body.action === RADIOGRAPH_MAP_ACTION;
     const claudeStartedAt = performance.now();
     // Mide lo que consume el análisis de radiografía (tokens reales, tiempo y costo estimado). Si el registro falla,
     // el análisis no se pierde: solo queda un aviso en los logs.
@@ -1119,6 +1130,7 @@ Deno.serve(async (req: Request) => {
         const { error } = await usageAdmin.from("smyl_ai_usage_log").insert(usageRow({
           tenantId: tenantEfectivo as string, requestId, outcome, usage,
           durationMs: performance.now() - claudeStartedAt, stopReason,
+          feature: body.action === RADIOGRAPH_MAP_ACTION ? "radiograph_toothmap" : "radiograph_analysis",
         }));
         if (error) console.warn("No se pudo registrar el consumo de IA:", error.message);
       } catch (medicionError: any) {
