@@ -86,3 +86,24 @@ test('el texto "null" en tooth se trata como null, y un diente inválido sigue r
   assert.throws(() => M.parseReport(splitLocations(base([{ tooth: '99' }, {}])).report), /diente "99"/);
   assert.throws(() => M.parseReport(splitLocations(base([{ tooth: 'molar' }, {}])).report), /diente "molar"/);
 });
+
+test('convierte ubicaciones en porcentaje o en píxeles a fracciones de 0 a 1', () => {
+  const run = (extra, dims) => splitLocations(base(extra), dims).locations;
+  // porcentaje (0 a 100)
+  assert.deepEqual(run([{ x: 32.5, y: 60, w: 8, h: 14 }, {}]), { r1: { x: 0.325, y: 0.6, w: 0.08, h: 0.14 } });
+  // píxeles de la imagen enviada (2000 × 1000)
+  assert.deepEqual(run([{ x: 600, y: 500, w: 160, h: 140 }, {}], { width: 2000, height: 1000 }), { r1: { x: 0.3, y: 0.5, w: 0.08, h: 0.14 } });
+  // centro en píxeles y cuadro ya en fracciones
+  assert.deepEqual(run([{ x: 600, y: 500, w: 0.08, h: 0.14 }, {}], { width: 2000, height: 1000 }), { r1: { x: 0.3, y: 0.5, w: 0.08, h: 0.14 } });
+  // fracciones intactas
+  assert.deepEqual(run([{ x: 0.3, y: 0.6, w: 0.08, h: 0.14 }, {}]), { r1: { x: 0.3, y: 0.6, w: 0.08, h: 0.14 } });
+});
+
+test('lo que sigue fuera de rango tras convertir no se acepta', () => {
+  const run = (extra, dims) => splitLocations(base(extra), dims).locations;
+  assert.deepEqual(run([{ x: 5000, y: 500 }, {}], { width: 2000, height: 1000 }), {}, 'píxeles fuera de la imagen');
+  assert.deepEqual(run([{ x: 500, y: 500 }, {}]), {}, 'píxeles sin conocer el tamaño de la imagen');
+  assert.deepEqual(run([{ x: -0.2, y: 0.5 }, {}]), {});
+  // centro válido pero cuadro absurdo: se conserva solo el centro
+  assert.deepEqual(run([{ x: 0.3, y: 0.5, w: 0.9, h: 0.9 }, {}]), { r1: { x: 0.3, y: 0.5 } });
+});

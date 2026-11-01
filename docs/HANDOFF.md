@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Claude — Radiografía: la ubicación de la IA ya no se pierde en silencio
+
+- Síntoma: la IA devolvía señales pero ninguna aparecía marcada en la imagen. Hipótesis (no confirmada con una respuesta
+  real): el modelo contesta x/y/w/h en porcentaje (0–100) o en píxeles de la imagen enviada en vez de 0–1, y
+  `splitLocations` descartaba en silencio todo lo que no estuviera entre 0 y 1.
+- `smyl-radiograph-analysis-client.js` v8: `unitBox` convierte porcentaje o píxeles (usa el tamaño real del lienzo enviado)
+  a fracciones; lo que sigue fuera de rango, o mezcla escalas, se descarta como antes. El prompt añade «nunca uses píxeles
+  ni porcentajes» con un ejemplo (0.275). Solo cliente: no hace falta migración ni volver a desplegar `claude`.
+- Visor (`smyl-radiograph-review.js` v12): sobre la imagen dice cuántas señales quedaron sin ubicación y cómo ubicarlas.
+- Archivos: cliente y visor + copias móviles, `app.html`/`sw.js` (caché `radiograph-units-v60`),
+  `tests/radiograph-v1-locations.test.mjs`.
+
 ## 2026-10-31 — Claude — Radiografía: diente en cada señal, cuadros punteados y dos vistas
 
 - **Dos vistas** en el visor (`smyl-radiograph-review.js` v11, `smyl-radiograph-workbench.css` v6): «Sin marcas»
