@@ -14,8 +14,13 @@ const fs = require('node:fs');
 
   for (const width of [1440, 820, 390]) {
     const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 1000 }, deviceScaleFactor: 1 });
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(String(error.message || error)));
     await page.goto(fixture);
-    await page.waitForSelector('[data-home-next] button');
+    await page.waitForSelector('[data-home-next] button').catch(error => {
+      if (pageErrors.length) throw new Error(`Error JavaScript en Inicio a ${width}px: ${pageErrors.join(' | ')}`);
+      throw error;
+    });
     await page.waitForSelector('.daily-home-chat');
     const result = await page.evaluate(() => ({
       documentOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -28,6 +33,7 @@ const fs = require('node:fs');
     if (result.zeroCards) throw new Error(`El Inicio muestra indicadores en cero a ${width}px`);
     if (!result.resolvedCardVisible) throw new Error('No se conservaron a la vista los mensajes recientes de Meta');
     if (result.shortcuts) throw new Error('El Inicio duplicó accesos del menú');
+    if (pageErrors.length) throw new Error(`Error JavaScript en Inicio a ${width}px: ${pageErrors.join(' | ')}`);
     await page.screenshot({ path: path.join(output, `dashboard-workbench-${width}.png`), fullPage: true });
     await page.close();
   }

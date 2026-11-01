@@ -103,6 +103,7 @@
 
   function renderPriorities(tasks) {
     var host=document.querySelector('[data-home-priorities]'); if(!host)return;
+    var shared=Boolean(taskItems());
     tasks=tasks||resolvePriorityTasks();
     var summary=document.querySelector('[data-home-summary]'),title=document.querySelector('[data-home-priority-title]');
     if(summary)summary.textContent=tasks.length?(shared?tasks.length+(tasks.length===1?' área requiere':' áreas requieren')+' atención.':tasks.length+(tasks.length===1?' acción pendiente.':' acciones pendientes.')):'Todo al día por hoy.';

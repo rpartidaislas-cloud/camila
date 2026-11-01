@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Codex — Corrección del Inicio: prioridades compartidas
+
+- Se corrigió el `ReferenceError: shared is not defined` que bloqueaba el
+  renderizado de las prioridades del Inicio cuando el Centro de alertas ya
+  había entregado tareas compartidas.
+- `renderPriorities()` determina ahora dentro de su propio alcance si utiliza
+  la fuente compartida, sin modificar datos, rutas ni reglas operativas.
+- Web, PWA y `mobile/www` usan `smyl-daily-home.js?v=13`; la caché se renovó
+  como `daily-home-scope-fix-v67` para reemplazar de inmediato la copia v12.
+- Se añadió una prueba runtime que reproduce el escenario exacto y el QA de
+  navegador ahora falla explícitamente ante cualquier `pageerror`.
+- QA integrada: **989/989** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas según el entorno.
+
 ## 2026-11-01 — Claude — Radiografía: ajustar cuadros arrastrando y cambiando de tamaño
 
 - **Por qué:** Claude estima las coordenadas «a ojo» (cajas ~10 % por arriba en una revisión real); el visor dibuja exactamente lo que
