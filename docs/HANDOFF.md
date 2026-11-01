@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Codex — Simulador rápido, decisiones simples
+
+- Se corrigió el arranque del espacio guiado: la opción `Carillas` no tenía
+  representación visual en `smyl-studio.js` y detenía la construcción de la
+  pantalla, por lo que producción terminaba mostrando el formulario técnico
+  anterior con los 16 códigos VITA.
+- La preparación conserva una sola fotografía inicial y reduce el diseño a
+  tres decisiones comprensibles: cambio deseado, zona (`Arriba`, `Abajo` o
+  `Ambos`) y claridad aproximada.
+- Los 16 códigos VITA dejaron de competir en la ruta principal. El paciente ve
+  `Mi tono actual`, `Natural`, `Claro natural` y `Muy claro`; la guía VITA
+  completa se conserva dentro de `Ajuste profesional de tono` para uso clínico.
+- Se mantuvieron sin cambios el motor de generación, la identidad dental, los
+  prompts, Supabase y las reglas clínicas. Web, PWA y `mobile/www` quedaron
+  sincronizados en Studio JS v19 y CSS v20.
+- QA: sintaxis JavaScript válida, **6/6** contratos focalizados aprobados y
+  revisión visual en 390 × 844, 820 × 900 y escritorio sin desbordamiento; los
+  controles interactivos conservan un mínimo de 44 px.
+
 ## 2026-11-01 — Claude — Radiografía: análisis en dos pasadas (mapa de piezas + lectura)
 
 - **Por qué:** Claude solo, en una pasada, mezclaba «qué pieza es» y «dónde está» con el texto clínico. No se promete exactitud (la

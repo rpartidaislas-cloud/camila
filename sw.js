@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-team-layout-v47-radiograph-review-v2-v47-radiograph-report-v48-radiograph-longitudinal-v49-radiograph-validation-v50-radiograph-hardening-v51-radiograph-v1-json-v52-radiograph-v1-retry-v53-radiograph-v1-retry-fix-v54-radiograph-v1-diagnostic-v55-quiet-update-v56-radiograph-null-v57-radiograph-opus-v58-radiograph-boxes-v59-radiograph-units-v60-radiograph-order-v61-radiograph-lightbox-v62-radiograph-fit-v63-radiograph-map-v64';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-team-layout-v47-radiograph-review-v2-v47-radiograph-report-v48-radiograph-longitudinal-v49-radiograph-validation-v50-radiograph-hardening-v51-radiograph-v1-json-v52-radiograph-v1-retry-v53-radiograph-v1-retry-fix-v54-radiograph-v1-diagnostic-v55-quiet-update-v56-radiograph-null-v57-radiograph-opus-v58-radiograph-boxes-v59-radiograph-units-v60-radiograph-order-v61-radiograph-lightbox-v62-radiograph-fit-v63-radiograph-map-v64-simulator-simple-v1';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -142,14 +142,14 @@ const STATIC_FILES = [
   '/camila/smyl-professional-v3.css?v=7',
   '/camila/smyl-command-menu.js?v=3',
   '/camila/smyl-command-menu.css?v=1',
-  '/camila/smyl-studio.js?v=18',
+  '/camila/smyl-studio.js?v=19',
   '/camila/smyl-photo-batch.js?v=1',
   '/camila/smyl-result-viewer.js?v=1',
   '/camila/smyl-result-viewer.css?v=1',
   '/camila/smyl-analysis-model.js?v=1',
   '/camila/smyl-analysis-guides.js?v=1',
   '/camila/smyl-analysis-guides.css?v=2',
-  '/camila/smyl-studio.css?v=19',
+  '/camila/smyl-studio.css?v=20',
   '/camila/icons/capture-frontal-v2.webp',
   '/camila/icons/capture-left-v2.webp',
   '/camila/icons/capture-right-v2.webp',

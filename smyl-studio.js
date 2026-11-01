@@ -2,6 +2,12 @@
 (function () {
   'use strict';
   var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousel=null, returnSettings=null;
+  var patientToneChoices=[
+    {code:'current',label:'Mi tono actual',detail:'Sin cambiar el color'},
+    {code:'A2',label:'Natural',detail:'Cambio discreto'},
+    {code:'A1',label:'Claro natural',detail:'Más luminoso'},
+    {code:'B1',label:'Muy claro',detail:'El más brillante natural'}
+  ];
   // Framing examples only. Never inserted into S.photos or sent to generation.
   var photoGuides={
     frontal:['icons/capture-frontal-v2.webp','Rostro de frente, sonrisa visible y cabeza recta.'],
@@ -47,12 +53,28 @@
     void control.offsetWidth;control.classList.add('flow-choice-playing');
     control._flowMotionTimer=setTimeout(function(){control.classList.remove('flow-choice-playing');},850);
   }
+  function patientToneLabel(code){
+    var choice=patientToneChoices.find(function(item){return item.code===code;});
+    return choice?choice.label:'Tono personalizado';
+  }
   function illustrateChoices(){
-    var groups=[{id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{alignment:['Alinear','Conserva el tono'],combined:['Alinear + carillas','En una simulación']}},{id:'quick-arch-options',label:'¿Dónde aplicamos el cambio?',key:'quickArch',options:{upper:['Arriba',''],lower:['Abajo',''],both:['Ambos','']}}];
+    var groups=[
+      {id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{
+        veneers:['Mejorar forma y tono','Sin mover los dientes'],
+        alignment:['Alinear','Conserva tu tono'],
+        combined:['Alinear y mejorar','Forma y tono en una propuesta']
+      }},
+      {id:'quick-arch-options',label:'¿Dónde aplicamos el cambio?',key:'quickArch',options:{
+        upper:['Arriba',''],
+        lower:['Abajo',''],
+        both:['Ambos','']
+      }}
+    ];
     groups.forEach(function(group){
       var root=byId(group.id);root.setAttribute('role','group');root.setAttribute('aria-label',group.label);
       root.querySelectorAll('button').forEach(function(b){
         var kind=b.dataset[group.key],copy=group.options[kind];
+        if(!copy)return;
         b.classList.add('flow-visual-choice');b.setAttribute('aria-label',copy[0]);
         b.innerHTML='<span class="flow-choice-check" aria-hidden="true">✓</span>'+realDentalArt(kind)+'<strong>'+copy[0]+'</strong>';
         if(copy[1]){var detail=element('small','',copy[1]);detail.id='flow-choice-detail-'+kind;b.append(detail);b.setAttribute('aria-describedby',detail.id);}
@@ -66,7 +88,7 @@
     var nav=element('nav','flow-steps');nav.setAttribute('aria-label','Momentos de la simulación');
     ['Preparar','Comparar'].forEach(function(text,index){var item=element('span',index===active?'current':'',(index+1)+'  '+text);if(index===active)item.setAttribute('aria-current','step');nav.append(item);});return nav;
   }
-  function openPhotos(){if(busy||generating)return;S.quickGuided=true;abrirConfiguracionRapida();}
+  function openPhotos(){if(busy||generating)return;S.quickGuided=true;window.abrirConfiguracionRapida();}
   function existingResultPhoto(){return S.photos.find(function(p){return p.view===S.baVistaActual&&S.results?.[p.view];})||S.photos.find(function(p){return S.results?.[p.view];});}
   async function returnToResult(){
     if(busy||generating)return;
@@ -181,7 +203,7 @@
     byId('flow-instructions').value=design.instructions;byId('flow-instruction-count').textContent=design.instructions.length+'/500';
     byId('flow-tone-group').hidden=design.mode==='alignment';byId('flow-original-tone').hidden=design.mode!=='alignment';
     var tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';
-    byId('flow-tone-selected').textContent=tone==='current'?'Color original':'VITA '+tone;
+    byId('flow-tone-selected').textContent='Selección: '+patientToneLabel(tone)+(patientToneChoices.some(function(item){return item.code===tone;})?'':' · VITA '+tone);
     document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
     shadeCarousel?.sync(tone);
     document.querySelectorAll('#quick-config .quick-choice').forEach(function(el){el.setAttribute('aria-pressed',String(el.classList.contains('selected')));});
@@ -242,23 +264,28 @@
     var refAdd=button('Añadir intraoral de referencia',function(){choose('intraoral',true);},'flow-text');refAdd.id='flow-reference-add';reference.append(refAdd);photos.append(reference);layout.append(photos);
     var config=byId('quick-config');config.querySelector('details').hidden=true;
     config.querySelector('h3').textContent='Diseña tu sonrisa';config.querySelector('h3').nextElementSibling.textContent='Elige el cambio que quieres explorar.';
-    config.querySelector(':scope > .quick-choice-title').textContent='Elige el cambio';
+    config.querySelector(':scope > .quick-choice-title').textContent='¿Qué cambio quieres explorar?';
     byId('quick-arch-options').previousElementSibling.textContent='¿Dónde aplicamos el cambio?';
     illustrateChoices();
     var appearanceLabel=byId('quick-appearance-options').previousElementSibling,tones=element('div');tones.id='flow-tone-group';appearanceLabel.before(tones);
-    appearanceLabel.textContent='Elige el tono';tones.append(appearanceLabel);
+    appearanceLabel.textContent='¿Qué tan claro lo imaginas?';tones.append(appearanceLabel);
     byId('quick-appearance-options').hidden=true;config.querySelector('label[for="quick-vita-tone"]').hidden=true;byId('quick-vita-tone').hidden=true;
-    var shadeHeader=element('div','flow-shade-header'),selectedTone=element('strong');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');shadeHeader.append(selectedTone);
+    var presetGrid=element('div','flow-tone-presets');presetGrid.setAttribute('role','group');presetGrid.setAttribute('aria-label','Claridad de la sonrisa');
+    var selectedTone=element('strong','flow-tone-selected');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');
     var track=element('div','flow-vita-track');track.id='flow-vita-track';track.setAttribute('aria-label','Tonos VITA Classical');
     function chooseTone(code){seleccionarAparienciaRapida(code,null,false);syncPreferences();}
-    [-1,1].forEach(function(direction){var b=button(direction<0?'‹':'›',function(){shadeCarousel.step(direction);},'flow-shade-arrow');b.setAttribute('aria-label',direction<0?'Ver tonos anteriores':'Ver más tonos');shadeHeader.append(b);});
+    patientToneChoices.forEach(function(choice){
+      var preset=button('',function(){chooseTone(choice.code);},'flow-tone-preset');preset.dataset.flowTone=choice.code;var sample=element('span','flow-tone-sample');
+      if(choice.code==='current')sample.classList.add('is-current');else SmylVitaSamples.attachFilter(sample,choice.code);
+      preset.append(sample,element('span','flow-tone-preset-copy'));preset.lastElementChild.append(element('strong','',choice.label),element('small','',choice.detail));presetGrid.append(preset);
+    });
     VITA_CLASSICAL.forEach(function(shade){var b=button('',function(){shadeCarousel.pick(shade.code);},'flow-vita-card');b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar tono VITA '+shade.code);
       b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>VITA '+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
       SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);
       b.append(element('strong','',shade.code));track.append(b);
     });
-    var currentTone=button('Conservar color original',function(){chooseTone('current');},'flow-keep-tone');currentTone.dataset.flowTone='current';
-    tones.append(shadeHeader,track,currentTone,element('p','flow-tone-help','Desliza: la carilla del centro queda seleccionada. También puedes tocarla. Tonos aproximados en pantalla; confirma con la guía VITA física.'));
+    var professional=element('details','flow-professional-tones');professional.innerHTML='<summary>Ajuste profesional de tono <span>Guía VITA</span></summary><p>Si el odontólogo ya definió un tono, puede elegir aquí el código exacto.</p>';professional.append(track);
+    tones.append(presetGrid,selectedTone,professional,element('p','flow-tone-help','Estas opciones son una aproximación visual. El tono clínico definitivo se confirma con una guía física.'));
     shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
     var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';

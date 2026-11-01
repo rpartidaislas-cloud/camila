@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMYL · Opciones simples del simulador</title>
+<link rel="stylesheet" href="../../smyl-studio.css?v=20">
+<style>
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,sans-serif}
+  body{overflow:auto}.screen{display:none}.screen.active{display:block}.quick-config{display:block}
+</style>
+<body class="smyl-organized">
+  <main class="screen active quick-guided-active" id="s-photos">
+    <div class="flow-shell">
+      <header class="flow-heading"><img src="../../icons/smyl_logo.png" alt="SMYL"><span>Vista de prueba · no genera imágenes</span></header>
+      <nav class="flow-steps"><span class="current">1&nbsp; Preparar</span><span>2&nbsp; Comparar</span></nav>
+      <div class="flow-title"><h1>Prepara tu simulación</h1><p class="flow-muted">Una foto y tres decisiones sencillas.</p></div>
+      <div class="flow-prepare-grid">
+        <section class="flow-photo-workspace">
+          <div class="flow-main-photo"><div class="flow-empty"><span class="flow-empty-symbol">＋</span><h2>Empieza con una fotografía</h2><p>Del rostro o intraoral.<br>La vista que quieras trabajar primero.</p><button class="flow-primary">Tomar o subir foto</button></div></div>
+          <aside class="flow-reference"><p>Empieza con una sola foto. Las demás vistas son opcionales.</p><small>Usa siempre fotos autorizadas de la misma persona.</small></aside>
+        </section>
+        <section class="quick-config" id="quick-config">
+          <h3>Diseña tu sonrisa</h3><p>Elige el cambio que quieres explorar.</p>
+          <span class="quick-choice-title">¿Qué cambio quieres explorar?</span>
+          <div class="quick-choice-grid" id="quick-objective-options">
+            <button class="quick-choice flow-visual-choice"><span class="flow-choice-check">✓</span><span class="flow-choice-art">◡</span><strong>Mejorar forma y tono</strong><small>Sin mover los dientes</small></button>
+            <button class="quick-choice flow-visual-choice"><span class="flow-choice-check">✓</span><span class="flow-choice-art">◡</span><strong>Alinear</strong><small>Conserva tu tono</small></button>
+            <button class="quick-choice flow-visual-choice selected"><span class="flow-choice-check">✓</span><span class="flow-choice-art">◡</span><strong>Alinear y mejorar</strong><small>Forma y tono en una propuesta</small></button>
+          </div>
+          <span class="quick-choice-title">¿Dónde aplicamos el cambio?</span>
+          <div class="quick-choice-grid" id="quick-arch-options">
+            <button class="quick-choice selected">Arriba</button><button class="quick-choice">Abajo</button><button class="quick-choice">Ambos</button>
+          </div>
+          <div id="flow-tone-group">
+            <span class="quick-choice-title">¿Qué tan claro lo imaginas?</span>
+            <div class="flow-tone-presets">
+              <button class="flow-tone-preset"><span class="flow-tone-sample is-current"></span><span class="flow-tone-preset-copy"><strong>Mi tono actual</strong><small>Sin cambiar el color</small></span></button>
+              <button class="flow-tone-preset"><span class="flow-tone-sample"></span><span class="flow-tone-preset-copy"><strong>Natural</strong><small>Cambio discreto</small></span></button>
+              <button class="flow-tone-preset selected"><span class="flow-tone-sample"></span><span class="flow-tone-preset-copy"><strong>Claro natural</strong><small>Más luminoso</small></span></button>
+              <button class="flow-tone-preset"><span class="flow-tone-sample"></span><span class="flow-tone-preset-copy"><strong>Muy claro</strong><small>El más brillante natural</small></span></button>
+            </div>
+            <strong class="flow-tone-selected">Selección: Claro natural</strong>
+            <details class="flow-professional-tones"><summary>Ajuste profesional de tono <span>Guía VITA</span></summary><p>El odontólogo puede elegir aquí el código exacto.</p></details>
+            <p class="flow-tone-help">Aproximación visual. El tono clínico definitivo se confirma con una guía física.</p>
+          </div>
+          <details class="flow-notes"><summary>Añadir una indicación <span>Opcional</span></summary></details>
+          <button class="quick-generate flow-primary" disabled>Generar mi propuesta</button>
+          <p class="flow-muted">Añade una fotografía para continuar.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
