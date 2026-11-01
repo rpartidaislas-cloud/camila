@@ -53,7 +53,14 @@
    if(!valid()||!run.store||run.busy&&document===run.doc)return false;
    const saved=await run.store.save(document,run.revision);if(!valid())return false;run.doc=saved.document;run.revision=saved.revision;run.dirty=false;dispatchEvent(new CustomEvent('smyl:radiograph-review-saved',{detail:{tenant,patient,study:study.id}}));return true;
   }
-  function applyImageView(stage,img){stage.style.width=(run.view.zoom*100)+'%';img.style.filter='brightness('+run.view.brightness+'%) contrast('+run.view.contrast+'%) invert('+(run.view.invert?1:0)+')';}
+  // En escritorio la imagen se ajusta al área libre entre los controles flotantes (arriba 84 px, abajo 92 px, 24 px a cada lado);
+  // al ampliar, el zoom multiplica ese ajuste. En pantallas angostas se conserva el ancho completo.
+  function fitWidth(wrap,img){
+   if(!window.matchMedia?.('(min-width: 960px)').matches||!wrap||!img.naturalWidth||!img.naturalHeight)return null;
+   const availableWidth=wrap.clientWidth-48,availableHeight=wrap.clientHeight-176;
+   return availableWidth>0&&availableHeight>0?Math.min(availableWidth,availableHeight*img.naturalWidth/img.naturalHeight):null;
+  }
+  function applyImageView(stage,img){const fit=fitWidth(stage.parentElement,img);stage.style.width=fit?Math.round(fit*run.view.zoom)+'px':(run.view.zoom*100)+'%';img.style.filter='brightness('+run.view.brightness+'%) contrast('+run.view.contrast+'%) invert('+(run.view.invert?1:0)+')';}
   // Dos vistas de la misma radiografía: limpia (sin marcas) y con todas las observaciones. No toca la imagen ni los datos.
   function marksToggle(stage){
    const group=n('div','rr-view-switch');group.setAttribute('role','group');group.setAttribute('aria-label','Vista de la radiografía');
@@ -75,7 +82,7 @@
   function selectItem(id){run.selected=id;run.placing=null;render();requestAnimationFrame(()=>{const card=host.querySelector('[data-rr-item="'+id+'"]');if(!card)return;card.focus({preventScroll:true});card.scrollIntoView({block:'nearest',inline:'nearest'});card.querySelector('.rr-actions')?.scrollIntoView({block:'nearest',inline:'nearest'});});}
   function imagePanel(doc,clickable=false){
    const unlocated=(doc?.items||[]).filter(i=>i.x===null&&i.state!=='rejected').length,canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
-   const noteText=clickable?(unlocated?unlocated+(unlocated===1?' señal sin ubicación. ':' señales sin ubicación. ')+'Ábrelas y usa «Ubicar señal».':'Selecciona una señal para ubicarla.'):'El original se conserva sin modificaciones.',note=n('small','rr-canvas-note'+(clickable&&unlocated?' is-alert':''),noteText);copy.append(note);head.append(copy,marksToggle(stage));img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);canvas.append(head,viewToolbar(stage,img,wrap),wrap);
+   const noteText=clickable?(unlocated?unlocated+(unlocated===1?' señal sin ubicación. ':' señales sin ubicación. ')+'Ábrelas y usa «Ubicar señal».':'Selecciona una señal para ubicarla.'):'El original se conserva sin modificaciones.',note=n('small','rr-canvas-note'+(clickable&&unlocated?' is-alert':''),noteText);copy.append(note);head.append(copy,marksToggle(stage));img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);img.addEventListener('load',()=>applyImageView(stage,img));if(window.ResizeObserver)new ResizeObserver(()=>applyImageView(stage,img)).observe(wrap);canvas.append(head,viewToolbar(stage,img,wrap),wrap);
    if(run.placing)run.view.marks=true;
    stage.classList.toggle('rr-marks-off',!run.view.marks);stage.classList.toggle('is-placing',!!run.placing);
    // Cuadros punteados sobre las zonas observadas (solo señales ubicadas; las descartadas no se dibujan). El tamaño lo propone la IA;

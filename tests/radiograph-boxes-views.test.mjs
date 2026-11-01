@@ -78,6 +78,10 @@ test('coherencia entre la pieza y su ubicación en una panorámica (derecha del 
   assert.equal(check('panoramic', '38', 0.9, 0.8), '');
   assert.equal(check('panoramic', '48', 0.1, 0.8), '');
   assert.equal(check('panoramic', '31', 0.44, 0.7), '', 'cerca de la línea media no avisa');
+  // el plano de mordida se curva hacia arriba en los extremos: los terceros molares inferiores quedan altos y no son un error
+  assert.equal(check('panoramic', '48', 0.07, 0.32), '', 'tercer molar inferior alto en el extremo');
+  assert.equal(check('panoramic', '38', 0.75, 0.33), '');
+  assert.equal(check('panoramic', '18', 0.1, 0.45), '', 'tercer molar superior en el extremo');
   assert.equal(check('panoramic', '18', 0.9, 0.2), 'side', 'lado equivocado');
   assert.equal(check('panoramic', '38', 0.1, 0.8), 'side');
   assert.equal(check('panoramic', '18', 0.1, 0.9), 'arch', 'arcada equivocada');
@@ -141,4 +145,17 @@ test('el servidor razona más y espera más antes de cortar', () => {
   assert.match(ts, /export const RADIOGRAPH_EFFORT = "high";/);
   assert.match(ts, /export const RADIOGRAPH_TIMEOUT_MS = 120_000;/);
   assert.match(ts, /de 0\.03 a 0\.10 \(una o dos piezas\)/);
+});
+
+test('la imagen se ajusta al área libre entre los controles flotantes y el zoom parte de ese ajuste', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /function fitWidth\(wrap,img\)/);
+  assert.match(js, /matchMedia\?\.\('\(min-width: 960px\)'\)/, 'solo en escritorio');
+  assert.match(js, /wrap\.clientHeight-176/);
+  assert.match(js, /Math\.round\(fit\*run\.view\.zoom\)\+'px'/);
+  assert.match(js, /new ResizeObserver\(\(\)=>applyImageView\(stage,img\)\)\.observe\(wrap\)/);
+});
+
+test('al ampliar, el contenedor no encoge la imagen (el escenario no se contrae)', () => {
+  assert.match(read('smyl-radiograph-workbench.css'), /\.rr-image-stage \{ flex: none; margin: auto; \}/);
 });
