@@ -80,6 +80,43 @@
    const control=(label,input)=>{const box=n('label','rr-tool-range');box.append(n('span','',label),input);return box;};tools.append(control('Zoom',zoom),control('Contraste',contrast),control('Brillo',brightness),invert,reset);return tools;
   }
   function selectItem(id){run.selected=id;run.placing=null;render();requestAnimationFrame(()=>{const card=host.querySelector('[data-rr-item="'+id+'"]');if(!card)return;card.focus({preventScroll:true});card.scrollIntoView({block:'nearest',inline:'nearest'});card.querySelector('.rr-actions')?.scrollIntoView({block:'nearest',inline:'nearest'});});}
+  // Edición del cuadro de la señal abierta. Trabaja en fracciones de la imagen (0 a 1) con el mismo tamaño mínimo y máximo que el
+  // contrato guardado (0.02 a 0.6) y deja el resultado como cambio del dentista (la señal vuelve a «por revisar»).
+  function makeBoxEditable(item,index,view){
+   const {box,mark,toothTag,stage}=view,MIN=.02,MAX=.6,clamp=(value,low,high)=>Math.max(low,Math.min(high,value)),round=value=>Math.round(value*1000)/1000;
+   let rect={left:view.left,top:view.top,width:view.w,height:view.h},changed=false,issueBefore=SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);
+   box.classList.add('is-editable');box.removeAttribute('aria-hidden');box.tabIndex=0;box.setAttribute('role','group');
+   box.setAttribute('aria-label','Cuadro de la señal '+(index+1)+'. Flechas para moverlo; Mayús y flechas para cambiar su tamaño.');
+   ['nw','n','ne','e','se','s','sw','w'].forEach(side=>{const handle=n('span','rr-handle');handle.dataset.handle=side;box.append(handle);});
+   const paint=()=>{const l=rect.left*100+'%',t=rect.top*100+'%';box.style.left=l;box.style.top=t;box.style.width=rect.width*100+'%';box.style.height=rect.height*100+'%';mark.style.left=l;mark.style.top=t;};
+   const commit=()=>{
+    item.x=round(rect.left+rect.width/2);item.y=round(rect.top+rect.height/2);item.w=round(rect.width);item.h=round(rect.height);
+    const issue=SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);box.classList.toggle('rr-box-warn',!!issue);toothTag.textContent=(item.tooth||'?')+(issue?' !':'');
+    markDirty(item);if(issue!==issueBefore){issueBefore=issue;render();}
+   };
+   const apply=(left,top,right,bottom,mode)=>{
+    let l=left,t=top,r=right,b=bottom;
+    if(mode==='move'){const width=r-l,height=b-t;l=clamp(l,0,1-width);t=clamp(t,0,1-height);r=l+width;b=t+height;}
+    else{l=clamp(l,0,r-MIN);t=clamp(t,0,b-MIN);r=clamp(r,l+MIN,1);b=clamp(b,t+MIN,1);if(r-l>MAX){if(mode.includes('w'))l=r-MAX;else r=l+MAX;}if(b-t>MAX){if(mode.includes('n'))t=b-MAX;else b=t+MAX;}}
+    rect={left:l,top:t,width:r-l,height:b-t};changed=true;paint();
+   };
+   const start=(event,mode)=>{
+    if(event.pointerType==='mouse'&&event.button!==0)return;event.preventDefault();event.stopPropagation();
+    const bounds=stage.getBoundingClientRect(),origin={left:rect.left,top:rect.top,right:rect.left+rect.width,bottom:rect.top+rect.height},x0=event.clientX,y0=event.clientY;
+    if(!bounds.width||!bounds.height)return;changed=false;box.setPointerCapture?.(event.pointerId);box.classList.add('is-dragging');
+    const move=e=>{const dx=(e.clientX-x0)/bounds.width,dy=(e.clientY-y0)/bounds.height;
+     apply(mode==='move'||mode.includes('w')?origin.left+dx:origin.left,mode==='move'||mode.includes('n')?origin.top+dy:origin.top,mode==='move'||mode.includes('e')?origin.right+dx:origin.right,mode==='move'||mode.includes('s')?origin.bottom+dy:origin.bottom,mode);};
+    const end=()=>{box.removeEventListener('pointermove',move);box.removeEventListener('pointerup',end);box.removeEventListener('pointercancel',end);box.classList.remove('is-dragging');if(changed){changed=false;commit();}};
+    box.addEventListener('pointermove',move);box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
+   };
+   box.addEventListener('pointerdown',event=>{const handle=event.target.closest?.('.rr-handle');start(event,handle?handle.dataset.handle:'move');});
+   box.addEventListener('keydown',event=>{
+    const step=event.key==='ArrowLeft'?[-1,0]:event.key==='ArrowRight'?[1,0]:event.key==='ArrowUp'?[0,-1]:event.key==='ArrowDown'?[0,1]:null;if(!step)return;
+    event.preventDefault();event.stopPropagation();const d=.005,right=rect.left+rect.width,bottom=rect.top+rect.height;
+    if(event.shiftKey)apply(rect.left,rect.top,right+step[0]*d,bottom+step[1]*d,'se');else apply(rect.left+step[0]*d,rect.top+step[1]*d,right+step[0]*d,bottom+step[1]*d,'move');
+    clearTimeout(box.commitTimer);box.commitTimer=setTimeout(()=>{changed=false;commit();},350);
+   });
+  }
   function imagePanel(doc,clickable=false){
    const unlocated=(doc?.items||[]).filter(i=>i.x===null&&i.state!=='rejected').length,canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
    const noteText=clickable?(unlocated?unlocated+(unlocated===1?' señal sin ubicación. ':' señales sin ubicación. ')+'Ábrelas y usa «Ubicar señal».':'Selecciona una señal para ubicarla.'):'El original se conserva sin modificaciones.',note=n('small','rr-canvas-note'+(clickable&&unlocated?' is-alert':''),noteText);copy.append(note);head.append(copy,marksToggle(stage));img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);img.addEventListener('load',()=>applyImageView(stage,img));if(window.ResizeObserver)new ResizeObserver(()=>applyImageView(stage,img)).observe(wrap);canvas.append(head,viewToolbar(stage,img,wrap),wrap);
@@ -91,12 +128,14 @@
     const w=Math.min(.6,typeof item.w==='number'?item.w:.07),h=Math.min(.6,typeof item.h==='number'?item.h:.12),left=Math.max(0,Math.min(1-w,item.x-w/2)),top=Math.max(0,Math.min(1-h,item.y-h/2)),selected=run.selected===item.id;
     const box=n('div','rr-box rr-box-'+item.state+(selected?' is-selected':''));box.style.left=left*100+'%';box.style.top=top*100+'%';box.style.width=w*100+'%';box.style.height=h*100+'%';box.setAttribute('aria-hidden','true');
     const issue=SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);if(issue)box.classList.add('rr-box-warn');
-    box.append(n('span','rr-box-tooth',(item.tooth||'?')+(issue?' !':'')));stage.append(box);
-    const mark=button(String(index+1),()=>selectItem(item.id),'rr-mark rr-mark-'+item.state+(selected?' is-selected':''));mark.style.left=left*100+'%';mark.style.top=top*100+'%';mark.setAttribute('aria-label',(stateLabel[item.state]||'Señal')+' '+(index+1)+(item.tooth?' · pieza '+item.tooth:' · diente por indicar')+(issue?' · comprobar: la posición no coincide con la pieza':''));mark.setAttribute('aria-pressed',String(selected));stage.append(mark);});
+    const toothTag=n('span','rr-box-tooth',(item.tooth||'?')+(issue?' !':''));box.append(toothTag);stage.append(box);
+    const mark=button(String(index+1),()=>selectItem(item.id),'rr-mark rr-mark-'+item.state+(selected?' is-selected':''));mark.style.left=left*100+'%';mark.style.top=top*100+'%';mark.setAttribute('aria-label',(stateLabel[item.state]||'Señal')+' '+(index+1)+(item.tooth?' · pieza '+item.tooth:' · diente por indicar')+(issue?' · comprobar: la posición no coincide con la pieza':''));mark.setAttribute('aria-pressed',String(selected));stage.append(mark);
+    // La señal abierta tiene el cuadro editable: se arrastra para moverlo y las asas cambian su tamaño (ratón, tacto y flechas).
+    if(clickable&&selected&&!run.placing&&run.view.marks)makeBoxEditable(item,index,{box,mark,toothTag,stage,left,top,w,h});});
    if(clickable)img.onclick=e=>{if(!run.placing)return;const item=run.doc.items.find(i=>i.id===run.placing),r=img.getBoundingClientRect();if(!item)return;item.x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));item.y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));item.state='pending';run.selected=item.id;run.placing=null;run.dirty=true;render();};
    if(run.placing){const prompt=n('div','rr-place');prompt.setAttribute('role','status');prompt.append(n('strong','','Ubica la señal'),n('span','','Toca la zona correspondiente en la radiografía.'));canvas.append(prompt);}
    const legend=n('div','rr-image-legend');legend.append(n('span','rr-key rr-key-pending','Por revisar'),n('span','rr-key rr-key-confirmed','Confirmada'),n('span','rr-key rr-key-warn','Comprobar posición'),n('span','rr-gesture-hint','Arrastra para recorrer · pellizca para ampliar'));canvas.append(legend);
-   if(clickable){const hint=n('div','rr-hint'),kb=(keys,label)=>{const item=n('span');keys.forEach(key=>item.append(n('kbd','',key)));item.append(label);return item;};hint.setAttribute('aria-hidden','true');hint.append(kb(['J','K'],'navegar'),kb(['C'],'confirmar'),kb(['V'],'cambiar vista'));canvas.append(hint);}
+   if(clickable){const hint=n('div','rr-hint'),kb=(keys,label)=>{const item=n('span');keys.forEach(key=>item.append(n('kbd','',key)));item.append(label);return item;};hint.setAttribute('aria-hidden','true');hint.append(kb(['J','K'],'navegar'),kb(['C'],'confirmar'),kb(['V'],'cambiar vista'),n('span','','Arrastra el cuadro abierto · asas para su tamaño'));canvas.append(hint);}
    return canvas;
   }
   function markDirty(item){
@@ -113,7 +152,7 @@
    const textLabel=n('label','rr-field','Notas del dentista'),text=n('textarea');text.rows=3;text.maxLength=600;text.value=item.text;text.placeholder='Escribe tus anotaciones sobre esta señal.';text.setAttribute('aria-label','Notas del dentista de la señal '+(index+1));text.oninput=()=>{item.text=text.value;markDirty(item);};textLabel.append(text);
    const locate=button(item.x===null?'Ubicar señal':'Cambiar ubicación',()=>{run.placing=item.id;run.selected=item.id;render();});
    const confirm=button('Confirmar señal',()=>{if(!item.text.trim()){status('Escribe tus notas antes de confirmar.','rr-error');return;}if(item.x===null){run.placing=item.id;render();status('Ubica la señal en la radiografía.','rr-error');return;}item.state='confirmed';run.placing=null;run.selected=item.id;run.dirty=true;render();},'rr-primary');
-   const reject=button('Descartar',()=>{item.state='rejected';run.placing=null;run.selected=item.id;run.dirty=true;render();},'rr-tertiary'),actions=n('div','rr-actions');actions.append(locate,confirm,reject);body.append(label,textLabel,n('small','rr-location',item.x===null?'Pendiente de ubicar en la imagen.':item.state==='confirmed'?'Ubicación confirmada por el dentista.':'Ubicación propuesta: compruébala en la imagen y ajústala si no coincide.'),actions);card.append(body);return card;
+   const reject=button('Descartar',()=>{item.state='rejected';run.placing=null;run.selected=item.id;run.dirty=true;render();},'rr-tertiary'),actions=n('div','rr-actions');actions.append(locate,confirm,reject);body.append(label,textLabel,n('small','rr-location',item.x===null?'Pendiente de ubicar en la imagen.':item.state==='confirmed'?'Ubicación confirmada por el dentista.':'Ubicación propuesta: arrastra el cuadro en la imagen o sus asas para ajustarla.'),actions);card.append(body);return card;
   }
   function signalPanel(){
    const panel=n('aside','rr-signal-panel'),head=n('header','rr-panel-head'),tabs=n('div','rr-filters rr-tabs'),list=n('div','rr-items');

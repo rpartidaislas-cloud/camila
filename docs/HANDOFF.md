@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Claude — Radiografía: ajustar cuadros arrastrando y cambiando de tamaño
+
+- **Por qué:** Claude estima las coordenadas «a ojo» (cajas ~10 % por arriba en una revisión real); el visor dibuja exactamente lo que
+  recibe (comprobado: error 0). La exactitud final la deja el dentista.
+- **Qué hace** (`smyl-radiograph-review.js` v16, CSS v10): el cuadro de la **señal abierta** (no en «Sin marcas» ni al ubicar) se
+  arrastra para moverlo y tiene **ocho asas** (esquinas y lados) para el tamaño. Con ratón, tacto y teclado: flechas mueven 0.5 %,
+  Mayús + flechas cambian el tamaño. Respeta la imagen (no sale de 0–1) y el contrato guardado (tamaño 0.02–0.6); arrastrar no
+  desplaza la imagen. El cambio vuelve la señal a «por revisar» (`markDirty`) y se guarda con «Guardar revisión» (`x,y,w,h`).
+  Si la pieza deja de coincidir con el lado o la arcada, se actualiza el aviso.
+- Pequeño arreglo: los números de las señales eran óvalos (`min-height` heredado); ahora círculos.
+- Sin cambios de datos, servidor ni migraciones.
+- Archivos: visor, CSS, copias móviles, `app.html`/`sw.js` (caché `radiograph-drag-v65`), `tests/radiograph-boxes-views.test.mjs`.
+  Verificado en navegador: mover (+10 %/+5 % exactos), agrandar desde la esquina, límites de la imagen, teclado, tamaño mínimo y guardado.
+
 ## 2026-11-01 — Claude — Radiografía: análisis en dos pasadas (mapa de piezas + lectura)
 
 - **Por qué:** Claude solo, en una pasada, mezclaba «qué pieza es» y «dónde está» con el texto clínico. No se promete exactitud (la
