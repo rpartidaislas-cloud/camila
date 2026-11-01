@@ -37,8 +37,15 @@ assert.match(studio, /data-edit-stage/);
 assert.match(studio, /Natural suele ser un buen punto de partida/);
 assert.match(css, /\.flow-progress-track/);
 assert.match(css, /\.flow-review-list/);
+assert.match(studio, /flow-photo-coach/);
+assert.match(studio, /flow-photo-readiness/);
+assert.match(studio, /flow-result-modes/);
+assert.match(studio, /data-result-mode/);
+assert.match(studio, /EXPLORA OTRA VERSIÓN/);
+assert.match(css, /\.flow-result-intro/);
+assert.match(css, /\.flow-result-variant/);
 
-assert.match(html, /smyl-studio\.css\?v=21/);
-assert.match(html, /smyl-studio\.js\?v=20/);
+assert.match(html, /smyl-studio\.css\?v=22/);
+assert.match(html, /smyl-studio\.js\?v=21/);
 
 console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');

@@ -9271,3 +9271,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Pruebas: `tests/radiograph-v1-observation-reason.test.mjs`.
 - Siguiente paso: con el motivo real de la panorámica, decidir si se corrige el prompt, se fuerza un esquema JSON en la función `claude`
   (como ya se hace con las fotografías) o se tolera algún caso inofensivo (p. ej. `tooth: ""` como null).
+
+## 2026-11-01 — Codex — Simulador progresivo v3: captura guiada y resultado premium
+
+- La entrada de fotografía ahora permite tomar una frontal o elegir un archivo directamente, conserva el selector de vistas avanzadas y muestra una guía visual de encuadre sin presentar el checklist como validación clínica automática.
+- Las decisiones siguen un flujo progresivo de una tarea por pantalla. La revisión final incorpora miniatura, resumen editable, aviso orientativo y estado de generación; no cambia prompts, consumo de simulaciones ni persistencia.
+- El resultado incorpora encabezado editorial, resumen de objetivo/zona/claridad y tres modos accesibles: Comparación, Original y Propuesta. Todos reutilizan el comparador canónico existente; no se creó un segundo resultado ni se alteraron sus píxeles.
+- “Otras vistas” y “Explora otra versión” ordenan las miniaturas y la selección de claridad. Las herramientas profesionales permanecen bajo divulgación progresiva.
+- Se adaptaron patrones de stepper, upload y compare slider al stack HTML/CSS/JS existente; no se añadió React, Tailwind ni una dependencia de 21st.dev.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=21`, `smyl-studio.css?v=22` y caché PWA `premium-v3`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6). Sin migraciones, cambios de backend, Edge Functions ni datos clínicos.

@@ -188,6 +188,13 @@
     byId('flow-picker').close();var input=byId('flow-upload');
     if(camera)input.setAttribute('capture','environment');else input.removeAttribute('capture');input.click();
   }
+  function pickPrimary(camera){
+    if(busy||generating)return;
+    selected='frontal';
+    var input=byId('flow-upload');
+    if(camera)input.setAttribute('capture','user');else input.removeAttribute('capture');
+    input.click();
+  }
   async function upload(){
     var input=byId('flow-upload'),file=input.files[0],view=selected,firstPhoto=!S.photos.length;if(!file||busy||generating)return;
     if(!fotoPropiaPermitida(file)){input.value='';mostrarAvisoAplicacion('Fotografía no válida','Usa JPG, PNG o WebP de hasta 20 MB.');return;}
@@ -264,6 +271,7 @@
     var stage=byId('flow-main-photo'),strip=byId('flow-photo-strip');stage.replaceChildren();strip.replaceChildren();var primary=S.photos[0];
     if(primary){
       var image=element('img');image.src=source(primary);image.alt=label(primary.view)+(primary.adjustOriginal?' · fotografía ajustada':' · fotografía original');stage.append(image,element('span','flow-photo-caption',(primary.referenceOnly?'Solo referencia':'Incluida en la simulación')+' · '+label(primary.view)));
+      var readiness=element('div','flow-photo-readiness');readiness.innerHTML='<strong>Comprueba antes de seguir</strong><span>Sonrisa visible</span><span>Buena luz</span><span>Rostro centrado</span>';stage.append(readiness);
       S.photos.forEach(function(photo){var item=button('',function(){select(photo);},'flow-thumb'+(photo===primary?' selected':''));item.setAttribute('aria-label','Seleccionar '+label(photo.view));item.setAttribute('aria-pressed',String(photo===primary));var thumb=element('img');thumb.src=source(photo);thumb.alt='';item.append(thumb,element('span','',label(photo.view)),element('small','',photo.referenceOnly?'Solo referencia':SmylPhotoBatch.state(photo)==='ready'?'✓ Lista':'✓ A simular'));strip.append(item);});
     }else{
       var empty=element('div','flow-empty');empty.innerHTML='<span class="flow-empty-symbol" aria-hidden="true">＋</span><h2>Empieza con una fotografía</h2><p>Del rostro o intraoral.<br>La vista que quieras trabajar primero.</p>';empty.append(button('Tomar o subir foto',function(){choose();},'flow-primary'));stage.append(empty);
@@ -280,10 +288,13 @@
     byId('flow-photo-simulate').checked=!!primary&&!primary.referenceOnly;
     byId('flow-photo-simulate').disabled=busy||generating;
     byId('flow-generate').disabled=busy||generating||!batch.count;
+    byId('flow-generate').classList.toggle('is-loading',generating);
+    byId('flow-generate').setAttribute('aria-busy',String(generating));
     byId('flow-generation-note').textContent=!primary?'Añadir la fotografía no consume simulaciones.':!batch.count?'Marca al menos una fotografía para simular.':remaining?(remaining===1?'Generar esta propuesta usa 1 simulación.':'Se generarán '+remaining+' fotos marcadas; cada una usa 1 simulación.'):batch.review?'Hay resultados listos para revisar. Abrirlos no consume otra simulación.':'Tus simulaciones están listas. Volver a verlas no consume otra simulación.';
     var ref=primary&&referenciaDentalMaestraParaVista(primary.view);
     byId('flow-reference-status').textContent=ref?.role==='original-anatomy'?'Apoyo para esta vista: '+label(ref.view)+'. Su original ayuda a interpretar los dientes. Se simula también si está marcada.':'Intraorales opcionales: pueden apoyar las fotos del rostro y también tener su propia simulación. Usa «Solo referencia» si no quieres simularlas.';
     byId('flow-reference-add').hidden=!!(ref?.role==='original-anatomy');
+    var reviewPhoto=byId('flow-review-photo');if(reviewPhoto){reviewPhoto.hidden=!primary;if(primary)reviewPhoto.src=source(primary);}
     document.querySelectorAll('#flow-photo-workspace button').forEach(function(el){el.disabled=busy||generating;});syncPreferences();
     document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
     renderProgressive();
@@ -319,8 +330,8 @@
     var progress=element('div','flow-progress');progress.id='flow-progress';progress.innerHTML='<div class="flow-progress-line"><span id="flow-progress-kicker"></span><button id="flow-progress-back" type="button">← Atrás</button></div><div id="flow-progress-track" class="flow-progress-track" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>';config.prepend(progress);
     byId('flow-progress-back').onclick=function(){advanceGuided(previousGuidedStage(),true);};
     var configTitle=config.querySelector('h3'),configCopy=configTitle.nextElementSibling;configTitle.tabIndex=-1;configCopy.id='flow-progress-copy';
-    var photoPrompt=element('section','flow-guided-photo');photoPrompt.id='flow-stage-photo';photoPrompt.innerHTML='<div class="flow-guided-photo-icon" aria-hidden="true">＋</div><strong>Usa una foto frontal sonriendo</strong><p>También puedes empezar con una intraoral. La foto se conserva como original y subirla no consume simulaciones.</p>';
-    photoPrompt.append(button('Elegir fotografía',function(){choose();},'flow-primary'));configCopy.after(photoPrompt);
+    var photoPrompt=element('section','flow-guided-photo');photoPrompt.id='flow-stage-photo';photoPrompt.innerHTML='<div class="flow-photo-coach" aria-hidden="true"><span class="flow-coach-frame"><i></i><b></b></span></div><div class="flow-guided-photo-copy"><span class="flow-stage-badge">PRIMER PASO</span><strong>Usa una foto frontal sonriendo</strong><p>De frente, con buena luz y sin filtros. Conservamos siempre el original.</p><ul><li>Rostro centrado</li><li>Dientes visibles</li><li>Imagen nítida</li></ul></div>';
+    var photoActions=element('div','flow-guided-photo-actions');photoActions.append(button('Tomar foto',function(){pickPrimary(true);},'flow-primary'),button('Elegir archivo',function(){pickPrimary(false);},'flow-secondary'),button('Usar otra vista',function(){choose();},'flow-text'));photoPrompt.append(photoActions,element('small','flow-upload-help','JPG, PNG o WebP · máximo 20 MB · subirla no consume simulaciones'));configCopy.after(photoPrompt);
     var objectiveTitle=config.querySelector(':scope > .quick-choice-title'),objectiveOptions=byId('quick-objective-options'),objectiveStage=element('section','flow-guided-section');objectiveStage.id='flow-stage-objective';objectiveTitle.textContent='Elige una opción';objectiveTitle.before(objectiveStage);objectiveStage.append(objectiveTitle,objectiveOptions);
     var archOptions=byId('quick-arch-options'),archTitle=archOptions.previousElementSibling,archStage=element('section','flow-guided-section');archStage.id='flow-stage-arch';archTitle.textContent='Selecciona la zona';archTitle.before(archStage);archStage.append(archTitle,archOptions);
     illustrateChoices();
@@ -349,7 +360,7 @@
     shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
     var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
-    var review=element('section','flow-review');review.id='flow-stage-review';review.innerHTML='<div class="flow-review-ready"><span aria-hidden="true">✓</span><div><strong>Todo listo para comparar</strong><small>La foto original siempre se conserva.</small></div></div><div class="flow-review-list"><div><span>Cambio</span><strong id="flow-review-objective"></strong><button type="button" data-edit-stage="1">Cambiar</button></div><div><span>Zona</span><strong id="flow-review-arch"></strong><button type="button" data-edit-stage="2">Cambiar</button></div><div id="flow-review-tone-row"><span>Claridad</span><strong id="flow-review-tone"></strong><button type="button" data-edit-stage="3">Cambiar</button></div></div>';
+    var review=element('section','flow-review');review.id='flow-stage-review';review.innerHTML='<div class="flow-review-ready"><img id="flow-review-photo" alt="Fotografía que se utilizará" hidden><span aria-hidden="true">✓</span><div><strong>Todo listo para comparar</strong><small>Revisa la propuesta. Podrás volver y cambiar cualquier elección.</small></div></div><div class="flow-review-list"><div><span>Cambio</span><strong id="flow-review-objective"></strong><button type="button" data-edit-stage="1">Cambiar</button></div><div><span>Zona</span><strong id="flow-review-arch"></strong><button type="button" data-edit-stage="2">Cambiar</button></div><div id="flow-review-tone-row"><span>Claridad</span><strong id="flow-review-tone"></strong><button type="button" data-edit-stage="3">Cambiar</button></div></div><p class="flow-review-safety"><span aria-hidden="true">i</span> Es una comparación visual orientativa, no un diagnóstico ni una predicción clínica.</p>';
     review.querySelectorAll('[data-edit-stage]').forEach(function(control){control.onclick=function(){advanceGuided(Number(control.dataset.editStage),true);};});
     var gen=config.querySelector('.quick-generate');gen.before(review);review.append(notes,gen);gen.id='flow-generate';gen.textContent='Generar mi propuesta';gen.removeAttribute('onclick');gen.onclick=generate;
     var genNote=element('p','flow-muted');genNote.id='flow-generation-note';gen.after(genNote);
@@ -400,7 +411,15 @@
     ['btn-editor-diseno','btn-revision-clinica','diag-request-box'].forEach(function(id){if(byId(id))toolBody.append(byId(id));});byId('s-res').querySelector('.res-body').prepend(tools);
     var alignment=byId('ba-align-btn');
     if(alignment){alignment.removeAttribute('style');alignment.className='flow-secondary';alignment.textContent='Ajustar encuadre';toolBody.append(alignment);}
-    resHeader.append(button('Ajustar propuesta',openPhotos,'flow-secondary'));byId('s-res').querySelector('.res-logo').after(steps(1));render();
+    var resultIntro=element('section','flow-result-intro');resultIntro.innerHTML='<div class="flow-result-kicker">TU PROPUESTA VISUAL</div><div class="flow-result-heading"><div><h1>Compara el cambio a tu ritmo</h1><p>Desliza sobre la imagen o elige una vista rápida.</p></div><button type="button" class="flow-secondary" id="flow-result-adjust">Ajustar propuesta</button></div><div class="flow-result-summary" aria-label="Resumen de la propuesta"><span id="flow-result-objective"></span><span id="flow-result-arch"></span><span id="flow-result-tone"></span></div><div class="flow-result-modes" role="tablist" aria-label="Modo de comparación"><button type="button" role="tab" data-result-mode="compare" aria-selected="true">Comparación</button><button type="button" role="tab" data-result-mode="original" aria-selected="false">Original</button><button type="button" role="tab" data-result-mode="proposal" aria-selected="false">Propuesta</button></div>';
+    var baWrap=byId('ba-wrap');baWrap.before(resultIntro);byId('flow-result-adjust').onclick=openPhotos;
+    function setResultMode(mode){var position=mode==='original'?100:mode==='proposal'?0:50,over=byId('ba-over'),line=byId('ba-line');if(over)over.style.clipPath='inset(0 0 0 '+position+'%)';if(line)line.style.left=position+'%';document.querySelectorAll('[data-result-mode]').forEach(function(control){control.setAttribute('aria-selected',String(control.dataset.resultMode===mode));});}
+    resultIntro.querySelectorAll('[data-result-mode]').forEach(function(control){control.onclick=function(){setResultMode(control.dataset.resultMode);};});
+    var viewsHead=element('div','flow-result-section-head');viewsHead.innerHTML='<div><span>OTRAS VISTAS</span><strong>Cambia de fotografía sin perder tu comparación</strong></div>';byId('res-photos').before(viewsHead);
+    var variant=element('section','flow-result-variant');variant.innerHTML='<div><span>EXPLORA OTRA VERSIÓN</span><strong>¿Quieres probar otra claridad?</strong><p>Conserva esta propuesta y elige una alternativa cuando quieras.</p></div>';variant.append(button('Cambiar claridad',function(){window.abrirGuiaVitaDesdeResultado();},'flow-secondary'));byId('res-photos').after(variant);
+    function renderResultExperience(){var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';byId('flow-result-objective').textContent=guidedObjectiveLabel(design.mode);byId('flow-result-arch').textContent='Zona: '+guidedArchLabel(design.arch);byId('flow-result-tone').textContent=design.mode==='alignment'?'Tono original':patientToneLabel(tone);}
+    var resultQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=resultQuality.apply(this,arguments);renderResultExperience();return result;};
+    resHeader.append(button('Ajustar propuesta',openPhotos,'flow-secondary flow-header-adjust'));byId('s-res').querySelector('.res-logo').after(steps(1));renderResultExperience();render();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
