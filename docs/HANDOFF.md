@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Codex — Simulador rápido, recorrido progresivo
+
+- La preparación dejó de presentar todas las decisiones simultáneamente. El
+  paciente avanza por una sola pregunta a la vez: fotografía, cambio, zona,
+  claridad y revisión final.
+- Cada paso explica brevemente qué elegir, muestra el avance y permite volver
+  sin perder las decisiones anteriores. La revisión final resume la propuesta
+  y ofrece accesos directos para corregir cada elección antes de generar.
+- El objetivo `Alinear` omite automáticamente la claridad y adapta el progreso
+  a cuatro pasos, porque ese dato no interviene en esa propuesta.
+- Se conservaron sin cambios el motor de generación, la identidad dental, los
+  prompts, Supabase y las reglas clínicas. Web y PWA usan Studio JS v20 y CSS
+  v21; `mobile/www` quedó sincronizado con los mismos archivos.
+- QA: sintaxis JavaScript válida, **6/6** contratos focalizados aprobados y
+  revisión visual de escritorio, tableta y móvil sin desbordamiento. Publicado
+  en producción desde la rama de trabajo de Codex.
+
 ## 2026-11-01 — Codex — Simulador rápido, decisiones simples
 
 - Se corrigió el arranque del espacio guiado: la opción `Carillas` no tenía

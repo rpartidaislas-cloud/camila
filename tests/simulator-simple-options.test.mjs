@@ -24,7 +24,21 @@ assert.match(studio, /Guía VITA/);
 assert.match(css, /\.flow-tone-presets/);
 assert.match(css, /\.flow-professional-tones/);
 
-assert.match(html, /smyl-studio\.css\?v=20/);
-assert.match(html, /smyl-studio\.js\?v=19/);
+// The configuration behaves as a progressive conversation: photo, objective,
+// arch, tone and review. Only the current panel is visible, and every summary
+// choice can be edited without restarting the case.
+assert.match(studio, /guidedStage=0/);
+assert.match(studio, /function renderProgressive\(\)/);
+for (const stage of ['photo', 'objective', 'arch', 'review']) {
+  assert.match(studio, new RegExp(`flow-stage-${stage}`));
+}
+assert.match(studio, /flow-progress-track/);
+assert.match(studio, /data-edit-stage/);
+assert.match(studio, /Natural suele ser un buen punto de partida/);
+assert.match(css, /\.flow-progress-track/);
+assert.match(css, /\.flow-review-list/);
 
-console.log('SMYL simulator: guided workspace boots and patient-friendly tone choices are verified');
+assert.match(html, /smyl-studio\.css\?v=21/);
+assert.match(html, /smyl-studio\.js\?v=20/);
+
+console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');
