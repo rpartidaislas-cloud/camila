@@ -9533,3 +9533,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - No se modificaron generación, prompts, consumo, resultados, archivos originales ni persistencia. El cambio es únicamente de navegación y presentación.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=24`, `smyl-studio.css?v=25` y caché PWA `navy-cleanup-v6`.
 - Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
+
+## 2026-11-02 — Codex — Simulador progresivo v7: guía facial seleccionada y controles compactos
+
+- La silueta genérica de la primera etapa se sustituyó por la guía facial seleccionada por producto, conservada como PNG transparente en `icons/ui/smyl-face-capture-guide-v1.png`.
+- La guía se presenta sobre una superficie navy discreta y mantiene su transparencia y proporción original; el texto continúa siendo la fuente accesible de instrucciones.
+- En escritorio, `Tomar foto` y `Elegir archivo` dejan de ocupar todo el ancho: son acciones compactas de 40 px y `Usar otra vista` conserva menor jerarquía. En móvil mantienen objetivos táctiles de 44 px y dos columnas.
+- No se modificaron captura, archivos originales, simulación, prompts, consumo ni persistencia.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=25`, `smyl-studio.css?v=26` y caché PWA `face-guide-v7`.

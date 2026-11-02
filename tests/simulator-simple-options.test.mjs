@@ -53,6 +53,8 @@ assert.match(studio, /El tono A2 es un punto de partida natural/);
 assert.match(css, /\.flow-progress-track/);
 assert.match(css, /\.flow-review-list/);
 assert.match(studio, /flow-photo-coach/);
+assert.match(studio, /icons\/ui\/smyl-face-capture-guide-v1\.png/);
+assert.doesNotMatch(studio, /flow-coach-frame/);
 assert.match(studio, /flow-photo-readiness/);
 assert.match(studio, /flow-result-modes/);
 assert.match(studio, /data-result-mode/);
@@ -62,7 +64,7 @@ assert.match(css, /\.flow-result-intro/);
 assert.match(css, /\.flow-result-variant/);
 assert.match(css, /One visual policy/);
 
-assert.match(html, /smyl-studio\.css\?v=25/);
-assert.match(html, /smyl-studio\.js\?v=24/);
+assert.match(html, /smyl-studio\.css\?v=26/);
+assert.match(html, /smyl-studio\.js\?v=25/);
 
 console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');
