@@ -9,7 +9,7 @@ const html = fs.readFileSync(path.join(root, 'simulacion-rapida.html'), 'utf8');
 assert.match(html, /Nueva simulación rápida/);
 assert.match(html, /Foto[\s\S]*Resultado[\s\S]*Revisa/);
 assert.match(html, /id="quick-config"/);
-assert.match(html, /data-quick-objective="veneers"/);
+assert.doesNotMatch(html, /data-quick-objective="veneers"/);
 assert.match(html, /data-quick-objective="alignment"/);
 assert.match(html, /data-quick-objective="combined"/);
 assert.match(html, /data-quick-appearance="current"/);

@@ -232,7 +232,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .redo-btn{height:32px;padding:0 12px;border-radius:99px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:5px}
 
 /* BA Slider */
-.ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0;transition:height 200ms ease;touch-action:none;overscroll-behavior:contain;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.ba-wrap{position:relative;width:100%;background:#000;flex-shrink:0;transition:height 200ms ease;touch-action:pan-y pinch-zoom;overscroll-behavior:auto;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 /* Modo alineación en pantalla completa — antes el área de la foto quedaba
    limitada a 58% del alto de pantalla y el resto de las secciones (score,
    hallazgos, plan) seguían ocupando espacio debajo, aunque no se vieran */
@@ -714,7 +714,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-simulation.js?v=29"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=3"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=24">
+<link rel="stylesheet" href="smyl-studio.css?v=25">
 <script defer src="smyl-vita-samples.js?v=1"></script>
 <script defer src="smyl-shade-carousel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-local-tone.css?v=3">
@@ -724,7 +724,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
 <script defer src="smyl-photo-batch.js?v=1"></script>
-<script defer src="smyl-studio.js?v=23"></script>
+<script defer src="smyl-studio.js?v=24"></script>
 <link rel="stylesheet" href="smyl-result-viewer.css?v=1">
 <script defer src="smyl-result-viewer.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=2">
@@ -971,7 +971,6 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       </div>
       <span class="quick-choice-title">Objetivo de la simulación</span>
       <div class="quick-choice-grid" id="quick-objective-options">
-        <button type="button" class="quick-choice" data-quick-objective="veneers" onclick="seleccionarObjetivoRapido('veneers',this)">Carillas<small>Contorno y acabado cerámico</small></button>
         <button type="button" class="quick-choice" data-quick-objective="alignment" onclick="seleccionarObjetivoRapido('alignment',this)">Alinear<small>Sin carillas · tono original</small></button>
         <button type="button" class="quick-choice selected" data-quick-objective="combined" onclick="seleccionarObjetivoRapido('combined',this)">Alinear + carillas<small>Una simulación</small></button>
       </div>
@@ -9407,19 +9406,25 @@ function initBASlider() {
     wrap.addEventListener('mousedown', function(e){ if(S.baAlignMode || esBotonDeWrap(e.target)) return; drag=true;mv(e.clientX);});
     document.addEventListener('mousemove', function(e){if(drag)mv(e.clientX);});
     document.addEventListener('mouseup', function(){drag=false;});
+    var compareTouch = null;
     wrap.addEventListener('touchstart', function(e){
-      if(S.baAlignMode || esBotonDeWrap(e.target)) return;
-      if (e.cancelable) e.preventDefault();
-      if (e.touches.length !== 1) { drag=false; return; }
-      drag=true; mv(e.touches[0].clientX);
-    },{passive:false});
+      if(S.baAlignMode || esBotonDeWrap(e.target) || e.touches.length !== 1) { drag=false; compareTouch=null; return; }
+      var touch=e.touches[0];
+      compareTouch={x:touch.clientX,y:touch.clientY,axis:null};
+      drag=false;
+    },{passive:true});
     wrap.addEventListener('touchmove', function(e){
-      if (!drag || e.touches.length !== 1) { drag=false; return; }
+      if (!compareTouch || e.touches.length !== 1) { drag=false; compareTouch=null; return; }
+      var touch=e.touches[0],dx=touch.clientX-compareTouch.x,dy=touch.clientY-compareTouch.y;
+      if(!compareTouch.axis&&Math.max(Math.abs(dx),Math.abs(dy))>=8)compareTouch.axis=Math.abs(dx)>Math.abs(dy)*1.15?'x':'y';
+      if(compareTouch.axis==='y'){drag=false;compareTouch=null;return;}
+      if(compareTouch.axis!=='x')return;
+      drag=true;
       if (e.cancelable) e.preventDefault();
-      mv(e.touches[0].clientX);
+      mv(touch.clientX);
     },{passive:false});
-    wrap.addEventListener('touchend', function(e){ if (e.cancelable) e.preventDefault(); drag=false; },{passive:false});
-    wrap.addEventListener('touchcancel', function(){ drag=false; },{passive:true});
+    wrap.addEventListener('touchend', function(){ drag=false; compareTouch=null; },{passive:true});
+    wrap.addEventListener('touchcancel', function(){ drag=false; compareTouch=null; },{passive:true});
 
     // Arrastre para mover la foto "después" en modo alineación — se guarda
     // como fracción del tamaño de la foto en pantalla (no en píxeles fijos)
@@ -12343,7 +12348,15 @@ function resetBaAlign() {
 }
 
 // ══ LEAD + WHATSAPP ══
+function restaurarBotonGuardado(btn) {
+  if (!btn || !btn.isConnected) return;
+  btn.disabled = false;
+  var idleHtml = btn.dataset ? btn.dataset.idleHtml : btn._smylIdleHtml;
+  if (idleHtml) btn.innerHTML = idleHtml;
+}
+
 async function guardarCaso() {
+  if (S._guardandoCaso) return false;
   var nombre = document.getElementById('fn').value.trim();
   var tel = (document.getElementById('ft') || {}).value || '';
   var email = (document.getElementById('fe') || {}).value || '';
@@ -12352,11 +12365,21 @@ async function guardarCaso() {
   if (!nombre) {
     document.getElementById('fn').focus();
     document.getElementById('fn').style.borderColor = '#EF4444';
-    return;
+    if (typeof mostrarAvisoAplicacion === 'function') mostrarAvisoAplicacion('Falta el nombre del paciente', 'Agrégalo para guardar el resultado en el expediente.');
+    return false;
   }
 
   var btn = document.getElementById('btn-guardar');
-  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  S._guardandoCaso = true;
+  if (btn) {
+    if (btn.dataset) {
+      if (!btn.dataset.idleHtml) btn.dataset.idleHtml = btn.innerHTML;
+    } else if (!btn._smylIdleHtml) btn._smylIdleHtml = btn.innerHTML;
+    btn.disabled = true;
+    var btnLabel = typeof btn.querySelector === 'function' ? btn.querySelector('#btn-guardar-label') : null;
+    if (btnLabel) btnLabel.textContent = 'Guardando…';
+    else btn.textContent = 'Guardando…';
+  }
 
   var d = S.diagnosis || {};
   var total = (d.cotizacion||[]).reduce(function(a,c){return a+(c.subtotal||0);},0);
@@ -12493,8 +12516,14 @@ async function guardarCaso() {
     catch{casoData.lana_sincronizado=false;}
   }
   if (!savedToCloud) {
-    if (typeof alert === 'function') alert('No se pudo guardar el caso en la nube. El expediente sigue abierto en esta pestaña; revisa tu conexión e inténtalo de nuevo.');
-    return;
+    S._guardandoCaso = false;
+    if (btn) {
+      btn.disabled = false;
+      var idleHtml = btn.dataset ? btn.dataset.idleHtml : btn._smylIdleHtml;
+      if (idleHtml) btn.innerHTML = idleHtml;
+    }
+    if (typeof mostrarAvisoAplicacion === 'function') mostrarAvisoAplicacion('No se pudo guardar', 'El resultado sigue abierto. Revisa tu conexión y vuelve a intentarlo; no necesitas repetir la simulación.');
+    return false;
   }
 
   // El caso quedó confirmado en Supabase; ya no hace falta el estado en memoria.
@@ -12503,10 +12532,16 @@ async function guardarCaso() {
   // Show success screen
   showCasoGuardado(casoData, savedToCloud);
   SmylLanaQuick.showStatus(casoData);
+  S._guardandoCaso = false;
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('smyl:case-saved',{detail:{caseId:casoData.id,cloud:true}}));
+  }
+  return true;
 }
 
 function showCasoGuardado(caso, enNube) {
   // Replace CTA box with success state
+  S._casoGuardado = caso;
   var cta = document.getElementById('case-actions-box');
   if (!cta) return;
   if (!cta.dataset.originalHtml) cta.dataset.originalHtml = cta.innerHTML;
@@ -12530,7 +12565,6 @@ function showCasoGuardado(caso, enNube) {
       '<button onclick="nuevoCaso()" style="width:100%;height:46px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
       'Probar de nuevo</button>';
-    S._casoGuardado = caso;
     return;
   }
 
@@ -12562,7 +12596,6 @@ function showCasoGuardado(caso, enNube) {
     '<a href="app.html" style="font-size:12px;color:rgba(255,255,255,.35);text-decoration:none">Ver en panel admin →</a>' +
     '</div>';
 
-  S._casoGuardado = caso;
 }
 
 function compartirConPaciente() {
@@ -12595,6 +12628,37 @@ function compartirConPaciente() {
   window.open('https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
+async function compartirResultadoGuardado() {
+  var caso = S._casoGuardado;
+  if (!caso) {
+    mostrarAvisoAplicacion('Primero guarda el resultado', 'Así evitamos compartir una versión que todavía no está vinculada al expediente.');
+    return false;
+  }
+  var shareData = {
+    title: 'Simulación de sonrisa SMYL',
+    text: 'Simulación visual orientativa de SMYL. Requiere revisión profesional y no sustituye una valoración clínica.'
+  };
+  try {
+    var shareImage = (S.results || {})[S.baVistaActual || 'frontal'] || S.result || '';
+    if (/^data:image\//i.test(shareImage) && typeof File === 'function') {
+      var parts = shareImage.split(','), mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/png';
+      var binary = atob(parts[1] || ''), bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      var file = new File([bytes], 'simulacion-smyl.png', {type:mime});
+      if (navigator.canShare && navigator.canShare({files:[file]})) shareData.files = [file];
+    }
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return true;
+    }
+  } catch (error) {
+    if (error && error.name === 'AbortError') return false;
+    console.warn('[SMYL] No se pudo abrir el menú nativo para compartir:', error);
+  }
+  compartirConPaciente();
+  return true;
+}
+
 function nuevoCaso() {
   S.photoBatchReceipts={};
   CFG.lanaContext=null;
@@ -12612,7 +12676,7 @@ function nuevoCaso() {
   S.treatmentMaskByView = {};
   S.dentalMapByView = {};
   S.simulationQualityByView = {};
-  S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null;
+  S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null; S._guardandoCaso = false;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   S.vitaTone = null;
   S.vitaMode = 'vita'; S.vitaFinish = 'natural'; S.vitaIntensity = 'balanced'; S.vitaConstruction = 'layered'; S.vitaReturnToResult = false;

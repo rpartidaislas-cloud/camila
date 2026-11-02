@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-02 — Codex — Simulador móvil v6: menos acciones y guardado confiable
+
+- El paso de objetivo conserva sólo dos decisiones distintas: `Alinear` y
+  `Alinear y mejorar`. Los casos anteriores con el modo `veneers` se migran en
+  memoria al modo combinado para no perder compatibilidad.
+- La preparación de fotografías muestra sólo `Editar foto` y `Añadir otra foto`.
+  Reencuadrar, reemplazar, restaurar y quitar viven dentro de un menú secundario;
+  se eliminó la sugerencia duplicada de encuadre.
+- El resultado separa el flujo en dos momentos verificables: primero `Guardar
+  resultado` y, sólo después de la confirmación del servidor, `Compartir
+  resultado`. El guardado evita dobles pulsaciones, conserva la simulación ante
+  errores y comparte la vista actualmente seleccionada cuando el dispositivo lo
+  permite.
+- La comparación distingue el gesto horizontal del desplazamiento vertical. La
+  fotografía ya no bloquea el scroll de la página en móvil; la línea de antes y
+  después sigue respondiendo al gesto horizontal.
+- Web y `mobile/www` están sincronizados. Studio usa JS v24/CSS v25 y la PWA
+  renueva la caché como `simulator-ux-v6`.
+- QA integrada: **1,000/1,000** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas y 0 fallas (1,018 totales).
+
 ## 2026-11-02 — Codex — Cierre y publicación: expediente clínico y Simulaciones SMYL
 
 - Se validó conjuntamente el formulario estructurado de historia clínica y la
