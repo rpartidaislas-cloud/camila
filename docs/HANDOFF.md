@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-01 — Codex — Corrección del Inicio: prioridades compartidas
+
+- Se corrigió el `ReferenceError: shared is not defined` que bloqueaba el
+  renderizado de las prioridades del Inicio cuando el Centro de alertas ya
+  había entregado tareas compartidas.
+- `renderPriorities()` determina ahora dentro de su propio alcance si utiliza
+  la fuente compartida, sin modificar datos, rutas ni reglas operativas.
+- Web, PWA y `mobile/www` usan `smyl-daily-home.js?v=13`; la caché se renovó
+  como `daily-home-scope-fix-v67` para reemplazar de inmediato la copia v12.
+- Se añadió una prueba runtime que reproduce el escenario exacto y el QA de
+  navegador ahora falla explícitamente ante cualquier `pageerror`.
+- QA integrada: **989/989** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas según el entorno.
+
 ## 2026-11-01 — Claude — Radiografía: ajustar cuadros arrastrando y cambiando de tamaño
 
 - **Por qué:** Claude estima las coordenadas «a ojo» (cajas ~10 % por arriba en una revisión real); el visor dibuja exactamente lo que
@@ -9429,3 +9443,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 ## 2026-11-01 — Claude: menú lateral con iconos en baldosa y letra más grande
 - `smyl-ui-template-v3.css` (v7): bloque final `@media (min-width:761px)` — iconos de línea (ya existían en `smyl-navigation.js`) ahora en baldosa de 2rem con SVG de 1.3rem; etiquetas a 15px/560 con mejor contraste; secciones en mayúsculas 12px; sidebar expandido 17rem; botón «Nueva cita» más legible. Modo colapsado intacto.
 - `app.html`, `sw.js` (CACHE `...-sidebar-v68`), copias en `mobile/www/`. Sin cambios en JS.
+
+## 2026-11-01 — Codex — Simulador progresivo v4: guía VITA visible y continuidad móvil
+
+- La etapa de claridad deja de ocultar la guía profesional: presenta los 16 tonos VITA Classical en orden de luminosidad dentro de un carrusel visible, táctil y navegable por teclado, con muestra física ilustrativa, nombre y descripción breve.
+- Los cuatro accesos rápidos funcionan como puntos de partida y ya no avanzan automáticamente. La persona confirma su elección con una única acción explícita, `Continuar con este tono`, reduciendo cambios accidentales.
+- La selección muestra una descripción comprensible junto con el código VITA, y el resumen de revisión y de resultado conserva la misma nomenclatura. La pantalla aclara que el tono clínico definitivo se confirma físicamente.
+- `Abrir guía VITA` desde el resultado vuelve a la misma etapa completa, evitando un segundo selector con opciones distintas. El resultado incorpora acciones claras para ajustar y guardar/compartir, con barra inferior táctil en celular.
+- Escritorio, tablet y celular comparten la política visual clara de SMYL: fondo crema, acción primaria navy y turquesa reservado para selección y foco. No se añadieron dependencias externas ni se modificaron prompts, generación, persistencia o backend.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=22`, `smyl-studio.css?v=23` y caché PWA `vita-carousel-v4`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
