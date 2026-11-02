@@ -9588,3 +9588,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - El selector funciona en flujo progresivo, guía completa, editor avanzado, resultados y PWA móvil, con tabs accesibles, teclado, foco y presentación compacta en celular.
 - Web y `mobile/www` se sincronizan con `smyl-studio.js?v=26`, `smyl-studio.css?v=27` y caché PWA `bleach-guide-v8`. No hay migraciones ni cambios de backend.
 - Pruebas: guía exacta Classical/Bleachedguide, accesos Bleached Shades, persistencia y compatibilidad, generación, exportación, muestras RGB, cachés, espejos móviles, PWA, scripts integrados y regresión del flujo guiado.
+
+## 2026-11-02 — Codex — Simulador progresivo v9: comparación directa VITA y Bleaches
+
+- La etapa de claridad elimina tabs, accesos rápidos, recomendaciones visuales y paneles desplegables. Presenta únicamente dos carruseles siempre visibles: `Guía VITA` arriba y `Bleaches` debajo.
+- Bleaches reúne en una sola fila sus tonos compatibles, elimina duplicados y conserva el orden de luminosidad. Cada guía recuerda su última selección y al tocar un tono se activa la familia correcta.
+- La interfaz conserva un único resumen `Tono elegido` y una única acción para continuar. La nota clínica se reduce a confirmar el tono con una guía física.
+- Las tarjetas se compactaron para móvil, con controles táctiles de 44 px, navegación por teclado, etiquetas accesibles y sin escalado o sombras que alteren el tamaño seleccionado.
+- Se retiró el CSS obsoleto de tabs, accesos rápidos y escala profesional desplegable. Generación, persistencia, resultados y compatibilidad con casos existentes permanecen sin cambios.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=27`, `smyl-studio.css?v=28` y caché PWA `shade-compare-v9`.
+- Pruebas ejecutadas: 17/17 de flujo guiado, comparación de guías, persistencia, generación, PWA móvil, política visual y accesibilidad.

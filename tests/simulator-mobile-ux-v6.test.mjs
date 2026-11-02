@@ -43,11 +43,20 @@ test('comparison preserves vertical page scrolling on mobile', () => {
 });
 
 test('studio assets are cache-busted together', () => {
-  assert.match(html, /smyl-studio\.css\?v=27/);
-  assert.match(html, /smyl-studio\.js\?v=26/);
+  assert.match(html, /smyl-studio\.css\?v=28/);
+  assert.match(html, /smyl-studio\.js\?v=27/);
   assert.match(sw, /simulator-ux-v6/);
-  assert.match(sw, /smyl-studio\.css\?v=27/);
-  assert.match(sw, /smyl-studio\.js\?v=26/);
+  assert.match(sw, /shade-compare-v9/);
+  assert.match(sw, /smyl-studio\.css\?v=28/);
+  assert.match(sw, /smyl-studio\.js\?v=27/);
+});
+
+test('mobile tone selection compares VITA and Bleaches in stacked rows', () => {
+  assert.match(studio, /flow-vita-classical-track/);
+  assert.match(studio, /flow-vita-bleached-track/);
+  assert.match(css, /\.flow-shade-comparison\{display:grid/);
+  assert.match(css, /@media\(max-width:680px\)[\s\S]*?\.smyl-organized \.flow-shade-row \.flow-vita-card\{flex-basis:100px/);
+  assert.match(css, /\.smyl-organized \.flow-shade-row \.flow-vita-card\.selected\{[^}]*box-shadow:none;transform:none/);
 });
 
 test('Capacitor receives the same simulator experience', () => {

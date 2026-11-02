@@ -94,15 +94,25 @@ assert.match(caseModel, /shadeGuide:\s*state\.shadeGuide\s*===\s*'bleached'\s*\?
 assert.match(photoBatch, /S\.shadeGuide\s*\|\|\s*'classical'/);
 assert.match(composition, /record\.options\.shadeGuide\s*\|\|\s*'classical'/);
 
-// The guided surface separates both systems and keeps current tone as a
-// distinct action. Patient copy must not imply calibrated shade measurement.
-assert.match(studio, /Naturales/);
-assert.match(studio, /Blanqueamiento/);
-assert.match(studio, /VITA Bleachedguide 3D-MASTER/);
+// The guided surface shows two simple, always-visible carousels. It must not
+// reintroduce tabs, quick presets or an expandable professional scale.
+assert.match(studio, /flow-shade-comparison/);
+assert.match(studio, /\['classical','Guía VITA','Tonos naturales'\]/);
+assert.match(studio, /\['bleached','Bleaches','Tonos de blanqueamiento'\]/);
+assert.match(studio, /flow-vita-classical-track/);
+assert.match(studio, /flow-vita-bleached-track/);
+assert.match(studio, /shadeCarousels=\{classical:null,bleached:null\}/);
+assert.match(studio, /chooseShadeToneForGuide\(guide,code\)/);
+assert.match(studio, /dataset\.flowGuide=guide/);
+assert.doesNotMatch(studio, /flow-shade-guide-tabs|flow-bleach-quick|flow-professional-guide/);
+assert.match(studio, /\(window\.VITA_BLEACHEDGUIDE\|\|\[\]\)\.concat\(window\.VITA_BLEACHED_SHADES\|\|\[\]\)/);
 assert.match(studio, /Representaci[oó]n digital orientativa/i);
 assert.match(studio, /gu[ií]a f[ií]sica/i);
-assert.match(studio, /Mi tono/);
-assert.match(css, /flow-shade-guide/);
+assert.match(studio, /Bleaches ·/);
+assert.match(studio, /Guía VITA ·/);
+assert.match(css, /flow-shade-comparison/);
+assert.match(css, /flow-shade-row/);
+assert.doesNotMatch(css, /flow-shade-guide-tabs|flow-bleach-quick|flow-bleach-professional/);
 
 // Review/result labels retain the selected system rather than presenting a
 // Bleachedguide code as Classical. Generation must also name the active system.
@@ -130,6 +140,6 @@ for (const [file, rootSource] of mobileMirrors) {
   assert.ok(mobileSync.includes(`copyFile(path.join(ROOT, '${file}')`), `${file} must be part of the repeatable mobile sync`);
   assert.equal(fs.readFileSync(`mobile/www/${file}`, 'utf8'), rootSource, `${file} must match its mobile mirror`);
 }
-assert.match(sw, /bleach-guide-v8/);
+assert.match(sw, /shade-compare-v9/);
 
-console.log('SMYL simulator: Classical and Bleachedguide shade systems are separated, persisted and generation-aware');
+console.log('SMYL simulator: VITA and Bleaches are directly comparable, persisted and generation-aware');

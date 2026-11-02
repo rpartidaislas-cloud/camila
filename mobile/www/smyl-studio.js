@@ -1,7 +1,7 @@
 /* Two-moment workspace. Existing consent, persistence and generation remain authoritative. */
 (function () {
   'use strict';
-  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousel=null, shadeRenderedGuide=null, returnSettings=null, guidedStage=0;
+  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousels={classical:null,bleached:null}, shadeRenderedGuide=null, returnSettings=null, guidedStage=0;
   var patientToneChoices=[
     {code:'current',label:'Mi tono actual',detail:'Sin cambiar el color'},
     {code:'A2',label:'Natural',detail:'Cambio discreto'},
@@ -80,62 +80,41 @@
     }
   }
   function shadePool(guide){
-    if(typeof tonosGuiaTono==='function')return tonosGuiaTono(guide);
-    return guide==='bleached'?(window.VITA_BLEACHEDGUIDE||[]):(window.VITA_CLASSICAL||[]);
+    if(guide!=='bleached')return typeof tonosGuiaTono==='function'?tonosGuiaTono('classical'):(window.VITA_CLASSICAL||[]);
+    var merged=(window.VITA_BLEACHEDGUIDE||[]).concat(window.VITA_BLEACHED_SHADES||[]),seen=new Set();
+    return merged.filter(function(shade){if(seen.has(shade.code))return false;seen.add(shade.code);return true;}).sort(function(a,b){return Number(b.L||0)-Number(a.L||0);});
   }
-  function quickBleachPool(){return (window.VITA_BLEACHED_SHADES||[]).slice().reverse();}
-  function shadeCard(shade,choose){
-    var b=button('',function(){shadeCarousel?.pick(shade.code);},'flow-vita-card');
-    b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar '+patientToneDetail(shade.code));
+  function shadeCard(shade,guide){
+    var b=button('',function(){shadeCarousels[guide]?.pick(shade.code);},'flow-vita-card');
+    b.dataset.flowTone=shade.code;b.dataset.flowGuide=guide;b.setAttribute('aria-label','Seleccionar '+(guide==='bleached'?'Bleaches ':'VITA ')+shade.code);
     b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>'+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
     SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);
-    if(shade.code===(currentShadeGuide()==='bleached'?'0M1':'A2'))b.append(element('span','flow-shade-recommended',currentShadeGuide()==='bleached'?'Más luminoso':'Natural'));
     b.append(element('strong','',shade.code),element('small','',shade.copy||''));
     return b;
   }
-  function updateShadeGuideTabs(){
-    var guide=currentShadeGuide();
-    document.querySelectorAll('[data-shade-guide]').forEach(function(control){
-      var active=control.dataset.shadeGuide===guide;
-      control.setAttribute('aria-selected',String(active));control.tabIndex=active?0:-1;
+  function selectedToneLabel(code){
+    if(code==='current')return 'Mi tono actual';
+    return (currentShadeGuide()==='bleached'?'Bleaches · ':'Guía VITA · ')+code;
+  }
+  function renderShadeGuides(){
+    var tracks={classical:byId('flow-vita-classical-track'),bleached:byId('flow-vita-bleached-track')};
+    if(!tracks.classical||!tracks.bleached)return;
+    ensureShadeState();
+    ['classical','bleached'].forEach(function(guide){
+      shadeCarousels[guide]?.destroy();shadeCarousels[guide]=null;tracks[guide].replaceChildren();
+      shadePool(guide).forEach(function(shade){tracks[guide].append(shadeCard(shade,guide));});
+      shadeCarousels[guide]=SmylShadeCarousel.attach({track:tracks[guide],selector:'.flow-vita-card',key:'data-flow-tone',onSelect:function(code){chooseShadeToneForGuide(guide,code);},onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
+      shadeCarousels[guide].sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'0M2':'A2'));
     });
-    byId('flow-shade-panel')?.setAttribute('aria-labelledby','flow-shade-guide-'+guide);
+    shadeRenderedGuide='dual';
   }
-  function renderShadeGuide(){
-    var track=byId('flow-vita-track'),quick=byId('flow-bleach-quick'),details=byId('flow-professional-guide');
-    if(!track||!quick||!details)return;
-    ensureShadeState();var guide=currentShadeGuide(),tone=S.vitaMode==='current'?'current':S.vitaTone;
-    shadeRenderedGuide=guide;shadeCarousel?.destroy();shadeCarousel=null;track.replaceChildren();quick.replaceChildren();
-    var label=byId('flow-vita-system'),title=byId('flow-vita-title'),copy=byId('flow-vita-copy'),summary=byId('flow-professional-summary');
-    if(guide==='bleached'){
-      label.textContent='BLANQUEAMIENTO · DOS REFERENCIAS DIFERENCIADAS';title.textContent='Elige un blanco orientativo';copy.textContent='Comienza con 3 opciones simples o abre la escala profesional de 15 tonos.';
-      quick.hidden=false;quick.append(element('div','flow-bleach-quick-head','VITA Bleached Shades · 3 opciones'));
-      var quickGrid=element('div','flow-bleach-quick-grid');quickBleachPool().forEach(function(shade){
-        var preset=button('',function(){chooseShadeTone(shade.code);},'flow-bleach-preset');preset.dataset.flowTone=shade.code;
-        preset.setAttribute('aria-label','Seleccionar '+patientToneDetail(shade.code));preset.innerHTML='<span class="flow-bleach-swatch" aria-hidden="true"></span><span><strong>'+shade.code+'</strong><small>'+(shade.patientLabel||shade.copy||'Tono de blanqueamiento')+'</small></span><span class="flow-bleach-check" aria-hidden="true">✓</span>';
-        var swatch=preset.querySelector('.flow-bleach-swatch');var sample=document.createElement('img');sample.src='icons/vita/veneer-ceramic-v2.webp';sample.alt='';sample.draggable=false;swatch.append(sample);SmylVitaSamples.attachFilter(sample,shade.code);
-        if(shade.code==='0M2')preset.append(element('em','flow-bleach-recommended','Punto de partida'));quickGrid.append(preset);
-      });quick.append(quickGrid,element('p','flow-bleach-note','Accesos visuales rápidos. 0M2 sirve para iniciar la comparación y 0M1 es compartido por ambas referencias; el dentista confirma el tono con una guía física.'));
-      details.classList.remove('is-classical');details.open=!!(tone&&tone!=='current'&&!quickBleachPool().some(function(item){return item.code===tone;}));summary.hidden=false;summary.innerHTML='<span><strong>VITA Bleachedguide 3D-MASTER</strong><small>Escala profesional completa · 15 tonos físicos</small></span><span aria-hidden="true">＋</span>';
-      track.setAttribute('aria-label','15 tonos de VITA Bleachedguide 3D-MASTER');
-    }else{
-      label.textContent='GUÍA VITA CLASSICAL';title.textContent='Desliza para elegir el tono';copy.textContent='16 tonos naturales, de más luminoso a más profundo.';
-      quick.hidden=true;details.classList.add('is-classical');details.open=true;summary.hidden=true;track.setAttribute('aria-label','16 tonos naturales VITA Classical');
-    }
-    shadePool(guide).forEach(function(shade){track.append(shadeCard(shade,chooseShadeTone));});
-    shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseShadeTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
-    shadeCarousel.sync(tone);updateShadeGuideTabs();
-    document.querySelectorAll('[data-shade-step]').forEach(function(control){control.setAttribute('aria-label',(guide==='bleached'?'Tono profesional ':'Tono ')+(Number(control.dataset.shadeStep)<0?'anterior':'siguiente'));});
-  }
-  function chooseShadeTone(code){
+  function chooseShadeToneForGuide(guide,code){
+    if(busy||generating)return;
+    ensureShadeState();S.shadeGuide=guide;S.shadeToneByGuide[guide]=code;
     seleccionarAparienciaRapida(code,null,false);syncPreferences();saveProgress('s-vita');
   }
-  function chooseShadeGuide(guide){
-    if(busy||generating)return;
-    ensureShadeState();
-    if(S.vitaMode==='current'){S.vitaMode='vita';S.vitaTone=S.shadeToneByGuide?.[S.shadeGuide]||(currentShadeGuide()==='bleached'?'0M2':'A2');}
-    if(typeof seleccionarGuiaTonoVita==='function')seleccionarGuiaTonoVita(guide,true);
-    else{S.shadeGuide=guide;renderShadeGuide();syncPreferences();saveProgress('s-vita');}
+  function chooseShadeTone(code){
+    chooseShadeToneForGuide(typeof guiaDeCodigoTono==='function'?guiaDeCodigoTono(code):currentShadeGuide(),code);
   }
   function guidedObjectiveLabel(mode){return {veneers:'Alinear y mejorar',alignment:'Alinear',combined:'Alinear y mejorar'}[mode]||'Alinear y mejorar';}
   function guidedArchLabel(arch){return {upper:'Arriba',lower:'Abajo',both:'Ambos'}[arch]||'Arriba';}
@@ -188,7 +167,7 @@
     });
     byId('flow-review-objective').textContent=guidedObjectiveLabel(design.mode);
     byId('flow-review-arch').textContent=guidedArchLabel(design.arch);
-    byId('flow-review-tone').textContent=design.mode==='alignment'?'Conservar tono actual':patientToneDetail(tone);
+    byId('flow-review-tone').textContent=design.mode==='alignment'?'Conservar tono actual':selectedToneLabel(tone);
     byId('flow-review-tone-row').hidden=design.mode==='alignment';
   }
   function illustrateChoices(){
@@ -345,16 +324,15 @@
   function restorePhoto(){var photo=S.photos[0];if(!photo?.adjustOriginal||busy||generating)return;if(!confirm('¿Volver a la foto sin ajustar? Se retirará la simulación de esta vista, si existe.'))return;var original=photo.adjustOriginal;photo.b64=original.split(',')[1];photo.mimeType=original.slice(5,original.indexOf(';'));delete photo.dataUrl;delete photo.adjustOriginal;invalidarVistaCargada(photo.view);saveProgress('s-vita');render();}
   function syncPreferences(){
     ensureShadeState();
-    if(shadeRenderedGuide!==currentShadeGuide())renderShadeGuide();
+    if(shadeRenderedGuide!=='dual')renderShadeGuides();
     var design=SmylSmileModes.normalize(S.smileDesign);
     byId('flow-instructions').value=design.instructions;byId('flow-instruction-count').textContent=design.instructions.length+'/500';
     byId('flow-tone-group').hidden=design.mode==='alignment';byId('flow-original-tone').hidden=design.mode!=='alignment';
     var tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'0M2':'A2'));
-    byId('flow-tone-selected').innerHTML='<span>TONO ELEGIDO</span><strong>'+patientToneDetail(tone)+'</strong>';
-    document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
-    updateShadeGuideTabs();
-    document.querySelectorAll('[data-shade-guide]').forEach(function(control){control.disabled=busy||generating||design.mode==='alignment';});
-    shadeCarousel?.sync(tone);
+    byId('flow-tone-selected').innerHTML='<span>TONO ELEGIDO</span><strong>'+selectedToneLabel(tone)+'</strong>';
+    document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowGuide===currentShadeGuide()&&b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
+    document.querySelectorAll('[data-shade-guide-step]').forEach(function(control){control.disabled=busy||generating||design.mode==='alignment';});
+    ['classical','bleached'].forEach(function(guide){shadeCarousels[guide]?.sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'0M2':'A2'));});
     document.querySelectorAll('#quick-config .quick-choice').forEach(function(el){el.setAttribute('aria-pressed',String(el.classList.contains('selected')));});
     if(byId('flow-tone-continue'))byId('flow-tone-continue').disabled=busy||generating||design.mode==='alignment';
     renderProgressive();
@@ -444,24 +422,21 @@
     appearanceLabel.textContent='Elige un tono';tones.append(appearanceLabel);
     byId('quick-appearance-options').hidden=true;config.querySelector('label[for="quick-vita-tone"]').hidden=true;byId('quick-vita-tone').hidden=true;
     var selectedTone=element('div','flow-tone-selected');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');
-    var track=element('div','flow-vita-track');track.id='flow-vita-track';
-    var guideTabs=element('div','flow-shade-guide-tabs');guideTabs.setAttribute('role','tablist');guideTabs.setAttribute('aria-label','Sistema de tonos');
-    [['classical','Naturales','VITA Classical'],['bleached','Blanqueamiento','Bleached Shades y 3D-MASTER']].forEach(function(entry,index){
-      var tab=button('',function(){chooseShadeGuide(entry[0]);},'flow-shade-guide-tab');tab.dataset.shadeGuide=entry[0];tab.id='flow-shade-guide-'+entry[0];tab.setAttribute('role','tab');tab.setAttribute('aria-controls','flow-shade-panel');tab.innerHTML='<strong>'+entry[1]+'</strong><small>'+entry[2]+'</small>';
-      tab.addEventListener('keydown',function(event){var tabs=Array.from(guideTabs.children),position=tabs.indexOf(tab),next;if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(position+1)%tabs.length;else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(position-1+tabs.length)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();tabs[next].click();tabs[next].focus();});guideTabs.append(tab);
+    var vitaShell=element('section','flow-vita-shell');vitaShell.id='flow-shade-panel';vitaShell.setAttribute('aria-label','Comparar tonos naturales y de blanqueamiento');
+    var comparison=element('div','flow-shade-comparison');
+    [['classical','Guía VITA','Tonos naturales'],['bleached','Bleaches','Tonos de blanqueamiento']].forEach(function(entry){
+      var guide=entry[0],row=element('section','flow-shade-row');row.dataset.guide=guide;row.setAttribute('aria-labelledby','flow-shade-title-'+guide);
+      var head=element('div','flow-shade-row-head');head.innerHTML='<div><span>'+entry[1]+'</span><strong id="flow-shade-title-'+guide+'">'+entry[2]+'</strong></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="-1" aria-label="Tono anterior">‹</button><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="1" aria-label="Tono siguiente">›</button></div>';
+      var track=element('div','flow-vita-track');track.id='flow-vita-'+guide+'-track';track.setAttribute('aria-label',entry[1]+' · '+entry[2]);
+      row.append(head,track);comparison.append(row);
     });
-    var vitaShell=element('section','flow-vita-shell');vitaShell.id='flow-shade-panel';vitaShell.setAttribute('role','tabpanel');vitaShell.innerHTML='<div class="flow-vita-heading"><div><span id="flow-vita-system"></span><strong id="flow-vita-title"></strong><p id="flow-vita-copy"></p></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-step="-1">‹</button><button type="button" class="flow-shade-arrow" data-shade-step="1">›</button></div></div>';
-    var currentTone=button('Mi tono',function(){chooseShadeTone('current');},'flow-tone-current');currentTone.dataset.flowTone='current';currentTone.setAttribute('aria-label','Conservar mi tono actual');vitaShell.querySelector('.flow-shade-controls').prepend(currentTone);
-    var bleachQuick=element('section','flow-bleach-quick');bleachQuick.id='flow-bleach-quick';
-    var professional=element('details','flow-bleach-professional');professional.id='flow-professional-guide';var professionalSummary=element('summary','flow-bleach-professional-summary');professionalSummary.id='flow-professional-summary';professional.append(professionalSummary,track);
-    vitaShell.append(bleachQuick,professional,selectedTone);
+    vitaShell.append(comparison,selectedTone);
     var toneContinue=button('Continuar con este tono',function(){advanceGuided(4,true);},'flow-primary flow-tone-continue');toneContinue.id='flow-tone-continue';
-    tones.append(guideTabs,vitaShell,toneContinue,element('p','flow-tone-help','Representación digital orientativa. Los colores de pantalla no sustituyen una guía física ni la selección clínica del dentista.'));
+    tones.append(vitaShell,toneContinue,element('p','flow-tone-help','Representación digital orientativa. Confirma el tono con una guía física.'));
     tones.classList.add('flow-guided-section');tones.dataset.stage='tone';
-    vitaShell.querySelectorAll('[data-shade-step]').forEach(function(control){control.onclick=function(){var direction=Number(control.dataset.shadeStep);if(currentShadeGuide()==='bleached'&&!professional.open){professional.open=true;requestAnimationFrame(function(){shadeCarousel?.layout();shadeCarousel?.step(direction);});}else shadeCarousel?.step(direction);};});
-    professional.addEventListener('toggle',function(){if(professional.open)requestAnimationFrame(function(){shadeCarousel?.layout();});});
-    window.addEventListener('smyl:shadeguidechange',function(){renderShadeGuide();syncPreferences();});
-    renderShadeGuide();
+    vitaShell.querySelectorAll('[data-shade-guide-step]').forEach(function(control){control.onclick=function(){shadeCarousels[control.dataset.shadeGuideStep]?.step(Number(control.dataset.shadeStep));};});
+    window.addEventListener('smyl:shadeguidechange',function(){renderShadeGuides();syncPreferences();});
+    renderShadeGuides();
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
     var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
     var review=element('section','flow-review');review.id='flow-stage-review';review.innerHTML='<div class="flow-review-ready"><img id="flow-review-photo" alt="Fotografía que se utilizará" hidden><span aria-hidden="true">✓</span><div><strong>Todo listo para comparar</strong><small>Revisa la propuesta. Podrás volver y cambiar cualquier elección.</small></div></div><div class="flow-review-list"><div><span>Cambio</span><strong id="flow-review-objective"></strong><button type="button" data-edit-stage="1">Cambiar</button></div><div><span>Zona</span><strong id="flow-review-arch"></strong><button type="button" data-edit-stage="2">Cambiar</button></div><div id="flow-review-tone-row"><span>Claridad</span><strong id="flow-review-tone"></strong><button type="button" data-edit-stage="3">Cambiar</button></div></div><p class="flow-review-safety"><span aria-hidden="true">i</span> Es una comparación visual orientativa, no un diagnóstico ni una predicción clínica.</p>';
@@ -537,7 +512,7 @@
       finally{resultActionBusy=false;updateResultPrimary(!!S._casoGuardado);}
     }
     window.addEventListener('smyl:case-saved',function(){resultActionBusy=false;updateResultPrimary(true);setResultStatus('Resultado guardado. Ya puedes compartirlo.','success');});
-    function renderResultExperience(){var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A2',guide=currentShadeGuide();byId('flow-result-objective').textContent=guidedObjectiveLabel(design.mode);byId('flow-result-arch').textContent='Zona: '+guidedArchLabel(design.arch);byId('flow-result-tone').textContent=design.mode==='alignment'?'Tono original':patientToneDetail(tone);toneTool.textContent=guide==='bleached'?'Cambiar tono Bleached':'Cambiar tono VITA';updateResultPrimary(!!S._casoGuardado);}
+    function renderResultExperience(){var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A2',guide=currentShadeGuide();byId('flow-result-objective').textContent=guidedObjectiveLabel(design.mode);byId('flow-result-arch').textContent='Zona: '+guidedArchLabel(design.arch);byId('flow-result-tone').textContent=design.mode==='alignment'?'Tono original':selectedToneLabel(tone);toneTool.textContent=guide==='bleached'?'Cambiar tono Bleached':'Cambiar tono VITA';updateResultPrimary(!!S._casoGuardado);}
     var resultQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=resultQuality.apply(this,arguments);renderResultExperience();return result;};
     byId('s-res').querySelector('.res-logo').after(steps(1));updateResultPrimary(!!S._casoGuardado);renderResultExperience();render();
   }
