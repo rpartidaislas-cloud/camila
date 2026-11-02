@@ -45,12 +45,12 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 
 test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.css\?v=14/);
-  assert.match(app, /smyl-daily-home\.js\?v=13/);
+  assert.match(app, /smyl-daily-home\.js\?v=14/);
   assert.match(app, /smyl-clinic-setup\.js\?v=5/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
   assert.match(worker, /meta-cards-v13/);
-  assert.match(worker, /daily-home-scope-fix-v67/);
-  assert.match(worker, /smyl-daily-home\.js\?v=13/);
+  assert.match(worker, /patient-simulations-v70/);
+  assert.match(worker, /smyl-daily-home\.js\?v=14/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /--smyl-primary/);
   assert.match(styles, /daily-home-clear/);

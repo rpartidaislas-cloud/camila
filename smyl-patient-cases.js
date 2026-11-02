@@ -225,32 +225,47 @@
     const viewerContent = node('div');
     viewer.append(button('Cerrar comparación', () => viewer.close()), viewerContent); document.body.append(viewer);
     function mount() {
-      const screen = $('p-paciente-detalle'), layout = screen?.querySelector('.clinic-layout');
-      if (!layout || screen.querySelector('.pc-gallery') || !window.pacienteActual?.id) return;
+      const screen = $('p-paciente-detalle'), layout = screen?.querySelector('.clinic-layout'), host = screen?.querySelector('[data-p360-panel="simulations"]');
+      if (!layout || !host || host.querySelector('.pc-gallery') || !window.pacienteActual?.id) return;
       if (activeGallery && !activeGallery.isConnected) { closeMyPreview(); viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails(); }
       const patient = pacienteActual.id, tenant = tenantId;
       const gallery = node('section','pc-gallery'); activeGallery = gallery; gallery.dataset.patientId = patient;
-      gallery.append(node('h2','','Simulaciones')); const body = node('div','pc-case-list'); gallery.append(body); layout.before(gallery);
+      const header = node('header','pc-gallery-header'), heading = node('div'), actions = node('div','pc-gallery-actions');
+      heading.append(node('span','pc-eyebrow','ARCHIVO VISUAL DEL PACIENTE'),node('h2','','Simulaciones SMYL'),node('p','','Fotografías originales, resultados orientativos y revisiones de cada sesión, en un solo lugar.'));
+      header.append(heading,actions);
+      const notice=node('aside','pc-gallery-notice');notice.append(node('strong','','Simulación visual, no diagnóstico.'),node('span','','Cada resultado requiere revisión profesional antes de utilizarse en una propuesta o tratamiento.'));
+      const summary=node('div','pc-case-summary');
+      const body = node('div','pc-case-list'); gallery.append(header,notice,summary,body); host.replaceChildren(gallery);
       if (!pacienteActual._local && window.miRolEquipo === 'dueño') {
         const launch = node('a','pc-primary','Nueva simulación');
         launch.href = 'simulacion-rapida.html?workspace=professional&patient=' + encodeURIComponent(patient) + '&clinic=' + encodeURIComponent(tenant);
-        gallery.insertBefore(launch,body);
+        actions.append(launch);
         const mainLaunch = document.querySelector('.topbar-right a.btn-primary'); if (mainLaunch) mainLaunch.href = launch.href;
       }
       const current = () => gallery.isConnected && tenantId === tenant && pacienteActual?.id === patient;
+      const publishSummary = (ready,cases,photos,results) => {
+        if(!current())return;
+        summary.replaceChildren();
+        [['Sesiones',cases],['Fotografías',photos],['Simulaciones',results]].forEach(item=>{const card=node('div');card.append(node('span','',item[0]),node('strong','',ready?String(item[1]):'—'));summary.append(card);});
+        dispatchEvent(new CustomEvent('smyl:patient-simulations-updated',{detail:{tenant,patient,ready,cases,photos,results}}));
+      };
       async function load() {
         gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = [];
+        publishSummary(false,0,0,0);
         body.textContent = 'Consultando sus simulaciones…';
-        if (pacienteActual._local || window.miRolEquipo !== 'dueño') { gallery.dataset.loadState = 'unavailable'; body.textContent = 'La consulta de simulaciones requiere una ficha en nube y la cuenta titular.'; return; }
+        if (pacienteActual._local || window.miRolEquipo !== 'dueño') { gallery.dataset.loadState = 'unavailable'; body.textContent = 'La consulta de este archivo visual requiere una ficha en nube y la cuenta titular.'; return; }
         try {
           const api = await C.connect(window.sb, tenant, current);
           const rows = await api.list(patient);
           if (!current()) return;
+          const photos=rows.reduce((total,row)=>total+row.document.views.length,0),results=rows.reduce((total,row)=>total+row.document.views.filter(view=>view.result).length,0);
+          publishSummary(true,rows.length,photos,results);
           body.replaceChildren();
-          if (!rows.length) body.append(node('p','','Todavía no hay simulaciones vinculadas a esta ficha.'));
+          if (!rows.length) { const empty=node('div','pc-case-empty');empty.append(node('strong','','Todavía no hay simulaciones vinculadas'),node('p','','Inicia una nueva sesión para conservar aquí las fotografías originales y sus resultados.'));body.append(empty); }
           rows.forEach((row,index) => {
             const card = node('article','pc-card'), description = node('div');
-            description.append(node('h3','','Simulación de sonrisa'),node('p','',row.document.views.map(v => M.label(v.view)).join(' · ')));
+            const resultCount=row.document.views.filter(view=>view.result).length,created=row.created_at?new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(row.created_at)):'Sin fecha';
+            description.append(node('span','pc-case-date',created),node('h3','','Sesión de simulación'),node('p','',row.document.views.map(v => M.label(v.view)).join(' · ')),node('small','pc-case-count',row.document.views.length+' fotografía'+(row.document.views.length===1?'':'s')+' · '+resultCount+' resultado'+(resultCount===1?'':'s')));
             if (index === 0) {
               const preview = node('div','pc-pair'); preview.setAttribute('aria-label','Última simulación'); description.append(preview);
               const view = row.document.views.find(v => v.result);
@@ -296,7 +311,7 @@
             gallery.smylCaseEntries.push({row,card,review:()=>reviewEntry.click(),present:()=>window.MySmylPortal?.open({api,row,current}),current});
           });
           gallery.dataset.loadState = 'ready';
-        } catch (error) { if (current()) { gallery.dataset.loadState = 'error'; body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'Las simulaciones vinculadas aún no están activadas. Los casos anteriores siguen disponibles en Casos.' : M.message(error)),button('Volver a consultar', load)); } }
+        } catch (error) { if (current()) { gallery.dataset.loadState = 'error'; publishSummary(false,0,0,0); body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'El archivo seguro de simulaciones aún no está activado para esta clínica. No se mostrará información incompleta ni copias locales.' : M.message(error)),button('Volver a consultar', load)); } }
       }
       load();
     }

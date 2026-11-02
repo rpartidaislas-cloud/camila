@@ -23,15 +23,34 @@ test('Historia clínica prioriza alertas, estado y lectura progresiva', () => {
   assert.match(patient, /historyGroup\('Información complementaria'/);
 });
 
-test('La edición divide la historia en pasos sin cambiar su documento clínico', () => {
+test('La edición divide la historia en pasos y registros clínicos individuales', () => {
   assert.match(patient, /Revisa una sección a la vez/);
   assert.match(patient, /p360-history-safety-editor/);
   assert.match(patient, /historyEditSection\('02','Salud médica'/);
   assert.match(patient, /historyEditSection\('05','Información complementaria'/);
   assert.match(patient, /Guardar historia/);
-  for (const field of ['alerts','allergies','conditions','medications','surgeries','dental_history','habits','emergency_contact','notes']) {
+  for (const field of ['alerts','dental_history','habits','emergency_contact','notes']) {
     assert.match(patient, new RegExp(`(?:historyField|historyTextarea)\\([^\\n]*'${field}'`));
   }
+  for (const kind of ['allergy','condition','medication','surgery']) {
+    assert.match(patient, new RegExp(`historyRepeater\\('${kind}'`));
+  }
+  assert.match(patient, /data-history-add/);
+  assert.match(patient, /data-history-remove/);
+  assert.match(patient, /bindHistoryRepeaters\(form\)/);
+});
+
+test('Cada registro médico conserva detalle, estado y fecha sin perder compatibilidad', () => {
+  for (const field of ['allergy_records','condition_records','medication_records','surgery_records']) assert.match(patient, new RegExp(field));
+  for (const field of ['allergy_substance','allergy_reaction','allergy_severity','condition_diagnosed_at','condition_status','medication_dose','medication_frequency','medication_changed_at','surgery_date_record']) assert.match(patient, new RegExp(field));
+  for (const legacy of ['allergies','conditions','conditions_since','medications','medications_changed_at','surgeries','surgery_date']) assert.match(patient, new RegExp(`${legacy}:`));
+  assert.match(patient, /type=type==='month'\?'month':'date'/);
+  assert.match(patient, /historyDateMax\('month'\)/);
+  assert.match(patient, /historyDateMax\('date'\)/);
+  assert.match(patient, /Fechas clínicas sin adivinar/);
+  assert.match(css, /\.p360-history-guidance\{/);
+  assert.match(css, /\.p360-history-repeater\{/);
+  assert.match(css, /\.p360-history-repeat-grid\{/);
 });
 
 test('La política v3.2 gobierna controles, móvil y movimiento reducido', () => {
@@ -47,11 +66,11 @@ test('Web, móvil y PWA publican la misma versión de Historia clínica', () => 
   assert.equal(app, mobileApp);
   assert.equal(read('smyl-patient-360.js'), read('mobile/www/smyl-patient-360.js'));
   assert.equal(css, read('mobile/www/smyl-patient-360.css'));
-  assert.match(app, /smyl-patient-360\.css\?v=10/);
-  assert.match(sw, /smyl-patient-360\.css\?v=10/);
-  assert.match(app, /smyl-patient-360\.js\?v=15/);
-  assert.match(sw, /smyl-patient-360\.js\?v=15/);
-  assert.match(sw, /history-ux-v32/);
+  assert.match(app, /smyl-patient-360\.css\?v=12/);
+  assert.match(sw, /smyl-patient-360\.css\?v=12/);
+  assert.match(app, /smyl-patient-360\.js\?v=18/);
+  assert.match(sw, /smyl-patient-360\.js\?v=18/);
+  assert.match(sw, /history-structured-v69/);
 });
 
 test('La fixture visual usa sólo información sintética', () => {
