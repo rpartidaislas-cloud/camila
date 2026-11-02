@@ -1,21 +1,21 @@
 /*
  * SMYL UI v4 · etapa 1 · personalidad de Datta Able (MIT) con los colores de SMYL
  *
- * Qué toma de Datta Able: tipografía Open Sans de 14 px con encabezados ligeros, formas casi rectas
- * (radio 4 px), tarjetas planas sin borde con una sombra suave y difusa, barra lateral con filas a
- * ancho completo y marca de 3 px en la fila activa, cabecera translúcida más alta y subtítulos de
- * sección en mayúsculas.
+ * Qué toma de Datta Able: tipografía Open Sans de 14 px con encabezados ligeros, tarjetas planas sin
+ * borde con una sombra suave y difusa, barra lateral con filas a ancho completo y marca de 3 px en la
+ * fila activa, cabecera translúcida más alta y subtítulos de sección en mayúsculas.
+ * Qué adapta: los radios. Datta usa 0–4 px; SMYL conserva 8/10/12 px porque casi todas sus pantallas ya
+ * los usan y esquinas afiladas solo en el shell chocarían con ellas (criterio de diseño, no de norma).
  * Qué NO toma: sus colores. Los de SMYL (azul marino, turquesa, semánticos) no cambian.
  *
  * Se carga la ÚLTIMA. Reglas de forma y sombra solamente: ningún color nuevo. Para revertir, quitar su
- * <link> de app.html. Las pantallas con radios propios (≈1 400 fijos en otros .css) se migran en la
- * etapa 2; los tokens --smyl-ui-radius-* ya las cubren donde se usan.
+ * <link> de app.html.
  */
 :root {
   --smyl-ui-font: "Open Sans", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --smyl-ui-radius-control: .25rem;
-  --smyl-ui-radius-card: .25rem;
-  --smyl-ui-radius-panel: .375rem;
+  --smyl-ui-radius-control: .5rem;
+  --smyl-ui-radius-card: .625rem;
+  --smyl-ui-radius-panel: .75rem;
   --smyl-ui-shadow-card: 0 1px 20px 0 rgba(11, 27, 46, .08);
   --smyl-ui-field-height: 2.5rem;
   --smyl-ui-button-height: 2.5rem;
@@ -96,7 +96,7 @@ body,
   letter-spacing: .08em;
 }
 
-/* ── Controles: radio 4 px, altura 38–40 px ── */
+/* ── Controles: radio del sistema (8 px), altura 38 px ── */
 .layout .btn {
   height: 38px;
   padding: 0 16px;

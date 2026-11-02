@@ -14,9 +14,11 @@ test('no introduce los colores de Datta Able ni ningún hex nuevo', () => {
   assert.deepEqual(hexes, [], 'solo blanco, rgba() derivados de la paleta y variables existentes');
 });
 
-test('define la personalidad: Open Sans, radio 4 px, tarjetas planas con sombra difusa, marca de 3 px', () => {
+test('define la personalidad: Open Sans, radios 8/10/12 px, tarjetas planas con sombra difusa, marca de 3 px', () => {
   assert.match(css, /--smyl-ui-font:\s*"Open Sans"/);
-  assert.match(css, /--smyl-ui-radius-control:\s*\.25rem/);
+  assert.match(css, /--smyl-ui-radius-control:\s*\.5rem/);
+  assert.match(css, /--smyl-ui-radius-card:\s*\.625rem/);
+  assert.match(css, /--smyl-ui-radius-panel:\s*\.75rem/);
   assert.match(css, /--smyl-ui-shadow-card:\s*0 1px 20px 0 rgba\(11, 27, 46, \.08\)/);
   assert.match(css, /\.layout \.card,\s*\n\.layout \.stat-card \{\s*\n\s*border: 0;/);
   assert.match(css, /inset 3px 0 0 var\(--color-accent\)/);
@@ -31,7 +33,7 @@ test('se carga la última, con Open Sans y precache; web, PWA y copia móvil sin
   for (const f of ['smyl-ui-datta-v4.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('la política v4 existe y declara que los colores de v3 no cambian', () => {
+test('la guía v4 existe y declara que los colores de SMYL no cambian', () => {
   const doc = read('docs/POLITICA_VISUAL_SMYL_V4.md');
   assert.match(doc, /colores de SMYL no cambian/i);
   assert.match(doc, /Datta Able/);
