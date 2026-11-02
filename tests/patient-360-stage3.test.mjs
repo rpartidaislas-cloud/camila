@@ -46,8 +46,8 @@ test('clinical files remain private and tenant-patient scoped', () => {
 });
 
 test('patient 360 unifies existing dental modules without exposing LANA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=10/);
-  assert.match(app, /smyl-patient-360\.js\?v=15/);
+  assert.match(app, /smyl-patient-360\.css\?v=12/);
+  assert.match(app, /smyl-patient-360\.js\?v=18/);
   assert.match(script, /EXPEDIENTE CLÍNICO/);
   assert.match(script, /p360-patient-copy/);
   assert.match(script, /p360-dental/);
@@ -63,8 +63,8 @@ test('web, mobile and offline patient assets stay in lockstep', () => {
   assert.equal(script, read('../mobile/www/smyl-patient-360.js'));
   assert.equal(styles, read('../mobile/www/smyl-patient-360.css'));
 assert.match(worker, /smyl-v263-lana-connection-recovery/);
-  assert.match(worker, /smyl-patient-360\.css\?v=10/);
-  assert.match(worker, /smyl-patient-360\.js\?v=15/);
+  assert.match(worker, /smyl-patient-360\.css\?v=12/);
+  assert.match(worker, /smyl-patient-360\.js\?v=18/);
 });
 
 test('patient profile owns fiscal details and starts traced material use from an appointment', () => {

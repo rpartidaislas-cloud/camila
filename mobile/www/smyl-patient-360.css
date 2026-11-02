@@ -208,6 +208,29 @@
 .p360-history-footer .p360-history-links button{min-height:42px;padding:0 13px;border-color:#cdd8e4;color:var(--smyl-ui-primary,#0b1b2e);font-size:12px}
 
 .p360-history-edit form{padding-top:20px}
+.p360-history-guidance{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr);
+  gap:11px;
+  margin:18px 24px 0;
+  padding:13px 14px;
+  border:1px solid #cfe2df;
+  border-radius:12px;
+  background:#f4faf8;
+  color:#214f49;
+}
+.p360-history-guidance>span{
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#dcefeb;
+  font-size:13px;
+  font-weight:800;
+}
+.p360-history-guidance strong{display:block;font-size:13px;line-height:1.4}
+.p360-history-guidance p{margin:3px 0 0;color:#526d69;font-size:12px;line-height:1.5}
 .p360-history-safety-editor{
   margin:0 24px 12px;
   padding:16px;
@@ -249,9 +272,19 @@
 .p360-history-form-section[open] .p360-history-chevron{transform:rotate(225deg) translate(-2px,-2px)}
 .p360-history-form-section .p360-form-grid{margin:0;padding:16px}
 .p360-history-field{display:grid;gap:6px;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;font-weight:700}
-.p360-history-field>span{display:block}
+.p360-history-field>span{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.p360-history-field>span em{
+  flex:none;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#eef3f6;
+  color:#617184;
+  font-size:12px;
+  font-style:normal;
+  font-weight:700;
+}
 .p360-history-field>small{color:var(--smyl-ui-ink-muted,#738094);font-size:12px;font-weight:500;line-height:1.45}
-.p360-history-field input,.p360-history-field textarea{
+.p360-history-field input,.p360-history-field textarea,.p360-history-field select{
   min-height:48px;
   border:1px solid #ccd8e4;
   border-radius:10px;
@@ -262,7 +295,75 @@
   line-height:1.45;
 }
 .p360-history-field textarea{min-height:104px}
-.p360-history-field input:focus,.p360-history-field textarea:focus{border-color:#5a75a0;box-shadow:0 0 0 3px rgba(11,27,46,.09)}
+.p360-history-date input{font-variant-numeric:tabular-nums;color-scheme:light;cursor:pointer}
+.p360-history-date input:invalid{box-shadow:none}
+.p360-history-field input:focus,.p360-history-field textarea:focus,.p360-history-field select:focus{border-color:#5a75a0;box-shadow:0 0 0 3px rgba(11,27,46,.09);outline:0}
+.p360-history-repeater{
+  min-width:0;
+  margin:0;
+  padding:0;
+  border:0;
+}
+.p360-history-repeater legend{
+  margin:0;
+  padding:0;
+  color:var(--smyl-ui-ink,#0b1b2e);
+  font-size:14px;
+  font-weight:750;
+}
+.p360-history-repeater-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:5px 0 10px;
+}
+.p360-history-repeater-head p{margin:0;color:var(--smyl-ui-ink-muted,#738094);font-size:12px;line-height:1.45}
+.p360-history-repeater-head button,.p360-history-repeat-item header button{
+  min-height:34px;
+  flex:none;
+  border:1px solid #cbd7e3;
+  border-radius:9px;
+  background:#fff;
+  color:var(--smyl-ui-primary,#0b1b2e);
+  padding:0 11px;
+  font:inherit;
+  font-size:12px;
+  font-weight:750;
+  cursor:pointer;
+}
+.p360-history-repeater-head button:hover{border-color:#8da1b6;background:#f8fafc}
+.p360-history-repeat-list{display:grid;gap:10px}
+.p360-history-repeat-item{
+  overflow:hidden;
+  border:1px solid #d7e1ea;
+  border-radius:12px;
+  background:#fbfcfd;
+}
+.p360-history-repeat-item>header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:43px;
+  padding:6px 10px 6px 12px;
+  border-bottom:1px solid #e5ebf1;
+  background:#f4f7fa;
+}
+.p360-history-repeat-item>header strong{color:var(--smyl-ui-ink,#0b1b2e);font-size:12px}
+.p360-history-repeat-item>header strong span{margin-right:5px;color:#65758a;font-variant-numeric:tabular-nums}
+.p360-history-repeat-item>header button{min-height:30px;border-color:transparent;background:transparent;color:#855044}
+.p360-history-repeat-item>header button:hover{border-color:#ead3ce;background:#fff7f5}
+.p360-history-repeat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  padding:13px;
+}
+.p360-history-repeat-item[data-history-entry="allergy"] .p360-history-repeat-grid,
+.p360-history-repeat-item[data-history-entry="condition"] .p360-history-repeat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.p360-history-repeat-item[data-history-entry="surgery"] .p360-history-repeat-grid{grid-template-columns:minmax(0,2fr) minmax(180px,1fr)}
+.p360-history-repeat-grid input[type="date"],.p360-history-repeat-grid input[type="month"]{font-variant-numeric:tabular-nums;color-scheme:light}
 .p360-history-actions{
   position:sticky;
   bottom:0;
@@ -281,6 +382,7 @@
 @media(max-width:760px){
   .p360-history-header{align-items:stretch;flex-direction:column;padding:19px 18px}
   .p360-history-header>.btn{width:100%;min-height:44px}
+  .p360-history-guidance{margin-inline:18px}
   .p360-history-safety,.p360-history-safety-editor{margin-inline:18px}
   .p360-history-meta{grid-template-columns:1fr;margin-inline:18px}
   .p360-history-meta>div{border-right:0;border-bottom:1px solid var(--smyl-ui-border,#d9e2ec)}
@@ -294,6 +396,7 @@
   .p360-history-actions{position:static;display:grid;grid-template-columns:1fr 1fr;padding:14px 18px}
   .p360-history-actions p{grid-column:1/-1;margin-bottom:3px}
   .p360-history-actions button{width:100%;min-height:44px}
+  .p360-history-repeat-grid,.p360-history-repeat-item[data-history-entry="allergy"] .p360-history-repeat-grid,.p360-history-repeat-item[data-history-entry="condition"] .p360-history-repeat-grid,.p360-history-repeat-item[data-history-entry="surgery"] .p360-history-repeat-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:420px){
   .p360-history-safety{grid-template-columns:1fr}
@@ -308,6 +411,9 @@
   .p360-history-required{display:none}
   .p360-history-actions{grid-template-columns:1fr}
   .p360-history-actions p{grid-column:1}
+  .p360-history-repeater-head{align-items:stretch;flex-direction:column}
+  .p360-history-repeater-head button{width:100%;min-height:42px}
+  .p360-history-repeat-grid,.p360-history-repeat-item[data-history-entry="allergy"] .p360-history-repeat-grid,.p360-history-repeat-item[data-history-entry="condition"] .p360-history-repeat-grid,.p360-history-repeat-item[data-history-entry="surgery"] .p360-history-repeat-grid{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){
   .p360-history-group summary::after,.p360-history-chevron{transition:none}

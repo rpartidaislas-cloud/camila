@@ -1,5 +1,66 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-02 — Codex — Cierre y publicación: expediente clínico y Simulaciones SMYL
+
+- Se validó conjuntamente el formulario estructurado de historia clínica y la
+  sección única `Simulaciones SMYL` dentro de la Ficha 360.
+- Web y `mobile/www` permanecen sincronizados; la PWA publica las versiones
+  Patient 360 JS v18/CSS v12, Patient Cases JS v10/CSS v3, Daily Home JS v14 y
+  caché `patient-simulations-v70`.
+- QA final: **994/994** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas y 0 fallas (1,012 totales).
+
+## 2026-11-01 — Codex — Simulaciones SMYL dentro del expediente
+
+- La galería segura del simulador dejó de aparecer como un bloque paralelo y
+  ahora vive en la pestaña `Simulaciones SMYL` de la Ficha 360 del paciente.
+- El área reúne por sesión las fotografías originales, resultados orientativos,
+  comparación antes/después, revisión de fotos y dientes, vista previa de
+  mySmyl y preparación de la propuesta para el paciente.
+- El resumen del expediente recibe conteos de sesiones, fotografías y
+  resultados sin duplicar las imágenes ni convertir una simulación en evidencia
+  clínica. La interfaz conserva la leyenda explícita «no diagnóstico».
+- La galería sigue utilizando el archivo privado `smyl_patient_case_archive`,
+  las descargas verificadas y las reglas existentes; no consulta
+  `camila_casos`, no abre RLS y no crea copias locales como respaldo.
+- Se renovaron Patient 360 JS v18, Patient Cases JS v10/CSS v3 y la caché
+  `patient-simulations-v70`. Inicio se fuerza a JS v14 para sustituir la copia
+  v12 que todavía producía `ReferenceError: shared is not defined` en producción.
+- QA integrada: **994/994** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas según el entorno.
+
+## 2026-11-01 — Codex — Historia clínica: registros médicos individuales
+
+- Alergias, condiciones, medicamentos y cirugías dejaron de depender de
+  textos separados por comas. Cada elemento tiene ahora su propia tarjeta,
+  botón para agregar o quitar y campos clínicos específicos.
+- Alergias registran sustancia, reacción y gravedad; condiciones guardan
+  diagnóstico, mes y estado; medicamentos, nombre, dosis, frecuencia y fecha
+  de inicio o ajuste; cirugías, procedimiento y fecha.
+- Los documentos anteriores se convierten en filas editables sin perder sus
+  valores. Al guardar se conservan también las propiedades simples anteriores
+  para mantener compatibilidad con resúmenes y consumidores existentes.
+- La solución permanece dentro del JSON versionado de la historia clínica; no
+  requiere migración, cambio de RLS, permisos ni RPC. Web y `mobile/www` usan
+  Patient 360 JS v17, CSS v12 y caché `history-structured-v69`.
+
+## 2026-11-01 — Codex — Historia clínica: fechas separadas y formulario guiado
+
+- Se separaron descripción y fecha para evitar textos ambiguos. La historia
+  versionada incorpora `conditions_since`, `medications_changed_at`,
+  `surgery_date` y `last_dental_visit` dentro del documento JSON existente;
+  no requirió migración, cambio de permisos ni modificación de RPC.
+- Salud médica presenta pares claros: condición/diagnóstico, medicación/último
+  cambio y cirugía/fecha. Antecedentes dentales añade la última visita dental.
+- Las fechas son opcionales, impiden valores futuros y se acompañan de una
+  guía visible para no registrar fechas inventadas. Escritorio usa pares en
+  dos columnas y móvil conserva el orden en una sola columna.
+- Se añadieron etiquetas asociadas, límites de longitud, ayudas legibles de
+  12 px y una nota contextual; web, PWA y `mobile/www` usan Patient 360 JS v16,
+  CSS v11 y caché `history-dates-v68`.
+- QA integrada: **990/990** pruebas ejecutadas aprobadas, con 18 pruebas
+  condicionales omitidas según el entorno.
+
 ## 2026-11-01 — Codex — Corrección del Inicio: prioridades compartidas
 
 - Se corrigió el `ReferenceError: shared is not defined` que bloqueaba el
