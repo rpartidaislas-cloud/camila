@@ -12,7 +12,15 @@
   A1:[82,-.7,13],A2:[77.7,0,18.5],A3:[75.5,.8,22.5],'A3.5':[73.2,1.9,26.9],A4:[69,2.5,23.9],
   B1:[86,-1,12],B2:[78.5,-.3,16],B3:[74,1,22],B4:[72,1.6,26.5],
   C1:[73,-.2,13.5],C2:[72,0,17],C3:[69,1,19.5],C4:[61,2.7,22.3],
-  D2:[73,.2,14.3],D3:[72.5,.8,19.3],D4:[65,.3,20]
+  D2:[73,.2,14.3],D3:[72.5,.8,19.3],D4:[65,.3,20],
+  // Display-only approximations for the Bleached ranges. These are not
+  // official VITA measurements and never replace physical shade matching.
+  '0M1':[94,-.5,5],'0M2':[91,-.2,7.8],'0M3':[88.2,0,10.5],
+  '0.5M1':[92.8,-.4,5.8],'1M1':[91.6,-.3,6.6],'1M1.5':[90.5,-.2,7.5],
+  '1M2':[89.4,-.1,8.4],'1.5M2':[88.3,0,9.3],'2M2':[87.2,.1,10.2],
+  '2.5M2':[86.1,.2,11.1],'3M2':[85,.3,12],'3.5M2':[83.9,.4,12.9],
+  '4M2':[82.8,.5,13.8],'4.5M2':[81.7,.6,14.7],'5M2':[80.6,.7,15.6],
+  '5M2.5':[79.5,.8,16.5],'5M3':[78.4,.9,17.4]
  };
  Object.values(coordinates).forEach(Object.freeze);Object.freeze(coordinates);
  function rgb(code){
@@ -38,6 +46,8 @@
   if(!document.getElementById(id)){var filter=document.createElementNS(ns,'filter'),color=document.createElementNS(ns,'feColorMatrix');filter.id=id;filter.setAttribute('color-interpolation-filters','sRGB');color.setAttribute('type','matrix');color.setAttribute('values',matrix(code).join(' '));filter.append(color);defs.append(filter);}
   image.style.filter='url(#'+id+')';
  }
- var api=Object.freeze({coordinates:coordinates,rgb:rgb,matrix:matrix,attachFilter:attachFilter});
+ function has(code){return Object.prototype.hasOwnProperty.call(coordinates,code);}
+ function guide(code){return /^(?:0M[123]|0\.5M1|[1-5](?:\.5)?M(?:1(?:\.5)?|2(?:\.5)?|3))$/.test(code||'')?'bleached':'classical';}
+ var api=Object.freeze({coordinates:coordinates,rgb:rgb,matrix:matrix,attachFilter:attachFilter,has:has,guide:guide});
  if(typeof module==='object'&&module.exports)module.exports=api;else root.SmylVitaSamples=api;
 })(typeof window!=='undefined'?window:globalThis);

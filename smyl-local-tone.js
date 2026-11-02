@@ -5,7 +5,11 @@
 (function (root) {
   'use strict';
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const codes = ['B1','A1','B2','D2','A2','C1','C2','D4','A3','D3','B3','A3.5','B4','C3','A4','C4'];
+  const classicalCodes = ['B1','A1','B2','D2','A2','C1','C2','D4','A3','D3','B3','A3.5','B4','C3','A4','C4'];
+  const bleachedCodes = ['0M3','0M2','0M1','0.5M1','1M1','1M1.5','1M2','1.5M2','2M2','2.5M2','3M2','3.5M2','4M2','4.5M2','5M2','5M2.5','5M3'];
+  const codes = classicalCodes.concat(bleachedCodes);
+  const normalizeGuide = value => value === 'bleached' ? 'bleached' : 'classical';
+  const systemLabel = (guide, shade) => guide === 'bleached' ? (shade === '0M1' ? 'VITA Bleached Shades / Bleachedguide 3D-MASTER' : (['0M2','0M3'].includes(shade) ? 'VITA Bleached Shades' : 'VITA Bleachedguide 3D-MASTER')) : 'VITA Classical';
   const canvas = (w, h) => Object.assign(document.createElement('canvas'), { width: w, height: h });
   const load = url => new Promise((resolve, reject) => {
     // Do not download a remote patient image, model, or mask in this feature.
@@ -28,10 +32,10 @@
     return photo && record && record._owner === progressKey() && record._source === source(photo) && record._base === state.veneerBaseByView?.[view] && record._output === state.results?.[view] ? record : null;
   }
   async function verify(record, original, base, output, view, owner) {
-    if (!record || record.schema !== 1 || record.view !== view || !['base', ...codes].includes(record.shade) || !base || !output || typeof record.mask !== 'string') return null;
+    if (!record || ![1,2].includes(record.schema) || record.view !== view || !['base', ...codes].includes(record.shade) || !base || !output || typeof record.mask !== 'string') return null;
     const hashes = await Promise.all([original, base, output, owner || ''].map(hash));
     if (hashes.some((v, i) => v !== [record.sourceHash, record.baseHash, record.resultHash, record.ownerHash][i])) return null;
-    return bind({ ...record }, original, base, output, owner);
+    return bind({ ...record, schema:2, shadeGuide:record.schema===1?'classical':normalizeGuide(record.shadeGuide) }, original, base, output, owner);
   }
   async function restore(state) {
     const records = state.localToneByView, owner = progressKey();
@@ -75,7 +79,7 @@
     return out;
   }
   let busy = false;
-  async function open({ original, base, result, record, view, label, archLabel, isCurrent, owner, region }) {
+  async function open({ original, base, result, record, view, label, archLabel, isCurrent, owner, region, shadeGuide }) {
     if (busy) return null;
     busy = true;
     let image;
@@ -98,7 +102,10 @@
       const pixels = baseCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H);
       const mg = maskCanvas.getContext('2d', { willReadFrequently: true });
       const display = $('.lt-photo'), g = display.getContext('2d'); display.width = W; display.height = H;
+      shadeGuide = normalizeGuide(record?.shadeGuide || shadeGuide);
+      const visibleCodes = shadeGuide === 'bleached' ? bleachedCodes : classicalCodes;
       let mode = 'tap', shade = record?.shade || 'base', zoom = 1, history = [], stroke = null, comparing = false, dirty = false, closed = false, submitting = false, renderFrame = null, paintOK = false, cursor = { x: W / 2, y: H / 2 }, keyboard = false, shadeCarousel = null, analysis = null, detecting = false;
+      if (shade !== 'base' && !visibleCodes.includes(shade)) shade = 'base';
       const dispose = () => {
         clearInterval(watch); cancelAnimationFrame(renderFrame); shadeCarousel?.destroy(); d.close(); d.remove();
         analysis=null;[baseCanvas, maskCanvas, output, display].forEach(c => { c.width = 1; c.height = 1; });
@@ -107,7 +114,7 @@
       const close = value => { if (closed) return; closed = true; dispose(); resolve(value); };
       const changed = () => { dirty = true; $('.lt-reviewed').checked = false; schedule(); };
       function shadeSelection() {
-        $('.lt-shade-label').textContent = shade === 'base' ? 'Tono de la simulación' : 'VITA ' + shade;
+        $('.lt-shade-label').textContent = shade === 'base' ? 'Tono de la simulación' : systemLabel(shadeGuide,shade) + ' ' + shade;
         d.querySelectorAll('[data-shade]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.shade === shade)));
         $('[data-act="base"]').setAttribute('aria-pressed', String(shade === 'base'));
       }
@@ -159,7 +166,7 @@
         try {
           const data = tint(pixels.data, mask.data, root.SmylVitaSamples.rgb(shade === 'base' ? 'A1' : shade));
           output.getContext('2d').putImageData(new ImageData(shade === 'base' ? new Uint8ClampedArray(pixels.data) : data, W, H), 0, 0);
-          paintOK = true; $('.lt-status').textContent = shade === 'base' ? 'Base sin recolorear. No cambia la foto original.' : 'Vista previa local · VITA ' + shade;
+          paintOK = true; $('.lt-status').textContent = shade === 'base' ? 'Base sin recolorear. No cambia la foto original.' : 'Vista previa local · ' + systemLabel(shadeGuide,shade) + ' ' + shade;
         } catch (_) {
           output.getContext('2d').drawImage(baseCanvas, 0, 0);
           $('.lt-status').textContent = 'Detecta los dientes o tócalos para seleccionar la zona.';
@@ -214,8 +221,8 @@
         else { cursor.x = clamp(cursor.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0), 0, W); cursor.y = clamp(cursor.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0), 0, H); }
         schedule();
       };
-      codes.forEach(code => {
-        const b = document.createElement('button'); b.type = 'button'; b.dataset.shade = code; b.setAttribute('aria-label', 'VITA ' + code);
+      visibleCodes.forEach(code => {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.shade = code; b.setAttribute('aria-label', systemLabel(shadeGuide,code) + ' ' + code);
         const swatch = document.createElement('img'); swatch.className = 'lt-swatch'; swatch.src = 'icons/vita/veneer-ceramic-v2.webp'; swatch.alt = ''; swatch.draggable = false; root.SmylVitaSamples.attachFilter(swatch, code);
         b.append(swatch, document.createTextNode(code)); b.onclick = () => shadeCarousel.pick(code); $('.lt-tones').append(b);
       });
@@ -225,7 +232,7 @@
           if (paintOK) $('.lt-selection').open = false;
           // Feedback must not wait for recoloring a full-size photo.
           dirty = true; $('.lt-reviewed').checked = false; $('[data-act="use"]').disabled = true; shadeSelection();
-          $('.lt-status').textContent = 'VITA ' + shade + ' seleccionado · suelta para ver el tono';
+          $('.lt-status').textContent = systemLabel(shadeGuide,shade) + ' ' + shade + ' seleccionado · suelta para ver el tono';
         },
         onSettle: schedule
       });
@@ -257,7 +264,7 @@
           const hashes = await Promise.all([original, base, url, owner || ''].map(hash));
           if (closed) return;
           if (!isCurrent()) return close(null);
-          const saved = bind({ schema: 1, view, width: W, height: H, shade: selectedShade, mask: maskUrl, sourceHash: hashes[0], baseHash: hashes[1], resultHash: hashes[2], ownerHash: hashes[3] }, original, base, url, owner);
+          const saved = bind({ schema: 2, view, width: W, height: H, shadeGuide, shade: selectedShade, mask: maskUrl, sourceHash: hashes[0], baseHash: hashes[1], resultHash: hashes[2], ownerHash: hashes[3] }, original, base, url, owner);
           close({ url, base, record: saved });
         } catch (error) { if (closed) return; submitting = false; d.querySelectorAll('button,input').forEach(b => { b.disabled = false; }); repaint(); $('.lt-status').textContent = 'No se pudo preparar el tono. El resultado anterior se conserva; puedes reintentar.'; }
       };
@@ -300,7 +307,7 @@
         region={x:c.x+r.x*c.w,y:c.y+r.y*c.h,w:r.w*c.w,h:r.h*c.h};
       }
       const choice = await open({ original, base, result, record, view: f.view, label: root.SmylCaseModel?.label(f.view) || f.view,
-        archLabel: 'Selecciona ' + ({ upper: 'solo dientes de arriba', lower: 'solo dientes de abajo', both: 'dientes de ambas arcadas' }[meta.arch] || 'los dientes a cambiar'), isCurrent: current, owner, region });
+        archLabel: 'Selecciona ' + ({ upper: 'solo dientes de arriba', lower: 'solo dientes de abajo', both: 'dientes de ambas arcadas' }[meta.arch] || 'los dientes a cambiar'), isCurrent: current, owner, region, shadeGuide:meta.shadeGuide || state.shadeGuide });
       if (!choice || !current()) return;
       if (!state.localToneByView) state.localToneByView = {};
       state.localToneByView[f.view] = choice.record;

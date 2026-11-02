@@ -49,7 +49,7 @@ for (const stage of ['photo', 'objective', 'arch', 'review']) {
 }
 assert.match(studio, /flow-progress-track/);
 assert.match(studio, /data-edit-stage/);
-assert.match(studio, /El tono A2 es un punto de partida natural/);
+assert.match(studio, /A2 es un punto de partida natural/);
 assert.match(css, /\.flow-progress-track/);
 assert.match(css, /\.flow-review-list/);
 assert.match(studio, /flow-photo-coach/);
@@ -64,7 +64,7 @@ assert.match(css, /\.flow-result-intro/);
 assert.match(css, /\.flow-result-variant/);
 assert.match(css, /One visual policy/);
 
-assert.match(html, /smyl-studio\.css\?v=26/);
-assert.match(html, /smyl-studio\.js\?v=25/);
+assert.match(html, /smyl-studio\.css\?v=27/);
+assert.match(html, /smyl-studio\.js\?v=26/);
 
 console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');

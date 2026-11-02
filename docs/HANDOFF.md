@@ -9557,3 +9557,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - En escritorio, `Tomar foto` y `Elegir archivo` dejan de ocupar todo el ancho: son acciones compactas de 40 px y `Usar otra vista` conserva menor jerarquía. En móvil mantienen objetivos táctiles de 44 px y dos columnas.
 - No se modificaron captura, archivos originales, simulación, prompts, consumo ni persistencia.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=25`, `smyl-studio.css?v=26` y caché PWA `face-guide-v7`.
+
+## 2026-11-02 — Codex — Simulador progresivo v8: guía de blanqueamiento funcional
+
+- La etapa de claridad separa `Naturales` de `Blanqueamiento`. El segundo recorrido ofrece tres accesos VITA Bleached Shades (`0M3`, `0M2`, `0M1`) y, bajo divulgación progresiva, las 15 muestras de VITA Bleachedguide 3D-MASTER con sus niveles de claridad.
+- La selección persiste por familia y se conserva al volver, editar, comparar, regenerar, guardar un caso o usar el ajuste local por fotografía. Los casos antiguos siguen abriendo como VITA Classical.
+- El sistema y el código elegidos viajan a la generación visual; un tono Bleach inválido ya no puede caer silenciosamente en A1. Cachés de lote y composición distinguen la familia para no reutilizar un resultado incompatible.
+- 0M1 se identifica como muestra compartida por las dos referencias. `0M2` se presenta sólo como punto de partida visual, nunca como recomendación clínica. La interfaz aclara que los colores digitales son orientativos y requieren confirmación con guía física.
+- El selector funciona en flujo progresivo, guía completa, editor avanzado, resultados y PWA móvil, con tabs accesibles, teclado, foco y presentación compacta en celular.
+- Web y `mobile/www` se sincronizan con `smyl-studio.js?v=26`, `smyl-studio.css?v=27` y caché PWA `bleach-guide-v8`. No hay migraciones ni cambios de backend.
+- Pruebas: guía exacta Classical/Bleachedguide, accesos Bleached Shades, persistencia y compatibilidad, generación, exportación, muestras RGB, cachés, espejos móviles, PWA, scripts integrados y regresión del flujo guiado.

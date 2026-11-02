@@ -33,7 +33,7 @@
     });
     return {
       schema: 1, photos,
-      settings: { mode: design.mode, arch: design.arch, tone: localShade ? 'Ajuste local · ver fotografías' : design.mode === 'alignment' || state.vitaMode === 'current' ? 'original' : state.vitaTone || 'A1', alignmentStyle: design.alignmentStyle || 'faithful', finish: state.vitaFinish || 'natural', construction: state.vitaConstruction || 'layered', intensity: state.vitaIntensity || 'balanced', instructions: String(design.instructions || '').slice(0,500) }
+      settings: { mode: design.mode, arch: design.arch, shadeGuide: state.shadeGuide === 'bleached' ? 'bleached' : 'classical', tone: localShade ? 'Ajuste local · ver fotografías' : design.mode === 'alignment' || state.vitaMode === 'current' ? 'original' : state.vitaTone || (state.shadeGuide === 'bleached' ? '0M2' : 'A1'), alignmentStyle: design.alignmentStyle || 'faithful', finish: state.vitaFinish || 'natural', construction: state.vitaConstruction || 'layered', intensity: state.vitaIntensity || 'balanced', instructions: String(design.instructions || '').slice(0,500) }
     };
   }
   function imageData(src) {

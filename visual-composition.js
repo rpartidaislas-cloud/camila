@@ -104,7 +104,7 @@
     if(!record.options||!['layered','monolithic'].includes(record.options.construction))return;
     // Keep only a pair from exactly the same source and non-material settings.
     if(record.options.mode==='alignment'||(record.options.mode==='combined'&&record.options.stage!=='finishing'))return;
-    const key=JSON.stringify([record.options.shade,record.options.current,record.options.finish,record.options.intensity,record.options.mode||'veneers',record.options.arch||'upper',record.options.stage||'initial',record.options.instructions||'']);
+    const key=JSON.stringify([record.options.shadeGuide||'classical',record.options.shadeSystem||'',record.options.shade,record.options.current,record.options.finish,record.options.intensity,record.options.mode||'veneers',record.options.arch||'upper',record.options.stage||'initial',record.options.instructions||'']);
     records=records.filter(r=>r.original===record.original&&r.key===key&&r.options.construction!==record.options.construction);
     records.push({...record,key});
   }

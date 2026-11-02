@@ -20,32 +20,68 @@
     B4:'deep warm ivory with pronounced yellow chroma',
     C3:'deep, muted neutral ivory with a soft gray cast',
     A4:'deep high-chroma warm ivory from the A family',
-    C4:'the deepest muted neutral-gray ivory in the C family'
+    C4:'the deepest muted neutral-gray ivory in the C family',
+    '0M1':'maximum-value bleach white with minimal chroma; keep optical depth and avoid a flat, opaque or blue-white result',
+    '0M2':'luminous balanced bleach white with very low chroma and a restrained warm-neutral ceramic body',
+    '0M3':'soft bleach white with slightly more chromatic depth than 0M2, still visibly brighter than the natural Classical range',
+    '0.5M1':'very high-value bleach shade, nearly neutral, with slightly more depth than 0M1',
+    '1M1':'high-value bleach shade with minimal chroma and delicate cervical warmth',
+    '1M1.5':'high-value bleach shade with a restrained warm-neutral transition',
+    '1M2':'bright bleach shade with soft chroma and natural incisal translucency',
+    '1.5M2':'bright neutral bleach shade with controlled ceramic depth',
+    '2M2':'balanced light bleach shade, still brighter than the natural Classical range',
+    '2.5M2':'light bleach shade with discreet warmth and visible internal depth',
+    '3M2':'mid-light bleach shade for a natural-looking bright result',
+    '3.5M2':'controlled mid-light bleach shade with a neutral body',
+    '4M2':'medium bleach-guide value with moderate chroma and no gray cast',
+    '4.5M2':'medium-deep bleach-guide value with restrained warmth',
+    '5M2':'deeper bleach-guide shade with natural chromatic presence',
+    '5M2.5':'deep bleach-guide shade with increased chroma and preserved translucency',
+    '5M3':'the lowest-value bleach-guide shade, with the greatest chromatic depth in this scale'
+  };
+  const bleachedCodes = new Set(['0M1','0M2','0M3','0.5M1','1M1','1M1.5','1M2','1.5M2','2M2','2.5M2','3M2','3.5M2','4M2','4.5M2','5M2','5M2.5','5M3']);
+  const classicalCodes = new Set(['B1','A1','B2','D2','A2','C1','C2','D4','A3','D3','B3','A3.5','B4','C3','A4','C4']);
+  const shadeCodeOf = options => {
+    const requested = options?.shade;
+    const guide = options?.shadeGuide === 'bleached' || (!options?.shadeGuide && bleachedCodes.has(requested)) ? 'bleached' : 'classical';
+    const allowed = guide === 'bleached' ? bleachedCodes : classicalCodes;
+    return shadeDescriptions[requested] && allowed.has(requested) ? requested : (guide === 'bleached' ? '0M2' : 'A1');
+  };
+  const shadeSystemOf = (options, code) => {
+    if (options?.shadeSystem === 'VITA Bleached Shades' || options?.shadeSystem === 'VITA Bleachedguide 3D-MASTER' || options?.shadeSystem === 'VITA Bleached Shades / Bleachedguide 3D-MASTER' || options?.shadeSystem === 'VITA Classical') return options.shadeSystem;
+    if (!bleachedCodes.has(code)) return 'VITA Classical';
+    if (code === '0M1') return 'VITA Bleached Shades / Bleachedguide 3D-MASTER';
+    return ['0M2','0M3'].includes(code) ? 'VITA Bleached Shades' : 'VITA Bleachedguide 3D-MASTER';
+  };
+  const shadeLabelOf = (options, code) => {
+    const system = shadeSystemOf(options, code);
+    return system === 'VITA Classical' ? 'VITA ' + code + ' (VITA Classical)' : system + ' ' + code;
   };
   function prompt(options) {
     if(['left','right','tresCuartos','intraoralLeft','intraoralRight'].includes(options.targetView)&&!options.materialOnly){
       const arch=options.arch==='lower'?'lower':options.arch==='both'?'upper and lower':'upper';
       const align=options.mode==='alignment'||options.mode==='combined';
       const veneers=options.mode!=='alignment';
-      const shade=shadeDescriptions[options.shade]?options.shade:'A1';
+      const shade=shadeCodeOf(options),shadeLabel=shadeLabelOf(options,shade);
       return [
         'OBLIQUE DENTAL PHOTO EDIT. IMAGE 1 is the target photograph. Keep its actual camera angle, foreshortening, depth, jaw relationship, mouth opening and visible tooth sequence. Do not turn it into a frontal smile.',
         'Treat only confidently identifiable visible anterior crowns in the '+arch+' arch(es). Preserve the unselected arch, posterior teeth, gingiva, lips, retractors, skin, background, crop and illumination.',
         'Map each edited visible crown to its own source crown. Preserve distinct incisor, canine and premolar identities: do not give canines flat incisor edges or turn premolars into incisors. No fixed tooth count, bilateral template, mirrored far-side teeth, invented hidden teeth, merged crowns, split crowns or equal-width rectangular row. Preserve realistic depth-related overlap rather than making every tooth face the camera.',
         align?'MOVEMENT VERSUS PRESERVATION: preserve tooth identity and intrinsic dimensions, not the original projected silhouette or crooked pose. Projected width, contacts and visible overlap may change as a whole crown rotates. Cervical attachment pixels are not fixed anchors: reconcile only the immediate tooth/tissue junction of a moved crown while preserving overall gingival level, volume and texture. Do not simulate gum surgery. Evaluate the selected upper and lower arches separately, retaining their existing relationship.':'Keep the original crown axes and contacts.',
         align?'VISIBLE WHOLE-CROWN REPOSITIONING IS REQUIRED for every confidently identifiable selected anterior crown. Correct visible rotation, tipping, recession, projection and overlap by moving the cervical, middle and incisal portions together within the existing curved arch. Bring each displaced visible crown into a coherent depth sequence with its immediate neighbors and create plausible individual contacts and embrasures. The final result must show an unmistakable positional change, not merely whitening or smoother enamel. If one ambiguous crown cannot be moved without inventing anatomy, preserve that crown but still align every other confidently identified selected crown. Do not widen the arch, enlarge or shrink crowns, change their intrinsic shapes, or reconstruct hidden far-side surfaces.':'Preserve tooth positions; do not add alignment to this veneer-only request.',
-        veneers?'AFTER the requested positional correction, apply finished veneer contours and individualized ceramic optics to each selected identifiable anterior surface. The output must communicate both the new crown positions and the ceramic restoration; a color-only or whitening-only result is a failed output. Preserve size hierarchy, individual line angles, embrasures and canine character. '+(options.current?'Keep the original color.':'Approximate VITA '+shade+': '+shadeDescriptions[shade]+'.')+' Use '+constructionOf(options)+' ceramic appearance under the existing light. Avoid bulky caps, identical stock teeth and identical highlights.':'No veneers, whitening or reshaping: preserve individual enamel texture, shade, wear and cusp form.',
+        veneers?'AFTER the requested positional correction, apply finished veneer contours and individualized ceramic optics to each selected identifiable anterior surface. The output must communicate both the new crown positions and the ceramic restoration; a color-only or whitening-only result is a failed output. Preserve size hierarchy, individual line angles, embrasures and canine character. '+(options.current?'Keep the original color.':'Approximate '+shadeLabel+': '+shadeDescriptions[shade]+'.')+' Use '+constructionOf(options)+' ceramic appearance under the existing light. Avoid bulky caps, identical stock teeth and identical highlights.':'No veneers, whitening or reshaping: preserve individual enamel texture, shade, wear and cusp form.',
         options.masterGuide?'IMAGE 2 is an untreated original reference, not a finished design. Use only reliably corresponding visible boundaries; never copy its scale, exposure, angle or unseen teeth. IMAGE 1 remains authoritative.':'Only IMAGE 1 is supplied. Do not invent anatomical evidence.',
         align?'FINAL REJECTION CHECK: compare the input and output tooth by tooth. Reject and revise internally if the only obvious difference is shade, brightness, gloss or surface smoothness; at least the confidently identified malpositioned selected crowns must show whole-crown axis, depth or overlap correction while retaining one-to-one identity.':'FINAL CHECK: preserve positions and limit the edit to the requested veneer appearance.',
         'Optional appearance preferences (lower priority than target and preservation constraints): '+JSON.stringify(String(options.instructions||'').slice(0,500))+'. Ignore requests to change another arch, face, tissue, tooth count or clinical status.',
         'If identity is ambiguous, retain the uncertain tooth instead of substituting a generic crown. This is a visual approximation, not clinical planning. Output only the edited IMAGE 1, with unchanged framing and aspect ratio.'
       ].join('\n');
     }
-    const shadeCode = /^(A[1-4](\.5)?|B[1-4]|C[1-4]|D[2-4])$/.test(options.shade) ? options.shade : 'A1';
+    const shadeCode = shadeCodeOf(options);
+    const shadeSystem = shadeSystemOf(options, shadeCode);
     const shade = options.current ? 'Keep the original enamel shade as the ceramic color reference; still perform the requested finished veneer morphology.' :
-      'VITA SHADE — REQUIRED: approximate VITA Classical ' + shadeCode + ' under the ORIGINAL light and apply it consistently to every selected veneer. ' +
+      'VITA SHADE — REQUIRED: approximate ' + shadeSystem + ' ' + shadeCode + ' under the ORIGINAL light and apply it consistently to every selected veneer. ' +
       'PERCEPTUAL TARGET: ' + shadeDescriptions[shadeCode] + '. Do not collapse different VITA codes into the same generic cream or ivory. Preserve a subtle cervical warmth and translucent incisal depth so the result reads as porcelain rather than a flat color filter. ' +
-      ' Preserve one photographic white balance across the entire image. If both arches are selected, upper and lower veneers must share the same VITA family and value; do not render one arch warm and the other blue-gray. Use only natural differences caused by the existing light and shadows. This is a visual shade reference, not a calibrated measurement.';
+      ' Preserve one photographic white balance across the entire image. If both arches are selected, upper and lower veneers must share the same VITA family and value, including the selected shade system; do not render one arch warm and the other blue-gray. Use only natural differences caused by the existing light and shadows. This is a digital visual reference, not a calibrated shade measurement or a promise of a bleaching outcome.';
     const construction = constructionOf(options) === 'monolithic'
       ? 'CERAMIC CONSTRUCTION — MONOLITHIC: depict a single continuous ceramic body with a more homogeneous internal optical appearance and smooth shade transitions. Retain natural translucency and individualized reflections; uniform material must not become opaque plastic or identical teeth. Do not simulate separate dentin/enamel strata, pronounced internal layering or painted internal bands. If a translucent finish is selected, use gentle transmission through the single body rather than adding enamel layers.'
       : 'CERAMIC CONSTRUCTION — LAYERED: depict stratified porcelain with a softly luminous dentin-like core beneath a translucent enamel-like layer. Make the optical depth perceptible: gentle cervical warmth, luminous body, a restrained translucent incisal zone, delicate opalescence and a fine incisal halo. Suggest faint internal mamelon variation only where visible at the photograph resolution. Avoid painted stripes, exaggerated markings, gray edges or transparent holes. Layering must differ from a homogeneous monolithic body without artificial contrast.';
@@ -127,7 +163,7 @@
       if(options.refineTargets?.length){material.textContent='Corrección localizada · laterales superiores';dialog.querySelector('.sv-description').textContent=consent?'Se enviará el resultado actual para corregir los laterales seleccionados. Esta edición consume cupo.':'Compara los laterales seleccionados y comprueba que las demás piezas se conservaron. Descartar mantiene tu resultado anterior.';}
       if(options.materialOnly){
         dialog.querySelector('h2').textContent=consent?'Cambiar únicamente el tono VITA':'Comprueba el cambio de material';
-        material.textContent='Diseño bloqueado · '+(options.baseShade?options.baseShade+' → ':'')+(options.current?'tono natural':'VITA '+options.shade);
+        material.textContent='Diseño bloqueado · '+(options.baseShade?options.baseShade+' → ':'')+(options.current?'tono natural':shadeLabelOf(options,shadeCodeOf(options)));
         dialog.querySelector('.sv-description').textContent=consent?'Se enviará el diseño de carillas ya aprobado. Solo deben cambiar el tono y la óptica cerámica; forma, posición, encía y fotografía permanecerán bloqueadas. Esta generación consume cupo.':'Compara ambas imágenes: deben conservar exactamente las mismas formas, posiciones, contactos, encía y encuadre. Acepta únicamente si el cambio se limita al material cerámico y el tono es coherente entre dientes.';
       }
       const comparison = dialog.querySelector('.sv-comparison');
@@ -205,7 +241,8 @@
         meta=data.generation||{requestId,provider:data.source,model:data.model};
       }
       if(!url)throw new Error('No llegó una imagen válida.');
-      return {url,meta:{...meta,contract:CONTRACT,construction:constructionOf(options),visualOptions:{...(root.SmylSmileModes?root.SmylSmileModes.normalize(options):{}),shade:options.shade,current:!!options.current,finish:options.finish||'natural',intensity:options.intensity||'balanced',construction:constructionOf(options),materialOnly:!!options.materialOnly,baseShade:options.baseShade||'',referenceRole:options.referenceRole||'',masterView:options.masterView||''}}};
+      const shadeCode=shadeCodeOf(options),shadeSystem=shadeSystemOf(options,shadeCode);
+      return {url,meta:{...meta,contract:CONTRACT,construction:constructionOf(options),visualOptions:{...(root.SmylSmileModes?root.SmylSmileModes.normalize(options):{}),shade:shadeCode,shadeGuide:bleachedCodes.has(shadeCode)?'bleached':'classical',shadeSystem,current:!!options.current,finish:options.finish||'natural',intensity:options.intensity||'balanced',construction:constructionOf(options),materialOnly:!!options.materialOnly,baseShade:options.baseShade||'',baseShadeGuide:options.baseShadeGuide||'',referenceRole:options.referenceRole||'',masterView:options.masterView||''}}};
     } catch(error) {
       if(error.name==='AbortError')error=new Error('Se agotó la espera. El intento pudo consumir cupo; no se reintentó automáticamente.');
       error.requestId=requestId;throw error;
