@@ -287,6 +287,9 @@
   }
   function render(){
     var stage=byId('flow-main-photo'),strip=byId('flow-photo-strip');stage.replaceChildren();strip.replaceChildren();var primary=S.photos[0];
+    var photoWorkspace=byId('flow-photo-workspace'),prepareGrid=photoWorkspace?.parentElement;
+    if(photoWorkspace)photoWorkspace.hidden=!primary;
+    if(prepareGrid)prepareGrid.classList.toggle('photo-first',!primary);
     if(primary){
       var image=element('img');image.src=source(primary);image.alt=label(primary.view)+(primary.adjustOriginal?' · fotografía ajustada':' · fotografía original');stage.append(image,element('span','flow-photo-caption',(primary.referenceOnly?'Solo referencia':'Incluida en la simulación')+' · '+label(primary.view)));
       var readiness=element('div','flow-photo-readiness');readiness.innerHTML='<strong>Comprueba antes de seguir</strong><span>Sonrisa visible</span><span>Buena luz</span><span>Rostro centrado</span>';stage.append(readiness);
