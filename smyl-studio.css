@@ -400,3 +400,41 @@
  .smyl-organized #quick-config .quick-generate{min-height:50px}
  .smyl-organized .flow-picker-actions{grid-template-columns:1fr}
 }
+
+/* Simulator v4: the physical VITA guide is the primary shade decision. */
+.flow-vita-shell{margin:14px 0 12px;border:1px solid #cbd9d3;border-radius:18px;background:linear-gradient(160deg,#fffefa,#f0f5f1);overflow:hidden;box-shadow:0 12px 30px rgba(35,62,60,.08)}
+.flow-vita-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 16px 8px}.flow-vita-heading>div{min-width:0}.flow-vita-heading span{display:block;color:#28726d;font:750 12px/1.2 Inter,sans-serif;letter-spacing:1.15px}.flow-vita-heading strong{display:block;margin-top:5px;color:#183d3e;font:650 15px/1.25 Inter,sans-serif}.flow-vita-heading p{margin:3px 0 0!important;color:#657a76!important;font:400 12px/1.4 Inter,sans-serif!important}
+.flow-shade-controls{display:flex;gap:6px;flex:0 0 auto}.flow-shade-controls .flow-shade-arrow{display:grid;place-items:center;min-width:42px;min-height:42px;padding:0;font-size:23px;line-height:1}
+.flow-vita-shell .flow-vita-track{margin:0;padding-top:4px;padding-bottom:10px}.flow-vita-shell .flow-vita-card{flex-basis:124px;gap:9px;min-height:306px;padding:12px 9px 14px;border:1px solid transparent;border-radius:16px;background:transparent;transition:transform .18s ease,border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.flow-vita-shell .flow-vita-card.selected{z-index:1;border-color:#6ba99b;background:#fff;box-shadow:0 10px 24px rgba(29,83,76,.12);transform:translateY(-2px)}.flow-vita-shell .flow-vita-card>strong{font-size:15px}.flow-vita-shell .flow-vita-card>small{display:-webkit-box;min-height:34px;overflow:hidden;color:#647773;font:500 12px/1.4 Inter,sans-serif;text-align:center;-webkit-line-clamp:2;-webkit-box-orient:vertical}.flow-vita-shell .flow-vita-card::after{display:none}.flow-vita-shell .flow-shade-check{right:9px;top:9px;bottom:auto}
+.flow-tone-selected{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;margin:0 14px 14px;padding:11px 12px;border:1px solid #c9d9d2;border-radius:11px;background:#eaf3ee;color:#1d4e4a}.flow-tone-selected>span{font:750 12px/1.2 Inter,sans-serif;letter-spacing:.9px}.flow-tone-selected>strong{font:650 12px/1.35 Inter,sans-serif;text-align:right}
+.flow-tone-continue{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:4px;font:650 13px Inter,sans-serif}.flow-tone-continue:after{content:'→';margin-left:9px;font-size:18px}
+.flow-tone-presets{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.flow-tone-preset{display:block;min-height:62px;padding:8px 5px;text-align:center}.flow-tone-preset .flow-tone-sample{display:none}.flow-tone-preset-copy strong,.flow-tone-preset-copy small{font-size:12px}.flow-tone-preset-copy small{line-height:1.3}
+
+/* One visual policy: cream workspace, navy action, teal selection. */
+.smyl-organized .flow-primary,.smyl-organized #quick-config .quick-generate,.smyl-organized .pc-entry>.pc-primary{background:#0b1d35;color:#fff;border-color:#0b1d35}.smyl-organized .flow-primary:hover{background:#102b49}.smyl-organized :is(button,summary,a,textarea,select):focus-visible{outline:3px solid #48b5a5;outline-offset:2px}
+.flow-result-actions{display:flex;gap:8px;flex:0 0 auto}.flow-result-actions button{min-height:44px}.flow-result-dock{display:none}
+
+@media(max-width:860px),(max-width:1024px) and (pointer:coarse){
+ .smyl-organized{--flow-bg:#f4f6f2;--flow-panel:#fffefa;--flow-line:#d4ddd7;--flow-muted:#607470;background:#f4f6f2;color:#233c3d;color-scheme:light}
+ .smyl-organized :is(#s-photos,#s-res){background:#f4f6f2;color:#233c3d}
+ .smyl-organized :is(#s-photos #quick-config,.res-header,#case-actions-box,.flow-picker,.flow-guided-photo,.flow-review-ready,.flow-review-list>div,.flow-tone-preset){background:#fffefa;color:#233c3d;border-color:#d4ddd7}
+ .smyl-organized :is(.flow-main-photo,.flow-thumb,.flow-notes textarea,.flow-picker select,.flow-secondary,.flow-shade-arrow,.flow-keep-tone){background:#fffefa;color:#215d60;border-color:#b6cac6}
+ .smyl-organized :is(.flow-eyebrow,.flow-panel-link,.flow-text,.flow-steps .current,.flow-notes summary,.flow-result-tools summary,.flow-shade-header strong,.flow-progress-line>span,.flow-progress-line>button){color:#28726d}
+ .smyl-organized :is(.flow-empty p,.flow-photo-toolbar>span,.flow-reference,.flow-note-help,.flow-tone-help,.flow-picker p,.flow-notes summary span,.flow-steps,.res-thumb-lbl,#quick-config>p,#quick-config .quick-choice-title,#quick-config .quick-choice small){color:#607470}
+ .smyl-organized #quick-config .quick-choice{background:#f8f8f2;color:#3a5554;border-color:#d4ddd7}.smyl-organized #quick-config .quick-choice.selected,.smyl-organized .flow-thumb.selected,.smyl-organized .flow-keep-tone.selected,.smyl-organized .flow-tone-preset.selected{background:#e5efea;color:#174b47;border-color:#507e71;box-shadow:inset 0 0 0 1px #507e71}
+ .smyl-organized .flow-progress-track span{background:#dce5df}.smyl-organized .flow-progress-track span.done,.smyl-organized .flow-progress-track span.current{background:#3c998b}.smyl-organized .flow-progress-track span.current{box-shadow:0 0 0 2px #cde6df}
+ .smyl-organized .flow-guided-photo-copy>strong,.smyl-organized .flow-review-ready strong,.smyl-organized .flow-result-heading h1,.smyl-organized .flow-result-section-head strong,.smyl-organized .flow-result-variant strong{color:#173738}
+ .smyl-organized .flow-guided-photo p,.smyl-organized .flow-review-ready small,.smyl-organized .flow-review-safety,.smyl-organized .flow-result-heading p,.smyl-organized .flow-result-variant p{color:#607470}
+ .smyl-organized .flow-guided-photo{background:linear-gradient(145deg,#f7faf7,#edf4ef)}.smyl-organized .flow-photo-caption{background:#173438e8;color:#fff}
+ .smyl-organized .flow-vita-shell{background:linear-gradient(160deg,#fffefa,#f0f5f1);border-color:#cbd9d3}.smyl-organized .flow-vita-card{color:#284745}.smyl-organized .flow-vita-card.selected{background:#fff;border-color:#6ba99b}.smyl-organized .flow-vita-track{--flow-tone-accent:#215d60}.smyl-organized .flow-shade-check{color:#fff}
+ .smyl-organized .flow-result-summary span,.smyl-organized #res-photos{background:#fffefa;border-color:#d4ddd7;color:#355956}.smyl-organized .flow-result-modes{background:#e9efeb;border-color:#d0dcd6}.smyl-organized .flow-result-modes button{color:#58706d}.smyl-organized .flow-result-modes button[aria-selected=true]{background:#fffefa;color:#183d3e}.smyl-organized .flow-result-variant{background:linear-gradient(135deg,#eef6f1,#fdfdf9);border-color:#cbdcd4}.smyl-organized #ba-wrap{border-color:#cbd9d3}
+ .smyl-organized #case-actions-box :is(.cta-title,label){color:#233c3d!important}.smyl-organized #cta-guardar-sub,.smyl-organized #smile-result-label{color:#607470!important}.smyl-organized #case-actions-box :is(input,textarea){background:#fff!important;color:#233c3d!important;border-color:#b6cac6!important}
+ .smyl-organized #quick-config{--choice-accent:#27675e;--choice-soft:#dceee5;--choice-card:#f6f7f1;--choice-stroke:#c9d6ce;--choice-mouth:#eef1e9;--choice-idle:#9aafa3;--choice-tooth:#edf1e9;--choice-target:#6e9b8b;--choice-target-active:#2e7b69}
+ .smyl-organized #quick-config .flow-visual-choice.selected{color:#174b47}.smyl-organized #quick-config .flow-visual-choice.selected>small{color:#526867}
+ .smyl-organized .flow-picker{--gallery-accent:#28726d;--gallery-soft:#e5efea;background:#fffefa}.flow-view-check{color:#fff}
+}
+@media(max-width:680px){
+ .flow-tone-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.flow-vita-heading{padding-inline:13px}.flow-vita-heading strong{font-size:14px}.flow-vita-shell .flow-vita-card{flex-basis:118px}.flow-tone-selected{grid-template-columns:1fr;gap:4px}.flow-tone-selected>strong{text-align:left}
+ .flow-result-actions{display:none}.flow-result-dock{position:sticky;bottom:max(10px,env(safe-area-inset-bottom));z-index:24;display:flex;gap:8px;width:min(calc(100% - 24px),1120px);margin:12px auto;padding:8px;border:1px solid #d4ddd7;border-radius:15px;background:rgba(255,254,250,.94);box-shadow:0 14px 34px rgba(16,35,44,.16);backdrop-filter:blur(16px)}.flow-result-dock button{flex:1;min-height:46px}
+}

@@ -9439,3 +9439,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se adaptaron patrones de stepper, upload y compare slider al stack HTML/CSS/JS existente; no se añadió React, Tailwind ni una dependencia de 21st.dev.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=21`, `smyl-studio.css?v=22` y caché PWA `premium-v3`.
 - Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6). Sin migraciones, cambios de backend, Edge Functions ni datos clínicos.
+
+## 2026-11-01 — Codex — Simulador progresivo v4: guía VITA visible y continuidad móvil
+
+- La etapa de claridad deja de ocultar la guía profesional: presenta los 16 tonos VITA Classical en orden de luminosidad dentro de un carrusel visible, táctil y navegable por teclado, con muestra física ilustrativa, nombre y descripción breve.
+- Los cuatro accesos rápidos funcionan como puntos de partida y ya no avanzan automáticamente. La persona confirma su elección con una única acción explícita, `Continuar con este tono`, reduciendo cambios accidentales.
+- La selección muestra una descripción comprensible junto con el código VITA, y el resumen de revisión y de resultado conserva la misma nomenclatura. La pantalla aclara que el tono clínico definitivo se confirma físicamente.
+- `Abrir guía VITA` desde el resultado vuelve a la misma etapa completa, evitando un segundo selector con opciones distintas. El resultado incorpora acciones claras para ajustar y guardar/compartir, con barra inferior táctil en celular.
+- Escritorio, tablet y celular comparten la política visual clara de SMYL: fondo crema, acción primaria navy y turquesa reservado para selección y foco. No se añadieron dependencias externas ni se modificaron prompts, generación, persistencia o backend.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=22`, `smyl-studio.css?v=23` y caché PWA `vita-carousel-v4`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
