@@ -88,6 +88,7 @@ const STATIC_FILES = [
   '/camila/smyl-professional-directory.css?v=12',
   '/camila/smyl-design-system-v2.css?v=2',
   '/camila/smyl-ui-template-v3.css?v=7',
+  '/camila/smyl-ui-datta-v4.css?v=1',
   '/camila/smyl-public-profile.css?v=1',
   '/camila/dentista.html',
   '/camila/resena.html',

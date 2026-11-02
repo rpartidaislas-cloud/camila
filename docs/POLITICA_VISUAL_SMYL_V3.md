@@ -1,5 +1,9 @@
 # Política visual SMYL v3
 
+> **Aviso 2026-11-02:** la personalidad visual (formas, sombras, tipografía y estructura del shell) pasó a
+> [`POLITICA_VISUAL_SMYL_V4.md`](POLITICA_VISUAL_SMYL_V4.md). Los colores y las reglas de accesibilidad de este
+> documento siguen vigentes.
+
 **Versión:** 3.3 · Clinical Workspace
 **Estado:** normativa
 **Fecha de entrada en vigor:** 1 de noviembre de 2026
