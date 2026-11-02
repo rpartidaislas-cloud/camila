@@ -1,5 +1,26 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-02 — Codex — Simulador móvil v6: menos acciones y guardado confiable
+
+- El paso de objetivo conserva sólo dos decisiones distintas: `Alinear` y
+  `Alinear y mejorar`. Los casos anteriores con el modo `veneers` se migran en
+  memoria al modo combinado para no perder compatibilidad.
+- La preparación de fotografías muestra sólo `Editar foto` y `Añadir otra foto`.
+  Reencuadrar, reemplazar, restaurar y quitar viven dentro de un menú secundario;
+  se eliminó la sugerencia duplicada de encuadre.
+- El resultado separa el flujo en dos momentos verificables: primero `Guardar
+  resultado` y, sólo después de la confirmación del servidor, `Compartir
+  resultado`. El guardado evita dobles pulsaciones, conserva la simulación ante
+  errores y comparte la vista actualmente seleccionada cuando el dispositivo lo
+  permite.
+- La comparación distingue el gesto horizontal del desplazamiento vertical. La
+  fotografía ya no bloquea el scroll de la página en móvil; la línea de antes y
+  después sigue respondiendo al gesto horizontal.
+- Web y `mobile/www` están sincronizados. Tras integrar la guía facial y la
+  limpieza navy de `main`, Studio usa JS v26/CSS v27 y la PWA termina su caché
+  en `face-guide-v7-simulator-ux-v6`.
+- QA integrada tras la fusión: **1,005/1,005** pruebas ejecutadas aprobadas,
+  con 18 pruebas condicionales omitidas y 0 fallas (1,023 totales).
 ## 2026-11-02 — Claude Code — Política visual v4, etapa 1: personalidad de Datta Able con colores SMYL
 
 - Decisión de Ricardo: la política de imagen sigue la personalidad del repo Datta Able Free (MIT) pero con los

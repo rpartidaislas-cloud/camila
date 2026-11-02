@@ -5,11 +5,12 @@ const studio = fs.readFileSync('smyl-studio.js', 'utf8');
 const css = fs.readFileSync('smyl-studio.css', 'utf8');
 const html = fs.readFileSync('simulacion-rapida.html', 'utf8');
 
-// All three product objectives must have a visual definition. A missing
-// definition previously stopped the guided workspace before it was mounted.
-for (const objective of ['veneers', 'alignment', 'combined']) {
+// The two distinct patient objectives must have a visual definition. The
+// previous veneers-only card duplicated the combined path and was removed.
+for (const objective of ['alignment', 'combined']) {
   assert.match(studio, new RegExp(`${objective}:\\[`));
 }
+assert.doesNotMatch(studio, /options:\{[\s\S]{0,80}veneers:\[/);
 assert.match(studio, /if\(!copy\)return/);
 assert.match(studio, /window\.abrirConfiguracionRapida\(\)/);
 
@@ -22,7 +23,7 @@ assert.match(studio, /GUÍA VITA CLASSICAL/);
 assert.match(studio, /Desliza para elegir el tono/);
 assert.match(studio, /Continuar con este tono/);
 assert.match(studio, /data-shade-step/);
-assert.match(studio, /Abrir guía VITA/);
+assert.match(studio, /Cambiar tono VITA/);
 assert.match(studio, /openToneSelection/);
 assert.match(studio, /flow-shade-recommended/);
 assert.match(studio, /S\.vitaTone='A2'/);
@@ -58,7 +59,7 @@ assert.doesNotMatch(studio, /flow-coach-frame/);
 assert.match(studio, /flow-photo-readiness/);
 assert.match(studio, /flow-result-modes/);
 assert.match(studio, /data-result-mode/);
-assert.match(studio, /EXPLORA OTRA VERSIÓN/);
+assert.doesNotMatch(studio, /EXPLORA OTRA VERSIÓN/);
 assert.match(studio, /flow-result-dock/);
 assert.match(css, /\.flow-result-intro/);
 assert.match(css, /\.flow-result-variant/);

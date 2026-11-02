@@ -465,6 +465,55 @@
 .smyl-organized #case-actions-box :is(.cta-title,label){color:#f3f7fb!important}.smyl-organized #cta-guardar-sub{color:#aab9cf!important}.smyl-organized .flow-result-dock{background:rgba(8,22,41,.94);border-color:#304765;box-shadow:0 16px 38px rgba(0,0,0,.32)}
 @media(max-width:680px){.flow-vita-heading{align-items:flex-start}.flow-shade-controls{flex-wrap:wrap;justify-content:flex-end}.smyl-organized .flow-vita-shell .flow-vita-card{flex-basis:116px}.smyl-organized .flow-result-dock{background:rgba(8,22,41,.94)}}
 
+/* Simulator v6: quiet photo controls, sequential save/share, mobile scroll. */
+.smyl-organized #quick-config #quick-objective-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+.smyl-organized .flow-photo-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;margin:14px 0 12px;overflow:visible}
+.smyl-organized .flow-photo-toolbar>span{min-width:0;margin:0;font-size:13px!important}
+.flow-photo-actions-menu{position:relative;z-index:12}
+.flow-photo-actions-menu>summary{display:flex;align-items:center;justify-content:center;gap:8px;min-width:122px;padding:9px 14px;border:1px solid #3a526f;border-radius:10px;background:#12233b;color:#dffbf5;font:650 13px/1.2 Inter,sans-serif;cursor:pointer;list-style:none}
+.flow-photo-actions-menu>summary::-webkit-details-marker{display:none}
+.flow-photo-actions-menu>summary:after{content:'\2304';font-size:15px;line-height:1;transform:translateY(-2px)}
+.flow-photo-actions-menu[open]>summary{border-color:#70d6c3;background:#173b47;color:#e8fffa}
+.flow-photo-actions-menu[data-disabled=true]>summary{pointer-events:none;opacity:.5}
+.flow-photo-actions-popover{position:absolute;right:0;top:calc(100% + 8px);display:grid;width:210px;padding:7px;border:1px solid #3a526f;border-radius:12px;background:#0d1c31;box-shadow:0 18px 44px rgba(0,0,0,.42)}
+.flow-photo-action{display:flex;align-items:center;min-height:42px;padding:9px 11px;border:0;border-radius:8px;background:transparent;color:#e8eff7;font:600 13px/1.25 Inter,sans-serif;text-align:left;cursor:pointer}
+.flow-photo-action:hover,.flow-photo-action:focus-visible{background:#173b47;color:#e8fffa}
+.flow-photo-action-danger{color:#ffb5ab}
+.flow-photo-action-danger:hover,.flow-photo-action-danger:focus-visible{background:rgba(196,72,72,.16);color:#ffd2cd}
+.smyl-organized #flow-add-photo{min-width:148px;white-space:nowrap;font-size:13px;padding-inline:14px}
+
+.flow-result-status{min-height:0;margin:12px 0 0;border-radius:9px;color:#aab9cf;font:550 12px/1.45 Inter,sans-serif}
+.flow-result-status:empty{display:none}
+.flow-result-status:not(:empty){padding:9px 11px;border:1px solid #304765;background:#0a1729}
+.flow-result-status[data-state=success]{border-color:#3f857a;background:#103438;color:#bff7eb}
+.flow-result-status[data-state=attention]{border-color:#8b633a;background:#2b2119;color:#ffd8a8}
+.flow-result-status[data-state=working]{color:#c7d7e8}
+.smyl-organized .flow-result-tools{width:min(calc(100% - 32px),1120px);margin:18px auto 22px;padding:0;border:1px solid #2a3d59;border-radius:12px;background:#0d1c31}
+.smyl-organized .flow-result-tools>summary{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;color:#c6d4e3;font-size:13px;list-style:none}
+.smyl-organized .flow-result-tools>summary::-webkit-details-marker{display:none}
+.smyl-organized .flow-result-tools>summary:after{content:'+';font-size:18px;font-weight:400;color:#79d9ca}
+.smyl-organized .flow-result-tools[open]>summary:after{content:'\2212'}
+.smyl-organized .flow-tool-body{padding:0 14px 14px;border-top:1px solid #2a3d59}
+.smyl-organized #ba-wrap{touch-action:pan-y pinch-zoom!important;overscroll-behavior:auto!important}
+.smyl-organized #ba-line,.smyl-organized .ba-knob{touch-action:none}
+
+@media(max-width:680px){
+ .smyl-organized .flow-photo-toolbar{grid-template-columns:1fr 1fr;gap:8px}
+ .smyl-organized .flow-photo-toolbar>span{grid-column:1/-1;padding-inline:2px}
+ .flow-photo-actions-menu,.smyl-organized #flow-add-photo{width:100%;min-width:0}
+ .flow-photo-actions-menu>summary{width:100%;min-width:0;box-sizing:border-box;min-height:48px}
+ .flow-photo-actions-popover{left:0;right:auto;width:min(250px,calc(100vw - 52px))}
+ .smyl-organized #flow-add-photo{min-height:48px}
+ .flow-result-heading>div{min-width:0}
+ .flow-result-heading h1{font-size:25px;line-height:1.12;letter-spacing:-.7px}
+ .flow-result-heading p{max-width:34ch;font-size:12px!important}
+ .flow-result-status{margin-top:10px}
+ .smyl-organized .flow-result-tools{width:min(calc(100% - 24px),1120px);margin-top:14px}
+ .flow-result-dock{bottom:max(12px,env(safe-area-inset-bottom));padding:7px}
+ .flow-result-dock button{font-size:13px;white-space:normal;line-height:1.25}
+ .smyl-organized #s-res .res-body{padding-bottom:88px}
+}
+@media(max-width:520px){.smyl-organized #quick-config #quick-objective-options{grid-template-columns:1fr}}
 /* Simulator v6: no white UI surfaces and one canonical photo entry step. */
 .flow-prepare-grid.photo-first{grid-template-columns:minmax(0,720px);justify-content:center}.flow-prepare-grid.photo-first #quick-config{grid-column:1;width:100%}
 body.smyl-organized #s-photos #quick-config .flow-guided-photo{background:linear-gradient(145deg,#12243d,#0c1b30);color:#f3f7fb;border-color:#304765}
