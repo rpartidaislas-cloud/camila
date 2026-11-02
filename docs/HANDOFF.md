@@ -9453,3 +9453,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Escritorio, tablet y celular comparten la política visual clara de SMYL: fondo crema, acción primaria navy y turquesa reservado para selección y foco. No se añadieron dependencias externas ni se modificaron prompts, generación, persistencia o backend.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=22`, `smyl-studio.css?v=23` y caché PWA `vita-carousel-v4`.
 - Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
+
+## 2026-11-01 — Codex — Simulador progresivo v5: estudio navy y una sola decisión de tono
+
+- El recorrido completo adopta una superficie navy continua en preparación, configuración y resultado. Paneles, tarjetas, selectores, diálogos y acciones secundarias usan profundidades de azul; turquesa queda reservado para selección, progreso y acción primaria.
+- Se eliminan los cuatro accesos rápidos de claridad que duplicaban el carrusel. La etapa muestra una sola guía VITA Classical, `Mi tono` como excepción explícita y una única confirmación para continuar.
+- A2 se marca como punto de partida natural en casos nuevos, sin impedir seleccionar cualquiera de los 16 tonos ni conservar el tono observado.
+- Para evitar distorsionar la percepción cromática, sólo el soporte inmediato de cada muestra VITA conserva un campo neutro. El resto del fondo permanece navy.
+- Se mantienen intactos generación, prompts, consumo, fotografías, resultados y persistencia; el cambio es exclusivamente de interacción y presentación.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=23`, `smyl-studio.css?v=24` y caché PWA `navy-studio-v5`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).

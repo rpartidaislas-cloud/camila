@@ -73,7 +73,7 @@
       ['Paso 1 de 5 · Fotografía','Empieza con una fotografía','Te recomendamos una foto frontal sonriendo y con buena luz.'],
       ['Paso 2 de 5 · Cambio','¿Qué quieres explorar?','Elige la opción que más se parezca al cambio que quieres comparar.'],
       ['Paso 3 de 5 · Zona','¿Dónde quieres verlo?','Puedes aplicarlo arriba, abajo o en ambas arcadas.'],
-      ['Paso 4 de 5 · Claridad','¿Qué tan claro lo imaginas?','Natural suele ser un buen punto de partida; podrás cambiarlo después.'],
+      ['Paso 4 de 5 · Claridad','Elige el tono','Desliza la guía VITA. El tono A2 es un punto de partida natural.'],
       ['Paso 5 de 5 · Revisión','Revisa tu propuesta','Comprueba tus elecciones antes de generar la comparación.']
     ][stage]||[];
   }
@@ -320,6 +320,7 @@
   async function generate(){if(busy||generating||!SmylPhotoBatch.targets().length)return;generating=true;render();try{await confirmarConfiguracionRapida();}catch(error){mostrarAvisoAplicacion('No se completó la selección',error.message+' Las fotos y las simulaciones aceptadas se conservan.');}finally{if(returnSettings&&S.results[returnSettings.view]!==returnSettings.result)returnSettings=null;generating=false;render();}}
   function init(){
     document.body.classList.add('smyl-organized');
+    if(!S.vitaTone&&S.vitaMode!=='current')S.vitaTone='A2';
     var intro=byId('s-intro'),hero=element('section','flow-home');
     hero.innerHTML='<img class="flow-home-logo" src="icons/smyl_logo.png" alt="SMYL"><div class="flow-eyebrow">ESTUDIO DE SONRISA</div><h1>Una fotografía.<br>Una nueva posibilidad.</h1><p>Elige el cambio que buscas y compara la propuesta. Puedes comenzar con cualquier vista.</p>';
     hero.append(button('Crear simulación',openPhotos,'flow-primary'));
@@ -356,25 +357,20 @@
     objectiveOptions.querySelectorAll('button').forEach(function(control){control.addEventListener('click',function(){setTimeout(function(){advanceGuided(2,true);},0);});});
     archOptions.querySelectorAll('button').forEach(function(control){control.addEventListener('click',function(){setTimeout(function(){advanceGuided(SmylSmileModes.normalize(S.smileDesign).mode==='alignment'?4:3,true);},0);});});
     var appearanceLabel=byId('quick-appearance-options').previousElementSibling,tones=element('div');tones.id='flow-tone-group';appearanceLabel.before(tones);
-    appearanceLabel.textContent='¿Qué tan claro lo imaginas?';tones.append(appearanceLabel);
+    appearanceLabel.textContent='Elige un tono';tones.append(appearanceLabel);
     byId('quick-appearance-options').hidden=true;config.querySelector('label[for="quick-vita-tone"]').hidden=true;byId('quick-vita-tone').hidden=true;
-    var presetGrid=element('div','flow-tone-presets');presetGrid.setAttribute('role','group');presetGrid.setAttribute('aria-label','Puntos de partida para la claridad');
     var selectedTone=element('div','flow-tone-selected');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');
     var track=element('div','flow-vita-track');track.id='flow-vita-track';track.setAttribute('aria-label','Tonos VITA Classical');
     function chooseTone(code){seleccionarAparienciaRapida(code,null,false);syncPreferences();}
-    patientToneChoices.forEach(function(choice){
-      var preset=button('',function(){chooseTone(choice.code);},'flow-tone-preset');preset.dataset.flowTone=choice.code;var sample=element('span','flow-tone-sample');
-      if(choice.code==='current')sample.classList.add('is-current');else SmylVitaSamples.attachFilter(sample,choice.code);
-      preset.append(sample,element('span','flow-tone-preset-copy'));preset.lastElementChild.append(element('strong','',choice.label),element('small','',choice.detail));presetGrid.append(preset);
-    });
     VITA_CLASSICAL.forEach(function(shade){var b=button('',function(){shadeCarousel.pick(shade.code);},'flow-vita-card');b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar tono VITA '+shade.code+' · '+shade.copy);
       b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>VITA '+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
-      SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);b.append(element('strong','',shade.code),element('small','',shade.copy));track.append(b);
+      SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);if(shade.code==='A2')b.append(element('span','flow-shade-recommended','Natural'));b.append(element('strong','',shade.code),element('small','',shade.copy));track.append(b);
     });
     var vitaShell=element('section','flow-vita-shell');vitaShell.innerHTML='<div class="flow-vita-heading"><div><span>GUÍA VITA CLASSICAL</span><strong>Desliza para elegir el tono</strong><p>De más luminoso a más profundo.</p></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-step="-1" aria-label="Tono anterior">‹</button><button type="button" class="flow-shade-arrow" data-shade-step="1" aria-label="Tono siguiente">›</button></div></div>';
+    var currentTone=button('Mi tono',function(){chooseTone('current');},'flow-tone-current');currentTone.dataset.flowTone='current';currentTone.setAttribute('aria-label','Conservar mi tono actual');vitaShell.querySelector('.flow-shade-controls').prepend(currentTone);
     vitaShell.append(track,selectedTone);
     var toneContinue=button('Continuar con este tono',function(){advanceGuided(4,true);},'flow-primary flow-tone-continue');toneContinue.id='flow-tone-continue';
-    tones.append(presetGrid,vitaShell,toneContinue,element('p','flow-tone-help','Representación orientativa en pantalla. El tono clínico definitivo se confirma físicamente con una guía VITA.'));
+    tones.append(vitaShell,toneContinue,element('p','flow-tone-help','Representación orientativa en pantalla. El tono clínico definitivo se confirma físicamente con una guía VITA.'));
     tones.classList.add('flow-guided-section');tones.dataset.stage='tone';
     shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
     vitaShell.querySelectorAll('[data-shade-step]').forEach(function(control){control.onclick=function(){shadeCarousel.step(Number(control.dataset.shadeStep));};});
