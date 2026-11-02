@@ -1639,3 +1639,81 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     transition-duration: .01ms !important;
   }
 }
+
+/* Menú lateral: iconos de línea en baldosa, letra más grande y legible (escritorio). */
+@media (min-width: 761px) {
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar {
+    width: 17rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-section,
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
+    padding: .9rem .85rem .4rem;
+    color: rgba(215, 235, 238, .56);
+    font-size: var(--smyl-ui-text-meta);
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
+    min-height: 2.65rem;
+    padding-block: 0;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item {
+    min-height: 2.8rem;
+    padding: .45rem .7rem;
+    gap: .85rem;
+    color: rgba(232, 243, 246, .86);
+    font-size: var(--smyl-ui-text-body);
+    font-weight: 600;
+    letter-spacing: -.005em;
+    line-height: 1.3;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) {
+    font-weight: 700;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-icon {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: .7rem;
+    background: rgba(255, 255, 255, .045);
+    color: rgba(205, 226, 232, .88);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-icon svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    stroke-width: 1.7;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover .pro-nav-icon {
+    background: rgba(255, 255, 255, .09);
+    color: #fff;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) .pro-nav-icon {
+    border-color: rgba(138, 208, 201, .38);
+    background: linear-gradient(145deg, rgba(110, 216, 206, .3), rgba(58, 150, 160, .2));
+    color: #b4f3ec;
+    filter: none;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-label {
+    max-width: 12rem;
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick {
+    min-height: 3rem;
+    font-size: var(--smyl-ui-text-body);
+  }
+
+  body.smyl-ui-governed.smyl-management-v3 .btn-cerrar {
+    font-size: var(--smyl-ui-text-body-sm);
+  }
+}
