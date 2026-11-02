@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-02 — Claude Code — Política visual v4, etapa 1: personalidad de Datta Able con colores SMYL
+
+- Decisión de Ricardo: la política de imagen sigue la personalidad del repo Datta Able Free (MIT) pero con los
+  colores actuales de SMYL. Nueva `docs/POLITICA_VISUAL_SMYL_V4.md` (guía de diseño, no norma rígida: Ricardo pidió que
+  mande el criterio de diseño); v3.2 queda vigente solo en colores y accesibilidad (aviso al inicio de v3).
+- `smyl-ui-datta-v4.css` (se carga la última en `app.html`; reversible quitando su `<link>`): Open Sans 14 px,
+  radios del sistema 8/10/12 px (se descartaron los 4 px de la plantilla: chocaban con ≈1 400 radios de 8–16 px ya usados), tarjetas sin borde con `0 1px 20px` marino, barra lateral de 264 px con filas a ancho completo y
+  marca turquesa de 3 px, cabecera de 74 px translúcida, botones de 38 px. Reglas acotadas a `.layout`; ningún color
+  nuevo (lo vigila `tests/smyl-ui-datta-v4.test.mjs`). Cachés: app.html/sw.js/copia móvil sincronizados.
+- **Su paleta no se adoptó:** `#04a9f5` sobre blanco da 2,63:1 (falla AA).
+- **Pendiente (etapa 2/3):** revisar pantalla por pantalla con capturas reales y unificar lo que desentone
+  (bordes vs sombra, pesos de encabezado, espaciados); luego diálogos y superficies públicas. No hace falta migrar radios.
+- **Barra lateral (2026-11-02):** la real la arma `smyl-navigation.js` (`.nav-item.pro-nav-item`) y `smyl-ui-template-v3.css` ya la define (panel flotante, colapsado, iconos en baldosa). Se adaptó sin reemplazarla: solo expandida, filas de 8 px, activa plana con marca turquesa de 3 px, subtítulos de ~4:1 a ~7:1. Verificado con el marcado real y todas las hojas de `app.html`, expandida y colapsada.
+- **No verificado:** Open Sans se pide a Google Fonts; en el entorno de pruebas no hay red, así que las capturas
+  muestran la fuente de respaldo. Comprobar en la web real. Pruebas: 998/998.
+
 ## 2026-11-02 — Codex — Cierre y publicación: expediente clínico y Simulaciones SMYL
 
 - Se validó conjuntamente el formulario estructurado de historia clínica y la
