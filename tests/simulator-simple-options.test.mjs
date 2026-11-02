@@ -35,6 +35,9 @@ assert.deepEqual(
 assert.match(css, /\.flow-vita-shell/);
 assert.match(css, /\.flow-tone-continue/);
 assert.match(css, /one continuous navy studio/);
+assert.match(css, /no white UI surfaces and one canonical photo entry step/);
+assert.match(studio, /photoWorkspace\.hidden=!primary/);
+assert.match(studio, /classList\.toggle\('photo-first',!primary\)/);
 
 // The configuration behaves as a progressive conversation: photo, objective,
 // arch, tone and review. Only the current panel is visible, and every summary
@@ -59,7 +62,7 @@ assert.match(css, /\.flow-result-intro/);
 assert.match(css, /\.flow-result-variant/);
 assert.match(css, /One visual policy/);
 
-assert.match(html, /smyl-studio\.css\?v=24/);
-assert.match(html, /smyl-studio\.js\?v=23/);
+assert.match(html, /smyl-studio\.css\?v=25/);
+assert.match(html, /smyl-studio\.js\?v=24/);
 
 console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');

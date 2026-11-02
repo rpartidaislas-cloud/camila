@@ -9539,3 +9539,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se mantienen intactos generación, prompts, consumo, fotografías, resultados y persistencia; el cambio es exclusivamente de interacción y presentación.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=23`, `smyl-studio.css?v=24` y caché PWA `navy-studio-v5`.
 - Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
+
+## 2026-11-02 — Codex — Simulador progresivo v6: superficies navy y entrada única de fotografía
+
+- Se corrigió la prioridad de estilos que todavía dejaba en blanco la tarjeta inicial, la revisión, sus filas, los controles del carrusel VITA y el soporte de cada muestra. Todas las superficies de interfaz quedan ahora en azul navy; las fotografías y muestras dentales conservan sus colores reales.
+- Se eliminó la tarjeta vacía redundante de la columna de fotografías. En un caso nuevo sólo aparece la etapa progresiva `Empieza con una fotografía`; el espacio de trabajo fotográfico se muestra después de cargar la primera imagen.
+- En escritorio, la primera etapa queda centrada y usa un ancho cómodo; tras añadir una fotografía reaparece la distribución de fotografía más configuración. En móvil conserva una sola columna.
+- No se modificaron generación, prompts, consumo, resultados, archivos originales ni persistencia. El cambio es únicamente de navegación y presentación.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=24`, `smyl-studio.css?v=25` y caché PWA `navy-cleanup-v6`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
