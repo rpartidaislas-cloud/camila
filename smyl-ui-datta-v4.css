@@ -1,0 +1,116 @@
+/*
+ * SMYL UI v4 · etapa 1 · personalidad de Datta Able (MIT) con los colores de SMYL
+ *
+ * Qué toma de Datta Able: tipografía Open Sans de 14 px con encabezados ligeros, formas casi rectas
+ * (radio 4 px), tarjetas planas sin borde con una sombra suave y difusa, barra lateral con filas a
+ * ancho completo y marca de 3 px en la fila activa, cabecera translúcida más alta y subtítulos de
+ * sección en mayúsculas.
+ * Qué NO toma: sus colores. Los de SMYL (azul marino, turquesa, semánticos) no cambian.
+ *
+ * Se carga la ÚLTIMA. Reglas de forma y sombra solamente: ningún color nuevo. Para revertir, quitar su
+ * <link> de app.html. Las pantallas con radios propios (≈1 400 fijos en otros .css) se migran en la
+ * etapa 2; los tokens --smyl-ui-radius-* ya las cubren donde se usan.
+ */
+:root {
+  --smyl-ui-font: "Open Sans", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --smyl-ui-radius-control: .25rem;
+  --smyl-ui-radius-card: .25rem;
+  --smyl-ui-radius-panel: .375rem;
+  --smyl-ui-shadow-card: 0 1px 20px 0 rgba(11, 27, 46, .08);
+  --smyl-ui-field-height: 2.5rem;
+  --smyl-ui-button-height: 2.5rem;
+
+  --font-display: 600 24px/1.25 "Open Sans", Inter, sans-serif;
+  --font-section: 600 11px/1 "Open Sans", Inter, sans-serif;
+  --font-body: 400 14px/1.5 "Open Sans", Inter, sans-serif;
+}
+
+body,
+.btn,
+.layout input,
+.layout select,
+.layout textarea {
+  font-family: var(--smyl-ui-font);
+}
+
+/* ── Barra lateral: filas a ancho completo con marca de 3 px (no píldoras) ── */
+.layout .sidebar {
+  width: 264px;
+  box-shadow: 1px 0 20px 0 rgba(11, 27, 46, .35);
+}
+.layout .nav-items { padding: 6px 0; }
+.layout .nav-section {
+  padding: 18px 20px 6px;
+  color: rgba(232, 237, 247, .72);
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+.layout .nav-item {
+  height: auto;
+  min-height: 38px;
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 0;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.layout .nav-item:hover,
+.layout .nav-item.activo {
+  background: rgba(0, 0, 0, .18);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+.layout .nav-item.activo:focus-visible,
+.layout .nav-item:focus-visible {
+  box-shadow: inset 3px 0 0 var(--color-accent), inset 0 0 0 2px rgba(74, 155, 211, .45);
+}
+.layout .nav-item .ni-icon { width: 18px; height: 18px; }
+.layout .sb-logo h1 { font-weight: 600; letter-spacing: 0; }
+
+/* ── Cabecera: más alta, translúcida, título ligero ── */
+.layout .topbar {
+  height: 74px;
+  background: rgba(244, 247, 250, .82);
+  border-bottom: 0;
+  box-shadow: none;
+}
+.layout .topbar-left h2 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ── Tarjetas y métricas: planas, sin borde, sombra difusa ── */
+.layout .card,
+.layout .stat-card {
+  border: 0;
+  border-radius: var(--smyl-ui-radius-card);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+.layout .card { padding: 25px; }
+.layout .card-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+
+/* ── Controles: radio 4 px, altura 38–40 px ── */
+.layout .btn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--smyl-ui-radius-control);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.layout .btn-primary { box-shadow: none; }
+
+/* ── Tablas: filas más aireadas, cabecera sutil ── */
+.layout .tabla th { font-weight: 600; letter-spacing: .06em; }
+.layout .tabla td { padding: 14px; }
+
+/* ── Móvil: sin la barra lateral de escritorio, la cabecera vuelve a 64 px ── */
+@media (max-width: 768px) {
+  .layout .topbar { height: 64px; }
+}
