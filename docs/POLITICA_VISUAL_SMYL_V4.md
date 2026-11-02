@@ -24,7 +24,7 @@ HTML/JS sin React ni Bootstrap, así que no se instala ni se copia código; se t
 | Tipografía | Open Sans 14 px, encabezados ligeros (400–500) | Open Sans 14 px; título de página 18 px / 500; Inter queda de respaldo |
 | Radios | 0–4 px, tarjetas rectas | **Se adapta:** 8 px controles, 10 px tarjetas, 12 px paneles (ver nota) |
 | Tarjetas | sin borde, relleno 25 px, `0 1px 20px rgba(69,90,100,.08)` | sin borde, relleno 25 px, `0 1px 20px rgba(11,27,46,.08)` (misma sombra, tinte marino) |
-| Barra lateral | 264 px, filas a ancho completo, marca de 3 px en la activa, subtítulos en mayúsculas | 264 px, filas a ancho completo, marca de 3 px **turquesa SMYL**, fondo activo `rgba(0,0,0,.18)` |
+| Barra lateral | 264 px, filas a ancho completo, marca de 3 px en la activa, subtítulos en mayúsculas | **Se adapta:** se conserva el panel flotante, el colapsado y los iconos en baldosa; filas de 8 px, activa plana `rgba(0,0,0,.22)` con marca **turquesa SMYL** de 3 px sin resplandor, subtítulos a 7:1 de contraste |
 | Cabecera | 74 px, translúcida, sin borde | 74 px (64 px en móvil), translúcida, sin borde |
 | Controles | alto ≈ 38 px, sin sombra de color | botón 38 px; tokens de campo y botón `smyl-ui` a 40 px |
 | Tablas | filas aireadas, cabecera sutil | relleno 14 px, cabecera en mayúsculas 11 px |

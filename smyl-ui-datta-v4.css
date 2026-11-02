@@ -33,40 +33,40 @@ body,
   font-family: var(--smyl-ui-font);
 }
 
-/* ── Barra lateral: filas a ancho completo con marca de 3 px (no píldoras) ── */
-.layout .sidebar {
-  width: 264px;
-  box-shadow: 1px 0 20px 0 rgba(11, 27, 46, .35);
+/* ── Barra lateral ──
+ * La barra real la arma smyl-navigation.js (botones .nav-item.pro-nav-item) y smyl-ui-template-v3.css ya
+ * define su estructura: iconos en baldosa, colapsado, desplegables. Se conserva todo eso y solo se lleva su
+ * estética hacia Datta: filas más planas (radio del sistema), activo sin resplandor con marca turquesa sólida
+ * de 3 px y subtítulos legibles. Solo expandida: en colapsado manda la regla de smyl-ui-template-v3.css. */
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item {
+  margin-bottom: .125rem;
+  border-radius: var(--smyl-ui-radius-control);
 }
-.layout .nav-items { padding: 6px 0; }
-.layout .nav-section {
-  padding: 18px 20px 6px;
-  color: rgba(232, 237, 247, .72);
-  font-size: 11px;
-  letter-spacing: .08em;
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:hover {
+  background: rgba(255, 255, 255, .06);
+  transform: none;
 }
-.layout .nav-item {
-  height: auto;
-  min-height: 38px;
-  padding: 8px 20px;
-  border: 0;
-  border-radius: 0;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0;
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:is(.activo, [aria-current='page']) {
+  border-color: transparent;
+  background: rgba(0, 0, 0, .22);
+  box-shadow: none;
 }
-.layout .nav-item:hover,
-.layout .nav-item.activo {
-  background: rgba(0, 0, 0, .18);
-  color: #fff;
-  font-weight: 500;
-  box-shadow: inset 3px 0 0 var(--color-accent);
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:is(.activo, [aria-current='page'])::before {
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+  box-shadow: none;
 }
-.layout .nav-item.activo:focus-visible,
-.layout .nav-item:focus-visible {
-  box-shadow: inset 3px 0 0 var(--color-accent), inset 0 0 0 2px rgba(74, 155, 211, .45);
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .nav-item:is(.activo, [aria-current='page']) .pro-nav-icon {
+  filter: none;
 }
-.layout .nav-item .ni-icon { width: 18px; height: 18px; }
+/* Subtítulos de sección: el original rondaba 4:1 de contraste; con este valor pasa de 7:1. */
+body.smyl-ui-governed.smyl-management-v3 .pro-nav-section,
+body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
+  color: rgba(215, 235, 238, .66);
+}
 .layout .sb-logo h1 { font-weight: 600; letter-spacing: 0; }
 
 /* ── Cabecera: más alta, translúcida, título ligero ── */

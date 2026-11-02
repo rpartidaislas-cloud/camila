@@ -12,6 +12,7 @@
 - **Su paleta no se adoptó:** `#04a9f5` sobre blanco da 2,63:1 (falla AA).
 - **Pendiente (etapa 2/3):** revisar pantalla por pantalla con capturas reales y unificar lo que desentone
   (bordes vs sombra, pesos de encabezado, espaciados); luego diálogos y superficies públicas. No hace falta migrar radios.
+- **Barra lateral (2026-11-02):** la real la arma `smyl-navigation.js` (`.nav-item.pro-nav-item`) y `smyl-ui-template-v3.css` ya la define (panel flotante, colapsado, iconos en baldosa). Se adaptó sin reemplazarla: solo expandida, filas de 8 px, activa plana con marca turquesa de 3 px, subtítulos de ~4:1 a ~7:1. Verificado con el marcado real y todas las hojas de `app.html`, expandida y colapsada.
 - **No verificado:** Open Sans se pide a Google Fonts; en el entorno de pruebas no hay red, así que las capturas
   muestran la fuente de respaldo. Comprobar en la web real. Pruebas: 998/998.
 

@@ -21,8 +21,17 @@ test('define la personalidad: Open Sans, radios 8/10/12 px, tarjetas planas con 
   assert.match(css, /--smyl-ui-radius-panel:\s*\.75rem/);
   assert.match(css, /--smyl-ui-shadow-card:\s*0 1px 20px 0 rgba\(11, 27, 46, \.08\)/);
   assert.match(css, /\.layout \.card,\s*\n\.layout \.stat-card \{\s*\n\s*border: 0;/);
-  assert.match(css, /inset 3px 0 0 var\(--color-accent\)/);
-  assert.match(css, /\.layout \.sidebar \{\s*\n\s*width: 264px;/);
+  assert.match(css, /::before \{\s*\n\s*top: 0;\s*\n\s*bottom: 0;\s*\n\s*width: 3px;[\s\S]*?background: var\(--color-accent\)/);
+});
+
+test('la barra lateral se adapta al marcado real y respeta el colapsado', () => {
+  const sidebar = css.slice(css.indexOf('/* ── Barra lateral'), css.indexOf('/* ── Cabecera'));
+  const selectors = sidebar.match(/^body\.smyl-ui-governed[^{]+\{/gm) || [];
+  assert.ok(selectors.length >= 5);
+  for (const sel of selectors) {
+    if (/\.sidebar \.nav-item|\.nav-item:is/.test(sel)) assert.match(sel, /:not\(\.smyl-sidebar-collapsed\)/, sel);
+  }
+  assert.doesNotMatch(css, /\.layout \.nav-item|\.layout \.sidebar \{/, 'el marcado estático de app.html lo reemplaza smyl-navigation.js');
 });
 
 test('se carga la última, con Open Sans y precache; web, PWA y copia móvil sincronizadas', () => {
