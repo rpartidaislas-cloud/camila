@@ -16,10 +16,26 @@
 - La comparación distingue el gesto horizontal del desplazamiento vertical. La
   fotografía ya no bloquea el scroll de la página en móvil; la línea de antes y
   después sigue respondiendo al gesto horizontal.
-- Web y `mobile/www` están sincronizados. Studio usa JS v24/CSS v25 y la PWA
-  renueva la caché como `simulator-ux-v6`.
-- QA integrada: **1,000/1,000** pruebas ejecutadas aprobadas, con 18 pruebas
-  condicionales omitidas y 0 fallas (1,018 totales).
+- Web y `mobile/www` están sincronizados. Tras integrar la guía facial y la
+  limpieza navy de `main`, Studio usa JS v26/CSS v27 y la PWA termina su caché
+  en `face-guide-v7-simulator-ux-v6`.
+- QA integrada tras la fusión: **1,005/1,005** pruebas ejecutadas aprobadas,
+  con 18 pruebas condicionales omitidas y 0 fallas (1,023 totales).
+## 2026-11-02 — Claude Code — Política visual v4, etapa 1: personalidad de Datta Able con colores SMYL
+
+- Decisión de Ricardo: la política de imagen sigue la personalidad del repo Datta Able Free (MIT) pero con los
+  colores actuales de SMYL. Nueva `docs/POLITICA_VISUAL_SMYL_V4.md` (guía de diseño, no norma rígida: Ricardo pidió que
+  mande el criterio de diseño); v3.2 queda vigente solo en colores y accesibilidad (aviso al inicio de v3).
+- `smyl-ui-datta-v4.css` (se carga la última en `app.html`; reversible quitando su `<link>`): Open Sans 14 px,
+  radios del sistema 8/10/12 px (se descartaron los 4 px de la plantilla: chocaban con ≈1 400 radios de 8–16 px ya usados), tarjetas sin borde con `0 1px 20px` marino, barra lateral de 264 px con filas a ancho completo y
+  marca turquesa de 3 px, cabecera de 74 px translúcida, botones de 38 px. Reglas acotadas a `.layout`; ningún color
+  nuevo (lo vigila `tests/smyl-ui-datta-v4.test.mjs`). Cachés: app.html/sw.js/copia móvil sincronizados.
+- **Su paleta no se adoptó:** `#04a9f5` sobre blanco da 2,63:1 (falla AA).
+- **Pendiente (etapa 2/3):** revisar pantalla por pantalla con capturas reales y unificar lo que desentone
+  (bordes vs sombra, pesos de encabezado, espaciados); luego diálogos y superficies públicas. No hace falta migrar radios.
+- **Barra lateral (2026-11-02):** la real la arma `smyl-navigation.js` (`.nav-item.pro-nav-item`) y `smyl-ui-template-v3.css` ya la define (panel flotante, colapsado, iconos en baldosa). Se adaptó sin reemplazarla: solo expandida, filas de 8 px, activa plana con marca turquesa de 3 px, subtítulos de ~4:1 a ~7:1. Verificado con el marcado real y todas las hojas de `app.html`, expandida y colapsada.
+- **No verificado:** Open Sans se pide a Google Fonts; en el entorno de pruebas no hay red, así que las capturas
+  muestran la fuente de respaldo. Comprobar en la web real. Pruebas: 998/998.
 
 ## 2026-11-02 — Codex — Cierre y publicación: expediente clínico y Simulaciones SMYL
 
@@ -9545,3 +9561,20 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se mantienen intactos generación, prompts, consumo, fotografías, resultados y persistencia; el cambio es exclusivamente de interacción y presentación.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=23`, `smyl-studio.css?v=24` y caché PWA `navy-studio-v5`.
 - Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
+
+## 2026-11-02 — Codex — Simulador progresivo v6: superficies navy y entrada única de fotografía
+
+- Se corrigió la prioridad de estilos que todavía dejaba en blanco la tarjeta inicial, la revisión, sus filas, los controles del carrusel VITA y el soporte de cada muestra. Todas las superficies de interfaz quedan ahora en azul navy; las fotografías y muestras dentales conservan sus colores reales.
+- Se eliminó la tarjeta vacía redundante de la columna de fotografías. En un caso nuevo sólo aparece la etapa progresiva `Empieza con una fotografía`; el espacio de trabajo fotográfico se muestra después de cargar la primera imagen.
+- En escritorio, la primera etapa queda centrada y usa un ancho cómodo; tras añadir una fotografía reaparece la distribución de fotografía más configuración. En móvil conserva una sola columna.
+- No se modificaron generación, prompts, consumo, resultados, archivos originales ni persistencia. El cambio es únicamente de navegación y presentación.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=24`, `smyl-studio.css?v=25` y caché PWA `navy-cleanup-v6`.
+- Pruebas ejecutadas: opciones progresivas, flujo rápido, blueprint, identidad multivista, biblioteca dental y composición visual (6/6).
+
+## 2026-11-02 — Codex — Simulador progresivo v7: guía facial seleccionada y controles compactos
+
+- La silueta genérica de la primera etapa se sustituyó por la guía facial seleccionada por producto, conservada como PNG transparente en `icons/ui/smyl-face-capture-guide-v1.png`.
+- La guía se presenta sobre una superficie navy discreta y mantiene su transparencia y proporción original; el texto continúa siendo la fuente accesible de instrucciones.
+- En escritorio, `Tomar foto` y `Elegir archivo` dejan de ocupar todo el ancho: son acciones compactas de 40 px y `Usar otra vista` conserva menor jerarquía. En móvil mantienen objetivos táctiles de 44 px y dos columnas.
+- No se modificaron captura, archivos originales, simulación, prompts, consumo ni persistencia.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=25`, `smyl-studio.css?v=26` y caché PWA `face-guide-v7`.

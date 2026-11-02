@@ -43,11 +43,11 @@ test('comparison preserves vertical page scrolling on mobile', () => {
 });
 
 test('studio assets are cache-busted together', () => {
-  assert.match(html, /smyl-studio\.css\?v=25/);
-  assert.match(html, /smyl-studio\.js\?v=24/);
+  assert.match(html, /smyl-studio\.css\?v=27/);
+  assert.match(html, /smyl-studio\.js\?v=26/);
   assert.match(sw, /simulator-ux-v6/);
-  assert.match(sw, /smyl-studio\.css\?v=25/);
-  assert.match(sw, /smyl-studio\.js\?v=24/);
+  assert.match(sw, /smyl-studio\.css\?v=27/);
+  assert.match(sw, /smyl-studio\.js\?v=26/);
 });
 
 test('Capacitor receives the same simulator experience', () => {

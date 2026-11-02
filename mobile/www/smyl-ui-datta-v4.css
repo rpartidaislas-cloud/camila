@@ -1,0 +1,116 @@
+/*
+ * SMYL UI v4 · etapa 1 · personalidad de Datta Able (MIT) con los colores de SMYL
+ *
+ * Qué toma de Datta Able: tipografía Open Sans de 14 px con encabezados ligeros, tarjetas planas sin
+ * borde con una sombra suave y difusa, barra lateral con filas a ancho completo y marca de 3 px en la
+ * fila activa, cabecera translúcida más alta y subtítulos de sección en mayúsculas.
+ * Qué adapta: los radios. Datta usa 0–4 px; SMYL conserva 8/10/12 px porque casi todas sus pantallas ya
+ * los usan y esquinas afiladas solo en el shell chocarían con ellas (criterio de diseño, no de norma).
+ * Qué NO toma: sus colores. Los de SMYL (azul marino, turquesa, semánticos) no cambian.
+ *
+ * Se carga la ÚLTIMA. Reglas de forma y sombra solamente: ningún color nuevo. Para revertir, quitar su
+ * <link> de app.html.
+ */
+:root {
+  --smyl-ui-font: "Open Sans", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --smyl-ui-radius-control: .5rem;
+  --smyl-ui-radius-card: .625rem;
+  --smyl-ui-radius-panel: .75rem;
+  --smyl-ui-shadow-card: 0 1px 20px 0 rgba(11, 27, 46, .08);
+  --smyl-ui-field-height: 2.5rem;
+  --smyl-ui-button-height: 2.5rem;
+
+  --font-display: 600 24px/1.25 "Open Sans", Inter, sans-serif;
+  --font-section: 600 11px/1 "Open Sans", Inter, sans-serif;
+  --font-body: 400 14px/1.5 "Open Sans", Inter, sans-serif;
+}
+
+body,
+.btn,
+.layout input,
+.layout select,
+.layout textarea {
+  font-family: var(--smyl-ui-font);
+}
+
+/* ── Barra lateral ──
+ * La barra real la arma smyl-navigation.js (botones .nav-item.pro-nav-item) y smyl-ui-template-v3.css ya
+ * define su estructura: iconos en baldosa, colapsado, desplegables. Se conserva todo eso y solo se lleva su
+ * estética hacia Datta: filas más planas (radio del sistema), activo sin resplandor con marca turquesa sólida
+ * de 3 px y subtítulos legibles. Solo expandida: en colapsado manda la regla de smyl-ui-template-v3.css. */
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item {
+  margin-bottom: .125rem;
+  border-radius: var(--smyl-ui-radius-control);
+}
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:hover {
+  background: rgba(255, 255, 255, .06);
+  transform: none;
+}
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:is(.activo, [aria-current='page']) {
+  border-color: transparent;
+  background: rgba(0, 0, 0, .22);
+  box-shadow: none;
+}
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:is(.activo, [aria-current='page'])::before {
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+  box-shadow: none;
+}
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .nav-item:is(.activo, [aria-current='page']) .pro-nav-icon {
+  filter: none;
+}
+/* Subtítulos de sección: el original rondaba 4:1 de contraste; con este valor pasa de 7:1. */
+body.smyl-ui-governed.smyl-management-v3 .pro-nav-section,
+body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
+  color: rgba(215, 235, 238, .66);
+}
+.layout .sb-logo h1 { font-weight: 600; letter-spacing: 0; }
+
+/* ── Cabecera: más alta, translúcida, título ligero ── */
+.layout .topbar {
+  height: 74px;
+  background: rgba(244, 247, 250, .82);
+  border-bottom: 0;
+  box-shadow: none;
+}
+.layout .topbar-left h2 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ── Tarjetas y métricas: planas, sin borde, sombra difusa ── */
+.layout .card,
+.layout .stat-card {
+  border: 0;
+  border-radius: var(--smyl-ui-radius-card);
+  box-shadow: var(--smyl-ui-shadow-card);
+}
+.layout .card { padding: 25px; }
+.layout .card-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+
+/* ── Controles: radio del sistema (8 px), altura 38 px ── */
+.layout .btn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--smyl-ui-radius-control);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.layout .btn-primary { box-shadow: none; }
+
+/* ── Tablas: filas más aireadas, cabecera sutil ── */
+.layout .tabla th { font-weight: 600; letter-spacing: .06em; }
+.layout .tabla td { padding: 14px; }
+
+/* ── Móvil: sin la barra lateral de escritorio, la cabecera vuelve a 64 px ── */
+@media (max-width: 768px) {
+  .layout .topbar { height: 64px; }
+}
