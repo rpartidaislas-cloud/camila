@@ -5,26 +5,28 @@ const studio = fs.readFileSync('smyl-studio.js', 'utf8');
 const css = fs.readFileSync('smyl-studio.css', 'utf8');
 const html = fs.readFileSync('simulacion-rapida.html', 'utf8');
 
-// All three product objectives must have a visual definition. A missing
-// definition previously stopped the guided workspace before it was mounted.
-for (const objective of ['veneers', 'alignment', 'combined']) {
+// The two distinct patient objectives must have a visual definition. The
+// previous veneers-only card duplicated the combined path and was removed.
+for (const objective of ['alignment', 'combined']) {
   assert.match(studio, new RegExp(`${objective}:\\[`));
 }
+assert.doesNotMatch(studio, /options:\{[\s\S]{0,80}veneers:\[/);
 assert.match(studio, /if\(!copy\)return/);
 assert.match(studio, /window\.abrirConfiguracionRapida\(\)/);
 
-// The tone step has one decision surface. The previous quick presets no longer
-// duplicate the physical guide; the current tone remains a distinct action.
-assert.match(studio, /flow-tone-current/);
-assert.match(studio, /Conservar mi tono actual/);
+// The tone step has two simple comparison rows. No tab, quick preset or
+// expandable scale can hide one guide from the other.
 assert.doesNotMatch(studio, /patientToneChoices\.forEach/);
-assert.match(studio, /GUÍA VITA CLASSICAL/);
-assert.match(studio, /Desliza para elegir el tono/);
+assert.match(studio, /flow-shade-comparison/);
+assert.match(studio, /flow-shade-row/);
+assert.match(studio, /Guía VITA/);
+assert.match(studio, /Bleaches/);
+assert.match(studio, /flow-vita-classical-track/);
+assert.match(studio, /flow-vita-bleached-track/);
 assert.match(studio, /Continuar con este tono/);
 assert.match(studio, /data-shade-step/);
-assert.match(studio, /Abrir guía VITA/);
+assert.match(studio, /Cambiar tono VITA/);
 assert.match(studio, /openToneSelection/);
-assert.match(studio, /flow-shade-recommended/);
 assert.match(studio, /S\.vitaTone='A2'/);
 const vitaBlock = html.match(/var VITA_CLASSICAL = \[([\s\S]*?)\n\];/);
 assert.ok(vitaBlock, 'VITA Classical source should remain available');
@@ -49,7 +51,7 @@ for (const stage of ['photo', 'objective', 'arch', 'review']) {
 }
 assert.match(studio, /flow-progress-track/);
 assert.match(studio, /data-edit-stage/);
-assert.match(studio, /El tono A2 es un punto de partida natural/);
+assert.match(studio, /A2 es un punto de partida natural/);
 assert.match(css, /\.flow-progress-track/);
 assert.match(css, /\.flow-review-list/);
 assert.match(studio, /flow-photo-coach/);
@@ -58,13 +60,13 @@ assert.doesNotMatch(studio, /flow-coach-frame/);
 assert.match(studio, /flow-photo-readiness/);
 assert.match(studio, /flow-result-modes/);
 assert.match(studio, /data-result-mode/);
-assert.match(studio, /EXPLORA OTRA VERSIÓN/);
+assert.doesNotMatch(studio, /EXPLORA OTRA VERSIÓN/);
 assert.match(studio, /flow-result-dock/);
 assert.match(css, /\.flow-result-intro/);
 assert.match(css, /\.flow-result-variant/);
 assert.match(css, /One visual policy/);
 
-assert.match(html, /smyl-studio\.css\?v=26/);
-assert.match(html, /smyl-studio\.js\?v=25/);
+assert.match(html, /smyl-studio\.css\?v=30/);
+assert.match(html, /smyl-studio\.js\?v=29/);
 
 console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');

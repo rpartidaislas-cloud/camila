@@ -1,5 +1,85 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-03 — Claude: opción "Desvincular mensajería" en Canales e IA
+
+**Problema:** Canales e IA no tenía forma de desconectar WhatsApp. No era un olvido: `lana-channels`
+bloquea a propósito `disconnect` de WhatsApp (409) porque su cuenta vive en LANA y borrarla podría
+apagar un WhatsApp real. Lo que el usuario ve como "WhatsApp conectado" es el enlace SMYL ↔ LANA
+(`camila_tenants.config.integraciones.lana`, huella visible "Código verificado · XXXXXXXXXXXX").
+
+**Decisión:** la desconexión correcta desde SMYL es **desvincular el enlace**, no revocar el canal.
+No se llama a LANA ni a Meta: sus cuentas, canales y conversaciones quedan intactos.
+
+### Qué cambió
+- `supabase/functions/lana-connection/index.ts`: nueva acción `disconnect` (POST). Sólo el dueño
+  (`auth.user.id === auth.tenantId`, si no 403). Idempotente (sin enlace → `unlinked:false`). Quita
+  `integraciones.lana` y aparta el enlace **cifrado** en `integraciones.lana_desvinculada` con
+  `estado:'desvinculada'`, `desvinculada_at`, `desvinculada_por` (para poder restaurarlo). Inserta
+  auditoría en `smyl_audit_events` (`entity_type='lana_link'`, huella pública, sin secretos; si
+  falla, sólo se registra el error). La respuesta es `publicStatus(null)`: sin credenciales.
+- `smyl-connections.js` (v15) / `.css` (v10): botón "Desvincular mensajería" en la tarjeta de
+  infraestructura y "Desvincular" en la fila de WhatsApp (sólo dueño y sólo si está conectado), con
+  diálogo de confirmación que aclara que no se borra nada. Tras un timeout reconcilia el estado
+  real. Messenger/Instagram siguen con su desconexión canal por canal. El texto de la UI no
+  menciona el motor (regla de `smyl-branding-isolation`).
+- PWA `…-lana-unlink-v1`; web y `mobile/www` sincronizados; bundle regenerado
+  (`docs/bundles/lana-connection.single-file.ts`).
+- Pruebas: `tests/lana-unlink-messaging.test.mjs` (9) y versiones actualizadas en
+  `lana-connection-stage2` y `lana-stage5-response-lab`. Suite: 1016/1017 en verde.
+  **La única falla, `tests/lana-quick.test.mjs`, ya fallaba en `main`** (espera una frase del
+  prompt VITA que simplificó `9cdc06a`); no se tocó (prompts de generación = Codex/usuario).
+
+### Restaurar un enlace desvinculado (SQL Editor, reemplaza HUELLA)
+```sql
+update public.camila_tenants
+set config = jsonb_set(config #- '{integraciones,lana_desvinculada}', '{integraciones,lana}',
+      (config #> '{integraciones,lana_desvinculada}') - 'desvinculada_at' - 'desvinculada_por' - 'estado' ||
+      jsonb_build_object('estado','conectada'), true)
+where config #>> '{integraciones,lana_desvinculada,fingerprint}' = 'HUELLA';
+```
+
+### Despliegue
+1. GitHub Pages publica la interfaz sola.
+2. Redesplegar la Edge Function `lana-connection` con `docs/bundles/lana-connection.single-file.ts`
+   (Verify JWT como está hoy). Hasta entonces el botón responde "Acción no reconocida".
+
+### Ajuste posterior: ventana centrada
+La ventana de confirmación salía pegada arriba a la izquierda: `app.html` trae el reseteo global
+`*{margin:0}`, que anula el `margin:auto` nativo de `<dialog>`. `.connections-disconnect-dialog` (la
+usan también la desconexión de Messenger/Instagram) ahora se centra con `position:fixed;inset:0;
+margin:auto;height:fit-content`, con animación suave (respeta `prefers-reduced-motion`), aviso
+tranquilizador en caja propia y separador sobre los botones. CSS v11, PWA `…-lana-unlink-v1-dialog-v2`.
+Verificado en Chromium (escritorio 1280×800 y móvil 390×780: centro exacto). Cualquier `<dialog>` nuevo
+fuera del sistema `data-smyl-dialog-system` necesita centrado explícito por esta misma razón.
+
+### Para Codex
+Pulir el diálogo/botón si hace falta (clases `connections-unlink-button`, `data-unlink-*`). No
+exponer el nombre del motor en textos. Si algún día se quiere revocar WhatsApp canal por canal,
+requiere definir primero la revocación de su configuración en LANA (el 409 sigue vigente).
+
+---
+
+## 2026-11-02 — Codex — Simulador móvil v6: menos acciones y guardado confiable
+
+- El paso de objetivo conserva sólo dos decisiones distintas: `Alinear` y
+  `Alinear y mejorar`. Los casos anteriores con el modo `veneers` se migran en
+  memoria al modo combinado para no perder compatibilidad.
+- La preparación de fotografías muestra sólo `Editar foto` y `Añadir otra foto`.
+  Reencuadrar, reemplazar, restaurar y quitar viven dentro de un menú secundario;
+  se eliminó la sugerencia duplicada de encuadre.
+- El resultado separa el flujo en dos momentos verificables: primero `Guardar
+  resultado` y, sólo después de la confirmación del servidor, `Compartir
+  resultado`. El guardado evita dobles pulsaciones, conserva la simulación ante
+  errores y comparte la vista actualmente seleccionada cuando el dispositivo lo
+  permite.
+- La comparación distingue el gesto horizontal del desplazamiento vertical. La
+  fotografía ya no bloquea el scroll de la página en móvil; la línea de antes y
+  después sigue respondiendo al gesto horizontal.
+- Web y `mobile/www` están sincronizados. Tras integrar la guía facial y la
+  limpieza navy de `main`, Studio usa JS v26/CSS v27 y la PWA termina su caché
+  en `face-guide-v7-simulator-ux-v6`.
+- QA integrada tras la fusión: **1,005/1,005** pruebas ejecutadas aprobadas,
+  con 18 pruebas condicionales omitidas y 0 fallas (1,023 totales).
 ## 2026-11-02 — Claude Code — Política visual v4, etapa 1: personalidad de Datta Able con colores SMYL
 
 - Decisión de Ricardo: la política de imagen sigue la personalidad del repo Datta Able Free (MIT) pero con los
@@ -9557,3 +9637,49 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - En escritorio, `Tomar foto` y `Elegir archivo` dejan de ocupar todo el ancho: son acciones compactas de 40 px y `Usar otra vista` conserva menor jerarquía. En móvil mantienen objetivos táctiles de 44 px y dos columnas.
 - No se modificaron captura, archivos originales, simulación, prompts, consumo ni persistencia.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=25`, `smyl-studio.css?v=26` y caché PWA `face-guide-v7`.
+
+## 2026-11-02 — Codex — Simulador progresivo v8: guía de blanqueamiento funcional
+
+- La etapa de claridad separa `Naturales` de `Blanqueamiento`. El segundo recorrido ofrece tres accesos VITA Bleached Shades (`0M3`, `0M2`, `0M1`) y, bajo divulgación progresiva, las 15 muestras de VITA Bleachedguide 3D-MASTER con sus niveles de claridad.
+- La selección persiste por familia y se conserva al volver, editar, comparar, regenerar, guardar un caso o usar el ajuste local por fotografía. Los casos antiguos siguen abriendo como VITA Classical.
+- El sistema y el código elegidos viajan a la generación visual; un tono Bleach inválido ya no puede caer silenciosamente en A1. Cachés de lote y composición distinguen la familia para no reutilizar un resultado incompatible.
+- 0M1 se identifica como muestra compartida por las dos referencias. `0M2` se presenta sólo como punto de partida visual, nunca como recomendación clínica. La interfaz aclara que los colores digitales son orientativos y requieren confirmación con guía física.
+- El selector funciona en flujo progresivo, guía completa, editor avanzado, resultados y PWA móvil, con tabs accesibles, teclado, foco y presentación compacta en celular.
+- Web y `mobile/www` se sincronizan con `smyl-studio.js?v=26`, `smyl-studio.css?v=27` y caché PWA `bleach-guide-v8`. No hay migraciones ni cambios de backend.
+- Pruebas: guía exacta Classical/Bleachedguide, accesos Bleached Shades, persistencia y compatibilidad, generación, exportación, muestras RGB, cachés, espejos móviles, PWA, scripts integrados y regresión del flujo guiado.
+
+## 2026-11-02 — Codex — Simulador progresivo v9: comparación directa VITA y Bleaches
+
+- La etapa de claridad elimina tabs, accesos rápidos, recomendaciones visuales y paneles desplegables. Presenta únicamente dos carruseles siempre visibles: `Guía VITA` arriba y `Bleaches` debajo.
+- Bleaches reúne en una sola fila sus tonos compatibles, elimina duplicados y conserva el orden de luminosidad. Cada guía recuerda su última selección y al tocar un tono se activa la familia correcta.
+- La interfaz conserva un único resumen `Tono elegido` y una única acción para continuar. La nota clínica se reduce a confirmar el tono con una guía física.
+- Las tarjetas se compactaron para móvil, con controles táctiles de 44 px, navegación por teclado, etiquetas accesibles y sin escalado o sombras que alteren el tamaño seleccionado.
+- Se retiró el CSS obsoleto de tabs, accesos rápidos y escala profesional desplegable. Generación, persistencia, resultados y compatibilidad con casos existentes permanecen sin cambios.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=27`, `smyl-studio.css?v=28` y caché PWA `shade-compare-v9`.
+- Pruebas ejecutadas: 17/17 de flujo guiado, comparación de guías, persistencia, generación, PWA móvil, política visual y accesibilidad.
+
+## 2026-11-02 — Codex — Simulador progresivo v10: Bleaches BL1–BL4
+
+- La selección nueva de `Bleaches` queda limitada a cuatro tonos: `BL1`, `BL2`, `BL3` y `BL4`, ordenados del mayor al menor valor visual. Se evita llamarlos `B1–B4`, porque esos códigos ya pertenecen a la guía VITA Classical.
+- Los dos carruseles permanecen visibles para comparar: VITA Classical arriba y Bleaches BL abajo. `BL2` es únicamente el punto inicial de la interfaz y no una recomendación clínica.
+- El sistema visible y el enviado a la generación se identifica como `Ivoclar Bleach BL`. La representación digital continúa siendo orientativa y debe confirmarse con una guía física bajo iluminación clínica.
+- Los códigos históricos `0M*` y `xM*` siguen siendo legibles para abrir resultados anteriores, pero ya no aparecen como opciones de una simulación nueva. Al reabrir una edición antigua se conserva el resultado previo y se pide elegir uno de los cuatro BL.
+- Web y `mobile/www` quedan sincronizados con `smyl-studio.js?v=28`, `smyl-vita-samples.js?v=3`, `visual-simulation.js?v=31` y caché PWA `bleach-bl-v10`. No requiere migración de base de datos.
+
+## 2026-11-02 — Codex — Resultado móvil v11: selector de fotografías siempre visible
+
+- Se corrigió la tira `Otras vistas` del resultado, que Safari móvil podía comprimir hasta mostrar sólo una línea. El contenedor ya no se reduce dentro de la pantalla de resultado y conserva una altura táctil mínima.
+- Cada vista ahora es un botón accesible con miniatura de tamaño explícito, nombre, estado (`En pantalla`, `Disponible`, `Referencia` o `Sin simulación`) y marca visual en la selección activa.
+- La tira admite desplazamiento horizontal y ajuste por pasos sin crear desbordamiento vertical; al tocar una tarjeta continúa reutilizando el comparador canónico y `cambiarVistaBA()`.
+- La cabecera y la tira se ocultan únicamente cuando no existe ninguna fotografía. No se modificaron generación, resultados, consumo, persistencia ni backend.
+- Web y `mobile/www` quedan sincronizados con `smyl-studio.css?v=29` y caché PWA `result-views-v11`.
+- Se añadió regresión estática y cobertura del flujo de navegador para altura, tamaño de miniaturas, carga de imagen, selección y `aria-pressed`. Las 13 pruebas ejecutables del flujo relacionado quedaron aprobadas.
+
+## 2026-11-03 — Codex — Simulador v12: contactos cerrados y dictado de indicaciones
+
+- El contrato activo de generación exige cerrar todos los diastemas y espacios negros interproximales visibles dentro del tramo tratado. Conserva una línea de contacto fina y pequeñas troneras incisales para que cada pieza siga siendo independiente; prohíbe fusionar coronas, pintar encía, ensanchar la arcada o inventar dientes.
+- Las instrucciones opcionales quedan subordinadas a esta regla anatómica: no pueden pedir conservar o crear diastemas, triángulos negros o espacios abiertos, ni alterar tejido, identidad, número de piezas o arcadas no seleccionadas.
+- `Indicaciones adicionales` permite escribir, dictar en español y editar la transcripción antes de generar. Incluye estados accesibles, contador, limpiar y accesos rápidos para conservar tamaño, acabado natural y contactos cerrados.
+- El dictado usa las capacidades de reconocimiento del navegador. SMYL no guarda audio: sólo conserva el texto que la persona decide usar. Si el navegador no ofrece dictado, el campo escrito sigue disponible sin bloquear el flujo.
+- Web y `mobile/www` quedan sincronizados con `visual-simulation.js?v=32`, `smyl-studio.js?v=29`, `smyl-studio.css?v=30` y caché PWA `voice-notes-v12`. No requiere migraciones ni cambios de backend.
+- Pruebas ejecutadas: contrato de cierre, dictado editable, caché PWA, flujo guiado, guías VITA/Bleaches, selector móvil de vistas y paridad con la aplicación móvil (16/16).

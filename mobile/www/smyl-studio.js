@@ -1,7 +1,7 @@
 /* Two-moment workspace. Existing consent, persistence and generation remain authoritative. */
 (function () {
   'use strict';
-  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousel=null, returnSettings=null, guidedStage=0;
+  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousels={classical:null,bleached:null}, shadeRenderedGuide=null, returnSettings=null, guidedStage=0, instructionRecognition=null, instructionListening=false, instructionBaseText='', instructionTranscript='';
   var patientToneChoices=[
     {code:'current',label:'Mi tono actual',detail:'Sin cambiar el color'},
     {code:'A2',label:'Natural',detail:'Cambio discreto'},
@@ -22,6 +22,65 @@
   var byId=function(id){return document.getElementById(id);};
   function element(tag,cls,text){var el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;}
   function button(text,action,cls){var el=element('button',cls||'flow-secondary',text);el.type='button';el.onclick=action;return el;}
+  function instructionText(value,persist){
+    var note=String(value||'').replace(/\s+/g,' ').trimStart().slice(0,500),field=byId('flow-instructions'),legacy=document.querySelector('#smile-design-options textarea');
+    if(field&&field.value!==note)field.value=note;
+    S.smileDesign=SmylSmileModes.normalize(Object.assign({},S.smileDesign,{instructions:note}));
+    if(legacy&&legacy.value!==note)legacy.value=note;
+    if(byId('flow-instruction-count'))byId('flow-instruction-count').textContent=note.length+'/500';
+    if(byId('flow-instruction-clear'))byId('flow-instruction-clear').hidden=!note.trim();
+    if(persist!==false)saveProgress('s-vita');
+    return note;
+  }
+  function instructionStatus(message,state){
+    var status=byId('flow-instruction-voice-status');if(!status)return;
+    status.textContent=message||'';status.dataset.state=state||'';
+  }
+  function instructionListeningState(active){
+    instructionListening=!!active;
+    var control=byId('flow-instruction-mic');if(!control)return;
+    control.setAttribute('aria-pressed',String(instructionListening));
+    control.querySelector('.flow-note-voice-label').textContent=instructionListening?'Detener y usar':'Grabar voz';
+    control.querySelector('.flow-note-voice-icon').textContent=instructionListening?'■':'●';
+  }
+  function instructionVoiceConstructor(){return window.SpeechRecognition||window.webkitSpeechRecognition||null;}
+  function stopInstructionVoice(){
+    if(!instructionListening||!instructionRecognition)return;
+    try{instructionRecognition.stop();}catch(_){instructionListeningState(false);}
+  }
+  function toggleInstructionVoice(){
+    if(busy||generating)return;
+    if(instructionListening){stopInstructionVoice();return;}
+    var Recognition=instructionVoiceConstructor();
+    if(!Recognition){instructionStatus('El dictado no está disponible en este navegador. Puedes escribir la indicación.','attention');return;}
+    instructionRecognition=new Recognition();instructionRecognition.lang='es-MX';instructionRecognition.continuous=false;instructionRecognition.interimResults=true;instructionRecognition.maxAlternatives=1;
+    instructionBaseText=(byId('flow-instructions')?.value||'').trim();instructionTranscript='';
+    instructionRecognition.onstart=function(){instructionListeningState(true);instructionStatus('Escuchando… habla con naturalidad. Podrás corregir el texto antes de generar.','recording');};
+    instructionRecognition.onresult=function(event){
+      var parts=[];for(var i=0;i<event.results.length;i++){var phrase=event.results[i]?.[0]?.transcript;if(phrase)parts.push(phrase.trim());}
+      instructionTranscript=parts.join(' ').replace(/\s+/g,' ').trim();
+      var separator=instructionBaseText&&instructionTranscript&&!/[.!?]$/.test(instructionBaseText)?'. ':instructionBaseText&&instructionTranscript?' ':'';
+      instructionText(instructionBaseText+separator+instructionTranscript,false);
+    };
+    instructionRecognition.onerror=function(event){
+      var copy=event.error==='not-allowed'||event.error==='service-not-allowed'?'Activa el permiso del micrófono para dictar. También puedes escribir la indicación.':event.error==='no-speech'?'No escuché una instrucción. Intenta de nuevo o escríbela.':'No pude convertir la voz. Tu texto se conserva.';
+      instructionStatus(copy,'attention');
+    };
+    instructionRecognition.onend=function(){
+      instructionListeningState(false);instructionText(byId('flow-instructions')?.value||'',true);
+      if(instructionTranscript)instructionStatus('Dictado añadido. Revísalo o edítalo antes de generar.','success');
+      else if(byId('flow-instruction-voice-status')?.dataset.state==='recording')instructionStatus('No se añadió texto. Puedes volver a grabar o escribirlo.','attention');
+      instructionRecognition=null;
+    };
+    try{instructionRecognition.start();}catch(_){instructionRecognition=null;instructionListeningState(false);instructionStatus('No pude iniciar el micrófono. Intenta de nuevo o escribe la indicación.','attention');}
+  }
+  function addInstructionPreset(text){
+    if(busy||generating)return;
+    var current=(byId('flow-instructions')?.value||'').trim(),exists=current.toLocaleLowerCase('es-MX').includes(text.toLocaleLowerCase('es-MX'));
+    instructionText(exists?current:[current,text].filter(Boolean).join(current&&!/[.!?]$/.test(current)?'. ':current?' ':'') ,true);
+    instructionStatus(exists?'Esta indicación ya estaba incluida.':'Indicación añadida. Puedes editarla antes de generar.',exists?'':'success');
+    byId('flow-instructions')?.focus();
+  }
   function realDentalArt(kind){
     var asset='icons/ui/dental-miniature-v1.webp',prefix='flow-real-'+kind;
     // Trace only the contact seam for emphasis; all crowns retain their raster geometry.
@@ -56,24 +115,73 @@
   function patientToneLabel(code){
     var choice=patientToneChoices.find(function(item){return item.code===code;});
     if(choice)return choice.label;
-    var shade=typeof VITA_CLASSICAL!=='undefined'&&VITA_CLASSICAL.find(function(item){return item.code===code;});
-    return shade?'VITA '+shade.code:'Tono personalizado';
+    var shade=typeof buscarTonoVita==='function'?buscarTonoVita(code,S.shadeGuide):(typeof VITA_CLASSICAL!=='undefined'&&VITA_CLASSICAL.find(function(item){return item.code===code;}));
+    return shade?(typeof etiquetaTonoVita==='function'?etiquetaTonoVita(code,S.shadeGuide):'VITA '+shade.code):'Tono personalizado';
   }
   function patientToneDetail(code){
     if(code==='current')return 'Conservar el color observado';
-    var shade=typeof VITA_CLASSICAL!=='undefined'&&VITA_CLASSICAL.find(function(item){return item.code===code;});
+    var shade=typeof buscarTonoVita==='function'?buscarTonoVita(code,S.shadeGuide):(typeof VITA_CLASSICAL!=='undefined'&&VITA_CLASSICAL.find(function(item){return item.code===code;}));
     if(!shade)return patientToneLabel(code);
+    if(currentShadeGuide()==='bleached'){
+      var system=typeof nombreSistemaTono==='function'?nombreSistemaTono(code,'bleached'):'Ivoclar Bleach BL';
+      return 'Bleach '+code+' · '+system;
+    }
     var intent=code==='B1'?'Muy claro':(['A1','B2','D2'].includes(code)?'Claro natural':(['A2','C1','C2'].includes(code)?'Natural':'Matiz natural'));
-    return intent+' · VITA '+code;
+    return intent+' · VITA Classical '+code;
   }
-  function guidedObjectiveLabel(mode){return {veneers:'Mejorar forma y tono',alignment:'Alinear',combined:'Alinear y mejorar'}[mode]||'Alinear y mejorar';}
+  function currentShadeGuide(){return typeof normalizarGuiaTono==='function'?normalizarGuiaTono(S.shadeGuide):S.shadeGuide==='bleached'?'bleached':'classical';}
+  function ensureShadeState(){
+    if(typeof asegurarEstadoGuiaTono==='function')asegurarEstadoGuiaTono();
+    else{
+      S.shadeGuide=currentShadeGuide();
+      S.shadeToneByGuide=Object.assign({classical:'A2',bleached:'BL2'},S.shadeToneByGuide||{});
+      if(S.vitaMode!=='current'&&!S.vitaTone)S.vitaTone=S.shadeToneByGuide[S.shadeGuide];
+    }
+  }
+  function shadePool(guide){
+    if(guide!=='bleached')return typeof tonosGuiaTono==='function'?tonosGuiaTono('classical'):(window.VITA_CLASSICAL||[]);
+    return (window.BLEACH_BL_SHADES||(typeof tonosGuiaTono==='function'?tonosGuiaTono('bleached'):[])||[]).slice().sort(function(a,b){return Number(b.L||0)-Number(a.L||0);});
+  }
+  function shadeCard(shade,guide){
+    var b=button('',function(){shadeCarousels[guide]?.pick(shade.code);},'flow-vita-card');
+    b.dataset.flowTone=shade.code;b.dataset.flowGuide=guide;b.setAttribute('aria-label','Seleccionar '+(guide==='bleached'?'Bleaches ':'VITA ')+shade.code);
+    b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>'+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
+    SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);
+    b.append(element('strong','',shade.code),element('small','',shade.copy||''));
+    return b;
+  }
+  function selectedToneLabel(code){
+    if(code==='current')return 'Mi tono actual';
+    return (currentShadeGuide()==='bleached'?'Bleaches · ':'Guía VITA · ')+code;
+  }
+  function renderShadeGuides(){
+    var tracks={classical:byId('flow-vita-classical-track'),bleached:byId('flow-vita-bleached-track')};
+    if(!tracks.classical||!tracks.bleached)return;
+    ensureShadeState();
+    ['classical','bleached'].forEach(function(guide){
+      shadeCarousels[guide]?.destroy();shadeCarousels[guide]=null;tracks[guide].replaceChildren();
+      shadePool(guide).forEach(function(shade){tracks[guide].append(shadeCard(shade,guide));});
+      shadeCarousels[guide]=SmylShadeCarousel.attach({track:tracks[guide],selector:'.flow-vita-card',key:'data-flow-tone',onSelect:function(code){chooseShadeToneForGuide(guide,code);},onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
+      shadeCarousels[guide].sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'BL2':'A2'));
+    });
+    shadeRenderedGuide='dual';
+  }
+  function chooseShadeToneForGuide(guide,code){
+    if(busy||generating)return;
+    ensureShadeState();S.shadeGuide=guide;S.shadeToneByGuide[guide]=code;
+    seleccionarAparienciaRapida(code,null,false);syncPreferences();saveProgress('s-vita');
+  }
+  function chooseShadeTone(code){
+    chooseShadeToneForGuide(typeof guiaDeCodigoTono==='function'?guiaDeCodigoTono(code):currentShadeGuide(),code);
+  }
+  function guidedObjectiveLabel(mode){return {veneers:'Alinear y mejorar',alignment:'Alinear',combined:'Alinear y mejorar'}[mode]||'Alinear y mejorar';}
   function guidedArchLabel(arch){return {upper:'Arriba',lower:'Abajo',both:'Ambos'}[arch]||'Arriba';}
   function guidedMeta(stage){
     return [
       ['Paso 1 de 5 · Fotografía','Empieza con una fotografía','Te recomendamos una foto frontal sonriendo y con buena luz.'],
       ['Paso 2 de 5 · Cambio','¿Qué quieres explorar?','Elige la opción que más se parezca al cambio que quieres comparar.'],
       ['Paso 3 de 5 · Zona','¿Dónde quieres verlo?','Puedes aplicarlo arriba, abajo o en ambas arcadas.'],
-      ['Paso 4 de 5 · Claridad','Elige el tono','Desliza la guía VITA. El tono A2 es un punto de partida natural.'],
+      ['Paso 4 de 5 · Claridad','Elige el tono','Compara tonos naturales o de blanqueamiento. A2 es un punto de partida natural; el tono clínico se confirma físicamente.'],
       ['Paso 5 de 5 · Revisión','Revisa tu propuesta','Comprueba tus elecciones antes de generar la comparación.']
     ][stage]||[];
   }
@@ -94,7 +202,7 @@
   function renderProgressive(){
     var config=byId('quick-config');if(!config||!byId('flow-progress'))return;
     if(!S.photos.length)guidedStage=0;else if(guidedStage===0)guidedStage=1;
-    var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';
+    var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'BL2':'A2'));
     if(design.mode==='alignment'&&guidedStage===3)guidedStage=4;
     var meta=guidedMeta(guidedStage);
     var alignmentFlow=design.mode==='alignment';
@@ -117,13 +225,12 @@
     });
     byId('flow-review-objective').textContent=guidedObjectiveLabel(design.mode);
     byId('flow-review-arch').textContent=guidedArchLabel(design.arch);
-    byId('flow-review-tone').textContent=design.mode==='alignment'?'Conservar tono actual':patientToneDetail(tone);
+    byId('flow-review-tone').textContent=design.mode==='alignment'?'Conservar tono actual':selectedToneLabel(tone);
     byId('flow-review-tone-row').hidden=design.mode==='alignment';
   }
   function illustrateChoices(){
     var groups=[
       {id:'quick-objective-options',label:'Elige el cambio',key:'quickObjective',options:{
-        veneers:['Mejorar forma y tono','Sin mover los dientes'],
         alignment:['Alinear','Conserva tu tono'],
         combined:['Alinear y mejorar','Forma y tono en una propuesta']
       }},
@@ -274,13 +381,16 @@
   }
   function restorePhoto(){var photo=S.photos[0];if(!photo?.adjustOriginal||busy||generating)return;if(!confirm('¿Volver a la foto sin ajustar? Se retirará la simulación de esta vista, si existe.'))return;var original=photo.adjustOriginal;photo.b64=original.split(',')[1];photo.mimeType=original.slice(5,original.indexOf(';'));delete photo.dataUrl;delete photo.adjustOriginal;invalidarVistaCargada(photo.view);saveProgress('s-vita');render();}
   function syncPreferences(){
+    ensureShadeState();
+    if(shadeRenderedGuide!=='dual')renderShadeGuides();
     var design=SmylSmileModes.normalize(S.smileDesign);
-    byId('flow-instructions').value=design.instructions;byId('flow-instruction-count').textContent=design.instructions.length+'/500';
+    instructionText(design.instructions,false);
     byId('flow-tone-group').hidden=design.mode==='alignment';byId('flow-original-tone').hidden=design.mode!=='alignment';
-    var tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';
-    byId('flow-tone-selected').innerHTML='<span>TONO ELEGIDO</span><strong>'+patientToneDetail(tone)+'</strong>';
-    document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
-    shadeCarousel?.sync(tone);
+    var tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'BL2':'A2'));
+    byId('flow-tone-selected').innerHTML='<span>TONO ELEGIDO</span><strong>'+selectedToneLabel(tone)+'</strong>';
+    document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowGuide===currentShadeGuide()&&b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
+    document.querySelectorAll('[data-shade-guide-step]').forEach(function(control){control.disabled=busy||generating||design.mode==='alignment';});
+    ['classical','bleached'].forEach(function(guide){shadeCarousels[guide]?.sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'BL2':'A2'));});
     document.querySelectorAll('#quick-config .quick-choice').forEach(function(el){el.setAttribute('aria-pressed',String(el.classList.contains('selected')));});
     if(byId('flow-tone-continue'))byId('flow-tone-continue').disabled=busy||generating||design.mode==='alignment';
     renderProgressive();
@@ -297,13 +407,14 @@
     }else{
       var empty=element('div','flow-empty');empty.innerHTML='<span class="flow-empty-symbol" aria-hidden="true">＋</span><h2>Empieza con una fotografía</h2><p>Del rostro o intraoral.<br>La vista que quieras trabajar primero.</p>';empty.append(button('Tomar o subir foto',function(){choose();},'flow-primary'));stage.append(empty);
     }
-    byId('flow-edit-photo').hidden=!primary;byId('flow-remove-photo').hidden=!primary;byId('flow-add-photo').hidden=!primary;
-    byId('flow-adjust-photo').hidden=!primary;byId('flow-restore-photo').hidden=!primary?.adjustOriginal;
+    var photoMenu=byId('flow-photo-actions-menu');photoMenu.hidden=!primary;photoMenu.dataset.disabled=String(busy||generating);
+    photoMenu.querySelector('summary').setAttribute('aria-disabled',String(!primary||busy||generating));
+    if(!primary||busy||generating)photoMenu.removeAttribute('open');
+    byId('flow-restore-photo').hidden=!primary?.adjustOriginal;byId('flow-add-photo').hidden=!primary;
     renderAnalysis();
     renderReturn();
-    byId('flow-photo-count').textContent=busy?'Preparando fotografía…':S.photos.length+' '+(S.photos.length===1?'fotografía':'fotografías')+' en este caso';
-    var added=S.photos.find(function(p){return p.view===addedView;}),notice=byId('flow-photo-notice');notice.hidden=!added;
-    byId('flow-photo-notice-text').textContent=added?'Foto añadida · '+label(added.view)+'. Puedes dejarla así o ajustar su encuadre.':'';
+    var added=S.photos.find(function(p){return p.view===addedView;});
+    byId('flow-photo-count').textContent=busy?'Preparando fotografía…':added?'Foto lista · '+label(added.view):S.photos.length+' '+(S.photos.length===1?'fotografía':'fotografías')+' en este caso';
     var batch=SmylPhotoBatch.summary(),remaining=batch.count-batch.ready-batch.review;
     byId('flow-photo-role').hidden=!primary;
     byId('flow-photo-simulate').checked=!!primary&&!primary.referenceOnly;
@@ -317,12 +428,16 @@
     byId('flow-reference-add').hidden=!!(ref?.role==='original-anatomy');
     var reviewPhoto=byId('flow-review-photo');if(reviewPhoto){reviewPhoto.hidden=!primary;if(primary)reviewPhoto.src=source(primary);}
     document.querySelectorAll('#flow-photo-workspace button').forEach(function(el){el.disabled=busy||generating;});syncPreferences();
-    document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
+    document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,#flow-instruction-mic,#flow-instruction-clear,.flow-note-chip,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
+    if((busy||generating)&&instructionListening)stopInstructionVoice();
     renderProgressive();
   }
   async function generate(){if(busy||generating||!SmylPhotoBatch.targets().length)return;generating=true;render();try{await confirmarConfiguracionRapida();}catch(error){mostrarAvisoAplicacion('No se completó la selección',error.message+' Las fotos y las simulaciones aceptadas se conservan.');}finally{if(returnSettings&&S.results[returnSettings.view]!==returnSettings.result)returnSettings=null;generating=false;render();}}
   function init(){
     document.body.classList.add('smyl-organized');
+    ensureShadeState();
+    var initialDesign=SmylSmileModes.normalize(S.smileDesign);
+    if(initialDesign.mode==='veneers')S.smileDesign=SmylSmileModes.normalize(Object.assign({},initialDesign,{mode:'combined'}));
     if(!S.vitaTone&&S.vitaMode!=='current')S.vitaTone='A2';
     var intro=byId('s-intro'),hero=element('section','flow-home');
     hero.innerHTML='<img class="flow-home-logo" src="icons/smyl_logo.png" alt="SMYL"><div class="flow-eyebrow">ESTUDIO DE SONRISA</div><h1>Una fotografía.<br>Una nueva posibilidad.</h1><p>Elige el cambio que buscas y compara la propuesta. Puedes comenzar con cualquier vista.</p>';
@@ -334,18 +449,21 @@
     var heading=element('div','flow-title');heading.innerHTML='<h1>Prepara tu simulación</h1><p class="flow-muted">Tus fotos, tu objetivo. Todo en un mismo lugar.</p>';shell.append(heading);
     var layout=element('div','flow-prepare-grid'),photos=element('section','flow-photo-workspace');photos.id='flow-photo-workspace';
     photos.innerHTML='<div id="flow-main-photo" class="flow-main-photo"></div><div class="flow-photo-toolbar"><span id="flow-photo-count" role="status"></span></div><div id="flow-photo-strip" class="flow-photo-strip"></div>';
-    var actions=photos.querySelector('.flow-photo-toolbar'),add=button('Añadir foto',function(){choose();});add.id='flow-add-photo';
-    var edit=button('Cambiar',function(){choose(S.photos[0].view,S.photos[0].referenceOnly);},'flow-text');edit.id='flow-edit-photo';
-    var adjust=button('Ajustar foto',function(){adjustPhoto();});adjust.id='flow-adjust-photo';adjust.title='Ampliar, encuadrar y enderezar por grados';var restore=button('Volver al original',restorePhoto,'flow-text');restore.id='flow-restore-photo';actions.append(adjust,restore);
-    var remove=button('Quitar',function(){var photo=S.photos[0];if(!window.confirm('¿Quitar '+label(photo.view).toLowerCase()+' de este caso? Se retirará también su resultado asociado.'))return;S.photos=S.photos.filter(function(p){return p!==photo;});invalidarVistaCargada(photo.view);saveProgress('s-vita');render();},'flow-text');remove.id='flow-remove-photo';actions.append(add,edit,remove);
+    var actions=photos.querySelector('.flow-photo-toolbar');
+    var photoMenu=element('details','flow-photo-actions-menu');photoMenu.id='flow-photo-actions-menu';
+    var photoMenuSummary=element('summary','','Editar foto');photoMenuSummary.setAttribute('aria-label','Abrir opciones para editar la fotografía');
+    var photoMenuBody=element('div','flow-photo-actions-popover');
+    function closePhotoMenu(){photoMenu.removeAttribute('open');}
+    var adjust=button('Reencuadrar',function(){closePhotoMenu();adjustPhoto();},'flow-photo-action');adjust.id='flow-adjust-photo';adjust.title='Ampliar, encuadrar y enderezar';
+    var edit=button('Reemplazar',function(){var photo=S.photos[0];if(!photo)return;closePhotoMenu();choose(photo.view,photo.referenceOnly);},'flow-photo-action');edit.id='flow-edit-photo';
+    var restore=button('Restaurar original',function(){closePhotoMenu();restorePhoto();},'flow-photo-action');restore.id='flow-restore-photo';
+    var remove=button('Quitar foto',function(){var photo=S.photos[0];if(!photo)return;closePhotoMenu();if(!window.confirm('¿Quitar '+label(photo.view).toLowerCase()+' de este caso? Se retirará también su resultado asociado.'))return;S.photos=S.photos.filter(function(p){return p!==photo;});invalidarVistaCargada(photo.view);saveProgress('s-vita');render();},'flow-photo-action flow-photo-action-danger');remove.id='flow-remove-photo';
+    photoMenuBody.append(adjust,edit,restore,remove);photoMenu.append(photoMenuSummary,photoMenuBody);
+    var add=button('Añadir otra foto',function(){choose();},'flow-secondary');add.id='flow-add-photo';actions.append(photoMenu,add);
     var role=element('label','flow-photo-role');role.id='flow-photo-role';var simulate=element('input');simulate.type='checkbox';simulate.id='flow-photo-simulate';simulate.onchange=function(){if(busy||generating||!S.photos[0])return;S.photos[0].referenceOnly=!simulate.checked;saveProgress('s-vita');render();};role.append(simulate,element('span','','Simular esta foto'),element('small','','Desmárcala para usarla solo como referencia.'));photos.append(role);
     var analysis=element('section','flow-analysis-entry');analysis.id='flow-analysis-entry';analysis.hidden=true;
     var analysisCopy=element('div');analysisCopy.append(element('strong','','Análisis avanzado'));var analysisStatus=element('small');analysisStatus.id='flow-analysis-status';analysisStatus.setAttribute('role','status');analysisCopy.append(analysisStatus);
     var analysisOpen=button('Mostrar guías',analyzePhoto);analysisOpen.id='flow-analysis-open';analysis.append(analysisCopy,analysisOpen);
-    var notice=element('div','flow-photo-notice');notice.id='flow-photo-notice';notice.hidden=true;
-    var noticeText=element('p');noticeText.id='flow-photo-notice-text';noticeText.setAttribute('role','status');notice.append(noticeText);
-    var noticeAdjust=button('Encuadrar y enderezar',function(){var photo=S.photos.find(function(p){return p.view===addedView;});if(photo)adjustPhoto(photo);},'flow-text');noticeAdjust.id='flow-new-photo-adjust';notice.append(noticeAdjust);
-    var dismiss=button('×',function(){addedView=null;render();},'flow-text');dismiss.setAttribute('aria-label','Cerrar sugerencia de ajuste');notice.append(dismiss);photos.querySelector('#flow-photo-strip').before(notice);
     var reference=element('aside','flow-reference');reference.innerHTML='<p id="flow-reference-status"></p><small>Usa fotos de la misma persona. El apoyo no garantiza exactitud anatómica.</small>';
     var refAdd=button('Añadir intraoral de referencia',function(){choose('intraoral',true);},'flow-text');refAdd.id='flow-reference-add';reference.append(refAdd);photos.append(reference);layout.append(photos);
     var config=byId('quick-config');config.querySelector('details').hidden=true;
@@ -363,22 +481,23 @@
     appearanceLabel.textContent='Elige un tono';tones.append(appearanceLabel);
     byId('quick-appearance-options').hidden=true;config.querySelector('label[for="quick-vita-tone"]').hidden=true;byId('quick-vita-tone').hidden=true;
     var selectedTone=element('div','flow-tone-selected');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');
-    var track=element('div','flow-vita-track');track.id='flow-vita-track';track.setAttribute('aria-label','Tonos VITA Classical');
-    function chooseTone(code){seleccionarAparienciaRapida(code,null,false);syncPreferences();}
-    VITA_CLASSICAL.forEach(function(shade){var b=button('',function(){shadeCarousel.pick(shade.code);},'flow-vita-card');b.dataset.flowTone=shade.code;b.setAttribute('aria-label','Seleccionar tono VITA '+shade.code+' · '+shade.copy);
-      b.innerHTML='<span class="flow-veneer-stage" aria-hidden="true"><span class="flow-veneer-holder"></span><span class="flow-veneer"><img src="icons/vita/veneer-ceramic-v2.webp" width="560" height="724" alt="" draggable="false"></span><span class="flow-holder-brand"><img src="icons/smyl_logo.png" alt="" draggable="false"><b>VITA '+shade.code+'</b></span></span><span class="flow-shade-check" aria-hidden="true">✓</span>';
-      SmylVitaSamples.attachFilter(b.querySelector('.flow-veneer img'),shade.code);if(shade.code==='A2')b.append(element('span','flow-shade-recommended','Natural'));b.append(element('strong','',shade.code),element('small','',shade.copy));track.append(b);
+    var vitaShell=element('section','flow-vita-shell');vitaShell.id='flow-shade-panel';vitaShell.setAttribute('aria-label','Comparar tonos naturales y de blanqueamiento');
+    var comparison=element('div','flow-shade-comparison');
+    [['classical','Guía VITA','Tonos naturales'],['bleached','Bleaches','BL1 a BL4']].forEach(function(entry){
+      var guide=entry[0],row=element('section','flow-shade-row');row.dataset.guide=guide;row.setAttribute('aria-labelledby','flow-shade-title-'+guide);
+      var head=element('div','flow-shade-row-head');head.innerHTML='<div><span>'+entry[1]+'</span><strong id="flow-shade-title-'+guide+'">'+entry[2]+'</strong></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="-1" aria-label="'+entry[1]+' anterior">‹</button><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="1" aria-label="'+entry[1]+' siguiente">›</button></div>';
+      var track=element('div','flow-vita-track');track.id='flow-vita-'+guide+'-track';track.setAttribute('aria-label',entry[1]+' · '+entry[2]);
+      row.append(head,track);comparison.append(row);
     });
-    var vitaShell=element('section','flow-vita-shell');vitaShell.innerHTML='<div class="flow-vita-heading"><div><span>GUÍA VITA CLASSICAL</span><strong>Desliza para elegir el tono</strong><p>De más luminoso a más profundo.</p></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-step="-1" aria-label="Tono anterior">‹</button><button type="button" class="flow-shade-arrow" data-shade-step="1" aria-label="Tono siguiente">›</button></div></div>';
-    var currentTone=button('Mi tono',function(){chooseTone('current');},'flow-tone-current');currentTone.dataset.flowTone='current';currentTone.setAttribute('aria-label','Conservar mi tono actual');vitaShell.querySelector('.flow-shade-controls').prepend(currentTone);
-    vitaShell.append(track,selectedTone);
+    vitaShell.append(comparison,selectedTone);
     var toneContinue=button('Continuar con este tono',function(){advanceGuided(4,true);},'flow-primary flow-tone-continue');toneContinue.id='flow-tone-continue';
-    tones.append(vitaShell,toneContinue,element('p','flow-tone-help','Representación orientativa en pantalla. El tono clínico definitivo se confirma físicamente con una guía VITA.'));
+    tones.append(vitaShell,toneContinue,element('p','flow-tone-help','Referencia digital orientativa. Confirma VITA y Bleach BL con sus guías físicas.'));
     tones.classList.add('flow-guided-section');tones.dataset.stage='tone';
-    shadeCarousel=SmylShadeCarousel.attach({track:track,selector:'.flow-vita-card',key:'data-flow-tone',onSelect:chooseTone,onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
-    vitaShell.querySelectorAll('[data-shade-step]').forEach(function(control){control.onclick=function(){shadeCarousel.step(Number(control.dataset.shadeStep));};});
+    vitaShell.querySelectorAll('[data-shade-guide-step]').forEach(function(control){control.onclick=function(){shadeCarousels[control.dataset.shadeGuideStep]?.step(Number(control.dataset.shadeStep));};});
+    window.addEventListener('smyl:shadeguidechange',function(){renderShadeGuides();syncPreferences();});
+    renderShadeGuides();
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
-    var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
+    var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><div class="flow-note-heading"><div><strong>¿Quieres personalizar el resultado?</strong><span>Escribe o graba una indicación. Siempre podrás revisarla antes de generar.</span></div></div><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-voice-status flow-instruction-count"></textarea><div class="flow-note-actions"><button id="flow-instruction-mic" class="flow-note-voice" type="button" aria-pressed="false"><span class="flow-note-voice-icon" aria-hidden="true">●</span><span class="flow-note-voice-label">Grabar voz</span></button><button id="flow-instruction-clear" class="flow-note-clear" type="button" hidden>Limpiar</button></div><p id="flow-instruction-voice-status" class="flow-note-status" role="status" aria-live="polite">La voz se convierte en texto editable. SMYL conserva únicamente el texto que decidas usar.</p><div class="flow-note-chips" aria-label="Indicaciones sugeridas"><button type="button" class="flow-note-chip" data-flow-instruction="Conservar el tamaño individual de los dientes.">Conservar tamaño</button><button type="button" class="flow-note-chip" data-flow-instruction="Mantener un acabado natural y preservar la encía.">Acabado natural</button><button type="button" class="flow-note-chip" data-flow-instruction="Cerrar todos los espacios visibles sin fusionar las piezas.">Contactos cerrados</button></div><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
     var review=element('section','flow-review');review.id='flow-stage-review';review.innerHTML='<div class="flow-review-ready"><img id="flow-review-photo" alt="Fotografía que se utilizará" hidden><span aria-hidden="true">✓</span><div><strong>Todo listo para comparar</strong><small>Revisa la propuesta. Podrás volver y cambiar cualquier elección.</small></div></div><div class="flow-review-list"><div><span>Cambio</span><strong id="flow-review-objective"></strong><button type="button" data-edit-stage="1">Cambiar</button></div><div><span>Zona</span><strong id="flow-review-arch"></strong><button type="button" data-edit-stage="2">Cambiar</button></div><div id="flow-review-tone-row"><span>Claridad</span><strong id="flow-review-tone"></strong><button type="button" data-edit-stage="3">Cambiar</button></div></div><p class="flow-review-safety"><span aria-hidden="true">i</span> Es una comparación visual orientativa, no un diagnóstico ni una predicción clínica.</p>';
     review.querySelectorAll('[data-edit-stage]').forEach(function(control){control.onclick=function(){advanceGuided(Number(control.dataset.editStage),true);};});
     var gen=config.querySelector('.quick-generate');gen.before(review);review.append(notes,gen);gen.id='flow-generate';gen.textContent='Generar mi propuesta';gen.removeAttribute('onclick');gen.onclick=generate;
@@ -409,13 +528,16 @@
     var pickerActions=element('div','flow-picker-actions');pickerActions.append(button('Tomar foto',function(){pick(true);},'flow-primary'),button('Subir foto',function(){pick(false);}));footer.append(pickerActions,element('small','','Cargar fotos no consume simulaciones.'));picker.append(pickerBody,footer);
     picker.addEventListener('close',function(){if(pickerFocus?.isConnected)pickerFocus.focus({preventScroll:true});});
     var input=element('input');input.type='file';input.id='flow-upload';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.onchange=upload;shell.append(input);screen.append(shell);document.body.append(screen,picker);
-    byId('flow-instructions').addEventListener('input',function(){var note=this.value.slice(0,500);S.smileDesign=SmylSmileModes.normalize(Object.assign({},S.smileDesign,{instructions:note}));document.querySelector('#smile-design-options textarea').value=note;byId('flow-instruction-count').textContent=note.length+'/500';saveProgress('s-vita');});
+    byId('flow-instructions').addEventListener('input',function(){instructionText(this.value,true);});
+    byId('flow-instruction-mic').addEventListener('click',toggleInstructionVoice);
+    byId('flow-instruction-clear').addEventListener('click',function(){stopInstructionVoice();instructionText('',true);instructionStatus('Indicación eliminada. Puedes escribir o grabar otra.','');byId('flow-instructions').focus();});
+    document.querySelectorAll('.flow-note-chip').forEach(function(control){control.addEventListener('click',function(){addInstructionPreset(control.dataset.flowInstruction||'');});});
     var previousSync=window.sincronizarConfiguracionRapida;window.sincronizarConfiguracionRapida=function(){previousSync();syncPreferences();};
     var previousOpen=window.abrirConfiguracionRapida;window.abrirConfiguracionRapida=function(){
       var photo=existingResultPhoto();
       if(byId('s-res').classList.contains('active')&&photo){
         var settings={smileDesign:JSON.parse(JSON.stringify(S.smileDesign||{}))};
-        ['vitaTone','vitaMode','vitaFinish','vitaIntensity','vitaConstruction'].forEach(function(key){settings[key]=S[key];});
+        ['vitaTone','vitaMode','vitaFinish','vitaIntensity','vitaConstruction','shadeGuide','shadeToneByGuide','shadeCompareByGuide'].forEach(function(key){settings[key]=(key==='shadeToneByGuide'||key==='shadeCompareByGuide')?Object.assign({},S[key]||{}):S[key];});
         returnSettings={owner:progressKey(),caseId:S.casoId,view:photo.view,result:S.results[photo.view],settings:settings};
       }
       guidedStage=photo?4:(S.photos.length?1:0);
@@ -423,24 +545,38 @@
     };
     var previousQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=previousQuality.apply(this,arguments);renderAnalysis();return result;};
     var resHeader=byId('s-res').querySelector('.res-header');var oldNewPhoto=resHeader.querySelector('button[onclick="repetirFotografias()"]');if(oldNewPhoto)oldNewPhoto.hidden=true;
-    var tools=element('details','flow-result-tools');tools.append(element('summary','','Herramientas de revisión'));var toolBody=element('div','flow-tool-body');tools.append(toolBody);
+    var tools=element('details','flow-result-tools');tools.append(element('summary','','Más opciones'));var toolBody=element('div','flow-tool-body');tools.append(toolBody);
     toolBody.append(analysis);
     Array.from(resHeader.querySelectorAll('.res-vita-btn')).forEach(function(control){toolBody.append(control);});
     if(byId('btn-regenerar'))toolBody.append(byId('btn-regenerar'));
     ['btn-editor-diseno','btn-revision-clinica','diag-request-box'].forEach(function(id){if(byId(id))toolBody.append(byId(id));});byId('s-res').querySelector('.res-body').prepend(tools);
     var alignment=byId('ba-align-btn');
     if(alignment){alignment.removeAttribute('style');alignment.className='flow-secondary';alignment.textContent='Ajustar encuadre';toolBody.append(alignment);}
-    var resultIntro=element('section','flow-result-intro');resultIntro.innerHTML='<div class="flow-result-kicker">TU PROPUESTA VISUAL</div><div class="flow-result-heading"><div><h1>Compara el cambio a tu ritmo</h1><p>Desliza sobre la imagen o elige una vista rápida.</p></div><div class="flow-result-actions"><button type="button" class="flow-secondary" id="flow-result-adjust">Ajustar propuesta</button><button type="button" class="flow-primary" id="flow-result-save">Guardar o compartir</button></div></div><div class="flow-result-summary" aria-label="Resumen de la propuesta"><span id="flow-result-objective"></span><span id="flow-result-arch"></span><span id="flow-result-tone"></span></div><div class="flow-result-modes" role="tablist" aria-label="Modo de comparación"><button type="button" role="tab" data-result-mode="compare" aria-selected="true">Comparación</button><button type="button" role="tab" data-result-mode="original" aria-selected="false">Original</button><button type="button" role="tab" data-result-mode="proposal" aria-selected="false">Propuesta</button></div>';
+    var resultIntro=element('section','flow-result-intro');resultIntro.innerHTML='<div class="flow-result-kicker">TU PROPUESTA VISUAL</div><div class="flow-result-heading"><div><h1>Compara el cambio a tu ritmo</h1><p>Desliza horizontalmente sobre la imagen. Para seguir bajando, desliza en vertical.</p></div><div class="flow-result-actions"><button type="button" class="flow-secondary" id="flow-result-adjust">Ajustar diseño</button><button type="button" class="flow-primary" id="flow-result-save">Guardar resultado</button></div></div><div id="flow-result-status" class="flow-result-status" role="status" aria-live="polite"></div><div class="flow-result-summary" aria-label="Resumen de la propuesta"><span id="flow-result-objective"></span><span id="flow-result-arch"></span><span id="flow-result-tone"></span></div><div class="flow-result-modes" role="tablist" aria-label="Modo de comparación"><button type="button" role="tab" data-result-mode="compare" aria-selected="true">Comparación</button><button type="button" role="tab" data-result-mode="original" aria-selected="false">Original</button><button type="button" role="tab" data-result-mode="proposal" aria-selected="false">Propuesta</button></div>';
     var baWrap=byId('ba-wrap');baWrap.before(resultIntro);byId('flow-result-adjust').onclick=openPhotos;
-    byId('flow-result-save').onclick=function(){var target=byId('case-actions-box')||byId('btn-guardar');if(target)target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});};
     function setResultMode(mode){var position=mode==='original'?100:mode==='proposal'?0:50,over=byId('ba-over'),line=byId('ba-line');if(over)over.style.clipPath='inset(0 0 0 '+position+'%)';if(line)line.style.left=position+'%';document.querySelectorAll('[data-result-mode]').forEach(function(control){control.setAttribute('aria-selected',String(control.dataset.resultMode===mode));});}
     resultIntro.querySelectorAll('[data-result-mode]').forEach(function(control){control.onclick=function(){setResultMode(control.dataset.resultMode);};});
-    var viewsHead=element('div','flow-result-section-head');viewsHead.innerHTML='<div><span>OTRAS VISTAS</span><strong>Cambia de fotografía sin perder tu comparación</strong></div>';byId('res-photos').before(viewsHead);
-    var variant=element('section','flow-result-variant');variant.innerHTML='<div><span>EXPLORA OTRA VERSIÓN</span><strong>¿Quieres probar otra claridad?</strong><p>Conserva esta propuesta y vuelve a la guía VITA completa.</p></div>';variant.append(button('Abrir guía VITA',openToneSelection,'flow-secondary'));byId('res-photos').after(variant);
-    var mobileDock=element('nav','flow-result-dock');mobileDock.setAttribute('aria-label','Acciones del resultado');mobileDock.append(button('Ajustar',openPhotos,'flow-secondary'),button('Guardar o compartir',function(){byId('flow-result-save').click();},'flow-primary'));variant.after(mobileDock);
-    function renderResultExperience(){var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A1';byId('flow-result-objective').textContent=guidedObjectiveLabel(design.mode);byId('flow-result-arch').textContent='Zona: '+guidedArchLabel(design.arch);byId('flow-result-tone').textContent=design.mode==='alignment'?'Tono original':patientToneDetail(tone);}
+    var viewsHead=element('div','flow-result-section-head');viewsHead.id='flow-result-views-head';viewsHead.innerHTML='<div><span>OTRAS VISTAS</span><strong>Cambia de fotografía sin perder tu comparación</strong></div>';byId('res-photos').before(viewsHead);
+    var toneTool=button('Cambiar tono VITA',openToneSelection,'flow-secondary');toneTool.id='flow-result-tone-tool';toolBody.append(toneTool);
+    var mobileDock=element('nav','flow-result-dock');mobileDock.setAttribute('aria-label','Acciones del resultado');var dockAdjust=button('Ajustar diseño',openPhotos,'flow-secondary'),dockPrimary=button('Guardar resultado',runResultPrimary,'flow-primary');dockPrimary.id='flow-result-dock-primary';mobileDock.append(dockAdjust,dockPrimary);byId('res-photos').after(mobileDock);
+    var resultPrimary=byId('flow-result-save'),resultStatus=byId('flow-result-status'),resultActionBusy=false;
+    resultPrimary.onclick=runResultPrimary;
+    function setResultStatus(message,state){resultStatus.textContent=message||'';resultStatus.dataset.state=state||'';}
+    function updateResultPrimary(saved){var actionLabel=saved?'Compartir resultado':'Guardar resultado';resultPrimary.textContent=actionLabel;dockPrimary.textContent=actionLabel;resultPrimary.disabled=resultActionBusy;dockPrimary.disabled=resultActionBusy;resultPrimary.setAttribute('aria-busy',String(resultActionBusy));dockPrimary.setAttribute('aria-busy',String(resultActionBusy));}
+    function focusPatientName(){var target=byId('case-actions-box')||byId('fn');if(target)target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});setTimeout(function(){byId('fn')?.focus();},250);}
+    async function runResultPrimary(){
+      if(resultActionBusy)return;
+      if(S._casoGuardado){resultActionBusy=true;updateResultPrimary(true);setResultStatus('Abriendo opciones para compartir…','working');try{var shared=await window.compartirResultadoGuardado();setResultStatus(shared?'Resultado listo para compartir.':'No se compartió el resultado.','');}finally{resultActionBusy=false;updateResultPrimary(true);}return;}
+      var name=byId('fn');if(!name||!name.value.trim()){setResultStatus('Completa el nombre del paciente para guardar el resultado.','attention');focusPatientName();return;}
+      resultActionBusy=true;updateResultPrimary(false);setResultStatus('Guardando el resultado en el expediente…','working');
+      try{var saved=await window.guardarCaso();if(saved){updateResultPrimary(true);setResultStatus('Resultado guardado. Ya puedes compartirlo.','success');}else setResultStatus('No se pudo guardar. Revisa tu conexión e intenta de nuevo.','attention');}
+      catch(error){S._guardandoCaso=false;window.restaurarBotonGuardado?.(byId('btn-guardar'));console.error('[SMYL] Error al guardar desde el resultado:',error);setResultStatus('No se pudo guardar. Tu simulación sigue disponible.','attention');}
+      finally{resultActionBusy=false;updateResultPrimary(!!S._casoGuardado);}
+    }
+    window.addEventListener('smyl:case-saved',function(){resultActionBusy=false;updateResultPrimary(true);setResultStatus('Resultado guardado. Ya puedes compartirlo.','success');});
+    function renderResultExperience(){var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||'A2',guide=currentShadeGuide();byId('flow-result-objective').textContent=guidedObjectiveLabel(design.mode);byId('flow-result-arch').textContent='Zona: '+guidedArchLabel(design.arch);byId('flow-result-tone').textContent=design.mode==='alignment'?'Tono original':selectedToneLabel(tone);toneTool.textContent=guide==='bleached'?'Cambiar tono Bleached':'Cambiar tono VITA';updateResultPrimary(!!S._casoGuardado);}
     var resultQuality=window.renderControlCalidadSimulacion;window.renderControlCalidadSimulacion=function(){var result=resultQuality.apply(this,arguments);renderResultExperience();return result;};
-    resHeader.append(button('Ajustar propuesta',openPhotos,'flow-secondary flow-header-adjust'));byId('s-res').querySelector('.res-logo').after(steps(1));renderResultExperience();render();
+    byId('s-res').querySelector('.res-logo').after(steps(1));updateResultPrimary(!!S._casoGuardado);renderResultExperience();render();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

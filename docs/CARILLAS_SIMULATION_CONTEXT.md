@@ -1,6 +1,6 @@
 # Carillas dentales — documento de contexto técnico para simulación (CAMILA)
 
-> Documento de referencia clínica/estética recopilado de fuentes académicas y técnicas para alimentar el contexto de desarrollo del simulador de carillas de CAMILA. Usa guía de color VITA Classical como estándar por el momento.
+> Documento de referencia clínica/estética recopilado de fuentes académicas y técnicas para alimentar el contexto de desarrollo del simulador de carillas de CAMILA. El simulador separa VITA Classical de las referencias Bleach y trata todas las muestras digitales como aproximaciones visuales.
 
 ---
 
@@ -28,6 +28,8 @@ Notas prácticas para la simulación:
 - **A3 / A3.5** son tonos más cálidos, típicos de dientes no tratados o con exposición a café, vino o tabaco.
 - Existe **VITA 3D-Master**, con 26 tonos organizados por Luminosidad, Croma y Matiz, útil si en el futuro se requiere mayor precisión.
 - Existen **VITA Bleached Shades** (0M1, 0M2, 0M3) para resultados más allá del rango natural.
+- **VITA Bleachedguide 3D-MASTER** usa 15 muestras ordenadas por niveles de claridad para documentar y comunicar la evolución de un blanqueamiento. En SMYL se muestra como escala profesional separada de los tres accesos Bleached Shades.
+- 0M1 aparece en ambas referencias Bleach. La interfaz debe explicarlo y conservar un único código canónico para no presentarlo como dos colores diferentes.
 - El umbral de percepción típico usado en estudios es **ΔE00 ≈ 2.5**.
 - No existe una tabla RGB/hex oficial de VITA de dominio público; para simulación visual conviene una paleta aproximada calibrada contra fotografías clínicas reales.
 
@@ -125,7 +127,7 @@ Reglas clínicas:
 
 ## 5. Aplicación al simulador CAMILA
 
-- **Color:** usar VITA Classical y, en el futuro, tonos bleached; evitar selectores de color libres como referencia clínica.
+- **Color:** usar VITA Classical para el rango natural y las referencias Bleached Shades/Bleachedguide para blanqueamiento; evitar selectores libres como referencia clínica y confirmar físicamente bajo iluminación estandarizada.
 - **Forma:** usar RED configurable (inicial 70%, rango 62–80%) y no forzar proporción áurea estricta.
 - **Ancho/alto:** mantener centrales en 75–80%; fuera de rango, señalar forma potencialmente poco natural.
 - **Guías:** ofrecer línea media, plano oclusal, zenits y arco de sonrisa como capas opcionales del editor.

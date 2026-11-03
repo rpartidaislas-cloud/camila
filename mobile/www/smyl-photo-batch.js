@@ -5,7 +5,7 @@
   const source=p=>p.dataUrl||'data:'+(p.mimeType||'image/jpeg')+';base64,'+p.b64;
   const label=view=>CASE_VIEW_GROUPS.flatMap(g=>g.views).find(v=>v[0]===view)?.[1]||view;
   const targets=()=>S.photos.filter((p,i,all)=>!p.referenceOnly&&all.findIndex(other=>other.view===p.view)===i);
-  const settings=()=>JSON.stringify([SmylSmileModes.normalize(S.smileDesign),S.vitaMode,S.vitaTone,S.vitaFinish,S.vitaIntensity,S.vitaConstruction]);
+  const settings=()=>JSON.stringify([SmylSmileModes.normalize(S.smileDesign),S.shadeGuide||'classical',S.vitaMode,S.vitaTone,S.vitaFinish,S.vitaIntensity,S.vitaConstruction]);
   const owner=()=>JSON.stringify([progressKey(),CFG.userId,CFG.tenantId,S.casoId]);
   function hash(text){let a=2166136261,b=5381;for(let i=0;i<text.length;i++){const c=text.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b,33)^c;}return text.length+':'+(a>>>0).toString(36)+':'+(b>>>0).toString(36);}
   function key(photo){

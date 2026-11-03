@@ -17,7 +17,8 @@ test('only an explicit credential rejection degrades the stored link', () => {
   assert.match(edge, /response\.status === 401 \|\| response\.status === 403/);
   assert.match(edge, /"invalid_credentials"/);
   assert.match(edge, /invalidCredentials \? "requiere_atencion" : lana\.estado/);
-  assert.match(edge, /error_code: invalidCredentials \? "invalid_credentials" : "verification_temporary"/);
+  // Además de una credencial rechazada, un tenant que no es de producto SMYL ("wrong_product") degrada el enlace (aislamiento de contexto).
+  assert.match(edge, /error_code: verification\?\.failure === "wrong_product" \? "wrong_product" : invalidCredentials \? "invalid_credentials" : "verification_temporary"/);
   assert.match(edge, /retryable: !invalidCredentials/);
 });
 

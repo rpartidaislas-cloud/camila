@@ -134,6 +134,39 @@ async function writeLanaConfig(
   if (error) throw new Error("No se pudo guardar la conexión de LANA.");
 }
 
+async function unlinkLanaConfig(
+  tenantId: string,
+  current: Record<string, unknown>,
+  lana: LanaConfig,
+  actorId: string,
+): Promise<void> {
+  const { lana: _removed, ...remaining } = current.integraciones && typeof current.integraciones === "object"
+    ? current.integraciones as Record<string, unknown>
+    : {} as Record<string, unknown>;
+  const now = new Date().toISOString();
+  const next = {
+    ...current,
+    integraciones: {
+      ...remaining,
+      lana_desvinculada: { ...lana, estado: "desvinculada", desvinculada_at: now, desvinculada_por: actorId },
+    },
+  };
+  const { error } = await admin.from("camila_tenants").update({ config: next }).eq("id", tenantId);
+  if (error) throw new Error("No se pudo desvincular la mensajería.");
+
+  // Rastro de auditoría sin secretos: huella pública del enlace, no la clave.
+  const audit = await admin.from("smyl_audit_events").insert({
+    tenant_id: tenantId,
+    actor_id: actorId,
+    action: "delete",
+    entity_type: "lana_link",
+    entity_id: lana.fingerprint,
+    before_data: { estado: lana.estado, fingerprint: lana.fingerprint, lana_tenant_id: lana.lana_tenant_id ?? null, connected_at: lana.connected_at },
+    after_data: { estado: "desvinculada" },
+  });
+  if (audit.error) console.error("[lana-connection] auditoría de desvinculación:", audit.error.message);
+}
+
 async function verifyLanaApiKey(apiKey: string): Promise<LanaIdentity> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), LANA_VERIFY_TIMEOUT_MS);
@@ -369,6 +402,16 @@ Deno.serve(async (req: Request) => {
       };
       await writeLanaConfig(auth.tenantId, profile.config, next);
       return json(200, { ok: true, created: true, ...publicStatus(next, canManage) });
+    }
+
+    if (action === "disconnect") {
+      // Desvincula SMYL de LANA y nada más: no llama a LANA ni a Meta, así que
+      // los canales, las conversaciones y la cuenta de WhatsApp siguen intactos
+      // allá. El enlace cifrado se aparta (sin exponerlo) para poder restaurarlo.
+      if (!canManage) return json(403, { error: "Solo el dueño de la clínica puede desvincular la mensajería." });
+      if (!lana) return json(200, { ok: true, unlinked: false, ...publicStatus(null, canManage) });
+      await unlinkLanaConfig(auth.tenantId, config, lana, auth.user.id);
+      return json(200, { ok: true, unlinked: true, ...publicStatus(null, canManage) });
     }
 
     if (action === "connect") {
