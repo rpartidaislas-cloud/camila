@@ -43,6 +43,15 @@ where config #>> '{integraciones,lana_desvinculada,fingerprint}' = 'HUELLA';
 2. Redesplegar la Edge Function `lana-connection` con `docs/bundles/lana-connection.single-file.ts`
    (Verify JWT como está hoy). Hasta entonces el botón responde "Acción no reconocida".
 
+### Ajuste posterior: ventana centrada
+La ventana de confirmación salía pegada arriba a la izquierda: `app.html` trae el reseteo global
+`*{margin:0}`, que anula el `margin:auto` nativo de `<dialog>`. `.connections-disconnect-dialog` (la
+usan también la desconexión de Messenger/Instagram) ahora se centra con `position:fixed;inset:0;
+margin:auto;height:fit-content`, con animación suave (respeta `prefers-reduced-motion`), aviso
+tranquilizador en caja propia y separador sobre los botones. CSS v11, PWA `…-lana-unlink-v1-dialog-v2`.
+Verificado en Chromium (escritorio 1280×800 y móvil 390×780: centro exacto). Cualquier `<dialog>` nuevo
+fuera del sistema `data-smyl-dialog-system` necesita centrado explícito por esta misma razón.
+
 ### Para Codex
 Pulir el diálogo/botón si hace falta (clases `connections-unlink-button`, `data-unlink-*`). No
 exponer el nombre del motor en textos. Si algún día se quiere revocar WhatsApp canal por canal,
