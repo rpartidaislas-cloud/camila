@@ -1,5 +1,55 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-03 — Claude: opción "Desvincular mensajería" en Canales e IA
+
+**Problema:** Canales e IA no tenía forma de desconectar WhatsApp. No era un olvido: `lana-channels`
+bloquea a propósito `disconnect` de WhatsApp (409) porque su cuenta vive en LANA y borrarla podría
+apagar un WhatsApp real. Lo que el usuario ve como "WhatsApp conectado" es el enlace SMYL ↔ LANA
+(`camila_tenants.config.integraciones.lana`, huella visible "Código verificado · XXXXXXXXXXXX").
+
+**Decisión:** la desconexión correcta desde SMYL es **desvincular el enlace**, no revocar el canal.
+No se llama a LANA ni a Meta: sus cuentas, canales y conversaciones quedan intactos.
+
+### Qué cambió
+- `supabase/functions/lana-connection/index.ts`: nueva acción `disconnect` (POST). Sólo el dueño
+  (`auth.user.id === auth.tenantId`, si no 403). Idempotente (sin enlace → `unlinked:false`). Quita
+  `integraciones.lana` y aparta el enlace **cifrado** en `integraciones.lana_desvinculada` con
+  `estado:'desvinculada'`, `desvinculada_at`, `desvinculada_por` (para poder restaurarlo). Inserta
+  auditoría en `smyl_audit_events` (`entity_type='lana_link'`, huella pública, sin secretos; si
+  falla, sólo se registra el error). La respuesta es `publicStatus(null)`: sin credenciales.
+- `smyl-connections.js` (v15) / `.css` (v10): botón "Desvincular mensajería" en la tarjeta de
+  infraestructura y "Desvincular" en la fila de WhatsApp (sólo dueño y sólo si está conectado), con
+  diálogo de confirmación que aclara que no se borra nada. Tras un timeout reconcilia el estado
+  real. Messenger/Instagram siguen con su desconexión canal por canal. El texto de la UI no
+  menciona el motor (regla de `smyl-branding-isolation`).
+- PWA `…-lana-unlink-v1`; web y `mobile/www` sincronizados; bundle regenerado
+  (`docs/bundles/lana-connection.single-file.ts`).
+- Pruebas: `tests/lana-unlink-messaging.test.mjs` (9) y versiones actualizadas en
+  `lana-connection-stage2` y `lana-stage5-response-lab`. Suite: 1016/1017 en verde.
+  **La única falla, `tests/lana-quick.test.mjs`, ya fallaba en `main`** (espera una frase del
+  prompt VITA que simplificó `9cdc06a`); no se tocó (prompts de generación = Codex/usuario).
+
+### Restaurar un enlace desvinculado (SQL Editor, reemplaza HUELLA)
+```sql
+update public.camila_tenants
+set config = jsonb_set(config #- '{integraciones,lana_desvinculada}', '{integraciones,lana}',
+      (config #> '{integraciones,lana_desvinculada}') - 'desvinculada_at' - 'desvinculada_por' - 'estado' ||
+      jsonb_build_object('estado','conectada'), true)
+where config #>> '{integraciones,lana_desvinculada,fingerprint}' = 'HUELLA';
+```
+
+### Despliegue
+1. GitHub Pages publica la interfaz sola.
+2. Redesplegar la Edge Function `lana-connection` con `docs/bundles/lana-connection.single-file.ts`
+   (Verify JWT como está hoy). Hasta entonces el botón responde "Acción no reconocida".
+
+### Para Codex
+Pulir el diálogo/botón si hace falta (clases `connections-unlink-button`, `data-unlink-*`). No
+exponer el nombre del motor en textos. Si algún día se quiere revocar WhatsApp canal por canal,
+requiere definir primero la revocación de su configuración en LANA (el 409 sigue vigente).
+
+---
+
 ## 2026-11-02 — Codex — Simulador móvil v6: menos acciones y guardado confiable
 
 - El paso de objetivo conserva sólo dos decisiones distintas: `Alinear` y
