@@ -44,16 +44,20 @@ test('comparison preserves vertical page scrolling on mobile', () => {
 
 test('studio assets are cache-busted together', () => {
   assert.match(html, /smyl-studio\.css\?v=28/);
-  assert.match(html, /smyl-studio\.js\?v=27/);
+  assert.match(html, /smyl-studio\.js\?v=28/);
   assert.match(sw, /simulator-ux-v6/);
   assert.match(sw, /shade-compare-v9/);
+  assert.match(sw, /bleach-bl-v10/);
   assert.match(sw, /smyl-studio\.css\?v=28/);
-  assert.match(sw, /smyl-studio\.js\?v=27/);
+  assert.match(sw, /smyl-studio\.js\?v=28/);
 });
 
-test('mobile tone selection compares VITA and Bleaches in stacked rows', () => {
+test('mobile tone selection compares VITA and exactly four BL shades in stacked rows', () => {
   assert.match(studio, /flow-vita-classical-track/);
   assert.match(studio, /flow-vita-bleached-track/);
+  assert.match(studio, /window\.BLEACH_BL_SHADES/);
+  assert.match(html, /var BLEACH_BL_SHADES = \[[\s\S]*?code:'BL1'[\s\S]*?code:'BL2'[\s\S]*?code:'BL3'[\s\S]*?code:'BL4'[\s\S]*?\n\];/);
+  assert.doesNotMatch(studio, /VITA_BLEACHEDGUIDE\|\|\[\]\)\.concat/);
   assert.match(css, /\.flow-shade-comparison\{display:grid/);
   assert.match(css, /@media\(max-width:680px\)[\s\S]*?\.smyl-organized \.flow-shade-row \.flow-vita-card\{flex-basis:100px/);
   assert.match(css, /\.smyl-organized \.flow-shade-row \.flow-vita-card\.selected\{[^}]*box-shadow:none;transform:none/);

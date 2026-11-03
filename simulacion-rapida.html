@@ -440,7 +440,7 @@ body.dp-active>:not(#dp-toggle):not(#dp-overlay){display:none!important}
 .ed-vita-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 9px}.ed-vita-head span{color:rgba(255,255,255,.42);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.55px}.ed-vita-head strong{color:#fff;font-size:11px;font-weight:750}
 .ed-vita-current{width:100%;height:34px;margin:0 0 6px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:rgba(255,255,255,.62);font:650 10px Inter,sans-serif;cursor:pointer}.ed-vita-current.selected{border-color:rgba(99,112,244,.72);background:rgba(73,68,205,.16);color:#fff}
 .ed-shade-guide-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0 0 12px;padding:4px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:#090c10}.ed-shade-guide-tabs button{min-height:48px;border:0;border-radius:8px;background:transparent;color:rgba(255,255,255,.55);font:750 12px Inter,sans-serif;cursor:pointer}.ed-shade-guide-tabs button small{display:block;margin-top:3px;color:inherit;font-size:12px;font-weight:550}.ed-shade-guide-tabs button.active{background:#17283a;color:#7ee7d7;box-shadow:inset 0 0 0 1px rgba(112,231,211,.28)}.ed-shade-guide-tabs button:focus-visible{outline:2px solid #72dfd0;outline-offset:2px}
-.ed-bleach-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0 10px}.ed-bleach-quick button{position:relative;min-height:68px;padding:8px 6px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:#101923;color:#fff;font:750 12px Inter,sans-serif;cursor:pointer}.ed-bleach-quick button small{display:block;margin-top:3px;color:rgba(255,255,255,.58);font-size:12px;font-weight:550}.ed-bleach-quick button.selected{border-color:#65dfce;background:#15312f;color:#8ff3e4}.ed-bleach-quick button[data-vita-code="0M2"]::after{content:'Punto de partida';display:block;margin-top:5px;color:#8ff3e4;font-size:12px;letter-spacing:.02em;text-transform:uppercase}
+.ed-bleach-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 10px}.ed-bleach-quick button{position:relative;min-height:68px;padding:8px 6px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:#101923;color:#fff;font:750 12px Inter,sans-serif;cursor:pointer}.ed-bleach-quick button small{display:block;margin-top:3px;color:rgba(255,255,255,.58);font-size:12px;font-weight:550}.ed-bleach-quick button.selected{border-color:#65dfce;background:#15312f;color:#8ff3e4}
 .ed-bleach-professional{border-top:1px solid rgba(255,255,255,.07);margin-top:8px}.ed-bleach-professional>summary{padding:11px 3px;color:rgba(255,255,255,.7);font:700 12px Inter,sans-serif;cursor:pointer;list-style:none}.ed-bleach-professional>summary::-webkit-details-marker{display:none}.ed-bleach-professional>summary::after{content:'＋';float:right}.ed-bleach-professional[open]>summary::after{content:'−'}.ed-vita-safety{margin:9px 2px 1px;color:rgba(255,255,255,.52);font-size:12px;line-height:1.5}
 .ed-vita-track{display:flex;gap:5px;overflow-x:auto;padding:14px 5px 16px;scroll-snap-type:x proximity;scrollbar-width:thin;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 .ed-vita-stick{position:relative;flex:0 0 76px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 4px 7px;border:1px solid transparent;border-radius:13px;background:transparent;color:inherit;font-family:Inter,sans-serif;cursor:pointer;scroll-snap-align:center;transition:transform .2s ease,border-color .2s ease,background .2s ease}.ed-vita-stick .vita-photo{width:48px;height:135px}.ed-vita-stick .vita-photo-brand img{width:21px;max-height:11px}.ed-vita-stick .vita-photo-brand b{font-size:4px}.ed-vita-stick>strong{min-width:31px;height:21px;display:flex;align-items:center;justify-content:center;padding:0 6px;border-radius:6px;border:1px solid rgba(255,255,255,.09);background:#080a0b;color:rgba(255,255,255,.72);font-size:10px;font-weight:750}.ed-vita-stick.selected{transform:translateY(-3px) scale(1.04);border-color:rgba(95,111,255,.82);background:linear-gradient(180deg,rgba(68,95,230,.14),rgba(91,44,190,.06));box-shadow:0 0 24px rgba(82,89,240,.16)}.ed-vita-stick.selected::before{content:'';position:absolute;left:9px;right:9px;top:-10px;height:48px;background:radial-gradient(ellipse at 50% 0,rgba(255,252,221,.5),rgba(151,170,255,.13) 40%,transparent 72%);filter:blur(5px);pointer-events:none}.ed-vita-stick.selected .vita-photo{filter:brightness(1.08) drop-shadow(0 -6px 9px rgba(255,251,221,.55)) drop-shadow(0 8px 8px rgba(0,0,0,.5))}.ed-vita-stick.selected>strong{border-color:rgba(102,114,255,.72);background:rgba(70,66,204,.24);color:#fff}
@@ -717,11 +717,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="visual-simulation.css?v=5">
 <script src="smile-modes.js?v=13"></script>
 <script src="visual-composition.js?v=6"></script>
-<script src="visual-simulation.js?v=30"></script>
+<script src="visual-simulation.js?v=31"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=3"></script>
 <link rel="stylesheet" href="smyl-studio.css?v=28">
-<script defer src="smyl-vita-samples.js?v=2"></script>
+<script defer src="smyl-vita-samples.js?v=3"></script>
 <script defer src="smyl-shade-carousel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-local-tone.css?v=3">
 <script defer src="smyl-tooth-selection.js?v=1"></script>
@@ -730,7 +730,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
 <script defer src="smyl-photo-batch.js?v=2"></script>
-<script defer src="smyl-studio.js?v=27"></script>
+<script defer src="smyl-studio.js?v=28"></script>
 <link rel="stylesheet" href="smyl-result-viewer.css?v=1">
 <script defer src="smyl-result-viewer.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=2">
@@ -996,8 +996,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <select id="quick-vita-tone" onchange="seleccionarAparienciaRapida(this.value)" style="width:100%;min-height:48px;padding:12px;border-radius:12px;background:#202333;color:white;border:1px solid #666;margin-bottom:16px">
         <option value="current">Conservar tono actual</option>
         <optgroup label="VITA Classical"><option>B1</option><option>A1</option><option>B2</option><option>D2</option><option selected>A2</option><option>C1</option><option>C2</option><option>D4</option><option>A3</option><option>D3</option><option>B3</option><option>A3.5</option><option>B4</option><option>C3</option><option>A4</option><option>C4</option></optgroup>
-        <optgroup label="VITA Bleached Shades"><option>0M1</option><option>0M2</option><option>0M3</option></optgroup>
-        <optgroup label="VITA Bleachedguide 3D-MASTER"><option>0.5M1</option><option>1M1</option><option>1M1.5</option><option>1M2</option><option>1.5M2</option><option>2M2</option><option>2.5M2</option><option>3M2</option><option>3.5M2</option><option>4M2</option><option>4.5M2</option><option>5M2</option><option>5M2.5</option><option>5M3</option></optgroup>
+        <optgroup label="Bleaches · escala BL"><option>BL1</option><option>BL2</option><option>BL3</option><option>BL4</option></optgroup>
       </select>
       <button class="quick-generate" type="button" onclick="confirmarConfiguracionRapida()">Generar simulación</button>
       <p class="quick-safety">Propuesta visual orientativa. No diagnostica ni sustituye la valoración clínica.</p>
@@ -1020,7 +1019,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     <div class="vita-guide-card">
       <div class="vita-tabs-sim" role="tablist" aria-label="Guía de color">
         <button type="button" class="vita-tab-sim active" id="vita-tab-classical" role="tab" aria-controls="vita-tone-panel" aria-selected="true" data-shade-guide="classical" onclick="seleccionarGuiaTonoVita('classical')">Naturales <small>VITA Classical</small></button>
-        <button type="button" class="vita-tab-sim" id="vita-tab-bleached" role="tab" aria-controls="vita-tone-panel" aria-selected="false" data-shade-guide="bleached" onclick="seleccionarGuiaTonoVita('bleached')">Blanqueamiento <small>Bleached Shades y 3D-MASTER</small></button>
+        <button type="button" class="vita-tab-sim" id="vita-tab-bleached" role="tab" aria-controls="vita-tone-panel" aria-selected="false" data-shade-guide="bleached" onclick="seleccionarGuiaTonoVita('bleached')">Blanqueamiento <small>Bleach BL1–BL4</small></button>
       </div>
       <div id="vita-tone-panel" role="tabpanel" aria-labelledby="vita-tab-classical">
       <button class="vita-current-btn" id="vita-current-btn" type="button" onclick="seleccionarTonoActual()">Igualar el tono actual de mis dientes</button>
@@ -1734,7 +1733,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
       <div class="ed-vita-guide" aria-label="Selector de sistema y tono dental">
         <div class="ed-shade-guide-tabs" role="tablist" aria-label="Sistema de tono">
           <button type="button" id="ed-vita-tab-classical" role="tab" aria-controls="ed-vita-tone-panel" data-ed-shade-guide="classical" onclick="edSeleccionarGuiaTono('classical')">Naturales<small>VITA Classical</small></button>
-          <button type="button" id="ed-vita-tab-bleached" role="tab" aria-controls="ed-vita-tone-panel" data-ed-shade-guide="bleached" onclick="edSeleccionarGuiaTono('bleached')">Blanqueamiento<small>Bleached Shades y 3D-MASTER</small></button>
+          <button type="button" id="ed-vita-tab-bleached" role="tab" aria-controls="ed-vita-tone-panel" data-ed-shade-guide="bleached" onclick="edSeleccionarGuiaTono('bleached')">Blanqueamiento<small>Bleach BL1–BL4</small></button>
         </div>
         <div id="ed-vita-tone-panel" role="tabpanel" aria-labelledby="ed-vita-tab-classical">
         <div class="ed-vita-head"><span id="ed-vita-system-label">Tono para regenerar</span><strong id="ed-vita-selected">Simulación actual</strong></div>
@@ -2521,12 +2520,12 @@ var S = {
   // desde el resultado) -- se usa para armar el prompt de Gemini.
   vitaTone: null,
   vitaCompareTone: 'C1',
-  shadeCompareByGuide: {classical:'C1',bleached:'0M1'},
+  shadeCompareByGuide: {classical:'C1',bleached:'BL1'},
   vitaMode: 'vita', // 'vita' (tono de la guía) | 'current' (igual al tono real del paciente)
   // La familia se conserva separada del modo para no confundir el tono
   // natural observado con una guía, ni restaurar un Bleach como A1.
   shadeGuide: 'classical', // 'classical' | 'bleached'
-  shadeToneByGuide: {classical:'A2',bleached:'0M2'},
+  shadeToneByGuide: {classical:'A2',bleached:'BL2'},
   vitaFinish: 'natural',
   vitaConstruction: 'layered',
   vitaIntensity: 'balanced',
@@ -3212,12 +3211,16 @@ function continuarProgreso() {
   S.alignedPreviewByView = snap.alignedPreviewByView || {};
   S.baAlign = snap.baAlign || {};
   S.shadeGuide = normalizarGuiaTono(snap.shadeGuide || guiaDeCodigoTono(snap.vitaTone));
-  S.shadeToneByGuide = Object.assign({classical:'A2',bleached:'0M2'},snap.shadeToneByGuide || {});
-  S.shadeCompareByGuide = Object.assign({classical:'C1',bleached:'0M1'},snap.shadeCompareByGuide || {});
+  S.shadeToneByGuide = Object.assign({classical:'A2',bleached:'BL2'},snap.shadeToneByGuide || {});
+  S.shadeCompareByGuide = Object.assign({classical:'C1',bleached:'BL1'},snap.shadeCompareByGuide || {});
   S.vitaCompareTone = S.shadeCompareByGuide[S.shadeGuide];
   S.vitaMode = snap.vitaMode === 'current' ? 'current' : 'vita';
   var restoredShade = buscarTonoVita(snap.vitaTone,S.shadeGuide);
-  S.vitaTone = restoredShade ? restoredShade.code : (S.shadeToneByGuide[S.shadeGuide] || tonoPredeterminadoGuia(S.shadeGuide));
+  var legacyBleachEditable = S.shadeGuide === 'bleached' && restoredShade &&
+    !BLEACH_BL_SHADES.some(function(shade){ return shade.code === restoredShade.code; }) &&
+    (snap.screen === 's-vita' || !!snap.quickGuided);
+  S.vitaTone = legacyBleachEditable ? 'BL2' :
+    (restoredShade ? restoredShade.code : (S.shadeToneByGuide[S.shadeGuide] || tonoPredeterminadoGuia(S.shadeGuide)));
   S.shadeToneByGuide[S.shadeGuide] = S.vitaTone;
   S.vitaFinish = ['natural','translucent','luminous'].indexOf(snap.vitaFinish)>=0 ? snap.vitaFinish : 'natural';
   S.vitaIntensity = ['subtle','balanced','notable'].indexOf(snap.vitaIntensity)>=0 ? snap.vitaIntensity : 'balanced';
@@ -3228,6 +3231,13 @@ function continuarProgreso() {
     S.vitaReturnToResult = !!S.result;
     if (S.quickGuided) abrirConfiguracionRapida();
     else abrirGuiaVita();
+    if (legacyBleachEditable) setTimeout(function(){
+      mostrarAvisoAplicacion(
+        'Actualizamos la guía Bleach',
+        'El tono histórico ' + restoredShade.code + ' se conserva en el resultado anterior. Para editar esta propuesta, elige BL1, BL2, BL3 o BL4; dejamos BL2 como punto inicial.',
+        'Elegir tono'
+      );
+    }, 0);
   } else if (snap.screen === 's-q') {
     // Pantalla vieja (de antes de quitar el cuestionario) -- ya no existe,
     // lo más parecido es retomar directo en la cámara.
@@ -3332,34 +3342,43 @@ var VITA_CLASSICAL = [
   {code:'C4',L:64.8,a:1.0,b:18.5,copy:'El tono C más profundo y neutro'}
 ];
 
-// VITA Bleachedguide 3D-MASTER: 15 muestras físicas ordenadas por claridad.
-// Los valores L*a*b* siguientes son una aproximación de pantalla deliberada
-// para diferenciar las muestras en el simulador; no son valores oficiales de
-// VITA ni sustituyen la comparación con una guía física calibrada.
-var VITA_BLEACHEDGUIDE = [
-  {code:'0M1',level:1,L:94.0,a:-0.5,b:5.0,copy:'Blanco máximo, de valor muy alto y croma mínimo'},
-  {code:'0.5M1',level:3,L:92.8,a:-0.4,b:5.8,copy:'Muy luminoso y prácticamente neutro'},
-  {code:'1M1',level:5,L:91.6,a:-0.3,b:6.6,copy:'Blanco luminoso con profundidad ligera'},
-  {code:'1M1.5',level:7,L:90.5,a:-0.2,b:7.5,copy:'Luminoso con calidez muy contenida'},
-  {code:'1M2',level:9,L:89.4,a:-0.1,b:8.4,copy:'Blanco claro con croma suave'},
-  {code:'1.5M2',level:11,L:88.3,a:0.0,b:9.3,copy:'Claro neutro para un cambio visible'},
-  {code:'2M2',level:13,L:87.2,a:0.1,b:10.2,copy:'Claro equilibrado de apariencia natural'},
-  {code:'2.5M2',level:15,L:86.1,a:0.2,b:11.1,copy:'Claro medio con calidez discreta'},
-  {code:'3M2',level:17,L:85.0,a:0.3,b:12.0,copy:'Luminosidad media dentro del seguimiento'},
-  {code:'3.5M2',level:19,L:83.9,a:0.4,b:12.9,copy:'Medio claro de matiz neutro'},
-  {code:'4M2',level:21,L:82.8,a:0.5,b:13.8,copy:'Medio con croma moderado'},
-  {code:'4.5M2',level:23,L:81.7,a:0.6,b:14.7,copy:'Medio profundo para documentar progresión'},
-  {code:'5M2',level:25,L:80.6,a:0.7,b:15.6,copy:'Profundo dentro de la guía de seguimiento'},
-  {code:'5M2.5',level:27,L:79.5,a:0.8,b:16.5,copy:'Profundo con mayor presencia cromática'},
-  {code:'5M3',level:29,L:78.4,a:0.9,b:17.4,copy:'El nivel de menor claridad de la guía'}
+// Ivoclar documenta la familia Bleach como BL1, BL2, BL3 y BL4. B1–B4
+// pertenecen a VITA Classical y por eso nunca se reutilizan como Bleaches.
+// Estos L*a*b* son aproximaciones deliberadas de pantalla para distinguir las
+// cuatro tarjetas; no son mediciones oficiales ni sustituyen una guía física.
+var BLEACH_BL_SHADES = [
+  {code:'BL1',level:1,L:94.0,a:-0.4,b:4.8,copy:'Blanco bleach de máxima luminosidad',patientLabel:'Máxima luminosidad'},
+  {code:'BL2',level:2,L:92.0,a:-0.2,b:6.4,copy:'Blanco bleach muy luminoso y equilibrado',patientLabel:'Muy luminoso'},
+  {code:'BL3',level:3,L:90.0,a:0.0,b:8.2,copy:'Blanco bleach luminoso con profundidad suave',patientLabel:'Luminoso'},
+  {code:'BL4',level:4,L:88.0,a:0.2,b:10.0,copy:'Blanco bleach más natural y profundo',patientLabel:'Natural profundo'}
 ];
 
-// Accesos simples para el paciente. 0M1 coincide con la primera muestra de
-// Bleachedguide; 0M2 y 0M3 pertenecen al complemento VITA Bleached Shades.
-var VITA_BLEACHED_SHADES = [
-  VITA_BLEACHEDGUIDE[0],
-  {code:'0M2',level:null,L:91.0,a:-0.2,b:7.8,copy:'Blanco luminoso equilibrado',patientLabel:'Blanco luminoso'},
-  {code:'0M3',level:null,L:88.2,a:0.0,b:10.5,copy:'Blanco suave con mayor profundidad',patientLabel:'Blanco suave'}
+// Alias internos para conservar compatibilidad con controladores previos. La
+// superficie nueva sólo muestra BLEACH_BL_SHADES y elimina duplicados.
+var VITA_BLEACHEDGUIDE = BLEACH_BL_SHADES;
+var VITA_BLEACHED_SHADES = BLEACH_BL_SHADES;
+
+// Los códigos anteriores se conservan únicamente para abrir y describir casos
+// históricos sin convertirlos silenciosamente a BL1–BL4. No se muestran como
+// opciones nuevas; al editar el tono, el usuario elige uno de los cuatro BL.
+var LEGACY_BLEACHED_SHADES = [
+  {code:'0M1',level:1,L:94.0,a:-0.5,b:5.0,copy:'Referencia VITA Bleached histórica'},
+  {code:'0M2',level:null,L:91.0,a:-0.2,b:7.8,copy:'Referencia VITA Bleached histórica'},
+  {code:'0M3',level:null,L:88.2,a:0.0,b:10.5,copy:'Referencia VITA Bleached histórica'},
+  {code:'0.5M1',level:3,L:92.8,a:-0.4,b:5.8,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'1M1',level:5,L:91.6,a:-0.3,b:6.6,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'1M1.5',level:7,L:90.5,a:-0.2,b:7.5,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'1M2',level:9,L:89.4,a:-0.1,b:8.4,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'1.5M2',level:11,L:88.3,a:0.0,b:9.3,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'2M2',level:13,L:87.2,a:0.1,b:10.2,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'2.5M2',level:15,L:86.1,a:0.2,b:11.1,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'3M2',level:17,L:85.0,a:0.3,b:12.0,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'3.5M2',level:19,L:83.9,a:0.4,b:12.9,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'4M2',level:21,L:82.8,a:0.5,b:13.8,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'4.5M2',level:23,L:81.7,a:0.6,b:14.7,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'5M2',level:25,L:80.6,a:0.7,b:15.6,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'5M2.5',level:27,L:79.5,a:0.8,b:16.5,copy:'Referencia VITA Bleachedguide histórica'},
+  {code:'5M3',level:29,L:78.4,a:0.9,b:17.4,copy:'Referencia VITA Bleachedguide histórica'}
 ];
 
 function normalizarGuiaTono(value) {
@@ -3367,27 +3386,28 @@ function normalizarGuiaTono(value) {
 }
 
 function tonosGuiaTono(guide) {
-  return normalizarGuiaTono(guide) === 'bleached' ? VITA_BLEACHEDGUIDE : VITA_CLASSICAL;
+  return normalizarGuiaTono(guide) === 'bleached' ? BLEACH_BL_SHADES : VITA_CLASSICAL;
 }
 
 function tonosVitaTodos() {
-  return VITA_CLASSICAL.concat(VITA_BLEACHEDGUIDE,VITA_BLEACHED_SHADES.filter(function(shade) {
-    return !VITA_BLEACHEDGUIDE.some(function(item) { return item.code === shade.code; });
-  }));
+  // Los históricos necesitan sus propiedades visuales al reabrirse, pero no
+  // forman parte de tonosGuiaTono('bleached') y nunca aparecen en el selector.
+  return VITA_CLASSICAL.concat(BLEACH_BL_SHADES,LEGACY_BLEACHED_SHADES);
 }
 
 function guiaDeCodigoTono(code) {
-  return VITA_BLEACHEDGUIDE.concat(VITA_BLEACHED_SHADES).some(function(shade) { return shade.code === code; }) ? 'bleached' : 'classical';
+  return BLEACH_BL_SHADES.concat(LEGACY_BLEACHED_SHADES).some(function(shade) { return shade.code === code; }) ? 'bleached' : 'classical';
 }
 
 function buscarTonoVita(code, guide) {
   var normalized = normalizarGuiaTono(guide || guiaDeCodigoTono(code));
-  var pool = normalized === 'bleached' ? VITA_BLEACHEDGUIDE.concat(VITA_BLEACHED_SHADES) : VITA_CLASSICAL;
+  var pool = normalized === 'bleached' ? BLEACH_BL_SHADES.concat(LEGACY_BLEACHED_SHADES) : VITA_CLASSICAL;
   return pool.find(function(shade) { return shade.code === code; }) || null;
 }
 
 function nombreSistemaTono(code, guide) {
   if (normalizarGuiaTono(guide || guiaDeCodigoTono(code)) !== 'bleached') return 'VITA Classical';
+  if (BLEACH_BL_SHADES.some(function(shade) { return shade.code === code; })) return 'Ivoclar Bleach BL';
   if (code === '0M1') return 'VITA Bleached Shades / Bleachedguide 3D-MASTER';
   return ['0M2','0M3'].includes(code) ? 'VITA Bleached Shades' : 'VITA Bleachedguide 3D-MASTER';
 }
@@ -3402,13 +3422,13 @@ function etiquetaTonoVita(code, guide) {
 }
 
 function tonoPredeterminadoGuia(guide) {
-  return normalizarGuiaTono(guide) === 'bleached' ? '0M2' : 'A2';
+  return normalizarGuiaTono(guide) === 'bleached' ? 'BL2' : 'A2';
 }
 
 function asegurarEstadoGuiaTono() {
   S.shadeGuide = normalizarGuiaTono(S.shadeGuide || guiaDeCodigoTono(S.vitaTone));
-  S.shadeToneByGuide = Object.assign({classical:'A2',bleached:'0M2'},S.shadeToneByGuide || {});
-  S.shadeCompareByGuide = Object.assign({classical:'C1',bleached:'0M1'},S.shadeCompareByGuide || {});
+  S.shadeToneByGuide = Object.assign({classical:'A2',bleached:'BL2'},S.shadeToneByGuide || {});
+  S.shadeCompareByGuide = Object.assign({classical:'C1',bleached:'BL1'},S.shadeCompareByGuide || {});
   if (!S.vitaCompareTone) S.vitaCompareTone = S.shadeCompareByGuide[S.shadeGuide];
   if (S.vitaMode !== 'current') {
     var shade = buscarTonoVita(S.vitaTone,S.shadeGuide);
@@ -3423,7 +3443,7 @@ function seleccionarGuiaTonoVita(guide, guardar) {
   if (S.vitaMode !== 'current' && S.vitaTone) S.shadeToneByGuide[S.shadeGuide] = S.vitaTone;
   S.shadeGuide = guide;
   if (S.vitaMode !== 'current') S.vitaTone = buscarTonoVita(S.shadeToneByGuide[guide],guide) ? S.shadeToneByGuide[guide] : tonoPredeterminadoGuia(guide);
-  S.shadeCompareByGuide = Object.assign({classical:'C1',bleached:'0M1'},S.shadeCompareByGuide || {});
+  S.shadeCompareByGuide = Object.assign({classical:'C1',bleached:'BL1'},S.shadeCompareByGuide || {});
   S.vitaCompareTone = S.shadeCompareByGuide[guide];
   renderGuiaVita();
   actualizarResumenVita();
@@ -3740,33 +3760,21 @@ function renderGuiaVita() {
   });
   if (panel) panel.setAttribute('aria-labelledby','vita-tab-' + guide);
   if (safety) safety.textContent = guide === 'bleached'
-    ? 'Representación digital orientativa. 0M1 es compartido por las dos referencias Bleach; el tono definitivo se confirma con una guía física bajo iluminación estandarizada.'
+    ? 'Referencia digital orientativa BL1–BL4. Confirma el tono definitivo con la guía física Bleach BL bajo iluminación estandarizada.'
     : 'Representación digital orientativa. El tono clínico definitivo se confirma con una guía física bajo iluminación estandarizada.';
   if (quick) {
-    quick.hidden = guide !== 'bleached';
+    quick.hidden = true;
     quick.innerHTML = '';
-    if (guide === 'bleached') VITA_BLEACHED_SHADES.slice().reverse().forEach(function(shade) {
-      var preset = document.createElement('button');
-      preset.type = 'button';
-      var selected = S.vitaMode !== 'current' && S.vitaTone === shade.code;
-      preset.className = 'vita-bleach-preset' + (selected ? ' selected' : '');
-      preset.dataset.vitaCode = shade.code;
-      preset.setAttribute('aria-pressed',selected ? 'true' : 'false');
-      preset.setAttribute('aria-label','Seleccionar '+shade.code+', '+(shade.patientLabel || shade.copy));
-      preset.innerHTML = '<span>'+shade.code+'</span><strong>'+(shade.patientLabel || (shade.code === '0M1' ? 'Blanco máximo' : shade.copy))+'</strong>'+(shade.code === '0M2' ? '<small>Punto de partida</small>' : '');
-      preset.onclick = function() { seleccionarTonoVita(shade.code,false,true); };
-      quick.appendChild(preset);
-    });
   }
   wrap.innerHTML = '';
-  wrap.setAttribute('aria-label',guide === 'bleached' ? 'Escala profesional VITA Bleachedguide 3D-MASTER' : 'Tonos VITA Classical');
+  wrap.setAttribute('aria-label',guide === 'bleached' ? 'Escala Bleach BL1 a BL4' : 'Tonos VITA Classical');
   shades.forEach(function(shade) {
     var btn = document.createElement('button');
     btn.type = 'button';
     var isSelected = S.vitaMode !== 'current' && shade.code === S.vitaTone;
     btn.className = 'vita-stick' + (isSelected ? ' selected' : '');
     btn.dataset.vitaCode = shade.code;
-    btn.setAttribute('aria-label', guide === 'bleached' ? 'Seleccionar Bleachedguide '+shade.code+', nivel '+shade.level : 'Seleccionar tono VITA Classical ' + shade.code);
+    btn.setAttribute('aria-label', guide === 'bleached' ? 'Seleccionar Bleach '+shade.code : 'Seleccionar tono VITA Classical ' + shade.code);
     btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     btn.style.setProperty('--shade', shade.color);
     btn.style.setProperty('--shade-hi', shade.hi);
@@ -3795,7 +3803,7 @@ function seleccionarTonoVita(code, centrar, guardar) {
   if (!shade) return;
   var cambioTono = S.vitaMode !== 'vita' || S.vitaTone !== code;
   S.shadeGuide = guiaDeCodigoTono(code);
-  S.shadeToneByGuide = Object.assign({classical:'A2',bleached:'0M2'},S.shadeToneByGuide || {});
+  S.shadeToneByGuide = Object.assign({classical:'A2',bleached:'BL2'},S.shadeToneByGuide || {});
   S.shadeToneByGuide[S.shadeGuide] = code;
   S.vitaTone = code;
   S.vitaMode = 'vita';
@@ -3973,7 +3981,7 @@ function aplicarCarillaVita(element, shade) {
 }
 
 function tonosComparacionVita(shade) {
-  if (S.shadeGuide === 'bleached' && shade && ['0M2','0M3'].includes(shade.code)) return VITA_BLEACHED_SHADES.slice().reverse();
+  if (S.shadeGuide === 'bleached') return BLEACH_BL_SHADES;
   return tonosGuiaTono(S.shadeGuide);
 }
 
@@ -4131,7 +4139,7 @@ function seleccionarArcadaRapida(arch) {
 }
 
 function seleccionarAparienciaRapida(value, button, guardar) {
-  S.vitaFinish = ['B1','0M1','0M2','0.5M1','1M1'].includes(value) ? 'luminous' : 'natural';
+  S.vitaFinish = ['B1','BL1','BL2'].includes(value) ? 'luminous' : 'natural';
   S.vitaIntensity = 'balanced';
   S.vitaConstruction = 'layered';
   if (value === 'current') seleccionarTonoActual();
@@ -4351,8 +4359,8 @@ function comenzarFlujoSimulacion() {
   S.quickGuided = true;
   S.smileDesign = {mode:'combined',arch:'upper',alignmentStyle:'complete',instructions:'',stage:'initial'};
   S.shadeGuide = 'classical';
-  S.shadeToneByGuide = {classical:'A2',bleached:'0M2'};
-  S.shadeCompareByGuide = {classical:'C1',bleached:'0M1'};
+  S.shadeToneByGuide = {classical:'A2',bleached:'BL2'};
+  S.shadeCompareByGuide = {classical:'C1',bleached:'BL1'};
   S.vitaCompareTone = 'C1';
   S.vitaTone = 'A2'; S.vitaMode = 'vita'; S.vitaFinish = 'natural'; S.vitaIntensity = 'balanced'; S.vitaConstruction = 'layered';
   startCam();
@@ -6874,9 +6882,10 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
   var shadeReferencePrompt = vitaShade.screenRgb ?
     ' CALIBRATED SMYL DISPLAY REFERENCE: approximate sRGB ' + vitaShade.screenRgb.join(',') + ', measured from the app shade photograph. For A1 this must read as light near-neutral ivory with minimal yellow—not beige. Adapt it to the original illumination and preserve ceramic depth; this screen value is a visual reference, not a flat fill.' :
     ' CIELAB REFERENCE: L* ' + vitaShade.L.toFixed(1) + ', a* ' + vitaShade.a.toFixed(1) + ', b* ' + vitaShade.b.toFixed(1) + '.';
-  var shadeSystemPrompt = vitaSystem === 'VITA Bleached Shades' ? ' SHADE SYSTEM: VITA Bleached Shades.' :
+  var shadeSystemPrompt = vitaSystem === 'Ivoclar Bleach BL' ? ' SHADE SYSTEM: Ivoclar Bleach BL.' :
+    (vitaSystem === 'VITA Bleached Shades' ? ' SHADE SYSTEM: VITA Bleached Shades.' :
     (vitaSystem.indexOf('/') >= 0 ? ' SHADE SYSTEM: shared 0M1 tab from VITA Bleached Shades and VITA Bleachedguide 3D-MASTER.' :
-    (S.shadeGuide === 'bleached' ? ' SHADE SYSTEM: VITA Bleachedguide 3D-MASTER.' : ' SHADE SYSTEM: VITA Classical.'));
+    (S.shadeGuide === 'bleached' ? ' SHADE SYSTEM: historical VITA Bleachedguide 3D-MASTER.' : ' SHADE SYSTEM: VITA Classical.')));
   var stylePrompt = S.vitaMode === 'current' ?
     ' SHADE MODE: MATCH CURRENT NATURAL TOOTH COLOR. Sample the existing tooth color from the input photograph and preserve its perceived lightness, chroma and hue. Do not whiten the teeth beyond the original observed shade.' :
     shadeSystemPrompt + ' TARGET SHADE: ' + vitaShade.code + '.' + shadeReferencePrompt + ' LIGHTNESS: ' + vitaProps.lightness + '. CHROMA: ' + vitaProps.chroma + '. HUE FAMILY: ' + vitaProps.hue + '. VISUAL DESCRIPTION: ' + vitaShade.copy + '. Match the perceived shade consistently while retaining optically natural variation. This is a visual simulation target, not a promise of clinical bleaching outcome.';
@@ -7340,7 +7349,7 @@ async function generarEtapaCarillas(button){
 // editables. La geometría guardada se usa directamente en el render local.
 // La ruta de prompt permanece sólo como compatibilidad con casos antiguos.
 var EDITOR_PARAMS_DEFAULT = {
-  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, alturasDientes:[0,0,0,0,0,0], caracterizacion:'natural', shadeGuide:'classical', shadeToneByGuide:{classical:'A2',bleached:'0M2'}, vita:'', valor:0, croma:0, opacidad:0},
+  diseno: {lineaMedia:'centrada', lineaIncisal:'paralela', lineaIncisalInclinacion:0.5, arcoSonrisa:'suave', forma:'', tamano:100, proporcionMetodo:'adaptativa', red:70, proporcion:78, alturasDientes:[0,0,0,0,0,0], caracterizacion:'natural', shadeGuide:'classical', shadeToneByGuide:{classical:'A2',bleached:'BL2'}, vita:'', valor:0, croma:0, opacidad:0},
   encia: {nivel:0, colorR:200, colorG:120, colorB:120},
   guias: {lineaMedia:false, lineaIncisal:false, curvaSonrisa:false, proporcionAurea:false},
   guiasAgrupadas:false,
@@ -7956,7 +7965,7 @@ function abrirEditorDiseno() {
   edAsegurarAlturasDientes();
   if (!EDITOR_PARAMS.diseno.caracterizacion) EDITOR_PARAMS.diseno.caracterizacion = 'natural';
   EDITOR_PARAMS.diseno.shadeGuide=normalizarGuiaTono(EDITOR_PARAMS.diseno.shadeGuide||guiaDeCodigoTono(EDITOR_PARAMS.diseno.vita));
-  EDITOR_PARAMS.diseno.shadeToneByGuide=Object.assign({classical:'A2',bleached:'0M2'},EDITOR_PARAMS.diseno.shadeToneByGuide||{});
+  EDITOR_PARAMS.diseno.shadeToneByGuide=Object.assign({classical:'A2',bleached:'BL2'},EDITOR_PARAMS.diseno.shadeToneByGuide||{});
   edAsegurarZonasGuias();
   _edActiveGuide = edGuiasVisibles()[0] || null;
   _edPhotoZoom = 1;
@@ -8209,7 +8218,7 @@ function edRenderGuiaVita() {
   if (!wrap || !EDITOR_PARAMS) return;
   var d = EDITOR_PARAMS.diseno;
   d.shadeGuide = normalizarGuiaTono(d.shadeGuide || guiaDeCodigoTono(d.vita));
-  d.shadeToneByGuide = Object.assign({classical:'A2',bleached:'0M2'},d.shadeToneByGuide || {});
+  d.shadeToneByGuide = Object.assign({classical:'A2',bleached:'BL2'},d.shadeToneByGuide || {});
   var guide = d.shadeGuide;
   var seleccionado = d.vita || '';
   if (seleccionado && !buscarTonoVita(seleccionado,guide)) {
@@ -8233,12 +8242,10 @@ function edRenderGuiaVita() {
   });
   var tonePanel=document.getElementById('ed-vita-tone-panel');if(tonePanel)tonePanel.setAttribute('aria-labelledby','ed-vita-tab-'+guide);
   var quick=document.getElementById('ed-bleach-quick');
-  if(quick){quick.hidden=guide!=='bleached';quick.innerHTML='';if(guide==='bleached')VITA_BLEACHED_SHADES.slice().reverse().forEach(function(shade){
-    var preset=document.createElement('button');preset.type='button';preset.dataset.vitaCode=shade.code;preset.className=seleccionado===shade.code?'selected':'';preset.setAttribute('aria-pressed',seleccionado===shade.code?'true':'false');preset.innerHTML='<strong>'+shade.code+'</strong><small>'+(shade.patientLabel||shade.copy)+'</small>';preset.onclick=function(){edSeleccionarTonoVita(shade.code,false);};quick.appendChild(preset);
-  });}
+  if(quick){quick.hidden=true;quick.innerHTML='';}
   var scale=document.getElementById('ed-bleach-professional'),title=document.getElementById('ed-vita-scale-title'),systemLabel=document.getElementById('ed-vita-system-label');
   if(scale&&guide!=='bleached')scale.open=true;
-  if(title)title.textContent=guide==='bleached'?'VITA Bleachedguide 3D-MASTER · 15 tonos':'VITA Classical · 16 tonos';
+  if(title)title.textContent=guide==='bleached'?'Bleach BL · 4 tonos':'VITA Classical · 16 tonos';
   if(systemLabel)systemLabel.textContent=guide==='bleached'?'Blanqueamiento · elige una referencia':'Naturales · elige una referencia';
   wrap.innerHTML = '';
   tonosGuiaTono(guide).forEach(function(shade) {
@@ -8260,13 +8267,13 @@ function edRenderGuiaVita() {
 }
 
 function edSeleccionarGuiaTono(guide){
-  if(!EDITOR_PARAMS)return;var d=EDITOR_PARAMS.diseno;guide=normalizarGuiaTono(guide);d.shadeToneByGuide=Object.assign({classical:'A2',bleached:'0M2'},d.shadeToneByGuide||{});if(d.vita)d.shadeToneByGuide[d.shadeGuide||'classical']=d.vita;d.shadeGuide=guide;d.vita=d.shadeToneByGuide[guide]||tonoPredeterminadoGuia(guide);edRenderGuiaVita();edActualizarGuiaVita(true);vibrarSeleccionVita();
+  if(!EDITOR_PARAMS)return;var d=EDITOR_PARAMS.diseno;guide=normalizarGuiaTono(guide);d.shadeToneByGuide=Object.assign({classical:'A2',bleached:'BL2'},d.shadeToneByGuide||{});if(d.vita)d.shadeToneByGuide[d.shadeGuide||'classical']=d.vita;d.shadeGuide=guide;d.vita=d.shadeToneByGuide[guide]||tonoPredeterminadoGuia(guide);edRenderGuiaVita();edActualizarGuiaVita(true);vibrarSeleccionVita();
 }
 
 function edSeleccionarTonoVita(code, centrar) {
   if (!EDITOR_PARAMS) return;
   var d=EDITOR_PARAMS.diseno;
-  if(code){d.shadeGuide=guiaDeCodigoTono(code);d.shadeToneByGuide=Object.assign({classical:'A2',bleached:'0M2'},d.shadeToneByGuide||{});d.shadeToneByGuide[d.shadeGuide]=code;}
+  if(code){d.shadeGuide=guiaDeCodigoTono(code);d.shadeToneByGuide=Object.assign({classical:'A2',bleached:'BL2'},d.shadeToneByGuide||{});d.shadeToneByGuide[d.shadeGuide]=code;}
   d.vita = code || '';
   edActualizarGuiaVita(centrar !== false);
   vibrarSeleccionVita();
@@ -12950,7 +12957,7 @@ function nuevoCaso() {
   S.diagnosis = null; S.questionnaire = null; S._casoGuardado = null; S._guardandoCaso = false;
   S.diagnosticoFacial = null; S.promptGeminiUsado = null;
   S.vitaTone = null;
-  S.shadeGuide='classical';S.shadeToneByGuide={classical:'A2',bleached:'0M2'};S.shadeCompareByGuide={classical:'C1',bleached:'0M1'};S.vitaCompareTone='C1';
+  S.shadeGuide='classical';S.shadeToneByGuide={classical:'A2',bleached:'BL2'};S.shadeCompareByGuide={classical:'C1',bleached:'BL1'};S.vitaCompareTone='C1';
   S.vitaMode = 'vita'; S.vitaFinish = 'natural'; S.vitaIntensity = 'balanced'; S.vitaConstruction = 'layered'; S.vitaReturnToResult = false;
   S.baAlign = {}; S.baAlignMode = false;
   S.leadNombre = null;

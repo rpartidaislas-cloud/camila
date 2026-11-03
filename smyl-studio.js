@@ -64,8 +64,8 @@
     var shade=typeof buscarTonoVita==='function'?buscarTonoVita(code,S.shadeGuide):(typeof VITA_CLASSICAL!=='undefined'&&VITA_CLASSICAL.find(function(item){return item.code===code;}));
     if(!shade)return patientToneLabel(code);
     if(currentShadeGuide()==='bleached'){
-      var system=typeof nombreSistemaTono==='function'?nombreSistemaTono(code,'bleached'):(['0M1','0M2','0M3'].includes(code)?'VITA Bleached Shades':'VITA Bleachedguide 3D-MASTER');
-      return 'Blanqueamiento '+code+(shade.level?' · nivel '+shade.level:'')+' · '+system.replace('VITA ','');
+      var system=typeof nombreSistemaTono==='function'?nombreSistemaTono(code,'bleached'):'Ivoclar Bleach BL';
+      return 'Bleach '+code+' · '+system;
     }
     var intent=code==='B1'?'Muy claro':(['A1','B2','D2'].includes(code)?'Claro natural':(['A2','C1','C2'].includes(code)?'Natural':'Matiz natural'));
     return intent+' · VITA Classical '+code;
@@ -75,14 +75,13 @@
     if(typeof asegurarEstadoGuiaTono==='function')asegurarEstadoGuiaTono();
     else{
       S.shadeGuide=currentShadeGuide();
-      S.shadeToneByGuide=Object.assign({classical:'A2',bleached:'0M2'},S.shadeToneByGuide||{});
+      S.shadeToneByGuide=Object.assign({classical:'A2',bleached:'BL2'},S.shadeToneByGuide||{});
       if(S.vitaMode!=='current'&&!S.vitaTone)S.vitaTone=S.shadeToneByGuide[S.shadeGuide];
     }
   }
   function shadePool(guide){
     if(guide!=='bleached')return typeof tonosGuiaTono==='function'?tonosGuiaTono('classical'):(window.VITA_CLASSICAL||[]);
-    var merged=(window.VITA_BLEACHEDGUIDE||[]).concat(window.VITA_BLEACHED_SHADES||[]),seen=new Set();
-    return merged.filter(function(shade){if(seen.has(shade.code))return false;seen.add(shade.code);return true;}).sort(function(a,b){return Number(b.L||0)-Number(a.L||0);});
+    return (window.BLEACH_BL_SHADES||(typeof tonosGuiaTono==='function'?tonosGuiaTono('bleached'):[])||[]).slice().sort(function(a,b){return Number(b.L||0)-Number(a.L||0);});
   }
   function shadeCard(shade,guide){
     var b=button('',function(){shadeCarousels[guide]?.pick(shade.code);},'flow-vita-card');
@@ -104,7 +103,7 @@
       shadeCarousels[guide]?.destroy();shadeCarousels[guide]=null;tracks[guide].replaceChildren();
       shadePool(guide).forEach(function(shade){tracks[guide].append(shadeCard(shade,guide));});
       shadeCarousels[guide]=SmylShadeCarousel.attach({track:tracks[guide],selector:'.flow-vita-card',key:'data-flow-tone',onSelect:function(code){chooseShadeToneForGuide(guide,code);},onSettle:function(){saveProgress('s-vita');},enabled:function(){return !busy&&!generating&&SmylSmileModes.normalize(S.smileDesign).mode!=='alignment';}});
-      shadeCarousels[guide].sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'0M2':'A2'));
+      shadeCarousels[guide].sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'BL2':'A2'));
     });
     shadeRenderedGuide='dual';
   }
@@ -144,7 +143,7 @@
   function renderProgressive(){
     var config=byId('quick-config');if(!config||!byId('flow-progress'))return;
     if(!S.photos.length)guidedStage=0;else if(guidedStage===0)guidedStage=1;
-    var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'0M2':'A2'));
+    var design=SmylSmileModes.normalize(S.smileDesign),tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'BL2':'A2'));
     if(design.mode==='alignment'&&guidedStage===3)guidedStage=4;
     var meta=guidedMeta(guidedStage);
     var alignmentFlow=design.mode==='alignment';
@@ -328,11 +327,11 @@
     var design=SmylSmileModes.normalize(S.smileDesign);
     byId('flow-instructions').value=design.instructions;byId('flow-instruction-count').textContent=design.instructions.length+'/500';
     byId('flow-tone-group').hidden=design.mode==='alignment';byId('flow-original-tone').hidden=design.mode!=='alignment';
-    var tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'0M2':'A2'));
+    var tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'BL2':'A2'));
     byId('flow-tone-selected').innerHTML='<span>TONO ELEGIDO</span><strong>'+selectedToneLabel(tone)+'</strong>';
     document.querySelectorAll('[data-flow-tone]').forEach(function(b){var chosen=b.dataset.flowGuide===currentShadeGuide()&&b.dataset.flowTone===tone;b.classList.toggle('selected',chosen);b.setAttribute('aria-pressed',String(chosen));b.disabled=busy||generating||design.mode==='alignment';});
     document.querySelectorAll('[data-shade-guide-step]').forEach(function(control){control.disabled=busy||generating||design.mode==='alignment';});
-    ['classical','bleached'].forEach(function(guide){shadeCarousels[guide]?.sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'0M2':'A2'));});
+    ['classical','bleached'].forEach(function(guide){shadeCarousels[guide]?.sync(S.shadeToneByGuide?.[guide]||(guide==='bleached'?'BL2':'A2'));});
     document.querySelectorAll('#quick-config .quick-choice').forEach(function(el){el.setAttribute('aria-pressed',String(el.classList.contains('selected')));});
     if(byId('flow-tone-continue'))byId('flow-tone-continue').disabled=busy||generating||design.mode==='alignment';
     renderProgressive();
@@ -424,15 +423,15 @@
     var selectedTone=element('div','flow-tone-selected');selectedTone.id='flow-tone-selected';selectedTone.setAttribute('aria-live','polite');
     var vitaShell=element('section','flow-vita-shell');vitaShell.id='flow-shade-panel';vitaShell.setAttribute('aria-label','Comparar tonos naturales y de blanqueamiento');
     var comparison=element('div','flow-shade-comparison');
-    [['classical','Guía VITA','Tonos naturales'],['bleached','Bleaches','Tonos de blanqueamiento']].forEach(function(entry){
+    [['classical','Guía VITA','Tonos naturales'],['bleached','Bleaches','BL1 a BL4']].forEach(function(entry){
       var guide=entry[0],row=element('section','flow-shade-row');row.dataset.guide=guide;row.setAttribute('aria-labelledby','flow-shade-title-'+guide);
-      var head=element('div','flow-shade-row-head');head.innerHTML='<div><span>'+entry[1]+'</span><strong id="flow-shade-title-'+guide+'">'+entry[2]+'</strong></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="-1" aria-label="Tono anterior">‹</button><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="1" aria-label="Tono siguiente">›</button></div>';
+      var head=element('div','flow-shade-row-head');head.innerHTML='<div><span>'+entry[1]+'</span><strong id="flow-shade-title-'+guide+'">'+entry[2]+'</strong></div><div class="flow-shade-controls"><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="-1" aria-label="'+entry[1]+' anterior">‹</button><button type="button" class="flow-shade-arrow" data-shade-guide-step="'+guide+'" data-shade-step="1" aria-label="'+entry[1]+' siguiente">›</button></div>';
       var track=element('div','flow-vita-track');track.id='flow-vita-'+guide+'-track';track.setAttribute('aria-label',entry[1]+' · '+entry[2]);
       row.append(head,track);comparison.append(row);
     });
     vitaShell.append(comparison,selectedTone);
     var toneContinue=button('Continuar con este tono',function(){advanceGuided(4,true);},'flow-primary flow-tone-continue');toneContinue.id='flow-tone-continue';
-    tones.append(vitaShell,toneContinue,element('p','flow-tone-help','Representación digital orientativa. Confirma el tono con una guía física.'));
+    tones.append(vitaShell,toneContinue,element('p','flow-tone-help','Referencia digital orientativa. Confirma VITA y Bleach BL con sus guías físicas.'));
     tones.classList.add('flow-guided-section');tones.dataset.stage='tone';
     vitaShell.querySelectorAll('[data-shade-guide-step]').forEach(function(control){control.onclick=function(){shadeCarousels[control.dataset.shadeGuideStep]?.step(Number(control.dataset.shadeStep));};});
     window.addEventListener('smyl:shadeguidechange',function(){renderShadeGuides();syncPreferences();});

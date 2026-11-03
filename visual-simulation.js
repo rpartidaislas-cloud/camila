@@ -21,6 +21,10 @@
     C3:'deep, muted neutral ivory with a soft gray cast',
     A4:'deep high-chroma warm ivory from the A family',
     C4:'the deepest muted neutral-gray ivory in the C family',
+    BL1:'maximum-value bleach white with minimal chroma; preserve ceramic depth and avoid a flat, opaque or blue-white result',
+    BL2:'very luminous bleach white with low chroma and a restrained warm-neutral ceramic body',
+    BL3:'luminous bleach white with slightly more chromatic depth than BL2 and natural incisal translucency',
+    BL4:'the most natural and deepest of the four BL bleach shades, still visibly brighter than the natural Classical range',
     '0M1':'maximum-value bleach white with minimal chroma; keep optical depth and avoid a flat, opaque or blue-white result',
     '0M2':'luminous balanced bleach white with very low chroma and a restrained warm-neutral ceramic body',
     '0M3':'soft bleach white with slightly more chromatic depth than 0M2, still visibly brighter than the natural Classical range',
@@ -39,17 +43,20 @@
     '5M2.5':'deep bleach-guide shade with increased chroma and preserved translucency',
     '5M3':'the lowest-value bleach-guide shade, with the greatest chromatic depth in this scale'
   };
-  const bleachedCodes = new Set(['0M1','0M2','0M3','0.5M1','1M1','1M1.5','1M2','1.5M2','2M2','2.5M2','3M2','3.5M2','4M2','4.5M2','5M2','5M2.5','5M3']);
+  const currentBleachedCodes = new Set(['BL1','BL2','BL3','BL4']);
+  const legacyBleachedCodes = new Set(['0M1','0M2','0M3','0.5M1','1M1','1M1.5','1M2','1.5M2','2M2','2.5M2','3M2','3.5M2','4M2','4.5M2','5M2','5M2.5','5M3']);
+  const bleachedCodes = new Set([...currentBleachedCodes,...legacyBleachedCodes]);
   const classicalCodes = new Set(['B1','A1','B2','D2','A2','C1','C2','D4','A3','D3','B3','A3.5','B4','C3','A4','C4']);
   const shadeCodeOf = options => {
     const requested = options?.shade;
     const guide = options?.shadeGuide === 'bleached' || (!options?.shadeGuide && bleachedCodes.has(requested)) ? 'bleached' : 'classical';
     const allowed = guide === 'bleached' ? bleachedCodes : classicalCodes;
-    return shadeDescriptions[requested] && allowed.has(requested) ? requested : (guide === 'bleached' ? '0M2' : 'A1');
+    return shadeDescriptions[requested] && allowed.has(requested) ? requested : (guide === 'bleached' ? 'BL2' : 'A1');
   };
   const shadeSystemOf = (options, code) => {
-    if (options?.shadeSystem === 'VITA Bleached Shades' || options?.shadeSystem === 'VITA Bleachedguide 3D-MASTER' || options?.shadeSystem === 'VITA Bleached Shades / Bleachedguide 3D-MASTER' || options?.shadeSystem === 'VITA Classical') return options.shadeSystem;
+    if (options?.shadeSystem === 'Ivoclar Bleach BL' || options?.shadeSystem === 'VITA Bleached Shades' || options?.shadeSystem === 'VITA Bleachedguide 3D-MASTER' || options?.shadeSystem === 'VITA Bleached Shades / Bleachedguide 3D-MASTER' || options?.shadeSystem === 'VITA Classical') return options.shadeSystem;
     if (!bleachedCodes.has(code)) return 'VITA Classical';
+    if (currentBleachedCodes.has(code)) return 'Ivoclar Bleach BL';
     if (code === '0M1') return 'VITA Bleached Shades / Bleachedguide 3D-MASTER';
     return ['0M2','0M3'].includes(code) ? 'VITA Bleached Shades' : 'VITA Bleachedguide 3D-MASTER';
   };
@@ -79,9 +86,9 @@
     const shadeCode = shadeCodeOf(options);
     const shadeSystem = shadeSystemOf(options, shadeCode);
     const shade = options.current ? 'Keep the original enamel shade as the ceramic color reference; still perform the requested finished veneer morphology.' :
-      'VITA SHADE — REQUIRED: approximate ' + shadeSystem + ' ' + shadeCode + ' under the ORIGINAL light and apply it consistently to every selected veneer. ' +
-      'PERCEPTUAL TARGET: ' + shadeDescriptions[shadeCode] + '. Do not collapse different VITA codes into the same generic cream or ivory. Preserve a subtle cervical warmth and translucent incisal depth so the result reads as porcelain rather than a flat color filter. ' +
-      ' Preserve one photographic white balance across the entire image. If both arches are selected, upper and lower veneers must share the same VITA family and value, including the selected shade system; do not render one arch warm and the other blue-gray. Use only natural differences caused by the existing light and shadows. This is a digital visual reference, not a calibrated shade measurement or a promise of a bleaching outcome.';
+      'DENTAL SHADE — REQUIRED: approximate ' + shadeSystem + ' ' + shadeCode + ' under the ORIGINAL light and apply it consistently to every selected veneer. ' +
+      'PERCEPTUAL TARGET: ' + shadeDescriptions[shadeCode] + '. Do not collapse different shade codes into the same generic cream or ivory. Preserve a subtle cervical warmth and translucent incisal depth so the result reads as porcelain rather than a flat color filter. ' +
+      ' Preserve one photographic white balance across the entire image. If both arches are selected, upper and lower veneers must share the same shade family and value, including the selected shade system; do not render one arch warm and the other blue-gray. Use only natural differences caused by the existing light and shadows. This is a digital visual reference, not a calibrated shade measurement or a promise of a bleaching outcome.';
     const construction = constructionOf(options) === 'monolithic'
       ? 'CERAMIC CONSTRUCTION — MONOLITHIC: depict a single continuous ceramic body with a more homogeneous internal optical appearance and smooth shade transitions. Retain natural translucency and individualized reflections; uniform material must not become opaque plastic or identical teeth. Do not simulate separate dentin/enamel strata, pronounced internal layering or painted internal bands. If a translucent finish is selected, use gentle transmission through the single body rather than adding enamel layers.'
       : 'CERAMIC CONSTRUCTION — LAYERED: depict stratified porcelain with a softly luminous dentin-like core beneath a translucent enamel-like layer. Make the optical depth perceptible: gentle cervical warmth, luminous body, a restrained translucent incisal zone, delicate opalescence and a fine incisal halo. Suggest faint internal mamelon variation only where visible at the photograph resolution. Avoid painted stripes, exaggerated markings, gray edges or transparent holes. Layering must differ from a homogeneous monolithic body without artificial contrast.';

@@ -9598,3 +9598,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se retiró el CSS obsoleto de tabs, accesos rápidos y escala profesional desplegable. Generación, persistencia, resultados y compatibilidad con casos existentes permanecen sin cambios.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=27`, `smyl-studio.css?v=28` y caché PWA `shade-compare-v9`.
 - Pruebas ejecutadas: 17/17 de flujo guiado, comparación de guías, persistencia, generación, PWA móvil, política visual y accesibilidad.
+
+## 2026-11-02 — Codex — Simulador progresivo v10: Bleaches BL1–BL4
+
+- La selección nueva de `Bleaches` queda limitada a cuatro tonos: `BL1`, `BL2`, `BL3` y `BL4`, ordenados del mayor al menor valor visual. Se evita llamarlos `B1–B4`, porque esos códigos ya pertenecen a la guía VITA Classical.
+- Los dos carruseles permanecen visibles para comparar: VITA Classical arriba y Bleaches BL abajo. `BL2` es únicamente el punto inicial de la interfaz y no una recomendación clínica.
+- El sistema visible y el enviado a la generación se identifica como `Ivoclar Bleach BL`. La representación digital continúa siendo orientativa y debe confirmarse con una guía física bajo iluminación clínica.
+- Los códigos históricos `0M*` y `xM*` siguen siendo legibles para abrir resultados anteriores, pero ya no aparecen como opciones de una simulación nueva. Al reabrir una edición antigua se conserva el resultado previo y se pide elegir uno de los cuatro BL.
+- Web y `mobile/www` quedan sincronizados con `smyl-studio.js?v=28`, `smyl-vita-samples.js?v=3`, `visual-simulation.js?v=31` y caché PWA `bleach-bl-v10`. No requiere migración de base de datos.

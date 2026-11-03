@@ -67,6 +67,6 @@ assert.match(css, /\.flow-result-variant/);
 assert.match(css, /One visual policy/);
 
 assert.match(html, /smyl-studio\.css\?v=28/);
-assert.match(html, /smyl-studio\.js\?v=27/);
+assert.match(html, /smyl-studio\.js\?v=28/);
 
 console.log('SMYL simulator: progressive guidance and patient-friendly choices are verified');

@@ -13,8 +13,12 @@
   B1:[86,-1,12],B2:[78.5,-.3,16],B3:[74,1,22],B4:[72,1.6,26.5],
   C1:[73,-.2,13.5],C2:[72,0,17],C3:[69,1,19.5],C4:[61,2.7,22.3],
   D2:[73,.2,14.3],D3:[72.5,.8,19.3],D4:[65,.3,20],
-  // Display-only approximations for the Bleached ranges. These are not
-  // official VITA measurements and never replace physical shade matching.
+  // Display-only approximations for the current Ivoclar Bleach BL range.
+  // They are NOT official/calibrated measurements and only keep the four UI
+  // samples visually ordered from BL1 (highest value) to BL4 (more depth).
+  BL1:[94,-.4,4.8],BL2:[92,-.2,6.4],BL3:[90,0,8.2],BL4:[88,.2,10],
+  // Historical VITA Bleached values remain readable for already saved cases.
+  // They are no longer offered as choices for new simulations.
   '0M1':[94,-.5,5],'0M2':[91,-.2,7.8],'0M3':[88.2,0,10.5],
   '0.5M1':[92.8,-.4,5.8],'1M1':[91.6,-.3,6.6],'1M1.5':[90.5,-.2,7.5],
   '1M2':[89.4,-.1,8.4],'1.5M2':[88.3,0,9.3],'2M2':[87.2,.1,10.2],
@@ -47,7 +51,7 @@
   image.style.filter='url(#'+id+')';
  }
  function has(code){return Object.prototype.hasOwnProperty.call(coordinates,code);}
- function guide(code){return /^(?:0M[123]|0\.5M1|[1-5](?:\.5)?M(?:1(?:\.5)?|2(?:\.5)?|3))$/.test(code||'')?'bleached':'classical';}
+ function guide(code){return /^(?:BL[1-4]|0M[123]|0\.5M1|[1-5](?:\.5)?M(?:1(?:\.5)?|2(?:\.5)?|3))$/.test(code||'')?'bleached':'classical';}
  var api=Object.freeze({coordinates:coordinates,rgb:rgb,matrix:matrix,attachFilter:attachFilter,has:has,guide:guide});
  if(typeof module==='object'&&module.exports)module.exports=api;else root.SmylVitaSamples=api;
 })(typeof window!=='undefined'?window:globalThis);

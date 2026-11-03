@@ -6,10 +6,12 @@
   'use strict';
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const classicalCodes = ['B1','A1','B2','D2','A2','C1','C2','D4','A3','D3','B3','A3.5','B4','C3','A4','C4'];
-  const bleachedCodes = ['0M3','0M2','0M1','0.5M1','1M1','1M1.5','1M2','1.5M2','2M2','2.5M2','3M2','3.5M2','4M2','4.5M2','5M2','5M2.5','5M3'];
+  const currentBleachedCodes = ['BL1','BL2','BL3','BL4'];
+  const legacyBleachedCodes = ['0M3','0M2','0M1','0.5M1','1M1','1M1.5','1M2','1.5M2','2M2','2.5M2','3M2','3.5M2','4M2','4.5M2','5M2','5M2.5','5M3'];
+  const bleachedCodes = currentBleachedCodes.concat(legacyBleachedCodes);
   const codes = classicalCodes.concat(bleachedCodes);
   const normalizeGuide = value => value === 'bleached' ? 'bleached' : 'classical';
-  const systemLabel = (guide, shade) => guide === 'bleached' ? (shade === '0M1' ? 'VITA Bleached Shades / Bleachedguide 3D-MASTER' : (['0M2','0M3'].includes(shade) ? 'VITA Bleached Shades' : 'VITA Bleachedguide 3D-MASTER')) : 'VITA Classical';
+  const systemLabel = (guide, shade) => guide === 'bleached' ? (currentBleachedCodes.includes(shade) ? 'Ivoclar Bleach BL' : (shade === '0M1' ? 'VITA Bleached Shades / Bleachedguide 3D-MASTER' : (['0M2','0M3'].includes(shade) ? 'VITA Bleached Shades' : 'VITA Bleachedguide 3D-MASTER'))) : 'VITA Classical';
   const canvas = (w, h) => Object.assign(document.createElement('canvas'), { width: w, height: h });
   const load = url => new Promise((resolve, reject) => {
     // Do not download a remote patient image, model, or mask in this feature.
@@ -103,9 +105,13 @@
       const mg = maskCanvas.getContext('2d', { willReadFrequently: true });
       const display = $('.lt-photo'), g = display.getContext('2d'); display.width = W; display.height = H;
       shadeGuide = normalizeGuide(record?.shadeGuide || shadeGuide);
-      const visibleCodes = shadeGuide === 'bleached' ? bleachedCodes : classicalCodes;
+      // Historical 0M*/xM* records remain valid, but only the current BL
+      // family is offered when the user makes a new bleach selection.
+      const visibleCodes = shadeGuide === 'bleached' ? currentBleachedCodes : classicalCodes;
       let mode = 'tap', shade = record?.shade || 'base', zoom = 1, history = [], stroke = null, comparing = false, dirty = false, closed = false, submitting = false, renderFrame = null, paintOK = false, cursor = { x: W / 2, y: H / 2 }, keyboard = false, shadeCarousel = null, analysis = null, detecting = false;
-      if (shade !== 'base' && !visibleCodes.includes(shade)) shade = 'base';
+      // Keep a valid historical shade active when reopening an old record.
+      // It is readable/reviewable, but the next new choice comes from BL1–BL4.
+      if (shade !== 'base' && !codes.includes(shade)) shade = 'base';
       const dispose = () => {
         clearInterval(watch); cancelAnimationFrame(renderFrame); shadeCarousel?.destroy(); d.close(); d.remove();
         analysis=null;[baseCanvas, maskCanvas, output, display].forEach(c => { c.width = 1; c.height = 1; });
