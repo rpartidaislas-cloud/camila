@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var REQUEST_TIMEOUTS = { status: 20000, connect: 40000, verify: 40000, provision: 50000 };
+  var REQUEST_TIMEOUTS = { status: 20000, connect: 40000, verify: 40000, provision: 50000, disconnect: 40000 };
   var CHANNEL_TIMEOUT_MS = 30000;
   var state = { loading: false, loaded: false, status: null, channels: [], disconnectingChannel: '', channelLoadGeneration: 0, channelLoadController: null, trainingLoaded: false, training: null, published: null, draftRevision: 0, publishedVersion: 0, validation: null, dirty: false, previewHistory: [] };
 
@@ -38,7 +38,7 @@
       '<div class="connections-grid"><section class="connections-card connections-card-main"><div class="connections-card-head"><div><span>CONEXIÓN</span><h2>Infraestructura de canales</h2></div><span class="connections-badge" data-lana-badge>Pendiente</span></div>' +
       '<p data-lana-detail>SMYL puede preparar automáticamente la mensajería segura de esta clínica.</p>' +
       '<div class="connections-provision" data-provision-wrap><button type="button" class="btn btn-primary" data-provision-lana>Activar canales para mi clínica</button><p>La activación crea una conexión técnica protegida. No tendrás que copiar claves ni contraseñas.</p></div>' +
-      '<div class="connections-actions connections-connected-actions" data-connected-actions hidden><button type="button" class="btn btn-secondary" data-verify-lana>Verificar conexión</button></div>' +
+      '<div class="connections-actions connections-connected-actions" data-connected-actions hidden><button type="button" class="btn btn-secondary" data-verify-lana>Verificar conexión</button><button type="button" class="btn btn-secondary connections-unlink-button" data-unlink-lana>Desvincular mensajería</button></div>' +
       '<details class="connections-manual" data-manual-link><summary>Configuración avanzada de migración</summary><form data-lana-form autocomplete="off"><label for="lana-link-code">Código de enlace</label><div class="connections-secret-row"><input id="lana-link-code" name="lana-link-code" type="password" inputmode="text" spellcheck="false" autocomplete="new-password" placeholder="Pega el código una sola vez"><button type="button" class="btn btn-secondary" data-toggle-secret aria-label="Mostrar código">Mostrar</button></div>' +
       '<p class="connections-help">Utiliza esta opción únicamente si soporte te proporcionó un código. Se cifra en el servidor.</p><div class="connections-actions"><button type="submit" class="btn btn-secondary" data-connect-lana>Usar código existente</button></div></form></details><p class="connections-form-message" data-lana-message role="status"></p>' +
       '<div class="connections-staff-note" data-staff-note hidden>Solo el dueño de la clínica puede cambiar esta conexión. El equipo sí puede consultar su estado.</div></section>' +
@@ -47,6 +47,7 @@
       '<div class="connections-channel-retry" data-channel-retry hidden role="status"><span>No pudimos consultar los canales.</span><button type="button" class="btn btn-secondary" data-retry-channels>Reintentar</button></div>' +
       '<p class="connections-boundary">Los tokens de Meta se procesan en una capa privada y nunca se muestran en el navegador ni se mezclan con el expediente clínico.</p></section></div>' +
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
+      '<dialog class="connections-disconnect-dialog" data-unlink-dialog aria-labelledby="connections-unlink-title"><form method="dialog"><span class="connections-status-label">DESVINCULAR MENSAJERÍA</span><h2 id="connections-unlink-title">¿Desvincular la mensajería de esta clínica?</h2><p>SMYL dejará de leer y enviar mensajes por WhatsApp, Messenger e Instagram para esta clínica, y pausará los recordatorios por WhatsApp.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" aria-hidden="true">L</span><div><strong>Enlace de mensajería</strong><small data-unlink-code></small></div></div><p class="connections-help"><strong>No se borra ninguna cuenta ni conversación, ni en tu plataforma de mensajería ni en Meta.</strong> Tus canales siguen funcionando allá. Podrás volver a vincular cuando quieras.</p><footer><button type="button" class="btn btn-secondary" data-unlink-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-unlink-confirm>Desvincular</button></footer></form></dialog>' +
       '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
       '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
@@ -76,7 +77,7 @@
 
   function setBusy(busy) {
     state.loading = busy;
-    document.querySelectorAll('[data-connect-lana],[data-provision-lana],[data-verify-lana]').forEach(function (button) { button.disabled = busy; });
+    document.querySelectorAll('[data-connect-lana],[data-provision-lana],[data-verify-lana],[data-unlink-lana]').forEach(function (button) { button.disabled = busy; });
   }
 
   function renderStatus(status) {
@@ -259,12 +260,18 @@
       statusText.textContent = connected
         ? ((item.display_name || 'Cuenta conectada') + ' · Canal activo')
         : (connectedToLana ? 'Listo para conectar' : 'Activa la mensajería para continuar');
-      var canDisconnect = connected && name !== 'whatsapp' && Boolean(state.status && state.status.can_manage);
-      button.textContent = state.disconnectingChannel === name ? 'Desconectando…' : canDisconnect ? 'Desconectar' : connected ? 'Conectado' : 'Conectar';
+      var owner = Boolean(state.status && state.status.can_manage);
+      // Messenger e Instagram se revocan canal por canal. WhatsApp no: su cuenta
+      // vive en el motor de mensajería y borrarla podría apagar un WhatsApp real,
+      // así que aquí sólo se puede desvincular el enlace completo de SMYL.
+      var canDisconnect = connected && name !== 'whatsapp' && owner;
+      var canUnlink = connected && name === 'whatsapp' && owner;
+      var rowAction = canDisconnect ? 'disconnect' : canUnlink ? 'unlink' : 'connect';
+      button.textContent = state.disconnectingChannel === name ? 'Desconectando…' : canDisconnect ? 'Desconectar' : canUnlink ? 'Desvincular' : connected ? 'Conectado' : 'Conectar';
       button.setAttribute('aria-label', button.textContent + ' ' + channelName(name));
-      button.dataset.channelAction = canDisconnect ? 'disconnect' : 'connect';
-      button.classList.toggle('connections-channel-disconnect', canDisconnect);
-      button.disabled = state.disconnectingChannel === name || (connected ? !canDisconnect : (!connectedToLana || !state.status.can_manage));
+      button.dataset.channelAction = rowAction;
+      button.classList.toggle('connections-channel-disconnect', canDisconnect || canUnlink);
+      button.disabled = state.disconnectingChannel === name || (connected ? !(canDisconnect || canUnlink) : (!connectedToLana || !owner));
     });
   }
 
@@ -374,7 +381,42 @@
       openDisconnectDialog(event.currentTarget.dataset.connectChannel);
       return;
     }
+    if (event.currentTarget.dataset.channelAction === 'unlink') {
+      openUnlinkDialog();
+      return;
+    }
     connectChannel(event);
+  }
+
+  function openUnlinkDialog() {
+    var dialog = document.querySelector('[data-unlink-dialog]');
+    var status = state.status;
+    if (!dialog || !status || !status.can_manage || !(status.connected || status.estado === 'requiere_atencion')) return;
+    dialog.querySelector('[data-unlink-code]').textContent = 'Código verificado · ' + (status.fingerprint || 'enlace protegido');
+    dialog.showModal();
+  }
+
+  async function confirmUnlink() {
+    var dialog = document.querySelector('[data-unlink-dialog]');
+    if (state.loading) return;
+    if (dialog && dialog.open) dialog.close();
+    setBusy(true); setMessage('Desvinculando la mensajería de forma segura…', '');
+    var done = 'La mensajería quedó desvinculada. No se borró ninguna cuenta ni conversación; puedes volver a vincularla cuando quieras.';
+    try {
+      renderStatus(await request('disconnect'));
+      setMessage(done, 'success');
+    } catch (error) {
+      if (error.isTimeout) {
+        var reconciled = await reconcileConnectionStatus();
+        if (reconciled && !reconciled.connected && reconciled.estado === 'pendiente') {
+          setMessage(done, 'success');
+          return;
+        }
+      }
+      setMessage(error.message || 'No se pudo desvincular la mensajería.', 'error');
+    } finally {
+      setBusy(false);
+    }
   }
 
   function contextStatus(text, tone) {
@@ -845,6 +887,9 @@
     page.querySelectorAll('[data-connect-channel]').forEach(function (button) { button.addEventListener('click', channelAction); });
     page.querySelector('[data-disconnect-cancel]').addEventListener('click', function () { page.querySelector('[data-disconnect-dialog]').close(); });
     page.querySelector('[data-disconnect-confirm]').addEventListener('click', confirmDisconnect);
+    page.querySelector('[data-unlink-lana]').addEventListener('click', openUnlinkDialog);
+    page.querySelector('[data-unlink-cancel]').addEventListener('click', function () { page.querySelector('[data-unlink-dialog]').close(); });
+    page.querySelector('[data-unlink-confirm]').addEventListener('click', confirmUnlink);
     var trainingForm = page.querySelector('[data-lana-training-form]');
     trainingForm.addEventListener('submit', saveTraining);
     trainingForm.addEventListener('input', markTrainingDirty);
