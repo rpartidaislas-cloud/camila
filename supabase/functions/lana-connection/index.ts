@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
-import { lanaContractHeaders } from "../_shared/lana-contract.mjs";
+import { decideLanaLink, lanaContractHeaders, readLanaContract } from "../_shared/lana-contract.mjs";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -13,7 +13,7 @@ const LANA_PROVISION_URL = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v
 const LANA_VERIFY_TIMEOUT_MS = 25000;
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
-type LanaVerificationFailure = "invalid_credentials" | "temporary";
+type LanaVerificationFailure = "invalid_credentials" | "temporary" | "wrong_product";
 
 class LanaVerificationError extends Error {
   readonly failure: LanaVerificationFailure;
@@ -38,7 +38,11 @@ type LanaConfig = {
   last_error?: string | null;
   lana_tenant_id?: string;
   provisioned_automatically?: boolean;
+  // true cuando LANA confirmó (contract.product) que este tenant es de producto SMYL; false = LANA aún no lo informa.
+  product_verified?: boolean;
 };
+
+type LanaIdentity = { product: string | null; lanaTenantId: string | null };
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -163,7 +167,7 @@ async function unlinkLanaConfig(
   if (audit.error) console.error("[lana-connection] auditoría de desvinculación:", audit.error.message);
 }
 
-async function verifyLanaApiKey(apiKey: string): Promise<void> {
+async function verifyLanaApiKey(apiKey: string): Promise<LanaIdentity> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), LANA_VERIFY_TIMEOUT_MS);
   try {
@@ -203,6 +207,7 @@ async function verifyLanaApiKey(apiKey: string): Promise<void> {
         502,
       );
     }
+    return readLanaContract(body);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new LanaVerificationError(
@@ -222,12 +227,32 @@ async function verifyLanaApiKey(apiKey: string): Promise<void> {
   }
 }
 
+// Una clínica de SMYL sólo puede usar un tenant de LANA de producto SMYL y que no esté vinculado a otra clínica.
+async function linkedElsewhere(lanaTenantId: string | null, tenantId: string): Promise<boolean> {
+  if (!lanaTenantId) return false;
+  const { data, error } = await admin.from("camila_tenants").select("id")
+    .filter("config->integraciones->lana->>lana_tenant_id", "eq", lanaTenantId)
+    .neq("id", tenantId).limit(1);
+  if (error) throw new Error("No se pudo comprobar el enlace con LANA.");
+  return !!data && data.length > 0;
+}
+
+async function assertLinkable(identity: LanaIdentity, tenantId: string, strict: boolean): Promise<{ verified: boolean }> {
+  const decision = decideLanaLink(identity, { strict });
+  if (!decision.ok) throw new LanaVerificationError(decision.message, "wrong_product", 409);
+  if (await linkedElsewhere(identity.lanaTenantId, tenantId)) {
+    throw new LanaVerificationError("Esa cuenta de LANA ya está vinculada a otra clínica de SMYL; cada clínica necesita la suya.", "wrong_product", 409);
+  }
+  return { verified: decision.verified };
+}
+
 function publicStatus(lana: LanaConfig | null, canManage: boolean): Record<string, unknown> {
   if (!lana) return { connected: false, estado: "pendiente", can_manage: canManage };
   return {
     connected: lana.estado === "conectada",
     estado: lana.estado,
     fingerprint: lana.fingerprint,
+    product_verified: lana.product_verified === true,
     connected_at: lana.connected_at,
     last_verified_at: lana.last_verified_at,
     last_error: lana.last_error || null,
@@ -355,7 +380,11 @@ Deno.serve(async (req: Request) => {
       if (lana) return json(409, { error: "La clínica ya tiene un enlace LANA. Verifícalo antes de crear otro." });
       const profile = await readTenantProfile(auth.tenantId);
       const provisioned = await provisionLana(auth.tenantId, profile.name, profile.email || auth.user.email || "");
-      await verifyLanaApiKey(provisioned.apiKey);
+      const identity = await verifyLanaApiKey(provisioned.apiKey);
+      if (identity.lanaTenantId && provisioned.lanaTenantId && identity.lanaTenantId !== provisioned.lanaTenantId.toLowerCase()) {
+        throw new LanaVerificationError("LANA devolvió un tenant distinto al dado de alta; no se vinculó.", "wrong_product", 409);
+      }
+      const linked = await assertLinkable({ product: identity.product, lanaTenantId: identity.lanaTenantId || provisioned.lanaTenantId?.toLowerCase() || null }, auth.tenantId, false);
       const encrypted = await encryptApiKey(provisioned.apiKey);
       const now = new Date().toISOString();
       const next: LanaConfig = {
@@ -369,6 +398,7 @@ Deno.serve(async (req: Request) => {
         last_error: null,
         lana_tenant_id: provisioned.lanaTenantId,
         provisioned_automatically: true,
+        product_verified: linked.verified,
       };
       await writeLanaConfig(auth.tenantId, profile.config, next);
       return json(200, { ok: true, created: true, ...publicStatus(next, canManage) });
@@ -390,7 +420,9 @@ Deno.serve(async (req: Request) => {
       if (apiKey.length < 24 || apiKey.length > 256 || /\s/.test(apiKey)) {
         return json(400, { error: "El código de enlace no tiene un formato válido." });
       }
-      await verifyLanaApiKey(apiKey);
+      const identity = await verifyLanaApiKey(apiKey);
+      // Código manual: LANA debe confirmar que es un tenant SMYL (strict). Una cuenta comercial nunca se mezcla con una clínica.
+      await assertLinkable(identity, auth.tenantId, true);
       const encrypted = await encryptApiKey(apiKey);
       const now = new Date().toISOString();
       const next: LanaConfig = {
@@ -402,6 +434,8 @@ Deno.serve(async (req: Request) => {
         connected_at: lana?.connected_at || now,
         last_verified_at: now,
         last_error: null,
+        lana_tenant_id: identity.lanaTenantId || undefined,
+        product_verified: true,
       };
       await writeLanaConfig(auth.tenantId, config, next);
       return json(200, { ok: true, ...publicStatus(next, canManage) });
@@ -411,11 +445,16 @@ Deno.serve(async (req: Request) => {
       if (!lana) return json(409, { error: "LANA todavía no está conectada." });
       let next = { ...lana };
       try {
-        await verifyLanaApiKey(await decryptApiKey(lana));
-        next = { ...lana, estado: "conectada", last_verified_at: new Date().toISOString(), last_error: null };
+        const identity = await verifyLanaApiKey(await decryptApiKey(lana));
+        const decision = decideLanaLink(identity, { strict: false });
+        if (!decision.ok) throw new LanaVerificationError(decision.message, "wrong_product", 409);
+        next = { ...lana, estado: "conectada", last_verified_at: new Date().toISOString(), last_error: null,
+          lana_tenant_id: lana.lana_tenant_id || identity.lanaTenantId || undefined, product_verified: decision.verified };
       } catch (error) {
         const verification = error instanceof LanaVerificationError ? error : null;
-        const invalidCredentials = verification?.failure === "invalid_credentials";
+        // Un tenant que no es de producto SMYL se desactiva para el chat (mismo trato que una credencial inválida):
+        // así una clínica enlazada por error a una cuenta comercial deja de leer su contexto.
+        const invalidCredentials = verification?.failure === "invalid_credentials" || verification?.failure === "wrong_product";
         next = {
           ...lana,
           // Un timeout, 429 o 5xx no revoca una credencial. Conservar el estado
@@ -428,7 +467,7 @@ Deno.serve(async (req: Request) => {
         await writeLanaConfig(auth.tenantId, config, next);
         return json(verification?.httpStatus || 500, {
           error: next.last_error,
-          error_code: invalidCredentials ? "invalid_credentials" : "verification_temporary",
+          error_code: verification?.failure === "wrong_product" ? "wrong_product" : invalidCredentials ? "invalid_credentials" : "verification_temporary",
           retryable: !invalidCredentials,
           ...publicStatus(next, canManage),
         });
@@ -443,7 +482,7 @@ Deno.serve(async (req: Request) => {
     if (error instanceof LanaVerificationError) {
       return json(error.httpStatus, {
         error: error.message,
-        error_code: error.failure === "invalid_credentials" ? "invalid_credentials" : "verification_temporary",
+        error_code: error.failure === "wrong_product" ? "wrong_product" : error.failure === "invalid_credentials" ? "invalid_credentials" : "verification_temporary",
         retryable: error.failure === "temporary",
       });
     }
