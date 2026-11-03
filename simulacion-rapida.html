@@ -275,11 +275,17 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .ba-generation-card strong{display:block;font-size:16px;margin-bottom:6px}
 .ba-generation-card span{display:block;font-size:12px;line-height:1.45;color:rgba(255,255,255,.7)}
 
-/* 3 foto thumbs */
-.res-photos{display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.07);justify-content:center}
-.res-thumb{width:100%;aspect-ratio:3/4;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,.1)}
+/* Selector de vistas del resultado: conserva altura y desplazamiento tactil en movil. */
+.res-photos{display:flex;flex:0 0 auto;align-items:flex-start;gap:8px;min-height:128px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.07);justify-content:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.res-view-card{appearance:none;display:flex;flex:0 0 88px;min-width:88px;min-height:104px;flex-direction:column;align-items:center;gap:4px;padding:4px;border:0;border-radius:11px;background:transparent;color:inherit;font-family:Inter,sans-serif;cursor:pointer;scroll-snap-align:start}
+.res-view-card[aria-pressed="true"]{background:rgba(112,214,195,.08)}
+.res-thumb{position:relative;flex:0 0 80px;width:80px;height:80px;aspect-ratio:auto;border-radius:9px;overflow:hidden;border:1.5px solid rgba(255,255,255,.14)}
+.res-view-card[aria-pressed="true"] .res-thumb{border-color:#70d6c3;box-shadow:0 0 0 2px rgba(112,214,195,.22)}
 .res-thumb img{width:100%;height:100%;object-fit:cover}
-.res-thumb-lbl{font-size:9px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;display:block}
+.res-thumb-check{position:absolute;right:5px;bottom:5px;display:none;width:20px;height:20px;border-radius:50%;background:#70d6c3;color:#062833;font-size:12px;font-weight:800;line-height:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.28)}
+.res-view-card[aria-pressed="true"] .res-thumb-check{display:block}
+.res-thumb-lbl{display:block;max-width:100%;margin-top:3px;color:rgba(255,255,255,.65);font-size:10px;font-weight:650;line-height:1.25;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-thumb-state{display:block;color:rgba(255,255,255,.45);font-size:8.5px;line-height:1.15;text-align:center}
 
 /* Content */
 .res-body{padding:16px}
@@ -720,7 +726,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script src="visual-simulation.js?v=31"></script>
 <script src="photo-reference.js?v=1"></script>
 <script src="case-views.js?v=3"></script>
-<link rel="stylesheet" href="smyl-studio.css?v=28">
+<link rel="stylesheet" href="smyl-studio.css?v=29">
 <script defer src="smyl-vita-samples.js?v=3"></script>
 <script defer src="smyl-shade-carousel.js?v=2"></script>
 <link rel="stylesheet" href="smyl-local-tone.css?v=3">
@@ -9369,16 +9375,17 @@ function renderResPhotos() {
     vistasMostradas[p.view] = true;
     return true;
   });
+  wrap.hidden = fotosUnicas.length === 0;
+  var viewsHead = document.getElementById('flow-result-views-head');
+  if (viewsHead) viewsHead.hidden = fotosUnicas.length === 0;
   wrap.innerHTML = fotosUnicas.map(function(p) {
     var activo = (S.baVistaActual || 'frontal') === p.view;
     var sinGenerar = !((S.results || {})[p.view]);
-    // flex:0 0 84px (ancho fijo) en vez de flex:1 -- con flex:1, entre menos
-    // fotos hubiera (a veces solo 1, la frontal), más se estiraba cada
-    // miniatura para llenar el espacio, hasta verse como una foto gigante
-    // en vez de una franja de miniaturas chicas.
-    return '<div style="flex:0 0 84px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
-      '<div class="res-thumb" style="' + (activo ? 'outline:2px solid var(--p);outline-offset:2px' : '') + '"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""></div>' +
-      '<span class="res-thumb-lbl" style="' + (activo ? 'color:var(--p);font-weight:700' : '') + '">' + (labels[p.view] || p.view) + (p.referenceOnly ? ' · referencia' : sinGenerar ? ' · sin generar' : '') + '</span></div>';
+    var label = labels[p.view] || p.view;
+    var estado = activo ? 'En pantalla' : p.referenceOnly ? 'Referencia' : sinGenerar ? 'Sin simulación' : 'Disponible';
+    return '<button type="button" class="res-view-card" aria-pressed="' + (activo ? 'true' : 'false') + '" aria-label="Mostrar ' + label + ', ' + estado + '" onclick="cambiarVistaBA(\'' + p.view + '\')">' +
+      '<span class="res-thumb"><img src="data:image/jpeg;base64,' + p.b64 + '" alt=""><span class="res-thumb-check" aria-hidden="true">✓</span></span>' +
+      '<span class="res-thumb-lbl">' + label + '</span><span class="res-thumb-state">' + estado + '</span></button>';
   }).join('');
 }
 

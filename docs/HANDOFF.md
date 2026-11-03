@@ -9606,3 +9606,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - El sistema visible y el enviado a la generación se identifica como `Ivoclar Bleach BL`. La representación digital continúa siendo orientativa y debe confirmarse con una guía física bajo iluminación clínica.
 - Los códigos históricos `0M*` y `xM*` siguen siendo legibles para abrir resultados anteriores, pero ya no aparecen como opciones de una simulación nueva. Al reabrir una edición antigua se conserva el resultado previo y se pide elegir uno de los cuatro BL.
 - Web y `mobile/www` quedan sincronizados con `smyl-studio.js?v=28`, `smyl-vita-samples.js?v=3`, `visual-simulation.js?v=31` y caché PWA `bleach-bl-v10`. No requiere migración de base de datos.
+
+## 2026-11-02 — Codex — Resultado móvil v11: selector de fotografías siempre visible
+
+- Se corrigió la tira `Otras vistas` del resultado, que Safari móvil podía comprimir hasta mostrar sólo una línea. El contenedor ya no se reduce dentro de la pantalla de resultado y conserva una altura táctil mínima.
+- Cada vista ahora es un botón accesible con miniatura de tamaño explícito, nombre, estado (`En pantalla`, `Disponible`, `Referencia` o `Sin simulación`) y marca visual en la selección activa.
+- La tira admite desplazamiento horizontal y ajuste por pasos sin crear desbordamiento vertical; al tocar una tarjeta continúa reutilizando el comparador canónico y `cambiarVistaBA()`.
+- La cabecera y la tira se ocultan únicamente cuando no existe ninguna fotografía. No se modificaron generación, resultados, consumo, persistencia ni backend.
+- Web y `mobile/www` quedan sincronizados con `smyl-studio.css?v=29` y caché PWA `result-views-v11`.
+- Se añadió regresión estática y cobertura del flujo de navegador para altura, tamaño de miniaturas, carga de imagen, selección y `aria-pressed`. Las 13 pruebas ejecutables del flujo relacionado quedaron aprobadas.

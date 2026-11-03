@@ -493,7 +493,7 @@
     var baWrap=byId('ba-wrap');baWrap.before(resultIntro);byId('flow-result-adjust').onclick=openPhotos;
     function setResultMode(mode){var position=mode==='original'?100:mode==='proposal'?0:50,over=byId('ba-over'),line=byId('ba-line');if(over)over.style.clipPath='inset(0 0 0 '+position+'%)';if(line)line.style.left=position+'%';document.querySelectorAll('[data-result-mode]').forEach(function(control){control.setAttribute('aria-selected',String(control.dataset.resultMode===mode));});}
     resultIntro.querySelectorAll('[data-result-mode]').forEach(function(control){control.onclick=function(){setResultMode(control.dataset.resultMode);};});
-    var viewsHead=element('div','flow-result-section-head');viewsHead.innerHTML='<div><span>OTRAS VISTAS</span><strong>Cambia de fotografía sin perder tu comparación</strong></div>';byId('res-photos').before(viewsHead);
+    var viewsHead=element('div','flow-result-section-head');viewsHead.id='flow-result-views-head';viewsHead.innerHTML='<div><span>OTRAS VISTAS</span><strong>Cambia de fotografía sin perder tu comparación</strong></div>';byId('res-photos').before(viewsHead);
     var toneTool=button('Cambiar tono VITA',openToneSelection,'flow-secondary');toneTool.id='flow-result-tone-tool';toolBody.append(toneTool);
     var mobileDock=element('nav','flow-result-dock');mobileDock.setAttribute('aria-label','Acciones del resultado');var dockAdjust=button('Ajustar diseño',openPhotos,'flow-secondary'),dockPrimary=button('Guardar resultado',runResultPrimary,'flow-primary');dockPrimary.id='flow-result-dock-primary';mobileDock.append(dockAdjust,dockPrimary);byId('res-photos').after(mobileDock);
     var resultPrimary=byId('flow-result-save'),resultStatus=byId('flow-result-status'),resultActionBusy=false;
