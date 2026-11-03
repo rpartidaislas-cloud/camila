@@ -93,6 +93,12 @@ test('tras timeout se reconcilia el estado real en vez de asumir un fallo', () =
   assert.match(fn, /error\.isTimeout[\s\S]*?reconcileConnectionStatus\(\)[\s\S]*?!reconciled\.connected && reconciled\.estado === 'pendiente'/);
 });
 
+test('las ventanas de desconexión se centran aunque el reseteo global quite margin:auto', () => {
+  assert.match(css, /\.connections-disconnect-dialog\{position:fixed;inset:0;margin:auto;height:fit-content;/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.connections-disconnect-dialog\[open\]\{animation:none\}\}/);
+  assert.match(read('app.html'), /\*\{box-sizing:border-box;margin:0;padding:0\}/, 'si el reseteo cambia, revisar el centrado');
+});
+
 test('web y móvil quedan sincronizados', () => {
   for (const file of ['smyl-connections.js', 'smyl-connections.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

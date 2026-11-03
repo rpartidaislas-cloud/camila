@@ -15,7 +15,7 @@ const edge = read('../supabase/functions/lana-connection/index.ts');
 const sw = read('../sw.js');
 
 test('panel exposes the SMYL channel center and advances cached assets', () => {
-  assert.match(app, /smyl-connections\.css\?v=10/);
+  assert.match(app, /smyl-connections\.css\?v=11/);
   assert.match(app, /smyl-connections\.js\?v=15/);
   assert.match(app, /smyl-panel\.css\?v=5/);
   assert.match(app, /smyl-panel\.js\?v=6/);
@@ -26,11 +26,11 @@ test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(styles, /connections-status-card/);
   assert.match(sw, /smyl-v263-lana-connection-recovery/);
   assert.match(sw, /smyl-connections\.js\?v=15/);
-  assert.match(sw, /smyl-connections\.css\?v=10/);
+  assert.match(sw, /smyl-connections\.css\?v=11/);
   assert.equal(mobileConnections, connections);
   assert.equal(mobileStyles, styles);
   assert.match(mobileApp, /smyl-connections\.js\?v=15/);
-  assert.match(mobileApp, /smyl-connections\.css\?v=10/);
+  assert.match(mobileApp, /smyl-connections\.css\?v=11/);
   assert.equal(mobileSw, sw);
 });
 
