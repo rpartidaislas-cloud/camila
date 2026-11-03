@@ -9674,3 +9674,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - La cabecera y la tira se ocultan únicamente cuando no existe ninguna fotografía. No se modificaron generación, resultados, consumo, persistencia ni backend.
 - Web y `mobile/www` quedan sincronizados con `smyl-studio.css?v=29` y caché PWA `result-views-v11`.
 - Se añadió regresión estática y cobertura del flujo de navegador para altura, tamaño de miniaturas, carga de imagen, selección y `aria-pressed`. Las 13 pruebas ejecutables del flujo relacionado quedaron aprobadas.
+
+## 2026-11-03 — Codex — Simulador v12: contactos cerrados y dictado de indicaciones
+
+- El contrato activo de generación exige cerrar todos los diastemas y espacios negros interproximales visibles dentro del tramo tratado. Conserva una línea de contacto fina y pequeñas troneras incisales para que cada pieza siga siendo independiente; prohíbe fusionar coronas, pintar encía, ensanchar la arcada o inventar dientes.
+- Las instrucciones opcionales quedan subordinadas a esta regla anatómica: no pueden pedir conservar o crear diastemas, triángulos negros o espacios abiertos, ni alterar tejido, identidad, número de piezas o arcadas no seleccionadas.
+- `Indicaciones adicionales` permite escribir, dictar en español y editar la transcripción antes de generar. Incluye estados accesibles, contador, limpiar y accesos rápidos para conservar tamaño, acabado natural y contactos cerrados.
+- El dictado usa las capacidades de reconocimiento del navegador. SMYL no guarda audio: sólo conserva el texto que la persona decide usar. Si el navegador no ofrece dictado, el campo escrito sigue disponible sin bloquear el flujo.
+- Web y `mobile/www` quedan sincronizados con `visual-simulation.js?v=32`, `smyl-studio.js?v=29`, `smyl-studio.css?v=30` y caché PWA `voice-notes-v12`. No requiere migraciones ni cambios de backend.
+- Pruebas ejecutadas: contrato de cierre, dictado editable, caché PWA, flujo guiado, guías VITA/Bleaches, selector móvil de vistas y paridad con la aplicación móvil (16/16).

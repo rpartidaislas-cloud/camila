@@ -26,7 +26,7 @@ test('every result view is a labelled, touch-friendly selectable button', () => 
 });
 
 test('the visible selector update is cache-busted and mirrored by the service worker', () => {
-  assert.match(html, /smyl-studio\.css\?v=29/);
+  assert.match(html, /smyl-studio\.css\?v=30/);
   assert.match(sw, /result-views-v11/);
-  assert.match(sw, /smyl-studio\.css\?v=29/);
+  assert.match(sw, /smyl-studio\.css\?v=30/);
 });

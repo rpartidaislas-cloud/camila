@@ -1,7 +1,7 @@
 /* Two-moment workspace. Existing consent, persistence and generation remain authoritative. */
 (function () {
   'use strict';
-  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousels={classical:null,bleached:null}, shadeRenderedGuide=null, returnSettings=null, guidedStage=0;
+  var busy=false, selected='frontal', generating=false, addedView=null, pickerFocus=null, shadeCarousels={classical:null,bleached:null}, shadeRenderedGuide=null, returnSettings=null, guidedStage=0, instructionRecognition=null, instructionListening=false, instructionBaseText='', instructionTranscript='';
   var patientToneChoices=[
     {code:'current',label:'Mi tono actual',detail:'Sin cambiar el color'},
     {code:'A2',label:'Natural',detail:'Cambio discreto'},
@@ -22,6 +22,65 @@
   var byId=function(id){return document.getElementById(id);};
   function element(tag,cls,text){var el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;}
   function button(text,action,cls){var el=element('button',cls||'flow-secondary',text);el.type='button';el.onclick=action;return el;}
+  function instructionText(value,persist){
+    var note=String(value||'').replace(/\s+/g,' ').trimStart().slice(0,500),field=byId('flow-instructions'),legacy=document.querySelector('#smile-design-options textarea');
+    if(field&&field.value!==note)field.value=note;
+    S.smileDesign=SmylSmileModes.normalize(Object.assign({},S.smileDesign,{instructions:note}));
+    if(legacy&&legacy.value!==note)legacy.value=note;
+    if(byId('flow-instruction-count'))byId('flow-instruction-count').textContent=note.length+'/500';
+    if(byId('flow-instruction-clear'))byId('flow-instruction-clear').hidden=!note.trim();
+    if(persist!==false)saveProgress('s-vita');
+    return note;
+  }
+  function instructionStatus(message,state){
+    var status=byId('flow-instruction-voice-status');if(!status)return;
+    status.textContent=message||'';status.dataset.state=state||'';
+  }
+  function instructionListeningState(active){
+    instructionListening=!!active;
+    var control=byId('flow-instruction-mic');if(!control)return;
+    control.setAttribute('aria-pressed',String(instructionListening));
+    control.querySelector('.flow-note-voice-label').textContent=instructionListening?'Detener y usar':'Grabar voz';
+    control.querySelector('.flow-note-voice-icon').textContent=instructionListening?'■':'●';
+  }
+  function instructionVoiceConstructor(){return window.SpeechRecognition||window.webkitSpeechRecognition||null;}
+  function stopInstructionVoice(){
+    if(!instructionListening||!instructionRecognition)return;
+    try{instructionRecognition.stop();}catch(_){instructionListeningState(false);}
+  }
+  function toggleInstructionVoice(){
+    if(busy||generating)return;
+    if(instructionListening){stopInstructionVoice();return;}
+    var Recognition=instructionVoiceConstructor();
+    if(!Recognition){instructionStatus('El dictado no está disponible en este navegador. Puedes escribir la indicación.','attention');return;}
+    instructionRecognition=new Recognition();instructionRecognition.lang='es-MX';instructionRecognition.continuous=false;instructionRecognition.interimResults=true;instructionRecognition.maxAlternatives=1;
+    instructionBaseText=(byId('flow-instructions')?.value||'').trim();instructionTranscript='';
+    instructionRecognition.onstart=function(){instructionListeningState(true);instructionStatus('Escuchando… habla con naturalidad. Podrás corregir el texto antes de generar.','recording');};
+    instructionRecognition.onresult=function(event){
+      var parts=[];for(var i=0;i<event.results.length;i++){var phrase=event.results[i]?.[0]?.transcript;if(phrase)parts.push(phrase.trim());}
+      instructionTranscript=parts.join(' ').replace(/\s+/g,' ').trim();
+      var separator=instructionBaseText&&instructionTranscript&&!/[.!?]$/.test(instructionBaseText)?'. ':instructionBaseText&&instructionTranscript?' ':'';
+      instructionText(instructionBaseText+separator+instructionTranscript,false);
+    };
+    instructionRecognition.onerror=function(event){
+      var copy=event.error==='not-allowed'||event.error==='service-not-allowed'?'Activa el permiso del micrófono para dictar. También puedes escribir la indicación.':event.error==='no-speech'?'No escuché una instrucción. Intenta de nuevo o escríbela.':'No pude convertir la voz. Tu texto se conserva.';
+      instructionStatus(copy,'attention');
+    };
+    instructionRecognition.onend=function(){
+      instructionListeningState(false);instructionText(byId('flow-instructions')?.value||'',true);
+      if(instructionTranscript)instructionStatus('Dictado añadido. Revísalo o edítalo antes de generar.','success');
+      else if(byId('flow-instruction-voice-status')?.dataset.state==='recording')instructionStatus('No se añadió texto. Puedes volver a grabar o escribirlo.','attention');
+      instructionRecognition=null;
+    };
+    try{instructionRecognition.start();}catch(_){instructionRecognition=null;instructionListeningState(false);instructionStatus('No pude iniciar el micrófono. Intenta de nuevo o escribe la indicación.','attention');}
+  }
+  function addInstructionPreset(text){
+    if(busy||generating)return;
+    var current=(byId('flow-instructions')?.value||'').trim(),exists=current.toLocaleLowerCase('es-MX').includes(text.toLocaleLowerCase('es-MX'));
+    instructionText(exists?current:[current,text].filter(Boolean).join(current&&!/[.!?]$/.test(current)?'. ':current?' ':'') ,true);
+    instructionStatus(exists?'Esta indicación ya estaba incluida.':'Indicación añadida. Puedes editarla antes de generar.',exists?'':'success');
+    byId('flow-instructions')?.focus();
+  }
   function realDentalArt(kind){
     var asset='icons/ui/dental-miniature-v1.webp',prefix='flow-real-'+kind;
     // Trace only the contact seam for emphasis; all crowns retain their raster geometry.
@@ -325,7 +384,7 @@
     ensureShadeState();
     if(shadeRenderedGuide!=='dual')renderShadeGuides();
     var design=SmylSmileModes.normalize(S.smileDesign);
-    byId('flow-instructions').value=design.instructions;byId('flow-instruction-count').textContent=design.instructions.length+'/500';
+    instructionText(design.instructions,false);
     byId('flow-tone-group').hidden=design.mode==='alignment';byId('flow-original-tone').hidden=design.mode!=='alignment';
     var tone=S.vitaMode==='current'?'current':S.vitaTone||(typeof tonoPredeterminadoGuia==='function'?tonoPredeterminadoGuia(currentShadeGuide()):(currentShadeGuide()==='bleached'?'BL2':'A2'));
     byId('flow-tone-selected').innerHTML='<span>TONO ELEGIDO</span><strong>'+selectedToneLabel(tone)+'</strong>';
@@ -369,7 +428,8 @@
     byId('flow-reference-add').hidden=!!(ref?.role==='original-anatomy');
     var reviewPhoto=byId('flow-review-photo');if(reviewPhoto){reviewPhoto.hidden=!primary;if(primary)reviewPhoto.src=source(primary);}
     document.querySelectorAll('#flow-photo-workspace button').forEach(function(el){el.disabled=busy||generating;});syncPreferences();
-    document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
+    document.querySelectorAll('#quick-objective-options button,#quick-arch-options button,#flow-instructions,#flow-instruction-mic,#flow-instruction-clear,.flow-note-chip,.flow-shade-arrow').forEach(function(el){el.disabled=busy||generating;});
+    if((busy||generating)&&instructionListening)stopInstructionVoice();
     renderProgressive();
   }
   async function generate(){if(busy||generating||!SmylPhotoBatch.targets().length)return;generating=true;render();try{await confirmarConfiguracionRapida();}catch(error){mostrarAvisoAplicacion('No se completó la selección',error.message+' Las fotos y las simulaciones aceptadas se conservan.');}finally{if(returnSettings&&S.results[returnSettings.view]!==returnSettings.result)returnSettings=null;generating=false;render();}}
@@ -437,7 +497,7 @@
     window.addEventListener('smyl:shadeguidechange',function(){renderShadeGuides();syncPreferences();});
     renderShadeGuides();
     var originalTone=element('p','flow-muted','Se conserva el color original de los dientes.');originalTone.id='flow-original-tone';tones.after(originalTone);
-    var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-count"></textarea><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
+    var notes=element('details','flow-notes');notes.innerHTML='<summary>Añadir una indicación <span>Opcional</span></summary><div class="flow-note-heading"><div><strong>¿Quieres personalizar el resultado?</strong><span>Escribe o graba una indicación. Siempre podrás revisarla antes de generar.</span></div></div><label for="flow-instructions">Indicaciones adicionales</label><textarea id="flow-instructions" rows="3" maxlength="500" placeholder="Por ejemplo: conservar el tamaño de los dientes y un acabado natural." aria-describedby="flow-instruction-help flow-instruction-voice-status flow-instruction-count"></textarea><div class="flow-note-actions"><button id="flow-instruction-mic" class="flow-note-voice" type="button" aria-pressed="false"><span class="flow-note-voice-icon" aria-hidden="true">●</span><span class="flow-note-voice-label">Grabar voz</span></button><button id="flow-instruction-clear" class="flow-note-clear" type="button" hidden>Limpiar</button></div><p id="flow-instruction-voice-status" class="flow-note-status" role="status" aria-live="polite">La voz se convierte en texto editable. SMYL conserva únicamente el texto que decidas usar.</p><div class="flow-note-chips" aria-label="Indicaciones sugeridas"><button type="button" class="flow-note-chip" data-flow-instruction="Conservar el tamaño individual de los dientes.">Conservar tamaño</button><button type="button" class="flow-note-chip" data-flow-instruction="Mantener un acabado natural y preservar la encía.">Acabado natural</button><button type="button" class="flow-note-chip" data-flow-instruction="Cerrar todos los espacios visibles sin fusionar las piezas.">Contactos cerrados</button></div><div class="flow-note-help"><small id="flow-instruction-help">Complementan tus selecciones; no cambian la arcada ni sustituyen la valoración clínica.</small><small id="flow-instruction-count">0/500</small></div>';
     var review=element('section','flow-review');review.id='flow-stage-review';review.innerHTML='<div class="flow-review-ready"><img id="flow-review-photo" alt="Fotografía que se utilizará" hidden><span aria-hidden="true">✓</span><div><strong>Todo listo para comparar</strong><small>Revisa la propuesta. Podrás volver y cambiar cualquier elección.</small></div></div><div class="flow-review-list"><div><span>Cambio</span><strong id="flow-review-objective"></strong><button type="button" data-edit-stage="1">Cambiar</button></div><div><span>Zona</span><strong id="flow-review-arch"></strong><button type="button" data-edit-stage="2">Cambiar</button></div><div id="flow-review-tone-row"><span>Claridad</span><strong id="flow-review-tone"></strong><button type="button" data-edit-stage="3">Cambiar</button></div></div><p class="flow-review-safety"><span aria-hidden="true">i</span> Es una comparación visual orientativa, no un diagnóstico ni una predicción clínica.</p>';
     review.querySelectorAll('[data-edit-stage]').forEach(function(control){control.onclick=function(){advanceGuided(Number(control.dataset.editStage),true);};});
     var gen=config.querySelector('.quick-generate');gen.before(review);review.append(notes,gen);gen.id='flow-generate';gen.textContent='Generar mi propuesta';gen.removeAttribute('onclick');gen.onclick=generate;
@@ -468,7 +528,10 @@
     var pickerActions=element('div','flow-picker-actions');pickerActions.append(button('Tomar foto',function(){pick(true);},'flow-primary'),button('Subir foto',function(){pick(false);}));footer.append(pickerActions,element('small','','Cargar fotos no consume simulaciones.'));picker.append(pickerBody,footer);
     picker.addEventListener('close',function(){if(pickerFocus?.isConnected)pickerFocus.focus({preventScroll:true});});
     var input=element('input');input.type='file';input.id='flow-upload';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;input.onchange=upload;shell.append(input);screen.append(shell);document.body.append(screen,picker);
-    byId('flow-instructions').addEventListener('input',function(){var note=this.value.slice(0,500);S.smileDesign=SmylSmileModes.normalize(Object.assign({},S.smileDesign,{instructions:note}));document.querySelector('#smile-design-options textarea').value=note;byId('flow-instruction-count').textContent=note.length+'/500';saveProgress('s-vita');});
+    byId('flow-instructions').addEventListener('input',function(){instructionText(this.value,true);});
+    byId('flow-instruction-mic').addEventListener('click',toggleInstructionVoice);
+    byId('flow-instruction-clear').addEventListener('click',function(){stopInstructionVoice();instructionText('',true);instructionStatus('Indicación eliminada. Puedes escribir o grabar otra.','');byId('flow-instructions').focus();});
+    document.querySelectorAll('.flow-note-chip').forEach(function(control){control.addEventListener('click',function(){addInstructionPreset(control.dataset.flowInstruction||'');});});
     var previousSync=window.sincronizarConfiguracionRapida;window.sincronizarConfiguracionRapida=function(){previousSync();syncPreferences();};
     var previousOpen=window.abrirConfiguracionRapida;window.abrirConfiguracionRapida=function(){
       var photo=existingResultPhoto();
