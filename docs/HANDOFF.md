@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-04 — Codex: cabecera operativa simplificada
+
+**Se retiraron de la barra superior los accesos visibles “Ir a… / Ctrl K” y
+“MILA”, según la revisión visual del usuario.**
+
+- El buscador global continúa disponible mediante Ctrl/Cmd+K y para
+  accesibilidad, pero ya no ocupa espacio permanente en la cabecera.
+- MILA conserva sus módulos y rutas; sólo desaparece el acceso redundante de
+  la barra superior.
+- Notificaciones, estado de la clínica y la acción principal permanecen sin
+  cambios.
+- Web y PWA avanzan a menú global JS v3/CSS v2 y caché
+  `smyl-v263-topbar-cleanup`.
+
+Codex no modificó backend, Supabase, permisos, IA ni lógica clínica.
+
 ## 2026-10-23 — Codex: paquete ejecutable para backend de consumibles, etapa 8
 
 **Se auditó el punto de partida y se dejó una especificación de implementación
