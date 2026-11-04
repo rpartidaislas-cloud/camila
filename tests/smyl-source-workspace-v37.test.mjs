@@ -48,7 +48,7 @@ test('la nueva superficie amplía jerarquía y respuesta móvil', () => {
 test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=18/);
   assert.match(app, /smyl-case-workspace\.css\?v=15/);
-  assert.match(app, /smyl-case-workspace\.js\?v=18/);
+  assert.match(app, /smyl-case-workspace\.js\?v=19/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

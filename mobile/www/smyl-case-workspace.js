@@ -213,7 +213,7 @@
  }
  function adopt(ctx){
   const screen=document.getElementById('p-paciente-detalle'),gallery=screen.querySelector('.pc-gallery'),dental=screen.querySelector('.dr-record');
-  if(gallery&&!ctx.evidencePart.body.contains(gallery)){gallery.classList.add('cw-simulation-source');gallery.setAttribute('aria-hidden','true');ctx.evidencePart.body.insertBefore(gallery,ctx.photoHint);}
+  if(gallery&&!gallery.closest('[data-p360-panel="simulations"]')&&!ctx.evidencePart.body.contains(gallery)){gallery.classList.add('cw-simulation-source');gallery.setAttribute('aria-hidden','true');ctx.evidencePart.body.insertBefore(gallery,ctx.photoHint);}
   if(dental&&!ctx.reviewPart.body.contains(dental))ctx.reviewPart.body.insertBefore(dental,ctx.reviewHelp);
   organizeReview(ctx,dental);
  }
@@ -225,7 +225,7 @@
  }
  function refresh(){
   const ctx=active;if(!valid(ctx))return;
-  const gallery=ctx.root.querySelector('.pc-gallery');
+  const gallery=ctx.root.querySelector('.pc-gallery')||document.querySelector('#p-paciente-detalle [data-p360-panel="simulations"] .pc-gallery');
   if(gallery?.smylCaseEntries!==ctx.entries){
    ctx.entries=gallery?.smylCaseEntries||[];ctx.selected=null;
   }
