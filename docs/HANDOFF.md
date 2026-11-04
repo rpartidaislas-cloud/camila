@@ -1,5 +1,41 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-04 — Codex: Historia clínica enfocada por decisiones
+
+**Objetivo:** reducir la saturación visual de la edición de Historia clínica y
+evitar que tamaños, avisos y tarjetas compitan entre sí.
+
+**Qué cambió (frontend):**
+- La edición ahora muestra una sola de cinco secciones: `Atención`, `Salud`,
+  `Dental`, `Hábitos` y `Complementaria`. En escritorio usa un índice lateral;
+  en tableta y móvil, una tira horizontal desplazable.
+- Cada antecedente clínico usa un estado explícito: `No`, `Sí`, `No se sabe` o
+  `Pendiente`. Los detalles sólo aparecen con `Sí`. Si ya existen datos, la UI
+  no permite ocultarlos con un estado contradictorio: conserva `Sí` y explica
+  que primero deben retirarse los registros.
+- Historias anteriores siguen siendo compatibles: un dato existente se
+  interpreta como `Sí`; una clave ausente sin datos queda `Pendiente`, nunca se
+  infiere `No`. Las nuevas claves `*_status` viven dentro del documento JSONB.
+- La lectura distingue visualmente alertas confirmadas, información pendiente
+  y estado claro. Se simplificaron el encabezado del paciente (`Protegido`) y
+  la pestaña visible `Tratamiento` pasó a `Plan` sin cambiar su ruta interna.
+- Tipografía y acciones se redujeron a una jerarquía corta. El flujo usa
+  `Continuar` y termina en `Guardar historia`; el guardado sigue siendo uno
+  solo, atómico y versionado.
+
+**Seguridad y datos:** no hubo migraciones, cambios de RLS, RPC, permisos ni
+backend. Se conserva `smyl_save_patient_history` y todos los campos legacy.
+
+**Distribución:** Patient 360 JS v19 / CSS v13, caché
+`history-focused-v71`; web y `mobile/www` sincronizados.
+
+**QA:** contratos específicos 15/15 y Playwright aprobado en 1280, 820, 390 y
+320 px: un solo panel/primario visible, sin desbordamiento, navegación conserva
+valores, protección contra estados contradictorios y controles móviles de
+44 px. Suite completa: **1,031 aprobadas**, 18 omitidas y los mismos 2 fallos
+previos de `main`: `tests/lana-quick.test.mjs` (frase VITA) y
+`tests/smyl-ui-v3.test.mjs` (presupuesto histórico de microtexto 888→891).
+
 ## 2026-11-04 — Claude: al abrir un paciente la página se congelaba (bucle entre galería y espacio de trabajo)
 
 **Síntoma:** en Pacientes, al hacer clic en una fila "no pasa nada" y la pestaña queda colgada.

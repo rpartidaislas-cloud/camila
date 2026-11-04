@@ -12,23 +12,53 @@ const app = read('app.html');
 const mobileApp = read('mobile/www/app.html');
 const sw = read('sw.js');
 
-test('Historia clínica prioriza alertas, estado y lectura progresiva', () => {
+test('Historia clínica distingue alertas confirmadas, pendientes y estado claro', () => {
   assert.match(patient, /p360-history-workspace p360-history-read/);
-  assert.match(patient, /ALERTAS PARA LA ATENCIÓN/);
+  assert.match(patient, /safetyState=safetyItems\.length\?'alert':safetyPending\?'pending':'clear'/);
+  assert.match(patient, /Alertas por confirmar/);
+  assert.match(patient, /Sin alertas conocidas/);
   assert.match(patient, /Última actualización/);
-  assert.match(patient, /Información registrada/);
+  assert.match(patient, /Información revisada/);
+  assert.match(patient, /No, confirmado/);
+  assert.match(patient, /historyStatusReviewed/);
   assert.match(patient, /historyGroup\('Salud médica'/);
   assert.match(patient, /historyGroup\('Antecedentes dentales'/);
   assert.match(patient, /historyGroup\('Hábitos y factores de riesgo'/);
   assert.match(patient, /historyGroup\('Información complementaria'/);
 });
 
-test('La edición divide la historia en pasos y registros clínicos individuales', () => {
-  assert.match(patient, /Revisa una sección a la vez/);
-  assert.match(patient, /p360-history-safety-editor/);
-  assert.match(patient, /historyEditSection\('02','Salud médica'/);
-  assert.match(patient, /historyEditSection\('05','Información complementaria'/);
-  assert.match(patient, /Guardar historia/);
+test('La edición enfoca una de cinco secciones y conserva navegación accesible', () => {
+  assert.match(patient, /aria-label="Secciones de la historia clínica"/);
+  for (const step of ['attention','medical','dental','habits','extra']) {
+    assert.match(patient, new RegExp(`data-history-step="${step}"`));
+    assert.match(patient, new RegExp(`historyEditPanel\\('${step}'`));
+  }
+  assert.match(patient, /Sección 1 de 5/);
+  assert.match(patient, /setAttribute\('aria-current','step'\)/);
+  assert.match(patient, /panel\.hidden=panelIndex!==index/);
+  assert.match(patient, /data-history-prev/);
+  assert.match(patient, />Continuar<\/button>/);
+  assert.match(patient, />Guardar historia<\/button>/);
+  assert.match(patient, /bindHistoryEditor\(form\)/);
+  assert.match(patient, /heading\.focus\(\{preventScroll:true\}\)/);
+  assert.match(patient, /prefers-reduced-motion: reduce/);
+});
+
+test('Los estados clínicos son explícitos y los detalles aparecen sólo al confirmar Sí', () => {
+  assert.match(patient, /\['no','No'\],\['yes','Sí'\],\['unknown','No se sabe'\],\['pending','Pendiente'\]/);
+  for (const status of ['alerts','allergies','conditions','medications','surgeries','dental','habits']) {
+    assert.match(patient, new RegExp(`historyStatusEditor\\('${status}'`));
+    assert.match(patient, new RegExp(`${status}_status`));
+  }
+  assert.match(patient, /data-history-status-details/);
+  assert.match(patient, /details\.hidden=value!=='yes'/);
+  assert.match(patient, /Este apartado conserva información/);
+  assert.match(patient, /historyFormStatus\(f,name,hasData\)/);
+  assert.match(patient, /validateHistoryEditor\(form\)/);
+  assert.match(patient, /Agrega el detalle antes de guardar este apartado/);
+});
+
+test('La edición preserva campos y registros clínicos existentes', () => {
   for (const field of ['alerts','dental_history','habits','emergency_contact','notes']) {
     assert.match(patient, new RegExp(`(?:historyField|historyTextarea)\\([^\\n]*'${field}'`));
   }
@@ -47,16 +77,19 @@ test('Cada registro médico conserva detalle, estado y fecha sin perder compatib
   assert.match(patient, /type=type==='month'\?'month':'date'/);
   assert.match(patient, /historyDateMax\('month'\)/);
   assert.match(patient, /historyDateMax\('date'\)/);
-  assert.match(patient, /Fechas clínicas sin adivinar/);
-  assert.match(css, /\.p360-history-guidance\{/);
+  assert.match(patient, /Si no recuerda la fecha, déjala vacía/);
   assert.match(css, /\.p360-history-repeater\{/);
   assert.match(css, /\.p360-history-repeat-grid\{/);
 });
 
-test('La política v3.2 gobierna controles, móvil y movimiento reducido', () => {
-  assert.match(css, /Historia clínica v3\.2/);
-  assert.match(css, /\.p360-history-header>\.btn\{[^}]*min-height:42px/);
+test('La política v3.3 gobierna jerarquía, controles, móvil y movimiento reducido', () => {
+  assert.match(css, /Historia clínica v3\.3/);
+  assert.match(css, /\.p360-history-editor-shell\{[^}]*grid-template-columns:220px minmax\(0,1fr\)/);
+  assert.match(css, /\.p360-history-stepper button\[aria-current="step"\]/);
+  assert.match(css, /\.p360-history-status-options input:checked\+span/);
+  assert.match(css, /\.p360-history-panel>header h3:focus-visible/);
   assert.match(css, /\.p360-history-field input,[\s\S]*?min-height:48px/);
+  assert.match(css, /@media\(max-width:900px\)/);
   assert.match(css, /@media\(max-width:760px\)/);
   assert.match(css, /\.p360-history-actions button\{width:100%;min-height:44px\}/);
   assert.match(css, /prefers-reduced-motion:reduce/);
@@ -66,16 +99,16 @@ test('Web, móvil y PWA publican la misma versión de Historia clínica', () => 
   assert.equal(app, mobileApp);
   assert.equal(read('smyl-patient-360.js'), read('mobile/www/smyl-patient-360.js'));
   assert.equal(css, read('mobile/www/smyl-patient-360.css'));
-  assert.match(app, /smyl-patient-360\.css\?v=12/);
-  assert.match(sw, /smyl-patient-360\.css\?v=12/);
-  assert.match(app, /smyl-patient-360\.js\?v=18/);
-  assert.match(sw, /smyl-patient-360\.js\?v=18/);
-  assert.match(sw, /history-structured-v69/);
+  assert.match(app, /smyl-patient-360\.css\?v=13/);
+  assert.match(sw, /smyl-patient-360\.css\?v=13/);
+  assert.match(app, /smyl-patient-360\.js\?v=19/);
+  assert.match(sw, /smyl-patient-360\.js\?v=19/);
+  assert.match(sw, /history-focused-v71/);
 });
 
 test('La fixture visual usa sólo información sintética', () => {
   const fixture = read('tests/fixtures/smyl-history-v32-preview.html');
-  assert.match(fixture, /Historia clínica v3\.2/);
+  assert.match(fixture, /Historia clínica v3\.3/);
   assert.match(fixture, /Alergia: penicilina/);
   assert.doesNotMatch(fixture, /Bordados Express|Doña|Pepe/);
 });

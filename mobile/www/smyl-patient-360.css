@@ -419,6 +419,98 @@
   .p360-history-group summary::after,.p360-history-chevron{transition:none}
 }
 
+/* Historia clínica v3.3 · editor clínico enfocado por decisiones. */
+.p360-patient-copy h1{margin-top:0}
+.p360-title-tools{gap:7px}
+.p360-title-tools button,.p360-secure{border-radius:8px;background:#fff}
+.p360-secure{border-color:#cfe2df;background:#f4faf8;color:#315f5b}
+.p360-history-workspace{border-radius:14px;box-shadow:none}
+.p360-history-header{align-items:center;min-height:76px;padding:18px 22px}
+.p360-history-header h2{font-size:18px;font-weight:700;line-height:1.35}
+.p360-history-header p{margin-top:3px;font-size:12px;line-height:1.5}
+.p360-history-header p span{color:#315f5b;font-weight:700}
+.p360-history-safety{margin:18px 22px 14px;border-color:#d8e3e9;background:#f8fafc}
+.p360-history-safety[data-state="alert"]{border-color:#efd6a8;background:#fffaf0}
+.p360-history-safety[data-state="pending"]{border-color:#d8e3e9;background:#f8fafc}
+.p360-history-safety[data-state="clear"]{border-color:#cfe2df;background:#f4faf8}
+.p360-history-safety[data-state="alert"] .p360-history-safety-icon{background:#ffedc7;color:#8a5a05}
+.p360-history-safety[data-state="pending"] .p360-history-safety-icon{background:#e9eef5;color:#526174}
+.p360-history-safety[data-state="clear"] .p360-history-safety-icon{background:#dcefeb;color:#17685f}
+.p360-history-safety>div>span{letter-spacing:0;text-transform:none}
+.p360-history-edit form{padding:0}
+.p360-history-editor-shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:470px}
+.p360-history-stepper{display:grid;align-content:start;gap:4px;padding:18px 12px;border-right:1px solid var(--smyl-ui-border,#d9e2ec);background:#f8fafc}
+.p360-history-stepper button{display:grid;gap:2px;width:100%;min-height:58px;padding:9px 11px;border:0;border-left:3px solid transparent;border-radius:0 9px 9px 0;background:transparent;color:#526174;font:inherit;text-align:left;cursor:pointer}
+.p360-history-stepper button:hover{background:#eef3f6;color:#0b1b2e}
+.p360-history-stepper button[aria-current="step"]{border-left-color:#0f766e;background:#eaf6f3;color:#0b1b2e}
+.p360-history-stepper span,.p360-history-stepper small{display:block}
+.p360-history-stepper span{font-size:14px;font-weight:700;line-height:1.35}
+.p360-history-stepper small{overflow:hidden;font-size:12px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+.p360-history-panels{min-width:0;padding:22px}
+.p360-history-panel{scroll-margin-top:96px}
+.p360-history-panel>header{margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #e5ebf1}
+.p360-history-panel>header h3{margin:0;color:var(--smyl-ui-ink,#0b1b2e);font-size:18px;font-weight:700;line-height:1.35;letter-spacing:-.01em}
+.p360-history-panel>header h3:focus-visible{border-radius:4px;outline:3px solid rgba(15,118,110,.24);outline-offset:4px}
+.p360-history-panel>header p{margin:4px 0 0;color:var(--smyl-ui-ink-secondary,#526174);font-size:14px;line-height:1.5}
+.p360-history-panel>.p360-form-grid{grid-template-columns:1fr;margin:0}
+.p360-history-status-block{display:grid;gap:14px;grid-column:1/-1;padding:16px 0;border-top:1px solid #e8edf2}
+.p360-history-status-block:first-child{padding-top:0;border-top:0}
+.p360-history-status{min-width:0;margin:0;padding:0;border:0}
+.p360-history-status legend{margin:0 0 9px;color:var(--smyl-ui-ink,#0b1b2e);font-size:14px;font-weight:700;line-height:1.4}
+.p360-history-status-options{display:flex;flex-wrap:wrap;gap:7px}
+.p360-history-status-options label{position:relative;display:block;cursor:pointer}
+.p360-history-status-options input{position:absolute;opacity:0;pointer-events:none}
+.p360-history-status-options span{display:grid;place-items:center;min-height:44px;padding:0 14px;border:1px solid #ccd8e4;border-radius:8px;background:#fff;color:#526174;font-size:14px;font-weight:650;transition:border-color 150ms ease,background-color 150ms ease,color 150ms ease}
+.p360-history-status-options input:checked+span{border-color:#0b1b2e;background:#0b1b2e;color:#fff}
+.p360-history-status-options input:focus-visible+span{outline:3px solid rgba(15,118,110,.2);outline-offset:2px}
+.p360-history-status [data-history-status-message]{margin:6px 0 0;color:#8a5a05;font-size:12px;line-height:1.5}
+.p360-history-status-details{padding:15px;border:1px solid #dce4ec;border-radius:10px;background:#fbfcfd}
+.p360-history-status-block[data-state="yes"][data-history-status-block="alerts"] .p360-history-status-details,
+.p360-history-status-block[data-state="yes"][data-history-status-block="allergies"] .p360-history-status-details{border-color:#efd6a8;background:#fffaf0}
+.p360-history-status-details>.p360-history-field,.p360-history-status-details>.p360-history-repeater{width:100%}
+.p360-history-field{font-size:14px;font-weight:650}
+.p360-history-field>small,.p360-history-repeater-head p{font-size:12px}
+.p360-history-repeater legend{font-size:14px}
+.p360-history-repeater-head button,.p360-history-repeat-item header button{min-height:40px;font-size:12px}
+.p360-history-repeat-item>header{min-height:46px}
+.p360-history-repeat-item>header strong{font-size:14px}
+.p360-history-repeat-item>header strong span{display:none}
+.p360-history-actions{gap:8px;padding:14px 22px}
+.p360-history-actions p{font-size:12px}
+.p360-history-actions button{min-height:42px;font-size:14px}
+.p360-history-actions [data-history-next],.p360-history-actions [data-history-save]{min-width:156px}
+@media(max-width:900px){
+  .p360-history-editor-shell{grid-template-columns:1fr}
+  .p360-history-stepper{display:flex;gap:5px;overflow-x:auto;padding:12px 14px;border-right:0;border-bottom:1px solid var(--smyl-ui-border,#d9e2ec);scrollbar-width:thin}
+  .p360-history-stepper button{min-width:142px;border-left:0;border-bottom:3px solid transparent;border-radius:9px 9px 0 0}
+  .p360-history-stepper button[aria-current="step"]{border-left:0;border-bottom-color:#0f766e}
+  .p360-history-panels{padding:20px}
+  .p360-history-actions{position:static;backdrop-filter:none}
+}
+@media(max-width:760px){
+  .p360-history-header{padding:17px 18px}
+  .p360-history-panels{padding:18px}
+  .p360-history-panel>header h3{font-size:17px}
+  .p360-history-panel>header p{font-size:13px}
+  .p360-history-status-options{display:grid;grid-template-columns:1fr 1fr}
+  .p360-history-status-options span{min-height:44px;padding:0 10px}
+  .p360-history-status-details{padding:13px}
+  .p360-history-actions{position:static;display:grid;grid-template-columns:1fr 1fr;padding:14px 18px}
+  .p360-history-actions p{grid-column:1/-1}
+  .p360-history-actions button{width:100%;min-height:44px}
+  .p360-history-actions [data-history-cancel]{grid-column:1}
+  .p360-history-actions [data-history-prev]{grid-column:1}
+  .p360-history-actions [data-history-next],.p360-history-actions [data-history-save]{grid-column:2;min-width:0}
+}
+@media(max-width:420px){
+  .p360-history-stepper button{min-width:126px}
+  .p360-history-panels{padding:16px 14px}
+  .p360-history-status-options{grid-template-columns:1fr 1fr}
+  .p360-history-actions{grid-template-columns:1fr}
+  .p360-history-actions p,.p360-history-actions [data-history-cancel],.p360-history-actions [data-history-prev],.p360-history-actions [data-history-next],.p360-history-actions [data-history-save]{grid-column:1}
+}
+@media(prefers-reduced-motion:reduce){.p360-history-status-options span{transition:none}}
+
 /* Ficha conectada v4.4 · una portada, fuentes canónicas y actividad longitudinal. */
 .p360-record-map{
   margin:14px 0;
