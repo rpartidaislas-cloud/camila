@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-04 — Codex: cabecera operativa simplificada
+
+**Objetivo:** retirar accesos redundantes de la barra superior sin eliminar las
+funciones a las que daban acceso.
+
+**Qué cambió (frontend):**
+- Se retiraron los botones visibles `Ir a… / Ctrl K` y `MILA` de la cabecera.
+- El buscador global sigue disponible con `Ctrl/Cmd + K`; sólo se eliminó su
+  botón permanente para liberar espacio.
+- MILA continúa disponible en sus flujos y módulos propios; no se eliminó su
+  funcionalidad.
+- Se conservan notificaciones, estado de la clínica y la acción principal.
+- Web y PWA quedaron sincronizadas con caché `topbar-cleanup-v72`.
+
+**Validación:** prueba específica de cabecera, paridad web/PWA y apertura del
+buscador por teclado.
+
 ## 2026-11-04 — Codex: Historia clínica enfocada por decisiones
 
 **Objetivo:** reducir la saturación visual de la edición de Historia clínica y
