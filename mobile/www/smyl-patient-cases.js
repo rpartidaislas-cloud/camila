@@ -226,7 +226,7 @@
     viewer.append(button('Cerrar comparación', () => viewer.close()), viewerContent); document.body.append(viewer);
     function mount() {
       const screen = $('p-paciente-detalle'), layout = screen?.querySelector('.clinic-layout'), host = screen?.querySelector('[data-p360-panel="simulations"]');
-      if (!layout || !host || host.querySelector('.pc-gallery') || !window.pacienteActual?.id) return;
+      if (!layout || !host || screen.querySelector('.pc-gallery') || !window.pacienteActual?.id) return;
       if (activeGallery && !activeGallery.isConnected) { closeMyPreview(); viewer.close(); viewerContent.replaceChildren(); revoke(); clearThumbnails(); }
       const patient = pacienteActual.id, tenant = tenantId;
       const gallery = node('section','pc-gallery'); activeGallery = gallery; gallery.dataset.patientId = patient;

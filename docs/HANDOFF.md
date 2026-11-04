@@ -1,5 +1,33 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-04 — Claude: al abrir un paciente la página se congelaba (bucle entre galería y espacio de trabajo)
+
+**Síntoma:** en Pacientes, al hacer clic en una fila "no pasa nada" y la pestaña queda colgada.
+
+**Causa raíz:** `smyl-patient-cases.js` crea la galería `.pc-gallery` dentro del panel "Simulaciones SMYL"
+de la ficha 360 y `smyl-case-workspace.js` (`adopt()`) la sacaba de ahí para esconderla. Ambos observan
+`#p-paciente-detalle` con MutationObserver; la guarda de `mount()` sólo miraba dentro del panel
+(`host.querySelector`), así que al ser movida la galería se creaba otra, y otra: bucle de microtareas
+que bloquea el hilo principal (422 galerías / >3000 callbacks en la repro). Introducido al cambiar la guarda
+en 6e8f754.
+
+**Arreglo (sólo frontend):**
+- `smyl-patient-cases.js?v=11`: `mount()` no crea galería si ya existe una en toda la pantalla (`screen.querySelector`).
+- `smyl-case-workspace.js?v=19`: `adopt()` ya no mueve una galería que vive en `[data-p360-panel="simulations"]`;
+  `refresh()` lee las sesiones de esa galería como respaldo.
+- Versiones subidas en app.html, sw.js (CACHE_VERSION `…-patient-open-fix-v1`) y `mobile/www/*`; 12 tests acoplados actualizados.
+- Tests nuevos: `tests/patient-gallery-no-loop.test.mjs` (estáticos) y humo en navegador real
+  `tests/qa/patient-open-smoke.cjs` (Playwright + `tests/qa/fake-supabase.js`; abre 3 pacientes y falla si hay
+  congelamiento, más de una galería o >400 callbacks de MutationObserver). Uso:
+  `NODE_PATH=$(npm root -g) node tests/qa/patient-open-smoke.cjs`.
+
+**Para Codex:** hay dos diseños en conflicto (galería visible en la pestaña "Simulaciones SMYL" vs. espacio de
+trabajo del caso que la oculta). Hoy conviven sin mover nodos. Los tests estáticos no detectan bucles de DOM:
+si tocas esos dos módulos, corre el humo en navegador.
+
+**Fallos previos en main (no míos):** `tests/lana-quick.test.mjs` (frase del prompt VITA simplificada en 9cdc06a) y
+`tests/smyl-ui-v3.test.mjs` (deuda de microtexto 888→891).
+
 ## 2026-11-03 — Claude: opción "Desvincular mensajería" en Canales e IA
 
 **Problema:** Canales e IA no tenía forma de desconectar WhatsApp. No era un olvido: `lana-channels`
