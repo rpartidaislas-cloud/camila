@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-05 — Claude Code — Historia clínica: lectura por secciones numeradas con índice lateral
+
+- Ricardo aprobó el boceto B ("separación fuerte"): la lectura de la Historia clínica pasa de 6 tarjetas iguales a **5 bloques numerados**
+  (Seguridad clínica, Salud médica, Antecedentes dentales, Hábitos, Contacto y notas), cada uno con franja de color, filas
+  etiqueta/valor/estado, índice lateral fijo con punto de estado y progreso, y filas pendientes en ámbar punteado.
+- `smyl-history-read.js` (nuevo, función pura `SmylHistoryRead.render(modelo)`); `smyl-patient-360.js` arma el modelo
+  (`historyReadModel`) y lo conecta (`bindHistoryRead`). Se quitaron `historyGroup`/`historyValue` (sin uso).
+- **Un solo conteo:** 6 secciones clínicas (alergias, condiciones, medicamentos, cirugías, dental, hábitos); contacto y notas ya no cuentan.
+  Antes eran "8 apartados" en la lectura, 4 grupos y 5 pasos de edición. El Resumen dice "N de 6 secciones confirmadas".
+  La cobertura usa los registros (`historyRecords`), no solo las listas antiguas (había un desajuste).
+- 3 estados visibles: Confirmado / N registros / Por confirmar. Solo en pantalla: los datos guardados (`yes/no/unknown/pending`) no cambian.
+- **"Editar sección"** abre el editor de 5 pasos ya existente directamente en ese paso; **"+ Alergia" / "+ Medicamento"** abren el paso
+  y dejan una fila lista con el foco. El editor y el guardado (`smyl_save_patient_history`) no cambian: sin migración.
+- No se agregó "Historial de cambios": no existe esa función; la versión sigue en el subtítulo.
+- Verificado con el código real y datos sintéticos (`tests/fixtures/smyl-history-read-preview.html`, `?caso=vacio|solo-lectura`):
+  lectura, editar sección, atajos, vacío, solo lectura y móvil. Cachés: `smyl-patient-360.js?v=20`, `.css?v=14`, `smyl-history-read.js?v=1`.
+- Pruebas: 1033 pasan y 2 fallan ya en `main` (`lana-quick`, deuda tipográfica de `smyl-ui-v3`), sin cambios por esta tarea.
+
 ## 2026-11-04 — Codex: cabecera operativa simplificada
 
 **Objetivo:** retirar accesos redundantes de la barra superior sin eliminar las

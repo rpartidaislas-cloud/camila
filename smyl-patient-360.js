@@ -44,7 +44,8 @@
   function assistantModel(s){var d=Object.assign(defaultHistory(),s.history?s.history.document:{}),alerts=arr(d.alerts).concat(arr(d.allergies).map(function(x){return 'Alergia: '+x;})),missing=historyMissing(d),next=upcomingAppointment(s),lastNote=s.notes[0],items=[];items.push(alerts.length?alerts.length+' alerta'+(alerts.length===1?' clínica visible':'s clínicas visibles'):'No hay alertas registradas');items.push(s.notes.length?s.notes.length+' evolución'+(s.notes.length===1?'':'es')+' en el expediente':'Aún no hay evoluciones clínicas');items.push(next?'Próxima cita: '+date(next.starts_at,true):'Sin próxima cita registrada');return {items:items,missing:missing,next:priority(s,d),last:lastNote?noteTitle(lastNote)+' · '+date(lastNote.created_at):'Sin nota clínica reciente'};}
   function openAssistant(s){var model=assistantModel(s),dlg=dialog(s,'<div class="p360-assistant"><div class="p360-assistant-head"><span aria-hidden="true">✦</span><div><small>ASISTENTE DE FICHA</small><h2>Resumen previo a la atención</h2><p>Organiza la información existente para reducir la revisión manual.</p></div></div><div class="p360-assistant-grid"><section><h3>En un vistazo</h3><ul>'+model.items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="p360-assistant-last"><strong>Último registro</strong>'+esc(model.last)+'</p></section><section><h3>Por confirmar</h3>'+(model.missing.length?'<p>'+esc(model.missing.join(', '))+'.</p>':'<p>La historia clínica tiene sus campos esenciales registrados.</p>')+'<h3>Siguiente paso sugerido</h3><p>'+esc(model.next.label)+'. '+esc(model.next.copy)+'</p></section></div><aside><strong>Apoyo, no diagnóstico.</strong> Esta ayuda ordena datos del expediente; no decide tratamientos, no modifica registros y requiere revisión profesional.</aside><div class="p360-actions"><button type="button" class="btn btn-secondary" data-close>Cerrar</button><button type="button" class="btn btn-primary" data-assistant-next>Continuar con el siguiente paso</button></div></div>');dlg.querySelector('[data-assistant-next]').onclick=function(){s.dialog.close();runPriority(s,model.next.action==='assistant'?'notes':model.next.action);};}
   function historyStatusReviewed(d,key,hasData){var status=historyStatus(d,key,hasData);return !['pending','unknown'].includes(status)&&!(status==='yes'&&!hasData);}
-  function historyCoverage(d){return [historyStatusReviewed(d,'allergies_status',arr(d.allergies).length),historyStatusReviewed(d,'conditions_status',arr(d.conditions).length),historyStatusReviewed(d,'medications_status',arr(d.medications).length),historyStatusReviewed(d,'surgeries_status',d.surgeries||arr(d.surgery_records).length),historyStatusReviewed(d,'dental_status',d.dental_history||d.last_dental_visit),historyStatusReviewed(d,'habits_status',d.habits),!!String(d.emergency_contact||'').trim(),!!String(d.notes||'').trim()].filter(Boolean).length;}
+  function historyPendingLabels(d){return [['Alergias','allergies_status',historyRecords(d,'allergy_records').length],['Condiciones','conditions_status',historyRecords(d,'condition_records').length],['Medicamentos','medications_status',historyRecords(d,'medication_records').length],['Cirugías','surgeries_status',historyRecords(d,'surgery_records').length||(d.surgeries?1:0)],['Dental','dental_status',d.dental_history||d.last_dental_visit],['Hábitos','habits_status',d.habits]].filter(function(check){return !historyStatusReviewed(d,check[1],check[2]);}).map(function(check){return check[0];});}
+  function historyCoverage(d){return 6-historyPendingLabels(d).length;}
   function appointmentStatus(value){return ({confirmed:'Confirmada',in_progress:'En atención',completed:'Completada',cancelled:'Cancelada',no_show:'No asistió',pending:'Pendiente'})[value]||String(value||'Registrada').replace(/_/g,' ');}
   function noteStatus(value){return value==='signed'?'Firmada':value==='draft'?'Borrador':String(value||'Registrada');}
   function fileStatus(value){return value==='active'?'Disponible':value==='archived'?'Archivado':String(value||'Registrado');}
@@ -55,7 +56,7 @@
   function careCards(s,d,upcoming,signed){
     var coverage=historyCoverage(d),drafts=s.notes.filter(function(row){return row.status==='draft';}).length,completed=s.appointments.filter(function(row){return row.status==='completed';}).length,ctx=careContext(s),studies=ctx.dental&&ctx.dental.studies||0,files=s.files.length,sim=s.simulationSummary,planLabel=ctx.plan&&ctx.plan.saved?'Borrador guardado':ctx.plan&&ctx.plan.ready?'Evaluación disponible':ctx.selected?'Evaluación en curso':'Abrir tratamiento';
     var cards=[
-      {key:'history',number:'01',label:'Historia clínica',value:s.history?'Versión '+s.history.revision:'Por completar',detail:coverage+' de 8 apartados registrados',tone:coverage>=6?'ready':coverage?'progress':'pending'},
+      {key:'history',number:'01',label:'Historia clínica',value:s.history?'Versión '+s.history.revision:'Por completar',detail:coverage+' de 6 secciones confirmadas',tone:coverage>=5?'ready':coverage?'progress':'pending'},
       {key:'notes',number:'02',label:'Evoluciones',value:s.notes.length+' registro'+(s.notes.length===1?'':'s'),detail:signed+' firmada'+(signed===1?'':'s')+(drafts?' · '+drafts+' en borrador':''),tone:drafts?'pending':signed?'ready':'neutral'},
       {key:'treatment',number:'03',label:'Tratamiento',value:planLabel,detail:ctx.dental?(ctx.dental.teeth.total+' piezas documentadas · '+ctx.dental.pending+' por revisar'):'Odontograma y plan en su espacio clínico',tone:ctx.plan&&ctx.plan.saved?'ready':ctx.plan||ctx.selected?'progress':'neutral'},
       {key:'simulations',number:'04',label:'Simulaciones SMYL',value:sim&&sim.ready?sim.cases+' sesión'+(sim.cases===1?'':'es'):'Abrir galería',detail:sim&&sim.ready?sim.photos+' fotografía'+(sim.photos===1?'':'s')+' · '+sim.results+' simulación'+(sim.results===1?'':'es'):'Originales y resultados orientativos, juntos',tone:sim&&sim.cases?'ready':'neutral'},
@@ -86,14 +87,6 @@
       '<div class="p360-overview-grid"><article class="p360-card p360-health-card"><div class="p360-section-head"><div><span>INFORMACIÓN ESENCIAL</span><h2>Resumen clínico</h2><p>Datos confirmados que pueden orientar la siguiente atención.</p></div><button type="button" data-p360-go="history">Ver historia</button></div><dl><div><dt>Alergias</dt><dd>'+esc(arr(d.allergies).join(', ')||'Por confirmar')+'</dd></div><div><dt>Condiciones</dt><dd>'+esc(arr(d.conditions).join(', ')||'Por confirmar')+'</dd></div><div><dt>Medicamentos</dt><dd>'+esc(arr(d.medications).join(', ')||'Por confirmar')+'</dd></div><div><dt>Antecedentes dentales</dt><dd>'+esc(d.dental_history||'Por confirmar')+'</dd></div></dl></article>'+
       '<article class="p360-card p360-activity-card"><div class="p360-section-head"><div><span>HISTORIA LONGITUDINAL</span><h2>Actividad del paciente</h2><p>Una sola secuencia de atención, evidencia, planes y movimientos autorizados.</p></div></div><div class="p360-timeline-filters" role="group" aria-label="Filtrar actividad">'+filters.map(function(filter){return '<button type="button" data-timeline-filter="'+filter[0]+'" aria-pressed="'+String((s.timelineFilter||'all')===filter[0])+'">'+filter[1]+'</button>';}).join('')+'</div><div class="p360-timeline">'+timelineHtml(s)+'</div></article></div>';
     bindOverview(s);
-  }
-  function historyValue(label,value){
-    var content=String(value||'').trim();
-    return '<div class="p360-history-item" data-empty="'+String(!content)+'"><dt>'+esc(label)+'</dt><dd>'+esc(content||'Por confirmar')+'</dd></div>';
-  }
-  function historyGroup(title,copy,values,open,tone){
-    var completed=values.filter(function(item){var content=String(item[1]||'').trim();return content&&!['Pendiente de confirmar','No se sabe','Sí, falta detalle'].includes(content);}).length;
-    return '<details class="p360-history-group"'+(open?' open':'')+' data-tone="'+esc(tone||'clinical')+'"><summary><span><strong>'+esc(title)+'</strong><small>'+esc(copy)+'</small></span><span class="p360-history-count">'+completed+' de '+values.length+'</span></summary><dl>'+values.map(function(item){return historyValue(item[0],item[1]);}).join('')+'</dl></details>';
   }
   function historyField(label,name,value,placeholder,wide,help){
     var id='p360-history-'+name;
@@ -176,20 +169,71 @@
     var panel=invalid.closest('[data-history-panel]'),panels=Array.from(form.querySelectorAll('[data-history-panel]')),index=panels.indexOf(panel);setHistoryStep(form,index<0?0:index,true);var control=invalid.querySelector('[data-history-status-details] input, [data-history-status-details] textarea, [data-history-status-details] select');if(control)control.focus({preventScroll:true});return false;
   }
   function historyFormStatus(f,name,hasData){var value=String(f.get(name+'_status')||'pending');return hasData?'yes':(['yes','no','unknown','pending'].includes(value)?value:'pending');}
+  function hcPendingText(status){return status==='unknown'?'El paciente no lo sabe':status==='yes'?'Marcado como "Sí": falta registrar el detalle':'Aún no se ha confirmado con el paciente';}
+  function hcRecordRow(label,records,summary,status){
+    if(records.length)return {label:label,lines:records.map(summary),state:'records',badge:records.length+(records.length===1?' registro':' registros')};
+    if(status==='no')return {label:label,text:'No, confirmado',state:'ok',badge:'Ninguno confirmado'};
+    return {label:label,text:hcPendingText(status),state:'pending',badge:'Por confirmar'};
+  }
+  function hcTextRow(label,value,status){
+    var text=String(value||'').trim();
+    if(text)return {label:label,lines:[text],state:'ok',badge:'Confirmado'};
+    if(status==='no')return {label:label,text:'No, confirmado',state:'ok',badge:'Ninguno confirmado'};
+    return {label:label,text:hcPendingText(status),state:'pending',badge:'Por confirmar'};
+  }
+  function hcSectionState(rows){return rows.some(function(row){return row.state==='pending';})?'pending':'ok';}
+  function historyReadModel(d,x){
+    var allergyRow=hcRecordRow('Alergias',x.allergyRecords,allergySummary,x.allergiesStatus);
+    if(x.allergyRecords.length){allergyRow.state='alert';if(x.allergyRecords.some(function(row){return row.severity==='high';}))allergyRow.badge='Grave';}
+    var alertRow=x.alerts.length?{label:'Alertas médicas',lines:x.alerts,state:'alert',badge:'Alerta'}:x.alertsStatus==='no'?{label:'Alertas médicas',text:'Ninguna confirmada',state:'ok',badge:'Ninguna confirmada'}:{label:'Alertas médicas',text:hcPendingText(x.alertsStatus),state:'pending',badge:'Por confirmar'};
+    var safetyCount=x.alerts.length+x.allergyRecords.length,unconfirmed=['pending','unknown','yes'],safetyPending=!safetyCount&&(unconfirmed.includes(x.alertsStatus)||unconfirmed.includes(x.allergiesStatus));
+    var safetyState=safetyCount?'alert':safetyPending?'pending':'ok';
+    var safetyCopy=safetyCount?'Lo que puede cambiar la atención. Revisar antes de atender.':safetyPending?'Alertas por confirmar: confírmalas antes de procedimientos.':'Sin alertas conocidas. Estado confirmado en esta versión.';
+    var medicalRows=[hcRecordRow('Condiciones médicas',x.conditionRecords,conditionSummary,x.conditionsStatus),hcRecordRow('Medicamentos actuales',x.medicationRecords,medicationSummary,x.medicationsStatus),hcRecordRow('Cirugías y hospitalizaciones',x.surgeryRecords,surgerySummary,x.surgeriesStatus)];
+    var visit=historyDate(d.last_dental_visit),dentalRows=[hcTextRow('Antecedentes dentales',d.dental_history,x.dentalStatus),visit?{label:'Última visita dental',text:visit,state:'ok',badge:'Confirmado'}:{label:'Última visita dental',text:'Sin fecha registrada',state:'empty',badge:''}];
+    var habitsRows=[hcTextRow('Hábitos relevantes',d.habits,x.habitsStatus)];
+    var adminRows=[{label:'Contacto de emergencia',text:String(d.emergency_contact||'').trim()||'Sin registrar',state:'empty',badge:''},{label:'Notas adicionales',text:String(d.notes||'').trim()||'Sin registrar',state:'empty',badge:''}];
+    return {updated:x.updated,revision:x.revision,canWrite:x.canWrite,coverage:{done:historyCoverage(d),total:6,pending:historyPendingLabels(d)},sections:[
+      {key:'safety',step:0,title:'Seguridad clínica',copy:safetyCopy,state:safetyState,rows:[allergyRow,alertRow]},
+      {key:'medical',step:1,title:'Salud médica',copy:'Condiciones, medicamentos y cirugías.',state:hcSectionState(medicalRows),rows:medicalRows},
+      {key:'dental',step:2,title:'Antecedentes dentales',copy:'Tratamientos previos y última visita.',state:hcSectionState(dentalRows),rows:dentalRows},
+      {key:'habits',step:3,title:'Hábitos y factores de riesgo',copy:'Contexto referido por el paciente.',state:hcSectionState(habitsRows),rows:habitsRows},
+      {key:'admin',step:4,title:'Contacto y notas',copy:'Datos de apoyo, no clínicos.',state:'neutral',rows:adminRows}]};
+  }
+  function historyPrepareAdd(form,kind){
+    var info={allergy:['allergies',0],medication:['medications',1]}[kind];if(!info)return;
+    setHistoryStep(form,info[1],true);
+    var block=form.querySelector('[data-history-status-block="'+info[0]+'"]'),yes=block&&block.querySelector('input[value="yes"]');
+    if(yes){yes.checked=true;refreshHistoryStatus(block,'yes');}
+    var list=form.querySelector('[data-history-repeater="'+kind+'"] [data-history-list]');if(!list)return;
+    var last=list.lastElementChild,empty=last&&Array.from(last.querySelectorAll('input')).every(function(input){return !String(input.value||'').trim();});
+    if(!empty){var add=form.querySelector('[data-history-add="'+kind+'"]');if(add)add.click();}
+    var item=list.lastElementChild,control=item&&item.querySelector('input,select');if(control)control.focus();
+  }
+  function openHistoryEditor(s,step,addKind){
+    historyForm(s,true);
+    var form=s.historyHost.querySelector('form');if(!form)return;
+    if(addKind)historyPrepareAdd(form,addKind);else if(step)setHistoryStep(form,step,true);
+  }
+  function bindHistoryRead(s){
+    var host=s.historyHost,buttons=Array.from(host.querySelectorAll('[data-hc-goto]')),bands=Array.from(host.querySelectorAll('.p360-hc-band'));
+    host.querySelectorAll('[data-history-edit]').forEach(function(button){button.onclick=function(){openHistoryEditor(s,0);};});
+    host.querySelectorAll('[data-hc-edit]').forEach(function(button){button.onclick=function(){openHistoryEditor(s,Number(button.dataset.hcStep||0));};});
+    host.querySelectorAll('[data-hc-add]').forEach(function(button){button.onclick=function(){openHistoryEditor(s,0,button.dataset.hcAdd);};});
+    function mark(key){buttons.forEach(function(button){if(button.dataset.hcGoto===key)button.setAttribute('aria-current','true');else button.removeAttribute('aria-current');});}
+    buttons.forEach(function(button){button.onclick=function(){var band=host.querySelector('#p360-hc-'+button.dataset.hcGoto);if(!band)return;var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;mark(button.dataset.hcGoto);band.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});band.focus({preventScroll:true});};});
+    if(buttons.length)mark(buttons[0].dataset.hcGoto);
+    if('IntersectionObserver' in window&&bands.length){var observer=new IntersectionObserver(function(entries){var visible=entries.filter(function(entry){return entry.isIntersecting;}).sort(function(a,b){return a.boundingClientRect.top-b.boundingClientRect.top;})[0];if(visible)mark(visible.target.dataset.tone);},{rootMargin:'-15% 0px -70% 0px'});bands.forEach(function(band){observer.observe(band);});}
+  }
   function historyForm(s,editing){
     var d=Object.assign(defaultHistory(),s.history?s.history.document:{});
     var alerts=arr(d.alerts),allergyRecords=historyRecords(d,'allergy_records'),conditionRecords=historyRecords(d,'condition_records'),medicationRecords=historyRecords(d,'medication_records'),surgeryRecords=historyRecords(d,'surgery_records'),allergies=allergyRecords.map(function(row){return row.substance;}).filter(Boolean),revision=s.history?s.history.revision:0;
     var alertsStatus=historyStatus(d,'alerts_status',alerts.length),allergiesStatus=historyStatus(d,'allergies_status',allergyRecords.length),conditionsStatus=historyStatus(d,'conditions_status',conditionRecords.length),medicationsStatus=historyStatus(d,'medications_status',medicationRecords.length),surgeriesStatus=historyStatus(d,'surgeries_status',surgeryRecords.length),dentalStatus=historyStatus(d,'dental_status',d.dental_history||d.last_dental_visit),habitsStatus=historyStatus(d,'habits_status',d.habits);
     var updated=s.history&&s.history.updated_at?date(s.history.updated_at,true):'Sin actualización registrada';
-    var filled=historyCoverage(d);
     if(!editing){
-      var safetyItems=alerts.concat(allergyRecords.map(function(item){return 'Alergia: '+allergySummary(item);}));
-      var safetyPending=!safetyItems.length&&(['pending','unknown','yes'].includes(alertsStatus)||['pending','unknown','yes'].includes(allergiesStatus)),safetyState=safetyItems.length?'alert':safetyPending?'pending':'clear';
-      var safetyTitle=safetyItems.length?'Revisar antes de atender':safetyPending?'Alertas por confirmar':'Sin alertas conocidas';
-      var safetyCopy=safetyItems.length?'La historia contiene información que puede modificar la atención.':safetyPending?'Confirma esta información antes de procedimientos.':'Estado confirmado en esta versión de la historia.';
-      s.historyHost.innerHTML='<article class="p360-history-workspace p360-history-read"><header class="p360-history-header"><div><h2>Historia clínica</h2><p>Información médica y dental confirmada para la atención.</p></div>'+(s.canWrite?'<button type="button" class="btn btn-primary" data-history-edit>Actualizar historia</button>':'')+'</header><section class="p360-history-safety" data-state="'+safetyState+'"><span class="p360-history-safety-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 19a1.5 1.5 0 0 0 1.3 2.2h15.8a1.5 1.5 0 0 0 1.3-2.2L12 3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><div><span>Atención clínica</span><strong>'+esc(safetyTitle)+'</strong><p>'+esc(safetyCopy)+'</p>'+(safetyItems.length?'<div class="p360-history-chips">'+chipList(safetyItems,'')+'</div>':'')+'</div></section><div class="p360-history-meta" aria-label="Estado de la historia clínica"><div><span>Última actualización</span><strong>'+esc(updated)+'</strong></div><div><span>Información revisada</span><strong>'+filled+' de 8 apartados</strong></div><div><span>Versión</span><strong>'+revision+'</strong></div></div><div class="p360-history-groups">'+historyGroup('Salud médica','Alergias, condiciones, medicamentos y cirugías.',[['Alergias',allergyRecords.map(allergySummary).join(' | ')||historyStatusText(allergiesStatus)],['Condiciones médicas',conditionRecords.map(conditionSummary).join(' | ')||historyStatusText(conditionsStatus)],['Medicamentos actuales',medicationRecords.map(medicationSummary).join(' | ')||historyStatusText(medicationsStatus)],['Cirugías y hospitalizaciones',surgeryRecords.map(surgerySummary).join(' | ')||historyStatusText(surgeriesStatus)]],true,'priority')+historyGroup('Antecedentes dentales','Información previa relevante para la atención.',[['Antecedentes dentales',d.dental_history||historyStatusText(dentalStatus)],['Última visita dental',historyDate(d.last_dental_visit)]],true,'clinical')+historyGroup('Hábitos y factores de riesgo','Contexto referido por el paciente.',[['Hábitos relevantes',d.habits||historyStatusText(habitsStatus)]],false,'clinical')+historyGroup('Información complementaria','Datos administrativos y observaciones.',[['Contacto de emergencia',d.emergency_contact],['Notas adicionales',d.notes]],false,'administrative')+'</div><footer class="p360-history-footer"><p>La información se conserva versionada dentro del expediente.</p><div class="p360-history-links"><button type="button" data-record-tab="notes">Ver evoluciones</button><button type="button" data-record-link="p360-dental">Abrir odontograma</button></div></footer></article>';
-      var edit=s.historyHost.querySelector('[data-history-edit]');
-      if(edit)edit.onclick=function(){historyForm(s,true);};
+      if(!window.SmylHistoryRead){s.historyHost.textContent='No se pudo cargar la vista de la historia clínica. Recarga la página.';return;}
+      s.historyHost.innerHTML=window.SmylHistoryRead.render(historyReadModel(d,{alerts:alerts,allergyRecords:allergyRecords,conditionRecords:conditionRecords,medicationRecords:medicationRecords,surgeryRecords:surgeryRecords,alertsStatus:alertsStatus,allergiesStatus:allergiesStatus,conditionsStatus:conditionsStatus,medicationsStatus:medicationsStatus,surgeriesStatus:surgeriesStatus,dentalStatus:dentalStatus,habitsStatus:habitsStatus,updated:updated,revision:revision,canWrite:!!s.canWrite}));
+      bindHistoryRead(s);
     }else{
       var safetyFields=historyStatusEditor('alerts','¿Hay alertas médicas relevantes?',alertsStatus,historyField('Alertas médicas','alerts',alerts.join(', '),'Ej. anticoagulantes, marcapasos',true,''))+historyStatusEditor('allergies','¿Tiene alergias conocidas?',allergiesStatus,historyRepeater('allergy','Alergias','Registra sustancia, reacción y gravedad.',allergyRecords));
       var medicalFields=historyStatusEditor('conditions','¿Tiene condiciones médicas?',conditionsStatus,historyRepeater('condition','Condiciones médicas','Una fila por diagnóstico.',conditionRecords))+historyStatusEditor('medications','¿Toma medicamentos actualmente?',medicationsStatus,historyRepeater('medication','Medicamentos actuales','Una fila por medicamento.',medicationRecords))+historyStatusEditor('surgeries','¿Tiene cirugías u hospitalizaciones previas?',surgeriesStatus,historyRepeater('surgery','Cirugías y hospitalizaciones','Registra únicamente eventos confirmados.',surgeryRecords));
