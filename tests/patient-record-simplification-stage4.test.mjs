@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const workspace = read('../smyl-case-workspace.js');
 const workspaceCss = read('../smyl-case-workspace.css');
-const record = read('../smyl-patient-360.js');
+const record = read('../smyl-patient-360.js') + read('../smyl-history-read.js');
 const recordCss = read('../smyl-patient-360.css');
 const app = read('../app.html');
 
@@ -42,11 +42,12 @@ test('simulaciones tiene un espacio independiente y una advertencia visual clara
 });
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=13/);
-  assert.match(app, /smyl-patient-360\.js\?v=19/);
+  assert.match(app, /smyl-patient-360\.css\?v=14/);
+  assert.match(app, /smyl-patient-360\.js\?v=20/);
   assert.match(app, /smyl-case-workspace\.js\?v=19/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
-  assert.equal(record, read('../mobile/www/smyl-patient-360.js'));
+  assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));
+  assert.equal(read('../smyl-history-read.js'), read('../mobile/www/smyl-history-read.js'));
   assert.equal(workspace, read('../mobile/www/smyl-case-workspace.js'));
 });

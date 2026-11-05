@@ -11,20 +11,33 @@ const css = read('smyl-patient-360.css');
 const app = read('app.html');
 const mobileApp = read('mobile/www/app.html');
 const sw = read('sw.js');
+const readFileSync2 = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Historia clínica distingue alertas confirmadas, pendientes y estado claro', () => {
-  assert.match(patient, /p360-history-workspace p360-history-read/);
-  assert.match(patient, /safetyState=safetyItems\.length\?'alert':safetyPending\?'pending':'clear'/);
+test('Historia clínica separa la lectura en secciones numeradas con seguridad, pendientes y estado claro', () => {
+  const read2 = readFileSync2('smyl-history-read.js');
+  assert.match(read2, /p360-hc-band/);
+  assert.match(read2, /aria-label="Secciones de la historia clínica"/);
+  assert.match(read2, /data-hc-edit/);
+  assert.match(read2, /data-hc-add/);
+  assert.match(patient, /window\.SmylHistoryRead\.render\(historyReadModel\(/);
+  assert.match(patient, /var safetyState=safetyCount\?'alert':safetyPending\?'pending':'ok'/);
   assert.match(patient, /Alertas por confirmar/);
   assert.match(patient, /Sin alertas conocidas/);
-  assert.match(patient, /Última actualización/);
-  assert.match(patient, /Información revisada/);
   assert.match(patient, /No, confirmado/);
   assert.match(patient, /historyStatusReviewed/);
-  assert.match(patient, /historyGroup\('Salud médica'/);
-  assert.match(patient, /historyGroup\('Antecedentes dentales'/);
-  assert.match(patient, /historyGroup\('Hábitos y factores de riesgo'/);
-  assert.match(patient, /historyGroup\('Información complementaria'/);
+  for (const title of ['Seguridad clínica','Salud médica','Antecedentes dentales','Hábitos y factores de riesgo','Contacto y notas']) {
+    assert.match(patient, new RegExp(`title:'${title}'`));
+  }
+  assert.doesNotMatch(patient, /de 8 apartados/);
+  assert.match(patient, /total:6/);
+});
+
+test('El editor de cinco pasos se abre en la sección elegida y los atajos preparan la fila', () => {
+  assert.match(patient, /function openHistoryEditor\(s,step,addKind\)/);
+  assert.match(patient, /setHistoryStep\(form,step,true\)/);
+  assert.match(patient, /function historyPrepareAdd\(form,kind\)/);
+  assert.match(patient, /allergy:\['allergies',0\],medication:\['medications',1\]/);
+  assert.match(patient, /refreshHistoryStatus\(block,'yes'\)/);
 });
 
 test('La edición enfoca una de cinco secciones y conserva navegación accesible', () => {
@@ -99,10 +112,10 @@ test('Web, móvil y PWA publican la misma versión de Historia clínica', () => 
   assert.equal(app, mobileApp);
   assert.equal(read('smyl-patient-360.js'), read('mobile/www/smyl-patient-360.js'));
   assert.equal(css, read('mobile/www/smyl-patient-360.css'));
-  assert.match(app, /smyl-patient-360\.css\?v=13/);
-  assert.match(sw, /smyl-patient-360\.css\?v=13/);
-  assert.match(app, /smyl-patient-360\.js\?v=19/);
-  assert.match(sw, /smyl-patient-360\.js\?v=19/);
+  assert.match(app, /smyl-patient-360\.css\?v=14/);
+  assert.match(sw, /smyl-patient-360\.css\?v=14/);
+  assert.match(app, /smyl-patient-360\.js\?v=20/);
+  assert.match(sw, /smyl-patient-360\.js\?v=20/);
   assert.match(sw, /history-focused-v71/);
 });
 

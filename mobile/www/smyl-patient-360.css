@@ -735,3 +735,76 @@
   .p360-priority-actions{display:grid;grid-template-columns:1fr}
   .p360-title-tools button,.p360-priority-actions button{width:100%}
 }
+
+/* ── Historia clínica · lectura: secciones numeradas con índice lateral ──
+ * Cada sección es un bloque con franja de color, numeración y filas con la misma forma; lo urgente (seguridad) y lo
+ * pendiente se distinguen a simple vista y lo administrativo queda aparte. Colores de SMYL sin cambios. */
+.p360-hc{display:block}
+.p360-hc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.p360-hc-header h2{margin:0;font-size:20px;font-weight:600;color:var(--smyl-ui-ink,#0b1b2e)}
+.p360-hc-header p{margin:3px 0 0;color:var(--smyl-ui-ink-secondary,#526174);font-size:13px}
+.p360-hc-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.p360-hc-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:26px;align-items:start}
+.p360-hc-index{position:sticky;top:12px;display:grid;gap:2px;padding:14px 8px;border-radius:var(--smyl-ui-radius-card,10px);background:var(--smyl-ui-surface,#fff);box-shadow:var(--smyl-ui-shadow-card,0 1px 20px rgba(11,27,46,.08))}
+.p360-hc-index h3{margin:0;padding:0 10px 8px;color:var(--smyl-ui-ink-muted,#738094);font-size:var(--p360-text-xs,12px);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.p360-hc-index button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:8px;background:none;color:var(--smyl-ui-ink-secondary,#526174);font:500 13px/1.3 inherit;text-align:left;cursor:pointer}
+.p360-hc-index button:hover{background:#f4f7fb}
+.p360-hc-index button[aria-current="true"]{background:#eaf0f8;color:var(--smyl-ui-ink,#0b1b2e);font-weight:600}
+.p360-hc-index button:focus-visible,.p360-hc-edit:focus-visible,.p360-hc-band:focus-visible{outline:3px solid var(--smyl-ui-focus,#2563eb);outline-offset:2px}
+.p360-hc-dot{width:10px;height:10px;flex:none;border-radius:50%;background:#9aa7b5}
+.p360-hc-dot[data-state="alert"]{background:#a73b30}
+.p360-hc-dot[data-state="ok"]{background:#38a99d}
+.p360-hc-dot[data-state="pending"]{background:#fff;border:2px dashed #d3aa4b}
+.p360-hc-progress{margin:10px 10px 2px;padding-top:12px;border-top:1px solid var(--smyl-ui-border,#d9e2ec);color:var(--smyl-ui-ink-secondary,#526174);font-size:12px}
+.p360-hc-bar{height:6px;margin-top:6px;overflow:hidden;border-radius:99px;background:#d9e2ec}
+.p360-hc-bar i{display:block;height:100%;background:#38a99d}
+.p360-hc-missing,.p360-hc-complete{display:block;margin-top:8px;font-weight:600}
+.p360-hc-missing{color:#8a5a05}
+.p360-hc-complete{color:#0f766e}
+.p360-hc-main{min-width:0}
+.p360-hc-band{--rail:#6b7a8c;margin-bottom:26px;overflow:hidden;border:1px solid var(--smyl-ui-border,#d9e2ec);border-left:6px solid var(--rail);border-radius:var(--smyl-ui-radius-card,10px);background:var(--smyl-ui-surface,#fff);box-shadow:var(--smyl-ui-shadow-card,0 1px 20px rgba(11,27,46,.08))}
+.p360-hc-band[data-tone="safety"]{--rail:#a73b30}
+.p360-hc-band[data-tone="medical"]{--rail:#194391}
+.p360-hc-band[data-tone="dental"]{--rail:#38a99d}
+.p360-hc-band[data-tone="habits"]{--rail:#6b7a8c}
+.p360-hc-band[data-tone="admin"]{--rail:#9aa7b5}
+.p360-hc-band-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;border-bottom:2px solid var(--smyl-ui-border,#d9e2ec)}
+.p360-hc-band[data-tone="safety"][data-state="alert"] .p360-hc-band-h{background:#fff2ef}
+.p360-hc-band[data-tone="safety"][data-state="pending"] .p360-hc-band-h{background:#fff8e7}
+.p360-hc-band[data-tone="admin"] .p360-hc-band-h{background:#f8fafc}
+.p360-hc-title{display:flex;align-items:center;gap:12px;min-width:0}
+.p360-hc-num{display:grid;flex:none;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--rail);color:#fff;font-size:12px;font-weight:700}
+.p360-hc-title h3{margin:0;font-size:15px;font-weight:600;color:var(--smyl-ui-ink,#0b1b2e)}
+.p360-hc-title small{display:block;margin-top:1px;color:var(--smyl-ui-ink-muted,#738094);font-size:12px}
+.p360-hc-edit{flex:none;padding:6px 12px;border:1px solid var(--smyl-ui-border-strong,#bac7d5);border-radius:8px;background:#fff;color:#0f766e;font:600 12px/1.3 inherit;cursor:pointer}
+.p360-hc-edit:hover{background:#e8f7f4}
+.p360-hc-rows{display:block;margin:0}
+.p360-hc-row{display:grid;grid-template-columns:190px minmax(0,1fr) auto;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--smyl-ui-border,#d9e2ec)}
+.p360-hc-row:last-child{border-bottom:0}
+.p360-hc-row dt{margin:0;color:var(--smyl-ui-ink-muted,#738094);font-size:var(--p360-text-xs,12px);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.p360-hc-row dd{margin:0}
+.p360-hc-v{display:grid;gap:4px;color:var(--smyl-ui-ink,#0b1b2e);line-height:1.5;overflow-wrap:anywhere}
+.p360-hc-st b{display:inline-block;padding:3px 10px;border-radius:999px;background:#e8f7f4;color:#0f766e;font-size:var(--p360-text-xs,12px);font-weight:700;white-space:nowrap}
+.p360-hc-row[data-state="records"] .p360-hc-st b{background:#eaf0f8;color:#194391}
+.p360-hc-row[data-state="alert"] .p360-hc-st b{background:#fff2ef;color:#a73b30}
+.p360-hc-row[data-state="alert"] .p360-hc-v{font-weight:600}
+.p360-hc-row[data-state="pending"]{border-top:1px dashed #e8c872;border-bottom:1px dashed #e8c872;background:#fff8e7}
+.p360-hc-row[data-state="pending"] .p360-hc-v{color:#8a5a05;font-weight:600}
+.p360-hc-row[data-state="pending"] .p360-hc-st b{border:1px dashed #e8c872;background:#fff;color:#8a5a05}
+.p360-hc-row[data-state="empty"] .p360-hc-v{color:var(--smyl-ui-ink-muted,#738094)}
+.p360-hc-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--smyl-ui-ink-muted,#738094);font-size:12px}
+.p360-hc-footer p{margin:0}
+@media(max-width:900px){
+  .p360-hc-layout{grid-template-columns:minmax(0,1fr);gap:14px}
+  .p360-hc-index{position:sticky;top:0;z-index:3;display:flex;gap:6px;overflow-x:auto;padding:8px;border-radius:10px}
+  .p360-hc-index h3,.p360-hc-progress{display:none}
+  .p360-hc-index button{width:auto;white-space:nowrap}
+}
+@media(max-width:640px){
+  .p360-hc-header{flex-direction:column}
+  .p360-hc-actions{justify-content:flex-start}
+  .p360-hc-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 16px}
+  .p360-hc-row dt{grid-column:1/-1}
+  .p360-hc-band-h{flex-wrap:wrap;padding:14px 16px}
+  .p360-hc-edit{margin-left:38px}
+}
