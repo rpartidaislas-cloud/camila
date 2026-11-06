@@ -3053,6 +3053,24 @@ function hideNavLoading() {
   setTimeout(function() { bar.remove(); }, 600);
 }
 
+// Si el script de un módulo no cargó (red, caché vieja) su panel no existe: en vez de dejar la pantalla en blanco, se avisa y se ofrece recargar.
+function mostrarPanelNoDisponible(p) {
+  var aviso = document.getElementById('p-no-disponible');
+  if (!aviso) {
+    var ref = document.querySelector('.pantalla');
+    if (!ref || !ref.parentNode) return;
+    aviso = document.createElement('section');
+    aviso.id = 'p-no-disponible';
+    aviso.className = 'pantalla';
+    aviso.setAttribute('role', 'alert');
+    aviso.style.cssText = 'padding:48px 24px;text-align:center';
+    aviso.innerHTML = '<h2 style="margin:0 0 8px">Este módulo no pudo cargarse</h2><p style="margin:0 0 16px;opacity:.8">Puede ser una conexión inestable o una versión anterior guardada en el dispositivo. Tus datos no se perdieron.</p><button type="button" class="btn btn-primary" id="p-no-disponible-reintentar">Recargar</button>';
+    ref.parentNode.appendChild(aviso);
+    aviso.querySelector('button').onclick = function() { location.reload(); };
+  }
+  aviso.classList.add('activa');
+}
+
 function ir(p) {
   // Una recarga (p. ej. al actualizarse la PWA) vuelve al mismo módulo en esta pestaña.
   try { sessionStorage.setItem('smyl_route', p); } catch (_) {}
@@ -3060,6 +3078,7 @@ function ir(p) {
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('activo'); });
   var panel = document.getElementById('p-' + p);
   if (panel) panel.classList.add('activa');
+  else mostrarPanelNoDisponible(p);
   document.querySelectorAll('.nav-item').forEach(function(el) {
     if (el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("'" + p + "'") !== -1) el.classList.add('activo');
   });
