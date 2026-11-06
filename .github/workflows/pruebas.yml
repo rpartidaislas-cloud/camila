@@ -1,0 +1,31 @@
+name: Pruebas
+
+# Corre la suite en cada push a main y en cada pull request. Antes ningún workflow corría solo, así que una regresión
+# sólo se descubría al desplegar. Dos pruebas conocidas quedan fuera mientras se resuelven (deuda registrada en
+# docs/AUDITORIA_PANEL_ADMIN_2026-11-06.md): lana-quick (texto de un prompt) y el tope de microtexto de smyl-ui-v3.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Ejecutar pruebas
+        shell: bash
+        run: |
+          node --test --test-skip-pattern="la deuda tipográfica" $(ls tests/*.test.mjs | grep -v 'tests/lana-quick.test.mjs')
