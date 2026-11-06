@@ -18,6 +18,78 @@
   lectura, editar sección, atajos, vacío, solo lectura y móvil. Cachés: `smyl-patient-360.js?v=20`, `.css?v=14`, `smyl-history-read.js?v=1`.
 - Pruebas: 1033 pasan y 2 fallan ya en `main` (`lana-quick`, deuda tipográfica de `smyl-ui-v3`), sin cambios por esta tarea.
 
+## 2026-11-05 — Codex: Resumen del paciente simple y controles clínicos unificados
+
+**Objetivo:** separar visualmente la información esencial del expediente y
+reducir las decisiones visibles a una sola acción principal por momento.
+
+**Qué cambió (frontend):**
+- El Resumen dejó de mostrar la cuadrícula de siete áreas y sus contadores. La
+  vista ahora se organiza en cuatro bloques claros: alerta clínica, `Hoy`,
+  actividad reciente y `Más del expediente`.
+- `Hoy` reúne el siguiente paso con una acción explícita y una lectura breve de
+  alergias, condiciones, medicamentos y última cita. La actividad muestra tres
+  movimientos al inicio y permite expandir el historial completo.
+- Las áreas secundarias permanecen disponibles dentro de un acordeón agrupado
+  por Clínico, Evidencia y Operación; los datos administrativos siguen sujetos
+  al permiso existente.
+- Los estados clínicos `No / Sí / No se sabe / Pendiente` se presentan como un
+  control segmentado único. El pie de Historia clínica usa una sola acción
+  primaria: `Continuar` o, al final, `Guardar historia`.
+- Se eliminó el brillo y desplazamiento de los botones en el expediente, se
+  reforzó la jerarquía entre acciones y se corrigió la ocultación real de
+  controles con el atributo `hidden`.
+
+**Seguridad y datos:** no hubo cambios de backend, migraciones, RLS, permisos
+ni fuentes clínicas. Se reutilizan el historial versionado, la línea de tiempo,
+las citas y la navegación existentes; no se elimina ni duplica información.
+
+**Distribución:** Patient 360 JS v21 / CSS v15, lector de Historia v1 y caché
+`history-read-integration-v75`; web y `mobile/www` sincronizados.
+
+**QA:** contratos enfocados 40/40; Resumen validado en 1440, 1024, 768, 600,
+390 y 320 px, e Historia clínica en 1280, 820, 390 y 320 px. Una sola acción
+primaria, controles móviles de 44 px, expansión 3→7 movimientos, sin
+desbordamiento horizontal y humo de apertura de pacientes aprobado. Suite
+completa integrada: 1,034 aprobadas, 18 omitidas y únicamente los 2 fallos
+basales de `main`: `tests/lana-quick.test.mjs` (frase VITA) y
+`tests/smyl-ui-v3.test.mjs` (presupuesto histórico de microtexto 888→891).
+
+## 2026-11-04 — Codex: Evaluación clínica simplificada y recorrido de cuatro etapas
+
+**Objetivo:** reducir la confusión visual de Tratamiento y separar decisiones
+clínicas, aprobación del paciente y seguimiento real.
+
+**Qué cambió (frontend):**
+- El recorrido ahora usa cuatro etapas reales: `Evaluación`, `Plan`,
+  `Aprobación` y `Atención y seguimiento`. Cotización, presentación y decisión
+  del paciente viven en Aprobación; evolución, citas y cierre quedan en
+  Seguimiento.
+- Evaluación muestra una sola tarea a la vez: `Contexto`, `Evidencia`,
+  `Hallazgos` y `Cierre`. Conserva una sola acción primaria dinámica y mantiene
+  vivos los editores, IDs, eventos y borradores existentes.
+- Se retiraron el resumen de etapa repetido, los metadatos superiores y la
+  numeración decorativa de los módulos. La alerta de historia sólo ocupa una
+  superficie visible cuando existen alertas.
+- Evidencia resume fotos, rayos X y archivos, muestra únicamente el registro
+  más reciente y ofrece acceso al historial anterior. Las sugerencias de IA
+  permanecen separadas de la confirmación profesional.
+- En móvil las cuatro tareas se muestran en una cuadrícula 2×2; la CTA queda
+  dentro del flujo normal y no cubre contenido.
+
+**Seguridad y datos:** no hubo cambios de backend, migraciones, RLS ni fuentes
+clínicas. Se conserva el gate `reviewComplete` vigente y no se introduce cierre
+o aprobación implícita. La corrección semántica del gate radiográfico y la
+integración del flujo RX v2 quedan para una fase de arquitectura separada.
+
+**Distribución:** Case Workspace JS v20 / CSS v16, caché
+`evaluation-flow-v73`; web y `mobile/www` sincronizados.
+
+**QA:** contratos del cambio 19/19 y Playwright aprobado en 1280, 820, 390 y
+320 px: cuatro módulos, cuatro tareas, un panel y una CTA visibles, 32 piezas,
+sin desbordamiento ni superposición. Capturas y reporte en
+`artifacts/treatment-v4/`.
+
 ## 2026-11-04 — Codex: cabecera operativa simplificada
 
 **Objetivo:** retirar accesos redundantes de la barra superior sin eliminar las

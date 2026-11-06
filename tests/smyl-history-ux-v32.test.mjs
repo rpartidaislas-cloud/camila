@@ -99,7 +99,10 @@ test('La política v3.3 gobierna jerarquía, controles, móvil y movimiento redu
   assert.match(css, /Historia clínica v3\.3/);
   assert.match(css, /\.p360-history-editor-shell\{[^}]*grid-template-columns:220px minmax\(0,1fr\)/);
   assert.match(css, /\.p360-history-stepper button\[aria-current="step"\]/);
+  assert.match(css, /Controles clínicos inspirados en un segmented control sobrio/);
+  assert.match(css, /\.p360-history-status-options\{[\s\S]*?grid-template-columns:repeat\(4/);
   assert.match(css, /\.p360-history-status-options input:checked\+span/);
+  assert.match(css, /\.p360-history-actions \[hidden\]\{display:none!important\}/);
   assert.match(css, /\.p360-history-panel>header h3:focus-visible/);
   assert.match(css, /\.p360-history-field input,[\s\S]*?min-height:48px/);
   assert.match(css, /@media\(max-width:900px\)/);
@@ -112,10 +115,10 @@ test('Web, móvil y PWA publican la misma versión de Historia clínica', () => 
   assert.equal(app, mobileApp);
   assert.equal(read('smyl-patient-360.js'), read('mobile/www/smyl-patient-360.js'));
   assert.equal(css, read('mobile/www/smyl-patient-360.css'));
-  assert.match(app, /smyl-patient-360\.css\?v=14/);
-  assert.match(sw, /smyl-patient-360\.css\?v=14/);
-  assert.match(app, /smyl-patient-360\.js\?v=20/);
-  assert.match(sw, /smyl-patient-360\.js\?v=20/);
+  assert.match(app, /smyl-patient-360\.css\?v=15/);
+  assert.match(sw, /smyl-patient-360\.css\?v=15/);
+  assert.match(app, /smyl-patient-360\.js\?v=21/);
+  assert.match(sw, /smyl-patient-360\.js\?v=21/);
   assert.match(sw, /history-focused-v71/);
 });
 

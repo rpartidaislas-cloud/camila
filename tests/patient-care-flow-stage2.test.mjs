@@ -20,13 +20,21 @@ test('la ficha conserva una sola identidad y accesos rápidos del paciente', () 
   assert.match(flowCss, /\.cw-enhanced>\.clinic-patient-heading\{display:none\}/);
 });
 
-test('el recorrido muestra evaluación, plan y seguimiento como etapas explícitas', () => {
-  for (const label of ['Evaluación clínica', 'Plan de tratamiento', 'Autorización y seguimiento', 'Preparar cotización']) {
+test('el recorrido separa evaluación, plan, aprobación y atención como etapas explícitas', () => {
+  for (const label of ['Evaluación clínica', 'Plan de tratamiento', 'Aprobación', 'Atención y seguimiento', 'Preparar cotización']) {
     assert.match(flow, new RegExp(label));
   }
+  assert.match(flow, /const approval=module\(ctx,'approval','03','Aprobación'/);
+  assert.match(flow, /const followup=module\(ctx,'followup','04','Atención y seguimiento'/);
+  assert.match(flow, /id==='share'\?'approval'/);
+  assert.match(flow, /copy\(ctx\.planNext,'Continuar a aprobación'\)/);
+  assert.match(flow, /ctx\.planNext\.onclick=\(\)=>open\('approval'\)/);
   assert.match(flow, /const quoteReady=!!clinical\?\.ready,eligible=pairs>0&&planComplete/);
   assert.match(flow, /ctx\.quoteButton\.disabled=!quoteReady/);
   assert.match(flow, /Preparar presentación mySmyl/);
+  assert.match(flow, /approval\.body\.append\(actions/);
+  assert.match(flow, /followup\.body\.append\(ctx\.evolution\)/);
+  assert.match(flow, /no envía nada automáticamente/i);
 });
 
 test('Agenda abre la ficha para cualquier rol con clinical.read', () => {
@@ -36,9 +44,9 @@ test('Agenda abre la ficha para cualquier rol con clinical.read', () => {
 });
 
 test('web, móvil y PWA publican la misma etapa', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=19/);
-  assert.match(app, /smyl-case-workspace\.css\?v=15/);
-  assert.match(app, /smyl-patient-360\.js\?v=20/);
+  assert.match(app, /smyl-case-workspace\.js\?v=20/);
+  assert.match(app, /smyl-case-workspace\.css\?v=16/);
+  assert.match(app, /smyl-patient-360\.js\?v=21/);
   assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   for (const file of ['app.html','sw.js','smyl-case-workspace.js','smyl-case-workspace.css','smyl-patient-360.js','smyl-schedule.js']) {

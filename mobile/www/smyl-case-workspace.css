@@ -59,7 +59,7 @@
 .cw-treatment-safety button{min-height:42px;padding:0 11px;border:1px solid #cdd8e4;border-radius:8px;background:#fff;color:var(--cw-ink);font:700 11px Inter,sans-serif;cursor:pointer}
 .cw-treatment-safety[data-alerts=true]{border-color:#efd6a8;background:#fffaf0}.cw-treatment-safety[data-alerts=true]>span{background:#ffedc7;color:#8a5a05}
 .cw-overview{margin:0 0 10px;padding:10px 13px;border:0;border-radius:9px;background:#f2f5f8;color:var(--cw-muted);font-size:12px;font-weight:650;line-height:1.5}
-.cw-nav{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:0 0 12px;padding:4px;border:1px solid var(--cw-line);border-radius:10px;background:#edf1f5}
+.cw-nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0 0 12px;padding:4px;border:1px solid var(--cw-line);border-radius:10px;background:#edf1f5}
 .cw-nav button{min-height:42px;border-radius:7px;color:#667386;font-size:12px}.cw-nav button::before{color:#8a97a7}.cw-nav button[data-state=done]::before{color:var(--cw-accent)}
 .cw-nav button[aria-current=step]{background:#fff;color:var(--cw-ink);box-shadow:0 1px 4px rgba(11,27,46,.08)}
 .cw-module{margin:0 0 10px;border:1px solid var(--cw-line);border-radius:12px;background:#fff;box-shadow:none;overflow:clip}
@@ -92,7 +92,7 @@
   .cw-workspace :is(.pc-primary,.pc-secondary){min-height:44px}
   .cw-command{grid-template-columns:1fr;padding:18px}.cw-command-meta{grid-template-columns:1fr}.cw-command-meta>div{border-right:0;border-bottom:1px solid var(--cw-line)}.cw-command-meta>div:last-child{border-bottom:0}
   .cw-treatment-safety{grid-template-columns:auto 1fr}.cw-treatment-safety button{grid-column:1/-1;width:100%;min-height:44px}
-  .cw-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.cw-nav button{min-height:44px;padding-inline:4px}.cw-summary{padding:14px}.cw-body{padding:0 12px 14px}.cw-evaluation-head{align-items:flex-start;flex-direction:column}.cw-part-badge{margin-left:41px}
+  .cw-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.cw-nav button{min-height:44px;padding-inline:8px}.cw-summary{padding:14px}.cw-body{padding:0 12px 14px}.cw-evaluation-head{align-items:flex-start;flex-direction:column}.cw-part-badge{margin-left:41px}
   .cw-evaluation-body{padding-inline:12px}.cw-action-row{align-items:stretch;flex-direction:column}.cw-action-row button,.cw-module-footer button{width:100%;min-height:44px}
 }
 @media(max-width:420px){
@@ -156,3 +156,37 @@
 @media(max-width:900px){.cw-clinical-map-layout{grid-template-columns:1fr}.cw-map-aside>.cw-help{flex:none}.cw-clinical-odontogram.dr-map{max-width:330px}}
 @media(max-width:760px){.cw-clinical-map-head{align-items:flex-start;flex-direction:column;padding:14px}.cw-clinical-map-head .cw-part-badge{margin-left:0}.cw-map-filters{padding:8px}.cw-workspace .cw-map-filter{min-height:44px}.cw-clinical-map-layout{gap:12px;padding:12px}.cw-map-stage{padding-inline:5px}.cw-map-aside{padding:14px}.cw-map-aside button{min-height:44px}.cw-map-legend{justify-content:flex-start;padding-inline:12px}}
 @media(max-width:420px){.cw-clinical-odontogram.dr-map{max-width:290px}.cw-map-stage>.dr-orientation{padding-inline:4px}.cw-map-legend{display:grid;grid-template-columns:1fr 1fr;gap:9px}.cw-clinical-map-head strong{font-size:15px}}
+
+/* Evaluación v4 · cuatro tareas, una superficie y una sola acción principal. */
+.cw-stage-status{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0;white-space:nowrap}
+.cw-command{padding:16px 18px;border:0;background:var(--cw-primary);box-shadow:none}.cw-command-copy .cw-kicker{color:#79d5ca}.cw-command-copy h2{color:#fff;font-size:18px}.cw-command-copy>p:last-child{color:#c7d2df}
+.cw-summary{min-height:68px}.cw-summary>.cw-module-title{margin-right:auto}.cw-summary>.cw-badge{margin-left:auto}
+.cw-evaluation-flow{margin-top:16px}
+.cw-evaluation-tasks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0;padding:0;border:1px solid var(--cw-line);border-radius:11px;background:#f7f9fb;list-style:none;overflow:hidden}
+.cw-evaluation-tasks li{min-width:0;border-right:1px solid var(--cw-line)}.cw-evaluation-tasks li:last-child{border-right:0}
+.cw-evaluation-task{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:9px;width:100%;min-height:66px;padding:10px 12px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--cw-muted);font:inherit;text-align:left;cursor:pointer}
+.cw-evaluation-task:hover{background:#fff}.cw-evaluation-task[aria-current=step]{border-bottom-color:var(--cw-primary);background:#fff;color:var(--cw-ink)}
+.cw-evaluation-task-number{display:grid;grid-row:1/3;place-items:center;width:28px;height:28px;border:1px solid #cbd7e3;border-radius:9px;background:#fff;color:#5c6d7f;font-size:12px;font-weight:800}
+.cw-evaluation-task-copy{min-width:0}.cw-evaluation-task-copy strong,.cw-evaluation-task-copy small{display:block}.cw-evaluation-task-copy strong{color:inherit;font-size:13px;font-weight:750;line-height:1.3}.cw-evaluation-task-copy small{margin-top:2px;overflow:hidden;color:#738094;font-size:12px;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}
+.cw-evaluation-task-state{grid-column:2;overflow:hidden;color:#7a8797;font-size:12px;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+.cw-evaluation-task[data-state=done] .cw-evaluation-task-number{border-color:#bcd9d3;background:#e8f5f2;color:#176a61}.cw-evaluation-task[data-state=done] .cw-evaluation-task-state{color:#176a61}.cw-evaluation-task[aria-current=step] .cw-evaluation-task-number{border-color:var(--cw-primary);background:var(--cw-primary);color:#fff}
+.cw-evaluation-panels{min-width:0}.cw-evaluation-panel{scroll-margin-top:88px}.cw-evaluation-panel-body{min-width:0;padding:20px 2px 8px}
+.cw-evaluation-intro{max-width:720px;margin:0;color:var(--cw-muted);font-size:13px;line-height:1.6}
+.cw-evaluation-panel .cw-contact{margin-top:14px;border-top:1px solid var(--cw-line);border-bottom:1px solid var(--cw-line)}
+.cw-evaluation-panel .cw-action-row{justify-content:flex-start;margin:14px 0 0}
+.cw-evaluation-footer{display:flex;justify-content:flex-end;margin:12px -18px -18px;padding:13px 18px;border-top:1px solid var(--cw-line);background:#fff}
+.cw-evaluation-footer .cw-evaluation-cta{min-width:190px}
+.cw-evaluation-close{display:grid;gap:8px;padding:4px 0}.cw-evaluation-close h3{margin:0;color:var(--cw-ink);font-size:18px;line-height:1.35}.cw-evaluation-close>p{max-width:680px;margin:0;color:var(--cw-muted);font-size:13px;line-height:1.55}
+.cw-evaluation-close-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:10px 0 0;border-top:1px solid var(--cw-line);border-bottom:1px solid var(--cw-line)}.cw-evaluation-close-facts>div{padding:13px 14px}.cw-evaluation-close-facts>div+div{border-left:1px solid var(--cw-line)}.cw-evaluation-close-facts dt,.cw-evaluation-close-facts dd{display:block;margin:0}.cw-evaluation-close-facts dt{color:#738094;font-size:12px}.cw-evaluation-close-facts dd{margin-top:4px;color:var(--cw-ink);font-size:13px;font-weight:700}
+.cw-evidence-history{margin:0;border:0;border-radius:0}.cw-evidence-compact{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 0 13px;border-bottom:1px solid var(--cw-line)}.cw-evidence-compact>div:first-child{min-width:0}.cw-evidence-compact .cw-kicker{margin-bottom:4px}.cw-evidence-compact>div:first-child>strong{display:block;color:var(--cw-ink);font-size:16px}
+.cw-evidence-compact-metrics{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.cw-evidence-compact-metrics>span{display:flex;align-items:baseline;gap:4px;min-height:30px;padding:5px 9px;border:1px solid #d8e1e9;border-radius:999px;background:#fff}.cw-evidence-compact-metrics strong{color:var(--cw-ink);font-size:13px}.cw-evidence-compact-metrics small{color:#718093;font-size:12px}
+.cw-evaluation-panel .cw-evidence-assistant{padding:11px 0;border-bottom:1px solid var(--cw-line);background:transparent}.cw-evaluation-panel .cw-evidence-assistant[data-state=pending],.cw-evaluation-panel .cw-evidence-assistant[data-state=done]{background:transparent}.cw-evaluation-panel .cw-evidence-assistant p{margin-top:2px}
+.cw-evaluation-panel .cw-evidence-list{border-bottom:1px solid var(--cw-line)}.cw-evaluation-panel .cw-evidence-item{padding:12px 0;border:0}.cw-evaluation-panel .cw-evidence-item>div>span{font-size:12px;font-weight:750;letter-spacing:.06em}.cw-evaluation-panel .cw-evidence-history-foot{padding:11px 0;border-top:0;background:transparent}.cw-workspace .cw-evidence-previous{min-height:42px;border-color:transparent;background:transparent;color:#174f78;text-decoration:underline;text-underline-offset:3px}
+.cw-evaluation-panel .cw-simulation-link{margin:14px 0 0;background:#f8fafc}.cw-evaluation-panel .cw-simulation-link a{border-color:#c7d2df;background:#fff;color:#294a51}
+.cw-evaluation-panel .cw-clinical-map{margin-top:0}.cw-evaluation-panel>.cw-help:last-child{margin-bottom:0}
+@media(max-width:760px){
+ .cw-evaluation-tasks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.cw-evaluation-tasks li{min-width:0}.cw-evaluation-tasks li:nth-child(2n){border-right:0}.cw-evaluation-tasks li:nth-child(-n+2){border-bottom:1px solid var(--cw-line)}.cw-evaluation-task{min-height:68px}
+ .cw-evaluation-panel-body{padding-top:16px}.cw-evaluation-footer{margin-inline:-12px;margin-bottom:-14px;padding:12px}.cw-evaluation-footer .cw-evaluation-cta{width:100%;min-height:46px}
+ .cw-evidence-compact{align-items:flex-start;flex-direction:column}.cw-evidence-compact-metrics{justify-content:flex-start}.cw-evaluation-panel .cw-evidence-assistant{grid-template-columns:1fr}.cw-evaluation-close-facts{grid-template-columns:1fr}.cw-evaluation-close-facts>div+div{border-top:1px solid var(--cw-line);border-left:0}
+}
+@media(max-width:420px){.cw-nav button{font-size:12px;line-height:1.25}.cw-summary>.cw-badge{margin-left:0}.cw-evaluation-task-copy small{display:none}.cw-evaluation-task{min-height:60px}.cw-evaluation-panel-body{padding-top:14px}.cw-evidence-compact-metrics{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.cw-evidence-compact-metrics>span{justify-content:center;padding-inline:6px}.cw-evaluation-panel .cw-evidence-item{grid-template-columns:auto minmax(0,1fr)}.cw-evaluation-panel .cw-evidence-open{grid-column:1/-1;width:100%}}

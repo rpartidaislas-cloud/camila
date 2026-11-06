@@ -7,26 +7,22 @@ const script = read('../smyl-patient-360.js');
 const styles = read('../smyl-patient-360.css');
 const sync = read('../mobile/scripts/sync-web.js');
 
-test('la portada 360 ordena las fuentes existentes sin crear otro expediente', () => {
-  for (const area of ['Historia clínica', 'Evoluciones', 'Tratamiento', 'Estudios y archivos', 'Atención y citas']) {
+test('el resumen prioriza riesgo, siguiente acción y datos clave sin duplicar la navegación', () => {
+  for (const area of ['Historia clínica', 'Evoluciones', 'Plan', 'Simulaciones SMYL', 'Estudios y archivos', 'Citas']) {
     assert.match(script, new RegExp(area));
   }
-  assert.match(script, /Todo el paciente, ordenado por área/);
-  assert.match(script, /Cada bloque abre el área correspondiente; la información clínica no se duplica/);
+  for (const label of ['Alerta clínica', 'Hoy', 'SIGUIENTE PASO', 'Datos clave', 'Actividad reciente', 'Más del expediente']) {
+    assert.match(script, new RegExp(label));
+  }
   assert.match(script, /showSection\(s,button\.dataset\.p360Domain\)/);
-  assert.match(script, /SmylCaseWorkspace\.context/);
-  assert.match(script, /SmylDentalProgress\.status/);
-  assert.match(script, /SmylClinicalWorkflow\.status/);
-  const careProjection = script.slice(script.indexOf('function careCards('), script.indexOf('function careCardsHtml('));
-  assert.doesNotMatch(careProjection, /\.insert\(|\.update\(|\.upsert\(|rpc\(/);
+  assert.doesNotMatch(script, /Todo el paciente, ordenado por área|áreas vinculadas|p360-domain-card/);
+  const accessProjection = script.slice(script.indexOf('function overviewLinks('), script.indexOf('function timelineHtml('));
+  assert.doesNotMatch(accessProjection, /\.insert\(|\.update\(|\.upsert\(|rpc\(/);
 });
 
-test('la actividad longitudinal usa el timeline autorizado y abre su fuente canónica', () => {
-  for (const filter of ["['all','Todo']", "['clinical','Clínica']", "['appointments','Citas']", "['files','Archivos']", "['proposals','Cotizaciones']", "['finance','Administrativo']", "['messages','Conversaciones']"]) {
-    assert.match(script, new RegExp(filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-  assert.match(script, /timelineRows\(s\)/);
-  assert.match(script, /s\.timeline\.filter/);
+test('la actividad reciente muestra tres eventos y conserva acceso a la fuente canónica', () => {
+  assert.match(script, /s\.timelineExpanded\?rows:rows\.slice\(0,3\)/);
+  assert.match(script, /Ver toda la actividad/);
   assert.match(script, /openTimelineItem\(s,type,id\)/);
   assert.match(script, /if\(type==='appointment'\)return showSection\(s,'appointments'\)/);
   assert.match(script, /if\(type==='clinical_note'\)return showSection\(s,'notes'\)/);
@@ -34,26 +30,26 @@ test('la actividad longitudinal usa el timeline autorizado y abre su fuente can�
   assert.match(script, /return showSection\(s,'treatment'\)/);
   assert.match(script, /return showSection\(s,'billing'\)/);
   assert.match(script, /window\.ir\('inbox'\)/);
-  assert.match(script, /if\(!filters\.some[\s\S]*s\.timelineFilter='all'/);
-  assert.match(script, /s\.timelineExpanded\?rows:rows\.slice\(0,6\)/);
+  assert.doesNotMatch(script, /data-timeline-filter|p360-timeline-filters/);
 });
 
-test('las áreas sensibles conservan permisos y estados profesionales', () => {
-  assert.match(script, /if\(s\.canFinanceRead\)cards\.push/);
-  assert.match(script, /fiscalComplete\(s\.fiscal\)/);
-  assert.match(script, /ctx\.plan&&ctx\.plan\.saved\?'Borrador guardado':ctx\.plan&&ctx\.plan\.ready\?'Evaluación disponible'/);
+test('los accesos secundarios conservan permisos y estados clínicos explícitos', () => {
+  assert.match(script, /s\.canFinanceRead\?\[\['billing','Datos administrativos'\]\]:\[\]/);
+  assert.match(script, /conciseHistoryValue/);
+  assert.match(script, /Ninguna conocida/);
+  assert.match(script, /Ninguno registrado/);
   assert.match(script, /Por confirmar/);
-  assert.match(script, /Borrador guardado/);
   assert.doesNotMatch(script, /diagnóstico generado|diagnóstico automático|tratamiento recomendado por IA/i);
 });
 
-test('la política visual presenta una superficie conectada accesible y responsiva', () => {
-  assert.match(styles, /\.p360-record-map\{/);
-  assert.match(styles, /\.p360-domain-grid\{display:grid;grid-template-columns:repeat\(3/);
-  assert.match(styles, /\.p360-domain-card:focus-visible/);
+test('la política visual separa secciones, accesos y actividad sin multiplicar tarjetas', () => {
+  assert.match(styles, /Resumen simple v4\.6/);
+  assert.match(styles, /\.p360-today-grid\{display:grid;grid-template-columns:/);
+  assert.match(styles, /\.p360-more>summary/);
+  assert.match(styles, /\.p360-more-grid\{display:grid;grid-template-columns:repeat\(3/);
   assert.match(styles, /\.p360-timeline-row:focus-visible/);
-  assert.match(styles, /@media\(max-width:600px\)[\s\S]*?\.p360-domain-grid\{grid-template-columns:1fr\}/);
-  assert.match(styles, /\.p360-root :is\([^)]+\.p360-timeline-filters button[^)]+\)\{min-height:44px\}/);
+  assert.match(styles, /@media\(max-width:700px\)[\s\S]*?\.p360-more-grid\{grid-template-columns:1fr/);
+  assert.match(styles, /\.p360-root \[hidden\]\{display:none!important\}/);
   assert.match(sync, /smyl-patient-360\.js/);
   assert.match(sync, /smyl-patient-360\.css/);
 });

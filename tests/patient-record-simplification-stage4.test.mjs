@@ -26,8 +26,9 @@ test('el expediente no apila una segunda identidad ni el flujo completo bajo el 
 });
 
 test('la documentación clínica no presenta simulaciones como evidencia', () => {
-  assert.match(workspace, /Documentación clínica/);
-  assert.match(workspace, /Las imágenes generadas no forman parte de la documentación clínica/);
+  assert.match(workspace, /evaluationTask\(ctx,'evidence','02','Evidencia','Archivos y estudios'\)/);
+  assert.match(workspace, /Las simulaciones se mantienen separadas de la evidencia clínica/);
+  assert.match(workspace, /las simulaciones nunca se utilizan como evidencia clínica/);
   assert.match(workspace, /cw-simulation-source/);
   assert.match(workspaceCss, /\.cw-simulation-source\{display:none!important\}/);
   assert.doesNotMatch(workspace, /Selecciona las fotografías y simulaciones de este caso/);
@@ -42,9 +43,9 @@ test('simulaciones tiene un espacio independiente y una advertencia visual clara
 });
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=14/);
-  assert.match(app, /smyl-patient-360\.js\?v=20/);
-  assert.match(app, /smyl-case-workspace\.js\?v=19/);
+  assert.match(app, /smyl-patient-360\.css\?v=15/);
+  assert.match(app, /smyl-patient-360\.js\?v=21/);
+  assert.match(app, /smyl-case-workspace\.js\?v=20/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));

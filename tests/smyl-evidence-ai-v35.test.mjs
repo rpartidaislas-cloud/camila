@@ -20,9 +20,9 @@ test('cada imagen compatible muestra el avance de su revisión asistida', () => 
 });
 
 test('la IA permanece separada de la confirmación profesional', () => {
-  assert.match(workspace, /Nada pasa al odontograma hasta que el profesional lo confirma/);
+  assert.match(workspace, /Nada pasa al odontograma hasta que lo confirmes/);
   assert.match(workspace, /Revisión profesional/);
-  assert.match(workspace, /La IA sólo propone zonas/);
+  assert.match(workspace, /sugerencias pendientes/);
   assert.doesNotMatch(workspace, /diagnóstico automático|aprobar automáticamente/i);
 });
 
@@ -38,14 +38,14 @@ test('la revisión asistida se adapta a móvil y conserva estados legibles', () 
   }
   assert.match(styles, /\.cw-evidence-review\[data-state=pending\]/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(fixture, /2 sugerencias por confirmar/);
-  assert.match(fixture, /Revisión profesional/);
+  assert.match(fixture, /2 sugerencias pendientes/);
+  assert.match(fixture, /confirmación profesional/);
 });
 
 test('web, móvil y PWA publican la etapa 3.5', () => {
   assert.match(app, /smyl-dental-record\.js\?v=17/);
-  assert.match(app, /smyl-case-workspace\.css\?v=15/);
-  assert.match(app, /smyl-case-workspace\.js\?v=19/);
+  assert.match(app, /smyl-case-workspace\.css\?v=16/);
+  assert.match(app, /smyl-case-workspace\.js\?v=20/);
   assert.match(worker, /evidence-ai-v35/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

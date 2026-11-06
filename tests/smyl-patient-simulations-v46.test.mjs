@@ -15,7 +15,7 @@ const worker = read('sw.js');
 test('el expediente ofrece un área única para todas las simulaciones SMYL', () => {
   assert.match(record, /data-p360-tab="simulations"[^>]*>Simulaciones SMYL/);
   assert.match(record, /data-p360-panel="simulations"/);
-  assert.match(record, /key:'simulations'/);
+  assert.match(record, /\['simulations','Simulaciones SMYL'\]/);
   assert.match(record, /smyl:patient-simulations-updated/);
 });
 

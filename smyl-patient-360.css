@@ -808,3 +808,154 @@
   .p360-hc-band-h{flex-wrap:wrap;padding:14px 16px}
   .p360-hc-edit{margin-left:38px}
 }
+
+/* Resumen simple v4.6 · riesgo, siguiente acción, datos clave y actividad. */
+.p360-root [hidden]{display:none!important}
+.p360-summary-section{margin-top:30px}
+.p360-summary-title{margin:0 0 12px;color:var(--smyl-ui-ink,#0b1b2e);font-size:16px;font-weight:750;line-height:1.35;letter-spacing:-.01em}
+.p360-summary-heading{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:12px}
+.p360-summary-heading .p360-summary-title{margin:0}
+.p360-summary-heading p{margin:3px 0 0;color:var(--smyl-ui-ink-muted,#738094);font-size:12px;line-height:1.45}
+.p360-alerts{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  min-height:54px;
+  margin:0 0 30px;
+  padding:9px 10px 9px 12px;
+  border:1px solid #f0c9c9;
+  border-left:3px solid #bf4545;
+  border-radius:10px;
+  background:#fff8f8;
+  color:#802727;
+}
+.p360-alert-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#fbe5e5;color:#a52f2f;font-size:13px;font-weight:850}
+.p360-alert-copy{min-width:0}
+.p360-alert-copy>strong{display:block;margin:0 0 3px;font-size:12px;font-weight:800;line-height:1.35}
+.p360-alert-copy>div{display:flex;flex-wrap:wrap;gap:4px 10px}
+.p360-alert-copy span{padding:0;border-radius:0;background:transparent;color:#8e3535;font-size:12px;line-height:1.4}
+.p360-alerts>button{min-height:38px;padding:0 11px;border:0;border-radius:8px;background:transparent;color:#8e3030;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.p360-alerts>button:hover{background:#fbe9e9}
+.p360-today-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(320px,.88fr);gap:18px;align-items:stretch}
+.p360-today-grid>.p360-priority,.p360-today-grid>.p360-card{height:100%;box-sizing:border-box}
+.p360-today-grid>.p360-priority{margin:0;border:1px solid #c9dfda;border-left:3px solid #27877c;background:#f3f9f7;box-shadow:none}
+.p360-priority-actions .btn-primary{
+  border-color:#0b1b2e;
+  background:#0b1b2e;
+  color:#fff;
+  box-shadow:none;
+  transform:none;
+}
+.p360-priority-actions .btn-primary::after{content:"→";margin-left:8px;font-size:14px;font-weight:500;transition:transform 150ms ease}
+.p360-priority-actions .btn-primary:hover{border-color:#142b47;background:#142b47;box-shadow:none;transform:none}
+.p360-priority-actions .btn-primary:hover::after{transform:translateX(2px)}
+.p360-health-card{border:1px solid #dce4ec;background:#fff;box-shadow:none}
+.p360-health-card .p360-section-head{align-items:center}
+.p360-health-card .p360-section-head h2{margin:0;font-size:16px}
+.p360-health-card .p360-section-head button{min-height:36px;padding:0 8px;border:0;background:transparent;color:#31566f;font-size:12px}
+.p360-health-card .p360-section-head button:hover{background:#f1f5f7}
+.p360-health-card dl{display:grid;grid-template-columns:1fr;gap:0;margin:12px 0 0;border:0;border-radius:0;overflow:visible}
+.p360-health-card dl div,.p360-health-card dl div:nth-child(n){display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:9px 0;border:0;border-bottom:1px solid #e8edf2;border-radius:0;background:transparent}
+.p360-health-card dl div:last-child{border-bottom:0}
+.p360-health-card dt{flex:none;color:#667589;font-size:12px;font-weight:650;letter-spacing:0;text-transform:none}
+.p360-health-card dd{min-width:0;margin:0;color:#172a3f;font-size:12px;font-weight:700;line-height:1.45;text-align:right;overflow-wrap:anywhere}
+.p360-activity-card{padding:0 18px;border:1px solid #dce4ec;background:#fff;box-shadow:none}
+.p360-activity-card .p360-timeline{margin:0}
+.p360-activity-card .p360-timeline-row{min-height:66px;padding:12px 2px}
+.p360-activity-card .p360-timeline-row:last-of-type{border-bottom:0}
+.p360-timeline-more{display:block;min-height:42px;margin:4px auto 8px;padding:0 12px;border:0;background:transparent;color:#31566f;font-size:12px;font-weight:750}
+.p360-timeline-more:hover{background:#f3f6f8}
+.p360-more{margin-top:30px;border-top:1px solid #dce4ec;border-bottom:1px solid #dce4ec;background:transparent}
+.p360-more>summary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 2px;list-style:none;cursor:pointer}
+.p360-more>summary::-webkit-details-marker{display:none}
+.p360-more>summary>span{min-width:0}
+.p360-more>summary strong,.p360-more>summary small{display:block}
+.p360-more>summary strong{color:#263a50;font-size:13px;line-height:1.35}
+.p360-more>summary small{margin-top:2px;color:#748195;font-size:12px;line-height:1.4}
+.p360-more>summary>i{width:8px;height:8px;flex:none;margin-right:5px;border-right:2px solid #718095;border-bottom:2px solid #718095;transform:rotate(45deg) translateY(-2px);transition:transform 150ms ease}
+.p360-more[open]>summary>i{transform:rotate(225deg) translate(-2px,-2px)}
+.p360-more-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:7px 2px 20px}
+.p360-more-grid section>strong{display:block;margin-bottom:5px;color:#718095;font-size:12px;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
+.p360-more-grid section>div{display:grid}
+.p360-more-grid button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:0;border:0;border-bottom:1px solid #edf0f3;background:transparent;color:#243b52;font:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
+.p360-more-grid button:last-child{border-bottom:0}
+.p360-more-grid button:hover{color:#0b1b2e}
+.p360-more-grid button b{color:#8490a0;font-size:13px;font-weight:500;transition:transform 150ms ease}
+.p360-more-grid button:hover b{transform:translateX(2px)}
+
+/* Controles clínicos inspirados en un segmented control sobrio. */
+.p360-history-status-options{
+  display:inline-grid;
+  grid-template-columns:repeat(4,minmax(0,auto));
+  gap:3px;
+  max-width:100%;
+  padding:3px;
+  border:1px solid #d7e0e8;
+  border-radius:10px;
+  background:#f1f4f7;
+  box-shadow:inset 0 1px 1px rgba(11,27,46,.03);
+}
+.p360-history-status-options label{min-width:0}
+.p360-history-status-options span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:0 13px;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#536276;
+  font-size:13px;
+  font-weight:650;
+  white-space:nowrap;
+  box-shadow:none;
+}
+.p360-history-status-options label:hover span{background:#fff;color:#24384f}
+.p360-history-status-options input:checked+span{border:0;background:#0b1b2e;color:#fff;box-shadow:0 1px 3px rgba(11,27,46,.16)}
+.p360-history-status-options input:checked+span::before{content:"✓";margin-right:6px;font-size:12px;font-weight:850}
+.p360-history-actions{grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center}
+.p360-history-actions [hidden]{display:none!important}
+.p360-history-actions button{min-height:40px;border-radius:9px;box-shadow:none!important;transform:none!important}
+.p360-history-actions [data-history-cancel]{border-color:transparent;background:transparent;color:#657386}
+.p360-history-actions [data-history-cancel]:hover{background:#f1f4f6;color:#263a50}
+.p360-history-actions [data-history-prev]{border-color:#d3dde6;background:#fff;color:#364c63}
+.p360-history-actions [data-history-prev]::before{content:"←";margin-right:7px;font-weight:500}
+.p360-history-actions [data-history-next],.p360-history-actions [data-history-save]{border-color:#0b1b2e;background:#0b1b2e;color:#fff}
+.p360-history-actions [data-history-next]::after{content:"→";margin-left:8px;font-weight:500}
+.p360-history-actions [data-history-next]:hover,.p360-history-actions [data-history-save]:hover{border-color:#142b47;background:#142b47}
+
+@media(max-width:900px){
+  .p360-today-grid{grid-template-columns:1fr}
+  .p360-more-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .p360-summary-section{margin-top:24px}
+  .p360-alerts>button,.p360-health-card .p360-section-head button,.p360-timeline-more,.p360-more>summary,.p360-more-grid button{min-height:44px}
+  .p360-alerts{grid-template-columns:28px minmax(0,1fr);margin-bottom:24px}
+  .p360-alerts>button{grid-column:2;justify-self:start;margin-left:-8px}
+  .p360-today-grid{gap:12px}
+  .p360-today-grid>.p360-priority{align-items:flex-start;flex-direction:column}
+  .p360-today-grid .p360-priority-actions{width:100%}
+  .p360-today-grid .p360-priority-actions button{width:100%}
+  .p360-health-card .p360-section-head{align-items:center;flex-direction:row;justify-content:space-between;width:100%}
+  .p360-health-card .p360-section-head button{width:auto}
+  .p360-more-grid{grid-template-columns:1fr;gap:18px}
+  .p360-history-actions{grid-template-columns:1fr auto auto;padding-inline:18px}
+  .p360-history-actions p{grid-column:1/-1}
+  .p360-history-actions [data-history-cancel],.p360-history-actions [data-history-prev],.p360-history-actions [data-history-next],.p360-history-actions [data-history-save]{grid-column:auto;width:auto}
+}
+@media(max-width:420px){
+  .p360-alert-copy>div{display:grid;gap:3px}
+  .p360-health-card dl div,.p360-health-card dl div:nth-child(n){display:grid;gap:3px}
+  .p360-health-card dd{text-align:left}
+  .p360-activity-card{padding-inline:13px}
+  .p360-history-status-options{display:grid;grid-template-columns:1fr 1fr;width:100%;box-sizing:border-box}
+  .p360-history-status-options span{min-height:42px;padding-inline:8px}
+  .p360-history-actions{grid-template-columns:1fr}
+  .p360-history-actions p,.p360-history-actions [data-history-cancel],.p360-history-actions [data-history-prev],.p360-history-actions [data-history-next],.p360-history-actions [data-history-save]{grid-column:1;width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .p360-priority-actions .btn-primary::after,.p360-more>summary>i,.p360-more-grid button b{transition:none}
+}
