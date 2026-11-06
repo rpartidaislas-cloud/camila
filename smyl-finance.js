@@ -9,12 +9,14 @@
   function date(v,full){return v?new Intl.DateTimeFormat('es-MX',full?{dateStyle:'medium',timeStyle:'short'}:{day:'numeric',month:'short',year:'numeric'}).format(new Date(v)):'—';}
   function name(id){var p=by(state.patients,id);return p?[p.nombre,p.apellido].filter(Boolean).join(' '):'Paciente';}
   async function q(b){var r=await(typeof window.sbTimeout==='function'?window.sbTimeout(b):b);if(r&&r.error)throw r.error;return r?r.data:null;}
-  async function rpc(n,a){return q(window.sb.rpc(n,a));}
+  var inFlight=0;
+  function busyButtons(on){var d=document.getElementById('finance-dialog');if(!d)return;d.querySelectorAll('form button:not([data-close])').forEach(function(b){b.disabled=on;});}
+  async function rpc(n,a){inFlight++;busyButtons(true);try{return await q(window.sb.rpc(n,a));}finally{inFlight--;if(!inFlight)busyButtons(false);}}
   function message(e){var m=String(e&&(e.message||e.error_description||e.error)||'No se pudo completar la operación.');if(/42501|permiso|row-level/i.test(m))return 'Tu rol no permite realizar esta acción.';if(/caja.*abierta/i.test(m))return m;if(/40001|cambió/i.test(m))return 'La información cambió en otra sesión. Actualizamos antes de continuar.';return m.replace(/^Error:\s*/i,'');}
   function notify(text,tone){var h=document.getElementById('finance-feedback');if(!h)return;h.innerHTML=text?'<div class="finance-notice" data-tone="'+esc(tone||'info')+'"><span>'+esc(text)+'</span><button type="button">Cerrar</button></div>':'';var b=h.querySelector('button');if(b)b.onclick=function(){h.replaceChildren();};}
   function capabilities(){var owner=window.miRolEquipo==='dueño',ids=new Set(state.memberRoles.filter(function(x){return x.user_id===state.actor;}).map(function(x){return x.role_id;})),p=new Set(state.rolePermissions.filter(function(x){return ids.has(x.role_id);}).map(function(x){return x.permission_key;}));state.canRead=owner||p.has('finance.read');state.canManage=owner||p.has('finance.manage');}
   function opts(rows,label,selected){return rows.map(function(x){var s=typeof label==='function'?label(x):x[label];return '<option value="'+x.id+'"'+(x.id===selected?' selected':'')+'>'+esc(s)+'</option>';}).join('');}
-  function dialog(html){var d=document.getElementById('finance-dialog');d.innerHTML=html;d.showModal();var c=d.querySelector('[data-close]');if(c)c.onclick=function(){d.close();};return d;}
+  function dialog(html){var d=document.getElementById('finance-dialog');d.innerHTML=html;d.showModal();d.querySelectorAll('form').forEach(function(fm){fm.addEventListener('submit',function(ev){if(inFlight>0){ev.preventDefault();ev.stopImmediatePropagation();}},true);});var c=d.querySelector('[data-close]');if(c)c.onclick=function(){d.close();};return d;}
   function close(){document.getElementById('finance-dialog').close();}
   function paidFor(charge){return state.allocations.filter(function(a){return a.charge_id===charge.id;}).reduce(function(s,a){return s+Number(a.amount);},0)-state.refundAllocations.filter(function(a){return a.charge_id===charge.id;}).reduce(function(s,a){return s+Number(a.amount);},0);}
   function balance(charge){return charge.status==='voided'?0:Math.max(0,Number(charge.total_amount)-paidFor(charge));}

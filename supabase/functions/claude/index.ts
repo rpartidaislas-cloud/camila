@@ -1055,6 +1055,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // El navegador sólo puede elegir entre estos modelos y hasta este tope; lo demás lo fija el servidor.
+    const modelosClienteAdmitidos = new Set(["claude-sonnet-4-5", "claude-sonnet-4-6", "claude-opus-4-5"]);
+    const acotarMaxTokensCliente = (v: unknown): number => {
+      const n = Math.floor(Number(v));
+      return Number.isFinite(n) && n > 0 ? Math.min(n, 6500) : 4096;
+    };
     let anthropicBody: any;
     if (body.action === TREATMENT_PLAN_ACTION) {
       anthropicBody = {
@@ -1066,8 +1072,8 @@ Deno.serve(async (req: Request) => {
       };
     } else if (body.messages) {
       anthropicBody = {
-        model: body.model || "claude-opus-4-5",
-        max_tokens: body.max_tokens || 4096,
+        model: modelosClienteAdmitidos.has(body.model) ? body.model : "claude-opus-4-5",
+        max_tokens: acotarMaxTokensCliente(body.max_tokens),
         messages: body.messages,
       };
       if (body.system) anthropicBody.system = body.system;

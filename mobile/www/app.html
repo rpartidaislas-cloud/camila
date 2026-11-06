@@ -851,7 +851,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-inventory.css?v=7">
 <script defer src="smyl-inventory.js?v=8"></script>
 <link rel="stylesheet" href="smyl-finance.css?v=7">
-<script defer src="smyl-finance.js?v=8"></script>
+<script defer src="smyl-finance.js?v=9"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=5">
 <script defer src="smyl-reports.js?v=4"></script>
 <link rel="stylesheet" href="smyl-readiness.css?v=2">
@@ -2462,6 +2462,19 @@ function sbTimeout(promise, ms) {
   return Promise.race([promise, timeoutPromise]);
 }
 
+// Guarda claves propias dentro de camila_tenants.config sin pisar las demás (p. ej. la conexión LANA):
+// relee la config vigente del servidor, mezcla sólo `claves` y revisa el {error} que supabase-js devuelve.
+async function guardarConfigTenant(claves, extra) {
+  var r = await sbTimeout(sb.from('camila_tenants').select('config').eq('id', tenantId).single());
+  if (r.error) throw r.error;
+  var config = Object.assign({}, (r.data && r.data.config) || {}, claves);
+  var cambios = Object.assign({}, extra || {}, {config: config});
+  var u = await sbTimeout(sb.from('camila_tenants').update(cambios).eq('id', tenantId));
+  if (u && u.error) throw u.error;
+  tenantData.config = config;
+  return config;
+}
+
 // ══════════════════════════════════════════
 // ESTADO GLOBAL
 // ══════════════════════════════════════════
@@ -2587,13 +2600,15 @@ async function continuarConUsuario(authUser) {
   // comportamiento previo a esta función.
   var miTenantId = authUser.id;
   miRolEquipo = 'dueño';
+  var consultaRolFallo = false;
   try {
     var miembroRes = await sbTimeout(sb.from('camila_usuarios').select('tenant_id, rol').eq('id', authUser.id).maybeSingle());
-    if (miembroRes.data && miembroRes.data.tenant_id) {
+    if (miembroRes.error) consultaRolFallo = true;
+    else if (miembroRes.data && miembroRes.data.tenant_id) {
       miTenantId = miembroRes.data.tenant_id;
       miRolEquipo = miembroRes.data.rol || 'dueño';
     }
-  } catch(e) {}
+  } catch(e) { consultaRolFallo = true; }
 
   // Cargar tenant desde Supabase
   try {
@@ -2641,6 +2656,8 @@ async function continuarConUsuario(authUser) {
     }
     tenantData = res.data;
     tenantId = res.data.id;
+    // Si no se pudo confirmar el rol, la interfaz arranca con permisos mínimos (el servidor igual decide).
+    if (consultaRolFallo) miRolEquipo = 'staff';
     if (!tenantData.activo) { alert('Tu cuenta está suspendida. Contacta al administrador.'); cerrarSesion(); return; }
     // La expiración comercial no debe expulsar al profesional de sus propios
     // expedientes. El backend sigue bloqueando el consumo pagado; el panel se
@@ -3533,10 +3550,11 @@ async function guardarSimConfig() {
 
   // Also save to Supabase if available
   try {
-    var config = (tenantData.config) || {};
-    config.sim = cfg;
-    await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId));
-  } catch(e) {}
+    await guardarConfigTenant({sim: cfg});
+  } catch(e) {
+    alert('La configuración se guardó en este dispositivo, pero no se pudo sincronizar (' + (e.message || 'error de red') + ').');
+    return;
+  }
 
   alert('✅ Configuración guardada.');
 }
@@ -4274,11 +4292,8 @@ async function guardarPrecios() {
   // de camila_tenants.config.precios (mismo patrón que guardarConfig() usa
   // para el branding) para que quede disponible desde cualquier dispositivo
   // con la misma cuenta.
-  var config = (tenantData && tenantData.config) || {};
-  config.precios = obj;
-  if (tenantData) tenantData.config = config;
   try {
-    await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId));
+    await guardarConfigTenant({precios: obj});
     alert('Precios guardados correctamente.');
   } catch(e) {
     alert('Los precios se guardaron en este dispositivo, pero no se pudieron sincronizar (' + (e.message || 'error de red') + ').');
@@ -4295,15 +4310,17 @@ function cargarConfig() {
   if (config.ciudad) document.getElementById('conf-ciudad').value = config.ciudad;
 }
 async function guardarConfig() {
-  var config = (tenantData.config) || {};
-  config.doctor = document.getElementById('conf-doctor').value.trim();
-  config.consultorio = document.getElementById('conf-consultorio').value.trim();
-  config.ciudad = document.getElementById('conf-ciudad').value.trim();
-  tenantData.config = config;
-  try { await sbTimeout(sb.from('camila_tenants').update({config: config}).eq('id', tenantId)); } catch(e) {
-    localStorage.setItem('camila_config_' + tenantId, JSON.stringify(config));
+  var claves = {
+    doctor: document.getElementById('conf-doctor').value.trim(),
+    consultorio: document.getElementById('conf-consultorio').value.trim(),
+    ciudad: document.getElementById('conf-ciudad').value.trim()
+  };
+  try { await guardarConfigTenant(claves); } catch(e) {
+    localStorage.setItem('camila_config_' + tenantId, JSON.stringify(Object.assign({}, tenantData.config || {}, claves)));
+    alert('No se pudo guardar la información (' + (e.message || 'error de red') + '). Se conservó en este dispositivo; intenta de nuevo.');
+    return;
   }
-  document.getElementById('sb-consultorio').textContent = config.consultorio || 'Mi Consultorio';
+  document.getElementById('sb-consultorio').textContent = claves.consultorio || 'Mi Consultorio';
   alert('Información guardada.');
 }
 
@@ -4358,7 +4375,8 @@ async function cargarEquipo() {
 
 async function toggleMiembroActivo(id, nuevoValor) {
   try {
-    await sbTimeout(sb.from('camila_usuarios').update({activo: nuevoValor}).eq('id', id));
+    var rt = await sbTimeout(sb.from('camila_usuarios').update({activo: nuevoValor}).eq('id', id));
+    if (rt && rt.error) throw rt.error;
     cargarEquipo();
   } catch(e) {
     alert('No se pudo actualizar: ' + (e.message || 'error de red'));
@@ -5015,15 +5033,18 @@ function renderMiCuenta() {
 }
 
 async function guardarPerfil() {
-  var config = tenantData.config || {};
-  config.tel = document.getElementById('mc-tel').value.trim();
-  config.especialidad = document.getElementById('mc-especialidad').value.trim();
-  config.consultorio = document.getElementById('mc-consultorio2').value.trim();
-  tenantData.nombre = document.getElementById('mc-nombre').value.trim();
-  tenantData.config = config;
+  var nombre = document.getElementById('mc-nombre').value.trim();
   try {
-    await sbTimeout(sb.from('camila_tenants').update({nombre: tenantData.nombre, config: config}).eq('id', tenantId));
-  } catch(e) {}
+    await guardarConfigTenant({
+      tel: document.getElementById('mc-tel').value.trim(),
+      especialidad: document.getElementById('mc-especialidad').value.trim(),
+      consultorio: document.getElementById('mc-consultorio2').value.trim()
+    }, {nombre: nombre});
+  } catch(e) {
+    alert('No se pudo guardar el perfil (' + (e.message || 'error de red') + '). Intenta de nuevo.');
+    return;
+  }
+  tenantData.nombre = nombre;
   renderSidebar();
   alert('Perfil guardado.');
 }
