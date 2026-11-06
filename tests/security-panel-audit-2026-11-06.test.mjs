@@ -43,3 +43,15 @@ test('workflow del panel aplica y verifica las dos migraciones', () => {
   assert.match(workflow, /roles_sin_alcance/);
   assert.match(workflow, /smyl_tenants_with_permission/);
 });
+
+test('compactación de auditoría: no borra eventos, exige ventana mínima y solo la ejecuta service_role', () => {
+  const mig = read('supabase/migrations/20261106120000_smyl_audit_events_compaction.sql');
+  assert.match(mig, /set before_data = null, after_data = null/);
+  assert.doesNotMatch(mig, /delete\s+from\s+public\.smyl_audit_events/i);
+  assert.match(mig, /p_older_than < interval '6 months'/);
+  assert.match(mig, /revoke all on function public\.smyl_compact_audit_events[\s\S]*from public, anon, authenticated/);
+  assert.match(mig, /grant execute on function public\.smyl_compact_audit_events[\s\S]*to service_role/);
+  assert.match(mig, /smyl-compactar-auditoria/);
+  assert.match(workflow, /20261106120000/);
+  assert.match(workflow, /compactacion_ok/);
+});

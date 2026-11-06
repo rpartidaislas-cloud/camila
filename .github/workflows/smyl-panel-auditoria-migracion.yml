@@ -8,6 +8,9 @@ name: SMYL Panel - alcances de rol para clínicas nuevas y RLS por conjuntos (mi
 #   2) 20261106110000_smyl_rls_read_policies_set_based.sql
 #      Reescribe las políticas de lectura de pacientes y citas calculando los conjuntos una sola vez (mismo acceso,
 #      10-50 veces menos costo con miles de pacientes).
+#   3) 20261106120000_smyl_audit_events_compaction.sql
+#      Compacta (no borra) los eventos de auditoría de más de 24 meses: vacía before_data/after_data y conserva quién,
+#      cuándo, tabla, registro y acción. Se programa a diario con pg_cron si la extensión está habilitada.
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN. Ambas son idempotentes.
 
 on:
@@ -31,6 +34,8 @@ jobs:
       ALCANCES_FILE: supabase/migrations/20261106100000_smyl_role_scopes_seed_new_clinics.sql
       RLS_VERSION: "20261106110000"
       RLS_FILE: supabase/migrations/20261106110000_smyl_rls_read_policies_set_based.sql
+      AUDITORIA_VERSION: "20261106120000"
+      AUDITORIA_FILE: supabase/migrations/20261106120000_smyl_audit_events_compaction.sql
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -81,6 +86,9 @@ jobs:
                           where not exists(select 1 from public.smyl_role_scopes rs where rs.tenant_id = r.tenant_id and rs.role_id = r.id and rs.domain = d.domain))) as roles_sin_alcance,
             exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'camila_pacientes' and policyname = 'pacientes_read' and qual like '%smyl_tenants_with_permission%') as pacientes_ok,
             exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'smyl_appointments' and policyname = 'smyl_appointments_read' and qual like '%smyl_tenants_with_permission%') as citas_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_compact_audit_events') as compactacion_ok,
+            exists(select 1 from pg_extension where extname = 'pg_cron') as cron_disponible,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.AUDITORIA_VERSION}') as historial_auditoria,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.ALCANCES_VERSION}') as historial_alcances,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.RLS_VERSION}') as historial_rls`))?.[0] || {};
 
@@ -104,17 +112,30 @@ jobs:
             console.log('Las políticas por conjuntos ya estaban aplicadas.');
           }
 
+          const jobCompactacion = async () => {
+            try { return (await consultar(`select jobname from cron.job where jobname = 'smyl-compactar-auditoria'`)).length; } catch { return 0; }
+          };
+          // Se reaplica siempre que falte la función o, con pg_cron habilitado, el job (es idempotente y no duplica).
+          if (!antes.compactacion_ok || (antes.cron_disponible && !(await jobCompactacion()))) {
+            await consultar(fs.readFileSync(process.env.AUDITORIA_FILE, 'utf8'));
+            console.log('Compactación de auditoría aplicada.');
+          } else {
+            console.log('La compactación de auditoría ya estaba aplicada.');
+          }
+          if (!antes.cron_disponible) console.log('::warning::pg_cron no está habilitado: la compactación de auditoría NO quedó programada. Actívalo en Database > Extensions y vuelve a ejecutar este workflow.');
+
           const despues = await estado();
           console.log('Después:', JSON.stringify(despues));
-          if (!despues.trigger_ok || despues.roles_sin_alcance > 0 || !despues.pacientes_ok || !despues.citas_ok) {
+          if (!despues.trigger_ok || despues.roles_sin_alcance > 0 || !despues.pacientes_ok || !despues.citas_ok || !despues.compactacion_ok) {
             throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
           }
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_alcances=${!despues.historial_alcances}\n`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_rls=${!despues.historial_rls}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar_auditoria=${!despues.historial_auditoria}\n`);
           NODE
 
       - name: Registrar versiones aplicadas
-        if: steps.esquema.outputs.reparar_alcances == 'true' || steps.esquema.outputs.reparar_rls == 'true'
+        if: steps.esquema.outputs.reparar_alcances == 'true' || steps.esquema.outputs.reparar_rls == 'true' || steps.esquema.outputs.reparar_auditoria == 'true'
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
@@ -123,4 +144,7 @@ jobs:
           fi
           if [ "${{ steps.esquema.outputs.reparar_rls }}" = "true" ]; then
             supabase migration repair --status applied "$RLS_VERSION"
+          fi
+          if [ "${{ steps.esquema.outputs.reparar_auditoria }}" = "true" ]; then
+            supabase migration repair --status applied "$AUDITORIA_VERSION"
           fi
