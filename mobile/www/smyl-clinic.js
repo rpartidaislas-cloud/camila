@@ -601,19 +601,29 @@
     return { rows: rows, truncated: true };
   }
   // Próxima cita y última visita de cada paciente, solo lectura: si la agenda no está disponible, la lista funciona igual.
-  var agendaInfo = { tenant: '', next: {}, last: {} };
+  var agendaInfo = { tenant: '', next: {}, last: {}, complete: false };
+  // Pagina hasta 10 000 citas por consulta. Si se agota el tope, `complete` queda en false y la lista NO afirma "Sin citas todavía".
+  async function pagedAgenda(build) {
+    var rows = [], size = 1000;
+    for (var page = 0; page < 10; page += 1) {
+      var chunk = await checked(build().range(page * size, page * size + size - 1)) || [];
+      rows = rows.concat(chunk);
+      if (chunk.length < size) return { rows: rows, complete: true };
+    }
+    return { rows: rows, complete: false };
+  }
   async function loadAgendaInfo(tenant) {
     try {
       var nowIso = new Date().toISOString();
       var parts = await Promise.all([
-        checked(sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).in('status', ['confirmed', 'arrived', 'in_progress']).gte('starts_at', nowIso).order('starts_at', { ascending: true }).limit(1000)),
-        checked(sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).eq('status', 'completed').order('starts_at', { ascending: false }).limit(1000))
+        pagedAgenda(function () { return sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).in('status', ['confirmed', 'arrived', 'in_progress']).gte('starts_at', nowIso).order('starts_at', { ascending: true }).order('id'); }),
+        pagedAgenda(function () { return sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).eq('status', 'completed').order('starts_at', { ascending: false }).order('id'); })
       ]);
       if (tenant !== tenantId) return;
       var next = {}, last = {};
-      (parts[0] || []).forEach(function (r) { if (r.patient_id && !next[r.patient_id]) next[r.patient_id] = r.starts_at; });
-      (parts[1] || []).forEach(function (r) { if (r.patient_id && !last[r.patient_id]) last[r.patient_id] = r.starts_at; });
-      agendaInfo = { tenant: tenant, next: next, last: last };
+      parts[0].rows.forEach(function (r) { if (r.patient_id && !next[r.patient_id]) next[r.patient_id] = r.starts_at; });
+      parts[1].rows.forEach(function (r) { if (r.patient_id && !last[r.patient_id]) last[r.patient_id] = r.starts_at; });
+      agendaInfo = { tenant: tenant, next: next, last: last, complete: parts[0].complete && parts[1].complete };
       if (typeof window.filtrarPacientes === 'function') window.filtrarPacientes();
     } catch (_) { /* sin permiso de agenda o sin conexión: la lista queda sin esa línea */ }
   }
@@ -625,6 +635,7 @@
     if (agendaInfo.tenant !== tenantId || p._local) return null;
     if (agendaInfo.next[p.id]) return { text: 'Próxima cita: ' + shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), tone: 'next' };
     if (agendaInfo.last[p.id]) return { text: 'Última visita: ' + shortDay(agendaInfo.last[p.id]), tone: 'last' };
+    if (!agendaInfo.complete) return null;
     return { text: 'Sin citas todavía', tone: 'none' };
   }
   function plain(value) { return String(value == null ? '' : value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
