@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-06 — Claude Code — Historia clínica: auditoría de guardado y correcciones
+
+- Ricardo reportó "lo de las alergias no se guarda" y pidió revisar si guarda todo. Se auditó el editor con el código real y datos sintéticos:
+  llenar todos los campos de los 5 pasos, guardar, reabrir y guardar sin tocar nada (capturando `p_document`).
+- **Bug real encontrado: la fecha de una cirugía nunca se guardaba.** El campo se llamaba `surgery_date_record[]` y el guardado leía
+  `surgery_date[]`. Corregido; desde el primer commit de la ficha (6e8f754) las fechas de cirugía se perdían en silencio.
+- Todo lo demás se conserva (alertas, alergias con reacción y gravedad, condiciones con fecha y estado, medicamentos con dosis,
+  frecuencia y fecha, dental, hábitos, contacto, notas, y los estados `yes/no/unknown/pending`). Reabrir y guardar sin tocar no cambia ningún campo.
+- **Causa probable del reporte de alergias:** `Guardar historia` solo aparecía en el paso 5 (y el atajo "+ Alergia" abre el paso 1), y los avisos
+  caen arriba, fuera de pantalla. Ahora **Guardar historia está en todos los pasos**, los avisos se desplazan a la vista (`role=alert|status`)
+  y **Cancelar con cambios pide confirmación** ("Hay cambios sin guardar. ¿Descartarlos?").
+- No se reprodujo un fallo de las alergias en el navegador ni en el servidor: `smyl_save_patient_history` guarda el documento tal cual.
+  Si persiste con la versión nueva, falta el texto del aviso rojo que muestre la pantalla.
+- Prueba nueva en `smyl-history-ux-v32.test.mjs`: cada campo leído al guardar existe con el mismo nombre con que se dibuja (habría detectado la fecha).
+  Cachés: `smyl-patient-360.js?v=21`. Pruebas: 1061 pasan; fallan 2 que ya fallaban en `main` (`lana-quick`, deuda tipográfica).
+
 ## 2026-11-05 — Codex: Tratamiento simple con historial visible y sin pérdida de borradores
 
 **Objetivo:** renombrar `Plan` a `Tratamiento`, reducir la mezcla visual entre
