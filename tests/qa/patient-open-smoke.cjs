@@ -26,7 +26,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' }); fs.createReadStream(file).pipe(res);
 }).listen(0, async () => {
   const failures = [];
-  const browser = await chromium.launch();
+  const installedChrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  const browser = await chromium.launch(fs.existsSync(installedChrome) ? { executablePath: installedChrome } : {});
   try {
     const context = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1500, height: 900 } });
     const page = await context.newPage();

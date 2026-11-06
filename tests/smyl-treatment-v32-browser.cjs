@@ -6,7 +6,7 @@ const fs = require('node:fs');
   const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   const browser = await chromium.launch({ headless: true, executablePath: chrome });
   const fixture = `file:///${path.resolve(__dirname, 'fixtures/smyl-clinical-flow-preview.html').replace(/\\/g, '/')}`;
-  const output = path.resolve(__dirname, '..', 'artifacts', 'treatment-v4');
+  const output = path.resolve(__dirname, '..', 'artifacts', 'treatment-simple-v41');
   fs.mkdirSync(output, { recursive: true });
   const cases = [
     { name: 'desktop', width: 1280, height: 900 },
@@ -30,20 +30,20 @@ const fs = require('node:fs');
       modules: document.querySelectorAll('.cw-workspace > .cw-module').length,
       moduleBodies: document.querySelectorAll('.cw-workspace > .cw-module > .cw-body').length,
       moduleTitles: Array.from(document.querySelectorAll('.cw-workspace > .cw-module > .cw-summary .cw-module-title > strong')).map(node => node.textContent.trim()),
+      visibleModules: visible('.cw-workspace > .cw-module').length,
       openModules: visible('.cw-workspace > .cw-module[open]').length,
       stages: visible('.cw-nav button').length,
       tasks: visible('.cw-evaluation-task').length,
       visiblePanels: visible('.cw-evaluation-panel').length,
       visibleCtas: visible('.cw-evaluation-footer .pc-primary').length,
       activeTask: document.querySelector('.cw-evaluation-task[aria-current="step"] .cw-evaluation-task-copy strong')?.textContent.trim(),
-      commandMeta: document.querySelectorAll('.cw-command-meta').length,
+      commandCount: document.querySelectorAll('.cw-command').length,
       stageStatus: document.querySelectorAll('.cw-stage-status').length,
       stageStatusVisuallyHidden: !!(stageBox && stageBox.width <= 1 && stageBox.height <= 1 && getComputedStyle(stageStatus).overflow === 'hidden'),
       summaryNumbers: document.querySelectorAll('.cw-summary > .cw-number').length,
       footerPosition: footer ? getComputedStyle(footer).position : '',
       footerOverlapsPanel: !!(footerBox && panelBox && footerBox.top < panelBox.bottom && footerBox.bottom > panelBox.top),
       minButtonHeight: Math.min(...buttons.map(element => element.getBoundingClientRect().height).concat([44])),
-      commandVisible: visible('.cw-command').length === 1,
       safetyVisible: visible('.cw-treatment-safety').length === 1
     };
   });
@@ -139,6 +139,32 @@ const fs = require('node:fs');
       };
     });
 
+    await page.locator('[data-module-target="plan"]').click();
+    await page.locator('#preview-treatment-draft').fill('Propuesta sin guardar');
+    await page.evaluate(() => { window.__previewDraftNode = document.querySelector('#preview-treatment-draft'); });
+    const proposal = await page.evaluate(() => {
+      const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
+      return {
+        visibleModules: visible('.cw-workspace > .cw-module').length,
+        title: visible('.cw-workspace > .cw-module .cw-module-title > strong')[0]?.textContent.trim(),
+        primaryCtas: visible('.cw-workspace > .cw-module .pc-primary').length,
+        historyAction: visible('.cw-version-note button')[0]?.textContent.trim(),
+        historyCopy: visible('.cw-version-note p')[0]?.textContent.trim()
+      };
+    });
+    if (item.name === 'desktop') await page.screenshot({ path: path.join(output, 'desktop-proposal.png'), fullPage: true });
+    await page.locator('[data-module-target="approval"]').click();
+    const acceptance = await page.evaluate(() => ({
+      visibleModules: Array.from(document.querySelectorAll('.cw-workspace > .cw-module')).filter(element => element.getClientRects().length).length,
+      title: Array.from(document.querySelectorAll('.cw-workspace > .cw-module .cw-module-title > strong')).find(element => element.getClientRects().length)?.textContent.trim()
+    }));
+    await page.locator('[data-module-target="plan"]').click();
+    const preservedDraft = await page.evaluate(() => ({
+      sameNode: window.__previewDraftNode === document.querySelector('#preview-treatment-draft'),
+      value: document.querySelector('#preview-treatment-draft')?.value,
+      visibleModules: Array.from(document.querySelectorAll('.cw-workspace > .cw-module')).filter(element => element.getClientRects().length).length
+    }));
+
     report.push({
       name: item.name,
       requiredHeight,
@@ -147,22 +173,25 @@ const fs = require('node:fs');
       findings,
       photoMode,
       radiographTask,
-      closure
+      closure,
+      proposal,
+      acceptance,
+      preservedDraft
     });
     await page.close();
   }
 
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  const titles = ['Evaluación clínica', 'Plan de tratamiento', 'Aprobación', 'Atención y seguimiento'];
+  const titles = ['Evaluación', 'Propuesta', 'Aceptación', 'Seguimiento e historial'];
   const failed = report.some(item =>
     item.initial.overflow || item.initial.modules !== 4 || item.initial.moduleBodies !== 4 ||
-    JSON.stringify(item.initial.moduleTitles) !== JSON.stringify(titles) || item.initial.openModules !== 1 ||
+    JSON.stringify(item.initial.moduleTitles) !== JSON.stringify(titles) || item.initial.visibleModules !== 1 || item.initial.openModules !== 1 ||
     item.initial.stages !== 4 || item.initial.tasks !== 4 || item.initial.visiblePanels !== 1 ||
     item.initial.visibleCtas !== 1 || item.initial.activeTask !== 'Contexto' ||
-    item.initial.commandMeta !== 0 || item.initial.stageStatus !== 1 || !item.initial.stageStatusVisuallyHidden ||
+    item.initial.commandCount !== 0 || item.initial.stageStatus !== 1 || !item.initial.stageStatusVisuallyHidden ||
     item.initial.summaryNumbers !== 0 || item.initial.footerPosition !== 'static' || item.initial.footerOverlapsPanel ||
-    item.initial.minButtonHeight < item.requiredHeight || !item.initial.commandVisible || !item.initial.safetyVisible ||
+    item.initial.minButtonHeight < item.requiredHeight || !item.initial.safetyVisible ||
     item.evidence.panel !== 1 || item.evidence.visiblePanels !== 1 || item.evidence.visibleCtas !== 1 ||
     item.evidence.metrics !== 3 || item.evidence.items !== 1 || item.evidence.latest !== 'REGISTRO MÁS RECIENTE' ||
     item.evidence.previous !== 'Ver 4 anteriores' || item.evidence.cta !== 'Continuar a hallazgos' ||
@@ -177,7 +206,11 @@ const fs = require('node:fs');
     item.radiographTask.visibleSections !== 1 || item.radiographTask.duplicateMaps !== 0 ||
     item.radiographTask.uploadVisible !== 1 || item.radiographTask.controlHeight < item.requiredHeight || item.radiographTask.overflow ||
     item.closure.panel !== 1 || item.closure.visiblePanels !== 1 || item.closure.visibleCtas !== 1 ||
-    item.closure.cta !== 'Continuar al plan' || item.closure.footerPosition !== 'static' || item.closure.footerOverlapsPanel
+    item.closure.cta !== 'Continuar a propuesta' || item.closure.footerPosition !== 'static' || item.closure.footerOverlapsPanel ||
+    item.proposal.visibleModules !== 1 || item.proposal.title !== 'Propuesta' || item.proposal.primaryCtas !== 1 ||
+    item.proposal.historyAction !== 'Ver historial' || !item.proposal.historyCopy.includes('no se reemplaza') ||
+    item.acceptance.visibleModules !== 1 || item.acceptance.title !== 'Aceptación' ||
+    !item.preservedDraft.sameNode || item.preservedDraft.value !== 'Propuesta sin guardar' || item.preservedDraft.visibleModules !== 1
   );
   if (failed) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

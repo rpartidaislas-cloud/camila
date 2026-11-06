@@ -256,7 +256,7 @@
     var resume = document.getElementById('clinic-portal-return');
     if (resume) {
       var ready = !!capturePatientReview(current.tenant, current.patient);
-      resume.querySelector('p').textContent = ready ? 'Listo. Tu valoración y plan ya están revisados.' : 'Falta completar la valoración y el tratamiento, y pulsar «Revisar plan». Después podrás continuar aquí.';
+      resume.querySelector('p').textContent = ready ? 'Listo. Tu valoración y propuesta ya están revisadas.' : 'Falta completar la valoración y el tratamiento, y pulsar «Revisar propuesta». Después podrás continuar aquí.';
       resume.querySelector('button').disabled = !ready;
     }
     updateAIState();
@@ -366,7 +366,7 @@
     if(draft.questions.length){var questions=el('section','clinic-ai-list');questions.append(el('strong','','Antes de decidir'));var questionList=el('ul');draft.questions.forEach(function(v){questionList.append(el('li','',v));});questions.append(questionList);host.append(questions);}
     var limits=[...capture.input.limitations,...draft.limitations].filter(function(v,i,a){return a.indexOf(v)===i;});
     if(limits.length){var limitations=el('details','clinic-ai-limitations');limitations.append(el('summary','','Limitaciones del borrador'));var limitList=el('ul');limits.forEach(function(v){limitList.append(el('li','',v));});limitations.append(limitList);host.append(limitations);}
-    var apply=button('Incorporar selección al plan',function(){applyAIDraft(ctx);},'btn btn-primary');host.append(apply);
+    var apply=button('Incorporar selección a la propuesta',function(){applyAIDraft(ctx);},'btn btn-primary');host.append(apply);
     document.getElementById('clinic-ai-state').textContent='Borrador listo · nada se ha guardado ni aprobado.';
   }
   function applyAIDraft(ctx) {
@@ -408,7 +408,7 @@
     form.append(heading, field('Valoración del profesional', 'clinic-assessment', doc.assessment, 8000, true));
     form.querySelector('#clinic-assessment').placeholder = 'Tus hallazgos y valoración tras revisar al paciente. Puedes guardar un borrador y completarlo después.';
     var plan = el('div', 'clinic-section-heading');
-    plan.append(el('h3', '', 'Plan de tratamiento'), el('p', '', 'La IA puede organizar un borrador desde la evidencia confirmada. Tú decides qué incorporar, corriges y apruebas.'));
+    plan.append(el('h3', '', 'Propuesta de tratamiento'), el('p', '', 'La IA puede organizar un borrador desde la evidencia confirmada. Tú decides qué incorporar, corriges y apruebas.'));
     var ai=el('section','clinic-ai');ai.append(el('span','pro-eyebrow','COPILOTO CLÍNICO'),el('h4','','Borrador dirigido por IA'),el('p','','Usa únicamente el motivo de consulta, tus notas y observaciones ya confirmadas. No recibe nombres, fotografías ni simulaciones.'));
     var consent=el('label','clinic-ai-consent'),consentCheck=el('input');consentCheck.type='checkbox';consentCheck.id='clinic-ai-consent';consent.append(consentCheck,document.createTextNode(' Autorizo enviar estos datos clínicos confirmados para preparar este borrador.'));
     var aiState=el('p','clinic-ai-state');aiState.id='clinic-ai-state';aiState.setAttribute('role','status');
@@ -421,7 +421,7 @@
     var saveState = el('p'); saveState.id = 'clinic-save-status'; saveState.setAttribute('role', 'status');
     var actions = el('div', 'clinic-actions');
     var save = button('Guardar borrador', function () { savePlan(false); }); save.id = 'clinic-save';
-    var review = button('Revisar plan', function () {
+    var review = button('Revisar propuesta', function () {
       var problem = model.reviewError(formDocument());
       if (problem) { document.getElementById('clinic-feedback').replaceChildren(notice(problem, true)); return; }
       renderReview(formDocument());
@@ -933,7 +933,7 @@
     var actions = el('div', 'clinic-actions');
     var approve = button('Guardar como revisado', function () { savePlan(true); }, 'btn btn-primary'); approve.id = 'clinic-review-submit';
     approve.disabled = true; check.addEventListener('change', function () { approve.disabled = !check.checked; });
-    actions.append(button('Volver al plan', function () { dialog.close(); }), approve);
+    actions.append(button('Volver a la propuesta', function () { dialog.close(); }), approve);
     var summary = el('section','clinic-review-summary'); summary.id = 'clinic-review-summary';
     dialog.append(reviewTitle, el('p', '', 'Comprueba el contenido antes de confirmar. Se conservarán las versiones anteriores. No se enviará nada al paciente.'), summary, label, actions); document.body.append(dialog);
   }

@@ -10,7 +10,7 @@ const recordCss = read('../smyl-patient-360.css');
 const app = read('../app.html');
 
 test('la ficha reduce la navegación principal a cuatro áreas clínicas', () => {
-  for (const label of ['Resumen','Historia clínica','Plan','Archivos']) assert.match(record, new RegExp(`>${label}<`));
+  for (const label of ['Resumen','Historia clínica','Tratamiento','Archivos']) assert.match(record, new RegExp(`>${label}<`));
   assert.doesNotMatch(record, /data-p360-scroll="p360-cases"/);
   assert.match(record, /data-p360-tab="treatment"/);
   assert.match(record, /p360-treatment-hidden/);
@@ -44,8 +44,8 @@ test('simulaciones tiene un espacio independiente y una advertencia visual clara
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
   assert.match(app, /smyl-patient-360\.css\?v=15/);
-  assert.match(app, /smyl-patient-360\.js\?v=21/);
-  assert.match(app, /smyl-case-workspace\.js\?v=20/);
+  assert.match(app, /smyl-patient-360\.js\?v=22/);
+  assert.match(app, /smyl-case-workspace\.js\?v=21/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));

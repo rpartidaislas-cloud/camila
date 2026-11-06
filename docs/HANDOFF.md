@@ -1,5 +1,48 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-05 — Codex: Tratamiento simple con historial visible y sin pérdida de borradores
+
+**Objetivo:** renombrar `Plan` a `Tratamiento`, reducir la mezcla visual entre
+etapas y hacer explícito que cada cambio clínico conserva su historial.
+
+**Qué cambió (frontend):**
+- La pestaña principal y el acceso secundario ahora dicen `Tratamiento`; las
+  claves internas `treatment` y `plan` se conservan para no romper rutas ni
+  integraciones.
+- El recorrido visible se simplificó a `Evaluación → Propuesta → Aceptación →
+  Seguimiento`. Dentro de Evaluación, `Cierre` pasó a `Revisión`.
+- Sólo se muestra una etapa a la vez. Los editores canónicos permanecen
+  montados y únicamente cambia su atributo `hidden`, por lo que navegar no
+  reconstruye nodos ni pierde campos o borradores.
+- Se retiró la franja duplicada de “Siguiente acción”. La alerta clínica vive
+  dentro de Contexto y usa un solo botón `Revisar historia`.
+- Propuesta muestra un aviso breve de `Versiones guardadas` y un acceso directo
+  a `#clinic-history`. El botón primario del contenedor reutiliza la revisión
+  canónica del editor; no se creó otro guardado.
+- Seguimiento se presenta como `Seguimiento e historial` y resume qué se ha
+  trabajado con evoluciones, citas, odontograma y hallazgos confirmados.
+
+**Integridad clínica:** no hubo migraciones ni cambios de RPC, RLS, permisos o
+documentos. Se verificó el patrón estado actual + versiones de Historia clínica
+(`smyl_patient_history_versions`), propuesta (`smyl_clinical_versions`) y
+odontograma (`smyl_dental_versions`). Las notas firmadas siguen inmutables y
+las correcciones se agregan como adendas. Las cotizaciones continúan ancladas a
+la revisión exacta de la propuesta. Navegar entre etapas no guarda, aprueba,
+firma ni cierra automáticamente.
+
+**Distribución:** Patient 360 JS v22, Case Workspace JS v21 / CSS v17 y caché
+`treatment-simple-v77`; web y `mobile/www` sincronizados. El editor usa “Propuesta de tratamiento” para evitar alternar entre “Plan” y “Propuesta”.
+
+**QA:** contratos enfocados 34/34; prueba nueva
+`smyl-treatment-longitudinal-safety.test.mjs`; Playwright aprobado en 1280,
+820, 390 y 320 px con una etapa/panel/CTA visibles, sin desbordamiento y
+controles de 42/44 px. La prueba de navegación escribe un borrador, cambia a
+Aceptación y vuelve: conserva el mismo nodo y valor. El humo de la app real con
+Supabase simulado abrió tres pacientes sin congelamiento (95/60/60 callbacks).
+Suite completa: 1,038 aprobadas, 18 omitidas y sólo los 2 fallos basales de
+`main`: `tests/lana-quick.test.mjs` y el presupuesto histórico de microtexto en
+`tests/smyl-ui-v3.test.mjs` (888→891).
+
 ## 2026-11-05 — Claude Code — Historia clínica: lectura por secciones numeradas con índice lateral
 
 - Ricardo aprobó el boceto B ("separación fuerte"): la lectura de la Historia clínica pasa de 6 tarjetas iguales a **5 bloques numerados**
