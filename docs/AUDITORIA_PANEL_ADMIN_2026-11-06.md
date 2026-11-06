@@ -4,7 +4,7 @@ Alcance: panel profesional (`app.html` + ~75 scripts `smyl-*.js`) y el backend d
 
 Método: cuatro análisis independientes (operación, robustez del cliente, escalabilidad por pantalla con mediciones en navegador, costo de RLS con datos sembrados). Cada hallazgo indica si fue **[V] verificado** en código/medición o **[H] hipótesis/estimación**.
 
-> Estado: el benchmark de costo de RLS (cuarto análisis) seguía corriendo al redactar esto; sus cifras se agregan en la sección 6 cuando llegue. Nada de lo de abajo depende de él.
+> Los cuatro análisis están integrados. La sección 6 resume la medición de RLS.
 
 ## 1. Veredicto
 
@@ -63,9 +63,17 @@ Lo que está bien: patrón de guardado de pacientes, borrador/idempotencia de Me
 
 LANA (chat/IA), una sola llave de Anthropic, OpenAI/Gemini, Replicate, Meta, Stripe, Google Calendar, jsDelivr, GitHub Pages, pg_cron.
 
-## 6. Costo de RLS
+## 6. Costo de RLS por fila (medido en PGlite con datos sembrados)
 
-Pendiente del benchmark (ms con/sin RLS a 1,000 / 5,000 / 20,000 pacientes y variante optimizada de políticas). Se agregará aquí.
+Aviso: PGlite es Postgres en WASM de un hilo; los ms absolutos **no** representan a Supabase, sirven las razones relativas y el crecimiento. Se cargaron las migraciones reales y se sembraron 5 clínicas (hasta 100 mil pacientes y 250 mil citas en total).
+
+- **[V] Las políticas `pacientes_read` y `smyl_appointments_read` evalúan 5 funciones por fila** (`smyl_has_permission`, `smyl_effective_scope`, `smyl_current_professional_id`, `smyl_scope_rank`, `smyl_can_access_patient`), cada una con consultas. El costo es lineal en filas evaluadas (~50 µs/fila titular, 95–115 µs/fila staff) y el planner estima mal la selectividad (2,209 estimadas vs 20,000 reales), por lo que cada página reevalúa todo el tenant.
+- **Impacto por tamaño de clínica** (count/top-N sobre todos los pacientes, vs. sin RLS): hasta 1,000 pacientes tolerable (0.05–0.25 s); a 5,000, 0.25–0.6 s por consulta (x100–x600) y la carga completa de pacientes 1.6–3 s; a 20,000, count/top50 de 1–2 s y la carga completa 10–18 s en WASM (la app solo trae 10,000 de 20,000). En Supabase real se espera 5–10× menos **[H]**; confirmar en staging.
+- **[V] Citas no son problema** (x2–x5): el costo depende de las filas devueltas.
+- **[V] Corrección medida:** el patrón `(select smyl_has_permission(...))` **no** ayuda (queda correlacionado). Sí ayuda calcular conjuntos que no dependen de la fila (helpers `stable security definer` como `smyl_tenants_with_permission`, `smyl_patient_ids_in_scope`, `smyl_my_professional_ids`, usados con `tenant_id in (select …)`): a 20 mil pacientes, count 965→7 ms, carga completa 9.6 s→0.5 s (titular y clínica) y 9.9 s→0.2 s (staff `own`), con conjuntos de ids idénticos al original en los 4 perfiles. Citas del mes quedan a la par que sin RLS. SQL de referencia en la carpeta de trabajo del análisis (sql/variants.sql, sql/pol_v2.sql).
+- **No cubierto:** `pacientes_edit` y demás tablas con el mismo patrón (notas, historias, archivos, finanzas) no se midieron; usuarios en varias clínicas con distinto alcance no se probaron.
+- **Auditoría (`smyl_audit_row`)**: UPDATE masivo ×2.6–2.8; ~2.1 KB por evento (before+after). **[H]** ~100 MB por clínica al año con 10 mil citas; las tablas con documentos jsonb de hasta 64 KB guardan el documento dos veces por cambio (por lectura de código, sin medir). Leer la bitácora con `audit.read` por fila: 432 ms para 19,600 filas; `ORDER BY … LIMIT 50` es barato.
+- **Hallazgo lateral [H, por lectura de migraciones]:** una clínica nueva no recibe filas en `smyl_role_scopes` (la migración 20261015040000 solo sembró los roles existentes ese día), de modo que un usuario de recepción tendría alcance `own` y vería 0 pacientes. Falta confirmar si otro camino (Edge Function/RPC) las siembra en producción.
 
 ## 7. Plan de acción
 
@@ -81,20 +89,21 @@ Pendiente del benchmark (ms con/sin RLS a 1,000 / 5,000 / 20,000 pacientes y var
 7. "Sin citas todavía": consultar por paciente (o RPC con conteo) en vez de inferir de un tope de 1,000.
 8. Lista de pacientes: paginación o virtualización + debounce en búsqueda; quitar la carga de todos los pacientes del arranque (buscador remoto).
 9. Agenda: consolidar las 32 peticiones en una consulta por rango.
+10. RLS: reescribir `pacientes_read`/`smyl_appointments_read` con conjuntos precalculados (sección 6), con prueba de equivalencia por perfil y pgTAP; después las demás tablas con el mismo patrón. Verificar en staging de Supabase y confirmar la siembra de `smyl_role_scopes` en clínicas nuevas.
 
 **Fase 2 — Operación (1–2 semanas)**
-10. CI en push/PR: `npm test` + validación de bundles + chequeo de migraciones.
-11. Reconciliar migraciones repo vs. producción y fijar la versión del CLI en los workflows.
-12. Cuota por clínica y límites de tasa para IA (activar `SMYL_CONSUMABLES_ENFORCED` tras medir); alertas de costo.
-13. Retención/particionado de `smyl_audit_events`; cron de recordatorios sin tope fijo.
-14. Reporte de errores del cliente a una tabla/servicio y alertas al dueño; simulacro de restauración con RPO/RTO documentados.
+11. CI en push/PR: `npm test` + validación de bundles + chequeo de migraciones.
+12. Reconciliar migraciones repo vs. producción y fijar la versión del CLI en los workflows.
+13. Cuota por clínica y límites de tasa para IA (activar `SMYL_CONSUMABLES_ENFORCED` tras medir); alertas de costo.
+14. Retención/particionado de `smyl_audit_events`; cron de recordatorios sin tope fijo.
+15. Reporte de errores del cliente a una tabla/servicio y alertas al dueño; simulacro de restauración con RPO/RTO documentados.
 
 **Fase 3 — Estructural (1–2 meses)**
-15. Minificar + empaquetar y cargar por ruta (≈ −140 KB gzip por minificar, ≈ −170 KB gzip en carga inicial con carga por ruta; estimaciones).
-16. Reemplazar sondeo de Mensajes por Realtime/suscripción con retroceso exponencial.
-17. Restricción de exclusión en agenda (rangos) y candado por zona horaria de la clínica.
-18. Autoalojar supabase-js y versionar `CACHE_VERSION` en el build.
-19. Pruebas que ejecuten pagos, agenda y permisos (hoy ~66 % solo leen el fuente).
+16. Minificar + empaquetar y cargar por ruta (≈ −140 KB gzip por minificar, ≈ −170 KB gzip en carga inicial con carga por ruta; estimaciones).
+17. Reemplazar sondeo de Mensajes por Realtime/suscripción con retroceso exponencial.
+18. Restricción de exclusión en agenda (rangos) y candado por zona horaria de la clínica.
+19. Autoalojar supabase-js y versionar `CACHE_VERSION` en el build.
+20. Pruebas que ejecuten pagos, agenda y permisos (hoy ~66 % solo leen el fuente).
 
 ## 8. No verificado
 
