@@ -81,3 +81,20 @@ test('anti-empalme: restricción de exclusión por profesional y sillón sobre c
   assert.match(workflow, /empalme_prof_ok/);
   assert.match(read('smyl-schedule.js'), /exclusion constraint\|no_overlap/);
 });
+
+test('errores del cliente: tabla sin acceso directo, escritura sólo por RPC acotada, y el panel ya no usa alert() para errores', () => {
+  const mig = read('supabase/migrations/20261106140000_smyl_client_errors.sql');
+  assert.match(mig, /enable row level security/);
+  assert.match(mig, /revoke all on public\.smyl_client_errors from public, anon, authenticated/);
+  assert.doesNotMatch(mig, /create policy/i);
+  assert.match(mig, />= 30 then/);
+  assert.match(mig, /revoke all on function public\.smyl_report_client_error[\s\S]*from public, anon;/);
+  assert.match(mig, /grant execute on function public\.smyl_report_client_error[\s\S]*to authenticated;/);
+  for (const app of ['app.html', 'mobile/www/app.html']) {
+    const html = read(app);
+    assert.doesNotMatch(html, /alert\('JS Error/);
+    assert.doesNotMatch(html, /alert\('Promise Error/);
+    assert.match(html, /smyl_report_client_error/);
+  }
+  assert.match(workflow, /20261106140000/);
+});

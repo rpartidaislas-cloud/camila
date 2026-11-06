@@ -2395,13 +2395,53 @@ if ('serviceWorker' in navigator) {
 </script>
 
 <script>
+// Errores de JavaScript: ya no se muestran con alert() (con pila técnica) al profesional. Se registran en el servidor
+// (smyl_report_client_error: sin datos de pacientes, con tope por usuario) y se avisa con un mensaje discreto.
+var smylErrorState = { sent: 0, seen: {}, lastToast: 0 };
+function smylToastError() {
+  var now = Date.now();
+  if (now - smylErrorState.lastToast < 30000) return;
+  smylErrorState.lastToast = now;
+  try {
+    var box = document.getElementById('smyl-error-toast');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'smyl-error-toast';
+      box.setAttribute('role', 'status');
+      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#102239;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
+      document.body.appendChild(box);
+    }
+    box.textContent = 'Algo no salió como se esperaba. Ya registramos el detalle; si la pantalla no responde, recarga la página.';
+    box.style.display = 'block';
+    setTimeout(function() { box.style.display = 'none'; }, 7000);
+  } catch (_) {}
+}
+function smylReportError(kind, message, source, line, stack) {
+  try {
+    message = String(message || '').slice(0, 500);
+    if (!message || /ResizeObserver loop|^Script error\.?$/i.test(message)) return;
+    var key = kind + '|' + message + '|' + line;
+    if (smylErrorState.seen[key] || smylErrorState.sent >= 5) return;
+    smylErrorState.seen[key] = true;
+    smylErrorState.sent += 1;
+    smylToastError();
+    if (typeof sb === 'undefined' || !sb || !sb.rpc) return;
+    var route = ''; try { route = sessionStorage.getItem('smyl_route') || ''; } catch (_) {}
+    var r = sb.rpc('smyl_report_client_error', {
+      p_kind: kind, p_message: message, p_source: source ? String(source).slice(0, 300) : null,
+      p_line: Number.isFinite(Number(line)) ? Number(line) : null, p_stack: stack ? String(stack).slice(0, 2000) : null,
+      p_route: route.slice(0, 80), p_app_version: null, p_user_agent: (navigator.userAgent || '').slice(0, 300)
+    });
+    if (r && r.then) r.then(function() {}, function() {});
+  } catch (_) {}
+}
 window.onerror = function(msg, src, line, col, err) {
-  alert('JS Error:\n' + msg + '\nLine: ' + line + '\n' + (err ? err.stack : ''));
+  smylReportError('error', msg, src, line, err && err.stack);
   return false;
 };
 window.addEventListener('unhandledrejection', function(ev) {
   var r = ev.reason;
-  alert('Promise Error:\n' + (r && r.message ? r.message : r) + (r && r.stack ? '\n' + r.stack : ''));
+  smylReportError('promise', r && r.message ? r.message : r, null, null, r && r.stack);
 });
 
 // ══════════════════════════════════════════
