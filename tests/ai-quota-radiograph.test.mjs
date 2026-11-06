@@ -38,3 +38,11 @@ test('el cliente muestra el mensaje de tope de IA en lugar de "servicio ocupado"
   const c = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
   assert.match(c, /ai_quota_exceeded/);
 });
+
+test('Mensajes espacia el sondeo cuando no hay cambios y lo reactiva con la interacción', () => {
+  const c = fs.readFileSync(new URL('../smyl-inbox.js', import.meta.url), 'utf8');
+  assert.match(c, /Math\.min\(30000, Math\.round\(\(state\.syncDelay \|\| 5000\) \* 1\.5\)\)/);
+  assert.match(c, /scheduleSync\(\);/);
+  assert.match(c, /addEventListener\('visibilitychange'/);
+  assert.doesNotMatch(c, /setInterval\(sync, 5000\)/);
+});
