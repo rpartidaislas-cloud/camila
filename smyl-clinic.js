@@ -671,15 +671,20 @@
     if (actionText && action) empty.append(button(actionText, action, 'btn btn-secondary'));
     return empty;
   }
-  function renderPatients(list) {
+  // Sólo se pinta una porción de la lista (hasta ~100 filas por paso): con miles de pacientes el DOM completo congela el panel.
+  var PATIENT_PAGE = 100, patientShown = PATIENT_PAGE, patientListKey = '';
+  function renderPatients(fullList) {
+    var key = String(fullList.length) + '|' + (fullList.length ? fullList[0].id + fullList[fullList.length - 1].id : '');
+    if (key !== patientListKey) { patientListKey = key; patientShown = PATIENT_PAGE; }
+    var list = fullList.slice(0, patientShown);
     var host = document.getElementById('tabla-pacientes-wrap'); host.replaceChildren();
-    updatePatientSummary(list);
+    updatePatientSummary(fullList);
     if (patientMessage) {
       var message = el('div', 'clinic-patient-message');
       message.append(notice(patientMessage, patientFailure), button('Volver a cargar', loadPatients, 'btn btn-secondary btn-sm'));
       host.append(message);
     }
-    if (!list.length && !patientFailure) {
+    if (!fullList.length && !patientFailure) {
       if (todosLosPacientes.length) {
         host.append(patientEmptyState('Sin resultados', 'Prueba con otro nombre, teléfono o correo.', 'Limpiar búsqueda', function () {
           var input = document.getElementById('buscar-pac'); if (input) { input.value = ''; input.focus(); }
@@ -738,6 +743,12 @@
       row.append(patientCell, contact, attention, state, actions); body.append(row);
     });
       table.append(body); host.append(table);
+      if (fullList.length > list.length) {
+        var more = el('div', 'clinic-patient-more');
+        more.append(el('p', '', 'Mostrando ' + list.length + ' de ' + fullList.length + ' pacientes. Usa el buscador para encontrar a alguien en particular.'),
+          button('Mostrar ' + Math.min(PATIENT_PAGE, fullList.length - list.length) + ' más', function () { patientShown += PATIENT_PAGE; renderPatients(fullList); }, 'btn btn-secondary btn-sm'));
+        host.append(more);
+      }
     }
     var legacy = localPatients();
     if (!patientFailure && legacy.length) {
@@ -863,7 +874,7 @@
         return true;
       }
     });
-    window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients; window.filtrarPacientes = filterPatients;
+    window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients; window.filtrarPacientes = filterPatients; var searchTimer = null; window.filtrarPacientesDiferido = function () { clearTimeout(searchTimer); if (todosLosPacientes.length <= 300) { filterPatients(); return; } searchTimer = setTimeout(filterPatients, 180); };
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;
     ['smyl:dental-context-updated','smyl:case-selection'].forEach(function(name){addEventListener(name,function(event){if(current&&event.detail?.tenant===current.tenant&&event.detail?.patient===current.patient)status();});});

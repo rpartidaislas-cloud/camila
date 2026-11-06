@@ -883,7 +883,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=17"></script>
+<script defer src="smyl-clinic.js?v=18"></script>
 <link rel="stylesheet" href="smyl-patient-360.css?v=15">
 <script defer src="smyl-history-read.js?v=1"></script>
 <script defer src="smyl-patient-360.js?v=22"></script>
@@ -1259,7 +1259,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             <label for="buscar-pac">Buscar pacientes</label>
             <div class="patient-search-field">
               <svg class="patient-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input class="search-inp" type="search" id="buscar-pac" placeholder="Buscar por nombre, teléfono o correo" autocomplete="off" oninput="filtrarPacientes()">
+              <input class="search-inp" type="search" id="buscar-pac" placeholder="Buscar por nombre, teléfono o correo" autocomplete="off" oninput="(window.filtrarPacientesDiferido||filtrarPacientes)()">
             </div>
             <p class="patient-directory-summary" id="patient-directory-summary" role="status" aria-live="polite">Cargando pacientes…</p>
           </div>
