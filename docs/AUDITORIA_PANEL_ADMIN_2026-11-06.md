@@ -108,3 +108,30 @@ Aviso: PGlite es Postgres en WASM de un hilo; los ms absolutos **no** representa
 ## 8. No verificado
 
 Estimaciones de costo de IA, crecimiento de auditoría y ahorro por empaquetado son modelos con supuestos, no mediciones en producción. No se midió carga concurrente real contra el proyecto de producción.
+
+## 9. Estado de implementación (actualizado al cierre de la sesión del 2026-11-06)
+
+| # | Punto del plan | Estado |
+|---|---|---|
+| 1 | `claude`: modelo y `max_tokens` del cliente acotados | Hecho (requiere desplegar el bundle) |
+| 2 | Guardados de configuración con error real y sin pisar claves ajenas | Hecho |
+| 3 | Finanzas: sin doble envío | Hecho (llave de idempotencia por envío; el bloqueo evita el segundo) |
+| 4 | `toggleMiembroActivo` y rol fail-closed | Hecho |
+| 5 | Aviso cuando un panel no carga | Hecho |
+| 6 | Caja lineal | Hecho (equivalencia probada; prueba de regresión en `tests/finance-account-math.test.mjs`) |
+| 7 | «Sin citas todavía» veraz | Hecho |
+| 8 | Lista de pacientes paginada / búsqueda diferida / arranque sin carga total | Hecho |
+| 9 | Agenda: configuración estática reutilizada al navegar | Hecho (de 32 peticiones se evitan 14 por clic; el resto sigue) |
+| 10 | RLS por conjuntos + alcances de rol en clínicas nuevas | Hecho (migraciones 20261106100000/110000; requiere ejecutar el workflow) |
+| 11 | CI en push/PR | Hecho (`pruebas.yml`; 2 pruebas conocidas excluidas) |
+| 12 | Reconciliar migraciones repo vs producción | Herramienta lista (`smyl-migraciones-reconciliar.yml`, solo lectura); falta ejecutarla y resolver diferencias |
+| 13 | Cuota de IA por clínica (radiografía) | Hecho (tope diario/mensual, falla cerrado; requiere desplegar el bundle) |
+| 14 | Retención de `smyl_audit_events` | Hecho (compactación a 24 meses; requiere ejecutar el workflow) |
+| 15 | Reporte de errores del cliente y alertas | **Pendiente** |
+| 16 | Minificar/empaquetar y carga por ruta | **Pendiente** (decisión: cambia el despliegue y rompe pruebas que fijan cada script) |
+| 17 | Sondeo de Mensajes | Parcial: sondeo adaptativo hecho; Realtime depende de LANA (contrato SMYL↔LANA) |
+| 18 | Anti-empalme + candado de agenda | Hecho (restricción de exclusión; requiere ejecutar el workflow) |
+| 19 | supabase-js local | Hecho |
+| 20 | Pruebas que ejecuten pagos, agenda y permisos | Parcial: pagos (Caja) y IA (topes) ejecutan código real; agenda y permisos en base de datos se verificaron con PGlite pero no están en el repo |
+
+Pendientes con decisión de producto: ventana de retención (24 meses por omisión), políticas por clínica, y si se adopta un paso de compilación.
