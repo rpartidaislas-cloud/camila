@@ -883,7 +883,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=18"></script>
+<script defer src="smyl-clinic.js?v=19"></script>
 <link rel="stylesheet" href="smyl-patient-360.css?v=15">
 <script defer src="smyl-history-read.js?v=1"></script>
 <script defer src="smyl-patient-360.js?v=22"></script>
@@ -2690,7 +2690,7 @@ async function continuarConUsuario(authUser) {
   renderPrecios();
   cargarConfig();
   await cargarNotificaciones();
-  await cargarPacientesSelect();
+  // El selector de pacientes de «Nuevo diseño» se carga al abrir esa pantalla (antes bajaba todos los pacientes en cada arranque).
   cargarEquipo();
   aplicarRestriccionesStaff();
   mostrarAvisoSuscripcionVencida();
@@ -3342,7 +3342,9 @@ function nuevoDisenoParaPaciente() {
   if (pacienteActual) pacienteSeleccionado = pacienteActual;
   ir('nuevo-diseno');
   if (pacienteActual) {
-    document.getElementById('f-caso-paciente').value = pacienteActual.id;
+    var selPac = document.getElementById('f-caso-paciente');
+    if (!Array.prototype.some.call(selPac.options, function(o) { return o.value === pacienteActual.id; })) selPac.appendChild(new Option(((pacienteActual.nombre || '') + ' ' + (pacienteActual.apellido || '')).trim(), pacienteActual.id));
+    selPac.value = pacienteActual.id;
     document.getElementById('f-caso-nombre').value = 'Diseño - ' + pacienteActual.nombre;
   }
 }
@@ -3424,6 +3426,7 @@ async function cargarPacientesSelect() {
 // FLUJO NUEVO DISEÑO
 // ══════════════════════════════════════════
 function resetNuevoDiseno() {
+  try { var cargaSelect = cargarPacientesSelect(); if (cargaSelect && cargaSelect.catch) cargaSelect.catch(function() {}); } catch (_) {}
   pasoActual = 1;
   mostrarPaso(1);
   imagenes = [null, null, null, null];

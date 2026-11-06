@@ -827,7 +827,7 @@
     } finally { savingPatient = false; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; }); }
   }
   async function loadPatientSelect() {
-    var select = document.getElementById('f-caso-paciente'), tenant = tenantId, selected = select.value;
+    var select = document.getElementById('f-caso-paciente'), tenant = tenantId;
     select.disabled = true;
     try {
       var rows = [];
@@ -837,6 +837,7 @@
         if (chunk.length < 1000) break;
       }
       if (tenant !== tenantId) return;
+      var selected = select.value; // se lee al terminar: puede haberse preseleccionado mientras cargaba
       select.replaceChildren(new Option('Seleccionar paciente…',''));
       rows.forEach(function (p) { select.append(new Option(fullName(p), p.id)); });
       select.value = selected; select.disabled = false;
