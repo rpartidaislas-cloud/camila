@@ -190,3 +190,13 @@
  .cw-evidence-compact{align-items:flex-start;flex-direction:column}.cw-evidence-compact-metrics{justify-content:flex-start}.cw-evaluation-panel .cw-evidence-assistant{grid-template-columns:1fr}.cw-evaluation-close-facts{grid-template-columns:1fr}.cw-evaluation-close-facts>div+div{border-top:1px solid var(--cw-line);border-left:0}
 }
 @media(max-width:420px){.cw-nav button{font-size:12px;line-height:1.25}.cw-summary>.cw-badge{margin-left:0}.cw-evaluation-task-copy small{display:none}.cw-evaluation-task{min-height:60px}.cw-evaluation-panel-body{padding-top:14px}.cw-evidence-compact-metrics{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.cw-evidence-compact-metrics>span{justify-content:center;padding-inline:6px}.cw-evaluation-panel .cw-evidence-item{grid-template-columns:auto minmax(0,1fr)}.cw-evaluation-panel .cw-evidence-open{grid-column:1/-1;width:100%}}
+
+/* Tratamiento simple v4.1 · una etapa visible y el historial siempre accesible. */
+.cw-module[hidden]{display:none!important}
+.cw-module[open]>.cw-summary{cursor:default}.cw-module[open]>.cw-summary .cw-chevron{display:none}
+.cw-evaluation-task-copy small{display:none}.cw-evaluation-task{grid-template-rows:auto auto;min-height:60px}.cw-evaluation-task-number{grid-row:1/3}
+.cw-evaluation-panel .cw-treatment-safety{margin:14px 0 4px}
+.cw-version-note{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;margin:16px 0 4px;padding:12px 13px;border:1px solid #cfe2dd;border-radius:10px;background:#f3faf8}
+.cw-version-note>span{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:#dff1ed;color:#176a61;font-size:13px;font-weight:850}.cw-version-note strong,.cw-version-note p{display:block;margin:0}.cw-version-note strong{color:var(--cw-ink);font-size:12px}.cw-version-note p{margin-top:2px;color:var(--cw-muted);font-size:12px;line-height:1.45}.cw-version-note button{white-space:nowrap}
+.cw-body #clinic-review{display:none!important}.cw-body #clinic-history{margin-top:18px;border-top:1px solid var(--cw-line)}
+@media(max-width:760px){.cw-version-note{grid-template-columns:auto minmax(0,1fr);padding:12px}.cw-version-note button{grid-column:1/-1;width:100%;min-height:44px}.cw-evaluation-panel .cw-treatment-safety{margin-top:12px}}

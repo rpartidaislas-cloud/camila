@@ -8,7 +8,7 @@ const styles = read('../smyl-patient-360.css');
 const sync = read('../mobile/scripts/sync-web.js');
 
 test('el resumen prioriza riesgo, siguiente acción y datos clave sin duplicar la navegación', () => {
-  for (const area of ['Historia clínica', 'Evoluciones', 'Plan', 'Simulaciones SMYL', 'Estudios y archivos', 'Citas']) {
+  for (const area of ['Historia clínica', 'Evoluciones', 'Tratamiento', 'Simulaciones SMYL', 'Estudios y archivos', 'Citas']) {
     assert.match(script, new RegExp(area));
   }
   for (const label of ['Alerta clínica', 'Hoy', 'SIGUIENTE PASO', 'Datos clave', 'Actividad reciente', 'Más del expediente']) {
