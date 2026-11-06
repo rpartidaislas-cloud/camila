@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import nodeCrypto from 'node:crypto';
 
 const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const scopes = read('supabase/migrations/20261106100000_smyl_role_scopes_seed_new_clinics.sql');
@@ -54,4 +55,18 @@ test('compactación de auditoría: no borra eventos, exige ventana mínima y sol
   assert.match(mig, /smyl-compactar-auditoria/);
   assert.match(workflow, /20261106120000/);
   assert.match(workflow, /compactacion_ok/);
+});
+
+test('supabase-js del panel se sirve desde el sitio (sin CDN), con la versión fijada y precacheado', () => {
+  const crypto = nodeCrypto;
+  for (const app of ['app.html', 'mobile/www/app.html']) {
+    const html = read(app);
+    assert.match(html, /<script src="vendor\/supabase-js-2\.117\.3\.js"><\/script>/);
+    assert.doesNotMatch(html, /cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js/);
+  }
+  for (const sw of ['sw.js', 'mobile/www/sw.js']) assert.match(read(sw), /'\/camila\/vendor\/supabase-js-2\.117\.3\.js'/);
+  const file = fs.readFileSync(new URL('../vendor/supabase-js-2.117.3.js', import.meta.url));
+  assert.equal(file.equals(fs.readFileSync(new URL('../mobile/www/vendor/supabase-js-2.117.3.js', import.meta.url))), true);
+  assert.match(read('vendor/README.md'), new RegExp(crypto.createHash('sha256').update(file).digest('hex')));
+  assert.match(file.toString('utf8', 0, 4000) + file.toString('utf8').slice(-2000), /supabase|createClient/);
 });
