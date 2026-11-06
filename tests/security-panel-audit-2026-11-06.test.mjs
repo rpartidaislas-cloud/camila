@@ -70,3 +70,14 @@ test('supabase-js del panel se sirve desde el sitio (sin CDN), con la versión f
   assert.match(read('vendor/README.md'), new RegExp(crypto.createHash('sha256').update(file).digest('hex')));
   assert.match(file.toString('utf8', 0, 4000) + file.toString('utf8').slice(-2000), /supabase|createClient/);
 });
+
+test('anti-empalme: restricción de exclusión por profesional y sillón sobre citas activas, sin fallar si hay datos empalmados', () => {
+  const mig = read('supabase/migrations/20261106130000_smyl_appointments_no_overlap.sql');
+  assert.match(mig, /exclude using gist \(tenant_id with =, professional_id with =, tstzrange\(starts_at, ends_at\) with &&\)/);
+  assert.match(mig, /exclude using gist \(tenant_id with =, room_id with =, tstzrange\(starts_at, ends_at\) with &&\)/);
+  assert.match(mig, /status in \('confirmed','arrived','in_progress'\)/);
+  assert.match(mig, /raise notice/);
+  assert.match(workflow, /20261106130000/);
+  assert.match(workflow, /empalme_prof_ok/);
+  assert.match(read('smyl-schedule.js'), /exclusion constraint\|no_overlap/);
+});

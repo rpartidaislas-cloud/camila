@@ -11,6 +11,9 @@ name: SMYL Panel - alcances de rol para clínicas nuevas y RLS por conjuntos (mi
 #   3) 20261106120000_smyl_audit_events_compaction.sql
 #      Compacta (no borra) los eventos de auditoría de más de 24 meses: vacía before_data/after_data y conserva quién,
 #      cuándo, tabla, registro y acción. Se programa a diario con pg_cron si la extensión está habilitada.
+#   4) 20261106130000_smyl_appointments_no_overlap.sql
+#      Restricción de exclusión: un profesional (o un sillón) no puede tener dos citas activas empalmadas, aunque dos
+#      reservas simultáneas pasen la validación. Si ya hay empalmes en los datos NO falla: avisa y no la crea.
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN. Ambas son idempotentes.
 
 on:
@@ -34,6 +37,8 @@ jobs:
       ALCANCES_FILE: supabase/migrations/20261106100000_smyl_role_scopes_seed_new_clinics.sql
       RLS_VERSION: "20261106110000"
       RLS_FILE: supabase/migrations/20261106110000_smyl_rls_read_policies_set_based.sql
+      EMPALMES_VERSION: "20261106130000"
+      EMPALMES_FILE: supabase/migrations/20261106130000_smyl_appointments_no_overlap.sql
       AUDITORIA_VERSION: "20261106120000"
       AUDITORIA_FILE: supabase/migrations/20261106120000_smyl_audit_events_compaction.sql
     steps:
@@ -88,6 +93,9 @@ jobs:
             exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'smyl_appointments' and policyname = 'smyl_appointments_read' and qual like '%smyl_tenants_with_permission%') as citas_ok,
             exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_compact_audit_events') as compactacion_ok,
             exists(select 1 from pg_extension where extname = 'pg_cron') as cron_disponible,
+            exists(select 1 from pg_constraint where conname = 'smyl_appointments_no_professional_overlap') as empalme_prof_ok,
+            exists(select 1 from pg_constraint where conname = 'smyl_appointments_no_room_overlap') as empalme_sillon_ok,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.EMPALMES_VERSION}') as historial_empalmes,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.AUDITORIA_VERSION}') as historial_auditoria,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.ALCANCES_VERSION}') as historial_alcances,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.RLS_VERSION}') as historial_rls`))?.[0] || {};
@@ -124,7 +132,18 @@ jobs:
           }
           if (!antes.cron_disponible) console.log('::warning::pg_cron no está habilitado: la compactación de auditoría NO quedó programada. Actívalo en Database > Extensions y vuelve a ejecutar este workflow.');
 
+          // Idempotente: se reaplica mientras falte alguna restricción (si hay empalmes en los datos, sólo avisa).
+          if (!antes.empalme_prof_ok || !antes.empalme_sillon_ok) {
+            await consultar(fs.readFileSync(process.env.EMPALMES_FILE, 'utf8'));
+            console.log('Restricción anti-empalme aplicada.');
+          } else {
+            console.log('La restricción anti-empalme ya estaba aplicada.');
+          }
+
           const despues = await estado();
+          if (!despues.empalme_prof_ok || !despues.empalme_sillon_ok) {
+            console.log('::warning::La restricción anti-empalme no quedó completa: hay citas activas empalmadas en los datos. Revísalas (ver el aviso de la migración) y vuelve a ejecutar este workflow.');
+          }
           console.log('Después:', JSON.stringify(despues));
           if (!despues.trigger_ok || despues.roles_sin_alcance > 0 || !despues.pacientes_ok || !despues.citas_ok || !despues.compactacion_ok) {
             throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
@@ -132,10 +151,12 @@ jobs:
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_alcances=${!despues.historial_alcances}\n`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_rls=${!despues.historial_rls}\n`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_auditoria=${!despues.historial_auditoria}\n`);
+          // La versión sólo se registra si la restricción quedó completa; si no, se reaplicará en la próxima ejecución.
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar_empalmes=${!despues.historial_empalmes && despues.empalme_prof_ok && despues.empalme_sillon_ok}\n`);
           NODE
 
       - name: Registrar versiones aplicadas
-        if: steps.esquema.outputs.reparar_alcances == 'true' || steps.esquema.outputs.reparar_rls == 'true' || steps.esquema.outputs.reparar_auditoria == 'true'
+        if: steps.esquema.outputs.reparar_alcances == 'true' || steps.esquema.outputs.reparar_rls == 'true' || steps.esquema.outputs.reparar_auditoria == 'true' || steps.esquema.outputs.reparar_empalmes == 'true'
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
@@ -147,4 +168,7 @@ jobs:
           fi
           if [ "${{ steps.esquema.outputs.reparar_auditoria }}" = "true" ]; then
             supabase migration repair --status applied "$AUDITORIA_VERSION"
+          fi
+          if [ "${{ steps.esquema.outputs.reparar_empalmes }}" = "true" ]; then
+            supabase migration repair --status applied "$EMPALMES_VERSION"
           fi
