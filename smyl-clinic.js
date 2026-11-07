@@ -256,7 +256,7 @@
     var resume = document.getElementById('clinic-portal-return');
     if (resume) {
       var ready = !!capturePatientReview(current.tenant, current.patient);
-      resume.querySelector('p').textContent = ready ? 'Listo. Tu valoración y plan ya están revisados.' : 'Falta completar la valoración y el tratamiento, y pulsar «Revisar plan». Después podrás continuar aquí.';
+      resume.querySelector('p').textContent = ready ? 'Listo. Tu valoración y propuesta ya están revisadas.' : 'Falta completar la valoración y el tratamiento, y pulsar «Revisar propuesta». Después podrás continuar aquí.';
       resume.querySelector('button').disabled = !ready;
     }
     updateAIState();
@@ -366,7 +366,7 @@
     if(draft.questions.length){var questions=el('section','clinic-ai-list');questions.append(el('strong','','Antes de decidir'));var questionList=el('ul');draft.questions.forEach(function(v){questionList.append(el('li','',v));});questions.append(questionList);host.append(questions);}
     var limits=[...capture.input.limitations,...draft.limitations].filter(function(v,i,a){return a.indexOf(v)===i;});
     if(limits.length){var limitations=el('details','clinic-ai-limitations');limitations.append(el('summary','','Limitaciones del borrador'));var limitList=el('ul');limits.forEach(function(v){limitList.append(el('li','',v));});limitations.append(limitList);host.append(limitations);}
-    var apply=button('Incorporar selección al plan',function(){applyAIDraft(ctx);},'btn btn-primary');host.append(apply);
+    var apply=button('Incorporar selección a la propuesta',function(){applyAIDraft(ctx);},'btn btn-primary');host.append(apply);
     document.getElementById('clinic-ai-state').textContent='Borrador listo · nada se ha guardado ni aprobado.';
   }
   function applyAIDraft(ctx) {
@@ -408,7 +408,7 @@
     form.append(heading, field('Valoración del profesional', 'clinic-assessment', doc.assessment, 8000, true));
     form.querySelector('#clinic-assessment').placeholder = 'Tus hallazgos y valoración tras revisar al paciente. Puedes guardar un borrador y completarlo después.';
     var plan = el('div', 'clinic-section-heading');
-    plan.append(el('h3', '', 'Plan de tratamiento'), el('p', '', 'La IA puede organizar un borrador desde la evidencia confirmada. Tú decides qué incorporar, corriges y apruebas.'));
+    plan.append(el('h3', '', 'Propuesta de tratamiento'), el('p', '', 'La IA puede organizar un borrador desde la evidencia confirmada. Tú decides qué incorporar, corriges y apruebas.'));
     var ai=el('section','clinic-ai');ai.append(el('span','pro-eyebrow','COPILOTO CLÍNICO'),el('h4','','Borrador dirigido por IA'),el('p','','Usa únicamente el motivo de consulta, tus notas y observaciones ya confirmadas. No recibe nombres, fotografías ni simulaciones.'));
     var consent=el('label','clinic-ai-consent'),consentCheck=el('input');consentCheck.type='checkbox';consentCheck.id='clinic-ai-consent';consent.append(consentCheck,document.createTextNode(' Autorizo enviar estos datos clínicos confirmados para preparar este borrador.'));
     var aiState=el('p','clinic-ai-state');aiState.id='clinic-ai-state';aiState.setAttribute('role','status');
@@ -421,7 +421,7 @@
     var saveState = el('p'); saveState.id = 'clinic-save-status'; saveState.setAttribute('role', 'status');
     var actions = el('div', 'clinic-actions');
     var save = button('Guardar borrador', function () { savePlan(false); }); save.id = 'clinic-save';
-    var review = button('Revisar plan', function () {
+    var review = button('Revisar propuesta', function () {
       var problem = model.reviewError(formDocument());
       if (problem) { document.getElementById('clinic-feedback').replaceChildren(notice(problem, true)); return; }
       renderReview(formDocument());
@@ -569,7 +569,7 @@
   async function loadPatients() {
     var tenant = tenantId, token = ++patientSequence;
     if (!tenant) return;
-    agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {} };
+    agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {}, complete: false };
     var host = document.getElementById('tabla-pacientes-wrap');
     var loading = el('div', 'patient-loading');
     loading.setAttribute('role', 'status'); loading.setAttribute('aria-label', 'Cargando pacientes');
@@ -602,25 +602,35 @@
     return { rows: rows, truncated: true };
   }
   // Próxima cita y última visita de cada paciente, solo lectura: si la agenda no está disponible, la lista funciona igual.
-  var agendaInfo = { tenant: '', status: 'idle', next: {}, last: {} };
+  var agendaInfo = { tenant: '', status: 'idle', next: {}, last: {}, complete: false };
+  // Pagina hasta 10 000 citas por consulta. Si se agota el tope, `complete` queda en false y la lista NO afirma "Sin citas todavía".
+  async function pagedAgenda(build) {
+    var rows = [], size = 1000;
+    for (var page = 0; page < 10; page += 1) {
+      var chunk = await checked(build().range(page * size, page * size + size - 1)) || [];
+      rows = rows.concat(chunk);
+      if (chunk.length < size) return { rows: rows, complete: true };
+    }
+    return { rows: rows, complete: false };
+  }
   async function loadAgendaInfo(tenant) {
-    agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {} };
+    agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {}, complete: false };
     syncPatientFilterControls();
     try {
       var nowIso = new Date().toISOString();
       var parts = await Promise.all([
-        checked(sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).in('status', ['confirmed', 'arrived', 'in_progress']).gte('starts_at', nowIso).order('starts_at', { ascending: true }).limit(1000)),
-        checked(sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).eq('status', 'completed').order('starts_at', { ascending: false }).limit(1000))
+        pagedAgenda(function () { return sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).in('status', ['confirmed', 'arrived', 'in_progress']).gte('starts_at', nowIso).order('starts_at', { ascending: true }).order('id'); }),
+        pagedAgenda(function () { return sb.from('smyl_appointments').select('patient_id,starts_at').eq('tenant_id', tenant).eq('status', 'completed').order('starts_at', { ascending: false }).order('id'); })
       ]);
       if (tenant !== tenantId) return;
       var next = {}, last = {};
-      (parts[0] || []).forEach(function (r) { if (r.patient_id && !next[r.patient_id]) next[r.patient_id] = r.starts_at; });
-      (parts[1] || []).forEach(function (r) { if (r.patient_id && !last[r.patient_id]) last[r.patient_id] = r.starts_at; });
-      agendaInfo = { tenant: tenant, status: 'ready', next: next, last: last };
+      parts[0].rows.forEach(function (r) { if (r.patient_id && !next[r.patient_id]) next[r.patient_id] = r.starts_at; });
+      parts[1].rows.forEach(function (r) { if (r.patient_id && !last[r.patient_id]) last[r.patient_id] = r.starts_at; });
+      agendaInfo = { tenant: tenant, status: 'ready', next: next, last: last, complete: parts[0].complete && parts[1].complete };
       if (typeof window.filtrarPacientes === 'function') window.filtrarPacientes();
     } catch (_) {
       if (tenant !== tenantId) return;
-      agendaInfo = { tenant: tenant, status: 'error', next: {}, last: {} };
+      agendaInfo = { tenant: tenant, status: 'error', next: {}, last: {}, complete: false };
       if (patientDirectoryFilter === 'upcoming' || patientDirectoryFilter === 'without-appointment') patientDirectoryFilter = 'all';
       if (typeof window.filtrarPacientes === 'function') window.filtrarPacientes();
     }
@@ -635,13 +645,15 @@
     if (agendaInfo.status === 'error') return { text: 'Agenda no disponible', label: 'Agenda no disponible', detail: 'Intenta actualizar más tarde', tone: 'unavailable' };
     if (agendaInfo.next[p.id]) return { text: 'Próxima cita: ' + shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), label: shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), detail: 'Próxima cita', tone: 'next' };
     if (agendaInfo.last[p.id]) return { text: 'Última visita: ' + shortDay(agendaInfo.last[p.id]), label: shortDay(agendaInfo.last[p.id]), detail: 'Última visita registrada', tone: 'last' };
+    if (!agendaInfo.complete) return { text: 'Agenda parcial', label: 'Estado por confirmar', detail: 'La agenda no pudo consultarse completa', tone: 'unavailable' };
     return { text: 'Sin citas todavía', label: 'Sin próxima cita', detail: 'Seguimiento por programar', tone: 'none' };
   }
   function plain(value) { return String(value == null ? '' : value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
-  function patientHasUpcoming(p) { return agendaInfo.tenant === tenantId && agendaInfo.status === 'ready' && !!agendaInfo.next[p.id]; }
+  function agendaReady() { return agendaInfo.tenant === tenantId && agendaInfo.status === 'ready' && agendaInfo.complete; }
+  function patientHasUpcoming(p) { return agendaReady() && !!agendaInfo.next[p.id]; }
   function patientContactIncomplete(p) { return !(p.telefono || p.email); }
   function patientMatchesDirectoryFilter(p) {
-    if ((patientDirectoryFilter === 'upcoming' || patientDirectoryFilter === 'without-appointment') && agendaInfo.status !== 'ready') return true;
+    if ((patientDirectoryFilter === 'upcoming' || patientDirectoryFilter === 'without-appointment') && !agendaReady()) return true;
     if (patientDirectoryFilter === 'upcoming') return patientHasUpcoming(p);
     if (patientDirectoryFilter === 'without-appointment') return !patientHasUpcoming(p);
     if (patientDirectoryFilter === 'incomplete') return patientContactIncomplete(p);
@@ -651,7 +663,7 @@
     document.querySelectorAll('#p-pacientes [data-patient-filter-value]').forEach(function (control) {
       var active = control.dataset.patientFilterValue === patientDirectoryFilter;
       var needsAgenda = control.dataset.patientFilterValue === 'upcoming' || control.dataset.patientFilterValue === 'without-appointment';
-      var unavailable = needsAgenda && agendaInfo.status !== 'ready';
+      var unavailable = needsAgenda && !agendaReady();
       control.classList.toggle('is-active', active);
       control.setAttribute('aria-pressed', String(active));
       control.disabled = unavailable;
@@ -660,7 +672,7 @@
     });
   }
   function setPatientDirectoryFilter(value) {
-    if ((value === 'upcoming' || value === 'without-appointment') && agendaInfo.status !== 'ready') return;
+    if ((value === 'upcoming' || value === 'without-appointment') && !agendaReady()) return;
     patientDirectoryFilter = ['all','upcoming','without-appointment','incomplete'].indexOf(value) >= 0 ? value : 'all';
     syncPatientFilterControls();
     filterPatients();
@@ -668,7 +680,7 @@
   function updatePatientMetrics() {
     var values = {
       'patient-metric-total': todosLosPacientes.length,
-      'patient-metric-upcoming': agendaInfo.status === 'ready' ? todosLosPacientes.filter(patientHasUpcoming).length : '—',
+      'patient-metric-upcoming': agendaReady() ? todosLosPacientes.filter(patientHasUpcoming).length : '—',
       'patient-metric-incomplete': todosLosPacientes.filter(patientContactIncomplete).length
     };
     Object.keys(values).forEach(function (id) {
@@ -712,8 +724,8 @@
       summary.textContent = visible + ' ' + (visible === 1 ? 'paciente' : 'pacientes') + (filterNames[patientDirectoryFilter] ? ' ' + filterNames[patientDirectoryFilter] : '') + ' · ' + total + ' en total';
       return;
     }
-    var upcoming = list.filter(function (p) { return agendaInfo.tenant === tenantId && agendaInfo.status === 'ready' && agendaInfo.next[p.id]; }).length;
-    var agendaNote = agendaInfo.status === 'loading' ? ' · Consultando agenda…' : (agendaInfo.status === 'error' ? ' · Agenda no disponible' : (upcoming ? ' · ' + upcoming + ' con próxima cita' : ''));
+    var upcoming = list.filter(patientHasUpcoming).length;
+    var agendaNote = agendaInfo.status === 'loading' ? ' · Consultando agenda…' : (agendaInfo.status === 'error' ? ' · Agenda no disponible' : (!agendaInfo.complete ? ' · Agenda parcial' : (upcoming ? ' · ' + upcoming + ' con próxima cita' : '')));
     summary.textContent = total + (total === 1 ? ' paciente' : ' pacientes') + agendaNote;
   }
   function bindPatientMenuDismiss() {
@@ -733,17 +745,22 @@
     if (actionText && action) empty.append(button(actionText, action, 'btn btn-secondary'));
     return empty;
   }
-  function renderPatients(list) {
+  // Sólo se pinta una porción de la lista (hasta ~100 filas por paso): con miles de pacientes el DOM completo congela el panel.
+  var PATIENT_PAGE = 100, patientShown = PATIENT_PAGE, patientListKey = '';
+  function renderPatients(fullList) {
+    var key = String(fullList.length) + '|' + (fullList.length ? fullList[0].id + fullList[fullList.length - 1].id : '');
+    if (key !== patientListKey) { patientListKey = key; patientShown = PATIENT_PAGE; }
+    var list = fullList.slice(0, patientShown);
     var host = document.getElementById('tabla-pacientes-wrap'); host.replaceChildren();
     bindPatientMenuDismiss();
     updatePatientMetrics();
-    updatePatientSummary(list);
+    updatePatientSummary(fullList);
     if (patientMessage) {
       var message = el('div', 'clinic-patient-message');
       message.append(notice(patientMessage, patientFailure), button('Volver a cargar', loadPatients, 'btn btn-secondary btn-sm'));
       host.append(message);
     }
-    if (!list.length && !patientFailure) {
+    if (!fullList.length && !patientFailure) {
       if (todosLosPacientes.length) {
         var filteredCopy = patientDirectoryFilter === 'all' ? 'Prueba con otro nombre, teléfono o correo.' : 'No hay pacientes que coincidan con este filtro y la búsqueda actual.';
         host.append(patientEmptyState('Sin resultados', filteredCopy, 'Mostrar todos', function () {
@@ -808,6 +825,12 @@
       row.append(patientCell, attention, state, actions); body.append(row);
     });
       table.append(body); host.append(table);
+      if (fullList.length > list.length) {
+        var more = el('div', 'clinic-patient-more');
+        more.append(el('p', '', 'Mostrando ' + list.length + ' de ' + fullList.length + ' pacientes. Usa el buscador para encontrar a alguien en particular.'),
+          button('Mostrar ' + Math.min(PATIENT_PAGE, fullList.length - list.length) + ' más', function () { patientShown += PATIENT_PAGE; renderPatients(fullList); }, 'btn btn-secondary btn-sm'));
+        host.append(more);
+      }
     }
     var legacy = localPatients();
     if (!patientFailure && legacy.length) {
@@ -886,7 +909,7 @@
     } finally { savingPatient = false; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; }); }
   }
   async function loadPatientSelect() {
-    var select = document.getElementById('f-caso-paciente'), tenant = tenantId, selected = select.value;
+    var select = document.getElementById('f-caso-paciente'), tenant = tenantId;
     select.disabled = true;
     try {
       var rows = [];
@@ -896,6 +919,7 @@
         if (chunk.length < 1000) break;
       }
       if (tenant !== tenantId) return;
+      var selected = select.value; // se lee al terminar: puede haberse preseleccionado mientras cargaba
       select.replaceChildren(new Option('Seleccionar paciente…',''));
       rows.forEach(function (p) { select.append(new Option(fullName(p), p.id)); });
       select.value = selected; select.disabled = false;
@@ -934,6 +958,7 @@
       }
     });
     window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients; window.filtrarPacientes = filterPatients; window.filtrarDirectorioPacientes = setPatientDirectoryFilter;
+    var searchTimer = null; window.filtrarPacientesDiferido = function () { clearTimeout(searchTimer); if (todosLosPacientes.length <= 300) { filterPatients(); return; } searchTimer = setTimeout(filterPatients, 180); };
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;
     ['smyl:dental-context-updated','smyl:case-selection'].forEach(function(name){addEventListener(name,function(event){if(current&&event.detail?.tenant===current.tenant&&event.detail?.patient===current.patient)status();});});
@@ -1003,7 +1028,7 @@
     var actions = el('div', 'clinic-actions');
     var approve = button('Guardar como revisado', function () { savePlan(true); }, 'btn btn-primary'); approve.id = 'clinic-review-submit';
     approve.disabled = true; check.addEventListener('change', function () { approve.disabled = !check.checked; });
-    actions.append(button('Volver al plan', function () { dialog.close(); }), approve);
+    actions.append(button('Volver a la propuesta', function () { dialog.close(); }), approve);
     var summary = el('section','clinic-review-summary'); summary.id = 'clinic-review-summary';
     dialog.append(reviewTitle, el('p', '', 'Comprueba el contenido antes de confirmar. Se conservarán las versiones anteriores. No se enviará nada al paciente.'), summary, label, actions); document.body.append(dialog);
   }

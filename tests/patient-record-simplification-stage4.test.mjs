@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const workspace = read('../smyl-case-workspace.js');
 const workspaceCss = read('../smyl-case-workspace.css');
-const record = read('../smyl-patient-360.js');
+const record = read('../smyl-patient-360.js') + read('../smyl-history-read.js');
 const recordCss = read('../smyl-patient-360.css');
 const app = read('../app.html');
 
@@ -26,8 +26,9 @@ test('el expediente no apila una segunda identidad ni el flujo completo bajo el 
 });
 
 test('la documentación clínica no presenta simulaciones como evidencia', () => {
-  assert.match(workspace, /Documentación clínica/);
-  assert.match(workspace, /Las imágenes generadas no forman parte de la documentación clínica/);
+  assert.match(workspace, /evaluationTask\(ctx,'evidence','02','Evidencia','Archivos y estudios'\)/);
+  assert.match(workspace, /Las simulaciones se mantienen separadas de la evidencia clínica/);
+  assert.match(workspace, /las simulaciones nunca se utilizan como evidencia clínica/);
   assert.match(workspace, /cw-simulation-source/);
   assert.match(workspaceCss, /\.cw-simulation-source\{display:none!important\}/);
   assert.doesNotMatch(workspace, /Selecciona las fotografías y simulaciones de este caso/);
@@ -42,11 +43,12 @@ test('simulaciones tiene un espacio independiente y una advertencia visual clara
 });
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=12/);
-  assert.match(app, /smyl-patient-360\.js\?v=18/);
-  assert.match(app, /smyl-case-workspace\.js\?v=18/);
+  assert.match(app, /smyl-patient-360\.css\?v=16/);
+  assert.match(app, /smyl-patient-360\.js\?v=24/);
+  assert.match(app, /smyl-case-workspace\.js\?v=22/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
-  assert.equal(record, read('../mobile/www/smyl-patient-360.js'));
+  assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));
+  assert.equal(read('../smyl-history-read.js'), read('../mobile/www/smyl-history-read.js'));
   assert.equal(workspace, read('../mobile/www/smyl-case-workspace.js'));
 });

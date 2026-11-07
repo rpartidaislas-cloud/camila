@@ -71,7 +71,7 @@ test('Agenda dispatches each layer and keeps an explicit manual fallback', () =>
 
 test('web, mobile and offline versions stay synchronized', () => {
   assert.match(app, /smyl-schedule\.js\?v=(?:2[6-9]|[3-9][0-9])/);
-  assert.match(app, /smyl-inbox\.js\?v=38/);
+  assert.match(app, /smyl-inbox\.js\?v=39/);
   assert.match(worker, /whatsapp-callbacks/);
   assert.equal(schedule, read('../mobile/www/smyl-schedule.js'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));

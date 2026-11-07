@@ -58,3 +58,16 @@
 @media(max-width:600px){.connections-shell{width:100%;padding-inline:0;overflow:visible}.connections-hero h1{font-size:30px;letter-spacing:-1px}.connections-status-card,.connections-card,.connections-context{padding:18px}.connections-flow li{grid-template-columns:38px minmax(0,1fr);gap:10px}.connections-channel-list>div{grid-template-columns:40px minmax(0,1fr)}.connections-channel-list .btn{grid-column:1/-1;width:100%;margin:0}.connections-training-bar{display:grid}.connections-training-score{text-align:left;justify-content:start}.connections-repeat-row{padding-block:16px}.connections-preview-bubble{max-width:94%}.connections-shell button,.connections-shell input,.connections-shell select,.connections-shell summary,.connections-disconnect-dialog button{min-height:44px!important}.connections-shell button{max-width:100%}.connections-disconnect-dialog footer .btn{width:100%}}
 .connections-channel-list .btn,.connections-channel-retry .btn,.connections-version-row .btn{font-size:12px!important}
 .connections-training-actions{margin-top:8px;padding-top:18px;border-top:1px solid #d5dfdb}
+.connections-shell .btn-secondary.connections-unlink-button{border-color:#ddb9b0;background:#fff7f5;color:#9a4437}.connections-shell .btn-secondary.connections-unlink-button:hover:not(:disabled){background:#fbece8}
+/* Ventanas de desconexión: centradas (app.html resetea margin:0 y anula el margin:auto nativo del dialog) */
+.connections-disconnect-dialog{position:fixed;inset:0;margin:auto;height:fit-content;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;border:1px solid #e3e8e2;box-shadow:0 30px 80px rgba(15,32,34,.30),0 2px 6px rgba(15,32,34,.08)}
+.connections-disconnect-dialog[open]{animation:connections-dialog-in .18s ease-out}
+@keyframes connections-dialog-in{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.connections-disconnect-dialog[open]{animation:none}}
+.connections-disconnect-dialog form{padding:30px 30px 26px}
+.connections-disconnect-dialog .connections-status-label{display:block;margin-bottom:10px;color:#9a4437;letter-spacing:.14em}
+.connections-disconnect-dialog h2{margin-bottom:12px;line-height:1.2}
+.connections-disconnect-dialog .connections-disconnect-summary{margin:20px 0 14px}
+.connections-disconnect-dialog .connections-help{margin:0;padding:12px 14px;border-radius:12px;background:#f1f6f2;color:#3f5a58;font-size:12.5px;line-height:1.55}
+.connections-disconnect-dialog footer{margin-top:24px;padding-top:20px;border-top:1px solid #e6ebe6}
+@media(max-width:600px){.connections-disconnect-dialog form{padding:22px 20px 20px}.connections-disconnect-dialog{max-height:calc(100dvh - 20px)}}

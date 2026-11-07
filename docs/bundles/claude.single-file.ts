@@ -390,6 +390,54 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
+// ── _shared/ai-quota.ts ──
+const { TOPES_RADIOGRAFIA_PREDETERMINADOS, leerTopesRadiografia, evaluarTope, inicioDiaUTC, inicioMesUTC } = (() => {
+// Tope de análisis de IA por clínica (auditoría del panel admin, 2026-11-06): sin esto, una sesión (o un script con una
+// sesión robada) podía lanzar análisis de radiografía sin límite y la factura de Anthropic la pagaba SMYL.
+// Los límites son generosos para uso clínico normal y se ajustan con variables de entorno sin publicar código.
+
+interface TopesIA {
+  diario: number;
+  mensual: number;
+}
+
+const TOPES_RADIOGRAFIA_PREDETERMINADOS: TopesIA = { diario: 60, mensual: 600 };
+
+function entero(valor: string | undefined, predeterminado: number): number {
+  const n = Math.floor(Number(valor));
+  return Number.isFinite(n) && n > 0 ? n : predeterminado;
+}
+
+function leerTopesRadiografia(env: { get(name: string): string | undefined }): TopesIA {
+  return {
+    diario: entero(env.get("RADIOGRAPH_DAILY_LIMIT"), TOPES_RADIOGRAFIA_PREDETERMINADOS.diario),
+    mensual: entero(env.get("RADIOGRAPH_MONTHLY_LIMIT"), TOPES_RADIOGRAFIA_PREDETERMINADOS.mensual),
+  };
+}
+
+type ResultadoTope = { permitido: true } | { permitido: false; periodo: "diario" | "mensual"; mensaje: string };
+
+function evaluarTope(usoDiario: number, usoMensual: number, topes: TopesIA): ResultadoTope {
+  if (usoDiario >= topes.diario) {
+    return { permitido: false, periodo: "diario", mensaje: `Tu clínica llegó al límite diario de ${topes.diario} análisis de radiografía. Podrás continuar mañana o pedir que se amplíe el límite.` };
+  }
+  if (usoMensual >= topes.mensual) {
+    return { permitido: false, periodo: "mensual", mensaje: `Tu clínica llegó al límite mensual de ${topes.mensual} análisis de radiografía. Pide que se amplíe el límite para continuar.` };
+  }
+  return { permitido: true };
+}
+
+// Inicio del día/mes en UTC (suficiente para un tope de costo; no es una regla clínica).
+function inicioDiaUTC(ahora: Date): string {
+  return new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate())).toISOString();
+}
+function inicioMesUTC(ahora: Date): string {
+  return new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1)).toISOString();
+}
+
+return { TOPES_RADIOGRAFIA_PREDETERMINADOS, leerTopesRadiografia, evaluarTope, inicioDiaUTC, inicioMesUTC };
+})();
+
 // ── _shared/radiograph-claude.ts ──
 const { RADIOGRAPH_ACTION, RADIOGRAPH_MAP_ACTION, RADIOGRAPH_MODEL, RADIOGRAPH_EFFORT, RADIOGRAPH_MAX_TOKENS, RADIOGRAPH_TIMEOUT_MS, RADIOGRAPH_SCHEMA, RADIOGRAPH_MAP_SCHEMA, estimateCostUsd, usageRow, textOnly } = (() => {
 // Análisis de radiografías con Claude (revisión asistida; nunca diagnóstico automático).
@@ -802,6 +850,29 @@ Deno.serve(async (req: Request) => {
     if (typeof body.system !== "string" || !Array.isArray(body.messages)) {
       return new Response(JSON.stringify({ error: "Solicitud de radiografía inválida." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    // Tope por clínica (día y mes) contado desde smyl_ai_usage_log. Si no se puede verificar, se rechaza: es un control de costo.
+    const featureTope = body.action === RADIOGRAPH_MAP_ACTION ? "radiograph_toothmap" : "radiograph_analysis";
+    const ahoraTope = new Date();
+    const contar = async (desde: string) => {
+      const { count, error } = await usageAdmin.from("smyl_ai_usage_log").select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantEfectivo as string).eq("feature", featureTope).neq("outcome", "error").gte("created_at", desde);
+      if (error) throw error;
+      return count || 0;
+    };
+    try {
+      const [usoDiario, usoMensual] = await Promise.all([contar(inicioDiaUTC(ahoraTope)), contar(inicioMesUTC(ahoraTope))]);
+      const tope = evaluarTope(usoDiario, usoMensual, leerTopesRadiografia(Deno.env));
+      if (!tope.permitido) {
+        return new Response(JSON.stringify({ error: tope.mensaje, code: "ai_quota_exceeded", period: tope.periodo }), {
+          status: 429, headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+    } catch (topeError: any) {
+      console.error("No se pudo verificar el tope de IA:", topeError?.message);
+      return new Response(JSON.stringify({ error: "No pudimos verificar el límite de uso. Intenta de nuevo en unos minutos." }), {
+        status: 503, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
   }
@@ -1580,6 +1651,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // El navegador sólo puede elegir entre estos modelos y hasta este tope; lo demás lo fija el servidor.
+    const modelosClienteAdmitidos = new Set(["claude-sonnet-4-5", "claude-sonnet-4-6", "claude-opus-4-5"]);
+    const acotarMaxTokensCliente = (v: unknown): number => {
+      const n = Math.floor(Number(v));
+      return Number.isFinite(n) && n > 0 ? Math.min(n, 6500) : 4096;
+    };
     let anthropicBody: any;
     if (body.action === TREATMENT_PLAN_ACTION) {
       anthropicBody = {
@@ -1591,8 +1668,8 @@ Deno.serve(async (req: Request) => {
       };
     } else if (body.messages) {
       anthropicBody = {
-        model: body.model || "claude-opus-4-5",
-        max_tokens: body.max_tokens || 4096,
+        model: modelosClienteAdmitidos.has(body.model) ? body.model : "claude-opus-4-5",
+        max_tokens: acotarMaxTokensCliente(body.max_tokens),
         messages: body.messages,
       };
       if (body.system) anthropicBody.system = body.system;

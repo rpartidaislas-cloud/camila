@@ -46,14 +46,16 @@ test('la política visual cubre escritorio y móvil sin saturar el flujo', () =>
   assert.match(styles, /@media\(max-width:760px\)/);
   assert.match(styles, /min-height:44px/);
   assert.match(fixture, /Paciente de demostración/);
-  assert.match(fixture, /Listo para documentar cierre/);
+  assert.match(fixture, /Seguimiento e historial/);
+  assert.match(workspace, /HISTORIAL DEL TRATAMIENTO/);
+  assert.match(workspace, /Cada control conserva fecha, autor y versión\. Lo anterior no se reemplaza/);
 });
 
 test('web, móvil y PWA publican la etapa 3.6', () => {
-  assert.match(app, /smyl-patient-360\.js\?v=18/);
+  assert.match(app, /smyl-patient-360\.js\?v=24/);
   assert.match(app, /smyl-dental-record\.js\?v=17/);
-  assert.match(app, /smyl-case-workspace\.css\?v=15/);
-  assert.match(app, /smyl-case-workspace\.js\?v=18/);
+  assert.match(app, /smyl-case-workspace\.css\?v=18/);
+  assert.match(app, /smyl-case-workspace\.js\?v=22/);
   assert.match(worker, /evolution-closure-v36/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

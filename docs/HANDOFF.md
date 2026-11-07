@@ -15,9 +15,371 @@
 - La capa aislada `smyl-patients-directory.css` incorpora jerarquía visual,
   contraste AA, objetivos táctiles de 44 px, tabla estable en tableta, tarjetas
   móviles y reflow al 200 %. Web, PWA y `mobile/www` quedaron sincronizados.
-- QA: **1,007/1,007** pruebas ejecutadas aprobadas, 18 pruebas condicionales
-  omitidas y 0 fallas (1,025 totales). Revisión visual aprobada en 1440, 1024,
+- QA final tras integrar `main`: **1,103/1,103** pruebas ejecutadas aprobadas,
+  28 pruebas condicionales omitidas y 0 fallas (1,131 totales). Revisión visual aprobada en 1440, 1024,
   390 y 320 px, además de ampliación al 200 %, sin overflow horizontal.
+
+## 2026-11-07 — Claude Code — Historia clínica: historial de cambios
+
+- Botón **Historial de cambios** en la Historia clínica (lo ve también quien solo puede leer): diálogo con las últimas 30 versiones, de la más
+  reciente a la más antigua, con número, fecha, **quién** cambió y **qué** cambió ("Alergia agregada: Látex", "Penicilina: gravedad Moderada → Alta",
+  "Cirugías: confirmado que no hay", textos con antes → después), agrupado por sección. Sin migración: `smyl_patient_history_versions` ya se podía leer
+  con `clinical.read` + alcance del paciente.
+- `diff(prev, next)` y `versionEntries(rows)` en `smyl-history-model.js` (puros). Cada versión se compara con la anterior consecutiva; la primera, contra
+  nada; si falta la anterior, se avisa en lugar de inventar. Se piden 31 filas para poder comparar la última mostrada.
+- **Nombres:** profesional (`smyl_professionals.user_id` → `display_name`), si no `camila_usuarios.nombre`, "Tú" si es la propia persona y
+  "Miembro del equipo" si no se encuentra. **No se muestran correos.** Si la consulta falla, el diálogo muestra el motivo y la ficha sigue igual.
+- `renderVersions()` / `renderVersionsMessage()` en `smyl-history-read.js` (todo escapado; probado con HTML en nombres y textos).
+- Se corrigió un fallo propio antes de publicar: en celular el texto de cada cambio quedaba en una columna de un carácter; ahora hay prueba de ancho.
+- Pruebas: +6 del modelo, 6 de la vista (`smyl-history-versions.test.mjs`) y 5 de navegador (diálogo real, solo lectura, >30 versiones, error, celular).
+  Comprobado con 4 errores introducidos a propósito. Cachés: `smyl-patient-360.js?v=23`, `.css?v=16`, `smyl-history-model.js?v=2`, `smyl-history-read.js?v=2`.
+- **Pendiente / no incluido:** restaurar una versión anterior (decisión clínica: no se hizo), comparar dos versiones cualesquiera y paginar más allá de 30.
+## 2026-11-07 — Codex — Evaluación clínica enfocada y contexto trazable por revisión
+
+**Objetivo:** simplificar la etapa de Evaluación de Tratamiento, separar con
+claridad contexto, evidencia y hallazgos, y evitar que una actualización de la
+Historia clínica pase inadvertida durante la revisión.
+
+**Qué cambió (frontend):**
+- Evaluación usa un índice lateral en escritorio y `Paso N de 4` en móvil;
+  sólo muestra una tarea a la vez y mantiene una única acción principal fija
+  que no cubre el contenido.
+- Contexto dejó de mover la tarjeta administrativa completa. Ahora muestra un
+  resumen clínico breve de alertas, alergias, medicamentos y condiciones; los
+  datos administrativos quedan en una divulgación secundaria.
+- `SmylPatient360.context(tenant, patient)` entrega a Tratamiento un snapshot
+  estructurado, congelado y limitado por `clinical.read`. No expone notas
+  libres, contacto de emergencia ni cuerpos de evoluciones.
+- El panel lateral `Historia para esta evaluación` permite consultar el detalle,
+  abrir la Historia canónica y marcarla como revisada. El marcado es sólo de la
+  sesión y conserva `historyRevision`; si la Historia se guarda de nuevo, la
+  evaluación queda obsoleta y exige revisar la nueva versión.
+- `0 alertas` ya no equivale a una Historia completa: la interfaz distingue
+  `attention`, `incomplete` y `ready`. La propuesta requiere contexto revisado
+  y hallazgos completos.
+- Las etapas son secciones semánticas con `data-active`; navegar sólo cambia
+  visibilidad, mantiene montados los editores y conserva los borradores.
+
+**Integridad clínica:** no hubo migraciones, RPC nuevos ni cambios de backend.
+Las versiones históricas existentes siguen siendo la fuente de verdad y no se
+sobre-escribe el pasado. Una constancia longitudinal persistente de cierre de
+Evaluación necesitará en una fase posterior un contrato backend propio; esta
+entrega no la simula con notas, storage del navegador ni tablas no destinadas a
+ese fin.
+
+**Distribución y QA:** Patient 360 JS v24, Case Workspace JS v22 / CSS v18 y
+caché `evaluation-context-v78`; web y `mobile/www` sincronizados. Contratos
+enfocados 30/30, QA visual aprobado en 1280, 820, 390 y 320 px (una CTA, drawer
+modal, 42/44 px y sin desbordamiento), borrador preservado al cambiar de etapa y
+humo de la app real aprobado al abrir tres pacientes (85/60/60 callbacks, una
+galería cada uno). La suite completa usada por CI termina en verde. Se actualizó
+el humo para el selector `.patient-row` y el Supabase local vendorizado, y se
+corrigió en `vendor/README.md` el hash real del archivo ya existente.
+
+## 2026-11-07 — Claude Code — Historia clínica: modelo puro y pruebas que se ejecutan
+
+- **`smyl-history-model.js` (nuevo, sin DOM ni red):** normalizar registros, estados, cobertura, armar el documento que se guarda desde un
+  `FormData` (`buildDocument`) y el modelo de la vista de lectura (`readModel`) salieron de `smyl-patient-360.js` (76 KB → 65 KB; ya no
+  redefine 26 funciones, las toma de `window.SmylHistoryModel`). Si el modelo no carga, la ficha avisa en consola y no rompe la página.
+- **Fuente única de nombres de campo:** `RECORD_KINDS` + `inputName(kind,field)`. El editor dibuja los 12 campos de los 4 registros con
+  `H.inputName(...)` y el guardado los lee con la misma función; la clase de error de la fecha de cirugía ya no puede repetirse.
+- **Una corrección de comportamiento:** `missing()` (prioridad del Resumen) ahora usa los registros como el resto, no solo las listas antiguas.
+- **Pruebas que ejecutan código:** `tests/smyl-history-model.test.mjs` (15; FormData real, ida y vuelta sin perder campos, cobertura, estados,
+  vista de lectura, modelo sin DOM, orden de carga, copia móvil). Comprobado con 3 errores introducidos a propósito: cada uno rompe pruebas.
+- **Prueba de navegador del editor real:** `tests/smyl-history-roundtrip.test.mjs` (5; llena los 5 pasos, guarda, reabre y guarda sin tocar;
+  atajos; Cancelar; solo lectura). Se omite sola sin Playwright/Chromium. Nuevo trabajo `navegador` en `pruebas.yml` (Playwright 1.63.0),
+  **informativo** (`continue-on-error`) hasta confirmar que es estable en el runner; no se ha ejecutado aún en GitHub.
+- Las pruebas de texto de `smyl-history-ux-v32` ahora exigen la delegación al modelo en vez de buscar lógica copiada.
+- Cachés: `smyl-patient-360.js?v=22`, `smyl-history-model.js?v=1`. Suite como la corre la CI: 1081 pasan, 0 fallan.
+
+## 2026-11-06 — Claude Code — Historia clínica: auditoría de guardado y correcciones
+
+- Ricardo reportó "lo de las alergias no se guarda" y pidió revisar si guarda todo. Se auditó el editor con el código real y datos sintéticos:
+  llenar todos los campos de los 5 pasos, guardar, reabrir y guardar sin tocar nada (capturando `p_document`).
+- **Bug real encontrado: la fecha de una cirugía nunca se guardaba.** El campo se llamaba `surgery_date_record[]` y el guardado leía
+  `surgery_date[]`. Corregido; desde el primer commit de la ficha (6e8f754) las fechas de cirugía se perdían en silencio.
+- Todo lo demás se conserva (alertas, alergias con reacción y gravedad, condiciones con fecha y estado, medicamentos con dosis,
+  frecuencia y fecha, dental, hábitos, contacto, notas, y los estados `yes/no/unknown/pending`). Reabrir y guardar sin tocar no cambia ningún campo.
+- **Causa probable del reporte de alergias:** `Guardar historia` solo aparecía en el paso 5 (y el atajo "+ Alergia" abre el paso 1), y los avisos
+  caen arriba, fuera de pantalla. Ahora **Guardar historia está en todos los pasos**, los avisos se desplazan a la vista (`role=alert|status`)
+  y **Cancelar con cambios pide confirmación** ("Hay cambios sin guardar. ¿Descartarlos?").
+- No se reprodujo un fallo de las alergias en el navegador ni en el servidor: `smyl_save_patient_history` guarda el documento tal cual.
+  Si persiste con la versión nueva, falta el texto del aviso rojo que muestre la pantalla.
+- Prueba nueva en `smyl-history-ux-v32.test.mjs`: cada campo leído al guardar existe con el mismo nombre con que se dibuja (habría detectado la fecha).
+  Cachés: `smyl-patient-360.js?v=21`. Pruebas: 1061 pasan; fallan 2 que ya fallaban en `main` (`lana-quick`, deuda tipográfica).
+
+## 2026-11-05 — Codex: Tratamiento simple con historial visible y sin pérdida de borradores
+
+**Objetivo:** renombrar `Plan` a `Tratamiento`, reducir la mezcla visual entre
+etapas y hacer explícito que cada cambio clínico conserva su historial.
+
+**Qué cambió (frontend):**
+- La pestaña principal y el acceso secundario ahora dicen `Tratamiento`; las
+  claves internas `treatment` y `plan` se conservan para no romper rutas ni
+  integraciones.
+- El recorrido visible se simplificó a `Evaluación → Propuesta → Aceptación →
+  Seguimiento`. Dentro de Evaluación, `Cierre` pasó a `Revisión`.
+- Sólo se muestra una etapa a la vez. Los editores canónicos permanecen
+  montados y únicamente cambia su atributo `hidden`, por lo que navegar no
+  reconstruye nodos ni pierde campos o borradores.
+- Se retiró la franja duplicada de “Siguiente acción”. La alerta clínica vive
+  dentro de Contexto y usa un solo botón `Revisar historia`.
+- Propuesta muestra un aviso breve de `Versiones guardadas` y un acceso directo
+  a `#clinic-history`. El botón primario del contenedor reutiliza la revisión
+  canónica del editor; no se creó otro guardado.
+- Seguimiento se presenta como `Seguimiento e historial` y resume qué se ha
+  trabajado con evoluciones, citas, odontograma y hallazgos confirmados.
+
+**Integridad clínica:** no hubo migraciones ni cambios de RPC, RLS, permisos o
+documentos. Se verificó el patrón estado actual + versiones de Historia clínica
+(`smyl_patient_history_versions`), propuesta (`smyl_clinical_versions`) y
+odontograma (`smyl_dental_versions`). Las notas firmadas siguen inmutables y
+las correcciones se agregan como adendas. Las cotizaciones continúan ancladas a
+la revisión exacta de la propuesta. Navegar entre etapas no guarda, aprueba,
+firma ni cierra automáticamente.
+
+**Distribución:** Patient 360 JS v22, Case Workspace JS v21 / CSS v17 y caché
+`treatment-simple-v77`; web y `mobile/www` sincronizados. El editor usa “Propuesta de tratamiento” para evitar alternar entre “Plan” y “Propuesta”.
+
+**QA:** contratos enfocados 34/34; prueba nueva
+`smyl-treatment-longitudinal-safety.test.mjs`; Playwright aprobado en 1280,
+820, 390 y 320 px con una etapa/panel/CTA visibles, sin desbordamiento y
+controles de 42/44 px. La prueba de navegación escribe un borrador, cambia a
+Aceptación y vuelve: conserva el mismo nodo y valor. El humo de la app real con
+Supabase simulado abrió tres pacientes sin congelamiento (95/60/60 callbacks).
+Suite completa: 1,038 aprobadas, 18 omitidas y sólo los 2 fallos basales de
+`main`: `tests/lana-quick.test.mjs` y el presupuesto histórico de microtexto en
+`tests/smyl-ui-v3.test.mjs` (888→891).
+
+## 2026-11-05 — Claude Code — Historia clínica: lectura por secciones numeradas con índice lateral
+
+- Ricardo aprobó el boceto B ("separación fuerte"): la lectura de la Historia clínica pasa de 6 tarjetas iguales a **5 bloques numerados**
+  (Seguridad clínica, Salud médica, Antecedentes dentales, Hábitos, Contacto y notas), cada uno con franja de color, filas
+  etiqueta/valor/estado, índice lateral fijo con punto de estado y progreso, y filas pendientes en ámbar punteado.
+- `smyl-history-read.js` (nuevo, función pura `SmylHistoryRead.render(modelo)`); `smyl-patient-360.js` arma el modelo
+  (`historyReadModel`) y lo conecta (`bindHistoryRead`). Se quitaron `historyGroup`/`historyValue` (sin uso).
+- **Un solo conteo:** 6 secciones clínicas (alergias, condiciones, medicamentos, cirugías, dental, hábitos); contacto y notas ya no cuentan.
+  Antes eran "8 apartados" en la lectura, 4 grupos y 5 pasos de edición. El Resumen dice "N de 6 secciones confirmadas".
+  La cobertura usa los registros (`historyRecords`), no solo las listas antiguas (había un desajuste).
+- 3 estados visibles: Confirmado / N registros / Por confirmar. Solo en pantalla: los datos guardados (`yes/no/unknown/pending`) no cambian.
+- **"Editar sección"** abre el editor de 5 pasos ya existente directamente en ese paso; **"+ Alergia" / "+ Medicamento"** abren el paso
+  y dejan una fila lista con el foco. El editor y el guardado (`smyl_save_patient_history`) no cambian: sin migración.
+- No se agregó "Historial de cambios": no existe esa función; la versión sigue en el subtítulo.
+- Verificado con el código real y datos sintéticos (`tests/fixtures/smyl-history-read-preview.html`, `?caso=vacio|solo-lectura`):
+  lectura, editar sección, atajos, vacío, solo lectura y móvil. Cachés: `smyl-patient-360.js?v=20`, `.css?v=14`, `smyl-history-read.js?v=1`.
+- Pruebas: 1033 pasan y 2 fallan ya en `main` (`lana-quick`, deuda tipográfica de `smyl-ui-v3`), sin cambios por esta tarea.
+
+## 2026-11-05 — Codex: Resumen del paciente simple y controles clínicos unificados
+
+**Objetivo:** separar visualmente la información esencial del expediente y
+reducir las decisiones visibles a una sola acción principal por momento.
+
+**Qué cambió (frontend):**
+- El Resumen dejó de mostrar la cuadrícula de siete áreas y sus contadores. La
+  vista ahora se organiza en cuatro bloques claros: alerta clínica, `Hoy`,
+  actividad reciente y `Más del expediente`.
+- `Hoy` reúne el siguiente paso con una acción explícita y una lectura breve de
+  alergias, condiciones, medicamentos y última cita. La actividad muestra tres
+  movimientos al inicio y permite expandir el historial completo.
+- Las áreas secundarias permanecen disponibles dentro de un acordeón agrupado
+  por Clínico, Evidencia y Operación; los datos administrativos siguen sujetos
+  al permiso existente.
+- Los estados clínicos `No / Sí / No se sabe / Pendiente` se presentan como un
+  control segmentado único. El pie de Historia clínica usa una sola acción
+  primaria: `Continuar` o, al final, `Guardar historia`.
+- Se eliminó el brillo y desplazamiento de los botones en el expediente, se
+  reforzó la jerarquía entre acciones y se corrigió la ocultación real de
+  controles con el atributo `hidden`.
+
+**Seguridad y datos:** no hubo cambios de backend, migraciones, RLS, permisos
+ni fuentes clínicas. Se reutilizan el historial versionado, la línea de tiempo,
+las citas y la navegación existentes; no se elimina ni duplica información.
+
+**Distribución:** Patient 360 JS v21 / CSS v15, lector de Historia v1 y caché
+`history-read-integration-v75`; web y `mobile/www` sincronizados.
+
+**QA:** contratos enfocados 40/40; Resumen validado en 1440, 1024, 768, 600,
+390 y 320 px, e Historia clínica en 1280, 820, 390 y 320 px. Una sola acción
+primaria, controles móviles de 44 px, expansión 3→7 movimientos, sin
+desbordamiento horizontal y humo de apertura de pacientes aprobado. Suite
+completa integrada: 1,034 aprobadas, 18 omitidas y únicamente los 2 fallos
+basales de `main`: `tests/lana-quick.test.mjs` (frase VITA) y
+`tests/smyl-ui-v3.test.mjs` (presupuesto histórico de microtexto 888→891).
+
+## 2026-11-04 — Codex: Evaluación clínica simplificada y recorrido de cuatro etapas
+
+**Objetivo:** reducir la confusión visual de Tratamiento y separar decisiones
+clínicas, aprobación del paciente y seguimiento real.
+
+**Qué cambió (frontend):**
+- El recorrido ahora usa cuatro etapas reales: `Evaluación`, `Plan`,
+  `Aprobación` y `Atención y seguimiento`. Cotización, presentación y decisión
+  del paciente viven en Aprobación; evolución, citas y cierre quedan en
+  Seguimiento.
+- Evaluación muestra una sola tarea a la vez: `Contexto`, `Evidencia`,
+  `Hallazgos` y `Cierre`. Conserva una sola acción primaria dinámica y mantiene
+  vivos los editores, IDs, eventos y borradores existentes.
+- Se retiraron el resumen de etapa repetido, los metadatos superiores y la
+  numeración decorativa de los módulos. La alerta de historia sólo ocupa una
+  superficie visible cuando existen alertas.
+- Evidencia resume fotos, rayos X y archivos, muestra únicamente el registro
+  más reciente y ofrece acceso al historial anterior. Las sugerencias de IA
+  permanecen separadas de la confirmación profesional.
+- En móvil las cuatro tareas se muestran en una cuadrícula 2×2; la CTA queda
+  dentro del flujo normal y no cubre contenido.
+
+**Seguridad y datos:** no hubo cambios de backend, migraciones, RLS ni fuentes
+clínicas. Se conserva el gate `reviewComplete` vigente y no se introduce cierre
+o aprobación implícita. La corrección semántica del gate radiográfico y la
+integración del flujo RX v2 quedan para una fase de arquitectura separada.
+
+**Distribución:** Case Workspace JS v20 / CSS v16, caché
+`evaluation-flow-v73`; web y `mobile/www` sincronizados.
+
+**QA:** contratos del cambio 19/19 y Playwright aprobado en 1280, 820, 390 y
+320 px: cuatro módulos, cuatro tareas, un panel y una CTA visibles, 32 piezas,
+sin desbordamiento ni superposición. Capturas y reporte en
+`artifacts/treatment-v4/`.
+
+## 2026-11-04 — Codex: cabecera operativa simplificada
+
+**Objetivo:** retirar accesos redundantes de la barra superior sin eliminar las
+funciones a las que daban acceso.
+
+**Qué cambió (frontend):**
+- Se retiraron los botones visibles `Ir a… / Ctrl K` y `MILA` de la cabecera.
+- El buscador global sigue disponible con `Ctrl/Cmd + K`; sólo se eliminó su
+  botón permanente para liberar espacio.
+- MILA continúa disponible en sus flujos y módulos propios; no se eliminó su
+  funcionalidad.
+- Se conservan notificaciones, estado de la clínica y la acción principal.
+- Web y PWA quedaron sincronizadas con caché `topbar-cleanup-v72`.
+
+**Validación:** prueba específica de cabecera, paridad web/PWA y apertura del
+buscador por teclado.
+
+## 2026-11-04 — Codex: Historia clínica enfocada por decisiones
+
+**Objetivo:** reducir la saturación visual de la edición de Historia clínica y
+evitar que tamaños, avisos y tarjetas compitan entre sí.
+
+**Qué cambió (frontend):**
+- La edición ahora muestra una sola de cinco secciones: `Atención`, `Salud`,
+  `Dental`, `Hábitos` y `Complementaria`. En escritorio usa un índice lateral;
+  en tableta y móvil, una tira horizontal desplazable.
+- Cada antecedente clínico usa un estado explícito: `No`, `Sí`, `No se sabe` o
+  `Pendiente`. Los detalles sólo aparecen con `Sí`. Si ya existen datos, la UI
+  no permite ocultarlos con un estado contradictorio: conserva `Sí` y explica
+  que primero deben retirarse los registros.
+- Historias anteriores siguen siendo compatibles: un dato existente se
+  interpreta como `Sí`; una clave ausente sin datos queda `Pendiente`, nunca se
+  infiere `No`. Las nuevas claves `*_status` viven dentro del documento JSONB.
+- La lectura distingue visualmente alertas confirmadas, información pendiente
+  y estado claro. Se simplificaron el encabezado del paciente (`Protegido`) y
+  la pestaña visible `Tratamiento` pasó a `Plan` sin cambiar su ruta interna.
+- Tipografía y acciones se redujeron a una jerarquía corta. El flujo usa
+  `Continuar` y termina en `Guardar historia`; el guardado sigue siendo uno
+  solo, atómico y versionado.
+
+**Seguridad y datos:** no hubo migraciones, cambios de RLS, RPC, permisos ni
+backend. Se conserva `smyl_save_patient_history` y todos los campos legacy.
+
+**Distribución:** Patient 360 JS v19 / CSS v13, caché
+`history-focused-v71`; web y `mobile/www` sincronizados.
+
+**QA:** contratos específicos 15/15 y Playwright aprobado en 1280, 820, 390 y
+320 px: un solo panel/primario visible, sin desbordamiento, navegación conserva
+valores, protección contra estados contradictorios y controles móviles de
+44 px. Suite completa: **1,031 aprobadas**, 18 omitidas y los mismos 2 fallos
+previos de `main`: `tests/lana-quick.test.mjs` (frase VITA) y
+`tests/smyl-ui-v3.test.mjs` (presupuesto histórico de microtexto 888→891).
+
+## 2026-11-04 — Claude: al abrir un paciente la página se congelaba (bucle entre galería y espacio de trabajo)
+
+**Síntoma:** en Pacientes, al hacer clic en una fila "no pasa nada" y la pestaña queda colgada.
+
+**Causa raíz:** `smyl-patient-cases.js` crea la galería `.pc-gallery` dentro del panel "Simulaciones SMYL"
+de la ficha 360 y `smyl-case-workspace.js` (`adopt()`) la sacaba de ahí para esconderla. Ambos observan
+`#p-paciente-detalle` con MutationObserver; la guarda de `mount()` sólo miraba dentro del panel
+(`host.querySelector`), así que al ser movida la galería se creaba otra, y otra: bucle de microtareas
+que bloquea el hilo principal (422 galerías / >3000 callbacks en la repro). Introducido al cambiar la guarda
+en 6e8f754.
+
+**Arreglo (sólo frontend):**
+- `smyl-patient-cases.js?v=11`: `mount()` no crea galería si ya existe una en toda la pantalla (`screen.querySelector`).
+- `smyl-case-workspace.js?v=19`: `adopt()` ya no mueve una galería que vive en `[data-p360-panel="simulations"]`;
+  `refresh()` lee las sesiones de esa galería como respaldo.
+- Versiones subidas en app.html, sw.js (CACHE_VERSION `…-patient-open-fix-v1`) y `mobile/www/*`; 12 tests acoplados actualizados.
+- Tests nuevos: `tests/patient-gallery-no-loop.test.mjs` (estáticos) y humo en navegador real
+  `tests/qa/patient-open-smoke.cjs` (Playwright + `tests/qa/fake-supabase.js`; abre 3 pacientes y falla si hay
+  congelamiento, más de una galería o >400 callbacks de MutationObserver). Uso:
+  `NODE_PATH=$(npm root -g) node tests/qa/patient-open-smoke.cjs`.
+
+**Para Codex:** hay dos diseños en conflicto (galería visible en la pestaña "Simulaciones SMYL" vs. espacio de
+trabajo del caso que la oculta). Hoy conviven sin mover nodos. Los tests estáticos no detectan bucles de DOM:
+si tocas esos dos módulos, corre el humo en navegador.
+
+**Fallos previos en main (no míos):** `tests/lana-quick.test.mjs` (frase del prompt VITA simplificada en 9cdc06a) y
+`tests/smyl-ui-v3.test.mjs` (deuda de microtexto 888→891).
+
+## 2026-11-03 — Claude: opción "Desvincular mensajería" en Canales e IA
+
+**Problema:** Canales e IA no tenía forma de desconectar WhatsApp. No era un olvido: `lana-channels`
+bloquea a propósito `disconnect` de WhatsApp (409) porque su cuenta vive en LANA y borrarla podría
+apagar un WhatsApp real. Lo que el usuario ve como "WhatsApp conectado" es el enlace SMYL ↔ LANA
+(`camila_tenants.config.integraciones.lana`, huella visible "Código verificado · XXXXXXXXXXXX").
+
+**Decisión:** la desconexión correcta desde SMYL es **desvincular el enlace**, no revocar el canal.
+No se llama a LANA ni a Meta: sus cuentas, canales y conversaciones quedan intactos.
+
+### Qué cambió
+- `supabase/functions/lana-connection/index.ts`: nueva acción `disconnect` (POST). Sólo el dueño
+  (`auth.user.id === auth.tenantId`, si no 403). Idempotente (sin enlace → `unlinked:false`). Quita
+  `integraciones.lana` y aparta el enlace **cifrado** en `integraciones.lana_desvinculada` con
+  `estado:'desvinculada'`, `desvinculada_at`, `desvinculada_por` (para poder restaurarlo). Inserta
+  auditoría en `smyl_audit_events` (`entity_type='lana_link'`, huella pública, sin secretos; si
+  falla, sólo se registra el error). La respuesta es `publicStatus(null)`: sin credenciales.
+- `smyl-connections.js` (v15) / `.css` (v10): botón "Desvincular mensajería" en la tarjeta de
+  infraestructura y "Desvincular" en la fila de WhatsApp (sólo dueño y sólo si está conectado), con
+  diálogo de confirmación que aclara que no se borra nada. Tras un timeout reconcilia el estado
+  real. Messenger/Instagram siguen con su desconexión canal por canal. El texto de la UI no
+  menciona el motor (regla de `smyl-branding-isolation`).
+- PWA `…-lana-unlink-v1`; web y `mobile/www` sincronizados; bundle regenerado
+  (`docs/bundles/lana-connection.single-file.ts`).
+- Pruebas: `tests/lana-unlink-messaging.test.mjs` (9) y versiones actualizadas en
+  `lana-connection-stage2` y `lana-stage5-response-lab`. Suite: 1016/1017 en verde.
+  **La única falla, `tests/lana-quick.test.mjs`, ya fallaba en `main`** (espera una frase del
+  prompt VITA que simplificó `9cdc06a`); no se tocó (prompts de generación = Codex/usuario).
+
+### Restaurar un enlace desvinculado (SQL Editor, reemplaza HUELLA)
+```sql
+update public.camila_tenants
+set config = jsonb_set(config #- '{integraciones,lana_desvinculada}', '{integraciones,lana}',
+      (config #> '{integraciones,lana_desvinculada}') - 'desvinculada_at' - 'desvinculada_por' - 'estado' ||
+      jsonb_build_object('estado','conectada'), true)
+where config #>> '{integraciones,lana_desvinculada,fingerprint}' = 'HUELLA';
+```
+
+### Despliegue
+1. GitHub Pages publica la interfaz sola.
+2. Redesplegar la Edge Function `lana-connection` con `docs/bundles/lana-connection.single-file.ts`
+   (Verify JWT como está hoy). Hasta entonces el botón responde "Acción no reconocida".
+
+### Ajuste posterior: ventana centrada
+La ventana de confirmación salía pegada arriba a la izquierda: `app.html` trae el reseteo global
+`*{margin:0}`, que anula el `margin:auto` nativo de `<dialog>`. `.connections-disconnect-dialog` (la
+usan también la desconexión de Messenger/Instagram) ahora se centra con `position:fixed;inset:0;
+margin:auto;height:fit-content`, con animación suave (respeta `prefers-reduced-motion`), aviso
+tranquilizador en caja propia y separador sobre los botones. CSS v11, PWA `…-lana-unlink-v1-dialog-v2`.
+Verificado en Chromium (escritorio 1280×800 y móvil 390×780: centro exacto). Cualquier `<dialog>` nuevo
+fuera del sistema `data-smyl-dialog-system` necesita centrado explícito por esta misma razón.
+
+### Para Codex
+Pulir el diálogo/botón si hace falta (clases `connections-unlink-button`, `data-unlink-*`). No
+exponer el nombre del motor en textos. Si algún día se quiere revocar WhatsApp canal por canal,
+requiere definir primero la revocación de su configuración en LANA (el 409 sigue vigente).
+
+---
 
 ## 2026-11-02 — Codex — Simulador móvil v6: menos acciones y guardado confiable
 
@@ -9604,4 +9966,50 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Cuando sólo existe la fotografía inicial, la pantalla lo explica y muestra una acción visible `Añadir segunda vista`; con varias fotografías conserva el cambio de comparación existente.
 - `Guardar resultado` cambia a `Guardar en expediente` y se añade una explicación breve del destino antes de solicitar los datos del paciente. Después de la confirmación la acción continúa cambiando a `Compartir resultado`.
 - No se modificaron persistencia, tablas, RLS, generación, prompts, consumo ni datos clínicos. El guardado canónico continúa en `camila_casos` mediante el flujo existente.
-- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=27`, `smyl-studio.css?v=28` y caché PWA `result-views-v8`.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=30`, `smyl-studio.css?v=31` y caché PWA `patient-directory-v4-result-explicit-v12`.
+
+## 2026-11-02 — Codex — Simulador progresivo v8: guía de blanqueamiento funcional
+
+- La etapa de claridad separa `Naturales` de `Blanqueamiento`. El segundo recorrido ofrece tres accesos VITA Bleached Shades (`0M3`, `0M2`, `0M1`) y, bajo divulgación progresiva, las 15 muestras de VITA Bleachedguide 3D-MASTER con sus niveles de claridad.
+- La selección persiste por familia y se conserva al volver, editar, comparar, regenerar, guardar un caso o usar el ajuste local por fotografía. Los casos antiguos siguen abriendo como VITA Classical.
+- El sistema y el código elegidos viajan a la generación visual; un tono Bleach inválido ya no puede caer silenciosamente en A1. Cachés de lote y composición distinguen la familia para no reutilizar un resultado incompatible.
+- 0M1 se identifica como muestra compartida por las dos referencias. `0M2` se presenta sólo como punto de partida visual, nunca como recomendación clínica. La interfaz aclara que los colores digitales son orientativos y requieren confirmación con guía física.
+- El selector funciona en flujo progresivo, guía completa, editor avanzado, resultados y PWA móvil, con tabs accesibles, teclado, foco y presentación compacta en celular.
+- Web y `mobile/www` se sincronizan con `smyl-studio.js?v=26`, `smyl-studio.css?v=27` y caché PWA `bleach-guide-v8`. No hay migraciones ni cambios de backend.
+- Pruebas: guía exacta Classical/Bleachedguide, accesos Bleached Shades, persistencia y compatibilidad, generación, exportación, muestras RGB, cachés, espejos móviles, PWA, scripts integrados y regresión del flujo guiado.
+
+## 2026-11-02 — Codex — Simulador progresivo v9: comparación directa VITA y Bleaches
+
+- La etapa de claridad elimina tabs, accesos rápidos, recomendaciones visuales y paneles desplegables. Presenta únicamente dos carruseles siempre visibles: `Guía VITA` arriba y `Bleaches` debajo.
+- Bleaches reúne en una sola fila sus tonos compatibles, elimina duplicados y conserva el orden de luminosidad. Cada guía recuerda su última selección y al tocar un tono se activa la familia correcta.
+- La interfaz conserva un único resumen `Tono elegido` y una única acción para continuar. La nota clínica se reduce a confirmar el tono con una guía física.
+- Las tarjetas se compactaron para móvil, con controles táctiles de 44 px, navegación por teclado, etiquetas accesibles y sin escalado o sombras que alteren el tamaño seleccionado.
+- Se retiró el CSS obsoleto de tabs, accesos rápidos y escala profesional desplegable. Generación, persistencia, resultados y compatibilidad con casos existentes permanecen sin cambios.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=27`, `smyl-studio.css?v=28` y caché PWA `shade-compare-v9`.
+- Pruebas ejecutadas: 17/17 de flujo guiado, comparación de guías, persistencia, generación, PWA móvil, política visual y accesibilidad.
+
+## 2026-11-02 — Codex — Simulador progresivo v10: Bleaches BL1–BL4
+
+- La selección nueva de `Bleaches` queda limitada a cuatro tonos: `BL1`, `BL2`, `BL3` y `BL4`, ordenados del mayor al menor valor visual. Se evita llamarlos `B1–B4`, porque esos códigos ya pertenecen a la guía VITA Classical.
+- Los dos carruseles permanecen visibles para comparar: VITA Classical arriba y Bleaches BL abajo. `BL2` es únicamente el punto inicial de la interfaz y no una recomendación clínica.
+- El sistema visible y el enviado a la generación se identifica como `Ivoclar Bleach BL`. La representación digital continúa siendo orientativa y debe confirmarse con una guía física bajo iluminación clínica.
+- Los códigos históricos `0M*` y `xM*` siguen siendo legibles para abrir resultados anteriores, pero ya no aparecen como opciones de una simulación nueva. Al reabrir una edición antigua se conserva el resultado previo y se pide elegir uno de los cuatro BL.
+- Web y `mobile/www` quedan sincronizados con `smyl-studio.js?v=28`, `smyl-vita-samples.js?v=3`, `visual-simulation.js?v=31` y caché PWA `bleach-bl-v10`. No requiere migración de base de datos.
+
+## 2026-11-02 — Codex — Resultado móvil v11: selector de fotografías siempre visible
+
+- Se corrigió la tira `Otras vistas` del resultado, que Safari móvil podía comprimir hasta mostrar sólo una línea. El contenedor ya no se reduce dentro de la pantalla de resultado y conserva una altura táctil mínima.
+- Cada vista ahora es un botón accesible con miniatura de tamaño explícito, nombre, estado (`En pantalla`, `Disponible`, `Referencia` o `Sin simulación`) y marca visual en la selección activa.
+- La tira admite desplazamiento horizontal y ajuste por pasos sin crear desbordamiento vertical; al tocar una tarjeta continúa reutilizando el comparador canónico y `cambiarVistaBA()`.
+- La cabecera y la tira se ocultan únicamente cuando no existe ninguna fotografía. No se modificaron generación, resultados, consumo, persistencia ni backend.
+- Web y `mobile/www` quedan sincronizados con `smyl-studio.css?v=29` y caché PWA `result-views-v11`.
+- Se añadió regresión estática y cobertura del flujo de navegador para altura, tamaño de miniaturas, carga de imagen, selección y `aria-pressed`. Las 13 pruebas ejecutables del flujo relacionado quedaron aprobadas.
+
+## 2026-11-03 — Codex — Simulador v12: contactos cerrados y dictado de indicaciones
+
+- El contrato activo de generación exige cerrar todos los diastemas y espacios negros interproximales visibles dentro del tramo tratado. Conserva una línea de contacto fina y pequeñas troneras incisales para que cada pieza siga siendo independiente; prohíbe fusionar coronas, pintar encía, ensanchar la arcada o inventar dientes.
+- Las instrucciones opcionales quedan subordinadas a esta regla anatómica: no pueden pedir conservar o crear diastemas, triángulos negros o espacios abiertos, ni alterar tejido, identidad, número de piezas o arcadas no seleccionadas.
+- `Indicaciones adicionales` permite escribir, dictar en español y editar la transcripción antes de generar. Incluye estados accesibles, contador, limpiar y accesos rápidos para conservar tamaño, acabado natural y contactos cerrados.
+- El dictado usa las capacidades de reconocimiento del navegador. SMYL no guarda audio: sólo conserva el texto que la persona decide usar. Si el navegador no ofrece dictado, el campo escrito sigue disponible sin bloquear el flujo.
+- Web y `mobile/www` quedan sincronizados con `visual-simulation.js?v=32`, `smyl-studio.js?v=29`, `smyl-studio.css?v=30` y caché PWA `voice-notes-v12`. No requiere migraciones ni cambios de backend.
+- Pruebas ejecutadas: contrato de cierre, dictado editable, caché PWA, flujo guiado, guías VITA/Bleaches, selector móvil de vistas y paridad con la aplicación móvil (16/16).

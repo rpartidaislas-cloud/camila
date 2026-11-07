@@ -6,6 +6,7 @@ import {
   checkLimitPorIpProspecto,
 } from "../_shared/limits.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { evaluarTope, inicioDiaUTC, inicioMesUTC, leerTopesRadiografia } from "../_shared/ai-quota.ts";
 import {
   RADIOGRAPH_ACTION,
   RADIOGRAPH_EFFORT,
@@ -277,6 +278,29 @@ Deno.serve(async (req: Request) => {
     if (typeof body.system !== "string" || !Array.isArray(body.messages)) {
       return new Response(JSON.stringify({ error: "Solicitud de radiografía inválida." }), {
         status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    // Tope por clínica (día y mes) contado desde smyl_ai_usage_log. Si no se puede verificar, se rechaza: es un control de costo.
+    const featureTope = body.action === RADIOGRAPH_MAP_ACTION ? "radiograph_toothmap" : "radiograph_analysis";
+    const ahoraTope = new Date();
+    const contar = async (desde: string) => {
+      const { count, error } = await usageAdmin.from("smyl_ai_usage_log").select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantEfectivo as string).eq("feature", featureTope).neq("outcome", "error").gte("created_at", desde);
+      if (error) throw error;
+      return count || 0;
+    };
+    try {
+      const [usoDiario, usoMensual] = await Promise.all([contar(inicioDiaUTC(ahoraTope)), contar(inicioMesUTC(ahoraTope))]);
+      const tope = evaluarTope(usoDiario, usoMensual, leerTopesRadiografia(Deno.env));
+      if (!tope.permitido) {
+        return new Response(JSON.stringify({ error: tope.mensaje, code: "ai_quota_exceeded", period: tope.periodo }), {
+          status: 429, headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+    } catch (topeError: any) {
+      console.error("No se pudo verificar el tope de IA:", topeError?.message);
+      return new Response(JSON.stringify({ error: "No pudimos verificar el límite de uso. Intenta de nuevo en unos minutos." }), {
+        status: 503, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
   }
@@ -1055,6 +1079,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // El navegador sólo puede elegir entre estos modelos y hasta este tope; lo demás lo fija el servidor.
+    const modelosClienteAdmitidos = new Set(["claude-sonnet-4-5", "claude-sonnet-4-6", "claude-opus-4-5"]);
+    const acotarMaxTokensCliente = (v: unknown): number => {
+      const n = Math.floor(Number(v));
+      return Number.isFinite(n) && n > 0 ? Math.min(n, 6500) : 4096;
+    };
     let anthropicBody: any;
     if (body.action === TREATMENT_PLAN_ACTION) {
       anthropicBody = {
@@ -1066,8 +1096,8 @@ Deno.serve(async (req: Request) => {
       };
     } else if (body.messages) {
       anthropicBody = {
-        model: body.model || "claude-opus-4-5",
-        max_tokens: body.max_tokens || 4096,
+        model: modelosClienteAdmitidos.has(body.model) ? body.model : "claude-opus-4-5",
+        max_tokens: acotarMaxTokensCliente(body.max_tokens),
         messages: body.messages,
       };
       if (body.system) anthropicBody.system = body.system;

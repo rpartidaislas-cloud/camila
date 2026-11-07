@@ -12,10 +12,10 @@ const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('Tratamiento resume la evidencia por fecha sin crear otro archivo clínico', () => {
-  assert.match(workspace, /HISTORIA DE EVIDENCIA/);
-  assert.match(workspace, /Archivos clínicos por fecha/);
+  assert.match(workspace, /EVIDENCIA CLÍNICA/);
+  assert.match(workspace, /REGISTRO MÁS RECIENTE/);
   assert.match(workspace, /SmylPatient360\?\.files/);
-  assert.match(workspace, /Los originales permanecen en el archivo privado del paciente/);
+  assert.match(workspace, /Los originales permanecen en el expediente privado/);
   assert.doesNotMatch(workspace, /localStorage/);
 });
 
@@ -28,11 +28,11 @@ test('la ficha expone sólo un resumen seguro y conserva el archivo canónico', 
 
 test('fotografías, radiografías y archivos se mantienen diferenciados', () => {
   assert.match(dental, /studyItems:ctx\.doc\.studies\.map/);
-  for (const label of ['Fotografías del caso', 'Radiografías dentales', 'Archivos del expediente']) {
+  for (const label of ['Fotos', 'Rayos X', 'Archivos']) {
     assert.match(workspace, new RegExp(label));
   }
-  assert.match(fixture, /Escaneo intraoral/);
   assert.match(fixture, /Panorámica inicial/);
+  assert.match(fixture, /data-kind="radiograph"/);
 });
 
 test('la historia de evidencia es progresiva y móvil', () => {
@@ -43,10 +43,10 @@ test('la historia de evidencia es progresiva y móvil', () => {
 });
 
 test('web, móvil y PWA publican la misma etapa', () => {
-  assert.match(app, /smyl-patient-360\.js\?v=18/);
+  assert.match(app, /smyl-patient-360\.js\?v=24/);
   assert.match(app, /smyl-dental-record\.js\?v=17/);
-  assert.match(app, /smyl-case-workspace\.css\?v=15/);
-  assert.match(app, /smyl-case-workspace\.js\?v=18/);
+  assert.match(app, /smyl-case-workspace\.css\?v=18/);
+  assert.match(app, /smyl-case-workspace\.js\?v=22/);
   assert.match(worker, /evidence-history-v34/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

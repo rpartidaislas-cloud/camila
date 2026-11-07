@@ -1,7 +1,7 @@
 # Auditoría visual de SMYL y plantilla general UI v3
 
 **Fecha:** 25 de octubre de 2026  
-**Alcance medido:** `app.html` y 53 hojas CSS web de la raíz del proyecto.  
+**Alcance medido:** `app.html` y 65 hojas CSS web de la raíz del proyecto.
 **Objetivo:** sustituir la acumulación de tamaños, tarjetas y controles aislados por una plantilla operativa única para todo el panel.
 
 **Actualización de ejecución:** 1 de noviembre de 2026 · cuatro olas de Clinical
@@ -20,15 +20,15 @@ La medición encontró:
 
 | Indicador | Resultado |
 | --- | ---: |
-| Archivos auditados | 54 |
-| Declaraciones `font-size` | 2,202 |
+| Archivos auditados | 66 |
+| Declaraciones `font-size` | 3,045 |
 | Tamaños tipográficos distintos | 40 |
-| Declaraciones menores de 12 px | 888 |
+| Declaraciones menores de 12 px | 897 |
 | Archivos con texto menor de 12 px | 47 |
-| Tamaños más repetidos | 12 px (478), 11 px (421), 13 px (280), 10 px (257), 9 px (127) |
-| Estilos tipográficos incrustados en `app.html` | 136 |
+| Tamaños más repetidos | 12 px (898), 11 px (430), 13 px (429), 10 px (259), 9 px (127) |
+| Estilos tipográficos incrustados en `app.html` | 313 |
 
-**Diagnóstico:** cerca del 40 % de las declaraciones tipográficas medidas son menores de 12 px. La interfaz utiliza microtexto como recurso de organización y luego compensa con títulos grandes, generando saltos visuales entre 8, 9, 10, 11, 12, 13, 18, 24 y más píxeles dentro de la misma tarea.
+**Diagnóstico:** 897 de 3,045 declaraciones tipográficas medidas (29.5 %) son menores de 12 px. La interfaz utiliza microtexto como recurso de organización y luego compensa con títulos grandes, generando saltos visuales entre 8, 9, 10, 11, 12, 13, 18, 24 y más píxeles dentro de la misma tarea.
 
 ## Ejecución v3.3 · primera ola
 

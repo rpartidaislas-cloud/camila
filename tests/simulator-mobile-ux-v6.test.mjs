@@ -37,12 +37,10 @@ test('result action saves first and shares only after confirmation', () => {
 
 test('result views remain visible and explain how to add another photo', () => {
   assert.match(studio, /VISTAS DEL RESULTADO/);
-  assert.match(studio, /Añadir segunda vista/);
-  assert.match(studio, /enhanceResultViews/);
-  assert.match(studio, /classList\.add\('flow-result-view'\)/);
-  assert.match(css, /#res-photos \{?\.flow-result-view|#res-photos \.flow-result-view/);
-  assert.match(css, /height:112px!important/);
-  assert.match(css, /\.flow-result-add-view/);
+  assert.match(studio, /flow-result-views-head/);
+  assert.match(studio, /Puedes añadir fotografías desde Ajustar diseño/);
+  assert.match(html, /class="res-view-card" aria-pressed=/);
+  assert.match(css, /\.flow-result-section-head small/);
 });
 
 test('comparison preserves vertical page scrolling on mobile', () => {
@@ -53,11 +51,25 @@ test('comparison preserves vertical page scrolling on mobile', () => {
 });
 
 test('studio assets are cache-busted together', () => {
-  assert.match(html, /smyl-studio\.css\?v=28/);
-  assert.match(html, /smyl-studio\.js\?v=27/);
-  assert.match(sw, /result-views-v8/);
-  assert.match(sw, /smyl-studio\.css\?v=28/);
-  assert.match(sw, /smyl-studio\.js\?v=27/);
+  assert.match(html, /smyl-studio\.css\?v=31/);
+  assert.match(html, /smyl-studio\.js\?v=30/);
+  assert.match(sw, /simulator-ux-v6/);
+  assert.match(sw, /shade-compare-v9/);
+  assert.match(sw, /bleach-bl-v10/);
+  assert.match(sw, /result-views-v11/);
+  assert.match(sw, /smyl-studio\.css\?v=31/);
+  assert.match(sw, /smyl-studio\.js\?v=30/);
+});
+
+test('mobile tone selection compares VITA and exactly four BL shades in stacked rows', () => {
+  assert.match(studio, /flow-vita-classical-track/);
+  assert.match(studio, /flow-vita-bleached-track/);
+  assert.match(studio, /window\.BLEACH_BL_SHADES/);
+  assert.match(html, /var BLEACH_BL_SHADES = \[[\s\S]*?code:'BL1'[\s\S]*?code:'BL2'[\s\S]*?code:'BL3'[\s\S]*?code:'BL4'[\s\S]*?\n\];/);
+  assert.doesNotMatch(studio, /VITA_BLEACHEDGUIDE\|\|\[\]\)\.concat/);
+  assert.match(css, /\.flow-shade-comparison\{display:grid/);
+  assert.match(css, /@media\(max-width:680px\)[\s\S]*?\.smyl-organized \.flow-shade-row \.flow-vita-card\{flex-basis:100px/);
+  assert.match(css, /\.smyl-organized \.flow-shade-row \.flow-vita-card\.selected\{[^}]*box-shadow:none;transform:none/);
 });
 
 test('Capacitor receives the same simulator experience', () => {

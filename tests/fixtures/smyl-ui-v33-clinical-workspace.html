@@ -106,16 +106,13 @@
             <div class="p360-patient-copy"><span>EXPEDIENTE CLÍNICO</span><h1>Ana Martínez</h1><p>+52 33 0000 0000 · paciente@example.test</p></div>
             <div class="p360-title-tools"><button type="button">Asistente IA</button><button type="button">Datos administrativos</button><span class="p360-secure">Acceso protegido</span></div>
           </header>
-          <nav class="p360-tabs" aria-label="Áreas principales de la ficha"><button type="button" aria-selected="true">Resumen</button><button type="button">Historia clínica</button><button type="button">Tratamiento</button><button type="button">Archivos</button></nav>
-          <section class="p360-priority"><div><span>SIGUIENTE PASO</span><h2>Revisar plan clínico</h2><p>La evaluación está completa y el plan espera revisión profesional.</p></div><div class="p360-priority-actions"><button type="button" class="btn btn-primary">Continuar</button></div></section>
-          <section class="p360-record-map">
-            <header><div><span>FICHA CONECTADA</span><h2>Todo el paciente, ordenado por área</h2><p>Cada bloque abre su fuente canónica sin duplicar información.</p></div><strong>3 áreas vinculadas</strong></header>
-            <div class="p360-domain-grid">
-              <button type="button" class="p360-domain-card" data-tone="ready"><span class="p360-domain-number">01</span><span class="p360-domain-copy"><small>Historia clínica</small><strong>Datos actualizados</strong><em>Sin alertas pendientes</em></span><b class="p360-domain-arrow">›</b></button>
-              <button type="button" class="p360-domain-card" data-tone="progress"><span class="p360-domain-number">02</span><span class="p360-domain-copy"><small>Tratamiento</small><strong>Plan en revisión</strong><em>Último cambio hoy</em></span><b class="p360-domain-arrow">›</b></button>
-              <button type="button" class="p360-domain-card" data-tone="pending"><span class="p360-domain-number">03</span><span class="p360-domain-copy"><small>Cotización</small><strong>Pendiente de preparar</strong><em>Continúa desde el plan</em></span><b class="p360-domain-arrow">›</b></button>
-            </div>
-          </section>
+          <nav class="p360-tabs" aria-label="Áreas principales de la ficha"><button type="button" aria-selected="true">Resumen</button><button type="button">Historia clínica</button><button type="button">Plan</button><button type="button">Simulaciones SMYL</button><button type="button">Archivos</button></nav>
+          <section class="p360-summary-section"><h2 class="p360-summary-title">Hoy</h2><div class="p360-today-grid">
+            <article class="p360-priority"><div><span>SIGUIENTE PASO</span><h2>Revisar plan clínico</h2><p>La evaluación está completa y el plan espera revisión profesional.</p></div><div class="p360-priority-actions"><button type="button" class="btn btn-primary">Revisar plan</button></div></article>
+            <article class="p360-card p360-health-card"><div class="p360-section-head"><div><h2>Datos clave</h2></div><button type="button">Ver historia</button></div><dl><div><dt>Alergias</dt><dd>Ninguna conocida</dd></div><div><dt>Condiciones</dt><dd>Por confirmar</dd></div><div><dt>Medicamentos</dt><dd>Ninguno registrado</dd></div><div><dt>Última cita</dt><dd>24 oct 2026</dd></div></dl></article>
+          </div></section>
+          <section class="p360-summary-section"><div class="p360-summary-heading"><div><h2 class="p360-summary-title">Actividad reciente</h2><p>Últimos cambios del expediente</p></div></div><article class="p360-card p360-activity-card"><div class="p360-timeline"><button type="button" class="p360-timeline-row"><i data-type="clinical_note"></i><span><small>Evolución</small><strong>Historia clínica actualizada</strong><em>Hoy · Firmada</em></span><b>→</b></button></div></article></section>
+          <details class="p360-more"><summary><span><strong>Más del expediente</strong><small>Historia, estudios, citas y otros accesos</small></span><i></i></summary><div class="p360-more-grid"><section><strong>Clínico</strong><div><button type="button"><span>Historia clínica</span><b>→</b></button><button type="button"><span>Evoluciones</span><b>→</b></button><button type="button"><span>Plan</span><b>→</b></button></div></section><section><strong>Evidencia</strong><div><button type="button"><span>Simulaciones SMYL</span><b>→</b></button><button type="button"><span>Estudios y archivos</span><b>→</b></button></div></section><section><strong>Operación</strong><div><button type="button"><span>Citas</span><b>→</b></button></div></section></div></details>
         </div>
       </section>
 

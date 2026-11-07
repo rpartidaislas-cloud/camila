@@ -1,0 +1,342 @@
+[
+  {
+    "name": "desktop",
+    "requiredHeight": 42,
+    "initial": {
+      "viewport": 1280,
+      "scrollWidth": 1280,
+      "modules": 4,
+      "moduleBodies": 4,
+      "moduleTitles": [
+        "Evaluación clínica",
+        "Plan de tratamiento",
+        "Aprobación",
+        "Atención y seguimiento"
+      ],
+      "openModules": 1,
+      "stages": 4,
+      "tasks": 4,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "activeTask": "Contexto",
+      "commandMeta": 0,
+      "stageStatus": 1,
+      "stageStatusVisuallyHidden": true,
+      "summaryNumbers": 0,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "minButtonHeight": 42,
+      "commandVisible": true,
+      "safetyVisible": true,
+      "overflow": false
+    },
+    "evidence": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "metrics": 3,
+      "items": 1,
+      "latest": "ESTUDIO MÁS RECIENTE",
+      "previous": "Ver 4 anteriores",
+      "cta": "Continuar a hallazgos",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "findings": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "odontogram": 1,
+      "teeth": 32,
+      "filters": 4,
+      "sourceWorkspace": 1,
+      "sourceStats": 3,
+      "advancedInitiallyHidden": true,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "photoMode": {
+      "selected": "true",
+      "title": "Archivo visual y revisión asistida",
+      "actions": [
+        "Agregar fotografías",
+        "Revisar sugerencias"
+      ]
+    },
+    "radiographTask": {
+      "open": true,
+      "title": "Agregar estudio radiográfico",
+      "steps": 3,
+      "visibleSections": 1,
+      "duplicateMaps": 0,
+      "uploadVisible": 1,
+      "controlHeight": 42,
+      "overflow": false
+    },
+    "closure": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "cta": "Continuar al plan",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false
+    }
+  },
+  {
+    "name": "tablet",
+    "requiredHeight": 42,
+    "initial": {
+      "viewport": 820,
+      "scrollWidth": 820,
+      "modules": 4,
+      "moduleBodies": 4,
+      "moduleTitles": [
+        "Evaluación clínica",
+        "Plan de tratamiento",
+        "Aprobación",
+        "Atención y seguimiento"
+      ],
+      "openModules": 1,
+      "stages": 4,
+      "tasks": 4,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "activeTask": "Contexto",
+      "commandMeta": 0,
+      "stageStatus": 1,
+      "stageStatusVisuallyHidden": true,
+      "summaryNumbers": 0,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "minButtonHeight": 42,
+      "commandVisible": true,
+      "safetyVisible": true,
+      "overflow": false
+    },
+    "evidence": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "metrics": 3,
+      "items": 1,
+      "latest": "ESTUDIO MÁS RECIENTE",
+      "previous": "Ver 4 anteriores",
+      "cta": "Continuar a hallazgos",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "findings": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "odontogram": 1,
+      "teeth": 32,
+      "filters": 4,
+      "sourceWorkspace": 1,
+      "sourceStats": 3,
+      "advancedInitiallyHidden": true,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "photoMode": {
+      "selected": "true",
+      "title": "Archivo visual y revisión asistida",
+      "actions": [
+        "Agregar fotografías",
+        "Revisar sugerencias"
+      ]
+    },
+    "radiographTask": {
+      "open": true,
+      "title": "Agregar estudio radiográfico",
+      "steps": 3,
+      "visibleSections": 1,
+      "duplicateMaps": 0,
+      "uploadVisible": 1,
+      "controlHeight": 42,
+      "overflow": false
+    },
+    "closure": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "cta": "Continuar al plan",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false
+    }
+  },
+  {
+    "name": "mobile",
+    "requiredHeight": 44,
+    "initial": {
+      "viewport": 390,
+      "scrollWidth": 390,
+      "modules": 4,
+      "moduleBodies": 4,
+      "moduleTitles": [
+        "Evaluación clínica",
+        "Plan de tratamiento",
+        "Aprobación",
+        "Atención y seguimiento"
+      ],
+      "openModules": 1,
+      "stages": 4,
+      "tasks": 4,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "activeTask": "Contexto",
+      "commandMeta": 0,
+      "stageStatus": 1,
+      "stageStatusVisuallyHidden": true,
+      "summaryNumbers": 0,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "minButtonHeight": 44,
+      "commandVisible": true,
+      "safetyVisible": true,
+      "overflow": false
+    },
+    "evidence": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "metrics": 3,
+      "items": 1,
+      "latest": "ESTUDIO MÁS RECIENTE",
+      "previous": "Ver 4 anteriores",
+      "cta": "Continuar a hallazgos",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "findings": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "odontogram": 1,
+      "teeth": 32,
+      "filters": 4,
+      "sourceWorkspace": 1,
+      "sourceStats": 3,
+      "advancedInitiallyHidden": true,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "photoMode": {
+      "selected": "true",
+      "title": "Archivo visual y revisión asistida",
+      "actions": [
+        "Agregar fotografías",
+        "Revisar sugerencias"
+      ]
+    },
+    "radiographTask": {
+      "open": true,
+      "title": "Agregar estudio radiográfico",
+      "steps": 3,
+      "visibleSections": 1,
+      "duplicateMaps": 0,
+      "uploadVisible": 1,
+      "controlHeight": 44,
+      "overflow": false
+    },
+    "closure": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "cta": "Continuar al plan",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false
+    }
+  },
+  {
+    "name": "mobile-320",
+    "requiredHeight": 44,
+    "initial": {
+      "viewport": 320,
+      "scrollWidth": 320,
+      "modules": 4,
+      "moduleBodies": 4,
+      "moduleTitles": [
+        "Evaluación clínica",
+        "Plan de tratamiento",
+        "Aprobación",
+        "Atención y seguimiento"
+      ],
+      "openModules": 1,
+      "stages": 4,
+      "tasks": 4,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "activeTask": "Contexto",
+      "commandMeta": 0,
+      "stageStatus": 1,
+      "stageStatusVisuallyHidden": true,
+      "summaryNumbers": 0,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "minButtonHeight": 44,
+      "commandVisible": true,
+      "safetyVisible": true,
+      "overflow": false
+    },
+    "evidence": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "metrics": 3,
+      "items": 1,
+      "latest": "ESTUDIO MÁS RECIENTE",
+      "previous": "Ver 4 anteriores",
+      "cta": "Continuar a hallazgos",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "findings": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "odontogram": 1,
+      "teeth": 32,
+      "filters": 4,
+      "sourceWorkspace": 1,
+      "sourceStats": 3,
+      "advancedInitiallyHidden": true,
+      "footerPosition": "static",
+      "footerOverlapsPanel": false,
+      "overflow": false
+    },
+    "photoMode": {
+      "selected": "true",
+      "title": "Archivo visual y revisión asistida",
+      "actions": [
+        "Agregar fotografías",
+        "Revisar sugerencias"
+      ]
+    },
+    "radiographTask": {
+      "open": true,
+      "title": "Agregar estudio radiográfico",
+      "steps": 3,
+      "visibleSections": 1,
+      "duplicateMaps": 0,
+      "uploadVisible": 1,
+      "controlHeight": 44,
+      "overflow": false
+    },
+    "closure": {
+      "panel": 1,
+      "visiblePanels": 1,
+      "visibleCtas": 1,
+      "cta": "Continuar al plan",
+      "footerPosition": "static",
+      "footerOverlapsPanel": false
+    }
+  }
+]

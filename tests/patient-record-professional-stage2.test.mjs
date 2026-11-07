@@ -14,7 +14,7 @@ test('el expediente elimina el tablero duplicado y presenta una lectura única',
   assert.match(ui,/\.patient-record-stage2/);
   assert.match(css,/display:none!important/);
   assert.match(patient,/SIGUIENTE PASO/);
-  assert.match(patient,/Resumen clínico/);
+  assert.match(patient,/Datos clave/);
 });
 
 test('el asistente organiza datos sin diagnosticar ni modificar el expediente',()=>{

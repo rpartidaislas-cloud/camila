@@ -23,24 +23,29 @@ const fs = require('node:fs');
     await page.goto(fixture);
     const metrics = await page.evaluate(({ enforceTargets }) => {
       const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
-      const targets = visible('.p360-domain-card,.p360-timeline-row,.p360-timeline-filters button,.p360-priority-actions button,.p360-section-head button');
+      const targets = visible('.p360-alerts>button,.p360-timeline-row,.p360-timeline-more,.p360-priority-actions button,.p360-section-head button,.p360-more summary,.p360-more-grid button');
       const rects = targets.map(element => element.getBoundingClientRect());
       return {
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
         primaryActions: visible('.btn-primary').length,
-        areas: visible('.p360-domain-card').length,
+        alerts: visible('.p360-alerts').length,
+        todaySections: visible('.p360-today-grid').length,
+        keyCards: visible('.p360-health-card').length,
         timelineRows: visible('.p360-timeline-row').length,
         filters: visible('.p360-timeline-filters button').length,
         minTargetHeight: Math.min(...rects.map(rect => rect.height).concat([44])),
         minTargetWidth: enforceTargets ? Math.min(...rects.map(rect => rect.width).concat([44])) : 44,
-        recordMap: visible('.p360-record-map').length,
-        overviewColumns: getComputedStyle(document.querySelector('.p360-overview-grid')).gridTemplateColumns
+        secondaryAccess: visible('.p360-more').length,
+        todayColumns: getComputedStyle(document.querySelector('.p360-today-grid')).gridTemplateColumns
       };
     }, { enforceTargets: item.touch || item.zoomEquivalent });
-    await page.locator('[data-filter="files"]').click();
-    const filteredRows = await page.locator('.p360-timeline-row:visible').count();
-    const pressedFilter = await page.locator('[data-filter="files"]').getAttribute('aria-pressed');
+    await page.screenshot({ path: path.join(output, `${item.name}.png`), fullPage: true });
+    await page.locator('[data-timeline-more]').click();
+    const expandedRows = await page.locator('.p360-timeline-row:visible').count();
+    const expandedLabel = (await page.locator('[data-timeline-more]').textContent()).trim();
+    await page.locator('.p360-more>summary').click();
+    const accessLinks = await page.locator('.p360-more-grid button:visible').count();
     const rowFocus = await page.locator('.p360-timeline-row:visible').first().evaluate(element => {
       element.focus();
       return document.activeElement === element;
@@ -48,14 +53,14 @@ const fs = require('node:fs');
     const result = {
       name: item.name,
       ...metrics,
-      filteredRows,
-      pressedFilter,
+      expandedRows,
+      expandedLabel,
+      accessLinks,
       rowFocus,
       horizontalOverflow: metrics.scrollWidth > metrics.viewport + 1,
       targetThreshold: item.touch || item.zoomEquivalent ? 44 : 0
     };
     report.push(result);
-    await page.screenshot({ path: path.join(output, `${item.name}.png`), fullPage: true });
     await context.close();
   }
   await browser.close();
@@ -63,12 +68,15 @@ const fs = require('node:fs');
   if (report.some(item =>
     item.horizontalOverflow ||
     item.primaryActions !== 1 ||
-    item.areas !== 6 ||
-    item.timelineRows !== 7 ||
-    item.filters !== 7 ||
-    item.recordMap !== 1 ||
-    item.filteredRows !== 1 ||
-    item.pressedFilter !== 'true' ||
+    item.alerts !== 1 ||
+    item.todaySections !== 1 ||
+    item.keyCards !== 1 ||
+    item.timelineRows !== 3 ||
+    item.filters !== 0 ||
+    item.secondaryAccess !== 1 ||
+    item.expandedRows !== 7 ||
+    item.expandedLabel !== 'Mostrar menos' ||
+    item.accessLinks !== 7 ||
     !item.rowFocus ||
     item.minTargetHeight < item.targetThreshold ||
     item.minTargetWidth < item.targetThreshold

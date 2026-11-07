@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Historia clínica · lectura por secciones · QA visual</title>
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css">
+  <link rel="stylesheet" href="../../smyl-patient-360.css">
+  <link rel="stylesheet" href="../../smyl-ui-datta-v4.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fb;font-family:"Open Sans",Inter,system-ui,sans-serif;color:#0b1b2e;font-size:14px}
+    .main{padding:28px;max-width:1240px;margin:auto}.btn{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:1px solid #bac7d5;border-radius:8px;background:#fff;color:#0b1b2e;font:500 13px inherit;cursor:pointer}
+    .btn-primary{background:#0b1b2e;border-color:#0b1b2e;color:#fff}[hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <div class="main"><section id="p-paciente-detalle"></section></div>
+  <script>
+    /* Datos sintéticos (ningún paciente real). Cambia ?caso=vacio o ?caso=solo-lectura en la URL para otros estados. */
+    var caso = new URLSearchParams(location.search).get('caso') || 'completo';
+    var documento = caso === 'vacio' ? {} : {
+      alerts: ['Anticoagulantes'], alerts_status: 'yes',
+      allergy_records: [{ substance: 'Penicilina', reaction: 'Urticaria', severity: 'high' }], allergies_status: 'yes',
+      condition_records: [{ name: 'Hipertensión arterial', diagnosed_at: '2019-03', status: 'controlled' }], conditions_status: 'yes',
+      medication_records: [{ name: 'Warfarina', dose: '5 mg', frequency: 'Una vez al día' }], medications_status: 'yes',
+      surgery_records: [], surgeries_status: 'pending',
+      dental_history: 'Endodoncia en 36 (2022). Sensibilidad al frío.', last_dental_visit: '2026-03-12', dental_status: 'yes',
+      habits: '', habits_status: 'no',
+      emergency_contact: 'María Pérez · 33 1234 5678', notes: 'Prefiere citas por la tarde.'
+    };
+    window.miRolEquipo = caso === 'solo-lectura' ? 'asistente' : 'dueño';
+    window.tenantId = 't1';
+    window.pacienteActual = { id: 'p1', nombre: 'Ana', apellido: 'Pérez', telefono: '', email: '' };
+    window.ir = function () {};
+    /* Versiones guardadas (de la más reciente a la más antigua) para el historial de cambios. */
+    var versiones = caso === 'vacio' ? [] : caso === 'muchas'
+      ? Array.from({ length: 35 }, function (_, i) { return { revision: 35 - i, updated_by: 'u1', updated_at: new Date(Date.UTC(2026, 10, 4, 12, 0) - i * 3600000).toISOString(), document: i % 2 ? { notes: 'v' + (35 - i) } : { notes: 'v' + (35 - i), habits: 'x' } }; })
+      : [
+        { revision: 3, updated_by: 'u1', updated_at: '2026-11-04T22:34:00Z', document: documento },
+        { revision: 2, updated_by: 'u2', updated_at: '2026-11-02T15:10:00Z', document: { alerts: ['Marcapasos'], alerts_status: 'yes', allergy_records: [{ substance: 'Penicilina', reaction: 'Urticaria', severity: 'moderate' }], allergies_status: 'yes' } },
+        { revision: 1, updated_by: 'u3', updated_at: '2026-10-30T09:00:00Z', document: {} }
+      ];
+    function datos(tabla, unico) {
+      if (tabla === 'smyl_patient_history_versions') return versiones;
+      if (tabla === 'camila_usuarios') return [{ id: 'u2', nombre: 'Dra. Ruiz' }];
+      if (tabla === 'smyl_role_permissions') return caso === 'solo-lectura' ? [{ role_id: 'r', permission_key: 'clinical.read' }] : [];
+      if (tabla === 'smyl_member_roles') return caso === 'solo-lectura' ? [{ user_id: 'u1', role_id: 'r' }] : [];
+      if (tabla === 'smyl_patient_histories') return unico ? { revision: 3, updated_at: '2026-11-04T22:34:00Z', document: documento } : [];
+      return unico ? null : [];
+    }
+    function cadena(tabla) {
+      var estado = { unico: false };
+      var proxy = new Proxy(function () {}, { get: function (_, prop) {
+        if (prop === 'then') return function (ok) { return Promise.resolve({ data: datos(tabla, estado.unico), error: null }).then(ok); };
+        if (prop === 'maybeSingle' || prop === 'single') return function () { estado.unico = true; return proxy; };
+        return function () { return proxy; };
+      } });
+      return proxy;
+    }
+    window.sb = { from: cadena, rpc: function () { return Promise.resolve({ data: [], error: null }); }, auth: { getUser: function () { return Promise.resolve({ data: { user: { id: 'u1' } } }); } } };
+  </script>
+  <script src="../../smyl-history-model.js"></script>
+  <script src="../../smyl-history-read.js"></script>
+  <script src="../../smyl-patient-360.js"></script>
+  <script>
+    /* Se agrega el contenedor después de cargar el módulo para que su observador monte la ficha. */
+    var layout = document.createElement('div'); layout.className = 'clinic-layout';
+    document.getElementById('p-paciente-detalle').appendChild(layout);
+    setTimeout(function () { var tab = document.querySelector('[data-p360-tab="history"]'); if (tab) tab.click(); }, 400);
+  </script>
+</body>
+</html>

@@ -2758,6 +2758,8 @@
     try {
       var previousUnread = state.conversations.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
       var data = await request('GET', { action: 'sync', since: state.syncedAt }, null, null, 15000);
+      // Sin cambios el sondeo se espacia (5 s → 30 s) para no saturar el servidor con muchas sesiones abiertas; cualquier cambio o interacción lo devuelve a 5 s.
+      state.syncDelay = ((data.conversations || []).length || (data.removed_conversation_ids || []).length) ? 5000 : Math.min(30000, Math.round((state.syncDelay || 5000) * 1.5));
       var deferVisualRefresh = inboxInteractionProtected();
       mergeConversations(data.conversations || [], false);
       (data.removed_conversation_ids || []).forEach(function (id) {
@@ -2780,6 +2782,7 @@
       if (currentUnread > previousUnread) playInboxNotice();
       if (live) { live.dataset.state = 'online'; live.querySelector('span').textContent = 'Actualizado ahora'; }
     } catch (_) {
+      state.syncDelay = Math.min(30000, (state.syncDelay || 5000) * 2);
       if (live) { live.dataset.state = 'offline'; live.querySelector('span').textContent = 'Reconectando…'; }
     } finally { state.polling = false; }
   }
@@ -3023,7 +3026,15 @@
     }, 2500);
     setTimeout(refreshUnreadBadge, 6000);
     setInterval(refreshUnreadBadge, 90000);
-    setInterval(sync, 5000);
+    function scheduleSync() {
+      clearTimeout(state.syncTimer);
+      state.syncTimer = setTimeout(function () { Promise.resolve(sync()).then(scheduleSync, scheduleSync); }, state.syncDelay || 5000);
+    }
+    function wakeSync() { state.syncDelay = 5000; }
+    scheduleSync();
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { wakeSync(); sync(); } });
+    var inboxPage = document.getElementById('p-inbox');
+    if (inboxPage) ['pointerdown', 'keydown'].forEach(function (name) { inboxPage.addEventListener(name, wakeSync, { passive: true }); });
     setInterval(function () {
       if (document.visibilityState === 'visible' && document.getElementById('p-inbox').classList.contains('activa')) loadOperations(true);
     }, 60000);

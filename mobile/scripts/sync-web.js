@@ -38,6 +38,12 @@ copyFile(path.join(ROOT, 'smyl-command-menu.js'), path.join(WWW, 'smyl-command-m
 copyFile(path.join(ROOT, 'smyl-command-menu.css'), path.join(WWW, 'smyl-command-menu.css'));
 copyFile(path.join(ROOT, 'smyl-studio.js'), path.join(WWW, 'smyl-studio.js'));
 copyFile(path.join(ROOT, 'smyl-studio.css'), path.join(WWW, 'smyl-studio.css'));
+copyFile(path.join(ROOT, 'smyl-vita-samples.js'), path.join(WWW, 'smyl-vita-samples.js'));
+copyFile(path.join(ROOT, 'smyl-local-tone.js'), path.join(WWW, 'smyl-local-tone.js'));
+copyFile(path.join(ROOT, 'smyl-photo-batch.js'), path.join(WWW, 'smyl-photo-batch.js'));
+copyFile(path.join(ROOT, 'smyl-case-model.js'), path.join(WWW, 'smyl-case-model.js'));
+copyFile(path.join(ROOT, 'visual-composition.js'), path.join(WWW, 'visual-composition.js'));
+copyFile(path.join(ROOT, 'visual-simulation.js'), path.join(WWW, 'visual-simulation.js'));
 copyFile(path.join(ROOT, 'smyl-simulation-workspace-v33.css'), path.join(WWW, 'smyl-simulation-workspace-v33.css'));
 copyFile(path.join(ROOT, 'smyl-clinical-review-v33.js'), path.join(WWW, 'smyl-clinical-review-v33.js'));
 copyFile(path.join(ROOT, 'smyl-clinical-review-v33.css'), path.join(WWW, 'smyl-clinical-review-v33.css'));

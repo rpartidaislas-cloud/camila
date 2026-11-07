@@ -31,8 +31,9 @@ test('Ficha 360 adopta la escala cerrada y controles táctiles del Clinical Work
 test('Ficha 360 conserva una sola prioridad y navegación canónica por fuentes', () => {
   const js = read('smyl-patient-360.js');
   assert.equal((js.match(/class="p360-priority"/g) || []).length, 1);
-  assert.match(js, /class="p360-record-map"/);
-  assert.match(js, /class="p360-domain-grid"/);
+  assert.match(js, /class="p360-more"/);
+  assert.match(js, /class="p360-more-grid"/);
+  assert.match(js, /Más del expediente/);
   assert.match(js, /data-p360-tab/);
 });
 

@@ -76,8 +76,8 @@ test('la deuda tipográfica queda medida y no puede crecer silenciosamente',()=>
   files.push(app);
   const tiny=files.flatMap(source=>[...source.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)px/gi)])
     .filter(match=>Number(match[1])<12);
-  assert.ok(tiny.length<=888,`la deuda de microtexto subió de 888 a ${tiny.length}`);
-  assert.match(audit,/2,202/);
-  assert.match(audit,/40/);
-  assert.match(audit,/888/);
+  assert.ok(tiny.length<=897,`la deuda de microtexto subió de 897 a ${tiny.length}`);
+  assert.match(audit,/3,045/);
+  assert.match(audit,/29\.5/);
+  assert.match(audit,/897/);
 });

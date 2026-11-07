@@ -141,9 +141,13 @@ test('S1: el trigger de alta ya no confía en plan ni limite_diagnosticos del me
 });
 
 test('S1: el cliente solo actualiza nombre y config de camila_tenants', () => {
-  const escrituras = [...app.matchAll(/from\('camila_tenants'\)\.update\(\{([^}]*)\}\)/g)].map((m) => m[1].trim());
-  assert.ok(escrituras.length >= 4);
-  for (const campos of escrituras) assert.match(campos, /^(config: config|nombre: tenantData\.nombre, config: config)$/);
+  // Toda escritura pasa por guardarConfigTenant: sólo `config` (mezclada con la vigente) y, en el perfil, `nombre`.
+  const escrituras = [...app.matchAll(/from\('camila_tenants'\)\.update\(([^)]*)\)/g)].map((m) => m[1].trim());
+  assert.equal(escrituras.length, 1);
+  assert.equal(escrituras[0], 'cambios');
+  assert.match(app, /var cambios = Object\.assign\(\{\}, extra \|\| \{\}, \{config: config\}\);/);
+  const usos = [...app.matchAll(/guardarConfigTenant\(\{[^]*?\}(?:, (\{[^}]*\}))?\)/g)].map((m) => m[1]).filter(Boolean);
+  for (const extra of usos) assert.match(extra, /^\{nombre: nombre\}$/);
 });
 
 test('workflow de seguridad aplica y verifica las cuatro migraciones conciliadas', () => {
