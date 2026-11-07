@@ -59,6 +59,7 @@ test('los workflows que registran el historial soportan la CLI nueva (--remote) 
     if (!/supabase migration repair/.test(wf)) continue;
     assert.match(wf, /REPAIR_FLAG=--linked/, f);
     assert.match(wf, /grep -q -- '--remote'/, f);
+    assert.match(wf, /REPAIR_FLAG="--remote --yes"/, f);
     assert.doesNotMatch(wf, /supabase migration repair --status/, f);
   }
 });

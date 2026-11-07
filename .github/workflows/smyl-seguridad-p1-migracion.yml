@@ -133,9 +133,9 @@ jobs:
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
-          # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado); la anterior usaba --linked.
+          # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado) y exige --yes sin terminal; la anterior usaba --linked.
           REPAIR_FLAG=--linked
-          if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG=--remote; fi
+          if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG="--remote --yes"; fi
           if [ "${{ steps.esquema.outputs.reparar_purgas }}" = "true" ]; then
             supabase migration repair $REPAIR_FLAG --status applied "$PURGAS_VERSION"
           fi
