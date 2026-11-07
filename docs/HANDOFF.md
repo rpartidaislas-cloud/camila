@@ -15,6 +15,47 @@
 - Pruebas: +6 del modelo, 6 de la vista (`smyl-history-versions.test.mjs`) y 5 de navegador (diálogo real, solo lectura, >30 versiones, error, celular).
   Comprobado con 4 errores introducidos a propósito. Cachés: `smyl-patient-360.js?v=23`, `.css?v=16`, `smyl-history-model.js?v=2`, `smyl-history-read.js?v=2`.
 - **Pendiente / no incluido:** restaurar una versión anterior (decisión clínica: no se hizo), comparar dos versiones cualesquiera y paginar más allá de 30.
+## 2026-11-07 — Codex — Evaluación clínica enfocada y contexto trazable por revisión
+
+**Objetivo:** simplificar la etapa de Evaluación de Tratamiento, separar con
+claridad contexto, evidencia y hallazgos, y evitar que una actualización de la
+Historia clínica pase inadvertida durante la revisión.
+
+**Qué cambió (frontend):**
+- Evaluación usa un índice lateral en escritorio y `Paso N de 4` en móvil;
+  sólo muestra una tarea a la vez y mantiene una única acción principal fija
+  que no cubre el contenido.
+- Contexto dejó de mover la tarjeta administrativa completa. Ahora muestra un
+  resumen clínico breve de alertas, alergias, medicamentos y condiciones; los
+  datos administrativos quedan en una divulgación secundaria.
+- `SmylPatient360.context(tenant, patient)` entrega a Tratamiento un snapshot
+  estructurado, congelado y limitado por `clinical.read`. No expone notas
+  libres, contacto de emergencia ni cuerpos de evoluciones.
+- El panel lateral `Historia para esta evaluación` permite consultar el detalle,
+  abrir la Historia canónica y marcarla como revisada. El marcado es sólo de la
+  sesión y conserva `historyRevision`; si la Historia se guarda de nuevo, la
+  evaluación queda obsoleta y exige revisar la nueva versión.
+- `0 alertas` ya no equivale a una Historia completa: la interfaz distingue
+  `attention`, `incomplete` y `ready`. La propuesta requiere contexto revisado
+  y hallazgos completos.
+- Las etapas son secciones semánticas con `data-active`; navegar sólo cambia
+  visibilidad, mantiene montados los editores y conserva los borradores.
+
+**Integridad clínica:** no hubo migraciones, RPC nuevos ni cambios de backend.
+Las versiones históricas existentes siguen siendo la fuente de verdad y no se
+sobre-escribe el pasado. Una constancia longitudinal persistente de cierre de
+Evaluación necesitará en una fase posterior un contrato backend propio; esta
+entrega no la simula con notas, storage del navegador ni tablas no destinadas a
+ese fin.
+
+**Distribución y QA:** Patient 360 JS v24, Case Workspace JS v22 / CSS v18 y
+caché `evaluation-context-v78`; web y `mobile/www` sincronizados. Contratos
+enfocados 30/30, QA visual aprobado en 1280, 820, 390 y 320 px (una CTA, drawer
+modal, 42/44 px y sin desbordamiento), borrador preservado al cambiar de etapa y
+humo de la app real aprobado al abrir tres pacientes (85/60/60 callbacks, una
+galería cada uno). La suite completa usada por CI termina en verde. Se actualizó
+el humo para el selector `.patient-row` y el Supabase local vendorizado, y se
+corrigió en `vendor/README.md` el hash real del archivo ya existente.
 
 ## 2026-11-07 — Claude Code — Historia clínica: modelo puro y pruebas que se ejecutan
 

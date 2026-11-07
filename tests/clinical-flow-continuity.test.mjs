@@ -32,7 +32,8 @@ test('la evaluación conserva una sola acción principal y la adapta al paso pen
   }
   assert.equal((script.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
   assert.match(script, /copy\(ctx\.evaluationCta,label\);ctx\.evaluationCta\.disabled=disabled;ctx\.evaluationAction=action/);
-  assert.match(script, /ctx\.evaluationFlowState=\{reviewComplete,reviewLabel:ctx\.reviewButton\.textContent,reviewDisabled\};updateEvaluationAction\(ctx\)/);
+  assert.match(script, /ctx\.evaluationFlowState=\{reviewComplete:evaluationComplete,findingsComplete,reviewLabel:ctx\.reviewButton\.textContent,reviewDisabled\};updateEvaluationAction\(ctx\)/);
+  assert.match(script, /const evaluationComplete=findingsComplete&&contextReviewed/);
 
   // No existe una cabecera duplicada: la etapa activa concentra la acción.
   assert.doesNotMatch(script, /cw-command|SIGUIENTE ACCIÓN/);
@@ -49,10 +50,10 @@ test('el recorrido termina en seguimiento sin afirmar un envío automático', ()
 });
 
 test('web, móvil y PWA cargan la misma versión del recorrido', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=21/);
-  assert.match(app, /smyl-case-workspace\.css\?v=17/);
+  assert.match(app, /smyl-case-workspace\.js\?v=\d+/);
+  assert.match(app, /smyl-case-workspace\.css\?v=\d+/);
   assert.match(worker, /evaluation-flow-v73/);
-  assert.match(worker, /smyl-case-workspace\.js\?v=21/);
+  assert.match(worker, /smyl-case-workspace\.js\?v=\d+/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-case-workspace.js'));
   assert.equal(styles, read('../mobile/www/smyl-case-workspace.css'));

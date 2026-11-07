@@ -31,11 +31,13 @@ const server = http.createServer((req, res) => {
   try {
     const context = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1500, height: 900 } });
     const page = await context.newPage();
+    const diagnostics = [];
+    page.on('console', (message) => { if (message.type() === 'error' || message.type() === 'warning') diagnostics.push(message.type() + ': ' + message.text().slice(0, 240)); });
     page.on('pageerror', (e) => failures.push('Error de JavaScript: ' + e.message.slice(0, 200)));
     page.on('dialog', async (d) => { failures.push('Diálogo inesperado: ' + d.message().slice(0, 160)); await d.dismiss(); });
     await page.route('**/*', (route) => {
       const url = route.request().url();
-      if (url.includes('@supabase/supabase-js')) return route.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(__dirname, 'fake-supabase.js'), 'utf8') });
+      if (url.includes('@supabase/supabase-js') || url.includes('/vendor/supabase-js-')) return route.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(__dirname, 'fake-supabase.js'), 'utf8') });
       return url.startsWith('http://127.0.0.1') ? route.continue() : route.abort();
     });
     await page.addInitScript(probe);
@@ -43,13 +45,16 @@ const server = http.createServer((req, res) => {
     await page.waitForTimeout(2500);
     await page.evaluate(() => ir('pacientes'));
     await page.waitForTimeout(1200);
-    const rows = await page.locator('.clinic-patient-row').count();
-    if (rows < 2) failures.push('El listado de pacientes no cargó filas de prueba.');
+    const rows = await page.locator('.patient-row, .clinic-patient-row').count();
+    if (rows < 2) {
+      const state = await page.evaluate(() => ({ active: [...document.querySelectorAll('.pantalla.activa')].map((element) => element.id), text: document.getElementById('tabla-pacientes-wrap')?.textContent?.trim().slice(0, 240) || '', calls: window.__calls || [] }));
+      failures.push('El listado de pacientes no cargó filas de prueba. Diagnóstico: ' + JSON.stringify({ ...state, console: diagnostics.slice(0, 6) }));
+    }
 
     let previous = 0;
     for (let i = 0; i < Math.min(rows, 3) && !failures.length; i += 1) {
       await page.evaluate(() => ir('pacientes')); await page.waitForTimeout(700);
-      await page.evaluate((n) => document.querySelectorAll('.clinic-patient-row')[n].click(), i);
+      await page.evaluate((n) => document.querySelectorAll('.patient-row, .clinic-patient-row')[n].click(), i);
       await page.waitForTimeout(1800);
       const state = await Promise.race([
         page.evaluate(() => ({ screen: [...document.querySelectorAll('.pantalla.activa')].map((e) => e.id).join(','), galleries: document.querySelectorAll('#p-paciente-detalle .pc-gallery').length, total: window.__mo.total, stopped: window.__mo.stopped, counts: window.__mo.counts })),

@@ -15,10 +15,10 @@ test('Tratamiento separa la decisión clínica en cuatro etapas', () => {
     assert.match(workspace, new RegExp(label));
   }
   assert.doesNotMatch(workspace, /cw-command|SIGUIENTE ACCIÓN/);
-  assert.match(workspace, /cw-treatment-safety/);
-  assert.match(workspace, /ctx\.contextPart\.body\.append\(ctx\.safety\)/);
-  assert.doesNotMatch(workspace, /contextActions|Revisar historia clínica/);
-  assert.match(workspace, /m\.details\.hidden=!selected;m\.details\.open=selected/);
+  assert.match(workspace, /mountContext\(ctx,patient\)/);
+  assert.match(workspace, /window\.SmylPatient360\?\.context\?\.\(ctx\.tenant,ctx\.patient\)/);
+  assert.doesNotMatch(workspace, /ctx\.contextPart\.body\.append\(ctx\.safety\)|querySelector\('\.clinic-patient-card'\)/);
+  assert.match(workspace, /m\.details\.hidden=!selected;m\.details\.dataset\.active=String\(selected\)/);
   assert.match(workspace, /Etapa 1 de 4/);
   assert.match(workspace, /Etapa 2 de 4/);
   assert.match(workspace, /Etapa 3 de 4/);
@@ -64,13 +64,16 @@ test('las rutas internas anteriores siguen abriendo la etapa equivalente', () =>
 test('la política visual conserva jerarquía, una CTA visible, tactilidad y respuesta móvil', () => {
   assert.match(styles, /Evaluación v4 · cuatro tareas, una superficie y una sola acción principal/);
   assert.match(styles, /Tratamiento simple v4\.1 · una etapa visible y el historial siempre accesible/);
+  assert.match(styles, /Tratamiento v4\.2 · contexto clínico primero, navegación jerárquica y acción persistente/);
   assert.match(styles, /\.cw-module\[hidden\]\{display:none!important\}/);
   assert.match(styles, /\.cw-body #clinic-review\{display:none!important\}/);
   assert.match(styles, /\.cw-version-note\{display:grid/);
-  assert.match(styles, /\.cw-evaluation-tasks\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(styles, /\.cw-evaluation-footer\{display:flex/);
-  assert.doesNotMatch(styles, /\.cw-evaluation-footer\{position:sticky/);
+  assert.match(styles, /\.cw-evaluation-flow\{display:grid;grid-template-columns:190px minmax\(0,1fr\)/);
+  assert.match(styles, /\.cw-evaluation-tasks\{grid-area:tasks;display:flex;flex-direction:column/);
+  assert.match(styles, /\.cw-evaluation-footer\{position:sticky/);
   assert.match(styles, /\.cw-evaluation-footer \.cw-evaluation-cta\{min-width:190px\}/);
+  assert.match(styles, /\.cw-context-summary\{/);
+  assert.match(styles, /\.cw-history-drawer\{/);
   assert.match(styles, /min-height:42px/);
   assert.match(styles, /@media\(max-width:760px\)/);
   assert.match(styles, /min-height:44px/);
@@ -81,9 +84,9 @@ test('la política visual conserva jerarquía, una CTA visible, tactilidad y res
 test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=16/);
   assert.match(app, /smyl-clinic\.js\?v=19/);
-  assert.match(app, /smyl-patient-360\.js\?v=23/);
-  assert.match(app, /smyl-case-workspace\.css\?v=17/);
-  assert.match(app, /smyl-case-workspace\.js\?v=21/);
+  assert.match(app, /smyl-patient-360\.js\?v=24/);
+  assert.match(app, /smyl-case-workspace\.css\?v=18/);
+  assert.match(app, /smyl-case-workspace\.js\?v=22/);
   assert.match(worker, /treatment-ux-v32/);
   assert.match(worker, /evaluation-flow-v73/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-patient-360.js', 'smyl-patient-360.css']) {
@@ -92,6 +95,6 @@ test('web, móvil y PWA distribuyen la misma implementación', () => {
 });
 
 test('la vista de control usa únicamente identidad sintética', () => {
-  assert.match(fixture, /Paciente de demostración/);
+  assert.match(fixture, /Contexto|Evaluación clínica|Penicilina/);
   assert.doesNotMatch(fixture, /Bordados Express|Ricardo|Hernan|Rich/);
 });

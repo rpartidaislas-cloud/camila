@@ -14,8 +14,10 @@ test('Tratamiento conserva las rutas internas y navegar no escribe datos clínic
   assert.match(patient, /data-p360-tab="treatment"[^>]*>Tratamiento</);
   assert.match(workspace, /const moduleId=id=>id==='photos'\|\|id==='review'\?'evaluation':id==='share'\?'approval':id/);
   assert.match(workspace, /open\('plan'\)/);
-  assert.match(workspace, /m\.details\.hidden=!selected;m\.details\.open=selected/);
+  assert.match(workspace, /m\.details\.hidden=!selected;m\.details\.dataset\.active=String\(selected\)/);
+  assert.doesNotMatch(workspace, /m\.details\.open=selected/);
   assert.doesNotMatch(workspace, /smyl_save_|\.rpc\(|\.from\(/);
+  assert.doesNotMatch(workspace, /localStorage|sessionStorage/);
 });
 
 test('la propuesta mantiene visible el historial sin reemplazar el editor canónico', () => {
