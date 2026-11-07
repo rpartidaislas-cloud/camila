@@ -19,8 +19,8 @@
   tamaños distintos. El manifiesto usa ahora los iconos reales de 72 a 512 px,
   incluidos 192/512 maskable, y el sincronizador móvil copia también el
   manifiesto para evitar divergencias futuras. Caché: `pwa-manifest-v80`.
-- QA focal: **25/25** pruebas aprobadas. Suite completa: **1,107 aprobadas**,
-  28 condicionales omitidas y **0 fallas** (1,135 totales). QA visual en 1440,
+- QA focal: **25/25** pruebas aprobadas. Suite completa tras integrar `main`:
+  **1,109 aprobadas**, 28 condicionales omitidas y **0 fallas** (1,137 totales). QA visual en 1440,
   1024, 768, 390 y 320 px, además de ampliación al 200 %, sin overflow
   horizontal; los tres controles retirados permanecen ausentes y los objetivos
   táctiles móviles conservan 44 px.
