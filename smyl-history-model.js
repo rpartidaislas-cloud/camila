@@ -140,7 +140,89 @@
       {key:'admin',step:4,title:'Contacto y notas',copy:'Datos de apoyo, no clínicos.',state:'neutral',rows:admin}]};
   }
 
+  /* Historial de cambios: qué cambió entre dos versiones del documento, en frases que lee una persona. */
+  var VERSION_LIMIT=30;
+  var KIND_WORDS={allergy:['Alergia',true],condition:['Condición',true],medication:['Medicamento',false],surgery:['Cirugía',true]};
+  var KIND_SECTION={allergy:'safety',condition:'medical',medication:'medical',surgery:'medical'};
+  var FIELD_WORDS={
+    allergy:{reaction:['reacción'],severity:['gravedad',severityLabel]},
+    condition:{diagnosed_at:['fecha de diagnóstico',date],status:['estado',conditionStatusLabel]},
+    medication:{dose:['dosis'],frequency:['frecuencia'],changed_at:['inicio o ajuste',date]},
+    surgery:{date:['fecha',date]}
+  };
+  var SIMPLE_FIELDS=[
+    {key:'dental_history',label:'Antecedentes dentales',section:'dental'},
+    {key:'last_dental_visit',label:'Última visita dental',section:'dental',format:date},
+    {key:'habits',label:'Hábitos',section:'habits'},
+    {key:'emergency_contact',label:'Contacto de emergencia',section:'admin'},
+    {key:'notes',label:'Notas adicionales',section:'admin'}
+  ];
+  var SECTION_ORDER=['safety','medical','dental','habits','admin'];
+  var STATUS_PHRASE={no:'confirmado que no hay',unknown:'marcado como "No se sabe"',pending:'vuelto a pendiente de confirmar',yes:'marcado como "Sí", falta el detalle'};
+  function clip(v,n){var t=text(v);return t.length>n?t.slice(0,n-1)+'…':t;}
+  function shown(value,format){var t=text(value);return t?(format?format(t):t):'sin dato';}
+  function withDefaults(doc){return Object.assign({},defaultHistory(),doc&&typeof doc==='object'?doc:{});}
+  function recordChanges(kind,before,after){
+    var spec=RECORD_KINDS[kind],word=KIND_WORDS[kind],ending=word[1]?'a':'o',out=[];
+    function key(row){return text(row[spec.primary]).toLowerCase();}
+    var was={},now={};before.forEach(function(row){was[key(row)]=row;});after.forEach(function(row){now[key(row)]=row;});
+    after.forEach(function(row){
+      var old=was[key(row)];
+      if(!old){out.push({section:KIND_SECTION[kind],kind:'added',text:word[0]+' agregad'+ending+': '+summaries[kind](row)});return;}
+      var parts=[];
+      spec.fields.forEach(function(field){
+        if(field===spec.primary||text(old[field])===text(row[field]))return;
+        var def=FIELD_WORDS[kind][field]||[field];
+        parts.push(def[0]+' '+shown(old[field],def[1])+' → '+shown(row[field],def[1]));
+      });
+      if(parts.length)out.push({section:KIND_SECTION[kind],kind:'changed',text:text(row[spec.primary])+': '+parts.join('; ')});
+    });
+    before.forEach(function(row){if(!now[key(row)])out.push({section:KIND_SECTION[kind],kind:'removed',text:word[0]+' quitad'+ending+': '+summaries[kind](row)});});
+    return out;
+  }
+  function statusChange(section,label,a,b,hasBefore,hasAfter,keyName){
+    if(hasAfter)return null;
+    var before=status(a,keyName,hasBefore),after=status(b,keyName,false);
+    if(before===after)return null;
+    return {section:section,kind:'confirmed',text:label+': '+STATUS_PHRASE[after]};
+  }
+  /* Devuelve [{section, kind: added|removed|changed|confirmed, text}] ordenado por sección. prev puede ser null (primera versión). */
+  function diff(prev,next){
+    var a=withDefaults(prev),b=withDefaults(next),out=[],status2=[];
+    var alertsA=arr(a.alerts).map(text).filter(Boolean),alertsB=arr(b.alerts).map(text).filter(Boolean);
+    alertsB.forEach(function(item){if(alertsA.map(function(x){return x.toLowerCase();}).indexOf(item.toLowerCase())<0)out.push({section:'safety',kind:'added',text:'Alerta agregada: '+item});});
+    alertsA.forEach(function(item){if(alertsB.map(function(x){return x.toLowerCase();}).indexOf(item.toLowerCase())<0)out.push({section:'safety',kind:'removed',text:'Alerta quitada: '+item});});
+    Object.keys(RECORD_KINDS).forEach(function(kind){out=out.concat(recordChanges(kind,recordsOf(a,kind),recordsOf(b,kind)));});
+    SIMPLE_FIELDS.forEach(function(field){
+      var before=text(a[field.key]),after=text(b[field.key]);
+      if(before===after)return;
+      var f=field.format;
+      if(!before)out.push({section:field.section,kind:'added',text:field.label+': se agregó "'+clip(f?f(after):after,80)+'"'});
+      else if(!after)out.push({section:field.section,kind:'removed',text:field.label+': se quitó "'+clip(f?f(before):before,80)+'"'});
+      else out.push({section:field.section,kind:'changed',text:field.label+': "'+clip(f?f(before):before,60)+'" → "'+clip(f?f(after):after,60)+'"'});
+    });
+    [['safety','Alertas médicas','alerts_status',alertsA.length,alertsB.length],
+     ['safety','Alergias','allergies_status',recordsOf(a,'allergy').length,recordsOf(b,'allergy').length],
+     ['medical','Condiciones','conditions_status',recordsOf(a,'condition').length,recordsOf(b,'condition').length],
+     ['medical','Medicamentos','medications_status',recordsOf(a,'medication').length,recordsOf(b,'medication').length],
+     ['medical','Cirugías','surgeries_status',recordsOf(a,'surgery').length,recordsOf(b,'surgery').length],
+     ['dental','Antecedentes dentales','dental_status',a.dental_history||a.last_dental_visit?1:0,b.dental_history||b.last_dental_visit?1:0],
+     ['habits','Hábitos','habits_status',a.habits?1:0,b.habits?1:0]
+    ].forEach(function(item){var change=statusChange(item[0],item[1],a,b,item[3],item[4],item[2]);if(change)status2.push(change);});
+    out=out.concat(status2);
+    return out.map(function(change,index){return {change:change,index:index};}).sort(function(x,y){return SECTION_ORDER.indexOf(x.change.section)-SECTION_ORDER.indexOf(y.change.section)||x.index-y.index;}).map(function(item){return item.change;});
+  }
+  /* rows: versiones guardadas (cualquier orden). Se compara cada una con la anterior; pide limit+1 filas para poder comparar la última mostrada. */
+  function versionEntries(rows,options){
+    var limit=(options&&options.limit)||VERSION_LIMIT,sorted=arr(rows).slice().sort(function(x,y){return y.revision-x.revision;});
+    return sorted.slice(0,limit).map(function(row,index){
+      var older=sorted[index+1],comparable=older&&older.revision===row.revision-1,first=row.revision===1;
+      return {revision:row.revision,updated_at:row.updated_at,updated_by:row.updated_by,isFirst:first,
+        changes:comparable?diff(older.document,row.document):first?diff(null,row.document):null};
+    });
+  }
+
   return {RECORD_KINDS:RECORD_KINDS,MAX_RECORDS:MAX_RECORDS,inputName:inputName,arr:arr,csv:csv,date:date,defaultHistory:defaultHistory,records:records,recordsOf:recordsOf,
     severityLabel:severityLabel,conditionStatusLabel:conditionStatusLabel,summaries:summaries,status:status,statusText:statusText,needsDetail:needsDetail,reviewed:reviewed,
-    pendingLabels:pendingLabels,coverage:coverage,missing:missing,conciseValue:conciseValue,formRecords:formRecords,formStatus:formStatus,buildDocument:buildDocument,readModel:readModel};
+    pendingLabels:pendingLabels,coverage:coverage,missing:missing,conciseValue:conciseValue,formRecords:formRecords,formStatus:formStatus,buildDocument:buildDocument,readModel:readModel,diff:diff,versionEntries:versionEntries,VERSION_LIMIT:VERSION_LIMIT};
 });

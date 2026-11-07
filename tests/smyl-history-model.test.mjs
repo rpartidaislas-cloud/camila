@@ -196,9 +196,95 @@ test('el modelo es puro y la ficha lo carga antes que la vista y la ficha, tambi
   assert.doesNotMatch(model.replace(/root\.SmylHistoryModel/, ''), /\bdocument\.|\bwindow\.|\bfetch\(|XMLHttpRequest|localStorage|\.innerHTML/, 'sin DOM ni red');
   const order = ['smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js'].map((f) => app.indexOf(`src="${f}?v=`));
   assert.ok(order.every((i) => i > 0) && order[0] < order[1] && order[1] < order[2], 'el modelo se carga antes que la vista y la ficha');
-  assert.match(sw, /\/camila\/smyl-history-model\.js\?v=1/);
+  assert.match(sw, /\/camila\/smyl-history-model\.js\?v=2/);
   for (const f of ['smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), `${f}: copia móvil`);
   for (const gone of ['historyRecords', 'historyStatus', 'historyCoverage', 'historyPendingLabels', 'historyMissing', 'historyFormRecords', 'historyFormStatus', 'historyReadModel', 'defaultHistory', 'allergySummary'])
     assert.doesNotMatch(patient, new RegExp(`function ${gone}\\(`), `${gone}: ya no se redefine en la ficha, se toma del modelo`);
   assert.match(patient, /if\(!H\)\{console\.error\(/, 'si falta el modelo no se rompe la página entera');
+});
+
+/* ── Historial de cambios ── */
+const doc = (entries) => M.buildDocument(form(entries));
+const textos = (changes) => changes.map((c) => `${c.section}|${c.kind}|${c.text}`);
+
+test('diff(): alergias, alertas, medicamentos y cirugías agregados, quitados o modificados', () => {
+  const antes = doc([['alerts', 'Marcapasos'], ['allergy_substance[]', 'Penicilina'], ['allergy_reaction[]', ''], ['allergy_severity[]', 'moderate'],
+    ['medication_name[]', 'Warfarina'], ['medication_dose[]', '5 mg'], ['medication_frequency[]', ''], ['medication_changed_at[]', ''],
+    ['surgery_procedure[]', 'Apendicectomía'], ['surgery_date[]', '']]);
+  const despues = doc([['alerts', 'Anticoagulantes'], ['allergy_substance[]', 'Penicilina'], ['allergy_reaction[]', 'Urticaria'], ['allergy_severity[]', 'high'],
+    ['allergy_substance[]', 'Látex'], ['allergy_reaction[]', ''], ['allergy_severity[]', ''],
+    ['medication_name[]', 'Warfarina'], ['medication_dose[]', '2.5 mg'], ['medication_frequency[]', ''], ['medication_changed_at[]', '']]);
+  const lineas = textos(M.diff(antes, despues));
+  assert.ok(lineas.includes('safety|added|Alerta agregada: Anticoagulantes'));
+  assert.ok(lineas.includes('safety|removed|Alerta quitada: Marcapasos'));
+  assert.ok(lineas.includes('safety|changed|Penicilina: reacción sin dato → Urticaria; gravedad Moderada → Alta'));
+  assert.ok(lineas.includes('safety|added|Alergia agregada: Látex'));
+  assert.ok(lineas.includes('medical|changed|Warfarina: dosis 5 mg → 2.5 mg'));
+  assert.ok(lineas.includes('medical|removed|Cirugía quitada: Apendicectomía'));
+  assert.ok(lineas.includes('medical|confirmed|Cirugías: vuelto a pendiente de confirmar'), 'quitar la única cirugía sin responder deja el apartado pendiente: también es un cambio');
+  assert.equal(lineas.length, 7, 'ningún cambio de más');
+});
+
+test('diff(): una condición o medicamento sin cambios no genera ruido; los nombres se comparan sin mayúsculas', () => {
+  const a = doc([['condition_name[]', 'Hipertensión'], ['condition_diagnosed_at[]', '2019-03'], ['condition_status[]', 'controlled']]);
+  const b = doc([['condition_name[]', 'hipertensión'], ['condition_diagnosed_at[]', '2019-03'], ['condition_status[]', 'controlled']]);
+  assert.deepEqual(M.diff(a, b), []);
+  const c = doc([['condition_name[]', 'Hipertensión'], ['condition_diagnosed_at[]', '2019-03'], ['condition_status[]', 'resolved']]);
+  assert.match(M.diff(a, c)[0].text, /Hipertensión: estado Controlada → Resuelta/);
+});
+
+test('diff(): confirmar que no hay algo se informa como confirmado, y cambiar a "no sé" también', () => {
+  const pendiente = M.defaultHistory();
+  const noHay = doc([['surgeries_status', 'no'], ['allergies_status', 'unknown']]);
+  const lineas = textos(M.diff(pendiente, noHay));
+  assert.ok(lineas.includes('medical|confirmed|Cirugías: confirmado que no hay'));
+  assert.ok(lineas.includes('safety|confirmed|Alergias: marcado como "No se sabe"'));
+  assert.deepEqual(M.diff(noHay, noHay), []);
+  const conDatos = doc([['surgery_procedure[]', 'X'], ['surgery_date[]', '']]);
+  assert.ok(!textos(M.diff(pendiente, conDatos)).some((l) => l.includes('Cirugías:')), 'con datos no hay frase de estado, ya está el registro agregado');
+});
+
+test('diff(): campos de texto agregan, cambian y quitan, con fechas legibles y recorte', () => {
+  const a = doc([['dental_history', ''], ['last_dental_visit', '2025-01-10'], ['habits', 'Bruxismo'], ['notes', 'x']]);
+  const b = doc([['dental_history', 'Endodoncia en 36'], ['last_dental_visit', '2026-03-12'], ['habits', ''], ['notes', 'x'], ['emergency_contact', 'María 33']]);
+  const lineas = textos(M.diff(a, b));
+  assert.ok(lineas.includes('dental|added|Antecedentes dentales: se agregó "Endodoncia en 36"'));
+  assert.ok(lineas.some((l) => /^dental\|changed\|Última visita dental: "10 ene\.? 2025" → "12 mar\.? 2026"$/.test(l)));
+  assert.ok(lineas.includes('habits|removed|Hábitos: se quitó "Bruxismo"'));
+  assert.ok(lineas.includes('admin|added|Contacto de emergencia: se agregó "María 33"'));
+  const largo = M.diff(doc([['notes', '']]), doc([['notes', 'a'.repeat(200)]]))[0].text;
+  assert.ok(largo.length < 130 && largo.includes('…'), 'el texto largo se recorta');
+});
+
+test('diff(): sin cambios da lista vacía, la primera versión se compara con null y el orden va por sección', () => {
+  const d = complete();
+  assert.deepEqual(M.diff(d, d), []);
+  assert.deepEqual(M.diff(null, M.defaultHistory()), []);
+  const primera = textos(M.diff(null, d));
+  assert.ok(primera.includes('safety|added|Alergia agregada: Penicilina · Reacción: Urticaria · Gravedad: Alta'));
+  const orden = M.diff(null, d).map((c) => c.section);
+  const esperado = ['safety', 'medical', 'dental', 'habits', 'admin'];
+  assert.deepEqual([...orden].sort((x, y) => esperado.indexOf(x) - esperado.indexOf(y)), orden, 'ordenado por sección');
+  assert.doesNotThrow(() => M.diff(undefined, { alerts: 'no-es-lista', allergy_records: 'x' }));
+});
+
+test('versionEntries(): compara cada versión con la anterior; primera con nada; sin anterior consecutiva no se inventa', () => {
+  const v1 = doc([['notes', 'uno']]), v2 = doc([['notes', 'dos']]), v3 = doc([['notes', 'dos'], ['habits', 'Bruxismo']]);
+  const rows = [{ revision: 1, document: v1, updated_by: 'a', updated_at: 't1' }, { revision: 3, document: v3, updated_by: 'c', updated_at: 't3' }, { revision: 2, document: v2, updated_by: 'b', updated_at: 't2' }];
+  const e = M.versionEntries(rows);
+  assert.deepEqual(e.map((x) => x.revision), [3, 2, 1], 'de la más reciente a la más antigua, aunque lleguen desordenadas');
+  assert.match(e[0].changes[0].text, /Hábitos: se agregó "Bruxismo"/);
+  assert.match(e[1].changes[0].text, /Notas adicionales: "uno" → "dos"/);
+  assert.equal(e[2].isFirst, true);
+  assert.match(e[2].changes[0].text, /Notas adicionales: se agregó "uno"/);
+  assert.equal(e[0].updated_by, 'c');
+  // ventana: pedir limit+1 filas permite comparar la última mostrada
+  const ventana = M.versionEntries(rows, { limit: 2 });
+  assert.equal(ventana.length, 2);
+  assert.notEqual(ventana[1].changes, null, 'la última mostrada se compara con la fila extra');
+  // sin versión anterior consecutiva: no se inventa una comparación
+  assert.equal(M.versionEntries([{ revision: 5, document: v3, updated_by: 'a', updated_at: 't' }])[0].changes, null);
+  assert.equal(M.versionEntries([{ revision: 5, document: v3 }, { revision: 3, document: v1 }])[0].changes, null);
+  assert.deepEqual(M.versionEntries([]), []);
+  assert.equal(M.VERSION_LIMIT, 30);
 });

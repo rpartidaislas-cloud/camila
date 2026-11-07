@@ -28,9 +28,30 @@
   function render(model){
     var canWrite=!!model.canWrite;
     return '<article class="p360-hc"><header class="p360-hc-header"><div><h2>Historia clínica</h2><p>Información médica y dental confirmada para la atención. Actualizada el '+esc(model.updated)+' · versión '+Number(model.revision||0)+'</p></div>'
-      +(canWrite?'<div class="p360-hc-actions"><button type="button" class="btn btn-secondary" data-hc-add="allergy">+ Alergia</button><button type="button" class="btn btn-secondary" data-hc-add="medication">+ Medicamento</button><button type="button" class="btn btn-primary" data-history-edit>Editar historia</button></div>':'')+'</header>'
+      +'<div class="p360-hc-actions"><button type="button" class="btn btn-secondary" data-hc-versions>Historial de cambios</button>'+(canWrite?'<button type="button" class="btn btn-secondary" data-hc-add="allergy">+ Alergia</button><button type="button" class="btn btn-secondary" data-hc-add="medication">+ Medicamento</button><button type="button" class="btn btn-primary" data-history-edit>Editar historia</button>':'')+'</div></header>'
       +'<div class="p360-hc-layout">'+indexHtml(model)+'<div class="p360-hc-main">'+model.sections.map(function(section,index){return bandHtml(section,index,canWrite);}).join('')
       +'<footer class="p360-hc-footer"><p>La información se conserva versionada dentro del expediente.</p><div class="p360-history-links"><button type="button" data-record-tab="notes">Ver evoluciones</button><button type="button" data-record-link="p360-dental">Abrir odontograma</button></div></footer></div></div></article>';
   }
-  return {render:render,esc:esc};
+  /* Historial de cambios: lista de versiones, de la más reciente a la más antigua, con quién y qué cambió. */
+  var CHANGE_MARK={added:'+',removed:'−',changed:'↻',confirmed:'✓'};
+  function changeHtml(change){
+    var kind=CHANGE_MARK[change.kind]?change.kind:'changed';
+    return '<li data-kind="'+kind+'"><i aria-hidden="true">'+CHANGE_MARK[kind]+'</i><span class="p360-hv-sec">'+esc(SHORT[change.section]||'')+'</span><span>'+esc(change.text)+'</span></li>';
+  }
+  function entryHtml(entry){
+    var body=entry.changes==null?'<li data-kind="none">Esta versión no se puede comparar: la versión anterior no está disponible.</li>'
+      :entry.changes.length?entry.changes.map(changeHtml).join('')
+      :'<li data-kind="none">'+(entry.isFirst?'Historia creada sin datos.':'Se guardó sin cambios en los datos.')+'</li>';
+    return '<li class="p360-hv-item"><div class="p360-hv-meta"><strong>Versión '+Number(entry.revision)+'</strong><span>'+esc(entry.when)+'</span><span>'+esc(entry.who)+'</span></div><ul class="p360-hv-changes">'+body+'</ul></li>';
+  }
+  function renderVersions(model){
+    var entries=model.entries||[];
+    return '<div class="p360-hv"><header class="p360-hv-head"><div><h2>Historial de cambios</h2><p>'+(entries.length?'Quién cambió qué en la historia clínica, de lo más reciente a lo más antiguo.':'Aún no hay versiones registradas.')+'</p></div><button type="button" class="btn btn-secondary" data-close>Cerrar</button></header>'
+      +(entries.length?'<ol class="p360-hv-list">'+entries.map(entryHtml).join('')+'</ol>':'')
+      +(model.more?'<p class="p360-hv-more">Se muestran las últimas '+Number(entries.length)+' versiones. Las anteriores se conservan en el expediente.</p>':'')+'</div>';
+  }
+  function renderVersionsMessage(message,tone){
+    return '<div class="p360-hv"><header class="p360-hv-head"><div><h2>Historial de cambios</h2></div><button type="button" class="btn btn-secondary" data-close>Cerrar</button></header><p class="p360-hv-message" data-tone="'+(tone==='error'?'error':'info')+'" role="'+(tone==='error'?'alert':'status')+'">'+esc(message)+'</p></div>';
+  }
+  return {render:render,renderVersions:renderVersions,renderVersionsMessage:renderVersionsMessage,esc:esc};
 });

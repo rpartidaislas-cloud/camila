@@ -153,3 +153,84 @@ probar('sin permiso de escritura no hay botones de edición', async () => {
     assert.deepEqual(errores, []);
   } finally { await page.close(); }
 });
+
+/* ── Historial de cambios (diálogo real) ── */
+probar('el historial de cambios lista las versiones con quién y qué cambió, y se cierra', async () => {
+  const { page, errores } = await abrir('completo');
+  try {
+    await page.click('[data-hc-versions]');
+    await page.waitForSelector('.p360-hv-item');
+    assert.equal(await page.locator('.p360-hv-item').count(), 3);
+    const [v3, v2, v1] = await page.locator('.p360-hv-item').allInnerTexts();
+    assert.match(v3, /Versión 3/); assert.match(v3, /Tú/); assert.match(v3, /Alerta agregada: Anticoagulantes/);
+    assert.match(v3, /Penicilina: gravedad Moderada → Alta/); assert.match(v3, /Alerta quitada: Marcapasos/);
+    assert.match(v2, /Versión 2/); assert.match(v2, /Dra\. Ruiz/);
+    assert.match(v1, /Versión 1/); assert.match(v1, /Miembro del equipo/); assert.match(v1, /Historia creada sin datos\./);
+    await page.click('.p360-hv [data-close]');
+    assert.equal(await page.locator('dialog.p360-dialog[open]').count(), 0, 'Cerrar debe cerrar el diálogo');
+    assert.deepEqual(errores, []);
+  } finally { await page.close(); }
+});
+
+probar('quien solo puede leer también ve el historial de cambios', async () => {
+  const { page, errores } = await abrir('solo-lectura');
+  try {
+    assert.equal(await page.locator('[data-history-edit]').count(), 0);
+    await page.click('[data-hc-versions]');
+    await page.waitForSelector('.p360-hv-item');
+    assert.equal(await page.locator('.p360-hv-item').count(), 3);
+    assert.deepEqual(errores, []);
+  } finally { await page.close(); }
+});
+
+probar('con más de 30 versiones muestra las últimas 30 y lo avisa', async () => {
+  const { page, errores } = await abrir('muchas');
+  try {
+    await page.click('[data-hc-versions]');
+    await page.waitForSelector('.p360-hv-item');
+    assert.equal(await page.locator('.p360-hv-item').count(), 30);
+    assert.match(await page.locator('.p360-hv-more').innerText(), /últimas 30 versiones/);
+    assert.match(await page.locator('.p360-hv-item').first().innerText(), /Versión 35/);
+    assert.deepEqual(errores, []);
+  } finally { await page.close(); }
+});
+
+probar('si no se pueden leer las versiones se muestra el motivo, sin romper la ficha', async () => {
+  const { page, errores } = await abrir('completo');
+  try {
+    await page.evaluate(() => {
+      const original = window.sb.from;
+      window.sb.from = (tabla) => {
+        if (tabla !== 'smyl_patient_history_versions') return original(tabla);
+        const p = new Proxy(function () {}, { get: (_, prop) => prop === 'then' ? (ok) => Promise.resolve({ data: null, error: { message: 'No tienes permiso para consultar las versiones.' } }).then(ok) : () => p });
+        return p;
+      };
+    });
+    await page.click('[data-hc-versions]');
+    await page.waitForSelector('.p360-hv-message');
+    assert.match(await page.locator('.p360-hv-message').innerText(), /Tu rol no permite realizar esta acción\./, 'usa el mensaje estándar de la ficha para errores de permiso');
+    assert.equal(await page.locator('.p360-hv-message[role="alert"]').count(), 1);
+    await page.click('.p360-hv [data-close]');
+    assert.equal(await page.locator('.p360-hc-band').count(), 5, 'la historia sigue visible');
+    assert.deepEqual(errores, []);
+  } finally { await page.close(); }
+});
+
+probar('en pantalla de celular el texto de cada cambio ocupa el ancho disponible (no una columna angosta)', async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } }), errores = [];
+  page.on('pageerror', (e) => errores.push(e.message));
+  try {
+    await page.goto(fixture + '?caso=completo');
+    await page.waitForSelector('.p360-hc-band');
+    await page.click('[data-hc-versions]');
+    await page.waitForSelector('.p360-hv-item');
+    const medidas = await page.evaluate(() => {
+      const dialogo = document.querySelector('.p360-dialog').getBoundingClientRect();
+      const cambio = document.querySelector('.p360-hv-changes li[data-kind="added"] > span:last-child').getBoundingClientRect();
+      return { dialogo: dialogo.width, texto: cambio.width, desborda: document.documentElement.scrollWidth > innerWidth };
+    });
+    assert.ok(medidas.texto > medidas.dialogo * 0.6, `el texto mide ${Math.round(medidas.texto)} px de un diálogo de ${Math.round(medidas.dialogo)} px`);
+    assert.equal(medidas.desborda, false, 'sin desplazamiento horizontal');
+    assert.deepEqual(errores, []);
+  } finally { await page.close(); }
+});
