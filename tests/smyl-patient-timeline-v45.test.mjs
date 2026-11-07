@@ -83,5 +83,5 @@ test('la publicación de la migración es manual, idempotente y verificada', () 
   assert.match(workflow, /smyl_can_access_patient/);
   assert.match(workflow, /security_definer_ok/);
   assert.match(workflow, /public_blocked/);
-  assert.match(workflow, /migration repair --status applied/);
+  assert.match(workflow, /migration repair \$REPAIR_FLAG --status applied/);
 });

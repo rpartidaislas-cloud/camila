@@ -149,4 +149,7 @@ jobs:
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
-          supabase migration repair --status applied "$MIGRATION_VERSION"
+          # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado); la anterior usaba --linked.
+          REPAIR_FLAG=--linked
+          if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG=--remote; fi
+          supabase migration repair $REPAIR_FLAG --status applied "$MIGRATION_VERSION"

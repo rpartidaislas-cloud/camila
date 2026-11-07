@@ -42,3 +42,23 @@ test('el workflow de reconciliación es de solo lectura', () => {
   assert.match(wf, /select version from supabase_migrations\.schema_migrations/);
   assert.doesNotMatch(wf, /migration repair|insert into|delete from|drop |alter table/i);
 });
+
+test('sentinelas: cada migración pendiente conocida tiene regla y las desconocidas no se registran', async () => {
+  const { SENTINELAS, planificar } = await import('../scripts/migration-sentinels.mjs');
+  for (const [v, r] of Object.entries(SENTINELAS)) assert.ok(r.reapply || /^select /i.test(r.sentinel), v);
+  assert.deepEqual(planificar(['20261106100000'], () => true), [{ version: '20261106100000', accion: 'registrar' }]);
+  assert.deepEqual(planificar(['20261106100000'], () => false), [{ version: '20261106100000', accion: 'no_aplicada' }]);
+  assert.equal(planificar(['20269999999999'], () => true)[0].accion, 'desconocida');
+  assert.equal(planificar(['20261031140000'], () => false)[0].accion, 'reaplicar_y_registrar');
+});
+
+test('los workflows que registran el historial soportan la CLI nueva (--remote) y la anterior (--linked)', () => {
+  const dir = new URL('../.github/workflows/', import.meta.url);
+  for (const f of fs.readdirSync(dir)) {
+    const wf = fs.readFileSync(new URL(f, dir), 'utf8');
+    if (!/supabase migration repair/.test(wf)) continue;
+    assert.match(wf, /REPAIR_FLAG=--linked/, f);
+    assert.match(wf, /grep -q -- '--remote'/, f);
+    assert.doesNotMatch(wf, /supabase migration repair --status/, f);
+  }
+});

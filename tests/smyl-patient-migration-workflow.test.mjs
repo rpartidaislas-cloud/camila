@@ -16,7 +16,7 @@ test('el flujo es manual y apunta al proyecto y a la migración de SMYL', () => 
   assert.match(workflow, /MIGRATION_VERSION: "20261020150000"/);
   assert.match(workflow, /MIGRATION_FILE: supabase\/migrations\/20261020150000_smyl_patient_intake_v2\.sql/);
   assert.match(workflow, /SUPABASE_ACCESS_TOKEN: \$\{\{ secrets\.SUPABASE_ACCESS_TOKEN \}\}/);
-  assert.match(workflow, /supabase migration repair --status applied "\$MIGRATION_VERSION"/);
+  assert.match(workflow, /supabase migration repair \$REPAIR_FLAG --status applied "\$MIGRATION_VERSION"/);
 });
 
 test('el flujo verifica las columnas de la migración y se detiene si faltan prerrequisitos', () => {
