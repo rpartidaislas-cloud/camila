@@ -65,3 +65,34 @@
   .quote-readiness-stage3{padding:14px}
   .quote-readiness-stage3>div{grid-template-columns:1fr}
 }
+
+/* PWA Cotizaciones v3.4 · control de preparación compacto. */
+@media screen{
+  .quote-readiness-stage3{margin-bottom:14px;padding:12px 14px;border-radius:14px}
+  .quote-readiness-stage3>header{gap:12px;margin-bottom:10px}
+  .quote-readiness-stage3>header span{font-size:12px}
+  .quote-readiness-stage3>header strong{margin:2px 0;font-size:15px}
+  .quote-readiness-stage3>header p{font-size:13px;line-height:1.4}
+  .quote-readiness-stage3>header button{min-height:38px;padding:7px 11px;font-size:12px}
+  .quote-readiness-stage3>div{gap:7px}
+  .quote-readiness-stage3 article{min-height:58px;padding:9px 10px}
+  .quote-readiness-stage3 article span{font-size:12px}
+  .quote-readiness-stage3 article strong{margin-top:2px;font-size:16px}
+  .proposal-dental-legend{gap:8px;margin-bottom:18px}
+  .proposal-dental-legend article{grid-template-columns:28px 1fr;gap:8px;padding:9px 10px}
+  .proposal-dental-legend article>span{width:28px;height:28px;font-size:12px}
+  .proposal-dental-legend strong{font-size:13px}
+  .proposal-dental-legend small{font-size:12px;line-height:1.35}
+}
+@media screen and (max-width:700px){
+  .quote-readiness-stage3>header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+  .quote-readiness-stage3>header button{width:auto;min-height:44px}
+  .quote-readiness-stage3>div{grid-template-columns:1fr 1fr}
+}
+@media screen and (max-width:420px){
+  .quote-readiness-stage3{padding:11px}
+  .quote-readiness-stage3>header{grid-template-columns:1fr}
+  .quote-readiness-stage3>header button{width:100%}
+  .quote-readiness-stage3>div{grid-template-columns:1fr 1fr}
+  .quote-readiness-stage3 article{min-height:54px}
+}

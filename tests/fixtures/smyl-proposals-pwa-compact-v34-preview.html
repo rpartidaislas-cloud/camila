@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Cotizaciones PWA compactas</title>
+  <link rel="stylesheet" href="../../smyl-proposals.css">
+  <link rel="stylesheet" href="../../smyl-treatment-quote-stage3.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f2f6fa;color:#0b1b2e;font:14px/1.45 Inter,Arial,sans-serif}.qa{max-width:1240px;margin:auto;padding:24px}.qa-screen{margin-bottom:28px;padding:22px;border:1px solid #d9e2ec;border-radius:20px;background:#fff}.qa-screen>h2{margin:0 0 4px;font-size:14px;color:#17685f}.qa-screen>p{margin:0 0 18px;color:#526174}.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border:1px solid #bac7d5;border-radius:10px;background:#fff;color:#0b1b2e}.btn-primary{border-color:#0b1b2e;background:#0b1b2e;color:#fff}.clinic-field{display:grid;gap:6px}.clinic-field label,.clinic-field span{font-weight:600}.clinic-field input,.clinic-field textarea,.clinic-field select{width:100%;padding:10px;border:1px solid #d9e2ec;border-radius:10px;background:#fff;font:inherit}.pro-eyebrow{margin:0}.clinic-section-heading{margin:16px 0}.clinic-section-heading h2,.clinic-section-heading p{margin:0}.clinic-section-heading p{margin-top:4px;color:#526174}.proposal-summary p{margin:0}.proposal-summary h2{margin:0}.proposal-list-status{display:inline-flex}.proposal-list-detail{display:block}.proposal-fold h2{margin:0}.proposal-fold .pro-eyebrow{margin:0}.proposal-decision-state{padding:4px 7px;border-radius:99px;background:#edf1ed}.proposal-event-empty{margin:0}.proposal-privacy{color:#526174}@media(max-width:700px){.qa{padding:10px}.qa-screen{padding:14px;border-radius:16px}}
+  </style>
+</head>
+<body>
+<main class="qa" id="p-propuestas">
+  <section class="qa-screen">
+    <h2>Vista general</h2><p>Indicadores y propuestas listas para trabajar.</p>
+    <section class="proposal-metrics"><article><span>Por presentar</span><strong>4</strong><small>versiones aprobadas</small></article><article><span>Esperando respuesta</span><strong>2</strong><small>presentadas sin decisión</small></article><article><span>Requieren acción</span><strong>1</strong><small>cambios o borradores</small></article><article><span>Aceptación</span><strong>67%</strong><small>6 decisiones registradas</small></article></section>
+    <div class="proposal-list-toolbar"><div class="proposal-filters"><button class="btn" aria-pressed="true">Por atender</button><button class="btn">Todas</button><button class="btn">Aceptadas</button><button class="btn">Borradores</button></div><input type="search" placeholder="Buscar paciente o propuesta"></div>
+    <div class="proposal-list"><article class="proposal-list-row"><div><h2>Ana Torres</h2><p>Plan restaurativo · Versión 2</p><small class="proposal-list-status" data-state="ready">Lista para presentar</small><small class="proposal-list-detail">Vigente hasta 22/11/2026.</small></div><strong>$18,500</strong><button class="btn">Abrir</button></article><article class="proposal-list-row"><div><h2>Carlos Méndez</h2><p>Ortodoncia integral · Versión 1</p><small class="proposal-list-status" data-state="awaiting">Esperando decisión</small><small class="proposal-list-detail">Presentada el 04/11/2026.</small></div><strong>$36,000</strong><button class="btn">Abrir</button></article></div>
+  </section>
+
+  <section class="qa-screen">
+    <h2>Editor</h2><p>Documento principal a la izquierda; decisión y activación progresivas a la derecha.</p>
+    <div class="proposal-layout">
+      <fieldset class="proposal-editor"><div class="clinic-field"><label>Título</label><input value="Rehabilitación estética anterior"></div><div class="clinic-field"><label>Mensaje para el paciente</label><textarea>Preparamos esta propuesta con las alternativas que revisamos en consulta.</textarea></div><div class="clinic-section-heading"><h2>Tratamiento e inversión</h2><p>Confirma conceptos, cantidad y precio.</p></div><article class="proposal-item"><div class="clinic-field"><label>Concepto</label><input value="Carilla cerámica"></div><div class="clinic-field"><label>Descripción</label><input value="Piezas 11 y 21"></div><div class="clinic-field"><label>Cantidad</label><input value="2"></div><div class="clinic-field"><label>Precio</label><input value="$9,250"></div></article><button class="btn">+ Añadir concepto</button></fieldset>
+      <aside class="proposal-summary"><p class="pro-eyebrow">TODO EN UNA PROPUESTA</p><h2>Lista para conversar.</h2><strong>$18,500 MXN</strong><p>Importe estimado con condiciones revisables.</p><button class="btn">Guardar borrador</button><button class="btn btn-primary">Vista previa y revisión</button><button class="btn">Guardar como PDF</button><p class="proposal-privacy">El paciente solo verá la propuesta.</p><details class="proposal-tracking proposal-fold"><summary class="proposal-fold-head"><div><p class="pro-eyebrow">SEGUIMIENTO</p><h2>Decisión del paciente</h2></div><span class="proposal-decision-state">Sin presentar</span></summary><div class="proposal-event-list"><p class="proposal-event-empty">Registra cómo se presentó esta versión.</p></div></details><details class="proposal-activation proposal-fold"><summary class="proposal-fold-head"><div><p class="pro-eyebrow">ACTIVACIÓN</p><h2>Iniciar tratamiento</h2></div><span class="proposal-decision-state">Esperando</span></summary><p class="proposal-activation-copy">Se habilita después de registrar la aceptación.</p></details></aside>
+    </div>
+  </section>
+</main>
+</body>
+</html>
