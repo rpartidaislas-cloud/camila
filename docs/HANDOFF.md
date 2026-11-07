@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-07 — Claude Code — Historia clínica: historial de cambios
+
+- Botón **Historial de cambios** en la Historia clínica (lo ve también quien solo puede leer): diálogo con las últimas 30 versiones, de la más
+  reciente a la más antigua, con número, fecha, **quién** cambió y **qué** cambió ("Alergia agregada: Látex", "Penicilina: gravedad Moderada → Alta",
+  "Cirugías: confirmado que no hay", textos con antes → después), agrupado por sección. Sin migración: `smyl_patient_history_versions` ya se podía leer
+  con `clinical.read` + alcance del paciente.
+- `diff(prev, next)` y `versionEntries(rows)` en `smyl-history-model.js` (puros). Cada versión se compara con la anterior consecutiva; la primera, contra
+  nada; si falta la anterior, se avisa en lugar de inventar. Se piden 31 filas para poder comparar la última mostrada.
+- **Nombres:** profesional (`smyl_professionals.user_id` → `display_name`), si no `camila_usuarios.nombre`, "Tú" si es la propia persona y
+  "Miembro del equipo" si no se encuentra. **No se muestran correos.** Si la consulta falla, el diálogo muestra el motivo y la ficha sigue igual.
+- `renderVersions()` / `renderVersionsMessage()` en `smyl-history-read.js` (todo escapado; probado con HTML en nombres y textos).
+- Se corrigió un fallo propio antes de publicar: en celular el texto de cada cambio quedaba en una columna de un carácter; ahora hay prueba de ancho.
+- Pruebas: +6 del modelo, 6 de la vista (`smyl-history-versions.test.mjs`) y 5 de navegador (diálogo real, solo lectura, >30 versiones, error, celular).
+  Comprobado con 4 errores introducidos a propósito. Cachés: `smyl-patient-360.js?v=23`, `.css?v=16`, `smyl-history-model.js?v=2`, `smyl-history-read.js?v=2`.
+- **Pendiente / no incluido:** restaurar una versión anterior (decisión clínica: no se hizo), comparar dos versiones cualesquiera y paginar más allá de 30.
+
 ## 2026-11-07 — Claude Code — Historia clínica: modelo puro y pruebas que se ejecutan
 
 - **`smyl-history-model.js` (nuevo, sin DOM ni red):** normalizar registros, estados, cobertura, armar el documento que se guarda desde un

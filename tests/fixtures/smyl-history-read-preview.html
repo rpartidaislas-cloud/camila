@@ -32,7 +32,17 @@
     window.tenantId = 't1';
     window.pacienteActual = { id: 'p1', nombre: 'Ana', apellido: 'Pérez', telefono: '', email: '' };
     window.ir = function () {};
+    /* Versiones guardadas (de la más reciente a la más antigua) para el historial de cambios. */
+    var versiones = caso === 'vacio' ? [] : caso === 'muchas'
+      ? Array.from({ length: 35 }, function (_, i) { return { revision: 35 - i, updated_by: 'u1', updated_at: new Date(Date.UTC(2026, 10, 4, 12, 0) - i * 3600000).toISOString(), document: i % 2 ? { notes: 'v' + (35 - i) } : { notes: 'v' + (35 - i), habits: 'x' } }; })
+      : [
+        { revision: 3, updated_by: 'u1', updated_at: '2026-11-04T22:34:00Z', document: documento },
+        { revision: 2, updated_by: 'u2', updated_at: '2026-11-02T15:10:00Z', document: { alerts: ['Marcapasos'], alerts_status: 'yes', allergy_records: [{ substance: 'Penicilina', reaction: 'Urticaria', severity: 'moderate' }], allergies_status: 'yes' } },
+        { revision: 1, updated_by: 'u3', updated_at: '2026-10-30T09:00:00Z', document: {} }
+      ];
     function datos(tabla, unico) {
+      if (tabla === 'smyl_patient_history_versions') return versiones;
+      if (tabla === 'camila_usuarios') return [{ id: 'u2', nombre: 'Dra. Ruiz' }];
       if (tabla === 'smyl_role_permissions') return caso === 'solo-lectura' ? [{ role_id: 'r', permission_key: 'clinical.read' }] : [];
       if (tabla === 'smyl_member_roles') return caso === 'solo-lectura' ? [{ user_id: 'u1', role_id: 'r' }] : [];
       if (tabla === 'smyl_patient_histories') return unico ? { revision: 3, updated_at: '2026-11-04T22:34:00Z', document: documento } : [];
