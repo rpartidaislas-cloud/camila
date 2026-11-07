@@ -157,15 +157,18 @@ jobs:
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
+          # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado); la anterior usaba --linked.
+          REPAIR_FLAG=--linked
+          if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG=--remote; fi
           if [ "${{ steps.esquema.outputs.reparar_vista }}" = "true" ]; then
-            supabase migration repair --status applied "$VISTA_VERSION"
+            supabase migration repair $REPAIR_FLAG --status applied "$VISTA_VERSION"
           fi
           if [ "${{ steps.esquema.outputs.reparar_invitaciones }}" = "true" ]; then
-            supabase migration repair --status applied "$INVITACIONES_VERSION"
+            supabase migration repair $REPAIR_FLAG --status applied "$INVITACIONES_VERSION"
           fi
           if [ "${{ steps.esquema.outputs.reparar_cuota }}" = "true" ]; then
-            supabase migration repair --status applied "$CUOTA_VERSION"
+            supabase migration repair $REPAIR_FLAG --status applied "$CUOTA_VERSION"
           fi
           if [ "${{ steps.esquema.outputs.reparar_signup }}" = "true" ]; then
-            supabase migration repair --status applied "$SIGNUP_VERSION"
+            supabase migration repair $REPAIR_FLAG --status applied "$SIGNUP_VERSION"
           fi
