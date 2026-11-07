@@ -11,6 +11,8 @@ const css = read('smyl-patient-360.css');
 const app = read('app.html');
 const mobileApp = read('mobile/www/app.html');
 const sw = read('sw.js');
+const model = read('smyl-history-model.js');
+const logic = `${patient}\n${model}`;
 const readFileSync2 = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('Historia clínica separa la lectura en secciones numeradas con seguridad, pendientes y estado claro', () => {
@@ -19,17 +21,17 @@ test('Historia clínica separa la lectura en secciones numeradas con seguridad, 
   assert.match(read2, /aria-label="Secciones de la historia clínica"/);
   assert.match(read2, /data-hc-edit/);
   assert.match(read2, /data-hc-add/);
-  assert.match(patient, /window\.SmylHistoryRead\.render\(historyReadModel\(/);
-  assert.match(patient, /var safetyState=safetyCount\?'alert':safetyPending\?'pending':'ok'/);
-  assert.match(patient, /Alertas por confirmar/);
-  assert.match(patient, /Sin alertas conocidas/);
-  assert.match(patient, /No, confirmado/);
-  assert.match(patient, /historyStatusReviewed/);
+  assert.match(patient, /window\.SmylHistoryRead\.render\(H\.readModel\(/);
+  assert.match(model, /safetyState=count\?'alert':pending\?'pending':'ok'/);
+  assert.match(logic, /Alertas por confirmar/);
+  assert.match(logic, /Sin alertas conocidas/);
+  assert.match(logic, /No, confirmado/);
+  assert.match(logic, /reviewed/);
   for (const title of ['Seguridad clínica','Salud médica','Antecedentes dentales','Hábitos y factores de riesgo','Contacto y notas']) {
-    assert.match(patient, new RegExp(`title:'${title}'`));
+    assert.match(model, new RegExp(`title:'${title}'`));
   }
   assert.doesNotMatch(patient, /de 8 apartados/);
-  assert.match(patient, /total:6/);
+  assert.match(model, /total:checks\(d\)\.length/);
 });
 
 test('El editor de cinco pasos se abre en la sección elegida y los atajos preparan la fila', () => {
@@ -57,13 +59,17 @@ test('La edición enfoca una de cinco secciones y conserva navegación accesible
   assert.match(patient, /prefers-reduced-motion: reduce/);
 });
 
-test('Cada campo de un registro se lee al guardar con el mismo nombre con que se dibuja, y Guardar está en todos los pasos', () => {
+test('El editor pide al modelo los nombres de los campos de los registros y el guardado usa el modelo; Guardar está en todos los pasos', () => {
+  // El contrato nombre-dibujado = nombre-leído se prueba con código real en smyl-history-model.test.mjs; aquí solo se exige la delegación.
   const fields = { allergy: ['substance','reaction','severity'], condition: ['name','diagnosed_at','status'], medication: ['name','dose','frequency','changed_at'], surgery: ['procedure','date'] };
   for (const [kind, names] of Object.entries(fields)) {
-    assert.match(patient, new RegExp(`historyFormRecords\\(f,'${kind}',\\[${names.map(n => `'${n}'`).join(',')}\\]`), `${kind}: columnas leídas al guardar`);
-    for (const name of names) assert.match(patient, new RegExp(`'${kind}_${name}'`), `${kind}_${name}[]: el campo debe existir con ese nombre`);
+    for (const name of names) {
+      assert.match(patient, new RegExp(`H\\.inputName\\('${kind}','${name}'\\)`), `${kind}.${name}: el editor debe usar H.inputName`);
+      assert.doesNotMatch(patient, new RegExp(`'${kind}_${name}'`), `${kind}_${name}: no escribir el nombre a mano`);
+    }
   }
-  assert.doesNotMatch(patient, /surgery_date_record/, 'la fecha de la cirugía nunca se guardaba por este nombre');
+  assert.match(patient, /var doc=H\.buildDocument\(f\)/);
+  assert.doesNotMatch(patient, /surgery_date_record/);
   assert.match(patient, /if\(save\)save\.hidden=false/);
   assert.doesNotMatch(patient, /data-history-save hidden/);
   assert.match(patient, /Hay cambios sin guardar\. ¿Descartarlos\?/);
@@ -74,12 +80,12 @@ test('Los estados clínicos son explícitos y los detalles aparecen sólo al con
   assert.match(patient, /\['no','No'\],\['yes','Sí'\],\['unknown','No se sabe'\],\['pending','Pendiente'\]/);
   for (const status of ['alerts','allergies','conditions','medications','surgeries','dental','habits']) {
     assert.match(patient, new RegExp(`historyStatusEditor\\('${status}'`));
-    assert.match(patient, new RegExp(`${status}_status`));
+    assert.match(logic, new RegExp(`${status}_status`));
   }
   assert.match(patient, /data-history-status-details/);
   assert.match(patient, /details\.hidden=value!=='yes'/);
   assert.match(patient, /Este apartado conserva información/);
-  assert.match(patient, /historyFormStatus\(f,name,hasData\)/);
+  assert.match(model, /function formStatus\(f,block,hasData\)/);
   assert.match(patient, /validateHistoryEditor\(form\)/);
   assert.match(patient, /Agrega el detalle antes de guardar este apartado/);
 });
@@ -97,9 +103,9 @@ test('La edición preserva campos y registros clínicos existentes', () => {
 });
 
 test('Cada registro médico conserva detalle, estado y fecha sin perder compatibilidad', () => {
-  for (const field of ['allergy_records','condition_records','medication_records','surgery_records']) assert.match(patient, new RegExp(field));
-  for (const field of ['allergy_substance','allergy_reaction','allergy_severity','condition_diagnosed_at','condition_status','medication_dose','medication_frequency','medication_changed_at','surgery_date']) assert.match(patient, new RegExp(field));
-  for (const legacy of ['allergies','conditions','conditions_since','medications','medications_changed_at','surgeries','surgery_date']) assert.match(patient, new RegExp(`${legacy}:`));
+  for (const field of ['allergy_records','condition_records','medication_records','surgery_records']) assert.match(model, new RegExp(field));
+  for (const kind of ['allergy','condition','medication','surgery']) assert.match(model, new RegExp(`${kind}:\{records:'${kind}_records'`));
+  for (const legacy of ['allergies','conditions','conditions_since','medications','medications_changed_at','surgeries','surgery_date']) assert.match(model, new RegExp(`${legacy}:`));
   assert.match(patient, /type=type==='month'\?'month':'date'/);
   assert.match(patient, /historyDateMax\('month'\)/);
   assert.match(patient, /historyDateMax\('date'\)/);

@@ -29,3 +29,24 @@ jobs:
         shell: bash
         run: |
           node --test --test-skip-pattern="la deuda tipográfica" $(ls tests/*.test.mjs | grep -v 'tests/lana-quick.test.mjs')
+
+  # Prueba del editor REAL de la Historia clínica en Chromium (tests/smyl-history-roundtrip.test.mjs): llena todos los campos, guarda,
+  # reabre y verifica que no se pierda nada. Informativa mientras se confirma que es estable en el runner (no bloquea el PR); para
+  # volverla obligatoria basta quitar `continue-on-error`. En el trabajo `suite` esa misma prueba se omite sola por no haber Chromium.
+  navegador:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar Playwright y Chromium
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Ejecutar pruebas de navegador
+        shell: bash
+        run: node --test tests/smyl-history-roundtrip.test.mjs
