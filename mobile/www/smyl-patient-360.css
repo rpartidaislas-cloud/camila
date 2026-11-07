@@ -960,6 +960,94 @@
   .p360-priority-actions .btn-primary::after,.p360-more>summary>i,.p360-more-grid button b{transition:none}
 }
 
+/* Expediente identity v4.7 · cabecera clínica limpia para web y PWA. */
+.p360-title-clean{
+  grid-template-columns:56px minmax(0,1fr);
+  gap:16px;
+  min-width:0;
+  padding:2px 2px 20px;
+  border-bottom:1px solid var(--smyl-ui-border,#d9e2ec);
+}
+.p360-title-clean .p360-avatar{
+  width:56px;
+  height:56px;
+  border-color:#c6ddd9;
+  border-radius:16px;
+  background:linear-gradient(145deg,#edf7f5,#e4f1ee);
+  color:#17685f;
+  font-size:15px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);
+}
+.p360-title-clean .p360-patient-copy{display:grid;gap:2px;align-content:center}
+.p360-title-clean .p360-eyebrow{
+  display:block;
+  margin:0 0 2px;
+  color:#46716d;
+  font-size:12px;
+  font-weight:750;
+  line-height:1.35;
+  letter-spacing:.075em;
+}
+.p360-title-clean .p360-patient-copy h1{
+  margin:0;
+  color:var(--smyl-ui-ink,#0b1b2e);
+  font-size:clamp(24px,2vw,30px);
+  font-weight:730;
+  line-height:1.15;
+  letter-spacing:-.03em;
+}
+.p360-title-clean .p360-patient-copy p{
+  min-width:0;
+  margin:3px 0 0;
+  color:var(--smyl-ui-ink-secondary,#526174);
+  font-size:13px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.p360-title-clean~.p360-tabs{
+  gap:28px;
+  margin:0 0 18px;
+  padding:0;
+  border-bottom:1px solid var(--smyl-ui-border,#d9e2ec);
+  border-radius:0;
+  background:transparent;
+  contain:inline-size;
+  scrollbar-width:thin;
+}
+.p360-title-clean~.p360-tabs button{
+  min-height:48px;
+  padding:14px 2px 12px;
+  border:0;
+  border-bottom:2px solid transparent;
+  border-radius:0;
+  background:transparent;
+  color:#68778a;
+  font-size:13px;
+  font-weight:680;
+}
+.p360-title-clean~.p360-tabs button:hover{background:transparent;color:#183248}
+.p360-title-clean~.p360-tabs button[aria-selected=true]{
+  border-bottom-color:#1e8a80;
+  background:transparent;
+  color:#15343a;
+  box-shadow:none;
+}
+.p360-title-clean~.p360-tabs button:focus-visible{outline:3px solid rgba(30,138,128,.2);outline-offset:-3px}
+@media(max-width:700px){
+  .p360-title-clean{grid-template-columns:46px minmax(0,1fr);gap:12px;padding:0 1px 16px}
+  .p360-title-clean .p360-avatar{width:46px;height:46px;border-radius:13px;font-size:13px}
+  .p360-title-clean .p360-eyebrow{font-size:12px;letter-spacing:.055em}
+  .p360-title-clean .p360-patient-copy h1{font-size:22px}
+  .p360-title-clean .p360-patient-copy p{font-size:12px}
+  .p360-title-clean~.p360-tabs{gap:20px;margin-bottom:16px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity}
+  .p360-title-clean~.p360-tabs button{flex:0 0 auto;min-height:46px;padding-inline:1px;scroll-snap-align:start}
+}
+@media(max-width:380px){
+  .p360-title-clean{grid-template-columns:42px minmax(0,1fr);gap:10px}
+  .p360-title-clean .p360-avatar{width:42px;height:42px;border-radius:12px}
+  .p360-title-clean .p360-patient-copy h1{font-size:20px}
+}
+
 /* ── Historial de cambios (diálogo): versiones de la más reciente a la más antigua ── */
 .p360-hv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
 .p360-hv-head h2{margin:0}

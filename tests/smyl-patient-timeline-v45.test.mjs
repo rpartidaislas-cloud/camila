@@ -72,7 +72,7 @@ test('la interfaz agrupa eventos y los lleva a su fuente canónica', () => {
   assert.match(script, /\['dental_record','photo_review','radiograph_review','radiograph_source','radiograph_report','clinical_plan','proposal','proposal_event'\]/);
   assert.match(script, /showSection\(s,'billing'\)/);
   assert.match(script, /window\.ir\('inbox'\)/);
-  assert.match(app, /smyl-patient-360\.js\?v=24/);
+  assert.match(app, /smyl-patient-360\.js\?v=25/);
   assert.match(worker, /patient-timeline-v45/);
 });
 

@@ -26,6 +26,7 @@ copyFile(path.join(ROOT, 'simulacion-rapida.html'), path.join(WWW, 'simulacion-r
 copyFile(path.join(ROOT, 'revision-clinica.html'), path.join(WWW, 'revision-clinica.html'));
 copyFile(path.join(ROOT, 'app.html'), path.join(WWW, 'app.html'));
 copyFile(path.join(ROOT, 'sw.js'), path.join(WWW, 'sw.js'));
+copyFile(path.join(ROOT, 'manifest-app.json'), path.join(WWW, 'manifest-app.json'));
 copyFile(path.join(ROOT, 'mila.html'), path.join(WWW, 'mila.html'));
 copyFile(path.join(ROOT, 'consumos.html'), path.join(WWW, 'consumos.html'));
 copyFile(path.join(ROOT, 'dentista.html'), path.join(WWW, 'dentista.html'));

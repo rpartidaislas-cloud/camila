@@ -37,6 +37,8 @@ const fs = require('node:fs');
         minTargetHeight: Math.min(...rects.map(rect => rect.height).concat([44])),
         minTargetWidth: enforceTargets ? Math.min(...rects.map(rect => rect.width).concat([44])) : 44,
         secondaryAccess: visible('.p360-more').length,
+        identityHeaders: visible('.p360-title-clean').length,
+        headerControls: visible('.p360-title-tools>*').length,
         todayColumns: getComputedStyle(document.querySelector('.p360-today-grid')).gridTemplateColumns
       };
     }, { enforceTargets: item.touch || item.zoomEquivalent });
@@ -74,6 +76,8 @@ const fs = require('node:fs');
     item.timelineRows !== 3 ||
     item.filters !== 0 ||
     item.secondaryAccess !== 1 ||
+    item.identityHeaders !== 1 ||
+    item.headerControls !== 0 ||
     item.expandedRows !== 7 ||
     item.expandedLabel !== 'Mostrar menos' ||
     item.accessLinks !== 7 ||

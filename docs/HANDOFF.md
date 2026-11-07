@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-07 — Codex — Cabecera limpia del expediente v4.7
+
+- El expediente elimina del encabezado los controles duplicados `Asistente IA`,
+  `Datos administrativos` y el indicador no accionable `Protegido`.
+- La identidad del paciente queda como protagonista: avatar, contexto de
+  expediente clínico, nombre y datos de contacto con una jerarquía más clara.
+- `Datos administrativos` conserva su acceso con permiso dentro de `Más del
+  expediente → Operación`; el asistente sigue disponible desde MILA y desde el
+  siguiente paso contextual cuando corresponde.
+- Las pestañas usan una navegación sobria con subrayado activo y desplazamiento
+  horizontal táctil en celular, sin píldoras ni una segunda fila de botones.
+- Web, PWA y `mobile/www` quedan sincronizados en
+  `smyl-patient-360.js?v=25`, `smyl-patient-360.css?v=17` y caché
+  `patient-record-header-v79`.
+- La PWA alinea su barra del sistema con el navy de SMYL, admite orientación
+  vertical u horizontal y deja de declarar un mismo PNG de 513 px como siete
+  tamaños distintos. El manifiesto usa ahora los iconos reales de 72 a 512 px,
+  incluidos 192/512 maskable, y el sincronizador móvil copia también el
+  manifiesto para evitar divergencias futuras. Caché: `pwa-manifest-v80`.
+- QA focal: **25/25** pruebas aprobadas. Suite completa: **1,107 aprobadas**,
+  28 condicionales omitidas y **0 fallas** (1,135 totales). QA visual en 1440,
+  1024, 768, 390 y 320 px, además de ampliación al 200 %, sin overflow
+  horizontal; los tres controles retirados permanecen ausentes y los objetivos
+  táctiles móviles conservan 44 px.
+
 ## 2026-11-07 — Codex — Directorio clínico de pacientes v4
 
 - Pacientes dejó de ser una tabla genérica de contactos. La portada ahora

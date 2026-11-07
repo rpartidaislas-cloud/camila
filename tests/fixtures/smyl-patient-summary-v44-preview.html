@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SMYL · Resumen simple v4.6 · QA visual</title>
+  <title>SMYL · Cabecera clínica v4.7 · QA visual</title>
   <link rel="stylesheet" href="../../smyl-patient-360.css">
   <style>
     *{box-sizing:border-box}
@@ -17,14 +17,10 @@
     .qa-bar span:last-child{color:#738094;font-size:12px}
     .qa-main{width:min(1220px,calc(100% - 40px));margin:0 auto;padding:28px 0 48px}
     .p360-root{margin:0}
-    .p360-title-tools{flex-wrap:wrap;justify-content:flex-end}
-    .p360-title-tools button{border:1px solid #cbd7e2;border-radius:9px;background:#fff;color:#31465a;font-weight:700}
-    .p360-title-tools button:first-child{border-color:#b7d8d2;background:#f0f8f6;color:#17685f}
     .p360-tabs button{cursor:pointer}
     @media(max-width:700px){
       .qa-bar{min-height:54px;padding:0 16px}.qa-bar span:last-child{display:none}
       .qa-main{width:100%;padding:16px 12px 36px}
-      .p360-title-tools{justify-content:flex-start}
     }
   </style>
 </head>
@@ -33,17 +29,12 @@
     <header class="qa-bar"><span class="qa-brand">SMYL</span><span>Fixture sintética · sin datos reales</span></header>
     <main class="qa-main">
       <section class="p360-root" aria-label="Resumen del paciente">
-        <header class="p360-title">
+        <header class="p360-title p360-title-clean">
           <span class="p360-avatar" aria-hidden="true">AM</span>
           <div class="p360-patient-copy">
             <span>EXPEDIENTE CLÍNICO</span>
             <h1>Ana Martínez</h1>
             <p>55 5555 0184 · ana.martinez@example.test</p>
-          </div>
-          <div class="p360-title-tools">
-            <button type="button"><span aria-hidden="true">✦</span> Asistente IA</button>
-            <button type="button">Datos administrativos</button>
-            <span class="p360-secure">Protegido</span>
           </div>
         </header>
 

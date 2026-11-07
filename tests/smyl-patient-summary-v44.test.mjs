@@ -20,6 +20,15 @@ test('el resumen prioriza riesgo, siguiente acción y datos clave sin duplicar l
   assert.doesNotMatch(accessProjection, /\.insert\(|\.update\(|\.upsert\(|rpc\(/);
 });
 
+test('la cabecera prioriza identidad y elimina controles duplicados', () => {
+  const buildProjection = script.slice(script.indexOf('function build('), script.indexOf('function mount('));
+  assert.match(buildProjection, /p360-title p360-title-clean/);
+  assert.match(buildProjection, /p360-eyebrow/);
+  assert.doesNotMatch(buildProjection, /p360-title-tools|data-p360-assistant-head|p360-secure/);
+  assert.match(script, /var billingTab=s\.root\.querySelector/);
+  assert.match(script, /if\(billingTab\)billingTab\.hidden=!s\.canFinanceRead/);
+});
+
 test('la actividad reciente muestra tres eventos y conserva acceso a la fuente canónica', () => {
   assert.match(script, /s\.timelineExpanded\?rows:rows\.slice\(0,3\)/);
   assert.match(script, /Ver toda la actividad/);
@@ -44,6 +53,9 @@ test('los accesos secundarios conservan permisos y estados clínicos explícitos
 
 test('la política visual separa secciones, accesos y actividad sin multiplicar tarjetas', () => {
   assert.match(styles, /Resumen simple v4\.6/);
+  assert.match(styles, /Expediente identity v4\.7/);
+  assert.match(styles, /\.p360-title-clean\{/);
+  assert.match(styles, /\.p360-title-clean~\.p360-tabs/);
   assert.match(styles, /\.p360-today-grid\{display:grid;grid-template-columns:/);
   assert.match(styles, /\.p360-more>summary/);
   assert.match(styles, /\.p360-more-grid\{display:grid;grid-template-columns:repeat\(3/);
