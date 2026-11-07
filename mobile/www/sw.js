@@ -73,6 +73,7 @@ const STATIC_FILES = [
   '/camila/smyl-treatment-plan-model.js?v=1',
   '/camila/smyl-treatment-plan-client.js?v=1',
   '/camila/smyl-clinic.js?v=19',
+  '/camila/smyl-history-model.js?v=1',
   '/camila/smyl-history-read.js?v=1',
   '/camila/smyl-patient-360.js?v=22',
   '/camila/smyl-patient-360.css?v=15',

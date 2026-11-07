@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-07 — Claude Code — Historia clínica: modelo puro y pruebas que se ejecutan
+
+- **`smyl-history-model.js` (nuevo, sin DOM ni red):** normalizar registros, estados, cobertura, armar el documento que se guarda desde un
+  `FormData` (`buildDocument`) y el modelo de la vista de lectura (`readModel`) salieron de `smyl-patient-360.js` (76 KB → 65 KB; ya no
+  redefine 26 funciones, las toma de `window.SmylHistoryModel`). Si el modelo no carga, la ficha avisa en consola y no rompe la página.
+- **Fuente única de nombres de campo:** `RECORD_KINDS` + `inputName(kind,field)`. El editor dibuja los 12 campos de los 4 registros con
+  `H.inputName(...)` y el guardado los lee con la misma función; la clase de error de la fecha de cirugía ya no puede repetirse.
+- **Una corrección de comportamiento:** `missing()` (prioridad del Resumen) ahora usa los registros como el resto, no solo las listas antiguas.
+- **Pruebas que ejecutan código:** `tests/smyl-history-model.test.mjs` (15; FormData real, ida y vuelta sin perder campos, cobertura, estados,
+  vista de lectura, modelo sin DOM, orden de carga, copia móvil). Comprobado con 3 errores introducidos a propósito: cada uno rompe pruebas.
+- **Prueba de navegador del editor real:** `tests/smyl-history-roundtrip.test.mjs` (5; llena los 5 pasos, guarda, reabre y guarda sin tocar;
+  atajos; Cancelar; solo lectura). Se omite sola sin Playwright/Chromium. Nuevo trabajo `navegador` en `pruebas.yml` (Playwright 1.63.0),
+  **informativo** (`continue-on-error`) hasta confirmar que es estable en el runner; no se ha ejecutado aún en GitHub.
+- Las pruebas de texto de `smyl-history-ux-v32` ahora exigen la delegación al modelo en vez de buscar lógica copiada.
+- Cachés: `smyl-patient-360.js?v=22`, `smyl-history-model.js?v=1`. Suite como la corre la CI: 1081 pasan, 0 fallan.
+
 ## 2026-11-06 — Claude Code — Historia clínica: auditoría de guardado y correcciones
 
 - Ricardo reportó "lo de las alergias no se guarda" y pidió revisar si guarda todo. Se auditó el editor con el código real y datos sintéticos:
