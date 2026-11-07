@@ -3,6 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
+async function settle(page, url) {
+  await page.goto(url, { waitUntil: 'load' });
+  await page.evaluate(async () => {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+}
+
 (async () => {
   const browser = await chromium.launch({
     headless: true,
@@ -20,7 +28,7 @@ const { pathToFileURL } = require('url');
   const report = [];
   for (const size of sizes) {
     const page = await browser.newPage({ viewport: { width: size.width, height: size.height }, reducedMotion: 'reduce' });
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await settle(page, url);
     const metrics = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -34,8 +42,9 @@ const { pathToFileURL } = require('url');
     await page.close();
   }
   const zoomPage = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' });
-  await zoomPage.goto(url, { waitUntil: 'domcontentloaded' });
+  await settle(zoomPage, url);
   await zoomPage.evaluate(() => { document.documentElement.style.zoom = '2'; });
+  await zoomPage.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   report.push(await zoomPage.evaluate(() => ({
     name: 'zoom-200',
     viewport: document.documentElement.clientWidth,

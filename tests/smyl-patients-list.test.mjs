@@ -22,6 +22,8 @@ test('la búsqueda ignora acentos, acepta varias palabras y teléfonos con espac
   assert.match(clinic, /tokens\.every\(function \(t\) \{ return hay\.indexOf\(t\) !== -1; \}\)/);
   assert.match(clinic, /replace\(\/\\D\/g, ''\)\.indexOf\(digits\)/);
   assert.match(clinic, /window\.filtrarPacientes = filterPatients/);
+  assert.match(clinic, /window\.filtrarDirectorioPacientes = setPatientDirectoryFilter/);
+  assert.match(clinic, /patientMatchesDirectoryFilter/);
 });
 
 test('cada paciente muestra su próxima cita o última visita sin depender de la agenda', () => {
@@ -30,7 +32,16 @@ test('cada paciente muestra su próxima cita o última visita sin depender de la
   assert.match(clinic, /Última visita: /);
   assert.match(clinic, /Sin citas todavía/);
   // Si la agenda no responde (permiso o red) la lista sigue funcionando.
-  assert.match(clinic, /catch \(_\) \{ \/\* sin permiso de agenda/);
+  assert.match(clinic, /status: 'error'/);
+  assert.match(clinic, /Agenda no disponible/);
+  assert.match(clinic, /patientDirectoryFilter === 'upcoming' \|\| patientDirectoryFilter === 'without-appointment'/);
+});
+
+test('los estados esperan a la agenda y sólo alertan si no existe ningún contacto', () => {
+  assert.match(clinic, /function patientContactIncomplete\(p\) \{ return !\(p\.telefono \|\| p\.email\); \}/);
+  assert.match(clinic, /control\.disabled = unavailable/);
+  assert.match(clinic, /Estado por confirmar/);
+  assert.match(clinic, /Sin teléfono ni correo/);
 });
 
 test('Agendar cita abre Nueva cita con el paciente ya elegido y sin la marca de cotización aceptada', () => {
@@ -40,11 +51,11 @@ test('Agendar cita abre Nueva cita con el paciente ya elegido y sin la marca de 
   assert.match(schedule, /cachePatients\(\[p\]\);openNew\(null,null\);/);
   // forPatient (cotización aceptada) sigue siendo el único camino con p_source accepted_proposal.
   assert.match(schedule, /p_source:patientId\?'accepted_proposal':'manual'/);
-  assert.match(read('app.html'), /placeholder="Buscar por nombre, teléfono o correo"/);
+  assert.match(read('app.html'), /placeholder="Nombre, teléfono o correo"/);
 });
 
 test('la lista de pacientes se distribuye igual en web, móvil y PWA', () => {
-  for (const file of ['smyl-clinic.js', 'smyl-clinic.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
+  for (const file of ['smyl-clinic.js', 'smyl-clinic.css', 'smyl-patients-directory.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
   assert.match(read('app.html'), /smyl-clinic\.js\?v=1[2-9]/);

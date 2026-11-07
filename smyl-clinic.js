@@ -3,7 +3,7 @@
   'use strict';
   var model = window.SmylClinicalModel;
   var current = null, sequence = 0, patientSequence = 0, savingPatient = false, patientAttempt = null;
-  var patientMessage = '', patientFailure = false;
+  var patientMessage = '', patientFailure = false, patientDirectoryFilter = 'all', patientMenuDismissBound = false;
   function el(tag, cls, text) {
     var n = document.createElement(tag); if (cls) n.className = cls;
     if (text != null) n.textContent = text; return n;
@@ -569,6 +569,7 @@
   async function loadPatients() {
     var tenant = tenantId, token = ++patientSequence;
     if (!tenant) return;
+    agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {} };
     var host = document.getElementById('tabla-pacientes-wrap');
     var loading = el('div', 'patient-loading');
     loading.setAttribute('role', 'status'); loading.setAttribute('aria-label', 'Cargando pacientes');
@@ -601,8 +602,10 @@
     return { rows: rows, truncated: true };
   }
   // Próxima cita y última visita de cada paciente, solo lectura: si la agenda no está disponible, la lista funciona igual.
-  var agendaInfo = { tenant: '', next: {}, last: {} };
+  var agendaInfo = { tenant: '', status: 'idle', next: {}, last: {} };
   async function loadAgendaInfo(tenant) {
+    agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {} };
+    syncPatientFilterControls();
     try {
       var nowIso = new Date().toISOString();
       var parts = await Promise.all([
@@ -613,27 +616,86 @@
       var next = {}, last = {};
       (parts[0] || []).forEach(function (r) { if (r.patient_id && !next[r.patient_id]) next[r.patient_id] = r.starts_at; });
       (parts[1] || []).forEach(function (r) { if (r.patient_id && !last[r.patient_id]) last[r.patient_id] = r.starts_at; });
-      agendaInfo = { tenant: tenant, next: next, last: last };
+      agendaInfo = { tenant: tenant, status: 'ready', next: next, last: last };
       if (typeof window.filtrarPacientes === 'function') window.filtrarPacientes();
-    } catch (_) { /* sin permiso de agenda o sin conexión: la lista queda sin esa línea */ }
+    } catch (_) {
+      if (tenant !== tenantId) return;
+      agendaInfo = { tenant: tenant, status: 'error', next: {}, last: {} };
+      if (patientDirectoryFilter === 'upcoming' || patientDirectoryFilter === 'without-appointment') patientDirectoryFilter = 'all';
+      if (typeof window.filtrarPacientes === 'function') window.filtrarPacientes();
+    }
   }
   function shortTime(value) {
     return new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(value)).replace(/\s*([ap])\.?\s?m\.?/i, function (m, x) { return ' ' + x.toLowerCase() + 'm'; });
   }
   function shortDay(value) { return new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(value)).replace(/\./g, '').replace(',', '').replace(/ de /g, ' '); }
   function agendaLine(p) {
-    if (agendaInfo.tenant !== tenantId || p._local) return null;
-    if (agendaInfo.next[p.id]) return { text: 'Próxima cita: ' + shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), tone: 'next' };
-    if (agendaInfo.last[p.id]) return { text: 'Última visita: ' + shortDay(agendaInfo.last[p.id]), tone: 'last' };
-    return { text: 'Sin citas todavía', tone: 'none' };
+    if (p._local) return null;
+    if (agendaInfo.tenant !== tenantId || agendaInfo.status === 'loading' || agendaInfo.status === 'idle') return { text: 'Consultando agenda', label: 'Consultando agenda', detail: 'Actualizando continuidad', tone: 'loading' };
+    if (agendaInfo.status === 'error') return { text: 'Agenda no disponible', label: 'Agenda no disponible', detail: 'Intenta actualizar más tarde', tone: 'unavailable' };
+    if (agendaInfo.next[p.id]) return { text: 'Próxima cita: ' + shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), label: shortDay(agendaInfo.next[p.id]) + ' · ' + shortTime(agendaInfo.next[p.id]), detail: 'Próxima cita', tone: 'next' };
+    if (agendaInfo.last[p.id]) return { text: 'Última visita: ' + shortDay(agendaInfo.last[p.id]), label: shortDay(agendaInfo.last[p.id]), detail: 'Última visita registrada', tone: 'last' };
+    return { text: 'Sin citas todavía', label: 'Sin próxima cita', detail: 'Seguimiento por programar', tone: 'none' };
   }
   function plain(value) { return String(value == null ? '' : value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function patientHasUpcoming(p) { return agendaInfo.tenant === tenantId && agendaInfo.status === 'ready' && !!agendaInfo.next[p.id]; }
+  function patientContactIncomplete(p) { return !(p.telefono || p.email); }
+  function patientMatchesDirectoryFilter(p) {
+    if ((patientDirectoryFilter === 'upcoming' || patientDirectoryFilter === 'without-appointment') && agendaInfo.status !== 'ready') return true;
+    if (patientDirectoryFilter === 'upcoming') return patientHasUpcoming(p);
+    if (patientDirectoryFilter === 'without-appointment') return !patientHasUpcoming(p);
+    if (patientDirectoryFilter === 'incomplete') return patientContactIncomplete(p);
+    return true;
+  }
+  function syncPatientFilterControls() {
+    document.querySelectorAll('#p-pacientes [data-patient-filter-value]').forEach(function (control) {
+      var active = control.dataset.patientFilterValue === patientDirectoryFilter;
+      var needsAgenda = control.dataset.patientFilterValue === 'upcoming' || control.dataset.patientFilterValue === 'without-appointment';
+      var unavailable = needsAgenda && agendaInfo.status !== 'ready';
+      control.classList.toggle('is-active', active);
+      control.setAttribute('aria-pressed', String(active));
+      control.disabled = unavailable;
+      if (unavailable) control.setAttribute('aria-label', (control.dataset.patientFilterValue === 'upcoming' ? 'Con próxima cita' : 'Sin próxima cita') + ' · disponible al terminar de consultar la agenda');
+      else control.removeAttribute('aria-label');
+    });
+  }
+  function setPatientDirectoryFilter(value) {
+    if ((value === 'upcoming' || value === 'without-appointment') && agendaInfo.status !== 'ready') return;
+    patientDirectoryFilter = ['all','upcoming','without-appointment','incomplete'].indexOf(value) >= 0 ? value : 'all';
+    syncPatientFilterControls();
+    filterPatients();
+  }
+  function updatePatientMetrics() {
+    var values = {
+      'patient-metric-total': todosLosPacientes.length,
+      'patient-metric-upcoming': agendaInfo.status === 'ready' ? todosLosPacientes.filter(patientHasUpcoming).length : '—',
+      'patient-metric-incomplete': todosLosPacientes.filter(patientContactIncomplete).length
+    };
+    Object.keys(values).forEach(function (id) {
+      var node = document.getElementById(id); if (node) node.textContent = values[id];
+    });
+    syncPatientFilterControls();
+  }
+  function displayPhone(value) {
+    var raw = String(value || '').trim(), digits = raw.replace(/\D/g, '');
+    if (digits.length === 12 && digits.slice(0, 2) === '52') return '+52 ' + digits.slice(2, 4) + ' ' + digits.slice(4, 8) + ' ' + digits.slice(8);
+    if (digits.length === 13 && digits.slice(0, 3) === '521') return '+52 ' + digits.slice(3, 5) + ' ' + digits.slice(5, 9) + ' ' + digits.slice(9);
+    if (digits.length === 10) return digits.slice(0, 2) + ' ' + digits.slice(2, 6) + ' ' + digits.slice(6);
+    return raw;
+  }
+  function patientStatus(p, line) {
+    if (patientContactIncomplete(p)) return { label: 'Datos por completar', detail: 'Sin teléfono ni correo', tone: 'incomplete' };
+    if (line && line.tone === 'next') return { label: 'Cita programada', detail: 'Seguimiento definido', tone: 'scheduled' };
+    if (!line || line.tone === 'loading' || line.tone === 'unavailable') return { label: 'Estado por confirmar', detail: 'Agenda por consultar', tone: 'neutral' };
+    return { label: 'Seguimiento pendiente', detail: 'Sin próxima cita', tone: 'followup' };
+  }
   // Búsqueda tolerante: sin acentos, por varias palabras y por teléfono aunque se escriba con espacios o guiones.
   function filterPatients() {
     var input = document.getElementById('buscar-pac'), q = input ? input.value : '';
     var tokens = plain(q).split(/\s+/).filter(Boolean), digits = q.replace(/\D/g, '');
     var phone = /^[0-9\s()+.-]+$/.test(q.trim()) && digits.length >= 3;
     renderTablaPacientes(todosLosPacientes.filter(function (p) {
+      if (!patientMatchesDirectoryFilter(p)) return false;
       if (!tokens.length) return true;
       if (phone) return String(p.telefono || '').replace(/\D/g, '').indexOf(digits) !== -1;
       var hay = plain([p.nombre, p.apellido, p.email, p.telefono].join(' '));
@@ -645,12 +707,23 @@
     if (!summary) return;
     var total = todosLosPacientes.length, visible = list.length;
     if (patientFailure && !total) { summary.textContent = 'Directorio no disponible'; return; }
-    if (visible !== total) {
-      summary.textContent = visible + ' de ' + total + (total === 1 ? ' paciente' : ' pacientes');
+    var filterNames = { upcoming: 'con próxima cita', 'without-appointment': 'sin próxima cita', incomplete: 'con datos por completar' };
+    if (visible !== total || patientDirectoryFilter !== 'all') {
+      summary.textContent = visible + ' ' + (visible === 1 ? 'paciente' : 'pacientes') + (filterNames[patientDirectoryFilter] ? ' ' + filterNames[patientDirectoryFilter] : '') + ' · ' + total + ' en total';
       return;
     }
-    var upcoming = list.filter(function (p) { return agendaInfo.tenant === tenantId && agendaInfo.next[p.id]; }).length;
-    summary.textContent = total + (total === 1 ? ' paciente' : ' pacientes') + (upcoming ? ' · ' + upcoming + (upcoming === 1 ? ' con próxima cita' : ' con próxima cita') : '');
+    var upcoming = list.filter(function (p) { return agendaInfo.tenant === tenantId && agendaInfo.status === 'ready' && agendaInfo.next[p.id]; }).length;
+    var agendaNote = agendaInfo.status === 'loading' ? ' · Consultando agenda…' : (agendaInfo.status === 'error' ? ' · Agenda no disponible' : (upcoming ? ' · ' + upcoming + ' con próxima cita' : ''));
+    summary.textContent = total + (total === 1 ? ' paciente' : ' pacientes') + agendaNote;
+  }
+  function bindPatientMenuDismiss() {
+    if (patientMenuDismissBound) return;
+    patientMenuDismissBound = true;
+    document.addEventListener('click', function (event) {
+      document.querySelectorAll('#p-pacientes .clinic-patient-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.open = false;
+      });
+    });
   }
   function patientEmptyState(title, copy, actionText, action) {
     var empty = el('section', 'clinic-patient-empty');
@@ -662,6 +735,8 @@
   }
   function renderPatients(list) {
     var host = document.getElementById('tabla-pacientes-wrap'); host.replaceChildren();
+    bindPatientMenuDismiss();
+    updatePatientMetrics();
     updatePatientSummary(list);
     if (patientMessage) {
       var message = el('div', 'clinic-patient-message');
@@ -670,9 +745,10 @@
     }
     if (!list.length && !patientFailure) {
       if (todosLosPacientes.length) {
-        host.append(patientEmptyState('Sin resultados', 'Prueba con otro nombre, teléfono o correo.', 'Limpiar búsqueda', function () {
+        var filteredCopy = patientDirectoryFilter === 'all' ? 'Prueba con otro nombre, teléfono o correo.' : 'No hay pacientes que coincidan con este filtro y la búsqueda actual.';
+        host.append(patientEmptyState('Sin resultados', filteredCopy, 'Mostrar todos', function () {
           var input = document.getElementById('buscar-pac'); if (input) { input.value = ''; input.focus(); }
-          filterPatients();
+          setPatientDirectoryFilter('all');
         }));
       } else {
         host.append(patientEmptyState('Aún no hay pacientes', 'Registra el nombre para abrir su expediente. Los demás datos pueden completarse después.'));
@@ -681,7 +757,7 @@
     if (list.length) {
       var table = el('table', 'clinic-patient-table'); table.setAttribute('aria-label', 'Directorio de pacientes');
       var thead = el('thead'), headRow = el('tr');
-      ['Paciente', 'Contacto', 'Próxima atención', 'Estado', 'Acción'].forEach(function (label) {
+      ['Paciente', 'Atención', 'Estado', 'Acciones'].forEach(function (label) {
         var th = el('th', '', label); th.scope = 'col'; headRow.append(th);
       });
       thead.append(headRow); table.append(thead);
@@ -689,42 +765,47 @@
     list.forEach(function (p) {
       var row = el('tr', 'clinic-patient-row');
       var patientName = fullName(p) || 'paciente';
-      row.tabIndex = 0;
-      row.setAttribute('aria-label', 'Abrir expediente de ' + patientName);
-      row.onclick = function (event) { if (!event.target.closest('button,a,input,select,textarea')) verPaciente(p.id); };
-      row.onkeydown = function (event) {
-        if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('button,a,input,select,textarea')) {
-          event.preventDefault(); verPaciente(p.id);
-        }
-      };
+      row.onclick = function (event) { if (!event.target.closest('button,a,input,select,textarea,summary,details')) verPaciente(p.id); };
       var patientCell = el('td', 'clinic-patient-identity'); patientCell.dataset.label = 'Paciente';
-      var avatar = el('div', 'clinic-avatar', (p.nombre || '?').slice(0, 1).toUpperCase());
+      var initials = [(p.nombre || '').slice(0, 1), (p.apellido || '').slice(0, 1)].join('').toUpperCase() || '?';
+      var avatar = el('div', 'clinic-avatar', initials);
       avatar.setAttribute('aria-hidden', 'true');
       var name = el('div', 'clinic-patient-name'); name.append(el('strong', '', fullName(p) || 'Paciente sin nombre'));
-      if (p._local) name.append(el('small', '', 'Solo en este dispositivo'));
+      var contactParts = [];
+      if (p.telefono) contactParts.push(displayPhone(p.telefono));
+      if (p.email) contactParts.push(p.email);
+      name.append(el('small', '', p._local ? 'Solo en este dispositivo' : (contactParts.join(' · ') || 'Sin datos de contacto')));
       var identityInner = el('div', 'clinic-patient-identity-inner');
       identityInner.append(avatar, name); patientCell.append(identityInner);
 
-      var contact = el('td', 'clinic-patient-contact'); contact.dataset.label = 'Contacto';
-      var primaryContact = p.telefono || p.email || 'Por completar';
-      contact.append(el('span', '', primaryContact));
-      if (p.telefono && p.email) contact.append(el('small', '', p.email));
-
-      var attention = el('td', 'clinic-patient-attention'); attention.dataset.label = 'Próxima atención';
+      var attention = el('td', 'clinic-patient-attention'); attention.dataset.label = 'Atención';
       var line = agendaLine(p);
-      var info = el('span', 'clinic-patient-agenda', line ? line.text : 'Agenda no disponible');
-      info.dataset.tone = line ? line.tone : 'unavailable'; attention.append(info);
+      var attentionCopy = el('span', 'clinic-patient-agenda');
+      attentionCopy.dataset.tone = line ? line.tone : 'unavailable';
+      attentionCopy.append(el('strong', '', line ? line.label : 'Agenda no disponible'), el('small', '', line ? line.detail : 'No se pudo consultar en este momento'));
+      attention.append(attentionCopy);
 
       var state = el('td', 'clinic-patient-state'); state.dataset.label = 'Estado';
-      var complete = !!(p.telefono && p.email), status = el('span', 'clinic-patient-status', complete ? 'Datos completos' : 'Contacto pendiente');
-      status.dataset.complete = String(complete); state.append(status);
+      var stateInfo = patientStatus(p, line), status = el('span', 'clinic-patient-status', stateInfo.label);
+      status.dataset.complete = String(!patientContactIncomplete(p)); status.dataset.tone = stateInfo.tone;
+      state.append(status, el('small', 'clinic-patient-status-detail', stateInfo.detail));
 
-      var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acción';
-      if (!p._local && window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') {
-        var schedule = button('Agendar cita', function () { window.SmylSchedule.bookFor(p); }, 'btn btn-secondary btn-sm');
-        schedule.setAttribute('aria-label', 'Agendar cita para ' + patientName); actions.append(schedule);
+      var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acciones';
+      var open = button('Abrir expediente', function () { verPaciente(p.id); }, 'btn btn-secondary btn-sm clinic-patient-open');
+      open.setAttribute('aria-label', 'Abrir expediente de ' + patientName); actions.append(open);
+      if (!p._local) {
+        var menu = el('details', 'clinic-patient-menu'), menuTrigger = el('summary');
+        menuTrigger.setAttribute('aria-label', 'Más acciones para ' + patientName);
+        menuTrigger.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+        var menuPanel = el('div', 'clinic-patient-menu-panel');
+        if (window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') {
+          var schedule = button('Agendar cita', function () { menu.open = false; window.SmylSchedule.bookFor(p); }, 'clinic-patient-menu-action');
+          schedule.setAttribute('aria-label', 'Agendar cita para ' + patientName); menuPanel.append(schedule);
+        }
+        menuPanel.append(button('Editar datos', function () { menu.open = false; abrirModalPaciente(p.id); }, 'clinic-patient-menu-action'));
+        menu.append(menuTrigger, menuPanel); actions.append(menu);
       }
-      row.append(patientCell, contact, attention, state, actions); body.append(row);
+      row.append(patientCell, attention, state, actions); body.append(row);
     });
       table.append(body); host.append(table);
     }
@@ -852,7 +933,7 @@
         return true;
       }
     });
-    window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients; window.filtrarPacientes = filterPatients;
+    window.cargarPacientes = loadPatients; window.renderTablaPacientes = renderPatients; window.filtrarPacientes = filterPatients; window.filtrarDirectorioPacientes = setPatientDirectoryFilter;
     window.verPaciente = openPatient; window.guardarPaciente = savePatient;
     window.cargarPacientesSelect = loadPatientSelect;
     ['smyl:dental-context-updated','smyl:case-selection'].forEach(function(name){addEventListener(name,function(event){if(current&&event.detail?.tenant===current.tenant&&event.detail?.patient===current.patient)status();});});

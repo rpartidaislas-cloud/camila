@@ -1,5 +1,24 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-07 — Codex — Directorio clínico de pacientes v4
+
+- Pacientes dejó de ser una tabla genérica de contactos. La portada ahora
+  prioriza continuidad de atención, resume pacientes, próximas citas y fichas
+  sin contacto, y permite filtrar cada grupo sin abandonar el directorio.
+- Cada fila presenta identidad, contacto, siguiente atención y un estado
+  clínico-operativo legible. `Abrir expediente` queda como acción primaria;
+  agendar y editar viven en un menú contextual que se cierra al pulsar fuera y
+  no aparece cuando no tiene acciones.
+- La agenda distingue `loading`, `ready` y `error`: nunca clasifica a todos como
+  «sin cita» mientras consulta o si la consulta falla. Una ficha sólo se marca
+  incompleta cuando no existe teléfono ni correo.
+- La capa aislada `smyl-patients-directory.css` incorpora jerarquía visual,
+  contraste AA, objetivos táctiles de 44 px, tabla estable en tableta, tarjetas
+  móviles y reflow al 200 %. Web, PWA y `mobile/www` quedaron sincronizados.
+- QA: **1,007/1,007** pruebas ejecutadas aprobadas, 18 pruebas condicionales
+  omitidas y 0 fallas (1,025 totales). Revisión visual aprobada en 1440, 1024,
+  390 y 320 px, además de ampliación al 200 %, sin overflow horizontal.
+
 ## 2026-11-02 — Codex — Simulador móvil v6: menos acciones y guardado confiable
 
 - El paso de objetivo conserva sólo dos decisiones distintas: `Alinear` y
@@ -9578,3 +9597,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - En escritorio, `Tomar foto` y `Elegir archivo` dejan de ocupar todo el ancho: son acciones compactas de 40 px y `Usar otra vista` conserva menor jerarquía. En móvil mantienen objetivos táctiles de 44 px y dos columnas.
 - No se modificaron captura, archivos originales, simulación, prompts, consumo ni persistencia.
 - Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=25`, `smyl-studio.css?v=26` y caché PWA `face-guide-v7`.
+
+## 2026-11-02 — Codex — Simulador progresivo v8: vistas visibles y guardado explícito
+
+- La sección de vistas del resultado deja de colapsarse en celular: cada miniatura tiene ancho y alto explícitos, navegación táctil horizontal y foco por teclado.
+- Cuando sólo existe la fotografía inicial, la pantalla lo explica y muestra una acción visible `Añadir segunda vista`; con varias fotografías conserva el cambio de comparación existente.
+- `Guardar resultado` cambia a `Guardar en expediente` y se añade una explicación breve del destino antes de solicitar los datos del paciente. Después de la confirmación la acción continúa cambiando a `Compartir resultado`.
+- No se modificaron persistencia, tablas, RLS, generación, prompts, consumo ni datos clínicos. El guardado canónico continúa en `camila_casos` mediante el flujo existente.
+- Web y `mobile/www` quedan sincronizados en `smyl-studio.js?v=27`, `smyl-studio.css?v=28` y caché PWA `result-views-v8`.

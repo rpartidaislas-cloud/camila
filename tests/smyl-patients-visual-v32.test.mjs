@@ -9,21 +9,32 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const app = read('app.html');
 const clinic = read('smyl-clinic.js');
 const css = read('smyl-clinic.css');
+const directory = read('smyl-patients-directory.css');
 
-test('Pacientes usa una superficie v3.2 con búsqueda etiquetada y una acción primaria', () => {
+test('Pacientes usa un directorio clínico con resumen accionable y una acción primaria', () => {
   const section = app.match(/<!-- ═══ PACIENTES ═══ -->([\s\S]*?)<!-- ═══ DETALLE PACIENTE ═══ -->/)?.[1] || '';
-  assert.match(section, /patient-directory-v3/);
-  assert.match(section, /<label for="buscar-pac">Buscar pacientes<\/label>/);
+  assert.match(section, /patient-directory-v4/);
+  assert.match(section, /Continuidad de atención/);
+  assert.match(section, /<label for="buscar-pac">Buscar en el directorio<\/label>/);
   assert.match(section, /class="patient-search-icon"/);
   assert.match(section, />Nuevo paciente<\/span>/);
+  assert.match(section, /patient-directory-insights/);
+  assert.match(section, /data-patient-filter-value="upcoming"/);
+  assert.match(section, /data-patient-filter-value="without-appointment"/);
+  assert.match(section, /data-patient-filter-value="incomplete"/);
   assert.doesNotMatch(section, /🔍|👥/);
   assert.doesNotMatch(section, /<div class="card">/);
 });
 
-test('el directorio crea una tabla clínica y nombres accesibles por paciente', () => {
+test('el directorio crea una tabla clínica enfocada en continuidad y acciones contextuales', () => {
   assert.match(clinic, /el\('table', 'clinic-patient-table'\)/);
   assert.match(clinic, /el\('div', 'clinic-patient-identity-inner'\)/);
-  assert.match(clinic, /\['Paciente', 'Contacto', 'Próxima atención', 'Estado', 'Acción'\]/);
+  assert.match(clinic, /\['Paciente', 'Atención', 'Estado', 'Acciones'\]/);
+  assert.match(clinic, /Abrir expediente/);
+  assert.match(clinic, /clinic-patient-menu-panel/);
+  assert.match(clinic, /Cita programada/);
+  assert.match(clinic, /Seguimiento pendiente/);
+  assert.match(clinic, /Datos por completar/);
   assert.match(clinic, /Agendar cita para /);
   assert.match(clinic, /Abrir expediente de /);
   assert.match(clinic, /patientEmptyState\('Sin resultados'/);
@@ -31,13 +42,15 @@ test('el directorio crea una tabla clínica y nombres accesibles por paciente', 
   assert.match(clinic, /Cargando pacientes/);
 });
 
-test('escritorio usa tabla y móvil transforma cada fila en tarjeta compacta', () => {
-  assert.match(css, /\.clinic-patient-table\{/);
-  assert.match(css, /@media\(max-width:760px\)/);
-  assert.match(css, /\.clinic-patient-table \.clinic-patient-row\{[\s\S]*?display:grid/);
-  assert.match(css, /td\.clinic-patient-state\{display:block\}/);
-  assert.match(css, /min-height:48px/);
-  assert.match(css, /prefers-reduced-motion:reduce/);
+test('la capa visual final gobierna escritorio, tablet y móvil sin depender de estilos globales', () => {
+  assert.match(app, /smyl-patients-directory\.css\?v=1[\s\S]*smyl-ui-datta-v4\.css\?v=1/);
+  assert.match(directory, /#p-pacientes \.patient-directory-header/);
+  assert.match(directory, /#p-pacientes \.clinic-patient-table/);
+  assert.match(directory, /@media\(max-width:820px\)/);
+  assert.match(directory, /@media\(max-width:620px\)/);
+  assert.match(directory, /\.clinic-patient-table \.clinic-patient-row\{[\s\S]*?display:grid/);
+  assert.match(directory, /min-height:44px/);
+  assert.match(directory, /prefers-reduced-motion:reduce/);
 });
 
 test('Ficha 360 hereda navy, controles legibles y root sin tarjeta exterior', () => {

@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-team-layout-v47-radiograph-review-v2-v47-radiograph-report-v48-radiograph-longitudinal-v49-radiograph-validation-v50-radiograph-hardening-v51-radiograph-v1-json-v52-radiograph-v1-retry-v53-radiograph-v1-retry-fix-v54-radiograph-v1-diagnostic-v55-quiet-update-v56-radiograph-null-v57-radiograph-opus-v58-radiograph-boxes-v59-radiograph-units-v60-radiograph-order-v61-radiograph-lightbox-v62-radiograph-fit-v63-radiograph-map-v64-simulator-simple-v1-progressive-v2-premium-v3-radiograph-drag-v65-clinical-workspace-v33-v66-daily-home-scope-fix-v67-vita-carousel-v4-sidebar-v68-navy-studio-v5-history-dates-v68-history-structured-v69-patient-simulations-v70-navy-cleanup-v6-face-guide-v7-simulator-ux-v6';
+const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-team-layout-v47-radiograph-review-v2-v47-radiograph-report-v48-radiograph-longitudinal-v49-radiograph-validation-v50-radiograph-hardening-v51-radiograph-v1-json-v52-radiograph-v1-retry-v53-radiograph-v1-retry-fix-v54-radiograph-v1-diagnostic-v55-quiet-update-v56-radiograph-null-v57-radiograph-opus-v58-radiograph-boxes-v59-radiograph-units-v60-radiograph-order-v61-radiograph-lightbox-v62-radiograph-fit-v63-radiograph-map-v64-simulator-simple-v1-progressive-v2-premium-v3-radiograph-drag-v65-clinical-workspace-v33-v66-daily-home-scope-fix-v67-vita-carousel-v4-sidebar-v68-navy-studio-v5-history-dates-v68-history-structured-v69-patient-simulations-v70-navy-cleanup-v6-face-guide-v7-simulator-ux-v6-result-views-v8-patients-clinical-directory-v4';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -71,7 +71,7 @@ const STATIC_FILES = [
   '/camila/smyl-treatment-quote-stage3.css?v=2',
   '/camila/smyl-treatment-plan-model.js?v=1',
   '/camila/smyl-treatment-plan-client.js?v=1',
-  '/camila/smyl-clinic.js?v=16',
+  '/camila/smyl-clinic.js?v=17',
   '/camila/smyl-patient-360.js?v=18',
   '/camila/smyl-patient-360.css?v=12',
   '/camila/smyl-patient-record-stage2.js?v=2',
@@ -79,6 +79,7 @@ const STATIC_FILES = [
   '/camila/smyl-case-workspace.js?v=18',
   '/camila/smyl-case-workspace.css?v=15',
   '/camila/smyl-clinic.css?v=9',
+  '/camila/smyl-patients-directory.css?v=1',
   '/camila/smyl-clinical-model.js?v=3',
   '/camila/smyl-panel.js?v=6',
   '/camila/smyl-panel.css?v=5',
@@ -143,14 +144,14 @@ const STATIC_FILES = [
   '/camila/smyl-professional-v3.css?v=7',
   '/camila/smyl-command-menu.js?v=3',
   '/camila/smyl-command-menu.css?v=2',
-  '/camila/smyl-studio.js?v=26',
+  '/camila/smyl-studio.js?v=27',
   '/camila/smyl-photo-batch.js?v=1',
   '/camila/smyl-result-viewer.js?v=1',
   '/camila/smyl-result-viewer.css?v=1',
   '/camila/smyl-analysis-model.js?v=1',
   '/camila/smyl-analysis-guides.js?v=1',
   '/camila/smyl-analysis-guides.css?v=2',
-  '/camila/smyl-studio.css?v=27',
+  '/camila/smyl-studio.css?v=28',
   '/camila/icons/ui/smyl-face-capture-guide-v1.png',
   '/camila/smyl-simulation-workspace-v33.css?v=1',
   '/camila/smyl-clinical-review-v33.css?v=1',
