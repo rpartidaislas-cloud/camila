@@ -29,7 +29,7 @@ test('operational context connects appointments with reminders, patient record a
 test('agenda stage two ships responsive and cache-safe on web and mobile', () => {
   assert.match(styles, /\.schedule-focus/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-schedule\.css\?v=(?:[6-9]|1[0-9])/);
+  assert.match(app, /smyl-schedule\.css\?v=(?:[6-9]|[12][0-9])/);
   assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));

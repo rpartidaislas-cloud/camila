@@ -10,7 +10,7 @@ body.smyl-ui-governed #p-pacientes{
   --patient-line:#dce5ee;
   --patient-soft:#f4f7fa;
   width:100%;
-  max-width:1240px;
+  max-width:var(--smyl-page-max,1440px);
   margin-inline:auto;
   container:patient-directory / inline-size;
 }
