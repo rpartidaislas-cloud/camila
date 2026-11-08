@@ -192,37 +192,64 @@
   function paymentMethodFields(form){var method=form.elements.method.value;form.querySelectorAll('[data-method-fields]').forEach(function(x){x.hidden=x.dataset.methodFields!==method;});form.querySelectorAll('[data-method]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.method===method));});renderPaymentCheck(form);}
   function financeGuideIcon(type){var paths={balance:'<path d="M4 7.5h16v11H4z"/><path d="M4 10.5h16M8 15h4"/>',service:'<path d="M12 5v14M5 12h14"/>',proposal:'<path d="M7 3.5h7l4 4V20H7z"/><path d="M14 3.5V8h4M9.5 12h6M9.5 15h5"/>',advance:'<path d="M4 8h16v11H4z"/><path d="M12 3v10M8.5 6.5 12 3l3.5 3.5"/>'};return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+paths[type]+'</svg>';}
   function openGuidedCollection(patientId){
-    var d=dialog('<form class="finance-collection-guide" novalidate><header><div class="finance-guide-heading"><span class="finance-guide-progress" data-guide-progress>Paso 1 de 2</span><h2>Cobrar a paciente</h2><p>Selecciona al paciente y el movimiento.</p></div><button type="button" data-close aria-label="Cerrar">×</button></header><div class="finance-guide-body"><label class="finance-guide-patient"><span>1</span><div><strong>Selecciona al paciente</strong><small>Consulta su saldo antes de registrar.</small></div><select name="patient" required><option value="">Selecciona</option>'+opts(state.patients,function(p){return name(p.id);},patientId)+'</select></label><section data-guide-account aria-live="polite"></section><section class="finance-guide-choice" hidden><div class="finance-guide-title"><span>2</span><div><strong>Elige el movimiento</strong><small>Mostraremos sólo los datos necesarios.</small></div></div><div data-guide-paths></div></section></div><footer><p>Revisarás el movimiento antes de guardarlo.</p><button type="button" data-close>Cancelar</button></footer></form>'),
+    var d=dialog('<form class="finance-collection-guide" novalidate><header><div class="finance-guide-heading"><h2>Cobrar a paciente</h2></div><button type="button" data-close aria-label="Cerrar">×</button></header><div class="finance-guide-body"><label class="finance-guide-patient"><div><strong>¿A quién le cobras?</strong><small>Busca por nombre, teléfono o correo.</small></div><select name="patient" required><option value="">Selecciona</option>'+opts(state.patients,function(p){return name(p.id);},patientId)+'</select></label><section data-guide-account aria-live="polite"></section><section class="finance-guide-choice" hidden><div class="finance-guide-title"><div><strong>¿Qué quieres hacer?</strong></div></div><div data-guide-suggested></div><div class="finance-guide-more" data-guide-more-title hidden>Otras opciones</div><div data-guide-paths></div><div class="finance-guide-more" data-guide-off-title hidden>No disponible ahora</div><div data-guide-unavailable></div></section></div><footer><p>Revisarás el movimiento antes de guardarlo.</p><button type="button" data-close>Cancelar</button></footer></form>'),
       f=d.querySelector('form'),
       account=f.querySelector('[data-guide-account]'),
       choice=f.querySelector('.finance-guide-choice'),
       patientStep=f.querySelector('.finance-guide-patient'),
-      progress=f.querySelector('[data-guide-progress]'),
-      paths=f.querySelector('[data-guide-paths]');
+      suggested=f.querySelector('[data-guide-suggested]'),
+      paths=f.querySelector('[data-guide-paths]'),
+      unavailable=f.querySelector('[data-guide-unavailable]'),
+      moreTitle=f.querySelector('[data-guide-more-title]'),
+      offTitle=f.querySelector('[data-guide-off-title]');
     mountPatientPicker(f);
+    function shortDay(v){return new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short'}).format(new Date(v));}
+    // Una opción del cobro guiado: icono, título, dato útil y, si la sugerimos, insignia e importe.
+    function option(kind,title,detail,extra){extra=extra||{};return '<button type="button" data-guide-path="'+kind+'"'+(extra.disabled?' disabled':'')+(extra.suggested?' class="is-suggested"':'')+'><span class="finance-guide-route-icon">'+financeGuideIcon(kind)+'</span><span class="finance-guide-route-copy"><strong>'+title+(extra.suggested?'<em class="finance-guide-badge">Sugerido</em>':'')+'</strong><small>'+detail+'</small></span>'+(extra.meta?'<span class="finance-guide-route-meta">'+extra.meta+'</span>':'')+'</button>';}
     function paint(){
       var id=f.elements.patient.value;
       if(!id){
         patientStep.hidden=false;
         choice.hidden=true;
         account.innerHTML='';
-        paths.innerHTML='';
-        progress.textContent='Paso 1 de 2';
+        suggested.innerHTML='';paths.innerHTML='';unavailable.innerHTML='';
         return;
       }
       var s=accountSnapshot(id),
         overdue=s.overdue.reduce(function(n,c){return n+balance(c);},0),
         today=isoDay(0),
         appointment=state.appointments.find(function(a){return a.patient_id===id&&a.status!=='cancelled'&&String(a.starts_at).slice(0,10)===today;}),
-        initials=name(id).split(/\s+/).map(function(x){return x[0]||'';}).slice(0,2).join('').toUpperCase();
+        service=appointment&&appointment.service_id?by(state.services,appointment.service_id):null,
+        lastPayment=state.payments.find(function(x){return x.patient_id===id;}),
+        pending=state.proposals.filter(function(x){return x.patient_id===id&&!proposalBatch(x);}),
+        pendingTotal=pending.reduce(function(n,x){return n+proposalTotal(x);},0),
+        session=state.sessions.find(function(x){return x.status==='open'&&x.opened_by===state.actor;}),
+        initials=name(id).split(/\s+/).map(function(x){return x[0]||'';}).slice(0,2).join('').toUpperCase(),
+        accountTone=s.overdue.length?'danger':s.due>0?'due':'paid',
+        accountLabel=s.overdue.length?'Con vencido':s.due>0?'Con saldo':s.credit>0?'Saldo a favor':'Al corriente',
+        pick=s.due>0?'balance':appointment?'service':'';
       patientStep.hidden=true;
       choice.hidden=false;
-      progress.textContent='Paso 2 de 2';
-      account.innerHTML='<article class="finance-guide-account"><span class="finance-guide-avatar">'+esc(initials)+'</span><div class="finance-guide-identity"><small>Paciente</small><strong>'+esc(name(id))+'</strong><p>'+(appointment?'Cita hoy · '+esc(date(appointment.starts_at,true)):'Sin cita vinculada para hoy')+'</p></div><button type="button" class="finance-guide-change" data-guide-change>Cambiar</button><dl><div><dt>Por cobrar</dt><dd>'+money(s.due)+'</dd></div><div><dt>Vencido</dt><dd>'+money(overdue)+'</dd></div><div><dt>A favor</dt><dd>'+money(s.credit)+'</dd></div></dl></article>';
-      paths.innerHTML='<button type="button" data-guide-path="balance"'+(s.due>0?'':' disabled')+'><span class="finance-guide-route-icon">'+financeGuideIcon('balance')+'</span><span class="finance-guide-route-copy"><strong>Cobrar saldo</strong><small>'+(s.due>0?'Aplicar el pago a cargos pendientes.':'No hay cargos pendientes.')+'</small></span><span class="finance-guide-route-meta">'+(s.due>0?money(s.due):'Sin saldo')+'</span></button><button type="button" data-guide-path="service"><span class="finance-guide-route-icon">'+financeGuideIcon('service')+'</span><span class="finance-guide-route-copy"><strong>Servicio de hoy</strong><small>Agregar el servicio y continuar al pago.</small></span><span class="finance-guide-route-meta">Abrir</span></button><button type="button" data-guide-path="proposal"><span class="finance-guide-route-icon">'+financeGuideIcon('proposal')+'</span><span class="finance-guide-route-copy"><strong>Cotización aceptada</strong><small>Convertir los conceptos aprobados en cargos.</small></span><span class="finance-guide-route-meta">Revisar</span></button><button type="button" data-guide-path="advance"><span class="finance-guide-route-icon">'+financeGuideIcon('advance')+'</span><span class="finance-guide-route-copy"><strong>Registrar anticipo</strong><small>Guardar el importe como saldo a favor.</small></span><span class="finance-guide-route-meta">A favor</span></button>';
+      account.innerHTML='<article class="finance-guide-account"><span class="finance-guide-avatar">'+esc(initials)+'</span><div class="finance-guide-identity"><strong>'+esc(name(id))+'</strong>'+(appointment?'<p>Cita hoy · '+esc(new Intl.DateTimeFormat('es-MX',{timeStyle:'short'}).format(new Date(appointment.starts_at)))+(service?' · '+esc(service.name):'')+'</p>':'')+'</div><div class="finance-guide-status"><span class="finance-guide-chip" data-tone="'+accountTone+'">'+accountLabel+'</span>'+(session?'':'<button type="button" class="finance-guide-chip" data-tone="warn" data-guide-open-cash title="Hace falta una caja abierta para cobrar en efectivo.">Caja cerrada · Abrir</button>')+'<button type="button" class="finance-guide-change" data-guide-change>Cambiar</button></div><dl><div><dt>Por cobrar</dt><dd>'+money(s.due)+'</dd></div><div><dt>Vencido</dt><dd>'+money(overdue)+'</dd></div><div><dt>A favor</dt><dd>'+money(s.credit)+'</dd></div><div><dt>Último pago</dt><dd>'+(lastPayment?money(lastPayment.amount)+' · '+esc(shortDay(lastPayment.paid_at)):'—')+'</dd></div></dl></article>';
+      var views={
+        balance:option('balance','Cobrar saldo',s.due>0?(s.overdue.length?s.overdue.length+(s.overdue.length===1?' cargo vencido':' cargos vencidos')+' · ':'')+'Aplicar el pago a cargos pendientes.':'No hay cargos pendientes.',{disabled:s.due<=0,suggested:pick==='balance',meta:pick==='balance'?money(s.due):''}),
+        service:option('service','Servicio de hoy',service?esc(service.name)+(service.reference_price?' · lista '+money(service.reference_price):''):'Agregar un servicio y cobrarlo.',{suggested:pick==='service'}),
+        proposal:option('proposal','Cotización aceptada',pending.length?pending.length+(pending.length===1?' aprobada · ':' aprobadas · ')+money(pendingTotal):'Sin cotizaciones aprobadas por convertir.'),
+        advance:option('advance','Registrar anticipo',s.credit>0?'Se suma a sus '+money(s.credit)+' a favor.':'Guardar el importe como saldo a favor.')
+      },
+      order=['balance','service','proposal','advance'],
+      off=order.filter(function(k){return k==='balance'&&s.due<=0;}),
+      main=order.filter(function(k){return k!==pick&&off.indexOf(k)<0;});
+      suggested.innerHTML=pick?views[pick]:'';
+      paths.innerHTML=main.map(function(k){return views[k];}).join('');
+      unavailable.innerHTML=off.map(function(k){return views[k];}).join('');
+      moreTitle.hidden=!(pick&&main.length);
+      offTitle.hidden=!off.length;
       account.querySelector('[data-guide-change]').onclick=function(){var search=f.querySelector('.finance-patient-picker input[type="search"]');f.elements.patient.value='';if(search)search.value='';paint();if(search)search.focus();};
-      paths.querySelectorAll('[data-guide-path]').forEach(function(button){button.onclick=function(){var path=button.dataset.guidePath;close();if(path==='balance')openPayment(id,{mode:'balance'});else if(path==='service')openCharge(id,{due:'0',mode:'pay'});else if(path==='proposal')openProposalCharge(null,id);else if(path==='advance')openPayment(id,{mode:'advance'});};});
-      requestAnimationFrame(function(){var first=paths.querySelector('[data-guide-path]:not(:disabled)');if(first)first.focus();});
+      var cash=account.querySelector('[data-guide-open-cash]');if(cash)cash.onclick=function(){close();openCash();};
+      f.querySelectorAll('[data-guide-path]').forEach(function(button){button.onclick=function(){var path=button.dataset.guidePath;close();if(path==='balance')openPayment(id,{mode:'balance'});else if(path==='service')openCharge(id,{due:'0',mode:'pay'});else if(path==='proposal')openProposalCharge(null,id);else if(path==='advance')openPayment(id,{mode:'advance'});};});
+      // Solo se enfoca la opción sugerida: sin sugerencia no se marca ninguna como si estuviera elegida.
+      if(pick)requestAnimationFrame(function(){var first=suggested.querySelector('[data-guide-path]');if(first)first.focus();});
     }
     f.elements.patient.onchange=paint;
     paint();

@@ -60,11 +60,10 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
   assert.match(finance, /openProposalCharge\(null,id\)/);
   assert.match(finance, /openPayment\(id,\{mode:'advance'\}\)/);
   assert.match(finance, /allocationMode==='debt'\?' checked':''/);
-  assert.match(finance, /Paso 1 de 2/);
-  assert.match(finance, /Paso 2 de 2/);
+  assert.doesNotMatch(finance, /Paso 1 de 2|Paso 2 de 2/, 'el cobro guiado es de un solo paso (maqueta aprobada)');
   assert.match(finance, /function financeGuideIcon\(type\)/);
   assert.match(finance, /data-guide-change/);
-  assert.match(finance, /requestAnimationFrame\(function\(\)\{var first=paths\.querySelector/);
+  assert.match(finance, /if\(pick\)requestAnimationFrame\(function\(\)\{var first=suggested\.querySelector/);
   assert.match(styles, /\.finance-collection-guide/);
   assert.match(styles, /\.finance-more-actions/);
   assert.match(styles, /Cobro guiado v4/);
@@ -74,8 +73,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=21/);
-  assert.match(app, /smyl-finance\.js\?v=26/);
+  assert.match(app, /smyl-finance\.css\?v=22/);
+  assert.match(app, /smyl-finance\.js\?v=27/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
