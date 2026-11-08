@@ -16,6 +16,33 @@
 - Sincronizado en `mobile/www/app.html` y `mobile/www/sw.js`; caché del SW
   `...-login-split-v86`. Revisado a 1440, 820 y 390 px; 1161 pruebas sin fallos.
 
+## 2026-11-07 — Codex — Odontograma clínico operativo v4.4
+
+- Hallazgos deja de sentirse como un tablero de métricas y prioriza un único
+  odontograma operativo. El mapa ocupa la zona principal y el inspector lateral
+  conserva la pieza seleccionada al cambiar de capa.
+- Se consolidaron cinco capas con contadores coherentes: `Todo`, `Clínica`,
+  `Fotografías`, `Rayos X` y `Pendientes`. Fotografías y radiografías incluyen
+  tanto evidencia confirmada como sugerencias pendientes, sin duplicar piezas.
+- Cada selección muestra número FDI, nombre anatómico, fuente, estado y evidencia
+  vinculada. La edición sigue abriendo el editor clínico canónico; ningún clic en
+  el mapa confirma, guarda o descarta hallazgos de forma implícita.
+- La interfaz mantiene una sola acción primaria contextual. El pie de Hallazgos
+  forma parte del flujo normal para no cubrir el mapa, y el scroll de página
+  permanece natural sin contenedores anidados que atrapen el desplazamiento.
+- Se eliminaron del runtime los nombres y el flujo visual heredado de
+  `Source Workspace`; el contexto de cada capa se presenta ahora como parte del
+  mismo mapa longitudinal. La IA continúa claramente separada de la valoración
+  profesional y exige revisión antes de incorporarse al odontograma.
+- QA visual aprobada en 1280, 820, 390 y 320 px: sin overflow horizontal, mapa en
+  el primer viewport, objetivos táctiles de 42/44 px, selección persistente y
+  contenido final alcanzable. Web, PWA y `mobile/www` están sincronizados en
+  `smyl-case-workspace.js?v=24`, CSS `v=20` y caché
+  `odontogram-clinical-workbench-v87`.
+- QA final tras integrar la producción vigente: **1,137 aprobadas**, 28
+  condicionales omitidas y **0 fallas** (1,165 totales), además de validación
+  sintáctica, paridad web/móvil y navegador en 1280, 820, 390 y 320 px.
+
 ## 2026-11-07 — Codex — Tratamiento como espacio de trabajo del tenant v4.3
 
 - La pestaña Tratamiento deja de mostrar la tarjeta administrativa verde de la
