@@ -32,7 +32,7 @@ test('la evaluación conserva una sola acción principal y la adapta al paso pen
   }
   assert.equal((script.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
   assert.match(script, /copy\(ctx\.evaluationCta,label\);ctx\.evaluationCta\.disabled=disabled;ctx\.evaluationAction=action/);
-  assert.match(script, /ctx\.evaluationFlowState=\{reviewComplete:evaluationComplete,findingsComplete,reviewLabel:ctx\.reviewButton\.textContent,reviewDisabled\};updateEvaluationAction\(ctx\)/);
+  assert.match(script, /ctx\.evaluationFlowState=\{reviewComplete:state\.evaluationComplete,findingsComplete:state\.findingsComplete,reviewLabel:label,reviewDisabled:disabled\};updateEvaluationAction\(ctx\)/);
   assert.match(script, /const evaluationComplete=findingsComplete&&contextReviewed/);
 
   // No existe una cabecera duplicada: la etapa activa concentra la acción.

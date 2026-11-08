@@ -173,3 +173,30 @@
 .finance-today-row{display:grid;grid-template-columns:minmax(0,1.4fr) auto auto minmax(0,1.6fr);gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--color-border,#e3e8ef);border-radius:10px}
 .finance-today-row small{display:block;margin-top:3px;color:var(--color-text-tertiary,#6b7a8c)}
 @media (max-width:900px){.finance-today-row{grid-template-columns:1fr 1fr}.finance-today-row .finance-row-actions{grid-column:1/-1}}
+
+.finance-charge-form .finance-form-section{margin:6px 0 -4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-tertiary,#6b7a8c)}
+.finance-money-input,.finance-discount-input{display:flex;align-items:center;border:1px solid var(--color-border,#d7dee8);border-radius:8px;overflow:hidden;background:#fff}
+.finance-money-input>span{padding:0 10px;color:#6b7a8c;font-weight:600}
+.finance-money-input input,.finance-discount-input input{border:0!important;flex:1;min-width:0;box-shadow:none!important}
+.finance-discount-input select{border:0;border-left:1px solid var(--color-border,#d7dee8);background:#f6f8fb;padding:0 8px;min-height:40px}
+.finance-tax-box{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;font-size:13px;color:#33465f}
+.finance-inline-check{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-weight:500}
+.finance-due{display:grid;gap:6px}.finance-due>span{font-weight:600;font-size:13px}
+.finance-due-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.finance-due-chips button{border:1px solid var(--color-border,#d7dee8);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px}
+.finance-due-chips button[aria-pressed="true"]{background:#102239;color:#fff;border-color:#102239}
+.finance-due-chips input{max-width:170px}
+.finance-due small{color:var(--color-text-tertiary,#6b7a8c)}
+.finance-charge-summary{margin:16px 0 4px;padding:12px 14px;border-radius:10px;background:#f6f8fb;display:grid;gap:4px}
+.finance-charge-summary>div{display:flex;justify-content:space-between;font-size:14px}
+.finance-charge-summary .finance-charge-total{border-top:1px solid #dfe5ee;padding-top:6px;margin-top:2px;font-size:16px}
+.finance-charge-summary p{margin:6px 0 0;font-size:12.5px}
+.finance-charge-summary p[data-tone="ok"]{color:#1f6b4f}.finance-charge-summary p[data-tone="warn"]{color:#8a5a12}
+.finance-form-error{margin:8px 0 0;color:#9b2c2c;font-weight:600}
+.finance-charge-form [hidden]{display:none!important}
+.finance-charge-form .finance-discount-input input{width:auto!important;flex:1 1 auto;min-width:0}
+.finance-charge-form .finance-discount-input select{width:auto!important;flex:0 0 64px}
+.finance-charge-form .finance-money-input input{width:auto!important;flex:1 1 auto}
+.finance-charge-form .finance-inline-check{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:8px;white-space:nowrap}
+.finance-charge-form .finance-inline-check input{width:auto!important;margin:0}
+.finance-charge-form .finance-tax-box{justify-content:center;padding-top:18px}

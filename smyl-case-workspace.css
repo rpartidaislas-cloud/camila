@@ -258,3 +258,74 @@
  .cw-enhanced .cw-evaluation-panel{overflow:visible}
  .cw-enhanced .cw-evaluation-footer{position:static;bottom:auto;margin:0 -12px;padding:11px 12px calc(11px + env(safe-area-inset-bottom));box-shadow:none}
 }
+
+/* Hallazgos v4.4 · odontograma dominante, capas compactas e inspector contextual. */
+.cw-enhanced .cw-evaluation-flow{height:auto;min-height:0;max-height:none;grid-template-rows:auto auto auto;overflow:visible}
+.cw-enhanced .cw-evaluation-flow[data-active-task=findings] .cw-evaluation-footer{position:static;bottom:auto;box-shadow:none;backdrop-filter:none}
+.cw-enhanced .cw-evaluation-tasks{min-height:0;overflow:visible}
+.cw-enhanced .cw-evaluation-panels,.cw-enhanced .cw-evaluation-panel{min-height:0;max-height:none;overflow:visible;overscroll-behavior:auto;scrollbar-gutter:auto}
+.cw-enhanced .cw-clinical-map{margin:0;border-color:#d3dee7;border-radius:14px;background:#fff;box-shadow:0 10px 28px rgba(11,27,46,.05);overflow:hidden}
+.cw-enhanced .cw-clinical-map-head{align-items:center;padding:15px 18px;background:#fff}
+.cw-enhanced .cw-clinical-map-head strong{font-size:18px;letter-spacing:-.012em}.cw-enhanced .cw-clinical-map-head p{font-size:13px}
+.cw-enhanced .cw-map-filters{display:flex;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid #dce4eb;background:#f5f7f9;overflow-x:auto;scrollbar-width:none}
+.cw-enhanced .cw-map-filters::-webkit-scrollbar{display:none}
+.cw-enhanced .cw-workspace .cw-map-filter{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:auto;min-height:42px;padding:0 13px;border:1px solid transparent;border-radius:9px;background:transparent;color:#526174;font-size:12px;font-weight:750;box-shadow:none}
+.cw-enhanced .cw-workspace .cw-map-filter:hover{border-color:#cbd8e1;background:#fff;color:var(--cw-ink)}
+.cw-enhanced .cw-workspace .cw-map-filter[aria-pressed=true]{border-color:#b9d8d2;background:#e7f4f1;color:#176a61;box-shadow:inset 0 0 0 1px rgba(23,106,97,.04)}
+.cw-enhanced .cw-map-filter-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#e4e9ee;color:#536274;font-size:12px;font-weight:850;line-height:1}
+.cw-enhanced .cw-map-filter[aria-pressed=true] .cw-map-filter-count{background:#fff;color:#176a61}
+.cw-enhanced .cw-map-context{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #dce4eb;background:#fbfcfd}
+.cw-enhanced .cw-map-context-copy{min-width:0}.cw-enhanced .cw-map-context-copy strong{display:block;color:var(--cw-ink);font-size:13px;line-height:1.35}.cw-enhanced .cw-map-context-copy p{margin:2px 0 0;color:var(--cw-muted);font-size:12px;line-height:1.4}
+.cw-enhanced .cw-map-context-metrics{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.cw-enhanced .cw-map-context-chip{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 9px;border:1px solid #d8e2e9;border-radius:999px;background:#fff;color:#526174;font-size:12px;font-weight:750;white-space:nowrap}
+.cw-enhanced .cw-map-context-chip[data-tone=done]{border-color:#c6dfda;background:#f1faf7;color:#176a61}.cw-enhanced .cw-map-context-chip[data-tone=pending]{border-color:#efd6a8;background:#fff8e9;color:#805a10}.cw-enhanced .cw-map-context-chip[data-tone=radiograph]{border-color:#d7d0ee;background:#f4f1fb;color:#5e4e9a}
+.cw-enhanced :is(.cw-map-context-chip,.cw-source-stats>span)[data-zero=true],.cw-enhanced :is(.cw-map-context-chip,.cw-source-stats>span)[data-value="0"]{display:none}
+.cw-enhanced .cw-source-workspace{padding:0;background:#fff}
+.cw-enhanced .cw-source-mode{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 16px;padding:10px 14px;border:0;border-bottom:1px solid #dce4eb;border-radius:0;background:#fbfcfd}
+.cw-enhanced .cw-source-intro{align-items:center;gap:10px}.cw-enhanced .cw-source-icon{width:32px;height:32px;border-radius:9px;font-size:12px}.cw-enhanced .cw-source-intro strong{font-size:13px}.cw-enhanced .cw-source-intro p{margin-top:2px;font-size:12px;line-height:1.4}
+.cw-enhanced .cw-source-stats{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.cw-enhanced .cw-source-stats>span{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:4px 9px;border-radius:999px}.cw-enhanced .cw-source-stats strong,.cw-enhanced .cw-source-stats small{display:inline;margin:0;font-size:12px;white-space:nowrap}
+.cw-enhanced .cw-source-suggestion{grid-column:1/-1;padding:9px 10px;border-radius:9px}.cw-enhanced .cw-source-suggestion-icon{width:24px;height:24px;border-radius:7px;font-size:12px}.cw-enhanced .cw-source-suggestion p{margin-top:2px}
+.cw-enhanced .cw-source-actions{grid-column:1/-1;gap:7px}.cw-enhanced .cw-source-actions button{min-height:42px}
+.cw-enhanced .cw-clinical-map-layout{display:grid;grid-template-columns:minmax(460px,2.05fr) minmax(270px,.95fr);align-items:stretch;gap:16px;padding:16px;background:#fff}
+.cw-enhanced .cw-map-stage{min-width:0;min-height:520px;padding:12px 18px 0;border:1px solid #dce4eb;border-radius:12px;background:radial-gradient(circle at 50% 43%,#fff 0,#f8fafb 61%,#f1f5f7 100%);overflow:visible}
+.cw-enhanced .cw-map-stage>.dr-orientation{max-width:500px;margin:6px auto 0;padding-inline:6px;color:#657487;font-size:12px}
+.cw-enhanced .cw-clinical-odontogram.dr-map{width:clamp(460px,44vw,500px);max-width:100%;margin:0 auto 38px}
+.cw-enhanced .cw-clinical-odontogram .dr-tooth{transition:outline-color .15s ease,filter .15s ease}
+.cw-enhanced .cw-clinical-odontogram .dr-tooth.cw-map-selected{z-index:6;outline:3px solid #0b6570;outline-offset:4px;border-radius:50%;filter:drop-shadow(0 0 4px rgba(11,101,112,.28))}
+.cw-enhanced .cw-clinical-odontogram .dr-tooth.cw-map-selected .dr-crown{filter:drop-shadow(0 1px 1px rgba(37,62,49,.08)) drop-shadow(0 0 3px rgba(255,255,255,.95))}
+.cw-enhanced .cw-clinical-odontogram .dr-tooth.cw-map-selected .dr-tooth-number{color:#063f49;font-weight:850}
+.cw-enhanced .cw-clinical-odontogram .dr-tooth:focus-visible{outline:3px solid #0b6570;outline-offset:5px}
+.cw-enhanced .cw-map-aside{align-self:stretch;min-width:0;min-height:460px;padding:18px;border:1px solid #dce4eb;border-radius:12px;background:#fbfcfd;box-shadow:none}
+.cw-enhanced .cw-map-inspector>.cw-kicker{margin-bottom:9px}.cw-enhanced .cw-map-inspector-title{display:block;color:var(--cw-ink);font-size:19px;font-weight:800;line-height:1.3}.cw-enhanced .cw-map-inspector>p{margin:6px 0 14px;color:var(--cw-muted);font-size:13px;line-height:1.5}
+.cw-enhanced .cw-map-aside[data-empty=true] .cw-map-inspector-title{color:#667587}
+.cw-enhanced .cw-map-inspector-facts{display:grid;gap:0;margin:12px 0 16px;border-block:1px solid #dce4eb}
+.cw-enhanced .cw-map-inspector-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:46px;padding:9px 0;border-bottom:1px solid #e4eaf0;color:#617084;font-size:12px}.cw-enhanced .cw-map-inspector-fact:last-child{border-bottom:0}.cw-enhanced .cw-map-inspector-fact strong{color:var(--cw-ink);font-size:13px;text-align:right}
+.cw-enhanced .cw-map-inspector .cw-map-edit{width:100%;min-height:42px;margin-top:auto}
+.cw-enhanced .cw-map-legend{justify-content:flex-start;gap:8px 16px;padding:10px 16px;background:#f8fafb;font-size:12px}
+
+@media(max-width:1024px){
+ .cw-enhanced .cw-source-mode{grid-template-columns:1fr}.cw-enhanced .cw-source-stats{justify-content:flex-start}
+ .cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(0,1fr)}
+ .cw-enhanced .cw-map-stage{min-height:500px}.cw-enhanced .cw-clinical-odontogram.dr-map{width:min(460px,100%)}
+ .cw-enhanced .cw-map-aside{min-height:0}.cw-enhanced .cw-map-inspector-facts{grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid #dce4eb;border-radius:10px;overflow:hidden}.cw-enhanced .cw-map-inspector-fact{display:block;min-height:64px;padding:11px 12px;border-right:1px solid #e4eaf0;border-bottom:0}.cw-enhanced .cw-map-inspector-fact:last-child{border-right:0}.cw-enhanced .cw-map-inspector-fact strong{display:block;margin-top:3px;text-align:left}
+}
+
+@media(max-width:760px){
+ .cw-enhanced .cw-clinical-map{border-radius:12px}
+ .cw-enhanced .cw-clinical-map-head{align-items:flex-start;flex-direction:column;padding:13px}.cw-enhanced .cw-clinical-map-head strong{font-size:17px}.cw-enhanced .cw-clinical-map-head p{font-size:12px}
+ .cw-enhanced .cw-map-filters{flex-wrap:wrap;gap:6px;padding:8px;overflow:visible}.cw-enhanced .cw-workspace .cw-map-filter{flex:1 1 calc(50% - 6px);min-height:44px;padding-inline:10px}
+ .cw-enhanced .cw-map-context{grid-template-columns:1fr;padding:10px 12px}.cw-enhanced .cw-map-context-metrics{justify-content:flex-start}
+ .cw-enhanced .cw-source-mode{padding:10px 12px}.cw-enhanced .cw-source-actions{align-items:stretch;flex-direction:column}.cw-enhanced .cw-source-actions button{width:100%;min-height:44px}
+ .cw-enhanced .cw-clinical-map-layout{gap:12px;padding:10px}
+ .cw-enhanced .cw-map-stage{min-height:400px;padding:8px 5px 0;border-radius:10px}.cw-enhanced .cw-clinical-odontogram.dr-map{width:min(330px,100%);margin-bottom:34px}
+ .cw-enhanced .cw-map-aside{min-height:0;padding:14px}.cw-enhanced .cw-map-inspector-title{font-size:17px}
+ .cw-enhanced .cw-map-inspector-facts{grid-template-columns:1fr}.cw-enhanced .cw-map-inspector-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:48px;border-right:0;border-bottom:1px solid #e4eaf0}.cw-enhanced .cw-map-inspector-fact:last-child{border-bottom:0}.cw-enhanced .cw-map-inspector-fact strong{display:inline;margin:0;text-align:right}.cw-enhanced .cw-map-inspector .cw-map-edit{min-height:44px}
+ .cw-enhanced .cw-map-legend{display:flex;justify-content:flex-start;gap:8px 12px;padding:10px 12px}
+}
+
+@media(max-width:420px){
+ .cw-enhanced .cw-map-filter-count{min-width:19px;height:19px;padding-inline:5px}
+ .cw-enhanced .cw-source-intro{align-items:flex-start}.cw-enhanced .cw-source-intro p{display:none}.cw-enhanced .cw-source-stats{justify-content:flex-start;margin:0;overflow:visible}
+ .cw-enhanced .cw-map-stage{min-height:360px}.cw-enhanced .cw-clinical-odontogram.dr-map{width:min(285px,100%)}
+ .cw-enhanced .cw-map-legend{display:grid;grid-template-columns:1fr 1fr}
+}

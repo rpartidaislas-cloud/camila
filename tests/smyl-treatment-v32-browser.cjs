@@ -6,7 +6,7 @@ const fs = require('node:fs');
   const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   const browser = await chromium.launch({ headless: true, executablePath: chrome });
   const fixture = `file:///${path.resolve(__dirname, 'fixtures/smyl-clinical-flow-preview.html').replace(/\\/g, '/')}`;
-  const output = path.resolve(__dirname, '..', 'artifacts', 'treatment-workbench-v43');
+  const output = path.resolve(__dirname, '..', 'artifacts', 'odontogram-phase1-v44');
   fs.mkdirSync(output, { recursive: true });
   const cases = [
     { name: 'desktop', width: 1280, height: 900 },
@@ -110,18 +110,46 @@ const fs = require('node:fs');
     const findings = await page.evaluate(() => {
       const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
       const odontogram = visible('.cw-clinical-odontogram');
+      const mapStage = visible('.cw-map-stage')[0];
+      const mapLayout = visible('.cw-clinical-map-layout')[0];
+      const mapContext = visible('.cw-map-context')[0];
+      const inspector = visible('.cw-map-inspector')[0];
+      const selected = odontogram[0]?.querySelector('.dr-tooth.cw-map-selected');
       const footer = document.querySelector('.cw-evaluation-footer'), panelBody = visible('.cw-evaluation-panel-body')[0], panels = document.querySelector('.cw-evaluation-panels');
       const footerBox = footer?.getBoundingClientRect(), panelBox = panelBody?.getBoundingClientRect();
       const contentBox = panels?.getBoundingClientRect();
+      const stageBox = mapStage?.getBoundingClientRect();
+      const nestedSelectors = ['.cw-evaluation-flow', '.cw-evaluation-panels', '.cw-evaluation-panel-body', '.cw-clinical-map', '.cw-clinical-map-layout'];
+      const nestedOverflow = nestedSelectors.filter(selector => {
+        const element = visible(selector)[0];
+        if (!element) return false;
+        const overflow = getComputedStyle(element).overflowY;
+        return (overflow === 'auto' || overflow === 'scroll') && element.scrollHeight > element.clientHeight + 1;
+      });
       return {
         panel: visible('[data-task-panel="findings"]').length,
         visiblePanels: visible('.cw-evaluation-panel').length,
         visibleCtas: visible('.cw-evaluation-footer .pc-primary').length,
+        visiblePrimaryCtas: visible('.cw-workspace > .cw-module:not([hidden]) .pc-primary').length,
+        cta: document.querySelector('.cw-evaluation-cta')?.textContent.trim(),
         odontogram: odontogram.length,
         teeth: odontogram[0]?.querySelectorAll('.dr-tooth').length || 0,
         filters: visible('.cw-map-filter').length,
-        sourceWorkspace: visible('.cw-source-workspace').length,
-        sourceStats: visible('.cw-source-stats > span').length,
+        filterLabels: visible('.cw-map-filter').map(button => button.childNodes[0]?.textContent.trim()),
+        filterCounts: visible('.cw-map-filter-count').map(node => Number(node.textContent.trim())),
+        legacySourceWorkspace: visible('.cw-source-workspace').length,
+        mapWidth: stageBox?.width || 0,
+        mapInFirstViewport: !!(stageBox && stageBox.top < innerHeight && stageBox.bottom > 0),
+        mapBeforeContext: !!(mapLayout && mapContext && (mapLayout.compareDocumentPosition(mapContext) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        inspector: inspector ? 1 : 0,
+        inspectorTitle: inspector?.querySelector('strong')?.textContent.trim(),
+        inspectorFacts: inspector?.querySelectorAll('.cw-map-inspector-fact').length || 0,
+        inspectorEdit: inspector?.querySelector('.cw-map-edit')?.textContent.trim(),
+        selectedTooth: selected?.dataset.tooth,
+        selectedPressed: selected?.getAttribute('aria-pressed'),
+        contextActions: mapContext?.querySelectorAll('button').length || 0,
+        contextZeroCards: visible('.cw-map-context-chip').filter(node => Number(node.dataset.value) === 0).length,
+        nestedOverflow,
         advancedInitiallyHidden: visible('.cw-advanced-editor').length === 0,
         footerPosition: footer ? getComputedStyle(footer).position : '',
         footerOverlapsPanel: !!(footerBox && panelBox && footerBox.top < panelBox.bottom && footerBox.bottom > panelBox.top),
@@ -131,44 +159,60 @@ const fs = require('node:fs');
     });
     await page.screenshot({ path: path.join(output, `${item.name}-findings.png`), fullPage: true });
 
-    let mobileNaturalScroll = { applicable: false };
-    if (item.width <= 760) {
-      const panels = page.locator('.cw-evaluation-panels');
-      await panels.hover();
-      await page.evaluate(() => window.scrollTo(0, Math.min(120, document.documentElement.scrollHeight - innerHeight)));
-      const before = await page.evaluate(() => document.scrollingElement.scrollTop);
-      await panels.hover();
-      await page.mouse.wheel(0, 420);
-      await page.waitForTimeout(120);
-      const gesture = await page.evaluate(beforeScroll => ({
-        applicable: true,
+    const panels = page.locator('.cw-evaluation-panels');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await panels.hover();
+    const before = await page.evaluate(() => document.scrollingElement.scrollTop);
+    await page.mouse.wheel(0, 420);
+    await page.waitForTimeout(120);
+    const naturalScroll = await page.evaluate(beforeScroll => {
+      const root = document.scrollingElement;
+      const footer = document.querySelector('.cw-evaluation-footer');
+      const last = document.querySelector('.cw-evaluation-panel:not([hidden]) .cw-evaluation-panel-body > :last-child');
+      const footerBox = footer?.getBoundingClientRect(), lastBox = last?.getBoundingClientRect();
+      return {
         before: beforeScroll,
-        after: document.scrollingElement.scrollTop,
-        pageMoved: document.scrollingElement.scrollTop > beforeScroll,
+        after: root.scrollTop,
+        maxScroll: root.scrollHeight - root.clientHeight,
+        pageCanScroll: root.scrollHeight > root.clientHeight + 1,
+        pageMoved: root.scrollTop > beforeScroll,
         panelsOverflowY: getComputedStyle(document.querySelector('.cw-evaluation-panels')).overflowY,
-        flowOverflowY: getComputedStyle(document.querySelector('.cw-evaluation-flow')).overflowY
-      }), before);
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-      await page.waitForTimeout(80);
-      const end = await page.evaluate(() => {
-        const footer = document.querySelector('.cw-evaluation-footer');
-        const last = document.querySelector('.cw-evaluation-panel:not([hidden]) .cw-evaluation-panel-body > :last-child');
-        const footerBox = footer?.getBoundingClientRect(), lastBox = last?.getBoundingClientRect();
-        return { lastContentClear: !!(footerBox && lastBox && lastBox.bottom <= footerBox.top + 1) };
-      });
-      mobileNaturalScroll = { ...gesture, ...end };
-    }
+        flowOverflowY: getComputedStyle(document.querySelector('.cw-evaluation-flow')).overflowY,
+        lastContentClear: innerWidth > 760 || !!(footerBox && lastBox && lastBox.bottom <= footerBox.top + 1)
+      };
+    }, before);
 
-    await page.locator('[data-filter="photo"]').click();
-    const photoMode = await page.evaluate(() => ({
-      selected: document.querySelector('[data-filter="photo"]')?.getAttribute('aria-pressed'),
-      title: document.querySelector('.cw-source-intro strong')?.textContent,
-      actions: Array.from(document.querySelectorAll('.cw-source-actions button')).map(button => button.textContent.trim())
+    await page.locator('.dr-tooth[data-tooth="16"]').click();
+    const selectedPiece = await page.evaluate(() => ({
+      selected: document.querySelector('.dr-tooth.cw-map-selected')?.dataset.tooth,
+      pressed: document.querySelector('.dr-tooth.cw-map-selected')?.getAttribute('aria-pressed'),
+      title: document.querySelector('.cw-map-inspector > strong')?.textContent.trim(),
+      inspectorVisible: !!document.querySelector('.cw-map-inspector')?.getClientRects().length
     }));
-    if (item.name === 'desktop') await page.screenshot({ path: path.join(output, 'desktop-photo.png'), fullPage: true });
+    const layerSnapshot = () => page.evaluate(() => {
+      const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
+      const active = document.querySelector('.cw-map-filter[aria-pressed="true"]');
+      return {
+        active: active?.dataset.filter,
+        title: document.querySelector('.cw-map-context-copy strong')?.textContent.trim(),
+        cta: document.querySelector('.cw-evaluation-cta')?.textContent.trim(),
+        visiblePrimaryCtas: visible('.cw-workspace > .cw-module:not([hidden]) .pc-primary').length,
+        chips: visible('.cw-map-context-chip').length,
+        zeroChips: visible('.cw-map-context-chip').filter(node => Number(node.dataset.value) === 0).length,
+        contextActions: document.querySelector('.cw-map-context')?.querySelectorAll('button').length || 0
+      };
+    });
 
+    await page.locator('[data-filter="manual"]').click();
+    const manualMode = await layerSnapshot();
+    await page.locator('[data-filter="photo"]').click();
+    const photoMode = await layerSnapshot();
+    if (item.name === 'desktop') await page.screenshot({ path: path.join(output, 'desktop-photo.png'), fullPage: true });
+    await page.locator('[data-filter="pending"]').click();
+    const pendingMode = await layerSnapshot();
     await page.locator('[data-filter="radiograph"]').click();
-    await page.getByRole('button', { name: 'Agregar radiografía', exact: true }).click();
+    const radiographMode = await layerSnapshot();
+    await page.locator('.cw-evaluation-cta').click();
     const radiographTask = await page.evaluate(() => {
       const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
       return {
@@ -234,8 +278,12 @@ const fs = require('node:fs');
       drawer,
       evidence,
       findings,
-      mobileNaturalScroll,
+      naturalScroll,
+      selectedPiece,
+      manualMode,
       photoMode,
+      pendingMode,
+      radiographMode,
       radiographTask,
       closure,
       proposal,
@@ -266,13 +314,26 @@ const fs = require('node:fs');
     item.evidence.metrics !== 3 || item.evidence.items !== 1 || item.evidence.latest !== 'REGISTRO MÁS RECIENTE' ||
     item.evidence.previous !== 'Ver 4 anteriores' || item.evidence.cta !== 'Continuar a hallazgos' ||
     item.evidence.footerPosition !== (item.requiredHeight === 44 ? 'static' : 'sticky') || item.evidence.footerCoversContent || item.evidence.overflow ||
-    item.findings.panel !== 1 || item.findings.visiblePanels !== 1 || item.findings.visibleCtas !== 1 ||
-    item.findings.odontogram !== 1 || item.findings.teeth !== 32 || item.findings.filters !== 4 ||
-    item.findings.sourceWorkspace !== 1 || item.findings.sourceStats !== 3 || !item.findings.advancedInitiallyHidden ||
-    item.findings.footerPosition !== (item.requiredHeight === 44 ? 'static' : 'sticky') || item.findings.footerCoversContent || item.findings.overflow ||
-    (item.mobileNaturalScroll.applicable && (!item.mobileNaturalScroll.pageMoved || !item.mobileNaturalScroll.lastContentClear || item.mobileNaturalScroll.panelsOverflowY !== 'visible' || item.mobileNaturalScroll.flowOverflowY !== 'visible')) ||
-    item.photoMode.selected !== 'true' || item.photoMode.title !== 'Archivo visual y revisión asistida' ||
-    !item.photoMode.actions.includes('Agregar fotografías') || !item.radiographTask.open ||
+    item.findings.panel !== 1 || item.findings.visiblePanels !== 1 || item.findings.visibleCtas !== 1 || item.findings.visiblePrimaryCtas !== 1 ||
+    item.findings.cta !== 'Revisar hallazgos' || item.findings.odontogram !== 1 || item.findings.teeth !== 32 || item.findings.filters !== 5 ||
+    item.findings.filterLabels.join('|') !== 'Todo|Clínica|Fotografías|Rayos X|Pendientes' || item.findings.filterCounts.join('|') !== '4|2|1|1|2' ||
+    item.findings.legacySourceWorkspace !== 0 || !item.findings.mapInFirstViewport || !item.findings.mapBeforeContext ||
+    ((item.name === 'desktop' || item.name === 'tablet') && item.findings.mapWidth < 440) ||
+    item.findings.inspector !== 1 || item.findings.inspectorTitle !== 'Pieza 11 · Incisivo central superior derecho' ||
+    item.findings.inspectorFacts !== 2 || item.findings.inspectorEdit !== 'Editar pieza' || item.findings.selectedTooth !== '11' || item.findings.selectedPressed !== 'true' ||
+    item.findings.contextActions !== 0 || item.findings.contextZeroCards !== 0 || item.findings.nestedOverflow.length !== 0 || !item.findings.advancedInitiallyHidden ||
+    item.findings.footerPosition !== 'static' || item.findings.footerCoversContent || item.findings.overflow ||
+    (item.naturalScroll.pageCanScroll && !item.naturalScroll.pageMoved && item.naturalScroll.before < item.naturalScroll.maxScroll - 1) || !item.naturalScroll.lastContentClear ||
+    item.naturalScroll.panelsOverflowY !== 'visible' || item.naturalScroll.flowOverflowY !== 'visible' ||
+    item.selectedPiece.selected !== '16' || item.selectedPiece.pressed !== 'true' || item.selectedPiece.title !== 'Pieza 16 · Primer molar superior derecho' || !item.selectedPiece.inspectorVisible ||
+    item.manualMode.active !== 'manual' || item.manualMode.title !== 'Valoración profesional' || item.manualMode.cta !== 'Editar pieza seleccionada' ||
+    /radiograf|rayos/i.test(item.manualMode.cta) || item.manualMode.visiblePrimaryCtas !== 1 || item.manualMode.zeroChips !== 0 || item.manualMode.contextActions !== 0 ||
+    item.photoMode.active !== 'photo' || item.photoMode.title !== 'Fotografías clínicas' || item.photoMode.cta !== 'Agregar fotografías' ||
+    item.photoMode.visiblePrimaryCtas !== 1 || item.photoMode.zeroChips !== 0 || item.photoMode.contextActions !== 0 ||
+    item.pendingMode.active !== 'pending' || item.pendingMode.title !== 'Pendientes de revisión' || item.pendingMode.cta !== 'Revisar pendientes' ||
+    item.pendingMode.visiblePrimaryCtas !== 1 || item.pendingMode.zeroChips !== 0 || item.pendingMode.contextActions !== 0 ||
+    item.radiographMode.active !== 'radiograph' || item.radiographMode.title !== 'Estudios radiográficos' || item.radiographMode.cta !== 'Agregar radiografía' ||
+    item.radiographMode.visiblePrimaryCtas !== 1 || item.radiographMode.zeroChips !== 0 || item.radiographMode.contextActions !== 0 || !item.radiographTask.open ||
     item.radiographTask.title !== 'Agregar estudio radiográfico' || item.radiographTask.steps !== 3 ||
     item.radiographTask.visibleSections !== 1 || item.radiographTask.duplicateMaps !== 0 ||
     item.radiographTask.uploadVisible !== 1 || item.radiographTask.controlHeight < item.requiredHeight || item.radiographTask.overflow ||

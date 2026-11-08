@@ -36,7 +36,7 @@ test('la revisión es explícita, temporal y queda obsoleta cuando cambia la his
 test('la propuesta sólo queda habilitada tras revisar contexto y hallazgos', () => {
   assert.match(workspace, /const evaluationComplete=findingsComplete&&contextReviewed/);
   assert.match(workspace, /const planComplete=evaluationComplete&&clinical\?\.ready/);
-  assert.match(workspace, /reviewComplete:evaluationComplete,findingsComplete/);
+  assert.match(workspace, /reviewComplete:state\.evaluationComplete,findingsComplete:state\.findingsComplete/);
   assert.doesNotMatch(workspace, /const planComplete=reviewComplete&&clinical\?\.ready/);
 });
 

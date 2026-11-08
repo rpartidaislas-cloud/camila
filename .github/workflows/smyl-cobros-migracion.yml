@@ -4,6 +4,8 @@ name: SMYL Cobros - recordatorios de cobro y preferencia de contacto (migración
 #   - smyl_collection_reminders: registro de recordatorios de cobro enviados por WhatsApp (tope semanal por paciente).
 #   - smyl_collection_prefs: preferencia «no contactar por cobros» (por ejemplo, el paciente respondió BAJA).
 #   - Funciones smyl_log_collection_reminder y smyl_set_collection_pref (única vía de escritura).
+# y la migración 20261108110000_smyl_charge_fiscal_snapshot.sql: «Nuevo cargo» guarda los datos fiscales del servicio
+# (clave SAT, unidad, objeto de impuesto) y calcula el IVA según su política, para que el cargo se pueda facturar.
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN. Es idempotente.
 # Requiere que ya esté aplicada la migración 20261106110000 (smyl_tenants_with_permission).
 
@@ -26,6 +28,8 @@ jobs:
       PROJECT_REF: rpxshsiwoxdbuevjjpfw
       COBROS_VERSION: "20261108100000"
       COBROS_FILE: supabase/migrations/20261108100000_smyl_collection_reminders.sql
+      CARGO_VERSION: "20261108110000"
+      CARGO_FILE: supabase/migrations/20261108110000_smyl_charge_fiscal_snapshot.sql
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,7 +82,9 @@ jobs:
             coalesce(to_regclass('public.smyl_collection_reminders') is not null
               and not has_table_privilege('anon', 'public.smyl_collection_reminders', 'select')
               and not has_table_privilege('authenticated', 'public.smyl_collection_reminders', 'insert'), false) as permisos_ok,
-            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.COBROS_VERSION}') as historial_cobros`))?.[0] || {};
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_post_charge' and p.prosrc like '%v_snapshot%') as cargo_fiscal_ok,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.COBROS_VERSION}') as historial_cobros,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.CARGO_VERSION}') as historial_cargo`))?.[0] || {};
 
           const completo = e => e.recordatorios_ok && e.preferencias_ok && e.registrar_ok && e.preferencia_fn_ok && e.rls_ok && e.permisos_ok;
 
@@ -95,18 +101,31 @@ jobs:
             console.log('La migración de cobros ya estaba aplicada.');
           }
 
+          if (!antes.cargo_fiscal_ok) {
+            await consultar(fs.readFileSync(process.env.CARGO_FILE, 'utf8'));
+            console.log('Cargo con datos fiscales aplicado.');
+          } else {
+            console.log('El cargo con datos fiscales ya estaba aplicado.');
+          }
+
           const despues = await estado();
           console.log('Después:', JSON.stringify(despues));
-          if (!completo(despues)) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
+          if (!completo(despues) || !despues.cargo_fiscal_ok) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_cobros=${!despues.historial_cobros}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar_cargo=${!despues.historial_cargo}\n`);
           NODE
 
       - name: Registrar versión aplicada
-        if: steps.esquema.outputs.reparar_cobros == 'true'
+        if: steps.esquema.outputs.reparar_cobros == 'true' || steps.esquema.outputs.reparar_cargo == 'true'
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
           # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado) y exige --yes sin terminal; la anterior usaba --linked.
           REPAIR_FLAG=--linked
           if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG="--remote --yes"; fi
-          supabase migration repair $REPAIR_FLAG --status applied "$COBROS_VERSION"
+          if [ "${{ steps.esquema.outputs.reparar_cobros }}" = "true" ]; then
+            supabase migration repair $REPAIR_FLAG --status applied "$COBROS_VERSION"
+          fi
+          if [ "${{ steps.esquema.outputs.reparar_cargo }}" = "true" ]; then
+            supabase migration repair $REPAIR_FLAG --status applied "$CARGO_VERSION"
+          fi
