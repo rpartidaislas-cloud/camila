@@ -10291,3 +10291,8 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - `smyl-ui-datta-v4.css` (v2): **solo** cambia el fondo de la opción activa de `rgba(0,0,0,.22)` a `rgba(255,255,255,.1)` (la maqueta aprobada pedía que la activa se distinga en lo oscuro). Lo demás de la etapa 1 v4 queda igual.
 - No existe selector de clínicas, así que la cabecera no lleva flecha de cambio. El rol del usuario no está disponible en el shell: el pie muestra «Mi cuenta».
 - `app.html`, `sw.js` (CACHE `...-sidebar-v2`), copias en `mobile/www/`; prueba nueva `tests/smyl-sidebar-v2.test.mjs`; versiones fijadas actualizadas en pruebas. Móvil sin cambios (el menú lateral no se muestra ≤768 px).
+
+## 2026-11-08 — Claude Code — Cobros: se quita la pestaña «Plantillas»
+- `smyl-finance.js` (v20) / `smyl-finance.css` (v16): fuera la pestaña y el panel «Plantillas» de Cobros, con su código (`paintTemplates`, `renderTemplates`, `tplData`) y estilos `.finance-template-*`. Las plantillas de cobro siguen en **Mensajería → Plantillas WhatsApp** (grupo `pagos` del catálogo) y `SmylTemplates.summary('pagos')` sigue exportado.
+- `tests/cobros-chat-link.test.mjs` ahora afirma que la pestaña ya no existe. CACHE `...-finance-tabs-v1`, copias en `mobile/www/`.
+- Pendiente (propuesta enviada a Ricardo, sin implementar): reorganizar las pestañas restantes de Cobros.
