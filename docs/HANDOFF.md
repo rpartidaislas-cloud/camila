@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude — «Continuar con Google» en el acceso de `app.html`
+
+- Botón «Continuar con Google» arriba del formulario de login (no en registro).
+  Usa `sb.auth.signInWithOAuth({ provider: 'google' })` con regreso a la misma
+  página.
+- Regla del usuario: Google SÓLO entra a cuentas que ya existen (dueño o
+  personal invitado con el mismo correo; Supabase enlaza la identidad). Si la
+  cuenta nació de Google (`app_metadata.provider === 'google'`) y no tiene
+  clínica, `continuarConUsuario()` cierra la sesión y pide registrarse con
+  correo; ya no cae en la recreación automática de `camila_tenants`.
+- Oculto en la app nativa (Capacitor). Mensajes claros si se cancela o falla.
+- Requiere configurar el proveedor Google en Supabase Auth (cliente OAuth de
+  Google Cloud + URL de regreso `https://app.smyldesign.ai/app.html`) antes de
+  publicarse: sin proveedor activo, Supabase muestra una página de error.
+- Caché del SW `...-google-login-v87`; copias en `mobile/www/` sincronizadas.
+
 ## 2026-11-08 — Claude — Nueva pantalla de acceso (login/registro) en `app.html`
 
 - La puerta de acceso (`#auth-gate-overlay`) pasa a una tarjeta dividida: a la
