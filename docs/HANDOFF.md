@@ -27,9 +27,10 @@
   código). El aviso lo declara; **antes de instalar cualquiera hay que actualizar el aviso y pedir elección**.
 - Casos públicos de antes y después: el dueño confirmó que están APAGADOS. El aviso lo declara; no
   activarlos sin autorización firmada por caso y sin actualizar el aviso.
+- Respaldos: el dueño confirmó que rotan en 90 días o menos; el texto «hasta 90 días» es cierto.
+  Si el plan o la configuración de Supabase cambia, revisar esa línea del aviso.
 - **Antes de publicar:** quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
-  fecha real de publicación, y comprobar que «respaldos de hasta 90 días» sea cierto con el
-  plan de Supabase. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
+  fecha real de publicación,. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
   encargo y saber si puede usar conversaciones para sus propios modelos. Falta: evidencia de no entrenamiento
   con OpenAI/Anthropic, tipo de cuenta de Gemini, dónde están Analytics, Pixel y Sentry, y si
   los casos públicos están visibles. El audio de MILA sí se guarda en el bucket privado
