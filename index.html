@@ -2,29 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<script>
-/* En app.smyldesign.ai, quien ya inició sesión va directo al panel; el resto ve esta página.
-   supabase-js guarda la sesión en localStorage bajo sb-<proyecto>-auth-token; si el token venció,
-   app.html muestra el acceso igual. ?landing=1 fuerza la página pública. */
-(function(){try{
-  if(location.hostname!=="app.smyldesign.ai")return;
-  if(/(^|[?&])landing=1/.test(location.search))return;
-  var raw=localStorage.getItem("sb-rpxshsiwoxdbuevjjpfw-auth-token");
-  if(!raw)return;
-  var s=JSON.parse(raw);
-  if(s&&(s.access_token||(s.currentSession&&s.currentSession.access_token)))location.replace("app.html"+location.search+location.hash);
-}catch(e){}})();
-</script>
+<script>/* app.smyldesign.ai es el dominio del panel: siempre abre app.html. La landing vive en smyldesign.ai. */if(location.hostname==="app.smyldesign.ai")location.replace("app.html"+location.search+location.hash);</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Tu clínica dental, del primer mensaje a la cita</title>
 <meta name="description" content="SMYL atiende a tus pacientes por WhatsApp, Messenger e Instagram con un asistente de IA, agenda la consulta y te deja listos el expediente, la simulación de sonrisa y la propuesta. Tú tomas la decisión clínica.">
 <meta property="og:title" content="SMYL · Tu clínica dental, del primer mensaje a la cita">
 <meta property="og:description" content="Agenda, expediente, mensajería con IA, diseño de sonrisa, radiografías y cobros en un solo lugar. Hecho en México.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://app.smyldesign.ai/icons/smyl_pwa.png">
+<meta property="og:image" content="https://smyldesign.ai/icons/smyl_pwa.png">
 <link rel="icon" href="icons/smyl_pwa.png">
 <link rel="apple-touch-icon" href="icons/smyl_pwa.png">
-<link rel="canonical" href="https://app.smyldesign.ai/">
+<link rel="canonical" href="https://smyldesign.ai/">
 <script src="smyl-browser-privacy.js?v=1"></script>
 <script src="smyl-sentry.js?v=3"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
