@@ -9,9 +9,9 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const hub = createRequire(import.meta.url)('../smyl-settings-hub.js');
 
-test('las secciones siguen el orden del panel de LANA y agregan seguridad al final', () => {
-  assert.deepEqual(hub.SECTIONS.map(s => s.id), ['negocio', 'cobros', 'catalogo', 'canales', 'experiencia', 'seguridad']);
-  assert.deepEqual(hub.SECTIONS.slice(0, 5).map(s => s.title), ['Negocio', 'Ventas y cobros', 'Catálogo', 'Canales', 'Experiencia']);
+test('las secciones siguen las tareas administrativas de la clínica', () => {
+  assert.deepEqual(hub.SECTIONS.map(s => s.id), ['clinica', 'equipo', 'agenda', 'catalogo', 'canales', 'cobros', 'cuenta']);
+  assert.deepEqual(hub.SECTIONS.map(s => s.title), ['Clínica', 'Equipo', 'Agenda', 'Catálogo', 'Canales', 'Cobros', 'Cuenta y seguridad']);
 });
 
 test('cada pantalla de configuración que existe hoy tiene su tarjeta y nada se queda sin camino', () => {
@@ -25,7 +25,7 @@ test('cada pantalla de configuración que existe hoy tiene su tarjeta y nada se 
   }
   // Lo que todavía no existe se muestra como «Próximamente», sin botón.
   assert.deepEqual(hub.SECTIONS.flatMap(s => s.items).filter(i => i.soon).map(i => i.title).sort(),
-    ['Colaboraciones', 'Formas de pago y anticipo', 'Perfil público de WhatsApp']);
+    ['Formas de pago y anticipo']);
 });
 
 test('los avisos de estado salen de verificaciones reales y no inventan nada si no se pudo verificar', () => {
@@ -38,9 +38,9 @@ test('los avisos de estado salen de verificaciones reales y no inventan nada si 
   assert.equal(hub.status('services', null, null), null);
   assert.equal(hub.status('services', null, 0).tone, 'todo');
   assert.equal(hub.status('services', null, 3).text, '3 activos');
-  const negocio = hub.SECTIONS[0], canales = hub.SECTIONS[3];
-  assert.equal(hub.pendingCount(negocio, { hours: { done: false } }, 1), 1);
-  assert.equal(hub.pendingCount(canales, { whatsapp: { done: false }, template: { done: true }, reminders: { done: false } }, 1), 2);
+  const clinica = hub.SECTIONS[0], canales = hub.SECTIONS[4];
+  assert.equal(hub.pendingCount(clinica, { hours: { done: false } }, 1), 1);
+  assert.equal(hub.pendingCount(canales, { whatsapp: { done: false }, template: { done: true } }, 1), 1);
   assert.equal(hub.pendingCount(canales, null, null), 0);
 });
 
@@ -70,18 +70,22 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=4/);
-  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=3/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=4/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=3/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=5/);
+  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=4/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=5/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=4/);
 });
 
 test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrecen volver a Configuración', () => {
   const targets = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.target).map(i => [i.title, i.target]));
-  assert.equal(targets['Equipo y roles'], '[data-ca-tab="equipo"]');
-  assert.equal(targets['Sucursales, sillones y horario'], '[data-ca-tab="operacion"]');
+  assert.equal(targets['Profesionales y roles'], '[data-ca-tab="equipo"]');
+  assert.equal(targets['Sucursales y espacios'], '[data-ca-tab="operacion"]');
   assert.equal(targets['Facturación'], '[data-finance-tab="fiscal"]');
-  assert.equal(targets['Asistente de mensajes'], '[data-connection-tab="assistant"]');
+  assert.equal(targets['WhatsApp Business'], '[data-connection-tab="whatsapp"]');
+  assert.equal(targets['Messenger'], '[data-connection-tab="messenger"]');
+  assert.equal(targets['Instagram'], '[data-connection-tab="instagram"]');
+  assert.equal(targets['SMYL Asistente'], '[data-connection-tab="assistant"]');
+  assert.equal(targets['Automatizaciones'], '[data-connection-tab="automations"]');
   assert.equal(targets['Probar al asistente'], '[data-connection-tab="lab"]');
   // Cada selector existe de verdad en el código de su pantalla.
   assert.match(read('smyl-clinic-admin.js'), /data-ca-tab/);
@@ -94,11 +98,11 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   assert.doesNotMatch(read('smyl-navigation.js').match(/var SETTINGS_ROUTES = \[[^\]]+\]/)[0], /plantillas/);
 });
 
-test('Equipo, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
+test('Profesionales, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
   const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
-  assert.deepEqual(Object.keys(embedded).sort(), ['Cobros y pagos', 'Corte de caja', 'Equipo y roles', 'Facturación', 'Recordatorios de cita', 'Sucursales, sillones y horario']);
+  assert.deepEqual(Object.keys(embedded).sort(), ['Cobros y pagos', 'Corte de caja', 'Facturación', 'Profesionales y roles', 'Recordatorios de cita', 'Sucursales y espacios']);
   assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
-  assert.equal(embedded['Equipo y roles'].route, 'clinica');
+  assert.equal(embedded['Profesionales y roles'].route, 'clinica');
   const source = read('smyl-settings-hub.js');
   // Se reubica el mismo elemento y una marca de posición guarda su lugar para devolverlo al salir.
   assert.match(source, /document\.createComment\('settings-hub'\)/);

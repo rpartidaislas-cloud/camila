@@ -30,12 +30,20 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
   assert.match(nav, /var SETTINGS = \[/);
 });
 
-test('Canales e IA se divide en canales, asistente y laboratorio', () => {
-  assert.match(nav, /\['channels','Canales'\]/);
-  assert.match(nav, /\['assistant','SMYL Asistente'\]/);
-  assert.match(nav, /\['lab','Laboratorio'\]/);
+test('Canales e IA tiene un espacio por canal y herramientas compartidas', () => {
+  assert.match(nav, /\['channels','Resumen','R'\]/);
+  assert.match(nav, /\['whatsapp','WhatsApp','W'\]/);
+  assert.match(nav, /\['messenger','Messenger','M'\]/);
+  assert.match(nav, /\['instagram','Instagram','I'\]/);
+  assert.match(nav, /\['assistant','SMYL Asistente','A'\]/);
+  assert.match(nav, /\['templates','Plantillas','P'\]/);
+  assert.match(nav, /\['automations','Automatizaciones','⌁'\]/);
+  assert.match(nav, /\['lab','Probar al asistente','T'\]/);
   assert.match(nav, /preview\.dataset\.connectionPane|labPane\.dataset\.connectionPane = 'lab'/);
+  assert.match(nav, /data-channel-slot/);
+  assert.match(nav, /smyl_connections_workspace/);
   assert.match(css, /\.connections-tabs/);
+  assert.match(css, /\.connections-channel-config/);
 });
 
 test('web y PWA cargan la arquitectura centralizada', () => {

@@ -85,3 +85,76 @@ body.smyl-sidebar-collapsed .pro-nav-item :is(.nav-badge,.pro-nav-count){positio
 body.smyl-sidebar-collapsed .btn-cerrar{justify-content:center;font-size:0;gap:0}
 }
 @media(prefers-reduced-motion:reduce){.sidebar,.pro-sidebar-toggle svg{transition:none}}
+
+/* Canales v2 · navegación secundaria y espacio propio por canal. */
+.connections-shell .connections-hero{grid-template-columns:minmax(0,1fr) 290px;gap:28px;padding:12px 0 24px}
+.connections-shell .connections-hero h1{margin:5px 0 8px;font-size:clamp(27px,3vw,36px);font-weight:630;letter-spacing:-1px}
+.connections-shell .connections-hero>div>p:not(.pro-eyebrow){max-width:680px;line-height:1.55}
+.connections-shell .connections-status-card{padding:18px 19px}
+.connections-workspace-intro{align-items:center;padding:22px 0 13px}
+.connections-workspace-intro span{font-size:10px}.connections-workspace-intro strong{font-size:17px}
+.connections-workspace-intro p{font-size:12px}
+.connections-workspace{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}
+.connections-workspace .connections-tabs{position:sticky;top:16px;display:grid;gap:3px;margin:0;padding:7px;border-radius:14px;background:#f6f8f7}
+.connections-workspace .connections-tabs button{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;justify-items:start;gap:10px;width:100%;min-height:48px;padding:7px 9px;border-radius:9px;text-align:left}
+.connections-workspace .connections-tabs button>span{display:grid;width:30px;height:30px;place-items:center;border:1px solid #d6e1dd;border-radius:9px;background:#fff;color:#356d69;font-size:11px;font-weight:800}
+.connections-workspace .connections-tabs button>strong{overflow:hidden;font-size:12px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}
+.connections-workspace .connections-tabs button[aria-selected=true]{background:#0d2138;color:#fff;box-shadow:0 4px 12px rgba(13,33,56,.13)}
+.connections-workspace .connections-tabs button[aria-selected=true]>span{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#86ded4}
+.connections-workspace .connections-tabs button[data-state=connected]:not([aria-selected=true])>span{border-color:#b9dcca;background:#e7f4ed;color:#247153}
+.connections-pane-host{min-width:0}
+.connections-pane{margin:0}
+.connections-pane-head{margin:0 0 14px;padding:2px 0 15px;border-bottom:1px solid #dce3e1}
+.connections-pane-head>span,.connections-channel-tools>header>span,.connections-tool-card>span{display:block;margin-bottom:5px;color:#2b7873;font-size:10px;font-weight:800;letter-spacing:.11em}
+.connections-pane-head h2{margin:0;color:#183335;font-size:22px;font-weight:650;letter-spacing:-.4px}
+.connections-pane-head p{margin:5px 0 0;color:#647574;font-size:13px;line-height:1.5}
+.connections-overview-pane>.connections-card{margin-bottom:14px}
+.connections-overview-pane .connections-flow{grid-template-columns:minmax(170px,.65fr) minmax(0,1.35fr);gap:28px;margin-top:14px;padding:24px;border:1px solid #dce2dd;border-radius:14px;background:#fff}
+.connections-overview-pane .connections-safety{margin-top:14px}
+.connections-channel-config{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(280px,.92fr);gap:14px}
+.connections-channel-config>.connections-card{padding:20px}
+.connections-channel-pane .connections-channel-list>div{border-top:0;padding-top:0}
+.connections-channel-pane .connections-boundary{margin-top:15px}
+.connections-channel-scope{background:#f4f7f5}
+.connections-channel-scope>p{font-size:12px;line-height:1.5}
+.connections-scope-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #dce3e0;color:#687876;font-size:12px}
+.connections-scope-row strong{color:#263f40;font-size:12px;text-align:right}
+.connections-channel-tools{margin-top:14px;padding:20px;border:1px solid #dce2dd;border-radius:14px;background:#fff}
+.connections-channel-tools>header{margin-bottom:13px}.connections-channel-tools>header h3{margin:0;color:#203b3b;font-size:17px}
+.connections-channel-tools>div,.connections-tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.connections-tool-card{display:grid;align-content:start;min-height:128px;padding:15px;border:1px solid #d8e1de;border-radius:12px;background:#fbfcfb;color:#203b3b;text-align:left}
+button.connections-tool-card{cursor:pointer}
+button.connections-tool-card:hover{border-color:#88b3aa;background:#f3f8f6}
+.connections-tool-card h3{margin:0;font-size:14px;font-weight:680}
+.connections-tool-card p{margin:6px 0 0;color:#657573;font-size:12px;line-height:1.45}
+.connections-tool-card em{align-self:end;margin-top:12px;color:#246f6a;font-size:12px;font-style:normal;font-weight:700}
+.connections-tools-pane{padding:22px;border:1px solid #dce2dd;border-radius:14px;background:#fff}
+.connections-tools-pane>.btn{margin-top:14px}
+.connections-workspace .connections-context{padding:22px}
+.connections-workspace .connections-context>.connections-section-heading{grid-template-columns:minmax(180px,.65fr) minmax(0,1.35fr);column-gap:28px}
+.connections-workspace .connections-preview-panel .connections-preview{margin:0;padding:0;border:0}
+@media(max-width:940px){
+  .connections-shell .connections-hero{grid-template-columns:1fr}
+  .connections-workspace{grid-template-columns:190px minmax(0,1fr);gap:14px}
+  .connections-channel-config{grid-template-columns:1fr}
+  .connections-channel-tools>div,.connections-tools-grid{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .connections-workspace-intro{display:grid;gap:6px;padding-top:18px}.connections-workspace-intro p{text-align:left}
+  .connections-workspace{grid-template-columns:1fr}
+  .connections-workspace .connections-tabs{position:static;display:flex;gap:5px;overflow-x:auto;scroll-snap-type:x proximity}
+  .connections-workspace .connections-tabs button{grid-template-columns:26px auto;flex:0 0 auto;width:auto;min-height:44px;padding:6px 10px;scroll-snap-align:start}
+  .connections-workspace .connections-tabs button>span{width:26px;height:26px;border-radius:8px}
+  .connections-workspace .connections-tabs button>strong{overflow:visible}
+  .connections-pane-head h2{font-size:20px}
+  .connections-overview-pane .connections-flow{grid-template-columns:1fr;padding:18px}
+  .connections-channel-tools{padding:16px}
+  .connections-workspace .connections-context{padding:18px}
+  .connections-workspace .connections-context>.connections-section-heading{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .connections-shell .connections-hero{padding-top:2px}.connections-shell .connections-hero h1{font-size:27px}
+  .connections-shell .connections-status-card{padding:16px}
+  .connections-channel-config>.connections-card,.connections-tools-pane{padding:17px}
+  .connections-tool-card{min-height:112px}
+}
