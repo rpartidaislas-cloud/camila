@@ -548,3 +548,35 @@
 .finance-visit-closed-row small{color:#6b7a90;font-size:12px;margin-top:2px}
 @media(max-width:700px){.finance-visit-row{grid-template-columns:1fr auto}.finance-visit-row .finance-row-actions{grid-column:1/-1;justify-content:stretch}.finance-visit-row .finance-row-actions button{flex:1}}
 .finance-help{margin:0;color:#6b7a90;font-size:12px;line-height:1.45}
+
+/* Cobrar a paciente · v2 (maqueta aprobada 2026-11-08): un solo paso, opción sugerida y datos en lugar de verbos. */
+.finance-collection-guide [hidden]{display:none!important}
+.finance-dialog .finance-guide-patient{grid-template-columns:minmax(170px,.8fr) minmax(260px,1.2fr)}
+.finance-dialog .finance-guide-account{grid-template-columns:48px minmax(0,1fr) auto}
+.finance-dialog .finance-guide-account dl{grid-template-columns:repeat(4,minmax(0,1fr))}
+.finance-guide-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
+.finance-guide-chip{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border:0;border-radius:99px;background:#eef2f6;color:#33475c;font-size:12px;font-weight:700;line-height:1;white-space:nowrap}
+.finance-guide-chip[data-tone=paid]{background:#d9f2e8;color:#0d6b4a}
+.finance-guide-chip[data-tone=due]{background:#fdebc8;color:#8a4b00}
+.finance-guide-chip[data-tone=danger]{background:#fbe0dc;color:#9b3d2e}
+.finance-guide-chip[data-tone=warn]{background:#fdebc8;color:#8a4b00;cursor:pointer}
+button.finance-guide-chip[data-tone=warn]:hover{background:#f9dfa6}
+.finance-guide-chip:focus-visible{outline:2px solid var(--smyl-focus-light,#175cd3);outline-offset:2px}
+.finance-guide-more{padding:2px 2px 0;color:var(--smyl-text-muted,#657887);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.finance-dialog [data-guide-suggested]:empty,.finance-dialog [data-guide-unavailable]:empty{display:none}
+.finance-dialog [data-guide-unavailable]{display:grid;gap:12px}
+.finance-dialog .finance-guide-choice [data-guide-path].is-suggested{grid-template-columns:48px minmax(0,1fr) auto;width:100%;min-height:92px;padding:16px 18px;border:1.5px solid #6ecbc1;background:linear-gradient(135deg,#f1fbf9,#fff);box-shadow:0 8px 22px -12px rgba(15,118,110,.55)}
+.finance-dialog .finance-guide-choice [data-guide-path].is-suggested .finance-guide-route-icon{width:48px;height:48px;background:#d6f1ed;color:#0f766e}
+.finance-dialog .finance-guide-choice [data-guide-path].is-suggested .finance-guide-route-copy strong{font-size:16px;line-height:22px}
+.finance-dialog .finance-guide-choice [data-guide-path].is-suggested .finance-guide-route-meta{color:var(--smyl-ink,#0b1b2e);font-size:22px;font-weight:800}
+.finance-guide-badge{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:99px;background:#0f766e;color:#fff;font-size:12px;font-style:normal;font-weight:700;line-height:16px;vertical-align:2px}
+.finance-dialog .finance-guide-choice [data-guide-path]{grid-template-columns:40px minmax(0,1fr)}
+@media(max-width:760px){
+  .finance-dialog .finance-guide-patient{grid-template-columns:1fr}
+  .finance-dialog .finance-guide-account{grid-template-columns:44px minmax(0,1fr)}
+  .finance-guide-status{grid-column:1/-1;justify-content:flex-start}
+  .finance-dialog .finance-guide-account dl{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:10px}
+  .finance-dialog .finance-guide-account dl div:nth-child(3){padding-left:0;border-left:0}
+  .finance-dialog .finance-guide-choice [data-guide-path].is-suggested{grid-template-columns:44px minmax(0,1fr);min-height:84px}
+  .finance-dialog .finance-guide-choice [data-guide-path].is-suggested .finance-guide-route-meta{display:block;grid-column:2;font-size:20px}
+}

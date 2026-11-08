@@ -62,3 +62,17 @@ test('el módulo es compacto: sin encabezado ni leyenda, acciones junto a las pe
   assert.match(css, /\.finance-bar\{display:flex/);
   assert.match(css, /@media screen and \(max-width:420px\)\{[\s\S]*?\.finance-metrics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
+
+test('el cobro guiado es de un solo paso, con opción sugerida, datos útiles y aviso de caja', () => {
+  const guide = js.slice(js.indexOf('function openGuidedCollection'), js.indexOf('function paymentSuccess'));
+  assert.doesNotMatch(guide, /data-guide-progress|Paso \d de 2|<span>1<\/span>|<span>2<\/span>/);
+  assert.match(guide, /pick=s\.due>0\?'balance':appointment\?'service':''/);
+  assert.match(guide, /Sugerido/);
+  assert.match(guide, /No disponible ahora/);
+  assert.match(guide, /data-guide-open-cash/);
+  assert.match(guide, /Caja cerrada · Abrir/);
+  assert.match(guide, /Último pago/);
+  assert.doesNotMatch(guide, /finance-guide-route-meta">Abrir|route-meta">Revisar|route-meta">A favor/);
+  assert.match(css, /\.finance-collection-guide \[hidden\]\{display:none!important\}/);
+  assert.match(css, /\.finance-guide-badge\{/);
+});
