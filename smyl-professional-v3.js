@@ -56,8 +56,7 @@
     if(window.TITULOS)Object.keys(ROUTES).forEach(function(key){TITULOS[key]=ROUTES[key][0];});
     var right=document.querySelector('.topbar-right');if(!right)return;
     var old=right.querySelector('.btn-primary');if(old)old.remove();
-    var action=n('button','btn btn-primary pro-global-action','Nueva tarea');action.type='button';action.setAttribute('aria-label','Agendar, cotizar o cobrar');action.onclick=function(){openTask();};right.append(action);
-    var clinic=n('span','pro-clinic-status','Clínica operativa');clinic.setAttribute('aria-label','Espacio de trabajo de la clínica');right.insertBefore(clinic,action);
+    // Sin botón «Nueva tarea» ni indicador «Clínica operativa» en la barra superior (se retiraron a petición); las tareas siguen en «Nueva cita» y en la ficha del paciente.
     var logoCopy=document.querySelector('.sb-logo span');if(logoCopy)logoCopy.textContent='Gestión clínica';
   }
   function patientBar(){
