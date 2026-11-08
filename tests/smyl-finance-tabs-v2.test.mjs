@@ -95,3 +95,22 @@ test('la cuenta del paciente separa el texto, muestra estado y último pago, y o
   assert.match(css, /\.finance-account-ledger article>div strong,[^{]*\{display:block\}/);
   assert.match(css, /\.finance-account \[hidden\]\{display:none!important\}/);
 });
+
+test('Servicios y tarifas: encabezado mínimo, filas limpias con interruptor y ventana con lo esencial primero', () => {
+  const cat = fs.readFileSync(new URL('../smyl-service-catalog.js', import.meta.url), 'utf8');
+  const catCss = fs.readFileSync(new URL('../smyl-service-catalog-stage1.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(cat, /GESTIÓN DEL NEGOCIO|fuente única|professionalCopy|catalog-guidance|SAT \x27\+esc\(sat\)/);
+  assert.match(cat, /role="switch" class="catalog-switch"|role="switch"/);
+  assert.match(cat, /data-price-for/);
+  assert.match(cat, /async function savePrice\(id,value,input\)/);
+  assert.match(cat, /Usar otro nombre interno/);
+  assert.match(cat, /class="catalog-fiscal wide"/);
+  assert.match(cat, /Falta revisar/);
+  assert.match(cat, /catalog-form-error/);
+  assert.doesNotMatch(cat, /Validar con contador\/PAC|VERSIÓN /);
+  assert.match(catCss, /\.catalog-switch\[aria-checked=true\]/);
+  const block = catCss.slice(catCss.indexOf('/* Servicios y tarifas v2'));
+  const tiny = [...block.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].filter((m) => Number(m[1]) < 12);
+  assert.equal(tiny.length, 0);
+  for (const f of ['smyl-service-catalog.js', 'smyl-service-catalog-stage1.css', 'app.html', 'sw.js']) assert.equal(fs.readFileSync(new URL('../mobile/www/' + f, import.meta.url), 'utf8'), fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), f);
+});
