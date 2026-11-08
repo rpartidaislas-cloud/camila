@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: cobro por «No vino» (monto fijo, con confirmación, apagado por omisión)
+
+**Decisiones del dueño:** monto fijo de la clínica; **nunca automático** (recepción confirma).
+
+**Flujo:** Cobros → «Más acciones» → **Cobro por inasistencia** guarda el monto (0 o vacío = apagado, que es el estado inicial). Con monto configurado, al marcar «No vino» la cita aparece en «Pacientes
+pendientes de cargo» con **Cobrar inasistencia · $X** (abre el cargo de siempre con la cita ligada, concepto libre «Inasistencia a cita del …» y el monto) y **Perdonar** (decisión «sin cargo» con motivo `waived`, nota opcional;
+queda en «Cerradas sin cargo» con «Reabrir»). La agenda etiqueta la cita como «Inasistencia por cobrar», «Saldo $X», «Cobrada» o «Perdonada», y el numerito del menú la cuenta. Sin monto no aparece nada.
+
+**Backend (migración `20261108140000_smyl_no_show_fee.sql`, aditiva):** `smyl_finance_settings` (lectura `finance.read`, sin escritura directa) + `smyl_set_no_show_fee` (`finance.manage`, auditoría con antes/después);
+`smyl_mark_appointment_no_charge` acepta citas `no_show` y el motivo `waived`; `smyl_appointment_billing` devuelve `no_show_pending` (o `free` si no hay monto). El workflow de migración aplica ya las **tres** migraciones de esta serie en una corrida.
+**Falta aplicarla en producción.** Mientras no se aplique, todo sigue apagado y no se rompe nada.
+
+**Frontend:** `smyl-finance.js?v=26`, `smyl-finance.css?v=21`, `smyl-schedule.js?v=33`, `sw.js` `…-no-show-fee-v1`, `mobile/www` sincronizado.
+Pruebas: `tests/no-show-fee-pglite.test.mjs` (Postgres real, 6), `tests/cobros-no-show-fee.test.mjs` (7), humo en navegador `tests/qa/cobros-no-show-smoke.cjs`.
+
+**Nota legal/operativa (no es asesoría):** el cargo es concepto libre, no facturable por defecto; conviene que el paciente conozca la política (p. ej. en el recordatorio de cita) antes de cobrarla.
+
 ## 2026-11-08 — Claude: numerito de «Cobros» en el menú lateral (pacientes pendientes de cargo)
 
 Un círculo con el número de pacientes pendientes de cargo junto a «Cobros» en el menú (ampliado, colapsado y fila «Más» del móvil), sin abrir Cobros. Mismo criterio que la lista de Cobros:

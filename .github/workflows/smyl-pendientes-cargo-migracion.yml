@@ -1,10 +1,13 @@
-name: SMYL Cobros - pacientes pendientes de cargo y etiqueta de cobro en la Agenda (migración)
+name: SMYL Cobros - pendientes de cargo, etiqueta en la Agenda y cobro por inasistencia (migración)
 
 # Aplica en el proyecto de producción de SMYL la migración 20261108120000_smyl_appointment_no_charge.sql:
 #   - smyl_appointment_no_charge: decisión «sin cargo» (revisión, garantía, cortesía u otro) de una cita en la que el paciente ya llegó.
 #   - Funciones smyl_mark_appointment_no_charge y smyl_reopen_appointment_charge (única vía de escritura, permiso finance.manage, con auditoría).
 # y la migración 20261108130000_smyl_appointment_billing_status.sql:
 #   - Función smyl_appointment_billing (sólo lectura, permiso finance.read): estado de cobro de cada cita para la etiqueta de la Agenda.
+# y la migración 20261108140000_smyl_no_show_fee.sql:
+#   - smyl_finance_settings (monto fijo del cobro por «No vino», apagado por omisión) y smyl_set_no_show_fee (finance.manage, con auditoría).
+#   - «Perdonar» una inasistencia (motivo waived) y estado no_show_pending en smyl_appointment_billing.
 # La lista de pendientes se calcula en Cobros; no se crea ningún cargo y no se toca ninguna cita, cargo ni pago existente.
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN. Es idempotente.
 # Requiere las migraciones de agenda, finanzas y 20261106110000 (smyl_tenants_with_permission).
@@ -30,6 +33,8 @@ jobs:
       PENDIENTES_FILE: supabase/migrations/20261108120000_smyl_appointment_no_charge.sql
       ETIQUETA_VERSION: "20261108130000"
       ETIQUETA_FILE: supabase/migrations/20261108130000_smyl_appointment_billing_status.sql
+      INASISTENCIA_VERSION: "20261108140000"
+      INASISTENCIA_FILE: supabase/migrations/20261108140000_smyl_no_show_fee.sql
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -84,8 +89,12 @@ jobs:
               and not has_table_privilege('authenticated', 'public.smyl_appointment_no_charge', 'insert')
               and not has_table_privilege('authenticated', 'public.smyl_appointment_no_charge', 'delete'), false) as permisos_ok,
             exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_appointment_billing') as etiqueta_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_set_no_show_fee')
+              and to_regclass('public.smyl_finance_settings') is not null
+              and exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_appointment_billing' and p.prosrc like '%no_show_pending%') as inasistencia_ok,
             exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.PENDIENTES_VERSION}') as historial_ok,
-            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.ETIQUETA_VERSION}') as historial_etiqueta`))?.[0] || {};
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.ETIQUETA_VERSION}') as historial_etiqueta,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.INASISTENCIA_VERSION}') as historial_inasistencia`))?.[0] || {};
 
           const completo = e => e.tabla_ok && e.marcar_ok && e.reabrir_ok && e.rls_ok && e.permisos_ok;
 
@@ -109,15 +118,24 @@ jobs:
             console.log('La etiqueta de cobro de la Agenda ya estaba aplicada.');
           }
 
+          const despuesEtiqueta = await estado();
+          if (!despuesEtiqueta.inasistencia_ok) {
+            await consultar(fs.readFileSync(process.env.INASISTENCIA_FILE, 'utf8'));
+            console.log('Cobro por inasistencia aplicado.');
+          } else {
+            console.log('El cobro por inasistencia ya estaba aplicado.');
+          }
+
           const despues = await estado();
           console.log('Después:', JSON.stringify(despues));
-          if (!completo(despues) || !despues.etiqueta_ok) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
+          if (!completo(despues) || !despues.etiqueta_ok || !despues.inasistencia_ok) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar=${!despues.historial_ok}\n`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar_etiqueta=${!despues.historial_etiqueta}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar_inasistencia=${!despues.historial_inasistencia}\n`);
           NODE
 
       - name: Registrar versión aplicada
-        if: steps.esquema.outputs.reparar == 'true' || steps.esquema.outputs.reparar_etiqueta == 'true'
+        if: steps.esquema.outputs.reparar == 'true' || steps.esquema.outputs.reparar_etiqueta == 'true' || steps.esquema.outputs.reparar_inasistencia == 'true'
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
@@ -129,4 +147,7 @@ jobs:
           fi
           if [ "${{ steps.esquema.outputs.reparar_etiqueta }}" = "true" ]; then
             supabase migration repair $REPAIR_FLAG --status applied "$ETIQUETA_VERSION"
+          fi
+          if [ "${{ steps.esquema.outputs.reparar_inasistencia }}" = "true" ]; then
+            supabase migration repair $REPAIR_FLAG --status applied "$INASISTENCIA_VERSION"
           fi

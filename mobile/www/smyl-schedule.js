@@ -48,9 +48,9 @@
   // ── Etiqueta de cobro (sólo lectura, sólo con permiso finance.read) ────────────────────────────────────
   // Por cobrar = el paciente llegó y aún no hay cargo ni decisión «sin cargo»; Saldo $X = hay cargo con saldo; Cobrada; Sin cargo.
   // Las citas de servicios con precio $0 (p. ej. Revisión) no llevan etiqueta. Si la función no existe todavía, no se muestra nada.
-  var ARRIVED=['arrived','in_progress','completed'];
+  var ARRIVED=['arrived','in_progress','completed','no_show'];
   function fmtMoney(n){return Number(n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0,maximumFractionDigits:2});}
-  function billingInfo(a){var b=state.canFinance&&state.billing[a.id];if(!b||ARRIVED.indexOf(a.status)<0)return null;return {pending:['Por cobrar','pending'],due:['Saldo '+fmtMoney(b.due_amount),'due'],paid:['Cobrada','paid'],no_charge:['Sin cargo','none']}[b.billing_state]||null;}
+  function billingInfo(a){var b=state.canFinance&&state.billing[a.id];if(!b||ARRIVED.indexOf(a.status)<0)return null;if(b.billing_state==='no_charge'&&a.status==='no_show')return ['Perdonada','none'];return {pending:['Por cobrar','pending'],no_show_pending:['Inasistencia por cobrar','pending'],due:['Saldo '+fmtMoney(b.due_amount),'due'],paid:['Cobrada','paid'],no_charge:['Sin cargo','none']}[b.billing_state]||null;}
   function billingChip(a){var t=billingInfo(a);return t?'<i class="schedule-billing" data-billing="'+t[1]+'">'+esc(t[0])+'</i>':'';}
   async function loadBilling(){if(!state.canFinance||!window.sb)return;var ids=state.appointments.filter(function(a){return ARRIVED.indexOf(a.status)>=0;}).map(function(a){return a.id;}).slice(0,300);if(!ids.length){if(Object.keys(state.billing).length){state.billing={};renderCalendar();}return;}try{var rows=await rpc('smyl_appointment_billing',{p_appointment_ids:ids}),map={};(rows||[]).forEach(function(r){map[r.appointment_id]=r;});state.billing=map;renderCalendar();}catch(e){}}
   window.addEventListener('smyl:finance-updated',function(){if(state.loaded)loadBilling();});
@@ -364,7 +364,7 @@
       +'<ul class="sched-ficha-facts"><li><span>Tratamiento</span><strong>'+esc(s?s.name:'Sin tratamiento')+(minutes?' <small>'+esc(minutes)+'</small>':'')+'</strong></li>'
       +'<li><span>Atiende</span><strong>'+esc(p?p.display_name:'Sin asignar')+(p&&p.specialty?' <small>'+esc(p.specialty)+'</small>':'')+'</strong></li>'
       +'<li><span>Lugar</span><strong>'+esc([state.branches.length>1&&br?br.name:'',room?room.name:''].filter(Boolean).join(' · ')||(br?br.name:'Sin sillón'))+'</strong></li>'
-      +(billingInfo(a)?'<li class="sched-billing-row"><span>Cobro</span><strong>'+billingChip(a)+(['pending','due'].indexOf(state.billing[a.id].billing_state)>=0?' <button type="button" class="sched-ficha-minor" data-go-finance>Ir a Cobros</button>':'')+'</strong></li>':'')
+      +(billingInfo(a)?'<li class="sched-billing-row"><span>Cobro</span><strong>'+billingChip(a)+(['pending','no_show_pending','due'].indexOf(state.billing[a.id].billing_state)>=0?' <button type="button" class="sched-ficha-minor" data-go-finance>Ir a Cobros</button>':'')+'</strong></li>':'')
       +(state.canManage&&['confirmed','arrived','in_progress'].includes(a.status)?'<li class="sched-extra"><span>Tiempo</span><strong><span class="sched-extra-now">'+(a.extra_minutes?'+'+a.extra_minutes+' min extra':'Duración estándar')+'</span><span class="sched-extra-chips">'+[15,30,60].map(function(n){return '<button type="button" data-extra="'+n+'"'+((a.extra_minutes||0)+n>240?' disabled':'')+'>+'+n+'</button>';}).join('')+(a.extra_minutes?'<button type="button" data-extra="0">Quitar</button>':'')+'</span></strong></li>':'')
       +(a.notes?'<li class="is-note"><span>Nota</span><strong>'+esc(a.notes)+'</strong></li>':'')+'</ul>'
       +(reminders?'<ul class="sched-ficha-reminders" aria-label="Avisos programados">'+reminders+'</ul>':'')
