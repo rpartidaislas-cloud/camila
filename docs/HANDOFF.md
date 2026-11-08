@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude — Borrador de Aviso de privacidad y Términos del servicio
+
+- Páginas nuevas `privacidad.html` y `terminos.html` (estáticas, sin dependencias),
+  con copia en `mobile/www/`, y enlaces «Privacidad · Términos» bajo el login de
+  `app.html`. Se necesitan para verificar la marca del cliente OAuth de Google
+  (Google Cloud → Google Auth Platform → Información de la marca).
+- **Borrador, pendiente de revisión legal antes de publicar.** El contenido sale de
+  lo que el código hace hoy (proveedores de IA, Supabase, Stripe, Meta vía LANA,
+  Google Calendar con `calendar.events` y Gmail para propuestas), incluida la
+  declaración de uso limitado de datos de las API de Google.
+- Datos que el dueño debe confirmar: nombre legal y domicilio del responsable
+  (hoy «Dr. Hernán Partida Islas», tomado del pie de la app), plazos de
+  conservación, si hay lista de proveedores adicionales y la ley aplicable.
+- Dependencia abierta: la retención y el borrado de radiografías y registros de IA
+  siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
+  menciona de forma general.
+
 ## 2026-11-08 — Claude — «Continuar con Google» en el acceso de `app.html`
 
 - Botón «Continuar con Google» arriba del formulario de login (no en registro).
