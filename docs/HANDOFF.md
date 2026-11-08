@@ -1,5 +1,30 @@
 # Bitácora compartida — SMYL
 
+## REGLA PERMANENTE — Aviso de privacidad y herramientas que envían datos fuera de SMYL
+
+**Antes de fusionar o activar** cualquier cambio que haga que datos salgan de SMYL hacia un tercero, hay que
+actualizar `privacidad.html` (y su copia en `mobile/www/`) **en el mismo cambio**. Un aviso inexacto puede
+hacer que Google rechace la verificación de la marca y es una declaración falsa frente a pacientes.
+
+Cuenta como «datos que salen» y obliga a revisar el aviso:
+- Un proveedor nuevo o un cambio de proveedor: IA, mensajería, pagos, correo, calendario, monitoreo, almacenamiento.
+- Analítica, píxeles, mapas de calor, chat de soporte, fuentes o scripts externos que carguen en la app.
+- Activar un DSN o una clave que estaba apagada (ejemplo: Sentry, #95).
+- Enviar un dato nuevo a un proveedor que ya existe (por ejemplo, el nombre del paciente a la IA, o más campos a Sentry).
+- Permisos nuevos de Google (`calendar.events`, Gmail u otros): actualizar también la sección de Google y la
+  configuración OAuth en Google Cloud.
+- Activar funciones que hoy están apagadas y que el aviso declara apagadas: casos públicos de antes y después.
+- Cambiar plazos de conservación, la región de los datos o los respaldos.
+
+Qué revisar en `privacidad.html`: tabla de proveedores (quién, para qué, dónde), sección de datos que se tratan,
+sección 11 (rastreo y monitoreo), conservación y la fecha de «Última actualización». Si cambia algo que afecte los
+Términos, revisar también `terminos.html`.
+
+**Quién lo hace:** quien haga el cambio técnico, en el mismo PR. Una prueba o revisión de PR debería preguntar:
+«¿este cambio manda datos a un tercero que el aviso no menciona?». Estado de las promesas hoy: ver las entradas
+de «Aviso de privacidad y Términos» más abajo (pendientes: contrato clínica–SMYL, contrato con LANA, consentimiento
+por paciente, borrado automático del audio de MILA y evidencia de no entrenamiento de los proveedores de IA).
+
 ## 2026-11-08 — Claude: vigilante de congelamientos (Sentry + Worker)
 
 `smyl-freeze-watchdog.js` + `smyl-freeze-watchdog-worker.js`, cargados por `smyl-sentry.js` (v=3) sólo con DSN. Un Worker
