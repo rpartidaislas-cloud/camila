@@ -48,9 +48,8 @@ DSN del proyecto `smyl-web` (org `smyl-a5`, región EE. UU.) puesto en `smyl-sen
 - PUBLICADO el 7 nov 2026 (hora de México) sin la evidencia de no entrenamiento de IA, por decisión del
   dueño: el aviso dice «según las condiciones de sus cuentas». Se quitaron las leyendas de borrador.
   Sigue pendiente de revisión por un abogado antes de procesar datos clínicos reales.
-- Sentry: el código ya existe en `main` (PR #94, `smyl-sentry.js`) pero está DORMIDO (sin DSN no
-  descarga nada ni envía nada). El aviso dice que no hay monitoreo de terceros: eso es cierto SOLO mientras
-  el DSN siga vacío. **Antes de pegar un DSN hay que actualizar el aviso** (proveedor, qué se envía, región).
+- Sentry: ACTIVO desde #95 (DSN región EE. UU.). El aviso se actualizó para declararlo (sección 11 y tabla de
+  proveedores). Si cambia qué se envía, actualizar también esa sección.
 - (Histórico) Antes de publicar: quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
   fecha real de publicación,. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
   encargo y saber si puede usar conversaciones para sus propios modelos. Falta: evidencia de no entrenamiento
