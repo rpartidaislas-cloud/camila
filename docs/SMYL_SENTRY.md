@@ -47,3 +47,20 @@ solo manejadores globales, migas y transporte) para no depender de un CDN. Para 
 SmylSentry.capture(error, { area: 'radiografia' }); // errores que se atrapan pero conviene conocer
 SmylSentry.setContext({ userId, tenantId, role });   // ya lo llama app.html al iniciar sesión
 ```
+
+## Vigilante de congelamientos
+Sentry sólo ve errores con excepción; un bucle que bloquea la página (como el de la ficha del paciente de
+noviembre) no lanza ninguna. Por eso hay un vigilante en otro hilo:
+
+- `smyl-freeze-watchdog.js` (página) manda un latido cada segundo a `smyl-freeze-watchdog-worker.js` (Worker).
+  Además le pasa, sin texto: pantalla activa, último clic (`etiqueta#id.clase`) y **cuántos cambios de DOM por segundo**
+  hay y en qué contenedor. Un bucle de MutationObserver se delata con cientos de miles por segundo.
+- Si pasan **6 s sin latido con la pestaña visible**, el Worker envía por su cuenta un evento
+  "Página congelada (hilo principal bloqueado)" (`outcome: ongoing`). Cuando la página vuelve, manda otro
+  (`outcome: recovered`, con los segundos). Ambos quedan en el mismo issue: `smyl-freeze/<página>/<pantalla>`.
+  Si nunca aparece "recovered", la página no se recuperó (bucle infinito).
+- No avisa con la pestaña oculta ni tras suspender el equipo; máximo 3 avisos por carga y 30 s entre ellos.
+- Lista cerrada: el Worker sólo acepta nombres de pantalla/selectores con forma fija y números; no recibe texto.
+- Limitación: no puede dar la pila de llamadas del bloqueo (el hilo está ocupado). Con el contenedor y la tasa de
+  cambios se identifica el módulo; para la pila, abrir la pantalla con DevTools → Performance.
+- Prueba en navegador real: `NODE_PATH=$(npm root -g) node tests/qa/freeze-watchdog-smoke.cjs loop` (también `busy`, `hidden`, `idle`).

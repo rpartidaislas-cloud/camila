@@ -139,7 +139,7 @@ test('el DSN guardado en el código tiene forma de DSN de Sentry (o está vacío
 
 test('las pantallas cargan Sentry justo después de la protección de privacidad', () => {
   for (const file of ['app.html', 'index.html', 'simulacion.html', 'simulacion-rapida.html', 'editor-v2.html']) {
-    assert.match(read(file), /<script src="smyl-browser-privacy\.js\?v=1"><\/script>\n<script src="smyl-sentry\.js\?v=2"><\/script>/, `${file} no carga smyl-sentry.js`);
+    assert.match(read(file), /<script src="smyl-browser-privacy\.js\?v=1"><\/script>\n<script src="smyl-sentry\.js\?v=3"><\/script>/, `${file} no carga smyl-sentry.js`);
   }
 });
 
@@ -151,7 +151,7 @@ test('app.html pasa sólo identificadores opacos a Sentry', () => {
 
 test('el service worker precachea Sentry y no intercepta el envío de eventos', () => {
   const sw = read('sw.js');
-  assert.match(sw, /'\/camila\/smyl-sentry\.js\?v=2'/);
+  assert.match(sw, /'\/camila\/smyl-sentry\.js\?v=3'/);
   assert.match(sw, /'\/camila\/vendor\/sentry-browser-10\.78\.0\.min\.js\?v=1'/);
   assert.match(sw, /url\.includes\('sentry\.io'\)/);
 });

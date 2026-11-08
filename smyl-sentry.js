@@ -15,6 +15,7 @@
     dsn: 'https://7dc513205b42f8422ecdff466f07011c@o4512394436083712.ingest.us.sentry.io/4512394468786176',
     release: 'smyl-web@2026-11-08',
     library: 'vendor/sentry-browser-10.78.0.min.js?v=1',
+    watchdog: 'smyl-freeze-watchdog.js?v=1',
     maxEventsPerPage: 30,
     dedupeMs: 60000,
     maxDepth: 8
@@ -184,6 +185,7 @@
 
   // Errores ocurridos mientras se descarga la librería: se guardan unos pocos y se reenvían.
   function onEarlyError(ev) {
+    if (ev.target && ev.target !== window) return; // fallo de carga de una imagen o script, no un error de código
     if (state.buffer.length < 10) state.buffer.push(ev.error instanceof Error ? ev.error : new Error(String(ev.message || 'error')));
   }
   function onEarlyRejection(ev) {
@@ -199,6 +201,18 @@
     script.onload = startLibrary;
     script.onerror = function () { state.enabled = false; };
     (document.head || document.documentElement).appendChild(script);
+  }
+
+  // El vigilante de congelamientos se descarga al terminar de cargar la página para no competir con ella.
+  function loadFreezeWatchdog() {
+    function inject() {
+      var script = document.createElement('script');
+      script.src = CONFIG.watchdog;
+      script.async = true;
+      (document.head || document.documentElement).appendChild(script);
+    }
+    if (document.readyState === 'complete') inject();
+    else window.addEventListener('load', function () { setTimeout(inject, 0); });
   }
 
   // ── API pública ──────────────────────────────────────────────────────
@@ -241,6 +255,22 @@
       l.captureException(new Error('Prueba de Sentry desde SMYL'));
       return true;
     },
+    // Datos que necesita el vigilante de congelamientos (corre en un Worker y envía por su cuenta).
+    config: function () {
+      var m = /^https:\/\/([0-9a-f]+)@([^\/]+)\/(\d+)$/i.exec(dsn || '');
+      if (!m) return null;
+      return {
+        endpoint: 'https://' + m[2] + '/api/' + m[3] + '/envelope/?sentry_key=' + m[1] + '&sentry_version=7',
+        dsn: dsn,
+        release: CONFIG.release,
+        environment: environment(),
+        platform: window.Capacitor ? 'capacitor' : 'web',
+        page: String(location.pathname).split('/').pop() || 'index',
+        userId: state.context.userId || '',
+        clinic: (state.context.tags || {}).clinic || '',
+        role: (state.context.tags || {}).role || ''
+      };
+    },
     flush: function () { var l = lib(); return l ? l.flush(2000) : Promise.resolve(false); },
     _scrubText: scrubText,
     _scrubEvent: scrubEvent,
@@ -251,5 +281,8 @@
 
   if (!dsn) return;
   state.enabled = true;
-  if (typeof document !== 'undefined') loadLibrary();
+  if (typeof document !== 'undefined') {
+    loadLibrary();
+    loadFreezeWatchdog();
+  }
 })();
