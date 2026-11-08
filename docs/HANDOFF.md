@@ -18,8 +18,17 @@
   las clínicas; contratos y no entrenamiento con Google (Gemini); clasificar proveedores
   como encargado o tercero; decidir si se anonimiza antes de enviar a IA; verificar
   «cifrado en reposo» y la huella de integridad antes de afirmarlos.
-- **Por confirmar con el dueño:** unidades de retención (se asumieron años), 2 años de
-  facturación frente al plazo fiscal, y si LANA lo opera un tercero (se declaró así).
+- Tercera iteración (tras segunda revisión externa): se quitó la afirmación de que ya
+  existe un contrato de tratamiento; se retiró la promesa de no entrenamiento de Google;
+  retención corregida (fiscal 5 años, respaldos 90 días, audio 90 días, cuenta cancelada
+  con eliminación tras 30 días); plazos ARCO de 20 y 15 días y responsable de privacidad;
+  se quitó la promesa discrecional de créditos por interrupción.
+- **Antes de publicar:** quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
+  fecha real de publicación, y comprobar que «respaldos de hasta 90 días» sea cierto con el
+  plan de Supabase. Falta: razón social del operador de LANA, evidencia de no entrenamiento
+  con OpenAI/Anthropic, tipo de cuenta de Gemini, dónde están Analytics, Pixel y Sentry, y si
+  los casos públicos están visibles. El audio de MILA sí se guarda en el bucket privado
+  `mila-audio`: falta un borrado automático a 90 días.
 - Dependencia abierta: la retención y el borrado de radiografías y registros de IA
   siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
   menciona de forma general.

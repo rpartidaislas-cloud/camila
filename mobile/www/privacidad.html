@@ -42,7 +42,7 @@ footer{max-width:820px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font
 
 <h2>1. Quién es responsable y quién es encargado</h2>
 <p><strong>Emanuel Hernán Partida Islas</strong>, con domicilio en Prol. Av. Guadalupe 2574, Local 5, Arenales Tapatíos, C.P. 45066, Zapopan, Jalisco (en adelante, «SMYL»), es responsable del tratamiento de los datos necesarios para crear y administrar las cuentas de SMYL, gestionar la relación contractual, la facturación, el soporte, la seguridad y el cumplimiento legal.</p>
-<div class="box"><strong>Los datos de pacientes son responsabilidad de cada clínica.</strong> Respecto de los datos personales de pacientes incorporados por una clínica, la clínica identificada en su propio aviso de privacidad es la responsable, y SMYL actúa únicamente como persona encargada, conforme a sus instrucciones y al contrato de tratamiento de datos celebrado con ella. <strong>Este aviso no sustituye el aviso de privacidad que cada clínica debe poner a disposición de sus pacientes.</strong></div>
+<div class="box"><strong>Los datos de pacientes son responsabilidad de cada clínica.</strong> Respecto de los datos personales de pacientes incorporados por una clínica, la clínica identificada en su propio aviso de privacidad es la responsable, y SMYL actúa únicamente como persona encargada, conforme a las instrucciones de la clínica. Antes de habilitar el tratamiento de datos clínicos en producción, SMYL y la clínica deberán formalizar el contrato de tratamiento de datos correspondiente. <strong>Este aviso no sustituye el aviso de privacidad que cada clínica debe poner a disposición de sus pacientes.</strong></div>
 
 <h2>2. Qué datos tratamos</h2>
 <table>
@@ -64,7 +64,7 @@ footer{max-width:820px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font
 <li>Cumplir obligaciones legales.</li>
 </ul>
 <p><strong>Finalidades secundarias:</strong> actualmente SMYL no trata datos personales para finalidades secundarias ni para publicidad de terceros, y no vende datos personales. Si esto cambia, te lo informaremos y podrás negarte antes de que se use tu información para esa finalidad.</p>
-<p><strong>Imágenes con fines públicos.</strong> El uso de fotografías para perfiles públicos, casos de antes y después, testimonios, educación o promoción requiere una autorización <strong>independiente y por escrito</strong> de la persona titular, y puede negarse sin afectar la atención dental.</p>
+<p><strong>Imágenes con fines públicos.</strong> El uso de fotografías para perfiles públicos, casos de antes y después, testimonios, educación o promoción requiere una autorización <strong>independiente y por escrito</strong> de la persona titular, que identifique las imágenes autorizadas, la finalidad, los canales y el plazo de publicación, si aparecerán rostro, boca u otros elementos identificables, y su derecho a retirarla hacia el futuro. Puede negarse sin afectar la atención dental. Nunca se publican nombre, expediente ni metadatos del paciente, y no se publica ningún caso hasta que la autorización firmada esté asociada a él y la clínica lo apruebe.</p>
 
 <h2>4. Consentimiento para datos sensibles</h2>
 <p>La clínica responsable deberá obtener y conservar el consentimiento expreso y por escrito, o mediante un mecanismo electrónico de autenticación, de la persona titular o de su representante legal para tratar sus datos de salud, fotografías clínicas, radiografías y voz, salvo que resulte aplicable una excepción prevista por la ley.</p>
@@ -79,26 +79,26 @@ footer{max-width:820px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font
 <table>
 <tr><th>Proveedor</th><th>Para qué</th><th>Ubicación</th></tr>
 <tr><td>Supabase</td><td>Base de datos, autenticación y almacenamiento de archivos de SMYL.</td><td>Estados Unidos (región us-east-2)</td></tr>
-<tr><td>OpenAI y Anthropic</td><td>Análisis de fotos y radiografías, simulaciones, transcripción de voz y redacción asistida, mediante cuentas de tipo API o empresariales, sin uso de los datos para entrenar modelos.</td><td>Estados Unidos y otras regiones del proveedor</td></tr>
-<tr><td>Google (modelos de IA)</td><td>Redacción asistida y análisis, según la función solicitada.</td><td>Estados Unidos y otras regiones del proveedor</td></tr>
+<tr><td>OpenAI y Anthropic</td><td>Análisis de fotos y radiografías, transcripción de voz y redacción asistida, mediante cuentas de tipo API o empresariales, cuyas condiciones indican que no usan esos datos para entrenar sus modelos.</td><td>Estados Unidos y otras regiones del proveedor</td></tr>
+<tr><td>Google (modelos de imagen)</td><td>Generación de simulaciones de sonrisa a partir de la fotografía que la clínica carga.</td><td>Estados Unidos y otras regiones del proveedor</td></tr>
 <tr><td>Meta (WhatsApp, Messenger, Instagram) y el motor de mensajería LANA</td><td>Mensajería con pacientes en los canales que la clínica conecta. LANA es operado por un tercero que actúa por cuenta de SMYL.</td><td>Según cada proveedor</td></tr>
 <tr><td>Stripe</td><td>Cobro de la suscripción y de consumibles de SMYL a la clínica. SMYL no procesa pagos de pacientes a clínicas ni guarda números de tarjeta.</td><td>Estados Unidos y otras regiones del proveedor</td></tr>
 <tr><td>Google (Calendar)</td><td>Solo si la clínica lo conecta.</td><td>Estados Unidos y otras regiones del proveedor</td></tr>
 </table>
-<p>Cuando se envían datos a funciones de IA, SMYL procura enviar solo lo necesario y, cuando es posible, sin nombre ni datos de contacto del paciente. Cuando un proveedor use datos para finalidades propias, se tratará como una transferencia y se informará y, si la ley lo exige, se obtendrá el consentimiento.</p>
+<p>SMYL usa servicios de inteligencia artificial únicamente mediante las cuentas y configuraciones documentadas para cada proveedor, y no afirma que un proveedor excluya el entrenamiento de sus modelos mientras esa condición no esté confirmada. Cuando se envían datos a funciones de IA, SMYL procura enviar solo lo necesario y, cuando es posible, sin nombre ni datos de contacto del paciente. Cuando un proveedor use datos para finalidades propias, se tratará como una transferencia y se informará y, si la ley lo exige, se obtendrá el consentimiento.</p>
 <p>Cada clínica ve únicamente la información de su propia organización. También podemos divulgar información cuando una autoridad competente lo exija conforme a la ley.</p>
 
 <h2>7. Conservación</h2>
 <table>
 <tr><th>Tipo de dato</th><th>Plazo</th></tr>
-<tr><td>Expediente clínico y notas</td><td>5 años desde la última atención</td></tr>
-<tr><td>Fotografías, radiografías y simulaciones</td><td>5 años</td></tr>
-<tr><td>Mensajes con pacientes</td><td>3 años</td></tr>
-<tr><td>Grabaciones y transcripciones de voz</td><td>2 años</td></tr>
+<tr><td>Expediente clínico y notas, y las fotografías, radiografías, mensajes clínicamente relevantes y transcripciones aprobadas que lo integren</td><td>Mínimo 5 años desde el último acto médico</td></tr>
+<tr><td>Simulaciones no incorporadas al expediente</td><td>2 años, o hasta el cierre del caso si es antes</td></tr>
+<tr><td>Mensajes administrativos con pacientes</td><td>3 años</td></tr>
+<tr><td>Audio de voz grabado para elaborar notas clínicas</td><td>Hasta 90 días, o hasta que el profesional apruebe la nota, lo que ocurra primero</td></tr>
 <tr><td>Registros de auditoría y seguridad</td><td>2 años</td></tr>
-<tr><td>Facturación y pagos de la suscripción</td><td>2 años, o el plazo mayor que exija la ley fiscal</td></tr>
-<tr><td>Respaldos</td><td>2 años</td></tr>
-<tr><td>Cuenta cancelada</td><td>1 año, durante el cual la clínica puede exportar sus datos por 30 días tras la cancelación</td></tr>
+<tr><td>Facturación y pagos de la suscripción</td><td>5 años, o el plazo mayor que establezcan las disposiciones fiscales</td></tr>
+<tr><td>Respaldos operativos</td><td>Rotación en ciclos de hasta 90 días</td></tr>
+<tr><td>Cuenta cancelada</td><td>La clínica puede exportar sus datos durante 30 días; después se eliminan los datos operativos y solo se conserva lo sujeto a una obligación legal, bloqueo o defensa de derechos</td></tr>
 </table>
 <p>Estos plazos pueden ampliarse cuando una obligación legal, una orden de autoridad o la defensa de un derecho así lo requiera, y los datos pueden quedar bloqueados antes de su eliminación definitiva.</p>
 
@@ -115,6 +115,7 @@ footer{max-width:820px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font
 </ul>
 <p><strong>Si eres paciente,</strong> las solicitudes sobre tu expediente deben dirigirse a la clínica responsable identificada en su aviso de privacidad. SMYL atenderá las instrucciones verificadas de la clínica como persona encargada.</p>
 <p><strong>Si eres personal o titular de una clínica,</strong> las solicitudes sobre tu cuenta de SMYL pueden enviarse a <a href="mailto:contacto@smyldesign.ai">contacto@smyldesign.ai</a>. Responderemos en los plazos que marca la ley.</p>
+<p>Comunicaremos la determinación adoptada dentro de los <strong>20 días</strong> siguientes a la recepción de una solicitud completa. Si resulta procedente, la haremos efectiva dentro de los <strong>15 días</strong> siguientes a la comunicación de la respuesta, sin perjuicio de las ampliaciones que permita la ley. La persona responsable de tramitar estas solicitudes es el <strong>Responsable de privacidad de SMYL</strong>, Emanuel Hernán Partida Islas, en <a href="mailto:contacto@smyldesign.ai">contacto@smyldesign.ai</a> o en el domicilio indicado en la sección 1.</p>
 <p>La revocación no tiene efectos retroactivos y puede estar sujeta a conservación obligatoria, bloqueo o excepciones legales.</p>
 
 <h2>10. Menores de edad</h2>
