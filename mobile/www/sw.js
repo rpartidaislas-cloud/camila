@@ -1,6 +1,6 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
-const CACHE_VERSION = 'smyl-v265-professional-payment-flow-sentry-v1-legal-v95';
+const CACHE_VERSION = 'smyl-v267-guided-collection-sentry-v1-legal-v96';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const DYNAMIC_CACHE = CACHE_VERSION + '-dynamic';
 
@@ -98,7 +98,7 @@ const STATIC_FILES = [
   '/camila/smyl-public-profile.css?v=1',
   '/camila/dentista.html',
   '/camila/resena.html',
-  '/camila/smyl-dialog-system.js?v=2',
+  '/camila/smyl-dialog-system.js?v=3',
   '/camila/smyl-dialog-system.css?v=2',
   '/camila/smyl-schedule-grid.js?v=2',
   '/camila/smyl-schedule-slots.js?v=1',
@@ -121,8 +121,8 @@ const STATIC_FILES = [
   '/camila/smyl-service-catalog-stage1.css?v=1',
   '/camila/smyl-inventory.js?v=8',
   '/camila/smyl-inventory.css?v=7',
-  '/camila/smyl-finance.js?v=17',
-  '/camila/smyl-finance.css?v=13',
+  '/camila/smyl-finance.js?v=18',
+  '/camila/smyl-finance.css?v=14',
   '/camila/smyl-reports.js?v=4',
   '/camila/smyl-reports.css?v=5',
   '/camila/smyl-readiness.js?v=1',

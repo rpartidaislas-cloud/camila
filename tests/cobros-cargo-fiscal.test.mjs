@@ -44,7 +44,7 @@ test('facturable sólo con servicio revisado, clave SAT y política de IVA defin
   assert.equal(calc.chargeInvoiceable(null), false);
 });
 
-test('la ventana: errores dentro, citas del paciente, sucursal automática, vencimiento rápido y «Registrar y cobrar ahora» (web y móvil)', () => {
+test('la ventana: errores dentro, citas del paciente, sucursal automática, vencimiento rápido y continuidad al pago (web y móvil)', () => {
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /data-form-error hidden/);
@@ -53,7 +53,7 @@ test('la ventana: errores dentro, citas del paciente, sucursal automática, venc
     assert.match(f, /branches\.length<=1\?' hidden':''/);
     assert.match(f, /data-due="0">Hoy<\/button><button type="button" data-due="15">15 días/);
     assert.match(f, /Sin fecha: nunca aparecerá como vencido ni en «Por cobrar hoy»\./);
-    assert.match(f, /data-mode="pay">Registrar y cobrar ahora<\/button>/);
+    assert.match(f, /data-mode="pay">Guardar y continuar al pago<\/button>/);
     assert.match(f, /if\(mode==='pay'&&state\.canManage\)openPayment\(pid\)/);
     assert.match(f, /p_tax_amount:m\.autoTax\?0:m\.tax/);
     assert.match(f, /select\('id,name,reference_price,fiscal_status,sat_product_service_code,tax_treatment,tax_rate'\)/);
@@ -80,8 +80,8 @@ test('buscador de pacientes en «Registrar cargo» y «Registrar pago», con bú
     assert.match(f, /function mountPatientPicker\(f\)\{/);
     assert.match(f, /window\.sb\.rpc\('smyl_search_patients',\{p_tenant_id:state\.tenant,p_query:query,p_limit:8\}\)/);
     assert.match(f, /show\(Array\.isArray\(rows\)\?rows:local\(query\),query\)/);
-    assert.match(f, /mode='pay';mountPatientPicker\(f\);/);
-    assert.match(f, /f=d\.querySelector\('form'\);mountPatientPicker\(f\);/);
+    assert.match(f, /mode=options\.mode==='charge'\?'charge':'pay';mountPatientPicker\(f\);/);
+    assert.match(f, /allocationMode=options\.mode==='advance'\?'advance':'debt';mountPatientPicker\(f\);/);
     assert.match(f, /function openCharges\(\)/);
     assert.match(f, /input\.setCustomValidity\('Elige al paciente de la lista\.'\)/);
   }
