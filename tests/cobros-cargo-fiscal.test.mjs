@@ -52,7 +52,7 @@ test('la ventana: errores dentro, citas del paciente, sucursal automática, venc
     assert.match(f, /a\.patient_id===pid&&a\.status!=='cancelled'/);
     assert.match(f, /branches\.length<=1\?' hidden':''/);
     assert.match(f, /data-due="0">Hoy<\/button><button type="button" data-due="15">15 días/);
-    assert.match(f, /Sin fecha: nunca aparecerá como vencido ni en «Por cobrar hoy»\./);
+    assert.match(f, /Sin fecha: nunca aparecerá como vencido ni en «Vencidas»\./);
     assert.match(f, /data-mode="pay">Guardar y continuar al pago<\/button>/);
     assert.match(f, /if\(mode==='pay'&&state\.canManage\)openPayment\(pid\)/);
     assert.match(f, /p_tax_amount:m\.autoTax\?0:m\.tax/);

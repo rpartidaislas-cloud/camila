@@ -34,7 +34,6 @@ test('Finanzas normaliza objetivos táctiles, estados, tablas y foco', () => {
   assert.match(finance, /\.finance-notice\{min-height:50px/);
   assert.match(finance, /\.finance-row-head\{min-height:42px;font-size:12px/);
   assert.match(finance, /\.finance-tabs button\{flex:0 0 auto;min-height:42px/);
-  assert.match(finance, /\.finance-focus-list span,[^{]+\{font-size:12px/);
   assert.match(finance, /\.finance-payment-check-head span,[^{]+\{font-size:12px/);
   assert.match(finance, /@media screen and \(max-width:720px\)[\s\S]*?min-height:44px/);
   assert.match(finance, /\.finance-tabs\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);width:100%;overflow:visible\}/);

@@ -166,11 +166,13 @@ test('el chat no toca tablas ni el tenant: usa SmylFinance.contactContext', () =
   for (const base of ['', 'mobile/www/']) assert.doesNotMatch(read(base + 'smyl-inbox.js'), /tenant_id|window\.tenantId|smyl_collection_(prefs|reminders)'\)/);
 });
 
-test('Cobros: pestaña «Por cobrar hoy» sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
+test('Cobros: filtro «Vencidas» de Por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
-    assert.match(f, /<button data-finance-tab="today">Por cobrar hoy<\/button><button data-finance-tab="accounts"/);
-    assert.match(f, /<section data-finance-panel="today" hidden>/);
+    assert.match(f, /<button data-finance-tab="accounts" aria-selected="true">Por cobrar<em hidden><\/em><\/button>/);
+    assert.doesNotMatch(f, /data-finance-tab="today"/);
+    assert.match(f, /data-account-filter="overdue">Vencidas/);
+    assert.match(f, /<div id="finance-today" hidden><\/div>/);
     assert.match(f, /window\.SmylInbox\.collect\(l\.conversation\)/);
     assert.match(f, /from\('smyl_collection_reminders'\)/);
     assert.match(f, /from\('smyl_collection_prefs'\)/);

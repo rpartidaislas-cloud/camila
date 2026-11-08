@@ -26,7 +26,7 @@
   .finance-page *{box-sizing:border-box;min-width:0}
   .finance-head{align-items:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #dfe7ef}
   .finance-head>div:first-child{max-width:780px}
-  .finance-head .pro-eyebrow,.finance-focus-head span,.finance-account-head>div:first-child>span{font-size:12px;line-height:1.35;letter-spacing:.08em}
+  .finance-head .pro-eyebrow,.finance-account-head>div:first-child>span{font-size:12px;line-height:1.35;letter-spacing:.08em}
   .finance-head h1{font-size:clamp(26px,2.2vw,32px);line-height:1.12;margin:7px 0 8px}
   .finance-head p{font-size:14px;line-height:1.55}
   .finance-head-actions{justify-content:flex-end;max-width:520px}
@@ -80,14 +80,6 @@
   .finance-account-progress>span,.finance-account-progress small{font-size:12px;line-height:1.35}
   .finance-account-progress i,.finance-account-ledger i{height:6px}
 
-  .finance-focus{margin:18px 0;border-radius:16px;box-shadow:0 5px 18px rgba(26,47,79,.04)}
-  .finance-focus-head{padding:20px 22px}
-  .finance-focus-head h2{font-size:20px;line-height:1.25}
-  .finance-focus-head p{font-size:13px;line-height:1.5}
-  .finance-focus-head button,.finance-focus-list button{min-height:42px;font-size:13px}
-  .finance-focus-list article{min-height:68px;padding:14px 22px}
-  .finance-focus-list span,.finance-focus-list strong,.finance-focus-list small,.finance-focus-empty{font-size:12px;line-height:1.4}
-  .finance-focus-empty{min-height:58px;padding:14px 22px}
 
   .finance-form-grid{gap:16px}
   .finance-form-grid label{gap:7px;font-size:12px;line-height:1.4}
@@ -144,9 +136,6 @@
   .finance-row button{min-width:88px}
   .finance-ledger article{grid-template-columns:42px minmax(0,1fr)}
   .finance-ledger aside{grid-column:2;text-align:left}
-  .finance-focus-head{padding:18px}
-  .finance-focus-head button,.finance-focus-list button{min-height:44px}
-  .finance-focus-list article{padding:15px 18px}
   .finance-payment-summary{grid-template-columns:1fr 1fr}
   .finance-dialog form{padding:22px 18px}
 }
@@ -516,3 +505,27 @@
 @media(prefers-reduced-motion:reduce){
   .finance-dialog .finance-guide-choice [data-guide-path]{transition:none}
 }
+
+/* Cobros v2 · una sola lista «Por cobrar», cifras como accesos directos y franja de aviso (maqueta 2026-11-08). */
+.finance-alert-host{margin:14px 0 0}
+.finance-alert-host[hidden]{display:none}
+.finance-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 14px;border:1px solid #d3e0e9;border-radius:12px;background:#fff}
+.finance-alert[data-tone=danger]{border-color:#efcdc6;background:#fdf3f1}
+.finance-alert[data-tone=warning]{border-color:#efdcae;background:#fff9ea}
+.finance-alert[data-tone=credit]{border-color:#bfe0da;background:#f1faf8}
+.finance-alert p{margin:0;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:13px;line-height:1.4;color:#33475c}
+.finance-alert p strong{color:#12233f;font-size:14px}
+.finance-alert button{flex:none;white-space:nowrap}
+.finance-metrics article[role=button]{cursor:pointer;transition:border-color 150ms ease,box-shadow 150ms ease,transform 150ms ease}
+.finance-metrics article[role=button]:hover{border-color:#8fc7c0;box-shadow:0 6px 18px rgba(18,70,80,.09)}
+.finance-metrics article[role=button]:focus-visible{outline:3px solid rgba(51,125,129,.35);outline-offset:2px}
+.finance-metrics article[role=button] span{display:flex;justify-content:space-between;gap:8px}
+.finance-metrics article[role=button] span i{font-style:normal;color:#0f766e;font-weight:700;opacity:.55;transition:opacity 150ms ease,transform 150ms ease}
+.finance-metrics article[role=button]:is(:hover,:focus-visible) span i{opacity:1;transform:translateX(2px)}
+.finance-tabs button em,.finance-account-filters button em{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;padding:0 6px;border-radius:99px;background:rgba(18,35,63,.09);color:inherit;font-size:12px;font-style:normal;font-weight:700;line-height:1}
+.finance-tabs button em{background:#fde8c8;color:#8a4b00}
+.finance-tabs button em[hidden]{display:none}
+.finance-account-filters button[aria-pressed=true] em{background:rgba(255,255,255,.22)}
+.finance-list-summary{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:4px 0 14px;flex-wrap:wrap}
+.finance-list-summary small{display:block;margin-top:4px;color:var(--color-text-tertiary,#6b7a8c);max-width:60ch}
+@media(max-width:620px){.finance-alert{align-items:flex-start;flex-direction:column}.finance-alert button{width:100%}}
