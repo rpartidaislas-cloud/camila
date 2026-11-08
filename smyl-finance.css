@@ -208,3 +208,54 @@
 .finance-patient-results li small{color:var(--color-text-tertiary,#6b7a8c)}
 .finance-patient-results li:hover,.finance-patient-results li[aria-selected="true"]{background:#eef3f9}
 .finance-patient-results .finance-patient-empty{cursor:default;color:var(--color-text-tertiary,#6b7a8c)}
+
+/* Registro de pago profesional · captura progresiva, compacta y auditable */
+.finance-dialog:has(.finance-payment-form){width:min(1040px,calc(100vw - 32px));max-height:min(900px,calc(100vh - 28px));overflow:auto;background:#f7f9fb}
+.finance-payment-form{padding:0!important;color:#13283f}
+.finance-payment-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:22px 24px 18px;background:#0d2138;color:#fff;border-radius:20px 20px 0 0}
+.finance-payment-head span{display:block;color:#70d6ca;font-size:11px;font-weight:800;letter-spacing:.11em}
+.finance-payment-head h2{margin:4px 0!important;color:#fff;font-size:24px!important}
+.finance-payment-head p{margin:0;color:#b9c7d6;font-size:13px}
+.finance-payment-head>button{width:38px;min-width:38px;min-height:38px;padding:0;border:1px solid #ffffff33;border-radius:10px;background:#ffffff0d;color:#fff;font-size:22px}
+.finance-payment-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:0}
+.finance-payment-main{display:grid;gap:16px;padding:22px 24px;border-right:1px solid #dce5ed;background:#fff}
+.finance-payment-aside{display:flex;flex-direction:column;gap:16px;padding:22px;background:#f5f8fa}
+.finance-payment-aside>label,.finance-payment-search{display:grid;gap:7px;color:#4d6178;font-size:12px;font-weight:700}
+.finance-payment-aside select{width:100%;min-height:42px;border:1px solid #cad6e2;border-radius:10px;background:#fff;padding:9px 11px;color:#172b47}
+.finance-payment-patient-empty{display:flex;align-items:center;gap:10px;min-height:66px;padding:12px;border:1px dashed #cad7e3;border-radius:13px;color:#68798d;background:#f8fafc}
+.finance-payment-patient-empty span,.finance-payment-section-head>span{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:9px;background:#dff4f0;color:#197468;font-size:12px;font-weight:800}
+.finance-payment-patient-empty p{margin:0;font-size:13px}
+.finance-payment-person{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #d9e5e1;border-radius:14px;background:#f3faf7}
+.finance-payment-person>span{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:13px;background:#d6eee7;color:#206e61;font-weight:800}
+.finance-payment-person small{display:block;color:#5e7f77;font-size:9px;font-weight:800;letter-spacing:.09em}
+.finance-payment-person strong{display:block;margin-top:2px;font-size:15px}.finance-payment-person p{margin:2px 0 0;color:#6c7b8a;font-size:11px}
+[data-payment-patient]>dl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 0}
+[data-payment-patient]>dl div{padding:9px 11px;border:1px solid #e0e7ed;border-radius:10px;background:#fff}
+[data-payment-patient] dt{color:#718092;font-size:9px;text-transform:uppercase}[data-payment-patient] dd{margin:4px 0 0;font-size:13px;font-weight:800}
+.finance-payment-section{display:grid;gap:12px;padding-top:16px;border-top:1px solid #e4eaf0}
+.finance-payment-section-head{display:flex;align-items:center;gap:10px}.finance-payment-section-head strong{display:block;font-size:14px}.finance-payment-section-head small{display:block;margin-top:2px;color:#758397;font-size:11px}
+.finance-payment-quick{display:flex;gap:7px;flex-wrap:wrap}.finance-payment-quick:empty{display:none}
+.finance-payment-quick button{min-height:34px!important;padding:6px 11px!important;border:1px solid #cbd9e4;border-radius:999px!important;background:#fff;color:#294a64;font-size:11px!important}
+.finance-payment-quick button:first-child{border-color:#78cfc4;background:#e8f7f4;color:#17685e}
+.finance-payment-amount{display:grid;gap:6px;color:#4d6178;font-size:12px;font-weight:700}
+.finance-payment-amount>span{display:flex;align-items:center;max-width:250px;border:1px solid #bfcfdd;border-radius:11px;background:#fff;overflow:hidden}
+.finance-payment-amount b{padding:0 0 0 12px;color:#60758b;font-size:18px}.finance-payment-amount input{border:0!important;box-shadow:none!important;font-size:20px!important;font-weight:800}
+.finance-payment-methods{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.finance-payment-methods button{min-height:38px!important;padding:6px!important;border:1px solid #d4dee8;background:#fff;color:#5d6e82;font-size:11px!important}
+.finance-payment-methods button[aria-pressed=true]{border-color:#207c72;background:#e6f5f2;color:#176c63;box-shadow:inset 0 0 0 1px #207c72}
+.finance-method-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;border:1px solid #e0e7ee;border-radius:12px;background:#f8fafc}
+.finance-method-fields[hidden]{display:none}.finance-method-fields label{display:grid;gap:5px;color:#576a7f;font-size:11px;font-weight:700}.finance-method-fields label:last-child:nth-child(3){grid-column:1/-1}
+.finance-method-fields input{width:100%;min-height:40px;border:1px solid #cad5e1;border-radius:9px;background:#fff;padding:8px 10px;color:#172b47}
+.finance-payment-open-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.finance-payment-open-head strong{display:block;font-size:14px}.finance-payment-open-head small{display:block;color:#768597;font-size:11px}.finance-payment-open-head>span{padding:4px 8px;border-radius:999px;background:#e8eef4;color:#607085;font-size:10px;font-weight:700}
+.finance-payment-charges{margin-top:10px}.finance-payment-charges>div{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:9px;align-items:center;padding:10px 0;border-top:1px solid #e2e9ef}.finance-payment-charges>div:first-child{border-top:0}
+.finance-payment-charges>div>label{display:flex;align-items:flex-start;gap:9px;padding:0;border:0;background:none}.finance-payment-charges>div>label input{flex:0 0 auto;margin-top:2px}.finance-payment-charges strong{font-size:12px}.finance-payment-charges small{font-size:10px!important}
+.finance-allocation-input{display:flex;align-items:center;border:1px solid #cad6e1;border-radius:9px;background:#fff;overflow:hidden}.finance-allocation-input b{padding-left:8px;color:#6b7a8c;font-size:11px}.finance-allocation-input input{width:100%;min-height:38px;border:0;background:transparent;padding:6px;font-size:12px;text-align:right}
+.finance-payment-credit{padding:14px;border:1px dashed #c8d6e1;border-radius:12px;background:#fff}.finance-payment-credit strong{font-size:13px}.finance-payment-credit p{margin:4px 0 0;color:#718092;font-size:11px;line-height:1.45}
+.finance-payment-check{margin-top:auto;padding:14px!important;border-color:#c8ddd8!important;background:#eef8f5!important}
+.finance-payment-check[data-ready=false]{border-color:#e3cbb4!important;background:#fff7ec!important}
+.finance-payment-ready{display:grid;grid-template-columns:1fr auto;gap:3px 12px;align-items:center}.finance-payment-ready span{color:#55766e;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.finance-payment-ready strong{font-size:13px}.finance-payment-ready i{grid-column:2;grid-row:1/3;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#d4ebe3;color:#21705e;font-style:normal;font-weight:800}
+.finance-payment-check[data-ready=false] .finance-payment-ready i{background:#f4e1c7;color:#98632f}.finance-payment-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}.finance-payment-totals div{padding:8px;border:1px solid #d6e4df;border-radius:9px;background:#ffffffc7}.finance-payment-totals span{display:block;color:#71817c;font-size:9px}.finance-payment-totals strong{display:block;margin-top:3px;font-size:12px}.finance-payment-check>p{font-size:10px!important}.finance-payment-check>ul{font-size:10px!important}
+.finance-payment-footer{position:sticky;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-top:1px solid #dbe3eb;background:#fff;box-shadow:0 -8px 24px #152d4510}.finance-payment-footer p{margin:0;color:#708094;font-size:11px}.finance-payment-footer>div{display:flex;gap:8px}
+.finance-payment-success{display:grid;justify-items:center;padding:36px 30px 30px;text-align:center}.finance-success-mark{display:grid;place-items:center;width:58px;height:58px;border-radius:18px;background:#dff3eb;color:#16705c;font-size:28px}.finance-payment-success>span{margin-top:14px;color:#3d7f70;font-size:10px;font-weight:800;letter-spacing:.11em}.finance-payment-success h2{margin:5px 0!important;font-size:34px!important}.finance-payment-success>p{margin:0;color:#66788d}.finance-payment-success dl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin:22px 0 14px}.finance-payment-success dl div{padding:11px;border:1px solid #e0e7ee;border-radius:11px;background:#f8fafc}.finance-payment-success dt{color:#758397;font-size:9px;text-transform:uppercase}.finance-payment-success dd{margin:4px 0 0;font-size:13px;font-weight:800}.finance-success-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}.finance-payment-success>small{max-width:460px;color:#778598;font-size:10px}.finance-payment-success>[data-close]{margin-top:22px;min-width:180px}
+@media(max-width:760px){.finance-dialog:has(.finance-payment-form){width:100%;max-width:none;max-height:100dvh;height:100dvh;margin:0;border-radius:0}.finance-payment-head{position:sticky;top:0;z-index:4;border-radius:0;padding:16px 18px}.finance-payment-layout{grid-template-columns:1fr}.finance-payment-main{padding:18px;border-right:0}.finance-payment-aside{padding:18px;border-top:1px solid #dce5ed}.finance-payment-methods{grid-template-columns:repeat(3,1fr)}.finance-payment-footer{display:grid;padding:12px 16px}.finance-payment-footer p{display:none}.finance-payment-footer>div{display:grid;grid-template-columns:1fr 1.5fr}.finance-payment-success{padding:28px 18px}.finance-payment-success dl{grid-template-columns:1fr}.finance-success-actions{display:grid;width:100%}.finance-success-actions button{width:100%}}
+@media(max-width:420px){[data-payment-patient]>dl{grid-template-columns:1fr 1fr}.finance-method-fields{grid-template-columns:1fr}.finance-method-fields label:last-child:nth-child(3){grid-column:auto}.finance-payment-charges>div{grid-template-columns:1fr}.finance-allocation-input{margin-left:29px}.finance-payment-totals{grid-template-columns:1fr 1fr}}

@@ -81,7 +81,8 @@ test('buscador de pacientes en «Registrar cargo» y «Registrar pago», con bú
     assert.match(f, /window\.sb\.rpc\('smyl_search_patients',\{p_tenant_id:state\.tenant,p_query:query,p_limit:8\}\)/);
     assert.match(f, /show\(Array\.isArray\(rows\)\?rows:local\(query\),query\)/);
     assert.match(f, /mode='pay';mountPatientPicker\(f\);/);
-    assert.match(f, /f=d\.querySelector\('form'\);mountPatientPicker\(f\);function sync\(resetAmount\)/);
+    assert.match(f, /f=d\.querySelector\('form'\);mountPatientPicker\(f\);/);
+    assert.match(f, /function openCharges\(\)/);
     assert.match(f, /input\.setCustomValidity\('Elige al paciente de la lista\.'\)/);
   }
 });
