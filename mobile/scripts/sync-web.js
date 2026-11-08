@@ -62,6 +62,8 @@ copyFile(path.join(ROOT, 'smyl-patient-360.js'), path.join(WWW, 'smyl-patient-36
 copyFile(path.join(ROOT, 'smyl-patient-360.css'), path.join(WWW, 'smyl-patient-360.css'));
 copyFile(path.join(ROOT, 'smyl-patient-cases.js'), path.join(WWW, 'smyl-patient-cases.js'));
 copyFile(path.join(ROOT, 'smyl-patient-cases.css'), path.join(WWW, 'smyl-patient-cases.css'));
+copyFile(path.join(ROOT, 'smyl-case-workspace.js'), path.join(WWW, 'smyl-case-workspace.js'));
+copyFile(path.join(ROOT, 'smyl-case-workspace.css'), path.join(WWW, 'smyl-case-workspace.css'));
 copyFile(path.join(ROOT, 'smyl-proposal-model.js'), path.join(WWW, 'smyl-proposal-model.js'));
 copyFile(path.join(ROOT, 'smyl-proposal-print.js'), path.join(WWW, 'smyl-proposal-print.js'));
 copyFile(path.join(ROOT, 'smyl-proposals.js'), path.join(WWW, 'smyl-proposals.js'));

@@ -1,5 +1,32 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-07 — Codex — Tratamiento como espacio de trabajo del tenant v4.3
+
+- La pestaña Tratamiento deja de mostrar la tarjeta administrativa verde de la
+  ficha antigua. El nodo se conserva como respaldo y sólo se oculta dentro del
+  workspace mejorado; los datos siguen accesibles desde el contexto clínico y
+  desde la operación del expediente.
+- Las cuatro etapas quedan primero y debajo aparece una única banda compacta de
+  `Siguiente acción`. El encabezado de la etapa activa reduce altura y elimina
+  texto repetido, manteniendo título, estado clínico y una sola CTA principal.
+- Etapa y subtarea se recuerdan por tenant/paciente en un `Map` efímero de la
+  sesión SPA. Sólo se guardan identificadores de navegación; alertas,
+  revisiones, hallazgos y aprobaciones continúan recalculándose y no se escriben
+  en `localStorage` ni `sessionStorage`.
+- En móvil/PWA se retiró la altura fija y el scroll anidado de Evaluación. La
+  página vuelve a desplazarse de forma natural incluso sobre el odontograma y
+  la CTA pasa al flujo normal, por lo que no cubre campos ni contenido final.
+- El fixture visual reproduce ahora la tarjeta heredada real y la prueba usa el
+  selector correcto. También comprueba scroll iniciado sobre el panel, contenido
+  final alcanzable, 42/44 px, una CTA, cuatro etapas y ausencia de overflow en
+  1280, 820, 390 y 320 px.
+- Distribución sincronizada en web, PWA y `mobile/www`: Case Workspace
+  `smyl-case-workspace.js?v=23`, CSS `v=19` y caché
+  `topbar-limpia-v81-treatment-tenant-workbench-v82`. El sincronizador móvil incluye desde ahora
+  ambos archivos para evitar divergencias futuras.
+- QA final: navegador visual aprobado en los cuatro tamaños; suite completa
+  **1,115 aprobadas**, 28 condicionales omitidas y **0 fallas** (1,143 totales).
+
 ## 2026-11-07 — Codex — Cabecera limpia del expediente v4.7
 
 - El expediente elimina del encabezado los controles duplicados `Asistente IA`,
