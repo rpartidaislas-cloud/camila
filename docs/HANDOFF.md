@@ -41,6 +41,23 @@ Términos, revisar también `terminos.html`.
 de «Aviso de privacidad y Términos» más abajo (pendientes: contrato clínica–SMYL, contrato con LANA, consentimiento
 por paciente, borrado automático del audio de MILA y evidencia de no entrenamiento de los proveedores de IA).
 
+## 2026-11-08 — Codex — Revisión visual v4 del cobro guiado
+
+- `Cobrar a paciente` ahora es progresivo: primero muestra únicamente el
+  buscador y, al elegir a la persona, sustituye el selector por una ficha
+  compacta con `Cambiar`, saldos y la decisión financiera.
+- La ventana adopta la personalidad v4: cabecera azul marino, Open Sans,
+  superficies sin bordes repetidos, sombra difusa, radios del sistema e iconos
+  lineales propios. Todo texto funcional de esta ruta queda en 12 px o más.
+- Las cuatro rutas muestran consecuencia y contexto: saldo pendiente con
+  importe, servicio del día, cotización aceptada y anticipo como saldo a favor.
+  Una ruta sin saldo conserva contraste y comunica `Sin saldo`.
+- Se revisó el reflujo en 1440×900, 390×844 y 320×568 sin desplazamiento
+  horizontal ni empalmes; cabecera y pie permanecen visibles en móvil.
+- No cambian RPC, permisos, movimientos, recibos ni reglas fiscales. Web, PWA
+  y `mobile/www` quedan sincronizados en `smyl-finance.js?v=19`, CSS `v=15` y
+  cachés con sufijo `collection-visual-v1`.
+
 ## 2026-11-08 — Claude: vigilante de congelamientos (Sentry + Worker)
 
 `smyl-freeze-watchdog.js` + `smyl-freeze-watchdog-worker.js`, cargados por `smyl-sentry.js` (v=3) sólo con DSN. Un Worker
