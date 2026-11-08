@@ -1673,3 +1673,4 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   }
 }
 .smyl-inbox-account-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.smyl-inbox-account-blocked{color:#9b3d2e;font-weight:600}

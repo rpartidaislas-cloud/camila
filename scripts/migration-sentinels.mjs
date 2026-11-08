@@ -20,6 +20,7 @@ export const SENTINELAS = {
   '20261106110000': { sentinel: "select exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'camila_pacientes' and policyname = 'pacientes_read' and qual like '%smyl_tenants_with_permission%') as ok" },
   '20261106120000': { sentinel: `select ${proc('smyl_compact_audit_events')} as ok` },
   '20261106130000': { sentinel: "select (exists(select 1 from pg_constraint where conname = 'smyl_appointments_no_professional_overlap') and exists(select 1 from pg_constraint where conname = 'smyl_appointments_no_room_overlap')) as ok" },
+  '20261108100000': { sentinel: `select (to_regclass('public.smyl_collection_reminders') is not null and to_regclass('public.smyl_collection_prefs') is not null and ${proc('smyl_log_collection_reminder')} and ${proc('smyl_set_collection_pref')}) as ok` },
   '20261106140000': { sentinel: `select (to_regclass('public.smyl_client_errors') is not null and ${proc('smyl_report_client_error')}) as ok` },
 };
 

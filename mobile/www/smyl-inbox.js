@@ -946,6 +946,44 @@
   }
 
   // ── Cobros por WhatsApp: variables de las plantillas de cobro tomadas de la cuenta del paciente ──
+  // ── Cobros por WhatsApp: reglas de contacto (preferencia «no contactar», BAJA, horario y tope semanal) ──
+  function normalizeText(value) { return String(value == null ? '' : value).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+
+  // El paciente respondió BAJA y nadie lo ha vuelto a permitir después de ese mensaje.
+  function cobroBlock(conversation) {
+    var info = state.accountContext && state.accountContext[conversation.id]; var pref = info && info.pref;
+    if (pref && pref.whatsapp_blocked) return { blocked: true, reason: pref.reason || 'Marcado como no contactar por cobros.', source: 'pref' };
+    var inbound = (state.messages[conversation.id] || []).filter(function (item) { return item.author_type === 'patient' && /^\s*baja[\s.!]*$/.test(normalizeText(item.content)); });
+    var baja = inbound[inbound.length - 1];
+    if (baja && !(pref && new Date(pref.updated_at || 0).getTime() > new Date(baja.created_at || 0).getTime())) return { blocked: true, reason: 'El paciente respondió BAJA.', source: 'baja' };
+    return { blocked: false, reason: '', source: '' };
+  }
+
+  function daysSince(iso) { var time = new Date(iso || 0).getTime(); return Number.isFinite(time) && time > 0 ? Math.floor((Date.now() - time) / 86400000) : null; }
+
+  function outsideCollectionHours(date) { var hour = (date || new Date()).getHours(); return hour < 9 || hour >= 20; }
+
+  async function setCobroPref(conversation, blocked, reason) {
+    var info = state.accountContext && state.accountContext[conversation.id]; var patientId = info && info.patientId; if (!patientId) return;
+    try {
+      var result = await window.sb.rpc('smyl_set_collection_pref', { p_patient_id: patientId, p_blocked: blocked, p_reason: reason || null });
+      if (result && result.error) throw result.error;
+      info.pref = { whatsapp_blocked: blocked, reason: reason || null, updated_at: new Date().toISOString() };
+      renderContext();
+    } catch (error) { window.alert(error.message || 'No se pudo guardar la preferencia.'); }
+  }
+
+  // Registra el recordatorio enviado (tope semanal compartido entre personas y dispositivos). Si falla, el envío ya se hizo: sólo se omite el registro.
+  async function logCobroReminder(conversation, templateName) {
+    var info = state.accountContext && state.accountContext[conversation.id]; var patientId = info && info.patientId; if (!patientId) return;
+    try {
+      var result = await window.sb.rpc('smyl_log_collection_reminder', { p_patient_id: patientId, p_template: templateName, p_conversation_id: conversation.id });
+      if (result && result.error) throw result.error;
+      info.lastReminder = { sent_at: new Date().toISOString(), template_name: templateName };
+      if (state.selectedId === conversation.id) renderContext();
+    } catch (_) {}
+  }
+
   var COBRO_PLANTILLAS = ['pago_pendiente_v1', 'plan_pagos_proximo_v1', 'saldo_actualizado_v1', 'estado_cuenta_v1', 'saldo_vencido_aviso_v1', 'pago_recibido_v1', 'comprobante_pago_v1'];
 
   function cobroVariables(templateName, conversation) {
@@ -980,6 +1018,8 @@
     var conversation = selectedConversation();
     if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
     var info = state.accountContext && state.accountContext[conversation.id];
+    var rule = cobroBlock(conversation);
+    if (rule.blocked) { window.alert('No se envían recordatorios de cobro a este paciente: ' + rule.reason); return; }
     var preferred = cobroPreferidas(info && info.data);
     await openTemplateDialog(preferred);
   }
@@ -1037,13 +1077,22 @@
     var variables = Array.from(dialog.querySelectorAll('[data-variable-index]')).map(function (input) { return input.value.trim(); });
     if (variables.some(function (value) { return !value; })) { window.alert('Completa todas las variables de la plantilla.'); return; }
     var content = variables.reduce(function (copy, value, index) { return copy.split('{{' + (index + 1) + '}}').join(value); }, template.body || template.name);
-    if (COBRO_PLANTILLAS.indexOf(template.name) !== -1) {
+    var isCobro = COBRO_PLANTILLAS.indexOf(template.name) !== -1;
+    if (isCobro) {
+      var rule = cobroBlock(conversation);
+      if (rule.blocked) { window.alert('No se envían recordatorios de cobro a este paciente: ' + rule.reason); return; }
+      if (outsideCollectionHours() && !window.confirm('Son las ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ': fuera del horario recomendado para cobranza (9:00 a 20:00). ¿Enviar de todos modos?')) return;
+      var lastInfo = state.accountContext && state.accountContext[conversation.id]; var lastReminder = lastInfo && lastInfo.lastReminder; var lastDays = lastReminder ? daysSince(lastReminder.sent_at) : null;
+      if (lastDays !== null && lastDays < 7 && !window.confirm('Ya se envió un recordatorio de cobro a este paciente ' + (lastDays === 0 ? 'hoy' : lastDays === 1 ? 'ayer' : 'hace ' + lastDays + ' días') + '. ¿Enviar otro?')) return;
+    }
+    if (isCobro) {
       var weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       var repeated = (state.messages[conversation.id] || []).filter(function (item) { return item.author_type === 'team' && item.content === content && new Date(item.created_at || 0).getTime() > weekAgo; })[0];
       if (repeated && !window.confirm('Ya enviaste este mismo mensaje el ' + availabilityDate(repeated.created_at).split(' · ')[0] + '. ¿Enviarlo de nuevo?')) return;
     }
     var key = uuid(); var extra = { type: 'template', template_id: template.id, template_variables: variables };
     var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, created_at: new Date().toISOString(), status: 'sending', extra: extra };
+    if (isCobro) pending.onSent = function () { logCobroReminder(conversation, template.name); };
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); dialog.close(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, extra);
   }
@@ -1790,6 +1839,12 @@
           if (summary.truncated) accountLines.push('Resumen parcial: abre la cuenta para ver todo.');
           accountLines.forEach(function (line) { accountCard.append(node('small', '', line)); });
         }
+        var contactRule = cobroBlock(conversation);
+        if (contactRule.blocked) accountCard.append(node('small', 'smyl-inbox-account-blocked', 'No contactar por cobros: ' + contactRule.reason));
+        else if (accountInfo.lastReminder) {
+          var daysAgo = daysSince(accountInfo.lastReminder.sent_at);
+          accountCard.append(node('small', '', 'Último recordatorio: ' + (daysAgo === 0 ? 'hoy' : daysAgo === 1 ? 'ayer' : 'hace ' + daysAgo + ' días')));
+        }
       }
       if (accountPatient) {
         var accountActions = node('div', 'smyl-inbox-account-actions');
@@ -1797,10 +1852,22 @@
           var chargeButton = node('button', 'btn btn-primary btn-sm', 'Cobrar'); chargeButton.type = 'button';
           chargeButton.onclick = function () { openCareTask('payment'); }; accountActions.append(chargeButton);
         }
-        if (conversation.channel === 'whatsapp' && hasPermission('messages.respond') && canOperate(conversation, 'messages.respond')) {
+        var accountRule = accountInfo && accountInfo.data ? cobroBlock(conversation) : { blocked: false };
+        if (conversation.channel === 'whatsapp' && !accountRule.blocked && hasPermission('messages.respond') && canOperate(conversation, 'messages.respond')) {
           var sendWhatsapp = node('button', 'btn btn-secondary btn-sm', 'Enviar por WhatsApp'); sendWhatsapp.type = 'button';
           sendWhatsapp.title = 'Elige una plantilla de cobro aprobada; el monto y la fecha se llenan solos.';
           sendWhatsapp.onclick = function () { openCobroTemplate(); }; accountActions.append(sendWhatsapp);
+        }
+        if (accountInfo && accountInfo.data && conversation.channel === 'whatsapp') {
+          if (accountRule.blocked && hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) {
+            var allowAgain = node('button', 'btn btn-secondary btn-sm', 'Permitir recordatorios'); allowAgain.type = 'button';
+            allowAgain.onclick = function () { if (window.confirm('¿Volver a permitir recordatorios de cobro por WhatsApp a este paciente?')) setCobroPref(conversation, false, null); };
+            accountActions.append(allowAgain);
+          } else if (!accountRule.blocked && (hasPermission('messages.respond') || hasPermission('finance.manage'))) {
+            var blockAccount = node('button', 'btn btn-secondary btn-sm', 'No contactar por cobros'); blockAccount.type = 'button';
+            blockAccount.onclick = function () { if (window.confirm('¿Dejar de enviar recordatorios de cobro por WhatsApp a este paciente?')) setCobroPref(conversation, true, 'Marcado desde el chat'); };
+            accountActions.append(blockAccount);
+          }
         }
         var viewAccount = node('button', 'btn btn-secondary btn-sm', 'Ver cuenta'); viewAccount.type = 'button';
         viewAccount.onclick = function () { window.SmylFinance.account(accountPatient); }; accountActions.append(viewAccount);
@@ -2175,8 +2242,14 @@
     if (!patientId || !hasPermission('finance.read') || !window.SmylFinance || typeof window.SmylFinance.accountSummary !== 'function') return;
     state.accountContext = state.accountContext || {}; state.accountLoading = state.accountLoading || {};
     state.accountLoading[conversationId] = true; renderContext();
-    try { state.accountContext[conversationId] = { patientId: patientId, data: await window.SmylFinance.accountSummary(patientId) }; }
-    catch (_) { state.accountContext[conversationId] = { patientId: patientId, data: null }; }
+    try {
+      var results = await Promise.all([
+        window.SmylFinance.accountSummary(patientId),
+        typeof window.SmylFinance.contactContext === 'function' ? window.SmylFinance.contactContext(patientId) : Promise.resolve({ pref: null, lastReminder: null })
+      ]);
+      state.accountContext[conversationId] = { patientId: patientId, data: results[0], pref: results[1] && results[1].pref || null, lastReminder: results[1] && results[1].lastReminder || null };
+    }
+    catch (_) { state.accountContext[conversationId] = { patientId: patientId, data: null, pref: null, lastReminder: null }; }
     finally { state.accountLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
   }
 
@@ -2184,7 +2257,7 @@
     await autoLinkConversationPatient(conversationId);
     await Promise.all([loadClinicalContext(conversationId), loadAppointmentContext(conversationId)]);
     if (state.selectedId === conversationId) { renderCareBar(); renderThreadHeader(); renderContext(); }
-    loadAccountContext(conversationId);
+    await loadAccountContext(conversationId);
   }
 
   async function loadAppointmentContext(conversationId) {
@@ -2758,6 +2831,7 @@
       var payload = Object.assign({ action: 'send', type: 'text', conversation_id: conversationId, content: content }, extra || {});
       var data = await request('POST', {}, payload, key, 35000);
       pending.reconciled = true;
+      if (typeof pending.onSent === 'function') { try { pending.onSent(); } catch (_) {} }
       mergeMessages(conversationId, data.message ? [data.message] : [], false);
       var conversation = selectedConversation();
       if (conversation) { conversation.paused = true; conversation.last_message = content; conversation.last_message_at = new Date().toISOString(); }
@@ -3149,6 +3223,7 @@
 
   window.SmylInbox = {
     open: function (conversationId) { window.ir('inbox'); openConversation(conversationId); },
+    collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); await openCobroTemplate(); },
     openOperations: function () { window.ir('inbox'); openOperations(); },
     refresh: function () { loadList(true); },
     loadOperations: loadOperations,

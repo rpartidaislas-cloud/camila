@@ -168,3 +168,8 @@
 .finance-template-row small{display:block;margin-top:3px;color:var(--color-text-tertiary,#6b7a8c)}
 .finance-template-row .finance-template-reason{color:#9b3d2e}
 @media (max-width:760px){.finance-template-row{grid-template-columns:1fr}}
+
+.finance-today-list{display:grid;gap:8px}
+.finance-today-row{display:grid;grid-template-columns:minmax(0,1.4fr) auto auto minmax(0,1.6fr);gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--color-border,#e3e8ef);border-radius:10px}
+.finance-today-row small{display:block;margin-top:3px;color:var(--color-text-tertiary,#6b7a8c)}
+@media (max-width:900px){.finance-today-row{grid-template-columns:1fr 1fr}.finance-today-row .finance-row-actions{grid-column:1/-1}}

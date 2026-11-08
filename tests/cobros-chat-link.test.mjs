@@ -19,7 +19,7 @@ test('Cobros ofrece «Abrir chat» sólo si el paciente tiene chat vinculado, le
     assert.match(f, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);
     assert.match(f, /chatLinks\[x\.p\.id\]\?'<button data-chat=/);
     assert.match(f, /window\.SmylInbox\.open\(l\.conversation\)/);
-    assert.match(f, /accountSummary:accountSummary,account:function\(patientId\)/);
+    assert.match(f, /accountSummary:accountSummary,contactContext:contactContext,account:function\(patientId\)/);
   }
 });
 
@@ -97,7 +97,7 @@ test('plantillas de cobro: la plantilla sugerida depende del estado de la cuenta
 test('el chat ofrece «Enviar por WhatsApp» sólo en WhatsApp con permiso de responder, avisa si se repite el mismo mensaje y no abre nada si no hay plantilla aprobada', () => {
   for (const base of ['', 'mobile/www/']) {
     const i = read(base + 'smyl-inbox.js');
-    assert.match(i, /conversation\.channel === 'whatsapp' && hasPermission\('messages\.respond'\) && canOperate\(conversation, 'messages\.respond'\)\) \{\s*var sendWhatsapp/);
+    assert.match(i, /conversation\.channel === 'whatsapp' && !accountRule\.blocked && hasPermission\('messages\.respond'\) && canOperate\(conversation, 'messages\.respond'\)\) \{\s*var sendWhatsapp/);
     assert.match(i, /Ya enviaste este mismo mensaje el /);
     assert.match(i, /No hay una plantilla de cobro aprobada todavía/);
     assert.match(i, /async function openTemplateDialog\(preferred\)/);
@@ -116,4 +116,79 @@ test('el resumen de cuenta expone el saldo del próximo cargo y el último pago'
   }, '2026-11-08');
   assert.equal(r.nextBalance, 300);
   assert.equal(r.lastPaymentAmount, 120);
+});
+
+// ── Fase 3: reglas de contacto y «Por cobrar hoy» ──
+function reglasFns(state) {
+  const src = read('smyl-inbox.js');
+  const a = src.indexOf('function normalizeText(value)');
+  const b = src.indexOf('async function setCobroPref');
+  assert.ok(a > 0 && b > a, 'no se encontró el bloque de reglas');
+  return new Function('state', src.slice(a, b) + ';return {cobroBlock,daysSince,outsideCollectionHours};')(state);
+}
+
+test('reglas de contacto: BAJA bloquea hasta que alguien vuelve a permitir después de ese mensaje; la preferencia manual también bloquea', () => {
+  const conv = { id: 'c1' };
+  const baja = { author_type: 'patient', content: ' Baja. ', created_at: '2026-11-05T10:00:00Z' };
+  const { cobroBlock } = reglasFns({ accountContext: {}, messages: { c1: [baja] } });
+  assert.deepEqual(cobroBlock(conv), { blocked: true, reason: 'El paciente respondió BAJA.', source: 'baja' });
+  const permitido = reglasFns({ accountContext: { c1: { pref: { whatsapp_blocked: false, updated_at: '2026-11-06T09:00:00Z' } } }, messages: { c1: [baja] } }).cobroBlock(conv);
+  assert.equal(permitido.blocked, false);
+  const reBaja = reglasFns({ accountContext: { c1: { pref: { whatsapp_blocked: false, updated_at: '2026-11-04T09:00:00Z' } } }, messages: { c1: [baja] } }).cobroBlock(conv);
+  assert.equal(reBaja.blocked, true);
+  const manual = reglasFns({ accountContext: { c1: { pref: { whatsapp_blocked: true, reason: 'Lo pidió por teléfono' } } }, messages: { c1: [] } }).cobroBlock(conv);
+  assert.deepEqual([manual.blocked, manual.source, manual.reason], [true, 'pref', 'Lo pidió por teléfono']);
+  assert.equal(reglasFns({ accountContext: {}, messages: { c1: [{ author_type: 'patient', content: 'No me interesa la baja de precio', created_at: '2026-11-05T10:00:00Z' }] } }).cobroBlock(conv).blocked, false);
+});
+
+test('reglas de contacto: horario de cobranza 9:00 a 20:00 y días desde un envío', () => {
+  const { outsideCollectionHours, daysSince } = reglasFns({});
+  assert.equal(outsideCollectionHours(new Date(2026, 10, 8, 8, 59)), true);
+  assert.equal(outsideCollectionHours(new Date(2026, 10, 8, 9, 0)), false);
+  assert.equal(outsideCollectionHours(new Date(2026, 10, 8, 19, 59)), false);
+  assert.equal(outsideCollectionHours(new Date(2026, 10, 8, 20, 0)), true);
+  assert.equal(daysSince(new Date(Date.now() - 3 * 86400000 - 1000).toISOString()), 3);
+  assert.equal(daysSince(null), null);
+});
+
+test('el envío de cobros revisa bloqueo, horario y tope semanal, y registra el envío sólo si salió bien', () => {
+  for (const base of ['', 'mobile/www/']) {
+    const i = read(base + 'smyl-inbox.js');
+    assert.match(i, /var rule = cobroBlock\(conversation\);\s*if \(rule\.blocked\) \{ window\.alert\('No se envían recordatorios de cobro a este paciente: '/);
+    assert.match(i, /fuera del horario recomendado para cobranza \(9:00 a 20:00\)/);
+    assert.match(i, /lastDays < 7 && !window\.confirm\('Ya se envió un recordatorio de cobro/);
+    assert.match(i, /if \(isCobro\) pending\.onSent = function \(\) \{ logCobroReminder\(conversation, template\.name\); \};/);
+    assert.match(i, /pending\.reconciled = true;\s*if \(typeof pending\.onSent === 'function'\)/);
+    assert.match(i, /collect: async function \(conversationId\)/);
+  }
+});
+
+test('el chat no toca tablas ni el tenant: usa SmylFinance.contactContext', () => {
+  for (const base of ['', 'mobile/www/']) assert.doesNotMatch(read(base + 'smyl-inbox.js'), /tenant_id|window\.tenantId|smyl_collection_(prefs|reminders)'\)/);
+});
+
+test('Cobros: pestaña «Por cobrar hoy» sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
+  for (const base of ['', 'mobile/www/']) {
+    const f = read(base + 'smyl-finance.js');
+    assert.match(f, /<button data-finance-tab="today">Por cobrar hoy<\/button><button data-finance-tab="accounts"/);
+    assert.match(f, /<section data-finance-panel="today" hidden>/);
+    assert.match(f, /window\.SmylInbox\.collect\(l\.conversation\)/);
+    assert.match(f, /from\('smyl_collection_reminders'\)/);
+    assert.match(f, /from\('smyl_collection_prefs'\)/);
+    assert.doesNotMatch(f, /smyl_log_collection_reminder/, 'el registro lo hace el chat al enviar, no Cobros');
+  }
+});
+
+test('migración de cobros: sin escritura directa, funciones acotadas por permiso y sólo quien gestiona cobros desbloquea', () => {
+  const mig = read('supabase/migrations/20261108100000_smyl_collection_reminders.sql');
+  assert.match(mig, /revoke all on public\.smyl_collection_reminders, public\.smyl_collection_prefs from public, anon, authenticated;/);
+  assert.match(mig, /grant select on public\.smyl_collection_reminders, public\.smyl_collection_prefs to authenticated;/);
+  assert.doesNotMatch(mig, /grant (insert|update|delete)/i);
+  assert.match(mig, /smyl_tenants_with_permission\('finance\.read'\)/);
+  assert.match(mig, /smyl_has_permission\(v_tenant, 'messages\.respond'\)/);
+  assert.match(mig, /elsif not public\.smyl_has_permission\(v_tenant, 'finance\.manage'\)/);
+  assert.match(mig, />= 200 then/);
+  const wf = read('.github/workflows/smyl-cobros-migracion.yml');
+  assert.match(wf, /20261108100000/);
+  assert.match(wf, /REPAIR_FLAG="--remote --yes"/);
 });
