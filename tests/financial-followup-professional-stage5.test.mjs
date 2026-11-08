@@ -23,7 +23,8 @@ test('cada cuenta comunica avance sin inventar estados financieros', () => {
   assert.match(finance, /Por atender/);
   assert.match(finance, /Con saldo/);
   assert.match(finance, /Liquidadas/);
-  assert.match(finance, /Total de tratamiento/);
+  assert.match(finance, /Total cargado/);
+  assert.doesNotMatch(finance, /Total de tratamiento/);
   assert.match(finance, /Pagado/);
   assert.match(finance, /Pendiente/);
   assert.match(styles, /\.finance-account-progress/);
@@ -73,8 +74,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=22/);
-  assert.match(app, /smyl-finance\.js\?v=27/);
+  assert.match(app, /smyl-finance\.css\?v=23/);
+  assert.match(app, /smyl-finance\.js\?v=28/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
