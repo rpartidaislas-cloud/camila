@@ -124,7 +124,7 @@ Estimaciones de costo de IA, crecimiento de auditoría y ahorro por empaquetado 
 | 9 | Agenda: configuración estática reutilizada al navegar | Hecho (de 32 peticiones se evitan 14 por clic; el resto sigue) |
 | 10 | RLS por conjuntos + alcances de rol en clínicas nuevas | Hecho (migraciones 20261106100000/110000; requiere ejecutar el workflow) |
 | 11 | CI en push/PR | Hecho (`pruebas.yml`; 2 pruebas conocidas excluidas) |
-| 12 | Reconciliar migraciones repo vs producción | Herramienta lista (`smyl-migraciones-reconciliar.yml`, solo lectura); falta ejecutarla y resolver diferencias |
+| 12 | Reconciliar migraciones repo vs producción | Hecho (2026-11-08): 116 de 117 migraciones registradas, 0 en producción sin archivo. Única diferencia: `20261024090000_smyl_consumables_checkout.sql` (compra de paquetes consumibles), pendiente de decisión de producto. Queda el esquema base sin versión (7 archivos `camila_*.sql`/`stripe_billing.sql`) |
 | 13 | Cuota de IA por clínica (radiografía) | Hecho (tope diario/mensual, falla cerrado; requiere desplegar el bundle) |
 | 14 | Retención de `smyl_audit_events` | Hecho (compactación a 24 meses; requiere ejecutar el workflow) |
 | 15 | Reporte de errores del cliente | Hecho (registro `smyl_client_errors` + aviso discreto en lugar de `alert()`; requiere ejecutar el workflow). **Alertas al dueño/equipo: pendiente** — hoy los errores se consultan en la tabla, nadie recibe aviso automático |
@@ -135,3 +135,5 @@ Estimaciones de costo de IA, crecimiento de auditoría y ahorro por empaquetado 
 | 20 | Pruebas que ejecuten pagos, agenda y permisos | Parcial: pagos (Caja) y IA (topes) ejecutan código real; agenda y permisos en base de datos se verificaron con PGlite pero no están en el repo |
 
 Pendientes con decisión de producto: ventana de retención (24 meses por omisión), políticas por clínica, y si se adopta un paso de compilación.
+
+**Cierre del 2026-11-08.** Se ejecutaron en producción el workflow del panel (cinco migraciones: alcances de rol, RLS por conjuntos, compactación de auditoría, anti-empalme sin datos empalmados, registro de errores), el P1 de seguridad (lecturas por permiso) y el registro del historial. La reconciliación final quedó con una sola diferencia (consumibles). Al reconciliar se detectó que `20261030110000` (lecturas por permiso) no estaba en producción pese a haberse dado por aplicada; ya lo está.
