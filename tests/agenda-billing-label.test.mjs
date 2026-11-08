@@ -52,8 +52,8 @@ test('la etiqueta se ve también en la línea de tiempo compacta del día y no s
 });
 
 test('la migración y las versiones quedan publicadas y sincronizadas con la app móvil', () => {
-  assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108130000_smyl_appointment_billing_status.sql')));
-  assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108130000_smyl_appointment_billing_status\.sql/);
+  assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108150000_smyl_appointment_billing_status.sql')));
+  assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108150000_smyl_appointment_billing_status\.sql/);
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-schedule\.js\?v=33/);
     assert.match(read(file), /smyl-schedule\.css\?v=21/);

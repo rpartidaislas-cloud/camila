@@ -56,7 +56,7 @@ test('el formulario de cargo se abre con la cita elegida y ofrece las citas de p
 });
 
 test('la migración, la hoja de estilos y las versiones quedan publicadas y sincronizadas con la app móvil', () => {
-  assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108120000_smyl_appointment_no_charge.sql')));
+  assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108140000_smyl_appointment_no_charge.sql')));
   assert.match(read('smyl-finance.css'), /\.finance-visit-row\{/);
   assert.match(read('app.html'), /smyl-finance\.js\?v=28/);
   assert.match(read('sw.js'), /smyl-finance\.js\?v=28/);

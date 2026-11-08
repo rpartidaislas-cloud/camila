@@ -1,4 +1,4 @@
-// Etiqueta de cobro en la Agenda — smyl_appointment_billing (migración 20261108130000) en un Postgres real en memoria (PGlite).
+// Etiqueta de cobro en la Agenda — smyl_appointment_billing (migración 20261108150000) en un Postgres real en memoria (PGlite).
 // Verifica el estado de cada cita (pending / due / paid / no_charge / free), la precedencia entre ellos, que sólo se vean
 // citas en las que el paciente ya llegó, que sin finance.read no se devuelva nada, el aislamiento entre clínicas y que sea sólo lectura.
 //
@@ -54,8 +54,8 @@ if (!skip) {
         where cu.id = auth.uid() and cu.activo and rp.permission_key = p_permission $$;
     grant execute on function public.smyl_tenants_with_permission(text) to authenticated;
   `);
-  await exec(read('supabase/migrations/20261108120000_smyl_appointment_no_charge.sql'));
-  const migration = read('supabase/migrations/20261108130000_smyl_appointment_billing_status.sql');
+  await exec(read('supabase/migrations/20261108140000_smyl_appointment_no_charge.sql'));
+  const migration = read('supabase/migrations/20261108150000_smyl_appointment_billing_status.sql');
   await exec(migration);
   await exec(migration); // idempotente
   await exec(`
@@ -132,7 +132,7 @@ test('entradas vacías no fallan y más de 300 citas se rechazan', { skip }, asy
 });
 
 test('es sólo de lectura: no cambia cargos, pagos ni citas', { skip }, async () => {
-  const sql = read('supabase/migrations/20261108130000_smyl_appointment_billing_status.sql');
+  const sql = read('supabase/migrations/20261108150000_smyl_appointment_billing_status.sql');
   assert.doesNotMatch(sql, /\b(insert\s+into|update\s+public|delete\s+from|alter\s+table|drop\s+table)\b/i);
   assert.match(sql, /\bstable\b/);
 });

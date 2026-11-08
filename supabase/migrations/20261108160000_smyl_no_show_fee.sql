@@ -5,7 +5,7 @@
 --     «Cobrar inasistencia» (formulario de cargo de siempre) o «Perdonar» (decisión «sin cargo» con motivo «waived»).
 --   * smyl_mark_appointment_no_charge ahora acepta citas «No vino» y el motivo «waived»;
 --     smyl_appointment_billing devuelve no_show_pending (por cobrar la inasistencia) o, si no hay monto, free (sin etiqueta).
--- Requiere 20261108120000 y 20261108130000. No toca citas, cargos ni pagos existentes. Idempotente.
+-- Requiere 20261108140000 y 20261108150000. No toca citas, cargos ni pagos existentes. Idempotente.
 
 create table if not exists public.smyl_finance_settings (
   tenant_id uuid primary key references public.camila_tenants(id) on delete cascade,

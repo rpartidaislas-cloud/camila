@@ -8,9 +8,9 @@
 pendientes de cargo» con **Cobrar inasistencia · $X** (abre el cargo de siempre con la cita ligada, concepto libre «Inasistencia a cita del …» y el monto) y **Perdonar** (decisión «sin cargo» con motivo `waived`, nota opcional;
 queda en «Cerradas sin cargo» con «Reabrir»). La agenda etiqueta la cita como «Inasistencia por cobrar», «Saldo $X», «Cobrada» o «Perdonada», y el numerito del menú la cuenta. Sin monto no aparece nada.
 
-**Backend (migración `20261108140000_smyl_no_show_fee.sql`, aditiva):** `smyl_finance_settings` (lectura `finance.read`, sin escritura directa) + `smyl_set_no_show_fee` (`finance.manage`, auditoría con antes/después);
+**Backend (migración `20261108160000_smyl_no_show_fee.sql`, aditiva):** `smyl_finance_settings` (lectura `finance.read`, sin escritura directa) + `smyl_set_no_show_fee` (`finance.manage`, auditoría con antes/después);
 `smyl_mark_appointment_no_charge` acepta citas `no_show` y el motivo `waived`; `smyl_appointment_billing` devuelve `no_show_pending` (o `free` si no hay monto). El workflow de migración aplica ya las **tres** migraciones de esta serie en una corrida.
-**Falta aplicarla en producción.** Mientras no se aplique, todo sigue apagado y no se rompe nada.
+**Aplicada en producción el 2026-11-08.** La serie financiera quedó registrada, en orden, como `20261108140000`, `20261108150000` y `20261108160000`.
 
 **Frontend:** `smyl-finance.js?v=26`, `smyl-finance.css?v=21`, `smyl-schedule.js?v=33`, `sw.js` `…-no-show-fee-v1`, `mobile/www` sincronizado.
 Pruebas: `tests/no-show-fee-pglite.test.mjs` (Postgres real, 6), `tests/cobros-no-show-fee.test.mjs` (7), humo en navegador `tests/qa/cobros-no-show-smoke.cjs`.
@@ -20,7 +20,7 @@ Pruebas: `tests/no-show-fee-pglite.test.mjs` (Postgres real, 6), `tests/cobros-n
 ## 2026-11-08 — Claude: numerito de «Cobros» en el menú lateral (pacientes pendientes de cargo)
 
 Un círculo con el número de pacientes pendientes de cargo junto a «Cobros» en el menú (ampliado, colapsado y fila «Más» del móvil), sin abrir Cobros. Mismo criterio que la lista de Cobros:
-cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0; se calcula con `smyl_appointment_billing` (sólo lectura, la migración `20261108130000` ya incluida en el workflow de migración).
+cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0; se calcula con `smyl_appointment_billing` (sólo lectura, la migración `20261108150000` ya incluida en el workflow de migración).
 Sin `finance.read` la función no devuelve nada y no se muestra; si la función aún no existe, simplemente no aparece (3 fallos seguidos y deja de intentar).
 
 **Cuándo se actualiza:** al iniciar sesión, cada 90 s, al volver a la pestaña, al cambiar de pantalla (máx. 1 cada 15 s), cuando Cobros cambia algo (`smyl:finance-updated`) y cuando la agenda
@@ -37,10 +37,9 @@ Cada cita en la que el paciente ya llegó (`arrived` / `in_progress` / `complete
 con «Ir a Cobros»: **Por cobrar** (llegó y falta decidir el cobro), **Saldo $X** (hay cargo con saldo), **Cobrada** y **Sin cargo**. Las citas de servicios con precio $0
 (Revisión) no llevan etiqueta. Sólo la ven quienes tienen `finance.read`; los demás no ven nada y la agenda no pide los datos.
 
-**Backend (migración `20261108130000_smyl_appointment_billing_status.sql`, sólo lectura):** `smyl_appointment_billing(uuid[])` devuelve estado y montos (máx. 300 citas por llamada).
-Precedencia: cargo vigente (due/paid) → decisión «sin cargo» → servicio $0 (`free`) → `pending`. Requiere la migración de «pendientes de cargo» (`20261108120000`).
-**Falta aplicarla en producción:** el workflow «SMYL Cobros - pacientes pendientes de cargo y etiqueta de cobro en la Agenda (migración)» aplica ambas migraciones en una sola corrida (idempotente).
-Mientras no esté aplicada, la agenda funciona igual y simplemente no muestra la etiqueta.
+**Backend (migración `20261108150000_smyl_appointment_billing_status.sql`, sólo lectura):** `smyl_appointment_billing(uuid[])` devuelve estado y montos (máx. 300 citas por llamada).
+Precedencia: cargo vigente (due/paid) → decisión «sin cargo» → servicio $0 (`free`) → `pending`. Requiere la migración de «pendientes de cargo» (`20261108140000`).
+**Aplicada en producción el 2026-11-08:** el estado de cobro y sus dependencias quedaron activos sin crear cargos ni modificar citas existentes.
 
 **Frontend:** `smyl-schedule.js?v=31` / `.css?v=21`, `smyl-finance.js?v=24` (Cobros avisa con el evento `smyl:finance-updated` para refrescar las etiquetas), `sw.js` `…-agenda-billing-v1`, `mobile/www` sincronizado.
 Pruebas: `tests/appointment-billing-status-pglite.test.mjs` (Postgres real, 5), `tests/agenda-billing-label.test.mjs` (7), humo en navegador `tests/qa/agenda-billing-smoke.cjs`.
@@ -58,10 +57,9 @@ con «Reabrir». Un servicio con **precio $0 (p. ej. Revisión) no genera pendie
 **Cómo se calcula (sin estado duplicado):** pendiente = cita `arrived|in_progress|completed` de los últimos 14 días, sin cargo vigente
 (`smyl_finance_charges.appointment_id`, no `voided`), sin decisión «sin cargo» y con servicio de precio ≠ 0. Se refresca al volver a Cobros.
 
-**Backend (migración `20261108120000_smyl_appointment_no_charge.sql`, aditiva):** tabla `smyl_appointment_no_charge` (RLS lectura `finance.read`, sin escritura
+**Backend (migración `20261108140000_smyl_appointment_no_charge.sql`, aditiva):** tabla `smyl_appointment_no_charge` (RLS lectura `finance.read`, sin escritura
 directa) y RPC `smyl_mark_appointment_no_charge` / `smyl_reopen_appointment_charge` (`finance.manage`, auditoría sin la nota libre).
-**Falta aplicarla en producción:** workflow manual «SMYL Cobros - pacientes pendientes de cargo (migración)» (o pegar el .sql en el SQL Editor).
-Mientras no se aplique, la lista y «Agregar cargo» ya funcionan; sólo se oculta «Sin cargo».
+**Aplicada en producción el 2026-11-08:** la decisión «Sin cargo» y su reapertura quedaron activas con RLS, permisos y auditoría.
 
 **Frontend:** `smyl-finance.js?v=23`, `smyl-finance.css?v=20` (+ sw CACHE_VERSION `…-pending-charges-v1`, `mobile/www` sincronizado).
 Pruebas: `tests/appointment-no-charge-pglite.test.mjs` (Postgres real: permisos, aislamiento, auditoría; con `SMYL_PGLITE_DIR`),
@@ -69,6 +67,7 @@ Pruebas: `tests/appointment-no-charge-pglite.test.mjs` (Postgres real: permisos,
 
 **Para Codex:** el bloque está al final de `smyl-finance.js` («Pacientes pendientes de cargo») y en `#finance-visits`. Fuera de alcance por simple: etiqueta de cobro
 dentro de la Agenda, contador en el menú lateral, cobro por «No vino».
+
 ## 2026-11-08 — Codex — Centro de evidencia clínica multimodal v1
 
 - Se integra en el expediente un centro único que separa fotografías, Rayos X 2D, escaneos/modelos, evaluaciones clínicas,

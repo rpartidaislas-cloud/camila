@@ -56,8 +56,8 @@ test('la agenda muestra «Inasistencia por cobrar» y «Perdonada» y manda a Co
 });
 
 test('la migración y las versiones quedan publicadas y sincronizadas con la app móvil', () => {
-  assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108140000_smyl_no_show_fee.sql')));
-  assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108140000_smyl_no_show_fee\.sql/);
+  assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108160000_smyl_no_show_fee.sql')));
+  assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108160000_smyl_no_show_fee\.sql/);
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-finance\.js\?v=28/);
     assert.match(read(file), /smyl-finance\.css\?v=23/);
