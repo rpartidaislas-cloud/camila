@@ -22,7 +22,7 @@ test('Cotizaciones tiene entrada propia en la barra lateral (web y móvil) y el 
 // Ejecuta el código real de las etapas y de los importes/días del tablero.
 function loadHelpers() {
   const src = read('smyl-proposals.js');
-  const stage = src.match(/function proposalStage\(row,event\)\{[\s\S]*?\n  \}\n/)[0];
+  const stage = src.match(/function proposalStage\(row,event\)\{[\s\S]*?\r?\n  \}\r?\n/)[0];
   const age = src.match(/function quoteAge\(iso\)\{[^\n]*\n/)[0] + src.match(/function quoteAgeLabel\(d\)\{[^\n]*\n/)[0] + src.match(/function quoteFirstName\(row\)\{[^\n]*\n/)[0] + src.match(/function quoteTitle\(row\)\{[^\n]*\n/)[0] + src.match(/function quoteTotal\(row\)\{[^\n]*\n/)[0];
   return new Function(stage + age + ';return {proposalStage,quoteAge,quoteAgeLabel,quoteFirstName,quoteTitle,quoteTotal};')();
 }

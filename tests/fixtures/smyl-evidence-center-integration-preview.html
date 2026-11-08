@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Evidencia integrada</title>
+  <link rel="stylesheet" href="../../smyl-evidence-center.css">
+  <link rel="stylesheet" href="../../smyl-evidence-center-integration.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f2f6f8;color:#173334;font-family:"Open Sans",Arial,sans-serif}.shell{width:min(1120px,calc(100% - 32px));margin:28px auto;padding:24px;border:1px solid #dce5ea;border-radius:16px;background:#fff}.cw-evidence-history{padding:20px;background:#edf2f4}.activa{display:block}@media(max-width:600px){.shell{width:100%;margin:0;padding:14px;border:0;border-radius:0}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section id="p-paciente-detalle" class="activa">
+      <div class="cw-evidence-history">Listado anterior de respaldo</div>
+    </section>
+  </main>
+  <script>
+    window.tenantId='11111111-1111-4111-8111-111111111111';
+    window.pacienteActual={id:'22222222-2222-4222-8222-222222222222',nombre:'Paciente demo'};
+    window.SmylPatient360={
+      files(){return {items:[
+        {id:'f1',category:'clinical_photo',name:'Fotografías intraorales.jpg',capturedAt:'2026-11-05'},
+        {id:'f2',category:'laboratory',name:'Informe histopatológico.pdf',capturedAt:'2026-11-06'}
+      ]};},
+      openFile(){return true;}
+    };
+    window.SmylPatientFiles={add(){return false;}};
+    window.SmylCaseWorkspace={context(){return {caseId:'33333333-3333-4333-8333-333333333333'};},open(){return true;}};
+    window.SmylDentalProgress={status(){return {studyItems:[
+      {id:'r1',type:'bitewing',label:'Bitewings de control',date:'2026-11-05',pending:2,confirmed:0},
+      {id:'r2',type:'panoramic',label:'Panorámica inicial',date:'2026-10-18',pending:0,confirmed:1}
+    ]};},openStudy(){return true;}};
+  </script>
+  <script src="../../smyl-evidence-model.js"></script>
+  <script src="../../smyl-evidence-center.js"></script>
+  <script src="../../smyl-evidence-center-integration.js"></script>
+</body>
+</html>

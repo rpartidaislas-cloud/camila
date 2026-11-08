@@ -69,6 +69,37 @@ Pruebas: `tests/appointment-no-charge-pglite.test.mjs` (Postgres real: permisos,
 
 **Para Codex:** el bloque está al final de `smyl-finance.js` («Pacientes pendientes de cargo») y en `#finance-visits`. Fuera de alcance por simple: etiqueta de cobro
 dentro de la Agenda, contador en el menú lateral, cobro por «No vino».
+## 2026-11-08 — Codex — Centro de evidencia clínica multimodal v1
+
+- Se integra en el expediente un centro único que separa fotografías, Rayos X 2D, escaneos/modelos, evaluaciones clínicas,
+  documentos y CBCT/3D. Muestra seis objetivos clínicos sin prescribir estudios ni convertir una fuente faltante en indicación.
+  Reutiliza archivos, radiografías y odontograma canónicos; no crea un segundo mapa ni duplica binarios.
+- UI nueva: `smyl-evidence-center.*`, `smyl-evidence-center-integration.*` y contrato `smyl-evidence-model.js`; `app.html`, PWA
+  y `mobile/www` cargan el mismo paquete. El centro usa la historia completa, aunque los resúmenes heredados conserven su límite
+  compacto. Fotografías, documentos y JPG/PNG radiográficos compatibles abren su editor real; cualquier modalidad sin soporte
+  se bloquea antes del formulario con una explicación honesta.
+- Nueva fundación SQL aislada `20261108120000_smyl_clinical_evidence_center.sql`: originales, vínculos anatómicos/contextuales,
+  hallazgos, decisiones profesionales, informe, versiones, firma, adendas y auditoría. Incluye RLS por tenant/paciente, claves
+  compuestas, CAS, locks ordenados, guardas de estado padre incluso para `service_role`, vínculos revocables, sustitución y firma
+  sólo con original/control de calidad aplicable. Los contextos se verifican por expediente; los tipos sin almacén canónico se
+  rechazan. La IA nunca confirma y el navegador no puede atribuirse una respuesta de modelo.
+- Migración adicional `20261108130000_smyl_clinical_team_compatibility.sql`: el expediente/radiografías heredados separan clínica
+  y actor; lectura usa `clinical.read`, carga/guardado `clinical.write`, y solicitud/decisión de IA `clinical.write+clinical.approve`.
+  Conserva cuarentena, originales inmutables, alcance del paciente, QC, topes e idempotencia. Validadores aceptan `updated_by`
+  como UUID del actor, no como identidad de la clínica.
+- Criterio y límites documentados en `docs/CLINICAL_EVIDENCE_CENTER_V1.md`. CBCT/DICOM y STL/PLY/OBJ continúan sólo como contrato:
+  carga y visor permanecen deshabilitados hasta tener almacenamiento y motor especializados. El endpoint IA genérico atestado,
+  el adaptador/backfill heredado y los revisores/Edge heredados que aún son owner-only permanecen pendientes; no se relajaron.
+- Activación SQL directa completada en el proyecto SMYL `rpxshsiwoxdbuevjjpfw`: el historial remoto registra
+  `20261108120000` y `20261108130000`. El primer intento detectó un cierre sobrante en el `CHECK` anatómico y PostgreSQL
+  revirtió toda la transacción; se corrigió, se validó de nuevo y el segundo intento aplicó ambas migraciones sin arrastrar
+  `20261024090000`, que continúa fuera del historial remoto.
+- Verificación posterior: existen las 10 tablas `smyl_clinical_evidence_*`, todas vacías al instalar; la regresión focalizada
+  de centro, modelo, esquema, integración y permisos pasa 48/48. La revisión visual cubre escritorio, tableta, móvil y 320 px,
+  sin desbordamiento ni objetivos táctiles cortos. Capturas en `artifacts/evidence-center-v1/`.
+- No se desplegaron Edge Functions ni se publicó la interfaz en esta activación SQL. Antes de habilitar candidatos automáticos
+  falta el backend IA atestado; también permanecen pendientes el adaptador/backfill heredado y la prueba funcional de la matriz
+  owner/equipo/sin alcance/otra clínica/cuarentena con sesiones reales.
 
 ## 2026-11-08 — Claude: revisión de respaldos y correcciones del paquete cifrado
 
