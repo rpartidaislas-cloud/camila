@@ -127,7 +127,7 @@ Estimaciones de costo de IA, crecimiento de auditoría y ahorro por empaquetado 
 | 12 | Reconciliar migraciones repo vs producción | Hecho (2026-11-08): 116 de 117 migraciones registradas, 0 en producción sin archivo. Única diferencia: `20261024090000_smyl_consumables_checkout.sql` (compra de paquetes consumibles), pendiente de decisión de producto. Queda el esquema base sin versión (7 archivos `camila_*.sql`/`stripe_billing.sql`) |
 | 13 | Cuota de IA por clínica (radiografía) | Hecho (tope diario/mensual, falla cerrado; requiere desplegar el bundle) |
 | 14 | Retención de `smyl_audit_events` | Hecho (compactación a 24 meses; requiere ejecutar el workflow) |
-| 15 | Reporte de errores del cliente | Hecho (registro `smyl_client_errors` + aviso discreto en lugar de `alert()`; requiere ejecutar el workflow). **Alertas al dueño/equipo: pendiente** — hoy los errores se consultan en la tabla, nadie recibe aviso automático |
+| 15 | Reporte de errores del cliente | Hecho (registro `smyl_client_errors` + aviso discreto en lugar de `alert()`; requiere ejecutar el workflow). **Alertas: hecho** (workflow diario `smyl-alertas-errores-cliente.yml`: resumen de las últimas 24 h; si hay errores el job termina en rojo y GitHub avisa; webhook Slack/Discord opcional con el secreto `ALERTA_WEBHOOK_URL`) |
 | 16 | Minificar/empaquetar y carga por ruta | **Pendiente** (decisión: cambia el despliegue y rompe pruebas que fijan cada script) |
 | 17 | Sondeo de Mensajes | Parcial: sondeo adaptativo hecho; Realtime depende de LANA (contrato SMYL↔LANA) |
 | 18 | Anti-empalme + candado de agenda | Hecho (restricción de exclusión; requiere ejecutar el workflow) |
