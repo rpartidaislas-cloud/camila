@@ -6,7 +6,7 @@ const fs = require('node:fs');
   const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   const browser = await chromium.launch({ headless: true, executablePath: chrome });
   const fixture = `file:///${path.resolve(__dirname, 'fixtures/smyl-clinical-flow-preview.html').replace(/\\/g, '/')}`;
-  const output = path.resolve(__dirname, '..', 'artifacts', 'treatment-simple-v41');
+  const output = path.resolve(__dirname, '..', 'artifacts', 'treatment-workbench-v43');
   fs.mkdirSync(output, { recursive: true });
   const cases = [
     { name: 'desktop', width: 1280, height: 900 },
@@ -42,6 +42,7 @@ const fs = require('node:fs');
       activeTask: document.querySelector('.cw-evaluation-task[aria-current="step"] .cw-evaluation-task-copy strong')?.textContent.trim(),
       commandCount: document.querySelectorAll('.cw-command').length,
       stageStatus: document.querySelectorAll('.cw-stage-status').length,
+      stageStatusText: stageStatus?.textContent.trim(),
       stageStatusVisuallyHidden: !!(stageBox && stageBox.width <= 1 && stageBox.height <= 1 && getComputedStyle(stageStatus).overflow === 'hidden'),
       summaryNumbers: document.querySelectorAll('.cw-summary > .cw-number').length,
       footerPosition: footer ? getComputedStyle(footer).position : '',
@@ -52,7 +53,7 @@ const fs = require('node:fs');
       contextAlerts: visible('.cw-context-alert').length,
       contextMetrics: visible('.cw-context-grid > div').length,
       adminDisclosure: visible('.cw-context-admin').length,
-      legacyContactCards: visible('.cw-contact .clinic-patient-card').length,
+      legacyContactCards: visible('.clinic-layout.cw-layout > .clinic-patient-card').length,
       mobileProgress: visible('.cw-evaluation-mobile-progress').length,
       mobileProgressText: document.querySelector('.cw-evaluation-mobile-progress')?.textContent.trim()
     };
@@ -130,6 +131,34 @@ const fs = require('node:fs');
     });
     await page.screenshot({ path: path.join(output, `${item.name}-findings.png`), fullPage: true });
 
+    let mobileNaturalScroll = { applicable: false };
+    if (item.width <= 760) {
+      const panels = page.locator('.cw-evaluation-panels');
+      await panels.hover();
+      await page.evaluate(() => window.scrollTo(0, Math.min(120, document.documentElement.scrollHeight - innerHeight)));
+      const before = await page.evaluate(() => document.scrollingElement.scrollTop);
+      await panels.hover();
+      await page.mouse.wheel(0, 420);
+      await page.waitForTimeout(120);
+      const gesture = await page.evaluate(beforeScroll => ({
+        applicable: true,
+        before: beforeScroll,
+        after: document.scrollingElement.scrollTop,
+        pageMoved: document.scrollingElement.scrollTop > beforeScroll,
+        panelsOverflowY: getComputedStyle(document.querySelector('.cw-evaluation-panels')).overflowY,
+        flowOverflowY: getComputedStyle(document.querySelector('.cw-evaluation-flow')).overflowY
+      }), before);
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(80);
+      const end = await page.evaluate(() => {
+        const footer = document.querySelector('.cw-evaluation-footer');
+        const last = document.querySelector('.cw-evaluation-panel:not([hidden]) .cw-evaluation-panel-body > :last-child');
+        const footerBox = footer?.getBoundingClientRect(), lastBox = last?.getBoundingClientRect();
+        return { lastContentClear: !!(footerBox && lastBox && lastBox.bottom <= footerBox.top + 1) };
+      });
+      mobileNaturalScroll = { ...gesture, ...end };
+    }
+
     await page.locator('[data-filter="photo"]').click();
     const photoMode = await page.evaluate(() => ({
       selected: document.querySelector('[data-filter="photo"]')?.getAttribute('aria-pressed'),
@@ -205,6 +234,7 @@ const fs = require('node:fs');
       drawer,
       evidence,
       findings,
+      mobileNaturalScroll,
       photoMode,
       radiographTask,
       closure,
@@ -223,8 +253,9 @@ const fs = require('node:fs');
     JSON.stringify(item.initial.moduleTitles) !== JSON.stringify(titles) || item.initial.visibleModules !== 1 || item.initial.openModules !== 1 ||
     item.initial.stages !== 4 || item.initial.tasks !== (item.name === 'mobile' || item.name === 'mobile-320' ? 0 : 4) || item.initial.visiblePanels !== 1 ||
     item.initial.visibleCtas !== 1 || item.initial.cta !== 'Revisado y continuar' || item.initial.activeTask !== 'Contexto' ||
-    item.initial.commandCount !== 0 || item.initial.stageStatus !== 1 || !item.initial.stageStatusVisuallyHidden ||
-    item.initial.summaryNumbers !== 0 || item.initial.footerPosition !== 'sticky' || item.initial.footerCoversContent ||
+    item.initial.commandCount !== 0 || item.initial.stageStatus !== 1 || item.initial.stageStatusVisuallyHidden ||
+    item.initial.stageStatusText !== 'Siguiente acción · Completa la evaluación.' ||
+    item.initial.summaryNumbers !== 0 || item.initial.footerPosition !== (item.requiredHeight === 44 ? 'static' : 'sticky') || item.initial.footerCoversContent ||
     item.initial.minButtonHeight < item.requiredHeight || item.initial.contextSummary !== 1 || item.initial.contextAlerts !== 2 ||
     item.initial.contextMetrics !== 3 || item.initial.adminDisclosure !== 1 || item.initial.legacyContactCards !== 0 ||
     item.initial.mobileProgress !== (item.name === 'mobile' || item.name === 'mobile-320' ? 1 : 0) ||
@@ -234,18 +265,19 @@ const fs = require('node:fs');
     item.evidence.panel !== 1 || item.evidence.visiblePanels !== 1 || item.evidence.visibleCtas !== 1 ||
     item.evidence.metrics !== 3 || item.evidence.items !== 1 || item.evidence.latest !== 'REGISTRO MÁS RECIENTE' ||
     item.evidence.previous !== 'Ver 4 anteriores' || item.evidence.cta !== 'Continuar a hallazgos' ||
-    item.evidence.footerPosition !== 'sticky' || item.evidence.footerCoversContent || item.evidence.overflow ||
+    item.evidence.footerPosition !== (item.requiredHeight === 44 ? 'static' : 'sticky') || item.evidence.footerCoversContent || item.evidence.overflow ||
     item.findings.panel !== 1 || item.findings.visiblePanels !== 1 || item.findings.visibleCtas !== 1 ||
     item.findings.odontogram !== 1 || item.findings.teeth !== 32 || item.findings.filters !== 4 ||
     item.findings.sourceWorkspace !== 1 || item.findings.sourceStats !== 3 || !item.findings.advancedInitiallyHidden ||
-    item.findings.footerPosition !== 'sticky' || item.findings.footerCoversContent || item.findings.overflow ||
+    item.findings.footerPosition !== (item.requiredHeight === 44 ? 'static' : 'sticky') || item.findings.footerCoversContent || item.findings.overflow ||
+    (item.mobileNaturalScroll.applicable && (!item.mobileNaturalScroll.pageMoved || !item.mobileNaturalScroll.lastContentClear || item.mobileNaturalScroll.panelsOverflowY !== 'visible' || item.mobileNaturalScroll.flowOverflowY !== 'visible')) ||
     item.photoMode.selected !== 'true' || item.photoMode.title !== 'Archivo visual y revisión asistida' ||
     !item.photoMode.actions.includes('Agregar fotografías') || !item.radiographTask.open ||
     item.radiographTask.title !== 'Agregar estudio radiográfico' || item.radiographTask.steps !== 3 ||
     item.radiographTask.visibleSections !== 1 || item.radiographTask.duplicateMaps !== 0 ||
     item.radiographTask.uploadVisible !== 1 || item.radiographTask.controlHeight < item.requiredHeight || item.radiographTask.overflow ||
     item.closure.panel !== 1 || item.closure.visiblePanels !== 1 || item.closure.visibleCtas !== 1 ||
-    item.closure.cta !== 'Continuar a propuesta' || item.closure.footerPosition !== 'sticky' || item.closure.footerCoversContent ||
+    item.closure.cta !== 'Continuar a propuesta' || item.closure.footerPosition !== (item.requiredHeight === 44 ? 'static' : 'sticky') || item.closure.footerCoversContent ||
     item.proposal.visibleModules !== 1 || item.proposal.title !== 'Propuesta' || item.proposal.primaryCtas !== 1 ||
     item.proposal.historyAction !== 'Ver historial' || !item.proposal.historyCopy.includes('no se reemplaza') ||
     item.acceptance.visibleModules !== 1 || item.acceptance.title !== 'Aceptación' ||

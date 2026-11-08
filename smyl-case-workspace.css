@@ -232,3 +232,29 @@
  .cw-context-head{align-items:stretch;flex-direction:column;padding:14px}.cw-context-head button{width:100%;min-height:44px}.cw-context-alerts{padding-inline:14px}.cw-context-alert{gap:9px}.cw-context-grid{grid-template-columns:1fr}.cw-context-grid>div{border-right:0;border-bottom:1px solid var(--cw-line)}.cw-context-grid>div:last-child{border-bottom:0}.cw-context-foot>.cw-context-meta{padding:11px 14px}.cw-context-admin>summary{padding-inline:14px}.cw-context-admin>dl,.cw-context-admin>div{grid-template-columns:1fr;padding-inline:14px}.cw-evaluation-close-facts{grid-template-columns:1fr}.cw-history-drawer{width:100vw}.cw-history-drawer>header{padding:16px}.cw-history-drawer>header button{min-height:44px}.cw-history-drawer-body{padding-inline:16px}.cw-history-drawer>footer{padding-inline:16px}
 }
 @media(prefers-reduced-motion:reduce){.cw-history-drawer::backdrop{backdrop-filter:none}.cw-evaluation-footer{backdrop-filter:none}}
+
+/* Tratamiento v4.3 · espacio de trabajo del tenant, sin ficha duplicada ni scroll atrapado. */
+.cw-enhanced .clinic-layout.cw-layout>.clinic-patient-card{display:none!important}
+.cw-enhanced .cw-workspace{color:var(--cw-ink)}
+.cw-enhanced .cw-nav{margin:0 0 8px;padding-inline:0}
+.cw-enhanced .cw-stage-status{position:static;width:auto;height:auto;margin:0 0 10px;padding:9px 12px;overflow:visible;clip:auto;clip-path:none;border:1px solid #dbe4ec;border-radius:9px;background:#f8fafc;color:#41576b;font-size:12px;font-weight:650;line-height:1.45;white-space:normal}
+.cw-enhanced .cw-stage-status::before{content:'';display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--cw-primary);vertical-align:1px}
+.cw-enhanced .cw-module[data-active=true]{border-color:#d8e2ea;border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(11,27,46,.045);overflow:clip}
+.cw-enhanced .cw-module[data-active=true]>.cw-summary{min-height:54px;padding:10px 16px;border-bottom:1px solid #e4eaf0;background:#fff}
+.cw-enhanced .cw-module[data-active=true]>.cw-summary .cw-module-title strong{font-size:16px;font-weight:750}
+.cw-enhanced .cw-module[data-active=true]>.cw-summary .cw-subtitle{display:none}
+.cw-enhanced .cw-module[data-active=true]>.cw-body{padding-top:0;border-top:0}
+.cw-enhanced .cw-evaluation-task[aria-current=step]{border-left-color:var(--cw-primary);background:#fff;color:var(--cw-ink)}
+.cw-enhanced .cw-context-summary{box-shadow:none}
+
+@media(max-width:760px){
+ .cw-enhanced .cw-nav{margin-bottom:8px}
+ .cw-enhanced .cw-stage-status{margin-bottom:9px;padding:9px 11px}
+ .cw-enhanced .cw-module[data-active=true]{overflow:visible;box-shadow:none}
+ .cw-enhanced .cw-module[data-active=true]>.cw-summary{min-height:50px;padding:9px 12px}
+ .cw-enhanced .cw-module[data-active=true]>.cw-summary>.cw-badge{align-self:center;margin-left:auto}
+ .cw-enhanced .cw-evaluation-flow{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:'mobile' 'panels' 'footer';grid-template-rows:auto auto auto;height:auto;min-height:0;max-height:none;overflow:visible}
+ .cw-enhanced .cw-evaluation-panels{min-height:0;max-height:none;padding:0;overflow:visible;overscroll-behavior:auto;scrollbar-gutter:auto}
+ .cw-enhanced .cw-evaluation-panel{overflow:visible}
+ .cw-enhanced .cw-evaluation-footer{position:static;bottom:auto;margin:0 -12px;padding:11px 12px calc(11px + env(safe-area-inset-bottom));box-shadow:none}
+}

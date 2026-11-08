@@ -17,10 +17,10 @@ test('Tratamiento presenta un recorrido clínico navegable de cuatro etapas', ()
   assert.match(script, /id==='photos'\|\|id==='review'\?'evaluation'/);
   assert.match(script, /id==='share'\?'approval'/);
   assert.match(script, /ctx\.nav\[id\]=step/);
-  assert.match(script, /Etapa 1 de 4/);
-  assert.match(script, /Etapa 2 de 4/);
-  assert.match(script, /Etapa 3 de 4/);
-  assert.match(script, /Etapa 4 de 4/);
+  assert.match(script, /Siguiente acción · Completa la evaluación/);
+  assert.match(script, /Siguiente acción · Prepara la propuesta/);
+  assert.match(script, /Siguiente acción · Registra la aceptación/);
+  assert.match(script, /Siguiente acción · Continúa el seguimiento/);
   assert.match(styles, /\.cw-nav\{display:grid/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
 });
