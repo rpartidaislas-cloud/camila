@@ -530,3 +530,20 @@
 .finance-list-summary{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:4px 0 14px;flex-wrap:wrap}
 .finance-list-summary small{display:block;margin-top:4px;color:var(--color-text-tertiary,#6b7a8c);max-width:60ch}
 @media(max-width:620px){.finance-alert{align-items:flex-start;flex-direction:column}.finance-alert button{width:100%}}
+
+/* Pacientes pendientes de cargo (Cobros) */
+.finance-visits{margin:0 0 16px}
+.finance-visits-card header h2 em{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 7px;margin-left:6px;border-radius:99px;background:#fff2e6;color:#a65316;font-size:12px;font-style:normal;font-weight:800;vertical-align:middle}
+.finance-visit-list{display:grid;gap:9px}
+.finance-visit-row{display:grid;grid-template-columns:minmax(0,1.5fr) auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid #e3e9f1;border-radius:13px;background:#fff}
+.finance-visit-row[data-visit-state=completed]{border-color:#f1d9bd;background:#fffaf4}
+.finance-visit-row strong,.finance-visit-row small{display:block}
+.finance-visit-row small{color:#6b7a90;margin-top:3px;font-size:12px}
+.finance-visit-row .finance-row-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.finance-badge[data-tone=info]{background:#eef3fb;color:#3a5f8f}
+.finance-visits-closed{margin-top:10px;border:1px solid #e3e9f1;border-radius:13px;background:#f8fafc;padding:2px 14px}
+.finance-visits-closed summary{cursor:pointer;padding:11px 0;color:#52627a;font-weight:700;font-size:13px}
+.finance-visit-closed-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #e8edf3}
+.finance-visit-closed-row strong,.finance-visit-closed-row small{display:block}
+.finance-visit-closed-row small{color:#6b7a90;font-size:12px;margin-top:2px}
+@media(max-width:700px){.finance-visit-row{grid-template-columns:1fr auto}.finance-visit-row .finance-row-actions{grid-column:1/-1;justify-content:stretch}.finance-visit-row .finance-row-actions button{flex:1}}
