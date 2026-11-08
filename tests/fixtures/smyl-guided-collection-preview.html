@@ -4,45 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SMYL · Cobro guiado</title>
+  <link rel="stylesheet" href="../../smyl-design-system-v2.css">
+  <link rel="stylesheet" href="../../smyl-ui-template-v3.css">
   <link rel="stylesheet" href="../../smyl-finance.css">
+  <link rel="stylesheet" href="../../smyl-ui-datta-v4.css">
   <style>
     :root{font-family:Inter,system-ui,sans-serif;background:#e9eef3;color:#13283f}
     *{box-sizing:border-box}
     body{margin:0;min-height:100vh;background:linear-gradient(135deg,#eff3f7,#dfe7ee)}
     .preview-shell{min-height:100vh;padding:30px;display:grid;place-items:center}
-    .preview-dialog{width:min(980px,calc(100vw - 32px));overflow:hidden;border:1px solid #d7e1e9;border-radius:20px;background:#fff;box-shadow:0 28px 80px rgba(13,33,56,.22)}
+    .preview-dialog{width:min(840px,calc(100vw - 32px));overflow:hidden;background:#fff}
     @media(max-width:760px){.preview-shell{padding:0;display:block}.preview-dialog{width:100%;min-height:100vh;border:0;border-radius:0}}
   </style>
 </head>
 <body>
   <main class="preview-shell">
-    <section class="preview-dialog finance-collection-guide">
+    <section class="preview-dialog finance-dialog">
+      <form class="finance-collection-guide">
       <header>
-        <div><span>COBRO GUIADO</span><h2>Cobrar a paciente</h2><p>Primero identifica al paciente; después elige qué ocurrió hoy.</p></div>
+        <div class="finance-guide-heading"><span class="finance-guide-progress">Paso 2 de 2</span><h2>Cobrar a paciente</h2><p>Selecciona al paciente y el movimiento.</p></div>
         <button aria-label="Cerrar">×</button>
       </header>
       <div class="finance-guide-body">
-        <label class="finance-guide-patient">
-          <span>1</span>
-          <div><strong>Selecciona al paciente</strong><small>Verás su saldo antes de registrar cualquier movimiento.</small></div>
-          <div class="finance-patient-picker"><input type="search" value="Mariana López" aria-label="Paciente"></div>
-        </label>
         <section class="finance-guide-account">
-          <span>ML</span>
-          <div><small>CUENTA DEL PACIENTE</small><strong>Mariana López</strong><p>Último movimiento: limpieza dental · hoy</p></div>
+          <span class="finance-guide-avatar">ML</span>
+          <div class="finance-guide-identity"><small>Paciente</small><strong>Mariana López</strong><p>Cita hoy · 11:30</p></div>
+          <button class="finance-guide-change">Cambiar</button>
           <dl><div><dt>Por cobrar</dt><dd>$1,850.00</dd></div><div><dt>Vencido</dt><dd>$0.00</dd></div><div><dt>A favor</dt><dd>$500.00</dd></div></dl>
         </section>
         <section class="finance-guide-choice">
-          <div class="finance-guide-title"><span>2</span><div><strong>¿Qué quieres registrar?</strong><small>SMYL abrirá únicamente los campos necesarios.</small></div></div>
+          <div class="finance-guide-title"><span>2</span><div><strong>Elige el movimiento</strong><small>Mostraremos sólo los datos necesarios.</small></div></div>
           <div data-guide-paths>
-            <button data-guide-path="balance"><i>SALDO</i><span><strong>Cobrar saldo pendiente</strong><small>Aplica el pago a cargos existentes.</small></span><b>›</b></button>
-            <button data-guide-path="service"><i>HOY</i><span><strong>Servicio realizado hoy</strong><small>Crea el cargo y continúa al pago.</small></span><b>›</b></button>
-            <button data-guide-path="proposal"><i>COT.</i><span><strong>Cotización aceptada</strong><small>Convierte los servicios aprobados en cargos.</small></span><b>›</b></button>
-            <button data-guide-path="advance"><i>ANT.</i><span><strong>Registrar anticipo</strong><small>Guarda dinero a favor sin aplicarlo todavía.</small></span><b>›</b></button>
+            <button data-guide-path="balance"><span class="finance-guide-route-icon"><svg viewBox="0 0 24 24"><path d="M4 7.5h16v11H4zM4 10.5h16M8 15h4"/></svg></span><span class="finance-guide-route-copy"><strong>Cobrar saldo</strong><small>Aplicar el pago a cargos pendientes.</small></span><span class="finance-guide-route-meta">$1,850.00</span></button>
+            <button data-guide-path="service"><span class="finance-guide-route-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="finance-guide-route-copy"><strong>Servicio de hoy</strong><small>Agregar el servicio y continuar al pago.</small></span><span class="finance-guide-route-meta">Abrir</span></button>
+            <button data-guide-path="proposal"><span class="finance-guide-route-icon"><svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20H7zM14 3.5V8h4M9.5 12h6M9.5 15h5"/></svg></span><span class="finance-guide-route-copy"><strong>Cotización aceptada</strong><small>Convertir los conceptos aprobados en cargos.</small></span><span class="finance-guide-route-meta">Revisar</span></button>
+            <button data-guide-path="advance"><span class="finance-guide-route-icon"><svg viewBox="0 0 24 24"><path d="M4 8h16v11H4zM12 3v10M8.5 6.5 12 3l3.5 3.5"/></svg></span><span class="finance-guide-route-copy"><strong>Registrar anticipo</strong><small>Guardar el importe como saldo a favor.</small></span><span class="finance-guide-route-meta">A favor</span></button>
           </div>
         </section>
       </div>
-      <footer><p>Ningún movimiento se guarda hasta que revises y confirmes.</p><button>Cancelar</button></footer>
+      <footer><p>Revisarás el movimiento antes de guardarlo.</p><button>Cancelar</button></footer>
+      </form>
     </section>
   </main>
 </body>

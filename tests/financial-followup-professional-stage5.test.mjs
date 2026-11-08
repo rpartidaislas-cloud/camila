@@ -50,7 +50,7 @@ test('el registro profesional guía paciente, importe, método, aplicación y re
 });
 
 test('el cobro cotidiano parte del paciente y decide la operación sin mezclar movimientos', () => {
-  for (const copy of ['Cobrar a paciente', 'Cobrar saldo pendiente', 'Servicio realizado hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo sin pago']) {
+  for (const copy of ['Cobrar a paciente', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo sin pago']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /function openGuidedCollection\(patientId\)/);
@@ -59,13 +59,23 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
   assert.match(finance, /openProposalCharge\(null,id\)/);
   assert.match(finance, /openPayment\(id,\{mode:'advance'\}\)/);
   assert.match(finance, /allocationMode==='debt'\?' checked':''/);
+  assert.match(finance, /Paso 1 de 2/);
+  assert.match(finance, /Paso 2 de 2/);
+  assert.match(finance, /function financeGuideIcon\(type\)/);
+  assert.match(finance, /data-guide-change/);
+  assert.match(finance, /requestAnimationFrame\(function\(\)\{var first=paths\.querySelector/);
   assert.match(styles, /\.finance-collection-guide/);
   assert.match(styles, /\.finance-more-actions/);
+  assert.match(styles, /Cobro guiado v4/);
+  assert.match(styles, /grid-auto-rows:max-content/);
+  assert.match(styles, /finance-guide-route-icon svg/);
+  assert.match(styles, /finance-patient-picker input\[type=search\]:focus-visible/);
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=14/);
-  assert.match(app, /smyl-finance\.js\?v=18/);
+  assert.match(app, /smyl-finance\.css\?v=15/);
+  assert.match(app, /smyl-finance\.js\?v=19/);
+  assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
