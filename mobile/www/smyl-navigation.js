@@ -23,6 +23,9 @@
     account: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
     templates: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v2.5h-5zM9 11h6M9 15h4"/>',
+    email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    broadcast: '<path d="m3 11 16-7-5 16-3.5-6.5L3 11Z"/><path d="m10.5 13.5 3.5-3.5"/>',
+    campaign: '<path d="M4 13v-2l12-5v12L4 13Z"/><path d="M8 14v5a2 2 0 0 0 2 2h1v-6M18 9a3 3 0 0 1 0 6"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
@@ -37,9 +40,14 @@
     ['Cobros', 'caja', 'cash'],
     ['Cotizaciones', 'propuestas', 'quote']
   ];
-  // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
+  // Centro de comunicación: una sola jerarquía para conversar, preparar plantillas
+  // y organizar envíos. Cada ruta conserva su propia autorización y fuente de datos.
   var MESSAGING = [
-    ['Mensajes', 'inbox', 'messages']
+    ['Chat', 'inbox', 'messages'],
+    ['Correo', 'correo', 'email'],
+    ['Mensajes masivos', 'mensajes-masivos', 'broadcast'],
+    ['Plantillas WhatsApp', 'plantillas', 'templates'],
+    ['Campañas', 'campanas', 'campaign']
   ];
   var MOBILE_PRIMARY = [PRIMARY[0], PRIMARY[1], PRIMARY[2], MESSAGING[0]];
   var BUSINESS = [
@@ -50,7 +58,7 @@
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta', 'plantillas'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -63,7 +71,7 @@
     ['Seguridad', 'seguridad', 'shield'],
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
-    // Las plantillas de WhatsApp son parte de Canales: se llega desde Configuración o desde Mensajes.
+    // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
 
@@ -97,13 +105,13 @@
     return label;
   }
 
-  function detailsGroup(label, entries, open) {
+  function detailsGroup(label, entries, open, iconName) {
     var details = document.createElement('details');
     details.className = 'pro-nav-group';
     details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
     details.open = Boolean(open);
     var summary = document.createElement('summary');
-    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon('reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
+    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
     summary.dataset.tooltip = label;
     summary.setAttribute('aria-label', label);
     details.append(summary);
@@ -137,6 +145,11 @@
       group.classList.toggle('has-active', contains);
       if (contains) group.open = true;
     });
+    document.querySelectorAll('.pam-collapsible-group').forEach(function (group) {
+      var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
+      group.classList.toggle('has-active', contains);
+      if (contains) group.open = true;
+    });
   }
 
   function organizeDesktop() {
@@ -147,9 +160,8 @@
     nav.setAttribute('aria-label', 'Navegación principal');
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
-    nav.append(sectionLabel('Mensajería'));
-    MESSAGING.forEach(function (entry) { nav.append(navItem(entry, false)); });
-    nav.append(detailsGroup('Negocio', BUSINESS, true));
+    nav.append(detailsGroup('Mensajería', MESSAGING, true, 'messages'));
+    nav.append(detailsGroup('Negocio', BUSINESS, true, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
     registry.className = 'pro-nav-registry'; registry.hidden = true; registry.style.display = 'none'; registry.setAttribute('aria-hidden', 'true');
@@ -193,6 +205,22 @@
     return group;
   }
 
+  function mobileDetailsGroup(label, entries, open) {
+    var details = document.createElement('details');
+    details.className = 'pam-group pam-collapsible-group';
+    details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
+    details.open = Boolean(open);
+    var summary = document.createElement('summary');
+    summary.className = 'pam-group-label pam-group-summary';
+    summary.innerHTML = '<span>' + label + '</span><span class="pam-group-toggle" aria-hidden="true">⌄</span>';
+    details.append(summary);
+    var body = document.createElement('div');
+    body.className = 'pam-group-body';
+    entries.forEach(function (entry) { body.append(navItem(entry, true)); });
+    details.append(body);
+    return details;
+  }
+
   function organizeMobileSheet() {
     var host = document.querySelector('.pam-scroll');
     if (!host) return;
@@ -200,7 +228,7 @@
     var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),
-      mobileGroup('Mensajería', MESSAGING),
+      mobileDetailsGroup('Mensajería', MESSAGING, true),
       mobileGroup('Negocio', BUSINESS),
       mobileGroup('Configuración', SETTINGS),
       mobileGroup('Acción rápida', quick)

@@ -1,0 +1,29 @@
+/* SMYL · Centro de mensajería. Mantiene los canales separados del expediente clínico. */
+.messaging-page{max-width:1240px;margin:0 auto;padding:28px 28px 80px;color:var(--color-text-primary,#173149)}
+.messaging-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px}
+.messaging-head h1{margin:5px 0 7px;font-size:30px;line-height:1.12;letter-spacing:-.7px}
+.messaging-head p{max-width:680px;margin:0;color:var(--color-text-secondary,#607286);font-size:13px;line-height:1.55}
+.messaging-head .pro-eyebrow{margin:0;color:var(--color-primary,#215d60);font-size:10px;font-weight:800;letter-spacing:1.25px}
+.messaging-status{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border:1px solid #cfe0da;border-radius:999px;background:#f2f8f5;color:#35685e;font-size:11px;font-weight:700;white-space:nowrap}
+.messaging-status::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ca58f}
+.messaging-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.75fr);gap:16px;align-items:start}
+.messaging-card{border:1px solid var(--color-border,#d9e2e8);border-radius:14px;background:var(--color-surface,#fff);box-shadow:0 6px 22px rgba(20,47,67,.045)}
+.messaging-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px 22px 16px;border-bottom:1px solid var(--color-border,#e0e7ec)}
+.messaging-card h2{margin:0 0 5px;font-size:17px;letter-spacing:-.2px}
+.messaging-card p{margin:0;color:var(--color-text-secondary,#647587);font-size:12px;line-height:1.55}
+.messaging-card-body{padding:20px 22px}
+.messaging-checklist{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.messaging-checklist li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:11px;align-items:start;padding:12px;border:1px solid #e0e7eb;border-radius:10px;background:#fbfcfc}
+.messaging-checklist i{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#e6f4f0;color:#25796d;font-style:normal;font-size:12px;font-weight:800}
+.messaging-checklist strong,.messaging-checklist span{display:block}.messaging-checklist strong{font-size:12px}.messaging-checklist span{margin-top:3px;color:#71808e;font-size:11px;line-height:1.45}
+.messaging-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.messaging-actions button{min-height:40px}
+.messaging-empty{display:grid;place-items:start;gap:9px;min-height:205px;padding:24px}
+.messaging-empty-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#e9f5f2;color:#26776e;font-size:20px}
+.messaging-empty h2{margin:3px 0 0;font-size:19px}.messaging-empty p{max-width:580px}
+.messaging-guardrail{padding:18px 20px}.messaging-guardrail strong{display:block;margin-bottom:5px;font-size:12px}.messaging-guardrail p{font-size:11px}
+.messaging-page .gmail-settings{margin:0;border:1px solid var(--color-border,#d9e2e8);border-radius:14px;background:#fff;box-shadow:0 6px 22px rgba(20,47,67,.045)}
+.messaging-page .gmail-settings .card-title{font-size:17px}
+@media(max-width:900px){.messaging-grid{grid-template-columns:1fr}.messaging-head{align-items:flex-start}.messaging-status{display:none}}
+@media(max-width:760px){.messaging-page{padding:18px 14px 88px}.messaging-head h1{font-size:24px}.messaging-card>header,.messaging-card-body{padding-left:16px;padding-right:16px}.messaging-actions{display:grid}.messaging-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.messaging-page *{scroll-behavior:auto!important}}

@@ -32,7 +32,6 @@
       { title: 'WhatsApp, Instagram y Messenger', desc: 'Conecta las cuentas con las que hablas con tus pacientes.', route: 'conexiones', target: '[data-connection-tab="channels"]', check: 'whatsapp' },
       { title: 'Asistente de mensajes', desc: 'Cómo atiende tu asistente y qué sabe de tu clínica.', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
       { title: 'Probar al asistente', desc: 'Escribe como paciente y revisa cómo responde antes de activarlo.', route: 'conexiones', target: '[data-connection-tab="lab"]' },
-      { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados por Meta para escribirle primero a un paciente.', route: 'plantillas', embed: true, check: 'template' },
       { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' },
       { title: 'Perfil público de WhatsApp', desc: 'Descripción, dirección y foto con las que te ven tus pacientes.', soon: true }
     ] },

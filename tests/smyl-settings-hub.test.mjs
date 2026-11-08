@@ -16,7 +16,7 @@ test('las secciones siguen el orden del panel de LANA y agregan seguridad al fin
 
 test('cada pantalla de configuración que existe hoy tiene su tarjeta y nada se queda sin camino', () => {
   const routes = new Set(hub.SECTIONS.flatMap(s => s.items.filter(i => !i.soon).map(i => i.route)));
-  for (const route of ['clinica', 'mi-cuenta', 'caja', 'precios', 'inventario', 'agenda', 'conexiones', 'plantillas', 'sim-config', 'directorio', 'lanzamiento', 'seguridad']) {
+  for (const route of ['clinica', 'mi-cuenta', 'caja', 'precios', 'inventario', 'agenda', 'conexiones', 'sim-config', 'directorio', 'lanzamiento', 'seguridad']) {
     assert.ok(routes.has(route), `falta la ruta ${route}`);
   }
   for (const item of hub.SECTIONS.flatMap(s => s.items)) {
@@ -91,12 +91,12 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   const source = read('smyl-settings-hub.js');
   assert.match(source, /Volver a Configuración/);
   assert.match(source, /if \(route !== state\.from\) \{ back\.hidden = true; state\.from = ''; return; \}/);
-  assert.match(read('smyl-navigation.js'), /'plantillas'\]/);
+  assert.doesNotMatch(read('smyl-navigation.js').match(/var SETTINGS_ROUTES = \[[^\]]+\]/)[0], /plantillas/);
 });
 
-test('Equipo, Facturación, Plantillas y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
+test('Equipo, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
   const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
-  assert.deepEqual(Object.keys(embedded).sort(), ['Cobros y pagos', 'Corte de caja', 'Equipo y roles', 'Facturación', 'Plantillas de WhatsApp', 'Recordatorios de cita', 'Sucursales, sillones y horario']);
+  assert.deepEqual(Object.keys(embedded).sort(), ['Cobros y pagos', 'Corte de caja', 'Equipo y roles', 'Facturación', 'Recordatorios de cita', 'Sucursales, sillones y horario']);
   assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
   assert.equal(embedded['Equipo y roles'].route, 'clinica');
   const source = read('smyl-settings-hub.js');
