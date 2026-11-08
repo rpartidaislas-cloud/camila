@@ -945,6 +945,45 @@
     } finally { state.templatesLoading = false; }
   }
 
+  // ── Cobros por WhatsApp: variables de las plantillas de cobro tomadas de la cuenta del paciente ──
+  var COBRO_PLANTILLAS = ['pago_pendiente_v1', 'plan_pagos_proximo_v1', 'saldo_actualizado_v1', 'estado_cuenta_v1', 'saldo_vencido_aviso_v1', 'pago_recibido_v1', 'comprobante_pago_v1'];
+
+  function cobroVariables(templateName, conversation) {
+    if (!conversation || COBRO_PLANTILLAS.indexOf(templateName) === -1) return null;
+    var info = state.accountContext && state.accountContext[conversation.id]; var summary = info && info.data;
+    if (!summary) return null;
+    var ficha = state.clinical[conversation.id];
+    var fullName = (ficha && ficha.patient && ficha.patient.name) || conversation.contact_name || '';
+    var first = String(fullName).trim().split(/\s+/)[0] || '';
+    var clinic = availabilityClinicName();
+    var money = function (value) { return Number(value || 0) > 0 ? Number(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : ''; };
+    var due = summary.nextDue ? new Date(summary.nextDue + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '';
+    switch (templateName) {
+      case 'pago_pendiente_v1': return [first, money(summary.due), clinic, due];
+      case 'plan_pagos_proximo_v1': return [first, money(summary.nextBalance || summary.due), clinic, due];
+      case 'saldo_actualizado_v1': return [first, clinic, money(summary.due)];
+      case 'estado_cuenta_v1': return [first, clinic, money(summary.due), due];
+      case 'saldo_vencido_aviso_v1': return [first, money(summary.overdueAmount || summary.due), clinic, due];
+      case 'pago_recibido_v1': return [first, money(summary.lastPaymentAmount), clinic];
+      case 'comprobante_pago_v1': return [first, '', money(summary.lastPaymentAmount), clinic];
+      default: return null;
+    }
+  }
+
+  function cobroPreferidas(summary) {
+    if (summary && summary.overdueCount > 0) return ['saldo_vencido_aviso_v1', 'pago_pendiente_v1', 'estado_cuenta_v1'];
+    if (summary && summary.due > 0) return ['pago_pendiente_v1', 'estado_cuenta_v1', 'saldo_actualizado_v1', 'plan_pagos_proximo_v1'];
+    return ['pago_recibido_v1', 'comprobante_pago_v1', 'estado_cuenta_v1'];
+  }
+
+  async function openCobroTemplate() {
+    var conversation = selectedConversation();
+    if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
+    var info = state.accountContext && state.accountContext[conversation.id];
+    var preferred = cobroPreferidas(info && info.data);
+    await openTemplateDialog(preferred);
+  }
+
   function templateById(id) { return state.templates.find(function (item) { return item.id === id; }) || null; }
 
   function renderTemplateFields(select, preview, variables, prefix) {
@@ -963,6 +1002,9 @@
       }
       label.append(input); variables.append(label);
     }
+    // Plantillas de cobro: monto, vencimiento y nombre salen de la cuenta del paciente (se pueden corregir antes de enviar).
+    var auto = cobroVariables(template.name, selectedConversation());
+    if (auto) Array.from(variables.querySelectorAll('[data-variable-index]')).forEach(function (field, index) { if (auto[index]) field.value = auto[index]; });
   }
 
   function fillTemplateSelect(select) {
@@ -973,11 +1015,18 @@
     state.templates.forEach(function (template) { var option = document.createElement('option'); option.value = template.id; option.textContent = template.name + ' · ' + template.language; select.append(option); });
   }
 
-  async function openTemplateDialog() {
+  async function openTemplateDialog(preferred) {
     var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
     try { await loadTemplates(); } catch (error) { window.alert(error.message || 'No se pudieron cargar las plantillas.'); return; }
     var dialog = document.querySelector('[data-template-dialog]'); var select = dialog.querySelector('[data-template-select]');
-    fillTemplateSelect(select); renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
+    fillTemplateSelect(select);
+    if (Array.isArray(preferred)) {
+      var match = null;
+      preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
+      if (!match) { window.alert('No hay una plantilla de cobro aprobada todavía. Solicítalas en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      select.value = match.id;
+    }
+    renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
     dialog.showModal();
   }
 
@@ -988,6 +1037,11 @@
     var variables = Array.from(dialog.querySelectorAll('[data-variable-index]')).map(function (input) { return input.value.trim(); });
     if (variables.some(function (value) { return !value; })) { window.alert('Completa todas las variables de la plantilla.'); return; }
     var content = variables.reduce(function (copy, value, index) { return copy.split('{{' + (index + 1) + '}}').join(value); }, template.body || template.name);
+    if (COBRO_PLANTILLAS.indexOf(template.name) !== -1) {
+      var weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var repeated = (state.messages[conversation.id] || []).filter(function (item) { return item.author_type === 'team' && item.content === content && new Date(item.created_at || 0).getTime() > weekAgo; })[0];
+      if (repeated && !window.confirm('Ya enviaste este mismo mensaje el ' + availabilityDate(repeated.created_at).split(' · ')[0] + '. ¿Enviarlo de nuevo?')) return;
+    }
     var key = uuid(); var extra = { type: 'template', template_id: template.id, template_variables: variables };
     var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, created_at: new Date().toISOString(), status: 'sending', extra: extra };
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); dialog.close(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
@@ -1742,6 +1796,11 @@
         if (hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) {
           var chargeButton = node('button', 'btn btn-primary btn-sm', 'Cobrar'); chargeButton.type = 'button';
           chargeButton.onclick = function () { openCareTask('payment'); }; accountActions.append(chargeButton);
+        }
+        if (conversation.channel === 'whatsapp' && hasPermission('messages.respond') && canOperate(conversation, 'messages.respond')) {
+          var sendWhatsapp = node('button', 'btn btn-secondary btn-sm', 'Enviar por WhatsApp'); sendWhatsapp.type = 'button';
+          sendWhatsapp.title = 'Elige una plantilla de cobro aprobada; el monto y la fecha se llenan solos.';
+          sendWhatsapp.onclick = function () { openCobroTemplate(); }; accountActions.append(sendWhatsapp);
         }
         var viewAccount = node('button', 'btn btn-secondary btn-sm', 'Ver cuenta'); viewAccount.type = 'button';
         viewAccount.onclick = function () { window.SmylFinance.account(accountPatient); }; accountActions.append(viewAccount);
