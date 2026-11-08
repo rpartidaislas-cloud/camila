@@ -33,13 +33,12 @@ test('el chat muestra la tarjeta «Cuenta del paciente» sólo con finance.read 
   }
 });
 
-test('Cobros tiene la pestaña Plantillas conectada a SmylTemplates y el catálogo trae las 4 plantillas nuevas de cobro, válidas', async () => {
+test('Cobros ya no tiene pestaña Plantillas (viven en Mensajería) y el catálogo trae las 4 plantillas de cobro, válidas', async () => {
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
-    assert.match(f, /<button data-finance-tab="templates">Plantillas<\/button>/);
-    assert.match(f, /<section data-finance-panel="templates" hidden>/);
-    assert.match(f, /T\.summary\('pagos'\)/);
-    assert.match(f, /data-tpl-request/);
+    assert.doesNotMatch(f, /data-finance-tab="templates"/);
+    assert.doesNotMatch(f, /data-finance-panel="templates"/);
+    assert.doesNotMatch(f, /T\.summary\('pagos'\)/);
     const t = read(base + 'smyl-templates.js');
     assert.match(t, /summary: summary, request: requestTemplate, show: showTemplates/);
     assert.match(t, /onChange: function \(fn\)/);
