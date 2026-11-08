@@ -50,3 +50,15 @@ test('los tamaños de letra nuevos respetan el mínimo de 12 px y la web y el co
   assert.equal(tiny.length, 0);
   for (const f of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('el módulo es compacto: sin encabezado ni leyenda, acciones junto a las pestañas y sin avisos fijos de carga', () => {
+  assert.doesNotMatch(js, /CONTROL FINANCIERO DENTAL|Separado de la suscripción|preparación fiscal por paciente/);
+  assert.doesNotMatch(js, /markFinanceBoundary/);
+  assert.doesNotMatch(js, /<header class="finance-head">/);
+  assert.match(js, /<div class="finance-bar"><nav class="finance-tabs"[\s\S]*?<\/nav><div class="finance-head-actions">/);
+  assert.match(js, /render\(\);notify\(''\);\}catch\(e\)/, 'al cargar bien se limpia el aviso de carga');
+  assert.match(js, /notify\.timer=setTimeout\(function\(\)\{h\.replaceChildren\(\);\},6000\)/);
+  assert.match(css, /\.finance-page>h1\{position:absolute/);
+  assert.match(css, /\.finance-bar\{display:flex/);
+  assert.match(css, /@media screen and \(max-width:420px\)\{[\s\S]*?\.finance-metrics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+});

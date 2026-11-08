@@ -21,10 +21,9 @@ test('Finanzas usa un contenedor seguro, jerarquía legible y una acción primar
   assert.match(finance, /Clinical Workspace v3\.3 · Finanzas/);
   assert.match(finance, /container:finance-workspace\/inline-size/);
   assert.match(finance, /\.finance-page\{[\s\S]*?max-width:1440px;min-width:0;overflow:clip/);
-  assert.match(finance, /\.finance-head \.pro-eyebrow,[^{]+\{font-size:12px/);
-  assert.match(finance, /\.finance-head h1\{font-size:clamp\(26px,2\.2vw,32px\)/);
+  assert.match(finance, /\.finance-page>h1\{position:absolute/);
   assert.match(finance, /\.finance-head-actions \.btn-primary\{box-shadow:/);
-  assert.match(finance, /\.finance-metrics article\{min-height:112px/);
+  assert.match(finance, /\.finance-metrics article\{min-height:88px/);
 });
 
 test('Finanzas normaliza objetivos táctiles, estados, tablas y foco', () => {
