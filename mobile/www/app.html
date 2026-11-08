@@ -228,6 +228,13 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .ag-submit svg{width:16px;height:16px;margin-left:6px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ag-submit::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:80px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);filter:blur(8px);opacity:0;pointer-events:none}
 .ag-submit:hover::after{animation:agShine 1s ease-in-out}
+.ag-google{width:100%;height:46px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--ag-line);border-radius:8px;background:var(--ag-field);color:#374151;font:500 14px Inter,sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(16,24,40,.05);transition:background .3s,border-color .3s}
+.ag-google:hover{background:#F3F4F6;border-color:#D1D5DB}
+.ag-google:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(59,130,246,.35)}
+.ag-google:disabled{opacity:.6;cursor:default}
+.ag-google svg{width:20px;height:20px;flex:0 0 auto}
+.ag-or{display:flex;align-items:center;gap:12px;margin:22px 0;font-size:13px;color:var(--ag-muted)}
+.ag-or::before,.ag-or::after{content:"";flex:1;height:1px;background:var(--ag-line)}
 .ag-switch{display:flex;justify-content:center;margin-top:24px;font-size:13px;color:var(--ag-muted)}
 .ag-tab{display:none;cursor:pointer;outline:none}
 .ag-tab:not(.activo){display:inline}
@@ -984,6 +991,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
     <p class="ag-subtitle" id="ag-subtitle">Ingresa a tu espacio de trabajo para continuar con la consulta.</p>
     <div id="ag-panel-login">
       <div id="ag-login-err" style="display:none;background:var(--color-error-subtle);border:1px solid #FCA5A5;color:#B91C1C;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
+      <div id="ag-google-wrap">
+        <button type="button" class="ag-google" id="ag-btn-google" onclick="entrarConGoogleAppGate()"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span>Continuar con Google</span></button>
+        <div class="ag-or">o con tu correo</div>
+      </div>
       <div class="fg" style="margin-bottom:18px"><label for="ag-l-email">Correo electrónico <span style="color:#3B82F6">*</span></label><input type="email" id="ag-l-email" placeholder="tu@clinica.com" autocomplete="username" required></div>
       <div class="fg" style="margin-bottom:22px"><div class="ag-label-row"><label for="ag-l-pass">Contraseña <span style="color:#3B82F6">*</span></label><button type="button" id="ag-btn-recovery" class="ag-link" onclick="solicitarRecuperacionAppGate()">¿Olvidaste tu contraseña?</button></div><div class="ag-pass-wrap"><input type="password" id="ag-l-pass" placeholder="Ingresa tu contraseña" autocomplete="current-password" required onkeydown="if(event.key==='Enter')hacerLoginAppGate()"><button type="button" class="ag-eye" aria-label="Mostrar contraseña" aria-pressed="false" onclick="toggleAuthGatePass(this,'ag-l-pass')"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="ag-eye-on"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></g><g class="ag-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></g></svg></button></div></div>
       <button class="btn btn-primary btn-full ag-submit" id="ag-btn-login" onclick="hacerLoginAppGate()" style="width:100%;justify-content:center;margin-top:0">Entrar a SMYL</button>
@@ -2694,6 +2705,9 @@ async function continuarConUsuario(authUser) {
         cerrarSesion();
         return;
       }
+      // Google no crea clínicas: si esta cuenta nació de Google y no tiene
+      // clínica propia ni de equipo, se cierra y se pide registrarse.
+      if (smylCuentaNacioDeGoogle(authUser)) { rechazarCuentaGoogleSinClinica(); return; }
       // Se autenticó bien pero aún no tiene fila en camila_tenants — pasa
       // cuando el registro se hizo con confirmación de correo activada
       // (signUp() no da sesión, y sin sesión la política de seguridad
@@ -2906,6 +2920,83 @@ function toggleAuthGatePass(btn, inputId) {
   run();
 })();
 
+// ══ Acceso con Google ══
+// Google sólo sirve para entrar a cuentas que YA existen en SMYL (dueño o
+// personal invitado con el mismo correo; Supabase enlaza esa identidad
+// sola). No crea clínicas: una cuenta que nació de Google y no tiene clínica
+// se cierra en continuarConUsuario() con un aviso para registrarse primero.
+// En la app nativa (Capacitor) el botón se oculta: el regreso del OAuth
+// abriría el navegador del sistema, no la app.
+function smylEsAppNativa() {
+  try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch (e) { return false; }
+}
+
+function mostrarErrorAccesoAppGate(mensaje) {
+  switchAuthGateTab('login');
+  var errEl = document.getElementById('ag-login-err');
+  if (!errEl) return;
+  errEl.textContent = mensaje;
+  errEl.style.display = 'block';
+}
+
+async function entrarConGoogleAppGate() {
+  var errEl = document.getElementById('ag-login-err');
+  if (errEl) errEl.style.display = 'none';
+  if (!sb) { mostrarErrorAccesoAppGate('No se pudo conectar con el servidor. Intenta de nuevo.'); return; }
+  var btn = document.getElementById('ag-btn-google');
+  if (btn) btn.disabled = true;
+  try {
+    // Antes de salir a Google se confirma que el proveedor está activo: si no,
+    // Supabase mostraría una página de error en crudo fuera de SMYL.
+    var activo = null;
+    try {
+      var cfg = await fetch(SUPA_URL + '/auth/v1/settings', { headers: { apikey: SUPA_KEY } });
+      if (cfg.ok) { var js = await cfg.json(); activo = !!(js && js.external && js.external.google); }
+    } catch (e0) {}
+    if (activo === false) throw new Error('provider is not enabled');
+    var res = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } }
+    });
+    if (res.error) throw res.error;
+    // Si no hubo error, el navegador ya va camino a Google.
+  } catch (e) {
+    var msg = (e && e.message) || '';
+    mostrarErrorAccesoAppGate(/provider is not enabled|Unsupported provider/i.test(msg)
+      ? 'El acceso con Google todavía no está activado. Entra con tu correo y contraseña.'
+      : 'No se pudo abrir el acceso con Google. Intenta de nuevo o entra con tu correo.');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Una cuenta creada por Google (no enlazada a una cuenta de correo previa).
+function smylCuentaNacioDeGoogle(authUser) {
+  var app = (authUser && authUser.app_metadata) || {};
+  return app.provider === 'google';
+}
+
+async function rechazarCuentaGoogleSinClinica() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  var layoutEl = document.querySelector('.layout');
+  if (layoutEl) layoutEl.classList.remove('is-visible');
+  document.getElementById('auth-gate-overlay').style.display = 'flex';
+  mostrarErrorAccesoAppGate('Esta cuenta de Google no está registrada en SMYL. Regístrate primero con tu correo; después podrás entrar con Google si usas el mismo correo.');
+}
+
+(function () {
+  var wrap = document.getElementById('ag-google-wrap');
+  if (wrap && smylEsAppNativa()) wrap.style.display = 'none';
+  // Error devuelto por Google/Supabase al regresar (p. ej. el usuario canceló).
+  var qp = new URLSearchParams(location.search);
+  var hp = new URLSearchParams(location.hash.replace(/^#/, ''));
+  var err = qp.get('error_description') || hp.get('error_description');
+  if (err) {
+    history.replaceState(null, '', location.pathname);
+    var code = qp.get('error') || hp.get('error') || '';
+    mostrarErrorAccesoAppGate(/access_denied|cancel|denied/i.test(code + ' ' + err) ? 'Se canceló el acceso con Google.' : 'No se pudo entrar con Google. Intenta de nuevo o entra con tu correo.');
+  }
+})();
+
 async function hacerLoginAppGate() {
   var email = document.getElementById('ag-l-email').value.trim().toLowerCase();
   var pass = document.getElementById('ag-l-pass').value;
@@ -3047,6 +3138,11 @@ async function hacerRegistroAppGate() {
     authUser = authRes.data && authRes.data.session && authRes.data.session.user;
   } catch (e) {}
   if (!authUser) return; // el overlay de login/registro ya está visible por defecto
+  // Al volver de Google (flujo PKCE) queda ?code=… en la URL: ya se canjeó.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (q.get('code') && !q.get('recovery') && !q.get('invite')) history.replaceState(null, '', location.pathname);
+  })();
 
   var qp = new URLSearchParams(location.search);
   if (qp.get('recovery') === '1') {
