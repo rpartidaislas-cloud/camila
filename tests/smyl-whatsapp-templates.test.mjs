@@ -103,7 +103,9 @@ test('Mensajería es desplegable y reúne chat, correo, masivos, plantillas y ca
   assert.match(nav, /var MESSAGING = \[\s*\['Chat', 'inbox', 'messages'\],\s*\['Correo', 'correo', 'email'\],\s*\['Mensajes masivos', 'mensajes-masivos', 'broadcast'\],\s*\['Plantillas WhatsApp', 'plantillas', 'templates'\],\s*\['Campañas', 'campanas', 'campaign'\]\s*\]/);
   // La ruta sigue registrada (oculta) para que ningún módulo vuelva a agregar su botón suelto.
   assert.match(nav, /\['Plantillas de WhatsApp', 'plantillas', 'templates'\]/);
-  assert.match(nav, /detailsGroup\('Mensajería', MESSAGING, true, 'messages'\)/);
+  // En escritorio el grupo arranca cerrado y se abre solo al entrar a una de sus pantallas (maqueta 2026-11-08).
+  assert.match(nav, /detailsGroup\('Mensajería', MESSAGING, false, 'messages'\)/);
+  assert.match(nav, /group\.open = contains;/);
   assert.match(nav, /mobileDetailsGroup\('Mensajería', MESSAGING, true\)/);
   assert.doesNotMatch(nav.match(/var SETTINGS_ROUTES = \[[^\]]+\]/)[0], /plantillas/);
   const primary = nav.slice(nav.indexOf('var PRIMARY = ['), nav.indexOf('var MESSAGING'));

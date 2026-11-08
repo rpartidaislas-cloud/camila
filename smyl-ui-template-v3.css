@@ -1640,80 +1640,256 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 }
 
-/* Menú lateral: iconos de línea en baldosa, letra más grande y legible (escritorio). */
+/* Menú lateral v2 (maqueta aprobada 2026-11-08): cabecera única, «Nueva cita» arriba,
+   iconos sueltos, activa evidente, grupos que se abren al entrar y usuario abajo. */
 @media (min-width: 761px) {
-  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar {
-    width: 17rem;
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar { width: 17rem; }
+
+  /* Cabecera: marca + logo + nombre de la clínica. */
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo {
+    min-height: 0;
+    gap: .7rem;
+    padding: 1.2rem 1.1rem .9rem;
+    border-bottom-color: transparent;
+  }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sb-logo::before {
+    display: grid;
+    flex: 0 0 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .7rem;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo > div { flex: 1; min-width: 0; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo img { height: 1.15rem !important; margin-bottom: .2rem !important; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo > div > span:not(.sb-clinic-name) { display: none; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo .sb-clinic-name {
+    display: block;
+    margin: 0;
+    overflow: hidden;
+    color: #93a8b9;
+    font-size: var(--smyl-ui-text-label);
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  body.smyl-ui-governed.smyl-management-v3 .pro-nav-section,
-  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
-    padding: .9rem .85rem .4rem;
-    color: rgba(215, 235, 238, .56);
+  /* «Nueva cita»: botón con borde y atajo, bajo la cabecera. */
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick { padding: 0 .85rem .35rem; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick {
+    min-height: 2.75rem;
+    margin: 0;
+    justify-content: flex-start;
+    gap: .6rem;
+    padding: 0 .75rem;
+    border: 1px solid rgba(138, 208, 201, .32);
+    border-radius: .7rem;
+    background: rgba(110, 216, 206, .08);
+    color: #d9f6f2;
+    font: 600 var(--smyl-ui-text-body-sm)/1.2 var(--smyl-ui-font);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick:hover { background: rgba(110, 216, 206, .15); color: #fff; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick > span:first-child { display: grid; place-items: center; }
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick-key {
+    margin-left: auto;
+    padding: .05rem .4rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: .35rem;
+    color: #8fb3bf;
+    font: 600 var(--smyl-ui-text-meta)/1.3 var(--smyl-ui-font);
+  }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-quick { padding-inline: .55rem; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-quick .smyl-sidebar-quick { justify-content: center; padding: 0; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed :is(.smyl-sidebar-quick-key, .smyl-sidebar-quick-label) { display: none; }
+
+  /* Secciones. */
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-section {
+    padding: 1.15rem .75rem .45rem;
+    color: rgba(200, 222, 228, .5);
     font-size: var(--smyl-ui-text-meta);
-    font-weight: 700;
-    letter-spacing: .12em;
+    font-weight: 600;
+    letter-spacing: .11em;
     text-transform: uppercase;
   }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-app-nav > .pro-nav-section:first-child { padding-top: .6rem; }
 
-  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
-    min-height: 2.65rem;
-    padding-block: 0;
-  }
-
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item {
-    min-height: 2.8rem;
-    padding: .45rem .7rem;
-    gap: .85rem;
-    color: rgba(232, 243, 246, .86);
+  /* Opciones: icono suelto, peso normal; solo la activa en negrita. */
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    margin-bottom: .1rem;
+    padding: 0 .75rem;
+    gap: .75rem;
+    overflow: visible;
+    border: 1px solid transparent;
+    border-radius: .65rem;
+    background: transparent;
+    box-shadow: none;
+    color: rgba(222, 234, 239, .78);
     font-size: var(--smyl-ui-text-body);
-    font-weight: 600;
-    letter-spacing: -.005em;
+    font-weight: 500;
+    letter-spacing: 0;
     line-height: 1.3;
+    text-transform: none;
+    transform: none;
   }
-
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) {
-    font-weight: 700;
-  }
-
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-icon {
-    width: 2rem;
-    height: 2rem;
-    flex: 0 0 2rem;
-    border: 1px solid rgba(255, 255, 255, .07);
-    border-radius: .7rem;
-    background: rgba(255, 255, 255, .045);
-    color: rgba(205, 226, 232, .88);
-  }
-
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-icon svg {
-    width: 1.3rem;
-    height: 1.3rem;
-    stroke-width: 1.7;
-  }
-
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover .pro-nav-icon {
-    background: rgba(255, 255, 255, .09);
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary:hover {
+    border-color: transparent;
+    background: rgba(255, 255, 255, .05);
     color: #fff;
+    transform: none;
   }
-
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) .pro-nav-icon {
-    border-color: rgba(138, 208, 201, .38);
-    background: linear-gradient(145deg, rgba(110, 216, 206, .3), rgba(58, 150, 160, .2));
-    color: #b4f3ec;
+  body.smyl-ui-governed.smyl-management-v3 :is(.sidebar .pro-nav-item .pro-nav-icon, .pro-nav-group-icon) {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 1.25rem;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: rgba(186, 208, 216, .62);
     filter: none;
   }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group-icon { display: grid; place-items: center; margin: 0; }
+  body.smyl-ui-governed.smyl-management-v3 :is(.sidebar .pro-nav-item .pro-nav-icon, .pro-nav-group-icon) svg { width: 1.2rem; height: 1.2rem; stroke-width: 1.7; }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover .pro-nav-icon,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary:hover .pro-nav-group-icon { background: none; color: #e4f3f6; }
 
-  body.smyl-ui-governed.smyl-management-v3 .pro-nav-label {
-    max-width: 12rem;
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) {
+    border-color: transparent;
+    background: rgba(255, 255, 255, .1);
+    box-shadow: none;
+    color: #fff;
+    font-weight: 600;
   }
-
-  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick {
-    min-height: 3rem;
-    font-size: var(--smyl-ui-text-body);
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page'])::before {
+    left: -.75rem;
+    top: .6rem;
+    bottom: .6rem;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: #6ed8ce;
+    box-shadow: 0 0 .75rem rgba(110, 216, 206, .7);
   }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sidebar .pro-nav-item:is(.activo, [aria-current='page'])::before { left: -.55rem; }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) .pro-nav-icon { background: none; color: #9ceae1; filter: none; }
 
-  body.smyl-ui-governed.smyl-management-v3 .btn-cerrar {
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-label { max-width: 12rem; }
+
+  /* Grupos: la cabecera es una opción más; sus opciones van sangradas y sin icono. */
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group { margin-top: 0; padding-top: 0; border-top: 0; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary { justify-content: flex-start; cursor: pointer; list-style: none; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group.has-active > summary,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group[open] > summary { background: transparent; color: #fff; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group[open] > summary .pro-nav-group-icon { color: #e4f3f6; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-label { flex: 1; min-width: 0; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-chevron { display: grid; place-items: center; color: #7f97a9; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-count,
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.4rem;
+    height: 1.25rem;
+    margin-left: auto;
+    padding: 0 .45rem;
+    border-radius: 99px;
+    background: #2f9e94;
+    color: #fff;
+    font: 700 var(--smyl-ui-text-meta)/1 var(--smyl-ui-font);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-count[hidden],
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-count[hidden],
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group[open] .pro-nav-group-count { display: none; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout {
+    margin: .1rem 0 .4rem 1.35rem;
+    padding-left: .6rem;
+    border-left: 1px solid rgba(255, 255, 255, .1);
+  }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout .pro-nav-item {
+    min-height: 2.5rem;
+    padding-left: .75rem;
     font-size: var(--smyl-ui-text-body-sm);
   }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout .pro-nav-icon { display: none; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout .pro-nav-item:is(.activo, [aria-current='page'])::before { left: calc(-.6rem - 1px); }
+
+  /* Usuario abajo con menú ⋯ (Mi cuenta y Cerrar sesión). */
+  body.smyl-ui-governed.smyl-management-v3 .sb-foot {
+    margin: .35rem .75rem .75rem;
+    padding: .55rem 0 0;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 0;
+    background: transparent;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-account { position: relative; display: flex; align-items: center; gap: .35rem; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-account .sb-user {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: .4rem;
+    border: 1px solid transparent;
+    border-radius: .75rem;
+    background: transparent;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-account .sb-user:hover { border-color: transparent; background: rgba(255, 255, 255, .05); }
+  body.smyl-ui-governed.smyl-management-v3 .sb-account :is(.sb-user-chevron, #sb-consultorio) { display: none; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-account .sb-nombre { color: #fff; font-size: var(--smyl-ui-text-body-sm); font-weight: 600; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-role { color: #93a8b9; font-size: var(--smyl-ui-text-meta); line-height: 1.35; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-more {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: .55rem;
+    background: transparent;
+    color: #93a8b9;
+    cursor: pointer;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-more:hover,
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-more[aria-expanded='true'] { background: rgba(255, 255, 255, .07); color: #fff; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-more:focus-visible { outline: 2px solid #8fe1d8; outline-offset: 2px; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-menu {
+    position: absolute;
+    z-index: 40;
+    right: 0;
+    bottom: calc(100% + .45rem);
+    left: 0;
+    display: grid;
+    gap: .15rem;
+    padding: .35rem;
+    border: 1px solid rgba(186, 199, 213, .32);
+    border-radius: .8rem;
+    background: #0b1b2e;
+    box-shadow: 0 .75rem 2rem rgba(5, 14, 27, .35);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-menu[hidden] { display: none; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-menu .sb-user-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .6rem;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0 .65rem;
+    border: 0;
+    border-radius: .55rem;
+    background: transparent;
+    color: #dbe7ec;
+    font: 500 var(--smyl-ui-text-body-sm)/1.2 var(--smyl-ui-font);
+    text-align: left;
+    cursor: pointer;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-menu .sb-user-menu-item:is(:hover, :focus-visible) { outline: none; background: rgba(255, 255, 255, .07); color: #fff; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-menu .btn-cerrar:is(:hover, :focus-visible) { background: rgba(248, 113, 113, .1); color: #fca5a5; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .pro-nav-item { gap: .75rem; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .pro-nav-item .pro-nav-count { position: static; margin-left: auto; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-account { flex-direction: column; gap: .35rem; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-account .sb-user { padding: .3rem; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-user-menu { right: auto; bottom: 0; left: calc(100% + .9rem); width: 12rem; }
 }

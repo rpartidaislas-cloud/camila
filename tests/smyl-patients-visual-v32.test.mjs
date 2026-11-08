@@ -43,7 +43,7 @@ test('el directorio crea una tabla clínica enfocada en continuidad y acciones c
 });
 
 test('la capa visual final gobierna escritorio, tablet y móvil sin depender de estilos globales', () => {
-  assert.match(app, /smyl-patients-directory\.css\?v=1[\s\S]*smyl-ui-datta-v4\.css\?v=1/);
+  assert.match(app, /smyl-patients-directory\.css\?v=1[\s\S]*smyl-ui-datta-v4\.css\?v=2/);
   assert.match(directory, /#p-pacientes \.patient-directory-header/);
   assert.match(directory, /#p-pacientes \.clinic-patient-table/);
   assert.match(directory, /@media\(max-width:820px\)/);
