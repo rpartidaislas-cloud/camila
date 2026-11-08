@@ -7,7 +7,7 @@ pendientes.** No se exportaron datos de producción durante esta etapa.
 
 Supabase respalda PostgreSQL, pero los objetos de Storage y su metadata deben
 tratarse como componentes distintos. El paquete de SMYL genera volcados lógicos,
-copia los nueve buckets relevantes, cifra cada artefacto con `age` y crea un
+copia los once buckets relevantes (ver `docs/SMYL_RESPALDOS.md`), cifra cada artefacto con `age` y crea un
 manifiesto SHA-256. La carpeta final no admite SQL ni archivos clínicos en claro.
 
 ## Creación del paquete cifrado
@@ -24,6 +24,8 @@ node scripts/create-encrypted-backup.mjs --out=D:\smyl-backups\2026-10-14
 Primero puede validarse el entorno con `--dry-run`. Los archivos temporales se
 crean dentro del directorio temporal del sistema, se cifran y se eliminan en un
 bloque `finally`; aun así, la estación debe considerarse sensible.
+
+Después de crear el paquete se verifica con `node scripts/verify-encrypted-backup.mjs --bundle=… --identity=…` (hash, descifrado y contenido).
 
 ## Simulacro de restauración
 

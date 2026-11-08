@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: revisión de respaldos y correcciones del paquete cifrado
+
+**Hallazgos (no se pudo consultar el proyecto de producción desde la sesión):** el respaldo cifrado nunca se había
+ejecutado ni restaurado; el simulacro estaba "pendiente". Dos defectos reales en `scripts/create-encrypted-backup.mjs`:
+(1) faltaban los buckets `smyl-professional-public` y `mila-audio`; (2) `abort()` usaba `process.exit`, que no ejecuta
+`finally`, así que si algo fallaba quedaban volcados y fotos clínicas **en claro** en el temporal.
+
+**Cambios:** `abort()` lanza y el `finally` limpia; 11 buckets; falla cerrado si el proyecto tiene buckets fuera de la lista
+(`SMYL_BACKUP_ALLOW_UNLISTED=1` para saltarlo); hash por bloques (paquetes de varios GB); manifiesto con la lista de buckets.
+Nuevo `scripts/verify-encrypted-backup.mjs` (hash + descifrado real + contenido, incl. `auth.users`, + objetos por bucket).
+Guía `docs/SMYL_RESPALDOS.md` y plantilla `docs/restore-evidence.example.json`.
+Pruebas: `tests/backup-behaviour.test.mjs` (6; usan una CLI de Supabase simulada y `age` real; fallan con el script anterior).
+
+**Pendiente (requiere a la persona dueña):** revisar Database → Backups en el panel, ejecutar el primer respaldo real, y el
+simulacro en un proyecto desechable. Ninguno se puede hacer desde la sesión de Claude.
+
 ## REGLA PERMANENTE — Aviso de privacidad y herramientas que envían datos fuera de SMYL
 
 **Antes de fusionar o activar** cualquier cambio que haga que datos salgan de SMYL hacia un tercero, hay que
