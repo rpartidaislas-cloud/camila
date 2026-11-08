@@ -48,7 +48,7 @@ test('Cobros mantiene el numerito sincronizado con su lista sin otra consulta', 
 
 test('versiones y copia móvil sincronizadas', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-finance\.js\?v=27/);
+    assert.match(read(file), /smyl-finance\.js\?v=28/);
     assert.match(read(file), /smyl-schedule\.js\?v=33/);
   }
   for (const file of ['smyl-finance.js', 'smyl-schedule.js', 'app.html', 'sw.js']) {

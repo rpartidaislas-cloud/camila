@@ -76,3 +76,22 @@ test('el cobro guiado es de un solo paso, con opción sugerida, datos útiles y 
   assert.match(css, /\.finance-collection-guide \[hidden\]\{display:none!important\}/);
   assert.match(css, /\.finance-guide-badge\{/);
 });
+
+test('la cuenta del paciente separa el texto, muestra estado y último pago, y ofrece pagos con recibo', () => {
+  const start = js.indexOf('function openAccount');
+  const acc = js.slice(start, js.indexOf('\n  function ', start + 20));
+  assert.match(acc, /Total cargado/);
+  assert.match(acc, /data-tone="credit"><span>A favor/);
+  assert.match(acc, /Último pago/);
+  assert.match(acc, /data-account-tab="payments"[^>]*>Pagos y recibos/);
+  assert.match(acc, /<summary>Liquidados \(/);
+  assert.match(acc, /id="account-advance">Registrar anticipo/);
+  assert.match(acc, /snapshot\.due>0\?'<button type="button" class="btn btn-primary" id="account-pay">Cobrar/);
+  assert.match(acc, /data-account-receipt/);
+  assert.match(acc, /shareReceipt\(/);
+  assert.doesNotMatch(acc, /Sin fecha de vencimiento/);
+  assert.match(js, /async function shareReceipt\(payment,receipt,button\)/);
+  assert.match(js, /share\.onclick=function\(\)\{shareReceipt\(payment,receipt,share\);\}/);
+  assert.match(css, /\.finance-account-ledger article>div strong,[^{]*\{display:block\}/);
+  assert.match(css, /\.finance-account \[hidden\]\{display:none!important\}/);
+});

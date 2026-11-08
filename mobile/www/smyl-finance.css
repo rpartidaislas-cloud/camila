@@ -580,3 +580,36 @@ button.finance-guide-chip[data-tone=warn]:hover{background:#f9dfa6}
   .finance-dialog .finance-guide-choice [data-guide-path].is-suggested{grid-template-columns:44px minmax(0,1fr);min-height:84px}
   .finance-dialog .finance-guide-choice [data-guide-path].is-suggested .finance-guide-route-meta{display:block;grid-column:2;font-size:20px}
 }
+
+/* Cuenta del paciente · v2 (maqueta aprobada 2026-11-08): texto separado, estado, pendientes primero y pagos con recibo. */
+.finance-account [hidden]{display:none!important}
+.finance-account-head p{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;color:#5b6b78;font-size:13px}
+.finance-account-last{color:#5b6b78;font-size:13px}
+.finance-account-total{grid-template-columns:repeat(4,minmax(0,1fr))}
+.finance-account-total>div[data-tone=credit]{border-color:#bfe4de;background:#f1fbf9}
+.finance-account-total>div[data-tone=credit] strong{color:#0f766e}
+.finance-account-ledger article>div strong,.finance-account-ledger article>div small,.finance-account-ledger article>aside strong,.finance-account-ledger article>aside small{display:block}
+.finance-account-ledger article>aside{display:grid;justify-items:end;gap:3px}
+.finance-account-ledger article>aside small:empty{display:none}
+.finance-account-ledger article>aside button{white-space:nowrap}
+.finance-account-ledger article[data-kind=payment]>aside{grid-auto-flow:column;align-items:center;gap:6px}
+.finance-account-tabs{display:flex;gap:2px;margin:6px 0 4px;border-bottom:1px solid #dfe7ee}
+.finance-account-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:42px;margin-bottom:-1px;padding:0 14px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#5b6b78;font-size:13px;font-weight:600}
+.finance-account-tabs button[aria-selected=true]{border-bottom-color:#0f766e;color:#0f766e}
+.finance-account-tabs em{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#fde8c8;color:#8a4b00;font-size:12px;font-style:normal;font-weight:700;line-height:1}
+.finance-account-tabs em[data-quiet]{background:#e8edf2;color:#4a5b69}
+.finance-account-group{margin:12px 0 6px;color:#7a8a97;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.finance-account-none{padding:14px;border:1px dashed #d3dde6;border-radius:10px;background:#f8fafc;color:#6a7a88;font-size:13px;text-align:center}
+.finance-account-settled{margin-top:12px}
+.finance-account-settled>summary{cursor:pointer;list-style:none;padding:4px 0 8px;color:#7a8a97;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.finance-account-settled>summary::-webkit-details-marker{display:none}
+.finance-account-settled>summary::after{content:' ▾'}
+.finance-account-settled[open]>summary::after{content:' ▴'}
+.finance-account-ledger article[data-charge-state=paid]{opacity:1}
+@media(max-width:620px){
+  .finance-account-total{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .finance-account-ledger article[data-kind=payment]>aside{grid-auto-flow:row;justify-items:start}
+}
+body.smyl-ui-governed .contenido .finance-dialog .finance-account-tabs [role=tab],body.smyl-ui-governed .contenido .finance-dialog .finance-account-tabs [role=tab]:hover{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;box-shadow:none;color:#5b6b78}
+body.smyl-ui-governed .contenido .finance-dialog .finance-account-tabs [role=tab][aria-selected=true]{border-bottom-color:#0f766e;background:transparent;color:#0f766e}
+.finance-dialog .finance-account-tabs button:focus-visible{outline:2px solid var(--smyl-focus-light,#175cd3);outline-offset:-2px}
