@@ -21,14 +21,14 @@
   .finance-page{
     container:finance-workspace/inline-size;
     width:100%;max-width:1440px;min-width:0;overflow:clip;
-    padding:32px clamp(18px,2.5vw,36px) 72px;
+    padding:12px clamp(6px,1.2vw,12px) 72px;
   }
   .finance-page *{box-sizing:border-box;min-width:0}
-  .finance-head{align-items:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #dfe7ef}
-  .finance-head>div:first-child{max-width:780px}
-  .finance-head .pro-eyebrow,.finance-account-head>div:first-child>span{font-size:12px;line-height:1.35;letter-spacing:.08em}
-  .finance-head h1{font-size:clamp(26px,2.2vw,32px);line-height:1.12;margin:7px 0 8px}
-  .finance-head p{font-size:14px;line-height:1.55}
+  .finance-bar{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin:0 0 14px}
+  .finance-bar .finance-tabs{margin:0}
+  .finance-card>.finance-section-copy{margin:-2px 0 12px}
+  .finance-page>h1{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .finance-account-head>div:first-child>span{font-size:12px;line-height:1.35;letter-spacing:.08em}
   .finance-head-actions{justify-content:flex-end;max-width:520px}
   .finance-head-actions .btn-primary{box-shadow:0 7px 18px rgba(27,77,119,.16)}
 
@@ -38,12 +38,12 @@
   .finance-page :where(button,.btn,input,select,textarea):disabled{cursor:not-allowed;opacity:.55}
   .finance-page textarea{min-height:96px;resize:vertical}
 
-  .finance-metrics{gap:14px;margin:20px 0 22px}
-  .finance-metrics article{min-height:112px;padding:18px 20px;border-radius:15px;box-shadow:0 5px 18px rgba(26,47,79,.045)}
+  .finance-metrics{gap:12px;margin:0 0 16px}
+  .finance-metrics article{min-height:88px;padding:13px 18px;border-radius:15px;box-shadow:0 5px 18px rgba(26,47,79,.045)}
   .finance-metrics span,.finance-metrics small{font-size:12px;line-height:1.4}
   .finance-metrics strong{font-size:clamp(22px,2vw,27px);line-height:1.15}
 
-  .finance-tabs{gap:4px;margin-bottom:20px;padding:5px;border:1px solid #dfe7ee;background:#f0f4f7;scrollbar-width:thin}
+  .finance-tabs{gap:4px;margin-bottom:14px;padding:5px;border:1px solid #dfe7ee;background:#f0f4f7;scrollbar-width:thin}
   .finance-tabs button{flex:0 0 auto;min-height:42px;padding:0 15px;font-size:13px}
   .finance-tabs button[aria-selected=true]{color:#123f5f;box-shadow:0 2px 9px rgba(20,55,82,.1)}
 
@@ -107,14 +107,13 @@
 }
 
 @media screen and (max-width:980px){
-  .finance-head{align-items:flex-start}
   .finance-head-actions{max-width:440px}
   .finance-row{grid-template-columns:minmax(180px,1fr) 130px 116px}
 }
 
 @media screen and (max-width:720px){
   .finance-page{padding:22px 14px 92px}
-  .finance-head{display:grid;gap:18px;padding-bottom:18px}
+  .finance-bar{display:flex;flex-direction:column-reverse;align-items:stretch}
   .finance-head-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;width:100%}
   .finance-head-actions .btn-primary{grid-column:1/-1;grid-row:1}
   .finance-page :where(button,.btn,input:not([type="checkbox"]):not([type="radio"]),select,textarea,[role="button"]){min-height:44px}
@@ -143,7 +142,9 @@
 @media screen and (max-width:420px){
   .finance-head-actions{grid-template-columns:1fr}
   .finance-head-actions .btn-primary{grid-column:auto}
-  .finance-metrics{grid-template-columns:1fr}
+  .finance-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .finance-metrics article{min-height:84px;padding:11px 12px}
+  .finance-metrics strong{font-size:19px}
   .finance-account-filters{display:grid;grid-template-columns:1fr 1fr}
   .finance-payment-summary{grid-template-columns:1fr}
 }
@@ -507,7 +508,7 @@
 }
 
 /* Cobros v2 · una sola lista «Por cobrar», cifras como accesos directos y franja de aviso (maqueta 2026-11-08). */
-.finance-alert-host{margin:14px 0 0}
+.finance-alert-host{margin:0 0 12px}
 .finance-alert-host[hidden]{display:none}
 .finance-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 14px;border:1px solid #d3e0e9;border-radius:12px;background:#fff}
 .finance-alert[data-tone=danger]{border-color:#efcdc6;background:#fdf3f1}

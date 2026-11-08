@@ -27,11 +27,11 @@ test('stage 5 mutations are permissioned, idempotent and transactional',()=>{
 
 test('stage 5 UI distinguishes receipts, CFDI drafts and SaaS billing',()=>{
   assert.match(ui,/<h1>Cobros<\/h1>/);
-  assert.match(ui,/Separado de la suscripción de SMYL/);
+  assert.doesNotMatch(ui,/Separado de la suscripción de SMYL/, 'la leyenda se retiró a petición de Ricardo');
   assert.match(ui,/Comprobante interno de pago/);
   assert.match(ui,/no consulta, timbra ni envía información al SAT o a un PAC/);
   assert.match(ui,/smyl_prepare_cfdi_draft/);
-  assert.match(app,/smyl-finance\.js\?v=21/);
+  assert.match(app,/smyl-finance\.js\?v=22/);
   assert.match(ui,/forPatient:function\(patientId\)/);
 assert.match(sw,/smyl-v267-guided-collection-sentry-v1/);
   assert.equal(app,read('../mobile/www/app.html'));
