@@ -23,7 +23,7 @@
   }
 
   function sizeFor(dialog) {
-    if (dialog.querySelector('.finance-payment-form')) return 'large';
+    if (dialog.querySelector('.finance-payment-form,.finance-collection-guide')) return 'large';
     if (dialog.matches('.clinic-dialog,.clinic-admin-dialog,.smyl-inbox-forward-dialog,.lana-handoff-dialog')) return 'small';
     if (dialog.matches('.proposal-preview-dialog,.smyl-inbox-operations-dialog,.pc-dialog')) return 'large';
     return 'medium';

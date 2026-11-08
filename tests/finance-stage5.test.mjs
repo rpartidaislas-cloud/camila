@@ -31,9 +31,9 @@ test('stage 5 UI distinguishes receipts, CFDI drafts and SaaS billing',()=>{
   assert.match(ui,/Comprobante interno de pago/);
   assert.match(ui,/no consulta, timbra ni envía información al SAT o a un PAC/);
   assert.match(ui,/smyl_prepare_cfdi_draft/);
-  assert.match(app,/smyl-finance\.js\?v=17/);
+  assert.match(app,/smyl-finance\.js\?v=18/);
   assert.match(ui,/forPatient:function\(patientId\)/);
-assert.match(sw,/smyl-v265-professional-payment-flow/);
+assert.match(sw,/smyl-v266-guided-collection-flow/);
   assert.equal(app,read('../mobile/www/app.html'));
   assert.equal(ui,read('../mobile/www/smyl-finance.js'));
   assert.equal(read('../smyl-finance.css'),read('../mobile/www/smyl-finance.css'));

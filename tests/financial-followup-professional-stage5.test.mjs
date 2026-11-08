@@ -49,10 +49,24 @@ test('el registro profesional guía paciente, importe, método, aplicación y re
   assert.match(dialogSystem, /finance-payment-form/);
 });
 
+test('el cobro cotidiano parte del paciente y decide la operación sin mezclar movimientos', () => {
+  for (const copy of ['Cobrar a paciente', 'Cobrar saldo pendiente', 'Servicio realizado hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo sin pago']) {
+    assert.match(finance, new RegExp(copy));
+  }
+  assert.match(finance, /function openGuidedCollection\(patientId\)/);
+  assert.match(finance, /openPayment\(id,\{mode:'balance'\}\)/);
+  assert.match(finance, /openCharge\(id,\{due:'0',mode:'pay'\}\)/);
+  assert.match(finance, /openProposalCharge\(null,id\)/);
+  assert.match(finance, /openPayment\(id,\{mode:'advance'\}\)/);
+  assert.match(finance, /allocationMode==='debt'\?' checked':''/);
+  assert.match(styles, /\.finance-collection-guide/);
+  assert.match(styles, /\.finance-more-actions/);
+});
+
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=13/);
-  assert.match(app, /smyl-finance\.js\?v=17/);
-  assert.match(worker, /smyl-v265-professional-payment-flow/);
+  assert.match(app, /smyl-finance\.css\?v=14/);
+  assert.match(app, /smyl-finance\.js\?v=18/);
+  assert.match(worker, /smyl-v266-guided-collection-flow/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

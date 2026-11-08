@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-07 — Codex — Cobro guiado por paciente
+
+- La cabecera de Cobros deja una sola acción cotidiana, `Cobrar a paciente`, y
+  mueve `Agregar cargo sin pago`, `Importar cotización` y `Registrar anticipo`
+  a `Más acciones` con una explicación breve de su efecto.
+- El nuevo flujo comienza por el paciente, resume pendiente, vencido, saldo a
+  favor y cita del día, y después permite elegir entre cobrar deuda, registrar
+  un servicio realizado, convertir una cotización aceptada o guardar un
+  anticipo. Cada ruta reutiliza el formulario y RPC canónicos existentes.
+- `Agregar servicio o cargo` distingue `Guardar sin cobrar` de `Guardar y
+  continuar al pago`. Desde la cuenta del paciente, `Cobrar` abre el mismo
+  recorrido guiado para evitar decisiones técnicas distintas según el punto de
+  entrada.
+- Se corrigió el modo anticipo: desmarca explícitamente todos los cargos y no
+  distribuye el importe automáticamente; el resultado queda como saldo a favor.
+  Cambiar después a liquidar o vencido reactiva la aplicación a cargos.
+- No se modificaron migraciones, RPC, RLS, recibos ni reglas fiscales. La
+  escritura sigue usando `smyl_post_charge`, `smyl_post_proposal_charges` y
+  `smyl_post_payment`, con su idempotencia y auditoría actuales.
+- Web, PWA y `mobile/www` sincronizados en `smyl-finance.js?v=18`, CSS `v=14`,
+  sistema de diálogos `v=3` y caché `smyl-v266-guided-collection-flow`.
+
 ## 2026-11-08 — Claude — «Continuar con Google» en el acceso de `app.html`
 
 - Botón «Continuar con Google» arriba del formulario de login (no en registro).
