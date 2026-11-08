@@ -200,3 +200,11 @@
 .finance-charge-form .finance-inline-check{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:8px;white-space:nowrap}
 .finance-charge-form .finance-inline-check input{width:auto!important;margin:0}
 .finance-charge-form .finance-tax-box{justify-content:center;padding-top:18px}
+
+.finance-patient-picker{position:relative}
+.finance-patient-picker input[type=search]{width:100%}
+.finance-patient-results{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:#fff;border:1px solid var(--color-border,#d7dee8);border-radius:10px;box-shadow:0 12px 30px rgba(16,34,57,.14);max-height:260px;overflow:auto}
+.finance-patient-results li{padding:8px 10px;border-radius:8px;cursor:pointer;display:grid;gap:2px}
+.finance-patient-results li small{color:var(--color-text-tertiary,#6b7a8c)}
+.finance-patient-results li:hover,.finance-patient-results li[aria-selected="true"]{background:#eef3f9}
+.finance-patient-results .finance-patient-empty{cursor:default;color:var(--color-text-tertiary,#6b7a8c)}
