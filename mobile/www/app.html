@@ -243,6 +243,9 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .ag-tab:hover b{text-decoration:underline}
 .ag-tab:focus-visible b{border-radius:3px;box-shadow:0 0 0 2px rgba(59,130,246,.45)}
 .ag-foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 0;font-size:12px;color:var(--ag-muted)}
+.ag-legal{margin:8px 0 0;text-align:center;font-size:12px;color:var(--ag-muted)}
+.ag-legal a{color:var(--ag-muted);text-decoration:underline}
+.ag-legal a:hover{color:#2563EB}
 .ag-foot i{width:7px;height:7px;border-radius:50%;background:#16A34A}
 @keyframes agIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
 @keyframes agUp{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
@@ -1025,6 +1028,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div id="ag-tab-registro" class="ag-tab" role="button" tabindex="0" onclick="switchAuthGateTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('registro')}">¿Aún no tienes cuenta? <b>Registrarme</b></div>
     </div>
     <p class="ag-foot"><i aria-hidden="true"></i>Conexión protegida · SMYL</p>
+    <p class="ag-legal"><a href="privacidad.html" target="_blank" rel="noopener">Privacidad</a> · <a href="terminos.html" target="_blank" rel="noopener">Términos</a></p>
   </div>
   </div>
   </div>

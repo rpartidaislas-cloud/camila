@@ -1,5 +1,51 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude — Borrador de Aviso de privacidad y Términos del servicio
+
+- Páginas nuevas `privacidad.html` y `terminos.html` (estáticas, sin dependencias),
+  con copia en `mobile/www/`, y enlaces «Privacidad · Términos» bajo el login de
+  `app.html`. Se necesitan para verificar la marca del cliente OAuth de Google
+  (Google Cloud → Google Auth Platform → Información de la marca).
+- **Borrador, pendiente de revisión legal antes de publicar.** El contenido sale de
+  lo que el código hace hoy (proveedores de IA, Supabase, Stripe, Meta vía LANA,
+  Google Calendar con `calendar.events` y Gmail para propuestas), incluida la
+  declaración de uso limitado de datos de las API de Google.
+- Segunda versión (8 nov): incorpora las respuestas del dueño (domicilio, retención,
+  menores, regiones, jurisdicción) y la revisión externa. Gmail se quitó del aviso
+  porque la función no está desplegada y solo enviaría desde `apps@smyldesign.ai`.
+- **Pendientes que NO se resuelven con redacción:** consentimiento expreso por paciente
+  con versión y firma; contrato de encargo (DPA) clínica–SMYL y plantilla de aviso para
+  las clínicas; contratos y no entrenamiento con Google (Gemini); clasificar proveedores
+  como encargado o tercero; decidir si se anonimiza antes de enviar a IA; verificar
+  «cifrado en reposo» y la huella de integridad antes de afirmarlos.
+- Tercera iteración (tras segunda revisión externa): se quitó la afirmación de que ya
+  existe un contrato de tratamiento; se retiró la promesa de no entrenamiento de Google;
+  retención corregida (fiscal 5 años, respaldos 90 días, audio 90 días, cuenta cancelada
+  con eliminación tras 30 días); plazos ARCO de 20 y 15 días y responsable de privacidad;
+  se quitó la promesa discrecional de créditos por interrupción.
+- Rastreo: el dueño confirmó que Analytics, Píxel de Meta y Sentry NO están instalados (coincide con el
+  código). El aviso lo declara; **antes de instalar cualquiera hay que actualizar el aviso y pedir elección**.
+- Casos públicos de antes y después: el dueño confirmó que están APAGADOS. El aviso lo declara; no
+  activarlos sin autorización firmada por caso y sin actualizar el aviso.
+- Respaldos: el dueño confirmó que rotan en 90 días o menos; el texto «hasta 90 días» es cierto.
+  Si el plan o la configuración de Supabase cambia, revisar esa línea del aviso.
+- PUBLICADO el 7 nov 2026 (hora de México) sin la evidencia de no entrenamiento de IA, por decisión del
+  dueño: el aviso dice «según las condiciones de sus cuentas». Se quitaron las leyendas de borrador.
+  Sigue pendiente de revisión por un abogado antes de procesar datos clínicos reales.
+- Sentry: el código ya existe en `main` (PR #94, `smyl-sentry.js`) pero está DORMIDO (sin DSN no
+  descarga nada ni envía nada). El aviso dice que no hay monitoreo de terceros: eso es cierto SOLO mientras
+  el DSN siga vacío. **Antes de pegar un DSN hay que actualizar el aviso** (proveedor, qué se envía, región).
+- (Histórico) Antes de publicar: quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
+  fecha real de publicación,. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
+  encargo y saber si puede usar conversaciones para sus propios modelos. Falta: evidencia de no entrenamiento
+  con OpenAI/Anthropic, tipo de cuenta de Gemini, dónde están Analytics, Pixel y Sentry, y si
+  los casos públicos están visibles. El audio de MILA sí se guarda en el bucket privado
+  `mila-audio`: falta un borrado automático a 90 días.
+- Dependencia abierta: la retención y el borrado de radiografías y registros de IA
+  siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
+  menciona de forma general.
+
+
 ## 2026-11-07 — Codex — Cobro guiado por paciente
 
 - La cabecera de Cobros deja una sola acción cotidiana, `Cobrar a paciente`, y
