@@ -35,7 +35,7 @@ test('el expediente y los tratamientos ofrecen continuidad operativa',()=>{
   assert.match(shell,/SmylProposals\.forPatient/);
   assert.match(shell,/SmylFinance\.forPatient/);
   assert.match(shell,/SmylPatient360/);
-  assert.match(shell,/propuestas:\['Propuesta del paciente'/);
+  assert.match(shell,/propuestas:\['Cotizaciones'/);
 });
 
 test('las tareas frecuentes se resuelven por proceso y paciente',()=>{

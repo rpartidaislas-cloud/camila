@@ -100,7 +100,7 @@ test('el chat ofrece «Enviar por WhatsApp» sólo en WhatsApp con permiso de re
     assert.match(i, /conversation\.channel === 'whatsapp' && !accountRule\.blocked && hasPermission\('messages\.respond'\) && canOperate\(conversation, 'messages\.respond'\)\) \{\s*var sendWhatsapp/);
     assert.match(i, /Ya enviaste este mismo mensaje el /);
     assert.match(i, /No hay una plantilla de cobro aprobada todavía/);
-    assert.match(i, /async function openTemplateDialog\(preferred\)/);
+    assert.match(i, /async function openTemplateDialog\(preferred, preset\)/);
     assert.match(i, /cobroVariables\(template\.name, selectedConversation\(\)\)/);
   }
 });

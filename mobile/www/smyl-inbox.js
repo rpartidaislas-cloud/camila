@@ -1045,6 +1045,11 @@
     // Plantillas de cobro: monto, vencimiento y nombre salen de la cuenta del paciente (se pueden corregir antes de enviar).
     var auto = cobroVariables(template.name, selectedConversation());
     if (auto) Array.from(variables.querySelectorAll('[data-variable-index]')).forEach(function (field, index) { if (auto[index]) field.value = auto[index]; });
+    // Plantillas enviadas desde otras pantallas (p. ej. Cotizaciones): sus variables vienen ya resueltas.
+    var preset = state.templatePreset;
+    if (preset && Array.isArray(preset.names) && preset.names.indexOf(template.name) !== -1 && Array.isArray(preset.variables)) {
+      Array.from(variables.querySelectorAll('[data-variable-index]')).forEach(function (field, index) { if (preset.variables[index]) field.value = String(preset.variables[index]).slice(0, 1000); });
+    }
   }
 
   function fillTemplateSelect(select) {
@@ -1055,15 +1060,17 @@
     state.templates.forEach(function (template) { var option = document.createElement('option'); option.value = template.id; option.textContent = template.name + ' · ' + template.language; select.append(option); });
   }
 
-  async function openTemplateDialog(preferred) {
+  async function openTemplateDialog(preferred, preset) {
+    state.templatePreset = preset && Array.isArray(preferred) ? { names: preferred, variables: preset.variables || [], onSent: preset.onSent || null } : null;
     var conversation = selectedConversation(); if (!conversation || conversation.channel !== 'whatsapp' || !canOperate(conversation, 'messages.respond')) return;
     try { await loadTemplates(); } catch (error) { window.alert(error.message || 'No se pudieron cargar las plantillas.'); return; }
     var dialog = document.querySelector('[data-template-dialog]'); var select = dialog.querySelector('[data-template-select]');
+    if (!dialog.dataset.presetBound) { dialog.dataset.presetBound = '1'; dialog.addEventListener('close', function () { setTimeout(function () { state.templatePreset = null; }, 0); }); }
     fillTemplateSelect(select);
     if (Array.isArray(preferred)) {
       var match = null;
       preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
-      if (!match) { window.alert('No hay una plantilla de cobro aprobada todavía. Solicítalas en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítalas en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
       select.value = match.id;
     }
     renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -1093,6 +1100,11 @@
     var key = uuid(); var extra = { type: 'template', template_id: template.id, template_variables: variables };
     var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, created_at: new Date().toISOString(), status: 'sending', extra: extra };
     if (isCobro) pending.onSent = function () { logCobroReminder(conversation, template.name); };
+    var preset = state.templatePreset; state.templatePreset = null;
+    if (preset && Array.isArray(preset.names) && preset.names.indexOf(template.name) !== -1 && typeof preset.onSent === 'function') {
+      var previousSent = pending.onSent;
+      pending.onSent = function () { if (typeof previousSent === 'function') previousSent(); preset.onSent(); };
+    }
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); dialog.close(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, extra);
   }
@@ -3223,6 +3235,7 @@
 
   window.SmylInbox = {
     open: function (conversationId) { window.ir('inbox'); openConversation(conversationId); },
+    sendTemplate: async function (conversationId, options) { options = options || {}; window.ir('inbox'); await openConversation(conversationId); await openTemplateDialog(options.preferred, options); },
     collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); await openCobroTemplate(); },
     openOperations: function () { window.ir('inbox'); openOperations(); },
     refresh: function () { loadList(true); },
