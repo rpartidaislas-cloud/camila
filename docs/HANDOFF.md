@@ -29,7 +29,10 @@
   activarlos sin autorización firmada por caso y sin actualizar el aviso.
 - Respaldos: el dueño confirmó que rotan en 90 días o menos; el texto «hasta 90 días» es cierto.
   Si el plan o la configuración de Supabase cambia, revisar esa línea del aviso.
-- **Antes de publicar:** quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
+- PUBLICADO el 7 nov 2026 (hora de México) sin la evidencia de no entrenamiento de IA, por decisión del
+  dueño: el aviso dice «según las condiciones de sus cuentas». Se quitaron las leyendas de borrador.
+  Sigue pendiente de revisión por un abogado antes de procesar datos clínicos reales.
+- (Histórico) Antes de publicar: quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
   fecha real de publicación,. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
   encargo y saber si puede usar conversaciones para sus propios modelos. Falta: evidencia de no entrenamiento
   con OpenAI/Anthropic, tipo de cuenta de Gemini, dónde están Analytics, Pixel y Sentry, y si
