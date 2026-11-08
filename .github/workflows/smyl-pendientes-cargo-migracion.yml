@@ -1,8 +1,10 @@
-name: SMYL Cobros - pacientes pendientes de cargo (migración)
+name: SMYL Cobros - pacientes pendientes de cargo y etiqueta de cobro en la Agenda (migración)
 
 # Aplica en el proyecto de producción de SMYL la migración 20261108120000_smyl_appointment_no_charge.sql:
 #   - smyl_appointment_no_charge: decisión «sin cargo» (revisión, garantía, cortesía u otro) de una cita en la que el paciente ya llegó.
 #   - Funciones smyl_mark_appointment_no_charge y smyl_reopen_appointment_charge (única vía de escritura, permiso finance.manage, con auditoría).
+# y la migración 20261108130000_smyl_appointment_billing_status.sql:
+#   - Función smyl_appointment_billing (sólo lectura, permiso finance.read): estado de cobro de cada cita para la etiqueta de la Agenda.
 # La lista de pendientes se calcula en Cobros; no se crea ningún cargo y no se toca ninguna cita, cargo ni pago existente.
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN. Es idempotente.
 # Requiere las migraciones de agenda, finanzas y 20261106110000 (smyl_tenants_with_permission).
@@ -26,6 +28,8 @@ jobs:
       PROJECT_REF: rpxshsiwoxdbuevjjpfw
       PENDIENTES_VERSION: "20261108120000"
       PENDIENTES_FILE: supabase/migrations/20261108120000_smyl_appointment_no_charge.sql
+      ETIQUETA_VERSION: "20261108130000"
+      ETIQUETA_FILE: supabase/migrations/20261108130000_smyl_appointment_billing_status.sql
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,7 +83,9 @@ jobs:
               and not has_table_privilege('anon', 'public.smyl_appointment_no_charge', 'select')
               and not has_table_privilege('authenticated', 'public.smyl_appointment_no_charge', 'insert')
               and not has_table_privilege('authenticated', 'public.smyl_appointment_no_charge', 'delete'), false) as permisos_ok,
-            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.PENDIENTES_VERSION}') as historial_ok`))?.[0] || {};
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_appointment_billing') as etiqueta_ok,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.PENDIENTES_VERSION}') as historial_ok,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.ETIQUETA_VERSION}') as historial_etiqueta`))?.[0] || {};
 
           const completo = e => e.tabla_ok && e.marcar_ok && e.reabrir_ok && e.rls_ok && e.permisos_ok;
 
@@ -96,18 +102,31 @@ jobs:
             console.log('La migración de pendientes de cargo ya estaba aplicada.');
           }
 
+          if (!antes.etiqueta_ok) {
+            await consultar(fs.readFileSync(process.env.ETIQUETA_FILE, 'utf8'));
+            console.log('Etiqueta de cobro de la Agenda aplicada.');
+          } else {
+            console.log('La etiqueta de cobro de la Agenda ya estaba aplicada.');
+          }
+
           const despues = await estado();
           console.log('Después:', JSON.stringify(despues));
-          if (!completo(despues)) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
+          if (!completo(despues) || !despues.etiqueta_ok) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
           appendFileSync(process.env.GITHUB_OUTPUT, `reparar=${!despues.historial_ok}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar_etiqueta=${!despues.historial_etiqueta}\n`);
           NODE
 
       - name: Registrar versión aplicada
-        if: steps.esquema.outputs.reparar == 'true'
+        if: steps.esquema.outputs.reparar == 'true' || steps.esquema.outputs.reparar_etiqueta == 'true'
         shell: bash
         run: |
           supabase link --project-ref "$PROJECT_REF"
           # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado) y exige --yes sin terminal; la anterior usaba --linked.
           REPAIR_FLAG=--linked
           if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG="--remote --yes"; fi
-          supabase migration repair $REPAIR_FLAG --status applied "$PENDIENTES_VERSION"
+          if [ "${{ steps.esquema.outputs.reparar }}" = "true" ]; then
+            supabase migration repair $REPAIR_FLAG --status applied "$PENDIENTES_VERSION"
+          fi
+          if [ "${{ steps.esquema.outputs.reparar_etiqueta }}" = "true" ]; then
+            supabase migration repair $REPAIR_FLAG --status applied "$ETIQUETA_VERSION"
+          fi

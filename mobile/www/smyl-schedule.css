@@ -602,3 +602,15 @@ body.smyl-ui-governed #p-agenda .schedule-dialog :is(input,select,textarea){min-
   body.smyl-ui-governed #p-agenda .schedule-tabs{display:flex;overflow-x:auto}
   body.smyl-ui-governed #p-agenda .schedule-tabs>button{flex:0 0 auto}
 }
+
+/* Etiqueta de cobro en las citas que ya llegaron (sólo con finance.read) */
+.schedule-appointment i.schedule-billing,.schedule-agenda-row i.schedule-billing{justify-self:start;border-radius:999px;padding:2px 8px;font-size:12px;font-style:normal;font-weight:800;letter-spacing:0;white-space:nowrap}
+.schedule-billing[data-billing=pending],.schedule-calendar button i.schedule-billing[data-billing=pending]{background:#fff2e0;color:#9a5a12}
+.schedule-billing[data-billing=due],.schedule-calendar button i.schedule-billing[data-billing=due]{background:#fde8e1;color:#a2402a}
+.schedule-billing[data-billing=paid],.schedule-calendar button i.schedule-billing[data-billing=paid]{background:#e3f6ec;color:#1c6a4c}
+.schedule-billing[data-billing=none],.schedule-calendar button i.schedule-billing[data-billing=none]{background:#eef1f4;color:#5f6c7b}
+.schedule-timeline .schedule-appointment i.schedule-billing,.schedule-wk-event i.schedule-billing{position:absolute;top:6px;right:8px;z-index:2;margin:0}
+.schedule-wk-event[data-size=xs] i.schedule-billing{display:none}
+.sched-billing-row strong{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.schedule-agenda-row span i.schedule-billing{display:inline-block;margin-top:5px}
+.schedule-timeline-event .schedule-appointment i.schedule-billing{display:inline-block;position:absolute;top:6px;right:8px;z-index:2;margin:0}

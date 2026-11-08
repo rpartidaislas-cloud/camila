@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: etiqueta de cobro en la Agenda
+
+Cada cita en la que el paciente ya llegó (`arrived` / `in_progress` / `completed`) muestra una etiqueta en Semana, Día y Lista, y una línea «Cobro» en el detalle
+con «Ir a Cobros»: **Por cobrar** (llegó y falta decidir el cobro), **Saldo $X** (hay cargo con saldo), **Cobrada** y **Sin cargo**. Las citas de servicios con precio $0
+(Revisión) no llevan etiqueta. Sólo la ven quienes tienen `finance.read`; los demás no ven nada y la agenda no pide los datos.
+
+**Backend (migración `20261108130000_smyl_appointment_billing_status.sql`, sólo lectura):** `smyl_appointment_billing(uuid[])` devuelve estado y montos (máx. 300 citas por llamada).
+Precedencia: cargo vigente (due/paid) → decisión «sin cargo» → servicio $0 (`free`) → `pending`. Requiere la migración de «pendientes de cargo» (`20261108120000`).
+**Falta aplicarla en producción:** el workflow «SMYL Cobros - pacientes pendientes de cargo y etiqueta de cobro en la Agenda (migración)» aplica ambas migraciones en una sola corrida (idempotente).
+Mientras no esté aplicada, la agenda funciona igual y simplemente no muestra la etiqueta.
+
+**Frontend:** `smyl-schedule.js?v=31` / `.css?v=21`, `smyl-finance.js?v=24` (Cobros avisa con el evento `smyl:finance-updated` para refrescar las etiquetas), `sw.js` `…-agenda-billing-v1`, `mobile/www` sincronizado.
+Pruebas: `tests/appointment-billing-status-pglite.test.mjs` (Postgres real, 5), `tests/agenda-billing-label.test.mjs` (7), humo en navegador `tests/qa/agenda-billing-smoke.cjs`.
+
+**Para Codex:** el bloque «Etiqueta de cobro» está justo antes de `appointmentCard` en `smyl-schedule.js`. En la línea de tiempo del día el estado de la cita está oculto por la altura de la tarjeta; la etiqueta de cobro
+se coloca arriba a la derecha (CSS al final de `smyl-schedule.css`). Pendiente por decisión de alcance: contador en el menú lateral y cobro por «No vino».
+
 ## 2026-11-08 — Claude: Cobros · «Pacientes pendientes de cargo» (cita que llegó → se habilita el cobro, sin crear deuda)
 
 **Flujo:** al marcar «Ya llegó» en Agenda, la cita aparece arriba en Cobros → Por cobrar como pendiente (En espera / En consulta /
