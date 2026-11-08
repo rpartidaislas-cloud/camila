@@ -25,6 +25,8 @@
   se quitó la promesa discrecional de créditos por interrupción.
 - Rastreo: el dueño confirmó que Analytics, Píxel de Meta y Sentry NO están instalados (coincide con el
   código). El aviso lo declara; **antes de instalar cualquiera hay que actualizar el aviso y pedir elección**.
+- Casos públicos de antes y después: el dueño confirmó que están APAGADOS. El aviso lo declara; no
+  activarlos sin autorización firmada por caso y sin actualizar el aviso.
 - **Antes de publicar:** quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
   fecha real de publicación, y comprobar que «respaldos de hasta 90 días» sea cierto con el
   plan de Supabase. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
