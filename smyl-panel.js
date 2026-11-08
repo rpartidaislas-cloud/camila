@@ -19,7 +19,7 @@
     document.body.classList.add('smyl-professional');
     var title = document.getElementById('topbar-title');
     TITULOS.dashboard = 'Inicio'; TITULOS.historial = 'Simulaciones';
-    TITULOS.propuestas = 'Presentaciones'; TITULOS['nuevo-diseno'] = 'Valoración y diseño';
+    TITULOS.propuestas = 'Cotizaciones'; TITULOS['nuevo-diseno'] = 'Valoración y diseño';
     if (title.textContent === 'Dashboard') title.textContent = 'Inicio';
     var sidebar = document.querySelector('.sidebar .nav-items');
     var old = Array.from(sidebar.querySelectorAll('.nav-item'));
@@ -35,7 +35,7 @@
       return el;
     }
     var primary = node('nav', 'pro-primary-nav'); primary.setAttribute('aria-label', 'Panel profesional');
-    primary.append(take('dashboard', 'Inicio'), take('pacientes', 'Pacientes'), navButton('Presentaciones', 'propuestas'));
+    primary.append(take('dashboard', 'Inicio'), take('pacientes', 'Pacientes'), navButton('Cotizaciones', 'propuestas'));
     var settings = node('details', 'pro-settings'); settings.append(node('summary', '', 'Herramientas y configuración'));
     ['historial','notificaciones','precios','sim-config','mi-cuenta'].forEach(function (route, index) {
       settings.append(take(route, ['Simulaciones','Notificaciones','Precios de la clínica','Marca y simulación','Mi cuenta'][index]));
@@ -46,7 +46,7 @@
     document.querySelector('.sb-logo span').textContent = 'Panel profesional';
     var main = document.querySelector('.contenido');
     var mobile = node('nav', 'pro-mobile-nav'); mobile.setAttribute('aria-label', 'Panel profesional móvil');
-    [['Inicio','dashboard'],['Pacientes','pacientes'],['Presentaciones','propuestas']].forEach(function (entry) {
+    [['Inicio','dashboard'],['Pacientes','pacientes'],['Cotizaciones','propuestas']].forEach(function (entry) {
       mobile.append(navButton(entry[0], entry[1]));
     });
     main.before(mobile);
@@ -108,7 +108,7 @@
       var proposalMobileRow = patientMobileRow.cloneNode(true);
       proposalMobileRow.dataset.mobileProposals = 'true';
       proposalMobileRow.setAttribute('onclick', "pamIr('propuestas')");
-      proposalMobileRow.querySelector('.pam-row-label').textContent = 'Presentaciones';
+      proposalMobileRow.querySelector('.pam-row-label').textContent = 'Cotizaciones';
       var proposalIcon = proposalMobileRow.querySelector('.pam-row-icon');
       if (proposalIcon) proposalIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>';
       patientMobileRow.after(proposalMobileRow);

@@ -18,7 +18,7 @@ test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(app, /smyl-connections\.css\?v=11/);
   assert.match(app, /smyl-connections\.js\?v=15/);
   assert.match(app, /smyl-panel\.css\?v=5/);
-  assert.match(app, /smyl-panel\.js\?v=6/);
+  assert.match(app, /smyl-panel\.js\?v=7/);
   assert.match(connections, /Tus canales y tu asistente/);
   assert.match(connections, /WhatsApp/);
   assert.match(connections, /Messenger/);

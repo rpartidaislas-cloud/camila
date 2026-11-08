@@ -12,6 +12,8 @@ const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 const page = read('../smyl-templates.js');
 const nav = read('../smyl-navigation.js');
 const inbox = read('../smyl-inbox.js');
+const messaging = read('../smyl-messaging.js');
+const gmail = read('../smyl-gmail.js');
 const app = read('../app.html');
 const worker = read('../sw.js');
 const reminders = read('../supabase/functions/appointment-reminders/index.ts');
@@ -97,14 +99,24 @@ test('la pantalla consulta el estado en Meta por la función whatsapp-templates 
   assert.doesNotMatch(page, /action: *'schedule'|type: *'template'/);
 });
 
-test('Mensajería es una sección propia del menú con Mensajes; las plantillas viven en Configuración > Canales', () => {
-  assert.match(nav, /var MESSAGING = \[\s*\['Mensajes', 'inbox', 'messages'\]\s*\]/);
+test('Mensajería es desplegable y reúne chat, correo, masivos, plantillas y campañas', () => {
+  assert.match(nav, /var MESSAGING = \[\s*\['Chat', 'inbox', 'messages'\],\s*\['Correo', 'correo', 'email'\],\s*\['Mensajes masivos', 'mensajes-masivos', 'broadcast'\],\s*\['Plantillas WhatsApp', 'plantillas', 'templates'\],\s*\['Campañas', 'campanas', 'campaign'\]\s*\]/);
   // La ruta sigue registrada (oculta) para que ningún módulo vuelva a agregar su botón suelto.
   assert.match(nav, /\['Plantillas de WhatsApp', 'plantillas', 'templates'\]/);
-  assert.match(nav, /nav\.append\(sectionLabel\('Mensajería'\)\)/);
-  assert.match(nav, /mobileGroup\('Mensajería', MESSAGING\)/);
+  assert.match(nav, /detailsGroup\('Mensajería', MESSAGING, true, 'messages'\)/);
+  assert.match(nav, /mobileDetailsGroup\('Mensajería', MESSAGING, true\)/);
+  assert.doesNotMatch(nav.match(/var SETTINGS_ROUTES = \[[^\]]+\]/)[0], /plantillas/);
   const primary = nav.slice(nav.indexOf('var PRIMARY = ['), nav.indexOf('var MESSAGING'));
   assert.doesNotMatch(primary, /'inbox'/);
+});
+
+test('los nuevos espacios de mensajería tienen rutas propias y no ejecutan envíos masivos desde el navegador', () => {
+  for (const route of ['correo', 'mensajes-masivos', 'campanas']) assert.match(messaging, new RegExp("page\\('" + route + "'"));
+  assert.match(messaging, /Revisar plantillas/);
+  assert.match(messaging, /Sin envíos automáticos/);
+  assert.doesNotMatch(messaging, /fetch\(|functions\.invoke|\.insert\(|\.upsert\(/);
+  assert.match(gmail, /getElementById\('p-correo'\)/);
+  assert.match(gmail, /window\.ir\?\.\('correo'\)/);
 });
 
 test('Mensajes muestra cuántas conversaciones sin leer hay, sin abrir ninguna', () => {
@@ -119,7 +131,10 @@ test('web, móvil y PWA publican las plantillas', () => {
   assert.match(app, /<link rel="stylesheet" href="smyl-templates\.css\?v=4">/);
   assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=4"><\/script>\s*<script defer src="smyl-templates\.js\?v=5"><\/script>/);
   for (const file of ['smyl-templates.css?v=4', 'smyl-template-catalog.js?v=4', 'smyl-templates.js?v=5']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
-  for (const file of ['smyl-templates.js', 'smyl-templates.css', 'smyl-template-catalog.js', 'smyl-navigation.js', 'smyl-inbox.js', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
+  for (const file of ['smyl-messaging.css?v=1', 'smyl-messaging.js?v=1']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
+  assert.match(app, /smyl-messaging\.css\?v=1/);
+  assert.match(app, /smyl-messaging\.js\?v=1/);
+  for (const file of ['smyl-templates.js', 'smyl-templates.css', 'smyl-template-catalog.js', 'smyl-navigation.js', 'smyl-navigation.css', 'smyl-messaging.js', 'smyl-messaging.css', 'smyl-gmail.js', 'smyl-inbox.js', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
 });
 
 test('el catálogo se organiza por trabajo clínico y destaca las esenciales', () => {

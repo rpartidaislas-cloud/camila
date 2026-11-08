@@ -42,6 +42,25 @@
   siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
   menciona de forma general.
 
+
+## 2026-11-08 — Claude: integración de Sentry (errores del navegador) sin datos de pacientes
+
+**Qué:** `smyl-sentry.js` + librería vendida `vendor/sentry-browser-10.78.0.min.js` (build mínimo esbuild, MIT).
+Cargado tras `smyl-browser-privacy.js` en app, index, simulacion, simulacion-rapida y editor-v2 (y copias de
+`mobile/www`). **Apagado mientras `CONFIG.dsn` esté vacío**; no descarga nada ni abre conexiones.
+
+**Privacidad:** `scrubEvent` quita usuario/correo/IP/cookies/cabeceras, enmascara correos, teléfonos, tokens y
+`data:`/`blob:`, y recorta `?consulta`/`#fragmento` de toda URL. Sólo ids opacos (usuario, clínica, rol).
+Sin replay, sin tracing, sin migas de consola/inputs. `app.html` llama `SmylSentry.setContext({userId, tenantId, role})`
+tras cargar el tenant (sin correo ni nombre).
+
+**sw.js:** precachea los 2 archivos nuevos y no intercepta `sentry.io`; CACHE_VERSION con sufijo `-sentry-v1`.
+
+**Pruebas:** `tests/sentry-integration.test.mjs` (15). Verificado en Chromium real con un ingest simulado: el evento
+llega sin correo/teléfono/token y con etiqueta de clínica. Guía: `docs/SMYL_SENTRY.md` (activar, probar, alertas).
+
+**Para Codex:** no pegues datos de pacientes en mensajes de error; si lo haces el filtro los enmascara, pero mejor no
+incluirlos. Pendiente de la persona usuaria: pegar el DSN. No cubre Edge Functions ni congelamientos sin excepción.
 ## 2026-11-08 — Claude — «Continuar con Google» en el acceso de `app.html`
 
 - Botón «Continuar con Google» arriba del formulario de login (no en registro).

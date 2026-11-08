@@ -36,8 +36,8 @@ test('all primary creation actions open the same professional simulator', () => 
 
 test('panel assets and PWA cache advance together', () => {
   assert.match(app, /smyl-panel\.css\?v=5/);
-  assert.match(app, /smyl-panel\.js\?v=6/);
+  assert.match(app, /smyl-panel\.js\?v=7/);
 assert.match(serviceWorker, /smyl-v263-lana-connection-recovery/);
   assert.match(serviceWorker, /smyl-panel\.css\?v=5/);
-  assert.match(serviceWorker, /smyl-panel\.js\?v=6/);
+  assert.match(serviceWorker, /smyl-panel\.js\?v=7/);
 });
