@@ -160,3 +160,11 @@
 }
 
 .finance-row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.finance-template-summary{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:4px 0 14px;flex-wrap:wrap}
+.finance-template-summary small{display:block;margin-top:4px;color:var(--color-text-tertiary,#6b7a8c);max-width:60ch}
+.finance-template-list{display:grid;gap:8px}
+.finance-template-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--color-border,#e3e8ef);border-radius:10px}
+.finance-template-row small{display:block;margin-top:3px;color:var(--color-text-tertiary,#6b7a8c)}
+.finance-template-row .finance-template-reason{color:#9b3d2e}
+@media (max-width:760px){.finance-template-row{grid-template-columns:1fr}}

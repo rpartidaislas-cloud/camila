@@ -72,7 +72,7 @@
     } catch (error) {
       state.remote = null; state.canRequest = false; state.error = error.message || 'No pudimos consultar el servicio de mensajería.';
     } finally {
-      state.loading = false; renderStatus(); renderGrid();
+      state.loading = false; renderStatus(); renderGrid(); notifyChange();
     }
   }
 
@@ -302,6 +302,33 @@
     });
   }
 
+
+  // ── API para otras pantallas (Cobros): estado de un grupo de plantillas, solicitud y navegación ──
+  var listeners = [];
+  function notifyChange() { listeners.slice().forEach(function (fn) { try { fn(); } catch (_) {} }); }
+  async function summary(groupId) {
+    await loadApproved(false);
+    var list = catalog.TEMPLATES.filter(function (template) { return !groupId || template.group === groupId; }).map(function (template) {
+      var key = statusKey(template), remote = remoteOf(template);
+      return {
+        id: template.id, title: template.title, when: template.when, category: template.category,
+        status: key, statusLabel: state.remote ? STATUS[key][0] : 'Sin consultar', tone: STATUS[key][1],
+        reclassified: reclassified(template) || '', reason: remote && (key === 'REJECTED' || key === 'PAUSED' || key === 'DISABLED') ? reasonText(remote) : ''
+      };
+    });
+    return { templates: list, canRequest: state.canRequest, error: state.error, loaded: Boolean(state.remote) };
+  }
+  function requestTemplate(id) {
+    var template = catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0];
+    if (template && state.canRequest && !state.requesting) confirmRequest(template);
+  }
+  function showTemplates(groupId, query) {
+    state.category = 'all'; state.group = groupId || 'all'; state.query = query || '';
+    var input = document.querySelector('#p-plantillas .tpl-toolbar input[type="search"]'); if (input) input.value = state.query;
+    renderToolbar(); renderGroupToolbar(); renderGrid();
+    if (typeof window.ir === 'function') window.ir('plantillas');
+  }
+
   function build() {
     var page = el('section', 'pantalla templates-page'); page.id = 'p-plantillas';
     var head = el('header', 'tpl-head');
@@ -356,7 +383,11 @@
         return result;
       };
     }
-    window.SmylTemplates = Object.freeze({ reload: function () { return loadApproved(true); } });
+    window.SmylTemplates = Object.freeze({
+      reload: function () { return loadApproved(true); },
+      summary: summary, request: requestTemplate, show: showTemplates,
+      onChange: function (fn) { if (typeof fn === 'function') listeners.push(fn); }
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
