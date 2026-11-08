@@ -75,6 +75,8 @@
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
 
+  var CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
   function icon(name, size) {
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
   }
@@ -111,7 +113,7 @@
     details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
     details.open = Boolean(open);
     var summary = document.createElement('summary');
-    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
+    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-group-count" hidden></span><span class="pro-nav-chevron" aria-hidden="true">' + CHEVRON + '</span>';
     summary.dataset.tooltip = label;
     summary.setAttribute('aria-label', label);
     details.append(summary);
@@ -140,10 +142,11 @@
       item.classList.toggle('activo', isActive);
       if (isActive) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
+    // Mensajería y Negocio se abren solos al entrar a una de sus pantallas y se cierran al salir.
     document.querySelectorAll('.pro-nav-group').forEach(function (group) {
       var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
       group.classList.toggle('has-active', contains);
-      if (contains) group.open = true;
+      group.open = contains;
     });
     document.querySelectorAll('.pam-collapsible-group').forEach(function (group) {
       var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
@@ -160,8 +163,9 @@
     nav.setAttribute('aria-label', 'Navegación principal');
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
-    nav.append(detailsGroup('Mensajería', MESSAGING, true, 'messages'));
-    nav.append(detailsGroup('Negocio', BUSINESS, true, 'reports'));
+    nav.append(sectionLabel('Comunicación'));
+    nav.append(detailsGroup('Mensajería', MESSAGING, false, 'messages'));
+    nav.append(detailsGroup('Negocio', BUSINESS, false, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
     registry.className = 'pro-nav-registry'; registry.hidden = true; registry.style.display = 'none'; registry.setAttribute('aria-hidden', 'true');
@@ -400,30 +404,186 @@
     sidebar.append(toggle);
   }
 
+  function openNewAppointment() {
+    if (typeof window.ir !== 'function') return;
+    window.ir('agenda');
+    window.setTimeout(function () {
+      var create = document.getElementById('schedule-new');
+      if (create) create.click();
+    }, 0);
+  }
+
+  // «Nueva cita» va arriba, bajo la cabecera, como botón con borde y atajo N.
   function setupQuickAction() {
-    var foot = document.querySelector('.sidebar .sb-foot');
-    if (!foot || foot.querySelector('.smyl-sidebar-quick')) return;
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'smyl-sidebar-quick';
-    button.dataset.tooltip = 'Nueva cita';
+    var sidebar = document.querySelector('.sidebar');
+    var logo = sidebar && sidebar.querySelector('.sb-logo');
+    if (!sidebar || !logo) return;
+    var button = sidebar.querySelector('.smyl-sidebar-quick');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'smyl-sidebar-quick';
+    }
+    button.removeAttribute('onclick');
+    button.dataset.tooltip = 'Nueva cita (N)';
     button.setAttribute('aria-label', 'Nueva cita');
-    button.innerHTML = '<span aria-hidden="true">' + icon('calendar', 18) + '</span><span class="smyl-sidebar-quick-label">Nueva cita</span>';
-    button.addEventListener('click', function () {
-      if (typeof window.ir !== 'function') return;
-      window.ir('agenda');
-      window.setTimeout(function () {
-        var create = document.getElementById('schedule-new');
-        if (create) create.click();
-      }, 0);
+    button.setAttribute('aria-keyshortcuts', 'N');
+    button.innerHTML = '<span aria-hidden="true">' + icon('plus', 17) + '</span><span class="smyl-sidebar-quick-label">Nueva cita</span><kbd class="smyl-sidebar-quick-key" aria-hidden="true">N</kbd>';
+    if (button.dataset.quickReady !== 'true') {
+      button.dataset.quickReady = 'true';
+      button.addEventListener('click', openNewAppointment);
+    }
+    var wrap = sidebar.querySelector('.sb-quick');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'sb-quick';
+      logo.after(wrap);
+    }
+    wrap.append(button);
+  }
+
+  function isTypingTarget(target) {
+    if (!target || !(target instanceof Element)) return false;
+    return Boolean(target.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]'));
+  }
+
+  // Atajo N para «Nueva cita»: solo en escritorio, sin modificadores, fuera de campos de texto y sin diálogos abiertos.
+  function setupNewAppointmentShortcut() {
+    if (document.documentElement.dataset.smylQuickShortcut === 'true') return;
+    document.documentElement.dataset.smylQuickShortcut = 'true';
+    document.addEventListener('keydown', function (event) {
+      if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key !== 'n' && event.key !== 'N') return;
+      if (isTypingTarget(event.target)) return;
+      var button = document.querySelector('.sidebar .smyl-sidebar-quick');
+      if (!button || !button.offsetParent) return;
+      var dialogs = document.querySelectorAll('dialog[open],[aria-modal="true"],[role="dialog"],[role="alertdialog"]');
+      for (var i = 0; i < dialogs.length; i += 1) {
+        if (dialogs[i].getAttribute('aria-hidden') !== 'true' && dialogs[i].getClientRects().length) return;
+      }
+      var gate = document.getElementById('auth-gate-overlay');
+      if (gate && gate.offsetParent) return;
+      event.preventDefault();
+      openNewAppointment();
     });
-    foot.prepend(button);
+  }
+
+  // Cabecera única: logo de SMYL y, debajo, el nombre de la clínica (el mismo que antes iba en la tarjeta de usuario).
+  function setupShellHeader() {
+    var logo = document.querySelector('.sidebar .sb-logo > div');
+    var source = document.getElementById('sb-consultorio');
+    if (!logo || !source || logo.querySelector('.sb-clinic-name')) return;
+    var name = document.createElement('span');
+    name.className = 'sb-clinic-name';
+    function sync() {
+      var text = source.textContent.trim();
+      name.textContent = text && text !== 'Consultorio' ? text : 'Mi Consultorio';
+      name.title = name.textContent;
+    }
+    sync();
+    logo.append(name);
+    if (window.MutationObserver) new MutationObserver(sync).observe(source, { childList: true, characterData: true, subtree: true });
+  }
+
+  // Usuario abajo: avatar y nombre llevan a Mi cuenta; el menú ⋯ ofrece Mi cuenta y Cerrar sesión.
+  function setupUserFooter() {
+    var sidebar = document.querySelector('.sidebar');
+    var foot = sidebar && sidebar.querySelector('.sb-foot');
+    var user = sidebar && sidebar.querySelector('.sb-user');
+    if (!foot || !user || foot.querySelector('.sb-user-menu')) return;
+    var info = user.querySelector('.sb-user-info');
+    if (info && !info.querySelector('.sb-user-role')) {
+      var role = document.createElement('div');
+      role.className = 'sb-user-role';
+      role.textContent = 'Mi cuenta';
+      info.append(role);
+    }
+    var holder = document.createElement('div');
+    holder.className = 'sb-account';
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'sb-user-more';
+    more.setAttribute('aria-haspopup', 'menu');
+    more.setAttribute('aria-expanded', 'false');
+    more.setAttribute('aria-label', 'Opciones de la cuenta');
+    more.innerHTML = icon('more', 16);
+    var menu = document.createElement('div');
+    menu.className = 'sb-user-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    var account = document.createElement('button');
+    account.type = 'button';
+    account.setAttribute('role', 'menuitem');
+    account.className = 'sb-user-menu-item';
+    account.innerHTML = icon('account', 16) + '<span>Mi cuenta</span>';
+    account.addEventListener('click', function () { close(); if (typeof window.ir === 'function') window.ir('mi-cuenta'); });
+    menu.append(account);
+    var logout = foot.querySelector('.btn-cerrar');
+    if (logout) {
+      logout.setAttribute('role', 'menuitem');
+      logout.classList.add('sb-user-menu-item');
+      menu.append(logout);
+    }
+    function close() {
+      menu.hidden = true;
+      more.setAttribute('aria-expanded', 'false');
+    }
+    function open() {
+      menu.hidden = false;
+      more.setAttribute('aria-expanded', 'true');
+      var first = menu.querySelector('[role="menuitem"]');
+      if (first) first.focus();
+    }
+    more.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (menu.hidden) open(); else close();
+    });
+    menu.addEventListener('keydown', function (event) {
+      var items = Array.prototype.slice.call(menu.querySelectorAll('[role="menuitem"]'));
+      var index = items.indexOf(document.activeElement);
+      if (event.key === 'Escape') { event.preventDefault(); close(); more.focus(); }
+      else if (event.key === 'ArrowDown') { event.preventDefault(); items[(index + 1) % items.length].focus(); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); items[(index - 1 + items.length) % items.length].focus(); }
+    });
+    document.addEventListener('click', function (event) {
+      if (!menu.hidden && !holder.contains(event.target)) close();
+    });
+    holder.append(user, more, menu);
+    foot.append(holder);
+  }
+
+  // Con un grupo cerrado, su cabecera suma los pendientes de sus opciones (p. ej. chats sin leer).
+  function setupGroupCounts() {
+    document.querySelectorAll('.pro-app-nav .pro-nav-group').forEach(function (group) {
+      var badge = group.querySelector('.pro-nav-group-count');
+      var flyout = group.querySelector('.pro-nav-flyout');
+      if (!badge || !flyout || group.dataset.countReady === 'true') return;
+      group.dataset.countReady = 'true';
+      function sync() {
+        var total = 0, overflow = false;
+        flyout.querySelectorAll('.pro-nav-count').forEach(function (count) {
+          if (count.hidden) return;
+          var text = count.textContent.trim();
+          if (/\+$/.test(text)) overflow = true;
+          total += parseInt(text, 10) || 0;
+        });
+        badge.textContent = overflow || total > 99 ? '99+' : String(total);
+        badge.hidden = !total;
+        if (total) badge.setAttribute('aria-label', total + ' pendientes'); else badge.removeAttribute('aria-label');
+      }
+      sync();
+      if (window.MutationObserver) new MutationObserver(sync).observe(flyout, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    });
   }
 
   function init() {
     organizeDesktop();
     setupCollapse();
+    setupShellHeader();
     setupQuickAction();
+    setupNewAppointmentShortcut();
+    setupUserFooter();
+    setupGroupCounts();
     organizeMobileBar();
     organizeMobileSheet();
     setupMobileSheetModal();

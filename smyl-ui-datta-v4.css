@@ -48,7 +48,8 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 }
 body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:is(.activo, [aria-current='page']) {
   border-color: transparent;
-  background: rgba(0, 0, 0, .22);
+  /* Maqueta del menú aprobada el 2026-11-08: fondo claro translúcido para que la activa se distinga en lo oscuro. */
+  background: rgba(255, 255, 255, .1);
   box-shadow: none;
 }
 body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .nav-item:is(.activo, [aria-current='page'])::before {
