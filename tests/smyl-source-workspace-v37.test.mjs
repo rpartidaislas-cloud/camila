@@ -10,10 +10,11 @@ const workspace = read('../smyl-case-workspace.js');
 const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
-test('cada fuente activa una tarea clínica distinta', () => {
-  for (const copy of ['Todo el contexto clínico', 'Observaciones clínicas por pieza', 'Archivo visual y revisión asistida', 'Rayos X con interpretación asistida']) assert.match(workspace, new RegExp(copy));
-  assert.match(workspace, /renderSourceWorkspace\(ctx,filter,totals\)/);
-  assert.match(workspace, /mode\.dataset\.mode=filter/);
+test('cada fuente activa una capa del mismo odontograma clínico', () => {
+  for (const copy of ["['all','Todo']", "['manual','Clínica']", "['photo','Fotografías']", "['radiograph','Rayos X']", "['pending','Pendientes']"]) assert.match(workspace, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(workspace, /renderClinicalMap\(ctx,ctx\.mapSnapshot\)/);
+  assert.match(workspace, /ctx\.mapFilter=id/);
+  assert.doesNotMatch(workspace, /renderSourceWorkspace\(/);
 });
 
 test('fotografías y radiografías habilitan su propio flujo de archivo', () => {
@@ -25,9 +26,9 @@ test('fotografías y radiografías habilitan su propio flujo de archivo', () => 
   assert.match(workspace, /reviewPart\(ctx,1\)/);
 });
 
-test('la IA se presenta como valoración sugerida y requiere confirmación profesional', () => {
-  assert.match(workspace, /Valoración asistida, no diagnóstico/);
-  assert.match(workspace, /confirmar, editar o descartar/);
+test('la IA se presenta como sugerencia y requiere confirmación profesional', () => {
+  assert.match(workspace, /Nada pasa al odontograma hasta que lo confirmes/);
+  assert.match(workspace, /Revisa, edita o descarta cada sugerencia antes de continuar/);
   assert.doesNotMatch(workspace, /diagnóstico automático|guardar diagnóstico sugerido/i);
 });
 
@@ -38,17 +39,18 @@ test('el editor completo queda bajo divulgación progresiva y no duplica el mapa
   assert.match(styles, /\.cw-advanced-editor>\.dr-record/);
 });
 
-test('la nueva superficie amplía jerarquía y respuesta móvil', () => {
-  for (const selector of ['cw-source-mode', 'cw-source-stats', 'cw-source-suggestion', 'cw-source-actions']) assert.match(styles, new RegExp(selector));
-  assert.match(styles, /Tratamiento v3\.7/);
+test('la nueva superficie concentra mapa, inspector y contexto con respuesta móvil', () => {
+  for (const selector of ['cw-clinical-map-layout', 'cw-map-inspector', 'cw-map-inspector-facts', 'cw-map-context']) assert.match(styles, new RegExp(selector));
+  assert.match(styles, /Hallazgos v4\.4/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(fixture, /EXPEDIENTE UNIFICADO/);
+  assert.match(fixture, /Expediente unificado/);
+  assert.match(fixture, /Pieza 11 · Incisivo central superior derecho/);
 });
 
 test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=25/);
-  assert.match(app, /smyl-case-workspace\.css\?v=19/);
-  assert.match(app, /smyl-case-workspace\.js\?v=23/);
+  assert.match(app, /smyl-case-workspace\.css\?v=20/);
+  assert.match(app, /smyl-case-workspace\.js\?v=24/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

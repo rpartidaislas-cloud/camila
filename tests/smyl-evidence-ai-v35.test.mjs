@@ -39,13 +39,13 @@ test('la revisión asistida se adapta a móvil y conserva estados legibles', () 
   assert.match(styles, /\.cw-evidence-review\[data-state=pending\]/);
   assert.match(styles, /@media\(max-width:760px\)/);
   assert.match(fixture, /2 sugerencias pendientes/);
-  assert.match(fixture, /confirmación profesional/);
+  assert.match(fixture, /Nada pasa al odontograma hasta que lo confirmes/);
 });
 
 test('web, móvil y PWA publican la etapa 3.5', () => {
   assert.match(app, /smyl-dental-record\.js\?v=17/);
-  assert.match(app, /smyl-case-workspace\.css\?v=19/);
-  assert.match(app, /smyl-case-workspace\.js\?v=23/);
+  assert.match(app, /smyl-case-workspace\.css\?v=20/);
+  assert.match(app, /smyl-case-workspace\.js\?v=24/);
   assert.match(worker, /evidence-ai-v35/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
