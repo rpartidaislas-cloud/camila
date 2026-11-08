@@ -2995,6 +2995,16 @@ async function rechazarCuentaGoogleSinClinica() {
 (function () {
   var wrap = document.getElementById('ag-google-wrap');
   if (wrap && smylEsAppNativa()) wrap.style.display = 'none';
+  // Desde la página pública: ?registro=1 abre la pestaña de registro y ?plan= preselecciona el plan.
+  var q0 = new URLSearchParams(location.search);
+  if (q0.get('registro') === '1') {
+    var planSel = document.getElementById('ag-r-plan');
+    var planKey = q0.get('plan');
+    if (planSel && planKey) {
+      Array.prototype.forEach.call(planSel.options, function (o) { if (o.value.indexOf(planKey + ':') === 0) planSel.value = o.value; });
+    }
+    switchAuthGateTab('registro');
+  }
   // Error devuelto por Google/Supabase al regresar (p. ej. el usuario canceló).
   var qp = new URLSearchParams(location.search);
   var hp = new URLSearchParams(location.hash.replace(/^#/, ''));
