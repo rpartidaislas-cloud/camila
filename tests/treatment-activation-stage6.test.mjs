@@ -46,7 +46,7 @@ test('web, móvil y PWA distribuyen la activación de tratamiento',()=>{
   assert.match(app,/smyl-proposals\.css\?v=11/);
   assert.match(app,/smyl-proposals\.js\?v=13/);
   assert.match(app,/smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
-  assert.match(app,/smyl-finance\.js\?v=15/);
+  assert.match(app,/smyl-finance\.js\?v=16/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   for(const file of ['app.html','sw.js','smyl-proposals.js','smyl-proposals.css','smyl-schedule.js','smyl-finance.js'])assert.equal(read(file),read('mobile/www/'+file));
 });

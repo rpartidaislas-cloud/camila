@@ -73,3 +73,25 @@ test('migración: el cargo guarda el snapshot fiscal del servicio, el servidor d
   assert.match(wf, /20261108110000/);
   assert.match(wf, /cargo_fiscal_ok/);
 });
+
+test('buscador de pacientes en «Registrar cargo» y «Registrar pago», con búsqueda en el servidor y respaldo local (web y móvil)', () => {
+  for (const base of ['', 'mobile/www/']) {
+    const f = read(base + 'smyl-finance.js');
+    assert.match(f, /function mountPatientPicker\(f\)\{/);
+    assert.match(f, /window\.sb\.rpc\('smyl_search_patients',\{p_tenant_id:state\.tenant,p_query:query,p_limit:8\}\)/);
+    assert.match(f, /show\(Array\.isArray\(rows\)\?rows:local\(query\),query\)/);
+    assert.match(f, /mode='pay';mountPatientPicker\(f\);/);
+    assert.match(f, /f=d\.querySelector\('form'\);mountPatientPicker\(f\);function sync\(resetAmount\)/);
+    assert.match(f, /input\.setCustomValidity\('Elige al paciente de la lista\.'\)/);
+  }
+});
+
+test('Cobros ya no se limita a los primeros 500 pacientes: completa los nombres de quien tiene cargos, pagos o citas', () => {
+  for (const base of ['', 'mobile/www/']) {
+    const f = read(base + 'smyl-finance.js');
+    assert.match(f, /async function ensurePatientNames\(\)\{/);
+    assert.match(f, /\[state\.charges,state\.payments,state\.appointments,state\.proposals,state\.fiscal\]/);
+    assert.match(f, /\.in\('id',ids\.slice\(i,i\+100\)\)/);
+    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;await ensurePatientNames\(\);state\.loaded=true;/);
+  }
+});
