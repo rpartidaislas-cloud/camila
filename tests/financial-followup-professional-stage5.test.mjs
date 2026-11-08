@@ -66,7 +66,7 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
   assert.match(app, /smyl-finance\.css\?v=14/);
   assert.match(app, /smyl-finance\.js\?v=18/);
-  assert.match(worker, /smyl-v266-guided-collection-flow/);
+  assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

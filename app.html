@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="smyl-browser-privacy.js?v=1"></script>
+<script src="smyl-sentry.js?v=1"></script>
 <script src="smyl-secure-files.js?v=2"></script>
 <link rel="stylesheet" href="smyl-security-center.css?v=2">
 <script src="smyl-security-center.js?v=2"></script>
@@ -2758,6 +2759,8 @@ async function continuarConUsuario(authUser) {
   }
 
   document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+  // Sentry: sólo identificadores opacos (nunca correo ni nombre).
+  if (window.SmylSentry) window.SmylSentry.setContext({ userId: authUser.id, tenantId: tenantId, role: miRolEquipo });
   renderSidebar();
   // Justo después de registrarse, se muestra la pantalla de bienvenida en
   // vez del Dashboard directo (antes venía de index.html con ?bienvenida=1;
