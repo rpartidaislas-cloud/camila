@@ -1,5 +1,15 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: vigilante de congelamientos (Sentry + Worker)
+
+`smyl-freeze-watchdog.js` + `smyl-freeze-watchdog-worker.js`, cargados por `smyl-sentry.js` (v=3) sólo con DSN. Un Worker
+recibe un latido por segundo; si faltan 6 s con la pestaña visible, envía a Sentry "Página congelada" con pantalla activa,
+último clic y tasa de cambios de DOM (detecta bucles de MutationObserver); al recuperarse manda "recovered" en el mismo
+issue. Lista cerrada de datos, sin texto. sw.js precachea ambos (CACHE_VERSION `…-freeze-watchdog-v1`), web y móvil sincronizados.
+También: los fallos de carga de imágenes/scripts ya no se reportan como errores.
+Pruebas: `tests/freeze-watchdog.test.mjs` (11) y humo en navegador `tests/qa/freeze-watchdog-smoke.cjs` (loop/busy/hidden/idle).
+Guía en `docs/SMYL_SENTRY.md`.
+
 ## 2026-11-08 — Claude: Sentry activado con el DSN de producción
 
 DSN del proyecto `smyl-web` (org `smyl-a5`, región EE. UU.) puesto en `smyl-sentry.js` → `CONFIG.dsn` (público por diseño).
