@@ -42,7 +42,7 @@ test('Directorio profesional es el piloto y carga la nueva plantilla',()=>{
 test('SMYL UI v3 gobierna el shell después de los estilos históricos',()=>{
   assert.match(app,/<body class="[^"]*smyl-ui-governed[^"]*">/);
   const governance=app.indexOf('smyl-ui-template-v3.css?v=8');
-  assert.ok(governance>app.indexOf('smyl-professional-v3.css?v=7'));
+  assert.ok(governance>app.indexOf('smyl-professional-v3.css?v=8'));
   assert.ok(governance>app.indexOf('smyl-dialog-system.css?v=2'));
   assert.match(template,/Gobierno del panel · etapa 2/);
   assert.match(template,/body\.smyl-ui-governed \.sidebar \.nav-item/);

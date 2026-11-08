@@ -293,7 +293,7 @@ dialog.schedule-dialog .sched-ficha{display:flex;flex-direction:column;gap:0;max
 /* Agenda v3 · adopción de la política visual SMYL. */
 body.smyl-ui-governed #p-agenda{
   width:100%;
-  max-width:1280px;
+  max-width:var(--smyl-page-max,1440px);
   color:var(--smyl-ui-ink,#0b1b2e);
 }
 body.smyl-ui-governed #p-agenda .schedule-head{
