@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude — Nueva pantalla de acceso (login/registro) en `app.html`
+
+- La puerta de acceso (`#auth-gate-overlay`) pasa a una tarjeta dividida: a la
+  izquierda un mapa de puntos animado en `<canvas id="ag-map">` con el logo y
+  el lema; a la derecha el formulario. Inspirado en el componente
+  «travel-connect-signin» que eligió el usuario, recreado en HTML/CSS/JS sin
+  React, Tailwind ni dependencias nuevas.
+- Sin cambios de lógica: se conservan todos los IDs y funciones
+  (`hacerLoginAppGate`, `hacerRegistroAppGate`, `solicitarRecuperacionAppGate`,
+  `switchAuthGateTab`, `toggleAuthGatePass`) y la trampa de foco.
+- No se agregó «Entrar con Google»: SMYL no tiene ese proveedor configurado.
+- El canvas se detiene cuando el acceso se oculta y, con «reducir movimiento»,
+  se dibuja una vez sin animar. En menos de 768 px se oculta el panel del mapa.
+- Sincronizado en `mobile/www/app.html` y `mobile/www/sw.js`; caché del SW
+  `...-login-split-v86`. Revisado a 1440, 820 y 390 px; 1161 pruebas sin fallos.
+
 ## 2026-11-07 — Codex — Tratamiento como espacio de trabajo del tenant v4.3
 
 - La pestaña Tratamiento deja de mostrar la tarjeta administrativa verde de la
