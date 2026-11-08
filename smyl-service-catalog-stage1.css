@@ -36,3 +36,96 @@
   .catalog-guidance strong{display:block;margin-bottom:4px}
   .catalog-service-actions:has(.catalog-readonly){display:block}
 }
+
+/* Servicios y tarifas v2 (maqueta aprobada 2026-11-08): encabezado mínimo, una franja de estado, filas limpias y ventana con lo esencial primero. */
+.smyl-management-v3 .catalog-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 12px;padding:0;border-bottom:0}
+.smyl-management-v3 .catalog-head h1{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.smyl-management-v3 .catalog-head p{margin:0;max-width:560px;color:#5b6b78;font-size:13px;line-height:1.5}
+.catalog-readiness{grid-template-columns:minmax(0,1fr) minmax(160px,240px);gap:20px;padding:13px 17px;margin-bottom:10px;border-left-color:#168f88}
+.catalog-readiness strong{margin:0 0 3px;font-size:16px}
+.catalog-readiness-side{display:grid;gap:6px;justify-items:end}
+.catalog-readiness-side b{font-size:13px;font-weight:700}
+.catalog-readiness-side .catalog-progress{width:100%}
+.catalog-toolbar{margin-bottom:12px}
+.catalog-toggle button{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.catalog-toggle em{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#fde8c8;color:#8a4b00;font-size:12px;font-style:normal;font-weight:700;line-height:1}
+.catalog-toggle em[hidden]{display:none}
+.catalog-service{grid-template-columns:minmax(0,1fr) minmax(150px,220px) auto}
+.catalog-service-main p{margin:2px 0 0}
+.catalog-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.catalog-flags:empty{display:none}
+.catalog-flag{display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:99px;background:#e8edf2;color:#4a5b69;font-size:12px;font-weight:700}
+.catalog-flag[data-tone=warn]{background:#fdebc8;color:#8a4b00}
+.catalog-flag[data-tone=ok]{background:#d9f2e8;color:#0d6b4a}
+.catalog-flag[data-tone=off]{background:#eef2f6;color:#667487}
+.catalog-service-price{text-align:right}
+.catalog-price{font-size:15px}
+.catalog-price.is-missing{color:#9b3d2e;font-weight:600}
+.catalog-price-input{display:flex;align-items:center;gap:6px;margin-left:auto;max-width:200px;padding:0 10px;border:1px dashed #d6b46a;border-radius:9px;background:#fffdf5}
+.catalog-price-input span{color:#8a6a1e;font-weight:700}
+.catalog-price-input input{width:100%;min-width:0;border:0;background:transparent;padding:9px 0;font:inherit;outline:0}
+.catalog-price-input:focus-within{border-style:solid;border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+.catalog-service-actions{align-items:center;gap:10px}
+.catalog-switch{position:relative;width:38px;min-width:38px;height:22px;padding:0!important;border:0!important;border-radius:99px!important;background:#c5cfd8!important;cursor:pointer;transition:background-color 160ms ease}
+.catalog-switch::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 160ms ease}
+.catalog-switch[aria-checked=true]{background:#0f766e!important}
+.catalog-switch[aria-checked=true]::after{transform:translateX(16px)}
+.catalog-switch:focus-visible{outline:2px solid var(--smyl-focus-light,#175cd3);outline-offset:2px}
+/* Ventana de edición */
+.catalog-dialog{width:min(640px,calc(100vw - 28px))}
+.catalog-dialog header{margin-bottom:16px}
+.catalog-dialog header p{margin:2px 0 0;color:#5b6b78;font-size:13px}
+.catalog-form-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px 12px}
+.catalog-form-grid>label{grid-column:span 2}
+.catalog-form-grid>label.wide{grid-column:1/-1}
+.catalog-form-grid>label.catalog-price-field{grid-column:span 4}
+.catalog-form-grid label small{display:block;margin-top:4px;color:#5b6b78;font-size:12px;font-weight:500}
+.catalog-form-grid label em{color:#8a99a6;font-size:12px;font-style:normal;font-weight:500}
+.catalog-link{padding:0;border:0;background:none;color:#0f766e;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
+.catalog-internal[hidden]{display:none}
+.catalog-money{display:flex;align-items:center;gap:8px;margin-top:4px;padding:0 12px;border:1px solid rgba(15,23,42,.16);border-radius:10px;background:#fff}
+.catalog-money input{border:0!important;box-shadow:none!important;padding:10px 0!important;background:transparent!important;font-weight:700}
+.catalog-money b{color:#6a7a88;font-weight:600}
+.catalog-price-field .catalog-money{border:1.5px solid #6ecbc1;background:#f6fcfb}
+.catalog-price-field .catalog-money input{font-size:22px;font-weight:800}
+.catalog-fiscal{border:1px solid #dfe7ee;border-radius:11px;background:#fafbfd}
+.catalog-fiscal>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;cursor:pointer;list-style:none;font-size:14px;font-weight:700}
+.catalog-fiscal>summary::-webkit-details-marker{display:none}
+.catalog-fiscal>summary::before{content:'▸';margin-right:8px;color:#7a8a97}
+.catalog-fiscal[open]>summary::before{content:'▾'}
+.catalog-fiscal>summary span{flex:1}
+.catalog-fiscal>summary em{padding:2px 10px;border-radius:99px;font-size:12px;font-style:normal;font-weight:700}
+.catalog-fiscal>summary em[data-tone=warn]{background:#fdebc8;color:#8a4b00}
+.catalog-fiscal>summary em[data-tone=ok]{background:#d9f2e8;color:#0d6b4a}
+.catalog-fiscal-body{display:grid;gap:12px;padding:0 14px 14px;border-top:1px solid #e3e9ef}
+.catalog-fiscal-body>p{margin:12px 0 0;color:#5b6b78;font-size:13px;line-height:1.5}
+.catalog-fiscal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.catalog-suggested{margin-left:6px;color:#0f766e!important;font-weight:700!important}
+.catalog-form-error{margin:14px 0 0;padding:10px 12px;border-radius:10px;background:#fef2f2;color:#b91c1c;font-size:13px}
+.catalog-form-error[hidden]{display:none}
+.catalog-dialog-actions{align-items:center}
+.catalog-dialog-actions>span{flex:1;color:#5b6b78;font-size:12px;line-height:1.4}
+@media(max-width:620px){
+  .smyl-management-v3 .catalog-head{align-items:stretch;flex-direction:column}
+  .catalog-readiness{grid-template-columns:1fr}
+  .catalog-readiness-side{justify-items:stretch}
+  .catalog-service{grid-template-columns:1fr}
+  .catalog-service-price{text-align:left}
+  .catalog-price-input{max-width:none;margin-left:0}
+  .catalog-service-actions{display:flex;justify-content:space-between}
+  .catalog-service-actions button[data-edit]{width:auto;flex:1}
+  .catalog-form-grid{grid-template-columns:1fr}
+  .catalog-form-grid>label,.catalog-form-grid>label.wide,.catalog-form-grid>label.catalog-price-field{grid-column:auto}
+  .catalog-fiscal-grid{grid-template-columns:1fr}
+  .catalog-dialog-actions{flex-wrap:wrap}
+  .catalog-dialog-actions>span{flex-basis:100%}
+}
+/* Especificidad: las reglas globales del shell pintaban de oscuro el texto de «Activar y configurar», anidaban cajas en precio/duración y mantenían la línea bajo el encabezado. */
+.smyl-management-v3 #p-precios .catalog-head{padding-bottom:0;border-bottom:0}
+body.smyl-ui-governed .contenido #p-precios .catalog-service-actions .catalog-activate{background:#194391;border-color:#194391;color:#fff}
+body.smyl-ui-governed .contenido #p-precios .catalog-service-actions .catalog-activate:hover{background:#12366f}
+body.smyl-ui-governed .contenido .catalog-dialog .catalog-money input{width:100%;min-width:0;min-height:0;height:auto;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:10px 0!important}
+body.smyl-ui-governed .contenido .catalog-dialog .catalog-money input:focus-visible{outline:0}
+.catalog-money:focus-within{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+.catalog-form-grid label em{display:inline;margin-left:6px}
+body.smyl-ui-governed .contenido .catalog-dialog label>em{display:inline!important;float:none!important;margin-left:6px}
