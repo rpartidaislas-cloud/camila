@@ -50,22 +50,54 @@ Si la verificación falla por `auth.users`: el volcado de datos no incluyó cuen
 `supabase db dump --linked --data-only --schema auth` y revisa la versión de la CLI antes de confiar en el paquete.
 
 ## Capa 3 — simulacro de restauración (una vez ya, luego cada trimestre)
-Objetivo: medir **RPO** (cuánto dato se pierde) y **RTO** (cuánto tarda volver) con números reales.
+Objetivo: medir **RPO** (cuánto dato se pierde) y **RTO** (cuánto tarda volver) con números reales. Todo en PowerShell, desde una carpeta **aparte** del repo.
 
-1. Cronómetro. Crea un proyecto Supabase **nuevo y desechable** (nunca restaures sobre producción).
-2. Descifra en una estación aislada: `age --decrypt -i smyl-age.txt -o roles.sql roles.sql.age` (igual con schema, data y storage.tar).
-3. Restaura en este orden con `psql "<URL del proyecto desechable>"`: `roles.sql` → `schema.sql` → `data.sql`.
-4. Aplica el historial de migraciones y compara el conteo con producción (`select count(*) from supabase_migrations.schema_migrations`).
-5. Storage: descomprime `storage.tar` y sube cada bucket con `supabase storage cp --recursive <carpeta> ss:///<bucket>` (nunca
-   insertando filas en `storage.objects`). Compara cantidad y SHA-256 de al menos 10 objetos.
-6. Comprueba: iniciar sesión con una cuenta real de prueba, que RLS aísla dos clínicas (`scripts/two-tenant-isolation.mjs`
-   contra el proyecto desechable), que las URL firmadas funcionan y que las funciones privadas exigen JWT.
-7. Detén el cronómetro. RTO = tiempo total; RPO = hora del respaldo vs. hora del simulacro.
-8. Llena `docs/restore-evidence.example.json` (sin datos clínicos) y valida:
-   `node scripts/validate-restore-evidence.mjs --evidence=restore-evidence.json`
-9. Destruye el proyecto desechable y los descifrados temporales.
+**Regla de seguridad:** el simulacro nunca debe apuntar a producción. Por eso se hace en una carpeta nueva enlazada **sólo** al proyecto desechable;
+así, un comando escrito de más no puede tocar `rpxshsiwoxdbuevjjpfw`.
+
+1. **Cronómetro y proyecto desechable.** Anota la hora de inicio. En el panel de Supabase crea un proyecto **nuevo** (p. ej. `smyl-simulacro`), con contraseña propia. Anota su *ref* (la parte de `db.<ref>.supabase.co`).
+2. **Carpeta del simulacro enlazada sólo al desechable:**
+   ```text
+   mkdir C:\smyl-simulacro ; cd C:\smyl-simulacro
+   npx supabase init
+   npx supabase login
+   npx supabase link --project-ref <REF_DESECHABLE>
+   ```
+   Verifica con `npx supabase projects list`: el proyecto marcado como enlazado debe ser **el desechable**, no `rpxshsiwoxdbuevjjpfw`.
+3. **Descifra** en esa carpeta (llave privada fuera de ella):
+   ```text
+   $b = "C:\SmylBackups\2026-11-08" ; $k = "D:\llaves\smyl-age.txt"
+   foreach ($n in "roles.sql","schema.sql","data.sql","storage.tar") { age --decrypt -i $k -o $n "$b\$n.age" }
+   ```
+4. **Base de datos.** Contraseña con caracteres especiales → codifícala para URL (`@` = `%40`, `#` = `%23`, `/` = `%2F`).
+   ```text
+   $db = "postgresql://postgres:<CONTRASEÑA>@db.<REF_DESECHABLE>.supabase.co:5432/postgres"
+   psql $db -f roles.sql                      # puede avisar «role already exists»: es normal, el proyecto nuevo ya trae los roles de Supabase
+   psql -v ON_ERROR_STOP=1 --single-transaction --file schema.sql --command "SET session_replication_role = replica" --file data.sql $db
+   ```
+   `session_replication_role = replica` desactiva disparadores y llaves foráneas mientras se cargan los datos. Con `--single-transaction`, si algo falla no queda un
+   proyecto a medias: se corrige y se repite.
+5. **Historial de migraciones:** compara `select count(*) from supabase_migrations.schema_migrations;` entre producción y el desechable (Dashboard → SQL Editor, sólo lectura). Deben coincidir.
+6. **Storage.** `tar -xf storage.tar -C storage` y, por cada bucket, `npx supabase storage cp --linked --recursive storage\<bucket> ss:///<bucket>` (los buckets deben existir antes en el
+   proyecto desechable: créalos con el mismo nombre y el mismo carácter público/privado). Nunca insertes filas en `storage.objects`. Compara cantidad por bucket con `manifest.json` y el SHA-256 de al menos 10 objetos
+   (`Get-FileHash <archivo> -Algorithm SHA256` contra el archivo original descifrado).
+7. **Comprueba la aplicación:** iniciar sesión con una cuenta real de prueba (depende de `auth.users`), que RLS aísla dos clínicas
+   (`scripts/two-tenant-isolation.mjs` apuntado al desechable), que las URL firmadas funcionan y que las funciones privadas exigen JWT.
+8. **Detén el cronómetro.** RTO = tiempo total desde el paso 1; RPO = hora del respaldo contra hora del simulacro.
+9. **Evidencia sin datos clínicos:** llena una copia de `docs/restore-evidence.example.json` y valida
+   `node scripts/validate-restore-evidence.mjs --evidence=restore-evidence.json`.
+10. **Limpieza:** borra el proyecto desechable en el panel y la carpeta `C:\smyl-simulacro` (contiene datos clínicos descifrados), y vacía la papelera.
 
 El validador sólo lee el JSON: **la evidencia vale tanto como la honestidad de quien la llena**.
+
+### Si algo falla
+| Síntoma | Causa probable | Qué hacer |
+|---|---|---|
+| `docker` no responde en el respaldo | Docker Desktop cerrado | Ábrelo y espera «Engine running» |
+| `ABORTADO · El proyecto tiene buckets sin respaldo: X` | Bucket creado a mano que el script no conoce | Agrégalo a `BUCKETS` en `scripts/create-encrypted-backup.mjs` (o `SMYL_BACKUP_ALLOW_UNLISTED=1` sabiendo que quedará sin respaldo) |
+| La verificación dice que falta `auth.users` | El volcado de datos no incluyó cuentas | No confíes en ese paquete; repite con `--schema auth` según la versión de la CLI |
+| `psql` no se reconoce | Falta el cliente de PostgreSQL o no se reinició PowerShell | `winget install PostgreSQL.PostgreSQL`, cierra y abre PowerShell |
+| `permission denied` al restaurar `schema.sql` | Se restauró sobre un proyecto con datos | Usa un proyecto desechable **nuevo y vacío** |
 
 ## Frecuencia recomendada
 - Paquete cifrado + verificación: semanal (diario si el plan de Supabase no tiene respaldos).
