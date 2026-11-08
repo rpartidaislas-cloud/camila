@@ -10,9 +10,16 @@
   lo que el código hace hoy (proveedores de IA, Supabase, Stripe, Meta vía LANA,
   Google Calendar con `calendar.events` y Gmail para propuestas), incluida la
   declaración de uso limitado de datos de las API de Google.
-- Datos que el dueño debe confirmar: nombre legal y domicilio del responsable
-  (confirmado por el dueño: Emanuel Hernán Partida Islas; falta domicilio), plazos de
-  conservación, si hay lista de proveedores adicionales y la ley aplicable.
+- Segunda versión (8 nov): incorpora las respuestas del dueño (domicilio, retención,
+  menores, regiones, jurisdicción) y la revisión externa. Gmail se quitó del aviso
+  porque la función no está desplegada y solo enviaría desde `apps@smyldesign.ai`.
+- **Pendientes que NO se resuelven con redacción:** consentimiento expreso por paciente
+  con versión y firma; contrato de encargo (DPA) clínica–SMYL y plantilla de aviso para
+  las clínicas; contratos y no entrenamiento con Google (Gemini); clasificar proveedores
+  como encargado o tercero; decidir si se anonimiza antes de enviar a IA; verificar
+  «cifrado en reposo» y la huella de integridad antes de afirmarlos.
+- **Por confirmar con el dueño:** unidades de retención (se asumieron años), 2 años de
+  facturación frente al plazo fiscal, y si LANA lo opera un tercero (se declaró así).
 - Dependencia abierta: la retención y el borrado de radiografías y registros de IA
   siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
   menciona de forma general.
