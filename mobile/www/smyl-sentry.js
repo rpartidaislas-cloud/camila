@@ -12,7 +12,7 @@
 
   var CONFIG = {
     // El DSN de Sentry es público por diseño (sólo permite ENVIAR eventos). Pegarlo aquí activa la integración.
-    dsn: '',
+    dsn: 'https://7dc513205b42f8422ecdff466f07011c@o4512394436083712.ingest.us.sentry.io/4512394468786176',
     release: 'smyl-web@2026-11-08',
     library: 'vendor/sentry-browser-10.78.0.min.js?v=1',
     maxEventsPerPage: 30,
