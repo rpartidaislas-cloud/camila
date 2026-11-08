@@ -11,7 +11,7 @@
   Google Calendar con `calendar.events` y Gmail para propuestas), incluida la
   declaración de uso limitado de datos de las API de Google.
 - Datos que el dueño debe confirmar: nombre legal y domicilio del responsable
-  (hoy «Dr. Hernán Partida Islas», tomado del pie de la app), plazos de
+  (confirmado por el dueño: Emanuel Hernán Partida Islas; falta domicilio), plazos de
   conservación, si hay lista de proveedores adicionales y la ley aplicable.
 - Dependencia abierta: la retención y el borrado de radiografías y registros de IA
   siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
