@@ -55,7 +55,7 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108130000_smyl_appointment_billing_status.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108130000_smyl_appointment_billing_status\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=31/);
+    assert.match(read(file), /smyl-schedule\.js\?v=32/);
     assert.match(read(file), /smyl-schedule\.css\?v=21/);
   }
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) {

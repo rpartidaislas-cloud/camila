@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: numerito de «Cobros» en el menú lateral (pacientes pendientes de cargo)
+
+Un círculo con el número de pacientes pendientes de cargo junto a «Cobros» en el menú (ampliado, colapsado y fila «Más» del móvil), sin abrir Cobros. Mismo criterio que la lista de Cobros:
+cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0; se calcula con `smyl_appointment_billing` (sólo lectura, la migración `20261108130000` ya incluida en el workflow de migración).
+Sin `finance.read` la función no devuelve nada y no se muestra; si la función aún no existe, simplemente no aparece (3 fallos seguidos y deja de intentar).
+
+**Cuándo se actualiza:** al iniciar sesión, cada 90 s, al volver a la pestaña, al cambiar de pantalla (máx. 1 cada 15 s), cuando Cobros cambia algo (`smyl:finance-updated`) y cuando la agenda
+cambia el estado de una cita (nuevo evento `smyl:appointments-changed`). Mientras Cobros está abierto lo mantiene al día su propia lista. Sin migración nueva.
+
+**Frontend:** `smyl-finance.js?v=25`, `smyl-schedule.js?v=32`, `sw.js` `…-nav-pending-badge-v1`, `mobile/www` sincronizado. Reusa la clase `.pro-nav-count` del menú (como Mensajes y Notificaciones).
+Pruebas: `tests/cobros-nav-badge.test.mjs` (6) y humo en navegador `tests/qa/cobros-nav-badge-smoke.cjs`.
+
+**Para Codex:** el bloque «Numerito en el menú» está justo antes de `init()` en `smyl-finance.js`. La fila «Más» del móvil se pinta cuando existe en el DOM; se completa en la siguiente actualización.
+
 ## 2026-11-08 — Claude: etiqueta de cobro en la Agenda
 
 Cada cita en la que el paciente ya llegó (`arrived` / `in_progress` / `completed`) muestra una etiqueta en Semana, Día y Lista, y una línea «Cobro» en el detalle
