@@ -28,7 +28,8 @@ function load({ dsn = '', onLine = true } = {}) {
     location: { hostname: 'rpartidaislas-cloud.github.io', origin: 'https://rpartidaislas-cloud.github.io', pathname: '/camila/app.html' },
     navigator: { onLine }
   };
-  vm.runInNewContext(source, context);
+  // El DSN real vive en el archivo; cada prueba fija el suyo para no depender de él.
+  vm.runInNewContext(source.replace(/dsn: '[^']*'/, `dsn: '${dsn}'`), context);
   return { api: window.SmylSentry, appended, listeners, window };
 }
 
@@ -132,12 +133,13 @@ test('sin conexión no se reportan errores de red', () => {
 
 test('el DSN guardado en el código tiene forma de DSN de Sentry (o está vacío)', () => {
   const dsn = source.match(/dsn: '([^']*)'/)[1];
+  assert.ok(dsn !== '', 'Sentry está activado en producción');
   assert.ok(dsn === '' || /^https:\/\/[0-9a-f]+@o\d+\.ingest(\.[a-z]+)?\.sentry\.io\/\d+$/.test(dsn), `DSN inesperado: ${dsn}`);
 });
 
 test('las pantallas cargan Sentry justo después de la protección de privacidad', () => {
   for (const file of ['app.html', 'index.html', 'simulacion.html', 'simulacion-rapida.html', 'editor-v2.html']) {
-    assert.match(read(file), /<script src="smyl-browser-privacy\.js\?v=1"><\/script>\n<script src="smyl-sentry\.js\?v=1"><\/script>/, `${file} no carga smyl-sentry.js`);
+    assert.match(read(file), /<script src="smyl-browser-privacy\.js\?v=1"><\/script>\n<script src="smyl-sentry\.js\?v=2"><\/script>/, `${file} no carga smyl-sentry.js`);
   }
 });
 
@@ -149,7 +151,7 @@ test('app.html pasa sólo identificadores opacos a Sentry', () => {
 
 test('el service worker precachea Sentry y no intercepta el envío de eventos', () => {
   const sw = read('sw.js');
-  assert.match(sw, /'\/camila\/smyl-sentry\.js\?v=1'/);
+  assert.match(sw, /'\/camila\/smyl-sentry\.js\?v=2'/);
   assert.match(sw, /'\/camila\/vendor\/sentry-browser-10\.78\.0\.min\.js\?v=1'/);
   assert.match(sw, /url\.includes\('sentry\.io'\)/);
 });

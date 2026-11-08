@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: Sentry activado con el DSN de producción
+
+DSN del proyecto `smyl-web` (org `smyl-a5`, región EE. UU.) puesto en `smyl-sentry.js` → `CONFIG.dsn` (público por diseño).
+`smyl-sentry.js?v=2` en las 5 pantallas y en `sw.js` (CACHE_VERSION `…-sentry-on-v2`), web y `mobile/www` sincronizados.
+`tests/sentry-integration.test.mjs` fija su propio DSN, así que no depende del real. Probar con `SmylSentry.test()`.
+
 ## 2026-11-08 — Claude — Borrador de Aviso de privacidad y Términos del servicio
 
 - Páginas nuevas `privacidad.html` y `terminos.html` (estáticas, sin dependencias),
