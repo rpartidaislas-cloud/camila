@@ -154,8 +154,8 @@ test('reglas de contacto: horario de cobranza 9:00 a 20:00 y días desde un env�
 test('el envío de cobros revisa bloqueo, horario y tope semanal, y registra el envío sólo si salió bien', () => {
   for (const base of ['', 'mobile/www/']) {
     const i = read(base + 'smyl-inbox.js');
-    assert.match(i, /var rule = cobroBlock\(conversation\);\s*if \(rule\.blocked\) \{ window\.alert\('No se envían recordatorios de cobro a este paciente: '/);
-    assert.match(i, /fuera del horario recomendado para cobranza \(9:00 a 20:00\)/);
+    assert.match(i, /var rule = cobroBlock\(conversation\);\s*if \(rule\.blocked\) \{ window\.alert\('No se envían mensajes de ' \+ \(isQuote \? 'cotización' : 'cobro'\) \+ ' a este paciente: '/);
+    assert.match(i, /fuera del horario recomendado \(9:00 a 20:00\)/);
     assert.match(i, /lastDays < 7 && !window\.confirm\('Ya se envió un recordatorio de cobro/);
     assert.match(i, /if \(isCobro\) pending\.onSent = function \(\) \{ logCobroReminder\(conversation, template\.name\); \};/);
     assert.match(i, /pending\.reconciled = true;\s*if \(typeof pending\.onSent === 'function'\)/);

@@ -984,6 +984,7 @@
     } catch (_) {}
   }
 
+  var QUOTE_PLANTILLAS = ['cotizacion_lista_v1', 'cotizacion_seguimiento_v1'];
   var COBRO_PLANTILLAS = ['pago_pendiente_v1', 'plan_pagos_proximo_v1', 'saldo_actualizado_v1', 'estado_cuenta_v1', 'saldo_vencido_aviso_v1', 'pago_recibido_v1', 'comprobante_pago_v1'];
 
   function cobroVariables(templateName, conversation) {
@@ -1085,10 +1086,13 @@
     if (variables.some(function (value) { return !value; })) { window.alert('Completa todas las variables de la plantilla.'); return; }
     var content = variables.reduce(function (copy, value, index) { return copy.split('{{' + (index + 1) + '}}').join(value); }, template.body || template.name);
     var isCobro = COBRO_PLANTILLAS.indexOf(template.name) !== -1;
-    if (isCobro) {
+    var isQuote = QUOTE_PLANTILLAS.indexOf(template.name) !== -1;
+    if (isCobro || isQuote) {
       var rule = cobroBlock(conversation);
-      if (rule.blocked) { window.alert('No se envían recordatorios de cobro a este paciente: ' + rule.reason); return; }
-      if (outsideCollectionHours() && !window.confirm('Son las ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ': fuera del horario recomendado para cobranza (9:00 a 20:00). ¿Enviar de todos modos?')) return;
+      if (rule.blocked) { window.alert('No se envían mensajes de ' + (isQuote ? 'cotización' : 'cobro') + ' a este paciente: ' + rule.reason); return; }
+      if (outsideCollectionHours() && !window.confirm('Son las ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ': fuera del horario recomendado (9:00 a 20:00). ¿Enviar de todos modos?')) return;
+    }
+    if (isCobro) {
       var lastInfo = state.accountContext && state.accountContext[conversation.id]; var lastReminder = lastInfo && lastInfo.lastReminder; var lastDays = lastReminder ? daysSince(lastReminder.sent_at) : null;
       if (lastDays !== null && lastDays < 7 && !window.confirm('Ya se envió un recordatorio de cobro a este paciente ' + (lastDays === 0 ? 'hoy' : lastDays === 1 ? 'ayer' : 'hace ' + lastDays + ' días') + '. ¿Enviar otro?')) return;
     }

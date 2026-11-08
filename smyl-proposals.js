@@ -202,9 +202,47 @@
   function quoteTitle(row){return String(row.document&&row.document.title||'Plan de tratamiento').replace(/\s+/g,' ').trim().slice(0,80);}
   function quoteClinic(row){var t=window.tenantData||{},c=t.config||{};return String(row.clinic_name||c.consultorio||t.nombre||'tu clínica').trim();}
   function quoteTotal(row){return row.document.items.some(function(i){return i.unit_cents===null;})?null:row.total_cents;}
+  // ── Seguimiento de cotizaciones presentadas: 3, 7 y 15 días sin respuesta ──
+  var QUOTE_TIERS=[3,7,15],quoteFollowups=new Map();
+  function followupKey(row){return row.id+':'+row.revision;}
+  // item: {event,stage}; followups: lista de {followed_at} de esa versión (cualquier orden).
+  function quoteFollowupState(stageKey,event,followups){
+    if(stageKey!=='awaiting'||!event)return {due:false,count:0,exhausted:false,label:''};
+    var d=quoteAge(event.occurred_at),list=(followups||[]).slice().sort(function(a,b){return String(b.followed_at).localeCompare(String(a.followed_at));}),k=list.length,last=k?quoteAge(list[0].followed_at):null;
+    if(d===null)return {due:false,count:k,exhausted:false,label:''};
+    if(k>=QUOTE_TIERS.length)return {due:false,count:k,exhausted:true,label:'Ya se dieron '+k+' seguimientos: registra la respuesta o ciérrala.'};
+    var due=d>=QUOTE_TIERS[k]&&(k===0||(last!==null&&last>=3));
+    var label=due?'Seguimiento '+(k+1)+' de '+QUOTE_TIERS.length+' recomendado.':(k?'Último seguimiento '+quoteAgeLabel(last)+' ('+k+' de '+QUOTE_TIERS.length+').':'');
+    return {due:due,count:k,exhausted:false,label:label};
+  }
+  function quoteNeedsAttention(stageKey,fu){return !!(fu&&fu.due)||stageKey==='changes_requested'||stageKey==='expired';}
+  function renderQuoteBadge(count){
+    document.querySelectorAll('.pro-app-nav [data-route="propuestas"]').forEach(function(button){
+      var badge=button.querySelector('.pro-nav-count');if(!badge){badge=n('span','pro-nav-count');button.append(badge);}
+      badge.textContent=count>99?'99+':String(count);badge.hidden=!count;badge.setAttribute('aria-label',count+(count===1?' cotización requiere seguimiento':' cotizaciones requieren seguimiento'));
+    });
+  }
+  // Contador del menú: consulta ligera (sólo la vigencia del documento) cada 10 minutos con la pestaña visible.
+  var quoteBadgeBusy=false;
+  async function refreshQuoteBadge(){
+    if(quoteBadgeBusy||document.visibilityState!=='visible'||typeof tenantId==='undefined'||!tenantId||!window.sb)return;quoteBadgeBusy=true;
+    try{
+      var tenant=tenantId,access=await capabilities(tenant);if(!access.read){renderQuoteBadge(0);return;}
+      var rows=await checked(sb.from('smyl_proposals').select('id,revision,status,valid:document->>valid_until').eq('tenant_id',tenant).eq('status','approved').order('updated_at',{ascending:false}).limit(100));
+      if(!rows.length){renderQuoteBadge(0);return;}
+      var ids=rows.map(function(r){return r.id;});
+      var events=await checked(sb.from('smyl_proposal_events').select('proposal_id,proposal_revision,event_type,occurred_at,created_at').eq('tenant_id',tenant).in('proposal_id',ids).order('occurred_at',{ascending:false}).order('created_at',{ascending:false}));
+      var follows=[];try{follows=await checked(sb.from('smyl_proposal_followups').select('proposal_id,proposal_revision,followed_at').eq('tenant_id',tenant).in('proposal_id',ids));}catch(_){follows=[];}
+      var latest=new Map(),byKey=new Map();(events||[]).forEach(function(e){var k=e.proposal_id+':'+e.proposal_revision;if(!latest.has(k))latest.set(k,e);});
+      (follows||[]).forEach(function(f){var k=f.proposal_id+':'+f.proposal_revision;if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(f);});
+      var count=0;rows.forEach(function(r){var k=r.id+':'+r.revision,ev=latest.get(k),stage=proposalStage({status:r.status,document:{valid_until:r.valid}},ev);if(quoteNeedsAttention(stage.key,quoteFollowupState(stage.key,ev,byKey.get(k))))count++;});
+      renderQuoteBadge(count);
+    }catch(_){}finally{quoteBadgeBusy=false;}
+  }
   function proposalDashboard(rows,latestEvents,list,access){
-    var items=rows.map(function(row){return {row:row,event:null,stage:null};});
-    function restage(){items.forEach(function(item){item.event=latestEvents.get(item.row.id+':'+item.row.revision);item.stage=proposalStage(item.row,item.event);});}
+    var items=rows.map(function(row){return {row:row,event:null,stage:null,fu:null};});
+    function restage(){items.forEach(function(item){item.event=latestEvents.get(item.row.id+':'+item.row.revision);item.stage=proposalStage(item.row,item.event);item.fu=quoteFollowupState(item.stage.key,item.event,quoteFollowups.get(followupKey(item.row)));});updateBadge();}
+    function updateBadge(){renderQuoteBadge(items.filter(function(item){return quoteNeedsAttention(item.stage.key,item.fu);}).length);}
     restage();
     var metrics=n('section','proposal-metrics');
     function sum(list2){return list2.reduce(function(s,item){var t=quoteTotal(item.row);return s+(t||0);},0);}
@@ -219,11 +257,24 @@
       ].forEach(function(metric){var card=n('article');card.append(n('span','',metric[0]),n('strong','',String(metric[1])),n('small','',metric[2]));metrics.append(card);});
     }
     var toolbar=n('div','proposal-list-toolbar'),filters=n('div','proposal-filters'),search=n('input');search.type='search';search.placeholder='Buscar paciente o propuesta';search.setAttribute('aria-label','Buscar cotizaciones');
-    var currentFilter='action';[['action','Por atender'],['all','Todas'],['accepted','Aceptadas'],['draft','Borradores']].forEach(function(entry){var button=b(entry[1],function(){currentFilter=entry[0];filters.querySelectorAll('button').forEach(function(item){item.setAttribute('aria-pressed',String(item===button));});render();});button.setAttribute('aria-pressed',String(entry[0]===currentFilter));filters.append(button);});toolbar.append(filters,search);
+    var currentFilter='action';[['action','Por atender'],['followup','Dar seguimiento'],['all','Todas'],['accepted','Aceptadas'],['draft','Borradores']].forEach(function(entry){var button=b(entry[1],function(){currentFilter=entry[0];filters.querySelectorAll('button').forEach(function(item){item.setAttribute('aria-pressed',String(item===button));});render();});button.setAttribute('aria-pressed',String(entry[0]===currentFilter));filters.append(button);});toolbar.append(filters,search);
     async function record(item,type,channel,note){
       var eventId=crypto.randomUUID(),saved=await checked(sb.rpc('smyl_record_proposal_event',{p_event_id:eventId,p_proposal_id:item.row.id,p_proposal_revision:item.row.revision,p_event_type:type,p_channel:channel,p_note:note||'',p_occurred_at:new Date().toISOString()}));
       if(Array.isArray(saved))saved=saved[0];if(!saved||saved.id!==eventId||saved.proposal_id!==item.row.id)throw new Error('Unconfirmed proposal event');
-      latestEvents.set(item.row.id+':'+item.row.revision,saved);restage();renderMetrics();render();return saved;
+      latestEvents.set(item.row.id+':'+item.row.revision,saved);restage();renderMetrics();renderBanner();render();return saved;
+    }
+    async function logFollowup(item,channel){
+      var at=await checked(sb.rpc('smyl_log_proposal_followup',{p_proposal_id:item.row.id,p_proposal_revision:item.row.revision,p_channel:channel}));
+      var key=followupKey(item.row),list=(quoteFollowups.get(key)||[]).concat({followed_at:typeof at==='string'?at:new Date().toISOString()});quoteFollowups.set(key,list);restage();renderBanner();render();
+    }
+    function followupDialog(item){
+      var dialog=n('dialog','proposal-quick-dialog'),form=n('form');form.append(n('h3','','Registrar seguimiento · '+item.row.patient_name),n('p','','Anota que ya le diste seguimiento a esta cotización (por ejemplo, una llamada). Sirve para no repetir avisos y planear el siguiente.'));
+      var chan=n('select');[['phone','Llamada'],['whatsapp','WhatsApp'],['in_person','En consulta'],['email','Correo'],['other','Otro']].forEach(function(o){chan.append(new Option(o[1],o[0]));});var cl=n('label','','Canal');cl.append(chan);form.append(cl);
+      var error=n('p','proposal-quick-error');error.setAttribute('role','alert');error.hidden=true;form.append(error);
+      var actions=n('div','proposal-quick-actions'),cancel=n('button','btn btn-secondary','Cancelar'),ok=n('button','btn btn-primary','Guardar');cancel.type='button';ok.type='submit';actions.append(cancel,ok);form.append(actions);dialog.append(form);
+      cancel.onclick=function(){dialog.close();};dialog.addEventListener('close',function(){dialog.remove();});
+      form.onsubmit=async function(ev){ev.preventDefault();ok.disabled=true;error.hidden=true;try{await logFollowup(item,chan.value);dialog.close();}catch(err){ok.disabled=false;error.textContent=errorText(err);error.hidden=false;}};
+      document.body.append(dialog);if(dialog.showModal)dialog.showModal();else dialog.setAttribute('open','');
     }
     function decisionDialog(item,mode){
       var dialog=n('dialog','proposal-quick-dialog'),form=n('form'),title=mode==='presented'?'Marcar como presentada':'Registrar respuesta del paciente';
@@ -243,22 +294,31 @@
       var link=quoteChats[item.row.patient_id];if(!link||link.channel!=='whatsapp'||!window.SmylInbox||typeof window.SmylInbox.sendTemplate!=='function')return;
       var follow=item.stage.key==='awaiting',names=follow?['cotizacion_seguimiento_v1','cotizacion_lista_v1']:['cotizacion_lista_v1'];
       window.SmylInbox.sendTemplate(link.conversation,{preferred:names,variables:[quoteFirstName(item.row),quoteTitle(item.row),quoteClinic(item.row)],missingText:'No hay una plantilla de cotización aprobada todavía. Solicítala en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.',
-        onSent:function(){if(item.stage.key==='ready'&&(access.followup)){record(item,'presented','whatsapp','Enviada por WhatsApp desde Cotizaciones').catch(function(){});}}});
+        onSent:function(){if(item.stage.key==='ready'&&access.followup){record(item,'presented','whatsapp','Enviada por WhatsApp desde Cotizaciones').catch(function(){});}else if(item.stage.key==='awaiting'&&access.followup){logFollowup(item,'whatsapp').catch(function(){});}}});
     }
     function actionsFor(item){
       var key=item.stage.key,box=n('div','proposal-row-actions');
       box.append(b(access.write||access.followup?'Abrir':'Consultar',function(){open(item.row.id);}));
       if(access.followup&&key==='ready')box.append(b('Marcar presentada',function(){decisionDialog(item,'presented');}));
       if(access.followup&&key==='awaiting')box.append(b('Registrar respuesta',function(){decisionDialog(item,'decision');}));
+      if(access.followup&&key==='awaiting')box.append(b('Registré un seguimiento',function(){followupDialog(item);}));
       var link=quoteChats[item.row.patient_id];
       if(link&&link.channel==='whatsapp'&&(key==='ready'||key==='awaiting')&&window.SmylInbox&&typeof window.SmylInbox.sendTemplate==='function')box.append(b(key==='awaiting'?'Dar seguimiento por WhatsApp':'Enviar por WhatsApp',function(){whatsapp(item);}));
       if(key==='accepted'&&window.SmylFinance&&typeof window.SmylFinance.fromProposal==='function')box.append(b('Pasar a Cobros',function(){window.SmylFinance.fromProposal(item.row.id);}));
       if(link&&window.SmylInbox&&typeof window.SmylInbox.open==='function')box.append(b('Abrir chat',function(){window.SmylInbox.open(link.conversation);}));
       return box;
     }
-    function render(){var term=search.value.trim().toLocaleLowerCase('es-MX'),visible=items.filter(function(item){var matches=!term||(item.row.patient_name+' '+item.row.document.title).toLocaleLowerCase('es-MX').includes(term);if(!matches)return false;if(currentFilter==='all')return true;if(currentFilter==='action')return item.stage.action;if(currentFilter==='accepted')return item.stage.key==='accepted';return item.stage.key==='draft';}).sort(function(a,b){return a.stage.priority-b.stage.priority||new Date(b.row.updated_at)-new Date(a.row.updated_at);});list.replaceChildren();if(!visible.length){list.append(notice(term?'No hay cotizaciones que coincidan con la búsqueda.':'No hay cotizaciones en este estado.'));return;}visible.forEach(function(item){var row=item.row,card=n('article','proposal-list-row'),text=n('div');var wait=item.stage.key==='awaiting'?quoteAge(item.event&&item.event.occurred_at):null;text.append(n('h2','',row.patient_name),n('p','',row.document.title+' · Versión '+row.revision),n('small','proposal-list-status',item.stage.label),n('small','proposal-list-detail',item.stage.detail+(wait!==null&&wait>=5?' Sin respuesta '+quoteAgeLabel(wait)+'.':'')));text.children[2].dataset.state=item.stage.key;card.append(text,n('strong','',quoteTotal(row)===null?'Por completar':M.money(row.total_cents)),actionsFor(item));list.append(card);});}
-    renderMetrics();
-    search.addEventListener('input',render);return {metrics:metrics,toolbar:toolbar,render:render};
+    function render(){var term=search.value.trim().toLocaleLowerCase('es-MX'),visible=items.filter(function(item){var matches=!term||(item.row.patient_name+' '+item.row.document.title).toLocaleLowerCase('es-MX').includes(term);if(!matches)return false;if(currentFilter==='all')return true;if(currentFilter==='action')return item.stage.action;if(currentFilter==='followup')return item.fu.due||item.stage.key==='changes_requested'||item.stage.key==='expired';if(currentFilter==='accepted')return item.stage.key==='accepted';return item.stage.key==='draft';}).sort(function(a,b){return (a.stage.priority-(a.fu.due?3:0))-(b.stage.priority-(b.fu.due?3:0))||new Date(b.row.updated_at)-new Date(a.row.updated_at);});list.replaceChildren();if(!visible.length){list.append(notice(term?'No hay cotizaciones que coincidan con la búsqueda.':'No hay cotizaciones en este estado.'));return;}visible.forEach(function(item){var row=item.row,card=n('article','proposal-list-row'),text=n('div');var wait=item.stage.key==='awaiting'?quoteAge(item.event&&item.event.occurred_at):null;text.append(n('h2','',row.patient_name),n('p','',row.document.title+' · Versión '+row.revision),n('small','proposal-list-status',item.stage.label),n('small','proposal-list-detail',item.stage.detail+(wait!==null&&wait>=5?' Sin respuesta '+quoteAgeLabel(wait)+'.':'')+(item.fu.label?' '+item.fu.label:'')));text.children[2].dataset.state=item.stage.key;card.append(text,n('strong','',quoteTotal(row)===null?'Por completar':M.money(row.total_cents)),actionsFor(item));list.append(card);});}
+    var banner=n('section','proposal-followup-banner');banner.hidden=true;
+    function renderBanner(){
+      var due=items.filter(function(item){return item.fu.due;}),other=items.filter(function(item){return item.stage.key==='changes_requested'||item.stage.key==='expired';}).length;banner.replaceChildren();
+      if(!due.length&&!other){banner.hidden=true;return;}
+      var total=due.reduce(function(sumValue,item){return sumValue+(quoteTotal(item.row)||0);},0),text=n('div');
+      text.append(n('strong','',due.length?due.length+(due.length===1?' cotización para dar seguimiento hoy':' cotizaciones para dar seguimiento hoy')+(total?' · '+M.money(total):''):other+(other===1?' cotización requiere revisión':' cotizaciones requieren revisión')),n('small','',due.length?'Presentadas sin respuesta a los 3, 7 o 15 días. Tú revisas y confirmas cada mensaje; nada se envía solo.':'Tienen cambios solicitados o la vigencia vencida.'));
+      banner.append(text,b('Ver',function(){currentFilter='followup';filters.querySelectorAll('button').forEach(function(item){item.setAttribute('aria-pressed',String(item.textContent==='Dar seguimiento'));});render();}));banner.hidden=false;
+    }
+    renderMetrics();renderBanner();
+    search.addEventListener('input',render);return {metrics:metrics,banner:banner,toolbar:toolbar,render:render};
   }
   function editor(){
     var root=document.getElementById('p-propuestas');root.replaceChildren();
@@ -326,9 +386,10 @@
       var rows=await checked(sb.from('smyl_proposals').select('id,patient_id,patient_name,clinic_name,plan_revision,revision,status,total_cents,updated_at,document').eq('tenant_id',tenant).order('updated_at',{ascending:false}).limit(100));
       var events=rows.length?await checked(sb.from('smyl_proposal_events').select('proposal_id,proposal_revision,event_type,channel,note,occurred_at,created_at').eq('tenant_id',tenant).in('proposal_id',rows.map(function(row){return row.id;})).order('occurred_at',{ascending:false}).order('created_at',{ascending:false})):[];
       var latestEvents=new Map();(events||[]).forEach(function(event){var key=event.proposal_id+':'+event.proposal_revision;if(!latestEvents.has(key))latestEvents.set(key,event);});
+      quoteFollowups=new Map();try{if(rows.length){var follows=await checked(sb.from('smyl_proposal_followups').select('proposal_id,proposal_revision,followed_at').eq('tenant_id',tenant).in('proposal_id',rows.map(function(row){return row.id;})));(follows||[]).forEach(function(f){var k=f.proposal_id+':'+f.proposal_revision;if(!quoteFollowups.has(k))quoteFollowups.set(k,[]);quoteFollowups.get(k).push(f);});}}catch(_){quoteFollowups=new Map();}
       quoteChats={};try{var ids=Array.from(new Set(rows.map(function(row){return row.patient_id;}).filter(Boolean)));if(ids.length){var handoffs=await checked(sb.from('camila_lana_handoffs').select('patient_id,lana_conversation_id,lana_channel,updated_at').eq('tenant_id',tenant).in('patient_id',ids).order('updated_at',{ascending:false}));(handoffs||[]).forEach(function(h){if(!quoteChats[h.patient_id])quoteChats[h.patient_id]={conversation:h.lana_conversation_id,channel:h.lana_channel};});}}catch(_){quoteChats={};}
       if(token!==sequence||tenant!==tenantId)return;list.replaceChildren();
-      var dashboard=proposalDashboard(rows,latestEvents,list,access);root.insertBefore(dashboard.metrics,launch);root.insertBefore(dashboard.toolbar,list);dashboard.render();
+      var dashboard=proposalDashboard(rows,latestEvents,list,access);root.insertBefore(dashboard.metrics,launch);root.insertBefore(dashboard.banner,launch);root.insertBefore(dashboard.toolbar,list);dashboard.render();
       if(!rows.length)list.replaceChildren(notice('Todavía no hay presentaciones guardadas. Abre un paciente y completa su recorrido para preparar la primera.'));
       root.append(n('p','proposal-privacy','Indicadores calculados sobre las últimas 100 propuestas visibles. La tasa usa únicamente decisiones registradas; no interpreta silencios como rechazo ni este seguimiento como firma o consentimiento.'));
     }catch(error){if(token===sequence){list.replaceChildren(notice(errorText(error),true),b('Volver a intentar',loadList));}}
@@ -346,6 +407,7 @@
     // its editor is already open. Keep the same dirty/busy guard on that path.
     var previous=window.ir;window.ir=function(route){if(ctx&&!leave())return false;var result=previous(route);if(result===false)return false;if(route==='propuestas')loadList();else sequence++;return result;};
     var logout=window.cerrarSesion;window.cerrarSesion=function(){if(leave())logout();};
+    setTimeout(refreshQuoteBadge,7000);setInterval(refreshQuoteBadge,600000);
     window.SmylProposals={forPatient:function(patientId){if(window.ir('propuestas')!==false)open(null,patientId);},openSaved:function(id){if(window.ir('propuestas')!==false)open(id);}};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
