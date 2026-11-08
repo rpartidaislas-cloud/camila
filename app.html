@@ -2946,6 +2946,14 @@ async function entrarConGoogleAppGate() {
   var btn = document.getElementById('ag-btn-google');
   if (btn) btn.disabled = true;
   try {
+    // Antes de salir a Google se confirma que el proveedor está activo: si no,
+    // Supabase mostraría una página de error en crudo fuera de SMYL.
+    var activo = null;
+    try {
+      var cfg = await fetch(SUPA_URL + '/auth/v1/settings', { headers: { apikey: SUPA_KEY } });
+      if (cfg.ok) { var js = await cfg.json(); activo = !!(js && js.external && js.external.google); }
+    } catch (e0) {}
+    if (activo === false) throw new Error('provider is not enabled');
     var res = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } }
