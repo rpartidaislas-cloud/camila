@@ -58,13 +58,13 @@ test('el visor es uno solo: v1 exporta viewportNavigation y v2 lo reutiliza', ()
 test('integración mínima en el expediente: botón oculto hasta que la clínica tenga la bandera', () => {
   assert.match(record, /const perPiece=button\('Revisión por pieza \(v2\)'/);
   assert.match(record, /perPiece\.hidden=true;/);
-  assert.match(record, /SmylRadiographReviewV2\?\.available\?\.\(window\.sb\)\.then\(ok=>\{perPiece\.hidden=!ok;\}\)/);
+  assert.match(record, /SmylRadiographReviewV2\?\.available\?\.\(window\.sb\)\.then\(ok=>\{perPiece\.hidden=!\(ctx\.canWrite&&ctx\.canApprove&&ok\);\}\)/);
   assert.match(record, /panel\.append\(panelHead,list,notes\.box,assisted,perPiece,actionFeedback,/);
   assert.match(record, /assisted=button\('Revisar con apoyo de IA'/, 'el flujo v1 sigue disponible');
 });
 
 test('cableado web, PWA y copia móvil sincronizados', () => {
-  for (const tag of ['smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=5', 'smyl-radiograph-review.js?v=17', 'smyl-dental-record.js?v=17']) {
+  for (const tag of ['smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=5', 'smyl-radiograph-review.js?v=17', 'smyl-dental-record.js?v=18']) {
     assert.ok(app.includes(tag), 'app.html ' + tag);
     assert.ok(sw.includes('/camila/' + tag), 'sw.js ' + tag);
   }

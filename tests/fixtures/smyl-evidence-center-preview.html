@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Centro de evidencia clínica</title>
+  <link rel="stylesheet" href="../../smyl-evidence-center.css">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f2f6f8;color:#173334;font-family:"Open Sans",Arial,sans-serif}
+    main{width:min(1120px,calc(100% - 32px));margin:32px auto;padding:26px;border:1px solid #dce5ea;border-radius:16px;background:#fff;box-shadow:0 16px 44px rgba(11,27,46,.07)}
+    #preview-feedback{margin:14px 0 0;color:#176a61;font-size:13px;font-weight:700}
+    @media(max-width:760px){main{width:100%;margin:0;padding:18px 14px;min-height:100dvh;border:0;border-radius:0;box-shadow:none}}
+  </style>
+</head>
+<body>
+  <main>
+    <div id="evidence-center"></div>
+    <p id="preview-feedback" aria-live="polite"></p>
+  </main>
+  <script src="../../smyl-evidence-center.js"></script>
+  <script>
+    const records = [
+      { id:'demo-1', modality:'radiograph_2d', subtype:'panoramic', title:'Panorámica inicial', date:'2026-10-14', region:'Ambas arcadas', status:'review', findings:2 },
+      { id:'demo-2', modality:'photograph', subtype:'face_smile', title:'Fotografías de valoración', date:'2026-10-14', region:'Rostro y sonrisa', status:'signed', findings:0 },
+      { id:'demo-3', modality:'document', subtype:'radiology_report', title:'Informe radiológico externo', date:'2026-10-15', region:'Ambas arcadas', status:'signed', findings:0 },
+      { id:'demo-4', modality:'clinical_measurement', subtype:'periodontogram', title:'Periodontograma inicial', date:'2026-10-15', region:'Dentición completa', status:'draft', findings:0 }
+    ];
+    const feedback = document.getElementById('preview-feedback');
+    const creationAvailability = {
+      photograph:{ enabled:true },
+      radiograph_2d:{ enabled:true },
+      document:{ enabled:true },
+      scan_model:{ enabled:false, label:'Carga 3D por activar' },
+      clinical_measurement:{ enabled:false, label:'Editor por activar' },
+      cbct_3d:{ enabled:false, label:'Visor DICOM por activar' }
+    };
+    const center = SmylEvidenceCenter.mount(document.getElementById('evidence-center'), {
+      items: records,
+      creationAvailability: modality => creationAvailability[modality] || { enabled:false, label:'Por activar' },
+      typeAvailability: (modality, subtype) => modality !== 'radiograph_2d' || ['periapical','bitewing','panoramic'].includes(subtype)
+        ? { enabled:true }
+        : { enabled:false, label:'Editor especializado' },
+      onOpen(item){ feedback.textContent = `Abrir: ${item.title}`; },
+      async onCreate(payload){
+        records.unshift({ id:`demo-${Date.now()}`, ...payload, status:'draft' });
+        center.setItems(records);
+        feedback.textContent = 'Evidencia agregada como borrador para revisión profesional.';
+      }
+    });
+  </script>
+</body>
+</html>

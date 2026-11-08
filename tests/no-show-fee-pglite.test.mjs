@@ -1,4 +1,4 @@
-// Cobro por «No vino» — migración 20261108140000 en un Postgres real en memoria (PGlite).
+// Cobro por «No vino» — migración 20261108160000 en un Postgres real en memoria (PGlite).
 // Verifica: monto fijo de la clínica (permisos, validación, auditoría, aislamiento), que una inasistencia sólo se ofrezca para cobrar si hay monto,
 // «Perdonar» (motivo waived), que nunca se cobre sola y que las citas no vistas sigan igual que antes.
 //
@@ -57,8 +57,8 @@ if (!skip) {
         where cu.id = auth.uid() and cu.activo and rp.permission_key = p_permission $$;
     grant execute on function public.smyl_tenants_with_permission(text) to authenticated;
   `);
-  for (const file of ['20261108120000_smyl_appointment_no_charge.sql', '20261108130000_smyl_appointment_billing_status.sql']) await exec(read('supabase/migrations/' + file));
-  const migration = read('supabase/migrations/20261108140000_smyl_no_show_fee.sql');
+  for (const file of ['20261108140000_smyl_appointment_no_charge.sql', '20261108150000_smyl_appointment_billing_status.sql']) await exec(read('supabase/migrations/' + file));
+  const migration = read('supabase/migrations/20261108160000_smyl_no_show_fee.sql');
   await exec(migration);
   await exec(migration); // idempotente (incluye volver a crear la restricción del motivo)
   await exec(`
@@ -140,7 +140,7 @@ test('apagar el monto (0) vuelve a ocultar las inasistencias sin cargo', { skip 
 });
 
 test('la migración es aditiva: no toca citas, cargos ni pagos', { skip }, () => {
-  const sql = read('supabase/migrations/20261108140000_smyl_no_show_fee.sql');
+  const sql = read('supabase/migrations/20261108160000_smyl_no_show_fee.sql');
   assert.doesNotMatch(sql, /\b(update|delete from|drop table|truncate)\s+public\.(smyl_appointments|smyl_finance_(charges|payments|payment_allocations|refund))/i);
   assert.doesNotMatch(sql, /insert\s+into\s+public\.smyl_finance_charges/i, 'nunca crea cargos por su cuenta');
 });

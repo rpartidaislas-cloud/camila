@@ -69,7 +69,7 @@ test('las capas resumen sólo actividad útil y conservan una única acción pri
 });
 
 test('web, móvil y PWA publican la misma versión', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=17/);
+  assert.match(app, /smyl-dental-record\.js\?v=18/);
   assert.match(app, /smyl-case-workspace\.css\?v=20/);
   assert.match(app, /smyl-case-workspace\.js\?v=24/);
   assert.match(worker, /smart-odontogram-v33/);

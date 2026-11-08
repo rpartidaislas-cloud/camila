@@ -1,4 +1,4 @@
-// Pacientes pendientes de cargo — migración 20261108120000 en un Postgres real en memoria (PGlite).
+// Pacientes pendientes de cargo — migración 20261108140000 en un Postgres real en memoria (PGlite).
 // Verifica: permisos (sólo finance.manage escribe, finance.read lee), aislamiento entre clínicas, que sólo se cierren
 // sin cargo citas en las que el paciente ya llegó y que no tienen cargo vigente, reapertura, auditoría e idempotencia.
 //
@@ -52,7 +52,7 @@ if (!skip) {
     grant execute on function public.smyl_tenants_with_permission(text) to authenticated;
     grant select on public.smyl_appointments, public.smyl_finance_charges to authenticated;
   `);
-  const migration = read('supabase/migrations/20261108120000_smyl_appointment_no_charge.sql');
+  const migration = read('supabase/migrations/20261108140000_smyl_appointment_no_charge.sql');
   await exec(migration);
   await exec(migration); // idempotente
   await exec(`
@@ -126,6 +126,6 @@ test('reabrir vuelve a dejar la cita pendiente y todo queda en auditoría sin da
 });
 
 test('la migración es sólo aditiva y no toca citas ni cargos', () => {
-  const sql = read('supabase/migrations/20261108120000_smyl_appointment_no_charge.sql');
+  const sql = read('supabase/migrations/20261108140000_smyl_appointment_no_charge.sql');
   assert.doesNotMatch(sql, /\b(update|delete from|alter table|drop table|truncate)\s+public\.(smyl_appointments|smyl_finance_)/i);
 });

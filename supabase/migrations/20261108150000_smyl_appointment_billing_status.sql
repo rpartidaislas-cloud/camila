@@ -4,7 +4,7 @@
 --   * Sólo lectura: no crea ni cambia cargos, pagos ni citas. Sólo citas en las que el paciente ya llegó (arrived / in_progress / completed).
 --   * Precedencia: con cargo vigente manda el cargo (due = hay saldo, paid = liquidado); si no, la decisión «sin cargo»;
 --     si no, un servicio de precio $0 es «free» (sin etiqueta); si no, «pending» (falta decidir el cobro).
--- Requiere 20261108120000_smyl_appointment_no_charge.sql. Idempotente.
+-- Requiere 20261108140000_smyl_appointment_no_charge.sql. Idempotente.
 
 create or replace function public.smyl_appointment_billing(p_appointment_ids uuid[])
 returns table (appointment_id uuid, billing_state text, charged_amount numeric, due_amount numeric)

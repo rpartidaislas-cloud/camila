@@ -53,7 +53,7 @@ test('la política visual cubre escritorio y móvil sin saturar el flujo', () =>
 
 test('web, móvil y PWA publican la etapa 3.6', () => {
   assert.match(app, /smyl-patient-360\.js\?v=25/);
-  assert.match(app, /smyl-dental-record\.js\?v=17/);
+  assert.match(app, /smyl-dental-record\.js\?v=18/);
   assert.match(app, /smyl-case-workspace\.css\?v=20/);
   assert.match(app, /smyl-case-workspace\.js\?v=24/);
   assert.match(worker, /evolution-closure-v36/);
