@@ -58,6 +58,27 @@ por paciente, borrado automático del audio de MILA y evidencia de no entrenamie
   y `mobile/www` quedan sincronizados en `smyl-finance.js?v=19`, CSS `v=15` y
   cachés con sufijo `collection-visual-v1`.
 
+## 2026-11-08 — Claude — Nueva landing pública (`index.html`) con bloques de 21st.dev
+
+- `index.html` se reescribe como página pública de SMYL (clínica completa, no solo carillas):
+  menú fijo, hero con mockups CSS del panel y de WhatsApp (datos de ejemplo), seis pilares en
+  bento, cómo funciona en 4 pasos, «La IA propone, el profesional aprueba», testimonios (ocultos
+  hasta tener reales y autorizados; lista vacía en el script), planes, FAQ, CTA y pie con Legal.
+- Bloques de 21st.dev portados a HTML/CSS sin librerías: Pricing Section 1 (shadcnstore) y
+  Testimonial Section 3 (solaceui) desde su código; Centered Nav Header, Hero with Device Mockups,
+  Feature Section with Bento Grid, Vertical How It Works Timeline, Basic Accordion y Footer Two
+  desde sus vistas previas (la cuota gratuita de 21st.dev solo permitió 2 descargas ese día).
+- Sesión: en `app.smyldesign.ai`, si existe `sb-rpxshsiwoxdbuevjjpfw-auth-token` en localStorage
+  redirige al panel; si no, muestra la landing. `?landing=1` fuerza la landing. `inicio.html`
+  queda como redirección a `./?landing=1` (la URL ya estaba puesta en Google Cloud).
+- `app.html`: `?registro=1` abre la pestaña de registro y `?plan=esencial|profesional|premium`
+  preselecciona el plan. Copia móvil sincronizada.
+- Pendientes del dueño: confirmar qué incluye cada plan (las listas son propuesta), capturas
+  reales para el hero si se prefieren a los mockups, testimonios reales. `index.html` no debe
+  mencionar el motor de mensajería por nombre (prueba de branding).
+- Google Cloud: la página principal debe ser `https://app.smyldesign.ai/` y el nombre de la app
+  «SMYL» (la landing y el pie ya enlazan privacidad y términos).
+
 ## 2026-11-08 — Claude: vigilante de congelamientos (Sentry + Worker)
 
 `smyl-freeze-watchdog.js` + `smyl-freeze-watchdog-worker.js`, cargados por `smyl-sentry.js` (v=3) sólo con DSN. Un Worker
