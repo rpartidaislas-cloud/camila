@@ -13,7 +13,7 @@ const js = read('smyl-finance.js');
 // tests/qa/cobros-pending-visits-smoke.cjs; la migración se prueba en Postgres real en appointment-no-charge-pglite.test.mjs.
 
 test('la lista de pendientes sólo toma citas en las que el paciente ya llegó, de los últimos 14 días', () => {
-  assert.match(js, /\.in\('status',\['arrived','in_progress','completed'\]\)\.gte\('starts_at',since\)/);
+  assert.match(js, /\.in\('status',\['arrived','in_progress','completed','no_show'\]\)\.gte\('starts_at',since\)/);
   assert.match(js, /Date\.now\(\)-14\*864e5/);
 });
 
@@ -30,8 +30,8 @@ test('no es pendiente lo que ya tiene cargo vigente, ya se cerró sin cargo o es
 });
 
 test('las que ya terminaron van primero y quien no gestiona cobros sólo consulta', () => {
-  assert.match(js, /rank=\{completed:0,in_progress:1,arrived:2\}/);
-  assert.match(js, /state\.canManage\?'<button type="button" class="btn btn-primary" data-visit-charge=/);
+  assert.match(js, /rank=\{completed:0,in_progress:1,arrived:2,no_show:3\}/);
+  assert.match(js, /state\.canManage\?\(a\.status==='no_show'\?.*:'<button type="button" class="btn btn-primary" data-visit-charge=/);
   assert.match(js, /Tu rol puede consultar, no registrar cobros\./);
 });
 
@@ -58,8 +58,8 @@ test('el formulario de cargo se abre con la cita elegida y ofrece las citas de p
 test('la migración, la hoja de estilos y las versiones quedan publicadas y sincronizadas con la app móvil', () => {
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108120000_smyl_appointment_no_charge.sql')));
   assert.match(read('smyl-finance.css'), /\.finance-visit-row\{/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=25/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=25/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=26/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=26/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

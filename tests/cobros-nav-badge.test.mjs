@@ -12,9 +12,9 @@ const js = read('smyl-finance.js');
 // se prueba en un navegador real con tests/qa/cobros-nav-badge-smoke.cjs.
 
 test('cuenta lo mismo que la lista de Cobros: citas que llegaron y la función de sólo lectura dice «pending»', () => {
-  assert.match(js, /\.in\('status',\['arrived','in_progress','completed'\]\)\.gte\('starts_at',since\)\.limit\(200\)/);
+  assert.match(js, /\.in\('status',\['arrived','in_progress','completed','no_show'\]\)\.gte\('starts_at',since\)\.limit\(200\)/);
   assert.match(js, /window\.sb\.rpc\('smyl_appointment_billing',\{p_appointment_ids:ids\}\)/);
-  assert.match(js, /r\.billing_state==='pending'/);
+  assert.match(js, /r\.billing_state==='pending'\|\|r\.billing_state==='no_show_pending'/);
 });
 
 test('el numerito va en el botón de Cobros del menú (ampliado, colapsado y «Más» en móvil) con texto accesible', () => {
@@ -48,8 +48,8 @@ test('Cobros mantiene el numerito sincronizado con su lista sin otra consulta', 
 
 test('versiones y copia móvil sincronizadas', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-finance\.js\?v=25/);
-    assert.match(read(file), /smyl-schedule\.js\?v=32/);
+    assert.match(read(file), /smyl-finance\.js\?v=26/);
+    assert.match(read(file), /smyl-schedule\.js\?v=33/);
   }
   for (const file of ['smyl-finance.js', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

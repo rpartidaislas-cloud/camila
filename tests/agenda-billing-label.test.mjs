@@ -15,7 +15,7 @@ const css = read('smyl-schedule.css');
 test('la etiqueta sólo se pide y se muestra con permiso finance.read, y sólo a citas en las que el paciente ya llegó', () => {
   assert.match(js, /state\.canFinance=owner\|\|perms\.has\('finance\.read'\)/);
   assert.match(js, /if\(!state\.canFinance\|\|!window\.sb\)return;/);
-  assert.match(js, /var ARRIVED=\['arrived','in_progress','completed'\]/);
+  assert.match(js, /var ARRIVED=\['arrived','in_progress','completed','no_show'\]/);
   assert.match(js, /var b=state\.canFinance&&state\.billing\[a\.id\];if\(!b\|\|ARRIVED\.indexOf\(a\.status\)<0\)return null/);
 });
 
@@ -27,7 +27,7 @@ test('usa una sola consulta de sólo lectura con tope de 300 citas y no bloquea 
 });
 
 test('los textos son Por cobrar, Saldo $X, Cobrada y Sin cargo; el servicio de $0 no lleva etiqueta', () => {
-  assert.match(js, /pending:\['Por cobrar','pending'\],due:\['Saldo '\+fmtMoney\(b\.due_amount\),'due'\],paid:\['Cobrada','paid'\],no_charge:\['Sin cargo','none'\]/);
+  assert.match(js, /pending:\['Por cobrar','pending'\],no_show_pending:\['Inasistencia por cobrar','pending'\],due:\['Saldo '\+fmtMoney\(b\.due_amount\),'due'\],paid:\['Cobrada','paid'\],no_charge:\['Sin cargo','none'\]/);
   assert.doesNotMatch(js, /free:\[/);
 });
 
@@ -55,7 +55,7 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108130000_smyl_appointment_billing_status.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108130000_smyl_appointment_billing_status\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=32/);
+    assert.match(read(file), /smyl-schedule\.js\?v=33/);
     assert.match(read(file), /smyl-schedule\.css\?v=21/);
   }
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) {
