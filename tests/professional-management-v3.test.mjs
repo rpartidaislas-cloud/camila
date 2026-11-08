@@ -9,7 +9,7 @@ const app=read('../app.html');
 const worker=read('../sw.js');
 
 test('la navegación principal refleja el trabajo completo de una clínica dental',()=>{
-  for(const area of ['Inicio','Agenda','Pacientes','Finanzas','Mensajes']) assert.match(navigation,new RegExp("\\['"+area+"'"));
+  for(const area of ['Inicio','Agenda','Pacientes','Cobros','Mensajes']) assert.match(navigation,new RegExp("\\['"+area+"'"));
   assert.doesNotMatch(navigation,/\['Tratamientos', 'propuestas'/);
   assert.doesNotMatch(navigation,/\['Alertas', 'notificaciones'/);
   assert.match(navigation,/Servicios y tarifas/);

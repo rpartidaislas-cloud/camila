@@ -16,7 +16,7 @@
       { title: 'Sucursales, sillones y horario', desc: 'Dónde atiendes, en qué espacios y a qué hora.', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
       { title: 'Equipo y roles', desc: 'Quién entra a tu cuenta y qué puede ver o hacer cada persona.', route: 'clinica', embed: true, target: '[data-ca-tab="equipo"]' },
       { title: 'Mi cuenta y plan', desc: 'Tus datos personales y cuánto llevas usado de tu plan.', route: 'mi-cuenta' },
-      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas. Se administra dentro de Finanzas.', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' }
+      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas. Se administra dentro de Cobros.', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' }
     ] },
     { id: 'cobros', title: 'Ventas y cobros', blurb: 'Cómo cobras y cómo ves lo que te deben.', items: [
       { title: 'Cobros y pagos', desc: 'Pagos recibidos, recibos y reembolsos.', route: 'caja', embed: true, target: '[data-finance-tab="payments"]' },

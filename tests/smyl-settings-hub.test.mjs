@@ -70,9 +70,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=3/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=4/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=3/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=3/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=4/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=3/);
 });
 

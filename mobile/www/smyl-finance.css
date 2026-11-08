@@ -158,3 +158,5 @@
   .finance-account-filters{display:grid;grid-template-columns:1fr 1fr}
   .finance-payment-summary{grid-template-columns:1fr}
 }
+
+.finance-row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}

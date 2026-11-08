@@ -33,7 +33,7 @@
     ['Inicio', 'dashboard', 'home'],
     ['Agenda', 'agenda', 'calendar'],
     ['Pacientes', 'pacientes', 'patients'],
-    ['Finanzas', 'caja', 'cash']
+    ['Cobros', 'caja', 'cash']
   ];
   // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
   var MESSAGING = [

@@ -1715,6 +1715,41 @@
       availability.append(availabilityButton); careZone.append(availability);
     }
 
+    if (hasPermission('finance.read') && window.SmylFinance && typeof window.SmylFinance.accountSummary === 'function') {
+      var accountCard = node('section', 'smyl-inbox-context-card smyl-inbox-account-card');
+      accountCard.append(node('h3', '', 'Cuenta del paciente'));
+      var accountPatient = ficha && ficha.linked && ficha.patient && ficha.patient.id;
+      var accountInfo = state.accountContext && state.accountContext[conversation.id];
+      var accountMoney = function (value) { return Number(value || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); };
+      if (!accountPatient) accountCard.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
+      else if (state.accountLoading && state.accountLoading[conversation.id]) accountCard.append(node('p', '', 'Consultando cuenta…'));
+      else if (!accountInfo || !accountInfo.data) accountCard.append(node('p', '', 'No se pudo consultar la cuenta. Ábrela en Cobros para revisarla.'));
+      else {
+        var summary = accountInfo.data;
+        if (!summary.chargeCount && !summary.credit) accountCard.append(node('p', '', 'Todavía no tiene cargos registrados.'));
+        else {
+          accountCard.append(node('strong', '', summary.due > 0 ? accountMoney(summary.due) + ' por cobrar' : 'Al corriente'));
+          var accountLines = [];
+          if (summary.overdueCount > 0) accountLines.push(summary.overdueCount + (summary.overdueCount === 1 ? ' cargo vencido' : ' cargos vencidos') + ' (' + accountMoney(summary.overdueAmount) + ')');
+          else if (summary.nextDue) accountLines.push('Próximo vencimiento: ' + availabilityDate(summary.nextDue + 'T12:00:00').split(' · ')[0]);
+          if (summary.credit > 0) accountLines.push(accountMoney(summary.credit) + ' a favor');
+          if (summary.truncated) accountLines.push('Resumen parcial: abre la cuenta para ver todo.');
+          accountLines.forEach(function (line) { accountCard.append(node('small', '', line)); });
+        }
+      }
+      if (accountPatient) {
+        var accountActions = node('div', 'smyl-inbox-account-actions');
+        if (hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) {
+          var chargeButton = node('button', 'btn btn-primary btn-sm', 'Cobrar'); chargeButton.type = 'button';
+          chargeButton.onclick = function () { openCareTask('payment'); }; accountActions.append(chargeButton);
+        }
+        var viewAccount = node('button', 'btn btn-secondary btn-sm', 'Ver cuenta'); viewAccount.type = 'button';
+        viewAccount.onclick = function () { window.SmylFinance.account(accountPatient); }; accountActions.append(viewAccount);
+        accountCard.append(accountActions);
+      }
+      careZone.append(accountCard);
+    }
+
     if (conversation.needs_human) {
       var attention = node('section', 'smyl-inbox-context-card is-attention');
       attention.append(node('h3', '', 'Intervención solicitada'), node('p', '', 'El asistente marcó esta conversación para seguimiento humano. Resolverla no reactiva la IA.'));
@@ -2075,10 +2110,22 @@
     }
   }
 
+  async function loadAccountContext(conversationId) {
+    var ficha = state.clinical[conversationId];
+    var patientId = ficha && ficha.linked && ficha.patient && ficha.patient.id;
+    if (!patientId || !hasPermission('finance.read') || !window.SmylFinance || typeof window.SmylFinance.accountSummary !== 'function') return;
+    state.accountContext = state.accountContext || {}; state.accountLoading = state.accountLoading || {};
+    state.accountLoading[conversationId] = true; renderContext();
+    try { state.accountContext[conversationId] = { patientId: patientId, data: await window.SmylFinance.accountSummary(patientId) }; }
+    catch (_) { state.accountContext[conversationId] = { patientId: patientId, data: null }; }
+    finally { state.accountLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
+  }
+
   async function prepareConversationPatient(conversationId) {
     await autoLinkConversationPatient(conversationId);
     await Promise.all([loadClinicalContext(conversationId), loadAppointmentContext(conversationId)]);
     if (state.selectedId === conversationId) { renderCareBar(); renderThreadHeader(); renderContext(); }
+    loadAccountContext(conversationId);
   }
 
   async function loadAppointmentContext(conversationId) {

@@ -71,3 +71,54 @@ test('Caja: 400 pacientes se calculan en tiempo lineal (sin el congelamiento cú
   state.patients.forEach((p) => f.accountSnapshot(p.id));
   assert.ok(performance.now() - t0 < 500, 'tardó ' + (performance.now() - t0).toFixed(0) + ' ms');
 });
+
+// ── Resumen ligero de la cuenta de un paciente (tarjeta «Cuenta» del chat) ──
+const resumenFn = (() => {
+  const m = src.match(/function summarizeAccount\(d,today\)\{[^\n]*\n/);
+  assert.ok(m, 'no se encontró summarizeAccount');
+  return new Function(m[0] + ';return summarizeAccount;')();
+})();
+
+test('Cuenta del chat: saldo, vencidos, próximo vencimiento y crédito', () => {
+  const r = resumenFn({
+    charges: [
+      { id: 'c1', status: 'posted', total_amount: 1000, due_on: '2026-11-01' },
+      { id: 'c2', status: 'posted', total_amount: 500, due_on: '2026-12-10' },
+      { id: 'c3', status: 'voided', total_amount: 900, due_on: '2026-10-01' },
+    ],
+    payments: [{ id: 'p1', amount: 700 }],
+    allocations: [{ id: 'a1', charge_id: 'c1', payment_id: 'p1', amount: 400 }],
+    refunds: [], refundAllocations: [],
+  }, '2026-11-08');
+  assert.equal(r.due, 1100);
+  assert.equal(r.openCount, 2);
+  assert.equal(r.overdueCount, 1);
+  assert.equal(r.overdueAmount, 600);
+  assert.equal(r.nextDue, '2026-11-01');
+  assert.equal(r.credit, 300);
+  assert.equal(r.chargeCount, 2);
+});
+
+test('Cuenta del chat: coincide con la definición de Caja para datos aleatorios', () => {
+  for (const seed of [3, 11]) {
+    const state = datos(seed, 40), ref = referencia(state);
+    for (const p of state.patients.slice(0, 15)) {
+      const charges = state.charges.filter((c) => c.patient_id === p.id);
+      const payments = state.payments.filter((x) => x.patient_id === p.id);
+      const cids = new Set(charges.map((c) => c.id)), pids = new Set(payments.map((x) => x.id));
+      const r = resumenFn({
+        charges, payments,
+        allocations: state.allocations.filter((a) => cids.has(a.charge_id) || pids.has(a.payment_id)),
+        refunds: state.refunds.filter((x) => pids.has(x.payment_id)),
+        refundAllocations: state.refundAllocations.filter((a) => cids.has(a.charge_id)),
+      }, '2026-11-08');
+      assert.ok(Math.abs(r.due - ref.due(p.id)) < 1e-9, 'saldo ' + p.id);
+      assert.ok(Math.abs(r.credit - ref.credit(p.id)) < 1e-9, 'crédito ' + p.id);
+    }
+  }
+});
+
+test('Cuenta del chat: sin cargos ni pagos queda en cero', () => {
+  const r = resumenFn({ charges: [], payments: [], allocations: [], refunds: [], refundAllocations: [] }, '2026-11-08');
+  assert.deepEqual([r.due, r.credit, r.chargeCount, r.overdueCount, r.nextDue], [0, 0, 0, 0, null]);
+});
