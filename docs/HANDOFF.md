@@ -1,5 +1,27 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Claude: Cobros · «Pacientes pendientes de cargo» (cita que llegó → se habilita el cobro, sin crear deuda)
+
+**Flujo:** al marcar «Ya llegó» en Agenda, la cita aparece arriba en Cobros → Por cobrar como pendiente (En espera / En consulta /
+Listo para cobrar). **No se crea ningún cargo.** «Agregar cargo» abre el formulario de siempre con paciente, cita y servicio ya elegidos
+(se escogen los servicios del catálogo). «Sin cargo» pide motivo (Revisión, Garantía, Cortesía, Otro) y nota opcional; queda en «Cerradas sin cargo»
+con «Reabrir». Un servicio con **precio $0 (p. ej. Revisión) no genera pendiente**: la persona dueña debe poner la Revisión en $0 en Servicios y tarifas.
+
+**Cómo se calcula (sin estado duplicado):** pendiente = cita `arrived|in_progress|completed` de los últimos 14 días, sin cargo vigente
+(`smyl_finance_charges.appointment_id`, no `voided`), sin decisión «sin cargo» y con servicio de precio ≠ 0. Se refresca al volver a Cobros.
+
+**Backend (migración `20261108120000_smyl_appointment_no_charge.sql`, aditiva):** tabla `smyl_appointment_no_charge` (RLS lectura `finance.read`, sin escritura
+directa) y RPC `smyl_mark_appointment_no_charge` / `smyl_reopen_appointment_charge` (`finance.manage`, auditoría sin la nota libre).
+**Falta aplicarla en producción:** workflow manual «SMYL Cobros - pacientes pendientes de cargo (migración)» (o pegar el .sql en el SQL Editor).
+Mientras no se aplique, la lista y «Agregar cargo» ya funcionan; sólo se oculta «Sin cargo».
+
+**Frontend:** `smyl-finance.js?v=23`, `smyl-finance.css?v=20` (+ sw CACHE_VERSION `…-pending-charges-v1`, `mobile/www` sincronizado).
+Pruebas: `tests/appointment-no-charge-pglite.test.mjs` (Postgres real: permisos, aislamiento, auditoría; con `SMYL_PGLITE_DIR`),
+`tests/cobros-pending-visits.test.mjs`, humo en navegador `tests/qa/cobros-pending-visits-smoke.cjs`.
+
+**Para Codex:** el bloque está al final de `smyl-finance.js` («Pacientes pendientes de cargo») y en `#finance-visits`. Fuera de alcance por simple: etiqueta de cobro
+dentro de la Agenda, contador en el menú lateral, cobro por «No vino».
+
 ## 2026-11-08 — Claude: revisión de respaldos y correcciones del paquete cifrado
 
 **Hallazgos (no se pudo consultar el proyecto de producción desde la sesión):** el respaldo cifrado nunca se había

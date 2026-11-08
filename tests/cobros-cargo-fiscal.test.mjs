@@ -91,8 +91,8 @@ test('Cobros ya no se limita a los primeros 500 pacientes: completa los nombres 
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /async function ensurePatientNames\(\)\{/);
-    assert.match(f, /\[state\.charges,state\.payments,state\.appointments,state\.proposals,state\.fiscal\]/);
+    assert.match(f, /\[state\.charges,state\.payments,state\.appointments,state\.visitAppointments,state\.proposals,state\.fiscal\]/);
     assert.match(f, /\.in\('id',ids\.slice\(i,i\+100\)\)/);
-    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;await ensurePatientNames\(\);state\.loaded=true;/);
+    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;await loadVisits\(\);await ensurePatientNames\(\);state\.loaded=true;/);
   }
 });
