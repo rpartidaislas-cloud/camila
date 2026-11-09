@@ -133,3 +133,24 @@ test('Servicios y tarifas: «Cambiar precios» es una función de rol aplicada e
   assert.match(wf, /20261109090000/);
   assert.doesNotMatch(wf, /pull_request|push:/);
 });
+
+test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada en pantalla y en la base', () => {
+  const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  const fin = read('smyl-finance.js');
+  const admin = read('smyl-clinic-admin.js');
+  const sql = read('supabase/migrations/20261109100000_smyl_finance_refund_permission.sql');
+  const wf = read('.github/workflows/smyl-reembolsos-permiso-migracion.yml');
+  assert.match(fin, /state\.canRefund=owner\|\|p\.has\('finance\.refund'\)/);
+  assert.match(fin, /state\.canManage&&state\.canRefund\?'<button data-refund=/);
+  assert.match(fin, /function openRefund\(payment\)\{if\(!state\.canRefund\)/);
+  assert.match(admin, /'finance\.refund': 'Reembolsar y cancelar cargos'/);
+  assert.match(admin, /'finance\.manage', 'finance\.refund'/);
+  assert.match(sql, /smyl_finance_refund_guard/);
+  assert.match(sql, /smyl_finance_void_guard/);
+  assert.match(sql, /where rp\.permission_key = 'finance\.manage'/);
+  assert.match(sql, /'catalog\.manage', 'catalog\.prices'/);
+  assert.match(wf, /workflow_dispatch/);
+  assert.match(wf, /20261109100000/);
+  assert.doesNotMatch(wf, /pull_request|push:/);
+  for (const f of ['smyl-finance.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
