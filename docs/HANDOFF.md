@@ -8,6 +8,14 @@
 - Web y `mobile/www` quedan sincronizados con `smyl-connections.js?v=17`, CSS `v=13`, `smyl-navigation.js?v=22`, CSS `v=8` y caché `whatsapp-workspace-v4`.
 - QA visual aprobada en 1280, 820, 390 y 320 px: logo cargado, una sola pantalla visible, cuatro herramientas, controles de 42/44 px y sin desbordamiento. También pasan las 14 pruebas estáticas de Configuración/Conexiones y la auditoría de navegador de seguridad en 1440, 1024 y 390 px.
 
+## 2026-11-09 — Codex — Mesa radiográfica v12
+
+- El visor manual pasa de una imagen con panel vacío a una mesa de lectura progresiva: radiografía protagonista, controles compactos con valores visibles, estado del estudio y panel separado en **Hallazgos**, **IA** y **Notas**.
+- Se conservan el original protegido, zoom centrado, arrastre, pellizco móvil, contraste, brillo, inversión, marcas manuales, revisión asistida, revisión por pieza, permisos y persistencia existentes. La IA continúa como sugerencia: nada se incorpora sin confirmación profesional.
+- En escritorio la imagen ocupa cerca del 73% de la superficie y el panel puede ocultarse con **Ampliar imagen**. En tableta y móvil la lectura se apila, el encabezado evita truncamientos, el guardado queda fijo como cierre de tarea y todos los controles táctiles alcanzan 44 px.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-workbench.css?v=12`, `smyl-dental-record.js?v=22` y caché `radiograph-reading-desk-v12`. No hay cambios en migraciones, backend, modelos clínicos ni prompts de IA.
+- Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos) y recorrido Playwright en 1280×820, 390×844 y 320×700 sin desbordes, con zoom/paneo/gestos, marcas e IA conservados. Capturas en `artifacts/radiograph-reading-desk-v12/`.
+
 ## 2026-11-08 — Codex — Configuración v3: espacio administrativo profesional
 
 - Se eliminó el segundo encabezado «Configuración», el breadcrumb repetido, el contador de opciones y la cuadrícula de tarjetas equivalentes. La barra superior de la aplicación conserva el único título global.

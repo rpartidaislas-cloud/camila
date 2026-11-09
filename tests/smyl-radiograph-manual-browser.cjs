@@ -6,19 +6,23 @@ const fs = require('node:fs');
   const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   const browser = await chromium.launch({ headless: true, executablePath: chrome });
   const fixture = `file:///${path.resolve(__dirname, 'fixtures/smyl-radiograph-manual-preview.html').replace(/\\/g, '/')}`;
-  const output = path.resolve(__dirname, '..', 'artifacts', 'radiograph-workbench-v41');
+  const output = path.resolve(__dirname, '..', 'artifacts', 'radiograph-reading-desk-v12');
   fs.mkdirSync(output, { recursive: true });
   const cases = [{ name: 'manual-desktop', width: 1280, height: 820 }, { name: 'manual-mobile', width: 390, height: 844 }, { name: 'manual-mobile-320', width: 320, height: 700 }];
   const report = [];
   for (const item of cases) {
     const page = await browser.newPage({ viewport: { width: item.width, height: item.height } });
+    page.on('pageerror', error => console.error(`[${item.name}] pageerror:`, error.message));
+    page.on('console', message => { if (message.type() === 'error') console.error(`[${item.name}] console:`, message.text()); });
     await page.goto(fixture);
     await page.getByText('Radiografías', { exact: true }).click();
     await page.getByRole('button', { name: 'Abrir y anotar' }).waitFor();
     await page.getByRole('button', { name: 'Abrir y anotar' }).click();
     await page.locator('.dr-radiograph-dialog[open] .dr-reading-workspace').waitFor();
-    const zoom = page.locator('.dr-radiograph-dialog input[aria-label="Ampliar radiografía"]');
-    await zoom.fill('2');
+    const rangeCount = await page.locator('.dr-radiograph-dialog[open] input[type="range"]').count();
+    if (rangeCount < 2) throw new Error(`Radiograph controls did not render at ${item.width}px`);
+    const zoomIn = page.getByRole('button', { name: 'Ampliar radiografía', exact: true });
+    for (let step = 0; step < 4; step += 1) await zoomIn.click();
     await page.waitForTimeout(40);
     const centered = await page.locator('.dr-radiograph-dialog .dr-viewport').evaluate(element => ({
       left: element.scrollLeft,
@@ -34,7 +38,7 @@ const fs = require('node:fs');
     await page.mouse.up();
     const draggedLeft = await viewport.evaluate(element => element.scrollLeft);
     if (draggedLeft <= centered.left + 5) throw new Error(`Horizontal drag did not pan at ${item.width}px`);
-    await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+    await page.getByRole('button', { name: 'Ajustar', exact: true }).click();
     await page.waitForTimeout(40);
     if (await viewport.evaluate(element => element.scrollLeft > 2 || element.classList.contains('is-zoomed'))) throw new Error(`Original view did not reset at ${item.width}px`);
     if (item.name === 'manual-mobile') {
@@ -46,9 +50,9 @@ const fs = require('node:fs');
       });
       await page.waitForTimeout(40);
       const pinch = await viewport.evaluate(element => ({left:element.scrollLeft,zoomed:element.classList.contains('is-zoomed')}));
-      const pinchZoom=Number(await zoom.inputValue());
+      const pinchZoom=await page.locator('.dr-radiograph-dialog .dr-image-stage').evaluate(element=>Number.parseFloat(element.style.width)/100);
       if (!pinch.zoomed || pinchZoom <= 1 || pinch.left <= 0) throw new Error(`Pinch gesture did not zoom around its center: ${JSON.stringify({...pinch,pinchZoom})}`);
-      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.getByRole('button', { name: 'Ajustar', exact: true }).click();
     }
     const before = await page.locator('.dr-radiograph-dialog .dr-mark').count();
     await page.locator('.dr-radiograph-dialog .dr-image-stage img').click({ position: { x: 80, y: 80 } });
@@ -59,17 +63,19 @@ const fs = require('node:fs');
       return {rootOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+1,dialogOverflow:dialog.scrollWidth>dialog.clientWidth+1,sameRow:Math.abs((viewer?.top||0)-(panel?.top||0))<2,stackGap:panel&&viewer?panel.top-viewer.bottom:0,viewerRatio:workspace&&viewer?viewer.width/workspace.width:0,signals:document.querySelectorAll('.dr-signal-card').length,minButtonHeight:Math.min(...controls.map(element=>element.getBoundingClientRect().height).concat([44]))};
     });
     if (item.name === 'manual-desktop') {
+      await page.getByRole('tab', { name: 'IA', exact: true }).click();
       await page.getByRole('button', { name: 'Revisar con apoyo de IA', exact: true }).click();
       if (!await page.evaluate(() => window.__aiOpened)) throw new Error('AI review action did not open the assisted review');
       if (await page.locator('.dr-radiograph-dialog[open]').count()) throw new Error('Manual viewer remained open after launching AI review');
       await page.getByRole('button', { name: 'Abrir y anotar' }).click();
       await page.locator('.dr-radiograph-dialog[open] .dr-reading-workspace').waitFor();
-      await page.locator('.dr-radiograph-dialog[open]').getByRole('button', { name: 'Marcar zona' }).click();
+      await page.locator('.dr-radiograph-dialog[open]').getByRole('button', { name: 'Marcar región' }).click();
       await page.locator('.dr-radiograph-dialog .dr-image-stage img').click({ position: { x: 120, y: 120 } });
       await page.locator('.dr-mark-dialog textarea').fill('Señal manual de prueba.');
       await page.getByRole('button', { name: 'Agregar al borrador' }).click();
       if (await page.locator('.dr-radiograph-dialog .dr-mark').count() !== 3) throw new Error('Explicit placement did not create one signal');
       if (await page.locator('.dr-mark-dialog[open]').count()) throw new Error('Signal editor did not close');
+      await page.getByRole('tab', { name: 'IA', exact: true }).click();
       await page.getByRole('button', { name: 'Revisar con apoyo de IA', exact: true }).click();
       const feedback = await page.locator('.dr-action-feedback').textContent();
       if (!feedback.includes('Guarda primero') || !await page.locator('.dr-radiograph-dialog[open]').count()) throw new Error('Unsaved-state AI blocker was not visible in the viewer');
@@ -80,5 +86,5 @@ const fs = require('node:fs');
   }
   await browser.close();
   console.log(JSON.stringify(report,null,2));
-  if(report.some(item=>item.before!==2||item.afterPassiveClick!==2||item.rootOverflow||item.dialogOverflow||item.sameRow!==item.expectedSameRow||(!item.expectedSameRow&&item.stackGap<0)||item.signals!==2||item.minButtonHeight<(item.name.includes('mobile')?44:40)||(item.expectedSameRow&&(item.viewerRatio<.62||item.viewerRatio>.75))))process.exitCode=1;
+  if(report.some(item=>item.before!==2||item.afterPassiveClick!==2||item.rootOverflow||item.dialogOverflow||item.sameRow!==item.expectedSameRow||(!item.expectedSameRow&&item.stackGap<0)||item.signals!==2||item.minButtonHeight<(item.name.includes('mobile')?44:40)||(item.expectedSameRow&&(item.viewerRatio<.68||item.viewerRatio>.80))))process.exitCode=1;
 })().catch(error=>{console.error(error);process.exitCode=1;});

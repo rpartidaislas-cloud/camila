@@ -348,6 +348,82 @@
   .dr-radiograph-dialog .dr-image-stage > img { transition: none; }
 }
 
+/* Mesa radiografica v12 · lectura progresiva y panel clinico por tarea. */
+.dr-radiograph-dialog { grid-template-rows: auto minmax(0, 1fr) auto; }
+.dr-viewer-header > div:first-child { grid-template-columns: auto auto; align-items: center; column-gap: 10px; }
+.dr-viewer-header :is(.dr-viewer-eyebrow, h2, .dr-viewer-meta) { grid-column: 1; }
+.dr-review-status { grid-column: 2; grid-row: 1 / span 3; align-self: center; padding: 6px 10px; border: 1px solid #536b83; border-radius: 999px; color: #dbe7f2; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.dr-review-status[data-state="draft"] { border-color: #d7b55c; background: rgba(215, 181, 92, .12); color: #ffe4a3; }
+.dr-review-status[data-state="reviewed"] { border-color: #6bcdbf; background: rgba(107, 205, 191, .12); color: #a7eee5; }
+.dr-reading-workspace { grid-template-columns: minmax(0, 3fr) minmax(300px, 1fr); padding: 12px; gap: 12px; }
+.dr-reading-workspace.is-panel-collapsed { grid-template-columns: minmax(0, 1fr); }
+.dr-reading-workspace.is-panel-collapsed .dr-signal-pane { display: none; }
+.dr-viewer-pane { height: 100%; align-self: stretch; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.dr-radiograph-dialog .dr-tools { min-height: 58px; gap: 7px; padding: 7px 10px; }
+.dr-zoom-group { display: inline-flex; min-height: 40px; align-items: center; overflow: hidden; border: 1px solid var(--smyl-ui-border-strong, #bac7d5); border-radius: 10px; background: #fff; }
+.dr-zoom-group .dr-button { min-width: 40px; min-height: 40px; margin: 0; padding: 6px 10px; border: 0; border-radius: 0; font-size: 18px; }
+.dr-zoom-group .dr-tool-value { min-width: 54px; color: var(--smyl-ui-ink, #0b1b2e); font-size: 12px; font-weight: 750; text-align: center; }
+.dr-tool-range { min-width: 108px; min-height: 38px; gap: 1px; }
+.dr-tool-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dr-tool-value { color: var(--smyl-ui-primary, #0b1b2e); font-size: 12px; font-weight: 750; }
+.dr-tool-range input { width: 108px; height: 16px; margin: 0; }
+.dr-radiograph-dialog .dr-tools > .dr-button { min-height: 40px; margin: 0; padding: 7px 11px; }
+.dr-panel-toggle { margin-left: auto !important; }
+.dr-signal-pane { grid-template-rows: auto auto minmax(0, 1fr); }
+.dr-panel-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px; border-bottom: 1px solid var(--smyl-ui-border, #d9e2ec); background: var(--smyl-ui-surface-soft, #f8fafc); }
+.dr-panel-tabs .dr-button { min-height: 40px; margin: 0; padding: 6px 8px; border-color: transparent; background: transparent; color: var(--smyl-ui-ink-secondary, #526174); font-weight: 700; }
+.dr-panel-tabs .dr-button[aria-selected="true"] { border-color: var(--smyl-ui-border, #d9e2ec); background: #fff; color: var(--smyl-ui-primary, #0b1b2e); box-shadow: 0 1px 4px rgba(11, 27, 46, .08); }
+.dr-panel-section { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.dr-panel-section[hidden] { display: none; }
+.dr-panel-section > .dr-mark-list { min-height: 100%; }
+.dr-panel-empty, .dr-ai-intro { display: grid; justify-items: center; align-content: center; gap: 7px; min-height: 220px; padding: 24px; color: var(--smyl-ui-ink-secondary, #526174); text-align: center; }
+.dr-panel-empty-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 14px; background: var(--smyl-ui-accent-soft, #e8f7f4); color: var(--smyl-ui-accent-strong, #087b72); font-size: 20px; font-weight: 700; }
+.dr-panel-empty strong, .dr-ai-intro strong { color: var(--smyl-ui-ink, #0b1b2e); font-size: 15px; }
+.dr-panel-empty p, .dr-ai-intro p { max-width: 280px; margin: 0; font-size: 13px; line-height: 19px; }
+.dr-ai-intro { min-height: 150px; border-bottom: 1px solid var(--smyl-ui-border, #d9e2ec); }
+.dr-panel-section > .dr-assisted-action { width: calc(100% - 24px); margin: 12px 12px 0; }
+.dr-panel-section > .dr-action-feedback { margin-top: 10px; }
+.dr-panel-section > .dr-field { margin: 0; padding: 16px; }
+.dr-panel-section > .dr-field textarea { min-height: 132px; resize: vertical; }
+.dr-panel-section > .dr-help { margin: 0; padding: 0 16px 16px; font-size: 12px; }
+.dr-viewer-footer { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 20px; border-top: 1px solid var(--smyl-ui-border, #d9e2ec); background: #fff; }
+.dr-footer-state { display: grid; gap: 2px; }
+.dr-footer-state strong { color: var(--smyl-ui-ink, #0b1b2e); font-size: 13px; }
+.dr-footer-state span { color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; }
+.dr-viewer-footer .dr-button { min-width: 150px; margin: 0; }
+
+@media (max-width: 959px) {
+  .dr-radiograph-dialog { grid-template-rows: auto auto auto; }
+  .dr-reading-workspace, .dr-reading-workspace.is-panel-collapsed { grid-template-columns: 1fr; }
+  .dr-reading-workspace.is-panel-collapsed .dr-signal-pane { display: grid; }
+  .dr-panel-toggle { display: none; }
+  .dr-viewer-pane { height: auto; }
+  .dr-signal-pane { min-height: 420px; }
+  .dr-panel-section { max-height: 520px; }
+}
+
+@media (max-width: 639px) {
+  .dr-viewer-header { align-items: stretch; flex-direction: column; gap: 8px; }
+  .dr-viewer-header > div:first-child { grid-template-columns: minmax(0, 1fr); }
+  .dr-viewer-header-actions .dr-button { width: 100%; min-height: 44px; }
+  .dr-review-status { grid-column: 1; grid-row: auto; justify-self: start; padding: 4px 8px; }
+  .dr-viewer-header-actions .dr-viewer-archive { display: none; }
+  .dr-radiograph-dialog .dr-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dr-zoom-group { grid-column: 1 / -1; justify-content: center; }
+  .dr-zoom-group .dr-button { min-width: 44px; min-height: 44px; }
+  .dr-zoom-group .dr-tool-value { min-width: 72px; }
+  .dr-radiograph-dialog .dr-tool-range { min-width: 0; }
+  .dr-tool-range input { width: 100%; }
+  .dr-radiograph-dialog .dr-tools > .dr-button { min-height: 44px; }
+  .dr-radiograph-dialog .dr-tools > .dr-primary { grid-column: 1 / -1; }
+  .dr-signal-pane { min-height: 380px; }
+  .dr-panel-tabs .dr-button { min-height: 44px; }
+  .dr-panel-empty, .dr-ai-intro { min-height: 180px; }
+  .dr-viewer-footer { position: sticky; z-index: 7; bottom: 0; align-items: stretch; padding: 10px 12px; flex-direction: column; }
+  .dr-footer-state { display: none; }
+  .dr-viewer-footer .dr-button { width: 100%; min-height: 44px; }
+}
+
 /* Dos vistas de la radiografía y cuadros punteados sobre las zonas observadas. */
 .rr-view-switch { display: inline-flex; margin-left: auto; gap: 4px; }
 .rr-box { position: absolute; z-index: 1; box-sizing: border-box; border: 2px dashed #efb742; border-radius: 6px; background: rgba(239, 183, 66, .08); pointer-events: none; }
