@@ -85,21 +85,26 @@ test('CBCT queda identificado como especializado y conserva DICOM', () => {
   assert.match(source, /no lo convertirá en una imagen plana/);
 });
 
-test('agregar evidencia es progresivo y sólo crea un borrador', () => {
-  assert.match(source, /PASO \$\{this\.step \+ 1\} DE 4/);
-  assert.match(source, /this\.step = Math\.min\(3, this\.step \+ 1\)/);
+test('agregar evidencia resuelve la tarea en dos pasos y sólo crea un borrador', () => {
+  assert.match(source, /PASO \$\{this\.step \+ 1\} DE 2/);
+  assert.match(source, /this\.step = Math\.min\(1, this\.step \+ 1\)/);
   assert.match(source, /status: 'draft'/);
-  assert.match(source, /Guardar crea un borrador/);
-  assert.match(source, /Ninguna sugerencia se incorpora al odontograma hasta que un profesional la confirme/);
+  assert.match(source, /Se preparará un borrador/);
+  assert.match(source, /Nada pasa al odontograma sin confirmación profesional/);
   assert.doesNotMatch(source, /status:\s*['"](?:confirmed|signed)['"]/);
 });
 
 test('el flujo conserva contexto mínimo sin inventar una interpretación', () => {
-  for (const field of ['Fecha del estudio', 'Pieza, superficie o región', 'Nombre descriptivo']) {
+  for (const field of ['Fecha del estudio', 'Región relacionada', 'Pieza FDI', 'Nombre descriptivo']) {
     assert.match(source, new RegExp(field));
   }
-  assert.match(source, /El original no se modifica/);
+  assert.match(source, /REGION_OPTIONS/);
+  assert.match(source, /Tomar foto/);
+  assert.match(source, /Elegir archivo/);
+  assert.match(source, /sec-file-preview/);
+  assert.match(source, /El original se conserva sin modificaciones/);
   assert.match(source, /Sin región vinculada/);
+  assert.doesNotMatch(source, /Pieza, superficie o región/);
   assert.doesNotMatch(source, /diagnóstico automático|confirmar automáticamente/i);
 });
 
@@ -108,10 +113,17 @@ test('la navegación expone semántica y foco accesibles', () => {
   assert.match(source, /setAttribute\('role', 'tab'\)/);
   assert.match(source, /setAttribute\('aria-selected'/);
   assert.match(source, /setAttribute\('aria-labelledby', 'sec-dialog-title'\)/);
-  assert.match(source, /setAttribute\('aria-label', `Paso \$\{this\.step \+ 1\} de 4`\)/);
+  assert.match(source, /setAttribute\('aria-label', `Paso \$\{this\.step \+ 1\} de 2`\)/);
   assert.match(source, /this\.returnFocus\?\.focus\?\.\(\)/);
-  assert.match(styles, /@media\s*\(max-width:\s*760px\)/);
+  assert.match(styles, /@media\s*\(max-width:\s*820px\)/);
   assert.match(styles, /min-height:\s*44px/);
+});
+
+test('el estado vacío prioriza las tres tareas frecuentes', () => {
+  assert.match(source, /Tomar fotografías/);
+  assert.match(source, /Subir radiografía/);
+  assert.match(source, /Agregar documento/);
+  assert.match(source, /dataset\.empty/);
 });
 
 test('el fixture demuestra categorías, estados y apertura del flujo', () => {

@@ -109,7 +109,7 @@ test('bloquea antes del formulario las modalidades que aún no tienen editor rea
     assert.match(capability.reason, /no se guardar[aá] ningún dato/i);
   }
   assert.match(source, /sec-category\[data-available="false"\]/);
-  assert.match(styles, /\.sec-category\[data-available="false"\]/);
+  assert.match(styles, /\.sec-category\[data-available=(?:"false"|false)\]/);
 });
 
 test('sólo oculta el listado legado después de montar el centro', () => {
@@ -123,7 +123,10 @@ test('el diseño mantiene rutas compactas y adaptables', () => {
   assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(styles, /@media\(max-width:600px\)/);
   assert.match(styles, /overflow-x:auto/);
-  assert.match(styles, /min-height:44px/);
+  assert.match(styles, /min-height:68px/);
+  assert.match(styles, /seci-pathway-summary/);
+  assert.match(source, /el\('details', 'seci-pathways'\)/);
+  assert.ok(source.indexOf('centerHost, pathways') > -1);
   assert.match(fixture, /smyl-evidence-center-integration\.js/);
   assert.match(fixture, /class="cw-evidence-history"/);
 });

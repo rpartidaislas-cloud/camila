@@ -202,13 +202,17 @@
 
   function renderPathways(state, items) {
     state.pathways.replaceChildren();
-    const head = el('header', 'seci-pathway-head');
+    const calculated = PATHWAYS.map(pathway => pathwayState(items, pathway));
+    const complete = calculated.filter(pathway => pathway.available === pathway.total).length;
+    const summary = el('summary', 'seci-pathway-summary');
     const copy = el('div');
-    copy.append(el('span', 'seci-kicker', 'ANÁLISIS CLÍNICOS'), el('h3', '', 'Reúne las fuentes por objetivo'), el('p', '', 'Cada análisis combina evidencia diferente; el profesional decide qué información es necesaria.'));
-    head.append(copy);
-    state.pathways.append(head);
+    copy.append(el('span', 'seci-kicker', 'COBERTURA CLÍNICA'), el('h3', '', 'Fuentes por objetivo'), el('p', '', items.length ? 'Consulta qué información está disponible para cada valoración.' : 'Aparecerá conforme agregues documentación al expediente.'));
+    const overview = el('span', 'seci-pathway-overview', `${complete} de ${calculated.length} completos`);
+    summary.append(copy, overview);
+    state.pathways.append(summary);
+    const body = el('div', 'seci-pathway-body');
     const grid = el('div', 'seci-pathway-grid');
-    PATHWAYS.map(pathway => pathwayState(items, pathway)).forEach(pathway => {
+    calculated.forEach(pathway => {
       const card = el('details', 'seci-pathway');
       const summary = el('summary');
       const title = el('span');
@@ -226,7 +230,8 @@
       card.append(summary, list);
       grid.append(card);
     });
-    state.pathways.append(grid, el('p', 'seci-safety', 'Las fuentes se seleccionan según la historia, la exploración y el beneficio clínico. SMYL no indica tomar imágenes de rutina.'));
+    body.append(grid, el('p', 'seci-safety', 'El profesional decide qué información es necesaria. SMYL no indica tomar imágenes de rutina.'));
+    state.pathways.append(body);
   }
 
   function setFiles(input, file) {
@@ -280,7 +285,7 @@
       originalRenderCategoryStep(body);
       const categories = global.SmylEvidenceCenter?.categories || [];
       [...body.querySelectorAll('.sec-category')].forEach((card, index) => {
-        const category = categories[index];
+        const category = categories.find(item => item.id === card.dataset.modality) || categories[index];
         if (!category) return;
         const capability = creationCapability(category.id);
         card.dataset.modality = category.id;
@@ -411,12 +416,12 @@
     dispose(active);
     const root = el('section', 'seci-root');
     root.dataset.patientId = value.patient;
-    const pathways = el('section', 'seci-pathways');
+    const pathways = el('details', 'seci-pathways');
     const centerHost = el('div', 'seci-center');
     const feedback = el('p', 'seci-feedback');
     feedback.setAttribute('role', 'status');
     feedback.setAttribute('aria-live', 'polite');
-    root.append(pathways, centerHost, feedback);
+    root.append(centerHost, pathways, feedback);
     legacy.before(root);
     const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null };
     active = state;
