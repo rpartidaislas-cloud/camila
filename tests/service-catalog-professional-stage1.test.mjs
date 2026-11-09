@@ -36,10 +36,10 @@ test('cada servicio comunica su estado y conserva control humano fiscal',()=>{
 test('la etapa uno es responsive y se distribuye igual en web, móvil y PWA',()=>{
   const app=read('app.html'),mobile=read('mobile/www/app.html'),worker=read('sw.js');
   assert.equal(app,mobile);
-  assert.match(app,/smyl-service-catalog-stage1\.css\?v=3/);
-  assert.match(app,/smyl-service-catalog\.js\?v=5/);
+  assert.match(app,/smyl-service-catalog-stage1\.css\?v=4/);
+  assert.match(app,/smyl-service-catalog\.js\?v=6/);
   assert.match(worker,/smyl-v263-lana-connection-recovery/);
-  assert.match(worker,/smyl-service-catalog-stage1\.css\?v=3/);
+  assert.match(worker,/smyl-service-catalog-stage1\.css\?v=4/);
   assert.equal(ui,read('mobile/www/smyl-service-catalog.js'));
   assert.equal(css,read('mobile/www/smyl-service-catalog-stage1.css'));
   assert.match(css,/@media\(max-width:600px\)/);

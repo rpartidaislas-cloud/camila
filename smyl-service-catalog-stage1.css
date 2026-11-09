@@ -142,3 +142,9 @@ body.smyl-ui-governed .contenido .catalog-dialog .catalog-form-grid>label>textar
 .catalog-money[data-locked=true]{background:#f3f6f9;border-color:#d3dde6}
 .catalog-money[data-locked=true] input,.catalog-money[data-locked=true] b{color:#6a7a88}
 .catalog-locked{margin-left:6px;padding:1px 8px;border-radius:99px;background:#eef2f6;color:#4a5b69!important;font-size:12px;font-style:normal;font-weight:600}
+
+/* Precio editable en la fila: con precio escrito se ve como un campo normal, sin el punteado de «falta». */
+.catalog-price-input.has-price{border:1px solid #d9dfe7;background:#fff;max-width:150px}
+.catalog-price-input.has-price span{color:#5b6675}
+.catalog-price-input.has-price input{font-weight:700;text-align:right}
+.catalog-price-input.has-price:focus-within{border-color:#0f766e}

@@ -154,3 +154,13 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   assert.doesNotMatch(wf, /pull_request|push:/);
   for (const f of ['smyl-finance.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('Servicios y tarifas: todo servicio activo muestra su precio editable en la fila para quien puede cambiarlo', () => {
+  const js = fs.readFileSync(new URL('../smyl-service-catalog.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-service-catalog-stage1.css', import.meta.url), 'utf8');
+  assert.match(js, /var priceCell=row&&active&&state\.canManage&&state\.canPrices\?/);
+  assert.doesNotMatch(js, /var priceCell=row&&active&&missingPrice&&/);
+  assert.match(js, /data-current=/);
+  assert.match(js, /if\(input\.value===''&&current\)\{input\.value=current;return;\}/);
+  assert.match(css, /\.catalog-price-input\.has-price/);
+});
