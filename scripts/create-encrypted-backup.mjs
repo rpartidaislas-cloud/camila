@@ -21,15 +21,25 @@ class BackupAbort extends Error {}
 // Lanza en vez de llamar a process.exit: process.exit no ejecuta los bloques finally y dejaría
 // volcados y fotos clínicas en claro en el directorio temporal.
 function abort(message) { console.error(`ABORTADO · ${message}`); process.exitCode = 1; throw new BackupAbort(message); }
-function run(command, args, options = {}) {
+function exec(command, args, options = {}) {
   let executable = command;
   let commandArgs = args;
   if (process.platform === 'win32' && command === 'npx') {
     executable = process.execPath;
     commandArgs = [path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js'), ...args];
   }
-  const result = spawnSync(executable, commandArgs, { cwd: ROOT, encoding: 'utf8', windowsHide: true, ...options });
-  if (result.status !== 0) abort(`${command} falló sin crear un paquete válido.`);
+  return spawnSync(executable, commandArgs, { cwd: ROOT, encoding: 'utf8', windowsHide: true, ...options });
+}
+// Cuenta qué falló (últimas líneas de lo que respondió la herramienta) sin volcar contenido clínico ni la contraseña.
+function failureDetail(result) {
+  const password = process.env.SUPABASE_DB_PASSWORD;
+  let text = `${result.stderr || ''}\n${result.stdout || ''}`.trim().split(/\r?\n/).filter(Boolean).slice(-8).join('\n');
+  if (password) text = text.split(password).join('***');
+  return text.slice(-900) || (result.error ? String(result.error.message || result.error) : 'sin mensaje');
+}
+function run(command, args, options = {}) {
+  const result = exec(command, args, options);
+  if (result.status !== 0) abort(`${command} ${args.slice(0, 3).join(' ')} falló.\n${failureDetail(result)}`);
   return result.stdout || '';
 }
 function sha256(file) {
@@ -58,18 +68,36 @@ try {
   if (!path.isAbsolute(outputDir) || (!relativeToRepo.startsWith('..') && !path.isAbsolute(relativeToRepo))) abort('El respaldo debe guardarse fuera del repositorio.');
   if (fs.existsSync(outputDir) && fs.readdirSync(outputDir).length) abort('La carpeta de salida debe estar vacía.');
 
-  run('npx', ['supabase', '--version']);
+  const cliVersion = run('npx', ['supabase', '--version']).trim().split(/\r?\n/).pop();
   run('age', ['--version']);
   run('tar', ['--version']);
+  // Docker lo usa la CLI de Supabase para el volcado de la base (pg_dump).
+  if (exec('docker', ['version', '--format', '{{.Server.Version}}']).status !== 0) abort('Docker no responde. Abre Docker Desktop y espera a que diga «Engine running».');
+  if (!dryRun && !process.env.SUPABASE_DB_PASSWORD) abort('Define la contraseña de la base de datos en SUPABASE_DB_PASSWORD (ver docs/SMYL_RESPALDOS.md). No la escribas en archivos.');
+
+  // La CLI cambió de --linked (2.x) a --remote (3.x) para apuntar al proyecto enlazado: se detecta cuál entiende la instalada.
+  const dumpHelp = exec('npx', ['supabase', 'db', 'dump', '--help']);
+  const dumpHelpText = `${dumpHelp.stdout || ''}\n${dumpHelp.stderr || ''}`;
+  const TARGET = /--linked\b/.test(dumpHelpText) ? '--linked' : /--remote\b/.test(dumpHelpText) ? '--remote' : '--linked';
+  // Los comandos de Storage son «experimentales» en algunas versiones: si fallan sin la bandera, se reintenta con ella.
+  let experimental = false;
+  const storageCmd = (...rest) => ['supabase', ...(experimental ? ['--experimental'] : []), 'storage', ...rest];
+  let listing = exec('npx', storageCmd('ls', TARGET, 'ss:///'));
+  if (listing.status !== 0) {
+    experimental = true;
+    const retry = exec('npx', storageCmd('ls', TARGET, 'ss:///'));
+    if (retry.status !== 0) { experimental = false; abort(`supabase storage ls falló (CLI ${cliVersion}).\n${failureDetail(retry)}`); }
+    listing = retry;
+  }
   // Falla cerrado si el proyecto tiene buckets que este script no cubre (p. ej. uno nuevo creado en el panel).
-  const remoteBuckets = run('npx', ['supabase', 'storage', 'ls', '--linked', 'ss:///'])
+  const remoteBuckets = (listing.stdout || '')
     .split('\n').map((line) => line.trim().replace(/\/+$/, '')).filter((line) => /^[a-z0-9][a-z0-9_-]*$/i.test(line));
   const unlisted = remoteBuckets.filter((name) => !BUCKETS.includes(name));
   if (unlisted.length && process.env.SMYL_BACKUP_ALLOW_UNLISTED !== '1') {
     abort(`El proyecto tiene buckets sin respaldo: ${unlisted.join(', ')}. Agrégalos a BUCKETS (o define SMYL_BACKUP_ALLOW_UNLISTED=1 sabiéndolo).`);
   }
   if (dryRun) {
-    console.log(JSON.stringify({ ok: true, mode: 'dry-run', encrypted: true, source: 'linked-project', buckets: BUCKETS.length, remote_buckets: remoteBuckets.length, unlisted }, null, 2));
+    console.log(JSON.stringify({ ok: true, mode: 'dry-run', encrypted: true, source: 'linked-project', cli: cliVersion, project_flag: TARGET, storage_experimental: experimental, buckets: BUCKETS.length, remote_buckets: remoteBuckets.length, unlisted }, null, 2));
     process.exit(0);
   }
 
@@ -83,9 +111,9 @@ try {
     const storageDir = path.join(plain, 'storage');
     fs.mkdirSync(storageDir, { recursive: true });
     const dumps = [
-      ['roles.sql', ['supabase', 'db', 'dump', '--linked', '--role-only', '--file']],
-      ['schema.sql', ['supabase', 'db', 'dump', '--linked', '--file']],
-      ['data.sql', ['supabase', 'db', 'dump', '--linked', '--data-only', '--use-copy', '--exclude', 'storage.buckets_vectors', '--exclude', 'storage.vector_indexes', '--file']],
+      ['roles.sql', ['supabase', 'db', 'dump', TARGET, '--role-only', '--file']],
+      ['schema.sql', ['supabase', 'db', 'dump', TARGET, '--file']],
+      ['data.sql', ['supabase', 'db', 'dump', TARGET, '--data-only', '--use-copy', '--exclude', 'storage.buckets_vectors', '--exclude', 'storage.vector_indexes', '--file']],
     ];
     for (const [name, args] of dumps) run('npx', [...args, path.join(plain, name)]);
 
@@ -93,7 +121,7 @@ try {
     for (const bucket of BUCKETS) {
       const destination = path.join(storageDir, bucket);
       fs.mkdirSync(destination, { recursive: true });
-      run('npx', ['supabase', 'storage', 'cp', '--linked', '--recursive', `ss:///${bucket}`, destination]);
+      run('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, destination));
       const files = listFiles(destination);
       storageCounts[bucket] = { objects: files.length, bytes: files.reduce((sum, file) => sum + fs.statSync(file).size, 0) };
     }
@@ -110,7 +138,7 @@ try {
       artifacts.push({ name: encryptedName, bytes: fs.statSync(encrypted).size, sha256: sha256(encrypted) });
     }
     const manifest = {
-      schema: 1, created_at: new Date().toISOString(), source: 'supabase-linked-project',
+      schema: 1, created_at: new Date().toISOString(), source: 'supabase-linked-project', cli: cliVersion,
       encryption: 'age-x25519', plaintext_in_bundle: false, buckets: BUCKETS, artifacts, storage: storageCounts,
     };
     fs.writeFileSync(path.join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });

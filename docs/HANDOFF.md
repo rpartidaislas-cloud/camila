@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-09 — Claude: respaldo cifrado compatible con la CLI real de Supabase (2.x y 3.x)
+
+Al probar el primer respaldo real en Windows falló `supabase storage ls`: la CLI exige **`--experimental`** para los comandos de Storage y el script no lo usaba (la prueba con una CLI simulada lo había ocultado).
+Además la CLI 3.x cambió `--linked` por `--remote`. `scripts/create-encrypted-backup.mjs` ahora detecta ambas cosas, comprueba que **Docker** responda, exige `SUPABASE_DB_PASSWORD` en el respaldo real (nunca en archivos) y **muestra el motivo** de cualquier fallo de la CLI (ocultando la contraseña).
+El `--dry-run` informa `cli`, `project_flag` y `storage_experimental`. Verificado además contra la CLI 3.1.0 real (error esperado «proyecto no enlazado» tras reintentar con `--experimental`).
+Pruebas: `tests/backup-behaviour.test.mjs` (10) cubre modo 2.x, 3.x, reintento experimental, Docker caído, contraseña ausente y no filtrada. Guía actualizada en `docs/SMYL_RESPALDOS.md` (rutas sin espacios, contraseña con `Read-Host`).
+
 ## 2026-11-09 — Codex — WhatsApp v4: espacio operativo con identidad de canal
 
 - El área de WhatsApp deja la cuadrícula de tarjetas equivalentes y se organiza en tres bloques consecutivos: cuenta, uso dentro de SMYL y herramientas. La cuenta real conserva sus estados y acción existentes; no cambian OAuth, credenciales, permisos, persistencia ni backend.
