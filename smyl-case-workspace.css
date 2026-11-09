@@ -98,6 +98,10 @@
 @media(max-width:420px){
   .cw-command{padding:16px}.cw-command-copy h2{font-size:18px}.cw-summary{gap:10px}.cw-module-title{flex-basis:calc(100% - 54px)}.cw-badge{margin-left:50px}.cw-evaluation-title small,.cw-subtitle{display:none}.cw-evaluation-head{gap:9px}.cw-part-badge{margin-left:41px}
 }
+
+/* Cola radiografica v4.5 · duplicados visibles y retiro sin perder historia. */
+.cw-enhanced .cw-radiograph-status[data-tone=duplicate]{border:1px solid #e9c98e;background:#fff5df;color:#805a10}.cw-enhanced .cw-radiograph-card-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;width:100%;margin-top:auto}.cw-enhanced .cw-radiograph-card-actions>button{min-height:38px;margin:0;padding:7px 10px}.cw-enhanced .cw-radiograph-card-actions>button:first-child{border-color:#cfdbe5;background:#fff;color:var(--cw-ink)}.cw-enhanced .cw-radiograph-card-actions .cw-radiograph-remove{border-color:#e0b6b2;background:#fff;color:#913630}.cw-enhanced .cw-radiograph-card-actions .cw-radiograph-remove:hover{background:#fff2f1}
+@media(max-width:760px){.cw-enhanced .cw-radiograph-card-actions{grid-template-columns:1fr}.cw-enhanced .cw-radiograph-card-actions>button{width:100%;min-height:44px}}
 @media(prefers-reduced-motion:reduce){.cw-workspace *{scroll-behavior:auto!important}}
 
 /* Tratamiento v3.5 · interpretación asistida por archivo compatible. */

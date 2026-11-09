@@ -45,7 +45,7 @@ test('simulaciones tiene un espacio independiente y una advertencia visual clara
 test('la simplificación se distribuye en web, móvil y PWA', () => {
   assert.match(app, /smyl-patient-360\.css\?v=17/);
   assert.match(app, /smyl-patient-360\.js\?v=25/);
-  assert.match(app, /smyl-case-workspace\.js\?v=26/);
+  assert.match(app, /smyl-case-workspace\.js\?v=27/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));
