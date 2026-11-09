@@ -20,6 +20,7 @@
     'messages.manage': 'Organizar chat y asistente',
     'finance.read': 'Consultar finanzas', 'finance.manage': 'Gestionar cobros',
     'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
+    'catalog.manage': 'Gestionar servicios', 'catalog.prices': 'Cambiar precios',
     'settings.manage': 'Administrar configuración'
   };
   var PERMISSION_GROUPS = [
@@ -27,6 +28,7 @@
     { name: 'Pacientes y atención', keys: ['patients.read', 'patients.manage', 'clinical.read', 'clinical.write', 'clinical.approve'] },
     { name: 'Agenda', keys: ['schedule.read', 'schedule.manage'] },
     { name: 'Cotizaciones', keys: ['proposal.read', 'proposal.write', 'proposal.approve', 'proposal.followup'] },
+    { name: 'Servicios y tarifas', keys: ['catalog.manage', 'catalog.prices'] },
     { name: 'Mensajes', keys: ['messages.read', 'messages.respond', 'messages.manage'] },
     { name: 'Caja e inventario', keys: ['finance.read', 'finance.manage', 'inventory.read', 'inventory.manage'] }
   ];
