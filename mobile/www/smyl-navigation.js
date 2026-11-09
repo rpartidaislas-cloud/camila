@@ -335,10 +335,6 @@
     var preview = training && training.querySelector('.connections-preview');
     if (!shell || !flow || !grid || !training || !safety || !preview || shell.querySelector('.connections-tabs')) return;
 
-    var intro = document.createElement('div');
-    intro.className = 'connections-workspace-intro';
-    intro.innerHTML = '<div><span>CONFIGURACIÓN DE COMUNICACIÓN</span><strong>Un espacio para cada canal.</strong></div><p>Conexión, herramientas y automatizaciones sin mezclar configuraciones.</p>';
-
     var workspace = document.createElement('div');
     workspace.className = 'connections-workspace';
     var tabs = document.createElement('nav');
@@ -347,19 +343,29 @@
     var paneHost = document.createElement('div');
     paneHost.className = 'connections-pane-host';
     var entries = [
-      ['channels','Resumen','R'],
-      ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">'],
-      ['messenger','Messenger','M'],
-      ['instagram','Instagram','I'],
-      ['assistant','SMYL Asistente','A'],
-      ['templates','Plantillas','P'],
-      ['automations','Automatizaciones','⌁'],
-      ['lab','Probar al asistente','T']
+      ['channels','Estado','R','general'],
+      ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">','channels'],
+      ['messenger','Messenger','M','channels'],
+      ['instagram','Instagram','I','channels'],
+      ['assistant','SMYL Asistente','A','tools'],
+      ['templates','Plantillas','P','tools'],
+      ['automations','Automatizaciones','⌁','tools'],
+      ['lab','Probar al asistente','T','tools']
     ];
+    var groupLabels = { general: 'General', channels: 'Canales', tools: 'Herramientas' };
+    var lastGroup = '';
     entries.forEach(function (entry, index) {
+      if (entry[3] !== lastGroup) {
+        var group = document.createElement('span');
+        group.className = 'connections-tab-group-label';
+        group.textContent = groupLabels[entry[3]];
+        tabs.append(group);
+        lastGroup = entry[3];
+      }
       var button = document.createElement('button');
       button.type = 'button';
       button.dataset.connectionTab = entry[0];
+      button.dataset.connectionGroup = entry[3];
       button.setAttribute('aria-selected', String(index === 0));
       button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : '') + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>';
       tabs.append(button);
@@ -368,7 +374,7 @@
     var overviewPane = document.createElement('section');
     overviewPane.className = 'connections-pane connections-overview-pane';
     overviewPane.dataset.connectionPane = 'channels';
-    overviewPane.innerHTML = '<header class="connections-pane-head"><span>RESUMEN</span><h2>Canales de la clínica</h2><p>Activa la infraestructura y abre cada canal para completar sus herramientas.</p></header>';
+    overviewPane.innerHTML = '<header class="connections-pane-head"><span>ESTADO</span><h2>Canales de la clínica</h2><p>Activa la mensajería y conecta cada cuenta.</p></header>';
     var infrastructure = grid.querySelector('.connections-card-main');
     var channelCard = grid.querySelector('.connections-card:not(.connections-card-main)');
     var retry = channelCard && channelCard.querySelector('[data-channel-retry]');
@@ -393,9 +399,9 @@
       var brand = name === 'whatsapp'
         ? '<span class="connections-channel-brand" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span>'
         : '<span class="connections-channel-brand connections-channel-brand--letter" aria-hidden="true">' + name.charAt(0).toUpperCase() + '</span>';
-      pane.innerHTML = '<header class="connections-pane-head connections-channel-head"><div class="connections-channel-identity">' + brand + '<div><span>CANAL DE MENSAJERÍA</span><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></div></div><span class="connections-platform-label">Meta Business</span></header>' +
-        '<section class="connections-channel-control"><div class="connections-channel-account"><header><span>CUENTA</span><h3>Conexión del canal</h3><p>Conecta la cuenta de la clínica. SMYL protege las credenciales.</p></header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
-        '<aside class="connections-channel-scope"><div><span>USO EN SMYL</span><h3>Disponible para la clínica</h3><p>Asigna el canal por sucursal y responsable sin compartir accesos.</p></div><dl><div><dt>Sucursales</dt><dd>Todas</dd></div><div><dt>Responsables</dt><dd>Según asignación</dd></div></dl></aside></section>' +
+      pane.innerHTML = '<header class="connections-pane-head connections-channel-head"><div class="connections-channel-identity">' + brand + '<div><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></div></div><span class="connections-platform-label" data-channel-pane-status data-state="pending">Sin conectar</span></header>' +
+        '<section class="connections-channel-control"><div class="connections-channel-account"><header><span>ESTADO</span><h3>Cuenta de la clínica</h3><p>La conexión se autoriza en Meta. SMYL no recibe contraseñas.</p></header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
+        '<aside class="connections-channel-scope"><div><span>ALCANCE</span><h3 data-channel-scope-title>Se configura al conectar</h3><p data-channel-scope-copy>Primero conecta la cuenta. Después podrás revisar su alcance y herramientas.</p></div><dl><div><dt>Modo</dt><dd data-channel-mode>Pendiente</dd></div><div><dt>Historial</dt><dd data-channel-history>Pendiente</dd></div></dl></aside></section>' +
         '<section class="connections-channel-tools"><header><div><span>HERRAMIENTAS</span><h3>¿Qué quieres configurar?</h3></div><p>Cada ajuste tiene su propio espacio.</p></header><div data-channel-tools="' + name + '"></div></section>';
       var row = channelCard && channelCard.querySelector('[data-channel-row="' + name + '"]');
       var slot = pane.querySelector('[data-channel-slot="' + name + '"]');
@@ -430,7 +436,7 @@
     labPane.append(preview);
 
     grid.remove();
-    shell.querySelector('.connections-hero').after(intro, workspace);
+    shell.querySelector('.connections-hero').after(workspace);
     workspace.append(tabs, paneHost);
 
     function tool(label, copy, target, action, icon) {
@@ -438,7 +444,10 @@
       button.type = 'button';
       button.className = 'connections-tool-card';
       button.dataset.selectWorkspace = target;
-      button.innerHTML = '<span class="connections-tool-icon" aria-hidden="true">' + icon + '</span><span class="connections-tool-copy"><h3>' + label + '</h3><p>' + copy + '</p></span><em>' + action + '<span aria-hidden="true">→</span></em>';
+      button.dataset.requiresChannel = 'true';
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+      button.innerHTML = '<span class="connections-tool-icon" aria-hidden="true">' + icon + '</span><span class="connections-tool-copy"><h3>' + label + '</h3><p>' + copy + '</p><small data-tool-state>Conecta el canal</small></span><em>' + action + '<span aria-hidden="true">→</span></em>';
       return button;
     }
     shell.querySelectorAll('[data-channel-tools]').forEach(function (host) {
