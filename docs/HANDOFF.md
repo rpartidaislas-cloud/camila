@@ -10537,3 +10537,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Antes el campo «Escribir precio» solo salía en servicios activos **sin** precio; los que ya tenían precio lo mostraban como texto, y la diferencia confundía. Ahora todo servicio activo muestra su precio como campo editable (`smyl-service-catalog.js` v6 / `smyl-service-catalog-stage1.css` v4) cuando el usuario tiene «Gestionar servicios» + «Cambiar precios».
 - Con precio escrito el campo es normal (sin el punteado ámbar de «falta»); vacío mantiene el punteado. Dejarlo vacío en un servicio que ya tenía precio restaura el valor (no lo borra); escribir el mismo valor no guarda; cambiarlo guarda solo `reference_price`.
 - Quien no tiene «Cambiar precios» sigue viendo texto. Sin cambios de base de datos. CACHE `...-catalog-inline-price-v1`, copias en `mobile/www/`.
+
+## 2026-11-09 — Codex — Dashboard Operativo SMYL v2
+
+- Inicio deja de repetir «requiere atención» en la cabecera, una franja métrica y la tarjeta de prioridades. La cabecera resume la jornada una sola vez y `Atención requerida` conserva el contador y el detalle accionable.
+- Se fijan cuatro señales estables —`Citas hoy`, `En clínica`, `Solicitudes` y `Mensajes`— para que los ceros también informen. Ya no aparece una tarjeta enorme de pendiente genérico cuando las demás métricas están vacías.
+- La composición pasa a una mesa de trabajo: cabecera de mando compacta, rail de indicadores, `Mi jornada` y `Atención requerida` en dos columnas, conversaciones recientes a todo el ancho y resumen mensual secundario.
+- La agenda vacía ocupa una sola franja con `Crear cita`; una caída temporal de Mensajes se muestra como estado recuperable con `Reintentar`, sin parecer un módulo roto.
+- Se añade `smyl-dashboard-v2.css?v=1` como capa aislada posterior a la plantilla global. No modifica otros módulos, datos, permisos ni backend. `smyl-daily-home.js` sube a v15 y el caché PWA termina en `dashboard-operativo-v2`.
+- La nueva capa no añade microtexto inferior a 12 px, mantiene foco visible, controles táctiles y layouts específicos para escritorio, tableta y móvil. `mobile/www` queda sincronizado mediante `mobile/scripts/sync-web.js`.
+- QA visual aprobada en Chromium a 1440, 1024, 820, 390 y 320 px, más un escenario de agenda vacía/inbox no disponible. Suite completa: 1,337 pruebas; 1,287 aprobadas, 50 omitidas, 0 fallidas.

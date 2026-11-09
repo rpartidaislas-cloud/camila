@@ -78,6 +78,7 @@ copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
 copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
 copyFile(path.join(ROOT, 'smyl-daily-home.js'), path.join(WWW, 'smyl-daily-home.js'));
 copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home.css'));
+copyFile(path.join(ROOT, 'smyl-dashboard-v2.css'), path.join(WWW, 'smyl-dashboard-v2.css'));
 copyFile(path.join(ROOT, 'smyl-clinic-setup.js'), path.join(WWW, 'smyl-clinic-setup.js'));
 copyFile(path.join(ROOT, 'smyl-clinic-setup.css'), path.join(WWW, 'smyl-clinic-setup.css'));
 copyFile(path.join(ROOT, 'smyl-inventory.js'), path.join(WWW, 'smyl-inventory.js'));
