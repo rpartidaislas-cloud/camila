@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-09 — Codex — Corte de caja multimetodo v1
+
+- La ventana de cierre deja de pedir solamente efectivo y presenta una conciliación profesional por **efectivo, tarjeta, transferencia, cheque y otros**. Cada fila muestra lo esperado por SMYL, lo contado o reportado por el equipo y su diferencia.
+- El corte muestra apertura, hora exacta de cierre y duración; permite distinguir **cierre de turno** y **cierre del día**. El efectivo incluye un desglose opcional por denominaciones que calcula el total contado.
+- Si existe cualquier diferencia se exige seleccionar un motivo antes de confirmar. El cierre conserva en las notas de auditoría el esperado, reportado y diferencia de cada método, el tipo de cierre, el motivo y las notas, utilizando el RPC financiero vigente; no se cambió ni aplicó esquema de base de datos.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=30`, CSS `v=24` y caché `cash-reconciliation-v1`. La ventana se verificó en 1280×900 y 390×844 sin desbordes y con controles móviles de 44 px.
+- Verificación: prueba focalizada de conciliación 4/4, recorrido Playwright escritorio/móvil y suite completa de 1,341 pruebas (1,291 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos). Capturas en `artifacts/cash-reconciliation-v1/`.
+- Pendiente para backend, después de confirmar un respaldo real correcto: si se desea consulta estructurada por método en reportes, crear campos/RPC propios en una migración revisada. La interfaz publicada no depende de esa ampliación.
+
 ## 2026-11-09 — Claude: respaldo cifrado compatible con la CLI real de Supabase (2.x y 3.x)
 
 Al probar el primer respaldo real en Windows falló `supabase storage ls`: la CLI exige **`--experimental`** para los comandos de Storage y el script no lo usaba (la prueba con una CLI simulada lo había ocultado).
