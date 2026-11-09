@@ -32,7 +32,7 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
 
 test('Canales e IA tiene un espacio por canal y herramientas compartidas', () => {
   assert.match(nav, /\['channels','Resumen','R'\]/);
-  assert.match(nav, /\['whatsapp','WhatsApp','W'\]/);
+  assert.match(nav, /\['whatsapp','WhatsApp','<img src="icons\/brands\/whatsapp\.svg" alt="">'\]/);
   assert.match(nav, /\['messenger','Messenger','M'\]/);
   assert.match(nav, /\['instagram','Instagram','I'\]/);
   assert.match(nav, /\['assistant','SMYL Asistente','A'\]/);
@@ -51,4 +51,5 @@ test('web y PWA cargan la arquitectura centralizada', () => {
   assert.match(app, /smyl-navigation\.css\?v=(?:[5-9]|[1-9][0-9])/);
   assert.match(sw, /smyl-v263-lana-connection-recovery/);
   assert.match(sw, /smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);
+  assert.match(sw, /icons\/brands\/whatsapp\.svg/);
 });
