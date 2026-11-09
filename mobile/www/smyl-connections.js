@@ -26,8 +26,8 @@
   function pageMarkup() {
     return '<div class="connections-shell">' +
       '<header class="connections-hero"><div><p class="pro-eyebrow">COMUNICACIÓN CON PACIENTES</p>' +
-      '<h1>Tus canales y tu asistente,<br>dentro de SMYL.</h1>' +
-      '<p>Conecta WhatsApp, Messenger e Instagram, define cómo debe responder SMYL Asistente y entrega la conversación a tu equipo cuando haga falta.</p></div>' +
+      '<h1>Canales y automatizaciones</h1>' +
+      '<p>Conecta cada cuenta, configura sus herramientas y define cuándo debe intervenir tu equipo.</p></div>' +
       '<div class="connections-status-card" role="status" aria-live="polite" aria-atomic="true"><span class="connections-status-label">ESTADO</span>' +
       '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status>Cargando…</strong></div>' +
       '<p data-lana-summary>Comprobando la configuración de esta clínica.</p><small data-lana-verified></small></div></header>' +

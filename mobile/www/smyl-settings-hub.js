@@ -1,7 +1,7 @@
-/* SMYL · Configuración: un solo lugar con las secciones en el mismo orden que el panel de LANA
-   (Negocio, Ventas y cobros, Catálogo, Canales y Experiencia) más Seguridad y lanzamiento.
-   Es solo un índice: cada tarjeta lleva a la pantalla que ya existe y no cambia ningún dato.
-   Los avisos de estado son de solo lectura y salen de las verificaciones de «Configura tu clínica». */
+/* SMYL · Configuración: centro administrativo por tarea.
+   Cada tarjeta lleva a la pantalla que ya existe y no cambia ningún dato. Canales abre un
+   espacio propio por cuenta para que conexión, herramientas y automatizaciones no se mezclen.
+   Los avisos de estado son de solo lectura y salen de verificaciones reales. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(null);
   else root.SmylSettingsHub = factory(root);
@@ -12,37 +12,44 @@
 
   // `check` enlaza una tarjeta con una verificación; `soon` marca lo que todavía no existe en SMYL.
   var SECTIONS = [
-    { id: 'negocio', title: 'Negocio', blurb: 'Los datos de tu clínica, tu equipo y tu plan.', items: [
-      { title: 'Sucursales, sillones y horario', desc: 'Dónde atiendes, en qué espacios y a qué hora.', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
-      { title: 'Equipo y roles', desc: 'Quién entra a tu cuenta y qué puede ver o hacer cada persona.', route: 'clinica', embed: true, target: '[data-ca-tab="equipo"]' },
-      { title: 'Mi cuenta y plan', desc: 'Tus datos personales y cuánto llevas usado de tu plan.', route: 'mi-cuenta' },
-      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas. Se administra dentro de Cobros.', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' }
+    { id: 'clinica', title: 'Clínica', blurb: 'Identidad, sedes y experiencia del paciente.', items: [
+      { title: 'Sucursales y espacios', desc: 'Direcciones, sillones, consultorios y horario de cada sede.', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
+      { title: 'Marca y experiencia', desc: 'Nombre, colores y mensaje del espacio que ven tus pacientes.', route: 'sim-config' },
+      { title: 'Directorio profesional', desc: 'Perfil público para recibir solicitudes de cita.', route: 'directorio' }
     ] },
-    { id: 'cobros', title: 'Ventas y cobros', blurb: 'Cómo cobras y cómo ves lo que te deben.', items: [
+    { id: 'equipo', title: 'Equipo', blurb: 'Personas, invitaciones y permisos.', items: [
+      { title: 'Profesionales y roles', desc: 'Invita al equipo y define qué puede ver o hacer cada persona.', route: 'clinica', embed: true, target: '[data-ca-tab="equipo"]' },
+      { title: 'Mi cuenta', desc: 'Tus datos personales y preferencias de acceso.', route: 'mi-cuenta' }
+    ] },
+    { id: 'agenda', title: 'Agenda', blurb: 'Disponibilidad, calendarios y avisos de cita.', items: [
+      { title: 'Horarios y servicios', desc: 'Quién atiende, dónde y en qué horarios.', route: 'agenda', target: '[data-schedule-tab="settings"]' },
+      { title: 'Google Calendar', desc: 'Conecta el calendario profesional y revisa cambios externos.', route: 'agenda', target: '#schedule-google-calendar' },
+      { title: 'Confirmaciones', desc: 'Revisa solicitudes que todavía necesitan horario o aprobación.', route: 'agenda', target: '[data-schedule-tab="requests"]' },
+      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' }
+    ] },
+    { id: 'catalogo', title: 'Catálogo', blurb: 'Servicios, precios y materiales.', items: [
+      { title: 'Servicios y tarifas', desc: 'Tratamientos, duración, precio y claves fiscales.', route: 'precios', check: 'services' },
+      { title: 'Materiales e inventario', desc: 'Existencias, compras y material utilizado por tratamiento.', route: 'inventario' }
+    ] },
+    { id: 'canales', title: 'Canales', blurb: 'Cada canal tiene su conexión, herramientas y automatizaciones.', items: [
+      { title: 'WhatsApp Business', desc: 'Número, conexión, plantillas y herramientas de atención.', route: 'conexiones', target: '[data-connection-tab="whatsapp"]', check: 'whatsapp' },
+      { title: 'Messenger', desc: 'Cuenta de Facebook, asistente y pruebas del canal.', route: 'conexiones', target: '[data-connection-tab="messenger"]' },
+      { title: 'Instagram', desc: 'Mensajes directos, asistente y estado de la cuenta.', route: 'conexiones', target: '[data-connection-tab="instagram"]' },
+      { title: 'SMYL Asistente', desc: 'Información, tono y reglas con las que responde.', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
+      { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados para citas, cobros y seguimiento.', route: 'plantillas', check: 'template' },
+      { title: 'Automatizaciones', desc: 'Recordatorios, entrega al equipo y reglas compartidas.', route: 'conexiones', target: '[data-connection-tab="automations"]' },
+      { title: 'Probar al asistente', desc: 'Escribe como paciente y revisa la respuesta antes de activar.', route: 'conexiones', target: '[data-connection-tab="lab"]' }
+    ] },
+    { id: 'cobros', title: 'Cobros', blurb: 'Pagos, anticipos y datos fiscales.', items: [
       { title: 'Cobros y pagos', desc: 'Pagos recibidos, recibos y reembolsos.', route: 'caja', embed: true, target: '[data-finance-tab="payments"]' },
       { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
+      { title: 'Facturación', desc: 'Datos fiscales de la clínica y preparación de facturas.', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' },
       { title: 'Formas de pago y anticipo', desc: 'Qué formas de pago aceptas y cuánto pides por adelantado.', soon: true }
     ] },
-    { id: 'catalogo', title: 'Catálogo', blurb: 'Lo que ofreces: tratamientos, precios y materiales.', items: [
-      { title: 'Servicios y tarifas', desc: 'Tratamientos, duración, precio y claves fiscales.', route: 'precios', check: 'services' },
-      { title: 'Materiales e inventario', desc: 'Existencias, compras y el material que usa cada tratamiento.', route: 'inventario' },
-      { title: 'Horarios y servicios de la agenda', desc: 'Quién atiende cada tratamiento y en qué horarios.', route: 'agenda', target: '[data-schedule-tab="settings"]' }
-    ] },
-    { id: 'canales', title: 'Canales', blurb: 'Por dónde hablas con tus pacientes y cómo los atiende tu asistente.', items: [
-      { title: 'WhatsApp, Instagram y Messenger', desc: 'Conecta las cuentas con las que hablas con tus pacientes.', route: 'conexiones', target: '[data-connection-tab="channels"]', check: 'whatsapp' },
-      { title: 'Asistente de mensajes', desc: 'Cómo atiende tu asistente y qué sabe de tu clínica.', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
-      { title: 'Probar al asistente', desc: 'Escribe como paciente y revisa cómo responde antes de activarlo.', route: 'conexiones', target: '[data-connection-tab="lab"]' },
-      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita para que no falten.', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' },
-      { title: 'Perfil público de WhatsApp', desc: 'Descripción, dirección y foto con las que te ven tus pacientes.', soon: true }
-    ] },
-    { id: 'experiencia', title: 'Experiencia', blurb: 'Cómo te ven tus pacientes.', items: [
-      { title: 'Marca y simulación', desc: 'Nombre, colores y mensaje de bienvenida de tu enlace para pacientes.', route: 'sim-config' },
-      { title: 'Directorio profesional', desc: 'Tu perfil público para recibir solicitudes de cita.', route: 'directorio' },
-      { title: 'Colaboraciones', desc: 'Trabajo conjunto con otros profesionales.', route: 'colaboraciones', soon: true }
-    ] },
-    { id: 'seguridad', title: 'Seguridad y lanzamiento', blurb: 'Que todo esté protegido y listo antes de atender pacientes.', items: [
-      { title: 'Preparación operativa', desc: 'Lista de controles antes de empezar a operar.', route: 'lanzamiento' },
-      { title: 'Seguridad', desc: 'Accesos, señales y revisiones de tu cuenta.', route: 'seguridad' }
+    { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', items: [
+      { title: 'Plan y consumo', desc: 'Consulta el uso de tu plan y los límites disponibles.', route: 'mi-cuenta' },
+      { title: 'Seguridad', desc: 'Accesos, señales y revisiones de tu cuenta.', route: 'seguridad' },
+      { title: 'Preparación operativa', desc: 'Controles pendientes antes de atender pacientes.', route: 'lanzamiento' }
     ] }
   ];
 
@@ -67,11 +74,11 @@
   function save(value) { try { win.localStorage.setItem(STORE_KEY, value); } catch (_) {} }
 
   function mount() {
-    var state = { section: read() || 'negocio', services: null, loadedAt: 0, from: '', detail: null };
-    if (!SECTIONS.some(function (s) { return s.id === state.section; })) state.section = 'negocio';
+    var state = { section: read() || 'clinica', services: null, loadedAt: 0, from: '', detail: null };
+    if (!SECTIONS.some(function (s) { return s.id === state.section; })) state.section = 'clinica';
     var page = el('section', 'pantalla settings-hub'); page.id = 'p-configuracion';
     var head = el('header', 'settings-hub-head');
-    head.append(el('h1', '', 'Configuración'), el('p', '', 'Todo lo que puedes ajustar en tu clínica, en un solo lugar.'));
+    head.append(el('span', 'settings-hub-kicker', 'CENTRO ADMINISTRATIVO'), el('h1', '', 'Configuración'), el('p', '', 'Elige un área y completa una tarea a la vez.'));
     var layout = el('div', 'settings-hub-layout');
     var nav = el('nav', 'settings-hub-nav'); nav.setAttribute('aria-label', 'Secciones de configuración');
     var panel = el('section', 'settings-hub-panel'); panel.setAttribute('aria-live', 'polite');
@@ -158,7 +165,8 @@
       SECTIONS.forEach(function (section) {
         var b = el('button', 'settings-hub-nav-item'); b.type = 'button'; b.dataset.section = section.id;
         if (section.id === state.section) b.setAttribute('aria-current', 'true');
-        b.append(el('span', '', section.title));
+        var label = el('span', 'settings-hub-nav-copy'); label.append(el('strong', '', section.title), el('small', '', section.blurb));
+        b.append(label);
         var open = pendingCount(section, res, state.services);
         if (open) { var badge = el('i', 'settings-hub-badge', String(open)); badge.setAttribute('aria-label', open + (open === 1 ? ' pendiente' : ' pendientes')); b.append(badge); }
         b.addEventListener('click', function () { restoreDetail(); state.section = section.id; save(section.id); render(); });
@@ -166,7 +174,9 @@
       });
       panel.replaceChildren();
       if (state.detail) { renderDetail(current); return; }
-      var title = el('div', 'settings-hub-panel-head'); title.append(el('h2', '', current.title), el('p', '', current.blurb));
+      var title = el('div', 'settings-hub-panel-head');
+      var copy = el('div', ''); copy.append(el('span', 'settings-hub-path', 'Configuración / ' + current.title), el('h2', '', current.title), el('p', '', current.blurb));
+      title.append(copy, el('span', 'settings-hub-count', current.items.length + (current.items.length === 1 ? ' opción' : ' opciones')));
       var grid = el('div', 'settings-hub-grid');
       current.items.forEach(function (item) { grid.append(card(item)); });
       panel.append(title, grid);
@@ -219,7 +229,9 @@
   }
 
   if (win && typeof document !== 'undefined') {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    // Con `defer`, readyState puede ser «interactive»: espera un turno para que el valor
+    // exportado por la fábrica no reemplace la API montada (`open`, `refresh`).
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else setTimeout(init, 0);
   }
 
   return { SECTIONS: SECTIONS, status: status, pendingCount: pendingCount };

@@ -337,46 +337,155 @@
 
     var intro = document.createElement('div');
     intro.className = 'connections-workspace-intro';
-    intro.innerHTML = '<div><span>CONFIGURACIÓN DE COMUNICACIÓN</span><strong>Completa una tarea a la vez.</strong></div><p>Conecta tus cuentas, prepara al asistente y prueba sus respuestas en espacios separados.</p>';
-    var tabs = document.createElement('div');
+    intro.innerHTML = '<div><span>CONFIGURACIÓN DE COMUNICACIÓN</span><strong>Un espacio para cada canal.</strong></div><p>Conexión, herramientas y automatizaciones sin mezclar configuraciones.</p>';
+
+    var workspace = document.createElement('div');
+    workspace.className = 'connections-workspace';
+    var tabs = document.createElement('nav');
     tabs.className = 'connections-tabs';
-    tabs.setAttribute('role', 'tablist');
-    [['channels','Canales'],['assistant','SMYL Asistente'],['lab','Laboratorio']].forEach(function (entry, index) {
+    tabs.setAttribute('aria-label', 'Configuración de canales');
+    var paneHost = document.createElement('div');
+    paneHost.className = 'connections-pane-host';
+    var entries = [
+      ['channels','Resumen','R'],
+      ['whatsapp','WhatsApp','W'],
+      ['messenger','Messenger','M'],
+      ['instagram','Instagram','I'],
+      ['assistant','SMYL Asistente','A'],
+      ['templates','Plantillas','P'],
+      ['automations','Automatizaciones','⌁'],
+      ['lab','Probar al asistente','T']
+    ];
+    entries.forEach(function (entry, index) {
       var button = document.createElement('button');
       button.type = 'button';
       button.dataset.connectionTab = entry[0];
-      button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(index === 0));
-      button.textContent = entry[1];
+      button.innerHTML = '<span aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>';
       tabs.append(button);
     });
 
-    var channelsPane = document.createElement('section');
-    channelsPane.className = 'connections-pane';
-    channelsPane.dataset.connectionPane = 'channels';
-    flow.before(intro, tabs, channelsPane);
-    channelsPane.append(flow, grid, safety);
+    var overviewPane = document.createElement('section');
+    overviewPane.className = 'connections-pane connections-overview-pane';
+    overviewPane.dataset.connectionPane = 'channels';
+    overviewPane.innerHTML = '<header class="connections-pane-head"><span>RESUMEN</span><h2>Canales de la clínica</h2><p>Activa la infraestructura y abre cada canal para completar sus herramientas.</p></header>';
+    var infrastructure = grid.querySelector('.connections-card-main');
+    var channelCard = grid.querySelector('.connections-card:not(.connections-card-main)');
+    var retry = channelCard && channelCard.querySelector('[data-channel-retry]');
+    var boundary = channelCard && channelCard.querySelector('.connections-boundary');
+    if (infrastructure) overviewPane.append(infrastructure);
+    if (retry) overviewPane.append(retry);
+    if (boundary) overviewPane.append(boundary);
+    overviewPane.append(flow, safety);
+    paneHost.append(overviewPane);
+
+    var channelCopy = {
+      whatsapp: ['WhatsApp Business', 'Número, plantillas, recordatorios y atención de pacientes.'],
+      messenger: ['Messenger', 'Mensajes de Facebook y entrega de conversaciones al equipo.'],
+      instagram: ['Instagram', 'Mensajes directos y reglas de respuesta para la cuenta conectada.']
+    };
+    Object.keys(channelCopy).forEach(function (name) {
+      var copy = channelCopy[name];
+      var pane = document.createElement('section');
+      pane.className = 'connections-pane connections-channel-pane';
+      pane.dataset.connectionPane = name;
+      pane.hidden = true;
+      pane.innerHTML = '<header class="connections-pane-head"><span>CANAL</span><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></header>' +
+        '<div class="connections-channel-config"><article class="connections-card"><div class="connections-card-head"><div><span>CONEXIÓN</span><h2>Cuenta conectada</h2></div></div><div class="connections-channel-list" data-channel-slot="' + name + '"></div></article>' +
+        '<article class="connections-card connections-channel-scope"><div class="connections-card-head"><div><span>ALCANCE</span><h2>Uso dentro de SMYL</h2></div><span class="connections-badge">Clínica</span></div><p>La conexión pertenece a este tenant. Después podrás asignarla a una o varias sucursales sin compartir credenciales con los profesionales.</p><div class="connections-scope-row"><span>Sucursales</span><strong>Toda la clínica</strong></div><div class="connections-scope-row"><span>Responsables</span><strong>Según roles y asignación</strong></div></article></div>' +
+        '<section class="connections-channel-tools"><header><span>HERRAMIENTAS</span><h3>Configura este canal</h3></header><div data-channel-tools="' + name + '"></div></section>';
+      var row = channelCard && channelCard.querySelector('[data-channel-row="' + name + '"]');
+      var slot = pane.querySelector('[data-channel-slot="' + name + '"]');
+      if (row && slot) slot.append(row);
+      paneHost.append(pane);
+    });
+
     training.classList.add('connections-pane');
     training.dataset.connectionPane = 'assistant';
+    training.hidden = true;
+    paneHost.append(training);
+
+    var templatesPane = document.createElement('section');
+    templatesPane.className = 'connections-pane connections-tools-pane';
+    templatesPane.dataset.connectionPane = 'templates';
+    templatesPane.hidden = true;
+    templatesPane.innerHTML = '<header class="connections-pane-head"><span>WHATSAPP</span><h2>Plantillas</h2><p>Mensajes aprobados por Meta, ordenados por el momento de atención.</p></header><div class="connections-tools-grid"><article class="connections-tool-card"><span>CITAS</span><h3>Confirmaciones y cambios</h3><p>Nueva cita, confirmación, cambio de horario, rechazo y cancelación.</p></article><article class="connections-tool-card"><span>SEGUIMIENTO</span><h3>Recordatorios</h3><p>Avisos previos y mensajes posteriores a la consulta.</p></article><article class="connections-tool-card"><span>COBROS</span><h3>Pagos y anticipos</h3><p>Solicitudes, vencimientos y confirmaciones de pago.</p></article></div><button type="button" class="btn btn-primary" data-open-templates>Abrir plantillas de WhatsApp</button>';
+    paneHost.append(templatesPane);
+
+    var automationsPane = document.createElement('section');
+    automationsPane.className = 'connections-pane connections-tools-pane';
+    automationsPane.dataset.connectionPane = 'automations';
+    automationsPane.hidden = true;
+    automationsPane.innerHTML = '<header class="connections-pane-head"><span>REGLAS COMPARTIDAS</span><h2>Automatizaciones</h2><p>Define qué hace SMYL y en qué momento debe intervenir una persona.</p></header><div class="connections-tools-grid"><button type="button" class="connections-tool-card" data-open-reminders><span>AGENDA</span><h3>Recordatorios de cita</h3><p>Plantilla, anticipación y estado de los avisos.</p><em>Abrir configuración →</em></button><button type="button" class="connections-tool-card" data-select-workspace="assistant"><span>ASISTENTE</span><h3>Reglas de atención</h3><p>Qué puede responder y cuándo debe entregar la conversación.</p><em>Configurar →</em></button><button type="button" class="connections-tool-card" data-select-workspace="lab"><span>CONTROL</span><h3>Prueba antes de activar</h3><p>Simula una conversación sin escribirle a un paciente real.</p><em>Probar →</em></button></div>';
+    paneHost.append(automationsPane);
+
     var labPane = document.createElement('section');
     labPane.className = 'connections-context connections-pane connections-preview-panel';
     labPane.dataset.connectionPane = 'lab';
-    training.after(labPane);
+    labPane.hidden = true;
+    paneHost.append(labPane);
     labPane.append(preview);
 
+    grid.remove();
+    shell.querySelector('.connections-hero').after(intro, workspace);
+    workspace.append(tabs, paneHost);
+
+    function tool(label, copy, target) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'connections-tool-card';
+      button.dataset.selectWorkspace = target;
+      button.innerHTML = '<span>HERRAMIENTA</span><h3>' + label + '</h3><p>' + copy + '</p><em>Abrir →</em>';
+      return button;
+    }
+    shell.querySelectorAll('[data-channel-tools]').forEach(function (host) {
+      var name = host.dataset.channelTools;
+      if (name === 'whatsapp') host.append(tool('Plantillas', 'Citas, seguimientos y cobros aprobados por Meta.', 'templates'));
+      host.append(tool('SMYL Asistente', 'Información, tono y reglas de atención.', 'assistant'));
+      host.append(tool('Automatizaciones', 'Recordatorios y entrega al equipo.', 'automations'));
+      host.append(tool('Probar canal', 'Revisa una respuesta antes de activar.', 'lab'));
+    });
+
     function select(name) {
+      if (!paneHost.querySelector('[data-connection-pane="' + name + '"]')) name = 'channels';
       tabs.querySelectorAll('[data-connection-tab]').forEach(function (button) {
         var selected = button.dataset.connectionTab === name;
         button.setAttribute('aria-selected', String(selected));
-        button.tabIndex = selected ? 0 : -1;
       });
       shell.querySelectorAll('[data-connection-pane]').forEach(function (pane) { pane.hidden = pane.dataset.connectionPane !== name; });
+      try { window.localStorage.setItem('smyl_connections_workspace', name); } catch (_) {}
+      if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) paneHost.scrollIntoView({ block: 'start' });
     }
     tabs.addEventListener('click', function (event) {
       var button = event.target.closest('[data-connection-tab]');
       if (button) select(button.dataset.connectionTab);
     });
-    select('channels');
+    shell.addEventListener('click', function (event) {
+      var jump = event.target.closest('[data-select-workspace]');
+      if (jump) { select(jump.dataset.selectWorkspace); return; }
+      if (event.target.closest('[data-open-templates]')) { window.ir('plantillas'); return; }
+      if (event.target.closest('[data-open-reminders]')) {
+        window.ir('agenda');
+        window.setTimeout(function () {
+          var settings = document.querySelector('[data-schedule-tab="settings"]');
+          if (settings) settings.click();
+          var reminders = document.getElementById('schedule-reminders-card');
+          if (reminders) reminders.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
+    });
+    ['whatsapp','messenger','instagram'].forEach(function (name) {
+      var source = shell.querySelector('[data-channel-row="' + name + '"]');
+      var button = tabs.querySelector('[data-connection-tab="' + name + '"]');
+      if (!source || !button || !window.MutationObserver) return;
+      function syncState() { button.dataset.state = source.dataset.state || 'pending'; }
+      syncState();
+      new MutationObserver(syncState).observe(source, { attributes: true, attributeFilter: ['data-state'] });
+    });
+    var saved = 'channels';
+    try { saved = window.localStorage.getItem('smyl_connections_workspace') || 'channels'; } catch (_) {}
+    select(saved);
+    window.SmylConnectionsWorkspace = Object.freeze({ select: select });
   }
 
   // Flecha para contraer el sidebar a solo iconos; la preferencia se recuerda en este navegador.

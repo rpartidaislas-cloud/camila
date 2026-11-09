@@ -66,7 +66,12 @@
    workflowCompleted:stages.filter(s=>s.state==='completed').length,
    workflowPending:stages.filter(s=>s.state!=='completed').length,studies:ctx.doc.studies.length,rxLoaded:ctx.rxLoaded===true,
    rxReviews:(ctx.rxReviews||[]).length,rxPending:rxItems.filter(i=>i.state==='pending').length,
-   studyItems:ctx.doc.studies.map(study=>{const review=(ctx.rxReviews||[]).find(row=>row.study_id===study.id),items=review?.document.items||[],workflow=review?.document.workflow?.state||'ready',teeth=[...new Set(items.map(item=>String(item.tooth||'')).filter(tooth=>M.teeth.includes(tooth)))];return {id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',reviewed:!!review,workflow,quality:review?.document.analysis?.report?.quality||'',confirmed:items.filter(item=>item.state==='confirmed').length,pending:items.filter(item=>item.state==='pending').length,rejected:items.filter(item=>item.state==='rejected').length,teeth};}),
+   studyItems:ctx.doc.studies.map(study=>{
+    const review=(ctx.rxReviews||[]).find(row=>row.study_id===study.id),items=review?.document.items||[],workflow=review?.document.workflow?.state||'ready',report=review?.document.analysis?.report;
+    const confirmed=items.filter(item=>item.state==='confirmed').length,pending=items.filter(item=>item.state==='pending').length,rejected=items.filter(item=>item.state==='rejected').length,total=confirmed+pending+rejected,reviewedCount=confirmed+rejected;
+    const teeth=[...new Set(items.map(item=>String(item.tooth||'')).filter(tooth=>M.teeth.includes(tooth)))];
+    return {id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',reviewed:pending===0&&workflow==='completed',workflow,quality:report?.quality||'',qualityNote:typeof report?.qualityNote==='string'?report.qualityNote.slice(0,400):'',limitations:Array.isArray(report?.limitations)?report.limitations.filter(value=>typeof value==='string').slice(0,8).map(value=>value.slice(0,400)):[],confirmed,pending,rejected,total,reviewedCount,reviewRevision:Number.isInteger(review?.revision)?review.revision:0,reviewUpdatedAt:typeof review?.updated_at==='string'?review.updated_at:'',teeth};
+   }),
    rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length,
    teeth:{total:toothNotes.length,pending:toothNotes.filter(note=>note.status==='pending').length,following:toothNotes.filter(note=>note.status==='following').length,done:toothNotes.filter(note=>note.status==='done').length}};
   },map(tenant,patient,caseId){
@@ -86,7 +91,16 @@
     };
    }
    return {ready:ctx.ready&&!ctx.busy,revision:ctx.revision,teeth};
-  },openTooth(tenant,patient,tooth){
+   },toothRadiographContext(tenant,patient,tooth){
+    const ctx=active,id=String(tooth||'');if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canRead||!M.teeth.includes(id)||ctx.rxLoaded!==true)return null;
+    const studies=[];
+    for(const study of ctx.doc.studies){
+     const review=(ctx.rxReviews||[]).find(row=>row.study_id===study.id),items=(review?.document.items||[]).filter(item=>String(item.tooth||'')===id),report=review?.document.analysis?.report;
+     if(!items.length)continue;
+     studies.push({id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',quality:report?.quality||'',findings:items.map(item=>({id:item.id,state:item.state,text:typeof item.text==='string'?item.text.slice(0,500):''}))});
+    }
+    return {tooth:id,studies};
+   },openTooth(tenant,patient,tooth){
    const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canRead||!M.teeth.includes(String(tooth))||!ctx.ready||ctx.busy)return false;
    toothDialog(ctx,String(tooth));return true;
   },openStudy(tenant,patient,studyId){

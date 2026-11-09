@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Configuración y canales v2</title>
+  <link rel="stylesheet" href="../../smyl-connections.css">
+  <link rel="stylesheet" href="../../smyl-settings-hub.css">
+  <link rel="stylesheet" href="../../smyl-navigation.css">
+  <style>
+    *{box-sizing:border-box}html{background:#f4f7fa}body{margin:0;background:#f4f7fa;color:#102239;font-family:Inter,Arial,sans-serif}.qa-shell{width:min(100% - 40px,1280px);margin:auto;padding:24px 0 64px}.contenido{max-width:none!important;margin:0!important;padding:0!important}.pantalla{display:none}.pantalla.activa{display:block}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border:1px solid #cbd7d3;border-radius:9px;background:#fff;color:#244b49;font-weight:700}.btn-primary{border-color:#0d2138;background:#0d2138;color:#fff}.pro-primary-nav,.pro-mobile-nav{display:none}@media(max-width:600px){.qa-shell{width:min(100% - 24px,1280px);padding-top:14px}.btn{min-height:44px}}
+  </style>
+  <script>
+    window.TITULOS={};
+    window.ir=function(route){document.querySelectorAll('.pantalla').forEach(function(page){page.classList.toggle('activa',page.id==='p-'+route);});return true;};
+  </script>
+  <script defer src="../../smyl-connections.js"></script>
+  <script defer src="../../smyl-settings-hub.js"></script>
+  <script defer src="../../smyl-navigation.js"></script>
+</head>
+<body>
+  <main class="qa-shell"><div class="contenido"></div></main>
+  <script>
+    window.addEventListener('load',function(){
+      [['whatsapp','Clínica SMYL · +52 33 1234 5678','connected'],['messenger','Listo para conectar','pending'],['instagram','@smyl.clinic','connected']].forEach(function(item){
+        var row=document.querySelector('[data-channel-row="'+item[0]+'"]');
+        if(!row)return;
+        row.dataset.state=item[2];
+        row.querySelector('[data-channel-state]').textContent=item[1];
+        var button=row.querySelector('button');button.disabled=false;button.textContent=item[2]==='connected'?'Administrar':'Conectar';
+      });
+      var status=document.querySelector('.connections-status-card');status.dataset.state='connected';
+      document.querySelector('[data-lana-status]').textContent='Mensajería activa';
+      document.querySelector('[data-lana-summary]').textContent='Dos canales conectados y uno disponible.';
+      window.SmylSettingsHub.open('canales');
+      document.documentElement.dataset.qaReady='true';
+    });
+  </script>
+</body>
+</html>
