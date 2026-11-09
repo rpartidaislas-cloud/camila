@@ -71,6 +71,9 @@ const { chromium } = loadPlaywright();
         title: document.querySelector('[data-connection-pane="whatsapp"] h2')?.textContent.trim(),
         rows: document.querySelectorAll('[data-connection-pane="whatsapp"] [data-channel-row="whatsapp"]').length,
         tools: document.querySelectorAll('[data-connection-pane="whatsapp"] .connections-tool-card').length,
+        logo: (() => { const image = document.querySelector('[data-connection-pane="whatsapp"] .connections-channel-brand img[src*="whatsapp.svg"]'); return Boolean(image && image.complete && image.naturalWidth); })(),
+        accountLogo: (() => { const image = document.querySelector('[data-connection-pane="whatsapp"] .connections-channel-icon--whatsapp img[src*="whatsapp.svg"]'); return Boolean(image && image.complete && image.naturalWidth); })(),
+        scope: document.querySelector('[data-connection-pane="whatsapp"] .connections-channel-scope h3')?.textContent.trim(),
         minControl: Math.min(...controls.map(control => control.getBoundingClientRect().height)),
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         expectedMin: min
@@ -88,6 +91,6 @@ const { chromium } = loadPlaywright();
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  const failed = report.some(item => item.errors.length || item.settings.categories !== 7 || item.settings.rows !== 7 || item.settings.groups !== 2 || item.settings.panelTitle !== 'Canales' || item.settings.pickerValue !== 'canales' || item.settings.duplicatedTitle || !/Canales/.test(item.settings.current || '') || item.settings.overflow || item.agenda.rows !== 4 || item.agenda.groups !== 3 || item.agenda.current !== 'Agenda' || item.agenda.pickerValue !== 'agenda' || item.agenda.overflow || item.whatsapp.tabs !== 8 || item.whatsapp.visiblePanes !== 1 || item.whatsapp.title !== 'WhatsApp Business' || item.whatsapp.rows !== 1 || item.whatsapp.tools !== 4 || item.whatsapp.minControl < item.whatsapp.expectedMin - .5 || item.whatsapp.overflow || !item.automations.visible || item.automations.tools !== 3);
+  const failed = report.some(item => item.errors.length || item.settings.categories !== 7 || item.settings.rows !== 7 || item.settings.groups !== 2 || item.settings.panelTitle !== 'Canales' || item.settings.pickerValue !== 'canales' || item.settings.duplicatedTitle || !/Canales/.test(item.settings.current || '') || item.settings.overflow || item.agenda.rows !== 4 || item.agenda.groups !== 3 || item.agenda.current !== 'Agenda' || item.agenda.pickerValue !== 'agenda' || item.agenda.overflow || item.whatsapp.tabs !== 8 || item.whatsapp.visiblePanes !== 1 || item.whatsapp.title !== 'WhatsApp Business' || item.whatsapp.rows !== 1 || item.whatsapp.tools !== 4 || !item.whatsapp.logo || !item.whatsapp.accountLogo || item.whatsapp.scope !== 'Disponible para la clínica' || item.whatsapp.minControl < item.whatsapp.expectedMin - .5 || item.whatsapp.overflow || !item.automations.visible || item.automations.tools !== 3);
   if (failed) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; process.exit(); });

@@ -348,7 +348,7 @@
     paneHost.className = 'connections-pane-host';
     var entries = [
       ['channels','Resumen','R'],
-      ['whatsapp','WhatsApp','W'],
+      ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">'],
       ['messenger','Messenger','M'],
       ['instagram','Instagram','I'],
       ['assistant','SMYL Asistente','A'],
@@ -361,7 +361,7 @@
       button.type = 'button';
       button.dataset.connectionTab = entry[0];
       button.setAttribute('aria-selected', String(index === 0));
-      button.innerHTML = '<span aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>';
+      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : '') + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>';
       tabs.append(button);
     });
 
@@ -390,10 +390,13 @@
       pane.className = 'connections-pane connections-channel-pane';
       pane.dataset.connectionPane = name;
       pane.hidden = true;
-      pane.innerHTML = '<header class="connections-pane-head"><span>CANAL</span><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></header>' +
-        '<div class="connections-channel-config"><article class="connections-card"><div class="connections-card-head"><div><span>CONEXIÓN</span><h2>Cuenta conectada</h2></div></div><div class="connections-channel-list" data-channel-slot="' + name + '"></div></article>' +
-        '<article class="connections-card connections-channel-scope"><div class="connections-card-head"><div><span>ALCANCE</span><h2>Uso dentro de SMYL</h2></div><span class="connections-badge">Clínica</span></div><p>La conexión pertenece a este tenant. Después podrás asignarla a una o varias sucursales sin compartir credenciales con los profesionales.</p><div class="connections-scope-row"><span>Sucursales</span><strong>Toda la clínica</strong></div><div class="connections-scope-row"><span>Responsables</span><strong>Según roles y asignación</strong></div></article></div>' +
-        '<section class="connections-channel-tools"><header><span>HERRAMIENTAS</span><h3>Configura este canal</h3></header><div data-channel-tools="' + name + '"></div></section>';
+      var brand = name === 'whatsapp'
+        ? '<span class="connections-channel-brand" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span>'
+        : '<span class="connections-channel-brand connections-channel-brand--letter" aria-hidden="true">' + name.charAt(0).toUpperCase() + '</span>';
+      pane.innerHTML = '<header class="connections-pane-head connections-channel-head"><div class="connections-channel-identity">' + brand + '<div><span>CANAL DE MENSAJERÍA</span><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></div></div><span class="connections-platform-label">Meta Business</span></header>' +
+        '<section class="connections-channel-control"><div class="connections-channel-account"><header><span>CUENTA</span><h3>Conexión del canal</h3><p>Conecta la cuenta de la clínica. SMYL protege las credenciales.</p></header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
+        '<aside class="connections-channel-scope"><div><span>USO EN SMYL</span><h3>Disponible para la clínica</h3><p>Asigna el canal por sucursal y responsable sin compartir accesos.</p></div><dl><div><dt>Sucursales</dt><dd>Todas</dd></div><div><dt>Responsables</dt><dd>Según asignación</dd></div></dl></aside></section>' +
+        '<section class="connections-channel-tools"><header><div><span>HERRAMIENTAS</span><h3>¿Qué quieres configurar?</h3></div><p>Cada ajuste tiene su propio espacio.</p></header><div data-channel-tools="' + name + '"></div></section>';
       var row = channelCard && channelCard.querySelector('[data-channel-row="' + name + '"]');
       var slot = pane.querySelector('[data-channel-slot="' + name + '"]');
       if (row && slot) slot.append(row);
@@ -430,20 +433,20 @@
     shell.querySelector('.connections-hero').after(intro, workspace);
     workspace.append(tabs, paneHost);
 
-    function tool(label, copy, target) {
+    function tool(label, copy, target, action, icon) {
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'connections-tool-card';
       button.dataset.selectWorkspace = target;
-      button.innerHTML = '<span>HERRAMIENTA</span><h3>' + label + '</h3><p>' + copy + '</p><em>Abrir →</em>';
+      button.innerHTML = '<span class="connections-tool-icon" aria-hidden="true">' + icon + '</span><span class="connections-tool-copy"><h3>' + label + '</h3><p>' + copy + '</p></span><em>' + action + '<span aria-hidden="true">→</span></em>';
       return button;
     }
     shell.querySelectorAll('[data-channel-tools]').forEach(function (host) {
       var name = host.dataset.channelTools;
-      if (name === 'whatsapp') host.append(tool('Plantillas', 'Citas, seguimientos y cobros aprobados por Meta.', 'templates'));
-      host.append(tool('SMYL Asistente', 'Información, tono y reglas de atención.', 'assistant'));
-      host.append(tool('Automatizaciones', 'Recordatorios y entrega al equipo.', 'automations'));
-      host.append(tool('Probar canal', 'Revisa una respuesta antes de activar.', 'lab'));
+      if (name === 'whatsapp') host.append(tool('Plantillas', 'Citas, seguimientos y cobros aprobados por Meta.', 'templates', 'Administrar', '<svg viewBox="0 0 24 24"><path d="M7 3.75h7l3 3V20.25H7zM14 3.75v4h4M9.5 11h5M9.5 14.5h5"/></svg>'));
+      host.append(tool('SMYL Asistente', 'Información, tono y reglas de atención.', 'assistant', 'Configurar', '<svg viewBox="0 0 24 24"><path d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35zM18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75z"/></svg>'));
+      host.append(tool('Automatizaciones', 'Recordatorios y entrega al equipo.', 'automations', 'Configurar', '<svg viewBox="0 0 24 24"><path d="M13.2 2.75 6.75 13h5l-.95 8.25L17.25 11h-5z"/></svg>'));
+      host.append(tool('Probar canal', 'Revisa una respuesta antes de activar.', 'lab', 'Probar', '<svg viewBox="0 0 24 24"><path d="M7 5.5h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-5.5L8 18.5v-3H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z"/><path d="m10 9 4 2-4 2z"/></svg>'));
     });
 
     function select(name) {

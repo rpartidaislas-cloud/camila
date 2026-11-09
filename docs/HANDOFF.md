@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-09 — Codex — WhatsApp v4: espacio operativo con identidad de canal
+
+- El área de WhatsApp deja la cuadrícula de tarjetas equivalentes y se organiza en tres bloques consecutivos: cuenta, uso dentro de SMYL y herramientas. La cuenta real conserva sus estados y acción existentes; no cambian OAuth, credenciales, permisos, persistencia ni backend.
+- Se agregó el logotipo reconocible de WhatsApp en la navegación secundaria, la cabecera y la cuenta. El verde `#25D366` se limita a la identidad de marca; botones, foco y acciones permanecen dentro de la política azul marino de SMYL.
+- Plantillas, SMYL Asistente, Automatizaciones y Probar canal pasan a una lista operativa compacta con pictogramas, descripción y verbo específico. El texto de alcance evita lenguaje técnico y aclara que el canal se asigna por sucursal y responsable sin compartir accesos.
+- Web y `mobile/www` quedan sincronizados con `smyl-connections.js?v=17`, CSS `v=13`, `smyl-navigation.js?v=22`, CSS `v=8` y caché `whatsapp-workspace-v4`.
+- QA visual aprobada en 1280, 820, 390 y 320 px: logo cargado, una sola pantalla visible, cuatro herramientas, controles de 42/44 px y sin desbordamiento. También pasan las 14 pruebas estáticas de Configuración/Conexiones y la auditoría de navegador de seguridad en 1440, 1024 y 390 px.
+
 ## 2026-11-08 — Codex — Configuración v3: espacio administrativo profesional
 
 - Se eliminó el segundo encabezado «Configuración», el breadcrumb repetido, el contador de opciones y la cuadrícula de tarjetas equivalentes. La barra superior de la aplicación conserva el único título global.
