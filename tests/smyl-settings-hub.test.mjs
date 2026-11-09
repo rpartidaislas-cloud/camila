@@ -12,6 +12,12 @@ const hub = createRequire(import.meta.url)('../smyl-settings-hub.js');
 test('las secciones siguen las tareas administrativas de la clínica', () => {
   assert.deepEqual(hub.SECTIONS.map(s => s.id), ['clinica', 'equipo', 'agenda', 'catalogo', 'canales', 'cobros', 'cuenta']);
   assert.deepEqual(hub.SECTIONS.map(s => s.title), ['Clínica', 'Equipo', 'Agenda', 'Catálogo', 'Canales', 'Cobros', 'Cuenta y seguridad']);
+  assert.ok(hub.SECTIONS.every(section => section.icon), 'cada área necesita un icono funcional');
+  assert.ok(hub.SECTIONS.every(section => section.items.every(item => item.group && item.icon)), 'cada tarea debe pertenecer a un grupo y tener icono');
+  assert.deepEqual(hub.groupedItems(hub.SECTIONS[4]).map(group => [group.name, group.items.length]), [
+    ['Cuentas conectadas', 3],
+    ['Atención automática', 4]
+  ]);
 });
 
 test('cada pantalla de configuración que existe hoy tiene su tarjeta y nada se queda sin camino', () => {
@@ -32,7 +38,7 @@ test('los avisos de estado salen de verificaciones reales y no inventan nada si 
   const results = { hours: { done: true }, whatsapp: { done: false }, template: { done: false, waiting: true }, reminders: { unknown: true } };
   assert.deepEqual({ ...hub.status('hours', results) }, { text: 'Horario listo', tone: 'ok' });
   assert.deepEqual({ ...hub.status('whatsapp', results) }, { text: 'Sin conectar', tone: 'todo' });
-  assert.deepEqual({ ...hub.status('template', results) }, { text: 'Meta la revisa', tone: 'wait' });
+  assert.deepEqual({ ...hub.status('template', results) }, { text: 'En revisión', tone: 'wait' });
   assert.equal(hub.status('reminders', results), null, 'sin verificación no hay aviso');
   assert.equal(hub.status('hours', null), null);
   assert.equal(hub.status('services', null, null), null);
@@ -70,10 +76,24 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=5/);
-  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=4/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=5/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=4/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=6/);
+  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=5/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=6/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=5/);
+});
+
+test('el espacio evita el título duplicado y separa las tareas en grupos y filas', () => {
+  const source = read('smyl-settings-hub.js');
+  const css = read('smyl-settings-hub.css');
+  assert.doesNotMatch(source, /CENTRO ADMINISTRATIVO|Configuración \/ /);
+  assert.match(source, /settings-hub-aside/);
+  assert.match(source, /settings-hub-picker/);
+  assert.match(source, /settings-hub-group/);
+  assert.match(source, /settings-hub-row/);
+  assert.doesNotMatch(source, /settings-hub-card/);
+  assert.match(css, /grid-template-columns:244px minmax\(0,1fr\)/);
+  assert.match(css, /settings-hub-list/);
+  assert.match(css, /settings-hub-row-action/);
 });
 
 test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrecen volver a Configuración', () => {
@@ -106,10 +126,10 @@ test('Profesionales, Facturación y Recordatorios se muestran dentro de Configur
   const source = read('smyl-settings-hub.js');
   // Se reubica el mismo elemento y una marca de posición guarda su lugar para devolverlo al salir.
   assert.match(source, /document\.createComment\('settings-hub'\)/);
-  assert.match(source, /d\.mark\.parentNode\.insertBefore\(d\.node, d\.mark\)/);
+  assert.match(source, /detail\.mark\.parentNode\.insertBefore\(detail\.node, detail\.mark\)/);
   assert.match(source, /if \(route !== 'configuracion'\) restoreDetail\(\);/);
   assert.match(source, /if \(!node\) return go\(item\);/);
-  assert.match(source, /host\.append\(d\.node\)/);
+  assert.match(source, /host\.append\(detail\.node\)/);
   assert.doesNotMatch(source, /cloneNode|innerHTML\s*=/);
   // El módulo de recordatorios solo vuelve a montar su tarjeta si no existe: al estar reubicada no se duplica.
   assert.match(read('smyl-reminders.js'), /document\.getElementById\('schedule-reminders-card'\)\) return Boolean\(grid\)/);

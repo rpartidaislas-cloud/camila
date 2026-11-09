@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SMYL · Configuración y canales v2</title>
+  <title>SMYL · Configuración profesional v3</title>
   <link rel="stylesheet" href="../../smyl-connections.css">
   <link rel="stylesheet" href="../../smyl-settings-hub.css">
   <link rel="stylesheet" href="../../smyl-navigation.css">
   <style>
-    *{box-sizing:border-box}html{background:#f4f7fa}body{margin:0;background:#f4f7fa;color:#102239;font-family:Inter,Arial,sans-serif}.qa-shell{width:min(100% - 40px,1280px);margin:auto;padding:24px 0 64px}.contenido{max-width:none!important;margin:0!important;padding:0!important}.pantalla{display:none}.pantalla.activa{display:block}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border:1px solid #cbd7d3;border-radius:9px;background:#fff;color:#244b49;font-weight:700}.btn-primary{border-color:#0d2138;background:#0d2138;color:#fff}.pro-primary-nav,.pro-mobile-nav{display:none}@media(max-width:600px){.qa-shell{width:min(100% - 24px,1280px);padding-top:14px}.btn{min-height:44px}}
+    *{box-sizing:border-box}html{background:#f3f6f9}body{margin:0;background:#f3f6f9;color:#102239;font-family:Inter,Arial,sans-serif}.qa-topbar{display:flex;align-items:center;justify-content:space-between;min-height:72px;padding:0 max(20px,calc((100vw - 1280px)/2));border-bottom:1px solid #d9e2ea;background:#fff}.qa-topbar-copy{display:grid;gap:4px}.qa-topbar strong{font-size:17px}.qa-topbar small{color:#66768a;font-size:12px}.qa-alert{display:grid;place-items:center;width:40px;height:40px;border:1px solid #d6e0e8;border-radius:10px;background:#fff;color:#29455e}.qa-shell{width:min(100% - 40px,1280px);margin:auto;padding:18px 0 64px}.contenido{max-width:none!important;margin:0!important;padding:0!important}.pantalla{display:none}.pantalla.activa{display:block}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border:1px solid #cbd7d3;border-radius:9px;background:#fff;color:#244b49;font-weight:700}.btn-primary{border-color:#0d2138;background:#0d2138;color:#fff}.pro-primary-nav,.pro-mobile-nav{display:none}@media(max-width:600px){.qa-topbar{min-height:64px;padding-inline:14px}.qa-shell{width:min(100% - 20px,1280px);padding-top:10px}.btn{min-height:44px}}
   </style>
   <script>
     window.TITULOS={};
@@ -19,6 +19,7 @@
   <script defer src="../../smyl-navigation.js"></script>
 </head>
 <body>
+  <header class="qa-topbar"><div class="qa-topbar-copy"><strong>Configuración</strong><small>Todo lo que puedes ajustar en tu clínica</small></div><button class="qa-alert" type="button" aria-label="Notificaciones">●</button></header>
   <main class="qa-shell"><div class="contenido"></div></main>
   <script>
     window.addEventListener('load',function(){

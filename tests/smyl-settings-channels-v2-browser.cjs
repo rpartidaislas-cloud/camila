@@ -39,12 +39,28 @@ const { chromium } = loadPlaywright();
     }
     const settings = await page.evaluate(() => ({
       categories: document.querySelectorAll('.settings-hub-nav-item').length,
-      cards: document.querySelectorAll('.settings-hub-card').length,
+      rows: document.querySelectorAll('.settings-hub-row').length,
+      groups: document.querySelectorAll('.settings-hub-group').length,
       current: document.querySelector('.settings-hub-nav-item[aria-current="true"]')?.textContent.trim(),
+      pickerValue: document.querySelector('.settings-hub-picker-select')?.value,
+      panelTitle: document.querySelector('.settings-hub-panel-head h1')?.textContent.trim(),
+      duplicatedTitle: Array.from(document.querySelectorAll('#p-configuracion h1')).some(node => node.textContent.trim() === 'Configuración'),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
     }));
     if (process.env.SMYL_QA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.SMYL_QA_SCREENSHOTS, `settings-${item.name}.png`), fullPage: true });
-    await page.locator('.settings-hub-card').filter({ hasText: 'WhatsApp Business' }).click();
+    await page.evaluate(() => window.SmylSettingsHub.open('agenda'));
+    await page.waitForFunction(() => document.querySelector('.settings-hub-panel-head h1')?.textContent.trim() === 'Agenda');
+    const agenda = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.settings-hub-row').length,
+      groups: document.querySelectorAll('.settings-hub-group').length,
+      current: document.querySelector('.settings-hub-nav-item[aria-current="true"]')?.textContent.trim(),
+      pickerValue: document.querySelector('.settings-hub-picker-select')?.value,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+    }));
+    if (process.env.SMYL_QA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.SMYL_QA_SCREENSHOTS, `agenda-${item.name}.png`), fullPage: true });
+    await page.evaluate(() => window.SmylSettingsHub.open('canales'));
+    await page.waitForFunction(() => document.querySelector('.settings-hub-panel-head h1')?.textContent.trim() === 'Canales');
+    await page.locator('.settings-hub-row').filter({ hasText: 'WhatsApp Business' }).click();
     await page.waitForFunction(() => document.getElementById('p-conexiones')?.classList.contains('activa') && !document.querySelector('[data-connection-pane="whatsapp"]')?.hidden);
     const whatsapp = await page.evaluate(min => {
       const visible = element => element && getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0;
@@ -67,11 +83,11 @@ const { chromium } = loadPlaywright();
       tools: document.querySelectorAll('[data-connection-pane="automations"] .connections-tool-card').length
     }));
     if (process.env.SMYL_QA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.SMYL_QA_SCREENSHOTS, `channels-${item.name}.png`), fullPage: true });
-    report.push({ name: item.name, settings, whatsapp, automations, errors });
+    report.push({ name: item.name, settings, agenda, whatsapp, automations, errors });
     await context.close();
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  const failed = report.some(item => item.errors.length || item.settings.categories !== 7 || item.settings.cards !== 7 || !/Canales/.test(item.settings.current || '') || item.settings.overflow || item.whatsapp.tabs !== 8 || item.whatsapp.visiblePanes !== 1 || item.whatsapp.title !== 'WhatsApp Business' || item.whatsapp.rows !== 1 || item.whatsapp.tools !== 4 || item.whatsapp.minControl < item.whatsapp.expectedMin - .5 || item.whatsapp.overflow || !item.automations.visible || item.automations.tools !== 3);
+  const failed = report.some(item => item.errors.length || item.settings.categories !== 7 || item.settings.rows !== 7 || item.settings.groups !== 2 || item.settings.panelTitle !== 'Canales' || item.settings.pickerValue !== 'canales' || item.settings.duplicatedTitle || !/Canales/.test(item.settings.current || '') || item.settings.overflow || item.agenda.rows !== 4 || item.agenda.groups !== 3 || item.agenda.current !== 'Agenda' || item.agenda.pickerValue !== 'agenda' || item.agenda.overflow || item.whatsapp.tabs !== 8 || item.whatsapp.visiblePanes !== 1 || item.whatsapp.title !== 'WhatsApp Business' || item.whatsapp.rows !== 1 || item.whatsapp.tools !== 4 || item.whatsapp.minControl < item.whatsapp.expectedMin - .5 || item.whatsapp.overflow || !item.automations.visible || item.automations.tools !== 3);
   if (failed) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; process.exit(); });

@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Codex — Configuración v3: espacio administrativo profesional
+
+- Se eliminó el segundo encabezado «Configuración», el breadcrumb repetido, el contador de opciones y la cuadrícula de tarjetas equivalentes. La barra superior de la aplicación conserva el único título global.
+- Las siete áreas viven ahora en una sola superficie: navegación secundaria azul marino, cabecera contextual e iconos lineales. Las tareas se agrupan por propósito y se muestran como filas con estado y acciones específicas (`Configurar`, `Revisar`, `Administrar`, `Activar`), sin cambiar rutas ni fuentes de datos.
+- En tableta y móvil la navegación se convierte en un selector de área, evitando categorías activas fuera de pantalla. Se mantienen objetivos táctiles de 44 px, foco visible, reducción de movimiento y ausencia de desbordamiento a 320 px.
+- Los paneles incrustados continúan reubicando el nodo canónico y devolviéndolo a su origen; no se duplican formularios ni se modifican OAuth, conexiones, permisos, persistencia o backend.
+- Web y `mobile/www` quedan sincronizados con `smyl-settings-hub.js?v=6`, CSS `v=5` y caché `settings-workspace-v3`. La prueba visual cubre Agenda, Canales, WhatsApp y Automatizaciones en escritorio, tableta, 390 px y 320 px.
+
 ## 2026-11-08 — Codex — Centro de evidencia clínica visual v3
 
 - El selector deja de depender del posicionamiento nativo del navegador: en escritorio se abre como una ventana centrada,
