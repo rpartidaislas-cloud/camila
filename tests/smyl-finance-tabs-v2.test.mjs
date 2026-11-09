@@ -114,3 +114,22 @@ test('Servicios y tarifas: encabezado mínimo, filas limpias con interruptor y v
   assert.equal(tiny.length, 0);
   for (const f of ['smyl-service-catalog.js', 'smyl-service-catalog-stage1.css', 'app.html', 'sw.js']) assert.equal(fs.readFileSync(new URL('../mobile/www/' + f, import.meta.url), 'utf8'), fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), f);
 });
+
+test('Servicios y tarifas: «Cambiar precios» es una función de rol aplicada en pantalla y en la base', () => {
+  const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  const js = read('smyl-service-catalog.js');
+  const admin = read('smyl-clinic-admin.js');
+  const sql = read('supabase/migrations/20261109090000_smyl_catalog_price_permission.sql');
+  const wf = read('.github/workflows/smyl-catalogo-precios-migracion.yml');
+  assert.match(js, /canPrices/);
+  assert.match(js, /catalog\.prices/);
+  assert.match(js, /Tu rol no puede cambiarlo/);
+  assert.match(admin, /'catalog\.manage': 'Gestionar servicios'/);
+  assert.match(admin, /'catalog\.prices': 'Cambiar precios'/);
+  assert.match(sql, /smyl_services_price_guard/);
+  assert.match(sql, /'catalog\.manage', 'catalog\.prices'/);
+  assert.match(sql, /where rp\.permission_key = 'settings\.manage'/);
+  assert.match(wf, /workflow_dispatch/);
+  assert.match(wf, /20261109090000/);
+  assert.doesNotMatch(wf, /pull_request|push:/);
+});
