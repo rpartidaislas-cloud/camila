@@ -15,7 +15,7 @@ test('la aplicación carga el contrato antes del centro y la integración despu�
   const app = read('app.html');
   const model = app.indexOf('smyl-evidence-model.js?v=1');
   const center = app.indexOf('smyl-evidence-center.js?v=3');
-  const workspace = app.indexOf('smyl-case-workspace.js?v=25');
+  const workspace = app.indexOf('smyl-case-workspace.js?v=26');
   const integration = app.indexOf('smyl-evidence-center-integration.js?v=2');
   assert.ok(model > -1 && model < center);
   assert.ok(center < workspace && workspace < integration);

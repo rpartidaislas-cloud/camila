@@ -12,7 +12,8 @@ const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('cada imagen compatible muestra el avance de su revisión asistida', () => {
   assert.match(dental, /workflow=review\?\.document\.workflow\?\.state\|\|'ready'/);
-  assert.match(dental, /quality:review\?\.document\.analysis\?\.report\?\.quality/);
+  assert.match(dental, /report=review\?\.document\.analysis\?\.report/);
+  assert.match(dental, /quality:report\?\.quality/);
   assert.match(dental, /openStudy\(tenant,patient,studyId\)/);
   for (const copy of ['IA disponible', 'por confirmar', 'Revisión completada', 'Sin resultado confirmado']) {
     assert.match(workspace, new RegExp(copy));
@@ -43,9 +44,9 @@ test('la revisión asistida se adapta a móvil y conserva estados legibles', () 
 });
 
 test('web, móvil y PWA publican la etapa 3.5', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=19/);
-  assert.match(app, /smyl-case-workspace\.css\?v=21/);
-  assert.match(app, /smyl-case-workspace\.js\?v=25/);
+  assert.match(app, /smyl-dental-record\.js\?v=20/);
+  assert.match(app, /smyl-case-workspace\.css\?v=22/);
+  assert.match(app, /smyl-case-workspace\.js\?v=26/);
   assert.match(worker, /evidence-ai-v35/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
