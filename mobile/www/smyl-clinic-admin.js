@@ -18,7 +18,7 @@
     'proposal.approve': 'Aprobar cotizaciones', 'proposal.followup': 'Dar seguimiento a cotizaciones',
     'messages.read': 'Consultar mensajes', 'messages.respond': 'Responder pacientes',
     'messages.manage': 'Organizar chat y asistente',
-    'finance.read': 'Consultar finanzas', 'finance.manage': 'Gestionar cobros',
+    'finance.read': 'Consultar finanzas', 'finance.manage': 'Gestionar cobros', 'finance.refund': 'Reembolsar y cancelar cargos',
     'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
     'catalog.manage': 'Gestionar servicios', 'catalog.prices': 'Cambiar precios',
     'settings.manage': 'Administrar configuración'
@@ -30,7 +30,7 @@
     { name: 'Cotizaciones', keys: ['proposal.read', 'proposal.write', 'proposal.approve', 'proposal.followup'] },
     { name: 'Servicios y tarifas', keys: ['catalog.manage', 'catalog.prices'] },
     { name: 'Mensajes', keys: ['messages.read', 'messages.respond', 'messages.manage'] },
-    { name: 'Caja e inventario', keys: ['finance.read', 'finance.manage', 'inventory.read', 'inventory.manage'] }
+    { name: 'Caja e inventario', keys: ['finance.read', 'finance.manage', 'finance.refund', 'inventory.read', 'inventory.manage'] }
   ];
   var DATA_SCOPES = {
     own: 'Solo propio', care_team: 'Equipo tratante', branches: 'Sucursales asignadas', clinic: 'Toda la clínica'

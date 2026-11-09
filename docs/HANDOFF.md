@@ -10501,3 +10501,10 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Valor por omisión:** solo los roles con `settings.manage` reciben ambas funciones; Recepción/Odontólogo no tienen ninguna hasta que la clínica se las dé.
 - **Propuesto, no hecho:** extender la política a descuentos, reembolsos, cancelar cargos, revisión fiscal y precios en lote.
 - Pruebas: `smyl-finance-tabs-v2` ampliada y versiones fijadas actualizadas. CACHE `...-catalog-roles-v1`, copias en `mobile/www/`.
+
+## 2026-11-09 — Claude Code — Política de roles, pieza 2: «Reembolsar y cancelar cargos»
+- Nueva función de rol `finance.refund` «Reembolsar y cancelar cargos» (Mi clínica → Equipo → Editar rol, grupo «Caja e inventario»; `smyl-clinic-admin.js` v10). Antes quien podía cobrar (`finance.manage`) también podía devolver dinero o anular un cargo.
+- **Pantalla** (`smyl-finance.js` v29): el botón «Reembolsar» de Pagos solo aparece con `finance.manage` + `finance.refund`; `openRefund` también lo comprueba. Si ningún rol de la clínica tiene aún `finance.refund` (migración sin aplicar), quien tiene `finance.manage` conserva el acceso. La anulación de cargos (`smyl_void_charge`) no tiene botón en la interfaz; queda protegida en la base.
+- **Base** (migración `20261109100000_smyl_finance_refund_permission.sql`, manual por `smyl-reembolsos-permiso-migracion.yml`): amplía la restricción de claves, reparte `finance.refund` a todo rol con `finance.manage`, suma la clave a la siembra de Propietario/Administrador de clínicas nuevas (`smyl_seed_catalog_permissions`, requiere la migración de catálogo previa) y añade los disparadores `smyl_finance_refund_guard` (antes de insertar un reembolso) y `smyl_finance_void_guard` (antes de pasar un cargo a `voided`). Rechazan con 42501; no reescriben `smyl_refund_payment` ni `smyl_void_charge`. Sin sesión de usuario (consola, migraciones) no bloquean. Verificado en PGlite.
+- Propuesto, no hecho: descuentos con tope por rol, revisión fiscal como función propia, precios en lote.
+- Pruebas: `smyl-finance-tabs-v2` ampliada y versiones fijadas actualizadas. CACHE `...-refund-roles-v1`, copias en `mobile/www/`.
